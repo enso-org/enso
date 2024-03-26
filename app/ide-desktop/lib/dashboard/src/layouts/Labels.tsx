@@ -10,6 +10,7 @@ import * as aria from '#/components/aria'
 import Label from '#/components/dashboard/Label'
 import * as labelUtils from '#/components/dashboard/Label/labelUtils'
 import FocusArea from '#/components/styled/FocusArea'
+import FocusRing from '#/components/styled/FocusRing'
 import SvgMask from '#/components/SvgMask'
 
 import ConfirmDeleteModal from '#/modals/ConfirmDeleteModal'
@@ -26,9 +27,6 @@ import * as string from '#/utilities/string'
 // ==============
 // === Labels ===
 // ==============
-
-/** A sentinel object indicating that the "new label" button should be rendered. */
-const NEW_LABEL_OBJECT = { isNewLabel: true }
 
 /** Props for a {@link Labels}. */
 export interface LabelsProps {
@@ -66,65 +64,60 @@ export default function Labels(props: LabelsProps) {
           {...innerProps}
         >
           <div className="text-header px-sidebar-section-heading-x text-sm font-bold">Labels</div>
-          <aria.GridList
+          <div
             data-testid="labels-list"
             aria-label="Labels"
-            dependencies={[displayLabels]}
-            items={[...displayLabels, NEW_LABEL_OBJECT]}
             className="flex flex-col items-start gap-labels"
           >
-            {label => {
-              if (!('isNewLabel' in label)) {
-                const negated = currentNegativeLabels.some(term =>
-                  array.shallowEqual(term, [label.value])
-                )
-                return (
-                  <aria.GridListItem
-                    id={label.id}
-                    className="focus-child group relative flex items-center gap-label-icons rounded-full after:absolute after:inset after:rounded-full after:focus-ring-within"
+            {displayLabels.map(label => {
+              const negated = currentNegativeLabels.some(term =>
+                array.shallowEqual(term, [label.value])
+              )
+              return (
+                <div key={label.id} className="group relative flex items-center gap-label-icons">
+                  <Label
+                    draggable
+                    color={label.color}
+                    active={
+                      negated || currentLabels.some(term => array.shallowEqual(term, [label.value]))
+                    }
+                    negated={negated}
+                    isDisabled={newLabelNames.has(label.value)}
+                    onPress={event => {
+                      setQuery(oldQuery =>
+                        oldQuery.withToggled(
+                          'labels',
+                          'negativeLabels',
+                          label.value,
+                          event.shiftKey
+                        )
+                      )
+                    }}
+                    onDragStart={event => {
+                      event.stopPropagation()
+                      drag.setDragImageToBlank(event)
+                      const payload: drag.LabelsDragPayload = new Set([label.value])
+                      drag.LABELS.bind(event, payload)
+                      setModal(
+                        <DragModal
+                          event={event}
+                          doCleanup={() => {
+                            drag.LABELS.unbind(payload)
+                          }}
+                        >
+                          <Label active color={label.color} onPress={() => {}}>
+                            {label.value}
+                          </Label>
+                        </DragModal>
+                      )
+                    }}
                   >
-                    <Label
-                      draggable
-                      color={label.color}
-                      active={
-                        negated ||
-                        currentLabels.some(term => array.shallowEqual(term, [label.value]))
-                      }
-                      negated={negated}
-                      isDisabled={newLabelNames.has(label.value)}
-                      onPress={event => {
-                        setQuery(oldQuery =>
-                          oldQuery.withToggled(
-                            'labels',
-                            'negativeLabels',
-                            label.value,
-                            event.shiftKey
-                          )
-                        )
-                      }}
-                      onDragStart={event => {
-                        drag.setDragImageToBlank(event)
-                        const payload: drag.LabelsDragPayload = new Set([label.value])
-                        drag.LABELS.bind(event, payload)
-                        setModal(
-                          <DragModal
-                            event={event}
-                            doCleanup={() => {
-                              drag.LABELS.unbind(payload)
-                            }}
-                          >
-                            <Label active color={label.color} onPress={() => {}}>
-                              {label.value}
-                            </Label>
-                          </DragModal>
-                        )
-                      }}
-                    >
-                      {label.value}
-                    </Label>
-                    {!newLabelNames.has(label.value) && (
+                    {label.value}
+                  </Label>
+                  {!newLabelNames.has(label.value) && (
+                    <FocusRing>
                       <aria.Button
-                        className="focus-skip flex"
+                        className="flex"
                         onPress={() => {
                           setModal(
                             <ConfirmDeleteModal
@@ -142,37 +135,32 @@ export default function Labels(props: LabelsProps) {
                           className="size-icon text-delete transition-all transparent group-hover:active"
                         />
                       </aria.Button>
-                    )}
-                  </aria.GridListItem>
-                )
-              } else {
-                return (
-                  <aria.GridListItem id="new label">
-                    <Label
-                      color={labelUtils.DEFAULT_LABEL_COLOR}
-                      className="bg-selected-frame"
-                      onPress={event => {
-                        if (event.target instanceof HTMLElement) {
-                          setModal(
-                            <NewLabelModal
-                              labels={labels}
-                              eventTarget={event.target}
-                              doCreate={doCreateLabel}
-                            />
-                          )
-                        }
-                      }}
-                    >
-                      {/* This is a non-standard-sized icon. */}
-                      {/* eslint-disable-next-line no-restricted-syntax */}
-                      <img src={PlusIcon} className="mr-[6px] size-[6px]" />
-                      <span className="text-header">new label</span>
-                    </Label>
-                  </aria.GridListItem>
-                )
-              }
-            }}
-          </aria.GridList>
+                    </FocusRing>
+                  )}
+                </div>
+              )
+            })}
+            <Label
+              color={labelUtils.DEFAULT_LABEL_COLOR}
+              className="bg-selected-frame"
+              onPress={event => {
+                if (event.target instanceof HTMLElement) {
+                  setModal(
+                    <NewLabelModal
+                      labels={labels}
+                      eventTarget={event.target}
+                      doCreate={doCreateLabel}
+                    />
+                  )
+                }
+              }}
+            >
+              {/* This is a non-standard-sized icon. */}
+              {/* eslint-disable-next-line no-restricted-syntax */}
+              <img src={PlusIcon} className="mr-[6px] size-[6px]" />
+              <span className="text-header">new label</span>
+            </Label>
+          </div>
         </div>
       )}
     </FocusArea>

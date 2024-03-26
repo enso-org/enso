@@ -1,6 +1,10 @@
 /** @file An label that can be applied to an asset. */
 import * as React from 'react'
 
+import * as focusHooks from '#/hooks/focusHooks'
+
+import * as focusDirectionProvider from '#/providers/FocusDirectionProvider'
+
 import * as aria from '#/components/aria'
 import FocusRing from '#/components/styled/FocusRing'
 
@@ -34,6 +38,8 @@ interface InternalLabelProps extends Readonly<React.PropsWithChildren> {
 export default function Label(props: InternalLabelProps) {
   const { active = false, isDisabled = false, color, negated = false, draggable } = props
   const { className = 'text-tag-text', children, onPress, onDragStart, onContextMenu } = props
+  const focusDirection = focusDirectionProvider.useFocusDirection()
+  const handleFocusMove = focusHooks.useHandleFocusMove(focusDirection)
   const textColorClassName = /\btext-/.test(className)
     ? '' // eslint-disable-next-line @typescript-eslint/no-magic-numbers
     : color.lightness <= 50
@@ -51,14 +57,14 @@ export default function Label(props: InternalLabelProps) {
         <aria.Button
           data-testid={props['data-testid']}
           isDisabled={isDisabled}
-          className={`selectable ${
+          className={`focus-child selectable ${
             active ? 'active' : ''
           } relative flex h-text items-center whitespace-nowrap rounded-full px-label-x transition-all before:absolute before:inset before:rounded-full ${
             negated ? 'before:border-2 before:border-delete' : ''
           } ${className} ${textColorClassName}`}
           style={{ backgroundColor: backend.lChColorToCssColor(color) }}
           onPress={onPress}
-          // onKeyDown={handleFocusMove}
+          onKeyDown={handleFocusMove}
         >
           {children}
         </aria.Button>
