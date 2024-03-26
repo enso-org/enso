@@ -18,10 +18,10 @@ type Google_Sheets
 
     ## Initializes the Google Sheets instance using the given credentials file.
 
-      Arguments:
-      - secret_file: a file containing Google Service Account credentials to use to
-        access Google services. The credentials file can be downloaded from the
-        Google Admin Console when generating a key.
+       Arguments:
+       - secret_file: a file containing Google Service Account credentials to use to
+         access Google services. The credentials file can be downloaded from the
+         Google Admin Console when generating a key.
     initialize : File -> Google_Sheets
     initialize secret_file =
         app_name = 'Enso'

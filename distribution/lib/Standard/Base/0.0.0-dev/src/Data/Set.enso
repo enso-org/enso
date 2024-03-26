@@ -42,11 +42,13 @@ type Set
     empty = Set.Value Map.empty
 
     ## GROUP Conversions
+       ICON convert
        Returns a vector containing all elements of this set.
     to_vector : Vector
     to_vector self = self.underlying_map.keys
 
     ## GROUP Metadata
+       ICON metadata
        Returns the number of elements in this set.
     size : Integer
     size self = self.underlying_map.size
@@ -70,6 +72,7 @@ type Set
     contains self value = self.underlying_map.contains_key value
 
     ## GROUP Logical
+       ICON preparation
        Checks if this set contains a given value, treating Nothing as a
        relational NULL.
 
@@ -92,6 +95,7 @@ type Set
 
     ## ALIAS add
        GROUP Calculations
+       ICON row_add
        Adds a value to this set.
     insert : Any -> Set
     insert self value =
@@ -99,6 +103,7 @@ type Set
         Set.Value new_map
 
     ## GROUP Calculations
+       ICON dataframes_union
        Creates a union of the two sets.
     union : Set -> Set
     union self (other : Set) =
