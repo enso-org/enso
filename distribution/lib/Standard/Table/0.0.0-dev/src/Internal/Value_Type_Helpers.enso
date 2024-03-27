@@ -3,7 +3,7 @@ import Standard.Base.Data.Vector.No_Wrap
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
 import project.Data.Column.Column
-import project.Data.Type.Storage
+import project.Internal.Storage
 import project.Value_Type.Auto
 import project.Value_Type.Bits
 import project.Value_Type.Value_Type

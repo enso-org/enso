@@ -1,7 +1,7 @@
 from Standard.Base import all
 import Standard.Base.Errors.Common.Missing_Required_Argument
 
-import project.Data.Type.Storage
+import project.Internal.Storage
 import project.Value_Type.Bits
 import project.Value_Type.Value_Type
 

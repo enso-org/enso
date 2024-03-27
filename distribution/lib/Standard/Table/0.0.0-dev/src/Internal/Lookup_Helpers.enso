@@ -2,7 +2,7 @@ from Standard.Base import all
 import Standard.Base.Data.Vector.No_Wrap
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
-import project.Data.Type.Storage
+import project.Internal.Storage
 import project.Internal.Value_Type_Helpers
 import project.Value_Type.Value_Type
 from project.Errors import Floating_Point_Equality, Missing_Input_Columns, No_Common_Type, No_Output_Columns, Unexpected_Extra_Columns

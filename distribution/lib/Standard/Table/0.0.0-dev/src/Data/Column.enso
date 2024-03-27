@@ -15,7 +15,6 @@ from Standard.Base.Widget_Helpers import make_format_chooser, make_regex_text_wi
 
 import project.Constants.Previous_Value
 import project.Data.Table.Table
-import project.Data.Type.Storage
 import project.Data_Formatter.Data_Formatter
 import project.Internal.Cast_Helpers
 import project.Internal.Column_Naming_Helper.Column_Naming_Helper
@@ -23,6 +22,7 @@ import project.Internal.Column_Ops
 import project.Internal.Date_Time_Helpers
 import project.Internal.Java_Problems
 import project.Internal.Parse_Values_Helper
+import project.Internal.Storage
 import project.Internal.Value_Type_Helpers
 import project.Internal.Widget_Helpers
 import project.Value_Type.Auto

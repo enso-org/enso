@@ -1,9 +1,9 @@
 from Standard.Base import all
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
-import project.Data.Type.Storage
 import project.Internal.Java_Problems
 import project.Internal.Parse_Values_Helper
+import project.Internal.Storage
 import project.Value_Type.Value_Type
 from project.Errors import Conversion_Failure
 
