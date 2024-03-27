@@ -9,6 +9,8 @@ import * as textProvider from '#/providers/TextProvider'
 import * as aria from '#/components/aria'
 import Modal from '#/components/Modal'
 import ButtonRow from '#/components/styled/ButtonRow'
+import FocusArea from '#/components/styled/FocusArea'
+import FocusRing from '#/components/styled/FocusRing'
 import UnstyledButton from '#/components/styled/UnstyledButton'
 
 import type * as backend from '#/services/Backend'
@@ -68,41 +70,65 @@ export default function UpsertSecretModal(props: UpsertSecretModalProps) {
         <aria.Heading level={2} className="relative text-sm font-semibold">
           {isCreatingSecret ? getText('newSecret') : getText('editSecret')}
         </aria.Heading>
-        <aria.TextField className="relative flex h-row items-center">
-          <aria.Label className="text w-modal-label">{getText('name')}</aria.Label>
-          <aria.Input
-            autoFocus
-            disabled={!isNameEditable}
-            placeholder={getText('secretNamePlaceholder')}
-            className="text grow rounded-full border border-primary/10 bg-transparent px-input-x selectable enabled:active"
-            value={name}
-            onInput={event => {
-              setName(event.currentTarget.value)
-            }}
-          />
-        </aria.TextField>
-        <aria.TextField className="relative flex h-row items-center">
-          <aria.Label className="text w-modal-label">{getText('value')}</aria.Label>
-          <aria.Input
-            autoFocus={!isNameEditable}
-            placeholder={
-              isNameEditable ? getText('secretValuePlaceholder') : getText('secretValueHidden')
-            }
-            className="text grow rounded-full border border-primary/10 bg-transparent px-input-x"
-            onInput={event => {
-              setValue(event.currentTarget.value)
-            }}
-          />
-        </aria.TextField>
+        <div className="relative flex flex-col">
+          <FocusArea direction="horizontal">
+            {(ref, innerProps) => (
+              <aria.TextField
+                ref={ref}
+                className="relative flex h-row items-center"
+                {...innerProps}
+              >
+                <aria.Label className="text w-modal-label">{getText('name')}</aria.Label>
+                <FocusRing>
+                  <aria.Input
+                    autoFocus
+                    disabled={!isNameEditable}
+                    placeholder={getText('secretNamePlaceholder')}
+                    className="focus-child text grow rounded-full border border-primary/10 bg-transparent px-input-x selectable enabled:active"
+                    value={name}
+                    onInput={event => {
+                      setName(event.currentTarget.value)
+                    }}
+                  />
+                </FocusRing>
+              </aria.TextField>
+            )}
+          </FocusArea>
+          <FocusArea direction="horizontal">
+            {(ref, innerProps) => (
+              <aria.TextField
+                ref={ref}
+                className="relative flex h-row items-center"
+                {...innerProps}
+              >
+                <aria.Label className="text w-modal-label">{getText('value')}</aria.Label>
+                <FocusRing>
+                  <aria.Input
+                    autoFocus={!isNameEditable}
+                    placeholder={
+                      isNameEditable
+                        ? getText('secretValuePlaceholder')
+                        : getText('secretValueHidden')
+                    }
+                    className="focus-child text grow rounded-full border border-primary/10 bg-transparent px-input-x"
+                    onInput={event => {
+                      setValue(event.currentTarget.value)
+                    }}
+                  />
+                </FocusRing>
+              </aria.TextField>
+            )}
+          </FocusArea>
+        </div>
         <ButtonRow>
           <UnstyledButton
             isDisabled={!canSubmit}
-            className="button bg-invite text-white"
+            className="button bg-invite text-white enabled:active"
             onPress={doSubmit}
           >
             {isCreatingSecret ? getText('create') : getText('update')}
           </UnstyledButton>
-          <UnstyledButton className="button bg-selected-frame" onPress={unsetModal}>
+          <UnstyledButton className="button bg-selected-frame enabled:active" onPress={unsetModal}>
             {getText('cancel')}
           </UnstyledButton>
         </ButtonRow>
