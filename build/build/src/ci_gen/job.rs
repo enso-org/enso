@@ -4,10 +4,14 @@ use crate::ci_gen::not_default_branch;
 use crate::ci_gen::runs_on;
 use crate::ci_gen::secret;
 use crate::ci_gen::step;
+use crate::ci_gen::variables::ENSO_AG_GRID_LICENSE_KEY;
+use crate::ci_gen::variables::ENSO_MAPBOX_API_TOKEN;
 use crate::ci_gen::RunStepsBuilder;
 use crate::ci_gen::RunnerType;
 use crate::ci_gen::RELEASE_CLEANING_POLICY;
 use crate::engine::env;
+use crate::ide::web::env::VITE_ENSO_AG_GRID_LICENSE_KEY;
+use crate::ide::web::env::VITE_ENSO_MAPBOX_API_TOKEN;
 
 use heck::ToKebabCase;
 use ide_ci::actions::workflow::definition::cancel_workflow_action;
@@ -143,6 +147,16 @@ pub fn expose_cloud_vars(step: Step) -> Step {
         .with_variable_exposed(ENSO_CLOUD_COGNITO_REGION)
 }
 
+/// Expose variables for the GUI build.
+pub fn expose_gui_vars(step: Step) -> Step {
+    let step = step
+        .with_variable_exposed_as(ENSO_AG_GRID_LICENSE_KEY, VITE_ENSO_AG_GRID_LICENSE_KEY)
+        .with_variable_exposed_as(ENSO_MAPBOX_API_TOKEN, VITE_ENSO_MAPBOX_API_TOKEN);
+
+    // GUI includes the cloud-delivered dashboard.
+    expose_cloud_vars(step)
+}
+
 #[derive(Clone, Copy, Debug)]
 pub struct CancelWorkflow;
 
@@ -219,15 +233,15 @@ impl JobArchetype for StandardLibraryTests {
                 let main_step = step
                     .with_secret_exposed_as(
                         secret::ENSO_LIB_S3_AWS_REGION,
-                        crate::aws::env::AWS_REGION,
+                        crate::libraries_tests::s3::env::ENSO_LIB_S3_AWS_REGION,
                     )
                     .with_secret_exposed_as(
                         secret::ENSO_LIB_S3_AWS_ACCESS_KEY_ID,
-                        crate::aws::env::AWS_ACCESS_KEY_ID,
+                        crate::libraries_tests::s3::env::ENSO_LIB_S3_AWS_ACCESS_KEY_ID,
                     )
                     .with_secret_exposed_as(
                         secret::ENSO_LIB_S3_AWS_SECRET_ACCESS_KEY,
-                        crate::aws::env::AWS_SECRET_ACCESS_KEY,
+                        crate::libraries_tests::s3::env::ENSO_LIB_S3_AWS_SECRET_ACCESS_KEY,
                     );
                 vec![main_step, step::stdlib_test_reporter(target, graal_edition)]
             })
@@ -285,7 +299,7 @@ impl JobArchetype for NewGuiBuild {
     fn job(&self, target: Target) -> Job {
         let command = "gui build";
         RunStepsBuilder::new(command)
-            .customize(|step| vec![expose_cloud_vars(step)])
+            .customize(|step| vec![expose_gui_vars(step)])
             .build_job("GUI build", target)
     }
 }
@@ -404,7 +418,7 @@ pub fn bump_electron_builder() -> Vec<Step> {
 /// * (macOS only) bumping the version of the Electron Builder to
 ///   [`ELECTRON_BUILDER_MACOS_VERSION`].
 pub fn prepare_packaging_steps(os: OS, step: Step) -> Vec<Step> {
-    let step = expose_cloud_vars(step);
+    let step = expose_gui_vars(step);
     let step = expose_os_specific_signing_secret(os, step);
     let mut steps = Vec::new();
     if os == OS::MacOS {

@@ -640,6 +640,7 @@
   dialect yet.][9435]
 - [Make expand_to_rows, expand_column support Rows, Tables, Column data
   types][9533]
+- [Data Link for `Enso_File`.][9525]
 
 [debug-shortcuts]:
   https://github.com/enso-org/enso/blob/develop/app/gui/docs/product/shortcuts.md#debug
@@ -931,6 +932,7 @@
 [9406]: https://github.com/enso-org/enso/pull/9406
 [9435]: https://github.com/enso-org/enso/pull/9435
 [9533]: https://github.com/enso-org/enso/pull/9533
+[9525]: https://github.com/enso-org/enso/pull/9525
 
 #### Enso Compiler
 

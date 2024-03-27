@@ -2470,6 +2470,7 @@ lazy val `std-benchmarks` = (project in file("std-bits/benchmarks"))
   .dependsOn(`runtime-fat-jar`)
   .dependsOn(`std-table` % "provided")
   .dependsOn(`std-base` % "provided")
+  .dependsOn(`benchmark-java-helpers` % "provided")
 
 lazy val editions = project
   .in(file("lib/scala/editions"))

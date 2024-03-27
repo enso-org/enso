@@ -36,6 +36,7 @@ type Type
 
     ## ADVANCED
        GROUP Metadata
+       ICON metadata
 
        Returns a vector of method names that can be invoked
        on instances of this type.
@@ -63,6 +64,7 @@ type Type
 
     ## ADVANCED
        GROUP Metadata
+       ICON metadata
 
        Returns the fully qualified name of the type.
     qualified_name : Text
@@ -72,6 +74,7 @@ type Type
 
     ## ADVANCED
        GROUP Metadata
+       ICON metadata
 
        Returns the short name of the type.
     name : Text
@@ -81,6 +84,7 @@ type Type
 
     ## ADVANCED
        GROUP Metadata
+       ICON find
 
        Finds type specified by fully qualified name. Searches
        all the types known to the system by transitive closure
@@ -107,6 +111,7 @@ type Atom
 
     ## ADVANCED
        GROUP Metadata
+       ICON metadata
 
        Returns a vector of field values of the given atom.
     fields : Vector
@@ -132,6 +137,7 @@ type Constructor
 
     ## ADVANCED
        GROUP Metadata
+       ICON metadata
 
        Returns a vector of field names defined by a constructor.
     fields : Vector
@@ -141,6 +147,7 @@ type Constructor
 
     ## ADVANCED
        GROUP Metadata
+       ICON metadata
 
        Returns the name of a constructor.
     name : Text
@@ -162,6 +169,7 @@ type Constructor
 
     ## ADVANCED
        GROUP Metadata
+       ICON metadata
        Returns the type that this constructor is a part of.
     declaring_type : Type
     declaring_type self =
@@ -202,6 +210,7 @@ type Unresolved_Symbol
 
     ## ADVANCED
        GROUP Metadata
+       ICON metadata
 
        Returns the name of an unresolved symbol.
     name : Text
@@ -209,6 +218,7 @@ type Unresolved_Symbol
 
     ## ADVANCED
        GROUP Metadata
+       ICON metadata
 
        Returns the definition scope of an unresolved symbol.
     scope : Any
@@ -216,6 +226,7 @@ type Unresolved_Symbol
 
     ## ADVANCED
        GROUP Metadata
+       ICON metadata
 
        Starts building an instrumentation for a given node
     instrument : Instrumentor
@@ -243,6 +254,7 @@ type Polyglot
 
     ## ADVANCED
        GROUP Metadata
+       ICON metadata
 
        Returns the language with which a polyglot value is associated.
     get_language : Language
@@ -251,6 +263,7 @@ type Polyglot
         if lang_str == "java" then Language.Java else Language.Unknown
 
 ## ADVANCED
+   ICON metadata
 
    Checks whether `self` represents the same underlying reference as `value`.
 
@@ -261,6 +274,7 @@ Any.is_same_object_as : Any -> Boolean
 Any.is_same_object_as self value = is_same_object self value
 
 ## ADVANCED
+   ICON metadata
 
    Checks if `self` is an instance of `typ`.
 
@@ -270,6 +284,7 @@ Any.is_a : Any -> Boolean
 Any.is_a self typ = is_a self typ
 
 ## ADVANCED
+   ICON metadata
 
    Checks if `self` is an instance of `typ`.
 

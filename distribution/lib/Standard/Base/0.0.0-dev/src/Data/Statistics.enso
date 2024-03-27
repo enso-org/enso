@@ -220,7 +220,8 @@ type Statistic
 
                 output.to_vector
 
-    ## Calculate a variance-covariance matrix between the input series.
+    ## ICON math
+       Calculate a variance-covariance matrix between the input series.
 
        Arguments:
        - data: The input data sets
@@ -229,7 +230,8 @@ type Statistic
         stats_vectors = calculate_correlation_statistics_matrix data
         stats_vectors.map v->(v.map .covariance)
 
-    ## Calculate a Pearson correlation matrix between the input series.
+    ## ICON math
+       Calculate a Pearson correlation matrix between the input series.
 
        Arguments:
        - data: The input data sets
@@ -238,7 +240,8 @@ type Statistic
         stats_vectors = calculate_correlation_statistics_matrix data
         stats_vectors.map v->(v.map .pearsonCorrelation)
 
-    ## Calculate a Spearman Rank correlation matrix between the input series.
+    ## ICON math
+       Calculate a Spearman Rank correlation matrix between the input series.
 
        Arguments:
        - data: The input data sets
@@ -305,7 +308,7 @@ Vector.compute : Statistic -> Any
 Vector.compute self statistic=Statistic.Count =
     self.compute_bulk [statistic] . first
 
-## ICON add_column
+## ICON dataframe_map_column
    Compute statistics on the vector (ignoring Nothing and NaN values).
 
    Arguments:
@@ -336,7 +339,7 @@ Vector.running_bulk self statistics=[Statistic.Count, Statistic.Sum] =
     Statistic.running_bulk self statistics
 
 ## GROUP Statistics
-   ICON add_column
+   ICON dataframe_map_column
    Assigns a rank to each value of data, dealing with equal values according to
    the method.
 

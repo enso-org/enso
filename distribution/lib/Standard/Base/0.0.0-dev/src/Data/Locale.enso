@@ -14,9 +14,9 @@ from project.Metadata.Choice import Option
 
 polyglot java import java.util.Locale as JavaLocale
 
-# Constants
-# These are chosen as the union of the top 10 countries by population, and the
-# top ten countries by total (nominal, not per-capita) GDP.
+## Constants
+## These are chosen as the union of the top 10 countries by population, and the
+## top ten countries by total (nominal, not per-capita) GDP.
 
 ## A type representing a locale.
 
@@ -25,7 +25,8 @@ polyglot java import java.util.Locale as JavaLocale
    - A country code, which is optional.
    - A variant, which is optional.
 type Locale
-    ## Construct a new locale.
+    ## ICON text_input
+       Construct a new locale.
 
        Arguments:
        - language: The language tag for the locale.
@@ -54,7 +55,8 @@ type Locale
     from_java : JavaLocale -> Locale
     from_java java = Locale.Value java
 
-    ## Returns the locale specified by the provided IETF BCP47 language tag string.
+    ## ICON convert
+       Returns the locale specified by the provided IETF BCP47 language tag string.
 
        ? Language Tag Syntax
          If the specified language tag contains any ill-formed subtags, the first
@@ -90,7 +92,8 @@ type Locale
         java_locale = JavaLocale.forLanguageTag tag
         Locale.Value java_locale
 
-    ## The default locale.
+    ## ICON text
+       The default locale.
 
        The default locale is a locale that does not specify any language, country,
        or variant and is used as the language/country-neutral setting for locale
@@ -98,7 +101,8 @@ type Locale
     default : Locale
     default = Locale.Value JavaLocale.ROOT
 
-    ## A locale representing Bangladesh.
+    ## ICON text
+       A locale representing Bangladesh.
 
        > Example
          Get the Bangladeshi locale.
@@ -109,7 +113,8 @@ type Locale
     bangladesh : Locale
     bangladesh = Locale.from_language_tag "bn-BD"
 
-    ## A locale representing Brazil.
+    ## ICON text
+       A locale representing Brazil.
 
        > Example
          Get the Brazilian locale.
@@ -120,7 +125,8 @@ type Locale
     brazil : Locale
     brazil = Locale.from_language_tag "pt-BR"
 
-    ## A locale representing Canada with language English.
+    ## ICON text
+       A locale representing Canada with language English.
 
        > Example
          Get the Canadian english locale.
@@ -131,7 +137,8 @@ type Locale
     canada_english : Locale
     canada_english = Locale.from_language_tag "en-CA"
 
-    ## A locale representing Canada with language French.
+    ## ICON text
+       A locale representing Canada with language French.
 
        > Example
          Get the Canadian french locale.
@@ -142,7 +149,8 @@ type Locale
     canada_french : Locale
     canada_french = Locale.from_language_tag "fr-CA"
 
-    ## A locale representing the PRC.
+    ## ICON text
+       A locale representing the PRC.
 
        > Example
          Get the PRC locale.
@@ -153,7 +161,8 @@ type Locale
     china : Locale
     china = Locale.from_language_tag "zh-CN"
 
-    ## A locale representing France.
+    ## ICON text
+       A locale representing France.
 
        > Example
          Get the French locale.
@@ -164,7 +173,8 @@ type Locale
     france : Locale
     france = Locale.from_language_tag "fr-FR"
 
-    ## A locale representing Germany.
+    ## ICON text
+       A locale representing Germany.
 
        > Example
          Get the German locale.
@@ -175,7 +185,8 @@ type Locale
     germany : Locale
     germany = Locale.from_language_tag "de-DE"
 
-    ## A locale representing India with language Hindi.
+    ## ICON text
+       A locale representing India with language Hindi.
 
        > Example
          Get the Indian hindi locale.
@@ -186,7 +197,8 @@ type Locale
     india_hindi : Locale
     india_hindi = Locale.from_language_tag "hi-IN"
 
-    ## A locale representing India with language English.
+    ## ICON text
+       A locale representing India with language English.
 
        > Example
          Get the Indian english locale.
@@ -197,7 +209,8 @@ type Locale
     india_english : Locale
     india_english = Locale.from_language_tag "en-IN"
 
-    ## A locale representing Indonesia.
+    ## ICON text
+       A locale representing Indonesia.
 
        > Example
          Get the Indonesian locale.
@@ -208,7 +221,8 @@ type Locale
     indonesia : Locale
     indonesia = Locale.from_language_tag "id-ID"
 
-    ## A locale representing Italy.
+    ## ICON text
+       A locale representing Italy.
 
        > Example
          Get the Italian locale.
@@ -219,7 +233,8 @@ type Locale
     italy : Locale
     italy = Locale.from_language_tag "it-IT"
 
-    ## A locale representing Japan.
+    ## ICON text
+       A locale representing Japan.
 
        > Example
          Get the Japanese locale.
@@ -230,7 +245,8 @@ type Locale
     japan : Locale
     japan = Locale.from_language_tag "jp-JP"
 
-    ## A locale representing Mexico.
+    ## ICON text
+       A locale representing Mexico.
 
        > Example
          Get the Mexican locale.
@@ -241,7 +257,8 @@ type Locale
     mexico : Locale
     mexico = Locale.from_language_tag "es-MX"
 
-    ## A locale representing Nigeria.
+    ## ICON text
+       A locale representing Nigeria.
 
        > Example
          Get the Nigerian locale.
@@ -252,7 +269,8 @@ type Locale
     nigeria : Locale
     nigeria = Locale.from_language_tag "en-NG"
 
-    ## A locale representing paksitan with language Urdu.
+    ## ICON text
+       A locale representing paksitan with language Urdu.
 
        > Example
          Get the Pakistani urdu locale.
@@ -263,7 +281,8 @@ type Locale
     pakistan_urdu : Locale
     pakistan_urdu = Locale.from_language_tag "ur-PK"
 
-    ## A locale representing paksitan with language English.
+    ## ICON text
+       A locale representing paksitan with language English.
 
        > Example
          Get the Pakistani english locale.
@@ -274,7 +293,8 @@ type Locale
     pakistan_english : Locale
     pakistan_english = Locale.from_language_tag "en-PK"
 
-    ## A locale representing Poland.
+    ## ICON text
+       A locale representing Poland.
 
        > Example
          Get the Poland locale.
@@ -285,7 +305,8 @@ type Locale
     poland : Locale
     poland = Locale.from_language_tag "pl-PL"
 
-    ## A locale representing Russia.
+    ## ICON text
+       A locale representing Russia.
 
        > Example
          Get the Russian locale.
@@ -296,7 +317,8 @@ type Locale
     russia : Locale
     russia = Locale.from_language_tag "ru-RU"
 
-    ## A locale representing South Korea.
+    ## ICON text
+       A locale representing South Korea.
 
        > Example
          Get the South Korean locale.
@@ -307,7 +329,8 @@ type Locale
     south_korea : Locale
     south_korea = Locale.from_language_tag "ko-KR"
 
-    ## A locale representing the UK.
+    ## ICON text
+       A locale representing the UK.
 
        > Example
          Get the british locale.
@@ -318,7 +341,8 @@ type Locale
     uk : Locale
     uk = Locale.from_language_tag "en-GB"
 
-    ## A locale representing the United States.
+    ## ICON text
+       A locale representing the United States.
 
        > Example
          Get the US locale.
@@ -336,7 +360,8 @@ type Locale
        - java_locale: The Java locale representation used internally.
     Value java_locale
 
-    ## Gets the language from the locale.
+    ## ICON text
+       Gets the language from the locale.
 
        > Example
          Get the language tag from the default locale.
@@ -349,7 +374,8 @@ type Locale
         lang = self.java_locale.getLanguage
         if lang.is_empty then Nothing else lang
 
-    ## Gets the country from the locale.
+    ## ICON text
+       Gets the country from the locale.
 
        > Example
          Get the country tag from the default locale.
@@ -362,7 +388,8 @@ type Locale
         place = self.java_locale.getCountry
         if place.is_empty then Nothing else place
 
-    ## Gets the variant from the locale.
+    ## ICON metadata
+       Gets the variant from the locale.
 
        > Example
          Get the variant tag from the default locale.
@@ -375,7 +402,8 @@ type Locale
         var = self.java_locale.getVariant
         if var.is_empty then Nothing else var
 
-    ## Gets a representation of the language in the locale that can be shown to
+    ## ICON metadata
+       Gets a representation of the language in the locale that can be shown to
        the user.
 
        > Example
@@ -389,7 +417,8 @@ type Locale
         disp = self.java_locale.getDisplayLanguage
         if disp.is_empty then Nothing else disp
 
-    ## Gets a representation of the country in the locale that can be shown to
+    ## ICON metadata
+       Gets a representation of the country in the locale that can be shown to
        the user.
 
        > Example
@@ -403,7 +432,8 @@ type Locale
         disp = self.java_locale.getDisplayCountry
         if disp.is_empty then Nothing else disp
 
-    ## Gets a representation of the variant in the locale that can be shown to
+    ## ICON metadata
+       Gets a representation of the variant in the locale that can be shown to
        the user.
 
        > Example
