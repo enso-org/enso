@@ -442,10 +442,11 @@ export default /** @satisfies {import('tailwindcss').Config} */ ({
 
           // === States ===
 
-          '.focus-ring, .focus-ring:focus, .focus-ring-within[data-focus-visible=true]': {
-            '@apply outline outline-2 -outline-offset-2 outline-primary transition-all': '',
-          },
-          '.focus-ring.checkbox': {
+          '.focus-ring, .focus-ring:focus, .focus-ring-outset, .focus-ring-outset:focus, .focus-ring-within[data-focus-visible=true]':
+            {
+              '@apply outline outline-2 -outline-offset-2 outline-primary transition-all': '',
+            },
+          '.focus-ring.checkbox, .focus-ring-outset, .focus-ring-outset:focus': {
             '@apply outline-offset-0': '',
           },
           '.drop-target-after': {
