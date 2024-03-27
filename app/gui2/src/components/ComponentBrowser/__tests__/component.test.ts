@@ -24,7 +24,7 @@ test.each([
   [makeStaticMethod('Standard.Base.Data.Vector.new'), 'Vector.new'],
   [makeMethod('Standard.Base.Data.Vector.get'), 'get'],
   [makeConstructor('Standard.Table.Join_Kind.Join_Kind.Inner'), 'Join_Kind.Inner'],
-  [makeModule('Standard.Table.Join_Kind'), 'Join_Kind'],
+  [makeModule('Standard.Table.Excel.Excel_Range'), 'Excel_Range'],
   [makeModule('Standard.Table.Conversions'), 'Conversions', 'Standard.Table.Conversions'],
   [makeModuleMethod('local.Project.main'), 'Project.main'],
 ])("$name Component's label is valid", (suggestion, expected, mainExpected?) => {
