@@ -6,35 +6,33 @@ import org.enso.compiler.context.CompilerContext;
 import org.enso.compiler.core.CompilerError;
 import org.enso.compiler.core.ir.Module;
 import org.enso.compiler.core.ir.Name;
-import org.enso.compiler.core.ir.module.scope.Export;
-import org.enso.compiler.core.ir.module.scope.Import;
 import org.enso.compiler.data.BindingsMap.ResolvedType;
 import org.enso.editions.LibraryName;
 import scala.Tuple2;
 import scala.jdk.CollectionConverters;
 
-public abstract class ImportResolverAlgorithm<Result> {
+public abstract class ImportResolverAlgorithm<Result, Import, Export> {
   protected ImportResolverAlgorithm() {}
 
-  abstract Name.Qualified nameForImport(Import.Module imp);
+  abstract Name.Qualified nameForImport(Import imp);
 
-  abstract Name.Qualified nameForExport(Export.Module ex);
+  abstract Name.Qualified nameForExport(Export ex);
 
   abstract String nameForType(ResolvedType e);
 
-  abstract java.util.List<Export.Module> exportsFor(Module module, String impName);
+  abstract java.util.List<Export> exportsFor(Module module, String impName);
 
-  abstract boolean isAll(Export.Module ex); /* ex.isAll */
-
-  /**
-   * @return {@code null} or list of named imports
-   */
-  abstract java.util.List<Name.Literal> onlyNames(Export.Module ex);
+  abstract boolean isAll(Export ex);
 
   /**
    * @return {@code null} or list of named imports
    */
-  abstract java.util.List<Name.Literal> hiddenNames(Export.Module ex);
+  abstract java.util.List<Name.Literal> onlyNames(Export ex);
+
+  /**
+   * @return {@code null} or list of named imports
+   */
+  abstract java.util.List<Name.Literal> hiddenNames(Export ex);
 
   abstract java.util.List<ResolvedType> definedEntities(String name);
 
@@ -48,22 +46,21 @@ public abstract class ImportResolverAlgorithm<Result> {
       throws IOException;
 
   abstract Result tupleResolvedImport(
-      Import.Module imp, java.util.List<Export.Module> exp, CompilerContext.Module m);
+      Import imp, java.util.List<Export> exp, CompilerContext.Module m);
 
-  abstract Result tupleResolvedType(
-      Import.Module imp, java.util.List<Export.Module> exp, ResolvedType m);
+  abstract Result tupleResolvedType(Import imp, java.util.List<Export> exp, ResolvedType m);
 
   abstract Result tupleErrorPackageCoundNotBeLoaded(
-      Import.Module imp, String impName, String loadingError);
+      Import imp, String impName, String loadingError);
 
-  abstract Result tupleErrorModuleDoesNotExist(Import.Module imp, String impName);
+  abstract Result tupleErrorModuleDoesNotExist(Import imp, String impName);
 
-  public Result tryResolveImport(Module module, Import.Module imp) {
+  public Result tryResolveImport(Module module, Import imp) {
     var res = tryResolveImportNew(module, imp);
     return res;
   }
 
-  private Result tryResolveImportNew(Module module, Import.Module imp) {
+  private Result tryResolveImportNew(Module module, Import imp) {
     var impName = nameForImport(imp).name();
     var exp = exportsFor(module, impName);
     var fromAllExports = exp.stream().filter(ex -> isAll(ex)).toList();

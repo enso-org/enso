@@ -21,7 +21,7 @@ import scala.Tuple2;
 import scala.collection.immutable.List;
 import scala.jdk.CollectionConverters;
 
-abstract class ImportResolverForIR extends ImportResolverAlgorithm<Tuple2<Import, Option<BindingsMap.ResolvedImport>>> {
+abstract class ImportResolverForIR extends ImportResolverAlgorithm<Tuple2<Import, Option<BindingsMap.ResolvedImport>>, Import.Module, Export.Module> {
   abstract Compiler getCompiler();
 
   @Override
