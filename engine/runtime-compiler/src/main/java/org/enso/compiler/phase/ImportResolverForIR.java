@@ -23,6 +23,7 @@ import scala.jdk.CollectionConverters;
 
 abstract class ImportResolverForIR extends ImportResolverAlgorithm<
   Tuple2<Import, Option<BindingsMap.ResolvedImport>>,
+  Module,
   Import.Module,
   Export.Module,
   ResolvedType,

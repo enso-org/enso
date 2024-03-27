@@ -3,14 +3,13 @@ package org.enso.compiler.phase;
 import java.io.IOException;
 import java.util.Objects;
 import org.enso.compiler.core.CompilerError;
-import org.enso.compiler.core.ir.Module;
 import org.enso.compiler.core.ir.Name;
 import org.enso.editions.LibraryName;
 import scala.Tuple2;
 import scala.jdk.CollectionConverters;
 
 public abstract class ImportResolverAlgorithm<
-    Result, Import, Export, ResolvedType, ResolvedModule> {
+    Result, Module, Import, Export, ResolvedType, ResolvedModule> {
   protected ImportResolverAlgorithm() {}
 
   protected abstract Name.Qualified nameForImport(Import imp);
