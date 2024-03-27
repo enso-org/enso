@@ -104,6 +104,7 @@ type Fitted_Model
         Fitted_Model.Power a b _ -> a.to_text + " * X ^ " + b.to_text
 
     ## GROUP Calculations
+       ICON machine_learning
        Use the model to predict a value.
     predict : Number -> Number
     predict self x = case self of

@@ -62,6 +62,7 @@ type S3_File
     is_directory self = self.s3_path.is_directory
 
     ## GROUP Standard.Base.Metadata
+       ICON metadata
        Checks if this is a regular file.
     is_regular_file : Boolean
     is_regular_file self = self.is_directory.not
@@ -179,19 +180,22 @@ type S3_File
     read_text self (encoding=Encoding.utf_8) (on_problems=Problem_Behavior.Report_Warning) =
         self.read (Plain_Text encoding) on_problems
 
-    ## Deletes the object.
+    ## ICON data_output
+       Deletes the object.
     delete : Nothing
     delete self = if self.is_directory then Error.throw (S3_Error.Error "Deleting S3 folders is currently not implemented." self.uri) else
         if self.exists.not then Error.throw (File_Error.Not_Found self) else
             self.delete_if_exists
 
-    ## Deletes the file if it had existed.
+    ## ICON data_output
+       Deletes the file if it had existed.
     delete_if_exists : Nothing
     delete_if_exists self = if self.is_directory then Error.throw (S3_Error.Error "Deleting S3 folders is currently not implemented." self.uri) else
         Context.Output.if_enabled disabled_message="Deleting an S3_File is forbidden as the Output context is disabled." panic=False <|
             translate_file_errors self <| S3.delete_object self.s3_path.bucket self.s3_path.key self.credentials . if_not_error Nothing
 
-    ## Copies the file to the specified destination.
+    ## ICON data_output
+       Copies the file to the specified destination.
 
        Arguments:
        - destination: the destination to move the file to.
@@ -209,7 +213,8 @@ type S3_File
                             translate_file_errors self <| S3.copy_object self.s3_path.bucket self.s3_path.key destination_path.bucket destination_path.key self.credentials . if_not_error <| s3_destination
                     _ -> generic_copy self destination.file replace_existing
 
-    ## Moves the file to the specified destination.
+    ## ICON data_output
+       Moves the file to the specified destination.
 
        ! S3 Move is a Copy and Delete
 
@@ -270,6 +275,7 @@ type S3_File
         S3_File.Value (self.s3_path.join vec_as_texts) self.credentials
 
     ## GROUP Standard.Base.Metadata
+       ICON metadata
        Resolves the parent of this file.
     parent : S3_File | Nothing
     parent self =
@@ -278,11 +284,13 @@ type S3_File
             S3_File.Value parent_path self.credentials
 
     ## GROUP Standard.Base.Metadata
+       ICON metadata
        Checks if `self` is a descendant of `other`.
     is_descendant_of : S3_File -> Boolean
     is_descendant_of self other = self.s3_path.is_descendant_of other.s3_path
 
     ## GROUP Standard.Base.Metadata
+       ICON metadata
        Returns the path of this file.
     path : Text
     path self = self.s3_path.to_text
@@ -301,12 +309,14 @@ type S3_File
         find_extension_from_name self.name
 
     ## GROUP Standard.Base.Metadata
+       ICON metadata
        Gets the creation time of a file.
     creation_time : Date_Time ! File_Error
     creation_time self =
         Error.throw (S3_Error.Error "Creation time is not available for S3 files, consider using `last_modified_time` instead." self.uri)
 
     ## GROUP Standard.Base.Metadata
+       ICON metadata
        Gets the last modified time of a file.
     last_modified_time : Date_Time ! File_Error
     last_modified_time self =

@@ -388,7 +388,8 @@ class App {
         )
         electron.ipcMain.handle(
             ipc.Channel.openFileBrowser,
-            async (_event, kind: 'any' | 'directory' | 'file') => {
+            async (_event, kind: 'default' | 'directory' | 'file') => {
+                logger.log('Request for opening browser for ', kind)
                 /** Helper for `showOpenDialog`, which has weird types by default. */
                 type Properties = ('openDirectory' | 'openFile')[]
                 const properties: Properties =
@@ -396,7 +397,9 @@ class App {
                         ? ['openFile']
                         : kind === 'directory'
                           ? ['openDirectory']
-                          : ['openFile', 'openDirectory']
+                          : process.platform === 'darwin'
+                            ? ['openFile', 'openDirectory']
+                            : ['openFile']
                 const { canceled, filePaths } = await electron.dialog.showOpenDialog({ properties })
                 if (!canceled) {
                     return filePaths
