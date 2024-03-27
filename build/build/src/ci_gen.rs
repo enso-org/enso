@@ -131,6 +131,14 @@ pub mod secret {
     pub const CI_PRIVATE_TOKEN: &str = "CI_PRIVATE_TOKEN";
 }
 
+pub mod variables {
+    /// License key for the AG Grid library.
+    pub const ENSO_AG_GRID_LICENSE_KEY: &str = "ENSO_AG_GRID_LICENSE_KEY";
+
+    /// The Mapbox API token for the GeoMap visualization.
+    pub const ENSO_MAPBOX_API_TOKEN: &str = "ENSO_MAPBOX_API_TOKEN";
+}
+
 /// Return an expression piece that evaluates to `true` if the current branch is not the default.
 pub fn not_default_branch() -> String {
     format!("github.ref != 'refs/heads/{DEFAULT_BRANCH_NAME}'")
@@ -486,6 +494,14 @@ fn add_release_steps(workflow: &mut Workflow) -> Result {
         let build_ide_job_id =
             workflow.add_dependent(target, UploadIde, [&prepare_job_id, &backend_job_id]);
         packaging_job_ids.push(build_ide_job_id.clone());
+
+        // The backend image is deployed to ECR only on Linux.
+        if target.0 == OS::Linux {
+            let runtime_requirements = [&prepare_job_id, &backend_job_id];
+            let upload_runtime_job_id =
+                workflow.add_dependent(target, job::DeployRuntime, runtime_requirements);
+            packaging_job_ids.push(upload_runtime_job_id);
+        }
     }
 
     let publish_deps = {

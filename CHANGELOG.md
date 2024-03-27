@@ -640,6 +640,7 @@
   dialect yet.][9435]
 - [Make expand_to_rows, expand_column support Rows, Tables, Column data
   types][9533]
+- [Data Link for `Enso_File`.][9525]
 - [Implemented `.to_integer`, `.to_float`, and `from` conversions for
   `Decimal`][9462]
 
@@ -934,6 +935,7 @@
 [9435]: https://github.com/enso-org/enso/pull/9435
 [9462]: https://github.com/enso-org/enso/pull/9462
 [9533]: https://github.com/enso-org/enso/pull/9533
+[9525]: https://github.com/enso-org/enso/pull/9525
 
 #### Enso Compiler
 

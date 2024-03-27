@@ -14,7 +14,7 @@ from Standard.AWS import S3_File
 
 from Standard.Test import all
 
-from project.S3_Spec import api_pending, writable_root
+from project.S3_Spec import api_pending, writable_root, with_default_credentials
 
 add_specs suite_builder =
     my_writable_s3_dir = writable_root / "inter-backend-test-run-"+(Date_Time.now.format "yyyy-MM-dd_HHmmss.fV" . replace "/" "|")+"/"
@@ -101,7 +101,7 @@ add_specs suite_builder =
                 source_file.delete_if_exists
                 destination_file.delete_if_exists
 
-            group_builder.specify "should be able to copy a datalink file to a regular file" <|
+            group_builder.specify "should be able to copy a datalink file to a regular file" <| with_default_credentials <|
                 regular_destination_file = destination_file.parent / destination_file.name+".txt"
                 regular_destination_file.delete_if_exists
                 Data_Link_Format.write_raw_config source_file sample_data_link_content replace_existing=True . should_succeed
@@ -111,7 +111,7 @@ add_specs suite_builder =
                     # The raw datalink config is copied, so reading back the .txt file yields us the configuration:
                     regular_destination_file.read . should_contain '"libraryName": "Standard.AWS"'
 
-            group_builder.specify "should be able to copy a datalink file to another datalink" <|
+            group_builder.specify "should be able to copy a datalink file to another datalink" <| with_default_credentials <|
                 destination_file.delete_if_exists
                 Data_Link_Format.write_raw_config source_file sample_data_link_content replace_existing=True . should_succeed
 
@@ -122,7 +122,7 @@ add_specs suite_builder =
                 # But if we read it raw, we can see that it is still a datalink, not just a copy of the data:
                 Data_Link_Format.read_raw_config destination_file . should_equal sample_data_link_content
 
-            group_builder.specify "should be able to move a datalink" <|
+            group_builder.specify "should be able to move a datalink" <| with_default_credentials <|
                 destination_file.delete_if_exists
                 Data_Link_Format.write_raw_config source_file sample_data_link_content replace_existing=True . should_succeed
 
@@ -132,7 +132,7 @@ add_specs suite_builder =
                 destination_file.read . should_equal "Hello WORLD!"
                 Data_Link_Format.read_raw_config destination_file . should_equal sample_data_link_content
 
-            group_builder.specify "should be able to move a regular file to become a datalink" <|
+            group_builder.specify "should be able to move a regular file to become a datalink" <| with_default_credentials <|
                 destination_file.delete_if_exists
 
                 regular_source_file = source_file.parent / source_file.name+".txt"

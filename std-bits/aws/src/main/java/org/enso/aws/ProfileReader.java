@@ -17,11 +17,17 @@ public class ProfileReader {
       provider = ProfileFileSupplier.defaultSupplier();
     }
 
-    if (profiles == null || !provider.get().equals(profileFile)) {
-      var profileFile = provider.get();
-      profiles = profileFile.profiles().keySet().toArray(new String[0]);
-    }
+    try {
+      if (profiles == null || !provider.get().equals(profileFile)) {
+        var profileFile = provider.get();
+        profiles = profileFile.profiles().keySet().toArray(new String[0]);
+      }
 
-    return profiles;
+      return profiles;
+    } catch (NullPointerException e) {
+      // If no profile cannot be found `provider.get()` is throwing an NPE.
+      //  We handle it gracefully and report that no profiles were found.
+      return new String[0];
+    }
   }
 }

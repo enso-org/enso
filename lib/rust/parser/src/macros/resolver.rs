@@ -349,7 +349,7 @@ impl<'s> Resolver<'s> {
     fn resolve_match(&mut self, macro_def: &macros::Definition, segments_start: usize) {
         let mut def_segments = macro_def.segments.to_vec().into_iter().rev();
         let segments = self.segments.drain(segments_start..).rev();
-        let segments: NonEmptyVec<_> = segments.collect_vec().try_into().unwrap();
+        let segments: NonEmptyVec<_> = segments.collect::<Vec<_>>().try_into().unwrap();
         let mut pattern_matched_segments = segments.mapped(|segment| {
             let count_must_match =
                 "Internal error. Macro definition and match segments count mismatch.";

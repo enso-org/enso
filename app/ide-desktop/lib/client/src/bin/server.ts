@@ -1,12 +1,15 @@
 /** @file A simple HTTP server which serves application data to the Electron web-view. */
 
-import * as fs from 'node:fs'
+import * as fs from 'node:fs/promises'
+import * as fsSync from 'node:fs'
 import * as http from 'node:http'
+import * as os from 'node:os'
 import * as path from 'node:path'
-import type * as stream from 'node:stream'
+import * as stream from 'node:stream'
 
 import * as mime from 'mime-types'
 import * as portfinder from 'portfinder'
+import type * as vite from 'vite'
 import createServer from 'create-servers'
 
 import * as common from 'enso-common'
@@ -15,6 +18,7 @@ import * as ydocServer from 'enso-gui2/ydoc-server'
 
 import * as paths from '../paths'
 
+// prettier-ignore
 import GLOBAL_CONFIG from '../../../../../gui2/config.yaml' assert { type: 'yaml' }
 
 const logger = contentConfig.logger
@@ -24,6 +28,7 @@ const logger = contentConfig.logger
 // =================
 
 const HTTP_STATUS_OK = 200
+const HTTP_STATUS_BAD_REQUEST = 400
 const HTTP_STATUS_NOT_FOUND = 404
 
 // ==============
@@ -32,7 +37,15 @@ const HTTP_STATUS_NOT_FOUND = 404
 
 /** External functions for a {@link Server}. */
 export interface ExternalFunctions {
-    readonly uploadProjectBundle: (project: stream.Readable) => Promise<string>
+    readonly uploadProjectBundle: (
+        project: stream.Readable,
+        directory: string | null,
+        name: string | null
+    ) => Promise<string>
+    readonly runProjectManagerCommand: (
+        cliArguments: string[],
+        body?: NodeJS.ReadableStream
+    ) => NodeJS.ReadableStream
 }
 
 /** Constructor parameter for the server configuration. */
@@ -75,10 +88,13 @@ async function findPort(port: number): Promise<number> {
  * Initially it was based on `union`, but later we migrated to `create-servers`.
  * Read this topic to learn why: https://github.com/http-party/http-server/issues/483 */
 export class Server {
-    server: unknown
+    projectsRootDirectory: string
+    devServer?: vite.ViteDevServer
 
     /** Create a simple HTTP server. */
-    constructor(public config: Config) {}
+    constructor(public config: Config) {
+        this.projectsRootDirectory = path.join(os.homedir(), 'enso/projects')
+    }
 
     /** Server constructor. */
     static async create(config: Config): Promise<Server> {
@@ -92,7 +108,7 @@ export class Server {
     /** Start the server. */
     run(): Promise<void> {
         return new Promise((resolve, reject) => {
-            this.server = createServer(
+            createServer(
                 {
                     http: this.config.port,
                     handler: this.process.bind(this),
@@ -108,7 +124,9 @@ export class Server {
                         // working both in browser and in ydocs server. Doing it properly
                         // is tracked in https://github.com/enso-org/enso/issues/8931
                         const assets = path.join(paths.ASSETS_PATH, 'assets')
-                        const bundledFiles = fs.existsSync(assets) ? fs.readdirSync(assets) : []
+                        const bundledFiles = fsSync.existsSync(assets)
+                            ? await fs.readdir(assets)
+                            : []
                         const rustFFIWasm = bundledFiles.find(name =>
                             /rust_ffi_bg-.*\.wasm/.test(name)
                         )
@@ -125,15 +143,31 @@ export class Server {
                             `Serving files from '${path.join(process.cwd(), this.config.dir)}'.`
                         )
                         resolve()
+                        if (process.env.ELECTRON_DEV_MODE === 'true') {
+                            // eslint-disable-next-line no-restricted-syntax, @typescript-eslint/consistent-type-imports, @typescript-eslint/no-var-requires
+                            const vite = require('vite') as typeof import('vite')
+                            void vite
+                                .createServer({
+                                    server: {
+                                        middlewareMode: true,
+                                        hmr: httpServer ? { server: httpServer } : {},
+                                    },
+                                    configFile: process.env.GUI_CONFIG_PATH ?? false,
+                                })
+                                .then(devServer => (this.devServer = devServer))
+                        }
                     })()
                 }
             )
         })
     }
 
-    /** Respond to an incoming request. */
+    /** Respond to an incoming request.
+     * @throws {Error} when passing invalid JSON to
+     * `/api/run-project-manager-command?cli-arguments=<urlencoded-json>`. */
     process(request: http.IncomingMessage, response: http.ServerResponse) {
         const requestUrl = request.url
+        const requestPath = requestUrl?.split('?')[0]?.split('#')[0]
         if (requestUrl == null) {
             logger.error('Request URL is null.')
         } else if (requestUrl.startsWith('/api/project-manager/')) {
@@ -170,21 +204,103 @@ export class Server {
                 { end: true }
             )
         } else if (request.method === 'POST') {
-            const requestPath = requestUrl.split('?')[0]?.split('#')[0]
             switch (requestPath) {
+                case '/api/upload-file': {
+                    const url = new URL(`https://example.com/${requestUrl}`)
+                    const fileName = url.searchParams.get('file_name')
+                    const directory =
+                        url.searchParams.get('directory') ?? this.projectsRootDirectory
+                    if (fileName == null) {
+                        response
+                            .writeHead(HTTP_STATUS_BAD_REQUEST, common.COOP_COEP_CORP_HEADERS)
+                            .end('Request is missing search parameter `file_name`.')
+                    } else {
+                        const filePath = path.join(directory, fileName)
+                        void fs
+                            .writeFile(filePath, request)
+                            .then(() => {
+                                response
+                                    .writeHead(HTTP_STATUS_OK, [
+                                        ['Content-Length', String(filePath.length)],
+                                        ['Content-Type', 'text/plain'],
+                                        ...common.COOP_COEP_CORP_HEADERS,
+                                    ])
+                                    .end(filePath)
+                            })
+                            .catch(e => {
+                                console.error(e)
+                                response
+                                    .writeHead(
+                                        HTTP_STATUS_BAD_REQUEST,
+                                        common.COOP_COEP_CORP_HEADERS
+                                    )
+                                    .end()
+                            })
+                    }
+                    break
+                }
                 // This endpoint should only be used when accessing the app from the browser.
                 // When accessing the app from Electron, the file input event will have the
                 // full system path.
                 case '/api/upload-project': {
-                    void this.config.externalFunctions.uploadProjectBundle(request).then(id => {
+                    const url = new URL(`https://example.com/${requestUrl}`)
+                    const directory = url.searchParams.get('directory')
+                    const name = url.searchParams.get('name')
+                    void this.config.externalFunctions
+                        .uploadProjectBundle(request, directory, name)
+                        .then(id => {
+                            response
+                                .writeHead(HTTP_STATUS_OK, [
+                                    ['Content-Length', String(id.length)],
+                                    ['Content-Type', 'text/plain'],
+                                    ...common.COOP_COEP_CORP_HEADERS,
+                                ])
+                                .end(id)
+                        })
+                        .catch(() => {
+                            response
+                                .writeHead(HTTP_STATUS_BAD_REQUEST, common.COOP_COEP_CORP_HEADERS)
+                                .end()
+                        })
+                    break
+                }
+                case '/api/run-project-manager-command': {
+                    const cliArguments: unknown = JSON.parse(
+                        new URL(`https://example.com/${requestUrl}`).searchParams.get(
+                            'cli-arguments'
+                        ) ?? '[]'
+                    )
+                    if (
+                        !Array.isArray(cliArguments) ||
+                        !cliArguments.every((item): item is string => typeof item === 'string')
+                    ) {
                         response
-                            .writeHead(HTTP_STATUS_OK, [
-                                ['Content-Length', `${id.length}`],
-                                ['Content-Type', 'text/plain'],
-                                ...common.COOP_COEP_CORP_HEADERS,
-                            ])
-                            .end(id)
-                    })
+                            .writeHead(HTTP_STATUS_BAD_REQUEST, common.COOP_COEP_CORP_HEADERS)
+                            .end('Command arguments must be an array of strings.')
+                    } else {
+                        const commandOutput = (() => {
+                            try {
+                                return this.config.externalFunctions.runProjectManagerCommand(
+                                    cliArguments,
+                                    request
+                                )
+                            } catch {
+                                const readableStream = new stream.Readable()
+                                readableStream.push(
+                                    JSON.stringify({
+                                        error: `Error running Project Manager command '${JSON.stringify(cliArguments)}'.`,
+                                    })
+                                )
+                                readableStream.push(null)
+                                return readableStream
+                            }
+                        })()
+                        response.writeHead(HTTP_STATUS_OK, [
+                            ['Content-Type', 'application/json'],
+                            ...common.COOP_COEP_CORP_HEADERS,
+                        ])
+                        commandOutput.pipe(response, { end: true })
+                    }
                     break
                 }
                 default: {
@@ -192,6 +308,16 @@ export class Server {
                     break
                 }
             }
+        } else if (request.method === 'GET' && requestPath === '/api/root-directory') {
+            response
+                .writeHead(HTTP_STATUS_OK, [
+                    ['Content-Length', String(this.projectsRootDirectory.length)],
+                    ['Content-Type', 'text/plain'],
+                    ...common.COOP_COEP_CORP_HEADERS,
+                ])
+                .end(this.projectsRootDirectory)
+        } else if (this.devServer) {
+            this.devServer.middlewares(request, response)
         } else {
             const url = requestUrl.split('?')[0]
             const resource = url === '/' ? '/index.html' : requestUrl
@@ -200,17 +326,13 @@ export class Server {
             // this server.
             const resourceFile =
                 resource === '/preload.cjs.map'
-                    ? `${paths.APP_PATH}${resource}`
-                    : `${this.config.dir}${resource}`
+                    ? paths.APP_PATH + resource
+                    : this.config.dir + resource
             for (const [header, value] of common.COOP_COEP_CORP_HEADERS) {
                 response.setHeader(header, value)
             }
-            fs.readFile(resourceFile, (err, data) => {
-                if (err) {
-                    logger.error(`Resource '${resource}' not found.`)
-                    response.writeHead(HTTP_STATUS_NOT_FOUND)
-                    response.end()
-                } else {
+            fs.readFile(resourceFile)
+                .then(data => {
                     const contentType = mime.contentType(path.extname(resourceFile))
                     const contentLength = data.length
                     if (contentType !== false) {
@@ -219,8 +341,12 @@ export class Server {
                     response.setHeader('Content-Length', contentLength)
                     response.writeHead(HTTP_STATUS_OK)
                     response.end(data)
-                }
-            })
+                })
+                .catch(() => {
+                    logger.error(`Resource '${resource}' not found.`)
+                    response.writeHead(HTTP_STATUS_NOT_FOUND)
+                    response.end()
+                })
         }
     }
 }

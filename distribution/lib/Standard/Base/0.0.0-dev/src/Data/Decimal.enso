@@ -10,7 +10,7 @@ import project.Nothing.Nothing
 import project.Panic.Panic
 import project.Warning.Warning
 from project.Data.Boolean import Boolean, False, True
-from project.Data.Numbers import Integer, Float, Number, Number_Parse_Error
+from project.Data.Numbers import Float, Integer, Number, Number_Parse_Error
 from project.Data.Numeric.Internal.Decimal_Internal import Decimal_Comparator
 from project.Data.Ordering import Comparable, Ordering
 from project.Errors.Common import Loss_Of_Numeric_Precision, Out_Of_Range
@@ -79,9 +79,11 @@ polyglot java import org.enso.base.numeric.Decimal_Utils
    `Arithmetic_Error` will be thrown. In this case, the solution is to specify
    an explicit precision using a `Math_Context`.
 type Decimal
+    ## PRIVATE
     Value (big_decimal : BigDecimal)
 
-    ## Construct a `Decimal` from a string or integer.
+    ## ICON number_input
+       Construct a `Decimal` from a string or integer.
 
        Arguments:
        - x: The `Text`, `Integer`, or `Float` to construct a `Decimal` from.
@@ -106,8 +108,8 @@ type Decimal
           Create a `Decimal` from a string.
 
               c = Decimal.new "12.345"
-    new : Text | Integer | Float -> Math_Context -> Decimal ! Arithmetic_Error | Number_Parse_Error
-    new (x : Text | Integer | Float) (mc : Math_Context | Nothing = Nothing) -> Decimal | Number_Parse_Error =
+    new : Text | Integer | Float -> Math_Context | Nothing -> Decimal ! Arithmetic_Error | Number_Parse_Error
+    new (x : Text | Integer | Float) (mc : Math_Context | Nothing = Nothing) -> Decimal ! Arithmetic_Error | Number_Parse_Error =
         handle_java_exception <|
             case x of
                 _ : Text -> Decimal.parse x mc
@@ -115,6 +117,7 @@ type Decimal
                 _ : Float -> Decimal.from_float x mc
 
     ## GROUP conversions
+       ICON convert
        Construct a `Decimal` from a `Text`.
 
        Arguments:
@@ -139,14 +142,15 @@ type Decimal
           Create a `Decimal` from a string.
 
               d = Decimal.parse "12.345"
-    parse : Text -> Math_Context -> Decimal ! Arithmetic_Error | Number_Parse_Error
-    parse (s : Text) (mc : Math_Context | Nothing = Nothing) -> Decimal | Number_Parse_Error =
+    parse : Text -> Math_Context | Nothing -> Decimal ! Arithmetic_Error | Number_Parse_Error
+    parse (s : Text) (mc : Math_Context | Nothing = Nothing) -> Decimal ! Arithmetic_Error | Number_Parse_Error =
         handle_java_exception <| handle_number_format_exception <|
             case mc of
                 _ : Math_Context -> Decimal.Value <| handle_precision_loss s <| Decimal_Utils.fromString s mc.math_context
                 _ : Nothing -> Decimal.Value (Decimal_Utils.fromString s)
 
     ## GROUP conversions
+       ICON convert
        Construct a `Decimal` from an `Integer`.
 
        Arguments:
@@ -165,7 +169,7 @@ type Decimal
           Create a `Decimal` from an integer.
 
               d = Decimal.from_integer 12
-    from_integer : Integer -> Math_Context -> Decimal ! Arithmetic_Error
+    from_integer : Integer -> Math_Context | Nothing -> Decimal ! Arithmetic_Error
     from_integer (i : Integer) (mc : Math_Context | Nothing = Nothing) -> Decimal ! Arithmetic_Error =
         handle_java_exception <|
             case mc of
@@ -173,6 +177,7 @@ type Decimal
                 _ : Nothing -> Decimal.Value (Decimal_Utils.fromInteger i)
 
     ## GROUP conversions
+       ICON convert
        Construct a `Decimal` from a `Float`.
 
        Arguments:
@@ -199,8 +204,8 @@ type Decimal
           Create a `Decimal` from a float.
 
               d = Decimal.from_integer 12.345
-    from_float : Float -> Math_Context -> Decimal ! Arithmetic_Error ! Illegal_Argument
-    from_float (f : Float) (mc : Math_Context | Nothing = Nothing) -> Decimal ! Arithmetic_Error ! Illegal_Argument =
+    from_float : Float -> Math_Context | Nothing -> Decimal ! Arithmetic_Error | Illegal_Argument
+    from_float (f : Float) (mc : Math_Context | Nothing = Nothing) -> Decimal ! Arithmetic_Error | Illegal_Argument =
         is_exceptional = f.is_nan || f.is_infinite
         if is_exceptional then Error.throw (Illegal_Argument.Error "Cannot convert "+f.to_text+" to a Decimal") else
             handle_java_exception <| attach_loss_of_numeric_precision f <|
@@ -306,7 +311,7 @@ type Decimal
              b = Decimal.new "20.33"
              a.add b (Math_Context.new 3)
              # => Decimal.new 30.5
-    add : Decimal -> Decimal -> Math_Context | Nothing -> Decimal ! Arithmetic_Error
+    add : Decimal -> Math_Context | Nothing -> Decimal ! Arithmetic_Error
     add self (that : Decimal) (math_context : Math_Context | Nothing = Nothing) -> Decimal ! Arithmetic_Error =
         handle_java_exception <|
             case math_context of
@@ -331,7 +336,7 @@ type Decimal
              b = Decimal.new "20.33"
              c = a + b
              # => Decimal.new 30.55
-    + : Decimal -> Decimal -> Decimal
+    + : Decimal -> Decimal
     + self (that : Decimal) = self.add that
 
     ## ALIAS minus
@@ -364,7 +369,7 @@ type Decimal
              b = Decimal.new "10.22"
              c = a.subtract b (Math_Context.new 3)
              # => Decimal.new 10.1
-    subtract : Decimal -> Decimal -> Math_Context | Nothing -> Decimal ! Arithmetic_Error
+    subtract : Decimal -> Math_Context | Nothing -> Decimal ! Arithmetic_Error
     subtract self (that : Decimal) (math_context : Math_Context | Nothing = Nothing) -> Decimal ! Arithmetic_Error =
         handle_java_exception <|
             case math_context of
@@ -390,7 +395,7 @@ type Decimal
              b = Decimal.new "10.22"
              c = a - b
              # => Decimal.new 10.11
-    - : Decimal -> Decimal -> Decimal
+    - : Decimal -> Decimal
     - self (that : Decimal) = self.subtract that
 
     ## ALIAS times
@@ -423,7 +428,7 @@ type Decimal
              b = Decimal.new "20.33"
              c = a.multiply b (Math_Context.new 4)
              # => Decimal.new 207.8
-    multiply : Decimal -> Decimal -> Math_Context | Nothing -> Decimal ! Arithmetic_Error
+    multiply : Decimal -> Math_Context | Nothing -> Decimal ! Arithmetic_Error
     multiply self (that : Decimal) (math_context : Math_Context | Nothing = Nothing) -> Decimal ! Arithmetic_Error =
         handle_java_exception <|
             case math_context of
@@ -448,7 +453,7 @@ type Decimal
              b = Decimal.new "20.33"
              c = a * b
              # => Decimal.new 207.7726
-    * : Decimal -> Decimal -> Decimal
+    * : Decimal -> Decimal
     * self (that : Decimal) = self.multiply that
 
     ## GROUP Operators
@@ -486,7 +491,7 @@ type Decimal
              b = Decimal.new "23.34"
              c = a.divide b (Math_Context.new 3)
              # => Decimal.new 45.7
-    divide : Decimal -> Decimal -> Math_Context | Nothing -> Decimal | Arithmetic_Error
+    divide : Decimal -> Math_Context | Nothing -> Decimal ! Arithmetic_Error
     divide self (that : Decimal) (math_context : Math_Context | Nothing = Nothing) -> Decimal ! Arithmetic_Error =
         handle_java_exception <|
             case math_context of
@@ -511,10 +516,11 @@ type Decimal
              b = Decimal.new "23.34"
              c = a / b
              # => Decimal.new 45.67
-    / : Decimal -> Decimal -> Decimal
+    / : Decimal -> Decimal
     / self (that : Decimal) = self.divide that
 
     ## GROUP Operators
+       ICON operators
        Compute the negation of this.
 
        > Example
@@ -618,6 +624,7 @@ attach_loss_of_numeric_precision : Float -> Any -> Any
 attach_loss_of_numeric_precision x value =
     Warning.attach (Loss_Of_Numeric_Precision.Warning x value) value
 
+## PRIVATE
 handle_java_exception ~action =
     Panic.catch ArithmeticException action caught_panic->
         Error.throw (Arithmetic_Error.Error caught_panic.payload.getMessage)

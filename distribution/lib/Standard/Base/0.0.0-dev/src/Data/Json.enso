@@ -33,6 +33,7 @@ from project.Metadata.Widget import Single_Choice
 type Json
     ## ALIAS from text
        GROUP Conversions
+       ICON convert
 
        Parse a Text value into a `JS_Object` or an Enso primitive value (like
        `Text`, `Number`, `Boolean`, `Nothing`), or a `Vector` of values.
@@ -324,8 +325,8 @@ render object depth=0 max_depth=5 max_length=100 = case object of
             children = keys.map key-> key.to_json + ': ' + (render (object.get key) (depth+1) max_depth max_length)
             '{' + (children.join ", ") + (if len > max_length then ', "...": "Another ' + (len - max_length).to_text + ' items truncated."' else "") + '}'
     _ : Vector ->
-        if depth == max_depth then '"[...]"' else
-            len = object.length
+        len = object.length
+        if len == 0 then '[]' else if depth == max_depth then '"[...]"' else
             children = 0.up_to (max_length.min len) . map i-> render (object.at i) (depth+1) max_depth max_length
             "[" + (children.join ", ") + (if len > max_length then ', "... another ' + (len - max_length).to_text + ' items truncated."' else "") + "]"
     _ : Array ->

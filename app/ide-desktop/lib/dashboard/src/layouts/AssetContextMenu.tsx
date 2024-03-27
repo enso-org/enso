@@ -29,6 +29,7 @@ import ManagePermissionsModal from '#/modals/ManagePermissionsModal'
 import UpsertSecretModal from '#/modals/UpsertSecretModal'
 
 import * as backendModule from '#/services/Backend'
+import * as localBackend from '#/services/LocalBackend'
 import RemoteBackend from '#/services/RemoteBackend'
 
 import HttpClient from '#/utilities/HttpClient'
@@ -69,7 +70,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
   const { getText } = textProvider.useText()
   const toastAndLog = toastAndLogHooks.useToastAndLog()
   const asset = item.item
-  const self = asset.permissions?.find(permission => permission.user.user_email === user?.email)
+  const self = asset.permissions?.find(permission => permission.user.userId === user?.userId)
   const isCloud = backend.type === backendModule.BackendType.remote
   const ownsThisAsset = !isCloud || self?.permission === permissions.PermissionAction.own
   const managesThisAsset = ownsThisAsset || self?.permission === permissions.PermissionAction.admin
@@ -198,7 +199,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
                   const client = new HttpClient([['Authorization', `Bearer ${accessToken}`]])
                   const remoteBackend = new RemoteBackend(client, logger, getText)
                   const projectResponse = await fetch(
-                    `./api/project-manager/projects/${asset.id}/enso-project`
+                    `./api/project-manager/projects/${localBackend.extractTypeAndId(asset.id).id}/enso-project`
                   )
                   // This DOES NOT update the cloud assets list when it
                   // completes, as the current backend is not the remote
@@ -346,7 +347,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
           }}
         />
         {isCloud && <ContextMenuEntry hidden={hidden} action="copy" doAction={doCopy} />}
-        {isCloud && !isOtherUserUsingProject && (
+        {!isOtherUserUsingProject && (
           <ContextMenuEntry hidden={hidden} action="cut" doAction={doCut} />
         )}
         <ContextMenuEntry
