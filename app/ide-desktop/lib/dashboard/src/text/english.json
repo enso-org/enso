@@ -406,6 +406,7 @@
   "uploadToCloudShortcut": "Upload To Cloud",
   "renameShortcut": "Rename",
   "editShortcut": "Edit",
+  "editDescriptionShortcut": "Edit Description",
   "snapshotShortcut": "Snapshot",
   "deleteShortcut": "Delete",
   "undeleteShortcut": "Restore From Trash",
@@ -475,5 +476,10 @@
   "thursdayAbbr": "Th",
   "fridayAbbr": "F",
   "saturdayAbbr": "Sa",
-  "sundayAbbr": "Su"
+  "sundayAbbr": "Su",
+
+  "editAssetDescriptionModalTitle": "Edit Asset Description",
+  "editAssetDescriptionModalPlaceholder": "Enter a description for the asset",
+  "editAssetDescriptionModalSubmit": "Submit",
+  "editAssetDescriptionModalCancel": "Cancel"
 }
