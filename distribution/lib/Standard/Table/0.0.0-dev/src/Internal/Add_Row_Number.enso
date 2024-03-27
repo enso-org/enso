@@ -2,13 +2,13 @@ from Standard.Base import all
 import Standard.Base.Errors.Common.Unsupported_Argument_Types
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
-import project.Data.Column.Column
-import project.Data.Table.Table
+import project.Column.Column
 import project.Internal.Java_Problems
 import project.Internal.Problem_Builder.Problem_Builder
 import project.Internal.Table_Helpers
 import project.Set_Mode.Set_Mode
 import project.Sort_Column.Sort_Column
+import project.Table.Table
 from project.Errors import Duplicate_Output_Column_Names
 
 polyglot java import java.lang.ArithmeticException

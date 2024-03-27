@@ -1,7 +1,7 @@
 from Standard.Base import all
 
-import project.Data.Table.Table
 import project.Row.Row
+import project.Table.Table
 
 ## PRIVATE
 type Rows_View

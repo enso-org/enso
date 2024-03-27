@@ -1,16 +1,15 @@
 from Standard.Base import all
 import Standard.Base.Data.Vector.Builder
 
-import Standard.Table.Data.Column.Column
-import Standard.Table.Data.Table.Table
 import Standard.Table.Row.Row
+from Standard.Table import Column, Table
 
 import Standard.Database.DB_Column.DB_Column
 import Standard.Database.DB_Table.DB_Table
 
 import project.Helpers
 
-# TODO add an initial offset to fully support lazy visualizations
+## TODO add an initial offset to fully support lazy visualizations
 
 ## PRIVATE
 

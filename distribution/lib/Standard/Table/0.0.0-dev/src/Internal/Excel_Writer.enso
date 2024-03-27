@@ -7,11 +7,11 @@ import Standard.Base.Runtime.Managed_Resource.Managed_Resource
 import Standard.Base.System.File.Generic.Writable_File.Writable_File
 from Standard.Base.System.File import file_as_java
 
-import project.Data.Table.Table
 import project.Excel.Excel_Range.Excel_Range
 import project.Internal.Excel_Reader
 import project.Internal.Excel_Section.Excel_Section
 import project.Match_Columns.Match_Columns
+import project.Table.Table
 from project.Errors import Column_Count_Mismatch, Column_Name_Mismatch, Existing_Data, Invalid_Location, Range_Exceeded
 
 polyglot java import java.io.File as Java_File

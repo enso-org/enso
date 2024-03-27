@@ -1,10 +1,10 @@
 from Standard.Base import all
 import Standard.Base.Runtime.Ref.Ref
 
+import project.Column.Column
 import project.Conversions.Convertible_To_Rows.Key_Value
-import project.Data.Column.Column
-import project.Data.Table.Table
 import project.Internal.Problem_Builder.Problem_Builder
+import project.Table.Table
 import project.Value_Type.Value_Type
 from project.Errors import Column_Count_Exceeded, Column_Count_Mismatch
 from project.Internal.Java_Exports import make_string_builder

@@ -3,16 +3,16 @@ import Standard.Base.Errors.Common.Index_Out_Of_Bounds
 import Standard.Base.Errors.Common.Type_Error
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
+import project.Column.Column
 import project.Conversions.Convertible_To_Columns.Convertible_To_Columns
 import project.Conversions.Convertible_To_Rows.Convertible_To_Rows
-import project.Data.Column.Column
-import project.Data.Table.Table
 import project.Errors.No_Such_Column
 import project.Internal.Fan_Out
 import project.Internal.Java_Exports
 import project.Internal.Java_Problems
 import project.Internal.Widget_Helpers
 import project.Prefix_Name.Prefix_Name
+import project.Table.Table
 from project.Internal.Java_Exports import make_inferred_builder
 
 ## PRIVATE

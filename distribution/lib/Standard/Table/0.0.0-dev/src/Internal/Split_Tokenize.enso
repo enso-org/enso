@@ -1,6 +1,6 @@
 from Standard.Base import all
 
-import project.Data.Table.Table
+import project.Table.Table
 import project.Value_Type.Value_Type
 from project.Internal.Fan_Out import all
 

@@ -21,11 +21,10 @@ from Standard.Base.Widget_Helpers import make_delimiter_selector, make_format_ch
 
 import project.Aggregate_Column.Aggregate_Column
 import project.Blank_Selector.Blank_Selector
+import project.Column.Column
 import project.Column_Ref.Column_Ref
 import project.Constants.Previous_Value
 import project.Constants.Report_Unmatched
-import project.Data.Column as Column_Module
-import project.Data.Column.Column
 import project.Data_Formatter.Data_Formatter
 import project.Delimited.Delimited_Format.Delimited_Format
 import project.Expression.Expression
@@ -62,7 +61,7 @@ import project.Simple_Expression.Simple_Expression
 import project.Sort_Column.Sort_Column
 import project.Value_Type.Auto
 import project.Value_Type.Value_Type
-from project.Data.Column import get_item_string, normalize_string_for_display
+from project.Column import get_item_string, make_storage_builder_for_type, normalize_string_for_display
 from project.Errors import all
 from project.Internal.Filter_Condition_Helpers import make_filter_column
 from project.Internal.Lookup_Helpers import make_java_lookup_column_description
@@ -1528,7 +1527,7 @@ type Table
     filter_by_expression self expression on_problems=Report_Warning =
         column = self.evaluate_expression (Expression.Value expression) on_problems
         result = self.filter column Filter_Condition.Is_True
-        Warning.attach (Deprecated.Warning "Standard.Table.Data.Table.Table" "filter_by_expression" "Deprecated: use `filter` with an `Expression` instead.") result
+        Warning.attach (Deprecated.Warning "Standard.Table.Table.Table" "filter_by_expression" "Deprecated: use `filter` with an `Expression` instead.") result
 
     ## ALIAS first, head, last, limit, sample, slice, tail, top
        GROUP Standard.Base.Selections
@@ -1742,7 +1741,7 @@ type Table
     evaluate_expression : Text | Expression -> Problem_Behavior -> Column ! No_Such_Column | Invalid_Value_Type | Expression_Error
     evaluate_expression self expression:(Text | Expression) on_problems:Problem_Behavior=Report_Warning = if expression.is_a Text then self.evaluate_expression (Expression.Value expression) on_problems else
         get_column name = self.at name
-        new_column = Expression.evaluate expression get_column self.make_constant_column "Standard.Table.Data.Column" "Column" Column.var_args_functions
+        new_column = Expression.evaluate expression get_column self.make_constant_column "Standard.Table.Column" "Column" Column.var_args_functions
         problems = Warning.get_all new_column . map .value
         result = new_column.rename (self.column_naming_helper.sanitize_name expression.expression)
         on_problems.attach_problems_before problems <|
@@ -3092,7 +3091,7 @@ make_join_helpers left_table right_table =
    A helper that efficiently concatenates storages of in-memory columns.
 concat_columns column_set all_tables result_type result_row_count on_problems =
     Java_Problems.with_problem_aggregator on_problems java_problem_aggregator->
-        storage_builder = Column_Module.make_storage_builder_for_type result_type on_problems initial_size=result_row_count java_problem_aggregator
+        storage_builder = make_storage_builder_for_type result_type on_problems initial_size=result_row_count java_problem_aggregator
         column_set.column_indices.zip all_tables i-> parent_table->
             case i of
                 Nothing ->

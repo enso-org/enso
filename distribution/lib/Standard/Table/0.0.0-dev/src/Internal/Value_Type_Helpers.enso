@@ -2,7 +2,7 @@ from Standard.Base import all
 import Standard.Base.Data.Vector.No_Wrap
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
-import project.Data.Column.Column
+import project.Column.Column
 import project.Internal.Storage
 import project.Value_Type.Auto
 import project.Value_Type.Bits

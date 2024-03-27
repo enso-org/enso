@@ -5,16 +5,14 @@ import Standard.Base.Errors.Illegal_State.Illegal_State
 import Standard.Base.Internal.Rounding_Helpers
 from Standard.Base.Widget_Helpers import make_format_chooser, make_regex_text_widget
 
-import Standard.Table.Data.Column.Column
-import Standard.Table.Data.Table.Table
 import Standard.Table.Internal.Column_Naming_Helper.Column_Naming_Helper
 import Standard.Table.Internal.Date_Time_Helpers
 import Standard.Table.Internal.Java_Problems
 import Standard.Table.Internal.Problem_Builder.Problem_Builder
 import Standard.Table.Internal.Value_Type_Helpers
 import Standard.Table.Internal.Widget_Helpers
-from Standard.Table import Auto, Data_Formatter, Previous_Value, Sort_Column, Value_Type
-from Standard.Table.Data.Column import default_date_period
+from Standard.Table import Auto, Column, Data_Formatter, Previous_Value, Sort_Column, Table, Value_Type
+from Standard.Table.Column import default_date_period
 from Standard.Table.Errors import Conversion_Failure, Floating_Point_Equality, Inexact_Type_Coercion, Invalid_Value_Type
 from Standard.Table.Internal.Cast_Helpers import check_cast_compatibility
 

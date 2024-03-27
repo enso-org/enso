@@ -17,7 +17,6 @@ from Standard.Base.Runtime import assert
 from Standard.Base.Widget_Helpers import make_delimiter_selector, make_format_chooser
 
 import Standard.Table.Column_Operation.Column_Operation
-import Standard.Table.Data.Table.Table
 import Standard.Table.Expression.Expression
 import Standard.Table.Expression.Expression_Error
 import Standard.Table.Internal.Add_Row_Number
@@ -35,11 +34,11 @@ import Standard.Table.Internal.Value_Type_Helpers
 import Standard.Table.Internal.Widget_Helpers
 import Standard.Table.Match_Columns as Match_Columns_Helpers
 import Standard.Table.Row.Row
-from Standard.Table import Aggregate_Column, Auto, Blank_Selector, Column_Ref, Data_Formatter, Join_Condition, Join_Kind, Match_Columns, Position, Previous_Value, Report_Unmatched, Set_Mode, Simple_Expression, Sort_Column, Value_Type
-from Standard.Table.Data.Column import get_item_string, normalize_string_for_display
-from Standard.Table.Data.Table import print_table
+from Standard.Table import Aggregate_Column, Auto, Blank_Selector, Column_Ref, Data_Formatter, Join_Condition, Join_Kind, Match_Columns, Position, Previous_Value, Report_Unmatched, Set_Mode, Simple_Expression, Sort_Column, Table, Value_Type
+from Standard.Table.Column import get_item_string, normalize_string_for_display
 from Standard.Table.Errors import all
 from Standard.Table.Internal.Filter_Condition_Helpers import make_filter_column
+from Standard.Table.Table import print_table
 
 import project.Connection.Connection.Connection
 import project.DB_Column.DB_Column

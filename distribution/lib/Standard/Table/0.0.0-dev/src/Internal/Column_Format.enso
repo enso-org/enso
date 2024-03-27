@@ -2,7 +2,7 @@ from Standard.Base import all
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Errors.Illegal_State.Illegal_State
 
-import project.Data.Column.Column
+import project.Column.Column
 import project.Data_Formatter.Data_Formatter
 import project.Internal.Storage
 import project.Value_Type.Value_Type

@@ -2,8 +2,8 @@ from Standard.Base import all
 import Standard.Base.Errors.Empty_Error.Empty_Error
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
-import project.Data.Table.Table
 import project.Set_Mode.Set_Mode
+import project.Table.Table
 from project.Errors import Missing_Input_Columns, No_Such_Column, Non_Unique_Key, Unmatched_Rows_In_Lookup
 
 ## PRIVATE

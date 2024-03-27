@@ -1,9 +1,9 @@
 from Standard.Base import all
 import Standard.Base.Data.Java_Json.Jackson_Object
 
+import project.Column.Column
 import project.Conversions.Convertible_To_Columns.Convertible_To_Columns
-import project.Data.Column.Column
-import project.Data.Table.Table
+import project.Table.Table
 
 ## PRIVATE
    A special type that is used to define what types can be converted to a table

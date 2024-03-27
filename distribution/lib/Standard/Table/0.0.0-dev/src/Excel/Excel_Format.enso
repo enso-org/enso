@@ -8,13 +8,13 @@ from Standard.Base.Metadata.Choice import Option
 from Standard.Base.Metadata.Widget import Numeric_Input, Text_Input
 from Standard.Base.System.File_Format import parse_boolean_with_infer
 
-import project.Data.Table.Table
 import project.Excel.Excel_Range.Excel_Range
 import project.Excel.Excel_Workbook.Excel_Workbook
 import project.Internal.Excel_Reader
 import project.Internal.Excel_Section.Excel_Section
 import project.Internal.Excel_Writer
 import project.Match_Columns.Match_Columns
+import project.Table.Table
 
 ## PRIVATE
    Resolve the xls_format setting to a boolean.
