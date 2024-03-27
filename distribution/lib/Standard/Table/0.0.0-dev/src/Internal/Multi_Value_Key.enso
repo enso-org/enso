@@ -3,7 +3,7 @@ import Standard.Base.Data.Array_Proxy.Array_Proxy
 import Standard.Base.Errors.Illegal_State.Illegal_State
 
 import project.Column.Column
-import project.Internal.Value_Type.Value_Type
+import project.Value_Type.Value_Type
 from project.Errors import Floating_Point_Equality
 
 ## PRIVATE
