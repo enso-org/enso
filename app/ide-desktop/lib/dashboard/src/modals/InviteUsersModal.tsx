@@ -18,6 +18,7 @@ import * as aria from '#/components/aria'
 import Modal from '#/components/Modal'
 import ButtonRow from '#/components/styled/ButtonRow'
 import FocusArea from '#/components/styled/FocusArea'
+import FocusRing from '#/components/styled/FocusRing'
 import UnstyledButton from '#/components/styled/UnstyledButton'
 
 import * as backendModule from '#/services/Backend'
@@ -97,30 +98,32 @@ function EmailInput(props: InternalEmailInputProps) {
   }
 
   return (
-    <input
-      autoFocus
-      type="text"
-      placeholder="Type email to invite"
-      className="text max-w-full bg-transparent"
-      onKeyDown={event => {
-        if (
-          event.key === 'Backspace' &&
-          event.currentTarget.selectionStart === 0 &&
-          event.currentTarget.selectionEnd === 0
-        ) {
-          doDelete()
-        } else if (event.key === 'Enter' && event.currentTarget.value !== '') {
+    <FocusRing>
+      <input
+        autoFocus
+        type="text"
+        placeholder="Type email to invite"
+        className="text max-w-full rounded-full bg-transparent px-input-x"
+        onKeyDown={event => {
+          if (
+            event.key === 'Backspace' &&
+            event.currentTarget.selectionStart === 0 &&
+            event.currentTarget.selectionEnd === 0
+          ) {
+            doDelete()
+          } else if (event.key === 'Enter' && event.currentTarget.value !== '') {
+            event.stopPropagation()
+            doSubmit(event.currentTarget, true)
+          } else {
+            handleFocusMove(event)
+          }
+        }}
+        onInput={event => {
           event.stopPropagation()
-          doSubmit(event.currentTarget, true)
-        } else {
-          handleFocusMove(event)
-        }
-      }}
-      onInput={event => {
-        event.stopPropagation()
-        doSubmit(event.currentTarget)
-      }}
-    />
+          doSubmit(event.currentTarget)
+        }}
+      />
+    </FocusRing>
   )
 }
 

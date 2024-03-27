@@ -9,6 +9,7 @@ import ColorPicker from '#/components/ColorPicker'
 import Modal from '#/components/Modal'
 import ButtonRow from '#/components/styled/ButtonRow'
 import FocusArea from '#/components/styled/FocusArea'
+import FocusRing from '#/components/styled/FocusRing'
 import UnstyledButton from '#/components/styled/UnstyledButton'
 
 import * as backend from '#/services/Backend'
@@ -80,27 +81,29 @@ export default function NewLabelModal(props: NewLabelModalProps) {
           {(ref, innerProps) => (
             <label ref={ref} className="relative flex items-center" {...innerProps}>
               <div className="text w-modal-label">Name</div>
-              <input
-                autoFocus
-                size={1}
-                placeholder="Enter the name of the label"
-                className={`focus-child text grow rounded-full border border-primary/10 bg-transparent px-input-x ${
-                  // eslint-disable-next-line @typescript-eslint/no-magic-numbers
-                  color != null && color.lightness <= 50
-                    ? 'text-tag-text placeholder-selected-frame'
-                    : 'text-primary'
-                }`}
-                style={
-                  color == null
-                    ? {}
-                    : {
-                        backgroundColor: backend.lChColorToCssColor(color),
-                      }
-                }
-                onInput={event => {
-                  setName(event.currentTarget.value)
-                }}
-              />
+              <FocusRing>
+                <input
+                  autoFocus
+                  size={1}
+                  placeholder="Enter the name of the label"
+                  className={`focus-child text grow rounded-full border border-primary/10 bg-transparent px-input-x ${
+                    // eslint-disable-next-line @typescript-eslint/no-magic-numbers
+                    color != null && color.lightness <= 50
+                      ? 'text-tag-text placeholder-selected-frame'
+                      : 'text-primary'
+                  }`}
+                  style={
+                    color == null
+                      ? {}
+                      : {
+                          backgroundColor: backend.lChColorToCssColor(color),
+                        }
+                  }
+                  onInput={event => {
+                    setName(event.currentTarget.value)
+                  }}
+                />
+              </FocusRing>
             </label>
           )}
         </FocusArea>
