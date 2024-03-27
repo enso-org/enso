@@ -6,12 +6,11 @@ import org.enso.compiler.context.CompilerContext;
 import org.enso.compiler.core.CompilerError;
 import org.enso.compiler.core.ir.Module;
 import org.enso.compiler.core.ir.Name;
-import org.enso.compiler.data.BindingsMap.ResolvedType;
 import org.enso.editions.LibraryName;
 import scala.Tuple2;
 import scala.jdk.CollectionConverters;
 
-public abstract class ImportResolverAlgorithm<Result, Import, Export> {
+public abstract class ImportResolverAlgorithm<Result, Import, Export, ResolvedType> {
   protected ImportResolverAlgorithm() {}
 
   abstract Name.Qualified nameForImport(Import imp);
