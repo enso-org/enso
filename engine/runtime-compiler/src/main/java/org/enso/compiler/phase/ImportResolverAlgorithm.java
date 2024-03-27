@@ -22,21 +22,17 @@ import scala.Tuple2;
 import scala.collection.immutable.List;
 import scala.jdk.CollectionConverters;
 
-public final class ImportResolverUtil extends ImportResolver {
-  public ImportResolverUtil(Compiler c) {
-    super(c);
+public abstract class ImportResolverAlgorithm {
+  protected ImportResolverAlgorithm() {
   }
 
-  @Override
+  abstract Compiler getCompiler();
+
   public Tuple2<Import, Option<BindingsMap.ResolvedImport>> tryResolveImport(
     Module module,
     Import.Module imp
   ) {
     var res = tryResolveImportNew(module, imp);
-
-    var old = res;
-    assert res.equals(old = tryResolveImportOld(module, imp)) : "old:\n" + old._1.pretty() + "\nnew:\n" + res._1.pretty();
-
     return res;
   }
 

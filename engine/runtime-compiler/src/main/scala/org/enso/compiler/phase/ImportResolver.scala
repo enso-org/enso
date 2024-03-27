@@ -34,7 +34,7 @@ import scala.jdk.CollectionConverters._
   *
   * @param compiler the compiler instance for the compiling context.
   */
-abstract class ImportResolver(compiler: Compiler) {
+final class ImportResolver(compiler: Compiler) extends ImportResolverAlgorithm {
 
   /** Runs the import mapping logic.
     *
@@ -194,10 +194,20 @@ abstract class ImportResolver(compiler: Compiler) {
     }
   }
 
-  def tryResolveImport(
+  override def tryResolveImport(
     module: IRModule,
     imp: Import.Module
-  ): (Import, Option[BindingsMap.ResolvedImport])
+  ): (Import, Option[BindingsMap.ResolvedImport]) = {
+    val res = super.tryResolveImport(module, imp)
+
+    val old = tryResolveImportOld(module, imp)
+    assert(
+      res == old,
+      "old:\n" + old._1.pretty() + "\nnew:\n" + res._1.pretty()
+    )
+
+    return res;
+  }
 
   private[phase] def tryResolveImportOld(
     module: IRModule,
@@ -244,7 +254,7 @@ abstract class ImportResolver(compiler: Compiler) {
         importsWithHiddenNames.foreach { case (e, hidden) =>
           val unqualifiedConflicts = unqualifiedImports.filter(_ != e)
           if (unqualifiedConflicts.nonEmpty) {
-            throw ImportResolverUtil.HiddenNamesConflict
+            throw ImportResolverAlgorithm.HiddenNamesConflict
               .shadowUnqualifiedExport(
                 e.name.name,
                 hidden.map(_.name).asJava
@@ -257,10 +267,11 @@ abstract class ImportResolver(compiler: Compiler) {
               .flatten
               .intersect(hidden.map(_.name))
           if (qualifiedConflicts.nonEmpty) {
-            throw ImportResolverUtil.HiddenNamesConflict.shadowQualifiedExport(
-              e.name.name,
-              qualifiedConflicts.asJava
-            )
+            throw ImportResolverAlgorithm.HiddenNamesConflict
+              .shadowQualifiedExport(
+                e.name.name,
+                qualifiedConflicts.asJava
+              )
           }
         }
       case _ =>
