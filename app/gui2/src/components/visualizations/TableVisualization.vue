@@ -237,9 +237,16 @@ function toRender(content: unknown) {
 
 watchEffect(() => {
   // If the user switches from one visualization type to another, we can receive the raw object.
-  const data_ = typeof props.data === 'object'
-      ? props.data
-      : { type: (typeof props.data), json: props.data, all_rows_count: 1, data: undefined, indices:undefined }
+  const data_ =
+    typeof props.data === 'object' ?
+      props.data
+    : {
+        type: typeof props.data,
+        json: props.data,
+        all_rows_count: 1,
+        data: undefined,
+        indices: undefined,
+      }
   const options = agGridOptions.value
   if (options.api == null) {
     return
