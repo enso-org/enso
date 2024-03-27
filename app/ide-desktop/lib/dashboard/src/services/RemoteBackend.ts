@@ -602,10 +602,7 @@ export default class RemoteBackend extends Backend {
     const body = object.omit(bodyRaw, 'parentId')
     const path = remoteBackendPaths.openProjectPath(projectId)
     if (body.cognitoCredentials == null) {
-      return this.throw(
-        `Could not open project ${title != null ? `'${title}'` : `with ID '${projectId}'`}: Missing credentials`,
-        null
-      )
+      return this.throw(null, 'openProjectMissingCredentialsBackendError', title)
     } else {
       const credentials = body.cognitoCredentials
       const exactCredentials: backendModule.CognitoCredentials = {
@@ -615,16 +612,13 @@ export default class RemoteBackend extends Backend {
         refreshToken: credentials.refreshToken,
         refreshUrl: credentials.refreshUrl,
       }
-      const filteredBody: backendModule.OpenProjectRequestBody = {
+      const filteredBody: Omit<backendModule.OpenProjectRequestBody, 'parentId'> = {
         ...body,
         cognitoCredentials: exactCredentials,
       }
       const response = await this.post(path, filteredBody)
       if (!responseIsSuccessful(response)) {
-        return this.throw(
-          `Could not open project ${title != null ? `'${title}'` : `with ID '${projectId}'`}`,
-          response
-        )
+        return this.throw(response, 'openProjectBackendError', title)
       } else {
         return
       }
