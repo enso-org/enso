@@ -4,7 +4,6 @@ import project.Data.Numeric.Math_Context.Math_Context
 import project.Data.Numeric.Rounding_Mode.Rounding_Mode
 import project.Data.Text.Text
 import project.Error.Error
-import project.Errors.Common.Arithmetic_Error
 import project.Errors.Illegal_Argument.Illegal_Argument
 import project.Nothing.Nothing
 import project.Panic.Panic
@@ -13,7 +12,7 @@ from project.Data.Boolean import Boolean, False, True
 from project.Data.Numbers import Float, Integer, Number, Number_Parse_Error
 from project.Data.Numeric.Internal.Decimal_Internal import Decimal_Comparator
 from project.Data.Ordering import Comparable, Ordering
-from project.Errors.Common import Loss_Of_Numeric_Precision
+from project.Errors.Common import Arithmetic_Error, Loss_Of_Numeric_Precision, Unsupported_Argument_Types
 
 polyglot java import java.lang.ArithmeticException
 polyglot java import java.lang.NumberFormatException
@@ -527,7 +526,7 @@ type Decimal
        Arguments:
        - that: The number to divide this by.
 
-       Modulus  in Enso will undergo automatic conversions such that you need
+       Modulus in Enso will undergo automatic conversions such that you need
        not convert other numeric types to `Decimal` manually.
 
        > Example
@@ -548,7 +547,7 @@ type Decimal
        Arguments:
        - that: The number to divide this by.
 
-       Modulus  in Enso will undergo automatic conversions such that you need
+       Modulus in Enso will undergo automatic conversions such that you need
        not convert other numeric types to `Decimal` manually.
 
        > Example
@@ -566,7 +565,10 @@ type Decimal
        Arguments:
        - that: The number to divide this by.
 
-       Integer division rounds down to the nearest integer.
+       Integer division in enso will undergo automatic conversions such that you
+       need not convert other numeric types to `Decimal` manually.
+
+       Integer division of Decimals rounds down to the nearest integer.
 
        Returns an error if `that` is zero.
 
@@ -579,6 +581,61 @@ type Decimal
     div self that:Decimal -> Decimal =
         handle_java_exception <|
             Decimal.Value (self.big_decimal.divideToIntegralValue that.big_decimal)
+
+    ## ALIAS power
+       GROUP Operators
+       ICON math
+       Compute the result of raising this to the positive integer power `exp`.
+
+       Arguments:
+       - exp: The exponent, must be an integer in the range 0 through
+         999999999 (inclusive).
+
+       Exponentiation in enso will undergo automatic conversions such that you
+       need not convert other numeric types to `Decimal` manually.
+
+       ! Error Conditions
+
+         - If `exp` is outside the range 0 through
+           999999999 (inclusive), `Arithmetic_Error` will be thrown.
+
+       > Example
+         Computing 2 to the fifth power.
+
+             Decimal.new "2" . pow (Decimal.new "5")
+             # => 32
+    pow : Integer -> Decimal
+    pow self exp:Integer =
+        ## If `exp` is an integer that does not fit in a Java Integer,
+           UnsuppUnsupported_Argument_Types is raised, so we convert that to an
+           Arithmetic_Error.
+        handle_java_exception <| handle_unsupported_argument_types <|
+            Decimal.Value (self.big_decimal.pow exp)
+
+    ## ALIAS power
+       GROUP Operators
+       ICON math
+       Compute the result of raising this to the positive integer power `exp`.
+
+       Arguments:
+       - exp: The exponent, must be an integer in the range 0 through
+         999999999 (inclusive).
+
+       Exponentiation in enso will undergo automatic conversions such that you
+       need not convert other numeric types to `Decimal` manually.
+
+       ! Error Conditions
+
+         - If `exp` is outside the range 0 through
+           999999999 (inclusive), `Arithmetic_Error` will be thrown.
+
+       > Example
+         Computing 2 to the fifth power.
+
+             Decimal.new "2" ^ Decimal.new "5"
+             # => 32
+    ^ : Integer -> Decimal
+    ^ self exp:Integer = self.pow exp
 
     ## GROUP Operators
        ICON operators
@@ -638,6 +695,11 @@ attach_loss_of_numeric_precision f value =
 handle_java_exception ~action =
     Panic.catch ArithmeticException action caught_panic->
         Error.throw (Arithmetic_Error.Error caught_panic.payload.getMessage)
+
+## PRIVATE
+handle_unsupported_argument_types ~action =
+    Panic.catch Unsupported_Argument_Types action _->
+        Error.throw (Arithmetic_Error.Error "Exponent out of range 0..999999999 (inclusive)")
 
 ## PRIVATE
 Comparable.from (_ : Decimal) = Decimal_Comparator

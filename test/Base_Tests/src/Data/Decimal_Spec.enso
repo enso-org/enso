@@ -531,6 +531,32 @@ add_specs suite_builder =
 
             Decimal.new "12" . div (Decimal.new "0") . should_fail_with Arithmetic_Error
 
+    suite_builder.group "pow" group_builder->
+        group_builder.specify "should define pow" <|
+            Decimal.new "10" . pow 3 . should_equal 1000
+
+            (Decimal.new "10" ^ 3) . should_equal 1000
+
+            (Decimal.new "-10" ^ 2) . should_equal 100
+            (Decimal.new "-10" ^ 3) . should_equal -1000
+
+            (Decimal.new "2" ^ 5) . should_equal 32
+            (Decimal.new "3" ^ 4) . should_equal 81
+            (Decimal.new "-2" ^ 5) . should_equal -32
+            (Decimal.new "-3" ^ 4) . should_equal 81
+
+            (Decimal.new "10" ^ 1) . should_equal 10
+            (Decimal.new "2" ^ 1) . should_equal 2
+            (Decimal.new "10" ^ 0) . should_equal 1
+            (Decimal.new "2" ^ 0) . should_equal 1
+
+            (Decimal.new "23234" ^ 12) . should_equal (Decimal.new "24745020631916033678933049360198248076412726408646656")
+            (Decimal.new "-794" ^ 112) . should_equal (Decimal.new "6024156861645760455373941610695035918372130160062114486642167348130629475133139191309665922068844301194118714216190697635299124619812230483098091272538558376111325623532711124479664789034731517753138259958467197045503553217529624389271803885423122798234927557537822587658929087103065356345719502482054440067247048272417652736")
+
+        group_builder.specify "should throw an error for exponent out of range" <|
+            Decimal.new "10" . pow -1 . should_fail_with Arithmetic_Error
+            Decimal.new "10" . pow 99999999999 . should_fail_with Arithmetic_Error
+
 main =
     suite = Test.build suite_builder->
         add_specs suite_builder
