@@ -476,6 +476,7 @@ public final class TypeInference implements IRPass {
             yield TypeRepresentation.UNKNOWN;
           }
         } else {
+          // TODO investigate - these seem to unexpectedly come up when compiling Standard.Base
           logger.warn("resolveTypeExpression: {} - Missing expected TypeName resolution metadata", type.showCode());
           yield TypeRepresentation.UNKNOWN;
         }
