@@ -94,7 +94,8 @@ type Data_Formatter
         formatter = self.make_auto_formatter
         formatter.format value
 
-    ## Create a clone of self with specified number formatting options.
+    ## ICON convert
+       Create a clone of self with specified number formatting options.
 
        Arguments:
        - decimal_point: The character used to separate the integer part from the fractional part of a number.
@@ -106,7 +107,8 @@ type Data_Formatter
         if decimal_point == thousand_separator then Error.throw (Illegal_Argument.Error "The decimal point and thousand separator must be different.") else
             self.clone decimal_point=decimal_point thousand_separator=thousand_separator allow_leading_zeros=allow_leading_zeros allow_exponential_notation=allow_exponential_notation
 
-    ## Specify values for Date/Time parsing.
+    ## ICON convert
+       Specify values for Date/Time parsing.
 
        A plain text pattern can be provided and it will be automatically
        converted into a `Date_Time_Formatter` using simple pattern parsing
@@ -138,7 +140,8 @@ type Data_Formatter
         time_vector = convert_formats time_formats
         self.clone datetime_formats=datetime_vector date_formats=date_vector time_formats=time_vector
 
-    ## Specify values for Boolean parsing.
+    ## ICON convert
+       Specify values for Boolean parsing.
 
        Arguments:
        - true_values: Values representing True.
@@ -149,7 +152,8 @@ type Data_Formatter
         false_vector = wrap_text_in_vector false_values
         self.clone true_values=true_vector false_values=false_vector
 
-    ## Create a clone of self with a changed format string for a particular
+    ## ICON convert
+       Create a clone of self with a changed format string for a particular
        datatype.
 
        It is mostly a convenience function to easily specify a datatype format.

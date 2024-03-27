@@ -8,6 +8,7 @@ import DefaultUserIcon from 'enso-assets/default_user.svg'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
 import * as backendProvider from '#/providers/BackendProvider'
+import * as textProvider from '#/providers/TextProvider'
 
 import * as backendModule from '#/services/Backend'
 
@@ -26,8 +27,9 @@ export interface OrganizationSettingsTabProps {
 /** Settings tab for viewing and editing organization information. */
 export default function OrganizationSettingsTab(props: OrganizationSettingsTabProps) {
   const { organization, setOrganization } = props
-  const toastAndLog = toastAndLogHooks.useToastAndLog()
   const { backend } = backendProvider.useBackend()
+  const { getText } = textProvider.useText()
+  const toastAndLog = toastAndLogHooks.useToastAndLog()
   const nameRef = React.useRef<HTMLInputElement>(null)
   const emailRef = React.useRef<HTMLInputElement>(null)
   const websiteRef = React.useRef<HTMLInputElement>(null)
@@ -119,7 +121,7 @@ export default function OrganizationSettingsTab(props: OrganizationSettingsTabPr
   const doUploadOrganizationPicture = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const image = event.target.files?.[0]
     if (image == null) {
-      toastAndLog('Could not upload a new profile picture because no image was found')
+      toastAndLog('noNewProfilePictureError')
     } else {
       try {
         const newOrganization = await backend.uploadOrganizationPicture(
@@ -160,11 +162,11 @@ export default function OrganizationSettingsTab(props: OrganizationSettingsTabPr
     <div className="flex-0 flex h flex-col gap-settings-section lg:h-auto lg:flex-row">
       <div className="flex w-settings-main-section flex-col gap-settings-subsection">
         <div className="flex flex-col gap-settings-section-header">
-          <h3 className="settings-subheading">Organization</h3>
+          <h3 className="settings-subheading">{getText('organization')}</h3>
           <div className="flex flex-col">
             <div className="flex h-row gap-settings-entry">
               <span className="text my-auto w-organization-settings-label">
-                Organization display name
+                {getText('organizationDisplayName')}
               </span>
               <span className="text my-auto grow font-bold">
                 <input
@@ -182,7 +184,7 @@ export default function OrganizationSettingsTab(props: OrganizationSettingsTabPr
               </span>
             </div>
             <div className="flex h-row gap-settings-entry">
-              <span className="text my-auto w-organization-settings-label">Email</span>
+              <span className="text my-auto w-organization-settings-label">{getText('email')}</span>
               <span className="text my-auto grow font-bold">
                 <input
                   ref={emailRef}
@@ -210,7 +212,9 @@ export default function OrganizationSettingsTab(props: OrganizationSettingsTabPr
               </span>
             </div>
             <div className="flex h-row gap-settings-entry">
-              <span className="text my-auto w-organization-settings-label">Website</span>
+              <span className="text my-auto w-organization-settings-label">
+                {getText('website')}
+              </span>
               <span className="text my-auto grow font-bold">
                 <input
                   ref={websiteRef}
@@ -227,7 +231,9 @@ export default function OrganizationSettingsTab(props: OrganizationSettingsTabPr
               </span>
             </div>
             <div className="flex h-row gap-settings-entry">
-              <span className="text my-auto w-organization-settings-label">Location</span>
+              <span className="text my-auto w-organization-settings-label">
+                {getText('location')}
+              </span>
               <span className="text my-auto grow font-bold">
                 <input
                   ref={locationRef}
@@ -247,7 +253,7 @@ export default function OrganizationSettingsTab(props: OrganizationSettingsTabPr
         </div>
       </div>
       <div className="flex flex-col gap-settings-section-header">
-        <h3 className="settings-subheading">Profile picture</h3>
+        <h3 className="settings-subheading">{getText('profilePicture')}</h3>
         <label className="flex h-profile-picture-large w-profile-picture-large cursor-pointer items-center overflow-clip rounded-full transition-colors hover:bg-frame">
           <input
             type="file"
@@ -263,8 +269,7 @@ export default function OrganizationSettingsTab(props: OrganizationSettingsTabPr
           />
         </label>
         <span className="w-profile-picture-caption py-profile-picture-caption-y">
-          Your organization&apos;s profile picture should not be irrelevant, abusive or vulgar. It
-          should not be a default image provided by Enso.
+          {getText('organizationProfilePictureWarning')}
         </span>
       </div>
     </div>

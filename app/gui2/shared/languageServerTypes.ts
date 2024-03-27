@@ -441,6 +441,10 @@ export namespace response {
   export interface GetComponentGroups {
     componentGroups: LibraryComponentGroup[]
   }
+
+  export interface AICompletion {
+    code: string
+  }
 }
 
 export interface LanguageServerError {

@@ -74,3 +74,6 @@ features = [
     'console',
     'FontFace'
 ]
+
+[lints]
+workspace = true

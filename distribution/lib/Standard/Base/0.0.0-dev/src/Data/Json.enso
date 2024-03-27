@@ -33,6 +33,7 @@ from project.Metadata.Widget import Single_Choice
 type Json
     ## ALIAS from text
        GROUP Conversions
+       ICON convert
 
        Parse a Text value into a `JS_Object` or an Enso primitive value (like
        `Text`, `Number`, `Boolean`, `Nothing`), or a `Vector` of values.

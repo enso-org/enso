@@ -38,8 +38,7 @@ case class SuggestionRow(
   scopeStartOffset: Int,
   scopeEndLine: Int,
   scopeEndOffset: Int,
-  documentation: Option[String],
-  reexport: Option[String]
+  documentation: Option[String]
 )
 
 /** A row in the suggestions_version table.
@@ -143,7 +142,6 @@ final class SuggestionsTable(tag: Tag)
   def scopeEndOffset =
     column[Int]("scope_end_offset", O.Default(ScopeColumn.EMPTY))
   def documentation = column[Option[String]]("documentation")
-  def reexport      = column[Option[String]]("reexport")
 
   def * =
     (
@@ -161,8 +159,7 @@ final class SuggestionsTable(tag: Tag)
       scopeStartOffset,
       scopeEndLine,
       scopeEndOffset,
-      documentation,
-      reexport
+      documentation
     ) <>
     (SuggestionRow.tupled, SuggestionRow.unapply)
 
@@ -172,7 +169,7 @@ final class SuggestionsTable(tag: Tag)
   def returnTypeIdx = index("suggestions_return_type_idx", returnType)
   def externalIdIdx =
     index("suggestions_external_id_idx", (externalIdLeast, externalIdMost))
-  def reexportIdx = index("suggestions_reexport_idx", reexport)
+
   // NOTE: unique index should not contain nullable columns because SQLite
   // teats NULLs as distinct values.
   def uniqueIdx =
@@ -288,5 +285,5 @@ object SuggestionsVersion extends TableQuery(new SuggestionsVersionTable(_))
 object SchemaVersion extends TableQuery(new SchemaVersionTable(_)) {
 
   /** The current schema version. */
-  val CurrentVersion: Long = 11
+  val CurrentVersion: Long = 12
 }

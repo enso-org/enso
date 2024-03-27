@@ -16,6 +16,7 @@ type Row
     column_names self = self.table.column_names
 
     ## GROUP Standard.Base.Metadata
+       ICON metadata
        Gets the number of columns in the table.
     length : Integer
     length self = self.table.columns.length

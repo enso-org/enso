@@ -642,7 +642,7 @@ class SuggestionsHandlerSpec
           DeliverToJsonController(
             clientId,
             SearchProtocol.SuggestionsDatabaseUpdateNotification(
-              updates1.size.toLong + 1,
+              updates1.size.toLong,
               updates2
             )
           )
@@ -690,7 +690,7 @@ class SuggestionsHandlerSpec
           DeliverToJsonController(
             clientId,
             SearchProtocol.SuggestionsDatabaseUpdateNotification(
-              updates1.size.toLong + 2,
+              updates1.size.toLong,
               updates3
             )
           )

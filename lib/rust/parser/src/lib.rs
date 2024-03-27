@@ -82,22 +82,13 @@
 #![feature(if_let_guard)]
 #![feature(box_patterns)]
 #![feature(option_get_or_insert_default)]
-// === Standard Linter Configuration ===
-#![deny(non_ascii_idents)]
-#![warn(unsafe_code)]
-#![allow(clippy::bool_to_int_with_if)]
-#![allow(clippy::let_and_return)]
 // === Non-Standard Linter Configuration ===
 #![allow(clippy::option_map_unit_fn)]
 #![allow(clippy::precedence)]
 #![allow(dead_code)]
 #![deny(unconditional_recursion)]
-#![warn(missing_copy_implementations)]
-#![warn(missing_debug_implementations)]
 #![warn(missing_docs)]
 #![warn(trivial_casts)]
-#![warn(trivial_numeric_casts)]
-#![warn(unused_import_braces)]
 #![warn(unused_qualifications)]
 
 use crate::prelude::*;
@@ -236,16 +227,18 @@ fn expression_to_statement(mut tree: syntax::Tree<'_>) -> syntax::Tree<'_> {
             let (leftmost, args) = collect_arguments(lhs.clone());
             if return_spec.is_none() {
                 if let Some(rhs) = rhs {
-                    if let Variant::Ident(ident) = &*leftmost.variant && ident.token.variant.is_type {
-                            // If the LHS is a type, this is a (destructuring) assignment.
-                            let lhs = expression_to_pattern(mem::take(lhs));
-                            tree.variant = Box::new(Variant::Assignment(Assignment {
-                                pattern: lhs,
-                                equals: mem::take(opr),
-                                expr: mem::take(rhs),
-                            }));
-                            return tree;
-                        }
+                    if let Variant::Ident(ident) = &*leftmost.variant
+                        && ident.token.variant.is_type
+                    {
+                        // If the LHS is a type, this is a (destructuring) assignment.
+                        let lhs = expression_to_pattern(mem::take(lhs));
+                        tree.variant = Box::new(Variant::Assignment(Assignment {
+                            pattern: lhs,
+                            equals:  mem::take(opr),
+                            expr:    mem::take(rhs),
+                        }));
+                        return tree;
+                    }
                     if !is_invalid_pattern(&leftmost) && args.is_empty() && !is_body_block(rhs) {
                         // If the LHS has no arguments, and there is a RHS, and the RHS is not a
                         // body block, this is a variable assignment.
@@ -403,7 +396,10 @@ pub fn parse_argument_definition(mut pattern: syntax::Tree) -> syntax::tree::Arg
         pattern = body;
     }
     let mut default_ = default();
-    if let Variant::OprApp(OprApp { lhs: Some(lhs), opr: Ok(opr), rhs: Some(rhs) }) = &*pattern.variant && opr.properties.is_assignment() {
+    if let Variant::OprApp(OprApp { lhs: Some(lhs), opr: Ok(opr), rhs: Some(rhs) }) =
+        &*pattern.variant
+        && opr.properties.is_assignment()
+    {
         let left_offset = pattern.span.left_offset;
         default_ = Some(ArgumentDefault { equals: opr.clone(), expression: rhs.clone() });
         pattern = lhs.clone();
@@ -434,7 +430,9 @@ pub fn parse_argument_definition(mut pattern: syntax::Tree) -> syntax::tree::Arg
         ast.span.left_offset += pattern.span.left_offset;
         pattern = ast;
     }
-    if let Variant::UnaryOprApp(UnaryOprApp { opr, rhs: Some(rhs) }) = &*pattern.variant && opr.properties.is_suspension() {
+    if let Variant::UnaryOprApp(UnaryOprApp { opr, rhs: Some(rhs) }) = &*pattern.variant
+        && opr.properties.is_suspension()
+    {
         let mut opr = opr.clone();
         opr.left_offset += pattern.span.left_offset;
         suspension = Some(opr);

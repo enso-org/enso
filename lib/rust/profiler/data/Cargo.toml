@@ -13,3 +13,6 @@ enso-profiler = { path = "../" }
 
 [dev-dependencies]
 futures = { workspace = true }
+
+[lints]
+workspace = true

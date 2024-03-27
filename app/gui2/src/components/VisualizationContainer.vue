@@ -15,10 +15,10 @@ const props = defineProps<{
   belowToolbar?: boolean
 }>()
 
-/** The total width of:
+/** The minimum width must be at least the total width of:
  * - both of toolbars that are always visible (32px + 60px), and
  * - the 4px flex gap between the toolbars. */
-const MIN_WIDTH_PX = 96
+const MIN_WIDTH_PX = 200
 
 const config = useVisualizationConfig()
 
@@ -114,7 +114,7 @@ const resizeBottomRight = usePointer((pos, _, type) => {
       <SmallPlusButton
         v-if="config.isCircularMenuVisible"
         class="below-viz"
-        @createNode="config.createNode($event)"
+        @createNodes="config.createNodes(...$event)"
       />
       <div
         ref="contentNode"
@@ -194,7 +194,7 @@ const resizeBottomRight = usePointer((pos, _, type) => {
 <style scoped>
 .VisualizationContainer {
   --node-height: 32px;
-  --permanent-toolbar-width: 96px;
+  --permanent-toolbar-width: 200px;
   color: var(--color-text);
   background: var(--color-visualization-bg);
   position: absolute;

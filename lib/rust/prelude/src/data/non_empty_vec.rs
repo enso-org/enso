@@ -2,9 +2,6 @@
 
 use crate::*;
 
-use crate::data::vec_indexed_by;
-use crate::VecIndexedBy;
-
 use std::ops::Bound;
 use std::vec::Drain;
 
@@ -351,7 +348,7 @@ where I: vec_indexed_by::Index
     /// use enso_prelude::NonEmptyVec;
     /// let mut vec = NonEmptyVec::new(0, vec![1, 4, 5]);
     /// vec.extend_at(2, vec![2, 3]);
-    /// assert_eq!(&vec[..], &[0, 1, 2, 3, 4, 5])
+    /// assert_eq!(&vec.as_slice(), &[0, 1, 2, 3, 4, 5])
     /// ```
     pub fn extend_at(&mut self, index: I, elems: impl IntoIterator<Item = T>) {
         self.splice(index..index, elems);

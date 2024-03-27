@@ -24,6 +24,8 @@ module.exports = {
           '',
           '^#[/]App',
           '^#[/]appUtils',
+          '^#[/]text',
+          '^#[/]reactQueryClient',
           '',
           '^#[/]configurations[/]',
           '',

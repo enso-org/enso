@@ -13,6 +13,8 @@ export interface ButtonProps {
   readonly alt?: string
   /** A title that is only shown when `disabled` is `true`. */
   readonly error?: string | null
+  /** The default title. */
+  readonly title?: string
   readonly className?: string
   readonly onClick: (event: React.MouseEvent) => void
 }
@@ -20,7 +22,7 @@ export interface ButtonProps {
 /** A styled button. */
 export default function Button(props: ButtonProps) {
   const { active = false, disabled = false, image, error } = props
-  const { alt, className, onClick } = props
+  const { title, alt, className, onClick } = props
 
   return (
     <button
@@ -30,7 +32,11 @@ export default function Button(props: ButtonProps) {
     >
       <SvgMask
         src={image}
-        {...(!active && disabled && error != null ? { title: error } : {})}
+        {...(!active && disabled && error != null
+          ? { title: error }
+          : title != null
+            ? { title }
+            : {})}
         {...(alt != null ? { alt } : {})}
         className={className}
       />
