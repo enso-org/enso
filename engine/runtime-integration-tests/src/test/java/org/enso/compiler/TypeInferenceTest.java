@@ -1164,10 +1164,6 @@ public class TypeInferenceTest extends CompilerTest {
       throw new IllegalArgumentException("This method will not work correctly with imports.");
     }
 
-    System.out.println(
-        "\n\n\n=========================================\nSOURCE "
-            + src.getURI().toString()
-            + "\n");
     Module rawModule = parse(src.getCharacters());
 
     var compilerConfig = new CompilerConfig(false, true, true, true, true, Option.empty());
