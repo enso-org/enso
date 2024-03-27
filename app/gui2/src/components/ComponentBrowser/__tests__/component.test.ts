@@ -23,9 +23,9 @@ test.each([
   [makeModuleMethod('Standard.Base.Data.read'), 'Data.read'],
   [makeStaticMethod('Standard.Base.Data.Vector.new'), 'Vector.new'],
   [makeMethod('Standard.Base.Data.Vector.get'), 'get'],
-  [makeConstructor('Standard.Table.Data.Join_Kind.Join_Kind.LeftInner'), 'Join_Kind.LeftInner'],
-  [makeModule('Standard.Table.Data.Join_Kind'), 'Join_Kind'],
-  [makeModule('Standard.Table.Data'), 'Data', 'Standard.Table.Data'],
+  [makeConstructor('Standard.Table.Join_Kind.Join_Kind.Inner'), 'Join_Kind.Inner'],
+  [makeModule('Standard.Table.Join_Kind'), 'Join_Kind'],
+  [makeModule('Standard.Table.Conversions'), 'Conversions', 'Standard.Table.Conversions'],
   [makeModuleMethod('local.Project.main'), 'Project.main'],
 ])("$name Component's label is valid", (suggestion, expected, mainExpected?) => {
   const mainView = new Filtering({})
