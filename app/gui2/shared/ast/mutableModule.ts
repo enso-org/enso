@@ -158,6 +158,7 @@ export class MutableModule implements Module {
 
   observe(observer: (update: ModuleUpdate) => void) {
     const handle = (events: Y.YEvent<any>[], transaction: Y.Transaction) => {
+      console.log('Handle event', events)
       observer(this.observeEvents(events, tryAsOrigin(transaction.origin)))
     }
     // Attach the observer first, so that if an update hook causes changes in reaction to the initial state update, we
