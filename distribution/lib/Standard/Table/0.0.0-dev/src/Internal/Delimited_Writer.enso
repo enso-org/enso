@@ -4,14 +4,14 @@ import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.System.File.Generic.Writable_File.Writable_File
 import Standard.Base.System.Output_Stream.Output_Stream
 
-import project.Data.Data_Formatter.Data_Formatter
-import project.Data.Match_Columns.Match_Columns
 import project.Data.Table.Table
+import project.Data_Formatter.Data_Formatter
 import project.Delimited.Delimited_Format.Delimited_Format
 import project.Delimited.Quote_Style.Quote_Style
 import project.Internal.Delimited_Reader
 import project.Internal.Delimited_Reader.Detected_Headers
 import project.Internal.Java_Problems
+import project.Match_Columns.Match_Columns
 from project.Errors import Column_Count_Mismatch, Column_Name_Mismatch
 
 polyglot java import java.io.IOException

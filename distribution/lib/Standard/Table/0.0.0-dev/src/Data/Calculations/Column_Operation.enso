@@ -1,7 +1,7 @@
 from Standard.Base import all
 import Standard.Base.Errors.Deprecated.Deprecated
 
-import project.Data.Column_Ref.Column_Ref
+import project.Column_Ref.Column_Ref
 import project.Data.Expression.Expression
 import project.Data.Simple_Expression.Simple_Calculation
 import project.Data.Simple_Expression.Simple_Expression

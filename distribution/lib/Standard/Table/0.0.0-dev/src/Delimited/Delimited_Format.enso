@@ -8,12 +8,12 @@ from Standard.Base.Metadata.Choice import Option
 from Standard.Base.System.File_Format import parse_boolean_with_infer
 from Standard.Base.Widget_Helpers import make_file_read_delimiter_selector
 
-import project.Data.Data_Formatter.Data_Formatter
-import project.Data.Match_Columns.Match_Columns
 import project.Data.Table.Table
+import project.Data_Formatter.Data_Formatter
 import project.Delimited.Quote_Style.Quote_Style
 import project.Internal.Delimited_Reader
 import project.Internal.Delimited_Writer
+import project.Match_Columns.Match_Columns
 
 ## Read delimited files such as CSVs into a Table.
 type Delimited_Format

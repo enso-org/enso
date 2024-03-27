@@ -2,9 +2,9 @@ from Standard.Base import all
 import Standard.Base.Data.Java_Json.Jackson_Object
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
-from Standard.Table import Column, Table
-
-import project.Data.Row.Row
+import project.Data.Column.Column
+import project.Data.Table.Table
+import project.Row.Row
 
 ## PRIVATE
    A special type describing how to convert an object into a set of table

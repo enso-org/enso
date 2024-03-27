@@ -1,11 +1,11 @@
 from Standard.Base import all
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Errors.Illegal_State.Illegal_State
+
 import project.Data.Column.Column
-import project.Data.Data_Formatter.Data_Formatter
 import project.Data.Type.Storage
 import project.Data.Type.Value_Type.Value_Type
-
+import project.Data_Formatter.Data_Formatter
 from project.Internal.Java_Exports import make_string_builder
 
 polyglot java import java.lang.IllegalArgumentException

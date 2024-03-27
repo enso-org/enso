@@ -2,12 +2,11 @@ from Standard.Base import all
 
 import project.Aggregate_Column.Aggregate_Column
 import project.Blank_Selector.Blank_Selector
+import project.Column_Ref.Column_Ref
 import project.Data.Calculations.Column_Operation.Column_Operation
 import project.Data.Column.Column
-import project.Data.Column_Ref.Column_Ref
-import project.Data.Column_Vector_Extensions
-import project.Data.Data_Formatter.Data_Formatter
-import project.Data.Match_Columns.Match_Columns
+import project.Data_Formatter.Data_Formatter
+import project.Match_Columns.Match_Columns
 import project.Data.Simple_Expression.Simple_Calculation
 import project.Data.Simple_Expression.Simple_Expression
 import project.Data.Table.Table
@@ -28,17 +27,17 @@ import project.Sort_Column.Sort_Column
 from project.Constants import all
 from project.Data.Expression import expr
 from project.Delimited.Delimited_Format.Delimited_Format import Delimited
+from project.Extensions.Column_Vector_Extensions import all
 from project.Extensions.Table_Conversions import all
 
 export project.Aggregate_Column.Aggregate_Column
 
 export project.Blank_Selector.Blank_Selector
+export project.Column_Ref.Column_Ref
 export project.Data.Calculations.Column_Operation.Column_Operation
 export project.Data.Column.Column
-export project.Data.Column_Ref.Column_Ref
-export project.Data.Column_Vector_Extensions
-export project.Data.Data_Formatter.Data_Formatter
-export project.Data.Match_Columns.Match_Columns
+export project.Data_Formatter.Data_Formatter
+export project.Match_Columns.Match_Columns
 export project.Data.Simple_Expression.Simple_Calculation
 export project.Data.Simple_Expression.Simple_Expression
 export project.Data.Table.Table
@@ -59,5 +58,6 @@ export project.Sort_Column.Sort_Column
 from project.Constants export all
 from project.Data.Expression export expr
 from project.Delimited.Delimited_Format.Delimited_Format export Delimited
+from project.Extensions.Column_Vector_Extensions export all
 from project.Extensions.Table_Conversions export all
 
