@@ -21,10 +21,11 @@ from Standard.Base.Widget_Helpers import make_delimiter_selector, make_format_ch
 
 import project.Aggregate_Column.Aggregate_Column
 import project.Blank_Selector.Blank_Selector
+import project.Constants.Previous_Value
+import project.Constants.Report_Unmatched
 import project.Data.Column as Column_Module
 import project.Data.Column.Column
 import project.Data.Column_Ref.Column_Ref
-import project.Constants.Previous_Value
 import project.Data.Data_Formatter.Data_Formatter
 import project.Data.Expression.Expression
 import project.Data.Expression.Expression_Error
@@ -32,10 +33,7 @@ import project.Data.Join_Condition.Join_Condition
 import project.Data.Join_Kind.Join_Kind
 import project.Data.Match_Columns as Match_Columns_Helpers
 import project.Data.Match_Columns.Match_Columns
-import project.Position.Position
-import project.Constants.Report_Unmatched
 import project.Data.Row.Row
-import project.Set_Mode.Set_Mode
 import project.Data.Simple_Expression.Simple_Expression
 import project.Data.Sort_Column.Sort_Column
 import project.Delimited.Delimited_Format.Delimited_Format
@@ -60,6 +58,8 @@ import project.Internal.Split_Tokenize
 import project.Internal.Table_Helpers
 import project.Internal.Table_Helpers.Table_Column_Helper
 import project.Internal.Widget_Helpers
+import project.Position.Position
+import project.Set_Mode.Set_Mode
 from project.Data.Column import get_item_string, normalize_string_for_display
 from project.Data.Type.Value_Type import Auto, Value_Type
 from project.Errors import all

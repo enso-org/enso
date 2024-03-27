@@ -1,8 +1,8 @@
 from Standard.Base import all hiding First, Last
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
-from Standard.Table import Aggregate_Column
 import Standard.Table.Internal.Problem_Builder.Problem_Builder
+from Standard.Table import Aggregate_Column
 from Standard.Table.Aggregate_Column.Aggregate_Column import all
 from Standard.Table.Errors import Floating_Point_Equality
 

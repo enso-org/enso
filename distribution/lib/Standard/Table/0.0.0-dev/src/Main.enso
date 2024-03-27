@@ -10,8 +10,6 @@ import project.Data.Data_Formatter.Data_Formatter
 import project.Data.Join_Condition.Join_Condition
 import project.Data.Join_Kind.Join_Kind
 import project.Data.Match_Columns.Match_Columns
-import project.Position.Position
-import project.Set_Mode.Set_Mode
 import project.Data.Simple_Expression.Simple_Calculation
 import project.Data.Simple_Expression.Simple_Expression
 import project.Data.Sort_Column.Sort_Column
@@ -25,12 +23,15 @@ import project.Excel.Excel_Format.Excel_Format
 import project.Excel.Excel_Range.Excel_Range
 import project.Excel.Excel_Workbook.Excel_Workbook
 import project.Extensions.Prefix_Name.Prefix_Name
+import project.Position.Position
+import project.Set_Mode.Set_Mode
 from project.Constants import all
 from project.Data.Expression import expr
 from project.Delimited.Delimited_Format.Delimited_Format import Delimited
 from project.Extensions.Table_Conversions import all
 
 export project.Aggregate_Column.Aggregate_Column
+
 export project.Blank_Selector.Blank_Selector
 export project.Data.Calculations.Column_Operation.Column_Operation
 export project.Data.Column.Column
@@ -40,8 +41,6 @@ export project.Data.Data_Formatter.Data_Formatter
 export project.Data.Join_Condition.Join_Condition
 export project.Data.Join_Kind.Join_Kind
 export project.Data.Match_Columns.Match_Columns
-export project.Position.Position
-export project.Set_Mode.Set_Mode
 export project.Data.Simple_Expression.Simple_Calculation
 export project.Data.Simple_Expression.Simple_Expression
 export project.Data.Sort_Column.Sort_Column
@@ -55,7 +54,10 @@ export project.Excel.Excel_Format.Excel_Format
 export project.Excel.Excel_Range.Excel_Range
 export project.Excel.Excel_Workbook.Excel_Workbook
 export project.Extensions.Prefix_Name.Prefix_Name
+export project.Position.Position
+export project.Set_Mode.Set_Mode
 from project.Constants export all
 from project.Data.Expression export expr
 from project.Delimited.Delimited_Format.Delimited_Format export Delimited
 from project.Extensions.Table_Conversions export all
+
