@@ -1,6 +1,7 @@
 package org.enso.compiler.phase;
 
 
+import java.io.IOException;
 import java.util.Objects;
 
 import org.enso.compiler.Compiler;
@@ -27,7 +28,6 @@ public abstract class ImportResolverAlgorithm {
   protected ImportResolverAlgorithm() {
   }
 
-  abstract Compiler getCompiler();
   abstract Name.Qualified nameForImport(Import.Module imp);
   abstract Name.Qualified nameForExport(Export.Module ex);
   abstract String nameForType(ResolvedType e);
@@ -38,6 +38,12 @@ public abstract class ImportResolverAlgorithm {
   /** @return {@code null} or list of named imports */
   abstract java.util.List<Name.Literal> hiddenNames(Export.Module ex);
   abstract java.util.List<ResolvedType> definedEntities(String name);
+  /** Ensure library is loaded and load a module.
+   *
+   * @return {@code null} if the library is loaded, but the module isn't found
+   * @throws IOException with {@link IOException#getMessage()} when the library cannot be loaded
+  */
+  abstract CompilerContext.Module loadLibraryModule(LibraryName libraryName, String moduleName) throws IOException;
   abstract Tuple2<Import, Option<ResolvedImport>> tupleResolvedImport(Import.Module imp, java.util.List<Export.Module> exp, CompilerContext.Module m);
   abstract Tuple2<Import, Option<ResolvedImport>> tupleResolvedType(Import.Module imp, java.util.List<Export.Module> exp, ResolvedType m);
   abstract Tuple2<Import, Option<ResolvedImport>> tupleErrorPackageCoundNotBeLoaded(Import.Module imp, String impName, String loadingError);
@@ -110,27 +116,23 @@ public abstract class ImportResolverAlgorithm {
           "desugaring."
         );
     }
-    var compiler = this.getCompiler();
-    var repo = compiler.packageRepository();
     var twoParts = parts.take(2);
     var libraryName = new LibraryName(twoParts.head().name(), twoParts.last().name());
-    var foundLib = repo.ensurePackageIsLoaded(libraryName);
-    if (foundLib.isRight()) {
-        var moduleOption = compiler.getModule(impName);
-        if (moduleOption.isDefined()) {
-            var m = moduleOption.get();
-            return tupleResolvedImport(imp, exp, m);
+
+    try {
+      var m = loadLibraryModule(libraryName, impName);
+      if (m != null) {
+        return tupleResolvedImport(imp, exp, m);
+      } else {
+        var typ = tryResolveAsTypeNew(nameForImport(imp));
+        if (typ != null) {
+          return tupleResolvedType(imp, exp, typ);
         } else {
-            var typ = tryResolveAsTypeNew(nameForImport(imp));
-            if (typ != null) {
-                return tupleResolvedType(imp, exp, typ);
-            } else {
-                return tupleErrorModuleDoesNotExist(imp, impName);
-            }
+          return tupleErrorModuleDoesNotExist(imp, impName);
         }
-    } else {
-        var loadingError = foundLib.left().getOrElse(null).toString();
-        return tupleErrorPackageCoundNotBeLoaded(imp, impName, loadingError);
+      }
+    } catch (IOException e) {
+      return tupleErrorPackageCoundNotBeLoaded(imp, impName, e.getMessage());
     }
   }
 
@@ -188,6 +190,8 @@ public abstract class ImportResolverAlgorithm {
   }
 
   abstract static class Impl extends ImportResolverAlgorithm {
+    abstract Compiler getCompiler();
+
     @Override
     Name.Qualified nameForImport(Import.Module imp) {
       return imp.name();
@@ -268,6 +272,23 @@ public abstract class ImportResolverAlgorithm {
         .filter(Objects::nonNull);
       var entities = CollectionConverters.SeqHasAsJava(entitiesStream).asJava();
       return entities;
+    }
+
+    @Override
+    CompilerContext.Module loadLibraryModule(LibraryName libraryName, String moduleName) throws IOException {
+      var compiler = this.getCompiler();
+      var repo = compiler.packageRepository();
+      var foundLib = repo.ensurePackageIsLoaded(libraryName);
+      if (foundLib.isRight()) {
+        var moduleOption = compiler.getModule(moduleName);
+        if (moduleOption.isDefined()) {
+          return moduleOption.get();
+        } else {
+          return null;
+        }
+      } else {
+        throw new IOException(foundLib.left().getOrElse(null).toString());
+      }
     }
 
     @Override
