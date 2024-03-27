@@ -6,6 +6,7 @@ import * as textProvider from '#/providers/TextProvider'
 import * as aria from '#/components/aria'
 import PermissionTypeSelector from '#/components/dashboard/PermissionTypeSelector'
 import Modal from '#/components/Modal'
+import FocusRing from '#/components/styled/FocusRing'
 import UnstyledButton from '#/components/styled/UnstyledButton'
 
 import type * as backend from '#/services/Backend'
@@ -134,26 +135,27 @@ export default function PermissionSelector(props: PermissionSelectorProps) {
     case permissionsModule.Permission.view: {
       permissionDisplay = (
         <div className="flex w-permission-display gap-px">
-          {/* This CANNOT be an `UnstyledButton` as its click handler needs to access
-           * `event.currentTarget`.*/}
-          {/* eslint-disable-next-line no-restricted-syntax */}
-          <button
-            type="button"
-            disabled={isDisabled}
-            {...(isDisabled && error != null ? { title: error } : {})}
-            className={`focus-child selectable ${!isDisabled || !input ? 'active' : ''} ${
-              permissionsModule.PERMISSION_CLASS_NAME[permission.type]
-            } h-text grow rounded-l-full px-permission-mini-button-x py-permission-mini-button-y`}
-            onClick={doShowPermissionTypeSelector}
-          >
-            <aria.Text>{getText(permissionsModule.TYPE_TO_TEXT_ID[permission.type])}</aria.Text>
-          </button>
+          <FocusRing>
+            {/* This CANNOT be an `UnstyledButton` as its click handler needs to access
+             * `event.currentTarget`.*/}
+            {/* eslint-disable-next-line no-restricted-syntax */}
+            <button
+              type="button"
+              disabled={isDisabled}
+              {...(isDisabled && error != null ? { title: error } : {})}
+              className={`focus-child selectable ${!isDisabled || !input ? 'active' : ''} ${
+                permissionsModule.PERMISSION_CLASS_NAME[permission.type]
+              } h-text grow rounded-l-full px-permission-mini-button-x py-permission-mini-button-y`}
+              onClick={doShowPermissionTypeSelector}
+            >
+              <aria.Text>{getText(permissionsModule.TYPE_TO_TEXT_ID[permission.type])}</aria.Text>
+            </button>
+          </FocusRing>
           <UnstyledButton
             isDisabled={isDisabled}
+            focusRingPlacement="after"
             {...(isDisabled && error != null ? { title: error } : {})}
-            className={`selectable ${permission.docs && (!isDisabled || !input) ? 'active' : ''} ${
-              permissionsModule.DOCS_CLASS_NAME
-            } h-text grow px-permission-mini-button-x py-permission-mini-button-y`}
+            className="relative h-text grow after:absolute after:inset"
             onPress={() => {
               setAction(
                 permissionsModule.toPermissionAction({
@@ -164,14 +166,19 @@ export default function PermissionSelector(props: PermissionSelectorProps) {
               )
             }}
           >
-            <aria.Text>{getText('docsPermissionModifier')}</aria.Text>
+            <aria.Text
+              className={`selectable ${permission.docs && (!isDisabled || !input) ? 'active' : ''} ${
+                permissionsModule.DOCS_CLASS_NAME
+              } h-text grow px-permission-mini-button-x py-permission-mini-button-y`}
+            >
+              {getText('docsPermissionModifier')}
+            </aria.Text>
           </UnstyledButton>
           <UnstyledButton
             isDisabled={isDisabled}
+            focusRingPlacement="after"
             {...(isDisabled && error != null ? { title: error } : {})}
-            className={`selectable ${permission.execute && (!isDisabled || !input) ? 'active' : ''} ${
-              permissionsModule.EXEC_CLASS_NAME
-            } h-text grow rounded-r-full px-permission-mini-button-x py-permission-mini-button-y`}
+            className="relative h-text grow rounded-r-full after:absolute after:inset after:rounded-r-full"
             onPress={() => {
               setAction(
                 permissionsModule.toPermissionAction({
@@ -182,7 +189,13 @@ export default function PermissionSelector(props: PermissionSelectorProps) {
               )
             }}
           >
-            {getText('execPermissionModifier')}
+            <aria.Text
+              className={`selectable ${permission.execute && (!isDisabled || !input) ? 'active' : ''} ${
+                permissionsModule.EXEC_CLASS_NAME
+              } rounded-r-full px-permission-mini-button-x py-permission-mini-button-y`}
+            >
+              {getText('execPermissionModifier')}
+            </aria.Text>
           </UnstyledButton>
         </div>
       )
