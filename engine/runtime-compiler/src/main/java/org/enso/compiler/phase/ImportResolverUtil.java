@@ -71,24 +71,23 @@ public final class ImportResolverUtil extends ImportResolver {
         }).filter(Objects::nonNull).toList();
 
         for (var h : importsWithHiddenNames) {
-            var e = h._1;
-            var hidden = h._2;
-            var unqualifiedConflicts = unqualifiedImports.stream().filter(Objects::nonNull).toList();
-            if (!unqualifiedConflicts.isEmpty()) {
-              var b = toScalaList(hidden.stream().map(x -> x.name()).toList());
-              throw new HiddenNamesShadowUnqualifiedExport(
-                e.name().name(), b
-              );
-            }
-
+          var e = h._1;
+          var hidden = h._2;
+          var unqualifiedConflicts = unqualifiedImports.stream().filter(x -> !x.equals(e)).filter(Objects::nonNull).toList();
+          if (!unqualifiedConflicts.isEmpty()) {
+            var b = toScalaList(hidden.stream().map(x -> x.name()).toList());
+            throw new HiddenNamesShadowUnqualifiedExport(
+              e.name().name(), b
+            );
+          }
         }
         for (var h : importsWithHiddenNames) {
-            var e = h._1;
-            var hidden = h._2;
-            var qualifiedConflicts = qualifiedImports.stream().filter(Objects::nonNull)
-              .flatMap(x -> x.stream())
-              .filter(f -> hidden.stream().filter(x -> f.equals(x.name())).findAny().isPresent())
-              .toList();
+          var e = h._1;
+          var hidden = h._2;
+          var qualifiedConflicts = qualifiedImports.stream().filter(Objects::nonNull)
+            .flatMap(x -> x.stream())
+            .filter(f -> hidden.stream().filter(x -> f.equals(x.name())).findAny().isPresent())
+            .toList();
           if (!qualifiedConflicts.isEmpty()) {
               var b = toScalaList(qualifiedConflicts);
             throw new HiddenNamesShadowQualifiedExport(
