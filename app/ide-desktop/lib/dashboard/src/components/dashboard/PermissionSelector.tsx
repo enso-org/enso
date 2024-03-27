@@ -6,7 +6,6 @@ import * as textProvider from '#/providers/TextProvider'
 import * as aria from '#/components/aria'
 import PermissionTypeSelector from '#/components/dashboard/PermissionTypeSelector'
 import Modal from '#/components/Modal'
-import FocusRing from '#/components/styled/FocusRing'
 import UnstyledButton from '#/components/styled/UnstyledButton'
 
 import type * as backend from '#/services/Backend'
@@ -61,6 +60,7 @@ export default function PermissionSelector(props: PermissionSelectorProps) {
   const { getText } = textProvider.useText()
   const [action, setActionRaw] = React.useState(actionRaw)
   const [TheChild, setTheChild] = React.useState<(() => JSX.Element) | null>()
+  const permissionSelectorButtonRef = React.useRef<HTMLButtonElement>(null)
   const permission = permissionsModule.FROM_PERMISSION_ACTION[action]
 
   const setAction = (newAction: permissions.PermissionAction) => {
@@ -68,64 +68,66 @@ export default function PermissionSelector(props: PermissionSelectorProps) {
     onChange(newAction)
   }
 
-  const doShowPermissionTypeSelector = (event: React.SyntheticEvent<HTMLElement>) => {
-    const position = event.currentTarget.getBoundingClientRect()
-    const originalLeft = position.left + window.scrollX
-    const originalTop = position.top + window.scrollY
-    const left = originalLeft + TYPE_SELECTOR_X_OFFSET_PX
-    const top = originalTop + (typeSelectorYOffsetPx ?? TYPE_SELECTOR_Y_OFFSET_PX)
-    // The border radius of the label. This is half of the label's height.
-    const r = LABEL_BORDER_RADIUS_PX
-    const clipPath =
-      // A rectangle covering the entire screen
-      'path(evenodd, "M0 0L3840 0 3840 2160 0 2160Z' +
-      // Move to top left of label
-      `M${originalLeft + LABEL_BORDER_RADIUS_PX} ${originalTop + LABEL_CLIP_Y_OFFSET_PX}` +
-      // Top straight edge of label
-      `h${LABEL_STRAIGHT_WIDTH_PX}` +
-      // Right semicircle of label
-      `a${r} ${r} 0 0 1 0 ${r * 2}` +
-      // Bottom straight edge of label
-      `h-${LABEL_STRAIGHT_WIDTH_PX}` +
-      // Left semicircle of label
-      `a${r} ${r} 0 0 1 0 -${r * 2}Z")`
-    setTheChild(oldTheChild =>
-      oldTheChild != null
-        ? null
-        : function Child() {
-            return (
-              <Modal
-                className="fixed size-full overflow-auto"
-                onClick={() => {
-                  setTheChild(null)
-                }}
-              >
-                <div style={{ clipPath }} className="absolute size-full bg-dim" />
-                <PermissionTypeSelector
-                  showDelete={showDelete}
-                  type={permission.type}
-                  assetType={assetType}
-                  selfPermission={selfPermission}
-                  style={{ left, top }}
-                  onChange={type => {
+  const doShowPermissionTypeSelector = () => {
+    if (permissionSelectorButtonRef.current != null) {
+      const position = permissionSelectorButtonRef.current.getBoundingClientRect()
+      const originalLeft = position.left + window.scrollX
+      const originalTop = position.top + window.scrollY
+      const left = originalLeft + TYPE_SELECTOR_X_OFFSET_PX
+      const top = originalTop + (typeSelectorYOffsetPx ?? TYPE_SELECTOR_Y_OFFSET_PX)
+      // The border radius of the label. This is half of the label's height.
+      const r = LABEL_BORDER_RADIUS_PX
+      const clipPath =
+        // A rectangle covering the entire screen
+        'path(evenodd, "M0 0L3840 0 3840 2160 0 2160Z' +
+        // Move to top left of label
+        `M${originalLeft + LABEL_BORDER_RADIUS_PX} ${originalTop + LABEL_CLIP_Y_OFFSET_PX}` +
+        // Top straight edge of label
+        `h${LABEL_STRAIGHT_WIDTH_PX}` +
+        // Right semicircle of label
+        `a${r} ${r} 0 0 1 0 ${r * 2}` +
+        // Bottom straight edge of label
+        `h-${LABEL_STRAIGHT_WIDTH_PX}` +
+        // Left semicircle of label
+        `a${r} ${r} 0 0 1 0 -${r * 2}Z")`
+      setTheChild(oldTheChild =>
+        oldTheChild != null
+          ? null
+          : function Child() {
+              return (
+                <Modal
+                  className="fixed size-full overflow-auto"
+                  onClick={() => {
                     setTheChild(null)
-                    if (type === permissionsModule.Permission.delete) {
-                      doDelete?.()
-                    } else {
-                      const newAction = permissionsModule.TYPE_TO_PERMISSION_ACTION[type]
-                      const newPermissions = permissionsModule.FROM_PERMISSION_ACTION[newAction]
-                      if ('docs' in permission && 'docs' in newPermissions) {
-                        setAction(permissionsModule.toPermissionAction({ ...permission, type }))
-                      } else {
-                        setAction(permissionsModule.TYPE_TO_PERMISSION_ACTION[type])
-                      }
-                    }
                   }}
-                />
-              </Modal>
-            )
-          }
-    )
+                >
+                  <div style={{ clipPath }} className="absolute size-full bg-dim" />
+                  <PermissionTypeSelector
+                    showDelete={showDelete}
+                    type={permission.type}
+                    assetType={assetType}
+                    selfPermission={selfPermission}
+                    style={{ left, top }}
+                    onChange={type => {
+                      setTheChild(null)
+                      if (type === permissionsModule.Permission.delete) {
+                        doDelete?.()
+                      } else {
+                        const newAction = permissionsModule.TYPE_TO_PERMISSION_ACTION[type]
+                        const newPermissions = permissionsModule.FROM_PERMISSION_ACTION[newAction]
+                        if ('docs' in permission && 'docs' in newPermissions) {
+                          setAction(permissionsModule.toPermissionAction({ ...permission, type }))
+                        } else {
+                          setAction(permissionsModule.TYPE_TO_PERMISSION_ACTION[type])
+                        }
+                      }
+                    }}
+                  />
+                </Modal>
+              )
+            }
+      )
+    }
   }
 
   let permissionDisplay: JSX.Element
@@ -135,22 +137,17 @@ export default function PermissionSelector(props: PermissionSelectorProps) {
     case permissionsModule.Permission.view: {
       permissionDisplay = (
         <div className="flex w-permission-display gap-px">
-          <FocusRing>
-            {/* This CANNOT be an `UnstyledButton` as its click handler needs to access
-             * `event.currentTarget`.*/}
-            {/* eslint-disable-next-line no-restricted-syntax */}
-            <button
-              type="button"
-              disabled={isDisabled}
-              {...(isDisabled && error != null ? { title: error } : {})}
-              className={`focus-child selectable ${!isDisabled || !input ? 'active' : ''} ${
-                permissionsModule.PERMISSION_CLASS_NAME[permission.type]
-              } h-text grow rounded-l-full px-permission-mini-button-x py-permission-mini-button-y`}
-              onClick={doShowPermissionTypeSelector}
-            >
-              <aria.Text>{getText(permissionsModule.TYPE_TO_TEXT_ID[permission.type])}</aria.Text>
-            </button>
-          </FocusRing>
+          <UnstyledButton
+            ref={permissionSelectorButtonRef}
+            isDisabled={isDisabled}
+            {...(isDisabled && error != null ? { title: error } : {})}
+            className={`focus-child selectable ${!isDisabled || !input ? 'active' : ''} ${
+              permissionsModule.PERMISSION_CLASS_NAME[permission.type]
+            } h-text grow rounded-l-full px-permission-mini-button-x py-permission-mini-button-y`}
+            onPress={doShowPermissionTypeSelector}
+          >
+            <aria.Text>{getText(permissionsModule.TYPE_TO_TEXT_ID[permission.type])}</aria.Text>
+          </UnstyledButton>
           <UnstyledButton
             isDisabled={isDisabled}
             focusRingPlacement="after"
@@ -203,20 +200,17 @@ export default function PermissionSelector(props: PermissionSelectorProps) {
     }
     default: {
       permissionDisplay = (
-        // This CANNOT be an `UnstyledButton` as its click handler needs to access
-        // `event.currentTarget`.
-        // eslint-disable-next-line no-restricted-syntax
-        <button
-          type="button"
-          disabled={isDisabled}
+        <UnstyledButton
+          ref={permissionSelectorButtonRef}
+          isDisabled={isDisabled}
           {...(isDisabled && error != null ? { title: error } : {})}
           className={`focus-child selectable ${!isDisabled || !input ? 'active' : ''} ${
             permissionsModule.PERMISSION_CLASS_NAME[permission.type]
           } h-text w-permission-display rounded-full`}
-          onClick={doShowPermissionTypeSelector}
+          onPress={doShowPermissionTypeSelector}
         >
           {getText(permissionsModule.TYPE_TO_TEXT_ID[permission.type])}
-        </button>
+        </UnstyledButton>
       )
       break
     }

@@ -1,8 +1,7 @@
 /** @file A select menu with a dropdown. */
 import * as React from 'react'
 
-import * as aria from '#/components/aria'
-import FocusRing from '#/components/styled/FocusRing'
+import Input from '#/components/styled/Input'
 
 // =================
 // === Constants ===
@@ -180,29 +179,27 @@ export default function Autocomplete<T>(props: AutocompleteProps<T>) {
     <div onKeyDown={onKeyDown} className="grow">
       <div className="flex flex-1">
         {canEditText ? (
-          <FocusRing>
-            <aria.Input
-              type={type}
-              ref={inputRef}
-              autoFocus={autoFocus}
-              size={1}
-              value={text ?? ''}
-              placeholder={placeholder}
-              className="focus-child text grow rounded-full bg-transparent px-button-x"
-              onFocus={() => {
-                setIsDropdownVisible(true)
-              }}
-              onBlur={() => {
-                window.setTimeout(() => {
-                  setIsDropdownVisible(false)
-                })
-              }}
-              onChange={event => {
-                setIsDropdownVisible(true)
-                setText(event.currentTarget.value === '' ? null : event.currentTarget.value)
-              }}
-            />
-          </FocusRing>
+          <Input
+            type={type}
+            ref={inputRef}
+            autoFocus={autoFocus}
+            size={1}
+            value={text ?? ''}
+            placeholder={placeholder}
+            className="text grow rounded-full bg-transparent px-button-x"
+            onFocus={() => {
+              setIsDropdownVisible(true)
+            }}
+            onBlur={() => {
+              window.setTimeout(() => {
+                setIsDropdownVisible(false)
+              })
+            }}
+            onChange={event => {
+              setIsDropdownVisible(true)
+              setText(event.currentTarget.value === '' ? null : event.currentTarget.value)
+            }}
+          />
         ) : (
           <div
             ref={element => element?.focus()}
