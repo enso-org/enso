@@ -22,6 +22,8 @@ import org.enso.polyglot.CompilationStage
 import scala.collection.mutable
 import java.io.IOException
 
+import scala.jdk.CollectionConverters._
+
 /** Runs imports resolution. Starts from a given module and then recursively
   * collects all modules that are reachable from it.
   *
@@ -33,7 +35,6 @@ import java.io.IOException
   * @param compiler the compiler instance for the compiling context.
   */
 abstract class ImportResolver(compiler: Compiler) {
-  import ImportResolver._
 
   /** Runs the import mapping logic.
     *
@@ -243,10 +244,11 @@ abstract class ImportResolver(compiler: Compiler) {
         importsWithHiddenNames.foreach { case (e, hidden) =>
           val unqualifiedConflicts = unqualifiedImports.filter(_ != e)
           if (unqualifiedConflicts.nonEmpty) {
-            throw HiddenNamesShadowUnqualifiedExport(
-              e.name.name,
-              hidden.map(_.name)
-            )
+            throw ImportResolverUtil.HiddenNamesConflict
+              .shadowUnqualifiedExport(
+                e.name.name,
+                hidden.map(_.name).asJava
+              )
           }
 
           val qualifiedConflicts =
@@ -255,9 +257,9 @@ abstract class ImportResolver(compiler: Compiler) {
               .flatten
               .intersect(hidden.map(_.name))
           if (qualifiedConflicts.nonEmpty) {
-            throw HiddenNamesShadowQualifiedExport(
+            throw ImportResolverUtil.HiddenNamesConflict.shadowQualifiedExport(
               e.name.name,
-              qualifiedConflicts
+              qualifiedConflicts.asJava
             )
           }
         }
@@ -314,38 +316,4 @@ abstract class ImportResolver(compiler: Compiler) {
         )
     }
   }
-}
-
-object ImportResolver {
-  trait HiddenNamesConflict {
-    def getMessage(): String
-  }
-
-  private[phase] case class HiddenNamesShadowUnqualifiedExport(
-    name: String,
-    hiddenNames: List[String]
-  ) extends RuntimeException(
-        s"""Hidden '${hiddenNames.mkString(",")}' name${if (
-          hiddenNames.size == 1
-        ) ""
-        else
-          "s"} of the export module ${name} conflict${if (hiddenNames.size == 1)
-          "s"
-        else
-          ""} with the unqualified export"""
-      )
-      with HiddenNamesConflict
-
-  private[phase] case class HiddenNamesShadowQualifiedExport(
-    name: String,
-    conflict: List[String]
-  ) extends RuntimeException(
-        s"""Hidden '${conflict.mkString(",")}' name${if (conflict.size == 1) ""
-        else
-          "s"} of the exported module ${name} conflict${if (conflict.size == 1)
-          "s"
-        else
-          ""} with the qualified export"""
-      )
-      with HiddenNamesConflict
 }

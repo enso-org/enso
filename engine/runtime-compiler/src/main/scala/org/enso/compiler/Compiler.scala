@@ -456,7 +456,8 @@ class Compiler(
       try {
         importResolver.mapImports(module, bindingsCachingEnabled)
       } catch {
-        case e: ImportResolver.HiddenNamesConflict => reportExportConflicts(e)
+        case e: ImportResolverUtil.HiddenNamesConflict =>
+          reportExportConflicts(e)
       }
 
     val requiredModules =

@@ -75,8 +75,8 @@ public final class ImportResolverUtil extends ImportResolver {
           var hidden = h._2;
           var unqualifiedConflicts = unqualifiedImports.stream().filter(x -> !x.equals(e)).filter(Objects::nonNull).toList();
           if (!unqualifiedConflicts.isEmpty()) {
-            var b = toScalaList(hidden.stream().map(x -> x.name()).toList());
-            throw new HiddenNamesShadowUnqualifiedExport(
+            var b = hidden.stream().map(x -> x.name()).toList();
+            throw HiddenNamesConflict.shadowUnqualifiedExport(
               e.name().name(), b
             );
           }
@@ -89,10 +89,8 @@ public final class ImportResolverUtil extends ImportResolver {
             .filter(f -> hidden.stream().filter(x -> f.equals(x.name())).findAny().isPresent())
             .toList();
           if (!qualifiedConflicts.isEmpty()) {
-              var b = toScalaList(qualifiedConflicts);
-            throw new HiddenNamesShadowQualifiedExport(
-              e.name().name(), b
-
+            throw HiddenNamesConflict.shadowQualifiedExport(
+              e.name().name(), qualifiedConflicts
             );
           }
         }
@@ -189,4 +187,37 @@ public final class ImportResolverUtil extends ImportResolver {
     return CollectionConverters.ListHasAsScala(qualifiedConflicts).asScala().toList();
   }
 
+  public static final class HiddenNamesConflict extends RuntimeException {
+    private HiddenNamesConflict(String message) {
+      super(message);
+    }
+
+    static HiddenNamesConflict shadowUnqualifiedExport(String name, java.util.List<String> hiddenNames) {
+      String msg;
+      if (hiddenNames.size() == 1) {
+        msg = "Hidden '${conflict}' name of the export module ${name} conflicts with the unqualified export"
+          .replace("${name}", name)
+          .replace("${conflict}", hiddenNames.get(0));
+      } else {
+        msg = "Hidden '${conflict}' names of the export module ${name} conflict with the unqualified export"
+          .replace("${name}", name)
+          .replace("${conflict}", String.join(",", hiddenNames));
+      }
+      return new HiddenNamesConflict(msg);
+    }
+
+    static HiddenNamesConflict shadowQualifiedExport(String name, java.util.List<String> conflict) {
+      String msg;
+      if (conflict.size() == 1) {
+        msg = "Hidden '${conflict}' name of the exported module ${name} conflicts with the qualified export"
+          .replace("${name}", name)
+          .replace("${conflict}", conflict.get(0));
+      } else {
+        msg = "Hidden '${conflict}' names of the exported module ${name} conflicts with the qualified export"
+          .replace("${name}", name)
+          .replace("${conflict}", String.join(",", conflict));
+      }
+      return new HiddenNamesConflict(msg);
+    }
+  }
 }
