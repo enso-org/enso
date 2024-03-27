@@ -4,15 +4,15 @@ use crate::ci_gen::not_default_branch;
 use crate::ci_gen::runs_on;
 use crate::ci_gen::secret;
 use crate::ci_gen::step;
+use crate::ci_gen::variables::ENSO_AG_GRID_LICENSE_KEY;
+use crate::ci_gen::variables::ENSO_MAPBOX_API_TOKEN;
 use crate::ci_gen::RunStepsBuilder;
 use crate::ci_gen::RunnerType;
 use crate::ci_gen::RELEASE_CLEANING_POLICY;
 use crate::engine::env;
-
-use crate::ci_gen::variables::ENSO_AG_GRID_LICENSE_KEY;
-use crate::ci_gen::variables::ENSO_MAPBOX_API_TOKEN;
 use crate::ide::web::env::VITE_ENSO_AG_GRID_LICENSE_KEY;
 use crate::ide::web::env::VITE_ENSO_MAPBOX_API_TOKEN;
+
 use heck::ToKebabCase;
 use ide_ci::actions::workflow::definition::cancel_workflow_action;
 use ide_ci::actions::workflow::definition::Access;
@@ -24,6 +24,7 @@ use ide_ci::actions::workflow::definition::Step;
 use ide_ci::actions::workflow::definition::Strategy;
 use ide_ci::actions::workflow::definition::Target;
 use ide_ci::cache::goodie::graalvm;
+
 
 
 /// This should be kept as recent as possible.
@@ -232,15 +233,15 @@ impl JobArchetype for StandardLibraryTests {
                 let main_step = step
                     .with_secret_exposed_as(
                         secret::ENSO_LIB_S3_AWS_REGION,
-                        crate::aws::env::AWS_REGION,
+                        crate::libraries_tests::s3::env::ENSO_LIB_S3_AWS_REGION,
                     )
                     .with_secret_exposed_as(
                         secret::ENSO_LIB_S3_AWS_ACCESS_KEY_ID,
-                        crate::aws::env::AWS_ACCESS_KEY_ID,
+                        crate::libraries_tests::s3::env::ENSO_LIB_S3_AWS_ACCESS_KEY_ID,
                     )
                     .with_secret_exposed_as(
                         secret::ENSO_LIB_S3_AWS_SECRET_ACCESS_KEY,
-                        crate::aws::env::AWS_SECRET_ACCESS_KEY,
+                        crate::libraries_tests::s3::env::ENSO_LIB_S3_AWS_SECRET_ACCESS_KEY,
                     );
                 vec![main_step, step::stdlib_test_reporter(target, graal_edition)]
             })

@@ -43,9 +43,7 @@ pub fn derive_visitor(input: proc_macro::TokenStream) -> proc_macro::TokenStream
     let ident = &decl.ident;
     let (impl_generics, ty_generics, _inherent_where_clause_opt) = &decl.generics.split_for_impl();
     let body = gen_body(quote!(TreeVisitable::visit), &decl.data, false);
-    let body_mut = gen_body(quote!(TreeVisitableMut::visit_mut), &decl.data, true);
     let body_span = gen_body(quote!(SpanVisitable::visit_span), &decl.data, false);
-    let body_span_mut = gen_body(quote!(SpanVisitableMut::visit_span_mut), &decl.data, true);
     let body_item = gen_body(quote!(ItemVisitable::visit_item), &decl.data, false);
 
     let impl_generics_vec: Vec<_> = impl_generics.to_token_stream().into_iter().collect();
@@ -71,26 +69,10 @@ pub fn derive_visitor(input: proc_macro::TokenStream) -> proc_macro::TokenStream
             }
         }
 
-        impl #impl_generics TreeVisitableMut #impl_generics for #ident #ty_generics {
-            fn visit_mut<T: TreeVisitorMut<'s>>(&'a mut self, visitor:&mut T) {
-                visitor.before_visiting_children();
-                #body_mut
-                visitor.after_visiting_children();
-            }
-        }
-
         impl #impl_generics SpanVisitable #impl_generics for #ident #ty_generics {
             fn visit_span<T: SpanVisitor #impl_generics>(&'a self, visitor:&mut T) {
                 visitor.before_visiting_children();
                 #body_span
-                visitor.after_visiting_children();
-            }
-        }
-
-        impl #impl_generics SpanVisitableMut #impl_generics for #ident #ty_generics {
-            fn visit_span_mut<T: SpanVisitorMut<'s>>(&'a mut self, visitor:&mut T) {
-                visitor.before_visiting_children();
-                #body_span_mut
                 visitor.after_visiting_children();
             }
         }
@@ -103,11 +85,6 @@ pub fn derive_visitor(input: proc_macro::TokenStream) -> proc_macro::TokenStream
             }
         }
     };
-
-    // #[allow(missing_docs)]
-    // pub trait ItemVisitable<'s, 'a> {
-    //     fn visit_item<V: ItemVisitor<'s, 'a>>(&'a self, _visitor: &mut V) {}
-    // }
 
     output.into()
 }

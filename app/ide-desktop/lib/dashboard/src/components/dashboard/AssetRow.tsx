@@ -25,12 +25,15 @@ import * as columnUtils from '#/components/dashboard/column/columnUtils'
 import StatelessSpinner, * as statelessSpinner from '#/components/StatelessSpinner'
 
 import * as backendModule from '#/services/Backend'
+import * as localBackend from '#/services/LocalBackend'
+import * as projectManager from '#/services/ProjectManager'
 
 import AssetTreeNode from '#/utilities/AssetTreeNode'
 import * as dateTime from '#/utilities/dateTime'
 import * as download from '#/utilities/download'
 import * as drag from '#/utilities/drag'
 import * as eventModule from '#/utilities/event'
+import * as fileInfo from '#/utilities/fileInfo'
 import * as indent from '#/utilities/indent'
 import * as object from '#/utilities/object'
 import * as permissions from '#/utilities/permissions'
@@ -88,7 +91,7 @@ export default function AssetRow(props: AssetRowProps) {
   const { setAssetPanelProps, doToggleDirectoryExpansion, doCopy, doCut, doPaste } = state
   const { setIsAssetPanelTemporarilyVisible, scrollContainerRef } = state
 
-  const { user, userInfo } = authProvider.useNonPartialUserSession()
+  const { user } = authProvider.useNonPartialUserSession()
   const { backend } = backendProvider.useBackend()
   const { setModal, unsetModal } = modalProvider.useSetModal()
   const { getText } = textProvider.useText()
@@ -133,7 +136,7 @@ export default function AssetRow(props: AssetRowProps) {
           object.merge(oldAsset, {
             title: oldAsset.title + ' (copy)',
             labels: [],
-            permissions: permissions.tryGetSingletonOwnerPermission(user, userInfo),
+            permissions: permissions.tryGetSingletonOwnerPermission(user),
             modifiedAt: dateTime.toRfc3339(new Date()),
           })
         )
@@ -159,7 +162,6 @@ export default function AssetRow(props: AssetRowProps) {
     [
       backend,
       user,
-      userInfo,
       asset,
       item.key,
       toastAndLog,
@@ -178,25 +180,85 @@ export default function AssetRow(props: AssetRowProps) {
       const nonNullNewParentKey = newParentKey ?? rootDirectoryId
       const nonNullNewParentId = newParentId ?? rootDirectoryId
       try {
+        setItem(oldItem =>
+          oldItem.with({ directoryKey: nonNullNewParentKey, directoryId: nonNullNewParentId })
+        )
+        const newParentPath = localBackend.extractTypeAndId(nonNullNewParentId).id
+        const newProjectState =
+          asset.projectState == null
+            ? null
+            : object.merge(
+                asset.projectState,
+                asset.projectState.path == null
+                  ? {}
+                  : {
+                      path: projectManager.joinPath(
+                        newParentPath,
+                        fileInfo.fileName(asset.projectState.path)
+                      ),
+                    }
+              )
+        let newId = asset.id
+        if (!isCloud) {
+          const oldPath = localBackend.extractTypeAndId(asset.id).id
+          const newPath = projectManager.joinPath(newParentPath, fileInfo.fileName(oldPath))
+          switch (asset.type) {
+            case backendModule.AssetType.file: {
+              newId = localBackend.newFileId(newPath)
+              break
+            }
+            case backendModule.AssetType.directory: {
+              newId = localBackend.newDirectoryId(newPath)
+              break
+            }
+            case backendModule.AssetType.project:
+            case backendModule.AssetType.secret:
+            case backendModule.AssetType.dataLink:
+            case backendModule.AssetType.specialLoading:
+            case backendModule.AssetType.specialEmpty: {
+              // Ignored.
+              // Project paths are not stored in their `id`;
+              // The other asset types either do not exist on the Local backend,
+              // or do not have a path.
+              break
+            }
+          }
+        }
+        const newAsset = object.merge(asset, {
+          // This is SAFE as the type of `newId` is not changed from its original type.
+          // eslint-disable-next-line no-restricted-syntax
+          id: newId as never,
+          parentId: nonNullNewParentId,
+          projectState: newProjectState,
+        })
         dispatchAssetListEvent({
           type: AssetListEventType.move,
           newParentKey: nonNullNewParentKey,
           newParentId: nonNullNewParentId,
           key: item.key,
-          item: asset,
+          item: newAsset,
         })
-        setItem(oldItem =>
-          oldItem.with({ directoryKey: nonNullNewParentKey, directoryId: nonNullNewParentId })
-        )
-        setAsset(object.merger({ parentId: nonNullNewParentId }))
+        setAsset(newAsset)
         await backend.updateAsset(
           asset.id,
-          { parentDirectoryId: newParentId ?? rootDirectoryId, description: null },
+          {
+            parentDirectoryId: newParentId ?? rootDirectoryId,
+            description: null,
+            ...(asset.projectState?.path == null ? {} : { projectPath: asset.projectState.path }),
+          },
           asset.title
         )
       } catch (error) {
         toastAndLog('moveAssetError', error, asset.title)
-        setAsset(object.merger({ parentId: asset.parentId }))
+        setAsset(
+          object.merger({
+            // This is SAFE as the type of `newId` is not changed from its original type.
+            // eslint-disable-next-line no-restricted-syntax
+            id: asset.id as never,
+            parentId: asset.parentId,
+            projectState: asset.projectState,
+          })
+        )
         setItem(oldItem =>
           oldItem.with({ directoryKey: item.directoryKey, directoryId: item.directoryId })
         )
@@ -211,6 +273,7 @@ export default function AssetRow(props: AssetRowProps) {
       }
     },
     [
+      isCloud,
       backend,
       user,
       asset,
@@ -265,7 +328,11 @@ export default function AssetRow(props: AssetRowProps) {
             // Ignored. The project was already closed.
           }
         }
-        await backend.deleteAsset(asset.id, forever, asset.title)
+        await backend.deleteAsset(
+          asset.id,
+          { force: forever, parentId: asset.parentId },
+          asset.title
+        )
         dispatchAssetListEvent({ type: AssetListEventType.delete, key: item.key })
       } catch (error) {
         setInsertionVisibility(Visibility.visible)
@@ -356,7 +423,11 @@ export default function AssetRow(props: AssetRowProps) {
             switch (asset.type) {
               case backendModule.AssetType.project: {
                 try {
-                  const details = await backend.getProjectDetails(asset.id, asset.title)
+                  const details = await backend.getProjectDetails(
+                    asset.id,
+                    asset.parentId,
+                    asset.title
+                  )
                   if (details.url != null) {
                     download.download(details.url, asset.title)
                   } else {
@@ -405,23 +476,26 @@ export default function AssetRow(props: AssetRowProps) {
               }
             }
           } else {
-            download.download(
-              `./api/project-manager/projects/${asset.id}/enso-project`,
-              `${asset.title}.enso-project`
-            )
+            if (asset.type === backendModule.AssetType.project) {
+              const uuid = localBackend.extractTypeAndId(asset.id).id
+              download.download(
+                `./api/project-manager/projects/${uuid}/enso-project`,
+                `${asset.title}.enso-project`
+              )
+            }
           }
         }
         break
       }
       case AssetEventType.removeSelf: {
         // This is not triggered from the asset list, so it uses `item.id` instead of `key`.
-        if (event.id === asset.id && userInfo != null) {
+        if (event.id === asset.id && user != null && user.isEnabled) {
           setInsertionVisibility(Visibility.hidden)
           try {
             await backend.createPermission({
               action: null,
               resourceId: asset.id,
-              actorsIds: [userInfo.userId],
+              actorsIds: [user.userId],
             })
             dispatchAssetListEvent({ type: AssetListEventType.delete, key: item.key })
           } catch (error) {
@@ -625,7 +699,7 @@ export default function AssetRow(props: AssetRowProps) {
                 }
               }}
               onDragStart={event => {
-                if (rowState.isEditingName || !isCloud) {
+                if (rowState.isEditingName) {
                   event.preventDefault()
                 } else {
                   props.onDragStart?.(event)
@@ -681,11 +755,14 @@ export default function AssetRow(props: AssetRowProps) {
                   event.stopPropagation()
                   unsetModal()
                   doToggleDirectoryExpansion(directoryId, directoryKey, directoryTitle, true)
+                  const ids = payload
+                    .filter(payloadItem => payloadItem.asset.parentId !== directoryId)
+                    .map(dragItem => dragItem.key)
                   dispatchAssetEvent({
                     type: AssetEventType.move,
                     newParentKey: directoryKey,
                     newParentId: directoryId,
-                    ids: new Set(payload.map(dragItem => dragItem.key)),
+                    ids: new Set(ids),
                   })
                 } else if (event.dataTransfer.types.includes('Files')) {
                   event.preventDefault()

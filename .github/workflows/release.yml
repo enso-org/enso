@@ -53,6 +53,65 @@ jobs:
     outputs:
       ENSO_RELEASE_ID: ${{ steps.prepare.outputs.ENSO_RELEASE_ID }}
       ENSO_VERSION: ${{ steps.prepare.outputs.ENSO_VERSION }}
+  enso-build-ci-gen-job-deploy-runtime-linux-x86_64:
+    name: Upload Runtime to ECR (linux, x86_64)
+    needs:
+      - enso-build-ci-gen-draft-release-linux-x86_64
+      - enso-build-ci-gen-job-upload-backend-linux-x86_64
+    runs-on:
+      - self-hosted
+      - Linux
+    steps:
+      - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
+        name: Setup conda (GH runners only)
+        uses: s-weigand/setup-conda@v1.2.1
+        with:
+          update-conda: false
+          conda-channels: anaconda, conda-forge
+      - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
+        name: Installing wasm-pack
+        uses: jetli/wasm-pack-action@v0.4.0
+        with:
+          version: v0.10.2
+      - name: Expose Artifact API and context information.
+        uses: actions/github-script@v7
+        with:
+          script: "\n    core.exportVariable(\"ACTIONS_RUNTIME_TOKEN\", process.env[\"ACTIONS_RUNTIME_TOKEN\"])\n    core.exportVariable(\"ACTIONS_RUNTIME_URL\", process.env[\"ACTIONS_RUNTIME_URL\"])\n    core.exportVariable(\"GITHUB_RETENTION_DAYS\", process.env[\"GITHUB_RETENTION_DAYS\"])\n    console.log(context)\n    "
+      - name: Checking out the repository
+        uses: actions/checkout@v4
+        with:
+          clean: false
+          submodules: recursive
+      - name: Build Script Setup
+        run: ./run --help || (git clean -ffdx && ./run --help)
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - if: "(contains(github.event.pull_request.labels.*.name, 'CI: Clean build required') || inputs.clean_build_required)"
+        name: Clean before
+        run: ./run git-clean
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - run: ./run release deploy-runtime
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.ECR_PUSH_RUNTIME_ACCESS_KEY_ID }}
+          AWS_DEFAULT_REGION: eu-west-1
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.ECR_PUSH_RUNTIME_SECRET_ACCESS_KEY }}
+          ENSO_BUILD_ECR_REPOSITORY: runtime
+          GITHUB_TOKEN: ${{ secrets.CI_PRIVATE_TOKEN }}
+      - if: failure() && runner.os == 'Windows'
+        name: List files if failed (Windows)
+        run: Get-ChildItem -Force -Recurse
+      - if: failure() && runner.os != 'Windows'
+        name: List files if failed (non-Windows)
+        run: ls -lAR
+      - if: "(always()) && (contains(github.event.pull_request.labels.*.name, 'CI: Clean build required') || inputs.clean_build_required)"
+        name: Clean after
+        run: ./run git-clean
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    env:
+      ENSO_RELEASE_ID: ${{ needs.enso-build-ci-gen-draft-release-linux-x86_64.outputs.ENSO_RELEASE_ID }}
+      ENSO_VERSION: ${{ needs.enso-build-ci-gen-draft-release-linux-x86_64.outputs.ENSO_VERSION }}
   enso-build-ci-gen-job-upload-backend-linux-x86_64:
     name: Upload Backend (linux, x86_64)
     needs:
@@ -273,6 +332,7 @@ jobs:
     name: Publish release (linux, x86_64)
     needs:
       - enso-build-ci-gen-draft-release-linux-x86_64
+      - enso-build-ci-gen-job-deploy-runtime-linux-x86_64
       - enso-build-ci-gen-upload-ide-linux-x86_64
       - enso-build-ci-gen-upload-ide-macos-aarch64
       - enso-build-ci-gen-upload-ide-macos-x86_64

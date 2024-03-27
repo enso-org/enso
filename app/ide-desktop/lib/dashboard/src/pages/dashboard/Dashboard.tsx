@@ -214,6 +214,7 @@ export default function Dashboard(props: DashboardProps) {
               try {
                 const oldProject = await backend.getProjectDetails(
                   savedProjectStartupInfo.projectAsset.id,
+                  savedProjectStartupInfo.projectAsset.parentId,
                   savedProjectStartupInfo.projectAsset.title
                 )
                 if (backendModule.IS_OPENING_OR_OPENED[oldProject.state.type]) {
@@ -225,6 +226,7 @@ export default function Dashboard(props: DashboardProps) {
                   if (!abortController.signal.aborted) {
                     const project = await remoteBackend.getProjectDetails(
                       savedProjectStartupInfo.projectAsset.id,
+                      savedProjectStartupInfo.projectAsset.parentId,
                       savedProjectStartupInfo.projectAsset.title
                     )
                     setProjectStartupInfo(object.merge(savedProjectStartupInfo, { project }))
@@ -249,6 +251,7 @@ export default function Dashboard(props: DashboardProps) {
           )
           const project = await localBackend.getProjectDetails(
             savedProjectStartupInfo.projectAsset.id,
+            savedProjectStartupInfo.projectAsset.parentId,
             savedProjectStartupInfo.projectAsset.title
           )
           setProjectStartupInfo(object.merge(savedProjectStartupInfo, { project }))
@@ -407,7 +410,11 @@ export default function Dashboard(props: DashboardProps) {
       }
       if (projectStartupInfo?.project.projectId !== newProject.id) {
         setProjectStartupInfo({
-          project: await backend.getProjectDetails(newProject.id, newProject.title),
+          project: await backend.getProjectDetails(
+            newProject.id,
+            newProject.parentId,
+            newProject.title
+          ),
           projectAsset: newProject,
           setProjectAsset: setProjectAsset,
           backendType: backend.type,

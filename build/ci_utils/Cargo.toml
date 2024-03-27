@@ -37,7 +37,6 @@ mime = "0.3.16"
 multimap = "0.8.3"
 new_mime_guess = "4.0.0"
 octocrab = { workspace = true }
-paste = { workspace = true }
 path-absolutize = "3.0.11"
 pathdiff = "0.2.1"
 path-slash = "0.2.1"
@@ -69,7 +68,7 @@ which = "4.2.2"
 zip = { version = "0.6.2", default-features = false, features = ["deflate"] }
 
 [dev-dependencies]
-warp = "0.3.2"
+warp = { version = "0.3.2", default-features = false }
 wiremock = "0.5.10"
 
 [lints]

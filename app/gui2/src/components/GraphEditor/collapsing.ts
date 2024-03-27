@@ -58,27 +58,32 @@ export function prepareCollapsedInfo(selected: Set<NodeId>, graphDb: GraphDb): C
   if (selected.size == 0) throw new Error('Collapsing requires at least a single selected node.')
   // Leaves are the nodes that have no outgoing connection.
   const leaves = new Set([...selected])
-  const inputs: Identifier[] = []
+  const inputSet: Set<Identifier> = new Set()
   let output: Output | null = null
   for (const [targetExprId, sourceExprIds] of graphDb.allConnections.allReverse()) {
-    const target = graphDb.getExpressionNodeId(targetExprId)
-    if (target == null) continue
+    const targetNode = graphDb.getExpressionNodeId(targetExprId)
+    if (targetNode == null) continue
     for (const sourceExprId of sourceExprIds) {
-      const source = graphDb.getPatternExpressionNodeId(sourceExprId)
-      const startsInside = source != null && selected.has(source)
-      const endsInside = selected.has(target)
+      const sourceNode = graphDb.getPatternExpressionNodeId(sourceExprId)
+      // Sometimes the connection source is in expression, not pattern; for example, when its
+      // lambda.
+      const nodeWithSource = sourceNode ?? graphDb.getExpressionNodeId(sourceExprId)
+      // If source is not in pattern nor expression of any node, it's a function argument.
+      const startsInside = nodeWithSource != null && selected.has(nodeWithSource)
+      const endsInside = selected.has(targetNode)
       const stringIdentifier = graphDb.getOutputPortIdentifier(sourceExprId)
       if (stringIdentifier == null)
-        throw new Error(`Source node (${source}) has no output identifier.`)
+        throw new Error(`Connection starting from (${sourceExprId}) has no identifier.`)
       const identifier = unwrap(tryIdentifier(stringIdentifier))
-      if (source != null) {
-        leaves.delete(source)
+      if (sourceNode != null) {
+        leaves.delete(sourceNode)
       }
       if (!startsInside && endsInside) {
-        inputs.push(identifier)
+        inputSet.add(identifier)
       } else if (startsInside && !endsInside) {
+        assert(sourceNode != null) // No lambda argument set inside node should be visible outside.
         if (output == null) {
-          output = { node: source, identifier }
+          output = { node: sourceNode, identifier }
         } else if (output.identifier == identifier) {
           // Ignore duplicate usage of the same identifier.
         } else {
@@ -103,7 +108,7 @@ export function prepareCollapsedInfo(selected: Set<NodeId>, graphDb: GraphDb): C
 
   const pattern = graphDb.nodeIdToNode.get(output.node)?.pattern?.code() ?? ''
   assert(isIdentifier(pattern))
-
+  const inputs = Array.from(inputSet)
   return {
     extracted: {
       ids: selected,

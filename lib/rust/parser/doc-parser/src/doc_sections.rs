@@ -41,7 +41,6 @@ impl DocParser {
     }
 
     /// Parse the documentation.
-    #[profile(Detail)]
     pub fn parse(&mut self, input: &str) -> Vec<DocSection> {
         for (line_number, line) in input.trim_start().lines().enumerate() {
             let location = Location::start_of_line(line_number);
@@ -78,10 +77,9 @@ impl Argument {
         // We split by the first colon or space, whatever comes first.
         // Typically a colon must be used as a separator, but in some documentation snippets we
         // have there is no colon and the name of the argument is simply the first word.
-        let split = text.splitn(2, |c| c == ':' || c == ' ');
-        let (name, description) = split.collect_tuple().unwrap_or((text, ""));
-        let name = name.trim().to_string();
-        let description = description.trim().to_string();
+        let mut split = text.splitn(2, |c| c == ':' || c == ' ');
+        let name = split.next().unwrap_or(text).trim().to_string();
+        let description = split.next().unwrap_or_default().trim().to_string();
         Self { name, description }
     }
 }

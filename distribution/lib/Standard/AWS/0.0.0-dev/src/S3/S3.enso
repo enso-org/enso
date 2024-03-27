@@ -13,6 +13,7 @@ import project.Errors.S3_Key_Not_Found
 import project.Internal.Request_Body
 
 polyglot java import java.io.IOException
+polyglot java import org.enso.aws.BucketLocator
 polyglot java import org.enso.aws.ClientBuilder
 polyglot java import software.amazon.awssdk.core.exception.SdkClientException
 polyglot java import software.amazon.awssdk.services.s3.model.CopyObjectRequest
@@ -64,7 +65,7 @@ list_objects bucket prefix="" credentials:AWS_Credential=AWS_Credential.Default 
    - delimiter: The delimiter used to deduce common prefixes.
 read_bucket : Text -> Text -> AWS_Credential -> Integer -> Text -> Pair Vector Vector ! S3_Error
 read_bucket bucket prefix="" credentials:AWS_Credential=AWS_Credential.Default delimiter="/" max_count=1000 = handle_s3_errors bucket=bucket <|
-    client = make_client credentials
+    client = make_client_for_bucket bucket credentials
 
     per_request = Math.min max_count 1000
     request = ListObjectsV2Request.builder.bucket bucket . maxKeys per_request . delimiter delimiter . prefix prefix . build
@@ -109,7 +110,7 @@ head bucket key="" credentials:AWS_Credential=AWS_Credential.Default =
    - credentials: AWS credentials.
 raw_head : Text -> Text -> AWS_Credential -> Map Text Any ! S3_Error
 raw_head bucket key credentials =
-    client = make_client credentials
+    client = make_client_for_bucket bucket credentials
     case key == "" of
         True ->
             request = HeadBucketRequest.builder.bucket bucket . build
@@ -132,7 +133,7 @@ get_object : Text -> Text -> AWS_Credential -> Text -> Response_Body ! S3_Error
 get_object bucket key credentials:AWS_Credential=AWS_Credential.Default delimiter="/" = handle_s3_errors bucket=bucket key=key <|
     request = GetObjectRequest.builder.bucket bucket . key key . build
 
-    client = make_client credentials
+    client = make_client_for_bucket bucket credentials
     response = client.getObject request
 
     inner_response = response.response
@@ -147,7 +148,7 @@ get_object bucket key credentials:AWS_Credential=AWS_Credential.Default delimite
 
 ## PRIVATE
 put_object (bucket : Text) (key : Text) credentials:AWS_Credential=AWS_Credential.Default request_body = handle_s3_errors bucket=bucket key=key <|
-    client = make_client credentials
+    client = make_client_for_bucket bucket credentials
     request = PutObjectRequest.builder.bucket bucket . key key . build
     client.putObject request request_body . if_not_error Nothing
 
@@ -160,13 +161,13 @@ upload_file (local_file : File) (bucket : Text) (key : Text) credentials:AWS_Cre
    Deletes the object.
    It will not raise any errors if the object does not exist.
 delete_object (bucket : Text) (key : Text) credentials:AWS_Credential=AWS_Credential.Default = handle_s3_errors bucket=bucket key=key <|
-    client = make_client credentials
+    client = make_client_for_bucket bucket credentials
     request = DeleteObjectRequest.builder . bucket bucket . key key . build
     client.deleteObject request . if_not_error Nothing
 
 ## PRIVATE
 copy_object (source_bucket : Text) (source_key : Text) (target_bucket : Text) (target_key : Text) credentials:AWS_Credential=AWS_Credential.Default = handle_s3_errors bucket=source_bucket key=source_key <|
-    client = make_client credentials
+    client = make_client_for_bucket source_bucket credentials
     request = CopyObjectRequest.builder
         . destinationBucket target_bucket
         . destinationKey target_key
@@ -181,17 +182,38 @@ handle_s3_errors ~action bucket="" key="" =
     s3_inner_handler caught_panic =
         error = if bucket!="" && caught_panic.payload.is_a NoSuchBucketException then S3_Bucket_Not_Found.Error bucket else
             if bucket!="" && key!="" && caught_panic.payload.is_a NoSuchKeyException then S3_Key_Not_Found.Error bucket key else
-                aws_error = caught_panic.payload.awsErrorDetails
-                S3_Error.Error aws_error.errorMessage aws_error.errorCode
+                aws_error = caught_panic.payload
+                aws_error_details = aws_error.awsErrorDetails
+                code = aws_error_details.if_not_nothing <| aws_error_details.errorCode
+                message = aws_error_details
+                    . if_not_nothing aws_error_details.errorMessage
+                    . if_nothing aws_error.getMessage
+                S3_Error.Error message code
         Error.throw error
     s3_handler = Panic.catch S3Exception handler=s3_inner_handler
     AWS_SDK_Error.handle_java_errors <| s3_handler <| action
 
 ## PRIVATE
+   Makes a client for the default region.
 make_client : AWS_Credential -> S3Client
 make_client credentials:AWS_Credential =
-    builder = ClientBuilder.new (AWS_Credential.as_java credentials)
+    region = credentials.get_default_region.as_java
+    builder = ClientBuilder.new credentials.as_java region
     builder.buildS3Client
+
+## PRIVATE
+   Makes a client using the region in which the specified bucket is located.
+   This is necessary, because if we are fetching the wrong region, we will get
+   `PermanentRedirect` errors.
+make_client_for_bucket : Text -> AWS_Credential -> S3Client
+make_client_for_bucket bucket_name:Text credentials:AWS_Credential =
+    java_credential = credentials.as_java
+    # We get the region in which the bucket is located, or if it is somehow not available, we fall back to the default region.
+    java_region = BucketLocator.getBucketRegion bucket_name java_credential
+        . if_nothing credentials.get_default_region.as_java
+    builder = ClientBuilder.new java_credential java_region
+    builder.buildS3Client
+
 
 ## PRIVATE
    Utility method for running an action with Java exceptions mapping.

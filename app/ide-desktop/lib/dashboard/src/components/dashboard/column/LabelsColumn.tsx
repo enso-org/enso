@@ -43,7 +43,7 @@ export default function LabelsColumn(props: column.AssetColumnProps) {
   const { getText } = textProvider.useText()
   const toastAndLog = toastAndLogHooks.useToastAndLog()
   const self = asset.permissions?.find(
-    permission => permission.user.user_email === session.user?.email
+    permission => permission.user.userId === session.user?.userId
   )
   const managesThisAsset =
     category !== Category.trash &&

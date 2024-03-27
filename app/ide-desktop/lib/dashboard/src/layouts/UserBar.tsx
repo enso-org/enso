@@ -52,9 +52,8 @@ export default function UserBar(props: UserBarProps) {
   const { getText } = textProvider.useText()
   const self =
     user != null
-      ? projectAsset?.permissions?.find(
-          permissions => permissions.user.user_email === user.email
-        ) ?? null
+      ? projectAsset?.permissions?.find(permissions => permissions.user.userId === user.userId) ??
+        null
       : null
   const shouldShowShareButton =
     backend.type === backendModule.BackendType.remote &&
