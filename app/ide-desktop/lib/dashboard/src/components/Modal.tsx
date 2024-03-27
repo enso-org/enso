@@ -3,7 +3,7 @@ import * as React from 'react'
 
 import * as modalProvider from '#/providers/ModalProvider'
 
-import * as aria from '#/components/aria'
+import FocusRoot from '#/components/styled/FocusRoot'
 
 // =================
 // === Component ===
@@ -30,34 +30,32 @@ export default function Modal(props: ModalProps) {
   const { onClick, onContextMenu } = props
   const { unsetModal } = modalProvider.useSetModal()
 
-  const inner = (
-    <div
-      // The name comes from a third-party API and cannot be changed.
-      // eslint-disable-next-line @typescript-eslint/naming-convention
-      {...(!hidden ? { 'data-testid': 'modal-background' } : {})}
-      style={style}
-      className={`inset z-1 ${centered ? 'size-screen fixed grid place-items-center' : ''} ${
-        className ?? ''
-      }`}
-      onClick={
-        onClick ??
-        (event => {
-          if (event.currentTarget === event.target && getSelection()?.type !== 'Range') {
-            event.stopPropagation()
-            unsetModal()
+  return (
+    <FocusRoot active={!hidden}>
+      {ref => (
+        <div
+          ref={ref}
+          // The name comes from a third-party API and cannot be changed.
+          // eslint-disable-next-line @typescript-eslint/naming-convention
+          {...(!hidden ? { 'data-testid': 'modal-background' } : {})}
+          style={style}
+          className={`inset z-1 ${centered ? 'size-screen fixed grid place-items-center' : ''} ${
+            className ?? ''
+          }`}
+          onClick={
+            onClick ??
+            (event => {
+              if (event.currentTarget === event.target && getSelection()?.type !== 'Range') {
+                event.stopPropagation()
+                unsetModal()
+              }
+            })
           }
-        })
-      }
-      onContextMenu={onContextMenu}
-    >
-      {children}
-    </div>
-  )
-  return hidden ? (
-    inner
-  ) : (
-    <aria.FocusScope contain restoreFocus autoFocus>
-      {inner}
-    </aria.FocusScope>
+          onContextMenu={onContextMenu}
+        >
+          {children}
+        </div>
+      )}
+    </FocusRoot>
   )
 }

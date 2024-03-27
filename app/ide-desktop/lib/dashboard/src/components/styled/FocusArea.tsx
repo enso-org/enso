@@ -39,26 +39,27 @@ function FocusArea(props: FocusAreaProps) {
   const focusManager = aria.useFocusManager()
   const navigator2D = navigator2DProvider.useNavigator2D()
   const rootRef = React.useRef<HTMLElement | SVGElement | null>(null)
-  const unregisterNavigatorRef = React.useRef(() => {})
+  const cleanupRef = React.useRef(() => {})
 
+  let isRealRun = !detect.IS_DEV_MODE
   React.useEffect(() => {
-    if (!active || rootRef.current == null || focusManager == null) {
-      return
-    } else {
-      unregisterNavigatorRef.current = navigator2D.register(rootRef.current, {
-        focusPrimaryChild: focusManager.focusFirst.bind(null),
-      })
-      return () => {
-        unregisterNavigatorRef.current()
+    return () => {
+      if (isRealRun) {
+        cleanupRef.current()
       }
+      // This is INTENTIONAL. It may not be causing problems now, but is a defensive measure
+      // to make the implementation of this function consistent with the implementation of
+      // `FocusRoot`.
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+      isRealRun = true
     }
-  }, [active, focusManager, navigator2D])
+  }, [])
 
   const cachedChildren = React.useMemo(
     () =>
       children(element => {
         rootRef.current = element
-        unregisterNavigatorRef.current()
+        cleanupRef.current()
         if (active && element != null && focusManager != null) {
           const focusFirst = focusManager.focusFirst.bind(null, {
             accept: other => other.classList.contains('focus-child'),
@@ -70,7 +71,7 @@ function FocusArea(props: FocusAreaProps) {
             focusManager.focusFirst({
               accept: other => other.classList.contains('focus-default'),
             }) ?? focusFirst()
-          unregisterNavigatorRef.current = navigator2D.register(element, {
+          cleanupRef.current = navigator2D.register(element, {
             focusPrimaryChild: focusCurrent,
             focusWhenPressed:
               direction === 'horizontal'
@@ -78,7 +79,7 @@ function FocusArea(props: FocusAreaProps) {
                 : { down: focusFirst, up: focusLast },
           })
         } else {
-          unregisterNavigatorRef.current = () => {}
+          cleanupRef.current = () => {}
         }
         if (element != null && detect.IS_DEV_MODE) {
           if (active) {

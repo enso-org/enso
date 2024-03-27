@@ -84,6 +84,7 @@ export default class Navigator2D {
     [Direction.down]: 'ArrowDown',
   }
   private isLayoutDirty = true
+  private readonly focusRoots: Element[] = []
   private readonly currentNeighbors = new Set<HTMLOrSVGElement>()
   private readonly focusedElements = new Set<Element>()
   private readonly elements = new Map<Element, ElementData>()
@@ -160,6 +161,28 @@ export default class Navigator2D {
     }
   }
 
+  /** Return the current innermost focus root. */
+  private get focusRoot() {
+    return this.focusRoots[this.focusRoots.length - 1] ?? null
+  }
+
+  /** Push a new focus root as the innermost focus root. */
+  pushFocusRoot(focusRoot: Element) {
+    this.focusRoots.push(focusRoot)
+    return () => {
+      this.popFocusRoot(focusRoot)
+    }
+  }
+
+  /** Pop a focus root, *and all focus roots after it*, if it exists in the stack of focus roots.
+   * Does nothing if it is not in the stack. */
+  popFocusRoot(focusRoot: Element) {
+    const index = this.focusRoots.indexOf(focusRoot)
+    if (index !== -1) {
+      this.focusRoots.splice(index)
+    }
+  }
+
   /** Recomputes the neighbors of all elements.
    *
    * Full layout recomputations are expensive, but should amortize the cost of sorting the arrays. */
@@ -228,8 +251,8 @@ export default class Navigator2D {
     }
   }
 
-  /** Keydown handler. Should only be declared once, globally.
-   * MUST be bound to this `Navigator2D` first using `.bind(navigator)`. */
+  /** Keydown handler. Should only be declared once per focus root (including the global one on
+   * `document`). MUST be bound to this `Navigator2D` first using `.bind(navigator)`. */
   onKeyDown(event: KeyboardEvent) {
     let nearestFocusedParent = event.target instanceof Element ? event.target : null
     while (nearestFocusedParent != null && !this.focusedElements.has(nearestFocusedParent)) {
@@ -249,7 +272,12 @@ export default class Navigator2D {
     const shouldHandleEvent =
       data?.allowNavigation() === true && direction != null && event.target instanceof Element
     let shouldHandleKey = true
-    if (shouldHandleEvent && eventModule.isElementTextInput(event.target)) {
+    const isArrowKeyEvent =
+      event.key === 'ArrowLeft' ||
+      event.key === 'ArrowRight' ||
+      event.key === 'ArrowUp' ||
+      event.key === 'ArrowDown'
+    if (shouldHandleEvent && isArrowKeyEvent && eventModule.isElementTextInput(event.target)) {
       if (eventModule.isElementSingleLineTextInput(event.target)) {
         const selectionIndex =
           event.target.selectionStart === event.target.selectionEnd
@@ -366,13 +394,17 @@ export default class Navigator2D {
       if (this.isLayoutDirty) {
         this.recomputeLayout()
       }
+      const focusRoot = this.focusRoot
       const isNavigatingVertically = direction === Direction.up || direction === Direction.down
       const boundingBox = element.getBoundingClientRect()
       const targetNeighbors = data.neighbors[direction]
-      let targetNeighbor = targetNeighbors[0]
+      let targetNeighbor: Element | null = null
       let minimumVerticalDistance = Infinity
       let minimumHorizontalDistance = Infinity
       for (const neighbor of targetNeighbors) {
+        if (focusRoot != null && !focusRoot.contains(neighbor)) {
+          continue
+        }
         const neighborBoundingBox = neighbor.getBoundingClientRect()
         const distanceFromLeft = boundingBox.left - neighborBoundingBox.right
         const distanceFromRight = neighborBoundingBox.left - boundingBox.right
