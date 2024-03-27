@@ -3,10 +3,10 @@ package org.enso.compiler.benchmarks.inline;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import org.enso.compiler.Compiler;
 import org.enso.compiler.benchmarks.Utils;
-import org.enso.compiler.context.InlineContext;
 import org.graalvm.polyglot.Context;
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.BenchmarkMode;
@@ -46,19 +46,18 @@ public class InlineCompilerBenchmark {
   private final OutputStream out = new ByteArrayOutputStream();
   private Compiler compiler;
   private Context ctx;
-  private InlineContext mainInlineContext;
+  private InlineSource inlineSource;
   private String longExpression;
+  private Set<String> localVarNames;
 
   @Setup
   public void setup() throws IOException {
     ctx = Utils.createDefaultContextBuilder().out(out).err(out).logHandler(out).build();
     var ensoCtx = Utils.leakEnsoContext(ctx);
     compiler = ensoCtx.getCompiler();
-
-    var inlineSource = InlineContextUtils.createMainMethodWithLocalVars(ctx, LOCAL_VARS_CNT);
-    mainInlineContext = inlineSource.mainInlineContext();
-    longExpression =
-        InlineContextUtils.createLongExpression(inlineSource.localVarNames(), LONG_EXPR_SIZE);
+    localVarNames = InlineContextUtils.localVarNames(LOCAL_VARS_CNT);
+    longExpression = InlineContextUtils.createLongExpression(localVarNames, LONG_EXPR_SIZE);
+    inlineSource = InlineContextUtils.createMainMethodWithLocalVars(ctx, localVarNames);
   }
 
   @TearDown
@@ -75,11 +74,13 @@ public class InlineCompilerBenchmark {
   }
 
   @Benchmark
-  public void longExpression(Blackhole blackhole) {
-    var tuppleOpt = compiler.runInline(longExpression, mainInlineContext);
-    if (tuppleOpt.isEmpty()) {
-      throw new AssertionError("Unexpected: inline compilation should succeed");
+  public void longExpression(Blackhole blackhole) throws IOException {
+    try (InlineContextResource resource = inlineSource.builder().build()) {
+      var tuppleOpt = compiler.runInline(longExpression, resource.inlineContext());
+      if (tuppleOpt.isEmpty()) {
+        throw new AssertionError("Unexpected: inline compilation should succeed");
+      }
+      blackhole.consume(tuppleOpt);
     }
-    blackhole.consume(tuppleOpt);
   }
 }
