@@ -4,11 +4,11 @@ import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Errors.Illegal_State.Illegal_State
 
 import project.Aggregate_Column.Aggregate_Column
-import project.Data.Blank_Selector.Blank_Selector
+import project.Blank_Selector.Blank_Selector
 import project.Data.Column.Column
 import project.Data.Expression.Expression
-import project.Data.Position.Position
-import project.Data.Set_Mode.Set_Mode
+import project.Position.Position
+import project.Set_Mode.Set_Mode
 import project.Data.Sort_Column.Sort_Column
 import project.Data.Table.Table
 import project.Data.Type.Value_Type.Value_Type

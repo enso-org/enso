@@ -20,11 +20,11 @@ from Standard.Base.Metadata import Display, make_single_choice, Widget
 from Standard.Base.Widget_Helpers import make_delimiter_selector, make_format_chooser
 
 import project.Aggregate_Column.Aggregate_Column
-import project.Data.Blank_Selector.Blank_Selector
+import project.Blank_Selector.Blank_Selector
 import project.Data.Column as Column_Module
 import project.Data.Column.Column
 import project.Data.Column_Ref.Column_Ref
-import project.Data.Constants.Previous_Value
+import project.Constants.Previous_Value
 import project.Data.Data_Formatter.Data_Formatter
 import project.Data.Expression.Expression
 import project.Data.Expression.Expression_Error
@@ -32,10 +32,10 @@ import project.Data.Join_Condition.Join_Condition
 import project.Data.Join_Kind.Join_Kind
 import project.Data.Match_Columns as Match_Columns_Helpers
 import project.Data.Match_Columns.Match_Columns
-import project.Data.Position.Position
-import project.Data.Report_Unmatched.Report_Unmatched
+import project.Position.Position
+import project.Constants.Report_Unmatched
 import project.Data.Row.Row
-import project.Data.Set_Mode.Set_Mode
+import project.Set_Mode.Set_Mode
 import project.Data.Simple_Expression.Simple_Expression
 import project.Data.Sort_Column.Sort_Column
 import project.Delimited.Delimited_Format.Delimited_Format

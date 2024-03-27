@@ -6,7 +6,7 @@ import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import project.Data.Column_Ref.Column_Ref
 import project.Data.Expression.Expression
 import project.Data.Expression.Expression_Error
-import project.Data.Set_Mode.Set_Mode
+import project.Set_Mode.Set_Mode
 import project.Data.Table.Table
 from project.Errors import Existing_Column, Invalid_Value_Type, Missing_Column, No_Such_Column
 
