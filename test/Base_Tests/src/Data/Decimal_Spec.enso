@@ -492,8 +492,8 @@ add_specs suite_builder =
             nd2 = -d2
             nd2 . should_equal 5
 
-    suite_builder.group "mod" group_builder->
-        group_builder.specify "should define modulo" <|
+    suite_builder.group "remainder" group_builder->
+        group_builder.specify "should define remainder" <|
             cases = []
                 + [[5, 3, 2], [5.0, 3.0, 2.0], [3.5, 2, 1.5], [10.5, 1.0, 0.5], [3, 1, 0], [3.0, 1.0, 0]]
                 + [[-5, 3, -2], [-5.0, 3.0, -2.0], [-3.5, 2, -1.5], [-10.5, 1.0, -0.5], [-3, 1, 0], [-3.0, 1.0, 0]]
@@ -506,17 +506,18 @@ add_specs suite_builder =
                 (Decimal.new base % modulus) . should_equal residue
                 (Decimal.new base % Decimal.new modulus) . should_equal residue
 
-        group_builder.specify "should define modulo (example)" <|
+        group_builder.specify "should define remainder (example)" <|
             (Decimal.new 10 . remainder 3) . should_equal 1
             (Decimal.new 10 % 3) . should_equal 1
 
-        group_builder.specify "mod 0 should throw" <|
+        group_builder.specify "remainder 0 should throw" <|
             (Decimal.new 3 % 0) . should_fail_with Arithmetic_Error
             (Decimal.new 3 % Decimal.new 0) . should_fail_with Arithmetic_Error
 
     suite_builder.group "div" group_builder->
         group_builder.specify "should define div" <|
             Decimal.new "10" . div (Decimal.new "3") . should_equal 3
+            Decimal.new "10.28" . div (Decimal.new "3.01") . should_equal 3
 
             Decimal.new "35" . div (Decimal.new "6") . should_equal 5
             Decimal.new "-35" . div (Decimal.new "6") . should_equal -5
@@ -544,6 +545,8 @@ add_specs suite_builder =
             (Decimal.new "3" ^ 4) . should_equal 81
             (Decimal.new "-2" ^ 5) . should_equal -32
             (Decimal.new "-3" ^ 4) . should_equal 81
+
+            (Decimal.new "2.25" ^ 5) . should_equal 57.6650390625
 
             (Decimal.new "10" ^ 1) . should_equal 10
             (Decimal.new "2" ^ 1) . should_equal 2

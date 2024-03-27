@@ -526,7 +526,7 @@ type Decimal
        Arguments:
        - that: The number to divide this by.
 
-       Modulus in Enso will undergo automatic conversions such that you need
+       Remainder in Enso will undergo automatic conversions such that you need
        not convert other numeric types to `Decimal` manually.
 
        > Example
@@ -547,7 +547,7 @@ type Decimal
        Arguments:
        - that: The number to divide this by.
 
-       Modulus in Enso will undergo automatic conversions such that you need
+       Remainder in Enso will undergo automatic conversions such that you need
        not convert other numeric types to `Decimal` manually.
 
        > Example
@@ -565,17 +565,25 @@ type Decimal
        Arguments:
        - that: The number to divide this by.
 
+       Integer division of Decimals rounds down to the nearest integer.
+
        Integer division in enso will undergo automatic conversions such that you
        need not convert other numeric types to `Decimal` manually.
 
-       Integer division of Decimals rounds down to the nearest integer.
+       ! Error Conditions
 
-       Returns an error if `that` is zero.
+         - If `that` is 0, `div` throws an Arithmetic_Error.
 
        > Example
          Dividing 10 by 3 to get 3.
 
              Decimal.new "10" . div (Decimal.new "3")
+             # => 3
+
+       > Example
+         Dividing 10.28 by 3.01 to get 3.
+
+             Decimal.new "10.28" . div (Decimal.new "3.01")
              # => 3
     div : Decimal -> Decimal
     div self that:Decimal -> Decimal =
@@ -588,11 +596,8 @@ type Decimal
        Compute the result of raising this to the positive integer power `exp`.
 
        Arguments:
-       - exp: The exponent, must be an integer in the range 0 through
+       - exp: The exponent. Must be an integer in the range 0 through
          999999999 (inclusive).
-
-       Exponentiation in enso will undergo automatic conversions such that you
-       need not convert other numeric types to `Decimal` manually.
 
        ! Error Conditions
 
@@ -600,10 +605,10 @@ type Decimal
            999999999 (inclusive), `Arithmetic_Error` will be thrown.
 
        > Example
-         Computing 2 to the fifth power.
+         Computing 2.25 to the fifth power.
 
-             Decimal.new "2" . pow (Decimal.new "5")
-             # => 32
+             Decimal.new "2.25" . pow (Decimal.new "5")
+             # => 57.6650390625
     pow : Integer -> Decimal
     pow self exp:Integer =
         ## If `exp` is an integer that does not fit in a Java Integer,
@@ -618,11 +623,8 @@ type Decimal
        Compute the result of raising this to the positive integer power `exp`.
 
        Arguments:
-       - exp: The exponent, must be an integer in the range 0 through
+       - exp: The exponent. Must be an integer in the range 0 through
          999999999 (inclusive).
-
-       Exponentiation in enso will undergo automatic conversions such that you
-       need not convert other numeric types to `Decimal` manually.
 
        ! Error Conditions
 
@@ -630,10 +632,10 @@ type Decimal
            999999999 (inclusive), `Arithmetic_Error` will be thrown.
 
        > Example
-         Computing 2 to the fifth power.
+         Computing 2.25 to the fifth power.
 
-             Decimal.new "2" ^ Decimal.new "5"
-             # => 32
+             Decimal.new "2.25" ^ Decimal.new "5"
+             # => 57.6650390625
     ^ : Integer -> Decimal
     ^ self exp:Integer = self.pow exp
 
