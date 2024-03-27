@@ -4,6 +4,7 @@ package org.enso.compiler.phase;
 import java.util.Objects;
 
 import org.enso.compiler.Compiler;
+import org.enso.compiler.context.CompilerContext;
 import org.enso.compiler.core.CompilerError;
 import org.enso.compiler.core.ir.Module;
 import org.enso.compiler.core.ir.Name;
@@ -12,7 +13,7 @@ import org.enso.compiler.core.ir.module.scope.Export;
 import org.enso.compiler.core.ir.module.scope.Import;
 import org.enso.compiler.data.BindingsMap;
 import org.enso.compiler.data.BindingsMap$ModuleReference$Concrete;
-import org.enso.compiler.data.BindingsMap.ResolvedModule;
+import org.enso.compiler.data.BindingsMap.ResolvedImport;
 import org.enso.compiler.data.BindingsMap.ResolvedType;
 import org.enso.editions.LibraryName;
 import org.enso.polyglot.CompilationStage;
@@ -27,8 +28,22 @@ public abstract class ImportResolverAlgorithm {
   }
 
   abstract Compiler getCompiler();
+  abstract Name.Qualified nameForImport(Import.Module imp);
+  abstract Name.Qualified nameForExport(Export.Module ex);
+  abstract String nameForType(ResolvedType e);
+  abstract java.util.List<Export.Module> exportsFor(Module module, String impName);
+  abstract boolean isAll(Export.Module ex); /* ex.isAll */
+  /** @return {@code null} or list of named imports */
+  abstract java.util.List<Name.Literal> onlyNames(Export.Module ex);
+  /** @return {@code null} or list of named imports */
+  abstract java.util.List<Name.Literal> hiddenNames(Export.Module ex);
+  abstract java.util.List<ResolvedType> definedEntities(String name);
+  abstract Tuple2<Import, Option<ResolvedImport>> tupleResolvedImport(Import.Module imp, java.util.List<Export.Module> exp, CompilerContext.Module m);
+  abstract Tuple2<Import, Option<ResolvedImport>> tupleResolvedType(Import.Module imp, java.util.List<Export.Module> exp, ResolvedType m);
+  abstract Tuple2<Import, Option<ResolvedImport>> tupleErrorPackageCoundNotBeLoaded(Import.Module imp, String impName, String loadingError);
+  abstract Tuple2<Import, Option<ResolvedImport>> tupleErrorModuleDoesNotExist(Import.Module imp, String impName);
 
-  public Tuple2<Import, Option<BindingsMap.ResolvedImport>> tryResolveImport(
+  public Tuple2<Import, Option<ResolvedImport>> tryResolveImport(
     Module module,
     Import.Module imp
   ) {
@@ -36,30 +51,27 @@ public abstract class ImportResolverAlgorithm {
     return res;
   }
 
-  private Tuple2<Import, Option<BindingsMap.ResolvedImport>> tryResolveImportNew(
+  private Tuple2<Import, Option<ResolvedImport>> tryResolveImportNew(
     Module module,
     Import.Module imp
   ) {
-    var impName = imp.name().name();
-    var exp = CollectionConverters.SeqHasAsJava(module.exports()).asJava().stream().map(e -> switch (e) {
-      case Export.Module ex when ex.name().name().equals(impName) -> ex;
-      case null, default -> null;
-    }).filter(Objects::nonNull).toList();
-    var fromAllExports = exp.stream().filter(ex -> ex.isAll()).toList();
+    var impName = nameForImport(imp).name();
+    var exp = exportsFor(module, impName);
+    var fromAllExports = exp.stream().filter(ex -> isAll(ex)).toList();
     if (fromAllExports.size() >= 2) {
         // Detect potential conflicts when importing all and hiding names for the exports of the same module
-        var unqualifiedImports = fromAllExports.stream().filter(e -> e.onlyNames().isEmpty()).toList();
+        var unqualifiedImports = fromAllExports.stream().filter(e -> onlyNames(e) == null).toList();
         var qualifiedImports = fromAllExports.stream().map(e -> {
-            if (e.onlyNames().isDefined()) {
-                var onlyNames = CollectionConverters.SeqHasAsJava(e.onlyNames().get()).asJava();
+            var onlyNames = onlyNames(e);
+            if (onlyNames != null) {
                 return onlyNames.stream().map(n -> n.name()).toList();
             } else {
                 return null;
             }
         }).filter(Objects::nonNull).toList();
         var importsWithHiddenNames = fromAllExports.stream().map(e -> {
-            if (e.hiddenNames().isDefined()) {
-                var hiddenNames = CollectionConverters.SeqHasAsJava(e.hiddenNames().get()).asJava();
+            var hiddenNames = hiddenNames(e);
+            if (hiddenNames != null) {
                 return new Tuple2<>(e, hiddenNames);
             } else {
                 return null;
@@ -73,7 +85,7 @@ public abstract class ImportResolverAlgorithm {
           if (!unqualifiedConflicts.isEmpty()) {
             var b = hidden.stream().map(x -> x.name()).toList();
             throw HiddenNamesConflict.shadowUnqualifiedExport(
-              e.name().name(), b
+              nameForExport(e).name(), b
             );
           }
         }
@@ -86,12 +98,12 @@ public abstract class ImportResolverAlgorithm {
             .toList();
           if (!qualifiedConflicts.isEmpty()) {
             throw HiddenNamesConflict.shadowQualifiedExport(
-              e.name().name(), qualifiedConflicts
+              nameForExport(e).name(), qualifiedConflicts
             );
           }
         }
-    };
-    var parts = imp.name().parts();
+    }
+    var parts = nameForImport(imp).parts();
     if (parts.length() < 2) {
         throw new CompilerError(
           "Imports should contain at least two segments after " +
@@ -107,39 +119,18 @@ public abstract class ImportResolverAlgorithm {
         var moduleOption = compiler.getModule(impName);
         if (moduleOption.isDefined()) {
             var m = moduleOption.get();
-            var someBinding = Option.apply(new BindingsMap.ResolvedImport(
-                  imp,
-                  toScalaList(exp),
-                  new ResolvedModule(new BindingsMap$ModuleReference$Concrete(m))
-            ));
-            return new Tuple2<>(imp, someBinding);
+            return tupleResolvedImport(imp, exp, m);
         } else {
-            var typ = tryResolveAsTypeNew(imp.name());
+            var typ = tryResolveAsTypeNew(nameForImport(imp));
             if (typ != null) {
-                var someBinding = Option.apply(new BindingsMap.ResolvedImport(imp, toScalaList(exp), typ));
-                return new Tuple2<>(imp, someBinding);
+                return tupleResolvedType(imp, exp, typ);
             } else {
-                return new Tuple2<>(
-                  new ImportExport(
-                    imp,
-                    new ImportExport.ModuleDoesNotExist(impName),
-                          imp.passData(), imp.diagnostics()
-                  ),
-                  Option.empty()
-                );
+                return tupleErrorModuleDoesNotExist(imp, impName);
             }
         }
     } else {
         var loadingError = foundLib.left().getOrElse(null).toString();
-        var importError = new ImportExport(
-            imp,
-            new ImportExport.PackageCouldNotBeLoaded(
-              impName,
-              loadingError
-            ), imp.passData(), imp.diagnostics());
-        return new Tuple2<>(
-            importError, Option.empty()
-        );
+        return tupleErrorPackageCoundNotBeLoaded(imp, impName, loadingError);
     }
   }
 
@@ -148,35 +139,14 @@ public abstract class ImportResolverAlgorithm {
     var last = parts.size() - 1;
     var tp  = parts.get(last).name();
     var modName = String.join(".", parts.subList(0, last).stream().map(n -> n.name()).toList());
-    var compiler = this.getCompiler();
-    var optionMod = compiler.getModule(modName);
-    if (optionMod.isDefined()) {
-      var mod= optionMod.get();
-      compiler.ensureParsed(mod);
-      var b = mod.getBindingsMap();
-      if (b == null) {
-        compiler.context().updateModule(mod, u -> {
-          u.invalidateCache();
-          u.ir(null);
-          u.compilationStage(CompilationStage.INITIAL);
-        });
-        compiler.ensureParsed(mod, false);
-        b = mod.getBindingsMap();
-      }
-
-      var entities = CollectionConverters.SeqHasAsJava(b.definedEntities()).asJava();
-      var type = entities.stream()
-        .filter(e -> e.name().equals(tp))
-        .map(e -> switch (e) {
-          case BindingsMap.Type t -> new ResolvedType(new BindingsMap$ModuleReference$Concrete(mod), t);
-          case null, default -> null;
-        })
-        .filter(Objects::nonNull)
-        .findFirst();
-      return type.orElse(null);
-    } else {
+    var entities = definedEntities(modName);
+    if (entities == null) {
       return null;
     }
+    var type = definedEntities(modName).stream()
+      .filter(e -> nameForType(e).equals(tp))
+      .findFirst();
+    return type.orElse(null);
   }
 
   private static <T> List<T> toScalaList(java.util.List<T> qualifiedConflicts) {
@@ -215,5 +185,132 @@ public abstract class ImportResolverAlgorithm {
       }
       return new HiddenNamesConflict(msg);
     }
+  }
+
+  abstract static class Impl extends ImportResolverAlgorithm {
+    @Override
+    Name.Qualified nameForImport(Import.Module imp) {
+      return imp.name();
+    }
+
+    @Override
+    Name.Qualified nameForExport(Export.Module ex) {
+      return ex.name();
+    }
+
+    @Override
+    String nameForType(ResolvedType e) {
+      return e.qualifiedName().item();
+    }
+
+    @Override
+    java.util.List<Export.Module> exportsFor(Module module, String impName) {
+      var exp = CollectionConverters.SeqHasAsJava(module.exports()).asJava().stream().map(e -> switch (e) {
+        case Export.Module ex when ex.name().name().equals(impName) -> ex;
+        case null, default -> null;
+      }).filter(Objects::nonNull).toList();
+      return exp;
+    }
+
+    @Override
+    boolean isAll(Export.Module ex) {
+      return ex.isAll();
+    }
+
+    @Override
+    java.util.List<Name.Literal> onlyNames(Export.Module ex) {
+      if (ex.onlyNames().isEmpty()) {
+        return null;
+      }
+      var list = CollectionConverters.SeqHasAsJava(ex.onlyNames().get()).asJava();
+      return list;
+    }
+
+    @Override
+    java.util.List<Name.Literal> hiddenNames(Export.Module ex) {
+      if (ex.hiddenNames().isEmpty()) {
+        return null;
+      }
+      var list = CollectionConverters.SeqHasAsJava(ex.hiddenNames().get()).asJava();
+      return list;
+    }
+
+    @Override
+    java.util.List<ResolvedType> definedEntities(String name) {
+      var compiler = this.getCompiler();
+      var optionMod = compiler.getModule(name);
+      if (optionMod.isEmpty()) {
+        return null;
+      }
+
+      var mod= optionMod.get();
+      compiler.ensureParsed(mod);
+      var b = mod.getBindingsMap();
+      if (b == null) {
+        compiler.context().updateModule(mod, u -> {
+          u.invalidateCache();
+          u.ir(null);
+          u.compilationStage(CompilationStage.INITIAL);
+        });
+        compiler.ensureParsed(mod, false);
+        b = mod.getBindingsMap();
+      }
+      List<ResolvedType> entitiesStream = b.definedEntities()
+        .map(e -> switch (e) {
+          case BindingsMap.Type t -> {
+            assert e.name().equals(t.name()) : e.name() + " != " + t.name();
+            var res = new ResolvedType(new BindingsMap$ModuleReference$Concrete(mod), t);
+            assert e.name().equals(res.tp().name()) : e.name() + " != " + res.tp().name();
+            yield res;
+          }
+          case null, default -> null;
+        })
+        .filter(Objects::nonNull);
+      var entities = CollectionConverters.SeqHasAsJava(entitiesStream).asJava();
+      return entities;
+    }
+
+    @Override
+    Tuple2<Import, Option<ResolvedImport>> tupleResolvedImport(Import.Module imp, java.util.List<Export.Module> exp, CompilerContext.Module m) {
+      var someBinding = Option.apply(new BindingsMap.ResolvedImport(
+        imp,
+        toScalaList(exp),
+        new BindingsMap.ResolvedModule(new BindingsMap$ModuleReference$Concrete(m))
+      ));
+      return new Tuple2<>(imp, someBinding);
+    }
+
+    @Override
+    Tuple2<Import, Option<ResolvedImport>> tupleResolvedType(Import.Module imp, java.util.List<Export.Module> exp, ResolvedType typ) {
+      var someBinding = Option.apply(new BindingsMap.ResolvedImport(imp, toScalaList(exp), typ));
+      return new Tuple2<>(imp, someBinding);
+    }
+
+    @Override
+    Tuple2<Import, Option<ResolvedImport>> tupleErrorPackageCoundNotBeLoaded(Import.Module imp, String impName, String loadingError) {
+      var importError = new ImportExport(
+        imp,
+        new ImportExport.PackageCouldNotBeLoaded(
+          impName,
+          loadingError
+        ), imp.passData(), imp.diagnostics()
+      );
+      return new Tuple2<>(
+        importError, Option.empty()
+      );
+    }
+
+    @Override
+    Tuple2<Import, Option<ResolvedImport>> tupleErrorModuleDoesNotExist(Import.Module imp, String impName) {
+      return new Tuple2<>(
+        new ImportExport(
+          imp,
+          new ImportExport.ModuleDoesNotExist(impName),
+            imp.passData(), imp.diagnostics()
+        ),
+        Option.empty()
+      );
+    }
+
   }
 }
