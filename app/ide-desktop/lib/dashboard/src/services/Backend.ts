@@ -106,13 +106,24 @@ export enum BackendType {
   remote = 'remote',
 }
 
-/** A user in the application. These are the primary owners of a project. */
-export interface User {
+/** Metadata uniquely identifying a user inside an organization. */
+export interface UserInfo {
   /** The ID of the parent organization. If this is a sole user, they are implicitly in an
    * organization consisting of only themselves. */
-  readonly id: OrganizationId
+  readonly organizationId: OrganizationId
+  /** The ID of this user.
+   *
+   * The user ID is globally unique. Thus, the user ID is always sufficient to uniquely identify a
+   * user. The user ID is guaranteed to never change, once assigned. For these reasons, the user ID
+   * should be the preferred way to uniquely refer to a user. That is, when referring to a user,
+   * prefer this field over `name`, `email`, `subject`, or any other mechanism, where possible. */
+  readonly userId: UserId
   readonly name: string
   readonly email: EmailAddress
+}
+
+/** A user in the application. These are the primary owners of a project. */
+export interface User extends UserInfo {
   /** A URL. */
   readonly profilePicture: string | null
   /** If `false`, this account is awaiting acceptance from an admin, and endpoints other than
@@ -387,17 +398,6 @@ export interface ResourceUsage {
   readonly storage: number
 }
 
-/** Metadata uniquely identifying a user. */
-export interface UserInfo {
-  /* eslint-disable @typescript-eslint/naming-convention */
-  readonly pk: OrganizationId
-  readonly sk: UserId
-  readonly user_subject: Subject
-  readonly user_name: string
-  readonly user_email: EmailAddress
-  /* eslint-enable @typescript-eslint/naming-convention */
-}
-
 /** Metadata for an organization. */
 export interface OrganizationInfo {
   readonly pk: OrganizationId
@@ -407,16 +407,6 @@ export interface OrganizationInfo {
   readonly website: HttpsUrl | null
   readonly address: string | null
   readonly picture: HttpsUrl | null
-}
-
-/** Metadata uniquely identifying a user inside an organization.
- * This is similar to {@link UserInfo}, but with different field names. */
-export interface SimpleUser {
-  readonly organizationId: OrganizationId
-  readonly userId: UserId
-  readonly userSubject: Subject
-  readonly name: string
-  readonly email: EmailAddress
 }
 
 /** User permission for a specific user. */
@@ -868,17 +858,19 @@ export function compareUserPermissions(a: UserPermission, b: UserPermission) {
   if (relativePermissionPrecedence !== 0) {
     return relativePermissionPrecedence
   } else {
-    const aName = a.user.user_name
-    const bName = b.user.user_name
-    const aEmail = a.user.user_email
-    const bEmail = b.user.user_email
+    // NOTE [NP]: Although `userId` is unique, and therefore sufficient to sort permissions, sort
+    // name first, so that it's easier to find a permission in a long list (i.e., for readability).
+    const aName = a.user.name
+    const bName = b.user.name
+    const aUserId = a.user.userId
+    const bUserId = b.user.userId
     return aName < bName
       ? COMPARE_LESS_THAN
       : aName > bName
         ? 1
-        : aEmail < bEmail
+        : aUserId < bUserId
           ? COMPARE_LESS_THAN
-          : aEmail > bEmail
+          : aUserId > bUserId
             ? 1
             : 0
   }
@@ -1126,7 +1118,7 @@ export default abstract class Backend {
   /** Return the ID of the root directory, if known. */
   abstract rootDirectoryId(user: User | null): DirectoryId | null
   /** Return a list of all users in the same organization. */
-  abstract listUsers(): Promise<SimpleUser[]>
+  abstract listUsers(): Promise<UserInfo[]>
   /** Set the username of the current user. */
   abstract createUser(body: CreateUserRequestBody): Promise<User>
   /** Change the username of the current user. */

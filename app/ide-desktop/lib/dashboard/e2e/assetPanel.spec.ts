@@ -22,7 +22,7 @@ test.test('open and close asset panel', async ({ page }) => {
 
 test.test('asset panel contents', async ({ page }) => {
   const { api } = await actions.mockAll({ page })
-  const { defaultOrganizationId } = api
+  const { defaultOrganizationId, defaultUserId } = api
   const assetRows = actions.locateAssetRows(page)
   const description = 'foo bar'
   const username = 'baz quux'
@@ -33,13 +33,10 @@ test.test('asset panel contents', async ({ page }) => {
       {
         permission: permissions.PermissionAction.own,
         user: {
-          /* eslint-disable @typescript-eslint/naming-convention */
-          pk: defaultOrganizationId,
-          sk: backend.UserId(''),
-          user_subject: backend.Subject(''),
-          user_name: username,
-          user_email: backend.EmailAddress(email),
-          /* eslint-enable @typescript-eslint/naming-convention */
+          organizationId: defaultOrganizationId,
+          userId: defaultUserId,
+          name: username,
+          email: backend.EmailAddress(email),
         },
       },
     ],
