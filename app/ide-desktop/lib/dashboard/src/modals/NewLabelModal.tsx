@@ -4,7 +4,9 @@ import * as React from 'react'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
 import * as modalProvider from '#/providers/ModalProvider'
+import * as textProvider from '#/providers/TextProvider'
 
+import * as aria from '#/components/aria'
 import ColorPicker from '#/components/ColorPicker'
 import Modal from '#/components/Modal'
 import ButtonRow from '#/components/styled/ButtonRow'
@@ -30,16 +32,15 @@ export default function NewLabelModal(props: NewLabelModalProps) {
   const { labels, eventTarget, doCreate } = props
   const toastAndLog = toastAndLogHooks.useToastAndLog()
   const { unsetModal } = modalProvider.useSetModal()
-  const position = React.useMemo(() => eventTarget.getBoundingClientRect(), [eventTarget])
-
+  const { getText } = textProvider.useText()
+  const [value, setName] = React.useState('')
+  const [color, setColor] = React.useState<backend.LChColor | null>(null)
   const labelNames = React.useMemo(
     () => new Set<string>(labels.map(label => label.value)),
     [labels]
   )
+  const position = React.useMemo(() => eventTarget.getBoundingClientRect(), [eventTarget])
   const leastUsedColor = React.useMemo(() => backend.leastUsedColor(labels), [labels])
-
-  const [value, setName] = React.useState('')
-  const [color, setColor] = React.useState<backend.LChColor | null>(null)
   const canSubmit = Boolean(value && !labelNames.has(value))
 
   const doSubmit = () => {
@@ -76,16 +77,18 @@ export default function NewLabelModal(props: NewLabelModalProps) {
           doSubmit()
         }}
       >
-        <h1 className="relative text-sm font-semibold">New Label</h1>
+        <aria.Heading level={2} className="relative text-sm font-semibold">
+          {getText('newLabel')}
+        </aria.Heading>
         <FocusArea direction="horizontal">
           {(ref, innerProps) => (
-            <label ref={ref} className="relative flex items-center" {...innerProps}>
-              <div className="text w-modal-label">Name</div>
+            <aria.Label ref={ref} className="relative flex items-center" {...innerProps}>
+              <div className="text w-modal-label">{getText('name')}</div>
               <FocusRing>
-                <input
+                <aria.Input
                   autoFocus
                   size={1}
-                  placeholder="Enter the name of the label"
+                  placeholder={getText('labelNamePlaceholder')}
                   className={`focus-child text grow rounded-full border border-primary/10 bg-transparent px-input-x ${
                     // eslint-disable-next-line @typescript-eslint/no-magic-numbers
                     color != null && color.lightness <= 50
@@ -104,24 +107,17 @@ export default function NewLabelModal(props: NewLabelModalProps) {
                   }}
                 />
               </FocusRing>
-            </label>
+            </aria.Label>
           )}
         </FocusArea>
         <FocusArea direction="horizontal">
           {(ref, innerProps) => (
-            <label
-              ref={ref}
-              className="relative flex items-center"
-              onClick={event => {
-                event.preventDefault()
-              }}
-              {...innerProps}
-            >
-              <div className="text w-modal-label">Color</div>
+            <aria.RadioGroup ref={ref} className="relative flex items-center" {...innerProps}>
+              <aria.Label className="text w-modal-label">{getText('color')}</aria.Label>
               <div className="grow">
                 <ColorPicker setColor={setColor} />
               </div>
-            </label>
+            </aria.RadioGroup>
           )}
         </FocusArea>
         <ButtonRow>
@@ -130,10 +126,10 @@ export default function NewLabelModal(props: NewLabelModalProps) {
             className="button bg-invite text-white enabled:active"
             onPress={doSubmit}
           >
-            Create
+            {getText('create')}
           </UnstyledButton>
           <UnstyledButton className="button bg-selected-frame active" onPress={unsetModal}>
-            Cancel
+            {getText('cancel')}
           </UnstyledButton>
         </ButtonRow>
       </form>

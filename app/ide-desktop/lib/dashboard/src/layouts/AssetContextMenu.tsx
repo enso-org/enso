@@ -9,6 +9,7 @@ import * as authProvider from '#/providers/AuthProvider'
 import * as backendProvider from '#/providers/BackendProvider'
 import * as loggerProvider from '#/providers/LoggerProvider'
 import * as modalProvider from '#/providers/ModalProvider'
+import * as textProvider from '#/providers/TextProvider'
 
 import AssetEventType from '#/events/AssetEventType'
 import AssetListEventType from '#/events/AssetListEventType'
@@ -65,6 +66,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
   const { user, accessToken } = authProvider.useNonPartialUserSession()
   const { setModal, unsetModal } = modalProvider.useSetModal()
   const { backend } = backendProvider.useBackend()
+  const { getText } = textProvider.useText()
   const toastAndLog = toastAndLogHooks.useToastAndLog()
   const asset = item.item
   const self = asset.permissions?.find(permission => permission.user.user_email === user?.email)
@@ -106,7 +108,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
           <ContextMenuEntry
             hidden={hidden}
             action="undelete"
-            label="Restore From Trash"
+            label={getText('restoreFromTrashShortcut')}
             doAction={() => {
               unsetModal()
               dispatchAssetEvent({ type: AssetEventType.restore, ids: new Set([asset.id]) })
@@ -115,7 +117,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
           <ContextMenuEntry
             hidden={hidden}
             action="delete"
-            label="Delete Forever"
+            label={getText('deleteForeverShortcut')}
             doAction={() => {
               setModal(
                 <ConfirmDeleteModal
@@ -190,11 +192,11 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
             doAction={async () => {
               unsetModal()
               if (accessToken == null) {
-                toastAndLog('Cannot upload to cloud in offline mode')
+                toastAndLog('offlineUploadFilesError')
               } else {
                 try {
                   const client = new HttpClient([['Authorization', `Bearer ${accessToken}`]])
-                  const remoteBackend = new RemoteBackend(client, logger)
+                  const remoteBackend = new RemoteBackend(client, logger, getText)
                   const projectResponse = await fetch(
                     `./api/project-manager/projects/${asset.id}/enso-project`
                   )
@@ -211,9 +213,9 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
                     },
                     await projectResponse.blob()
                   )
-                  toast.toast.success('Successfully uploaded local project to cloud!')
+                  toast.toast.success(getText('uploadProjectToCloudSuccess'))
                 } catch (error) {
-                  toastAndLog('Could not upload local project to cloud', error)
+                  toastAndLog('uploadProjectToCloudError', error)
                 }
               }
             }}
@@ -268,7 +270,11 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
           <ContextMenuEntry
             hidden={hidden}
             action="delete"
-            label={backend.type === backendModule.BackendType.local ? 'Delete' : 'Move To Trash'}
+            label={
+              backend.type === backendModule.BackendType.local
+                ? getText('deleteShortcut')
+                : getText('moveToTrashShortcut')
+            }
             doAction={() => {
               if (backend.type === backendModule.BackendType.remote) {
                 unsetModal()
@@ -276,7 +282,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
               } else {
                 setModal(
                   <ConfirmDeleteModal
-                    actionText={`delete the ${asset.type} '${asset.title}'`}
+                    actionText={getText('deleteTheAssetTypeTitle', asset.type, asset.title)}
                     doDelete={doDelete}
                   />
                 )

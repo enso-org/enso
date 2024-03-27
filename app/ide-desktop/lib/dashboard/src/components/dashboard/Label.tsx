@@ -28,6 +28,7 @@ interface InternalLabelProps extends Readonly<React.PropsWithChildren> {
   readonly isDisabled?: boolean
   readonly draggable?: boolean
   readonly color: backend.LChColor
+  readonly title?: string
   readonly className?: string
   readonly onPress: (event: aria.PressEvent) => void
   readonly onContextMenu?: (event: React.MouseEvent<HTMLElement>) => void
@@ -36,7 +37,7 @@ interface InternalLabelProps extends Readonly<React.PropsWithChildren> {
 
 /** An label that can be applied to an asset. */
 export default function Label(props: InternalLabelProps) {
-  const { active = false, isDisabled = false, color, negated = false, draggable } = props
+  const { active = false, isDisabled = false, color, negated = false, draggable, title } = props
   const { className = 'text-tag-text', children, onPress, onDragStart, onContextMenu } = props
   const focusDirection = focusDirectionProvider.useFocusDirection()
   const handleFocusMove = focusHooks.useHandleFocusMove(focusDirection)
@@ -49,6 +50,7 @@ export default function Label(props: InternalLabelProps) {
   return (
     <FocusRing within placement="after">
       <div
+        title={title}
         draggable={draggable}
         className="relative after:pointer-events-none after:absolute after:inset after:rounded-full"
         onDragStart={onDragStart}

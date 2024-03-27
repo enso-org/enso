@@ -16,6 +16,8 @@ import java.nio.file.{Files, Paths}
 import java.util.UUID
 import java.util.logging.Level
 
+import scala.collection.immutable.ListSet
+
 @scala.annotation.nowarn("msg=multiarg infix syntax")
 class RuntimeSuggestionUpdatesTest
     extends AnyFlatSpec
@@ -148,7 +150,15 @@ class RuntimeSuggestionUpdatesTest
         Api.SuggestionsDatabaseModuleUpdateNotification(
           module  = moduleName,
           actions = Vector(Api.SuggestionsDatabaseAction.Clean(moduleName)),
-          exports = Vector(),
+          exports = Vector(
+            Api.ExportsUpdate(
+              ModuleExports(
+                moduleName,
+                ListSet(ExportedSymbol.Method(moduleName, "main"))
+              ),
+              Api.ExportsAction.Add()
+            )
+          ),
           updates = Tree.Root(
             Vector(
               Tree.Node(
@@ -472,7 +482,15 @@ class RuntimeSuggestionUpdatesTest
         Api.SuggestionsDatabaseModuleUpdateNotification(
           module  = moduleName,
           actions = Vector(),
-          exports = Vector(),
+          exports = Vector(
+            Api.ExportsUpdate(
+              ModuleExports(
+                moduleName,
+                ListSet(ExportedSymbol.Method(moduleName, "foo"))
+              ),
+              Api.ExportsAction.Add()
+            )
+          ),
           updates = Tree.Root(
             Vector(
               Tree.Node(
@@ -687,7 +705,15 @@ class RuntimeSuggestionUpdatesTest
         Api.SuggestionsDatabaseModuleUpdateNotification(
           module  = moduleName,
           actions = Vector(Api.SuggestionsDatabaseAction.Clean(moduleName)),
-          exports = Vector(),
+          exports = Vector(
+            Api.ExportsUpdate(
+              ModuleExports(
+                moduleName,
+                ListSet(ExportedSymbol.Method(moduleName, "main"))
+              ),
+              Api.ExportsAction.Add()
+            )
+          ),
           updates = Tree.Root(
             Vector(
               Tree.Node(
@@ -745,7 +771,15 @@ class RuntimeSuggestionUpdatesTest
           module = "Enso_Test.Foo.Main",
           actions =
             Vector(Api.SuggestionsDatabaseAction.Clean("Enso_Test.Foo.Main")),
-          exports = Vector(),
+          exports = Vector(
+            Api.ExportsUpdate(
+              ModuleExports(
+                "Enso_Test.Foo.Main",
+                ListSet(ExportedSymbol.Method("Enso_Test.Foo.Main", "main"))
+              ),
+              Api.ExportsAction.Add()
+            )
+          ),
           updates = Tree.Root(
             Vector(
               Tree.Node(
@@ -844,7 +878,15 @@ class RuntimeSuggestionUpdatesTest
         Api.SuggestionsDatabaseModuleUpdateNotification(
           module  = moduleName,
           actions = Vector(Api.SuggestionsDatabaseAction.Clean(moduleName)),
-          exports = Vector(),
+          exports = Vector(
+            Api.ExportsUpdate(
+              ModuleExports(
+                moduleName,
+                ListSet(ExportedSymbol.Method(moduleName, "main"))
+              ),
+              Api.ExportsAction.Add()
+            )
+          ),
           updates = Tree.Root(
             Vector(
               Tree.Node(
@@ -1026,7 +1068,18 @@ class RuntimeSuggestionUpdatesTest
           module = "Enso_Test.Test.A",
           actions =
             Vector(Api.SuggestionsDatabaseAction.Clean("Enso_Test.Test.A")),
-          exports = Vector(),
+          exports = Vector(
+            Api.ExportsUpdate(
+              ModuleExports(
+                "Enso_Test.Test.A",
+                ListSet(
+                  ExportedSymbol.Type("Enso_Test.Test.A", "MyType"),
+                  ExportedSymbol.Method("Enso_Test.Test.A", "hello")
+                )
+              ),
+              Api.ExportsAction.Add()
+            )
+          ),
           updates = Tree.Root(
             Vector(
               Tree.Node(
@@ -1148,9 +1201,10 @@ class RuntimeSuggestionUpdatesTest
             Api.ExportsUpdate(
               ModuleExports(
                 "Enso_Test.Test.Main",
-                Set(
+                ListSet(
                   ExportedSymbol.Type("Enso_Test.Test.A", "MyType"),
                   ExportedSymbol.Constructor("Enso_Test.Test.A", "MkA"),
+                  ExportedSymbol.Method(moduleName, "main"),
                   ExportedSymbol.Method("Enso_Test.Test.A", "hello")
                 )
               ),

@@ -5,6 +5,7 @@ import * as React from 'react'
 import * as authProvider from '#/providers/AuthProvider'
 import * as backendProvider from '#/providers/BackendProvider'
 import * as modalProvider from '#/providers/ModalProvider'
+import * as textProvider from '#/providers/TextProvider'
 
 import type * as assetEvent from '#/events/assetEvent'
 import AssetEventType from '#/events/AssetEventType'
@@ -24,20 +25,11 @@ import * as backendModule from '#/services/Backend'
 import type AssetTreeNode from '#/utilities/AssetTreeNode'
 import type * as pasteDataModule from '#/utilities/pasteData'
 import * as permissions from '#/utilities/permissions'
-import * as string from '#/utilities/string'
 import * as uniqueString from '#/utilities/uniqueString'
 
 // =================
 // === Constants ===
 // =================
-
-// This is a function, even though does not look like one.
-// eslint-disable-next-line no-restricted-syntax
-const pluralize = string.makePluralize('item', 'items')
-
-// ==============================
-// === AssetsTableContextMenu ===
-// ==============================
 
 /** Props for an {@link AssetsTableContextMenu}. */
 export interface AssetsTableContextMenuProps {
@@ -67,13 +59,13 @@ export default function AssetsTableContextMenu(props: AssetsTableContextMenuProp
   const { backend } = backendProvider.useBackend()
   const { user } = authProvider.useNonPartialUserSession()
   const { setModal, unsetModal } = modalProvider.useSetModal()
+  const { getText } = textProvider.useText()
   const rootDirectoryId = React.useMemo(
     () => user?.rootDirectoryId ?? backendModule.DirectoryId(''),
     [user]
   )
   const isCloud = backend.type === backendModule.BackendType.remote
 
-  const pluralized = pluralize(selectedKeys.size)
   // This works because all items are mutated, ensuring their value stays
   // up to date.
   const ownsAllSelectedAssets =
@@ -96,7 +88,11 @@ export default function AssetsTableContextMenu(props: AssetsTableContextMenuProp
     } else {
       setModal(
         <ConfirmDeleteModal
-          actionText={`delete ${selectedKeys.size} selected ${pluralized}`}
+          actionText={
+            selectedKeys.size === 1
+              ? getText('deleteSelectedAssetActionText')
+              : getText('deleteSelectedAssetsActionText', selectedKeys.size)
+          }
           doDelete={() => {
             clearSelectedKeys()
             dispatchAssetEvent({ type: AssetEventType.delete, ids: selectedKeys })
@@ -115,7 +111,7 @@ export default function AssetsTableContextMenu(props: AssetsTableContextMenuProp
           <ContextMenuEntry
             hidden={hidden}
             action="undelete"
-            label="Restore All From Trash"
+            label={getText('restoreAllFromTrashShortcut')}
             doAction={() => {
               unsetModal()
               dispatchAssetEvent({ type: AssetEventType.restore, ids: selectedKeys })
@@ -125,11 +121,15 @@ export default function AssetsTableContextMenu(props: AssetsTableContextMenuProp
             <ContextMenuEntry
               hidden={hidden}
               action="delete"
-              label="Delete All Forever"
+              label={getText('deleteAllForeverShortcut')}
               doAction={() => {
                 setModal(
                   <ConfirmDeleteModal
-                    actionText={`delete ${selectedKeys.size} selected ${pluralized} forever`}
+                    actionText={
+                      selectedKeys.size === 1
+                        ? getText('deleteSelectedAssetForeverActionText')
+                        : getText('deleteSelectedAssetsForeverActionText', selectedKeys.size)
+                    }
                     doDelete={() => {
                       clearSelectedKeys()
                       dispatchAssetEvent({ type: AssetEventType.deleteForever, ids: selectedKeys })
@@ -153,21 +153,31 @@ export default function AssetsTableContextMenu(props: AssetsTableContextMenuProp
               <ContextMenuEntry
                 hidden={hidden}
                 action="delete"
-                label={isCloud ? 'Move All To Trash' : 'Delete All'}
+                label={isCloud ? getText('moveAllToTrashShortcut') : getText('deleteAllShortcut')}
                 doAction={doDeleteAll}
               />
             )}
             {isCloud && (
-              <ContextMenuEntry hidden={hidden} action="copy" label="Copy All" doAction={doCopy} />
+              <ContextMenuEntry
+                hidden={hidden}
+                action="copy"
+                label={getText('copyAllShortcut')}
+                doAction={doCopy}
+              />
             )}
             {isCloud && ownsAllSelectedAssets && (
-              <ContextMenuEntry hidden={hidden} action="cut" label="Cut All" doAction={doCut} />
+              <ContextMenuEntry
+                hidden={hidden}
+                action="cut"
+                label={getText('cutAllShortcut')}
+                doAction={doCut}
+              />
             )}
             {pasteData != null && pasteData.data.size > 0 && (
               <ContextMenuEntry
                 hidden={hidden}
                 action="paste"
-                label="Paste All"
+                label={getText('pasteAllShortcut')}
                 doAction={() => {
                   const [firstKey] = selectedKeys
                   const selectedNode =

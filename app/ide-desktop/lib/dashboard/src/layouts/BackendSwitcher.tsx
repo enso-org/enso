@@ -5,8 +5,11 @@ import CloudIcon from 'enso-assets/cloud.svg'
 import NotCloudIcon from 'enso-assets/not_cloud.svg'
 
 import * as backendProvider from '#/providers/BackendProvider'
-import * as navigator2DProvider from '#/providers/Navigator2DProvider'
+import * as textProvider from '#/providers/TextProvider'
 
+import * as aria from '#/components/aria'
+import FocusArea from '#/components/styled/FocusArea'
+import UnstyledButton from '#/components/styled/UnstyledButton'
 import SvgMask from '#/components/SvgMask'
 
 import * as backendModule from '#/services/Backend'
@@ -24,45 +27,39 @@ export interface BackendSwitcherProps {
 export default function BackendSwitcher(props: BackendSwitcherProps) {
   const { setBackendType } = props
   const { backend } = backendProvider.useBackend()
-  const rootRef = React.useRef<HTMLDivElement>(null)
-  const navigator2D = navigator2DProvider.useNavigator2D()
+  const { getText } = textProvider.useText()
   const isCloud = backend.type === backendModule.BackendType.remote
 
-  React.useEffect(() => {
-    const root = rootRef.current
-    if (root == null) {
-      return
-    } else {
-      return navigator2D.register(root)
-    }
-  }, [navigator2D])
-
   return (
-    <div ref={rootRef} className="flex shrink-0 gap-px">
-      <button
-        disabled={isCloud}
-        className="flex w-backend-switcher-option flex-col items-start bg-selected-frame px-selector-x py-selector-y text-primary selectable first:rounded-l-full last:rounded-r-full disabled:text-cloud disabled:active"
-        onClick={() => {
-          setBackendType(backendModule.BackendType.remote)
-        }}
-      >
-        <div className="flex items-center gap-icon-with-text">
-          <SvgMask src={CloudIcon} />
-          <span className="text">Cloud</span>
+    <FocusArea direction="horizontal">
+      {(ref, innerProps) => (
+        <div ref={ref} className="flex shrink-0 gap-px" {...innerProps}>
+          <UnstyledButton
+            isDisabled={isCloud}
+            className="flex w-backend-switcher-option flex-col items-start bg-selected-frame px-selector-x py-selector-y text-primary selectable first:rounded-l-full last:rounded-r-full disabled:text-cloud disabled:active"
+            onPress={() => {
+              setBackendType(backendModule.BackendType.remote)
+            }}
+          >
+            <div className="flex items-center gap-icon-with-text">
+              <SvgMask src={CloudIcon} />
+              <aria.Label className="text">{getText('cloud')}</aria.Label>
+            </div>
+          </UnstyledButton>
+          <UnstyledButton
+            isDisabled={!isCloud}
+            className="flex w-backend-switcher-option flex-col items-start bg-selected-frame px-selector-x py-selector-y text-primary selectable first:rounded-l-full last:rounded-r-full disabled:text-cloud disabled:active"
+            onPress={() => {
+              setBackendType(backendModule.BackendType.local)
+            }}
+          >
+            <div className="flex items-center gap-icon-with-text">
+              <SvgMask src={NotCloudIcon} />
+              <aria.Label className="text">{getText('local')}</aria.Label>
+            </div>
+          </UnstyledButton>
         </div>
-      </button>
-      <button
-        disabled={!isCloud}
-        className="flex w-backend-switcher-option flex-col items-start bg-selected-frame px-selector-x py-selector-y text-primary selectable first:rounded-l-full last:rounded-r-full disabled:text-cloud disabled:active"
-        onClick={() => {
-          setBackendType(backendModule.BackendType.local)
-        }}
-      >
-        <div className="flex items-center gap-icon-with-text">
-          <SvgMask src={NotCloudIcon} />
-          <span className="text">Local</span>
-        </div>
-      </button>
-    </div>
+      )}
+    </FocusArea>
   )
 }

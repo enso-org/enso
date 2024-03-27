@@ -13,6 +13,7 @@ import * as authProvider from '#/providers/AuthProvider'
 import * as backendProvider from '#/providers/BackendProvider'
 import * as focusDirectionProvider from '#/providers/FocusDirectionProvider'
 import * as modalProvider from '#/providers/ModalProvider'
+import * as textProvider from '#/providers/TextProvider'
 
 import * as aria from '#/components/aria'
 import Modal from '#/components/Modal'
@@ -78,6 +79,7 @@ interface InternalEmailInputProps {
 /** An input for entering an email. */
 function EmailInput(props: InternalEmailInputProps) {
   const { doAdd, doDelete } = props
+  const { getText } = textProvider.useText()
   const focusDirection = focusDirectionProvider.useFocusDirection()
   const handleFocusMove = focusHooks.useHandleFocusMove(focusDirection)
 
@@ -99,10 +101,10 @@ function EmailInput(props: InternalEmailInputProps) {
 
   return (
     <FocusRing>
-      <input
+      <aria.Input
         autoFocus
         type="text"
-        placeholder="Type email to invite"
+        placeholder={getText('typeEmailToInvite')}
         className="text max-w-full rounded-full bg-transparent px-input-x"
         onKeyDown={event => {
           if (
@@ -143,6 +145,7 @@ export default function InviteUsersModal(props: InviteUsersModalProps) {
   const { user } = authProvider.useNonPartialUserSession()
   const { backend } = backendProvider.useBackend()
   const { unsetModal } = modalProvider.useSetModal()
+  const { getText } = textProvider.useText()
   const toastAndLog = toastAndLogHooks.useToastAndLog()
   const [newEmails, setNewEmails] = React.useState<string[]>([])
   const position = React.useMemo(() => eventTarget?.getBoundingClientRect(), [eventTarget])
@@ -172,7 +175,7 @@ export default function InviteUsersModal(props: InviteUsersModalProps) {
               userEmail: backendModule.EmailAddress(newEmail),
             })
           } catch (error) {
-            toastAndLog(`Could not invite user '${newEmail}'`, error)
+            toastAndLog('couldNotInviteUser', error, newEmail)
           }
         })()
       }
@@ -206,7 +209,9 @@ export default function InviteUsersModal(props: InviteUsersModalProps) {
         }}
       >
         <div className="relative flex flex-col gap-modal rounded-default p-modal-wide pt-modal">
-          <h2 className="text text-sm font-bold">Invite</h2>
+          <aria.Heading level={2} className="text text-sm font-bold">
+            {getText('invite')}
+          </aria.Heading>
           <form
             className="grow"
             onSubmit={event => {
@@ -218,7 +223,7 @@ export default function InviteUsersModal(props: InviteUsersModalProps) {
           >
             <FocusArea direction="horizontal">
               {(ref, innerProps) => (
-                <label
+                <aria.TextField
                   ref={ref}
                   className="block min-h-paragraph-input rounded-default border border-primary/10 p-multiline-input"
                   {...innerProps}
@@ -245,7 +250,7 @@ export default function InviteUsersModal(props: InviteUsersModalProps) {
                       setNewEmails(emails => emails.slice(0, -1))
                     }}
                   />
-                </label>
+                </aria.TextField>
               )}
             </FocusArea>
           </form>
@@ -255,7 +260,7 @@ export default function InviteUsersModal(props: InviteUsersModalProps) {
               className="button bg-invite text-tag-text enabled:active"
               onPress={doSubmit}
             >
-              Invite
+              {getText('invite')}
             </UnstyledButton>
           </ButtonRow>
         </div>

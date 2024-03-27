@@ -11,12 +11,14 @@ import DataUploadIcon from 'enso-assets/data_upload.svg'
 import * as backendProvider from '#/providers/BackendProvider'
 import * as inputBindingsProvider from '#/providers/InputBindingsProvider'
 import * as modalProvider from '#/providers/ModalProvider'
+import * as textProvider from '#/providers/TextProvider'
 
 import type * as assetEvent from '#/events/assetEvent'
 import AssetEventType from '#/events/AssetEventType'
 
 import Category from '#/layouts/CategorySwitcher/Category'
 
+import * as aria from '#/components/aria'
 import Button from '#/components/styled/Button'
 import FocusArea from '#/components/styled/FocusArea'
 import UnstyledButton from '#/components/styled/UnstyledButton'
@@ -53,6 +55,7 @@ export default function DriveBar(props: DriveBarProps) {
   const { doCreateSecret, doCreateDataLink, doUploadFiles, dispatchAssetEvent } = props
   const { backend } = backendProvider.useBackend()
   const { setModal, unsetModal } = modalProvider.useSetModal()
+  const { getText } = textProvider.useText()
   const inputBindings = inputBindingsProvider.useInputBindings()
   const uploadFilesRef = React.useRef<HTMLInputElement>(null)
   const isCloud = backend.type === backendModule.BackendType.remote
@@ -101,13 +104,15 @@ export default function DriveBar(props: DriveBarProps) {
                   onPress={() => {
                     setModal(
                       <ConfirmDeleteModal
-                        actionText="all trashed items forever"
+                        actionText={getText('allTrashedItemsForever')}
                         doDelete={doEmptyTrash}
                       />
                     )
                   }}
                 >
-                  <span className="text whitespace-nowrap font-semibold">Clear Trash</span>
+                  <aria.Text className="text whitespace-nowrap font-semibold">
+                    {getText('clearTrash')}
+                  </aria.Text>
                 </UnstyledButton>
               </div>
             </div>
@@ -128,14 +133,16 @@ export default function DriveBar(props: DriveBarProps) {
                     doCreateProject()
                   }}
                 >
-                  <span className="text whitespace-nowrap font-semibold">New Project</span>
+                  <aria.Text className="text whitespace-nowrap font-semibold">
+                    {getText('newProject')}
+                  </aria.Text>
                 </UnstyledButton>
                 <div className="flex h-row items-center gap-icons rounded-full bg-frame px-drive-bar-icons-x text-black/50">
                   {isCloud && (
                     <Button
                       active
                       image={AddFolderIcon}
-                      alt="New Folder"
+                      alt={getText('newFolder')}
                       onPress={() => {
                         unsetModal()
                         doCreateDirectory()
@@ -146,7 +153,7 @@ export default function DriveBar(props: DriveBarProps) {
                     <Button
                       active
                       image={AddKeyIcon}
-                      alt="New Secret"
+                      alt={getText('newSecret')}
                       onPress={() => {
                         setModal(
                           <UpsertSecretModal id={null} name={null} doCreate={doCreateSecret} />
@@ -158,13 +165,13 @@ export default function DriveBar(props: DriveBarProps) {
                     <Button
                       active
                       image={AddConnectorIcon}
-                      alt="New Data Link"
+                      alt={getText('newDataLink')}
                       onPress={() => {
                         setModal(<UpsertDataLinkModal doCreate={doCreateDataLink} />)
                       }}
                     />
                   )}
-                  <input
+                  <aria.Input
                     ref={uploadFilesRef}
                     type="file"
                     multiple
@@ -184,7 +191,7 @@ export default function DriveBar(props: DriveBarProps) {
                   <Button
                     active
                     image={DataUploadIcon}
-                    alt="Upload Files"
+                    alt={getText('uploadFiles')}
                     onPress={() => {
                       unsetModal()
                       uploadFilesRef.current?.click()
@@ -194,11 +201,11 @@ export default function DriveBar(props: DriveBarProps) {
                     active={canDownload}
                     isDisabled={!canDownload}
                     image={DataDownloadIcon}
-                    alt="Download Files"
+                    alt={getText('downloadFiles')}
                     error={
                       isCloud
-                        ? 'You currently can only download files.'
-                        : 'First select a project to download.'
+                        ? getText('canOnlyDownloadFilesError')
+                        : getText('noProjectSelectedError')
                     }
                     onPress={() => {
                       unsetModal()

@@ -1,5 +1,7 @@
 import { test } from '@playwright/test'
+import assert from 'assert'
 import * as actions from './actions'
+import { computedContent } from './css'
 import { expect } from './customExpect'
 import * as locate from './locate'
 
@@ -12,9 +14,14 @@ test('node can open and load visualization', async ({ page }) => {
   await expect(locate.anyVisualization(page)).toExist()
   await locate.showVisualizationSelectorButton(page).click()
   await page.getByText('JSON').click()
-  await expect(locate.jsonVisualization(page)).toExist()
+  const vis = locate.jsonVisualization(page)
+  await expect(vis).toExist()
   // The default JSON viz data contains an object.
-  await expect(locate.jsonVisualization(page)).toContainText('{')
+  const element = await vis.elementHandle()
+  assert(element != null)
+  const textContent = await computedContent(element)
+  const jsonContent = JSON.parse(textContent)
+  expect(typeof jsonContent).toBe('object')
 })
 
 test('Warnings visualization', async ({ page }) => {

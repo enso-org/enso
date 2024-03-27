@@ -2,7 +2,10 @@
  * interactive components. */
 import * as React from 'react'
 
+import * as detect from 'enso-common/src/detect'
+
 import * as eventHooks from '#/hooks/eventHooks'
+import * as searchParamsState from '#/hooks/searchParamsStateHooks'
 
 import * as authProvider from '#/providers/AuthProvider'
 import * as backendProvider from '#/providers/BackendProvider'
@@ -10,6 +13,7 @@ import * as inputBindingsProvider from '#/providers/InputBindingsProvider'
 import * as localStorageProvider from '#/providers/LocalStorageProvider'
 import * as loggerProvider from '#/providers/LoggerProvider'
 import * as modalProvider from '#/providers/ModalProvider'
+import * as textProvider from '#/providers/TextProvider'
 
 import type * as assetEvent from '#/events/assetEvent'
 import AssetEventType from '#/events/AssetEventType'
@@ -30,6 +34,7 @@ import Settings from '#/layouts/Settings'
 import TopBar from '#/layouts/TopBar'
 
 import TheModal from '#/components/dashboard/TheModal'
+import Portal from '#/components/Portal'
 import type * as spinner from '#/components/Spinner'
 
 import * as backendModule from '#/services/Backend'
@@ -119,10 +124,18 @@ export default function Dashboard(props: DashboardProps) {
   const { modalRef } = modalProvider.useModalRef()
   const { updateModal, unsetModal } = modalProvider.useSetModal()
   const { localStorage } = localStorageProvider.useLocalStorage()
+  const { getText } = textProvider.useText()
   const inputBindings = inputBindingsProvider.useInputBindings()
   const [initialized, setInitialized] = React.useState(false)
   const [isHelpChatOpen, setIsHelpChatOpen] = React.useState(false)
-  const [page, setPage] = React.useState(() => localStorage.get('page') ?? pageSwitcher.Page.drive)
+
+  // These pages MUST be ROUTER PAGES.
+  const [page, setPage] = searchParamsState.useSearchParamsState(
+    'page',
+    () => localStorage.get('page') ?? pageSwitcher.Page.drive,
+    (value: unknown): value is pageSwitcher.Page =>
+      array.includes(Object.values(pageSwitcher.Page), value)
+  )
   const [queuedAssetEvents, setQueuedAssetEvents] = React.useState<assetEvent.AssetEvent[]>([])
   const [query, setQuery] = React.useState(() => AssetQuery.fromString(''))
   const [labels, setLabels] = React.useState<backendModule.Label[]>([])
@@ -156,7 +169,7 @@ export default function Dashboard(props: DashboardProps) {
     if (query.query !== '') {
       setPage(pageSwitcher.Page.drive)
     }
-  }, [query])
+  }, [query, setPage])
 
   React.useEffect(() => {
     let currentBackend = backend
@@ -194,7 +207,7 @@ export default function Dashboard(props: DashboardProps) {
             const httpClient = new HttpClient(
               new Headers([['Authorization', `Bearer ${session.accessToken}`]])
             )
-            const remoteBackend = new RemoteBackend(httpClient, logger)
+            const remoteBackend = new RemoteBackend(httpClient, logger, getText)
             void (async () => {
               const abortController = new AbortController()
               setOpenProjectAbortController(abortController)
@@ -320,13 +333,23 @@ export default function Dashboard(props: DashboardProps) {
           }
         },
       }),
-    [
-      inputBindings,
-      /* should never change */ modalRef,
-      /* should never change */ localStorage,
-      /* should never change */ updateModal,
-    ]
+    [inputBindings, modalRef, localStorage, updateModal, setPage]
   )
+
+  React.useEffect(() => {
+    if (detect.isOnElectron()) {
+      // We want to handle the back and forward buttons in electron the same way as in the browser.
+      // eslint-disable-next-line no-restricted-syntax
+      return inputBindings.attach(sanitizedEventTargets.document.body, 'keydown', {
+        goBack: () => {
+          window.navigationApi.goBack()
+        },
+        goForward: () => {
+          window.navigationApi.goForward()
+        },
+      })
+    }
+  }, [inputBindings])
 
   const setBackendType = React.useCallback(
     (newBackendType: backendModule.BackendType) => {
@@ -339,7 +362,7 @@ export default function Dashboard(props: DashboardProps) {
             const client = new HttpClient([
               ['Authorization', `Bearer ${session.accessToken ?? ''}`],
             ])
-            setBackend(new RemoteBackend(client, logger))
+            setBackend(new RemoteBackend(client, logger, getText))
             break
           }
         }
@@ -349,6 +372,7 @@ export default function Dashboard(props: DashboardProps) {
       backend.type,
       session.accessToken,
       logger,
+      getText,
       /* should never change */ projectManagerUrl,
       /* should never change */ setBackend,
     ]
@@ -391,7 +415,7 @@ export default function Dashboard(props: DashboardProps) {
         })
       }
     },
-    [backend, projectStartupInfo?.project.projectId, session.accessToken]
+    [backend, projectStartupInfo?.project.projectId, session.accessToken, setPage]
   )
 
   const doCloseEditor = React.useCallback((closingProject: backendModule.ProjectAsset) => {
@@ -413,7 +437,7 @@ export default function Dashboard(props: DashboardProps) {
       setPage(pageSwitcher.Page.drive)
     }
     setProjectStartupInfo(null)
-  }, [page])
+  }, [page, setPage])
 
   return (
     <>
@@ -518,9 +542,11 @@ export default function Dashboard(props: DashboardProps) {
           )}
         </div>
       </div>
-      <div className="select-none text-xs text-primary">
-        <TheModal />
-      </div>
+      <Portal>
+        <div className="select-none text-xs text-primary">
+          <TheModal />
+        </div>
+      </Portal>
     </>
   )
 }

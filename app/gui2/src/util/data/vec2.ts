@@ -106,6 +106,10 @@ export class Vec2 {
   setAxis(axis: 'x' | 'y', value: number) {
     return new Vec2(axis === 'x' ? value : this.x, axis === 'y' ? value : this.y)
   }
+
+  xy(): { x: number; y: number } {
+    return { x: this.x, y: this.y }
+  }
 }
 
 Vec2.Zero = new Vec2(0, 0)

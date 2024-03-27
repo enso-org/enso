@@ -1,4 +1,4 @@
-import { assert } from '@/util/assert'
+import { assert, assertDefined } from '@/util/assert'
 import { Ast } from '@/util/ast'
 import {
   MutableModule,
@@ -992,4 +992,24 @@ test.each([
     subject: subject.code(),
     accesses: accessChain.map((ast) => ast.rhs.code()),
   }).toEqual(expected)
+})
+
+test('Vector modifications', () => {
+  const vector = Ast.Vector.tryParse('[1, 2]')
+  expect(vector).toBeDefined()
+  assertDefined(vector)
+  vector.push(Ast.parse('"Foo"', vector.module))
+  expect(vector.code()).toBe('[1, 2, "Foo"]')
+  vector.keep((ast) => ast instanceof Ast.NumericLiteral)
+  expect(vector.code()).toBe('[1, 2]')
+  vector.push(Ast.parse('3', vector.module))
+  expect(vector.code()).toBe('[1, 2, 3]')
+  vector.keep((ast) => ast.code() !== '4')
+  expect(vector.code()).toBe('[1, 2, 3]')
+  vector.keep((ast) => ast.code() !== '2')
+  expect(vector.code()).toBe('[1, 3]')
+  vector.keep((ast) => ast.code() !== '1')
+  expect(vector.code()).toBe('[3]')
+  vector.keep(() => false)
+  expect(vector.code()).toBe('[]')
 })

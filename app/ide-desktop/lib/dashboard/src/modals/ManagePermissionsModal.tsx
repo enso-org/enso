@@ -10,6 +10,7 @@ import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 import * as authProvider from '#/providers/AuthProvider'
 import * as backendProvider from '#/providers/BackendProvider'
 import * as modalProvider from '#/providers/ModalProvider'
+import * as textProvider from '#/providers/TextProvider'
 
 import Autocomplete from '#/components/Autocomplete'
 import PermissionSelector from '#/components/dashboard/PermissionSelector'
@@ -59,6 +60,7 @@ export default function ManagePermissionsModal<
   const { backend } = backendProvider.useBackend()
   const { unsetModal } = modalProvider.useSetModal()
   const toastAndLog = toastAndLogHooks.useToastAndLog()
+  const { getText } = textProvider.useText()
   const [permissions, setPermissions] = React.useState(item.permissions ?? [])
   const [users, setUsers] = React.useState<backendModule.SimpleUser[]>([])
   const [email, setEmail] = React.useState<string | null>(null)
@@ -143,10 +145,10 @@ export default function ManagePermissionsModal<
               organizationId: user.id,
               userEmail: backendModule.EmailAddress(email),
             })
-            toast.toast.success(`You've invited '${email}' to join Enso!`)
+            toast.toast.success(getText('inviteSuccess', email))
           }
         } catch (error) {
-          toastAndLog(`Could not invite user '${email}'`, error)
+          toastAndLog('couldNotInviteUser', error, email ?? '(unknown)')
         }
       } else {
         setUsers([])
@@ -192,7 +194,7 @@ export default function ManagePermissionsModal<
           const usernames = addedUsersPermissions.map(
             userPermissions => userPermissions.user.user_name
           )
-          toastAndLog(`Could not set permissions for ${usernames.join(', ')}`, error)
+          toastAndLog('setPermissionsError', error, usernames.join("', '"))
         }
       }
     }
@@ -221,7 +223,7 @@ export default function ManagePermissionsModal<
               [...oldPermissions, oldPermission].sort(backendModule.compareUserPermissions)
             )
           }
-          toastAndLog(`Could not set permissions of '${userToDelete.user_email}'`, error)
+          toastAndLog('setPermissionsError', error, userToDelete.user_email)
         }
       }
     }
@@ -257,7 +259,7 @@ export default function ManagePermissionsModal<
         >
           <div className="relative flex flex-col gap-modal rounded-default p-modal">
             <div className="flex h-row items-center gap-modal-tabs px-modal-tab-bar-x">
-              <h2 className="text text-sm font-bold">Invite</h2>
+              <h2 className="text text-sm font-bold">{getText('invite')}</h2>
               {/* Space reserved for other tabs. */}
             </div>
             <form
@@ -284,14 +286,14 @@ export default function ManagePermissionsModal<
                     placeholder={
                       // `listedUsers` will always include the current user.
                       listedUsers?.length !== 1
-                        ? 'Type usernames or emails to search or invite'
-                        : 'Enter an email to invite someone'
+                        ? getText('inviteUserPlaceholder')
+                        : getText('inviteFirstUserPlaceholder')
                     }
                     type="text"
                     itemsToString={items =>
                       items.length === 1 && items[0] != null
                         ? items[0].email
-                        : `${items.length} users selected`
+                        : getText('xUsersSelected', items.length)
                     }
                     values={users}
                     setValues={setUsers}

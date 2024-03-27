@@ -14,3 +14,6 @@ derivative = { workspace = true }
 [dev-dependencies]
 serde = { workspace = true }
 enso-reflect = { path = "../../reflect" }
+
+[lints]
+workspace = true

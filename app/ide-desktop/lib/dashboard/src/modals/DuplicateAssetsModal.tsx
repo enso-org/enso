@@ -2,6 +2,7 @@
 import * as React from 'react'
 
 import * as modalProvider from '#/providers/ModalProvider'
+import * as textProvider from '#/providers/TextProvider'
 
 import type * as assetEvent from '#/events/assetEvent'
 import AssetEventType from '#/events/AssetEventType'
@@ -18,24 +19,6 @@ import * as backendModule from '#/services/Backend'
 
 import * as fileInfo from '#/utilities/fileInfo'
 import * as object from '#/utilities/object'
-import * as string from '#/utilities/string'
-
-// =================
-// === Constants ===
-// =================
-
-// This is a function, even though it does not look like one.
-// eslint-disable-next-line no-restricted-syntax
-const pluralizeFile = string.makePluralize('file', 'files')
-// This is a function, even though it does not look like one.
-// eslint-disable-next-line no-restricted-syntax
-const pluralizeProject = string.makePluralize('project', 'projects')
-// This is a function, even though it does not look like one.
-// eslint-disable-next-line no-restricted-syntax
-const pluralizeFileUppercase = string.makePluralize('File', 'Files')
-// This is a function, even though it does not look like one.
-// eslint-disable-next-line no-restricted-syntax
-const pluralizeProjectUppercase = string.makePluralize('Project', 'Projects')
 
 // =============
 // === Types ===
@@ -67,7 +50,8 @@ export interface DuplicateAssetsModalProps {
   readonly dispatchAssetListEvent: (assetListEvent: assetListEvent.AssetListEvent) => void
   readonly siblingFileNames: Iterable<string>
   readonly siblingProjectNames: Iterable<string>
-  readonly nonConflictingCount: number
+  readonly nonConflictingFileCount: number
+  readonly nonConflictingProjectCount: number
   readonly doUploadNonConflicting: () => void
 }
 
@@ -78,8 +62,9 @@ export default function DuplicateAssetsModal(props: DuplicateAssetsModalProps) {
   const { dispatchAssetEvent, dispatchAssetListEvent } = props
   const { siblingFileNames: siblingFileNamesRaw } = props
   const { siblingProjectNames: siblingProjectNamesRaw } = props
-  const { nonConflictingCount, doUploadNonConflicting } = props
+  const { nonConflictingFileCount, nonConflictingProjectCount, doUploadNonConflicting } = props
   const { unsetModal } = modalProvider.useSetModal()
+  const { getText } = textProvider.useText()
   const [conflictingFiles, setConflictingFiles] = React.useState(conflictingFilesRaw)
   const [conflictingProjects, setConflictingProjects] = React.useState(conflictingProjectsRaw)
   const [didUploadNonConflicting, setDidUploadNonConflicting] = React.useState(false)
@@ -87,34 +72,8 @@ export default function DuplicateAssetsModal(props: DuplicateAssetsModalProps) {
   const siblingProjectNames = React.useRef(new Set<string>())
   const count = conflictingFiles.length + conflictingProjects.length
   const firstConflict = conflictingFiles[0] ?? conflictingProjects[0]
-  let firstConflictTypeName: string
-  switch (firstConflict?.new.type) {
-    case backendModule.AssetType.file: {
-      firstConflictTypeName = 'File'
-      break
-    }
-    case backendModule.AssetType.project: {
-      firstConflictTypeName = 'Project'
-      break
-    }
-    // eslint-disable-next-line no-restricted-syntax
-    case undefined: {
-      // This variable does not matter as it should not be used.
-      firstConflictTypeName = 'Unknown Asset'
-    }
-  }
   const otherFilesCount = Math.max(0, conflictingFiles.length - 1)
-  const otherFilesText =
-    otherFilesCount === 0 ? '' : `and ${otherFilesCount} other ${pluralizeFile(otherFilesCount)}`
   const otherProjectsCount = conflictingProjects.length - (conflictingFiles.length > 0 ? 0 : 1)
-  const otherProjectsText =
-    otherProjectsCount === 0
-      ? ''
-      : `and ${otherProjectsCount}${conflictingFiles.length > 0 ? '' : ' other'} ${pluralizeProject(
-          otherProjectsCount
-        )}`
-  const filesTextUppercase = pluralizeFileUppercase(conflictingFiles.length)
-  const projectsTextUppercase = pluralizeProjectUppercase(conflictingProjects.length)
 
   React.useEffect(() => {
     for (const name of siblingFileNamesRaw) {
@@ -211,40 +170,50 @@ export default function DuplicateAssetsModal(props: DuplicateAssetsModalProps) {
           event.preventDefault()
         }}
       >
-        <aria.Heading className="relative text-sm font-semibold">
-          Duplicate{' '}
+        <aria.Heading level={2} className="relative text-sm font-semibold">
           {conflictingFiles.length > 0
             ? conflictingProjects.length > 0
-              ? `${filesTextUppercase} and ${projectsTextUppercase}`
-              : filesTextUppercase
-            : projectsTextUppercase}{' '}
-          Found
+              ? getText('duplicateFilesAndProjectsFound')
+              : getText('duplicateFilesFound')
+            : getText('duplicateProjectsFound')}
         </aria.Heading>
-        {nonConflictingCount > 0 && (
-          <div className="relative flex flex-col">
-            <aria.Text className="text">
-              {nonConflictingCount} {pluralizeFile(nonConflictingCount)} without conflicts
-            </aria.Text>
-            <UnstyledButton
-              isDisabled={didUploadNonConflicting}
-              className="button relative self-start rounded-full bg-selected-frame selectable enabled:active"
-              onPress={() => {
-                doUploadNonConflicting()
-                setDidUploadNonConflicting(true)
-              }}
-            >
-              {didUploadNonConflicting ? 'Uploaded' : 'Upload'}
-            </UnstyledButton>
-          </div>
-        )}
+        {nonConflictingFileCount > 0 ||
+          (nonConflictingProjectCount > 0 && (
+            <div className="relative flex flex-col">
+              {nonConflictingFileCount > 0 && (
+                <aria.Text className="text">
+                  {nonConflictingFileCount === 1
+                    ? getText('fileWithoutConflicts')
+                    : getText('filesWithoutConflicts', nonConflictingFileCount)}
+                </aria.Text>
+              )}
+              {nonConflictingProjectCount > 0 && (
+                <aria.Text className="text">
+                  {nonConflictingProjectCount === 1
+                    ? getText('projectWithoutConflicts')
+                    : getText('projectsWithoutConflicts', nonConflictingFileCount)}
+                </aria.Text>
+              )}
+              <UnstyledButton
+                isDisabled={didUploadNonConflicting}
+                className="button relative self-start rounded-full bg-selected-frame selectable enabled:active"
+                onPress={() => {
+                  doUploadNonConflicting()
+                  setDidUploadNonConflicting(true)
+                }}
+              >
+                {didUploadNonConflicting ? getText('uploaded') : getText('upload')}
+              </UnstyledButton>
+            </div>
+          ))}
         {firstConflict && (
           <>
             <div className="flex flex-col">
-              <span className="relative">Current:</span>
+              <aria.Text className="relative">{getText('currentColon')}</aria.Text>
               <AssetSummary asset={firstConflict.current} className="relative" />
             </div>
             <div className="flex flex-col">
-              <span className="relative">New:</span>
+              <aria.Text className="relative">{getText('newColon')}</aria.Text>
               <AssetSummary
                 new
                 newName={backendModule.stripProjectExtension(findNewName(firstConflict, false))}
@@ -270,7 +239,7 @@ export default function DuplicateAssetsModal(props: DuplicateAssetsModalProps) {
                     }
                   }}
                 >
-                  Update
+                  {getText('update')}
                 </UnstyledButton>
                 <UnstyledButton
                   className="button  bg-selected-frame active"
@@ -288,14 +257,27 @@ export default function DuplicateAssetsModal(props: DuplicateAssetsModalProps) {
                     }
                   }}
                 >
-                  Rename New {firstConflictTypeName}
+                  {firstConflict.new.type === backendModule.AssetType.file
+                    ? getText('renameNewFile')
+                    : getText('renameNewProject')}
                 </UnstyledButton>
               </ButtonRow>
             )}
           </>
         )}
-        {(otherFilesText !== '' || otherProjectsText !== '' || nonConflictingCount > 0) && (
-          <span className="relative">{[otherFilesText, otherProjectsText].join(' ')}</span>
+        {otherFilesCount > 0 && (
+          <aria.Text className="relative">
+            {otherFilesCount === 1
+              ? getText('andOtherFile')
+              : getText('andOtherFiles', otherFilesCount)}
+          </aria.Text>
+        )}
+        {otherProjectsCount > 0 && (
+          <aria.Text className="relative">
+            {otherProjectsCount === 1
+              ? getText('andOtherProject')
+              : getText('andOtherProjects', otherProjectsCount)}
+          </aria.Text>
         )}
         <ButtonRow>
           <UnstyledButton
@@ -306,7 +288,7 @@ export default function DuplicateAssetsModal(props: DuplicateAssetsModalProps) {
               doUpdate([...conflictingFiles, ...conflictingProjects])
             }}
           >
-            {count === 1 ? 'Update' : 'Update All'}
+            {count === 1 ? getText('update') : getText('updateAll')}
           </UnstyledButton>
           <UnstyledButton
             className="button bg-invite text-white active"
@@ -317,11 +299,15 @@ export default function DuplicateAssetsModal(props: DuplicateAssetsModalProps) {
             }}
           >
             {count === 1
-              ? `Rename New ${firstConflictTypeName}`
-              : `Rename New ${firstConflictTypeName}s`}
+              ? firstConflict?.new.type === backendModule.AssetType.file
+                ? getText('renameNewFile')
+                : getText('renameNewProject')
+              : firstConflict?.new.type === backendModule.AssetType.file
+                ? getText('renameNewFiles')
+                : getText('renameNewProjects')}
           </UnstyledButton>
           <UnstyledButton className="button bg-selected-frame active" onPress={unsetModal}>
-            Cancel
+            {getText('cancel')}
           </UnstyledButton>
         </ButtonRow>
       </form>

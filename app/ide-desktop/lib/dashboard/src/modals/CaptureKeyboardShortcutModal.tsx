@@ -4,7 +4,9 @@ import * as React from 'react'
 import * as detect from 'enso-common/src/detect'
 
 import * as modalProvider from '#/providers/ModalProvider'
+import * as textProvider from '#/providers/TextProvider'
 
+import * as aria from '#/components/aria'
 import KeyboardShortcut from '#/components/dashboard/KeyboardShortcut'
 import Modal from '#/components/Modal'
 import ButtonRow from '#/components/styled/ButtonRow'
@@ -52,6 +54,7 @@ export interface CaptureKeyboardShortcutModalProps {
 export default function CaptureKeyboardShortcutModal(props: CaptureKeyboardShortcutModalProps) {
   const { description, existingShortcuts, onSubmit } = props
   const { unsetModal } = modalProvider.useSetModal()
+  const { getText } = textProvider.useText()
   const [key, setKey] = React.useState<string | null>(null)
   const [modifiers, setModifiers] = React.useState<string>('')
   const shortcut = key == null ? modifiers : modifiers === '' ? key : `${modifiers}+${key}`
@@ -102,21 +105,21 @@ export default function CaptureKeyboardShortcutModal(props: CaptureKeyboardShort
           }
         }}
       >
-        <div className="relative">Enter the new keyboard shortcut for {description}.</div>
+        <div className="relative">{getText('enterTheNewKeyboardShortcutFor', description)}</div>
         <div
           className={`relative flex scale-150 items-center justify-center ${
             doesAlreadyExist ? 'text-red-600' : ''
           }`}
         >
           {shortcut === '' ? (
-            <span className="text text-primary/30">No shortcut entered</span>
+            <aria.Text className="text text-primary/30">{getText('noShortcutEntered')}</aria.Text>
           ) : (
             <KeyboardShortcut shortcut={shortcut} />
           )}
         </div>
-        <span className="relative text-red-600">
+        <aria.Text className="relative text-red-600">
           {doesAlreadyExist ? 'This shortcut already exists.' : ''}
-        </span>
+        </aria.Text>
         <ButtonRow>
           <UnstyledButton
             isDisabled={!canSubmit}
@@ -126,10 +129,10 @@ export default function CaptureKeyboardShortcutModal(props: CaptureKeyboardShort
               onSubmit(shortcut)
             }}
           >
-            Confirm
+            {getText('confirm')}
           </UnstyledButton>
           <UnstyledButton className="button bg-selected-frame active" onPress={unsetModal}>
-            Cancel
+            {getText('cancel')}
           </UnstyledButton>
         </ButtonRow>
       </form>

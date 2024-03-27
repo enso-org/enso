@@ -4,6 +4,7 @@ import * as React from 'react'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
 import * as modalProvider from '#/providers/ModalProvider'
+import * as textProvider from '#/providers/TextProvider'
 
 import * as aria from '#/components/aria'
 import Modal from '#/components/Modal'
@@ -22,8 +23,9 @@ export interface ConfirmDeleteUserModalProps {
 /** A modal for confirming the deletion of a user. */
 export default function ConfirmDeleteUserModal(props: ConfirmDeleteUserModalProps) {
   const { doDelete } = props
-  const toastAndLog = toastAndLogHooks.useToastAndLog()
   const { unsetModal } = modalProvider.useSetModal()
+  const { getText } = textProvider.useText()
+  const toastAndLog = toastAndLogHooks.useToastAndLog()
 
   const doSubmit = async () => {
     unsetModal()
@@ -56,20 +58,18 @@ export default function ConfirmDeleteUserModal(props: ConfirmDeleteUserModalProp
           void doSubmit()
         }}
       >
-        <h3 className="py-heading relative h-heading text-xl font-bold">Are you sure?</h3>
-        <span className="relative">Once deleted, this user account will be gone forever.</span>
-        <div>
-          <ButtonRow>
-            <UnstyledButton
-              className="button relative bg-danger text-inversed active"
-              onPress={doSubmit}
-            >
-              <aria.Text className="text">
-                I confirm that I want to delete this user account.
-              </aria.Text>
-            </UnstyledButton>
-          </ButtonRow>
-        </div>
+        <aria.Heading className="py-heading relative h-heading text-xl font-bold">
+          {getText('areYouSure')}
+        </aria.Heading>
+        <aria.Text className="relative">{getText('confirmDeleteUserAccountWarning')}</aria.Text>
+        <ButtonRow position="center">
+          <UnstyledButton
+            className="button relative bg-danger text-inversed active"
+            onPress={doSubmit}
+          >
+            <aria.Text className="text">{getText('confirmDeleteUserAccountButtonLabel')}</aria.Text>
+          </UnstyledButton>
+        </ButtonRow>
       </form>
     </Modal>
   )

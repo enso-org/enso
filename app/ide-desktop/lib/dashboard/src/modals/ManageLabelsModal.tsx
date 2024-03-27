@@ -5,6 +5,7 @@ import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
 import * as backendProvider from '#/providers/BackendProvider'
 import * as modalProvider from '#/providers/ModalProvider'
+import * as textProvider from '#/providers/TextProvider'
 
 import * as aria from '#/components/aria'
 import ColorPicker from '#/components/ColorPicker'
@@ -42,6 +43,7 @@ export default function ManageLabelsModal<
   const { item, setItem, allLabels, doCreateLabel, eventTarget } = props
   const { backend } = backendProvider.useBackend()
   const { unsetModal } = modalProvider.useSetModal()
+  const { getText } = textProvider.useText()
   const toastAndLog = toastAndLogHooks.useToastAndLog()
   const [labels, setLabelsRaw] = React.useState(item.labels ?? [])
   const [query, setQuery] = React.useState('')
@@ -142,8 +144,11 @@ export default function ManageLabelsModal<
             void doSubmit()
           }}
         >
-          <aria.Heading className="flex h-row items-center gap-modal-tabs px-modal-tab-bar-x">
-            <aria.Text className="text text-sm font-bold">Labels</aria.Text>
+          <aria.Heading
+            level={2}
+            className="flex h-row items-center gap-modal-tabs px-modal-tab-bar-x"
+          >
+            <aria.Text className="text text-sm font-bold">{getText('labels')}</aria.Text>
           </aria.Heading>
           <div className="flex gap-input-with-button">
             <div
@@ -165,7 +170,7 @@ export default function ManageLabelsModal<
                 autoFocus
                 type="text"
                 size={1}
-                placeholder="Type labels to search"
+                placeholder={getText('labelSearchPlaceholder')}
                 className="text grow bg-transparent"
                 onChange={event => {
                   setQuery(event.currentTarget.value)
@@ -177,7 +182,9 @@ export default function ManageLabelsModal<
               className="button bg-invite px-button-x text-tag-text enabled:active"
               onPress={doSubmit}
             >
-              <aria.Text className="h-text py-modal-invite-button-text-y">Create</aria.Text>
+              <aria.Text className="h-text py-modal-invite-button-text-y">
+                {getText('create')}
+              </aria.Text>
             </UnstyledButton>
           </div>
           {canSelectColor && (

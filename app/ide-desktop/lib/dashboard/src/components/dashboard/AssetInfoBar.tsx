@@ -4,6 +4,7 @@ import * as React from 'react'
 import SettingsIcon from 'enso-assets/settings.svg'
 
 import * as backendProvider from '#/providers/BackendProvider'
+import * as textProvider from '#/providers/TextProvider'
 
 import Button from '#/components/styled/Button'
 import FocusArea from '#/components/styled/FocusArea'
@@ -25,6 +26,7 @@ export interface AssetInfoBarProps {
 export default function AssetInfoBar(props: AssetInfoBarProps) {
   const { invisible = false, isAssetPanelEnabled, setIsAssetPanelEnabled } = props
   const { backend } = backendProvider.useBackend()
+  const { getText } = textProvider.useText()
 
   return (
     <FocusArea active={!invisible} direction="horizontal">
@@ -37,9 +39,10 @@ export default function AssetInfoBar(props: AssetInfoBarProps) {
           {...innerProps}
         >
           <Button
-            alt={isAssetPanelEnabled ? 'Close Asset Panel' : 'Open Asset Panel'}
+            alt={isAssetPanelEnabled ? getText('closeAssetPanel') : getText('openAssetPanel')}
             active={isAssetPanelEnabled}
             image={SettingsIcon}
+            error={getText('multipleAssetsSettingsError')}
             onPress={() => {
               setIsAssetPanelEnabled(visible => !visible)
             }}

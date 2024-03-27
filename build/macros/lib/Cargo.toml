@@ -15,3 +15,6 @@ regex = { workspace = true }
 serde_yaml = { workspace = true }
 syn_1 = { workspace = true }
 derive_more = { workspace = true }
+
+[lints]
+workspace = true

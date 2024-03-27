@@ -4,6 +4,7 @@ import * as React from 'react'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
 import * as modalProvider from '#/providers/ModalProvider'
+import * as textProvider from '#/providers/TextProvider'
 
 import * as aria from '#/components/aria'
 import Modal from '#/components/Modal'
@@ -28,6 +29,7 @@ export default function UpsertSecretModal(props: UpsertSecretModalProps) {
   const { id, name: nameRaw, doCreate } = props
   const toastAndLog = toastAndLogHooks.useToastAndLog()
   const { unsetModal } = modalProvider.useSetModal()
+  const { getText } = textProvider.useText()
 
   const [name, setName] = React.useState(nameRaw ?? '')
   const [value, setValue] = React.useState('')
@@ -63,45 +65,43 @@ export default function UpsertSecretModal(props: UpsertSecretModalProps) {
           doSubmit()
         }}
       >
-        <aria.Heading className="relative text-sm font-semibold">
-          {isCreatingSecret ? 'New Secret' : 'Edit Secret'}
-        </aria.Heading>
-        <aria.TextField className="relative flex h-row items-center">
-          <aria.Label className="text w-modal-label">Name</aria.Label>
-          <aria.Input
+        <h1 className="relative text-sm font-semibold">
+          {isCreatingSecret ? getText('newSecret') : getText('editSecret')}
+        </h1>
+        <label className="relative flex h-row items-center">
+          <div className="text w-modal-label">{getText('name')}</div>
+          <input
             autoFocus
             disabled={!isNameEditable}
-            placeholder="Enter the name of the secret"
+            placeholder={getText('secretNamePlaceholder')}
             className="text grow rounded-full border border-primary/10 bg-transparent px-input-x selectable enabled:active"
             value={name}
             onInput={event => {
               setName(event.currentTarget.value)
             }}
           />
-        </aria.TextField>
-        <aria.TextField className="relative flex h-row items-center">
-          <aria.Label className="text w-modal-label">Value</aria.Label>
-          <aria.Input
+        </label>
+        <label className="relative flex h-row items-center">
+          <div className="text w-modal-label">{getText('value')}</div>
+          <input
             autoFocus={!isNameEditable}
-            placeholder={isNameEditable ? 'Enter the value of the secret' : '●●●●●●●●'}
+            placeholder={
+              isNameEditable ? getText('secretValuePlaceholder') : getText('secretValueHidden')
+            }
             className="text grow rounded-full border border-primary/10 bg-transparent px-input-x"
             onInput={event => {
               setValue(event.currentTarget.value)
             }}
           />
-        </aria.TextField>
-        <ButtonRow>
-          <UnstyledButton
-            isDisabled={!canSubmit}
-            className="button bg-invite text-white"
-            onPress={doSubmit}
-          >
-            {isCreatingSecret ? 'Create' : 'Update'}
-          </UnstyledButton>
-          <UnstyledButton className="button bg-selected-frame" onPress={unsetModal}>
-            Cancel
-          </UnstyledButton>
-        </ButtonRow>
+        </label>
+        <div className="relative flex gap-buttons">
+          <button disabled={!canSubmit} type="submit" className="button bg-invite text-white">
+            {isCreatingSecret ? getText('create') : getText('update')}
+          </button>
+          <button type="button" className="button bg-selected-frame" onClick={unsetModal}>
+            {getText('cancel')}
+          </button>
+        </div>
       </form>
     </Modal>
   )

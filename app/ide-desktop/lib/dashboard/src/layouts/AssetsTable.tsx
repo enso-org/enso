@@ -13,6 +13,7 @@ import * as inputBindingsProvider from '#/providers/InputBindingsProvider'
 import * as localStorageProvider from '#/providers/LocalStorageProvider'
 import * as modalProvider from '#/providers/ModalProvider'
 import * as navigator2DProvider from '#/providers/Navigator2DProvider'
+import * as textProvider from '#/providers/TextProvider'
 
 import type * as assetEvent from '#/events/assetEvent'
 import AssetEventType from '#/events/AssetEventType'
@@ -24,6 +25,7 @@ import type * as assetSearchBar from '#/layouts/AssetSearchBar'
 import AssetsTableContextMenu from '#/layouts/AssetsTableContextMenu'
 import Category from '#/layouts/CategorySwitcher/Category'
 
+import * as aria from '#/components/aria'
 import type * as assetRow from '#/components/dashboard/AssetRow'
 import AssetRow from '#/components/dashboard/AssetRow'
 import * as assetRowUtils from '#/components/dashboard/AssetRow/assetRowUtils'
@@ -105,19 +107,6 @@ const LOADING_SPINNER_SIZE_PX = 36
 const COLUMNS_SELECTOR_BASE_WIDTH_PX = 4
 /** The number of pixels the header bar should shrink per collapsed column. */
 const COLUMNS_SELECTOR_ICON_WIDTH_PX = 28
-/** The default placeholder row. */
-const PLACEHOLDER = (
-  <span className="px-cell-x placeholder">
-    You have no files. Go ahead and create one using the buttons above, or open a template from the
-    home screen.
-  </span>
-)
-/** A placeholder row for when a query (text or labels) is active. */
-const QUERY_PLACEHOLDER = (
-  <span className="px-cell-x placeholder">No files match the current filters.</span>
-)
-/** The placeholder row for the Trash category. */
-const TRASH_PLACEHOLDER = <span className="px-cell-x placeholder">Your trash is empty.</span>
 
 const SUGGESTIONS_FOR_NO: assetSearchBar.Suggestion[] = [
   {
@@ -387,6 +376,7 @@ export default function AssetsTable(props: AssetsTableProps) {
   const { backend } = backendProvider.useBackend()
   const { setModal, unsetModal } = modalProvider.useSetModal()
   const { localStorage } = localStorageProvider.useLocalStorage()
+  const { getText } = textProvider.useText()
   const inputBindings = inputBindingsProvider.useInputBindings()
   const navigator2D = navigator2DProvider.useNavigator2D()
   const toastAndLog = toastAndLogHooks.useToastAndLog()
@@ -418,12 +408,6 @@ export default function AssetsTable(props: AssetsTableProps) {
     )
   })
   const isCloud = backend.type === backendModule.BackendType.remote
-  const placeholder =
-    category === Category.trash
-      ? TRASH_PLACEHOLDER
-      : query.query !== ''
-        ? QUERY_PLACEHOLDER
-        : PLACEHOLDER
   /** Events sent when the asset list was still loading. */
   const queuedAssetListEventsRef = React.useRef<assetListEvent.AssetListEvent[]>([])
   const rootRef = React.useRef<HTMLDivElement | null>(null)
@@ -852,7 +836,7 @@ export default function AssetsTable(props: AssetsTableProps) {
           })
         })
       } else if (initialProjectName != null) {
-        toastAndLog(`Could not find project '${initialProjectName}'`)
+        toastAndLog('findProjectError', null, initialProjectName)
       }
     }
     // This effect MUST only run when `initialProjectName` is changed.
@@ -926,7 +910,7 @@ export default function AssetsTable(props: AssetsTableProps) {
               })
             })
           } else {
-            toastAndLog(`Could not find project '${oldNameOfProjectToImmediatelyOpen}'`)
+            toastAndLog('findProjectError', null, oldNameOfProjectToImmediatelyOpen)
           }
         }
         setQueuedAssetEvents(oldQueuedAssetEvents => {
@@ -944,9 +928,9 @@ export default function AssetsTable(props: AssetsTableProps) {
     },
     [
       rootDirectoryId,
+      toastAndLog,
       /* should never change */ setNameOfProjectToImmediatelyOpen,
       /* should never change */ dispatchAssetEvent,
-      /* should never change */ toastAndLog,
     ]
   )
 
@@ -971,7 +955,9 @@ export default function AssetsTable(props: AssetsTableProps) {
               recentProjects: category === Category.recent,
               labels: null,
             },
-            null
+            // The root directory has no name. This is also SAFE, as there is a different error
+            // message when the directory is the root directory (when `parentId == null`).
+            '(root)'
           )
           if (!signal.aborted) {
             setIsLoading(false)
@@ -1030,7 +1016,7 @@ export default function AssetsTable(props: AssetsTableProps) {
                       return newTree
                     })
                   },
-                  error => {
+                  (error: unknown) => {
                     toastAndLog(null, error)
                   }
                 )
@@ -1044,7 +1030,9 @@ export default function AssetsTable(props: AssetsTableProps) {
                 recentProjects: category === Category.recent,
                 labels: null,
               },
-              null
+              // The root directory has no name. This is also SAFE, as there is a different error
+              // message when the directory is the root directory (when `parentId == null`).
+              '(root)'
             )
             if (!signal.aborted) {
               setIsLoading(false)
@@ -1175,7 +1163,7 @@ export default function AssetsTable(props: AssetsTableProps) {
               recentProjects: category === Category.recent,
               labels: null,
             },
-            title ?? null
+            title ?? nodeMapRef.current.get(key)?.item.title ?? '(unknown)'
           )
           if (!abortController.signal.aborted) {
             setAssetTree(oldAssetTree =>
@@ -1673,12 +1661,8 @@ export default function AssetsTable(props: AssetsTableProps) {
               dispatchAssetListEvent={dispatchAssetListEvent}
               siblingFileNames={siblingFilesByName.keys()}
               siblingProjectNames={siblingProjectsByName.keys()}
-              nonConflictingCount={
-                files.length +
-                projects.length -
-                conflictingFiles.length -
-                conflictingProjects.length
-              }
+              nonConflictingFileCount={files.length - conflictingFiles.length}
+              nonConflictingProjectCount={projects.length - conflictingProjects.length}
               doUploadNonConflicting={() => {
                 doToggleDirectoryExpansion(event.parentId, event.parentKey, null, true)
                 const fileMap = new Map<backendModule.AssetId, File>()
@@ -1801,7 +1785,7 @@ export default function AssetsTable(props: AssetsTableProps) {
       }
       case AssetListEventType.emptyTrash: {
         if (category !== Category.trash) {
-          toastAndLog('Can only empty trash when in Trash')
+          toastAndLog('canOnlyEmptyTrashWhenInTrash')
         } else if (assetTree.children != null) {
           const ids = new Set(assetTree.children.map(child => child.item.id))
           // This is required to prevent an infinite loop,
@@ -2486,7 +2470,17 @@ export default function AssetsTable(props: AssetsTableProps) {
           {itemRows}
           <tr className="hidden h-row first:table-row">
             <td colSpan={columns.length} className="bg-transparent">
-              {placeholder}
+              {category === Category.trash ? (
+                <aria.Text className="px-cell-x placeholder">
+                  {getText('yourTrashIsEmpty')}
+                </aria.Text>
+              ) : query.query !== '' ? (
+                <aria.Text className="px-cell-x placeholder">
+                  {getText('noFilesMatchTheCurrentFilters')}
+                </aria.Text>
+              ) : (
+                <aria.Text className="px-cell-x placeholder">{getText('youHaveNoFiles')}</aria.Text>
+              )}
             </td>
           </tr>
         </tbody>
@@ -2567,9 +2561,7 @@ export default function AssetsTable(props: AssetsTableProps) {
                             key={column}
                             active
                             image={columnUtils.COLUMN_ICONS[column]}
-                            alt={`${enabledColumns.has(column) ? 'Show' : 'Hide'} ${
-                              columnUtils.COLUMN_NAME[column]
-                            }`}
+                            alt={getText(columnUtils.COLUMN_SHOW_TEXT_ID[column])}
                             onPress={() => {
                               const newExtraColumns = new Set(enabledColumns)
                               if (enabledColumns.has(column)) {

@@ -4,7 +4,9 @@ import * as React from 'react'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
 import * as modalProvider from '#/providers/ModalProvider'
+import * as textProvider from '#/providers/TextProvider'
 
+import * as aria from '#/components/aria'
 import Modal from '#/components/Modal'
 import ButtonRow from '#/components/styled/ButtonRow'
 import UnstyledButton from '#/components/styled/UnstyledButton'
@@ -25,8 +27,9 @@ export interface ConfirmDeleteModalProps {
 /** A modal for confirming the deletion of an asset. */
 export default function ConfirmDeleteModal(props: ConfirmDeleteModalProps) {
   const { actionText, actionButtonLabel = 'Delete', doDelete } = props
-  const toastAndLog = toastAndLogHooks.useToastAndLog()
+  const { getText } = textProvider.useText()
   const { unsetModal } = modalProvider.useSetModal()
+  const toastAndLog = toastAndLogHooks.useToastAndLog()
 
   const doSubmit = () => {
     unsetModal()
@@ -59,7 +62,7 @@ export default function ConfirmDeleteModal(props: ConfirmDeleteModalProps) {
           doSubmit()
         }}
       >
-        <div className="relative">Are you sure you want to {actionText}?</div>
+        <aria.Text className="relative">{getText('confirmPrompt', actionText)}</aria.Text>
         <ButtonRow>
           <UnstyledButton className="button bg-delete text-white active" onPress={doSubmit}>
             {actionButtonLabel}
@@ -69,7 +72,7 @@ export default function ConfirmDeleteModal(props: ConfirmDeleteModalProps) {
             className="button bg-selected-frame active"
             onPress={unsetModal}
           >
-            Cancel
+            {getText('cancel')}
           </UnstyledButton>
         </ButtonRow>
       </form>

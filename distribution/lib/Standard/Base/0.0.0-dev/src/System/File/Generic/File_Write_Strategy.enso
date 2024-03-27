@@ -2,6 +2,7 @@ import project.Error.Error
 import project.Errors.File_Error.File_Error
 import project.Panic.Panic
 import project.Runtime.Context
+import project.System.File.Data_Link_Access.Data_Link_Access
 import project.System.File.Existing_File_Behavior.Existing_File_Behavior
 import project.System.File.File
 import project.System.File.File_Access.File_Access
@@ -137,7 +138,8 @@ dry_run_behavior file behavior:Existing_File_Behavior -> Dry_Run_File_Settings =
    Generic `copy` implementation between two backends.
    The files only need to support `with_input_stream` and `with_output_stream`.
 generic_copy source destination replace_existing =
-    source.with_input_stream [File_Access.Read] input_stream->
-        options = if replace_existing then [File_Access.Write, File_Access.Create, File_Access.Truncate_Existing] else [File_Access.Write, File_Access.Create_New]
+    source.with_input_stream [File_Access.Read, Data_Link_Access.No_Follow] input_stream->
+        replace_options = if replace_existing then [File_Access.Create, File_Access.Truncate_Existing] else [File_Access.Create_New]
+        options = [File_Access.Write, Data_Link_Access.No_Follow] + replace_options
         destination.with_output_stream options output_stream->
             output_stream.write_stream input_stream . if_not_error destination

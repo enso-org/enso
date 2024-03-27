@@ -9,6 +9,8 @@ import ProjectIcon from 'enso-assets/project_icon.svg'
 import SpreadsheetsImage from 'enso-assets/spreadsheets.svg'
 import VisualizeImage from 'enso-assets/visualize.png'
 
+import * as textProvider from '#/providers/TextProvider'
+
 import * as aria from '#/components/aria'
 import Spinner, * as spinner from '#/components/Spinner'
 import FocusArea from '#/components/styled/FocusArea'
@@ -38,6 +40,8 @@ const DUMMY_LIKE_COUNT = 10
 /** Template metadata. */
 export interface Sample {
   readonly title: string
+  /** These should ideally be localized, however, as this is planned to be user-generated, it is
+   * unlikely that this will be feasible. */
   readonly description: string
   readonly id: string
   readonly background?: string
@@ -96,6 +100,7 @@ interface InternalBlankProjectTileProps {
 /** A button that, when clicked, creates and opens a new blank project. */
 function BlankProjectTile(props: InternalBlankProjectTileProps) {
   const { createProject } = props
+  const { getText } = textProvider.useText()
   const [spinnerState, setSpinnerState] = React.useState<spinner.SpinnerState | null>(null)
 
   const onPress = () => {
@@ -128,7 +133,7 @@ function BlankProjectTile(props: InternalBlankProjectTileProps) {
                   ) : (
                     <img src={ProjectIcon} />
                   )}
-                  <p className="text-sm font-semibold">New empty project</p>
+                  <p className="text-sm font-semibold">{getText('newEmptyProject')}</p>
                 </div>
               </div>
             </aria.Button>
@@ -157,6 +162,7 @@ interface InternalProjectTileProps {
 /** A button that, when clicked, creates and opens a new project based on a template. */
 function ProjectTile(props: InternalProjectTileProps) {
   const { sample, createProject } = props
+  const { getText } = textProvider.useText()
   const { id, title, description, background } = sample
   const [spinnerState, setSpinnerState] = React.useState<spinner.SpinnerState | null>(null)
   const author = DUMMY_AUTHOR
@@ -196,7 +202,7 @@ function ProjectTile(props: InternalProjectTileProps) {
                 }`}
               />
               <div className="w-full grow rounded-b-default bg-frame px-sample-description-x pb-sample-description-b pt-sample-description-t backdrop-blur">
-                <h2 className="text-header text-sm font-bold">{title}</h2>
+                <aria.Heading className="text-header text-sm font-bold">{title}</aria.Heading>
                 <div className="text-ellipsis text-xs leading-snug">{description}</div>
               </div>
               {spinnerState != null && (
@@ -214,17 +220,17 @@ function ProjectTile(props: InternalProjectTileProps) {
       <div className="flex h-sample-info justify-between px-sample-description-x text-primary opacity-70">
         <div className="flex gap-samples-icon-with-text">
           <SvgMask src={Logo} className="size-icon self-end" />
-          <span className="self-start font-bold leading-snug">{author}</span>
+          <aria.Text className="self-start font-bold leading-snug">{author}</aria.Text>
         </div>
         {/* Normally `flex` */}
         <div className="hidden gap-icons">
-          <div title="Views" className="flex gap-samples-icon-with-text">
-            <SvgMask alt="Views" src={OpenCountIcon} className="size-icon self-end" />
-            <span className="self-start font-bold leading-snug">{opens}</span>
+          <div title={getText('views')} className="flex gap-samples-icon-with-text">
+            <SvgMask alt={getText('views')} src={OpenCountIcon} className="size-icon self-end" />
+            <aria.Text className="self-start font-bold leading-snug">{opens}</aria.Text>
           </div>
-          <div title="Likes" className="flex gap-samples-icon-with-text">
-            <SvgMask alt="Likes" src={HeartIcon} className="size-icon self-end" />
-            <span className="self-start font-bold leading-snug">{likes}</span>
+          <div title={getText('likes')} className="flex gap-samples-icon-with-text">
+            <SvgMask alt={getText('likes')} src={HeartIcon} className="size-icon self-end" />
+            <aria.Text className="self-start font-bold leading-snug">{likes}</aria.Text>
           </div>
         </div>
       </div>
@@ -248,10 +254,13 @@ export interface SamplesProps {
 /** A list of sample projects. */
 export default function Samples(props: SamplesProps) {
   const { createProject } = props
+  const { getText } = textProvider.useText()
 
   return (
     <div data-testid="samples" className="flex flex-col gap-subheading px-home-section-x">
-      <h2 className="text-subheading">Sample and community projects</h2>
+      <aria.Heading level={2} className="text-subheading">
+        {getText('sampleAndCommunityProjects')}
+      </aria.Heading>
       <div className="grid grid-cols-fill-samples gap-samples">
         <BlankProjectTile createProject={createProject} />
         {SAMPLES.map(sample => (

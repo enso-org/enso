@@ -2,8 +2,10 @@
 import * as React from 'react'
 
 import SCHEMA from '#/data/dataLinkSchema.json' assert { type: 'json' }
+import * as dataLinkValidator from '#/data/dataLinkValidator'
 
 import * as modalProvider from '#/providers/ModalProvider'
+import * as textProvider from '#/providers/TextProvider'
 
 import * as aria from '#/components/aria'
 import DataLinkInput from '#/components/dashboard/DataLinkInput'
@@ -12,7 +14,6 @@ import ButtonRow from '#/components/styled/ButtonRow'
 import UnstyledButton from '#/components/styled/UnstyledButton'
 
 import * as jsonSchema from '#/utilities/jsonSchema'
-import * as validateDataLink from '#/utilities/validateDataLink'
 
 // =================
 // === Constants ===
@@ -35,9 +36,10 @@ export interface UpsertDataLinkModalProps {
 export default function UpsertDataLinkModal(props: UpsertDataLinkModalProps) {
   const { doCreate } = props
   const { unsetModal } = modalProvider.useSetModal()
+  const { getText } = textProvider.useText()
   const [name, setName] = React.useState('')
   const [value, setValue] = React.useState<NonNullable<unknown> | null>(INITIAL_DATA_LINK_VALUE)
-  const isValueSubmittable = React.useMemo(() => validateDataLink.validateDataLink(value), [value])
+  const isValueSubmittable = React.useMemo(() => dataLinkValidator.validateDataLink(value), [value])
   const isSubmittable = name !== '' && isValueSubmittable
 
   const doSubmit = () => {
@@ -62,15 +64,12 @@ export default function UpsertDataLinkModal(props: UpsertDataLinkModalProps) {
           doSubmit()
         }}
       >
-        <aria.Heading className="relative text-sm font-semibold">Create Data Link</aria.Heading>
-        <aria.TextField
-          className="relative flex items-center"
-          aria-errormessage="Must not be blank."
-        >
-          <aria.Label className="text w-modal-label">Name</aria.Label>
-          <aria.Input
+        <h1 className="relative text-sm font-semibold">{getText('createDataLink')}</h1>
+        <div className="relative flex items-center" title={getText('mustNotBeBlank')}>
+          <div className="text w-modal-label">{getText('name')}</div>
+          <input
             autoFocus
-            placeholder="Enter the name of the Data Link"
+            placeholder={getText('dataLinkNamePlaceholder')}
             className={`text grow rounded-full border bg-transparent px-input-x ${
               name !== '' ? 'border-primary/10' : 'border-red-700/60'
             }`}
@@ -79,22 +78,22 @@ export default function UpsertDataLinkModal(props: UpsertDataLinkModalProps) {
               setName(event.currentTarget.value)
             }}
           />
-        </aria.TextField>
+        </div>
         <div className="relative">
           <DataLinkInput dropdownTitle="Type" value={value} setValue={setValue} />
         </div>
-        <ButtonRow>
-          <UnstyledButton
+        <div>
+          <button
             isDisabled={!isSubmittable}
             className="button bg-invite text-white enabled:active"
             onPress={doSubmit}
           >
-            Create
-          </UnstyledButton>
-          <UnstyledButton className="button bg-selected-frame active" onPress={unsetModal}>
-            Cancel
-          </UnstyledButton>
-        </ButtonRow>
+            {getText('create')}
+          </button>
+          <button type="button" className="button bg-selected-frame active" onClick={unsetModal}>
+            {getText('cancel')}
+          </button>
+        </div>
       </form>
     </Modal>
   )

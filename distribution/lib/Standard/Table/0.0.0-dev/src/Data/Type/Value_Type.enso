@@ -153,6 +153,7 @@ type Value_Type
     Mixed
 
     ## GROUP Standard.Base.Metadata
+       ICON metadata
        Checks if the `Value_Type` represents a boolean type.
     is_boolean : Boolean
     is_boolean self = case self of
@@ -160,6 +161,7 @@ type Value_Type
         _ -> False
 
     ## GROUP Standard.Base.Metadata
+       ICON metadata
        Checks if the `Value_Type` represents a floating-point number type.
     is_floating_point : Boolean
     is_floating_point self = case self of
@@ -167,6 +169,7 @@ type Value_Type
         _ -> False
 
     ## GROUP Standard.Base.Metadata
+       ICON metadata
        Checks if the `Value_Type` represents a text type.
     is_text : Boolean
     is_text self = case self of
@@ -174,6 +177,7 @@ type Value_Type
         _ -> False
 
     ## GROUP Standard.Base.Metadata
+       ICON metadata
        Checks if the `Value_Type` represents any numeric type - integer, byte,
        floating point or decimal.
     is_numeric : Boolean
@@ -185,6 +189,7 @@ type Value_Type
         _ -> False
 
     ## GROUP Standard.Base.Metadata
+       ICON metadata
        Checks if the `Value_Type` represents an integer type.
     is_integer : Boolean
     is_integer self = case self of
@@ -192,6 +197,7 @@ type Value_Type
         _ -> False
 
     ## GROUP Standard.Base.Metadata
+       ICON metadata
        Checks if the `Value_Type` represents a decimal type.
     is_decimal : Boolean
     is_decimal self = case self of
@@ -199,6 +205,7 @@ type Value_Type
         _ -> False
 
     ## GROUP Standard.Base.Metadata
+       ICON metadata
        Checks if the `Value_Type` represents a Date_Time type.
     is_date_time : Boolean
     is_date_time self = case self of
@@ -206,6 +213,7 @@ type Value_Type
         _ -> False
 
     ## GROUP Standard.Base.Metadata
+       ICON metadata
        Checks if the `Value_Type` represents a type that holds a date.
 
        It will return true for both `Date` and `Date_Time` types.
@@ -216,6 +224,7 @@ type Value_Type
         _ -> False
 
     ## GROUP Standard.Base.Metadata
+       ICON metadata
        Checks if the `Value_Type` represents a type that holds a time of day.
 
        It will return true for both `Time_Of_Day` and `Date_Time` types.
@@ -226,6 +235,7 @@ type Value_Type
         _ -> False
 
     ## GROUP Standard.Base.Metadata
+       ICON metadata
        Checks if the `Value_Type` represents a date/time type.
     is_date_or_time : Boolean
     is_date_or_time self = case self of
@@ -452,7 +462,9 @@ type Value_Type
         JS_Object.from_pairs <|
             [["type", "Value_Type"], ["constructor", constructor_name]] + additional_fields
 
-    ## Check if the same type of value ignoring size, precision and scale.
+    ## GROUP Standard.Base.Metadata
+       ICON metadata
+       Check if the same type of value ignoring size, precision and scale.
     is_same_type : Value_Type -> Boolean
     is_same_type self other:Value_Type =
         self_ctor = Meta.meta self . constructor

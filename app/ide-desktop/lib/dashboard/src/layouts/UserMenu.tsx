@@ -10,9 +10,11 @@ import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
 import * as authProvider from '#/providers/AuthProvider'
 import * as modalProvider from '#/providers/ModalProvider'
+import * as textProvider from '#/providers/TextProvider'
 
 import * as pageSwitcher from '#/layouts/PageSwitcher'
 
+import * as aria from '#/components/aria'
 import MenuEntry from '#/components/MenuEntry'
 import Modal from '#/components/Modal'
 import FocusArea from '#/components/styled/FocusArea'
@@ -41,6 +43,7 @@ export default function UserMenu(props: UserMenuProps) {
   const { signOut } = authProvider.useAuth()
   const { user } = authProvider.useNonPartialUserSession()
   const { unsetModal } = modalProvider.useSetModal()
+  const { getText } = textProvider.useText()
   const toastAndLog = toastAndLogHooks.useToastAndLog()
 
   React.useEffect(() => {
@@ -69,7 +72,7 @@ export default function UserMenu(props: UserMenuProps) {
                   className="pointer-events-none size-profile-picture"
                 />
               </div>
-              <span className="text">{user.name}</span>
+              <aria.Text className="text">{user.name}</aria.Text>
             </div>
             <div
               className={`grid transition-all duration-user-menu ${initialized ? 'grid-rows-1fr' : 'grid-rows-0fr'}`}
@@ -78,7 +81,7 @@ export default function UserMenu(props: UserMenuProps) {
                 {(ref, innerProps) => (
                   <div
                     ref={ref}
-                    aria-label="User menu"
+                    aria-label={getText('userMenuLabel')}
                     className="flex flex-col overflow-hidden"
                     {...innerProps}
                   >
@@ -89,7 +92,7 @@ export default function UserMenu(props: UserMenuProps) {
                           unsetModal()
                           const downloadUrl = await github.getDownloadUrl()
                           if (downloadUrl == null) {
-                            toastAndLog('Could not find a download link for the current OS')
+                            toastAndLog('noAppDownloadError')
                           } else {
                             download.download(downloadUrl)
                           }
@@ -121,7 +124,7 @@ export default function UserMenu(props: UserMenuProps) {
         ) : (
           <>
             <div className="flex h-profile-picture items-center">
-              <span className="text">You are not logged in.</span>
+              <aria.Text className="text">{getText('youAreNotLoggedIn')}</aria.Text>
             </div>
             <div className="flex flex-col">
               <MenuEntry

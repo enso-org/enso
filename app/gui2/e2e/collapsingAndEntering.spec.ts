@@ -5,6 +5,8 @@ import { expect } from './customExpect'
 import { mockCollapsedFunctionInfo } from './expressionUpdates'
 import * as locate from './locate'
 
+const MAIN_FILE_NODES = 11
+
 const COLLAPSE_SHORTCUT = os.platform() === 'darwin' ? 'Meta+G' : 'Control+G'
 
 test('Entering nodes', async ({ page }) => {
@@ -108,7 +110,7 @@ test('Collapsing nodes', async ({ page }) => {
 
 async function expectInsideMain(page: Page) {
   await actions.expectNodePositionsInitialized(page, 64)
-  await expect(locate.graphNode(page)).toHaveCount(10)
+  await expect(locate.graphNode(page)).toHaveCount(MAIN_FILE_NODES)
   await expect(locate.graphNodeByBinding(page, 'five')).toExist()
   await expect(locate.graphNodeByBinding(page, 'ten')).toExist()
   await expect(locate.graphNodeByBinding(page, 'sum')).toExist()

@@ -30,6 +30,9 @@
   --icons-padding-x: 0.5rem;
   --icon-size: 1rem;
   --project-icon-size: 1.5rem;
+  /* The horizontal padding of the large text indicating that a feature is not enabled in the user's
+   * current plan. */
+  --missing-functionality-text-padding-x: 1rem;
   /* The horizontal gap between each icon in a list of buttons. */
   --buttons-gap: 0.5rem;
   /* The horizontal gap between each icon in a list of icons. */

@@ -2,7 +2,7 @@
 
 use crate::meta::*;
 
-use derivative::Derivative;
+use derive_where::derive_where;
 
 
 
@@ -80,8 +80,8 @@ where
     sort.order
 }
 
-#[derive(Derivative)]
-#[derivative(Default(bound = ""))]
+
+#[derive_where(Default)]
 struct TopoSort<T> {
     visited: BTreeSet<T>,
     order:   Vec<T>,

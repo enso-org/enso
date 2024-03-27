@@ -38,7 +38,7 @@ impl<EventType: crate::event::Type> Slot<EventType> {
     /// Create a new `Slot`. As the initial target is provided, the listener will register once it
     /// gets a callback (see [[set_callback]]).
     pub fn new(target: &EventType::Target) -> Self {
-        Self { target: Some(target.clone()), js_closure: default() }
+        Self { target: Some(target.clone()), js_closure: Default::default() }
     }
 
     /// Register the event listener if both target and callback are set.

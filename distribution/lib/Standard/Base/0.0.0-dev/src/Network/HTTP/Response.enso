@@ -45,6 +45,7 @@ type Response
         Response.Value self.internal_http_response self.body.materialize
 
     ## GROUP Metadata
+       ICON metadata
        Get the uri for the response.
     uri : URI
     uri self =
@@ -81,11 +82,13 @@ type Response
             values = p.second
             values.map v-> Header.new key v
 
-    ## Get the response content type.
+    ## ICON metadata
+       Get the response content type.
     content_type : Text | Nothing
     content_type self = self.get_header "Content-Type"
 
     ## GROUP Metadata
+       ICON metadata
        Get the response content length in bytes.
        This method uses the `Content-Length` header, and does not read the body.
        If the header is not present will return Nothing.
@@ -94,7 +97,8 @@ type Response
         length_text = self.get_header "Content-Length"
         length_text.if_not_nothing <| Integer.parse length_text
 
-    ## Get the response body.
+    ## ICON data_input
+       Get the response body.
 
        > Example
          Getting the body from a response.
@@ -108,7 +112,8 @@ type Response
         metadata = resolve_file_metadata_for_response self
         Response_Body.new self.internal_http_response.body metadata self.uri
 
-    ## Get the response status code.
+    ## ICON metadata
+       Get the response status code.
 
        > Example
          Getting the code from a response.
@@ -125,7 +130,8 @@ type Response
        ICON data_input
        Uses the format to decode the body.
        If using `Auto_Detect`, the content-type will be used to determine the
-       format.
+       format. If the format cannot be detected automatically, `if_unsupported`
+       is returned.
     @format decode_format_selector
     decode : File_Format -> Any -> Any
     decode self format=Auto_Detect ~if_unsupported=Throw_Unsupported_Error =
@@ -168,6 +174,7 @@ type Response
 
     ## ALIAS to_file
        GROUP Output
+       ICON data_download
        Write response body to a File.
 
        Arguments:

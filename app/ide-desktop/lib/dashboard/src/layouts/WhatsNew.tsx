@@ -5,6 +5,9 @@ import DiscordIcon from 'enso-assets/discord.svg'
 import IntegrationsImage from 'enso-assets/integrations.png'
 import YoutubeIcon from 'enso-assets/youtube.svg'
 
+import * as textProvider from '#/providers/TextProvider'
+
+import * as aria from '#/components/aria'
 import FocusArea from '#/components/styled/FocusArea'
 import FocusRing from '#/components/styled/FocusRing'
 
@@ -14,9 +17,13 @@ import FocusRing from '#/components/styled/FocusRing'
 
 /** Community updates for the app. */
 export default function WhatsNew() {
+  const { getText } = textProvider.useText()
+
   return (
     <div className="flex flex-col gap-subheading px-home-section-x">
-      <h2 className="text-subheading">Discover what&rsquo;s new</h2>
+      <aria.Heading level={2} className="text-subheading">
+        {getText('discoverWhatsNew')}
+      </aria.Heading>
       <div className="grid grid-cols-fill-news-items gap-news-items">
         <FocusArea direction="horizontal">
           {(ref, innerProps) => (
@@ -31,12 +38,12 @@ export default function WhatsNew() {
                 {...innerProps}
               >
                 <div className="absolute bottom flex w-full flex-col p-news-item-description">
-                  <span className="text-subheading font-bold">
-                    Read what&rsquo;s new in Enso 3.0 Beta
-                  </span>
-                  <span className="py-news-item-subtitle-y text-sm leading-snug">
-                    Learn about Enso Cloud, new data libraries, and Enso AI.
-                  </span>
+                  <aria.Text className="text-subheading font-bold">
+                    {getText('newsItem3Beta')}
+                  </aria.Text>
+                  <aria.Text className="py-news-item-subtitle-y text-sm leading-snug">
+                    {getText('newsItem3BetaDescription')}
+                  </aria.Text>
                 </div>
               </a>
             </FocusRing>
@@ -58,10 +65,12 @@ export default function WhatsNew() {
                   src={YoutubeIcon}
                 />
                 <div className="absolute bottom flex w-full flex-col p-news-item-description">
-                  <span className="text-subheading font-bold">Watch weekly Enso tutorials</span>
-                  <span className="py-news-item-subtitle-y text-sm leading-snug">
-                    Subscribe not to miss new weekly tutorials.
-                  </span>
+                  <aria.Text className="text-subheading font-bold">
+                    {getText('newsItemWeeklyTutorials')}
+                  </aria.Text>
+                  <aria.Text className="py-news-item-subtitle-y text-sm leading-snug">
+                    {getText('newsItemWeeklyTutorialsDescription')}
+                  </aria.Text>
                 </div>
               </a>
             </FocusRing>
@@ -83,10 +92,12 @@ export default function WhatsNew() {
                   src={DiscordIcon}
                 />
                 <div className="absolute bottom flex w-full flex-col p-news-item-description">
-                  <span className="text-subheading font-bold">Join our community server</span>
-                  <span className="py-news-item-subtitle-y text-sm leading-snug">
-                    Chat with our team and other Enso users.
-                  </span>
+                  <aria.Text className="text-subheading font-bold">
+                    {getText('newsItemCommunityServer')}
+                  </aria.Text>
+                  <aria.Text className="py-news-item-subtitle-y text-sm leading-snug">
+                    {getText('newsItemCommunityServerDescription')}
+                  </aria.Text>
                 </div>
               </a>
             </FocusRing>

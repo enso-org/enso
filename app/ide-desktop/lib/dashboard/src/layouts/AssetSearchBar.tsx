@@ -5,6 +5,7 @@ import FindIcon from 'enso-assets/find.svg'
 import * as detect from 'enso-common/src/detect'
 
 import * as modalProvider from '#/providers/ModalProvider'
+import * as textProvider from '#/providers/TextProvider'
 
 import * as aria from '#/components/aria'
 import Label from '#/components/dashboard/Label'
@@ -58,6 +59,7 @@ export interface AssetSearchBarProps {
 /** A search bar containing a text input, and a list of suggestions. */
 export default function AssetSearchBar(props: AssetSearchBarProps) {
   const { isCloud, query, setQuery, labels, suggestions: rawSuggestions } = props
+  const { getText } = textProvider.useText()
   const { modalRef } = modalProvider.useModalRef()
   /** A cached query as of the start of tabbing. */
   const baseQuery = React.useRef(query)
@@ -217,7 +219,7 @@ export default function AssetSearchBar(props: AssetSearchBarProps) {
   return (
     <FocusArea direction="horizontal">
       {(ref, innerProps) => (
-        <label
+        <aria.Label
           ref={element => {
             ref(element)
             rootRef.current = element
@@ -262,7 +264,7 @@ export default function AssetSearchBar(props: AssetSearchBarProps) {
                               setQuery(query.add({ [key]: [[]] }))
                             }}
                           >
-                            {tag}:
+                            {tag + ':'}
                           </aria.Button>,
                         ]
                   })}
@@ -358,7 +360,7 @@ export default function AssetSearchBar(props: AssetSearchBarProps) {
           </div>
           <FocusRing placement="before">
             <aria.SearchField
-              aria-label="Search through items"
+              aria-label={getText('assetSearchFieldLabel')}
               className="relative grow before:text before:absolute before:inset-x-button-focus-ring-inset before:my-auto before:rounded-full before:transition-all"
               onKeyDown={event => {
                 event.continuePropagation()
@@ -370,8 +372,8 @@ export default function AssetSearchBar(props: AssetSearchBarProps) {
                 size={1}
                 placeholder={
                   isCloud
-                    ? 'Type to search for projects, Data Links, users, and more.'
-                    : 'Type to search for projects.'
+                    ? getText('remoteBackendSearchPlaceholder')
+                    : getText('localBackendSearchPlaceholder')
                 }
                 className="focus-child peer text relative z-1 w-full bg-transparent placeholder:text-center"
                 onChange={event => {
@@ -395,7 +397,7 @@ export default function AssetSearchBar(props: AssetSearchBarProps) {
               />
             </aria.SearchField>
           </FocusRing>
-        </label>
+        </aria.Label>
       )}
     </FocusArea>
   )

@@ -1,5 +1,8 @@
 from Standard.Base import all
+import Standard.Base.Enso_Cloud.Data_Link.Data_Link_Format
+import Standard.Base.Enso_Cloud.Errors.Missing_Data_Link_Library
 import Standard.Base.Errors.Common.Not_Found
+import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Errors.Illegal_State.Illegal_State
 import Standard.Base.Enso_Cloud.Enso_File.Enso_Asset_Type
 
@@ -31,11 +34,37 @@ add_specs suite_builder setup:Cloud_Tests_Setup = setup.with_prepared_environmen
             datalink.asset_type.should_equal Enso_Asset_Type.Data_Link
 
             r = datalink.read
-            r.should_fail_with Illegal_State
+            r.should_fail_with Missing_Data_Link_Library
             r.catch.to_display_text . should_contain "The data link for S3 is provided by the library Standard.AWS which is not loaded."
+
+        group_builder.specify "does not allow to use Data_Link_Format to read/write regular files" <|
+            temp_file = File.create_temporary_file "not-a-datalink" ".txt"
+            Test.expect_panic Illegal_Argument <|
+                Data_Link_Format.write_raw_config temp_file "{}"
+            Test.expect_panic Illegal_Argument <|
+                Data_Link_Format.read_raw_config temp_file
+
+        group_builder.specify "should be able to read a local datalink to an Enso File" <|
+            datalink = replace_org_name_in_data_link (enso_project.data / "datalinks" / "example-enso-file.datalink")
+            datalink.read . should_equal "Hello Another!"
+
+        group_builder.specify "should be able to read a datalink in the Cloud to Enso File" <|
+            # TODO currently this link is created manually, later we should be generating it as part of the test
+            datalink = Enso_File.new "enso://"+Enso_User.current.name+"/TestDataLink-EnsoFile"
+            datalink.read . should_equal "Hello Another!"
+
 
 main filter=Nothing =
     setup = Cloud_Tests_Setup.prepare
     suite = Test.build suite_builder->
         add_specs suite_builder setup
     suite.run_with_filter filter
+
+
+## Reads the datalink as plain text and replaces the placeholder organization name.
+replace_org_name_in_data_link base_file =
+    content = Data_Link_Format.read_raw_config base_file
+    org_name = Enso_User.current.name
+    new_content = content.replace "PLACEHOLDER_ORG_NAME" org_name
+    temp_file = File.create_temporary_file prefix=base_file.name suffix=base_file.extension
+    Data_Link_Format.write_raw_config temp_file new_content replace_existing=True . if_not_error temp_file

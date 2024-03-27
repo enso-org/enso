@@ -5,7 +5,11 @@ import Home2Icon from 'enso-assets/home2.svg'
 import RecentIcon from 'enso-assets/recent.svg'
 import Trash2Icon from 'enso-assets/trash2.svg'
 
+import type * as text from '#/text'
+
 import * as localStorageProvider from '#/providers/LocalStorageProvider'
+import * as modalProvider from '#/providers/ModalProvider'
+import * as textProvider from '#/providers/TextProvider'
 
 import type * as assetEvent from '#/events/assetEvent'
 import AssetEventType from '#/events/AssetEventType'
@@ -27,6 +31,9 @@ import type * as backend from '#/services/Backend'
 interface CategoryMetadata {
   readonly category: Category
   readonly icon: string
+  readonly textId: Extract<text.TextId, `${Category}Category`>
+  readonly buttonTextId: Extract<text.TextId, `${Category}CategoryButtonLabel`>
+  readonly dropZoneTextId: Extract<text.TextId, `${Category}CategoryDropZoneLabel`>
 }
 
 // =================
@@ -34,9 +41,27 @@ interface CategoryMetadata {
 // =================
 
 const CATEGORY_DATA: CategoryMetadata[] = [
-  { category: Category.recent, icon: RecentIcon },
-  { category: Category.home, icon: Home2Icon },
-  { category: Category.trash, icon: Trash2Icon },
+  {
+    category: Category.recent,
+    icon: RecentIcon,
+    textId: 'recentCategory',
+    buttonTextId: 'recentCategoryButtonLabel',
+    dropZoneTextId: 'recentCategoryDropZoneLabel',
+  },
+  {
+    category: Category.home,
+    icon: Home2Icon,
+    textId: 'homeCategory',
+    buttonTextId: 'homeCategoryButtonLabel',
+    dropZoneTextId: 'homeCategoryDropZoneLabel',
+  },
+  {
+    category: Category.trash,
+    icon: Trash2Icon,
+    textId: 'trashCategory',
+    buttonTextId: 'trashCategoryButtonLabel',
+    dropZoneTextId: 'trashCategoryDropZoneLabel',
+  },
 ]
 
 // ============================
@@ -56,27 +81,28 @@ interface InternalCategorySwitcherItemProps {
 /** An entry in a {@link CategorySwitcher}. */
 function CategorySwitcherItem(props: InternalCategorySwitcherItemProps) {
   const { data, isCurrent, onPress, acceptedDragTypes, onDrop } = props
-  const { category, icon } = data
+  const { category, icon, textId, buttonTextId, dropZoneTextId } = data
+  const { getText } = textProvider.useText()
 
   return (
     <aria.DropZone
-      aria-label={`Move To ${category}`}
+      aria-label={getText(dropZoneTextId)}
       getDropOperation={types =>
         acceptedDragTypes.some(type => types.has(type)) ? 'move' : 'cancel'
       }
-      className="drop-target-after rounded-full"
+      className="rounded-full drop-target-after"
       // Required because `dragover` does not fire on `mouseenter`.
       onDrop={onDrop}
     >
       <UnstyledButton
-        aria-label={`Go To ${category}`}
+        aria-label={getText(buttonTextId)}
         className={`rounded-inherit ${isCurrent ? 'focus-default' : ''}`}
         onPress={onPress}
       >
         <div
           className={`selectable ${
             isCurrent ? 'disabled bg-selected-frame active' : ''
-          } rounded-inherit group flex h-row items-center gap-icon-with-text px-button-x hover:bg-selected-frame`}
+          } group flex h-row items-center gap-icon-with-text rounded-inherit px-button-x hover:bg-selected-frame`}
         >
           <SvgMask
             src={icon}
@@ -86,7 +112,7 @@ function CategorySwitcherItem(props: InternalCategorySwitcherItemProps) {
               category === Category.recent ? '-ml-0.5' : ''
             }
           />
-          <aria.Text slot="description">{category}</aria.Text>
+          <aria.Text slot="description">{getText(textId)}</aria.Text>
         </div>
       </UnstyledButton>
     </aria.DropZone>
@@ -107,7 +133,9 @@ export interface CategorySwitcherProps {
 /** A switcher to choose the currently visible assets table category. */
 export default function CategorySwitcher(props: CategorySwitcherProps) {
   const { category, setCategory, dispatchAssetEvent } = props
+  const { unsetModal } = modalProvider.useSetModal()
   const { localStorage } = localStorageProvider.useLocalStorage()
+  const { getText } = textProvider.useText()
 
   React.useEffect(() => {
     localStorage.set('driveCategory', category)
@@ -121,9 +149,13 @@ export default function CategorySwitcher(props: CategorySwitcherProps) {
             id="header"
             className="text-header mb-sidebar-section-heading-b px-sidebar-section-heading-x text-sm font-bold"
           >
-            Category
+            {getText('category')}
           </aria.Header>
-          <div aria-label="Category switcher" role="grid" className="flex flex-col items-start">
+          <div
+            aria-label={getText('categorySwitcherMenuLabel')}
+            role="grid"
+            className="flex flex-col items-start"
+          >
             {CATEGORY_DATA.map(data => (
               <CategorySwitcherItem
                 key={data.category}
@@ -140,6 +172,7 @@ export default function CategorySwitcher(props: CategorySwitcherProps) {
                     : []
                 }
                 onDrop={event => {
+                  unsetModal()
                   void Promise.all(
                     event.items.flatMap(async item => {
                       if (item.kind === 'text') {
