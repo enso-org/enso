@@ -34,8 +34,7 @@ import scala.jdk.CollectionConverters._
   *
   * @param compiler the compiler instance for the compiling context.
   */
-final class ImportResolver(compiler: Compiler)
-    extends ImportResolverAlgorithm.Impl {
+final class ImportResolver(compiler: Compiler) extends ImportResolverForIR {
 
   /** Runs the import mapping logic.
     *
