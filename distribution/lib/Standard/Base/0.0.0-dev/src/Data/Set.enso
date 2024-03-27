@@ -133,7 +133,7 @@ type Set
 
     ## PRIVATE
     to_text : Text
-    to_text self = self.to_vector.map .to_text . join ", " "Set{" "}"
+    to_text self = self.to_vector.map .pretty . join ", " "Set{" "}"
 
 ## PRIVATE
 type Set_Comparator
