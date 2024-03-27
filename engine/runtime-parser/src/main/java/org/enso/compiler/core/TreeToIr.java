@@ -1065,7 +1065,7 @@ final class TreeToIr {
         yield new Name.MethodReference(
                 Option.empty(),
                 methodName,
-                methodName.location(),
+                getIdentifiedLocation(autoscopedIdentifier),
                 meta(), diag()
         );
       }

@@ -56,7 +56,7 @@ public class TypeOfNodeTest extends TestBase {
       }
     }
     data.add(new Object[] {UnresolvedSymbol.build("unknown_name", null), "Function"});
-    data.add(new Object[] {UnresolvedConstructor.build("Unknown_Name"), "Function"});
+    data.add(new Object[] {UnresolvedConstructor.build(null, "Unknown_Name"), "Function"});
     return data.toArray(new Object[0][]);
   }
 

@@ -16,6 +16,10 @@ public class DynamicSymbolNode extends ExpressionNode {
     this.unresolvedSymbol = unresolvedSymbol;
   }
 
+  private DynamicSymbolNode(String unresolvedConstructor) {
+    this.unresolvedSymbol = UnresolvedConstructor.build(this, unresolvedConstructor);
+  }
+
   /**
    * Creates an instance of this node.
    *
@@ -26,7 +30,7 @@ public class DynamicSymbolNode extends ExpressionNode {
     return new DynamicSymbolNode(symbol);
   }
 
-  public static DynamicSymbolNode build(UnresolvedConstructor symbol) {
+  public static DynamicSymbolNode buildUnresolvedConstructor(String symbol) {
     return new DynamicSymbolNode(symbol);
   }
 

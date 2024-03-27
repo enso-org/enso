@@ -742,6 +742,10 @@ public final class ExecutionService {
       if (cons != null) {
         return fromAtomConstructor(cons);
       }
+      cons = MethodRootNode.constructorFor(function);
+      if (cons != null) {
+        return fromAtomConstructor(cons);
+      }
       RootNode rootNode = function.getCallTarget().getRootNode();
 
       QualifiedName moduleName;
@@ -831,7 +835,7 @@ public final class ExecutionService {
       Object[] arguments = call.getArguments();
       int[] notAppliedArgs = new int[arguments.length];
       int notAppliedArgsSize = 0;
-      boolean isStatic = arguments[0] instanceof Type;
+      boolean isStatic = arguments.length > 0 && arguments[0] instanceof Type;
       int selfTypePosition = isStatic ? -1 : 0;
 
       for (int i = 0; i < arguments.length; i++) {
