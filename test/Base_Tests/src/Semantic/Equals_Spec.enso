@@ -1,4 +1,5 @@
 from Standard.Base import all
+import Standard.Base.Errors.Illegal_State.Illegal_State
 
 from Standard.Test import all
 
@@ -228,6 +229,13 @@ add_specs suite_builder =
             f1 = CustomEqType.C2 10
             f2 = CustomEqType.C2 10
             f1==f2 . should_be_false
+
+        group_builder.specify "should propagate errors" <|
+            ((Error.throw (Illegal_State.Error "foo" )) == 42) . should_fail_with Illegal_State
+            ((Error.throw (Illegal_State.Error "foo" )) != 42) . should_fail_with Illegal_State
+            (42 == (Error.throw (Illegal_State.Error "foo" ))) . should_fail_with Illegal_State
+            (42 != (Error.throw (Illegal_State.Error "foo" ))) . should_fail_with Illegal_State
+
 
     suite_builder.group "Polyglot Operator ==" group_builder->
         group_builder.specify "should not try to compare members" <|
