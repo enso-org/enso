@@ -34,7 +34,7 @@ export default function Settings() {
   const { backend } = backendProvider.useBackend()
   const { getText } = textProvider.useText()
   const [organization, setOrganization] = React.useState<backendModule.OrganizationInfo>(() => ({
-    pk: user?.id ?? backendModule.OrganizationId(''),
+    pk: user?.organizationId ?? backendModule.OrganizationId(''),
     // eslint-disable-next-line @typescript-eslint/naming-convention
     organization_name: null,
     email: null,

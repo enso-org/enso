@@ -233,15 +233,15 @@ impl JobArchetype for StandardLibraryTests {
                 let main_step = step
                     .with_secret_exposed_as(
                         secret::ENSO_LIB_S3_AWS_REGION,
-                        crate::aws::env::AWS_REGION,
+                        crate::libraries_tests::s3::env::ENSO_LIB_S3_AWS_REGION,
                     )
                     .with_secret_exposed_as(
                         secret::ENSO_LIB_S3_AWS_ACCESS_KEY_ID,
-                        crate::aws::env::AWS_ACCESS_KEY_ID,
+                        crate::libraries_tests::s3::env::ENSO_LIB_S3_AWS_ACCESS_KEY_ID,
                     )
                     .with_secret_exposed_as(
                         secret::ENSO_LIB_S3_AWS_SECRET_ACCESS_KEY,
-                        crate::aws::env::AWS_SECRET_ACCESS_KEY,
+                        crate::libraries_tests::s3::env::ENSO_LIB_S3_AWS_SECRET_ACCESS_KEY,
                     );
                 vec![main_step, step::stdlib_test_reporter(target, graal_edition)]
             })

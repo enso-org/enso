@@ -30,7 +30,9 @@ interface PlaceholderOverrides {
   readonly inviteSuccess: [string]
 
   readonly deleteLabelActionText: [string]
+  readonly deleteSelectedAssetActionText: [string]
   readonly deleteSelectedAssetsActionText: [number]
+  readonly deleteSelectedAssetForeverActionText: [string]
   readonly deleteSelectedAssetsForeverActionText: [number]
   readonly confirmPrompt: [string]
   readonly deleteTheAssetTypeTitle: [string, string]
