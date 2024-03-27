@@ -4,6 +4,7 @@ import * as React from 'react'
 import * as detect from 'enso-common/src/detect'
 
 import AreaFocusProvider from '#/providers/AreaFocusProvider'
+import FocusClassesProvider, * as focusClassProvider from '#/providers/FocusClassProvider'
 import type * as focusDirectionProvider from '#/providers/FocusDirectionProvider'
 import FocusDirectionProvider from '#/providers/FocusDirectionProvider'
 import * as navigator2DProvider from '#/providers/Navigator2DProvider'
@@ -15,6 +16,8 @@ import * as withFocusScope from '#/components/styled/withFocusScope'
 // === FocusArea ===
 // =================
 
+export const DEFAULT_FOCUS_CHILD_CLASS = 'focus-child'
+
 /** Props returned by {@link aria.useFocusWithin}. */
 export interface FocusWithinProps {
   readonly onFocus: NonNullable<aria.DOMAttributes<Element>['onFocus']>
@@ -23,6 +26,10 @@ export interface FocusWithinProps {
 
 /** Props for a {@link FocusArea} */
 export interface FocusAreaProps {
+  /** Should ONLY be passed in exceptional cases. */
+  readonly focusChildClass?: string
+  /** Should ONLY be passed in exceptional cases. */
+  readonly focusDefaultClass?: string
   readonly active?: boolean
   readonly direction: focusDirectionProvider.FocusDirection
   readonly children: (
@@ -34,12 +41,18 @@ export interface FocusAreaProps {
 /** An area that can be focused within. */
 function FocusArea(props: FocusAreaProps) {
   const { active = true, direction, children } = props
+  const { focusChildClass = DEFAULT_FOCUS_CHILD_CLASS, focusDefaultClass = 'focus-default' } = props
+  const { focusChildClass: outerFocusChildClass } = focusClassProvider.useFocusClasses()
   const [areaFocus, setAreaFocus] = React.useState(false)
   const { focusWithinProps } = aria.useFocusWithin({ onFocusWithinChange: setAreaFocus })
   const focusManager = aria.useFocusManager()
   const navigator2D = navigator2DProvider.useNavigator2D()
   const rootRef = React.useRef<HTMLElement | SVGElement | null>(null)
   const cleanupRef = React.useRef(() => {})
+  const focusChildClassRef = React.useRef(focusChildClass)
+  focusChildClassRef.current = focusChildClass
+  const focusDefaultClassRef = React.useRef(focusDefaultClass)
+  focusDefaultClassRef.current = focusDefaultClass
 
   let isRealRun = !detect.IS_DEV_MODE
   React.useEffect(() => {
@@ -62,14 +75,14 @@ function FocusArea(props: FocusAreaProps) {
         cleanupRef.current()
         if (active && element != null && focusManager != null) {
           const focusFirst = focusManager.focusFirst.bind(null, {
-            accept: other => other.classList.contains('focus-child'),
+            accept: other => other.classList.contains(focusChildClassRef.current),
           })
           const focusLast = focusManager.focusLast.bind(null, {
-            accept: other => other.classList.contains('focus-child'),
+            accept: other => other.classList.contains(focusChildClassRef.current),
           })
           const focusCurrent = () =>
             focusManager.focusFirst({
-              accept: other => other.classList.contains('focus-default'),
+              accept: other => other.classList.contains(focusDefaultClassRef.current),
             }) ?? focusFirst()
           cleanupRef.current = navigator2D.register(element, {
             focusPrimaryChild: focusCurrent,
@@ -95,10 +108,15 @@ function FocusArea(props: FocusAreaProps) {
     [active, direction, children, focusManager, focusWithinProps, navigator2D]
   )
 
-  return (
+  const result = (
     <FocusDirectionProvider direction={direction}>
       <AreaFocusProvider areaFocus={areaFocus}>{cachedChildren}</AreaFocusProvider>
     </FocusDirectionProvider>
+  )
+  return focusChildClass === outerFocusChildClass ? (
+    result
+  ) : (
+    <FocusClassesProvider focusChildClass={focusChildClass}>{result}</FocusClassesProvider>
   )
 }
 

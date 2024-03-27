@@ -1,6 +1,8 @@
 /** @file Hooks for moving focus. */
 import * as React from 'react'
 
+import * as focusClassProvider from '#/providers/FocusClassProvider'
+
 import * as aria from '#/components/aria'
 
 // ==========================
@@ -14,6 +16,7 @@ type AriaKeyboardEvent = Parameters<NonNullable<aria.KeyboardEvents['onKeyUp']>>
 
 /** Handle arrow keys for moving focus. */
 export function useHandleFocusMove(direction: 'horizontal' | 'vertical') {
+  const { focusChildClass } = focusClassProvider.useFocusClasses()
   const focusManager = aria.useFocusManager()
   const keyPrevious = direction === 'horizontal' ? 'ArrowLeft' : 'ArrowUp'
   const keyNext = direction === 'horizontal' ? 'ArrowRight' : 'ArrowDown'
@@ -25,7 +28,7 @@ export function useHandleFocusMove(direction: 'horizontal' | 'vertical') {
       switch (event.key) {
         case keyPrevious: {
           const element = focusManager?.focusPrevious({
-            accept: other => other.classList.contains('focus-child'),
+            accept: other => other.classList.contains(focusChildClass),
           })
           if (element != null) {
             reactEvent?.stopPropagation()
@@ -37,7 +40,7 @@ export function useHandleFocusMove(direction: 'horizontal' | 'vertical') {
         }
         case keyNext: {
           const element = focusManager?.focusNext({
-            accept: other => other.classList.contains('focus-child'),
+            accept: other => other.classList.contains(focusChildClass),
           })
           if (element != null) {
             reactEvent?.stopPropagation()
@@ -53,6 +56,6 @@ export function useHandleFocusMove(direction: 'horizontal' | 'vertical') {
         }
       }
     },
-    [keyPrevious, keyNext, focusManager]
+    [keyPrevious, keyNext, focusManager, focusChildClass]
   )
 }

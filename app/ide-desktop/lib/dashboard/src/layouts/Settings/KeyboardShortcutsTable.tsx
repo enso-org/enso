@@ -82,7 +82,7 @@ export default function KeyboardShortcutsTable(props: KeyboardShortcutsTableProp
   return (
     // There is a horizontal scrollbar for some reason without `px-px`.
     // eslint-disable-next-line no-restricted-syntax
-    <FocusArea direction="vertical">
+    <FocusArea direction="vertical" focusChildClass="focus-default" focusDefaultClass="">
       {(ref, innerProps) => (
         <div
           ref={element => {
@@ -144,7 +144,7 @@ export default function KeyboardShortcutsTable(props: KeyboardShortcutsTableProp
                         ))}
                         <div className="gap-keyboard-shortcuts-buttons flex shrink-0">
                           <UnstyledButton
-                            className="my-auto flex rounded-full"
+                            className="focus-default my-auto flex rounded-full"
                             onPress={() => {
                               setModal(
                                 <CaptureKeyboardShortcutModal
