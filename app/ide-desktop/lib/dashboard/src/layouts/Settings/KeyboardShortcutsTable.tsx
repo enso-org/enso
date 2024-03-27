@@ -121,56 +121,62 @@ export default function KeyboardShortcutsTable(props: KeyboardShortcutsTableProp
                       {info.name}
                     </td>
                     <td className="group min-w-max border-l-2 border-r-2 border-transparent bg-clip-padding px-cell-x">
-                      {/* I don't know why this padding is needed,
-                       * given that this is a flex container. */}
-                      {/* eslint-disable-next-line no-restricted-syntax */}
-                      <div className="flex gap-buttons pr-4">
-                        {info.bindings.map((binding, j) => (
-                          <div
-                            key={j}
-                            className="inline-flex shrink-0 items-center gap-keyboard-shortcuts-button"
-                          >
-                            <KeyboardShortcut shortcut={binding} />
-                            <UnstyledButton
-                              className="flex rounded-full transition-colors hover:bg-hover-bg focus:bg-hover-bg"
-                              onPress={() => {
-                                inputBindings.delete(action, binding)
-                                doRefresh()
-                              }}
-                            >
-                              <SvgMask src={CrossIcon} className="size-icon" />
-                            </UnstyledButton>
-                          </div>
-                        ))}
-                        <div className="gap-keyboard-shortcuts-buttons flex shrink-0">
-                          <UnstyledButton
-                            className="focus-default my-auto flex rounded-full"
-                            onPress={() => {
-                              setModal(
-                                <CaptureKeyboardShortcutModal
-                                  description={`'${info.name}'`}
-                                  existingShortcuts={allShortcuts}
-                                  onSubmit={shortcut => {
-                                    inputBindings.add(action, shortcut)
+                      <FocusArea direction="horizontal">
+                        {(bindingsRef, bindingsProps) => (
+                          <div ref={bindingsRef} {...bindingsProps}>
+                            {/* I don't know why this padding is needed,
+                             * given that this is a flex container. */}
+                            {/* eslint-disable-next-line no-restricted-syntax */}
+                            <div className="flex gap-buttons pr-4">
+                              {info.bindings.map((binding, j) => (
+                                <div
+                                  key={j}
+                                  className="inline-flex shrink-0 items-center gap-keyboard-shortcuts-button"
+                                >
+                                  <KeyboardShortcut shortcut={binding} />
+                                  <UnstyledButton
+                                    className="flex rounded-full transition-colors hover:bg-hover-bg focus:bg-hover-bg"
+                                    onPress={() => {
+                                      inputBindings.delete(action, binding)
+                                      doRefresh()
+                                    }}
+                                  >
+                                    <SvgMask src={CrossIcon} className="size-icon" />
+                                  </UnstyledButton>
+                                </div>
+                              ))}
+                              <div className="gap-keyboard-shortcuts-buttons flex shrink-0">
+                                <UnstyledButton
+                                  className="focus-default my-auto flex rounded-full"
+                                  onPress={() => {
+                                    setModal(
+                                      <CaptureKeyboardShortcutModal
+                                        description={`'${info.name}'`}
+                                        existingShortcuts={allShortcuts}
+                                        onSubmit={shortcut => {
+                                          inputBindings.add(action, shortcut)
+                                          doRefresh()
+                                        }}
+                                      />
+                                    )
+                                  }}
+                                >
+                                  <img className="size-plus-icon" src={Plus2Icon} />
+                                </UnstyledButton>
+                                <UnstyledButton
+                                  className="my-auto flex rounded-full"
+                                  onPress={() => {
+                                    inputBindings.reset(action)
                                     doRefresh()
                                   }}
-                                />
-                              )
-                            }}
-                          >
-                            <img className="size-plus-icon" src={Plus2Icon} />
-                          </UnstyledButton>
-                          <UnstyledButton
-                            className="my-auto flex rounded-full"
-                            onPress={() => {
-                              inputBindings.reset(action)
-                              doRefresh()
-                            }}
-                          >
-                            <img className="size-plus-icon" src={ReloadInCircleIcon} />
-                          </UnstyledButton>
-                        </div>
-                      </div>
+                                >
+                                  <img className="size-plus-icon" src={ReloadInCircleIcon} />
+                                </UnstyledButton>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                      </FocusArea>
                     </td>
                     <td className="cell-x rounded-r-full border-l-2 border-r-2 border-transparent bg-clip-padding">
                       {info.description}
