@@ -31,22 +31,22 @@ abstract class ImportResolverForIR extends ImportResolverAlgorithm<
   abstract Compiler getCompiler();
 
   @Override
-  final Name.Qualified nameForImport(Import.Module imp) {
+  protected final Name.Qualified nameForImport(Import.Module imp) {
     return imp.name();
   }
 
   @Override
-  final Name.Qualified nameForExport(Export.Module ex) {
+  protected final Name.Qualified nameForExport(Export.Module ex) {
     return ex.name();
   }
 
   @Override
-  final String nameForType(BindingsMap.ResolvedType e) {
+  protected final String nameForType(BindingsMap.ResolvedType e) {
     return e.qualifiedName().item();
   }
 
   @Override
-  final java.util.List<Export.Module> exportsFor(Module module, String impName) {
+  protected final java.util.List<Export.Module> exportsFor(Module module, String impName) {
     java.util.List<Export.Module> exp = CollectionConverters.SeqHasAsJava(module.exports()).asJava().stream().map(e -> switch (e) {
       case Export.Module ex when ex.name().name().equals(impName) -> ex;
       case null, default -> null;
@@ -55,12 +55,12 @@ abstract class ImportResolverForIR extends ImportResolverAlgorithm<
   }
 
   @Override
-  final boolean isAll(Export.Module ex) {
+  protected final boolean isAll(Export.Module ex) {
     return ex.isAll();
   }
 
   @Override
-  final java.util.List<Name.Literal> onlyNames(Export.Module ex) {
+  protected final java.util.List<Name.Literal> onlyNames(Export.Module ex) {
     if (ex.onlyNames().isEmpty()) {
       return null;
     }
@@ -69,7 +69,7 @@ abstract class ImportResolverForIR extends ImportResolverAlgorithm<
   }
 
   @Override
-  final java.util.List<Name.Literal> hiddenNames(Export.Module ex) {
+  protected final java.util.List<Name.Literal> hiddenNames(Export.Module ex) {
     if (ex.hiddenNames().isEmpty()) {
       return null;
     }
@@ -78,7 +78,7 @@ abstract class ImportResolverForIR extends ImportResolverAlgorithm<
   }
 
   @Override
-  final java.util.List<BindingsMap.ResolvedType> definedEntities(String name) {
+  protected final java.util.List<BindingsMap.ResolvedType> definedEntities(String name) {
     var compiler = this.getCompiler();
     var optionMod = compiler.getModule(name);
     if (optionMod.isEmpty()) {
@@ -110,7 +110,7 @@ abstract class ImportResolverForIR extends ImportResolverAlgorithm<
   }
 
   @Override
-  final CompilerContext.Module loadLibraryModule(LibraryName libraryName, String moduleName) throws IOException {
+  protected final CompilerContext.Module loadLibraryModule(LibraryName libraryName, String moduleName) throws IOException {
     var compiler = this.getCompiler();
     var repo = compiler.packageRepository();
     var foundLib = repo.ensurePackageIsLoaded(libraryName);
@@ -127,25 +127,25 @@ abstract class ImportResolverForIR extends ImportResolverAlgorithm<
   }
 
   @Override
-  final Tuple2<Import, Option<BindingsMap.ResolvedImport>> tupleResolvedImport(Import.Module imp, java.util.List<Export.Module> exp, CompilerContext.Module m) {
+  protected final Tuple2<Import, Option<BindingsMap.ResolvedImport>> createResolvedImport(Import.Module imp, java.util.List<Export.Module> exp, CompilerContext.Module m) {
     scala.Option<org.enso.compiler.data.BindingsMap.ResolvedImport> someBinding = Option.apply(new BindingsMap.ResolvedImport(imp, toScalaList(exp), new BindingsMap.ResolvedModule(new BindingsMap$ModuleReference$Concrete(m))));
     return new Tuple2<>(imp, someBinding);
   }
 
   @Override
-  final Tuple2<Import, Option<BindingsMap.ResolvedImport>> tupleResolvedType(Import.Module imp, java.util.List<Export.Module> exp, BindingsMap.ResolvedType typ) {
+  protected final Tuple2<Import, Option<BindingsMap.ResolvedImport>> createResolvedType(Import.Module imp, java.util.List<Export.Module> exp, BindingsMap.ResolvedType typ) {
     scala.Option<org.enso.compiler.data.BindingsMap.ResolvedImport> someBinding = Option.apply(new BindingsMap.ResolvedImport(imp, toScalaList(exp), typ));
     return new Tuple2<>(imp, someBinding);
   }
 
   @Override
-  final Tuple2<Import, Option<BindingsMap.ResolvedImport>> tupleErrorPackageCoundNotBeLoaded(Import.Module imp, String impName, String loadingError) {
+  protected final Tuple2<Import, Option<BindingsMap.ResolvedImport>> createErrorPackageCoundNotBeLoaded(Import.Module imp, String impName, String loadingError) {
     org.enso.compiler.core.ir.expression.errors.ImportExport importError = new ImportExport(imp, new ImportExport.PackageCouldNotBeLoaded(impName, loadingError), imp.passData(), imp.diagnostics());
     return new Tuple2<>(importError, Option.empty());
   }
 
   @Override
-  final Tuple2<Import, Option<BindingsMap.ResolvedImport>> tupleErrorModuleDoesNotExist(Import.Module imp, String impName) {
+  protected final Tuple2<Import, Option<BindingsMap.ResolvedImport>> createErrorModuleDoesNotExist(Import.Module imp, String impName) {
     return new Tuple2<>(new ImportExport(imp, new ImportExport.ModuleDoesNotExist(impName), imp.passData(), imp.diagnostics()), Option.empty());
   }
 

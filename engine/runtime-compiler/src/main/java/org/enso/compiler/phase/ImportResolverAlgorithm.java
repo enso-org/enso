@@ -13,27 +13,27 @@ public abstract class ImportResolverAlgorithm<
     Result, Import, Export, ResolvedType, ResolvedModule> {
   protected ImportResolverAlgorithm() {}
 
-  abstract Name.Qualified nameForImport(Import imp);
+  protected abstract Name.Qualified nameForImport(Import imp);
 
-  abstract Name.Qualified nameForExport(Export ex);
+  protected abstract Name.Qualified nameForExport(Export ex);
 
-  abstract String nameForType(ResolvedType e);
+  protected abstract String nameForType(ResolvedType e);
 
-  abstract java.util.List<Export> exportsFor(Module module, String impName);
+  protected abstract java.util.List<Export> exportsFor(Module module, String impName);
 
-  abstract boolean isAll(Export ex);
-
-  /**
-   * @return {@code null} or list of named imports
-   */
-  abstract java.util.List<Name.Literal> onlyNames(Export ex);
+  protected abstract boolean isAll(Export ex);
 
   /**
    * @return {@code null} or list of named imports
    */
-  abstract java.util.List<Name.Literal> hiddenNames(Export ex);
+  protected abstract java.util.List<Name.Literal> onlyNames(Export ex);
 
-  abstract java.util.List<ResolvedType> definedEntities(String name);
+  /**
+   * @return {@code null} or list of named imports
+   */
+  protected abstract java.util.List<Name.Literal> hiddenNames(Export ex);
+
+  protected abstract java.util.List<ResolvedType> definedEntities(String name);
 
   /**
    * Ensure library is loaded and load a module.
@@ -41,19 +41,28 @@ public abstract class ImportResolverAlgorithm<
    * @return {@code null} if the library is loaded, but the module isn't found
    * @throws IOException with {@link IOException#getMessage()} when the library cannot be loaded
    */
-  abstract ResolvedModule loadLibraryModule(LibraryName libraryName, String moduleName)
+  protected abstract ResolvedModule loadLibraryModule(LibraryName libraryName, String moduleName)
       throws IOException;
 
-  abstract Result tupleResolvedImport(Import imp, java.util.List<Export> exp, ResolvedModule m);
+  protected abstract Result createResolvedImport(
+      Import imp, java.util.List<Export> exp, ResolvedModule m);
 
-  abstract Result tupleResolvedType(Import imp, java.util.List<Export> exp, ResolvedType m);
+  protected abstract Result createResolvedType(
+      Import imp, java.util.List<Export> exp, ResolvedType m);
 
-  abstract Result tupleErrorPackageCoundNotBeLoaded(
+  protected abstract Result createErrorPackageCoundNotBeLoaded(
       Import imp, String impName, String loadingError);
 
-  abstract Result tupleErrorModuleDoesNotExist(Import imp, String impName);
+  protected abstract Result createErrorModuleDoesNotExist(Import imp, String impName);
 
-  public Result tryResolveImport(Module module, Import imp) {
+  /**
+   * Resolves given {@code Import} in context of given {@code Module}.
+   *
+   * @param module the module that wants to import something
+   * @param imp the import to resolve
+   * @return {@code Result} as created by {@link #createResolvedImport} and similar methods
+   */
+  public final Result tryResolveImport(Module module, Import imp) {
     var res = tryResolveImportNew(module, imp);
     return res;
   }
@@ -129,17 +138,17 @@ public abstract class ImportResolverAlgorithm<
     try {
       var m = loadLibraryModule(libraryName, impName);
       if (m != null) {
-        return tupleResolvedImport(imp, exp, m);
+        return createResolvedImport(imp, exp, m);
       } else {
         var typ = tryResolveAsTypeNew(nameForImport(imp));
         if (typ != null) {
-          return tupleResolvedType(imp, exp, typ);
+          return createResolvedType(imp, exp, typ);
         } else {
-          return tupleErrorModuleDoesNotExist(imp, impName);
+          return createErrorModuleDoesNotExist(imp, impName);
         }
       }
     } catch (IOException e) {
-      return tupleErrorPackageCoundNotBeLoaded(imp, impName, e.getMessage());
+      return createErrorPackageCoundNotBeLoaded(imp, impName, e.getMessage());
     }
   }
 
