@@ -1178,7 +1178,7 @@ public class EnsoParserTest {
         """
     suite =
         Test.specify "should quote values containing the comment symbol if comments are enabled" <|
-            format = Delimited ',' . with_comments
+            format = Delimited_Format.Delimited ',' . with_comments
             table.write file format on_problems=Report_Error . should_succeed
             expected_text_2 = normalize_lines <| \"""
                 "#",B

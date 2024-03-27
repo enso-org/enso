@@ -431,5 +431,5 @@ get_download_url_for_file file:Enso_File -> Text =
     presigned_url
 
 ## PRIVATE
-asset_uri : Text
+asset_uri : Enso_File -> Text
 asset_uri file:Enso_File = Utils.assets_api + "/" + file.id

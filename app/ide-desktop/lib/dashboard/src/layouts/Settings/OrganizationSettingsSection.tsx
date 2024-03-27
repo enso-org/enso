@@ -8,9 +8,8 @@ import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 import * as backendProvider from '#/providers/BackendProvider'
 import * as textProvider from '#/providers/TextProvider'
 
-import SettingsInput from '#/components/styled/settings/SettingsInput'
-
 import * as aria from '#/components/aria'
+import SettingsInput from '#/components/styled/settings/SettingsInput'
 import SettingsSection from '#/components/styled/settings/SettingsSection'
 
 import * as backendModule from '#/services/Backend'
@@ -39,19 +38,19 @@ export default function OrganizationSettingsSection(props: OrganizationSettingsS
   const locationRef = React.useRef<HTMLInputElement | null>(null)
 
   const doUpdateName = async () => {
-    const oldName = organization.organization_name ?? null
+    const oldName = organization.name ?? null
     const name = nameRef.current?.value ?? ''
     if (oldName !== name) {
       try {
         // eslint-disable-next-line @typescript-eslint/naming-convention
-        setOrganization(object.merger({ organization_name: name }))
+        setOrganization(object.merger({ name: name }))
         const newOrganization = await backend.updateOrganization({ name })
         if (newOrganization != null) {
           setOrganization(newOrganization)
         }
       } catch (error) {
         // eslint-disable-next-line @typescript-eslint/naming-convention
-        setOrganization(object.merger({ organization_name: oldName }))
+        setOrganization(object.merger({ name: oldName }))
         toastAndLog(null, error)
         const ref = nameRef.current
         if (ref) {
@@ -129,10 +128,10 @@ export default function OrganizationSettingsSection(props: OrganizationSettingsS
             {getText('organizationDisplayName')}
           </aria.Label>
           <SettingsInput
-            key={organization.organization_name}
+            key={organization.name}
             ref={nameRef}
             type="text"
-            initialValue={organization.organization_name ?? ''}
+            initialValue={organization.name ?? ''}
             onSubmit={doUpdateName}
           />
         </aria.TextField>

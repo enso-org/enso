@@ -2,7 +2,7 @@ from Standard.Base import all
 import Standard.Base.Data.Numbers.Positive_Integer
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
-import project.Data.Type.Value_Type_Helpers
+import project.Internal.Value_Type_Helpers
 from project.Errors import Invalid_Value_Type
 
 ## Type to represent the different sizes of integer or float storage.

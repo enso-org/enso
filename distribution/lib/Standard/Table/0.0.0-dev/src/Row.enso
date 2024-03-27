@@ -1,8 +1,8 @@
 from Standard.Base import all
 import Standard.Base.Data.Array_Proxy.Array_Proxy
 
-import project.Data.Table.Table
 import project.Internal.Widget_Helpers
+import project.Table.Table
 
 ## Represents a single row of some in-memory Table.
 type Row

@@ -8,7 +8,7 @@ import { computed, ref, watch, watchEffect, watchPostEffect } from 'vue'
 
 export const name = 'Histogram'
 export const inputType =
-  'Standard.Table.Data.Table.Table | Standard.Base.Data.Vector.Vector | Standard.Image.Histogram.Histogram'
+  'Standard.Table.Table.Table | Standard.Base.Data.Vector.Vector | Standard.Image.Histogram.Histogram'
 export const defaultPreprocessor = [
   'Standard.Visualization.Histogram',
   'process_to_json_text',

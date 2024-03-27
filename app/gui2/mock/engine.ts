@@ -238,7 +238,7 @@ const mockVizData: Record<string, Uint8Array | ((params: string[]) => Uint8Array
                   {
                     type: 'Choice',
                     constructor: 'Option',
-                    value: 'Standard.Table.Data.Aggregate_Column.Aggregate_Column.Group_By',
+                    value: 'Standard.Table.Aggregate_Column.Aggregate_Column.Group_By',
                     label: null,
                     parameters: [
                       [
@@ -271,14 +271,14 @@ const mockVizData: Record<string, Uint8Array | ((params: string[]) => Uint8Array
                   {
                     type: 'Choice',
                     constructor: 'Option',
-                    value: 'Standard.Table.Data.Aggregate_Column.Aggregate_Column.Count',
+                    value: 'Standard.Table.Aggregate_Column.Aggregate_Column.Count',
                     label: null,
                     parameters: [],
                   },
                   {
                     type: 'Choice',
                     constructor: 'Option',
-                    value: 'Standard.Table.Data.Aggregate_Column.Aggregate_Column.Count_Distinct',
+                    value: 'Standard.Table.Aggregate_Column.Aggregate_Column.Count_Distinct',
                     label: null,
                     parameters: [
                       [
