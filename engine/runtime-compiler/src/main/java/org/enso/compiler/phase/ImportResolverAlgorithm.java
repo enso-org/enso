@@ -8,14 +8,12 @@ import org.enso.compiler.core.ir.Module;
 import org.enso.compiler.core.ir.Name;
 import org.enso.compiler.core.ir.module.scope.Export;
 import org.enso.compiler.core.ir.module.scope.Import;
-import org.enso.compiler.data.BindingsMap.ResolvedImport;
 import org.enso.compiler.data.BindingsMap.ResolvedType;
 import org.enso.editions.LibraryName;
-import scala.Option;
 import scala.Tuple2;
 import scala.jdk.CollectionConverters;
 
-public abstract class ImportResolverAlgorithm {
+public abstract class ImportResolverAlgorithm<Result> {
   protected ImportResolverAlgorithm() {}
 
   abstract Name.Qualified nameForImport(Import.Module imp);
@@ -49,25 +47,23 @@ public abstract class ImportResolverAlgorithm {
   abstract CompilerContext.Module loadLibraryModule(LibraryName libraryName, String moduleName)
       throws IOException;
 
-  abstract Tuple2<Import, Option<ResolvedImport>> tupleResolvedImport(
+  abstract Result tupleResolvedImport(
       Import.Module imp, java.util.List<Export.Module> exp, CompilerContext.Module m);
 
-  abstract Tuple2<Import, Option<ResolvedImport>> tupleResolvedType(
+  abstract Result tupleResolvedType(
       Import.Module imp, java.util.List<Export.Module> exp, ResolvedType m);
 
-  abstract Tuple2<Import, Option<ResolvedImport>> tupleErrorPackageCoundNotBeLoaded(
+  abstract Result tupleErrorPackageCoundNotBeLoaded(
       Import.Module imp, String impName, String loadingError);
 
-  abstract Tuple2<Import, Option<ResolvedImport>> tupleErrorModuleDoesNotExist(
-      Import.Module imp, String impName);
+  abstract Result tupleErrorModuleDoesNotExist(Import.Module imp, String impName);
 
-  public Tuple2<Import, Option<ResolvedImport>> tryResolveImport(Module module, Import.Module imp) {
+  public Result tryResolveImport(Module module, Import.Module imp) {
     var res = tryResolveImportNew(module, imp);
     return res;
   }
 
-  private Tuple2<Import, Option<ResolvedImport>> tryResolveImportNew(
-      Module module, Import.Module imp) {
+  private Result tryResolveImportNew(Module module, Import.Module imp) {
     var impName = nameForImport(imp).name();
     var exp = exportsFor(module, impName);
     var fromAllExports = exp.stream().filter(ex -> isAll(ex)).toList();
