@@ -1,6 +1,6 @@
 COMP_PATH=$(dirname "$0")/../component
 
-EXTRA_OPTS="-Dgraal.PrintGraph=Network"
+EXTRA_OPTS="-Dgraal.PrintGraph=Network -Djdk.internal.vm.TranslatedException.debug=true"
 for opt in "$@"; do
   if [ "$opt" = "--dump-graphs" ]; then
     EXTRA_OPTS="$EXTRA_OPTS -Dgraal.Dump=:1"
