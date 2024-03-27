@@ -71,7 +71,7 @@ export default function AssetProperties(props: AssetPropertiesProps) {
     },
     [/* should never change */ setItemRaw]
   )
-  const self = item.item.permissions?.find(permission => permission.user.user_email === user?.email)
+  const self = item.item.permissions?.find(permission => permission.user.userId === user?.userId)
   const ownsThisAsset = self?.permission === permissions.PermissionAction.own
   const canEditThisAsset =
     ownsThisAsset ||
@@ -101,9 +101,14 @@ export default function AssetProperties(props: AssetPropertiesProps) {
       const oldDescription = item.item.description
       setItem(oldItem => oldItem.with({ item: object.merge(oldItem.item, { description }) }))
       try {
+        const projectPath = item.item.projectState?.path
         await backend.updateAsset(
           item.item.id,
-          { parentDirectoryId: null, description },
+          {
+            parentDirectoryId: null,
+            description,
+            ...(projectPath == null ? {} : { projectPath }),
+          },
           item.item.title
         )
       } catch (error) {
