@@ -25,7 +25,8 @@ abstract class ImportResolverForIR extends ImportResolverAlgorithm<
   Tuple2<Import, Option<BindingsMap.ResolvedImport>>,
   Import.Module,
   Export.Module,
-  ResolvedType
+  ResolvedType,
+  CompilerContext.Module
 > {
   abstract Compiler getCompiler();
 

@@ -2,7 +2,6 @@ package org.enso.compiler.phase;
 
 import java.io.IOException;
 import java.util.Objects;
-import org.enso.compiler.context.CompilerContext;
 import org.enso.compiler.core.CompilerError;
 import org.enso.compiler.core.ir.Module;
 import org.enso.compiler.core.ir.Name;
@@ -10,7 +9,8 @@ import org.enso.editions.LibraryName;
 import scala.Tuple2;
 import scala.jdk.CollectionConverters;
 
-public abstract class ImportResolverAlgorithm<Result, Import, Export, ResolvedType> {
+public abstract class ImportResolverAlgorithm<
+    Result, Import, Export, ResolvedType, ResolvedModule> {
   protected ImportResolverAlgorithm() {}
 
   abstract Name.Qualified nameForImport(Import imp);
@@ -41,11 +41,10 @@ public abstract class ImportResolverAlgorithm<Result, Import, Export, ResolvedTy
    * @return {@code null} if the library is loaded, but the module isn't found
    * @throws IOException with {@link IOException#getMessage()} when the library cannot be loaded
    */
-  abstract CompilerContext.Module loadLibraryModule(LibraryName libraryName, String moduleName)
+  abstract ResolvedModule loadLibraryModule(LibraryName libraryName, String moduleName)
       throws IOException;
 
-  abstract Result tupleResolvedImport(
-      Import imp, java.util.List<Export> exp, CompilerContext.Module m);
+  abstract Result tupleResolvedImport(Import imp, java.util.List<Export> exp, ResolvedModule m);
 
   abstract Result tupleResolvedType(Import imp, java.util.List<Export> exp, ResolvedType m);
 
