@@ -1,13 +1,5 @@
 //! Prints a debug representation of Enso documentation found in the given Enso source file(s).
 
-#![recursion_limit = "256"]
-// === Features ===
-#![feature(assert_matches)]
-#![feature(allocator_api)]
-#![feature(exact_size_is_empty)]
-#![feature(test)]
-#![feature(let_chains)]
-#![feature(if_let_guard)]
 // === Non-Standard Linter Configuration ===
 #![allow(clippy::option_map_unit_fn)]
 #![allow(clippy::precedence)]
@@ -28,7 +20,7 @@ use enso_parser::prelude::*;
 
 fn main() {
     let args = std::env::args().skip(1);
-    if args.is_empty() {
+    if args.len() == 0 {
         use std::io::Read;
         let mut input = String::new();
         std::io::stdin().read_to_string(&mut input).unwrap();

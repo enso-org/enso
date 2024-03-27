@@ -17,9 +17,7 @@ crate-type = ["rlib"]
 default = []
 
 [dependencies]
-bytemuck = { workspace = true }
 serde = { workspace = true }
-paste = { workspace = true }
 
 [lints]
 workspace = true

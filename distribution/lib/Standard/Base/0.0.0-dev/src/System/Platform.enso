@@ -16,7 +16,8 @@ type OS
     ## An unknown operating system.
     Unknown
 
-## Return the type of operating system.
+## ICON system
+   Return the type of operating system.
 
    > Example
      Return the OS type:

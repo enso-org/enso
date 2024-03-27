@@ -22,6 +22,7 @@ polyglot java import org.enso.base.Text_Utils
 type Text
     ## ALIAS count
        GROUP Metadata
+       ICON metadata
        Computes the number of characters in the text.
 
        ! What is a Character?
@@ -91,7 +92,8 @@ type Text
     to_case_insensitive_key self (locale : Locale = Locale.default) =
         Text_Utils.case_insensitive_key self locale.java_locale
 
-    ## Compare two texts to discover their ordering.
+    ## ICON text
+       Compare two texts to discover their ordering.
 
        Arguments:
        - that: The text to order `self` with respect to.
@@ -141,6 +143,7 @@ type Text
     to_text self = self
 
     ## ADVANCED
+       ICON metadata
        Checks where this Text is in FCD normalized form.
 
        > Example
@@ -151,6 +154,7 @@ type Text
     is_normalized self = @Builtin_Method "Text.is_normalized"
 
     ## ALIAS normalise
+       ICON convert
 
        Perform Unicode normalization on the string, using the specified method.
 

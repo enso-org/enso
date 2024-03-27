@@ -871,7 +871,17 @@ impl Step {
     pub fn with_variable_exposed(self, variable: impl AsRef<str>) -> Self {
         let variable_name = variable.as_ref();
         let env_name = variable_name.to_owned();
-        self.with_env(env_name, variable_expression(variable_name))
+        self.with_variable_exposed_as(variable_name, env_name)
+    }
+
+    /// Expose [a variable](https://docs.github.com/en/actions/learn-github-actions/variables) as an environment variable with a given name.
+    pub fn with_variable_exposed_as(
+        self,
+        variable: impl AsRef<str>,
+        given_name: impl Into<String>,
+    ) -> Self {
+        let variable_expr = variable_expression(variable);
+        self.with_env(given_name, variable_expr)
     }
 
     /// Expose a secret as an environment variable with a given name.

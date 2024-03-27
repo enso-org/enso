@@ -3,6 +3,8 @@ import * as React from 'react'
 
 import PenIcon from 'enso-assets/pen.svg'
 
+import * as dataLinkValidator from '#/data/dataLinkValidator'
+
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
 import * as authProvider from '#/providers/AuthProvider'
@@ -25,7 +27,6 @@ import type AssetQuery from '#/utilities/AssetQuery'
 import type AssetTreeNode from '#/utilities/AssetTreeNode'
 import * as object from '#/utilities/object'
 import * as permissions from '#/utilities/permissions'
-import * as validateDataLink from '#/utilities/validateDataLink'
 
 // =======================
 // === AssetProperties ===
@@ -60,7 +61,7 @@ export default function AssetProperties(props: AssetPropertiesProps) {
   )
   const [isDataLinkFetched, setIsDataLinkFetched] = React.useState(false)
   const isDataLinkSubmittable = React.useMemo(
-    () => validateDataLink.validateDataLink(dataLinkValue),
+    () => dataLinkValidator.validateDataLink(dataLinkValue),
     [dataLinkValue]
   )
   const setItem = React.useCallback(
@@ -70,7 +71,7 @@ export default function AssetProperties(props: AssetPropertiesProps) {
     },
     [/* should never change */ setItemRaw]
   )
-  const self = item.item.permissions?.find(permission => permission.user.user_email === user?.email)
+  const self = item.item.permissions?.find(permission => permission.user.userId === user?.userId)
   const ownsThisAsset = self?.permission === permissions.PermissionAction.own
   const canEditThisAsset =
     ownsThisAsset ||
@@ -100,9 +101,14 @@ export default function AssetProperties(props: AssetPropertiesProps) {
       const oldDescription = item.item.description
       setItem(oldItem => oldItem.with({ item: object.merge(oldItem.item, { description }) }))
       try {
+        const projectPath = item.item.projectState?.path
         await backend.updateAsset(
           item.item.id,
-          { parentDirectoryId: null, description },
+          {
+            parentDirectoryId: null,
+            description,
+            ...(projectPath == null ? {} : { projectPath }),
+          },
           item.item.title
         )
       } catch (error) {

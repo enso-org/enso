@@ -44,6 +44,7 @@ pub mod enso;
 pub mod env;
 pub mod httpbin;
 pub mod ide;
+pub mod libraries_tests;
 pub mod paths;
 pub mod postgres;
 pub mod programs;
