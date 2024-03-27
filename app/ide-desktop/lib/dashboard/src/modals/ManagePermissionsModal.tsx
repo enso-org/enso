@@ -15,6 +15,7 @@ import Autocomplete from '#/components/Autocomplete'
 import PermissionSelector from '#/components/dashboard/PermissionSelector'
 import UserPermission from '#/components/dashboard/UserPermission'
 import Modal from '#/components/Modal'
+import UnstyledButton from '#/components/styled/UnstyledButton'
 
 import * as backendModule from '#/services/Backend'
 
@@ -306,20 +307,20 @@ export default function ManagePermissionsModal<
                   />
                 </div>
               </div>
-              <button
-                type="submit"
-                disabled={
+              <UnstyledButton
+                isDisabled={
                   willInviteNewUser
                     ? email == null || !isEmail(email)
                     : users.length === 0 ||
                       (email != null && emailsOfUsersWithPermission.has(email))
                 }
                 className="button bg-invite px-button-x text-tag-text selectable enabled:active"
+                onPress={doSubmit}
               >
                 <div className="h-text py-modal-invite-button-text-y">
                   {willInviteNewUser ? 'Invite' : 'Share'}
                 </div>
-              </button>
+              </UnstyledButton>
             </form>
             <div className="max-h-manage-permissions-modal-permissions-list overflow-auto px-manage-permissions-modal-input">
               {editablePermissions.map(userPermission => (

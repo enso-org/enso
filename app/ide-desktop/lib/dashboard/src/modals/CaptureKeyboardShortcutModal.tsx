@@ -7,6 +7,8 @@ import * as modalProvider from '#/providers/ModalProvider'
 
 import KeyboardShortcut from '#/components/dashboard/KeyboardShortcut'
 import Modal from '#/components/Modal'
+import ButtonRow from '#/components/styled/ButtonRow'
+import UnstyledButton from '#/components/styled/UnstyledButton'
 
 import * as inputBindings from '#/utilities/inputBindings'
 
@@ -115,18 +117,21 @@ export default function CaptureKeyboardShortcutModal(props: CaptureKeyboardShort
         <span className="relative text-red-600">
           {doesAlreadyExist ? 'This shortcut already exists.' : ''}
         </span>
-        <div className="relative flex gap-buttons self-start">
-          <button
-            disabled={!canSubmit}
-            type="submit"
+        <ButtonRow>
+          <UnstyledButton
+            isDisabled={!canSubmit}
             className="button bg-invite text-white enabled:active"
+            onPress={() => {
+              unsetModal()
+              onSubmit(shortcut)
+            }}
           >
             Confirm
-          </button>
-          <button type="button" className="button bg-selected-frame active" onClick={unsetModal}>
+          </UnstyledButton>
+          <UnstyledButton className="button bg-selected-frame active" onPress={unsetModal}>
             Cancel
-          </button>
-        </div>
+          </UnstyledButton>
+        </ButtonRow>
       </form>
     </Modal>
   )

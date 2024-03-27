@@ -5,8 +5,11 @@ import SCHEMA from '#/data/dataLinkSchema.json' assert { type: 'json' }
 
 import * as modalProvider from '#/providers/ModalProvider'
 
+import * as aria from '#/components/aria'
 import DataLinkInput from '#/components/dashboard/DataLinkInput'
 import Modal from '#/components/Modal'
+import ButtonRow from '#/components/styled/ButtonRow'
+import UnstyledButton from '#/components/styled/UnstyledButton'
 
 import * as jsonSchema from '#/utilities/jsonSchema'
 import * as validateDataLink from '#/utilities/validateDataLink'
@@ -37,6 +40,11 @@ export default function UpsertDataLinkModal(props: UpsertDataLinkModalProps) {
   const isValueSubmittable = React.useMemo(() => validateDataLink.validateDataLink(value), [value])
   const isSubmittable = name !== '' && isValueSubmittable
 
+  const doSubmit = () => {
+    unsetModal()
+    doCreate(name, value)
+  }
+
   return (
     <Modal centered className="bg-dim">
       <form
@@ -51,14 +59,16 @@ export default function UpsertDataLinkModal(props: UpsertDataLinkModalProps) {
         }}
         onSubmit={event => {
           event.preventDefault()
-          unsetModal()
-          doCreate(name, value)
+          doSubmit()
         }}
       >
-        <h1 className="relative text-sm font-semibold">Create Data Link</h1>
-        <div className="relative flex items-center" title="Must not be blank.">
-          <div className="text w-modal-label">Name</div>
-          <input
+        <aria.Heading className="relative text-sm font-semibold">Create Data Link</aria.Heading>
+        <aria.TextField
+          className="relative flex items-center"
+          aria-errormessage="Must not be blank."
+        >
+          <aria.Label className="text w-modal-label">Name</aria.Label>
+          <aria.Input
             autoFocus
             placeholder="Enter the name of the Data Link"
             className={`text grow rounded-full border bg-transparent px-input-x ${
@@ -69,22 +79,22 @@ export default function UpsertDataLinkModal(props: UpsertDataLinkModalProps) {
               setName(event.currentTarget.value)
             }}
           />
-        </div>
+        </aria.TextField>
         <div className="relative">
           <DataLinkInput dropdownTitle="Type" value={value} setValue={setValue} />
         </div>
-        <div className="relative flex gap-buttons">
-          <button
-            type="submit"
-            disabled={!isSubmittable}
+        <ButtonRow>
+          <UnstyledButton
+            isDisabled={!isSubmittable}
             className="button bg-invite text-white enabled:active"
+            onPress={doSubmit}
           >
             Create
-          </button>
-          <button type="button" className="button bg-selected-frame active" onClick={unsetModal}>
+          </UnstyledButton>
+          <UnstyledButton className="button bg-selected-frame active" onPress={unsetModal}>
             Cancel
-          </button>
-        </div>
+          </UnstyledButton>
+        </ButtonRow>
       </form>
     </Modal>
   )

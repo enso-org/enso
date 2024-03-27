@@ -5,7 +5,10 @@ import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
 import * as modalProvider from '#/providers/ModalProvider'
 
+import * as aria from '#/components/aria'
 import Modal from '#/components/Modal'
+import ButtonRow from '#/components/styled/ButtonRow'
+import UnstyledButton from '#/components/styled/UnstyledButton'
 
 import type * as backend from '#/services/Backend'
 
@@ -32,7 +35,7 @@ export default function UpsertSecretModal(props: UpsertSecretModalProps) {
   const isNameEditable = nameRaw == null
   const canSubmit = Boolean(name && value)
 
-  const onSubmit = () => {
+  const doSubmit = () => {
     unsetModal()
     try {
       doCreate(name, value)
@@ -57,15 +60,15 @@ export default function UpsertSecretModal(props: UpsertSecretModalProps) {
         }}
         onSubmit={event => {
           event.preventDefault()
-          onSubmit()
+          doSubmit()
         }}
       >
-        <h1 className="relative text-sm font-semibold">
+        <aria.Heading className="relative text-sm font-semibold">
           {isCreatingSecret ? 'New Secret' : 'Edit Secret'}
-        </h1>
-        <label className="relative flex h-row items-center">
-          <div className="text w-modal-label">Name</div>
-          <input
+        </aria.Heading>
+        <aria.TextField className="relative flex h-row items-center">
+          <aria.Label className="text w-modal-label">Name</aria.Label>
+          <aria.Input
             autoFocus
             disabled={!isNameEditable}
             placeholder="Enter the name of the secret"
@@ -75,10 +78,10 @@ export default function UpsertSecretModal(props: UpsertSecretModalProps) {
               setName(event.currentTarget.value)
             }}
           />
-        </label>
-        <label className="relative flex h-row items-center">
-          <div className="text w-modal-label">Value</div>
-          <input
+        </aria.TextField>
+        <aria.TextField className="relative flex h-row items-center">
+          <aria.Label className="text w-modal-label">Value</aria.Label>
+          <aria.Input
             autoFocus={!isNameEditable}
             placeholder={isNameEditable ? 'Enter the value of the secret' : '●●●●●●●●'}
             className="text grow rounded-full border border-primary/10 bg-transparent px-input-x"
@@ -86,15 +89,19 @@ export default function UpsertSecretModal(props: UpsertSecretModalProps) {
               setValue(event.currentTarget.value)
             }}
           />
-        </label>
-        <div className="relative flex gap-buttons">
-          <button disabled={!canSubmit} type="submit" className="button bg-invite text-white">
+        </aria.TextField>
+        <ButtonRow>
+          <UnstyledButton
+            isDisabled={!canSubmit}
+            className="button bg-invite text-white"
+            onPress={doSubmit}
+          >
             {isCreatingSecret ? 'Create' : 'Update'}
-          </button>
-          <button type="button" className="button bg-selected-frame" onClick={unsetModal}>
+          </UnstyledButton>
+          <UnstyledButton className="button bg-selected-frame" onPress={unsetModal}>
             Cancel
-          </button>
-        </div>
+          </UnstyledButton>
+        </ButtonRow>
       </form>
     </Modal>
   )

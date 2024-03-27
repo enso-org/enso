@@ -42,7 +42,7 @@ export default function NewLabelModal(props: NewLabelModalProps) {
   const [color, setColor] = React.useState<backend.LChColor | null>(null)
   const canSubmit = Boolean(value && !labelNames.has(value))
 
-  const onSubmit = () => {
+  const doSubmit = () => {
     unsetModal()
     try {
       doCreate(value, color ?? leastUsedColor)
@@ -73,7 +73,7 @@ export default function NewLabelModal(props: NewLabelModalProps) {
           event.preventDefault()
           // Consider not calling `onSubmit()` here to make it harder to accidentally
           // delete an important asset.
-          onSubmit()
+          doSubmit()
         }}
       >
         <h1 className="relative text-sm font-semibold">New Label</h1>
@@ -128,7 +128,7 @@ export default function NewLabelModal(props: NewLabelModalProps) {
           <UnstyledButton
             isDisabled={!canSubmit}
             className="button bg-invite text-white enabled:active"
-            onPress={onSubmit}
+            onPress={doSubmit}
           >
             Create
           </UnstyledButton>

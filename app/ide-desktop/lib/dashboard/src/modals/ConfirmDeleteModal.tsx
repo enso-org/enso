@@ -6,6 +6,8 @@ import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 import * as modalProvider from '#/providers/ModalProvider'
 
 import Modal from '#/components/Modal'
+import ButtonRow from '#/components/styled/ButtonRow'
+import UnstyledButton from '#/components/styled/UnstyledButton'
 
 // ==========================
 // === ConfirmDeleteModal ===
@@ -26,7 +28,7 @@ export default function ConfirmDeleteModal(props: ConfirmDeleteModalProps) {
   const toastAndLog = toastAndLogHooks.useToastAndLog()
   const { unsetModal } = modalProvider.useSetModal()
 
-  const onSubmit = () => {
+  const doSubmit = () => {
     unsetModal()
     try {
       doDelete()
@@ -54,18 +56,22 @@ export default function ConfirmDeleteModal(props: ConfirmDeleteModalProps) {
         }}
         onSubmit={event => {
           event.preventDefault()
-          onSubmit()
+          doSubmit()
         }}
       >
         <div className="relative">Are you sure you want to {actionText}?</div>
-        <div className="relative flex gap-buttons">
-          <button type="submit" className="button bg-delete text-white active">
+        <ButtonRow>
+          <UnstyledButton className="button bg-delete text-white active" onPress={doSubmit}>
             {actionButtonLabel}
-          </button>
-          <button type="button" className="button bg-selected-frame active" onClick={unsetModal}>
+          </UnstyledButton>
+          <UnstyledButton
+            autoFocus
+            className="button bg-selected-frame active"
+            onPress={unsetModal}
+          >
             Cancel
-          </button>
-        </div>
+          </UnstyledButton>
+        </ButtonRow>
       </form>
     </Modal>
   )

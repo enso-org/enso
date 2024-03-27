@@ -8,8 +8,11 @@ import AssetEventType from '#/events/AssetEventType'
 import type * as assetListEvent from '#/events/assetListEvent'
 import AssetListEventType from '#/events/AssetListEventType'
 
+import * as aria from '#/components/aria'
 import AssetSummary from '#/components/dashboard/AssetSummary'
 import Modal from '#/components/Modal'
+import ButtonRow from '#/components/styled/ButtonRow'
+import UnstyledButton from '#/components/styled/UnstyledButton'
 
 import * as backendModule from '#/services/Backend'
 
@@ -208,7 +211,7 @@ export default function DuplicateAssetsModal(props: DuplicateAssetsModalProps) {
           event.preventDefault()
         }}
       >
-        <h1 className="relative text-sm font-semibold">
+        <aria.Heading className="relative text-sm font-semibold">
           Duplicate{' '}
           {conflictingFiles.length > 0
             ? conflictingProjects.length > 0
@@ -216,23 +219,22 @@ export default function DuplicateAssetsModal(props: DuplicateAssetsModalProps) {
               : filesTextUppercase
             : projectsTextUppercase}{' '}
           Found
-        </h1>
+        </aria.Heading>
         {nonConflictingCount > 0 && (
           <div className="relative flex flex-col">
-            <span className="text">
+            <aria.Text className="text">
               {nonConflictingCount} {pluralizeFile(nonConflictingCount)} without conflicts
-            </span>
-            <button
-              disabled={didUploadNonConflicting}
-              type="button"
+            </aria.Text>
+            <UnstyledButton
+              isDisabled={didUploadNonConflicting}
               className="button relative self-start rounded-full bg-selected-frame selectable enabled:active"
-              onClick={() => {
+              onPress={() => {
                 doUploadNonConflicting()
                 setDidUploadNonConflicting(true)
               }}
             >
               {didUploadNonConflicting ? 'Uploaded' : 'Upload'}
-            </button>
+            </UnstyledButton>
           </div>
         )}
         {firstConflict && (
@@ -251,11 +253,10 @@ export default function DuplicateAssetsModal(props: DuplicateAssetsModalProps) {
               />
             </div>
             {count > 1 && (
-              <div className="relative flex gap-icons">
-                <button
-                  type="button"
+              <ButtonRow>
+                <UnstyledButton
                   className="button bg-selected-frame active"
-                  onClick={() => {
+                  onPress={() => {
                     doUpdate([firstConflict])
                     switch (firstConflict.new.type) {
                       case backendModule.AssetType.file: {
@@ -270,11 +271,10 @@ export default function DuplicateAssetsModal(props: DuplicateAssetsModalProps) {
                   }}
                 >
                   Update
-                </button>
-                <button
-                  type="button"
+                </UnstyledButton>
+                <UnstyledButton
                   className="button  bg-selected-frame active"
-                  onClick={() => {
+                  onPress={() => {
                     doRename([firstConflict])
                     switch (firstConflict.new.type) {
                       case backendModule.AssetType.file: {
@@ -289,30 +289,28 @@ export default function DuplicateAssetsModal(props: DuplicateAssetsModalProps) {
                   }}
                 >
                   Rename New {firstConflictTypeName}
-                </button>
-              </div>
+                </UnstyledButton>
+              </ButtonRow>
             )}
           </>
         )}
         {(otherFilesText !== '' || otherProjectsText !== '' || nonConflictingCount > 0) && (
           <span className="relative">{[otherFilesText, otherProjectsText].join(' ')}</span>
         )}
-        <div className="relative flex gap-icons">
-          <button
-            type="button"
+        <ButtonRow>
+          <UnstyledButton
             className="button bg-invite text-white active"
-            onClick={() => {
+            onPress={() => {
               unsetModal()
               doUploadNonConflicting()
               doUpdate([...conflictingFiles, ...conflictingProjects])
             }}
           >
             {count === 1 ? 'Update' : 'Update All'}
-          </button>
-          <button
-            type="button"
+          </UnstyledButton>
+          <UnstyledButton
             className="button bg-invite text-white active"
-            onClick={() => {
+            onPress={() => {
               unsetModal()
               doUploadNonConflicting()
               doRename([...conflictingFiles, ...conflictingProjects])
@@ -321,11 +319,11 @@ export default function DuplicateAssetsModal(props: DuplicateAssetsModalProps) {
             {count === 1
               ? `Rename New ${firstConflictTypeName}`
               : `Rename New ${firstConflictTypeName}s`}
-          </button>
-          <button type="button" className="button bg-selected-frame active" onClick={unsetModal}>
+          </UnstyledButton>
+          <UnstyledButton className="button bg-selected-frame active" onPress={unsetModal}>
             Cancel
-          </button>
-        </div>
+          </UnstyledButton>
+        </ButtonRow>
       </form>
     </Modal>
   )

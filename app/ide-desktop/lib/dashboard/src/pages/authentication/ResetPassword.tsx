@@ -49,7 +49,7 @@ export default function ResetPassword() {
     }
   }, [email, navigate, verificationCode])
 
-  const onSubmit = () => {
+  const doSubmit = () => {
     if (newPassword !== newPasswordConfirm) {
       toastify.toast.error('Passwords do not match')
       return Promise.resolve()
@@ -65,7 +65,7 @@ export default function ResetPassword() {
         className="flex w-full max-w-md flex-col gap-auth rounded-auth bg-selected-frame p-auth shadow-md"
         onSubmit={async event => {
           event.preventDefault()
-          await onSubmit()
+          await doSubmit()
         }}
       >
         <div className="self-center text-xl font-medium">Reset your password</div>
