@@ -43,21 +43,8 @@ impl Artifact {
             _ => todo!("{target_os}-{target_arch} combination is not supported"),
         }
         .into();
-        // Electron-builder does something like this:
-        // https://github.com/electron-userland/electron-builder/blob/master/packages/builder-util/src/arch.ts
-        let arch_string = match (target_os, target_arch) {
-            (OS::Linux, Arch::X86_64) => "x86_64",
-            (_, Arch::X86_64) => "x64",
-            (_, Arch::AArch64) => "arm64",
-            _ => todo!("{target_os}-{target_arch} combination is not supported"),
-        };
-        let image = dist_dir.as_ref().join(match target_os {
-            OS::Linux => format!("enso-linux-{arch_string}-{version}.AppImage"),
-            OS::MacOS => format!("enso-mac-{arch_string}-{version}.dmg"),
-            OS::Windows => format!("enso-win-{arch_string}-{version}.exe"),
-            _ => todo!("{target_os}-{target_arch} combination is not supported"),
-        });
 
+        let image = PathBuf::from(electron_image_filename(target_os, target_arch, version));
         Self {
             image_checksum: image.with_extension("sha256"),
             image,
@@ -142,5 +129,23 @@ impl Ide {
             Ok(Artifact::new(target_os, target_arch, &version, output_path))
         }
         .boxed()
+    }
+}
+
+/// Filename of the image that electron-builder will produce.
+pub fn electron_image_filename(target_os: OS, target_arch: Arch, version: &Version) -> String {
+    // Electron-builder does something like this:
+    // https://github.com/electron-userland/electron-builder/blob/master/packages/builder-util/src/arch.ts
+    let arch_string = match (target_os, target_arch) {
+        (OS::Linux, Arch::X86_64) => "x86_64",
+        (_, Arch::X86_64) => "x64",
+        (_, Arch::AArch64) => "arm64",
+        _ => todo!("{target_os}-{target_arch} combination is not supported"),
+    };
+    match target_os {
+        OS::Linux => format!("enso-linux-{arch_string}-{version}.AppImage"),
+        OS::MacOS => format!("enso-mac-{arch_string}-{version}.dmg"),
+        OS::Windows => format!("enso-win-{arch_string}-{version}.exe"),
+        _ => todo!("{target_os}-{target_arch} combination is not supported"),
     }
 }
