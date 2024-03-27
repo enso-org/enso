@@ -134,8 +134,13 @@ export const useGraphStore = defineStore('graph', () => {
       id: AstId
       changes: NodeMetadata
     }[]
-    const dirtyNodeSet = new Set(update.nodesUpdated)
-    if (moduleChanged || dirtyNodeSet.size !== 0) {
+    const dirtyNodeSet = new Set(
+      (function* () {
+        yield* update.nodesUpdated
+        yield* update.nodesAdded
+      })(),
+    )
+    if (moduleChanged || dirtyNodeSet.size !== 0 || update.nodesDeleted.size !== 0) {
       db.updateExternalIds(root)
       toRaw = new Map()
       visitRecursive(Ast.parseEnso(moduleSource.text), (node) => {

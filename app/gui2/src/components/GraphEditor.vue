@@ -126,9 +126,11 @@ function zoomToSelected() {
 
 const graphBindingsHandler = graphBindings.handler({
   undo() {
+    console.log('Undo action')
     projectStore.module?.undoManager.undo()
   },
   redo() {
+    console.log('Redo action')
     projectStore.module?.undoManager.redo()
   },
   startProfiling() {

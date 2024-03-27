@@ -369,7 +369,6 @@ class UpdateBuilder {
 
   addNode(id: AstId) {
     this.nodesAdded.add(id)
-    this.updateAllFields(id)
   }
 
   updateAllFields(id: AstId) {

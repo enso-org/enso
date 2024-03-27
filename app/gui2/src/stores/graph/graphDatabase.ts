@@ -348,19 +348,11 @@ export class GraphDb {
       const node = this.nodeIdToNode.get(nodeId)
       currentNodeIds.add(nodeId)
       if (node == null) {
-        let metadataFields: NodeDataFromMetadata = {
-          position: new Vec2(0, 0),
-          vis: undefined,
-        }
-        // We are notified of new or changed metadata by `updateMetadata`, so we only need to read existing metadata
-        // when we switch to a different function.
-        if (functionChanged) {
-          const nodeMeta = newNode.rootExpr.nodeMetadata
-          const pos = nodeMeta.get('position') ?? { x: 0, y: 0 }
-          metadataFields = {
-            position: new Vec2(pos.x, pos.y),
-            vis: nodeMeta.get('visualization'),
-          }
+        const nodeMeta = newNode.rootExpr.nodeMetadata
+        const pos = nodeMeta.get('position') ?? { x: 0, y: 0 }
+        const metadataFields = {
+          position: new Vec2(pos.x, pos.y),
+          vis: nodeMeta.get('visualization'),
         }
         this.nodeIdToNode.set(nodeId, { ...newNode, ...metadataFields, zIndex: this.highestZIndex })
       } else {
