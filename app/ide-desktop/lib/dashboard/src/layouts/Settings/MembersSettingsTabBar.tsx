@@ -5,7 +5,7 @@ import * as modalProvider from '#/providers/ModalProvider'
 import * as textProvider from '#/providers/TextProvider'
 
 import * as aria from '#/components/aria'
-import FocusArea from '#/components/styled/FocusArea'
+import HorizontalMenuBar from '#/components/styled/HorizontalMenuBar'
 import UnstyledButton from '#/components/styled/UnstyledButton'
 
 import InviteUsersModal from '#/modals/InviteUsersModal'
@@ -20,21 +20,17 @@ export default function MembersSettingsTabBar() {
   const { getText } = textProvider.useText()
 
   return (
-    <FocusArea direction="horizontal">
-      {(ref, innerProps) => (
-        <div ref={ref} className="flex gap-drive-bar" {...innerProps}>
-          <UnstyledButton
-            className="flex h-row items-center rounded-full bg-frame px-new-project-button-x"
-            onPress={() => {
-              setModal(<InviteUsersModal eventTarget={null} />)
-            }}
-          >
-            <aria.Text className="text whitespace-nowrap font-semibold">
-              {getText('inviteMembers')}
-            </aria.Text>
-          </UnstyledButton>
-        </div>
-      )}
-    </FocusArea>
+    <HorizontalMenuBar>
+      <UnstyledButton
+        className="flex h-row items-center rounded-full bg-frame px-new-project-button-x"
+        onPress={() => {
+          setModal(<InviteUsersModal eventTarget={null} />)
+        }}
+      >
+        <aria.Text className="text whitespace-nowrap font-semibold">
+          {getText('inviteMembers')}
+        </aria.Text>
+      </UnstyledButton>
+    </HorizontalMenuBar>
   )
 }

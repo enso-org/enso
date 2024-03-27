@@ -3,6 +3,10 @@ import * as React from 'react'
 
 import * as aria from '#/components/aria'
 
+// =================
+// === FocusRing ===
+// =================
+
 /** Which pseudo-element to place the focus ring on (if any). */
 export type FocusRingPlacement = 'after' | 'before'
 

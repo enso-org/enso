@@ -20,7 +20,7 @@ import Category from '#/layouts/CategorySwitcher/Category'
 
 import * as aria from '#/components/aria'
 import Button from '#/components/styled/Button'
-import FocusArea from '#/components/styled/FocusArea'
+import HorizontalMenuBar from '#/components/styled/HorizontalMenuBar'
 import UnstyledButton from '#/components/styled/UnstyledButton'
 
 import ConfirmDeleteModal from '#/modals/ConfirmDeleteModal'
@@ -84,139 +84,123 @@ export default function DriveBar(props: DriveBarProps) {
       // It is INCORRECT to have a "New Project" button here as it requires a full list of projects
       // in the given directory, to avoid name collisions.
       return (
-        <FocusArea direction="horizontal">
-          {(ref, innerProps) => (
-            <div ref={ref} className="flex h-row py-drive-bar-y" {...innerProps}>
-              <div className="flex gap-drive-bar" />
-            </div>
-          )}
-        </FocusArea>
+        <div className="flex h-row py-drive-bar-y">
+          <HorizontalMenuBar />
+        </div>
       )
     }
     case Category.trash: {
       return (
-        <FocusArea direction="horizontal">
-          {(ref, innerProps) => (
-            <div ref={ref} className="flex h-row py-drive-bar-y" {...innerProps}>
-              <div className="flex gap-drive-bar">
-                <UnstyledButton
-                  className="flex h-row items-center rounded-full bg-frame px-new-project-button-x"
-                  onPress={() => {
-                    setModal(
-                      <ConfirmDeleteModal
-                        actionText={getText('allTrashedItemsForever')}
-                        doDelete={doEmptyTrash}
-                      />
-                    )
-                  }}
-                >
-                  <aria.Text className="text whitespace-nowrap font-semibold">
-                    {getText('clearTrash')}
-                  </aria.Text>
-                </UnstyledButton>
-              </div>
-            </div>
-          )}
-        </FocusArea>
+        <div className="flex h-row py-drive-bar-y">
+          <HorizontalMenuBar>
+            <UnstyledButton
+              className="flex h-row items-center rounded-full bg-frame px-new-project-button-x"
+              onPress={() => {
+                setModal(
+                  <ConfirmDeleteModal
+                    actionText={getText('allTrashedItemsForever')}
+                    doDelete={doEmptyTrash}
+                  />
+                )
+              }}
+            >
+              <aria.Text className="text whitespace-nowrap font-semibold">
+                {getText('clearTrash')}
+              </aria.Text>
+            </UnstyledButton>
+          </HorizontalMenuBar>
+        </div>
       )
     }
     case Category.home: {
       return (
-        <FocusArea direction="horizontal">
-          {(ref, innerProps) => (
-            <div ref={ref} className="flex h-row py-drive-bar-y" {...innerProps}>
-              <div className="flex gap-drive-bar">
-                <UnstyledButton
-                  className="flex h-row items-center rounded-full bg-frame px-new-project-button-x"
+        <div className="flex h-row py-drive-bar-y">
+          <HorizontalMenuBar>
+            <UnstyledButton
+              className="flex h-row items-center rounded-full bg-frame px-new-project-button-x"
+              onPress={() => {
+                unsetModal()
+                doCreateProject()
+              }}
+            >
+              <aria.Text className="text whitespace-nowrap font-semibold">
+                {getText('newProject')}
+              </aria.Text>
+            </UnstyledButton>
+            <div className="flex h-row items-center gap-icons rounded-full bg-frame px-drive-bar-icons-x text-black/50">
+              {isCloud && (
+                <Button
+                  active
+                  image={AddFolderIcon}
+                  alt={getText('newFolder')}
                   onPress={() => {
                     unsetModal()
-                    doCreateProject()
+                    doCreateDirectory()
                   }}
-                >
-                  <aria.Text className="text whitespace-nowrap font-semibold">
-                    {getText('newProject')}
-                  </aria.Text>
-                </UnstyledButton>
-                <div className="flex h-row items-center gap-icons rounded-full bg-frame px-drive-bar-icons-x text-black/50">
-                  {isCloud && (
-                    <Button
-                      active
-                      image={AddFolderIcon}
-                      alt={getText('newFolder')}
-                      onPress={() => {
-                        unsetModal()
-                        doCreateDirectory()
-                      }}
-                    />
-                  )}
-                  {isCloud && (
-                    <Button
-                      active
-                      image={AddKeyIcon}
-                      alt={getText('newSecret')}
-                      onPress={() => {
-                        setModal(
-                          <UpsertSecretModal id={null} name={null} doCreate={doCreateSecret} />
-                        )
-                      }}
-                    />
-                  )}
-                  {isCloud && (
-                    <Button
-                      active
-                      image={AddConnectorIcon}
-                      alt={getText('newDataLink')}
-                      onPress={() => {
-                        setModal(<UpsertDataLinkModal doCreate={doCreateDataLink} />)
-                      }}
-                    />
-                  )}
-                  <aria.Input
-                    ref={uploadFilesRef}
-                    type="file"
-                    multiple
-                    id="upload_files_input"
-                    name="upload_files_input"
-                    {...(isCloud ? {} : { accept: '.enso-project' })}
-                    className="hidden"
-                    onInput={event => {
-                      if (event.currentTarget.files != null) {
-                        doUploadFiles(Array.from(event.currentTarget.files))
-                      }
-                      // Clear the list of selected files. Otherwise, `onInput` will not be
-                      // dispatched again if the same file is selected.
-                      event.currentTarget.value = ''
-                    }}
-                  />
-                  <Button
-                    active
-                    image={DataUploadIcon}
-                    alt={getText('uploadFiles')}
-                    onPress={() => {
-                      unsetModal()
-                      uploadFilesRef.current?.click()
-                    }}
-                  />
-                  <Button
-                    active={canDownload}
-                    isDisabled={!canDownload}
-                    image={DataDownloadIcon}
-                    alt={getText('downloadFiles')}
-                    error={
-                      isCloud
-                        ? getText('canOnlyDownloadFilesError')
-                        : getText('noProjectSelectedError')
-                    }
-                    onPress={() => {
-                      unsetModal()
-                      dispatchAssetEvent({ type: AssetEventType.downloadSelected })
-                    }}
-                  />
-                </div>
-              </div>
+                />
+              )}
+              {isCloud && (
+                <Button
+                  active
+                  image={AddKeyIcon}
+                  alt={getText('newSecret')}
+                  onPress={() => {
+                    setModal(<UpsertSecretModal id={null} name={null} doCreate={doCreateSecret} />)
+                  }}
+                />
+              )}
+              {isCloud && (
+                <Button
+                  active
+                  image={AddConnectorIcon}
+                  alt={getText('newDataLink')}
+                  onPress={() => {
+                    setModal(<UpsertDataLinkModal doCreate={doCreateDataLink} />)
+                  }}
+                />
+              )}
+              <aria.Input
+                ref={uploadFilesRef}
+                type="file"
+                multiple
+                id="upload_files_input"
+                name="upload_files_input"
+                {...(isCloud ? {} : { accept: '.enso-project' })}
+                className="hidden"
+                onInput={event => {
+                  if (event.currentTarget.files != null) {
+                    doUploadFiles(Array.from(event.currentTarget.files))
+                  }
+                  // Clear the list of selected files. Otherwise, `onInput` will not be
+                  // dispatched again if the same file is selected.
+                  event.currentTarget.value = ''
+                }}
+              />
+              <Button
+                active
+                image={DataUploadIcon}
+                alt={getText('uploadFiles')}
+                onPress={() => {
+                  unsetModal()
+                  uploadFilesRef.current?.click()
+                }}
+              />
+              <Button
+                active={canDownload}
+                isDisabled={!canDownload}
+                image={DataDownloadIcon}
+                alt={getText('downloadFiles')}
+                error={
+                  isCloud ? getText('canOnlyDownloadFilesError') : getText('noProjectSelectedError')
+                }
+                onPress={() => {
+                  unsetModal()
+                  dispatchAssetEvent({ type: AssetEventType.downloadSelected })
+                }}
+              />
             </div>
-          )}
-        </FocusArea>
+          </HorizontalMenuBar>
+        </div>
       )
     }
   }

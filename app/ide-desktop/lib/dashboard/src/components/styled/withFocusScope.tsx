@@ -3,6 +3,10 @@ import * as React from 'react'
 
 import * as aria from '#/components/aria'
 
+// ======================
+// === withFocusScope ===
+// ======================
+
 /** Wrap a component in a {@link aria.FocusScope}. This allows {@link aria.useFocusManager} to be
  * used in the component. */
 // This is not a React component, even though it contains JSX.

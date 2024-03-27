@@ -3,6 +3,10 @@ import * as React from 'react'
 
 import * as aria from '#/components/aria'
 
+// ================
+// === Checkbox ===
+// ================
+
 /** Props for a {@link Checkbox}. */
 export interface CheckboxProps extends Omit<Readonly<aria.CheckboxProps>, 'className'> {}
 
