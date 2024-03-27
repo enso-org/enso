@@ -1,5 +1,5 @@
 from Standard.Base import all
-import Standard.Table.Data.Table.Table
+from Standard.Table import Table
 
 import Standard.Geo
 

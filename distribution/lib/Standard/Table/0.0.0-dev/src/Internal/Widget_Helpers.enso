@@ -6,14 +6,14 @@ from Standard.Base.Metadata.Widget import Multiple_Choice, Numeric_Input, Single
 from Standard.Base.System.File_Format import format_types
 from Standard.Base.Widget_Helpers import make_format_chooser
 
-import project.Data.Aggregate_Column.Aggregate_Column
-import project.Data.Join_Condition.Join_Condition
-import project.Data.Join_Kind.Join_Kind
-import project.Data.Sort_Column.Sort_Column
-import project.Data.Table.Table
-import project.Data.Type.Value_Type.Auto
-import project.Data.Type.Value_Type.Value_Type
+import project.Aggregate_Column.Aggregate_Column
 import project.Internal.Parse_Values_Helper
+import project.Join_Condition.Join_Condition
+import project.Join_Kind.Join_Kind
+import project.Sort_Column.Sort_Column
+import project.Table.Table
+import project.Value_Type.Auto
+import project.Value_Type.Value_Type
 from project.Extensions.Table_Conversions import all
 
 ## PRIVATE
