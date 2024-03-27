@@ -449,12 +449,17 @@ public final class TypeInference implements IRPass {
 
         if (resolutionOptional.isPresent()) {
           BindingsMap.ResolvedName target = resolutionOptional.get().target();
-          if (target instanceof BindingsMap.ResolvedType resolvedType) {
-            yield resolvedTypeAsAtomType(resolvedType);
-          } else {
-            logger.warn("resolveTypeExpression: {} - unexpected resolved name type {}", name.showCode(), target.getClass().getCanonicalName());
-            yield TypeRepresentation.UNKNOWN;
-          }
+          yield switch (target) {
+            case BindingsMap.ResolvedType resolvedType -> resolvedTypeAsAtomType(resolvedType);
+            case BindingsMap.ResolvedPolyglotSymbol polyglotSymbol -> {
+              // for now type inference is not able to deal with polyglot types, so we treat them as unknown
+              yield TypeRepresentation.UNKNOWN;
+            }
+            default -> {
+              logger.warn("resolveTypeExpression: {} - unexpected resolved name type {}", name.showCode(), target.getClass().getCanonicalName());
+              yield TypeRepresentation.UNKNOWN;
+            }
+          };
         } else {
           // TODO investigate - these seem to unexpectedly come up when compiling Standard.Base
           logger.warn("resolveTypeExpression: {} - Missing expected TypeName resolution metadata", type.showCode());
