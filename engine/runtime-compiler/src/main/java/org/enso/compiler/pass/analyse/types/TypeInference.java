@@ -10,6 +10,7 @@ import org.enso.compiler.core.ir.Module;
 import org.enso.compiler.core.ir.*;
 import org.enso.compiler.core.ir.expression.Application;
 import org.enso.compiler.core.ir.expression.Case;
+import org.enso.compiler.core.ir.expression.Operator;
 import org.enso.compiler.core.ir.module.scope.Definition;
 import org.enso.compiler.core.ir.module.scope.definition.Method;
 import org.enso.compiler.core.ir.type.Set;
@@ -508,8 +509,30 @@ public final class TypeInference implements IRPass {
       // We just ignore the error part for now as it's not really checked anywhere.
       case Type.Error error -> resolveTypeExpression(error.typed());
 
+      case Name.SelfType selfType -> {
+        // TODO to be handled in further iterations
+        yield TypeRepresentation.UNKNOWN;
+      }
+
+      case Name.Qualified qualified -> {
+        // TODO to be handled in further iterations
+        yield TypeRepresentation.UNKNOWN;
+      }
+
+      case Operator.Binary binaryOp -> {
+        // TODO to be handled in further iterations
+        //  This is mostly sum-type ascriptions: A | B
+        yield TypeRepresentation.UNKNOWN;
+      }
+
+      case Application.Prefix app -> {
+        // An application at type-level means higher order types, like `Vector Text`.
+        //  Currently, to be consistent with how this works at runtime these are erased, resulting in just `Vector`.
+        yield resolveTypeExpression(app.function());
+      }
+
       default -> {
-        logger.warn("resolveTypeExpression: {} UNKNOWN BRANCH", type);
+        logger.warn("resolveTypeExpression: UNKNOWN BRANCH {}", type.getClass().getCanonicalName());
         yield TypeRepresentation.UNKNOWN;
       }
     };
