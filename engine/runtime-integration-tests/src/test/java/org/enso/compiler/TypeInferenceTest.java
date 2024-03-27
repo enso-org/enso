@@ -130,10 +130,10 @@ public class TypeInferenceTest extends CompilerTest {
     assertAtomType(myType, findAssignment(f1, "y1").expression());
     assertNoInferredType(findAssignment(f2, "y2").expression());
 
-    assertEquals("My_Type -> My_Type", getInferredType(f1).toString());
+    assertEquals("(My_Type -> My_Type)", getInferredType(f1).toString());
     // f2 gets argument as Any, because the doc-signature is not checked
-    assertEquals("Any -> My_Type", getInferredType(f2).toString());
-    assertEquals("My_Type -> My_Type", getInferredType(f3).toString());
+    assertEquals("(Any -> My_Type)", getInferredType(f2).toString());
+    assertEquals("(My_Type -> My_Type)", getInferredType(f3).toString());
   }
 
   @Test
@@ -348,7 +348,7 @@ public class TypeInferenceTest extends CompilerTest {
     var foo = findStaticMethod(module, "foo");
 
     var f1Type = getInferredType(findAssignment(foo, "f1").expression());
-    assertEquals("My_Type -> My_Type -> My_Type", f1Type.toString());
+    assertEquals("(My_Type -> (My_Type -> My_Type))", f1Type.toString());
 
     // and result of application is typed as the return type:
     assertAtomType("innerFunctionType.My_Type", findAssignment(foo, "y").expression());
