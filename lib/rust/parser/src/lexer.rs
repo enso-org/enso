@@ -1514,7 +1514,7 @@ pub mod test {
     }
 
     /// Constructor.
-    pub fn digits_<'s>(code: &'s str) -> Token<'s> {
+    pub fn digits_(code: &str) -> Token<'_> {
         digits(test_code(""), test_code(code), None).into()
     }
     /// Constructor.
