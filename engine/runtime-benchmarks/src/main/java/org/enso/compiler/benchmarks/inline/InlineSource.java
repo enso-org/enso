@@ -4,7 +4,7 @@ import java.util.Set;
 
 record InlineSource(
     String source,
-    // Builder for InlineContext for the main method
-    InlineContextResourceBuilder builder,
+    // InlineContextResource for the main method
+    InlineContextResourceFactory inlineContextFactory,
     // Local variables in main method
     Set<String> localVarNames) {}

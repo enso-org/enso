@@ -47,7 +47,7 @@ public class InlineCompilerErrorBenchmark {
   private Compiler compiler;
 
   private Context ctx;
-  private InlineContextResourceBuilder mainInlineContextResourceBuilder;
+  private InlineContextResourceFactory mainInlineContextResourceFactory;
   private String expressionWithErrors;
 
   @Setup
@@ -67,7 +67,7 @@ public class InlineCompilerErrorBenchmark {
     var longExpression =
         InlineContextUtils.createLongExpression(inlineSource.localVarNames(), LONG_EXPR_SIZE);
     expressionWithErrors = "UNDEFINED * " + longExpression + " * UNDEFINED";
-    mainInlineContextResourceBuilder = inlineSource.builder();
+    mainInlineContextResourceFactory = inlineSource.inlineContextFactory();
   }
 
   @TearDown
@@ -80,7 +80,7 @@ public class InlineCompilerErrorBenchmark {
 
   @Benchmark
   public void expressionWithErrors(Blackhole blackhole) throws IOException {
-    try (InlineContextResource resource = mainInlineContextResourceBuilder.build()) {
+    try (InlineContextResource resource = mainInlineContextResourceFactory.create()) {
       var tuppleOpt = compiler.runInline(expressionWithErrors, resource.inlineContext());
       blackhole.consume(tuppleOpt);
     }

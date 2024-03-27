@@ -58,7 +58,7 @@ class InlineContextUtils {
     var moduleScope = assocTypeReceiver.getDefinitionScope();
     var compiler = ensoCtx.getCompiler();
     var inlineCtxMeta =
-        new InlineContextResourceBuilder(
+        new InlineContextResourceFactory(
             moduleScope, assocTypeReceiver, ensoCtx, compiler.packageRepository());
     return new InlineSource(sb.toString(), inlineCtxMeta, localVarNames);
   }

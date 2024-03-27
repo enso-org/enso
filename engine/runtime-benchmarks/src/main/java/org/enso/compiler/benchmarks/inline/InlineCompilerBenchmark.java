@@ -75,7 +75,7 @@ public class InlineCompilerBenchmark {
 
   @Benchmark
   public void longExpression(Blackhole blackhole) throws IOException {
-    try (InlineContextResource resource = inlineSource.builder().build()) {
+    try (InlineContextResource resource = inlineSource.inlineContextFactory().create()) {
       var tuppleOpt = compiler.runInline(longExpression, resource.inlineContext());
       if (tuppleOpt.isEmpty()) {
         throw new AssertionError("Unexpected: inline compilation should succeed");

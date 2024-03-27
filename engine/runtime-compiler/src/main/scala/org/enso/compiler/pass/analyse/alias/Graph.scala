@@ -676,15 +676,15 @@ object Graph {
       isDirectChildOf || isChildOfChildren
     }
 
-    private def removeScope(scope: Scope): Unit = {
+    private def removeScopeFromParent(scope: Scope): Unit = {
       childScopes = childScopes.filter(_ != scope)
     }
 
     /** Disassociates this Scope from its parent.
       */
-    def close(): Unit = {
+    def removeScopeFromParent(): Unit = {
       assert(this.parent.nonEmpty)
-      this.parent.foreach(_.removeScope(this))
+      this.parent.foreach(_.removeScopeFromParent(this))
     }
   }
 

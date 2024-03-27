@@ -7,13 +7,13 @@ import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.scope.ModuleScope;
 
-public record InlineContextResourceBuilder(
+public record InlineContextResourceFactory(
     ModuleScope moduleScope,
     Type assocTypeReceiver,
     EnsoContext ensoCtx,
     PackageRepository pkgRepository) {
 
-  InlineContextResource build() {
+  public InlineContextResource create() {
     var mainFunc = moduleScope.getMethodForType(assocTypeReceiver, "main");
     var mainFuncRootNode = (MethodRootNode) mainFunc.getCallTarget().getRootNode();
     var mainLocalScope = mainFuncRootNode.getLocalScope();
