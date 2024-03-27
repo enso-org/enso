@@ -82,7 +82,7 @@ export default function UpsertDataLinkModal(props: UpsertDataLinkModalProps) {
                 <aria.Input
                   autoFocus
                   placeholder={getText('dataLinkNamePlaceholder')}
-                  className={`text grow rounded-full border bg-transparent px-input-x ${
+                  className={`focus-child text grow rounded-full border bg-transparent px-input-x ${
                     name !== '' ? 'border-primary/10' : 'border-red-700/60'
                   }`}
                   value={name}

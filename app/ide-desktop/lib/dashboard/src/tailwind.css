@@ -525,12 +525,7 @@ body::before {
   background: rgb(0 0 0 / 0%);
 }
 
-body[data-debug] [data-focus-area] {
-  outline: 2px solid rgb(255 0 0 / 60%);
-  outline-offset: -1px;
-}
-
-body[data-debug] .focus-child {
+body[data-debug] :where(.focus-child:not(:disabled):not([data-disabled])) {
   outline: 2px solid rgb(255 0 255 / 30%);
   outline-offset: -1px;
 }
@@ -542,6 +537,11 @@ body[data-debug] :focus {
 
 body[data-debug] :focus-visible {
   outline: 2px solid rgb(0 128 0 / 60%);
+  outline-offset: -1px;
+}
+
+body[data-debug] [data-focus-area] {
+  outline: 2px solid rgb(255 0 0 / 60%);
   outline-offset: -1px;
 }
 

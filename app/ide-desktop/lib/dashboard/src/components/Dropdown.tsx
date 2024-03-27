@@ -50,11 +50,11 @@ interface InternalMultipleDropdownProps<T> extends InternalBaseDropdownProps<T> 
 export type DropdownProps<T> = InternalMultipleDropdownProps<T> | InternalSingleDropdownProps<T>
 
 /** A styled dropdown. */
-export default function Dropdown<T>(props: DropdownProps<T>) {
+function Dropdown<T>(props: DropdownProps<T>, ref: React.ForwardedRef<HTMLDivElement>) {
   const { readOnly = false, className, items, render: Child } = props
   const [isDropdownVisible, setIsDropdownVisible] = React.useState(false)
   const [tempSelectedIndex, setTempSelectedIndex] = React.useState<number | null>(null)
-  const rootRef = React.useRef<HTMLDivElement>(null)
+  const rootRef = React.useRef<HTMLDivElement | null>(null)
   const justFocusedRef = React.useRef(false)
   const justBlurredRef = React.useRef(false)
   const isMouseDown = React.useRef(false)
@@ -157,7 +157,14 @@ export default function Dropdown<T>(props: DropdownProps<T>) {
   return (
     <FocusRing placement="outset">
       <div
-        ref={rootRef}
+        ref={element => {
+          if (typeof ref === 'function') {
+            ref(element)
+          } else if (ref != null) {
+            ref.current = element
+          }
+          rootRef.current = element
+        }}
         tabIndex={0}
         className={`focus-child group relative flex w-max cursor-pointer flex-col items-start whitespace-nowrap rounded-input leading-cozy ${
           className ?? ''
@@ -307,3 +314,10 @@ export default function Dropdown<T>(props: DropdownProps<T>) {
     </FocusRing>
   )
 }
+
+/** A styled dropdown. */
+// This is REQUIRED, as `React.forwardRef` does not preserve types of generic functions.
+// eslint-disable-next-line no-restricted-syntax
+export default React.forwardRef(Dropdown) as <T>(
+  props: DropdownProps<T> & React.RefAttributes<HTMLDivElement>
+) => JSX.Element
