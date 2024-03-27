@@ -8,8 +8,9 @@ import * as textProvider from '#/providers/TextProvider'
 
 import MembersSettingsTabBar from '#/layouts/Settings/MembersSettingsTabBar'
 
-import * as aria from '#/components/aria'
 import StatelessSpinner, * as statelessSpinner from '#/components/StatelessSpinner'
+import SettingsPage from '#/components/styled/settings/SettingsPage'
+import SettingsSection from '#/components/styled/settings/SettingsSection'
 
 // ==========================
 // === MembersSettingsTab ===
@@ -23,9 +24,8 @@ export default function MembersSettingsTab() {
   const isLoading = members == null
 
   return (
-    <div className="flex flex-col gap-settings-subsection">
-      <div className="flex flex-col gap-settings-section-header">
-        <aria.Heading className="settings-subheading">{getText('members')}</aria.Heading>
+    <SettingsPage>
+      <SettingsSection noFocusArea title={getText('members')}>
         <MembersSettingsTabBar />
         <table className="table-fixed self-start rounded-rows">
           <thead>
@@ -64,7 +64,7 @@ export default function MembersSettingsTab() {
             )}
           </tbody>
         </table>
-      </div>
-    </div>
+      </SettingsSection>
+    </SettingsPage>
   )
 }

@@ -556,9 +556,6 @@ export default /** @satisfies {import('tailwindcss').Config} */ ({
           '.text-subheading': {
             '@apply text-xl leading-snug py-0.5': '',
           },
-          '.settings-subheading': {
-            '@apply font-bold text-xl h-[2.375rem] py-0.5': '',
-          },
           '.settings-value': {
             '@apply leading-cozy h-text py-px px-2': '',
           },

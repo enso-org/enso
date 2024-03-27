@@ -7,10 +7,9 @@ import * as authProvider from '#/providers/AuthProvider'
 import * as backendProvider from '#/providers/BackendProvider'
 import * as textProvider from '#/providers/TextProvider'
 
-import SettingsInput from '#/layouts/Settings/SettingsInput'
-
 import * as aria from '#/components/aria'
-import FocusArea from '#/components/styled/FocusArea'
+import SettingsInput from '#/components/styled/settings/SettingsInput'
+import SettingsSection from '#/components/styled/settings/SettingsSection'
 
 import * as object from '#/utilities/object'
 
@@ -42,30 +41,23 @@ export default function UserAccountSettingsSection() {
   }
 
   return (
-    <FocusArea direction="vertical">
-      {(ref, innerProps) => (
-        <div ref={ref} className="flex flex-col gap-settings-section-header" {...innerProps}>
-          <aria.Heading level={2} className="settings-subheading">
-            {getText('userAccount')}
-          </aria.Heading>
-          <div className="flex flex-col">
-            <aria.TextField className="flex h-row gap-settings-entry">
-              <aria.Label className="text my-auto w-user-account-settings-label">
-                {getText('name')}
-              </aria.Label>
-              <SettingsInput type="text" initialValue={user?.name ?? ''} onSubmit={doUpdateName} />
-            </aria.TextField>
-            <div className="flex h-row gap-settings-entry">
-              <aria.Text className="text my-auto w-user-account-settings-label">
-                {getText('email')}
-              </aria.Text>
-              <aria.Text className="settings-value my-auto grow font-bold">
-                {user?.email ?? ''}
-              </aria.Text>
-            </div>
-          </div>
+    <SettingsSection title={getText('userAccount')}>
+      <div className="flex flex-col">
+        <aria.TextField className="flex h-row gap-settings-entry">
+          <aria.Label className="text my-auto w-user-account-settings-label">
+            {getText('name')}
+          </aria.Label>
+          <SettingsInput type="text" initialValue={user?.name ?? ''} onSubmit={doUpdateName} />
+        </aria.TextField>
+        <div className="flex h-row gap-settings-entry">
+          <aria.Text className="text my-auto w-user-account-settings-label">
+            {getText('email')}
+          </aria.Text>
+          <aria.Text className="settings-value my-auto grow font-bold">
+            {user?.email ?? ''}
+          </aria.Text>
         </div>
-      )}
-    </FocusArea>
+      </div>
+    </SettingsSection>
   )
 }

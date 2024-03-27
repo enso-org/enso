@@ -10,8 +10,8 @@ import * as backendProvider from '#/providers/BackendProvider'
 import * as textProvider from '#/providers/TextProvider'
 
 import * as aria from '#/components/aria'
-import FocusArea from '#/components/styled/FocusArea'
 import FocusRing from '#/components/styled/FocusRing'
+import SettingsSection from '#/components/styled/settings/SettingsSection'
 
 // =====================================
 // === ProfilePictureSettingsSection ===
@@ -43,33 +43,26 @@ export default function ProfilePictureSettingsSection() {
   }
 
   return (
-    <FocusArea direction="vertical">
-      {(ref, innerProps) => (
-        <div ref={ref} className="flex flex-col gap-settings-section-header" {...innerProps}>
-          <aria.Heading level={2} className="settings-subheading">
-            {getText('profilePicture')}
-          </aria.Heading>
-          <FocusRing within>
-            <aria.Label className="flex h-profile-picture-large w-profile-picture-large cursor-pointer items-center overflow-clip rounded-full transition-colors hover:bg-frame">
-              <img
-                src={user?.profilePicture ?? DefaultUserIcon}
-                width={128}
-                height={128}
-                className="pointer-events-none"
-              />
-              <aria.Input
-                type="file"
-                className="focus-child w"
-                accept="image/*"
-                onChange={doUploadUserPicture}
-              />
-            </aria.Label>
-          </FocusRing>
-          <aria.Text className="w-profile-picture-caption py-profile-picture-caption-y">
-            {getText('profilePictureWarning')}
-          </aria.Text>
-        </div>
-      )}
-    </FocusArea>
+    <SettingsSection title={getText('profilePicture')}>
+      <FocusRing within>
+        <aria.Label className="flex h-profile-picture-large w-profile-picture-large cursor-pointer items-center overflow-clip rounded-full transition-colors hover:bg-frame">
+          <img
+            src={user?.profilePicture ?? DefaultUserIcon}
+            width={128}
+            height={128}
+            className="pointer-events-none"
+          />
+          <aria.Input
+            type="file"
+            className="focus-child w"
+            accept="image/*"
+            onChange={doUploadUserPicture}
+          />
+        </aria.Label>
+      </FocusRing>
+      <aria.Text className="w-profile-picture-caption py-profile-picture-caption-y">
+        {getText('profilePictureWarning')}
+      </aria.Text>
+    </SettingsSection>
   )
 }

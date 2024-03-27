@@ -17,6 +17,8 @@ import DateInput from '#/components/DateInput'
 import Dropdown from '#/components/Dropdown'
 import StatelessSpinner, * as statelessSpinner from '#/components/StatelessSpinner'
 import FocusArea from '#/components/styled/FocusArea'
+import SettingsPage from '#/components/styled/settings/SettingsPage'
+import SettingsSection from '#/components/styled/settings/SettingsSection'
 import UnstyledButton from '#/components/styled/UnstyledButton'
 import SvgMask from '#/components/SvgMask'
 
@@ -120,9 +122,8 @@ export default function ActivityLogSettingsTab() {
   const isLoading = sortedLogs == null
 
   return (
-    <div className="flex flex-col gap-settings-subsection">
-      <div className="flex flex-col gap-settings-section-header">
-        <aria.Heading className="settings-subheading">{getText('activityLog')}</aria.Heading>
+    <SettingsPage>
+      <SettingsSection noFocusArea title={getText('activityLog')}>
         <FocusArea direction="horizontal">
           {(ref, innerProps) => (
             <div ref={ref} className="flex gap-activity-log-filters" {...innerProps}>
@@ -351,7 +352,7 @@ export default function ActivityLogSettingsTab() {
             )}
           </tbody>
         </table>
-      </div>
-    </div>
+      </SettingsSection>
+    </SettingsPage>
   )
 }

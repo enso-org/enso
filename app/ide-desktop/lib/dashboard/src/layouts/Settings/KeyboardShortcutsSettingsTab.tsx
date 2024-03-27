@@ -8,7 +8,7 @@ import * as textProvider from '#/providers/TextProvider'
 import KeyboardShortcutsSettingsTabBar from '#/layouts/Settings/KeyboardShortcutsSettingsTabBar'
 import KeyboardShortcutsTable from '#/layouts/Settings/KeyboardShortcutsTable'
 
-import * as aria from '#/components/aria'
+import SettingsSection from '#/components/styled/settings/SettingsSection'
 
 // ====================================
 // === KeyboardShortcutsSettingsTab ===
@@ -20,12 +20,9 @@ export default function KeyboardShortcutsSettingsTab() {
   const [refresh, doRefresh] = refreshHooks.useRefresh()
 
   return (
-    <div className="flex w-full flex-1 flex-col gap-settings-section-header">
-      <aria.Heading level={2} className="settings-subheading">
-        {getText('keyboardShortcuts')}
-      </aria.Heading>
+    <SettingsSection noFocusArea title={getText('keyboardShortcuts')} className="w-full flex-1">
       <KeyboardShortcutsSettingsTabBar doRefresh={doRefresh} />
       <KeyboardShortcutsTable refresh={refresh} doRefresh={doRefresh} />
-    </div>
+    </SettingsSection>
   )
 }
