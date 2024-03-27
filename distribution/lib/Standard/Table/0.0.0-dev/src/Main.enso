@@ -25,7 +25,6 @@ import project.Value_Type.Auto
 import project.Value_Type.Bits
 import project.Value_Type.Value_Type
 from project.Constants import all
-from project.Delimited.Delimited_Format.Delimited_Format import Delimited
 from project.Expression import expr
 from project.Extensions.Column_Vector_Extensions import all
 from project.Extensions.Table_Conversions import all
@@ -56,7 +55,6 @@ export project.Value_Type.Auto
 export project.Value_Type.Bits
 export project.Value_Type.Value_Type
 from project.Constants export all
-from project.Delimited.Delimited_Format.Delimited_Format export Delimited
 from project.Expression export expr
 from project.Extensions.Column_Vector_Extensions export all
 from project.Extensions.Table_Conversions export all
