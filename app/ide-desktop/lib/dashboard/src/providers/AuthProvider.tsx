@@ -18,6 +18,7 @@ import * as backendProvider from '#/providers/BackendProvider'
 import * as localStorageProvider from '#/providers/LocalStorageProvider'
 import * as loggerProvider from '#/providers/LoggerProvider'
 import * as sessionProvider from '#/providers/SessionProvider'
+import * as textProvider from '#/providers/TextProvider'
 
 import LoadingScreen from '#/pages/authentication/LoadingScreen'
 
@@ -157,6 +158,7 @@ export default function AuthProvider(props: AuthProviderProps) {
   const { session, deinitializeSession, onSessionError } = sessionProvider.useSession()
   const { setBackendWithoutSavingType } = backendProvider.useSetBackend()
   const { localStorage } = localStorageProvider.useLocalStorage()
+  const { getText } = textProvider.useText()
   // This must not be `hooks.useNavigate` as `goOffline` would be inaccessible,
   // and the function call would error.
   // eslint-disable-next-line no-restricted-properties
@@ -191,9 +193,10 @@ export default function AuthProvider(props: AuthProviderProps) {
       // Provide dummy headers to avoid errors. This `Backend` will never be called as
       // the entire UI will be disabled.
       const client = new HttpClient([['Authorization', '']])
-      setBackendWithoutSavingType(new RemoteBackend(client, logger))
+      setBackendWithoutSavingType(new RemoteBackend(client, logger, getText))
     }
   }, [
+    getText,
     /* should never change */ projectManagerUrl,
     /* should never change */ supportsLocalBackend,
     /* should never change */ logger,
@@ -209,7 +212,7 @@ export default function AuthProvider(props: AuthProviderProps) {
       navigate(appUtils.DASHBOARD_PATH)
       return Promise.resolve(true)
     },
-    [/* should never change */ goOfflineInternal, /* should never change */ navigate]
+    [goOfflineInternal, /* should never change */ navigate]
   )
 
   // This component cannot use `useGtagEvent` because `useGtagEvent` depends on the React Context
@@ -277,7 +280,7 @@ export default function AuthProvider(props: AuthProviderProps) {
         }
       } else {
         const client = new HttpClient([['Authorization', `Bearer ${session.accessToken}`]])
-        const backend = new RemoteBackend(client, logger)
+        const backend = new RemoteBackend(client, logger, getText)
         // The backend MUST be the remote backend before login is finished.
         // This is because the "set username" flow requires the remote backend.
         if (!initialized || userSession == null || userSession.type === UserSessionType.offline) {
@@ -393,7 +396,7 @@ export default function AuthProvider(props: AuthProviderProps) {
   const withLoadingToast =
     <T extends unknown[], R>(action: (...args: T) => Promise<R>) =>
     async (...args: T) => {
-      toast.toast.loading('Please wait...', { toastId })
+      toast.toast.loading(getText('pleaseWait'), { toastId })
       return await action(...args)
     }
 
@@ -428,7 +431,7 @@ export default function AuthProvider(props: AuthProviderProps) {
       gtagEvent('cloud_sign_up')
       const result = await cognito.signUp(username, password, organizationId)
       if (result.ok) {
-        toastSuccess('We have sent you an email with further instructions!')
+        toastSuccess(getText('signUpSuccess'))
         navigate(appUtils.LOGIN_PATH)
       } else {
         toastError(result.val.message)
@@ -449,7 +452,7 @@ export default function AuthProvider(props: AuthProviderProps) {
             break
           }
           case cognitoModule.CognitoErrorType.userNotFound: {
-            toastError('Incorrect email or confirmation code.')
+            toastError(getText('confirmSignUpError'))
             navigate(appUtils.LOGIN_PATH)
             return false
           }
@@ -458,7 +461,7 @@ export default function AuthProvider(props: AuthProviderProps) {
           }
         }
       }
-      toastSuccess('Your account has been confirmed! Please log in.')
+      toastSuccess(getText('confirmSignUpSuccess'))
       navigate(appUtils.LOGIN_PATH)
       return result.ok
     }
@@ -471,7 +474,7 @@ export default function AuthProvider(props: AuthProviderProps) {
       gtagEvent('cloud_sign_in', { provider: 'Email' })
       const result = await cognito.signInWithPassword(email, password)
       if (result.ok) {
-        toastSuccess('Successfully logged in!')
+        toastSuccess(getText('signInWithPasswordSuccess'))
       } else {
         if (result.val.type === cognitoModule.CognitoErrorType.userNotFound) {
           // It may not be safe to pass the user's password in the URL.
@@ -487,7 +490,7 @@ export default function AuthProvider(props: AuthProviderProps) {
     if (cognito == null) {
       return false
     } else if (backend.type === backendModule.BackendType.local) {
-      toastError('You cannot set your username on the local backend.')
+      toastError(getText('setUsernameLocalBackend'))
       return false
     } else {
       gtagEvent('cloud_user_created')
@@ -503,9 +506,9 @@ export default function AuthProvider(props: AuthProviderProps) {
               organizationId != null ? backendModule.OrganizationId(organizationId) : null,
           }),
           {
-            success: 'Your username has been set!',
-            error: 'Could not set your username.',
-            pending: 'Setting username...',
+            success: getText('setUsernameSuccess'),
+            error: getText('setUsernameError'),
+            pending: getText('settingUsername'),
           }
         )
         const redirectTo = localStorage.get('loginRedirect')
@@ -528,7 +531,7 @@ export default function AuthProvider(props: AuthProviderProps) {
     } else {
       const result = await cognito.forgotPassword(email)
       if (result.ok) {
-        toastSuccess('We have sent you an email with further instructions!')
+        toastSuccess(getText('forgotPasswordSuccess'))
         navigate(appUtils.LOGIN_PATH)
       } else {
         toastError(result.val.message)
@@ -543,7 +546,7 @@ export default function AuthProvider(props: AuthProviderProps) {
     } else {
       const result = await cognito.forgotPasswordSubmit(email, code, password)
       if (result.ok) {
-        toastSuccess('Successfully reset password!')
+        toastSuccess(getText('resetPasswordSuccess'))
         navigate(appUtils.LOGIN_PATH)
       } else {
         toastError(result.val.message)
@@ -558,7 +561,7 @@ export default function AuthProvider(props: AuthProviderProps) {
     } else {
       const result = await cognito.changePassword(oldPassword, newPassword)
       if (result.ok) {
-        toastSuccess('Successfully changed password!')
+        toastSuccess(getText('changePasswordSuccess'))
       } else {
         toastError(result.val.message)
       }
@@ -582,9 +585,9 @@ export default function AuthProvider(props: AuthProviderProps) {
       // This should not omit success and error toasts as it is not possible
       // to render this optimistically.
       await toast.toast.promise(cognito.signOut(), {
-        success: 'Successfully logged out!',
-        error: 'Could not log out, please try again.',
-        pending: 'Logging out...',
+        success: getText('signOutSuccess'),
+        error: getText('signOutError'),
+        pending: getText('loggingOut'),
       })
       return true
     }

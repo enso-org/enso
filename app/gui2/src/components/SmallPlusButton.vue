@@ -6,7 +6,7 @@ import { Vec2 } from '@/util/data/vec2'
 import { ref } from 'vue'
 
 const emit = defineEmits<{
-  createNode: [options: NodeCreationOptions]
+  createNodes: [options: NodeCreationOptions[]]
 }>()
 
 const navigator = injectGraphNavigator(true)
@@ -17,7 +17,7 @@ function addNode() {
   const clientRect = addNodeButton.value?.getBoundingClientRect()
   const position =
     clientRect && navigator?.clientToScenePos(new Vec2(clientRect.left, clientRect.top))
-  emit('createNode', { position, commit: false, content: undefined })
+  emit('createNodes', [{ position, commit: false, content: undefined }])
 }
 </script>
 

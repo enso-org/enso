@@ -65,6 +65,14 @@ export const GET_LOG_EVENTS_PATH = 'log_events'
 export function listAssetVersionsPath(assetId: backend.AssetId) {
   return `assets/${assetId}/versions`
 }
+
+/**
+ * Relative HTTP path to the "get Main.enso file" endpoint of the Cloud backend API.
+ */
+export function getProjectContentPath(projectId: backend.ProjectId, version: string) {
+  return `projects/${projectId}/files?versionId=${version}`
+}
+
 /** Relative HTTP path to the "update asset" endpoint of the Cloud backend API. */
 export function updateAssetPath(assetId: backend.AssetId) {
   return `assets/${assetId}`
@@ -107,7 +115,7 @@ export function checkResourcesPath(projectId: backend.ProjectId) {
 }
 /** Relative HTTP path to the "update secret" endpoint of the Cloud backend API. */
 export function updateSecretPath(secretId: backend.SecretId) {
-  return `s3cr3tz/${secretId}`
+  return `secrets/${secretId}`
 }
 /** Relative HTTP path to the "get secret" endpoint of the Cloud backend API. */
 export function getSecretPath(secretId: backend.SecretId) {

@@ -14,9 +14,13 @@ import * as uniqueString from '#/utilities/uniqueString'
 // These are constructor functions that construct values of the type they are named after.
 /* eslint-disable @typescript-eslint/no-redeclare */
 
-/** Unique identifier for a user/organization. */
+/** Unique identifier for an organization. */
 export type OrganizationId = newtype.Newtype<string, 'OrganizationId'>
 export const OrganizationId = newtype.newtypeConstructor<OrganizationId>()
+
+/** Unique identifier for a user. */
+export type UserId = newtype.Newtype<string, 'UserId'>
+export const UserId = newtype.newtypeConstructor<UserId>()
 
 /** Unique identifier for a directory. */
 export type DirectoryId = newtype.Newtype<string, 'DirectoryId'>
@@ -389,10 +393,11 @@ export interface ResourceUsage {
 /** Metadata uniquely identifying a user. */
 export interface UserInfo {
   /* eslint-disable @typescript-eslint/naming-convention */
-  readonly pk: Subject
+  readonly pk: OrganizationId
+  readonly sk: UserId
+  readonly user_subject: Subject
   readonly user_name: string
   readonly user_email: EmailAddress
-  readonly organization_id: OrganizationId
   /* eslint-enable @typescript-eslint/naming-convention */
 }
 
@@ -408,9 +413,11 @@ export interface OrganizationInfo {
 }
 
 /** Metadata uniquely identifying a user inside an organization.
- * This is similar to {@link UserInfo}, but without `organization_id`. */
+ * This is similar to {@link UserInfo}, but with different field names. */
 export interface SimpleUser {
-  readonly id: Subject
+  readonly organizationId: OrganizationId
+  readonly userId: UserId
+  readonly userSubject: Subject
   readonly name: string
   readonly email: EmailAddress
 }
@@ -577,9 +584,9 @@ export enum AssetType {
   directory = 'directory',
   /** A special {@link AssetType} representing the unknown items of a directory, before the
    * request to retrieve the items completes. */
-  specialLoading = 'special-loading',
+  specialLoading = 'specialLoading',
   /** A special {@link AssetType} representing the sole child of an empty directory. */
-  specialEmpty = 'special-empty',
+  specialEmpty = 'specialEmpty',
 }
 
 /** The corresponding ID newtype for each {@link AssetType}. */
@@ -591,17 +598,6 @@ export interface IdType {
   readonly [AssetType.directory]: DirectoryId
   readonly [AssetType.specialLoading]: LoadingAssetId
   readonly [AssetType.specialEmpty]: EmptyAssetId
-}
-
-/** The english name of each asset type. */
-export const ASSET_TYPE_NAME: Readonly<Record<AssetType, string>> = {
-  [AssetType.directory]: 'folder',
-  [AssetType.project]: 'project',
-  [AssetType.file]: 'file',
-  [AssetType.dataLink]: 'Data Link',
-  [AssetType.secret]: 'secret',
-  [AssetType.specialLoading]: 'special loading asset',
-  [AssetType.specialEmpty]: 'special empty asset',
 }
 
 /** Integers (starting from 0) corresponding to the order in which each asset type should appear
@@ -838,6 +834,10 @@ export interface S3ObjectVersion {
   versionId: string
   lastModified: dateTime.Rfc3339DateTime
   isLatest: boolean
+  /**
+   * The field points to an archive containing the all the project files object in the S3 bucket,
+   */
+  key: string
 }
 
 /** A list of asset versions. */
@@ -910,7 +910,7 @@ export interface InviteUserRequestBody {
 
 /** HTTP request body for the "create permission" endpoint. */
 export interface CreatePermissionRequestBody {
-  readonly userSubjects: Subject[]
+  readonly actorsIds: UserId[]
   readonly resourceId: AssetId
   readonly action: permissions.PermissionAction | null
 }
@@ -1125,65 +1125,60 @@ export default abstract class Backend {
   /** Return user details for the current user. */
   abstract usersMe(): Promise<User | null>
   /** Return a list of assets in a directory. */
-  abstract listDirectory(
-    query: ListDirectoryRequestParams,
-    title: string | null
-  ): Promise<AnyAsset[]>
+  abstract listDirectory(query: ListDirectoryRequestParams, title: string): Promise<AnyAsset[]>
   /** Create a directory. */
   abstract createDirectory(body: CreateDirectoryRequestBody): Promise<CreatedDirectory>
   /** Change the name of a directory. */
   abstract updateDirectory(
     directoryId: DirectoryId,
     body: UpdateDirectoryRequestBody,
-    title: string | null
+    title: string
   ): Promise<UpdatedDirectory>
   /** List previous versions of an asset. */
   abstract listAssetVersions(assetId: AssetId, title: string | null): Promise<AssetVersions>
   /** Change the parent directory of an asset. */
-  abstract updateAsset(
-    assetId: AssetId,
-    body: UpdateAssetRequestBody,
-    title: string | null
-  ): Promise<void>
+  abstract updateAsset(assetId: AssetId, body: UpdateAssetRequestBody, title: string): Promise<void>
   /** Delete an arbitrary asset. */
-  abstract deleteAsset(assetId: AssetId, force: boolean, title: string | null): Promise<void>
+  abstract deleteAsset(assetId: AssetId, force: boolean, title: string): Promise<void>
   /** Restore an arbitrary asset from the trash. */
-  abstract undoDeleteAsset(assetId: AssetId, title: string | null): Promise<void>
+  abstract undoDeleteAsset(assetId: AssetId, title: string): Promise<void>
   /** Copy an arbitrary asset to another directory. */
   abstract copyAsset(
     assetId: AssetId,
     parentDirectoryId: DirectoryId,
-    title: string | null,
-    parentDirectoryTitle: string | null
+    title: string,
+    parentDirectoryTitle: string
   ): Promise<CopyAssetResponse>
   /** Return a list of projects belonging to the current user. */
   abstract listProjects(): Promise<ListedProject[]>
   /** Create a project for the current user. */
   abstract createProject(body: CreateProjectRequestBody): Promise<CreatedProject>
   /** Close a project. */
-  abstract closeProject(projectId: ProjectId, title: string | null): Promise<void>
+  abstract closeProject(projectId: ProjectId, title: string): Promise<void>
   /** Return project details. */
-  abstract getProjectDetails(projectId: ProjectId, title: string | null): Promise<Project>
+  abstract getProjectDetails(projectId: ProjectId, title: string): Promise<Project>
   /** Set a project to an open state. */
   abstract openProject(
     projectId: ProjectId,
     body: OpenProjectRequestBody | null,
-    title: string | null
+    title: string
   ): Promise<void>
   /** Change the AMI or IDE version of a project. */
   abstract updateProject(
     projectId: ProjectId,
     body: UpdateProjectRequestBody,
-    title: string | null
+    title: string
   ): Promise<UpdatedProject>
+  /** Fetch the content of the `Main.enso` file of a project. */
+  abstract getFileContent(projectId: ProjectId, version: string, title: string): Promise<string>
   /** Return project memory, processor and storage usage. */
-  abstract checkResources(projectId: ProjectId, title: string | null): Promise<ResourceUsage>
+  abstract checkResources(projectId: ProjectId, title: string): Promise<ResourceUsage>
   /** Return a list of files accessible by the current user. */
   abstract listFiles(): Promise<FileLocator[]>
   /** Upload a file. */
   abstract uploadFile(params: UploadFileRequestParams, file: Blob): Promise<FileInfo>
   /** Return file details. */
-  abstract getFileDetails(fileId: FileId, title: string | null): Promise<FileDetails>
+  abstract getFileDetails(fileId: FileId, title: string): Promise<FileDetails>
   /** Create a Data Link. */
   abstract createConnector(body: CreateConnectorRequestBody): Promise<ConnectorInfo>
   /** Return a Data Link. */
@@ -1193,12 +1188,12 @@ export default abstract class Backend {
   /** Create a secret environment variable. */
   abstract createSecret(body: CreateSecretRequestBody): Promise<SecretId>
   /** Return a secret environment variable. */
-  abstract getSecret(secretId: SecretId, title: string | null): Promise<Secret>
+  abstract getSecret(secretId: SecretId, title: string): Promise<Secret>
   /** Change the value of a secret. */
   abstract updateSecret(
     secretId: SecretId,
     body: UpdateSecretRequestBody,
-    title: string | null
+    title: string
   ): Promise<void>
   /** Return the secret environment variables accessible by the user. */
   abstract listSecrets(): Promise<SecretInfo[]>
@@ -1207,7 +1202,7 @@ export default abstract class Backend {
   /** Return all labels accessible by the user. */
   abstract listTags(): Promise<Label[]>
   /** Set the full list of labels for a specific asset. */
-  abstract associateTag(assetId: AssetId, tagIds: LabelName[], title: string | null): Promise<void>
+  abstract associateTag(assetId: AssetId, tagIds: LabelName[], title: string): Promise<void>
   /** Delete a label. */
   abstract deleteTag(tagId: TagId, value: LabelName): Promise<void>
   /** Return a list of backend or IDE versions. */

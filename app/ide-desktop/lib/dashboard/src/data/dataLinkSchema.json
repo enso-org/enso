@@ -5,8 +5,10 @@
       "title": "Data Link",
       "anyOf": [
         { "$ref": "#/$defs/S3DataLink" },
+        { "$ref": "#/$defs/EnsoFileDataLink" },
         { "$ref": "#/$defs/HttpFetchDataLink" },
-        { "$ref": "#/$defs/PostgresDataLink" }
+        { "$ref": "#/$defs/PostgresDataLink" },
+        { "$ref": "#/$defs/SnowflakeDataLink" }
       ],
       "$comment": "The fields `type` and `libraryName` are required for all data link types, but we currently don't add a top-level `required` setting to the schema, because it was confusing the code that is generating the modal."
     },
@@ -109,6 +111,23 @@
       },
       "required": ["type", "libraryName", "uri", "auth"]
     },
+    "EnsoFileDataLink": {
+      "title": "Enso File",
+      "type": "object",
+      "properties": {
+        "type": { "title": "Type", "const": "Enso_File", "type": "string" },
+        "libraryName": { "const": "Standard.Base" },
+        "path": {
+          "title": "Path",
+          "description": "Must start with \"enso://<organization-name>/\".",
+          "type": "string",
+          "pattern": "^enso://.+/.*$",
+          "format": "enso-file"
+        },
+        "format": { "title": "Format", "$ref": "#/$defs/Format" }
+      },
+      "required": ["type", "libraryName", "path"]
+    },
     "HttpFetchDataLink": {
       "$comment": "missing <headers with secrets> and <query string with secrets>",
       "title": "HTTP Fetch",
@@ -174,6 +193,57 @@
         "table": { "title": "Table to access", "type": "string" }
       },
       "required": ["type", "libraryName", "host", "port", "database_name"]
+    },
+    "SnowflakeDataLink": {
+      "title": "Snowflake Database Connection",
+      "type": "object",
+      "properties": {
+        "type": {
+          "title": "Type",
+          "const": "Snowflake_Connection",
+          "type": "string"
+        },
+        "libraryName": { "const": "Standard.Snowflake" },
+        "account": {
+          "title": "Account",
+          "type": "string"
+        },
+        "database_name": {
+          "title": "Database Name",
+          "type": "string"
+        },
+        "schema": {
+          "title": "Schema",
+          "type": "string"
+        },
+        "warehouse": {
+          "title": "Warehouse",
+          "type": "string"
+        },
+        "credentials": {
+          "title": "Credentials",
+          "type": "object",
+          "properties": {
+            "username": {
+              "title": "Username",
+              "$ref": "#/$defs/SecureValue"
+            },
+            "password": {
+              "title": "Password",
+              "$ref": "#/$defs/SecureValue"
+            }
+          },
+          "required": ["username", "password"]
+        },
+        "table": { "title": "Table to access", "type": "string" }
+      },
+      "required": [
+        "type",
+        "libraryName",
+        "account",
+        "database_name",
+        "credentials"
+      ]
     },
 
     "Format": {

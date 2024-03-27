@@ -4,6 +4,7 @@ import * as React from 'react'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
 import * as modalProvider from '#/providers/ModalProvider'
+import * as textProvider from '#/providers/TextProvider'
 
 import Modal from '#/components/Modal'
 
@@ -19,8 +20,9 @@ export interface ConfirmDeleteUserModalProps {
 /** A modal for confirming the deletion of a user. */
 export default function ConfirmDeleteUserModal(props: ConfirmDeleteUserModalProps) {
   const { doDelete } = props
-  const toastAndLog = toastAndLogHooks.useToastAndLog()
   const { unsetModal } = modalProvider.useSetModal()
+  const { getText } = textProvider.useText()
+  const toastAndLog = toastAndLogHooks.useToastAndLog()
 
   const onSubmit = async () => {
     unsetModal()
@@ -53,10 +55,10 @@ export default function ConfirmDeleteUserModal(props: ConfirmDeleteUserModalProp
           void onSubmit()
         }}
       >
-        <h3 className="py-heading relative h-heading text-xl font-bold">Are you sure?</h3>
-        <span className="relative">Once deleted, this user account will be gone forever.</span>
+        <h3 className="py-heading relative h-heading text-xl font-bold">{getText('areYouSure')}</h3>
+        <span className="relative">{getText('confirmDeleteUserAccountWarning')}</span>
         <button type="submit" className="button relative bg-danger text-inversed active">
-          <span className="text">I confirm that I want to delete this user account.</span>
+          <span className="text">{getText('confirmDeleteUserAccountButtonLabel')}</span>
         </button>
       </form>
     </Modal>

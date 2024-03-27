@@ -11,3 +11,6 @@ enso-metamodel = { path = "../metamodel", features = ["rust"] }
 [features]
 default = ["graphviz"]
 graphviz = ["enso-metamodel/graphviz"]
+
+[lints]
+workspace = true

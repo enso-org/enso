@@ -1,5 +1,7 @@
 import { test } from '@playwright/test'
+import assert from 'assert'
 import * as actions from './actions'
+import { computedContent } from './css'
 import { expect } from './customExpect'
 import * as locate from './locate'
 import { graphNodeByBinding } from './locate'
@@ -22,7 +24,10 @@ test('Load Fullscreen Visualisation', async ({ page }) => {
   const visBoundingBox = await vis.boundingBox()
   expect(visBoundingBox?.height).toBeGreaterThan(600)
   expect(visBoundingBox?.width).toBe(1920)
-  const jsonContent = await vis.textContent().then((text) => JSON.parse(text!))
+  const element = await vis.elementHandle()
+  assert(element != null)
+  const textContent = await computedContent(element)
+  const jsonContent = JSON.parse(textContent)
   expect(jsonContent).toEqual({
     axis: {
       x: {

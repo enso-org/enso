@@ -113,7 +113,6 @@ pub async fn check_program(program: &RecognizedProgram, version_req: &VersionReq
 #[cfg(test)]
 mod tests {
     use super::*;
-    use ide_ci::log::setup_logging;
     use ide_ci::programs::Node;
 
     #[tokio::test]

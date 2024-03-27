@@ -13,8 +13,8 @@ from Standard.Base.Metadata.Widget import Single_Choice
 
 import project.Data.Table.Table
 import project.Excel.Excel_Range.Excel_Range
-import project.Internal.Excel_Section.Excel_Section
 import project.Internal.Excel_Reader
+import project.Internal.Excel_Section.Excel_Section
 import project.Internal.Java_Problems
 
 polyglot java import java.io.File as Java_File
@@ -198,7 +198,7 @@ type Excel_Workbook
        - limit: the maximum number of rows to read.
          If set to `Nothing`, all rows will be returned.
     @query (self-> Single_Choice display=Display.Always values=(self.tables.at "Name" . to_vector . map t-> Option t t.pretty))
-    read : Text -> Boolean | Infer -> Integer | Nothing -> Table
+    read : Text | Excel_Range -> Boolean | Infer -> Integer | Nothing -> Table
     read self (query : Text | Excel_Range) (headers : Boolean | Infer = Infer) (limit : Integer | Nothing = Nothing) =
         java_headers = Excel_Reader.make_java_headers headers
         java_table = Java_Problems.with_problem_aggregator Problem_Behavior.Report_Warning java_problem_aggregator->

@@ -1,6 +1,8 @@
 from Standard.Base import all
 import Standard.Base.Data.Java_Json.Jackson_Object
 
+from Standard.Table import Column, Table
+
 import project.Data.Conversions.Convertible_To_Columns.Convertible_To_Columns
 
 ## PRIVATE
@@ -25,6 +27,14 @@ type Convertible_To_Rows
        Return the iterator values as a `Vector`.
     to_vector : Vector Any
     to_vector self = 0.up_to self.length . map self.getter
+
+## PRIVATE
+Convertible_To_Rows.from that:Table =
+    rows = that.rows
+    Convertible_To_Rows.from rows
+
+## PRIVATE
+Convertible_To_Rows.from that:Column = Convertible_To_Rows.Value that.length that.get
 
 ## PRIVATE
 Convertible_To_Rows.from that:Vector = Convertible_To_Rows.Value that.length that.get

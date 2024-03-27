@@ -2053,6 +2053,7 @@ type Column
             Column.Value (self.java_column.rename name)
 
     ## GROUP Standard.Base.Metadata
+       ICON metadata
        Returns the name of this column.
 
        > Example
@@ -2065,6 +2066,7 @@ type Column
     name self = self.java_column.getName
 
     ## GROUP Standard.Base.Metadata
+       ICON metadata
        Returns the length of this column.
 
        > Example
@@ -2077,6 +2079,7 @@ type Column
     length self = self.java_column . getSize
 
     ## GROUP Standard.Base.Metadata
+       ICON metadata
        Returns the number of missing items in this column.
 
        > Example
@@ -2089,6 +2092,7 @@ type Column
     count_nothing self = CountNothing.apply self.java_column
 
     ## GROUP Standard.Base.Metadata
+       ICON metadata
        Returns the number of non-null items in this column.
 
        > Example
@@ -2171,6 +2175,7 @@ type Column
     to_vector self = Vector.from_polyglot_array self.java_column.getStorage.toList
 
     ## GROUP Standard.Base.Metadata
+       ICON metadata
        Returns the `Value_Type` associated with that column.
 
        The value type determines what type of values the column is storing and
@@ -2290,7 +2295,7 @@ type Column
             sorted = self.to_vector.sort order by=wrapped
             Column.from_vector self.name sorted
 
-    ## ALIAS first, last, sample, slice
+    ## ALIAS first, head, last, limit, sample, slice, tail, top
        GROUP Standard.Base.Selections
        ICON select_row
        Creates a new Column with the specified range of rows from the input
@@ -2374,6 +2379,7 @@ type Column
         Column.Value (self.java_column.applyMask mask)
 
     ## GROUP Standard.Base.Metadata
+       ICON metadata
        Returns a column of numbers, in which every entry denotes how many times
        the value at the given position occured before.
 

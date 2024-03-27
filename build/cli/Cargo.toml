@@ -8,7 +8,7 @@ default-run = "enso-build-cli"
 [dependencies]
 anyhow = { workspace = true }
 byte-unit = { workspace = true }
-clap = { version = "3.2.23", features = ["derive", "env", "wrap_help"] }
+clap = { version = "3.2.25", features = ["derive", "env", "wrap_help"] }
 derivative = { workspace = true }
 enso-build-base = { path = "../base" }
 enso-build = { path = "../build" }
@@ -22,3 +22,6 @@ tempfile = "3.2.0"
 tokio = { workspace = true }
 toml = "0.5.9"
 tracing = { version = "0.1.37" }
+
+[lints]
+workspace = true

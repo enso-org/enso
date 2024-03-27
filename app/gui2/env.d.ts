@@ -23,5 +23,7 @@ interface Window {
  */
 interface FileBrowserApi {
   /** Select path for local file or directory using the system file browser. */
-  readonly openFileBrowser: (kind: 'file' | 'directory' | 'any') => Promise<string[] | undefined>
+  readonly openFileBrowser: (
+    kind: 'file' | 'directory' | 'default',
+  ) => Promise<string[] | undefined>
 }
