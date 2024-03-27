@@ -115,7 +115,7 @@ export function checkResourcesPath(projectId: backend.ProjectId) {
 }
 /** Relative HTTP path to the "update secret" endpoint of the Cloud backend API. */
 export function updateSecretPath(secretId: backend.SecretId) {
-  return `s3cr3tz/${secretId}`
+  return `secrets/${secretId}`
 }
 /** Relative HTTP path to the "get secret" endpoint of the Cloud backend API. */
 export function getSecretPath(secretId: backend.SecretId) {
