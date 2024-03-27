@@ -2,7 +2,7 @@ from Standard.Base import all hiding First, Last
 
 from Standard.Table import Table, Sort_Column, expr
 from Standard.Table.Aggregate_Column.Aggregate_Column import all
-import Standard.Table.Data.Expression.Expression_Error
+import Standard.Table.Expression.Expression_Error
 from Standard.Table.Errors import all
 
 from Standard.Database.Errors import Unsupported_Database_Operation

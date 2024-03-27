@@ -3,8 +3,7 @@ from Standard.Base import all
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
 import Standard.Table.Data.Type.Value_Type.Value_Type
-import Standard.Table.Extensions.Prefix_Name.Prefix_Name
-from Standard.Table import Table, Column
+from Standard.Table import Table, Column, Prefix_Name
 from Standard.Table.Errors import No_Such_Column
 from Standard.Table.Extensions.Table_Conversions import all
 
