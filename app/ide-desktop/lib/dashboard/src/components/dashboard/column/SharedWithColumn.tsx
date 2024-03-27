@@ -63,7 +63,7 @@ export default function SharedWithColumn(props: SharedWithColumnPropsInternal) {
         <PermissionDisplay
           key={otherUser.user.sk}
           action={otherUser.permission}
-          onClick={event => {
+          onPress={event => {
             setQuery(oldQuery =>
               oldQuery.withToggled(
                 'owners',

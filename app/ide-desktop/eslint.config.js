@@ -233,6 +233,27 @@ const RESTRICTED_SYNTAXES = [
             'JSXElement[closingElement!=null]:not(:has(.children:matches(JSXText[raw=/\\S/], :not(JSXText))))',
         message: 'Use self-closing tags (`<tag />`) for tags without children',
     },
+    {
+        selector: 'JSXOpeningElement[name.name=button]',
+        message: 'Use `Button` or `UnstyledButton` instead of `button`',
+    },
+    {
+        selector: 'JSXOpeningElement[name.name=label]',
+        message: 'Use `aria.Label` instead of `label`',
+    },
+    {
+        selector: 'JSXOpeningElement[name.name=input]',
+        message: 'Use `aria.Input` instead of `input`',
+    },
+    {
+        selector: 'JSXOpeningElement[name.name=span]',
+        message: 'Use `aria.Text` instead of `span`',
+    },
+    {
+        selector: 'JSXOpeningElement[name.name=/^h[123456]$/]',
+        message: 'Use `aria.Heading` instead of `h1`-`h6`',
+    },
+    // We may want to consider also preferring `aria.Form` in favor of `form` in the future.
 ]
 
 // ============================

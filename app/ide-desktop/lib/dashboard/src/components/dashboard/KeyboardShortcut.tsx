@@ -43,18 +43,18 @@ const MODIFIER_JSX: Readonly<
   },
   [detect.Platform.linux]: {
     Meta: (
-      <span key="Meta" className="text">
+      <aria.Text key="Meta" className="text">
         Super
-      </span>
+      </aria.Text>
     ),
   },
   [detect.Platform.unknown]: {
     // Assume the system is Unix-like and calls the key that triggers `event.metaKey`
     // the "Super" key.
     Meta: (
-      <span key="Meta" className="text">
+      <aria.Text key="Meta" className="text">
         Super
-      </span>
+      </aria.Text>
     ),
   },
   /* eslint-enable @typescript-eslint/naming-convention */
@@ -104,14 +104,14 @@ export default function KeyboardShortcut(props: KeyboardShortcutProps) {
         {modifiers.map(
           modifier =>
             MODIFIER_JSX[detect.platform()][modifier] ?? (
-              <span key={modifier} className="text">
+              <aria.Text key={modifier} className="text">
                 {modifier}
-              </span>
+              </aria.Text>
             )
         )}
-        <span className="text">
+        <aria.Text className="text">
           {shortcut.key === ' ' ? 'Space' : KEY_CHARACTER[shortcut.key] ?? shortcut.key}
-        </span>
+        </aria.Text>
       </aria.Keyboard>
     )
   }

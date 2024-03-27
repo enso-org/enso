@@ -17,6 +17,7 @@ import AssetListEventType from '#/events/AssetListEventType'
 import AssetContextMenu from '#/layouts/AssetContextMenu'
 import type * as assetsTable from '#/layouts/AssetsTable'
 
+import * as aria from '#/components/aria'
 import * as assetRowUtils from '#/components/dashboard/AssetRow/assetRowUtils'
 import * as columnModule from '#/components/dashboard/column'
 import * as columnUtils from '#/components/dashboard/column/columnUtils'
@@ -47,7 +48,7 @@ const HEADER_HEIGHT_PX = 34
 const DRAG_EXPAND_DELAY_MS = 500
 /** Placeholder row for directories that are empty. */
 const EMPTY_DIRECTORY_PLACEHOLDER = (
-  <span className="px-name-column-x placeholder">This folder is empty.</span>
+  <aria.Text className="px-name-column-x placeholder">This folder is empty.</aria.Text>
 )
 
 // ================

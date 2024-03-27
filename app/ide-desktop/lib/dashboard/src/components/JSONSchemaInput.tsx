@@ -3,9 +3,11 @@ import * as React from 'react'
 
 import * as backendProvider from '#/providers/BackendProvider'
 
+import * as aria from '#/components/aria'
 import Autocomplete from '#/components/Autocomplete'
 import Dropdown from '#/components/Dropdown'
 import Checkbox from '#/components/styled/Checkbox'
+import UnstyledButton from '#/components/styled/UnstyledButton'
 
 import * as jsonSchema from '#/utilities/jsonSchema'
 import * as object from '#/utilities/object'
@@ -94,7 +96,7 @@ export default function JSONSchemaInput(props: JSONSchemaInputProps) {
             )
           } else {
             children.push(
-              <input
+              <aria.Input
                 type="text"
                 readOnly={readOnly}
                 value={typeof value === 'string' ? value : ''}
@@ -114,7 +116,7 @@ export default function JSONSchemaInput(props: JSONSchemaInputProps) {
         }
         case 'number': {
           children.push(
-            <input
+            <aria.Input
               type="number"
               readOnly={readOnly}
               value={typeof value === 'number' ? value : ''}
@@ -135,7 +137,7 @@ export default function JSONSchemaInput(props: JSONSchemaInputProps) {
         }
         case 'integer': {
           children.push(
-            <input
+            <aria.Input
               type="number"
               readOnly={readOnly}
               value={typeof value === 'number' ? value : ''}
@@ -189,15 +191,14 @@ export default function JSONSchemaInput(props: JSONSchemaInputProps) {
                         ? { title: String(childSchema.description) }
                         : {})}
                     >
-                      <button
-                        type="button"
-                        disabled={!isOptional}
+                      <UnstyledButton
+                        isDisabled={!isOptional}
                         className={`text selectable ${
                           value != null && key in value ? 'active' : ''
                         } inline-block w-json-schema-object-key whitespace-nowrap rounded-full px-button-x text-left ${
                           isOptional ? 'hover:bg-hover-bg' : ''
                         }`}
-                        onClick={() => {
+                        onPress={() => {
                           if (isOptional) {
                             setValue(oldValue => {
                               if (oldValue != null && key in oldValue) {
@@ -220,7 +221,7 @@ export default function JSONSchemaInput(props: JSONSchemaInputProps) {
                         }}
                       >
                         {'title' in childSchema ? String(childSchema.title) : key}
-                      </button>
+                      </UnstyledButton>
                       {value != null && key in value && (
                         <JSONSchemaInput
                           readOnly={readOnly}

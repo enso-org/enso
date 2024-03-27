@@ -113,7 +113,7 @@ export default function Registration() {
           value={confirmPassword}
           setValue={setConfirmPassword}
         />
-        <SubmitButton disabled={isSubmitting} text="Register" icon={CreateAccountIcon} />
+        <SubmitButton isDisabled={isSubmitting} text="Register" icon={CreateAccountIcon} />
       </form>
       <Link to={appUtils.LOGIN_PATH} icon={GoBackIcon} text="Already have an account?" />
     </div>

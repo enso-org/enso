@@ -118,7 +118,7 @@ export default function Login(props: LoginProps) {
               Forgot Your Password?
             </router.Link>
           </div>
-          <SubmitButton disabled={isSubmitting} text="Login" icon={ArrowRightIcon} />
+          <SubmitButton isDisabled={isSubmitting} text="Login" icon={ArrowRightIcon} />
         </form>
       </div>
       <Link

@@ -16,12 +16,14 @@ export interface SubmitButtonProps {
 
 /** A styled submit button. */
 export default function SubmitButton(props: SubmitButtonProps) {
-  const { disabled = false, text, icon } = props
+  const { disabled: disabled = false, text, icon } = props
   return (
+    // This MUST be a button as `aria.Button` does not support `type="submit"`.
+    // eslint-disable-next-line no-restricted-syntax
     <button
       disabled={disabled}
       type="submit"
-      className={`flex items-center justify-center gap-icon-with-text rounded-full bg-blue-600 py-auth-input-y text-white transition-all duration-auth selectable hover:bg-blue-700 focus:bg-blue-700 focus:outline-none enabled:active`}
+      className={`focus-child flex items-center justify-center gap-icon-with-text rounded-full bg-blue-600 py-auth-input-y text-white transition-all duration-auth selectable hover:bg-blue-700 focus:bg-blue-700 focus:outline-none enabled:active`}
     >
       {text}
       <SvgMask src={icon} />

@@ -6,6 +6,8 @@ import TickIcon from 'enso-assets/tick.svg'
 
 import * as inputBindingsProvider from '#/providers/InputBindingsProvider'
 
+import * as aria from '#/components/aria'
+import FocusRing from '#/components/styled/FocusRing'
 import SvgMask from '#/components/SvgMask'
 
 import * as sanitizedEventTargets from '#/utilities/sanitizedEventTargets'
@@ -108,36 +110,43 @@ export default function EditableSpan(props: EditableSpanProps) {
               })}
         />
         {isSubmittable && (
-          <button
-            type="submit"
-            className="mx-tick-cross-button my-auto flex rounded-full transition-colors hover:bg-hover-bg"
-          >
-            <SvgMask src={TickIcon} alt="Confirm Edit" className="size-icon" />
-          </button>
+          <FocusRing>
+            <aria.Button
+              type="submit"
+              className="mx-tick-cross-button my-auto flex rounded-full transition-colors hover:bg-hover-bg"
+            >
+              <SvgMask src={TickIcon} alt="Confirm Edit" className="size-icon" />
+            </aria.Button>
+          </FocusRing>
         )}
-        <button
-          type="button"
-          className="mx-tick-cross-button my-auto flex rounded-full transition-colors hover:bg-hover-bg"
-          onMouseDown={() => {
-            cancelled.current = true
-          }}
-          onClick={event => {
-            event.stopPropagation()
-            onCancel()
-            window.setTimeout(() => {
-              cancelled.current = false
-            })
-          }}
-        >
-          <SvgMask src={CrossIcon} alt="Cancel Edit" className="size-icon" />
-        </button>
+        <FocusRing>
+          {/* This button requires an `onMouseDown` handler which is not possible with an
+           * `aria.Button`. */}
+          {/* eslint-disable-next-line no-restricted-syntax */}
+          <button
+            type="button"
+            className="mx-tick-cross-button my-auto flex rounded-full transition-colors hover:bg-hover-bg"
+            onMouseDown={() => {
+              cancelled.current = true
+            }}
+            onClick={event => {
+              event.stopPropagation()
+              onCancel()
+              window.setTimeout(() => {
+                cancelled.current = false
+              })
+            }}
+          >
+            <SvgMask src={CrossIcon} alt="Cancel Edit" className="size-icon" />
+          </button>
+        </FocusRing>
       </form>
     )
   } else {
     return (
-      <span data-testid={dataTestId} className={className}>
+      <aria.Text data-testid={dataTestId} className={className}>
         {children}
-      </span>
+      </aria.Text>
     )
   }
 }

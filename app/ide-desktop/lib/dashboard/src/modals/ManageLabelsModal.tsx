@@ -142,9 +142,9 @@ export default function ManageLabelsModal<
             void doSubmit()
           }}
         >
-          <div className="flex h-row items-center gap-modal-tabs px-modal-tab-bar-x">
-            <h2 className="text text-sm font-bold">Labels</h2>
-          </div>
+          <aria.Heading className="flex h-row items-center gap-modal-tabs px-modal-tab-bar-x">
+            <aria.Text className="text text-sm font-bold">Labels</aria.Text>
+          </aria.Heading>
           <div className="flex gap-input-with-button">
             <div
               className={`flex grow items-center rounded-full border border-primary/10 px-input-x ${

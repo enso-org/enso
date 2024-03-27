@@ -5,7 +5,9 @@ import * as focusHooks from '#/hooks/focusHooks'
 
 import * as focusDirectionProvider from '#/providers/FocusDirectionProvider'
 
+import * as aria from '#/components/aria'
 import FocusRing from '#/components/styled/FocusRing'
+import UnstyledButton from '#/components/styled/UnstyledButton'
 
 import * as backend from '#/services/Backend'
 
@@ -23,26 +25,30 @@ function ColorPickerItem(props: InternalColorPickerItemProps) {
   const focusDirection = focusDirectionProvider.useFocusDirection()
   const handleFocusMove = focusHooks.useHandleFocusMove(focusDirection)
 
+  const doSubmit = () => {
+    inputRef.current?.click()
+    setColor(color)
+  }
+
   return (
     <FocusRing within>
-      <label
+      <aria.Label
         className="flex size-radio-button cursor-pointer rounded-full"
         onClick={event => {
           event.stopPropagation()
-          inputRef.current?.click()
-          setColor(color)
+          doSubmit()
         }}
         onKeyDown={handleFocusMove}
       >
         <input type="radio" ref={inputRef} name={`color-picker-${id}`} className="peer hidden" />
-        <button
-          type="button"
-          className="focus-child group pointer-events-none size-radio-button rounded-full p-radio-button-dot"
+        <UnstyledButton
+          className="group pointer-events-none size-radio-button rounded-full p-radio-button-dot"
           style={{ backgroundColor: backend.lChColorToCssColor(color) }}
+          onPress={doSubmit}
         >
           <div className="hidden size-radio-button-dot rounded-full bg-selected-frame peer-checked:group-[]:block" />
-        </button>
-      </label>
+        </UnstyledButton>
+      </aria.Label>
     </FocusRing>
   )
 }
