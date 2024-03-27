@@ -20,10 +20,39 @@ import org.enso.interpreter.runtime.error.PanicException;
 public class InstrumentorBuiltin extends Node {
   @Child private ArrayLikeAtNode atNode = ArrayLikeAtNode.create();
 
+  private static ThreadLocal<java.util.function.Function<String, Object>> CACHE =
+      new ThreadLocal<>();
+
+  @CompilerDirectives.TruffleBoundary
+  public static void runWithCache(
+      java.util.function.Function<String, Object> cache, Runnable action) {
+    var prev = CACHE.get();
+    try {
+      CACHE.set(cache);
+      action.run();
+    } finally {
+      CACHE.set(prev);
+    }
+  }
+
+  @CompilerDirectives.TruffleBoundary
+  private static Object findUuid(Object uuid) {
+    var cache = CACHE.get();
+    return cache == null ? null : cache.apply(uuid.toString());
+  }
+
   Object execute(Text operation, Object args) {
     var ctx = EnsoContext.get(this);
     var op = operation.toString();
     try {
+      if ("uuid".equals(op)) {
+        var res = findUuid(args);
+        if (res == null) {
+          return ctx.getBuiltins().nothing();
+        } else {
+          return res;
+        }
+      }
       Object ret = "newBuilder".equals(op) ? newBuilder(ctx, atNode.executeAt(args, 0)) : null;
       if (atNode.executeAt(args, 0) instanceof Instrumentor b) {
         ret =

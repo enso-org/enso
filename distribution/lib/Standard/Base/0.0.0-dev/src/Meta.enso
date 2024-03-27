@@ -626,6 +626,9 @@ type Instrumentor
     Value impl
 
     ## PRIVATE
+    uuid id:Text -> Any = instrumentor_builtin "uuid" id
+
+    ## PRIVATE
        ADVANCED
 
        Registers callback to be executed at the begining of node/expression

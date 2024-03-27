@@ -1,4 +1,5 @@
 from Standard.Base import all
+from Standard.Base.Meta import Instrumentor
 
 ## PRIVATE
    Basic preprocessor for widgets metadata visualization.
@@ -6,10 +7,20 @@ from Standard.Base import all
    Returns full annotation data for all requested arguments.
 get_widget_json : Any -> Any -> Vector Text -> Text
 get_widget_json value call_name argument_names =
+    other_args = argument_names.at 1 . parse_json
+
+    cache (name_or_index:Text|Integer) -> Any =
+        arg = other_args.get name_or_index.to_text
+        case arg of
+            uuid:Text -> Instrumentor.uuid uuid
+            _ -> Nothing
+
     read_annotation argument =
         annotation = Warning.clear <| Meta.get_annotation value call_name argument
         case annotation of
-            _ : Function -> annotation value
+            _ : Function -> annotation value cache=cache
             _ -> annotation
-    annotations = argument_names.map (arg -> [arg, read_annotation arg])
+
+    arg = argument_names.at 0
+    annotations =  [ [arg, read_annotation arg] ]
     annotations.to_json
