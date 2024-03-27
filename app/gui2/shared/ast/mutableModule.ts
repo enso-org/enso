@@ -404,7 +404,9 @@ class UpdateBuilder {
   }
 
   finish(): ModuleUpdate {
-    const updateRoots = subtreeRoots(this.module, new Set(this.nodesUpdated.keys()))
+    const dirtyNodes = new Set(this.nodesUpdated)
+    this.nodesAdded.forEach((node) => dirtyNodes.add(node))
+    const updateRoots = subtreeRoots(this.module, dirtyNodes)
     return { ...this, updateRoots }
   }
 }
