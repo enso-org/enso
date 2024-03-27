@@ -514,6 +514,23 @@ add_specs suite_builder =
             (Decimal.new 3 % 0) . should_fail_with Arithmetic_Error
             (Decimal.new 3 % Decimal.new 0) . should_fail_with Arithmetic_Error
 
+    suite_builder.group "div" group_builder->
+        group_builder.specify "should define div" <|
+            Decimal.new "10" . div (Decimal.new "3") . should_equal 3
+
+            Decimal.new "35" . div (Decimal.new "6") . should_equal 5
+            Decimal.new "-35" . div (Decimal.new "6") . should_equal -5
+            Decimal.new "35" . div (Decimal.new "-6") . should_equal -5
+            Decimal.new "-35" . div (Decimal.new "-6") . should_equal 5
+            Decimal.new "35.0" . div (Decimal.new "6") . should_equal 5
+            Decimal.new "35.3" . div (Decimal.new "6") . should_equal 5
+
+            Decimal.new "35" . div (Decimal.new "5") . should_equal 7
+
+            Decimal.new "0" . div (Decimal.new "5") . should_equal 0
+
+            Decimal.new "12" . div (Decimal.new "0") . should_fail_with Arithmetic_Error
+
 main =
     suite = Test.build suite_builder->
         add_specs suite_builder

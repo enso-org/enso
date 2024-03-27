@@ -559,6 +559,27 @@ type Decimal
     % : Decimal -> Decimal -> Decimal
     % self (that : Decimal) = self.remainder that
 
+    ## GROUP Math
+       ICON math
+       Computes the integer division of this by that.
+
+       Arguments:
+       - that: The number to divide this by.
+
+       Integer division rounds down to the nearest integer.
+
+       Returns an error if `that` is zero.
+
+       > Example
+         Dividing 10 by 3 to get 3.
+
+             Decimal.new "10" . div (Decimal.new "3")
+             # => 3
+    div : Decimal -> Decimal
+    div self that:Decimal -> Decimal =
+        handle_java_exception <|
+            Decimal.Value (self.big_decimal.divideToIntegralValue that.big_decimal)
+
     ## GROUP Operators
        ICON operators
        Compute the negation of this.
