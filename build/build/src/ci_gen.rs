@@ -494,7 +494,7 @@ fn add_release_steps(workflow: &mut Workflow) -> Result {
         let build_ide_job_id =
             workflow.add_dependent(target, UploadIde, [&prepare_job_id, &backend_job_id]);
         packaging_job_ids.push(build_ide_job_id.clone());
-    
+
         // The backend image is deployed to ECR only on Linux.
         if target.0 == OS::Linux {
             let runtime_requirements = [&prepare_job_id, &backend_job_id];
