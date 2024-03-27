@@ -1,0 +1,26 @@
+package org.enso.compiler.pass.analyse.types;
+
+import org.enso.pkg.QualifiedName;
+import org.enso.pkg.QualifiedName$;
+
+public class BuiltinTypes {
+  // TODO later we will want to resolve descriptions of these types based on the loaded std-lib
+
+  public final TypeRepresentation INTEGER = fromQualifiedName("Standard.Base.Data.Numbers.Integer");
+  public final TypeRepresentation FLOAT = fromQualifiedName("Standard.Base.Data.Numbers.Float");
+
+  public final TypeRepresentation NUMBER = fromQualifiedName("Standard.Base.Data.Numbers.Number");
+  public final TypeRepresentation TEXT = fromQualifiedName("Standard.Base.Data.Text.Text");
+  public final TypeRepresentation VECTOR = fromQualifiedName("Standard.Base.Data.Vector.Vector");
+  public final TypeRepresentation NOTHING = fromQualifiedName("Standard.Base.Nothing.Nothing");
+
+  private TypeRepresentation fromQualifiedName(String qualifiedName) {
+    var fqn = QualifiedName$.MODULE$.fromString(qualifiedName);
+    return new TypeRepresentation.AtomType(fqn, null);
+  }
+
+  public static boolean isAny(QualifiedName qualifiedName) {
+    var str = qualifiedName.toString();
+    return str.equals("Standard.Base.Any.Any") || str.equals("Standard.Base.Any");
+  }
+}

@@ -224,7 +224,7 @@ public final class TypeInference implements IRPass {
         }
       }
       case Literal l -> processLiteral(l);
-      case Application.Sequence sequence -> setInferredType(sequence, new InferredType(TypeRepresentation.VECTOR));
+      case Application.Sequence sequence -> setInferredType(sequence, new InferredType(builtinTypes.VECTOR));
       case Case.Expr caseExpr -> {
         List<TypeRepresentation> innerTypes =
             CollectionConverters$.MODULE$.asJava(caseExpr.branches())
@@ -289,10 +289,17 @@ public final class TypeInference implements IRPass {
     return new TypeRepresentation.TypeObject(resolvedType.qualifiedName(), resolvedType.tp());
   }
 
+  private TypeRepresentation resolvedTypeAsAtomType(BindingsMap.ResolvedType resolvedType) {
+    if (BuiltinTypes.isAny(resolvedType.qualifiedName())) {
+      return TypeRepresentation.ANY;
+    }
+    return new TypeRepresentation.AtomType(resolvedType.qualifiedName(), resolvedType.tp());
+  }
+
   private void processLiteral(Literal literal) {
     TypeRepresentation type = switch (literal) {
-      case Literal.Number number -> number.isFractional() ? TypeRepresentation.FLOAT : TypeRepresentation.INTEGER;
-      case Literal.Text text -> TypeRepresentation.TEXT;
+      case Literal.Number number -> number.isFractional() ? builtinTypes.FLOAT : builtinTypes.INTEGER;
+      case Literal.Text text -> builtinTypes.TEXT;
       // This branch is needed only because Java is unable to infer that the match is exhaustive
       default ->
           throw new IllegalStateException("Impossible - unknown literal type: " + literal.getClass().getCanonicalName());
@@ -462,7 +469,12 @@ public final class TypeInference implements IRPass {
 
         if (resolutionOptional.isPresent()) {
           BindingsMap.ResolvedName target = resolutionOptional.get().target();
-          yield TypeRepresentation.fromQualifiedName(target.qualifiedName());
+          if (target instanceof BindingsMap.ResolvedType resolvedType) {
+            yield resolvedTypeAsAtomType(resolvedType);
+          } else {
+            logger.warn("resolveTypeExpression: {} - unexpected resolved name type {}", name.showCode(), target.getClass().getCanonicalName());
+            yield TypeRepresentation.UNKNOWN;
+          }
         } else {
           logger.warn("resolveTypeExpression: {} - Missing expected TypeName resolution metadata", type.showCode());
           yield TypeRepresentation.UNKNOWN;
@@ -525,8 +537,8 @@ public final class TypeInference implements IRPass {
   }
 
   private void checkTypeCompatibility(IR relatedIr, TypeRepresentation expected, TypeRepresentation provided) {
-    TypeCompatibility compatibility = TypeCompatibility.computeTypeCompatibility(expected, provided);
-    if (compatibility == TypeCompatibility.NEVER_COMPATIBLE) {
+    TypeCompatibility.Compatibility compatibility = checker.computeTypeCompatibility(expected, provided);
+    if (compatibility == TypeCompatibility.Compatibility.NEVER_COMPATIBLE) {
       relatedIr.diagnostics().add(new Warning.TypeMismatch(relatedIr.location(), expected.toString(), provided.toString()));
     }
   }
@@ -584,4 +596,7 @@ public final class TypeInference implements IRPass {
     private record LinkInfo(Graph graph, Graph.Link link) {
     }
   }
+
+  private BuiltinTypes builtinTypes = new BuiltinTypes();
+  TypeCompatibility checker = new TypeCompatibility(builtinTypes);
 }

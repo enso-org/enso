@@ -1,18 +1,39 @@
 package org.enso.compiler.pass.analyse.types;
 
-import java.util.*;
 import org.enso.compiler.data.BindingsMap;
 import org.enso.pkg.QualifiedName;
-import org.enso.pkg.QualifiedName$;
+
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 
 public sealed interface TypeRepresentation
     permits TypeRepresentation.ArrowType,
-        TypeRepresentation.AtomType,
-        TypeRepresentation.IntersectionType,
-        TypeRepresentation.SumType,
-        TypeRepresentation.TopType,
-        TypeRepresentation.TypeObject,
-        TypeRepresentation.UnresolvedSymbol {
+    TypeRepresentation.AtomType,
+    TypeRepresentation.IntersectionType,
+    TypeRepresentation.SumType,
+    TypeRepresentation.TopType,
+    TypeRepresentation.TypeObject,
+    TypeRepresentation.UnresolvedSymbol {
+  TypeRepresentation ANY = new TopType();
+  // In the future we may want to split this unknown type to be a separate entity.
+  TypeRepresentation UNKNOWN = ANY;
+
+  static TypeRepresentation buildSimplifiedSumType(List<TypeRepresentation> types) {
+    var simplifier = new SumTypeSimplifier();
+    types.forEach(simplifier::traverse);
+    return simplifier.build();
+  }
+
+  static TypeRepresentation buildFunction(
+      List<TypeRepresentation> arguments, TypeRepresentation result) {
+    var reversed = new ArrayList<>(arguments);
+    Collections.reverse(reversed);
+    return reversed.stream().reduce(result, (acc, arg) -> new ArrowType(arg, acc));
+  }
+
   record TopType() implements TypeRepresentation {
     @Override
     public String toString() {
@@ -20,10 +41,29 @@ public sealed interface TypeRepresentation
     }
   }
 
-  record AtomType(QualifiedName fqn) implements TypeRepresentation {
+  /**
+   * Represents the type that is associated with values (atoms) of a given type.
+   * <p>
+   * Instances that are assigned this type are built with one of the available constructors, but statically we do not necessarily know which one.
+   */
+  record AtomType(QualifiedName fqn, BindingsMap.Type typeDescription) implements TypeRepresentation {
     @Override
     public String toString() {
       return fqn.item();
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+      if (obj instanceof AtomType atomType) {
+        return fqn.equals(atomType.fqn);
+      } else {
+        return false;
+      }
+    }
+
+    @Override
+    public int hashCode() {
+      return fqn.hashCode() * 31;
     }
   }
 
@@ -71,12 +111,6 @@ public sealed interface TypeRepresentation
     }
   }
 
-  static TypeRepresentation buildSimplifiedSumType(List<TypeRepresentation> types) {
-    var simplifier = new SumTypeSimplifier();
-    types.forEach(simplifier::traverse);
-    return simplifier.build();
-  }
-
   record IntersectionType(List<TypeRepresentation> types) implements TypeRepresentation {
     public IntersectionType {
       if (types.size() < 2) {
@@ -99,9 +133,9 @@ public sealed interface TypeRepresentation
    * Represents a type object, i.e. an object that is an instance of a type's identity.
    *
    * <p>This object allows to call static methods on that type or create instances of this type
-   * using its constructors.
+   * using its constructors, which will be assigned the corresponding AtomType.
    *
-   * @param name the qualified name of the type
+   * @param name            the qualified name of the type
    * @param typeDescription the type description from the BindingsMap
    */
   record TypeObject(QualifiedName name, BindingsMap.Type typeDescription) implements TypeRepresentation {
@@ -115,7 +149,21 @@ public sealed interface TypeRepresentation
      * this TypeObject.
      */
     public TypeRepresentation instantiate() {
-      return fromQualifiedName(name);
+      return new AtomType(name, typeDescription);
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+      if (obj instanceof TypeObject typeObject) {
+        return name.equals(typeObject.name);
+      } else {
+        return false;
+      }
+    }
+
+    @Override
+    public int hashCode() {
+      return name.hashCode() * 97;
     }
   }
 
@@ -124,36 +172,5 @@ public sealed interface TypeRepresentation
     public String toString() {
       return "UnresolvedSymbol<" + name + ">";
     }
-  }
-
-  static TypeRepresentation buildFunction(
-      List<TypeRepresentation> arguments, TypeRepresentation result) {
-    var reversed = new ArrayList<>(arguments);
-    Collections.reverse(reversed);
-    return reversed.stream().reduce(result, (acc, arg) -> new ArrowType(arg, acc));
-  }
-
-  TypeRepresentation INTEGER = fromQualifiedName("Standard.Base.Data.Numbers.Integer");
-  TypeRepresentation FLOAT = fromQualifiedName("Standard.Base.Data.Numbers.Float");
-
-  TypeRepresentation NUMBER = fromQualifiedName("Standard.Base.Data.Numbers.Number");
-  TypeRepresentation TEXT = fromQualifiedName("Standard.Base.Data.Text.Text");
-  TypeRepresentation VECTOR = fromQualifiedName("Standard.Base.Data.Vector.Vector");
-  TypeRepresentation ANY = new TopType();
-
-  // In the future we may want to split this unknown type to be a separate entity.
-  TypeRepresentation UNKNOWN = ANY;
-  TypeRepresentation NOTHING = fromQualifiedName("Standard.Base.Nothing.Nothing");
-
-  static TypeRepresentation fromQualifiedName(QualifiedName fqn) {
-    String str = fqn.toString();
-    if (str.equals("Standard.Base.Any.Any") || str.equals("Standard.Base.Any")) return ANY;
-
-    return new AtomType(fqn);
-  }
-
-  static TypeRepresentation fromQualifiedName(String fqn) {
-    QualifiedName qualifiedName = QualifiedName$.MODULE$.fromString(fqn);
-    return fromQualifiedName(qualifiedName);
   }
 }

@@ -3,6 +3,7 @@ package org.enso.compiler;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 import java.net.URI;
 import java.util.List;
@@ -55,7 +56,7 @@ public class TypeInferenceTest extends CompilerTest {
     Module module = compile(src);
     Method foo = findStaticMethod(module, "foo");
     var x = findAssignment(foo.body(), "x");
-    TypeRepresentation myType = TypeRepresentation.fromQualifiedName("zeroAryModuleMethodCheck.My_Type");
+    String myType = "zeroAryModuleMethodCheck.My_Type";
     assertEquals(getInferredType(x.expression()), myType);
   }
 
@@ -84,7 +85,7 @@ public class TypeInferenceTest extends CompilerTest {
     var module = compile(src);
     var foo = findStaticMethod(module, "foo");
     var b = findAssignment(foo.body(), "b");
-    TypeRepresentation myType = TypeRepresentation.fromQualifiedName("functionReturnCheck.My_Type");
+    String myType = "functionReturnCheck.My_Type";
 
     // The result of `add a z` should be `My_Type` as guaranteed by the return type check of `add`.
     assertEquals(myType, getInferredType(b.expression()));
@@ -116,7 +117,7 @@ public class TypeInferenceTest extends CompilerTest {
             .buildLiteral();
 
     var module = compile(src);
-    var myType = TypeRepresentation.fromQualifiedName("argChecks.My_Type");
+    var myType = "argChecks.My_Type";
 
     var f1 = findStaticMethod(module, "f1");
     var f2 = findStaticMethod(module, "f2");
@@ -153,7 +154,7 @@ public class TypeInferenceTest extends CompilerTest {
     Module module = compile(src);
     Method f = findStaticMethod(module, "f");
 
-    TypeRepresentation myType = TypeRepresentation.fromQualifiedName("ascribedExpressions.My_Type");
+    String myType = "ascribedExpressions.My_Type";
     TypeRepresentation yType = getInferredType(findAssignment(f.body(), "y").expression());
     assertEquals(myType, yType);
   }
@@ -181,10 +182,8 @@ public class TypeInferenceTest extends CompilerTest {
     Module module = compile(src);
     Method f = findStaticMethod(module, "f");
 
-    TypeRepresentation myType =
-        TypeRepresentation.fromQualifiedName("advancedAscribedExpressions.My_Type");
-    TypeRepresentation otherType =
-        TypeRepresentation.fromQualifiedName("advancedAscribedExpressions.Other_Type");
+    String myType = "advancedAscribedExpressions.My_Type";
+    String otherType = "advancedAscribedExpressions.Other_Type";
     TypeRepresentation sum = new TypeRepresentation.SumType(List.of(myType, otherType));
     assertEquals(sum, getInferredType(findAssignment(f.body(), "y1").expression()));
 
@@ -282,7 +281,7 @@ public class TypeInferenceTest extends CompilerTest {
     var module = compile(src);
     var foo = findStaticMethod(module, "foo");
 
-    var myType = TypeRepresentation.fromQualifiedName("bindingsFlow.My_Type");
+    var myType = "bindingsFlow.My_Type";
 
     assertEquals(myType, getInferredType(findAssignment(foo, "w").expression()));
   }
@@ -308,7 +307,7 @@ public class TypeInferenceTest extends CompilerTest {
     var module = compile(src);
     var foo = findStaticMethod(module, "foo");
 
-    var myType = TypeRepresentation.fromQualifiedName("checkedArgumentTypes.My_Type");
+    var myType = "checkedArgumentTypes.My_Type";
 
     // Type from argument
     assertEquals(myType, getInferredType(findAssignment(foo, "y1").expression()));
@@ -340,7 +339,7 @@ public class TypeInferenceTest extends CompilerTest {
     var module = compile(src);
     var foo = findStaticMethod(module, "foo");
 
-    var myType = TypeRepresentation.fromQualifiedName("innerFunctionType.My_Type");
+    var myType = "innerFunctionType.My_Type";
     var functionType =
         new TypeRepresentation.ArrowType(myType, new TypeRepresentation.ArrowType(myType, myType));
     assertEquals(functionType, getInferredType(findAssignment(foo, "f1").expression()));
@@ -370,7 +369,7 @@ public class TypeInferenceTest extends CompilerTest {
     var module = compile(src);
     var foo = findStaticMethod(module, "foo");
 
-    var myType = TypeRepresentation.fromQualifiedName("zeroArgConstructor.My_Type");
+    var myType = "zeroArgConstructor.My_Type";
     assertEquals(myType, getInferredType(findAssignment(foo, "x").expression()));
   }
 
@@ -394,7 +393,7 @@ public class TypeInferenceTest extends CompilerTest {
     var module = compile(src);
     var foo = findStaticMethod(module, "foo");
 
-    var myType = TypeRepresentation.fromQualifiedName("multiArgConstructor.My_Type");
+    var myType = "multiArgConstructor.My_Type";
     assertEquals(myType, getInferredType(findAssignment(foo, "x").expression()));
   }
 
@@ -425,7 +424,7 @@ public class TypeInferenceTest extends CompilerTest {
     var module = compile(src);
     var foo = findStaticMethod(module, "foo");
 
-    var myType = TypeRepresentation.fromQualifiedName("constructorWithDefaults.My_Type");
+    var myType = "constructorWithDefaults.My_Type";
 
     // The commented out expressions document the desired behaviour - we correctly infer which
     // arguments were defaulted.
@@ -494,7 +493,7 @@ public class TypeInferenceTest extends CompilerTest {
             .buildLiteral();
 
     var module = compile(src);
-    var myType = TypeRepresentation.fromQualifiedName("commonCase.My_Type");
+    var myType = "commonCase.My_Type";
     var f = findStaticMethod(module, "f");
     assertEquals(myType, getInferredType(findAssignment(f, "y").expression()));
   }
@@ -519,7 +518,7 @@ public class TypeInferenceTest extends CompilerTest {
             .buildLiteral();
 
     var module = compile(src);
-    var myType = TypeRepresentation.fromQualifiedName("inferBoundsFromCaseAlias.My_Type");
+    var myType = "inferBoundsFromCaseAlias.My_Type";
     var f = findStaticMethod(module, "f");
     assertEquals(myType, getInferredType(findAssignment(f, "y").expression()));
   }
@@ -550,7 +549,7 @@ public class TypeInferenceTest extends CompilerTest {
             .buildLiteral();
 
     var module = compile(src);
-    var myType = TypeRepresentation.fromQualifiedName("inferEqualityBoundsFromCase.My_Type");
+    var myType = "inferEqualityBoundsFromCase.My_Type";
     var f = findStaticMethod(module, "f");
     assertEquals(myType, getInferredType(findAssignment(f, "y").expression()));
   }
@@ -606,8 +605,7 @@ public class TypeInferenceTest extends CompilerTest {
             .buildLiteral();
 
     var module = compile(src);
-    var myType =
-        TypeRepresentation.fromQualifiedName("inferEqualityBoundsFromCaseEdgeCase.My_Type");
+    var myType = "inferEqualityBoundsFromCaseEdgeCase.My_Type";
     var f = findStaticMethod(module, "f");
     assertEquals(myType, getInferredType(findAssignment(f, "y").expression()));
   }
@@ -634,8 +632,8 @@ public class TypeInferenceTest extends CompilerTest {
             .buildLiteral();
 
     var module = compile(src);
-    var myType = TypeRepresentation.fromQualifiedName("sumTypeFromCase.My_Type");
-    var otherType = TypeRepresentation.fromQualifiedName("sumTypeFromCase.Other_Type");
+    var myType = "sumTypeFromCase.My_Type";
+    var otherType = "sumTypeFromCase.Other_Type";
     var sumType = new TypeRepresentation.SumType(List.of(myType, otherType));
     var f = findStaticMethod(module, "f");
     assertEquals(sumType, getInferredType(findAssignment(f, "y").expression()));
@@ -716,8 +714,7 @@ public class TypeInferenceTest extends CompilerTest {
             .buildLiteral();
 
     var module = compile(src);
-    var myType =
-        TypeRepresentation.fromQualifiedName("typeInferenceWorksInsideMemberMethods.My_Type");
+    var myType = "typeInferenceWorksInsideMemberMethods.My_Type";
 
     var staticMethod = findMemberMethod(module, "My_Type", "static_method");
     assertEquals(myType, getInferredType(findAssignment(staticMethod, "y").expression()));
@@ -755,7 +752,7 @@ public class TypeInferenceTest extends CompilerTest {
 
     var module = compile(src);
     var f = findMemberMethod(module, "My_Type", "member_method");
-    var myType = TypeRepresentation.fromQualifiedName("typeInferenceOfSelf.My_Type");
+    var myType = "typeInferenceOfSelf.My_Type";
     assertEquals(myType, getInferredType(findAssignment(f, "y").expression()));
   }
 
@@ -817,7 +814,7 @@ public class TypeInferenceTest extends CompilerTest {
     var module = compile(src);
     var foo = findStaticMethod(module, "foo");
 
-    var functionType = TypeRepresentation.fromQualifiedName("Standard.Base.Function.Function");
+    var functionType = "Standard.Base.Function.Function";
     assertEquals(functionType, getInferredType(findAssignment(foo, "f").expression()));
 
     var x1 = findAssignment(foo, "x1");
@@ -1113,7 +1110,7 @@ public class TypeInferenceTest extends CompilerTest {
     var module = compile(src);
     var foo = findStaticMethod(module, "foo");
 
-    var myType = TypeRepresentation.fromQualifiedName("globalMethodTypes.My_Type");
+    var myType = "globalMethodTypes.My_Type";
 
     assertEquals(
         TypeRepresentation.INTEGER, getInferredType(findAssignment(foo, "x1").expression()));
@@ -1200,6 +1197,15 @@ public class TypeInferenceTest extends CompilerTest {
             + " to contain no inferred type within metadata, but it has "
             + metadata,
         metadata.isEmpty());
+  }
+
+  private void assertAtomType(String fqn, IR ir) {
+    var type = getInferredType(ir);
+    if (type instanceof TypeRepresentation.AtomType atomType) {
+      assertEquals(fqn, atomType.fqn().toString());
+    } else {
+      fail("Expected " + ir.showCode() + " to have an AtomType, but got " + type);
+    }
   }
 
   private Module compile(Source src) {
