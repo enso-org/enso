@@ -109,9 +109,7 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
             rowState.setVisibility(Visibility.visible)
             setAsset(object.merge(asset, createdDirectory))
           } catch (error) {
-            dispatchAssetListEvent({type: AssetListEventType.delete,
-              key: item.key,
-            })
+            dispatchAssetListEvent({ type: AssetListEventType.delete, key: item.key })
             toastAndLog('createFolderError', error)
           }
         }
