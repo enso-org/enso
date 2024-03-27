@@ -23,4 +23,9 @@ public class BuiltinTypes {
     var str = qualifiedName.toString();
     return str.equals("Standard.Base.Any.Any") || str.equals("Standard.Base.Any");
   }
+
+  public static boolean isFunction(QualifiedName qualifiedName) {
+    var str = qualifiedName.toString();
+    return str.equals("Standard.Base.Function.Function");
+  }
 }

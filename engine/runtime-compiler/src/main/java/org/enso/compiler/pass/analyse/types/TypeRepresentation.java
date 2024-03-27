@@ -151,6 +151,14 @@ public sealed interface TypeRepresentation
      * this TypeObject.
      */
     public TypeRepresentation instantiate() {
+      if (BuiltinTypes.isAny(name)) {
+        return TypeRepresentation.ANY;
+      }
+
+      if (BuiltinTypes.isFunction(name)) {
+        return new ArrowType(TypeRepresentation.ANY, TypeRepresentation.ANY);
+      }
+
       return new AtomType(name, typeDescription);
     }
 

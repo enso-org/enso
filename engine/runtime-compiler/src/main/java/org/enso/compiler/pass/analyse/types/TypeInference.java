@@ -274,10 +274,7 @@ public final class TypeInference implements IRPass {
   }
 
   private TypeRepresentation resolvedTypeAsAtomType(BindingsMap.ResolvedType resolvedType) {
-    if (BuiltinTypes.isAny(resolvedType.qualifiedName())) {
-      return TypeRepresentation.ANY;
-    }
-    return new TypeRepresentation.AtomType(resolvedType.qualifiedName(), resolvedType.tp());
+    return resolvedTypeAsTypeObject(resolvedType).instantiate();
   }
 
   private TypeRepresentation processLiteral(Literal literal) {
