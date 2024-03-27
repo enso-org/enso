@@ -1,13 +1,20 @@
 package org.enso.compiler.pass.analyse.types;
 
-import org.enso.compiler.PackageRepository;
 import org.enso.compiler.context.InlineContext;
 import org.enso.compiler.context.ModuleContext;
 import org.enso.compiler.context.NameResolution;
 import org.enso.compiler.core.CompilerError;
 import org.enso.compiler.core.IR;
+import org.enso.compiler.core.ir.CallArgument;
+import org.enso.compiler.core.ir.Expression;
+import org.enso.compiler.core.ir.Function;
+import org.enso.compiler.core.ir.Literal;
 import org.enso.compiler.core.ir.Module;
-import org.enso.compiler.core.ir.*;
+import org.enso.compiler.core.ir.Name;
+import org.enso.compiler.core.ir.Pattern;
+import org.enso.compiler.core.ir.ProcessingPass;
+import org.enso.compiler.core.ir.Type;
+import org.enso.compiler.core.ir.Warning;
 import org.enso.compiler.core.ir.expression.Application;
 import org.enso.compiler.core.ir.expression.Case;
 import org.enso.compiler.core.ir.expression.Operator;
@@ -16,12 +23,17 @@ import org.enso.compiler.core.ir.module.scope.definition.Method;
 import org.enso.compiler.core.ir.type.Set;
 import org.enso.compiler.data.BindingsMap;
 import org.enso.compiler.pass.IRPass;
-import org.enso.compiler.pass.analyse.*;
+import org.enso.compiler.pass.analyse.AliasAnalysis$;
+import org.enso.compiler.pass.analyse.BindingAnalysis$;
 import org.enso.compiler.pass.analyse.alias.Graph;
 import org.enso.compiler.pass.analyse.alias.Info;
-import org.enso.compiler.pass.resolve.*;
+import org.enso.compiler.pass.resolve.FullyQualifiedNames$;
+import org.enso.compiler.pass.resolve.GlobalNames$;
+import org.enso.compiler.pass.resolve.Patterns$;
+import org.enso.compiler.pass.resolve.TypeNames$;
+import org.enso.compiler.pass.resolve.TypeSignatures;
+import org.enso.compiler.pass.resolve.TypeSignatures$;
 import org.enso.persist.Persistance;
-import org.enso.pkg.QualifiedName;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import scala.Option;
@@ -29,7 +41,6 @@ import scala.collection.immutable.Seq;
 import scala.collection.immutable.Seq$;
 import scala.jdk.javaapi.CollectionConverters;
 import scala.jdk.javaapi.CollectionConverters$;
-import scala.util.Right;
 
 import java.util.List;
 import java.util.Objects;
@@ -144,8 +155,7 @@ public final class TypeInference implements IRPass {
       );
     };
 
-    PackageRepository packageRepository = inlineContext.pkgRepo().isDefined() ? inlineContext.pkgRepo().get() : null;
-    processTypePropagation(mappedIr, packageRepository, localBindingsTyping);
+    processTypePropagation(mappedIr, localBindingsTyping);
 
     // The ascriptions are processed later, because we want them to _overwrite_ any type that was inferred.
     processTypeAscription(mappedIr);
@@ -177,7 +187,7 @@ public final class TypeInference implements IRPass {
     }
   }
 
-  private void processTypePropagation(Expression ir, PackageRepository packageRepository, LocalBindingsTyping localBindingsTyping) {
+  private void processTypePropagation(Expression ir, LocalBindingsTyping localBindingsTyping) {
     switch (ir) {
       case Name.Literal l -> processName(l, localBindingsTyping);
       case Application.Force f -> {
@@ -189,7 +199,7 @@ public final class TypeInference implements IRPass {
       case Application.Prefix p -> {
         var functionType = getInferredType(p.function());
         if (functionType != null) {
-          var inferredType = processApplication(functionType.type(), p.arguments(), p, packageRepository);
+          var inferredType = processApplication(functionType.type(), p.arguments(), p);
           if (inferredType != null) {
             setInferredType(p, new InferredType(inferredType));
           }
@@ -291,14 +301,14 @@ public final class TypeInference implements IRPass {
   }
 
   @SuppressWarnings("unchecked")
-  private TypeRepresentation processApplication(TypeRepresentation functionType, scala.collection.immutable.List<CallArgument> arguments, Application.Prefix relatedIR, PackageRepository packageRepository) {
+  private TypeRepresentation processApplication(TypeRepresentation functionType, scala.collection.immutable.List<CallArgument> arguments, Application.Prefix relatedIR) {
     if (arguments.isEmpty()) {
       logger.warn("processApplication: {} - unexpected - no arguments in a function application", relatedIR.showCode());
       return functionType;
     }
 
     var firstArgument = arguments.head();
-    var firstResult = processSingleApplication(functionType, firstArgument, relatedIR, packageRepository);
+    var firstResult = processSingleApplication(functionType, firstArgument, relatedIR);
     if (firstResult == null) {
       return null;
     }
@@ -306,11 +316,11 @@ public final class TypeInference implements IRPass {
     if (arguments.length() == 1) {
       return firstResult;
     } else {
-      return processApplication(firstResult, (scala.collection.immutable.List<CallArgument>) arguments.tail(), relatedIR, packageRepository);
+      return processApplication(firstResult, (scala.collection.immutable.List<CallArgument>) arguments.tail(), relatedIR);
     }
   }
 
-  private TypeRepresentation processSingleApplication(TypeRepresentation functionType, CallArgument argument, Application.Prefix relatedIR, PackageRepository packageRepository) {
+  private TypeRepresentation processSingleApplication(TypeRepresentation functionType, CallArgument argument, Application.Prefix relatedIR) {
     if (argument.name().isDefined()) {
       // TODO named arguments are not yet supported
       return null;
@@ -326,7 +336,7 @@ public final class TypeInference implements IRPass {
       }
 
       case TypeRepresentation.UnresolvedSymbol unresolvedSymbol -> {
-        return processUnresolvedSymbolApplication(packageRepository, unresolvedSymbol, argument.value());
+        return processUnresolvedSymbolApplication(unresolvedSymbol, argument.value());
       }
 
       case TypeRepresentation.TopType() -> {
@@ -341,29 +351,7 @@ public final class TypeInference implements IRPass {
     return null;
   }
 
-  private BindingsMap.Type findResolvedType(PackageRepository packageRepository, QualifiedName typeName) {
-    var moduleName = typeName.getParent().get();
-    var module = packageRepository.getLoadedModule(moduleName.toString());
-    if (module.isEmpty()) {
-      throw new IllegalStateException("Internal error: type signature contained reference to type " + typeName + ", but the module " + moduleName + " is not loaded.");
-    }
-
-    var loadedModule = module.get();
-    var relevantBindingsMap = loadedModule.getBindingsMap();
-    var resolved = switch (relevantBindingsMap.resolveName(typeName.item())) {
-      case Right<BindingsMap.ResolutionError, BindingsMap.ResolvedName> right -> right.value();
-      default ->
-          throw new IllegalStateException("Internal error: type signature contained _already resolved_ reference to type " + typeName + ", but now that type cannot be found in the bindings map.");
-    };
-
-    return switch (resolved) {
-      case BindingsMap.ResolvedType resolvedType -> resolvedType.tp();
-      default ->
-          throw new IllegalStateException("Internal error: type signature contained _already resolved_ reference to type " + typeName + ", but now that type is not a type, but " + resolved + ".");
-    };
-  }
-
-  private TypeRepresentation processUnresolvedSymbolApplication(PackageRepository packageRepository, TypeRepresentation.UnresolvedSymbol function, Expression argument) {
+  private TypeRepresentation processUnresolvedSymbolApplication(TypeRepresentation.UnresolvedSymbol function, Expression argument) {
     var argumentType = getInferredType(argument);
     if (argumentType == null) {
       return null;
@@ -572,8 +560,7 @@ public final class TypeInference implements IRPass {
           yield InferredType.create(constructorFunctionType);
         }
 
-        case BindingsMap.ResolvedType tpe ->
-            InferredType.create(resolvedTypeAsTypeObject(tpe));
+        case BindingsMap.ResolvedType tpe -> InferredType.create(resolvedTypeAsTypeObject(tpe));
 
         default -> {
           logger.trace("processGlobalName: global scope reference to {} - currently global inference is unsupported", resolvedName);
