@@ -534,9 +534,8 @@ export const COLORS: readonly [LChColor, ...LChColor[]] = [
 
 /** Converts a {@link LChColor} to a CSS color string. */
 export function lChColorToCssColor(color: LChColor): string {
-  return 'alpha' in color
-    ? `lcha(${color.lightness}% ${color.chroma} ${color.hue} / ${color.alpha})`
-    : `lch(${color.lightness}% ${color.chroma} ${color.hue})`
+  const alpha = 'alpha' in color ? ` / ${color.alpha}` : ''
+  return `lch(${color.lightness}% ${color.chroma} ${color.hue}${alpha})`
 }
 
 export const COLOR_STRING_TO_COLOR = new Map(

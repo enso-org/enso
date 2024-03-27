@@ -7,48 +7,34 @@ import * as focusDirectionProvider from '#/providers/FocusDirectionProvider'
 
 import * as aria from '#/components/aria'
 import FocusRing from '#/components/styled/FocusRing'
-import UnstyledButton from '#/components/styled/UnstyledButton'
 
 import * as backend from '#/services/Backend'
 
 /** Props for a {@link ColorPickerItem}. */
 export interface InternalColorPickerItemProps {
   readonly color: backend.LChColor
-  readonly setColor: (color: backend.LChColor) => void
 }
 
 /** An input in a {@link ColorPicker}. */
 function ColorPickerItem(props: InternalColorPickerItemProps) {
-  const { color, setColor } = props
-  const inputRef = React.useRef<HTMLLabelElement>(null)
+  const { color } = props
   const focusDirection = focusDirectionProvider.useFocusDirection()
   const handleFocusMove = focusHooks.useHandleFocusMove(focusDirection)
   const cssColor = backend.lChColorToCssColor(color)
 
-  const doSubmit = () => {
-    inputRef.current?.click()
-    setColor(color)
-  }
-
   return (
     <FocusRing within>
-      <aria.Label
-        className="flex size-radio-button cursor-pointer rounded-full"
-        onClick={event => {
-          event.stopPropagation()
-          doSubmit()
+      <aria.Radio
+        ref={element => {
+          element?.querySelector('input')?.classList.add('focus-child')
         }}
+        value={cssColor}
+        className="group flex size-radio-button cursor-pointer rounded-full p-radio-button-dot"
+        style={{ backgroundColor: cssColor }}
         onKeyDown={handleFocusMove}
       >
-        <aria.Radio ref={inputRef} value={cssColor} className="peer hidden" />
-        <UnstyledButton
-          className="group pointer-events-none size-radio-button rounded-full p-radio-button-dot"
-          style={{ backgroundColor: cssColor }}
-          onPress={doSubmit}
-        >
-          <div className="hidden size-radio-button-dot rounded-full bg-selected-frame peer-checked:group-[]:block" />
-        </UnstyledButton>
-      </aria.Label>
+        <div className="hidden size-radio-button-dot rounded-full bg-selected-frame group-selected:block" />
+      </aria.Radio>
     </FocusRing>
   )
 }
@@ -58,17 +44,36 @@ function ColorPickerItem(props: InternalColorPickerItemProps) {
 // ===================
 
 /** Props for a {@link ColorPicker}. */
-export interface ColorPickerProps {
+export interface ColorPickerProps extends Readonly<aria.RadioGroupProps> {
+  readonly children?: React.ReactNode
+  readonly pickerClassName?: string
   readonly setColor: (color: backend.LChColor) => void
 }
 
 /** A color picker to select from a predetermined list of colors. */
-export default function ColorPicker(props: ColorPickerProps) {
+function ColorPicker(props: ColorPickerProps, ref: React.ForwardedRef<HTMLDivElement>) {
+  const { pickerClassName = '', children, setColor, ...radioGroupProps } = props
+
   return (
-    <div className="flex items-center gap-colors">
-      {backend.COLORS.map((currentColor, i) => (
-        <ColorPickerItem key={i} color={currentColor} {...props} />
-      ))}
-    </div>
+    <aria.RadioGroup
+      ref={ref}
+      {...radioGroupProps}
+      onChange={value => {
+        const color = backend.COLOR_STRING_TO_COLOR.get(value)
+        if (color != null) {
+          setColor(color)
+        }
+      }}
+    >
+      {children}
+      <div className={`flex items-center gap-colors ${pickerClassName}`}>
+        {backend.COLORS.map((currentColor, i) => (
+          <ColorPickerItem key={i} color={currentColor} />
+        ))}
+      </div>
+    </aria.RadioGroup>
   )
 }
+
+/** A color picker to select from a predetermined list of colors. */
+export default React.forwardRef(ColorPicker)

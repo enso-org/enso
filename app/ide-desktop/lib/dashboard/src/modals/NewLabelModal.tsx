@@ -112,12 +112,15 @@ export default function NewLabelModal(props: NewLabelModalProps) {
         </FocusArea>
         <FocusArea direction="horizontal">
           {(ref, innerProps) => (
-            <aria.RadioGroup ref={ref} className="relative flex items-center" {...innerProps}>
+            <ColorPicker
+              ref={ref}
+              className="relative flex items-center"
+              pickerClassName="grow"
+              setColor={setColor}
+              {...innerProps}
+            >
               <aria.Label className="text w-modal-label">{getText('color')}</aria.Label>
-              <div className="grow">
-                <ColorPicker setColor={setColor} />
-              </div>
-            </aria.RadioGroup>
+            </ColorPicker>
           )}
         </FocusArea>
         <ButtonRow>
