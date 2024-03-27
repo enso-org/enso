@@ -29,13 +29,10 @@ import project.Data.Column_Ref.Column_Ref
 import project.Data.Data_Formatter.Data_Formatter
 import project.Data.Expression.Expression
 import project.Data.Expression.Expression_Error
-import project.Data.Join_Condition.Join_Condition
-import project.Data.Join_Kind.Join_Kind
 import project.Data.Match_Columns as Match_Columns_Helpers
 import project.Data.Match_Columns.Match_Columns
 import project.Data.Row.Row
 import project.Data.Simple_Expression.Simple_Expression
-import project.Data.Sort_Column.Sort_Column
 import project.Delimited.Delimited_Format.Delimited_Format
 import project.Extensions.Prefix_Name.Prefix_Name
 import project.Extensions.Table_Conversions
@@ -58,8 +55,11 @@ import project.Internal.Split_Tokenize
 import project.Internal.Table_Helpers
 import project.Internal.Table_Helpers.Table_Column_Helper
 import project.Internal.Widget_Helpers
+import project.Join_Condition.Join_Condition
+import project.Join_Kind.Join_Kind
 import project.Position.Position
 import project.Set_Mode.Set_Mode
+import project.Sort_Column.Sort_Column
 from project.Data.Column import get_item_string, normalize_string_for_display
 from project.Data.Type.Value_Type import Auto, Value_Type
 from project.Errors import all

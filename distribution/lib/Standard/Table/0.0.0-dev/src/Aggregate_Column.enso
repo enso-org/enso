@@ -1,6 +1,6 @@
 from Standard.Base import all
 
-import project.Data.Sort_Column.Sort_Column
+import project.Sort_Column.Sort_Column
 
 ## Defines an Aggregate Column
 type Aggregate_Column
