@@ -8,12 +8,12 @@ from Standard.Base.Widget_Helpers import make_format_chooser
 
 import project.Aggregate_Column.Aggregate_Column
 import project.Data.Table.Table
-import project.Data.Type.Value_Type.Auto
-import project.Data.Type.Value_Type.Value_Type
 import project.Internal.Parse_Values_Helper
 import project.Join_Condition.Join_Condition
 import project.Join_Kind.Join_Kind
 import project.Sort_Column.Sort_Column
+import project.Value_Type.Auto
+import project.Value_Type.Value_Type
 from project.Extensions.Table_Conversions import all
 
 ## PRIVATE

@@ -9,7 +9,9 @@ import project.Data.Type.Storage
 import project.Internal.Java_Problems
 import project.Internal.Parse_Values_Helper
 import project.Internal.Widget_Helpers
-from project.Data.Type.Value_Type import Auto, Bits, Value_Type
+import project.Value_Type.Auto
+import project.Value_Type.Bits
+import project.Value_Type.Value_Type
 
 polyglot java import java.lang.Exception as Java_Exception
 polyglot java import java.lang.IllegalArgumentException

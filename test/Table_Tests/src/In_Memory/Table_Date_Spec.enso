@@ -1,7 +1,6 @@
 from Standard.Base import all
 
-from Standard.Table import Table, Column, Delimited, Data_Formatter
-import Standard.Table.Data.Type.Value_Type.Value_Type
+from Standard.Table import Table, Column, Delimited, Data_Formatter, Value_Type
 from Standard.Table.Extensions.Table_Conversions import all
 
 from Standard.Test import all

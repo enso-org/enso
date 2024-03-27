@@ -3,9 +3,9 @@ import Standard.Base.Errors.Common.Index_Out_Of_Bounds
 import Standard.Base.Errors.Common.Type_Error
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
+import project.Conversions.Convertible_To_Columns.Convertible_To_Columns
+import project.Conversions.Convertible_To_Rows.Convertible_To_Rows
 import project.Data.Column.Column
-import project.Data.Conversions.Convertible_To_Columns.Convertible_To_Columns
-import project.Data.Conversions.Convertible_To_Rows.Convertible_To_Rows
 import project.Data.Table.Table
 import project.Errors.No_Such_Column
 import project.Internal.Fan_Out

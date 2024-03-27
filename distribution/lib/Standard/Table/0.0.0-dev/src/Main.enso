@@ -6,9 +6,6 @@ import project.Column_Operation.Column_Operation
 import project.Column_Ref.Column_Ref
 import project.Data.Column.Column
 import project.Data.Table.Table
-import project.Data.Type.Value_Type.Auto
-import project.Data.Type.Value_Type.Bits
-import project.Data.Type.Value_Type.Value_Type
 import project.Data_Formatter.Data_Formatter
 import project.Delimited.Delimited_Format.Delimited_Format
 import project.Delimited.Quote_Style.Quote_Style
@@ -24,6 +21,9 @@ import project.Set_Mode.Set_Mode
 import project.Simple_Expression.Simple_Calculation
 import project.Simple_Expression.Simple_Expression
 import project.Sort_Column.Sort_Column
+import project.Value_Type.Auto
+import project.Value_Type.Bits
+import project.Value_Type.Value_Type
 from project.Constants import all
 from project.Delimited.Delimited_Format.Delimited_Format import Delimited
 from project.Expression import expr
@@ -37,9 +37,6 @@ export project.Column_Operation.Column_Operation
 export project.Column_Ref.Column_Ref
 export project.Data.Column.Column
 export project.Data.Table.Table
-export project.Data.Type.Value_Type.Auto
-export project.Data.Type.Value_Type.Bits
-export project.Data.Type.Value_Type.Value_Type
 export project.Data_Formatter.Data_Formatter
 export project.Delimited.Delimited_Format.Delimited_Format
 export project.Delimited.Quote_Style.Quote_Style
@@ -55,6 +52,9 @@ export project.Set_Mode.Set_Mode
 export project.Simple_Expression.Simple_Calculation
 export project.Simple_Expression.Simple_Expression
 export project.Sort_Column.Sort_Column
+export project.Value_Type.Auto
+export project.Value_Type.Bits
+export project.Value_Type.Value_Type
 from project.Constants export all
 from project.Delimited.Delimited_Format.Delimited_Format export Delimited
 from project.Expression export expr

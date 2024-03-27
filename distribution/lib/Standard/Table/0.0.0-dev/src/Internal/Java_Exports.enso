@@ -2,8 +2,8 @@ from Standard.Base import all
 import Standard.Base.Errors.Common.Missing_Required_Argument
 
 import project.Data.Type.Storage
-import project.Data.Type.Value_Type.Bits
-import project.Data.Type.Value_Type.Value_Type
+import project.Value_Type.Bits
+import project.Value_Type.Value_Type
 
 polyglot java import org.enso.table.data.column.builder.BigIntegerBuilder
 polyglot java import org.enso.table.data.column.builder.BoolBuilder

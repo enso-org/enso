@@ -1,8 +1,8 @@
 from Standard.Base import all
 import Standard.Base.Errors.No_Such_Key.No_Such_Key
 
-import Standard.Table.Data.Type.Value_Type.Value_Type
-import Standard.Table.Expression.Expression_Error
+import project.Expression.Expression_Error
+import project.Value_Type.Value_Type
 
 polyglot java import org.enso.table.error.ColumnCountMismatchException
 polyglot java import org.enso.table.error.ColumnNameMismatchException

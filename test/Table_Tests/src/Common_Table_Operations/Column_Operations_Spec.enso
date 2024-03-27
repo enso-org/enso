@@ -7,8 +7,7 @@ import Standard.Base.Meta.Type
 import Standard.Database.DB_Column.DB_Column
 import Standard.Database.Internal.Replace_Params.Replace_Params
 
-from Standard.Table import Value_Type, Column_Ref
-from Standard.Table.Data.Type.Value_Type import Bits
+from Standard.Table Bits, import Value_Type, Column_Ref
 from Standard.Table.Errors import all
 
 from Standard.Database.Errors import all

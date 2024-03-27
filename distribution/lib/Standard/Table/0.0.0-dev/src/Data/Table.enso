@@ -60,8 +60,9 @@ import project.Row.Row
 import project.Set_Mode.Set_Mode
 import project.Simple_Expression.Simple_Expression
 import project.Sort_Column.Sort_Column
+import project.Value_Type.Auto
+import project.Value_Type.Value_Type
 from project.Data.Column import get_item_string, normalize_string_for_display
-from project.Data.Type.Value_Type import Auto, Value_Type
 from project.Errors import all
 from project.Internal.Filter_Condition_Helpers import make_filter_column
 from project.Internal.Lookup_Helpers import make_java_lookup_column_description

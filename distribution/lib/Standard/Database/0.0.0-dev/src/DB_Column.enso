@@ -7,12 +7,11 @@ from Standard.Base.Widget_Helpers import make_format_chooser, make_regex_text_wi
 
 import Standard.Table.Data.Column.Column
 import Standard.Table.Data.Table.Table
-import Standard.Table.Data.Type.Enso_Types
-import Standard.Table.Data.Type.Value_Type_Helpers
 import Standard.Table.Internal.Column_Naming_Helper.Column_Naming_Helper
 import Standard.Table.Internal.Date_Time_Helpers
 import Standard.Table.Internal.Java_Problems
 import Standard.Table.Internal.Problem_Builder.Problem_Builder
+import Standard.Table.Internal.Value_Type_Helpers
 import Standard.Table.Internal.Widget_Helpers
 from Standard.Table import Auto, Data_Formatter, Previous_Value, Sort_Column, Value_Type
 from Standard.Table.Data.Column import default_date_period
@@ -1186,7 +1185,7 @@ type DB_Column
     sort self order=Sort_Direction.Ascending =
         self.to_table.order_by [Sort_Column.Index 0 order] . at 0
 
-    ## ALIAS first, last, sample, slice, top, head, tail, limit
+    ## ALIAS first, head, last, limit, sample, slice, tail, top
        GROUP Standard.Base.Selections
        ICON select_row
        Creates a new Column with the specified range of rows from the input

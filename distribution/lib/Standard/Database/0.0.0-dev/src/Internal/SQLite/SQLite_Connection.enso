@@ -4,8 +4,7 @@ import Standard.Base.Metadata.Display
 from Standard.Base.Metadata.Choice import Option
 from Standard.Base.Metadata.Widget import Single_Choice
 
-import Standard.Table.Data.Table.Table
-import Standard.Table.Data.Type.Value_Type.Value_Type
+from Standard.Table import Table, Value_Type
 
 import project.Column_Description.Column_Description
 import project.Connection.Connection.Connection

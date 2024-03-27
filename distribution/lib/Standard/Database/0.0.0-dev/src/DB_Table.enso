@@ -18,7 +18,6 @@ from Standard.Base.Widget_Helpers import make_delimiter_selector, make_format_ch
 
 import Standard.Table.Column_Operation.Column_Operation
 import Standard.Table.Data.Table.Table
-import Standard.Table.Data.Type.Value_Type_Helpers
 import Standard.Table.Expression.Expression
 import Standard.Table.Expression.Expression_Error
 import Standard.Table.Internal.Add_Row_Number
@@ -32,6 +31,7 @@ import Standard.Table.Internal.Table_Helpers
 import Standard.Table.Internal.Table_Helpers.Table_Column_Helper
 import Standard.Table.Internal.Table_Ref.Table_Ref
 import Standard.Table.Internal.Unique_Name_Strategy.Unique_Name_Strategy
+import Standard.Table.Internal.Value_Type_Helpers
 import Standard.Table.Internal.Widget_Helpers
 import Standard.Table.Match_Columns as Match_Columns_Helpers
 import Standard.Table.Row.Row
