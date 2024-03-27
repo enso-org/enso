@@ -6,7 +6,6 @@ import java.util.Objects;
 import org.enso.compiler.Compiler;
 import org.enso.compiler.context.CompilerContext;
 import org.enso.compiler.core.ir.Module;
-import org.enso.compiler.core.ir.Name;
 import org.enso.compiler.core.ir.expression.errors.ImportExport;
 import org.enso.compiler.core.ir.module.scope.Export;
 import org.enso.compiler.core.ir.module.scope.Import;
@@ -84,9 +83,12 @@ abstract class ImportResolverForIR extends ImportResolverAlgorithm<
   }
 
   @Override
-  protected final java.util.List<BindingsMap.ResolvedType> definedEntities(String name) {
+  protected final java.util.List<BindingsMap.ResolvedType> definedEntities(Import.Module name) {
+    var parts = partsForImport(name);
+    var last = parts.size() - 1;
+    var modName = String.join(".", parts.subList(0, last).stream().toList());
     var compiler = this.getCompiler();
-    var optionMod = compiler.getModule(name);
+    var optionMod = compiler.getModule(modName);
     if (optionMod.isEmpty()) {
       return null;
     }

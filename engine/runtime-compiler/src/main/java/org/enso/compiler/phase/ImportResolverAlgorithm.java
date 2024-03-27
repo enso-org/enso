@@ -33,7 +33,7 @@ public abstract class ImportResolverAlgorithm<
    */
   protected abstract java.util.List<String> hiddenNames(Export ex);
 
-  protected abstract java.util.List<ResolvedType> definedEntities(String name);
+  protected abstract java.util.List<ResolvedType> definedEntities(Import name);
 
   /**
    * Ensure library is loaded and load a module.
@@ -153,11 +153,11 @@ public abstract class ImportResolverAlgorithm<
     var last = parts.size() - 1;
     var tp = parts.get(last);
     var modName = String.join(".", parts.subList(0, last).stream().toList());
-    var entities = definedEntities(modName);
+    var entities = definedEntities(name);
     if (entities == null) {
       return null;
     }
-    var type = definedEntities(modName).stream().filter(e -> nameForType(e).equals(tp)).findFirst();
+    var type = entities.stream().filter(e -> nameForType(e).equals(tp)).findFirst();
     return type.orElse(null);
   }
 
