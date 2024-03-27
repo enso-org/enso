@@ -11,6 +11,8 @@ import * as aria from '#/components/aria'
 import DataLinkInput from '#/components/dashboard/DataLinkInput'
 import Modal from '#/components/Modal'
 import ButtonRow from '#/components/styled/ButtonRow'
+import FocusArea from '#/components/styled/FocusArea'
+import FocusRing from '#/components/styled/FocusRing'
 import UnstyledButton from '#/components/styled/UnstyledButton'
 
 import * as jsonSchema from '#/utilities/jsonSchema'
@@ -67,23 +69,31 @@ export default function UpsertDataLinkModal(props: UpsertDataLinkModalProps) {
         <aria.Heading className="relative text-sm font-semibold">
           {getText('createDataLink')}
         </aria.Heading>
-        <aria.TextField
-          aria-errormessage={getText('mustNotBeBlank')}
-          className="relative flex items-center"
-        >
-          <aria.Label className="text w-modal-label">{getText('name')}</aria.Label>
-          <aria.Input
-            autoFocus
-            placeholder={getText('dataLinkNamePlaceholder')}
-            className={`text grow rounded-full border bg-transparent px-input-x ${
-              name !== '' ? 'border-primary/10' : 'border-red-700/60'
-            }`}
-            value={name}
-            onInput={event => {
-              setName(event.currentTarget.value)
-            }}
-          />
-        </aria.TextField>
+        <FocusArea direction="horizontal">
+          {(ref, innerProps) => (
+            <aria.TextField
+              ref={ref}
+              aria-errormessage={getText('mustNotBeBlank')}
+              className="relative flex items-center"
+              {...innerProps}
+            >
+              <aria.Label className="text w-modal-label">{getText('name')}</aria.Label>
+              <FocusRing>
+                <aria.Input
+                  autoFocus
+                  placeholder={getText('dataLinkNamePlaceholder')}
+                  className={`text grow rounded-full border bg-transparent px-input-x ${
+                    name !== '' ? 'border-primary/10' : 'border-red-700/60'
+                  }`}
+                  value={name}
+                  onInput={event => {
+                    setName(event.currentTarget.value)
+                  }}
+                />
+              </FocusRing>
+            </aria.TextField>
+          )}
+        </FocusArea>
         <div className="relative">
           <DataLinkInput dropdownTitle="Type" value={value} setValue={setValue} />
         </div>

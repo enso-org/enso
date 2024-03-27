@@ -1,7 +1,11 @@
 /** @file A styled checkbox. */
 import * as React from 'react'
 
+import CheckMarkIcon from 'enso-assets/check_mark.svg'
+
 import * as aria from '#/components/aria'
+import FocusRing from '#/components/styled/FocusRing'
+import SvgMask from '#/components/SvgMask'
 
 // ================
 // === Checkbox ===
@@ -12,5 +16,18 @@ export interface CheckboxProps extends Omit<Readonly<aria.CheckboxProps>, 'class
 
 /** A styled checkbox. */
 export default function Checkbox(props: CheckboxProps) {
-  return <aria.Checkbox {...props} />
+  return (
+    <FocusRing>
+      <aria.Checkbox
+        className="checkbox group flex size-3 cursor-pointer overflow-clip rounded-sm text-cloud outline outline-1 outline-primary"
+        {...props}
+      >
+        <SvgMask
+          invert
+          src={CheckMarkIcon}
+          className="-m-0.5 size-icon transition-all duration-75 transparent group-selected:opacity-100"
+        />
+      </aria.Checkbox>
+    </FocusRing>
+  )
 }

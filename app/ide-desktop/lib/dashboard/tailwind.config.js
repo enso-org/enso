@@ -445,6 +445,9 @@ export default /** @satisfies {import('tailwindcss').Config} */ ({
           '.focus-ring, .focus-ring:focus, .focus-ring-within[data-focus-visible=true]': {
             '@apply outline outline-2 -outline-offset-2 outline-primary transition-all': '',
           },
+          '.focus-ring.checkbox': {
+            '@apply outline-offset-0': '',
+          },
           '.drop-target-after': {
             '@apply relative after:pointer-events-none after:absolute after:inset after:rounded-inherit [&[data-drop-target=true]]:after:bg-primary/10':
               '',

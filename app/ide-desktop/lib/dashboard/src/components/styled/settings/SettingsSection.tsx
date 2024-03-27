@@ -20,7 +20,7 @@ export interface SettingsSectionProps extends Readonly<React.PropsWithChildren> 
 export default function SettingsSection(props: SettingsSectionProps) {
   const { title, noFocusArea = false, className, children } = props
   const heading = (
-    <aria.Heading level={2} className="settings-subheading h-[2.375rem] py-0.5 text-xl font-bold">
+    <aria.Heading level={2} className="h-[2.375rem] py-0.5 text-xl font-bold">
       {title}
     </aria.Heading>
   )

@@ -8,6 +8,7 @@ import * as aria from '#/components/aria'
 import Autocomplete from '#/components/Autocomplete'
 import Dropdown from '#/components/Dropdown'
 import Checkbox from '#/components/styled/Checkbox'
+import FocusRing from '#/components/styled/FocusRing'
 import UnstyledButton from '#/components/styled/UnstyledButton'
 
 import * as jsonSchema from '#/utilities/jsonSchema'
@@ -98,61 +99,67 @@ export default function JSONSchemaInput(props: JSONSchemaInputProps) {
             )
           } else {
             children.push(
-              <aria.Input
-                type="text"
-                readOnly={readOnly}
-                value={typeof value === 'string' ? value : ''}
-                size={1}
-                className={`w-data-link-text-input text grow rounded-input border bg-transparent px-input-x read-only:read-only ${
-                  getValidator(path)(value) ? 'border-primary/10' : 'border-red-700/60'
-                }`}
-                placeholder={getText('enterText')}
-                onChange={event => {
-                  const newValue: string = event.currentTarget.value
-                  setValue(newValue)
-                }}
-              />
+              <FocusRing>
+                <aria.Input
+                  type="text"
+                  readOnly={readOnly}
+                  value={typeof value === 'string' ? value : ''}
+                  size={1}
+                  className={`w-data-link-text-input text grow rounded-input border bg-transparent px-input-x read-only:read-only ${
+                    getValidator(path)(value) ? 'border-primary/10' : 'border-red-700/60'
+                  }`}
+                  placeholder={getText('enterText')}
+                  onChange={event => {
+                    const newValue: string = event.currentTarget.value
+                    setValue(newValue)
+                  }}
+                />
+              </FocusRing>
             )
           }
           break
         }
         case 'number': {
           children.push(
-            <aria.Input
-              type="number"
-              readOnly={readOnly}
-              value={typeof value === 'number' ? value : ''}
-              size={1}
-              className={`w-data-link-text-input text grow rounded-input border bg-transparent px-input-x read-only:read-only ${
-                getValidator(path)(value) ? 'border-primary/10' : 'border-red-700/60'
-              }`}
-              placeholder={getText('enterNumber')}
-              onChange={event => {
-                const newValue: number = event.currentTarget.valueAsNumber
-                if (Number.isFinite(newValue)) {
-                  setValue(newValue)
-                }
-              }}
-            />
+            <FocusRing>
+              <aria.Input
+                type="number"
+                readOnly={readOnly}
+                value={typeof value === 'number' ? value : ''}
+                size={1}
+                className={`w-data-link-text-input text grow rounded-input border bg-transparent px-input-x read-only:read-only ${
+                  getValidator(path)(value) ? 'border-primary/10' : 'border-red-700/60'
+                }`}
+                placeholder={getText('enterNumber')}
+                onChange={event => {
+                  const newValue: number = event.currentTarget.valueAsNumber
+                  if (Number.isFinite(newValue)) {
+                    setValue(newValue)
+                  }
+                }}
+              />
+            </FocusRing>
           )
           break
         }
         case 'integer': {
           children.push(
-            <aria.Input
-              type="number"
-              readOnly={readOnly}
-              value={typeof value === 'number' ? value : ''}
-              size={1}
-              className={`w-data-link-text-input text grow rounded-input border bg-transparent px-input-x read-only:read-only ${
-                getValidator(path)(value) ? 'border-primary/10' : 'border-red-700/60'
-              }`}
-              placeholder={getText('enterInteger')}
-              onChange={event => {
-                const newValue: number = Math.floor(event.currentTarget.valueAsNumber)
-                setValue(newValue)
-              }}
-            />
+            <FocusRing>
+              <aria.Input
+                type="number"
+                readOnly={readOnly}
+                value={typeof value === 'number' ? value : ''}
+                size={1}
+                className={`w-data-link-text-input text grow rounded-input border bg-transparent px-input-x read-only:read-only ${
+                  getValidator(path)(value) ? 'border-primary/10' : 'border-red-700/60'
+                }`}
+                placeholder={getText('enterInteger')}
+                onChange={event => {
+                  const newValue: number = Math.floor(event.currentTarget.valueAsNumber)
+                  setValue(newValue)
+                }}
+              />
+            </FocusRing>
           )
           break
         }
