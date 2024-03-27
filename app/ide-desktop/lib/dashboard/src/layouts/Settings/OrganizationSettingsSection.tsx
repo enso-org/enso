@@ -123,7 +123,10 @@ export default function OrganizationSettingsSection(props: OrganizationSettingsS
   return (
     <SettingsSection title={getText('organization')}>
       <div className="flex flex-col">
-        <aria.TextField className="flex h-row gap-settings-entry">
+        <aria.TextField
+          defaultValue={organization.name ?? ''}
+          className="flex h-row gap-settings-entry"
+        >
           <aria.Label className="text my-auto w-organization-settings-label">
             {getText('organizationDisplayName')}
           </aria.Label>
@@ -131,11 +134,13 @@ export default function OrganizationSettingsSection(props: OrganizationSettingsS
             key={organization.name}
             ref={nameRef}
             type="text"
-            initialValue={organization.name ?? ''}
             onSubmit={doUpdateName}
           />
         </aria.TextField>
-        <aria.TextField className="flex h-row gap-settings-entry">
+        <aria.TextField
+          defaultValue={organization.email ?? ''}
+          className="flex h-row gap-settings-entry"
+        >
           <aria.Label className="text my-auto w-organization-settings-label">
             {getText('email')}
           </aria.Label>
@@ -143,7 +148,6 @@ export default function OrganizationSettingsSection(props: OrganizationSettingsS
             key={organization.email}
             ref={emailRef}
             type="text"
-            initialValue={organization.email ?? ''}
             onSubmit={value => {
               if (isEmail(value)) {
                 void doUpdateEmail()
@@ -158,7 +162,10 @@ export default function OrganizationSettingsSection(props: OrganizationSettingsS
             }}
           />
         </aria.TextField>
-        <aria.TextField className="flex h-row gap-settings-entry">
+        <aria.TextField
+          defaultValue={organization.website ?? ''}
+          className="flex h-row gap-settings-entry"
+        >
           <aria.Label className="text my-auto w-organization-settings-label">
             {getText('website')}
           </aria.Label>
@@ -166,11 +173,13 @@ export default function OrganizationSettingsSection(props: OrganizationSettingsS
             key={organization.website}
             ref={websiteRef}
             type="text"
-            initialValue={organization.website ?? ''}
             onSubmit={doUpdateWebsite}
           />
         </aria.TextField>
-        <aria.TextField className="flex h-row gap-settings-entry">
+        <aria.TextField
+          defaultValue={organization.address ?? ''}
+          className="flex h-row gap-settings-entry"
+        >
           <aria.Label className="text my-auto w-organization-settings-label">
             {getText('location')}
           </aria.Label>
@@ -178,7 +187,6 @@ export default function OrganizationSettingsSection(props: OrganizationSettingsS
             ref={locationRef}
             key={organization.address}
             type="text"
-            initialValue={organization.address ?? ''}
             onSubmit={doUpdateLocation}
           />
         </aria.TextField>

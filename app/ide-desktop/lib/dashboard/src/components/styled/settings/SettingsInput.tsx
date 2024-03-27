@@ -12,13 +12,12 @@ import * as aria from '#/components/aria'
 import FocusRing from '#/components/styled/FocusRing'
 import SvgMask from '#/components/SvgMask'
 
-// =============
-// === Input ===
-// =============
+// =====================
+// === SettingsInput ===
+// =====================
 
 /** Props for an {@link SettingsInput}. */
 export interface SettingsInputProps {
-  readonly initialValue: string
   readonly type?: string
   readonly placeholder?: string
   readonly onChange?: React.ChangeEventHandler<HTMLInputElement>
@@ -27,7 +26,10 @@ export interface SettingsInputProps {
 
 /** A styled input specific to settings pages. */
 function SettingsInput(props: SettingsInputProps, ref: React.ForwardedRef<HTMLInputElement>) {
-  const { initialValue, type, placeholder, onChange, onSubmit } = props
+  const { type, placeholder, onChange, onSubmit } = props
+  // This is SAFE. The value of this context is never a `SlottedContext`.
+  // eslint-disable-next-line no-restricted-syntax
+  const inputProps = (React.useContext(aria.InputContext) ?? null) as aria.InputProps | null
   const [isShowingPassword, setIsShowingPassword] = React.useState(false)
   const cancelled = React.useRef(false)
   const focusDirection = focusDirectionProvider.useFocusDirection()
@@ -38,7 +40,7 @@ function SettingsInput(props: SettingsInputProps, ref: React.ForwardedRef<HTMLIn
       case 'Escape': {
         cancelled.current = true
         event.stopPropagation()
-        event.currentTarget.value = initialValue
+        event.currentTarget.value = String(inputProps?.defaultValue ?? '')
         event.currentTarget.blur()
         break
       }
@@ -70,7 +72,6 @@ function SettingsInput(props: SettingsInputProps, ref: React.ForwardedRef<HTMLIn
             className="focus-child settings-value w-full rounded-full bg-transparent font-bold placeholder-black/30 transition-colors invalid:border invalid:border-red-700 hover:bg-selected-frame focus:bg-selected-frame"
             type={isShowingPassword ? 'text' : type}
             size={1}
-            defaultValue={initialValue}
             placeholder={placeholder}
             onKeyDown={onKeyDown}
             onChange={onChange}

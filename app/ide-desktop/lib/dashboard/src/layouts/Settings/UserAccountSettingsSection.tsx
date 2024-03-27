@@ -43,11 +43,11 @@ export default function UserAccountSettingsSection() {
   return (
     <SettingsSection title={getText('userAccount')}>
       <div className="flex flex-col">
-        <aria.TextField className="flex h-row gap-settings-entry">
+        <aria.TextField defaultValue={user?.name ?? ''} className="flex h-row gap-settings-entry">
           <aria.Label className="text my-auto w-user-account-settings-label">
             {getText('name')}
           </aria.Label>
-          <SettingsInput type="text" initialValue={user?.name ?? ''} onSubmit={doUpdateName} />
+          <SettingsInput type="text" onSubmit={doUpdateName} />
         </aria.TextField>
         <div className="flex h-row gap-settings-entry">
           <aria.Text className="text my-auto w-user-account-settings-label">

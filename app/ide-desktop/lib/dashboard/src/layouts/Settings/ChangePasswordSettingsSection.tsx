@@ -43,7 +43,6 @@ export default function ChangePasswordSettingsSection() {
           </aria.Label>
           <SettingsInput
             type="password"
-            initialValue=""
             placeholder={getText('currentPasswordPlaceholder')}
             onChange={event => {
               setCurrentPassword(event.currentTarget.value)
@@ -56,7 +55,6 @@ export default function ChangePasswordSettingsSection() {
           </aria.Label>
           <SettingsInput
             type="password"
-            initialValue=""
             placeholder={getText('newPasswordPlaceholder')}
             onChange={event => {
               const newValue = event.currentTarget.value
@@ -75,7 +73,6 @@ export default function ChangePasswordSettingsSection() {
           </aria.Label>
           <SettingsInput
             type="password"
-            initialValue=""
             placeholder={getText('confirmNewPasswordPlaceholder')}
             onChange={event => {
               const newValue = event.currentTarget.value
