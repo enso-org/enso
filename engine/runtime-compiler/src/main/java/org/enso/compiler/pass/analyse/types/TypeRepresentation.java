@@ -1,22 +1,21 @@
 package org.enso.compiler.pass.analyse.types;
 
-import org.enso.compiler.data.BindingsMap;
-import org.enso.pkg.QualifiedName;
-
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import org.enso.compiler.data.BindingsMap;
+import org.enso.pkg.QualifiedName;
 
 public sealed interface TypeRepresentation
     permits TypeRepresentation.ArrowType,
-    TypeRepresentation.AtomType,
-    TypeRepresentation.IntersectionType,
-    TypeRepresentation.SumType,
-    TypeRepresentation.TopType,
-    TypeRepresentation.TypeObject,
-    TypeRepresentation.UnresolvedSymbol {
+        TypeRepresentation.AtomType,
+        TypeRepresentation.IntersectionType,
+        TypeRepresentation.SumType,
+        TypeRepresentation.TopType,
+        TypeRepresentation.TypeObject,
+        TypeRepresentation.UnresolvedSymbol {
   TypeRepresentation ANY = new TopType();
   // In the future we may want to split this unknown type to be a separate entity.
   TypeRepresentation UNKNOWN = ANY;
@@ -43,10 +42,12 @@ public sealed interface TypeRepresentation
 
   /**
    * Represents the type that is associated with values (atoms) of a given type.
-   * <p>
-   * Instances that are assigned this type are built with one of the available constructors, but statically we do not necessarily know which one.
+   *
+   * <p>Instances that are assigned this type are built with one of the available constructors, but
+   * statically we do not necessarily know which one.
    */
-  record AtomType(QualifiedName fqn, BindingsMap.Type typeDescription) implements TypeRepresentation {
+  record AtomType(QualifiedName fqn, BindingsMap.Type typeDescription)
+      implements TypeRepresentation {
     @Override
     public String toString() {
       return fqn.item();
@@ -135,10 +136,11 @@ public sealed interface TypeRepresentation
    * <p>This object allows to call static methods on that type or create instances of this type
    * using its constructors, which will be assigned the corresponding AtomType.
    *
-   * @param name            the qualified name of the type
+   * @param name the qualified name of the type
    * @param typeDescription the type description from the BindingsMap
    */
-  record TypeObject(QualifiedName name, BindingsMap.Type typeDescription) implements TypeRepresentation {
+  record TypeObject(QualifiedName name, BindingsMap.Type typeDescription)
+      implements TypeRepresentation {
     @Override
     public String toString() {
       return "(type " + name.item() + ")";

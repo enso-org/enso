@@ -34,8 +34,7 @@ class TypeCompatibility {
   private final BuiltinTypes builtinTypes;
 
   // TODO this should take into account conversion scope
-  Compatibility computeTypeCompatibility(
-      TypeRepresentation expected, TypeRepresentation provided) {
+  Compatibility computeTypeCompatibility(TypeRepresentation expected, TypeRepresentation provided) {
     // Exact type match is always OK.
     if (expected.equals(provided)) {
       return Compatibility.ALWAYS_COMPATIBLE;
@@ -53,8 +52,7 @@ class TypeCompatibility {
     }
 
     if (expected.equals(builtinTypes.NUMBER)) {
-      if (provided.equals(builtinTypes.INTEGER)
-          || provided.equals(builtinTypes.FLOAT)) {
+      if (provided.equals(builtinTypes.INTEGER) || provided.equals(builtinTypes.FLOAT)) {
         return Compatibility.ALWAYS_COMPATIBLE;
       }
     }

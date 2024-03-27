@@ -1,9 +1,8 @@
 package org.enso.compiler.pass.analyse.types;
 
-import org.enso.compiler.pass.analyse.alias.Graph;
-
 import java.util.HashMap;
 import java.util.Map;
+import org.enso.compiler.pass.analyse.alias.Graph;
 
 /**
  * A mapping that maps binding definitions from an alias analysis graph to their inferred types.

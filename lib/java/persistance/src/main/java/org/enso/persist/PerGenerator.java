@@ -61,7 +61,8 @@ final class PerGenerator {
     java.lang.Integer found = knownObjects.get(obj);
     if (found == null) {
       if (enteredObjects.put(obj, 0) != null) {
-        throw new IllegalStateException("Cyclic reference to " + obj.getClass().getCanonicalName() + " detected.");
+        throw new IllegalStateException(
+            "Cyclic reference to " + obj.getClass().getCanonicalName() + " detected.");
       }
       org.enso.persist.Persistance<?> p = map.forType(obj.getClass());
       java.io.ByteArrayOutputStream os = new ByteArrayOutputStream();
@@ -88,7 +89,8 @@ final class PerGenerator {
     java.lang.Integer found = knownObjects.get(obj);
     if (found == null) {
       if (enteredObjects.put(obj, 0) != null) {
-        throw new IllegalStateException("Cyclic reference to " + obj.getClass().getCanonicalName() + " detected.");
+        throw new IllegalStateException(
+            "Cyclic reference to " + obj.getClass().getCanonicalName() + " detected.");
       }
 
       var os = new ByteArrayOutputStream();

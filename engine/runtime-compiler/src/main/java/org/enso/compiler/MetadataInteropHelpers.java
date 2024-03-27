@@ -1,16 +1,15 @@
 package org.enso.compiler;
 
+import java.util.Optional;
 import org.enso.compiler.core.IR;
 import org.enso.compiler.core.ir.ProcessingPass;
 import org.enso.compiler.pass.IRPass;
 import scala.Option;
 
-import java.util.Optional;
-
 /**
  * A set of helper methods for handling of IR metadata.
- * <p>
- * This encapsulates the friction of interop between Scala and Java types.
+ *
+ * <p>This encapsulates the friction of interop between Scala and Java types.
  */
 public class MetadataInteropHelpers {
   public static <T> Optional<T> getOptionalMetadata(IR ir, IRPass pass, Class<T> expectedType) {
@@ -19,8 +18,13 @@ public class MetadataInteropHelpers {
       try {
         return Optional.of(expectedType.cast(option.get()));
       } catch (ClassCastException exception) {
-        throw new IllegalStateException("Unexpected metadata type " + option.get().getClass().getCanonicalName() + " " +
-            "for " + pass, exception);
+        throw new IllegalStateException(
+            "Unexpected metadata type "
+                + option.get().getClass().getCanonicalName()
+                + " "
+                + "for "
+                + pass,
+            exception);
       }
     } else {
       return Optional.empty();
@@ -35,5 +39,4 @@ public class MetadataInteropHelpers {
 
     return optional.get();
   }
-
 }

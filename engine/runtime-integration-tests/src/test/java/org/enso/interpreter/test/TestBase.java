@@ -151,7 +151,7 @@ public abstract class TestBase {
 
   protected static void assertContains(String expected, String actual) {
     if (!actual.contains(expected)) {
-      fail("Expecting `" + actual + "` to contain `" + expected +"`.");
+      fail("Expecting `" + actual + "` to contain `" + expected + "`.");
     }
   }
 

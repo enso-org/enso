@@ -1,17 +1,16 @@
 package org.enso.interpreter.test;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+
+import java.io.OutputStream;
+import java.net.URI;
 import org.enso.polyglot.MethodNames;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Source;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
-
-import java.io.OutputStream;
-import java.net.URI;
-
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
 
 public class SymbolResolutionTest extends TestBase {
   private static Context ctx;
@@ -35,10 +34,12 @@ public class SymbolResolutionTest extends TestBase {
     final URI uri = new URI("memory://resolvingLocalSymbol.enso");
     final Source src =
         Source.newBuilder(
-                "enso", """
+                "enso",
+                """
                     my_symbol = 42
                     entry_point = my_symbol
-                    """, uri.getAuthority())
+                    """,
+                uri.getAuthority())
             .uri(uri)
             .buildLiteral();
 
@@ -53,10 +54,12 @@ public class SymbolResolutionTest extends TestBase {
     final URI uri = new URI("memory://currentModuleName.enso");
     final Source src =
         Source.newBuilder(
-                "enso", """
+                "enso",
+                """
                     my_symbol = 42
                     entry_point = currentModuleName.my_symbol
-                    """, uri.getAuthority())
+                    """,
+                uri.getAuthority())
             .uri(uri)
             .buildLiteral();
 
@@ -71,11 +74,13 @@ public class SymbolResolutionTest extends TestBase {
     final URI uri = new URI("memory://Current_Module_Name.enso");
     final Source src =
         Source.newBuilder(
-                "enso", """
+                "enso",
+                """
                     type My_Type
                         my_value = 43
                     entry_point = Current_Module_Name.My_Type.my_value
-                    """, uri.getAuthority())
+                    """,
+                uri.getAuthority())
             .uri(uri)
             .buildLiteral();
 
@@ -85,19 +90,21 @@ public class SymbolResolutionTest extends TestBase {
     assertEquals(43, result.asInt());
   }
 
-
   /**
-   * When a symbol in the local scope is defined such that aliases the module name, the locally defined symbol takes precedence over the module name.
+   * When a symbol in the local scope is defined such that aliases the module name, the locally
+   * defined symbol takes precedence over the module name.
    */
   @Test
   public void aliasedModuleName() throws Exception {
     final URI uri = new URI("memory://aliasedModuleName.enso");
     final Source src =
         Source.newBuilder(
-                "enso", """
+                "enso",
+                """
                     aliasedModuleName = 43
                     entry_point = aliasedModuleName
-                    """, uri.getAuthority())
+                    """,
+                uri.getAuthority())
             .uri(uri)
             .buildLiteral();
 
@@ -112,11 +119,13 @@ public class SymbolResolutionTest extends TestBase {
     final URI uri = new URI("memory://Aliased_Module_Name.enso");
     final Source src =
         Source.newBuilder(
-                "enso", """
+                "enso",
+                """
                     type Aliased_Module_Name
                         my_value = 44
                     entry_point = Aliased_Module_Name.my_value
-                    """, uri.getAuthority())
+                    """,
+                uri.getAuthority())
             .uri(uri)
             .buildLiteral();
 
