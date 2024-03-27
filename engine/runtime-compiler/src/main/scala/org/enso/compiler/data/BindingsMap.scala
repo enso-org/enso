@@ -769,13 +769,6 @@ object BindingsMap {
     builtinType: Boolean
   ) extends DefinedEntity {
     override def canExport: Boolean = true
-
-    def toAbstract: Type = this
-
-    def toConcrete(concreteModule: ModuleReference.Concrete): Option[Type] = {
-      val _ = concreteModule
-      Some(this)
-    }
   }
 
   object Type {
@@ -829,15 +822,14 @@ object BindingsMap {
 
     /** @inheritdoc */
     override def toAbstract: ResolvedType =
-      this.copy(module = module.toAbstract, tp = tp.toAbstract)
+      this.copy(module = module.toAbstract)
 
     /** @inheritdoc */
     override def toConcrete(
       moduleMap: ModuleMap
     ): Option[ResolvedType] = for {
       concreteModule <- module.toConcrete(moduleMap)
-      concreteTp     <- tp.toConcrete(concreteModule)
-    } yield ResolvedType(concreteModule, concreteTp)
+    } yield ResolvedType(concreteModule, tp)
 
     override def qualifiedName: QualifiedName =
       module.getName.createChild(tp.name)

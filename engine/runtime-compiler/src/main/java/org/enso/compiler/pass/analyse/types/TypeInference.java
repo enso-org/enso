@@ -276,8 +276,7 @@ public final class TypeInference implements IRPass {
   }
 
   private TypeRepresentation.TypeObject resolvedTypeAsTypeObject(BindingsMap.ResolvedType resolvedType) {
-    // TODO check if we have access to package repository, otherwise this will not be reversible!
-    return new TypeRepresentation.TypeObject(resolvedType.qualifiedName());
+    return new TypeRepresentation.TypeObject(resolvedType.qualifiedName(), resolvedType.tp());
   }
 
   private void processLiteral(Literal literal) {
@@ -372,8 +371,7 @@ public final class TypeInference implements IRPass {
 
     switch (argumentType.type()) {
       case TypeRepresentation.TypeObject typeObject -> {
-        var typeDescription = findResolvedType(packageRepository, typeObject.name());
-        Option<BindingsMap.Cons> ctorCandidate = typeDescription.members().find((ctor) -> ctor.name().equals(function.name()));
+        Option<BindingsMap.Cons> ctorCandidate = typeObject.typeDescription().members().find((ctor) -> ctor.name().equals(function.name()));
         if (ctorCandidate.isDefined()) {
           return buildAtomConstructorType(typeObject, ctorCandidate.get());
         } else {

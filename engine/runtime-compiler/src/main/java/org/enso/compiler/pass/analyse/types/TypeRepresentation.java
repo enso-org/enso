@@ -101,12 +101,10 @@ public sealed interface TypeRepresentation
    * <p>This object allows to call static methods on that type or create instances of this type
    * using its constructors.
    *
-   * <p>TODO I'm not sure if storing BindingsMap.Type here is the best idea, later we may want to
-   * reduce coupling; however for now, I'm just trying to keep it simple to make the PoC work.
-   *
    * @param name the qualified name of the type
+   * @param typeDescription the type description from the BindingsMap
    */
-  record TypeObject(QualifiedName name) implements TypeRepresentation {
+  record TypeObject(QualifiedName name, BindingsMap.Type typeDescription) implements TypeRepresentation {
     @Override
     public String toString() {
       return "(type " + name.item() + ")";
@@ -157,23 +155,5 @@ public sealed interface TypeRepresentation
   static TypeRepresentation fromQualifiedName(String fqn) {
     QualifiedName qualifiedName = QualifiedName$.MODULE$.fromString(fqn);
     return fromQualifiedName(qualifiedName);
-  }
-
-  // This is needed because we are referring the BindingsMap... in TypeObject
-  // TODO maybe we should stop?
-  @Deprecated
-  default TypeRepresentation toAbstract() {
-    return switch (this) {
-      case ArrowType arrowType -> new ArrowType(
-          arrowType.argType.toAbstract(), arrowType.resultType.toAbstract());
-      case AtomType atomType -> atomType;
-      case IntersectionType intersectionType -> new IntersectionType(
-          intersectionType.types.stream().map(TypeRepresentation::toAbstract).toList());
-      case SumType sumType -> new SumType(
-          sumType.types.stream().map(TypeRepresentation::toAbstract).toList());
-      case TopType topType -> topType;
-      case TypeObject typeObject -> new TypeObject(typeObject.name);
-      case UnresolvedSymbol unresolvedSymbol -> unresolvedSymbol;
-    };
   }
 }
