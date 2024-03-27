@@ -1,6 +1,6 @@
 from Standard.Base import all
 
-import project.Data.Aggregate_Column.Aggregate_Column
+import project.Aggregate_Column.Aggregate_Column
 import project.Data.Blank_Selector.Blank_Selector
 import project.Data.Calculations.Column_Operation.Column_Operation
 import project.Data.Column.Column
@@ -31,8 +31,7 @@ from project.Data.Expression import expr
 from project.Delimited.Delimited_Format.Delimited_Format import Delimited
 from project.Extensions.Table_Conversions import all
 
-export project.Data.Aggregate_Column.Aggregate_Column
-
+export project.Aggregate_Column.Aggregate_Column
 export project.Data.Blank_Selector.Blank_Selector
 export project.Data.Calculations.Column_Operation.Column_Operation
 export project.Data.Column.Column

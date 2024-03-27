@@ -3,7 +3,7 @@ import Standard.Base.Data.Vector.No_Wrap
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Errors.Illegal_State.Illegal_State
 
-import project.Data.Aggregate_Column.Aggregate_Column
+import project.Aggregate_Column.Aggregate_Column
 import project.Data.Blank_Selector.Blank_Selector
 import project.Data.Column.Column
 import project.Data.Expression.Expression

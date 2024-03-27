@@ -1972,7 +1972,7 @@ type DB_Table
                         if new_columns.is_empty then handle_no_output_columns else
                             result = self.updated_context_and_columns new_ctx new_columns subquery=True
                             if validated.old_style.not then result else
-                                Warning.attach (Deprecated.Warning "Standard.Table.Data.Aggregate_Column.Aggregate_Column" "Group_By" "Deprecated: `Group_By` constructor has been deprecated, use the `group_by` argument instead.") result
+                                Warning.attach (Deprecated.Warning "Standard.Table.Aggregate_Column.Aggregate_Column" "Group_By" "Deprecated: `Group_By` constructor has been deprecated, use the `group_by` argument instead.") result
 
     ## GROUP Standard.Base.Calculations
        ICON dataframe_map_row

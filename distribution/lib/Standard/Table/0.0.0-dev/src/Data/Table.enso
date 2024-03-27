@@ -19,7 +19,7 @@ import Standard.Base.System.File.Generic.Writable_File.Writable_File
 from Standard.Base.Metadata import Display, make_single_choice, Widget
 from Standard.Base.Widget_Helpers import make_delimiter_selector, make_format_chooser
 
-import project.Data.Aggregate_Column.Aggregate_Column
+import project.Aggregate_Column.Aggregate_Column
 import project.Data.Blank_Selector.Blank_Selector
 import project.Data.Column as Column_Module
 import project.Data.Column.Column
@@ -792,7 +792,7 @@ type Table
                     new_columns = validated.valid_columns.map c->(Aggregate_Column_Helper.java_aggregator c.first c.second)
                     java_table = index.makeTable new_columns
                     if validated.old_style.not then Table.Value java_table else
-                        Warning.attach (Deprecated.Warning "Standard.Table.Data.Aggregate_Column.Aggregate_Column" "Group_By" "Deprecated: `Group_By` constructor has been deprecated, use the `group_by` argument instead.") (Table.Value java_table)
+                        Warning.attach (Deprecated.Warning "Standard.Table.Aggregate_Column.Aggregate_Column" "Group_By" "Deprecated: `Group_By` constructor has been deprecated, use the `group_by` argument instead.") (Table.Value java_table)
 
     ## ALIAS sort
        GROUP Standard.Base.Selections
