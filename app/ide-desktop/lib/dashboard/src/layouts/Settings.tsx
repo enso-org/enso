@@ -34,7 +34,7 @@ export default function Settings() {
   const { backend } = backendProvider.useBackend()
   const { getText } = textProvider.useText()
   const [organization, setOrganization] = React.useState<backendModule.OrganizationInfo>(() => ({
-    id: user?.id ?? backendModule.OrganizationId(''),
+    id: user?.organizationId ?? backendModule.OrganizationId(''),
     name: null,
     email: null,
     website: null,

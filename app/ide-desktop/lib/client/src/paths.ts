@@ -39,5 +39,7 @@ export const PROJECT_MANAGER_PATH = path.join(
     PROJECT_MANAGER_IN_BUNDLE_PATH
 )
 
-/** Relative path of Enso Project PM metadata relative to project's root. */
+/** Relative path of Enso Project package metadata relative to the project root. */
+export const PACKAGE_METADATA_RELATIVE = 'package.yaml'
+/** Relative path of Enso Project PM metadata relative to the project root. */
 export const PROJECT_METADATA_RELATIVE = path.join('.enso', 'project.json')

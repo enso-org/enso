@@ -29,13 +29,14 @@ import Labels from '#/layouts/Labels'
 import type * as spinner from '#/components/Spinner'
 
 import * as backendModule from '#/services/Backend'
+import * as projectManager from '#/services/ProjectManager'
 
 import * as array from '#/utilities/array'
 import type AssetQuery from '#/utilities/AssetQuery'
+import type AssetTreeNode from '#/utilities/AssetTreeNode'
 import * as download from '#/utilities/download'
 import * as github from '#/utilities/github'
 import LocalStorage from '#/utilities/LocalStorage'
-import * as projectManager from '#/utilities/ProjectManager'
 import * as uniqueString from '#/utilities/uniqueString'
 
 // ============================
@@ -136,8 +137,11 @@ export default function Drive(props: DriveProps) {
     [labels]
   )
   const rootDirectoryId = React.useMemo(
-    () => user?.rootDirectoryId ?? backendModule.DirectoryId(''),
-    [user]
+    () => backend.rootDirectoryId(user) ?? backendModule.DirectoryId(''),
+    [backend, user]
+  )
+  const targetDirectoryNodeRef = React.useRef<AssetTreeNode<backendModule.DirectoryAsset> | null>(
+    null
   )
   const isCloud = backend.type === backendModule.BackendType.remote
   const status =
@@ -186,8 +190,8 @@ export default function Drive(props: DriveProps) {
       } else {
         dispatchAssetListEvent({
           type: AssetListEventType.uploadFiles,
-          parentKey: rootDirectoryId,
-          parentId: rootDirectoryId,
+          parentKey: targetDirectoryNodeRef.current?.key ?? rootDirectoryId,
+          parentId: targetDirectoryNodeRef.current?.item.id ?? rootDirectoryId,
           files,
         })
       }
@@ -213,8 +217,8 @@ export default function Drive(props: DriveProps) {
     ) => {
       dispatchAssetListEvent({
         type: AssetListEventType.newProject,
-        parentKey: rootDirectoryId,
-        parentId: rootDirectoryId,
+        parentKey: targetDirectoryNodeRef.current?.key ?? rootDirectoryId,
+        parentId: targetDirectoryNodeRef.current?.item.id ?? rootDirectoryId,
         templateId,
         templateName,
         onSpinnerStateChange,
@@ -226,8 +230,8 @@ export default function Drive(props: DriveProps) {
   const doCreateDirectory = React.useCallback(() => {
     dispatchAssetListEvent({
       type: AssetListEventType.newFolder,
-      parentKey: rootDirectoryId,
-      parentId: rootDirectoryId,
+      parentKey: targetDirectoryNodeRef.current?.key ?? rootDirectoryId,
+      parentId: targetDirectoryNodeRef.current?.item.id ?? rootDirectoryId,
     })
   }, [rootDirectoryId, /* should never change */ dispatchAssetListEvent])
 
@@ -288,8 +292,8 @@ export default function Drive(props: DriveProps) {
     (name: string, value: string) => {
       dispatchAssetListEvent({
         type: AssetListEventType.newSecret,
-        parentKey: rootDirectoryId,
-        parentId: rootDirectoryId,
+        parentKey: targetDirectoryNodeRef.current?.key ?? rootDirectoryId,
+        parentId: targetDirectoryNodeRef.current?.item.id ?? rootDirectoryId,
         name,
         value,
       })
@@ -301,8 +305,8 @@ export default function Drive(props: DriveProps) {
     (name: string, value: unknown) => {
       dispatchAssetListEvent({
         type: AssetListEventType.newDataLink,
-        parentKey: rootDirectoryId,
-        parentId: rootDirectoryId,
+        parentKey: targetDirectoryNodeRef.current?.key ?? rootDirectoryId,
+        parentId: targetDirectoryNodeRef.current?.item.id ?? rootDirectoryId,
         name,
         value,
       })
@@ -426,6 +430,7 @@ export default function Drive(props: DriveProps) {
               dispatchAssetListEvent={dispatchAssetListEvent}
               setAssetPanelProps={setAssetPanelProps}
               setIsAssetPanelTemporarilyVisible={setIsAssetPanelTemporarilyVisible}
+              targetDirectoryNodeRef={targetDirectoryNodeRef}
               doOpenEditor={doOpenEditor}
               doCloseEditor={doCloseEditor}
               doCreateLabel={doCreateLabel}

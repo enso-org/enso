@@ -74,7 +74,7 @@ export default function AssetsTableContextMenu(props: AssetsTableContextMenuProp
       Array.from(selectedKeys, key => {
         const userPermissions = nodeMapRef.current.get(key)?.item.permissions
         const selfPermission = userPermissions?.find(
-          permission => permission.user.user_email === user.email
+          permission => permission.user.userId === user.userId
         )
         return selfPermission?.permission === permissions.PermissionAction.own
       }).every(isOwner => isOwner))
@@ -86,11 +86,14 @@ export default function AssetsTableContextMenu(props: AssetsTableContextMenuProp
       unsetModal()
       dispatchAssetEvent({ type: AssetEventType.delete, ids: selectedKeys })
     } else {
+      const [firstKey] = selectedKeys
+      const soleAssetName =
+        firstKey != null ? nodeMapRef.current.get(firstKey)?.item.title ?? '(unknown)' : '(unknown)'
       setModal(
         <ConfirmDeleteModal
           actionText={
             selectedKeys.size === 1
-              ? getText('deleteSelectedAssetActionText')
+              ? getText('deleteSelectedAssetActionText', soleAssetName)
               : getText('deleteSelectedAssetsActionText', selectedKeys.size)
           }
           doDelete={() => {
@@ -123,11 +126,16 @@ export default function AssetsTableContextMenu(props: AssetsTableContextMenuProp
               action="delete"
               label={getText('deleteAllForeverShortcut')}
               doAction={() => {
+                const [firstKey] = selectedKeys
+                const soleAssetName =
+                  firstKey != null
+                    ? nodeMapRef.current.get(firstKey)?.item.title ?? '(unknown)'
+                    : '(unknown)'
                 setModal(
                   <ConfirmDeleteModal
                     actionText={
                       selectedKeys.size === 1
-                        ? getText('deleteSelectedAssetForeverActionText')
+                        ? getText('deleteSelectedAssetForeverActionText', soleAssetName)
                         : getText('deleteSelectedAssetsForeverActionText', selectedKeys.size)
                     }
                     doDelete={() => {
@@ -165,7 +173,7 @@ export default function AssetsTableContextMenu(props: AssetsTableContextMenuProp
                 doAction={doCopy}
               />
             )}
-            {isCloud && ownsAllSelectedAssets && (
+            {ownsAllSelectedAssets && (
               <ContextMenuEntry
                 hidden={hidden}
                 action="cut"

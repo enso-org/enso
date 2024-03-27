@@ -68,7 +68,6 @@ interface BaseUserSession<Type extends UserSessionType> {
 export interface OfflineUserSession extends Pick<BaseUserSession<UserSessionType.offline>, 'type'> {
   readonly accessToken: null
   readonly user: null
-  readonly userInfo: null
 }
 
 /** The singleton instance of {@link OfflineUserSession}. Minimizes React re-renders. */
@@ -76,7 +75,6 @@ const OFFLINE_USER_SESSION: Readonly<OfflineUserSession> = {
   type: UserSessionType.offline,
   accessToken: null,
   user: null,
-  userInfo: null,
 }
 
 /** Object containing the currently signed-in user's session data, if the user has not yet set their
@@ -91,7 +89,6 @@ export interface PartialUserSession extends BaseUserSession<UserSessionType.part
 export interface FullUserSession extends BaseUserSession<UserSessionType.full> {
   /** User's organization information. */
   readonly user: backendModule.User
-  readonly userInfo: backendModule.SimpleUser | null
 }
 
 /** A user session for a user that may be either fully registered,
@@ -288,20 +285,9 @@ export default function AuthProvider(props: AuthProviderProps) {
         }
         gtagEvent('cloud_open')
         let user: backendModule.User | null
-        let userInfo: backendModule.SimpleUser | null
         while (true) {
           try {
             user = await backend.usersMe()
-            try {
-              userInfo =
-                user?.isEnabled === true
-                  ? (await backend.listUsers()).find(
-                      listedUser => listedUser.email === user?.email
-                    ) ?? null
-                  : null
-            } catch {
-              userInfo = null
-            }
             break
           } catch (error) {
             // The value may have changed after the `await`.
@@ -333,7 +319,7 @@ export default function AuthProvider(props: AuthProviderProps) {
           }
         } else {
           sentry.setUser({
-            id: user.id,
+            id: user.userId,
             email: user.email,
             username: user.name,
             // eslint-disable-next-line @typescript-eslint/naming-convention
@@ -343,7 +329,6 @@ export default function AuthProvider(props: AuthProviderProps) {
             type: UserSessionType.full,
             ...session,
             user,
-            userInfo,
           }
 
           // 34560000 is the recommended max cookie age.
