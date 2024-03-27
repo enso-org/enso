@@ -192,6 +192,13 @@ pub async fn publish_release(context: &BuildContext) -> Result {
     debug!("Updating edition in the AWS S3.");
     crate::aws::update_manifest(&remote_repo, &edition_file_path).await?;
 
+    // Add assets manifest.
+    let manifest = manifest::Assets::new(&remote_repo, &triple.versions.version);
+    let tempdir = tempdir()?;
+    let manifest_path = tempdir.path().join(manifest::ASSETS_MANIFEST_FILENAME);
+    ide_ci::fs::write_json(&manifest_path, &manifest)?;
+    release_handle.upload_asset_file(&manifest_path).await?;
+
     // The validation step is performed to enable issue reporting and enhance issue visibility.
     // Currently, even if the validation fails, the release will not be retracted.
     validate_release(release_handle).await?;

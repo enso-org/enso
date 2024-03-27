@@ -11,6 +11,9 @@ use crate::version::Versions;
 
 
 
+/// Name of the assets manifest file.
+///
+/// The website uses this name to find the assets manifest, so it should be kept in sync.
 pub const ASSETS_MANIFEST_FILENAME: &str = "assets.json";
 
 /// A platform-specific asset being part of the release, see [Assets] for the purpose.
@@ -19,6 +22,7 @@ pub struct Asset {
     pub os:            OS,
     pub arch:          Arch,
     pub url:           String,
+    /// User-friendly description of the target platform.
     pub target_pretty: String,
 }
 
