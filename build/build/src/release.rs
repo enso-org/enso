@@ -364,9 +364,8 @@ mod tests {
     async fn release_assets() -> Result {
         setup_logging()?;
 
-        // let crate_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-        // let repo_root = crate_dir.try_parent()?.try_parent()?;
-        let repo_root = r"H:\NBO\enso";
+        let crate_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        let repo_root = crate_dir.parent().unwrap().parent().unwrap();
         let version = Version::from_str("2024.1.1-nightly.2024.3.26")?;
         let triple = TargetTriple::new(Versions::new(version.clone()));
         let context = BuildContext {
