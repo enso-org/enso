@@ -1,20 +1,21 @@
 package org.enso.compiler.phase;
 
 import java.io.IOException;
+import java.util.List;
 import java.util.Objects;
 import org.enso.compiler.core.CompilerError;
-import org.enso.compiler.core.ir.Name;
 import org.enso.editions.LibraryName;
 import scala.Tuple2;
-import scala.jdk.CollectionConverters;
 
 public abstract class ImportResolverAlgorithm<
     Result, Module, Import, Export, ResolvedType, ResolvedModule> {
   protected ImportResolverAlgorithm() {}
 
-  protected abstract Name.Qualified nameForImport(Import imp);
+  protected abstract String nameForImport(Import imp);
 
-  protected abstract Name.Qualified nameForExport(Export ex);
+  protected abstract List<String> partsForImport(Import imp);
+
+  protected abstract String nameForExport(Export ex);
 
   protected abstract String nameForType(ResolvedType e);
 
@@ -25,12 +26,12 @@ public abstract class ImportResolverAlgorithm<
   /**
    * @return {@code null} or list of named imports
    */
-  protected abstract java.util.List<Name.Literal> onlyNames(Export ex);
+  protected abstract java.util.List<String> onlyNames(Export ex);
 
   /**
    * @return {@code null} or list of named imports
    */
-  protected abstract java.util.List<Name.Literal> hiddenNames(Export ex);
+  protected abstract java.util.List<String> hiddenNames(Export ex);
 
   protected abstract java.util.List<ResolvedType> definedEntities(String name);
 
@@ -67,7 +68,7 @@ public abstract class ImportResolverAlgorithm<
   }
 
   private Result tryResolveImportNew(Module module, Import imp) {
-    var impName = nameForImport(imp).name();
+    var impName = nameForImport(imp);
     var exp = exportsFor(module, impName);
     var fromAllExports = exp.stream().filter(ex -> isAll(ex)).toList();
     if (fromAllExports.size() >= 2) {
@@ -80,7 +81,7 @@ public abstract class ImportResolverAlgorithm<
                   e -> {
                     var onlyNames = onlyNames(e);
                     if (onlyNames != null) {
-                      return onlyNames.stream().map(n -> n.name()).toList();
+                      return onlyNames.stream().toList();
                     } else {
                       return null;
                     }
@@ -107,8 +108,7 @@ public abstract class ImportResolverAlgorithm<
         var unqualifiedConflicts =
             unqualifiedImports.stream().filter(x -> !x.equals(e)).filter(Objects::nonNull).toList();
         if (!unqualifiedConflicts.isEmpty()) {
-          var b = hidden.stream().map(x -> x.name()).toList();
-          throw HiddenNamesConflict.shadowUnqualifiedExport(nameForExport(e).name(), b);
+          throw HiddenNamesConflict.shadowUnqualifiedExport(nameForExport(e), hidden);
         }
       }
       for (var h : importsWithHiddenNames) {
@@ -118,28 +118,25 @@ public abstract class ImportResolverAlgorithm<
             qualifiedImports.stream()
                 .filter(Objects::nonNull)
                 .flatMap(x -> x.stream())
-                .filter(f -> hidden.stream().filter(x -> f.equals(x.name())).findAny().isPresent())
+                .filter(f -> hidden.stream().filter(x -> f.equals(x)).findAny().isPresent())
                 .toList();
         if (!qualifiedConflicts.isEmpty()) {
-          throw HiddenNamesConflict.shadowQualifiedExport(
-              nameForExport(e).name(), qualifiedConflicts);
+          throw HiddenNamesConflict.shadowQualifiedExport(nameForExport(e), qualifiedConflicts);
         }
       }
     }
-    var parts = nameForImport(imp).parts();
-    if (parts.length() < 2) {
+    var parts = partsForImport(imp);
+    if (parts.size() < 2) {
       throw new CompilerError(
           "Imports should contain at least two segments after " + "desugaring.");
     }
-    var twoParts = parts.take(2);
-    var libraryName = new LibraryName(twoParts.head().name(), twoParts.last().name());
-
+    var libraryName = new LibraryName(parts.get(0), parts.get(1));
     try {
       var m = loadLibraryModule(libraryName, impName);
       if (m != null) {
         return createResolvedImport(imp, exp, m);
       } else {
-        var typ = tryResolveAsTypeNew(nameForImport(imp));
+        var typ = tryResolveAsTypeNew(imp);
         if (typ != null) {
           return createResolvedType(imp, exp, typ);
         } else {
@@ -151,11 +148,11 @@ public abstract class ImportResolverAlgorithm<
     }
   }
 
-  private ResolvedType tryResolveAsTypeNew(Name.Qualified name) {
-    var parts = CollectionConverters.SeqHasAsJava(name.parts()).asJava();
+  private ResolvedType tryResolveAsTypeNew(Import name) {
+    var parts = partsForImport(name);
     var last = parts.size() - 1;
-    var tp = parts.get(last).name();
-    var modName = String.join(".", parts.subList(0, last).stream().map(n -> n.name()).toList());
+    var tp = parts.get(last);
+    var modName = String.join(".", parts.subList(0, last).stream().toList());
     var entities = definedEntities(modName);
     if (entities == null) {
       return null;

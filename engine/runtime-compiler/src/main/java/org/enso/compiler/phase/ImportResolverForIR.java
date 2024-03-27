@@ -32,13 +32,18 @@ abstract class ImportResolverForIR extends ImportResolverAlgorithm<
   abstract Compiler getCompiler();
 
   @Override
-  protected final Name.Qualified nameForImport(Import.Module imp) {
-    return imp.name();
+  protected final String nameForImport(Import.Module imp) {
+    return imp.name().name();
   }
 
   @Override
-  protected final Name.Qualified nameForExport(Export.Module ex) {
-    return ex.name();
+  protected final java.util.List<String> partsForImport(Import.Module imp) {
+    return CollectionConverters.SeqHasAsJava(imp.name().parts().map(n -> n.name())).asJava();
+  }
+
+  @Override
+  protected final String nameForExport(Export.Module ex) {
+    return ex.name().name();
   }
 
   @Override
@@ -61,20 +66,20 @@ abstract class ImportResolverForIR extends ImportResolverAlgorithm<
   }
 
   @Override
-  protected final java.util.List<Name.Literal> onlyNames(Export.Module ex) {
+  protected final java.util.List<String> onlyNames(Export.Module ex) {
     if (ex.onlyNames().isEmpty()) {
       return null;
     }
-    java.util.List<Name.Literal> list = CollectionConverters.SeqHasAsJava(ex.onlyNames().get()).asJava();
+    var list = CollectionConverters.SeqHasAsJava(ex.onlyNames().get().map(n -> n.name())).asJava();
     return list;
   }
 
   @Override
-  protected final java.util.List<Name.Literal> hiddenNames(Export.Module ex) {
+  protected final java.util.List<String> hiddenNames(Export.Module ex) {
     if (ex.hiddenNames().isEmpty()) {
       return null;
     }
-    java.util.List<Name.Literal> list = CollectionConverters.SeqHasAsJava(ex.hiddenNames().get()).asJava();
+    var list = CollectionConverters.SeqHasAsJava(ex.hiddenNames().get().map(n -> n.name())).asJava();
     return list;
   }
 
