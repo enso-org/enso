@@ -54,6 +54,8 @@ public final class TypeInference implements IRPass {
   public static final TypeInference INSTANCE = new TypeInference();
   private static final Logger logger = LoggerFactory.getLogger(TypeInference.class);
   private UUID uuid;
+  private BuiltinTypes builtinTypes = new BuiltinTypes();
+  TypeCompatibility checker = new TypeCompatibility(builtinTypes);
 
   @Override
   public void org$enso$compiler$pass$IRPass$_setter_$key_$eq(UUID v) {
@@ -103,9 +105,9 @@ public final class TypeInference implements IRPass {
             (expression) -> analyzeExpression(expression, ctx, LocalBindingsTyping.create(), bindingsMap)
         );
 
-        var inferredType = getInferredType(b.body());
-        if (inferredType != null) {
-          setInferredType(b, inferredType);
+        var methodBodyType = getInferredType(b.body());
+        if (methodBodyType != null) {
+          setInferredType(b, methodBodyType);
         }
 
         yield mapped;
@@ -155,7 +157,14 @@ public final class TypeInference implements IRPass {
       );
     };
 
-    processTypePropagation(mappedIr, localBindingsTyping);
+    TypeRepresentation inferredType = processTypePropagation(mappedIr, localBindingsTyping);
+    if (inferredType != null) {
+      setInferredType(mappedIr, inferredType);
+    }
+
+    if (mappedIr instanceof Expression.Binding b) {
+      registerBinding(b, inferredType, localBindingsTyping);
+    }
 
     // The ascriptions are processed later, because we want them to _overwrite_ any type that was inferred.
     processTypeAscription(mappedIr);
@@ -172,59 +181,36 @@ public final class TypeInference implements IRPass {
         var previouslyInferredType = getInferredType(ir);
         if (previouslyInferredType != null) {
           if (previouslyInferredType.equals(ascribedType)) {
-            logger.debug("redundant type ascription: {} - confirming inferred type {}", ir.showCode(), previouslyInferredType.type());
+            logger.debug("redundant type ascription: {} - confirming inferred type {}", ir.showCode(), previouslyInferredType);
           } else {
-            logger.debug("type ascription: {} - overwriting inferred type {}", ir.showCode(), previouslyInferredType.type());
+            logger.debug("type ascription: {} - overwriting inferred type {}", ir.showCode(), previouslyInferredType);
           }
 
-          TypeRepresentation expected = ascribedType;
-          TypeRepresentation provided = previouslyInferredType.type();
-          checkTypeCompatibility(ir, expected, provided);
+          checkTypeCompatibility(ir, ascribedType, previouslyInferredType);
         }
 
-        setInferredType(ir, new InferredType(ascribedType));
+        setInferredType(ir, ascribedType);
       }
     }
   }
 
-  private void processTypePropagation(Expression ir, LocalBindingsTyping localBindingsTyping) {
-    switch (ir) {
+  private TypeRepresentation processTypePropagation(Expression ir, LocalBindingsTyping localBindingsTyping) {
+    return switch (ir) {
       case Name.Literal l -> processName(l, localBindingsTyping);
-      case Application.Force f -> {
-        var innerType = getInferredType(f.target());
-        if (innerType != null) {
-          setInferredType(f, innerType);
-        }
-      }
+      case Application.Force f -> getInferredType(f.target());
       case Application.Prefix p -> {
         var functionType = getInferredType(p.function());
-        if (functionType != null) {
-          var inferredType = processApplication(functionType.type(), p.arguments(), p);
-          if (inferredType != null) {
-            setInferredType(p, new InferredType(inferredType));
-          }
+        if (functionType == null) {
+          yield null;
+        } else {
+          yield processApplication(functionType, p.arguments(), p);
         }
       }
-      case Expression.Binding b -> {
-        var innerType = getInferredType(b.expression());
-        if (innerType != null) {
-          registerBinding(b, innerType.type(), localBindingsTyping);
-        }
-      }
-      case Expression.Block b -> {
-        var innerType = getInferredType(b.returnValue());
-        if (innerType != null) {
-          setInferredType(b, innerType);
-        }
-      }
-      case Function.Lambda f -> {
-        var type = buildLambdaType(f);
-        if (type != null) {
-          setInferredType(f, type);
-        }
-      }
+      case Expression.Binding b -> getInferredType(b.expression());
+      case Expression.Block b -> getInferredType(b.returnValue());
+      case Function.Lambda f -> buildLambdaType(f);
       case Literal l -> processLiteral(l);
-      case Application.Sequence sequence -> setInferredType(sequence, new InferredType(builtinTypes.VECTOR));
+      case Application.Sequence sequence -> builtinTypes.VECTOR;
       case Case.Expr caseExpr -> {
         List<TypeRepresentation> innerTypes =
             CollectionConverters$.MODULE$.asJava(caseExpr.branches())
@@ -232,18 +218,19 @@ public final class TypeInference implements IRPass {
                 .map(branch -> {
                   var innerType = getInferredType(branch.expression());
                   if (innerType != null) {
-                    return innerType.type();
+                    return innerType;
                   } else {
                     return TypeRepresentation.UNKNOWN;
                   }
                 })
                 .toList();
-        setInferredType(caseExpr, new InferredType(TypeRepresentation.buildSimplifiedSumType(innerTypes)));
+        yield TypeRepresentation.buildSimplifiedSumType(innerTypes);
       }
       default -> {
         logger.trace("type propagation: UNKNOWN branch: {}", ir.getClass().getCanonicalName());
+        yield null;
       }
-    }
+    };
   }
 
   private void registerBinding(IR binding, TypeRepresentation type, LocalBindingsTyping localBindingsTyping) {
@@ -277,12 +264,9 @@ public final class TypeInference implements IRPass {
     }
   }
 
-  private void processName(Name.Literal literalName, LocalBindingsTyping localBindingsTyping) {
+  private TypeRepresentation processName(Name.Literal literalName, LocalBindingsTyping localBindingsTyping) {
     var resolver = new CompilerNameResolution(localBindingsTyping);
-    InferredType inferredType = resolver.resolveName(literalName);
-    if (inferredType != null) {
-      setInferredType(literalName, inferredType);
-    }
+    return resolver.resolveName(literalName);
   }
 
   private TypeRepresentation.TypeObject resolvedTypeAsTypeObject(BindingsMap.ResolvedType resolvedType) {
@@ -296,15 +280,14 @@ public final class TypeInference implements IRPass {
     return new TypeRepresentation.AtomType(resolvedType.qualifiedName(), resolvedType.tp());
   }
 
-  private void processLiteral(Literal literal) {
-    TypeRepresentation type = switch (literal) {
+  private TypeRepresentation processLiteral(Literal literal) {
+    return switch (literal) {
       case Literal.Number number -> number.isFractional() ? builtinTypes.FLOAT : builtinTypes.INTEGER;
       case Literal.Text text -> builtinTypes.TEXT;
       // This branch is needed only because Java is unable to infer that the match is exhaustive
       default ->
           throw new IllegalStateException("Impossible - unknown literal type: " + literal.getClass().getCanonicalName());
     };
-    setInferredType(literal, new InferredType(type));
   }
 
   @SuppressWarnings("unchecked")
@@ -337,7 +320,7 @@ public final class TypeInference implements IRPass {
       case TypeRepresentation.ArrowType arrowType -> {
         var argumentType = getInferredType(argument.value());
         if (argumentType != null) {
-          checkTypeCompatibility(argument, arrowType.argType(), argumentType.type());
+          checkTypeCompatibility(argument, arrowType.argType(), argumentType);
         }
         return arrowType.resultType();
       }
@@ -364,7 +347,7 @@ public final class TypeInference implements IRPass {
       return null;
     }
 
-    switch (argumentType.type()) {
+    switch (argumentType) {
       case TypeRepresentation.TypeObject typeObject -> {
         Option<BindingsMap.Cons> ctorCandidate = typeObject.typeDescription().members().find((ctor) -> ctor.name().equals(function.name()));
         if (ctorCandidate.isDefined()) {
@@ -399,7 +382,7 @@ public final class TypeInference implements IRPass {
    * arguments (currently no upwards propagation of constraints yet). Even if the types are not known, we may fall back
    * to a default unknown type, but we may at least infer the minimum arity of the function.
    */
-  private InferredType buildLambdaType(Function.Lambda f) {
+  private TypeRepresentation buildLambdaType(Function.Lambda f) {
     boolean hasAnyDefaults = f.arguments().find((arg) -> arg.defaultValue().isDefined()).isDefined();
     if (hasAnyDefaults) {
       // Inferring function types with default arguments is not supported yet.
@@ -420,7 +403,7 @@ public final class TypeInference implements IRPass {
                 }
             );
 
-    InferredType inferredReturnType = getInferredType(f.body());
+    TypeRepresentation inferredReturnType = getInferredType(f.body());
 
     if (inferredReturnType == null && argTypesScala.isEmpty()) {
       // If the return type is unknown and we have no arguments, we do not infer anything useful - so we withdraw.
@@ -428,24 +411,24 @@ public final class TypeInference implements IRPass {
     }
 
     TypeRepresentation returnType =
-        inferredReturnType == null ? TypeRepresentation.ANY : inferredReturnType.type();
+        inferredReturnType == null ? TypeRepresentation.UNKNOWN : inferredReturnType;
 
-    TypeRepresentation arrowType = TypeRepresentation.buildFunction(
+    return TypeRepresentation.buildFunction(
         CollectionConverters.asJava(argTypesScala),
         returnType
     );
-    return new InferredType(arrowType);
   }
 
-  private void setInferredType(IR ir, InferredType type) {
+  private void setInferredType(IR ir, TypeRepresentation type) {
     Objects.requireNonNull(type, "type must not be null");
-    ir.passData().update(this, type);
+    ir.passData().update(this, new InferredType(type));
   }
 
-  private InferredType getInferredType(Expression expression) {
+  private TypeRepresentation getInferredType(Expression expression) {
     Option<ProcessingPass.Metadata> r = expression.passData().get(this);
     if (r.isDefined()) {
-      return (InferredType) r.get();
+      InferredType metadata = (InferredType) r.get();
+      return metadata.type();
     } else {
       return null;
     }
@@ -544,7 +527,7 @@ public final class TypeInference implements IRPass {
     }
   }
 
-  private class CompilerNameResolution extends NameResolution<InferredType, CompilerNameResolution.LinkInfo> {
+  private class CompilerNameResolution extends NameResolution<TypeRepresentation, CompilerNameResolution.LinkInfo> {
     private final LocalBindingsTyping localBindingsTyping;
 
     private CompilerNameResolution(LocalBindingsTyping localBindingsTyping) {
@@ -559,21 +542,18 @@ public final class TypeInference implements IRPass {
     }
 
     @Override
-    protected InferredType resolveLocalName(LinkInfo localLink) {
-      TypeRepresentation type = localBindingsTyping.getBindingType(localLink.graph, localLink.link.target());
-      return InferredType.create(type);
+    protected TypeRepresentation resolveLocalName(LinkInfo localLink) {
+      return localBindingsTyping.getBindingType(localLink.graph, localLink.link.target());
     }
 
     @Override
-    protected InferredType resolveGlobalName(BindingsMap.ResolvedName resolvedName) {
+    protected TypeRepresentation resolveGlobalName(BindingsMap.ResolvedName resolvedName) {
       return switch (resolvedName) {
-        case BindingsMap.ResolvedConstructor ctor -> {
-          // TODO check when do these appear?? I did not yet see them in the wild
-          TypeRepresentation constructorFunctionType = buildAtomConstructorType(resolvedTypeAsTypeObject(ctor.tpe()), ctor.cons());
-          yield InferredType.create(constructorFunctionType);
-        }
+        // TODO check when do these appear?? I did not yet see them in the wild
+        case BindingsMap.ResolvedConstructor ctor ->
+            buildAtomConstructorType(resolvedTypeAsTypeObject(ctor.tpe()), ctor.cons());
 
-        case BindingsMap.ResolvedType tpe -> InferredType.create(resolvedTypeAsTypeObject(tpe));
+        case BindingsMap.ResolvedType tpe -> resolvedTypeAsTypeObject(tpe);
 
         default -> {
           logger.trace("processGlobalName: global scope reference to {} - currently global inference is unsupported", resolvedName);
@@ -583,21 +563,18 @@ public final class TypeInference implements IRPass {
     }
 
     @Override
-    protected InferredType resolveFromConversion() {
+    protected TypeRepresentation resolveFromConversion() {
       // TODO currently from conversions are not supported
       //  we will probably create a sibling type to UnresolvedSymbol for that purpose
       return null;
     }
 
     @Override
-    protected InferredType resolveUnresolvedSymbol(String symbolName) {
-      return InferredType.create(new TypeRepresentation.UnresolvedSymbol(symbolName));
+    protected TypeRepresentation resolveUnresolvedSymbol(String symbolName) {
+      return new TypeRepresentation.UnresolvedSymbol(symbolName);
     }
 
     private record LinkInfo(Graph graph, Graph.Link link) {
     }
   }
-
-  private BuiltinTypes builtinTypes = new BuiltinTypes();
-  TypeCompatibility checker = new TypeCompatibility(builtinTypes);
 }
