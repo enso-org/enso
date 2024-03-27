@@ -1,15 +1,14 @@
 from Standard.Base import all
 import Standard.Base.Errors.No_Such_Key.No_Such_Key
 
-import Standard.Table.Data.Expression.Expression_Error
 import Standard.Table.Data.Type.Value_Type.Value_Type
+import Standard.Table.Expression.Expression_Error
 
 polyglot java import org.enso.table.error.ColumnCountMismatchException
 polyglot java import org.enso.table.error.ColumnNameMismatchException
 polyglot java import org.enso.table.error.EmptyFileException
 polyglot java import org.enso.table.error.EmptySheetException
 polyglot java import org.enso.table.error.InvalidColumnNameException
-
 
 type Missing_Input_Columns
     ## PRIVATE

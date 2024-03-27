@@ -26,14 +26,11 @@ import project.Constants.Previous_Value
 import project.Constants.Report_Unmatched
 import project.Data.Column as Column_Module
 import project.Data.Column.Column
-import project.Data.Expression.Expression
-import project.Data.Expression.Expression_Error
-import project.Data.Simple_Expression.Simple_Expression
 import project.Data_Formatter.Data_Formatter
 import project.Delimited.Delimited_Format.Delimited_Format
-import project.Extensions.Prefix_Name.Prefix_Name
+import project.Expression.Expression
+import project.Expression.Expression_Error
 import project.Extensions.Table_Conversions
-import project.Extensions.Table_Ref.Table_Ref
 import project.Internal.Add_Row_Number
 import project.Internal.Aggregate_Column_Helper
 import project.Internal.Column_Naming_Helper.Column_Naming_Helper
@@ -51,14 +48,17 @@ import project.Internal.Replace_Helpers
 import project.Internal.Split_Tokenize
 import project.Internal.Table_Helpers
 import project.Internal.Table_Helpers.Table_Column_Helper
+import project.Internal.Table_Ref.Table_Ref
 import project.Internal.Widget_Helpers
 import project.Join_Condition.Join_Condition
 import project.Join_Kind.Join_Kind
 import project.Match_Columns as Match_Columns_Helpers
 import project.Match_Columns.Match_Columns
 import project.Position.Position
+import project.Prefix_Name.Prefix_Name
 import project.Row.Row
 import project.Set_Mode.Set_Mode
+import project.Simple_Expression.Simple_Expression
 import project.Sort_Column.Sort_Column
 from project.Data.Column import get_item_string, normalize_string_for_display
 from project.Data.Type.Value_Type import Auto, Value_Type

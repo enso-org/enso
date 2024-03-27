@@ -6,10 +6,10 @@ import Standard.Base.Errors.Illegal_State.Illegal_State
 import project.Aggregate_Column.Aggregate_Column
 import project.Blank_Selector.Blank_Selector
 import project.Data.Column.Column
-import project.Data.Expression.Expression
 import project.Data.Table.Table
 import project.Data.Type.Value_Type.Value_Type
 import project.Data.Type.Value_Type_Helpers
+import project.Expression.Expression
 import project.Internal.Column_Naming_Helper.Column_Naming_Helper
 import project.Internal.Problem_Builder.Problem_Builder
 import project.Position.Position

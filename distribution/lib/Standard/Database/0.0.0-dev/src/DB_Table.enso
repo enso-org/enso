@@ -16,13 +16,11 @@ from Standard.Base.Metadata import Display, make_single_choice, Widget
 from Standard.Base.Runtime import assert
 from Standard.Base.Widget_Helpers import make_delimiter_selector, make_format_chooser
 
-import Standard.Table.Data.Calculations.Column_Operation.Column_Operation
-import Standard.Table.Data.Expression.Expression
-import Standard.Table.Data.Expression.Expression_Error
-import Standard.Table.Data.Simple_Expression.Simple_Expression
+import Standard.Table.Column_Operation.Column_Operation
 import Standard.Table.Data.Table.Table
 import Standard.Table.Data.Type.Value_Type_Helpers
-import Standard.Table.Extensions.Table_Ref.Table_Ref
+import Standard.Table.Expression.Expression
+import Standard.Table.Expression.Expression_Error
 import Standard.Table.Internal.Add_Row_Number
 import Standard.Table.Internal.Aggregate_Column_Helper
 import Standard.Table.Internal.Column_Naming_Helper.Column_Naming_Helper
@@ -32,11 +30,12 @@ import Standard.Table.Internal.Problem_Builder.Problem_Builder
 import Standard.Table.Internal.Replace_Helpers
 import Standard.Table.Internal.Table_Helpers
 import Standard.Table.Internal.Table_Helpers.Table_Column_Helper
+import Standard.Table.Internal.Table_Ref.Table_Ref
 import Standard.Table.Internal.Unique_Name_Strategy.Unique_Name_Strategy
 import Standard.Table.Internal.Widget_Helpers
 import Standard.Table.Match_Columns as Match_Columns_Helpers
 import Standard.Table.Row.Row
-from Standard.Table import Aggregate_Column, Auto, Blank_Selector, Column_Ref, Data_Formatter, Join_Condition, Join_Kind, Match_Columns, Position, Previous_Value, Report_Unmatched, Set_Mode, Sort_Column, Value_Type
+from Standard.Table import Aggregate_Column, Auto, Blank_Selector, Column_Ref, Data_Formatter, Join_Condition, Join_Kind, Match_Columns, Position, Previous_Value, Report_Unmatched, Set_Mode, Simple_Expression, Sort_Column, Value_Type
 from Standard.Table.Data.Column import get_item_string, normalize_string_for_display
 from Standard.Table.Data.Table import print_table
 from Standard.Table.Errors import all

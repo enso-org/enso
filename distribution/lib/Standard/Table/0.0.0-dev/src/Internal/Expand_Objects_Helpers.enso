@@ -8,11 +8,11 @@ import project.Data.Conversions.Convertible_To_Columns.Convertible_To_Columns
 import project.Data.Conversions.Convertible_To_Rows.Convertible_To_Rows
 import project.Data.Table.Table
 import project.Errors.No_Such_Column
-import project.Extensions.Prefix_Name.Prefix_Name
 import project.Internal.Fan_Out
 import project.Internal.Java_Exports
 import project.Internal.Java_Problems
 import project.Internal.Widget_Helpers
+import project.Prefix_Name.Prefix_Name
 from project.Internal.Java_Exports import make_inferred_builder
 
 ## PRIVATE

@@ -4,8 +4,8 @@ import Standard.Base.Errors.Common.Type_Error
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
 import project.Data.Column.Column
-import project.Data_Formatter.Data_Formatter
 import project.Data.Table.Table
+import project.Data_Formatter.Data_Formatter
 import project.Internal.Naming_Properties.Unlimited_Naming_Properties
 import project.Internal.Unique_Name_Strategy.Unique_Name_Strategy
 from project import Value_Type

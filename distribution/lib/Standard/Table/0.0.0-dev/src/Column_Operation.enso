@@ -2,9 +2,9 @@ from Standard.Base import all
 import Standard.Base.Errors.Deprecated.Deprecated
 
 import project.Column_Ref.Column_Ref
-import project.Data.Expression.Expression
-import project.Data.Simple_Expression.Simple_Calculation
-import project.Data.Simple_Expression.Simple_Expression
+import project.Expression.Expression
+import project.Simple_Expression.Simple_Calculation
+import project.Simple_Expression.Simple_Expression
 
 ## PRIVATE
 
@@ -99,4 +99,4 @@ Simple_Expression.from (that:Column_Operation) =
         Column_Operation.Or input rhs -> Simple_Expression.From input (Simple_Calculation.Or rhs)
         Column_Operation.If input condition true_value false_value -> Simple_Expression.From input (Simple_Calculation.If condition true_value false_value)
         Column_Operation.Trim input where what -> Simple_Expression.From input (Simple_Calculation.Trim where what)
-    Warning.attach (Deprecated.Warning "Standard.Table.Data.Column_Operation.Column_Operation" "" "Deprecated: `Column_Operation` has been replaced by `Simple_Expression`.") derived
+    Warning.attach (Deprecated.Warning "Standard.Table.Column_Operation.Column_Operation" "" "Deprecated: `Column_Operation` has been replaced by `Simple_Expression`.") derived
