@@ -50,8 +50,8 @@ public class AddRunning {
           groupingProblemAggregator, columnIx -> groupingColumns[columnIx].getName());
       RunningIterator it = groups.computeIfAbsent(key, k -> new RunningIterator());
       Object value = sourceStorage.getItemBoxed(i);
-      Long lValue = NumericConverter.tryConvertingToLong(value);
-      numbers[i] = Double.doubleToRawLongBits(it.next(lValue));
+      Double dValue = NumericConverter.tryConvertingToDouble(value);
+      numbers[i] = Double.doubleToRawLongBits(it.next(dValue));
     }
     BitSet isNothing = new BitSet(n);
     isNothing.set(0, n);
