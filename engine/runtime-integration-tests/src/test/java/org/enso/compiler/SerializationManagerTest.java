@@ -13,6 +13,7 @@ import org.enso.editions.LibraryName;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.util.TruffleFileSystem;
 import org.enso.interpreter.test.InterpreterContext;
+import org.enso.interpreter.util.ScalaConversions;
 import org.enso.pkg.Package;
 import org.enso.pkg.PackageManager;
 import org.enso.polyglot.LanguageInfo;
@@ -112,7 +113,9 @@ public class SerializationManagerTest {
             .filter(constructor -> constructor.name().equals("True"))
             .findFirst()
             .get();
-    Assert.assertEquals(scala.Some.apply("Standard.Base.Main"), booleanTrueSuggestion.reexport());
+    Assert.assertEquals(
+        ScalaConversions.set("Standard.Base.Main", "Standard.Base.Data.Boolean").toList(),
+        booleanTrueSuggestion.reexports().toList());
 
     Suggestion.Constructor runtimeContextInputSuggestion =
         cachedConstructorSuggestions
@@ -120,7 +123,8 @@ public class SerializationManagerTest {
             .filter(constructor -> constructor.name().equals("Input"))
             .findFirst()
             .get();
-    Assert.assertEquals(scala.None$.MODULE$, runtimeContextInputSuggestion.reexport());
+    Assert.assertEquals(
+        ScalaConversions.set().toList(), runtimeContextInputSuggestion.reexports().toList());
 
     clearLibraryCache(standardBaseLibrary);
   }

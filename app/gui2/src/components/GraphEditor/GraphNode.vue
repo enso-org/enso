@@ -400,6 +400,7 @@ const documentation = computed<string | undefined>({
       transform,
       minWidth: isVisualizationVisible ? `${visualizationWidth}px` : undefined,
       '--node-group-color': color,
+      ...(node.zIndex ? { 'z-index': node.zIndex } : {}),
     }"
     :class="{
       edited: props.edited,

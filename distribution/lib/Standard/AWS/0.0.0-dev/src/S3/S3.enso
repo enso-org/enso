@@ -27,7 +27,8 @@ polyglot java import software.amazon.awssdk.services.s3.model.PutObjectRequest
 polyglot java import software.amazon.awssdk.services.s3.model.S3Exception
 polyglot java import software.amazon.awssdk.services.s3.S3Client
 
-## Gets the list of the S3 bucket names.
+## ICON data_input
+   Gets the list of the S3 bucket names.
 
    Arguments:
    - credentials: AWS credentials. If not provided, the default credentials will
@@ -39,6 +40,7 @@ list_buckets credentials:AWS_Credential=AWS_Credential.Default = handle_s3_error
     buckets.map b->b.name
 
 ## GROUP Standard.Base.Input
+   ICON data_input
    Gets the list of the items inside a bucket.
 
    Arguments:

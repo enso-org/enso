@@ -2,6 +2,10 @@ from Standard.Base import all
 import Standard.Base.Data.Java_Json.Jackson_Object
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
+from Standard.Table import Column, Table
+
+import project.Data.Row.Row
+
 ## PRIVATE
    A special type describing how to convert an object into a set of table
    columns.
@@ -30,7 +34,16 @@ Convertible_To_Columns.from (that:Map) =
 
 ## PRIVATE
 Convertible_To_Columns.from (that:Pair) =
-    Convertible_To_Columns.Value ["0", "1"] (k-> if k == "0" then that.first else that.second)
+    Convertible_To_Columns.Value ["0", "1"] (k-> that.at (Integer.parse k))
+
+## PRIVATE
+Convertible_To_Columns.from (that:Column) =
+    fields = 0.up_to that.length . map _.to_text
+    Convertible_To_Columns.Value fields (k-> that.at (Integer.parse k))
+
+## PRIVATE
+Convertible_To_Columns.from (that:Row) =
+    Convertible_To_Columns.Value that.column_names that.get
 
 ## PRIVATE
 Convertible_To_Columns.from (that:Vector) =

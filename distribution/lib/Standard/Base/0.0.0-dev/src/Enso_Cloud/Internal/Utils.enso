@@ -39,22 +39,26 @@ authorization_header =
 
 ## PRIVATE
    Root address for listing folders
+assets_api = cloud_root_uri + "assets"
+
+## PRIVATE
+   Root address for listing folders.
 directory_api = cloud_root_uri + "directories"
 
 ## PRIVATE
-   Root address for listing folders
+   Root address for file details metadata.
 files_api = cloud_root_uri + "files"
 
 ## PRIVATE
-   Root address for listing folders
+   Root address for project information.
 projects_api = cloud_root_uri + "projects"
 
 ## PRIVATE
-   Root address for Secrets API
+   Root address for Secrets API.
 secrets_api = cloud_root_uri + "secrets"
 
 ## PRIVATE
-   Root address for DataLinks API
+   Root address for DataLinks API.
 datalinks_api = cloud_root_uri + "connectors"
 
 ## PRIVATE
