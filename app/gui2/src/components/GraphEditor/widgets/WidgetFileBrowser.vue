@@ -57,7 +57,7 @@ const onClick = async () => {
   const kind =
     strictlyDirectory.value ? 'directory'
     : strictlyFile.value ? 'file'
-    : 'any'
+    : 'default'
   const selected = await window.fileBrowserApi.openFileBrowser(kind)
   if (selected != null && selected[0] != null) {
     const edit = graph.startEdit()

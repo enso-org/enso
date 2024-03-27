@@ -12,13 +12,12 @@ import project.Network.HTTP.HTTP
 import project.Network.HTTP.HTTP_Method.HTTP_Method
 import project.Network.URI.URI
 import project.Warning.Warning
+from project.Data import Raw_Response
 from project.Data.Boolean import Boolean, False, True
 from project.Data.Text.Extensions import all
-from project.Data import Raw_Response
 from project.Metadata.Choice import Option
 from project.Metadata.Widget import Single_Choice
 from project.System.File_Format import Auto_Detect, format_types
-
 
 ## PRIVATE
 looks_like_uri path:Text -> Boolean =

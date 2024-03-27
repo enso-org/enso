@@ -23,6 +23,7 @@ type Nothing
     is_nothing self = True
 
     ## GROUP Logical
+       ICON operators
        If this is Nothing then returns `function`.
 
        > Example
@@ -33,6 +34,7 @@ type Nothing
     if_nothing self ~function = function
 
     ## GROUP Logical
+       ICON operators
        If `self` is Nothing then returns Nothing, otherwise returns the result
        of running the provided `action`.
 

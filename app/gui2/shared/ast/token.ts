@@ -121,6 +121,10 @@ export function isIdentifier(code: string): code is Identifier {
   return is_ident_or_operator(code) === 1
 }
 
+export function identifier(code: string): Identifier | undefined {
+  if (isIdentifier(code)) return code
+}
+
 /** Returns true if `code` is lexically an operator. */
 export function isOperator(code: string): code is Operator {
   return is_ident_or_operator(code) === 2

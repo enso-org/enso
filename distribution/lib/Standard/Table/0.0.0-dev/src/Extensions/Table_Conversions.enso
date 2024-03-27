@@ -81,6 +81,7 @@ Table.from_objects value (fields : Vector | Nothing = Nothing) =
     Expand_Objects_Helpers.create_table_from_objects value fields
 
 ## GROUP Standard.Base.Conversions
+   ICON convert
    Converts a Text into a Table using a regular expression pattern.
 
    Each match becomes a row in the table.

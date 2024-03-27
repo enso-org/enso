@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { PointerButtonMask, usePointer } from '@/composables/events'
+import { WidgetEditHandler } from '@/providers/widgetRegistry/editHandler'
 import { computed, ref, watch, type ComponentInstance, type StyleValue } from 'vue'
 import AutoSizedInput from './AutoSizedInput.vue'
 
@@ -7,7 +8,12 @@ const props = defineProps<{
   modelValue: number | string
   limits?: { min: number; max: number } | undefined
 }>()
-const emit = defineEmits<{ 'update:modelValue': [modelValue: number | string] }>()
+const emit = defineEmits<{
+  'update:modelValue': [modelValue: number | string]
+  blur: []
+  focus: []
+  input: [content: string]
+}>()
 
 const inputFieldActive = ref(false)
 // Edited value reflects the `modelValue`, but does not update it until the user defocuses the field.
@@ -87,14 +93,25 @@ function emitUpdate() {
   }
 }
 
-function blur() {
+function blurred() {
   inputFieldActive.value = false
+  emit('blur')
   emitUpdate()
 }
 
-function focus() {
+function focused() {
   inputFieldActive.value = true
+  emit('focus')
 }
+
+defineExpose({
+  cancel: () => {
+    editedValue.value = `${props.modelValue}`
+    inputComponent.value?.blur()
+  },
+  blur: () => inputComponent.value?.blur(),
+  focus: () => inputComponent.value?.focus(),
+})
 </script>
 
 <template>
@@ -106,8 +123,9 @@ function focus() {
       autoSelect
       :style="inputStyle"
       v-on="dragPointer.events"
-      @blur="blur"
-      @focus="focus"
+      @blur="blurred"
+      @focus="focused"
+      @input="emit('input', editedValue)"
     />
   </label>
 </template>

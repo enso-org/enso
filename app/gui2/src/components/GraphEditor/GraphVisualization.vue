@@ -60,7 +60,7 @@ const emit = defineEmits<{
   'update:visible': [visible: boolean]
   'update:fullscreen': [fullscreen: boolean]
   'update:width': [width: number]
-  createNode: [options: NodeCreationOptions]
+  createNodes: [options: NodeCreationOptions[]]
 }>()
 
 const visPreprocessor = ref(DEFAULT_VISUALIZATION_CONFIGURATION)
@@ -294,7 +294,7 @@ provideVisualizationConfig({
   },
   hide: () => emit('update:visible', false),
   updateType: (id) => emit('update:id', id),
-  createNode: (options) => emit('createNode', options),
+  createNodes: (...options) => emit('createNodes', options),
 })
 
 const effectiveVisualization = computed(() => {

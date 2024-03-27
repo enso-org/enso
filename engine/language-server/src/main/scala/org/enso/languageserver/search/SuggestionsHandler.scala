@@ -550,7 +550,7 @@ final class SuggestionsHandler(
     for {
       actionResults <- suggestionsRepo.applyActions(msg.actions)
       treeResults   <- suggestionsRepo.applyTree(msg.updates.toVector)
-      exportResults <- suggestionsRepo.applyExports(msg.exports)
+      exportResults <- suggestionsRepo.getExportedSymbols(msg.exports)
       version       <- suggestionsRepo.currentVersion
     } yield {
       val actionUpdates = actionResults.flatMap {

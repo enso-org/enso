@@ -75,6 +75,7 @@ import '@ag-grid-community/styles/ag-theme-alpine.css'
 import { Grid, type ColumnResizedEvent, type ICellRendererParams } from 'ag-grid-community'
 import type { ColDef, GridOptions, HeaderValueGetterParams } from 'ag-grid-enterprise'
 import { computed, onMounted, onUnmounted, reactive, ref, watchEffect, type Ref } from 'vue'
+
 const { LicenseManager } = await import('ag-grid-enterprise')
 
 const props = defineProps<{ data: Data }>()
@@ -370,12 +371,13 @@ function lockColumnSize(e: ColumnResizedEvent) {
 
 onMounted(() => {
   setRowLimit(1000)
-  if ('AG_GRID_LICENSE_KEY' in window && typeof window.AG_GRID_LICENSE_KEY === 'string') {
-    LicenseManager.setLicenseKey(window.AG_GRID_LICENSE_KEY)
+  const agGridLicenseKey = import.meta.env.VITE_ENSO_AG_GRID_LICENSE_KEY
+  if (typeof agGridLicenseKey === 'string') {
+    LicenseManager.setLicenseKey(agGridLicenseKey)
   } else {
     console.warn('The AG_GRID_LICENSE_KEY is not defined.')
-    new Grid(tableNode.value!, agGridOptions.value)
   }
+  new Grid(tableNode.value!, agGridOptions.value)
   updateColumnWidths()
 })
 

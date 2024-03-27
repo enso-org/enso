@@ -82,6 +82,7 @@ interface DataFrame {
   df_radius?: number[]
   df_label?: string[]
 }
+
 declare var deck: typeof import('deck.gl')
 </script>
 
@@ -98,8 +99,12 @@ const props = defineProps<{ data: Data }>()
 
 /** Mapbox API access token.
  * All the limits of API are listed here: https://docs.mapbox.com/api/#rate-limits */
-const TOKEN =
-  'pk.eyJ1IjoiZW5zby1vcmciLCJhIjoiY2tmNnh5MXh2MGlyOTJ5cWdubnFxbXo4ZSJ9.3KdAcCiiXJcSM18nwk09-Q'
+const TOKEN = import.meta.env.VITE_ENSO_MAPBOX_API_TOKEN
+if (TOKEN == null) {
+  console.warn(
+    'Mapbox API token is missing, to use Geo Map visualization please provide VITE_ENSO_MAPBOX_API_TOKEN.',
+  )
+}
 const SCATTERPLOT_LAYER = 'Scatterplot_Layer'
 const DEFAULT_POINT_RADIUS = 150
 
@@ -394,10 +399,18 @@ function pushPoints(newPoints: Location[]) {
 <template>
   <VisualizationContainer :overflow="true">
     <template #toolbar>
-      <button class="image-button"><SvgIcon name="find" /></button>
-      <button class="image-button"><SvgIcon name="path2" /></button>
-      <button class="image-button"><SvgIcon name="geo_map_distance" /></button>
-      <button class="image-button"><SvgIcon name="geo_map_pin" /></button>
+      <button class="image-button">
+        <SvgIcon name="find" />
+      </button>
+      <button class="image-button">
+        <SvgIcon name="path2" />
+      </button>
+      <button class="image-button">
+        <SvgIcon name="geo_map_distance" />
+      </button>
+      <button class="image-button">
+        <SvgIcon name="geo_map_pin" />
+      </button>
     </template>
     <div ref="mapNode" class="GeoMapVisualization" @pointerdown.stop @wheel.stop></div>
   </VisualizationContainer>
