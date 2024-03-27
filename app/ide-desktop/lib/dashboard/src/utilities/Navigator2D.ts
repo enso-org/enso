@@ -320,6 +320,9 @@ export default class Navigator2D {
    * It is preferred to register a scroll container instead of its child, when possible,
    * because the scroll container resizes less often. */
   register(element: Element, options: Navigator2DElementOptions = {}) {
+    if (element.contains(document.activeElement)) {
+      this.focusedElements.add(element)
+    }
     const onFocusIn = () => {
       this.focusedElements.add(element)
     }

@@ -33,7 +33,7 @@ export default function NewLabelModal(props: NewLabelModalProps) {
   const toastAndLog = toastAndLogHooks.useToastAndLog()
   const { unsetModal } = modalProvider.useSetModal()
   const { getText } = textProvider.useText()
-  const [value, setName] = React.useState('')
+  const [value, setValue] = React.useState('')
   const [color, setColor] = React.useState<backend.LChColor | null>(null)
   const labelNames = React.useMemo(
     () => new Set<string>(labels.map(label => label.value)),
@@ -44,11 +44,13 @@ export default function NewLabelModal(props: NewLabelModalProps) {
   const canSubmit = Boolean(value && !labelNames.has(value))
 
   const doSubmit = () => {
-    unsetModal()
-    try {
-      doCreate(value, color ?? leastUsedColor)
-    } catch (error) {
-      toastAndLog(null, error)
+    if (value !== '') {
+      unsetModal()
+      try {
+        doCreate(value, color ?? leastUsedColor)
+      } catch (error) {
+        toastAndLog(null, error)
+      }
     }
   }
 
@@ -82,8 +84,8 @@ export default function NewLabelModal(props: NewLabelModalProps) {
         </aria.Heading>
         <FocusArea direction="horizontal">
           {(ref, innerProps) => (
-            <aria.Label ref={ref} className="relative flex items-center" {...innerProps}>
-              <div className="text w-modal-label">{getText('name')}</div>
+            <aria.TextField ref={ref} className="relative flex items-center" {...innerProps}>
+              <aria.Label className="text w-modal-label">{getText('name')}</aria.Label>
               <FocusRing>
                 <aria.Input
                   autoFocus
@@ -103,11 +105,11 @@ export default function NewLabelModal(props: NewLabelModalProps) {
                         }
                   }
                   onInput={event => {
-                    setName(event.currentTarget.value)
+                    setValue(event.currentTarget.value)
                   }}
                 />
               </FocusRing>
-            </aria.Label>
+            </aria.TextField>
           )}
         </FocusArea>
         <FocusArea direction="horizontal">
