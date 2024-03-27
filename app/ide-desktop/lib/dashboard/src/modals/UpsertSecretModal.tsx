@@ -65,12 +65,12 @@ export default function UpsertSecretModal(props: UpsertSecretModalProps) {
           doSubmit()
         }}
       >
-        <h1 className="relative text-sm font-semibold">
+        <aria.Heading level={2} className="relative text-sm font-semibold">
           {isCreatingSecret ? getText('newSecret') : getText('editSecret')}
-        </h1>
-        <label className="relative flex h-row items-center">
-          <div className="text w-modal-label">{getText('name')}</div>
-          <input
+        </aria.Heading>
+        <aria.TextField className="relative flex h-row items-center">
+          <aria.Label className="text w-modal-label">{getText('name')}</aria.Label>
+          <aria.Input
             autoFocus
             disabled={!isNameEditable}
             placeholder={getText('secretNamePlaceholder')}
@@ -80,10 +80,10 @@ export default function UpsertSecretModal(props: UpsertSecretModalProps) {
               setName(event.currentTarget.value)
             }}
           />
-        </label>
-        <label className="relative flex h-row items-center">
-          <div className="text w-modal-label">{getText('value')}</div>
-          <input
+        </aria.TextField>
+        <aria.TextField className="relative flex h-row items-center">
+          <aria.Label className="text w-modal-label">{getText('value')}</aria.Label>
+          <aria.Input
             autoFocus={!isNameEditable}
             placeholder={
               isNameEditable ? getText('secretValuePlaceholder') : getText('secretValueHidden')
@@ -93,15 +93,19 @@ export default function UpsertSecretModal(props: UpsertSecretModalProps) {
               setValue(event.currentTarget.value)
             }}
           />
-        </label>
-        <div className="relative flex gap-buttons">
-          <button disabled={!canSubmit} type="submit" className="button bg-invite text-white">
+        </aria.TextField>
+        <ButtonRow>
+          <UnstyledButton
+            isDisabled={!canSubmit}
+            className="button bg-invite text-white"
+            onPress={doSubmit}
+          >
             {isCreatingSecret ? getText('create') : getText('update')}
-          </button>
-          <button type="button" className="button bg-selected-frame" onClick={unsetModal}>
+          </UnstyledButton>
+          <UnstyledButton className="button bg-selected-frame" onPress={unsetModal}>
             {getText('cancel')}
-          </button>
-        </div>
+          </UnstyledButton>
+        </ButtonRow>
       </form>
     </Modal>
   )

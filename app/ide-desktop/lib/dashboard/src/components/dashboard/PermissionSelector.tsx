@@ -3,8 +3,10 @@ import * as React from 'react'
 
 import * as textProvider from '#/providers/TextProvider'
 
+import * as aria from '#/components/aria'
 import PermissionTypeSelector from '#/components/dashboard/PermissionTypeSelector'
 import Modal from '#/components/Modal'
+import UnstyledButton from '#/components/styled/UnstyledButton'
 
 import type * as backend from '#/services/Backend'
 
@@ -35,7 +37,7 @@ const LABEL_STRAIGHT_WIDTH_PX = 97
 export interface PermissionSelectorProps {
   readonly showDelete?: boolean
   /** When `true`, the button is not clickable. */
-  readonly disabled?: boolean
+  readonly isDisabled?: boolean
   /** When `true`, the button has lowered opacity when it is disabled. */
   readonly input?: boolean
   /** Overrides the vertical offset of the {@link PermissionTypeSelector}. */
@@ -52,7 +54,7 @@ export interface PermissionSelectorProps {
 
 /** A horizontal selector for all possible permissions. */
 export default function PermissionSelector(props: PermissionSelectorProps) {
-  const { showDelete = false, disabled = false, input = false, typeSelectorYOffsetPx } = props
+  const { showDelete = false, isDisabled = false, input = false, typeSelectorYOffsetPx } = props
   const { error, selfPermission, action: actionRaw, assetType, className } = props
   const { onChange, doDelete } = props
   const { getText } = textProvider.useText()
@@ -132,26 +134,27 @@ export default function PermissionSelector(props: PermissionSelectorProps) {
     case permissionsModule.Permission.view: {
       permissionDisplay = (
         <div className="flex w-permission-display gap-px">
+          {/* This CANNOT be an `UnstyledButton` as its click handler needs to access
+           * `event.currentTarget`.*/}
+          {/* eslint-disable-next-line no-restricted-syntax */}
           <button
             type="button"
-            disabled={disabled}
-            {...(disabled && error != null ? { title: error } : {})}
-            className={`selectable ${!disabled || !input ? 'active' : ''} ${
+            disabled={isDisabled}
+            {...(isDisabled && error != null ? { title: error } : {})}
+            className={`focus-child selectable ${!isDisabled || !input ? 'active' : ''} ${
               permissionsModule.PERMISSION_CLASS_NAME[permission.type]
             } h-text grow rounded-l-full px-permission-mini-button-x py-permission-mini-button-y`}
             onClick={doShowPermissionTypeSelector}
           >
-            {getText(permissionsModule.TYPE_TO_TEXT_ID[permission.type])}
+            <aria.Text>{getText(permissionsModule.TYPE_TO_TEXT_ID[permission.type])}</aria.Text>
           </button>
-          <button
-            type="button"
-            disabled={disabled}
-            {...(disabled && error != null ? { title: error } : {})}
-            className={`selectable ${permission.docs && (!disabled || !input) ? 'active' : ''} ${
+          <UnstyledButton
+            isDisabled={isDisabled}
+            {...(isDisabled && error != null ? { title: error } : {})}
+            className={`selectable ${permission.docs && (!isDisabled || !input) ? 'active' : ''} ${
               permissionsModule.DOCS_CLASS_NAME
             } h-text grow px-permission-mini-button-x py-permission-mini-button-y`}
-            onClick={event => {
-              event.stopPropagation()
+            onPress={() => {
               setAction(
                 permissionsModule.toPermissionAction({
                   type: permission.type,
@@ -161,17 +164,15 @@ export default function PermissionSelector(props: PermissionSelectorProps) {
               )
             }}
           >
-            {getText('docsPermissionModifier')}
-          </button>
-          <button
-            type="button"
-            disabled={disabled}
-            {...(disabled && error != null ? { title: error } : {})}
-            className={`selectable ${permission.execute && (!disabled || !input) ? 'active' : ''} ${
+            <aria.Text>{getText('docsPermissionModifier')}</aria.Text>
+          </UnstyledButton>
+          <UnstyledButton
+            isDisabled={isDisabled}
+            {...(isDisabled && error != null ? { title: error } : {})}
+            className={`selectable ${permission.execute && (!isDisabled || !input) ? 'active' : ''} ${
               permissionsModule.EXEC_CLASS_NAME
             } h-text grow rounded-r-full px-permission-mini-button-x py-permission-mini-button-y`}
-            onClick={event => {
-              event.stopPropagation()
+            onPress={() => {
               setAction(
                 permissionsModule.toPermissionAction({
                   type: permission.type,
@@ -182,18 +183,21 @@ export default function PermissionSelector(props: PermissionSelectorProps) {
             }}
           >
             {getText('execPermissionModifier')}
-          </button>
+          </UnstyledButton>
         </div>
       )
       break
     }
     default: {
       permissionDisplay = (
+        // This CANNOT be an `UnstyledButton` as its click handler needs to access
+        // `event.currentTarget`.
+        // eslint-disable-next-line no-restricted-syntax
         <button
           type="button"
-          disabled={disabled}
-          {...(disabled && error != null ? { title: error } : {})}
-          className={`selectable ${!disabled || !input ? 'active' : ''} ${
+          disabled={isDisabled}
+          {...(isDisabled && error != null ? { title: error } : {})}
+          className={`focus-child selectable ${!isDisabled || !input ? 'active' : ''} ${
             permissionsModule.PERMISSION_CLASS_NAME[permission.type]
           } h-text w-permission-display rounded-full`}
           onClick={doShowPermissionTypeSelector}

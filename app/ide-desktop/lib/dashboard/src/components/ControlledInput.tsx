@@ -1,6 +1,8 @@
 /** @file Styled input element. */
 import * as React from 'react'
 
+import * as aria from '#/components/aria'
+
 // =================
 // === Constants ===
 // =================
@@ -31,14 +33,16 @@ export default function ControlledInput(props: ControlledInputProps) {
     shouldReportValidityRef,
     onChange,
     onBlur,
+    style,
     ...passThrough
   } = props
   const [reportTimeoutHandle, setReportTimeoutHandle] = React.useState<number | null>(null)
   const [hasReportedValidity, setHasReportedValidity] = React.useState(false)
   const [wasJustBlurred, setWasJustBlurred] = React.useState(false)
   return (
-    <input
+    <aria.Input
       {...passThrough}
+      {...(style != null ? { style } : {})}
       onChange={event => {
         onChange?.(event)
         setValue(event.target.value)

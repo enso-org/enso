@@ -15,11 +15,13 @@ import type * as assetEvent from '#/events/assetEvent'
 
 import type Category from '#/layouts/CategorySwitcher/Category'
 
+import * as aria from '#/components/aria'
 import SharedWithColumn from '#/components/dashboard/column/SharedWithColumn'
 import DataLinkInput from '#/components/dashboard/DataLinkInput'
 import Label from '#/components/dashboard/Label'
 import StatelessSpinner, * as statelessSpinner from '#/components/StatelessSpinner'
 import Button from '#/components/styled/Button'
+import UnstyledButton from '#/components/styled/UnstyledButton'
 
 import * as backendModule from '#/services/Backend'
 
@@ -125,7 +127,10 @@ export default function AssetProperties(props: AssetPropertiesProps) {
   return (
     <>
       <div className="flex flex-col items-start gap-side-panel">
-        <span className="flex h-side-panel-heading items-center gap-side-panel-section py-side-panel-heading-y text-lg leading-snug">
+        <aria.Heading
+          level={2}
+          className="flex h-side-panel-heading items-center gap-side-panel-section py-side-panel-heading-y text-lg leading-snug"
+        >
           {getText('description')}
           {ownsThisAsset && !isEditingDescription && (
             <Button
@@ -136,13 +141,13 @@ export default function AssetProperties(props: AssetPropertiesProps) {
               }}
             />
           )}
-        </span>
+        </aria.Heading>
         <div
           data-testid="asset-panel-description"
           className="self-stretch py-side-panel-description-y"
         >
           {!isEditingDescription ? (
-            <span className="text">{item.item.description}</span>
+            <aria.Text className="text">{item.item.description}</aria.Text>
           ) : (
             <form className="flex flex-col gap-modal" onSubmit={doEditDescription}>
               <textarea
@@ -175,23 +180,29 @@ export default function AssetProperties(props: AssetPropertiesProps) {
                 className="-m-multiline-input-p w-full resize-none rounded-input bg-frame p-multiline-input"
               />
               <div className="flex gap-buttons">
-                <button type="submit" className="button self-start bg-selected-frame">
+                <UnstyledButton
+                  className="button self-start bg-selected-frame"
+                  onPress={doEditDescription}
+                >
                   {getText('update')}
-                </button>
+                </UnstyledButton>
               </div>
             </form>
           )}
         </div>
       </div>
       <div className="flex flex-col items-start gap-side-panel-section">
-        <h2 className="h-side-panel-heading py-side-panel-heading-y text-lg leading-snug">
+        <aria.Heading
+          level={2}
+          className="h-side-panel-heading py-side-panel-heading-y text-lg leading-snug"
+        >
           {getText('settings')}
-        </h2>
+        </aria.Heading>
         <table>
           <tbody>
             <tr data-testid="asset-panel-permissions" className="h-row">
               <td className="text my-auto min-w-side-panel-label p">
-                <span className="text inline-block">{getText('sharedWith')}</span>
+                <aria.Label className="text inline-block">{getText('sharedWith')}</aria.Label>
               </td>
               <td className="w-full p">
                 <SharedWithColumn
@@ -203,7 +214,7 @@ export default function AssetProperties(props: AssetPropertiesProps) {
             </tr>
             <tr data-testid="asset-panel-labels" className="h-row">
               <td className="text my-auto min-w-side-panel-label p">
-                <span className="text inline-block">{getText('labels')}</span>
+                <aria.Label className="text inline-block">{getText('labels')}</aria.Label>
               </td>
               <td className="w-full p">
                 {item.item.labels?.map(value => {
@@ -221,9 +232,12 @@ export default function AssetProperties(props: AssetPropertiesProps) {
       </div>
       {isDataLink && (
         <div className="flex flex-col items-start gap-side-panel-section">
-          <h2 className="h-side-panel-heading py-side-panel-heading-y text-lg leading-snug">
+          <aria.Heading
+            level={2}
+            className="h-side-panel-heading py-side-panel-heading-y text-lg leading-snug"
+          >
             {getText('dataLink')}
-          </h2>
+          </aria.Heading>
           {!isDataLinkFetched ? (
             <div className="grid place-items-center self-stretch">
               <StatelessSpinner size={48} state={statelessSpinner.SpinnerState.loadingMedium} />
@@ -238,14 +252,13 @@ export default function AssetProperties(props: AssetPropertiesProps) {
               />
               {canEditThisAsset && (
                 <div className="flex gap-buttons">
-                  <button
-                    type="button"
-                    disabled={isDataLinkDisabled}
+                  <UnstyledButton
+                    isDisabled={isDataLinkDisabled}
                     {...(isDataLinkDisabled
                       ? { title: 'Edit the Data Link before updating it.' }
                       : {})}
                     className="button bg-invite text-white enabled:active"
-                    onClick={() => {
+                    onPress={() => {
                       void (async () => {
                         if (item.item.type === backendModule.AssetType.dataLink) {
                           const oldDataLinkValue = dataLinkValue
@@ -267,17 +280,16 @@ export default function AssetProperties(props: AssetPropertiesProps) {
                     }}
                   >
                     {getText('update')}
-                  </button>
-                  <button
-                    type="button"
-                    disabled={isDataLinkDisabled}
+                  </UnstyledButton>
+                  <UnstyledButton
+                    isDisabled={isDataLinkDisabled}
                     className="button bg-selected-frame enabled:active"
-                    onClick={() => {
+                    onPress={() => {
                       setEditedDataLinkValue(dataLinkValue)
                     }}
                   >
                     {getText('cancel')}
-                  </button>
+                  </UnstyledButton>
                 </div>
               )}
             </>

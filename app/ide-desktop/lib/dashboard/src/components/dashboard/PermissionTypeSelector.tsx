@@ -1,6 +1,9 @@
 /** @file A selector for all possible permission types. */
 import * as React from 'react'
 
+import * as aria from '#/components/aria'
+import UnstyledButton from '#/components/styled/UnstyledButton'
+
 import * as backend from '#/services/Backend'
 
 import * as permissions from '#/utilities/permissions'
@@ -98,13 +101,12 @@ export default function PermissionTypeSelector(props: PermissionTypeSelectorProp
               ? true
               : data.type !== permissions.Permission.owner)
         ).map(data => (
-          <button
+          <UnstyledButton
             key={data.type}
-            type="button"
             className={`flex h-row items-start gap-permission-type-button rounded-full p-permission-type-button hover:bg-black/5 ${
               type === data.type ? 'bg-black/5 hover:!bg-black/5 group-hover:bg-transparent' : ''
             }`}
-            onClick={() => {
+            onPress={() => {
               onChange(data.type)
             }}
           >
@@ -118,7 +120,7 @@ export default function PermissionTypeSelector(props: PermissionTypeSelectorProp
             {/* This is a symbol that should never need to be localized, since it is effectively
              * an icon. */}
             {/* eslint-disable-next-line no-restricted-syntax */}
-            <span className="text font-normal">=</span>
+            <aria.Text className="text font-normal">=</aria.Text>
             {data.previous != null && (
               <>
                 <div
@@ -131,11 +133,11 @@ export default function PermissionTypeSelector(props: PermissionTypeSelectorProp
                 {/* This is a symbol that should never need to be localized, since it is effectively
                  * an icon. */}
                 {/* eslint-disable-next-line no-restricted-syntax */}
-                <span className="text font-normal">+</span>
+                <aria.Text className="text font-normal">+</aria.Text>
               </>
             )}
-            <span className="text">{data.description(assetType)}</span>
-          </button>
+            <aria.Label className="text">{data.description(assetType)}</aria.Label>
+          </UnstyledButton>
         ))}
       </div>
     </div>

@@ -110,7 +110,7 @@ export default function AssetsTableContextMenu(props: AssetsTableContextMenuProp
       <></>
     ) : (
       <ContextMenus key={uniqueString.uniqueString()} hidden={hidden} event={event}>
-        <ContextMenu aria-label="Drive context menu" hidden={hidden}>
+        <ContextMenu aria-label={getText('assetsTableContextMenuLabel')} hidden={hidden}>
           <ContextMenuEntry
             hidden={hidden}
             action="undelete"
@@ -156,7 +156,7 @@ export default function AssetsTableContextMenu(props: AssetsTableContextMenuProp
     return (
       <ContextMenus key={uniqueString.uniqueString()} hidden={hidden} event={event}>
         {selectedKeys.size !== 0 && (
-          <ContextMenu aria-label="Drive context menu" hidden={hidden}>
+          <ContextMenu aria-label={getText('assetsTableContextMenuLabel')} hidden={hidden}>
             {ownsAllSelectedAssets && (
               <ContextMenuEntry
                 hidden={hidden}

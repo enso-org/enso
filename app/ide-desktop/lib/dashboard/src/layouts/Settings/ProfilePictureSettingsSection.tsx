@@ -7,7 +7,9 @@ import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
 import * as authProvider from '#/providers/AuthProvider'
 import * as backendProvider from '#/providers/BackendProvider'
+import * as textProvider from '#/providers/TextProvider'
 
+import * as aria from '#/components/aria'
 import FocusArea from '#/components/styled/FocusArea'
 import FocusRing from '#/components/styled/FocusRing'
 
@@ -21,11 +23,12 @@ export default function ProfilePictureSettingsSection() {
   const { setUser } = authProvider.useAuth()
   const { backend } = backendProvider.useBackend()
   const { user } = authProvider.useNonPartialUserSession()
+  const { getText } = textProvider.useText()
 
   const doUploadUserPicture = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const image = event.target.files?.[0]
     if (image == null) {
-      toastAndLog('Could not upload a new profile picture because no image was found')
+      toastAndLog('noNewProfilePictureError')
     } else {
       try {
         const newUser = await backend.uploadUserPicture({ fileName: image.name }, image)
@@ -43,22 +46,28 @@ export default function ProfilePictureSettingsSection() {
     <FocusArea direction="vertical">
       {(ref, innerProps) => (
         <div ref={ref} className="flex flex-col gap-settings-section-header" {...innerProps}>
-          <h3 className="settings-subheading">Profile picture</h3>
+          <aria.Heading level={2} className="settings-subheading">
+            {getText('profilePicture')}
+          </aria.Heading>
           <FocusRing within>
-            <label className="flex h-profile-picture-large w-profile-picture-large cursor-pointer items-center overflow-clip rounded-full transition-colors hover:bg-frame">
+            <aria.Label className="flex h-profile-picture-large w-profile-picture-large cursor-pointer items-center overflow-clip rounded-full transition-colors hover:bg-frame">
               <img
                 src={user?.profilePicture ?? DefaultUserIcon}
                 width={128}
                 height={128}
                 className="pointer-events-none"
               />
-              <input type="file" className="focus-child w" accept="image/*" onChange={doUploadUserPicture} />
-            </label>
+              <aria.Input
+                type="file"
+                className="focus-child w"
+                accept="image/*"
+                onChange={doUploadUserPicture}
+              />
+            </aria.Label>
           </FocusRing>
-          <span className="w-profile-picture-caption py-profile-picture-caption-y">
-            Your profile picture should not be irrelevant, abusive or vulgar. It should not be a
-            default image provided by Enso.
-          </span>
+          <aria.Text className="w-profile-picture-caption py-profile-picture-caption-y">
+            {getText('profilePictureWarning')}
+          </aria.Text>
         </div>
       )}
     </FocusArea>

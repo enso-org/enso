@@ -14,6 +14,8 @@ import * as textProvider from '#/providers/TextProvider'
 
 import * as chat from '#/layouts/Chat'
 
+import UnstyledButton from '#/components/styled/UnstyledButton'
+
 /** Props for a {@link ChatPlaceholder}. */
 export interface ChatPlaceholderProps {
   /** This should only be false when the panel is closing. */
@@ -40,31 +42,31 @@ export default function ChatPlaceholder(props: ChatPlaceholderProps) {
       >
         <div className="mx-chat-header-x mt-chat-header-t flex text-sm font-semibold">
           <div className="grow" />
-          <button className="mx-close-icon" onClick={doClose}>
+          <UnstyledButton className="mx-close-icon" onPress={doClose}>
             <img src={CloseLargeIcon} />
-          </button>
+          </UnstyledButton>
         </div>
         <div className="grid grow place-items-center">
           <div className="flex flex-col gap-status-page text-center text-base">
             <div className="px-missing-functionality-text-x">
               {getText('placeholderChatPrompt')}
             </div>
-            <button
+            <UnstyledButton
               className="button self-center bg-help text-white"
-              onClick={() => {
+              onPress={() => {
                 navigate(appUtils.LOGIN_PATH)
               }}
             >
               {getText('login')}
-            </button>
-            <button
+            </UnstyledButton>
+            <UnstyledButton
               className="button self-center bg-help text-white"
-              onClick={() => {
+              onPress={() => {
                 navigate(appUtils.REGISTRATION_PATH)
               }}
             >
               {getText('register')}
-            </button>
+            </UnstyledButton>
           </div>
         </div>
       </div>,

@@ -32,19 +32,26 @@ export interface ButtonProps {
 }
 
 /** A styled button. */
-export default function Button(props: ButtonProps) {
-  const { autoFocus = false, active = false, softDisabled = false, isDisabled = false } = props
-  const { image, error, alt, className, onPress } = props
+function Button(props: ButtonProps, ref: React.ForwardedRef<HTMLButtonElement>) {
+  const {
+    active = false,
+    softDisabled = false,
+    image,
+    error,
+    alt,
+    className,
+    ...buttonProps
+  } = props
+  const { isDisabled = false } = buttonProps
   const focusDirection = focusDirectionProvider.useFocusDirection()
   const handleFocusMove = focusHooks.useHandleFocusMove(focusDirection)
 
   return (
     <FocusRing placement="after">
       <aria.Button
-        autoFocus={autoFocus}
-        isDisabled={isDisabled}
+        {...buttonProps}
+        ref={ref}
         className="focus-child relative after:pointer-events-none after:absolute after:inset-button-focus-ring-inset after:rounded-button-focus-ring"
-        onPress={onPress}
         onKeyDown={handleFocusMove}
       >
         <div
@@ -61,3 +68,5 @@ export default function Button(props: ButtonProps) {
     </FocusRing>
   )
 }
+
+export default React.forwardRef(Button)

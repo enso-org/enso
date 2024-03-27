@@ -2,6 +2,7 @@
 import * as React from 'react'
 
 import * as modalProvider from '#/providers/ModalProvider'
+import * as textProvider from '#/providers/TextProvider'
 
 import * as aria from '#/components/aria'
 import FocusArea from '#/components/styled/FocusArea'
@@ -16,6 +17,7 @@ import InviteUsersModal from '#/modals/InviteUsersModal'
 /** Button bar for managing organization members. */
 export default function MembersSettingsTabBar() {
   const { setModal } = modalProvider.useSetModal()
+  const { getText } = textProvider.useText()
 
   return (
     <FocusArea direction="horizontal">
@@ -27,7 +29,9 @@ export default function MembersSettingsTabBar() {
               setModal(<InviteUsersModal eventTarget={null} />)
             }}
           >
-            <aria.Text className="text whitespace-nowrap font-semibold">Invite Members</aria.Text>
+            <aria.Text className="text whitespace-nowrap font-semibold">
+              {getText('inviteMembers')}
+            </aria.Text>
           </UnstyledButton>
         </div>
       )}

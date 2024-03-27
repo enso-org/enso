@@ -1,6 +1,8 @@
 /** @file A select menu with a dropdown. */
 import * as React from 'react'
 
+import * as aria from '#/components/aria'
+
 // =================
 // === Constants ===
 // =================
@@ -177,7 +179,7 @@ export default function Autocomplete<T>(props: AutocompleteProps<T>) {
     <div onKeyDown={onKeyDown} className="grow">
       <div className="flex flex-1">
         {canEditText ? (
-          <input
+          <aria.Input
             type={type}
             ref={inputRef}
             autoFocus={autoFocus}

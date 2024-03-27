@@ -18,6 +18,7 @@ import type * as column from '#/components/dashboard/column'
 import Label from '#/components/dashboard/Label'
 import * as labelUtils from '#/components/dashboard/Label/labelUtils'
 import MenuEntry from '#/components/MenuEntry'
+import UnstyledButton from '#/components/styled/UnstyledButton'
 
 import ManageLabelsModal from '#/modals/ManageLabelsModal'
 
@@ -42,6 +43,7 @@ export default function LabelsColumn(props: column.AssetColumnProps) {
   const { backend } = backendProvider.useBackend()
   const { getText } = textProvider.useText()
   const toastAndLog = toastAndLogHooks.useToastAndLog()
+  const plusButtonRef = React.useRef<HTMLButtonElement>(null)
   const self = asset.permissions?.find(
     permission => permission.user.userId === session.user?.userId
   )
@@ -60,6 +62,7 @@ export default function LabelsColumn(props: column.AssetColumnProps) {
     },
     [/* should never change */ setItem]
   )
+
   return (
     <div className="group flex items-center gap-column-items">
       {(asset.labels ?? [])
@@ -131,10 +134,10 @@ export default function LabelsColumn(props: column.AssetColumnProps) {
           </Label>
         ))}
       {managesThisAsset && (
-        <button
+        <UnstyledButton
+          ref={plusButtonRef}
           className="invisible shrink-0 group-hover:visible"
-          onClick={event => {
-            event.stopPropagation()
+          onPress={() => {
             setModal(
               <ManageLabelsModal
                 key={uniqueString.uniqueString()}
@@ -142,13 +145,13 @@ export default function LabelsColumn(props: column.AssetColumnProps) {
                 setItem={setAsset}
                 allLabels={labels}
                 doCreateLabel={doCreateLabel}
-                eventTarget={event.currentTarget}
+                eventTarget={plusButtonRef.current}
               />
             )
           }}
         >
           <img className="size-plus-icon" src={Plus2Icon} />
-        </button>
+        </UnstyledButton>
       )}
     </div>
   )

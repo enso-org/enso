@@ -5,6 +5,7 @@ import DocsIcon from 'enso-assets/docs.svg'
 
 import * as textProvider from '#/providers/TextProvider'
 
+import * as aria from '#/components/aria'
 import type * as column from '#/components/dashboard/column'
 import * as columnUtils from '#/components/dashboard/column/columnUtils'
 import SvgMask from '#/components/SvgMask'
@@ -26,7 +27,7 @@ export default function DocsColumnHeading(props: column.AssetColumnHeadingProps)
           hideColumn(columnUtils.Column.docs)
         }}
       />
-      <span className="text-header">{getText('docsColumnName')}</span>
+      <aria.Text className="text-header">{getText('docsColumnName')}</aria.Text>
     </div>
   )
 }

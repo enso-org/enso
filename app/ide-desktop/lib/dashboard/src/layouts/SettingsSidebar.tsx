@@ -7,6 +7,8 @@ import PeopleSettingsIcon from 'enso-assets/people_settings.svg'
 import PeopleIcon from 'enso-assets/people.svg'
 import SettingsIcon from 'enso-assets/settings.svg'
 
+import * as textProvider from '#/providers/TextProvider'
+
 import SettingsTab from '#/layouts/Settings/SettingsTab'
 
 import * as aria from '#/components/aria'
@@ -95,18 +97,14 @@ export interface SettingsSidebarProps {
 /** A panel to switch between settings tabs. */
 export default function SettingsSidebar(props: SettingsSidebarProps) {
   const { settingsTab, setSettingsTab } = props
-  const rootRef = React.useRef<HTMLDivElement>(null)
-
-  React.useEffect(() => {
-    rootRef.current?.focus()
-  }, [])
+  const { getText } = textProvider.useText()
 
   return (
     <FocusArea direction="vertical">
       {(ref, innerProps) => (
         <div
           ref={ref}
-          aria-label="Settings sidebar"
+          aria-label={getText('settingsSidebarLabel')}
           className="flex w-settings-sidebar shrink-0 flex-col gap-settings-sidebar overflow-y-auto"
           {...innerProps}
         >

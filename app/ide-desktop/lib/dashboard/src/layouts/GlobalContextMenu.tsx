@@ -4,10 +4,12 @@ import * as React from 'react'
 import * as authProvider from '#/providers/AuthProvider'
 import * as backendProvider from '#/providers/BackendProvider'
 import * as modalProvider from '#/providers/ModalProvider'
+import * as textProvider from '#/providers/TextProvider'
 
 import type * as assetListEventModule from '#/events/assetListEvent'
 import AssetListEventType from '#/events/AssetListEventType'
 
+import * as aria from '#/components/aria'
 import ContextMenu from '#/components/ContextMenu'
 import ContextMenuEntry from '#/components/ContextMenuEntry'
 
@@ -36,16 +38,18 @@ export default function GlobalContextMenu(props: GlobalContextMenuProps) {
   const { user } = authProvider.useNonPartialUserSession()
   const { backend } = backendProvider.useBackend()
   const { setModal, unsetModal } = modalProvider.useSetModal()
+  const { getText } = textProvider.useText()
   const rootDirectoryId = React.useMemo(
     () => user?.rootDirectoryId ?? backendModule.DirectoryId(''),
     [user]
   )
   const filesInputRef = React.useRef<HTMLInputElement>(null)
   const isCloud = backend.type === backendModule.BackendType.remote
+
   return (
-    <ContextMenu aria-label="Global context menu" hidden={hidden}>
+    <ContextMenu aria-label={getText('globalContextMenuLabel')} hidden={hidden}>
       {!hidden && (
-        <input
+        <aria.Input
           ref={filesInputRef}
           multiple
           type="file"

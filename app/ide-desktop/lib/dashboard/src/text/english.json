@@ -491,5 +491,9 @@
   "userMenuLabel": "User menu",
   "categorySwitcherMenuLabel": "Category switcher",
   "labelsListLabel": "Labels",
-  "labelContextMenuLabel": "Label context menu"
+  "globalContextMenuLabel": "Global context menu",
+  "assetsTableContextMenuLabel": "Drive context menu",
+  "assetContextMenuLabel": "Asset context menu",
+  "labelContextMenuLabel": "Label context menu",
+  "settingsSidebarLabel": "Settings sidebar"
 }

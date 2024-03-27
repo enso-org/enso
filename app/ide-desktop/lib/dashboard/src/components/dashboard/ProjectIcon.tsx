@@ -19,6 +19,7 @@ import type * as assetEvent from '#/events/assetEvent'
 import AssetEventType from '#/events/AssetEventType'
 
 import Spinner, * as spinner from '#/components/Spinner'
+import UnstyledButton from '#/components/styled/UnstyledButton'
 import SvgMask from '#/components/SvgMask'
 
 import * as backendModule from '#/services/Backend'
@@ -338,30 +339,28 @@ export default function ProjectIcon(props: ProjectIconProps) {
     case backendModule.ProjectState.closing:
     case backendModule.ProjectState.closed:
       return (
-        <button
+        <UnstyledButton
           className="size-project-icon"
-          onClick={clickEvent => {
-            clickEvent.stopPropagation()
+          onPress={() => {
             unsetModal()
             doOpenManually(item.id)
           }}
         >
           <SvgMask alt={getText('openInEditor')} src={PlayIcon} className="size-project-icon" />
-        </button>
+        </UnstyledButton>
       )
     case backendModule.ProjectState.openInProgress:
     case backendModule.ProjectState.scheduled:
     case backendModule.ProjectState.provisioned:
     case backendModule.ProjectState.placeholder:
       return (
-        <button
-          disabled={isOtherUserUsingProject}
+        <UnstyledButton
+          isDisabled={isOtherUserUsingProject}
           {...(isOtherUserUsingProject ? { title: 'Someone else is using this project.' } : {})}
           className="size-project-icon selectable enabled:active"
-          onClick={async clickEvent => {
-            clickEvent.stopPropagation()
+          onPress={() => {
             unsetModal()
-            await closeProject(!isRunningInBackground)
+            void closeProject(!isRunningInBackground)
           }}
         >
           <div className={`relative h ${isRunningInBackground ? 'text-green' : ''}`}>
@@ -372,19 +371,18 @@ export default function ProjectIcon(props: ProjectIconProps) {
             src={StopIcon}
             className={`size-project-icon ${isRunningInBackground ? 'text-green' : ''}`}
           />
-        </button>
+        </UnstyledButton>
       )
     case backendModule.ProjectState.opened:
       return (
         <div>
-          <button
-            disabled={isOtherUserUsingProject}
+          <UnstyledButton
+            isDisabled={isOtherUserUsingProject}
             {...(isOtherUserUsingProject ? { title: 'Someone else has this project open.' } : {})}
             className="size-project-icon selectable enabled:active"
-            onClick={async clickEvent => {
-              clickEvent.stopPropagation()
+            onPress={() => {
               unsetModal()
-              await closeProject(!isRunningInBackground)
+              void closeProject(!isRunningInBackground)
             }}
           >
             <div className={`relative h ${isRunningInBackground ? 'text-green' : ''}`}>
@@ -395,12 +393,11 @@ export default function ProjectIcon(props: ProjectIconProps) {
               src={StopIcon}
               className={`size-project-icon ${isRunningInBackground ? 'text-green' : ''}`}
             />
-          </button>
+          </UnstyledButton>
           {!isOtherUserUsingProject && !isRunningInBackground && (
-            <button
+            <UnstyledButton
               className="size-project-icon"
-              onClick={clickEvent => {
-                clickEvent.stopPropagation()
+              onPress={() => {
                 unsetModal()
                 doOpenEditor(true)
               }}
@@ -410,7 +407,7 @@ export default function ProjectIcon(props: ProjectIconProps) {
                 src={ArrowUpIcon}
                 className="size-project-icon"
               />
-            </button>
+            </UnstyledButton>
           )}
         </div>
       )

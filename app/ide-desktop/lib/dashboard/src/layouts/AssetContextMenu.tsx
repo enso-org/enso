@@ -105,7 +105,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
   return category === Category.trash ? (
     !ownsThisAsset ? null : (
       <ContextMenus hidden={hidden} key={asset.id} event={event}>
-        <ContextMenu aria-label="Asset context menu" hidden={hidden}>
+        <ContextMenu aria-label={getText('assetContextMenuLabel')} hidden={hidden}>
           <ContextMenuEntry
             hidden={hidden}
             action="undelete"
@@ -136,7 +136,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
     )
   ) : (
     <ContextMenus hidden={hidden} key={asset.id} event={event}>
-      <ContextMenu aria-label="Asset context menu" hidden={hidden}>
+      <ContextMenu aria-label={getText('assetContextMenuLabel')} hidden={hidden}>
         {asset.type === backendModule.AssetType.project &&
           canExecute &&
           !isRunningProject &&

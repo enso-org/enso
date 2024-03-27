@@ -12,6 +12,7 @@ import * as backendProvider from '#/providers/BackendProvider'
 import * as modalProvider from '#/providers/ModalProvider'
 import * as textProvider from '#/providers/TextProvider'
 
+import * as aria from '#/components/aria'
 import Autocomplete from '#/components/Autocomplete'
 import PermissionSelector from '#/components/dashboard/PermissionSelector'
 import UserPermission from '#/components/dashboard/UserPermission'
@@ -252,7 +253,9 @@ export default function ManagePermissionsModal<
         >
           <div className="relative flex flex-col gap-modal rounded-default p-modal">
             <div className="flex h-row items-center gap-modal-tabs px-modal-tab-bar-x">
-              <h2 className="text text-sm font-bold">{getText('invite')}</h2>
+              <aria.Heading level={2} className="text text-sm font-bold">
+                {getText('invite')}
+              </aria.Heading>
               {/* Space reserved for other tabs. */}
             </div>
             <form
@@ -265,7 +268,7 @@ export default function ManagePermissionsModal<
               <div className="flex grow items-center gap-user-permission rounded-full border border-primary/10 px-manage-permissions-modal-input">
                 <PermissionSelector
                   input
-                  disabled={willInviteNewUser}
+                  isDisabled={willInviteNewUser}
                   selfPermission={self.permission}
                   typeSelectorYOffsetPx={TYPE_SELECTOR_Y_OFFSET_PX}
                   action={permissionsModule.PermissionAction.view}

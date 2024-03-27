@@ -64,10 +64,15 @@ export default function UpsertDataLinkModal(props: UpsertDataLinkModalProps) {
           doSubmit()
         }}
       >
-        <h1 className="relative text-sm font-semibold">{getText('createDataLink')}</h1>
-        <div className="relative flex items-center" title={getText('mustNotBeBlank')}>
-          <div className="text w-modal-label">{getText('name')}</div>
-          <input
+        <aria.Heading className="relative text-sm font-semibold">
+          {getText('createDataLink')}
+        </aria.Heading>
+        <aria.TextField
+          aria-errormessage={getText('mustNotBeBlank')}
+          className="relative flex items-center"
+        >
+          <aria.Label className="text w-modal-label">{getText('name')}</aria.Label>
+          <aria.Input
             autoFocus
             placeholder={getText('dataLinkNamePlaceholder')}
             className={`text grow rounded-full border bg-transparent px-input-x ${
@@ -78,22 +83,22 @@ export default function UpsertDataLinkModal(props: UpsertDataLinkModalProps) {
               setName(event.currentTarget.value)
             }}
           />
-        </div>
+        </aria.TextField>
         <div className="relative">
           <DataLinkInput dropdownTitle="Type" value={value} setValue={setValue} />
         </div>
-        <div>
-          <button
+        <ButtonRow>
+          <UnstyledButton
             isDisabled={!isSubmittable}
             className="button bg-invite text-white enabled:active"
             onPress={doSubmit}
           >
             {getText('create')}
-          </button>
-          <button type="button" className="button bg-selected-frame active" onClick={unsetModal}>
+          </UnstyledButton>
+          <UnstyledButton className="button bg-selected-frame active" onPress={unsetModal}>
             {getText('cancel')}
-          </button>
-        </div>
+          </UnstyledButton>
+        </ButtonRow>
       </form>
     </Modal>
   )

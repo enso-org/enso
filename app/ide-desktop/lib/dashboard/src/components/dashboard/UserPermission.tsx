@@ -8,6 +8,7 @@ import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 import * as backendProvider from '#/providers/BackendProvider'
 import * as textProvider from '#/providers/TextProvider'
 
+import * as aria from '#/components/aria'
 import PermissionSelector from '#/components/dashboard/PermissionSelector'
 
 import * as backendModule from '#/services/Backend'
@@ -76,7 +77,7 @@ export default function UserPermission(props: UserPermissionProps) {
     <div className="flex items-center gap-user-permission">
       <PermissionSelector
         showDelete
-        disabled={isOnlyOwner && userPermission.user.userId === self.user.userId}
+        isDisabled={isOnlyOwner && userPermission.user.userId === self.user.userId}
         error={isOnlyOwner ? getText('needsOwnerError', assetTypeName) : null}
         selfPermission={self.permission}
         action={userPermission.permission}
@@ -88,7 +89,7 @@ export default function UserPermission(props: UserPermissionProps) {
           doDelete(userPermission.user)
         }}
       />
-      <span className="text">{userPermission.user.name}</span>
+      <aria.Text className="text">{userPermission.user.name}</aria.Text>
     </div>
   )
 }

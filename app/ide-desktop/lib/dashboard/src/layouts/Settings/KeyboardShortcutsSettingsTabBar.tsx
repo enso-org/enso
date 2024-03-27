@@ -5,6 +5,7 @@ import type * as inputBindingsModule from '#/configurations/inputBindings'
 
 import * as inputBindingsManager from '#/providers/InputBindingsProvider'
 import * as modalProvider from '#/providers/ModalProvider'
+import * as textProvider from '#/providers/TextProvider'
 
 import * as aria from '#/components/aria'
 import FocusArea from '#/components/styled/FocusArea'
@@ -28,6 +29,7 @@ export default function KeyboardShortcutsSettingsTabBar(
   const { doRefresh } = props
   const inputBindings = inputBindingsManager.useInputBindings()
   const { setModal } = modalProvider.useSetModal()
+  const { getText } = textProvider.useText()
 
   return (
     <FocusArea direction="horizontal">
@@ -38,8 +40,8 @@ export default function KeyboardShortcutsSettingsTabBar(
             onPress={() => {
               setModal(
                 <ConfirmDeleteModal
-                  actionText="reset all keyboard shortcuts"
-                  actionButtonLabel="Reset All"
+                  actionText={getText('resetAllKeyboardShortcuts')}
+                  actionButtonLabel={getText('resetAll')}
                   doDelete={() => {
                     for (const k in inputBindings.metadata) {
                       // eslint-disable-next-line no-restricted-syntax
@@ -51,7 +53,9 @@ export default function KeyboardShortcutsSettingsTabBar(
               )
             }}
           >
-            <aria.Text className="text whitespace-nowrap font-semibold">Reset All</aria.Text>
+            <aria.Text className="text whitespace-nowrap font-semibold">
+              {getText('resetAll')}
+            </aria.Text>
           </UnstyledButton>
         </div>
       )}

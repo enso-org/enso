@@ -1,7 +1,7 @@
 /** @file A styled button representing a tab on a sidebar. */
 import * as React from 'react'
 
-import type * as aria from '#/components/aria'
+import * as aria from '#/components/aria'
 import UnstyledButton from '#/components/styled/UnstyledButton'
 import SvgMask from '#/components/SvgMask'
 
@@ -34,7 +34,7 @@ export default function SidebarTabButton(props: SidebarTabButtonProps) {
         className={`button icon-with-text h-row px-button-x transition-colors selectable hover:bg-selected-frame ${active ? 'disabled bg-selected-frame active' : ''}`}
       >
         <SvgMask src={icon} />
-        <span className="text">{label}</span>
+        <aria.Text className="text">{label}</aria.Text>
       </div>
     </UnstyledButton>
   )

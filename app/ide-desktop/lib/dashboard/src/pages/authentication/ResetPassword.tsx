@@ -16,6 +16,7 @@ import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 import * as authProvider from '#/providers/AuthProvider'
 import * as textProvider from '#/providers/TextProvider'
 
+import * as aria from '#/components/aria'
 import Input from '#/components/Input'
 import Link from '#/components/Link'
 import SubmitButton from '#/components/SubmitButton'
@@ -72,7 +73,7 @@ export default function ResetPassword() {
         }}
       >
         <div className="self-center text-xl font-medium">{getText('resetYourPassword')}</div>
-        <input
+        <aria.Input
           required
           readOnly
           hidden
@@ -81,7 +82,7 @@ export default function ResetPassword() {
           placeholder={getText('emailPlaceholder')}
           value={email ?? ''}
         />
-        <input
+        <aria.Input
           required
           readOnly
           hidden

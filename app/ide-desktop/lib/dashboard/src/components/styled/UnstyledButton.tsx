@@ -27,17 +27,8 @@ export interface UnstyledButtonProps extends Readonly<React.PropsWithChildren> {
 }
 
 /** An unstyled button with a focus ring and focus movement behavior. */
-export default function UnstyledButton(props: UnstyledButtonProps) {
-  const {
-    focusRingPlacement,
-    autoFocus = false,
-    isDisabled = false,
-    className,
-    style,
-    ...buttonProps
-  } = props
-  const { onPress } = props
-  const { children } = props
+function UnstyledButton(props: UnstyledButtonProps, ref: React.ForwardedRef<HTMLButtonElement>) {
+  const { focusRingPlacement, className, children, ...buttonProps } = props
   const focusDirection = focusDirectionProvider.useFocusDirection()
   const handleFocusMove = focusHooks.useHandleFocusMove(focusDirection)
 
@@ -45,11 +36,8 @@ export default function UnstyledButton(props: UnstyledButtonProps) {
     <FocusRing {...(focusRingPlacement == null ? {} : { placement: focusRingPlacement })}>
       <aria.Button
         {...buttonProps}
-        autoFocus={autoFocus}
-        isDisabled={isDisabled}
+        ref={ref}
         className={`focus-child ${className ?? ''}`}
-        style={style ?? {}}
-        onPress={onPress}
         onKeyDown={handleFocusMove}
       >
         {children}
@@ -57,3 +45,5 @@ export default function UnstyledButton(props: UnstyledButtonProps) {
     </FocusRing>
   )
 }
+
+export default React.forwardRef(UnstyledButton)

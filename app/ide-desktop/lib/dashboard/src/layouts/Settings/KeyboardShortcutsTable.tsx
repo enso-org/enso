@@ -10,6 +10,7 @@ import type * as refreshHooks from '#/hooks/refreshHooks'
 
 import * as inputBindingsManager from '#/providers/InputBindingsProvider'
 import * as modalProvider from '#/providers/ModalProvider'
+import * as textProvider from '#/providers/TextProvider'
 
 import KeyboardShortcutsSettingsTabBar from '#/layouts/Settings/KeyboardShortcutsSettingsTabBar'
 
@@ -37,6 +38,7 @@ export default function KeyboardShortcutsTable(props: KeyboardShortcutsTableProp
   const { refresh, doRefresh } = props
   const inputBindings = inputBindingsManager.useInputBindings()
   const { setModal } = modalProvider.useSetModal()
+  const { getText } = textProvider.useText()
   const rootRef = React.useRef<HTMLDivElement | null>(null)
   const bodyRef = React.useRef<HTMLTableSectionElement>(null)
   const allShortcuts = React.useMemo(() => {
@@ -96,9 +98,11 @@ export default function KeyboardShortcutsTable(props: KeyboardShortcutsTableProp
                 <th className="pr-keyboard-shortcuts-icon-column-r min-w-keyboard-shortcuts-icon-column pl-cell-x">
                   {/* Icon */}
                 </th>
-                <th className="min-w-keyboard-shortcuts-name-column px-cell-x">Name</th>
-                <th className="px-cell-x">Shortcuts</th>
-                <th className="w-full px-cell-x">Description</th>
+                <th className="min-w-keyboard-shortcuts-name-column px-cell-x">
+                  {getText('name')}
+                </th>
+                <th className="px-cell-x">{getText('shortcuts')}</th>
+                <th className="w-full px-cell-x">{getText('description')}</th>
               </tr>
             </thead>
             <tbody ref={bodyRef}>

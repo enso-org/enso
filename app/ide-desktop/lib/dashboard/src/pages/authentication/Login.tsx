@@ -48,6 +48,8 @@ export default function Login(props: LoginProps) {
       <div className="flex w-full max-w-md flex-col gap-auth rounded-auth bg-selected-frame p-auth shadow-md">
         <div className="self-center text-xl font-medium">{getText('loginToYourAccount')}</div>
         <div className="flex flex-col gap-auth">
+          {/* This CANNOT be an `UnstyledButton` as it needs to have an `onMouseDown` handler. */}
+          {/* eslint-disable-next-line no-restricted-syntax */}
           <button
             onMouseDown={() => {
               shouldReportValidityRef.current = false
@@ -56,11 +58,13 @@ export default function Login(props: LoginProps) {
               event.preventDefault()
               await signInWithGoogle()
             }}
-            className="relative rounded-full bg-cloud/10 py-auth-input-y transition-all duration-auth hover:bg-cloud/20 focus:bg-cloud/20"
+            className="focus-child relative rounded-full bg-cloud/10 py-auth-input-y transition-all duration-auth hover:bg-cloud/20 focus:bg-cloud/20"
           >
             <FontAwesomeIcon icon={fontawesomeIcons.faGoogle} />
             {getText('signUpOrLoginWithGoogle')}
           </button>
+          {/* This CANNOT be an `UnstyledButton` as it needs to have an `onMouseDown` handler. */}
+          {/* eslint-disable-next-line no-restricted-syntax */}
           <button
             onMouseDown={() => {
               shouldReportValidityRef.current = false
@@ -69,7 +73,7 @@ export default function Login(props: LoginProps) {
               event.preventDefault()
               await signInWithGitHub()
             }}
-            className="relative rounded-full bg-cloud/10 py-auth-input-y transition-all duration-auth hover:bg-cloud/20 focus:bg-cloud/20"
+            className="focus-child relative rounded-full bg-cloud/10 py-auth-input-y transition-all duration-auth hover:bg-cloud/20 focus:bg-cloud/20"
           >
             <FontAwesomeIcon icon={fontawesomeIcons.faGithub} />
             {getText('signUpOrLoginWithGitHub')}

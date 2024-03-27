@@ -62,34 +62,36 @@ function SettingsInput(props: SettingsInputProps, ref: React.ForwardedRef<HTMLIn
   }
 
   return (
-    <FocusRing within placement="after">
-      <aria.Group className="relative rounded-full after:pointer-events-none after:absolute after:inset after:rounded-full">
-        <aria.Input
-          ref={ref}
-          className="focus-child settings-value w-full rounded-full bg-transparent font-bold placeholder-black/30 transition-colors invalid:border invalid:border-red-700 hover:bg-selected-frame focus:bg-selected-frame"
-          type={isShowingPassword ? 'text' : type}
-          size={1}
-          defaultValue={initialValue}
-          placeholder={placeholder}
-          onKeyDown={onKeyDown}
-          onChange={onChange}
-          onBlur={event => {
-            if (!cancelled.current) {
-              onSubmit?.(event.currentTarget.value)
-            }
-          }}
-        />
-        {type === 'password' && (
-          <SvgMask
-            src={isShowingPassword ? EyeIcon : EyeCrossedIcon}
-            className="absolute right-2 top-1 cursor-pointer rounded-full"
-            onClick={() => {
-              setIsShowingPassword(show => !show)
+    <div className="text my-auto grow font-bold">
+      <FocusRing within placement="after">
+        <aria.Group className="relative rounded-full after:pointer-events-none after:absolute after:inset after:rounded-full">
+          <aria.Input
+            ref={ref}
+            className="focus-child settings-value w-full rounded-full bg-transparent font-bold placeholder-black/30 transition-colors invalid:border invalid:border-red-700 hover:bg-selected-frame focus:bg-selected-frame"
+            type={isShowingPassword ? 'text' : type}
+            size={1}
+            defaultValue={initialValue}
+            placeholder={placeholder}
+            onKeyDown={onKeyDown}
+            onChange={onChange}
+            onBlur={event => {
+              if (!cancelled.current) {
+                onSubmit?.(event.currentTarget.value)
+              }
             }}
           />
-        )}
-      </aria.Group>
-    </FocusRing>
+          {type === 'password' && (
+            <SvgMask
+              src={isShowingPassword ? EyeIcon : EyeCrossedIcon}
+              className="absolute right-2 top-1 cursor-pointer rounded-full"
+              onClick={() => {
+                setIsShowingPassword(show => !show)
+              }}
+            />
+          )}
+        </aria.Group>
+      </FocusRing>
+    </div>
   )
 }
 

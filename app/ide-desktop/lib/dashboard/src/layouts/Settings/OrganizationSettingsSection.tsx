@@ -6,9 +6,11 @@ import isEmail from 'validator/lib/isEmail'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
 import * as backendProvider from '#/providers/BackendProvider'
+import * as textProvider from '#/providers/TextProvider'
 
 import SettingsInput from '#/layouts/Settings/SettingsInput'
 
+import * as aria from '#/components/aria'
 import FocusArea from '#/components/styled/FocusArea'
 
 import * as backendModule from '#/services/Backend'
@@ -30,6 +32,7 @@ export default function OrganizationSettingsSection(props: OrganizationSettingsS
   const { organization, setOrganization } = props
   const toastAndLog = toastAndLogHooks.useToastAndLog()
   const { backend } = backendProvider.useBackend()
+  const { getText } = textProvider.useText()
   const nameRef = React.useRef<HTMLInputElement | null>(null)
   const emailRef = React.useRef<HTMLInputElement | null>(null)
   const websiteRef = React.useRef<HTMLInputElement | null>(null)
@@ -122,69 +125,67 @@ export default function OrganizationSettingsSection(props: OrganizationSettingsS
     <FocusArea direction="vertical">
       {(ref, innerProps) => (
         <div ref={ref} className="flex flex-col gap-settings-section-header" {...innerProps}>
-          <h3 className="settings-subheading">Organization</h3>
+          <aria.Heading className="settings-subheading">{getText('organization')}</aria.Heading>
           <div className="flex flex-col">
-            <div className="flex h-row gap-settings-entry">
-              <span className="text my-auto w-organization-settings-label">
-                Organization display name
-              </span>
-              <span className="text my-auto grow font-bold">
-                <SettingsInput
-                  key={organization.organization_name}
-                  ref={nameRef}
-                  type="text"
-                  initialValue={organization.organization_name ?? ''}
-                  onSubmit={doUpdateName}
-                />
-              </span>
-            </div>
-            <div className="flex h-row gap-settings-entry">
-              <span className="text my-auto w-organization-settings-label">Email</span>
-              <span className="text my-auto grow font-bold">
-                <SettingsInput
-                  key={organization.email}
-                  ref={emailRef}
-                  type="text"
-                  initialValue={organization.email ?? ''}
-                  onSubmit={value => {
-                    if (isEmail(value)) {
-                      void doUpdateEmail()
-                    } else {
-                      emailRef.current?.focus()
-                    }
-                  }}
-                  onChange={() => {
-                    emailRef.current?.setCustomValidity(
-                      isEmail(emailRef.current.value) ? '' : 'Invalid email.'
-                    )
-                  }}
-                />
-              </span>
-            </div>
-            <div className="flex h-row gap-settings-entry">
-              <span className="text my-auto w-organization-settings-label">Website</span>
-              <span className="text my-auto grow font-bold">
-                <SettingsInput
-                  key={organization.website}
-                  ref={websiteRef}
-                  type="text"
-                  initialValue={organization.website ?? ''}
-                  onSubmit={doUpdateWebsite}
-                />
-              </span>
-            </div>
-            <div className="flex h-row gap-settings-entry">
-              <span className="text my-auto w-organization-settings-label">Location</span>
-              <span className="text my-auto grow font-bold">
-                <SettingsInput
-                  ref={locationRef}
-                  key={organization.address}
-                  type="text"
-                  initialValue={organization.address ?? ''}
-                  onSubmit={doUpdateLocation}
-                />
-              </span>
-            </div>
+            <aria.TextField className="flex h-row gap-settings-entry">
+              <aria.Label className="text my-auto w-organization-settings-label">
+                {getText('organizationDisplayName')}
+              </aria.Label>
+              <SettingsInput
+                key={organization.organization_name}
+                ref={nameRef}
+                type="text"
+                initialValue={organization.organization_name ?? ''}
+                onSubmit={doUpdateName}
+              />
+            </aria.TextField>
+            <aria.TextField className="flex h-row gap-settings-entry">
+              <aria.Label className="text my-auto w-organization-settings-label">
+                {getText('email')}
+              </aria.Label>
+              <SettingsInput
+                key={organization.email}
+                ref={emailRef}
+                type="text"
+                initialValue={organization.email ?? ''}
+                onSubmit={value => {
+                  if (isEmail(value)) {
+                    void doUpdateEmail()
+                  } else {
+                    emailRef.current?.focus()
+                  }
+                }}
+                onChange={() => {
+                  emailRef.current?.setCustomValidity(
+                    isEmail(emailRef.current.value) ? '' : 'Invalid email.'
+                  )
+                }}
+              />
+            </aria.TextField>
+            <aria.TextField className="flex h-row gap-settings-entry">
+              <aria.Label className="text my-auto w-organization-settings-label">
+                {getText('website')}
+              </aria.Label>
+              <SettingsInput
+                key={organization.website}
+                ref={websiteRef}
+                type="text"
+                initialValue={organization.website ?? ''}
+                onSubmit={doUpdateWebsite}
+              />
+            </aria.TextField>
+            <aria.TextField className="flex h-row gap-settings-entry">
+              <aria.Label className="text my-auto w-organization-settings-label">
+                {getText('location')}
+              </aria.Label>
+              <SettingsInput
+                ref={locationRef}
+                key={organization.address}
+                type="text"
+                initialValue={organization.address ?? ''}
+                onSubmit={doUpdateLocation}
+              />
+            </aria.TextField>
           </div>
         </div>
       )}
