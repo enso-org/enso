@@ -131,6 +131,14 @@ pub mod secret {
     pub const CI_PRIVATE_TOKEN: &str = "CI_PRIVATE_TOKEN";
 }
 
+pub mod variables {
+    /// License key for the AG Grid library.
+    pub const ENSO_AG_GRID_LICENSE_KEY: &str = "ENSO_AG_GRID_LICENSE_KEY";
+
+    /// The Mapbox API token for the GeoMap visualization.
+    pub const ENSO_MAPBOX_API_TOKEN: &str = "ENSO_MAPBOX_API_TOKEN";
+}
+
 /// Return an expression piece that evaluates to `true` if the current branch is not the default.
 pub fn not_default_branch() -> String {
     format!("github.ref != 'refs/heads/{DEFAULT_BRANCH_NAME}'")
