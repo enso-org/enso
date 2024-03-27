@@ -145,7 +145,7 @@ export default function ProjectIcon(props: ProjectIconProps) {
               }
               await backend.openProject(
                 item.id,
-                { executeAsync: shouldRunInBackground },
+                { executeAsync: shouldRunInBackground, parentId: item.parentId },
                 item.title
               )
             }
@@ -163,7 +163,11 @@ export default function ProjectIcon(props: ProjectIconProps) {
             break
           }
           case backendModule.BackendType.local: {
-            await backend.openProject(item.id, { executeAsync: shouldRunInBackground }, item.title)
+            await backend.openProject(
+              item.id,
+              { executeAsync: shouldRunInBackground, parentId: item.parentId },
+              item.title
+            )
             setState(oldState =>
               oldState === backendModule.ProjectState.openInProgress
                 ? backendModule.ProjectState.opened
@@ -173,7 +177,7 @@ export default function ProjectIcon(props: ProjectIconProps) {
           }
         }
       } catch (error) {
-        const project = await backend.getProjectDetails(item.id, item.title)
+        const project = await backend.getProjectDetails(item.id, item.parentId, item.title)
         setItem(object.merger({ projectState: project.state }))
         toastAndLog('openProjectError', error, item.title)
         setState(backendModule.ProjectState.closed)

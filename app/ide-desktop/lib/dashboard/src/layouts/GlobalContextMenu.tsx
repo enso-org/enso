@@ -50,7 +50,6 @@ export default function GlobalContextMenu(props: GlobalContextMenuProps) {
           multiple
           type="file"
           id="context_menu_file_input"
-          {...(backend.type !== backendModule.BackendType.local ? {} : { accept: '.enso-project' })}
           className="hidden"
           onInput={event => {
             if (event.currentTarget.files != null) {
@@ -92,37 +91,33 @@ export default function GlobalContextMenu(props: GlobalContextMenuProps) {
           }
         }}
       />
-      {isCloud && (
-        <ContextMenuEntry
-          hidden={hidden}
-          action="newProject"
-          doAction={() => {
-            unsetModal()
-            dispatchAssetListEvent({
-              type: AssetListEventType.newProject,
-              parentKey: directoryKey ?? rootDirectoryId,
-              parentId: directoryId ?? rootDirectoryId,
-              templateId: null,
-              templateName: null,
-              onSpinnerStateChange: null,
-            })
-          }}
-        />
-      )}
-      {isCloud && (
-        <ContextMenuEntry
-          hidden={hidden}
-          action="newFolder"
-          doAction={() => {
-            unsetModal()
-            dispatchAssetListEvent({
-              type: AssetListEventType.newFolder,
-              parentKey: directoryKey ?? rootDirectoryId,
-              parentId: directoryId ?? rootDirectoryId,
-            })
-          }}
-        />
-      )}
+      <ContextMenuEntry
+        hidden={hidden}
+        action="newProject"
+        doAction={() => {
+          unsetModal()
+          dispatchAssetListEvent({
+            type: AssetListEventType.newProject,
+            parentKey: directoryKey ?? rootDirectoryId,
+            parentId: directoryId ?? rootDirectoryId,
+            templateId: null,
+            templateName: null,
+            onSpinnerStateChange: null,
+          })
+        }}
+      />
+      <ContextMenuEntry
+        hidden={hidden}
+        action="newFolder"
+        doAction={() => {
+          unsetModal()
+          dispatchAssetListEvent({
+            type: AssetListEventType.newFolder,
+            parentKey: directoryKey ?? rootDirectoryId,
+            parentId: directoryId ?? rootDirectoryId,
+          })
+        }}
+      />
       {isCloud && (
         <ContextMenuEntry
           hidden={hidden}

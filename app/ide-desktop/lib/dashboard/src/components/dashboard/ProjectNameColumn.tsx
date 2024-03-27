@@ -21,6 +21,8 @@ import EditableSpan from '#/components/EditableSpan'
 import SvgMask from '#/components/SvgMask'
 
 import * as backendModule from '#/services/Backend'
+import * as localBackend from '#/services/LocalBackend'
+import * as projectManager from '#/services/ProjectManager'
 
 import * as eventModule from '#/utilities/event'
 import * as indent from '#/utilities/indent'
@@ -82,7 +84,7 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
       try {
         await backend.updateProject(
           asset.id,
-          { ami: null, ideVersion: null, projectName: newTitle },
+          { ami: null, ideVersion: null, projectName: newTitle, parentId: asset.parentId },
           asset.title
         )
       } catch (error) {
@@ -137,6 +139,9 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
                 id: createdProject.projectId,
                 projectState: object.merge(projectState, {
                   type: backendModule.ProjectState.placeholder,
+                  ...(backend.type === backendModule.BackendType.remote
+                    ? {}
+                    : { path: createdProject.state.path }),
                 }),
               })
             )
@@ -147,10 +152,7 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
               runInBackground: false,
             })
           } catch (error) {
-            dispatchAssetListEvent({
-              type: AssetListEventType.delete,
-              key: item.key,
-            })
+            dispatchAssetListEvent({ type: AssetListEventType.delete, key: item.key })
             toastAndLog('createProjectError', error)
           }
         }
@@ -167,6 +169,7 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
           setAsset(object.merge(asset, { title }))
           try {
             if (backend.type === backendModule.BackendType.local) {
+              const directory = localBackend.extractTypeAndId(item.directoryId).id
               let id: string
               if (
                 'backendApi' in window &&
@@ -174,20 +177,25 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
                 'path' in file &&
                 typeof file.path === 'string'
               ) {
-                id = await window.backendApi.importProjectFromPath(file.path)
+                id = await window.backendApi.importProjectFromPath(file.path, directory, title)
               } else {
-                const response = await fetch('./api/upload-project', {
-                  method: 'POST',
-                  // Ideally this would use `file.stream()`, to minimize RAM
-                  // requirements. for uploading large projects. Unfortunately,
-                  // this requires HTTP/2, which is HTTPS-only, so it will not
-                  // work on `http://localhost`.
-                  body: await file.arrayBuffer(),
-                })
+                const searchParams = new URLSearchParams({ directory, name: title }).toString()
+                // Ideally this would use `file.stream()`, to minimize RAM
+                // requirements. for uploading large projects. Unfortunately,
+                // this requires HTTP/2, which is HTTPS-only, so it will not
+                // work on `http://localhost`.
+                const body =
+                  window.location.protocol === 'https:' ? file.stream() : await file.arrayBuffer()
+                const path = `./api/upload-project?${searchParams}`
+                const response = await fetch(path, { method: 'POST', body })
                 id = await response.text()
               }
-              const projectId = backendModule.ProjectId(id)
-              const listedProject = await backend.getProjectDetails(projectId, file.name)
+              const projectId = localBackend.newProjectId(projectManager.UUID(id))
+              const listedProject = await backend.getProjectDetails(
+                projectId,
+                asset.parentId,
+                file.name
+              )
               rowState.setVisibility(Visibility.visible)
               setAsset(object.merge(asset, { title: listedProject.packageName, id: projectId }))
             } else {

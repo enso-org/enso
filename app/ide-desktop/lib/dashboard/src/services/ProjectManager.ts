@@ -1,9 +1,11 @@
 /** @file This module defines the Project Manager endpoint.
  * @see
  * https://github.com/enso-org/enso/blob/develop/docs/language-server/protocol-project-manager.md */
+import * as appBaseUrl from '#/utilities/appBaseUrl'
+import type * as dateTime from '#/utilities/dateTime'
+import * as newtype from '#/utilities/newtype'
+
 import GLOBAL_CONFIG from '../../../../../gui2/config.yaml' assert { type: 'yaml' }
-import type * as dateTime from './dateTime'
-import * as newtype from './newtype'
 
 // =================
 // === Constants ===
@@ -49,16 +51,23 @@ interface JSONRPCErrorResponse extends JSONRPCBaseResponse {
 }
 
 /** The return value of a JSON-RPC call. */
-type JSONRPCResponse<T> = JSONRPCErrorResponse | JSONRPCSuccessResponse<T>
+export type JSONRPCResponse<T> = JSONRPCErrorResponse | JSONRPCSuccessResponse<T>
 
 // These are constructor functions that construct values of the type they are named after.
 /* eslint-disable @typescript-eslint/no-redeclare */
 
-// This intentionally has the same brand as in the cloud backend API.
-/** An ID of a project. */
-export type ProjectId = newtype.Newtype<string, 'ProjectId'>
-/** Create a {@link ProjectId}. */
-export const ProjectId = newtype.newtypeConstructor<ProjectId>()
+/** A UUID. */
+export type UUID = newtype.Newtype<string, 'UUID'>
+/** Create a {@link UUID}. */
+export const UUID = newtype.newtypeConstructor<UUID>()
+/** A filesystem path. */
+export type Path = newtype.Newtype<string, 'Path'>
+/** Create a {@link Path}. */
+export const Path = newtype.newtypeConstructor<Path>()
+/** An ID of a directory. */
+export type DirectoryId = newtype.Newtype<string, 'DirectoryId'>
+/** Create a {@link DirectoryId}. */
+export const DirectoryId = newtype.newtypeConstructor<DirectoryId>()
 /** A name of a project. */
 export type ProjectName = newtype.Newtype<string, 'ProjectName'>
 /** Create a {@link ProjectName}. */
@@ -71,14 +80,64 @@ export const UTCDateTime = newtype.newtypeConstructor<UTCDateTime>()
 
 /* eslint-enable @typescript-eslint/no-redeclare */
 
-/** Details for a project. */
-export interface ProjectMetadata {
-  readonly name: ProjectName
+/** Details of a project. */
+interface ProjectMetadata {
+  /** The name of the project. */
+  readonly name: string
+  /** The namespace of the project. */
   readonly namespace: string
-  readonly id: ProjectId
-  readonly engineVersion: string | null
-  readonly created: UTCDateTime
-  readonly lastOpened: UTCDateTime | null
+  /** The project id. */
+  readonly id: UUID
+  /** The Enso Engine version to use for the project, represented by a semver version
+   * string.
+   *
+   * If the edition associated with the project could not be resolved, the
+   * engine version may be missing. */
+  readonly engineVersion?: string
+  /** The project creation time. */
+  readonly created: dateTime.Rfc3339DateTime
+  /** The last opened datetime. */
+  readonly lastOpened?: dateTime.Rfc3339DateTime
+}
+
+/** Attributes of a file or folder. */
+interface Attributes {
+  readonly creationTime: dateTime.Rfc3339DateTime
+  readonly lastAccessTime: dateTime.Rfc3339DateTime
+  readonly lastModifiedTime: dateTime.Rfc3339DateTime
+  readonly byteSize: number
+}
+
+/** Metadata for an arbitrary file system entry. */
+type FileSystemEntry = DirectoryEntry | FileEntry | ProjectEntry
+
+/** The discriminator value for {@link FileSystemEntry}. */
+export enum FileSystemEntryType {
+  DirectoryEntry = 'DirectoryEntry',
+  ProjectEntry = 'ProjectEntry',
+  FileEntry = 'FileEntry',
+}
+
+/** Metadata for a file. */
+interface FileEntry {
+  readonly type: FileSystemEntryType.FileEntry
+  readonly path: Path
+  readonly attributes: Attributes
+}
+
+/** Metadata for a directory. */
+interface DirectoryEntry {
+  readonly type: FileSystemEntryType.DirectoryEntry
+  readonly path: Path
+  readonly attributes: Attributes
+}
+
+/** Metadata for a project. */
+interface ProjectEntry {
+  readonly type: FileSystemEntryType.ProjectEntry
+  readonly path: Path
+  readonly metadata: ProjectMetadata
+  readonly attributes: Attributes
 }
 
 /** A value specifying the hostname and port of a socket. */
@@ -94,7 +153,9 @@ export interface ProjectList {
 
 /** The return value of the "create project" endpoint. */
 export interface CreateProject {
-  readonly projectId: ProjectId
+  readonly projectId: UUID
+  readonly projectName: string
+  readonly projectNormalizedName: string
 }
 
 /** The return value of the "open project" endpoint. */
@@ -124,13 +185,14 @@ export interface VersionList {
 
 /** Parameters for the "open project" endpoint. */
 export interface OpenProjectParams {
-  readonly projectId: ProjectId
+  readonly projectId: UUID
   readonly missingComponentAction: MissingComponentAction
+  readonly projectsDirectory?: string
 }
 
 /** Parameters for the "close project" endpoint. */
 export interface CloseProjectParams {
-  readonly projectId: ProjectId
+  readonly projectId: UUID
 }
 
 /** Parameters for the "list projects" endpoint. */
@@ -144,17 +206,29 @@ export interface CreateProjectParams {
   readonly projectTemplate?: string
   readonly version?: string
   readonly missingComponentAction?: MissingComponentAction
+  readonly projectsDirectory?: Path
 }
 
 /** Parameters for the "list samples" endpoint. */
 export interface RenameProjectParams {
-  readonly projectId: ProjectId
+  readonly projectId: UUID
   readonly name: ProjectName
+  readonly projectsDirectory?: Path
 }
 
 /** Parameters for the "delete project" endpoint. */
 export interface DeleteProjectParams {
-  readonly projectId: ProjectId
+  readonly projectId: UUID
+  readonly projectsDirectory?: Path
+}
+
+// ================
+// === joinPath ===
+// ================
+
+/** Construct a {@link Path} from an existing {@link Path} of the parent directory. */
+export function joinPath(directoryPath: Path, fileName: string) {
+  return Path(`${directoryPath}/${fileName}`)
 }
 
 // =======================
@@ -172,6 +246,7 @@ export enum ProjectManagerEvents {
  * `app/gui/controller/engine-protocol/src/project_manager.rs`. */
 export default class ProjectManager {
   private static instance: ProjectManager
+  private static internalRootDirectory: Path | null
   protected id = 0
   protected resolvers = new Map<number, (value: never) => void>()
   protected rejecters = new Map<number, (reason?: JSONRPCError) => void>()
@@ -232,6 +307,24 @@ export default class ProjectManager {
     this.socketPromise = createSocket()
   }
 
+  /** Return the root directory of the Project Manager. */
+  static get rootDirectory() {
+    if (this.internalRootDirectory == null) {
+      throw new Error(
+        'Please run `ProjectManager.loadRootDirectory()` before constructing a `ProjectManager`.'
+      )
+    } else {
+      return this.internalRootDirectory
+    }
+  }
+
+  /** Resolve the root directory. MUST be called before constructing a `LocalBackend`. */
+  static async loadRootDirectory() {
+    const response = await fetch(`${appBaseUrl.APP_BASE_URL}/api/root-directory`)
+    const text = await response.text()
+    this.internalRootDirectory = Path(text)
+  }
+
   /** Lazy initialization for the singleton instance. */
   static default(projectManagerUrl: string | null) {
     // `this.instance` is initially undefined as an instance should only be created
@@ -243,22 +336,22 @@ export default class ProjectManager {
   }
 
   /** Open an existing project. */
-  public async openProject(params: OpenProjectParams): Promise<OpenProject> {
+  async openProject(params: OpenProjectParams): Promise<OpenProject> {
     return this.sendRequest<OpenProject>('project/open', params)
   }
 
   /** Close an open project. */
-  public async closeProject(params: CloseProjectParams): Promise<void> {
+  async closeProject(params: CloseProjectParams): Promise<void> {
     return this.sendRequest('project/close', params)
   }
 
   /** Get the projects list, sorted by open time. */
-  public async listProjects(params: ListProjectsParams): Promise<ProjectList> {
+  async listProjects(params: ListProjectsParams): Promise<ProjectList> {
     return this.sendRequest<ProjectList>('project/list', params)
   }
 
   /** Create a new project. */
-  public async createProject(params: CreateProjectParams): Promise<CreateProject> {
+  async createProject(params: CreateProjectParams): Promise<CreateProject> {
     return this.sendRequest<CreateProject>('project/create', {
       missingComponentAction: MissingComponentAction.install,
       ...params,
@@ -266,23 +359,57 @@ export default class ProjectManager {
   }
 
   /** Rename a project. */
-  public async renameProject(params: RenameProjectParams): Promise<void> {
+  async renameProject(params: RenameProjectParams): Promise<void> {
     return this.sendRequest('project/rename', params)
   }
 
   /** Delete a project. */
-  public async deleteProject(params: DeleteProjectParams): Promise<void> {
+  async deleteProject(params: DeleteProjectParams): Promise<void> {
     return this.sendRequest('project/delete', params)
   }
 
   /** List installed engine versions. */
-  public listInstalledEngineVersions(): Promise<VersionList> {
-    return this.sendRequest<VersionList>('engine/list-installed', {})
+  async listInstalledEngineVersions(): Promise<VersionList> {
+    return await this.sendRequest<VersionList>('engine/list-installed', {})
   }
 
   /** List available engine versions. */
-  public listAvailableEngineVersions(): Promise<VersionList> {
-    return this.sendRequest<VersionList>('engine/list-available', {})
+  async listAvailableEngineVersions(): Promise<VersionList> {
+    return await this.sendRequest<VersionList>('engine/list-available', {})
+  }
+
+  /** List directories, projects and files in the given folder. */
+  async listDirectory(parentId: Path | null) {
+    /** The type of the response body of this endpoint. */
+    interface ResponseBody {
+      readonly entries: FileSystemEntry[]
+    }
+    const response = await this.runStandaloneCommand<ResponseBody>(
+      null,
+      'filesystem-list',
+      parentId ?? ProjectManager.rootDirectory
+    )
+    return response.entries
+  }
+
+  /** Create a directory. */
+  async createDirectory(path: Path) {
+    await this.runStandaloneCommand(null, 'filesystem-create-directory', path)
+  }
+
+  /** Create a file. */
+  async createFile(path: Path, file: Blob) {
+    await this.runStandaloneCommand(file, 'filesystem-write-path', path)
+  }
+
+  /** Move a file or directory. */
+  async moveFile(from: Path, to: Path) {
+    await this.runStandaloneCommand(null, 'filesystem-move-from', from, '--filesystem-move-to', to)
+  }
+
+  /** Create a file or directory. */
+  async deleteFile(path: Path) {
+    await this.runStandaloneCommand(null, 'filesystem-delete', path)
   }
 
   /** Remove all handlers for a specified request ID. */
@@ -306,5 +433,33 @@ export default class ProjectManager {
         reject(value)
       })
     })
+  }
+
+  /** Run the Project Manager binary with the given command-line arguments. */
+  private async runStandaloneCommand<T = void>(
+    body: BodyInit | null,
+    name: string,
+    ...cliArguments: string[]
+  ): Promise<T> {
+    const searchParams = new URLSearchParams({
+      // The names come from a third-party API and cannot be changed.
+      // eslint-disable-next-line @typescript-eslint/naming-convention
+      'cli-arguments': JSON.stringify([`--${name}`, ...cliArguments]),
+    }).toString()
+    const response = await fetch(
+      `${appBaseUrl.APP_BASE_URL}/api/run-project-manager-command?${searchParams}`,
+      {
+        method: 'POST',
+        body,
+      }
+    )
+    // There is no way to avoid this as `JSON.parse` returns `any`.
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-argument
+    const json: JSONRPCResponse<never> = await response.json()
+    if ('result' in json) {
+      return json.result
+    } else {
+      throw new Error(json.error.message)
+    }
   }
 }

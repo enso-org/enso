@@ -32,9 +32,6 @@ const STATUS_SERVER_ERROR = 500
 /** The number of milliseconds in one day. */
 const ONE_DAY_MS = 86_400_000
 
-/** Default HTTP body for an "open project" request. */
-const DEFAULT_OPEN_PROJECT_BODY: backendModule.OpenProjectRequestBody = { executeAsync: false }
-
 // =============
 // === Types ===
 // =============
@@ -69,7 +66,7 @@ export async function waitUntilProjectIsReady(
   item: backendModule.ProjectAsset,
   abortController: AbortController = new AbortController()
 ) {
-  let project = await backend.getProjectDetails(item.id, item.title)
+  let project = await backend.getProjectDetails(item.id, null, item.title)
   if (!backendModule.IS_OPENING_OR_OPENED[project.state.type]) {
     await backend.openProject(item.id, null, item.title)
   }
@@ -83,7 +80,7 @@ export async function waitUntilProjectIsReady(
       setTimeout(resolve, Math.max(0, delayMs))
     })
     nextCheckTimestamp = Number(new Date()) + CHECK_STATUS_INTERVAL_MS
-    project = await backend.getProjectDetails(item.id, item.title)
+    project = await backend.getProjectDetails(item.id, null, item.title)
   }
 }
 
@@ -191,6 +188,11 @@ export default class RemoteBackend extends Backend {
     const message = `${this.getText(textId, ...replacements)}: ${error.message}.`
     this.logger.error(message)
     throw new Error(message)
+  }
+
+  /** Return the ID of the root directory. */
+  override rootDirectoryId(user: backendModule.User | null): backendModule.DirectoryId | null {
+    return user?.rootDirectoryId ?? null
   }
 
   /** Return a list of all users in the same organization. */
@@ -454,7 +456,7 @@ export default class RemoteBackend extends Backend {
     }
   }
 
-  /** Change the parent directory of an asset.
+  /** Change the parent directory or description of an asset.
    * @throws An error if a non-successful status code (not 200-299) was received. */
   override async updateAsset(
     assetId: backendModule.AssetId,
@@ -472,8 +474,13 @@ export default class RemoteBackend extends Backend {
 
   /** Delete an arbitrary asset.
    * @throws An error if a non-successful status code (not 200-299) was received. */
-  override async deleteAsset(assetId: backendModule.AssetId, force: boolean, title: string) {
-    const paramsString = new URLSearchParams([['force', String(force)]]).toString()
+  override async deleteAsset(
+    assetId: backendModule.AssetId,
+    bodyRaw: backendModule.DeleteAssetRequestBody,
+    title: string
+  ) {
+    const body = object.omit(bodyRaw, 'parentId')
+    const paramsString = new URLSearchParams([['force', String(body.force)]]).toString()
     const path = remoteBackendPaths.deleteAssetPath(assetId) + '?' + paramsString
     const response = await this.delete(path)
     if (!responseIsSuccessful(response)) {
@@ -562,6 +569,7 @@ export default class RemoteBackend extends Backend {
    * @throws An error if a non-successful status code (not 200-299) was received. */
   override async getProjectDetails(
     projectId: backendModule.ProjectId,
+    _directory: backendModule.DirectoryId | null,
     title: string
   ): Promise<backendModule.Project> {
     const path = remoteBackendPaths.getProjectDetailsPath(projectId)
@@ -588,11 +596,12 @@ export default class RemoteBackend extends Backend {
    * @throws An error if a non-successful status code (not 200-299) was received. */
   override async openProject(
     projectId: backendModule.ProjectId,
-    body: backendModule.OpenProjectRequestBody | null,
+    bodyRaw: backendModule.OpenProjectRequestBody,
     title: string
   ): Promise<void> {
+    const body = object.omit(bodyRaw, 'parentId')
     const path = remoteBackendPaths.openProjectPath(projectId)
-    const response = await this.post(path, body ?? DEFAULT_OPEN_PROJECT_BODY)
+    const response = await this.post(path, body)
     if (!responseIsSuccessful(response)) {
       return await this.throw(response, 'openProjectBackendError', title)
     } else {
@@ -604,9 +613,10 @@ export default class RemoteBackend extends Backend {
    * @throws An error if a non-successful status code (not 200-299) was received. */
   override async updateProject(
     projectId: backendModule.ProjectId,
-    body: backendModule.UpdateProjectRequestBody,
+    bodyRaw: backendModule.UpdateProjectRequestBody,
     title: string
   ): Promise<backendModule.UpdatedProject> {
+    const body = object.omit(bodyRaw, 'parentId')
     const path = remoteBackendPaths.projectUpdatePath(projectId)
     const response = await this.put<backendModule.UpdatedProject>(path, body)
     if (!responseIsSuccessful(response)) {

@@ -90,6 +90,10 @@ export const Ami = newtype.newtypeConstructor<Ami>()
 export type Subject = newtype.Newtype<string, 'Subject'>
 export const Subject = newtype.newtypeConstructor<Subject>()
 
+/** An filesystem path. Only present on the local backend. */
+export type Path = newtype.Newtype<string, 'Path'>
+export const Path = newtype.newtypeConstructor<Path>()
+
 /* eslint-enable @typescript-eslint/no-redeclare */
 
 // =============
@@ -154,6 +158,8 @@ export interface ProjectStateType {
   readonly ec2_public_ip_address?: string
   readonly current_session_id?: string
   readonly opened_by?: EmailAddress
+  /** Only present on the Local backend. */
+  readonly path?: Path
   /* eslint-enable @typescript-eslint/naming-convention */
 }
 
@@ -694,7 +700,8 @@ export function createPlaceholderProjectAsset(
   title: string,
   parentId: DirectoryId,
   assetPermissions: UserPermission[],
-  organization: User | null
+  organization: User | null,
+  path: Path | null
 ): ProjectAsset {
   return {
     type: AssetType.project,
@@ -709,6 +716,7 @@ export function createPlaceholderProjectAsset(
       volume_id: '',
       // eslint-disable-next-line @typescript-eslint/naming-convention
       ...(organization != null ? { opened_by: organization.email } : {}),
+      ...(path != null ? { path } : {}),
     },
     labels: [],
     description: null,
@@ -747,15 +755,22 @@ export function createSpecialEmptyAsset(directoryId: DirectoryId): SpecialEmptyA
   }
 }
 
+/** Any object with a `type` field matching the given `AssetType`. */
+interface HasType<Type extends AssetType> {
+  readonly type: Type
+}
+
 /** A union of all possible {@link Asset} variants. */
-export type AnyAsset =
+export type AnyAsset<Type extends AssetType = AssetType> = Extract<
   | DataLinkAsset
   | DirectoryAsset
   | FileAsset
   | ProjectAsset
   | SecretAsset
   | SpecialEmptyAsset
-  | SpecialLoadingAsset
+  | SpecialLoadingAsset,
+  HasType<Type>
+>
 
 /** A type guard that returns whether an {@link Asset} is a specific type of asset. */
 export function assetIsType<Type extends AssetType>(type: Type) {
@@ -921,6 +936,15 @@ export interface UpdateDirectoryRequestBody {
 export interface UpdateAssetRequestBody {
   readonly parentDirectoryId: DirectoryId | null
   readonly description: string | null
+  /** Only present on the Local backend. */
+  readonly projectPath?: Path
+}
+
+/** HTTP request body for the "delete asset" endpoint. */
+export interface DeleteAssetRequestBody {
+  readonly force: boolean
+  /** Only used by the Local backend. */
+  readonly parentId: DirectoryId
 }
 
 /** HTTP request body for the "create project" endpoint. */
@@ -936,11 +960,15 @@ export interface UpdateProjectRequestBody {
   readonly projectName: string | null
   readonly ami: Ami | null
   readonly ideVersion: VersionNumber | null
+  /** Only used by the Local backend. */
+  readonly parentId: DirectoryId
 }
 
 /** HTTP request body for the "open project" endpoint. */
 export interface OpenProjectRequestBody {
   readonly executeAsync: boolean
+  /** Only used by the Local backend. */
+  readonly parentId: DirectoryId
 }
 
 /** HTTP request body for the "create secret" endpoint. */
@@ -976,7 +1004,7 @@ export interface CreateCheckoutSessionRequestBody {
 
 /** URL query string parameters for the "list directory" endpoint. */
 export interface ListDirectoryRequestParams {
-  readonly parentId: string | null
+  readonly parentId: DirectoryId | null
   readonly filterBy: FilterBy | null
   readonly labels: LabelName[] | null
   readonly recentProjects: boolean
@@ -1028,7 +1056,14 @@ export function compareAssets(a: AnyAsset, b: AnyAsset) {
   if (relativeTypeOrder !== 0) {
     return relativeTypeOrder
   }
-  return a.title > b.title ? 1 : a.title < b.title ? COMPARE_LESS_THAN : 0
+  const aModified = Number(new Date(a.modifiedAt))
+  const bModified = Number(new Date(b.modifiedAt))
+  const modifiedDelta = aModified - bModified
+  if (modifiedDelta !== 0) {
+    // Sort by date descending, rather than ascending.
+    return -modifiedDelta
+  }
+  return a.title > b.title ? 1 : a.title < b.title ? -1 : 0
 }
 
 // ==================
@@ -1088,6 +1123,8 @@ export function extractProjectExtension(name: string) {
 export default abstract class Backend {
   abstract readonly type: BackendType
 
+  /** Return the ID of the root directory, if known. */
+  abstract rootDirectoryId(user: User | null): DirectoryId | null
   /** Return a list of all users in the same organization. */
   abstract listUsers(): Promise<SimpleUser[]>
   /** Set the username of the current user. */
@@ -1128,7 +1165,7 @@ export default abstract class Backend {
   /** Change the parent directory of an asset. */
   abstract updateAsset(assetId: AssetId, body: UpdateAssetRequestBody, title: string): Promise<void>
   /** Delete an arbitrary asset. */
-  abstract deleteAsset(assetId: AssetId, force: boolean, title: string): Promise<void>
+  abstract deleteAsset(assetId: AssetId, body: DeleteAssetRequestBody, title: string): Promise<void>
   /** Restore an arbitrary asset from the trash. */
   abstract undoDeleteAsset(assetId: AssetId, title: string): Promise<void>
   /** Copy an arbitrary asset to another directory. */
@@ -1145,7 +1182,11 @@ export default abstract class Backend {
   /** Close a project. */
   abstract closeProject(projectId: ProjectId, title: string): Promise<void>
   /** Return project details. */
-  abstract getProjectDetails(projectId: ProjectId, title: string): Promise<Project>
+  abstract getProjectDetails(
+    projectId: ProjectId,
+    directoryId: DirectoryId | null,
+    title: string
+  ): Promise<Project>
   /** Set a project to an open state. */
   abstract openProject(
     projectId: ProjectId,
