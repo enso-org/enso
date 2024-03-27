@@ -787,36 +787,6 @@ public class TypeInferenceTest extends CompilerTest {
         getDescendantsDiagnostics(x3.expression()));
   }
 
-  @Test
-  public void notInvokableFunctionNoWarning() throws Exception {
-    final URI uri = new URI("memory://notInvokableFunctionNoWarning.enso");
-    final Source src =
-        Source.newBuilder(
-                "enso",
-                """
-                    from Standard.Base import Function
-                    foo (fun : Function)  =
-                        f = fun
-                        x1 = f 123
-                        [x1]
-                    """,
-                uri.getAuthority())
-            .uri(uri)
-            .buildLiteral();
-
-    var module = compile(src);
-    var foo = findStaticMethod(module, "foo");
-
-    var functionType = "Standard.Base.Function.Function";
-    assertAtomType(functionType, findAssignment(foo, "f").expression());
-
-    var x1 = findAssignment(foo, "x1");
-    assertEquals(
-        "x1 should not contain any warnings",
-        List.of(),
-        getDescendantsDiagnostics(x1.expression()));
-  }
-
   /**
    * Such signatures are not checked yet, but the syntax _is_ allowed and it is used in some places
    * for documentation purposes, so it should not be triggering any errors.
@@ -890,37 +860,6 @@ public class TypeInferenceTest extends CompilerTest {
                     foo =
                         x = My_Type.Value 12
                         y = (x : Other_Type)
-                        y
-                    """,
-                uri.getAuthority())
-            .uri(uri)
-            .buildLiteral();
-
-    var module = compile(src);
-    var foo = findStaticMethod(module, "foo");
-
-    var y = findAssignment(foo, "y");
-    assertEquals(
-        "valid conversion should ensure there is no type error",
-        List.of(),
-        getDescendantsDiagnostics(y.expression()));
-  }
-
-  @Test
-  public void noTypeErrorIfConversionExistsFunctions() throws Exception {
-    final URI uri = new URI("memory://noTypeErrorIfConversionExistsFunctions.enso");
-    final Source src =
-        Source.newBuilder(
-                "enso",
-                """
-                    from Standard.Base import Function
-                    type My_Type
-                        Value v
-
-                    My_Type.from (that : Function) = My_Type.Value (that 0)
-                    foo =
-                        f x = x+100
-                        y = (f : My_Type)
                         y
                     """,
                 uri.getAuthority())

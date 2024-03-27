@@ -4,6 +4,8 @@ import static org.junit.Assert.*;
 
 import java.io.ByteArrayOutputStream;
 import java.net.URI;
+import java.util.List;
+
 import org.enso.polyglot.MethodNames;
 import org.enso.polyglot.RuntimeOptions;
 import org.graalvm.polyglot.Context;
@@ -59,8 +61,8 @@ public class TypeInferenceConsistencyTest extends TestBase {
 
     try {
       var module = ctx.eval(src);
-      var neg = module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "foo");
-      fail("Expecting an exception, not: " + neg);
+      var res = module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "foo");
+      fail("Expecting an exception, not: " + res);
     } catch (PolyglotException e) {
       assertContains("Type error: expected a function, but got 1", e.getMessage());
     }
@@ -70,6 +72,63 @@ public class TypeInferenceConsistencyTest extends TestBase {
         "Invoking a value that has a non-function type Integer will result in a Not_Invokable error"
             + " in runtime.",
         getOutput());
+  }
+
+  /** Tests that a `Function` type is correctly inferred to be equivalent to `Any -> Any` and thus does not produce a spurious warning. */
+  @Test
+  public void notInvokableFunctionNoWarning() throws Exception {
+    final URI uri = new URI("memory://notInvokableFunctionNoWarning.enso");
+    final Source src =
+        Source.newBuilder(
+                "enso",
+                """
+                    import Standard.Base.Data.Numbers
+                    import Standard.Base.Function.Function
+                    foo (fun : Function)  =
+                        f = fun
+                        x1 = f 123
+                        x1
+                    """,
+                uri.getAuthority())
+            .uri(uri)
+            .buildLiteral();
+
+    var module = ctx.eval(src);
+    var result = module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "foo (x -> x + 1)");
+    assertEquals(124, result.asLong());
+
+    assertEquals("No warning diagnostics are expected.", "", getOutput());
+  }
+
+  /**
+   * Tests that a function can be converted into a type through a `from` conversion like any other type, and it will not produce any type warnings.
+   */
+  @Test
+  public void noTypeErrorIfConversionExistsFunctions() throws Exception {
+    final URI uri = new URI("memory://noTypeErrorIfConversionExistsFunctions.enso");
+    final Source src =
+        Source.newBuilder(
+                "enso",
+                """
+                    import Standard.Base.Function.Function
+                    type My_Type
+                        Value v
+
+                    My_Type.from (that : Function) = My_Type.Value (that 1)
+                    foo =
+                        f x = x+100
+                        y = (f : My_Type)
+                        y
+                    """,
+                uri.getAuthority())
+            .uri(uri)
+            .buildLiteral();
+
+    var module = ctx.eval(src);
+    var result = module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "foo");
+    assertEquals("(My_Type.Value 101)", result.as(Object.class).toString());
+
+    assertEquals("No warning diagnostics are expected.", "", getOutput());
   }
 
   /**
