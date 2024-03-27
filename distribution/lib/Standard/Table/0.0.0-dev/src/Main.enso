@@ -30,7 +30,6 @@ from project.Extensions.Column_Vector_Extensions import all
 from project.Extensions.Table_Conversions import all
 
 export project.Aggregate_Column.Aggregate_Column
-
 export project.Blank_Selector.Blank_Selector
 export project.Column.Column
 export project.Column_Operation.Column_Operation

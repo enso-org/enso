@@ -2662,7 +2662,7 @@ type Table
              import Standard.Examples
              from Standard.Table import Delimited
 
-             example_to_csv = Examples.inventory_table.write (Enso_Project.data / "example_csv_output.csv") (Delimited delimiter="," headers=False)
+             example_to_csv = Examples.inventory_table.write (Enso_Project.data / "example_csv_output.csv") (Delimited_Format.Delimited delimiter="," headers=False)
 
        > Example
          Write a table to an XLSX file.

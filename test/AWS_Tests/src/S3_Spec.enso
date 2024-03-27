@@ -526,7 +526,7 @@ add_specs suite_builder =
             raw_content = Data_Link_Format.read_raw_config (enso_project.data / "simple.datalink")
             Data_Link_Format.write_raw_config s3_link raw_content replace_existing=True . should_succeed
             Panic.with_finalizer s3_link.delete <|
-                r = s3_link.read (Delimited " " headers=False)
+                r = s3_link.read (Delimited_Format.Delimited " " headers=False)
                 r.should_be_a Table
                 r.column_names . should_equal ["Column 1", "Column 2"]
                 r.rows.at 0 . to_vector . should_equal ["Hello", "WORLD!"]
