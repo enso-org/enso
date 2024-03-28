@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { codeEditorBindings, graphBindings, interactionBindings } from '@/bindings'
 import CodeEditor from '@/components/CodeEditor.vue'
+import ColorPicker from '@/components/ColorPicker.vue'
 import ComponentBrowser from '@/components/ComponentBrowser.vue'
 import {
   DEFAULT_NODE_SIZE,
@@ -40,7 +41,6 @@ import * as set from 'lib0/set'
 import { computed, onMounted, ref, toRef, watch } from 'vue'
 import { ProjectManagerEvents } from '../../../ide-desktop/lib/dashboard/src/services/ProjectManager'
 import { type Usage } from './ComponentBrowser/input'
-import ColorPicker from '@/components/ColorPicker.vue'
 
 const keyboard = provideKeyboard()
 const viewportNode = ref<HTMLElement>()
@@ -580,7 +580,7 @@ const showColorPicker = ref(false)
 const colorPickerSelectedColor = ref('')
 
 function overrideSelectedNodesColor(color: string) {
-  [...nodeSelection.selected].map((id) => graphStore.overrideNodeColor(id, color))
+  ;[...nodeSelection.selected].map((id) => graphStore.overrideNodeColor(id, color))
 }
 
 /** Toggle displaying of the color picker. It will change colors of selected nodes. */
@@ -596,21 +596,25 @@ function toggleColorPicker() {
     if (color.startsWith('var') && viewportNode.value != null) {
       // Some colors are defined in CSS variables, we need to get the actual color.
       const variableName = color.slice(4, -1)
-      colorPickerSelectedColor.value = getComputedStyle(viewportNode.value).getPropertyValue(variableName)
+      colorPickerSelectedColor.value = getComputedStyle(viewportNode.value).getPropertyValue(
+        variableName,
+      )
     } else {
       colorPickerSelectedColor.value = color
     }
   }
 }
 const colorPickerPos = computed(() => {
-  const nodeRects = [...nodeSelection.selected].map((id) => graphStore.nodeRects.get(id) ?? Rect.Zero)
+  const nodeRects = [...nodeSelection.selected].map(
+    (id) => graphStore.nodeRects.get(id) ?? Rect.Zero,
+  )
   const boundingRect = Rect.Bounding(...nodeRects)
   return new Vec2(boundingRect.left + COLOR_PICKER_X_OFFSET_PX, boundingRect.center().y)
 })
-const colorPickerStyle = computed(
-  () => colorPickerPos.value != null 
-    ? { transform: `translate(${colorPickerPos.value.x}px, ${colorPickerPos.value.y}px)` } 
-    : {}
+const colorPickerStyle = computed(() =>
+  colorPickerPos.value != null ?
+    { transform: `translate(${colorPickerPos.value.x}px, ${colorPickerPos.value.y}px)` }
+  : {},
 )
 </script>
 
@@ -634,8 +638,8 @@ const colorPickerStyle = computed(
         @toggleColorPicker="toggleColorPicker"
       />
 
-      <ColorPicker 
-        class="colorPicker" 
+      <ColorPicker
+        class="colorPicker"
         :style="colorPickerStyle"
         :show="showColorPicker"
         :color="colorPickerSelectedColor"
