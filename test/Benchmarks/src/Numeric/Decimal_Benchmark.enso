@@ -1,5 +1,4 @@
 from Standard.Base import all
-import Standard.Base.Data.Decimal.Decimal
 
 from Standard.Test import Bench, Faker
 
@@ -14,12 +13,6 @@ type Data
 
     new faker =
         num_pairs = 10
-        IO.println Decimal
-        IO.println (Meta.meta Decimal)
-        IO.println (Meta.get_simple_type_name Decimal)
-        IO.println (Decimal.one)
-        IO.println (Decimal.new "1234")
-        IO.println (Decimal.new 1.2)
         floats0 = Vector.new num_pairs _-> faker.float_full_range
         floats1 = Vector.new num_pairs _-> faker.float_full_range
         decimals0 = floats0.map (f-> Decimal.from_float f)
