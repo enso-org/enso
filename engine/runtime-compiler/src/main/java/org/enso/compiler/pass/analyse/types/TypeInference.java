@@ -95,7 +95,7 @@ public final class TypeInference implements IRPass {
     BindingsMap bindingsMap = getMetadata(ir, BindingAnalysis$.MODULE$, BindingsMap.class);
     var mappedBindings = ir.bindings().map((def) -> switch (def) {
       case Method.Explicit b -> {
-        var mapped = def.mapExpressions((expression) -> analyzeExpression(expression, ctx, LocalBindingsTyping.create(), bindingsMap));
+        var mapped = def.mapExpressions((expression) -> analyzeExpression(expression, LocalBindingsTyping.create()));
 
         var methodBodyType = getInferredType(b.body());
         if (methodBodyType != null) {
@@ -116,10 +116,10 @@ public final class TypeInference implements IRPass {
 
   @Override
   public Expression runExpression(Expression ir, InlineContext inlineContext) {
-    return analyzeExpression(ir, inlineContext, LocalBindingsTyping.create(), inlineContext.bindingsAnalysis());
+    return analyzeExpression(ir, LocalBindingsTyping.create());
   }
 
-  private Expression analyzeExpression(Expression ir, InlineContext inlineContext, LocalBindingsTyping localBindingsTyping, BindingsMap bindingsMap) {
+  private Expression analyzeExpression(Expression ir, LocalBindingsTyping localBindingsTyping) {
     // We first run the inner expressions, as most basic inference is propagating types in a bottom-up manner.
     var mappedIr = switch (ir) {
       case Function.Lambda lambda -> {
@@ -129,23 +129,23 @@ public final class TypeInference implements IRPass {
             registerBinding(arg, type, localBindingsTyping);
           }
         }
-        var newBody = analyzeExpression(lambda.body(), inlineContext, localBindingsTyping, bindingsMap);
+        var newBody = analyzeExpression(lambda.body(), localBindingsTyping);
         yield lambda.copy(lambda.arguments(), newBody, lambda.location(), lambda.canBeTCO(), lambda.passData(), lambda.diagnostics(), lambda.id());
       }
       case Case.Expr caseExpr -> {
-        var newScrutinee = analyzeExpression(caseExpr.scrutinee(), inlineContext, localBindingsTyping, bindingsMap);
+        var newScrutinee = analyzeExpression(caseExpr.scrutinee(), localBindingsTyping);
         List<Case.Branch> newBranches = CollectionConverters$.MODULE$.asJava(caseExpr.branches()).stream().map((branch) -> {
           // TODO once we will be implementing type equality constraints*, we will need to copy localBindingsTyping here, to ensure independent typing of branches
           //  (*) (case x of _ : Integer -> e) ==> x : Integer within e
           var myBranchLocalBindingsTyping = localBindingsTyping;
           registerPattern(branch.pattern(), myBranchLocalBindingsTyping);
-          var newExpression = analyzeExpression(branch.expression(), inlineContext, myBranchLocalBindingsTyping, bindingsMap);
+          var newExpression = analyzeExpression(branch.expression(), myBranchLocalBindingsTyping);
           return branch.copy(branch.pattern(), newExpression, branch.terminalBranch(), branch.location(), branch.passData(), branch.diagnostics(), branch.id());
         }).toList();
         yield caseExpr.copy(newScrutinee, CollectionConverters$.MODULE$.asScala(newBranches).toSeq(), caseExpr.isNested(), caseExpr.location(), caseExpr.passData(), caseExpr.diagnostics(), caseExpr.id());
       }
       default ->
-          ir.mapExpressions((expression) -> analyzeExpression(expression, inlineContext, localBindingsTyping, bindingsMap));
+          ir.mapExpressions((expression) -> analyzeExpression(expression, localBindingsTyping));
     };
 
     TypeRepresentation inferredType = typePropagation.tryInferringType(mappedIr, localBindingsTyping);

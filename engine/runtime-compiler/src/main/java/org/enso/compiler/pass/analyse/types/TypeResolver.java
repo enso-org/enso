@@ -120,7 +120,7 @@ class TypeResolver {
   }
 
   TypeRepresentation resolvedTypeAsAtomType(BindingsMap.ResolvedType resolvedType) {
-    return resolvedTypeAsTypeObject(resolvedType).instantiate();
+    return resolvedTypeAsTypeObject(resolvedType).instanceType();
   }
 
   /**
@@ -174,7 +174,7 @@ class TypeResolver {
     }
 
     var arguments = constructor.arguments().map((arg) -> arg.typ().map(this::resolveTypeExpression).getOrElse(() -> TypeRepresentation.UNKNOWN));
-    var resultType = parentType.instantiate();
+    var resultType = parentType.instanceType();
     return TypeRepresentation.buildFunction(CollectionConverters.asJava(arguments), resultType);
   }
 

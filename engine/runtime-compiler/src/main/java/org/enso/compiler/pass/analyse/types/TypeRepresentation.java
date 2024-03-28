@@ -17,6 +17,7 @@ public sealed interface TypeRepresentation
         TypeRepresentation.TypeObject,
         TypeRepresentation.UnresolvedSymbol {
   TypeRepresentation ANY = new TopType();
+
   // In the future we may want to split this unknown type to be a separate entity.
   TypeRepresentation UNKNOWN = ANY;
 
@@ -150,7 +151,7 @@ public sealed interface TypeRepresentation
      * Creates a TypeRepresentation representing a constructed instance of the type represented by
      * this TypeObject.
      */
-    public TypeRepresentation instantiate() {
+    public TypeRepresentation instanceType() {
       if (BuiltinTypes.isAny(name)) {
         return TypeRepresentation.ANY;
       }
@@ -177,6 +178,7 @@ public sealed interface TypeRepresentation
     }
   }
 
+  /** Represents a type of an unresolved symbol, like `.Foo` or `.bar`. */
   record UnresolvedSymbol(String name) implements TypeRepresentation {
     @Override
     public String toString() {
