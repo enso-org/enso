@@ -27,7 +27,7 @@ export default function TextLink(props: TextLinkProps) {
     <FocusRing>
       <router.Link
         to={to}
-        className="focus-child -mx-text-link-px px-text-link-x self-end rounded-full text-end text-xs text-blue-500 transition-all duration-auth hover:text-blue-700 focus:text-blue-700"
+        className="focus-child -mx-text-link-px self-end rounded-full px-text-link-x text-end text-xs text-blue-500 transition-all duration-auth hover:text-blue-700 focus:text-blue-700"
         onKeyDown={handleFocusMove}
       >
         {text}

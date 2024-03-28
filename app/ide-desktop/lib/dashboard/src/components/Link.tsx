@@ -1,79 +1,14 @@
-;
-
 /** @file A styled colored link with an icon. */
-import * as React from 'react';
+import * as React from 'react'
 
+import * as router from 'react-router-dom'
 
+import * as focusHooks from '#/hooks/focusHooks'
 
-import * as router from 'react-router-dom';
+import * as focusDirectionProvider from '#/providers/FocusDirectionProvider'
 
-
-
-import * as focusHooks from '#/hooks/focusHooks';
-
-
-
-import * as focusDirectionProvider from '#/providers/FocusDirectionProvider';
-
-
-
-import FocusRing from '#/components/styled/FocusRing';
-import SvgMask from '#/components/SvgMask';
-
-
-
-
-
-;
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-;
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+import FocusRing from '#/components/styled/FocusRing'
+import SvgMask from '#/components/SvgMask'
 
 // ============
 // === Link ===
@@ -96,7 +31,7 @@ export default function Link(props: LinkProps) {
     <FocusRing>
       <router.Link
         to={to}
-        className="focus-child px-auth-link-x py-auth-link-y flex items-center gap-auth-link rounded-full text-center text-xs font-bold text-blue-500 transition-all duration-auth hover:text-blue-700 focus:text-blue-700"
+        className="focus-child flex items-center gap-auth-link rounded-full px-auth-link-x py-auth-link-y text-center text-xs font-bold text-blue-500 transition-all duration-auth hover:text-blue-700 focus:text-blue-700"
         onKeyDown={handleFocusMove}
       >
         <SvgMask src={icon} />
