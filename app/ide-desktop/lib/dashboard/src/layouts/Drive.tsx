@@ -406,6 +406,7 @@ export default function Drive(props: DriveProps) {
                   dispatchAssetEvent={dispatchAssetEvent}
                 />
                 <Labels
+                  draggable={category !== Category.trash}
                   labels={labels}
                   query={query}
                   setQuery={setQuery}
