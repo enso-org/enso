@@ -362,6 +362,7 @@ export default function AssetSearchBar(props: AssetSearchBarProps) {
             <aria.SearchField
               aria-label={getText('assetSearchFieldLabel')}
               className="relative grow before:text before:absolute before:inset-x-button-focus-ring-inset before:my-auto before:rounded-full before:transition-all"
+              value={query.query}
               onKeyDown={event => {
                 event.continuePropagation()
               }}
