@@ -198,7 +198,10 @@ export class GraphDb {
   })
 
   nodeColor = new ReactiveMapping(this.nodeIdToNode, (id, entry) => {
-    if (entry.colorOverride != null) return entry.colorOverride
+    if (entry.colorOverride != null) {
+      console.log('node color overrriden', id, entry.colorOverride)
+      return entry.colorOverride
+    }
     const index = this.nodeMainSuggestion.lookup(id)?.groupIndex
     const group = tryGetIndex(this.groups.value, index)
     if (group == null) {

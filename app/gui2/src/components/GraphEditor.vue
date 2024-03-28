@@ -593,7 +593,13 @@ function toggleColorPicker() {
   showColorPicker.value = !showColorPicker.value
   if (showColorPicker.value) {
     const oneOfSelected = set.first(nodeSelection.selected)
-    selectedNodeColor.value = graphStore.db.getNodeColorStyle(oneOfSelected)
+    const color = graphStore.db.getNodeColorStyle(oneOfSelected)
+    if (color.startsWith('var') && viewportNode.value != null) {
+      const variableName = color.slice(4, -1)
+      selectedNodeColor.value = getComputedStyle(viewportNode.value).getPropertyValue(variableName)
+    } else {
+      selectedNodeColor.value = color
+    }
     console.log('Selected node color:', selectedNodeColor.value)
   }
 }

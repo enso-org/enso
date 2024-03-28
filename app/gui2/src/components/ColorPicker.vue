@@ -9,7 +9,10 @@ const emit = defineEmits<{ 'update:color': [string] }>()
 
 const colorModel = ref(convertToRgb(props.color))
 watch(() => props.color, (c) => { colorModel.value = convertToRgb(c) })
-watch(colorModel, (c) => c != null && props.show && emit('update:color', c))
+// watch(colorModel, (c) => c != null && props.show && emit('update:color', c))
+const updateColor = (c: string) => {
+  if (props.show && props.color !== c) emit('update:color', c)
+}
 
 /** Looks weird, but it is a fix for verte’s bug: https://github.com/baianat/verte/issues/52. */
 const key = ref(0)
@@ -19,7 +22,8 @@ watch(() => props.show, () => nextTick(() => key.value++))
 <template>
   <Verte v-show="props.show" 
     :key="key"
-    v-model="colorModel"
+    :modelValue="convertToRgb(props.color)"
+    @update:modelValue="updateColor"
     picker="square"
     model="rgb"
     display="widget"
