@@ -38,6 +38,7 @@ export default function SetUsername() {
       }}
     >
       <Input
+        autoFocus
         id="username"
         type="text"
         name="username"

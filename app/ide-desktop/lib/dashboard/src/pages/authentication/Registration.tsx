@@ -83,6 +83,7 @@ export default function Registration() {
       }}
     >
       <Input
+        autoFocus
         required
         validate
         type="email"

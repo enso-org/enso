@@ -93,6 +93,7 @@ export default function ResetPassword() {
         value={verificationCode ?? ''}
       />
       <Input
+        autoFocus
         required
         validate
         allowShowingPassword

@@ -105,6 +105,7 @@ export default function Login(props: LoginProps) {
         }}
       >
         <Input
+          autoFocus
           required
           validate
           type="email"

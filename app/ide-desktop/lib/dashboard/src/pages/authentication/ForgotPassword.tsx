@@ -38,6 +38,7 @@ export default function ForgotPassword() {
       }}
     >
       <Input
+        autoFocus
         required
         validate
         type="email"
