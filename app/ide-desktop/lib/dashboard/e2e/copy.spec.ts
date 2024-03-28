@@ -99,8 +99,10 @@ test.test('move to trash', async ({ page }) => {
   await page.keyboard.down(await actions.modModifier(page))
   await actions.clickAssetRow(assetRows.nth(0))
   await actions.clickAssetRow(assetRows.nth(1))
-  await actions.dragAssetRow(assetRows.nth(0), actions.locateTrashCategory(page))
+  // NOTE: For some reason, `react-aria-components` causes drag-n-drop to break if `Mod` is still
+  // held.
   await page.keyboard.up(await actions.modModifier(page))
+  await actions.dragAssetRow(assetRows.nth(0), actions.locateTrashCategory(page))
   await actions.expectPlaceholderRow(page)
   await actions.locateTrashCategory(page).click()
   await test.expect(assetRows).toHaveCount(2)
