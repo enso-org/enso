@@ -601,11 +601,27 @@ export default class RemoteBackend extends Backend {
   ): Promise<void> {
     const body = object.omit(bodyRaw, 'parentId')
     const path = remoteBackendPaths.openProjectPath(projectId)
-    const response = await this.post(path, body)
-    if (!responseIsSuccessful(response)) {
-      return await this.throw(response, 'openProjectBackendError', title)
+    if (body.cognitoCredentials == null) {
+      return this.throw(null, 'openProjectMissingCredentialsBackendError', title)
     } else {
-      return
+      const credentials = body.cognitoCredentials
+      const exactCredentials: backendModule.CognitoCredentials = {
+        accessToken: credentials.accessToken,
+        clientId: credentials.clientId,
+        expireAt: credentials.expireAt,
+        refreshToken: credentials.refreshToken,
+        refreshUrl: credentials.refreshUrl,
+      }
+      const filteredBody: Omit<backendModule.OpenProjectRequestBody, 'parentId'> = {
+        ...body,
+        cognitoCredentials: exactCredentials,
+      }
+      const response = await this.post(path, filteredBody)
+      if (!responseIsSuccessful(response)) {
+        return this.throw(response, 'openProjectBackendError', title)
+      } else {
+        return
+      }
     }
   }
 
