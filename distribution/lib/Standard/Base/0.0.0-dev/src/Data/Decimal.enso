@@ -291,8 +291,8 @@ type Decimal
        - that: The number to add to this.
        - math_context: Used to optionally specify precision and `Rounding_Mode`.
 
-       Addition in Enso will undergo automatic conversions such that you need
-       not convert other numeric types to `Decimal` manually.
+       Arguments to `add` will undergo automatic conversions such that you
+       need not convert other numeric types to `Decimal` manually.
 
        > Example
          Adding 10.22 and 20.33.
@@ -325,8 +325,8 @@ type Decimal
        Arguments:
        - that: The number to add to this.
 
-       Addition in Enso will undergo automatic conversions such that you need
-       not convert other numeric types to `Decimal` manually.
+       Arguments to `+` will undergo automatic conversions such that you
+       need not convert other numeric types to `Decimal` manually.
 
        > Example
          Adding 10.22 and 20.33.
@@ -349,8 +349,8 @@ type Decimal
        - that: The number to subtract from this.
        - math_context: Used to optionally specify precision and `Rounding_Mode`.
 
-       Subtraction in Enso will undergo automatic conversions such that you need
-       not convert other numeric types to `Decimal` manually.
+       Arguments to `subtract` will undergo automatic conversions such that you
+       need not convert other numeric types to `Decimal` manually.
 
        > Example
          Subtracting 10.22 from 20.33.
@@ -384,8 +384,8 @@ type Decimal
        Arguments:
        - that: The number to subtract from this.
 
-       Subtraction in Enso will undergo automatic conversions such that you need
-       not convert other numeric types to `Decimal` manually.
+       Arguments to `-` will undergo automatic conversions such that you
+       need not convert other numeric types to `Decimal` manually.
 
        > Example
          Subtracting 10.22 from 20.33.
@@ -408,8 +408,8 @@ type Decimal
        - that: The number to multiply by this.
        - math_context: Used to optionally specify precision and `Rounding_Mode`.
 
-       Multiplication in Enso will undergo automatic conversions such that you need
-       not convert other numeric types to `Decimal` manually.
+       Arguments to `multiply` will undergo automatic conversions such that you
+       need not convert other numeric types to `Decimal` manually.
 
        > Example
          Multiplying 10.22 and 20.33.
@@ -442,8 +442,8 @@ type Decimal
        Arguments:
        - that: The number to multiply by this.
 
-       Multiplication in Enso will undergo automatic conversions such that you need
-       not convert other numeric types to `Decimal` manually.
+       Arguments to `*` will undergo automatic conversions such that you
+       need not convert other numeric types to `Decimal` manually.
 
        > Example
          Multiplying 10.22 and 20.33.
@@ -465,8 +465,8 @@ type Decimal
        - that: The number to divide by this.
        - math_context: Used to optionally specify precision and `Rounding_Mode`.
 
-       Division in Enso will undergo automatic conversions such that you need
-       not convert other numeric types to `Decimal` manually.
+       Arguments to `divide` will undergo automatic conversions such that you
+       need not convert other numeric types to `Decimal` manually.
 
        ! Error Conditions
 
@@ -505,8 +505,8 @@ type Decimal
        Arguments:
        - that: The number to divide by this.
 
-       Division in Enso will undergo automatic conversions such that you need
-       not convert other numeric types to `Decimal` manually.
+       Arguments to `/` will undergo automatic conversions such that you
+       need not convert other numeric types to `Decimal` manually.
 
        > Example
          Dividing 1065.9378 by 23.34.
@@ -526,8 +526,8 @@ type Decimal
        Arguments:
        - that: The number to divide this by.
 
-       Remainder in Enso will undergo automatic conversions such that you need
-       not convert other numeric types to `Decimal` manually.
+       Arguments to `remainder` will undergo automatic conversions such that you
+       need not convert other numeric types to `Decimal` manually.
 
        > Example
          Computing the remainder when dividing 10 by 3 (which is 1).
@@ -547,8 +547,8 @@ type Decimal
        Arguments:
        - that: The number to divide this by.
 
-       Remainder in Enso will undergo automatic conversions such that you need
-       not convert other numeric types to `Decimal` manually.
+       Arguments to `%` will undergo automatic conversions such that you
+       need not convert other numeric types to `Decimal` manually.
 
        > Example
          Computing the remainder when dividing 10 by 3 (which is 1).
@@ -567,7 +567,7 @@ type Decimal
 
        Integer division of Decimals rounds down to the nearest integer.
 
-       Integer division in enso will undergo automatic conversions such that you
+       Arguments to `div` will undergo automatic conversions such that you
        need not convert other numeric types to `Decimal` manually.
 
        ! Error Conditions
