@@ -1,12 +1,14 @@
 package org.enso.compiler.pass.analyse.types;
 
-/** Denotes if a given provided type can fit into an expected type. */
+/** A class that helps with computing compatibility between types. */
 class TypeCompatibility {
+  // TODO we should take into account conversion scope
 
   TypeCompatibility(BuiltinTypes builtinTypes) {
     this.builtinTypes = builtinTypes;
   }
 
+  /** Denotes if a given provided type can fit into an expected type. */
   enum Compatibility {
     /**
      * Indicates that the provided type will always fit the expected type.
@@ -33,7 +35,6 @@ class TypeCompatibility {
 
   private final BuiltinTypes builtinTypes;
 
-  // TODO this should take into account conversion scope
   Compatibility computeTypeCompatibility(TypeRepresentation expected, TypeRepresentation provided) {
     // Exact type match is always OK.
     if (expected.equals(provided)) {
@@ -57,6 +58,8 @@ class TypeCompatibility {
       }
     }
 
+    // This is a proof of concept. There is not much sense in implementing these branches until we can handle conversions anyway.
+    // So these TODOs will be addressed in future iterations.
     if (expected instanceof TypeRepresentation.SumType) {
       // TODO
       return Compatibility.UNKNOWN;

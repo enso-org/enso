@@ -121,7 +121,7 @@ abstract class TypePropagation {
   @SuppressWarnings("unchecked")
   private TypeRepresentation processApplication(TypeRepresentation functionType, scala.collection.immutable.List<CallArgument> arguments, Application.Prefix relatedIR) {
     if (arguments.isEmpty()) {
-      logger.warn("processApplication: {} - unexpected - no arguments in a function application", relatedIR.showCode());
+      logger.debug("processApplication: {} - unexpected - no arguments in a function application", relatedIR.showCode());
       return functionType;
     }
 

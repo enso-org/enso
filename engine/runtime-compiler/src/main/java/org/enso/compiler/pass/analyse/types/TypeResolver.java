@@ -49,13 +49,13 @@ class TypeResolver {
               yield TypeRepresentation.UNKNOWN;
             }
             default -> {
-              logger.warn("resolveTypeExpression: {} - unexpected resolved name type {}", name.showCode(), target.getClass().getCanonicalName());
+              logger.debug("resolveTypeExpression: {} - unexpected resolved name type {}", name.showCode(), target.getClass().getCanonicalName());
               yield TypeRepresentation.UNKNOWN;
             }
           };
         } else {
           // TODO investigate - these seem to unexpectedly come up when compiling Standard.Base
-          logger.warn("resolveTypeExpression: {} - Missing expected TypeName resolution metadata", type.showCode());
+          logger.debug("resolveTypeExpression: {} - Missing expected TypeName resolution metadata", type.showCode());
           yield TypeRepresentation.UNKNOWN;
         }
       }
@@ -109,7 +109,7 @@ class TypeResolver {
       }
 
       default -> {
-        logger.warn("resolveTypeExpression: UNKNOWN BRANCH {}", type.getClass().getCanonicalName());
+        logger.debug("resolveTypeExpression: UNKNOWN BRANCH {}", type.getClass().getCanonicalName());
         yield TypeRepresentation.UNKNOWN;
       }
     };
