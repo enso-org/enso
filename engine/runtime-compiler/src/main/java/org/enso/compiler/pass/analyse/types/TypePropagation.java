@@ -27,7 +27,8 @@ import static org.enso.compiler.pass.analyse.types.CommonTypeHelpers.getInferred
  * It implements a single step of the propagation - it looks at a given IR element,
  * and based on types of its _immediate_ children (if they are available), infers a type for the current element.
  * <p>
- * Traversing the whole IR tree, in the right order, is managed by the {@link TypeInference} pass.
+ * Traversing the whole IR tree, in the right order, as well as managing the registered bindings,
+ * is managed by the {@link TypeInference} pass. This class is only responsible for the raw logic of propagating types.
  * <p>
  * Currently, this propagation is completely bottom-up, meaning that we first assign types to leaves in the tree
  * and then propagate them up. This will not work for cases like recursion. That will be handled in future iterations,
@@ -43,12 +44,32 @@ abstract class TypePropagation {
     this.builtinTypes = builtinTypes;
   }
 
+
+  /**
+   * The callback that is called when two types are being reconciled.
+   * <p>
+   * The implementation defines its own logic to check if the two types are compatible and how to handle reporting warnings if they are not.
+   *
+   * @param relatedIr the IR element that caused the reconciliation, e.g. an argument of a function call
+   * @param expected the type that is expected in this place (e.g. argument type expected by a function)
+   * @param provided the actual (inferred) type of the encountered element
+   */
   protected abstract void checkTypeCompatibility(IR relatedIr, TypeRepresentation expected, TypeRepresentation provided);
 
+  /** The callback that is called when a value of a non-function type is being invoked as a function. */
   protected abstract void encounteredInvocationOfNonFunctionType(IR relatedIr, TypeRepresentation type);
 
-  TypeRepresentation tryInferringType(Expression ir, LocalBindingsTyping localBindingsTyping) {
-    return switch (ir) {
+  /**
+   * The main entry point to the type propagation logic.
+   * <p>
+   * It tries to infer the type of the given expression, based on already inferred types of its parts.
+   *
+   * @param expression the expression whose type we want to infer
+   * @param localBindingsTyping map of registered known types of local bindings
+   * @return the inferred type of the given expression, or null if it could not be inferred
+   */
+  TypeRepresentation tryInferringType(Expression expression, LocalBindingsTyping localBindingsTyping) {
+    return switch (expression) {
       case Name.Literal l -> processName(l, localBindingsTyping);
       case Application.Force f -> getInferredType(f.target());
       case Application.Prefix p -> {
@@ -76,7 +97,7 @@ abstract class TypePropagation {
         yield TypeRepresentation.buildSimplifiedSumType(innerTypes);
       }
       default -> {
-        logger.trace("type propagation: UNKNOWN branch: {}", ir.getClass().getCanonicalName());
+        logger.trace("type propagation: UNKNOWN branch: {}", expression.getClass().getCanonicalName());
         yield null;
       }
     };
@@ -140,9 +161,7 @@ abstract class TypePropagation {
         // we ignore this branch - Any type can be whatever, it could be a function, so we cannot emit a 'guaranteed' error
       }
 
-      default -> {
-        encounteredInvocationOfNonFunctionType(relatedIR, functionType);
-      }
+      default -> encounteredInvocationOfNonFunctionType(relatedIR, functionType);
     }
 
     return null;
@@ -191,7 +210,7 @@ abstract class TypePropagation {
     @Override
     protected TypeRepresentation resolveGlobalName(BindingsMap.ResolvedName resolvedName) {
       return switch (resolvedName) {
-        // TODO check when do these appear?? I did not yet see them in the wild
+        // TODO investigate when do these appear?? I did not yet see them in the wild
         case BindingsMap.ResolvedConstructor ctor ->
             typeResolver.buildAtomConstructorType(typeResolver.resolvedTypeAsTypeObject(ctor.tpe()), ctor.cons());
 
@@ -207,7 +226,7 @@ abstract class TypePropagation {
     @Override
     protected TypeRepresentation resolveFromConversion() {
       // TODO currently from conversions are not supported
-      //  we will probably create a sibling type to UnresolvedSymbol for that purpose
+      //  we will probably create a sibling type representation to UnresolvedSymbol for that purpose
       return null;
     }
 
