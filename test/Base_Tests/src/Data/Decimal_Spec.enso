@@ -492,6 +492,75 @@ add_specs suite_builder =
             nd2 = -d2
             nd2 . should_equal 5
 
+    suite_builder.group "remainder" group_builder->
+        group_builder.specify "should define remainder" <|
+            cases = []
+                + [[5, 3, 2], [5.0, 3.0, 2.0], [3.5, 2, 1.5], [10.5, 1.0, 0.5], [3, 1, 0], [3.0, 1.0, 0]]
+                + [[-5, 3, -2], [-5.0, 3.0, -2.0], [-3.5, 2, -1.5], [-10.5, 1.0, -0.5], [-3, 1, 0], [-3.0, 1.0, 0]]
+                + [[2.7, 0.5, 0.2], [2.7, 0.4, 0.3], [-2.7, 0.5, -0.2], [-2.7, 0.4, -0.3]]
+                + [["9223372036854775807", 10, 7], ["9223372036854775808", 10, 8], ["922337203685477580000000000008", 10, 8]]
+                + [["-9223372036854775808", 10, -8], ["-9223372036854775809", 10, -9], ["-922337203685477580000000000008", 10, -8]]
+            cases.map c->
+                base = c.at 0
+                modulus = c.at 1
+                residue = c.at 2
+                (Decimal.new base % modulus) . should_equal residue
+                (Decimal.new base % Decimal.new modulus) . should_equal residue
+
+        group_builder.specify "should define remainder (example)" <|
+            (Decimal.new 10 . remainder 3) . should_equal 1
+            (Decimal.new 10 % 3) . should_equal 1
+
+        group_builder.specify "remainder 0 should throw" <|
+            (Decimal.new 3 % 0) . should_fail_with Arithmetic_Error
+            (Decimal.new 3 % Decimal.new 0) . should_fail_with Arithmetic_Error
+
+    suite_builder.group "div" group_builder->
+        group_builder.specify "should define div" <|
+            Decimal.new "10" . div (Decimal.new "3") . should_equal 3
+            Decimal.new "10.28" . div (Decimal.new "3.01") . should_equal 3
+
+            Decimal.new "35" . div (Decimal.new "6") . should_equal 5
+            Decimal.new "-35" . div (Decimal.new "6") . should_equal -5
+            Decimal.new "35" . div (Decimal.new "-6") . should_equal -5
+            Decimal.new "-35" . div (Decimal.new "-6") . should_equal 5
+            Decimal.new "35.0" . div (Decimal.new "6") . should_equal 5
+            Decimal.new "35.3" . div (Decimal.new "6") . should_equal 5
+
+            Decimal.new "35" . div (Decimal.new "5") . should_equal 7
+
+            Decimal.new "0" . div (Decimal.new "5") . should_equal 0
+
+            Decimal.new "12" . div (Decimal.new "0") . should_fail_with Arithmetic_Error
+
+    suite_builder.group "pow" group_builder->
+        group_builder.specify "should define pow" <|
+            Decimal.new "10" . pow 3 . should_equal 1000
+
+            (Decimal.new "10" ^ 3) . should_equal 1000
+
+            (Decimal.new "-10" ^ 2) . should_equal 100
+            (Decimal.new "-10" ^ 3) . should_equal -1000
+
+            (Decimal.new "2" ^ 5) . should_equal 32
+            (Decimal.new "3" ^ 4) . should_equal 81
+            (Decimal.new "-2" ^ 5) . should_equal -32
+            (Decimal.new "-3" ^ 4) . should_equal 81
+
+            (Decimal.new "2.25" ^ 5) . should_equal 57.6650390625
+
+            (Decimal.new "10" ^ 1) . should_equal 10
+            (Decimal.new "2" ^ 1) . should_equal 2
+            (Decimal.new "10" ^ 0) . should_equal 1
+            (Decimal.new "2" ^ 0) . should_equal 1
+
+            (Decimal.new "23234" ^ 12) . should_equal (Decimal.new "24745020631916033678933049360198248076412726408646656")
+            (Decimal.new "-794" ^ 112) . should_equal (Decimal.new "6024156861645760455373941610695035918372130160062114486642167348130629475133139191309665922068844301194118714216190697635299124619812230483098091272538558376111325623532711124479664789034731517753138259958467197045503553217529624389271803885423122798234927557537822587658929087103065356345719502482054440067247048272417652736")
+
+        group_builder.specify "should throw an error for exponent out of range" <|
+            Decimal.new "10" . pow -1 . should_fail_with Arithmetic_Error
+            Decimal.new "10" . pow 99999999999 . should_fail_with Arithmetic_Error
+
 main =
     suite = Test.build suite_builder->
         add_specs suite_builder
