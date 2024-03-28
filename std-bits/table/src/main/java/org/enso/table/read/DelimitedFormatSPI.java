@@ -6,7 +6,7 @@ import org.enso.base.file_format.FileFormatSPI;
 public class DelimitedFormatSPI extends FileFormatSPI {
   @Override
   protected String getModuleName() {
-    return "Standard.Table.Delimited_Format";
+    return "Standard.Table.Delimited.Delimited_Format";
   }
 
   @Override
