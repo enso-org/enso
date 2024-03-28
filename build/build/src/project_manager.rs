@@ -2,8 +2,6 @@ use crate::prelude::*;
 
 use crate::paths::TargetTriple;
 
-use ide_ci::github::release::ARCHIVE_EXTENSION;
-
 
 
 pub fn url(target: &TargetTriple) -> Result<Url> {
@@ -13,7 +11,7 @@ pub fn url(target: &TargetTriple) -> Result<Url> {
         repo = "ci-build",
         tag = target.versions.tag(),
         asset = format!("project-manager-bundle-{target}"),
-        ext = ARCHIVE_EXTENSION,
+        ext = ide_ci::github::release::archive_extension(),
     );
     Url::parse(&url_text).anyhow_err()
 }

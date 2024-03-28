@@ -20,14 +20,21 @@ pub use octocrab::models::ReleaseId as Id;
 
 
 
-/// The extensions that will be used for the archives in the GitHub release assets.
+/// Extension of the preferred archive format for release assets on the current platform.
+pub fn archive_extension() -> &'static str {
+    archive_extension_for(TARGET_OS)
+}
+
+/// Get archive format extension for release assets targeting the given operating system.
 ///
-/// On Windows we use `.zip`, because it has out-of-the-box support in the Explorer.
-/// On other platforms we use `.tar.gz`, because it is a good default.
-pub const ARCHIVE_EXTENSION: &str = match TARGET_OS {
-    OS::Windows => "zip",
-    _ => "tar.gz",
-};
+/// - For Windows, we use `.zip` because it has built-in support in Windows Explorer.
+/// - For all other operating systems, we use `.tar.gz` as the default.
+pub fn archive_extension_for(os: OS) -> &'static str {
+    match os {
+        OS::Windows => "zip",
+        _ => "tar.gz",
+    }
+}
 
 /// Types that uniquely identify a release and can be used to fetch it from GitHub.
 pub trait IsRelease: Debug {
@@ -155,7 +162,7 @@ pub trait IsReleaseExt: IsRelease + Sync {
         let dir_to_upload = dir_to_upload.as_ref();
         let temp_dir = tempfile::tempdir()?;
         let archive_path =
-            custom_name.with_parent(temp_dir.path()).with_appended_extension(ARCHIVE_EXTENSION);
+            custom_name.with_parent(temp_dir.path()).with_appended_extension(archive_extension());
         crate::archive::create(&archive_path, [&dir_to_upload]).await?;
         self.upload_asset_file(archive_path).await
     }
