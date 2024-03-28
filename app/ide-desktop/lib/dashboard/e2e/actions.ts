@@ -229,17 +229,17 @@ export function locateDocsColumnToggle(page: test.Locator | test.Page) {
 
 /** Find a button for the "Recent" category (if any) on the current page. */
 export function locateRecentCategory(page: test.Locator | test.Page) {
-  return page.getByTitle('Go To Recent')
+  return page.getByLabel('Go To Recent category')
 }
 
 /** Find a button for the "Home" category (if any) on the current page. */
 export function locateHomeCategory(page: test.Locator | test.Page) {
-  return page.getByTitle('Go To Home')
+  return page.getByLabel('Go To Home category')
 }
 
 /** Find a button for the "Trash" category (if any) on the current page. */
 export function locateTrashCategory(page: test.Locator | test.Page) {
-  return page.getByTitle('Go To Trash')
+  return page.getByLabel('Go To Trash category')
 }
 
 // === Context menu buttons ===
@@ -680,12 +680,18 @@ export async function clickAssetRow(assetRow: test.Locator) {
 }
 
 /** Drag an asset row. The center must not be clicked as that is the button for adding a label. */
-export async function dragAssetRow(from: test.Locator, to: test.Locator) {
+export async function dragAssetRowToAssetRow(from: test.Locator, to: test.Locator) {
   // eslint-disable-next-line @typescript-eslint/no-magic-numbers
   await from.dragTo(to, {
     sourcePosition: ASSET_ROW_SAFE_POSITION,
     targetPosition: ASSET_ROW_SAFE_POSITION,
   })
+}
+
+/** Drag an asset row. The center must not be clicked as that is the button for adding a label. */
+export async function dragAssetRow(from: test.Locator, to: test.Locator) {
+  // eslint-disable-next-line @typescript-eslint/no-magic-numbers
+  await from.dragTo(to, { sourcePosition: ASSET_ROW_SAFE_POSITION })
 }
 
 // ==========================
