@@ -1,0 +1,53 @@
+from Standard.Base import all
+import Standard.Base.Data.Decimal.Decimal
+
+from Standard.Test import Bench, Faker
+
+
+options = Bench.options . set_warmup (Bench.phase_conf 1 3) . set_measure (Bench.phase_conf 1 3)
+
+type Lazy
+    Value ~value
+
+type Data
+    Value float_pairs decimal_pairs
+
+    new faker =
+        num_pairs = 10
+        IO.println Decimal
+        IO.println (Meta.meta Decimal)
+        IO.println (Meta.get_simple_type_name Decimal)
+        IO.println (Decimal.one)
+        IO.println (Decimal.new "1234")
+        IO.println (Decimal.new 1.2)
+        floats0 = Vector.new num_pairs _-> faker.float_full_range
+        floats1 = Vector.new num_pairs _-> faker.float_full_range
+        decimals0 = floats0.map (f-> Decimal.from_float f)
+        decimals1 = floats1.map (f-> Decimal.from_float f)
+        Data.Value (floats0.zip floats1) (decimals0.zip decimals1)
+
+collect_benches = Bench.build builder->
+    ## No specific significance to this constant, just fixed to make generated set deterministic
+    fixed_random_seed = 1644575867
+    faker = Faker.new fixed_random_seed
+
+    lazy_data = Lazy.Value (Data.new faker)
+
+    builder.group "Float_Decimal_comparison" options group_builder->
+        data = lazy_data.value
+        float_pairs = data.float_pairs
+        float_pairs_without_zero_second = float_pairs.filter (pr-> (pr.at 1) != 0.0)
+        decimal_pairs = data.decimal_pairs
+        decimal_pairs_without_zero_second = decimal_pairs.filter (pr-> (pr.at 1) != 0.0)
+
+        group_builder.specify "float_add" (float_pairs.map (pr-> (pr.at 0) + (pr.at 1)))
+        group_builder.specify "decimal_add" (decimal_pairs.map (pr-> (pr.at 0) + (pr.at 1)))
+        group_builder.specify "float_subtract" (float_pairs.map (pr-> (pr.at 0) - (pr.at 1)))
+        group_builder.specify "decimal_subtract" (decimal_pairs.map (pr-> (pr.at 0) - (pr.at 1)))
+        group_builder.specify "float_multiply" (float_pairs.map (pr-> (pr.at 0) * (pr.at 1)))
+        group_builder.specify "decimal_multiply" (decimal_pairs.map (pr-> (pr.at 0) * (pr.at 1)))
+        group_builder.specify "float_divide" (float_pairs_without_zero_second.map (pr-> (pr.at 0) / (pr.at 1)))
+        group_builder.specify "decimal_divide" (decimal_pairs_without_zero_second.map (pr-> (pr.at 0) / (pr.at 1)))
+
+
+main = collect_benches . run_main

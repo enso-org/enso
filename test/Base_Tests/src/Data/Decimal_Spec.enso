@@ -1,5 +1,4 @@
 from Standard.Base import all
-import Standard.Base.Data.Numeric.Internal.Numbers_Constants
 import Standard.Base.Errors.Common.Arithmetic_Error
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
@@ -7,8 +6,6 @@ from Standard.Base.Data.Numbers import Number_Parse_Error
 from Standard.Base.Errors.Common import Loss_Of_Numeric_Precision
 
 from Standard.Test import all
-
-polyglot java import org.enso.base.numeric.Decimal_Utils
 
 Decimal.should_have_rep self rep = self.internal_representation . should_equal rep
 

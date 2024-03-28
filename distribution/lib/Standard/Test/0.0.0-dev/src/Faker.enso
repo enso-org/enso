@@ -96,8 +96,14 @@ type Faker
     ## GROUP Standard.Base.Random
        Create a random Float value
     float : Float -> Float -> Float
-    float self  minimum=0.0 maximum=1.0 =
+    float self minimum=0.0 maximum=1.0 =
         minimum + self.generator.nextDouble * (maximum - minimum)
+
+    ## GROUP Standard.Base.Random
+       Create a random Float value in full range of allowed values.
+    float_full_range : Float
+    float_full_range self =
+        self.float -Float.max_value Float.max_value
 
     ## GROUP Standard.Base.Random
        Picks an item at Random from a list
