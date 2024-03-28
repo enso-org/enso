@@ -6,14 +6,14 @@ from Standard.Test import Bench, Faker
 options = Bench.options . set_warmup (Bench.phase_conf 1 3) . set_measure (Bench.phase_conf 1 3)
 
 type Data
-    Value ~decimals ~integers
+    Value ~floats ~integers
 
     create vector_size faker =
-        Data.Value (create_decimals vector_size faker) (create_integers vector_size faker)
+        Data.Value (create_floats vector_size faker) (create_integers vector_size faker)
 
 
-create_decimals vector_size faker =
-    Vector.new vector_size _-> faker.decimal -1000000000 1000000000
+create_floats vector_size faker =
+    Vector.new vector_size _-> faker.float -1000000000 1000000000
 
 
 create_integers vector_size faker =
@@ -33,7 +33,7 @@ collect_benches = Bench.build builder->
         funs.each pair->
             name = pair.at 0
             fun = pair.at 1
-            group_builder.specify ("decimal_" + name) (data.decimals.map fun)
+            group_builder.specify ("float_" + name) (data.floats.map fun)
 
         funs.each pair->
             name = pair.at 0
@@ -44,7 +44,7 @@ collect_benches = Bench.build builder->
             [0, -2, 2].each decimal_places->
                 name = create_name "round_decimal_places_" decimal_places use_bankers
                 fun = _.round decimal_places use_bankers
-                group_builder.specify ("decimal_" + name) (data.decimals.map fun)
+                group_builder.specify ("float_" + name) (data.floats.map fun)
                 group_builder.specify ("integer_" + name) (data.integers.map fun)
 
 

@@ -95,8 +95,8 @@ type Faker
 
     ## GROUP Standard.Base.Random
        Create a random Float value
-    decimal : Float -> Float -> Float
-    decimal self  minimum=0.0 maximum=1.0 =
+    float : Float -> Float -> Float
+    float self  minimum=0.0 maximum=1.0 =
         minimum + self.generator.nextDouble * (maximum - minimum)
 
     ## GROUP Standard.Base.Random
