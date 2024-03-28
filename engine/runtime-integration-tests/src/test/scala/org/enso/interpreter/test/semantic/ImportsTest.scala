@@ -200,13 +200,21 @@ class ImportsTest extends PackageTest {
   }
 
   "Fully qualified names" should "detect conflicts with the exported types sharing the namespace" in {
-    the[InterpreterException] thrownBy evalTestProject(
+    evalTestProject(
       "Test_Fully_Qualified_Name_Conflict"
-    ) should have message "Method `Foo` of type Atom.type could not be found."
+    ).toString shouldEqual "Foo"
     val outLines = consumeOut.filterNot(isDiagnosticLine)
     outLines.head should include(
       "Main.enso:2:1: warning: The exported type `Atom` in `local.Test_Fully_Qualified_Name_Conflict.Atom` module will cause name conflict when attempting to use a fully qualified name of the `local.Test_Fully_Qualified_Name_Conflict.Atom.Foo` module."
     )
+  }
+
+  "Fully qualified names" should "resolve symbols via physical FQN from other project" in {
+    val res = evalTestProject(
+      "Test_Fully_Qualified_Name_2"
+    )
+    res.isBoolean shouldBe true
+    res.asBoolean() shouldBe true
   }
 
   "Deeply nested modules" should "infer correct synthetic modules" in {

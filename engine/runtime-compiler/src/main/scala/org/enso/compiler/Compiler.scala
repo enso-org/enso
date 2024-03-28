@@ -31,7 +31,8 @@ import org.enso.compiler.pass.analyse._
 import org.enso.compiler.phase.{
   ExportCycleException,
   ExportsResolution,
-  ImportResolver
+  ImportResolver,
+  ImportResolverAlgorithm
 }
 import org.enso.editions.LibraryName
 import org.enso.pkg.QualifiedName
@@ -455,7 +456,8 @@ class Compiler(
       try {
         importResolver.mapImports(module, bindingsCachingEnabled)
       } catch {
-        case e: ImportResolver.HiddenNamesConflict => reportExportConflicts(e)
+        case e: ImportResolverAlgorithm.HiddenNamesConflict =>
+          reportExportConflicts(e)
       }
 
     val requiredModules =
