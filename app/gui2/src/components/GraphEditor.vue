@@ -576,15 +576,18 @@ function handleEdgeDrop(source: AstId, position: Vec2) {
   showComponentBrowser(position, { type: 'newNode', sourcePort: source })
 }
 
+// === Color Picker ===
+
 /** A small offset to keep the color picker slightly away from the nodes. */
 const COLOR_PICKER_X_OFFSET_PX = -300
 const showColorPicker = ref(false)
-const selectedNodeColor = ref('undefined')
+const colorPickerSelectedColor = ref('')
 
-function overrideNodeColor(color: string) {
+function overrideSelectedNodesColor(color: string) {
   [...nodeSelection.selected].map((id) => graphStore.overrideNodeColor(id, color))
 }
 
+/** Toggle displaying of the color picker. It will change colors of selected nodes. */
 function toggleColorPicker() {
   if (nodeSelection.selected.size === 0) {
     showColorPicker.value = false
@@ -595,15 +598,14 @@ function toggleColorPicker() {
     const oneOfSelected = set.first(nodeSelection.selected)
     const color = graphStore.db.getNodeColorStyle(oneOfSelected)
     if (color.startsWith('var') && viewportNode.value != null) {
+      // Some colors are defined in CSS variables, we need to get the actual color.
       const variableName = color.slice(4, -1)
-      selectedNodeColor.value = getComputedStyle(viewportNode.value).getPropertyValue(variableName)
+      colorPickerSelectedColor.value = getComputedStyle(viewportNode.value).getPropertyValue(variableName)
     } else {
-      selectedNodeColor.value = color
+      colorPickerSelectedColor.value = color
     }
-    console.log('Selected node color:', selectedNodeColor.value)
   }
 }
-
 const colorPickerPos = computed(() => {
   const nodeRects = [...nodeSelection.selected].map((id) => graphStore.nodeRects.get(id) ?? Rect.Zero)
   const boundingRect = Rect.Bounding(...nodeRects)
@@ -640,8 +642,8 @@ const colorPickerStyle = computed(
         class="colorPicker" 
         :style="colorPickerStyle"
         :show="showColorPicker"
-        :color="selectedNodeColor"
-        @update:color="overrideNodeColor" 
+        :color="colorPickerSelectedColor"
+        @update:color="overrideSelectedNodesColor"
       />
     </div>
     <div
