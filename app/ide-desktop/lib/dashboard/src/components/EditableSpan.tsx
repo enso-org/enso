@@ -98,9 +98,13 @@ export default function EditableSpan(props: EditableSpanProps) {
           size={1}
           defaultValue={children}
           onBlur={event => {
-            if (!cancelledRef.current) {
-              event.currentTarget.form?.requestSubmit()
-            }
+            const currentTarget = event.currentTarget
+            // This must run AFTER the cancel button's event handler runs.
+            setTimeout(() => {
+              if (!cancelledRef.current) {
+                currentTarget.form?.requestSubmit()
+              }
+            })
           }}
           onContextMenu={event => {
             event.stopPropagation()
