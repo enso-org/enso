@@ -107,12 +107,7 @@ export default function EditableSpan(props: EditableSpanProps) {
           }}
           onKeyDown={event => {
             if (event.key !== 'Escape') {
-              // The input may handle the event.
-              if (event.key === 'Enter' && eventModule.areNoModifiersPressed(event)) {
-                event.stopPropagation()
-              } else {
-                event.stopPropagation()
-              }
+              event.stopPropagation()
             }
           }}
           {...(inputPattern == null ? {} : { pattern: inputPattern })}

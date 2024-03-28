@@ -5,6 +5,7 @@ import * as toast from 'react-toastify'
 
 import * as asyncEffectHooks from '#/hooks/asyncEffectHooks'
 import * as eventHooks from '#/hooks/eventHooks'
+import * as scrollHooks from '#/hooks/scrollHooks'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
 import * as authProvider from '#/providers/AuthProvider'
@@ -1224,180 +1225,163 @@ export default function AssetsTable(props: AssetsTableProps) {
     }
   }, [navigator2D, setMostRecentlySelectedIndex])
 
-  React.useEffect(() => {
-    // This is not a React component, even though it contains JSX.
-    // eslint-disable-next-line no-restricted-syntax
-    const onKeyDown = (event: KeyboardEvent) => {
-      const prevIndex = mostRecentlySelectedIndexRef.current
-      const item = prevIndex == null ? null : visibleItems[prevIndex]
-      if (selectedKeysRef.current.size === 1 && item != null) {
-        switch (event.key) {
-          case 'Enter':
-          case ' ': {
-            if (event.key === ' ' && event.ctrlKey) {
-              const keys = selectedKeysRef.current
-              setSelectedKeys(set.withPresence(keys, item.key, !keys.has(item.key)))
-            } else {
-              switch (item.item.type) {
-                case backendModule.AssetType.directory: {
-                  event.preventDefault()
-                  event.stopPropagation()
-                  doToggleDirectoryExpansion(item.item.id, item.key)
-                  break
-                }
-                case backendModule.AssetType.project: {
-                  event.preventDefault()
-                  event.stopPropagation()
-                  dispatchAssetEvent({
-                    type: AssetEventType.openProject,
-                    id: item.item.id,
-                    runInBackground: false,
-                    shouldAutomaticallySwitchPage: true,
-                  })
-                  break
-                }
-                case backendModule.AssetType.dataLink: {
-                  event.preventDefault()
-                  event.stopPropagation()
-                  setIsAssetPanelTemporarilyVisible(true)
-                  break
-                }
-                case backendModule.AssetType.secret: {
-                  event.preventDefault()
-                  event.stopPropagation()
-                  const id = item.item.id
-                  setModal(
-                    <UpsertSecretModal
-                      id={item.item.id}
-                      name={item.item.title}
-                      doCreate={async (_name, value) => {
-                        try {
-                          await backend.updateSecret(id, { value }, item.item.title)
-                        } catch (error) {
-                          toastAndLog(null, error)
-                        }
-                      }}
-                    />
-                  )
-                  break
-                }
-                default: {
-                  break
-                }
-              }
-            }
-            break
-          }
-          case 'ArrowLeft': {
-            if (item.item.type === backendModule.AssetType.directory && item.children != null) {
-              event.preventDefault()
-              event.stopPropagation()
-              doToggleDirectoryExpansion(item.item.id, item.key, null, false)
-            }
-            break
-          }
-          case 'ArrowRight': {
-            if (item.item.type === backendModule.AssetType.directory && item.children == null) {
-              event.preventDefault()
-              event.stopPropagation()
-              doToggleDirectoryExpansion(item.item.id, item.key, null, true)
-            }
-            break
-          }
-        }
-      }
+  // This is not a React component, even though it contains JSX.
+  // eslint-disable-next-line no-restricted-syntax
+  const onKeyDown = (event: React.KeyboardEvent) => {
+    const prevIndex = mostRecentlySelectedIndexRef.current
+    const item = prevIndex == null ? null : visibleItems[prevIndex]
+    if (selectedKeysRef.current.size === 1 && item != null) {
       switch (event.key) {
+        case 'Enter':
         case ' ': {
-          if (event.ctrlKey && item != null) {
+          if (event.key === ' ' && event.ctrlKey) {
             const keys = selectedKeysRef.current
             setSelectedKeys(set.withPresence(keys, item.key, !keys.has(item.key)))
-          }
-          break
-        }
-        case 'Escape': {
-          setSelectedKeys(new Set())
-          setMostRecentlySelectedIndex(null)
-          selectionStartIndexRef.current = null
-          break
-        }
-        case 'ArrowUp':
-        case 'ArrowDown': {
-          if (!event.shiftKey) {
-            selectionStartIndexRef.current = null
-          }
-          let index = prevIndex ?? 0
-          let oldIndex = index
-          if (prevIndex != null) {
-            let itemType = visibleItems[index]?.item.type
-            do {
-              oldIndex = index
-              index =
-                event.key === 'ArrowUp'
-                  ? Math.max(0, index - 1)
-                  : Math.min(visibleItems.length - 1, index + 1)
-              itemType = visibleItems[index]?.item.type
-            } while (
-              index !== oldIndex &&
-              (itemType === backendModule.AssetType.specialEmpty ||
-                itemType === backendModule.AssetType.specialLoading)
-            )
-            if (
-              itemType === backendModule.AssetType.specialEmpty ||
-              itemType === backendModule.AssetType.specialLoading
-            ) {
-              index = prevIndex
-            }
-          }
-          setMostRecentlySelectedIndex(index, true)
-          if (event.shiftKey) {
-            event.preventDefault()
-            event.stopPropagation()
-            // On Windows, Ctrl+Shift+Arrow behaves the same as Shift+Arrow.
-            if (selectionStartIndexRef.current == null) {
-              selectionStartIndexRef.current = prevIndex ?? 0
-            }
-            const startIndex = Math.min(index, selectionStartIndexRef.current)
-            const endIndex = Math.max(index, selectionStartIndexRef.current) + 1
-            const selection = visibleItems.slice(startIndex, endIndex)
-            setSelectedKeys(new Set(selection.map(newItem => newItem.key)))
-          } else if (event.ctrlKey) {
-            event.preventDefault()
-            event.stopPropagation()
-            selectionStartIndexRef.current = null
-          } else if (index !== prevIndex) {
-            event.preventDefault()
-            event.stopPropagation()
-            const newItem = visibleItems[index]
-            if (newItem != null) {
-              setSelectedKeys(new Set([newItem.key]))
-            }
-            selectionStartIndexRef.current = null
           } else {
-            // The arrow key will escape this container. In that case, do not stop propagation
-            // and let `navigator2D` navigate to a different container.
-            setSelectedKeys(new Set())
-            selectionStartIndexRef.current = null
+            switch (item.item.type) {
+              case backendModule.AssetType.directory: {
+                event.preventDefault()
+                event.stopPropagation()
+                doToggleDirectoryExpansion(item.item.id, item.key)
+                break
+              }
+              case backendModule.AssetType.project: {
+                event.preventDefault()
+                event.stopPropagation()
+                dispatchAssetEvent({
+                  type: AssetEventType.openProject,
+                  id: item.item.id,
+                  runInBackground: false,
+                  shouldAutomaticallySwitchPage: true,
+                })
+                break
+              }
+              case backendModule.AssetType.dataLink: {
+                event.preventDefault()
+                event.stopPropagation()
+                setIsAssetPanelTemporarilyVisible(true)
+                break
+              }
+              case backendModule.AssetType.secret: {
+                event.preventDefault()
+                event.stopPropagation()
+                const id = item.item.id
+                setModal(
+                  <UpsertSecretModal
+                    id={item.item.id}
+                    name={item.item.title}
+                    doCreate={async (_name, value) => {
+                      try {
+                        await backend.updateSecret(id, { value }, item.item.title)
+                      } catch (error) {
+                        toastAndLog(null, error)
+                      }
+                    }}
+                  />
+                )
+                break
+              }
+              default: {
+                break
+              }
+            }
+          }
+          break
+        }
+        case 'ArrowLeft': {
+          if (item.item.type === backendModule.AssetType.directory && item.children != null) {
+            event.preventDefault()
+            event.stopPropagation()
+            doToggleDirectoryExpansion(item.item.id, item.key, null, false)
+          }
+          break
+        }
+        case 'ArrowRight': {
+          if (item.item.type === backendModule.AssetType.directory && item.children == null) {
+            event.preventDefault()
+            event.stopPropagation()
+            doToggleDirectoryExpansion(item.item.id, item.key, null, true)
           }
           break
         }
       }
     }
-    const scrollContainer = rootRef.current
-    scrollContainer?.addEventListener('keydown', onKeyDown)
-    return () => {
-      scrollContainer?.removeEventListener('keydown', onKeyDown)
+    switch (event.key) {
+      case ' ': {
+        if (event.ctrlKey && item != null) {
+          const keys = selectedKeysRef.current
+          setSelectedKeys(set.withPresence(keys, item.key, !keys.has(item.key)))
+        }
+        break
+      }
+      case 'Escape': {
+        setSelectedKeys(new Set())
+        setMostRecentlySelectedIndex(null)
+        selectionStartIndexRef.current = null
+        break
+      }
+      case 'ArrowUp':
+      case 'ArrowDown': {
+        if (!event.shiftKey) {
+          selectionStartIndexRef.current = null
+        }
+        let index = prevIndex ?? 0
+        let oldIndex = index
+        if (prevIndex != null) {
+          let itemType = visibleItems[index]?.item.type
+          do {
+            oldIndex = index
+            index =
+              event.key === 'ArrowUp'
+                ? Math.max(0, index - 1)
+                : Math.min(visibleItems.length - 1, index + 1)
+            itemType = visibleItems[index]?.item.type
+          } while (
+            index !== oldIndex &&
+            (itemType === backendModule.AssetType.specialEmpty ||
+              itemType === backendModule.AssetType.specialLoading)
+          )
+          if (
+            itemType === backendModule.AssetType.specialEmpty ||
+            itemType === backendModule.AssetType.specialLoading
+          ) {
+            index = prevIndex
+          }
+        }
+        setMostRecentlySelectedIndex(index, true)
+        if (event.shiftKey) {
+          event.preventDefault()
+          event.stopPropagation()
+          // On Windows, Ctrl+Shift+Arrow behaves the same as Shift+Arrow.
+          if (selectionStartIndexRef.current == null) {
+            selectionStartIndexRef.current = prevIndex ?? 0
+          }
+          const startIndex = Math.min(index, selectionStartIndexRef.current)
+          const endIndex = Math.max(index, selectionStartIndexRef.current) + 1
+          const selection = visibleItems.slice(startIndex, endIndex)
+          setSelectedKeys(new Set(selection.map(newItem => newItem.key)))
+        } else if (event.ctrlKey) {
+          event.preventDefault()
+          event.stopPropagation()
+          selectionStartIndexRef.current = null
+        } else if (index !== prevIndex) {
+          event.preventDefault()
+          event.stopPropagation()
+          const newItem = visibleItems[index]
+          if (newItem != null) {
+            setSelectedKeys(new Set([newItem.key]))
+          }
+          selectionStartIndexRef.current = null
+        } else {
+          // The arrow key will escape this container. In that case, do not stop propagation
+          // and let `navigator2D` navigate to a different container.
+          setSelectedKeys(new Set())
+          selectionStartIndexRef.current = null
+        }
+        break
+      }
     }
-  }, [
-    visibleItems,
-    backend,
-    doToggleDirectoryExpansion,
-    /* should never change */ toastAndLog,
-    /* should never change */ setModal,
-    /* should never change */ setMostRecentlySelectedIndex,
-    /* should never change */ setSelectedKeys,
-    /* should never change */ setIsAssetPanelTemporarilyVisible,
-    /* should never change */ dispatchAssetEvent,
-  ])
+  }
 
   React.useEffect(() => {
     const onFocusOut = (event: FocusEvent) => {
@@ -1987,35 +1971,11 @@ export default function AssetsTable(props: AssetsTableProps) {
 
   // This is required to prevent the table body from overlapping the table header, because
   // the table header is transparent.
-  React.useEffect(() => {
-    const body = bodyRef.current
-    const scrollContainer = rootRef.current
-    if (body == null || scrollContainer == null) {
-      // eslint-disable-next-line no-restricted-properties
-      console.warn(
-        'The React ref for the drive table scroll container or the drive table body ' +
-          'is not attached to an element. This should never happen.'
-      )
-      return
-    } else {
-      let isClipPathUpdateQueued = false
-      const updateClipPath = () => {
-        isClipPathUpdateQueued = false
-        body.style.clipPath = `inset(${scrollContainer.scrollTop}px 0 0 0)`
-      }
-      const onScroll = () => {
-        if (!isClipPathUpdateQueued) {
-          isClipPathUpdateQueued = true
-          requestAnimationFrame(updateClipPath)
-        }
-      }
-      updateClipPath()
-      scrollContainer.addEventListener('scroll', onScroll)
-      return () => {
-        scrollContainer.removeEventListener('scroll', onScroll)
-      }
+  const onScroll = scrollHooks.useOnScroll(() => {
+    if (bodyRef.current != null && rootRef.current != null) {
+      bodyRef.current.style.clipPath = `inset(${rootRef.current.scrollTop}px 0 0 0)`
     }
-  }, [])
+  })
 
   React.useEffect(
     () =>
@@ -2522,6 +2482,8 @@ export default function AssetsTable(props: AssetsTableProps) {
           }}
           className="flex-1 overflow-auto container-size"
           {...innerProps}
+          onKeyDown={onKeyDown}
+          onScroll={onScroll}
         >
           {!hidden && hiddenContextMenu}
           {!hidden && (
