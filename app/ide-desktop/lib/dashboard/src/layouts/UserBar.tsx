@@ -7,6 +7,7 @@ import DefaultUserIcon from 'enso-assets/default_user.svg'
 import * as authProvider from '#/providers/AuthProvider'
 import * as backendProvider from '#/providers/BackendProvider'
 import * as modalProvider from '#/providers/ModalProvider'
+import * as textProvider from '#/providers/TextProvider'
 
 import * as pageSwitcher from '#/layouts/PageSwitcher'
 import UserMenu from '#/layouts/UserMenu'
@@ -42,11 +43,11 @@ export default function UserBar(props: UserBarProps) {
   const { type: sessionType, user } = authProvider.useNonPartialUserSession()
   const { setModal, updateModal } = modalProvider.useSetModal()
   const { backend } = backendProvider.useBackend()
+  const { getText } = textProvider.useText()
   const self =
     user != null
-      ? projectAsset?.permissions?.find(
-          permissions => permissions.user.user_email === user.email
-        ) ?? null
+      ? projectAsset?.permissions?.find(permissions => permissions.user.userId === user.userId) ??
+        null
       : null
   const shouldShowShareButton =
     backend.type === backendModule.BackendType.remote &&
@@ -74,7 +75,7 @@ export default function UserBar(props: UserBarProps) {
             setModal(<InviteUsersModal eventTarget={null} />)
           }}
         >
-          Invite
+          {getText('invite')}
         </button>
       )}
       {shouldShowShareButton && (
@@ -93,7 +94,7 @@ export default function UserBar(props: UserBarProps) {
             )
           }}
         >
-          Share
+          {getText('share')}
         </button>
       )}
       <button
@@ -113,7 +114,7 @@ export default function UserBar(props: UserBarProps) {
       >
         <img
           src={user?.profilePicture ?? DefaultUserIcon}
-          alt="Open user menu"
+          alt={getText('openUserMenu')}
           className="pointer-events-none"
           height={28}
           width={28}

@@ -8,7 +8,7 @@ import java.nio.charset.StandardCharsets
 
 object WarningPreview {
 
-  private val method = ".to_display_text"
+  private[this] val METHOD = ".to_display_text"
 
   /** Execute preview of the provided warning value.
     *
@@ -20,7 +20,7 @@ object WarningPreview {
     val visualizationExpression =
       ctx.executionService.evaluateExpression(
         ctx.executionService.getContext.getBuiltins.getModule,
-        method
+        METHOD
       )
     val visualizationResult = ctx.executionService.callFunction(
       visualizationExpression,

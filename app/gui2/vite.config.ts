@@ -21,10 +21,25 @@ const entrypoint = process.env.E2E === 'true' ? './src/e2e-entrypoint.ts' : './s
 
 // https://vitejs.dev/config/
 export default defineConfig({
-  cacheDir: '../../node_modules/.cache/vite',
-  plugins: [vue(), gatewayServer()],
+  root: fileURLToPath(new URL('.', import.meta.url)),
+  cacheDir: fileURLToPath(new URL('../../node_modules/.cache/vite', import.meta.url)),
+  publicDir: fileURLToPath(new URL('./public', import.meta.url)),
+  envDir: fileURLToPath(new URL('.', import.meta.url)),
+  plugins: [
+    vue(),
+    gatewayServer(),
+    ...(process.env.ELECTRON_DEV_MODE === 'true' ?
+      [
+        (await import('@vitejs/plugin-react')).default({
+          include: fileURLToPath(new URL('../ide-desktop/lib/dashboard/**/*.tsx', import.meta.url)),
+          babel: { plugins: ['@babel/plugin-syntax-import-assertions'] },
+        }),
+      ]
+    : process.env.NODE_ENV === 'development' ? [await projectManagerShim()]
+    : []),
+  ],
   optimizeDeps: {
-    entries: 'index.html',
+    entries: fileURLToPath(new URL('./index.html', import.meta.url)),
   },
   server: {
     headers: {
@@ -57,7 +72,10 @@ export default defineConfig({
         tailwindcss({
           ...tailwindConfig.default,
           content: tailwindConfig.default.content.map((glob: string) =>
-            glob.replace(/^[.][/]/, '../ide-desktop/lib/dashboard/'),
+            glob.replace(
+              /^[.][/]/,
+              fileURLToPath(new URL('../ide-desktop/lib/dashboard/', import.meta.url)),
+            ),
           ),
         }),
       ],
@@ -83,6 +101,18 @@ function gatewayServer(): Plugin {
       if (server.httpServer == null) return
 
       createGatewayServer(server.httpServer, undefined)
+    },
+  }
+}
+
+async function projectManagerShim(): Promise<Plugin> {
+  const module = await import(
+    '../ide-desktop/lib/project-manager-shim/src/projectManagerShimMiddleware'
+  )
+  return {
+    name: 'project-manager-shim',
+    configureServer(server) {
+      server.middlewares.use(module.default)
     },
   }
 }

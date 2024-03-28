@@ -3,6 +3,8 @@ import * as React from 'react'
 
 import BreadcrumbArrowIcon from 'enso-assets/breadcrumb_arrow.svg'
 
+import * as textProvider from '#/providers/TextProvider'
+
 import AssetIcon from '#/components/dashboard/AssetIcon'
 
 import type * as backend from '#/services/Backend'
@@ -21,6 +23,7 @@ export interface AssetSummaryProps {
 /** Displays a few details of an asset. */
 export default function AssetSummary(props: AssetSummaryProps) {
   const { asset, new: isNew = false, newName, className } = props
+  const { getText } = textProvider.useText()
   return (
     <div
       className={`flex min-h-row items-center gap-icon-with-text rounded-default bg-frame px-button-x ${className}`}
@@ -39,7 +42,9 @@ export default function AssetSummary(props: AssetSummaryProps) {
           )}
         </span>
         {!isNew && (
-          <span>last modified on {dateTime.formatDateTime(new Date(asset.modifiedAt))}</span>
+          <span>
+            {getText('lastModifiedOn', dateTime.formatDateTime(new Date(asset.modifiedAt)))}
+          </span>
         )}
         <span>{asset.labels}</span>
       </div>

@@ -158,7 +158,7 @@ type URI
         Problem_Behavior.Report_Warning.attach_problems_before (has_question_mark+has_hash) result
 
     ## GROUP Metadata
-       ICON find
+       ICON metadata
        Get the query part of this URI.
 
        > Example

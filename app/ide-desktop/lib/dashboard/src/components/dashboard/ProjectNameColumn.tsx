@@ -10,6 +10,7 @@ import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 import * as authProvider from '#/providers/AuthProvider'
 import * as backendProvider from '#/providers/BackendProvider'
 import * as inputBindingsProvider from '#/providers/InputBindingsProvider'
+import * as textProvider from '#/providers/TextProvider'
 
 import AssetEventType from '#/events/AssetEventType'
 import AssetListEventType from '#/events/AssetListEventType'
@@ -20,6 +21,8 @@ import EditableSpan from '#/components/EditableSpan'
 import SvgMask from '#/components/SvgMask'
 
 import * as backendModule from '#/services/Backend'
+import * as localBackend from '#/services/LocalBackend'
+import * as projectManager from '#/services/ProjectManager'
 
 import * as eventModule from '#/utilities/event'
 import * as indent from '#/utilities/indent'
@@ -46,6 +49,7 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
   const toastAndLog = toastAndLogHooks.useToastAndLog()
   const { backend } = backendProvider.useBackend()
   const { user } = authProvider.useNonPartialUserSession()
+  const { getText } = textProvider.useText()
   const inputBindings = inputBindingsProvider.useInputBindings()
   const asset = item.item
   if (asset.type !== backendModule.AssetType.project) {
@@ -54,7 +58,7 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
   }
   const setAsset = setAssetHooks.useSetAsset(asset, setItem)
   const ownPermission =
-    asset.permissions?.find(permission => permission.user.user_email === user?.email) ?? null
+    asset.permissions?.find(permission => permission.user.userId === user?.userId) ?? null
   // This is a workaround for a temporary bad state in the backend causing the `projectState` key
   // to be absent.
   // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
@@ -80,11 +84,11 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
       try {
         await backend.updateProject(
           asset.id,
-          { ami: null, ideVersion: null, projectName: newTitle },
+          { ami: null, ideVersion: null, projectName: newTitle, parentId: asset.parentId },
           asset.title
         )
       } catch (error) {
-        toastAndLog('Could not rename project', error)
+        toastAndLog('renameProjectError', error)
         setAsset(object.merger({ title: oldTitle }))
       }
     }
@@ -135,6 +139,9 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
                 id: createdProject.projectId,
                 projectState: object.merge(projectState, {
                   type: backendModule.ProjectState.placeholder,
+                  ...(backend.type === backendModule.BackendType.remote
+                    ? {}
+                    : { path: createdProject.state.path }),
                 }),
               })
             )
@@ -145,11 +152,8 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
               runInBackground: false,
             })
           } catch (error) {
-            dispatchAssetListEvent({
-              type: AssetListEventType.delete,
-              key: item.key,
-            })
-            toastAndLog('Error creating new project', error)
+            dispatchAssetListEvent({ type: AssetListEventType.delete, key: item.key })
+            toastAndLog('createProjectError', error)
           }
         }
         break
@@ -165,6 +169,7 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
           setAsset(object.merge(asset, { title }))
           try {
             if (backend.type === backendModule.BackendType.local) {
+              const directory = localBackend.extractTypeAndId(item.directoryId).id
               let id: string
               if (
                 'backendApi' in window &&
@@ -172,36 +177,30 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
                 'path' in file &&
                 typeof file.path === 'string'
               ) {
-                id = await window.backendApi.importProjectFromPath(file.path)
+                id = await window.backendApi.importProjectFromPath(file.path, directory, title)
               } else {
-                const response = await fetch('./api/upload-project', {
-                  method: 'POST',
-                  // Ideally this would use `file.stream()`, to minimize RAM
-                  // requirements. for uploading large projects. Unfortunately,
-                  // this requires HTTP/2, which is HTTPS-only, so it will not
-                  // work on `http://localhost`.
-                  body: await file.arrayBuffer(),
-                })
+                const searchParams = new URLSearchParams({ directory, name: title }).toString()
+                // Ideally this would use `file.stream()`, to minimize RAM
+                // requirements. for uploading large projects. Unfortunately,
+                // this requires HTTP/2, which is HTTPS-only, so it will not
+                // work on `http://localhost`.
+                const body =
+                  window.location.protocol === 'https:' ? file.stream() : await file.arrayBuffer()
+                const path = `./api/upload-project?${searchParams}`
+                const response = await fetch(path, { method: 'POST', body })
                 id = await response.text()
               }
+              const projectId = localBackend.newProjectId(projectManager.UUID(id))
               const listedProject = await backend.getProjectDetails(
-                backendModule.ProjectId(id),
-                null
+                projectId,
+                asset.parentId,
+                file.name
               )
               rowState.setVisibility(Visibility.visible)
-              setAsset(
-                object.merge(asset, {
-                  title: listedProject.packageName,
-                  id: backendModule.ProjectId(id),
-                })
-              )
+              setAsset(object.merge(asset, { title: listedProject.packageName, id: projectId }))
             } else {
               const createdFile = await backend.uploadFile(
-                {
-                  fileId,
-                  fileName: `${title}.${extension}`,
-                  parentDirectoryId: asset.parentId,
-                },
+                { fileId, fileName: `${title}.${extension}`, parentDirectoryId: asset.parentId },
                 file
               )
               const project = createdFile.project
@@ -210,11 +209,7 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
               } else {
                 rowState.setVisibility(Visibility.visible)
                 setAsset(
-                  object.merge(asset, {
-                    title,
-                    id: project.projectId,
-                    projectState: project.state,
-                  })
+                  object.merge(asset, { title, id: project.projectId, projectState: project.state })
                 )
                 return
               }
@@ -222,15 +217,12 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
           } catch (error) {
             switch (event.type) {
               case AssetEventType.uploadFiles: {
-                dispatchAssetListEvent({
-                  type: AssetListEventType.delete,
-                  key: item.key,
-                })
-                toastAndLog('Could not upload project', error)
+                dispatchAssetListEvent({ type: AssetListEventType.delete, key: item.key })
+                toastAndLog('uploadProjectError', error)
                 break
               }
               case AssetEventType.updateFiles: {
-                toastAndLog('Could not update project', error)
+                toastAndLog('updateProjectError', error)
                 break
               }
             }
@@ -335,7 +327,7 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
         {...(backend.type === backendModule.BackendType.local
           ? {
               inputPattern: validation.LOCAL_PROJECT_NAME_PATTERN,
-              inputTitle: validation.LOCAL_PROJECT_NAME_TITLE,
+              inputTitle: getText('projectNameCannotBeEmpty'),
             }
           : {})}
       >

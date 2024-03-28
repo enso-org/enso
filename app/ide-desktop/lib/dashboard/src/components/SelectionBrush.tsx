@@ -1,11 +1,11 @@
 /** @file A selection brush to indicate the area being selected by the mouse drag action. */
 import * as React from 'react'
 
-import * as reactDom from 'react-dom'
-
 import * as animationHooks from '#/hooks/animationHooks'
 
 import * as modalProvider from '#/providers/ModalProvider'
+
+import Portal from '#/components/Portal'
 
 import * as eventModule from '#/utilities/event'
 import type * as geometry from '#/utilities/geometry'
@@ -169,15 +169,14 @@ export default function SelectionBrush(props: SelectionBrushProps) {
           width: `${rectangle.width}px`,
           height: `${rectangle.height}px`,
         }
-
-  return reactDom.createPortal(
-    <div
-      className={`pointer-events-none fixed z-1 box-content rounded-selection-brush border-transparent bg-selection-brush transition-border-margin ${
-        hidden ? 'm border-0' : '-m-selection-brush-border border-selection-brush'
-      }`}
-      style={brushStyle}
-    />,
-    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-    document.getElementById('enso-dashboard')!
+  return (
+    <Portal>
+      <div
+        className={`pointer-events-none fixed z-1 box-content rounded-selection-brush border-transparent bg-selection-brush transition-border-margin ${
+          hidden ? 'm border-0' : '-m-selection-brush-border border-selection-brush'
+        }`}
+        style={brushStyle}
+      />
+    </Portal>
   )
 }

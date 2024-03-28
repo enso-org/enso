@@ -1,4 +1,0 @@
-## Indicates that the operation should use the previous non-missing value to
-   when filling in missing values, for example in `fill_nothing` and
-   `fill_empty`.
-type Previous_Value

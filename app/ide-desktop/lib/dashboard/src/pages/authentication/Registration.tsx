@@ -12,6 +12,7 @@ import * as appUtils from '#/appUtils'
 
 import * as authProvider from '#/providers/AuthProvider'
 import * as localStorageProvider from '#/providers/LocalStorageProvider'
+import * as textProvider from '#/providers/TextProvider'
 
 import Input from '#/components/Input'
 import Link from '#/components/Link'
@@ -46,6 +47,7 @@ export default function Registration() {
   const auth = authProvider.useAuth()
   const location = router.useLocation()
   const { localStorage } = localStorageProvider.useLocalStorage()
+  const { getText } = textProvider.useText()
 
   const query = new URLSearchParams(location.search)
   const initialEmail = query.get('email')
@@ -76,14 +78,16 @@ export default function Registration() {
           setIsSubmitting(false)
         }}
       >
-        <div className="self-center text-auth-heading font-medium">Create a new account</div>
+        <div className="self-center text-auth-heading font-medium">
+          {getText('createANewAccount')}
+        </div>
         <Input
           required
           validate
           type="email"
           autoComplete="email"
           icon={AtIcon}
-          placeholder="Enter your email"
+          placeholder={getText('emailPlaceholder')}
           value={email}
           setValue={setEmail}
         />
@@ -94,9 +98,9 @@ export default function Registration() {
           type="password"
           autoComplete="new-password"
           icon={LockIcon}
-          placeholder="Enter your password"
+          placeholder={getText('passwordPlaceholder')}
           pattern={validation.PASSWORD_PATTERN}
-          error={validation.PASSWORD_ERROR}
+          error={getText('passwordValidationError')}
           value={password}
           setValue={setPassword}
         />
@@ -107,15 +111,15 @@ export default function Registration() {
           type="password"
           autoComplete="new-password"
           icon={LockIcon}
-          placeholder="Confirm your password"
+          placeholder={getText('confirmPasswordPlaceholder')}
           pattern={string.regexEscape(password)}
-          error={validation.CONFIRM_PASSWORD_ERROR}
+          error={getText('passwordMismatchError')}
           value={confirmPassword}
           setValue={setConfirmPassword}
         />
-        <SubmitButton disabled={isSubmitting} text="Register" icon={CreateAccountIcon} />
+        <SubmitButton disabled={isSubmitting} text={getText('register')} icon={CreateAccountIcon} />
       </form>
-      <Link to={appUtils.LOGIN_PATH} icon={GoBackIcon} text="Already have an account?" />
+      <Link to={appUtils.LOGIN_PATH} icon={GoBackIcon} text={getText('alreadyHaveAnAccount')} />
     </div>
   )
 }

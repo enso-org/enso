@@ -1,8 +1,11 @@
 /** @file Settings screen. */
 import * as React from 'react'
 
+import * as searchParamsState from '#/hooks/searchParamsStateHooks'
+
 import * as authProvider from '#/providers/AuthProvider'
 import * as backendProvider from '#/providers/BackendProvider'
+import * as textProvider from '#/providers/TextProvider'
 
 import AccountSettingsTab from '#/layouts/Settings/AccountSettingsTab'
 import ActivityLogSettingsTab from '#/layouts/Settings/ActivityLogSettingsTab'
@@ -14,19 +17,25 @@ import SettingsSidebar from '#/layouts/SettingsSidebar'
 
 import * as backendModule from '#/services/Backend'
 
+import * as array from '#/utilities/array'
+
 // ================
 // === Settings ===
 // ================
 
 /** Settings screen. */
 export default function Settings() {
-  const [settingsTab, setSettingsTab] = React.useState(SettingsTab.account)
+  const [settingsTab, setSettingsTab] = searchParamsState.useSearchParamsState(
+    'SettingsTab',
+    SettingsTab.account,
+    (value): value is SettingsTab => array.includes(Object.values(SettingsTab), value)
+  )
   const { type: sessionType, user } = authProvider.useNonPartialUserSession()
   const { backend } = backendProvider.useBackend()
+  const { getText } = textProvider.useText()
   const [organization, setOrganization] = React.useState<backendModule.OrganizationInfo>(() => ({
-    pk: user?.id ?? backendModule.OrganizationId(''),
-    // eslint-disable-next-line @typescript-eslint/naming-convention
-    organization_name: null,
+    id: user?.organizationId ?? backendModule.OrganizationId(''),
+    name: null,
     email: null,
     website: null,
     address: null,
@@ -81,13 +90,13 @@ export default function Settings() {
   return (
     <div className="flex flex-1 flex-col gap-settings-header overflow-hidden px-page-x">
       <div className="flex h-heading px-heading-x text-xl font-bold">
-        <span className="py-heading-y">Settings for </span>
+        <span className="py-heading-y">{getText('settingsFor')}</span>
         {/* This UI element does not appear anywhere else. */}
         {/* eslint-disable-next-line no-restricted-syntax */}
         <div className="ml-[0.625rem] h-[2.25rem] rounded-full bg-frame px-[0.5625rem] pb-[0.3125rem] pt-[0.125rem] leading-snug">
           {settingsTab !== SettingsTab.organization
             ? user?.name ?? 'your account'
-            : organization.organization_name ?? 'your organization'}
+            : organization.name ?? 'your organization'}
         </div>
       </div>
       <div className="flex flex-1 gap-settings overflow-hidden">

@@ -5,6 +5,8 @@ import CrossIcon from 'enso-assets/cross.svg'
 import FolderArrowDoubleIcon from 'enso-assets/folder_arrow_double.svg'
 import FolderArrowIcon from 'enso-assets/folder_arrow.svg'
 
+import * as textProvider from '#/providers/TextProvider'
+
 import SvgMask from '#/components/SvgMask'
 
 import * as dateTime from '#/utilities/dateTime'
@@ -41,6 +43,7 @@ export interface DateInputProps {
 /** An input that outputs a {@link Date}. */
 export default function DateInput(props: DateInputProps) {
   const { date, onInput } = props
+  const { getText } = textProvider.useText()
   const year = date?.getFullYear() ?? new Date().getFullYear()
   const monthIndex = date?.getMonth() ?? new Date().getMonth()
   const [isPickerVisible, setIsPickerVisible] = React.useState(false)
@@ -167,13 +170,13 @@ export default function DateInput(props: DateInputProps) {
               </caption>
               <thead>
                 <tr>
-                  <th className="text-tight min-w-date-cell p">M</th>
-                  <th className="text-tight min-w-date-cell p">Tu</th>
-                  <th className="text-tight min-w-date-cell p">W</th>
-                  <th className="text-tight min-w-date-cell p">Th</th>
-                  <th className="text-tight min-w-date-cell p">F</th>
-                  <th className="text-tight min-w-date-cell p">Sa</th>
-                  <th className="text-tight min-w-date-cell p">Su</th>
+                  <th className="text-tight min-w-date-cell p">{getText('mondayAbbr')}</th>
+                  <th className="text-tight min-w-date-cell p">{getText('tuesdayAbbr')}</th>
+                  <th className="text-tight min-w-date-cell p">{getText('wednesdayAbbr')}</th>
+                  <th className="text-tight min-w-date-cell p">{getText('thursdayAbbr')}</th>
+                  <th className="text-tight min-w-date-cell p">{getText('fridayAbbr')}</th>
+                  <th className="text-tight min-w-date-cell p">{getText('saturdayAbbr')}</th>
+                  <th className="text-tight min-w-date-cell p">{getText('sundayAbbr')}</th>
                 </tr>
               </thead>
               <tbody>

@@ -1,12 +1,10 @@
 import type { PortId } from '@/providers//portInfo'
 import type { GraphNavigator } from '@/providers/graphNavigator'
-import {
-  injectInteractionHandler,
-  type Interaction,
-  type InteractionHandler,
-} from '@/providers/interactionHandler'
+import { injectInteractionHandler, type Interaction } from '@/providers/interactionHandler'
 import type { WidgetInput } from '@/providers/widgetRegistry'
 import type { Ast } from '@/util/ast'
+import { markRaw } from 'vue'
+import { injectWidgetTree } from '../widgetTree'
 
 /** An extend {@link Interaction} used in {@link WidgetEditHandler} */
 export interface WidgetEditInteraction extends Interaction {
@@ -20,6 +18,7 @@ export interface WidgetEditInteraction extends Interaction {
   start?(origin: PortId): void
   edit?(origin: PortId, value: Ast.Owned | string): void
   end?(origin: PortId): void
+  addItem?(): boolean
 }
 
 /**
@@ -52,7 +51,7 @@ export interface WidgetEditInteraction extends Interaction {
  * argument
  */
 export class WidgetEditHandler {
-  private interaction: WidgetEditInteraction
+  private readonly interaction: WidgetEditInteraction
   /** This, or one's child interaction which is currently active */
   private activeInteraction: WidgetEditInteraction | undefined
 
@@ -60,11 +59,18 @@ export class WidgetEditHandler {
     private portId: PortId,
     innerInteraction: WidgetEditInteraction,
     private parent?: WidgetEditHandler,
-    private interactionHandler: InteractionHandler = injectInteractionHandler(),
+    private interactionHandler = injectInteractionHandler(),
+    private widgetTree: { currentEdit: WidgetEditHandler | undefined } = injectWidgetTree(),
   ) {
+    const noLongerActive = () => {
+      this.activeInteraction = undefined
+      if (widgetTree.currentEdit === this) {
+        widgetTree.currentEdit = undefined
+      }
+    }
     this.interaction = {
       cancel: () => {
-        this.activeInteraction = undefined
+        noLongerActive()
         innerInteraction.cancel?.()
         parent?.interaction.cancel?.()
       },
@@ -87,9 +93,12 @@ export class WidgetEditHandler {
         parent?.interaction.edit?.(portId, value)
       },
       end: (portId) => {
-        this.activeInteraction = undefined
+        noLongerActive()
         innerInteraction.end?.(portId)
         parent?.interaction.end?.(portId)
+      },
+      addItem: () => {
+        return (innerInteraction.addItem?.() || parent?.interaction.addItem?.()) ?? false
       },
     }
   }
@@ -106,6 +115,7 @@ export class WidgetEditHandler {
 
   start() {
     this.interactionHandler.setCurrent(this.interaction)
+    this.widgetTree.currentEdit = markRaw(this)
     for (
       let handler: WidgetEditHandler | undefined = this;
       handler != null;
@@ -129,5 +139,9 @@ export class WidgetEditHandler {
 
   isActive() {
     return this.activeInteraction ? this.interactionHandler.isActive(this.activeInteraction) : false
+  }
+
+  addItem() {
+    return this.interaction.addItem?.()
   }
 }

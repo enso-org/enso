@@ -35,12 +35,14 @@
  * {@link authProvider.FullUserSession}). */
 import * as React from 'react'
 
+import * as reactQuery from '@tanstack/react-query'
 import * as router from 'react-router-dom'
 import * as toastify from 'react-toastify'
 
 import * as detect from 'enso-common/src/detect'
 
 import * as appUtils from '#/appUtils'
+import * as reactQueryClientModule from '#/reactQueryClient'
 
 import * as inputBindingsModule from '#/configurations/inputBindings'
 
@@ -62,6 +64,8 @@ import ResetPassword from '#/pages/authentication/ResetPassword'
 import SetUsername from '#/pages/authentication/SetUsername'
 import Dashboard from '#/pages/dashboard/Dashboard'
 import Subscribe from '#/pages/subscribe/Subscribe'
+
+import * as rootComponent from '#/components/Root'
 
 import type Backend from '#/services/Backend'
 import LocalBackend from '#/services/LocalBackend'
@@ -140,12 +144,13 @@ export interface AppProps {
 export default function App(props: AppProps) {
   // This is a React component even though it does not contain JSX.
   // eslint-disable-next-line no-restricted-syntax
-  const Router = detect.isOnElectron() ? router.MemoryRouter : router.BrowserRouter
+  const Router = detect.isOnElectron() ? router.HashRouter : router.BrowserRouter
+  const queryClient = React.useMemo(() => reactQueryClientModule.createReactQueryClient(), [])
   // Both `BackendProvider` and `InputBindingsProvider` depend on `LocalStorageProvider`.
   // Note that the `Router` must be the parent of the `AuthProvider`, because the `AuthProvider`
   // will redirect the user between the login/register pages and the dashboard.
   return (
-    <>
+    <reactQuery.QueryClientProvider client={queryClient}>
       <toastify.ToastContainer
         position="top-center"
         theme="light"
@@ -160,7 +165,7 @@ export default function App(props: AppProps) {
           <AppRouter {...props} />
         </LocalStorageProvider>
       </Router>
-    </>
+    </reactQuery.QueryClientProvider>
   )
 }
 
@@ -186,6 +191,10 @@ function AppRouter(props: AppProps) {
     window.navigate = navigate
   }
   const [inputBindingsRaw] = React.useState(() => inputBindingsModule.createBindings())
+  const [root] = React.useState<React.RefObject<HTMLElement>>(() => ({
+    current: document.getElementById('enso-dashboard'),
+  }))
+
   React.useEffect(() => {
     const savedInputBindings = localStorage.get('inputBindings')
     if (savedInputBindings != null) {
@@ -203,6 +212,7 @@ function AppRouter(props: AppProps) {
       }
     }
   }, [/* should never change */ localStorage, /* should never change */ inputBindingsRaw])
+
   const inputBindings = React.useMemo(() => {
     const updateLocalStorage = () => {
       localStorage.set(
@@ -250,11 +260,14 @@ function AppRouter(props: AppProps) {
       },
     }
   }, [/* should never change */ localStorage, /* should never change */ inputBindingsRaw])
+
   const mainPageUrl = getMainPageUrl()
+
   const authService = React.useMemo(() => {
     const authConfig = { navigate, ...props }
     return authServiceModule.initAuthService(authConfig)
   }, [props, /* should never change */ navigate])
+
   const userSession = authService?.cognito.userSession.bind(authService.cognito) ?? null
   const registerAuthEventListener = authService?.registerAuthEventListener ?? null
   const initialBackend: Backend = isAuthenticationDisabled
@@ -262,13 +275,18 @@ function AppRouter(props: AppProps) {
     : // This is safe, because the backend is always set by the authentication flow.
       // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
       null!
+
   React.useEffect(() => {
     let isClick = false
     const onMouseDown = () => {
       isClick = true
     }
     const onMouseUp = (event: MouseEvent) => {
-      if (isClick && !eventModule.isElementTextInput(event.target)) {
+      if (
+        isClick &&
+        !eventModule.isElementTextInput(event.target) &&
+        !eventModule.isElementPartOfMonaco(event.target)
+      ) {
         const selection = document.getSelection()
         const app = document.getElementById('app')
         const appContainsSelection =
@@ -283,6 +301,7 @@ function AppRouter(props: AppProps) {
         }
       }
     }
+
     const onSelectStart = () => {
       isClick = false
     }
@@ -295,6 +314,7 @@ function AppRouter(props: AppProps) {
       document.removeEventListener('selectstart', onSelectStart)
     }
   }, [])
+
   const routes = (
     <router.Routes>
       <React.Fragment>
@@ -351,5 +371,10 @@ function AppRouter(props: AppProps) {
     </SessionProvider>
   )
   result = <LoggerProvider logger={logger}>{result}</LoggerProvider>
+  result = (
+    <rootComponent.Root rootRef={root} navigate={navigate}>
+      {result}
+    </rootComponent.Root>
+  )
   return result
 }
