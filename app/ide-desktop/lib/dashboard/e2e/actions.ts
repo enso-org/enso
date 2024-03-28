@@ -66,7 +66,7 @@ export function locateNewLabelModalColorButtons(page: test.Page) {
     locateNewLabelModal(page)
       .filter({ has: page.getByText('Color') })
       // The `radio` inputs are invisible, so they cannot be used in the locator.
-      .getByRole('button')
+      .locator('label[data-rac]')
   )
 }
 

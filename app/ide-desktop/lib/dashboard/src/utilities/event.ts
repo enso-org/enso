@@ -36,6 +36,13 @@ export function isPotentiallyShortcut(event: KeyboardEvent | React.KeyboardEvent
   return event.ctrlKey || event.metaKey || event.altKey
 }
 
+/** Return `true` if none of `Ctrl`, `Shift`, `Alt` and `Meta` are pressed.*/
+export function areNoModifiersPressed(
+  event: KeyboardEvent | MouseEvent | React.KeyboardEvent | React.MouseEvent
+) {
+  return !event.ctrlKey && !event.metaKey && !event.shiftKey && !event.altKey
+}
+
 /** Whether `event.key` is an arrow key. */
 export function isArrowKeyEvent(event: KeyboardEvent | React.KeyboardEvent) {
   return (

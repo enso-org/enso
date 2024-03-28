@@ -11,8 +11,10 @@ import * as textProvider from '#/providers/TextProvider'
 
 import * as aria from '#/components/aria'
 import FocusRing from '#/components/styled/FocusRing'
+import UnstyledButton from '#/components/styled/UnstyledButton'
 import SvgMask from '#/components/SvgMask'
 
+import * as eventModule from '#/utilities/event'
 import * as sanitizedEventTargets from '#/utilities/sanitizedEventTargets'
 
 // ====================
@@ -49,6 +51,7 @@ export default function EditableSpan(props: EditableSpanProps) {
   const onCancelEventCallback = eventCalback.useEventCallback(onCancel)
 
   React.useEffect(() => {
+    console.log(checkSubmittable, inputRef.current?.value)
     setIsSubmittable(checkSubmittable?.(inputRef.current?.value ?? '') ?? true)
     // This effect MUST only run on mount.
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -104,7 +107,11 @@ export default function EditableSpan(props: EditableSpanProps) {
           onKeyDown={event => {
             if (event.key !== 'Escape') {
               // The input may handle the event.
-              event.stopPropagation()
+              if (event.key === 'Enter' && eventModule.areNoModifiersPressed(event)) {
+                event.stopPropagation()
+              } else {
+                event.stopPropagation()
+              }
             }
           }}
           {...(inputPattern == null ? {} : { pattern: inputPattern })}
@@ -118,27 +125,18 @@ export default function EditableSpan(props: EditableSpanProps) {
               })}
         />
         {isSubmittable && (
-          <FocusRing>
-            <aria.Button
-              type="submit"
-              className="mx-tick-cross-button my-auto flex rounded-full transition-colors hover:bg-hover-bg"
-            >
-              <SvgMask src={TickIcon} alt={getText('confirmEdit')} className="size-icon" />
-            </aria.Button>
-          </FocusRing>
+          <UnstyledButton
+            className="mx-tick-cross-button my-auto flex rounded-full transition-colors hover:bg-hover-bg"
+            onPress={eventModule.submitForm}
+          >
+            <SvgMask src={TickIcon} alt={getText('confirmEdit')} className="size-icon" />
+          </UnstyledButton>
         )}
         <FocusRing>
-          {/* This button requires an `onMouseDown` handler which is not possible with an
-           * `aria.Button`. */}
-          {/* eslint-disable-next-line no-restricted-syntax */}
-          <button
-            type="button"
+          <UnstyledButton
             className="mx-tick-cross-button my-auto flex rounded-full transition-colors hover:bg-hover-bg"
-            onMouseDown={() => {
+            onPress={() => {
               cancelled.current = true
-            }}
-            onClick={event => {
-              event.stopPropagation()
               onCancel()
               window.setTimeout(() => {
                 cancelled.current = false
@@ -146,7 +144,7 @@ export default function EditableSpan(props: EditableSpanProps) {
             }}
           >
             <SvgMask src={CrossIcon} alt={getText('cancelEdit')} className="size-icon" />
-          </button>
+          </UnstyledButton>
         </FocusRing>
       </form>
     )
