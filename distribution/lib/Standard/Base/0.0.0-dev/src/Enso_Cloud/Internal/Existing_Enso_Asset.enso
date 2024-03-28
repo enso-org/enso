@@ -1,0 +1,29 @@
+private
+
+## PRIVATE
+   Currently, most of the Cloud API relies on asset IDs and not paths.
+   This object is a proxy for an existing asset within the cloud - whenever we
+   perform an operation that operates on IDs, we can fetch this helper and then
+   use it to perform the operation.
+type Existing_Enso_Asset
+    ## PRIVATE
+       Represents an existing asset within the Enso cloud.
+    Value name:Text id:Text organization:Text asset_type:Enso_Asset_Type
+
+
+    ## PRIVATE
+       Target URI for the api
+    internal_uri : Text
+    internal_uri self = case self.id of
+        "" -> if self.asset_type == Enso_Asset_Type.Directory then Utils.directory_api else
+            Error.throw (Illegal_Argument.Error "Invalid ID for a "+self.asset_type.to_text+".")
+        _ -> case self.asset_type of
+            Enso_Asset_Type.Directory -> Utils.directory_api + "/" + self.id
+            Enso_Asset_Type.File -> Utils.files_api + "/" + self.id
+            Enso_Asset_Type.Project -> Utils.projects_api + "/" + self.id
+            Enso_Asset_Type.Data_Link -> Utils.datalinks_api + "/" + self.id
+            Enso_Asset_Type.Secret -> Error.throw (Illegal_Argument.Error "Secrets cannot be accessed directly.")
+
+    ## PRIVATE
+    asset_uri : Enso_File -> Text
+    asset_uri file:Enso_File = Utils.assets_api + "/" + file.id

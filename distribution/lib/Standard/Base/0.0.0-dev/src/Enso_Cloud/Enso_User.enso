@@ -45,6 +45,13 @@ type Enso_User
     flush_caches : Nothing
     flush_caches = Utils.flush_caches
 
+    ## PRIVATE
+       The user's organization name. Paths to Cloud assets start with this name.
+    organization_name -> Text =
+        # TODO use https://github.com/enso-org/cloud-v2/pull/1140 to get the org name
+        org_name = Nothing
+        org_name.if_nothing self.name
+
 ## PRIVATE
 Enso_User.from (that:JS_Object) =
     root_folder_id = get_required_field "rootDirectoryId" that expected_type=Text

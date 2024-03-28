@@ -74,8 +74,8 @@ add_specs suite_builder setup:Cloud_Tests_Setup = setup.with_prepared_environmen
             f.exists . should_be_true
 
         group_builder.specify "should be able to find a file by path" <|
-            File.new "enso://"+Enso_User.current.name+"/" . should_equal Enso_File.root
-            File.new "enso://"+Enso_User.current.name+"/test_file.json" . should_equal (Enso_File.root / "test_file.json")
+            File.new "enso://"+Enso_User.current.organization_name+"/" . should_equal Enso_File.root
+            File.new "enso://"+Enso_User.current.organization_name+"/test_file.json" . should_equal (Enso_File.root / "test_file.json")
 
         group_builder.specify "should not find nonexistent files" <|
             f = Enso_File.root / "nonexistent_file.json"
@@ -125,10 +125,10 @@ add_specs suite_builder setup:Cloud_Tests_Setup = setup.with_prepared_environmen
             test_file.read_bytes . should_equal expected_file_text.utf_8
 
         group_builder.specify "should be able to read the file by path using Data.read" <|
-            Data.read "enso://"+Enso_User.current.name+"/test_file.json" . should_equal [1, 2, 3, "foo"]
-            Data.read "enso://"+Enso_User.current.name+"/test-directory/another.txt" . should_equal "Hello Another!"
+            Data.read "enso://"+Enso_User.current.organization_name+"/test_file.json" . should_equal [1, 2, 3, "foo"]
+            Data.read "enso://"+Enso_User.current.organization_name+"/test-directory/another.txt" . should_equal "Hello Another!"
 
-            r = Data.read "enso://"+Enso_User.current.name+"/test-directory/nonexistent-directory/some-file.txt"
+            r = Data.read "enso://"+Enso_User.current.organization_name+"/test-directory/nonexistent-directory/some-file.txt"
             r.should_fail_with Not_Found
 
         group_builder.specify "should be able to open a file as input stream" <|

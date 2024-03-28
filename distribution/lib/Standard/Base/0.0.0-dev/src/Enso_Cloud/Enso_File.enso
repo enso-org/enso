@@ -67,13 +67,12 @@ type Enso_File
             parent / parsed.asset_name
 
     ## PRIVATE
-       Represents a file or folder within the Enso cloud.
-    Value name:Text id:Text organization:Text asset_type:Enso_Asset_Type
+    Value (path : Enso_Path)
 
     ## ICON folder
        Represents the root folder of the current users.
     root : Enso_File
-    root = Enso_File.Value "/" "" "" Enso_Asset_Type.Directory
+    root = Enso_File.Value (Enso_Path.root_for Enso_User.current.organization_name)
 
     ## ICON folder
        Represents the current working directory.
@@ -88,19 +87,6 @@ type Enso_File
         java_dir = Utils.internal_cloud_project_directory
         if java_dir.is_nothing then Enso_File.root else
             Enso_File.Value java_dir.name java_dir.id java_dir.organizationId Enso_Asset_Type.Directory
-
-    ## PRIVATE
-       Target URI for the api
-    internal_uri : Text
-    internal_uri self = case self.id of
-        "" -> if self.asset_type == Enso_Asset_Type.Directory then Utils.directory_api else
-            Error.throw (Illegal_Argument.Error "Invalid ID for a "+self.asset_type.to_text+".")
-        _ -> case self.asset_type of
-            Enso_Asset_Type.Directory -> Utils.directory_api + "/" + self.id
-            Enso_Asset_Type.File -> Utils.files_api + "/" + self.id
-            Enso_Asset_Type.Project -> Utils.projects_api + "/" + self.id
-            Enso_Asset_Type.Data_Link -> Utils.datalinks_api + "/" + self.id
-            Enso_Asset_Type.Secret -> Error.throw (Illegal_Argument.Error "Secrets cannot be accessed directly.")
 
     ## GROUP Metadata
        ICON metadata
@@ -354,16 +340,13 @@ type Enso_File
        Resolves a file or directory within this directory.
     / : Text -> Enso_File ! Not_Found
     / self (name : Text) -> Enso_File ! Not_Found =
-        if self.is_directory.not then Error.throw (Illegal_Argument.Error "/ can only be used for directories") else
-            if name.contains "/" then Error.throw (Illegal_Argument.Error "Resolving sub-paths (/) is not implemented. Temporary workaround: use the `/` operator multiple times.") else
-                self.list . find f-> f.name == name
+        Enso_File.Value (self.path.resolve name)
 
     ## PRIVATE
        Returns the text representation of the file descriptor.
     to_text : Text
     to_text self -> Text =
-        if self == Enso_File.root then "Cloud Root Directory" else
-            "Cloud " + self.asset_type.to_text + " " + self.name
+        "Enso_File "+self.path.to_text
 
 ## PRIVATE
 list_assets parent = if parent.asset_type != Enso_Asset_Type.Directory then Error.throw (Illegal_Argument.Error "Only directories can be listed.") else
@@ -429,7 +412,3 @@ get_download_url_for_file file:Enso_File -> Text =
     file_description = get_file_description file
     presigned_url = file_description |> get_required_field "url" expected_type=Text
     presigned_url
-
-## PRIVATE
-asset_uri : Enso_File -> Text
-asset_uri file:Enso_File = Utils.assets_api + "/" + file.id
