@@ -4,7 +4,7 @@ import * as React from 'react'
 
 import type * as backend from '#/services/Backend'
 
-import type AssetTreeNode from '#/utilities/AssetTreeNode'
+import AssetTreeNode from '#/utilities/AssetTreeNode'
 
 // ===================
 // === useSetAsset ===
@@ -28,7 +28,13 @@ export function useSetAsset<T extends backend.AnyAsset>(
               // eslint-disable-next-line no-restricted-syntax
               valueOrUpdater(oldNode.item as T)
             : valueOrUpdater
-        return oldNode.with({ item })
+        const ret = oldNode.with({ item })
+        if (!(ret instanceof AssetTreeNode)) {
+          // eslint-disable-next-line no-restricted-properties
+          console.trace('Error: The new value of an `AssetTreeNode` should be an `AssetTreeNode`.')
+          Object.setPrototypeOf(ret, AssetTreeNode.prototype)
+        }
+        return ret
       })
     },
     [/* should never change */ setNode]

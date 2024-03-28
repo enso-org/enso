@@ -18,6 +18,7 @@ import AssetListEventType from '#/events/AssetListEventType'
 import AssetContextMenu from '#/layouts/AssetContextMenu'
 import type * as assetsTable from '#/layouts/AssetsTable'
 
+import * as aria from '#/components/aria'
 import * as assetRowUtils from '#/components/dashboard/AssetRow/assetRowUtils'
 import * as columnModule from '#/components/dashboard/column'
 import * as columnUtils from '#/components/dashboard/column/columnUtils'
@@ -656,8 +657,8 @@ export default function AssetRow(props: AssetRowProps) {
                   }
                 }
               }}
-              className={`h-row rounded-full outline-2 -outline-offset-2 outline-primary ease-in-out ${visibility} ${
-                isKeyboardSelected ? 'outline' : ''
+              className={`h-row rounded-full transition-all ease-in-out ${visibility} ${
+                isKeyboardSelected ? 'focus-ring' : ''
               } ${isDraggedOver || selected ? 'selected' : ''}`}
               onClick={event => {
                 unsetModal()
@@ -849,7 +850,9 @@ export default function AssetRow(props: AssetRowProps) {
               className={`flex h-row items-center rounded-full ${indent.indentClass(item.depth)}`}
             >
               <img src={BlankIcon} />
-              <span className="px-name-column-x placeholder">{getText('thisFolderIsEmpty')}</span>
+              <aria.Text className="px-name-column-x placeholder">
+                {getText('thisFolderIsEmpty')}
+              </aria.Text>
             </div>
           </td>
         </tr>

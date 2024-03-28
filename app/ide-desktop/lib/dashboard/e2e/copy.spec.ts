@@ -81,7 +81,7 @@ test.test('move (drag)', async ({ page }) => {
   // Assets: [0: Folder 1]
   await actions.locateNewFolderIcon(page).click()
   // Assets: [0: Folder 2, 1: Folder 1]
-  await assetRows.nth(0).dragTo(assetRows.nth(1))
+  await actions.dragAssetRowToAssetRow(assetRows.nth(0), assetRows.nth(1))
   // Assets: [0: Folder 1, 1: Folder 2 <child { depth=1 }>]
   await test.expect(assetRows).toHaveCount(2)
   await test.expect(assetRows.nth(1)).toBeVisible()
@@ -99,8 +99,10 @@ test.test('move to trash', async ({ page }) => {
   await page.keyboard.down(await actions.modModifier(page))
   await actions.clickAssetRow(assetRows.nth(0))
   await actions.clickAssetRow(assetRows.nth(1))
-  await assetRows.nth(0).dragTo(actions.locateTrashCategory(page))
+  // NOTE: For some reason, `react-aria-components` causes drag-n-drop to break if `Mod` is still
+  // held.
   await page.keyboard.up(await actions.modModifier(page))
+  await actions.dragAssetRow(assetRows.nth(0), actions.locateTrashCategory(page))
   await actions.expectPlaceholderRow(page)
   await actions.locateTrashCategory(page).click()
   await test.expect(assetRows).toHaveCount(2)

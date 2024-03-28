@@ -15,6 +15,8 @@ import * as authProvider from '#/providers/AuthProvider'
 import * as loggerProvider from '#/providers/LoggerProvider'
 import * as textProvider from '#/providers/TextProvider'
 
+import * as aria from '#/components/aria'
+import UnstyledButton from '#/components/styled/UnstyledButton'
 import SvgMask from '#/components/SvgMask'
 import Twemoji from '#/components/Twemoji'
 
@@ -110,9 +112,9 @@ function ReactionBar(props: ReactionBarProps) {
   return (
     <div className={`m-chat-reaction-bar inline-block rounded-full bg-frame ${className ?? ''}`}>
       {REACTION_EMOJIS.map(emoji => (
-        <button
+        <UnstyledButton
           key={emoji}
-          onClick={() => {
+          onPress={() => {
             if (selectedReactions.has(emoji)) {
               doRemoveReaction(emoji)
             } else {
@@ -124,7 +126,7 @@ function ReactionBar(props: ReactionBarProps) {
           }`}
         >
           <Twemoji key={emoji} emoji={emoji} size={REACTION_BUTTON_SIZE} />
-        </button>
+        </UnstyledButton>
       ))}
     </div>
   )
@@ -263,17 +265,14 @@ function ChatHeader(props: InternalChatHeaderProps) {
     }
   }, [gtagEvent])
 
-  const toggleThreadListVisibility = React.useCallback((event: React.SyntheticEvent) => {
-    event.stopPropagation()
-    setIsThreadListVisible(visible => !visible)
-  }, [])
-
   return (
     <>
       <div className="mx-chat-header-x mt-chat-header-t flex text-sm font-semibold">
-        <button
+        <UnstyledButton
           className="flex grow items-center gap-icon-with-text"
-          onClick={toggleThreadListVisibility}
+          onPress={() => {
+            setIsThreadListVisible(visible => !visible)
+          }}
         >
           <SvgMask
             className={`shrink-0 transition-transform duration-arrow ${
@@ -282,7 +281,7 @@ function ChatHeader(props: InternalChatHeaderProps) {
             src={FolderArrowIcon}
           />
           <div className="grow">
-            <input
+            <aria.Input
               type="text"
               ref={titleInputRef}
               defaultValue={threadTitle}
@@ -320,10 +319,10 @@ function ChatHeader(props: InternalChatHeaderProps) {
               }}
             />
           </div>
-        </button>
-        <button className="mx-close-icon" onClick={doClose}>
+        </UnstyledButton>
+        <UnstyledButton className="mx-close-icon" onPress={doClose}>
           <img src={CloseLargeIcon} />
-        </button>
+        </UnstyledButton>
       </div>
       <div className="relative text-sm font-semibold">
         <div
@@ -592,8 +591,7 @@ export default function Chat(props: ChatProps) {
   )
 
   const sendCurrentMessage = React.useCallback(
-    (event: React.SyntheticEvent, createNewThread?: boolean) => {
-      event.preventDefault()
+    (createNewThread?: boolean) => {
       const element = messageInputRef.current
       if (element != null) {
         const content = element.value
@@ -743,7 +741,9 @@ export default function Chat(props: ChatProps) {
         </div>
         <form
           className="mx-chat-form-x my-chat-form-y rounded-default bg-frame p-chat-form"
-          onSubmit={sendCurrentMessage}
+          onSubmit={() => {
+            sendCurrentMessage()
+          }}
         >
           <textarea
             ref={messageInputRef}
@@ -776,36 +776,37 @@ export default function Chat(props: ChatProps) {
             }}
           />
           <div className="flex gap-chat-buttons">
-            <button
-              type="button"
-              disabled={!isReplyEnabled}
+            <UnstyledButton
+              isDisabled={!isReplyEnabled}
               className={`text-xxs grow rounded-full px-chat-button-x py-chat-button-y text-left text-white ${
                 isReplyEnabled ? 'bg-gray-400' : 'bg-gray-300'
               }`}
-              onClick={event => {
-                sendCurrentMessage(event, true)
+              onPress={() => {
+                sendCurrentMessage(true)
               }}
             >
               {getText('clickForNewQuestion')}
-            </button>
-            <button
-              type="submit"
-              disabled={!isReplyEnabled}
+            </UnstyledButton>
+            <UnstyledButton
+              isDisabled={!isReplyEnabled}
               className="rounded-full bg-blue-600/90 px-chat-button-x py-chat-button-y text-white selectable enabled:active"
+              onPress={() => {
+                sendCurrentMessage()
+              }}
             >
               {getText('replyExclamation')}
-            </button>
+            </UnstyledButton>
           </div>
         </form>
         {!isPaidUser && (
-          <button
+          <UnstyledButton
             // This UI element does not appear anywhere else.
             // eslint-disable-next-line no-restricted-syntax
             className="mx-2 my-1 rounded-default bg-call-to-action/90 p-2 text-center leading-cozy text-white"
-            onClick={upgradeToPro}
+            onPress={upgradeToPro}
           >
             {getText('upgradeToProNag')}
-          </button>
+          </UnstyledButton>
         )}
       </div>,
       container

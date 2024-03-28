@@ -1,15 +1,16 @@
-/** @file Settings tab for viewing and editing account information. */
+/** @file Settings tab for viewing and editing organization members. */
 import * as React from 'react'
 
 import * as asyncEffectHooks from '#/hooks/asyncEffectHooks'
 
 import * as backendProvider from '#/providers/BackendProvider'
-import * as modalProvider from '#/providers/ModalProvider'
 import * as textProvider from '#/providers/TextProvider'
 
-import StatelessSpinner, * as statelessSpinner from '#/components/StatelessSpinner'
+import MembersSettingsTabBar from '#/layouts/Settings/MembersSettingsTabBar'
 
-import InviteUsersModal from '#/modals/InviteUsersModal'
+import StatelessSpinner, * as statelessSpinner from '#/components/StatelessSpinner'
+import SettingsPage from '#/components/styled/settings/SettingsPage'
+import SettingsSection from '#/components/styled/settings/SettingsSection'
 
 // ==========================
 // === MembersSettingsTab ===
@@ -18,26 +19,14 @@ import InviteUsersModal from '#/modals/InviteUsersModal'
 /** Settings tab for viewing and editing organization members. */
 export default function MembersSettingsTab() {
   const { backend } = backendProvider.useBackend()
-  const { setModal } = modalProvider.useSetModal()
   const { getText } = textProvider.useText()
   const members = asyncEffectHooks.useAsyncEffect(null, () => backend.listUsers(), [backend])
   const isLoading = members == null
 
   return (
-    <div className="flex flex-col gap-settings-subsection">
-      <div className="flex flex-col gap-settings-section-header">
-        <h3 className="settings-subheading">{getText('members')}</h3>
-        <div className="flex gap-drive-bar">
-          <button
-            className="flex h-row items-center rounded-full bg-frame px-new-project-button-x"
-            onClick={event => {
-              event.stopPropagation()
-              setModal(<InviteUsersModal eventTarget={null} />)
-            }}
-          >
-            <span className="text whitespace-nowrap font-semibold">{getText('inviteMembers')}</span>
-          </button>
-        </div>
+    <SettingsPage>
+      <SettingsSection noFocusArea title={getText('members')}>
+        <MembersSettingsTabBar />
         <table className="table-fixed self-start rounded-rows">
           <thead>
             <tr className="h-row">
@@ -52,7 +41,7 @@ export default function MembersSettingsTab() {
           <tbody className="select-text">
             {isLoading ? (
               <tr className="h-row">
-                <td colSpan={2} className="rounded-full">
+                <td colSpan={2} className="rounded-full bg-transparent">
                   <div className="flex justify-center">
                     <StatelessSpinner
                       size={32}
@@ -75,7 +64,7 @@ export default function MembersSettingsTab() {
             )}
           </tbody>
         </table>
-      </div>
-    </div>
+      </SettingsSection>
+    </SettingsPage>
   )
 }

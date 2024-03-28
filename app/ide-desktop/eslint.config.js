@@ -123,7 +123,7 @@ const RESTRICTED_SYNTAXES = [
     },
     {
         // Matches non-functions.
-        selector: `:matches(Program, ExportNamedDeclaration, TSModuleBlock) > VariableDeclaration[kind=const] > VariableDeclarator[id.name=${NOT_CONSTANT_CASE}]:not(:matches(:has(ArrowFunctionExpression), :has(CallExpression[callee.object.name=newtype][callee.property.name=newtypeConstructor])))`,
+        selector: `:matches(Program, ExportNamedDeclaration, TSModuleBlock) > VariableDeclaration[kind=const] > VariableDeclarator[id.name=${NOT_CONSTANT_CASE}]:not(:matches([init.callee.object.name=React][init.callee.property.name=forwardRef], :has(ArrowFunctionExpression), :has(CallExpression[callee.object.name=newtype][callee.property.name=newtypeConstructor])))`,
         message: 'Use `CONSTANT_CASE` for top-level constants that are not functions',
     },
     {
@@ -229,6 +229,27 @@ const RESTRICTED_SYNTAXES = [
         )`,
         message: 'Use a `getText()` from `useText` instead of a literal string',
     },
+    {
+        selector: 'JSXOpeningElement[name.name=button] > JSXIdentifier',
+        message: 'Use `Button` or `UnstyledButton` instead of `button`',
+    },
+    {
+        selector: 'JSXOpeningElement[name.name=label] > JSXIdentifier',
+        message: 'Use `aria.Label` instead of `label`',
+    },
+    {
+        selector: 'JSXOpeningElement[name.name=input] > JSXIdentifier',
+        message: 'Use `aria.Input` instead of `input`',
+    },
+    {
+        selector: 'JSXOpeningElement[name.name=span] > JSXIdentifier',
+        message: 'Use `aria.Text` instead of `span`',
+    },
+    {
+        selector: 'JSXOpeningElement[name.name=/^h[123456]$/] > JSXIdentifier',
+        message: 'Use `aria.Heading` instead of `h1`-`h6`',
+    },
+    // We may want to consider also preferring `aria.Form` in favor of `form` in the future.
 ]
 
 // ============================
@@ -273,6 +294,8 @@ export default [
             ...tsEslint.configs.strict?.rules,
             ...react.configs['jsx-runtime'].rules,
             eqeqeq: ['error', 'always', { null: 'never' }],
+            // Any extra semicolons that exist, are required by Prettier.
+            'no-extra-semi': 'off',
             'jsdoc/require-jsdoc': [
                 'error',
                 {

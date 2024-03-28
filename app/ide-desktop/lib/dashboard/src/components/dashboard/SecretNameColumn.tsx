@@ -14,6 +14,7 @@ import * as modalProvider from '#/providers/ModalProvider'
 import AssetEventType from '#/events/AssetEventType'
 import AssetListEventType from '#/events/AssetListEventType'
 
+import * as aria from '#/components/aria'
 import type * as column from '#/components/dashboard/column'
 import SvgMask from '#/components/SvgMask'
 
@@ -148,9 +149,9 @@ export default function SecretNameColumn(props: SecretNameColumnProps) {
     >
       <SvgMask src={KeyIcon} className="m-name-column-icon size-icon" />
       {/* Secrets cannot be renamed. */}
-      <span data-testid="asset-row-name" className="text grow bg-transparent">
+      <aria.Text data-testid="asset-row-name" className="text grow bg-transparent">
         {asset.title}
-      </span>
+      </aria.Text>
     </div>
   )
 }

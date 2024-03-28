@@ -116,13 +116,13 @@ export default function SelectionBrush(props: SelectionBrushProps) {
     document.addEventListener('mouseup', onMouseUp)
     document.addEventListener('dragstart', onDragStart, { capture: true })
     document.addEventListener('mousemove', onMouseMove)
-    document.addEventListener('click', onClick)
+    document.addEventListener('click', onClick, { capture: true })
     return () => {
       document.removeEventListener('mousedown', onMouseDown)
       document.removeEventListener('mouseup', onMouseUp)
       document.removeEventListener('dragstart', onDragStart, { capture: true })
       document.removeEventListener('mousemove', onMouseMove)
-      document.removeEventListener('click', onClick)
+      document.removeEventListener('click', onClick, { capture: true })
     }
   }, [/* should never change */ modalRef])
 

@@ -1,21 +1,15 @@
-/**
- * @file
- *
- * A DialogTrigger opens a dialog when a trigger element is pressed.
- */
+/** @file A DialogTrigger opens a dialog when a trigger element is pressed. */
 import * as React from 'react'
 
-import * as reactAriaComponents from 'react-aria-components'
-
 import * as modalProvider from '#/providers/ModalProvider'
+
+import * as aria from '#/components/aria'
 
 import type * as types from './types'
 
 const PLACEHOLDER = <div />
 
-/**
- * A DialogTrigger opens a dialog when a trigger element is pressed.
- */
+/** A DialogTrigger opens a dialog when a trigger element is pressed. */
 export function DialogTrigger(props: types.DialogTriggerProps) {
   const { children, onOpenChange, ...triggerProps } = props
 
@@ -24,7 +18,8 @@ export function DialogTrigger(props: types.DialogTriggerProps) {
   const onOpenChangeInternal = React.useCallback(
     (isOpened: boolean) => {
       if (isOpened) {
-        // we're using a placeholder here just to let the rest of the code know that the modal is open
+        // We're using a placeholder here just to let the rest of the code know that the modal
+        // is open.
         setModal(PLACEHOLDER)
       } else {
         unsetModal()
@@ -36,10 +31,6 @@ export function DialogTrigger(props: types.DialogTriggerProps) {
   )
 
   return (
-    <reactAriaComponents.DialogTrigger
-      children={children}
-      onOpenChange={onOpenChangeInternal}
-      {...triggerProps}
-    />
+    <aria.DialogTrigger children={children} onOpenChange={onOpenChangeInternal} {...triggerProps} />
   )
 }

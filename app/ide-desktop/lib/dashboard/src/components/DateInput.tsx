@@ -7,6 +7,8 @@ import FolderArrowIcon from 'enso-assets/folder_arrow.svg'
 
 import * as textProvider from '#/providers/TextProvider'
 
+import * as aria from '#/components/aria'
+import UnstyledButton from '#/components/styled/UnstyledButton'
 import SvgMask from '#/components/SvgMask'
 
 import * as dateTime from '#/utilities/dateTime'
@@ -96,23 +98,24 @@ export default function DateInput(props: DateInputProps) {
     >
       <div
         role="button"
-        className={`flex h-text w-date-picker items-center rounded-full border border-primary/10 px-date-input transition-colors hover:[&:not(:has(button:hover))]:bg-hover-bg ${date == null ? 'placeholder' : ''}`}
+        tabIndex={0}
+        className={`focus-child flex h-text w-date-picker items-center rounded-full border border-primary/10 px-date-input transition-colors hover:[&:not(:has(button:hover))]:bg-hover-bg ${date == null ? 'placeholder' : ''}`}
         onClick={() => {
           setIsPickerVisible(!isPickerVisible)
         }}
       >
         <div className="flex grow flex-col items-center">
-          {date != null ? dateTime.formatDate(date) : 'No date selected'}
+          {date != null ? dateTime.formatDate(date) : getText('noDateSelected')}
         </div>
         {date != null && (
-          <button
+          <UnstyledButton
             className="flex rounded-full transition-colors hover:bg-hover-bg"
-            onClick={() => {
+            onPress={() => {
               onInput(null)
             }}
           >
             <SvgMask src={CrossIcon} className="size-icon" />
-          </button>
+          </UnstyledButton>
         )}
       </div>
       {isPickerVisible && (
@@ -121,17 +124,17 @@ export default function DateInput(props: DateInputProps) {
             <table className="relative w-full">
               <caption className="mb-date-input-gap caption-top">
                 <div className="flex items-center">
-                  <button
+                  <UnstyledButton
                     className="inline-flex rounded-small-rectangle-button hover:bg-hover-bg"
-                    onClick={() => {
+                    onPress={() => {
                       setSelectedYear(selectedYear - 1)
                     }}
                   >
                     <SvgMask src={FolderArrowDoubleIcon} className="rotate-180" />
-                  </button>
-                  <button
+                  </UnstyledButton>
+                  <UnstyledButton
                     className="inline-flex rounded-small-rectangle-button hover:bg-black/10"
-                    onClick={() => {
+                    onPress={() => {
                       if (selectedMonthIndex === 0) {
                         setSelectedYear(selectedYear - 1)
                         setSelectedMonthIndex(LAST_MONTH_INDEX)
@@ -141,13 +144,13 @@ export default function DateInput(props: DateInputProps) {
                     }}
                   >
                     <SvgMask src={FolderArrowIcon} className="rotate-180" />
-                  </button>
-                  <span className="grow">
+                  </UnstyledButton>
+                  <aria.Text className="grow">
                     {dateTime.MONTH_NAMES[selectedMonthIndex]} {selectedYear}
-                  </span>
-                  <button
+                  </aria.Text>
+                  <UnstyledButton
                     className="inline-flex rounded-small-rectangle-button hover:bg-black/10"
-                    onClick={() => {
+                    onPress={() => {
                       if (selectedMonthIndex === LAST_MONTH_INDEX) {
                         setSelectedYear(selectedYear + 1)
                         setSelectedMonthIndex(0)
@@ -157,15 +160,15 @@ export default function DateInput(props: DateInputProps) {
                     }}
                   >
                     <SvgMask src={FolderArrowIcon} />
-                  </button>
-                  <button
+                  </UnstyledButton>
+                  <UnstyledButton
                     className="inline-flex rounded-small-rectangle-button hover:bg-black/10"
-                    onClick={() => {
+                    onPress={() => {
                       setSelectedYear(selectedYear + 1)
                     }}
                   >
                     <SvgMask src={FolderArrowDoubleIcon} />
-                  </button>
+                  </UnstyledButton>
                 </div>
               </caption>
               <thead>
@@ -194,20 +197,17 @@ export default function DateInput(props: DateInputProps) {
                         currentDate.getMonth() === monthIndex &&
                         currentDate.getDate() === date.getDate()
                       return (
-                        <td
-                          key={j}
-                          className="text-tight p"
-                          onClick={() => {
-                            setIsPickerVisible(false)
-                            onInput(currentDate)
-                          }}
-                        >
-                          <button
-                            disabled={isSelectedDate}
+                        <td key={j} className="text-tight p">
+                          <UnstyledButton
+                            isDisabled={isSelectedDate}
                             className={`w-full rounded-small-rectangle-button text-center hover:bg-primary/10 disabled:bg-frame disabled:font-bold ${day.monthOffset === 0 ? '' : 'opacity-unimportant'}`}
+                            onPress={() => {
+                              setIsPickerVisible(false)
+                              onInput(currentDate)
+                            }}
                           >
                             {day.date}
-                          </button>
+                          </UnstyledButton>
                         </td>
                       )
                     })}

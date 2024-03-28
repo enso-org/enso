@@ -15,6 +15,7 @@ import type * as dashboardInputBindings from '#/configurations/inputBindings'
 import * as inputBindingsProvider from '#/providers/InputBindingsProvider'
 import * as textProvider from '#/providers/TextProvider'
 
+import * as aria from '#/components/aria'
 import SvgMask from '#/components/SvgMask'
 
 import * as inputBindingsModule from '#/utilities/inputBindings'
@@ -55,18 +56,18 @@ const MODIFIER_JSX: Readonly<
   },
   [detect.Platform.linux]: {
     Meta: props => (
-      <span key="Meta" className="text">
+      <aria.Text key="Meta" className="text">
         {props.getText('superModifier')}
-      </span>
+      </aria.Text>
     ),
   },
   [detect.Platform.unknown]: {
     // Assume the system is Unix-like and calls the key that triggers `event.metaKey`
     // the "Super" key.
     Meta: props => (
-      <span key="Meta" className="text">
+      <aria.Text key="Meta" className="text">
         {props.getText('superModifier')}
-      </span>
+      </aria.Text>
     ),
   },
   /* eslint-enable @typescript-eslint/naming-convention */
@@ -119,7 +120,7 @@ export default function KeyboardShortcut(props: KeyboardShortcutProps) {
       .sort(inputBindingsModule.compareModifiers)
       .map(inputBindingsModule.toModifierKey)
     return (
-      <div
+      <aria.Keyboard
         className={`flex h-text items-center ${
           detect.isOnMacOS() ? 'gap-modifiers-macos' : 'gap-modifiers'
         }`}
@@ -127,15 +128,15 @@ export default function KeyboardShortcut(props: KeyboardShortcutProps) {
         {modifiers.map(
           modifier =>
             MODIFIER_JSX[detect.platform()][modifier]?.({ getText }) ?? (
-              <span key={modifier} className="text">
+              <aria.Text key={modifier} className="text">
                 {getText(MODIFIER_TO_TEXT_ID[modifier])}
-              </span>
+              </aria.Text>
             )
         )}
-        <span className="text">
+        <aria.Text className="text">
           {shortcut.key === ' ' ? 'Space' : KEY_CHARACTER[shortcut.key] ?? shortcut.key}
-        </span>
-      </div>
+        </aria.Text>
+      </aria.Keyboard>
     )
   }
 }

@@ -310,6 +310,7 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
               : ''
         }`}
         checkSubmittable={newTitle =>
+          newTitle !== item.item.title &&
           (nodeMap.current.get(item.directoryKey)?.children ?? []).every(
             child =>
               // All siblings,

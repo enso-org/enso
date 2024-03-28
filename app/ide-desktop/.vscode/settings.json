@@ -4,5 +4,11 @@
   "javascript.preferences.importModuleSpecifierEnding": "minimal",
   "typescript.preferences.importModuleSpecifierEnding": "minimal",
   "javascript.updateImportsOnFileMove.enabled": "always",
-  "typescript.updateImportsOnFileMove.enabled": "always"
+  "typescript.updateImportsOnFileMove.enabled": "always",
+  "typescript.preferences.autoImportFileExcludePatterns": [
+    "react-aria",
+    "react-aria-components",
+    "@react-aria/*",
+    "@react-types/*"
+  ]
 }

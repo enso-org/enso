@@ -1,4 +1,4 @@
-/** @file The React provider for keyboard and mouse localStorage, along with hooks to use the provider
+/** @file The React provider for localStorage, along with hooks to use the provider
  * via the shared React context. */
 import * as React from 'react'
 

@@ -10,6 +10,8 @@ import AssetProperties from '#/layouts/AssetProperties'
 import AssetVersions from '#/layouts/AssetVersions/AssetVersions'
 import type Category from '#/layouts/CategorySwitcher/Category'
 
+import UnstyledButton from '#/components/styled/UnstyledButton'
+
 import * as backend from '#/services/Backend'
 
 import * as array from '#/utilities/array'
@@ -107,11 +109,11 @@ export default function AssetPanel(props: AssetPanelProps) {
         {item != null &&
           item.item.type !== backend.AssetType.secret &&
           item.item.type !== backend.AssetType.directory && (
-            <button
+            <UnstyledButton
               className={`button select-none bg-frame px-button-x leading-cozy transition-colors hover:bg-selected-frame ${
                 tab !== AssetPanelTab.versions ? '' : 'bg-selected-frame active'
               }`}
-              onClick={() => {
+              onPress={() => {
                 setTab(oldTab =>
                   oldTab === AssetPanelTab.versions
                     ? AssetPanelTab.properties
@@ -120,7 +122,7 @@ export default function AssetPanel(props: AssetPanelProps) {
               }}
             >
               {getText('versions')}
-            </button>
+            </UnstyledButton>
           )}
         {/* Spacing. The top right asset and user bars overlap this area. */}
         <div className="grow" />

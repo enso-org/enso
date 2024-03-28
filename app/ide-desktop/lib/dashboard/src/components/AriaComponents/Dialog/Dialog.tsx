@@ -5,11 +5,11 @@
  */
 import * as React from 'react'
 
-import * as reactAriaComponents from 'react-aria-components'
 import * as tailwindMerge from 'tailwind-merge'
 
 import Dismiss from 'enso-assets/dismiss.svg'
 
+import * as aria from '#/components/aria'
 import * as ariaComponents from '#/components/AriaComponents'
 import * as portal from '#/components/Portal'
 
@@ -50,21 +50,23 @@ export function Dialog(props: types.DialogProps) {
   const root = portal.useStrictPortalContext()
 
   return (
-    <reactAriaComponents.Modal
+    <aria.Modal
       className={tailwindMerge.twMerge(MODAL_CLASSES, [MODAL_CLASSES_BY_TYPE[type]])}
       isDismissable={isDismissible}
       isKeyboardDismissDisabled={isKeyboardDismissDisabled}
       UNSTABLE_portalContainer={root.current}
     >
-      <reactAriaComponents.Dialog
+      <aria.Dialog
         className={tailwindMerge.twMerge(DIALOG_CLASSES, [DIALOG_CLASSES_BY_TYPE[type]], className)}
         {...ariaDialogProps}
       >
         {opts => (
           <>
             {typeof title === 'string' && (
-              <reactAriaComponents.Header className="center sticky flex flex-none border-b px-3.5 py-2.5 text-primary shadow">
-                <h2 className="text-l my-0 font-semibold leading-6">{title}</h2>
+              <aria.Header className="center sticky flex flex-none border-b px-3.5 py-2.5 text-primary shadow">
+                <aria.Heading level={2} className="text-l my-0 font-semibold leading-6">
+                  {title}
+                </aria.Heading>
 
                 <ariaComponents.Button
                   variant="icon"
@@ -72,7 +74,7 @@ export function Dialog(props: types.DialogProps) {
                   onPress={opts.close}
                   icon={Dismiss}
                 />
-              </reactAriaComponents.Header>
+              </aria.Header>
             )}
 
             <div className="flex-1 shrink-0">
@@ -80,7 +82,7 @@ export function Dialog(props: types.DialogProps) {
             </div>
           </>
         )}
-      </reactAriaComponents.Dialog>
-    </reactAriaComponents.Modal>
+      </aria.Dialog>
+    </aria.Modal>
   )
 }

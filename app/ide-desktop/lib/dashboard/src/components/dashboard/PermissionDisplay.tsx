@@ -1,6 +1,9 @@
 /** @file Colored border around icons and text indicating permissions. */
 import * as React from 'react'
 
+import type * as aria from '#/components/aria'
+import UnstyledButton from '#/components/styled/UnstyledButton'
+
 import * as permissionsModule from '#/utilities/permissions'
 
 // =================
@@ -11,14 +14,12 @@ import * as permissionsModule from '#/utilities/permissions'
 export interface PermissionDisplayProps extends Readonly<React.PropsWithChildren> {
   readonly action: permissionsModule.PermissionAction
   readonly className?: string
-  readonly onClick?: React.MouseEventHandler<HTMLButtonElement>
-  readonly onMouseEnter?: React.MouseEventHandler<HTMLButtonElement>
-  readonly onMouseLeave?: React.MouseEventHandler<HTMLButtonElement>
+  readonly onPress?: (event: aria.PressEvent) => void
 }
 
 /** Colored border around icons and text indicating permissions. */
 export default function PermissionDisplay(props: PermissionDisplayProps) {
-  const { action, className, onClick, onMouseEnter, onMouseLeave, children } = props
+  const { action, className, onPress: onPress, children } = props
   const permission = permissionsModule.FROM_PERMISSION_ACTION[action]
 
   switch (permission.type) {
@@ -26,29 +27,25 @@ export default function PermissionDisplay(props: PermissionDisplayProps) {
     case permissionsModule.Permission.admin:
     case permissionsModule.Permission.edit: {
       return (
-        <button
-          disabled={!onClick}
+        <UnstyledButton
+          isDisabled={!onPress}
           className={`${
             permissionsModule.PERMISSION_CLASS_NAME[permission.type]
           } inline-block h-text whitespace-nowrap rounded-full px-permission-mini-button-x py-permission-mini-button-y ${
             className ?? ''
           }`}
-          onClick={onClick}
-          onMouseEnter={onMouseEnter}
-          onMouseLeave={onMouseLeave}
+          onPress={onPress ?? (() => {})}
         >
           {children}
-        </button>
+        </UnstyledButton>
       )
     }
     case permissionsModule.Permission.read:
     case permissionsModule.Permission.view: {
       return (
-        <button
+        <UnstyledButton
           className={`relative inline-block whitespace-nowrap rounded-full ${className ?? ''}`}
-          onClick={onClick}
-          onMouseEnter={onMouseEnter}
-          onMouseLeave={onMouseLeave}
+          onPress={onPress ?? (() => {})}
         >
           {permission.docs && (
             <div className="absolute size-full rounded-full border-2 border-permission-docs clip-path-top" />
@@ -63,7 +60,7 @@ export default function PermissionDisplay(props: PermissionDisplayProps) {
           >
             {children}
           </div>
-        </button>
+        </UnstyledButton>
       )
     }
   }
