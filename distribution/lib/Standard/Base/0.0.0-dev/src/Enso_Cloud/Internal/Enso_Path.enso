@@ -36,7 +36,8 @@ type Enso_Path
         Enso_Path.Value organization_name [] Nothing
 
     ## PRIVATE
-    resolve_parent self =
+    resolve_parent self -> Enso_File =
+        # TODO this is outdated
         self.path_segments.fold Enso_File.root (/)
 
     ## PRIVATE

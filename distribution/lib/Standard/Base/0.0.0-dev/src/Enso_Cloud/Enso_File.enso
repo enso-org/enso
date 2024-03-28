@@ -61,13 +61,10 @@ type Enso_File
          files.
     new : Text -> Enso_File ! Not_Found
     new (path : Text) =
-        parsed = Enso_Path.parse path
-        parent = parsed.resolve_parent
-        if parsed.asset_name == Nothing then parent else
-            parent / parsed.asset_name
+        Enso_File.Value (Enso_Path.parse path)
 
     ## PRIVATE
-    Value (path : Enso_Path)
+    Value (enso_path : Enso_Path)
 
     ## ICON folder
        Represents the root folder of the current users.
@@ -84,9 +81,16 @@ type Enso_File
        directory.
     current_working_directory : Enso_File
     current_working_directory =
-        java_dir = Utils.internal_cloud_project_directory
-        if java_dir.is_nothing then Enso_File.root else
-            Enso_File.Value java_dir.name java_dir.id java_dir.organizationId Enso_Asset_Type.Directory
+        # TODO update internal_cloud_project_directory!
+        java_path = Utils.internal_cloud_project_directory
+        if java_path.is_nothing then Enso_File.root else
+            Enso_File.new java_path
+
+    ## PRIVATE
+    asset_type self -> Enso_Asset_Type =
+        # TODO maybe we can short circuit if it ends with `.datalink` or `.secret`?
+        # TODO fetch asset type from the API
+        Nothing
 
     ## GROUP Metadata
        ICON metadata
@@ -138,19 +142,21 @@ type Enso_File
        ICON folder
        Finds the parent Enso_File for this file.
     parent : Enso_File | Nothing
-    parent self = Unimplemented.throw "Enso_File.parent is not implemented"
+    parent self =
+        # TODO resolve parent path
+        Unimplemented.throw "Enso_File.parent is not implemented"
 
     ## GROUP Metadata
        ICON metadata
        Returns the path of this file.
-    path : Text
-    path self = Unimplemented.throw "Enso_File.path is not implemented"
+    path self -> Text = self.enso_path.to_text
 
     ## GROUP Metadata
        ICON metadata
        Checks if `self` is a descendant of `other`.
     is_descendant_of : Enso_File -> Boolean
     is_descendant_of self (other : Enso_File) =
+        # TODO common path logic with S3 I guess?
         _ = other
         Unimplemented.throw "Enso_File.is_descendant_of is not implemented"
 
@@ -399,16 +405,3 @@ File_Format_Metadata.from (that:Enso_File) =
         Enso_Asset_Type.File ->
             File_Format_Metadata.Value path=path name=that.name extension=(that.extension.catch _->Nothing)
         _ -> Error.throw (Illegal_Argument.Error "`File_Format_Metadata` is not available for: "+self.asset_type.to_text+".")
-
-## PRIVATE
-   Fetches the basic information about a file from the Cloud endpoint.
-get_file_description file:Enso_File -> JS_Object =
-    Utils.http_request_as_json HTTP_Method.Get file.internal_uri
-
-## PRIVATE
-   The returned URL may be valid only for a very short time, so it should not be
-   stored anywhere.
-get_download_url_for_file file:Enso_File -> Text =
-    file_description = get_file_description file
-    presigned_url = file_description |> get_required_field "url" expected_type=Text
-    presigned_url
