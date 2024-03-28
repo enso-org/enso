@@ -577,30 +577,35 @@ function handleEdgeDrop(source: AstId, position: Vec2) {
 }
 
 /** A small offset to keep the color picker slightly away from the nodes. */
-const COLOR_PICKER_X_OFFSET_PX = 20
+const COLOR_PICKER_X_OFFSET_PX = -300
 const showColorPicker = ref(false)
-const selectedNodeColor = ref('rgb(0,0,0)')
+const selectedNodeColor = ref('undefined')
 
 function overrideNodeColor(color: string) {
   [...nodeSelection.selected].map((id) => graphStore.overrideNodeColor(id, color))
 }
 
 function toggleColorPicker() {
+  if (nodeSelection.selected.size === 0) {
+    showColorPicker.value = false
+    return
+  }
   showColorPicker.value = !showColorPicker.value
   if (showColorPicker.value) {
     const oneOfSelected = set.first(nodeSelection.selected)
     selectedNodeColor.value = graphStore.db.getNodeColorStyle(oneOfSelected)
+    console.log('Selected node color:', selectedNodeColor.value)
   }
 }
 
 const colorPickerPos = computed(() => {
   const nodeRects = [...nodeSelection.selected].map((id) => graphStore.nodeRects.get(id) ?? Rect.Zero)
   const boundingRect = Rect.Bounding(...nodeRects)
-  return new Vec2(boundingRect.left - COLOR_PICKER_X_OFFSET_PX, boundingRect.center().y)
+  return new Vec2(boundingRect.left + COLOR_PICKER_X_OFFSET_PX, boundingRect.center().y)
 })
 const colorPickerStyle = computed(
   () => colorPickerPos.value != null 
-    ? { left: `${colorPickerPos.value.x}px`, top: `${colorPickerPos.value.y}px` } 
+    ? { transform: `translate(${colorPickerPos.value.x}px, ${colorPickerPos.value.y}px)` } 
     : {}
 )
 </script>
@@ -624,6 +629,14 @@ const colorPickerStyle = computed(
         @createNode="createNodeFromSource"
         @toggleColorPicker="toggleColorPicker"
       />
+
+      <ColorPicker 
+        class="colorPicker" 
+        :style="colorPickerStyle"
+        :show="showColorPicker"
+        :color="selectedNodeColor"
+        @update:color="overrideNodeColor" 
+      />
     </div>
     <div
       id="graphNodeSelections"
@@ -631,14 +644,6 @@ const colorPickerStyle = computed(
       :style="{ transform: graphNavigator.transform, 'z-index': -1 }"
     />
     <GraphEdges :navigator="graphNavigator" @createNodeFromEdge="handleEdgeDrop" />
-
-    <ColorPicker 
-      class="colorPicker" 
-      :style="colorPickerStyle"
-      :show="showColorPicker"
-      :color="selectedNodeColor"
-      @update:color="overrideNodeColor" 
-    />
 
     <ComponentBrowser
       v-if="componentBrowserVisible"
@@ -698,6 +703,5 @@ const colorPickerStyle = computed(
 
 .colorPicker {
   position: absolute;
-  transform: translate(100%, 100%);
 }
 </style>
