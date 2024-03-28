@@ -1,6 +1,8 @@
 /** @file A styled submit button. */
 import * as React from 'react'
 
+import type * as aria from '#/components/aria'
+import UnstyledButton from '#/components/styled/UnstyledButton'
 import SvgMask from '#/components/SvgMask'
 
 // ====================
@@ -9,24 +11,24 @@ import SvgMask from '#/components/SvgMask'
 
 /** Props for a {@link SubmitButton}. */
 export interface SubmitButtonProps {
-  readonly disabled?: boolean
+  readonly isDisabled?: boolean
   readonly text: string
   readonly icon: string
+  readonly onPress: (event: aria.PressEvent) => void
 }
 
 /** A styled submit button. */
 export default function SubmitButton(props: SubmitButtonProps) {
-  const { disabled: disabled = false, text, icon } = props
+  const { isDisabled = false, text, icon, onPress } = props
+
   return (
-    // This MUST be a button as `aria.Button` does not support `type="submit"`.
-    // eslint-disable-next-line no-restricted-syntax
-    <button
-      disabled={disabled}
-      type="submit"
-      className={`focus-child flex items-center justify-center gap-icon-with-text rounded-full bg-blue-600 py-auth-input-y text-white transition-all duration-auth selectable enabled:active hover:bg-blue-700 focus:bg-blue-700 focus:outline-none`}
+    <UnstyledButton
+      isDisabled={isDisabled}
+      className={`flex items-center justify-center gap-icon-with-text rounded-full bg-blue-600 py-auth-input-y text-white transition-all duration-auth selectable enabled:active hover:bg-blue-700 focus:bg-blue-700`}
+      onPress={onPress}
     >
       {text}
       <SvgMask src={icon} />
-    </button>
+    </UnstyledButton>
   )
 }

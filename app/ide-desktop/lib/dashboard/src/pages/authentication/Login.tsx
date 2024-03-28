@@ -17,7 +17,10 @@ import * as textProvider from '#/providers/TextProvider'
 import FontAwesomeIcon from '#/components/FontAwesomeIcon'
 import Input from '#/components/Input'
 import Link from '#/components/Link'
+import AuthenticationPage from '#/components/styled/AuthenticationPage'
+import UnstyledButton from '#/components/styled/UnstyledButton'
 import SubmitButton from '#/components/SubmitButton'
+import TextLink from '#/components/TextLink'
 
 // =============
 // === Login ===
@@ -42,101 +45,98 @@ export default function Login(props: LoginProps) {
   const [password, setPassword] = React.useState('')
   const [isSubmitting, setIsSubmitting] = React.useState(false)
   const shouldReportValidityRef = React.useRef(true)
+  const formRef = React.useRef<HTMLFormElement>(null)
 
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center gap-auth text-sm text-primary">
-      <div className="flex w-full max-w-md flex-col gap-auth rounded-auth bg-selected-frame p-auth shadow-md">
-        <div className="self-center text-xl font-medium">{getText('loginToYourAccount')}</div>
-        <div className="flex flex-col gap-auth">
-          {/* This CANNOT be an `UnstyledButton` as it needs to have an `onMouseDown` handler. */}
-          {/* eslint-disable-next-line no-restricted-syntax */}
-          <button
-            onMouseDown={() => {
-              shouldReportValidityRef.current = false
-            }}
-            onClick={async event => {
-              event.preventDefault()
-              await signInWithGoogle()
-            }}
-            className="focus-child relative rounded-full bg-cloud/10 py-auth-input-y transition-all duration-auth hover:bg-cloud/20 focus:bg-cloud/20"
-          >
-            <FontAwesomeIcon icon={fontawesomeIcons.faGoogle} />
-            {getText('signUpOrLoginWithGoogle')}
-          </button>
-          {/* This CANNOT be an `UnstyledButton` as it needs to have an `onMouseDown` handler. */}
-          {/* eslint-disable-next-line no-restricted-syntax */}
-          <button
-            onMouseDown={() => {
-              shouldReportValidityRef.current = false
-            }}
-            onClick={async event => {
-              event.preventDefault()
-              await signInWithGitHub()
-            }}
-            className="focus-child relative rounded-full bg-cloud/10 py-auth-input-y transition-all duration-auth hover:bg-cloud/20 focus:bg-cloud/20"
-          >
-            <FontAwesomeIcon icon={fontawesomeIcons.faGithub} />
-            {getText('signUpOrLoginWithGitHub')}
-          </button>
-        </div>
-        <div />
-        <form
-          className="flex flex-col gap-auth"
-          onSubmit={async event => {
-            event.preventDefault()
-            setIsSubmitting(true)
-            await signInWithPassword(email, password)
-            shouldReportValidityRef.current = true
-            setIsSubmitting(false)
+    <AuthenticationPage
+      title={getText('loginToYourAccount')}
+      footer={
+        <>
+          <Link
+            to={appUtils.REGISTRATION_PATH}
+            icon={CreateAccountIcon}
+            text={getText('dontHaveAnAccount')}
+          />
+          {supportsLocalBackend && (
+            <Link
+              to={appUtils.ENTER_OFFLINE_MODE_PATH}
+              icon={ArrowRightIcon}
+              text={getText('continueWithoutCreatingAnAccount')}
+            />
+          )}
+        </>
+      }
+    >
+      <div className="flex flex-col gap-auth">
+        <UnstyledButton
+          onPress={() => {
+            shouldReportValidityRef.current = false
+            void signInWithGoogle()
           }}
+          className="focus-child relative rounded-full bg-primary/5 py-auth-input-y transition-all duration-auth hover:bg-primary/10 focus:bg-primary/10"
         >
+          <FontAwesomeIcon icon={fontawesomeIcons.faGoogle} />
+          {getText('signUpOrLoginWithGoogle')}
+        </UnstyledButton>
+        <UnstyledButton
+          onPress={() => {
+            shouldReportValidityRef.current = false
+            void signInWithGitHub()
+          }}
+          className="focus-child relative rounded-full bg-primary/5 py-auth-input-y transition-all duration-auth hover:bg-primary/10 focus:bg-primary/10"
+        >
+          <FontAwesomeIcon icon={fontawesomeIcons.faGithub} />
+          {getText('signUpOrLoginWithGitHub')}
+        </UnstyledButton>
+      </div>
+      <div />
+      <form
+        ref={formRef}
+        className="flex flex-col gap-auth"
+        onSubmit={async event => {
+          event.preventDefault()
+          setIsSubmitting(true)
+          await signInWithPassword(email, password)
+          shouldReportValidityRef.current = true
+          setIsSubmitting(false)
+        }}
+      >
+        <Input
+          required
+          validate
+          type="email"
+          autoComplete="email"
+          icon={AtIcon}
+          placeholder={getText('emailPlaceholder')}
+          value={email}
+          setValue={setEmail}
+          shouldReportValidityRef={shouldReportValidityRef}
+        />
+        <div className="flex flex-col">
           <Input
             required
             validate
-            type="email"
-            autoComplete="email"
-            icon={AtIcon}
-            placeholder={getText('emailPlaceholder')}
-            value={email}
-            setValue={setEmail}
+            allowShowingPassword
+            type="password"
+            autoComplete="current-password"
+            icon={LockIcon}
+            placeholder={getText('passwordPlaceholder')}
+            error={getText('passwordValidationError')}
+            value={password}
+            setValue={setPassword}
             shouldReportValidityRef={shouldReportValidityRef}
           />
-          <div className="flex flex-col">
-            <Input
-              required
-              validate
-              allowShowingPassword
-              type="password"
-              autoComplete="current-password"
-              icon={LockIcon}
-              placeholder={getText('passwordPlaceholder')}
-              error={getText('passwordValidationError')}
-              value={password}
-              setValue={setPassword}
-              shouldReportValidityRef={shouldReportValidityRef}
-            />
-            <router.Link
-              to={appUtils.FORGOT_PASSWORD_PATH}
-              className="text-end text-xs text-blue-500 transition-all duration-auth hover:text-blue-700 focus:text-blue-700"
-            >
-              {getText('forgotYourPassword')}
-            </router.Link>
-          </div>
-          <SubmitButton disabled={isSubmitting} text={getText('login')} icon={ArrowRightIcon} />
-        </form>
-      </div>
-      <Link
-        to={appUtils.REGISTRATION_PATH}
-        icon={CreateAccountIcon}
-        text={getText('dontHaveAnAccount')}
-      />
-      {supportsLocalBackend && (
-        <Link
-          to={appUtils.ENTER_OFFLINE_MODE_PATH}
+          <TextLink to={appUtils.FORGOT_PASSWORD_PATH} text={getText('forgotYourPassword')} />
+        </div>
+        <SubmitButton
+          isDisabled={isSubmitting}
+          text={getText('login')}
           icon={ArrowRightIcon}
-          text={getText('continueWithoutCreatingAnAccount')}
+          onPress={() => {
+            formRef.current?.requestSubmit()
+          }}
         />
-      )}
-    </div>
+      </form>
+    </AuthenticationPage>
   )
 }

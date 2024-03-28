@@ -153,6 +153,9 @@
   --date-input-gap: 0.5rem;
   /* The gap between the month display and the calendar of the date picker. */
   --date-input-calendar-gap: 0.5rem;
+  --auth-link-padding-x: 0.5rem;
+  --auth-link-padding-y: 0.25rem;
+  --text-link-padding-x: 0.25rem;
 
   /********\
   |* Chat *|

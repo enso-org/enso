@@ -257,6 +257,9 @@ export default /** @satisfies {import('tailwindcss').Config} */ ({
         'heading-y': 'var(--heading-padding-y)',
         'auth-input-y': 'var(--auth-input-padding-y)',
         'auth-input-r': 'var(--auth-input-padding-right)',
+        'auth-link-x': 'var(--auth-link-padding-x)',
+        'auth-link-y': 'var(--auth-link-padding-y)',
+        'text-link-x': 'var(--text-link-padding-x)',
         'drive-sidebar-y': 'var(--drive-sidebar-padding-y)',
         'radio-button-dot': 'var(--radio-button-dot-padding)',
         'chat-y': 'chat-padding-y',
@@ -348,6 +351,7 @@ export default /** @satisfies {import('tailwindcss').Config} */ ({
         'separator-y': 'var(--separator-margin-y)',
         'sidebar-section-heading-b': 'var(--sidebar-section-heading-margin-b)',
         'context-menu-entry-px': 'var(--context-menu-entry-padding-x)',
+        'text-link-px': 'var(--text-link-padding-x)',
       },
       lineHeight: {
         snug: 'var(--snug-line-height)',
