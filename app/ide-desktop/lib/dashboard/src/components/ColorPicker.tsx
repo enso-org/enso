@@ -7,6 +7,7 @@ import * as focusDirectionProvider from '#/providers/FocusDirectionProvider'
 
 import * as aria from '#/components/aria'
 import FocusRing from '#/components/styled/FocusRing'
+import RadioGroup from '#/components/styled/RadioGroup'
 
 import * as backend from '#/services/Backend'
 
@@ -53,11 +54,11 @@ export interface ColorPickerProps extends Readonly<aria.RadioGroupProps> {
 /** A color picker to select from a predetermined list of colors. */
 function ColorPicker(props: ColorPickerProps, ref: React.ForwardedRef<HTMLDivElement>) {
   const { pickerClassName = '', children, setColor, ...radioGroupProps } = props
-
   return (
-    <aria.RadioGroup
+    <RadioGroup
       ref={ref}
       {...radioGroupProps}
+      orientation="horizontal"
       onChange={value => {
         const color = backend.COLOR_STRING_TO_COLOR.get(value)
         if (color != null) {
@@ -71,7 +72,7 @@ function ColorPicker(props: ColorPickerProps, ref: React.ForwardedRef<HTMLDivEle
           <ColorPickerItem key={i} color={currentColor} />
         ))}
       </div>
-    </aria.RadioGroup>
+    </RadioGroup>
   )
 }
 

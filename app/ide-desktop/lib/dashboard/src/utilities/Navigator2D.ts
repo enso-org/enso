@@ -274,11 +274,7 @@ export default class Navigator2D {
     const shouldHandleEvent =
       data?.allowNavigation() === true && direction != null && event.target instanceof Element
     let shouldHandleKey = true
-    const isArrowKeyEvent =
-      event.key === 'ArrowLeft' ||
-      event.key === 'ArrowRight' ||
-      event.key === 'ArrowUp' ||
-      event.key === 'ArrowDown'
+    const isArrowKeyEvent = eventModule.isArrowKeyEvent(event)
     if (shouldHandleEvent && isArrowKeyEvent && eventModule.isElementTextInput(event.target)) {
       if (eventModule.isElementSingleLineTextInput(event.target)) {
         const selectionIndex =

@@ -1,25 +1,17 @@
-/**
- * @file Button.tsx
- *
- * Button component
- */
+/** @file Button component */
 import clsx from 'clsx'
-import * as reactAriaComponents from 'react-aria-components'
 import * as tailwindMerge from 'tailwind-merge'
 
+import * as aria from '#/components/aria'
 import SvgMask from '#/components/SvgMask'
 
-/**
- * Props for the Button component
- */
-export interface ButtonProps extends reactAriaComponents.ButtonProps {
+/** Props for {@link Button}. */
+export interface ButtonProps extends aria.ButtonProps {
   readonly variant: 'icon'
   readonly icon?: string
-  /**
-   * FIXME: This is not yet implemented
+  /** FIXME: This is not yet implemented
    * The position of the icon in the button
-   * @default 'start'
-   */
+   * @default 'start' */
   readonly iconPosition?: 'end' | 'start'
 }
 
@@ -52,7 +44,7 @@ export function Button(props: ButtonProps) {
   }
 
   return (
-    <reactAriaComponents.Button
+    <aria.Button
       className={values =>
         tailwindMerge.twMerge(
           classes,
@@ -62,6 +54,6 @@ export function Button(props: ButtonProps) {
       {...ariaButtonProps}
     >
       {childrenFactory()}
-    </reactAriaComponents.Button>
+    </aria.Button>
   )
 }

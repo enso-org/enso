@@ -36,6 +36,16 @@ export function isPotentiallyShortcut(event: KeyboardEvent | React.KeyboardEvent
   return event.ctrlKey || event.metaKey || event.altKey
 }
 
+/** Whether `event.key` is an arrow key. */
+export function isArrowKeyEvent(event: KeyboardEvent | React.KeyboardEvent) {
+  return (
+    event.key === 'ArrowLeft' ||
+    event.key === 'ArrowRight' ||
+    event.key === 'ArrowUp' ||
+    event.key === 'ArrowDown'
+  )
+}
+
 /** Whether `event.key` is a key used in text editing. */
 export function isTextInputKey(event: KeyboardEvent | React.KeyboardEvent) {
   return (
