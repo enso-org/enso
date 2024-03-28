@@ -7,7 +7,6 @@ from Standard.Base.Metadata.Widget import Single_Choice, Vector_Editor
 from Standard.Table import Table
 
 import project.Google_Credential.Google_Credential
-from project.Internal.Google_Credential_Internal import all
 from project.Internal.Google_Analytics_Internal import all
 
 ## PRIVATE
@@ -34,4 +33,6 @@ make_metrics_vector_selector =
 @metrics make_metrics_vector_selector
 read : Text -> (Vector Text) -> (Vector Text) -> Date -> Date -> Google_Credential -> Table
 read property_id:Text dimensions:Vector=['country'] metrics:Vector=['activeUsers'] start_date:Date=(Date.today.previous Date_Period.Year) end_date:Date=Date.today credentials:Google_Credential=Google_Credential.Default -> Table =
-    read_api_data property_id dimensions metrics start_date end_date credentials
+    case credentials of
+        Google_Credential.Sample -> read_sample_data dimensions metrics start_date end_date
+        _ -> read_api_data property_id dimensions metrics start_date end_date credentials

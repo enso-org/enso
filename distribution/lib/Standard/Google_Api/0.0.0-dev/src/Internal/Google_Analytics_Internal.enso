@@ -1,7 +1,7 @@
 private
 
 from Standard.Base import all
-from Standard.Table import Table
+from Standard.Table import Table, Delimited_Format
 
 import project.Google_Credential.Google_Credential
 from project.Internal.Google_Credential_Internal import all
@@ -11,18 +11,7 @@ polyglot java import com.google.analytics.data.v1beta.BetaAnalyticsDataSettings
 polyglot java import com.google.analytics.data.v1beta.DateRange
 polyglot java import com.google.analytics.data.v1beta.Dimension
 polyglot java import com.google.analytics.data.v1beta.Metric
-polyglot java import com.google.analytics.data.v1beta.Row
 polyglot java import com.google.analytics.data.v1beta.RunReportRequest
-polyglot java import com.google.analytics.data.v1beta.RunReportResponse
-polyglot java import com.google.api.client.googleapis.auth.oauth2.GoogleCredential
-polyglot java import com.google.api.client.googleapis.javanet.GoogleNetHttpTransport
-polyglot java import com.google.api.client.json.gson.GsonFactory
-polyglot java import com.google.api.gax.core.CredentialsProvider
-polyglot java import com.google.api.gax.core.FixedCredentialsProvider
-polyglot java import com.google.api.services.sheets.v4.Sheets
-polyglot java import com.google.api.services.sheets.v4.SheetsScopes
-polyglot java import com.google.auth.oauth2.GoogleCredentials
-polyglot java import java.util.Collections
 
 read_api_data property_id:Text dimensions:Vector metrics:Vector start_date:Date end_date:Date credentials:Google_Credential -> Table =
     analytics_data = case credentials of 
@@ -58,6 +47,6 @@ read_api_data property_id:Text dimensions:Vector metrics:Vector start_date:Date 
 
     Table.from_rows headers rows
 
-read_sample_data property_id:Text dimensions:Vector metrics:Vector start_date:Date end_date:Date -> Table =
-    _ = [property_id, dimensions, metrics, start_date, end_date]
-    Data.read (enso_project.data / "food_shop_inventory.csv")
+read_sample_data dimensions:Vector metrics:Vector start_date:Date end_date:Date -> Table =
+    _ = [dimensions, metrics, start_date, end_date]
+    Data.read ((Project_Description.new Standard.Google_Api . data) / "Google_Analytics_Sample.csv") (Delimited_Format.Delimited value_formatter=Standard.Base.Nothing)
