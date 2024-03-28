@@ -81,7 +81,7 @@ test.test('move (drag)', async ({ page }) => {
   // Assets: [0: Folder 1]
   await actions.locateNewFolderIcon(page).click()
   // Assets: [0: Folder 2, 1: Folder 1]
-  await assetRows.nth(0).dragTo(assetRows.nth(1))
+  await actions.dragAssetRow(assetRows.nth(0), assetRows.nth(1))
   // Assets: [0: Folder 1, 1: Folder 2 <child { depth=1 }>]
   await test.expect(assetRows).toHaveCount(2)
   await test.expect(assetRows.nth(1)).toBeVisible()

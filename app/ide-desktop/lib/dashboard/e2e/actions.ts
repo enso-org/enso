@@ -670,10 +670,22 @@ export async function expectTrashPlaceholderRow(page: test.Page) {
 // === Mouse utilities ===
 // =======================
 
+// eslint-disable-next-line @typescript-eslint/no-magic-numbers
+const ASSET_ROW_SAFE_POSITION = { x: 300, y: 16 }
+
 /** Click an asset row. The center must not be clicked as that is the button for adding a label. */
 export async function clickAssetRow(assetRow: test.Locator) {
   // eslint-disable-next-line @typescript-eslint/no-magic-numbers
-  await assetRow.click({ position: { x: 300, y: 16 } })
+  await assetRow.click({ position: ASSET_ROW_SAFE_POSITION })
+}
+
+/** Drag an asset row. The center must not be clicked as that is the button for adding a label. */
+export async function dragAssetRow(from: test.Locator, to: test.Locator) {
+  // eslint-disable-next-line @typescript-eslint/no-magic-numbers
+  await from.dragTo(to, {
+    sourcePosition: ASSET_ROW_SAFE_POSITION,
+    targetPosition: ASSET_ROW_SAFE_POSITION,
+  })
 }
 
 // ==========================
