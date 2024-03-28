@@ -132,17 +132,18 @@ export class DistributedModule {
   }
 }
 
-export const localOrigins = ['local', 'local:CodeEditor'] as const
-export type LocalOrigin = (typeof localOrigins)[number]
-export type Origin = LocalOrigin | 'remote'
+export const localUserActionOrigins = ['local:userAction', 'local:userAction:CodeEditor'] as const
+export type LocalUserActionOrigin = (typeof localUserActionOrigins)[number]
+export type Origin = LocalUserActionOrigin | 'remote' | 'local:autoLayout'
 /** Locally-originated changes not otherwise specified. */
-export const defaultLocalOrigin: LocalOrigin = 'local'
-export function isLocalOrigin(origin: string): origin is LocalOrigin {
-  const localOriginNames: readonly string[] = localOrigins
+export const defaultLocalOrigin: LocalUserActionOrigin = 'local:userAction'
+export function isLocalUserActionOrigin(origin: string): origin is LocalUserActionOrigin {
+  const localOriginNames: readonly string[] = localUserActionOrigins
   return localOriginNames.includes(origin)
 }
 export function tryAsOrigin(origin: string): Origin | undefined {
-  if (isLocalOrigin(origin)) return origin
+  if (isLocalUserActionOrigin(origin)) return origin
+  if (origin === 'local:autoLayout') return origin
   if (origin === 'remote') return origin
 }
 

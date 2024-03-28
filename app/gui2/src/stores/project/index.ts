@@ -36,7 +36,12 @@ import type {
   StackItem,
   VisualizationConfiguration,
 } from 'shared/languageServerTypes'
-import { DistributedProject, localOrigins, type ExternalId, type Uuid } from 'shared/yjsModel'
+import {
+  DistributedProject,
+  localUserActionOrigins,
+  type ExternalId,
+  type Uuid,
+} from 'shared/yjsModel'
 import {
   computed,
   markRaw,
@@ -539,7 +544,7 @@ export const useProjectStore = defineStore('project', () => {
     const moduleName = projectModel.findModuleByDocId(guid)
     if (moduleName == null) return null
     const mod = await projectModel.openModule(moduleName)
-    for (const origin of localOrigins) mod?.undoManager.addTrackedOrigin(origin)
+    for (const origin of localUserActionOrigins) mod?.undoManager.addTrackedOrigin(origin)
     return mod
   })
 
