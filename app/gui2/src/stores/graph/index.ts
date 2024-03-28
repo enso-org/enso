@@ -313,10 +313,7 @@ export const useGraphStore = defineStore('graph', () => {
     const existingImports = readImports(topLevel)
 
     // Let's check and see if the general import of the target module is already present.
-    const filteredNewImports = newImports.filter((newImport) => {
-      if (newImport.kind === 'Qualified') return true
-      return !existingImports.some((existingImport) => existingImport.from === newImport.from && existingImport.imported.kind === 'All')
-    });
+    const filteredNewImports = filterOutRedundantImports(existingImports, newImports);
 
     const conflicts = []
     const nonConflictingImports = []
