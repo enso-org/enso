@@ -13,8 +13,7 @@ from project.Data.Text.Extensions import all
 
 ## PRIVATE
    UNSTABLE
-   This is a temporary helper for resolving `enso://` paths.
-   It will be replaced once the backend resolver is implemented: https://github.com/enso-org/cloud-v2/issues/899
+   This is a helper for handling `enso://` paths.
 type Enso_Path
     ## PRIVATE
     Value (organization_name : Text) (path_segments : Vector Text) (asset_name : Text | Nothing)
@@ -27,11 +26,29 @@ type Enso_Path
             if raw_segments.is_empty then Error.throw (Illegal_Argument.Error "Invalid path - it should contain at least one segment.") else
                 organization_name = raw_segments.first
                 segments = raw_segments.drop 1 . filter s-> s.is_empty.not
-                if organization_name != Enso_User.current.name then Unimplemented.throw "Currently only resolving paths for the current user is supported." else
+                if organization_name != Enso_User.current.organization_name then Unimplemented.throw "Currently only resolving paths for the current user is supported." else
                     if segments.is_empty then Enso_Path.Value organization_name [] Nothing else
                         asset_name = segments.last
                         Enso_Path.Value organization_name (segments.drop (Index_Sub_Range.Last 1)) asset_name
 
     ## PRIVATE
+    root_for (organization_name : Text) =
+        Enso_Path.Value organization_name [] Nothing
+
+    ## PRIVATE
     resolve_parent self =
         self.path_segments.fold Enso_File.root (/)
+
+    ## PRIVATE
+    resolve self (subpath : Text) -> Enso_Path =
+        # TODO implement splitting on / as well as support for ..
+        # try sharing the code with S3_Path
+        if name.contains "/" then Error.throw (Illegal_Argument.Error "Resolving sub-paths (/) is not implemented. Temporary workaround: use the `/` operator multiple times.") else
+            Enso_Path.Value self.organization_name (self.path_segments.append name) self.asset_name
+
+    ## PRIVATE
+    to_text self -> Text =
+        dir_part = "enso://" + self.organization_name + "/" + self.path_segments.join "/"
+        case self.asset_name of
+            Nothing -> dir_part
+            asset_name -> dir_part + "/" + asset_name
