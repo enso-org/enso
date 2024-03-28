@@ -54,7 +54,7 @@ export default function LabelsColumn(props: column.AssetColumnProps) {
   const setAsset = React.useCallback(
     (valueOrUpdater: React.SetStateAction<backendModule.AnyAsset>) => {
       setItem(oldItem =>
-        object.merge(oldItem, {
+        oldItem.with({
           item:
             typeof valueOrUpdater !== 'function' ? valueOrUpdater : valueOrUpdater(oldItem.item),
         })
@@ -106,7 +106,7 @@ export default function LabelsColumn(props: column.AssetColumnProps) {
               setModal(
                 <ContextMenus key={`label-${label}`} event={event}>
                   <ContextMenu aria-label={getText('labelContextMenuLabel')}>
-                    <MenuEntry action="delete" doAction={doDelete} />
+                    <MenuEntry action="delete" label={getText('deleteLabelShortcut')} doAction={doDelete} />
                   </ContextMenu>
                 </ContextMenus>
               )

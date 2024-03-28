@@ -3,6 +3,7 @@ import * as React from 'react'
 
 import * as toast from 'react-toastify'
 
+import * as setAssetHooks from '#/hooks/setAssetHooks'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
 import * as authProvider from '#/providers/AuthProvider'
@@ -87,20 +88,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
     backendModule.assetIsProject(asset) &&
     asset.projectState.opened_by != null &&
     asset.projectState.opened_by !== user?.email
-  const setAsset = React.useCallback(
-    (valueOrUpdater: React.SetStateAction<backendModule.AnyAsset>) => {
-      if (typeof valueOrUpdater === 'function') {
-        setItem(oldItem =>
-          oldItem.with({
-            item: valueOrUpdater(oldItem.item),
-          })
-        )
-      } else {
-        setItem(oldItem => oldItem.with({ item: valueOrUpdater }))
-      }
-    },
-    [/* should never change */ setItem]
-  )
+  const setAsset = setAssetHooks.useSetAsset(asset, setItem)
 
   return category === Category.trash ? (
     !ownsThisAsset ? null : (

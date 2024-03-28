@@ -98,7 +98,6 @@ export default function Labels(props: LabelsProps) {
                       )
                     }}
                     onDragStart={event => {
-                      event.stopPropagation()
                       drag.setDragImageToBlank(event)
                       const payload: drag.LabelsDragPayload = new Set([label.value])
                       drag.LABELS.bind(event, payload)

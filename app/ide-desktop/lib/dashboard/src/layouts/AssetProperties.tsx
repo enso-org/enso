@@ -116,9 +116,7 @@ export default function AssetProperties(props: AssetPropertiesProps) {
       } catch (error) {
         toastAndLog('editDescriptionError')
         setItem(oldItem =>
-          oldItem.with({
-            item: object.merge(oldItem.item, { description: oldDescription }),
-          })
+          oldItem.with({ item: object.merge(oldItem.item, { description: oldDescription }) })
         )
       }
     }

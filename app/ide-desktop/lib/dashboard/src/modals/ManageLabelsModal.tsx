@@ -18,6 +18,7 @@ import UnstyledButton from '#/components/styled/UnstyledButton'
 
 import * as backendModule from '#/services/Backend'
 
+import * as eventModule from '#/utilities/event'
 import * as object from '#/utilities/object'
 import * as string from '#/utilities/string'
 
@@ -183,7 +184,7 @@ export default function ManageLabelsModal<
                   <UnstyledButton
                     isDisabled={!canCreateNewLabel}
                     className="button bg-invite px-button-x text-tag-text enabled:active"
-                    onPress={doSubmit}
+                    onPress={eventModule.submitForm}
                   >
                     <aria.Text className="h-text py-modal-invite-button-text-y">
                       {getText('create')}

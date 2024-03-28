@@ -18,7 +18,6 @@ import ManagePermissionsModal from '#/modals/ManagePermissionsModal'
 
 import type * as backendModule from '#/services/Backend'
 
-import * as object from '#/utilities/object'
 import * as permissions from '#/utilities/permissions'
 import * as uniqueString from '#/utilities/uniqueString'
 
@@ -51,7 +50,7 @@ export default function SharedWithColumn(props: SharedWithColumnPropsInternal) {
   const setAsset = React.useCallback(
     (valueOrUpdater: React.SetStateAction<backendModule.AnyAsset>) => {
       setItem(oldItem =>
-        object.merge(oldItem, {
+        oldItem.with({
           item:
             typeof valueOrUpdater !== 'function' ? valueOrUpdater : valueOrUpdater(oldItem.item),
         })

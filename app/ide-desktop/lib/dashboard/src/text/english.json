@@ -455,6 +455,7 @@
   "copyAllShortcut": "Copy All",
   "cutAllShortcut": "Cut All",
   "pasteAllShortcut": "Paste All",
+  "deleteLabelShortcut": "Delete Label",
 
   "nameColumnShow": "Show Name column",
   "nameColumnHide": "Hide Name column",
