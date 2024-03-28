@@ -3,8 +3,9 @@ package org.enso.compiler.pass.analyse.types;
 import org.enso.pkg.QualifiedName;
 import org.enso.pkg.QualifiedName$;
 
+/** A helper class providing the builtin types. */
 public class BuiltinTypes {
-  // TODO later we will want to resolve descriptions of these types based on the loaded std-lib
+  // TODO in next iterations we will want to resolve descriptions of these types based on the loaded std-lib (from PackageRepository, if available)
 
   public final TypeRepresentation INTEGER = fromQualifiedName("Standard.Base.Data.Numbers.Integer");
   public final TypeRepresentation FLOAT = fromQualifiedName("Standard.Base.Data.Numbers.Float");

@@ -3,7 +3,7 @@ package org.enso.compiler.pass.analyse.types;
 import java.util.ArrayList;
 import java.util.HashSet;
 
-public class SumTypeSimplifier {
+class SumTypeSimplifier {
   private final HashSet<TypeRepresentation> parts = new HashSet<>();
   boolean hasAny = false;
 
