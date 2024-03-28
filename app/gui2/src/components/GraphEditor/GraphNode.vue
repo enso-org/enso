@@ -391,10 +391,6 @@ const documentation = computed<string | undefined>({
     })
   },
 })
-
-function overrideColor(color: string) {
-  graph.overrideNodeColor(nodeId.value, color)
-}
 </script>
 
 <template>

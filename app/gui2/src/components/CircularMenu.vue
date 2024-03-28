@@ -85,13 +85,6 @@ const emit = defineEmits<{
   position: absolute;
   user-select: none;
   pointer-events: none;
-  z-index: 100;
-}
-
-.colorPicker {
-  position: absolute;
-  top: -150px;
-  left: -300px;
 }
 
 .circle {
