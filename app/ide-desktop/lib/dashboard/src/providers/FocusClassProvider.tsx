@@ -2,8 +2,6 @@
  * context is vertical or horizontal. */
 import * as React from 'react'
 
-import * as focusArea from '#/components/styled/FocusArea'
-
 // =========================
 // === FocusClassesContext ===
 // =========================
@@ -14,7 +12,7 @@ export interface FocusClassesContextType {
 }
 
 const FocusClassesContext = React.createContext<FocusClassesContextType>({
-  focusChildClass: focusArea.DEFAULT_FOCUS_CHILD_CLASS,
+  focusChildClass: 'focus-child',
 })
 
 // ============================

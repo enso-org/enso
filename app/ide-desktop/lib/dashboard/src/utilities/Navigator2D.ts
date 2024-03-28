@@ -1,4 +1,6 @@
 /** @file A class for handling navigation between elements on a 2D plane. */
+import type * as React from 'react'
+
 import * as detect from 'enso-common/src/detect'
 
 import * as eventModule from '#/utilities/event'
@@ -253,7 +255,7 @@ export default class Navigator2D {
 
   /** Keydown handler. Should only be declared once per focus root (including the global one on
    * `document`). MUST be bound to this `Navigator2D` first using `.bind(navigator)`. */
-  onKeyDown(event: KeyboardEvent) {
+  onKeyDown(event: KeyboardEvent | React.KeyboardEvent) {
     let nearestFocusedParent = event.target instanceof Element ? event.target : null
     while (nearestFocusedParent != null && !this.focusedElements.has(nearestFocusedParent)) {
       nearestFocusedParent = nearestFocusedParent.parentElement
@@ -310,7 +312,11 @@ export default class Navigator2D {
           : this.elements.get(neighbor)?.focusWhenPressed[direction] ?? focusTargetNeighbor
       if (focus != null) {
         event.preventDefault()
-        event.stopImmediatePropagation()
+        if ('stopImmediatePropagation' in event) {
+          event.stopImmediatePropagation()
+        } else {
+          event.stopPropagation()
+        }
         focus()
       }
     }

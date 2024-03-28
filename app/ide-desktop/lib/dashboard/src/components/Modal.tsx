@@ -32,7 +32,7 @@ export default function Modal(props: ModalProps) {
 
   return (
     <FocusRoot active={!hidden}>
-      {ref => (
+      {(ref, innerProps) => (
         <div
           ref={ref}
           // The name comes from a third-party API and cannot be changed.
@@ -52,6 +52,13 @@ export default function Modal(props: ModalProps) {
             })
           }
           onContextMenu={onContextMenu}
+          {...innerProps}
+          onKeyDown={event => {
+            innerProps.onKeyDown?.(event)
+            if (event.key !== 'Escape') {
+              event.stopPropagation()
+            }
+          }}
         >
           {children}
         </div>

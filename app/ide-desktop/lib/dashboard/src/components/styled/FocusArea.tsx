@@ -16,8 +16,6 @@ import * as withFocusScope from '#/components/styled/withFocusScope'
 // === FocusArea ===
 // =================
 
-export const DEFAULT_FOCUS_CHILD_CLASS = 'focus-child'
-
 /** Props returned by {@link aria.useFocusWithin}. */
 export interface FocusWithinProps {
   readonly onFocus: NonNullable<aria.DOMAttributes<Element>['onFocus']>
@@ -41,7 +39,7 @@ export interface FocusAreaProps {
 /** An area that can be focused within. */
 function FocusArea(props: FocusAreaProps) {
   const { active = true, direction, children } = props
-  const { focusChildClass = DEFAULT_FOCUS_CHILD_CLASS, focusDefaultClass = 'focus-default' } = props
+  const { focusChildClass = 'focus-child', focusDefaultClass = 'focus-default' } = props
   const { focusChildClass: outerFocusChildClass } = focusClassProvider.useFocusClasses()
   const [areaFocus, setAreaFocus] = React.useState(false)
   const { focusWithinProps } = aria.useFocusWithin({ onFocusWithinChange: setAreaFocus })

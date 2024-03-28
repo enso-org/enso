@@ -246,11 +246,6 @@ export default function ManagePermissionsModal<
             mouseEvent.stopPropagation()
             mouseEvent.preventDefault()
           }}
-          onKeyDown={event => {
-            if (event.key !== 'Escape') {
-              event.stopPropagation()
-            }
-          }}
         >
           <div className="relative flex flex-col gap-modal rounded-default p-modal">
             <div className="flex h-row items-center gap-modal-tabs px-modal-tab-bar-x">

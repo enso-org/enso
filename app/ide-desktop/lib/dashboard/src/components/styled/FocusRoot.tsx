@@ -12,10 +12,18 @@ import * as withFocusScope from '#/components/styled/withFocusScope'
 // === FocusRoot ===
 // =================
 
+/** Props passed to the inner handler of a {@link FocusRoot}. */
+export interface FocusRootInnerProps {
+  readonly onKeyDown?: React.KeyboardEventHandler<HTMLElement>
+}
+
 /** Props for a {@link FocusRoot} */
 export interface FocusRootProps {
   readonly active?: boolean
-  readonly children: (ref: React.RefCallback<HTMLElement | SVGElement | null>) => JSX.Element
+  readonly children: (
+    ref: React.RefCallback<HTMLElement | SVGElement | null>,
+    props: FocusRootInnerProps
+  ) => JSX.Element
 }
 
 /** An element that prevents navigation outside of itself. */
@@ -40,37 +48,24 @@ function FocusRoot(props: FocusRootProps) {
 
   const cachedChildren = React.useMemo(
     () =>
-      children(element => {
-        cleanupRef.current()
-        if (active && element != null) {
-          const onKeyDown = navigator2D.onKeyDown.bind(navigator2D)
-          const popFocusRoot = navigator2D.pushFocusRoot(element)
-          // This condition needs to exist due to a limitation of TS method resolution not working
-          // well for unions (`HTMLElement` | `SVGElement`).
-          if (element instanceof HTMLElement) {
-            element.addEventListener('keydown', onKeyDown)
+      children(
+        element => {
+          cleanupRef.current()
+          if (active && element != null) {
+            cleanupRef.current = navigator2D.pushFocusRoot(element)
           } else {
-            element.addEventListener('keydown', onKeyDown)
+            cleanupRef.current = () => {}
           }
-          cleanupRef.current = () => {
-            popFocusRoot()
-            if (element instanceof HTMLElement) {
-              element.removeEventListener('keydown', onKeyDown)
+          if (element != null && detect.IS_DEV_MODE) {
+            if (active) {
+              element.dataset.focusRoot = ''
             } else {
-              element.removeEventListener('keydown', onKeyDown)
+              delete element.dataset.focusRoot
             }
           }
-        } else {
-          cleanupRef.current = () => {}
-        }
-        if (element != null && detect.IS_DEV_MODE) {
-          if (active) {
-            element.dataset.focusRoot = ''
-          } else {
-            delete element.dataset.focusRoot
-          }
-        }
-      }),
+        },
+        active ? { onKeyDown: navigator2D.onKeyDown.bind(navigator2D) } : {}
+      ),
     [active, children, navigator2D]
   )
 

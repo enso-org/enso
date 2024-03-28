@@ -54,11 +54,6 @@ export default function UpsertSecretModal(props: UpsertSecretModalProps) {
         data-testid="upsert-secret-modal"
         tabIndex={-1}
         className="pointer-events-auto relative flex w-upsert-secret-modal flex-col gap-modal rounded-default p-modal-wide pt-modal before:absolute before:inset before:h-full before:w-full before:rounded-default before:bg-selected-frame before:backdrop-blur-default"
-        onKeyDown={event => {
-          if (event.key !== 'Escape') {
-            event.stopPropagation()
-          }
-        }}
         onClick={event => {
           event.stopPropagation()
         }}

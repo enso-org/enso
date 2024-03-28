@@ -202,11 +202,6 @@ export default function InviteUsersModal(props: InviteUsersModalProps) {
           mouseEvent.stopPropagation()
           mouseEvent.preventDefault()
         }}
-        onKeyDown={event => {
-          if (event.key !== 'Escape') {
-            event.stopPropagation()
-          }
-        }}
       >
         <div className="relative flex flex-col gap-modal rounded-default p-modal-wide pt-modal">
           <aria.Heading level={2} className="text text-sm font-bold">

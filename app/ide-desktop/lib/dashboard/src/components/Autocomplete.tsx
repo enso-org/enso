@@ -1,6 +1,7 @@
 /** @file A select menu with a dropdown. */
 import * as React from 'react'
 
+import FocusRing from '#/components/styled/FocusRing'
 import Input from '#/components/styled/Input'
 
 // =================
@@ -177,47 +178,49 @@ export default function Autocomplete<T>(props: AutocompleteProps<T>) {
 
   return (
     <div onKeyDown={onKeyDown} className="grow">
-      <div className="flex flex-1">
-        {canEditText ? (
-          <Input
-            type={type}
-            ref={inputRef}
-            autoFocus={autoFocus}
-            size={1}
-            value={text ?? ''}
-            placeholder={placeholder}
-            className="text grow rounded-full bg-transparent px-button-x"
-            onFocus={() => {
-              setIsDropdownVisible(true)
-            }}
-            onBlur={() => {
-              window.setTimeout(() => {
-                setIsDropdownVisible(false)
-              })
-            }}
-            onChange={event => {
-              setIsDropdownVisible(true)
-              setText(event.currentTarget.value === '' ? null : event.currentTarget.value)
-            }}
-          />
-        ) : (
-          <div
-            ref={element => element?.focus()}
-            tabIndex={-1}
-            className="text grow cursor-pointer bg-transparent px-button-x"
-            onClick={() => {
-              setIsDropdownVisible(true)
-            }}
-            onBlur={() => {
-              requestAnimationFrame(() => {
-                setIsDropdownVisible(false)
-              })
-            }}
-          >
-            {itemsToString?.(values) ?? (values[0] != null ? itemToString(values[0]) : ZWSP)}
-          </div>
-        )}
-      </div>
+      <FocusRing within>
+        <div className="flex flex-1 rounded-full">
+          {canEditText ? (
+            <Input
+              type={type}
+              ref={inputRef}
+              autoFocus={autoFocus}
+              size={1}
+              value={text ?? ''}
+              placeholder={placeholder}
+              className="text grow rounded-full bg-transparent px-button-x"
+              onFocus={() => {
+                setIsDropdownVisible(true)
+              }}
+              onBlur={() => {
+                window.setTimeout(() => {
+                  setIsDropdownVisible(false)
+                })
+              }}
+              onChange={event => {
+                setIsDropdownVisible(true)
+                setText(event.currentTarget.value === '' ? null : event.currentTarget.value)
+              }}
+            />
+          ) : (
+            <div
+              ref={element => element?.focus()}
+              tabIndex={-1}
+              className="text grow cursor-pointer bg-transparent px-button-x"
+              onClick={() => {
+                setIsDropdownVisible(true)
+              }}
+              onBlur={() => {
+                requestAnimationFrame(() => {
+                  setIsDropdownVisible(false)
+                })
+              }}
+            >
+              {itemsToString?.(values) ?? (values[0] != null ? itemToString(values[0]) : ZWSP)}
+            </div>
+          )}
+        </div>
+      </FocusRing>
       <div className="h">
         <div
           className={`relative top-2 z-1 h-max w-full rounded-default shadow-soft before:absolute before:top before:h-full before:w-full before:rounded-default before:bg-frame before:backdrop-blur-default ${

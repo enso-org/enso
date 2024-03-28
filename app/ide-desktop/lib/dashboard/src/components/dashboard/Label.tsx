@@ -1,12 +1,9 @@
 /** @file An label that can be applied to an asset. */
 import * as React from 'react'
 
-import * as focusHooks from '#/hooks/focusHooks'
-
-import * as focusDirectionProvider from '#/providers/FocusDirectionProvider'
-
-import * as aria from '#/components/aria'
+import type * as aria from '#/components/aria'
 import FocusRing from '#/components/styled/FocusRing'
+import UnstyledButton from '#/components/styled/UnstyledButton'
 
 import * as backend from '#/services/Backend'
 
@@ -39,9 +36,7 @@ interface InternalLabelProps extends Readonly<React.PropsWithChildren> {
 export default function Label(props: InternalLabelProps) {
   const { active = false, isDisabled = false, color, negated = false, draggable, title } = props
   const { className = 'text-tag-text', children, onPress, onDragStart, onContextMenu } = props
-  const focusDirection = focusDirectionProvider.useFocusDirection()
-  const handleFocusMove = focusHooks.useHandleFocusMove(focusDirection)
-  const textColorClassName = /\btext-/.test(className)
+  const textClass = /\btext-/.test(className)
     ? '' // eslint-disable-next-line @typescript-eslint/no-magic-numbers
     : color.lightness <= 50
       ? 'text-tag-text'
@@ -56,20 +51,19 @@ export default function Label(props: InternalLabelProps) {
         onDragStart={onDragStart}
         onContextMenu={onContextMenu}
       >
-        <aria.Button
+        <UnstyledButton
           data-testid={props['data-testid']}
           isDisabled={isDisabled}
-          className={`focus-child selectable ${
+          className={`selectable ${
             active ? 'active' : ''
           } relative flex h-text items-center whitespace-nowrap rounded-full px-label-x transition-all before:absolute before:inset before:rounded-full ${
             negated ? 'before:border-2 before:border-delete' : ''
-          } ${className} ${textColorClassName}`}
+          } ${className} ${textClass}`}
           style={{ backgroundColor: backend.lChColorToCssColor(color) }}
           onPress={onPress}
-          onKeyDown={handleFocusMove}
         >
           {children}
-        </aria.Button>
+        </UnstyledButton>
       </div>
     </FocusRing>
   )

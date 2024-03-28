@@ -11,6 +11,9 @@ import * as aria from '#/components/aria'
 import ColorPicker from '#/components/ColorPicker'
 import Label from '#/components/dashboard/Label'
 import Modal from '#/components/Modal'
+import FocusArea from '#/components/styled/FocusArea'
+import FocusRing from '#/components/styled/FocusRing'
+import Input from '#/components/styled/Input'
 import UnstyledButton from '#/components/styled/UnstyledButton'
 
 import * as backendModule from '#/services/Backend'
@@ -130,11 +133,6 @@ export default function ManageLabelsModal<
           mouseEvent.stopPropagation()
           mouseEvent.preventDefault()
         }}
-        onKeyDown={event => {
-          if (event.key !== 'Escape') {
-            event.stopPropagation()
-          }
-        }}
       >
         <div className="absolute h-full w-full rounded-default bg-selected-frame backdrop-blur-default" />
         <form
@@ -150,65 +148,77 @@ export default function ManageLabelsModal<
           >
             <aria.Text className="text text-sm font-bold">{getText('labels')}</aria.Text>
           </aria.Heading>
-          <div className="flex gap-input-with-button">
-            <div
-              className={`flex grow items-center rounded-full border border-primary/10 px-input-x ${
-                // eslint-disable-next-line @typescript-eslint/no-magic-numbers
-                canSelectColor && color != null && color.lightness <= 50
-                  ? 'text-tag-text placeholder-tag-text'
-                  : 'text-primary'
-              }`}
-              style={
-                !canSelectColor || color == null
-                  ? {}
-                  : {
-                      backgroundColor: backendModule.lChColorToCssColor(color),
-                    }
-              }
-            >
-              <aria.Input
-                autoFocus
-                type="text"
-                size={1}
-                placeholder={getText('labelSearchPlaceholder')}
-                className="text grow bg-transparent"
-                onChange={event => {
-                  setQuery(event.currentTarget.value)
-                }}
-              />
-            </div>
-            <UnstyledButton
-              isDisabled={!canCreateNewLabel}
-              className="button bg-invite px-button-x text-tag-text enabled:active"
-              onPress={doSubmit}
-            >
-              <aria.Text className="h-text py-modal-invite-button-text-y">
-                {getText('create')}
-              </aria.Text>
-            </UnstyledButton>
-          </div>
+          {
+            <FocusArea direction="horizontal">
+              {(ref, innerProps) => (
+                <div ref={ref} className="flex gap-input-with-button" {...innerProps}>
+                  <FocusRing within>
+                    <div
+                      className={`flex grow items-center rounded-full border border-primary/10 px-input-x ${
+                        // eslint-disable-next-line @typescript-eslint/no-magic-numbers
+                        canSelectColor && color != null && color.lightness <= 50
+                          ? 'text-tag-text placeholder-tag-text'
+                          : 'text-primary'
+                      }`}
+                      style={
+                        !canSelectColor || color == null
+                          ? {}
+                          : {
+                              backgroundColor: backendModule.lChColorToCssColor(color),
+                            }
+                      }
+                    >
+                      <Input
+                        autoFocus
+                        type="text"
+                        size={1}
+                        placeholder={getText('labelSearchPlaceholder')}
+                        className="text grow bg-transparent"
+                        onChange={event => {
+                          setQuery(event.currentTarget.value)
+                        }}
+                      />
+                    </div>
+                  </FocusRing>
+                  <UnstyledButton
+                    isDisabled={!canCreateNewLabel}
+                    className="button bg-invite px-button-x text-tag-text enabled:active"
+                    onPress={doSubmit}
+                  >
+                    <aria.Text className="h-text py-modal-invite-button-text-y">
+                      {getText('create')}
+                    </aria.Text>
+                  </UnstyledButton>
+                </div>
+              )}
+            </FocusArea>
+          }
           {canSelectColor && (
             <div className="mx-auto">
               <ColorPicker setColor={setColor} />
             </div>
           )}
-          <div className="max-h-manage-labels-list overflow-auto">
-            {Array.from(allLabels.values())
-              .filter(label => regex.test(label.value))
-              .map(label => (
-                <div key={label.id} className="flex h-row items-center">
-                  <Label
-                    active={labels.includes(label.value)}
-                    color={label.color}
-                    onPress={() => {
-                      void doToggleLabel(label.value)
-                    }}
-                  >
-                    {label.value}
-                  </Label>
-                </div>
-              ))}
-          </div>
+          <FocusArea direction="vertical">
+            {(ref, innerProps) => (
+              <div ref={ref} className="max-h-manage-labels-list overflow-auto" {...innerProps}>
+                {Array.from(allLabels.values())
+                  .filter(label => regex.test(label.value))
+                  .map(label => (
+                    <div key={label.id} className="flex h-row items-center">
+                      <Label
+                        active={labels.includes(label.value)}
+                        color={label.color}
+                        onPress={() => {
+                          void doToggleLabel(label.value)
+                        }}
+                      >
+                        {label.value}
+                      </Label>
+                    </div>
+                  ))}
+              </div>
+            )}
+          </FocusArea>
         </form>
       </div>
     </Modal>

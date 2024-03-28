@@ -6,7 +6,6 @@ import * as focusHooks from '#/hooks/focusHooks'
 import * as focusDirectionProvider from '#/providers/FocusDirectionProvider'
 
 import * as aria from '#/components/aria'
-import FocusRing from '#/components/styled/FocusRing'
 
 // =============
 // === Input ===
@@ -21,11 +20,9 @@ function Input(props: InputProps, ref: React.ForwardedRef<HTMLInputElement>) {
   const handleFocusMove = focusHooks.useHandleFocusMove(focusDirection)
 
   return (
-    <FocusRing placement="after">
-      <aria.Input
-        {...aria.mergeProps(props, { ref, className: 'focus-child', onKeyDown: handleFocusMove })}
-      />
-    </FocusRing>
+    <aria.Input
+      {...aria.mergeProps(props, { ref, className: 'focus-child', onKeyDown: handleFocusMove })}
+    />
   )
 }
 
