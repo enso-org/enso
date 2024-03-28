@@ -314,10 +314,9 @@ export default function AssetSearchBar(props: AssetSearchBarProps) {
                   {suggestions.map((suggestion, index) => (
                     // This should not be a `<button>`, since `render()` may output a
                     // tree containing a button.
-                    <div
+                    <aria.Button
                       data-testid="asset-search-suggestion"
                       key={index}
-                      role="button"
                       ref={el => {
                         if (index === selectedIndex) {
                           el?.focus()
@@ -330,8 +329,7 @@ export default function AssetSearchBar(props: AssetSearchBarProps) {
                             ? 'bg-frame'
                             : ''
                       }`}
-                      onClick={event => {
-                        event.stopPropagation()
+                      onPress={event => {
                         querySource.current = QuerySource.internal
                         setQuery(
                           selectedIndices.has(index)
@@ -352,7 +350,7 @@ export default function AssetSearchBar(props: AssetSearchBarProps) {
                       }}
                     >
                       {suggestion.render()}
-                    </div>
+                    </aria.Button>
                   ))}
                 </div>
               </div>
