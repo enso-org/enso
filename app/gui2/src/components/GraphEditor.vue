@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { codeEditorBindings, graphBindings, interactionBindings } from '@/bindings'
 import CodeEditor from '@/components/CodeEditor.vue'
+import ColorPicker from '@/components/ColorPicker.vue'
 import ComponentBrowser from '@/components/ComponentBrowser.vue'
 import {
   DEFAULT_NODE_SIZE,
@@ -238,6 +239,9 @@ const graphBindingsHandler = graphBindings.handler({
     if (keyboardBusy()) return false
     stackNavigator.exitNode()
   },
+  changeColorSelectedNodes() {
+    toggleColorPicker()
+  },
 })
 
 const { handleClick } = useDoubleClick(
@@ -246,6 +250,7 @@ const { handleClick } = useDoubleClick(
     if (document.activeElement instanceof HTMLElement) {
       document.activeElement.blur()
     }
+    showColorPicker.value = false
   },
   () => {
     stackNavigator.exitNode()
@@ -566,6 +571,51 @@ const stackNavigator = useStackNavigator()
 function handleEdgeDrop(source: AstId, position: Vec2) {
   createWithComponentBrowser({ placement: ['fixed', position], sourcePort: source })
 }
+
+// === Color Picker ===
+
+/** A small offset to keep the color picker slightly away from the nodes. */
+const COLOR_PICKER_X_OFFSET_PX = -300
+const showColorPicker = ref(false)
+const colorPickerSelectedColor = ref('')
+
+function overrideSelectedNodesColor(color: string) {
+  ;[...nodeSelection.selected].map((id) => graphStore.overrideNodeColor(id, color))
+}
+
+/** Toggle displaying of the color picker. It will change colors of selected nodes. */
+function toggleColorPicker() {
+  if (nodeSelection.selected.size === 0) {
+    showColorPicker.value = false
+    return
+  }
+  showColorPicker.value = !showColorPicker.value
+  if (showColorPicker.value) {
+    const oneOfSelected = set.first(nodeSelection.selected)
+    const color = graphStore.db.getNodeColorStyle(oneOfSelected)
+    if (color.startsWith('var') && viewportNode.value != null) {
+      // Some colors are defined in CSS variables, we need to get the actual color.
+      const variableName = color.slice(4, -1)
+      colorPickerSelectedColor.value = getComputedStyle(viewportNode.value).getPropertyValue(
+        variableName,
+      )
+    } else {
+      colorPickerSelectedColor.value = color
+    }
+  }
+}
+const colorPickerPos = computed(() => {
+  const nodeRects = [...nodeSelection.selected].map(
+    (id) => graphStore.nodeRects.get(id) ?? Rect.Zero,
+  )
+  const boundingRect = Rect.Bounding(...nodeRects)
+  return new Vec2(boundingRect.left + COLOR_PICKER_X_OFFSET_PX, boundingRect.center().y)
+})
+const colorPickerStyle = computed(() =>
+  colorPickerPos.value != null ?
+    { transform: `translate(${colorPickerPos.value.x}px, ${colorPickerPos.value.y}px)` }
+  : {},
+)
 </script>
 
 <template>
@@ -585,6 +635,15 @@ function handleEdgeDrop(source: AstId, position: Vec2) {
         @nodeOutputPortDoubleClick="handleNodeOutputPortDoubleClick"
         @nodeDoubleClick="(id) => stackNavigator.enterNode(id)"
         @createNodes="createNodesFromSource"
+        @toggleColorPicker="toggleColorPicker"
+      />
+
+      <ColorPicker
+        class="colorPicker"
+        :style="colorPickerStyle"
+        :show="showColorPicker"
+        :color="colorPickerSelectedColor"
+        @update:color="overrideSelectedNodesColor"
       />
     </div>
     <div
@@ -648,5 +707,9 @@ function handleEdgeDrop(source: AstId, position: Vec2) {
   left: 0;
   width: 0;
   height: 0;
+}
+
+.colorPicker {
+  position: absolute;
 }
 </style>

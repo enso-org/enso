@@ -68,6 +68,7 @@
     "rimraf": "^5.0.5",
     "semver": "^7.5.4",
     "sucrase": "^3.34.0",
+    "verte-vue3": "^1.1.1",
     "vue": "^3.4.19",
     "ws": "^8.13.0",
     "y-codemirror.next": "^0.3.2",

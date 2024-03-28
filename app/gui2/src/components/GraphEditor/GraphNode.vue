@@ -52,6 +52,7 @@ const emit = defineEmits<{
   outputPortDoubleClick: [portId: AstId]
   doubleClick: []
   createNodes: [options: NodeCreationOptions[]]
+  toggleColorPicker: []
   'update:edited': [cursorPosition: number]
   'update:rect': [rect: Rect]
   'update:visualizationId': [id: Opt<VisualizationIdentifier>]
@@ -453,6 +454,7 @@ const documentation = computed<string | undefined>({
       @createNodes="emit('createNodes', $event)"
       @pointerenter="menuHovered = true"
       @pointerleave="menuHovered = false"
+      @toggleColorPicker="emit('toggleColorPicker')"
     />
     <GraphVisualization
       v-if="isVisualizationVisible"

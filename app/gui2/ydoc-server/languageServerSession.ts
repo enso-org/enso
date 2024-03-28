@@ -563,6 +563,9 @@ class ModulePersistence extends ObservableV2<{ removed: () => void }> {
           const oldVis = metadata.get('visualization')
           const newVis = meta.visualization && translateVisualizationFromFile(meta.visualization)
           if (!visMetadataEquals(newVis, oldVis)) metadata.set('visualization', newVis)
+          const oldColorOverride = metadata.get('colorOverride')
+          const newColorOverride = meta.colorOverride
+          if (oldColorOverride !== newColorOverride) metadata.set('colorOverride', newColorOverride)
         }
       }
 
