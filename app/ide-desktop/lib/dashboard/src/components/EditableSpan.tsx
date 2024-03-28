@@ -42,27 +42,28 @@ export default function EditableSpan(props: EditableSpanProps) {
   const { checkSubmittable, onSubmit, onCancel, inputPattern, inputTitle } = props
   const { getText } = textProvider.useText()
   const inputBindings = inputBindingsProvider.useInputBindings()
-  const [isSubmittable, setIsSubmittable] = React.useState(true)
+  const [isSubmittable, setIsSubmittable] = React.useState(false)
   const inputRef = React.useRef<HTMLInputElement>(null)
-  const cancelled = React.useRef(false)
+  const cancelledRef = React.useRef(false)
+  const checkSubmittableRef = React.useRef(checkSubmittable)
+  checkSubmittableRef.current = checkSubmittable
 
   // Making sure that the event callback is stable.
   // to prevent the effect from re-running.
   const onCancelEventCallback = eventCalback.useEventCallback(onCancel)
 
   React.useEffect(() => {
-    console.log(checkSubmittable, inputRef.current?.value)
-    setIsSubmittable(checkSubmittable?.(inputRef.current?.value ?? '') ?? true)
-    // This effect MUST only run on mount.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+    if (editable) {
+      setIsSubmittable(checkSubmittableRef.current?.(inputRef.current?.value ?? '') ?? true)
+    }
+  }, [editable])
 
   React.useEffect(() => {
     if (editable) {
       return inputBindings.attach(sanitizedEventTargets.document.body, 'keydown', {
         cancelEditName: () => {
           onCancelEventCallback()
-          cancelled.current = true
+          cancelledRef.current = true
           inputRef.current?.blur()
         },
       })
@@ -72,7 +73,7 @@ export default function EditableSpan(props: EditableSpanProps) {
   }, [editable, /* should never change */ inputBindings, onCancelEventCallback])
 
   React.useEffect(() => {
-    cancelled.current = false
+    cancelledRef.current = false
   }, [editable])
 
   if (editable) {
@@ -97,7 +98,7 @@ export default function EditableSpan(props: EditableSpanProps) {
           size={1}
           defaultValue={children}
           onBlur={event => {
-            if (!cancelled.current) {
+            if (!cancelledRef.current) {
               event.currentTarget.form?.requestSubmit()
             }
           }}
@@ -136,10 +137,10 @@ export default function EditableSpan(props: EditableSpanProps) {
           <UnstyledButton
             className="mx-tick-cross-button my-auto flex rounded-full transition-colors hover:bg-hover-bg"
             onPress={() => {
-              cancelled.current = true
+              cancelledRef.current = true
               onCancel()
               window.setTimeout(() => {
-                cancelled.current = false
+                cancelledRef.current = false
               })
             }}
           >
