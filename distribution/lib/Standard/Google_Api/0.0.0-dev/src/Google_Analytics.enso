@@ -8,24 +8,7 @@ from Standard.Table import Table
 
 import project.Google_Credential.Google_Credential
 from project.Internal.Google_Credential_Internal import all
-
-polyglot java import com.google.analytics.data.v1beta.BetaAnalyticsDataClient
-polyglot java import com.google.analytics.data.v1beta.BetaAnalyticsDataSettings
-polyglot java import com.google.analytics.data.v1beta.DateRange
-polyglot java import com.google.analytics.data.v1beta.Dimension
-polyglot java import com.google.analytics.data.v1beta.Metric
-polyglot java import com.google.analytics.data.v1beta.Row
-polyglot java import com.google.analytics.data.v1beta.RunReportRequest
-polyglot java import com.google.analytics.data.v1beta.RunReportResponse
-polyglot java import com.google.api.client.googleapis.auth.oauth2.GoogleCredential
-polyglot java import com.google.api.client.googleapis.javanet.GoogleNetHttpTransport
-polyglot java import com.google.api.client.json.gson.GsonFactory
-polyglot java import com.google.api.gax.core.CredentialsProvider
-polyglot java import com.google.api.gax.core.FixedCredentialsProvider
-polyglot java import com.google.api.services.sheets.v4.Sheets
-polyglot java import com.google.api.services.sheets.v4.SheetsScopes
-polyglot java import com.google.auth.oauth2.GoogleCredentials
-polyglot java import java.util.Collections
+from project.Internal.Google_Analytics_Internal import all
 
 ## PRIVATE
 make_dimensions_vector_selector : Widget
@@ -50,36 +33,10 @@ make_metrics_vector_selector =
 @dimensions make_dimensions_vector_selector
 @metrics make_metrics_vector_selector
 read : Text -> (Vector Text) -> (Vector Text) -> Date -> Date -> Google_Credential -> Table
-read property_id:Text dimensions:Vector=['country'] metrics:Vector=['activeUsers'] start_date:Date=(Date.today.previous Date_Period.Year) end_date:Date=Date.today credentials=Google_Credential.Default -> Table =
-    analytics_data = case credentials of 
-        Google_Credential.Default -> BetaAnalyticsDataClient.create
-        Google_Credential.From_File _ -> 
-            betaAnalyticsDataSettings = BetaAnalyticsDataSettings.newBuilder
-               . setCredentialsProvider credentials.as_java
-               . build
-            BetaAnalyticsDataClient.create betaAnalyticsDataSettings
-    request_builder = RunReportRequest.newBuilder
-        . setProperty ("properties/"+property_id)
-        . addDateRanges (DateRange.newBuilder.setStartDate start_date.to_text . setEndDate end_date.to_text)
-    dimensions.distinct.each dimension->
-        request_builder.addDimensions (Dimension.newBuilder.setName dimension)
-    metrics.distinct.each metric->
-        request_builder.addMetrics (Metric.newBuilder.setName metric)
+read property_id:Text dimensions:Vector=['country'] metrics:Vector=['activeUsers'] start_date:Date=(Date.today.previous Date_Period.Year) end_date:Date=Date.today credentials:Google_Credential=Google_Credential.Default -> Table =
+    read_api_data property_id dimensions metrics start_date end_date credentials
 
-    request = request_builder.build
-    response = analytics_data.runReport request
 
-    dimension_count = response.getDimensionHeadersCount
-    dimension_headers = 0.up_to dimension_count . map i-> response.getDimensionHeaders i . getName
-    metric_count = response.getMetricHeadersCount
-    metric_headers = 0.up_to metric_count . map i-> response.getMetricHeaders i . getName
-    headers = dimension_headers + metric_headers
-
-    row_count = response.getRowCount
-    rows = Vector.new row_count i->
-        row = response.getRows i
-        dimension_values = 0.up_to dimension_count . map i-> row.getDimensionValues i . getValue
-        metric_values = 0.up_to metric_count . map i-> row.getMetricValues i . getValue
-        dimension_values + metric_values
-
-    Table.from_rows headers rows
+    case credentials of
+    Google_Credential.Sample -> read_sample_data property_id dimensions metrics start_date end_date
+    _ -> read_api_data property_id dimensions metrics start_date end_date credentials
