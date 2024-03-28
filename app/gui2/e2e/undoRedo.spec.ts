@@ -46,9 +46,7 @@ test('Removing node', async ({ page }) => {
   const restoredBBox = await deletedNode.boundingBox()
   await expect(restoredBBox).toEqual(deletedNodeBBox)
 
-  // TODO[ao]: For some reason, this redoing sometimes does nothing. The `redo` method of
-  // UndoManager is called, but no update comes from YDocs.
-  // await page.keyboard.press('Control+Shift+Z')
-  // await expect(locate.graphNode(page)).toHaveCount(nodesCount - 1)
-  // await expect(deletedNode).not.toBeVisible()
+  await page.keyboard.press('Control+Shift+Z')
+  await expect(locate.graphNode(page)).toHaveCount(nodesCount - 1)
+  await expect(deletedNode).not.toBeVisible()
 })
