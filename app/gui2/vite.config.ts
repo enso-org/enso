@@ -84,6 +84,10 @@ export default defineConfig({
   build: {
     // dashboard chunk size is larger than the default warning limit
     chunkSizeWarningLimit: 700,
+    lib: {
+      name: 'ydoc-server',
+      entry: './ydoc-server/server.ts'
+    },
     rollupOptions: {
       output: {
         manualChunks: {
