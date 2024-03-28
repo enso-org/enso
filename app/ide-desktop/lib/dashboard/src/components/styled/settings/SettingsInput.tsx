@@ -20,13 +20,14 @@ import SvgMask from '#/components/SvgMask'
 export interface SettingsInputProps {
   readonly type?: string
   readonly placeholder?: string
+  readonly autoComplete?: React.HTMLInputAutoCompleteAttribute
   readonly onChange?: React.ChangeEventHandler<HTMLInputElement>
   readonly onSubmit?: (value: string) => void
 }
 
 /** A styled input specific to settings pages. */
 function SettingsInput(props: SettingsInputProps, ref: React.ForwardedRef<HTMLInputElement>) {
-  const { type, placeholder, onChange, onSubmit } = props
+  const { type, placeholder, autoComplete, onChange, onSubmit } = props
   // This is SAFE. The value of this context is never a `SlottedContext`.
   // eslint-disable-next-line no-restricted-syntax
   const inputProps = (React.useContext(aria.InputContext) ?? null) as aria.InputProps | null
@@ -72,6 +73,7 @@ function SettingsInput(props: SettingsInputProps, ref: React.ForwardedRef<HTMLIn
             className="focus-child settings-value w-full rounded-full bg-transparent font-bold placeholder-black/30 transition-colors invalid:border invalid:border-red-700 hover:bg-selected-frame focus:bg-selected-frame"
             type={isShowingPassword ? 'text' : type}
             size={1}
+            autoComplete={autoComplete}
             placeholder={placeholder}
             onKeyDown={onKeyDown}
             onChange={onChange}

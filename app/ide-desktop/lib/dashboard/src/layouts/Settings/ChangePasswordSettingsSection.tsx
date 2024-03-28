@@ -10,6 +10,7 @@ import SettingsInput from '#/components/styled/settings/SettingsInput'
 import SettingsSection from '#/components/styled/settings/SettingsSection'
 import UnstyledButton from '#/components/styled/UnstyledButton'
 
+import * as eventModule from '#/utilities/event'
 import * as uniqueString from '#/utilities/uniqueString'
 import * as validation from '#/utilities/validation'
 
@@ -19,9 +20,10 @@ import * as validation from '#/utilities/validation'
 
 /** Settings section for changing password. */
 export default function ChangePasswordSettingsSection() {
+  const { user } = authProvider.useNonPartialUserSession()
   const { changePassword } = authProvider.useAuth()
   const { getText } = textProvider.useText()
-  const [passwordFormKey, setPasswordFormKey] = React.useState('')
+  const [key, setKey] = React.useState('')
   const [currentPassword, setCurrentPassword] = React.useState('')
   const [newPassword, setNewPassword] = React.useState('')
   const [confirmNewPassword, setConfirmNewPassword] = React.useState('')
@@ -36,64 +38,67 @@ export default function ChangePasswordSettingsSection() {
 
   return (
     <SettingsSection title={getText('changePassword')}>
-      <aria.Form key={passwordFormKey}>
-        <aria.TextField className="flex h-row gap-settings-entry">
+      <aria.Form
+        key={key}
+        onSubmit={event => {
+          event.preventDefault()
+          setKey(uniqueString.uniqueString())
+          setCurrentPassword('')
+          setNewPassword('')
+          setConfirmNewPassword('')
+          void changePassword(currentPassword, newPassword)
+        }}
+      >
+        <aria.Input hidden autoComplete="username" value={user?.email} />
+        <aria.TextField className="flex h-row gap-settings-entry" onChange={setCurrentPassword}>
           <aria.Label className="text my-auto w-change-password-settings-label">
             {getText('currentPasswordLabel')}
           </aria.Label>
           <SettingsInput
             type="password"
+            autoComplete="current-password"
             placeholder={getText('currentPasswordPlaceholder')}
-            onChange={event => {
-              setCurrentPassword(event.currentTarget.value)
-            }}
           />
         </aria.TextField>
-        <aria.TextField className="flex h-row gap-settings-entry">
+        <aria.TextField
+          className="flex h-row gap-settings-entry"
+          onChange={setNewPassword}
+          validate={value =>
+            value === '' || validation.PASSWORD_REGEX.test(value)
+              ? ''
+              : getText('passwordValidationError')
+          }
+        >
           <aria.Label className="text my-auto w-change-password-settings-label">
             {getText('newPasswordLabel')}
           </aria.Label>
           <SettingsInput
             type="password"
             placeholder={getText('newPasswordPlaceholder')}
-            onChange={event => {
-              const newValue = event.currentTarget.value
-              setNewPassword(newValue)
-              event.currentTarget.setCustomValidity(
-                newValue === '' || validation.PASSWORD_REGEX.test(newValue)
-                  ? ''
-                  : getText('passwordValidationError')
-              )
-            }}
+            autoComplete="new-password"
           />
         </aria.TextField>
-        <aria.TextField className="flex h-row gap-settings-entry">
+        <aria.TextField
+          className="flex h-row gap-settings-entry"
+          onChange={setConfirmNewPassword}
+          validate={newValue =>
+            newValue === '' || newValue === newPassword ? '' : getText('passwordMismatchError')
+          }
+        >
           <aria.Label className="text my-auto w-change-password-settings-label">
             {getText('confirmNewPasswordLabel')}
           </aria.Label>
           <SettingsInput
             type="password"
             placeholder={getText('confirmNewPasswordPlaceholder')}
-            onChange={event => {
-              const newValue = event.currentTarget.value
-              setConfirmNewPassword(newValue)
-              event.currentTarget.setCustomValidity(
-                newValue === '' || newValue === newPassword ? '' : getText('passwordMismatchError')
-              )
-            }}
+            autoComplete="new-password"
           />
         </aria.TextField>
         <ButtonRow>
           <UnstyledButton
             isDisabled={!canSubmitPassword}
             className={`settings-value rounded-full bg-invite font-medium text-white selectable enabled:active`}
-            onPress={() => {
-              setPasswordFormKey(uniqueString.uniqueString())
-              setCurrentPassword('')
-              setNewPassword('')
-              setConfirmNewPassword('')
-              void changePassword(currentPassword, newPassword)
-            }}
+            onPress={eventModule.submitForm}
           >
             {getText('change')}
           </UnstyledButton>
@@ -101,7 +106,7 @@ export default function ChangePasswordSettingsSection() {
             isDisabled={!canCancel}
             className="settings-value rounded-full bg-selected-frame font-medium selectable enabled:active"
             onPress={() => {
-              setPasswordFormKey(uniqueString.uniqueString())
+              setKey(uniqueString.uniqueString())
               setCurrentPassword('')
               setNewPassword('')
               setConfirmNewPassword('')
