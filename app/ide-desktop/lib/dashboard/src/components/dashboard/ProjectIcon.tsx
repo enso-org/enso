@@ -147,7 +147,11 @@ export default function ProjectIcon(props: ProjectIconProps) {
               }
               await backend.openProject(
                 item.id,
-                { executeAsync: shouldRunInBackground, parentId: item.parentId, cognitoCredentials: session },
+                {
+                  executeAsync: shouldRunInBackground,
+                  parentId: item.parentId,
+                  cognitoCredentials: session,
+                },
                 item.title
               )
             }
@@ -167,7 +171,11 @@ export default function ProjectIcon(props: ProjectIconProps) {
           case backendModule.BackendType.local: {
             await backend.openProject(
               item.id,
-              { executeAsync: shouldRunInBackground, parentId: item.parentId, cognitoCredentials: null },
+              {
+                executeAsync: shouldRunInBackground,
+                parentId: item.parentId,
+                cognitoCredentials: null,
+              },
               item.title
             )
             setState(oldState =>
