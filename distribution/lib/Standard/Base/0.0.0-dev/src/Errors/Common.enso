@@ -494,3 +494,19 @@ type Loss_Of_Numeric_Precision
     to_text : Text
     to_text self =
         "(Loss_Of_Numeric_Precision.Warning (original_value = "+self.original_value.to_text+") (new_value = " + self.new_value.to_text+"))"
+
+## Indicates that a computed or provided value is outside the allowable range.
+type Out_Of_Range
+    ## PRIVATE
+    Error value
+
+    ## PRIVATE
+       Create a human-readable version of the error.
+    to_display_text : Text
+    to_display_text self =
+        "Value out of range: "+self.value.to_text
+
+    ## PRIVATE
+    to_text : Text
+    to_text self =
+        "(Out_Of_Range (value = "+self.value.to_text+"))"
