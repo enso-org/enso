@@ -62,8 +62,8 @@ test('Multi-selection widget', async ({ page }) => {
   await actions.goToGraph(page)
   await mockMethodCallInfo(page, 'selected', {
     methodPointer: {
-      module: 'Standard.Table.Data.Table',
-      definedOnType: 'Standard.Table.Data.Table.Table',
+      module: 'Standard.Table.Table',
+      definedOnType: 'Standard.Table.Table.Table',
       name: 'select_columns',
     },
     notAppliedArguments: [1],
@@ -284,8 +284,8 @@ test('Managing aggregates in `aggregate` node', async ({ page }) => {
   await actions.goToGraph(page)
   await mockMethodCallInfo(page, 'aggregated', {
     methodPointer: {
-      module: 'Standard.Table.Data.Table',
-      definedOnType: 'Standard.Table.Data.Table.Table',
+      module: 'Standard.Table.Table',
+      definedOnType: 'Standard.Table.Table.Table',
       name: 'aggregate',
     },
     notAppliedArguments: [1, 2, 3],
@@ -317,8 +317,8 @@ test('Managing aggregates in `aggregate` node', async ({ page }) => {
     },
     {
       methodPointer: {
-        module: 'Standard.Table.Data.Aggregate_Column',
-        definedOnType: 'Standard.Table.Data.Aggregate_Column.Aggregate_Column',
+        module: 'Standard.Table.Aggregate_Column',
+        definedOnType: 'Standard.Table.Aggregate_Column.Aggregate_Column',
         name: 'Group_By',
       },
       notAppliedArguments: [0, 1],
@@ -343,8 +343,8 @@ test('Managing aggregates in `aggregate` node', async ({ page }) => {
     },
     {
       methodPointer: {
-        module: 'Standard.Table.Data.Aggregate_Column',
-        definedOnType: 'Standard.Table.Data.Aggregate_Column.Aggregate_Column',
+        module: 'Standard.Table.Aggregate_Column',
+        definedOnType: 'Standard.Table.Aggregate_Column.Aggregate_Column',
         name: 'Count_Distinct',
       },
       notAppliedArguments: [0, 1, 2],
@@ -381,8 +381,8 @@ test('Managing aggregates in `aggregate` node', async ({ page }) => {
     },
     {
       methodPointer: {
-        module: 'Standard.Table.Data.Aggregate_Column',
-        definedOnType: 'Standard.Table.Data.Aggregate_Column.Aggregate_Column',
+        module: 'Standard.Table.Aggregate_Column',
+        definedOnType: 'Standard.Table.Aggregate_Column.Aggregate_Column',
         name: 'Group_By',
       },
       notAppliedArguments: [0, 1],

@@ -3,11 +3,11 @@ import Standard.Base.Data.Vector.No_Wrap
 import Standard.Base.Errors.Common.Index_Out_Of_Bounds
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
-import project.Data.Column_Ref.Column_Ref
-import project.Data.Expression.Expression
-import project.Data.Expression.Expression_Error
-import project.Data.Set_Mode.Set_Mode
-import project.Data.Table.Table
+import project.Column_Ref.Column_Ref
+import project.Expression.Expression
+import project.Expression.Expression_Error
+import project.Set_Mode.Set_Mode
+import project.Table.Table
 from project.Errors import Existing_Column, Invalid_Value_Type, Missing_Column, No_Such_Column
 
 ## PRIVATE

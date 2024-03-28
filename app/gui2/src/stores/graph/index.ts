@@ -284,7 +284,8 @@ export const useGraphStore = defineStore('graph', () => {
     rhs.setNodeMetadata(metadata)
     const assignment = Ast.Assignment.new(edit, ident, rhs)
     for (const _conflict of conflicts) {
-      // TODO: Sort out issues with FQN with the engine.
+      // TODO: Substitution does not work, because we interpret imports wrongly. To be fixed in
+      // https://github.com/enso-org/enso/issues/9356
       // substituteQualifiedName(edit, assignment, conflict.pattern, conflict.fullyQualified)
     }
     const id = asNodeId(rhs.id)
@@ -378,7 +379,8 @@ export const useGraphStore = defineStore('graph', () => {
           return
         }
         for (const _conflict of conflicts) {
-          // TODO: Sort out issues with FQN with the engine.
+          // TODO: Substitution does not work, because we interpret imports wrongly. To be fixed in
+          // https://github.com/enso-org/enso/issues/9356
           // substituteQualifiedName(edit, wholeAssignment, conflict.pattern, conflict.fullyQualified)
         }
       }
