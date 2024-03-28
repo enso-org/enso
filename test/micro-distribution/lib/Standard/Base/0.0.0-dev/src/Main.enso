@@ -31,6 +31,9 @@ from project.Data.Numbers export Number, Integer
 import project.Data.Vector.Vector
 export project.Data.Vector.Vector
 
+import project.Function.Function
+export project.Function.Function
+
 import project.Polyglot.Java
 export project.Polyglot.Java
 

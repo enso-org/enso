@@ -52,6 +52,8 @@ case class QualifiedName(path: List[String], item: String) {
   def pathAsJava(): java.util.List[String] = {
     path.asJava
   }
+
+  def fullPath(): List[String] = path :+ item
 }
 
 object QualifiedName {

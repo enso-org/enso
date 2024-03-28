@@ -6,6 +6,7 @@ import org.enso.compiler.core.Implicits.AsMetadata
 import org.enso.compiler.core.ir.Module
 import org.enso.compiler.data.BindingsMap
 import org.enso.compiler.data.BindingsMap.{
+  Argument,
   Cons,
   ModuleMethod,
   PolyglotSymbol,
@@ -78,9 +79,23 @@ class BindingAnalysisTest extends CompilerTest {
       val metadata = ir.unsafeGetMetadata(BindingAnalysis, "Should exist.")
 
       metadata.definedEntities should contain theSameElementsAs List(
-        Type("Foo", List(), List(Cons("Mk_Foo", 3, false)), false),
-        Type("Bar", List(), List(), false),
-        Type("Baz", List("x", "y"), List(), false),
+        Type(
+          "Foo",
+          List(),
+          List(
+            Cons(
+              "Mk_Foo",
+              List(
+                Argument("a", hasDefaultValue = false, None),
+                Argument("b", hasDefaultValue = false, None),
+                Argument("c", hasDefaultValue = false, None)
+              )
+            )
+          ),
+          builtinType = false
+        ),
+        Type("Bar", List(), List(), builtinType         = false),
+        Type("Baz", List("x", "y"), List(), builtinType = false),
         PolyglotSymbol("MyClass"),
         PolyglotSymbol("Renamed_Class"),
         ModuleMethod("foo")

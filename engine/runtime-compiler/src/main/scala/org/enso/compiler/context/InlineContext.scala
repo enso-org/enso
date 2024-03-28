@@ -2,7 +2,7 @@ package org.enso.compiler.context
 
 import org.enso.compiler.PackageRepository
 import org.enso.compiler.context.LocalScope
-import org.enso.compiler.data.CompilerConfig
+import org.enso.compiler.data.{BindingsMap, CompilerConfig}
 import org.enso.compiler.pass.PassConfiguration
 
 /** A type containing the information about the execution context for an inline
@@ -26,7 +26,7 @@ case class InlineContext(
   passConfiguration: Option[PassConfiguration] = None,
   pkgRepo: Option[PackageRepository]           = None
 ) {
-  def bindingsAnalysis() = module.bindingsAnalysis()
+  def bindingsAnalysis(): BindingsMap = module.bindingsAnalysis()
 }
 object InlineContext {
 
