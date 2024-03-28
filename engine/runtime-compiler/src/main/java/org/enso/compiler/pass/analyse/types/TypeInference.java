@@ -2,7 +2,7 @@ package org.enso.compiler.pass.analyse.types;
 
 import org.enso.compiler.context.InlineContext;
 import org.enso.compiler.context.ModuleContext;
-import org.enso.compiler.context.NameResolution;
+import org.enso.compiler.context.NameResolutionAlgorithm;
 import org.enso.compiler.core.CompilerError;
 import org.enso.compiler.core.IR;
 import org.enso.compiler.core.ir.CallArgument;
@@ -529,7 +529,7 @@ public final class TypeInference implements IRPass {
     }
   }
 
-  private class CompilerNameResolution extends NameResolution<TypeRepresentation, CompilerNameResolution.LinkInfo> {
+  private class CompilerNameResolution extends NameResolutionAlgorithm<TypeRepresentation, CompilerNameResolution.LinkInfo> {
     private final LocalBindingsTyping localBindingsTyping;
 
     private CompilerNameResolution(LocalBindingsTyping localBindingsTyping) {

@@ -25,7 +25,7 @@ import scala.Option;
  *     Depending on the context this may be a Graph.Link (in the compiler) or a FramePointer (in the
  *     runtime).
  */
-public abstract class NameResolution<ResultType, LocalNameLinkType> {
+public abstract class NameResolutionAlgorithm<ResultType, LocalNameLinkType> {
   public final ResultType resolveName(Name.Literal name) {
     Info.Occurrence occurrenceMetadata =
         MetadataInteropHelpers.getMetadata(name, AliasAnalysis$.MODULE$, Info.Occurrence.class);
