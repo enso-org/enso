@@ -58,7 +58,8 @@ class TypeCompatibility {
       }
     }
 
-    // This is a proof of concept. There is not much sense in implementing these branches until we can handle conversions anyway.
+    // This is a proof of concept. There is not much sense in implementing these branches until we
+    // can handle conversions anyway.
     // So these TODOs will be addressed in future iterations.
     if (expected instanceof TypeRepresentation.SumType) {
       // TODO

@@ -4,8 +4,6 @@ import static org.junit.Assert.*;
 
 import java.io.ByteArrayOutputStream;
 import java.net.URI;
-import java.util.List;
-
 import org.enso.polyglot.MethodNames;
 import org.enso.polyglot.RuntimeOptions;
 import org.graalvm.polyglot.Context;
@@ -74,7 +72,10 @@ public class TypeInferenceConsistencyTest extends TestBase {
         getOutput());
   }
 
-  /** Tests that a `Function` type is correctly inferred to be equivalent to `Any -> Any` and thus does not produce a spurious warning. */
+  /**
+   * Tests that a `Function` type is correctly inferred to be equivalent to `Any -> Any` and thus
+   * does not produce a spurious warning.
+   */
   @Test
   public void notInvokableFunctionNoWarning() throws Exception {
     final URI uri = new URI("memory://notInvokableFunctionNoWarning.enso");
@@ -101,7 +102,8 @@ public class TypeInferenceConsistencyTest extends TestBase {
   }
 
   /**
-   * Tests that a function can be converted into a type through a `from` conversion like any other type, and it will not produce any type warnings.
+   * Tests that a function can be converted into a type through a `from` conversion like any other
+   * type, and it will not produce any type warnings.
    */
   @Test
   public void noTypeErrorIfConversionExistsFunctions() throws Exception {

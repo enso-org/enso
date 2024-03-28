@@ -1,5 +1,15 @@
 package org.enso.compiler;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+
+import java.net.URI;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Optional;
+import java.util.Set;
 import org.enso.compiler.context.FreshNameSupply;
 import org.enso.compiler.context.ModuleContext;
 import org.enso.compiler.core.IR;
@@ -25,17 +35,6 @@ import scala.Option;
 import scala.collection.immutable.Seq;
 import scala.collection.immutable.Seq$;
 import scala.jdk.javaapi.CollectionConverters;
-
-import java.net.URI;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Optional;
-import java.util.Set;
-
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotEquals;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
 
 public class TypeInferenceTest extends CompilerTest {
   @Ignore("TODO resolving global methods")
@@ -1150,14 +1149,14 @@ public class TypeInferenceTest extends CompilerTest {
   }
 
   /**
-   * Note that this `compile` method will not run import resolution.
-   * For now we just have tests that do not need it, and tests that do need it are placed in
-   * {@link org.enso.interpreter.test.TypeInferenceConsistencyTest} which spawns the whole interpreter.
-   * <p>
-   * If we want to run the imports resolution here, we need to create an instance of {@link Compiler},
-   * like in {@link org.enso.compiler.test.semantic.TypeSignaturesTest}, but that relies on spawning a Graal context
-   * anyway. If possible I think it's good to skip that so that these tests can be kept simple - and the more complex
-   * ones can be done in the other suite.
+   * Note that this `compile` method will not run import resolution. For now we just have tests that
+   * do not need it, and tests that do need it are placed in {@link
+   * org.enso.interpreter.test.TypeInferenceConsistencyTest} which spawns the whole interpreter.
+   *
+   * <p>If we want to run the imports resolution here, we need to create an instance of {@link
+   * Compiler}, like in {@link org.enso.compiler.test.semantic.TypeSignaturesTest}, but that relies
+   * on spawning a Graal context anyway. If possible I think it's good to skip that so that these
+   * tests can be kept simple - and the more complex ones can be done in the other suite.
    */
   private Module compile(Source src) {
     if (src.getCharacters().toString().contains("import")) {
@@ -1181,8 +1180,7 @@ public class TypeInferenceTest extends CompilerTest {
 
           @Override
           public void org$enso$compiler$test$CompilerRunner$_setter_$defaultConfig_$eq(
-              CompilerConfig x$1) {
-          }
+              CompilerConfig x$1) {}
         };
     var moduleName = QualifiedName.simpleName(src.getName().replace(".enso", ""));
     ModuleContext moduleContext =
