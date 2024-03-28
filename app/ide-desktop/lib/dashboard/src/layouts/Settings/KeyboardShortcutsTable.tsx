@@ -7,6 +7,7 @@ import Plus2Icon from 'enso-assets/plus2.svg'
 import ReloadInCircleIcon from 'enso-assets/reload_in_circle.svg'
 
 import type * as refreshHooks from '#/hooks/refreshHooks'
+import * as scrollHooks from '#/hooks/scrollHooks'
 
 import * as inputBindingsManager from '#/providers/InputBindingsProvider'
 import * as modalProvider from '#/providers/ModalProvider'
@@ -54,30 +55,11 @@ export default function KeyboardShortcutsTable(props: KeyboardShortcutsTableProp
 
   // This is required to prevent the table body from overlapping the table header, because
   // the table header is transparent.
-  React.useEffect(() => {
-    const root = rootRef.current
-    const body = bodyRef.current
-    if (root != null && body != null) {
-      let isClipPathUpdateQueued = false
-      const updateClipPath = () => {
-        isClipPathUpdateQueued = false
-        body.style.clipPath = `inset(${root.scrollTop}px 0 0 0)`
-      }
-      const onScroll = () => {
-        if (!isClipPathUpdateQueued) {
-          isClipPathUpdateQueued = true
-          requestAnimationFrame(updateClipPath)
-        }
-      }
-      updateClipPath()
-      root.addEventListener('scroll', onScroll)
-      return () => {
-        root.removeEventListener('scroll', onScroll)
-      }
-    } else {
-      return
+  const onScroll = scrollHooks.useOnScroll(() => {
+    if (rootRef.current != null && bodyRef.current != null) {
+      bodyRef.current.style.clipPath = `inset(${rootRef.current.scrollTop}px 0 0 0)`
     }
-  }, [/* should never change */ rootRef])
+  })
 
   return (
     // There is a horizontal scrollbar for some reason without `px-px`.
@@ -91,6 +73,7 @@ export default function KeyboardShortcutsTable(props: KeyboardShortcutsTableProp
           }}
           className="overflow-auto px-px"
           {...innerProps}
+          onScroll={onScroll}
         >
           <table className="table-fixed border-collapse rounded-rows">
             <thead className="sticky top-0">

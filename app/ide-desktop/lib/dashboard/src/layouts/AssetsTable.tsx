@@ -1035,40 +1035,6 @@ export default function AssetsTable(props: AssetsTableProps) {
     }
   }, [/* should never change */ localStorage])
 
-  // Clip the header bar so that the background behind the extra colums selector is visible.
-  React.useEffect(() => {
-    const headerRow = headerRowRef.current
-    const root = rootRef.current
-    if (backend.type === backendModule.BackendType.remote && root != null && headerRow != null) {
-      let isClipPathUpdateQueued = false
-      const updateClipPath = () => {
-        isClipPathUpdateQueued = false
-        const hiddenColumnsCount = columnUtils.CLOUD_COLUMNS.length - enabledColumns.size
-        const shrinkBy =
-          COLUMNS_SELECTOR_BASE_WIDTH_PX + COLUMNS_SELECTOR_ICON_WIDTH_PX * hiddenColumnsCount
-        const rightOffset = root.clientWidth + root.scrollLeft - shrinkBy
-
-        headerRow.style.clipPath = `polygon(0 0, ${rightOffset}px 0, ${rightOffset}px 100%, 0 100%)`
-      }
-      const onScroll = () => {
-        if (!isClipPathUpdateQueued) {
-          isClipPathUpdateQueued = true
-          requestAnimationFrame(updateClipPath)
-        }
-      }
-      updateClipPath()
-      const observer = new ResizeObserver(onScroll)
-      observer.observe(root)
-      root.addEventListener('scroll', onScroll)
-      return () => {
-        observer.unobserve(root)
-        root.removeEventListener('scroll', onScroll)
-      }
-    } else {
-      return
-    }
-  }, [enabledColumns.size, backend.type])
-
   React.useEffect(() => {
     if (initialized) {
       localStorage.set('enabledColumns', [...enabledColumns])
@@ -1975,7 +1941,18 @@ export default function AssetsTable(props: AssetsTableProps) {
     if (bodyRef.current != null && rootRef.current != null) {
       bodyRef.current.style.clipPath = `inset(${rootRef.current.scrollTop}px 0 0 0)`
     }
-  })
+    if (
+      backend.type === backendModule.BackendType.remote &&
+      rootRef.current != null &&
+      headerRowRef.current != null
+    ) {
+      const hiddenColumnsCount = columnUtils.CLOUD_COLUMNS.length - enabledColumns.size
+      const shrinkBy =
+        COLUMNS_SELECTOR_BASE_WIDTH_PX + COLUMNS_SELECTOR_ICON_WIDTH_PX * hiddenColumnsCount
+      const rightOffset = rootRef.current.clientWidth + rootRef.current.scrollLeft - shrinkBy
+      headerRowRef.current.style.clipPath = `polygon(0 0, ${rightOffset}px 0, ${rightOffset}px 100%, 0 100%)`
+    }
+  }, [enabledColumns.size])
 
   React.useEffect(
     () =>
