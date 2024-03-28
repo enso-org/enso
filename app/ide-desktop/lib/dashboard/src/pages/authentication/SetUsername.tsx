@@ -10,7 +10,10 @@ import * as backendProvider from '#/providers/BackendProvider'
 import * as textProvider from '#/providers/TextProvider'
 
 import Input from '#/components/Input'
+import AuthenticationPage from '#/components/styled/AuthenticationPage'
 import SubmitButton from '#/components/SubmitButton'
+
+import * as eventModule from '#/utilities/event'
 
 // ===================
 // === SetUsername ===
@@ -26,28 +29,29 @@ export default function SetUsername() {
   const [username, setUsername] = React.useState('')
 
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center gap-auth text-sm text-primary">
-      <form
-        data-testid="set-username-panel"
-        className="flex w-full max-w-md flex-col gap-auth rounded-auth bg-selected-frame p-auth shadow-md"
-        onSubmit={async event => {
-          event.preventDefault()
-          await authSetUsername(backend, username, email)
-        }}
-      >
-        <div className="self-center text-xl font-medium">{getText('setYourUsername')}</div>
-        <Input
-          id="username"
-          type="text"
-          name="username"
-          autoComplete="off"
-          icon={AtIcon}
-          placeholder={getText('usernamePlaceholder')}
-          value={username}
-          setValue={setUsername}
-        />
-        <SubmitButton text={getText('setUsername')} icon={ArrowRightIcon} />
-      </form>
-    </div>
+    <AuthenticationPage
+      data-testid="set-username-panel"
+      title={getText('setYourUsername')}
+      onSubmit={async event => {
+        event.preventDefault()
+        await authSetUsername(backend, username, email)
+      }}
+    >
+      <Input
+        id="username"
+        type="text"
+        name="username"
+        autoComplete="off"
+        icon={AtIcon}
+        placeholder={getText('usernamePlaceholder')}
+        value={username}
+        setValue={setUsername}
+      />
+      <SubmitButton
+        text={getText('setUsername')}
+        icon={ArrowRightIcon}
+        onPress={eventModule.submitForm}
+      />
+    </AuthenticationPage>
   )
 }

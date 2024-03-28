@@ -117,3 +117,20 @@ export function isElementPartOfMonaco(element: EventTarget | null) {
   }
   return element != null && element instanceof HTMLElement && recursiveCheck(element)
 }
+
+// ==================
+// === submitForm ===
+// ==================
+
+/** An event with an {@link Element} as its target. */
+interface EventWithElementTarget {
+  readonly target: Element
+}
+
+/** Search for an ancestor `form` element and try to submit it. */
+export function submitForm(event: EventWithElementTarget) {
+  const closestForm = event.target.closest('form')
+  if (closestForm != null) {
+    closestForm.requestSubmit()
+  }
+}

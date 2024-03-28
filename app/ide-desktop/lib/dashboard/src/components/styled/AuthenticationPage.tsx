@@ -1,6 +1,7 @@
 /** @file A styled authentication page. */
 import * as React from 'react'
 
+import * as aria from '#/components/aria'
 import FocusArea from '#/components/styled/FocusArea'
 
 // ==========================
@@ -9,26 +10,46 @@ import FocusArea from '#/components/styled/FocusArea'
 
 /** Props for an {@link AuthenticationPage}. */
 export interface AuthenticationPageProps extends Readonly<React.PropsWithChildren> {
+  // This matches the capitalization of `data-` attributes in React.
+  // eslint-disable-next-line @typescript-eslint/naming-convention
+  readonly 'data-testid'?: string
+  readonly isNotForm?: boolean
   readonly title: string
   readonly footer?: React.ReactNode
+  readonly onSubmit?: (event: React.FormEvent<HTMLFormElement>) => void
 }
 
 /** A styled authentication page. */
 export default function AuthenticationPage(props: AuthenticationPageProps) {
-  const { title, children, footer } = props
+  const { isNotForm = false, title, onSubmit, children, footer } = props
+  const heading = (
+    <aria.Heading level={1} className="self-center text-xl font-medium">
+      {title}
+    </aria.Heading>
+  )
+  const containerClasses =
+    'flex w-full max-w-md flex-col gap-auth rounded-auth bg-selected-frame p-auth shadow-md'
 
   return (
     <FocusArea direction="vertical">
       {(ref, innerProps) => (
         <div
           ref={ref}
+          data-testid={props['data-testid']}
           className="flex min-h-screen flex-col items-center justify-center gap-auth text-sm text-primary"
           {...innerProps}
         >
-          <div className="flex w-full max-w-md flex-col gap-auth rounded-auth bg-selected-frame p-auth shadow-md">
-            <div className="self-center text-xl font-medium">{title}</div>
-            {children}
-          </div>
+          {isNotForm ? (
+            <div className={containerClasses}>
+              {heading}
+              {children}
+            </div>
+          ) : (
+            <form className={containerClasses} onSubmit={onSubmit}>
+              {heading}
+              {children}
+            </form>
+          )}
           {footer}
         </div>
       )}

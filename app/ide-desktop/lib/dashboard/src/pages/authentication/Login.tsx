@@ -22,6 +22,8 @@ import UnstyledButton from '#/components/styled/UnstyledButton'
 import SubmitButton from '#/components/SubmitButton'
 import TextLink from '#/components/TextLink'
 
+import * as eventModule from '#/utilities/event'
+
 // =============
 // === Login ===
 // =============
@@ -49,6 +51,7 @@ export default function Login(props: LoginProps) {
 
   return (
     <AuthenticationPage
+      isNotForm
       title={getText('loginToYourAccount')}
       footer={
         <>
@@ -132,9 +135,7 @@ export default function Login(props: LoginProps) {
           isDisabled={isSubmitting}
           text={getText('login')}
           icon={ArrowRightIcon}
-          onPress={() => {
-            formRef.current?.requestSubmit()
-          }}
+          onPress={eventModule.submitForm}
         />
       </form>
     </AuthenticationPage>

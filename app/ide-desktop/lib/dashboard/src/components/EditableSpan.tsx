@@ -36,7 +36,7 @@ export interface EditableSpanProps {
 
 /** A `<span>` that can turn into an `<input type="text">`. */
 export default function EditableSpan(props: EditableSpanProps) {
-  const { 'data-testid': dataTestId, className, editable = false, children } = props
+  const { className, editable = false, children } = props
   const { checkSubmittable, onSubmit, onCancel, inputPattern, inputTitle } = props
   const { getText } = textProvider.useText()
   const inputBindings = inputBindingsProvider.useInputBindings()
@@ -86,7 +86,7 @@ export default function EditableSpan(props: EditableSpanProps) {
         }}
       >
         <aria.Input
-          data-testid={dataTestId}
+          data-testid={props['data-testid']}
           className={className ?? ''}
           ref={inputRef}
           autoFocus
@@ -152,7 +152,7 @@ export default function EditableSpan(props: EditableSpanProps) {
     )
   } else {
     return (
-      <aria.Text data-testid={dataTestId} className={className}>
+      <aria.Text data-testid={props['data-testid']} className={className}>
         {children}
       </aria.Text>
     )
