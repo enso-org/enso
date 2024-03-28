@@ -152,7 +152,6 @@ public abstract class ImportResolverAlgorithm<
     var parts = partsForImport(name);
     var last = parts.size() - 1;
     var tp = parts.get(last);
-    var modName = String.join(".", parts.subList(0, last).stream().toList());
     var entities = definedEntities(name);
     if (entities == null) {
       return null;

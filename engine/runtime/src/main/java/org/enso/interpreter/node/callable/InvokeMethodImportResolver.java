@@ -2,8 +2,9 @@ package org.enso.interpreter.node.callable;
 
 import com.oracle.truffle.api.CompilerDirectives;
 import java.io.IOException;
-import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
+import java.util.stream.Stream;
 import org.enso.compiler.phase.ImportResolverAlgorithm;
 import org.enso.editions.LibraryName;
 import org.enso.interpreter.runtime.EnsoContext;
@@ -39,12 +40,12 @@ final class InvokeMethodImportResolver
 
   @Override
   protected List<String> partsForImport(UnresolvedSymbol imp) {
-    return module.getName().createChild(imp.getName()).pathAsJava();
+    return module.getName().createChild(imp.getName()).createChild("any").pathAsJava();
   }
 
   @Override
   protected String nameForExport(Object ex) {
-    throw new UnsupportedOperationException("nameForExport: " + ex);
+    throw new AssertionError("not used: " + ex);
   }
 
   @Override
@@ -54,9 +55,7 @@ final class InvokeMethodImportResolver
 
   @Override
   protected List<Object> exportsFor(Module module, String impName) {
-    var arr = new ArrayList<Object>();
-    arr.addAll(module.getScope().getTypes().keySet());
-    return arr;
+    return Collections.emptyList();
   }
 
   @Override
@@ -76,9 +75,9 @@ final class InvokeMethodImportResolver
 
   @Override
   protected List<Type> definedEntities(UnresolvedSymbol name) {
-    var fqn = nameForImport(name);
-    var optionModule = topScope.getModule(fqn);
-    return optionModule.map(m -> m.getScope().getAssociatedType()).stream().toList();
+    var associatedType = module.getScope().getType(name.getName());
+    var allRelativeTypes = module.getScope().getTypes().values();
+    return Stream.concat(associatedType.stream(), allRelativeTypes.stream()).toList();
   }
 
   @Override
@@ -135,27 +134,6 @@ final class InvokeMethodImportResolver
     var module = scope.getModule();
     var resolver = new InvokeMethodImportResolver(module, ctx.getTopScope());
     var found = resolver.tryResolveImport(module, symbol);
-    System.out.println("Found " + found);
-    // if we represent a Module
-    var optionType = scope.getType(symbol.getName());
-    if (optionType.isPresent()) {
-      // assert found != null;
-      return optionType.get();
-    }
-    var moduleName =
-        module.getName().item().equals("Main")
-            ? module.getPackage().libraryName().toString()
-            : module.getName().toString();
-    var subModuleName = moduleName + "." + symbol.getName();
-    var optionModule = ctx.getTopScope().getModule(subModuleName);
-    if (optionModule.isPresent()) {
-      var subType = optionModule.get().getScope().getAssociatedType();
-      if (subType != null) {
-        assert found == subType : "Found " + found + " subtype: " + subType;
-        return subType;
-      }
-    }
-    assert found == null;
-    return null;
+    return found;
   }
 }
