@@ -25,11 +25,11 @@ case class ModuleContext(
   isGeneratingDocs: Boolean                    = false,
   pkgRepo: Option[PackageRepository]           = None
 ) {
-  def isSynthetic(): Boolean = module.isSynthetic()
+  def isSynthetic(): Boolean          = module.isSynthetic()
   def bindingsAnalysis(): BindingsMap = module.getBindingsMap()
-  def getName(): QualifiedName = module.getName()
-  def getPackage(): Package[_] = module.getPackage()
-  def getSource(): Source      = module.getSource()
+  def getName(): QualifiedName        = module.getName()
+  def getPackage(): Package[_]        = module.getPackage()
+  def getSource(): Source             = module.getSource()
   def moduleReference(): ModuleReference.Concrete =
     ModuleReference.Concrete(module)
 }

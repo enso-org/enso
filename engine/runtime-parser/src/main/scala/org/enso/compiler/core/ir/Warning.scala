@@ -39,14 +39,16 @@ object Warning {
   }
 
   /** A warning about an invocation of a value that is not a function.
-   *
-   * This warning indicates a place that will result in a Not_Invokable error in runtime.
-   *
-   * @param location the location of the call
-   * @param typeRepresentation the type of the value that was called
-   */
-  case class NotInvokable(override val location: Option[IdentifiedLocation], typeRepresentation: String)
-    extends Warning {
+    *
+    * This warning indicates a place that will result in a Not_Invokable error in runtime.
+    *
+    * @param location the location of the call
+    * @param typeRepresentation the type of the value that was called
+    */
+  case class NotInvokable(
+    override val location: Option[IdentifiedLocation],
+    typeRepresentation: String
+  ) extends Warning {
     override def message(source: (IdentifiedLocation => String)): String =
       s"Invoking a value that has a non-function type $typeRepresentation will result in a Not_Invokable error in runtime."
 
@@ -54,16 +56,19 @@ object Warning {
   }
 
   /** A warning indicating a mismatch between a type expected by an expression and the type that is provided.
-   *
-   * Currently, this warning is only raised if the mismatch is guaranteed to happen - i.e. running the expression will
-   * always result in a runtime Type_Error.
-   *
-   * @param location     the location of the type assertion
-   * @param expectedType the type that was expected in the assertion
-   * @param actualType   the type that was provided
-   */
-  case class TypeMismatch(override val location: Option[IdentifiedLocation], expectedType: String, actualType: String)
-    extends Warning {
+    *
+    * Currently, this warning is only raised if the mismatch is guaranteed to happen - i.e. running the expression will
+    * always result in a runtime Type_Error.
+    *
+    * @param location     the location of the type assertion
+    * @param expectedType the type that was expected in the assertion
+    * @param actualType   the type that was provided
+    */
+  case class TypeMismatch(
+    override val location: Option[IdentifiedLocation],
+    expectedType: String,
+    actualType: String
+  ) extends Warning {
     override def message(source: (IdentifiedLocation => String)): String =
       s"Got an expression of type $actualType that will never match $expectedType. This will always result in a Type_Error in runtime."
 

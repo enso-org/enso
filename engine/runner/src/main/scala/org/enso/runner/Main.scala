@@ -69,7 +69,7 @@ object Main {
   private val NO_IR_CACHES_OPTION            = "no-ir-caches"
   private val NO_READ_IR_CACHES_OPTION       = "no-read-ir-caches"
   private val DISABLE_PRIVATE_CHECK_OPTION   = "disable-private-check"
-  private val ENABLE_TYPE_CHECK_OPTION   = "enable-type-check"
+  private val ENABLE_TYPE_CHECK_OPTION       = "enable-type-check"
   private val COMPILE_OPTION                 = "compile"
   private val NO_COMPILE_DEPENDENCIES_OPTION = "no-compile-dependencies"
   private val NO_GLOBAL_CACHE_OPTION         = "no-global-cache"
@@ -351,7 +351,9 @@ object Main {
       .build()
     val disablePrivateCheck = CliOption.builder
       .longOpt(DISABLE_PRIVATE_CHECK_OPTION)
-      .desc("Disable `private` access checks. Used for running white-box tests.")
+      .desc(
+        "Disable `private` access checks. Used for running white-box tests."
+      )
       .build()
     val enableTypeCheckOption = CliOption.builder
       .longOpt(ENABLE_TYPE_CHECK_OPTION)
@@ -1228,14 +1230,15 @@ object Main {
         Option(line.getOptionValue(IN_PROJECT_OPTION)),
         logLevel,
         logMasking,
-        enableIrCaches = shouldEnableIrCaches(line),
-        disablePrivateCheck = line.hasOption(DISABLE_PRIVATE_CHECK_OPTION),
-        enableTypeCheck = line.hasOption(ENABLE_TYPE_CHECK_OPTION),
+        enableIrCaches        = shouldEnableIrCaches(line),
+        disablePrivateCheck   = line.hasOption(DISABLE_PRIVATE_CHECK_OPTION),
+        enableTypeCheck       = line.hasOption(ENABLE_TYPE_CHECK_OPTION),
         enableAutoParallelism = line.hasOption(AUTO_PARALLELISM_OPTION),
-        inspect = line.hasOption(INSPECT_OPTION),
-        dump = line.hasOption(DUMP_GRAPHS_OPTION),
-        executionEnvironment = Option(line.getOptionValue(EXECUTION_ENVIRONMENT_OPTION))
-          .orElse(Some("live")),
+        inspect               = line.hasOption(INSPECT_OPTION),
+        dump                  = line.hasOption(DUMP_GRAPHS_OPTION),
+        executionEnvironment =
+          Option(line.getOptionValue(EXECUTION_ENVIRONMENT_OPTION))
+            .orElse(Some("live")),
         warningsLimit = Option(line.getOptionValue(WARNINGS_LIMIT))
           .map(Integer.parseInt)
           .getOrElse(100)

@@ -5,7 +5,13 @@ import org.enso.compiler.context.{FreshNameSupply, ModuleContext}
 import org.enso.compiler.core.Implicits.AsMetadata
 import org.enso.compiler.core.ir.Module
 import org.enso.compiler.data.BindingsMap
-import org.enso.compiler.data.BindingsMap.{Argument, Cons, ModuleMethod, PolyglotSymbol, Type}
+import org.enso.compiler.data.BindingsMap.{
+  Argument,
+  Cons,
+  ModuleMethod,
+  PolyglotSymbol,
+  Type
+}
 import org.enso.compiler.pass.analyse.BindingAnalysis
 import org.enso.compiler.pass.{PassConfiguration, PassGroup, PassManager}
 import org.enso.compiler.test.CompilerTest
@@ -73,14 +79,22 @@ class BindingAnalysisTest extends CompilerTest {
       val metadata = ir.unsafeGetMetadata(BindingAnalysis, "Should exist.")
 
       metadata.definedEntities should contain theSameElementsAs List(
-        Type("Foo", List(), List(
-          Cons("Mk_Foo", List(
-            Argument("a", hasDefaultValue = false, None),
-            Argument("b", hasDefaultValue = false, None),
-            Argument("c", hasDefaultValue = false, None)
-          ))
-        ), builtinType = false),
-        Type("Bar", List(), List(), builtinType = false),
+        Type(
+          "Foo",
+          List(),
+          List(
+            Cons(
+              "Mk_Foo",
+              List(
+                Argument("a", hasDefaultValue = false, None),
+                Argument("b", hasDefaultValue = false, None),
+                Argument("c", hasDefaultValue = false, None)
+              )
+            )
+          ),
+          builtinType = false
+        ),
+        Type("Bar", List(), List(), builtinType         = false),
         Type("Baz", List("x", "y"), List(), builtinType = false),
         PolyglotSymbol("MyClass"),
         PolyglotSymbol("Renamed_Class"),

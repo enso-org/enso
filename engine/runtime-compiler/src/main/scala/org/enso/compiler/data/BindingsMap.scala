@@ -219,7 +219,9 @@ case class BindingsMap(
     case _ => Left(ResolutionNotFound)
   }
 
-  def resolveQualifiedNameString(qualifiedName: String): Either[ResolutionError, ResolvedName] = {
+  def resolveQualifiedNameString(
+    qualifiedName: String
+  ): Either[ResolutionError, ResolvedName] = {
     val parsed = QualifiedName.fromString(qualifiedName)
     val result = resolveQualifiedName(parsed.path)
     println("Resolving qualified name: " + parsed + " ==> " + result)
@@ -240,7 +242,8 @@ case class BindingsMap(
       case firstModuleName :: rest =>
         resolveName(firstModuleName).flatMap { firstModule =>
           // This special handling is needed, because when resolving a local module name, we do not necessarily only look at _exported_ symbols, but overall locally defined symbols.
-          val isQualifiedLocalImport = firstModule == ResolvedModule(currentModule)
+          val isQualifiedLocalImport =
+            firstModule == ResolvedModule(currentModule)
           if (isQualifiedLocalImport) {
             resolveLocalName(rest)
           } else {
@@ -251,8 +254,10 @@ case class BindingsMap(
         }
     }
 
-  private def resolveLocalName(name: List[String]): Either[ResolutionError, ResolvedName] = name match {
-    case List()     => Left(ResolutionNotFound)
+  private def resolveLocalName(
+    name: List[String]
+  ): Either[ResolutionError, ResolvedName] = name match {
+    case List() => Left(ResolutionNotFound)
     case List(singleItem) =>
       handleAmbiguity(findLocalCandidates(singleItem))
     case firstName :: rest =>
@@ -746,7 +751,6 @@ object BindingsMap {
     /** The number of fields in the constructor. */
     def arity: Int = arguments.length
 
-
     /** Whether all fields provide a default value. */
     def allFieldsDefaulted: Boolean = arguments.forall(_.hasDefaultValue)
 
@@ -754,7 +758,11 @@ object BindingsMap {
     def anyFieldsDefaulted: Boolean = arguments.exists(_.hasDefaultValue)
   }
 
-  case class Argument(name: String, hasDefaultValue: Boolean, typ: Option[Reference[Expression]])
+  case class Argument(
+    name: String,
+    hasDefaultValue: Boolean,
+    typ: Option[Reference[Expression]]
+  )
 
   /** A representation of a sum type
     *
@@ -780,11 +788,16 @@ object BindingsMap {
           Cons(
             m.name.name,
             m.arguments.map { arg =>
-              val ascribedType: Option[Reference[Expression]] = arg.ascribedType match {
-                case Some(value) => Some(Reference.of(value))
-                case None => None
-              }
-              BindingsMap.Argument(arg.name.name, arg.defaultValue.isDefined, ascribedType)
+              val ascribedType: Option[Reference[Expression]] =
+                arg.ascribedType match {
+                  case Some(value) => Some(Reference.of(value))
+                  case None        => None
+                }
+              BindingsMap.Argument(
+                arg.name.name,
+                arg.defaultValue.isDefined,
+                ascribedType
+              )
             }
           )
         ),

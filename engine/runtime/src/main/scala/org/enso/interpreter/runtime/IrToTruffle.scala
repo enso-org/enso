@@ -2,7 +2,12 @@ package org.enso.interpreter.runtime
 
 import com.oracle.truffle.api.source.{Source, SourceSection}
 import com.oracle.truffle.api.interop.InteropLibrary
-import org.enso.compiler.context.{CompilerContext, FramePointer, LocalScope, NameResolutionAlgorithm}
+import org.enso.compiler.context.{
+  CompilerContext,
+  FramePointer,
+  LocalScope,
+  NameResolutionAlgorithm
+}
 import org.enso.compiler.core.CompilerError
 import org.enso.compiler.core.ConstantsNames
 import org.enso.compiler.core.Implicits.AsMetadata
@@ -1660,7 +1665,7 @@ class IrToTruffle(
       */
     def processName(name: Name): RuntimeExpression = {
       val nameExpr = name match {
-        case literalName : Name.Literal =>
+        case literalName: Name.Literal =>
           val resolver = new RuntimeNameResolution()
           resolver.resolveName(literalName)
         case Name.MethodReference(
@@ -1719,20 +1724,29 @@ class IrToTruffle(
       setLocation(nameExpr, name.location)
     }
 
-    private class RuntimeNameResolution extends NameResolutionAlgorithm[RuntimeExpression, FramePointer] {
-      override protected def findLocalLink(occurrenceMetadata: org.enso.compiler.pass.analyse.alias.Info.Occurrence): Option[FramePointer] =
+    private class RuntimeNameResolution
+        extends NameResolutionAlgorithm[RuntimeExpression, FramePointer] {
+      override protected def findLocalLink(
+        occurrenceMetadata: org.enso.compiler.pass.analyse.alias.Info.Occurrence
+      ): Option[FramePointer] =
         scope.getFramePointer(occurrenceMetadata.id)
 
-      override protected def resolveLocalName(localLink: FramePointer): RuntimeExpression =
+      override protected def resolveLocalName(
+        localLink: FramePointer
+      ): RuntimeExpression =
         ReadLocalVariableNode.build(localLink)
 
-      override protected def resolveGlobalName(resolvedName: BindingsMap.ResolvedName): RuntimeExpression =
+      override protected def resolveGlobalName(
+        resolvedName: BindingsMap.ResolvedName
+      ): RuntimeExpression =
         nodeForResolution(resolvedName)
 
       override protected def resolveFromConversion(): RuntimeExpression =
         ConstantObjectNode.build(UnresolvedConversion.build(moduleScope))
 
-      override protected def resolveUnresolvedSymbol(symbolName: String): RuntimeExpression =
+      override protected def resolveUnresolvedSymbol(
+        symbolName: String
+      ): RuntimeExpression =
         DynamicSymbolNode.build(UnresolvedSymbol.build(symbolName, moduleScope))
     }
 
