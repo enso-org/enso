@@ -82,7 +82,7 @@ impl<T> NonEmpty<T> {
 
     /// Convert this list to a vector.
     pub fn to_vec(&self) -> Vec<&T> {
-        let mut out = vec![&self.head];
+        let mut out = vec![self.head()];
         let mut list = self.tail();
         loop {
             match list.head() {

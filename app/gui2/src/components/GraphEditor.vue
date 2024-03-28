@@ -38,7 +38,7 @@ import { Vec2 } from '@/util/data/vec2'
 import { useToast } from '@/util/toast'
 import * as set from 'lib0/set'
 import { computed, onMounted, ref, toRef, watch } from 'vue'
-import { ProjectManagerEvents } from '../../../ide-desktop/lib/dashboard/src/utilities/ProjectManager'
+import { ProjectManagerEvents } from '../../../ide-desktop/lib/dashboard/src/services/ProjectManager'
 import { type Usage } from './ComponentBrowser/input'
 
 const keyboard = provideKeyboard()

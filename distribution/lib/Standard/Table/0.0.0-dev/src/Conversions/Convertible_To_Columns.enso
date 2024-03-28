@@ -1,0 +1,76 @@
+from Standard.Base import all
+import Standard.Base.Data.Java_Json.Jackson_Object
+import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
+
+import project.Column.Column
+import project.Row.Row
+import project.Table.Table
+
+## PRIVATE
+   A special type describing how to convert an object into a set of table
+   columns.
+type Convertible_To_Columns
+    ## PRIVATE
+       Arguments:
+       - field_names: Set of column names (Vector Text).
+       - getter: Get the value for a field name.
+    Value (field_names : Vector Text) (getter : Text->Any)
+
+## PRIVATE
+Convertible_To_Columns.from (that:JS_Object) =
+    Convertible_To_Columns.Value that.field_names that.get
+
+## PRIVATE
+Convertible_To_Columns.from (that:Jackson_Object) =
+    Convertible_To_Columns.Value that.field_names that.get
+
+## PRIVATE
+Convertible_To_Columns.from (that:Map) =
+    pairs = that.keys.map k-> [k.to_text, k]
+    field_map = pairs.if_not_error <|
+        Map.from_vector pairs error_on_duplicates=True . catch Illegal_Argument _->
+            Error.throw (Illegal_Argument.Error "Cannot convert "+that.to_display_text+" to a set of columns, because its keys are duplicated when converted to text.")
+    Convertible_To_Columns.Value field_map.keys (k-> that.get (field_map.get k))
+
+## PRIVATE
+Convertible_To_Columns.from (that:Pair) =
+    Convertible_To_Columns.Value ["0", "1"] (k-> that.at (Integer.parse k))
+
+## PRIVATE
+Convertible_To_Columns.from (that:Column) =
+    fields = 0.up_to that.length . map _.to_text
+    Convertible_To_Columns.Value fields (k-> that.at (Integer.parse k))
+
+## PRIVATE
+Convertible_To_Columns.from (that:Row) =
+    Convertible_To_Columns.Value that.column_names that.get
+
+## PRIVATE
+Convertible_To_Columns.from (that:Vector) =
+    fields = 0.up_to that.length . map _.to_text
+    Convertible_To_Columns.Value fields (k-> that.at (Integer.parse k))
+
+## PRIVATE
+Convertible_To_Columns.from (that:Array) = Convertible_To_Columns.from that.to_vector
+
+## PRIVATE
+Convertible_To_Columns.from (that:Range) = Convertible_To_Columns.from that.to_vector
+
+## PRIVATE
+Convertible_To_Columns.from (that:Date_Range) = Convertible_To_Columns.from that.to_vector
+
+## PRIVATE
+Convertible_To_Columns.from (that:Any) =
+    name = "Value"
+    Convertible_To_Columns.Value [name] (k-> if k == name then that else Nothing)
+
+## PRIVATE
+Convertible_To_Columns.from (that:XML_Element) =
+    name = [["Name", that.name]]
+    tags = that.attributes.map_keys ("@"+_) . to_vector
+    that_children = that.children
+    has_child_nodes = that_children.any (_.is_a XML_Element)
+    children = if that_children.is_empty.not && has_child_nodes then [["Children", that_children]] else []
+    value = if that_children.is_empty.not && has_child_nodes.not then [["Value", that.text]] else []
+    as_map = Map.from_vector (name + tags + children + value)
+    Convertible_To_Columns.from as_map

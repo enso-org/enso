@@ -2,7 +2,7 @@ from Standard.Base import all
 import Standard.Base.Data.Array_Proxy.Array_Proxy
 from Standard.Base.Data.Json import render
 
-import Standard.Table.Data.Row.Row
+import Standard.Table.Row.Row
 from Standard.Table import Column, Table
 
 import project.Id.Id
