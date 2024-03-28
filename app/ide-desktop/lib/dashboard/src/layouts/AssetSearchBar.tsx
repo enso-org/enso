@@ -226,20 +226,19 @@ export default function AssetSearchBar(props: AssetSearchBarProps) {
           }}
           data-testid="asset-search-bar"
           className="search-bar group relative flex h-row max-w-asset-search-bar grow items-center gap-asset-search-bar rounded-full px-input-x text-primary xl:max-w-asset-search-bar-wide"
-          {...innerProps}
-          onFocus={event => {
-            innerProps.onFocus(event)
-            setAreSuggestionsVisible(true)
-          }}
-          onBlur={event => {
-            innerProps.onBlur(event)
-            if (!event.currentTarget.contains(event.relatedTarget)) {
-              if (querySource.current === QuerySource.tabbing) {
-                querySource.current = QuerySource.external
+          {...aria.mergeProps<aria.LabelProps[]>(innerProps, {
+            onFocus: () => {
+              setAreSuggestionsVisible(true)
+            },
+            onBlur: event => {
+              if (!event.currentTarget.contains(event.relatedTarget)) {
+                if (querySource.current === QuerySource.tabbing) {
+                  querySource.current = QuerySource.external
+                }
+                setAreSuggestionsVisible(false)
               }
-              setAreSuggestionsVisible(false)
-            }
-          }}
+            },
+          })}
         >
           <img src={FindIcon} className="relative z-1 placeholder" />
           <div className="pointer-events-none absolute left top flex w-full flex-col overflow-hidden rounded-default before:absolute before:inset before:bg-frame before:backdrop-blur-default">
@@ -332,6 +331,7 @@ export default function AssetSearchBar(props: AssetSearchBarProps) {
                             : ''
                       }`}
                       onClick={event => {
+                        event.stopPropagation()
                         querySource.current = QuerySource.internal
                         setQuery(
                           selectedIndices.has(index)

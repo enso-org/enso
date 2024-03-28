@@ -32,5 +32,12 @@ export function useOnScroll(callback: () => void, dependencies: React.Dependency
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, dependencies)
 
+  React.useEffect(() => {
+    window.addEventListener('resize', onScroll)
+    return () => {
+      window.removeEventListener('resize', onScroll)
+    }
+  }, [onScroll])
+
   return onScroll
 }

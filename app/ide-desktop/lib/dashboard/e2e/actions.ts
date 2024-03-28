@@ -443,14 +443,14 @@ export function locateSettingsPageIcon(page: test.Locator | test.Page) {
 
 /** Find a "name" column heading (if any) on the current page. */
 export function locateNameColumnHeading(page: test.Locator | test.Page) {
-  return page.getByTitle('Sort by name').or(page.getByTitle('Stop sorting by name'))
+  return page.getByLabel('Sort by name').or(page.getByLabel('Stop sorting by name'))
 }
 
 /** Find a "modified" column heading (if any) on the current page. */
 export function locateModifiedColumnHeading(page: test.Locator | test.Page) {
   return page
-    .getByTitle('Sort by modification date')
-    .or(page.getByTitle('Stop sorting by modification date'))
+    .getByLabel('Sort by modification date')
+    .or(page.getByLabel('Stop sorting by modification date'))
 }
 
 // === Container locators ===
