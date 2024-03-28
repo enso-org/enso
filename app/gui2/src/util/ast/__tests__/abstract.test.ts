@@ -1,4 +1,4 @@
-import { assert } from '@/util/assert'
+import { assert, assertDefined } from '@/util/assert'
 import { Ast } from '@/util/ast'
 import {
   MutableModule,
@@ -900,9 +900,23 @@ test.prop({
   literal.setBoundaries(boundary)
   literal.setRawTextContent(rawText)
   expect(literal.rawTextContent).toBe(rawText)
-  const expectInterpolated = rawText.includes('"') || boundary === "'"
-  const expectedCode = expectInterpolated ? `'${escapeTextLiteral(rawText)}'` : `"${rawText}"`
-  expect(literal.code()).toBe(expectedCode)
+  const codeAsInterpolated = `'${escapeTextLiteral(rawText)}'`
+  if (boundary === "'") {
+    expect(literal.code()).toBe(codeAsInterpolated)
+  } else {
+    const codeAsRaw = `"${rawText}"`
+    // Uninterpolated text will be promoted to interpolated if necessary to escape a special character.
+    expect([codeAsInterpolated, codeAsRaw]).toContainEqual(literal.code())
+  }
+})
+
+test('setRawTextContent promotes single-line uninterpolated text to interpolated if a newline is added', () => {
+  const literal = TextLiteral.new('')
+  literal.setBoundaries('"')
+  const rawText = '\n'
+  literal.setRawTextContent(rawText)
+  expect(literal.rawTextContent).toBe(rawText)
+  expect(literal.code()).toBe(`'${escapeTextLiteral(rawText)}'`)
 })
 
 const docEditCases = [
@@ -978,4 +992,24 @@ test.each([
     subject: subject.code(),
     accesses: accessChain.map((ast) => ast.rhs.code()),
   }).toEqual(expected)
+})
+
+test('Vector modifications', () => {
+  const vector = Ast.Vector.tryParse('[1, 2]')
+  expect(vector).toBeDefined()
+  assertDefined(vector)
+  vector.push(Ast.parse('"Foo"', vector.module))
+  expect(vector.code()).toBe('[1, 2, "Foo"]')
+  vector.keep((ast) => ast instanceof Ast.NumericLiteral)
+  expect(vector.code()).toBe('[1, 2]')
+  vector.push(Ast.parse('3', vector.module))
+  expect(vector.code()).toBe('[1, 2, 3]')
+  vector.keep((ast) => ast.code() !== '4')
+  expect(vector.code()).toBe('[1, 2, 3]')
+  vector.keep((ast) => ast.code() !== '2')
+  expect(vector.code()).toBe('[1, 3]')
+  vector.keep((ast) => ast.code() !== '1')
+  expect(vector.code()).toBe('[3]')
+  vector.keep(() => false)
+  expect(vector.code()).toBe('[]')
 })

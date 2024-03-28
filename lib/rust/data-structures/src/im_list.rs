@@ -82,7 +82,7 @@ impl<T> NonEmpty<T> {
 
     /// Convert this list to a vector.
     pub fn to_vec(&self) -> Vec<&T> {
-        let mut out = vec![&self.head];
+        let mut out = vec![self.head()];
         let mut list = self.tail();
         loop {
             match list.head() {
@@ -151,7 +151,7 @@ impl<T> From<NonEmpty<T>> for List<T> {
 }
 
 impl<T: Debug> Debug for List<T> {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         Debug::fmt(&self.to_vec(), f)
     }
 }

@@ -131,6 +131,14 @@ pub mod secret {
     pub const CI_PRIVATE_TOKEN: &str = "CI_PRIVATE_TOKEN";
 }
 
+pub mod variables {
+    /// License key for the AG Grid library.
+    pub const ENSO_AG_GRID_LICENSE_KEY: &str = "ENSO_AG_GRID_LICENSE_KEY";
+
+    /// The Mapbox API token for the GeoMap visualization.
+    pub const ENSO_MAPBOX_API_TOKEN: &str = "ENSO_MAPBOX_API_TOKEN";
+}
+
 /// Return an expression piece that evaluates to `true` if the current branch is not the default.
 pub fn not_default_branch() -> String {
     format!("github.ref != 'refs/heads/{DEFAULT_BRANCH_NAME}'")
@@ -486,6 +494,14 @@ fn add_release_steps(workflow: &mut Workflow) -> Result {
         let build_ide_job_id =
             workflow.add_dependent(target, UploadIde, [&prepare_job_id, &backend_job_id]);
         packaging_job_ids.push(build_ide_job_id.clone());
+
+        // The backend image is deployed to ECR only on Linux.
+        if target.0 == OS::Linux {
+            let runtime_requirements = [&prepare_job_id, &backend_job_id];
+            let upload_runtime_job_id =
+                workflow.add_dependent(target, job::DeployRuntime, runtime_requirements);
+            packaging_job_ids.push(upload_runtime_job_id);
+        }
     }
 
     let publish_deps = {
@@ -582,18 +598,8 @@ pub fn typical_check_triggers() -> Event {
 
 pub fn gui() -> Result<Workflow> {
     let on = typical_check_triggers();
-    let mut workflow = Workflow { name: "GUI CI".into(), on, ..default() };
+    let mut workflow = Workflow { name: "GUI Packaging".into(), on, ..default() };
     workflow.add(PRIMARY_TARGET, job::CancelWorkflow);
-    workflow.add(PRIMARY_TARGET, job::Lint);
-    workflow.add(PRIMARY_TARGET, job::WasmTest);
-    workflow.add(PRIMARY_TARGET, job::NativeTest);
-    workflow.add(PRIMARY_TARGET, job::GuiTest);
-
-    // FIXME: Integration tests are currently always failing.
-    //        The should be reinstated when fixed.
-    // workflow.add_customized::<job::IntegrationTest>(PRIMARY_OS, PRIMARY_ARCH,|job| {
-    //     job.needs.insert(job::BuildBackend::key(PRIMARY_OS));
-    // });
 
     for target in CHECKED_TARGETS {
         let project_manager_job = workflow.add(target, job::BuildBackend);
@@ -602,6 +608,17 @@ pub fn gui() -> Result<Workflow> {
         });
         workflow.add(target, job::NewGuiBuild);
     }
+    Ok(workflow)
+}
+
+pub fn gui_tests() -> Result<Workflow> {
+    let on = typical_check_triggers();
+    let mut workflow = Workflow { name: "GUI Tests".into(), on, ..default() };
+    workflow.add(PRIMARY_TARGET, job::CancelWorkflow);
+    workflow.add(PRIMARY_TARGET, job::Lint);
+    workflow.add(PRIMARY_TARGET, job::WasmTest);
+    workflow.add(PRIMARY_TARGET, job::NativeTest);
+    workflow.add(PRIMARY_TARGET, job::GuiTest);
     Ok(workflow)
 }
 
@@ -694,6 +711,7 @@ pub fn generate(
         (repo_root.nightly_yml.to_path_buf(), nightly()?),
         (repo_root.scala_new_yml.to_path_buf(), backend()?),
         (repo_root.gui_yml.to_path_buf(), gui()?),
+        (repo_root.gui_tests_yml.to_path_buf(), gui_tests()?),
         (repo_root.engine_benchmark_yml.to_path_buf(), engine_benchmark()?),
         (repo_root.std_libs_benchmark_yml.to_path_buf(), std_libs_benchmark()?),
         (repo_root.release_yml.to_path_buf(), release()?),

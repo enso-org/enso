@@ -39,7 +39,8 @@ type Encoding
     all_encodings =
         Encoding.all_character_sets.map Encoding.Value
 
-    ## Create an Encoding from a Text.
+    ## ICON convert
+       Create an Encoding from a Text.
     from_name : Text -> Encoding ! Illegal_Argument
     from_name name =
         handler = _-> Error.throw (Illegal_Argument.Error ("Unknown Character Set: " + name))
@@ -61,65 +62,80 @@ type Encoding
         Panic.catch UnsupportedCharsetException (Charset.forName self.character_set) _->
             Error.throw (Illegal_Argument.Error ("Unknown Character Set: " + self.character_set))
 
-    ## Encoding for ASCII.
+    ## ICON convert
+       Encoding for ASCII.
     ascii : Encoding
     ascii = Encoding.Value "US-ASCII"
 
-    ## Encoding for Unicode UTF-8.
+    ## ICON convert
+       Encoding for Unicode UTF-8.
     utf_8 : Encoding
     utf_8 = Encoding.Value "UTF-8"
 
-    ## Encoding for Unicode UTF-16 Little Endian.
+    ## ICON convert
+       Encoding for Unicode UTF-16 Little Endian.
     utf_16_le : Encoding
     utf_16_le = Encoding.Value "UTF-16LE"
 
-    ## Encoding for Unicode UTF-16 Big Endian.
+    ## ICON convert
+       Encoding for Unicode UTF-16 Big Endian.
     utf_16_be : Encoding
     utf_16_be = Encoding.Value "UTF-16BE"
 
-    ## Encoding for Unicode UTF-32 Little Endian.
+    ## ICON convert
+       Encoding for Unicode UTF-32 Little Endian.
     utf_32_le : Encoding
     utf_32_le = Encoding.Value "UTF-32LE"
 
-    ## Encoding for Unicode UTF-32 Big Endian.
+    ## ICON convert
+       Encoding for Unicode UTF-32 Big Endian.
     utf_32_be : Encoding
     utf_32_be = Encoding.Value "UTF-32BE"
 
-    ## Encoding for Central European (Windows).
+    ## ICON convert
+       Encoding for Central European (Windows).
     windows_1250 : Encoding
     windows_1250 = Encoding.Value "windows-1250"
 
-    ## Encoding for Cyrillic (Windows).
+    ## ICON convert
+       Encoding for Cyrillic (Windows).
     windows_1251 : Encoding
     windows_1251 = Encoding.Value "windows-1251"
 
     ## ALIAS iso-8859-1
+       ICON convert
        Encoding for Western European (Windows).
     windows_1252 : Encoding
     windows_1252 = Encoding.Value "windows-1252"
 
-    ## Encoding for Greek (Windows).
+    ## ICON convert
+       Encoding for Greek (Windows).
     windows_1253 : Encoding
     windows_1253 = Encoding.Value "windows-1253"
 
     ## ALIAS iso-8859-9
+       ICON convert
        Encoding for Turkish (Windows).
     windows_1254 : Encoding
     windows_1254 = Encoding.Value "windows-1254"
 
-    ## Encoding for Hebrew (Windows).
+    ## ICON convert
+       Encoding for Hebrew (Windows).
     windows_1255 : Encoding
     windows_1255 = Encoding.Value "windows-1255"
 
-    ## Encoding for Arabic (Windows).
+    ## ICON convert
+       Encoding for Arabic (Windows).
     windows_1256 : Encoding
     windows_1256 = Encoding.Value "windows-1256"
 
-    ## Encoding for Baltic (Windows).
+    ## ICON convert
+       Encoding for Baltic (Windows).
     windows_1257 : Encoding
     windows_1257 = Encoding.Value "windows-1257"
 
-    ## Encoding for Vietnamese (Windows).
+    ## ICON convert
+       Encoding for Vietnamese (Windows).
     windows_1258 : Encoding
     windows_1258 = Encoding.Value "windows-1258"
 

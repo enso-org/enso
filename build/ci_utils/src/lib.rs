@@ -7,35 +7,18 @@
 #![feature(let_chains)]
 #![feature(min_specialization)]
 #![feature(exit_status_error)]
-#![feature(option_result_contains)]
 #![feature(associated_type_defaults)]
 #![feature(associated_type_bounds)]
 #![feature(exact_size_is_empty)]
 #![feature(async_closure)]
 #![feature(type_alias_impl_trait)]
-#![feature(default_free_fn)]
 #![feature(trait_alias)]
-#![feature(io_error_other)]
 #![feature(string_remove_matches)]
-#![feature(once_cell)]
-#![feature(const_deref)]
 #![feature(duration_constants)]
 #![feature(const_trait_impl)]
-#![feature(is_some_and)]
-#![feature(pin_macro)]
-#![feature(result_option_inspect)]
 #![feature(extend_one)]
-#![feature(async_fn_in_trait)]
-// === Standard Linter Configuration ===
-#![deny(non_ascii_idents)]
-#![warn(unsafe_code)]
-#![allow(clippy::bool_to_int_with_if)]
-#![allow(clippy::let_and_return)]
+#![feature(lazy_cell)]
 // === Non-Standard Linter Configuration ===
-#![warn(missing_copy_implementations)]
-#![warn(missing_debug_implementations)]
-#![warn(trivial_numeric_casts)]
-#![warn(unused_import_braces)]
 #![warn(unused_qualifications)]
 
 
@@ -88,9 +71,6 @@ pub mod prelude {
     pub use platforms::target::Arch;
     pub use platforms::target::OS;
     pub use semver::Version;
-    pub use sysinfo::PidExt as _;
-    pub use sysinfo::ProcessExt as _;
-    pub use sysinfo::SystemExt as _;
     pub use tokio::io::AsyncWriteExt as _;
     pub use url::Url;
     pub use uuid::Uuid;

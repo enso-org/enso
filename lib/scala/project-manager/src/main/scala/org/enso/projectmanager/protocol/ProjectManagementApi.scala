@@ -30,7 +30,11 @@ object ProjectManagementApi {
       projectsDirectory: Option[String]
     )
 
-    case class Result(projectId: UUID, projectName: String)
+    case class Result(
+      projectId: UUID,
+      projectName: String,
+      projectNormalizedName: String
+    )
 
     implicit val hasParams: HasParams.Aux[this.type, ProjectCreate.Params] =
       new HasParams[this.type] {

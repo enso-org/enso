@@ -3,6 +3,8 @@ import * as React from 'react'
 
 import SortAscendingIcon from 'enso-assets/sort_ascending.svg'
 
+import * as textProvider from '#/providers/TextProvider'
+
 import type * as column from '#/components/dashboard/column'
 import * as columnUtils from '#/components/dashboard/column/columnUtils'
 
@@ -12,6 +14,7 @@ import * as sorting from '#/utilities/sorting'
 export default function NameColumnHeading(props: column.AssetColumnHeadingProps): JSX.Element {
   const { state } = props
   const { sortInfo, setSortInfo } = state
+  const { getText } = textProvider.useText()
   const isSortActive = sortInfo?.field === columnUtils.Column.name
   const isDescending = sortInfo?.direction === sorting.SortDirection.descending
 
@@ -19,10 +22,10 @@ export default function NameColumnHeading(props: column.AssetColumnHeadingProps)
     <button
       title={
         !isSortActive
-          ? 'Sort by name'
+          ? getText('sortByName')
           : isDescending
-            ? 'Stop sorting by name'
-            : 'Sort by name descending'
+            ? getText('stopSortingByName')
+            : getText('sortByNameDescending')
       }
       className="group flex h-drive-table-heading w-full items-center gap-icon-with-text px-name-column-x"
       onClick={event => {
@@ -37,9 +40,9 @@ export default function NameColumnHeading(props: column.AssetColumnHeadingProps)
         }
       }}
     >
-      <span className="text-header">{columnUtils.COLUMN_NAME[columnUtils.Column.name]}</span>
+      <span className="text-header">{getText('nameColumnName')}</span>
       <img
-        alt={isDescending ? 'Sort Descending' : 'Sort Ascending'}
+        alt={isDescending ? getText('sortDescending') : getText('sortAscending')}
         src={SortAscendingIcon}
         className={`transition-all duration-arrow ${
           isSortActive ? 'selectable active' : 'transparent group-hover:selectable'

@@ -6,9 +6,9 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 [dependencies]
 anyhow = { workspace = true }
-aws-config = "0.49.0"
-aws-sdk-ecr = "0.19.0"
-aws-sdk-s3 = "0.19.0"
+aws-config = "0.51.0"
+aws-sdk-ecr = "0.21.0"
+aws-sdk-s3 = "0.21.0"
 base64 = "0.13.0"
 bytes = { workspace = true }
 byte-unit = { workspace = true }
@@ -54,3 +54,6 @@ zip = { version = "0.6.2", default-features = false, features = ["deflate"] }
 enso-build-macros-lib = { path = "../macros/lib" }
 ide-ci = { path = "../ci_utils" }
 serde_yaml = { workspace = true }
+
+[lints]
+workspace = true

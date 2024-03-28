@@ -1,6 +1,6 @@
 package org.enso.projectmanager.infrastructure.file
 
-import java.io.File
+import java.io.{File, InputStream}
 
 /** Represents abstraction for filesystem operations.
   *
@@ -14,6 +14,14 @@ trait FileSystem[F[+_, +_]] {
     * @return either [[FileSystemFailure]] or the content of a file as a String
     */
   def readFile(file: File): F[FileSystemFailure, String]
+
+  /** Writes binary content to a file.
+    *
+    * @param file path to the file
+    * @param contents a contents of the file
+    * @return either [[FileSystemFailure]] or Unit
+    */
+  def writeFile(file: File, contents: InputStream): F[FileSystemFailure, Unit]
 
   /** Writes textual content to a file.
     *

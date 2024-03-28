@@ -1,7 +1,5 @@
 package org.enso.searcher.sql
 
-import java.nio.file.{Files, Path}
-import java.util.UUID
 import org.enso.polyglot.{ExportedSymbol, ModuleExports, Suggestion}
 import org.enso.polyglot.runtime.Runtime.Api
 import org.enso.searcher.SuggestionEntry
@@ -12,6 +10,9 @@ import org.enso.testkit.RetrySpec
 import org.scalactic.TripleEqualsSupport
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
+
+import java.nio.file.{Files, Path}
+import java.util.UUID
 
 import scala.concurrent.Await
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -69,7 +70,7 @@ class SuggestionsRepoTest
       thrown.version shouldEqual wrongSchemaVersion
     }
 
-    "insert all suggestions111" taggedAs Retry in withRepo { repo =>
+    "insert all suggestions" taggedAs Retry in withRepo { repo =>
       val action =
         for {
           v1        <- repo.currentVersion
@@ -284,7 +285,6 @@ class SuggestionsRepoTest
           Some(Some(newUuid)),
           None,
           None,
-          None,
           None
         )
         s <- repo.select(id1)
@@ -312,7 +312,6 @@ class SuggestionsRepoTest
           (v2, Some(id2)) <- repo.update(
             suggestion.function,
             Some(None),
-            None,
             None,
             None,
             None
@@ -344,7 +343,6 @@ class SuggestionsRepoTest
           None,
           Some(newReturnType),
           None,
-          None,
           None
         )
         s <- repo.select(id1)
@@ -374,7 +372,6 @@ class SuggestionsRepoTest
           None,
           None,
           Some(Some(newDoc)),
-          None,
           None
         )
         s <- repo.select(id1)
@@ -407,7 +404,6 @@ class SuggestionsRepoTest
             None,
             None,
             Some(Some(newDoc)),
-            None,
             None
           )
           s <- repo.select(id1)
@@ -440,7 +436,6 @@ class SuggestionsRepoTest
             None,
             None,
             Some(Some(newDoc)),
-            None,
             None
           )
           s <- repo.select(id1)
@@ -471,7 +466,6 @@ class SuggestionsRepoTest
             None,
             None,
             Some(Some(newDoc)),
-            None,
             None
           )
           s <- repo.select(id1)
@@ -504,7 +498,6 @@ class SuggestionsRepoTest
             None,
             None,
             Some(Some(newDoc)),
-            None,
             None
           )
           s <- repo.select(id1)
@@ -536,7 +529,6 @@ class SuggestionsRepoTest
           None,
           None,
           Some(Some(newDoc)),
-          None,
           None
         )
         s <- repo.select(id1)
@@ -568,7 +560,6 @@ class SuggestionsRepoTest
             None,
             None,
             Some(None),
-            None,
             None
           )
           s <- repo.select(id1)
@@ -601,8 +592,7 @@ class SuggestionsRepoTest
           None,
           None,
           None,
-          Some(newScope),
-          None
+          Some(newScope)
         )
         s <- repo.select(id1)
       } yield (v1, id1, v2, id2, s)
@@ -627,7 +617,6 @@ class SuggestionsRepoTest
         )
         (v2, id2) <- repo.update(
           suggestion.method,
-          None,
           None,
           None,
           None,
@@ -679,9 +668,9 @@ class SuggestionsRepoTest
         v1 shouldEqual v2
     }
 
-    "apply export updates" taggedAs Retry in withRepo { repo =>
+    "get exported symbols" taggedAs Retry in withRepo { repo =>
       val reexport = "Foo.Bar"
-      val method   = suggestion.method.copy(reexport = Some(reexport))
+      val method   = suggestion.method.copy(reexports = Set(reexport))
       val updates = Seq(
         Api.ExportsUpdate(
           ModuleExports(
@@ -710,7 +699,7 @@ class SuggestionsRepoTest
             suggestion.local
           )
         )
-        results <- repo.applyExports(updates)
+        results <- repo.getExportedSymbols(updates)
       } yield (ids, results)
 
       val (ids, results) = Await.result(action, Timeout)
@@ -718,126 +707,6 @@ class SuggestionsRepoTest
         QueryResult(Seq(ids(0)), updates(0)),
         QueryResult(Seq(ids(3)), updates(1))
       )
-    }
-
-    "not apply exports with bigger module name" taggedAs Retry in withRepo {
-      repo =>
-        val reexport = "Foo.Bar.Baz"
-        val method   = suggestion.method.copy(reexport = Some("Foo.Bar"))
-        val updates = Seq(
-          Api.ExportsUpdate(
-            ModuleExports(
-              reexport,
-              Set(ExportedSymbol.Module(suggestion.module.module))
-            ),
-            Api.ExportsAction.Add()
-          ),
-          Api.ExportsUpdate(
-            ModuleExports(
-              reexport,
-              Set(ExportedSymbol.Method(method.module, method.name))
-            ),
-            Api.ExportsAction.Remove()
-          )
-        )
-        val action = for {
-          (_, ids) <- repo.insertAll(
-            Seq(
-              suggestion.module,
-              suggestion.tpe,
-              suggestion.constructor,
-              method,
-              suggestion.conversion,
-              suggestion.function,
-              suggestion.local
-            )
-          )
-          results <- repo.applyExports(updates)
-        } yield (ids, results)
-
-        val (ids, results) = Await.result(action, Timeout)
-        results should contain theSameElementsAs Seq(
-          QueryResult(Seq(ids(0)), updates(0)),
-          QueryResult(Seq(), updates(1))
-        )
-    }
-
-    "change version after applying exports" taggedAs Retry in withRepo { repo =>
-      val reexport = "Foo.Bar"
-      val method   = suggestion.method.copy(reexport = Some(reexport))
-      val updates = Seq(
-        Api.ExportsUpdate(
-          ModuleExports(
-            reexport,
-            Set(ExportedSymbol.Module(suggestion.module.module))
-          ),
-          Api.ExportsAction.Add()
-        ),
-        Api.ExportsUpdate(
-          ModuleExports(
-            reexport,
-            Set(ExportedSymbol.Method(method.module, method.name))
-          ),
-          Api.ExportsAction.Remove()
-        )
-      )
-      val action = for {
-        _ <- repo.insertAll(
-          Seq(
-            suggestion.module,
-            suggestion.tpe,
-            suggestion.constructor,
-            method,
-            suggestion.conversion,
-            suggestion.function,
-            suggestion.local
-          )
-        )
-        v1      <- repo.currentVersion
-        results <- repo.applyExports(updates)
-        v2      <- repo.currentVersion
-      } yield (results, v1, v2)
-
-      val (results, v1, v2) = Await.result(action, Timeout)
-      results.flatMap(_.ids).isEmpty shouldBe false
-      v1 should not equal v2
-    }
-
-    "not change version when exports not applied" taggedAs Retry in withRepo {
-      repo =>
-        val reexport = "Foo.Bar"
-        val updates = Seq(
-          Api.ExportsUpdate(
-            ModuleExports(
-              reexport,
-              Set(
-                ExportedSymbol
-                  .Method(suggestion.method.module, suggestion.method.name)
-              )
-            ),
-            Api.ExportsAction.Remove()
-          )
-        )
-        val action = for {
-          _ <- repo.insertAll(
-            Seq(
-              suggestion.module,
-              suggestion.tpe,
-              suggestion.constructor,
-              suggestion.method,
-              suggestion.conversion,
-              suggestion.function,
-              suggestion.local
-            )
-          )
-          v1      <- repo.currentVersion
-          results <- repo.applyExports(updates)
-          v2      <- repo.currentVersion
-        } yield (results, v1, v2)
-
-        val (results, v1, v2) = Await.result(action, Timeout)
-        results.flatMap(_.ids).isEmpty shouldBe true
-        v1 shouldEqual v2
     }
 
     "search suggestion by empty query" taggedAs Retry in withRepo { repo =>

@@ -51,7 +51,7 @@ const emit = defineEmits<{
   outputPortClick: [portId: AstId]
   outputPortDoubleClick: [portId: AstId]
   doubleClick: []
-  createNode: [options: NodeCreationOptions]
+  createNodes: [options: NodeCreationOptions[]]
   toggleColorPicker: []
   'update:edited': [cursorPosition: number]
   'update:rect': [rect: Rect]
@@ -378,7 +378,7 @@ const documentation = computed<string | undefined>({
   get: () => props.node.documentation ?? (editingComment.value ? '' : undefined),
   set: (text) => {
     graph.edit((edit) => {
-      const outerExpr = edit.get(props.node.outerExprId)
+      const outerExpr = edit.getVersion(props.node.outerExpr)
       if (text) {
         if (outerExpr instanceof Ast.MutableDocumented) {
           outerExpr.setDocumentationText(text)
@@ -401,6 +401,7 @@ const documentation = computed<string | undefined>({
       transform,
       minWidth: isVisualizationVisible ? `${visualizationWidth}px` : undefined,
       '--node-group-color': color,
+      ...(node.zIndex ? { 'z-index': node.zIndex } : {}),
     }"
     :class="{
       edited: props.edited,
@@ -450,7 +451,7 @@ const documentation = computed<string | undefined>({
       @startEditingComment="editingComment = true"
       @openFullMenu="openFullMenu"
       @delete="emit('delete')"
-      @createNode="emit('createNode', $event)"
+      @createNodes="emit('createNodes', $event)"
       @pointerenter="menuHovered = true"
       @pointerleave="menuHovered = false"
       @toggleColorPicker="emit('toggleColorPicker')"
@@ -472,7 +473,7 @@ const documentation = computed<string | undefined>({
       @update:visible="emit('update:visualizationVisible', $event)"
       @update:fullscreen="emit('update:visualizationFullscreen', $event)"
       @update:width="emit('update:visualizationWidth', $event)"
-      @createNode="emit('createNode', $event)"
+      @createNodes="emit('createNodes', $event)"
     />
     <Suspense>
       <GraphNodeComment

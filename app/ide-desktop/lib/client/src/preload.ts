@@ -21,6 +21,8 @@ const AUTHENTICATION_API_KEY = 'authenticationApi'
  * window. */
 const FILE_BROWSER_API_KEY = 'fileBrowserApi'
 
+const NAVIGATION_API_KEY = 'navigationApi'
+
 // =============================
 // === importProjectFromPath ===
 // =============================
@@ -28,14 +30,23 @@ const FILE_BROWSER_API_KEY = 'fileBrowserApi'
 const IMPORT_PROJECT_RESOLVE_FUNCTIONS = new Map<string, (projectId: string) => void>()
 
 const BACKEND_API = {
-    importProjectFromPath: (projectPath: string) => {
-        electron.ipcRenderer.send(ipc.Channel.importProjectFromPath, projectPath)
+    importProjectFromPath: (projectPath: string, directory: string | null = null) => {
+        electron.ipcRenderer.send(ipc.Channel.importProjectFromPath, projectPath, directory)
         return new Promise<string>(resolve => {
             IMPORT_PROJECT_RESOLVE_FUNCTIONS.set(projectPath, resolve)
         })
     },
 }
 electron.contextBridge.exposeInMainWorld(BACKEND_API_KEY, BACKEND_API)
+
+electron.contextBridge.exposeInMainWorld(NAVIGATION_API_KEY, {
+    goBack: () => {
+        electron.ipcRenderer.send(ipc.Channel.goBack)
+    },
+    goForward: () => {
+        electron.ipcRenderer.send(ipc.Channel.goForward)
+    },
+})
 
 electron.ipcRenderer.on(
     ipc.Channel.importProjectFromPath,

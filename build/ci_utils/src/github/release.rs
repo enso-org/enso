@@ -229,14 +229,13 @@ mod tests {
     use super::*;
 
     use reqwest::header::HeaderMap;
-    use reqwest::Body;
 
     #[tokio::test]
     #[ignore]
     pub async fn create_release() -> Result {
         let pat = std::env::var("GITHUB_TOKEN").unwrap();
 
-        let octocrab = octocrab::Octocrab::builder().personal_token(pat.clone()).build()?;
+        let octocrab = Octocrab::builder().personal_token(pat.clone()).build()?;
         let repo = octocrab.repos("enso-org", "ci-build");
         let release = if let Ok(release) = repo.releases().get_latest().await {
             release

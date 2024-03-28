@@ -10,6 +10,7 @@ import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
 import * as backendProvider from '#/providers/BackendProvider'
 import * as inputBindingsProvider from '#/providers/InputBindingsProvider'
+import * as textProvider from '#/providers/TextProvider'
 
 import AssetEventType from '#/events/AssetEventType'
 import AssetListEventType from '#/events/AssetListEventType'
@@ -42,6 +43,7 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
   const { doToggleDirectoryExpansion } = state
   const toastAndLog = toastAndLogHooks.useToastAndLog()
   const { backend } = backendProvider.useBackend()
+  const { getText } = textProvider.useText()
   const inputBindings = inputBindingsProvider.useInputBindings()
   const asset = item.item
   if (asset.type !== backendModule.AssetType.directory) {
@@ -61,7 +63,7 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
       try {
         await backend.updateDirectory(asset.id, { title: newTitle }, asset.title)
       } catch (error) {
-        toastAndLog('Could not rename folder', error)
+        toastAndLog('renameFolderError', error)
         setAsset(object.merger({ title: oldTitle }))
       }
     }
@@ -98,24 +100,17 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
       }
       case AssetEventType.newFolder: {
         if (item.key === event.placeholderId) {
-          if (backend.type !== backendModule.BackendType.remote) {
-            toastAndLog('Cannot create folders on the local drive')
-          } else {
-            rowState.setVisibility(Visibility.faded)
-            try {
-              const createdDirectory = await backend.createDirectory({
-                parentId: asset.parentId,
-                title: asset.title,
-              })
-              rowState.setVisibility(Visibility.visible)
-              setAsset(object.merge(asset, createdDirectory))
-            } catch (error) {
-              dispatchAssetListEvent({
-                type: AssetListEventType.delete,
-                key: item.key,
-              })
-              toastAndLog('Could not create new folder', error)
-            }
+          rowState.setVisibility(Visibility.faded)
+          try {
+            const createdDirectory = await backend.createDirectory({
+              parentId: asset.parentId,
+              title: asset.title,
+            })
+            rowState.setVisibility(Visibility.visible)
+            setAsset(object.merge(asset, createdDirectory))
+          } catch (error) {
+            dispatchAssetListEvent({ type: AssetListEventType.delete, key: item.key })
+            toastAndLog('createFolderError', error)
           }
         }
         break
@@ -154,7 +149,7 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
     >
       <SvgMask
         src={FolderArrowIcon}
-        alt={item.children == null ? 'Expand' : 'Collapse'}
+        alt={item.children == null ? getText('expand') : getText('collapse')}
         className={`m-name-column-icon hidden size-icon cursor-pointer transition-transform duration-arrow group-hover:inline-block ${
           item.children != null ? 'rotate-90' : ''
         }`}

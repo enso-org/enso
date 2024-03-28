@@ -60,3 +60,22 @@ export function isElementTextInput(element: EventTarget | null) {
       (element instanceof HTMLElement && element.isContentEditable))
   )
 }
+
+/**
+ * Whether the element is part of a Monaco editor.
+ */
+export function isElementPartOfMonaco(element: EventTarget | null) {
+  const recursiveCheck = (htmlElement: HTMLElement | null): boolean => {
+    if (htmlElement == null || htmlElement === document.body) {
+      return false
+    } else if (
+      htmlElement instanceof HTMLElement &&
+      htmlElement.classList.contains('monaco-editor')
+    ) {
+      return true
+    } else {
+      return recursiveCheck(htmlElement.parentElement)
+    }
+  }
+  return element != null && element instanceof HTMLElement && recursiveCheck(element)
+}

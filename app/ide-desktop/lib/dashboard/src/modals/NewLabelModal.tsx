@@ -4,6 +4,7 @@ import * as React from 'react'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
 import * as modalProvider from '#/providers/ModalProvider'
+import * as textProvider from '#/providers/TextProvider'
 
 import ColorPicker from '#/components/ColorPicker'
 import Modal from '#/components/Modal'
@@ -26,16 +27,15 @@ export default function NewLabelModal(props: NewLabelModalProps) {
   const { labels, eventTarget, doCreate } = props
   const toastAndLog = toastAndLogHooks.useToastAndLog()
   const { unsetModal } = modalProvider.useSetModal()
-  const position = React.useMemo(() => eventTarget.getBoundingClientRect(), [eventTarget])
-
+  const { getText } = textProvider.useText()
+  const [value, setName] = React.useState('')
+  const [color, setColor] = React.useState<backend.LChColor | null>(null)
   const labelNames = React.useMemo(
     () => new Set<string>(labels.map(label => label.value)),
     [labels]
   )
+  const position = React.useMemo(() => eventTarget.getBoundingClientRect(), [eventTarget])
   const leastUsedColor = React.useMemo(() => backend.leastUsedColor(labels), [labels])
-
-  const [value, setName] = React.useState('')
-  const [color, setColor] = React.useState<backend.LChColor | null>(null)
   const canSubmit = Boolean(value && !labelNames.has(value))
 
   const onSubmit = () => {
@@ -72,26 +72,20 @@ export default function NewLabelModal(props: NewLabelModalProps) {
           onSubmit()
         }}
       >
-        <h1 className="relative text-sm font-semibold">New Label</h1>
+        <h1 className="relative text-sm font-semibold">{getText('newLabel')}</h1>
         <label className="relative flex items-center">
-          <div className="text w-modal-label">Name</div>
+          <div className="text w-modal-label">{getText('name')}</div>
           <input
             autoFocus
             size={1}
-            placeholder="Enter the name of the label"
+            placeholder={getText('labelNamePlaceholder')}
             className={`text grow rounded-full border border-primary/10 bg-transparent px-input-x ${
               // eslint-disable-next-line @typescript-eslint/no-magic-numbers
               color != null && color.lightness <= 50
                 ? 'text-tag-text placeholder-selected-frame'
                 : 'text-primary'
             }`}
-            style={
-              color == null
-                ? {}
-                : {
-                    backgroundColor: backend.lChColorToCssColor(color),
-                  }
-            }
+            style={color == null ? {} : { backgroundColor: backend.lChColorToCssColor(color) }}
             onInput={event => {
               setName(event.currentTarget.value)
             }}
@@ -103,7 +97,7 @@ export default function NewLabelModal(props: NewLabelModalProps) {
             event.preventDefault()
           }}
         >
-          <div className="text w-modal-label">Color</div>
+          <div className="text w-modal-label">{getText('color')}</div>
           <div className="grow">
             <ColorPicker setColor={setColor} />
           </div>
@@ -114,10 +108,10 @@ export default function NewLabelModal(props: NewLabelModalProps) {
             type="submit"
             className="button bg-invite text-white enabled:active"
           >
-            Create
+            {getText('create')}
           </button>
           <button type="button" className="button bg-selected-frame active" onClick={unsetModal}>
-            Cancel
+            {getText('cancel')}
           </button>
         </div>
       </form>

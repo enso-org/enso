@@ -585,6 +585,10 @@ export class App extends Ast {
     )
   }
 
+  static positional(func: Owned, argument: Owned, module?: MutableModule): Owned<MutableApp> {
+    return App.new(module ?? MutableModule.Transient(), func, undefined, argument)
+  }
+
   static PositionalSequence(func: Owned, args: Owned[]): Owned {
     return args.reduce(
       (expression, argument) => App.new(func.module, expression, undefined, argument),
@@ -905,13 +909,14 @@ export class PropertyAccess extends Ast {
     if (parsed instanceof MutablePropertyAccess) return parsed
   }
 
-  static new(module: MutableModule, lhs: Owned, rhs: IdentLike) {
-    const dot = unspaced(Token.new('.', RawAst.Token.Type.Operator))
+  static new(module: MutableModule, lhs: Owned, rhs: IdentLike, style?: { spaced?: boolean }) {
+    const dot = Token.new('.', RawAst.Token.Type.Operator)
+    const whitespace = style?.spaced ? ' ' : ''
     return this.concrete(
       module,
       unspaced(lhs),
-      dot,
-      unspaced(Ident.newAllowingOperators(module, toIdent(rhs))),
+      { whitespace, node: dot },
+      { whitespace, node: Ident.newAllowingOperators(module, toIdent(rhs)) },
     )
   }
 
@@ -1429,7 +1434,7 @@ export class MutableTextLiteral extends TextLiteral implements MutableAst {
   setRawTextContent(rawText: string) {
     let boundary = this.boundaryTokenCode()
     const isInterpolated = this.isInterpolated()
-    const mustBecomeInterpolated = !isInterpolated && (!boundary || rawText.includes(boundary))
+    const mustBecomeInterpolated = !isInterpolated && (!boundary || rawText.match(/["\n\r]/))
     if (mustBecomeInterpolated) {
       boundary = "'"
       this.setBoundaries(boundary)
@@ -2144,9 +2149,9 @@ export class Wildcard extends Ast {
     return asOwned(new MutableWildcard(module, fields))
   }
 
-  static new(module: MutableModule) {
+  static new(module?: MutableModule) {
     const token = Token.new('_', RawAst.Token.Type.Wildcard)
-    return this.concrete(module, unspaced(token))
+    return this.concrete(module ?? MutableModule.Transient(), unspaced(token))
   }
 
   *concreteChildren(_verbatim?: boolean): IterableIterator<RawNodeChild> {
@@ -2181,6 +2186,11 @@ export class Vector extends Ast {
   declare fields: FixedMapView<AstFields & VectorFields>
   constructor(module: Module, fields: FixedMapView<AstFields & VectorFields>) {
     super(module, fields)
+  }
+
+  static tryParse(source: string, module?: MutableModule): Owned<MutableVector> | undefined {
+    const parsed = parse(source, module)
+    if (parsed instanceof MutableVector) return parsed
   }
 
   static concrete(
@@ -2265,6 +2275,23 @@ export class Vector extends Ast {
 export class MutableVector extends Vector implements MutableAst {
   declare readonly module: MutableModule
   declare readonly fields: FixedMap<AstFields & VectorFields>
+
+  push(value: Owned) {
+    const elements = this.fields.get('elements')
+    const element = mapRefs(
+      delimitVectorElement({ value: autospaced(value) }),
+      ownedToRaw(this.module, this.id),
+    )
+    this.fields.set('elements', [...elements, element])
+  }
+
+  keep(predicate: (ast: Ast) => boolean) {
+    const elements = this.fields.get('elements')
+    const filtered = elements.filter(
+      (element) => element.value && predicate(this.module.get(element.value.node)),
+    )
+    this.fields.set('elements', filtered)
+  }
 }
 export interface MutableVector extends Vector, MutableAst {
   values(): IterableIterator<MutableAst>

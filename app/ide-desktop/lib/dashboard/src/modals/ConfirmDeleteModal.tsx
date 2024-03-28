@@ -4,6 +4,7 @@ import * as React from 'react'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
 import * as modalProvider from '#/providers/ModalProvider'
+import * as textProvider from '#/providers/TextProvider'
 
 import Modal from '#/components/Modal'
 
@@ -23,8 +24,9 @@ export interface ConfirmDeleteModalProps {
 /** A modal for confirming the deletion of an asset. */
 export default function ConfirmDeleteModal(props: ConfirmDeleteModalProps) {
   const { actionText, actionButtonLabel = 'Delete', doDelete } = props
-  const toastAndLog = toastAndLogHooks.useToastAndLog()
+  const { getText } = textProvider.useText()
   const { unsetModal } = modalProvider.useSetModal()
+  const toastAndLog = toastAndLogHooks.useToastAndLog()
 
   const onSubmit = () => {
     unsetModal()
@@ -57,13 +59,13 @@ export default function ConfirmDeleteModal(props: ConfirmDeleteModalProps) {
           onSubmit()
         }}
       >
-        <div className="relative">Are you sure you want to {actionText}?</div>
+        <div className="relative">{getText('confirmPrompt', actionText)}</div>
         <div className="relative flex gap-buttons">
           <button type="submit" className="button bg-delete text-white active">
             {actionButtonLabel}
           </button>
           <button type="button" className="button bg-selected-frame active" onClick={unsetModal}>
-            Cancel
+            {getText('cancel')}
           </button>
         </div>
       </form>

@@ -14,6 +14,7 @@ import org.enso.shttp.auth.TokenAuthTestHandler;
 import org.enso.shttp.cloud_mock.CloudAuthRenew;
 import org.enso.shttp.cloud_mock.CloudRoot;
 import org.enso.shttp.cloud_mock.ExpiredTokensCounter;
+import org.enso.shttp.test_helpers.*;
 import sun.misc.Signal;
 import sun.misc.SignalHandler;
 
@@ -81,16 +82,24 @@ public class HTTPTestHelperServer {
       server.addHandler(path, new TestHandler(method));
     }
 
+    // HTTP helpers
+    setupFileServer(server, projectRoot);
     server.addHandler("/test_headers", new HeaderTestHandler());
     server.addHandler("/test_token_auth", new TokenAuthTestHandler());
     server.addHandler("/test_basic_auth", new BasicAuthTestHandler());
     server.addHandler("/crash", new CrashingTestHandler());
+    server.addHandler("/test_redirect", new RedirectTestHandler("/testfiles/js.txt"));
+
+    // Cloud mock
     var expiredTokensCounter = new ExpiredTokensCounter();
     server.addHandler("/COUNT-EXPIRED-TOKEN-FAILURES", expiredTokensCounter);
     CloudRoot cloudRoot = new CloudRoot(expiredTokensCounter);
     server.addHandler(cloudRoot.prefix, cloudRoot);
     server.addHandler("/enso-cloud-auth-renew", new CloudAuthRenew());
-    setupFileServer(server, projectRoot);
+
+    // Data link helpers
+    server.addHandler("/dynamic-datalink", new GenerateDataLinkHandler(true));
+    server.addHandler("/dynamic.datalink", new GenerateDataLinkHandler(false));
   }
 
   private static void setupFileServer(HybridHTTPServer server, Path projectRoot) {

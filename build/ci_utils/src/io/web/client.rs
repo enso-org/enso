@@ -75,7 +75,7 @@ pub async fn download_relative(
         crate::fs::create_dir_if_missing(parent_dir)?;
     }
 
-    crate::io::web::stream_to_file(response.bytes_stream(), &output_path).await?;
+    web::stream_to_file(response.bytes_stream(), &output_path).await?;
     debug!("Download finished: {}", output_path.display());
     Ok(output_path)
 }

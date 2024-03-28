@@ -22,7 +22,7 @@ const navigator = injectGraphNavigator(true)
 const emit = defineEmits<{
   nodeOutputPortDoubleClick: [portId: AstId]
   nodeDoubleClick: [nodeId: NodeId]
-  createNode: [source: NodeId, options: NodeCreationOptions]
+  createNodes: [source: NodeId, options: NodeCreationOptions[]]
   toggleColorPicker: []
 }>()
 
@@ -57,7 +57,7 @@ const uploadingFiles = computed<[FileName, File][]>(() => {
     @outputPortClick="graphStore.createEdgeFromOutput($event)"
     @outputPortDoubleClick="emit('nodeOutputPortDoubleClick', $event)"
     @doubleClick="emit('nodeDoubleClick', id)"
-    @createNode="emit('createNode', id, $event)"
+    @createNodes="emit('createNodes', id, $event)"
     @toggleColorPicker="emit('toggleColorPicker')"
     @update:edited="graphStore.setEditedNode(id, $event)"
     @update:rect="graphStore.updateNodeRect(id, $event)"

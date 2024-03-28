@@ -2,7 +2,7 @@ from Standard.Base import all
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Errors.Unimplemented.Unimplemented
 
-import Standard.Table.Data.Type.Value_Type.Value_Type
+from Standard.Table import Value_Type
 from Standard.Table.Errors import Inexact_Type_Coercion
 
 import project.Internal.IR.SQL_Expression.SQL_Expression
