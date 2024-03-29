@@ -84,7 +84,7 @@ final class InvokeMethodImportResolver
   protected Module loadLibraryModule(LibraryName libraryName, String moduleName)
       throws IOException {
     var optionModule = topScope.getModule(moduleName);
-    return optionModule.isPresent() ? optionModule.get() : null;
+    return optionModule.orElse(null);
   }
 
   @Override
