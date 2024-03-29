@@ -12,7 +12,7 @@ type Data
     Value float_pairs decimal_pairs
 
     new faker =
-        num_pairs = 10
+        num_pairs = 10000
         floats0 = Vector.new num_pairs _-> faker.float_full_range_exp
         floats1 = Vector.new num_pairs _-> faker.float_full_range_exp
         decimals0 = floats0.map (f-> Decimal.from_float f)
@@ -33,6 +33,8 @@ collect_benches = Bench.build builder->
         decimal_pairs = data.decimal_pairs
         decimal_pairs_without_zero_second = decimal_pairs.filter (pr-> (pr.at 1) != 0.0)
 
+        division_math_context = Math_Context.new 20
+
         group_builder.specify "float_add" (float_pairs.map (pr-> (pr.at 0) + (pr.at 1)))
         group_builder.specify "decimal_add" (decimal_pairs.map (pr-> (pr.at 0) + (pr.at 1)))
         group_builder.specify "float_subtract" (float_pairs.map (pr-> (pr.at 0) - (pr.at 1)))
@@ -40,7 +42,7 @@ collect_benches = Bench.build builder->
         group_builder.specify "float_multiply" (float_pairs.map (pr-> (pr.at 0) * (pr.at 1)))
         group_builder.specify "decimal_multiply" (decimal_pairs.map (pr-> (pr.at 0) * (pr.at 1)))
         group_builder.specify "float_divide" (float_pairs_without_zero_second.map (pr-> (pr.at 0) / (pr.at 1)))
-        group_builder.specify "decimal_divide" (decimal_pairs_without_zero_second.map (pr-> (pr.at 0) / (pr.at 1)))
+        group_builder.specify "decimal_divide" (decimal_pairs_without_zero_second.map (pr-> (pr.at 0).divide (pr.at 1) division_math_context))
 
 
 main = collect_benches . run_main
