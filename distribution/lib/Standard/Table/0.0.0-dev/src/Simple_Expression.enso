@@ -5,9 +5,9 @@ import Standard.Base.Metadata.Widget
 from Standard.Base.Metadata.Choice import Option
 from Standard.Base.Metadata.Widget import Single_Choice
 
-import project.Data.Column_Ref.Column_Ref
-import project.Data.Expression.Expression
-import project.Extensions.Table_Ref.Table_Ref
+import project.Column_Ref.Column_Ref
+import project.Expression.Expression
+import project.Internal.Table_Ref.Table_Ref
 import project.Internal.Widget_Helpers
 from project.Internal.Filter_Condition_Helpers import make_filter_column
 

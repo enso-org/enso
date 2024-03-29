@@ -34,9 +34,8 @@ export default function Settings() {
   const { backend } = backendProvider.useBackend()
   const { getText } = textProvider.useText()
   const [organization, setOrganization] = React.useState<backendModule.OrganizationInfo>(() => ({
-    pk: user?.organizationId ?? backendModule.OrganizationId(''),
-    // eslint-disable-next-line @typescript-eslint/naming-convention
-    organization_name: null,
+    id: user?.organizationId ?? backendModule.OrganizationId(''),
+    name: null,
     email: null,
     website: null,
     address: null,
@@ -97,7 +96,7 @@ export default function Settings() {
         <div className="ml-[0.625rem] h-[2.25rem] rounded-full bg-frame px-[0.5625rem] pb-[0.3125rem] pt-[0.125rem] leading-snug">
           {settingsTab !== SettingsTab.organization
             ? user?.name ?? 'your account'
-            : organization.organization_name ?? 'your organization'}
+            : organization.name ?? 'your organization'}
         </div>
       </div>
       <div className="flex flex-1 gap-settings overflow-hidden">

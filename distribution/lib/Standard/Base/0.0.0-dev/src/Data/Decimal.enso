@@ -4,7 +4,6 @@ import project.Data.Numeric.Math_Context.Math_Context
 import project.Data.Numeric.Rounding_Mode.Rounding_Mode
 import project.Data.Text.Text
 import project.Error.Error
-import project.Errors.Common.Arithmetic_Error
 import project.Errors.Illegal_Argument.Illegal_Argument
 import project.Nothing.Nothing
 import project.Panic.Panic
@@ -13,7 +12,7 @@ from project.Data.Boolean import Boolean, False, True
 from project.Data.Numbers import Float, Integer, Number, Number_Parse_Error
 from project.Data.Numeric.Internal.Decimal_Internal import Decimal_Comparator
 from project.Data.Ordering import Comparable, Ordering
-from project.Errors.Common import Loss_Of_Numeric_Precision, Out_Of_Range
+from project.Errors.Common import Arithmetic_Error, Loss_Of_Numeric_Precision, Out_Of_Range, Unsupported_Argument_Types
 
 polyglot java import java.lang.ArithmeticException
 polyglot java import java.lang.NumberFormatException
@@ -292,8 +291,8 @@ type Decimal
        - that: The number to add to this.
        - math_context: Used to optionally specify precision and `Rounding_Mode`.
 
-       Addition in Enso will undergo automatic conversions such that you need
-       not convert other numeric types to `Decimal` manually.
+       Arguments to `add` will undergo automatic conversions such that you
+       need not convert other numeric types to `Decimal` manually.
 
        > Example
          Adding 10.22 and 20.33.
@@ -326,8 +325,8 @@ type Decimal
        Arguments:
        - that: The number to add to this.
 
-       Addition in Enso will undergo automatic conversions such that you need
-       not convert other numeric types to `Decimal` manually.
+       Arguments to `+` will undergo automatic conversions such that you
+       need not convert other numeric types to `Decimal` manually.
 
        > Example
          Adding 10.22 and 20.33.
@@ -350,8 +349,8 @@ type Decimal
        - that: The number to subtract from this.
        - math_context: Used to optionally specify precision and `Rounding_Mode`.
 
-       Subtraction in Enso will undergo automatic conversions such that you need
-       not convert other numeric types to `Decimal` manually.
+       Arguments to `subtract` will undergo automatic conversions such that you
+       need not convert other numeric types to `Decimal` manually.
 
        > Example
          Subtracting 10.22 from 20.33.
@@ -385,8 +384,8 @@ type Decimal
        Arguments:
        - that: The number to subtract from this.
 
-       Subtraction in Enso will undergo automatic conversions such that you need
-       not convert other numeric types to `Decimal` manually.
+       Arguments to `-` will undergo automatic conversions such that you
+       need not convert other numeric types to `Decimal` manually.
 
        > Example
          Subtracting 10.22 from 20.33.
@@ -409,8 +408,8 @@ type Decimal
        - that: The number to multiply by this.
        - math_context: Used to optionally specify precision and `Rounding_Mode`.
 
-       Multiplication in Enso will undergo automatic conversions such that you need
-       not convert other numeric types to `Decimal` manually.
+       Arguments to `multiply` will undergo automatic conversions such that you
+       need not convert other numeric types to `Decimal` manually.
 
        > Example
          Multiplying 10.22 and 20.33.
@@ -443,8 +442,8 @@ type Decimal
        Arguments:
        - that: The number to multiply by this.
 
-       Multiplication in Enso will undergo automatic conversions such that you need
-       not convert other numeric types to `Decimal` manually.
+       Arguments to `*` will undergo automatic conversions such that you
+       need not convert other numeric types to `Decimal` manually.
 
        > Example
          Multiplying 10.22 and 20.33.
@@ -466,8 +465,8 @@ type Decimal
        - that: The number to divide by this.
        - math_context: Used to optionally specify precision and `Rounding_Mode`.
 
-       Division in Enso will undergo automatic conversions such that you need
-       not convert other numeric types to `Decimal` manually.
+       Arguments to `divide` will undergo automatic conversions such that you
+       need not convert other numeric types to `Decimal` manually.
 
        ! Error Conditions
 
@@ -506,8 +505,8 @@ type Decimal
        Arguments:
        - that: The number to divide by this.
 
-       Division in Enso will undergo automatic conversions such that you need
-       not convert other numeric types to `Decimal` manually.
+       Arguments to `/` will undergo automatic conversions such that you
+       need not convert other numeric types to `Decimal` manually.
 
        > Example
          Dividing 1065.9378 by 23.34.
@@ -518,6 +517,127 @@ type Decimal
              # => Decimal.new 45.67
     / : Decimal -> Decimal
     / self (that : Decimal) = self.divide that
+
+    ## ALIAS modulo, modulus
+       GROUP Operators
+       ICON math
+       Computes the remainder when dividing this by that.
+
+       Arguments:
+       - that: The number to divide this by.
+
+       Arguments to `remainder` will undergo automatic conversions such that you
+       need not convert other numeric types to `Decimal` manually.
+
+       > Example
+         Computing the remainder when dividing 10 by 3 (which is 1).
+
+             remainder = Decimal.new 10 . remainder 3
+             # => 1
+    remainder : Decimal -> Decimal -> Decimal
+    remainder self (that : Decimal) =
+        handle_java_exception <|
+            Decimal.Value (self.big_decimal.remainder that.big_decimal)
+
+    ## ALIAS modulo, modulus, remainder
+       GROUP Operators
+       ICON math
+       Computes the remainder when dividing this by that.
+
+       Arguments:
+       - that: The number to divide this by.
+
+       Arguments to `%` will undergo automatic conversions such that you
+       need not convert other numeric types to `Decimal` manually.
+
+       > Example
+         Computing the remainder when dividing 10 by 3 (which is 1).
+
+             remainder = Decimal.new 10 % 3
+             # => 1
+    % : Decimal -> Decimal -> Decimal
+    % self (that : Decimal) = self.remainder that
+
+    ## GROUP Math
+       ICON math
+       Computes the integer division of this by that.
+
+       Arguments:
+       - that: The number to divide this by.
+
+       Integer division of Decimals rounds down to the nearest integer.
+
+       Arguments to `div` will undergo automatic conversions such that you
+       need not convert other numeric types to `Decimal` manually.
+
+       ! Error Conditions
+
+         - If `that` is 0, `div` throws an Arithmetic_Error.
+
+       > Example
+         Dividing 10 by 3 to get 3.
+
+             Decimal.new "10" . div (Decimal.new "3")
+             # => 3
+
+       > Example
+         Dividing 10.28 by 3.01 to get 3.
+
+             Decimal.new "10.28" . div (Decimal.new "3.01")
+             # => 3
+    div : Decimal -> Decimal
+    div self that:Decimal -> Decimal =
+        handle_java_exception <|
+            Decimal.Value (self.big_decimal.divideToIntegralValue that.big_decimal)
+
+    ## ALIAS power
+       GROUP Operators
+       ICON math
+       Compute the result of raising this to the positive integer power `exp`.
+
+       Arguments:
+       - exp: The exponent. Must be an integer in the range 0 through
+         999999999 (inclusive).
+
+       ! Error Conditions
+
+         - If `exp` is outside the range 0 through
+           999999999 (inclusive), `Arithmetic_Error` will be thrown.
+
+       > Example
+         Computing 2.25 to the fifth power.
+
+             Decimal.new "2.25" . pow (Decimal.new "5")
+             # => 57.6650390625
+    pow : Integer -> Decimal
+    pow self exp:Integer =
+        ## If `exp` is an integer that does not fit in a Java Integer,
+           UnsuppUnsupported_Argument_Types is raised, so we convert that to an
+           Arithmetic_Error.
+        handle_java_exception <| handle_unsupported_argument_types <|
+            Decimal.Value (self.big_decimal.pow exp)
+
+    ## ALIAS power
+       GROUP Operators
+       ICON math
+       Compute the result of raising this to the positive integer power `exp`.
+
+       Arguments:
+       - exp: The exponent. Must be an integer in the range 0 through
+         999999999 (inclusive).
+
+       ! Error Conditions
+
+         - If `exp` is outside the range 0 through
+           999999999 (inclusive), `Arithmetic_Error` will be thrown.
+
+       > Example
+         Computing 2.25 to the fifth power.
+
+             Decimal.new "2.25" ^ Decimal.new "5"
+             # => 57.6650390625
+    ^ : Integer -> Decimal
+    ^ self exp:Integer = self.pow exp
 
     ## GROUP Operators
        ICON operators
@@ -628,6 +748,13 @@ attach_loss_of_numeric_precision x value =
 handle_java_exception ~action =
     Panic.catch ArithmeticException action caught_panic->
         Error.throw (Arithmetic_Error.Error caught_panic.payload.getMessage)
+
+## PRIVATE
+handle_unsupported_argument_types ~action =
+    Panic.catch Unsupported_Argument_Types action _->
+        Error.throw (Arithmetic_Error.Error "Exponent out of range 0..999999999 (inclusive)")
+
+## PRIVATE
 
 Comparable.from (_ : Decimal) = Decimal_Comparator
 

@@ -9,7 +9,6 @@ import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.interop.ArityException;
 import com.oracle.truffle.api.nodes.Node;
-import org.enso.interpreter.dsl.AcceptsError;
 import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.node.EnsoRootNode;
 import org.enso.interpreter.node.callable.InteropConversionCallNode;
@@ -83,8 +82,7 @@ public final class EqualsNode extends Node {
    * @param other the other object
    * @return {@code true} if {@code self} and {@code that} seem equal
    */
-  public boolean execute(
-      VirtualFrame frame, @AcceptsError Object self, @AcceptsError Object other) {
+  public boolean execute(VirtualFrame frame, Object self, Object other) {
     var areEqual = node.execute(frame, self, other);
     if (!areEqual) {
       var selfType = types.execute(self);

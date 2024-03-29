@@ -641,6 +641,7 @@
 - [Make expand_to_rows, expand_column support Rows, Tables, Column data
   types][9533]
 - [Data Link for `Enso_File`.][9525]
+- [Added `pow`, `remainder`, and `div` to `Decimal`.][9566]
 - [Implemented `.to_integer`, `.to_float`, and `from` conversions for
   `Decimal`][9462]
 
@@ -936,6 +937,7 @@
 [9462]: https://github.com/enso-org/enso/pull/9462
 [9533]: https://github.com/enso-org/enso/pull/9533
 [9525]: https://github.com/enso-org/enso/pull/9525
+[9566]: https://github.com/enso-org/enso/pull/9566
 
 #### Enso Compiler
 

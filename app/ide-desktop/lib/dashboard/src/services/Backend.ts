@@ -400,9 +400,8 @@ export interface ResourceUsage {
 
 /** Metadata for an organization. */
 export interface OrganizationInfo {
-  readonly pk: OrganizationId
-  // eslint-disable-next-line @typescript-eslint/naming-convention
-  readonly organization_name: string | null
+  readonly id: OrganizationId
+  readonly name: string | null
   readonly email: EmailAddress | null
   readonly website: HttpsUrl | null
   readonly address: string | null

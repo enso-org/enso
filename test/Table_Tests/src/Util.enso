@@ -2,8 +2,7 @@ from Standard.Base import all
 
 import Standard.Database.DB_Table.DB_Table
 import Standard.Database.DB_Column.DB_Column
-import Standard.Table.Data.Table.Table
-import Standard.Table.Data.Column.Column
+from Standard.Table import Column, Table
 
 from Standard.Test import all
 
