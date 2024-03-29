@@ -330,7 +330,6 @@ export interface AssetsTableState {
 export interface AssetRowState {
   readonly setVisibility: (visibility: Visibility) => void
   readonly isEditingName: boolean
-  readonly isReadonly: boolean
   readonly temporarilyAddedLabels: ReadonlySet<backendModule.LabelName>
   readonly temporarilyRemovedLabels: ReadonlySet<backendModule.LabelName>
 }
