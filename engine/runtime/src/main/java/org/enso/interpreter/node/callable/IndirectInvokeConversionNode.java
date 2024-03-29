@@ -54,11 +54,11 @@ abstract class IndirectInvokeConversionNode extends Node {
       BaseNode.TailStatus isTail,
       int thatArgumentPosition);
 
-  static boolean hasType(TypeOfNode typesLib, Object value) {
-    return typesLib.execute(value) instanceof Type;
+  static boolean hasType(TypeOfNode typeOfNode, Object value) {
+    return typeOfNode.execute(value) instanceof Type;
   }
 
-  @Specialization(guards = {"hasType(typesLib, that)"})
+  @Specialization(guards = {"hasType(typeOfNode, that)"})
   Object doConvertFrom(
       MaterializedFrame frame,
       Object state,
@@ -71,7 +71,7 @@ abstract class IndirectInvokeConversionNode extends Node {
       InvokeCallableNode.ArgumentsExecutionMode argumentsExecutionMode,
       BaseNode.TailStatus isTail,
       int thatArgumentPosition,
-      @Shared("typesLib") @Cached TypeOfNode typesLib,
+      @Shared("typeOfNode") @Cached TypeOfNode typeOfNode,
       @Shared("conversionResolverNode") @Cached ConversionResolverNode conversionResolverNode,
       @Shared("indirectInvokeFunctionNode") @Cached
           IndirectInvokeFunctionNode indirectInvokeFunctionNode) {
@@ -79,7 +79,7 @@ abstract class IndirectInvokeConversionNode extends Node {
         conversionResolverNode.expectNonNull(
             that,
             InvokeConversionNode.extractType(this, self),
-            (Type) typesLib.execute(that),
+            (Type) typeOfNode.execute(that),
             conversion);
     return indirectInvokeFunctionNode.execute(
         function,
@@ -230,7 +230,7 @@ abstract class IndirectInvokeConversionNode extends Node {
       InvokeCallableNode.ArgumentsExecutionMode argumentsExecutionMode,
       BaseNode.TailStatus isTail,
       int thatArgumentPosition,
-      @Shared("typesLib") @Cached TypeOfNode methods,
+      @Shared("typeOfNode") @Cached TypeOfNode methods,
       @Shared("interop") @CachedLibrary(limit = "10") InteropLibrary interop) {
     throw new PanicException(
         EnsoContext.get(this).getBuiltins().error().makeNoSuchConversion(self, that, conversion),

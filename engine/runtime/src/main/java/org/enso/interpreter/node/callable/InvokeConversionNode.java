@@ -99,8 +99,8 @@ public abstract class InvokeConversionNode extends BaseNode {
     return extractType(this, self);
   }
 
-  static boolean hasType(TypeOfNode typesLib, Object value) {
-    return typesLib.execute(value) instanceof Type;
+  static boolean hasType(TypeOfNode typeOfNode, Object value) {
+    return typeOfNode.execute(value) instanceof Type;
   }
 
   @Specialization(guards = {"hasType(dispatch, that)"})
@@ -111,7 +111,7 @@ public abstract class InvokeConversionNode extends BaseNode {
       Object self,
       Object that,
       Object[] arguments,
-      @Shared("typesLib") @Cached TypeOfNode dispatch,
+      @Shared("typeOfNode") @Cached TypeOfNode dispatch,
       @Shared("conversionResolverNode") @Cached ConversionResolverNode resolveNode) {
     var thatType = (Type) dispatch.execute(that);
     if (thatType == self) {
@@ -131,7 +131,7 @@ public abstract class InvokeConversionNode extends BaseNode {
       Object self,
       DataflowError that,
       Object[] arguments,
-      @Shared("typesLib") @Cached TypeOfNode dispatch,
+      @Shared("typeOfNode") @Cached TypeOfNode dispatch,
       @Shared("conversionResolverNode") @Cached ConversionResolverNode conversionResolverNode) {
     Function function =
         conversionResolverNode.execute(
@@ -238,7 +238,7 @@ public abstract class InvokeConversionNode extends BaseNode {
 
   @Specialization(
       guards = {
-        "!hasType(typesLib, that)",
+        "!hasType(typeOfNode, that)",
         "!interop.isTime(that)",
         "interop.isDate(that)",
       })
@@ -250,7 +250,7 @@ public abstract class InvokeConversionNode extends BaseNode {
       Object that,
       Object[] arguments,
       @Shared("interop") @CachedLibrary(limit = "10") InteropLibrary interop,
-      @Shared("typesLib") @Cached TypeOfNode typesLib,
+      @Shared("typeOfNode") @Cached TypeOfNode typeOfNode,
       @Shared("conversionResolverNode") @Cached ConversionResolverNode conversionResolverNode) {
     Function function =
         conversionResolverNode.expectNonNull(
@@ -260,7 +260,7 @@ public abstract class InvokeConversionNode extends BaseNode {
 
   @Specialization(
       guards = {
-        "!hasType(typesLib, that)",
+        "!hasType(typeOfNode, that)",
         "interop.isTime(that)",
         "!interop.isDate(that)",
       })
@@ -272,7 +272,7 @@ public abstract class InvokeConversionNode extends BaseNode {
       Object that,
       Object[] arguments,
       @Shared("interop") @CachedLibrary(limit = "10") InteropLibrary interop,
-      @Shared("typesLib") @Cached TypeOfNode typesLib,
+      @Shared("typeOfNode") @Cached TypeOfNode typeOfNode,
       @Shared("conversionResolverNode") @Cached ConversionResolverNode conversionResolverNode) {
     Function function =
         conversionResolverNode.expectNonNull(
@@ -282,7 +282,7 @@ public abstract class InvokeConversionNode extends BaseNode {
 
   @Specialization(
       guards = {
-        "!hasType(typesLib, that)",
+        "!hasType(typeOfNode, that)",
         "interop.isTime(that)",
         "interop.isDate(that)",
       })
@@ -294,7 +294,7 @@ public abstract class InvokeConversionNode extends BaseNode {
       Object that,
       Object[] arguments,
       @Shared("interop") @CachedLibrary(limit = "10") InteropLibrary interop,
-      @Shared("typesLib") @Cached TypeOfNode typesLib,
+      @Shared("typeOfNode") @Cached TypeOfNode typeOfNode,
       @Shared("conversionResolverNode") @Cached ConversionResolverNode conversionResolverNode) {
     Function function =
         conversionResolverNode.expectNonNull(
@@ -304,7 +304,7 @@ public abstract class InvokeConversionNode extends BaseNode {
 
   @Specialization(
       guards = {
-        "!hasType(typesLib, that)",
+        "!hasType(typeOfNode, that)",
         "interop.isDuration(that)",
       })
   Object doConvertDuration(
@@ -315,7 +315,7 @@ public abstract class InvokeConversionNode extends BaseNode {
       Object that,
       Object[] arguments,
       @Shared("interop") @CachedLibrary(limit = "10") InteropLibrary interop,
-      @Shared("typesLib") @Cached TypeOfNode typesLib,
+      @Shared("typeOfNode") @Cached TypeOfNode typeOfNode,
       @Shared("conversionResolverNode") @Cached ConversionResolverNode conversionResolverNode) {
     Function function =
         conversionResolverNode.expectNonNull(
@@ -325,7 +325,7 @@ public abstract class InvokeConversionNode extends BaseNode {
 
   @Specialization(
       guards = {
-        "!hasType(typesLib, thatMap)",
+        "!hasType(typeOfNode, thatMap)",
         "interop.hasHashEntries(thatMap)",
       })
   Object doConvertMap(
@@ -336,7 +336,7 @@ public abstract class InvokeConversionNode extends BaseNode {
       Object thatMap,
       Object[] arguments,
       @Shared("interop") @CachedLibrary(limit = "10") InteropLibrary interop,
-      @Shared("typesLib") @Cached TypeOfNode typesLib,
+      @Shared("typeOfNode") @Cached TypeOfNode typeOfNode,
       @Shared("conversionResolverNode") @Cached ConversionResolverNode conversionResolverNode) {
     Function function =
         conversionResolverNode.expectNonNull(
@@ -352,7 +352,7 @@ public abstract class InvokeConversionNode extends BaseNode {
       Object self,
       Object that,
       Object[] arguments,
-      @Shared("typesLib") @Cached TypeOfNode methods,
+      @Shared("typeOfNode") @Cached TypeOfNode methods,
       @Shared("interop") @CachedLibrary(limit = "10") InteropLibrary interop,
       @Shared("conversionResolverNode") @Cached ConversionResolverNode conversionResolverNode) {
     var ctx = EnsoContext.get(this);
