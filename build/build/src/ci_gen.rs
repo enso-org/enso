@@ -645,7 +645,7 @@ pub fn backend() -> Result<Workflow> {
 
 pub fn nightly_tests() -> Result<Workflow> {
     let on = Event {
-        push: Some(on_default_branch_push()),
+        pull_request: Some(default()),
         schedule: vec![Schedule::new("0 3 * * *")?],
         workflow_dispatch: Some(manual_workflow_dispatch()),
         ..default()
