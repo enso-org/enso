@@ -13,8 +13,8 @@ type Data
 
     new faker =
         num_pairs = 10
-        floats0 = Vector.new num_pairs _-> faker.float_full_range
-        floats1 = Vector.new num_pairs _-> faker.float_full_range
+        floats0 = Vector.new num_pairs _-> faker.float_full_range_exp
+        floats1 = Vector.new num_pairs _-> faker.float_full_range_exp
         decimals0 = floats0.map (f-> Decimal.from_float f)
         decimals1 = floats1.map (f-> Decimal.from_float f)
         Data.Value (floats0.zip floats1) (decimals0.zip decimals1)
