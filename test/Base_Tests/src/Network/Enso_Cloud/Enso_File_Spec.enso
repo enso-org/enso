@@ -1,5 +1,6 @@
 from Standard.Base import all
 import Standard.Base.Errors.Common.Not_Found
+import Standard.Base.Errors.File_Error.File_Error
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Errors.Unimplemented.Unimplemented
 
@@ -49,18 +50,16 @@ add_specs suite_builder setup:Cloud_Tests_Setup = setup.with_prepared_environmen
             Enso_File.current_working_directory . should_equal Enso_File.root
 
             subdir = Enso_File.root.create_directory "my_test_CWD-"+(Random.uuid.take 5)
+            subdir.should_succeed
             cleanup =
                 Enso_User.flush_caches
                 subdir.delete
             Panic.with_finalizer cleanup <|
-                Test_Environment.unsafe_with_environment_override "ENSO_PROJECT_PATH" subdir.id <|
+                Test_Environment.unsafe_with_environment_override "ENSO_PROJECT_PATH" subdir.path <|
                     # Flush caches to ensure fresh dir is used
                     Enso_User.flush_caches
 
-                    # TODO this should work, but further API changes are needed
-                    # Enso_File.current_working_directory . should_equal subdir
-                    # So now just checking id:
-                    Enso_File.current_working_directory.id . should_equal subdir.id
+                    Enso_File.current_working_directory . should_equal subdir
 
             # It should be back to default afterwards:
             Enso_File.current_working_directory . should_equal Enso_File.root
@@ -77,9 +76,13 @@ add_specs suite_builder setup:Cloud_Tests_Setup = setup.with_prepared_environmen
             File.new "enso://"+Enso_User.current.organization_name+"/" . should_equal Enso_File.root
             File.new "enso://"+Enso_User.current.organization_name+"/test_file.json" . should_equal (Enso_File.root / "test_file.json")
 
-        group_builder.specify "should not find nonexistent files" <|
+        group_builder.specify "should fail to read nonexistent files" <|
             f = Enso_File.root / "nonexistent_file.json"
-            f.should_fail_with Not_Found
+            f.should_succeed
+            f.exists . should_be_false
+            r = f.read
+            r.should_fail_with File_Error
+            r.catch.should_be_a File_Error.Not_Found
 
         group_builder.specify "should not allow to create a directory inside of a regular file" <|
             # TODO the file should be created programmatically when write is implemented
@@ -129,7 +132,8 @@ add_specs suite_builder setup:Cloud_Tests_Setup = setup.with_prepared_environmen
             Data.read "enso://"+Enso_User.current.organization_name+"/test-directory/another.txt" . should_equal "Hello Another!"
 
             r = Data.read "enso://"+Enso_User.current.organization_name+"/test-directory/nonexistent-directory/some-file.txt"
-            r.should_fail_with Not_Found
+            r.should_fail_with File_Error
+            r.catch.should_be_a File_Error.Not_Found
 
         group_builder.specify "should be able to open a file as input stream" <|
             test_file = Enso_File.root / "test_file.json"
@@ -142,13 +146,13 @@ add_specs suite_builder setup:Cloud_Tests_Setup = setup.with_prepared_environmen
 
         group_builder.specify "should be able to read file metadata" <|
             Enso_File.root.exists . should_be_true
-            Enso_File.root.name . should_equal "/"
+            Enso_File.root.name . should_equal ""
 
             # TODO this structure should be created once we get file writing
             dir = Enso_File.root / "test-directory"
             dir.exists.should_be_true
             dir.name . should_equal "test-directory"
-            dir.extension . should_fail_with Illegal_Argument
+            dir.extension . should_equal ""
             dir.is_directory.should_be_true
             dir.is_regular_file.should_be_false
             dir.size . should_fail_with Illegal_Argument

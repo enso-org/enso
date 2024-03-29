@@ -25,8 +25,10 @@ import project.Network.URI.URI
 import project.Nothing.Nothing
 import project.Runtime
 import project.Runtime.Context
+import project.System.Environment
 import project.System.File.Data_Link_Access.Data_Link_Access
 import project.System.File.File_Access.File_Access
+import project.System.File.Generic.File_Like.File_Like
 import project.System.File.Generic.Writable_File.Writable_File
 import project.System.File_Format_Metadata.File_Format_Metadata
 import project.System.Input_Stream.Input_Stream
@@ -80,10 +82,9 @@ type Enso_File
        directory.
     current_working_directory : Enso_File
     current_working_directory =
-        # TODO update internal_cloud_project_directory!
-        java_path = Utils.internal_cloud_project_directory
-        if java_path.is_nothing then Enso_File.root else
-            Enso_File.new java_path
+        path = Environment.get "ENSO_PROJECT_PATH"
+        if path.is_nothing then Enso_File.root else
+            Enso_File.new path
 
     ## PRIVATE
     asset_type self -> Enso_Asset_Type =
@@ -289,17 +290,26 @@ type Enso_File
     list : Vector Enso_File
     list self =
         # Remove secrets from the list - they are handled separately in `Enso_Secret.list`.
-        list_assets self . filter f-> f.asset_type != Enso_Asset_Type.Secret
+        assets = list_assets self . filter f-> f.asset_type != Enso_Asset_Type.Secret
+        assets.map asset->
+            # TODO we could cache the asset maybe? but for how long should we do that?
+            Enso_File.Value (self.enso_path.resolve asset.name)
 
     ## UNSTABLE
        GROUP Output
        Creates a subdirectory in a specified directory.
     create_directory : Text -> Enso_File
-    create_directory self (name : Text) = if self.is_directory.not then Error.throw (Illegal_Argument.Error "Only directories can contain subdirectories.") else
-        parent_id = Existing_Enso_Asset.get_asset_reference_for self . id
-        body = JS_Object.from_pairs [["title", name], ["parentId", [parent_id]]]
-        response = Utils.http_request_as_json HTTP_Method.Post Utils.directory_api body
-        response.into Enso_File
+    create_directory self (name : Text) =
+        asset = Existing_Enso_Asset.get_asset_reference_for self
+        if asset.is_directory.not then Error.throw (Illegal_Argument.Error "Only directories can contain subdirectories.") else
+            parent_field = if self.is_current_user_root then [] else
+                [["parentId", [asset.id]]]
+            body = JS_Object.from_pairs [["title", name]]+parent_field
+            response = Utils.http_request_as_json HTTP_Method.Post Utils.directory_api body
+            # TODO we could cache the asset maybe? but for how long should we do that?
+            created_asset = Existing_Enso_Asset.from_json response
+            created_asset.if_not_error <|
+                Enso_File.Value (self.enso_path.resolve name)
 
     ## UNSTABLE
        GROUP Output
@@ -344,23 +354,26 @@ type Enso_File
         Context.Output.if_enabled disabled_message="File moving is forbidden as the Output context is disabled." panic=False <|
             Unimplemented.throw "Enso_File.move_to is not implemented"
 
-    ## UNSTABLE
-       GROUP Operators
+    ## GROUP Operators
        ICON folder
        Resolves a file or directory within this directory.
     / : Text -> Enso_File ! Not_Found
     / self (name : Text) -> Enso_File ! Not_Found =
-        Enso_File.Value (self.path.resolve name)
+        Enso_File.Value (self.enso_path.resolve name)
+
+    ## PRIVATE
+    is_current_user_root self -> Boolean =
+        self.enso_path.is_root && self.enso_path.organization_name == Enso_User.current.organization_name
 
     ## PRIVATE
        Returns the text representation of the file descriptor.
     to_text : Text
     to_text self -> Text =
-        "Enso_File "+self.path.to_text
+        "Enso_File "+self.path
 
 ## PRIVATE
-list_assets (parent : Enso_File) =
-    Existing_Enso_Asset.get_asset_reference_for parent
+list_assets (parent : Enso_File) -> Vector Existing_Enso_Asset =
+    Existing_Enso_Asset.get_asset_reference_for parent . list_directory
 
 type Enso_Asset_Type
     ## Represents an Enso project.
@@ -399,3 +412,6 @@ File_Format_Metadata.from (that:Enso_File) =
         Enso_Asset_Type.File ->
             File_Format_Metadata.Value path=path name=that.name extension=(that.extension.catch _->Nothing)
         other_asset_type -> Error.throw (Illegal_Argument.Error "`File_Format_Metadata` is not available for: "+other_asset_type.to_text+".")
+
+## PRIVATE
+File_Like.from (that : Enso_File) = File_Like.Value that

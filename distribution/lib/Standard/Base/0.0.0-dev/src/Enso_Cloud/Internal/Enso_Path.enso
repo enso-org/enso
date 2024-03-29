@@ -40,14 +40,14 @@ type Enso_Path
     ## PRIVATE
     parent self -> Enso_Path =
         if self.is_root then Error.throw (Illegal_Argument.Error "Cannot get parent of the root directory.") else
-            Enso_Path.Value self.organization_name (self.path_segments.drop (Index_Sub_Range.Last 1)) self.asset_name
+            Enso_Path.Value self.organization_name (self.path_segments.drop (Index_Sub_Range.Last 1))
 
     ## PRIVATE
     resolve self (subpath : Text) -> Enso_Path =
         # TODO implement splitting on / as well as support for ..
         # try sharing the `normalize` code with S3_Path
         if subpath.contains "/" then Error.throw (Illegal_Argument.Error "Resolving sub-paths (/) is not implemented. Temporary workaround: use the `/` operator multiple times.") else
-            Enso_Path.Value self.organization_name (self.path_segments.append subpath) self.asset_name
+            Enso_Path.Value self.organization_name (self.path_segments + [subpath])
 
     ## PRIVATE
     to_text self -> Text =

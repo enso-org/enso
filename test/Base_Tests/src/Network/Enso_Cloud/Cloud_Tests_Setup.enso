@@ -176,7 +176,7 @@ with_retries ~action =
             # If the iterations are exhausted, we rethrow the panic.
             if i > max_iterations then Panic.throw caught_panic else
                 if i % 10 == 0 then
-                    IO.println "Still failing after "+i.to_text+" retries. ("+loc.to_display_text+")"
+                    IO.println 'Still failing after '+i.to_text+' retries. ('+loc.to_display_text+')\n  Reason: '+caught_panic.payload.to_display_text
                 Thread.sleep (1000*sleep_time . floor)
                 ## TODO This used to be
                         @Tail_Call go (i+1)
