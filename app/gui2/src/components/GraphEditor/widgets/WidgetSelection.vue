@@ -210,9 +210,7 @@ const dropDownInteraction = WidgetEditHandler.New(props.input, {
     dropdownVisible.value = false
   },
   addItem: () => {
-    dropdownVisible.value = true
-    editedWidget.value = undefined
-    editedValue.value = undefined
+    dropDownInteraction.start()
     return true
   },
 })
