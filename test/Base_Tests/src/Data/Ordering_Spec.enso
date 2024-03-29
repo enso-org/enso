@@ -1,6 +1,7 @@
 from Standard.Base import all
 import Standard.Base.Errors.Common.Incomparable_Values
 import Standard.Base.Errors.Common.Type_Error
+import Standard.Base.Errors.Illegal_State.Illegal_State
 
 from Standard.Test import all
 
@@ -90,6 +91,16 @@ add_specs suite_builder =
 
         group_builder.specify "should throw Incomparable_Values when comparing Number with Nothing" <|
             Ordering.compare 1 Nothing . should_fail_with Incomparable_Values
+
+        group_builder.specify "should propagate errors" <|
+            ((Error.throw (Illegal_State.Error "foo" )) > 42) . should_fail_with Illegal_State
+            ((Error.throw (Illegal_State.Error "foo" )) >= 42) . should_fail_with Illegal_State
+            ((Error.throw (Illegal_State.Error "foo" )) < 42) . should_fail_with Illegal_State
+            ((Error.throw (Illegal_State.Error "foo" )) <= 42) . should_fail_with Illegal_State
+            (42 > (Error.throw (Illegal_State.Error "foo" ))) . should_fail_with Illegal_State
+            (42 >= (Error.throw (Illegal_State.Error "foo" ))) . should_fail_with Illegal_State
+            (42 < (Error.throw (Illegal_State.Error "foo" ))) . should_fail_with Illegal_State
+            (42 <= (Error.throw (Illegal_State.Error "foo" ))) . should_fail_with Illegal_State
 
     suite_builder.group "Ordering" group_builder->
         group_builder.specify "should allow conversion to sign representation" <|
