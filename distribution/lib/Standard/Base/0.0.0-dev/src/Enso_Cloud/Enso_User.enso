@@ -59,4 +59,4 @@ Enso_User.from (that:JS_Object) =
     name = get_required_field "name" that expected_type=Text
     email = get_required_field "email" that expected_type=Text
     id = get_required_field "id" that expected_type=Text
-    Enso_User.User name email id root_folder is_enabled root_directory_id
+    Enso_User.User name email id is_enabled root_directory_id
