@@ -3,7 +3,6 @@ import NodeWidget from '@/components/GraphEditor/NodeWidget.vue'
 import SvgIcon from '@/components/SvgIcon.vue'
 import DropdownWidget, { type DropdownEntry } from '@/components/widgets/DropdownWidget.vue'
 import { unrefElement } from '@/composables/events'
-import type { PortId } from '@/providers/portInfo'
 import { defineWidget, Score, WidgetInput, widgetProps } from '@/providers/widgetRegistry'
 import {
   multipleChoiceConfiguration,
@@ -35,7 +34,7 @@ const tree = injectWidgetTree()
 
 const dropdownElement = ref<ComponentInstance<typeof DropdownWidget>>()
 
-const editedWidget = ref<PortId>()
+const editedWidget = ref<string>()
 const editedValue = ref<Ast.Owned | string | undefined>()
 const isHovered = ref(false)
 
@@ -182,20 +181,16 @@ const innerWidgetInput = computed<WidgetInput>(() => {
 })
 const isMulti = computed(() => props.input.dynamicConfig?.kind === 'Multiple_Choice')
 const dropdownVisible = ref(false)
-const dropDownInteraction = WidgetEditHandler.New(props.input, {
+const dropDownInteraction = WidgetEditHandler.New('WidgetSelection', props.input, {
   cancel: () => {
     dropdownVisible.value = false
   },
-  click: (e, _, childHandler) => {
+  pointerdown: (e, _) => {
     if (targetIsOutside(e, unrefElement(dropdownElement))) {
-      if (childHandler) return childHandler()
-      else {
-        dropDownInteraction.end()
-        if (editedWidget.value)
-          props.onUpdate({ portUpdate: { origin: editedWidget.value, value: editedValue.value } })
-      }
+      dropDownInteraction.end()
+      if (editedWidget.value)
+        props.onUpdate({ portUpdate: { origin: props.input.portId, value: editedValue.value } })
     }
-    return false
   },
   start: () => {
     dropdownVisible.value = true
@@ -352,7 +347,7 @@ declare module '@/providers/widgetRegistry' {
       ref="dropdownElement"
       :color="'var(--node-color-primary)'"
       :entries="entries"
-      @click="onClick"
+      @clickEntry="onClick"
     />
   </div>
 </template>

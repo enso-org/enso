@@ -3,14 +3,14 @@ import { InteractionHandler } from '@/providers/interactionHandler'
 import type { PortId } from '@/providers/portInfo'
 import { assert } from 'shared/util/assert'
 import { expect, test, vi, type Mock } from 'vitest'
-import { WidgetEditHandler } from '../editHandler'
+import { WidgetEditHandler, type WidgetId } from '../editHandler'
 
 // If widget's name is a prefix of another widget's name, then it is its ancestor.
 // The ancestor with longest name is a direct parent.
 function editHandlerTree(
   widgets: string[],
   interactionHandler: InteractionHandler,
-  createInteraction: (name: string) => Record<string, Mock>,
+  createInteraction: (name: WidgetId) => Record<string, Mock>,
   widgetTree: { currentEdit: WidgetEditHandler | undefined },
 ): Map<string, { handler: WidgetEditHandler; interaction: Record<string, Mock> }> {
   const handlers = new Map()
@@ -19,9 +19,12 @@ function editHandlerTree(
     for (const [otherId] of handlers) {
       if (id.startsWith(otherId) && otherId.length > (parent?.length ?? -1)) parent = otherId
     }
-    const interaction = createInteraction(id)
+    const widgetId = id as WidgetId
+    const interaction = createInteraction(widgetId)
     const handler = new WidgetEditHandler(
-      id as PortId,
+      widgetId,
+      `Port${id.slice(0, 1)}` as PortId,
+      undefined,
       interaction,
       parent ? handlers.get(parent)?.handler : undefined,
       interactionHandler,
@@ -123,7 +126,7 @@ test.each`
 `(
   'Handling clicks in WidgetEditHandlers case $name',
   ({ widgets, edited, propagatingHandlers, nonPropagatingHandlers, expectedHandlerCalls }) => {
-    const event = new MouseEvent('click') as PointerEvent
+    const event = new MouseEvent('pointerdown') as PointerEvent
     const navigator = {} as GraphNavigator
     const interactionHandler = new InteractionHandler()
     const widgetTree = { currentEdit: undefined }
@@ -138,15 +141,15 @@ test.each`
       (id) =>
         propagatingHandlersSet.has(id) ?
           {
-            click: vi.fn((e, nav, childHandler) => {
+            pointerdown: vi.fn((e, nav) => {
               expect(e).toBe(event)
               expect(nav).toBe(navigator)
-              childHandler?.()
+              return false
             }),
           }
         : nonPropagatingHandlersSet.has(id) ?
           {
-            click: vi.fn((e, nav) => {
+            pointerdown: vi.fn((e, nav) => {
               expect(e).toBe(event)
               expect(nav).toBe(navigator)
             }),
@@ -155,12 +158,10 @@ test.each`
       widgetTree,
     )
     handlers.get(edited)?.handler.start()
-    interactionHandler.handleClick(event, navigator)
-    for (const [id, { interaction }] of handlers) {
-      if (expectedHandlerCallsSet.has(id))
-        expect(interaction.click, `${id} click handler`).toHaveBeenCalled()
-      else if (interaction.click)
-        expect(interaction.click, `${id} click handler`).not.toHaveBeenCalled()
-    }
+    interactionHandler.handlePointerDown(event, navigator)
+    const handlersCalled = new Set<string>()
+    for (const [id, { interaction }] of handlers)
+      if (interaction.pointerdown?.mock.lastCall) handlersCalled.add(id)
+    expect([...handlersCalled].sort()).toEqual([...expectedHandlerCallsSet].sort())
   },
 )
