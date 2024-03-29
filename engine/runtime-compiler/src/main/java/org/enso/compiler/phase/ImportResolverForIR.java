@@ -94,17 +94,17 @@ abstract class ImportResolverForIR extends ImportResolverAlgorithm<
     }
     var mod = optionMod.get();
     compiler.ensureParsed(mod);
-    var b = mod.getBindingsMap();
-    if (b == null) {
+    var bindingsMap = mod.getBindingsMap();
+    if (bindingsMap == null) {
       compiler.context().updateModule(mod, u -> {
         u.invalidateCache();
         u.ir(null);
         u.compilationStage(CompilationStage.INITIAL);
       });
       compiler.ensureParsed(mod, false);
-      b = mod.getBindingsMap();
+      bindingsMap = mod.getBindingsMap();
     }
-    var entitiesStream = b.definedEntities().map(e -> switch (e) {
+    var entitiesStream = bindingsMap.definedEntities().map(e -> switch (e) {
       case BindingsMap.Type t -> {
         assert e.name().equals(t.name()) : e.name() + " != " + t.name();
         var res = new ResolvedType(new BindingsMap$ModuleReference$Concrete(mod), t);
