@@ -56,6 +56,7 @@ import * as sanitizedEventTargets from '#/utilities/sanitizedEventTargets'
 declare module '#/utilities/LocalStorage' {
   /** */
   interface LocalStorageData {
+    readonly driveCategory: Category
     readonly isAssetPanelVisible: boolean
     readonly page: pageSwitcher.Page
     readonly projectStartupInfo: backendModule.ProjectStartupInfo
@@ -69,6 +70,11 @@ LocalStorage.registerKey('isAssetPanelVisible', {
 const PAGES = Object.values(pageSwitcher.Page)
 LocalStorage.registerKey('page', {
   tryParse: value => (array.includes(PAGES, value) ? value : null),
+})
+
+const CATEGORIES = Object.values(Category)
+LocalStorage.registerKey('driveCategory', {
+  tryParse: value => (array.includes(CATEGORIES, value) ? value : null),
 })
 
 const BACKEND_TYPES = Object.values(backendModule.BackendType)
@@ -155,6 +161,12 @@ export default function Dashboard(props: DashboardProps) {
     () => localStorage.get('isAssetPanelVisible') ?? false
   )
   const [isAssetPanelTemporarilyVisible, setIsAssetPanelTemporarilyVisible] = React.useState(false)
+  const [category, setCategory] = searchParamsState.useSearchParamsState(
+    'driveCategory',
+    () => localStorage.get('driveCategory') ?? Category.home,
+    (value): value is Category => array.includes(Object.values(Category), value)
+  )
+
   const isCloud = backend.type === backendModule.BackendType.remote
   const rootDirectoryId = React.useMemo(
     () => session.user?.rootDirectoryId ?? backendModule.DirectoryId(''),
@@ -498,6 +510,8 @@ export default function Dashboard(props: DashboardProps) {
           />
           <Home hidden={page !== pageSwitcher.Page.home} createProject={doCreateProject} />
           <Drive
+            category={category}
+            setCategory={setCategory}
             supportsLocalBackend={supportsLocalBackend}
             hidden={page !== pageSwitcher.Page.drive}
             hideRows={page !== pageSwitcher.Page.drive && page !== pageSwitcher.Page.home}
@@ -558,6 +572,7 @@ export default function Dashboard(props: DashboardProps) {
               category={Category.home}
               labels={labels}
               dispatchAssetEvent={dispatchAssetEvent}
+              isReadonly={category === Category.trash}
             />
           )}
         </div>
