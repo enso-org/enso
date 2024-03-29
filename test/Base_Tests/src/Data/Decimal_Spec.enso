@@ -582,11 +582,6 @@ add_specs suite_builder =
             huge_a_int = Integer.from huge_a
 
             (huge_a_int == huge_a) . should_be_true
-
-        group_builder.specify "Decimal.to_integer should compare correctly with the original Decimal (failing case)" <|
-            huge_a = Decimal.new "3.4E320"
-            huge_a_int = Integer.from huge_a
-
             (huge_a == huge_a_int) . should_be_true
 
     suite_builder.group "remainder" group_builder->
