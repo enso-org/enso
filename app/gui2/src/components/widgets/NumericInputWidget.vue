@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { PointerButtonMask, usePointer } from '@/composables/events'
-import { WidgetEditHandler } from '@/providers/widgetRegistry/editHandler'
 import { computed, ref, watch, type ComponentInstance, type StyleValue } from 'vue'
 import AutoSizedInput from './AutoSizedInput.vue'
 
@@ -32,13 +31,13 @@ const dragPointer = usePointer(
     if (!(slider instanceof HTMLElement)) return false
 
     if (eventType === 'stop' && Math.abs(position.relative.x) < SLIDER_INPUT_THRESHOLD) {
-      event.stopImmediatePropagation()
-      return false
+      inputComponent.value?.focus()
+      return
     }
 
     if (eventType === 'start') {
       event.stopImmediatePropagation()
-      return false
+      return
     }
 
     if (inputFieldActive.value || props.limits == null) return false
@@ -57,9 +56,10 @@ const dragPointer = usePointer(
 
 const sliderWidth = computed(() => {
   if (props.limits == null) return undefined
-  if (typeof editedValue.value === 'string') return undefined
+  const numberValue = parseFloat(editedValue.value)
+  if (isNaN(numberValue)) return undefined
   return `${
-    ((editedValue.value - props.limits.min) * 100) / (props.limits.max - props.limits.min)
+    ((numberValue - props.limits.min) * 100) / (props.limits.max - props.limits.min)
   }%`
 })
 
@@ -133,6 +133,8 @@ defineExpose({
 <style scoped>
 .NumericInputWidget {
   position: relative;
+  overflow: clip;
+  border-radius: var(--radius-full);
 }
 .AutoSizedInput {
   user-select: none;
