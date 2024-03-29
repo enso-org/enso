@@ -24,7 +24,7 @@ async function runApp(
   // until GUI1 is removed, as GUI1 still needs them.
   const intermediateConfig = mergeConfig(baseConfig, urlParams())
   const appConfig = mergeConfig(intermediateConfig, config ?? {})
-  const app = await mountProjectApp(
+  unmount = await mountProjectApp(
     {
       config: appConfig,
       accessToken,
@@ -32,7 +32,6 @@ async function runApp(
     },
     pinia,
   )
-  unmount = () => app.unmount()
 }
 
 function stopApp() {
