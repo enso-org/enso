@@ -10,6 +10,7 @@ import project.Enso_Cloud.Data_Link
 import project.Enso_Cloud.Enso_User.Enso_User
 import project.Enso_Cloud.Errors.Enso_Cloud_Error
 import project.Enso_Cloud.Internal.Enso_Path.Enso_Path
+import project.Enso_Cloud.Internal.Existing_Enso_Asset.Existing_Enso_Asset
 import project.Enso_Cloud.Internal.Utils
 import project.Error.Error
 import project.Errors.Common.Not_Found
@@ -197,12 +198,12 @@ type Enso_File
         open_as_data_link = (open_options.contains Data_Link_Access.No_Follow . not) && (Data_Link.is_data_link self)
         if open_as_data_link then Data_Link.read_data_link_as_stream self open_options action else
             File_Access.ensure_only_allowed_options "with_input_stream" [File_Access.Read, Data_Link_Access.No_Follow] open_options <|
-                uri = case self.asset_type of
-                    Enso_Asset_Type.File ->
-                        get_download_url_for_file self
+                asset = Existing_Enso_Asset.get_asset_reference_for self
+                uri = case asset.asset_type of
+                    Enso_Asset_Type.File -> asset.get_download_url
                     Enso_Asset_Type.Data_Link ->
                         Runtime.assert (open_options.contains Data_Link_Access.No_Follow)
-                        self.internal_uri
+                        asset.internal_uri
                     _ ->
                         Error.throw (Illegal_Argument.Error "Only files can be opened as a stream.")
                 response = HTTP.fetch uri HTTP_Method.Get []
@@ -225,22 +226,26 @@ type Enso_File
          If set to `Ignore`, the operation proceeds without errors or warnings.
     @format File_Format.default_widget
     read : File_Format -> Problem_Behavior -> Any ! Illegal_Argument | File_Error
-    read self format=Auto_Detect (on_problems=Problem_Behavior.Report_Warning) = case self.asset_type of
-        Enso_Asset_Type.Project -> Error.throw (Illegal_Argument.Error "Projects cannot be read within Enso code. Open using the IDE.")
-        Enso_Asset_Type.Secret -> Error.throw (Illegal_Argument.Error "Secrets cannot be read directly.")
-        Enso_Asset_Type.Data_Link ->
-            json = Utils.http_request_as_json HTTP_Method.Get self.internal_uri
-            datalink = Data_Link.interpret_json_as_data_link json
-            datalink.read format on_problems
-        Enso_Asset_Type.Directory -> if format == Auto_Detect then self.list else Error.throw (Illegal_Argument.Error "Directories can only be read using the Auto_Detect format.")
-        Enso_Asset_Type.File -> File_Format.handle_format_missing_arguments format <| case format of
-            Auto_Detect ->
-                real_format = Auto_Detect.get_reading_format self
-                if real_format == Nothing then Error.throw (File_Error.Unsupported_Type self) else
-                    self.read real_format on_problems
-            _ ->
-                metadata = File_Format_Metadata.from self
-                self.with_input_stream [File_Access.Read] (stream-> format.read_stream stream metadata)
+    read self format=Auto_Detect (on_problems=Problem_Behavior.Report_Warning) =
+        asset = Existing_Enso_Asset.get_asset_reference_for self
+        case asset.asset_type of
+            Enso_Asset_Type.Project -> Error.throw (Illegal_Argument.Error "Projects cannot be read within Enso code. Open using the IDE.")
+            Enso_Asset_Type.Secret -> Error.throw (Illegal_Argument.Error "Secrets cannot be read directly.")
+            Enso_Asset_Type.Data_Link ->
+                json = Utils.http_request_as_json HTTP_Method.Get asset.internal_uri
+                datalink = Data_Link.interpret_json_as_data_link json
+                datalink.read format on_problems
+            Enso_Asset_Type.Directory -> if format == Auto_Detect then self.list else Error.throw (Illegal_Argument.Error "Directories can only be read using the Auto_Detect format.")
+            Enso_Asset_Type.File -> File_Format.handle_format_missing_arguments format <|
+                read_with_format effective_format =
+                    metadata = File_Format_Metadata.from self
+                    # TODO maybe avoid fetching asset id twice here? maybe move with_input_stream to asset? or helper?
+                    self.with_input_stream [File_Access.Read] (stream-> effective_format.read_stream stream metadata)
+
+                if format != Auto_Detect then read_with_format format else
+                    real_format = Auto_Detect.get_reading_format self
+                    if real_format == Nothing then Error.throw (File_Error.Unsupported_Type self) else
+                        read_with_format real_format
 
     ## ALIAS load bytes, open bytes
        ICON data_input
@@ -291,7 +296,6 @@ type Enso_File
        Creates a subdirectory in a specified directory.
     create_directory : Text -> Enso_File
     create_directory self (name : Text) = if self.is_directory.not then Error.throw (Illegal_Argument.Error "Only directories can contain subdirectories.") else
-        name_field = [["title", name]]
         parent_id = Existing_Enso_Asset.get_asset_reference_for self . id
         body = JS_Object.from_pairs [["title", name], ["parentId", [parent_id]]]
         response = Utils.http_request_as_json HTTP_Method.Post Utils.directory_api body
