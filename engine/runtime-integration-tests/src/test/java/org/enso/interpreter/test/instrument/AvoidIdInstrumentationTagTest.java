@@ -9,46 +9,29 @@ import com.oracle.truffle.api.instrumentation.InstrumentableNode;
 import com.oracle.truffle.api.instrumentation.StandardTags;
 import com.oracle.truffle.api.nodes.RootNode;
 import com.oracle.truffle.api.source.SourceSection;
-import java.nio.file.Paths;
-import java.util.Map;
 import java.util.function.Predicate;
-import java.util.logging.Level;
 import org.enso.interpreter.node.ClosureRootNode;
 import org.enso.interpreter.runtime.tag.AvoidIdInstrumentationTag;
 import org.enso.interpreter.runtime.tag.IdentifiedTag;
+import org.enso.interpreter.test.TestBase;
 import org.enso.interpreter.test.instruments.NodeCountingTestInstrument;
-import org.enso.polyglot.RuntimeOptions;
 import org.graalvm.polyglot.Context;
-import org.graalvm.polyglot.Language;
 import org.graalvm.polyglot.Source;
-import org.graalvm.polyglot.io.IOAccess;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
-public class AvoidIdInstrumentationTagTest {
+public class AvoidIdInstrumentationTagTest extends TestBase {
 
   private Context context;
   private NodeCountingTestInstrument nodes;
 
   @Before
   public void initContext() {
-    context =
-        Context.newBuilder()
-            .allowExperimentalOptions(true)
-            .option(
-                RuntimeOptions.LANGUAGE_HOME_OVERRIDE,
-                Paths.get("../../distribution/component").toFile().getAbsolutePath())
-            .option(RuntimeOptions.LOG_LEVEL, Level.WARNING.getName())
-            .logHandler(System.err)
-            .allowExperimentalOptions(true)
-            .allowIO(IOAccess.ALL)
-            .allowAllAccess(true)
-            .build();
-
+    context = defaultContextBuilder().build();
     var engine = context.getEngine();
-    Map<String, Language> langs = engine.getLanguages();
+    var langs = engine.getLanguages();
     Assert.assertNotNull("Enso found: " + langs, langs.get("enso"));
 
     nodes =
