@@ -34,8 +34,6 @@ add_specs suite_builder setup:Cloud_Tests_Setup =
             parsed_user.name.should_equal "Parsed user"
             parsed_user.email.should_equal "enso-parse-test@example.com"
             parsed_user.is_enabled.should_be_true
-            parsed_user.home . should_be_a Enso_File
-            parsed_user.home.is_directory.should_be_true
 
             invalid_json = Json.parse "{}"
             r = Enso_User.from invalid_json
@@ -51,11 +49,6 @@ add_specs suite_builder setup:Cloud_Tests_Setup =
             current.name.should_equal "My test User 1"
             current.email.should_equal "enso-test-user-1@example.com"
             current.is_enabled.should_be_true
-
-            # TODO separate Enso_File tests could test that this is a valid directory
-            home = current.home
-            home . should_be_a Enso_File
-            home.is_directory.should_be_true
 
         group_builder.specify "user list can be fetched from mock API" <| Cloud_Tests_Setup.run_with_mock_cloud <|
             users = Enso_User.list

@@ -597,11 +597,7 @@ type File
              Examples.csv.extension == ".csv"
     extension : Text
     extension self =
-        name = self.name
-        last_dot = name.locate "." mode=Matching_Mode.Last
-        if last_dot.is_nothing then "" else
-            extension = name.drop (Index_Sub_Range.First last_dot.start)
-            if extension == "." then "" else extension
+        find_extension_from_name self.name
 
     ## ICON metadata
        Converts this file to an equivalent file represented with an absolute

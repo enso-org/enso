@@ -10,6 +10,7 @@ import project.Data.Time.Date_Time.Date_Time
 import project.Data.Time.Date_Time_Formatter.Date_Time_Formatter
 import project.Data.Vector.Vector
 import project.Enso_Cloud.Data_Link
+import project.Enso_Cloud.Enso_User.Enso_User
 import project.Enso_Cloud.Errors.Enso_Cloud_Error
 import project.Enso_Cloud.Internal.Enso_Path.Enso_Path
 import project.Enso_Cloud.Internal.Utils
@@ -38,6 +39,7 @@ from project.Data.Text.Extensions import all
 from project.Enso_Cloud.Public_Utils import get_required_field
 from project.System.File_Format import Auto_Detect, Bytes, File_Format, Plain_Text_Format
 from project.System.File.Generic.File_Write_Strategy import generic_copy
+from project.System.File import find_extension_from_name
 
 type Enso_File
     ## ICON data_input
@@ -89,62 +91,68 @@ type Enso_File
     ## PRIVATE
     asset_type self -> Enso_Asset_Type =
         # TODO maybe we can short circuit if it ends with `.datalink` or `.secret`?
-        # TODO fetch asset type from the API
-        Nothing
+        Existing_Enso_Asset.get_asset_reference_for self . asset_type
 
     ## GROUP Metadata
        ICON metadata
        Checks if the folder or file exists
     exists : Boolean
     exists self =
-        response = Utils.http_request HTTP_Method.Get self.internal_uri
-        response.code.is_success
+        Existing_Enso_Asset.get_asset_reference_for self . is_error . not
 
     ## GROUP Metadata
        ICON metadata
        Gets the size of a file in bytes.
     size : Integer
-    size self -> Integer = if self.is_regular_file.not then Error.throw (Illegal_Argument.Error "`size` can only be queried for regular files.") else
-        metadata = get_file_description self |> get_required_field "metadata"
-        get_required_field "size" metadata expected_type=Integer
+    size self -> Integer =
+        asset = Existing_Enso_Asset.get_asset_reference_for self
+        if asset.is_regular_file.not then Error.throw (Illegal_Argument.Error "`size` can only be queried for regular files.") else
+            metadata = asset.get_file_description |> get_required_field "metadata"
+            get_required_field "size" metadata expected_type=Integer
 
     ## GROUP Metadata
        ICON metadata
        Gets the creation time of a file.
     creation_time : Date_Time
-    creation_time self -> Date_Time = if self.is_directory then Unimplemented.throw "Enso_File.creation_time is not implemented yet for directories." else
-        metadata = get_file_description self |> get_required_field "metadata"
-        Date_Time.parse (get_required_field "created_at" metadata expected_type=Text) Date_Time_Formatter.iso_offset_date_time
-            . catch Time_Error error-> Error.throw (Enso_Cloud_Error.Invalid_Response_Payload error)
+    creation_time self -> Date_Time =
+        asset = Existing_Enso_Asset.get_asset_reference_for self
+        if asset.is_directory then Unimplemented.throw "Enso_File.creation_time is not implemented yet for directories." else
+            metadata = asset.get_file_description |> get_required_field "metadata"
+            Date_Time.parse (get_required_field "created_at" metadata expected_type=Text) Date_Time_Formatter.iso_offset_date_time
+                . catch Time_Error error-> Error.throw (Enso_Cloud_Error.Invalid_Response_Payload error)
 
     ## GROUP Metadata
        ICON metadata
        Gets the last modified time of a file.
     last_modified_time : Date_Time
-    last_modified_time self = if self.is_directory then Unimplemented.throw "Enso_File.last_modified_time is not implemented yet for directories." else
-        metadata = get_file_description self |> get_required_field "metadata"
-        Date_Time.parse (get_required_field "modified_at" metadata expected_type=Text) Date_Time_Formatter.iso_offset_date_time
-            . catch Time_Error error-> Error.throw (Enso_Cloud_Error.Invalid_Response_Payload error)
+    last_modified_time self =
+        asset = Existing_Enso_Asset.get_asset_reference_for self
+        if asset.is_directory then Unimplemented.throw "Enso_File.last_modified_time is not implemented yet for directories." else
+            metadata = asset.get_file_description |> get_required_field "metadata"
+            Date_Time.parse (get_required_field "modified_at" metadata expected_type=Text) Date_Time_Formatter.iso_offset_date_time
+                . catch Time_Error error-> Error.throw (Enso_Cloud_Error.Invalid_Response_Payload error)
 
     ## GROUP Metadata
        ICON metadata
        Checks if this is a folder
     is_directory : Boolean
-    is_directory self = self.asset_type == Enso_Asset_Type.Directory
+    is_directory self =
+        Existing_Enso_Asset.get_asset_reference_for self . is_directory
 
     ## GROUP Metadata
        ICON metadata
        Checks if this is a regular file
     is_regular_file : Boolean
-    is_regular_file self = self.asset_type == Enso_Asset_Type.File
+    is_regular_file self =
+        Existing_Enso_Asset.get_asset_reference_for self . is_regular_file
 
     ## GROUP Metadata
        ICON folder
        Finds the parent Enso_File for this file.
     parent : Enso_File | Nothing
     parent self =
-        # TODO resolve parent path
-        Unimplemented.throw "Enso_File.parent is not implemented"
+        if self.enso_path.is_root then Nothing else
+            Enso_File.Value self.enso_path.parent
 
     ## GROUP Metadata
        ICON metadata
@@ -154,11 +162,8 @@ type Enso_File
     ## GROUP Metadata
        ICON metadata
        Checks if `self` is a descendant of `other`.
-    is_descendant_of : Enso_File -> Boolean
-    is_descendant_of self (other : Enso_File) =
-        # TODO common path logic with S3 I guess?
-        _ = other
-        Unimplemented.throw "Enso_File.is_descendant_of is not implemented"
+    is_descendant_of self (other : Enso_File) -> Boolean =
+        other.is_directory && self.path.starts_with other.path
 
     ## PRIVATE
        ADVANCED
@@ -266,18 +271,16 @@ type Enso_File
 
     ## GROUP Metadata
        ICON metadata
+       Returns the name of this file.
+    name self -> Text =
+        if self.enso_path.path_segments.is_empty then "" else
+            self.enso_path.path_segments.last
+
+    ## GROUP Metadata
+       ICON metadata
        Returns the extension of the file.
-    extension : Text
-    extension self = case self.asset_type of
-        Enso_Asset_Type.Directory -> Error.throw (Illegal_Argument.Error "Directories do not have extensions.")
-        Enso_Asset_Type.Secret -> Error.throw (Illegal_Argument.Error "Secrets cannot be accessed directly.")
-        Enso_Asset_Type.Project -> ".enso"
-        _ ->
-            name = self.name
-            last_dot = name.locate "." mode=Matching_Mode.Last
-            if last_dot.is_nothing then "" else
-                extension = name.drop (Index_Sub_Range.First last_dot.start)
-                if extension == "." then "" else extension
+    extension self -> Text =
+        find_extension_from_name self.name
 
     ## GROUP Input
        ICON data_input
@@ -293,8 +296,8 @@ type Enso_File
     create_directory : Text -> Enso_File
     create_directory self (name : Text) = if self.is_directory.not then Error.throw (Illegal_Argument.Error "Only directories can contain subdirectories.") else
         name_field = [["title", name]]
-        parent_field = if self.id == "" then [] else [["parentId", self.id]]
-        body = JS_Object.from_pairs (name_field + parent_field)
+        parent_id = Existing_Enso_Asset.get_asset_reference_for self . id
+        body = JS_Object.from_pairs [["title", name], ["parentId", [parent_id]]]
         response = Utils.http_request_as_json HTTP_Method.Post Utils.directory_api body
         response.into Enso_File
 
@@ -302,8 +305,9 @@ type Enso_File
        GROUP Output
        Deletes the file or directory.
     delete : Nothing
-    delete self = if self.id == "" then Error.throw (Illegal_Argument.Error "The root directory cannot be deleted.") else
-        uri = URI.from (asset_uri self) . add_query_argument "force" "true"
+    delete self = if self.enso_path.is_root then Error.throw (Illegal_Argument.Error "The root directory cannot be deleted.") else
+        asset = Existing_Enso_Asset.get_asset_reference_for self
+        uri = URI.from asset.asset_uri . add_query_argument "force" "true"
         response = Utils.http_request HTTP_Method.Delete uri
         response.if_not_error Nothing
 
@@ -355,18 +359,8 @@ type Enso_File
         "Enso_File "+self.path.to_text
 
 ## PRIVATE
-list_assets parent = if parent.asset_type != Enso_Asset_Type.Directory then Error.throw (Illegal_Argument.Error "Only directories can be listed.") else
-     response = Utils.http_request_as_json HTTP_Method.Get parent.internal_uri
-     assets = get_required_field "assets" response
-     assets.map t-> t.into Enso_File
-
-## PRIVATE
-Enso_File.from (that:JS_Object) = if ["title", "id", "parentId"].any (k-> that.contains_key k . not) then Error.throw (Illegal_Argument.Error "Invalid JSON for an Enso_File.") else
-    name = that.get "title"
-    id = that.get "id"
-    org = that.get "organizationId" ""
-    asset_type = (id.take (Text_Sub_Range.Before "-")):Enso_Asset_Type
-    Enso_File.Value name id org asset_type
+list_assets (parent : Enso_File) =
+    Existing_Enso_Asset.get_asset_reference_for parent
 
 type Enso_Asset_Type
     ## Represents an Enso project.
@@ -404,4 +398,4 @@ File_Format_Metadata.from (that:Enso_File) =
             File_Format_Metadata.Value path=path name=that.name extension=(that.extension.catch _->Nothing)
         Enso_Asset_Type.File ->
             File_Format_Metadata.Value path=path name=that.name extension=(that.extension.catch _->Nothing)
-        _ -> Error.throw (Illegal_Argument.Error "`File_Format_Metadata` is not available for: "+self.asset_type.to_text+".")
+        other_asset_type -> Error.throw (Illegal_Argument.Error "`File_Format_Metadata` is not available for: "+other_asset_type.to_text+".")

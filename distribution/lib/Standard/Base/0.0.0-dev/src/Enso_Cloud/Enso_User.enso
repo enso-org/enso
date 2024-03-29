@@ -20,9 +20,9 @@ type Enso_User
        - name: The user's name.
        - email: The user's email address.
        - id: The user's unique ID.
-       - home: The user's home directory.
        - is_enabled: Whether the user is enabled.
-    User name:Text email:Text id:Text home:Enso_File is_enabled:Boolean=True
+       - root_directory_id: The ID of the user's root directory.
+    User name:Text email:Text id:Text is_enabled:Boolean root_directory_id:Text
 
     ## ICON people
        Fetch the current user.
@@ -47,17 +47,16 @@ type Enso_User
 
     ## PRIVATE
        The user's organization name. Paths to Cloud assets start with this name.
-    organization_name -> Text =
+    organization_name self -> Text =
         # TODO use https://github.com/enso-org/cloud-v2/pull/1140 to get the org name
         org_name = Nothing
         org_name.if_nothing self.name
 
 ## PRIVATE
 Enso_User.from (that:JS_Object) =
-    root_folder_id = get_required_field "rootDirectoryId" that expected_type=Text
-    root_folder = Enso_File.Value "" root_folder_id "" Enso_Asset_Type.Directory
+    root_directory_id = get_required_field "rootDirectoryId" that expected_type=Text
     is_enabled = get_optional_field "isEnabled" that if_missing=True expected_type=Boolean
     name = get_required_field "name" that expected_type=Text
     email = get_required_field "email" that expected_type=Text
     id = get_required_field "id" that expected_type=Text
-    Enso_User.User name email id root_folder is_enabled
+    Enso_User.User name email id root_folder is_enabled root_directory_id
