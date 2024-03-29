@@ -22,7 +22,9 @@ type Enso_User
        - id: The user's unique ID.
        - is_enabled: Whether the user is enabled.
        - root_directory_id: The ID of the user's root directory.
-    User name:Text email:Text id:Text is_enabled:Boolean root_directory_id:Text
+       - organization_name: The name of the organization the user belongs to.
+         If it is missing, it is set to the user's name.
+    User name:Text email:Text id:Text is_enabled:Boolean root_directory_id:Text organization_name:Text
 
     ## ICON people
        Fetch the current user.
@@ -45,18 +47,15 @@ type Enso_User
     flush_caches : Nothing
     flush_caches = Utils.flush_caches
 
-    ## PRIVATE
-       The user's organization name. Paths to Cloud assets start with this name.
-    organization_name self -> Text =
-        # TODO use https://github.com/enso-org/cloud-v2/pull/1140 to get the org name
-        org_name = Nothing
-        org_name.if_nothing self.name
-
 ## PRIVATE
 Enso_User.from (that:JS_Object) =
-    root_directory_id = get_required_field "rootDirectoryId" that expected_type=Text
-    is_enabled = get_optional_field "isEnabled" that if_missing=True expected_type=Boolean
+    id = get_required_field "userId" that expected_type=Text
     name = get_required_field "name" that expected_type=Text
     email = get_required_field "email" that expected_type=Text
-    id = get_required_field "id" that expected_type=Text
-    Enso_User.User name email id is_enabled root_directory_id
+    # Organization id is currently not being used
+    # organization_id = get_required_field "organizationId" that expected_type=Text
+    organization_name = get_required_field "organizationName" that expected_type=Text
+    effective_organization_name = if organization_name == "" then name else organization_name
+    is_enabled = get_optional_field "isEnabled" that if_missing=True expected_type=Boolean
+    root_directory_id = get_required_field "rootDirectoryId" that expected_type=Text
+    Enso_User.User name email id is_enabled root_directory_id effective_organization_name
