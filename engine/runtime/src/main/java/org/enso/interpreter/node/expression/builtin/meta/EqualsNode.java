@@ -22,6 +22,7 @@ import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.error.PanicException;
+import org.enso.interpreter.runtime.library.dispatch.TypeOfNode;
 import org.enso.interpreter.runtime.scope.ModuleScope;
 import org.enso.interpreter.runtime.state.State;
 
@@ -65,7 +66,7 @@ public final class EqualsNode extends Node {
 
   @NeverDefault
   public static EqualsNode create() {
-    return new EqualsNode(EqualsSimpleNode.build(), TypeOfNode.build(), false);
+    return new EqualsNode(EqualsSimpleNode.build(), TypeOfNode.create(), false);
   }
 
   @NeverDefault
