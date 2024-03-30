@@ -12,7 +12,7 @@ from project.Data.Boolean import Boolean, False, True
 from project.Data.Numbers import Float, Integer, Number, Number_Parse_Error
 from project.Data.Numeric.Internal.Decimal_Internal import Decimal_Comparator
 from project.Data.Ordering import Comparable, Ordering
-from project.Errors.Common import Arithmetic_Error, Loss_Of_Numeric_Precision, Unsupported_Argument_Types
+from project.Errors.Common import Arithmetic_Error, Loss_Of_Numeric_Precision, Out_Of_Range, Unsupported_Argument_Types
 
 polyglot java import java.lang.ArithmeticException
 polyglot java import java.lang.NumberFormatException
@@ -651,6 +651,57 @@ type Decimal
     negate : Decimal
     negate self = Decimal.Value self.big_decimal.negate
 
+    ## GROUP CONVERSIONS
+       Convert this to an `Integer`.
+
+       Conversion to `Integer` uses truncation: the fractional portion is
+       dropped.
+
+       > Example
+         Convert `Decimal` 2345.6 to an `Integer`.
+             d = Decimal.new "2345.6"
+             d.to_integer
+             # => 2345
+    to_integer : Integer
+    to_integer self = self.big_decimal.toBigInteger
+
+    ## GROUP CONVERSIONS
+       Convert this to a `Float`.
+
+       ? Precision Loss
+
+         While any `Float` can be precisely represented by a `Decimal`, not
+         every `Decimal` can be accurange represented by a `Float`, so this
+         conversion can lose precision. For this reason, converting a
+         `Decimal` to a `Float` always attaches a `Loss_Of_Numeric_Precision`
+         warning to the result.
+
+       ? Representable Values
+
+         If the `Decimal` is outside the representable range of `Float` (which
+         is `(-Double.MAX_VALUE, Double.MAX_VALUE)`, inclusive), `+/-Inf` is
+         returned, and an `Out_Of_Range` warning is attached.
+
+       ! Error Conditions
+
+         - If the `Decimal` is outside the representable range of `Float` (which
+           is `(-Double.MAX_VALUE, Double.MAX_VALUE)`, inclusive), `+/-Inf` is
+           returned, and an `Out_Of_Range` warning is attached.
+         - If the conversion results in a loss of precision, a
+           `Loss_Of_Numeric_Precision` warning is attached.
+
+       > Example
+         Convert `Decimal` 23.45 to a `Float`.
+
+             d = Decimal.new "23.45"
+             d.to_float
+             # => 23.45
+    to_float : Integer
+    to_float self =
+        f = self.big_decimal.doubleValue
+        if f.is_infinite then Warning.attach (Out_Of_Range.Error self) f else
+            attach_loss_of_numeric_precision self f
+
     ## PRIVATE
     precision : Integer
     precision self = self.big_decimal.precision
@@ -690,8 +741,8 @@ handle_precision_loss original_value conversion_result:ConversionResult -> Any =
 
 ## PRIVATE
 attach_loss_of_numeric_precision : Float -> Any -> Any
-attach_loss_of_numeric_precision f value =
-    Warning.attach (Loss_Of_Numeric_Precision.Warning f f) value
+attach_loss_of_numeric_precision x value =
+    Warning.attach (Loss_Of_Numeric_Precision.Warning x value) value
 
 ## PRIVATE
 handle_java_exception ~action =
@@ -704,13 +755,15 @@ handle_unsupported_argument_types ~action =
         Error.throw (Arithmetic_Error.Error "Exponent out of range 0..999999999 (inclusive)")
 
 ## PRIVATE
+
 Comparable.from (_ : Decimal) = Decimal_Comparator
 
-## PRIVATE
 Comparable.from (_ : Number) = Decimal_Comparator
 
-## PRIVATE
 Decimal.from (that : Text) = Decimal.parse that
 
-## PRIVATE
 Decimal.from (that : Number) = Decimal.new that
+
+Integer.from (that : Decimal) = that.to_integer
+
+Float.from (that : Decimal) = that.to_float

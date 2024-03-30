@@ -642,6 +642,8 @@
   types][9533]
 - [Data Link for `Enso_File`.][9525]
 - [Added `pow`, `remainder`, and `div` to `Decimal`.][9566]
+- [Implemented `.to_integer`, `.to_float`, and `from` conversions for
+  `Decimal`][9462]
 
 [debug-shortcuts]:
   https://github.com/enso-org/enso/blob/develop/app/gui/docs/product/shortcuts.md#debug
@@ -932,6 +934,7 @@
 [9343]: https://github.com/enso-org/enso/pull/9343
 [9406]: https://github.com/enso-org/enso/pull/9406
 [9435]: https://github.com/enso-org/enso/pull/9435
+[9462]: https://github.com/enso-org/enso/pull/9462
 [9533]: https://github.com/enso-org/enso/pull/9533
 [9525]: https://github.com/enso-org/enso/pull/9525
 [9566]: https://github.com/enso-org/enso/pull/9566

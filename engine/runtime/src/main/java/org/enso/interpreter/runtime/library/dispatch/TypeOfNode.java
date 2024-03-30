@@ -1,17 +1,17 @@
-package org.enso.interpreter.node.expression.builtin.meta;
+package org.enso.interpreter.runtime.library.dispatch;
 
 import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.dsl.Cached.Shared;
 import com.oracle.truffle.api.dsl.Fallback;
 import com.oracle.truffle.api.dsl.GenerateUncached;
+import com.oracle.truffle.api.dsl.NeverDefault;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.nodes.Node;
-import org.enso.interpreter.dsl.AcceptsError;
-import org.enso.interpreter.dsl.BuiltinMethod;
+import org.enso.interpreter.node.expression.builtin.meta.AtomWithAHoleNode;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.builtin.Builtins;
 import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
@@ -21,23 +21,20 @@ import org.enso.interpreter.runtime.error.DataflowError;
 import org.enso.interpreter.runtime.error.PanicException;
 import org.enso.interpreter.runtime.error.PanicSentinel;
 import org.enso.interpreter.runtime.error.WithWarnings;
-import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
 import org.enso.interpreter.runtime.number.EnsoBigInteger;
 
-@BuiltinMethod(
-    type = "Meta",
-    name = "type_of",
-    description = "Returns the type of a value.",
-    autoRegister = false)
 @GenerateUncached
 public abstract class TypeOfNode extends Node {
+  TypeOfNode() {}
 
-  public abstract Object execute(@AcceptsError Object value);
+  public abstract Object execute(Object value);
 
-  public static TypeOfNode build() {
+  @NeverDefault
+  public static TypeOfNode create() {
     return TypeOfNodeGen.create();
   }
 
+  @NeverDefault
   public static TypeOfNode getUncached() {
     return TypeOfNodeGen.getUncached();
   }
