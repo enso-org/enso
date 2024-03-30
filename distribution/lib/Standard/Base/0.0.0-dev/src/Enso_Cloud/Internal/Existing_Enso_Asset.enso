@@ -48,9 +48,10 @@ type Existing_Enso_Asset
     ## PRIVATE
     name self -> Text =
         added_extension = case self.asset_type of
-            Enso_Asset_Type.Data_Link -> ".datalink"
-            Enso_Asset_Type.Secret -> ".secret"
-            Enso_Asset_Type.Project -> ".enso"
+            # TODO enable when using new path resolver that should support these
+            #Enso_Asset_Type.Data_Link -> ".datalink"
+            #Enso_Asset_Type.Secret -> ".secret"
+            #Enso_Asset_Type.Project -> ".enso"
             _ -> ""
         self.title + added_extension
 
