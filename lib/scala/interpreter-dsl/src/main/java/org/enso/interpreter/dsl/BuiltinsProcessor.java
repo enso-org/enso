@@ -11,12 +11,23 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.IntStream;
-import javax.annotation.processing.*;
+import javax.annotation.processing.AbstractProcessor;
+import javax.annotation.processing.Processor;
+import javax.annotation.processing.RoundEnvironment;
+import javax.annotation.processing.SupportedAnnotationTypes;
 import javax.lang.model.SourceVersion;
-import javax.lang.model.element.*;
+import javax.lang.model.element.Element;
+import javax.lang.model.element.ElementKind;
+import javax.lang.model.element.ExecutableElement;
+import javax.lang.model.element.PackageElement;
+import javax.lang.model.element.TypeElement;
 import javax.tools.Diagnostic;
+import javax.tools.Diagnostic.Kind;
 import javax.tools.JavaFileObject;
-import org.enso.interpreter.dsl.builtins.*;
+import org.enso.interpreter.dsl.builtins.ClassName;
+import org.enso.interpreter.dsl.builtins.MethodNodeClassGenerator;
+import org.enso.interpreter.dsl.builtins.NoSpecializationClassGenerator;
+import org.enso.interpreter.dsl.builtins.SpecializationClassGenerator;
 import org.openide.util.lookup.ServiceProvider;
 
 /**
@@ -165,6 +176,33 @@ public class BuiltinsProcessor extends AbstractProcessor {
       Builtin.Method annotation = element.getAnnotation(Builtin.Method.class);
       Boolean needsFrame = checkNeedsFrame(element);
       boolean isConstructor = method.getKind() == ElementKind.CONSTRUCTOR;
+
+      var type = method.getReturnType();
+      switch (type.getKind()) {
+        case BOOLEAN, LONG, DOUBLE -> {}
+        case VOID -> {}
+        case DECLARED -> {
+          var truffleObject =
+              processingEnv
+                  .getElementUtils()
+                  .getTypeElement("com.oracle.truffle.api.interop.TruffleObject");
+          var isSubclass =
+              processingEnv
+                  .getTypeUtils()
+                  .isSubtype(method.getReturnType(), truffleObject.asType());
+          if (!isSubclass) {
+            processingEnv
+                .getMessager()
+                .printMessage(
+                    Kind.WARNING, "Suspicious return type: " + method.getReturnType(), method);
+          }
+        }
+        default -> {
+          processingEnv
+              .getMessager()
+              .printMessage(Kind.WARNING, "Unexpected return type " + type, method);
+        }
+      }
 
       if (annotation.expandVarargs() != 0) {
         if (annotation.expandVarargs() < 0)
