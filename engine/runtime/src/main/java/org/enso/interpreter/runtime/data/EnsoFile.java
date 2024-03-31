@@ -25,6 +25,7 @@ import java.util.Set;
 import java.util.function.IntFunction;
 import org.enso.interpreter.dsl.Builtin;
 import org.enso.interpreter.runtime.EnsoContext;
+import org.enso.interpreter.runtime.data.text.Text;
 import org.enso.interpreter.runtime.data.vector.ArrayLikeHelpers;
 import org.enso.interpreter.runtime.error.PanicException;
 import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
@@ -174,8 +175,8 @@ public final class EnsoFile implements EnsoObject {
 
   @Builtin.Method(name = "path")
   @CompilerDirectives.TruffleBoundary
-  public String getPath() {
-    return this.truffleFile.getPath();
+  public Text getPath() {
+    return Text.create(this.truffleFile.getPath());
   }
 
   @Builtin.Method
@@ -228,9 +229,9 @@ public final class EnsoFile implements EnsoObject {
 
   @Builtin.Method(name = "name")
   @CompilerDirectives.TruffleBoundary
-  public String getName() {
+  public Text getName() {
     var name = this.truffleFile.getName();
-    return name == null ? "/" : name;
+    return Text.create(name == null ? "/" : name);
   }
 
   @Builtin.Method(name = "size_builtin")
