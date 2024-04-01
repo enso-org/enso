@@ -131,7 +131,7 @@ export class GraphDb {
     private suggestionDb: SuggestionDb,
     private groups: Ref<Group[]>,
     private valuesRegistry: ComputedValueRegistry,
-  ) { }
+  ) {}
 
   private nodeIdToPatternExprIds = new ReactiveIndex(this.nodeIdToNode, (id, entry) => {
     const exprs: AstId[] = []
