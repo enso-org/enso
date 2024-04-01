@@ -179,14 +179,10 @@ public class BuiltinsProcessor extends AbstractProcessor {
       boolean isConstructor = method.getKind() == ElementKind.CONSTRUCTOR;
 
       if (!TypeWithKind.isValidGuestType(processingEnv, method.getReturnType())) {
-        var objectType =
-            processingEnv.getElementUtils().getTypeElement("java.lang.Object").asType();
-        if (!processingEnv.getTypeUtils().isSameType(objectType, method.getReturnType())) {
-          processingEnv
-              .getMessager()
-              .printMessage(
-                  Kind.WARNING, "Suspicious return type: " + method.getReturnType(), method);
-        }
+        processingEnv
+            .getMessager()
+            .printMessage(
+                Kind.WARNING, "Suspicious return type: " + method.getReturnType(), method);
       }
 
       if (annotation.expandVarargs() != 0) {
