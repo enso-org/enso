@@ -90,7 +90,7 @@ public abstract class MethodGenerator {
     else {
       switch (tpe.kind()) {
         case OBJECT:
-          if (tpe.isValidGuestType()) {
+          if (tpe.isValidGuestType(processingEnvironment)) {
             return tpe.baseType();
           } else {
             if (!convertToGuestValue) {
@@ -123,7 +123,7 @@ public abstract class MethodGenerator {
     String ensoName =
         CaseFormat.LOWER_CAMEL.to(CaseFormat.LOWER_UNDERSCORE, v.getSimpleName().toString());
     TypeWithKind tpe = TypeWithKind.createFromTpe(v.asType().toString());
-    if (tpe.kind() == TypeKind.ARRAY && !tpe.isValidGuestType()) {
+    if (tpe.kind() == TypeKind.ARRAY && !tpe.isValidGuestType(processingEnvironment)) {
       processingEnv
           .getMessager()
           .printMessage(

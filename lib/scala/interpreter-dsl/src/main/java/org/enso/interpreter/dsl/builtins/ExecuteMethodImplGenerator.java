@@ -62,7 +62,7 @@ public final class ExecuteMethodImplGenerator extends MethodGenerator {
   }
 
   private String[] auxToHostConversions(MethodParameter param) {
-    if (param.needsToHostTranslation()) {
+    if (param.needsToHostTranslation(processingEnvironment)) {
       TypeWithKind tpeWithKind = TypeWithKind.createFromTpe(param.tpe());
       String hostParam = param.hostVarName();
       String tmpObject = "itemsOf" + param.capitalizedName();
@@ -100,7 +100,10 @@ public final class ExecuteMethodImplGenerator extends MethodGenerator {
       paramsApplied =
           StringUtils.join(
               params.stream()
-                  .flatMap(x -> x.paramUseNames(expandVararg(paramsLen, x.index())))
+                  .flatMap(
+                      x ->
+                          x.paramUseNames(
+                              processingEnvironment, expandVararg(paramsLen, x.index())))
                   .toArray(),
               ", ");
     }
@@ -125,7 +128,7 @@ public final class ExecuteMethodImplGenerator extends MethodGenerator {
                 + "));"
           };
         default:
-          if (returnTpe.isValidGuestType()) {
+          if (returnTpe.isValidGuestType(processingEnvironment)) {
             return new String[] {"  return " + qual + "." + name + "(" + paramsApplied + ");"};
           } else {
             if (!convertToGuestValue) {
@@ -150,12 +153,12 @@ public final class ExecuteMethodImplGenerator extends MethodGenerator {
     boolean result = false;
     // Does the return value need to be translated to a guest value?
     if (!isConstructor && (returnTpe.kind() == TypeKind.OBJECT)) {
-      if (!returnTpe.isValidGuestType()) {
+      if (!returnTpe.isValidGuestType(processingEnvironment)) {
         result = true;
       }
     }
     // Do any of params need to be translated to a host object?
-    return result || params.stream().anyMatch(p -> p.needsToHostTranslation());
+    return result || params.stream().anyMatch(p -> p.needsToHostTranslation(processingEnvironment));
   }
 
   public List<String> generate(String name, String owner) {

@@ -28,6 +28,7 @@ import org.enso.interpreter.dsl.builtins.ClassName;
 import org.enso.interpreter.dsl.builtins.MethodNodeClassGenerator;
 import org.enso.interpreter.dsl.builtins.NoSpecializationClassGenerator;
 import org.enso.interpreter.dsl.builtins.SpecializationClassGenerator;
+import org.enso.interpreter.dsl.builtins.TypeWithKind;
 import org.openide.util.lookup.ServiceProvider;
 
 /**
@@ -177,31 +178,11 @@ public class BuiltinsProcessor extends AbstractProcessor {
       Boolean needsFrame = checkNeedsFrame(element);
       boolean isConstructor = method.getKind() == ElementKind.CONSTRUCTOR;
 
-      var type = method.getReturnType();
-      switch (type.getKind()) {
-        case BOOLEAN, LONG, DOUBLE -> {}
-        case VOID -> {}
-        case DECLARED -> {
-          var truffleObject =
-              processingEnv
-                  .getElementUtils()
-                  .getTypeElement("com.oracle.truffle.api.interop.TruffleObject");
-          var isSubclass =
-              processingEnv
-                  .getTypeUtils()
-                  .isSubtype(method.getReturnType(), truffleObject.asType());
-          if (!isSubclass) {
-            processingEnv
-                .getMessager()
-                .printMessage(
-                    Kind.WARNING, "Suspicious return type: " + method.getReturnType(), method);
-          }
-        }
-        default -> {
-          processingEnv
-              .getMessager()
-              .printMessage(Kind.WARNING, "Unexpected return type " + type, method);
-        }
+      if (!TypeWithKind.isValidGuestType(processingEnv, method.getReturnType())) {
+        processingEnv
+            .getMessager()
+            .printMessage(
+                Kind.WARNING, "Suspicious return type: " + method.getReturnType(), method);
       }
 
       if (annotation.expandVarargs() != 0) {

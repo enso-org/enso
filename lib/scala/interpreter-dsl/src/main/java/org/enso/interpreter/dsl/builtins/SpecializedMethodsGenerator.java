@@ -288,7 +288,7 @@ public final class SpecializedMethodsGenerator extends MethodGenerator {
                   + "));");
           break;
         default:
-          if (returnTpe.isValidGuestType()) {
+          if (returnTpe.isValidGuestType(processingEnvironment)) {
             methodBody.add("  return " + qual + "." + name + "(" + paramsApplied + ");");
           } else if (convertToGuestValue) {
             methodBody.add("  var result = " + qual + "." + name + "(" + paramsApplied + ");");
