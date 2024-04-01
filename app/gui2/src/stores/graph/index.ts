@@ -33,7 +33,12 @@ import { iteratorFilter } from 'lib0/iterator'
 import { defineStore } from 'pinia'
 import { SourceDocument } from 'shared/ast/sourceDocument'
 import type { ExpressionUpdate, StackItem } from 'shared/languageServerTypes'
-import type { LocalOrigin, SourceRangeKey, VisualizationMetadata } from 'shared/yjsModel'
+import type {
+  LocalUserActionOrigin,
+  Origin,
+  SourceRangeKey,
+  VisualizationMetadata,
+} from 'shared/yjsModel'
 import { defaultLocalOrigin, sourceRangeKey, visMetadataEquals } from 'shared/yjsModel'
 import {
   computed,
@@ -134,8 +139,13 @@ export const useGraphStore = defineStore('graph', () => {
       id: AstId
       changes: NodeMetadata
     }[]
-    const dirtyNodeSet = new Set(update.nodesUpdated)
-    if (moduleChanged || dirtyNodeSet.size !== 0) {
+    const dirtyNodeSet = new Set(
+      (function* () {
+        yield* update.nodesUpdated
+        yield* update.nodesAdded
+      })(),
+    )
+    if (moduleChanged || dirtyNodeSet.size !== 0 || update.nodesDeleted.size !== 0) {
       db.updateExternalIds(root)
       toRaw = new Map()
       visitRecursive(Ast.parseEnso(moduleSource.text), (node) => {
@@ -459,7 +469,7 @@ export const useGraphStore = defineStore('graph', () => {
         )
         nodeRects.set(nodeId, new Rect(position, rect.size))
       }
-    })
+    }, 'local:autoLayout')
   })
 
   function updateVizRect(id: NodeId, rect: Rect | undefined) {
@@ -542,7 +552,7 @@ export const useGraphStore = defineStore('graph', () => {
   function commitEdit(
     edit: MutableModule,
     skipTreeRepair?: boolean,
-    origin: LocalOrigin = defaultLocalOrigin,
+    origin: LocalUserActionOrigin = defaultLocalOrigin,
   ) {
     const root = edit.root()
     if (!(root instanceof Ast.BodyBlock)) {
@@ -578,9 +588,9 @@ export const useGraphStore = defineStore('graph', () => {
     return result!
   }
 
-  function batchEdits(f: () => void) {
+  function batchEdits(f: () => void, origin: Origin = defaultLocalOrigin) {
     assert(syncModule.value != null)
-    syncModule.value.transact(f, 'local')
+    syncModule.value.transact(f, origin)
   }
 
   function editNodeMetadata(ast: Ast.Ast, f: (metadata: Ast.MutableNodeMetadata) => void) {

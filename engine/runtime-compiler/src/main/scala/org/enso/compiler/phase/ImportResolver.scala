@@ -3,21 +3,9 @@ package org.enso.compiler.phase
 import org.enso.compiler.Compiler
 import org.enso.compiler.context.CompilerContext.Module
 import org.enso.compiler.core.Implicits.AsMetadata
-import org.enso.compiler.core.ir.{Module => IRModule}
-import org.enso.compiler.core.ir.Name
-import org.enso.compiler.core.ir.expression.errors
 import org.enso.compiler.core.ir.module.scope.Import
-import org.enso.compiler.core.ir.module.scope.Export
 import org.enso.compiler.data.BindingsMap
-import org.enso.compiler.data.BindingsMap.{
-  ModuleReference,
-  ResolvedModule,
-  ResolvedType,
-  Type
-}
-import org.enso.compiler.core.CompilerError
 import org.enso.compiler.pass.analyse.BindingAnalysis
-import org.enso.editions.LibraryName
 import org.enso.polyglot.CompilationStage
 import scala.collection.mutable
 import java.io.IOException
@@ -32,8 +20,7 @@ import java.io.IOException
   *
   * @param compiler the compiler instance for the compiling context.
   */
-class ImportResolver(compiler: Compiler) {
-  import ImportResolver._
+final class ImportResolver(compiler: Compiler) extends ImportResolverForIR {
 
   /** Runs the import mapping logic.
     *
@@ -162,183 +149,6 @@ class ImportResolver(compiler: Compiler) {
     go(mutable.Stack(module), mutable.Set(), mutable.Set())
   }
 
-  private def tryResolveAsType(
-    name: Name.Qualified
-  ): Option[ResolvedType] = {
-    val tp  = name.parts.last.name
-    val mod = name.parts.dropRight(1).map(_.name).mkString(".")
-    compiler.getModule(mod).flatMap { mod =>
-      compiler.ensureParsed(mod)
-      var b = mod.getBindingsMap()
-      if (b == null) {
-        compiler.context.updateModule(
-          mod,
-          { u =>
-            u.invalidateCache()
-            u.ir(null)
-            u.compilationStage(CompilationStage.INITIAL)
-          }
-        )
-        compiler.ensureParsed(mod, false)
-        b = mod.getBindingsMap()
-      }
+  private[phase] def getCompiler(): Compiler = compiler
 
-      b.definedEntities
-        .find(_.name == tp)
-        .collect { case t: Type =>
-          ResolvedType(ModuleReference.Concrete(mod), t)
-        }
-    }
-  }
-
-  private def tryResolveImport(
-    module: IRModule,
-    imp: Import.Module
-  ): (Import, Option[BindingsMap.ResolvedImport]) = {
-    val impName = imp.name.name
-    val exp = module.exports
-      .collect { case ex: Export.Module if ex.name.name == impName => ex }
-    val fromAllExports = exp.filter(_.isAll)
-    fromAllExports match {
-      case _ :: _ :: _ =>
-        // Detect potential conflicts when importing all and hiding names for the exports of the same module
-        val unqualifiedImports = fromAllExports.collect {
-          case e if e.onlyNames.isEmpty => e
-        }
-        val qualifiedImports = fromAllExports.collect {
-          case Export.Module(
-                _,
-                _,
-                _,
-                Some(onlyNames),
-                _,
-                _,
-                _,
-                _,
-                _
-              ) =>
-            onlyNames.map(_.name)
-        }
-        val importsWithHiddenNames = fromAllExports.collect {
-          case e @ Export.Module(
-                _,
-                _,
-                _,
-                _,
-                Some(hiddenNames),
-                _,
-                _,
-                _,
-                _
-              ) =>
-            (e, hiddenNames)
-        }
-        importsWithHiddenNames.foreach { case (e, hidden) =>
-          val unqualifiedConflicts = unqualifiedImports.filter(_ != e)
-          if (unqualifiedConflicts.nonEmpty) {
-            throw HiddenNamesShadowUnqualifiedExport(
-              e.name.name,
-              hidden.map(_.name)
-            )
-          }
-
-          val qualifiedConflicts =
-            qualifiedImports
-              .filter(_ != e)
-              .flatten
-              .intersect(hidden.map(_.name))
-          if (qualifiedConflicts.nonEmpty) {
-            throw HiddenNamesShadowQualifiedExport(
-              e.name.name,
-              qualifiedConflicts
-            )
-          }
-        }
-      case _ =>
-    }
-    val libraryName = imp.name.parts match {
-      case namespace :: name :: _ =>
-        LibraryName(namespace.name, name.name)
-      case _ =>
-        throw new CompilerError(
-          "Imports should contain at least two segments after " +
-          "desugaring."
-        )
-    }
-    compiler.packageRepository
-      .ensurePackageIsLoaded(libraryName) match {
-      case Right(()) =>
-        compiler.getModule(impName) match {
-          case Some(module) =>
-            (
-              imp,
-              Some(
-                BindingsMap.ResolvedImport(
-                  imp,
-                  exp,
-                  ResolvedModule(ModuleReference.Concrete(module))
-                )
-              )
-            )
-          case None =>
-            tryResolveAsType(imp.name) match {
-              case Some(tp) =>
-                (imp, Some(BindingsMap.ResolvedImport(imp, exp, tp)))
-              case None =>
-                (
-                  errors.ImportExport(
-                    imp,
-                    errors.ImportExport.ModuleDoesNotExist(impName)
-                  ),
-                  None
-                )
-            }
-        }
-      case Left(loadingError) =>
-        (
-          errors.ImportExport(
-            imp,
-            errors.ImportExport.PackageCouldNotBeLoaded(
-              impName,
-              loadingError.toString
-            )
-          ),
-          None
-        )
-    }
-  }
-}
-
-object ImportResolver {
-  trait HiddenNamesConflict {
-    def getMessage(): String
-  }
-
-  private case class HiddenNamesShadowUnqualifiedExport(
-    name: String,
-    hiddenNames: List[String]
-  ) extends Exception(
-        s"""Hidden '${hiddenNames.mkString(",")}' name${if (
-          hiddenNames.size == 1
-        ) ""
-        else
-          "s"} of the export module ${name} conflict${if (hiddenNames.size == 1)
-          "s"
-        else
-          ""} with the unqualified export"""
-      )
-      with HiddenNamesConflict
-
-  private case class HiddenNamesShadowQualifiedExport(
-    name: String,
-    conflict: List[String]
-  ) extends Exception(
-        s"""Hidden '${conflict.mkString(",")}' name${if (conflict.size == 1) ""
-        else
-          "s"} of the exported module ${name} conflict${if (conflict.size == 1)
-          "s"
-        else
-          ""} with the qualified export"""
-      )
-      with HiddenNamesConflict
 }
