@@ -8,6 +8,7 @@ import java.util.ArrayList;
 import org.enso.interpreter.runtime.callable.UnresolvedConstructor;
 import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
 import org.enso.interpreter.runtime.error.DataflowError;
+import org.enso.interpreter.runtime.library.dispatch.TypeOfNode;
 import org.enso.interpreter.test.TestBase;
 import org.enso.interpreter.test.ValuesGenerator;
 import org.graalvm.polyglot.Context;
@@ -81,7 +82,7 @@ public class TypeOfNodeTest extends TestBase {
     executeInContext(
         ctx(),
         () -> {
-          var node = TypeOfNode.build();
+          var node = TypeOfNode.create();
           var root = new TestRootNode((frame) -> node.execute(frame.getArguments()[0]));
           root.insertChildren(node);
           var call = root.getCallTarget();
