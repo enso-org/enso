@@ -553,10 +553,10 @@ add_specs suite_builder =
             huge_a = Decimal.new "3.4E320"
             f = huge_a.to_float
             f.should_equal Number.positive_infinity
-            Problems.expect_only_warning Out_Of_Range f
+            Problems.expect_only_warning (Out_Of_Range.Error huge_a "Outside representable Float range") f
             f2 = (-huge_a).to_float
             f2.should_equal Number.negative_infinity
-            Problems.expect_only_warning Out_Of_Range f2
+            Problems.expect_only_warning (Out_Of_Range.Error -huge_a "Outside representable Float range") f2
 
         group_builder.specify "attaches a warning to the result of .to_float when it results in a loss of precision" <|
             Problems.expect_only_warning Loss_Of_Numeric_Precision (Decimal.new "0.1" . to_float)

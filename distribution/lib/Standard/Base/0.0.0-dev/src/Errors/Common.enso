@@ -498,7 +498,7 @@ type Loss_Of_Numeric_Precision
 ## Indicates that a computed or provided value is outside the allowable range.
 type Out_Of_Range
     ## PRIVATE
-    Error value
+    Error value message=Nothing
 
     ## PRIVATE
        Create a human-readable version of the error.
@@ -509,4 +509,5 @@ type Out_Of_Range
     ## PRIVATE
     to_text : Text
     to_text self =
-        "(Out_Of_Range (value = "+self.value.to_text+"))"
+        extra = if self.message.is_nothing then "" else ": "+self.message.to_text
+        "(Out_Of_Range (value = "+self.value.to_text+")" + extra + ")"

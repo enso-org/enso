@@ -699,8 +699,9 @@ type Decimal
     to_float : Integer
     to_float self =
         f = self.big_decimal.doubleValue
-        if f.is_infinite then Warning.attach (Out_Of_Range.Error self) f else
-            attach_loss_of_numeric_precision self f
+        if f.is_finite then attach_loss_of_numeric_precision self f else
+            message = "Outside representable Float range"
+            Warning.attach (Out_Of_Range.Error self message) f
 
     ## PRIVATE
     precision : Integer
