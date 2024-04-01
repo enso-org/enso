@@ -157,7 +157,7 @@ public final class EnsoFile implements EnsoObject {
 
   @Builtin.Method(name = "parent")
   @CompilerDirectives.TruffleBoundary
-  public Object getParent() {
+  public EnsoObject getParent() {
     var parentOrNull = this.truffleFile.getParent();
     if (parentOrNull != null) {
       return new EnsoFile(parentOrNull);
