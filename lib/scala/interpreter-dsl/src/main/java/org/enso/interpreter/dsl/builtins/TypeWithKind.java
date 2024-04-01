@@ -47,15 +47,17 @@ public record TypeWithKind(String baseType, TypeKind kind) {
     return switch (type.getKind()) {
       case BOOLEAN, LONG, DOUBLE -> true;
       case VOID -> true;
-      case DECLARED -> {
-        var truffleObject =
-            processingEnv
-                .getElementUtils()
-                .getTypeElement("com.oracle.truffle.api.interop.TruffleObject");
-        var isSubclass = processingEnv.getTypeUtils().isSubtype(type, truffleObject.asType());
-        yield isSubclass;
-      }
+      case DECLARED -> isTruffleObject(processingEnv, type);
       default -> false;
     };
+  }
+
+  static boolean isTruffleObject(ProcessingEnvironment processingEnv, TypeMirror type) {
+    var truffleObject =
+        processingEnv
+            .getElementUtils()
+            .getTypeElement("com.oracle.truffle.api.interop.TruffleObject");
+    var isSubclass = processingEnv.getTypeUtils().isSubtype(type, truffleObject.asType());
+    return isSubclass;
   }
 }
