@@ -178,11 +178,25 @@ public class BuiltinsProcessor extends AbstractProcessor {
       Boolean needsFrame = checkNeedsFrame(element);
       boolean isConstructor = method.getKind() == ElementKind.CONSTRUCTOR;
 
+      OK:
       if (!TypeWithKind.isValidGuestType(processingEnv, method.getReturnType())) {
+        if (method.getAnnotation(Builtin.ReturningGuestObject.class) != null) {
+          // guest objects can be of any type
+          break OK;
+        }
+        if (method.getAnnotation(SuppressWarnings.class) instanceof SuppressWarnings sw
+            && Arrays.asList(sw.value()).contains("generic-enso-builtin-type")) {
+          // assume the case was review
+          break OK;
+        }
         processingEnv
             .getMessager()
             .printMessage(
-                Kind.WARNING, "Suspicious return type: " + method.getReturnType(), method);
+                Kind.WARNING,
+                "Suspicious return type: "
+                    + method.getReturnType()
+                    + " use @SuppressWarnings(\"generic-enso-builtin-type\") if OK",
+                method);
       }
 
       if (annotation.expandVarargs() != 0) {
