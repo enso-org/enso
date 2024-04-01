@@ -180,11 +180,8 @@ const innerWidgetInput = computed<WidgetInput>(() => {
   }
 })
 const isMulti = computed(() => props.input.dynamicConfig?.kind === 'Multiple_Choice')
-const dropdownVisible = ref(false)
 const dropDownInteraction = WidgetEditHandler.New('WidgetSelection', props.input, {
-  cancel: () => {
-    dropdownVisible.value = false
-  },
+  cancel: () => {},
   pointerdown: (e, _) => {
     if (targetIsOutside(e, unrefElement(dropdownElement))) {
       dropDownInteraction.end()
@@ -193,16 +190,12 @@ const dropDownInteraction = WidgetEditHandler.New('WidgetSelection', props.input
     }
   },
   start: () => {
-    dropdownVisible.value = true
     editedWidget.value = undefined
     editedValue.value = undefined
   },
   edit: (origin, value) => {
     editedWidget.value = origin
     editedValue.value = value
-  },
-  end: () => {
-    dropdownVisible.value = false
   },
   addItem: () => {
     dropDownInteraction.start()
@@ -211,7 +204,7 @@ const dropDownInteraction = WidgetEditHandler.New('WidgetSelection', props.input
 })
 
 function toggleDropdownWidget() {
-  if (!dropdownVisible.value) dropDownInteraction.start()
+  if (!dropDownInteraction.active.value) dropDownInteraction.start()
   else dropDownInteraction.cancel()
 }
 
@@ -280,7 +273,7 @@ function expressionTagClicked(tag: ExpressionTag, previousState: boolean) {
 }
 
 let endClippingInhibition: (() => void) | undefined
-watch(dropdownVisible, (visible) => {
+watch(dropDownInteraction.active, (visible) => {
   if (visible) {
     const { unregister } = tree.inhibitClipping()
     endClippingInhibition = unregister
@@ -343,7 +336,7 @@ declare module '@/providers/widgetRegistry' {
     <NodeWidget :input="innerWidgetInput" />
     <SvgIcon v-if="isHovered" name="arrow_right_head_only" class="arrow" />
     <DropdownWidget
-      v-if="dropdownVisible"
+      v-if="dropDownInteraction.active.value"
       ref="dropdownElement"
       :color="'var(--node-color-primary)'"
       :entries="entries"

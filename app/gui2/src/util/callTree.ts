@@ -61,6 +61,10 @@ abstract class Argument {
   abstract get portId(): PortId
   abstract get value(): WidgetInputValue
 
+  get argId(): string | undefined {
+    return this.argInfo && `${this.callId}[${this.argInfo.name}]`
+  }
+
   get hideByDefault(): boolean {
     return false
   }
@@ -70,7 +74,7 @@ abstract class Argument {
       portId: this.portId,
       value: this.value,
       expectedType: this.argInfo?.reprType,
-      [ArgumentInfoKey]: { info: this.argInfo, appKind: this.kind },
+      [ArgumentInfoKey]: { info: this.argInfo, appKind: this.kind, argId: this.argId },
       dynamicConfig: this.dynamicConfig,
     }
   }
@@ -414,6 +418,7 @@ declare module '@/providers/widgetRegistry' {
     [ArgumentInfoKey]?: {
       appKind: ApplicationKind
       info: SuggestionEntryArgument | undefined
+      argId: string | undefined
     }
   }
 }
