@@ -73,6 +73,9 @@ pub const RELEASE_TARGETS: [(OS, Arch); 4] = [
     (OS::MacOS, Arch::AArch64),
 ];
 
+/// Targets for which we run PR checks.
+///
+/// The macOS AArch64 is intentionally omitted, as the runner availability is limited.
 pub const PR_CHECKED_TARGETS: [(OS, Arch); 3] =
     [(OS::Windows, Arch::X86_64), (OS::Linux, Arch::X86_64), (OS::MacOS, Arch::X86_64)];
 
@@ -515,10 +518,15 @@ fn add_release_steps(workflow: &mut Workflow) -> Result {
     Ok(())
 }
 
-pub fn add_backend_checks(workflow: &mut Workflow, target: Target, graal_flavor: graalvm::Edition) {
-    workflow.add(target, job::CiCheckBackend { graal_edition: graal_flavor });
-    workflow.add(target, job::ScalaTests { graal_edition: graal_flavor });
-    workflow.add(target, job::StandardLibraryTests { graal_edition: graal_flavor });
+/// Add jobs that perform backend checks ,including Scala and Standard Library tests.
+pub fn add_backend_checks(
+    workflow: &mut Workflow,
+    target: Target,
+    graal_edition: graalvm::Edition,
+) {
+    workflow.add(target, job::CiCheckBackend { graal_edition });
+    workflow.add(target, job::ScalaTests { graal_edition });
+    workflow.add(target, job::StandardLibraryTests { graal_edition });
 }
 
 pub fn workflow_call_job(name: impl Into<String>, path: impl Into<String>) -> Job {
@@ -589,6 +597,11 @@ pub fn promote() -> Result<Workflow> {
     Ok(workflow)
 }
 
+/// Trigger for a workflow that allows running it manually, on user request.
+///
+/// The workflow can be run either through the web interface or through the API.
+///
+/// The generated trigger will include an additional input, corresponding to the PR labels.
 pub fn manual_workflow_dispatch() -> WorkflowDispatch {
     let clean_build_input =
         WorkflowDispatchInput::new_boolean("Clean before and after the run.", false, false);
@@ -597,6 +610,7 @@ pub fn manual_workflow_dispatch() -> WorkflowDispatch {
     workflow_dispatch
 }
 
+/// The typical set of triggers for a CI workflow - it will be run on PRs and default branch pushes.
 pub fn typical_check_triggers() -> Event {
     Event {
         pull_request: Some(default()),
@@ -645,7 +659,6 @@ pub fn backend() -> Result<Workflow> {
 
 pub fn nightly_tests() -> Result<Workflow> {
     let on = Event {
-        pull_request: Some(default()),
         schedule: vec![Schedule::new("0 3 * * *")?],
         workflow_dispatch: Some(manual_workflow_dispatch()),
         ..default()
