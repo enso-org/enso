@@ -60,4 +60,8 @@ public record TypeWithKind(String baseType, TypeKind kind) {
     var isSubclass = processingEnv.getTypeUtils().isSubtype(type, truffleObject.asType());
     return isSubclass;
   }
+
+  boolean isObject() {
+    return "java.lang.Object".equals(baseType());
+  }
 }

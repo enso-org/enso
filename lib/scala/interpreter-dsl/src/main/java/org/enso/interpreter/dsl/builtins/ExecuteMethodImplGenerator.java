@@ -128,7 +128,7 @@ public final class ExecuteMethodImplGenerator extends MethodGenerator {
                 + "));"
           };
         default:
-          if (returnTpe.isValidGuestType(processingEnvironment)) {
+          if (returnTpe.isValidGuestType(processingEnvironment) || returnTpe.isObject()) {
             return new String[] {"  return " + qual + "." + name + "(" + paramsApplied + ");"};
           } else {
             if (!convertToGuestValue) {

@@ -293,6 +293,13 @@ public final class SpecializedMethodsGenerator extends MethodGenerator {
           } else if (convertToGuestValue) {
             methodBody.add("  var result = " + qual + "." + name + "(" + paramsApplied + ");");
             methodBody.add("  return EnsoContext.get(this).asGuestValue(result);");
+          } else if (returnTpe.isObject()) {
+            methodBody.add("  var result = " + qual + "." + name + "(" + paramsApplied + ");");
+            methodBody.add(
+                "  assert result instanceof Long || result instanceof Double || result instanceof"
+                    + " Boolean || result instanceof"
+                    + " com.oracle.truffle.api.interop.TruffleObject;");
+            methodBody.add("  return result;");
           } else {
             processingEnvironment
                 .getMessager()
