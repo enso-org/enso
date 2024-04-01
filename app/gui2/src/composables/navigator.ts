@@ -8,10 +8,14 @@ import { Vec2 } from '@/util/data/vec2'
 import { computed, proxyRefs, shallowRef, type Ref } from 'vue'
 
 type ScaleRange = readonly [number, number]
-const WHEEL_SCALE_RANGE: ScaleRange = [0.5, 10]
+const WHEEL_SCALE_RANGE: ScaleRange = [0.1, 10]
 const DRAG_SCALE_RANGE: ScaleRange = [0.1, 10]
 const PAN_AND_ZOOM_DEFAULT_SCALE_RANGE: ScaleRange = [0.1, 1]
 const ZOOM_STEP_DEFAULT_SCALE_RANGE: ScaleRange = [0.1, 10]
+const ZOOM_LEVELS = [
+  0.1, 0.25, 0.33, 0.5, 0.67, 0.75, 0.8, 0.9, 1.0, 1.25, 1.5, 1.75, 2.0, 2.5, 3.0, 4.0, 5.0,
+]
+const ZOOM_LEVELS_REVERSED = [...ZOOM_LEVELS].reverse()
 
 function elemRect(target: Element | undefined): Rect {
   if (target != null && target instanceof Element)
@@ -224,18 +228,21 @@ export function useNavigator(viewportNode: Ref<Element | undefined>, keyboard: K
     scale.value = directedClamp(oldValue, f(oldValue), range)
   }
 
-  function zoomStepToScaleFactor(step: number): number {
-    return Math.pow(2, step / 2)
-  }
-  function zoomStepFromScaleFactor(scale: number): number {
-    return Math.round(Math.log2(scale) * 2)
-  }
-
+  /** Step to the next level from {@link ZOOM_LEVELS}.
+   * @param zoomStepDelta step direction. If positive select larger zoom level; if negative  select smaller.
+   * If 0, resets zoom level to 1.0. */
   function stepZoom(zoomStepDelta: number, range: ScaleRange = ZOOM_STEP_DEFAULT_SCALE_RANGE) {
-    updateScale(
-      (oldValue) => zoomStepToScaleFactor(zoomStepFromScaleFactor(oldValue) + zoomStepDelta),
-      range,
-    )
+    updateScale((oldValue) => {
+      if (zoomStepDelta > 0) {
+        const lastZoomLevel = ZOOM_LEVELS[ZOOM_LEVELS.length - 1]!
+        return ZOOM_LEVELS.find((level) => level > oldValue) ?? lastZoomLevel
+      } else if (zoomStepDelta < 0) {
+        const firstZoomLevel = ZOOM_LEVELS[0]!
+        return ZOOM_LEVELS_REVERSED.find((level) => level < oldValue) ?? firstZoomLevel
+      } else {
+        return 1.0
+      }
+    }, range)
   }
 
   return proxyRefs({
