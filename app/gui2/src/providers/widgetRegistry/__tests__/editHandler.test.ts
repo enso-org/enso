@@ -74,9 +74,10 @@ test.each`
     editedHandler.handler.start()
     expect(widgetTree.currentEdit).toBe(editedHandler.handler)
     checkCallbackCall('start', edited)
-    for (const [id, { handler }] of handlers) {
-      expect(handler.isActive()).toBe(expectedPropagationSet.has(id))
-    }
+    const handlersActive = [...handlers]
+      .filter(([_id, { handler }]) => handler.isActive())
+      .map(([id]) => id)
+    expect(handlersActive.sort()).toEqual([...expectedPropagationSet].sort())
 
     editedHandler.handler.edit('13')
     checkCallbackCall('edit', edited, '13')
