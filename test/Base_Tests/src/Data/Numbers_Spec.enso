@@ -349,8 +349,7 @@ add_specs suite_builder =
             hundred_factorial%hundred_factorial . should_equal 0
             10%hundred_factorial . should_equal 10
 
-        # Pending https://github.com/enso-org/enso/issues/9553
-        group_builder.specify "should define modulo for negative integers and decimals" pending="large integer % is incorrect" <|
+        group_builder.specify "should define modulo for negative integers and decimals" <|
             -5%3 . should_equal -2
             -5%3 . should_be_a Integer
 
