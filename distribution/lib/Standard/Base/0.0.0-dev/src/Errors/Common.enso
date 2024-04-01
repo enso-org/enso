@@ -504,7 +504,8 @@ type Out_Of_Range
        Create a human-readable version of the error.
     to_display_text : Text
     to_display_text self =
-        "Value out of range: "+self.value.to_text
+        extra = if self.message.is_nothing then "" else ": "+self.message.to_text
+        "Value out of range: "+self.value.to_text+extra
 
     ## PRIVATE
     to_text : Text
