@@ -1,4 +1,5 @@
 import project.Any.Any
+import project.Data.Java_Json.Jackson_Object
 import project.Data.Json.JS_Object
 import project.Data.Numbers.Integer
 import project.Data.Ordering.Comparable
@@ -208,6 +209,23 @@ type Period
         if self.months==0 . not then b.append ["months", self.months]
         if self.days==0 . not then b.append ["days", self.days]
         JS_Object.from_pairs b.to_vector
+
+    ## PRIVATE
+       Convert to a Jackson Object representing a Period.
+
+       > Example
+         Convert a period of 10 months to a Jackson_Object.
+
+             example_to_json = (Period.new months=10).to_js_object
+    to_jackson_object : Jackson_Object
+    to_jackson_object self =
+        b = Vector.new_builder 7
+        b.append ["type", "Period"]
+        b.append ["constructor", "new"]
+        if self.years==0 . not then b.append ["years", self.years]
+        if self.months==0 . not then b.append ["months", self.months]
+        if self.days==0 . not then b.append ["days", self.days]
+        Jackson_Object.from_pairs b.to_vector
 
 ## PRIVATE
 catch_java_exceptions operation ~action =

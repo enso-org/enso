@@ -1,4 +1,5 @@
 import project.Any.Any
+import project.Data.Java_Json.Jackson_Object
 import project.Data.Json.JS_Object
 import project.Data.Text.Encoding.Encoding
 import project.Data.Text.Text
@@ -54,7 +55,7 @@ type Data_Link_Format
          before writing the config we try to parse it to ensure that it
          represents a valid data-link. In some cases (e.g. testing), we may want
          to skip that.
-    write_config (file : Writable_File) (config : JS_Object) (replace_existing : Boolean = False) (skip_validation : Boolean = False) =
+    write_config (file : Writable_File) (config : JS_Object|Jackson_Object) (replace_existing : Boolean = False) (skip_validation : Boolean = False) =
         checked = if skip_validation.not then Data_Link_Format.validate_config config
         checked.if_not_error <|
             Data_Link_Format.write_raw_config file config.to_json replace_existing
@@ -102,7 +103,7 @@ type Data_Link_Format
        If the library providing the data-link is not imported, this function
        will fail with `Missing_Data_Link_Library`, even if the config would be
        valid.
-    validate_config (config : JS_Object) -> Nothing ! Missing_Data_Link_Library | Illegal_State =
+    validate_config (config : JS_Object|Jackson_Object) -> Nothing ! Missing_Data_Link_Library | Illegal_State =
         interpret_json_as_data_link config . if_not_error Nothing
 
 ## PRIVATE
@@ -214,12 +215,26 @@ parse_secure_value json -> Text | Enso_Secret =
                     secret_path = get_required_field "secretPath" json expected_type=Text
                     Enso_Secret.get secret_path
                 other -> Error.throw (Illegal_State.Error "Unexpected value inside of a data-link: "+other+".")
+        _ : Jackson_Object ->
+            case get_required_field "type" json expected_type=Text of
+                "secret" ->
+                    secret_path = get_required_field "secretPath" json expected_type=Text
+                    Enso_Secret.get secret_path
+                other -> Error.throw (Illegal_State.Error "Unexpected value inside of a data-link: "+other+".")
         _ -> Error.throw (Illegal_State.Error "Parsing a secure value failed. Expected either a string or an object representing a secret, but got "+(Meta.type_of json . to_display_text)+".")
 
 ## PRIVATE
 parse_format (json : Any) -> Any ! Illegal_State = case json of
     Nothing -> Auto_Detect
     _ : JS_Object -> case get_required_field "subType" json of
+        "default" -> Auto_Detect
+        sub_type : Text ->
+            format_type = FileFormatSPI.findFormatForDataLinkSubType sub_type
+            if format_type.is_nothing then Error.throw (Illegal_State.Error "Unknown format inside of a datalink: "+sub_type+". Perhaps the library providing that format needs to be imported?") else
+                format_type.from json
+        other ->
+            Error.throw (Illegal_State.Error "Expected `subType` to be a string, but got: "+other.to_display_text+".")
+    _ : Jackson_Object -> case get_required_field "subType" json of
         "default" -> Auto_Detect
         sub_type : Text ->
             format_type = FileFormatSPI.findFormatForDataLinkSubType sub_type

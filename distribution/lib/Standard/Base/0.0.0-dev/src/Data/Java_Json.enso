@@ -1,14 +1,23 @@
 import project.Any.Any
+import project.Data.Array.Array
 import project.Data.Array_Proxy.Array_Proxy
 import project.Data.Json.Invalid_JSON
 import project.Data.Json.JS_Object
+import project.Data.Map.Map
+import project.Data.Numbers.Float
 import project.Data.Numbers.Integer
 import project.Data.Numbers.Number
 import project.Data.Pair.Pair
 import project.Data.Text.Text
+import project.Data.Time.Date.Date
+import project.Data.Time.Date_Time.Date_Time
+import project.Data.Time.Time_Of_Day.Time_Of_Day
 import project.Data.Vector.Vector
 import project.Error.Error
+import project.Errors.Common.No_Such_Conversion
+import project.Errors.Illegal_Argument.Illegal_Argument
 import project.Errors.No_Such_Key.No_Such_Key
+import project.Meta
 import project.Metadata.Display
 import project.Metadata.Widget
 import project.Nothing.Nothing
@@ -23,8 +32,14 @@ from project.Metadata.Widget import Single_Choice
 polyglot java import com.fasterxml.jackson.core.JsonProcessingException
 polyglot java import com.fasterxml.jackson.databind.JsonNode
 polyglot java import com.fasterxml.jackson.databind.node.ArrayNode
+polyglot java import com.fasterxml.jackson.databind.node.BooleanNode
+polyglot java import com.fasterxml.jackson.databind.node.FloatNode
+polyglot java import com.fasterxml.jackson.databind.node.JsonNodeFactory
 polyglot java import com.fasterxml.jackson.databind.node.JsonNodeType
+polyglot java import com.fasterxml.jackson.databind.node.LongNode
+polyglot java import com.fasterxml.jackson.databind.node.NullNode
 polyglot java import com.fasterxml.jackson.databind.node.ObjectNode
+polyglot java import com.fasterxml.jackson.databind.node.TextNode
 polyglot java import com.fasterxml.jackson.databind.ObjectMapper
 
 ## PRIVATE
@@ -36,14 +51,32 @@ type Java_Json
 
        Parse a Text value into a `Jackson_Object` or an Enso primitive value
        (like `Text`, `Number`, `Boolean`, `Nothing`), or a `Vector` of values.
-    parse : Text -> Nothing | Boolean | Number | Text | Vector | Jackson_Object
+    parse : Text -> Nothing | Boolean | Number | Text | Vector | Date | Date_Time | Time_Of_Day | Jackson_Object ! Invalid_JSON
     parse text:Text =
         error_handler js_exception =
-            Error.throw (Invalid_JSON.Error js_exception.payload.message)
+            line = js_exception.payload.getLocation.getLineNr.to_text
+            col = js_exception.payload.getLocation.getColumnNr.to_text
+            pos = '[line: '+line+', column: '+col+']'
+            Error.throw (Invalid_JSON.Error js_exception.payload.getOriginalMessage+' at position '+pos)
 
         Panic.catch JsonProcessingException handler=error_handler <|
             node = ObjectMapper.new.readTree text
-            read_json_node node
+            make_enso (read_json_node node)
+
+    ## PRIVATE
+       ADVANCED
+       Serialize an Object to JSON.
+    stringify : Any -> Text
+    stringify object =
+        to_json_node object . asText
+
+
+    ## PRIVATE
+       Convert a Vector of Keys and Values to JSON.
+       Keys must be `Text` values.
+    from_pairs : Vector -> Text
+    from_pairs pairs =
+        Jackson_Object.from_pairs pairs . to_text
 
 ## PRIVATE
    Read a JsonNode to an Enso type
@@ -64,6 +97,23 @@ read_json_array node =
     proxy = Array_Proxy.new node.size i->  (read_json_node (node.get i))
     Vector.from_polyglot_array proxy
 
+
+## PRIVATE
+    Convert a value to a JsonNode
+to_json_node value =
+    case value of
+        Nothing -> NullNode.getInstance
+        b : Boolean -> BooleanNode.valueOf b
+        n : Integer -> LongNode.valueOf(n)
+        f : Float   -> FloatNode.valueOf(f)
+        a : Text    -> TextNode.valueOf(a)
+        v : Vector  ->
+            n = ArrayNode.new JsonNodeFactory.instance
+            v.each e-> n.add (to_json_node e)
+            n
+        j : Jackson_Object -> j.object_node
+
+
 ## PRIVATE
 type Jackson_Object
     ## PRIVATE
@@ -79,6 +129,44 @@ type Jackson_Object
                     @Tail_Call loop iterator builder
             loop name_iterator builder
         Jackson_Object.Value object_node (make_field_names object_node)
+
+    ## PRIVATE
+       Creates a Jackon_Object from a list of key-value pairs.
+       Keys must be `Text` values.
+       Values will be recursively converted to JSON serializable as needed.
+    from_pairs : Vector -> Jackson_Object
+    from_pairs pairs =
+        mapper = ObjectMapper.new
+        new_object = mapper.createObjectNode
+
+        keys = pairs.fold Vector.new_builder current->pair->
+            case pair.first of
+                text : Text ->
+                    jackson_value_node = to_json_node pair.second.to_jackson_object
+                    new_object.set text jackson_value_node
+                    current.append text
+                _ -> Error.throw (Illegal_Argument.Error "Jackson_Object.from_pairs: key must be a Text value")
+
+        Jackson_Object.Value new_object keys.to_vector
+
+    ## Modify a field of a JSON object, returning a new updated object.
+
+       Arguments:
+       - key: the name of the field to modify.
+       - value: the new value for the field.
+
+       > Example
+         Change the value for 'foo' to 'asdf'.
+
+             obj = Jackson_Object.from_pairs [["foo", "bar"], ["baz", "quux"]]
+             obj.set_value "foo" "asdf"
+             # => {"foo":"asdf","baz":"quux"}
+    set_value : Text -> Any -> Jackson_Object
+    set_value self key:Text value =
+        copied_object_node = self.object_node.deepCopy
+        jackson_value_node = to_json_node value.to_jackson_object
+        copied_object_node.set key jackson_value_node
+        Jackson_Object.Value copied_object_node self.field_array
 
     ## PRIVATE
     Value object_node ~field_array
@@ -100,7 +188,7 @@ type Jackson_Object
     get self key:Text ~if_missing=Nothing =
         if self.contains_key key . not then if_missing else
             child = self.object_node.get key
-            read_json_node child
+            make_enso (read_json_node child)
 
     ## GROUP Selections
        ICON select_row
@@ -176,6 +264,12 @@ type Jackson_Object
         JS_Object.from_pairs pairs
 
     ## PRIVATE
+       Convert the object to a Jackson_Object.
+    to_jackson_object : Jackson_Object
+    to_jackson_object self =
+        self
+
+    ## PRIVATE
        Convert to a Text.
     to_text : Text
     to_text self = self.to_json
@@ -191,11 +285,62 @@ type Jackson_Object
     to_json : Text
     to_json self = self.object_node.toString
 
+    ## GROUP Conversions
+       ICON convert
+       Creates an Enso object from the Jackson_object.
+    into : Any -> Any
+    into self target_type = case target_type of
+        Jackson_Object -> self
+        Vector         -> self.to_vector
+        Map            -> Map.from_vector self.to_vector
+        _              ->
+            ## First try a conversion
+            Panic.catch No_Such_Conversion (self.to target_type) _->
+                ## If that fails, try to construct the type
+                meta = Meta.meta target_type
+                meta_type = if meta.is_a Meta.Type then meta else Meta.meta (Meta.type_of target_type)
+                constructors = meta_type.constructors
+                filtered = if self.contains_key "constructor" then constructors.filter c-> c.name == self.get "constructor" else constructors
+                case filtered.length of
+                    0 -> Error.throw (Illegal_Argument.Error "Unable to build a "+target_type.to_text+" - cannot find the constructor.")
+                    1 ->
+                        constructor = filtered.at 0
+                        field_names = constructor.fields
+                        if field_names.all self.contains_key then constructor.new (field_names.map self.at) else
+                            missing_fields = field_names.filter (f-> self.contains_key f . not)
+                            Error.throw (Illegal_Argument.Error "Unable to build a "+target_type.to_text+" - the constructor "+constructor.name+"'s fields "+missing_fields.to_display_text+" not found in the source object.")
+                    _ -> Error.throw (Illegal_Argument.Error "Unable to build a "+target_type.to_text+" cannot find unique constructor.")
+
+
 ## PRIVATE
    Make a field name selector
 make_field_name_selector : Jackson_Object -> Display -> Widget
 make_field_name_selector js_object display=Display.Always =
     Single_Choice display=display values=(js_object.field_names.map n->(Option n n.pretty))
+
+## PRIVATE
+   Internal function ensuring that a Jackson object is presented appropriately to Enso.
+make_enso object =
+    case object of
+        Nothing     -> Nothing
+        _ : Text    -> object
+        _ : Boolean -> object
+        _ : Number  -> object
+        v : Vector  ->
+            proxy = Array_Proxy.new v.length (i-> make_enso (v.at i))
+            Vector.from_polyglot_array proxy
+        a : Array   ->
+            proxy = Array_Proxy.new a.length (i-> make_enso (a.at i))
+            Vector.from_polyglot_array proxy
+        jackson_object : Jackson_Object ->
+            ## Handle deserializing date and time types.
+            type_name = jackson_object.get "type"
+            parsed = if type_name == "Date" then Date.from jackson_object else
+                if type_name == "Date_Time" then Date_Time.from jackson_object else
+                    if type_name == "Time_Of_Day" then Time_Of_Day.from jackson_object else
+                        jackson_object
+
+            if parsed.is_error then jackson_object else parsed
 
 ## ICON convert
    Extension for Text to allow use.

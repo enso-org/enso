@@ -1,5 +1,6 @@
 import project.Any.Any
 import project.Data.Index_Sub_Range.Index_Sub_Range
+import project.Data.Java_Json.Jackson_Object
 import project.Data.Json.JS_Object
 import project.Data.Numbers.Integer
 import project.Data.Text.Encoding.Encoding
@@ -373,6 +374,14 @@ list_assets parent = if parent.asset_type != Enso_Asset_Type.Directory then Erro
 
 ## PRIVATE
 Enso_File.from (that:JS_Object) = if ["title", "id", "parentId"].any (k-> that.contains_key k . not) then Error.throw (Illegal_Argument.Error "Invalid JSON for an Enso_File.") else
+    name = that.get "title"
+    id = that.get "id"
+    org = that.get "organizationId" ""
+    asset_type = (id.take (Text_Sub_Range.Before "-")):Enso_Asset_Type
+    Enso_File.Value name id org asset_type
+
+## PRIVATE
+Enso_File.from (that:Jackson_Object) = if ["title", "id", "parentId"].any (k-> that.contains_key k . not) then Error.throw (Illegal_Argument.Error "Invalid JSON for an Enso_File.") else
     name = that.get "title"
     id = that.get "id"
     org = that.get "organizationId" ""

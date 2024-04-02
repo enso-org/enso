@@ -1,4 +1,5 @@
 import project.Any.Any
+import project.Data.Java_Json.Jackson_Object
 import project.Data.Json.JS_Object
 import project.Data.Numbers.Float
 import project.Data.Numbers.Integer
@@ -289,6 +290,25 @@ type Duration
         if self.milliseconds==0 . not then b.append ["milliseconds", self.milliseconds]
         if self.nanoseconds==0 . not then b.append ["nanoseconds", self.nanoseconds]
         JS_Object.from_pairs b.to_vector
+
+    ## PRIVATE
+       Convert to a Jackson Object representing a Duration.
+
+       > Example
+         Convert a duration of 10 seconds to a Jackson_Object.
+
+             example_to_json = (Duration.new seconds=10).to_jackson_object
+    to_jackson_object : Jackson_Object
+    to_jackson_object self =
+        b = Vector.new_builder 7
+        b.append ["type", "Duration"]
+        b.append ["constructor", "new"]
+        if self.hours==0 . not then b.append ["hours", self.hours]
+        if self.minutes==0 . not then b.append ["minutes", self.minutes]
+        if self.seconds==0 . not then b.append ["seconds", self.seconds]
+        if self.milliseconds==0 . not then b.append ["milliseconds", self.milliseconds]
+        if self.nanoseconds==0 . not then b.append ["nanoseconds", self.nanoseconds]
+        Jackson_Object.from_pairs b.to_vector
 
     ## PRIVATE
        Convert Duration to a friendly string.

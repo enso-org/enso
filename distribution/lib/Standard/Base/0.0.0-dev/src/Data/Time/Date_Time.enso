@@ -1,4 +1,5 @@
 import project.Any.Any
+import project.Data.Java_Json.Jackson_Object
 import project.Data.Json.JS_Object
 import project.Data.Locale.Locale
 import project.Data.Numbers.Integer
@@ -836,6 +837,20 @@ type Date_Time
         cons_pair = ["constructor", "new"]
         JS_Object.from_pairs [type_pair, cons_pair, ["year", self.year], ["month", self.month], ["day", self.day], ["hour", self.hour], ["minute", self.minute], ["second", self.second], ["nanosecond", self.nanosecond include_milliseconds=True], ["zone", self.zone]]
 
+    ## PRIVATE
+       Convert to a Jackson Object representing a Date_Time.
+
+       > Example
+         Convert the current time to a Jackson_Object.
+
+             example_to_json = Date_Time.now.to_jackson_object
+    to_jackson_object : Jackson_Object
+    to_jackson_object self =
+        type_pair = ["type", "Date_Time"]
+        cons_pair = ["constructor", "new"]
+        Jackson_Object.from_pairs [type_pair, cons_pair, ["year", self.year], ["month", self.month], ["day", self.day], ["hour", self.hour], ["minute", self.minute], ["second", self.second], ["nanosecond", self.nanosecond include_milliseconds=True], ["zone", self.zone]]
+
+
     ## GROUP Conversions
        ICON convert
        Format this time as text using the specified format specifier.
@@ -939,3 +954,13 @@ Date_Time.from (that:JS_Object) =
             if that.contains_key "nanosecond" && (that.contains_key "second" . not) then Error.throw (Illegal_Argument.Error "Invalid JS_Object for Date_Time.from.") else
               Date_Time.new (that.get "year") (that.get "month") (that.get "day") (that.get "hour") (that.get "minute") (that.get "second" 0) nanosecond=(that.get "nanosecond" 0) zone=time_zone
         False -> Error.throw (Illegal_Argument.Error "Invalid JS_Object for Date_Time.from.")
+
+## PRIVATE
+Date_Time.from (that:Jackson_Object) =
+    ## Must have year, month, day, hour and minute. Optional for second, nanosecond and zone.
+    case that.get "type" == "Date_Time" && ["year", "month", "day", "hour", "minute"].all that.contains_key of
+        True ->
+            time_zone = if that.contains_key "zone" . not then Time_Zone.system else that.get "zone" . into Time_Zone
+            if that.contains_key "nanosecond" && (that.contains_key "second" . not) then Error.throw (Illegal_Argument.Error "Invalid Jackson_Object for Date_Time.from.") else
+              Date_Time.new (that.get "year") (that.get "month") (that.get "day") (that.get "hour") (that.get "minute") (that.get "second" 0) nanosecond=(that.get "nanosecond" 0) zone=time_zone
+        False -> Error.throw (Illegal_Argument.Error "Invalid Jackson_Object for Date_Time.from.")

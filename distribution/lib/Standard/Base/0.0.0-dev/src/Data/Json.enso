@@ -42,7 +42,7 @@ type Json
         Parse the text "[null, null, true, false]".
 
             Json.parse "[null, null, true, false]"
-    parse : Text -> JS_Object | Boolean | Number | Nothing | Text | Vector ! Invalid_JSON
+    parse : Text -> Nothing | Boolean | Number | Text | Vector | Date | Date_Time | Time_Of_Day | JS_Object ! Invalid_JSON
     parse json =
         error_handler js_exception =
             Error.throw (Invalid_JSON.Error js_exception.payload.message)
@@ -54,7 +54,7 @@ type Json
     ## PRIVATE
        ADVANCED
        Serialize an Object to JSON.
-    stringify : (JS_Object | Boolean | Number | Nothing | Text | Vector) -> Text
+    stringify : Any -> Text
     stringify object =
         json_stringify (make_javascript object.to_js_object)
 
@@ -277,7 +277,7 @@ type JS_Object
                             Error.throw (Illegal_Argument.Error "Unable to build a "+target_type.to_text+" - the constructor "+constructor.name+"'s fields "+missing_fields.to_display_text+" not found in the source object.")
                     _ -> Error.throw (Illegal_Argument.Error "Unable to build a "+target_type.to_text+" cannot find unique constructor.")
 
-    ## Modify a field of a JSON object, returing the updated object.
+    ## Modify a field of a JSON object, returning the updated object.
 
        Arguments:
        - key: the name of the field to modify.

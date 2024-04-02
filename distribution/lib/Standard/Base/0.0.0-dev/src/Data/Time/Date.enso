@@ -1,4 +1,5 @@
 import project.Any.Any
+import project.Data.Java_Json.Jackson_Object
 import project.Data.Json.JS_Object
 import project.Data.Locale.Locale
 import project.Data.Numbers.Integer
@@ -750,6 +751,19 @@ type Date
         cons_pair = ["constructor", "new"]
         JS_Object.from_pairs [type_pair, cons_pair, ["day", self.day], ["month", self.month], ["year", self.year]]
 
+    ## PRIVATE
+       Convert to a Jackson_Object representing this Date.
+
+       > Example
+         Convert the current date to a Jackson_Object.
+
+             example_to_json = Date.today.to_jackson_object
+    to_jackson_object : Jackson_Object
+    to_jackson_object self =
+        type_pair = ["type", "Date"]
+        cons_pair = ["constructor", "new"]
+        Jackson_Object.from_pairs [type_pair, cons_pair, ["day", self.day], ["month", self.month], ["year", self.year]]
+
     ## GROUP Conversions
        ICON convert
        Format this date using the provided format specifier.
@@ -862,3 +876,8 @@ fits_in_range start end date =
 Date.from (that:JS_Object) =
     if that.get "type" == "Date" && ["year", "month", "day"].all that.contains_key then Date.new (that.get "year") (that.get "month") (that.get "day") else
         Error.throw (Illegal_Argument.Error "Invalid JS_Object for Date.from.")
+
+## PRIVATE
+Date.from (that:Jackson_Object) =
+    if that.get "type" == "Date" && ["year", "month", "day"].all that.contains_key then Date.new (that.get "year") (that.get "month") (that.get "day") else
+        Error.throw (Illegal_Argument.Error "Invalid Jackson_Object for Date.from.")
