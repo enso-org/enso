@@ -37,8 +37,8 @@ import org.enso.interpreter.runtime.state.State;
 
 /**
  * Value representing a by-name identified constructor of a yet unknown {@link Type}. Create new
- * instance by providing name to {@link #build(String)} method. Then apply arguments to it via
- * {@link #withArguments(Object[])} method.
+ * instance by providing name to {@link #build(String)} invokeConstructor. Then apply arguments to
+ * it via {@link #withArguments(Object[])} invokeConstructor.
  *
  * <p>Let the object flow thru the interpreter and resolve it when the required {@link Type} is
  * known.
@@ -204,13 +204,7 @@ public final class UnresolvedConstructor implements EnsoObject {
       if (c == null) {
         return null;
       } else {
-        var fn = c.getConstructorFunction();
-        var args = new Object[prototype.descs.length + 1];
-        System.arraycopy(unresolved.args, 0, args, 1, prototype.descs.length);
-        args[0] = fn;
-        var helper = Function.ArgumentsHelper.buildArguments(fn, null, state, args);
-        var r = callNode.call(helper);
-        return r;
+        return invokeConstructor(c, prototype, unresolved, state, callNode);
       }
     }
 
@@ -223,8 +217,22 @@ public final class UnresolvedConstructor implements EnsoObject {
         return null;
       }
       var fn = c.getConstructorFunction();
-      // var node = buildInvokeNode(unresolved);
-      var r = 42L; // node.execute(fn, frame, state, unresolved.args);
+      var callNode = buildApplication(unresolved);
+      return invokeConstructor(c, unresolved.asPrototype(), unresolved, state, callNode);
+    }
+
+    private static Object invokeConstructor(
+        AtomConstructor c,
+        UnresolvedConstructor prototype,
+        UnresolvedConstructor unresolved,
+        State state,
+        DirectCallNode callNode) {
+      var fn = c.getConstructorFunction();
+      var args = new Object[prototype.descs.length + 1];
+      System.arraycopy(unresolved.args, 0, args, 1, prototype.descs.length);
+      args[0] = fn;
+      var helper = Function.ArgumentsHelper.buildArguments(fn, null, state, args);
+      var r = callNode.call(helper);
       return r;
     }
   }
