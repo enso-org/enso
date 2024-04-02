@@ -844,6 +844,140 @@ class RuntimeServerTest
     )
   }
 
+  it should "send method pointer updates of simple_suspended_constructors" in {
+    val contextId  = UUID.randomUUID()
+    val requestId  = UUID.randomUUID()
+    val moduleName = "Enso_Test.Test.Main"
+
+    val metadata = new Metadata
+    val idA      = metadata.addItem(52, 3, "aa")
+
+    val code =
+      """type T
+        |    A
+        |    B x
+        |    C y z
+        |
+        |main =
+        |    a = test T.A
+        |    a
+        |
+        |test ~t:T = t
+        |""".stripMargin.linesIterator.mkString("\n")
+    val contents = metadata.appendToCode(code)
+    val mainFile = context.writeMain(contents)
+
+    metadata.assertInCode(idA, code, "T.A")
+
+    // create context
+    context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
+    context.receive shouldEqual Some(
+      Api.Response(requestId, Api.CreateContextResponse(contextId))
+    )
+
+    // open file
+    context.send(
+      Api.Request(requestId, Api.OpenFileRequest(mainFile, contents))
+    )
+    context.receive shouldEqual Some(
+      Api.Response(Some(requestId), Api.OpenFileResponse)
+    )
+
+    // push main
+    context.send(
+      Api.Request(
+        requestId,
+        Api.PushContextRequest(
+          contextId,
+          Api.StackItem.ExplicitCall(
+            Api.MethodPointer(moduleName, moduleName, "main"),
+            None,
+            Vector()
+          )
+        )
+      )
+    )
+    context.receiveN(3) should contain theSameElementsAs Seq(
+      Api.Response(requestId, Api.PushContextResponse(contextId)),
+      TestMessages.update(
+        contextId,
+        idA,
+        "Enso_Test.Test.Main.T",
+        Api.MethodCall(
+          Api.MethodPointer("Enso_Test.Test.Main", "Enso_Test.Test.Main.T", "A")
+        )
+      ),
+      context.executionComplete(contextId)
+    )
+  }
+
+  it should "send method pointer updates of simple_autoscoped_constructors" in {
+    val contextId  = UUID.randomUUID()
+    val requestId  = UUID.randomUUID()
+    val moduleName = "Enso_Test.Test.Main"
+
+    val metadata = new Metadata
+    val idA      = metadata.addItem(52, 3, "aa")
+
+    val code =
+      """type T
+        |    A
+        |    B x
+        |    C y z
+        |
+        |main =
+        |    a = test ..A
+        |    a
+        |
+        |test t:T = t
+        |""".stripMargin.linesIterator.mkString("\n")
+    val contents = metadata.appendToCode(code)
+    val mainFile = context.writeMain(contents)
+
+    metadata.assertInCode(idA, code, "..A")
+
+    // create context
+    context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
+    context.receive shouldEqual Some(
+      Api.Response(requestId, Api.CreateContextResponse(contextId))
+    )
+
+    // open file
+    context.send(
+      Api.Request(requestId, Api.OpenFileRequest(mainFile, contents))
+    )
+    context.receive shouldEqual Some(
+      Api.Response(Some(requestId), Api.OpenFileResponse)
+    )
+
+    // push main
+    context.send(
+      Api.Request(
+        requestId,
+        Api.PushContextRequest(
+          contextId,
+          Api.StackItem.ExplicitCall(
+            Api.MethodPointer(moduleName, moduleName, "main"),
+            None,
+            Vector()
+          )
+        )
+      )
+    )
+    context.receiveN(3) should contain theSameElementsAs Seq(
+      Api.Response(requestId, Api.PushContextResponse(contextId)),
+      TestMessages.update(
+        contextId,
+        idA,
+        "Enso_Test.Test.Main.T",
+        Api.MethodCall(
+          Api.MethodPointer("Enso_Test.Test.Main", "Enso_Test.Test.Main.T", "A")
+        )
+      ),
+      context.executionComplete(contextId)
+    )
+  }
+
   it should "send method pointer updates of autoscope constructors" in {
     val contextId  = UUID.randomUUID()
     val requestId  = UUID.randomUUID()
