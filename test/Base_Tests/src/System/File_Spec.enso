@@ -308,9 +308,14 @@ add_specs suite_builder =
             contents_2 = File.new file . read_bytes
             contents_2.take (First 6) . should_equal [67, 117, 112, 99, 97, 107]
 
-        group_builder.specify "no parent of dot implies nothing" <|
-            no_parent = (File.new '.').parent
-            no_parent.is_nothing . should_be_true
+        group_builder.specify "should allow going above the first part of a relative directory by resolving it to absolute" <|
+            parent_file = (File.new '.').parent
+            parent_file.should_be_a File
+            parent_file.should_equal (File.new '.' . absolute . normalize . parent)
+
+        group_builder.specify "will not resolve a relative directory to absolute in `parent` if not necessary" <|
+            f = File.new "foo/bar"
+            f . parent . should_equal (File.new "foo")
 
     suite_builder.group "read_text" group_builder->
         group_builder.specify "should allow reading a UTF-8 file" <|
