@@ -160,3 +160,10 @@ Map.to_js_object : JS_Object
 Map.to_js_object self =
     map_vector = self.to_vector
     map_vector.map p-> [p.first.to_js_object, p.second.to_js_object]
+
+## ICON convert
+   Extension for Text to allow use.
+Text.parse_fast_json : Nothing | Boolean | Number | Text | Vector | Jackson_Object
+Text.parse_fast_json self =
+    warning = Deprecated.Warning "Standard.Base.Data.Text.Text" "parse_fast_json" "Deprecated: The `parse_json` method uses a faster implementation now by default"
+    Warning.attach warning self.parse_json
