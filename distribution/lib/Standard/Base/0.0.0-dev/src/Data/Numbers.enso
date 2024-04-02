@@ -743,7 +743,7 @@ type Float
         Locale.Value java_locale -> Panic.catch ParseException ((NumberFormat.getInstance java_locale).parse text) _->
             Error.throw (Number_Parse_Error.Error text)
 
-    ## GROUP Constants
+    ## ICON number_input
 
        Maximum representable positive value, from the underlying Java double
        type.
@@ -751,7 +751,7 @@ type Float
        The absolute-value-largest representable negative value is `-max_value`.
     max_value = Double.MAX_VALUE
 
-    ## GROUP Constants
+    ## ICON number_input
 
        Minimum representable positive value, from the underlying Java double
        type.
