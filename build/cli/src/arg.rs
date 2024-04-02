@@ -185,6 +185,7 @@ pub struct Cli {
 /// This is the CLI representation of a [crate::source::Source] for a given target.
 #[derive(Args, Clone, Debug, Derivative)]
 #[derivative(PartialEq)]
+#[group(skip)]
 pub struct Source<Target: IsTargetSource> {
     /// How the given target should be acquired.
     #[clap(id = Target::SOURCE_NAME, value_enum, long, default_value_t= SourceKind::Build,
@@ -244,6 +245,7 @@ pub enum SourceKind {
 
 /// Strongly typed argument for an output directory of a given build target.
 #[derive(Args, Clone, Derivative)]
+#[group(skip)]
 #[derivative(Debug, PartialEq)]
 pub struct OutputPath<Target: IsTargetSource> {
     /// Directory where artifacts should be placed.
@@ -263,6 +265,7 @@ impl<Target: IsTargetSource> AsRef<Path> for OutputPath<Target> {
 }
 
 #[derive(Args, Clone, Derivative)]
+#[group(skip)]
 #[derivative(Debug, PartialEq)]
 pub struct BuildDescription<Target: IsTargetSource> {
     #[derivative(PartialEq(bound = ""))]
@@ -273,6 +276,7 @@ pub struct BuildDescription<Target: IsTargetSource> {
 }
 
 #[derive(Args, Clone, PartialEq, Derivative)]
+#[group(skip)]
 #[derivative(Debug)]
 pub struct BuildJob<Target: IsTargetSource> {
     #[clap(flatten)]
@@ -282,6 +286,7 @@ pub struct BuildJob<Target: IsTargetSource> {
 }
 
 #[derive(Args, Clone, PartialEq, Derivative)]
+#[group(skip)]
 #[derivative(Debug)]
 pub struct WatchJob<Target: IsWatchableSource> {
     #[clap(flatten)]

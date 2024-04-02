@@ -12,6 +12,7 @@ use enso_build::project::backend::Backend;
 
 
 #[derive(Args, Clone, Debug, PartialEq)]
+#[group(skip)]
 pub struct BuildInput {
     #[clap(flatten)]
     pub runtime: Source<project::Runtime>,
