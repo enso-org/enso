@@ -77,8 +77,8 @@ export default function UserPermission(props: UserPermissionProps) {
 
   return (
     <FocusArea active={!isDisabled} direction="horizontal">
-      {(ref, innerProps) => (
-        <div ref={ref} className="flex items-center gap-user-permission" {...innerProps}>
+      {innerProps => (
+        <div className="flex items-center gap-user-permission" {...innerProps}>
           <PermissionSelector
             showDelete
             isDisabled={isDisabled}

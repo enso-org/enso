@@ -14,16 +14,14 @@ import * as withFocusScope from '#/components/styled/withFocusScope'
 
 /** Props passed to the inner handler of a {@link FocusRoot}. */
 export interface FocusRootInnerProps {
+  readonly ref: React.RefCallback<HTMLElement | SVGElement | null>
   readonly onKeyDown?: React.KeyboardEventHandler<HTMLElement>
 }
 
 /** Props for a {@link FocusRoot} */
 export interface FocusRootProps {
   readonly active?: boolean
-  readonly children: (
-    ref: React.RefCallback<HTMLElement | SVGElement | null>,
-    props: FocusRootInnerProps
-  ) => JSX.Element
+  readonly children: (props: FocusRootInnerProps) => JSX.Element
 }
 
 /** An element that prevents navigation outside of itself. */
@@ -48,8 +46,8 @@ function FocusRoot(props: FocusRootProps) {
 
   const cachedChildren = React.useMemo(
     () =>
-      children(
-        element => {
+      children({
+        ref: element => {
           cleanupRef.current()
           if (active && element != null) {
             cleanupRef.current = navigator2D.pushFocusRoot(element)
@@ -64,8 +62,8 @@ function FocusRoot(props: FocusRootProps) {
             }
           }
         },
-        active ? { onKeyDown: navigator2D.onKeyDown.bind(navigator2D) } : {}
-      ),
+        ...(active ? { onKeyDown: navigator2D.onKeyDown.bind(navigator2D) } : {}),
+      }),
     [active, children, navigator2D]
   )
 

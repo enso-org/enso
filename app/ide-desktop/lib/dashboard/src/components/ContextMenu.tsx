@@ -24,9 +24,8 @@ export default function ContextMenu(props: ContextMenuProps) {
     children
   ) : (
     <FocusArea direction="vertical">
-      {(ref, innerProps) => (
+      {innerProps => (
         <div
-          ref={ref}
           className="pointer-events-auto relative rounded-default before:absolute before:h-full before:w-full before:rounded-default before:bg-selected-frame before:backdrop-blur-default"
           {...innerProps}
         >

@@ -26,10 +26,9 @@ export default function WhatsNew() {
       </aria.Heading>
       <div className="grid grid-cols-fill-news-items gap-news-items">
         <FocusArea direction="horizontal">
-          {(ref, innerProps) => (
+          {innerProps => (
             <FocusRing>
               <a
-                ref={ref}
                 className="focus-child relative col-span-1 h-news-item rounded-default bg-v3 text-tag-text col-span-2-news-item sm:col-span-2"
                 rel="noreferrer"
                 target="_blank"
@@ -50,10 +49,9 @@ export default function WhatsNew() {
           )}
         </FocusArea>
         <FocusArea direction="horizontal">
-          {(ref, innerProps) => (
+          {innerProps => (
             <FocusRing>
               <a
-                ref={ref}
                 className="focus-child relative h-news-item rounded-default bg-youtube text-tag-text"
                 rel="noreferrer"
                 target="_blank"
@@ -77,10 +75,9 @@ export default function WhatsNew() {
           )}
         </FocusArea>
         <FocusArea direction="horizontal">
-          {(ref, innerProps) => (
+          {innerProps => (
             <FocusRing>
               <a
-                ref={ref}
                 className="focus-child relative h-news-item rounded-default bg-discord text-tag-text"
                 rel="noreferrer"
                 target="_blank"

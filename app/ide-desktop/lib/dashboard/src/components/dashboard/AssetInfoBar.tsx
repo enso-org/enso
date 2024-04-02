@@ -30,9 +30,8 @@ export default function AssetInfoBar(props: AssetInfoBarProps) {
 
   return (
     <FocusArea active={!invisible} direction="horizontal">
-      {(ref, innerProps) => (
+      {innerProps => (
         <div
-          ref={ref}
           className={`pointer-events-auto flex h-row shrink-0 cursor-default items-center gap-icons rounded-full bg-frame px-icons-x ${
             backend.type === backendModule.BackendType.remote ? '' : 'invisible'
           }`}

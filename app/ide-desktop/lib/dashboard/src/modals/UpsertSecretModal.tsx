@@ -67,12 +67,8 @@ export default function UpsertSecretModal(props: UpsertSecretModalProps) {
         </aria.Heading>
         <div className="relative flex flex-col">
           <FocusArea direction="horizontal">
-            {(ref, innerProps) => (
-              <aria.TextField
-                ref={ref}
-                className="relative flex h-row items-center"
-                {...innerProps}
-              >
+            {innerProps => (
+              <aria.TextField className="relative flex h-row items-center" {...innerProps}>
                 <aria.Label className="text w-modal-label">{getText('name')}</aria.Label>
                 <FocusRing>
                   <aria.Input
@@ -90,12 +86,8 @@ export default function UpsertSecretModal(props: UpsertSecretModalProps) {
             )}
           </FocusArea>
           <FocusArea direction="horizontal">
-            {(ref, innerProps) => (
-              <aria.TextField
-                ref={ref}
-                className="relative flex h-row items-center"
-                {...innerProps}
-              >
+            {innerProps => (
+              <aria.TextField className="relative flex h-row items-center" {...innerProps}>
                 <aria.Label className="text w-modal-label">{getText('value')}</aria.Label>
                 <FocusRing>
                   <aria.Input

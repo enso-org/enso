@@ -19,8 +19,8 @@ import StatelessSpinner, * as statelessSpinner from '#/components/StatelessSpinn
 import FocusArea from '#/components/styled/FocusArea'
 import SettingsPage from '#/components/styled/settings/SettingsPage'
 import SettingsSection from '#/components/styled/settings/SettingsSection'
-import UnstyledButton from '#/components/UnstyledButton'
 import SvgMask from '#/components/SvgMask'
+import UnstyledButton from '#/components/UnstyledButton'
 
 import * as backendModule from '#/services/Backend'
 
@@ -125,8 +125,8 @@ export default function ActivityLogSettingsTab() {
     <SettingsPage>
       <SettingsSection noFocusArea title={getText('activityLog')}>
         <FocusArea direction="horizontal">
-          {(ref, innerProps) => (
-            <div ref={ref} className="flex gap-activity-log-filters" {...innerProps}>
+          {innerProps => (
+            <div className="flex gap-activity-log-filters" {...innerProps}>
               <div className="flex items-center gap-activity-log-filter">
                 {getText('startDate')}
                 <DateInput date={startDate} onInput={setStartDate} />

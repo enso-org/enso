@@ -215,9 +215,8 @@ export default function InviteUsersModal(props: InviteUsersModalProps) {
             }}
           >
             <FocusArea direction="horizontal">
-              {(ref, innerProps) => (
+              {innerProps => (
                 <aria.TextField
-                  ref={ref}
                   className="block min-h-paragraph-input rounded-default border border-primary/10 p-multiline-input"
                   {...innerProps}
                 >

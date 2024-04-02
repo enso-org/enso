@@ -18,6 +18,7 @@ import * as withFocusScope from '#/components/styled/withFocusScope'
 
 /** Props returned by {@link aria.useFocusWithin}. */
 export interface FocusWithinProps {
+  readonly ref: React.RefCallback<HTMLElement | SVGElement | null>
   readonly onFocus: NonNullable<aria.DOMAttributes<Element>['onFocus']>
   readonly onBlur: NonNullable<aria.DOMAttributes<Element>['onBlur']>
 }
@@ -30,10 +31,7 @@ export interface FocusAreaProps {
   readonly focusDefaultClass?: string
   readonly active?: boolean
   readonly direction: focusDirectionProvider.FocusDirection
-  readonly children: (
-    ref: React.RefCallback<HTMLElement | SVGElement | null>,
-    props: FocusWithinProps
-  ) => JSX.Element
+  readonly children: (props: FocusWithinProps) => JSX.Element
 }
 
 /** An area that can be focused within. */
@@ -68,41 +66,44 @@ function FocusArea(props: FocusAreaProps) {
 
   const cachedChildren = React.useMemo(
     () =>
-      children(element => {
-        rootRef.current = element
-        cleanupRef.current()
-        if (active && element != null && focusManager != null) {
-          const focusFirst = focusManager.focusFirst.bind(null, {
-            accept: other => other.classList.contains(focusChildClassRef.current),
-          })
-          const focusLast = focusManager.focusLast.bind(null, {
-            accept: other => other.classList.contains(focusChildClassRef.current),
-          })
-          const focusCurrent = () =>
-            focusManager.focusFirst({
-              accept: other => other.classList.contains(focusDefaultClassRef.current),
-            }) ?? focusFirst()
-          cleanupRef.current = navigator2D.register(element, {
-            focusPrimaryChild: focusCurrent,
-            focusWhenPressed:
-              direction === 'horizontal'
-                ? { right: focusFirst, left: focusLast }
-                : { down: focusFirst, up: focusLast },
-          })
-        } else {
-          cleanupRef.current = () => {}
-        }
-        if (element != null && detect.IS_DEV_MODE) {
-          if (active) {
-            element.dataset.focusArea = ''
+      // This is REQUIRED, otherwise `useFocusWithin` does not work with components from
+      // `react-aria-components`.
+      // eslint-disable-next-line no-restricted-syntax
+      children({
+        ref: element => {
+          rootRef.current = element
+          cleanupRef.current()
+          if (active && element != null && focusManager != null) {
+            const focusFirst = focusManager.focusFirst.bind(null, {
+              accept: other => other.classList.contains(focusChildClassRef.current),
+            })
+            const focusLast = focusManager.focusLast.bind(null, {
+              accept: other => other.classList.contains(focusChildClassRef.current),
+            })
+            const focusCurrent = () =>
+              focusManager.focusFirst({
+                accept: other => other.classList.contains(focusDefaultClassRef.current),
+              }) ?? focusFirst()
+            cleanupRef.current = navigator2D.register(element, {
+              focusPrimaryChild: focusCurrent,
+              focusWhenPressed:
+                direction === 'horizontal'
+                  ? { right: focusFirst, left: focusLast }
+                  : { down: focusFirst, up: focusLast },
+            })
           } else {
-            delete element.dataset.focusArea
+            cleanupRef.current = () => {}
           }
-        }
-        // This is REQUIRED, otherwise `useFocusWithin` does not work with components from
-        // `react-aria-components`.
-        // eslint-disable-next-line no-restricted-syntax
-      }, focusWithinProps as FocusWithinProps),
+          if (element != null && detect.IS_DEV_MODE) {
+            if (active) {
+              element.dataset.focusArea = ''
+            } else {
+              delete element.dataset.focusArea
+            }
+          }
+        },
+        ...focusWithinProps,
+      } as FocusWithinProps),
     [active, direction, children, focusManager, focusWithinProps, navigator2D]
   )
 

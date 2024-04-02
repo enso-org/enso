@@ -32,9 +32,8 @@ export default function Modal(props: ModalProps) {
 
   return (
     <FocusRoot active={!hidden}>
-      {(ref, innerProps) => (
+      {innerProps => (
         <div
-          ref={ref}
           // The name comes from a third-party API and cannot be changed.
           // eslint-disable-next-line @typescript-eslint/naming-convention
           {...(!hidden ? { 'data-testid': 'modal-background' } : {})}

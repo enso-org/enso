@@ -32,12 +32,8 @@ export default function SettingsSection(props: SettingsSectionProps) {
     </div>
   ) : (
     <FocusArea direction="vertical">
-      {(ref, innerProps) => (
-        <div
-          ref={ref}
-          className={`flex flex-col gap-settings-section-header ${className}`}
-          {...innerProps}
-        >
+      {innerProps => (
+        <div className={`flex flex-col gap-settings-section-header ${className}`} {...innerProps}>
           {heading}
           {children}
         </div>

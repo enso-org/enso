@@ -79,9 +79,8 @@ export default function PageSwitcher(props: PageSwitcherProps) {
 
   return (
     <FocusArea direction="horizontal">
-      {(ref, innerProps) => (
+      {innerProps => (
         <div
-          ref={ref}
           className={`pointer-events-auto flex shrink-0 cursor-default items-center gap-pages rounded-full px-page-switcher-x ${
             page === Page.editor ? 'bg-frame backdrop-blur-default' : ''
           }`}

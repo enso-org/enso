@@ -255,9 +255,8 @@ export default function ManagePermissionsModal<
               {/* Space reserved for other tabs. */}
             </div>
             <FocusArea direction="horizontal">
-              {(ref, innerProps) => (
+              {innerProps => (
                 <form
-                  ref={ref}
                   className="flex gap-input-with-button"
                   onSubmit={event => {
                     event.preventDefault()

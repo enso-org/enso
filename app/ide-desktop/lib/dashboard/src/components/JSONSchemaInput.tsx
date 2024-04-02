@@ -101,10 +101,9 @@ export default function JSONSchemaInput(props: JSONSchemaInputProps) {
           } else {
             children.push(
               <FocusArea direction="horizontal">
-                {(ref, innerProps) => (
+                {innerProps => (
                   <FocusRing>
                     <aria.Input
-                      ref={ref}
                       type="text"
                       readOnly={readOnly}
                       value={typeof value === 'string' ? value : ''}
@@ -129,10 +128,9 @@ export default function JSONSchemaInput(props: JSONSchemaInputProps) {
         case 'number': {
           children.push(
             <FocusArea direction="horizontal">
-              {(ref, innerProps) => (
+              {innerProps => (
                 <FocusRing>
                   <aria.Input
-                    ref={ref}
                     type="number"
                     readOnly={readOnly}
                     value={typeof value === 'number' ? value : ''}
@@ -158,10 +156,9 @@ export default function JSONSchemaInput(props: JSONSchemaInputProps) {
         case 'integer': {
           children.push(
             <FocusArea direction="horizontal">
-              {(ref, innerProps) => (
+              {innerProps => (
                 <FocusRing>
                   <aria.Input
-                    ref={ref}
                     type="number"
                     readOnly={readOnly}
                     value={typeof value === 'number' ? value : ''}
@@ -220,9 +217,8 @@ export default function JSONSchemaInput(props: JSONSchemaInputProps) {
                         : {})}
                     >
                       <FocusArea active={isOptional} direction="horizontal">
-                        {(ref, innerProps) => (
+                        {innerProps => (
                           <UnstyledButton
-                            ref={ref}
                             isDisabled={!isOptional}
                             className={`text inline-block w-json-schema-object-key whitespace-nowrap rounded-full px-button-x text-left ${
                               isOptional ? 'hover:bg-hover-bg' : ''
@@ -328,9 +324,8 @@ export default function JSONSchemaInput(props: JSONSchemaInputProps) {
       }
       const dropdown = (
         <FocusArea direction="horizontal">
-          {(ref, innerProps) => (
+          {innerProps => (
             <Dropdown
-              ref={ref}
               readOnly={readOnly}
               items={childSchemas}
               selectedIndex={selectedChildIndex}

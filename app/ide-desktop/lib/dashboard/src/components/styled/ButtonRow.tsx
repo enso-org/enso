@@ -24,12 +24,8 @@ export default function ButtonRow(props: ButtonRowProps) {
 
   return (
     <FocusArea direction="horizontal">
-      {(ref, innerProps) => (
-        <div
-          ref={ref}
-          className={`relative flex gap-buttons self-start ${positionClass}`}
-          {...innerProps}
-        >
+      {innerProps => (
+        <div className={`relative flex gap-buttons self-start ${positionClass}`} {...innerProps}>
           {children}
         </div>
       )}

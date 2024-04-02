@@ -58,10 +58,9 @@ export default function Labels(props: LabelsProps) {
 
   return (
     <FocusArea direction="vertical">
-      {(ref, innerProps) => (
+      {innerProps => (
         <div
           data-testid="labels"
-          ref={ref}
           className="gap-sidebar-section-heading flex w-full flex-col items-start"
           {...innerProps}
         >

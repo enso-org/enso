@@ -15,10 +15,11 @@ import * as textProvider from '#/providers/TextProvider'
 
 import KeyboardShortcutsSettingsTabBar from '#/layouts/Settings/KeyboardShortcutsSettingsTabBar'
 
+import * as aria from '#/components/aria'
 import KeyboardShortcut from '#/components/dashboard/KeyboardShortcut'
 import FocusArea from '#/components/styled/FocusArea'
-import UnstyledButton from '#/components/UnstyledButton'
 import SvgMask from '#/components/SvgMask'
+import UnstyledButton from '#/components/UnstyledButton'
 
 import CaptureKeyboardShortcutModal from '#/modals/CaptureKeyboardShortcutModal'
 
@@ -65,15 +66,13 @@ export default function KeyboardShortcutsTable(props: KeyboardShortcutsTableProp
     // There is a horizontal scrollbar for some reason without `px-px`.
     // eslint-disable-next-line no-restricted-syntax
     <FocusArea direction="vertical" focusChildClass="focus-default" focusDefaultClass="">
-      {(ref, innerProps) => (
+      {innerProps => (
         <div
-          ref={element => {
-            ref(element)
-            rootRef.current = element
-          }}
-          className="overflow-auto px-px"
-          {...innerProps}
-          onScroll={onScroll}
+          {...aria.mergeProps<JSX.IntrinsicElements['div']>()(innerProps, {
+            ref: rootRef,
+            className: 'overflow-auto px-px',
+            onScroll,
+          })}
         >
           <table className="table-fixed border-collapse rounded-rows">
             <thead className="sticky top-0">
@@ -105,8 +104,8 @@ export default function KeyboardShortcutsTable(props: KeyboardShortcutsTableProp
                     </td>
                     <td className="group min-w-max border-l-2 border-r-2 border-transparent bg-clip-padding px-cell-x">
                       <FocusArea direction="horizontal">
-                        {(bindingsRef, bindingsProps) => (
-                          <div ref={bindingsRef} {...bindingsProps}>
+                        {bindingsProps => (
+                          <div {...bindingsProps}>
                             {/* I don't know why this padding is needed,
                              * given that this is a flex container. */}
                             {/* eslint-disable-next-line no-restricted-syntax */}

@@ -78,8 +78,8 @@ export default function NewLabelModal(props: NewLabelModalProps) {
           {getText('newLabel')}
         </aria.Heading>
         <FocusArea direction="horizontal">
-          {(ref, innerProps) => (
-            <aria.TextField ref={ref} className="relative flex items-center" {...innerProps}>
+          {innerProps => (
+            <aria.TextField className="relative flex items-center" {...innerProps}>
               <aria.Label className="text w-modal-label">{getText('name')}</aria.Label>
               <FocusRing>
                 <aria.Input
@@ -108,9 +108,8 @@ export default function NewLabelModal(props: NewLabelModalProps) {
           )}
         </FocusArea>
         <FocusArea direction="horizontal">
-          {(ref, innerProps) => (
+          {innerProps => (
             <ColorPicker
-              ref={ref}
               className="relative flex items-center"
               pickerClassName="grow"
               setColor={setColor}

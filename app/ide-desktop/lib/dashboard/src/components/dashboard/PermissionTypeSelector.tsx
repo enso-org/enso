@@ -88,9 +88,8 @@ export default function PermissionTypeSelector(props: PermissionTypeSelectorProp
   const { showDelete = false, selfPermission, type, assetType, style, onChange } = props
   return (
     <FocusArea direction="vertical">
-      {(ref, innerProps) => (
+      {innerProps => (
         <div
-          ref={ref}
           style={style}
           className="pointer-events-auto sticky w-min rounded-permission-type-selector before:absolute before:h-full before:w-full before:rounded-permission-type-selector before:bg-selected-frame before:backdrop-blur-default"
           onClick={event => {

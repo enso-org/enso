@@ -78,9 +78,8 @@ export default function UserMenu(props: UserMenuProps) {
               className={`grid transition-all duration-user-menu ${initialized ? 'grid-rows-1fr' : 'grid-rows-0fr'}`}
             >
               <FocusArea direction="vertical">
-                {(ref, innerProps) => (
+                {innerProps => (
                   <div
-                    ref={ref}
                     aria-label={getText('userMenuLabel')}
                     className="flex flex-col overflow-hidden"
                     {...innerProps}

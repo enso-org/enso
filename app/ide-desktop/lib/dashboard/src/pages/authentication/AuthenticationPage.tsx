@@ -34,9 +34,8 @@ export default function AuthenticationPage(props: AuthenticationPageProps) {
 
   return (
     <FocusArea direction="vertical">
-      {(ref, innerProps) => (
+      {innerProps => (
         <div
-          ref={ref}
           data-testid={props['data-testid']}
           className="flex min-h-screen flex-col items-center justify-center gap-auth text-sm text-primary"
           {...innerProps}

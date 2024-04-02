@@ -18,8 +18,8 @@ import Category from '#/layouts/CategorySwitcher/Category'
 
 import * as aria from '#/components/aria'
 import FocusArea from '#/components/styled/FocusArea'
-import UnstyledButton from '#/components/UnstyledButton'
 import SvgMask from '#/components/SvgMask'
+import UnstyledButton from '#/components/UnstyledButton'
 
 import type * as backend from '#/services/Backend'
 
@@ -143,8 +143,8 @@ export default function CategorySwitcher(props: CategorySwitcherProps) {
 
   return (
     <FocusArea direction="vertical">
-      {(ref, innerProps) => (
-        <div ref={ref} className="flex w-full flex-col" {...innerProps}>
+      {innerProps => (
+        <div className="flex w-full flex-col" {...innerProps}>
           <aria.Header
             id="header"
             className="text-header mb-sidebar-section-heading-b px-sidebar-section-heading-x text-sm font-bold"

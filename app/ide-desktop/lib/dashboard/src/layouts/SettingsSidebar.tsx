@@ -101,9 +101,8 @@ export default function SettingsSidebar(props: SettingsSidebarProps) {
 
   return (
     <FocusArea direction="vertical">
-      {(ref, innerProps) => (
+      {innerProps => (
         <div
-          ref={ref}
           aria-label={getText('settingsSidebarLabel')}
           className="flex w-settings-sidebar shrink-0 flex-col gap-settings-sidebar overflow-y-auto"
           {...innerProps}

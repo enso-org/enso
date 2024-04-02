@@ -151,8 +151,8 @@ export default function ManageLabelsModal<
           </aria.Heading>
           {
             <FocusArea direction="horizontal">
-              {(ref, innerProps) => (
-                <div ref={ref} className="flex gap-input-with-button" {...innerProps}>
+              {innerProps => (
+                <div className="flex gap-input-with-button" {...innerProps}>
                   <FocusRing within>
                     <div
                       className={`flex grow items-center rounded-full border border-primary/10 px-input-x ${
@@ -200,8 +200,8 @@ export default function ManageLabelsModal<
             </div>
           )}
           <FocusArea direction="vertical">
-            {(ref, innerProps) => (
-              <div ref={ref} className="max-h-manage-labels-list overflow-auto" {...innerProps}>
+            {innerProps => (
+              <div className="max-h-manage-labels-list overflow-auto" {...innerProps}>
                 {Array.from(allLabels.values())
                   .filter(label => regex.test(label.value))
                   .map(label => (

@@ -2452,24 +2452,22 @@ export default function AssetsTable(props: AssetsTableProps) {
 
   return (
     <FocusArea direction="vertical">
-      {(ref, innerProps) => (
+      {innerProps => (
         <div
-          ref={element => {
-            ref(element)
-            rootRef.current = element
-          }}
-          className="flex-1 overflow-auto container-size"
-          {...innerProps}
-          onKeyDown={onKeyDown}
-          onScroll={onScroll}
-          onBlur={event => {
-            if (
-              event.relatedTarget instanceof HTMLElement &&
-              !event.currentTarget.contains(event.relatedTarget)
-            ) {
-              setKeyboardSelectedIndex(null)
-            }
-          }}
+          {...aria.mergeProps<JSX.IntrinsicElements['div']>()(innerProps, {
+            ref: rootRef,
+            className: 'flex-1 overflow-auto container-size',
+            onKeyDown,
+            onScroll,
+            onBlur: event => {
+              if (
+                event.relatedTarget instanceof HTMLElement &&
+                !event.currentTarget.contains(event.relatedTarget)
+              ) {
+                setKeyboardSelectedIndex(null)
+              }
+            },
+          })}
         >
           {!hidden && hiddenContextMenu}
           {!hidden && (
@@ -2487,10 +2485,9 @@ export default function AssetsTable(props: AssetsTableProps) {
                   className="sticky right flex self-end px-extra-columns-panel-x py-extra-columns-panel-y"
                 >
                   <FocusArea direction="horizontal">
-                    {(columnsBarRef, columnsBarProps) => (
+                    {columnsBarProps => (
                       <div
                         {...aria.mergeProps<JSX.IntrinsicElements['div']>()(columnsBarProps, {
-                          ref: columnsBarRef,
                           className: 'inline-flex gap-icons',
                           onFocus: () => {
                             setKeyboardSelectedIndex(null)

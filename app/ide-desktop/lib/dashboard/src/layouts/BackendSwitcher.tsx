@@ -9,8 +9,8 @@ import * as textProvider from '#/providers/TextProvider'
 
 import * as aria from '#/components/aria'
 import FocusArea from '#/components/styled/FocusArea'
-import UnstyledButton from '#/components/UnstyledButton'
 import SvgMask from '#/components/SvgMask'
+import UnstyledButton from '#/components/UnstyledButton'
 
 import * as backendModule from '#/services/Backend'
 
@@ -32,8 +32,8 @@ export default function BackendSwitcher(props: BackendSwitcherProps) {
 
   return (
     <FocusArea direction="horizontal">
-      {(ref, innerProps) => (
-        <div ref={ref} className="flex shrink-0 gap-px" {...innerProps}>
+      {innerProps => (
+        <div className="flex shrink-0 gap-px" {...innerProps}>
           <UnstyledButton
             isDisabled={isCloud}
             className="flex w-backend-switcher-option flex-col items-start bg-selected-frame px-selector-x py-selector-y text-primary selectable first:rounded-l-full last:rounded-r-full disabled:text-cloud disabled:active"

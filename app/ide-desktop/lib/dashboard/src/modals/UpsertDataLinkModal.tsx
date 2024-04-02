@@ -65,9 +65,8 @@ export default function UpsertDataLinkModal(props: UpsertDataLinkModalProps) {
           {getText('createDataLink')}
         </aria.Heading>
         <FocusArea direction="horizontal">
-          {(ref, innerProps) => (
+          {innerProps => (
             <aria.TextField
-              ref={ref}
               aria-errormessage={getText('mustNotBeBlank')}
               className="relative flex items-center"
               {...innerProps}
