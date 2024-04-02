@@ -233,6 +233,22 @@ export default class RemoteBackend extends Backend {
     }
   }
 
+  /**
+   * Restore a user that has been soft-deleted.
+   */
+  async restoreUser(): Promise<void> {
+    const response = await this.put(remoteBackendPaths.UPDATE_CURRENT_USER_PATH, {
+      // This field comes from the backend and we can not change it.
+      // eslint-disable-next-line @typescript-eslint/naming-convention
+      clear_remove_at: true,
+    })
+    if (!responseIsSuccessful(response)) {
+      return await this.throw(response, 'restoreUserBackendError')
+    } else {
+      return
+    }
+  }
+
   /** Delete the current user. */
   override async deleteUser(): Promise<void> {
     const response = await this.delete(remoteBackendPaths.DELETE_USER_PATH)

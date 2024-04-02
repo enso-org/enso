@@ -130,6 +130,7 @@ export interface User extends UserInfo {
    * `usersMe` will not work. */
   readonly isEnabled: boolean
   readonly rootDirectoryId: DirectoryId
+  readonly removeAt?: dateTime.Rfc3339DateTime
 }
 
 /** A `Directory` returned by `createDirectory`. */
@@ -899,6 +900,11 @@ export interface UpdateUserRequestBody {
   username: string | null
 }
 
+/**
+ * HTTP request body for restoring user account.
+ */
+export interface RestoreUserRequestBody {}
+
 /** HTTP request body for the "update organization" endpoint. */
 export interface UpdateOrganizationRequestBody {
   name?: string
@@ -1132,6 +1138,8 @@ export default abstract class Backend {
   abstract createUser(body: CreateUserRequestBody): Promise<User>
   /** Change the username of the current user. */
   abstract updateUser(body: UpdateUserRequestBody): Promise<void>
+  /** Restore the current user. */
+  abstract restoreUser(): Promise<void>
   /** Delete the current user. */
   abstract deleteUser(): Promise<void>
   /** Upload a new profile picture for the current user. */

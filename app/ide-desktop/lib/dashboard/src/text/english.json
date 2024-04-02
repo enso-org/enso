@@ -70,6 +70,7 @@
   "listUsersBackendError": "Could not list users in the organization.",
   "createUserBackendError": "Could not create user.",
   "updateUsernameBackendError": "Could not change username.",
+  "restoreUserBackendError": "Could not restore user.",
   "updateUserBackendError": "Could not update user.",
   "deleteUserBackendError": "Could not delete user.",
   "uploadUserPictureBackendError": "Could not upload user profile picture.",
@@ -285,10 +286,10 @@
   "rightClickToRemoveLabel": "Right click to remove label.",
   "selectExactlyOneAssetToViewItsDetails": "Select exactly one asset to view its details.",
   "deleteUserAccountButtonLabel": "Delete this user account",
-  "deleteUserAccountWarning": "Once deleted, it will be gone forever. Please be certain.",
+  "deleteUserAccountWarning": "Account deletion is reversible within 2 weeks.",
   "areYouSure": "Are you sure?",
-  "confirmDeleteUserAccountWarning": "Once deleted, this user account will be gone forever.",
-  "confirmDeleteUserAccountButtonLabel": "Once deleted, this user account will be gone forever.",
+  "confirmDeleteUserAccountWarning": "Account deletion is reversible within 2 weeks. After that, your account will be permanently deleted.",
+  "confirmDeleteUserAccountButtonLabel": "Delete user account",
   "profilePictureWarning": "Your profile picture should not be irrelevant, abusive or vulgar. It should not be a default image provided by Enso.",
   "organizationProfilePictureWarning": "Your organization’s profile picture should not be irrelevant, abusive or vulgar. It should not be a default image provided by Enso.",
   "noFilesMatchTheCurrentFilters": "No files match the current filters.",
@@ -493,7 +494,7 @@
   "sundayAbbr": "Su",
 
   "restoreAccount": "Restore Account",
-  "restoreAccountDescription": "You can restore your account within 30 days of deletion. After 30 days, your account will be permanently deleted.",
+  "restoreAccountDescription": "You can restore your account within 14 days of deletion. After 14 days, your account will be permanently deleted.",
   "restoreAccountSubmit": "Restore Account"
 
   "editAssetDescriptionModalTitle": "Edit Asset Description",

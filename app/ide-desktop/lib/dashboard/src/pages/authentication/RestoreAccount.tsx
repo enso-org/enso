@@ -9,6 +9,7 @@ import * as reactQuery from '@tanstack/react-query'
 import UntrashIcon from 'enso-assets/untrash.svg'
 
 import * as authProvider from '#/providers/AuthProvider'
+import * as backendProvider from '#/providers/BackendProvider'
 import * as textProvider from '#/providers/TextProvider'
 
 import * as ariaComponents from '#/components/AriaComponents'
@@ -24,14 +25,13 @@ import SvgMask from '#/components/SvgMask'
 export default function RestoreAccount() {
   const { getText } = textProvider.useText()
   const { signOut } = authProvider.useAuth()
+  const { backend } = backendProvider.useBackend()
 
   const signOutMutation = reactQuery.useMutation({
     mutationFn: signOut,
   })
   const restoreAccountMutation = reactQuery.useMutation({
-    mutationFn: async () => {
-      await new Promise(resolve => setTimeout(resolve, 1000))
-    },
+    mutationFn: () => backend.restoreUser(),
   })
 
   return (

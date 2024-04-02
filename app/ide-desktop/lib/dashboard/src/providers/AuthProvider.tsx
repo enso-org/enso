@@ -128,6 +128,18 @@ interface AuthContextType {
    * If the user has not signed in, the session will be `null`. */
   readonly session: UserSession | null
   readonly setUser: React.Dispatch<React.SetStateAction<backendModule.User>>
+  /**
+   * Returns `true` if the user is marked for deletion.
+   */
+  readonly isUserMarkedForDeletion: () => boolean
+  /**
+   * Returns `true` if the user is deleted completely.
+   */
+  readonly isUserDeleted: () => boolean
+  /**
+   * Returns `true` if the user is soft deleted.
+   */
+  readonly isUserSoftDeleted: () => boolean
 }
 
 const AuthContext = React.createContext<AuthContextType | null>(null)
@@ -581,11 +593,39 @@ export default function AuthProvider(props: AuthProviderProps) {
     }
   }
 
+  const isUserMarkedForDeletion = () =>
+    !!(userSession && 'user' in userSession && userSession.user?.removeAt)
+
+  const isUserDeleted = () => {
+    if (userSession && 'user' in userSession && userSession.user?.removeAt) {
+      const removeAtDate = new Date(userSession.user.removeAt)
+      const now = new Date()
+
+      return removeAtDate <= now
+    } else {
+      return false
+    }
+  }
+
+  const isUserSoftDeleted = () => {
+    if (userSession && 'user' in userSession && userSession.user?.removeAt) {
+      const removeAtDate = new Date(userSession.user.removeAt)
+      const now = new Date()
+
+      return removeAtDate > now
+    } else {
+      return false
+    }
+  }
+
   const value = {
     goOffline: goOffline,
     signUp: withLoadingToast(signUp),
     confirmSignUp: withLoadingToast(confirmSignUp),
     setUsername,
+    isUserMarkedForDeletion,
+    isUserDeleted,
+    isUserSoftDeleted,
     signInWithGoogle: () => {
       if (cognito == null) {
         return Promise.resolve(false)
@@ -734,6 +774,46 @@ export function GuestLayout() {
     }
   } else {
     return <router.Outlet />
+  }
+}
+
+/**
+ * A React Router layout route containing routes only accessible by users that are not deleted.
+ */
+export function NotDeletedUserLayout() {
+  const { session, isUserMarkedForDeletion } = useAuth()
+  const shouldPreventNavigation = getShouldPreventNavigation()
+
+  if (shouldPreventNavigation) {
+    return <router.Outlet context={session} />
+  } else {
+    if (isUserMarkedForDeletion()) {
+      return <router.Navigate to={appUtils.RESTORE_USER_PATH} />
+    } else {
+      return <router.Outlet context={session} />
+    }
+  }
+}
+
+/**
+ * A React Router layout route containing routes only accessible by users that are deleted softly
+ */
+export function SoftDeletedUserLayout() {
+  const { session, isUserMarkedForDeletion, isUserDeleted, isUserSoftDeleted } = useAuth()
+  const shouldPreventNavigation = getShouldPreventNavigation()
+
+  if (shouldPreventNavigation) {
+    return <router.Outlet context={session} />
+  } else if (isUserMarkedForDeletion()) {
+    const isSoftDeleted = isUserSoftDeleted()
+    const isDeleted = isUserDeleted()
+    if (isSoftDeleted) {
+      return <router.Outlet context={session} />
+    } else if (isDeleted) {
+      return <router.Navigate to={appUtils.LOGIN_PATH} />
+    } else {
+      return <router.Navigate to={appUtils.DASHBOARD_PATH} />
+    }
   }
 }
 
