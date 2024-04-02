@@ -12,6 +12,7 @@ import project.Data.Text.Text
 import project.Data.Text.Text_Sub_Range.Text_Sub_Range
 import project.Data.Vector.Vector
 import project.Error.Error
+import project.Errors.Deprecated.Deprecated
 import project.Meta
 import project.Nothing.Nothing
 import project.Warning.Warning
@@ -163,7 +164,7 @@ Map.to_js_object self =
 
 ## ICON convert
    Extension for Text to allow use.
-Text.parse_fast_json : Nothing | Boolean | Number | Text | Vector | Jackson_Object
+Text.parse_fast_json : Nothing | Boolean | Number | Text | Vector | JS_Object
 Text.parse_fast_json self =
     warning = Deprecated.Warning "Standard.Base.Data.Text.Text" "parse_fast_json" "Deprecated: The `parse_json` method uses a faster implementation now by default"
     Warning.attach warning self.parse_json
