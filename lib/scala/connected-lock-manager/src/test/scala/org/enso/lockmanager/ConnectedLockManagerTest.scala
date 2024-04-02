@@ -74,8 +74,8 @@ class ConnectedLockManagerTest
               )
           )
         ) { _ =>
-          sync.signal("primary-acquired")
           sync.report("primary-acquired")
+          sync.signal("primary-acquired")
           sync.waitFor("connected-is-waiting")
           sync.report("primary-releasing")
         }
@@ -122,8 +122,8 @@ class ConnectedLockManagerTest
               )
           )
         ) { _ =>
-          sync.signal("primary-acquired")
           sync.report("primary-acquired")
+          sync.signal("primary-acquired")
           sync.waitFor("connected-acquired")
         }
 
@@ -150,31 +150,12 @@ class ConnectedLockManagerTest
       }
 
       sync.join()
-      sync.summarizeReports() should (
-        equal(
-          Seq(
-            "primary-acquired",
-            "connected-acquired",
-            "released",
-            "released"
-          )
-        ) or
-        equal(
-          Seq(
-            "connected-acquired",
-            "primary-acquired",
-            "released",
-            "released"
-          )
-        ) or
-        equal(
-          Seq(
-            "connected-acquired",
-            "released",
-            "primary-acquired",
-            "released"
-          )
-        )
+      sync.summarizeReports() shouldEqual
+      Seq(
+        "primary-acquired",
+        "connected-acquired",
+        "released",
+        "released"
       )
     }
   }
