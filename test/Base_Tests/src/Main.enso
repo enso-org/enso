@@ -29,6 +29,7 @@ import project.Data.Bool_Spec
 import project.Data.Base_64_Spec
 import project.Data.Function_Spec
 import project.Data.Interval_Spec
+import project.Data.Java_Json_Spec
 import project.Data.Json_Spec
 import project.Data.List_Spec
 import project.Data.Locale_Spec
@@ -119,6 +120,7 @@ main filter=Nothing =
         Interval_Spec.add_specs suite_builder
         Java_Interop_Spec.add_specs suite_builder
         Js_Interop_Spec.add_specs suite_builder
+        Java_Json_Spec.add_specs suite_builder
         Json_Spec.add_specs suite_builder
         List_Spec.add_specs suite_builder
         Locale_Spec.add_specs suite_builder
