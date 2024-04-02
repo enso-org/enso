@@ -1,5 +1,4 @@
 from Standard.Base import all
-import Standard.Base.Data.Java_Json.Jackson_Object
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
 import project.Column.Column
@@ -18,10 +17,6 @@ type Convertible_To_Columns
 
 ## PRIVATE
 Convertible_To_Columns.from (that:JS_Object) =
-    Convertible_To_Columns.Value that.field_names that.get
-
-## PRIVATE
-Convertible_To_Columns.from (that:Jackson_Object) =
     Convertible_To_Columns.Value that.field_names that.get
 
 ## PRIVATE

@@ -1,5 +1,4 @@
 import project.Any.Any
-import project.Data.Java_Json.Jackson_Object
 import project.Data.Json.JS_Object
 import project.Data.Locale.Locale
 import project.Data.Numbers.Integer
@@ -426,19 +425,6 @@ type Time_Of_Day
         JS_Object.from_pairs [type_pair, cons_pair, ["hour", self.hour], ["minute", self.minute], ["second", self.second], ["nanosecond", self.nanosecond include_milliseconds=True]]
 
     ## PRIVATE
-       Convert to a Jackson Object representing this Time_Of_Day.
-
-       > Example
-         Convert the current time to a Jackson_Object.
-
-             example_to_json = Time_Of_Day.now.to_jackson_object
-    to_jackson_object : Jackson_Object
-    to_jackson_object self =
-        type_pair = ["type", "Time_Of_Day"]
-        cons_pair = ["constructor", "new"]
-        Jackson_Object.from_pairs [type_pair, cons_pair, ["hour", self.hour], ["minute", self.minute], ["second", self.second], ["nanosecond", self.nanosecond include_milliseconds=True]]
-
-    ## PRIVATE
        Convert to a display representation of this Time_Of_Day.
     to_display_text : Text
     to_display_text self =
@@ -513,12 +499,3 @@ Time_Of_Day.from (that:JS_Object) =
             if that.contains_key "nanosecond" && (that.contains_key "second" . not) then Error.throw (Illegal_Argument.Error "Invalid JS_Object for Time_Of_Day.from.") else
                 Time_Of_Day.new (that.get "hour") (that.get "minute") (that.get "second" 0) nanosecond=(that.get "nanosecond" 0)
         False -> Error.throw (Illegal_Argument.Error "Invalid JS_Object for Time_Of_Day.from.")
-
-## PRIVATE
-Time_Of_Day.from (that:Jackson_Object) =
-    ## Must have hour and minute but second and nanosecond are optional
-    case that.get "type" == "Time_Of_Day" && ["hour", "minute"].all that.contains_key of
-        True ->
-            if that.contains_key "nanosecond" && (that.contains_key "second" . not) then Error.throw (Illegal_Argument.Error "Invalid Jackson_Object for Time_Of_Day.from.") else
-                Time_Of_Day.new (that.get "hour") (that.get "minute") (that.get "second" 0) nanosecond=(that.get "nanosecond" 0)
-        False -> Error.throw (Illegal_Argument.Error "Invalid Jackson_Object for Time_Of_Day.from.")

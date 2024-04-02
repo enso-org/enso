@@ -1,5 +1,4 @@
 import project.Any.Any
-import project.Data.Java_Json.Jackson_Object
 import project.Data.Json.JS_Object
 import project.Data.Json.Json
 import project.Data.Numbers.Integer
@@ -245,11 +244,6 @@ type JSON_Format
 
 ## PRIVATE
 JSON_Format.from (that : JS_Object) =
-    _ = that
-    JSON_Format
-
-## PRIVATE
-JSON_Format.from (that : Jackson_Object) =
     _ = that
     JSON_Format
 

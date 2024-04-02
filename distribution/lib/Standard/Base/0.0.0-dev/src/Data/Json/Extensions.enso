@@ -3,7 +3,6 @@ import project.Data.Array.Array
 import project.Data.Array_Proxy.Array_Proxy
 import project.Data.Json.JS_Object
 import project.Data.Json.Json
-import project.Data.Java_Json.Jackson_Object
 import project.Data.Locale.Locale
 import project.Data.Map.Map
 import project.Data.Numbers.Float
@@ -38,24 +37,9 @@ Error.to_json self = self.to_js_object.to_text
    For atoms and maps, the object is converted to a JS_Object.
 Text.to_js_object : JS_Object | Text
 Text.to_js_object self =
-    self.to_json_object JS_Object.from_pairs
-
-## PRIVATE
-   Converts the given value to a JSON serializable object.
-   For Nothing, booleans, numbers and strings, this is the value itself.
-   For arrays or vectors, the elements are converted recursively.
-   For atoms and maps, the object is converted to a Jackson_Object.
-Text.to_jackson_object : Jackson_Object | Text
-Text.to_jackson_object self =
-    self.to_json_object Jackson_Object.from_pairs
-
-## PRIVATE
-Text.to_json_object : (Vector -> Any) -> Any
-Text.to_json_object self fun =
     case self of
-        Text -> fun [["type", "Text"]]
+        Text -> JS_Object.from_pairs [["type", "Text"]]
         _ -> self
-
 
 ## PRIVATE
    Converts the given value to a JSON serializable object.
@@ -68,9 +52,9 @@ Number.to_js_object self = case self of
     Integer -> JS_Object.from_pairs [["type", "Integer"]]
     Float -> JS_Object.from_pairs [["type", "Float"]]
     _ : Integer ->
-        ## JS Safe Integer range -(2^53 - 1) to (2^53 - 1)
-        js_max_integer = 9007199254740991
-        if self >= -js_max_integer && self < js_max_integer then self else
+        ## Java's longs range is -(2^63 - 1) to (2^63 - 1)
+        java_max_long = 9223372036854775808
+        if self >= -java_max_long && self < java_max_long then self else
             JS_Object.from_pairs [["type", "BigInt"], ["value", self.to_text]]
     _ -> self
 
@@ -78,40 +62,10 @@ Number.to_js_object self = case self of
    Converts the given value to a JSON serializable object.
    For Nothing, booleans, numbers and strings, this is the value itself.
    For arrays or vectors, the elements are converted recursively.
-   For atoms and maps, the object is converted to a Jackson_Object.
-Number.to_jackson_object : Jackson_Object | Number
-Number.to_jackson_object self = case self of
-    Number -> Jackson_Object.from_pairs [["type", "Number"]]
-    Integer -> Jackson_Object.from_pairs [["type", "Integer"]]
-    Float -> Jackson_Object.from_pairs [["type", "Float"]]
-    _ : Integer ->
-        ## Java's longs range is -(2^63 - 1) to (2^63 - 1)
-        java_max_long = 9223372036854775808
-        if self >= -java_max_long && self < java_max_long then self else
-            Jackson_Object.from_pairs [["type", "BigInt"], ["value", self.to_text]]
-    _ -> self
-
-
-## PRIVATE
-   Converts the given value to a JSON serializable object.
-   For Nothing, booleans, numbers and strings, this is the value itself.
-   For arrays or vectors, the elements are converted recursively.
    For atoms and maps, the object is converted to a JS_Object.
 Boolean.to_js_object : JS_Object | Boolean
-Boolean.to_js_object self = self.to_json_object JS_Object.from_pairs
-
-## PRIVATE
-   Converts the given value to a JSON serializable object.
-   For Nothing, booleans, numbers and strings, this is the value itself.
-   For arrays or vectors, the elements are converted recursively.
-   For atoms and maps, the object is converted to a Jackson_Object.
-Boolean.to_jackson_object : Jackson_Object | Boolean
-Boolean.to_jackson_object self = self.to_json_object Jackson_Object.from_pairs
-
-## PRIVATE
-Boolean.to_json_object : (Vector -> Any) -> Any
-Boolean.to_json_object self fun = case self of
-    Boolean -> fun [["type", "Boolean"]]
+Boolean.to_js_object self = case self of
+    Boolean -> JS_Object.from_pairs [["type", "Boolean"]]
     _ -> self
 
 ## PRIVATE
@@ -126,31 +80,11 @@ Nothing.to_js_object self = self
    Converts the given value to a JSON serializable object.
    For Nothing, booleans, numbers and strings, this is the value itself.
    For arrays or vectors, the elements are converted recursively.
-   For atoms and maps, the object is converted to a Jackson_Object.
-Nothing.to_jackson_object : Nothing
-Nothing.to_jackson_object self = self
-
-## PRIVATE
-   Converts the given value to a JSON serializable object.
-   For Nothing, booleans, numbers and strings, this is the value itself.
-   For arrays or vectors, the elements are converted recursively.
    For atoms and maps, the object is converted to a JS_Object.
 Array.to_js_object : Vector
-Array.to_js_object self = self.to_json_object .to_js_object
-
-## PRIVATE
-   Converts the given value to a JSON serializable object.
-   For Nothing, booleans, numbers and strings, this is the value itself.
-   For arrays or vectors, the elements are converted recursively.
-   For atoms and maps, the object is converted to a Jackson_Object.
-Array.to_jackson_object : Vector
-Array.to_jackson_object self = self.to_json_object .to_jackson_object
-
-## PRIVATE
-Array.to_json_object : (Any -> Any) -> Vector
-Array.to_json_object self fun =
+Array.to_js_object self =
     stripped = Warning.clear self
-    proxy = Array_Proxy.new stripped.length i-> fun (stripped.at i)
+    proxy = Array_Proxy.new stripped.length i-> stripped.at i .to_js_object
     Vector.from_polyglot_array proxy
 
 ## PRIVATE
@@ -168,52 +102,27 @@ Vector.to_js_object self =
    Converts the given value to a JSON serializable object.
    For Nothing, booleans, numbers and strings, this is the value itself.
    For arrays or vectors, the elements are converted recursively.
-   For atoms, the object is converted to a Jackson_Object.
-Vector.to_jackson_object : Vector
-Vector.to_jackson_object self =
-    stripped = Warning.clear self
-    proxy = Array_Proxy.new stripped.length i-> stripped.at i . to_jackson_object
-    Vector.from_polyglot_array proxy
-
-## PRIVATE
-   Converts the given value to a JSON serializable object.
-   For Nothing, booleans, numbers and strings, this is the value itself.
-   For arrays or vectors, the elements are converted recursively.
    For atoms, the object is converted to a JS_Object.
 Any.to_js_object : JS_Object
 Any.to_js_object self =
-    self.to_json_object .to_js_object JS_Object.from_pairs
-
-## PRIVATE
-   Converts the given value to a JSON serializable object.
-   For Nothing, booleans, numbers and strings, this is the value itself.
-   For arrays or vectors, the elements are converted recursively.
-   For atoms, the object is converted to a Jackson_Object.
-Any.to_jackson_object : Jackson_Object
-Any.to_jackson_object self =
-    self.to_json_object .to_jackson_object Jackson_Object.from_pairs
-
-## PRIVATE
-Any.to_json_object : (Any -> Any) -> (Vector -> Any) -> Any
-Any.to_json_object self fun fun_vector =
     m = Meta.meta self
     case m of
         _ : Meta.Atom ->
             type_pair = ["type", Meta.type_of self . to_text]
             cons = m.constructor
             java_cons = cons.value ...
-            if java_cons == self then fun_vector [type_pair] else
+            if java_cons == self then JS_Object.from_pairs [type_pair] else
                 fs = m.fields
                 field_names = cons.fields
 
                 builder = Vector.new_builder field_names.length+2
                 builder.append type_pair
                 builder.append ["constructor", cons.name]
-                0.up_to field_names.length . map i-> builder.append [field_names.at i, fun (fs.at i)]
-                fun_vector builder.to_vector
+                0.up_to field_names.length . map i-> builder.append [field_names.at i, fs.at i . to_js_object]
+                JS_Object.from_pairs builder.to_vector
         _ : Meta.Constructor ->
             type_name = Meta.get_qualified_type_name self . split '.' . at -2
-            fun_vector [["type", type_name], ["constructor", m.name]]
+            JS_Object.from_pairs [["type", type_name], ["constructor", m.name]]
         _ -> Error.throw ("Cannot convert " + self.to_text + " to JSON")
 
 ## PRIVATE
@@ -223,71 +132,31 @@ Any.to_json_object self fun fun_vector =
    For atoms, the object is converted to a JS_Object.
 Error.to_js_object : JS_Object
 Error.to_js_object self =
-    self.to_json_object JS_Object.from_pairs
-
-## PRIVATE
-   Converts the given value to a JSON serializable object.
-   For Nothing, booleans, numbers and strings, this is the value itself.
-   For arrays or vectors, the elements are converted recursively.
-   For atoms, the object is converted to a Jackson_Object.
-Error.to_jackson_object : Jackson_Object
-Error.to_jackson_object self =
-    self.to_json_object Jackson_Object.from_pairs
-
-## PRIVATE
-Error.to_json_object : (Vector -> Any) -> Any
-Error.to_json_object self fun =
     caught = self.catch
     error_type = ["type", "Error"]
     error_content = ["content", caught]
     error_message = ["message", caught.to_display_text]
-    fun [error_type, error_content, error_message]
-
+    JS_Object.from_pairs [error_type, error_content, error_message]
 
 ## PRIVATE
    Converts the given value to a JSON serializable object.
    Custom serialization for Locale, serializes the language, country and variant.
 Locale.to_js_object : JS_Object
 Locale.to_js_object self =
-    self.to_json_object JS_Object.from_pairs
-
-## PRIVATE
-   Converts the given value to a JSON serializable object.
-   Custom serialization for Locale, serializes the language, country and variant.
-Locale.to_jackson_object : Jackson_Object
-Locale.to_jackson_object self =
-    self.to_json_object Jackson_Object.from_pairs
-
-## PRIVATE
-Locale.to_json_object : (Vector -> Any) -> Any
-Locale.to_json_object self fun =
     b = Vector.new_builder 5
     b.append ["type", "Locale"]
     b.append ["constructor", "new"]
     b.append ["language", self.language]
     b.append ["country", self.country]
     b.append ["variant", self.variant]
-    fun b.to_vector
+    JS_Object.from_pairs b.to_vector
 
 ## PRIVATE
    Converts the given value to a JSON serializable object.
    For Map, this is serialized as a Vector of Key-Value pairs.
 
-   Enso Maps support arbitrary types as map keys, so we cannot serialize them into JS/Jackson Objects because there only strings are accepted as keys.
+   Enso Maps support arbitrary types as map keys, so we cannot serialize them into JS Objects because there only strings are accepted as keys.
 Map.to_js_object : JS_Object
 Map.to_js_object self =
-    self.to_json_object .to_js_object
-
-## PRIVATE
-   Converts the given value to a JSON serializable object.
-   For Map, this is serialized as a Vector of Key-Value pairs.
-
-   Enso Maps support arbitrary types as map keys, so we cannot serialize them into JS/Jackson Objects because there only strings are accepted as keys.
-Map.to_jackson_object : Jackson_Object
-Map.to_jackson_object self =
-    self.to_json_object .to_jackson_object
-
-Map.to_json_object : (Any -> Any) -> Any
-Map.to_json_object self fun =
     map_vector = self.to_vector
-    map_vector.map p-> [fun p.first, fun p.second]
+    map_vector.map p-> [p.first.to_js_object, p.second.to_js_object]

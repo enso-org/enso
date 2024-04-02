@@ -1,4 +1,3 @@
-import project.Data.Java_Json.Jackson_Object
 import project.Data.Json.JS_Object
 import project.Data.Numbers.Integer
 import project.Data.Ordering.Comparable
@@ -278,22 +277,6 @@ type URI
         type_pair = ["type", "URI"]
         cons_pair = ["constructor", "parse"]
         JS_Object.from_pairs [type_pair, cons_pair, ["uri", self.to_text]]
-
-    ## PRIVATE
-       Convert to a Jackson Object representing this URI.
-
-       > Example
-         Convert a URI to a Jackson_Object.
-
-             import Standard.Base.Network.URI.URI
-             import Standard.Examples
-
-             example_to_json = Examples.uri.to_jackson_object
-    to_jackson_object : Jackson_Object
-    to_jackson_object self =
-        type_pair = ["type", "URI"]
-        cons_pair = ["constructor", "parse"]
-        Jackson_Object.from_pairs [type_pair, cons_pair, ["uri", self.to_text]]
 
     ## PRIVATE
        Creates a Java representation that can be used to render this URL with

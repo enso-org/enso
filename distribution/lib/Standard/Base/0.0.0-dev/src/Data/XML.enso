@@ -1,5 +1,4 @@
 import project.Any.Any
-import project.Data.Java_Json.Jackson_Object
 import project.Data.Json.Extensions
 import project.Data.Json.JS_Object
 import project.Data.Map.Map
@@ -373,12 +372,6 @@ type XML_Document
     to_js_object self = self.root_element.to_js_object
 
     ## PRIVATE
-       Convert to a Jackson Object representing this XML_Document.
-    to_jackson_object : Jackson_Object
-    to_jackson_object self = self.root_element.to_jackson_object
-
-
-    ## PRIVATE
        Convert to a display representation of this XML_Document.
     to_display_text : Text
     to_display_text self = "XML_Document (" + self.root_element.to_display_text + ")"
@@ -679,17 +672,6 @@ type XML_Element
         builder.append ["attributes", self.attributes.to_js_object]
         builder.append ["children", self.children_cache.to_js_object]
         JS_Object.from_pairs builder.to_vector
-
-    ## PRIVATE
-       Convert to a Jackson Object representing this XML_Element.
-    to_jackson_object : Jackson_Object ! XML_Error
-    to_jackson_object self =
-        builder = Vector.new_builder 4
-        builder.append ["type", "XML_Element"]
-        builder.append ["tag", self.name]
-        builder.append ["attributes", self.attributes.to_js_object]
-        builder.append ["children", self.children_cache.to_js_object]
-        Jackson_Object.from_pairs builder.to_vector
 
     ## PRIVATE
 

@@ -1,6 +1,5 @@
 import project.Any.Any
 import project.Data.Json.JS_Object
-import project.Data.Java_Json.Jackson_Object
 import project.Data.Numbers.Integer
 import project.Data.Text.Text
 import project.Data.Time.Date_Time.Date_Time
@@ -191,21 +190,6 @@ type Time_Zone
         JS_Object.from_pairs [type_pair, cons_pair, ["id", self.zone_id]]
 
     ## PRIVATE
-       Convert to a Jackson Object representing this Time_Zone.
-
-       > Example
-         Convert your system's current timezone to a Jackson_Object.
-
-             from Standard.Base import Time_Zone
-
-             example_to_json = Time_Zone.system.to_jackson_object
-    to_jackson_object : Jackson_Object
-    to_jackson_object self =
-        type_pair = ["type", "Time_Zone"]
-        cons_pair = ["constructor", "parse"]
-        Jackson_Object.from_pairs [type_pair, cons_pair, ["id", self.zone_id]]
-
-    ## PRIVATE
        Convert to a display representation of this Time_Zone.
     to_display_text : Text
     to_display_text self = self.to_text
@@ -214,7 +198,3 @@ type Time_Zone
 Time_Zone.from (that:JS_Object) =
     if that.get "type" == "Time_Zone" && ["id"].all that.contains_key then Time_Zone.parse (that.get "id") else
         Error.throw (Illegal_Argument.Error "Invalid JS_Object for Time_Zone.from.")
-
-Time_Zone.from (that:Jackson_Object) =
-    if that.get "type" == "Time_Zone" && ["id"].all that.contains_key then Time_Zone.parse (that.get "id") else
-        Error.throw (Illegal_Argument.Error "Invalid Jackson_Object for Time_Zone.from.")
