@@ -236,8 +236,11 @@ function resolveTagExpression(edit: Ast.MutableModule, tag: ExpressionTag) {
   if (tag.requiredImports) {
     const conflicts = graph.addMissingImports(edit, tag.requiredImports)
     if (conflicts != null && conflicts.length > 0) {
-      // Is there is a conflict, it would be a single one, because we only ask about a single entry.
-      return conflicts[0]?.fullyQualified!
+      // TODO: Substitution does not work, because we interpret imports wrongly. To be fixed in
+      // https://github.com/enso-org/enso/issues/9356
+      // And here it was wrong anyway: we should replace only conflicting name, not entire expression!
+      // // Is there is a conflict, it would be a single one, because we only ask about a single entry.
+      // return conflicts[0]?.fullyQualified!
     }
   }
   // Unless a conflict occurs, we use the selected expression as is.

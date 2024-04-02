@@ -210,6 +210,12 @@ public abstract class InvokeMethodNode extends BaseNode {
     Type selfTpe = typesLibrary.getType(self);
     Function function = resolveFunction(symbol, selfTpe, methodResolverNode);
     if (function == null) {
+      var ctx = EnsoContext.get(this);
+      var imported =
+          self instanceof Type t ? InvokeMethodImportResolver.tryResolve(t, symbol, ctx) : null;
+      if (imported != null) {
+        return imported;
+      }
       throw methodNotFound(symbol, self);
     }
     var resolvedFuncArgCount = function.getSchema().getArgumentsCount();

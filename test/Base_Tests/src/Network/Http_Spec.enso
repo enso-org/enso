@@ -86,9 +86,8 @@ add_specs suite_builder =
             http = HTTP.new (version = version_setting)
             http.version.should_equal version_setting
 
-
+    url_get = base_url_with_slash.if_not_nothing <| base_url_with_slash + "get"
     suite_builder.group "fetch" pending=pending_has_url group_builder->
-        url_get = base_url_with_slash + "get"
         url_head = base_url_with_slash + "head"
         url_options = base_url_with_slash + "options"
 
@@ -195,8 +194,6 @@ add_specs suite_builder =
             header_names.should_not_contain "upgrade"
 
     suite_builder.group "HTTP in Data.read" pending=pending_has_url group_builder->
-        url_get = base_url_with_slash + "get"
-
         group_builder.specify "can use URI in Data.read" <|
             r = Data.read (URI.from url_get)
             r.should_be_a JS_Object
