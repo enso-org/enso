@@ -271,7 +271,18 @@ pub struct BuildDescription<Target: IsTargetSource> {
     #[derivative(PartialEq(bound = ""))]
     #[clap(flatten)]
     pub input:           Target::BuildInput,
-    #[clap(name = Target::UPLOAD_ARTIFACT_NAME, long, enso_env(), default_value_t = ide_ci::actions::workflow::is_in_env())]
+    // Cumbersome way of defining a bool argument that can take explicit value.
+    // See: https://github.com/clap-rs/clap/issues/1649#issuecomment-1837123432
+    #[clap(
+        name = Target::UPLOAD_ARTIFACT_NAME,
+        long,
+        enso_env(),
+        default_value_t = ide_ci::actions::workflow::is_in_env(),
+        default_missing_value("true"),
+        num_args(0..=1),
+        require_equals(true),
+        action = clap::ArgAction::Set
+    )]
     pub upload_artifact: bool,
 }
 
