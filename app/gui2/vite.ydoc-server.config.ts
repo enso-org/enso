@@ -32,8 +32,14 @@ export default defineConfig({
     'global.TYPED_ARRAY_SUPPORT': true,
   },
   build: {
-    minify: false,
-    outDir: '../../lib/java/js-websocket/target/classes/dist',
+    minify: false, // For debugging
+    emptyOutDir: true,
+    outDir: '../../lib/java/polyglot-ydoc-server/target/classes/dist',
+    /* lib: {
+      entry: fileURLToPath(new URL('ydoc-server/server.ts', import.meta.url)),
+      name: 'ydocServer',
+      fileName: 'ydocServer'
+    }, */
     rollupOptions: {
       input: {
         ydocServer: fileURLToPath(new URL('ydoc-server/server.ts', import.meta.url)),

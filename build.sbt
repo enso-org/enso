@@ -1116,8 +1116,8 @@ lazy val searcher = project
   .dependsOn(testkit % Test)
   .dependsOn(`polyglot-api`)
 
-lazy val `js-websocket` = project
-  .in(file("lib/java/js-websocket"))
+lazy val `polyglot-ydoc-server` = project
+  .in(file("lib/java/polyglot-ydoc-server"))
   .enablePlugins(JPMSPlugin)
   .configs(Test)
   .settings(
