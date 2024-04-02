@@ -197,7 +197,8 @@ export class GraphDb {
     return this.suggestionDb.get(suggestionId)
   })
 
-  nodeColor = new ReactiveMapping(this.nodeIdToNode, (id, _entry) => {
+  nodeColor = new ReactiveMapping(this.nodeIdToNode, (id, entry) => {
+    if (entry.colorOverride != null) return entry.colorOverride
     const index = this.nodeMainSuggestion.lookup(id)?.groupIndex
     const group = tryGetIndex(this.groups.value, index)
     if (group == null) {
@@ -353,6 +354,7 @@ export class GraphDb {
         const metadataFields = {
           position: new Vec2(pos.x, pos.y),
           vis: nodeMeta.get('visualization'),
+          colorOverride: nodeMeta.get('colorOverride'),
         }
         this.nodeIdToNode.set(nodeId, { ...newNode, ...metadataFields, zIndex: this.highestZIndex })
       } else {
@@ -428,6 +430,7 @@ export class GraphDb {
       const newVis = changes.get('visualization')
       if (!visMetadataEquals(newVis, node.vis)) node.vis = newVis
     }
+    node.colorOverride = changes.get('colorOverride')
   }
 
   /** Get the ID of the `Ast` corresponding to the given `ExternalId` as of the last synchronization. */
@@ -512,6 +515,7 @@ export interface NodeDataFromAst {
 export interface NodeDataFromMetadata {
   position: Vec2
   vis: Opt<VisualizationMetadata>
+  colorOverride: Opt<string>
 }
 
 export interface Node extends NodeDataFromAst, NodeDataFromMetadata {
@@ -524,6 +528,7 @@ const baseMockNode = {
   prefixes: { enableRecording: undefined },
   primarySubject: undefined,
   documentation: undefined,
+  colorOverride: undefined,
   conditionalPorts: new Set(),
 } satisfies Partial<Node>
 

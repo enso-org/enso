@@ -1,8 +1,15 @@
-import { formatCss, formatRgb, modeOklch, modeRgb, useMode, type Oklch } from 'culori/fn'
+import { converter, formatCss, formatRgb, modeOklch, modeRgb, useMode, type Oklch } from 'culori/fn'
 import { v3 as hashString } from 'murmurhash'
 
 useMode(modeOklch)
 useMode(modeRgb)
+
+const rgbConverter = converter('rgb')
+
+export function convertToRgb(color: string): string | undefined {
+  const colorRgb = rgbConverter(color)
+  return colorRgb ? formatRgb(colorRgb) : undefined
+}
 
 // Check if the browser supports `oklch` colorspace. If it does not, we fallback to good-old sRGB.
 const supportsOklch: boolean =

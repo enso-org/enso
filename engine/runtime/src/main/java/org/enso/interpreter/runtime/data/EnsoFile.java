@@ -131,7 +131,6 @@ public final class EnsoFile implements EnsoObject {
 
   @Builtin.Method(name = "creation_time_builtin")
   @Builtin.WrapException(from = IOException.class)
-  @Builtin.ReturningGuestObject
   @CompilerDirectives.TruffleBoundary
   public EnsoDateTime getCreationTime() throws IOException {
     return new EnsoDateTime(
@@ -140,7 +139,6 @@ public final class EnsoFile implements EnsoObject {
 
   @Builtin.Method(name = "last_modified_time_builtin")
   @Builtin.WrapException(from = IOException.class)
-  @Builtin.ReturningGuestObject
   @CompilerDirectives.TruffleBoundary
   public EnsoDateTime getLastModifiedTime() throws IOException {
     return new EnsoDateTime(
@@ -157,7 +155,7 @@ public final class EnsoFile implements EnsoObject {
 
   @Builtin.Method(name = "parent")
   @CompilerDirectives.TruffleBoundary
-  public Object getParent() {
+  public EnsoObject getParent() {
     var parentOrNull = this.truffleFile.getParent();
     if (parentOrNull != null) {
       return new EnsoFile(parentOrNull);
