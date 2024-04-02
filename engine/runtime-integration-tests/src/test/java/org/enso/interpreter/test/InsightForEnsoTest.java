@@ -96,15 +96,25 @@ public class InsightForEnsoTest extends TestBase {
 
   @Test
   public void instantiateConstructor() throws Exception {
-    doInstantiateConstructor(false);
+    doInstantiateConstructor(false, false);
   }
 
   @Test
   public void instantiateAutoscopedConstructor() throws Exception {
-    doInstantiateConstructor(true);
+    doInstantiateConstructor(true, false);
   }
 
-  private void doInstantiateConstructor(boolean useAutoscoping) throws Exception {
+  @Test
+  public void lazyInstantiateConstructor() throws Exception {
+    doInstantiateConstructor(false, true);
+  }
+
+  @Test
+  public void lazyInstantiateAutoscopedConstructor() throws Exception {
+    doInstantiateConstructor(true, true);
+  }
+
+  private void doInstantiateConstructor(boolean useAutoscoping, boolean lazy) throws Exception {
     var code =
         Source.newBuilder(
                 "enso",
@@ -113,9 +123,12 @@ public class InsightForEnsoTest extends TestBase {
                     Number re im
 
                     switch n:Complex = Complex.Number n.im n.re
+                    switch_lazy (~n:Complex) = Complex.Number n.im n.re
 
                 alloc1 a b = Complex.switch (Complex.Number a b)
                 alloc2 a b = Complex.switch (..Number a b)
+                alloc3 a b = Complex.switch_lazy (Complex.Number a b)
+                alloc4 a b = Complex.switch_lazy (..Number a b)
                 """,
                 "complex.enso")
             .build();
@@ -123,8 +136,11 @@ public class InsightForEnsoTest extends TestBase {
     var m = ctx.eval(code);
     var alloc1 = m.invokeMember("eval_expression", "alloc1");
     var alloc2 = m.invokeMember("eval_expression", "alloc2");
+    var alloc3 = m.invokeMember("eval_expression", "alloc3");
+    var alloc4 = m.invokeMember("eval_expression", "alloc4");
 
-    var res = useAutoscoping ? alloc2.execute(3, 4) : alloc1.execute(3, 4);
+    var useAlloc = useAutoscoping ? (lazy ? alloc4 : alloc2) : (lazy ? alloc3 : alloc1);
+    var res = useAlloc.execute(3, 4);
     assertEquals("Complex", res.getMetaObject().getMetaSimpleName());
     assertEquals(3, res.getMember("im").asInt());
     assertEquals(4, res.getMember("re").asInt());
@@ -141,7 +157,7 @@ public class InsightForEnsoTest extends TestBase {
     assertTrue(
         "First constructor call must be sooner than second:\n" + msgs, firstCons < secondCons);
 
-    if (useAutoscoping) {
+    if (useAutoscoping || lazy) {
       assertTrue("Switch call first and then both constructors:\n" + msgs, switchCall < firstCons);
     } else {
       assertTrue("First constructor sooner than switch call:\n" + msgs, firstCons < switchCall);
