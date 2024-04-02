@@ -13,14 +13,12 @@ import org.graalvm.polyglot.io.IOAccess;
 
 public class Main {
 
-    private static final String YDOC_SERVER_PATH = "/ydoc-server-bundle.js";
-    private static final String WASM_PATH = "/153299079965dcf860b5.wasm";
+    private static final String YDOC_SERVER_PATH = "/dist/assets/ydocServer.js";
 
     private Main() {
     }
 
     public static void main(String[] args) throws Exception {
-        ClasspathResource.createTempFile(WASM_PATH);
         var demo = ClasspathResource.createTempFile(YDOC_SERVER_PATH);
         if (demo == null) {
             throw new IOException("Cannot find " + YDOC_SERVER_PATH);

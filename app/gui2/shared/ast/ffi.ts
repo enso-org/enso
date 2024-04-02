@@ -1,20 +1,11 @@
-import { isJvm } from '../util/detect'
-
-async function resolveImports() {
-  if (isJvm) {
-    const javaImpl = await import('./ffiJvm')
-    return javaImpl
-  } else {
-    const wasmImpl = await import('./ffiWasm')
-    return wasmImpl
-  }
+declare global {
+    function parse_tree(code: string): Uint8Array;
+    function parse_doc_to_json(docs: string): string;
+    function is_ident_or_operator(code: string): number;
+    function xxHash128(input: string): string;
 }
 
-const { is_ident_or_operator, parse_doc_to_json, parse_tree, initializeFFI, xxHash128 } =
-  await resolveImports()
-
-// TODO[ao]: We cannot to that, because the ffi is used by cjs modules.
-// await initializeFFI()
+export async function initializeFFI(path?: string | undefined) {}
 
 /* eslint-disable-next-line camelcase */
-export { initializeFFI, is_ident_or_operator, parse_doc_to_json, parse_tree, xxHash128 }
+export const { is_ident_or_operator, parse_doc_to_json, parse_tree, xxHash128 } = globalThis;
