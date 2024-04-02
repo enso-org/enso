@@ -1178,13 +1178,13 @@ export default function AssetsTable(props: AssetsTableProps) {
   )
 
   React.useEffect(() => {
-    const root = rootRef.current
-    if (root == null) {
+    const body = bodyRef.current
+    if (body == null) {
       return
     } else {
-      return navigator2D.register(root, {
+      return navigator2D.register(body, {
         focusPrimaryChild: () => {
-          rootRef.current?.focus()
+          body.focus()
           setMostRecentlySelectedIndex(0, true)
         },
       })
@@ -1255,15 +1255,34 @@ export default function AssetsTable(props: AssetsTableProps) {
           break
         }
         case 'ArrowLeft': {
-          if (item.item.type === backendModule.AssetType.directory && item.children != null) {
-            event.preventDefault()
-            event.stopPropagation()
-            doToggleDirectoryExpansion(item.item.id, item.key, null, false)
+          if (item.item.type === backendModule.AssetType.directory) {
+            if (item.children != null) {
+              // The folder is expanded; collapse it.
+              event.preventDefault()
+              event.stopPropagation()
+              doToggleDirectoryExpansion(item.item.id, item.key, null, false)
+            } else if (prevIndex != null) {
+              // Focus parent if there is one.
+              let index = prevIndex - 1
+              let possibleParent = visibleItems[index]
+              while (possibleParent != null && index >= 0) {
+                if (possibleParent.depth < item.depth) {
+                  event.preventDefault()
+                  event.stopPropagation()
+                  setSelectedKeys(new Set([possibleParent.key]))
+                  setMostRecentlySelectedIndex(index, true)
+                  break
+                }
+                index -= 1
+                possibleParent = visibleItems[index]
+              }
+            }
           }
           break
         }
         case 'ArrowRight': {
           if (item.item.type === backendModule.AssetType.directory && item.children == null) {
+            // The folder is collapsed; expand it.
             event.preventDefault()
             event.stopPropagation()
             doToggleDirectoryExpansion(item.item.id, item.key, null, true)
@@ -1348,24 +1367,6 @@ export default function AssetsTable(props: AssetsTableProps) {
       }
     }
   }
-
-  React.useEffect(() => {
-    const onFocusOut = (event: FocusEvent) => {
-      if (
-        event.currentTarget instanceof HTMLElement &&
-        event.relatedTarget instanceof HTMLElement &&
-        !event.currentTarget.contains(event.relatedTarget)
-      ) {
-        setKeyboardSelectedIndex(null)
-      }
-    }
-
-    const root = rootRef.current
-    root?.addEventListener('focusout', onFocusOut)
-    return () => {
-      root?.removeEventListener('focusout', onFocusOut)
-    }
-  }, [rootRef, setMostRecentlySelectedIndex])
 
   React.useEffect(() => {
     const onClick = () => {
@@ -2461,6 +2462,14 @@ export default function AssetsTable(props: AssetsTableProps) {
           {...innerProps}
           onKeyDown={onKeyDown}
           onScroll={onScroll}
+          onBlur={event => {
+            if (
+              event.relatedTarget instanceof HTMLElement &&
+              !event.currentTarget.contains(event.relatedTarget)
+            ) {
+              setKeyboardSelectedIndex(null)
+            }
+          }}
         >
           {!hidden && hiddenContextMenu}
           {!hidden && (
@@ -2480,9 +2489,13 @@ export default function AssetsTable(props: AssetsTableProps) {
                   <FocusArea direction="horizontal">
                     {(columnsBarRef, columnsBarProps) => (
                       <div
-                        ref={columnsBarRef}
-                        className="inline-flex gap-icons"
-                        {...columnsBarProps}
+                        {...aria.mergeProps<JSX.IntrinsicElements['div']>()(columnsBarProps, {
+                          ref: columnsBarRef,
+                          className: 'inline-flex gap-icons',
+                          onFocus: () => {
+                            setKeyboardSelectedIndex(null)
+                          },
+                        })}
                       >
                         {columnUtils.CLOUD_COLUMNS.filter(
                           column => !enabledColumns.has(column)
