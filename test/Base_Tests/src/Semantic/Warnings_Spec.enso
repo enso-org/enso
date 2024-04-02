@@ -170,7 +170,7 @@ add_specs suite_builder = suite_builder.group "Dataflow Warnings" group_builder-
             + [ 'Integer.+' ]
             + [ 'Warnings_Spec.get_foo' ]
             + [ 'Wrap.Value' ]
-            + [ 'Warnings_Spec.unwrap' ]
+            + [ 'Integer.from' ]
             + [ 'Warnings_Spec.rewrap' ]
             + [ 'Wrap.Value' ]
         reassignments.should_equal expected_stack.to_vector

@@ -281,7 +281,8 @@ export const enum PointerButtonMask {
 /**
  * Register for a pointer dragging events.
  *
- * @param handler callback on any pointer event
+ * @param handler callback on any pointer event.
+ * If `false` is returned from the callback, `preventDefault` will NOT be called for the event.
  * @param requiredButtonMask declare which buttons to look for. The value represents a `PointerEvent.buttons` mask.
  * @returns
  */
