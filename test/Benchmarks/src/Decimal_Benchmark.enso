@@ -37,31 +37,26 @@ collect_benches = Bench.build builder->
     lazy_data = Lazy.Value (Data.new faker)
 
     builder.group "Float_Decimal_comparison" options group_builder->
-        data = lazy_data.value
-        float_pairs = data.float_pairs
-        float_pairs_without_zero_second = float_pairs.filter (pr-> (pr.at 1) != 0.0)
-        decimal_pairs = data.decimal_pairs
-        decimal_pairs_without_zero_second = decimal_pairs.filter (pr-> (pr.at 1) != 0.0)
-        int_pairs = data.int_pairs
-        decimal_int_pairs = data.decimal_int_pairs
-        small_float_int_pairs = data.small_float_int_pairs
-        small_decimal_int_pairs = data.small_decimal_int_pairs
-
         division_math_context = Math_Context.new 20
 
-        group_builder.specify "float_add" (float_pairs.map (pr-> (pr.at 0) + (pr.at 1)))
-        group_builder.specify "decimal_add" (decimal_pairs.map (pr-> (pr.at 0) + (pr.at 1)))
-        group_builder.specify "float_subtract" (float_pairs.map (pr-> (pr.at 0) - (pr.at 1)))
-        group_builder.specify "decimal_subtract" (decimal_pairs.map (pr-> (pr.at 0) - (pr.at 1)))
-        group_builder.specify "float_multiply" (float_pairs.map (pr-> (pr.at 0) * (pr.at 1)))
-        group_builder.specify "decimal_multiply" (decimal_pairs.map (pr-> (pr.at 0) * (pr.at 1)))
-        group_builder.specify "float_divide" (float_pairs_without_zero_second.map (pr-> (pr.at 0) / (pr.at 1)))
-        group_builder.specify "decimal_divide" (decimal_pairs_without_zero_second.map (pr-> (pr.at 0).divide (pr.at 1) division_math_context))
-        group_builder.specify "float_remainder" (float_pairs.map (pr-> (pr.at 0) % (pr.at 1)))
-        group_builder.specify "decimal_remainder" (decimal_pairs.map (pr-> (pr.at 0) % (pr.at 1)))
-        group_builder.specify "float_div" (int_pairs.map (pr-> (pr.at 0) . div (pr.at 1)))
-        group_builder.specify "decimal_div" (decimal_int_pairs.map (pr-> (pr.at 0) . div (pr.at 1)))
-        group_builder.specify "float_pow" (small_float_int_pairs.map (pr-> (pr.at 0) ^ (pr.at 1)))
-        group_builder.specify "decimal_pow" (small_decimal_int_pairs.map (pr-> (pr.at 0) ^ (pr.at 1)))
+        group_builder.specify "float_add" (lazy_data.value.float_pairs.map (pr-> (pr.at 0) + (pr.at 1)))
+        group_builder.specify "decimal_add" (lazy_data.value.decimal_pairs.map (pr-> (pr.at 0) + (pr.at 1)))
+        group_builder.specify "float_subtract" (lazy_data.value.float_pairs.map (pr-> (pr.at 0) - (pr.at 1)))
+        group_builder.specify "decimal_subtract" (lazy_data.value.decimal_pairs.map (pr-> (pr.at 0) - (pr.at 1)))
+        group_builder.specify "float_multiply" (lazy_data.value.float_pairs.map (pr-> (pr.at 0) * (pr.at 1)))
+        group_builder.specify "decimal_multiply" (lazy_data.value.decimal_pairs.map (pr-> (pr.at 0) * (pr.at 1)))
+        group_builder.specify "float_divide" <|
+            float_pairs_without_zero_second = lazy_data.value.float_pairs.filter (pr-> (pr.at 1) != 0.0)
+            float_pairs_without_zero_second.map (pr-> (pr.at 0) / (pr.at 1))
+        group_builder.specify "decimal_divide" <|
+            decimal_pairs_without_zero_second = lazy_data.value.decimal_pairs.filter (pr-> (pr.at 1) != 0.0)
+            decimal_pairs_without_zero_second.map (pr-> (pr.at 0).divide (pr.at 1) division_math_context)
+
+        group_builder.specify "float_remainder" (lazy_data.value.float_pairs.map (pr-> (pr.at 0) % (pr.at 1)))
+        group_builder.specify "decimal_remainder" (lazy_data.value.decimal_pairs.map (pr-> (pr.at 0) % (pr.at 1)))
+        group_builder.specify "float_div" (lazy_data.value.int_pairs.map (pr-> (pr.at 0) . div (pr.at 1)))
+        group_builder.specify "decimal_div" (lazy_data.value.decimal_int_pairs.map (pr-> (pr.at 0) . div (pr.at 1)))
+        group_builder.specify "float_pow" (lazy_data.value.small_float_int_pairs.map (pr-> (pr.at 0) ^ (pr.at 1)))
+        group_builder.specify "decimal_pow" (lazy_data.value.small_decimal_int_pairs.map (pr-> (pr.at 0) ^ (pr.at 1)))
 
 main = collect_benches . run_main
