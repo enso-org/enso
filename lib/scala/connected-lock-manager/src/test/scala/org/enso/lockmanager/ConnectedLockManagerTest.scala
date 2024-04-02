@@ -150,8 +150,7 @@ class ConnectedLockManagerTest
       }
 
       sync.join()
-      sync.summarizeReports() shouldEqual
-      Seq(
+      sync.summarizeReports() shouldEqual Seq(
         "primary-acquired",
         "connected-acquired",
         "released",
