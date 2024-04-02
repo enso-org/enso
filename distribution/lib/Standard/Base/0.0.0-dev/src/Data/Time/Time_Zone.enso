@@ -198,4 +198,3 @@ type Time_Zone
 Time_Zone.from (that:JS_Object) =
     if that.get "type" == "Time_Zone" && ["id"].all that.contains_key then Time_Zone.parse (that.get "id") else
         Error.throw (Illegal_Argument.Error "Invalid JS_Object for Time_Zone.from.")
-
