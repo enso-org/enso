@@ -42,15 +42,16 @@ const SIZE_CLASSES = 'px-2 py-1'
 /**
  * A button allows a user to perform an action, with mouse, touch, and keyboard interactions.
  */
-export function Button(props: ButtonProps) {
+export function Button(props: ButtonProps): React.JSX.Element {
   const { className, children, variant, icon, loading = false, ...ariaButtonProps } = props
 
-  const classes = clsx(DEFAULT_CLASSES, DISABLED_CLASSES, FOCUS_CLASSES, SIZE_CLASSES, {
-    [SUBMIT_CLASSES]: variant === 'submit',
-    [CANCEL_CLASSES]: variant === 'cancel',
-    [DELETE_CLASSES]: variant === 'delete',
-    [ICON_CLASSES]: variant === 'icon',
-  })
+  const classes = clsx(
+    DEFAULT_CLASSES,
+    DISABLED_CLASSES,
+    FOCUS_CLASSES,
+    SIZE_CLASSES,
+    VARIANT_TO_CLASSES[variant]
+  )
 
   const childrenFactory = (): React.ReactNode => {
     if (loading) {
@@ -81,4 +82,11 @@ export function Button(props: ButtonProps) {
       {childrenFactory()}
     </reactAriaComponents.Button>
   )
+}
+
+const VARIANT_TO_CLASSES: Record<ButtonProps['variant'], string> = {
+  cancel: CANCEL_CLASSES,
+  delete: DELETE_CLASSES,
+  icon: ICON_CLASSES,
+  submit: SUBMIT_CLASSES,
 }
