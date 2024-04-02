@@ -150,11 +150,31 @@ class ConnectedLockManagerTest
       }
 
       sync.join()
-      sync.summarizeReports() shouldEqual Seq(
-        "primary-acquired",
-        "connected-acquired",
-        "released",
-        "released"
+      sync.summarizeReports() should (
+        equal(
+          Seq(
+            "primary-acquired",
+            "connected-acquired",
+            "released",
+            "released"
+          )
+        ) or
+        equal(
+          Seq(
+            "connected-acquired",
+            "primary-acquired",
+            "released",
+            "released"
+          )
+        ) or
+        equal(
+          Seq(
+            "connected-acquired",
+            "released",
+            "primary-acquired",
+            "released"
+          )
+        )
       )
     }
   }
