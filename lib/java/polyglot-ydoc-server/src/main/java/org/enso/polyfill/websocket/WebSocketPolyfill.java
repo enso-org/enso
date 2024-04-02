@@ -12,6 +12,7 @@ import java.util.concurrent.ExecutorService;
 
 import org.enso.polyfill.Polyfill;
 import org.enso.polyfill.crypto.CryptoPolyfill;
+import org.enso.polyfill.encoding.EncodingPolyfill;
 import org.enso.polyfill.timers.TimersPolyfill;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Source;
@@ -57,6 +58,9 @@ public final class WebSocketPolyfill implements ProxyExecutable, Polyfill {
 
         var crypto = new CryptoPolyfill();
         crypto.initialize(ctx);
+
+        var encoding = new EncodingPolyfill();
+        encoding.initialize(ctx);
 
         Source webSocketPolyfillJs = Source
                 .newBuilder("js", WebSocketPolyfill.class.getResource(WEBSOCKET_POLYFILL_JS))

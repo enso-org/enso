@@ -1123,7 +1123,8 @@ lazy val `polyglot-ydoc-server` = project
   .settings(
     crossPaths := false,
     autoScalaLibrary := false,
-    run / fork := true,
+    Compile / run / fork := true,
+    Test / fork := true,
     modulePath := {
       JPMSUtils.filterModulesFromUpdate(
         update.value,

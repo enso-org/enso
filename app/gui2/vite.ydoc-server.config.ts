@@ -30,6 +30,8 @@ export default defineConfig({
     'import.meta.vitest': false,
     // Single hardcoded usage of `global` in aws-amplify.
     'global.TYPED_ARRAY_SUPPORT': true,
+    // One of the libraries refers to self in `self.fetch.bind(self)`
+    'self': 'globalThis'
   },
   build: {
     minify: false, // For debugging
