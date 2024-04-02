@@ -27,6 +27,7 @@ const ACTION_TO_TEXT_ID: Readonly<Record<inputBindings.DashboardBindingKey, text
   uploadToCloud: 'uploadToCloudShortcut',
   rename: 'renameShortcut',
   edit: 'editShortcut',
+  editDescription: 'editDescriptionShortcut',
   snapshot: 'snapshotShortcut',
   delete: 'deleteShortcut',
   undelete: 'undeleteShortcut',
