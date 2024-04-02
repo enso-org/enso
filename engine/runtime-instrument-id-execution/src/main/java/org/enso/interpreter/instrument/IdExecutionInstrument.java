@@ -30,6 +30,7 @@ import org.enso.interpreter.node.expression.debug.EvalNode;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.Module;
 import org.enso.interpreter.runtime.callable.CallerInfo;
+import org.enso.interpreter.runtime.callable.UnresolvedConstructor;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.control.TailCallException;
 import org.enso.interpreter.runtime.data.text.Text;
@@ -238,7 +239,8 @@ public class IdExecutionInstrument extends TruffleInstrument implements IdExecut
           if (cachedResult != null) {
             throw context.createUnwind(cachedResult);
           }
-        } else if (node instanceof ExpressionNode expressionNode) {
+        } else if (node instanceof ExpressionNode expressionNode
+            && !(result instanceof UnresolvedConstructor)) {
           Info info =
               new NodeInfo(
                   expressionNode.getId(),

@@ -6,27 +6,33 @@ import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.frame.MaterializedFrame;
 import com.oracle.truffle.api.frame.VirtualFrame;
-import com.oracle.truffle.api.instrumentation.InstrumentableNode.WrapperNode;
 import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
+import com.oracle.truffle.api.nodes.DirectCallNode;
 import com.oracle.truffle.api.nodes.Node;
-import com.oracle.truffle.api.nodes.NodeUtil;
 import com.oracle.truffle.api.source.SourceSection;
 import java.util.Arrays;
 import java.util.Objects;
-import java.util.concurrent.locks.Lock;
+import java.util.UUID;
+import org.enso.compiler.context.LocalScope;
+import org.enso.interpreter.EnsoLanguage;
+import org.enso.interpreter.node.ClosureRootNode;
+import org.enso.interpreter.node.EnsoRootNode;
 import org.enso.interpreter.node.ExpressionNode;
-import org.enso.interpreter.node.callable.FunctionCallInstrumentationNode;
-import org.enso.interpreter.node.callable.InvokeCallableNode.ArgumentsExecutionMode;
+import org.enso.interpreter.node.callable.ApplicationNode;
 import org.enso.interpreter.node.callable.InvokeCallableNode.DefaultsExecutionMode;
-import org.enso.interpreter.node.callable.dispatch.InvokeFunctionNode;
+import org.enso.interpreter.node.callable.argument.ReadArgumentNode;
+import org.enso.interpreter.node.callable.function.BlockNode;
 import org.enso.interpreter.runtime.EnsoContext;
+import org.enso.interpreter.runtime.callable.argument.CallArgument;
 import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo;
+import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.data.EnsoObject;
 import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.data.atom.AtomConstructor;
 import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
+import org.enso.interpreter.runtime.scope.ModuleScope;
 import org.enso.interpreter.runtime.state.State;
 
 /**
@@ -137,7 +143,6 @@ public final class UnresolvedConstructor implements EnsoObject {
 
   /** */
   public abstract static class ConstructNode extends Node {
-    @Child private InvokeFunctionNode invoke;
     @CompilerDirectives.CompilationFinal SourceSection where;
 
     public abstract Object execute(
@@ -148,19 +153,38 @@ public final class UnresolvedConstructor implements EnsoObject {
       return where;
     }
 
-    private static InvokeFunctionNode buildInvokeNode(UnresolvedConstructor prototype) {
-      var node =
-          InvokeFunctionNode.build(
-              prototype.descs, DefaultsExecutionMode.EXECUTE, ArgumentsExecutionMode.EXECUTE);
-      var where = prototype.where;
-      while (where != null) {
-        if (where instanceof ExpressionNode withId) {
-          node.setId(withId.getId());
+    static DirectCallNode buildApplication(UnresolvedConstructor prototype) {
+      UUID id = null;
+      SourceSection section = null;
+      ModuleScope scope = null;
+      for (var where = prototype.where; where != null; where = where.getParent()) {
+        if (where instanceof ExpressionNode withId && withId.getId() != null) {
+          id = withId.getId();
+          section = withId.getSourceSection();
+          scope = withId.getRootNode() instanceof EnsoRootNode root ? root.getModuleScope() : null;
           break;
         }
-        where = where.getParent();
       }
-      return node;
+      var fn = ReadArgumentNode.build(0, null, null);
+      var args = new CallArgument[prototype.descs.length];
+      for (var i = 0; i < args.length; i++) {
+        args[i] = new CallArgument(ReadArgumentNode.build(1 + i, null, null));
+      }
+      var expr = ApplicationNode.build(fn, args, DefaultsExecutionMode.EXECUTE);
+      expr.setId(id);
+      if (section != null) {
+        expr.setSourceLocation(section.getCharIndex(), section.getCharLength());
+      }
+      var lang = EnsoLanguage.get(null);
+      var body = BlockNode.build(new ExpressionNode[0], expr);
+      body.adoptChildren();
+      var root =
+          ClosureRootNode.build(
+              lang, LocalScope.root(), scope, body, section, prototype.getName(), true, true);
+      root.adoptChildren();
+      assert Objects.equals(expr.getSourceSection(), section)
+          : "Expr: " + expr.getSourceSection() + " orig: " + section;
+      return DirectCallNode.create(root.getCallTarget());
     }
 
     @Specialization(
@@ -173,37 +197,19 @@ public final class UnresolvedConstructor implements EnsoObject {
         UnresolvedConstructor unresolved,
         @Cached("expectedType") Type cachedType,
         @Cached("unresolved.asPrototype()") UnresolvedConstructor prototype,
+        @Cached("buildApplication(prototype)") DirectCallNode callNode,
         @Cached("expectedType.getConstructors().get(prototype.getName())") AtomConstructor c) {
       if (c == null) {
         return null;
       } else {
-        if (invoke == null) {
-          CompilerDirectives.transferToInterpreterAndInvalidate();
-          Lock lock = getLock();
-          lock.lock();
-          try {
-            invoke = insert(buildInvokeNode(prototype));
-            where = prototype.where.getSourceSection();
-            if (invoke.getId() != null) {
-              notifyInsertedWithCheck();
-            }
-          } finally {
-            lock.unlock();
-          }
-        }
         var fn = c.getConstructorFunction();
-        var r = invoke.execute(fn, frame, state, unresolved.args);
+        var args = new Object[prototype.descs.length + 1];
+        System.arraycopy(unresolved.args, 0, args, 1, prototype.descs.length);
+        args[0] = fn;
+        var helper = Function.ArgumentsHelper.buildArguments(fn, null, state, args);
+        var r = callNode.call(helper);
         return r;
       }
-    }
-
-    private void notifyInsertedWithCheck() {
-      notifyInserted(invoke);
-      assert invoke.getSourceSection() != null;
-
-      var all = NodeUtil.findAllNodeInstances(this, FunctionCallInstrumentationNode.class);
-      assert all.size() == 2 : "Wrapper and real node: " + all;
-      assert all.get(0) instanceof WrapperNode : "Wrapper: " + all;
     }
 
     @Specialization(replaces = "instantiateCached")
@@ -215,8 +221,8 @@ public final class UnresolvedConstructor implements EnsoObject {
         return null;
       }
       var fn = c.getConstructorFunction();
-      var node = buildInvokeNode(unresolved);
-      var r = node.execute(fn, frame, state, unresolved.args);
+      // var node = buildInvokeNode(unresolved);
+      var r = 42L; // node.execute(fn, frame, state, unresolved.args);
       return r;
     }
   }

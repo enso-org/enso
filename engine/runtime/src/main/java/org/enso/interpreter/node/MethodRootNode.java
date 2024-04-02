@@ -1,7 +1,12 @@
 package org.enso.interpreter.node;
 
+import com.oracle.truffle.api.CompilerDirectives;
+import com.oracle.truffle.api.dsl.ReportPolymorphism;
+import com.oracle.truffle.api.frame.VirtualFrame;
+import com.oracle.truffle.api.nodes.Node;
+import com.oracle.truffle.api.nodes.NodeInfo;
+import com.oracle.truffle.api.source.SourceSection;
 import java.util.function.Supplier;
-
 import org.enso.compiler.context.LocalScope;
 import org.enso.compiler.core.CompilerError;
 import org.enso.interpreter.EnsoLanguage;
@@ -12,13 +17,6 @@ import org.enso.interpreter.runtime.data.atom.AtomConstructor;
 import org.enso.interpreter.runtime.data.text.Text;
 import org.enso.interpreter.runtime.error.PanicException;
 import org.enso.interpreter.runtime.scope.ModuleScope;
-
-import com.oracle.truffle.api.CompilerDirectives;
-import com.oracle.truffle.api.dsl.ReportPolymorphism;
-import com.oracle.truffle.api.frame.VirtualFrame;
-import com.oracle.truffle.api.nodes.Node;
-import com.oracle.truffle.api.nodes.NodeInfo;
-import com.oracle.truffle.api.source.SourceSection;
 
 @ReportPolymorphism
 @NodeInfo(shortName = "Method", description = "A root node for Enso methods.")
@@ -99,7 +97,6 @@ public class MethodRootNode extends ClosureRootNode {
    * @param section a mapping from {@code provider} to the program source
    * @param constructor constructor specifying type and name
    * @return a node representing the specified closure
-   *
    * @see #constructorFor(Function)
    */
   public static MethodRootNode buildConstructor(
@@ -112,7 +109,9 @@ public class MethodRootNode extends ClosureRootNode {
     return new Constructor(language, localScope, moduleScope, body, section, constructor);
   }
 
-  /** Finds constructor for given {@link AtomConstructor#getConstructorFunction() constructor function}.
+  /**
+   * Finds constructor for given {@link AtomConstructor#getConstructorFunction() constructor
+   * function}.
    *
    * @param fn the function
    * @return constructor or {@code null}
@@ -248,5 +247,4 @@ public class MethodRootNode extends ClosureRootNode {
       this.constructor = constructor;
     }
   }
-
 }
