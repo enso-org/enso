@@ -7,7 +7,12 @@ import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 import javax.annotation.processing.ProcessingEnvironment;
-import javax.lang.model.element.*;
+import javax.lang.model.element.AnnotationMirror;
+import javax.lang.model.element.AnnotationValue;
+import javax.lang.model.element.Element;
+import javax.lang.model.element.Name;
+import javax.lang.model.element.TypeElement;
+import javax.lang.model.element.VariableElement;
 import javax.lang.model.type.TypeMirror;
 import javax.lang.model.util.SimpleAnnotationValueVisitor9;
 import javax.lang.model.util.SimpleElementVisitor9;
@@ -90,7 +95,7 @@ public abstract class MethodGenerator {
     else {
       switch (tpe.kind()) {
         case OBJECT:
-          if (tpe.isValidGuestType()) {
+          if (tpe.isValidGuestType(processingEnvironment) || tpe.isObject()) {
             return tpe.baseType();
           } else {
             if (!convertToGuestValue) {
@@ -123,7 +128,7 @@ public abstract class MethodGenerator {
     String ensoName =
         CaseFormat.LOWER_CAMEL.to(CaseFormat.LOWER_UNDERSCORE, v.getSimpleName().toString());
     TypeWithKind tpe = TypeWithKind.createFromTpe(v.asType().toString());
-    if (tpe.kind() == TypeKind.ARRAY && !tpe.isValidGuestType()) {
+    if (tpe.kind() == TypeKind.ARRAY && !tpe.isValidGuestType(processingEnvironment)) {
       processingEnv
           .getMessager()
           .printMessage(
