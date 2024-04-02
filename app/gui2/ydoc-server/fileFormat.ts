@@ -29,6 +29,7 @@ export const nodeMetadata = z
       return { vector: [0, 0] satisfies Vector }
     }),
     visualization: visualizationMetadata.optional().catch(() => undefined),
+    colorOverride: z.string().optional(),
   })
   .passthrough()
 

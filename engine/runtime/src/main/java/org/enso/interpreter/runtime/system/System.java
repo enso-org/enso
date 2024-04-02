@@ -36,7 +36,7 @@ public class System {
 
   @Builtin.Method(description = "Check if the operating system is UNIX.", autoRegister = false)
   @CompilerDirectives.TruffleBoundary
-  public static Boolean is_unix() {
+  public static boolean is_unix() {
     return SystemUtils.IS_OS_UNIX;
   }
 

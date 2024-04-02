@@ -79,11 +79,13 @@ export function applyDocumentUpdates(
     root.visitRecursiveAst((ast) => {
       let pos = ast.nodeMetadata.get('position')
       const vis = ast.nodeMetadata.get('visualization')
+      const colorOverride = ast.nodeMetadata.get('colorOverride')
       if (vis && !pos) pos = { x: 0, y: 0 }
       if (pos) {
         newMetadata![ast.externalId] = {
           position: { vector: [Math.round(pos.x), Math.round(-pos.y)] },
           visualization: vis && translateVisualizationToFile(vis),
+          colorOverride,
         }
       }
     })

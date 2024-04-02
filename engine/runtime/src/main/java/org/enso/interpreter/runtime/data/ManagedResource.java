@@ -60,6 +60,7 @@ public final class ManagedResource implements EnsoObject {
           "Takes the value held by the managed resource and removes the finalization callbacks,"
               + " effectively making the underlying resource unmanaged again.")
   @Builtin.Specialize
+  @SuppressWarnings("generic-enso-builtin-type")
   public Object take(EnsoContext context) {
     context.getResourceManager().take(this);
     return this.getResource();
