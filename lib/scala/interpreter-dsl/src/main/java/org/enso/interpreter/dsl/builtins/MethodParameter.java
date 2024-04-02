@@ -4,6 +4,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
+import javax.annotation.processing.ProcessingEnvironment;
 import org.apache.commons.lang3.StringUtils;
 
 /**
@@ -58,11 +59,11 @@ public record MethodParameter(int index, String name, String tpe, List<String> a
    *
    * @return true, if it needs, false otherwise.
    */
-  public boolean needsToHostTranslation() {
+  public boolean needsToHostTranslation(ProcessingEnvironment env) {
     TypeWithKind tpeWithKind = TypeWithKind.createFromTpe(tpe);
     switch (tpeWithKind.kind()) {
       case ARRAY:
-        return !tpeWithKind.isValidGuestType();
+        return !tpeWithKind.isValidGuestType(env);
       default:
         return false;
     }
@@ -99,8 +100,8 @@ public record MethodParameter(int index, String name, String tpe, List<String> a
    * @param expand For a non-empty value n, the parameter must be repeated n-times.
    * @return A string representation of the parameter variable, potetnially repeated for varargs
    */
-  public Stream<String> paramUseNames(Optional<Integer> expand) {
-    if (needsToHostTranslation()) {
+  public Stream<String> paramUseNames(ProcessingEnvironment env, Optional<Integer> expand) {
+    if (needsToHostTranslation(env)) {
       return Stream.of(hostVarName());
     } else {
       return expand
