@@ -38,6 +38,7 @@ api_pending = if test_credentials.is_nothing then "No Access Key found." else No
 
 bucket_name = "enso-data-samples"
 writable_bucket_name = "enso-ci-s3-test-stage"
+writable_root = S3_File.new "s3://"+writable_bucket_name+"/" test_credentials
 not_a_bucket_name = "not_a_bucket_enso"
 
 delete_on_panic file ~action =
@@ -142,7 +143,6 @@ add_specs suite_builder =
             # Correct path but different bucket will yield false:
             (S3_File.new "s3://bucketA/foo/bar").is_descendant_of (S3_File.new "s3://bucketB/foo/") . should_be_false
 
-    writable_root = S3_File.new "s3://"+writable_bucket_name+"/" test_credentials
     object_name = "Bus_Stop_Benches.geojson"
     root = S3_File.new "s3://"+bucket_name+"/" test_credentials
     hello_txt = S3_File.new "s3://"+bucket_name+"/examples/folder 2/hello.txt" test_credentials
