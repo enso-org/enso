@@ -55,7 +55,7 @@ add_specs suite_builder setup:Cloud_Tests_Setup = setup.with_prepared_environmen
                 Enso_User.flush_caches
                 subdir.delete
             Panic.with_finalizer cleanup <|
-                Test_Environment.unsafe_with_environment_override "ENSO_PROJECT_PATH" subdir.path <|
+                Test_Environment.unsafe_with_environment_override "ENSO_PROJECT_DIRECTORY_PATH" subdir.path <|
                     # Flush caches to ensure fresh dir is used
                     Enso_User.flush_caches
 

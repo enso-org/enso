@@ -82,7 +82,7 @@ type Enso_File
        directory.
     current_working_directory : Enso_File
     current_working_directory =
-        path = Environment.get "ENSO_PROJECT_PATH"
+        path = Environment.get "ENSO_PROJECT_DIRECTORY_PATH"
         if path.is_nothing then Enso_File.root else
             Enso_File.new path
 
