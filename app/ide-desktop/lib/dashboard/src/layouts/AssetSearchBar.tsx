@@ -43,6 +43,65 @@ export interface Suggestion {
   readonly deleteFromQuery: (query: AssetQuery) => AssetQuery
 }
 
+// ============
+// === Tags ===
+// ============
+
+/** Props for a {@link Tags}. */
+interface InternalTagsProps {
+  readonly isCloud: boolean
+  readonly querySource: React.MutableRefObject<QuerySource>
+  readonly query: AssetQuery
+  readonly setQuery: React.Dispatch<React.SetStateAction<AssetQuery>>
+}
+
+/** Tags (`name:`, `modified:`, etc.) */
+function Tags(props: InternalTagsProps) {
+  const { isCloud, querySource, query, setQuery } = props
+  const [isShiftPressed, setIsShiftPressed] = React.useState(false)
+
+  React.useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      setIsShiftPressed(event.shiftKey)
+    }
+    const onKeyUp = (event: KeyboardEvent) => {
+      setIsShiftPressed(event.shiftKey)
+    }
+    document.addEventListener('keydown', onKeyDown)
+    document.addEventListener('keyup', onKeyUp)
+    return () => {
+      document.removeEventListener('keydown', onKeyDown)
+      document.removeEventListener('keyup', onKeyUp)
+    }
+  }, [])
+
+  return (
+    <div
+      data-testid="asset-search-tag-names"
+      className="pointer-events-auto flex flex-wrap gap-buttons whitespace-nowrap px-search-suggestions"
+    >
+      {(isCloud ? AssetQuery.tagNames : AssetQuery.localTagNames).flatMap(entry => {
+        const [key, tag] = entry
+        return tag == null || isShiftPressed !== tag.startsWith('-')
+          ? []
+          : [
+              <FocusRing key={key}>
+                <aria.Button
+                  className="h-text rounded-full bg-frame px-button-x transition-all hover:bg-selected-frame"
+                  onPress={() => {
+                    querySource.current = QuerySource.internal
+                    setQuery(query.add({ [key]: [[]] }))
+                  }}
+                >
+                  {tag + ':'}
+                </aria.Button>
+              </FocusRing>,
+            ]
+      })}
+    </div>
+  )
+}
+
 // ======================
 // === AssetSearchBar ===
 // ======================
@@ -72,13 +131,12 @@ export default function AssetSearchBar(props: AssetSearchBarProps) {
   const [areSuggestionsVisible, setAreSuggestionsVisible] = React.useState(false)
   const areSuggestionsVisibleRef = React.useRef(areSuggestionsVisible)
   const querySource = React.useRef(QuerySource.external)
-  const [isShiftPressed, setIsShiftPressed] = React.useState(false)
   const rootRef = React.useRef<HTMLLabelElement | null>(null)
   const searchRef = React.useRef<HTMLInputElement | null>(null)
   areSuggestionsVisibleRef.current = areSuggestionsVisible
 
   React.useEffect(() => {
-    if (querySource.current !== QuerySource.tabbing && !isShiftPressed) {
+    if (querySource.current !== QuerySource.tabbing) {
       baseQuery.current = query
     }
     // This effect MUST only run when `query` changes.
@@ -100,11 +158,11 @@ export default function AssetSearchBar(props: AssetSearchBarProps) {
   }, [query])
 
   React.useEffect(() => {
-    if (querySource.current !== QuerySource.tabbing && !isShiftPressed) {
+    if (querySource.current !== QuerySource.tabbing) {
       setSuggestions(rawSuggestions)
       suggestionsRef.current = rawSuggestions
     }
-  }, [isShiftPressed, rawSuggestions])
+  }, [rawSuggestions])
 
   React.useEffect(() => {
     if (
@@ -171,7 +229,6 @@ export default function AssetSearchBar(props: AssetSearchBarProps) {
       }
     }
     const onKeyDown = (event: KeyboardEvent) => {
-      setIsShiftPressed(event.shiftKey)
       // Allow `alt` key to be pressed in case it is being used to enter special characters.
       if (
         !eventModule.isElementTextInput(event.target) &&
@@ -191,17 +248,12 @@ export default function AssetSearchBar(props: AssetSearchBarProps) {
         searchRef.current?.focus()
       }
     }
-    const onKeyUp = (event: KeyboardEvent) => {
-      setIsShiftPressed(event.shiftKey)
-    }
     const root = rootRef.current
     root?.addEventListener('keydown', onSearchKeyDown)
     document.addEventListener('keydown', onKeyDown)
-    document.addEventListener('keyup', onKeyUp)
     return () => {
       root?.removeEventListener('keydown', onSearchKeyDown)
       document.removeEventListener('keydown', onKeyDown)
-      document.removeEventListener('keyup', onKeyUp)
     }
   }, [setQuery, /* should never change */ modalRef])
 
@@ -244,28 +296,12 @@ export default function AssetSearchBar(props: AssetSearchBarProps) {
             {areSuggestionsVisible && (
               <div className="relative flex flex-col gap-search-suggestions">
                 {/* Tags (`name:`, `modified:`, etc.) */}
-                <div
-                  data-testid="asset-search-tag-names"
-                  className="pointer-events-auto flex flex-wrap gap-buttons whitespace-nowrap px-search-suggestions"
-                >
-                  {(isCloud ? AssetQuery.tagNames : AssetQuery.localTagNames).flatMap(entry => {
-                    const [key, tag] = entry
-                    return tag == null || isShiftPressed !== tag.startsWith('-')
-                      ? []
-                      : [
-                          <aria.Button
-                            key={key}
-                            className="h-text rounded-full bg-frame px-button-x transition-all hover:bg-selected-frame"
-                            onPress={() => {
-                              querySource.current = QuerySource.internal
-                              setQuery(query.add({ [key]: [[]] }))
-                            }}
-                          >
-                            {tag + ':'}
-                          </aria.Button>,
-                        ]
-                  })}
-                </div>
+                <Tags
+                  isCloud={isCloud}
+                  querySource={querySource}
+                  query={query}
+                  setQuery={setQuery}
+                />
                 {/* Asset labels */}
                 {isCloud && labels.length !== 0 && (
                   <div
