@@ -3,6 +3,7 @@ import * as React from 'react'
 
 import * as focusHooks from '#/hooks/focusHooks'
 
+import * as focusClassProvider from '#/providers/FocusClassProvider'
 import * as focusDirectionProvider from '#/providers/FocusDirectionProvider'
 
 import * as aria from '#/components/aria'
@@ -19,6 +20,7 @@ export interface InternalColorPickerItemProps {
 /** An input in a {@link ColorPicker}. */
 function ColorPickerItem(props: InternalColorPickerItemProps) {
   const { color } = props
+  const { focusChildClass } = focusClassProvider.useFocusClasses()
   const focusDirection = focusDirectionProvider.useFocusDirection()
   const handleFocusMove = focusHooks.useHandleFocusMove(focusDirection)
   const cssColor = backend.lChColorToCssColor(color)
@@ -27,7 +29,7 @@ function ColorPickerItem(props: InternalColorPickerItemProps) {
     <FocusRing within>
       <aria.Radio
         ref={element => {
-          element?.querySelector('input')?.classList.add('focus-child')
+          element?.querySelector('input')?.classList.add(focusChildClass)
         }}
         value={cssColor}
         className="group flex size-radio-button cursor-pointer rounded-full p-radio-button-dot"

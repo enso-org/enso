@@ -21,7 +21,11 @@ function Input(props: InputProps, ref: React.ForwardedRef<HTMLInputElement>) {
 
   return (
     <aria.Input
-      {...aria.mergeProps(props, { ref, className: 'focus-child', onKeyDown: handleFocusMove })}
+      {...aria.mergeProps<aria.InputProps & React.RefAttributes<HTMLInputElement>>()(props, {
+        ref,
+        className: 'focus-child',
+        onKeyDown: handleFocusMove,
+      })}
     />
   )
 }

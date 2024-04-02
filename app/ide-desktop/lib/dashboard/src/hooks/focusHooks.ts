@@ -2,6 +2,7 @@
 import * as React from 'react'
 
 import * as focusClassProvider from '#/providers/FocusClassProvider'
+import * as focusDirectionProvider from '#/providers/FocusDirectionProvider'
 
 import * as aria from '#/components/aria'
 
@@ -58,4 +59,20 @@ export function useHandleFocusMove(direction: 'horizontal' | 'vertical') {
     },
     [keyPrevious, keyNext, focusManager, focusChildClass]
   )
+}
+
+// =====================
+// === useFocusChild ===
+// =====================
+
+/** Return JSX props to make a child focusable by `Navigator2D`. */
+export function useFocusChild() {
+  const focusDirection = focusDirectionProvider.useFocusDirection()
+  const handleFocusMove = useHandleFocusMove(focusDirection)
+  const { focusChildClass } = focusClassProvider.useFocusClasses()
+
+  return {
+    className: focusChildClass,
+    onKeyDown: handleFocusMove,
+  } satisfies React.HTMLAttributes<Element>
 }

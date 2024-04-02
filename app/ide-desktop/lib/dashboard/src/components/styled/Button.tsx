@@ -3,8 +3,6 @@ import * as React from 'react'
 
 import * as focusHooks from '#/hooks/focusHooks'
 
-import * as focusDirectionProvider from '#/providers/FocusDirectionProvider'
-
 import * as aria from '#/components/aria'
 import FocusRing from '#/components/styled/FocusRing'
 import SvgMask from '#/components/SvgMask'
@@ -43,16 +41,16 @@ function Button(props: ButtonProps, ref: React.ForwardedRef<HTMLButtonElement>) 
     ...buttonProps
   } = props
   const { isDisabled = false } = buttonProps
-  const focusDirection = focusDirectionProvider.useFocusDirection()
-  const handleFocusMove = focusHooks.useHandleFocusMove(focusDirection)
+  const focusChildProps = focusHooks.useFocusChild()
 
   return (
     <FocusRing placement="after">
       <aria.Button
-        {...buttonProps}
-        ref={ref}
-        className="focus-child relative after:pointer-events-none after:absolute after:inset-button-focus-ring-inset after:rounded-button-focus-ring"
-        onKeyDown={handleFocusMove}
+        {...aria.mergeProps<aria.ButtonProps>()(buttonProps, focusChildProps, {
+          ref,
+          className:
+            'relative after:pointer-events-none after:absolute after:inset-button-focus-ring-inset after:rounded-button-focus-ring',
+        })}
       >
         <div
           className={`group flex selectable ${isDisabled || softDisabled ? 'disabled' : ''} ${active ? 'active' : ''}`}

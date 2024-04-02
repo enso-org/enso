@@ -3,8 +3,6 @@ import * as React from 'react'
 
 import * as focusHooks from '#/hooks/focusHooks'
 
-import * as focusDirectionProvider from '#/providers/FocusDirectionProvider'
-
 import * as aria from '#/components/aria'
 import type * as focusRing from '#/components/styled/FocusRing'
 import FocusRing from '#/components/styled/FocusRing'
@@ -28,17 +26,17 @@ export interface UnstyledButtonProps extends Readonly<React.PropsWithChildren> {
 
 /** An unstyled button with a focus ring and focus movement behavior. */
 function UnstyledButton(props: UnstyledButtonProps, ref: React.ForwardedRef<HTMLButtonElement>) {
-  const { focusRingPlacement, className, children, ...buttonProps } = props
-  const focusDirection = focusDirectionProvider.useFocusDirection()
-  const handleFocusMove = focusHooks.useHandleFocusMove(focusDirection)
+  const { focusRingPlacement, children, ...buttonProps } = props
+  const focusChildProps = focusHooks.useFocusChild()
 
   return (
     <FocusRing {...(focusRingPlacement == null ? {} : { placement: focusRingPlacement })}>
       <aria.Button
-        {...buttonProps}
-        ref={ref}
-        className={`focus-child ${className ?? ''}`}
-        onKeyDown={handleFocusMove}
+        {...aria.mergeProps<aria.ButtonProps & React.RefAttributes<HTMLButtonElement>>()(
+          buttonProps,
+          focusChildProps,
+          { ref }
+        )}
       >
         {children}
       </aria.Button>

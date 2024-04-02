@@ -45,8 +45,7 @@ interface InternalEmailProps {
 /** A self-validating email display. */
 function Email(props: InternalEmailProps) {
   const { email, isValid, doDelete } = props
-  const focusDirection = focusDirectionProvider.useFocusDirection()
-  const handleFocusMove = focusHooks.useHandleFocusMove(focusDirection)
+  const focusChildProps = focusHooks.useFocusChild()
 
   return (
     <div
@@ -56,15 +55,14 @@ function Email(props: InternalEmailProps) {
         isValid ? 'bg-dim/5' : 'bg-red-400/25 text-red-900'
       }`}
     >
-      <aria.Text className="focus-child" onKeyDown={handleFocusMove}>
-        {email}
-      </aria.Text>{' '}
+      <aria.Text {...focusChildProps}>{email}</aria.Text>{' '}
       <img
-        role="button"
-        className="focus-child cursor-pointer rounded-full hover:brightness-50"
-        src={CrossIcon}
-        onClick={doDelete}
-        onKeyDown={handleFocusMove}
+        {...aria.mergeProps<JSX.IntrinsicElements['img']>()(focusChildProps, {
+          role: 'button',
+          className: 'cursor-pointer rounded-full hover:brightness-50',
+          src: CrossIcon,
+          onClick: doDelete,
+        })}
       />
     </div>
   )

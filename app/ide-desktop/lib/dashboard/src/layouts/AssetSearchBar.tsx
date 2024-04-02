@@ -226,7 +226,7 @@ export default function AssetSearchBar(props: AssetSearchBarProps) {
           }}
           data-testid="asset-search-bar"
           className="search-bar group relative flex h-row max-w-asset-search-bar grow items-center gap-asset-search-bar rounded-full px-input-x text-primary xl:max-w-asset-search-bar-wide"
-          {...aria.mergeProps<aria.LabelProps[]>(innerProps, {
+          {...aria.mergeProps(innerProps, {
             onFocus: () => {
               setAreSuggestionsVisible(true)
             },

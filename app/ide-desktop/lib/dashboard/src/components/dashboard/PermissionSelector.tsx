@@ -141,7 +141,7 @@ export default function PermissionSelector(props: PermissionSelectorProps) {
             ref={permissionSelectorButtonRef}
             isDisabled={isDisabled}
             {...(isDisabled && error != null ? { title: error } : {})}
-            className={`focus-child selectable ${!isDisabled || !input ? 'active' : ''} ${
+            className={`selectable ${!isDisabled || !input ? 'active' : ''} ${
               permissionsModule.PERMISSION_CLASS_NAME[permission.type]
             } h-text grow rounded-l-full px-permission-mini-button-x py-permission-mini-button-y`}
             onPress={doShowPermissionTypeSelector}
@@ -204,7 +204,7 @@ export default function PermissionSelector(props: PermissionSelectorProps) {
           ref={permissionSelectorButtonRef}
           isDisabled={isDisabled}
           {...(isDisabled && error != null ? { title: error } : {})}
-          className={`focus-child selectable ${!isDisabled || !input ? 'active' : ''} ${
+          className={`selectable ${!isDisabled || !input ? 'active' : ''} ${
             permissionsModule.PERMISSION_CLASS_NAME[permission.type]
           } h-text w-permission-display rounded-full`}
           onPress={doShowPermissionTypeSelector}

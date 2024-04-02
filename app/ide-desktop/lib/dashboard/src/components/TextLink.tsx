@@ -3,8 +3,7 @@ import * as router from 'react-router-dom'
 
 import * as focusHooks from '#/hooks/focusHooks'
 
-import * as focusDirectionProvider from '#/providers/FocusDirectionProvider'
-
+import * as aria from '#/components/aria'
 import FocusRing from '#/components/styled/FocusRing'
 
 // ================
@@ -20,15 +19,16 @@ export interface TextLinkProps {
 /** A link without an icon. */
 export default function TextLink(props: TextLinkProps) {
   const { to, text } = props
-  const focusDirection = focusDirectionProvider.useFocusDirection()
-  const handleFocusMove = focusHooks.useHandleFocusMove(focusDirection)
+  const focusChildProps = focusHooks.useFocusChild()
 
   return (
     <FocusRing>
       <router.Link
-        to={to}
-        className="focus-child -mx-text-link-px self-end rounded-full px-text-link-x text-end text-xs text-blue-500 transition-all duration-auth hover:text-blue-700 focus:text-blue-700"
-        onKeyDown={handleFocusMove}
+        {...aria.mergeProps<router.LinkProps>()(focusChildProps, {
+          to,
+          className:
+            '-mx-text-link-px self-end rounded-full px-text-link-x text-end text-xs text-blue-500 transition-all duration-auth hover:text-blue-700 focus:text-blue-700',
+        })}
       >
         {text}
       </router.Link>

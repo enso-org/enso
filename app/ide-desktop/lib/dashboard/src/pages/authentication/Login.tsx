@@ -14,13 +14,14 @@ import * as appUtils from '#/appUtils'
 import * as authProvider from '#/providers/AuthProvider'
 import * as textProvider from '#/providers/TextProvider'
 
+import AuthenticationPage from '#/pages/authentication/AuthenticationPage'
+
 import FontAwesomeIcon from '#/components/FontAwesomeIcon'
 import Input from '#/components/Input'
 import Link from '#/components/Link'
-import AuthenticationPage from '#/pages/authentication/AuthenticationPage'
-import UnstyledButton from '#/components/UnstyledButton'
 import SubmitButton from '#/components/SubmitButton'
 import TextLink from '#/components/TextLink'
+import UnstyledButton from '#/components/UnstyledButton'
 
 import * as eventModule from '#/utilities/event'
 
@@ -76,7 +77,7 @@ export default function Login(props: LoginProps) {
             shouldReportValidityRef.current = false
             void signInWithGoogle()
           }}
-          className="focus-child relative rounded-full bg-primary/5 py-auth-input-y transition-all duration-auth hover:bg-primary/10 focus:bg-primary/10"
+          className="relative rounded-full bg-primary/5 py-auth-input-y transition-all duration-auth hover:bg-primary/10 focus:bg-primary/10"
         >
           <FontAwesomeIcon icon={fontawesomeIcons.faGoogle} />
           {getText('signUpOrLoginWithGoogle')}
@@ -86,7 +87,7 @@ export default function Login(props: LoginProps) {
             shouldReportValidityRef.current = false
             void signInWithGitHub()
           }}
-          className="focus-child relative rounded-full bg-primary/5 py-auth-input-y transition-all duration-auth hover:bg-primary/10 focus:bg-primary/10"
+          className="relative rounded-full bg-primary/5 py-auth-input-y transition-all duration-auth hover:bg-primary/10 focus:bg-primary/10"
         >
           <FontAwesomeIcon icon={fontawesomeIcons.faGithub} />
           {getText('signUpOrLoginWithGitHub')}

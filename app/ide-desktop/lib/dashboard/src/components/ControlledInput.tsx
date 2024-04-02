@@ -3,8 +3,6 @@ import * as React from 'react'
 
 import * as focusHooks from '#/hooks/focusHooks'
 
-import * as focusDirectionProvider from '#/providers/FocusDirectionProvider'
-
 import * as aria from '#/components/aria'
 import FocusRing from '#/components/styled/FocusRing'
 
@@ -20,8 +18,7 @@ const DEBOUNCE_MS = 1000
 // =======================
 
 /** Props for a {@link ControlledInput}. */
-export interface ControlledInputProps
-  extends Readonly<React.InputHTMLAttributes<HTMLInputElement>> {
+export interface ControlledInputProps extends Readonly<aria.InputProps> {
   readonly value: string
   readonly error?: string
   readonly validate?: boolean
@@ -39,64 +36,60 @@ export default function ControlledInput(props: ControlledInputProps) {
     onKeyDown,
     onChange,
     onBlur,
-    style,
-    ...passThrough
+    ...inputProps
   } = props
   const [reportTimeoutHandle, setReportTimeoutHandle] = React.useState<number | null>(null)
   const [hasReportedValidity, setHasReportedValidity] = React.useState(false)
   const [wasJustBlurred, setWasJustBlurred] = React.useState(false)
-  const focusDirection = focusDirectionProvider.useFocusDirection()
-  const handleFocusMove = focusHooks.useHandleFocusMove(focusDirection)
+  const focusChildProps = focusHooks.useFocusChild()
 
   return (
     <FocusRing>
       <aria.Input
-        {...passThrough}
-        {...(style != null ? { style } : {})}
-        className="focus-child w-full rounded-full border py-auth-input-y pl-auth-icon-container-w pr-auth-input-r text-sm placeholder-gray-500 transition-all duration-auth hover:bg-gray-100 focus:bg-gray-100"
-        onKeyDown={event => {
-          handleFocusMove(event)
-          if (!event.isPropagationStopped()) {
-            onKeyDown?.(event)
-          }
-        }}
-        onChange={event => {
-          onChange?.(event)
-          setValue(event.target.value)
-          setWasJustBlurred(false)
-          if (validate) {
-            if (reportTimeoutHandle != null) {
-              window.clearTimeout(reportTimeoutHandle)
+        {...aria.mergeProps<aria.InputProps>()(inputProps, focusChildProps, {
+          className:
+            'w-full rounded-full border py-auth-input-y pl-auth-icon-container-w pr-auth-input-r text-sm placeholder-gray-500 transition-all duration-auth hover:bg-gray-100 focus:bg-gray-100',
+          onKeyDown: event => {
+            if (!event.isPropagationStopped()) {
+              onKeyDown?.(event)
             }
-            const currentTarget = event.currentTarget
-            if (error != null) {
-              currentTarget.setCustomValidity('')
-              currentTarget.setCustomValidity(
-                currentTarget.checkValidity() || shouldReportValidityRef?.current === false
-                  ? ''
-                  : error
-              )
-            }
-            if (hasReportedValidity) {
-              if (shouldReportValidityRef?.current === false || currentTarget.checkValidity()) {
-                setHasReportedValidity(false)
+          },
+          onChange: event => {
+            onChange?.(event)
+            setValue(event.target.value)
+            setWasJustBlurred(false)
+            if (validate) {
+              if (reportTimeoutHandle != null) {
+                window.clearTimeout(reportTimeoutHandle)
               }
-            } else {
-              setReportTimeoutHandle(
-                window.setTimeout(() => {
-                  if (
-                    shouldReportValidityRef?.current !== false &&
-                    !currentTarget.reportValidity()
-                  ) {
-                    setHasReportedValidity(true)
-                  }
-                }, DEBOUNCE_MS)
-              )
+              const currentTarget = event.currentTarget
+              if (error != null) {
+                currentTarget.setCustomValidity('')
+                currentTarget.setCustomValidity(
+                  currentTarget.checkValidity() || shouldReportValidityRef?.current === false
+                    ? ''
+                    : error
+                )
+              }
+              if (hasReportedValidity) {
+                if (shouldReportValidityRef?.current === false || currentTarget.checkValidity()) {
+                  setHasReportedValidity(false)
+                }
+              } else {
+                setReportTimeoutHandle(
+                  window.setTimeout(() => {
+                    if (
+                      shouldReportValidityRef?.current !== false &&
+                      !currentTarget.reportValidity()
+                    ) {
+                      setHasReportedValidity(true)
+                    }
+                  }, DEBOUNCE_MS)
+                )
+              }
             }
-          }
-        }}
-        onBlur={
-          validate
+          },
+          onBlur: validate
             ? event => {
                 onBlur?.(event)
                 if (wasJustBlurred) {
@@ -111,8 +104,8 @@ export default function ControlledInput(props: ControlledInputProps) {
                   setWasJustBlurred(true)
                 }
               }
-            : onBlur
-        }
+            : onBlur,
+        })}
       />
     </FocusRing>
   )
