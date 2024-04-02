@@ -6,6 +6,7 @@ import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.data.text.Text;
+import org.enso.interpreter.runtime.library.dispatch.TypeOfNode;
 
 @BuiltinMethod(
     type = "Meta",
@@ -13,7 +14,7 @@ import org.enso.interpreter.runtime.data.text.Text;
     description = "Returns a qualified type name of the given value.",
     autoRegister = false)
 public class GetQualifiedTypeNameNode extends Node {
-  private @Child TypeOfNode typeOfNode = TypeOfNode.build();
+  private @Child TypeOfNode typeOfNode = TypeOfNode.create();
 
   Object execute(@AcceptsError Object value) {
     var maybeType =

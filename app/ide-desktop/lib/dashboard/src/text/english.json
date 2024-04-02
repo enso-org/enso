@@ -93,6 +93,7 @@
   "closeProjectBackendError": "Could not close project '$0'.",
   "getProjectDetailsBackendError": "Could not get details of project '$0'.",
   "openProjectBackendError": "Could not open project '$0'.",
+  "openProjectMissingCredentialsBackendError": "Could not open project '$0': Missing credentials.",
   "updateProjectBackendError": "Could not update project '$0'.",
   "checkResourcesBackendError": "Could not get resource usage for project '$0'.",
   "listFilesBackendError": "Could not list files.",

@@ -1,10 +1,9 @@
 from Standard.Base import all
-import Standard.Base.Data.Numeric.Internal.Numbers_Constants
 import Standard.Base.Errors.Common.Arithmetic_Error
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
 from Standard.Base.Data.Numbers import Number_Parse_Error
-from Standard.Base.Errors.Common import Loss_Of_Numeric_Precision
+from Standard.Base.Errors.Common import Loss_Of_Numeric_Precision, Out_Of_Range
 
 from Standard.Test import all
 
@@ -178,18 +177,26 @@ add_specs suite_builder =
             a = Decimal.new "12000"
             b = Decimal.new "12000" (Math_Context.new 2)
             c = Decimal.new "12000" (Math_Context.new 3)
-            [[a, b], [a, c], [b, c]].map pr->
+            huge_a = Decimal.new "3.4E320"
+            huge_b = Decimal.new "3.400E320"
+            huge_c = Decimal.new "3.4000000E320"
+
+            combinations = [[a, b], [a, c], [b, c], [huge_a, huge_b], [huge_a, huge_c], [huge_b, huge_c]]
+                + [[-a, -b], [-a, -c], [-b, -c], [-huge_a, -huge_b], [-huge_a, -huge_c], [-huge_b, -huge_c]]
+            combinations.map pr->
                 x0 = pr.at 0
                 x1 = pr.at 1
+
                 ir0 = x0.internal_representation
                 ir1 = x1.internal_representation
-
                 ir0 . should_not_equal ir1
 
                 (x0 == x1) . should_be_true
                 (x1 == x0) . should_be_true
                 (x0 != x1) . should_be_false
                 (x1 != x0) . should_be_false
+
+                (Comparable.hash_builtin x0) . should_equal (Comparable.hash_builtin x1)
 
         group_builder.specify "should compare correctly to Integer and Float" <|
             ok_values = []
@@ -491,6 +498,91 @@ add_specs suite_builder =
             d2 = Decimal.new -5
             nd2 = -d2
             nd2 . should_equal 5
+
+    suite_builder.group "conversions" group_builder->
+        group_builder.specify "should convert correctly to and from Integer" <|
+            a = Decimal.new "12000"
+            b = Decimal.new "12000" (Math_Context.new 2)
+            c = Decimal.new "12000" (Math_Context.new 3)
+            d = Decimal.new "2345.6"
+            huge_a = Decimal.new "3.4E320"
+            huge_b = Decimal.new "3.400E320"
+            huge_c = Decimal.new "3.4000000E320"
+            huge_integer = 34 * (10 ^ 319)
+
+            a.to_integer . should_equal 12000
+            b.to_integer . should_equal 12000
+            c.to_integer . should_equal 12000
+            d.to_integer . should_equal 2345
+            huge_a.to_integer . should_equal huge_integer
+            huge_b.to_integer . should_equal huge_integer
+            huge_c.to_integer . should_equal huge_integer
+
+            (-a).to_integer . should_equal -12000
+            (-b).to_integer . should_equal -12000
+            (-c).to_integer . should_equal -12000
+            (-d).to_integer . should_equal -2345
+            (-huge_a).to_integer . should_equal -huge_integer
+            (-huge_b).to_integer . should_equal -huge_integer
+            (-huge_c).to_integer . should_equal -huge_integer
+
+        group_builder.specify "should convert correctly to Float" <|
+            a = Decimal.new "12000"
+            b = Decimal.new "12000" (Math_Context.new 2)
+            c = Decimal.new "12000" (Math_Context.new 3)
+            huge_a = Decimal.new "3.4E300"
+            huge_b = Decimal.new "3.400E300"
+            huge_c = Decimal.new "3.4000000E300"
+            huge_float = 3.4 * (10 ^ 300)
+
+            a.to_float . should_equal 12000.0
+            b.to_float . should_equal 12000.0
+            c.to_float . should_equal 12000.0
+            huge_a.to_float . should_equal huge_float
+            huge_b.to_float . should_equal huge_float
+            huge_c.to_float . should_equal huge_float
+
+            (-a).to_float . should_equal -12000
+            (-b).to_float . should_equal -12000
+            (-c).to_float . should_equal -12000
+            (-huge_a).to_float . should_equal -huge_float
+            (-huge_b).to_float . should_equal -huge_float
+            (-huge_c).to_float . should_equal -huge_float
+
+        group_builder.specify "attaches a warning to the result of .to_float when it is out the representable range" <|
+            huge_a = Decimal.new "3.4E320"
+            f = huge_a.to_float
+            f.should_equal Number.positive_infinity
+            Problems.expect_only_warning Out_Of_Range f
+            f2 = (-huge_a).to_float
+            f2.should_equal Number.negative_infinity
+            Problems.expect_only_warning Out_Of_Range f2
+
+        group_builder.specify "attaches a warning to the result of .to_float when it results in a loss of precision" <|
+            Problems.expect_only_warning Loss_Of_Numeric_Precision (Decimal.new "0.1" . to_float)
+
+        group_builder.specify "should convert correctly to Integer and Float using implicit conversions" <|
+            i = Integer.from (Decimal.new "5634")
+            i.should_be_a Integer
+            i.should_equal 5634
+
+            f = Float.from (Decimal.new "56.34")
+            f.should_be_a Float
+            f.should_equal 56.34
+
+        group_builder.specify "Decimal.to_float should compare correctly with the original Decimal" <|
+            huge_a = Decimal.new "3.4E300"
+            huge_a_float = Float.from huge_a
+
+            (huge_a_float == huge_a) . should_be_true
+            (huge_a == huge_a_float) . should_be_true
+
+        group_builder.specify "Decimal.to_integer should compare correctly with the original Decimal" <|
+            huge_a = Decimal.new "3.4E320"
+            huge_a_int = Integer.from huge_a
+
+            (huge_a_int == huge_a) . should_be_true
+            (huge_a == huge_a_int) . should_be_true
 
     suite_builder.group "remainder" group_builder->
         group_builder.specify "should define remainder" <|
