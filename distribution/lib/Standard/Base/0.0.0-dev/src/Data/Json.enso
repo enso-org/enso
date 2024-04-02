@@ -137,7 +137,7 @@ to_json_node value =
             n
         j : JS_Object -> j.object_node
         other ->
-            other.to_js_object.object_node
+            to_json_node other.to_js_object
 
 ## PRIVATE
 type JS_Object
