@@ -117,9 +117,9 @@ export default function Labels(props: LabelsProps) {
                     {label.value}
                   </Label>
                   {!newLabelNames.has(label.value) && (
-                    <FocusRing>
+                    <FocusRing placement="after">
                       <aria.Button
-                        className="flex"
+                        className="relative flex after:absolute after:inset-button-focus-ring-inset after:rounded-button-focus-ring"
                         onPress={() => {
                           setModal(
                             <ConfirmDeleteModal
@@ -134,7 +134,7 @@ export default function Labels(props: LabelsProps) {
                         <SvgMask
                           src={Trash2Icon}
                           alt={getText('delete')}
-                          className="size-icon text-delete transition-all transparent group-hover:active"
+                          className="size-icon text-delete transition-all transparent group-has-[[data-focus-visible]]:active group-hover:active"
                         />
                       </aria.Button>
                     </FocusRing>

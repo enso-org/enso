@@ -48,33 +48,37 @@ export default function Label(props: InternalLabelProps) {
       : 'text-primary'
 
   return (
-    <FocusRing>
-      {/* An `aria.Button` MUST NOT be used here, as it breaks dragging. */}
-      {/* eslint-disable-next-line no-restricted-syntax */}
-      <button
-        type="button"
-        data-testid={props['data-testid']}
-        draggable={draggable}
-        title={title}
-        disabled={isDisabled}
-        className={`selectable ${
-          active ? 'active' : ''
-        } relative flex h-text items-center whitespace-nowrap rounded-full px-label-x transition-all before:pointer-events-none before:absolute before:inset before:rounded-full ${
-          negated ? 'before:border-2 before:border-delete' : ''
-        } ${className} ${textClass}`}
-        style={{ backgroundColor: backend.lChColorToCssColor(color) }}
-        onClick={event => {
-          event.stopPropagation()
-          onPress(event)
-        }}
-        onDragStart={e => {
-          onDragStart?.(e)
-        }}
-        onContextMenu={onContextMenu}
-        onKeyDown={handleFocusMove}
+    <FocusRing within placement="after">
+      <div
+        className={`relative rounded-full after:pointer-events-none after:absolute after:inset after:rounded-inherit ${negated ? 'after:!outline-offset-0' : ''}`}
       >
-        {children}
-      </button>
+        {/* An `aria.Button` MUST NOT be used here, as it breaks dragging. */}
+        {/* eslint-disable-next-line no-restricted-syntax */}
+        <button
+          type="button"
+          data-testid={props['data-testid']}
+          draggable={draggable}
+          title={title}
+          disabled={isDisabled}
+          className={`focus-child selectable ${
+            active ? 'active' : ''
+          } relative flex h-text items-center whitespace-nowrap rounded-inherit px-label-x transition-all after:pointer-events-none after:absolute after:inset after:rounded-full ${
+            negated ? 'after:border-2 after:border-delete' : ''
+          } ${className} ${textClass}`}
+          style={{ backgroundColor: backend.lChColorToCssColor(color) }}
+          onClick={event => {
+            event.stopPropagation()
+            onPress(event)
+          }}
+          onDragStart={e => {
+            onDragStart?.(e)
+          }}
+          onContextMenu={onContextMenu}
+          onKeyDown={handleFocusMove}
+        >
+          {children}
+        </button>
+      </div>
     </FocusRing>
   )
 }
