@@ -8,7 +8,6 @@ import PageSwitcher, * as pageSwitcher from '#/layouts/PageSwitcher'
 import UserBar from '#/layouts/UserBar'
 
 import AssetInfoBar from '#/components/dashboard/AssetInfoBar'
-import Portal from '#/components/Portal'
 
 import type * as backendModule from '#/services/Backend'
 
@@ -100,31 +99,29 @@ export default function TopBar(props: TopBarProps) {
           )}
         </div>
       </div>
-      <Portal>
-        <div
-          className={`fixed right top z-1 m-top-bar text-xs text-primary ${shouldMakeSpaceForExtendedEditorMenu ? 'mr-extended-editor-menu' : ''}`}
-        >
-          <div className="flex gap-top-bar-right">
-            {page === pageSwitcher.Page.drive && (
-              <AssetInfoBar
-                isAssetPanelEnabled={isAssetPanelEnabled}
-                setIsAssetPanelEnabled={setIsAssetPanelEnabled}
-              />
-            )}
-            <UserBar
-              supportsLocalBackend={supportsLocalBackend}
-              page={page}
-              setPage={setPage}
-              isHelpChatOpen={isHelpChatOpen}
-              setIsHelpChatOpen={setIsHelpChatOpen}
-              projectAsset={projectAsset}
-              setProjectAsset={setProjectAsset}
-              doRemoveSelf={doRemoveSelf}
-              onSignOut={onSignOut}
+      <div
+        className={`fixed top z-1 m-top-bar text-xs text-primary transition-all duration-side-panel ${shouldMakeSpaceForExtendedEditorMenu ? 'mr-extended-editor-menu' : ''} ${isAssetPanelVisible ? '-right-asset-panel-w' : 'right'}`}
+      >
+        <div className="flex gap-top-bar-right">
+          {page === pageSwitcher.Page.drive && (
+            <AssetInfoBar
+              isAssetPanelEnabled={isAssetPanelEnabled}
+              setIsAssetPanelEnabled={setIsAssetPanelEnabled}
             />
-          </div>
+          )}
+          <UserBar
+            supportsLocalBackend={supportsLocalBackend}
+            page={page}
+            setPage={setPage}
+            isHelpChatOpen={isHelpChatOpen}
+            setIsHelpChatOpen={setIsHelpChatOpen}
+            projectAsset={projectAsset}
+            setProjectAsset={setProjectAsset}
+            doRemoveSelf={doRemoveSelf}
+            onSignOut={onSignOut}
+          />
         </div>
-      </Portal>
+      </div>
     </div>
   )
 }

@@ -93,6 +93,7 @@ export default /** @satisfies {import('tailwindcss').Config} */ ({
         'row-h': 'var(--row-height)',
         'text-h': 'var(--text-height)',
         'top-bar-margin': 'var(--top-bar-margin)',
+        'asset-panel-w': 'var(--asset-panel-width)',
         'indent-1': 'var(--indent-1-size)',
         'indent-2': 'var(--indent-2-size)',
         'indent-3': 'var(--indent-3-size)',
@@ -539,6 +540,16 @@ export default /** @satisfies {import('tailwindcss').Config} */ ({
           respectImportant: true,
           values: theme('dashArray', {}),
         }
+      )
+
+      matchUtilities(
+        {
+          'translate-z': value => ({
+            '--tw-translate-z': value,
+            transform: ` translate3d(var(--tw-translate-x), var(--tw-translate-y), var(--tw-translate-z)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y))`,
+          }),
+        },
+        { values: theme('translate', {}), supportsNegativeValues: true }
       )
 
       addComponents(
