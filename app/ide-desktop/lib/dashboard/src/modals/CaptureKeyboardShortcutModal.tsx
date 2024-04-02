@@ -10,7 +10,7 @@ import * as aria from '#/components/aria'
 import KeyboardShortcut from '#/components/dashboard/KeyboardShortcut'
 import Modal from '#/components/Modal'
 import ButtonRow from '#/components/styled/ButtonRow'
-import UnstyledButton from '#/components/styled/UnstyledButton'
+import UnstyledButton from '#/components/UnstyledButton'
 
 import * as inputBindings from '#/utilities/inputBindings'
 

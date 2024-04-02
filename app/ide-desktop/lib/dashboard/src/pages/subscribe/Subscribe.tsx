@@ -16,7 +16,7 @@ import * as backendProvider from '#/providers/BackendProvider'
 import * as textProvider from '#/providers/TextProvider'
 
 import Modal from '#/components/Modal'
-import UnstyledButton from '#/components/styled/UnstyledButton'
+import UnstyledButton from '#/components/UnstyledButton'
 
 import * as backendModule from '#/services/Backend'
 

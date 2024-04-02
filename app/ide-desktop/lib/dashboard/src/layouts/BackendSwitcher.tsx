@@ -9,7 +9,7 @@ import * as textProvider from '#/providers/TextProvider'
 
 import * as aria from '#/components/aria'
 import FocusArea from '#/components/styled/FocusArea'
-import UnstyledButton from '#/components/styled/UnstyledButton'
+import UnstyledButton from '#/components/UnstyledButton'
 import SvgMask from '#/components/SvgMask'
 
 import * as backendModule from '#/services/Backend'

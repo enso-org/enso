@@ -18,7 +18,7 @@ import PermissionSelector from '#/components/dashboard/PermissionSelector'
 import UserPermission from '#/components/dashboard/UserPermission'
 import Modal from '#/components/Modal'
 import FocusArea from '#/components/styled/FocusArea'
-import UnstyledButton from '#/components/styled/UnstyledButton'
+import UnstyledButton from '#/components/UnstyledButton'
 
 import * as backendModule from '#/services/Backend'
 

@@ -15,7 +15,7 @@ import UserMenu from '#/layouts/UserMenu'
 import * as aria from '#/components/aria'
 import Button from '#/components/styled/Button'
 import FocusArea from '#/components/styled/FocusArea'
-import UnstyledButton from '#/components/styled/UnstyledButton'
+import UnstyledButton from '#/components/UnstyledButton'
 
 import InviteUsersModal from '#/modals/InviteUsersModal'
 import ManagePermissionsModal from '#/modals/ManagePermissionsModal'

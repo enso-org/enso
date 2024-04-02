@@ -19,7 +19,7 @@ import StatelessSpinner, * as statelessSpinner from '#/components/StatelessSpinn
 import FocusArea from '#/components/styled/FocusArea'
 import SettingsPage from '#/components/styled/settings/SettingsPage'
 import SettingsSection from '#/components/styled/settings/SettingsSection'
-import UnstyledButton from '#/components/styled/UnstyledButton'
+import UnstyledButton from '#/components/UnstyledButton'
 import SvgMask from '#/components/SvgMask'
 
 import * as backendModule from '#/services/Backend'

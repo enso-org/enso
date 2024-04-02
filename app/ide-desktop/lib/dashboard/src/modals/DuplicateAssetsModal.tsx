@@ -13,7 +13,7 @@ import * as aria from '#/components/aria'
 import AssetSummary from '#/components/dashboard/AssetSummary'
 import Modal from '#/components/Modal'
 import ButtonRow from '#/components/styled/ButtonRow'
-import UnstyledButton from '#/components/styled/UnstyledButton'
+import UnstyledButton from '#/components/UnstyledButton'
 
 import * as backendModule from '#/services/Backend'
 

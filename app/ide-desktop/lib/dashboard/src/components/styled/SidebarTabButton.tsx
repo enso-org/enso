@@ -2,7 +2,7 @@
 import * as React from 'react'
 
 import * as aria from '#/components/aria'
-import UnstyledButton from '#/components/styled/UnstyledButton'
+import UnstyledButton from '#/components/UnstyledButton'
 import SvgMask from '#/components/SvgMask'
 
 // ========================

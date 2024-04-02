@@ -10,7 +10,7 @@ import * as backendProvider from '#/providers/BackendProvider'
 import * as textProvider from '#/providers/TextProvider'
 
 import Input from '#/components/Input'
-import AuthenticationPage from '#/components/styled/AuthenticationPage'
+import AuthenticationPage from '#/pages/authentication/AuthenticationPage'
 import SubmitButton from '#/components/SubmitButton'
 
 import * as eventModule from '#/utilities/event'

@@ -14,7 +14,7 @@ import * as textProvider from '#/providers/TextProvider'
 
 import * as chat from '#/layouts/Chat'
 
-import UnstyledButton from '#/components/styled/UnstyledButton'
+import UnstyledButton from '#/components/UnstyledButton'
 
 /** Props for a {@link ChatPlaceholder}. */
 export interface ChatPlaceholderProps {

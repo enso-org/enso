@@ -2,7 +2,7 @@
 import * as React from 'react'
 
 import type * as aria from '#/components/aria'
-import UnstyledButton from '#/components/styled/UnstyledButton'
+import UnstyledButton from '#/components/UnstyledButton'
 
 import * as permissionsModule from '#/utilities/permissions'
 

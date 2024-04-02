@@ -17,7 +17,7 @@ import KeyboardShortcutsSettingsTabBar from '#/layouts/Settings/KeyboardShortcut
 
 import KeyboardShortcut from '#/components/dashboard/KeyboardShortcut'
 import FocusArea from '#/components/styled/FocusArea'
-import UnstyledButton from '#/components/styled/UnstyledButton'
+import UnstyledButton from '#/components/UnstyledButton'
 import SvgMask from '#/components/SvgMask'
 
 import CaptureKeyboardShortcutModal from '#/modals/CaptureKeyboardShortcutModal'

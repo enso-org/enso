@@ -16,7 +16,7 @@ import * as loggerProvider from '#/providers/LoggerProvider'
 import * as textProvider from '#/providers/TextProvider'
 
 import * as aria from '#/components/aria'
-import UnstyledButton from '#/components/styled/UnstyledButton'
+import UnstyledButton from '#/components/UnstyledButton'
 import SvgMask from '#/components/SvgMask'
 import Twemoji from '#/components/Twemoji'
 

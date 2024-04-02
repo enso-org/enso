@@ -18,7 +18,7 @@ import Category from '#/layouts/CategorySwitcher/Category'
 
 import * as aria from '#/components/aria'
 import FocusArea from '#/components/styled/FocusArea'
-import UnstyledButton from '#/components/styled/UnstyledButton'
+import UnstyledButton from '#/components/UnstyledButton'
 import SvgMask from '#/components/SvgMask'
 
 import type * as backend from '#/services/Backend'

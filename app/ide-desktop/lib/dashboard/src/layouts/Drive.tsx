@@ -28,7 +28,7 @@ import Labels from '#/layouts/Labels'
 
 import * as aria from '#/components/aria'
 import type * as spinner from '#/components/Spinner'
-import UnstyledButton from '#/components/styled/UnstyledButton'
+import UnstyledButton from '#/components/UnstyledButton'
 
 import * as backendModule from '#/services/Backend'
 import * as projectManager from '#/services/ProjectManager'

@@ -8,7 +8,7 @@ import * as aria from '#/components/aria'
 import ButtonRow from '#/components/styled/ButtonRow'
 import SettingsInput from '#/components/styled/settings/SettingsInput'
 import SettingsSection from '#/components/styled/settings/SettingsSection'
-import UnstyledButton from '#/components/styled/UnstyledButton'
+import UnstyledButton from '#/components/UnstyledButton'
 
 import * as eventModule from '#/utilities/event'
 import * as uniqueString from '#/utilities/uniqueString'

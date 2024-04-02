@@ -16,7 +16,7 @@ import * as textProvider from '#/providers/TextProvider'
 
 import Input from '#/components/Input'
 import Link from '#/components/Link'
-import AuthenticationPage from '#/components/styled/AuthenticationPage'
+import AuthenticationPage from '#/pages/authentication/AuthenticationPage'
 import SubmitButton from '#/components/SubmitButton'
 
 import * as eventModule from '#/utilities/event'

@@ -21,7 +21,7 @@ import Category from '#/layouts/CategorySwitcher/Category'
 import * as aria from '#/components/aria'
 import Button from '#/components/styled/Button'
 import HorizontalMenuBar from '#/components/styled/HorizontalMenuBar'
-import UnstyledButton from '#/components/styled/UnstyledButton'
+import UnstyledButton from '#/components/UnstyledButton'
 
 import ConfirmDeleteModal from '#/modals/ConfirmDeleteModal'
 import UpsertDataLinkModal from '#/modals/UpsertDataLinkModal'
