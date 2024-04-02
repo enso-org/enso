@@ -124,7 +124,7 @@ export default function AssetProperties(props: AssetPropertiesProps) {
 
   return (
     <>
-      <div className="flex flex-col items-start gap-side-panel">
+      <div className="pointer-events-auto flex flex-col items-start gap-side-panel">
         <aria.Heading
           level={2}
           className="flex h-side-panel-heading items-center gap-side-panel-section py-side-panel-heading-y text-lg leading-snug"
@@ -189,7 +189,7 @@ export default function AssetProperties(props: AssetPropertiesProps) {
           )}
         </div>
       </div>
-      <div className="flex flex-col items-start gap-side-panel-section">
+      <div className="pointer-events-auto flex flex-col items-start gap-side-panel-section">
         <aria.Heading
           level={2}
           className="h-side-panel-heading py-side-panel-heading-y text-lg leading-snug"
@@ -229,7 +229,7 @@ export default function AssetProperties(props: AssetPropertiesProps) {
         </table>
       </div>
       {isDataLink && (
-        <div className="flex flex-col items-start gap-side-panel-section">
+        <div className="pointer-events-auto flex flex-col items-start gap-side-panel-section">
           <aria.Heading
             level={2}
             className="h-side-panel-heading py-side-panel-heading-y text-lg leading-snug"
