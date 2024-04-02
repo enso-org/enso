@@ -168,7 +168,9 @@ public final class UnresolvedConstructor implements EnsoObject {
       var fn = ReadArgumentNode.build(0, null, null);
       var args = new CallArgument[prototype.descs.length];
       for (var i = 0; i < args.length; i++) {
-        args[i] = new CallArgument(ReadArgumentNode.build(1 + i, null, null));
+        args[i] =
+            new CallArgument(
+                prototype.descs[i].getName(), ReadArgumentNode.build(1 + i, null, null));
       }
       var expr = ApplicationNode.build(fn, args, DefaultsExecutionMode.EXECUTE);
       expr.setId(id);
