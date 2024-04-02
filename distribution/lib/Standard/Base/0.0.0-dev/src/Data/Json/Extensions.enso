@@ -52,10 +52,10 @@ Number.to_js_object self = case self of
     Integer -> JS_Object.from_pairs [["type", "Integer"]]
     Float -> JS_Object.from_pairs [["type", "Float"]]
     _ : Integer ->
-        ## Java's longs range is -(2^63 - 1) to (2^63 - 1)
-        java_max_long = 9223372036854775808
-        if self >= -java_max_long && self < java_max_long then self else
-            JS_Object.from_pairs [["type", "BigInt"], ["value", self.to_text]]
+        ## JS Safe Integer range -(2^53 - 1) to (2^53 - 1)
+        js_max_integer = 9007199254740991
+        if self >= -js_max_integer && self < js_max_integer then self else
+        JS_Object.from_pairs [["type", "BigInt"], ["value", self.to_text]]
     _ -> self
 
 ## PRIVATE
