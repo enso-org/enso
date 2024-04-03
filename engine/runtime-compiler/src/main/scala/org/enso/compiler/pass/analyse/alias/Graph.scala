@@ -437,15 +437,13 @@ object Graph {
       * @param occurrence the occurrence to add
       */
     def add(occurrence: Occurrence): Unit = {
-      occurrences = occurrences.updatedWith(occurrence.id)(current =>
-        current
-          .map(_ =>
-            throw new CompilerError(
-              s"Multiple occurrences found for ID ${occurrence.id}."
-            )
-          )
-          .orElse(Some(occurrence))
-      )
+      if (occurrences.contains(occurrence.id)) {
+        throw new CompilerError(
+          s"Multiple occurrences found for ID ${occurrence.id}."
+        )
+      } else {
+        occurrences += ((occurrence.id, occurrence))
+      }
     }
 
     /** Adds a definition, including a definition with synthetic name, without
@@ -504,7 +502,9 @@ object Graph {
     def hasSymbolOccurrenceAs[T <: Occurrence: ClassTag](
       symbol: Graph.Symbol
     ): Boolean = {
-      occurrences.collect { case (_, x: T) if x.symbol == symbol => x }.nonEmpty
+      occurrences.values.collectFirst {
+        case x: T if x.symbol == symbol => x
+      }.nonEmpty
     }
 
     /** Resolves usages of symbols into links where possible, creating an edge
@@ -563,9 +563,7 @@ object Graph {
       * @return the scope where `id` occurs
       */
     def scopeFor(id: Graph.Id): Option[Scope] = {
-      val possibleCandidates = occurrences.get(id)
-
-      if (possibleCandidates.isEmpty) {
+      if (!occurrences.contains(id)) {
         if (childScopes.isEmpty) {
           None
         } else {
