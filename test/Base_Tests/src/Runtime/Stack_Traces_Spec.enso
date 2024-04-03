@@ -1,5 +1,8 @@
 from Standard.Base import all
 
+import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
+import Standard.Base.Runtime.Context
+
 from Standard.Test import all
 
 
@@ -11,6 +14,12 @@ Number.foo self = baz
 foo x = x.foo
 My_Type.foo self = foo 123
 
+deep_e = Error.throw (Illegal_Argument.Error "ie")
+deep_d = deep_e
+deep_c = deep_d
+deep_b = deep_c
+deep_a = deep_b
+
 add_specs suite_builder = suite_builder.group "Stack traces" group_builder->
     group_builder.specify "should capture traces correctly" <|
         modname = Meta.get_simple_type_name Stack_Traces_Spec
@@ -19,3 +28,21 @@ add_specs suite_builder = suite_builder.group "Stack traces" group_builder->
         stack.take (First 5) . map .name . should_equal names
         file = enso_project.root / 'src' / 'Runtime' / 'Stack_Traces_Spec.enso'
         stack.take (First 5) . map (.source_location >> .file) . each (_.should_equal file)
+
+    group_builder.specify "should respect Runtime.Context.Dataflow_Stack_Trace (for error thrown from Enso)" <|
+        modname = Meta.get_simple_type_name Stack_Traces_Spec
+        names = [modname + ".deep_e", modname + ".deep_d", modname + ".deep_c", modname + ".deep_b", modname + ".deep_a"]
+
+        shallow_stack_trace = deep_a.stack_trace
+        shallow_stack_trace.length . should_equal 1
+        shallow_stack_trace.at 0 . name . should_equal (names.at 0)
+
+        Context.Dataflow_Stack_Trace.with_enabled <|
+            deep_stack_trace = deep_a.stack_trace
+            (deep_stack_trace.length > 5) . should_be_true
+            deep_stack_trace.take 5 . map .name . should_equal names
+
+main =
+    suite = Test.build suite_builder->
+        add_specs suite_builder
+    suite.run_with_filter
