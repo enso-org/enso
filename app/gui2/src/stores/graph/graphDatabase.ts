@@ -430,7 +430,9 @@ export class GraphDb {
       const newVis = changes.get('visualization')
       if (!visMetadataEquals(newVis, node.vis)) node.vis = newVis
     }
-    node.colorOverride = changes.get('colorOverride')
+    if (changes.has('colorOverride')) {
+      node.colorOverride = changes.get('colorOverride')
+    }
   }
 
   /** Get the ID of the `Ast` corresponding to the given `ExternalId` as of the last synchronization. */
