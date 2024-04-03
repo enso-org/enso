@@ -44,7 +44,8 @@ impl Artifact {
         }
         .into();
 
-        let image = PathBuf::from(electron_image_filename(target_os, target_arch, version));
+        let image_filename = electron_image_filename(target_os, target_arch, version);
+        let image = dist_dir.as_ref().join(image_filename);
         Self {
             image_checksum: image.with_extension("sha256"),
             image,
