@@ -100,7 +100,6 @@ import org.enso.interpreter.runtime.callable.function.{
   Function => RuntimeFunction
 }
 import org.enso.interpreter.runtime.callable.{
-  UnresolvedConstructor,
   UnresolvedConversion,
   UnresolvedSymbol,
   Annotation => RuntimeAnnotation
@@ -1691,9 +1690,7 @@ class IrToTruffle(
               _,
               _
             ) =>
-          DynamicSymbolNode.build(
-            UnresolvedConstructor.build(nameStr)
-          )
+          DynamicSymbolNode.buildUnresolvedConstructor(nameStr)
         case Name.Self(location, _, passData, _) =>
           processName(
             Name.Literal(
