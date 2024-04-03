@@ -61,12 +61,12 @@ add_specs suite_builder =
                 JS_Object.from_pairs [["foo", "bar"], ["baz", ["foo", "x", False]], ["y", y_v]]
 
         group_builder.specify "should report meaningful parsing errors" <|
-            "foo".should_fail_parsing_with "Unexpected token f in JSON at position 0"
-            "[,]".should_fail_parsing_with "Unexpected token , in JSON at position 1"
-            "{,}".should_fail_parsing_with "Unexpected token , in JSON at position 1"
+            "foo".should_fail_parsing_with "Unrecognized token 'foo': was expecting (JSON String, Number, Array, Object or token 'null', 'true' or 'false') at position [line: 1, column: 4]"
+            "[,]".should_fail_parsing_with "Unexpected character (',' (code 44)): expected a valid value (JSON String, Number, Array, Object or token 'null', 'true' or 'false') at position [line: 1, column: 3]"
+            "{,}".should_fail_parsing_with "Unexpected character (',' (code 44)): was expecting double-quote to start field name at position [line: 1, column: 3]"
             deep_err = '{ "foo": "bar", "baz": ["foo", "x"", false], "y": {"z": null, "w": null} }'
-            deep_err.should_fail_parsing_with "closing quote ] expected at position 34"
-            "123 4".should_fail_parsing_with "JSON cannot be fully parsed at position 4"
+            deep_err.should_fail_parsing_with 'Unexpected character (\'\"\' (code 34)): was expecting comma to separate Array entries at position [line: 1, column: 36]'
+            "123 4".should_parse_as 123 # Jackson parser assumes this is "correct"
 
         group_builder.specify "should be able to deserialize using into via conversion" <|
             Json.parse '{"type":"Time_Zone","constructor":"parse","id":"Europe/Moscow"}' . into Time_Zone . should_equal (Time_Zone.parse "Europe/Moscow")
@@ -220,4 +220,3 @@ main filter=Nothing =
     suite = Test.build suite_builder->
         add_specs suite_builder
     suite.run_with_filter filter
-

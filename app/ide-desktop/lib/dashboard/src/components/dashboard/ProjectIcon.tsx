@@ -13,6 +13,7 @@ import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 import * as authProvider from '#/providers/AuthProvider'
 import * as backendProvider from '#/providers/BackendProvider'
 import * as modalProvider from '#/providers/ModalProvider'
+import * as sessionProvider from '#/providers/SessionProvider'
 import * as textProvider from '#/providers/TextProvider'
 
 import type * as assetEvent from '#/events/assetEvent'
@@ -83,6 +84,7 @@ export default function ProjectIcon(props: ProjectIconProps) {
   const { keyProp: key, item, setItem, assetEvents, doOpenManually } = props
   const { doCloseEditor, doOpenEditor } = props
   const { backend } = backendProvider.useBackend()
+  const { session } = sessionProvider.useSession()
   const { user } = authProvider.useNonPartialUserSession()
   const { unsetModal } = modalProvider.useSetModal()
   const toastAndLog = toastAndLogHooks.useToastAndLog()
@@ -146,7 +148,11 @@ export default function ProjectIcon(props: ProjectIconProps) {
               }
               await backend.openProject(
                 item.id,
-                { executeAsync: shouldRunInBackground, parentId: item.parentId },
+                {
+                  executeAsync: shouldRunInBackground,
+                  parentId: item.parentId,
+                  cognitoCredentials: session,
+                },
                 item.title
               )
             }
@@ -166,7 +172,11 @@ export default function ProjectIcon(props: ProjectIconProps) {
           case backendModule.BackendType.local: {
             await backend.openProject(
               item.id,
-              { executeAsync: shouldRunInBackground, parentId: item.parentId },
+              {
+                executeAsync: shouldRunInBackground,
+                parentId: item.parentId,
+                cognitoCredentials: null,
+              },
               item.title
             )
             setState(oldState =>
@@ -189,6 +199,7 @@ export default function ProjectIcon(props: ProjectIconProps) {
       backend,
       item,
       closeProjectAbortController,
+      session,
       toastAndLog,
       /* should never change */ setState,
       /* should never change */ setItem,

@@ -338,6 +338,8 @@ export default /** @satisfies {import('tailwindcss').Config} */ ({
         'close-icon': 'var(--close-icon-margin)',
         'date-input-gap': 'var(--date-input-gap)',
         'date-input-calendar-gap': 'var(--date-input-calendar-gap)',
+        'context-menu-macos-half-x': 'var(--context-menu-macos-half-width)',
+        'context-menu-half-x': 'var(--context-menu-half-width)',
         'chat-header-x': 'var(--chat-header-margin-x)',
         'chat-header-t': 'var(--chat-header-margin-top)',
         'chat-form-x': 'var(--chat-form-margin-x)',

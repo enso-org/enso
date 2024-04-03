@@ -25,6 +25,8 @@ import * as columnUtils from '#/components/dashboard/column/columnUtils'
 import StatelessSpinner, * as statelessSpinner from '#/components/StatelessSpinner'
 import FocusRing from '#/components/styled/FocusRing'
 
+import EditAssetDescriptionModal from '#/modals/EditAssetDescriptionModal'
+
 import * as backendModule from '#/services/Backend'
 import * as localBackend from '#/services/LocalBackend'
 import * as projectManager from '#/services/ProjectManager'
@@ -363,6 +365,26 @@ export default function AssetRow(props: AssetRowProps) {
     }
   }, [backend, dispatchAssetListEvent, asset, toastAndLog, /* should never change */ item.key])
 
+  const doTriggerDescriptionEdit = React.useCallback(() => {
+    setModal(
+      <EditAssetDescriptionModal
+        doChangeDescription={async description => {
+          if (description !== asset.description) {
+            setAsset(object.merger({ description }))
+
+            await backend
+              .updateAsset(item.item.id, { parentDirectoryId: null, description }, item.item.title)
+              .catch(error => {
+                setAsset(object.merger({ description: asset.description }))
+                throw error
+              })
+          }
+        }}
+        initialDescription={asset.description}
+      />
+    )
+  }, [setModal, asset.description, setAsset, backend, item.item.id, item.item.title])
+
   eventHooks.useEventHandler(assetEvents, async event => {
     switch (event.type) {
       // These events are handled in the specific `NameColumn` files.
@@ -698,6 +720,7 @@ export default function AssetRow(props: AssetRowProps) {
                         doCut={doCut}
                         doPaste={doPaste}
                         doDelete={doDelete}
+                        doTriggerDescriptionEdit={doTriggerDescriptionEdit}
                       />
                     )
                   } else {
@@ -832,6 +855,7 @@ export default function AssetRow(props: AssetRowProps) {
               doCut={doCut}
               doPaste={doPaste}
               doDelete={doDelete}
+              doTriggerDescriptionEdit={doTriggerDescriptionEdit}
             />
           )}
         </>
