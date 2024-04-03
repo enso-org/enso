@@ -19,8 +19,8 @@ import type * as assetEvent from '#/events/assetEvent'
 import AssetEventType from '#/events/AssetEventType'
 
 import Spinner, * as spinner from '#/components/Spinner'
-import UnstyledButton from '#/components/UnstyledButton'
 import SvgMask from '#/components/SvgMask'
+import UnstyledButton from '#/components/UnstyledButton'
 
 import * as backendModule from '#/services/Backend'
 import * as remoteBackend from '#/services/RemoteBackend'
@@ -340,7 +340,7 @@ export default function ProjectIcon(props: ProjectIconProps) {
     case backendModule.ProjectState.closed:
       return (
         <UnstyledButton
-          className="size-project-icon"
+          className="size-project-icon rounded-full"
           onPress={() => {
             unsetModal()
             doOpenManually(item.id)
@@ -357,7 +357,7 @@ export default function ProjectIcon(props: ProjectIconProps) {
         <UnstyledButton
           isDisabled={isOtherUserUsingProject}
           {...(isOtherUserUsingProject ? { title: 'Someone else is using this project.' } : {})}
-          className="size-project-icon selectable enabled:active"
+          className="size-project-icon rounded-full selectable enabled:active"
           onPress={() => {
             unsetModal()
             void closeProject(!isRunningInBackground)
@@ -379,7 +379,7 @@ export default function ProjectIcon(props: ProjectIconProps) {
           <UnstyledButton
             isDisabled={isOtherUserUsingProject}
             {...(isOtherUserUsingProject ? { title: 'Someone else has this project open.' } : {})}
-            className="size-project-icon selectable enabled:active"
+            className="size-project-icon rounded-full selectable enabled:active"
             onPress={() => {
               unsetModal()
               void closeProject(!isRunningInBackground)
@@ -396,7 +396,7 @@ export default function ProjectIcon(props: ProjectIconProps) {
           </UnstyledButton>
           {!isOtherUserUsingProject && !isRunningInBackground && (
             <UnstyledButton
-              className="size-project-icon"
+              className="size-project-icon rounded-full"
               onPress={() => {
                 unsetModal()
                 doOpenEditor(true)

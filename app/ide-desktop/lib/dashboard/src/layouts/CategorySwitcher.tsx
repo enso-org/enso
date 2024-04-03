@@ -90,7 +90,7 @@ function CategorySwitcherItem(props: InternalCategorySwitcherItemProps) {
       getDropOperation={types =>
         acceptedDragTypes.some(type => types.has(type)) ? 'move' : 'cancel'
       }
-      className="rounded-full drop-target-after"
+      className="group relative flex items-center rounded-full drop-target-after"
       // Required because `dragover` does not fire on `mouseenter`.
       onDrop={onDrop}
     >
@@ -115,6 +115,9 @@ function CategorySwitcherItem(props: InternalCategorySwitcherItemProps) {
           <aria.Text slot="description">{getText(textId)}</aria.Text>
         </div>
       </UnstyledButton>
+      <div className="absolute left-full ml-2 hidden group-focus-visible:block">
+        {getText('drop')}
+      </div>
     </aria.DropZone>
   )
 }

@@ -2188,7 +2188,7 @@ export default function AssetsTable(props: AssetsTableProps) {
       </td>
     </tr>
   ) : (
-    displayItems.map(item => {
+    displayItems.map((item, i) => {
       const key = AssetTreeNode.getKey(item)
       const isSelected = (visuallySelectedKeysOverride ?? selectedKeys).has(key)
       const isSoleSelected = selectedKeys.size === 1 && isSelected
@@ -2207,6 +2207,10 @@ export default function AssetsTable(props: AssetsTableProps) {
           isKeyboardSelected={
             keyboardSelectedIndex != null && item === visibleItems[keyboardSelectedIndex]
           }
+          grabKeyboardFocus={() => {
+            setSelectedKeys(new Set([key]))
+            setMostRecentlySelectedIndex(i, true)
+          }}
           allowContextMenu={selectedKeysRef.current.size === 0 || !isSelected || isSoleSelected}
           onClick={onRowClick}
           onContextMenu={(_innerProps, event) => {
