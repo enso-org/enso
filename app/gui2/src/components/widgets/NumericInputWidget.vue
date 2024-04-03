@@ -121,6 +121,7 @@ defineExpose({
       autoSelect
       :style="inputStyle"
       v-on="dragPointer.events"
+      @click.stop
       @blur="blurred"
       @focus="focused"
       @input="emit('input', editedValue)"
