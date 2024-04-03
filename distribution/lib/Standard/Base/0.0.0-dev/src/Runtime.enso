@@ -17,7 +17,7 @@ import project.System
 from project.Data.Boolean import Boolean, False, True
 from project.Data.Index_Sub_Range.Index_Sub_Range import First, Last
 from project.Data.Text.Extensions import all
-from project.Runtime.Context import Input, Output
+from project.Runtime.Context import Dataflow_Stack_Trace, Input, Output
 
 ## Utilities for interacting with the runtime.
 
@@ -150,6 +150,9 @@ type Context
     ## PRIVATE
        ADVANCED
     Output
+    ## PRIVATE
+       ADVANCED
+    Dataflow_Stack_Trace
 
     ## PRIVATE
        ADVANCED
@@ -161,6 +164,7 @@ type Context
         case self of
             Input  -> "Input"
             Output -> "Output"
+            Dataflow_Stack_Trace -> "Dataflow_Stack_Trace "
 
     ## PRIVATE
        ADVANCED
