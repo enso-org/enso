@@ -179,8 +179,8 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     env:
       GRAAL_EDITION: GraalVM CE
-  enso-build-ci-gen-job-scala-tests-graal-vm-ce-linux-x86_64:
-    name: Scala Tests (GraalVM CE) (linux, x86_64)
+  enso-build-ci-gen-job-jvm-tests-graal-vm-ce-linux-x86_64:
+    name: JVM Tests (GraalVM CE) (linux, x86_64)
     runs-on:
       - self-hosted
       - Linux
@@ -214,7 +214,7 @@ jobs:
         run: ./run git-clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - run: ./run backend test scala
+      - run: ./run backend test jvm
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - if: success() || failure()
@@ -241,8 +241,8 @@ jobs:
       GRAAL_EDITION: GraalVM CE
     permissions:
       checks: write
-  enso-build-ci-gen-job-scala-tests-graal-vm-ce-macos-x86_64:
-    name: Scala Tests (GraalVM CE) (macos, x86_64)
+  enso-build-ci-gen-job-jvm-tests-graal-vm-ce-macos-x86_64:
+    name: JVM Tests (GraalVM CE) (macos, x86_64)
     runs-on:
       - macos-latest
     steps:
@@ -275,7 +275,7 @@ jobs:
         run: ./run git-clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - run: ./run backend test scala
+      - run: ./run backend test jvm
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - if: success() || failure()
@@ -302,8 +302,8 @@ jobs:
       GRAAL_EDITION: GraalVM CE
     permissions:
       checks: write
-  enso-build-ci-gen-job-scala-tests-graal-vm-ce-windows-x86_64:
-    name: Scala Tests (GraalVM CE) (windows, x86_64)
+  enso-build-ci-gen-job-jvm-tests-graal-vm-ce-windows-x86_64:
+    name: JVM Tests (GraalVM CE) (windows, x86_64)
     runs-on:
       - self-hosted
       - Windows
@@ -337,7 +337,7 @@ jobs:
         run: ./run git-clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - run: ./run backend test scala
+      - run: ./run backend test jvm
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - if: success() || failure()

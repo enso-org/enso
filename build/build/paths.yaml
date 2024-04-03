@@ -9,7 +9,7 @@
       engine-benchmark.yml:
       gui-tests.yml:
       gui.yml:
-      nightly-tests.yml:
+      engine-nightly.yml:
       nightly.yml:
       promote.yml:
       release.yml:

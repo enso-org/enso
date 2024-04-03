@@ -525,7 +525,7 @@ pub fn add_backend_checks(
     graal_edition: graalvm::Edition,
 ) {
     workflow.add(target, job::CiCheckBackend { graal_edition });
-    workflow.add(target, job::ScalaTests { graal_edition });
+    workflow.add(target, job::JvmTests { graal_edition });
     workflow.add(target, job::StandardLibraryTests { graal_edition });
 }
 
@@ -657,7 +657,7 @@ pub fn backend() -> Result<Workflow> {
     Ok(workflow)
 }
 
-pub fn nightly_tests() -> Result<Workflow> {
+pub fn engine_nightly() -> Result<Workflow> {
     let on = Event {
         schedule: vec![Schedule::new("0 3 * * *")?],
         workflow_dispatch: Some(manual_workflow_dispatch()),
@@ -744,7 +744,7 @@ pub fn generate(
         (repo_root.changelog_yml.to_path_buf(), changelog()?),
         (repo_root.nightly_yml.to_path_buf(), nightly()?),
         (repo_root.scala_new_yml.to_path_buf(), backend()?),
-        (repo_root.nightly_tests_yml.to_path_buf(), nightly_tests()?),
+        (repo_root.engine_nightly_yml.to_path_buf(), engine_nightly()?),
         (repo_root.gui_yml.to_path_buf(), gui()?),
         (repo_root.gui_tests_yml.to_path_buf(), gui_tests()?),
         (repo_root.engine_benchmark_yml.to_path_buf(), engine_benchmark()?),
