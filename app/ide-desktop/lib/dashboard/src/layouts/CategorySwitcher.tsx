@@ -5,8 +5,10 @@ import Home2Icon from 'enso-assets/home2.svg'
 import RecentIcon from 'enso-assets/recent.svg'
 import Trash2Icon from 'enso-assets/trash2.svg'
 
-import * as localStorageProvider from '#/providers/LocalStorageProvider'
+import type * as text from '#/text'
+
 import * as modalProvider from '#/providers/ModalProvider'
+import * as textProvider from '#/providers/TextProvider'
 
 import type * as assetEvent from '#/events/assetEvent'
 import AssetEventType from '#/events/AssetEventType'
@@ -17,59 +19,11 @@ import SvgMask from '#/components/SvgMask'
 
 import * as drag from '#/utilities/drag'
 
-// ============================
-// === CategorySwitcherItem ===
-// ============================
+// =================
+// === Constants ===
+// =================
 
-/** Props for a {@link CategorySwitcherItem}. */
-interface InternalCategorySwitcherItemProps {
-  /** When true, the button is not faded out even when not hovered. */
-  readonly active?: boolean
-  /** When true, the button is not clickable. */
-  readonly disabled?: boolean
-  readonly image: string
-  readonly name: string
-  readonly iconClassName?: string
-  readonly onClick: () => void
-  readonly onDragOver: (event: React.DragEvent) => void
-  readonly onDrop: (event: React.DragEvent) => void
-}
-
-/** An entry in a {@link CategorySwitcher}. */
-function CategorySwitcherItem(props: InternalCategorySwitcherItemProps) {
-  const { active = false, disabled = false, image, name, iconClassName, onClick } = props
-  const { onDragOver, onDrop } = props
-  return (
-    <button
-      disabled={disabled}
-      title={`Go To ${name}`}
-      className={`group flex items-center rounded-full gap-2 h-8 px-2 hover:bg-frame-selected transition-colors ${
-        active ? 'bg-frame-selected' : 'text-not-selected'
-      } ${disabled ? '' : 'hover:text-primary hover:bg-frame-selected hover:opacity-100'} ${
-        !active && disabled ? 'cursor-not-allowed' : ''
-      }`}
-      onClick={onClick}
-      // Required because `dragover` does not fire on `mouseenter`.
-      onDragEnter={onDragOver}
-      onDragOver={onDragOver}
-      onDrop={onDrop}
-    >
-      <SvgMask
-        src={image}
-        className={`group-hover:text-icon-selected ${
-          active ? 'text-icon-selected' : 'text-icon-not-selected'
-        } ${iconClassName ?? ''}`}
-      />
-      <span>{name}</span>
-    </button>
-  )
-}
-
-// ========================
-// === CategorySwitcher ===
-// ========================
-
-const CATEGORIES: Category[] = [Category.recent, Category.home, Category.trash]
+const CATEGORIES = Object.values(Category)
 
 const CATEGORY_ICONS: Readonly<Record<Category, string>> = {
   [Category.recent]: RecentIcon,
@@ -77,11 +31,62 @@ const CATEGORY_ICONS: Readonly<Record<Category, string>> = {
   [Category.trash]: Trash2Icon,
 }
 
-const CATEGORY_CLASS_NAMES: Readonly<Record<Category, string>> = {
-  [Category.recent]: '-ml-0.5',
-  [Category.home]: '',
-  [Category.trash]: '',
+const CATEGORY_TO_TEXT_ID: Readonly<Record<Category, text.TextId>> = {
+  [Category.recent]: 'recentCategory',
+  [Category.home]: 'homeCategory',
+  [Category.trash]: 'trashCategory',
+} satisfies { [C in Category]: `${C}Category` }
+
+// ============================
+// === CategorySwitcherItem ===
+// ============================
+
+/** Props for a {@link CategorySwitcherItem}. */
+interface InternalCategorySwitcherItemProps {
+  readonly category: Category
+  readonly isCurrent: boolean
+  readonly onClick: () => void
+  readonly onDragOver: (event: React.DragEvent) => void
+  readonly onDrop: (event: React.DragEvent) => void
 }
+
+/** An entry in a {@link CategorySwitcher}. */
+function CategorySwitcherItem(props: InternalCategorySwitcherItemProps) {
+  const { category, isCurrent, onClick } = props
+  const { onDragOver, onDrop } = props
+  const { getText } = textProvider.useText()
+
+  return (
+    <button
+      disabled={isCurrent}
+      title={`Go To ${category}`}
+      className={`selectable ${
+        isCurrent ? 'bg-selected-frame active' : ''
+      } group flex h-row items-center gap-icon-with-text rounded-full px-button-x transition-colors hover:bg-selected-frame`}
+      onClick={onClick}
+      // Required because `dragover` does not fire on `mouseenter`.
+      onDragEnter={onDragOver}
+      onDragOver={onDragOver}
+      onDrop={onDrop}
+    >
+      <SvgMask
+        src={CATEGORY_ICONS[category]}
+        className={`group-hover:text-icon-selected ${
+          isCurrent ? 'text-icon-selected' : 'text-icon-not-selected'
+        } ${
+          // This explicit class is a special-case due to the unusual shape of the "Recent" icon.
+          // eslint-disable-next-line no-restricted-syntax
+          category === Category.recent ? '-ml-0.5' : ''
+        }`}
+      />
+      <span>{getText(CATEGORY_TO_TEXT_ID[category])}</span>
+    </button>
+  )
+}
+
+// ========================
+// === CategorySwitcher ===
+// ========================
 
 /** Props for a {@link CategorySwitcher}. */
 export interface CategorySwitcherProps {
@@ -94,56 +99,51 @@ export interface CategorySwitcherProps {
 export default function CategorySwitcher(props: CategorySwitcherProps) {
   const { category, setCategory, dispatchAssetEvent } = props
   const { unsetModal } = modalProvider.useSetModal()
-  const { localStorage } = localStorageProvider.useLocalStorage()
-
-  React.useEffect(() => {
-    localStorage.set('driveCategory', category)
-  }, [category, /* should never change */ localStorage])
+  const { getText } = textProvider.useText()
 
   return (
-    <div className="flex flex-col items-start w-30">
-      <div className="pl-2 pb-1.5">
-        <span className="inline-block font-bold text-sm leading-144.5 h-6 py-0.5">Category</span>
+    <div className="flex w-full flex-col gap-sidebar-section-heading">
+      <div className="text-header px-sidebar-section-heading-x text-sm font-bold">
+        {getText('category')}
       </div>
-      {CATEGORIES.map(currentCategory => (
-        <CategorySwitcherItem
-          key={currentCategory}
-          active={category === currentCategory}
-          disabled={category === currentCategory}
-          image={CATEGORY_ICONS[currentCategory]}
-          name={currentCategory}
-          iconClassName={CATEGORY_CLASS_NAMES[currentCategory]}
-          onClick={() => {
-            setCategory(currentCategory)
-          }}
-          onDragOver={event => {
-            if (
-              (category === Category.trash && currentCategory === Category.home) ||
-              (category !== Category.trash && currentCategory === Category.trash)
-            ) {
-              event.preventDefault()
-            }
-          }}
-          onDrop={event => {
-            if (
-              (category === Category.trash && currentCategory === Category.home) ||
-              (category !== Category.trash && currentCategory === Category.trash)
-            ) {
-              event.preventDefault()
-              event.stopPropagation()
-              unsetModal()
-              const payload = drag.ASSET_ROWS.lookup(event)
-              if (payload != null) {
-                dispatchAssetEvent({
-                  type:
-                    category === Category.trash ? AssetEventType.restore : AssetEventType.delete,
-                  ids: new Set(payload.map(item => item.key)),
-                })
+      <div className="flex flex-col items-start">
+        {CATEGORIES.map(currentCategory => (
+          <CategorySwitcherItem
+            key={currentCategory}
+            category={currentCategory}
+            isCurrent={category === currentCategory}
+            onClick={() => {
+              setCategory(currentCategory)
+            }}
+            onDragOver={event => {
+              if (
+                (category === Category.trash && currentCategory === Category.home) ||
+                (category !== Category.trash && currentCategory === Category.trash)
+              ) {
+                event.preventDefault()
               }
-            }
-          }}
-        />
-      ))}
+            }}
+            onDrop={event => {
+              if (
+                (category === Category.trash && currentCategory === Category.home) ||
+                (category !== Category.trash && currentCategory === Category.trash)
+              ) {
+                event.preventDefault()
+                event.stopPropagation()
+                unsetModal()
+                const payload = drag.ASSET_ROWS.lookup(event)
+                if (payload != null) {
+                  dispatchAssetEvent({
+                    type:
+                      category === Category.trash ? AssetEventType.restore : AssetEventType.delete,
+                    ids: new Set(payload.map(item => item.key)),
+                  })
+                }
+              }
+            }}
+          />
+        ))}
+      </div>
     </div>
   )
 }

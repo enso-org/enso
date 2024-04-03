@@ -24,6 +24,15 @@ transport formats, please look [here](./protocol-architecture.md).
   - [`ProgressUnit`](#progressunit)
   - [`EngineVersion`](#engineversion)
   - [`RunningState`](#runningstate)
+  - [`FileSystemEntry`](#filesystementry)
+  - [`Attributes`](#attributes)
+  - [`UTCDateTime`](#utcdatetime)
+- [File System Management Operations](#file-system-management-operations)
+  - [List Directories](#list-directories)
+  - [Create Directory](#create-directory)
+  - [Delete Directory](#delete-directory)
+  - [Move File Or Directory](#move-file-or-directory)
+  - [Write to File](#write-to-file)
 - [Project Management Operations](#project-management-operations)
   - [`project/open`](#projectopen)
   - [`project/close`](#projectclose)
@@ -186,6 +195,170 @@ interface RunningStatus {
   shuttingDown: bool;
 }
 ```
+
+### `FileSystemEntry`
+
+A directory entry in the fileystem operations.
+
+#### Format
+
+```typescript
+type FileSystemEntry = FileEntry | DirectoryEntry | ProjectEntry;
+
+interface FileEntry {
+  path: string;
+  attributes: Attributes;
+}
+
+interface DirectoryEntry {
+  path: string;
+  attributes: Attributes;
+}
+
+interface ProjectEntry {
+  path: string;
+  attributes: Attributes;
+  metadata: ProjectMetadata;
+}
+```
+
+### `Attributes`
+
+Basic attributes of a filesystem entry.
+
+#### Format
+
+```typescript
+interface Attributes {
+  creationTime: UTCDateTime;
+  lastAccessTime: UTCDateTime;
+  lastModifiedTime: UTCDateTime;
+  byteSize: number;
+}
+```
+
+### `UTCDateTime`
+
+Time in UTC time zone represented as ISO-8601 string.
+
+#### Format
+
+```typescript
+type UTCDateTime = string;
+```
+
+## File System Management Operations
+
+The project-manager binary provides Cli interface to do basic filesystem
+operations.
+
+### List Directories
+
+List directory returning information about filesystem entries together with the
+project metadata if the listed directory contains a project.
+
+#### Parameters
+
+```typescript
+project-manager --filesystem-list {path}
+```
+
+#### Result
+
+```typescript
+{
+  entries: FileSystemEntry[];
+}
+```
+
+#### Errors
+
+- [`ProjectDataStoreError`](#projectdatastoreerror) to signal problems with
+  underlying data store.
+
+### Create Directory
+
+Create directory with the specified path.
+
+#### Parameters
+
+```typescript
+project-manager --filesystem-create-directory {path}
+```
+
+### Result
+
+```typescript
+null;
+```
+
+#### Errors
+
+- [`ProjectDataStoreError`](#projectdatastoreerror) to signal problems with
+  underlying data store.
+
+### Delete Directory
+
+Deletes directory with the specified path.
+
+#### Parameters
+
+```typescript
+project-manager --filesystem-delete-directory {path}
+```
+
+### Result
+
+```typescript
+null;
+```
+
+#### Errors
+
+- [`ProjectDataStoreError`](#projectdatastoreerror) to signal problems with
+  underlying data store.
+
+### Move File Or Directory
+
+Moves file or directory from target path to the destination path.
+
+#### Parameters
+
+```typescript
+project-manager --filesystem-move-from {path} --filesystem-move-to {path}
+```
+
+### Result
+
+```typescript
+null;
+```
+
+#### Errors
+
+- [`ProjectDataStoreError`](#projectdatastoreerror) to signal problems with
+  underlying data store.
+
+### Write to File
+
+Writes bytes from stdin to the provided path.
+
+#### Parameters
+
+```typescript
+echo 'Hello World!' | project-manager --filesystem-write-path {path}
+```
+
+### Result
+
+```typescript
+null;
+```
+
+#### Errors
+
+- [`ProjectDataStoreError`](#projectdatastoreerror) to signal problems with
+  underlying data store.
 
 ## Project Management Operations
 
@@ -418,6 +591,7 @@ interface ProjectCreateRequest {
 interface ProjectCreateResponse {
   projectId: UUID;
   projectName: string;
+  projectNormalizedName: string;
 }
 ```
 

@@ -15,6 +15,7 @@ import * as electron from 'electron'
 import * as portfinder from 'portfinder'
 
 import * as common from 'enso-common'
+import * as buildUtils from 'enso-common/src/buildUtils'
 import * as contentConfig from 'enso-content-config'
 
 import * as authentication from 'authentication'
@@ -32,8 +33,8 @@ import * as projectManager from 'bin/project-manager'
 import * as security from 'security'
 import * as server from 'bin/server'
 import * as urlAssociations from 'url-associations'
-import * as utils from '../../../utils'
 
+// prettier-ignore
 import GLOBAL_CONFIG from '../../../../gui2/config.yaml' assert { type: 'yaml' }
 
 const logger = contentConfig.logger
@@ -263,6 +264,8 @@ class App {
                     port: this.args.groups.server.options.port.value,
                     externalFunctions: {
                         uploadProjectBundle: projectManagement.uploadBundle,
+                        runProjectManagerCommand: (cliArguments, body?: NodeJS.ReadableStream) =>
+                            projectManager.runCommand(this.args, cliArguments, body),
                     },
                 })
                 this.server = await server.Server.create(serverCfg)
@@ -306,6 +309,7 @@ class App {
                 }
                 const window = new electron.BrowserWindow(windowPreferences)
                 window.setMenuBarVisibility(false)
+
                 if (this.args.groups.debug.options.devTools.value) {
                     window.webContents.openDevTools()
                 }
@@ -374,9 +378,44 @@ class App {
         electron.ipcMain.on(ipc.Channel.quit, () => {
             electron.app.quit()
         })
-        electron.ipcMain.on(ipc.Channel.importProjectFromPath, (event, path: string) => {
-            const info = projectManagement.importProjectFromPath(path)
-            event.reply(ipc.Channel.importProjectFromPath, path, info)
+        electron.ipcMain.on(
+            ipc.Channel.importProjectFromPath,
+            (event, path: string, directory: string | null) => {
+                const directoryParams = directory == null ? [] : [directory]
+                const info = projectManagement.importProjectFromPath(path, ...directoryParams)
+                event.reply(ipc.Channel.importProjectFromPath, path, info)
+            }
+        )
+        electron.ipcMain.handle(
+            ipc.Channel.openFileBrowser,
+            async (_event, kind: 'default' | 'directory' | 'file') => {
+                logger.log('Request for opening browser for ', kind)
+                /** Helper for `showOpenDialog`, which has weird types by default. */
+                type Properties = ('openDirectory' | 'openFile')[]
+                const properties: Properties =
+                    kind === 'file'
+                        ? ['openFile']
+                        : kind === 'directory'
+                          ? ['openDirectory']
+                          : process.platform === 'darwin'
+                            ? ['openFile', 'openDirectory']
+                            : ['openFile']
+                const { canceled, filePaths } = await electron.dialog.showOpenDialog({ properties })
+                if (!canceled) {
+                    return filePaths
+                } else {
+                    return null
+                }
+            }
+        )
+
+        // Handling navigation events from renderer process
+        electron.ipcMain.on(ipc.Channel.goBack, () => {
+            this.window?.webContents.goBack()
+        })
+
+        electron.ipcMain.on(ipc.Channel.goForward, () => {
+            this.window?.webContents.goForward()
         })
     }
 
@@ -400,13 +439,38 @@ class App {
             address.port = this.serverPort().toString()
             address.search = new URLSearchParams(searchParams).toString()
             logger.log(`Loading the window address '${address.toString()}'.`)
+            if (process.env.ELECTRON_DEV_MODE === 'true') {
+                // Vite takes a while to be `import`ed, so the first load almost always fails.
+                // Reload every second until Vite is ready
+                // (i.e. when `index.html` has a non-empty body).
+                const window = this.window
+                const onLoad = () => {
+                    void window.webContents.mainFrame
+                        // Get the HTML contents of `document.body`.
+                        .executeJavaScript('document.body.innerHTML')
+                        .then(html => {
+                            // If `document.body` is empty, then `index.html` failed to load.
+                            if (html === '') {
+                                console.warn('Loading failed, reloading...')
+                                window.webContents.once('did-finish-load', onLoad)
+                                setTimeout(() => {
+                                    void window.loadURL(address.toString())
+                                    // eslint-disable-next-line @typescript-eslint/no-magic-numbers
+                                }, 1_000)
+                            }
+                        })
+                }
+                // Wait for page to load before checking content, because of course the content is
+                // empty if the page isn't loaded.
+                window.webContents.once('did-finish-load', onLoad)
+            }
             await this.window.loadURL(address.toString())
         }
     }
 
     /** Print the version of the frontend and the backend. */
     async printVersion(): Promise<void> {
-        const indent = ' '.repeat(utils.INDENT_SIZE)
+        const indent = ' '.repeat(buildUtils.INDENT_SIZE)
         let maxNameLen = 0
         for (const name in debug.VERSION_INFO) {
             maxNameLen = Math.max(maxNameLen, name.length)

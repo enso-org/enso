@@ -11,6 +11,10 @@ const { provideFn, injectFn } = createContextStore(
 export class InteractionHandler {
   private currentInteraction: Interaction | undefined = undefined
 
+  isActive(interaction: Interaction | undefined): interaction is Interaction {
+    return interaction != null && interaction === this.currentInteraction
+  }
+
   /** Automatically activate specified interaction any time a specified condition becomes true. */
   setWhen(active: WatchSource<boolean>, interaction: Interaction) {
     watch(active, (active) => {
@@ -23,7 +27,7 @@ export class InteractionHandler {
   }
 
   setCurrent(interaction: Interaction | undefined) {
-    if (interaction !== this.currentInteraction) {
+    if (!this.isActive(interaction)) {
       this.currentInteraction?.cancel?.()
       this.currentInteraction = interaction
     }
@@ -31,12 +35,12 @@ export class InteractionHandler {
 
   /** Unset the current interaction, if it is the specified instance. */
   end(interaction: Interaction) {
-    if (this.currentInteraction === interaction) this.currentInteraction = undefined
+    if (this.isActive(interaction)) this.currentInteraction = undefined
   }
 
   /** Cancel the current interaction, if it is the specified instance. */
   cancel(interaction: Interaction) {
-    if (this.currentInteraction === interaction) this.setCurrent(undefined)
+    if (this.isActive(interaction)) this.setCurrent(undefined)
   }
 
   handleCancel(): boolean {

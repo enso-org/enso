@@ -11,10 +11,10 @@ use crate::paths::generated;
 
 use artifact::IsArtifact;
 use bundle::IsBundle;
+use ide_ci::cache::goodie::graalvm::Edition;
 use ide_ci::future::AsyncPolicy;
 use ide_ci::github::Repo;
 use package::IsPackage;
-use std::collections::BTreeSet;
 
 
 // ==============
@@ -82,7 +82,7 @@ pub async fn download_project_templates(client: reqwest::Client, enso_root: Path
 }
 
 /// Describe, which benchmarks should be run.
-#[derive(Clone, Copy, Debug, Display, PartialEq, Eq, PartialOrd, Ord, clap::ArgEnum)]
+#[derive(Clone, Copy, Debug, Display, PartialEq, Eq, PartialOrd, Ord, clap::ValueEnum)]
 pub enum Benchmarks {
     /// Run all SBT-exposed benchmarks. Does *not* including pure [`Benchmarks::Enso`] benchmarks.
     All,
@@ -94,7 +94,7 @@ pub enum Benchmarks {
     EnsoJMH,
 }
 
-#[derive(Clone, Copy, Debug, Display, PartialEq, Eq, PartialOrd, Ord, clap::ArgEnum)]
+#[derive(Clone, Copy, Debug, Display, PartialEq, Eq, PartialOrd, Ord, clap::ValueEnum)]
 pub enum Tests {
     Scala,
     #[clap(alias = "stdlib")]
@@ -310,9 +310,12 @@ pub async fn deduce_graal(
     build_sbt: &generated::RepoRootBuildSbt,
 ) -> Result<ide_ci::cache::goodie::graalvm::GraalVM> {
     let build_sbt_content = ide_ci::fs::tokio::read_to_string(build_sbt).await?;
+    let graal_edition = env::GRAAL_EDITION.get().map_or(Edition::default(), |e| e);
+
     Ok(ide_ci::cache::goodie::graalvm::GraalVM {
         client,
         graal_version: get_graal_version(&build_sbt_content)?,
+        edition: graal_edition,
         os: TARGET_OS,
         arch: TARGET_ARCH,
     })

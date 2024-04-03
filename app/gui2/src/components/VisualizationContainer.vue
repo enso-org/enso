@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import SmallPlusButton from '@/components/SmallPlusButton.vue'
 import SvgIcon from '@/components/SvgIcon.vue'
 import VisualizationSelector from '@/components/VisualizationSelector.vue'
 import { PointerButtonMask, isTriggeredByKeyboard, usePointer } from '@/composables/events'
@@ -14,10 +15,10 @@ const props = defineProps<{
   belowToolbar?: boolean
 }>()
 
-/** The total width of:
+/** The minimum width must be at least the total width of:
  * - both of toolbars that are always visible (32px + 60px), and
  * - the 4px flex gap between the toolbars. */
-const MIN_WIDTH_PX = 96
+const MIN_WIDTH_PX = 200
 
 const config = useVisualizationConfig()
 
@@ -46,7 +47,6 @@ function blur(event: Event) {
   setTimeout(() => target.blur(), 0)
 }
 
-const rootNode = ref<HTMLElement>()
 const contentNode = ref<HTMLElement>()
 
 onMounted(() => (config.width = MIN_WIDTH_PX))
@@ -93,7 +93,6 @@ const resizeBottomRight = usePointer((pos, _, type) => {
 <template>
   <Teleport to="body" :disabled="!config.fullscreen">
     <div
-      ref="rootNode"
       class="VisualizationContainer"
       :class="{
         fullscreen: config.fullscreen,
@@ -112,6 +111,11 @@ const resizeBottomRight = usePointer((pos, _, type) => {
       <div class="resizer-right" v-on="resizeRight.stop.events"></div>
       <div class="resizer-bottom" v-on="resizeBottom.stop.events"></div>
       <div class="resizer-bottom-right" v-on="resizeBottomRight.stop.events"></div>
+      <SmallPlusButton
+        v-if="config.isCircularMenuVisible"
+        class="below-viz"
+        @createNodes="config.createNodes(...$event)"
+      />
       <div
         ref="contentNode"
         class="content scrollable"
@@ -190,7 +194,7 @@ const resizeBottomRight = usePointer((pos, _, type) => {
 <style scoped>
 .VisualizationContainer {
   --node-height: 32px;
-  --permanent-toolbar-width: 96px;
+  --permanent-toolbar-width: 200px;
   color: var(--color-text);
   background: var(--color-visualization-bg);
   position: absolute;
@@ -255,6 +259,13 @@ const resizeBottomRight = usePointer((pos, _, type) => {
 
 .VisualizationContainer.fullscreen .toolbars {
   top: 4px;
+}
+
+.below-viz {
+  position: absolute;
+  top: 100%;
+  width: 100%;
+  margin-top: 4px;
 }
 
 .toolbar {

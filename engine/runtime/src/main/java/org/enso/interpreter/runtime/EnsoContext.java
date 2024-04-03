@@ -222,7 +222,7 @@ public final class EnsoContext {
 
   private static final Assumption checkNodes =
       Truffle.getRuntime().createAssumption("context check");
-  private static final Set<Node> reportedNulllRootNodes = new HashSet<>();
+  private static final Set<Node> reportedNullRootNodes = new HashSet<>();
   private static long checkUntil = Long.MAX_VALUE;
 
   @TruffleBoundary
@@ -230,9 +230,9 @@ public final class EnsoContext {
     if (System.currentTimeMillis() > checkUntil) {
       checkNodes.invalidate();
     }
-    if (reportedNulllRootNodes.add(n)) {
+    if (reportedNullRootNodes.add(n)) {
       var ex =
-          new Exception(
+          new AssertionError(
               """
         no root node for {n}
         with section: {s}
@@ -243,6 +243,11 @@ public final class EnsoContext {
                   .replace("{r}", "" + n.getRootNode()));
       ex.printStackTrace();
       checkUntil = System.currentTimeMillis() + 10000;
+      var assertsOn = false;
+      assert assertsOn = true;
+      if (assertsOn) {
+        throw ex;
+      }
     }
   }
 
@@ -723,6 +728,10 @@ public final class EnsoContext {
    */
   public ExecutorService newCachedThreadPool(String name, boolean systemThreads) {
     return threadExecutors.newCachedThreadPool(name, systemThreads);
+  }
+
+  public ExecutorService newCachedThreadPool(String name, int min, int max, boolean systemThreads) {
+    return threadExecutors.newCachedThreadPool(name, systemThreads, min, max);
   }
 
   /**

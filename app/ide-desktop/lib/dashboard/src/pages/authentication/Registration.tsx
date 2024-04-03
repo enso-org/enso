@@ -12,6 +12,7 @@ import * as appUtils from '#/appUtils'
 
 import * as authProvider from '#/providers/AuthProvider'
 import * as localStorageProvider from '#/providers/LocalStorageProvider'
+import * as textProvider from '#/providers/TextProvider'
 
 import Input from '#/components/Input'
 import Link from '#/components/Link'
@@ -46,6 +47,7 @@ export default function Registration() {
   const auth = authProvider.useAuth()
   const location = router.useLocation()
   const { localStorage } = localStorageProvider.useLocalStorage()
+  const { getText } = textProvider.useText()
 
   const query = new URLSearchParams(location.search)
   const initialEmail = query.get('email')
@@ -66,9 +68,9 @@ export default function Registration() {
   }, [localStorage, redirectTo])
 
   return (
-    <div className="flex flex-col gap-6 text-primary text-sm items-center justify-center min-h-screen">
+    <div className="flex min-h-screen flex-col items-center justify-center gap-auth text-sm text-primary">
       <form
-        className="flex flex-col gap-6 bg-frame-selected rounded-4xl shadow-md p-8 w-full max-w-md"
+        className="flex w-full max-w-md flex-col gap-auth rounded-auth bg-selected-frame p-auth shadow-md"
         onSubmit={async event => {
           event.preventDefault()
           setIsSubmitting(true)
@@ -76,15 +78,16 @@ export default function Registration() {
           setIsSubmitting(false)
         }}
       >
-        <div className="font-medium self-center text-xl">Create a new account</div>
+        <div className="self-center text-auth-heading font-medium">
+          {getText('createANewAccount')}
+        </div>
         <Input
           required
           validate
           type="email"
           autoComplete="email"
-          label="Email"
           icon={AtIcon}
-          placeholder="Enter your email"
+          placeholder={getText('emailPlaceholder')}
           value={email}
           setValue={setEmail}
         />
@@ -94,11 +97,10 @@ export default function Registration() {
           allowShowingPassword
           type="password"
           autoComplete="new-password"
-          label="Password"
           icon={LockIcon}
-          placeholder="Enter your password"
+          placeholder={getText('passwordPlaceholder')}
           pattern={validation.PASSWORD_PATTERN}
-          error={validation.PASSWORD_ERROR}
+          error={getText('passwordValidationError')}
           value={password}
           setValue={setPassword}
         />
@@ -108,17 +110,16 @@ export default function Registration() {
           allowShowingPassword
           type="password"
           autoComplete="new-password"
-          label="Confirm password"
           icon={LockIcon}
-          placeholder="Confirm your password"
+          placeholder={getText('confirmPasswordPlaceholder')}
           pattern={string.regexEscape(password)}
-          error={validation.CONFIRM_PASSWORD_ERROR}
+          error={getText('passwordMismatchError')}
           value={confirmPassword}
           setValue={setConfirmPassword}
         />
-        <SubmitButton disabled={isSubmitting} text="Register" icon={CreateAccountIcon} />
+        <SubmitButton disabled={isSubmitting} text={getText('register')} icon={CreateAccountIcon} />
       </form>
-      <Link to={appUtils.LOGIN_PATH} icon={GoBackIcon} text="Already have an account?" />
+      <Link to={appUtils.LOGIN_PATH} icon={GoBackIcon} text={getText('alreadyHaveAnAccount')} />
     </div>
   )
 }

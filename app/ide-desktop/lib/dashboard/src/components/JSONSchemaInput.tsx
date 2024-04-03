@@ -2,6 +2,7 @@
 import * as React from 'react'
 
 import * as backendProvider from '#/providers/BackendProvider'
+import * as textProvider from '#/providers/TextProvider'
 
 import Autocomplete from '#/components/Autocomplete'
 import Dropdown from '#/components/Dropdown'
@@ -32,6 +33,7 @@ export default function JSONSchemaInput(props: JSONSchemaInputProps) {
   // The functionality for inputting `enso-secret`s SHOULD be injected using a plugin,
   // but it is more convenient to avoid having plugin infrastructure.
   const { backend } = backendProvider.useBackend()
+  const { getText } = textProvider.useText()
   const [value, setValue] = React.useState(valueRaw)
   const [autocompleteText, setAutocompleteText] = React.useState(() =>
     typeof value === 'string' ? value : null
@@ -72,15 +74,15 @@ export default function JSONSchemaInput(props: JSONSchemaInputProps) {
             }
             children.push(
               <div
-                className={`rounded-2xl border ${
-                  isValid ? 'border-black/10' : 'border-red-700/60'
+                className={`rounded-default border ${
+                  isValid ? 'border-primary/10' : 'border-red-700/60'
                 }`}
               >
                 <Autocomplete
                   items={autocompleteItems ?? []}
                   itemToKey={item => item}
                   itemToString={item => item}
-                  placeholder="Enter secret path"
+                  placeholder={getText('enterSecretPath')}
                   matches={(item, text) => item.toLowerCase().includes(text.toLowerCase())}
                   values={isValid ? [value] : []}
                   setValues={values => {
@@ -98,10 +100,10 @@ export default function JSONSchemaInput(props: JSONSchemaInputProps) {
                 readOnly={readOnly}
                 value={typeof value === 'string' ? value : ''}
                 size={1}
-                className={`rounded-full w-40 px-2 bg-transparent border leading-170 h-6 py-px disabled:opacity-50 read-only:opacity-75 read-only:cursor-not-allowed ${
-                  getValidator(path)(value) ? 'border-black/10' : 'border-red-700/60'
+                className={`w-data-link-text-input text grow rounded-input border bg-transparent px-input-x read-only:read-only ${
+                  getValidator(path)(value) ? 'border-primary/10' : 'border-red-700/60'
                 }`}
-                placeholder="Enter text"
+                placeholder={getText('enterText')}
                 onChange={event => {
                   const newValue: string = event.currentTarget.value
                   setValue(newValue)
@@ -118,10 +120,10 @@ export default function JSONSchemaInput(props: JSONSchemaInputProps) {
               readOnly={readOnly}
               value={typeof value === 'number' ? value : ''}
               size={1}
-              className={`rounded-full w-40 px-2 bg-transparent border leading-170 h-6 py-px disabled:opacity-50 read-only:opacity-75 read-only:cursor-not-allowed ${
-                getValidator(path)(value) ? 'border-black/10' : 'border-red-700/60'
+              className={`w-data-link-text-input text grow rounded-input border bg-transparent px-input-x read-only:read-only ${
+                getValidator(path)(value) ? 'border-primary/10' : 'border-red-700/60'
               }`}
-              placeholder="Enter number"
+              placeholder={getText('enterNumber')}
               onChange={event => {
                 const newValue: number = event.currentTarget.valueAsNumber
                 if (Number.isFinite(newValue)) {
@@ -139,10 +141,10 @@ export default function JSONSchemaInput(props: JSONSchemaInputProps) {
               readOnly={readOnly}
               value={typeof value === 'number' ? value : ''}
               size={1}
-              className={`rounded-full w-40 px-2 bg-transparent border leading-170 h-6 py-px disabled:opacity-50 read-only:opacity-75 read-only:cursor-not-allowed ${
-                getValidator(path)(value) ? 'border-black/10' : 'border-red-700/60'
+              className={`w-data-link-text-input text grow rounded-input border bg-transparent px-input-x read-only:read-only ${
+                getValidator(path)(value) ? 'border-primary/10' : 'border-red-700/60'
               }`}
-              placeholder="Enter integer"
+              placeholder={getText('enterInteger')}
               onChange={event => {
                 const newValue: number = Math.floor(event.currentTarget.valueAsNumber)
                 setValue(newValue)
@@ -158,7 +160,8 @@ export default function JSONSchemaInput(props: JSONSchemaInputProps) {
               readOnly={readOnly}
               checked={typeof value === 'boolean' && value}
               onChange={event => {
-                setValue(event.currentTarget.checked)
+                const newValue: boolean = event.currentTarget.checked
+                setValue(newValue)
               }}
             />
           )
@@ -179,22 +182,26 @@ export default function JSONSchemaInput(props: JSONSchemaInputProps) {
           )
           if (jsonSchema.constantValue(defs, schema).length !== 1) {
             children.push(
-              <div className="flex flex-col gap-1 rounded-2xl border border-black/10 p-2">
+              <div className="flex flex-col gap-json-schema rounded-default border border-primary/10 p-json-schema-object-input">
                 {propertyDefinitions.map(definition => {
                   const { key, schema: childSchema } = definition
                   const isOptional = !requiredProperties.includes(key)
                   return jsonSchema.constantValue(defs, childSchema).length === 1 ? null : (
                     <div
                       key={key}
-                      className="flex flex-wrap items-center"
+                      className="flex flex-wrap items-center gap-buttons"
                       {...('description' in childSchema
                         ? { title: String(childSchema.description) }
                         : {})}
                     >
-                      <div
-                        className={`inline-block h-6 leading-170 py-px w-28 whitespace-nowrap ${
-                          isOptional ? 'cursor-pointer' : ''
-                        } ${value != null && key in value ? '' : 'opacity-50'}`}
+                      <button
+                        type="button"
+                        disabled={!isOptional}
+                        className={`text selectable ${
+                          value != null && key in value ? 'active' : ''
+                        } inline-block w-json-schema-object-key whitespace-nowrap rounded-full px-button-x text-left ${
+                          isOptional ? 'hover:bg-hover-bg' : ''
+                        }`}
                         onClick={() => {
                           if (isOptional) {
                             setValue(oldValue => {
@@ -218,7 +225,7 @@ export default function JSONSchemaInput(props: JSONSchemaInputProps) {
                         }}
                       >
                         {'title' in childSchema ? String(childSchema.title) : key}
-                      </div>
+                      </button>
                       {value != null && key in value && (
                         <JSONSchemaInput
                           readOnly={readOnly}
@@ -236,7 +243,7 @@ export default function JSONSchemaInput(props: JSONSchemaInputProps) {
                               // This is SAFE; but there is no way to tell TypeScript that an object
                               // has an index signature.
                               // eslint-disable-next-line no-restricted-syntax
-                              (oldValue as Record<string, unknown>)[key] === newValue
+                              (oldValue as Readonly<Record<string, unknown>>)[key] === newValue
                                 ? oldValue
                                 : { ...oldValue, [key]: newValue }
                             )
@@ -296,15 +303,14 @@ export default function JSONSchemaInput(props: JSONSchemaInputProps) {
             setSelectedChildIndex(index)
             const newConstantValue = jsonSchema.constantValue(defs, childSchema, true)
             setValue(newConstantValue[0] ?? null)
-            setSelectedChildIndex(index)
           }}
         />
       )
       children.push(
-        <div className={`flex flex-col gap-1 ${childValue.length === 0 ? 'w-full' : ''}`}>
+        <div className={`flex flex-col gap-json-schema ${childValue.length === 0 ? 'w-full' : ''}`}>
           {dropdownTitle != null ? (
-            <div className="flex items-center">
-              <div className="w-12 h-6 py-1">{dropdownTitle}</div>
+            <div className="flex h-row items-center">
+              <div className="h-text w-json-schema-dropdown-title">{dropdownTitle}</div>
               {dropdown}
             </div>
           ) : (
@@ -344,7 +350,7 @@ export default function JSONSchemaInput(props: JSONSchemaInputProps) {
     return children.length === 0 ? null : children.length === 1 && children[0] != null ? (
       children[0]
     ) : (
-      <div className="flex flex-col gap-1">{...children}</div>
+      <div className="flex flex-col gap-json-schema">{...children}</div>
     )
   }
 }

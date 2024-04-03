@@ -1,6 +1,7 @@
 package org.enso.interpreter.runtime.data.vector;
 
 import com.oracle.truffle.api.CompilerDirectives;
+import com.oracle.truffle.api.dsl.Bind;
 import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.dsl.Cached.Shared;
 import com.oracle.truffle.api.interop.InteropLibrary;
@@ -13,10 +14,13 @@ import com.oracle.truffle.api.nodes.Node;
 import org.enso.interpreter.node.expression.builtin.interop.syntax.HostValueToEnsoNode;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.data.EnsoObject;
+import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.error.Warning;
 import org.enso.interpreter.runtime.error.WarningsLibrary;
 import org.enso.interpreter.runtime.error.WithWarnings;
+import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
 
+@ExportLibrary(TypesLibrary.class)
 @ExportLibrary(InteropLibrary.class)
 @ExportLibrary(WarningsLibrary.class)
 final class ArraySlice implements EnsoObject {
@@ -169,5 +173,16 @@ final class ArraySlice implements EnsoObject {
   @ExportMessage
   boolean isLimitReached(@Shared("warnsLib") @CachedLibrary(limit = "3") WarningsLibrary warnings) {
     return warnings.isLimitReached(this.storage);
+  }
+
+  @ExportMessage
+  boolean hasType(@Shared("ignore") @Cached("1") int ignore) {
+    return true;
+  }
+
+  @ExportMessage
+  Type getType(@Bind("$node") Node node, @Shared("ignore") @Cached("1") int ignore) {
+    var ctx = EnsoContext.get(node);
+    return ctx.getBuiltins().array();
   }
 }

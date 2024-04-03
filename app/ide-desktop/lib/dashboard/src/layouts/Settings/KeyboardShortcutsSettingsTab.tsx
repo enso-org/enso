@@ -12,6 +12,7 @@ import * as refreshHooks from '#/hooks/refreshHooks'
 
 import * as inputBindingsManager from '#/providers/InputBindingsProvider'
 import * as modalProvider from '#/providers/ModalProvider'
+import * as textProvider from '#/providers/TextProvider'
 
 import KeyboardShortcut from '#/components/dashboard/KeyboardShortcut'
 import SvgMask from '#/components/SvgMask'
@@ -29,6 +30,7 @@ import * as object from '#/utilities/object'
 export default function KeyboardShortcutsSettingsTab() {
   const inputBindings = inputBindingsManager.useInputBindings()
   const { setModal } = modalProvider.useSetModal()
+  const { getText } = textProvider.useText()
   const [refresh, doRefresh] = refreshHooks.useRefresh()
   const scrollContainerRef = React.useRef<HTMLDivElement>(null)
   const bodyRef = React.useRef<HTMLTableSectionElement>(null)
@@ -67,17 +69,17 @@ export default function KeyboardShortcutsSettingsTab() {
   }, [/* should never change */ scrollContainerRef])
 
   return (
-    <div className="flex flex-col flex-1 gap-2.5 w-full pr-4">
-      <h3 className="font-bold text-xl h-9.5 py-0.5">Keyboard shortcuts</h3>
-      <div className="flex gap-2.5">
+    <div className="flex w-full flex-1 flex-col gap-settings-section-header">
+      <h3 className="settings-subheading">{getText('keyboardShortcuts')}</h3>
+      <div className="flex gap-drive-bar">
         <button
-          className="flex items-center bg-frame rounded-full h-8 px-2.5"
+          className="flex h-row items-center rounded-full bg-frame px-new-project-button-x"
           onClick={event => {
             event.stopPropagation()
             setModal(
               <ConfirmDeleteModal
-                actionText="reset all keyboard shortcuts"
-                actionButtonLabel="Reset All"
+                actionText={getText('resetAllKeyboardShortcuts')}
+                actionButtonLabel={getText('resetAll')}
                 doDelete={() => {
                   for (const k in inputBindings.metadata) {
                     // eslint-disable-next-line no-restricted-syntax
@@ -89,18 +91,21 @@ export default function KeyboardShortcutsSettingsTab() {
             )
           }}
         >
-          <span className="font-semibold whitespace-nowrap leading-5 h-6 py-px">Reset All</span>
+          <span className="text whitespace-nowrap font-semibold">{getText('resetAll')}</span>
         </button>
       </div>
       {/* There is a horizontal scrollbar for some reason without `px-px`. */}
+      {/* eslint-disable-next-line no-restricted-syntax */}
       <div ref={scrollContainerRef} className="overflow-auto px-px">
-        <table className="rounded-rows table-fixed border-collapse">
+        <table className="table-fixed border-collapse rounded-rows">
           <thead className="sticky top-0">
-            <tr className="text-left text-sm font-semibold h-8">
-              <th className="min-w-4 pl-2 pr-1.5">{/* Icon */}</th>
-              <th className="min-w-36 px-2">Name</th>
-              <th className="px-2">Shortcuts</th>
-              <th className="px-2 w-full">Description</th>
+            <tr className="h-row text-left text-sm font-semibold">
+              <th className="pr-keyboard-shortcuts-icon-column-r min-w-keyboard-shortcuts-icon-column pl-cell-x">
+                {/* Icon */}
+              </th>
+              <th className="min-w-keyboard-shortcuts-name-column px-cell-x">{getText('name')}</th>
+              <th className="px-cell-x">{getText('shortcuts')}</th>
+              <th className="w-full px-cell-x">{getText('description')}</th>
             </tr>
           </thead>
           <tbody ref={bodyRef}>
@@ -111,20 +116,26 @@ export default function KeyboardShortcutsSettingsTab() {
                 const [action, info] = kv
                 return (
                   <tr key={action}>
-                    <td className="flex h-8 items-center rounded-l-full pl-2 pr-1.5 bg-clip-padding">
+                    <td className="flex h-row items-center rounded-l-full bg-clip-padding pl-cell-x pr-icon-column-r">
                       <SvgMask
                         src={info.icon ?? BlankIcon}
                         color={info.color}
-                        className="w-4 h-4"
+                        className="size-icon"
                       />
                     </td>
-                    <td className="px-2 bg-clip-padding border-transparent border-l-2 border-r-2">
+                    <td className="border-l-2 border-r-2 border-transparent bg-clip-padding px-cell-x">
                       {info.name}
                     </td>
-                    <td className="group min-w-max pl-2 bg-clip-padding border-transparent border-l-2 border-r-2">
-                      <div className="flex gap-2 pr-4">
+                    <td className="group min-w-max border-l-2 border-r-2 border-transparent bg-clip-padding px-cell-x">
+                      {/* I don't know why this padding is needed,
+                       * given that this is a flex container. */}
+                      {/* eslint-disable-next-line no-restricted-syntax */}
+                      <div className="flex gap-buttons pr-4">
                         {info.bindings.map((binding, i) => (
-                          <div key={i} className="inline-flex items-center gap-1 shrink-0">
+                          <div
+                            key={i}
+                            className="inline-flex shrink-0 items-center gap-keyboard-shortcuts-button"
+                          >
                             <KeyboardShortcut shortcut={binding} />
                             <button
                               className="invisible group-hover:visible"
@@ -137,9 +148,9 @@ export default function KeyboardShortcutsSettingsTab() {
                             </button>
                           </div>
                         ))}
-                        <div className="flex gap-1 shrink-0">
+                        <div className="gap-keyboard-shortcuts-buttons flex shrink-0">
                           <button
-                            className="align-middle invisible group-hover:visible"
+                            className="invisible align-middle group-hover:visible"
                             onClick={event => {
                               event.stopPropagation()
                               setModal(
@@ -154,21 +165,21 @@ export default function KeyboardShortcutsSettingsTab() {
                               )
                             }}
                           >
-                            <img className="w-4.5 h-4.5" src={Plus2Icon} />
+                            <img className="size-plus-icon" src={Plus2Icon} />
                           </button>
                           <button
-                            className="align-middle invisible group-hover:visible"
+                            className="invisible align-middle group-hover:visible"
                             onClick={() => {
                               inputBindings.reset(action)
                               doRefresh()
                             }}
                           >
-                            <img className="w-4.5 h-4.5" src={ReloadInCircleIcon} />
+                            <img className="size-plus-icon" src={ReloadInCircleIcon} />
                           </button>
                         </div>
                       </div>
                     </td>
-                    <td className="rounded-r-full px-2 bg-clip-padding border-transparent border-l-2 border-r-2">
+                    <td className="cell-x rounded-r-full border-l-2 border-r-2 border-transparent bg-clip-padding">
                       {info.description}
                     </td>
                   </tr>

@@ -9,17 +9,13 @@ import Standard.Base.Runtime.Ref.Ref
 from Standard.Base.Metadata.Choice import Option
 from Standard.Base.Metadata.Widget import Single_Choice, Vector_Editor
 
-import Standard.Table.Data.Table.Table
-import Standard.Table.Data.Type.Value_Type.Value_Type
 import Standard.Table.Internal.Column_Naming_Helper.Column_Naming_Helper
+from Standard.Table import Table, Value_Type
 
-import project.Data.Column_Description.Column_Description
-import project.Data.DB_Table as DB_Table_Module
-import project.Data.DB_Table.DB_Table
-import project.Data.Dialect.Dialect
-import project.Data.SQL_Query.SQL_Query
-import project.Data.SQL_Statement.SQL_Statement
-import project.Data.SQL_Type.SQL_Type
+import project.Column_Description.Column_Description
+import project.DB_Table as DB_Table_Module
+import project.DB_Table.DB_Table
+import project.Dialect.Dialect
 import project.Internal.Connection.Entity_Naming_Properties.Entity_Naming_Properties
 import project.Internal.Hidden_Table_Registry
 import project.Internal.IR.Context.Context
@@ -29,6 +25,9 @@ import project.Internal.SQL_Type_Reference.SQL_Type_Reference
 import project.Internal.SQL_Warning_Helper
 import project.Internal.Statement_Setter.Statement_Setter
 import project.Internal.Table_Naming_Helper.Table_Naming_Helper
+import project.SQL_Query.SQL_Query
+import project.SQL_Statement.SQL_Statement
+import project.SQL_Type.SQL_Type
 from project.Errors import SQL_Error, Table_Already_Exists, Table_Not_Found
 from project.Internal.JDBC_Connection import handle_sql_errors, JDBC_Connection
 from project.Internal.Result_Set import read_column, result_set_to_table
@@ -151,8 +150,6 @@ type Connection
          be obtained using the `table_types` method. Defaults to a set of most
          commonly used table types, ignoring internal system tables or indices.
        - all_fields: Return all the fields in the metadata table.
-    @types make_table_types_selector
-    @schema make_schema_selector
     tables : Text -> Text -> Text -> Vector Text | Text | Nothing -> Boolean -> Table
     tables self name_like=Nothing database=self.database schema=Nothing types=self.dialect.default_table_types all_fields=False =
         self.get_tables_advanced name_like=name_like database=database schema=schema types=types all_fields=all_fields include_hidden=False
@@ -172,7 +169,7 @@ type Connection
         name_map = Map.from_vector [["TABLE_CAT", "Database"], ["TABLE_SCHEM", "Schema"], ["TABLE_NAME", "Name"], ["TABLE_TYPE", "Type"], ["REMARKS", "Description"], ["TYPE_CAT", "Type Database"], ["TYPE_SCHEM", "Type Schema"], ["TYPE_NAME", "Type Name"]]
         result = self.jdbc_connection.with_metadata metadata->
             table = Managed_Resource.bracket (metadata.getTables database schema name_like types_vector) .close result_set->
-                result_set_to_table result_set self.dialect.make_column_fetcher_for_type
+                result_set_to_table result_set self.dialect.get_type_mapping.make_column_fetcher
             renamed = table.rename_columns name_map
             if all_fields then renamed else
                 renamed.select_columns ["Database", "Schema", "Name", "Type", "Description"]
@@ -334,7 +331,7 @@ type Connection
         self.jdbc_connection.with_prepared_statement statement statement_setter stmt->
             rs = stmt.executeQuery
             SQL_Warning_Helper.process_warnings stmt <|
-                result_set_to_table rs self.dialect.make_column_fetcher_for_type type_overrides last_row_only
+                result_set_to_table rs self.dialect.get_type_mapping.make_column_fetcher type_overrides last_row_only
 
     ## PRIVATE
        Given a prepared statement, gets the column names and types for the
@@ -343,6 +340,14 @@ type Connection
     fetch_columns self statement statement_setter =
         needs_execute_query = self.dialect.needs_execute_query_for_type_inference
         self.jdbc_connection.raw_fetch_columns statement needs_execute_query statement_setter
+
+    ## PRIVATE
+       Internal helper method to run a query and read a single column from the
+       result as a Vector.
+    read_single_column : Text -> Text -> Vector Text
+    read_single_column self query column_name = self.jdbc_connection.with_connection connection->
+        result_set = connection.createStatement.executeQuery query
+        read_column result_set column_name
 
     ## PRIVATE
        ADVANCED
@@ -444,10 +449,18 @@ make_table_types_selector connection =
     Single_Choice values=(connection.table_types.map t-> Option t t.pretty)
 
 ## PRIVATE
-make_schema_selector : Connection -> Widget
-make_schema_selector connection =
+make_database_selector : Connection -> Boolean -> Widget
+make_database_selector connection include_any:Boolean=False =
+    databases_without_nothing = connection.databases.filter Filter_Condition.Not_Nothing
+    any_entry = if include_any then [Option "any database" "'*'"] else []
+    Single_Choice values=(databases_without_nothing.map t-> Option t t.pretty)+any_entry
+
+## PRIVATE
+make_schema_selector : Connection -> Boolean -> Widget
+make_schema_selector connection include_any:Boolean=False =
     schemas_without_nothing = connection.schemas.filter Filter_Condition.Not_Nothing
-    Single_Choice values=(schemas_without_nothing.map t-> Option t t.pretty)+[Option "any schema" "Nothing"]
+    any_entry = if include_any then [Option "any schema" "'*'"] else []
+    Single_Choice values=(schemas_without_nothing.map t-> Option t t.pretty)+any_entry
 
 ## PRIVATE
 make_table_name_selector : Connection -> Widget

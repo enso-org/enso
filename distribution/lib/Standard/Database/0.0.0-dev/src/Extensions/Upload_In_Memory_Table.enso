@@ -1,13 +1,13 @@
 from Standard.Base import all
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
-import Standard.Table.Data.Table.Table
 import Standard.Table.Internal.Widget_Helpers
+from Standard.Table import Table
 from Standard.Table.Errors import all
 
 import project.Connection.Connection.Connection
-import project.Data.DB_Table.DB_Table
-import project.Data.Update_Action.Update_Action
+import project.DB_Table.DB_Table
+import project.Update_Action.Update_Action
 from project.Errors import all
 from project.Internal.Upload_Table import all
 

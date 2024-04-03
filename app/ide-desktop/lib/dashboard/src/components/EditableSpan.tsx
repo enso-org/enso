@@ -4,7 +4,12 @@ import * as React from 'react'
 import CrossIcon from 'enso-assets/cross.svg'
 import TickIcon from 'enso-assets/tick.svg'
 
+import * as eventCalback from '#/hooks/eventCallbackHooks'
+
 import * as inputBindingsProvider from '#/providers/InputBindingsProvider'
+import * as textProvider from '#/providers/TextProvider'
+
+import SvgMask from '#/components/SvgMask'
 
 import * as sanitizedEventTargets from '#/utilities/sanitizedEventTargets'
 
@@ -31,10 +36,15 @@ export interface EditableSpanProps {
 export default function EditableSpan(props: EditableSpanProps) {
   const { 'data-testid': dataTestId, className, editable = false, children } = props
   const { checkSubmittable, onSubmit, onCancel, inputPattern, inputTitle } = props
+  const { getText } = textProvider.useText()
   const inputBindings = inputBindingsProvider.useInputBindings()
   const [isSubmittable, setIsSubmittable] = React.useState(true)
   const inputRef = React.useRef<HTMLInputElement>(null)
   const cancelled = React.useRef(false)
+
+  // Making sure that the event callback is stable.
+  // to prevent the effect from re-running.
+  const onCancelEventCallback = eventCalback.useEventCallback(onCancel)
 
   React.useEffect(() => {
     setIsSubmittable(checkSubmittable?.(inputRef.current?.value ?? '') ?? true)
@@ -46,7 +56,7 @@ export default function EditableSpan(props: EditableSpanProps) {
     if (editable) {
       return inputBindings.attach(sanitizedEventTargets.document.body, 'keydown', {
         cancelEditName: () => {
-          onCancel()
+          onCancelEventCallback()
           cancelled.current = true
           inputRef.current?.blur()
         },
@@ -54,7 +64,7 @@ export default function EditableSpan(props: EditableSpanProps) {
     } else {
       return
     }
-  }, [editable, onCancel, /* should never change */ inputBindings])
+  }, [editable, /* should never change */ inputBindings, onCancelEventCallback])
 
   React.useEffect(() => {
     cancelled.current = false
@@ -106,13 +116,16 @@ export default function EditableSpan(props: EditableSpanProps) {
               })}
         />
         {isSubmittable && (
-          <button type="submit" className="mx-0.5">
-            <img src={TickIcon} alt="Confirm Edit" />
+          <button
+            type="submit"
+            className="mx-tick-cross-button my-auto flex rounded-full transition-colors hover:bg-hover-bg"
+          >
+            <SvgMask src={TickIcon} alt={getText('confirmEdit')} className="size-icon" />
           </button>
         )}
         <button
           type="button"
-          className="mx-0.5"
+          className="mx-tick-cross-button my-auto flex rounded-full transition-colors hover:bg-hover-bg"
           onMouseDown={() => {
             cancelled.current = true
           }}
@@ -124,7 +137,7 @@ export default function EditableSpan(props: EditableSpanProps) {
             })
           }}
         >
-          <img src={CrossIcon} alt="Cancel Edit" />
+          <SvgMask src={CrossIcon} alt={getText('cancelEdit')} className="size-icon" />
         </button>
       </form>
     )

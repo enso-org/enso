@@ -30,14 +30,13 @@ const NAME = 'enso'
  * `yargs` is a modules we explicitly want the default imports of.
  * `node:process` is here because `process.on` does not exist on the namespace import. */
 const DEFAULT_IMPORT_ONLY_MODULES =
-    '@vitejs\\u002Fplugin-react|node:process|chalk|string-length|yargs|yargs\\u002Fyargs|sharp|to-ico|connect|morgan|serve-static|create-servers|electron-is-dev|fast-glob|esbuild-plugin-.+|opener|tailwindcss.*|enso-assets.*|@modyfi\\u002Fvite-plugin-yaml|is-network-error|validator.+'
+    '@vitejs\\u002Fplugin-react|node:process|chalk|string-length|yargs|yargs\\u002Fyargs|sharp|to-ico|connect|morgan|serve-static|tiny-invariant|clsx|create-servers|electron-is-dev|fast-glob|esbuild-plugin-.+|opener|tailwindcss.*|enso-assets.*|@modyfi\\u002Fvite-plugin-yaml|is-network-error|validator.+'
 const OUR_MODULES = 'enso-.*'
 const RELATIVE_MODULES =
     'bin\\u002Fproject-manager|bin\\u002Fserver|config\\u002Fparser|authentication|config|debug|detect|file-associations|index|ipc|log|naming|paths|preload|project-management|security|url-associations|#\\u002F.*'
 const ALLOWED_DEFAULT_IMPORT_MODULES = `${DEFAULT_IMPORT_ONLY_MODULES}|postcss|ajv\\u002Fdist\\u002F2020|${RELATIVE_MODULES}`
 const STRING_LITERAL = ':matches(Literal[raw=/^["\']/], TemplateLiteral)'
 const JSX = ':matches(JSXElement, JSXFragment)'
-const NOT_PASCAL_CASE = '/^(?!do[A-Z])(?!_?([A-Z][a-z0-9]*)+$)/'
 const NOT_CAMEL_CASE = '/^(?!_?[a-z][a-z0-9*]*([A-Z0-9][a-z0-9]*)*$)(?!React$)/'
 const WHITELISTED_CONSTANTS = 'logger|.+Context|interpolationFunction.+'
 const NOT_CONSTANT_CASE = `/^(?!${WHITELISTED_CONSTANTS}$|_?[A-Z][A-Z0-9]*(_[A-Z0-9]+)*$)/`
@@ -116,11 +115,6 @@ const RESTRICTED_SYNTAXES = [
             'TSTypeAliasDeclaration > :matches(TSBooleanKeyword, TSBigintKeyword, TSNullKeyword, TSNumberKeyword, TSObjectKeyword, TSStringKeyword, TSSymbolKeyword, TSUndefinedKeyword, TSUnknownKeyword, TSVoidKeyword)',
         message:
             'No aliases to primitives - consider using brands instead: `string & { _brand: "BrandName"; }`',
-    },
-    {
-        // Matches functions and arrow functions, but not methods.
-        selector: `:matches(FunctionDeclaration[id.name=${NOT_PASCAL_CASE}]:has(${JSX}), VariableDeclarator[id.name=${NOT_PASCAL_CASE}]:has(:matches(ArrowFunctionExpression.init ${JSX})))`,
-        message: 'Use `PascalCase` for React components',
     },
     {
         // Matches other functions, non-consts, and consts not at the top level.
@@ -225,13 +219,15 @@ const RESTRICTED_SYNTAXES = [
         message: 'Use `while (true)` instead of `for (;;)`',
     },
     {
-        selector: 'CallExpression[callee.name=toastAndLog][arguments.0.value=/\\.$/]',
-        message: '`toastAndLog` already includes a trailing `.`',
-    },
-    {
-        selector:
-            'JSXElement[closingElement!=null]:not(:has(.children:matches(JSXText[raw=/\\S/], :not(JSXText))))',
-        message: 'Use self-closing tags (`<tag />`) for tags without children.',
+        selector: `:matches(\
+            JSXAttribute[name.name=/^(?:alt|error|label|placeholder|text|title|actionButtonLabel|actionText|aria-label)$/][value.raw=/^'|^"|^\`/], \
+            JSXText[value=/\\S/], \
+            JSXAttribute[name.name=/^(?:alt|error|label|placeholder|text|title|actionButtonLabel|actionText|aria-label)$/] ConditionalExpression:matches(\
+                [consequent.raw=/^'|^"|^\`/], \
+                [alternate.raw=/^'|^"|^\`/]\
+            )\
+        )`,
+        message: 'Use a `getText()` from `useText` instead of a literal string',
     },
 ]
 
@@ -275,7 +271,7 @@ export default [
             ...tsEslint.configs.recommended?.rules,
             ...tsEslint.configs['recommended-requiring-type-checking']?.rules,
             ...tsEslint.configs.strict?.rules,
-            ...react.configs.recommended.rules,
+            ...react.configs['jsx-runtime'].rules,
             eqeqeq: ['error', 'always', { null: 'never' }],
             'jsdoc/require-jsdoc': [
                 'error',
@@ -298,21 +294,15 @@ export default [
                 },
             ],
             'no-constant-condition': ['error', { checkLoops: false }],
-            'no-restricted-properties': [
-                'error',
-                {
-                    object: 'router',
-                    property: 'useNavigate',
-                    message: 'Use `hooks.useNavigate` instead.',
-                },
-            ],
             'no-restricted-syntax': ['error', ...RESTRICTED_SYNTAXES],
             'prefer-arrow-callback': 'error',
             'prefer-const': 'error',
             // Not relevant because TypeScript checks types.
             'react/prop-types': 'off',
+            'react/self-closing-comp': 'error',
             'react-hooks/rules-of-hooks': 'error',
             'react-hooks/exhaustive-deps': 'error',
+            'react/jsx-pascal-case': ['error', { allowNamespace: true }],
             // Prefer `interface` over `type`.
             '@typescript-eslint/consistent-type-definitions': 'error',
             '@typescript-eslint/consistent-type-imports': 'error',
@@ -489,6 +479,11 @@ export default [
         rules: {
             'no-restricted-properties': [
                 'error',
+                {
+                    object: 'router',
+                    property: 'useNavigate',
+                    message: 'Use `hooks.useNavigate` instead.',
+                },
                 {
                     object: 'console',
                     message: 'Avoid leaving debugging statements when committing code',

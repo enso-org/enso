@@ -105,7 +105,7 @@ pub fn progress_bar(f: impl FnOnce() -> ProgressBar) -> ProgressBar {
 }
 
 pub fn new_spinner(message: impl Into<Cow<'static, str>>) -> ProgressBar {
-    let ret = progress_bar(indicatif::ProgressBar::new_spinner);
+    let ret = progress_bar(ProgressBar::new_spinner);
     ret.set_message(message);
     ret
 }

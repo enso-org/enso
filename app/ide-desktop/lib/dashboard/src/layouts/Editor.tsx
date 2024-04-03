@@ -11,15 +11,10 @@ import * as load from '#/utilities/load'
 // === Constants ===
 // =================
 
-/** The `id` attribute of the loading spinner element created by the wasm entrypoint. */
-const LOADER_ELEMENT_ID = 'loader'
-
 /** The horizontal offset of the editor's top bar from the left edge of the window. */
 const TOP_BAR_X_OFFSET_PX = 96
 /** The `id` attribute of the element into which the IDE will be rendered. */
-const IDE_ELEMENT_ID = 'root'
-/** The `id` attribute of the element into which the new IDE will be rendered. */
-const IDE2_ELEMENT_ID = 'app'
+const IDE_ELEMENT_ID = 'app'
 const IDE_CDN_BASE_URL = 'https://cdn.enso.org/ide'
 const JS_EXTENSION: Readonly<Record<backendModule.BackendType, string>> = {
   [backendModule.BackendType.remote]: '.js.gz',
@@ -47,46 +42,9 @@ export default function Editor(props: EditorProps) {
   React.useEffect(() => {
     const ideElement = document.getElementById(IDE_ELEMENT_ID)
     if (ideElement != null) {
-      if (hidden) {
-        ideElement.style.top = '-100vh'
-        ideElement.style.position = 'fixed'
-        ideElement.style.visibility = 'hidden'
-      } else {
-        ideElement.style.top = ''
-        ideElement.style.position = 'absolute'
-        ideElement.style.visibility = ''
-      }
-    }
-    const ide2Element = document.getElementById(IDE2_ELEMENT_ID)
-    if (ide2Element != null) {
-      ide2Element.style.display = hidden ? 'none' : ''
+      ideElement.style.display = hidden ? 'none' : ''
     }
   }, [hidden])
-
-  React.useEffect(() => {
-    if (projectStartupInfo != null && hidden) {
-      // A workaround to hide the spinner, when the previous project is being loaded in
-      // the background. This `MutationObserver` is disconnected when the loader is
-      // removed from the DOM.
-      const observer = new MutationObserver(mutations => {
-        for (const mutation of mutations) {
-          for (const node of Array.from(mutation.addedNodes)) {
-            if (node instanceof HTMLElement && node.id === LOADER_ELEMENT_ID) {
-              document.body.style.cursor = 'auto'
-              node.style.display = 'none'
-            }
-          }
-          for (const node of Array.from(mutation.removedNodes)) {
-            if (node instanceof HTMLElement && node.id === LOADER_ELEMENT_ID) {
-              document.body.style.cursor = 'auto'
-              observer.disconnect()
-            }
-          }
-        }
-      })
-      observer.observe(document.body, { childList: true })
-    }
-  }, [projectStartupInfo, hidden])
 
   let hasEffectRun = false
 
@@ -106,15 +64,15 @@ export default function Editor(props: EditorProps) {
         const jsonAddress = project.jsonAddress
         const binaryAddress = project.binaryAddress
         if (jsonAddress == null) {
-          toastAndLog("Could not get the address of the project's JSON endpoint")
+          toastAndLog('noJSONEndpointError')
         } else if (binaryAddress == null) {
-          toastAndLog("Could not get the address of the project's binary endpoint")
+          toastAndLog('noBinaryEndpointError')
         } else {
           let assetsRoot: string
           switch (backendType) {
             case backendModule.BackendType.remote: {
               if (project.ideVersion == null) {
-                toastAndLog('Could not get the IDE version of the project')
+                toastAndLog('noIdeVersionError')
                 // This is too deeply nested to easily return from
                 // eslint-disable-next-line no-restricted-syntax
                 return
@@ -164,7 +122,7 @@ export default function Editor(props: EditorProps) {
                 { projectId: project.projectId }
               )
             } catch (error) {
-              toastAndLog('Could not open editor', error)
+              toastAndLog('openEditorError', error)
             }
             if (backendType === backendModule.BackendType.remote) {
               // Restore original URL so that initialization works correctly on refresh.
@@ -193,11 +151,7 @@ export default function Editor(props: EditorProps) {
     } else {
       return
     }
-  }, [
-    projectStartupInfo,
-    /* should never change */ appRunner,
-    /* should never change */ toastAndLog,
-  ])
+  }, [projectStartupInfo, toastAndLog, /* should never change */ appRunner])
 
   return <></>
 }

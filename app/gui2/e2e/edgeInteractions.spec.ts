@@ -1,6 +1,8 @@
-import { expect, test, type Page } from '@playwright/test'
+import { test, type Page } from '@playwright/test'
 import * as actions from './actions'
-import { edgesToNodeWithBinding, graphNodeByBinding } from './locate'
+import { expect } from './customExpect'
+import * as locate from './locate'
+import { edgesToNodeWithBinding, graphNodeByBinding, outputPortCoordinates } from './locate'
 
 /**
  * Prepare the graph for the tests. We drag the `ten` node to the right of the `sum` node for better access
@@ -49,7 +51,52 @@ test('Connect an node to a port via dragging the edge', async ({ page }) => {
   })
   // Click the target port in the `prod` node.
   const targetPort = page.locator('span').filter({ hasText: /^sum$/ })
+  // We need `force: true` because edge connecting is handled in capture phase and may result
+  // in port change, what confuses playwright's actionability checks.
   await targetPort.click({ force: true, noWaitAfter: true })
 
   await expect(graphNodeByBinding(page, 'prod')).toContainText('ten')
+})
+
+test('Conditional ports: Disabled', async ({ page }) => {
+  await actions.goToGraph(page)
+  const node = graphNodeByBinding(page, 'filtered')
+  const conditionalPort = node.locator('.WidgetPort').filter({ hasText: /^filter$/ })
+
+  // Check that the `enabled` CSS class is not set on disabled `WidgetPort`s.
+  await expect(node.locator('.WidgetSelfIcon')).toBeVisible()
+  await expect(conditionalPort).not.toHaveClass(/enabled/)
+
+  // When a port is disabled, it doesn't react to hovering with a disconnected edge,
+  // and any attempt to connect to it should open the CB.
+  const outputPort = await outputPortCoordinates(graphNodeByBinding(page, 'final'))
+  await page.mouse.click(outputPort.x, outputPort.y)
+  await conditionalPort.hover()
+  await expect(conditionalPort).not.toHaveClass(/isTarget/)
+  // We need `force: true` because ComponentBrowser appears in event's capture phase, what
+  // confuses playwright's actionability checks.
+  await conditionalPort.click({ force: true })
+  await expect(locate.componentBrowser(page)).toExist()
+  await page.keyboard.press('Escape')
+})
+
+test('Conditional ports: Enabled', async ({ page }) => {
+  await actions.goToGraph(page)
+  const node = graphNodeByBinding(page, 'filtered')
+  const conditionalPort = node.locator('.WidgetPort').filter({ hasText: /^filter$/ })
+
+  await page.keyboard.down('Meta')
+  await page.keyboard.down('Control')
+
+  await expect(conditionalPort).toHaveClass(/enabled/)
+  const outputPort = await outputPortCoordinates(graphNodeByBinding(page, 'final'))
+  await page.mouse.click(outputPort.x, outputPort.y)
+  await conditionalPort.hover()
+  await expect(conditionalPort).toHaveClass(/isTarget/)
+  // We need to force port clicks; see comment in 'Connect an node to a port via dragging the edge'
+  await conditionalPort.click({ force: true })
+  await expect(node.locator('.WidgetToken')).toHaveText(['final'])
+
+  await page.keyboard.up('Meta')
+  await page.keyboard.up('Control')
 })

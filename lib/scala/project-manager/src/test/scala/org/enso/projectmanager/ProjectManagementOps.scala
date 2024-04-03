@@ -6,9 +6,9 @@ import io.circe.syntax._
 import io.circe.literal._
 import org.enso.semver.SemVerJson._
 import io.circe.parser.parse
-import org.enso.semver.SemVer
 import org.enso.projectmanager.data.{MissingComponentAction, Socket}
 import org.enso.projectmanager.protocol.ProjectManagementApi.ProjectOpen
+import org.enso.semver.SemVer
 import org.scalactic.source.Position
 
 import java.io.File
@@ -47,13 +47,14 @@ trait ProjectManagementOps { this: BaseServerSpec =>
     client.send(request)
     val projectId   = getGeneratedUUID
     val projectName = nameSuffix.fold(name)(n => s"${name}_$n")
-    client.expectJson(json"""
+    client.fuzzyExpectJson(json"""
           {
             "jsonrpc":"2.0",
             "id":0,
             "result": {
               "projectId": $projectId,
-              "projectName": $projectName
+              "projectName": $projectName,
+              "projectNormalizedName": "*"
             }
           }
           """)

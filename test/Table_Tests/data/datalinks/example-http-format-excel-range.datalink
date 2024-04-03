@@ -1,0 +1,15 @@
+{
+    "type": "HTTP",
+    "libraryName": "Standard.Base",
+    "method": "GET",
+    "uri": "http://http-test-helper.local/testfiles/table.xls",
+    "format": {
+        "type": "format",
+        "subType": "excel",
+        "section": {
+            "type": "range",
+            "address": "MyTestSheet!A2:B2",
+            "headers": false
+        }
+    }
+}

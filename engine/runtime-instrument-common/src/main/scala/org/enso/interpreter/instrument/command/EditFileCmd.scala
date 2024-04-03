@@ -23,29 +23,34 @@ class EditFileCmd(request: Api.EditFileNotification)
     ctx: RuntimeContext,
     ec: ExecutionContext
   ): Unit = {
-    val logger                    = ctx.executionService.getLogger
-    val fileLockTimestamp         = ctx.locking.acquireFileLock(request.path)
-    val pendingEditsLockTimestamp = ctx.locking.acquirePendingEditsLock()
+    val logger            = ctx.executionService.getLogger
+    val fileLockTimestamp = ctx.locking.acquireFileLock(request.path)
     try {
-      logger.log(
-        Level.FINE,
-        "Adding pending file edits: {}",
-        request.edits.map(e => (e.range, e.text.length))
-      )
-      val edits =
-        request.edits.map(edit => PendingEdit.ApplyEdit(edit, request.execute))
-      ctx.state.pendingEdits.enqueue(request.path, edits)
-      if (request.execute) {
-        ctx.jobControlPlane.abortAllJobs()
-        ctx.jobProcessor.run(new EnsureCompiledJob(Seq(request.path)))
-        executeJobs.foreach(ctx.jobProcessor.run)
+      val pendingEditsLockTimestamp = ctx.locking.acquirePendingEditsLock()
+      try {
+        logger.log(
+          Level.FINE,
+          "Adding pending file edits: {}",
+          request.edits.map(e => (e.range, e.text.length))
+        )
+        val edits =
+          request.edits.map(edit =>
+            PendingEdit.ApplyEdit(edit, request.execute)
+          )
+        ctx.state.pendingEdits.enqueue(request.path, edits)
+        if (request.execute) {
+          ctx.jobControlPlane.abortAllJobs()
+          ctx.jobProcessor.run(new EnsureCompiledJob(Seq(request.path)))
+          executeJobs.foreach(ctx.jobProcessor.run)
+        }
+      } finally {
+        ctx.locking.releasePendingEditsLock()
+        logger.log(
+          Level.FINEST,
+          "Kept pending edits lock [EditFileCmd] for " + (System.currentTimeMillis - pendingEditsLockTimestamp) + " milliseconds"
+        )
       }
     } finally {
-      ctx.locking.releasePendingEditsLock()
-      logger.log(
-        Level.FINEST,
-        "Kept pending edits lock [EditFileCmd] for " + (System.currentTimeMillis - pendingEditsLockTimestamp) + " milliseconds"
-      )
       ctx.locking.releaseFileLock(request.path)
       logger.log(
         Level.FINEST,

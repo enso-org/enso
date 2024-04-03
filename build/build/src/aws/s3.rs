@@ -177,15 +177,17 @@ impl ContentHeaders {
     }
 
     pub fn from_path(path: impl AsRef<Path>) -> Self {
-        let Ok(SplitFilename{ extension: outermost_extension, stem}) = path.split_filename() else {
+        let Ok(SplitFilename { extension: outermost_extension, stem }) = path.split_filename()
+        else {
             // No extension, use defaults.
-            return default()
+            return default();
         };
 
         let Ok(next_extension) = stem.try_extension() else {
             // Only one extension, use primary MIME.
-            let content_type = new_mime_guess::from_ext(outermost_extension.as_str()).first_or_octet_stream();
-            return Self::new(content_type)
+            let content_type =
+                new_mime_guess::from_ext(outermost_extension.as_str()).first_or_octet_stream();
+            return Self::new(content_type);
         };
 
         if let Ok(content_encoding) = ContentEncoding::from_ext(outermost_extension.as_str()) {

@@ -36,7 +36,12 @@ import type {
   StackItem,
   VisualizationConfiguration,
 } from 'shared/languageServerTypes'
-import { DistributedProject, localOrigins, type ExternalId, type Uuid } from 'shared/yjsModel'
+import {
+  DistributedProject,
+  localUserActionOrigins,
+  type ExternalId,
+  type Uuid,
+} from 'shared/yjsModel'
 import {
   computed,
   markRaw,
@@ -501,11 +506,6 @@ export const useProjectStore = defineStore('project', () => {
 
   let yDocsProvider: ReturnType<typeof attachProvider> | undefined
   watchEffect((onCleanup) => {
-    if (lsUrls.rpcUrl.startsWith('mock://')) {
-      doc.load()
-      doc.emit('load', [])
-      return
-    }
     // For now, let's assume that the websocket server is running on the same host as the web server.
     // Eventually, we can make this configurable, or even runtime variable.
     const socketUrl = new URL(location.origin)
@@ -544,7 +544,7 @@ export const useProjectStore = defineStore('project', () => {
     const moduleName = projectModel.findModuleByDocId(guid)
     if (moduleName == null) return null
     const mod = await projectModel.openModule(moduleName)
-    for (const origin of localOrigins) mod?.undoManager.addTrackedOrigin(origin)
+    for (const origin of localUserActionOrigins) mod?.undoManager.addTrackedOrigin(origin)
     return mod
   })
 
@@ -637,7 +637,7 @@ export const useProjectStore = defineStore('project', () => {
     })
   })
 
-  const isOutputContextEnabled = computed(() => executionMode.value === 'live')
+  const isRecordingEnabled = computed(() => executionMode.value === 'live')
 
   function stopCapturingUndo() {
     module.value?.undoManager.stopCapturing()
@@ -713,7 +713,7 @@ export const useProjectStore = defineStore('project', () => {
     lsRpcConnection: markRaw(lsRpcConnection),
     dataConnection: markRaw(dataConnection),
     useVisualizationData,
-    isOutputContextEnabled,
+    isRecordingEnabled,
     stopCapturingUndo,
     executionMode,
     recordMode,

@@ -7,11 +7,11 @@ import Standard.Base.Runtime.Managed_Resource.Managed_Resource
 import Standard.Base.System.File.Generic.Writable_File.Writable_File
 from Standard.Base.System.File import file_as_java
 
-import project.Data.Match_Columns.Match_Columns
-import project.Data.Table.Table
 import project.Excel.Excel_Range.Excel_Range
-import project.Excel.Excel_Section.Excel_Section
 import project.Internal.Excel_Reader
+import project.Internal.Excel_Section.Excel_Section
+import project.Match_Columns.Match_Columns
+import project.Table.Table
 from project.Errors import Column_Count_Mismatch, Column_Name_Mismatch, Existing_Data, Invalid_Location, Range_Exceeded
 
 polyglot java import java.io.File as Java_File
@@ -43,7 +43,6 @@ make_java_existing_file_behavior on_existing_file = case on_existing_file of
    - file: The file to write to.
    - table: The table to serialize.
    - section: The part of the Excel workbook to write to.
-   - headers: Controls whether the table headers are written.
    - match_columns: Controls how the columns are matched when appending to an
      existing file.
    - on_problems: Specifies the behavior when a problem occurs during the
@@ -52,25 +51,25 @@ make_java_existing_file_behavior on_existing_file = case on_existing_file of
      If set to `Ignore`, the operation proceeds without errors or warnings.
    - xls_format: If `true`, the file is written in the legacy XLS format.
      Otherwise, the file is written in the modern XLSX format.
-write_file : Writable_File -> Table -> Existing_File_Behavior -> Excel_Section -> (Boolean|Infer) -> Match_Columns -> Problem_Behavior -> Boolean -> File
-write_file (file : Writable_File) (table : Table) (on_existing_file : Existing_File_Behavior) (section : Excel_Section) (headers : Boolean|Infer) (match_columns:Match_Columns) (on_problems:Problem_Behavior) (xls_format:Boolean) =
+write_file : Writable_File -> Table -> Existing_File_Behavior -> Excel_Section -> Match_Columns -> Problem_Behavior -> Boolean -> File
+write_file (file : Writable_File) (table : Table) (on_existing_file : Existing_File_Behavior) (section : Excel_Section) (match_columns:Match_Columns) (on_problems:Problem_Behavior) (xls_format:Boolean) =
     _ = on_problems
     # TODO if file is not a File, create a temporary local file, write to it and then transfer its input stream to the output stream of the actual backend
     if (on_existing_file == Existing_File_Behavior.Error) && file.exists then Error.throw (File_Error.Already_Exists file) else
-        if file.is_local then write_local_file file.file table on_existing_file section headers match_columns xls_format else
+        if file.is_local then write_local_file file.file table on_existing_file section match_columns xls_format else
             file.write_requiring_local_file on_existing_file local_temp_file->
                 effective_file_behavior = case on_existing_file of
                     Existing_File_Behavior.Backup -> Existing_File_Behavior.Overwrite
                     _ -> on_existing_file
-                write_local_file local_temp_file table effective_file_behavior section headers match_columns xls_format . if_not_error <| file.file
+                write_local_file local_temp_file table effective_file_behavior section match_columns xls_format . if_not_error <| file.file
 
 ## PRIVATE
-write_local_file (file:File) table on_existing_file section headers match_columns xls_format =
+write_local_file (file:File) table on_existing_file section match_columns xls_format =
     java_file = file_as_java file
     file_format = if xls_format then ExcelFileFormat.XLS else ExcelFileFormat.XLSX
 
     ExcelWriter.setEnsoToTextCallbackIfUnset (.to_text)
-    modification_strategy = prepare_file_modification_strategy table section headers on_existing_file match_columns
+    modification_strategy = prepare_file_modification_strategy table section on_existing_file match_columns
     is_dry_run = Context.Output.is_enabled.not
 
     modification_strategy.if_not_error <| Panic.recover File_Error <| File_Error.handle_java_exceptions file <| handle_writer <|
@@ -119,15 +118,16 @@ find_bak_file base_file =
     parent / (base_file.name + ".bak")
 
 ## PRIVATE
-prepare_file_modification_strategy : Table -> Excel_Section -> Boolean|Infer -> Existing_File_Behavior -> Match_Columns -> (Workbook -> Nothing)
-prepare_file_modification_strategy table section headers on_existing_file match_columns =
+prepare_file_modification_strategy : Table -> Excel_Section -> Existing_File_Behavior -> Match_Columns -> (Workbook -> Nothing)
+prepare_file_modification_strategy table section on_existing_file match_columns =
     existing_data_mode = make_java_existing_data_mode on_existing_file match_columns
-    java_headers = Excel_Reader.make_java_headers headers
     case section of
-        Excel_Section.Worksheet sheet skip_rows row_limit ->
+        Excel_Section.Worksheet sheet headers skip_rows row_limit ->
+            java_headers = Excel_Reader.make_java_headers headers
             workbook_to_modify->
                 ExcelWriter.writeTableToSheet workbook_to_modify sheet existing_data_mode skip_rows table.java_table row_limit java_headers
-        Excel_Section.Cell_Range address skip_rows row_limit ->
+        Excel_Section.Cell_Range address headers skip_rows row_limit ->
+            java_headers = Excel_Reader.make_java_headers headers
             java_range = case address of
                 Excel_Range.Value java_range -> java_range
                 text : Text -> text

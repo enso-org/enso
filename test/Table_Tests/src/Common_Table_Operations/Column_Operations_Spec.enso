@@ -4,15 +4,14 @@ import Standard.Base.Errors.Common.Arithmetic_Error
 import Standard.Base.Errors.Common.Incomparable_Values
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Meta.Type
-import Standard.Database.Data.DB_Column.DB_Column
+import Standard.Database.DB_Column.DB_Column
 import Standard.Database.Internal.Replace_Params.Replace_Params
 
-from Standard.Table import Value_Type, Column_Ref
-from Standard.Table.Data.Type.Value_Type import Bits
+from Standard.Table import Bits, Value_Type, Column_Ref
 from Standard.Table.Errors import all
 
 from Standard.Database.Errors import all
-import Standard.Database.Data.DB_Table.DB_Table
+import Standard.Database.DB_Table.DB_Table
 
 from Standard.Test import all
 

@@ -11,6 +11,7 @@ import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 import * as authProvider from '#/providers/AuthProvider'
 import * as backendProvider from '#/providers/BackendProvider'
 import * as modalProvider from '#/providers/ModalProvider'
+import * as textProvider from '#/providers/TextProvider'
 
 import Modal from '#/components/Modal'
 
@@ -39,13 +40,15 @@ function Email(props: InternalEmailProps) {
   const { email, isValid, doDelete } = props
   return (
     <div
-      className={`inline-flex gap-0.5 items-center rounded-full py-0.5 px-1 m-0.5 ${
+      // This UI element does not appear anywhere else.
+      // eslint-disable-next-line no-restricted-syntax
+      className={`m-0.5 inline-flex items-center gap-0.5 rounded-full px-1 py-0.5 ${
         isValid ? 'bg-dim/5' : 'bg-red-400/25 text-red-900'
       }`}
     >
       {email}{' '}
       <img
-        className="rounded-full cursor-pointer hover:brightness-50"
+        className="cursor-pointer rounded-full hover:brightness-50"
         src={CrossIcon}
         onClick={doDelete}
       />
@@ -69,6 +72,7 @@ export default function InviteUsersModal(props: InviteUsersModalProps) {
   const { user } = authProvider.useNonPartialUserSession()
   const { backend } = backendProvider.useBackend()
   const { unsetModal } = modalProvider.useSetModal()
+  const { getText } = textProvider.useText()
   const toastAndLog = toastAndLogHooks.useToastAndLog()
   const [newEmails, setNewEmails] = React.useState<string[]>([])
   const [email, setEmail] = React.useState<string>('')
@@ -95,11 +99,11 @@ export default function InviteUsersModal(props: InviteUsersModalProps) {
         void (async () => {
           try {
             await backend.inviteUser({
-              organizationId: user.id,
+              organizationId: user.organizationId,
               userEmail: backendModule.EmailAddress(newEmail),
             })
           } catch (error) {
-            toastAndLog(`Could not invite user '${newEmail}'`, error)
+            toastAndLog('couldNotInviteUser', error, newEmail)
           }
         })()
       }
@@ -109,7 +113,7 @@ export default function InviteUsersModal(props: InviteUsersModalProps) {
   return (
     <Modal
       centered={eventTarget == null}
-      className="absolute overflow-hidden bg-dim w-full h-full top-0 left-0"
+      className="absolute left top size-full overflow-hidden bg-dim"
     >
       <div
         tabIndex={-1}
@@ -118,7 +122,7 @@ export default function InviteUsersModal(props: InviteUsersModalProps) {
             ? { left: position.left + window.scrollX, top: position.top + window.scrollY }
             : {}
         }
-        className="sticky w-115.25 rounded-2xl before:absolute before:bg-frame-selected before:backdrop-blur-3xl before:rounded-2xl before:w-full before:h-full"
+        className="sticky w-invite-users-modal rounded-default before:absolute before:h-full before:w-full before:rounded-default before:bg-selected-frame before:backdrop-blur-default"
         onClick={mouseEvent => {
           mouseEvent.stopPropagation()
         }}
@@ -132,11 +136,8 @@ export default function InviteUsersModal(props: InviteUsersModalProps) {
           }
         }}
       >
-        <div className="relative flex flex-col rounded-2xl gap-2 p-2">
-          <div>
-            <h2 className="text-sm font-bold">Invite</h2>
-            {/* Space reserved for other tabs. */}
-          </div>
+        <div className="relative flex flex-col gap-modal rounded-default p-modal-wide pt-modal">
+          <h2 className="text text-sm font-bold">{getText('invite')}</h2>
           <form
             className="grow"
             onSubmit={event => {
@@ -149,7 +150,7 @@ export default function InviteUsersModal(props: InviteUsersModalProps) {
               }
             }}
           >
-            <label className="block min-h-5lh rounded-2xl border border-black/10 py-0.5 px-1">
+            <label className="block min-h-paragraph-input rounded-default border border-primary/10 p-multiline-input">
               {Array.from(newEmails, (newEmail, i) => (
                 <Email
                   key={i}
@@ -167,8 +168,8 @@ export default function InviteUsersModal(props: InviteUsersModalProps) {
               <input
                 autoFocus
                 type="text"
-                placeholder="Type email to invite"
-                className="bg-transparent h-6 leading-5 py-px px-1 w-30 max-w-full"
+                placeholder={getText('typeEmailToInvite')}
+                className="text max-w-full bg-transparent"
                 value={email}
                 onKeyDown={event => {
                   if (
@@ -201,12 +202,10 @@ export default function InviteUsersModal(props: InviteUsersModalProps) {
             <button
               type="submit"
               disabled={!canSubmit}
-              className="text-tag-text bg-invite rounded-full px-4 py-1 disabled:opacity-30"
-              onClick={() => {
-                doSubmit()
-              }}
+              className="button bg-invite text-tag-text enabled:active"
+              onClick={doSubmit}
             >
-              <div className="h-6 py-0.5">Invite</div>
+              {getText('invite')}
             </button>
           </div>
         </div>

@@ -13,4 +13,9 @@ public class ExcelFormatSPI extends FileFormatSPI {
   protected String getTypeName() {
     return "Excel_Format";
   }
+
+  @Override
+  protected String getDataLinkFormatName() {
+    return "excel";
+  }
 }

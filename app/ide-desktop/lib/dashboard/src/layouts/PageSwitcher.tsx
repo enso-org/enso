@@ -5,6 +5,10 @@ import DriveIcon from 'enso-assets/drive.svg'
 import HomeIcon from 'enso-assets/home.svg'
 import NetworkIcon from 'enso-assets/network.svg'
 
+import type * as text from '#/text'
+
+import * as textProvider from '#/providers/TextProvider'
+
 import Button from '#/components/Button'
 
 // ====================
@@ -20,24 +24,37 @@ export enum Page {
 }
 
 /** Error text for each page. */
-const ERRORS: Readonly<Record<Page, string | null>> = {
+const ERRORS = {
   [Page.home]: null,
   [Page.drive]: null,
-  [Page.editor]: 'No project is currently open.',
+  [Page.editor]: 'noProjectIsCurrentlyOpen',
   [Page.settings]: null,
-}
+} as const satisfies Record<Page, text.TextId | null>
 
-/** Data describing how to display a button for a pageg. */
+const PAGE_TO_ALT_TEXT_ID: Readonly<Record<Page, text.TextId>> = {
+  home: 'homePageAltText',
+  drive: 'drivePageAltText',
+  editor: 'editorPageAltText',
+  settings: 'settingsPageAltText',
+} satisfies { [P in Page]: `${P}PageAltText` }
+
+const PAGE_TO_TOOLTIP_ID: Readonly<Record<Page, text.TextId>> = {
+  home: 'homePageTooltip',
+  drive: 'drivePageTooltip',
+  editor: 'editorPageTooltip',
+  settings: 'settingsPageTooltip',
+} satisfies { [P in Page]: `${P}PageTooltip` }
+
+/** Data describing how to display a button for a page. */
 interface PageUIData {
   readonly page: Page
   readonly icon: string
-  readonly alt: string
 }
 
 const PAGE_DATA: PageUIData[] = [
-  { page: Page.home, icon: HomeIcon, alt: 'Go to home page' },
-  { page: Page.drive, icon: DriveIcon, alt: 'Go to drive page' },
-  { page: Page.editor, icon: NetworkIcon, alt: 'Go to editor page' },
+  { page: Page.home, icon: HomeIcon },
+  { page: Page.drive, icon: DriveIcon },
+  { page: Page.editor, icon: NetworkIcon },
 ]
 
 /** Props for a {@link PageSwitcher}. */
@@ -50,23 +67,26 @@ export interface PageSwitcherProps {
 /** Switcher to choose the currently visible full-screen page. */
 export default function PageSwitcher(props: PageSwitcherProps) {
   const { page, setPage, isEditorDisabled } = props
+  const { getText } = textProvider.useText()
   return (
     <div
-      className={`cursor-default pointer-events-auto flex items-center rounded-full shrink-0 gap-4 ${
-        page === Page.editor ? 'bg-frame backdrop-blur-3xl px-3 -mx-3' : ''
+      className={`pointer-events-auto flex shrink-0 cursor-default items-center gap-pages rounded-full px-page-switcher-x ${
+        page === Page.editor ? 'bg-frame backdrop-blur-default' : ''
       }`}
     >
       {PAGE_DATA.map(pageData => {
         const isDisabled =
           pageData.page === page || (pageData.page === Page.editor && isEditorDisabled)
+        const errorId = ERRORS[pageData.page]
         return (
           <Button
             key={pageData.page}
-            alt={pageData.alt}
             image={pageData.icon}
             active={page === pageData.page}
+            alt={getText(PAGE_TO_ALT_TEXT_ID[pageData.page])}
+            title={getText(PAGE_TO_TOOLTIP_ID[pageData.page])}
             disabled={isDisabled}
-            error={ERRORS[pageData.page]}
+            error={errorId == null ? null : getText(errorId)}
             onClick={() => {
               setPage(pageData.page)
             }}

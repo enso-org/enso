@@ -542,6 +542,7 @@ type Vector a
         Array_Like_Helpers.partition_with_index self predicate
 
     ## GROUP Selections
+       ICON dataframe_map_row
        Swaps the rows and columns of a matrix represented by a vector of vectors.
 
        ! Error Conditions
@@ -615,7 +616,8 @@ type Vector a
     map self function on_problems=Problem_Behavior.Report_Error =
         Array_Like_Helpers.map self function on_problems
 
-    ## Applies a function to each element of the vector, returning the `Vector`
+    ## ICON dataframes_union
+       Applies a function to each element of the vector, returning the `Vector`
        that contains all results concatenated.
 
        Arguments:
@@ -805,7 +807,7 @@ type Vector a
         Array_Like_Helpers.plus self that
 
     ## GROUP Calculations
-       ICON add_row
+       ICON row_add
        Inserts the given item into the vector at the given index.
 
        Arguments:
@@ -826,7 +828,7 @@ type Vector a
         Array_Like_Helpers.insert self at item
 
     ## GROUP Selections
-       ICON select_column
+       ICON table_clean
        Removes the item at the given index from the vector.
 
        Arguments:
@@ -870,7 +872,7 @@ type Vector a
     slice : Integer -> Integer -> Vector Any
     slice self start end = Array_Like_Helpers.slice self start end
 
-    ## ALIAS first, last, sample, slice
+    ## ALIAS first, head, last, limit, sample, slice, tail, top
        GROUP Selections
        ICON select_row
        Creates a new `Vector` with only the specified range of elements from the
@@ -1196,11 +1198,13 @@ type Builder
     not_empty self = self.is_empty.not
 
     ## GROUP Metadata
+       ICON metadata
        Gets the current length of the builder.
     length : Integer
     length self = self.java_builder.getSize
 
-    ## Appends a new element into this builder and returns it, propagating any
+    ## ICON join
+       Appends a new element into this builder and returns it, propagating any
        errors that the provided element could have contained.
 
        Arguments:
@@ -1217,7 +1221,8 @@ type Builder
             self.unsafe_append item
             self
 
-    ## Appends a part of a given vector to this builder
+    ## ICON join
+       Appends a part of a given vector to this builder
 
        Arguments:
        - vector: The vector from which the elements are sourced.
@@ -1275,6 +1280,7 @@ type Builder
             Error.throw (Index_Out_Of_Bounds.Error index self.length)
 
     ## GROUP Selections
+       ICON select_row
        Get the first element from the vector, or an `Index_Out_Of_Bounds` if the vector
        is empty.
 
@@ -1286,6 +1292,7 @@ type Builder
     first self = self.at 0
 
     ## GROUP Selections
+       ICON select_row
        Get the last element of the vector, or an `Index_Out_Of_Bounds` if the vector is
        empty.
 
@@ -1310,6 +1317,7 @@ type Builder
         0.up_to self.length . any (idx -> (predicate (self.java_builder.get idx)))
 
     ## GROUP Conversions
+       ICON convert
        Converts this builder to a vector containing all the appended elements.
 
        > Example

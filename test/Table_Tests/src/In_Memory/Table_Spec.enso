@@ -5,8 +5,7 @@ import Standard.Base.Errors.Common.Index_Out_Of_Bounds
 import Standard.Base.Errors.Common.Type_Error
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
-from Standard.Table import Table, Column, Sort_Column, Aggregate_Column, Blank_Selector
-import Standard.Table.Data.Type.Value_Type.Value_Type
+from Standard.Table import Table, Column, Sort_Column, Aggregate_Column, Blank_Selector, Value_Type
 from Standard.Table.Errors import Invalid_Column_Names, Duplicate_Output_Column_Names, No_Input_Columns_Selected, Missing_Input_Columns, No_Such_Column, Floating_Point_Equality, Invalid_Value_Type, Row_Count_Mismatch
 
 import Standard.Visualization
@@ -884,7 +883,7 @@ add_specs suite_builder =
     suite_builder.group "[In-Memory-specific] Table.join" group_builder->
         group_builder.specify "should correctly report unsupported cross-backend joins" <|
             t = Table.new [["X", [1, 2, 3]]]
-            Panic.recover Type_Error (t.join 42) . should_fail_with Type_Error
+            Test.expect_panic Type_Error (t.join 42)
 
             db_connection = Database.connect (SQLite In_Memory)
             db_table = (Table.new [["Y", [4, 5, 6]]]).select_into_database_table db_connection "test"

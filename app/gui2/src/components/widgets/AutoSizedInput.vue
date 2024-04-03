@@ -5,10 +5,17 @@ import { computed, ref, watch, type StyleValue } from 'vue'
 
 const [model, modifiers] = defineModel<string>()
 const props = defineProps<{ autoSelect?: boolean }>()
+const emit = defineEmits<{
+  input: [value: string | undefined]
+  change: [value: string | undefined]
+}>()
 
 const innerModel = modifiers.lazy ? ref(model.value) : model
 if (modifiers.lazy) watch(model, (newVal) => (innerModel.value = newVal))
-const onChange = modifiers.lazy ? () => (model.value = innerModel.value) : undefined
+function onChange() {
+  if (modifiers.lazy) model.value = innerModel.value
+  emit('change', innerModel.value)
+}
 
 const inputNode = ref<HTMLInputElement>()
 useAutoBlur(inputNode)
@@ -24,8 +31,11 @@ const cssFont = computed(() => {
   return style.font
 })
 
+// Add some extra spacing to allow the text caret to show at the end of input.
+const ADDED_WIDTH_PX = 2
+
 const getTextWidth = (text: string) => getTextWidthByFont(text, cssFont.value)
-const inputWidth = computed(() => getTextWidth(`${innerModel.value}`))
+const inputWidth = computed(() => getTextWidth(`${innerModel.value}`) + ADDED_WIDTH_PX)
 const inputStyle = computed<StyleValue>(() => ({ width: `${inputWidth.value}px` }))
 
 function onEnterDown() {
@@ -37,6 +47,11 @@ defineExpose({
   getTextWidth,
   select: () => inputNode.value?.select(),
   focus: () => inputNode.value?.focus(),
+  blur: () => inputNode.value?.blur(),
+  cancel: () => {
+    innerModel.value = model.value
+    inputNode.value?.blur()
+  },
 })
 </script>
 
@@ -49,6 +64,7 @@ defineExpose({
     @keydown.backspace.stop
     @keydown.delete.stop
     @keydown.enter.stop="onEnterDown"
+    @input="emit('input', innerModel)"
     @change="onChange"
     @focus="onFocus"
   />

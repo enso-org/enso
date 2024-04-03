@@ -9,6 +9,8 @@ import ProjectIcon from 'enso-assets/project_icon.svg'
 import SpreadsheetsImage from 'enso-assets/spreadsheets.svg'
 import VisualizeImage from 'enso-assets/visualize.png'
 
+import * as textProvider from '#/providers/TextProvider'
+
 import Spinner, * as spinner from '#/components/Spinner'
 import SvgMask from '#/components/SvgMask'
 
@@ -35,6 +37,8 @@ const DUMMY_LIKE_COUNT = 10
 /** Template metadata. */
 export interface Sample {
   readonly title: string
+  /** These should ideally be localized, however, as this is planned to be user-generated, it is
+   * unlikely that this will be feasible. */
   readonly description: string
   readonly id: string
   readonly background?: string
@@ -93,6 +97,7 @@ interface InternalProjectsEntryProps {
 /** A button that, when clicked, creates and opens a new blank project. */
 function ProjectsEntry(props: InternalProjectsEntryProps) {
   const { createProject } = props
+  const { getText } = textProvider.useText()
   const [spinnerState, setSpinnerState] = React.useState<spinner.SpinnerState | null>(null)
 
   const onClick = () => {
@@ -108,25 +113,25 @@ function ProjectsEntry(props: InternalProjectsEntryProps) {
   }
 
   return (
-    <div className="flex flex-col gap-1.5 h-51">
+    <div className="flex flex-col gap-sample">
       <button
-        className="relative grow cursor-pointer before:absolute before:inset-0 before:bg-frame before:rounded-2xl before:w-full before:h-full before:opacity-60"
+        // This UI element does not appear anywhere else.
+        // eslint-disable-next-line no-restricted-syntax
+        className="relative h-sample cursor-pointer before:absolute before:inset before:h-full before:w-full before:rounded-default before:bg-frame before:opacity-60"
         onClick={onClick}
       >
-        <div className="relative flex rounded-2xl w-full h-full">
-          <div className="flex flex-col text-center items-center gap-3 m-auto">
+        <div className="relative flex size-full rounded-default">
+          <div className="m-auto flex flex-col items-center gap-new-empty-project text-center">
             {spinnerState != null ? (
-              <div className="p-2">
-                <Spinner size={SPINNER_SIZE_PX} state={spinnerState} />
-              </div>
+              <Spinner size={SPINNER_SIZE_PX} padding={2} state={spinnerState} />
             ) : (
               <img src={ProjectIcon} />
             )}
-            <p className="font-semibold text-sm">New empty project</p>
+            <p className="text-sm font-semibold">{getText('newEmptyProject')}</p>
           </div>
         </div>
       </button>
-      <div className="h-4.5" />
+      <div className="h-sample-info" />
     </div>
   )
 }
@@ -148,6 +153,8 @@ interface InternalProjectTileProps {
 /** A button that, when clicked, creates and opens a new project based on a template. */
 function ProjectTile(props: InternalProjectTileProps) {
   const { sample, createProject } = props
+  const { getText } = textProvider.useText()
+  const { id, title, description, background } = sample
   const [spinnerState, setSpinnerState] = React.useState<spinner.SpinnerState | null>(null)
   const author = DUMMY_AUTHOR
   const opens = DUMMY_OPEN_COUNT
@@ -164,44 +171,49 @@ function ProjectTile(props: InternalProjectTileProps) {
 
   const onClick = () => {
     setSpinnerState(spinner.SpinnerState.initial)
-    createProject(sample.id, sample.title, onSpinnerStateChange)
+    createProject(id, title, onSpinnerStateChange)
   }
 
   return (
-    <div className="flex flex-col gap-1.5 h-51">
+    <div className="flex flex-col gap-sample">
       <button
-        key={sample.title}
-        className="relative flex flex-col grow cursor-pointer text-left"
+        key={title}
+        className="relative flex h-sample grow cursor-pointer flex-col text-left"
         onClick={onClick}
       >
         <div
-          style={{ background: sample.background }}
-          className={`rounded-t-2xl w-full h-25 ${sample.background != null ? '' : 'bg-frame'}`}
+          style={{ background }}
+          className={`h-sample-image w-full rounded-t-default ${
+            background != null ? '' : 'bg-frame'
+          }`}
         />
-        <div className="grow bg-frame backdrop-blur rounded-b-2xl w-full px-4 pt-1.75 pb-3.5">
-          <h2 className="text-sm font-bold leading-144.5 py-0.5">{sample.title}</h2>
-          <div className="text-xs text-ellipsis leading-144.5 pb-px">{sample.description}</div>
+        <div className="w-full grow rounded-b-default bg-frame px-sample-description-x pb-sample-description-b pt-sample-description-t backdrop-blur">
+          <h2 className="text-header text-sm font-bold">{title}</h2>
+          <div className="text-ellipsis text-xs leading-snug">{description}</div>
         </div>
         {spinnerState != null && (
-          <div className="absolute grid w-full h-25 place-items-center">
+          <div className="absolute grid h-sample-image w-full place-items-center">
             <Spinner size={SPINNER_SIZE_PX} state={spinnerState} />
           </div>
         )}
       </button>
-      <div className="flex justify-between text-primary h-4.5 px-4 opacity-70">
-        <div className="flex gap-1.5">
-          <SvgMask src={Logo} />
-          <span className="font-bold leading-144.5 pb-px">{author}</span>
+      {/* Although this component is instantiated multiple times, it has a unique role and hence
+       * its own opacity. */}
+      {/* eslint-disable-next-line no-restricted-syntax */}
+      <div className="flex h-sample-info justify-between px-sample-description-x text-primary opacity-70">
+        <div className="flex gap-samples-icon-with-text">
+          <SvgMask src={Logo} className="size-icon self-end" />
+          <span className="self-start font-bold leading-snug">{author}</span>
         </div>
         {/* Normally `flex` */}
-        <div className="gap-3 hidden">
-          <div title="Views" className="flex gap-1.5">
-            <SvgMask alt="Views" src={OpenCountIcon} />
-            <span className="font-bold leading-144.5 pb-px">{opens}</span>
+        <div className="hidden gap-icons">
+          <div title={getText('views')} className="flex gap-samples-icon-with-text">
+            <SvgMask alt={getText('views')} src={OpenCountIcon} className="size-icon self-end" />
+            <span className="self-start font-bold leading-snug">{opens}</span>
           </div>
-          <div title="Likes" className="flex gap-1.5">
-            <SvgMask alt="Likes" src={HeartIcon} />
-            <span className="font-bold leading-144.5 pb-px">{likes}</span>
+          <div title={getText('likes')} className="flex gap-samples-icon-with-text">
+            <SvgMask alt={getText('likes')} src={HeartIcon} className="size-icon self-end" />
+            <span className="self-start font-bold leading-snug">{likes}</span>
           </div>
         </div>
       </div>
@@ -225,10 +237,11 @@ export interface SamplesProps {
 /** A list of sample projects. */
 export default function Samples(props: SamplesProps) {
   const { createProject } = props
+  const { getText } = textProvider.useText()
   return (
-    <div data-testid="samples" className="flex flex-col gap-4 px-4.75">
-      <h2 className="text-xl leading-144.5 py-0.5">Sample and community projects</h2>
-      <div className="grid gap-2 grid-cols-fill-60">
+    <div data-testid="samples" className="flex flex-col gap-subheading px-home-section-x">
+      <h2 className="text-subheading">{getText('sampleAndCommunityProjects')}</h2>
+      <div className="grid grid-cols-fill-samples gap-samples">
         <ProjectsEntry createProject={createProject} />
         {SAMPLES.map(sample => (
           <ProjectTile key={sample.id} sample={sample} createProject={createProject} />

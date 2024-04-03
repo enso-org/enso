@@ -85,12 +85,12 @@ export default function PermissionTypeSelector(props: PermissionTypeSelectorProp
   return (
     <div
       style={style}
-      className="sticky pointer-events-auto w-min before:absolute before:bg-frame-selected before:rounded-2xl before:backdrop-blur-3xl before:w-full before:h-full"
+      className="pointer-events-auto sticky w-min rounded-permission-type-selector before:absolute before:h-full before:w-full before:rounded-permission-type-selector before:bg-selected-frame before:backdrop-blur-default"
       onClick={event => {
         event.stopPropagation()
       }}
     >
-      <div className="relative flex flex-col w-112.5 p-1">
+      <div className="group relative flex w-permission-type-selector flex-col p-permission-type-selector">
         {PERMISSION_TYPE_DATA.filter(
           data =>
             (showDelete ? true : data.type !== permissions.Permission.delete) &&
@@ -101,41 +101,40 @@ export default function PermissionTypeSelector(props: PermissionTypeSelectorProp
           <button
             key={data.type}
             type="button"
-            disabled={type === data.type}
-            className={`flex items-center rounded-full gap-2 h-8 px-1 ${
-              type === data.type ? 'bg-black/5' : ''
+            className={`flex h-row items-start gap-permission-type-button rounded-full p-permission-type-button hover:bg-black/5 ${
+              type === data.type ? 'bg-black/5 hover:!bg-black/5 group-hover:bg-transparent' : ''
             }`}
             onClick={() => {
               onChange(data.type)
             }}
           >
             <div
-              className={`rounded-full w-13 h-5 my-1 py-0.5 ${
+              className={`h-full w-permission-type rounded-full py-permission-type-y ${
                 permissions.PERMISSION_CLASS_NAME[data.type]
               }`}
             >
               {data.type}
             </div>
-            <span className="font-normal leading-170 h-6.5 pt-1">
-              <span className="h-5.5 py-px">=</span>
-            </span>
+            {/* This is a symbol that should never need to be localized, since it is effectively
+             * an icon. */}
+            {/* eslint-disable-next-line no-restricted-syntax */}
+            <span className="text font-normal">=</span>
             {data.previous != null && (
               <>
                 <div
-                  className={`text-center rounded-full w-13 h-5 my-1 py-0.5 ${
+                  className={`h-full w-permission-type rounded-full py-permission-type-y text-center ${
                     permissions.PERMISSION_CLASS_NAME[data.previous]
                   }`}
                 >
                   {data.previous}
                 </div>
-                <span className="font-normal leading-170 h-6.5 pt-1">
-                  <span className="h-5.5 py-px">+</span>
-                </span>
+                {/* This is a symbol that should never need to be localized, since it is effectively
+                 * an icon. */}
+                {/* eslint-disable-next-line no-restricted-syntax */}
+                <span className="text font-normal">+</span>
               </>
             )}
-            <div className="leading-170 h-6.5 pt-1">
-              <span className="h-5.5 py-px">{data.description(assetType)}</span>
-            </div>
+            <span className="text">{data.description(assetType)}</span>
           </button>
         ))}
       </div>

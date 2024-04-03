@@ -25,6 +25,7 @@ import java.util.Set;
 import java.util.function.IntFunction;
 import org.enso.interpreter.dsl.Builtin;
 import org.enso.interpreter.runtime.EnsoContext;
+import org.enso.interpreter.runtime.data.text.Text;
 import org.enso.interpreter.runtime.data.vector.ArrayLikeHelpers;
 import org.enso.interpreter.runtime.error.PanicException;
 import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
@@ -123,12 +124,6 @@ public final class EnsoFile implements EnsoObject {
     return new EnsoFile(this.truffleFile.resolve(subPath));
   }
 
-  @Builtin.Method(name = "resolve")
-  @Builtin.Specialize
-  public EnsoFile resolve(EnsoFile subPath) {
-    return new EnsoFile(this.truffleFile.resolve(subPath.truffleFile.getPath()));
-  }
-
   @Builtin.Method
   public boolean exists() {
     return truffleFile.exists();
@@ -136,7 +131,6 @@ public final class EnsoFile implements EnsoObject {
 
   @Builtin.Method(name = "creation_time_builtin")
   @Builtin.WrapException(from = IOException.class)
-  @Builtin.ReturningGuestObject
   @CompilerDirectives.TruffleBoundary
   public EnsoDateTime getCreationTime() throws IOException {
     return new EnsoDateTime(
@@ -145,7 +139,6 @@ public final class EnsoFile implements EnsoObject {
 
   @Builtin.Method(name = "last_modified_time_builtin")
   @Builtin.WrapException(from = IOException.class)
-  @Builtin.ReturningGuestObject
   @CompilerDirectives.TruffleBoundary
   public EnsoDateTime getLastModifiedTime() throws IOException {
     return new EnsoDateTime(
@@ -162,7 +155,7 @@ public final class EnsoFile implements EnsoObject {
 
   @Builtin.Method(name = "parent")
   @CompilerDirectives.TruffleBoundary
-  public Object getParent() {
+  public EnsoObject getParent() {
     var parentOrNull = this.truffleFile.getParent();
     if (parentOrNull != null) {
       return new EnsoFile(parentOrNull);
@@ -180,8 +173,8 @@ public final class EnsoFile implements EnsoObject {
 
   @Builtin.Method(name = "path")
   @CompilerDirectives.TruffleBoundary
-  public String getPath() {
-    return this.truffleFile.getPath();
+  public Text getPath() {
+    return Text.create(this.truffleFile.getPath());
   }
 
   @Builtin.Method
@@ -234,9 +227,9 @@ public final class EnsoFile implements EnsoObject {
 
   @Builtin.Method(name = "name")
   @CompilerDirectives.TruffleBoundary
-  public String getName() {
+  public Text getName() {
     var name = this.truffleFile.getName();
-    return name == null ? "/" : name;
+    return Text.create(name == null ? "/" : name);
   }
 
   @Builtin.Method(name = "size_builtin")

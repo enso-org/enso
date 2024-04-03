@@ -9,7 +9,7 @@ import type * as assetListEventModule from '#/events/assetListEvent'
 import AssetListEventType from '#/events/AssetListEventType'
 
 import ContextMenu from '#/components/ContextMenu'
-import MenuEntry from '#/components/MenuEntry'
+import ContextMenuEntry from '#/components/ContextMenuEntry'
 
 import UpsertDataLinkModal from '#/modals/UpsertDataLinkModal'
 import UpsertSecretModal from '#/modals/UpsertSecretModal'
@@ -50,7 +50,6 @@ export default function GlobalContextMenu(props: GlobalContextMenuProps) {
           multiple
           type="file"
           id="context_menu_file_input"
-          {...(backend.type !== backendModule.BackendType.local ? {} : { accept: '.enso-project' })}
           className="hidden"
           onInput={event => {
             if (event.currentTarget.files != null) {
@@ -65,7 +64,7 @@ export default function GlobalContextMenu(props: GlobalContextMenuProps) {
           }}
         />
       )}
-      <MenuEntry
+      <ContextMenuEntry
         hidden={hidden}
         action={backend.type === backendModule.BackendType.local ? 'uploadProjects' : 'uploadFiles'}
         doAction={() => {
@@ -92,39 +91,35 @@ export default function GlobalContextMenu(props: GlobalContextMenuProps) {
           }
         }}
       />
+      <ContextMenuEntry
+        hidden={hidden}
+        action="newProject"
+        doAction={() => {
+          unsetModal()
+          dispatchAssetListEvent({
+            type: AssetListEventType.newProject,
+            parentKey: directoryKey ?? rootDirectoryId,
+            parentId: directoryId ?? rootDirectoryId,
+            templateId: null,
+            templateName: null,
+            onSpinnerStateChange: null,
+          })
+        }}
+      />
+      <ContextMenuEntry
+        hidden={hidden}
+        action="newFolder"
+        doAction={() => {
+          unsetModal()
+          dispatchAssetListEvent({
+            type: AssetListEventType.newFolder,
+            parentKey: directoryKey ?? rootDirectoryId,
+            parentId: directoryId ?? rootDirectoryId,
+          })
+        }}
+      />
       {isCloud && (
-        <MenuEntry
-          hidden={hidden}
-          action="newProject"
-          doAction={() => {
-            unsetModal()
-            dispatchAssetListEvent({
-              type: AssetListEventType.newProject,
-              parentKey: directoryKey ?? rootDirectoryId,
-              parentId: directoryId ?? rootDirectoryId,
-              templateId: null,
-              templateName: null,
-              onSpinnerStateChange: null,
-            })
-          }}
-        />
-      )}
-      {isCloud && (
-        <MenuEntry
-          hidden={hidden}
-          action="newFolder"
-          doAction={() => {
-            unsetModal()
-            dispatchAssetListEvent({
-              type: AssetListEventType.newFolder,
-              parentKey: directoryKey ?? rootDirectoryId,
-              parentId: directoryId ?? rootDirectoryId,
-            })
-          }}
-        />
-      )}
-      {isCloud && (
-        <MenuEntry
+        <ContextMenuEntry
           hidden={hidden}
           action="newSecret"
           doAction={() => {
@@ -147,7 +142,7 @@ export default function GlobalContextMenu(props: GlobalContextMenuProps) {
         />
       )}
       {isCloud && (
-        <MenuEntry
+        <ContextMenuEntry
           hidden={hidden}
           action="newDataLink"
           doAction={() => {
@@ -168,7 +163,7 @@ export default function GlobalContextMenu(props: GlobalContextMenuProps) {
         />
       )}
       {isCloud && directoryKey == null && hasCopyData && (
-        <MenuEntry
+        <ContextMenuEntry
           hidden={hidden}
           action="paste"
           doAction={() => {

@@ -10,6 +10,7 @@ import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 import * as authProvider from '#/providers/AuthProvider'
 import * as backendProvider from '#/providers/BackendProvider'
 import * as modalProvider from '#/providers/ModalProvider'
+import * as textProvider from '#/providers/TextProvider'
 
 import SvgMask from '#/components/SvgMask'
 
@@ -67,7 +68,7 @@ function Input(props: InternalInputProps) {
 
   const input = (
     <input
-      className="rounded-full font-bold leading-5 w-full h-6 px-2 py-1.25 bg-transparent hover:bg-frame-selected focus:bg-frame-selected transition-colors placeholder-primary/30 invalid:border invalid:border-red-700"
+      className="settings-value w-full rounded-full bg-transparent font-bold placeholder-black/30 transition-colors invalid:border invalid:border-red-700 hover:bg-selected-frame focus:bg-selected-frame"
       type={isShowingPassword ? 'text' : type}
       size={1}
       defaultValue={originalValue}
@@ -90,7 +91,7 @@ function Input(props: InternalInputProps) {
       {
         <SvgMask
           src={isShowingPassword ? EyeIcon : EyeCrossedIcon}
-          className="absolute cursor-pointer rounded-full right-2 top-1"
+          className="absolute right-2 top-1 cursor-pointer rounded-full"
           onClick={() => {
             setIsShowingPassword(show => !show)
           }}
@@ -111,6 +112,7 @@ export default function AccountSettingsTab() {
   const { setModal } = modalProvider.useSetModal()
   const { backend } = backendProvider.useBackend()
   const { user, accessToken } = authProvider.useNonPartialUserSession()
+  const { getText } = textProvider.useText()
   const [passwordFormKey, setPasswordFormKey] = React.useState('')
   const [currentPassword, setCurrentPassword] = React.useState('')
   const [newPassword, setNewPassword] = React.useState('')
@@ -122,6 +124,12 @@ export default function AccountSettingsTab() {
     // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-non-null-assertion
     accessToken != null ? JSON.parse(atob(accessToken.split('.')[1]!)).username : null
   const canChangePassword = username != null ? !/^Github_|^Google_/.test(username) : false
+  const canSubmitPassword =
+    currentPassword !== '' &&
+    newPassword !== '' &&
+    confirmNewPassword !== '' &&
+    newPassword === confirmNewPassword &&
+    validation.PASSWORD_REGEX.test(newPassword)
 
   const doUpdateName = async (newName: string) => {
     const oldName = user?.name ?? ''
@@ -141,7 +149,7 @@ export default function AccountSettingsTab() {
   const doUploadUserPicture = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const image = event.target.files?.[0]
     if (image == null) {
-      toastAndLog('Could not upload a new profile picture because no image was found')
+      toastAndLog('noNewProfilePictureError')
     } else {
       try {
         const newUser = await backend.uploadUserPicture({ fileName: image.name }, image)
@@ -156,65 +164,71 @@ export default function AccountSettingsTab() {
   }
 
   return (
-    <div className="flex gap-8">
-      <div className="flex flex-col gap-8">
-        <div className="flex flex-col gap-2.5">
-          <h3 className="font-bold text-xl h-9.5 py-0.5">User Account</h3>
+    <div className="flex h flex-col gap-settings-section lg:h-auto lg:flex-row">
+      <div className="flex w-settings-main-section flex-col gap-settings-subsection">
+        <div className="flex flex-col gap-settings-section-header">
+          <h3 className="settings-subheading">{getText('userAccount')}</h3>
           <div className="flex flex-col">
-            <div className="flex gap-4.75">
-              <span className="leading-5 w-12 h-8 py-1.25">Name</span>
-              <span className="grow font-bold leading-5 h-8 py-1.25">
+            <div className="flex h-row gap-settings-entry">
+              <span className="text my-auto w-user-account-settings-label">{getText('name')}</span>
+              <span className="text my-auto grow font-bold">
                 <Input originalValue={user?.name ?? ''} onSubmit={doUpdateName} />
               </span>
             </div>
-            <div className="flex gap-4.75">
-              <span className="leading-5 w-12 h-8 py-1.25">Email</span>
-              <span className="grow font-bold leading-5 h-8 py-1.25">{user?.email ?? ''}</span>
+            <div className="flex h-row gap-settings-entry">
+              <span className="text my-auto w-user-account-settings-label">{getText('email')}</span>
+              <span className="settings-value my-auto grow font-bold">{user?.email ?? ''}</span>
             </div>
           </div>
         </div>
         {canChangePassword && (
           <div key={passwordFormKey}>
-            <h3 className="font-bold text-xl h-9.5 py-0.5">Change Password</h3>
-            <div className="flex gap-4.75">
-              <span className="leading-5 w-36 h-8 py-1.25">Current Password</span>
-              <span className="grow font-bold leading-5 h-8 py-1.25">
+            <h3 className="settings-subheading">{getText('changePassword')}</h3>
+            <div className="flex h-row gap-settings-entry">
+              <span className="text my-auto w-change-password-settings-label">
+                {getText('currentPasswordLabel')}
+              </span>
+              <span className="text my-auto grow font-bold">
                 <Input
                   type="password"
                   originalValue=""
-                  placeholder="Enter your current password"
+                  placeholder={getText('currentPasswordPlaceholder')}
                   onChange={event => {
                     setCurrentPassword(event.currentTarget.value)
                   }}
                 />
               </span>
             </div>
-            <div className="flex gap-4.75">
-              <span className="leading-5 w-36 h-8 py-1.25">New Password</span>
-              <span className="grow font-bold leading-5 h-8 py-1.25">
+            <div className="flex h-row gap-settings-entry">
+              <span className="text my-auto w-change-password-settings-label">
+                {getText('newPasswordLabel')}
+              </span>
+              <span className="text my-auto grow font-bold">
                 <Input
                   type="password"
                   originalValue=""
-                  placeholder="Enter your new password"
+                  placeholder={getText('newPasswordPlaceholder')}
                   onChange={event => {
                     const newValue = event.currentTarget.value
                     setNewPassword(newValue)
                     event.currentTarget.setCustomValidity(
                       newValue === '' || validation.PASSWORD_REGEX.test(newValue)
                         ? ''
-                        : validation.PASSWORD_ERROR
+                        : getText('passwordValidationError')
                     )
                   }}
                 />
               </span>
             </div>
-            <div className="flex gap-4.75">
-              <span className="leading-5 w-36 h-8 py-1.25">Confirm New Password</span>
-              <span className="grow font-bold leading-5 h-8 py-1.25">
+            <div className="flex h-row gap-settings-entry">
+              <span className="text my-auto w-change-password-settings-label">
+                {getText('confirmNewPasswordLabel')}
+              </span>
+              <span className="text my-auto grow font-bold">
                 <Input
                   type="password"
                   originalValue=""
-                  placeholder="Confirm your new password"
+                  placeholder={getText('confirmNewPasswordPlaceholder')}
                   onChange={event => {
                     const newValue = event.currentTarget.value
                     setConfirmNewPassword(newValue)
@@ -225,17 +239,11 @@ export default function AccountSettingsTab() {
                 />
               </span>
             </div>
-            <div className="flex gap-2">
+            <div className="flex h-row items-center gap-buttons">
               <button
-                disabled={
-                  currentPassword === '' ||
-                  newPassword === '' ||
-                  confirmNewPassword === '' ||
-                  newPassword !== confirmNewPassword ||
-                  !validation.PASSWORD_REGEX.test(newPassword)
-                }
                 type="submit"
-                className="text-white bg-invite font-medium rounded-full h-6 py-px px-2 -my-px disabled:opacity-50"
+                disabled={!canSubmitPassword}
+                className={`settings-value rounded-full bg-invite font-medium text-white selectable enabled:active`}
                 onClick={() => {
                   setPasswordFormKey(uniqueString.uniqueString())
                   setCurrentPassword('')
@@ -244,11 +252,12 @@ export default function AccountSettingsTab() {
                   void changePassword(currentPassword, newPassword)
                 }}
               >
-                Change
+                {getText('change')}
               </button>
               <button
                 type="button"
-                className="bg-frame-selected font-medium rounded-full h-6 py-px px-2 -my-px"
+                disabled={!canSubmitPassword}
+                className="settings-value rounded-full bg-selected-frame font-medium selectable enabled:active"
                 onClick={() => {
                   setPasswordFormKey(uniqueString.uniqueString())
                   setCurrentPassword('')
@@ -256,21 +265,22 @@ export default function AccountSettingsTab() {
                   setConfirmNewPassword('')
                 }}
               >
-                Cancel
+                {getText('cancel')}
               </button>
             </div>
           </div>
         )}
-        <div className="flex flex-col gap-2.5 rounded-2.5xl border-2 border-danger px-4 pt-2.25 pb-3.75">
-          <h3 className="text-danger font-bold text-xl h-9.5 py-0.5">Danger Zone</h3>
-          <div className="flex gap-2">
+        {/* This UI element does not appear anywhere else. */}
+        {/* eslint-disable-next-line no-restricted-syntax */}
+        <div className="flex flex-col items-start gap-settings-section-header rounded-2.5xl border-2 border-danger px-[1rem] pb-[0.9375rem] pt-[0.5625rem]">
+          <h3 className="settings-subheading text-danger">{getText('dangerZone')}</h3>
+          <div className="flex gap-buttons">
             <button
-              className="rounded-full bg-danger text-inversed px-2 py-1"
+              className="button bg-danger px-delete-user-account-button-x text-inversed opacity-full hover:opacity-full"
               onClick={event => {
                 event.stopPropagation()
                 setModal(
                   <ConfirmDeleteUserModal
-                    description="user account"
                     doDelete={async () => {
                       await backend.deleteUser()
                       await signOut()
@@ -279,17 +289,15 @@ export default function AccountSettingsTab() {
                 )
               }}
             >
-              <span className="leading-5 h-6 py-px">Delete this user account</span>
+              <span className="text inline-block">{getText('deleteUserAccountButtonLabel')}</span>
             </button>
-            <span className="leading-5 h-8 py-1.25">
-              Once deleted, it will be gone forever. Please be certain.
-            </span>
+            <span className="text my-auto">{getText('deleteUserAccountWarning')}</span>
           </div>
         </div>
       </div>
-      <div className="flex flex-col gap-2.5">
-        <h3 className="font-bold text-xl h-9.5 py-0.5">Profile picture</h3>
-        <label className="flex items-center cursor-pointer rounded-full overflow-clip h-32 w-32 hover:bg-frame transition-colors">
+      <div className="flex flex-col gap-settings-section-header">
+        <h3 className="settings-subheading">{getText('profilePicture')}</h3>
+        <label className="flex h-profile-picture-large w-profile-picture-large cursor-pointer items-center overflow-clip rounded-full transition-colors hover:bg-frame">
           <input type="file" className="hidden" accept="image/*" onChange={doUploadUserPicture} />
           <img
             src={user?.profilePicture ?? DefaultUserIcon}
@@ -298,9 +306,8 @@ export default function AccountSettingsTab() {
             className="pointer-events-none"
           />
         </label>
-        <span className="py-1 w-64">
-          Your profile picture should not be irrelevant, abusive or vulgar. It should not be a
-          default image provided by Enso.
+        <span className="w-profile-picture-caption py-profile-picture-caption-y">
+          {getText('profilePictureWarning')}
         </span>
       </div>
     </div>

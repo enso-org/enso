@@ -12,13 +12,12 @@ import LockIcon from 'enso-assets/lock.svg'
 import * as appUtils from '#/appUtils'
 
 import * as authProvider from '#/providers/AuthProvider'
+import * as textProvider from '#/providers/TextProvider'
 
 import FontAwesomeIcon from '#/components/FontAwesomeIcon'
 import Input from '#/components/Input'
 import Link from '#/components/Link'
 import SubmitButton from '#/components/SubmitButton'
-
-import * as validation from '#/utilities/validation'
 
 // =============
 // === Login ===
@@ -34,6 +33,7 @@ export default function Login(props: LoginProps) {
   const { supportsLocalBackend } = props
   const location = router.useLocation()
   const { signInWithGoogle, signInWithGitHub, signInWithPassword } = authProvider.useAuth()
+  const { getText } = textProvider.useText()
 
   const query = new URLSearchParams(location.search)
   const initialEmail = query.get('email')
@@ -44,10 +44,10 @@ export default function Login(props: LoginProps) {
   const shouldReportValidityRef = React.useRef(true)
 
   return (
-    <div className="flex flex-col gap-6 text-primary text-sm items-center justify-center min-h-screen">
-      <div className="flex flex-col gap-6 bg-frame-selected rounded-4xl shadow-md p-8 w-full max-w-md">
-        <div className="font-medium self-center text-xl">Login to your account</div>
-        <div className="flex flex-col gap-6">
+    <div className="flex min-h-screen flex-col items-center justify-center gap-auth text-sm text-primary">
+      <div className="flex w-full max-w-md flex-col gap-auth rounded-auth bg-selected-frame p-auth shadow-md">
+        <div className="self-center text-xl font-medium">{getText('loginToYourAccount')}</div>
+        <div className="flex flex-col gap-auth">
           <button
             onMouseDown={() => {
               shouldReportValidityRef.current = false
@@ -56,10 +56,10 @@ export default function Login(props: LoginProps) {
               event.preventDefault()
               await signInWithGoogle()
             }}
-            className="relative rounded-full bg-cloud/10 hover:bg-cloud/20 focus:bg-cloud/20 transition-all duration-300 py-2"
+            className="relative rounded-full bg-cloud/10 py-auth-input-y transition-all duration-auth hover:bg-cloud/20 focus:bg-cloud/20"
           >
             <FontAwesomeIcon icon={fontawesomeIcons.faGoogle} />
-            Sign up or login with Google
+            {getText('signUpOrLoginWithGoogle')}
           </button>
           <button
             onMouseDown={() => {
@@ -69,19 +69,15 @@ export default function Login(props: LoginProps) {
               event.preventDefault()
               await signInWithGitHub()
             }}
-            className="relative rounded-full bg-cloud/10 hover:bg-cloud/20 focus:bg-cloud/20 transition-all duration-300 py-2"
+            className="relative rounded-full bg-cloud/10 py-auth-input-y transition-all duration-auth hover:bg-cloud/20 focus:bg-cloud/20"
           >
             <FontAwesomeIcon icon={fontawesomeIcons.faGithub} />
-            Sign up or login with GitHub
+            {getText('signUpOrLoginWithGitHub')}
           </button>
         </div>
-        <div className="flex items-center gap-2">
-          <div className="grow border-t border-primary/30 h-0" />
-          <span className="text-xs self-center text-primary/60">or login with email</span>
-          <div className="grow border-t border-primary/30 h-0" />
-        </div>
+        <div />
         <form
-          className="flex flex-col gap-6"
+          className="flex flex-col gap-auth"
           onSubmit={async event => {
             event.preventDefault()
             setIsSubmitting(true)
@@ -95,48 +91,46 @@ export default function Login(props: LoginProps) {
             validate
             type="email"
             autoComplete="email"
-            label="Email"
             icon={AtIcon}
-            placeholder="Enter your email"
+            placeholder={getText('emailPlaceholder')}
             value={email}
             setValue={setEmail}
             shouldReportValidityRef={shouldReportValidityRef}
           />
-          <Input
-            required
-            validate
-            allowShowingPassword
-            type="password"
-            autoComplete="current-password"
-            label="Password"
-            icon={LockIcon}
-            placeholder="Enter your password"
-            error={validation.PASSWORD_ERROR}
-            value={password}
-            setValue={setPassword}
-            shouldReportValidityRef={shouldReportValidityRef}
-            footer={
-              <router.Link
-                to={appUtils.FORGOT_PASSWORD_PATH}
-                className="text-xs text-blue-500 hover:text-blue-700 focus:text-blue-700 transition-all duration-300 text-end"
-              >
-                Forgot Your Password?
-              </router.Link>
-            }
-          />
-          <SubmitButton disabled={isSubmitting} text="Login" icon={ArrowRightIcon} />
+          <div className="flex flex-col">
+            <Input
+              required
+              validate
+              allowShowingPassword
+              type="password"
+              autoComplete="current-password"
+              icon={LockIcon}
+              placeholder={getText('passwordPlaceholder')}
+              error={getText('passwordValidationError')}
+              value={password}
+              setValue={setPassword}
+              shouldReportValidityRef={shouldReportValidityRef}
+            />
+            <router.Link
+              to={appUtils.FORGOT_PASSWORD_PATH}
+              className="text-end text-xs text-blue-500 transition-all duration-auth hover:text-blue-700 focus:text-blue-700"
+            >
+              {getText('forgotYourPassword')}
+            </router.Link>
+          </div>
+          <SubmitButton disabled={isSubmitting} text={getText('login')} icon={ArrowRightIcon} />
         </form>
       </div>
       <Link
         to={appUtils.REGISTRATION_PATH}
         icon={CreateAccountIcon}
-        text="Don't have an account?"
+        text={getText('dontHaveAnAccount')}
       />
       {supportsLocalBackend && (
         <Link
           to={appUtils.ENTER_OFFLINE_MODE_PATH}
           icon={ArrowRightIcon}
-          text="Continue without creating an account"
+          text={getText('continueWithoutCreatingAnAccount')}
         />
       )}
     </div>

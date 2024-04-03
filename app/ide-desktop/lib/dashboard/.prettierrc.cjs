@@ -13,7 +13,7 @@ module.exports = {
         singleQuote: true,
         trailingComma: 'es5',
         arrowParens: 'avoid',
-        plugins: ['@ianvs/prettier-plugin-sort-imports'],
+        plugins: ['@ianvs/prettier-plugin-sort-imports', 'prettier-plugin-tailwindcss'],
         // This plugin's options
         importOrder: [
           '^react$',
@@ -24,6 +24,8 @@ module.exports = {
           '',
           '^#[/]App',
           '^#[/]appUtils',
+          '^#[/]text',
+          '^#[/]reactQueryClient',
           '',
           '^#[/]configurations[/]',
           '',

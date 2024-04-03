@@ -46,6 +46,7 @@ Dependencies for the script:
 """
 
 import sys
+from dataclasses import dataclass
 
 from bench_tool.bench_results import get_bench_runs, fetch_job_reports
 from bench_tool.remote_cache import ReadonlyRemoteCache
@@ -67,7 +68,8 @@ from datetime import datetime, timedelta
 from os import path
 from typing import List, Dict, Optional, Set
 
-from bench_tool import DATE_FORMAT, GENERATED_SITE_DIR, GH_ARTIFACT_RETENTION_PERIOD, TEMPLATES_DIR, \
+from bench_tool import DATE_FORMAT, GENERATED_SITE_DIR, \
+    GH_ARTIFACT_RETENTION_PERIOD, TEMPLATES_DIR, \
     JINJA_TEMPLATE, JobRun, JobReport, \
     TemplateBenchData, JinjaData, Source
 from bench_tool.gh import ensure_gh_installed
@@ -78,49 +80,62 @@ try:
     import numpy as np
     import jinja2
 except ModuleNotFoundError as err:
-    print("ERROR: One of pandas, numpy, or jinja2 packages not installed", file=sys.stderr)
+    print("ERROR: One of pandas, numpy, or jinja2 packages not installed",
+          file=sys.stderr)
     print("Install either with `pip install pandas numpy jinja2` or "
-          "with `apt-get install python3-pandas python3-numpy python3-jinja2`", file=sys.stderr)
+          "with `apt-get install python3-pandas python3-numpy python3-jinja2`",
+          file=sys.stderr)
     exit(1)
 
-CSV_FIELDNAMES = [
-    "label",
-    "score",
-    "commit_id",
-    "commit_author",
-    "commit_timestamp",
-    "bench_run_url",
-    "bench_run_event"
-]
+
+@dataclass
+class CsvRow:
+    label: str
+    score: str
+    commit_id: str
+    commit_title: str
+    commit_timestamp: str
+    commit_author: str
+    bench_run_id: str
+    bench_run_url: str
+    bench_run_event: str
 
 
-def write_bench_reports_to_csv(bench_reports: List[JobReport], csv_fname: str) -> None:
+def write_bench_reports_to_csv(bench_reports: List[JobReport],
+    csv_fname: str) -> None:
     logging.info(
         f"Writing {len(bench_reports)} benchmark reports to {csv_fname}")
+    csv_fieldnames = CsvRow.__annotations__.keys()
     assert len(bench_reports) > 0
-    if not path.exists(path.dirname(csv_fname)):
-        logging.debug(f"Creating directory {path.dirname(csv_fname)}")
-        os.mkdir(path.dirname(csv_fname))
     with open(csv_fname, "w") as csv_file:
-        csv_writer = DictWriter(csv_file, CSV_FIELDNAMES)
+        csv_writer = DictWriter(csv_file, csv_fieldnames)
         csv_writer.writeheader()
         for bench_report in bench_reports:
             for label, score in bench_report.label_score_dict.items():
-                csv_writer.writerow({
-                    "label": label,
-                    "score": score,
-                    "commit_id": bench_report.bench_run.head_commit.id,
-                    "commit_author": bench_report.bench_run.head_commit.author.name,
-                    "commit_timestamp": bench_report.bench_run.head_commit.timestamp,
-                    "bench_run_url": bench_report.bench_run.html_url,
-                    "bench_run_event": bench_report.bench_run.event
-                })
+                commit_title = \
+                  bench_report.bench_run.head_commit.message.splitlines()[0]
+                commit_title = commit_title.replace(",", " ")
+                # Ensure that score is not printed with exponential notation,
+                # Enso cannot easily parse that by default now.
+                score_formatted = f"{score:.9f}"
+                row = CsvRow(
+                    label=label,
+                    score=score_formatted,
+                    commit_id=bench_report.bench_run.head_commit.id,
+                    commit_title=commit_title,
+                    commit_author=bench_report.bench_run.head_commit.author.name,
+                    commit_timestamp=bench_report.bench_run.head_commit.timestamp,
+                    bench_run_id=bench_report.bench_run.id,
+                    bench_run_url=bench_report.bench_run.html_url,
+                    bench_run_event=bench_report.bench_run.event
+                )
+                csv_writer.writerow(row.__dict__)
 
 
 async def main():
     default_since: datetime = (datetime.now() - timedelta(days=14))
     default_until: datetime = datetime.now()
-    default_csv_out = "Engine_Benchs/data/benchs.csv"
+    default_csv_out = "benchs.csv"
     date_format_help = DATE_FORMAT.replace("%", "%%")
 
     def _parse_bench_source(_bench_source: str) -> Source:
@@ -128,7 +143,8 @@ async def main():
             return Source(_bench_source)
         except ValueError:
             print(f"Invalid benchmark source {_bench_source}.", file=sys.stderr)
-            print(f"Available sources: {[source.value for source in Source]}", file=sys.stderr)
+            print(f"Available sources: {[source.value for source in Source]}",
+                  file=sys.stderr)
             exit(1)
 
     arg_parser = ArgumentParser(description=__doc__,
@@ -196,10 +212,10 @@ async def main():
     branches: List[str] = args.branches
     labels_override: Set[str] = args.labels
     logging.debug(f"parsed args: since={since}, until={until}, "
-                 f"temp_dir={temp_dir}, bench_source={bench_source}, "
-                 f"csv_output={csv_output}, "
-                 f"create_csv={create_csv}, branches={branches}, "
-                 f"labels_override={labels_override}")
+                  f"temp_dir={temp_dir}, bench_source={bench_source}, "
+                  f"csv_output={csv_output}, "
+                  f"create_csv={create_csv}, branches={branches}, "
+                  f"labels_override={labels_override}")
 
     ensure_gh_installed()
 
@@ -208,11 +224,11 @@ async def main():
     min_since_without_cache = datetime.today() - GH_ARTIFACT_RETENTION_PERIOD
     if since < min_since_without_cache:
         logging.info(f"The default GH artifact retention period is "
-                        f"{GH_ARTIFACT_RETENTION_PERIOD.days} days. "
-                        f"This means that all the artifacts older than "
-                        f"{min_since_without_cache.date()} are expired."
-                        f"The since date was set to {since}, so the remote cache is enabled, "
-                        f"and the older artifacts will be fetched from the cache.")
+                     f"{GH_ARTIFACT_RETENTION_PERIOD.days} days. "
+                     f"This means that all the artifacts older than "
+                     f"{min_since_without_cache.date()} are expired."
+                     f"The since date was set to {since}, so the remote cache is enabled, "
+                     f"and the older artifacts will be fetched from the cache.")
 
     remote_cache = ReadonlyRemoteCache()
 
@@ -254,8 +270,9 @@ async def main():
             if len(labels_override) > 0:
                 logging.info(f"Subset of labels specified: {labels_override}")
                 if not set(labels_override).issubset(all_bench_labels):
-                    print(f"Specified bench labels {labels_override} are not a subset of "
-                          f"all bench labels {all_bench_labels}")
+                    print(
+                        f"Specified bench labels {labels_override} are not a subset of "
+                        f"all bench labels {all_bench_labels}")
                     exit(1)
                 bench_labels = labels_override
             else:
@@ -282,13 +299,15 @@ async def main():
     if not path.exists(GENERATED_SITE_DIR):
         os.mkdir(GENERATED_SITE_DIR)
 
-    logging.debug(f"Rendering HTML from {JINJA_TEMPLATE} to {GENERATED_SITE_DIR}")
+    logging.debug(
+        f"Rendering HTML from {JINJA_TEMPLATE} to {GENERATED_SITE_DIR}")
     site_path = GENERATED_SITE_DIR.joinpath(bench_source.value + "-benchs.html")
     render_html(
         jinja_data,
         site_path
     )
-    logging.debug(f"Copying static site content from {TEMPLATES_DIR} to {GENERATED_SITE_DIR}")
+    logging.debug(
+        f"Copying static site content from {TEMPLATES_DIR} to {GENERATED_SITE_DIR}")
     shutil.copy(
         path.join(TEMPLATES_DIR, "styles.css"),
         path.join(GENERATED_SITE_DIR, "styles.css")

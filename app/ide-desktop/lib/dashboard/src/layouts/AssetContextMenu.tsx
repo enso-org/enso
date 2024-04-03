@@ -9,6 +9,7 @@ import * as authProvider from '#/providers/AuthProvider'
 import * as backendProvider from '#/providers/BackendProvider'
 import * as loggerProvider from '#/providers/LoggerProvider'
 import * as modalProvider from '#/providers/ModalProvider'
+import * as textProvider from '#/providers/TextProvider'
 
 import AssetEventType from '#/events/AssetEventType'
 import AssetListEventType from '#/events/AssetListEventType'
@@ -17,10 +18,10 @@ import Category from '#/layouts/CategorySwitcher/Category'
 import GlobalContextMenu from '#/layouts/GlobalContextMenu'
 
 import ContextMenu from '#/components/ContextMenu'
+import ContextMenuEntry from '#/components/ContextMenuEntry'
 import ContextMenus from '#/components/ContextMenus'
 import ContextMenuSeparator from '#/components/ContextMenuSeparator'
 import type * as assetRow from '#/components/dashboard/AssetRow'
-import MenuEntry from '#/components/MenuEntry'
 
 import ConfirmDeleteModal from '#/modals/ConfirmDeleteModal'
 import ManageLabelsModal from '#/modals/ManageLabelsModal'
@@ -28,6 +29,7 @@ import ManagePermissionsModal from '#/modals/ManagePermissionsModal'
 import UpsertSecretModal from '#/modals/UpsertSecretModal'
 
 import * as backendModule from '#/services/Backend'
+import * as localBackend from '#/services/LocalBackend'
 import RemoteBackend from '#/services/RemoteBackend'
 
 import HttpClient from '#/utilities/HttpClient'
@@ -47,6 +49,7 @@ export interface AssetContextMenuProps {
   readonly doDelete: () => void
   readonly doCopy: () => void
   readonly doCut: () => void
+  readonly doTriggerDescriptionEdit: () => void
   readonly doPaste: (
     newParentKey: backendModule.AssetId,
     newParentId: backendModule.DirectoryId
@@ -55,7 +58,16 @@ export interface AssetContextMenuProps {
 
 /** The context menu for an arbitrary {@link backendModule.Asset}. */
 export default function AssetContextMenu(props: AssetContextMenuProps) {
-  const { innerProps, event, eventTarget, doCopy, doCut, doPaste, doDelete } = props
+  const {
+    innerProps,
+    event,
+    eventTarget,
+    doCopy,
+    doCut,
+    doPaste,
+    doDelete,
+    doTriggerDescriptionEdit,
+  } = props
   const { hidden = false } = props
   const { item, setItem, state, setRowState } = innerProps
   const { category, hasPasteData, labels, dispatchAssetEvent, dispatchAssetListEvent } = state
@@ -65,9 +77,10 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
   const { user, accessToken } = authProvider.useNonPartialUserSession()
   const { setModal, unsetModal } = modalProvider.useSetModal()
   const { backend } = backendProvider.useBackend()
+  const { getText } = textProvider.useText()
   const toastAndLog = toastAndLogHooks.useToastAndLog()
   const asset = item.item
-  const self = asset.permissions?.find(permission => permission.user.user_email === user?.email)
+  const self = asset.permissions?.find(permission => permission.user.userId === user?.userId)
   const isCloud = backend.type === backendModule.BackendType.remote
   const ownsThisAsset = !isCloud || self?.permission === permissions.PermissionAction.own
   const managesThisAsset = ownsThisAsset || self?.permission === permissions.PermissionAction.admin
@@ -103,19 +116,19 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
     !ownsThisAsset ? null : (
       <ContextMenus hidden={hidden} key={asset.id} event={event}>
         <ContextMenu hidden={hidden}>
-          <MenuEntry
+          <ContextMenuEntry
             hidden={hidden}
             action="undelete"
-            label="Restore From Trash"
+            label={getText('restoreFromTrashShortcut')}
             doAction={() => {
               unsetModal()
               dispatchAssetEvent({ type: AssetEventType.restore, ids: new Set([asset.id]) })
             }}
           />
-          <MenuEntry
+          <ContextMenuEntry
             hidden={hidden}
             action="delete"
-            label="Delete Forever"
+            label={getText('deleteForeverShortcut')}
             doAction={() => {
               setModal(
                 <ConfirmDeleteModal
@@ -138,7 +151,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
           canExecute &&
           !isRunningProject &&
           !isOtherUserUsingProject && (
-            <MenuEntry
+            <ContextMenuEntry
               hidden={hidden}
               action="open"
               doAction={() => {
@@ -153,7 +166,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
             />
           )}
         {asset.type === backendModule.AssetType.project && isCloud && (
-          <MenuEntry
+          <ContextMenuEntry
             hidden={hidden}
             action="run"
             doAction={() => {
@@ -171,7 +184,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
           canExecute &&
           isRunningProject &&
           !isOtherUserUsingProject && (
-            <MenuEntry
+            <ContextMenuEntry
               hidden={hidden}
               action="close"
               doAction={() => {
@@ -184,19 +197,19 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
             />
           )}
         {asset.type === backendModule.AssetType.project && !isCloud && (
-          <MenuEntry
+          <ContextMenuEntry
             hidden={hidden}
             action="uploadToCloud"
             doAction={async () => {
               unsetModal()
               if (accessToken == null) {
-                toastAndLog('Cannot upload to cloud in offline mode')
+                toastAndLog('offlineUploadFilesError')
               } else {
                 try {
                   const client = new HttpClient([['Authorization', `Bearer ${accessToken}`]])
-                  const remoteBackend = new RemoteBackend(client, logger)
+                  const remoteBackend = new RemoteBackend(client, logger, getText)
                   const projectResponse = await fetch(
-                    `./api/project-manager/projects/${asset.id}/enso-project`
+                    `./api/project-manager/projects/${localBackend.extractTypeAndId(asset.id).id}/enso-project`
                   )
                   // This DOES NOT update the cloud assets list when it
                   // completes, as the current backend is not the remote
@@ -211,16 +224,16 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
                     },
                     await projectResponse.blob()
                   )
-                  toast.toast.success('Successfully uploaded local project to cloud!')
+                  toast.toast.success(getText('uploadProjectToCloudSuccess'))
                 } catch (error) {
-                  toastAndLog('Could not upload local project to cloud', error)
+                  toastAndLog('uploadProjectToCloudError', error)
                 }
               }
             }}
           />
         )}
         {canExecute && !isRunningProject && !isOtherUserUsingProject && (
-          <MenuEntry
+          <ContextMenuEntry
             hidden={hidden}
             disabled={
               asset.type !== backendModule.AssetType.project &&
@@ -234,7 +247,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
           />
         )}
         {asset.type === backendModule.AssetType.secret && canEditThisAsset && (
-          <MenuEntry
+          <ContextMenuEntry
             hidden={hidden}
             action="edit"
             doAction={() => {
@@ -255,7 +268,17 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
           />
         )}
         {isCloud && (
-          <MenuEntry
+          <ContextMenuEntry
+            hidden={hidden}
+            action="editDescription"
+            label={getText('editDescriptionShortcut')}
+            doAction={() => {
+              doTriggerDescriptionEdit()
+            }}
+          />
+        )}
+        {isCloud && (
+          <ContextMenuEntry
             hidden={hidden}
             disabled
             action="snapshot"
@@ -265,10 +288,14 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
           />
         )}
         {ownsThisAsset && !isRunningProject && !isOtherUserUsingProject && (
-          <MenuEntry
+          <ContextMenuEntry
             hidden={hidden}
             action="delete"
-            label={backend.type === backendModule.BackendType.local ? 'Delete' : 'Move To Trash'}
+            label={
+              backend.type === backendModule.BackendType.local
+                ? getText('deleteShortcut')
+                : getText('moveToTrashShortcut')
+            }
             doAction={() => {
               if (backend.type === backendModule.BackendType.remote) {
                 unsetModal()
@@ -276,7 +303,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
               } else {
                 setModal(
                   <ConfirmDeleteModal
-                    actionText={`delete the ${asset.type} '${asset.title}'`}
+                    actionText={getText('deleteTheAssetTypeTitle', asset.type, asset.title)}
                     doDelete={doDelete}
                   />
                 )
@@ -286,7 +313,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
         )}
         {isCloud && <ContextMenuSeparator hidden={hidden} />}
         {isCloud && managesThisAsset && self != null && (
-          <MenuEntry
+          <ContextMenuEntry
             hidden={hidden}
             action="share"
             doAction={() => {
@@ -308,7 +335,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
           />
         )}
         {isCloud && (
-          <MenuEntry
+          <ContextMenuEntry
             hidden={hidden}
             action="label"
             doAction={() => {
@@ -325,7 +352,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
           />
         )}
         {isCloud && managesThisAsset && self != null && <ContextMenuSeparator hidden={hidden} />}
-        <MenuEntry
+        <ContextMenuEntry
           hidden={hidden}
           disabled={!isCloud}
           action="duplicate"
@@ -339,13 +366,18 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
             })
           }}
         />
-        {isCloud && <MenuEntry hidden={hidden} action="copy" doAction={doCopy} />}
-        {isCloud && !isOtherUserUsingProject && (
-          <MenuEntry hidden={hidden} action="cut" doAction={doCut} />
+        {isCloud && <ContextMenuEntry hidden={hidden} action="copy" doAction={doCopy} />}
+        {!isOtherUserUsingProject && (
+          <ContextMenuEntry hidden={hidden} action="cut" doAction={doCut} />
         )}
-        <MenuEntry
+        <ContextMenuEntry
           hidden={hidden}
-          disabled={isCloud && asset.type !== backendModule.AssetType.file}
+          disabled={
+            isCloud &&
+            asset.type !== backendModule.AssetType.file &&
+            asset.type !== backendModule.AssetType.dataLink &&
+            asset.type !== backendModule.AssetType.project
+          }
           action="download"
           doAction={() => {
             unsetModal()
@@ -356,7 +388,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
           }}
         />
         {hasPasteData && (
-          <MenuEntry
+          <ContextMenuEntry
             hidden={hidden}
             action="paste"
             doAction={() => {

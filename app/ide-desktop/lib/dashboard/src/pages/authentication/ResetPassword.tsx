@@ -3,7 +3,6 @@
 import * as React from 'react'
 
 import * as router from 'react-router-dom'
-import * as toastify from 'react-toastify'
 
 import ArrowRightIcon from 'enso-assets/arrow_right.svg'
 import GoBackIcon from 'enso-assets/go_back.svg'
@@ -12,8 +11,10 @@ import LockIcon from 'enso-assets/lock.svg'
 import * as appUtils from '#/appUtils'
 
 import * as navigateHooks from '#/hooks/navigateHooks'
+import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
 import * as authProvider from '#/providers/AuthProvider'
+import * as textProvider from '#/providers/TextProvider'
 
 import Input from '#/components/Input'
 import Link from '#/components/Link'
@@ -29,8 +30,10 @@ import * as validation from '#/utilities/validation'
 /** A form for users to reset their password. */
 export default function ResetPassword() {
   const { resetPassword } = authProvider.useAuth()
+  const { getText } = textProvider.useText()
   const location = router.useLocation()
   const navigate = navigateHooks.useNavigate()
+  const toastAndLog = toastAndLogHooks.useToastAndLog()
 
   const query = new URLSearchParams(location.search)
   const email = query.get('email')
@@ -41,17 +44,17 @@ export default function ResetPassword() {
 
   React.useEffect(() => {
     if (email == null) {
-      toastify.toast.error('Could not reset password: missing email address')
+      toastAndLog('missingEmailError')
       navigate(appUtils.LOGIN_PATH)
     } else if (verificationCode == null) {
-      toastify.toast.error('Could not reset password: missing verification code')
+      toastAndLog('missingVerificationCodeError')
       navigate(appUtils.LOGIN_PATH)
     }
-  }, [email, navigate, verificationCode])
+  }, [email, navigate, verificationCode, getText, /* should never change */ toastAndLog])
 
   const onSubmit = () => {
     if (newPassword !== newPasswordConfirm) {
-      toastify.toast.error('Passwords do not match')
+      toastAndLog('passwordMismatchError')
       return Promise.resolve()
     } else {
       // These should never be nullish, as the effect should immediately navigate away.
@@ -60,22 +63,22 @@ export default function ResetPassword() {
   }
 
   return (
-    <div className="flex flex-col gap-6 text-primary text-sm items-center justify-center min-h-screen">
+    <div className="flex min-h-screen flex-col items-center justify-center gap-auth text-sm text-primary">
       <form
-        className="flex flex-col gap-6 bg-frame-selected rounded-4xl shadow-md p-8 w-full max-w-md"
+        className="flex w-full max-w-md flex-col gap-auth rounded-auth bg-selected-frame p-auth shadow-md"
         onSubmit={async event => {
           event.preventDefault()
           await onSubmit()
         }}
       >
-        <div className="font-medium self-center text-xl">Reset your password</div>
+        <div className="self-center text-xl font-medium">{getText('resetYourPassword')}</div>
         <input
           required
           readOnly
           hidden
           type="email"
           autoComplete="email"
-          placeholder="Enter your email"
+          placeholder={getText('emailPlaceholder')}
           value={email ?? ''}
         />
         <input
@@ -84,7 +87,7 @@ export default function ResetPassword() {
           hidden
           type="text"
           autoComplete="one-time-code"
-          placeholder="Enter the confirmation code"
+          placeholder={getText('confirmationCodePlaceholder')}
           value={verificationCode ?? ''}
         />
         <Input
@@ -93,11 +96,10 @@ export default function ResetPassword() {
           allowShowingPassword
           type="password"
           autoComplete="new-password"
-          label="New password"
           icon={LockIcon}
-          placeholder="Enter your new password"
+          placeholder={getText('newPasswordPlaceholder')}
           pattern={validation.PASSWORD_PATTERN}
-          error={validation.PASSWORD_ERROR}
+          error={getText('passwordValidationError')}
           value={newPassword}
           setValue={setNewPassword}
         />
@@ -107,17 +109,16 @@ export default function ResetPassword() {
           allowShowingPassword
           type="password"
           autoComplete="new-password"
-          label="Confirm new password"
           icon={LockIcon}
-          placeholder="Confirm your new password"
+          placeholder={getText('confirmNewPasswordPlaceholder')}
           pattern={string.regexEscape(newPassword)}
-          error={validation.CONFIRM_PASSWORD_ERROR}
+          error={getText('passwordMismatchError')}
           value={newPasswordConfirm}
           setValue={setNewPasswordConfirm}
         />
-        <SubmitButton text="Reset" icon={ArrowRightIcon} />
+        <SubmitButton text={getText('reset')} icon={ArrowRightIcon} />
       </form>
-      <Link to={appUtils.LOGIN_PATH} icon={GoBackIcon} text="Go back to login" />
+      <Link to={appUtils.LOGIN_PATH} icon={GoBackIcon} text={getText('goBackToLogin')} />
     </div>
   )
 }

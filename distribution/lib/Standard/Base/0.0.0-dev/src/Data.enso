@@ -3,23 +3,26 @@ import project.Data.Pair.Pair
 import project.Data.Text.Encoding.Encoding
 import project.Data.Text.Text
 import project.Data.Vector.Vector
+import project.Enso_Cloud.Data_Link
 import project.Error.Error
 import project.Errors.File_Error.File_Error
 import project.Errors.Illegal_Argument.Illegal_Argument
 import project.Errors.Problem_Behavior.Problem_Behavior
+import project.Internal.Data_Read_Helpers
 import project.Meta
 import project.Network.HTTP.Header.Header
 import project.Network.HTTP.HTTP
 import project.Network.HTTP.HTTP_Error.HTTP_Error
 import project.Network.HTTP.HTTP_Method.HTTP_Method
-import project.Network.HTTP.Request.Request
 import project.Network.HTTP.Request_Body.Request_Body
 import project.Network.HTTP.Request_Error
 import project.Network.URI.URI
 import project.Nothing.Nothing
+import project.Runtime.Context
 import project.System.File.File
 import project.System.File.Generic.Writable_File.Writable_File
 from project.Data.Boolean import Boolean, False, True
+from project.Metadata.Choice import Option
 from project.Metadata.Widget import Text_Input
 from project.System.File_Format import Auto_Detect, File_Format
 
@@ -57,16 +60,16 @@ from project.System.File_Format import Auto_Detect, File_Format
      Read the sheet named `Dates` from an XLS and convert it to a table.
 
          from Standard.Table import all
-         from Standard.Table import Excel, Worksheet
          import Standard.Examples
 
-         example_xls_to_table = Data.read Examples.xls (Excel (Worksheet 'Dates'))
+         example_xls_to_table = Data.read Examples.xls (Excel_Format.Sheet 'Dates')
 @path Text_Input
 @format File_Format.default_widget
 read : Text | File -> File_Format -> Problem_Behavior -> Any ! File_Error
 read path format=Auto_Detect (on_problems=Problem_Behavior.Report_Warning) = case path of
-    _ : Text -> if (path.starts_with "http://") || (path.starts_with "https://") then fetch path else
+    _ : Text -> if Data_Read_Helpers.looks_like_uri path then Data_Read_Helpers.fetch_following_data_links path format=format else
         read (File.new path) format on_problems
+    uri : URI -> Data_Read_Helpers.fetch_following_data_links uri format=format
     _ -> File.new path . read format on_problems
 
 ## ALIAS load text, open text
@@ -168,8 +171,9 @@ list_directory directory:File (name_filter:(Text | Nothing)=Nothing) recursive:B
      `HTTP_Method.Head`, `HTTP_Method.Delete`, `HTTP_Method.Options`.
      Defaults to `HTTP_Method.Get`.
    - headers: The headers to send with the request. Defaults to an empty vector.
-   - try_auto_parse_response:  If successful should the body be attempted to be
-     parsed to an Enso native object.
+   - format: The format to use for interpreting the response.
+     Defaults to `Auto_Detect`. If `Raw_Response` is selected or if the format
+     cannot be determined automatically, a raw HTTP `Response` will be returned.
 
    > Example
      Read from an HTTP endpoint.
@@ -184,19 +188,14 @@ list_directory directory:File (name_filter:(Text | Nothing)=Nothing) recursive:B
          file = enso_project.data / "spreadsheet.xls"
          Data.fetch URL . body . write file
 @uri Text_Input
-fetch : (URI | Text) -> HTTP_Method -> Vector (Header | Pair Text Text) -> Boolean -> Any ! Request_Error | HTTP_Error
-fetch (uri:(URI | Text)) (method:HTTP_Method=HTTP_Method.Get) (headers:(Vector (Header | Pair Text Text))=[]) (try_auto_parse_response:Boolean=True) =
-    response = HTTP.fetch uri method headers
-    if try_auto_parse_response.not then response.with_materialized_body else
-        ## We cannot catch decoding errors here and fall-back to the raw response
-           body, because as soon as decoding is started, at least part of the
-           input stream may already be consumed, so we cannot easily reconstruct
-           the whole stream.
-        response.decode if_unsupported=response.with_materialized_body
+@format Data_Read_Helpers.format_widget_with_raw_response
+fetch : (URI | Text) -> HTTP_Method -> Vector (Header | Pair Text Text) -> File_Format -> Any ! Request_Error | HTTP_Error
+fetch (uri:(URI | Text)) (method:HTTP_Method=HTTP_Method.Get) (headers:(Vector (Header | Pair Text Text))=[]) (format = Auto_Detect) =
+    Data_Read_Helpers.fetch_following_data_links uri method headers (Data_Read_Helpers.handle_legacy_format "fetch" "format" format)
 
 ## ALIAS http post, upload
-   GROUP Input
-   ICON data_output
+   GROUP Output
+   ICON data_upload
    Writes the provided data to the provided URI. Returns the response,
    parsing the body if the content-type is recognised. Returns an  error if the
    status code does not represent a successful response.
@@ -207,8 +206,9 @@ fetch (uri:(URI | Text)) (method:HTTP_Method=HTTP_Method.Get) (headers:(Vector (
    - method: The HTTP method to use. Must be one of `HTTP_Method.Post`,
      `HTTP_Method.Put`, `HTTP_Method.Patch`. Defaults to `HTTP_Method.Post`.
    - headers: The headers to send with the request. Defaults to an empty vector.
-   - try_auto_parse:  If successful should the body be attempted to be parsed to
-     an Enso native object.
+   - response_format: The format to use for interpreting the response.
+     Defaults to `Auto_Detect`. If `Raw_Response` is selected or if the format
+     cannot be determined automatically, a raw HTTP `Response` will be returned.
 
    ! Supported Body Types
 
@@ -314,14 +314,14 @@ fetch (uri:(URI | Text)) (method:HTTP_Method=HTTP_Method.Get) (headers:(Vector (
          form_data = Map.from_vector [["key", "val"], ["a_file", test_file]]
          response = Data.post url_post (Request_Body.Form_Data form_data url_encoded=True)
 @uri Text_Input
-post : (URI | Text) -> Request_Body -> HTTP_Method -> Vector (Header | Pair Text Text) -> Boolean -> Any ! Request_Error | HTTP_Error
-post (uri:(URI | Text)) (body:Request_Body=Request_Body.Empty) (method:HTTP_Method=HTTP_Method.Post) (headers:(Vector (Header | Pair Text Text))=[]) (try_auto_parse_response:Boolean=True) =
+@response_format Data_Read_Helpers.format_widget_with_raw_response
+post : (URI | Text) -> Request_Body -> HTTP_Method -> Vector (Header | Pair Text Text) -> File_Format -> Any ! Request_Error | HTTP_Error
+post (uri:(URI | Text)) (body:Request_Body=Request_Body.Empty) (method:HTTP_Method=HTTP_Method.Post) (headers:(Vector (Header | Pair Text Text))=[]) (response_format = Auto_Detect) =
     response = HTTP.post uri body method headers
-    if try_auto_parse_response.not then response.with_materialized_body else
-        response.decode if_unsupported=response.with_materialized_body
+    Data_Read_Helpers.decode_http_response_following_data_links response (Data_Read_Helpers.handle_legacy_format "post" "response_format" response_format)
 
 ## GROUP Input
-   ICON data_download
+   ICON select_column
    Fetches from the provided URI and if successful writes to the file. Returns
    an error if the status code does not represent a successful response.
 
@@ -335,5 +335,19 @@ post (uri:(URI | Text)) (body:Request_Body=Request_Body.Empty) (method:HTTP_Meth
 @uri Text_Input
 download : (URI | Text) -> Writable_File -> HTTP_Method -> Vector (Header | Pair Text Text) -> File ! Request_Error | HTTP_Error
 download (uri:(URI | Text)) file:Writable_File (method:HTTP_Method=HTTP_Method.Get) (headers:(Vector (Header | Pair Text Text))=[]) =
-    response = HTTP.fetch uri method headers
-    response.write file
+    Context.Output.if_enabled disabled_message="Downloading to a file is forbidden as the Output context is disabled." panic=False <|
+        response = HTTP.fetch uri method headers
+        case Data_Link.is_data_link response.body.metadata of
+            True ->
+                # If the resource was a data link, we follow it, download the target data and try to write it to a file.
+                data_link = Data_Link.interpret_json_as_data_link response.decode_as_json
+                Data_Link.save_data_link_to_file data_link file
+            False ->
+                response.write file
+
+## If the `format` is set to `Raw_Response`, a raw HTTP `Response` is returned
+   that can be then processed further manually.
+type Raw_Response
+    ## PRIVATE
+    get_dropdown_options : Vector Option
+    get_dropdown_options = [Option "Raw HTTP Response" (Meta.get_qualified_type_name Raw_Response)]

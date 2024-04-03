@@ -109,17 +109,19 @@ type Response_Body
 
     ## ALIAS parse
        GROUP Input
+       ICON convert
        Uses the format to decode the body.
        If using `Auto_Detect`, the content-type will be used to determine the
        format.
 
        Arguments:
        - format: The format to use to decode the body.
-       - if_unsupported: Specifies how to proceed if the format is not supported.
+       - if_unsupported: Specifies how to proceed if `Auto_Detect` was selected
+         but the format could not be determined.
     @format decode_format_selector
     decode : File_Format -> Any -> Any
     decode self format=Auto_Detect ~if_unsupported=Throw_Unsupported_Error =
-        case format of
+        File_Format.handle_format_missing_arguments format <| case format of
             Auto_Detect ->
                 detected_format = Auto_Detect.get_reading_format self.metadata
                 if detected_format.is_nothing then Throw_Unsupported_Error.handle_default_or_overridden_value if_unsupported self else
@@ -132,6 +134,7 @@ type Response_Body
 
     ## ALIAS bytes
        GROUP Input
+       ICON convert
        Read the body as a byte array.
     decode_as_bytes : Vector
     decode_as_bytes self = self.decode Bytes
@@ -171,6 +174,7 @@ type Response_Body
         self.decode_as_text encoding . parse_json
 
     ## GROUP Metadata
+       ICON metadata
        The content type of the response.
     content_type : Text | Nothing
     content_type self = self.metadata.content_type
@@ -182,6 +186,7 @@ type Response_Body
 
     ## ALIAS to_file
        GROUP Output
+       ICON data_output
        Write response body to a File.
 
        Arguments:
@@ -197,12 +202,13 @@ type Response_Body
 
              example_write =
                 Examples.get_geo_data.write Examples.scratch_file
+    @path (Widget.Text_Input display=Display.Always)
     write : Writable_File -> Existing_File_Behavior -> File
     write self file:Writable_File on_existing_file=Existing_File_Behavior.Backup =
         self.with_stream body_stream->
             file.write on_existing_file output_stream->
                 r = output_stream.write_stream body_stream
-                r.if_not_error file
+                r.if_not_error file.file
 
 ## PRIVATE
 can_decode : File_Format -> Boolean
@@ -213,8 +219,7 @@ can_decode type = Meta.meta type . methods . contains "read_stream"
 decode_format_selector : Widget
 decode_format_selector =
     all_types = [Auto_Detect] + (format_types.filter can_decode)
-    make_name type_obj = type_obj.to_text.replace "_Format" "" . replace "_" " "
-    Single_Choice display=Display.Always values=(all_types.map n->(Option (make_name n) (File_Format.constructor_code n)))
+    Single_Choice display=Display.Always values=(all_types.flat_map .get_dropdown_options)
 
 ## PRIVATE
    Utility method for closing primitive Java streams. Provided to avoid

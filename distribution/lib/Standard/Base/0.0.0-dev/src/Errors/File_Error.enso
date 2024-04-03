@@ -48,7 +48,7 @@ type File_Error
 
     ## Indicates that the given file is corrupted, i.e. the data it contains
        is not in the expected format.
-    Corrupted_Format (file : File_Like) (message : Text) (cause : Any | Nothing = Nothing)
+    Corrupted_Format (file : File_Like | Nothing) (message : Text) (cause : Any | Nothing = Nothing)
 
     ## PRIVATE
        Convert the File error to a human-readable format.
@@ -66,7 +66,9 @@ type File_Error
                 (Meta.meta format).constructor.name
             format_name = Panic.catch No_Such_Conversion (File_Like.from format . name) (_->name_from_constructor)
             "Values of type "+data_type.to_text+" cannot be written as format "+format_name.to_text+"."
-        File_Error.Corrupted_Format file msg _ -> "The file at " + file.path + " is corrupted: " + msg
+        File_Error.Corrupted_Format file msg _ ->
+            at_part = if file.is_nothing then "" else " at " + file.path
+            "The file"+at_part+" is corrupted: " + msg
 
     ## PRIVATE
 

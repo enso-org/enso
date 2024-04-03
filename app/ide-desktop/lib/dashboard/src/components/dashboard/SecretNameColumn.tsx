@@ -24,7 +24,7 @@ import * as backendModule from '#/services/Backend'
 import * as eventModule from '#/utilities/event'
 import * as indent from '#/utilities/indent'
 import * as object from '#/utilities/object'
-import Visibility from '#/utilities/visibility'
+import Visibility from '#/utilities/Visibility'
 
 // =====================
 // === ConnectorName ===
@@ -82,7 +82,7 @@ export default function SecretNameColumn(props: SecretNameColumnProps) {
       case AssetEventType.newSecret: {
         if (item.key === event.placeholderId) {
           if (backend.type !== backendModule.BackendType.remote) {
-            toastAndLog('Data connectors cannot be created on the local backend')
+            toastAndLog('localBackendSecretError')
           } else {
             rowState.setVisibility(Visibility.faded)
             try {
@@ -98,7 +98,7 @@ export default function SecretNameColumn(props: SecretNameColumnProps) {
                 type: AssetListEventType.delete,
                 key: item.key,
               })
-              toastAndLog('Error creating new data connector', error)
+              toastAndLog('createSecretError', error)
             }
           }
         }
@@ -115,7 +115,7 @@ export default function SecretNameColumn(props: SecretNameColumnProps) {
 
   return (
     <div
-      className={`flex text-left items-center whitespace-nowrap rounded-l-full gap-1 px-1.5 py-1 min-w-max ${indent.indentClass(
+      className={`flex h-full min-w-max items-center gap-name-column-icon whitespace-nowrap rounded-l-full px-name-column-x py-name-column-y ${indent.indentClass(
         item.depth
       )}`}
       onKeyDown={event => {
@@ -146,9 +146,9 @@ export default function SecretNameColumn(props: SecretNameColumnProps) {
         }
       }}
     >
-      <SvgMask src={KeyIcon} className="h-4 w-4 m-1" />
+      <SvgMask src={KeyIcon} className="m-name-column-icon size-icon" />
       {/* Secrets cannot be renamed. */}
-      <span data-testid="asset-row-name" className="bg-transparent grow leading-170 h-6 py-px">
+      <span data-testid="asset-row-name" className="text grow bg-transparent">
         {asset.title}
       </span>
     </div>

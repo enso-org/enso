@@ -5,13 +5,13 @@ import org.enso.projectmanager.control.core.CovariantFlatMap
 import org.enso.projectmanager.control.core.syntax._
 import org.enso.projectmanager.control.effect.{Exec, Sync}
 import org.enso.projectmanager.data.MissingComponentAction
+import org.enso.projectmanager.infrastructure.file.Files
 import org.enso.projectmanager.protocol.ProjectManagementApi.ProjectOpen
 import org.enso.projectmanager.service.{
   ProjectServiceApi,
   ProjectServiceFailure
 }
 
-import java.io.File
 import java.util.UUID
 
 import scala.concurrent.duration.FiniteDuration
@@ -49,7 +49,7 @@ class ProjectOpenHandler[F[+_, +_]: Exec: CovariantFlatMap: Sync](
 
     for {
       projectsDirectory <-
-        Sync[F].effect(params.projectsDirectory.map(new File(_)))
+        Sync[F].effect(params.projectsDirectory.map(Files.getAbsoluteFile))
       server <- projectService.openProject(
         progressTracker        = self,
         clientId               = clientId,

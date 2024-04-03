@@ -2,13 +2,15 @@
 import SvgIcon from '@/components/SvgIcon.vue'
 import { useEvent } from '@/composables/events'
 import { useVisualizationConfig } from '@/providers/visualizationConfig'
+import { Ast } from '@/util/ast'
+import { tryNumberToEnso } from '@/util/ast/abstract'
 import { getTextWidthBySizeAndFamily } from '@/util/measurement'
 import { VisualizationContainer, defineKeybinds } from '@/util/visualizationBuiltins'
 import { computed, ref, watch, watchEffect, watchPostEffect } from 'vue'
 
 export const name = 'Scatter Plot'
 export const icon = 'points'
-export const inputType = 'Standard.Table.Data.Table.Table | Standard.Base.Data.Vector.Vector'
+export const inputType = 'Standard.Table.Table.Table | Standard.Base.Data.Vector.Vector'
 const DEFAULT_LIMIT = 1024
 export const defaultPreprocessor = [
   'Standard.Visualization.Scatter_Plot',
@@ -232,11 +234,13 @@ const yLabelLeft = computed(
 const yLabelTop = computed(() => -margin.value.left + 15)
 
 watchEffect(() => {
+  const boundsExpression =
+    bounds.value != null ? Ast.Vector.tryBuild(bounds.value, tryNumberToEnso) : undefined
   emit(
     'update:preprocessor',
     'Standard.Visualization.Scatter_Plot',
     'process_to_json_text',
-    bounds.value == null ? 'Nothing' : '[' + bounds.value.join(',') + ']',
+    boundsExpression?.code() ?? 'Nothing',
     limit.value.toString(),
   )
 })

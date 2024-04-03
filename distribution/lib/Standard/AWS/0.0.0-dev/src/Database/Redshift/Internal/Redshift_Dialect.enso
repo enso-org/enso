@@ -3,10 +3,8 @@ from Standard.Base import all
 from Standard.Table import Aggregate_Column, Value_Type
 
 import Standard.Database.Connection.Connection.Connection
-import Standard.Database.Data.DB_Column.DB_Column
-import Standard.Database.Data.Dialect
-import Standard.Database.Data.SQL_Statement.SQL_Statement
-import Standard.Database.Data.SQL_Type.SQL_Type
+import Standard.Database.DB_Column.DB_Column
+import Standard.Database.Dialect
 import Standard.Database.Internal.Base_Generator
 import Standard.Database.Internal.Column_Fetcher as Column_Fetcher_Module
 import Standard.Database.Internal.Column_Fetcher.Column_Fetcher
@@ -24,6 +22,8 @@ import Standard.Database.Internal.Postgres.Postgres_Type_Mapping.Postgres_Type_M
 import Standard.Database.Internal.SQL_Type_Mapping.SQL_Type_Mapping
 import Standard.Database.Internal.SQL_Type_Reference.SQL_Type_Reference
 import Standard.Database.Internal.Statement_Setter.Statement_Setter
+import Standard.Database.SQL_Statement.SQL_Statement
+import Standard.Database.SQL_Type.SQL_Type
 from Standard.Database.Errors import SQL_Error, Unsupported_Database_Operation
 
 import project.Database.Redshift.Internal.Redshift_Error_Mapper.Redshift_Error_Mapper
@@ -95,15 +95,6 @@ type Redshift_Dialect
        `Value_Type`.
     get_type_mapping : SQL_Type_Mapping
     get_type_mapping self = Postgres_Type_Mapping
-
-    ## PRIVATE
-       Creates a `Column_Fetcher` used to fetch data from a result set and build
-       an in-memory column from it, based on the given column type.
-    make_column_fetcher_for_type : SQL_Type -> Column_Fetcher
-    make_column_fetcher_for_type self sql_type =
-        type_mapping = self.get_type_mapping
-        value_type = type_mapping.sql_type_to_value_type sql_type
-        Column_Fetcher_Module.default_fetcher_for_value_type value_type
 
     ## PRIVATE
     get_statement_setter : Statement_Setter

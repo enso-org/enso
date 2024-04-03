@@ -1,10 +1,10 @@
 from Standard.Base import all
 
-import Standard.Table.Data.Table.Table
 import Standard.Table.Internal.Java_Problems
+from Standard.Table import Table
 
-import project.Data.SQL_Type.SQL_Type
 import project.Internal.Column_Fetcher.Column_Fetcher
+import project.SQL_Type.SQL_Type
 from project.Internal.SQL_Warning_Helper import extract_warnings_into_builder
 
 polyglot java import java.sql.ResultSet

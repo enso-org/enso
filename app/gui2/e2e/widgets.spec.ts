@@ -5,16 +5,21 @@ import { mockMethodCallInfo } from './expressionUpdates'
 import * as locate from './locate'
 
 class DropDownLocator {
+  readonly rootWidget: Locator
   readonly dropDown: Locator
   readonly items: Locator
+  readonly selectedItems: Locator
 
-  constructor(page: Page) {
-    this.dropDown = page.locator('.dropdownContainer')
-    this.items = this.dropDown.locator('.selectable-item, .selected-item')
+  constructor(ancestor: Locator) {
+    this.rootWidget = ancestor.locator('.WidgetSelection')
+    this.dropDown = ancestor.locator('.Dropdown')
+    this.items = this.dropDown.locator('.item')
+    this.selectedItems = this.dropDown.locator('.item.selected')
   }
 
-  async expectVisibleWithOptions(page: Page, options: string[]): Promise<void> {
-    await expect(this.dropDown).toBeVisible()
+  async expectVisibleWithOptions(options: string[]): Promise<void> {
+    const page = this.dropDown.page()
+    await expect(this.items.first()).toBeVisible()
     for (const option of options) {
       await expect(
         this.items.filter({ has: page.getByText(option, { exact: true }) }),
@@ -23,8 +28,16 @@ class DropDownLocator {
     await expect(this.items).toHaveCount(options.length)
   }
 
-  async clickOption(page: Page, option: string): Promise<void> {
+  async clickOption(option: string): Promise<void> {
+    const page = this.dropDown.page()
     await this.items.filter({ has: page.getByText(option) }).click()
+  }
+
+  async openWithArrow(): Promise<void> {
+    await this.rootWidget.hover()
+    await expect(this.rootWidget.locator('.arrow')).toBeVisible()
+    await this.rootWidget.locator('.arrow').click({ force: true })
+    await expect(this.dropDown).toBeVisible()
   }
 }
 
@@ -45,8 +58,72 @@ test('Widget in plain AST', async ({ page }) => {
   await expect(textWidget.locator('input')).toHaveValue('test')
 })
 
-test('Selection widgets in Data.read node', async ({ page }) => {
+test('Multi-selection widget', async ({ page }) => {
   await actions.goToGraph(page)
+  await mockMethodCallInfo(page, 'selected', {
+    methodPointer: {
+      module: 'Standard.Table.Table',
+      definedOnType: 'Standard.Table.Table.Table',
+      name: 'select_columns',
+    },
+    notAppliedArguments: [1],
+  })
+
+  // Click the argument to open the dropdown.
+  const node = locate.graphNodeByBinding(page, 'selected')
+  const argumentNames = node.locator('.WidgetArgumentName')
+  await expect(argumentNames).toHaveCount(1)
+  await argumentNames.first().click()
+
+  // Get the dropdown and corresponding vector; they both have 0 items.
+  const dropDown = new DropDownLocator(node)
+  await dropDown.expectVisibleWithOptions(['Column A', 'Column B'])
+  await expect(dropDown.rootWidget).toHaveClass(/multiSelect/)
+  const vector = node.locator('.WidgetVector')
+  const vectorItems = vector.locator('.item .WidgetPort input')
+  await expect(vector).toBeVisible()
+  await expect(dropDown.selectedItems).toHaveCount(0)
+  await expect(vectorItems).toHaveCount(0)
+
+  // Enable an item.
+  await dropDown.clickOption('Column A')
+  await expect(vector).toBeVisible()
+  await expect(vectorItems).toHaveCount(1)
+  await expect(vectorItems.first()).toHaveValue('Column A')
+  // Known bug: Dropdown closes after first item has been set.
+  //await page.keyboard('Escape')
+
+  // Add-item button opens dropdown.
+  await vector.locator('.add-item').click()
+  await expect(dropDown.items).toHaveCount(2)
+  await expect(dropDown.selectedItems).toHaveCount(1)
+
+  // Enable another item.
+  await dropDown.clickOption('Column B')
+  await expect(vectorItems).toHaveCount(2)
+  await expect(vectorItems.first()).toHaveValue('Column A')
+  await expect(vectorItems.nth(1)).toHaveValue('Column B')
+  await expect(dropDown.dropDown).toBeVisible()
+  await expect(dropDown.items).toHaveCount(2)
+  await expect(dropDown.selectedItems).toHaveCount(2)
+
+  // Disable an item.
+  await dropDown.clickOption('Column A')
+  await expect(vectorItems).toHaveCount(1)
+  await expect(vectorItems.first()).toHaveValue('Column B')
+  await expect(dropDown.dropDown).toBeVisible()
+  await expect(dropDown.items).toHaveCount(2)
+  await expect(dropDown.selectedItems).toHaveCount(1)
+
+  // Disable the last item.
+  await dropDown.clickOption('Column B')
+  await expect(vectorItems).toHaveCount(0)
+  await expect(dropDown.dropDown).toBeVisible()
+  await expect(dropDown.items).toHaveCount(2)
+  await expect(dropDown.selectedItems).toHaveCount(0)
+})
+
+async function dataReadNodeWithMethodCallInfo(page: Page): Promise<Locator> {
   await mockMethodCallInfo(page, 'data', {
     methodPointer: {
       module: 'Standard.Base.Data',
@@ -55,11 +132,15 @@ test('Selection widgets in Data.read node', async ({ page }) => {
     },
     notAppliedArguments: [0, 1, 2],
   })
+  return locate.graphNodeByBinding(page, 'data')
+}
 
-  const dropDown = new DropDownLocator(page)
+test('Selection widgets in Data.read node', async ({ page }) => {
+  await actions.goToGraph(page)
 
   // Check initially visible arguments
-  const node = locate.graphNodeByBinding(page, 'data')
+  const node = await dataReadNodeWithMethodCallInfo(page)
+  const dropDown = new DropDownLocator(node)
   const argumentNames = node.locator('.WidgetArgumentName')
   await expect(argumentNames).toHaveCount(1)
 
@@ -70,8 +151,8 @@ test('Selection widgets in Data.read node', async ({ page }) => {
   // Set value on `on_problems` (static drop-down)
   const onProblemsArg = argumentNames.filter({ has: page.getByText('on_problems') })
   await onProblemsArg.click()
-  await dropDown.expectVisibleWithOptions(page, ['Ignore', 'Report_Warning', 'Report_Error'])
-  await dropDown.clickOption(page, 'Report_Error')
+  await dropDown.expectVisibleWithOptions(['Ignore', 'Report_Warning', 'Report_Error'])
+  await dropDown.clickOption('Report_Error')
   await expect(onProblemsArg.locator('.WidgetToken')).toContainText([
     'Problem_Behavior',
     '.',
@@ -88,8 +169,8 @@ test('Selection widgets in Data.read node', async ({ page }) => {
     notAppliedArguments: [0, 1],
   })
   await page.getByText('Report_Error').click()
-  await dropDown.expectVisibleWithOptions(page, ['Ignore', 'Report_Warning', 'Report_Error'])
-  await dropDown.clickOption(page, 'Report_Warning')
+  await dropDown.expectVisibleWithOptions(['Ignore', 'Report_Warning', 'Report_Error'])
+  await dropDown.clickOption('Report_Warning')
   await expect(onProblemsArg.locator('.WidgetToken')).toContainText([
     'Problem_Behavior',
     '.',
@@ -99,9 +180,9 @@ test('Selection widgets in Data.read node', async ({ page }) => {
   // Set value on `path` (dynamic config)
   const pathArg = argumentNames.filter({ has: page.getByText('path') })
   await pathArg.click()
-  await expect(page.locator('.dropdownContainer')).toBeVisible()
-  await dropDown.expectVisibleWithOptions(page, ['"File 1"', '"File 2"'])
-  await dropDown.clickOption(page, '"File 2"')
+  await expect(page.locator('.Dropdown')).toBeVisible()
+  await dropDown.expectVisibleWithOptions(['Choose file…', 'File 1', 'File 2'])
+  await dropDown.clickOption('File 2')
   await expect(pathArg.locator('.WidgetText > input')).toHaveValue('File 2')
 
   // Change value on `path` (dynamic config)
@@ -114,25 +195,105 @@ test('Selection widgets in Data.read node', async ({ page }) => {
     notAppliedArguments: [1],
   })
   await page.getByText('path').click()
-  await dropDown.expectVisibleWithOptions(page, ['"File 1"', '"File 2"'])
-  await dropDown.clickOption(page, '"File 1"')
+  await dropDown.expectVisibleWithOptions(['Choose file…', 'File 1', 'File 2'])
+  await dropDown.clickOption('File 1')
   await expect(pathArg.locator('.WidgetText > input')).toHaveValue('File 1')
+})
+
+test('Selection widget with text widget as input', async ({ page }) => {
+  await actions.goToGraph(page)
+
+  const node = await dataReadNodeWithMethodCallInfo(page)
+  const dropDown = new DropDownLocator(node)
+  const argumentNames = node.locator('.WidgetArgumentName')
+  const pathArg = argumentNames.filter({ has: page.getByText('path') })
+  const pathArgInput = pathArg.locator('.WidgetText > input')
+  await pathArg.click()
+  await expect(page.locator('.Dropdown')).toBeVisible()
+  await dropDown.clickOption('File 2')
+  await expect(pathArgInput).toHaveValue('File 2')
+
+  // Editing text input shows and filters drop down
+  await pathArgInput.click()
+  await dropDown.expectVisibleWithOptions(['Choose file…', 'File 1', 'File 2'])
+  await page.keyboard.insertText('File 1')
+  await dropDown.expectVisibleWithOptions(['File 1'])
+  // Clearing input should show all text literal options
+  await pathArgInput.clear()
+  await dropDown.expectVisibleWithOptions(['File 1', 'File 2'])
+
+  // Esc should cancel editing and close drop down
+  await page.keyboard.press('Escape')
+  await expect(pathArgInput).not.toBeFocused()
+  await expect(pathArgInput).toHaveValue('File 2')
+  await expect(dropDown.dropDown).not.toBeVisible()
+
+  // Choosing entry should finish editing
+  await pathArgInput.click()
+  await dropDown.expectVisibleWithOptions(['Choose file…', 'File 1', 'File 2'])
+  await page.keyboard.insertText('File')
+  await dropDown.expectVisibleWithOptions(['File 1', 'File 2'])
+  await dropDown.clickOption('File 1')
+  await expect(pathArgInput).not.toBeFocused()
+  await expect(pathArgInput).toHaveValue('File 1')
+  await expect(dropDown.dropDown).not.toBeVisible()
+
+  // Clicking-off and pressing enter should accept text as-is
+  await pathArgInput.click()
+  await dropDown.expectVisibleWithOptions(['Choose file…', 'File 1', 'File 2'])
+  await page.keyboard.insertText('File')
+  await page.keyboard.press('Enter')
+  await expect(pathArgInput).not.toBeFocused()
+  await expect(pathArgInput).toHaveValue('File')
+  await expect(dropDown.dropDown).not.toBeVisible()
+
+  await pathArgInput.click()
+  await dropDown.expectVisibleWithOptions(['Choose file…', 'File 1', 'File 2'])
+  await page.keyboard.insertText('Foo')
+  await expect(pathArgInput).toHaveValue('Foo')
+  await page.mouse.click(200, 200)
+  await expect(pathArgInput).not.toBeFocused()
+  await expect(pathArgInput).toHaveValue('Foo')
+  await expect(dropDown.dropDown).not.toBeVisible()
+})
+
+test('File Browser widget', async ({ page }) => {
+  await actions.goToGraph(page)
+  await mockMethodCallInfo(page, 'data', {
+    methodPointer: {
+      module: 'Standard.Base.Data',
+      definedOnType: 'Standard.Base.Data',
+      name: 'read',
+    },
+    notAppliedArguments: [0, 1, 2],
+  })
+  // Wait for arguments to load.
+  const node = locate.graphNodeByBinding(page, 'data')
+  const dropDown = new DropDownLocator(node)
+  const argumentNames = node.locator('.WidgetArgumentName')
+  await expect(argumentNames).toHaveCount(1)
+  const pathArg = argumentNames.filter({ has: page.getByText('path') })
+
+  await pathArg.click()
+  await dropDown.expectVisibleWithOptions(['Choose file…', 'File 1', 'File 2'])
+  await dropDown.clickOption('Choose file…')
+  await expect(pathArg.locator('.WidgetText > input')).toHaveValue('/path/to/some/mock/file')
 })
 
 test('Managing aggregates in `aggregate` node', async ({ page }) => {
   await actions.goToGraph(page)
   await mockMethodCallInfo(page, 'aggregated', {
     methodPointer: {
-      module: 'Standard.Table.Data.Table',
-      definedOnType: 'Standard.Table.Data.Table.Table',
+      module: 'Standard.Table.Table',
+      definedOnType: 'Standard.Table.Table.Table',
       name: 'aggregate',
     },
     notAppliedArguments: [1, 2, 3],
   })
-  const dropDown = new DropDownLocator(page)
 
   // Check initially visible arguments
   const node = locate.graphNodeByBinding(page, 'aggregated')
+  const dropDown = new DropDownLocator(node)
   const argumentNames = node.locator('.WidgetArgumentName')
   await expect(argumentNames).toHaveCount(1)
 
@@ -156,8 +317,8 @@ test('Managing aggregates in `aggregate` node', async ({ page }) => {
     },
     {
       methodPointer: {
-        module: 'Standard.Table.Data.Aggregate_Column',
-        definedOnType: 'Standard.Table.Data.Aggregate_Column.Aggregate_Column',
+        module: 'Standard.Table.Aggregate_Column',
+        definedOnType: 'Standard.Table.Aggregate_Column.Aggregate_Column',
         name: 'Group_By',
       },
       notAppliedArguments: [0, 1],
@@ -167,8 +328,8 @@ test('Managing aggregates in `aggregate` node', async ({ page }) => {
   // Change aggregation type
   const firstItem = columnsArg.locator('.item > .WidgetPort > .WidgetSelection')
   await firstItem.click()
-  await dropDown.expectVisibleWithOptions(page, ['Group_By', 'Count', 'Count_Distinct'])
-  await dropDown.clickOption(page, 'Count_Distinct')
+  await dropDown.expectVisibleWithOptions(['Group_By', 'Count', 'Count_Distinct'])
+  await dropDown.clickOption('Count_Distinct')
   await expect(columnsArg.locator('.WidgetToken')).toContainText([
     'Aggregate_Column',
     '.',
@@ -182,8 +343,8 @@ test('Managing aggregates in `aggregate` node', async ({ page }) => {
     },
     {
       methodPointer: {
-        module: 'Standard.Table.Data.Aggregate_Column',
-        definedOnType: 'Standard.Table.Data.Aggregate_Column.Aggregate_Column',
+        module: 'Standard.Table.Aggregate_Column',
+        definedOnType: 'Standard.Table.Aggregate_Column.Aggregate_Column',
         name: 'Count_Distinct',
       },
       notAppliedArguments: [0, 1, 2],
@@ -193,8 +354,8 @@ test('Managing aggregates in `aggregate` node', async ({ page }) => {
   // Set column
   const columnArg = firstItem.locator('.WidgetSelection').first()
   await columnArg.click()
-  await dropDown.expectVisibleWithOptions(page, ['"column 1"', '"column 2"'])
-  await dropDown.clickOption(page, '"column 1"')
+  await dropDown.expectVisibleWithOptions(['column 1', 'column 2'])
+  await dropDown.clickOption('column 1')
   await expect(columnsArg.locator('.WidgetToken')).toContainText([
     'Aggregate_Column',
     '.',
@@ -220,8 +381,8 @@ test('Managing aggregates in `aggregate` node', async ({ page }) => {
     },
     {
       methodPointer: {
-        module: 'Standard.Table.Data.Aggregate_Column',
-        definedOnType: 'Standard.Table.Data.Aggregate_Column.Aggregate_Column',
+        module: 'Standard.Table.Aggregate_Column',
+        definedOnType: 'Standard.Table.Aggregate_Column.Aggregate_Column',
         name: 'Group_By',
       },
       notAppliedArguments: [0, 1],
@@ -232,8 +393,8 @@ test('Managing aggregates in `aggregate` node', async ({ page }) => {
   const secondItem = columnsArg.locator('.item > .WidgetPort > .WidgetSelection').nth(1)
   const secondColumnArg = secondItem.locator('.WidgetSelection').first()
   await secondColumnArg.click()
-  await dropDown.expectVisibleWithOptions(page, ['"column 1"', '"column 2"'])
-  await dropDown.clickOption(page, '"column 2"')
+  await dropDown.expectVisibleWithOptions(['column 1', 'column 2'])
+  await dropDown.clickOption('column 2')
   await expect(secondItem.locator('.WidgetToken')).toContainText([
     'Aggregate_Column',
     '.',

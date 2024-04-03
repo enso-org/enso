@@ -8,14 +8,13 @@ import Standard.Base.Runtime.Context
 import Standard.Base.Runtime.Managed_Resource.Managed_Resource
 import Standard.Base.Runtime.Ref.Ref
 
-import Standard.Table.Data.Type.Value_Type.Bits
 from Standard.Table import all
 from Standard.Table.Errors import all
 
 from Standard.Database import all
 from Standard.Database.Errors import all
 from Standard.Database.Internal.Upload_Table import default_key_columns
-import Standard.Database.Data.Column_Constraint.Column_Constraint
+import Standard.Database.Column_Constraint.Column_Constraint
 
 from Standard.Test import all
 import Standard.Test.Test_Environment
