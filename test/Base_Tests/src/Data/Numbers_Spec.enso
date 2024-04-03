@@ -352,6 +352,7 @@ add_specs suite_builder =
             (9223372036854775807 % 10) . should_equal 7
             (9223372036854775808 % 10) . should_equal 8
             (9223372036854775809 % 10) . should_equal 9
+            (7000000000000000000007 % 10) . should_equal 7
 
         group_builder.specify "should define modulo for negative integers and decimals" <|
             -5%3 . should_equal -2
@@ -390,6 +391,7 @@ add_specs suite_builder =
             (-9223372036854775807 % 10) . should_equal -7
             (-9223372036854775808 % 10) . should_equal -8
             (-9223372036854775809 % 10) . should_equal -9
+            (-7000000000000000000007 % 10) . should_equal -7
 
         group_builder.specify "should support less than operator" <|
             (1 < 2).should_be_true
