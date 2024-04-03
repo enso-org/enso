@@ -9,8 +9,9 @@ import * as authProvider from '#/providers/AuthProvider'
 import * as backendProvider from '#/providers/BackendProvider'
 import * as textProvider from '#/providers/TextProvider'
 
-import Input from '#/components/Input'
 import AuthenticationPage from '#/pages/authentication/AuthenticationPage'
+
+import Input from '#/components/Input'
 import SubmitButton from '#/components/SubmitButton'
 
 import * as eventModule from '#/utilities/event'

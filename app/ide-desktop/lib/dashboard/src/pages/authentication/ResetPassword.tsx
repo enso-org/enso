@@ -16,10 +16,11 @@ import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 import * as authProvider from '#/providers/AuthProvider'
 import * as textProvider from '#/providers/TextProvider'
 
+import AuthenticationPage from '#/pages/authentication/AuthenticationPage'
+
 import * as aria from '#/components/aria'
 import Input from '#/components/Input'
 import Link from '#/components/Link'
-import AuthenticationPage from '#/pages/authentication/AuthenticationPage'
 import SubmitButton from '#/components/SubmitButton'
 
 import * as eventModule from '#/utilities/event'

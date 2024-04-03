@@ -12,8 +12,8 @@ import * as textProvider from '#/providers/TextProvider'
 
 import * as aria from '#/components/aria'
 import KeyboardShortcut from '#/components/dashboard/KeyboardShortcut'
-import UnstyledButton from '#/components/UnstyledButton'
 import SvgMask from '#/components/SvgMask'
+import UnstyledButton from '#/components/UnstyledButton'
 
 import * as sanitizedEventTargets from '#/utilities/sanitizedEventTargets'
 

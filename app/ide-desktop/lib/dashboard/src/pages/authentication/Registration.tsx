@@ -14,9 +14,10 @@ import * as authProvider from '#/providers/AuthProvider'
 import * as localStorageProvider from '#/providers/LocalStorageProvider'
 import * as textProvider from '#/providers/TextProvider'
 
+import AuthenticationPage from '#/pages/authentication/AuthenticationPage'
+
 import Input from '#/components/Input'
 import Link from '#/components/Link'
-import AuthenticationPage from '#/pages/authentication/AuthenticationPage'
 import SubmitButton from '#/components/SubmitButton'
 
 import * as eventModule from '#/utilities/event'

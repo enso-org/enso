@@ -2,8 +2,8 @@
 import * as React from 'react'
 
 import * as aria from '#/components/aria'
-import UnstyledButton from '#/components/UnstyledButton'
 import SvgMask from '#/components/SvgMask'
+import UnstyledButton from '#/components/UnstyledButton'
 
 // ========================
 // === SidebarTabButton ===
