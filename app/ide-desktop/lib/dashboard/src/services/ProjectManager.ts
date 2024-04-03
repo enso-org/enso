@@ -1,7 +1,7 @@
 /** @file This module defines the Project Manager endpoint.
  * @see
  * https://github.com/enso-org/enso/blob/develop/docs/language-server/protocol-project-manager.md */
-import { isOnWindows } from 'enso-common/src/detect'
+import * as detect from 'enso-common/src/detect'
 
 import * as appBaseUrl from '#/utilities/appBaseUrl'
 import type * as dateTime from '#/utilities/dateTime'
@@ -239,7 +239,7 @@ export function joinPath(directoryPath: Path, fileName: string) {
 
 /** Return the path, with backslashes (on Windows only) normalized to forward slashes. */
 function normalizeSlashes(path: string): Path {
-  if (isOnWindows()) {
+  if (detect.isOnWindows()) {
     return Path(path.replace(/\\/g, '/'))
   } else {
     return Path(path)
