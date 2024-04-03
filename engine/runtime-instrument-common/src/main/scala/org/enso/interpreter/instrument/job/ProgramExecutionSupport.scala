@@ -86,10 +86,6 @@ object ProgramExecutionSupport {
     val callablesCallback: Consumer[ExpressionCall] = fun =>
       if (callStack.headOption.exists(_.expressionId == fun.getExpressionId)) {
         enterables += fun.getExpressionId -> fun.getCall
-      } else {
-        System.err.println(
-          "Ignoring update of " + fun.getExpressionId + " with value " + fun.getCall
-        )
       }
 
     executionFrame match {
