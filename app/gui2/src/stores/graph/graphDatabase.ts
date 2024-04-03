@@ -280,6 +280,23 @@ export class GraphDb {
     return result
   }
 
+  /** Returns the nodes that define values that are referenced in the specified node. */
+  inputNodes(id: NodeId): Set<NodeId> {
+    const node = this.nodeIdToNode.get(id)
+    if (!node) return new Set()
+    const result = new Set<NodeId>()
+    node.innerExpr.visitRecursiveAst((ast) => {
+      if (ast instanceof Ast.Ident) {
+        for (const outputPort of this.connections.reverseLookup(ast.id)) {
+          for (const outputPortNode of this.nodeOutputPorts.reverseLookup(outputPort)) {
+            result.add(outputPortNode)
+          }
+        }
+      }
+    })
+    return result
+  }
+
   getMethodCallInfo(
     id: AstId,
   ):
