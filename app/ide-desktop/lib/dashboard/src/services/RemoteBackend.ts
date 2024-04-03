@@ -238,9 +238,7 @@ export default class RemoteBackend extends Backend {
    */
   async restoreUser(): Promise<void> {
     const response = await this.put(remoteBackendPaths.UPDATE_CURRENT_USER_PATH, {
-      // This field comes from the backend and we can not change it.
-      // eslint-disable-next-line @typescript-eslint/naming-convention
-      clear_remove_at: true,
+      clearRemoveAt: true,
     })
     if (!responseIsSuccessful(response)) {
       return await this.throw(response, 'restoreUserBackendError')

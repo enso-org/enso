@@ -900,11 +900,6 @@ export interface UpdateUserRequestBody {
   username: string | null
 }
 
-/**
- * HTTP request body for restoring user account.
- */
-export interface RestoreUserRequestBody {}
-
 /** HTTP request body for the "update organization" endpoint. */
 export interface UpdateOrganizationRequestBody {
   name?: string

@@ -130,15 +130,15 @@ interface AuthContextType {
   readonly session: UserSession | null
   readonly setUser: React.Dispatch<React.SetStateAction<backendModule.User>>
   /**
-   * Returns `true` if the user is marked for deletion.
+   * Return `true` if the user is marked for deletion.
    */
   readonly isUserMarkedForDeletion: () => boolean
   /**
-   * Returns `true` if the user is deleted completely.
+   * Return `true` if the user is deleted completely.
    */
   readonly isUserDeleted: () => boolean
   /**
-   * Returns `true` if the user is soft deleted.
+   * Return `true` if the user is soft deleted.
    */
   readonly isUserSoftDeleted: () => boolean
 }

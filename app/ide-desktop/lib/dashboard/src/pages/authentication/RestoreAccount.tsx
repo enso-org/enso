@@ -16,10 +16,6 @@ import * as ariaComponents from '#/components/AriaComponents'
 import SvgMask from '#/components/SvgMask'
 
 /**
- * The props for the RestoreAccount component.
- */
-
-/**
  * This component is the page for restoring an account that has been deleted.
  */
 export default function RestoreAccount() {
