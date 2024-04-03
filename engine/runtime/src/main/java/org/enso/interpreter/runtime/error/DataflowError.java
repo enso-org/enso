@@ -16,7 +16,6 @@ import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.data.vector.ArrayLikeHelpers;
 import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
-import org.enso.interpreter.runtime.state.State;
 
 /**
  * A runtime object representing an arbitrary, user-created dataflow error.
@@ -42,9 +41,10 @@ public final class DataflowError extends AbstractTruffleException {
    * @param location the node in which the error was created
    * @return a new dataflow error
    */
-  public static DataflowError withoutTrace(State state, Object payload, Node location) {
+  public static DataflowError withoutTrace(Object payload, Node location) {
     assert payload != null;
-    boolean attachFullStackTrace = state == null ? true : state.currentEnvironment().hasContextEnabled("Dataflow_Stack_Trace");
+    EnsoContext context = EnsoContext.get(location);
+    boolean attachFullStackTrace = context.getExecutionEnvironment().hasContextEnabled("Dataflow_Stack_Trace");
     if (attachFullStackTrace) {
       var result = new DataflowError(payload, UNLIMITED_STACK_TRACE, location);
       TruffleStackTrace.fillIn(result);
@@ -53,10 +53,6 @@ public final class DataflowError extends AbstractTruffleException {
       var result = new DataflowError(payload, location);
       return result;
     }
-  }
-
-  public static DataflowError withoutTrace(Object payload, Node location) {
-    return withoutTrace(null, payload, location);
   }
 
   /**

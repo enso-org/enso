@@ -46,6 +46,7 @@ public abstract class BitShiftNode extends IntegerNode {
     } else if (positiveFitsInInt.profile(BigIntegerOps.fitsInInt(that))) {
       return toEnsoNumberNode.execute(BigIntegerOps.bitShiftLeft(self, (int) that));
     } else {
+      System.out.println("AAA doLongShiftLeftExplicit");
       return DataflowError.withoutTrace(
           EnsoContext.get(this).getBuiltins().error().getShiftAmountTooLargeError(), this);
     }
@@ -75,6 +76,7 @@ public abstract class BitShiftNode extends IntegerNode {
       return self >= 0 ? 0L : -1L;
     } else {
       // Note [Well-Formed BigIntegers]
+      System.out.println("AAA doBigInteger");
       return DataflowError.withoutTrace(
           EnsoContext.get(this).getBuiltins().error().getShiftAmountTooLargeError(), this);
     }

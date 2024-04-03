@@ -11,8 +11,8 @@ public class ExecutionEnvironment {
   // Ideally we would "just" use a map here. But that leads
   // to native image build problems. This in turn leads to
   // TruffleBoundary annotations which in turn leads to slow path.
-  private final String[] keys;
-  private final Boolean[] permissions;
+  public final String[] keys;
+  public final Boolean[] permissions;
 
   public static final String LIVE_ENVIRONMENT_NAME = "live";
 

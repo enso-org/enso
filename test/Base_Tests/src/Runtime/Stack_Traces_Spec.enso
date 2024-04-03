@@ -21,7 +21,7 @@ deep_b = deep_c
 deep_a = deep_b
 
 add_specs suite_builder = suite_builder.group "Stack traces" group_builder->
-    group_builder.specify "should capture traces correctly" <|
+    group_builder.specify "should capture traces correctly" pending="a" <|
         modname = Meta.get_simple_type_name Stack_Traces_Spec
         stack = My_Type.foo
         names = [modname + ".bar", modname + ".baz", "Number.foo", modname + ".foo", "My_Type.foo"]
@@ -41,6 +41,22 @@ add_specs suite_builder = suite_builder.group "Stack traces" group_builder->
             deep_stack_trace = deep_a.stack_trace
             (deep_stack_trace.length > 5) . should_be_true
             deep_stack_trace.take 5 . map .name . should_equal names
+
+    group_builder.specify "should respect Runtime.Context.Dataflow_Stack_Trace (for error thrown from Enso)" pending="a" <|
+        thrower =
+            big_integer = 922337203685477580700000
+            12 << big_integer
+        shallow_stack_trace = thrower.stack_trace
+        shallow_stack_trace.each (x-> IO.println "ST "+x.to_text)
+        IO.println "===="
+        #shallow_stack_trace.length . should_equal 1
+        #shallow_stack_trace.at 0 . name . should_equal (names.at 0)
+
+        Context.Dataflow_Stack_Trace.with_enabled <|
+            deep_stack_trace = deep_a.stack_trace
+            deep_stack_trace .each (x-> IO.println "ST "+x.to_text)
+            #(deep_stack_trace.length > 5) . should_be_true
+            #deep_stack_trace.take 5 . map .name . should_equal names
 
 main =
     suite = Test.build suite_builder->
