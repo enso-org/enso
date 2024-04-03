@@ -141,10 +141,25 @@ public final class UnresolvedConstructor implements EnsoObject {
     return ret;
   }
 
-  /** */
+  /**
+   * Converts an instance of {@link UnresolvedConstructor} to a real {@code Atom} by finding the
+   * right {@link AtomConstructor} to invoke. Just pass the right {@code expectedType} into the
+   * {@link #execute} method.
+   */
   public abstract static class ConstructNode extends Node {
     @CompilerDirectives.CompilationFinal SourceSection where;
 
+    /**
+     * Convert the {@code unresolved} constructor to a real instance based on the specified {@code
+     * expectedType}.
+     *
+     * @param frame frame of the Enso method
+     * @param state state of the Enso interpreter
+     * @param expectedType the requested type
+     * @param unresolved the unresolved constructor to convert
+     * @return result of the conversion or {@code null} if no constructor of the right {@link
+     *     UnresolvedConstructor#getName()} is found in the specified {@code expectedType}
+     */
     public abstract Object execute(
         VirtualFrame frame, State state, Type expectedType, UnresolvedConstructor unresolved);
 
@@ -216,7 +231,6 @@ public final class UnresolvedConstructor implements EnsoObject {
       if (c == null) {
         return null;
       }
-      var fn = c.getConstructorFunction();
       var callNode = buildApplication(unresolved);
       return invokeConstructor(c, unresolved.asPrototype(), unresolved, state, callNode);
     }
