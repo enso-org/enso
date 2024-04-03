@@ -24,14 +24,14 @@ import SvgMask from '#/components/SvgMask'
  */
 export default function RestoreAccount() {
   const { getText } = textProvider.useText()
-  const { signOut } = authProvider.useAuth()
+  const { signOut, restoreUser } = authProvider.useAuth()
   const { backend } = backendProvider.useBackend()
 
   const signOutMutation = reactQuery.useMutation({
     mutationFn: signOut,
   })
   const restoreAccountMutation = reactQuery.useMutation({
-    mutationFn: () => backend.restoreUser(),
+    mutationFn: () => restoreUser(backend),
   })
 
   return (
@@ -52,6 +52,8 @@ export default function RestoreAccount() {
             onPress={() => {
               restoreAccountMutation.mutate()
             }}
+            loading={restoreAccountMutation.isPending}
+            isDisabled={restoreAccountMutation.isPending}
             variant="icon"
             className="flex items-center justify-center gap-icon-with-text rounded-full bg-blue-600 px-4 py-auth-input-y text-white transition-all duration-auth selectable enabled:active"
           >
@@ -59,6 +61,7 @@ export default function RestoreAccount() {
           </ariaComponents.Button>
           <ariaComponents.Button
             variant="icon"
+            loading={signOutMutation.isPending}
             isDisabled={signOutMutation.isPending}
             onPress={() => {
               signOutMutation.mutate()

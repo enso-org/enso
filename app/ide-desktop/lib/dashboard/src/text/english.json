@@ -496,6 +496,8 @@
   "restoreAccount": "Restore Account",
   "restoreAccountDescription": "You can restore your account within 14 days of deletion. After 14 days, your account will be permanently deleted.",
   "restoreAccountSubmit": "Restore Account",
+  "restoreUserSuccess": "Account restored successfully!",
+  "restoreUserLocalBackendError": "Cannot restore user on the local backend.",
 
   "editAssetDescriptionModalTitle": "Edit Asset Description",
   "editAssetDescriptionModalPlaceholder": "Enter a description for the asset",

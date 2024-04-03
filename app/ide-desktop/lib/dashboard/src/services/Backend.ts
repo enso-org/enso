@@ -130,7 +130,7 @@ export interface User extends UserInfo {
    * `usersMe` will not work. */
   readonly isEnabled: boolean
   readonly rootDirectoryId: DirectoryId
-  readonly removeAt?: dateTime.Rfc3339DateTime
+  readonly removeAt?: dateTime.Rfc3339DateTime | null
 }
 
 /** A `Directory` returned by `createDirectory`. */

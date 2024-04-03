@@ -123,6 +123,7 @@ interface AuthContextType {
   readonly changePassword: (oldPassword: string, newPassword: string) => Promise<boolean>
   readonly resetPassword: (email: string, code: string, password: string) => Promise<boolean>
   readonly signOut: () => Promise<boolean>
+  readonly restoreUser: (backend: Backend) => Promise<boolean>
   /** Session containing the currently authenticated user's authentication information.
    *
    * If the user has not signed in, the session will be `null`. */
@@ -525,6 +526,25 @@ export default function AuthProvider(props: AuthProviderProps) {
     }
   }
 
+  const restoreUser = async (backend: Backend) => {
+    if (cognito == null) {
+      return false
+    } else {
+      if (backend.type === backendModule.BackendType.local) {
+        toastError(getText('restoreUserLocalBackendError'))
+        return false
+      } else {
+        await backend.restoreUser()
+        setUser(object.merger({ removeAt: null }))
+
+        toastSuccess(getText('restoreUserSuccess'))
+        navigate(appUtils.DASHBOARD_PATH)
+
+        return true
+      }
+    }
+  }
+
   const forgotPassword = async (email: string) => {
     if (cognito == null) {
       return false
@@ -626,6 +646,7 @@ export default function AuthProvider(props: AuthProviderProps) {
     isUserMarkedForDeletion,
     isUserDeleted,
     isUserSoftDeleted,
+    restoreUser,
     signInWithGoogle: () => {
       if (cognito == null) {
         return Promise.resolve(false)
