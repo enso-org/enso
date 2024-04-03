@@ -280,7 +280,6 @@ pub struct BuildDescription<Target: IsTargetSource> {
         default_value_t = ide_ci::actions::workflow::is_in_env(),
         default_missing_value("true"),
         num_args(0..=1),
-        require_equals(true),
         action = clap::ArgAction::Set
     )]
     pub upload_artifact: bool,
