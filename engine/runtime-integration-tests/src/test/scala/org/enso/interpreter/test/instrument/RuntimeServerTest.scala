@@ -1327,6 +1327,7 @@ class RuntimeServerTest
     val mainFile = context.writeMain(contents)
 
     metadata.assertInCode(id_x_0, code, "..A")
+    metadata.assertInCode(id_x_1, code, "..A 1")
 
     // create context
     context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
