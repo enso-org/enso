@@ -39,6 +39,10 @@ import GLOBAL_CONFIG from '../../../../gui2/config.yaml' assert { type: 'yaml' }
 
 const logger = contentConfig.logger
 
+if (process.env.ELECTRON_DEV_MODE === 'true' && process.env.NODE_MODULES_PATH != null) {
+    require.main?.paths.unshift(process.env.NODE_MODULES_PATH)
+}
+
 // ===========
 // === App ===
 // ===========
