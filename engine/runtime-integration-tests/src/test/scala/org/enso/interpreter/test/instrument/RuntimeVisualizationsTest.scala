@@ -3988,9 +3988,14 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
       TestMessages.update(
         contextId,
         idCons,
-        ConstantsGen.FUNCTION,
-        methodCall = None,
-        payload    = Api.ExpressionUpdate.Payload.Value(None)
+        s"$moduleName.Newtype",
+        methodCall = Some(
+          Api.MethodCall(
+            Api
+              .MethodPointer(moduleName, s"$moduleName.Newtype", "Mk_Newtype")
+          )
+        ),
+        payload = Api.ExpressionUpdate.Payload.Value(None)
       ),
       TestMessages.update(
         contextId,
