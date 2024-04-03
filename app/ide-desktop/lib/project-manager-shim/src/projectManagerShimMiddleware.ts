@@ -307,13 +307,14 @@ export default function projectManagerShimMiddleware(
                         } catch {
                             // Ignored. `result` retains its original value indicating an error.
                         }
+                        const buffer = Buffer.from(result)
                         response
                             .writeHead(HTTP_STATUS_OK, [
-                                ['Content-Length', String(result.length)],
+                                ['Content-Length', String(buffer.byteLength)],
                                 ['Content-Type', 'application/json'],
                                 ...common.COOP_COEP_CORP_HEADERS,
                             ])
-                            .end(result)
+                            .end(buffer)
                     })()
                 }
                 break
