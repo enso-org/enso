@@ -5,9 +5,12 @@ import CrossIcon from 'enso-assets/cross.svg'
 import FolderArrowDoubleIcon from 'enso-assets/folder_arrow_double.svg'
 import FolderArrowIcon from 'enso-assets/folder_arrow.svg'
 
+import * as focusHooks from '#/hooks/focusHooks'
+
 import * as textProvider from '#/providers/TextProvider'
 
 import * as aria from '#/components/aria'
+import FocusRing from '#/components/styled/FocusRing'
 import SvgMask from '#/components/SvgMask'
 import UnstyledButton from '#/components/UnstyledButton'
 
@@ -46,6 +49,7 @@ export interface DateInputProps {
 export default function DateInput(props: DateInputProps) {
   const { date, onInput } = props
   const { getText } = textProvider.useText()
+  const focusChildProps = focusHooks.useFocusChild()
   const year = date?.getFullYear() ?? new Date().getFullYear()
   const monthIndex = date?.getMonth() ?? new Date().getMonth()
   const [isPickerVisible, setIsPickerVisible] = React.useState(false)
@@ -96,81 +100,92 @@ export default function DateInput(props: DateInputProps) {
         event.stopPropagation()
       }}
     >
-      <div
-        role="button"
-        tabIndex={0}
-        className={`focus-child flex h-text w-date-picker items-center rounded-full border border-primary/10 px-date-input transition-colors hover:[&:not(:has(button:hover))]:bg-hover-bg ${date == null ? 'placeholder' : ''}`}
-        onClick={() => {
-          setIsPickerVisible(!isPickerVisible)
-        }}
-      >
-        <div className="flex grow flex-col items-center">
-          {date != null ? dateTime.formatDate(date) : getText('noDateSelected')}
+      <FocusRing>
+        <div
+          {...aria.mergeProps<JSX.IntrinsicElements['div']>()(focusChildProps, {
+            role: 'button',
+            tabIndex: 0,
+            className: `flex h-text w-date-picker items-center rounded-full border border-primary/10 px-date-input transition-colors hover:[&:not(:has(button:hover))]:bg-hover-bg ${date == null ? 'placeholder' : ''}`,
+            onClick: event => {
+              event.stopPropagation()
+              setIsPickerVisible(!isPickerVisible)
+            },
+            onKeyDown: event => {
+              if (event.key === 'Enter' || event.key === 'Space') {
+                event.stopPropagation()
+                setIsPickerVisible(!isPickerVisible)
+              }
+            },
+          })}
+        >
+          <div className="flex grow flex-col items-center">
+            {date != null ? dateTime.formatDate(date) : getText('noDateSelected')}
+          </div>
+          {date != null && (
+            <UnstyledButton
+              className="flex rounded-full transition-colors hover:bg-hover-bg"
+              onPress={() => {
+                onInput(null)
+              }}
+            >
+              <SvgMask src={CrossIcon} className="size-icon" />
+            </UnstyledButton>
+          )}
         </div>
-        {date != null && (
-          <UnstyledButton
-            className="flex rounded-full transition-colors hover:bg-hover-bg"
-            onPress={() => {
-              onInput(null)
-            }}
-          >
-            <SvgMask src={CrossIcon} className="size-icon" />
-          </UnstyledButton>
-        )}
-      </div>
+      </FocusRing>
       {isPickerVisible && (
         <div className="absolute left-1/2 top-text-h mt-date-input-gap">
           <div className="relative -translate-x-1/2 rounded-2xl border border-primary/10 p-date-input shadow-soft before:absolute before:inset-0 before:rounded-2xl before:backdrop-blur-3xl">
-            <table className="relative w-full">
-              <caption className="mb-date-input-gap caption-top">
-                <div className="flex items-center">
-                  <UnstyledButton
-                    className="inline-flex rounded-small-rectangle-button hover:bg-hover-bg"
-                    onPress={() => {
+            <div className="relative mb-date-input-gap">
+              <div className="flex items-center">
+                <UnstyledButton
+                  className="inline-flex rounded-small-rectangle-button hover:bg-hover-bg"
+                  onPress={() => {
+                    setSelectedYear(selectedYear - 1)
+                  }}
+                >
+                  <SvgMask src={FolderArrowDoubleIcon} className="rotate-180" />
+                </UnstyledButton>
+                <UnstyledButton
+                  className="inline-flex rounded-small-rectangle-button hover:bg-black/10"
+                  onPress={() => {
+                    if (selectedMonthIndex === 0) {
                       setSelectedYear(selectedYear - 1)
-                    }}
-                  >
-                    <SvgMask src={FolderArrowDoubleIcon} className="rotate-180" />
-                  </UnstyledButton>
-                  <UnstyledButton
-                    className="inline-flex rounded-small-rectangle-button hover:bg-black/10"
-                    onPress={() => {
-                      if (selectedMonthIndex === 0) {
-                        setSelectedYear(selectedYear - 1)
-                        setSelectedMonthIndex(LAST_MONTH_INDEX)
-                      } else {
-                        setSelectedMonthIndex(selectedMonthIndex - 1)
-                      }
-                    }}
-                  >
-                    <SvgMask src={FolderArrowIcon} className="rotate-180" />
-                  </UnstyledButton>
-                  <aria.Text className="grow">
-                    {dateTime.MONTH_NAMES[selectedMonthIndex]} {selectedYear}
-                  </aria.Text>
-                  <UnstyledButton
-                    className="inline-flex rounded-small-rectangle-button hover:bg-black/10"
-                    onPress={() => {
-                      if (selectedMonthIndex === LAST_MONTH_INDEX) {
-                        setSelectedYear(selectedYear + 1)
-                        setSelectedMonthIndex(0)
-                      } else {
-                        setSelectedMonthIndex(selectedMonthIndex + 1)
-                      }
-                    }}
-                  >
-                    <SvgMask src={FolderArrowIcon} />
-                  </UnstyledButton>
-                  <UnstyledButton
-                    className="inline-flex rounded-small-rectangle-button hover:bg-black/10"
-                    onPress={() => {
+                      setSelectedMonthIndex(LAST_MONTH_INDEX)
+                    } else {
+                      setSelectedMonthIndex(selectedMonthIndex - 1)
+                    }
+                  }}
+                >
+                  <SvgMask src={FolderArrowIcon} className="rotate-180" />
+                </UnstyledButton>
+                <aria.Text className="grow text-center">
+                  {dateTime.MONTH_NAMES[selectedMonthIndex]} {selectedYear}
+                </aria.Text>
+                <UnstyledButton
+                  className="inline-flex rounded-small-rectangle-button hover:bg-black/10"
+                  onPress={() => {
+                    if (selectedMonthIndex === LAST_MONTH_INDEX) {
                       setSelectedYear(selectedYear + 1)
-                    }}
-                  >
-                    <SvgMask src={FolderArrowDoubleIcon} />
-                  </UnstyledButton>
-                </div>
-              </caption>
+                      setSelectedMonthIndex(0)
+                    } else {
+                      setSelectedMonthIndex(selectedMonthIndex + 1)
+                    }
+                  }}
+                >
+                  <SvgMask src={FolderArrowIcon} />
+                </UnstyledButton>
+                <UnstyledButton
+                  className="inline-flex rounded-small-rectangle-button hover:bg-black/10"
+                  onPress={() => {
+                    setSelectedYear(selectedYear + 1)
+                  }}
+                >
+                  <SvgMask src={FolderArrowDoubleIcon} />
+                </UnstyledButton>
+              </div>
+            </div>
+            <table className="relative w-full">
               <thead>
                 <tr>
                   <th className="text-tight min-w-date-cell p">{getText('mondayAbbr')}</th>

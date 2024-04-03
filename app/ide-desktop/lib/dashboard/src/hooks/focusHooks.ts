@@ -61,11 +61,26 @@ export function useHandleFocusMove(direction: 'horizontal' | 'vertical') {
   )
 }
 
+// =========================
+// === useSoleFocusChild ===
+// =========================
+
+/** Return JSX props to make a child focusable by `Navigator2D`. DOES NOT handle arrow keys,
+ * because this hook assumes the child is the only focus child. */
+export function useSoleFocusChild() {
+  const { focusChildClass } = focusClassProvider.useFocusClasses()
+
+  return {
+    className: focusChildClass,
+  } satisfies React.HTMLAttributes<Element>
+}
+
 // =====================
 // === useFocusChild ===
 // =====================
 
-/** Return JSX props to make a child focusable by `Navigator2D`. */
+/** Return JSX props to make a child focusable by `Navigator2D`, and make the child handle arrow
+ * keys to navigate to siblings. */
 export function useFocusChild() {
   const focusDirection = focusDirectionProvider.useFocusDirection()
   const handleFocusMove = useHandleFocusMove(focusDirection)
