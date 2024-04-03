@@ -82,7 +82,7 @@ pub async fn download_project_templates(client: reqwest::Client, enso_root: Path
 }
 
 /// Describe, which benchmarks should be run.
-#[derive(Clone, Copy, Debug, Display, PartialEq, Eq, PartialOrd, Ord, clap::ArgEnum)]
+#[derive(Clone, Copy, Debug, Display, PartialEq, Eq, PartialOrd, Ord, clap::ValueEnum)]
 pub enum Benchmarks {
     /// Run all SBT-exposed benchmarks. Does *not* including pure [`Benchmarks::Enso`] benchmarks.
     All,
@@ -94,7 +94,7 @@ pub enum Benchmarks {
     EnsoJMH,
 }
 
-#[derive(Clone, Copy, Debug, Display, PartialEq, Eq, PartialOrd, Ord, clap::ArgEnum)]
+#[derive(Clone, Copy, Debug, Display, PartialEq, Eq, PartialOrd, Ord, clap::ValueEnum)]
 pub enum Tests {
     Jvm,
     #[clap(alias = "stdlib")]

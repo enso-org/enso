@@ -3794,6 +3794,273 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
       new String(data, StandardCharsets.UTF_8) shouldEqual "(Mk_Newtype 42)"
   }
 
+  it should "visualize normal atomconstructor" in withContext() { context =>
+    val contextId       = UUID.randomUUID()
+    val requestId       = UUID.randomUUID()
+    val visualizationId = UUID.randomUUID()
+    val moduleName      = "Enso_Test.Test.Main"
+    val metadata        = new Metadata
+
+    val idX    = metadata.addItem(103, 35, "aaaa")
+    val idCons = metadata.addItem(116, 21, "cccc")
+    val idRes  = metadata.addItem(143, 1, "eeee")
+
+    val code =
+      """from Standard.Base import all
+        |
+        |type Newtype
+        |    Mk_Newtype value
+        |
+        |    fix t:Newtype = t
+        |main =
+        |    x = Newtype.fix (Newtype.Mk_Newtype 42)
+        |    x
+        |""".stripMargin.linesIterator.mkString("\n")
+    val contents = metadata.appendToCode(code)
+    val mainFile = context.writeMain(contents)
+
+    metadata.assertInCode(idX, code, "Newtype.fix (Newtype.Mk_Newtype 42)")
+    metadata.assertInCode(idCons, code, "Newtype.Mk_Newtype 42")
+    metadata.assertInCode(idRes, code, "x")
+
+    // create context
+    context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
+    context.receive shouldEqual Some(
+      Api.Response(requestId, Api.CreateContextResponse(contextId))
+    )
+
+    // Open the new file
+    context.send(
+      Api.Request(requestId, Api.OpenFileRequest(mainFile, contents))
+    )
+    context.receive shouldEqual Some(
+      Api.Response(Some(requestId), Api.OpenFileResponse)
+    )
+
+    // push main
+    val item1 = Api.StackItem.ExplicitCall(
+      Api.MethodPointer(moduleName, "Enso_Test.Test.Main", "main"),
+      None,
+      Vector()
+    )
+    context.send(
+      Api.Request(requestId, Api.PushContextRequest(contextId, item1))
+    )
+    context.receiveNIgnorePendingExpressionUpdates(
+      5
+    ) should contain theSameElementsAs Seq(
+      Api.Response(requestId, Api.PushContextResponse(contextId)),
+      TestMessages.update(
+        contextId,
+        idCons,
+        s"$moduleName.Newtype",
+        methodCall = Some(
+          Api.MethodCall(
+            Api.MethodPointer(
+              s"$moduleName",
+              s"$moduleName.Newtype",
+              "Mk_Newtype"
+            )
+          )
+        ),
+        payload = Api.ExpressionUpdate.Payload.Value(None)
+      ),
+      TestMessages.update(
+        contextId,
+        idX,
+        s"$moduleName.Newtype",
+        methodCall = Some(
+          Api.MethodCall(
+            Api
+              .MethodPointer(moduleName, s"$moduleName.Newtype", "fix")
+          )
+        ),
+        payload = Api.ExpressionUpdate.Payload.Value(None)
+      ),
+      TestMessages.update(
+        contextId,
+        idRes,
+        s"$moduleName.Newtype",
+        methodCall = None,
+        payload    = Api.ExpressionUpdate.Payload.Value(None)
+      ),
+      context.executionComplete(contextId)
+    )
+
+    // attach visualization
+    context.send(
+      Api.Request(
+        requestId,
+        Api.AttachVisualization(
+          visualizationId,
+          idRes,
+          Api.VisualizationConfiguration(
+            contextId,
+            Api.VisualizationExpression.Text(
+              "Enso_Test.Test.Main",
+              "x -> x.to_text",
+              Vector()
+            ),
+            "Enso_Test.Test.Main"
+          )
+        )
+      )
+    )
+    val attachVisualizationResponses =
+      context.receiveNIgnoreExpressionUpdates(3)
+    attachVisualizationResponses should contain allOf (
+      Api.Response(requestId, Api.VisualizationAttached()),
+      context.executionComplete(contextId)
+    )
+    val Some(data) = attachVisualizationResponses.collectFirst {
+      case Api.Response(
+            None,
+            Api.VisualizationUpdate(
+              Api.VisualizationContext(
+                `visualizationId`,
+                `contextId`,
+                `idRes`
+              ),
+              data
+            )
+          ) =>
+        data
+    }
+    new String(data, StandardCharsets.UTF_8) shouldEqual "(Mk_Newtype 42)"
+  }
+
+  it should "visualize autoscoped atomconstructor" in withContext() { context =>
+    val contextId       = UUID.randomUUID()
+    val requestId       = UUID.randomUUID()
+    val visualizationId = UUID.randomUUID()
+    val moduleName      = "Enso_Test.Test.Main"
+    val metadata        = new Metadata
+
+    val idX    = metadata.addItem(103, 29, "aaaa")
+    val idCons = metadata.addItem(116, 15, "cccc")
+    val idRes  = metadata.addItem(137, 1, "eeee")
+
+    val code =
+      """from Standard.Base import all
+        |
+        |type Newtype
+        |    Mk_Newtype value
+        |
+        |    fix t:Newtype = t
+        |main =
+        |    x = Newtype.fix (..Mk_Newtype 42)
+        |    x
+        |""".stripMargin.linesIterator.mkString("\n")
+    val contents = metadata.appendToCode(code)
+    val mainFile = context.writeMain(contents)
+
+    metadata.assertInCode(idX, code, "Newtype.fix (..Mk_Newtype 42)")
+    metadata.assertInCode(idCons, code, "..Mk_Newtype 42")
+    metadata.assertInCode(idRes, code, "x")
+
+    // create context
+    context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
+    context.receive shouldEqual Some(
+      Api.Response(requestId, Api.CreateContextResponse(contextId))
+    )
+
+    // Open the new file
+    context.send(
+      Api.Request(requestId, Api.OpenFileRequest(mainFile, contents))
+    )
+    context.receive shouldEqual Some(
+      Api.Response(Some(requestId), Api.OpenFileResponse)
+    )
+
+    // push main
+    val item1 = Api.StackItem.ExplicitCall(
+      Api.MethodPointer(moduleName, "Enso_Test.Test.Main", "main"),
+      None,
+      Vector()
+    )
+    context.send(
+      Api.Request(requestId, Api.PushContextRequest(contextId, item1))
+    )
+    context.receiveNIgnorePendingExpressionUpdates(
+      5
+    ) should contain theSameElementsAs Seq(
+      Api.Response(requestId, Api.PushContextResponse(contextId)),
+      TestMessages.update(
+        contextId,
+        idCons,
+        s"$moduleName.Newtype",
+        methodCall = Some(
+          Api.MethodCall(
+            Api
+              .MethodPointer(moduleName, s"$moduleName.Newtype", "Mk_Newtype")
+          )
+        ),
+        payload = Api.ExpressionUpdate.Payload.Value(None)
+      ),
+      TestMessages.update(
+        contextId,
+        idX,
+        s"$moduleName.Newtype",
+        methodCall = Some(
+          Api.MethodCall(
+            Api
+              .MethodPointer(moduleName, s"$moduleName.Newtype", "fix")
+          )
+        ),
+        payload = Api.ExpressionUpdate.Payload.Value(None)
+      ),
+      TestMessages.update(
+        contextId,
+        idRes,
+        s"$moduleName.Newtype",
+        methodCall = None,
+        payload    = Api.ExpressionUpdate.Payload.Value(None)
+      ),
+      context.executionComplete(contextId)
+    )
+
+    // attach visualization
+    context.send(
+      Api.Request(
+        requestId,
+        Api.AttachVisualization(
+          visualizationId,
+          idRes,
+          Api.VisualizationConfiguration(
+            contextId,
+            Api.VisualizationExpression.Text(
+              "Enso_Test.Test.Main",
+              "x -> x.to_text",
+              Vector()
+            ),
+            "Enso_Test.Test.Main"
+          )
+        )
+      )
+    )
+    val attachVisualizationResponses =
+      context.receiveNIgnoreExpressionUpdates(3)
+    attachVisualizationResponses should contain allOf (
+      Api.Response(requestId, Api.VisualizationAttached()),
+      context.executionComplete(contextId)
+    )
+    val Some(data) = attachVisualizationResponses.collectFirst {
+      case Api.Response(
+            None,
+            Api.VisualizationUpdate(
+              Api.VisualizationContext(
+                `visualizationId`,
+                `contextId`,
+                `idRes`
+              ),
+              data
+            )
+          ) =>
+        data
+    }
+    new String(data, StandardCharsets.UTF_8) shouldEqual "(Mk_Newtype 42)"
+  }
+
   it should "emit visualization update for the target of a method call" in withContext() {
     context =>
       val contextId       = UUID.randomUUID()
