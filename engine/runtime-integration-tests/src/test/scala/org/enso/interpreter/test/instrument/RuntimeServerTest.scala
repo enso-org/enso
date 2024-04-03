@@ -1326,6 +1326,8 @@ class RuntimeServerTest
     val contents = metadata.appendToCode(code)
     val mainFile = context.writeMain(contents)
 
+    metadata.assertInCode(id_x_0, code, "..A")
+
     // create context
     context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
     context.receive shouldEqual Some(
@@ -1361,7 +1363,10 @@ class RuntimeServerTest
         id_x_0,
         ConstantsGen.FUNCTION_BUILTIN,
         methodCall = Some(
-          Api.MethodCall(Api.MethodPointer(moduleName, s"$moduleName.T", "A"))
+          Api.MethodCall(
+            Api.MethodPointer(moduleName, s"$moduleName.T", "A"),
+            Vector(0, 1)
+          )
         ),
         payload = Api.ExpressionUpdate.Payload.Value(
           functionSchema = Some(
