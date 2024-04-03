@@ -272,11 +272,11 @@ sealed class Graph extends Serializable {
     def getShadowedIds(
       scope: Graph.Scope
     ): Set[Graph.Occurrence] = {
-      scope.occurrences.collect {
+      scope.occurrences.values.collect {
         case d: Occurrence.Def if d.symbol == definition.symbol    => d
         case g: Occurrence.Global if g.symbol == definition.symbol => g
       } ++ scope.parent.map(getShadowedIds).getOrElse(Set())
-    }
+    }.toSet
 
     definition match {
       case d: Occurrence.Def =>
@@ -343,13 +343,13 @@ object Graph {
   /** A representation of a local scope in Enso.
     *
     * @param childScopes all scopes that are _direct_ children of `this`
-    * @param occurrences all symbol occurrences in `this` scope
+    * @param occurrences all symbol occurrences in `this` scope indexed by the identifier of the name
     * @param allDefinitions all definitions in this scope, including synthetic ones.
     *                       Note that there may not be a link for all these definitions.
     */
   sealed class Scope(
     var childScopes: List[Scope]             = List(),
-    var occurrences: Set[Occurrence]         = Set(),
+    var occurrences: Map[Id, Occurrence]     = HashMap(),
     var allDefinitions: List[Occurrence.Def] = List()
   ) extends Serializable {
 
@@ -437,7 +437,15 @@ object Graph {
       * @param occurrence the occurrence to add
       */
     def add(occurrence: Occurrence): Unit = {
-      occurrences += occurrence
+      occurrences = occurrences.updatedWith(occurrence.id)(current =>
+        current
+          .map(_ =>
+            throw new CompilerError(
+              s"Multiple occurrences found for ID ${occurrence.id}."
+            )
+          )
+          .orElse(Some(occurrence))
+      )
     }
 
     /** Adds a definition, including a definition with synthetic name, without
@@ -456,7 +464,7 @@ object Graph {
       * @return the occurrence for `id`, if it exists
       */
     def getOccurrence(id: Graph.Id): Option[Occurrence] = {
-      occurrences.find(o => o.id == id)
+      occurrences.get(id)
     }
 
     /** Finds any occurrences for the provided symbol in the current scope, if
@@ -469,9 +477,9 @@ object Graph {
     def getOccurrences[T <: Occurrence: ClassTag](
       symbol: Graph.Symbol
     ): Set[Occurrence] = {
-      occurrences.collect {
+      occurrences.values.collect {
         case o: T if o.symbol == symbol => o
-      }
+      }.toSet
     }
 
     /** Unsafely gets the occurrence for the provided ID in the current scope.
@@ -496,7 +504,7 @@ object Graph {
     def hasSymbolOccurrenceAs[T <: Occurrence: ClassTag](
       symbol: Graph.Symbol
     ): Boolean = {
-      occurrences.collect { case x: T if x.symbol == symbol => x }.nonEmpty
+      occurrences.collect { case (_, x: T) if x.symbol == symbol => x }.nonEmpty
     }
 
     /** Resolves usages of symbols into links where possible, creating an edge
@@ -511,7 +519,7 @@ object Graph {
       occurrence: Graph.Occurrence.Use,
       parentCounter: Int = 0
     ): Option[Graph.Link] = {
-      val definition = occurrences.find {
+      val definition = occurrences.values.find {
         case Graph.Occurrence.Def(_, name, _, _, _) =>
           name == occurrence.symbol
         case _ => false
@@ -530,7 +538,7 @@ object Graph {
       * @return a string representation of `this`
       */
     override def toString: String =
-      s"Scope(occurrences = $occurrences, childScopes = $childScopes)"
+      s"Scope(occurrences = ${occurrences.values}, childScopes = $childScopes)"
 
     /** Counts the number of scopes in this scope.
       *
@@ -555,7 +563,7 @@ object Graph {
       * @return the scope where `id` occurs
       */
     def scopeFor(id: Graph.Id): Option[Scope] = {
-      val possibleCandidates = occurrences.filter(o => o.id == id)
+      val possibleCandidates = occurrences.get(id)
 
       if (possibleCandidates.isEmpty) {
         if (childScopes.isEmpty) {
@@ -584,10 +592,8 @@ object Graph {
             Some(childCandidate)
           }
         }
-      } else if (possibleCandidates.size == 1) {
-        Some(this)
       } else {
-        throw new CompilerError(s"Multiple occurrences found for ID $id.")
+        Some(this)
       }
     }
 
@@ -629,7 +635,7 @@ object Graph {
       * @return the set of symbols
       */
     def symbols: Set[Graph.Symbol] = {
-      val symbolsInThis        = occurrences.map(_.symbol)
+      val symbolsInThis        = occurrences.values.map(_.symbol).toSet
       val symbolsInChildScopes = childScopes.flatMap(_.symbols)
 
       symbolsInThis ++ symbolsInChildScopes

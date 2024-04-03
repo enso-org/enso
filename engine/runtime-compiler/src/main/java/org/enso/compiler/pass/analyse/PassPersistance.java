@@ -121,14 +121,14 @@ public final class PassPersistance {
   @org.openide.util.lookup.ServiceProvider(service = Persistance.class)
   public static final class PersistAliasAnalysisGraphScope extends Persistance<Graph.Scope> {
     public PersistAliasAnalysisGraphScope() {
-      super(Graph.Scope.class, false, 1267);
+      super(Graph.Scope.class, false, 1269);
     }
 
     @Override
     @SuppressWarnings("unchecked")
     protected Graph.Scope readObject(Input in) throws IOException {
       var childScopes = in.readInline(scala.collection.immutable.List.class);
-      var occurrences = (scala.collection.immutable.Set) in.readObject();
+      var occurrences = (scala.collection.immutable.Map) in.readObject();
       var allDefinitions = in.readInline(scala.collection.immutable.List.class);
       var parent = new Graph.Scope(childScopes, occurrences, allDefinitions);
       var optionParent = Option.apply(parent);

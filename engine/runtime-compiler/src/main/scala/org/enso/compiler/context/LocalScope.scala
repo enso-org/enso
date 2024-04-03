@@ -140,10 +140,10 @@ class LocalScope(
       .getOrElse(Map())
 
     scope.occurrences.foreach {
-      case x: AliasGraph.Occurrence.Def =>
+      case (id, x: AliasGraph.Occurrence.Def) =>
         parentResult += x.symbol -> new FramePointer(
           level,
-          allFrameSlotIdxs(x.id)
+          allFrameSlotIdxs(id)
         )
       case _ =>
     }
