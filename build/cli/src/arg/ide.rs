@@ -15,6 +15,7 @@ use octocrab::models::ReleaseId;
 source_args_hlp!(Target, "ide", BuildInput);
 
 #[derive(Args, Clone, Debug, Derivative)]
+#[group(skip)]
 #[derivative(PartialEq)]
 pub struct BuildInput {
     #[derivative(PartialEq(bound = ""))]
