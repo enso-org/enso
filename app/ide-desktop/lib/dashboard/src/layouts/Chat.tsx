@@ -16,9 +16,9 @@ import * as loggerProvider from '#/providers/LoggerProvider'
 import * as textProvider from '#/providers/TextProvider'
 
 import * as aria from '#/components/aria'
-import UnstyledButton from '#/components/UnstyledButton'
 import SvgMask from '#/components/SvgMask'
 import Twemoji from '#/components/Twemoji'
+import UnstyledButton from '#/components/UnstyledButton'
 
 import * as dateTime from '#/utilities/dateTime'
 import * as newtype from '#/utilities/newtype'
@@ -379,6 +379,21 @@ export default function Chat(props: ChatProps) {
   const { getText } = textProvider.useText()
   const logger = loggerProvider.useLogger()
   const toastAndLog = toastAndLogHooks.useToastAndLog()
+  const { isFocusVisible } = aria.useFocusVisible()
+  const { focusWithinProps } = aria.useFocusWithin({
+    onFocusWithin: event => {
+      if (
+        isFocusVisible &&
+        !isOpen &&
+        (event.relatedTarget instanceof HTMLElement || event.relatedTarget instanceof SVGElement)
+      ) {
+        const relatedTarget = event.relatedTarget
+        setTimeout(() => {
+          relatedTarget.focus()
+        })
+      }
+    },
+  })
 
   /** This is SAFE, because this component is only rendered when `accessToken` is present.
    * See `dashboard.tsx` for its sole usage. */
@@ -661,6 +676,7 @@ export default function Chat(props: ChatProps) {
     return reactDom.createPortal(
       <div
         className={`fixed right top z-1 flex h-screen w-chat flex-col py-chat-y text-xs text-primary shadow-soft backdrop-blur-default transition-transform ${isOpen ? '' : 'translate-x-full'}`}
+        {...focusWithinProps}
       >
         <ChatHeader
           threads={threads}
