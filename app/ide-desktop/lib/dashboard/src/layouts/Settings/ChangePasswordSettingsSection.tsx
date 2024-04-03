@@ -49,7 +49,7 @@ export default function ChangePasswordSettingsSection() {
           void changePassword(currentPassword, newPassword)
         }}
       >
-        <aria.Input hidden autoComplete="username" value={user?.email} />
+        <aria.Input hidden autoComplete="username" value={user?.email} readOnly />
         <aria.TextField className="flex h-row gap-settings-entry" onChange={setCurrentPassword}>
           <aria.Label className="text my-auto w-change-password-settings-label">
             {getText('currentPasswordLabel')}
