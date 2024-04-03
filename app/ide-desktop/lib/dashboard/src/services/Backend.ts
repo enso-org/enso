@@ -360,6 +360,15 @@ export interface Version {
   readonly version_type: VersionType
 }
 
+/** Credentials that need to be passed to libraries to give them access to the Cloud API. */
+export interface CognitoCredentials {
+  readonly accessToken: string
+  readonly refreshToken: string
+  readonly refreshUrl: string
+  readonly clientId: string
+  readonly expireAt: dateTime.Rfc3339DateTime
+}
+
 /** Subscription plans. */
 export enum Plan {
   solo = 'solo',
@@ -400,9 +409,8 @@ export interface ResourceUsage {
 
 /** Metadata for an organization. */
 export interface OrganizationInfo {
-  readonly pk: OrganizationId
-  // eslint-disable-next-line @typescript-eslint/naming-convention
-  readonly organization_name: string | null
+  readonly id: OrganizationId
+  readonly name: string | null
   readonly email: EmailAddress | null
   readonly website: HttpsUrl | null
   readonly address: string | null
@@ -959,6 +967,8 @@ export interface UpdateProjectRequestBody {
 /** HTTP request body for the "open project" endpoint. */
 export interface OpenProjectRequestBody {
   readonly executeAsync: boolean
+  /** MUST be present on Remote backend; NOT REQUIRED on Local backend. */
+  readonly cognitoCredentials: CognitoCredentials | null
   /** Only used by the Local backend. */
   readonly parentId: DirectoryId
 }

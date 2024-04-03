@@ -2,7 +2,7 @@
 export const name = 'Table'
 export const icon = 'table'
 export const inputType =
-  'Standard.Table.Data.Table.Table | Standard.Table.Data.Column.Column | Standard.Table.Data.Row.Row |Standard.Base.Data.Vector.Vector | Standard.Base.Data.Array.Array | Standard.Base.Data.Map.Map | Any'
+  'Standard.Table.Table.Table | Standard.Table.Column.Column | Standard.Table.Row.Row | Standard.Base.Data.Vector.Vector | Standard.Base.Data.Array.Array | Standard.Base.Data.Map.Map | Any'
 export const defaultPreprocessor = [
   'Standard.Visualization.Table.Visualization',
   'prepare_visualization',
@@ -236,7 +236,17 @@ function toRender(content: unknown) {
 }
 
 watchEffect(() => {
-  const data_ = props.data
+  // If the user switches from one visualization type to another, we can receive the raw object.
+  const data_ =
+    typeof props.data === 'object' ?
+      props.data
+    : {
+        type: typeof props.data,
+        json: props.data,
+        all_rows_count: 1,
+        data: undefined,
+        indices: undefined,
+      }
   const options = agGridOptions.value
   if (options.api == null) {
     return
@@ -288,7 +298,7 @@ watchEffect(() => {
   } else if (Array.isArray(data_.json)) {
     columnDefs = [indexField(), toField('Value')]
     rowData = data_.json.map((row, i) => ({ [INDEX_FIELD_NAME]: i, Value: toRender(row) }))
-    isTruncated.value = data_.all_rows_count !== data_.json.length
+    isTruncated.value = data_.all_rows_count ? data_.all_rows_count !== data_.json.length : false
   } else if (data_.json !== undefined) {
     columnDefs = [toField('Value')]
     rowData = [{ Value: toRender(data_.json) }]

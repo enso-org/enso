@@ -74,8 +74,8 @@ class ConnectedLockManagerTest
               )
           )
         ) { _ =>
-          sync.signal("primary-acquired")
           sync.report("primary-acquired")
+          sync.signal("primary-acquired")
           sync.waitFor("connected-is-waiting")
           sync.report("primary-releasing")
         }
@@ -122,8 +122,8 @@ class ConnectedLockManagerTest
               )
           )
         ) { _ =>
-          sync.signal("primary-acquired")
           sync.report("primary-acquired")
+          sync.signal("primary-acquired")
           sync.waitFor("connected-acquired")
         }
 

@@ -212,7 +212,7 @@ function commitPendingChanges() {
   if (!pendingChanges || !currentModule) return
   try {
     currentModule.applyTextEdits(changeSetToTextEdits(pendingChanges), graphStore.viewModule)
-    graphStore.commitEdit(currentModule, undefined, 'local:CodeEditor')
+    graphStore.commitEdit(currentModule, undefined, 'local:userAction:CodeEditor')
   } catch (error) {
     console.error(`Code Editor failed to modify module`, error)
     resetView()
@@ -264,7 +264,7 @@ function observeSourceChange(textEdits: SourceRangeEdit[], origin: Origin | unde
     return
   }
   // When we aren't in the `needResync` state, we can ignore updates that originated in the Code Editor.
-  if (origin === 'local:CodeEditor') return
+  if (origin === 'local:userAction:CodeEditor') return
   if (pendingChanges) {
     console.info(`Deferring update (editor dirty).`)
     needResync = true
