@@ -14,17 +14,13 @@ import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
 import com.oracle.truffle.api.nodes.NodeInfo;
 import com.oracle.truffle.api.nodes.RootNode;
-import com.oracle.truffle.api.nodes.UnexpectedResultException;
 import com.oracle.truffle.api.source.SourceSection;
 import java.util.UUID;
 import org.enso.interpreter.runtime.builtin.Builtins;
-import org.enso.interpreter.runtime.callable.function.Function;
-import org.enso.interpreter.runtime.data.atom.AtomConstructor;
 import org.enso.interpreter.runtime.scope.DebugLocalScope;
 import org.enso.interpreter.runtime.tag.AvoidIdInstrumentationTag;
 import org.enso.interpreter.runtime.tag.IdentifiedTag;
 import org.enso.interpreter.runtime.tag.Patchable;
-import org.enso.interpreter.runtime.type.TypesGen;
 
 /**
  * A base class for all Enso expressions.
@@ -111,58 +107,12 @@ public abstract class ExpressionNode extends BaseNode implements InstrumentableN
   }
 
   /**
-   * Executes the current node, returning the result as a {@code long}.
-   *
-   * @param frame the stack frame for execution
-   * @return the {@code long} value obtained by executing the node
-   * @throws UnexpectedResultException if the result cannot be represented as a value of the return
-   *     type
-   */
-  public long executeLong(VirtualFrame frame) throws UnexpectedResultException {
-    return TypesGen.expectLong(executeGeneric(frame));
-  }
-
-  /**
-   * Executes the current node, returning the result as an {@link AtomConstructor}.
-   *
-   * @param frame the stack frame for execution
-   * @return the Atom constructor obtained by executing the node
-   * @throws UnexpectedResultException if the result cannot be represented as a value of the return
-   *     type
-   */
-  public AtomConstructor executeAtomConstructor(VirtualFrame frame)
-      throws UnexpectedResultException {
-    return TypesGen.expectAtomConstructor(executeGeneric(frame));
-  }
-
-  /**
-   * Executes the current node, returning the result as a {@link Function}.
-   *
-   * @param frame the stack frame for execution
-   * @return the function obtained by executing the node
-   * @throws UnexpectedResultException if the result cannot be represented as a value of the return
-   *     type
-   */
-  public Function executeFunction(VirtualFrame frame) throws UnexpectedResultException {
-    return TypesGen.expectFunction(executeGeneric(frame));
-  }
-
-  /**
    * Executes the current node and returns a result.
    *
    * @param frame the stack frame for execution
    * @return the result of executing the node
    */
   public abstract Object executeGeneric(VirtualFrame frame);
-
-  /**
-   * Executes the current node without returning a result.
-   *
-   * @param frame the stack frame for execution
-   */
-  public void executeVoid(VirtualFrame frame) {
-    executeGeneric(frame);
-  }
 
   /**
    * Marks this node as instrumentable by Truffle Instrumentation APIs.

@@ -47,7 +47,7 @@ export const widgetDefinition = defineWidget(WidgetInput.isAstOrPlaceholder, {
       return Score.Perfect
     const type = props.input.expectedType
     if (
-      type === 'Standard.Base.Data.Number' ||
+      type === 'Standard.Base.Data.Numbers.Number' ||
       type === 'Standard.Base.Data.Numbers.Integer' ||
       type === 'Standard.Base.Data.Numbers.Float'
     )
