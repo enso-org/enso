@@ -73,7 +73,10 @@ pub const RELEASE_TARGETS: [(OS, Arch); 4] = [
     (OS::MacOS, Arch::AArch64),
 ];
 
-pub const CHECKED_TARGETS: [(OS, Arch); 3] =
+/// Targets for which we run PR checks.
+///
+/// The macOS AArch64 is intentionally omitted, as the runner availability is limited.
+pub const PR_CHECKED_TARGETS: [(OS, Arch); 3] =
     [(OS::Windows, Arch::X86_64), (OS::Linux, Arch::X86_64), (OS::MacOS, Arch::X86_64)];
 
 pub const DEFAULT_BRANCH_NAME: &str = "develop";
@@ -515,6 +518,17 @@ fn add_release_steps(workflow: &mut Workflow) -> Result {
     Ok(())
 }
 
+/// Add jobs that perform backend checks ,including Scala and Standard Library tests.
+pub fn add_backend_checks(
+    workflow: &mut Workflow,
+    target: Target,
+    graal_edition: graalvm::Edition,
+) {
+    workflow.add(target, job::CiCheckBackend { graal_edition });
+    workflow.add(target, job::JvmTests { graal_edition });
+    workflow.add(target, job::StandardLibraryTests { graal_edition });
+}
+
 pub fn workflow_call_job(name: impl Into<String>, path: impl Into<String>) -> Job {
     Job {
         name: name.into(),
@@ -583,14 +597,24 @@ pub fn promote() -> Result<Workflow> {
     Ok(workflow)
 }
 
-pub fn typical_check_triggers() -> Event {
+/// Trigger for a workflow that allows running it manually, on user request.
+///
+/// The workflow can be run either through the web interface or through the API.
+///
+/// The generated trigger will include an additional input, corresponding to the PR labels.
+pub fn manual_workflow_dispatch() -> WorkflowDispatch {
     let clean_build_input =
         WorkflowDispatchInput::new_boolean("Clean before and after the run.", false, false);
     let workflow_dispatch = WorkflowDispatch::default()
         .with_input(crate::ci::inputs::CLEAN_BUILD_REQUIRED, clean_build_input);
+    workflow_dispatch
+}
+
+/// The typical set of triggers for a CI workflow - it will be run on PRs and default branch pushes.
+pub fn typical_check_triggers() -> Event {
     Event {
         pull_request: Some(default()),
-        workflow_dispatch: Some(workflow_dispatch),
+        workflow_dispatch: Some(manual_workflow_dispatch()),
         push: Some(on_default_branch_push()),
         ..default()
     }
@@ -601,7 +625,7 @@ pub fn gui() -> Result<Workflow> {
     let mut workflow = Workflow { name: "GUI Packaging".into(), on, ..default() };
     workflow.add(PRIMARY_TARGET, job::CancelWorkflow);
 
-    for target in CHECKED_TARGETS {
+    for target in PR_CHECKED_TARGETS {
         let project_manager_job = workflow.add(target, job::BuildBackend);
         workflow.add_customized(target, job::PackageIde, |job| {
             job.needs.insert(project_manager_job.clone());
@@ -627,21 +651,31 @@ pub fn backend() -> Result<Workflow> {
     let mut workflow = Workflow { name: "Engine CI".into(), on, ..default() };
     workflow.add(PRIMARY_TARGET, job::CancelWorkflow);
     workflow.add(PRIMARY_TARGET, job::VerifyLicensePackages);
-    for target in CHECKED_TARGETS {
-        workflow.add(target, job::CiCheckBackend { graal_edition: graalvm::Edition::Community });
-        workflow.add(target, job::ScalaTests { graal_edition: graalvm::Edition::Community });
-        workflow
-            .add(target, job::StandardLibraryTests { graal_edition: graalvm::Edition::Community });
+    for target in PR_CHECKED_TARGETS {
+        add_backend_checks(&mut workflow, target, graalvm::Edition::Community);
     }
-    // Oracle GraalVM jobs run only on Linux
-    workflow
-        .add(PRIMARY_TARGET, job::CiCheckBackend { graal_edition: graalvm::Edition::Enterprise });
-    workflow.add(PRIMARY_TARGET, job::ScalaTests { graal_edition: graalvm::Edition::Enterprise });
-    workflow.add(PRIMARY_TARGET, job::StandardLibraryTests {
-        graal_edition: graalvm::Edition::Enterprise,
-    });
     Ok(workflow)
 }
+
+pub fn engine_nightly() -> Result<Workflow> {
+    let on = Event {
+        schedule: vec![Schedule::new("0 3 * * *")?],
+        workflow_dispatch: Some(manual_workflow_dispatch()),
+        ..default()
+    };
+    let mut workflow = Workflow { name: "Engine Nightly Checks".into(), on, ..default() };
+
+    // Oracle GraalVM jobs run only on Linux
+    add_backend_checks(&mut workflow, PRIMARY_TARGET, graalvm::Edition::Enterprise);
+
+    // Run macOS AArch64 tests only once a day, as we have only one self-hosted runner for this.
+    for target in PR_CHECKED_TARGETS {
+        add_backend_checks(&mut workflow, target, graalvm::Edition::Community);
+    }
+    add_backend_checks(&mut workflow, (OS::MacOS, Arch::AArch64), graalvm::Edition::Community);
+    Ok(workflow)
+}
+
 
 pub fn engine_benchmark() -> Result<Workflow> {
     benchmark_workflow("Benchmark Engine", "backend benchmark runtime", Some(4 * 60))
@@ -710,6 +744,7 @@ pub fn generate(
         (repo_root.changelog_yml.to_path_buf(), changelog()?),
         (repo_root.nightly_yml.to_path_buf(), nightly()?),
         (repo_root.scala_new_yml.to_path_buf(), backend()?),
+        (repo_root.engine_nightly_yml.to_path_buf(), engine_nightly()?),
         (repo_root.gui_yml.to_path_buf(), gui()?),
         (repo_root.gui_tests_yml.to_path_buf(), gui_tests()?),
         (repo_root.engine_benchmark_yml.to_path_buf(), engine_benchmark()?),
