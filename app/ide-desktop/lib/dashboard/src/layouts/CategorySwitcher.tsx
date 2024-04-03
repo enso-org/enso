@@ -91,7 +91,6 @@ function CategorySwitcherItem(props: InternalCategorySwitcherItemProps) {
         acceptedDragTypes.some(type => types.has(type)) ? 'move' : 'cancel'
       }
       className="group relative flex items-center rounded-full drop-target-after"
-      // Required because `dragover` does not fire on `mouseenter`.
       onDrop={onDrop}
     >
       <UnstyledButton

@@ -1184,7 +1184,6 @@ export default function AssetsTable(props: AssetsTableProps) {
     } else {
       return navigator2D.register(body, {
         focusPrimaryChild: () => {
-          body.focus()
           setMostRecentlySelectedIndex(0, true)
         },
       })

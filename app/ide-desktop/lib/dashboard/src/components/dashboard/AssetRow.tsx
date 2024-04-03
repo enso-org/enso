@@ -103,7 +103,10 @@ export default function AssetRow(props: AssetRowProps) {
   const toastAndLog = toastAndLogHooks.useToastAndLog()
   const [isDraggedOver, setIsDraggedOver] = React.useState(false)
   const [item, setItem] = React.useState(rawItem)
+  const rootRef = React.useRef<HTMLElement | null>(null)
   const dragOverTimeoutHandle = React.useRef<number | null>(null)
+  const grabKeyboardFocusRef = React.useRef(grabKeyboardFocus)
+  grabKeyboardFocusRef.current = grabKeyboardFocus
   const asset = item.item
   const [insertionVisibility, setInsertionVisibility] = React.useState(Visibility.visible)
   const [rowState, setRowState] = React.useState<assetsTable.AssetRowState>(() =>
@@ -133,6 +136,13 @@ export default function AssetRow(props: AssetRowProps) {
       setSelected(false)
     }
   }, [selected, insertionVisibility, /* should never change */ setSelected])
+
+  React.useEffect(() => {
+    if (isKeyboardSelected) {
+      rootRef.current?.focus()
+      grabKeyboardFocusRef.current()
+    }
+  }, [isKeyboardSelected])
 
   const doCopyOnBackend = React.useCallback(
     async (newParentId: backendModule.DirectoryId | null) => {
@@ -670,6 +680,7 @@ export default function AssetRow(props: AssetRowProps) {
                 draggable
                 tabIndex={0}
                 ref={element => {
+                  rootRef.current = element
                   if (isSoleSelected && element != null && scrollContainerRef.current != null) {
                     const rect = element.getBoundingClientRect()
                     const scrollRect = scrollContainerRef.current.getBoundingClientRect()
@@ -703,7 +714,6 @@ export default function AssetRow(props: AssetRowProps) {
                     doToggleDirectoryExpansion(asset.id, item.key, asset.title)
                   }
                 }}
-                onFocus={grabKeyboardFocus}
                 onContextMenu={event => {
                   if (allowContextMenu) {
                     event.preventDefault()
