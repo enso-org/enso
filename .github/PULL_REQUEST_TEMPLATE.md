@@ -21,9 +21,9 @@ Please ensure that the following checklist has been satisfied before submitting 
 - [ ] All code follows the
       [Scala](https://github.com/enso-org/enso/blob/develop/docs/style-guide/scala.md),
       [Java](https://github.com/enso-org/enso/blob/develop/docs/style-guide/java.md),
+      [TypeScript](https://github.com/enso-org/enso/blob/develop/docs/style-guide/typescript.md),
       and
       [Rust](https://github.com/enso-org/enso/blob/develop/docs/style-guide/rust.md)
       style guides. In case you are using a language not listed above, follow the [Rust](https://github.com/enso-org/enso/blob/develop/docs/style-guide/rust.md) style guide.
 - All code has been tested:
   - [ ] Unit tests have been written where possible.
-  - [ ] If GUI codebase was changed, the GUI was tested when built using `./run ide build`.
