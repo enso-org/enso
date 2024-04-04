@@ -905,7 +905,7 @@ export interface UpdateOrganizationRequestBody {
   name?: string
   email?: EmailAddress
   website?: HttpsUrl
-  location?: string
+  address?: string
 }
 
 /** HTTP request body for the "invite user" endpoint. */

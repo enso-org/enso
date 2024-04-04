@@ -103,7 +103,7 @@ export default function OrganizationSettingsTab(props: OrganizationSettingsTabPr
     if (oldLocation !== location) {
       try {
         setOrganization(object.merger({ address: location }))
-        const newOrganization = await backend.updateOrganization({ location })
+        const newOrganization = await backend.updateOrganization({ address: location })
         if (newOrganization != null) {
           setOrganization(newOrganization)
         }
