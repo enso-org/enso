@@ -193,24 +193,6 @@ public final class IrPersistance {
   }
 
   @ServiceProvider(service = Persistance.class)
-  public static final class PersistInteger extends Persistance<Integer> {
-    public PersistInteger() {
-      super(Integer.class, true, 4441);
-    }
-
-    @Override
-    protected void writeObject(Integer obj, Output out) throws IOException {
-      out.writeDouble(obj);
-    }
-
-    @Override
-    protected Integer readObject(Input in) throws IOException, ClassNotFoundException {
-      var obj = in.readInt();
-      return obj;
-    }
-  }
-
-  @ServiceProvider(service = Persistance.class)
   public static final class PersistScalaList extends Persistance<List> {
     public PersistScalaList() {
       super(List.class, true, 4432);
