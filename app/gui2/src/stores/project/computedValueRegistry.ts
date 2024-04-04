@@ -53,7 +53,7 @@ export class ComputedValueRegistry {
     return this.db.get(exprId)
   }
 
-  destroy() {
+  dispose() {
     this.executionContext?.off('expressionUpdates', this._updateHandler)
   }
 }

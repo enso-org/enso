@@ -12,6 +12,7 @@ import {
   createRpcTransport,
   createWebsocketClient,
   rpcWithRetries as lsRpcWithRetries,
+  useAbortScope,
 } from '@/util/net'
 import { tryQualifiedName } from '@/util/qualifiedName'
 import { Client, RequestManager } from '@open-rpc/client-js'
@@ -36,6 +37,7 @@ import type {
   StackItem,
   VisualizationConfiguration,
 } from 'shared/languageServerTypes'
+import type { AbortScope } from 'shared/util/net'
 import {
   DistributedProject,
   localUserActionOrigins,
@@ -45,6 +47,7 @@ import {
 import {
   computed,
   markRaw,
+  onScopeDispose,
   reactive,
   ref,
   shallowRef,
@@ -75,6 +78,7 @@ function resolveLsUrl(config: GuiConfig): LsUrls {
 async function initializeLsRpcConnection(
   clientId: Uuid,
   url: string,
+  abort: AbortScope,
 ): Promise<{
   connection: LanguageServer
   contentRoots: ContentRoot[]
@@ -83,6 +87,7 @@ async function initializeLsRpcConnection(
   const requestManager = new RequestManager([transport])
   const client = new Client(requestManager)
   const connection = new LanguageServer(client)
+  abort.onAbort(() => connection.release())
   const initialization = await lsRpcWithRetries(() => connection.initProtocolConnection(clientId), {
     onBeforeRetry: (error, _, delay) => {
       console.warn(
@@ -98,9 +103,10 @@ async function initializeLsRpcConnection(
   return { connection, contentRoots }
 }
 
-async function initializeDataConnection(clientId: Uuid, url: string) {
-  const client = createWebsocketClient(url, { binaryType: 'arraybuffer', sendPings: false })
-  const connection = new DataServer(client)
+async function initializeDataConnection(clientId: Uuid, url: string, abort: AbortScope) {
+  const client = createWebsocketClient(url, abort, { binaryType: 'arraybuffer', sendPings: false })
+  const connection = new DataServer(client, abort)
+  onScopeDispose(() => connection.dispose())
   await connection.initialize(clientId).catch((error) => {
     console.error('Error initializing data connection:', error)
     throw error
@@ -173,14 +179,14 @@ export class ExecutionContext extends ObservableV2<ExecutionContextNotification>
   visSyncScheduled = false
   desiredStack: StackItem[] = reactive([])
   visualizationConfigs: Map<Uuid, NodeVisualizationConfiguration> = new Map()
-  abortCtl = new AbortController()
 
-  constructor(lsRpc: Promise<LanguageServer>, entryPoint: EntryPoint) {
+  constructor(
+    lsRpc: Promise<LanguageServer>,
+    entryPoint: EntryPoint,
+    private abort: AbortScope,
+  ) {
     super()
-
-    this.abortCtl.signal.addEventListener('abort', () => {
-      this.queue.clear()
-    })
+    this.abort.handleDispose(this)
 
     this.queue = new AsyncQueue(
       lsRpc.then((lsRpc) => ({
@@ -199,7 +205,7 @@ export class ExecutionContext extends ObservableV2<ExecutionContextNotification>
   private withBackoff<T>(f: () => Promise<T>, message: string): Promise<T> {
     return lsRpcWithRetries(f, {
       onBeforeRetry: (error, _, delay) => {
-        if (this.abortCtl.signal.aborted) return false
+        if (this.abort.signal.aborted) return false
         console.warn(
           `${message}: ${error.payload.cause.message}. Retrying after ${delay}ms...\n`,
           error,
@@ -209,11 +215,11 @@ export class ExecutionContext extends ObservableV2<ExecutionContextNotification>
   }
 
   private syncVisualizations() {
-    if (this.visSyncScheduled) return
+    if (this.visSyncScheduled || this.abort.signal.aborted) return
     this.visSyncScheduled = true
     this.queue.pushTask(async (state) => {
       this.visSyncScheduled = false
-      if (!state.created) return state
+      if (!state.created || this.abort.signal.aborted) return state
       this.emit('newVisualizationConfiguration', [new Set(this.visualizationConfigs.keys())])
       const promises: Promise<void>[] = []
 
@@ -352,33 +358,28 @@ export class ExecutionContext extends ObservableV2<ExecutionContextNotification>
         if (result.contextId !== this.id) {
           throw new Error('Unexpected Context ID returned by the language server.')
         }
+        state.lsRpc.retain()
         return { ...state, created: true }
       }, 'Failed to create execution context')
-    })
-    this.abortCtl.signal.addEventListener('abort', () => {
-      this.queue.pushTask(async (state) => {
-        if (!state.created) return state
-        await state.lsRpc.destroyExecutionContext(this.id)
-        return { ...state, created: false }
-      })
     })
   }
 
   private registerHandlers() {
     this.queue.pushTask(async (state) => {
-      const expressionUpdates = state.lsRpc.on('executionContext/expressionUpdates', (event) => {
+      this.abort.handleObserve(state.lsRpc, 'executionContext/expressionUpdates', (event) => {
         if (event.contextId == this.id) this.emit('expressionUpdates', [event.updates])
       })
-      const executionFailed = state.lsRpc.on('executionContext/executionFailed', (event) => {
+      this.abort.handleObserve(state.lsRpc, 'executionContext/executionFailed', (event) => {
         if (event.contextId == this.id) this.emit('executionFailed', [event.message])
       })
-      const executionComplete = state.lsRpc.on('executionContext/executionComplete', (event) => {
+      this.abort.handleObserve(state.lsRpc, 'executionContext/executionComplete', (event) => {
         if (event.contextId == this.id) this.emit('executionComplete', [])
       })
-      const executionStatus = state.lsRpc.on('executionContext/executionStatus', (event) => {
+      this.abort.handleObserve(state.lsRpc, 'executionContext/executionStatus', (event) => {
         if (event.contextId == this.id) this.emit('executionStatus', [event.diagnostics])
       })
-      const visualizationEvaluationFailed = state.lsRpc.on(
+      this.abort.handleObserve(
+        state.lsRpc,
         'executionContext/visualizationEvaluationFailed',
         (event) => {
           if (event.contextId == this.id)
@@ -390,16 +391,6 @@ export class ExecutionContext extends ObservableV2<ExecutionContextNotification>
             ])
         },
       )
-      this.abortCtl.signal.addEventListener('abort', () => {
-        state.lsRpc.off('executionContext/expressionUpdates', expressionUpdates)
-        state.lsRpc.off('executionContext/executionFailed', executionFailed)
-        state.lsRpc.off('executionContext/executionComplete', executionComplete)
-        state.lsRpc.off('executionContext/executionStatus', executionStatus)
-        state.lsRpc.off(
-          'executionContext/visualizationEvaluationFailed',
-          visualizationEvaluationFailed,
-        )
-      })
       return state
     })
   }
@@ -430,8 +421,13 @@ export class ExecutionContext extends ObservableV2<ExecutionContextNotification>
     })
   }
 
-  destroy() {
-    this.abortCtl.abort()
+  dispose() {
+    this.queue.pushTask(async (state) => {
+      if (!state.created) return state
+      await state.lsRpc.destroyExecutionContext(this.id)
+      state.lsRpc.release()
+      return { ...state, created: false }
+    })
   }
 }
 
@@ -441,6 +437,8 @@ export class ExecutionContext extends ObservableV2<ExecutionContextNotification>
  * client, it is submitted to the language server as a document update.
  */
 export const useProjectStore = defineStore('project', () => {
+  const abort = useAbortScope()
+
   const observedFileName = ref<string>()
 
   const doc = new Y.Doc()
@@ -453,7 +451,7 @@ export const useProjectStore = defineStore('project', () => {
 
   const clientId = random.uuidv4() as Uuid
   const lsUrls = resolveLsUrl(config.value)
-  const initializedConnection = initializeLsRpcConnection(clientId, lsUrls.rpcUrl)
+  const initializedConnection = initializeLsRpcConnection(clientId, lsUrls.rpcUrl, abort)
   const lsRpcConnection = initializedConnection.then(
     ({ connection }) => connection,
     (error) => {
@@ -468,8 +466,8 @@ export const useProjectStore = defineStore('project', () => {
       throw error
     },
   )
-  const dataConnection = initializeDataConnection(clientId, lsUrls.dataUrl)
 
+  const dataConnection = initializeDataConnection(clientId, lsUrls.dataUrl, abort)
   const rpcUrl = new URL(lsUrls.rpcUrl)
   const isOnLocalBackend =
     rpcUrl.protocol === 'mock:' ||
@@ -555,10 +553,14 @@ export const useProjectStore = defineStore('project', () => {
   })
 
   function createExecutionContextForMain(): ExecutionContext {
-    return new ExecutionContext(lsRpcConnection, {
-      methodPointer: entryPoint.value,
-      positionalArgumentsExpressions: [],
-    })
+    return new ExecutionContext(
+      lsRpcConnection,
+      {
+        methodPointer: entryPoint.value,
+        positionalArgumentsExpressions: [],
+      },
+      abort,
+    )
   }
 
   const firstExecution = lsRpcConnection.then(
