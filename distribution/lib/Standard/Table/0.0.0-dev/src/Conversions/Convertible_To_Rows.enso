@@ -1,5 +1,4 @@
 from Standard.Base import all
-import Standard.Base.Data.Java_Json.Jackson_Object
 
 import project.Column.Column
 import project.Conversions.Convertible_To_Columns.Convertible_To_Columns
@@ -61,11 +60,6 @@ Convertible_To_Rows.from that:Map =
 
 ## PRIVATE
 Convertible_To_Rows.from that:JS_Object =
-    vals = that.map_with_key k->v-> Key_Value.Pair k v
-    Convertible_To_Rows.Value vals.length vals.get ["Key", "Value"]
-
-## PRIVATE
-Convertible_To_Rows.from that:Jackson_Object =
     vals = that.map_with_key k->v-> Key_Value.Pair k v
     Convertible_To_Rows.Value vals.length vals.get ["Key", "Value"]
 
