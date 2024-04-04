@@ -189,16 +189,15 @@ impl JobArchetype for VerifyLicensePackages {
 }
 
 #[derive(Clone, Copy, Debug)]
-pub struct ScalaTests {
+pub struct JvmTests {
     pub graal_edition: graalvm::Edition,
 }
 
-
-impl JobArchetype for ScalaTests {
+impl JobArchetype for JvmTests {
     fn job(&self, target: Target) -> Job {
         let graal_edition = self.graal_edition;
-        let job_name = format!("Scala Tests ({graal_edition})");
-        let mut job = RunStepsBuilder::new("backend test scala")
+        let job_name = format!("JVM Tests ({graal_edition})");
+        let mut job = RunStepsBuilder::new("backend test jvm")
             .customize(move |step| vec![step, step::engine_test_reporter(target, graal_edition)])
             .build_job(job_name, target)
             .with_permission(Permission::Checks, Access::Write);
