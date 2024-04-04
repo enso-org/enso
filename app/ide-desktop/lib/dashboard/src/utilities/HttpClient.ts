@@ -38,17 +38,21 @@ export default class HttpClient {
      *
      * This is useful for setting headers that are required for every request, like
      * authentication tokens. */
-    public defaultHeaders: HeadersInit
+    public defaultHeaders: HeadersInit,
+    /** The base path of all API requests. Pass `''` to allow arbitrary paths.
+     * Remember to be consistent whether to include the trailing slash on EITHER the base path,
+     * OR the paths passed to each endpoint. */
+    public basePath: string
   ) {}
 
   /** Send an HTTP GET request to the specified URL. */
-  get<T = void>(url: string) {
-    return this.request<T>(HttpMethod.get, url)
+  async get<T = void>(url: string) {
+    return await this.request<T>(HttpMethod.get, url)
   }
 
   /** Send a JSON HTTP POST request to the specified URL. */
-  post<T = void>(url: string, payload: object) {
-    return this.request<T>(HttpMethod.post, url, JSON.stringify(payload), 'application/json')
+  async post<T = void>(url: string, payload: object) {
+    return await this.request<T>(HttpMethod.post, url, JSON.stringify(payload), 'application/json')
   }
 
   /** Send a base64-encoded binary HTTP POST request to the specified URL. */
@@ -57,13 +61,13 @@ export default class HttpClient {
   }
 
   /** Send a JSON HTTP PATCH request to the specified URL. */
-  patch<T = void>(url: string, payload: object) {
-    return this.request<T>(HttpMethod.patch, url, JSON.stringify(payload), 'application/json')
+  async patch<T = void>(url: string, payload: object) {
+    return await this.request<T>(HttpMethod.patch, url, JSON.stringify(payload), 'application/json')
   }
 
   /** Send a JSON HTTP PUT request to the specified URL. */
-  put<T = void>(url: string, payload: object) {
-    return this.request<T>(HttpMethod.put, url, JSON.stringify(payload), 'application/json')
+  async put<T = void>(url: string, payload: object) {
+    return await this.request<T>(HttpMethod.put, url, JSON.stringify(payload), 'application/json')
   }
 
   /** Send a base64-encoded binary HTTP POST request to the specified URL. */
@@ -72,8 +76,8 @@ export default class HttpClient {
   }
 
   /** Send an HTTP DELETE request to the specified URL. */
-  delete<T = void>(url: string) {
-    return this.request<T>(HttpMethod.delete, url)
+  async delete<T = void>(url: string) {
+    return await this.request<T>(HttpMethod.delete, url)
   }
 
   /** Execute an HTTP request to the specified URL, with the given HTTP method.
@@ -84,6 +88,7 @@ export default class HttpClient {
     payload?: BodyInit,
     mimetype?: string
   ) {
+    url = this.basePath + url
     const headers = new Headers(this.defaultHeaders)
     if (payload != null) {
       const contentType = mimetype ?? 'application/json'

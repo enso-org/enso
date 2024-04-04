@@ -196,7 +196,8 @@ export default function Dashboard(props: DashboardProps) {
         if (accessToken != null) {
           setPage(pageSwitcher.Page.drive)
           const httpClient = new HttpClient(
-            new Headers([['Authorization', `Bearer ${accessToken}`]])
+            new Headers([['Authorization', `Bearer ${accessToken}`]]),
+            `${process.env.ENSO_CLOUD_API_URL}/`
           )
           const remoteBackend = new RemoteBackend(httpClient, logger, getText)
           void (async () => {
@@ -325,7 +326,10 @@ export default function Dashboard(props: DashboardProps) {
             break
           }
           case backendModule.BackendType.remote: {
-            const client = new HttpClient([['Authorization', `Bearer ${accessToken ?? ''}`]])
+            const client = new HttpClient(
+              [['Authorization', `Bearer ${accessToken ?? ''}`]],
+              `${process.env.ENSO_CLOUD_API_URL}/`
+            )
             setBackend(new RemoteBackend(client, logger, getText))
             break
           }

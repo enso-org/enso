@@ -192,7 +192,7 @@ export default function AuthProvider(props: AuthProviderProps) {
     } else {
       // Provide dummy headers to avoid errors. This `Backend` will never be called as
       // the entire UI will be disabled.
-      const client = new HttpClient([['Authorization', '']])
+      const client = new HttpClient([['Authorization', '']], `${process.env.ENSO_CLOUD_API_URL}/`)
       setBackendWithoutSavingType(new RemoteBackend(client, logger, getText))
     }
   }, [
@@ -279,7 +279,10 @@ export default function AuthProvider(props: AuthProviderProps) {
           setUserSession(null)
         }
       } else {
-        const client = new HttpClient([['Authorization', `Bearer ${session.accessToken}`]])
+        const client = new HttpClient(
+          [['Authorization', `Bearer ${session.accessToken}`]],
+          `${process.env.ENSO_CLOUD_API_URL}/`
+        )
         const remoteBackend = new RemoteBackend(client, logger, getText)
         // The backend MUST be the remote backend before login is finished.
         // This is because the "set username" flow requires the remote backend.

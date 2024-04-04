@@ -181,7 +181,10 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
                 toastAndLog('offlineUploadFilesError')
               } else {
                 try {
-                  const client = new HttpClient([['Authorization', `Bearer ${accessToken}`]])
+                  const client = new HttpClient(
+                    [['Authorization', `Bearer ${accessToken}`]],
+                    `${process.env.ENSO_CLOUD_API_URL}/`
+                  )
                   const remoteBackend = new RemoteBackend(client, logger, getText)
                   const projectResponse = await fetch(
                     `./api/project-manager/projects/${asset.id}/enso-project`
