@@ -753,6 +753,20 @@ type Float
         Locale.Value java_locale -> Panic.catch ParseException ((NumberFormat.getInstance java_locale).parse text) _->
             Error.throw (Number_Parse_Error.Error text)
 
+    ## ICON number_input
+
+       Maximum representable positive value, from the underlying Java double
+       type.
+
+       The absolute-value-largest representable negative value is `-max_value`.
+    max_value = Double.MAX_VALUE
+
+    ## ICON number_input
+
+       Minimum representable positive value, from the underlying Java double
+       type.
+    min_value = Double.MIN_VALUE
+
 ## Integer is the type of integral numbers in Enso. They are of unbounded
    size and can grow as large as necessary.
 
