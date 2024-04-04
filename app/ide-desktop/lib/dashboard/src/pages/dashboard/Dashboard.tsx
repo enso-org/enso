@@ -248,11 +248,18 @@ export default function Dashboard(props: DashboardProps) {
           }
         }
       } else if (projectManagerUrl != null && projectManagerRootDirectory != null) {
-        const localBackend = new LocalBackend(projectManagerUrl, projectManagerRootDirectory)
+        const localBackend =
+          currentBackend instanceof LocalBackend
+            ? currentBackend
+            : new LocalBackend(projectManagerUrl, projectManagerRootDirectory)
         void (async () => {
           await localBackend.openProject(
             savedProjectStartupInfo.projectAsset.id,
-            null,
+            {
+              executeAsync: false,
+              cognitoCredentials: null,
+              parentId: savedProjectStartupInfo.projectAsset.parentId,
+            },
             savedProjectStartupInfo.projectAsset.title
           )
           const project = await localBackend.getProjectDetails(
