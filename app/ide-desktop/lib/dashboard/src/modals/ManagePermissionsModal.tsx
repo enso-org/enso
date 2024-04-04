@@ -60,7 +60,7 @@ export default function ManagePermissionsModal<
   const { getText } = textProvider.useText()
   const asset = item.value
   const [permissions, setPermissions] = React.useState(asset.permissions ?? [])
-  const [users, setUsers] = React.useState<backendModule.SimpleUser[]>([])
+  const [users, setUsers] = React.useState<backendModule.UserInfo[]>([])
   const [email, setEmail] = React.useState<string | null>(null)
   const [action, setAction] = React.useState(permissionsModule.PermissionAction.view)
   const position = React.useMemo(() => eventTarget?.getBoundingClientRect(), [eventTarget])
@@ -74,11 +74,11 @@ export default function ManagePermissionsModal<
     [permissions, self.permission]
   )
   const usernamesOfUsersWithPermission = React.useMemo(
-    () => new Set(asset.permissions?.map(userPermission => userPermission.user.user_name)),
+    () => new Set(asset.permissions?.map(userPermission => userPermission.user.name)),
     [asset.permissions]
   )
   const emailsOfUsersWithPermission = React.useMemo(
-    () => new Set<string>(asset.permissions?.map(userPermission => userPermission.user.user_email)),
+    () => new Set<string>(asset.permissions?.map(userPermission => userPermission.user.email)),
     [asset.permissions]
   )
   const isOnlyOwner = React.useMemo(
@@ -87,9 +87,9 @@ export default function ManagePermissionsModal<
       permissions.every(
         permission =>
           permission.permission !== permissionsModule.PermissionAction.own ||
-          permission.user.user_email === user?.value.email
+          permission.user.userId === user?.value.userId
       ),
-    [user?.value.email, permissions, self.permission]
+    [user?.value.userId, permissions, self.permission]
   )
 
   React.useEffect(() => {
@@ -147,68 +147,64 @@ export default function ManagePermissionsModal<
         setUsers([])
         const addedUsersPermissions = users.map<backendModule.UserPermission>(newUser => ({
           user: {
-            // The names come from a third-party API and cannot be changed.
-            /* eslint-disable @typescript-eslint/naming-convention */
-            pk: newUser.organizationId,
-            sk: newUser.userId,
-            user_subject: newUser.userSubject,
-            user_email: newUser.email,
-            user_name: newUser.name,
-            /* eslint-enable @typescript-eslint/naming-convention */
+            organizationId: newUser.organizationId,
+            userId: newUser.userId,
+            email: newUser.email,
+            name: newUser.name,
           },
           permission: action,
         }))
-        const addedUsersSks = new Set(addedUsersPermissions.map(newUser => newUser.user.sk))
+        const addedUsersIds = new Set(addedUsersPermissions.map(newUser => newUser.user.userId))
         const oldUsersPermissions = permissions.filter(userPermission =>
-          addedUsersSks.has(userPermission.user.sk)
+          addedUsersIds.has(userPermission.user.userId)
         )
         try {
           setPermissions(oldPermissions =>
             [
               ...oldPermissions.filter(
-                oldUserPermissions => !addedUsersSks.has(oldUserPermissions.user.sk)
+                oldUserPermissions => !addedUsersIds.has(oldUserPermissions.user.userId)
               ),
               ...addedUsersPermissions,
             ].sort(backendModule.compareUserPermissions)
           )
-          const actorsIds = addedUsersPermissions.map(userPermissions => userPermissions.user.sk)
-          await item.setPermissions({ actorsIds, action: action })
+          const actorsIds = addedUsersPermissions.map(
+            userPermissions => userPermissions.user.userId
+          )
+          await item.setPermissions({ actorsIds, action })
         } catch (error) {
           setPermissions(oldPermissions =>
             [
-              ...oldPermissions.filter(permission => !addedUsersSks.has(permission.user.sk)),
+              ...oldPermissions.filter(permission => !addedUsersIds.has(permission.user.userId)),
               ...oldUsersPermissions,
             ].sort(backendModule.compareUserPermissions)
           )
-          const usernames = addedUsersPermissions.map(
-            userPermissions => userPermissions.user.user_name
-          )
+          const usernames = addedUsersPermissions.map(userPermissions => userPermissions.user.name)
           toastAndLog('setPermissionsError', error, usernames.join("', '"))
         }
       }
     }
 
     const doDelete = async (userToDelete: backendModule.UserInfo) => {
-      if (userToDelete.sk === self.user.sk) {
+      if (userToDelete.userId === self.user.userId) {
         doRemoveSelf()
       } else {
         const oldPermission = permissions.find(
-          userPermission => userPermission.user.sk === userToDelete.sk
+          userPermission => userPermission.user.userId === userToDelete.userId
         )
         try {
           setPermissions(oldPermissions =>
             oldPermissions.filter(
-              oldUserPermissions => oldUserPermissions.user.sk !== userToDelete.sk
+              oldUserPermissions => oldUserPermissions.user.userId !== userToDelete.userId
             )
           )
-          await item.setPermissions({ actorsIds: [userToDelete.sk], action: null })
+          await item.setPermissions({ actorsIds: [userToDelete.userId], action: null })
         } catch (error) {
           if (oldPermission != null) {
             setPermissions(oldPermissions =>
               [...oldPermissions, oldPermission].sort(backendModule.compareUserPermissions)
             )
           }
-          toastAndLog('setPermissionsError', error, userToDelete.user_email)
+          toastAndLog('setPermissionsError', error, userToDelete.email)
         }
       }
     }
@@ -280,7 +276,7 @@ export default function ManagePermissionsModal<
                     values={users}
                     setValues={setUsers}
                     items={allUsers}
-                    itemToKey={otherUser => otherUser.userSubject}
+                    itemToKey={otherUser => otherUser.userId}
                     itemToString={otherUser => `${otherUser.name} (${otherUser.email})`}
                     matches={(otherUser, text) =>
                       otherUser.email.toLowerCase().includes(text.toLowerCase()) ||
@@ -308,7 +304,7 @@ export default function ManagePermissionsModal<
             </form>
             <div className="max-h-manage-permissions-modal-permissions-list overflow-auto px-manage-permissions-modal-input">
               {editablePermissions.map(userPermission => (
-                <div key={userPermission.user.sk} className="flex h-row items-center">
+                <div key={userPermission.user.userId} className="flex h-row items-center">
                   <UserPermission
                     asset={item}
                     self={self}
@@ -317,12 +313,12 @@ export default function ManagePermissionsModal<
                     setUserPermission={newUserPermission => {
                       setPermissions(oldPermissions =>
                         oldPermissions.map(oldUserPermission =>
-                          oldUserPermission.user.sk === newUserPermission.user.sk
+                          oldUserPermission.user.userId === newUserPermission.user.userId
                             ? newUserPermission
                             : oldUserPermission
                         )
                       )
-                      if (newUserPermission.user.sk === self.user.sk) {
+                      if (newUserPermission.user.userId === self.user.userId) {
                         // This must run only after the permissions have
                         // been updated through `setItem`.
                         setTimeout(() => {
@@ -331,7 +327,7 @@ export default function ManagePermissionsModal<
                       }
                     }}
                     doDelete={userToDelete => {
-                      if (userToDelete.sk === self.user.sk) {
+                      if (userToDelete.userId === self.user.userId) {
                         unsetModal()
                       }
                       void doDelete(userToDelete)

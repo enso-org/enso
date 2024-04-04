@@ -66,7 +66,7 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
   const asset = smartAssetWithProjectState.value
   const setAsset = setAssetHooks.useSetAsset(asset, setItem)
   const ownPermission =
-    asset.permissions?.find(permission => permission.user.user_email === user?.value.email) ?? null
+    asset.permissions?.find(permission => permission.user.userId === user?.value.userId) ?? null
   // This is a workaround for a temporary bad state in the backend causing the `projectState` key
   // to be absent.
   // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
@@ -88,7 +88,12 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
       const oldTitle = asset.title
       setAsset(object.merger({ title: newTitle }))
       try {
-        await smartAsset.update({ projectName: newTitle })
+        await smartAsset.update({
+          ami: null,
+          ideVersion: null,
+          projectName: newTitle,
+          parentId: asset.parentId,
+        })
       } catch (error) {
         toastAndLog('renameProjectError', error)
         setAsset(object.merger({ title: oldTitle }))
@@ -105,43 +110,9 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
           const title = backendModule.stripProjectExtension(asset.title)
           setAsset(object.merge(asset, { title }))
           try {
-            if (isCloud) {
-              try {
-                const newSmartAsset = await smartAsset.update({ file })
-                rowState.setVisibility(Visibility.visible)
-                setAsset(newSmartAsset.value)
-              } catch (error) {
-                toastAndLog(null, error)
-              }
-            } else {
-              let id: string
-              if (
-                'backendApi' in window &&
-                // This non-standard property is defined in Electron.
-                'path' in file &&
-                typeof file.path === 'string'
-              ) {
-                id = await window.backendApi.importProjectFromPath(file.path)
-              } else {
-                const response = await fetch('./api/upload-project', {
-                  method: 'POST',
-                  // Ideally this would use `file.stream()`, to minimize RAM
-                  // requirements. for uploading large projects. Unfortunately,
-                  // this requires HTTP/2, which is HTTPS-only, so it will not
-                  // work on `http://localhost`.
-                  body: await file.arrayBuffer(),
-                })
-                id = await response.text()
-              }
-              const listedProject = await smartAsset.getDetails()
-              rowState.setVisibility(Visibility.visible)
-              setAsset(
-                object.merge(asset, {
-                  title: listedProject.packageName,
-                  id: backendModule.ProjectId(id),
-                })
-              )
-            }
+            const newSmartAsset = await smartAsset.update({ file })
+            rowState.setVisibility(Visibility.visible)
+            setAsset(newSmartAsset.value)
           } catch (error) {
             switch (event.type) {
               case AssetEventType.updateFiles: {

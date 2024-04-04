@@ -12,6 +12,7 @@ import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
 import * as authProvider from '#/providers/AuthProvider'
 import * as modalProvider from '#/providers/ModalProvider'
+import * as sessionProvider from '#/providers/SessionProvider'
 import * as textProvider from '#/providers/TextProvider'
 
 import type * as assetEvent from '#/events/assetEvent'
@@ -82,6 +83,7 @@ export default function ProjectIcon(props: ProjectIconProps) {
   const { smartAsset, setItem, state, assetEvents, doOpenManually } = props
   const { doCloseEditor, doOpenEditor } = props
   const { isCloud } = state
+  const { session } = sessionProvider.useSession()
   const { user } = authProvider.useNonPartialUserSession()
   const { unsetModal } = modalProvider.useSetModal()
   const toastAndLog = toastAndLogHooks.useToastAndLog()
@@ -140,7 +142,11 @@ export default function ProjectIcon(props: ProjectIconProps) {
             if (!shouldRunInBackground) {
               setToastId(toast.toast.loading(LOADING_MESSAGE))
             }
-            await smartAsset.open({ executeAsync: shouldRunInBackground })
+            await smartAsset.open({
+              executeAsync: shouldRunInBackground,
+              parentId: smartAsset.value.parentId,
+              cognitoCredentials: session,
+            })
           }
           const abortController = new AbortController()
           setOpenProjectAbortController(abortController)
@@ -154,7 +160,11 @@ export default function ProjectIcon(props: ProjectIconProps) {
             )
           }
         } else {
-          await smartAsset.open({ executeAsync: shouldRunInBackground })
+          await smartAsset.open({
+            executeAsync: shouldRunInBackground,
+            parentId: smartAsset.value.parentId,
+            cognitoCredentials: session,
+          })
           setProjectState(oldState =>
             oldState === backendModule.ProjectState.openInProgress
               ? backendModule.ProjectState.opened
@@ -173,6 +183,7 @@ export default function ProjectIcon(props: ProjectIconProps) {
       isCloud,
       projectState,
       closeProjectAbortController,
+      session,
       toastAndLog,
       /* should never change */ setProjectState,
       /* should never change */ setItem,

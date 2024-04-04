@@ -4,6 +4,7 @@
 /// <reference types="vite/client" />
 
 // This file is being imported for its types.
+// prettier-ignore
 // eslint-disable-next-line no-restricted-syntax, @typescript-eslint/consistent-type-imports
 import * as buildJson from './../../build.json' assert { type: 'json' }
 
@@ -29,7 +30,11 @@ interface Enso {
  * Electron context. It contains non-authentication-related functionality. */
 interface BackendApi {
     /** Return the ID of the new project. */
-    readonly importProjectFromPath: (openedPath: string) => Promise<string>
+    readonly importProjectFromPath: (
+        openedPath: string,
+        directory: string | null,
+        name: string
+    ) => Promise<string>
 }
 
 // ==========================
@@ -138,6 +143,13 @@ declare global {
             readonly ENSO_CLOUD_COGNITO_REGION?: string
             // @ts-expect-error The index signature is intentional to disallow unknown env vars.
             readonly ENSO_SUPPORTS_VIBRANCY?: string
+
+            // === Electron watch script variables ===
+
+            // @ts-expect-error The index signature is intentional to disallow unknown env vars.
+            readonly ELECTRON_DEV_MODE?: string
+            // @ts-expect-error The index signature is intentional to disallow unknown env vars.
+            readonly GUI_CONFIG_PATH?: string
             /* eslint-enable @typescript-eslint/naming-convention */
         }
     }

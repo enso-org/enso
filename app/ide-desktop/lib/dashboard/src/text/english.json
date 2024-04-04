@@ -14,7 +14,6 @@
   "deleteAssetError": "Could not delete '$0'",
   "restoreAssetError": "Could not restore '$0'",
 
-  "localBackendFolderError": "Cannot create folders on the local drive",
   "localBackendDataLinkError": "Cannot create Data Links on the local drive",
   "localBackendSecretError": "Cannot create secrets on the local drive",
   "offlineUploadFilesError": "Cannot upload files when offline",
@@ -100,6 +99,7 @@
   "getProjectDetailsBackendError": "Could not get details of project '$0'.",
   "projectNotFoundBackendError": "The project '$0' was not found in its parent folder.",
   "openProjectBackendError": "Could not open project '$0'.",
+  "openProjectMissingCredentialsBackendError": "Could not open project '$0': Missing credentials.",
   "updateProjectBackendError": "Could not update project '$0'.",
   "checkResourcesBackendError": "Could not get resource usage for project '$0'.",
   "listFilesBackendError": "Could not list files.",
@@ -312,10 +312,10 @@
   "switchToLocalDrive": "Switch to local drive",
 
   "deleteLabelActionText": "delete the label '$0'",
-  "deleteSelectedAssetActionText": "selected item",
-  "deleteSelectedAssetsActionText": "$0 selected items",
-  "deleteSelectedAssetForeverActionText": "selected item forever",
-  "deleteSelectedAssetsForeverActionText": "$0 selected items forever",
+  "deleteSelectedAssetActionText": "delete '$0'",
+  "deleteSelectedAssetsActionText": "delete $0 selected items",
+  "deleteSelectedAssetForeverActionText": "delete '$0' forever",
+  "deleteSelectedAssetsForeverActionText": "delete $0 selected items forever",
 
   "enterTheNewKeyboardShortcutFor": "Enter the new keyboard shortcut for $0.",
   "noShortcutEntered": "No shortcut entered",
@@ -421,6 +421,7 @@
   "uploadToCloudShortcut": "Upload To Cloud",
   "renameShortcut": "Rename",
   "editShortcut": "Edit",
+  "editDescriptionShortcut": "Edit Description",
   "snapshotShortcut": "Snapshot",
   "deleteShortcut": "Delete",
   "undeleteShortcut": "Restore From Trash",
@@ -490,5 +491,10 @@
   "thursdayAbbr": "Th",
   "fridayAbbr": "F",
   "saturdayAbbr": "Sa",
-  "sundayAbbr": "Su"
+  "sundayAbbr": "Su",
+
+  "editAssetDescriptionModalTitle": "Edit Asset Description",
+  "editAssetDescriptionModalPlaceholder": "Enter a description for the asset",
+  "editAssetDescriptionModalSubmit": "Submit",
+  "editAssetDescriptionModalCancel": "Cancel"
 }

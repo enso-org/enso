@@ -19,6 +19,7 @@ test.test('drive view', async ({ page }) => {
   await test.expect(assetRows).toHaveCount(1)
   await test.expect(actions.locateAssetsTable(page)).toBeVisible()
   await actions.locateNewProjectButton(page).click()
+  await test.expect(assetRows).toHaveCount(2)
   await test.expect(actions.locateEditor(page)).toBeVisible()
   await actions.locateDrivePageIcon(page).click()
   await test.expect(assetRows).toHaveCount(2)

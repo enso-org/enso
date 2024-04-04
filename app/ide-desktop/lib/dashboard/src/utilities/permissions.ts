@@ -1,7 +1,7 @@
 /** @file Utilities for working with permissions. */
 import type * as text from '#/text'
 
-import * as backend from '#/services/Backend'
+import type * as backend from '#/services/Backend'
 
 // ========================
 // === PermissionAction ===
@@ -237,21 +237,16 @@ export const DEFAULT_PERMISSIONS: Permissions = Object.freeze({
 /** Return an array containing the owner permission if `owner` is not `null`,
  * else return an empty array (`[]`). */
 export function tryGetSingletonOwnerPermission(
-  owner: backend.SmartUser | null,
-  user: backend.SimpleUser | null
+  owner: backend.SmartUser | null
 ): backend.UserPermission[] {
   return owner?.value != null
     ? [
         {
           user: {
-            // The names are defined by the backend and cannot be changed.
-            /* eslint-disable @typescript-eslint/naming-convention */
-            pk: owner.value.id,
-            sk: backend.UserId(''),
-            user_subject: user?.userSubject ?? backend.Subject(''),
-            user_email: owner.value.email,
-            user_name: owner.value.name,
-            /* eslint-enable @typescript-eslint/naming-convention */
+            organizationId: owner.value.organizationId,
+            userId: owner.value.userId,
+            name: owner.value.name,
+            email: owner.value.email,
           },
           permission: PermissionAction.own,
         },

@@ -33,6 +33,8 @@ import type * as cognito from 'amazon-cognito-identity-js'
 
 import type * as loggerProvider from '#/providers/LoggerProvider'
 
+import * as dateTime from '#/utilities/dateTime'
+
 import type * as service from '#/authentication/service'
 
 import type * as original from './cognito.ts'
@@ -221,7 +223,8 @@ function parseUserSession(session: cognito.CognitoUserSession): original.UserSes
     throw new Error('Payload does not have an email field.')
   } else {
     const accessToken = `.${window.btoa(JSON.stringify({ username: email }))}.`
-    return { email, accessToken, refreshToken: '', clientId: '', expireAt: '', refreshUrl: '' }
+    const expireAt = dateTime.toRfc3339(new Date())
+    return { email, accessToken, refreshToken: '', clientId: '', expireAt, refreshUrl: '' }
   }
 }
 

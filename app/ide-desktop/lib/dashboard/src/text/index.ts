@@ -30,7 +30,9 @@ interface PlaceholderOverrides {
   readonly inviteSuccess: [string]
 
   readonly deleteLabelActionText: [string]
+  readonly deleteSelectedAssetActionText: [string]
   readonly deleteSelectedAssetsActionText: [number]
+  readonly deleteSelectedAssetForeverActionText: [string]
   readonly deleteSelectedAssetsForeverActionText: [number]
   readonly confirmPrompt: [string]
   readonly deleteTheAssetTypeTitle: [string, string]
@@ -68,6 +70,7 @@ interface PlaceholderOverrides {
   readonly closeProjectBackendError: [string]
   readonly getProjectDetailsBackendError: [string]
   readonly openProjectBackendError: [string]
+  readonly openProjectMissingCredentialsBackendError: [string]
   readonly updateProjectBackendError: [string]
   readonly checkResourcesBackendError: [string]
   readonly uploadFileWithNameBackendError: [string]

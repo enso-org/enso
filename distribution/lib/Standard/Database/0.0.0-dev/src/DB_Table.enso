@@ -16,37 +16,29 @@ from Standard.Base.Metadata import Display, make_single_choice, Widget
 from Standard.Base.Runtime import assert
 from Standard.Base.Widget_Helpers import make_delimiter_selector, make_format_chooser
 
-import Standard.Table.Data.Blank_Selector.Blank_Selector
-import Standard.Table.Data.Calculations.Column_Operation.Column_Operation
-import Standard.Table.Data.Column_Ref.Column_Ref
-import Standard.Table.Data.Constants.Previous_Value
-import Standard.Table.Data.Expression.Expression
-import Standard.Table.Data.Expression.Expression_Error
-import Standard.Table.Data.Join_Condition.Join_Condition
-import Standard.Table.Data.Join_Kind.Join_Kind
-import Standard.Table.Data.Join_Kind_Cross.Join_Kind_Cross
-import Standard.Table.Data.Match_Columns as Match_Columns_Helpers
-import Standard.Table.Data.Report_Unmatched.Report_Unmatched
-import Standard.Table.Data.Row.Row
-import Standard.Table.Data.Simple_Expression.Simple_Expression
-import Standard.Table.Data.Table.Table
-import Standard.Table.Data.Type.Value_Type_Helpers
-import Standard.Table.Extensions.Table_Ref.Table_Ref
+import Standard.Table.Column_Operation.Column_Operation
+import Standard.Table.Expression.Expression
+import Standard.Table.Expression.Expression_Error
 import Standard.Table.Internal.Add_Row_Number
 import Standard.Table.Internal.Aggregate_Column_Helper
 import Standard.Table.Internal.Column_Naming_Helper.Column_Naming_Helper
 import Standard.Table.Internal.Constant_Column.Constant_Column
+import Standard.Table.Internal.Join_Kind_Cross.Join_Kind_Cross
 import Standard.Table.Internal.Problem_Builder.Problem_Builder
 import Standard.Table.Internal.Replace_Helpers
 import Standard.Table.Internal.Table_Helpers
 import Standard.Table.Internal.Table_Helpers.Table_Column_Helper
+import Standard.Table.Internal.Table_Ref.Table_Ref
 import Standard.Table.Internal.Unique_Name_Strategy.Unique_Name_Strategy
+import Standard.Table.Internal.Value_Type_Helpers
 import Standard.Table.Internal.Widget_Helpers
-from Standard.Table import Aggregate_Column, Auto, Data_Formatter, Match_Columns, Position, Set_Mode, Sort_Column, Value_Type
-from Standard.Table.Data.Column import get_item_string, normalize_string_for_display
-from Standard.Table.Data.Table import print_table
+import Standard.Table.Match_Columns as Match_Columns_Helpers
+import Standard.Table.Row.Row
+from Standard.Table import Aggregate_Column, Auto, Blank_Selector, Column_Ref, Data_Formatter, Join_Condition, Join_Kind, Match_Columns, Position, Previous_Value, Report_Unmatched, Set_Mode, Simple_Expression, Sort_Column, Table, Value_Type
+from Standard.Table.Column import get_item_string, normalize_string_for_display
 from Standard.Table.Errors import all
 from Standard.Table.Internal.Filter_Condition_Helpers import make_filter_column
+from Standard.Table.Table import print_table
 
 import project.Connection.Connection.Connection
 import project.DB_Column.DB_Column
@@ -147,7 +139,8 @@ type DB_Table
         if internal_column.is_nothing then if_missing else self.make_column internal_column
 
     ## ALIAS cell value, get cell
-       ICON select_column
+       GROUP Standard.Base.Selections
+       ICON local_scope4
        Gets a value from the table.
 
        Arguments:
@@ -235,7 +228,7 @@ type DB_Table
          Select the first two columns and the last column, moving the last one to front.
 
              table.select_columns [-1, 0, 1] reorder=True
-    @columns Widget_Helpers.make_column_name_vector_selector
+    @columns Widget_Helpers.make_column_name_multi_selector
     select_columns :  Vector (Integer | Text | Regex) | Text | Integer | Regex -> Boolean -> Case_Sensitivity -> Boolean -> Problem_Behavior -> DB_Table ! No_Output_Columns | Missing_Input_Columns
     select_columns self (columns : (Vector | Text | Integer | Regex) = [self.columns.first.name]) (reorder:Boolean=False) (case_sensitivity=Case_Sensitivity.Default) (error_on_missing_columns:Boolean=True) (on_problems:Problem_Behavior=Report_Warning) =
         new_columns = self.columns_helper.select_columns columns case_sensitivity reorder error_on_missing_columns on_problems
@@ -688,7 +681,7 @@ type DB_Table
         result = self.filter column Filter_Condition.Is_True
         Warning.attach (Deprecated.Warning "Standard.Database.DB_Table.DB_Table" "filter_by_expression" "Deprecated: use `filter` with an `Expression` instead.") result
 
-    ## ALIAS first, last, sample, slice, top, head, tail, limit
+    ## ALIAS first, head, last, limit, sample, slice, tail, top
        GROUP Standard.Base.Selections
        ICON select_row
        Creates a new Table with the specified range of rows from the input
@@ -1104,7 +1097,8 @@ type DB_Table
         Array_Proxy.new self.internal_columns.length i->
             self.internal_columns.at i . name
 
-    ## Returns a vector of rows contained in this table.
+    ## ICON select_row
+       Returns a vector of rows contained in this table.
 
        In the database backend, it first materializes the table to in-memory.
 
@@ -1385,7 +1379,7 @@ type DB_Table
     join_or_cross_join : DB_Table -> Join_Kind | Join_Kind_Cross -> Vector (Join_Condition | Text) | Text -> Text -> Problem_Behavior -> DB_Table
     join_or_cross_join self right:DB_Table join_kind on right_prefix on_problems =
         can_proceed = Helpers.ensure_same_connection "table" [self, right] <|
-            join_conditions_ok = join_kind != Join_Kind_Cross.Cross || on == []
+            join_conditions_ok = join_kind != Join_Kind_Cross || on == []
             if join_conditions_ok . not then Error.throw (Illegal_Argument.Error "Cross join does not allow join conditions") else
                 True
         can_proceed.if_not_error <|
@@ -1430,7 +1424,7 @@ type DB_Table
                 Join_Kind.Full            -> SQL_Join_Kind.Full
                 Join_Kind.Left_Exclusive  -> SQL_Join_Kind.Left
                 Join_Kind.Right_Exclusive -> SQL_Join_Kind.Right
-                Join_Kind_Cross.Cross     -> SQL_Join_Kind.Cross
+                Join_Kind_Cross           -> SQL_Join_Kind.Cross
 
             problem_builder.attach_problems_before on_problems <|
                 new_from = From_Spec.Join sql_join_kind left_setup.subquery right_setup.subquery on_expressions
@@ -1488,7 +1482,7 @@ type DB_Table
                 [Cross_Join_Row_Limit_Exceeded.Error right_row_limit right.row_count]
             False -> []
         on_problems.attach_problems_before limit_problems <|
-            self.join_or_cross_join right join_kind=Join_Kind_Cross.Cross on=[] right_prefix on_problems
+            self.join_or_cross_join right join_kind=Join_Kind_Cross on=[] right_prefix on_problems
 
     ## ALIAS lookup
        GROUP Standard.Base.Calculations
@@ -1970,7 +1964,7 @@ type DB_Table
                         if new_columns.is_empty then handle_no_output_columns else
                             result = self.updated_context_and_columns new_ctx new_columns subquery=True
                             if validated.old_style.not then result else
-                                Warning.attach (Deprecated.Warning "Standard.Table.Data.Aggregate_Column.Aggregate_Column" "Group_By" "Deprecated: `Group_By` constructor has been deprecated, use the `group_by` argument instead.") result
+                                Warning.attach (Deprecated.Warning "Standard.Table.Aggregate_Column.Aggregate_Column" "Group_By" "Deprecated: `Group_By` constructor has been deprecated, use the `group_by` argument instead.") result
 
     ## GROUP Standard.Base.Calculations
        ICON dataframe_map_row
@@ -2390,7 +2384,9 @@ type DB_Table
        - `List`
        - `Range`
        - `Date_Range`
-       - `Pair
+       - `Pair`
+       - `Table`
+       - `Column`
 
        Any other values are treated as non-aggregate values, and their rows are kept
        unchanged.
@@ -2856,7 +2852,7 @@ type DB_Table
 
     ## ALIAS cumulative
        GROUP Standard.Base.Values
-       ICON dataframe_map_column
+       ICON data_input
        Adds a new column to the table with a running calculation.
 
        Arguments:
@@ -2890,7 +2886,7 @@ type DB_Table
     @order_by Widget_Helpers.make_order_by_selector
     @of Widget_Helpers.make_column_name_selector
     running : Statistic -> (Text | Integer) -> Text -> Vector (Text | Integer | Regex) | Text | Integer | Regex -> Vector (Text | Sort_Column) | Text -> Problem_Behavior -> Table
-    running self (statistic:Statistic=Statistic.Count) (of:Text|Integer=0) (as:Text='') (group_by:(Vector | Text | Integer | Regex)=[]) (order_by:(Vector | Text)=[]) (on_problems:Problem_Behavior=Problem_Behavior.Report_Warning) =
+    running self (statistic:Statistic=Statistic.Count) (of:(Text | Integer)=0) (as:Text='') (group_by:(Vector | Text | Integer | Regex)=[]) (order_by:(Vector | Text)=[]) (on_problems:Problem_Behavior=Problem_Behavior.Report_Warning) =
         _ = [statistic, of, as, group_by, order_by, on_problems]
         Error.throw (Unsupported_Database_Operation.Error "DB_Table.running is currently not implemented for the Database backend. You may download the table to memory using `.read` to use this feature.")
 
@@ -2960,7 +2956,7 @@ display_dataframe df indices_count all_rows_count format_terminal =
    case there are no join conditions.
 default_join_condition : DB_Table -> Join_Kind | Join_Kind_Cross -> Join_Condition
 default_join_condition table join_kind = case join_kind of
-    Join_Kind_Cross.Cross -> []
+    Join_Kind_Cross -> []
     _ -> [Join_Condition.Equals table.column_names.first]
 
 ## PRIVATE

@@ -102,7 +102,7 @@ export default function Settings() {
         <div className="ml-[0.625rem] h-[2.25rem] rounded-full bg-frame px-[0.5625rem] pb-[0.3125rem] pt-[0.125rem] leading-snug">
           {settingsTab !== SettingsTab.organization
             ? user?.value.name ?? 'your account'
-            : organization?.value?.organization_name ?? 'your organization'}
+            : organization?.value?.name ?? 'your organization'}
         </div>
       </div>
       <div className="flex flex-1 gap-settings overflow-hidden">

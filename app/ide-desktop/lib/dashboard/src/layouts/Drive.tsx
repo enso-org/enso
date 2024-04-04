@@ -29,14 +29,15 @@ import type * as spinner from '#/components/Spinner'
 
 import * as backendModule from '#/services/Backend'
 import type Backend from '#/services/Backend'
+import * as projectManager from '#/services/ProjectManager'
 
 import * as array from '#/utilities/array'
 import type AssetQuery from '#/utilities/AssetQuery'
+import type AssetTreeNode from '#/utilities/AssetTreeNode'
 import type * as colorModule from '#/utilities/color'
 import * as download from '#/utilities/download'
 import * as github from '#/utilities/github'
 import LocalStorage from '#/utilities/LocalStorage'
-import * as projectManager from '#/utilities/ProjectManager'
 import * as uniqueString from '#/utilities/uniqueString'
 
 // ============================
@@ -134,6 +135,9 @@ export default function Drive(props: DriveProps) {
     () => new Map(labels.map(label => [label.value, label])),
     [labels]
   )
+  const targetDirectoryNodeRef = React.useRef<AssetTreeNode<backendModule.SmartDirectory> | null>(
+    null
+  )
   const isCloud = backend.type === backendModule.BackendType.remote
   const isEnabled = user?.value.isEnabled ?? false
   const status =
@@ -182,8 +186,8 @@ export default function Drive(props: DriveProps) {
       } else if (rootDirectory != null) {
         dispatchAssetListEvent({
           type: AssetListEventType.uploadFiles,
-          parentKey: rootDirectory.value.id,
-          parent: rootDirectory,
+          parentKey: targetDirectoryNodeRef.current?.key ?? rootDirectory.value.id,
+          parent: targetDirectoryNodeRef.current?.item ?? rootDirectory,
           files,
         })
       }
@@ -201,11 +205,13 @@ export default function Drive(props: DriveProps) {
       templateName: string | null = null,
       onSpinnerStateChange: ((state: spinner.SpinnerState) => void) | null = null
     ) => {
-      if (rootDirectory != null) {
+      const parent = targetDirectoryNodeRef.current?.item ?? rootDirectory
+      const parentKey = targetDirectoryNodeRef.current?.key ?? rootDirectory?.value.id
+      if (parent != null && parentKey != null) {
         dispatchAssetListEvent({
           type: AssetListEventType.newProject,
-          parentKey: rootDirectory.value.id,
-          parent: rootDirectory,
+          parent,
+          parentKey,
           templateId,
           templateName,
           onSpinnerStateChange,
@@ -216,12 +222,10 @@ export default function Drive(props: DriveProps) {
   )
 
   const doCreateDirectory = React.useCallback(() => {
-    if (rootDirectory != null) {
-      dispatchAssetListEvent({
-        type: AssetListEventType.newFolder,
-        parentKey: rootDirectory.value.id,
-        parent: rootDirectory,
-      })
+    const parent = targetDirectoryNodeRef.current?.item ?? rootDirectory
+    const parentKey = targetDirectoryNodeRef.current?.key ?? rootDirectory?.value.id
+    if (parent != null && parentKey != null) {
+      dispatchAssetListEvent({ type: AssetListEventType.newFolder, parent, parentKey })
     }
   }, [rootDirectory, /* should never change */ dispatchAssetListEvent])
 
@@ -280,11 +284,13 @@ export default function Drive(props: DriveProps) {
 
   const doCreateSecret = React.useCallback(
     (name: string, value: string) => {
-      if (rootDirectory != null) {
+      const parent = targetDirectoryNodeRef.current?.item ?? rootDirectory
+      const parentKey = targetDirectoryNodeRef.current?.key ?? rootDirectory?.value.id
+      if (parent != null && parentKey != null) {
         dispatchAssetListEvent({
           type: AssetListEventType.newSecret,
-          parentKey: rootDirectory.value.id,
-          parent: rootDirectory,
+          parent,
+          parentKey,
           name,
           value,
         })
@@ -295,11 +301,13 @@ export default function Drive(props: DriveProps) {
 
   const doCreateDataLink = React.useCallback(
     (name: string, value: unknown) => {
-      if (rootDirectory != null) {
+      const parent = targetDirectoryNodeRef.current?.item ?? rootDirectory
+      const parentKey = targetDirectoryNodeRef.current?.key ?? rootDirectory?.value.id
+      if (parent != null && parentKey != null) {
         dispatchAssetListEvent({
           type: AssetListEventType.newDataLink,
-          parentKey: rootDirectory.value.id,
-          parent: rootDirectory,
+          parent,
+          parentKey,
           name,
           value,
         })
@@ -427,6 +435,7 @@ export default function Drive(props: DriveProps) {
                 dispatchAssetListEvent={dispatchAssetListEvent}
                 setAssetPanelProps={setAssetPanelProps}
                 setIsAssetPanelTemporarilyVisible={setIsAssetPanelTemporarilyVisible}
+                targetDirectoryNodeRef={targetDirectoryNodeRef}
                 doOpenEditor={doOpenEditor}
                 doCloseEditor={doCloseEditor}
                 doCreateLabel={doCreateLabel}

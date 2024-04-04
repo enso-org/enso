@@ -80,6 +80,7 @@ public final class ArrayLikeHelpers {
       description = "Creates new Vector with given length and provided elements.",
       autoRegister = false)
   @Builtin.Specialize()
+  @SuppressWarnings("generic-enso-builtin-type")
   public static Object vectorFromFunction(
       VirtualFrame frame,
       long length,
@@ -123,6 +124,7 @@ public final class ArrayLikeHelpers {
   @Builtin.Method(
       name = "vector_to_array",
       description = "Returns an Array representation of this Vector.")
+  @SuppressWarnings("generic-enso-builtin-type")
   public static Object vectorToArray(Object obj) {
     if (obj instanceof Vector.Generic vector) {
       return vector.toArray();
@@ -132,6 +134,7 @@ public final class ArrayLikeHelpers {
   }
 
   @Builtin.Method(name = "new_vector_builder", description = "Returns new vector builder.")
+  @SuppressWarnings("generic-enso-builtin-type")
   public static Object newVectorBuilder(long capacity) {
     return ArrayBuilder.newBuilder((int) Math.min(Math.abs(capacity), Integer.MAX_VALUE));
   }

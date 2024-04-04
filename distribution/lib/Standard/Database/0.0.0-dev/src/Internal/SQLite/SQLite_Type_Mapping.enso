@@ -2,10 +2,8 @@ from Standard.Base import all
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Errors.Illegal_State.Illegal_State
 
-import Standard.Table.Data.Type.Enso_Types
-import Standard.Table.Data.Type.Value_Type.Bits
-import Standard.Table.Data.Type.Value_Type.Value_Type
-import Standard.Table.Data.Type.Value_Type_Helpers
+import Standard.Table.Internal.Value_Type_Helpers
+from Standard.Table import Bits, Value_Type
 from Standard.Table.Errors import Inexact_Type_Coercion
 
 import project.DB_Column.DB_Column
@@ -155,7 +153,7 @@ operations_map =
         column : DB_Column -> column.value_type
         internal_column : Internal_Column ->
             SQLite_Type_Mapping.sql_type_to_value_type internal_column.sql_type_reference.get
-        enso_value -> Enso_Types.most_specific_value_type enso_value use_smallest=True
+        enso_value -> Value_Type_Helpers.most_specific_value_type enso_value use_smallest=True
 
     ## We actually re-use the logic from the in-memory backend, since the
        SQLite types essentially implement a very simple subset of our types.

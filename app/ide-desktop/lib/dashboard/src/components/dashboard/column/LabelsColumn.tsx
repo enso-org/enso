@@ -40,9 +40,7 @@ export default function LabelsColumn(props: column.AssetColumnProps) {
   const toastAndLog = toastAndLogHooks.useToastAndLog()
   const smartAsset = item.item
   const asset = smartAsset.value
-  const self = asset.permissions?.find(
-    permission => permission.user.user_email === user?.value.email
-  )
+  const self = asset.permissions?.find(permission => permission.user.userId === user?.value.userId)
   const managesThisAsset =
     category !== Category.trash &&
     (self?.permission === permissions.PermissionAction.own ||

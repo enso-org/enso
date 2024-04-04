@@ -3,6 +3,8 @@ import * as React from 'react'
 
 import PenIcon from 'enso-assets/pen.svg'
 
+import * as dataLinkValidator from '#/data/dataLinkValidator'
+
 import * as setAssetHooks from '#/hooks/setAssetHooks'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
@@ -25,7 +27,6 @@ import type AssetQuery from '#/utilities/AssetQuery'
 import type AssetTreeNode from '#/utilities/AssetTreeNode'
 import * as object from '#/utilities/object'
 import * as permissions from '#/utilities/permissions'
-import * as validateDataLink from '#/utilities/validateDataLink'
 
 // =======================
 // === AssetProperties ===
@@ -59,7 +60,7 @@ export default function AssetProperties(props: AssetPropertiesProps) {
   )
   const [isDataLinkFetched, setIsDataLinkFetched] = React.useState(false)
   const isDataLinkSubmittable = React.useMemo(
-    () => validateDataLink.validateDataLink(dataLinkValue),
+    () => dataLinkValidator.validateDataLink(dataLinkValue),
     [dataLinkValue]
   )
   const setItem = React.useCallback(
@@ -72,8 +73,8 @@ export default function AssetProperties(props: AssetPropertiesProps) {
   const smartAsset = item.item
   const asset = smartAsset.value
   const setAsset = setAssetHooks.useSetAsset(asset, setItem)
-  const self = asset.permissions?.find(
-    permission => permission.user.user_email === user?.value.email
+  const self = item.item.value.permissions?.find(
+    permission => permission.user.userId === user?.value.userId
   )
   const ownsThisAsset = self?.permission === permissions.PermissionAction.own
   const canEditThisAsset =
@@ -104,7 +105,10 @@ export default function AssetProperties(props: AssetPropertiesProps) {
       const oldDescription = asset.description
       setAsset(object.merger({ description }))
       try {
-        await smartAsset.update({ description })
+        const projectPath = asset.projectState?.path
+        await smartAsset.update(
+          projectPath == null ? { description } : { description, projectPath }
+        )
       } catch (error) {
         toastAndLog('editDescriptionError')
         setAsset(object.merger({ description: oldDescription }))

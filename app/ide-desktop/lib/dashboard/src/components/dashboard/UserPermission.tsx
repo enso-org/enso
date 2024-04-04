@@ -59,13 +59,13 @@ export default function UserPermission(props: UserPermissionProps) {
       setUserPermission(newUserPermissions)
       outerSetUserPermission(newUserPermissions)
       await asset.setPermissions({
-        actorsIds: [newUserPermissions.user.sk],
+        actorsIds: [newUserPermissions.user.userId],
         action: newUserPermissions.permission,
       })
     } catch (error) {
       setUserPermission(userPermission)
       outerSetUserPermission(userPermission)
-      toastAndLog('setPermissionsError', error, newUserPermissions.user.user_email)
+      toastAndLog('setPermissionsError', error, newUserPermissions.user.email)
     }
   }
 
@@ -73,7 +73,7 @@ export default function UserPermission(props: UserPermissionProps) {
     <div className="flex items-center gap-user-permission">
       <PermissionSelector
         showDelete
-        disabled={isOnlyOwner && userPermission.user.sk === self.user.sk}
+        disabled={isOnlyOwner && userPermission.user.userId === self.user.userId}
         error={isOnlyOwner ? getText('needsOwnerError', assetTypeName) : null}
         selfPermission={self.permission}
         action={userPermission.permission}
@@ -85,7 +85,7 @@ export default function UserPermission(props: UserPermissionProps) {
           doDelete(userPermission.user)
         }}
       />
-      <span className="text">{userPermission.user.user_name}</span>
+      <span className="text">{userPermission.user.name}</span>
     </div>
   )
 }

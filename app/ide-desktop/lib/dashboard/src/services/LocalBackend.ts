@@ -6,21 +6,105 @@
 import * as detect from 'enso-common/src/detect'
 
 import Backend, * as backend from '#/services/Backend'
+import * as projectManager from '#/services/ProjectManager'
+import ProjectManager from '#/services/ProjectManager'
 
 import * as dateTime from '#/utilities/dateTime'
 import * as errorModule from '#/utilities/error'
+import * as fileInfo from '#/utilities/fileInfo'
 import * as object from '#/utilities/object'
-import * as projectManagerModule from '#/utilities/ProjectManager'
-import ProjectManager from '#/utilities/ProjectManager'
 import * as uniqueString from '#/utilities/uniqueString'
+
+// ====================
+// === ProjectState ===
+// ====================
+
+/** A project that is currently opening. */
+interface OpenInProgressProjectState {
+  readonly state: backend.ProjectState.openInProgress
+}
+
+/** A project that is currently opened. */
+interface OpenedProjectState {
+  readonly state: backend.ProjectState.opened
+  readonly data: projectManager.OpenProject
+}
+
+/** Possible states and associated metadata of a project.
+ * The "closed" state is omitted as it is the default state. */
+type ProjectState = OpenedProjectState | OpenInProgressProjectState
 
 // =============================
 // === ipWithSocketToAddress ===
 // =============================
 
-/** Convert a {@link projectManagerModule.IpWithSocket} to a {@link backend.Address}. */
-function ipWithSocketToAddress(ipWithSocket: projectManagerModule.IpWithSocket) {
+/** Convert a {@link projectManager.IpWithSocket} to a {@link backend.Address}. */
+function ipWithSocketToAddress(ipWithSocket: projectManager.IpWithSocket) {
   return backend.Address(`ws://${ipWithSocket.host}:${ipWithSocket.port}`)
+}
+
+// ======================================
+// === Functions for manipulating ids ===
+// ======================================
+
+/** Create a {@link backend.DirectoryId} from a path. */
+export function newDirectoryId(path: projectManager.Path) {
+  return backend.DirectoryId(`${backend.AssetType.directory}-${path}`)
+}
+
+/** Create a {@link backend.ProjectId} from a UUID. */
+export function newProjectId(uuid: projectManager.UUID) {
+  return backend.ProjectId(`${backend.AssetType.project}-${uuid}`)
+}
+
+/** Create a {@link backend.FileId} from a path. */
+export function newFileId(path: projectManager.Path) {
+  return backend.FileId(`${backend.AssetType.file}-${path}`)
+}
+
+/** The internal asset type and properly typed corresponding internal ID of a directory. */
+interface DirectoryTypeAndId {
+  readonly type: backend.AssetType.directory
+  readonly id: projectManager.Path
+}
+
+/** The internal asset type and properly typed corresponding internal ID of a project. */
+interface ProjectTypeAndId {
+  readonly type: backend.AssetType.project
+  readonly id: projectManager.UUID
+}
+
+/** The internal asset type and properly typed corresponding internal ID of a file. */
+interface FileTypeAndId {
+  readonly type: backend.AssetType.file
+  readonly id: projectManager.Path
+}
+
+/** The internal asset type and properly typed corresponding internal ID of an arbitrary asset. */
+type AssetTypeAndId<Id extends backend.AssetId = backend.AssetId> =
+  | (backend.DirectoryId extends Id ? DirectoryTypeAndId : never)
+  | (backend.FileId extends Id ? FileTypeAndId : never)
+  | (backend.ProjectId extends Id ? ProjectTypeAndId : never)
+
+export function extractTypeAndId<Id extends backend.AssetId>(id: Id): AssetTypeAndId<Id>
+/** Extracts the asset type and its corresponding internal ID from a {@link backend.AssetId}.
+ * @throws {Error} if the id has an unknown type. */
+export function extractTypeAndId<Id extends backend.AssetId>(id: Id): AssetTypeAndId {
+  const [, typeRaw, idRaw = ''] = id.match(/(.+?)-(.+)/) ?? []
+  switch (typeRaw) {
+    case backend.AssetType.directory: {
+      return { type: backend.AssetType.directory, id: projectManager.Path(idRaw) }
+    }
+    case backend.AssetType.project: {
+      return { type: backend.AssetType.project, id: projectManager.UUID(idRaw) }
+    }
+    case backend.AssetType.file: {
+      return { type: backend.AssetType.file, id: projectManager.Path(idRaw) }
+    }
+    default: {
+      throw new Error(`Invalid type '${typeRaw}'`)
+    }
+  }
 }
 
 // ============================
@@ -46,6 +130,38 @@ function overwriteMaterialize<T>(
   }
 }
 
+// ======================
+// === intoSmartAsset ===
+// ======================
+
+/** Converts an {@link backend.AnyAsset} into its corresponding
+ * {@link backend.AnySmartAsset}. */
+function intoSmartAsset(projectManagerValue: ProjectManager) {
+  return (asset: backend.AnyAsset): backend.AnySmartAsset => {
+    switch (asset.type) {
+      case backend.AssetType.directory: {
+        return new SmartDirectory(projectManagerValue, asset)
+      }
+      case backend.AssetType.project: {
+        return new SmartProject(projectManagerValue, asset)
+      }
+      case backend.AssetType.file: {
+        return new SmartFile(projectManagerValue, asset)
+      }
+      case backend.AssetType.dataLink:
+      case backend.AssetType.secret: {
+        throw new Error(`The Local Backend does not support '${asset.type}' assets.`)
+      }
+      case backend.AssetType.specialLoading:
+      case backend.AssetType.specialEmpty: {
+        throw new Error(
+          `'${asset.type}' is a special asset type that should never be returned by the backend.`
+        )
+      }
+    }
+  }
+}
+
 // =====================
 // === Smart objects ===
 // =====================
@@ -54,6 +170,8 @@ function overwriteMaterialize<T>(
 class SmartObject<T> implements backend.SmartObject<T> {
   /** Create a {@link SmartObject}. */
   constructor(
+    // This is fine, as this is a property, not a local variable.
+    // eslint-disable-next-line @typescript-eslint/no-shadow
     protected readonly projectManager: ProjectManager,
     readonly value: T
   ) {}
@@ -144,26 +262,79 @@ class SmartAsset<T extends backend.AnyAsset = backend.AnyAsset>
     return this
   }
 
-  /** Invalid operation. */
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  update(_body: backend.UpdateAssetRequestBody): Promise<this> {
-    return this.invalidOperation()
+  /** Change the name, parent directory and/or description of an asset. */
+  async update(body: backend.UpdateAssetOrDirectoryRequestBody): Promise<this> {
+    if (body.parentDirectoryId == null && body.title == null) {
+      return this
+    } else {
+      const typeAndId = extractTypeAndId(this.value.id)
+      const from = typeAndId.type === backend.AssetType.project ? body.projectPath : typeAndId.id
+      if (from == null) {
+        throw new Error('Could not move project: project has no `projectPath`.')
+      } else {
+        const fileName = body.title ?? fileInfo.fileName(from)
+        const parentPath = extractTypeAndId(body.parentDirectoryId ?? this.value.parentId).id
+        const to = projectManager.joinPath(parentPath, fileName)
+        await this.projectManager.moveFile(from, to)
+        const parentId = body.parentDirectoryId
+        if (this instanceof SmartProject) {
+          return this.withValue(
+            // This is SAFE, as `backend.ProjectAsset & T` is `backend.ProjectAsset`.
+            // eslint-disable-next-line no-restricted-syntax
+            object.merge(this.value, {
+              projectState: object.merge(this.value.projectState, { path: to }),
+            } as Partial<backend.ProjectAsset & T>)
+          )
+        } else if (this instanceof SmartDirectory) {
+          return this.withValue(
+            // This is SAFE, as `backend.DirectoryAsset & T` is `backend.DirectoryAsset`.
+            // eslint-disable-next-line no-restricted-syntax
+            object.merge(this.value, { id: newDirectoryId(to), parentId } as Partial<
+              backend.DirectoryAsset & T
+            >)
+          )
+        } else if (this instanceof SmartFile) {
+          return this.withValue(
+            // This is SAFE, as `backend.FileAsset & T` is `backend.FileAsset`.
+            // eslint-disable-next-line no-restricted-syntax
+            object.merge(this.value, { id: newFileId(to), parentId } as Partial<
+              backend.FileAsset & T
+            >)
+          )
+        } else {
+          throw new Error(`Assets of type '${this.constructor.name}' cannot be updated.`)
+        }
+      }
+    }
   }
 
   /** Permanently delete a project. */
   async delete(): Promise<void> {
-    if (this.value.type !== backend.AssetType.project) {
-      return this.invalidOperation()
-    } else {
-      try {
-        await this.projectManager.deleteProject({ projectId: this.value.id })
+    const typeAndId = extractTypeAndId(this.value.id)
+    switch (typeAndId.type) {
+      case backend.AssetType.directory:
+      case backend.AssetType.file: {
+        await this.projectManager.deleteFile(typeAndId.id)
         return
-      } catch (error) {
-        throw new Error(
-          `Could not delete project '${this.value.title}': ${
-            errorModule.getMessageOrToString(error) ?? 'unknown error'
-          }.`
-        )
+      }
+      case backend.AssetType.project: {
+        LocalBackend.projects.delete(typeAndId.id)
+        try {
+          await this.projectManager.deleteProject({
+            projectId: typeAndId.id,
+            projectsDirectory: extractTypeAndId(this.value.parentId).id,
+          })
+          return
+        } catch (error) {
+          throw new Error(
+            `Could not delete project '${
+              this.value.title
+            }': ${errorModule.getMessageOrToString(error) ?? 'unknown error'}.`
+          )
+        }
+      }
+      default: {
+        return this.invalidOperation()
       }
     }
   }
@@ -204,34 +375,62 @@ class SmartAsset<T extends backend.AnyAsset = backend.AnyAsset>
 class SmartDirectory extends SmartAsset<backend.DirectoryAsset> implements backend.SmartDirectory {
   /** Return a list of assets in a directory. */
   async list(): Promise<backend.AnySmartAsset[]> {
-    const result = await this.projectManager.listProjects({})
-    return result.projects.map(
-      project =>
-        new SmartProject(this.projectManager, {
-          type: backend.AssetType.project,
-          id: project.id,
-          title: project.name,
-          modifiedAt: project.lastOpened ?? project.created,
-          parentId: this.value.id,
-          permissions: [],
-          projectState: {
-            type: LocalBackend.currentlyOpenProjects.has(project.id)
-              ? backend.ProjectState.opened
-              : project.id === LocalBackend.currentlyOpeningProjectId
-                ? backend.ProjectState.openInProgress
-                : backend.ProjectState.closed,
-            // eslint-disable-next-line @typescript-eslint/naming-convention
-            volume_id: '',
-          },
-          labels: [],
-          description: null,
-        })
-    )
-  }
-
-  /** Invalid operation. */
-  override update() {
-    return this.invalidOperation()
+    const parentId = this.value.id
+    const path = extractTypeAndId(parentId).id
+    const entries = await this.projectManager.listDirectory(path)
+    return entries
+      .map(entry => {
+        switch (entry.type) {
+          case projectManager.FileSystemEntryType.DirectoryEntry: {
+            return {
+              type: backend.AssetType.directory,
+              id: newDirectoryId(entry.path),
+              modifiedAt: entry.attributes.lastModifiedTime,
+              parentId,
+              title: fileInfo.fileName(entry.path),
+              permissions: [],
+              projectState: null,
+              labels: [],
+              description: null,
+            } satisfies backend.DirectoryAsset
+          }
+          case projectManager.FileSystemEntryType.ProjectEntry: {
+            return {
+              type: backend.AssetType.project,
+              id: newProjectId(entry.metadata.id),
+              title: entry.metadata.name,
+              modifiedAt: entry.metadata.lastOpened ?? entry.metadata.created,
+              parentId,
+              permissions: [],
+              projectState: {
+                type:
+                  LocalBackend.projects.get(entry.metadata.id)?.state ??
+                  backend.ProjectState.closed,
+                // eslint-disable-next-line @typescript-eslint/naming-convention
+                volume_id: '',
+                path: entry.path,
+              },
+              labels: [],
+              description: null,
+            } satisfies backend.ProjectAsset
+          }
+          case projectManager.FileSystemEntryType.FileEntry: {
+            return {
+              type: backend.AssetType.file,
+              id: newFileId(entry.path),
+              title: fileInfo.fileName(entry.path),
+              modifiedAt: entry.attributes.lastModifiedTime,
+              parentId,
+              permissions: [],
+              projectState: null,
+              labels: [],
+              description: null,
+            } satisfies backend.FileAsset
+          }
+        }
+      })
+      .sort(backend.compareAssets)
+      .map(intoSmartAsset(this.projectManager))
   }
 
   /** Create a {@link backend.SpecialLoadingAsset}. */
@@ -266,9 +465,32 @@ class SmartDirectory extends SmartAsset<backend.DirectoryAsset> implements backe
     })
   }
 
-  /** Invalid operation. */
-  createPlaceholderDirectory() {
-    return this.invalidOperation()
+  /** Create a directory. */
+  createPlaceholderDirectory(title: string, permissions: backend.UserPermission[]): SmartDirectory {
+    const parentDirectoryPath = extractTypeAndId(this.value.id).id
+    const path = projectManager.joinPath(parentDirectoryPath, title)
+    const result = new SmartDirectory(this.projectManager, {
+      type: backend.AssetType.directory,
+      id: backend.DirectoryId(`${backend.AssetType.directory}-${uniqueString.uniqueString()}`),
+      title,
+      modifiedAt: dateTime.toRfc3339(new Date()),
+      parentId: this.value.id,
+      permissions,
+      projectState: null,
+      labels: [],
+      description: null,
+    })
+    result.materialize = overwriteMaterialize(result, async () => {
+      await this.projectManager.createDirectory(path)
+      return result.withValue(
+        object.merge(result.value, {
+          id: newDirectoryId(path),
+          parentId: newDirectoryId(parentDirectoryPath),
+          title: title,
+        })
+      )
+    })
+    return result
   }
 
   /** Create a {@link SmartProject} that is to be uploaded on the backend via `.materialize()` */
@@ -293,21 +515,63 @@ class SmartDirectory extends SmartAsset<backend.DirectoryAsset> implements backe
       description: null,
     })
     if (fileOrTemplateName instanceof File) {
-      return this.invalidOperation()
-    } else {
+      const directory = extractTypeAndId(this.value.id).id
       result.materialize = overwriteMaterialize(result, async () => {
-        const project = await this.projectManager.createProject({
-          name: projectManagerModule.ProjectName(title),
-          ...(fileOrTemplateName != null ? { projectTemplate: fileOrTemplateName } : {}),
-          missingComponentAction: projectManagerModule.MissingComponentAction.install,
-        })
+        let id: string
+        if (
+          'backendApi' in window &&
+          // This non-standard property is defined in Electron.
+          'path' in fileOrTemplateName &&
+          typeof fileOrTemplateName.path === 'string'
+        ) {
+          id = await window.backendApi.importProjectFromPath(
+            fileOrTemplateName.path,
+            directory,
+            title
+          )
+        } else {
+          const searchParams = new URLSearchParams({ directory, name: title }).toString()
+          // Ideally this would use `fileOrTemplateName.stream()`, to minimize RAM
+          // requirements. for uploading large projects. Unfortunately,
+          // this requires HTTP/2, which is HTTPS-only, so it will not
+          // work on `http://localhost`.
+          const body =
+            window.location.protocol === 'https:'
+              ? fileOrTemplateName.stream()
+              : await fileOrTemplateName.arrayBuffer()
+          // FIXME: fix leading path
+          const path = `./api/upload-project?${searchParams}`
+          const response = await fetch(path, { method: 'POST', body })
+          id = await response.text()
+        }
         return result.withValue(
           object.merge(result.value, {
-            id: project.projectId,
+            id: newProjectId(projectManager.UUID(id)),
             projectState: {
               type: backend.ProjectState.closed,
               // eslint-disable-next-line @typescript-eslint/naming-convention
               volume_id: '',
+              path: projectManager.joinPath(directory, title),
+            },
+          })
+        )
+      })
+    } else {
+      result.materialize = overwriteMaterialize(result, async () => {
+        const project = await this.projectManager.createProject({
+          name: projectManager.ProjectName(title),
+          ...(fileOrTemplateName != null ? { projectTemplate: fileOrTemplateName } : {}),
+          missingComponentAction: projectManager.MissingComponentAction.install,
+        })
+        const path = extractTypeAndId(this.value.id).id
+        return result.withValue(
+          object.merge(result.value, {
+            id: newProjectId(project.projectId),
+            projectState: {
+              type: backend.ProjectState.closed,
+              // eslint-disable-next-line @typescript-eslint/naming-convention
+              volume_id: '',
+              path: projectManager.joinPath(path, title),
             },
           })
         )
@@ -317,8 +581,29 @@ class SmartDirectory extends SmartAsset<backend.DirectoryAsset> implements backe
   }
 
   /** Invalid operation. */
-  createPlaceholderFile() {
-    return this.invalidOperation()
+  createPlaceholderFile(
+    title: string,
+    file: globalThis.File,
+    permissions: backend.UserPermission[]
+  ) {
+    const result = new SmartFile(this.projectManager, {
+      type: backend.AssetType.file,
+      id: backend.FileId(`${backend.AssetType.file}-${uniqueString.uniqueString()}`),
+      title,
+      modifiedAt: dateTime.toRfc3339(new Date()),
+      parentId: this.value.id,
+      permissions,
+      projectState: null,
+      labels: [],
+      description: null,
+    })
+    result.materialize = overwriteMaterialize(result, async () => {
+      const parentPath = extractTypeAndId(this.value.id).id
+      const path = projectManager.joinPath(parentPath, file.name)
+      await this.projectManager.createFile(path, file)
+      return result.withValue(object.merge(result.value, { id: newFileId(path) }))
+    })
+    return result
   }
 
   /** Invalid operation. */
@@ -336,14 +621,15 @@ class SmartDirectory extends SmartAsset<backend.DirectoryAsset> implements backe
 class SmartProject extends SmartAsset<backend.ProjectAsset> implements backend.SmartProject {
   /** Set a project to an open state. */
   async open(): Promise<void> {
-    LocalBackend.currentlyOpeningProjectId = this.value.id
-    if (!LocalBackend.currentlyOpenProjects.has(this.value.id)) {
+    const { id } = extractTypeAndId(this.value.id)
+    if (!LocalBackend.projects.has(id)) {
       try {
-        const project = await this.projectManager.openProject({
-          projectId: this.value.id,
-          missingComponentAction: projectManagerModule.MissingComponentAction.install,
+        LocalBackend.projects.set(id, { state: backend.ProjectState.openInProgress })
+        const data = await this.projectManager.openProject({
+          projectId: id,
+          missingComponentAction: projectManager.MissingComponentAction.install,
         })
-        LocalBackend.currentlyOpenProjects.set(this.value.id, project)
+        LocalBackend.projects.set(id, { state: backend.ProjectState.opened, data })
         return
       } catch (error) {
         throw new Error(
@@ -351,20 +637,23 @@ class SmartProject extends SmartAsset<backend.ProjectAsset> implements backend.S
             errorModule.getMessageOrToString(error) ?? 'unknown error'
           }.`
         )
-      } finally {
-        if (LocalBackend.currentlyOpeningProjectId === this.value.id) {
-          LocalBackend.currentlyOpeningProjectId = null
-        }
       }
     }
   }
 
   /** Return project details. */
   async getDetails(): Promise<backend.Project> {
-    const cachedProject = LocalBackend.currentlyOpenProjects.get(this.value.id)
+    const { id } = extractTypeAndId(this.value.id)
+    const state = LocalBackend.projects.get(id)
+    const cachedProject = state?.state === backend.ProjectState.opened ? state.data : null
     if (cachedProject == null) {
-      const result = await this.projectManager.listProjects({})
-      const project = result.projects.find(listedProject => listedProject.id === this.value.id)
+      const directoryId = extractTypeAndId(this.value.parentId).id
+      const entries = await this.projectManager.listDirectory(directoryId)
+      const project = entries
+        .flatMap(entry =>
+          entry.type === projectManager.FileSystemEntryType.ProjectEntry ? [entry.metadata] : []
+        )
+        .find(metadata => metadata.id === id)
       if (project == null) {
         throw new Error(`Could not get details of project '${this.value.title}'.`)
       } else {
@@ -385,12 +674,7 @@ class SmartProject extends SmartAsset<backend.ProjectAsset> implements backend.S
           packageName: project.name,
           projectId: this.value.id,
           state: {
-            type:
-              this.value.id === LocalBackend.currentlyOpeningProjectId
-                ? backend.ProjectState.openInProgress
-                : project.lastOpened != null
-                  ? backend.ProjectState.closed
-                  : backend.ProjectState.created,
+            type: LocalBackend.projects.get(id)?.state ?? backend.ProjectState.closed,
             // eslint-disable-next-line @typescript-eslint/naming-convention
             volume_id: '',
           },
@@ -433,35 +717,43 @@ class SmartProject extends SmartAsset<backend.ProjectAsset> implements backend.S
 
   /** Change the name, description, AMI, or parent of a project. */
   override async update(body: backend.UpdateAssetOrProjectRequestBody): Promise<this> {
+    const updated = await super.update(body)
     if (body.ami != null) {
       throw new Error('Cannot change project AMI on local backend.')
     } else if (body.ideVersion != null) {
       throw new Error('Cannot change project IDE version on local backend.')
     } else {
-      if (body.projectName != null) {
+      const { id } = extractTypeAndId(this.value.id)
+      if (body.projectName != null && this.value.projectState.path != null) {
+        const projectsDirectory = extractTypeAndId(this.value.parentId).id
         await this.projectManager.renameProject({
-          projectId: this.value.id,
-          name: projectManagerModule.ProjectName(body.projectName),
+          projectId: id,
+          name: projectManager.ProjectName(body.projectName),
+          projectsDirectory,
         })
       }
-      const result = await this.projectManager.listProjects({})
-      const project = result.projects.find(listedProject => listedProject.id === this.value.id)
+      const parentPath = extractTypeAndId(this.value.parentId).id
+      const result = await this.projectManager.listDirectory(parentPath)
+      const project = result.flatMap(listedProject =>
+        listedProject.type === projectManager.FileSystemEntryType.ProjectEntry &&
+        listedProject.metadata.id === id
+          ? [listedProject.metadata]
+          : []
+      )[0]
       if (project == null) {
         throw new Error('The project that is being updated no longer exists.')
       } else {
-        return this.withValue(object.merge(this.value, { title: project.name }))
+        return updated.withValue(object.merge(this.value, { title: project.name }))
       }
     }
   }
 
   /** Close a project. */
   async close(): Promise<void> {
-    if (LocalBackend.currentlyOpeningProjectId === this.value.id) {
-      LocalBackend.currentlyOpeningProjectId = null
-    }
-    LocalBackend.currentlyOpenProjects.delete(this.value.id)
+    const { id } = extractTypeAndId(this.value.id)
+    LocalBackend.projects.delete(id)
     try {
-      await this.projectManager.closeProject({ projectId: this.value.id })
+      await this.projectManager.closeProject({ projectId: id })
       return
     } catch (error) {
       throw new Error(
@@ -478,6 +770,14 @@ class SmartProject extends SmartAsset<backend.ProjectAsset> implements backend.S
   }
 }
 
+/** A smart wrapper around a {@link backend.FileAsset}. */
+class SmartFile extends SmartAsset<backend.FileAsset> implements backend.SmartFile {
+  /** Invalid operation. */
+  getDetails() {
+    return this.invalidOperation()
+  }
+}
+
 // ====================
 // === LocalBackend ===
 // ====================
@@ -485,11 +785,7 @@ class SmartProject extends SmartAsset<backend.ProjectAsset> implements backend.S
 /** Class for sending requests to the Project Manager API endpoints.
  * This is used instead of the cloud backend API when managing local projects from the dashboard. */
 export default class LocalBackend extends Backend {
-  static currentlyOpeningProjectId: backend.ProjectId | null = null
-  static currentlyOpenProjects = new Map<
-    projectManagerModule.ProjectId,
-    projectManagerModule.OpenProject
-  >()
+  static projects = new Map<projectManager.UUID, ProjectState>()
   readonly type = backend.BackendType.local
   private readonly projectManager: ProjectManager
 
@@ -525,26 +821,29 @@ export default class LocalBackend extends Backend {
    * @throws An error if the JSON-RPC call fails. */
   async openProject(
     projectId: backend.ProjectId,
-    _body: backend.OpenProjectRequestBody | null,
+    body: backend.OpenProjectRequestBody | null,
     title: string | null
   ): Promise<void> {
-    LocalBackend.currentlyOpeningProjectId = projectId
-    if (!LocalBackend.currentlyOpenProjects.has(projectId)) {
+    const { id } = extractTypeAndId(projectId)
+    if (!LocalBackend.projects.has(id)) {
+      LocalBackend.projects.set(id, { state: backend.ProjectState.openInProgress })
       try {
-        const project = await this.projectManager.openProject({
-          projectId,
-          missingComponentAction: projectManagerModule.MissingComponentAction.install,
+        const data = await this.projectManager.openProject({
+          projectId: id,
+          missingComponentAction: projectManager.MissingComponentAction.install,
+          ...(body?.parentId != null
+            ? { projectsDirectory: extractTypeAndId(body.parentId).id }
+            : {}),
         })
-        LocalBackend.currentlyOpenProjects.set(projectId, project)
+        LocalBackend.projects.set(id, { state: backend.ProjectState.opened, data })
         return
       } catch (error) {
+        LocalBackend.projects.delete(id)
         throw new Error(
           `Could not open project ${title != null ? `'${title}'` : `with ID '${projectId}'`}: ${
             errorModule.getMessageOrToString(error) ?? 'unknown error'
           }.`
         )
-      } finally {
-        LocalBackend.currentlyOpeningProjectId = null
       }
     }
   }
@@ -568,9 +867,10 @@ export default class LocalBackend extends Backend {
     return Promise.resolve(
       new SmartUser(this.projectManager, {
         email: backend.EmailAddress(''),
-        id: backend.OrganizationId('organization-local'),
+        userId: backend.UserId('user-local'),
+        organizationId: backend.OrganizationId('organization-local'),
         isEnabled: false,
-        rootDirectoryId: backend.DirectoryId(`${backend.AssetType.directory}-local`),
+        rootDirectoryId: newDirectoryId(ProjectManager.rootDirectory),
         name: 'Local User',
         profilePicture: null,
       })

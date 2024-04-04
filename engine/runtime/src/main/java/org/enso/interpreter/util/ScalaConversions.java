@@ -9,6 +9,9 @@ import scala.jdk.javaapi.OptionConverters;
 
 /** Utility class for converting between Scala and Java basic classes. */
 public class ScalaConversions {
+
+  private ScalaConversions() {}
+
   /**
    * Converts a Scala {@link Option} to a Java {@link Optional}.
    *
@@ -37,5 +40,19 @@ public class ScalaConversions {
   public static <T> scala.collection.immutable.List<T> cons(
       T head, scala.collection.immutable.List<T> tail) {
     return scala.collection.immutable.$colon$colon$.MODULE$.apply(head, tail);
+  }
+
+  /**
+   * Create a Scala set from the provided elements.
+   *
+   * @param elems the set elements.
+   * @return the immutable Scala set.
+   */
+  @SafeVarargs
+  public static <T> scala.collection.immutable.Set<T> set(T... elems) {
+    var s = new scala.collection.mutable.LinkedHashSet<T>();
+    for (T elem : elems) s.add(elem);
+
+    return s.toSet();
   }
 }

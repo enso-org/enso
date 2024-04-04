@@ -542,7 +542,7 @@ export default class AssetQuery {
     const owners =
       node.item.value.permissions
         ?.filter(permission => permission.permission === permissions.PermissionAction.own)
-        .map(owner => owner.user.user_name) ?? []
+        .map(owner => owner.user.name) ?? []
     const globMatch = (glob: string, match: string) => {
       const regex = (GLOB_CACHE[glob] =
         GLOB_CACHE[glob] ??

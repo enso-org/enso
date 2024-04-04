@@ -34,19 +34,19 @@ export default function OrganizationSettingsTab(props: OrganizationSettingsTabPr
   const locationRef = React.useRef<HTMLInputElement>(null)
 
   const doUpdateName = async () => {
-    const oldName = organization?.value?.organization_name ?? null
+    const oldName = organization?.value?.name ?? null
     const name = nameRef.current?.value ?? ''
     if (oldName !== name) {
       try {
         // eslint-disable-next-line @typescript-eslint/naming-convention
-        setOrganizationInfo(object.merger({ organization_name: name }))
+        setOrganizationInfo(object.merger({ name }))
         const newOrganization = await organization?.update({ name })
         if (newOrganization != null) {
           setOrganizationInfo(newOrganization)
         }
       } catch (error) {
         // eslint-disable-next-line @typescript-eslint/naming-convention
-        setOrganizationInfo(object.merger({ organization_name: oldName }))
+        setOrganizationInfo(object.merger({ name: oldName }))
         toastAndLog(null, error)
         const ref = nameRef.current
         if (ref) {
@@ -169,13 +169,13 @@ export default function OrganizationSettingsTab(props: OrganizationSettingsTabPr
                 <input
                   ref={nameRef}
                   className="settings-value w-full rounded-full bg-transparent font-bold placeholder-black/30 transition-colors invalid:border invalid:border-red-700 hover:bg-selected-frame focus:bg-selected-frame"
-                  key={organization?.value?.organization_name}
+                  key={organization?.value?.name}
                   type="text"
                   size={1}
-                  defaultValue={organization?.value?.organization_name ?? ''}
+                  defaultValue={organization?.value?.name ?? ''}
                   onBlur={doUpdateName}
                   onKeyDown={event => {
-                    onKeyDown(event, organization?.value?.organization_name ?? '')
+                    onKeyDown(event, organization?.value?.name ?? '')
                   }}
                 />
               </span>

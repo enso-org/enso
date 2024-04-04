@@ -21,7 +21,7 @@ pub enum Command {
         /// Which browsers should be used to run WASM tests.
         ///
         /// More than one browser can be specified.
-        #[clap(long, enso_env(), arg_enum, default_values_t = [Browser::Firefox])]
+        #[clap(long, enso_env(), value_enum, default_values_t = [Browser::Firefox])]
         browser:   Vec<Browser>,
     },
 }

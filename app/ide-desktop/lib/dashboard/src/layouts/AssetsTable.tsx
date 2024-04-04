@@ -268,6 +268,7 @@ export interface AssetsTableProps {
   readonly dispatchAssetEvent: (event: assetEvent.AssetEvent) => void
   readonly setAssetPanelProps: (props: assetPanel.AssetPanelRequiredProps | null) => void
   readonly setIsAssetPanelTemporarilyVisible: (visible: boolean) => void
+  readonly targetDirectoryNodeRef: React.MutableRefObject<AssetTreeNode<backendModule.SmartDirectory> | null>
   readonly doOpenEditor: (
     project: backendModule.SmartProject,
     setProject: React.Dispatch<React.SetStateAction<backendModule.ProjectAsset>>,
@@ -293,9 +294,9 @@ export default function AssetsTable(props: AssetsTableProps) {
   const { setSuggestions, deletedLabelNames, initialProjectName, projectStartupInfo } = props
   const { assetListEvents, dispatchAssetListEvent, assetEvents, dispatchAssetEvent } = props
   const { setAssetPanelProps, doOpenEditor, doCloseEditor: rawDoCloseEditor, doCreateLabel } = props
-  const { setIsAssetPanelTemporarilyVisible } = props
+  const { targetDirectoryNodeRef, setIsAssetPanelTemporarilyVisible } = props
 
-  const { user, userInfo, accessToken } = authProvider.useNonPartialUserSession()
+  const { user, accessToken } = authProvider.useNonPartialUserSession()
   const { setModal, unsetModal } = modalProvider.useSetModal()
   const { localStorage } = localStorageProvider.useLocalStorage()
   const { getText } = textProvider.useText()
@@ -393,6 +394,48 @@ export default function AssetsTable(props: AssetsTableProps) {
     () => displayItems.filter(item => visibilities.get(item.key) !== Visibility.hidden),
     [displayItems, visibilities]
   )
+
+  React.useEffect(() => {
+    if (selectedKeys.size === 0) {
+      targetDirectoryNodeRef.current = null
+    } else if (selectedKeys.size === 1) {
+      const [soleKey] = selectedKeys
+      const node = soleKey == null ? null : nodeMapRef.current.get(soleKey)
+      if (node != null && node.isType(backendModule.AssetType.directory)) {
+        targetDirectoryNodeRef.current = node
+      }
+    } else {
+      let commonDirectoryKey: backendModule.AssetId | null = null
+      let otherCandidateDirectoryKey: backendModule.AssetId | null = null
+      for (const key of selectedKeys) {
+        const node = nodeMapRef.current.get(key)
+        if (node != null) {
+          if (commonDirectoryKey == null) {
+            commonDirectoryKey = node.directoryKey
+            otherCandidateDirectoryKey =
+              node.item.type === backendModule.AssetType.directory ? node.key : null
+          } else if (node.key === commonDirectoryKey || node.directoryKey === commonDirectoryKey) {
+            otherCandidateDirectoryKey = null
+          } else if (
+            otherCandidateDirectoryKey != null &&
+            (node.key === otherCandidateDirectoryKey ||
+              node.directoryKey === otherCandidateDirectoryKey)
+          ) {
+            commonDirectoryKey = otherCandidateDirectoryKey
+            otherCandidateDirectoryKey = null
+          } else {
+            // No match; there is no common parent directory for the entire selection.
+            commonDirectoryKey = null
+            break
+          }
+        }
+      }
+      const node = commonDirectoryKey == null ? null : nodeMapRef.current.get(commonDirectoryKey)
+      if (node != null && node.isType(backendModule.AssetType.directory)) {
+        targetDirectoryNodeRef.current = node
+      }
+    }
+  }, [targetDirectoryNodeRef, selectedKeys])
 
   React.useEffect(() => {
     const nodeToSuggestion = (
@@ -515,7 +558,7 @@ export default function AssetsTable(props: AssetsTableProps) {
             .flatMap(node =>
               (node.item.value.permissions ?? [])
                 .filter(permission => permission.permission === permissions.PermissionAction.own)
-                .map(permission => permission.user.user_name)
+                .map(permission => permission.user.name)
             )
           setSuggestions(
             Array.from(
@@ -640,7 +683,13 @@ export default function AssetsTable(props: AssetsTableProps) {
       selectedKeysRef.current = newSelectedKeys
       setSelectedKeysRaw(newSelectedKeys)
       if (!isCloud) {
-        setCanDownload(newSelectedKeys.size !== 0)
+        setCanDownload(
+          newSelectedKeys.size !== 0 &&
+            Array.from(newSelectedKeys).every(key => {
+              const node = nodeMapRef.current.get(key)
+              return node?.item.type === backendModule.AssetType.project
+            })
+        )
       } else {
         setCanDownload(
           newSelectedKeys.size !== 0 &&
@@ -735,7 +784,7 @@ export default function AssetsTable(props: AssetsTableProps) {
       .catch((error: unknown) => {
         if (!signal.aborted) {
           setIsLoading(false)
-          toastAndLog(null, error)
+          toastAndLog('listRootFolderBackendError', error)
         }
       })
     return () => {
@@ -844,7 +893,10 @@ export default function AssetsTable(props: AssetsTableProps) {
           const abortController = new AbortController()
           directoryListAbortControllersRef.current.set(directory.value.id, abortController)
           const filterBy = CATEGORY_TO_FILTER_BY[category]
-          const childAssets = await directory.list({ filterBy, labels: null })
+          const childAssets = await directory.list({ filterBy, labels: null }).catch(error => {
+            toastAndLog('listFolderBackendError', error, directory.value.title)
+            throw error
+          })
           if (!abortController.signal.aborted) {
             setAssetTree(oldAssetTree =>
               oldAssetTree.map(item => {
@@ -891,7 +943,7 @@ export default function AssetsTable(props: AssetsTableProps) {
         })()
       }
     },
-    [category]
+    [category, toastAndLog]
   )
 
   const [spinnerState, setSpinnerState] = React.useState(spinner.SpinnerState.initial)
@@ -1085,7 +1137,7 @@ export default function AssetsTable(props: AssetsTableProps) {
           .map(match => match?.groups?.directoryIndex)
           .map(maybeIndex => (maybeIndex != null ? parseInt(maybeIndex, 10) : 0))
         const title = `New Folder ${Math.max(0, ...directoryIndices) + 1}`
-        const permission = permissions.tryGetSingletonOwnerPermission(user, userInfo)
+        const permission = permissions.tryGetSingletonOwnerPermission(user)
         const placeholderItem = event.parent.createPlaceholderDirectory(title, permission)
         doToggleDirectoryExpansion(event.parent, event.parentKey, true)
         insertAssets([placeholderItem], event.parentKey, event.parent)
@@ -1102,7 +1154,7 @@ export default function AssetsTable(props: AssetsTableProps) {
           .map(match => match?.groups?.projectIndex)
           .map(maybeIndex => (maybeIndex != null ? parseInt(maybeIndex, 10) : 0))
         const projectName = `${prefix} ${Math.max(0, ...projectIndices) + 1}`
-        const permission = permissions.tryGetSingletonOwnerPermission(user, userInfo)
+        const permission = permissions.tryGetSingletonOwnerPermission(user)
         const placeholderItem = event.parent.createPlaceholderProject(
           projectName,
           event.templateId,
@@ -1126,7 +1178,7 @@ export default function AssetsTable(props: AssetsTableProps) {
         const duplicateProjects = projects.filter(project =>
           siblingProjectTitles.has(backendModule.stripProjectExtension(project.name))
         )
-        const permission = permissions.tryGetSingletonOwnerPermission(user, userInfo)
+        const permission = permissions.tryGetSingletonOwnerPermission(user)
         if (duplicateFiles.length === 0 && duplicateProjects.length === 0) {
           const placeholderFiles = files.map(file =>
             event.parent.createPlaceholderFile(file.name, file, permission)
@@ -1200,7 +1252,7 @@ export default function AssetsTable(props: AssetsTableProps) {
       }
       case AssetListEventType.newDataLink: {
         doToggleDirectoryExpansion(event.parent, event.parentKey, true)
-        const permission = permissions.tryGetSingletonOwnerPermission(user, userInfo)
+        const permission = permissions.tryGetSingletonOwnerPermission(user)
         const placeholderItem = event.parent.createPlaceholderDataLink(
           event.name,
           event.value,
@@ -1211,7 +1263,7 @@ export default function AssetsTable(props: AssetsTableProps) {
       }
       case AssetListEventType.newSecret: {
         doToggleDirectoryExpansion(event.parent, event.parentKey, true)
-        const permission = permissions.tryGetSingletonOwnerPermission(user, userInfo)
+        const permission = permissions.tryGetSingletonOwnerPermission(user)
         const placeholderItem = event.parent.createPlaceholderSecret(
           event.name,
           event.value,

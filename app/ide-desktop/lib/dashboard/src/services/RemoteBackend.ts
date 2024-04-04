@@ -168,6 +168,40 @@ export interface UploadFileRequestParams {
   readonly parentDirectoryId: backend.DirectoryId | null
 }
 
+// ======================
+// === intoSmartAsset ===
+// ======================
+
+/** Converts an {@link backend.AnyAsset} into its corresponding
+ * {@link backend.AnySmartAsset}. */
+function intoSmartAsset(client: HttpClient, logger: loggerProvider.Logger, getText: GetText) {
+  return (asset: backend.AnyAsset): backend.AnySmartAsset => {
+    switch (asset.type) {
+      case backend.AssetType.directory: {
+        return new SmartDirectory(client, logger, getText, asset)
+      }
+      case backend.AssetType.project: {
+        return new SmartProject(client, logger, getText, asset)
+      }
+      case backend.AssetType.file: {
+        return new SmartFile(client, logger, getText, asset)
+      }
+      case backend.AssetType.dataLink: {
+        return new SmartDataLink(client, logger, getText, asset)
+      }
+      case backend.AssetType.secret: {
+        return new SmartSecret(client, logger, getText, asset)
+      }
+      case backend.AssetType.specialLoading:
+      case backend.AssetType.specialEmpty: {
+        throw new Error(
+          `'${asset.type}' is a special asset type that should never be returned by the backend.`
+        )
+      }
+    }
+  }
+}
+
 // =====================
 // === Smart objects ===
 // =====================
@@ -280,7 +314,7 @@ class SmartUser extends SmartObject<backend.User> implements backend.SmartUser {
   async invite(email: backend.EmailAddress): Promise<void> {
     const path = remoteBackendPaths.INVITE_USER_PATH
     const response = await this.client.post(path, {
-      organizationId: this.value.id,
+      organizationId: this.value.organizationId,
       userEmail: email,
     })
     if (!responseIsSuccessful(response)) {
@@ -291,10 +325,10 @@ class SmartUser extends SmartObject<backend.User> implements backend.SmartUser {
   }
 
   /** Return a list of all users in the same organization. */
-  async listUsers(): Promise<backend.SimpleUser[]> {
+  async listUsers(): Promise<backend.UserInfo[]> {
     /** HTTP response body for this endpoint. */
     interface ResponseBody {
-      readonly users: backend.SimpleUser[]
+      readonly users: backend.UserInfo[]
     }
     const path = remoteBackendPaths.LIST_USERS_PATH
     const response = await this.client.get<ResponseBody>(path)
@@ -419,7 +453,7 @@ class SmartAsset<T extends backend.AnyAsset = backend.AnyAsset>
     return this
   }
 
-  /** Change the parent directory of an asset. */
+  /** Change the parent directory and/or description of an asset. */
   async update(body: backend.UpdateAssetRequestBody): Promise<this> {
     if (body.description == null && body.parentDirectoryId == null) {
       // No action is needed.
@@ -447,8 +481,9 @@ class SmartAsset<T extends backend.AnyAsset = backend.AnyAsset>
   }
 
   /** Move an arbitrary asset to the trash. */
-  async delete(force?: boolean): Promise<void> {
-    const paramsString = new URLSearchParams([['force', String(force ?? false)]]).toString()
+  async delete(body: backend.DeleteAssetRequestBody): Promise<void> {
+    const { force = false } = body
+    const paramsString = new URLSearchParams([['force', String(force)]]).toString()
     const path = remoteBackendPaths.deleteAssetPath(this.value.id) + '?' + paramsString
     const response = await this.client.delete(path)
     if (!responseIsSuccessful(response)) {
@@ -529,36 +564,6 @@ class SmartAsset<T extends backend.AnyAsset = backend.AnyAsset>
   }
 }
 
-/** Converts an {@link backend.AnyAsset} into its corresponding
- * {@link backend.AnySmartAsset}. */
-function intoSmartAsset(client: HttpClient, logger: loggerProvider.Logger, getText: GetText) {
-  return (asset: backend.AnyAsset): backend.AnySmartAsset => {
-    switch (asset.type) {
-      case backend.AssetType.directory: {
-        return new SmartDirectory(client, logger, getText, asset)
-      }
-      case backend.AssetType.project: {
-        return new SmartProject(client, logger, getText, asset)
-      }
-      case backend.AssetType.file: {
-        return new SmartFile(client, logger, getText, asset)
-      }
-      case backend.AssetType.dataLink: {
-        return new SmartDataLink(client, logger, getText, asset)
-      }
-      case backend.AssetType.secret: {
-        return new SmartSecret(client, logger, getText, asset)
-      }
-      case backend.AssetType.specialLoading:
-      case backend.AssetType.specialEmpty: {
-        throw new Error(
-          `'${asset.type}' is a special asset type that should never be returned by the backend.`
-        )
-      }
-    }
-  }
-}
-
 /** A smart wrapper around a {@link backend.DirectoryAsset}. */
 class SmartDirectory extends SmartAsset<backend.DirectoryAsset> implements backend.SmartDirectory {
   /** Return a list of assets in a directory. */
@@ -599,10 +604,10 @@ class SmartDirectory extends SmartAsset<backend.DirectoryAsset> implements backe
       readonly title: string
     }
     const updated = await super.update(body)
-    const path = remoteBackendPaths.updateDirectoryPath(this.value.id)
     if (body.title == null) {
       return updated
     } else {
+      const path = remoteBackendPaths.updateDirectoryPath(this.value.id)
       const response = await this.client.put<ResponseBody>(path, { title: body.title })
       if (!responseIsSuccessful(response)) {
         return this.throw(response, 'updateFolderBackendError', this.value.title)
@@ -991,7 +996,7 @@ class SmartProject extends SmartAsset<backend.ProjectAsset> implements backend.S
 
 /** A smart wrapper around a {@link backend.FileAsset}. */
 class SmartFile extends SmartAsset<backend.FileAsset> implements backend.SmartFile {
-  /** Change the name or description of a file. */
+  /** Change the name, description or parent of a file. */
   override async update(body: backend.UpdateAssetOrFileRequestBody): Promise<this> {
     /** HTTP response body for this endpoint. */
     interface ResponseBody {

@@ -41,9 +41,7 @@ export default function SharedWithColumn(props: SharedWithColumnPropsInternal) {
   const { setModal } = modalProvider.useSetModal()
   const smartAsset = item.item
   const asset = smartAsset.value
-  const self = asset.permissions?.find(
-    permission => permission.user.user_email === user?.value.email
-  )
+  const self = asset.permissions?.find(permission => permission.user.userId === user?.value.userId)
   const managesThisAsset =
     category !== Category.trash &&
     (self?.permission === permissions.PermissionAction.own ||
@@ -54,20 +52,15 @@ export default function SharedWithColumn(props: SharedWithColumnPropsInternal) {
     <div className="group flex items-center gap-column-items">
       {(asset.permissions ?? []).map(otherUser => (
         <PermissionDisplay
-          key={otherUser.user.sk}
+          key={otherUser.user.userId}
           action={otherUser.permission}
           onClick={event => {
             setQuery(oldQuery =>
-              oldQuery.withToggled(
-                'owners',
-                'negativeOwners',
-                otherUser.user.user_name,
-                event.shiftKey
-              )
+              oldQuery.withToggled('owners', 'negativeOwners', otherUser.user.name, event.shiftKey)
             )
           }}
         >
-          {otherUser.user.user_name}
+          {otherUser.user.name}
         </PermissionDisplay>
       ))}
       {managesThisAsset && (

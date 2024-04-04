@@ -2,7 +2,7 @@ from Standard.Base import all
 
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
-import project.Data.Column.Column
+import project.Column.Column
 import project.Internal.Problem_Builder.Problem_Builder
 
 ## PRIVATE

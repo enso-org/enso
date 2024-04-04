@@ -29,6 +29,7 @@ import ManagePermissionsModal from '#/modals/ManagePermissionsModal'
 import UpsertSecretModal from '#/modals/UpsertSecretModal'
 
 import * as backendModule from '#/services/Backend'
+import * as localBackend from '#/services/LocalBackend'
 import RemoteBackend from '#/services/RemoteBackend'
 
 import HttpClient from '#/utilities/HttpClient'
@@ -50,12 +51,13 @@ export interface AssetContextMenuProps {
   readonly doCopy: () => void
   readonly doCut: () => void
   readonly doPaste: (newParentKey: backendModule.AssetId) => void
+  readonly doTriggerDescriptionEdit: () => void
 }
 
 /** The context menu for an arbitrary {@link backendModule.AnyAsset}. */
 export default function AssetContextMenu(props: AssetContextMenuProps) {
   const { hidden = false, isCloud, innerProps, event, eventTarget } = props
-  const { doCopy, doCut, doPaste, doDelete } = props
+  const { doCopy, doCut, doPaste, doDelete, doTriggerDescriptionEdit } = props
   const { item, setItem, state, setRowState } = innerProps
   const { category, hasPasteData, labels, dispatchAssetEvent, dispatchAssetListEvent } = state
   const { doCreateLabel } = state
@@ -67,9 +69,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
   const toastAndLog = toastAndLogHooks.useToastAndLog()
   const smartAsset = item.item
   const asset = smartAsset.value
-  const self = asset.permissions?.find(
-    permission => permission.user.user_email === user?.value.email
-  )
+  const self = asset.permissions?.find(permission => permission.user.userId === user?.value.userId)
   const ownsThisAsset = !isCloud || self?.permission === permissions.PermissionAction.own
   const managesThisAsset = ownsThisAsset || self?.permission === permissions.PermissionAction.admin
   const canEditThisAsset =
@@ -187,7 +187,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
                   )
                   const remoteBackend = new RemoteBackend(client, logger, getText)
                   const projectResponse = await fetch(
-                    `./api/project-manager/projects/${asset.id}/enso-project`
+                    `./api/project-manager/projects/${localBackend.extractTypeAndId(asset.id).id}/enso-project`
                   )
                   const fileName = `${asset.title}.enso-project`
                   // This DOES NOT update the cloud assets list when it
@@ -243,6 +243,16 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
                   }}
                 />
               )
+            }}
+          />
+        )}
+        {isCloud && (
+          <ContextMenuEntry
+            hidden={hidden}
+            action="editDescription"
+            label={getText('editDescriptionShortcut')}
+            doAction={() => {
+              doTriggerDescriptionEdit()
             }}
           />
         )}
@@ -329,7 +339,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
           }}
         />
         {isCloud && <ContextMenuEntry hidden={hidden} action="copy" doAction={doCopy} />}
-        {isCloud && !isOtherUserUsingProject && (
+        {!isOtherUserUsingProject && (
           <ContextMenuEntry hidden={hidden} action="cut" doAction={doCut} />
         )}
         <ContextMenuEntry

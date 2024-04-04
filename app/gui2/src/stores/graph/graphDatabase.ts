@@ -121,6 +121,7 @@ export class BindingsDb {
 
 export class GraphDb {
   nodeIdToNode = new ReactiveDb<NodeId, Node>()
+  private highestZIndex = 0
   private readonly idToExternalMap = reactive(new Map<Ast.AstId, ExternalId>())
   private readonly idFromExternalMap = reactive(new Map<ExternalId, Ast.AstId>())
   private bindings = new BindingsDb()
@@ -196,7 +197,8 @@ export class GraphDb {
     return this.suggestionDb.get(suggestionId)
   })
 
-  nodeColor = new ReactiveMapping(this.nodeIdToNode, (id, _entry) => {
+  nodeColor = new ReactiveMapping(this.nodeIdToNode, (id, entry) => {
+    if (entry.colorOverride != null) return entry.colorOverride
     const index = this.nodeMainSuggestion.lookup(id)?.groupIndex
     const group = tryGetIndex(this.groups.value, index)
     if (group == null) {
@@ -302,7 +304,10 @@ export class GraphDb {
   }
 
   moveNodeToTop(id: NodeId) {
-    this.nodeIdToNode.moveToLast(id)
+    const node = this.nodeIdToNode.get(id)
+    if (!node) return
+    node.zIndex = this.highestZIndex + 1
+    this.highestZIndex++
   }
 
   /** Get the method name from the stack item. */
@@ -344,21 +349,14 @@ export class GraphDb {
       const node = this.nodeIdToNode.get(nodeId)
       currentNodeIds.add(nodeId)
       if (node == null) {
-        let metadataFields: NodeDataFromMetadata = {
-          position: new Vec2(0, 0),
-          vis: undefined,
+        const nodeMeta = newNode.rootExpr.nodeMetadata
+        const pos = nodeMeta.get('position') ?? { x: 0, y: 0 }
+        const metadataFields = {
+          position: new Vec2(pos.x, pos.y),
+          vis: nodeMeta.get('visualization'),
+          colorOverride: nodeMeta.get('colorOverride'),
         }
-        // We are notified of new or changed metadata by `updateMetadata`, so we only need to read existing metadata
-        // when we switch to a different function.
-        if (functionChanged) {
-          const nodeMeta = newNode.rootExpr.nodeMetadata
-          const pos = nodeMeta.get('position') ?? { x: 0, y: 0 }
-          metadataFields = {
-            position: new Vec2(pos.x, pos.y),
-            vis: nodeMeta.get('visualization'),
-          }
-        }
-        this.nodeIdToNode.set(nodeId, { ...newNode, ...metadataFields })
+        this.nodeIdToNode.set(nodeId, { ...newNode, ...metadataFields, zIndex: this.highestZIndex })
       } else {
         const {
           outerExpr,
@@ -432,6 +430,9 @@ export class GraphDb {
       const newVis = changes.get('visualization')
       if (!visMetadataEquals(newVis, node.vis)) node.vis = newVis
     }
+    if (changes.has('colorOverride')) {
+      node.colorOverride = changes.get('colorOverride')
+    }
   }
 
   /** Get the ID of the `Ast` corresponding to the given `ExternalId` as of the last synchronization. */
@@ -477,6 +478,7 @@ export class GraphDb {
       pattern,
       rootExpr: Ast.parse(code ?? '0'),
       innerExpr: Ast.parse(code ?? '0'),
+      zIndex: this.highestZIndex,
     }
     const bindingId = pattern.id
     this.nodeIdToNode.set(asNodeId(id), node)
@@ -515,9 +517,12 @@ export interface NodeDataFromAst {
 export interface NodeDataFromMetadata {
   position: Vec2
   vis: Opt<VisualizationMetadata>
+  colorOverride: Opt<string>
 }
 
-export interface Node extends NodeDataFromAst, NodeDataFromMetadata {}
+export interface Node extends NodeDataFromAst, NodeDataFromMetadata {
+  zIndex: number
+}
 
 const baseMockNode = {
   position: Vec2.Zero,
@@ -525,6 +530,7 @@ const baseMockNode = {
   prefixes: { enableRecording: undefined },
   primarySubject: undefined,
   documentation: undefined,
+  colorOverride: undefined,
   conditionalPorts: new Set(),
 } satisfies Partial<Node>
 

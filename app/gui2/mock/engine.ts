@@ -68,6 +68,7 @@ main =
     data = Data.read
     filtered = data.filter
     aggregated = data.aggregate
+    selected = data.select_columns
 `
 
 export function getMainFile() {
@@ -192,6 +193,34 @@ const mockVizData: Record<string, Uint8Array | ((params: string[]) => Uint8Array
             },
           ],
         ])
+      case '.select_columns':
+        return encodeJSON([
+          [
+            'columns',
+            {
+              type: 'Widget',
+              constructor: 'Multiple_Choice',
+              label: null,
+              values: [
+                {
+                  type: 'Choice',
+                  constructor: 'Option',
+                  value: "'Column A'",
+                  label: 'Column A',
+                  parameters: [],
+                },
+                {
+                  type: 'Choice',
+                  constructor: 'Option',
+                  value: "'Column B'",
+                  label: 'Column B',
+                  parameters: [],
+                },
+              ],
+              display: { type: 'Display', constructor: 'Always' },
+            },
+          ],
+        ])
       case '.aggregate':
         return encodeJSON([
           [
@@ -209,7 +238,7 @@ const mockVizData: Record<string, Uint8Array | ((params: string[]) => Uint8Array
                   {
                     type: 'Choice',
                     constructor: 'Option',
-                    value: 'Standard.Table.Data.Aggregate_Column.Aggregate_Column.Group_By',
+                    value: 'Standard.Table.Aggregate_Column.Aggregate_Column.Group_By',
                     label: null,
                     parameters: [
                       [
@@ -242,14 +271,14 @@ const mockVizData: Record<string, Uint8Array | ((params: string[]) => Uint8Array
                   {
                     type: 'Choice',
                     constructor: 'Option',
-                    value: 'Standard.Table.Data.Aggregate_Column.Aggregate_Column.Count',
+                    value: 'Standard.Table.Aggregate_Column.Aggregate_Column.Count',
                     label: null,
                     parameters: [],
                   },
                   {
                     type: 'Choice',
                     constructor: 'Option',
-                    value: 'Standard.Table.Data.Aggregate_Column.Aggregate_Column.Count_Distinct',
+                    value: 'Standard.Table.Aggregate_Column.Aggregate_Column.Count_Distinct',
                     label: null,
                     parameters: [
                       [

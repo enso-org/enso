@@ -4,6 +4,7 @@ import { type NodeId } from '@/stores/graph/graphDatabase'
 import { Ast } from '@/util/ast'
 import type { Icon } from '@/util/iconName'
 import { computed, proxyRefs, type Ref } from 'vue'
+import type { WidgetEditHandler } from './widgetRegistry/editHandler'
 
 function makeExistenceRegistry(onChange: (anyExist: boolean) => void) {
   const registered = new Set<number>()
@@ -35,6 +36,7 @@ const { provideFn, injectFn } = createContextStore(
     conditionalPorts: Ref<Set<Ast.AstId>>,
     extended: Ref<boolean>,
     hasActiveAnimations: Ref<boolean>,
+    currentEdit: Ref<WidgetEditHandler | undefined>,
     emitOpenFullMenu: () => void,
     clippingInhibitorsChanged: (anyExist: boolean) => void,
   ) => {
@@ -51,6 +53,7 @@ const { provideFn, injectFn } = createContextStore(
       extended,
       nodeSpanStart,
       hasActiveAnimations,
+      currentEdit,
       emitOpenFullMenu,
       inhibitClipping,
     })
