@@ -28,8 +28,6 @@ const STATUS_SUCCESS_FIRST = 200
 const STATUS_SUCCESS_LAST = 299
 /** HTTP status indicating that the resource does not exist. */
 const STATUS_NOT_FOUND = 404
-/** HTTP status indicating that the server encountered a fatal exception. */
-const STATUS_SERVER_ERROR = 500
 /** The interval between requests checking whether the IDE is ready. */
 const CHECK_STATUS_INTERVAL_MS = 5000
 /** The number of milliseconds in one day. */
@@ -54,6 +52,27 @@ interface RemoteBackendError {
 /** Whether a response has a success HTTP status code (200-299). */
 function responseIsSuccessful(response: Response) {
   return response.status >= STATUS_SUCCESS_FIRST && response.status <= STATUS_SUCCESS_LAST
+}
+
+// ==============================
+// === placeholderAssetFields ===
+// ==============================
+
+/** Default values for some fields of a {@link backend.Asset}. */
+function placeholderAssetFields<Type extends backend.AssetType, Id extends backend.AssetId>(
+  type: Type,
+  constructor: (string: string) => Id
+) {
+  return {
+    type,
+    id: constructor(`${type}-${uniqueString.uniqueString()}`),
+    title: '',
+    modifiedAt: dateTime.toRfc3339(new Date()),
+    permissions: [],
+    projectState: null,
+    labels: [],
+    description: null,
+  }
 }
 
 // ============================
@@ -328,25 +347,17 @@ class SmartUser extends SmartObject<backend.User> implements backend.SmartUser {
     const path = remoteBackendPaths.LIST_DIRECTORY_PATH + '?' + paramsString
     const response = await this.httpGet<ResponseBody>(path)
     if (!responseIsSuccessful(response)) {
-      if (response.status === STATUS_SERVER_ERROR) {
-        // The directory is probably empty.
-        return []
-      } else {
-        return this.throw(response, 'listRecentFilesBackendError')
-      }
+      return this.throw(response, 'listRecentFilesBackendError')
     } else {
       const assets = (await response.json()).assets
         .map(asset =>
-          object.merge(asset, {
-            // eslint-disable-next-line no-restricted-syntax
-            type: asset.id.match(/^(.+?)-/)?.[1] as backend.AssetType,
-          })
+          // eslint-disable-next-line no-restricted-syntax
+          object.merge(asset, { type: asset.id.match(/^(.+?)-/)?.[1] as backend.AssetType })
         )
-        .map(asset =>
-          object.merge(asset, {
-            permissions: [...(asset.permissions ?? [])].sort(backend.compareUserPermissions),
-          })
-        )
+        .map(asset => {
+          const permissions = [...(asset.permissions ?? [])].sort(backend.compareUserPermissions)
+          return object.merge(asset, { permissions })
+        })
       return assets.map(intoSmartAsset(this.client, this.logger, this.getText))
     }
   }
@@ -372,7 +383,6 @@ class SmartUser extends SmartObject<backend.User> implements backend.SmartUser {
     interface ResponseBody {
       readonly events: backend.Event[]
     }
-
     const path = remoteBackendPaths.GET_LOG_EVENTS_PATH
     const response = await this.httpGet<ResponseBody>(path)
     if (!responseIsSuccessful(response)) {
@@ -395,7 +405,6 @@ class SmartOrganization
   ): Promise<backend.OrganizationInfo | null> {
     const path = remoteBackendPaths.UPDATE_ORGANIZATION_PATH
     const response = await this.httpPatch<backend.OrganizationInfo>(path, body)
-
     if (response.status === STATUS_NOT_FOUND) {
       // Organization info has not yet been created.
       return null
@@ -528,10 +537,7 @@ class SmartAsset<T extends backend.AnyAsset = backend.AnyAsset>
   /** Set permissions for a user. */
   async setPermissions(body: backend.CreatePermissionRequestBody): Promise<void> {
     const path = remoteBackendPaths.CREATE_PERMISSION_PATH
-    const response = await this.httpPost<backend.User>(path, {
-      ...body,
-      resourceId: this.value.id,
-    })
+    const response = await this.httpPost<backend.User>(path, { ...body, resourceId: this.value.id })
     if (!responseIsSuccessful(response)) {
       return this.throw(response, 'createPermissionBackendError')
     } else {
@@ -598,25 +604,17 @@ class SmartDirectory extends SmartAsset<backend.DirectoryAsset> implements backe
     const path = remoteBackendPaths.LIST_DIRECTORY_PATH + '?' + paramsString
     const response = await this.httpGet<ResponseBody>(path)
     if (!responseIsSuccessful(response)) {
-      if (response.status === STATUS_SERVER_ERROR) {
-        // The directory is probably empty.
-        return []
-      } else {
-        return this.throw(response, 'listFolderBackendError', this.value.title)
-      }
+      return this.throw(response, 'listFolderBackendError', this.value.title)
     } else {
       const assets = (await response.json()).assets
         .map(asset =>
-          object.merge(asset, {
-            // eslint-disable-next-line no-restricted-syntax
-            type: asset.id.match(/^(.+?)-/)?.[1] as backend.AssetType,
-          })
+          // eslint-disable-next-line no-restricted-syntax
+          object.merge(asset, { type: asset.id.match(/^(.+?)-/)?.[1] as backend.AssetType })
         )
-        .map(asset =>
-          object.merge(asset, {
-            permissions: [...(asset.permissions ?? [])].sort(backend.compareUserPermissions),
-          })
-        )
+        .map(asset => {
+          const permissions = [...(asset.permissions ?? [])].sort(backend.compareUserPermissions)
+          return object.merge(asset, { permissions })
+        })
       return assets.map(intoSmartAsset(this.client, this.logger, this.getText))
     }
   }
@@ -646,32 +644,16 @@ class SmartDirectory extends SmartAsset<backend.DirectoryAsset> implements backe
   /** Create a {@link backend.SpecialLoadingAsset}. */
   createSpecialLoadingAsset(): backend.SmartSpecialLoadingAsset {
     return new SmartAsset<backend.SpecialLoadingAsset>(this.client, this.logger, this.getText, {
-      type: backend.AssetType.specialLoading,
-      title: '',
-      id: backend.LoadingAssetId(
-        `${backend.AssetType.specialLoading}-${uniqueString.uniqueString()}`
-      ),
-      modifiedAt: dateTime.toRfc3339(new Date()),
+      ...placeholderAssetFields(backend.AssetType.specialLoading, backend.LoadingAssetId),
       parentId: this.value.id,
-      permissions: [],
-      projectState: null,
-      labels: [],
-      description: null,
     })
   }
 
   /** Create a {@link backend.SpecialEmptyAsset}. */
   createSpecialEmptyAsset(): backend.SmartSpecialEmptyAsset {
     return new SmartAsset<backend.SpecialEmptyAsset>(this.client, this.logger, this.getText, {
-      type: backend.AssetType.specialEmpty,
-      title: '',
-      id: backend.EmptyAssetId(`${backend.AssetType.specialEmpty}-${uniqueString.uniqueString()}`),
-      modifiedAt: dateTime.toRfc3339(new Date()),
+      ...placeholderAssetFields(backend.AssetType.specialEmpty, backend.EmptyAssetId),
       parentId: this.value.id,
-      permissions: [],
-      projectState: null,
-      labels: [],
-      description: null,
     })
   }
 
@@ -681,22 +663,12 @@ class SmartDirectory extends SmartAsset<backend.DirectoryAsset> implements backe
     permissions: backend.UserPermission[]
   ): backend.SmartDirectory {
     const result = new SmartDirectory(this.client, this.logger, this.getText, {
-      type: backend.AssetType.directory,
-      id: backend.DirectoryId(`${backend.AssetType.directory}-${uniqueString.uniqueString()}`),
+      ...placeholderAssetFields(backend.AssetType.directory, backend.DirectoryId),
       title,
-      modifiedAt: dateTime.toRfc3339(new Date()),
       parentId: this.value.id,
       permissions,
-      projectState: null,
-      labels: [],
-      description: null,
     })
     result.materialize = overwriteMaterialize(result, async (): Promise<SmartDirectory> => {
-      /** HTTP request body for this endpoint. */
-      interface Body {
-        readonly title: string
-        readonly parentId: backend.DirectoryId | null
-      }
       /** HTTP response body for this endpoint. */
       interface ResponseBody {
         readonly id: backend.DirectoryId
@@ -704,8 +676,7 @@ class SmartDirectory extends SmartAsset<backend.DirectoryAsset> implements backe
         readonly title: string
       }
       const path = remoteBackendPaths.CREATE_DIRECTORY_PATH
-      const body: Body = { title, parentId: this.value.id }
-      const response = await this.httpPost<ResponseBody>(path, body)
+      const response = await this.httpPost<ResponseBody>(path, { title, parentId: this.value.id })
       if (!responseIsSuccessful(response)) {
         return this.throw(response, 'createFolderBackendError', this.value.title)
       } else {
@@ -723,10 +694,8 @@ class SmartDirectory extends SmartAsset<backend.DirectoryAsset> implements backe
     permissions: backend.UserPermission[]
   ): backend.SmartProject {
     const result = new SmartProject(this.client, this.logger, this.getText, {
-      type: backend.AssetType.project,
-      id: backend.ProjectId(`${backend.AssetType.project}-${uniqueString.uniqueString()}`),
+      ...placeholderAssetFields(backend.AssetType.project, backend.ProjectId),
       title,
-      modifiedAt: dateTime.toRfc3339(new Date()),
       parentId: this.value.id,
       permissions,
       projectState: {
@@ -734,8 +703,6 @@ class SmartDirectory extends SmartAsset<backend.DirectoryAsset> implements backe
         // eslint-disable-next-line @typescript-eslint/naming-convention
         volume_id: '',
       },
-      labels: [],
-      description: null,
     })
     /** A project returned by the endpoints. */
     interface CreatedProject {
@@ -768,12 +735,9 @@ class SmartDirectory extends SmartAsset<backend.DirectoryAsset> implements backe
           if (responseBody.project == null) {
             return this.throw(response, 'badCreateProjectResponseBackendError', title)
           } else {
+            const { projectId, name, state } = responseBody.project
             return result.withValue(
-              object.merge(result.value, {
-                id: responseBody.project.projectId,
-                title: responseBody.project.name,
-                projectState: responseBody.project.state,
-              })
+              object.merge(result.value, { id: projectId, title: name, projectState: state })
             )
           }
         }
@@ -798,13 +762,9 @@ class SmartDirectory extends SmartAsset<backend.DirectoryAsset> implements backe
         if (!responseIsSuccessful(response)) {
           return this.throw(response, 'createProjectBackendError', body.projectName)
         } else {
-          const responseBody = await response.json()
+          const { projectId, name, state } = await response.json()
           return result.withValue(
-            object.merge(result.value, {
-              id: responseBody.projectId,
-              title: responseBody.name,
-              projectState: responseBody.state,
-            })
+            object.merge(result.value, { id: projectId, title: name, projectState: state })
           )
         }
       })
@@ -819,15 +779,10 @@ class SmartDirectory extends SmartAsset<backend.DirectoryAsset> implements backe
     permissions: backend.UserPermission[]
   ): backend.SmartFile {
     const result = new SmartFile(this.client, this.logger, this.getText, {
-      type: backend.AssetType.file,
-      id: backend.FileId(`${backend.AssetType.file}-${uniqueString.uniqueString()}`),
+      ...placeholderAssetFields(backend.AssetType.file, backend.FileId),
       title,
       parentId: this.value.id,
       permissions,
-      modifiedAt: dateTime.toRfc3339(new Date()),
-      projectState: null,
-      labels: [],
-      description: null,
     })
     result.materialize = overwriteMaterialize(result, async () => {
       /** HTTP response body for this endpoint. */
@@ -861,15 +816,10 @@ class SmartDirectory extends SmartAsset<backend.DirectoryAsset> implements backe
     permissions: backend.UserPermission[]
   ): backend.SmartDataLink {
     const result = new SmartDataLink(this.client, this.logger, this.getText, {
-      type: backend.AssetType.dataLink,
-      id: backend.ConnectorId(`${backend.AssetType.dataLink}-${uniqueString.uniqueString()}`),
+      ...placeholderAssetFields(backend.AssetType.dataLink, backend.ConnectorId),
       title,
-      modifiedAt: dateTime.toRfc3339(new Date()),
       parentId: this.value.id,
       permissions,
-      projectState: null,
-      labels: [],
-      description: null,
     })
     result.materialize = overwriteMaterialize(result, async () => {
       /** HTTP request body for this endpoint. */
@@ -1191,7 +1141,7 @@ export default class RemoteBackend extends Backend {
   constructor(
     private readonly client: HttpClient,
     private readonly logger: loggerProvider.Logger,
-    private getText: GetText
+    private readonly getText: GetText
   ) {
     super()
     // All of our API endpoints are authenticated, so we expect the `Authorization` header to be
@@ -1208,12 +1158,6 @@ export default class RemoteBackend extends Backend {
       }
       return
     }
-  }
-
-  /** Set `this.getText`. This function is exposed rather than the property itself to make it clear
-   * that it is intended to be mutable. */
-  setGetText(getText: GetText) {
-    this.getText = getText
   }
 
   /** Set the username and parent organization of the current user. */
