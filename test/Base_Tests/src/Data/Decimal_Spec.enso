@@ -199,7 +199,7 @@ add_specs suite_builder =
                 (Comparable.hash_builtin x0) . should_equal (Comparable.hash_builtin x1)
 
         group_builder.specify "should compare correctly to Integer and Float" <|
-            ok_values = []
+            values = []
                 + [[0.1, 0.1]]
                 + [["0.1", 0.1]]
                 + [["0", 0]]
@@ -296,16 +296,6 @@ add_specs suite_builder =
                 + [[-Float.min_value, -Float.min_value]]
                 + [[Float.max_value-1.0, Float.max_value-1.0]]
                 + [[-Float.max_value+1.0, -Float.max_value+1.0]]
-
-            problematic_values = []
-                + [[9223372036854776000.0, 9223372036854776000.0]]
-                + [[-9223372036854776000.0, -9223372036854776000.0]]
-                + [["9223372036854776000.0", 9223372036854776000.0]]
-                + [["-9223372036854776000.0", -9223372036854776000.0]]
-
-            # TODO: Include problematic values pending https://github.com/enso-org/enso/issues/9296.
-            values = ok_values # + problematic_values
-            _ = [problematic_values]
 
             values.map pr->
                 v = pr.at 0

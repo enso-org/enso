@@ -152,6 +152,7 @@ li {
 }
 
 .item.selected {
+  margin-left: 8px;
   border-radius: var(--radius-full);
   background-color: var(--color-port-connected);
   width: min-content;
