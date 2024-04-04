@@ -1,12 +1,16 @@
 /** @file Modal for confirming delete of any type of asset. */
 import * as React from 'react'
 
+import EyeCrossedIcon from 'enso-assets/eye_crossed.svg'
+import EyeIcon from 'enso-assets/eye.svg'
+
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
 import * as modalProvider from '#/providers/ModalProvider'
 import * as textProvider from '#/providers/TextProvider'
 
 import Modal from '#/components/Modal'
+import SvgMask from '#/components/SvgMask'
 
 import type * as backend from '#/services/Backend'
 
@@ -30,6 +34,7 @@ export default function UpsertSecretModal(props: UpsertSecretModalProps) {
 
   const [name, setName] = React.useState(nameRaw ?? '')
   const [value, setValue] = React.useState('')
+  const [isShowingValue, setIsShowingValue] = React.useState(false)
   const isCreatingSecret = id == null
   const isNameEditable = nameRaw == null
   const canSubmit = Boolean(name && value)
@@ -80,16 +85,26 @@ export default function UpsertSecretModal(props: UpsertSecretModalProps) {
         </label>
         <label className="relative flex h-row items-center">
           <div className="text w-modal-label">{getText('value')}</div>
-          <input
-            autoFocus={!isNameEditable}
-            placeholder={
-              isNameEditable ? getText('secretValuePlaceholder') : getText('secretValueHidden')
-            }
-            className="text grow rounded-full border border-primary/10 bg-transparent px-input-x"
-            onInput={event => {
-              setValue(event.currentTarget.value)
-            }}
-          />
+          <div className="relative grow">
+            <input
+              type={isShowingValue ? 'text' : 'password'}
+              autoFocus={!isNameEditable}
+              placeholder={
+                isNameEditable ? getText('secretValuePlaceholder') : getText('secretValueHidden')
+              }
+              className="text w-full rounded-full border border-primary/10 bg-transparent px-input-x"
+              onInput={event => {
+                setValue(event.currentTarget.value)
+              }}
+            />
+            <SvgMask
+              src={isShowingValue ? EyeIcon : EyeCrossedIcon}
+              className="absolute right-2 top-1 cursor-pointer rounded-full"
+              onClick={() => {
+                setIsShowingValue(show => !show)
+              }}
+            />
+          </div>
         </label>
         <div className="relative flex gap-buttons">
           <button disabled={!canSubmit} type="submit" className="button bg-invite text-white">
