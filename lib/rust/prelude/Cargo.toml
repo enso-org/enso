@@ -16,7 +16,6 @@ publish = true
 crate-type = ["rlib"]
 
 [dependencies]
-enso-logging = { path = "../logging" }
 enso-reflect = { path = "../reflect" }
 enso-zst = { path = "../zst" }
 boolinator = { workspace = true }

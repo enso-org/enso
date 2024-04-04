@@ -48,16 +48,20 @@ fn extract_docs(_filename: &str, mut code: &str) -> Vec<String> {
     }
     let ast = enso_parser::Parser::new().run(code);
     let docs = RefCell::new(vec![]);
-    ast.map(|tree| match &*tree.variant {
-        enso_parser::syntax::tree::Variant::Documented(doc) => {
-            docs.borrow_mut().push(doc.documentation.clone());
-        }
-        enso_parser::syntax::tree::Variant::CaseOf(case_of) => {
-            for case in case_of.cases.iter().filter_map(|c| c.case.as_ref()) {
-                docs.borrow_mut().extend(case.documentation.clone());
+    ast.visit_items(|item| {
+        if let enso_parser::syntax::item::Ref::Tree(tree) = item {
+            match &*tree.variant {
+                enso_parser::syntax::tree::Variant::Documented(doc) => {
+                    docs.borrow_mut().push(doc.documentation.clone());
+                }
+                enso_parser::syntax::tree::Variant::CaseOf(case_of) => {
+                    for case in case_of.cases.iter().filter_map(|c| c.case.as_ref()) {
+                        docs.borrow_mut().extend(case.documentation.clone());
+                    }
+                }
+                _ => {}
             }
         }
-        _ => {}
     });
     docs.take().into_iter().map(|node| node.content()).collect()
 }

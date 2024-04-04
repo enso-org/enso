@@ -1,4 +1,6 @@
-//! Tests for [`enso_parser`].
+//! Parses Enso sources and reports any syntax errors, while performing internal consistency checks.
+//! Source files may be specified as command line arguments; if none a provided, source code will be
+//! read from standard input.
 
 // === Non-Standard Linter Configuration ===
 #![allow(clippy::option_map_unit_fn)]
@@ -38,17 +40,19 @@ fn check_file(path: &str, mut code: &str, parser: &mut enso_parser::Parser) {
     }
     let ast = parser.run(code);
     let errors = RefCell::new(vec![]);
-    ast.map(|tree| {
-        if let enso_parser::syntax::tree::Variant::Invalid(err) = &*tree.variant {
-            let error = format!("{}: {}", err.error.message, tree.code());
-            errors.borrow_mut().push((error, tree.span.clone()));
-        } else if let enso_parser::syntax::tree::Variant::TextLiteral(text) = &*tree.variant {
-            for element in &text.elements {
-                if let enso_parser::syntax::tree::TextElement::Escape { token } = element {
-                    if token.variant.value.is_none() {
-                        let escape = token.code.to_string();
-                        let error = format!("Invalid escape sequence: {escape}");
-                        errors.borrow_mut().push((error, tree.span.clone()));
+    ast.visit_items(|item| {
+        if let enso_parser::syntax::item::Ref::Tree(tree) = item {
+            if let enso_parser::syntax::tree::Variant::Invalid(err) = &*tree.variant {
+                let error = format!("{}: {}", err.error.message, tree.code());
+                errors.borrow_mut().push((error, tree.span.clone()));
+            } else if let enso_parser::syntax::tree::Variant::TextLiteral(text) = &*tree.variant {
+                for element in &text.elements {
+                    if let enso_parser::syntax::tree::TextElement::Escape { token } = element {
+                        if token.variant.value.is_none() {
+                            let escape = token.code.to_string();
+                            let error = format!("Invalid escape sequence: {escape}");
+                            errors.borrow_mut().push((error, tree.span.clone()));
+                        }
                     }
                 }
             }
