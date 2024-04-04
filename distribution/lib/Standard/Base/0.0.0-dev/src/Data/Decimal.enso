@@ -529,11 +529,22 @@ type Decimal
        Arguments to `remainder` will undergo automatic conversions such that you
        need not convert other numeric types to `Decimal` manually.
 
+       ? Negative Arguments
+
+         When the first argument to `remainder` is negative, the result will
+         also be negative.
+
        > Example
          Computing the remainder when dividing 10 by 3 (which is 1).
 
              remainder = Decimal.new 10 . remainder 3
              # => 1
+
+       > Example
+         Computing the remainder of a negative number.
+
+             remainder = Decimal.new -5 . remainder 3
+             # => -2
     remainder : Decimal -> Decimal -> Decimal
     remainder self (that : Decimal) =
         handle_java_exception <|
@@ -550,11 +561,22 @@ type Decimal
        Arguments to `%` will undergo automatic conversions such that you
        need not convert other numeric types to `Decimal` manually.
 
+       ? Negative Arguments
+
+         When the first argument to `%` is negative, the result will also be
+         negative.
+
        > Example
          Computing the remainder when dividing 10 by 3 (which is 1).
 
              remainder = Decimal.new 10 % 3
              # => 1
+
+       > Example
+         Computing the remainder of a negative number.
+
+             remainder = Decimal.new -5 % 3
+             # => -2
     % : Decimal -> Decimal -> Decimal
     % self (that : Decimal) = self.remainder that
 

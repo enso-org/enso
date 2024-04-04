@@ -515,6 +515,11 @@ type Float
        Modulus in Enso will undergo automatic conversions such that you need
        not convert between Integer and Float manually.
 
+       ? Negative Arguments
+
+         When the first argument to `%` is negative, the result will also be
+         negative.
+
        > Example
          Computing the remainder when dividing 3.5 by 2.
 
@@ -524,6 +529,11 @@ type Float
          Computing the fractional part of a number.
 
              10.5 % 1.0 == 0.5
+
+       > Example
+         Computing the remainder of a negative number.
+
+             -5 % 3 == -2
     % self that:Number -> Number ! Arithmetic_Error = float_mod self that
 
     ## ALIAS power
@@ -836,10 +846,20 @@ type Integer
 
        Returns an error if the shift amount exceeds 2^32.
 
+       ? Negative Arguments
+
+         When the first argument to `%` is negative, the result will also be
+         negative.
+
        > Example
          Computing the remainder when dividing 10 by 3 (which is 1).
 
              10 % 3
+
+       > Example
+         Computing the remainder of a negative number.
+
+             -5 % 3 == -2
     % self that:Integer -> Integer ! Arithmetic_Error = integer_mod self that
 
     ## ALIAS power
