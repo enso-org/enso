@@ -290,7 +290,7 @@ export default function AuthProvider(props: AuthProviderProps) {
         let user: backendModule.SmartUser | null
         while (true) {
           try {
-            user = await backend.self()
+            user = await remoteBackend.self()
             break
           } catch (error) {
             // The value may have changed after the `await`.
@@ -316,10 +316,7 @@ export default function AuthProvider(props: AuthProviderProps) {
         let newUserSession: UserSession
         if (user == null) {
           sentry.setUser({ email: session.email })
-          newUserSession = {
-            type: UserSessionType.partial,
-            ...session,
-          }
+          newUserSession = { type: UserSessionType.partial, ...session }
         } else {
           sentry.setUser({
             id: user.value.userId,
@@ -328,11 +325,7 @@ export default function AuthProvider(props: AuthProviderProps) {
             // eslint-disable-next-line @typescript-eslint/naming-convention
             ip_address: '{{auto}}',
           })
-          newUserSession = {
-            type: UserSessionType.full,
-            ...session,
-            user,
-          }
+          newUserSession = { type: UserSessionType.full, ...session, user }
 
           // 34560000 is the recommended max cookie age.
           const parentDomain = location.hostname.replace(/^[^.]*\./, '')
