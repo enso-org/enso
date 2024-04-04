@@ -10,6 +10,7 @@ import { EnsoFileParts, combineFileParts, splitFileContents } from '../shared/en
 import { LanguageServer, computeTextChecksum } from '../shared/languageServer'
 import { Checksum, FileEdit, Path, TextEdit, response } from '../shared/languageServerTypes'
 import { exponentialBackoff, printingCallbacks } from '../shared/retry'
+import { AbortScope } from '../shared/util/net'
 import {
   DistributedProject,
   ExternalId,
@@ -54,8 +55,10 @@ export class LanguageServerSession {
   model: DistributedProject
   projectRootId: Uuid | null
   authoritativeModules: Map<string, ModulePersistence>
+  clientScope: AbortScope
 
   constructor(url: string) {
+    this.clientScope = new AbortScope()
     this.clientId = random.uuidv4() as Uuid
     this.docs = new Map()
     this.retainCount = 0
@@ -92,8 +95,8 @@ export class LanguageServerSession {
   }
 
   private restartClient() {
-    this.client.close()
-    this.ls.destroy()
+    this.clientScope.dispose('Client restarted.')
+    this.clientScope = new AbortScope()
     this.connection = undefined
     this.setupClient()
   }
@@ -101,6 +104,7 @@ export class LanguageServerSession {
   private setupClient() {
     this.client = createOpenRPCClient(this.url)
     this.ls = new LanguageServer(this.client)
+    this.clientScope.onAbort(() => this.ls.release())
     this.ls.on('file/event', async (event) => {
       if (DEBUG_LOG_SYNC) {
         console.log('file/event', event)
@@ -224,7 +228,7 @@ export class LanguageServerSession {
     const moduleDisposePromises = Array.from(modules, (mod) => mod.dispose())
     this.authoritativeModules.clear()
     this.model.doc.destroy()
-    this.ls.dispose()
+    this.clientScope.dispose('LangueServerSession disposed.')
     LanguageServerSession.sessions.delete(this.url)
     await Promise.all(moduleDisposePromises)
   }
