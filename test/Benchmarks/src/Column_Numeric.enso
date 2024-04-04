@@ -20,7 +20,7 @@ create_ints vector_size faker =
 
 
 create_floats vector_size faker =
-    floats_vec = Vector.new vector_size _->(faker.decimal -1000000000 1000000000)
+    floats_vec = Vector.new vector_size _->(faker.float -1000000000 1000000000)
     Column.from_vector "floats" floats_vec
 
 

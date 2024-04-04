@@ -154,7 +154,7 @@ all_same_column aggregates =
    If some columns cannot be resolved, `Nothing` is returned. Any issues are
    reported to the `Problem_Builder`.
 resolve_aggregate : Table -> Problem_Builder -> Aggregate_Column -> Aggregate_Column | Nothing
-resolve_aggregate table problem_builder aggregate_column =
+resolve_aggregate table problem_builder aggregate_column:Aggregate_Column =
     table_columns = table.columns
     columns_helper = table.columns_helper
 

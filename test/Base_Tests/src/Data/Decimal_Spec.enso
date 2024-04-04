@@ -7,8 +7,6 @@ from Standard.Base.Errors.Common import Loss_Of_Numeric_Precision, Out_Of_Range
 
 from Standard.Test import all
 
-polyglot java import org.enso.base.numeric.Decimal_Utils
-
 Decimal.should_have_rep self rep = self.internal_representation . should_equal rep
 
 add_specs suite_builder =
