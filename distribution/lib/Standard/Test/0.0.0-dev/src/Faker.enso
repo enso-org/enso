@@ -95,9 +95,21 @@ type Faker
 
     ## GROUP Standard.Base.Random
        Create a random Float value
-    decimal : Float -> Float -> Float
-    decimal self  minimum=0.0 maximum=1.0 =
+    float : Float -> Float -> Float
+    float self minimum=0.0 maximum=1.0 =
         minimum + self.generator.nextDouble * (maximum - minimum)
+
+    ## GROUP Standard.Base.Random
+       Create a random Float value in full range of allowed values,
+       exponentially distributed (exponents are uniformly distributed).
+    float_full_range_exp : Float
+    float_full_range_exp self =
+        max_mantissa = 2.0 - (2.0 ^ -52)
+        max_exponent = 1023
+        sign = if self.integer 0 2 == 0 then 1 else -1
+        mantissa = self.float 0 max_mantissa
+        exponent = self.integer 0 max_exponent+1
+        sign * mantissa * (2.0 ^ exponent)
 
     ## GROUP Standard.Base.Random
        Picks an item at Random from a list
