@@ -44,7 +44,8 @@ public final class DataflowError extends AbstractTruffleException {
    */
   public static DataflowError withoutTrace(State state, Object payload, Node location) {
     assert payload != null;
-    boolean attachFullStackTrace = state == null ? true : state.currentEnvironment().hasContextEnabled("Dataflow_Stack_Trace");
+    boolean attachFullStackTrace =
+        state == null ? true : state.currentEnvironment().hasContextEnabled("Dataflow_Stack_Trace");
     if (attachFullStackTrace) {
       var result = new DataflowError(payload, UNLIMITED_STACK_TRACE, location);
       TruffleStackTrace.fillIn(result);

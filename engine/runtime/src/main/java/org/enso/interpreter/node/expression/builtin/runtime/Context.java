@@ -9,7 +9,8 @@ import org.enso.interpreter.runtime.data.atom.AtomConstructor;
 public class Context extends Builtin {
   @Override
   protected List<Cons> getDeclaredConstructors() {
-    return List.of(new Cons(INPUT_NAME), new Cons(OUTPUT_NAME), new Cons(DATAFLOW_STACK_TRACE_NAME));
+    return List.of(
+        new Cons(INPUT_NAME), new Cons(OUTPUT_NAME), new Cons(DATAFLOW_STACK_TRACE_NAME));
   }
 
   public static final String INPUT_NAME = "Input";
