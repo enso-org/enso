@@ -444,20 +444,28 @@ class SmartAsset<T extends backend.AnyAsset = backend.AnyAsset>
 
   /** Change the parent directory of an asset. */
   async update(body: backend.UpdateAssetRequestBody): Promise<this> {
-    const path = remoteBackendPaths.updateAssetPath(this.value.id)
-    const response = await this.httpPatch(path, body)
-    if (!responseIsSuccessful(response)) {
-      return this.throw(response, 'updateAssetBackendError', this.value.title)
+    if (body.description == null && body.parentDirectoryId == null) {
+      // No action is needed.
+      return this
     } else {
-      return body.description == null && body.parentDirectoryId == null
-        ? this
-        : this.withValue(
-            // @ts-expect-error TypeScript is not capable of properly type-checking generic parameters.
-            object.merge(this.value, {
-              ...(body.description == null ? {} : { description: body.description }),
-              ...(body.parentDirectoryId == null ? {} : { parentId: body.parentDirectoryId }),
-            })
-          )
+      const path = remoteBackendPaths.updateAssetPath(this.value.id)
+      const response = await this.httpPatch(path, {
+        description: body.description ?? null,
+        parentDirectoryId: body.parentDirectoryId ?? null,
+      })
+      if (!responseIsSuccessful(response)) {
+        return this.throw(response, 'updateAssetBackendError', this.value.title)
+      } else {
+        return body.description == null && body.parentDirectoryId == null
+          ? this
+          : this.withValue(
+              // @ts-expect-error TypeScript is not capable of properly type-checking generic parameters.
+              object.merge(this.value, {
+                ...(body.description == null ? {} : { description: body.description }),
+                ...(body.parentDirectoryId == null ? {} : { parentId: body.parentDirectoryId }),
+              })
+            )
+      }
     }
   }
 
@@ -621,42 +629,17 @@ class SmartDirectory extends SmartAsset<backend.DirectoryAsset> implements backe
       readonly parentId: backend.DirectoryId
       readonly title: string
     }
-    const updateAssetRequest =
-      body.description == null && body.parentDirectoryId == null
-        ? null
-        : super.update({
-            description: body.description ?? null,
-            parentDirectoryId: body.parentDirectoryId ?? null,
-          })
+    const updated = await super.update(body)
     const path = remoteBackendPaths.updateDirectoryPath(this.value.id)
-    const updateDirectoryRequest =
-      body.title == null ? null : this.httpPut<ResponseBody>(path, { title: body.title })
-    const [updateAssetResponse, updateDirectoryResponse] = await Promise.allSettled([
-      updateAssetRequest,
-      updateDirectoryRequest,
-    ])
-    if (
-      updateAssetResponse.status === 'rejected' ||
-      updateDirectoryResponse.status === 'rejected' ||
-      (updateDirectoryResponse.value != null &&
-        !responseIsSuccessful(updateDirectoryResponse.value))
-    ) {
-      const response =
-        updateDirectoryResponse.status === 'fulfilled' ? updateDirectoryResponse.value : null
-      return this.throw(response, 'updateFolderBackendError', this.value.title)
+    if (body.title == null) {
+      return updated
     } else {
-      let newValue = this.value
-      if (updateDirectoryResponse.value != null) {
-        const responseBody = await updateDirectoryResponse.value.json()
-        newValue = object.merge(newValue, responseBody)
+      const response = await this.httpPut<ResponseBody>(path, { title: body.title })
+      if (!responseIsSuccessful(response)) {
+        return this.throw(response, 'updateFolderBackendError', this.value.title)
+      } else {
+        return this.withValue(object.merge(updated.value, await response.json()))
       }
-      if (body.description != null || body.parentDirectoryId != null) {
-        newValue = object.merge(newValue, {
-          ...(body.description == null ? {} : { description: body.description }),
-          ...(body.parentDirectoryId == null ? {} : { parentId: body.parentDirectoryId }),
-        })
-      }
-      return newValue === this.value ? this : this.withValue(newValue)
     }
   }
 
@@ -1014,49 +997,22 @@ class SmartProject extends SmartAsset<backend.ProjectAsset> implements backend.S
       readonly ideVersion: backend.VersionNumber | null
       readonly engineVersion: backend.VersionNumber | null
     }
-    const updateAssetRequest =
-      body.description == null && body.parentDirectoryId == null
-        ? null
-        : super.update({
-            description: body.description ?? null,
-            parentDirectoryId: body.parentDirectoryId ?? null,
-          })
+    const updated = await super.update(body)
     const path = remoteBackendPaths.projectUpdatePath(this.value.id)
-    const updateProjectRequest =
-      body.projectName == null && body.ami == null && body.ideVersion == null
-        ? null
-        : this.httpPut<ResponseBody>(path, {
-            projectName: body.projectName ?? null,
-            ami: body.ami ?? null,
-            ideVersion: body.ideVersion ?? null,
-          })
-    const [updateAssetResponse, updateProjectResponse] = await Promise.allSettled([
-      updateAssetRequest,
-      updateProjectRequest,
-    ])
-    if (
-      updateAssetResponse.status === 'rejected' ||
-      updateProjectResponse.status === 'rejected' ||
-      (updateProjectResponse.value != null && !responseIsSuccessful(updateProjectResponse.value))
-    ) {
-      const response =
-        updateProjectResponse.status === 'fulfilled' ? updateProjectResponse.value : null
-      return this.throw(response, 'updateProjectBackendError', this.value.title)
+    if (body.projectName == null && body.ami == null && body.ideVersion == null) {
+      return updated
     } else {
-      let newValue = this.value
-      if (updateProjectResponse.value != null) {
-        const responseBody = await updateProjectResponse.value.json()
-        if (responseBody.name !== newValue.title) {
-          newValue = object.merge(newValue, { title: responseBody.name })
-        }
+      const response = await this.httpPut<ResponseBody>(path, {
+        projectName: body.projectName ?? null,
+        ami: body.ami ?? null,
+        ideVersion: body.ideVersion ?? null,
+      })
+      if (!responseIsSuccessful(response)) {
+        return this.throw(response, 'updateProjectBackendError', this.value.title)
+      } else {
+        const responseBody = await response.json()
+        return this.withValue(object.merge(updated.value, { title: responseBody.name }))
       }
-      if (body.description != null || body.parentDirectoryId != null) {
-        newValue = object.merge(newValue, {
-          ...(body.description == null ? {} : { description: body.description }),
-          ...(body.parentDirectoryId == null ? {} : { parentId: body.parentDirectoryId }),
-        })
-      }
-      return newValue === this.value ? this : this.withValue(newValue)
     }
   }
 
@@ -1115,34 +1071,24 @@ class SmartFile extends SmartAsset<backend.FileAsset> implements backend.SmartFi
       readonly path: string
       readonly id: backend.FileId
     }
-    const updateAssetRequest =
-      body.description == null && body.parentDirectoryId == null
-        ? null
-        : super.update({
-            description: body.description ?? null,
-            parentDirectoryId: body.parentDirectoryId ?? null,
-          })
-    const paramsString =
-      body.file == null
-        ? ''
-        : // eslint-disable-next-line @typescript-eslint/naming-convention
-          new URLSearchParams({ file_name: body.file.name, file_id: this.value.id }).toString()
-    const path = `${remoteBackendPaths.UPLOAD_FILE_PATH}?${paramsString}`
-    const updateFileRequest =
-      body.file == null ? null : this.httpPostBinary<ResponseBody>(path, body.file)
-    const [updateAssetResponse, updateFileResponse] = await Promise.allSettled([
-      updateAssetRequest,
-      updateFileRequest,
-    ])
-    if (
-      updateAssetResponse.status === 'rejected' ||
-      updateFileResponse.status === 'rejected' ||
-      (updateFileResponse.value != null && !responseIsSuccessful(updateFileResponse.value))
-    ) {
-      const response = updateFileResponse.status === 'fulfilled' ? updateFileResponse.value : null
-      return this.throw(response, 'updateFileBackendError', this.value.title)
+    const updated = await super.update(body)
+    if (body.file == null) {
+      return updated
     } else {
-      return updateAssetResponse.value == null ? this : updateAssetResponse.value
+      const paramsString = new URLSearchParams({
+        // eslint-disable-next-line @typescript-eslint/naming-convention
+        file_name: body.file.name,
+        // eslint-disable-next-line @typescript-eslint/naming-convention
+        file_id: this.value.id,
+      }).toString()
+      const path = `${remoteBackendPaths.UPLOAD_FILE_PATH}?${paramsString}`
+      const response = await this.httpPostBinary<ResponseBody>(path, body.file)
+      if (!responseIsSuccessful(response)) {
+        return this.throw(response, 'updateFileBackendError', this.value.title)
+      } else {
+        const responseBody = await response.json()
+        return this.withValue(object.merge(updated.value, { id: responseBody.id }))
+      }
     }
   }
 
@@ -1173,43 +1119,21 @@ class SmartDataLink extends SmartAsset<backend.DataLinkAsset> implements backend
 
   /** Change the value or description of a secret environment variable. */
   override async update(body: backend.UpdateAssetOrDataLinkRequestBody): Promise<this> {
-    const updateAssetRequest =
-      body.description == null && body.parentDirectoryId == null
-        ? null
-        : super.update({
-            description: body.description ?? null,
-            parentDirectoryId: body.parentDirectoryId ?? null,
-          })
-    const path = remoteBackendPaths.CREATE_CONNECTOR_PATH
-    const updateDataLinkRequest =
-      body.value == null
-        ? null
-        : this.httpPost(path, {
-            name: this.value.title,
-            value: body.value,
-            connectorId: this.value.id,
-          })
-    const [updateAssetResponse, updateDataLinkResponse] = await Promise.allSettled([
-      updateAssetRequest,
-      updateDataLinkRequest,
-    ])
-    if (
-      updateAssetResponse.status === 'rejected' ||
-      updateDataLinkResponse.status === 'rejected' ||
-      (updateDataLinkResponse.value != null && !responseIsSuccessful(updateDataLinkResponse.value))
-    ) {
-      const response =
-        updateDataLinkResponse.status === 'fulfilled' ? updateDataLinkResponse.value : null
-      return this.throw(response, 'updateConnectorBackendError', this.value.title)
+    const updated = await super.update(body)
+    if (body.value == null) {
+      return updated
     } else {
-      return body.description == null && body.parentDirectoryId == null
-        ? this
-        : this.withValue(
-            object.merge(this.value, {
-              ...(body.description == null ? {} : { description: body.description }),
-              ...(body.parentDirectoryId == null ? {} : { parentId: body.parentDirectoryId }),
-            })
-          )
+      const path = remoteBackendPaths.CREATE_CONNECTOR_PATH
+      const response = await this.httpPost(path, {
+        name: this.value.title,
+        value: body.value,
+        connectorId: this.value.id,
+      })
+      if (!responseIsSuccessful(response)) {
+        return this.throw(response, 'updateConnectorBackendError', this.value.title)
+      } else {
+        return updated
+      }
     }
   }
 }
@@ -1229,37 +1153,17 @@ class SmartSecret extends SmartAsset<backend.SecretAsset> implements backend.Sma
 
   /** Change the value or description of a secret environment variable. */
   override async update(body: backend.UpdateAssetOrSecretRequestBody): Promise<this> {
-    const updateAssetRequest =
-      body.description == null && body.parentDirectoryId == null
-        ? null
-        : super.update({
-            description: body.description ?? null,
-            parentDirectoryId: body.parentDirectoryId ?? null,
-          })
-    const path = remoteBackendPaths.updateSecretPath(this.value.id)
-    const updateSecretRequest =
-      body.value == null ? null : this.httpPut(path, { value: body.value })
-    const [updateAssetResponse, updateSecretResponse] = await Promise.allSettled([
-      updateAssetRequest,
-      updateSecretRequest,
-    ])
-    if (
-      updateAssetResponse.status === 'rejected' ||
-      updateSecretResponse.status === 'rejected' ||
-      (updateSecretResponse.value != null && !responseIsSuccessful(updateSecretResponse.value))
-    ) {
-      const response =
-        updateSecretResponse.status === 'fulfilled' ? updateSecretResponse.value : null
-      return this.throw(response, 'updateSecretBackendError', this.value.title)
+    const updated = await super.update(body)
+    if (body.value == null) {
+      return updated
     } else {
-      return body.description == null && body.parentDirectoryId == null
-        ? this
-        : this.withValue(
-            object.merge(this.value, {
-              ...(body.description == null ? {} : { description: body.description }),
-              ...(body.parentDirectoryId == null ? {} : { parentId: body.parentDirectoryId }),
-            })
-          )
+      const path = remoteBackendPaths.updateSecretPath(this.value.id)
+      const response = await this.httpPut(path, { value: body.value })
+      if (!responseIsSuccessful(response)) {
+        return this.throw(response, 'updateSecretBackendError', this.value.title)
+      } else {
+        return updated
+      }
     }
   }
 }
