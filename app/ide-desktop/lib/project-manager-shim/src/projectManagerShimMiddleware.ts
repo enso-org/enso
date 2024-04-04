@@ -374,13 +374,15 @@ export default function projectManagerShimMiddleware(
             }
         }
     } else if (request.method === 'GET' && requestPath === '/api/root-directory') {
-        response
-            .writeHead(HTTP_STATUS_OK, [
-                ['Content-Length', String(PROJECTS_ROOT_DIRECTORY.length)],
-                ['Content-Type', 'text/plain'],
-                ...common.COOP_COEP_CORP_HEADERS,
-            ])
-            .end(PROJECTS_ROOT_DIRECTORY)
+        setTimeout(() => {
+            response
+                .writeHead(HTTP_STATUS_OK, [
+                    ['Content-Length', String(PROJECTS_ROOT_DIRECTORY.length)],
+                    ['Content-Type', 'text/plain'],
+                    ...common.COOP_COEP_CORP_HEADERS,
+                ])
+                .end(PROJECTS_ROOT_DIRECTORY)
+        }, 2000)
     } else {
         next()
     }

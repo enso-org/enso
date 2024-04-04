@@ -242,6 +242,8 @@
   "confirmEdit": "Confirm Edit",
   "cancelEdit": "Cancel Edit",
   "loadingAppMessage": "Logging in to Enso...",
+  "appErroredMessage": "Enso encountered an unrecoverable error.",
+  "appErroredPrompt": "Please try refreshing or installing an updateed version.",
   "discoverWhatsNew": "Discover what’s new",
   "sampleAndCommunityProjects": "Sample and community projects",
   "openUserMenu": "Open user menu",
