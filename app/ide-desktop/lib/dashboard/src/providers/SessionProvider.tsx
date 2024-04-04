@@ -50,8 +50,8 @@ export interface SessionProviderProps {
   readonly children: React.ReactNode
 }
 
-const FIVE_MINUTES = 300_000
-const SIX_HOURS = 21_600_000
+const FIVE_MINUTES_MS = 300_000
+const SIX_HOURS_MS = 21_600_000
 
 /** A React provider for the session of the authenticated user. */
 export default function SessionProvider(props: SessionProviderProps) {
@@ -96,8 +96,9 @@ export default function SessionProvider(props: SessionProviderProps) {
     [refresh]
   )
 
-  const timeUntilRefresh = session?.expireAt
-    ? new Date(session.expireAt).getTime() - Date.now() - FIVE_MINUTES
+  const timeUntilRefresh = session
+    ? // If the session has not expired, we should refresh it when it is 5 minutes from expiring.
+      new Date(session.expireAt).getTime() - Date.now() - FIVE_MINUTES_MS
     : Infinity
 
   reactQuery.useQuery({
@@ -105,7 +106,7 @@ export default function SessionProvider(props: SessionProviderProps) {
     queryFn: refreshUserSession ? () => refreshUserSession().then(doRefresh) : reactQuery.skipToken,
     refetchOnWindowFocus: true,
     refetchIntervalInBackground: true,
-    refetchInterval: timeUntilRefresh < SIX_HOURS ? timeUntilRefresh : SIX_HOURS,
+    refetchInterval: timeUntilRefresh < SIX_HOURS_MS ? timeUntilRefresh : SIX_HOURS_MS,
   })
 
   // Register an effect that will listen for authentication events. When the event occurs, we
