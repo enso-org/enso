@@ -29,7 +29,7 @@ collect_benches = Bench.build builder->
 
     data = Data.create vector_size faker
 
-    builder.group "Numeric Rounding" options group_builder->
+    builder.group "Numeric_Rounding" options group_builder->
         funs.each pair->
             name = pair.at 0
             fun = pair.at 1
