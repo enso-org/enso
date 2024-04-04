@@ -77,6 +77,8 @@ function main() {
     supportsLocalBackend: !IS_CLOUD_BUILD,
     supportsDeepLinks: !isDevMode && !isOnLinux(),
     projectManagerUrl,
+    // Injected by the Dashboard.
+    projectManagerRootDirectory: null,
     isAuthenticationDisabled: !shouldUseAuthentication,
     shouldShowDashboard: true,
     initialProjectName,
