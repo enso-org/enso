@@ -164,7 +164,7 @@ type Context
         case self of
             Input  -> "Input"
             Output -> "Output"
-            Dataflow_Stack_Trace -> "Dataflow_Stack_Trace "
+            Dataflow_Stack_Trace -> "Dataflow_Stack_Trace"
 
     ## PRIVATE
        ADVANCED
