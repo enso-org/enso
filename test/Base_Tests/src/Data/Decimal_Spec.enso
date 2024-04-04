@@ -643,6 +643,31 @@ add_specs suite_builder =
             Decimal.new "10" . pow -1 . should_fail_with Arithmetic_Error
             Decimal.new "10" . pow 99999999999 . should_fail_with Arithmetic_Error
 
+    suite_builder.group "to_text" group_builder->
+        group_builder.specify "should convert to text correctly" <|
+            Decimal.new "34.56" . to_text . should_equal "34.56"
+            Decimal.new "34.56" . to_display_text . should_equal "34.56"
+            Decimal.new "123E80" . to_text . should_equal "1.23E+82"
+            Decimal.new "123E80" . to_display_text . should_equal "1.23E+82"
+            Decimal.new "0.00016E-20" . to_text . should_equal "1.6E-24"
+            Decimal.new "0.00016E-20" . to_display_text . should_equal "1.6E-24"
+
+            Decimal.new "-34.56" . to_text . should_equal "-34.56"
+            Decimal.new "-34.56" . to_display_text . should_equal "-34.56"
+            Decimal.new "-123E80" . to_text . should_equal "-1.23E+82"
+            Decimal.new "-123E80" . to_display_text . should_equal "-1.23E+82"
+            Decimal.new "-0.00016E-20" . to_text . should_equal "-1.6E-24"
+            Decimal.new "-0.00016E-20" . to_display_text . should_equal "-1.6E-24"
+
+        group_builder.specify "should convert to text without scientific notation correctly" <|
+            Decimal.new "34.56" . to_text_without_scientific_notation . should_equal "34.56"
+            Decimal.new "123E80" . to_text_without_scientific_notation . should_equal "12300000000000000000000000000000000000000000000000000000000000000000000000000000000"
+            Decimal.new "0.00016E-20" . to_text_without_scientific_notation . should_equal "0.0000000000000000000000016"
+
+            Decimal.new "-34.56" . to_text_without_scientific_notation . should_equal "-34.56"
+            Decimal.new "-123E80" . to_text_without_scientific_notation . should_equal "-12300000000000000000000000000000000000000000000000000000000000000000000000000000000"
+            Decimal.new "-0.00016E-20" . to_text_without_scientific_notation . should_equal "-0.0000000000000000000000016"
+
 main =
     suite = Test.build suite_builder->
         add_specs suite_builder
