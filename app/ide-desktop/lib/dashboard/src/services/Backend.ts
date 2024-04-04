@@ -400,6 +400,7 @@ export interface CognitoCredentials {
 export enum Plan {
   solo = 'solo',
   team = 'team',
+  enterprise = 'enterprise',
 }
 
 export const PLANS = Object.values(Plan)

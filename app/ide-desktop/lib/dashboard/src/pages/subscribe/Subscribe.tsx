@@ -36,6 +36,7 @@ const REDIRECT_DELAY_MS = 1_500
 const PLAN_TO_TEXT_ID: Readonly<Record<backendModule.Plan, text.TextId>> = {
   [backendModule.Plan.solo]: 'soloPlanName',
   [backendModule.Plan.team]: 'teamPlanName',
+  [backendModule.Plan.enterprise]: 'enterprisePlanName',
 } satisfies { [Plan in backendModule.Plan]: `${Plan}PlanName` }
 
 // =================
@@ -144,7 +145,7 @@ export default function Subscribe() {
                 setPlan(newPlan)
               }}
             >
-              {PLAN_TO_TEXT_ID[newPlan]}
+              {getText(PLAN_TO_TEXT_ID[newPlan])}
             </UnstyledButton>
           ))}
         </div>

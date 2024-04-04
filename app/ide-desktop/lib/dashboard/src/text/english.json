@@ -405,6 +405,7 @@
 
   "soloPlanName": "Solo",
   "teamPlanName": "Team",
+  "enterprisePlanName": "Enterprise",
 
   "metaModifier": "Meta",
   "shiftModifier": "Shift",
