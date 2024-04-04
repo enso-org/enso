@@ -12,7 +12,9 @@ import * as detect from 'enso-common/src/detect'
 import type * as app from '#/App'
 import App from '#/App'
 
-import ProjectManager from '#/services/ProjectManager'
+import * as projectManager from '#/services/ProjectManager'
+
+import * as appBaseUrl from '#/utilities/appBaseUrl'
 
 // =================
 // === Constants ===
@@ -79,7 +81,9 @@ function run(props: app.AppProps) {
     const actuallySupportsDeepLinks = supportsDeepLinks && detect.isOnElectron()
     void (async () => {
       if (supportsLocalBackend) {
-        await ProjectManager.loadRootDirectory()
+        const response = await fetch(`${appBaseUrl.APP_BASE_URL}/api/root-directory`)
+        const text = await response.text()
+        props = { ...props, projectManagerRootDirectory: projectManager.Path(text) }
       }
       reactDOM.createRoot(root).render(
         <sentry.ErrorBoundary>

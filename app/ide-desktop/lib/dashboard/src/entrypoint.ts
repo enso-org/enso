@@ -24,6 +24,7 @@ main.run({
   },
   /** The cloud frontend is not capable of running a Project Manager. */
   projectManagerUrl: null,
+  projectManagerRootDirectory: null,
   // This cannot be `appRunner: window.enso` as `window.enso` is set to a new value
   // every time a new project is opened.
   appRunner: {

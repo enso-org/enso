@@ -69,6 +69,7 @@ import * as rootComponent from '#/components/Root'
 
 import type Backend from '#/services/Backend'
 import LocalBackend from '#/services/LocalBackend'
+import type * as projectManager from '#/services/ProjectManager'
 
 import * as eventModule from '#/utilities/event'
 import LocalStorage from '#/utilities/LocalStorage'
@@ -133,6 +134,7 @@ export interface AppProps {
   readonly initialProjectName: string | null
   readonly onAuthenticated: (accessToken: string | null) => void
   readonly projectManagerUrl: string | null
+  readonly projectManagerRootDirectory: projectManager.Path | null
   readonly appRunner: AppRunner
 }
 
@@ -180,7 +182,7 @@ export default function App(props: AppProps) {
  * component as the component that defines the provider. */
 function AppRouter(props: AppProps) {
   const { logger, supportsLocalBackend, isAuthenticationDisabled, shouldShowDashboard } = props
-  const { onAuthenticated, projectManagerUrl } = props
+  const { onAuthenticated, projectManagerUrl, projectManagerRootDirectory } = props
   // `navigateHooks.useNavigate` cannot be used here as it relies on `AuthProvider`, which has not
   // yet been initialized at this point.
   // eslint-disable-next-line no-restricted-properties
@@ -270,11 +272,12 @@ function AppRouter(props: AppProps) {
 
   const userSession = authService?.cognito.userSession.bind(authService.cognito) ?? null
   const registerAuthEventListener = authService?.registerAuthEventListener ?? null
-  const initialBackend: Backend = isAuthenticationDisabled
-    ? new LocalBackend(projectManagerUrl)
-    : // This is safe, because the backend is always set by the authentication flow.
-      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-      null!
+  const initialBackend: Backend =
+    isAuthenticationDisabled && projectManagerUrl != null && projectManagerRootDirectory != null
+      ? new LocalBackend(projectManagerUrl, projectManagerRootDirectory)
+      : // This is SAFE, because the backend is always set by the authentication flow.
+        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+        null!
 
   React.useEffect(() => {
     let isClick = false
@@ -356,6 +359,7 @@ function AppRouter(props: AppProps) {
       authService={authService}
       onAuthenticated={onAuthenticated}
       projectManagerUrl={projectManagerUrl}
+      projectManagerRootDirectory={projectManagerRootDirectory}
     >
       {result}
     </AuthProvider>

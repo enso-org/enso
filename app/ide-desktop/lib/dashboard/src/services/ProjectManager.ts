@@ -1,11 +1,11 @@
 /** @file This module defines the Project Manager endpoint.
  * @see
  * https://github.com/enso-org/enso/blob/develop/docs/language-server/protocol-project-manager.md */
+import * as backend from '#/services/Backend'
+
 import * as appBaseUrl from '#/utilities/appBaseUrl'
 import type * as dateTime from '#/utilities/dateTime'
 import * as newtype from '#/utilities/newtype'
-
-import GLOBAL_CONFIG from '../../../../../gui2/config.yaml' assert { type: 'yaml' }
 
 // =================
 // === Constants ===
@@ -179,6 +179,26 @@ export interface VersionList {
   readonly versions: EngineVersion[]
 }
 
+// ====================
+// === ProjectState ===
+// ====================
+
+/** A project that is currently opening. */
+interface OpenInProgressProjectState {
+  readonly state: backend.ProjectState.openInProgress
+  readonly data: Promise<OpenProject>
+}
+
+/** A project that is currently opened. */
+interface OpenedProjectState {
+  readonly state: backend.ProjectState.opened
+  readonly data: OpenProject
+}
+
+/** Possible states and associated metadata of a project.
+ * The "closed" state is omitted as it is the default state. */
+type ProjectState = OpenedProjectState | OpenInProgressProjectState
+
 // ================================
 // === Parameters for endpoints ===
 // ================================
@@ -245,15 +265,20 @@ export enum ProjectManagerEvents {
  * It should always be in sync with the Rust interface at
  * `app/gui/controller/engine-protocol/src/project_manager.rs`. */
 export default class ProjectManager {
-  private static instance: ProjectManager
-  private static internalRootDirectory: Path | null
-  protected id = 0
-  protected resolvers = new Map<number, (value: never) => void>()
-  protected rejecters = new Map<number, (reason?: JSONRPCError) => void>()
-  protected socketPromise: Promise<WebSocket>
+  private readonly internalProjects = new Map<UUID, ProjectState>()
+  // This MUST be declared after `internalProjects` because it depends on `internalProjects.
+  // eslint-disable-next-line @typescript-eslint/member-ordering
+  readonly projects: ReadonlyMap<UUID, ProjectState> = this.internalProjects
+  private id = 0
+  private resolvers = new Map<number, (value: never) => void>()
+  private rejecters = new Map<number, (reason?: JSONRPCError) => void>()
+  private socketPromise: Promise<WebSocket>
 
   /** Create a {@link ProjectManager} */
-  private constructor(protected readonly connectionUrl: string) {
+  constructor(
+    private readonly connectionUrl: string,
+    readonly rootDirectory: Path
+  ) {
     const firstConnectionStartMs = Number(new Date())
     let lastConnectionStartMs = 0
     let justErrored = false
@@ -307,41 +332,29 @@ export default class ProjectManager {
     this.socketPromise = createSocket()
   }
 
-  /** Return the root directory of the Project Manager. */
-  static get rootDirectory() {
-    if (this.internalRootDirectory == null) {
-      throw new Error(
-        'Please run `ProjectManager.loadRootDirectory()` before constructing a `ProjectManager`.'
-      )
-    } else {
-      return this.internalRootDirectory
-    }
-  }
-
-  /** Resolve the root directory. MUST be called before constructing a `LocalBackend`. */
-  static async loadRootDirectory() {
-    const response = await fetch(`${appBaseUrl.APP_BASE_URL}/api/root-directory`)
-    const text = await response.text()
-    this.internalRootDirectory = Path(text)
-  }
-
-  /** Lazy initialization for the singleton instance. */
-  static default(projectManagerUrl: string | null) {
-    // `this.instance` is initially undefined as an instance should only be created
-    // if a `ProjectManager` is actually needed.
-    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-    return (this.instance ??= new ProjectManager(
-      projectManagerUrl ?? GLOBAL_CONFIG.projectManagerEndpoint
-    ))
-  }
-
   /** Open an existing project. */
   async openProject(params: OpenProjectParams): Promise<OpenProject> {
-    return this.sendRequest<OpenProject>('project/open', params)
+    const cached = this.internalProjects.get(params.projectId)
+    if (cached) {
+      return cached.data
+    } else {
+      const promise = this.sendRequest<OpenProject>('project/open', params)
+      this.internalProjects.set(params.projectId, {
+        state: backend.ProjectState.openInProgress,
+        data: promise,
+      })
+      const result = await promise
+      this.internalProjects.set(params.projectId, {
+        state: backend.ProjectState.opened,
+        data: result,
+      })
+      return result
+    }
   }
 
   /** Close an open project. */
   async closeProject(params: CloseProjectParams): Promise<void> {
+    this.internalProjects.delete(params.projectId)
     return this.sendRequest('project/close', params)
   }
 
@@ -365,6 +378,7 @@ export default class ProjectManager {
 
   /** Delete a project. */
   async deleteProject(params: DeleteProjectParams): Promise<void> {
+    this.internalProjects.delete(params.projectId)
     return this.sendRequest('project/delete', params)
   }
 
@@ -387,7 +401,7 @@ export default class ProjectManager {
     const response = await this.runStandaloneCommand<ResponseBody>(
       null,
       'filesystem-list',
-      parentId ?? ProjectManager.rootDirectory
+      parentId ?? this.rootDirectory
     )
     return response.entries
   }
