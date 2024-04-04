@@ -23,9 +23,7 @@ import org.enso.compiler.pass.resolve.TypeSignatures$;
 import org.enso.persist.Persistable;
 import org.enso.persist.Persistance;
 import org.openide.util.lookup.ServiceProvider;
-import scala.$less$colon$less;
 import scala.Option;
-import scala.Tuple2;
 import scala.Tuple2$;
 
 @Persistable(clazz = CachePreferenceAnalysis.WeightInfo.class, id = 1111)
@@ -132,8 +130,7 @@ public final class PassPersistance {
     protected Graph.Scope readObject(Input in) throws IOException {
       var childScopes = in.readInline(scala.collection.immutable.List.class);
       var occurrencesValues = (scala.collection.immutable.Set<Graph.Occurrence>) in.readObject();
-      var ev = ($less$colon$less<Graph.Occurrence, Tuple2<Object, Graph.Occurrence>>) null;
-      var occurrences = occurrencesValues.map(v -> Tuple2$.MODULE$.apply(v.id(), v)).toMap(ev);
+      var occurrences = occurrencesValues.map(v -> Tuple2$.MODULE$.apply(v.id(), v)).toMap(null);
       var allDefinitions = in.readInline(scala.collection.immutable.List.class);
       var parent = new Graph.Scope(childScopes, occurrences, allDefinitions);
       var optionParent = Option.apply(parent);
