@@ -743,14 +743,22 @@ type Decimal
     internal_representation self = [self.unscaled_value, self.precision, self.scale]
 
     ## PRIVATE
+       Note: the underlying Java `BigDecimal` implementation is not affected by
+       locale.
     to_text : Text
     to_text self = self.big_decimal.toString
 
     ## PRIVATE
+       Note: the underlying Java `BigDecimal` implementation is not affected by
+       locale.
+    to_text : Text
     to_display_text : Text
     to_display_text self = self.big_decimal.toString
 
     ## PRIVATE
+       Note: the underlying Java `BigDecimal` implementation is not affected by
+       locale.
+    to_text : Text
     to_text_without_scientific_notation : Text
     to_text_without_scientific_notation  self = self.big_decimal.toPlainString
 
