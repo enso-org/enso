@@ -126,7 +126,7 @@ impl RunContext {
         ide_ci::programs::Npm.require_present().await?;
 
         let prepare_simple_library_server = {
-            if self.config.test_scala {
+            if self.config.test_jvm {
                 let simple_server_path = &self.paths.repo_root.tools.simple_library_server;
                 ide_ci::programs::git::new(simple_server_path)
                     .await?
@@ -265,7 +265,7 @@ impl RunContext {
 
 
         let _test_results_upload_guard =
-            if self.config.test_scala || self.config.test_standard_library {
+            if self.config.test_jvm || self.config.test_standard_library {
                 // If we run tests, make sure that old and new results won't end up mixed together.
                 let test_results_dir = ENSO_TEST_JUNIT_DIR
                     .get()
@@ -397,7 +397,7 @@ impl RunContext {
         debug!("Running unit tests and Enso tests.");
         // We store Scala test result but not immediately fail on it, as we want to run all the
         // tests (including standard library ones) even if Scala tests fail.
-        let scala_test_result = if self.config.test_scala {
+        let scala_test_result = if self.config.test_jvm {
             // Make sure that `sbt buildEngineDistributionNoIndex` is run before
             // `project-manager/test`. Note that we do not have to run
             // `buildEngineDistribution` (with indexing), because it is unnecessary.
