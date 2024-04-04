@@ -2,7 +2,7 @@
 export const name = 'Table'
 export const icon = 'table'
 export const inputType =
-  'Standard.Table.Data.Table.Table | Standard.Table.Data.Column.Column | Standard.Table.Data.Row.Row |Standard.Base.Data.Vector.Vector | Standard.Base.Data.Array.Array | Standard.Base.Data.Map.Map | Any'
+  'Standard.Table.Table.Table | Standard.Table.Column.Column | Standard.Table.Row.Row | Standard.Base.Data.Vector.Vector | Standard.Base.Data.Array.Array | Standard.Base.Data.Map.Map | Any'
 export const defaultPreprocessor = [
   'Standard.Visualization.Table.Visualization',
   'prepare_visualization',
@@ -75,6 +75,7 @@ import '@ag-grid-community/styles/ag-theme-alpine.css'
 import { Grid, type ColumnResizedEvent, type ICellRendererParams } from 'ag-grid-community'
 import type { ColDef, GridOptions, HeaderValueGetterParams } from 'ag-grid-enterprise'
 import { computed, onMounted, onUnmounted, reactive, ref, watchEffect, type Ref } from 'vue'
+
 const { LicenseManager } = await import('ag-grid-enterprise')
 
 const props = defineProps<{ data: Data }>()
@@ -235,7 +236,17 @@ function toRender(content: unknown) {
 }
 
 watchEffect(() => {
-  const data_ = props.data
+  // If the user switches from one visualization type to another, we can receive the raw object.
+  const data_ =
+    typeof props.data === 'object' ?
+      props.data
+    : {
+        type: typeof props.data,
+        json: props.data,
+        all_rows_count: 1,
+        data: undefined,
+        indices: undefined,
+      }
   const options = agGridOptions.value
   if (options.api == null) {
     return
@@ -287,7 +298,7 @@ watchEffect(() => {
   } else if (Array.isArray(data_.json)) {
     columnDefs = [indexField(), toField('Value')]
     rowData = data_.json.map((row, i) => ({ [INDEX_FIELD_NAME]: i, Value: toRender(row) }))
-    isTruncated.value = data_.all_rows_count !== data_.json.length
+    isTruncated.value = data_.all_rows_count ? data_.all_rows_count !== data_.json.length : false
   } else if (data_.json !== undefined) {
     columnDefs = [toField('Value')]
     rowData = [{ Value: toRender(data_.json) }]
@@ -370,12 +381,13 @@ function lockColumnSize(e: ColumnResizedEvent) {
 
 onMounted(() => {
   setRowLimit(1000)
-  if ('AG_GRID_LICENSE_KEY' in window && typeof window.AG_GRID_LICENSE_KEY === 'string') {
-    LicenseManager.setLicenseKey(window.AG_GRID_LICENSE_KEY)
+  const agGridLicenseKey = import.meta.env.VITE_ENSO_AG_GRID_LICENSE_KEY
+  if (typeof agGridLicenseKey === 'string') {
+    LicenseManager.setLicenseKey(agGridLicenseKey)
   } else {
     console.warn('The AG_GRID_LICENSE_KEY is not defined.')
-    new Grid(tableNode.value!, agGridOptions.value)
   }
+  new Grid(tableNode.value!, agGridOptions.value)
   updateColumnWidths()
 })
 

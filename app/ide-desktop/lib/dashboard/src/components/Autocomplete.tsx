@@ -18,10 +18,10 @@ interface InternalBaseAutocompleteProps<T> {
   readonly type?: React.HTMLInputTypeAttribute
   readonly inputRef?: React.MutableRefObject<HTMLInputElement | null>
   readonly placeholder?: string
-  readonly values: T[]
+  readonly values: readonly T[]
   readonly autoFocus?: boolean
   /** This may change as the user types in the input. */
-  readonly items: T[]
+  readonly items: readonly T[]
   readonly itemToKey: (item: T) => string
   readonly itemToString: (item: T) => string
   readonly itemsToString?: (items: T[]) => string
@@ -45,8 +45,8 @@ interface InternalMultipleAutocompleteProps<T> extends InternalBaseAutocompleteP
   /** This is `null` when multiple values are selected, causing the input to switch to a
    * {@link HTMLTextAreaElement}. */
   readonly inputRef?: React.MutableRefObject<HTMLInputElement | null>
-  readonly setValues: (value: T[]) => void
-  readonly itemsToString: (items: T[]) => string
+  readonly setValues: (value: readonly T[]) => void
+  readonly itemsToString: (items: readonly T[]) => string
 }
 
 /** {@link AutocompleteProps} when the text cannot be edited. */
@@ -220,7 +220,7 @@ export default function Autocomplete<T>(props: AutocompleteProps<T>) {
         <div
           className={`relative top-2 z-1 h-max w-full rounded-default shadow-soft before:absolute before:top before:h-full before:w-full before:rounded-default before:bg-frame before:backdrop-blur-default ${
             isDropdownVisible && matchingItems.length !== 0
-              ? 'before:border before:border-black/10'
+              ? 'before:border before:border-primary/10'
               : ''
           }`}
         >
@@ -234,7 +234,7 @@ export default function Autocomplete<T>(props: AutocompleteProps<T>) {
             {matchingItems.map((item, index) => (
               <div
                 key={itemToKey(item)}
-                className={`text relative cursor-pointer px-input-x first:rounded-t-default last:rounded-b-default hover:bg-black/5 ${
+                className={`text relative cursor-pointer px-input-x first:rounded-t-default last:rounded-b-default hover:bg-hover-bg ${
                   index === selectedIndex ? 'bg-black/5' : valuesSet.has(item) ? 'bg-hover-bg' : ''
                 }`}
                 onMouseDown={event => {

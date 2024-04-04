@@ -32,19 +32,19 @@ add_specs suite_builder =
             url_windows_1250.fetch . should_equal content_windows_1250
 
         group_builder.specify "should detect the encoding from Content-Type in decode_as_text" <|
-            r1 = url_utf8.fetch try_auto_parse_response=False
+            r1 = url_utf8.fetch format=Raw_Response
             r1.decode_as_text . should_equal content_utf
 
-            r2 = url_windows_1250.fetch try_auto_parse_response=False
+            r2 = url_windows_1250.fetch format=Raw_Response
             r2.decode_as_text . should_equal content_windows_1250
 
-            r3 = url_utf8.fetch try_auto_parse_response=False
+            r3 = url_utf8.fetch format=Raw_Response
             # We may override the encoding detected from Content-Type:
             r3.decode_as_text Encoding.ascii . should_fail_with Encoding_Error
 
         group_builder.specify "should detect the encoding from Content-Type in decode_as_json" <|
-            r1 = url_utf8.fetch try_auto_parse_response=False
+            r1 = url_utf8.fetch format=Raw_Response
             r1.decode_as_json . should_equal ["x", "Hello! 😊👍 ąę"]
 
-            r2 = url_windows_1250.fetch try_auto_parse_response=False
+            r2 = url_windows_1250.fetch format=Raw_Response
             r2.decode_as_json . should_equal ["y", "Hello! ąę"]

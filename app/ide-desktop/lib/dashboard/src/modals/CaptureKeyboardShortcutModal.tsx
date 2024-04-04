@@ -4,6 +4,7 @@ import * as React from 'react'
 import * as detect from 'enso-common/src/detect'
 
 import * as modalProvider from '#/providers/ModalProvider'
+import * as textProvider from '#/providers/TextProvider'
 
 import KeyboardShortcut from '#/components/dashboard/KeyboardShortcut'
 import Modal from '#/components/Modal'
@@ -50,6 +51,7 @@ export interface CaptureKeyboardShortcutModalProps {
 export default function CaptureKeyboardShortcutModal(props: CaptureKeyboardShortcutModalProps) {
   const { description, existingShortcuts, onSubmit } = props
   const { unsetModal } = modalProvider.useSetModal()
+  const { getText } = textProvider.useText()
   const [key, setKey] = React.useState<string | null>(null)
   const [modifiers, setModifiers] = React.useState<string>('')
   const shortcut = key == null ? modifiers : modifiers === '' ? key : `${modifiers}+${key}`
@@ -100,14 +102,14 @@ export default function CaptureKeyboardShortcutModal(props: CaptureKeyboardShort
           }
         }}
       >
-        <div className="relative">Enter the new keyboard shortcut for {description}.</div>
+        <div className="relative">{getText('enterTheNewKeyboardShortcutFor', description)}</div>
         <div
           className={`relative flex scale-150 items-center justify-center ${
             doesAlreadyExist ? 'text-red-600' : ''
           }`}
         >
           {shortcut === '' ? (
-            <span className="text text-primary/30">No shortcut entered</span>
+            <span className="text text-primary/30">{getText('noShortcutEntered')}</span>
           ) : (
             <KeyboardShortcut shortcut={shortcut} />
           )}
@@ -121,10 +123,10 @@ export default function CaptureKeyboardShortcutModal(props: CaptureKeyboardShort
             type="submit"
             className="button bg-invite text-white enabled:active"
           >
-            Confirm
+            {getText('confirm')}
           </button>
           <button type="button" className="button bg-selected-frame active" onClick={unsetModal}>
-            Cancel
+            {getText('cancel')}
           </button>
         </div>
       </form>

@@ -1,5 +1,8 @@
 <script lang="ts">
+import SvgIcon from '@/components/SvgIcon.vue'
+import { Ast } from '@/util/ast'
 import { Pattern } from '@/util/ast/match'
+import { useVisualizationConfig, VisualizationContainer } from '@/util/visualizationBuiltins'
 import { computed } from 'vue'
 
 export const name = 'Warnings'
@@ -10,13 +13,12 @@ export const defaultPreprocessor = [
   'process_to_json_text',
 ] as const
 
-const removeWarnings = computed(() => Pattern.parse('__.remove_warnings'))
+const removeWarnings = computed(() =>
+  Pattern.new((ast) => Ast.PropertyAccess.new(ast.module, ast, Ast.identifier('remove_warnings')!)),
+)
 </script>
 
 <script setup lang="ts">
-import SvgIcon from '@/components/SvgIcon.vue'
-import { useVisualizationConfig, VisualizationContainer } from '@/util/visualizationBuiltins'
-
 type Data = string[]
 
 const props = defineProps<{ data: Data }>()
@@ -32,7 +34,7 @@ const config = useVisualizationConfig()
           name="not_exclamation"
           data-testid="remove-warnings-button"
           alt="Remove warnings"
-          @click="config.createNode({ content: removeWarnings, commit: true })"
+          @click="config.createNodes({ content: removeWarnings, commit: true })"
         />
       </button>
     </template>

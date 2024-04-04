@@ -1,9 +1,9 @@
 from Standard.Base import all
 import Standard.Base.Errors.Illegal_State.Illegal_State
 
-import Standard.Table.Data.Join_Kind.Join_Kind
 import Standard.Table.Internal.Join_Helpers
 import Standard.Table.Internal.Unique_Name_Strategy.Unique_Name_Strategy
+from Standard.Table import Join_Kind
 from Standard.Table.Errors import Floating_Point_Equality
 
 import project.Connection.Connection.Connection

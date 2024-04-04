@@ -10,6 +10,7 @@ import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 import * as authProvider from '#/providers/AuthProvider'
 import * as backendProvider from '#/providers/BackendProvider'
 import * as modalProvider from '#/providers/ModalProvider'
+import * as textProvider from '#/providers/TextProvider'
 
 import Autocomplete from '#/components/Autocomplete'
 import Permission from '#/components/dashboard/Permission'
@@ -58,8 +59,12 @@ export default function ManagePermissionsModal<
   const { backend } = backendProvider.useBackend()
   const { unsetModal } = modalProvider.useSetModal()
   const toastAndLog = toastAndLogHooks.useToastAndLog()
+  const { getText } = textProvider.useText()
   const [permissions, setPermissions] = React.useState(item.permissions ?? [])
-  const [usersAndUserGroups, setUsers] = React.useState<backendModule.SimpleUser[]>([])
+  // FIXME: setUsersAndUserGroups
+  const [usersAndUserGroups, setUsers] = React.useState<
+    readonly (backendModule.UserGroupInfo | backendModule.UserInfo)[]
+  >([])
   const [email, setEmail] = React.useState<string | null>(null)
   const [action, setAction] = React.useState(permissionsModule.PermissionAction.view)
   const position = React.useMemo(() => eventTarget?.getBoundingClientRect(), [eventTarget])
@@ -72,7 +77,7 @@ export default function ManagePermissionsModal<
           ),
     [permissions, self.permission]
   )
-  const usernamesOfUsersWithPermission = React.useMemo(
+  const permissionsHoldersNames = React.useMemo(
     () => new Set(item.permissions?.map(backendModule.getAssetPermissionName)),
     [item.permissions]
   )
@@ -80,7 +85,7 @@ export default function ManagePermissionsModal<
     () =>
       new Set<string>(
         item.permissions?.flatMap(userPermission =>
-          backendModule.isUserPermission(userPermission) ? [userPermission.user.user_email] : []
+          'user' in userPermission ? [userPermission.user.email] : []
         )
       ),
     [item.permissions]
@@ -91,9 +96,9 @@ export default function ManagePermissionsModal<
       permissions.every(
         permission =>
           permission.permission !== permissionsModule.PermissionAction.own ||
-          (backendModule.isUserPermission(permission) && permission.user.user_email === user?.email)
+          (backendModule.isUserPermission(permission) && permission.user.userId === user?.userId)
       ),
-    [user?.email, permissions, self.permission]
+    [user?.userId, permissions, self.permission]
   )
 
   React.useEffect(() => {
@@ -110,14 +115,23 @@ export default function ManagePermissionsModal<
     throw new Error('Cannot share assets on the local backend.')
   } else {
     const listedUsers = asyncEffectHooks.useAsyncEffect(null, () => backend.listUsers(), [])
-    const allUsers = React.useMemo(
-      () =>
-        (listedUsers ?? []).filter(
+    const listedUserGroups = asyncEffectHooks.useAsyncEffect(
+      null,
+      () => backend.listUserGroups(),
+      []
+    )
+    const canAdd = React.useMemo(
+      () => [
+        ...(listedUsers ?? []).filter(
           listedUser =>
-            !usernamesOfUsersWithPermission.has(listedUser.name) &&
+            !permissionsHoldersNames.has(listedUser.name) &&
             !emailsOfUsersWithPermission.has(listedUser.email)
         ),
-      [emailsOfUsersWithPermission, usernamesOfUsersWithPermission, listedUsers]
+        ...(listedUserGroups ?? []).filter(
+          userGroup => !permissionsHoldersNames.has(userGroup.groupName)
+        ),
+      ],
+      [emailsOfUsersWithPermission, permissionsHoldersNames, listedUsers, listedUserGroups]
     )
     const willInviteNewUser = React.useMemo(() => {
       if (usersAndUserGroups.length !== 0 || email == null || email === '') {
@@ -126,12 +140,13 @@ export default function ManagePermissionsModal<
         const lowercase = email.toLowerCase()
         return (
           lowercase !== '' &&
-          !usernamesOfUsersWithPermission.has(lowercase) &&
+          !permissionsHoldersNames.has(lowercase) &&
           !emailsOfUsersWithPermission.has(lowercase) &&
-          !allUsers.some(
-            innerUser =>
-              innerUser.name.toLowerCase() === lowercase ||
-              innerUser.email.toLowerCase() === lowercase
+          !canAdd.some(
+            userOrGroup =>
+              ('name' in userOrGroup && userOrGroup.name.toLowerCase() === lowercase) ||
+              ('email' in userOrGroup && userOrGroup.email.toLowerCase() === lowercase) ||
+              ('groupName' in userOrGroup && userOrGroup.groupName.toLowerCase() === lowercase)
           )
         )
       }
@@ -139,8 +154,8 @@ export default function ManagePermissionsModal<
       usersAndUserGroups.length,
       email,
       emailsOfUsersWithPermission,
-      usernamesOfUsersWithPermission,
-      allUsers,
+      permissionsHoldersNames,
+      canAdd,
     ])
 
     const doSubmit = async () => {
@@ -150,34 +165,25 @@ export default function ManagePermissionsModal<
           setEmail('')
           if (email != null) {
             await backend.inviteUser({
-              organizationId: user.id,
+              organizationId: user.organizationId,
               userEmail: backendModule.EmailAddress(email),
             })
-            toast.toast.success(`You've invited '${email}' to join Enso!`)
+            toast.toast.success(getText('inviteSuccess', email))
           }
         } catch (error) {
-          toastAndLog(`Could not invite user '${email}'`, error)
+          toastAndLog('couldNotInviteUser', error, email ?? '(unknown)')
         }
       } else {
         setUsers([])
         const addedPermissions = usersAndUserGroups.map<backendModule.AssetPermission>(
-          newUserOrUserGroup => ({
-            user: {
-              // The names come from a third-party API and cannot be
-              // changed.
-              /* eslint-disable @typescript-eslint/naming-convention */
-              organization_id: user.id,
-              pk: newUserOrUserGroup.id,
-              user_email: newUserOrUserGroup.email,
-              user_name: newUserOrUserGroup.name,
-              /* eslint-enable @typescript-eslint/naming-convention */
-            },
-            permission: action,
-          })
+          newUserOrUserGroup =>
+            'userId' in newUserOrUserGroup
+              ? { user: newUserOrUserGroup, permission: action }
+              : { userGroup: newUserOrUserGroup, permission: action }
         )
         const addedUsersIds = new Set(
           addedPermissions.flatMap(permission =>
-            backendModule.isUserPermission(permission) ? [permission.user.pk] : []
+            backendModule.isUserPermission(permission) ? [permission.user.userId] : []
           )
         )
         const addedUserGroupsIds = new Set(
@@ -185,12 +191,9 @@ export default function ManagePermissionsModal<
             backendModule.isUserGroupPermission(permission) ? [permission.userGroup.sk] : []
           )
         )
-        const oldUsersPermissions = permissions.filter(
-          backendModule.isUserPermissionAnd(permission => addedUsersIds.has(permission.user.pk))
-        )
         const isPermissionNotBeingOverwritten = (permission: backendModule.AssetPermission) =>
           backendModule.isUserPermission(permission)
-            ? !addedUsersIds.has(permission.user.pk)
+            ? !addedUsersIds.has(permission.user.userId)
             : !addedUserGroupsIds.has(permission.userGroup.sk)
 
         try {
@@ -200,9 +203,9 @@ export default function ManagePermissionsModal<
             )
           )
           await backend.createPermission({
-            userSubjects: addedPermissions.map(permission =>
+            actorsIds: addedPermissions.map(permission =>
               backendModule.isUserPermission(permission)
-                ? permission.user.pk
+                ? permission.user.userId
                 : permission.userGroup.sk
             ),
             resourceId: item.id,
@@ -210,19 +213,17 @@ export default function ManagePermissionsModal<
           })
         } catch (error) {
           setPermissions(oldPermissions =>
-            [
-              ...oldPermissions.filter(isPermissionNotBeingOverwritten),
-              ...oldUsersPermissions,
-            ].sort(backendModule.compareAssetPermissions)
+            [...oldPermissions.filter(isPermissionNotBeingOverwritten), ...oldPermissions].sort(
+              backendModule.compareAssetPermissions
+            )
           )
-          const usernames = addedPermissions.map(backendModule.getAssetPermissionName)
-          toastAndLog(`Could not set permissions for ${usernames.join(', ')}`, error)
+          toastAndLog('setPermissionsError', error)
         }
       }
     }
 
     const doDelete = async (permissionId: backendModule.UserPermissionIdentifier) => {
-      if (permissionId === self.user.pk) {
+      if (permissionId === self.user.userId) {
         doRemoveSelf()
       } else {
         const oldPermission = permissions.find(
@@ -235,7 +236,7 @@ export default function ManagePermissionsModal<
             )
           )
           await backend.createPermission({
-            userSubjects: [permissionId],
+            actorsIds: [permissionId],
             resourceId: item.id,
             action: null,
           })
@@ -245,7 +246,7 @@ export default function ManagePermissionsModal<
               [...oldPermissions, oldPermission].sort(backendModule.compareAssetPermissions)
             )
           }
-          toastAndLog(`Could not set permissions`, error)
+          toastAndLog('setPermissionsError', error)
         }
       }
     }
@@ -281,7 +282,7 @@ export default function ManagePermissionsModal<
         >
           <div className="relative flex flex-col gap-modal rounded-default p-modal">
             <div className="flex h-row items-center gap-modal-tabs px-modal-tab-bar-x">
-              <h2 className="text text-sm font-bold">Invite</h2>
+              <h2 className="text text-sm font-bold">{getText('invite')}</h2>
               {/* Space reserved for other tabs. */}
             </div>
             <form
@@ -291,7 +292,7 @@ export default function ManagePermissionsModal<
                 void doSubmit()
               }}
             >
-              <div className="flex grow items-center gap-user-permission rounded-full border border-black/10 px-manage-permissions-modal-input">
+              <div className="flex grow items-center gap-user-permission rounded-full border border-primary/10 px-manage-permissions-modal-input">
                 <PermissionSelector
                   input
                   disabled={willInviteNewUser}
@@ -308,23 +309,33 @@ export default function ManagePermissionsModal<
                     placeholder={
                       // `listedUsers` will always include the current user.
                       listedUsers?.length !== 1
-                        ? 'Type usernames or emails to search or invite'
-                        : 'Enter an email to invite someone'
+                        ? getText('inviteUserPlaceholder')
+                        : getText('inviteFirstUserPlaceholder')
                     }
                     type="text"
                     itemsToString={items =>
-                      items.length === 1 && items[0] != null
+                      items.length === 1 && items[0] != null && 'email' in items[0]
                         ? items[0].email
-                        : `${items.length} users selected`
+                        : getText('xUsersSelected', items.length)
                     }
                     values={usersAndUserGroups}
                     setValues={setUsers}
-                    items={allUsers}
-                    itemToKey={otherUser => otherUser.id}
-                    itemToString={otherUser => `${otherUser.name} (${otherUser.email})`}
-                    matches={(otherUser, text) =>
-                      otherUser.email.toLowerCase().includes(text.toLowerCase()) ||
-                      otherUser.name.toLowerCase().includes(text.toLowerCase())
+                    items={canAdd}
+                    itemToKey={userOrGroup =>
+                      'userId' in userOrGroup ? userOrGroup.userId : userOrGroup.sk
+                    }
+                    itemToString={userOrGroup =>
+                      'name' in userOrGroup
+                        ? `${userOrGroup.name} (${userOrGroup.email})`
+                        : userOrGroup.groupName
+                    }
+                    matches={(userOrGroup, text) =>
+                      ('email' in userOrGroup &&
+                        userOrGroup.email.toLowerCase().includes(text.toLowerCase())) ||
+                      ('name' in userOrGroup &&
+                        userOrGroup.name.toLowerCase().includes(text.toLowerCase())) ||
+                      ('groupName' in userOrGroup &&
+                        userOrGroup.groupName.toLowerCase().includes(text.toLowerCase()))
                     }
                     text={email}
                     setText={setEmail}
@@ -366,12 +377,16 @@ export default function ManagePermissionsModal<
                             : oldPermission
                         )
                       )
-                      if (permissionId === self.user.pk) {
-                        setTimeout(unsetModal)
+                      if (permissionId === self.user.userId) {
+                        // This must run only after the permissions have
+                        // been updated through `setItem`.
+                        setTimeout(() => {
+                          unsetModal()
+                        }, 0)
                       }
                     }}
                     doDelete={id => {
-                      if (id === self.user.pk) {
+                      if (id === self.user.userId) {
                         unsetModal()
                       }
                       void doDelete(id)

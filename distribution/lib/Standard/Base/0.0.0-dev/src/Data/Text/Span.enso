@@ -39,6 +39,7 @@ type Span
     Value (range : Range) (parent : Text)
 
     ## GROUP Metadata
+       ICON metadata
        The index of the first character included in the span.
 
        ! What is a Character?
@@ -59,6 +60,7 @@ type Span
     end self = self.range.end
 
     ## GROUP Metadata
+       ICON metadata
        The length of the span in extended grapheme clusters.
 
        ! What is a Character?
@@ -69,11 +71,13 @@ type Span
     length self = self.range.length
 
     ## GROUP Metadata
+       ICON metadata
        Returns the part of the text that this span covers.
     text : Text
     text self = self.to_utf_16_span.text
 
     ## ADVANCED
+       ICON convert
        Converts the span of extended grapheme clusters to a corresponding span
        of UTF-16 code units.
 
@@ -111,6 +115,7 @@ type Utf_16_Span
     Value (range : Range) (parent : Text)
 
     ## GROUP Metadata
+       ICON metadata
        The index of the first code unit included in the span.
     start : Integer
     start self = self.range.start
@@ -121,16 +126,19 @@ type Utf_16_Span
     end self = self.range.end
 
     ## GROUP Metadata
+       ICON metadata
        The length of the span in UTF-16 code units.
     length : Integer
     length self = self.range.length
 
     ## GROUP Metadata
+       ICON metadata
        Returns the part of the text that this span covers.
     text : Text
     text self = Text_Utils.substring self.parent self.start self.end
 
     ## GROUP Conversions
+       ICON convert
        Returns a span of extended grapheme clusters which is the closest
        approximation of this span of code units.
 

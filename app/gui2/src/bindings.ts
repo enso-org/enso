@@ -12,6 +12,7 @@ export const componentBrowserBindings = defineKeybinds('component-browser', {
   applySuggestion: ['Tab'],
   acceptSuggestion: ['Enter'],
   acceptInput: ['Mod+Enter'],
+  acceptAIPrompt: ['Tab', 'Enter'],
   moveUp: ['ArrowUp'],
   moveDown: ['ArrowDown'],
 })
@@ -33,6 +34,7 @@ export const graphBindings = defineKeybinds('graph-editor', {
   stopProfiling: ['Mod+Alt+.'],
   enterNode: ['Mod+E'],
   exitNode: ['Mod+Shift+E'],
+  changeColorSelectedNodes: ['Mod+Shift+C'],
 })
 
 export const visualizationBindings = defineKeybinds('visualization', {

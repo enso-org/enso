@@ -40,8 +40,12 @@
     "enso-common": "^1.0.0",
     "esbuild": "^0.19.3",
     "fast-glob": "^3.2.12",
+    "lightningcss": "^1.24.0",
     "portfinder": "^1.0.32",
-    "tsx": "^4.7.1"
+    "tsx": "^4.7.1",
+    "sharp": "^0.31.2",
+    "to-ico": "^1.1.5",
+    "vite": "^5.1.5"
   },
   "optionalDependencies": {
     "@esbuild/darwin-x64": "^0.17.15",
@@ -54,6 +58,8 @@
     "start": "tsx start.ts",
     "build": "tsx bundle.ts",
     "dist": "tsx dist.ts",
-    "watch": "tsx watch.ts"
+    "watch": "tsx watch.ts",
+    "watch:linux": "ENSO_BUILD_IDE=\"${ENSO_BUILD_IDE:-/tmp/enso/dist/ide}\" ENSO_BUILD_PROJECT_MANAGER=\"${ENSO_BUILD_PROJECT_MANAGER:-\"$(pwd)/../../../../dist/backend\"}\" ENSO_BUILD_PROJECT_MANAGER_IN_BUNDLE_PATH=\"${ENSO_BUILD_PROJECT_MANAGER_IN_BUNDLE_PATH:-bin/project-manager}\" ENSO_BUILD_IDE_BUNDLED_ENGINE_VERSION=\"${ENSO_BUILD_IDE_BUNDLED_ENGINE_VERSION:-0}\" tsx watch.ts \"$@\"",
+    "watch:macos": "ENSO_BUILD_IDE=\"${ENSO_BUILD_IDE:-/tmp/enso/dist/ide}\" ENSO_BUILD_PROJECT_MANAGER=\"${ENSO_BUILD_PROJECT_MANAGER:-\"$(pwd)/../../../../dist/backend\"}\" ENSO_BUILD_PROJECT_MANAGER_IN_BUNDLE_PATH=\"${ENSO_BUILD_PROJECT_MANAGER_IN_BUNDLE_PATH:-bin/project-manager}\" ENSO_BUILD_IDE_BUNDLED_ENGINE_VERSION=\"${ENSO_BUILD_IDE_BUNDLED_ENGINE_VERSION:-0}\" tsx watch.ts \"$@\""
   }
 }

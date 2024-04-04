@@ -42,7 +42,7 @@ export default function SharedWithColumn(props: SharedWithColumnPropsInternal) {
   const { user } = authProvider.useNonPartialUserSession()
   const { setModal } = modalProvider.useSetModal()
   const self = asset.permissions?.find(
-    backendModule.isUserPermissionAnd(permission => permission.user.user_email === user?.email)
+    backendModule.isUserPermissionAnd(permission => permission.user.userId === user?.userId)
   )
   const managesThisAsset =
     category !== Category.trash &&
@@ -61,24 +61,22 @@ export default function SharedWithColumn(props: SharedWithColumnPropsInternal) {
   )
   return (
     <div className="group flex items-center gap-column-items">
-      {(asset.permissions ?? []).map(permission => (
-        <PermissionDisplay
-          key={backendModule.getAssetPermissionName(permission)}
-          action={permission.permission}
-          onClick={event => {
-            setQuery(oldQuery =>
-              oldQuery.withToggled(
-                'owners',
-                'negativeOwners',
-                backendModule.getAssetPermissionName(permission),
-                event.shiftKey
+      {(asset.permissions ?? []).map(permission => {
+        const name = backendModule.getAssetPermissionName(permission)
+        return (
+          <PermissionDisplay
+            key={name}
+            action={permission.permission}
+            onClick={event => {
+              setQuery(oldQuery =>
+                oldQuery.withToggled('owners', 'negativeOwners', name, event.shiftKey)
               )
-            )
-          }}
-        >
-          {backendModule.getAssetPermissionName(permission)}
-        </PermissionDisplay>
-      ))}
+            }}
+          >
+            {name}
+          </PermissionDisplay>
+        )
+      })}
       {managesThisAsset && (
         <button
           className="invisible shrink-0 group-hover:visible"

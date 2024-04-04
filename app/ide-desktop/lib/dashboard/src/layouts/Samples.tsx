@@ -9,6 +9,8 @@ import ProjectIcon from 'enso-assets/project_icon.svg'
 import SpreadsheetsImage from 'enso-assets/spreadsheets.svg'
 import VisualizeImage from 'enso-assets/visualize.png'
 
+import * as textProvider from '#/providers/TextProvider'
+
 import Spinner, * as spinner from '#/components/Spinner'
 import SvgMask from '#/components/SvgMask'
 
@@ -35,6 +37,8 @@ const DUMMY_LIKE_COUNT = 10
 /** Template metadata. */
 export interface Sample {
   readonly title: string
+  /** These should ideally be localized, however, as this is planned to be user-generated, it is
+   * unlikely that this will be feasible. */
   readonly description: string
   readonly id: string
   readonly background?: string
@@ -93,6 +97,7 @@ interface InternalProjectsEntryProps {
 /** A button that, when clicked, creates and opens a new blank project. */
 function ProjectsEntry(props: InternalProjectsEntryProps) {
   const { createProject } = props
+  const { getText } = textProvider.useText()
   const [spinnerState, setSpinnerState] = React.useState<spinner.SpinnerState | null>(null)
 
   const onClick = () => {
@@ -122,7 +127,7 @@ function ProjectsEntry(props: InternalProjectsEntryProps) {
             ) : (
               <img src={ProjectIcon} />
             )}
-            <p className="text-sm font-semibold">New empty project</p>
+            <p className="text-sm font-semibold">{getText('newEmptyProject')}</p>
           </div>
         </div>
       </button>
@@ -148,6 +153,7 @@ interface InternalProjectTileProps {
 /** A button that, when clicked, creates and opens a new project based on a template. */
 function ProjectTile(props: InternalProjectTileProps) {
   const { sample, createProject } = props
+  const { getText } = textProvider.useText()
   const { id, title, description, background } = sample
   const [spinnerState, setSpinnerState] = React.useState<spinner.SpinnerState | null>(null)
   const author = DUMMY_AUTHOR
@@ -201,12 +207,12 @@ function ProjectTile(props: InternalProjectTileProps) {
         </div>
         {/* Normally `flex` */}
         <div className="hidden gap-icons">
-          <div title="Views" className="flex gap-samples-icon-with-text">
-            <SvgMask alt="Views" src={OpenCountIcon} className="size-icon self-end" />
+          <div title={getText('views')} className="flex gap-samples-icon-with-text">
+            <SvgMask alt={getText('views')} src={OpenCountIcon} className="size-icon self-end" />
             <span className="self-start font-bold leading-snug">{opens}</span>
           </div>
-          <div title="Likes" className="flex gap-samples-icon-with-text">
-            <SvgMask alt="Likes" src={HeartIcon} className="size-icon self-end" />
+          <div title={getText('likes')} className="flex gap-samples-icon-with-text">
+            <SvgMask alt={getText('likes')} src={HeartIcon} className="size-icon self-end" />
             <span className="self-start font-bold leading-snug">{likes}</span>
           </div>
         </div>
@@ -231,9 +237,10 @@ export interface SamplesProps {
 /** A list of sample projects. */
 export default function Samples(props: SamplesProps) {
   const { createProject } = props
+  const { getText } = textProvider.useText()
   return (
     <div data-testid="samples" className="flex flex-col gap-subheading px-home-section-x">
-      <h2 className="text-subheading">Sample and community projects</h2>
+      <h2 className="text-subheading">{getText('sampleAndCommunityProjects')}</h2>
       <div className="grid grid-cols-fill-samples gap-samples">
         <ProjectsEntry createProject={createProject} />
         {SAMPLES.map(sample => (

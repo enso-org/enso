@@ -3,13 +3,12 @@ private
 import project.Any.Any
 import project.Data.Json.Invalid_JSON
 import project.Data.Map.Map
-import project.Data.Pair.Pair
+import project.Data.Numbers.Integer
 import project.Data.Text.Text
 import project.Data.Vector.Vector
-import project.Enso_Cloud.Enso_Secret.Derived_Secret_Value
-import project.Enso_Cloud.Enso_Secret.Enso_Secret
 import project.Enso_Cloud.Errors.Enso_Cloud_Error
 import project.Enso_Cloud.Errors.Not_Logged_In
+import project.Enso_Cloud.Internal.Authentication
 import project.Error.Error
 import project.Function.Function
 import project.Network.HTTP.Header.Header
@@ -23,80 +22,61 @@ import project.Network.HTTP.Request_Error
 import project.Network.HTTP.Response.Response
 import project.Network.URI.URI
 import project.Nothing.Nothing
-import project.Runtime.Ref.Ref
-import project.System.Environment
-import project.System.File.File
 from project.Data.Boolean import Boolean, False, True
 from project.Data.Text.Extensions import all
 
-polyglot java import org.enso.base.enso_cloud.AuthenticationProvider
+polyglot java import org.enso.base.enso_cloud.CloudAPI
 
 ## PRIVATE
-cloud_root_uri = "" + AuthenticationProvider.getAPIRootURI
+cloud_root_uri = "" + CloudAPI.getAPIRootURI
 
 ## PRIVATE
    Construct the authorization header for the request
 authorization_header : Header
 authorization_header =
-    token = AuthenticationProvider.getToken.if_nothing <|
-        f = credentials_file
-        if f.exists.not then Error.throw Not_Logged_In else
-            access_token = read_access_token f
-            AuthenticationProvider.setToken access_token
+    token = Authentication.get_access_token
     Header.authorization_bearer token
 
 ## PRIVATE
-credentials_file : File
-credentials_file = case Environment.get "ENSO_CLOUD_CREDENTIALS_FILE" of
-    Nothing -> File.home / ".enso" / "credentials"
-    path -> File.new path
-
-## PRIVATE
-   Reads the access token from the provided credentials file.
-
-   It supports both the old (raw string) and new (JSON) formats.
-read_access_token (file:File) -> Text =
-    content = file.read_text
-    as_json = content.parse_json
-    # If this is not valid JSON, we assume old format - raw token.
-    if as_json.is_error then content else
-        # Otherwise, we extract the token from JSON:
-        as_json.get "access_token" if_missing=(Error.throw "Invalid credentials file format: missing field `access_token`.")
-
-## PRIVATE
    Root address for listing folders
+assets_api = cloud_root_uri + "assets"
+
+## PRIVATE
+   Root address for listing folders.
 directory_api = cloud_root_uri + "directories"
 
 ## PRIVATE
-   Root address for listing folders
+   Root address for file details metadata.
 files_api = cloud_root_uri + "files"
 
 ## PRIVATE
-   Root address for listing folders
+   Root address for project information.
 projects_api = cloud_root_uri + "projects"
 
 ## PRIVATE
-   Root address for Secrets API
+   Root address for Secrets API.
 secrets_api = cloud_root_uri + "secrets"
 
 ## PRIVATE
-   Root address for DataLinks API
+   Root address for DataLinks API.
 datalinks_api = cloud_root_uri + "connectors"
 
 ## PRIVATE
    The current project directory that will be used as the working directory,
    if the user is running in the Cloud.
-internal_cloud_project_directory = AuthenticationProvider.getCurrentWorkingDirectory
+internal_cloud_project_directory = CloudAPI.getCurrentWorkingDirectory
 
 ## PRIVATE
+   Flushes all cloud caches, including the authentication data
+   (so the next request will re-read the credentials file).
 flush_caches : Nothing
-flush_caches = AuthenticationProvider.flushCloudCaches
+flush_caches = CloudAPI.flushCloudCaches
 
 ## PRIVATE
    Performs a standard request to the Enso Cloud API,
    parsing the result as JSON.
-http_request_as_json (method : HTTP_Method) (url : URI) (body : Request_Body = Request_Body.Empty) (additional_headers : Vector = []) (error_handlers : Map Text (Any -> Any) = Map.empty) -> Any ! Enso_Cloud_Error =
-    response = http_request method url body additional_headers error_handlers
+http_request_as_json (method : HTTP_Method) (url : URI) (body : Request_Body = Request_Body.Empty) (additional_headers : Vector = []) (error_handlers : Map Text (Any -> Any) = Map.empty) (retries : Integer = 3) -> Any ! Enso_Cloud_Error =
+    response = http_request method url body additional_headers error_handlers retries
     response.decode_as_json.catch Invalid_JSON error->
         Error.throw (Enso_Cloud_Error.Invalid_Response_Payload error)
 
@@ -104,24 +84,33 @@ http_request_as_json (method : HTTP_Method) (url : URI) (body : Request_Body = R
    Performs a standard request to the Enso Cloud API,
    returning a raw response on success, but handling the error responses.
 
+   This method has built-in retry mechanism that may retry the request if it
+   failed due to a network error or access token expiration.
+
    Custom error handlers can be provided as a mapping from error codes
    (defined in the cloud project) to functions that take the full JSON payload
    and return a custom error.
-http_request (method : HTTP_Method) (url : URI) (body : Request_Body = Request_Body.Empty) (additional_headers : Vector = []) (error_handlers : Map Text (Any -> Any) = Map.empty) -> Response ! Enso_Cloud_Error =
+http_request (method : HTTP_Method) (url : URI) (body : Request_Body = Request_Body.Empty) (additional_headers : Vector = []) (error_handlers : Map Text (Any -> Any) = Map.empty) (retries : Integer = 3) -> Response ! Enso_Cloud_Error =
     all_headers = [authorization_header] + additional_headers
     as_connection_error err = Error.throw (Enso_Cloud_Error.Connection_Error err)
     response = HTTP.new.request (Request.new method url headers=all_headers body=body) error_on_failure_code=False
         . catch HTTP_Error as_connection_error
         . catch Request_Error as_connection_error
-    if response.code.is_success then response else
-        if response.code == HTTP_Status_Code.unauthorized then Error.throw Enso_Cloud_Error.Unauthorized else
-            payload = response.decode_as_text
-            ## If the payload can be parsed as JSON, contains a `code` field and this `code` is found in the error
-               handlers, a specialized handler will be used for the error. Otherwise, a generic Unexpected_Service_Error
-               will be reported, containing the payload for inspection.
-            json_payload = payload.parse_json.catch Invalid_JSON (_->Nothing)
-            error_code = json_payload.get "code"
-            handler = error_code.if_not_nothing <| error_handlers.get error_code
-            case handler of
-                Nothing -> Error.throw (Enso_Cloud_Error.Unexpected_Service_Error response.code payload)
-                _ : Function -> handler json_payload
+    if response.is_error && (retries > 0) then http_request method url body additional_headers error_handlers (retries - 1) else
+        if response.code.is_success then response else
+            is_unauthorized = (response.code == HTTP_Status_Code.unauthorized) || (response.code == HTTP_Status_Code.forbidden)
+            case is_unauthorized of
+                True -> if retries < 0 then Error.throw Enso_Cloud_Error.Unauthorized else
+                    Authentication.refresh_access_token
+                    http_request method url body additional_headers error_handlers (retries - 1)
+                False ->
+                    payload = response.decode_as_text
+                    ## If the payload can be parsed as JSON, contains a `code` field and this `code` is found in the error
+                       handlers, a specialized handler will be used for the error. Otherwise, a generic Unexpected_Service_Error
+                       will be reported, containing the payload for inspection.
+                    json_payload = payload.parse_json.catch Invalid_JSON (_->Nothing)
+                    error_code = json_payload.get "code"
+                    handler = error_code.if_not_nothing <| error_handlers.get error_code
+                    case handler of
+                        Nothing -> Error.throw (Enso_Cloud_Error.Unexpected_Service_Error response.code payload)
+                        _ : Function -> handler json_payload

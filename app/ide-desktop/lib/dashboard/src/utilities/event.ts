@@ -50,3 +50,32 @@ export function isTextInputEvent(event: KeyboardEvent | React.KeyboardEvent) {
   // Allow `alt` key to be pressed in case it is being used to enter special characters.
   return !event.ctrlKey && !event.shiftKey && !event.metaKey && isTextInputKey(event)
 }
+
+/** Whether the element accepts text input. */
+export function isElementTextInput(element: EventTarget | null) {
+  return (
+    element != null &&
+    (element instanceof HTMLInputElement ||
+      element instanceof HTMLTextAreaElement ||
+      (element instanceof HTMLElement && element.isContentEditable))
+  )
+}
+
+/**
+ * Whether the element is part of a Monaco editor.
+ */
+export function isElementPartOfMonaco(element: EventTarget | null) {
+  const recursiveCheck = (htmlElement: HTMLElement | null): boolean => {
+    if (htmlElement == null || htmlElement === document.body) {
+      return false
+    } else if (
+      htmlElement instanceof HTMLElement &&
+      htmlElement.classList.contains('monaco-editor')
+    ) {
+      return true
+    } else {
+      return recursiveCheck(htmlElement.parentElement)
+    }
+  }
+  return element != null && element instanceof HTMLElement && recursiveCheck(element)
+}

@@ -6,12 +6,12 @@ import * as url from 'node:url'
 
 import * as v from 'vitest'
 
-import * as validateDataLink from '#/utilities/validateDataLink'
+import * as dataLinkValidator from '#/data/dataLinkValidator'
 
 v.test('correctly rejects invalid values as not matching the schema', () => {
-  v.expect(validateDataLink.validateDataLink({})).toBe(false)
-  v.expect(validateDataLink.validateDataLink('foobar')).toBe(false)
-  v.expect(validateDataLink.validateDataLink({ foo: 'BAR' })).toBe(false)
+  v.expect(dataLinkValidator.validateDataLink({})).toBe(false)
+  v.expect(dataLinkValidator.validateDataLink('foobar')).toBe(false)
+  v.expect(dataLinkValidator.validateDataLink({ foo: 'BAR' })).toBe(false)
 })
 
 /** Load and parse a data-link description. */
@@ -22,7 +22,7 @@ function loadDataLinkFile(dataLinkPath: string): unknown {
 
 /** Check if the given data-link description matches the schema, reporting any errors. */
 function testSchema(json: unknown, fileName: string): void {
-  const validate = validateDataLink.validateDataLink
+  const validate = dataLinkValidator.validateDataLink
   if (!validate(json)) {
     v.assert.fail(`Failed to validate ${fileName}:\n${JSON.stringify(validate.errors, null, 2)}`)
   }
@@ -48,11 +48,19 @@ v.test('correctly validates example HTTP .datalink files with the schema', () =>
   }
 })
 
+v.test('correctly validates example Enso_File .datalink files with the schema', () => {
+  const schemas = ['example-enso-file.datalink']
+  for (const schema of schemas) {
+    const json = loadDataLinkFile(path.resolve(BASE_DATA_LINKS_ROOT, schema))
+    testSchema(json, schema)
+  }
+})
+
 v.test('rejects invalid schemas (Base)', () => {
   const invalidSchemas = ['example-http-format-invalid.datalink']
   for (const schema of invalidSchemas) {
     const json = loadDataLinkFile(path.resolve(BASE_DATA_LINKS_ROOT, schema))
-    v.expect(validateDataLink.validateDataLink(json)).toBe(false)
+    v.expect(dataLinkValidator.validateDataLink(json)).toBe(false)
   }
 })
 

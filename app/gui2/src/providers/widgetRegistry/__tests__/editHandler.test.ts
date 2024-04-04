@@ -11,6 +11,7 @@ function editHandlerTree(
   widgets: string[],
   interactionHandler: InteractionHandler,
   createInteraction: (name: string) => Record<string, Mock>,
+  widgetTree: { currentEdit: WidgetEditHandler | undefined },
 ): Map<string, { handler: WidgetEditHandler; interaction: Record<string, Mock> }> {
   const handlers = new Map()
   for (const id of widgets) {
@@ -24,6 +25,7 @@ function editHandlerTree(
       interaction,
       parent ? handlers.get(parent)?.handler : undefined,
       interactionHandler,
+      widgetTree,
     )
     handlers.set(id, { handler, interaction })
   }
@@ -42,12 +44,18 @@ test.each`
   'Edit interaction propagation starting from $edited in $widgets tree',
   ({ widgets, edited, expectedPropagation }) => {
     const interactionHandler = new InteractionHandler()
-    const handlers = editHandlerTree(widgets, interactionHandler, () => ({
-      start: vi.fn(),
-      edit: vi.fn(),
-      end: vi.fn(),
-      cancel: vi.fn(),
-    }))
+    const widgetTree = { currentEdit: undefined }
+    const handlers = editHandlerTree(
+      widgets,
+      interactionHandler,
+      () => ({
+        start: vi.fn(),
+        edit: vi.fn(),
+        end: vi.fn(),
+        cancel: vi.fn(),
+      }),
+      widgetTree,
+    )
     const expectedPropagationSet = new Set(expectedPropagation)
     const checkCallbackCall = (callback: string, ...args: any[]) => {
       for (const [id, { interaction }] of handlers) {
@@ -64,6 +72,7 @@ test.each`
     assert(editedHandler != null)
 
     editedHandler.handler.start()
+    expect(widgetTree.currentEdit).toBe(editedHandler.handler)
     checkCallbackCall('start', edited)
     for (const [id, { handler }] of handlers) {
       expect(handler.isActive()).toBe(expectedPropagationSet.has(id))
@@ -76,21 +85,27 @@ test.each`
       const endedHandler = handlers.get(ended)?.handler
 
       editedHandler.handler.start()
+      expect(widgetTree.currentEdit).toBe(editedHandler.handler)
       expect(editedHandler.handler.isActive()).toBeTruthy()
       endedHandler?.end()
+      expect(widgetTree.currentEdit).toBeUndefined()
       checkCallbackCall('end', ended)
       expect(editedHandler.handler.isActive()).toBeFalsy()
 
       editedHandler.handler.start()
+      expect(widgetTree.currentEdit).toBe(editedHandler.handler)
       expect(editedHandler.handler.isActive()).toBeTruthy()
       endedHandler?.cancel()
+      expect(widgetTree.currentEdit).toBeUndefined()
       checkCallbackCall('cancel')
       expect(editedHandler.handler.isActive()).toBeFalsy()
     }
 
     editedHandler.handler.start()
+    expect(widgetTree.currentEdit).toBe(editedHandler.handler)
     expect(editedHandler.handler.isActive()).toBeTruthy()
     interactionHandler.setCurrent(undefined)
+    expect(widgetTree.currentEdit).toBeUndefined()
     checkCallbackCall('cancel')
     expect(editedHandler.handler.isActive()).toBeFalsy()
   },
@@ -110,28 +125,33 @@ test.each`
     const event = new MouseEvent('click') as PointerEvent
     const navigator = {} as GraphNavigator
     const interactionHandler = new InteractionHandler()
+    const widgetTree = { currentEdit: undefined }
 
     const propagatingHandlersSet = new Set(propagatingHandlers)
     const nonPropagatingHandlersSet = new Set(nonPropagatingHandlers)
     const expectedHandlerCallsSet = new Set(expectedHandlerCalls)
 
-    const handlers = editHandlerTree(widgets, interactionHandler, (id) =>
-      propagatingHandlersSet.has(id) ?
-        {
-          click: vi.fn((e, nav, childHandler) => {
-            expect(e).toBe(event)
-            expect(nav).toBe(navigator)
-            childHandler?.()
-          }),
-        }
-      : nonPropagatingHandlersSet.has(id) ?
-        {
-          click: vi.fn((e, nav) => {
-            expect(e).toBe(event)
-            expect(nav).toBe(navigator)
-          }),
-        }
-      : {},
+    const handlers = editHandlerTree(
+      widgets,
+      interactionHandler,
+      (id) =>
+        propagatingHandlersSet.has(id) ?
+          {
+            click: vi.fn((e, nav, childHandler) => {
+              expect(e).toBe(event)
+              expect(nav).toBe(navigator)
+              childHandler?.()
+            }),
+          }
+        : nonPropagatingHandlersSet.has(id) ?
+          {
+            click: vi.fn((e, nav) => {
+              expect(e).toBe(event)
+              expect(nav).toBe(navigator)
+            }),
+          }
+        : {},
+      widgetTree,
     )
     handlers.get(edited)?.handler.start()
     interactionHandler.handleClick(event, navigator)

@@ -16,8 +16,8 @@ import org.enso.compiler.core.ir.module.scope.Definition
 import org.enso.compiler.core.ir.module.scope.definition
 import org.enso.compiler.pass.PassConfiguration._
 import org.enso.compiler.pass.analyse.AliasAnalysis
-import org.enso.compiler.pass.analyse.AliasAnalysis.Graph.{Link, Occurrence}
-import org.enso.compiler.pass.analyse.AliasAnalysis.{Graph, Info}
+import org.enso.compiler.pass.analyse.alias.Graph.{Link, Occurrence}
+import org.enso.compiler.pass.analyse.alias.{Graph, Info}
 import org.enso.compiler.pass.{PassConfiguration, PassGroup, PassManager}
 import org.enso.compiler.test.CompilerTest
 
@@ -413,7 +413,7 @@ class AliasAnalysisTest extends CompilerTest {
         .members
         .head
     val goodMeta  = goodAtom.getMetadata(AliasAnalysis)
-    val goodGraph = goodMeta.get.unsafeAs[AliasAnalysis.Info.Scope.Root].graph
+    val goodGraph = goodMeta.get.unsafeAs[Info.Scope.Root].graph
 
     val badAtom =
       """
@@ -424,7 +424,7 @@ class AliasAnalysisTest extends CompilerTest {
         .members
         .head
     val badMeta  = badAtom.getMetadata(AliasAnalysis)
-    val badGraph = badMeta.get.unsafeAs[AliasAnalysis.Info.Scope.Root].graph
+    val badGraph = badMeta.get.unsafeAs[Info.Scope.Root].graph
 
     "assign Info.Scope.Root metadata to the atom" in {
       goodMeta shouldBe defined
@@ -457,11 +457,11 @@ class AliasAnalysisTest extends CompilerTest {
         .unsafeAs[Info.Occurrence]
         .id
 
-      goodGraph.links should contain(Link(aUseId, 0, aDefId))
+      goodGraph.getLinks() should contain(Link(aUseId, 0, aDefId))
     }
 
     "enforce the ordering scope constraint on function arguments" in {
-      badGraph.links shouldBe empty
+      badGraph.getLinks() shouldBe empty
     }
   }
 
@@ -484,7 +484,7 @@ class AliasAnalysisTest extends CompilerTest {
         .unsafeAs[Info.Scope.Root]
         .graph
 
-    val graphLinks = methodWithLambdaGraph.links
+    val graphLinks = methodWithLambdaGraph.getLinks()
 
     val topLambda = methodWithLambda.body.asInstanceOf[Function.Lambda]
     val topLambdaBody = topLambda.body
@@ -863,7 +863,7 @@ class AliasAnalysisTest extends CompilerTest {
       .unsafeGetMetadata(AliasAnalysis, "Missing aliasing info")
       .unsafeAs[Info.Scope.Root]
       .graph
-    val graphLinks = graph.links
+    val graphLinks = graph.getLinks()
 
     val lambda = addMethod.body.asInstanceOf[Function.Lambda]
 
@@ -933,7 +933,7 @@ class AliasAnalysisTest extends CompilerTest {
       .unsafeGetMetadata(AliasAnalysis, "Missing aliasing info")
       .unsafeAs[Info.Scope.Root]
       .graph
-    val graphLinks = graph.links
+    val graphLinks = graph.getLinks()
 
     val lambda     = conversionMethod.body.asInstanceOf[Function.Lambda]
     val lambdaBody = lambda.body.asInstanceOf[Expression.Block]
@@ -1077,7 +1077,7 @@ class AliasAnalysisTest extends CompilerTest {
         .id
       graph.rootScope.getOccurrence(scrutineeId) shouldBe defined
 
-      graph.links should contain(Link(scrutineeId, 0, scrutBindingId))
+      graph.getLinks() should contain(Link(scrutineeId, 0, scrutBindingId))
 
       val scrutBindingExprId = scrutBindingExpr
         .unsafeGetMetadata(AliasAnalysis, "")
@@ -1094,7 +1094,7 @@ class AliasAnalysisTest extends CompilerTest {
         .id
       graph.rootScope.getOccurrence(aDefId) shouldBe defined
 
-      graph.links should contain(Link(scrutBindingExprId, 0, aDefId))
+      graph.getLinks() should contain(Link(scrutBindingExprId, 0, aDefId))
     }
 
     "create child scopes for the branch function" in {
@@ -1183,8 +1183,8 @@ class AliasAnalysisTest extends CompilerTest {
       val bUseId =
         bUse.getMetadata(AliasAnalysis).get.unsafeAs[Info.Occurrence].id
 
-      graph.links should contain(Link(aUseId, 1, consBranchADefId))
-      graph.links should contain(Link(bUseId, 1, consBranchBDefId))
+      graph.getLinks() should contain(Link(aUseId, 1, consBranchADefId))
+      graph.getLinks() should contain(Link(bUseId, 1, consBranchBDefId))
     }
 
     "correctly link to pattern variables in type patterns" in {
@@ -1223,8 +1223,12 @@ class AliasAnalysisTest extends CompilerTest {
       val integerUseId =
         integerUse.getMetadata(AliasAnalysis).get.unsafeAs[Info.Occurrence].id
 
-      graph.links should contain(Link(numUseId, 1, tpeBranchNameDefId))
-      graph.links should not contain (Link(integerUseId, 1, tpeBranchTpeDefId))
+      graph.getLinks() should contain(Link(numUseId, 1, tpeBranchNameDefId))
+      graph.getLinks() should not contain (Link(
+        integerUseId,
+        1,
+        tpeBranchTpeDefId
+      ))
     }
   }
 

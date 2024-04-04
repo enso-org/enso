@@ -72,6 +72,10 @@ type Auto_Detect
     get_writing_format file =
         get_format f-> f.for_file_write file
 
+    ## PRIVATE
+    get_dropdown_options : Vector Option
+    get_dropdown_options = [Option "Auto Detect" (Meta.get_qualified_type_name Auto_Detect)]
+
 ## Interface for all file formats.
 type File_Format
     ## PRIVATE
@@ -94,8 +98,7 @@ type File_Format
     ## PRIVATE
     default_widget : Widget
     default_widget =
-        options = [Option "Auto Detect" "Auto_Detect"] +
-            format_types.flat_map .get_dropdown_options
+        options = ([Auto_Detect]+format_types).flat_map .get_dropdown_options
         Single_Choice display=Display.Always values=options
 
     ## PRIVATE

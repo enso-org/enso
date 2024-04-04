@@ -64,15 +64,15 @@ export default function Editor(props: EditorProps) {
         const jsonAddress = project.jsonAddress
         const binaryAddress = project.binaryAddress
         if (jsonAddress == null) {
-          toastAndLog("Could not get the address of the project's JSON endpoint")
+          toastAndLog('noJSONEndpointError')
         } else if (binaryAddress == null) {
-          toastAndLog("Could not get the address of the project's binary endpoint")
+          toastAndLog('noBinaryEndpointError')
         } else {
           let assetsRoot: string
           switch (backendType) {
             case backendModule.BackendType.remote: {
               if (project.ideVersion == null) {
-                toastAndLog('Could not get the IDE version of the project')
+                toastAndLog('noIdeVersionError')
                 // This is too deeply nested to easily return from
                 // eslint-disable-next-line no-restricted-syntax
                 return
@@ -122,7 +122,7 @@ export default function Editor(props: EditorProps) {
                 { projectId: project.projectId }
               )
             } catch (error) {
-              toastAndLog('Could not open editor', error)
+              toastAndLog('openEditorError', error)
             }
             if (backendType === backendModule.BackendType.remote) {
               // Restore original URL so that initialization works correctly on refresh.
@@ -151,11 +151,7 @@ export default function Editor(props: EditorProps) {
     } else {
       return
     }
-  }, [
-    projectStartupInfo,
-    /* should never change */ appRunner,
-    /* should never change */ toastAndLog,
-  ])
+  }, [projectStartupInfo, toastAndLog, /* should never change */ appRunner])
 
   return <></>
 }

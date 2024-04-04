@@ -13,7 +13,8 @@ import org.enso.semver.SemVer
 import org.scalatest.EitherValues
 import zio.{ZAny, ZIO}
 
-import java.io.File
+import java.io.{ByteArrayInputStream, File}
+import java.nio.charset.StandardCharsets
 import java.nio.file.Files
 import java.nio.file.attribute.BasicFileAttributes
 
@@ -180,6 +181,27 @@ class FileSystemServiceSpec
 
       // cleanup
       FileUtils.deleteQuietly(targetPath)
+    }
+
+    "write path" in {
+      val testDir = testStorageConfig.userProjectsPath
+
+      val fileName = "filesystem_test_write_path.txt"
+      val filePath = new File(testDir, fileName)
+      val contents = "Hello World!"
+
+      fileSystemService
+        .write(
+          filePath,
+          new ByteArrayInputStream(contents.getBytes(StandardCharsets.UTF_8))
+        )
+        .unsafeRunSync()
+
+      val bytes = Files.readAllBytes(filePath.toPath)
+      new String(bytes, StandardCharsets.UTF_8) shouldEqual contents
+
+      // cleanup
+      FileUtils.deleteQuietly(filePath)
     }
 
   }

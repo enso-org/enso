@@ -15,6 +15,7 @@ const TRUSTED_HOSTS = [
     'production-enso-domain.auth.eu-west-1.amazoncognito.com',
     'production-enso-organizations-files.s3.amazonaws.com',
     'pb-enso-domain.auth.eu-west-1.amazoncognito.com',
+    's3.eu-west-1.amazonaws.com',
     // This (`localhost`) is required to access Project Manager HTTP endpoints.
     // This should be changed appropriately if the Project Manager's port number becomes dynamic.
     '127.0.0.1:30535',
@@ -120,10 +121,14 @@ function limitWebViewCreation() {
  * link to learn more:
  * https://www.electronjs.org/docs/tutorial/security#12-disable-or-limit-navigation. */
 function preventNavigation() {
+    let lastFocusedWindow = electron.BrowserWindow.getFocusedWindow()
+    electron.app.on('browser-window-focus', () => {
+        lastFocusedWindow = electron.BrowserWindow.getFocusedWindow()
+    })
     electron.app.on('web-contents-created', (_event, contents) => {
         contents.on('will-navigate', (event, navigationUrl) => {
             const parsedUrl = new URL(navigationUrl)
-            const currentWindowUrl = electron.BrowserWindow.getFocusedWindow()?.webContents.getURL()
+            const currentWindowUrl = lastFocusedWindow?.webContents.getURL()
             const parsedCurrentWindowUrl =
                 currentWindowUrl != null ? new URL(currentWindowUrl) : null
             if (

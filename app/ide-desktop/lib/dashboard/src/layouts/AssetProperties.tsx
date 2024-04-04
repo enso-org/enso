@@ -3,10 +3,13 @@ import * as React from 'react'
 
 import PenIcon from 'enso-assets/pen.svg'
 
+import * as dataLinkValidator from '#/data/dataLinkValidator'
+
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
 import * as authProvider from '#/providers/AuthProvider'
 import * as backendProvider from '#/providers/BackendProvider'
+import * as textProvider from '#/providers/TextProvider'
 
 import type * as assetEvent from '#/events/assetEvent'
 
@@ -24,7 +27,6 @@ import type AssetQuery from '#/utilities/AssetQuery'
 import type AssetTreeNode from '#/utilities/AssetTreeNode'
 import * as object from '#/utilities/object'
 import * as permissions from '#/utilities/permissions'
-import * as validateDataLink from '#/utilities/validateDataLink'
 
 // =======================
 // === AssetProperties ===
@@ -45,22 +47,23 @@ export default function AssetProperties(props: AssetPropertiesProps) {
   const { item: itemRaw, setItem: setItemRaw, category, labels, setQuery } = props
   const { dispatchAssetEvent } = props
 
+  const { user } = authProvider.useNonPartialUserSession()
+  const { backend } = backendProvider.useBackend()
+  const { getText } = textProvider.useText()
+  const toastAndLog = toastAndLogHooks.useToastAndLog()
   const [item, setItemInner] = React.useState(itemRaw)
   const [isEditingDescription, setIsEditingDescription] = React.useState(false)
   const [queuedDescription, setQueuedDescripion] = React.useState<string | null>(null)
   const [description, setDescription] = React.useState('')
   const [dataLinkValue, setDataLinkValue] = React.useState<NonNullable<unknown> | null>(null)
   const [editedDataLinkValue, setEditedDataLinkValue] = React.useState<NonNullable<unknown> | null>(
-    null
+    dataLinkValue
   )
   const [isDataLinkFetched, setIsDataLinkFetched] = React.useState(false)
   const isDataLinkSubmittable = React.useMemo(
-    () => validateDataLink.validateDataLink(dataLinkValue),
+    () => dataLinkValidator.validateDataLink(dataLinkValue),
     [dataLinkValue]
   )
-  const { user } = authProvider.useNonPartialUserSession()
-  const { backend } = backendProvider.useBackend()
-  const toastAndLog = toastAndLogHooks.useToastAndLog()
   const setItem = React.useCallback(
     (valueOrUpdater: React.SetStateAction<AssetTreeNode>) => {
       setItemInner(valueOrUpdater)
@@ -69,7 +72,7 @@ export default function AssetProperties(props: AssetPropertiesProps) {
     [/* should never change */ setItemRaw]
   )
   const self = item.item.permissions?.find(
-    backendModule.isUserPermissionAnd(permission => permission.user.user_email === user?.email)
+    backendModule.isUserPermissionAnd(permission => permission.user.userId === user?.userId)
   )
   const ownsThisAsset = self?.permission === permissions.PermissionAction.own
   const canEditThisAsset =
@@ -77,6 +80,7 @@ export default function AssetProperties(props: AssetPropertiesProps) {
     self?.permission === permissions.PermissionAction.admin ||
     self?.permission === permissions.PermissionAction.edit
   const isDataLink = item.item.type === backendModule.AssetType.dataLink
+  const isDataLinkDisabled = dataLinkValue === editedDataLinkValue || !isDataLinkSubmittable
 
   React.useEffect(() => {
     setDescription(item.item.description ?? '')
@@ -87,7 +91,7 @@ export default function AssetProperties(props: AssetPropertiesProps) {
       if (item.item.type === backendModule.AssetType.dataLink) {
         const value = await backend.getConnector(item.item.id, item.item.title)
         setDataLinkValue(value)
-        setEditedDataLinkValue(structuredClone(value))
+        setEditedDataLinkValue(value)
         setIsDataLinkFetched(true)
       }
     })()
@@ -99,13 +103,18 @@ export default function AssetProperties(props: AssetPropertiesProps) {
       const oldDescription = item.item.description
       setItem(oldItem => oldItem.with({ item: object.merge(oldItem.item, { description }) }))
       try {
+        const projectPath = item.item.projectState?.path
         await backend.updateAsset(
           item.item.id,
-          { parentDirectoryId: null, description },
+          {
+            parentDirectoryId: null,
+            description,
+            ...(projectPath == null ? {} : { projectPath }),
+          },
           item.item.title
         )
       } catch (error) {
-        toastAndLog('Could not edit asset description')
+        toastAndLog('editDescriptionError')
         setItem(oldItem =>
           oldItem.with({
             item: object.merge(oldItem.item, { description: oldDescription }),
@@ -119,7 +128,7 @@ export default function AssetProperties(props: AssetPropertiesProps) {
     <>
       <div className="flex flex-col items-start gap-side-panel">
         <span className="flex h-side-panel-heading items-center gap-side-panel-section py-side-panel-heading-y text-lg leading-snug">
-          Description
+          {getText('description')}
           {ownsThisAsset && !isEditingDescription && (
             <Button
               image={PenIcon}
@@ -169,7 +178,7 @@ export default function AssetProperties(props: AssetPropertiesProps) {
               />
               <div className="flex gap-buttons">
                 <button type="submit" className="button self-start bg-selected-frame">
-                  Update
+                  {getText('update')}
                 </button>
               </div>
             </form>
@@ -178,13 +187,13 @@ export default function AssetProperties(props: AssetPropertiesProps) {
       </div>
       <div className="flex flex-col items-start gap-side-panel-section">
         <h2 className="h-side-panel-heading py-side-panel-heading-y text-lg leading-snug">
-          Settings
+          {getText('settings')}
         </h2>
         <table>
           <tbody>
             <tr data-testid="asset-panel-permissions" className="h-row">
               <td className="text my-auto min-w-side-panel-label p">
-                <span className="text inline-block">Shared with</span>
+                <span className="text inline-block">{getText('sharedWith')}</span>
               </td>
               <td className="w-full p">
                 <SharedWithColumn
@@ -196,7 +205,7 @@ export default function AssetProperties(props: AssetPropertiesProps) {
             </tr>
             <tr data-testid="asset-panel-labels" className="h-row">
               <td className="text my-auto min-w-side-panel-label p">
-                <span className="text inline-block">Labels</span>
+                <span className="text inline-block">{getText('labels')}</span>
               </td>
               <td className="w-full p">
                 {item.item.labels?.map(value => {
@@ -215,7 +224,7 @@ export default function AssetProperties(props: AssetPropertiesProps) {
       {isDataLink && (
         <div className="flex flex-col items-start gap-side-panel-section">
           <h2 className="h-side-panel-heading py-side-panel-heading-y text-lg leading-snug">
-            Data Link
+            {getText('dataLink')}
           </h2>
           {!isDataLinkFetched ? (
             <div className="grid place-items-center self-stretch">
@@ -233,8 +242,11 @@ export default function AssetProperties(props: AssetPropertiesProps) {
                 <div className="flex gap-buttons">
                   <button
                     type="button"
-                    disabled={dataLinkValue === editedDataLinkValue || !isDataLinkSubmittable}
-                    className="button bg-invite text-white selectable enabled:active"
+                    disabled={isDataLinkDisabled}
+                    {...(isDataLinkDisabled
+                      ? { title: 'Edit the Data Link before updating it.' }
+                      : {})}
+                    className="button bg-invite text-white enabled:active"
                     onClick={() => {
                       void (async () => {
                         if (item.item.type === backendModule.AssetType.dataLink) {
@@ -256,16 +268,17 @@ export default function AssetProperties(props: AssetPropertiesProps) {
                       })()
                     }}
                   >
-                    Update
+                    {getText('update')}
                   </button>
                   <button
                     type="button"
-                    className="button bg-selected-frame"
+                    disabled={isDataLinkDisabled}
+                    className="button bg-selected-frame enabled:active"
                     onClick={() => {
-                      setEditedDataLinkValue(structuredClone(dataLinkValue))
+                      setEditedDataLinkValue(dataLinkValue)
                     }}
                   >
-                    Cancel
+                    {getText('cancel')}
                   </button>
                 </div>
               )}

@@ -1,11 +1,16 @@
 /** @file Modal for confirming delete of any type of asset. */
 import * as React from 'react'
 
+import EyeCrossedIcon from 'enso-assets/eye_crossed.svg'
+import EyeIcon from 'enso-assets/eye.svg'
+
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
 import * as modalProvider from '#/providers/ModalProvider'
+import * as textProvider from '#/providers/TextProvider'
 
 import Modal from '#/components/Modal'
+import SvgMask from '#/components/SvgMask'
 
 import type * as backend from '#/services/Backend'
 
@@ -25,9 +30,11 @@ export default function UpsertSecretModal(props: UpsertSecretModalProps) {
   const { id, name: nameRaw, doCreate } = props
   const toastAndLog = toastAndLogHooks.useToastAndLog()
   const { unsetModal } = modalProvider.useSetModal()
+  const { getText } = textProvider.useText()
 
   const [name, setName] = React.useState(nameRaw ?? '')
   const [value, setValue] = React.useState('')
+  const [isShowingValue, setIsShowingValue] = React.useState(false)
   const isCreatingSecret = id == null
   const isNameEditable = nameRaw == null
   const canSubmit = Boolean(name && value)
@@ -61,15 +68,15 @@ export default function UpsertSecretModal(props: UpsertSecretModalProps) {
         }}
       >
         <h1 className="relative text-sm font-semibold">
-          {isCreatingSecret ? 'New Secret' : 'Edit Secret'}
+          {isCreatingSecret ? getText('newSecret') : getText('editSecret')}
         </h1>
         <label className="relative flex h-row items-center">
-          <div className="text w-modal-label">Name</div>
+          <div className="text w-modal-label">{getText('name')}</div>
           <input
             autoFocus
             disabled={!isNameEditable}
-            placeholder="Enter the name of the secret"
-            className="text grow rounded-full border border-black/10 bg-transparent px-input-x selectable enabled:active"
+            placeholder={getText('secretNamePlaceholder')}
+            className="text grow rounded-full border border-primary/10 bg-transparent px-input-x selectable enabled:active"
             value={name}
             onInput={event => {
               setName(event.currentTarget.value)
@@ -77,22 +84,34 @@ export default function UpsertSecretModal(props: UpsertSecretModalProps) {
           />
         </label>
         <label className="relative flex h-row items-center">
-          <div className="text w-modal-label">Value</div>
-          <input
-            autoFocus={!isNameEditable}
-            placeholder={isNameEditable ? 'Enter the value of the secret' : '●●●●●●●●'}
-            className="text grow rounded-full border border-black/10 bg-transparent px-input-x"
-            onInput={event => {
-              setValue(event.currentTarget.value)
-            }}
-          />
+          <div className="text w-modal-label">{getText('value')}</div>
+          <div className="relative grow">
+            <input
+              type={isShowingValue ? 'text' : 'password'}
+              autoFocus={!isNameEditable}
+              placeholder={
+                isNameEditable ? getText('secretValuePlaceholder') : getText('secretValueHidden')
+              }
+              className="text w-full rounded-full border border-primary/10 bg-transparent px-input-x"
+              onInput={event => {
+                setValue(event.currentTarget.value)
+              }}
+            />
+            <SvgMask
+              src={isShowingValue ? EyeIcon : EyeCrossedIcon}
+              className="absolute right-2 top-1 cursor-pointer rounded-full"
+              onClick={() => {
+                setIsShowingValue(show => !show)
+              }}
+            />
+          </div>
         </label>
         <div className="relative flex gap-buttons">
           <button disabled={!canSubmit} type="submit" className="button bg-invite text-white">
-            {isCreatingSecret ? 'Create' : 'Update'}
+            {isCreatingSecret ? getText('create') : getText('update')}
           </button>
           <button type="button" className="button bg-selected-frame" onClick={unsetModal}>
-            Cancel
+            {getText('cancel')}
           </button>
         </div>
       </form>
