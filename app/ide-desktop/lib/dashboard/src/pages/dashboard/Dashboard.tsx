@@ -229,17 +229,12 @@ export default function Dashboard(props: DashboardProps) {
                   savedProjectStartupInfo.projectAsset.title
                 )
                 if (backendModule.IS_OPENING_OR_OPENED[oldProject.state.type]) {
-                  await remoteBackendModule.waitUntilProjectIsReady(
+                  const project = await remoteBackendModule.waitUntilProjectIsReady(
                     remoteBackend,
                     savedProjectStartupInfo.projectAsset,
                     abortController
                   )
                   if (!abortController.signal.aborted) {
-                    const project = await remoteBackend.getProjectDetails(
-                      savedProjectStartupInfo.projectAsset.id,
-                      savedProjectStartupInfo.projectAsset.parentId,
-                      savedProjectStartupInfo.projectAsset.title
-                    )
                     setProjectStartupInfo(object.merge(savedProjectStartupInfo, { project }))
                     if (page === pageSwitcher.Page.editor) {
                       setPage(page)
@@ -266,6 +261,9 @@ export default function Dashboard(props: DashboardProps) {
             savedProjectStartupInfo.projectAsset.title
           )
           setProjectStartupInfo(object.merge(savedProjectStartupInfo, { project }))
+          if (page === pageSwitcher.Page.editor) {
+            setPage(page)
+          }
         })()
       }
     }
