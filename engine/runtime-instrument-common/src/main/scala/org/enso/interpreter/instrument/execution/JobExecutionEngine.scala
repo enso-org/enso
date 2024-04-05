@@ -55,7 +55,7 @@ final class JobExecutionEngine(
     )
 
   private val backgroundJobExecutor: ExecutorService =
-    context.newFixedThreadPool(1, "background-job-pool", false)
+    context.newFixedThreadPool(4, "background-job-pool", false)
 
   private val runtimeContext =
     RuntimeContext(
