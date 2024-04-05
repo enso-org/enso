@@ -92,7 +92,7 @@ test.test('suggestions (keyboard)', async ({ page }) => {
   for (const suggestion of await suggestions.all()) {
     const name = (await suggestion.textContent()) ?? ''
     test.expect(name.length).toBeGreaterThan(0)
-    await page.press('body', 'Tab')
+    await page.press('body', 'ArrowDown')
     await test.expect(searchBarInput).toHaveValue('name:' + name)
   }
 })
@@ -108,11 +108,11 @@ test.test('complex flows', async ({ page }) => {
   await actions.login({ page })
 
   await searchBarInput.click()
-  await page.press('body', 'Tab')
+  await page.press('body', 'ArrowDown')
   await test.expect(searchBarInput).toHaveValue('name:' + firstName)
   await searchBarInput.selectText()
   await searchBarInput.press('Backspace')
   await test.expect(searchBarInput).toHaveValue('')
-  await page.press('body', 'Tab')
+  await page.press('body', 'ArrowDown')
   await test.expect(searchBarInput).toHaveValue('name:' + firstName)
 })
