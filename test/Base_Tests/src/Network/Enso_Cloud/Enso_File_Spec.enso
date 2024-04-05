@@ -186,10 +186,10 @@ add_specs suite_builder setup:Cloud_Tests_Setup = setup.with_prepared_environmen
             nested_file = dir / "another.txt"
             nested_file.path . should_equal "enso://test-directory/another.txt"
             nested_file.parent . should_equal dir
-            ## TODO test for `enso://test-directory-longer-name` . is_descendant_of `enso://test-directory` . should_be_false
                (even though one is a prefix of the other, but not in the directory tree sense)
             nested_file.is_descendant_of dir . should_be_true
             nested_file.is_descendant_of Enso_File.root . should_be_true
+            (root / "test-directory-longer-name") . is_descendant_of (root / "test-directory") . should_be_false
 
         group_builder.specify "should be able to read other file metadata" pending="TODO needs further design" <|
             nested_file = Enso_File.root / "test-directory" / "another.txt"
