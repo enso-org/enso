@@ -159,7 +159,8 @@ public final class EnsoFile implements EnsoObject {
     // Normalization is needed to correctly handle paths containing `..` and `.`.
     var parentOrNull = this.normalize().truffleFile.getParent();
 
-    // If the path has no parent because it is relative and there are no more segments, try again after making it absolute:
+    // If the path has no parent because it is relative and there are no more segments, try again
+    // after making it absolute:
     if (parentOrNull == null && !this.truffleFile.isAbsolute()) {
       parentOrNull = this.truffleFile.getAbsoluteFile().normalize().getParent();
     }
