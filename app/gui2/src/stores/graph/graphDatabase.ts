@@ -161,6 +161,19 @@ export class GraphDb {
     return Array.from(this.connectionsFromBindings(info, alias, srcNode))
   })
 
+  nodeDependents = new ReactiveIndex(this.nodeIdToNode, (id) => {
+    const result = new Set<NodeId>()
+    const outputPorts = this.nodeOutputPorts.lookup(id)
+    for (const outputPort of outputPorts) {
+      const connectedPorts = this.connections.lookup(outputPort)
+      for (const port of connectedPorts) {
+        const portNode = this.getExpressionNodeId(port)
+        if (portNode != null) result.add(portNode)
+      }
+    }
+    return Array.from(result, (target) => [id, target])
+  })
+
   private *connectionsFromBindings(
     info: BindingInfo,
     alias: AstId,
@@ -252,49 +265,6 @@ export class GraphDb {
     return (
       info.methodCall ?? (info.payload.type === 'Value' ? info.payload.functionSchema : undefined)
     )
-  }
-
-  /**
-   * Get a list of all nodes that depend on given node. Includes transitive dependencies.
-   */
-  dependantNodes(id: NodeId): Set<NodeId> {
-    const toVisit = [id]
-    const result = new Set<NodeId>()
-
-    let currentNode: NodeId | undefined
-    while ((currentNode = toVisit.pop())) {
-      const outputPorts = this.nodeOutputPorts.lookup(currentNode)
-      for (const outputPort of outputPorts) {
-        const connectedPorts = this.connections.lookup(outputPort)
-        for (const port of connectedPorts) {
-          const portNode = this.getExpressionNodeId(port)
-          if (portNode == null) continue
-          if (!result.has(portNode)) {
-            result.add(portNode)
-            toVisit.push(portNode)
-          }
-        }
-      }
-    }
-
-    return result
-  }
-
-  /** Returns the nodes that define values that are referenced in the specified node. */
-  inputNodes(id: NodeId): Set<NodeId> {
-    const node = this.nodeIdToNode.get(id)
-    if (!node) return new Set()
-    const result = new Set<NodeId>()
-    node.innerExpr.visitRecursiveAst((ast) => {
-      if (ast instanceof Ast.Ident) {
-        for (const outputPort of this.connections.reverseLookup(ast.id)) {
-          for (const outputPortNode of this.nodeOutputPorts.reverseLookup(outputPort)) {
-            result.add(outputPortNode)
-          }
-        }
-      }
-    })
-    return result
   }
 
   getMethodCallInfo(
