@@ -2,7 +2,6 @@
 import * as React from 'react'
 
 import DriveIcon from 'enso-assets/drive.svg'
-import HomeIcon from 'enso-assets/home.svg'
 import NetworkIcon from 'enso-assets/network.svg'
 
 import type * as text from '#/text'
@@ -52,7 +51,6 @@ interface PageUIData {
 }
 
 const PAGE_DATA: PageUIData[] = [
-  { page: Page.home, icon: HomeIcon },
   { page: Page.drive, icon: DriveIcon },
   { page: Page.editor, icon: NetworkIcon },
 ]
@@ -68,6 +66,7 @@ export interface PageSwitcherProps {
 export default function PageSwitcher(props: PageSwitcherProps) {
   const { page, setPage, isEditorDisabled } = props
   const { getText } = textProvider.useText()
+
   return (
     <div
       className={`pointer-events-auto flex shrink-0 cursor-default items-center gap-pages rounded-full px-page-switcher-x ${
@@ -75,8 +74,7 @@ export default function PageSwitcher(props: PageSwitcherProps) {
       }`}
     >
       {PAGE_DATA.map(pageData => {
-        const isDisabled =
-          pageData.page === page || (pageData.page === Page.editor && isEditorDisabled)
+        const isDisabled = pageData.page === Page.editor && isEditorDisabled
         const errorId = ERRORS[pageData.page]
         return (
           <Button
@@ -88,7 +86,7 @@ export default function PageSwitcher(props: PageSwitcherProps) {
             disabled={isDisabled}
             error={errorId == null ? null : getText(errorId)}
             onClick={() => {
-              setPage(pageData.page)
+              setPage(page === pageData.page ? Page.home : pageData.page)
             }}
           />
         )
