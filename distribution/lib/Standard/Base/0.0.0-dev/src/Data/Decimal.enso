@@ -698,7 +698,7 @@ type Decimal
              Decimal.new "-12.345" . negate
              # => -1
     signum : Integer
-    signum self -> Decimal = self.big_decimal.signum
+    signum self -> Integer = self.big_decimal.signum
 
     ## GROUP CONVERSIONS
        Convert this to an `Integer`.
