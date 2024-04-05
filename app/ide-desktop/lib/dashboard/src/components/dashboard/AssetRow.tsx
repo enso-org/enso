@@ -17,10 +17,12 @@ import AssetListEventType from '#/events/AssetListEventType'
 import AssetContextMenu from '#/layouts/AssetContextMenu'
 import type * as assetsTable from '#/layouts/AssetsTable'
 
+import * as aria from '#/components/aria'
 import * as assetRowUtils from '#/components/dashboard/AssetRow/assetRowUtils'
 import * as columnModule from '#/components/dashboard/column'
 import * as columnUtils from '#/components/dashboard/column/columnUtils'
 import StatelessSpinner, * as statelessSpinner from '#/components/StatelessSpinner'
+import FocusRing from '#/components/styled/FocusRing'
 
 import EditAssetDescriptionModal from '#/modals/EditAssetDescriptionModal'
 
@@ -74,6 +76,7 @@ export interface AssetRowProps {
   readonly setSelected: (selected: boolean) => void
   readonly isSoleSelected: boolean
   readonly isKeyboardSelected: boolean
+  readonly grabKeyboardFocus: () => void
   readonly allowContextMenu: boolean
   readonly onClick: (props: AssetRowInnerProps, event: React.MouseEvent) => void
   readonly onContextMenu: (
@@ -88,12 +91,12 @@ export interface AssetRowProps {
 
 /** A row containing an {@link backendModule.AnySmartAsset}. */
 export default function AssetRow(props: AssetRowProps) {
-  const { item: rawItem, visibility: visibilityRaw, selected, setSelected, isSoleSelected } = props
-  const { isKeyboardSelected, allowContextMenu, onContextMenu, state, columns, onClick } = props
-  const { onDragStart, onDragOver: onDragOverRaw, onDragEnd, onDrop } = props
-  const { nodeMap, rootDirectory, assetEvents, dispatchAssetEvent, dispatchAssetListEvent } = state
-  const { isCloud, setAssetPanelProps, doToggleDirectoryExpansion, doCopy, doCut, doPaste } = state
-  const { scrollContainerRef, setIsAssetPanelTemporarilyVisible } = state
+  const { item: rawItem, visibility: visibilityRaw, selected, isSoleSelected } = props
+  const { isKeyboardSelected, setSelected, allowContextMenu, state, columns } = props
+  const { onContextMenu, onClick, grabKeyboardFocus } = props
+  const { isCloud, rootDirectory, assetEvents, dispatchAssetEvent, dispatchAssetListEvent } = state
+  const { setAssetPanelProps, doToggleDirectoryExpansion, doCopy, doCut, doPaste } = state
+  const { setIsAssetPanelTemporarilyVisible, scrollContainerRef, nodeMap } = state
 
   const { user } = authProvider.useNonPartialUserSession()
   const { setModal, unsetModal } = modalProvider.useSetModal()
@@ -101,9 +104,12 @@ export default function AssetRow(props: AssetRowProps) {
   const toastAndLog = toastAndLogHooks.useToastAndLog()
   const [isDraggedOver, setIsDraggedOver] = React.useState(false)
   const [item, setItem] = React.useState(rawItem)
+  const rootRef = React.useRef<HTMLElement | null>(null)
   const dragOverTimeoutHandle = React.useRef<number | null>(null)
   const smartAsset = item.item
   const asset = smartAsset.value
+  const grabKeyboardFocusRef = React.useRef(grabKeyboardFocus)
+  grabKeyboardFocusRef.current = grabKeyboardFocus
   const [insertionVisibility, setInsertionVisibility] = React.useState(Visibility.visible)
   const [rowState, setRowState] = React.useState<assetsTable.AssetRowState>(() =>
     object.merge(assetRowUtils.INITIAL_ROW_STATE, { setVisibility: setInsertionVisibility })
@@ -170,6 +176,13 @@ export default function AssetRow(props: AssetRowProps) {
       setSelected(false)
     }
   }, [selected, insertionVisibility, /* should never change */ setSelected])
+
+  React.useEffect(() => {
+    if (isKeyboardSelected) {
+      rootRef.current?.focus()
+      grabKeyboardFocusRef.current()
+    }
+  }, [isKeyboardSelected])
 
   const doCopyOnBackend = React.useCallback(
     async (newParentId: backendModule.DirectoryId | null) => {
@@ -642,7 +655,7 @@ export default function AssetRow(props: AssetRowProps) {
   }, [])
 
   const onDragOver = (event: React.DragEvent<HTMLTableRowElement>) => {
-    onDragOverRaw(event)
+    props.onDragOver(event)
     const directoryId =
       item.item.type === backendModule.AssetType.directory
         ? item.item.value.id
@@ -676,159 +689,174 @@ export default function AssetRow(props: AssetRowProps) {
       return (
         <>
           {!hidden && (
-            <tr
-              draggable
-              tabIndex={-1}
-              ref={element => {
-                if (isSoleSelected && element != null && scrollContainerRef.current != null) {
-                  const rect = element.getBoundingClientRect()
-                  const scrollRect = scrollContainerRef.current.getBoundingClientRect()
-                  const scrollUp = rect.top - (scrollRect.top + HEADER_HEIGHT_PX)
-                  const scrollDown = rect.bottom - scrollRect.bottom
-                  if (scrollUp < 0 || scrollDown > 0) {
-                    scrollContainerRef.current.scrollBy({
-                      top: scrollUp < 0 ? scrollUp : scrollDown,
-                      behavior: 'smooth',
+            <FocusRing>
+              <tr
+                draggable
+                tabIndex={0}
+                ref={element => {
+                  rootRef.current = element
+                  if (isSoleSelected && element != null && scrollContainerRef.current != null) {
+                    const rect = element.getBoundingClientRect()
+                    const scrollRect = scrollContainerRef.current.getBoundingClientRect()
+                    const scrollUp = rect.top - (scrollRect.top + HEADER_HEIGHT_PX)
+                    const scrollDown = rect.bottom - scrollRect.bottom
+                    if (scrollUp < 0 || scrollDown > 0) {
+                      scrollContainerRef.current.scrollBy({
+                        top: scrollUp < 0 ? scrollUp : scrollDown,
+                        behavior: 'smooth',
+                      })
+                    }
+                  }
+                  if (isKeyboardSelected && element?.contains(document.activeElement) === false) {
+                    element.focus()
+                  }
+                }}
+                className={`h-row rounded-full transition-all ease-in-out ${visibility} ${isDraggedOver || selected ? 'selected' : ''}`}
+                onClick={event => {
+                  unsetModal()
+                  onClick(innerProps, event)
+                  if (
+                    smartAsset.type === backendModule.AssetType.directory &&
+                    eventModule.isDoubleClick(event) &&
+                    !rowState.isEditingName
+                  ) {
+                    // This must be processed on the next tick, otherwise it will be overridden
+                    // by the default click handler.
+                    window.setTimeout(() => {
+                      setSelected(false)
+                    })
+                    doToggleDirectoryExpansion(smartAsset, item.key)
+                  }
+                }}
+                onContextMenu={event => {
+                  if (allowContextMenu) {
+                    event.preventDefault()
+                    event.stopPropagation()
+                    onContextMenu(innerProps, event)
+                    setModal(
+                      <AssetContextMenu
+                        isCloud={isCloud}
+                        innerProps={innerProps}
+                        event={event}
+                        eventTarget={
+                          event.target instanceof HTMLElement ? event.target : event.currentTarget
+                        }
+                        doCopy={doCopy}
+                        doCut={doCut}
+                        doPaste={doPaste}
+                        doDelete={doDelete}
+                        doTriggerDescriptionEdit={doTriggerDescriptionEdit}
+                      />
+                    )
+                  } else {
+                    onContextMenu(innerProps, event)
+                  }
+                }}
+                onDragStart={event => {
+                  if (rowState.isEditingName) {
+                    event.preventDefault()
+                  } else {
+                    props.onDragStart(event)
+                  }
+                }}
+                onDragEnter={event => {
+                  if (dragOverTimeoutHandle.current != null) {
+                    window.clearTimeout(dragOverTimeoutHandle.current)
+                  }
+                  if (backendModule.smartAssetIsDirectory(smartAsset)) {
+                    dragOverTimeoutHandle.current = window.setTimeout(() => {
+                      doToggleDirectoryExpansion(smartAsset, item.key, true)
+                    }, DRAG_EXPAND_DELAY_MS)
+                  }
+                  // Required because `dragover` does not fire on `mouseenter`.
+                  props.onDragOver(event)
+                  onDragOver(event)
+                }}
+                onDragOver={event => {
+                  props.onDragOver(event)
+                  onDragOver(event)
+                }}
+                onDragEnd={event => {
+                  clearDragState()
+                  props.onDragEnd(event)
+                }}
+                onDragLeave={event => {
+                  if (
+                    dragOverTimeoutHandle.current != null &&
+                    (!(event.relatedTarget instanceof Node) ||
+                      !event.currentTarget.contains(event.relatedTarget))
+                  ) {
+                    window.clearTimeout(dragOverTimeoutHandle.current)
+                  }
+                  if (
+                    event.relatedTarget instanceof Node &&
+                    !event.currentTarget.contains(event.relatedTarget)
+                  ) {
+                    clearDragState()
+                  }
+                }}
+                onDrop={event => {
+                  props.onDrop(event)
+                  clearDragState()
+                  const [directoryKey, directory] =
+                    item.item.type === backendModule.AssetType.directory
+                      ? [item.key, item.item]
+                      : [item.directoryKey, item.directory]
+                  const payload = drag.ASSET_ROWS.lookup(event)
+                  if (
+                    payload != null &&
+                    payload.every(innerItem => innerItem.key !== directoryKey)
+                  ) {
+                    event.preventDefault()
+                    event.stopPropagation()
+                    unsetModal()
+                    doToggleDirectoryExpansion(directory, directoryKey, true)
+                    const ids = payload
+                      .filter(payloadItem => payloadItem.asset.parentId !== directory.value.id)
+                      .map(dragItem => dragItem.key)
+                    dispatchAssetEvent({
+                      type: AssetEventType.move,
+                      newParentKey: directoryKey,
+                      newParent: directory,
+                      ids: new Set(ids),
+                    })
+                  } else if (event.dataTransfer.types.includes('Files')) {
+                    event.preventDefault()
+                    event.stopPropagation()
+                    doToggleDirectoryExpansion(directory, directoryKey, true)
+                    dispatchAssetListEvent({
+                      type: AssetListEventType.uploadFiles,
+                      // This is SAFE, as it is guarded by the condition above:
+                      // `item.item.type === backendModule.AssetType.directory`
+                      // eslint-disable-next-line no-restricted-syntax
+                      parentKey: directoryKey as backendModule.DirectoryId,
+                      parent: directory,
+                      files: Array.from(event.dataTransfer.files),
                     })
                   }
-                }
-              }}
-              className={`h-row rounded-full outline-2 -outline-offset-2 outline-primary ease-in-out ${visibility} ${
-                isKeyboardSelected ? 'outline' : ''
-              } ${isDraggedOver || selected ? 'selected' : ''}`}
-              onClick={event => {
-                unsetModal()
-                onClick(innerProps, event)
-                if (
-                  smartAsset.type === backendModule.AssetType.directory &&
-                  eventModule.isDoubleClick(event) &&
-                  !rowState.isEditingName
-                ) {
-                  // This must be processed on the next tick, otherwise it will be overridden
-                  // by the default click handler.
-                  window.setTimeout(() => {
-                    setSelected(false)
-                  })
-                  doToggleDirectoryExpansion(smartAsset, item.key)
-                }
-              }}
-              onContextMenu={event => {
-                if (allowContextMenu) {
-                  event.preventDefault()
-                  event.stopPropagation()
-                  onContextMenu(innerProps, event)
-                  setModal(
-                    <AssetContextMenu
-                      isCloud={isCloud}
-                      innerProps={innerProps}
-                      event={event}
-                      eventTarget={
-                        event.target instanceof HTMLElement ? event.target : event.currentTarget
-                      }
-                      doCopy={doCopy}
-                      doCut={doCut}
-                      doPaste={doPaste}
-                      doDelete={doDelete}
-                      doTriggerDescriptionEdit={doTriggerDescriptionEdit}
-                    />
+                }}
+              >
+                {columns.map(column => {
+                  // This is a React component even though it does not contain JSX.
+                  // eslint-disable-next-line no-restricted-syntax
+                  const Render = columnModule.COLUMN_RENDERER[column]
+                  return (
+                    <td key={column} className={columnUtils.COLUMN_CSS_CLASS[column]}>
+                      <Render
+                        item={item}
+                        setItem={setItem}
+                        selected={selected}
+                        setSelected={setSelected}
+                        isSoleSelected={isSoleSelected}
+                        state={state}
+                        rowState={rowState}
+                        setRowState={setRowState}
+                      />
+                    </td>
                   )
-                } else {
-                  onContextMenu(innerProps, event)
-                }
-              }}
-              onDragStart={event => {
-                if (rowState.isEditingName) {
-                  event.preventDefault()
-                } else {
-                  onDragStart(event)
-                }
-              }}
-              onDragEnter={event => {
-                if (dragOverTimeoutHandle.current != null) {
-                  window.clearTimeout(dragOverTimeoutHandle.current)
-                }
-                if (smartAsset.type === backendModule.AssetType.directory) {
-                  dragOverTimeoutHandle.current = window.setTimeout(() => {
-                    doToggleDirectoryExpansion(smartAsset, item.key, true)
-                  }, DRAG_EXPAND_DELAY_MS)
-                }
-                // Required because `dragover` does not fire on `mouseenter`.
-                onDragOver(event)
-              }}
-              onDragOver={onDragOver}
-              onDragEnd={event => {
-                clearDragState()
-                onDragEnd(event)
-              }}
-              onDragLeave={event => {
-                if (
-                  dragOverTimeoutHandle.current != null &&
-                  (!(event.relatedTarget instanceof Node) ||
-                    !event.currentTarget.contains(event.relatedTarget))
-                ) {
-                  window.clearTimeout(dragOverTimeoutHandle.current)
-                }
-                if (
-                  event.relatedTarget instanceof Node &&
-                  !event.currentTarget.contains(event.relatedTarget)
-                ) {
-                  clearDragState()
-                }
-              }}
-              onDrop={event => {
-                clearDragState()
-                onDrop(event)
-                const [newParentKey, newParent] =
-                  item.item.type === backendModule.AssetType.directory
-                    ? [item.key, item.item]
-                    : [item.directoryKey, item.directory]
-                const payload = drag.ASSET_ROWS.lookup(event)
-                if (payload != null && payload.every(innerItem => innerItem.key !== newParentKey)) {
-                  event.preventDefault()
-                  event.stopPropagation()
-                  unsetModal()
-                  doToggleDirectoryExpansion(newParent, newParentKey, true)
-                  const keys = payload
-                    .filter(payloadItem => payloadItem.asset.parentId !== newParent.value.id)
-                    .map(dragItem => dragItem.key)
-                  const ids = new Set(keys)
-                  dispatchAssetEvent({ type: AssetEventType.move, newParentKey, newParent, ids })
-                } else if (event.dataTransfer.types.includes('Files')) {
-                  event.preventDefault()
-                  event.stopPropagation()
-                  doToggleDirectoryExpansion(newParent, newParentKey, true)
-                  dispatchAssetListEvent({
-                    type: AssetListEventType.uploadFiles,
-                    // This is SAFE, as it is guarded by the condition above:
-                    // `item.item.type === backendModule.AssetType.directory`
-                    // eslint-disable-next-line no-restricted-syntax
-                    parentKey: newParentKey as backendModule.DirectoryId,
-                    parent: newParent,
-                    files: Array.from(event.dataTransfer.files),
-                  })
-                }
-              }}
-            >
-              {columns.map(column => {
-                // This is a React component even though it does not contain JSX.
-                // eslint-disable-next-line no-restricted-syntax
-                const Render = columnModule.COLUMN_RENDERER[column]
-                return (
-                  <td key={column} className={columnUtils.COLUMN_CSS_CLASS[column]}>
-                    <Render
-                      item={item}
-                      setItem={setItem}
-                      selected={selected}
-                      setSelected={setSelected}
-                      isSoleSelected={isSoleSelected}
-                      state={state}
-                      rowState={rowState}
-                      setRowState={setRowState}
-                    />
-                  </td>
-                )
-              })}
-            </tr>
+                })}
+              </tr>
+            </FocusRing>
           )}
           {selected && allowContextMenu && !hidden && (
             // This is a copy of the context menu, since the context menu registers keyboard
@@ -880,7 +908,9 @@ export default function AssetRow(props: AssetRowProps) {
               className={`flex h-row items-center rounded-full ${indent.indentClass(item.depth)}`}
             >
               <img src={BlankIcon} />
-              <span className="px-name-column-x placeholder">{getText('thisFolderIsEmpty')}</span>
+              <aria.Text className="px-name-column-x placeholder">
+                {getText('thisFolderIsEmpty')}
+              </aria.Text>
             </div>
           </td>
         </tr>

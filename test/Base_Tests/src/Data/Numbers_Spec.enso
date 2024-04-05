@@ -349,8 +349,12 @@ add_specs suite_builder =
             hundred_factorial%hundred_factorial . should_equal 0
             10%hundred_factorial . should_equal 10
 
-        # Pending https://github.com/enso-org/enso/issues/9553
-        group_builder.specify "should define modulo for negative integers and decimals" pending="large integer % is incorrect" <|
+            (9223372036854775807 % 10) . should_equal 7
+            (9223372036854775808 % 10) . should_equal 8
+            (9223372036854775809 % 10) . should_equal 9
+            (7000000000000000000007 % 10) . should_equal 7
+
+        group_builder.specify "should define modulo for negative integers and decimals" <|
             -5%3 . should_equal -2
             -5%3 . should_be_a Integer
 
@@ -383,6 +387,11 @@ add_specs suite_builder =
             -hundred_factorial%0 . should_fail_with Arithmetic_Error
             -hundred_factorial%hundred_factorial . should_equal 0
             -10%hundred_factorial . should_equal -10
+
+            (-9223372036854775807 % 10) . should_equal -7
+            (-9223372036854775808 % 10) . should_equal -8
+            (-9223372036854775809 % 10) . should_equal -9
+            (-7000000000000000000007 % 10) . should_equal -7
 
         group_builder.specify "should support less than operator" <|
             (1 < 2).should_be_true

@@ -5,11 +5,13 @@ import type {
   JSONRPCRequestData,
 } from '@open-rpc/client-js/build/Request'
 import { Transport } from '@open-rpc/client-js/build/transports/Transport'
-import type { ArgumentsType } from '@vueuse/core'
+import { type ArgumentsType } from '@vueuse/core'
 import { wait } from 'lib0/promise'
 import { LsRpcError } from 'shared/languageServer'
 import type { Notifications } from 'shared/languageServerTypes'
+import { AbortScope } from 'shared/util/net'
 import { WebsocketClient } from 'shared/websocket'
+import { onScopeDispose } from 'vue'
 
 export interface BackoffOptions<E> {
   maxRetries?: number
@@ -82,20 +84,22 @@ export function createRpcTransport(url: string): Transport {
     const mockName = url.slice('mock://'.length)
     return new MockTransport(mockName)
   } else {
-    return new WebSocketTransport(url)
+    const transport = new WebSocketTransport(url)
+    return transport
   }
 }
 
 export function createWebsocketClient(
   url: string,
+  abort: AbortScope,
   options?: { binaryType?: 'arraybuffer' | 'blob' | null; sendPings?: boolean },
 ): WebsocketClient {
   if (url.startsWith('mock://')) {
-    const mockWs = new MockWebSocketClient(url)
+    const mockWs = new MockWebSocketClient(url, abort)
     if (options?.binaryType) mockWs.binaryType = options.binaryType
     return mockWs
   } else {
-    const client = new WebsocketClient(url, options)
+    const client = new WebsocketClient(url, abort, options)
     client.connect()
     return client
   }
@@ -185,8 +189,8 @@ export class MockWebSocket extends EventTarget implements WebSocket {
 }
 
 export class MockWebSocketClient extends WebsocketClient {
-  constructor(url: string) {
-    super(url)
+  constructor(url: string, abort: AbortScope) {
+    super(url, abort)
     super.connect(new MockWebSocket(url, url.slice('mock://'.length)))
   }
 }
@@ -243,4 +247,11 @@ export class AsyncQueue<State> {
     } while (this.taskRunning)
     return lastState
   }
+}
+
+/** Create an abort signal that is signalled when containing Vue scope is disposed. */
+export function useAbortScope(): AbortScope {
+  const scope = new AbortScope()
+  onScopeDispose(() => scope.dispose('Vue scope disposed.'))
+  return scope
 }

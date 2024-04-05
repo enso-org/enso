@@ -3,10 +3,12 @@ import * as React from 'react'
 
 import * as authProvider from '#/providers/AuthProvider'
 import * as modalProvider from '#/providers/ModalProvider'
+import * as textProvider from '#/providers/TextProvider'
 
 import type * as assetListEventModule from '#/events/assetListEvent'
 import AssetListEventType from '#/events/AssetListEventType'
 
+import * as aria from '#/components/aria'
 import ContextMenu from '#/components/ContextMenu'
 import ContextMenuEntry from '#/components/ContextMenuEntry'
 
@@ -34,12 +36,14 @@ export default function GlobalContextMenu(props: GlobalContextMenuProps) {
   const { setModal, unsetModal } = modalProvider.useSetModal()
   const rootDirectory = React.useMemo(() => user?.rootDirectory(), [user])
   const filesInputRef = React.useRef<HTMLInputElement>(null)
+  const { getText } = textProvider.useText()
+
   return rootDirectory == null ? (
     <></>
   ) : (
-    <ContextMenu hidden={hidden}>
+    <ContextMenu aria-label={getText('globalContextMenuLabel')} hidden={hidden}>
       {!hidden && (
-        <input
+        <aria.Input
           ref={filesInputRef}
           multiple
           type="file"

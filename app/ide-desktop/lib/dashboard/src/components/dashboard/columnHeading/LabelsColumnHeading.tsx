@@ -5,6 +5,7 @@ import TagIcon from 'enso-assets/tag.svg'
 
 import * as textProvider from '#/providers/TextProvider'
 
+import * as aria from '#/components/aria'
 import type * as column from '#/components/dashboard/column'
 import * as columnUtils from '#/components/dashboard/column/columnUtils'
 import SvgMask from '#/components/SvgMask'
@@ -27,7 +28,7 @@ export default function LabelsColumnHeading(props: column.AssetColumnHeadingProp
           hideColumn(columnUtils.Column.labels)
         }}
       />
-      <span className="text-header">{getText('labelsColumnName')}</span>
+      <aria.Text className="text-header">{getText('labelsColumnName')}</aria.Text>
     </div>
   )
 }

@@ -3,6 +3,7 @@ import * as React from 'react'
 
 import * as textProvider from '#/providers/TextProvider'
 
+import * as aria from '#/components/aria'
 import StatelessSpinner, * as statelessSpinner from '#/components/StatelessSpinner'
 
 // =================
@@ -26,7 +27,7 @@ export default function LoadingScreen() {
           state={statelessSpinner.SpinnerState.loadingMedium}
           size={SPINNER_SIZE_PX}
         />
-        <span>{getText('loadingAppMessage')}</span>
+        <aria.Text>{getText('loadingAppMessage')}</aria.Text>
       </div>
     </div>
   )

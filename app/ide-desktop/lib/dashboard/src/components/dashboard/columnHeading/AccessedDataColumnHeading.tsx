@@ -5,6 +5,7 @@ import AccessedDataIcon from 'enso-assets/accessed_data.svg'
 
 import * as textProvider from '#/providers/TextProvider'
 
+import * as aria from '#/components/aria'
 import type * as column from '#/components/dashboard/column'
 import * as columnUtils from '#/components/dashboard/column/columnUtils'
 import SvgMask from '#/components/SvgMask'
@@ -27,7 +28,7 @@ export default function AccessedDataColumnHeading(props: column.AssetColumnHeadi
           hideColumn(columnUtils.Column.accessedData)
         }}
       />
-      <span className="text-header">{getText('accessedDataColumnName')}</span>
+      <aria.Text className="text-header">{getText('accessedDataColumnName')}</aria.Text>
     </div>
   )
 }

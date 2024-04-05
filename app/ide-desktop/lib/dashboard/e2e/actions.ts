@@ -66,7 +66,7 @@ export function locateNewLabelModalColorButtons(page: test.Page) {
     locateNewLabelModal(page)
       .filter({ has: page.getByText('Color') })
       // The `radio` inputs are invisible, so they cannot be used in the locator.
-      .getByRole('button')
+      .locator('label[data-rac]')
   )
 }
 
@@ -241,17 +241,17 @@ export function locateDocsColumnToggle(page: test.Locator | test.Page) {
 
 /** Find a button for the "Recent" category (if any). */
 export function locateRecentCategory(page: test.Locator | test.Page) {
-  return page.getByTitle('Go to Recent category')
+  return page.getByLabel('Go To Recent category')
 }
 
 /** Find a button for the "Home" category (if any). */
 export function locateHomeCategory(page: test.Locator | test.Page) {
-  return page.getByTitle('Go to Home category')
+  return page.getByLabel('Go To Home category')
 }
 
 /** Find a button for the "Trash" category (if any). */
 export function locateTrashCategory(page: test.Locator | test.Page) {
-  return page.getByTitle('Go to Trash category')
+  return page.getByLabel('Go to Trash category')
 }
 
 /** Find a button for the cloud backend (if any). */
@@ -465,14 +465,14 @@ export function locateSettingsPageIcon(page: test.Locator | test.Page) {
 
 /** Find a "name" column heading (if any). */
 export function locateNameColumnHeading(page: test.Locator | test.Page) {
-  return page.getByTitle('Sort by name').or(page.getByTitle('Stop sorting by name'))
+  return page.getByLabel('Sort by name').or(page.getByLabel('Stop sorting by name'))
 }
 
 /** Find a "modified" column heading (if any). */
 export function locateModifiedColumnHeading(page: test.Locator | test.Page) {
   return page
-    .getByTitle('Sort by modification date')
-    .or(page.getByTitle('Stop sorting by modification date'))
+    .getByLabel('Sort by modification date')
+    .or(page.getByLabel('Stop sorting by modification date'))
 }
 
 // === Container locators ===
@@ -719,10 +719,28 @@ export async function expectTrashPlaceholderRow(page: test.Page) {
 // === Mouse utilities ===
 // =======================
 
+// eslint-disable-next-line @typescript-eslint/no-magic-numbers
+const ASSET_ROW_SAFE_POSITION = { x: 300, y: 16 }
+
 /** Click an asset row. The center must not be clicked as that is the button for adding a label. */
 export async function clickAssetRow(assetRow: test.Locator) {
   // eslint-disable-next-line @typescript-eslint/no-magic-numbers
-  await assetRow.click({ position: { x: 300, y: 16 } })
+  await assetRow.click({ position: ASSET_ROW_SAFE_POSITION })
+}
+
+/** Drag an asset row. The center must not be clicked as that is the button for adding a label. */
+export async function dragAssetRowToAssetRow(from: test.Locator, to: test.Locator) {
+  // eslint-disable-next-line @typescript-eslint/no-magic-numbers
+  await from.dragTo(to, {
+    sourcePosition: ASSET_ROW_SAFE_POSITION,
+    targetPosition: ASSET_ROW_SAFE_POSITION,
+  })
+}
+
+/** Drag an asset row. The center must not be clicked as that is the button for adding a label. */
+export async function dragAssetRow(from: test.Locator, to: test.Locator) {
+  // eslint-disable-next-line @typescript-eslint/no-magic-numbers
+  await from.dragTo(to, { sourcePosition: ASSET_ROW_SAFE_POSITION })
 }
 
 // ==========================

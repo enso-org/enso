@@ -5,6 +5,7 @@ import BreadcrumbArrowIcon from 'enso-assets/breadcrumb_arrow.svg'
 
 import * as textProvider from '#/providers/TextProvider'
 
+import * as aria from '#/components/aria'
 import AssetIcon from '#/components/dashboard/AssetIcon'
 
 import type * as backend from '#/services/Backend'
@@ -32,7 +33,7 @@ export default function AssetSummary(props: AssetSummaryProps) {
         <AssetIcon asset={asset} />
       </div>
       <div className="flex flex-col">
-        <span className="flex items-center gap-icon-with-text font-semibold">
+        <aria.Text className="flex items-center gap-icon-with-text font-semibold">
           {asset.title}
           {newName != null && (
             <>
@@ -40,13 +41,13 @@ export default function AssetSummary(props: AssetSummaryProps) {
               {newName}
             </>
           )}
-        </span>
+        </aria.Text>
         {!isNew && (
-          <span>
+          <aria.Text>
             {getText('lastModifiedOn', dateTime.formatDateTime(new Date(asset.modifiedAt)))}
-          </span>
+          </aria.Text>
         )}
-        <span>{asset.labels}</span>
+        <aria.Text>{asset.labels}</aria.Text>
       </div>
     </div>
   )

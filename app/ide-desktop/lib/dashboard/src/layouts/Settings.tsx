@@ -14,6 +14,8 @@ import OrganizationSettingsTab from '#/layouts/Settings/OrganizationSettingsTab'
 import SettingsTab from '#/layouts/Settings/SettingsTab'
 import SettingsSidebar from '#/layouts/SettingsSidebar'
 
+import * as aria from '#/components/aria'
+
 import type * as backendModule from '#/services/Backend'
 
 import * as array from '#/utilities/array'
@@ -95,8 +97,8 @@ export default function Settings() {
 
   return (
     <div className="flex flex-1 flex-col gap-settings-header overflow-hidden px-page-x">
-      <div className="flex h-heading px-heading-x text-xl font-bold">
-        <span className="py-heading-y">{getText('settingsFor')}</span>
+      <aria.Heading level={1} className="flex h-heading px-heading-x text-xl font-bold">
+        <aria.Text className="py-heading-y">{getText('settingsFor')}</aria.Text>
         {/* This UI element does not appear anywhere else. */}
         {/* eslint-disable-next-line no-restricted-syntax */}
         <div className="ml-[0.625rem] h-[2.25rem] rounded-full bg-frame px-[0.5625rem] pb-[0.3125rem] pt-[0.125rem] leading-snug">
@@ -104,7 +106,7 @@ export default function Settings() {
             ? user?.value.name ?? 'your account'
             : organization?.value?.name ?? 'your organization'}
         </div>
-      </div>
+      </aria.Heading>
       <div className="flex flex-1 gap-settings overflow-hidden">
         <SettingsSidebar settingsTab={settingsTab} setSettingsTab={setSettingsTab} />
         {content}

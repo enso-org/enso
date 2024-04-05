@@ -109,6 +109,7 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
           rowState.isEditingName ? 'cursor-text' : 'cursor-pointer'
         }`}
         checkSubmittable={newTitle =>
+          newTitle !== item.item.title &&
           (nodeMap.current.get(item.directoryKey)?.children ?? []).every(
             child =>
               // All siblings,

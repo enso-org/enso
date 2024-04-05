@@ -6,9 +6,11 @@ import TimeIcon from 'enso-assets/time.svg'
 
 import * as textProvider from '#/providers/TextProvider'
 
+import * as aria from '#/components/aria'
 import type * as column from '#/components/dashboard/column'
 import * as columnUtils from '#/components/dashboard/column/columnUtils'
 import SvgMask from '#/components/SvgMask'
+import UnstyledButton from '#/components/UnstyledButton'
 
 import * as sorting from '#/utilities/sorting'
 
@@ -21,8 +23,8 @@ export default function ModifiedColumnHeading(props: column.AssetColumnHeadingPr
   const isDescending = sortInfo?.direction === sorting.SortDirection.descending
 
   return (
-    <button
-      title={
+    <UnstyledButton
+      aria-label={
         !isSortActive
           ? getText('sortByModificationDate')
           : isDescending
@@ -30,8 +32,7 @@ export default function ModifiedColumnHeading(props: column.AssetColumnHeadingPr
             : getText('sortByModificationDateDescending')
       }
       className="group flex h-drive-table-heading w-full cursor-pointer items-center gap-icon-with-text"
-      onClick={event => {
-        event.stopPropagation()
+      onPress={() => {
         const nextDirection = isSortActive
           ? sorting.nextSortDirection(sortInfo.direction)
           : sorting.SortDirection.ascending
@@ -52,7 +53,7 @@ export default function ModifiedColumnHeading(props: column.AssetColumnHeadingPr
           hideColumn(columnUtils.Column.modified)
         }}
       />
-      <span className="text-header">{getText('modifiedColumnName')}</span>
+      <aria.Text className="text-header">{getText('modifiedColumnName')}</aria.Text>
       <img
         alt={isDescending ? getText('sortDescending') : getText('sortAscending')}
         src={SortAscendingIcon}
@@ -60,6 +61,6 @@ export default function ModifiedColumnHeading(props: column.AssetColumnHeadingPr
           isSortActive ? 'selectable active' : 'transparent group-hover:selectable'
         } ${isDescending ? 'rotate-180' : ''}`}
       />
-    </button>
+    </UnstyledButton>
   )
 }

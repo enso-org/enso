@@ -7,7 +7,9 @@ import * as chat from 'enso-chat/chat'
 
 import * as gtagHooks from '#/hooks/gtagHooks'
 
+import * as aria from '#/components/aria'
 import SvgMask from '#/components/SvgMask'
+import UnstyledButton from '#/components/UnstyledButton'
 
 import * as object from '#/utilities/object'
 
@@ -16,7 +18,7 @@ import * as object from '#/utilities/object'
 // ==================
 
 /** Props for a {@Link ChatHeader}. */
-interface InternalChatHeaderProps {
+export interface ChatHeaderProps {
   readonly threads: chat.ThreadData[]
   readonly setThreads: React.Dispatch<React.SetStateAction<chat.ThreadData[]>>
   readonly threadId: chat.ThreadId | null
@@ -28,7 +30,7 @@ interface InternalChatHeaderProps {
 }
 
 /** The header bar for a `Chat`. Includes the title, close button, and threads list. */
-export default function ChatHeader(props: InternalChatHeaderProps) {
+export default function ChatHeader(props: ChatHeaderProps) {
   const { threads, setThreads, threadId, threadTitle, setThreadTitle } = props
   const { switchThread, sendMessage, doClose } = props
   const gtagEvent = gtagHooks.useGtagEvent()
@@ -53,17 +55,14 @@ export default function ChatHeader(props: InternalChatHeaderProps) {
     }
   }, [gtagEvent])
 
-  const toggleThreadListVisibility = React.useCallback((event: React.SyntheticEvent) => {
-    event.stopPropagation()
-    setIsThreadListVisible(visible => !visible)
-  }, [])
-
   return (
     <>
       <div className="mx-chat-header-x mt-chat-header-t flex text-sm font-semibold">
-        <button
+        <UnstyledButton
           className="flex grow items-center gap-icon-with-text"
-          onClick={toggleThreadListVisibility}
+          onPress={() => {
+            setIsThreadListVisible(visible => !visible)
+          }}
         >
           <SvgMask
             className={`shrink-0 transition-transform duration-arrow ${
@@ -72,7 +71,7 @@ export default function ChatHeader(props: InternalChatHeaderProps) {
             src={FolderArrowIcon}
           />
           <div className="grow">
-            <input
+            <aria.Input
               type="text"
               ref={titleInputRef}
               defaultValue={threadTitle}
@@ -110,10 +109,10 @@ export default function ChatHeader(props: InternalChatHeaderProps) {
               }}
             />
           </div>
-        </button>
-        <button className="mx-close-icon" onClick={doClose}>
+        </UnstyledButton>
+        <UnstyledButton className="mx-close-icon" onPress={doClose}>
           <img src={CloseLargeIcon} />
-        </button>
+        </UnstyledButton>
       </div>
       <div className="relative text-sm font-semibold">
         <div

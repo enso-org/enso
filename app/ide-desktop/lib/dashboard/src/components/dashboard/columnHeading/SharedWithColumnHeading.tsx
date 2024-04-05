@@ -5,6 +5,7 @@ import PeopleIcon from 'enso-assets/people.svg'
 
 import * as textProvider from '#/providers/TextProvider'
 
+import * as aria from '#/components/aria'
 import type * as column from '#/components/dashboard/column'
 import * as columnUtils from '#/components/dashboard/column/columnUtils'
 import SvgMask from '#/components/SvgMask'
@@ -27,7 +28,7 @@ export default function SharedWithColumnHeading(props: column.AssetColumnHeading
           hideColumn(columnUtils.Column.sharedWith)
         }}
       />
-      <span className="text-header">{getText('sharedWithColumnName')}</span>
+      <aria.Text className="text-header">{getText('sharedWithColumnName')}</aria.Text>
     </div>
   )
 }

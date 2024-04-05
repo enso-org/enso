@@ -14,8 +14,10 @@ import * as textProvider from '#/providers/TextProvider'
 
 import * as pageSwitcher from '#/layouts/PageSwitcher'
 
+import * as aria from '#/components/aria'
 import MenuEntry from '#/components/MenuEntry'
 import Modal from '#/components/Modal'
+import FocusArea from '#/components/styled/FocusArea'
 
 import * as download from '#/utilities/download'
 import * as github from '#/utilities/github'
@@ -45,9 +47,7 @@ export default function UserMenu(props: UserMenuProps) {
   const toastAndLog = toastAndLogHooks.useToastAndLog()
 
   React.useEffect(() => {
-    requestAnimationFrame(() => {
-      setInitialized(true)
-    })
+    requestAnimationFrame(setInitialized.bind(null, true))
   }, [])
 
   return (
@@ -72,50 +72,58 @@ export default function UserMenu(props: UserMenuProps) {
                   className="pointer-events-none size-profile-picture"
                 />
               </div>
-              <span className="text">{user.value.name}</span>
+              <aria.Text className="text">{user.value.name}</aria.Text>
             </div>
             <div
               className={`grid transition-all duration-user-menu ${initialized ? 'grid-rows-1fr' : 'grid-rows-0fr'}`}
             >
-              <div className="flex flex-col overflow-hidden">
-                {!supportsLocalBackend && (
-                  <MenuEntry
-                    action="downloadApp"
-                    doAction={async () => {
-                      unsetModal()
-                      const downloadUrl = await github.getDownloadUrl()
-                      if (downloadUrl == null) {
-                        toastAndLog('noAppDownloadError')
-                      } else {
-                        download.download(downloadUrl)
-                      }
-                    }}
-                  />
+              <FocusArea direction="vertical">
+                {innerProps => (
+                  <div
+                    aria-label={getText('userMenuLabel')}
+                    className="flex flex-col overflow-hidden"
+                    {...innerProps}
+                  >
+                    {!supportsLocalBackend && (
+                      <MenuEntry
+                        action="downloadApp"
+                        doAction={async () => {
+                          unsetModal()
+                          const downloadUrl = await github.getDownloadUrl()
+                          if (downloadUrl == null) {
+                            toastAndLog('noAppDownloadError')
+                          } else {
+                            download.download(downloadUrl)
+                          }
+                        }}
+                      />
+                    )}
+                    <MenuEntry
+                      action="settings"
+                      doAction={() => {
+                        unsetModal()
+                        setPage(pageSwitcher.Page.settings)
+                      }}
+                    />
+                    <MenuEntry
+                      action="signOut"
+                      doAction={() => {
+                        onSignOut()
+                        // Wait until React has switched back to drive view, before signing out.
+                        window.setTimeout(() => {
+                          void signOut()
+                        }, 0)
+                      }}
+                    />
+                  </div>
                 )}
-                <MenuEntry
-                  action="settings"
-                  doAction={() => {
-                    unsetModal()
-                    setPage(pageSwitcher.Page.settings)
-                  }}
-                />
-                <MenuEntry
-                  action="signOut"
-                  doAction={() => {
-                    onSignOut()
-                    // Wait until React has switched back to drive view, before signing out.
-                    window.setTimeout(() => {
-                      void signOut()
-                    }, 0)
-                  }}
-                />
-              </div>
+              </FocusArea>
             </div>
           </>
         ) : (
           <>
             <div className="flex h-profile-picture items-center">
-              <span className="text">{getText('youAreNotLoggedIn')}</span>
+              <aria.Text className="text">{getText('youAreNotLoggedIn')}</aria.Text>
             </div>
             <div className="flex flex-col">
               <MenuEntry

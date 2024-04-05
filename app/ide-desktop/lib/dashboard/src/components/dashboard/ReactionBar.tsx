@@ -2,6 +2,7 @@
 import * as React from 'react'
 
 import Twemoji from '#/components/Twemoji'
+import UnstyledButton from '#/components/UnstyledButton'
 
 // =================
 // === Constants ===
@@ -38,9 +39,9 @@ export default function ReactionBar(props: ReactionBarProps) {
   return (
     <div className={`m-chat-reaction-bar inline-block rounded-full bg-frame ${className ?? ''}`}>
       {REACTION_EMOJIS.map(emoji => (
-        <button
+        <UnstyledButton
           key={emoji}
-          onClick={() => {
+          onPress={() => {
             if (selectedReactions.has(emoji)) {
               doRemoveReaction(emoji)
             } else {
@@ -52,7 +53,7 @@ export default function ReactionBar(props: ReactionBarProps) {
           }`}
         >
           <Twemoji key={emoji} emoji={emoji} size={REACTION_BUTTON_SIZE} />
-        </button>
+        </UnstyledButton>
       ))}
     </div>
   )

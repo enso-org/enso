@@ -6,8 +6,11 @@ import * as detect from 'enso-common/src/detect'
 import * as modalProvider from '#/providers/ModalProvider'
 import * as textProvider from '#/providers/TextProvider'
 
+import * as aria from '#/components/aria'
 import KeyboardShortcut from '#/components/dashboard/KeyboardShortcut'
 import Modal from '#/components/Modal'
+import ButtonRow from '#/components/styled/ButtonRow'
+import UnstyledButton from '#/components/UnstyledButton'
 
 import * as inputBindings from '#/utilities/inputBindings'
 
@@ -109,26 +112,29 @@ export default function CaptureKeyboardShortcutModal(props: CaptureKeyboardShort
           }`}
         >
           {shortcut === '' ? (
-            <span className="text text-primary/30">{getText('noShortcutEntered')}</span>
+            <aria.Text className="text text-primary/30">{getText('noShortcutEntered')}</aria.Text>
           ) : (
             <KeyboardShortcut shortcut={shortcut} />
           )}
         </div>
-        <span className="relative text-red-600">
+        <aria.Text className="relative text-red-600">
           {doesAlreadyExist ? 'This shortcut already exists.' : ''}
-        </span>
-        <div className="relative flex gap-buttons self-start">
-          <button
-            disabled={!canSubmit}
-            type="submit"
+        </aria.Text>
+        <ButtonRow>
+          <UnstyledButton
+            isDisabled={!canSubmit}
             className="button bg-invite text-white enabled:active"
+            onPress={() => {
+              unsetModal()
+              onSubmit(shortcut)
+            }}
           >
             {getText('confirm')}
-          </button>
-          <button type="button" className="button bg-selected-frame active" onClick={unsetModal}>
+          </UnstyledButton>
+          <UnstyledButton className="button bg-selected-frame active" onPress={unsetModal}>
             {getText('cancel')}
-          </button>
-        </div>
+          </UnstyledButton>
+        </ButtonRow>
       </form>
     </Modal>
   )

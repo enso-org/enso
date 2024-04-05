@@ -104,6 +104,7 @@ export default function FileNameColumn(props: FileNameColumnProps) {
         editable={false}
         className="text grow bg-transparent"
         checkSubmittable={newTitle =>
+          newTitle !== item.item.title &&
           (nodeMap.current.get(item.directoryKey)?.children ?? []).every(
             child =>
               // All siblings,

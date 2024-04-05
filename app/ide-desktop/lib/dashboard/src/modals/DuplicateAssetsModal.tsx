@@ -9,8 +9,11 @@ import AssetEventType from '#/events/AssetEventType'
 import type * as assetListEvent from '#/events/assetListEvent'
 import AssetListEventType from '#/events/AssetListEventType'
 
+import * as aria from '#/components/aria'
 import AssetSummary from '#/components/dashboard/AssetSummary'
 import Modal from '#/components/Modal'
+import ButtonRow from '#/components/styled/ButtonRow'
+import UnstyledButton from '#/components/UnstyledButton'
 
 import * as backendModule from '#/services/Backend'
 
@@ -151,11 +154,6 @@ export default function DuplicateAssetsModal(props: DuplicateAssetsModalProps) {
         data-testid="new-label-modal"
         tabIndex={-1}
         className="pointer-events-auto relative flex w-duplicate-assets-modal flex-col gap-modal rounded-default p-modal-wide pt-modal before:absolute before:inset before:h-full before:w-full before:rounded-default before:bg-selected-frame before:backdrop-blur-default"
-        onKeyDown={event => {
-          if (event.key !== 'Escape') {
-            event.stopPropagation()
-          }
-        }}
         onClick={event => {
           event.stopPropagation()
         }}
@@ -163,51 +161,50 @@ export default function DuplicateAssetsModal(props: DuplicateAssetsModalProps) {
           event.preventDefault()
         }}
       >
-        <h1 className="relative text-sm font-semibold">
+        <aria.Heading level={2} className="relative text-sm font-semibold">
           {conflictingFiles.length > 0
             ? conflictingProjects.length > 0
               ? getText('duplicateFilesAndProjectsFound')
               : getText('duplicateFilesFound')
             : getText('duplicateProjectsFound')}
-        </h1>
+        </aria.Heading>
         {nonConflictingFileCount > 0 ||
           (nonConflictingProjectCount > 0 && (
             <div className="relative flex flex-col">
               {nonConflictingFileCount > 0 && (
-                <span className="text">
+                <aria.Text className="text">
                   {nonConflictingFileCount === 1
                     ? getText('fileWithoutConflicts')
                     : getText('filesWithoutConflicts', nonConflictingFileCount)}
-                </span>
+                </aria.Text>
               )}
               {nonConflictingProjectCount > 0 && (
-                <span className="text">
+                <aria.Text className="text">
                   {nonConflictingProjectCount === 1
                     ? getText('projectWithoutConflicts')
                     : getText('projectsWithoutConflicts', nonConflictingFileCount)}
-                </span>
+                </aria.Text>
               )}
-              <button
-                disabled={didUploadNonConflicting}
-                type="button"
+              <UnstyledButton
+                isDisabled={didUploadNonConflicting}
                 className="button relative self-start rounded-full bg-selected-frame selectable enabled:active"
-                onClick={() => {
+                onPress={() => {
                   doUploadNonConflicting()
                   setDidUploadNonConflicting(true)
                 }}
               >
                 {didUploadNonConflicting ? getText('uploaded') : getText('upload')}
-              </button>
+              </UnstyledButton>
             </div>
           ))}
         {firstConflict && (
           <>
             <div className="flex flex-col">
-              <span className="relative">{getText('currentColon')}</span>
+              <aria.Text className="relative">{getText('currentColon')}</aria.Text>
               <AssetSummary asset={firstConflict.current.value} className="relative" />
             </div>
             <div className="flex flex-col">
-              <span className="relative">{getText('newColon')}</span>
+              <aria.Text className="relative">{getText('newColon')}</aria.Text>
               <AssetSummary
                 new
                 newName={backendModule.stripProjectExtension(findNewName(firstConflict, false))}
@@ -216,11 +213,10 @@ export default function DuplicateAssetsModal(props: DuplicateAssetsModalProps) {
               />
             </div>
             {count > 1 && (
-              <div className="relative flex gap-icons">
-                <button
-                  type="button"
+              <ButtonRow>
+                <UnstyledButton
                   className="button bg-selected-frame active"
-                  onClick={() => {
+                  onPress={() => {
                     doUpdate([firstConflict])
                     switch (firstConflict.new.type) {
                       case backendModule.AssetType.file: {
@@ -235,11 +231,10 @@ export default function DuplicateAssetsModal(props: DuplicateAssetsModalProps) {
                   }}
                 >
                   {getText('update')}
-                </button>
-                <button
-                  type="button"
+                </UnstyledButton>
+                <UnstyledButton
                   className="button  bg-selected-frame active"
-                  onClick={() => {
+                  onPress={() => {
                     doRename([firstConflict])
                     switch (firstConflict.new.type) {
                       case backendModule.AssetType.file: {
@@ -256,41 +251,39 @@ export default function DuplicateAssetsModal(props: DuplicateAssetsModalProps) {
                   {firstConflict.new.type === backendModule.AssetType.file
                     ? getText('renameNewFile')
                     : getText('renameNewProject')}
-                </button>
-              </div>
+                </UnstyledButton>
+              </ButtonRow>
             )}
           </>
         )}
         {otherFilesCount > 0 && (
-          <span className="relative">
+          <aria.Text className="relative">
             {otherFilesCount === 1
               ? getText('andOtherFile')
               : getText('andOtherFiles', otherFilesCount)}
-          </span>
+          </aria.Text>
         )}
         {otherProjectsCount > 0 && (
-          <span className="relative">
+          <aria.Text className="relative">
             {otherProjectsCount === 1
               ? getText('andOtherProject')
               : getText('andOtherProjects', otherProjectsCount)}
-          </span>
+          </aria.Text>
         )}
-        <div className="relative flex gap-icons">
-          <button
-            type="button"
+        <ButtonRow>
+          <UnstyledButton
             className="button bg-invite text-white active"
-            onClick={() => {
+            onPress={() => {
               unsetModal()
               doUploadNonConflicting()
               doUpdate([...conflictingFiles, ...conflictingProjects])
             }}
           >
             {count === 1 ? getText('update') : getText('updateAll')}
-          </button>
-          <button
-            type="button"
+          </UnstyledButton>
+          <UnstyledButton
             className="button bg-invite text-white active"
-            onClick={() => {
+            onPress={() => {
               unsetModal()
               doUploadNonConflicting()
               doRename([...conflictingFiles, ...conflictingProjects])
@@ -303,11 +296,11 @@ export default function DuplicateAssetsModal(props: DuplicateAssetsModalProps) {
               : firstConflict?.new.type === backendModule.AssetType.file
                 ? getText('renameNewFiles')
                 : getText('renameNewProjects')}
-          </button>
-          <button type="button" className="button bg-selected-frame active" onClick={unsetModal}>
+          </UnstyledButton>
+          <UnstyledButton className="button bg-selected-frame active" onPress={unsetModal}>
             {getText('cancel')}
-          </button>
-        </div>
+          </UnstyledButton>
+        </ButtonRow>
       </form>
     </Modal>
   )

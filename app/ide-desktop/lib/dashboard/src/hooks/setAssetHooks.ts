@@ -30,7 +30,8 @@ export function useSetAsset<T extends backend.AnyAsset>(
             : valueOrUpdater
         // This is SAFE, because it is a mistake for an item to change type.
         // eslint-disable-next-line @typescript-eslint/no-unsafe-argument, no-restricted-syntax, @typescript-eslint/no-explicit-any
-        return oldNode.with({ item: oldNode.item.withValue(value as any) })
+        const result = oldNode.with({ item: oldNode.item.withValue(value as any) })
+        return result
       })
     },
     [/* should never change */ setNode]

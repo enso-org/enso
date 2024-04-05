@@ -14,6 +14,7 @@ import Category from '#/layouts/CategorySwitcher/Category'
 
 import type * as column from '#/components/dashboard/column'
 import PermissionDisplay from '#/components/dashboard/PermissionDisplay'
+import UnstyledButton from '#/components/UnstyledButton'
 
 import ManagePermissionsModal from '#/modals/ManagePermissionsModal'
 
@@ -42,6 +43,7 @@ export default function SharedWithColumn(props: SharedWithColumnPropsInternal) {
   const smartAsset = item.item
   const asset = smartAsset.value
   const self = asset.permissions?.find(permission => permission.user.userId === user?.value.userId)
+  const plusButtonRef = React.useRef<HTMLButtonElement>(null)
   const managesThisAsset =
     category !== Category.trash &&
     (self?.permission === permissions.PermissionAction.own ||
@@ -54,7 +56,7 @@ export default function SharedWithColumn(props: SharedWithColumnPropsInternal) {
         <PermissionDisplay
           key={otherUser.user.userId}
           action={otherUser.permission}
-          onClick={event => {
+          onPress={event => {
             setQuery(oldQuery =>
               oldQuery.withToggled('owners', 'negativeOwners', otherUser.user.name, event.shiftKey)
             )
@@ -64,17 +66,17 @@ export default function SharedWithColumn(props: SharedWithColumnPropsInternal) {
         </PermissionDisplay>
       ))}
       {managesThisAsset && (
-        <button
-          className="invisible shrink-0 group-hover:visible"
-          onClick={event => {
-            event.stopPropagation()
+        <UnstyledButton
+          ref={plusButtonRef}
+          className="shrink-0 rounded-full transparent group-hover:opacity-100 focus-visible:opacity-100"
+          onPress={() => {
             setModal(
               <ManagePermissionsModal
                 key={uniqueString.uniqueString()}
                 item={smartAsset}
                 setItem={setAsset}
                 self={self}
-                eventTarget={event.currentTarget}
+                eventTarget={plusButtonRef.current}
                 doRemoveSelf={() => {
                   dispatchAssetEvent({
                     type: AssetEventType.removeSelf,
@@ -86,7 +88,7 @@ export default function SharedWithColumn(props: SharedWithColumnPropsInternal) {
           }}
         >
           <img className="size-plus-icon" src={Plus2Icon} />
-        </button>
+        </UnstyledButton>
       )}
     </div>
   )

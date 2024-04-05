@@ -20,8 +20,8 @@ import GlobalContextMenu from '#/layouts/GlobalContextMenu'
 import ContextMenu from '#/components/ContextMenu'
 import ContextMenuEntry from '#/components/ContextMenuEntry'
 import ContextMenus from '#/components/ContextMenus'
-import ContextMenuSeparator from '#/components/ContextMenuSeparator'
 import type * as assetRow from '#/components/dashboard/AssetRow'
+import Separator from '#/components/styled/Separator'
 
 import ConfirmDeleteModal from '#/modals/ConfirmDeleteModal'
 import ManageLabelsModal from '#/modals/ManageLabelsModal'
@@ -90,7 +90,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
   return category === Category.trash ? (
     !ownsThisAsset ? null : (
       <ContextMenus hidden={hidden} key={asset.id} event={event}>
-        <ContextMenu hidden={hidden}>
+        <ContextMenu aria-label={getText('assetContextMenuLabel')} hidden={hidden}>
           <ContextMenuEntry
             hidden={hidden}
             action="undelete"
@@ -121,7 +121,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
     )
   ) : (
     <ContextMenus hidden={hidden} key={asset.id} event={event}>
-      <ContextMenu hidden={hidden}>
+      <ContextMenu aria-label={getText('assetContextMenuLabel')} hidden={hidden}>
         {asset.type === backendModule.AssetType.project &&
           canExecute &&
           !isRunningProject &&
@@ -214,7 +214,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
         {canExecute && !isRunningProject && !isOtherUserUsingProject && (
           <ContextMenuEntry
             hidden={hidden}
-            disabled={
+            isDisabled={
               asset.type !== backendModule.AssetType.project &&
               asset.type !== backendModule.AssetType.directory
             }
@@ -259,7 +259,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
         {isCloud && (
           <ContextMenuEntry
             hidden={hidden}
-            disabled
+            isDisabled
             action="snapshot"
             doAction={() => {
               // No backend support yet.
@@ -286,7 +286,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
             }}
           />
         )}
-        {isCloud && <ContextMenuSeparator hidden={hidden} />}
+        {isCloud && <Separator hidden={hidden} />}
         {isCloud && managesThisAsset && self != null && (
           <ContextMenuEntry
             hidden={hidden}
@@ -323,10 +323,10 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
             }}
           />
         )}
-        {isCloud && managesThisAsset && self != null && <ContextMenuSeparator hidden={hidden} />}
+        {isCloud && managesThisAsset && self != null && <Separator hidden={hidden} />}
         <ContextMenuEntry
           hidden={hidden}
-          disabled={!isCloud}
+          isDisabled={!isCloud}
           action="duplicate"
           doAction={() => {
             unsetModal()
@@ -344,7 +344,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
         )}
         <ContextMenuEntry
           hidden={hidden}
-          disabled={
+          isDisabled={
             isCloud &&
             asset.type !== backendModule.AssetType.file &&
             asset.type !== backendModule.AssetType.dataLink &&

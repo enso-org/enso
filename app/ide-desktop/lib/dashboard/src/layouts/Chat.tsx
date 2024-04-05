@@ -13,8 +13,10 @@ import * as textProvider from '#/providers/TextProvider'
 
 import ChatHeader from '#/layouts/ChatHeader'
 
+import * as aria from '#/components/aria'
 import type * as chatMessage from '#/components/dashboard/ChatMessage'
 import ChatMessage from '#/components/dashboard/ChatMessage'
+import UnstyledButton from '#/components/UnstyledButton'
 
 import * as newtype from '#/utilities/newtype'
 import * as object from '#/utilities/object'
@@ -80,6 +82,21 @@ export default function Chat(props: ChatProps) {
   const { getText } = textProvider.useText()
   const logger = loggerProvider.useLogger()
   const toastAndLog = toastAndLogHooks.useToastAndLog()
+  const { isFocusVisible } = aria.useFocusVisible()
+  const { focusWithinProps } = aria.useFocusWithin({
+    onFocusWithin: event => {
+      if (
+        isFocusVisible &&
+        !isOpen &&
+        (event.relatedTarget instanceof HTMLElement || event.relatedTarget instanceof SVGElement)
+      ) {
+        const relatedTarget = event.relatedTarget
+        setTimeout(() => {
+          relatedTarget.focus()
+        })
+      }
+    },
+  })
 
   /** This is SAFE, because this component is only rendered when `accessToken` is present.
    * See `dashboard.tsx` for its sole usage. */
@@ -292,8 +309,7 @@ export default function Chat(props: ChatProps) {
   )
 
   const sendCurrentMessage = React.useCallback(
-    (event: React.SyntheticEvent, createNewThread?: boolean) => {
-      event.preventDefault()
+    (createNewThread?: boolean) => {
       const element = messageInputRef.current
       if (element != null) {
         const content = element.value
@@ -363,6 +379,7 @@ export default function Chat(props: ChatProps) {
     return reactDom.createPortal(
       <div
         className={`fixed right top z-1 flex h-screen w-chat flex-col py-chat-y text-xs text-primary shadow-soft backdrop-blur-default transition-transform ${isOpen ? '' : 'translate-x-full'}`}
+        {...focusWithinProps}
       >
         <ChatHeader
           threads={threads}
@@ -443,7 +460,9 @@ export default function Chat(props: ChatProps) {
         </div>
         <form
           className="mx-chat-form-x my-chat-form-y rounded-default bg-frame p-chat-form"
-          onSubmit={sendCurrentMessage}
+          onSubmit={() => {
+            sendCurrentMessage()
+          }}
         >
           <textarea
             ref={messageInputRef}
@@ -476,36 +495,37 @@ export default function Chat(props: ChatProps) {
             }}
           />
           <div className="flex gap-chat-buttons">
-            <button
-              type="button"
-              disabled={!isReplyEnabled}
+            <UnstyledButton
+              isDisabled={!isReplyEnabled}
               className={`text-xxs grow rounded-full px-chat-button-x py-chat-button-y text-left text-white ${
                 isReplyEnabled ? 'bg-gray-400' : 'bg-gray-300'
               }`}
-              onClick={event => {
-                sendCurrentMessage(event, true)
+              onPress={() => {
+                sendCurrentMessage(true)
               }}
             >
               {getText('clickForNewQuestion')}
-            </button>
-            <button
-              type="submit"
-              disabled={!isReplyEnabled}
+            </UnstyledButton>
+            <UnstyledButton
+              isDisabled={!isReplyEnabled}
               className="rounded-full bg-blue-600/90 px-chat-button-x py-chat-button-y text-white selectable enabled:active"
+              onPress={() => {
+                sendCurrentMessage()
+              }}
             >
               {getText('replyExclamation')}
-            </button>
+            </UnstyledButton>
           </div>
         </form>
         {!isPaidUser && (
-          <button
+          <UnstyledButton
             // This UI element does not appear anywhere else.
             // eslint-disable-next-line no-restricted-syntax
             className="mx-2 my-1 rounded-default bg-call-to-action/90 p-2 text-center leading-cozy text-white"
-            onClick={upgradeToPro}
+            onPress={upgradeToPro}
           >
             {getText('upgradeToProNag')}
-          </button>
+          </UnstyledButton>
         )}
       </div>,
       container
