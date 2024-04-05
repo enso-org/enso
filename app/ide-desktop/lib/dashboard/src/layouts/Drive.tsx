@@ -317,7 +317,7 @@ export default function Drive(props: DriveProps) {
   switch (status) {
     case DriveStatus.offline: {
       return (
-        <div className={`grid grow place-items-center ${hidden ? 'hidden' : ''}`}>
+        <div className="mt-top-level grid flex-1 grow place-items-center">
           <div className="flex flex-col gap-status-page text-center text-base">
             <div>{getText('youAreNotLoggedIn')}</div>
             <button
@@ -334,7 +334,7 @@ export default function Drive(props: DriveProps) {
     }
     case DriveStatus.noProjectManager: {
       return (
-        <div className={`grid grow place-items-center ${hidden ? 'hidden' : ''}`}>
+        <div className="mt-top-level grid flex-1 grow place-items-center">
           <div className="flex flex-col gap-status-page text-center text-base">
             {getText('couldNotConnectToPM')}
           </div>
@@ -343,7 +343,7 @@ export default function Drive(props: DriveProps) {
     }
     case DriveStatus.notEnabled: {
       return (
-        <div className={`grid grow place-items-center ${hidden ? 'hidden' : ''}`}>
+        <div className="mt-top-level grid flex-1 grow place-items-center">
           <div className="flex flex-col gap-status-page text-center text-base">
             {getText('upgradeToUseCloud')}
             <a className="button self-center bg-help text-white" href="https://enso.org/pricing">
@@ -372,9 +372,7 @@ export default function Drive(props: DriveProps) {
       return (
         <div
           data-testid="drive-view"
-          className={`flex flex-1 flex-col gap-drive-heading overflow-hidden px-page-x ${
-            hidden ? 'hidden' : ''
-          }`}
+          className="mt-top-level flex flex-1 flex-col gap-drive-heading overflow-hidden px-page-x"
         >
           <div className="flex flex-col gap-icons self-start">
             <h1 className="h-heading px-heading-x py-heading-y text-xl font-bold leading-snug">

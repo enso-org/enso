@@ -461,9 +461,9 @@ export default function Dashboard(props: DashboardProps) {
         }`}
       >
         <div
-          className={`relative flex h-screen grow select-none flex-col overflow-hidden container-size ${
-            page === pageSwitcher.Page.home ? 'pb-home-page-b' : 'gap-top-level'
-          }`}
+          className={`relative flex h-screen grow select-none flex-col container-size ${
+            page === pageSwitcher.Page.home ? 'pb-home-page-b' : ''
+          } ${page === pageSwitcher.Page.editor ? '' : 'overflow-hidden'}`}
           onContextMenu={event => {
             event.preventDefault()
             unsetModal()
@@ -490,35 +490,38 @@ export default function Dashboard(props: DashboardProps) {
             doRemoveSelf={doRemoveSelf}
             onSignOut={onSignOut}
           />
-          <Home hidden={page !== pageSwitcher.Page.home} createProject={doCreateProject} />
-          <Drive
-            supportsLocalBackend={supportsLocalBackend}
-            hidden={page !== pageSwitcher.Page.drive}
-            hideRows={page !== pageSwitcher.Page.drive && page !== pageSwitcher.Page.home}
-            initialProjectName={initialProjectName}
-            query={query}
-            setQuery={setQuery}
-            labels={labels}
-            setLabels={setLabels}
-            setSuggestions={setSuggestions}
-            projectStartupInfo={projectStartupInfo}
-            queuedAssetEvents={queuedAssetEvents}
-            assetListEvents={assetListEvents}
-            dispatchAssetListEvent={dispatchAssetListEvent}
-            assetEvents={assetEvents}
-            dispatchAssetEvent={dispatchAssetEvent}
-            setAssetPanelProps={setAssetPanelProps}
-            setIsAssetPanelTemporarilyVisible={setIsAssetPanelTemporarilyVisible}
-            doCreateProject={doCreateProject}
-            doOpenEditor={doOpenEditor}
-            doCloseEditor={doCloseEditor}
-          />
-          <Editor
-            hidden={page !== pageSwitcher.Page.editor}
-            supportsLocalBackend={supportsLocalBackend}
-            projectStartupInfo={projectStartupInfo}
-            appRunner={appRunner}
-          />
+          <div
+            className={`flex w-[300%] transition-all duration-200 ${page === pageSwitcher.Page.drive ? '-translate-x-1/3' : page === pageSwitcher.Page.editor ? '-translate-x-2/3' : ''} ${page === pageSwitcher.Page.editor ? '' : 'overflow-x-hidden'}`}
+          >
+            <Home hidden={page !== pageSwitcher.Page.home} createProject={doCreateProject} />
+            <Drive
+              supportsLocalBackend={supportsLocalBackend}
+              hidden={page !== pageSwitcher.Page.drive}
+              hideRows={page !== pageSwitcher.Page.drive && page !== pageSwitcher.Page.home}
+              initialProjectName={initialProjectName}
+              query={query}
+              setQuery={setQuery}
+              labels={labels}
+              setLabels={setLabels}
+              setSuggestions={setSuggestions}
+              projectStartupInfo={projectStartupInfo}
+              queuedAssetEvents={queuedAssetEvents}
+              assetListEvents={assetListEvents}
+              dispatchAssetListEvent={dispatchAssetListEvent}
+              assetEvents={assetEvents}
+              dispatchAssetEvent={dispatchAssetEvent}
+              setAssetPanelProps={setAssetPanelProps}
+              setIsAssetPanelTemporarilyVisible={setIsAssetPanelTemporarilyVisible}
+              doCreateProject={doCreateProject}
+              doOpenEditor={doOpenEditor}
+              doCloseEditor={doCloseEditor}
+            />
+            <Editor
+              supportsLocalBackend={supportsLocalBackend}
+              projectStartupInfo={projectStartupInfo}
+              appRunner={appRunner}
+            />
+          </div>
           {page === pageSwitcher.Page.settings && <Settings />}
           {/* `session.accessToken` MUST be present in order for the `Chat` component to work. */}
           {session.accessToken != null && process.env.ENSO_CLOUD_CHAT_URL != null ? (

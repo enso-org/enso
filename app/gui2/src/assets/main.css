@@ -17,12 +17,13 @@ body {
 }
 
 #app {
-  position: absolute;
-  width: 100%;
-  height: 100%;
+  --top-bar-height: 41px;
+  pointer-events: auto;
+  height: 100vh;
   display: flex;
   flex-direction: column;
-  flex: 1;
+  flex: 1 1 0%;
+  margin-top: calc(0px - var(--top-bar-height));
   font-weight: 500;
   /* FIXME [ao]: https://github.com/enso-org/cloud-v2/issues/777 
    The cursor is set to none as workaround for GUI1, here we bring it back. 

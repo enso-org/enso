@@ -10,7 +10,7 @@
   --row-height: 2rem;
   --page-padding-x: 0.8125rem;
   /* The gap between the top bar and the main content (the content of the current page). */
-  --top-level-gap: 2rem;
+  --top-level-margin: 2rem;
   /* The height of the main heading of a page. */
   --heading-height: 2.375rem;
   --heading-padding-x: 0.375rem;
@@ -516,4 +516,8 @@ body::before {
 
 ::-webkit-scrollbar-corner {
   background: rgba(0, 0, 0, 0);
+}
+
+#app {
+  flex: 1 1 0%;
 }

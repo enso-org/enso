@@ -12,9 +12,7 @@ import * as load from '#/utilities/load'
 // =================
 
 /** The horizontal offset of the editor's top bar from the left edge of the window. */
-const TOP_BAR_X_OFFSET_PX = 96
-/** The `id` attribute of the element into which the IDE will be rendered. */
-const IDE_ELEMENT_ID = 'app'
+const TOP_BAR_X_OFFSET_PX = 64
 const IDE_CDN_BASE_URL = 'https://cdn.enso.org/ide'
 const JS_EXTENSION: Readonly<Record<backendModule.BackendType, string>> = {
   [backendModule.BackendType.remote]: '.js.gz',
@@ -27,7 +25,6 @@ const JS_EXTENSION: Readonly<Record<backendModule.BackendType, string>> = {
 
 /** Props for an {@link Editor}. */
 export interface EditorProps {
-  readonly hidden: boolean
   readonly supportsLocalBackend: boolean
   readonly projectStartupInfo: backendModule.ProjectStartupInfo | null
   readonly appRunner: AppRunner
@@ -35,16 +32,9 @@ export interface EditorProps {
 
 /** The container that launches the IDE. */
 export default function Editor(props: EditorProps) {
-  const { hidden, supportsLocalBackend, projectStartupInfo, appRunner } = props
+  const { supportsLocalBackend, projectStartupInfo, appRunner } = props
   const toastAndLog = toastAndLogHooks.useToastAndLog()
   const [initialized, setInitialized] = React.useState(supportsLocalBackend)
-
-  React.useEffect(() => {
-    const ideElement = document.getElementById(IDE_ELEMENT_ID)
-    if (ideElement != null) {
-      ideElement.style.display = hidden ? 'none' : ''
-    }
-  }, [hidden])
 
   let hasEffectRun = false
 
@@ -153,5 +143,5 @@ export default function Editor(props: EditorProps) {
     }
   }, [projectStartupInfo, toastAndLog, /* should never change */ appRunner])
 
-  return <></>
+  return <div id="app" />
 }

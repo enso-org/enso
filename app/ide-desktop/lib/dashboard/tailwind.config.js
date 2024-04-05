@@ -200,7 +200,6 @@ export default /** @satisfies {import('tailwindcss').Config} */ ({
         'icon-with-text': 'var(--icon-with-text-gap)',
         'input-with-button': 'var(--input-with-button-gap)',
         'user-bar': 'var(--user-bar-gap)',
-        'top-level': 'var(--top-level-gap)',
         'top-bar': 'var(--top-bar-gap)',
         'top-bar-right': 'var(--top-bar-right-gap)',
         pages: 'var(--pages-gap)',
@@ -327,6 +326,7 @@ export default /** @satisfies {import('tailwindcss').Config} */ ({
       },
       margin: {
         'top-bar': 'var(--top-bar-margin)',
+        'top-level': 'var(--top-level-margin)',
         'name-column-icon': 'var(--name-column-icon-margin)',
         'button-px': 'var(--button-padding-x)',
         'permission-with-border': 'var(--permission-with-border-margin)',

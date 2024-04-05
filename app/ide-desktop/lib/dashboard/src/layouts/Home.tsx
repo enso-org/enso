@@ -24,14 +24,10 @@ export interface HomeProps {
 
 /** Home screen. */
 export default function Home(props: HomeProps) {
-  const { hidden, createProject } = props
+  const { createProject } = props
   const { getText } = textProvider.useText()
   return (
-    <div
-      className={`flex flex-1 flex-col gap-home overflow-auto scroll-hidden ${
-        hidden ? 'hidden' : ''
-      }`}
-    >
+    <div className="flex flex-1 flex-col gap-home overflow-auto scroll-hidden">
       {/* For spacing */}
       <div />
       {/* Header */}
