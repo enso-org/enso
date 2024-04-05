@@ -421,11 +421,6 @@ export function locateSortDescendingIcon(page: test.Locator | test.Page) {
 
 // === Page locators ===
 
-/** Find a "home page" icon (if any) on the current page. */
-export function locateHomePageIcon(page: test.Locator | test.Page) {
-  return page.getByAltText('Home tab')
-}
-
 /** Find a "drive page" icon (if any) on the current page. */
 export function locateDrivePageIcon(page: test.Locator | test.Page) {
   return page.getByAltText('Drive tab')
@@ -663,6 +658,55 @@ export async function expectTrashPlaceholderRow(page: test.Page) {
   await test.test.step('Expect trash placeholder row', async () => {
     await test.expect(assetRows).toHaveCount(1)
     await test.expect(assetRows).toHaveText(/Your trash is empty/)
+  })
+}
+
+// ======================
+// === expectOnScreen ===
+// ======================
+
+/** Export an element to not only be visible, but also intersect the client rectangle. */
+export async function expectOnScreen(locator: test.Locator) {
+  await test.test.step('Expect on screen', async () => {
+    await test.expect(locator).toBeVisible()
+    await test
+      .expect(async () => {
+        const [windowWidth, windowHeight] = await locator.evaluate(() => [
+          window.innerWidth,
+          window.innerHeight,
+        ])
+        const boundingBox = await locator.evaluate(element => element.getBoundingClientRect())
+        return (
+          boundingBox.right > 0 &&
+          boundingBox.left < windowWidth &&
+          boundingBox.bottom > 0 &&
+          boundingBox.top < windowHeight
+        )
+      })
+      .toPass()
+  })
+}
+
+/** Export an element to not only be visible, but also intersect the client rectangle. */
+export async function expectNotOnScreen(locator: test.Locator) {
+  await test.test.step('Expect not on screen', async () => {
+    if (await locator.isVisible()) {
+      await test
+        .expect(async () => {
+          const [windowWidth, windowHeight] = await locator.evaluate(() => [
+            window.innerWidth,
+            window.innerHeight,
+          ])
+          const boundingBox = await locator.evaluate(element => element.getBoundingClientRect())
+          return (
+            boundingBox.right <= 0 ||
+            boundingBox.left >= windowWidth ||
+            boundingBox.bottom <= 0 ||
+            boundingBox.top >= windowHeight
+          )
+        })
+        .toPass()
+    }
   })
 }
 

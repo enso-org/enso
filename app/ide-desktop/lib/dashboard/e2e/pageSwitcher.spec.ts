@@ -11,17 +11,18 @@ test.test('page switcher', async ({ page }) => {
   // The current page is now the editor page.
 
   await actions.locateDrivePageIcon(page).click()
-  await test.expect(actions.locateDriveView(page)).toBeVisible()
-  await test.expect(actions.locateSamplesList(page)).not.toBeVisible()
-  await test.expect(actions.locateEditor(page)).not.toBeVisible()
+  await actions.expectOnScreen(actions.locateDriveView(page))
+  await actions.expectNotOnScreen(actions.locateSamplesList(page))
+  await actions.expectNotOnScreen(actions.locateEditor(page))
 
-  await actions.locateHomePageIcon(page).click()
-  await test.expect(actions.locateDriveView(page)).not.toBeVisible()
-  await test.expect(actions.locateSamplesList(page)).toBeVisible()
-  await test.expect(actions.locateEditor(page)).not.toBeVisible()
+  // Clicking the current page switches to the home page.
+  await actions.locateDrivePageIcon(page).click()
+  await actions.expectNotOnScreen(actions.locateDriveView(page))
+  await actions.expectOnScreen(actions.locateSamplesList(page))
+  await actions.expectNotOnScreen(actions.locateEditor(page))
 
   await actions.locateEditorPageIcon(page).click()
-  await test.expect(actions.locateDriveView(page)).not.toBeVisible()
-  await test.expect(actions.locateSamplesList(page)).not.toBeVisible()
-  await test.expect(actions.locateEditor(page)).toBeVisible()
+  await actions.expectNotOnScreen(actions.locateDriveView(page))
+  await actions.expectNotOnScreen(actions.locateSamplesList(page))
+  await actions.expectOnScreen(actions.locateEditor(page))
 })
