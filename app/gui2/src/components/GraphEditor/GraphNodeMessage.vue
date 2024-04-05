@@ -4,34 +4,19 @@ import type { Icon } from '@/util/iconName'
 
 const props = defineProps<{
   message: string
-  type: GraphNodeMessageType
+  type: MessageType
 }>()
 </script>
 
 <script lang="ts">
-type MessageType = 'error' | 'warning' | 'panic'
 /** The type of a message. */
-export class GraphNodeMessageType {
-  private constructor(private readonly type: MessageType) {}
-
-  static Error: GraphNodeMessageType = new GraphNodeMessageType('error')
-  static Warning: GraphNodeMessageType = new GraphNodeMessageType('warning')
-  static Panic: GraphNodeMessageType = new GraphNodeMessageType('panic')
-
-  get iconName() {
-    return iconForMessageType[this.type]
-  }
-
-  get cssColor() {
-    return colorForMessageType[this.type]
-  }
-}
-const iconForMessageType: Record<MessageType, Icon> = {
+export type MessageType = 'error' | 'warning' | 'panic'
+export const iconForMessageType: Record<MessageType, Icon> = {
   error: 'error',
   warning: 'warning',
   panic: 'panic',
 }
-const colorForMessageType: Record<MessageType, string> = {
+export const colorForMessageType: Record<MessageType, string> = {
   error: 'var(--color-error)',
   warning: 'var(--color-warning)',
   panic: 'var(--color-error)',
@@ -42,9 +27,9 @@ const colorForMessageType: Record<MessageType, string> = {
   <div
     class="GraphNodeMessage"
     :class="props.type"
-    :style="{ backgroundColor: props.type.cssColor }"
+    :style="{ backgroundColor: colorForMessageType[props.type] }"
   >
-    <SvgIcon class="icon" :name="props.type.iconName" />
+    <SvgIcon class="icon" :name="iconForMessageType[props.type]" />
     <div v-text="props.message"></div>
   </div>
 </template>

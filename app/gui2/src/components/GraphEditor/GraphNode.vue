@@ -3,7 +3,9 @@ import { nodeEditBindings } from '@/bindings'
 import CircularMenu from '@/components/CircularMenu.vue'
 import GraphNodeComment from '@/components/GraphEditor/GraphNodeComment.vue'
 import GraphNodeMessage, {
-  GraphNodeMessageType,
+  colorForMessageType,
+  iconForMessageType,
+  type MessageType,
 } from '@/components/GraphEditor/GraphNodeMessage.vue'
 import GraphNodeSelection from '@/components/GraphEditor/GraphNodeSelection.vue'
 import GraphVisualization from '@/components/GraphEditor/GraphVisualization.vue'
@@ -111,7 +113,7 @@ function getDataflowError(id: ExternalId) {
 }
 
 interface Message {
-  type: GraphNodeMessageType
+  type: MessageType
   text: string
   alwaysShow: boolean
 }
@@ -123,20 +125,20 @@ const availableMessage = computed<Message | undefined>(() => {
     case 'Panic': {
       const text = info.payload.message
       const alwaysShow = !inputExternalIds().some((id) => getPanic(id) === text)
-      return { type: GraphNodeMessageType.Panic, text, alwaysShow } satisfies Message
+      return { type: 'panic', text, alwaysShow } satisfies Message
     }
     case 'DataflowError': {
       const rawText = getDataflowError(externalId)
       const text = rawText?.split(' (at')[0]
       if (!text) return undefined
       const alwaysShow = !inputExternalIds().some((id) => getDataflowError(id) === rawText)
-      return { type: GraphNodeMessageType.Error, text, alwaysShow } satisfies Message
+      return { type: 'error', text, alwaysShow } satisfies Message
     }
     case 'Value': {
       const warning = info.payload.warnings?.value
       if (!warning) return undefined
       return {
-        type: GraphNodeMessageType.Warning,
+        type: 'warning',
         text: 'Warning: ' + warning,
         alwaysShow: false,
       } satisfies Message
@@ -558,8 +560,8 @@ const documentation = computed<string | undefined>({
     <div class="statuses">
       <SvgIcon
         v-if="availableMessage && !visibleMessage"
-        :name="availableMessage.type.iconName"
-        :style="{ color: availableMessage.type.cssColor }"
+        :name="iconForMessageType[availableMessage.type]"
+        :style="{ color: colorForMessageType[availableMessage.type] }"
       />
     </div>
     <GraphNodeMessage
