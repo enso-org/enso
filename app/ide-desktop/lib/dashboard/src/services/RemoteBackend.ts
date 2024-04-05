@@ -281,7 +281,7 @@ export default class RemoteBackend extends Backend {
     const path = remoteBackendPaths.changeUserGroupPath(userId)
     const response = await this.put<backendModule.User>(path, userGroups)
     if (!responseIsSuccessful(response)) {
-      return this.throw(`Could not change user groups for user '${name}'.`, response)
+      return this.throw(response, 'changeUserGroupsBackendError', name)
     } else {
       return await response.json()
     }
@@ -884,7 +884,7 @@ export default class RemoteBackend extends Backend {
     const path = remoteBackendPaths.CREATE_USER_GROUP_PATH
     const response = await this.post<backendModule.UserGroupInfo>(path, body)
     if (!responseIsSuccessful(response)) {
-      return this.throw(`Could not create user group with name '${body.name}'.`, response)
+      return this.throw(response, 'createUserGroupBackendError', body.name)
     } else {
       return await response.json()
     }
@@ -898,7 +898,7 @@ export default class RemoteBackend extends Backend {
     const path = remoteBackendPaths.deleteUserGroupPath(userGroupId)
     const response = await this.delete(path)
     if (!responseIsSuccessful(response)) {
-      return this.throw(`Could not delete user group '${name}'.`, response)
+      return this.throw(response, 'deleteUserGroupBackendError', name)
     } else {
       return
     }
@@ -910,7 +910,7 @@ export default class RemoteBackend extends Backend {
     const path = remoteBackendPaths.LIST_USER_GROUPS_PATH
     const response = await this.get<backendModule.UserGroupInfo[]>(path)
     if (!responseIsSuccessful(response)) {
-      return this.throw(`Could not list user groups.`, response)
+      return this.throw(response, 'listUserGroupsBackendError')
     } else {
       return await response.json()
     }

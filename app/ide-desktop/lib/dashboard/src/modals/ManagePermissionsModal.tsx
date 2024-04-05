@@ -188,13 +188,13 @@ export default function ManagePermissionsModal<
         )
         const addedUserGroupsIds = new Set(
           addedPermissions.flatMap(permission =>
-            backendModule.isUserGroupPermission(permission) ? [permission.userGroup.sk] : []
+            backendModule.isUserGroupPermission(permission) ? [permission.userGroup.id] : []
           )
         )
         const isPermissionNotBeingOverwritten = (permission: backendModule.AssetPermission) =>
           backendModule.isUserPermission(permission)
             ? !addedUsersIds.has(permission.user.userId)
-            : !addedUserGroupsIds.has(permission.userGroup.sk)
+            : !addedUserGroupsIds.has(permission.userGroup.id)
 
         try {
           setPermissions(oldPermissions =>
@@ -206,7 +206,7 @@ export default function ManagePermissionsModal<
             actorsIds: addedPermissions.map(permission =>
               backendModule.isUserPermission(permission)
                 ? permission.user.userId
-                : permission.userGroup.sk
+                : permission.userGroup.id
             ),
             resourceId: item.id,
             action: action,
@@ -322,7 +322,7 @@ export default function ManagePermissionsModal<
                     setValues={setUsers}
                     items={canAdd}
                     itemToKey={userOrGroup =>
-                      'userId' in userOrGroup ? userOrGroup.userId : userOrGroup.sk
+                      'userId' in userOrGroup ? userOrGroup.userId : userOrGroup.id
                     }
                     itemToString={userOrGroup =>
                       'name' in userOrGroup

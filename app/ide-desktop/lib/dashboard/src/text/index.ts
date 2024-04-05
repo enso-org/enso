@@ -55,6 +55,7 @@ interface PlaceholderOverrides {
   readonly downloadDataLinkError: [string]
 
   readonly inviteUserBackendError: [string]
+  readonly changeUserGroupsBackendError: [string]
   readonly listFolderBackendError: [string]
   readonly createFolderBackendError: [string]
   readonly updateFolderBackendError: [string]
@@ -82,6 +83,8 @@ interface PlaceholderOverrides {
   readonly createLabelBackendError: [string]
   readonly associateLabelsBackendError: [string]
   readonly deleteLabelBackendError: [string]
+  readonly createUserGroupBackendError: [string]
+  readonly deleteUserGroupBackendError: [string]
   readonly listVersionsBackendError: [string]
   readonly createCheckoutSessionBackendError: [string]
   readonly getCheckoutSessionBackendError: [string]

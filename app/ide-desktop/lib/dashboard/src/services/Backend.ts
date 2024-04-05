@@ -422,8 +422,8 @@ export interface OrganizationInfo {
 
 /** A user group and its associated metadata. */
 export interface UserGroupInfo {
-  readonly pk: OrganizationId
-  readonly sk: UserGroupId
+  readonly organizationId: OrganizationId
+  readonly id: UserGroupId
   readonly groupName: string
 }
 
@@ -473,7 +473,7 @@ export function getAssetPermissionName(permission: AssetPermission) {
 
 /** Get the property representing the id on an arbitrary variant of {@link UserPermission}. */
 export function getAssetPermissionId(permission: AssetPermission): UserPermissionIdentifier {
-  return isUserPermission(permission) ? permission.user.userId : permission.userGroup.sk
+  return isUserPermission(permission) ? permission.user.userId : permission.userGroup.id
 }
 
 /** The type returned from the "update directory" endpoint. */
@@ -919,8 +919,8 @@ export function compareAssetPermissions(a: AssetPermission, b: AssetPermission) 
     // name first, so that it's easier to find a permission in a long list (i.e., for readability).
     const aName = 'user' in a ? a.user.name : a.userGroup.groupName
     const bName = 'user' in b ? b.user.name : b.userGroup.groupName
-    const aUserId = 'user' in a ? a.user.userId : a.userGroup.sk
-    const bUserId = 'user' in b ? b.user.userId : b.userGroup.sk
+    const aUserId = 'user' in a ? a.user.userId : a.userGroup.id
+    const bUserId = 'user' in b ? b.user.userId : b.userGroup.id
     return aName < bName
       ? -1
       : aName > bName

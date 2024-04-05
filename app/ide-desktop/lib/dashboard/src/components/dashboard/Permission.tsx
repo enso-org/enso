@@ -69,8 +69,7 @@ export default function Permission(props: PermissionProps) {
     } catch (error) {
       setPermission(permission)
       outerSetPermission(permission)
-      const name = backendModule.getAssetPermissionName(permission)
-      toastAndLog('setPermissionsError', error, name)
+      toastAndLog('setPermissionsError', error)
     }
   }
 
