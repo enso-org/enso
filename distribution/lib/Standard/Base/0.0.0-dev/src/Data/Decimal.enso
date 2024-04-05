@@ -734,12 +734,12 @@ type Decimal
     ## GROUP Conversions
        ICON convert
        Converts a `Decimal` to a string, using the Java DecimalFormat formatter.
-       
+
        For details about the `DecimalFormat` format specifier, see
        https://docs.oracle.com/javase/8/docs/api/java/text/DecimalFormat.html.
 
        Arguments:
-       - format: The java-style formatting specifier.
+       - format: The Java-style formatting specifier.
        - locale: Species the `Locale` to use for locale-specific number
          formatting.
 
@@ -784,9 +784,28 @@ type Decimal
          - If `text` is incorrectly formatted, a `Number_Parse_Error` is thrown.
 
        > Example
-         Parse the text "7.6" into a float number.
+         Parse a `Decimal` with no local specifier.
 
-             Float.parse "7.6"
+             Decimal.parse "123456789.87654"
+             # => 123456789.87654
+
+       > Example
+         Parse a `Decimal` with the default locale.
+
+             Decimal.parse "123,456,789.87654" locale=Locale.default
+             # => 123456789.87654
+
+       > Example
+         Parse a `Decimal` with the US locale.
+
+             Decimal.parse "123,456,789.87654" locale=Locale.us
+             # => 123456789.87654
+
+       > Example
+         Parse a `Decimal` with the Italy locale.
+
+             Decimal.parse "123.456.789,87654" locale=Locale.italy
+             # => 123456789.87654
     parse : Text -> Locale | Nothing -> Decimal ! Number_Parse_Error
     parse text locale=Nothing = case locale of
         Nothing -> Decimal.from_string text
