@@ -16,7 +16,7 @@ pub mod test;
 
 
 #[derive(
-    clap::ArgEnum,
+    clap::ValueEnum,
     Clone,
     Copy,
     Debug,
@@ -36,7 +36,7 @@ pub enum ProfilingLevel {
 }
 
 #[derive(
-    clap::ArgEnum,
+    clap::ValueEnum,
     Clone,
     Copy,
     Debug,
@@ -72,7 +72,7 @@ pub async fn test(repo_root: PathBuf, wasm: &[test::Browser], native: bool) -> R
         }
     }
 
-    maybe_run("native", native, async || {
+    maybe_run("native", native, || async {
         Cargo
             .cmd()?
             .current_dir(repo_root.clone())

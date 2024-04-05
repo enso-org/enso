@@ -7,7 +7,6 @@ use crate::syntax::*;
 use crate::span_builder;
 
 use enso_parser_syntax_tree_visitor::Visitor;
-use enso_shapely_macros::tagged_enum;
 
 
 // ==============
@@ -785,14 +784,17 @@ pub fn apply<'s>(mut func: Tree<'s>, mut arg: Tree<'s>) -> Tree<'s> {
             func_.expression = maybe_apply(mem::take(&mut func_.expression), arg).into();
             func
         }
-        (Variant::OprApp(OprApp { lhs: Some(_), opr: Ok(_), rhs: rhs @ None }),
-                Variant::ArgumentBlockApplication(ArgumentBlockApplication { lhs: None, arguments })) => {
+        (
+            Variant::OprApp(OprApp { lhs: Some(_), opr: Ok(_), rhs: rhs @ None }),
+            Variant::ArgumentBlockApplication(ArgumentBlockApplication { lhs: None, arguments }),
+        ) => {
             func.span.code_length += arg.span.length_including_whitespace();
             *rhs = block::body_from_lines(mem::take(arguments)).into();
             func
         }
         (_, Variant::ArgumentBlockApplication(block)) if block.lhs.is_none() => {
-            let code = func.span.code_length + arg.span.left_offset.code.length() + arg.span.code_length;
+            let code =
+                func.span.code_length + arg.span.left_offset.code.length() + arg.span.code_length;
             arg.span.code_length = code;
             let func_left_offset = func.span.left_offset.take_as_prefix();
             let arg_left_offset = mem::replace(&mut arg.span.left_offset, func_left_offset);
@@ -803,7 +805,8 @@ pub fn apply<'s>(mut func: Tree<'s>, mut arg: Tree<'s>) -> Tree<'s> {
             arg
         }
         (_, Variant::OperatorBlockApplication(block)) if block.lhs.is_none() => {
-            let code = func.span.code_length + arg.span.left_offset.code.length() + arg.span.code_length;
+            let code =
+                func.span.code_length + arg.span.left_offset.code.length() + arg.span.code_length;
             arg.span.code_length = code;
             let func_left_offset = func.span.left_offset.take_as_prefix();
             let arg_left_offset = mem::replace(&mut arg.span.left_offset, func_left_offset);
@@ -814,22 +817,26 @@ pub fn apply<'s>(mut func: Tree<'s>, mut arg: Tree<'s>) -> Tree<'s> {
             arg
         }
         (_, Variant::OprApp(OprApp { lhs: Some(lhs), opr: Ok(opr), rhs: Some(rhs) }))
-        if opr.properties.is_assignment() && let Variant::Ident(lhs) = &*lhs.variant => {
+            if opr.properties.is_assignment()
+                && let Variant::Ident(lhs) = &*lhs.variant =>
+        {
             let mut lhs = lhs.token.clone();
             lhs.left_offset += arg.span.left_offset;
             Tree::named_app(func, None, lhs, opr.clone(), rhs.clone(), None)
         }
         (_, Variant::Group(Group { open: Some(open), body: Some(body), close: Some(close) }))
-        if let box Variant::OprApp(OprApp { lhs: Some(lhs), opr: Ok(opr), rhs: Some(rhs) })
-            = &body.variant
-        && opr.properties.is_assignment() && let Variant::Ident(lhs) = &*lhs.variant => {
+            if let box Variant::OprApp(OprApp { lhs: Some(lhs), opr: Ok(opr), rhs: Some(rhs) }) =
+                &body.variant
+                && opr.properties.is_assignment()
+                && let Variant::Ident(lhs) = &*lhs.variant =>
+        {
             let mut open = open.clone();
             open.left_offset += arg.span.left_offset;
             let open = Some(open);
             let close = Some(close.clone());
             Tree::named_app(func, open, lhs.token.clone(), opr.clone(), rhs.clone(), close)
         }
-        _ => Tree::app(func, arg)
+        _ => Tree::app(func, arg),
     }
 }
 
@@ -879,12 +886,15 @@ pub fn apply_operator<'s>(
         _ => Err(MultipleOperatorError { operators: NonEmptyVec::try_from(opr).unwrap() }),
     };
     if let Ok(opr_) = &opr
-            && opr_.properties.is_token_joiner()
-            && let Some(lhs_) = lhs.as_mut()
-            && let Some(rhs_) = rhs.as_mut() {
+        && opr_.properties.is_token_joiner()
+        && let Some(lhs_) = lhs.as_mut()
+        && let Some(rhs_) = rhs.as_mut()
+    {
         return match (&mut *lhs_.variant, &mut *rhs_.variant) {
-            (Variant::Number(func_ @ Number { base: _, integer: None, fractional_digits: None }),
-                Variant::Number(Number { base: None, integer, fractional_digits })) => {
+            (
+                Variant::Number(func_ @ Number { base: _, integer: None, fractional_digits: None }),
+                Variant::Number(Number { base: None, integer, fractional_digits }),
+            ) => {
                 func_.integer = mem::take(integer);
                 func_.fractional_digits = mem::take(fractional_digits);
                 lhs_.span.code_length += rhs_.span.code_length;
@@ -893,14 +903,18 @@ pub fn apply_operator<'s>(
             _ => {
                 debug_assert!(false, "Unexpected use of token-joiner operator!");
                 apply(lhs.take().unwrap(), rhs.take().unwrap())
-            },
-        }
+            }
+        };
     }
-    if let Ok(opr_) = &opr && opr_.properties.is_special() {
+    if let Ok(opr_) = &opr
+        && opr_.properties.is_special()
+    {
         let tree = Tree::opr_app(lhs, opr, rhs);
         return tree.with_error("Invalid use of special operator.");
     }
-    if let Ok(opr_) = &opr && opr_.properties.is_type_annotation() {
+    if let Ok(opr_) = &opr
+        && opr_.properties.is_type_annotation()
+    {
         return match (lhs, rhs) {
             (Some(lhs), Some(rhs)) => Tree::type_annotated(lhs, opr.unwrap(), rhs),
             (lhs, rhs) => {
@@ -909,17 +923,26 @@ pub fn apply_operator<'s>(
             }
         };
     }
-    if let Ok(opr_) = &opr && !opr_.properties.can_form_section() && lhs.is_none() && rhs.is_none() {
+    if let Ok(opr_) = &opr
+        && !opr_.properties.can_form_section()
+        && lhs.is_none()
+        && rhs.is_none()
+    {
         let error = format!("Operator `{opr:?}` must be applied to two operands.");
         let invalid = Tree::opr_app(lhs, opr, rhs);
         return invalid.with_error(error);
     }
-    if let Ok(opr) = &opr && opr.properties.is_decimal()
+    if let Ok(opr) = &opr
+        && opr.properties.is_decimal()
         && let Some(lhs) = lhs.as_mut()
         && let box Variant::Number(lhs_) = &mut lhs.variant
         && lhs_.fractional_digits.is_none()
         && let Some(rhs) = rhs.as_mut()
-        && let box Variant::Number(Number { base: None, integer: Some(digits), fractional_digits: None }) = &mut rhs.variant
+        && let box Variant::Number(Number {
+            base: None,
+            integer: Some(digits),
+            fractional_digits: None,
+        }) = &mut rhs.variant
     {
         let dot = opr.clone();
         let digits = digits.clone();
@@ -947,13 +970,16 @@ pub fn apply_operator<'s>(
 /// For most inputs this will simply construct a `UnaryOprApp`; however, some operators are special.
 pub fn apply_unary_operator<'s>(opr: token::Operator<'s>, rhs: Option<Tree<'s>>) -> Tree<'s> {
     if opr.properties.is_annotation()
-            && let Some(Tree { variant: box Variant::Ident(Ident { token }), .. }) = rhs {
+        && let Some(Tree { variant: box Variant::Ident(Ident { token }), .. }) = rhs
+    {
         return match token.is_type {
             true => Tree::annotated_builtin(opr, token, vec![], None),
             false => Tree::annotated(opr, token, None, vec![], None),
         };
     }
-    if opr.properties.is_autoscope() && let Some(rhs) = rhs {
+    if opr.properties.is_autoscope()
+        && let Some(rhs) = rhs
+    {
         return if let box Variant::Ident(Ident { mut token }) = rhs.variant {
             let applied_to_type = token.variant.is_type;
             token.left_offset = rhs.span.left_offset;
@@ -961,12 +987,14 @@ pub fn apply_unary_operator<'s>(opr: token::Operator<'s>, rhs: Option<Tree<'s>>)
             return if applied_to_type {
                 autoscope_application
             } else {
-                autoscope_application
-                    .with_error("The auto-scope operator may only be applied to a capitalized identifier.")
-            }
+                autoscope_application.with_error(
+                    "The auto-scope operator may only be applied to a capitalized identifier.",
+                )
+            };
         } else {
-            Tree::unary_opr_app(opr, Some(rhs)).with_error("The auto-scope operator (..) may only be applied to an identifier.")
-        }
+            Tree::unary_opr_app(opr, Some(rhs))
+                .with_error("The auto-scope operator (..) may only be applied to an identifier.")
+        };
     }
     if !opr.properties.can_form_section() && rhs.is_none() {
         let error = format!("Operator `{opr:?}` must be applied to an operand.");
@@ -1049,16 +1077,13 @@ impl<'s> From<token::Ident<'s>> for Tree<'s> {
 /// as AST nodes ([`TreeVisitor`]), span information ([`SpanVisitor`]), and AST nodes or tokens
 /// altogether ([`ItemVisitor`]). A visitor is a struct that is modified when traversing the target
 /// elements. Visitors are also capable of tracking when they entered or exited a nested
-/// [`Tree`] structure, and they can control how deep the traversal should be performed. To learn
-/// more, see the [`RefCollectorVisitor`] implementation, which traverses [`Tree`] and collects
-/// references to all [`Tree`] nodes in a vector.
+/// [`Tree`] structure, and they can control how deep the traversal should be performed.
 ///
 /// # Visitable traits
 /// This macro also defines visitable traits, such as [`TreeVisitable`] or [`SpanVisitable`], which
-/// provide [`Tree`] elements with such functions as [`visit`], [`visit_mut`], [`visit_span`], or
-/// [`visit_span_mut`]. These functions let you run visitors. However, as defining a visitor is
-/// relatively complex, a set of traversal functions are provided, such as [`map`], [`map_mut`],
-/// [`map_span`], or [`map_span_mut`].
+/// provide [`Tree`] elements with such functions as [`visit`] or [`visit_span`]. These functions
+/// let you run visitors. However, as defining a visitor is relatively complex, a traversal function
+/// [`map`] is provided.
 ///
 /// # Generalization of the implementation
 /// The current implementation bases on a few non-generic traits. One might define a way better
@@ -1084,22 +1109,10 @@ pub trait TreeVisitor<'s, 'a>: Visitor {
     fn visit(&mut self, ast: &'a Tree<'s>) -> bool;
 }
 
-/// The visitor trait allowing for [`Tree`] nodes mutable traversal.
-#[allow(missing_docs)]
-pub trait TreeVisitorMut<'s>: Visitor {
-    fn visit_mut(&mut self, ast: &mut Tree<'s>) -> bool;
-}
-
 /// The visitor trait allowing for [`Span`] traversal.
 #[allow(missing_docs)]
 pub trait SpanVisitor<'s, 'a>: Visitor {
     fn visit(&mut self, ast: span::Ref<'s, 'a>) -> bool;
-}
-
-/// The visitor trait allowing for [`Span`] mutable traversal.
-#[allow(missing_docs)]
-pub trait SpanVisitorMut<'s>: Visitor {
-    fn visit_mut(&mut self, ast: span::RefMut<'s, '_>) -> bool;
 }
 
 /// The visitor trait allowing for [`Item`] traversal.
@@ -1109,61 +1122,20 @@ pub trait ItemVisitor<'s, 'a>: Visitor {
 }
 
 macro_rules! define_visitor {
-    ($name:ident, $visit:ident) => {
-        define_visitor_no_mut! {$name, $visit}
-        define_visitor_mut! {$name, $visit}
-    };
-}
-
-macro_rules! define_visitor_no_mut {
-    ($name:ident, $visit:ident) => {
-        paste! {
-            define_visitor_internal! {
-                $name,
-                $visit,
-                [[<$name Visitor>]<'s, 'a>],
-                [<$name Visitable>],
-            }
-        }
-    };
-}
-
-macro_rules! define_visitor_mut {
-    ($name:ident, $visit:ident) => {
-        paste! {
-            define_visitor_internal! {
-                [_mut mut]
-                $name,
-                [<$visit _mut>],
-                [[<$name VisitorMut>]<'s>],
-                [<$name VisitableMut>],
-            }
-        }
-    };
-}
-
-macro_rules! define_visitor_internal {
     (
-        $([$pfx_mod:ident $mod:ident])?
         $name:ident,
         $visit:ident,
-        [$($visitor:tt)*],
-        $visitable:ident,
-    ) => { paste! {
+        $visitor:ident,
+        $visitable:ident
+    ) => {
         /// The visitable trait. See documentation of [`define_visitor`] to learn more.
         #[allow(missing_docs)]
         pub trait $visitable<'s, 'a> {
-            fn $visit<V: $($visitor)*>(&'a $($mod)? self, _visitor: &mut V) {}
-        }
-
-        impl<'s, 'a, T: $visitable<'s, 'a>> $visitable<'s, 'a> for Box<T> {
-            fn $visit<V: $($visitor)*>(&'a $($mod)? self, visitor: &mut V) {
-                $visitable::$visit(& $($mod)? **self, visitor)
-            }
+            fn $visit<V: $visitor<'s, 'a>>(&'a self, _visitor: &mut V) {}
         }
 
         impl<'s, 'a, T: $visitable<'s, 'a>> $visitable<'s, 'a> for Option<T> {
-            fn $visit<V: $($visitor)*>(&'a $($mod)? self, visitor: &mut V) {
+            fn $visit<V: $visitor<'s, 'a>>(&'a self, visitor: &mut V) {
                 if let Some(elem) = self {
                     $visitable::$visit(elem, visitor)
                 }
@@ -1173,7 +1145,7 @@ macro_rules! define_visitor_internal {
         impl<'s, 'a, T: $visitable<'s, 'a>, E: $visitable<'s, 'a>> $visitable<'s, 'a>
             for Result<T, E>
         {
-            fn $visit<V: $($visitor)*>(&'a $($mod)? self, visitor: &mut V) {
+            fn $visit<V: $visitor<'s, 'a>>(&'a self, visitor: &mut V) {
                 match self {
                     Ok(elem) => $visitable::$visit(elem, visitor),
                     Err(elem) => $visitable::$visit(elem, visitor),
@@ -1182,20 +1154,17 @@ macro_rules! define_visitor_internal {
         }
 
         impl<'s, 'a, T: $visitable<'s, 'a>> $visitable<'s, 'a> for Vec<T> {
-            fn $visit<V: $($visitor)*>(&'a $($mod)? self, visitor: &mut V) {
-                self.[<iter $($pfx_mod)?>]().map(|t| $visitable::$visit(t, visitor)).for_each(drop);
+            fn $visit<V: $visitor<'s, 'a>>(&'a self, visitor: &mut V) {
+                self.iter().map(|t| $visitable::$visit(t, visitor)).for_each(drop);
             }
         }
 
         impl<'s, 'a, T: $visitable<'s, 'a>> $visitable<'s, 'a> for NonEmptyVec<T> {
-            fn $visit<V: $($visitor)*>(&'a $($mod)? self, visitor: &mut V) {
-                self.[<iter $($pfx_mod)?>]().map(|t| $visitable::$visit(t, visitor)).for_each(drop);
+            fn $visit<V: $visitor<'s, 'a>>(&'a self, visitor: &mut V) {
+                self.iter().map(|t| $visitable::$visit(t, visitor)).for_each(drop);
             }
         }
-
-        impl<'s, 'a> $visitable<'s, 'a> for &str {}
-        impl<'s, 'a> $visitable<'s, 'a> for str {}
-    }};
+    };
 }
 
 macro_rules! define_visitor_for_tokens {
@@ -1209,13 +1178,12 @@ macro_rules! define_visitor_for_tokens {
         }
     ) => {
         impl<'s, 'a> TreeVisitable<'s, 'a> for token::$kind {}
-        impl<'s, 'a> TreeVisitableMut<'s, 'a> for token::$kind {}
     };
 }
 
-define_visitor!(Tree, visit);
-define_visitor!(Span, visit_span);
-define_visitor_no_mut!(Item, visit_item);
+define_visitor!(Tree, visit, TreeVisitor, TreeVisitable);
+define_visitor!(Span, visit_span, SpanVisitor, SpanVisitable);
+define_visitor!(Item, visit_item, ItemVisitor, ItemVisitable);
 
 crate::with_token_definition!(define_visitor_for_tokens());
 
@@ -1223,11 +1191,9 @@ crate::with_token_definition!(define_visitor_for_tokens());
 // === Trait Implementations for Simple Leaf Types ===
 
 macro_rules! spanless_leaf_impls {
-    ($ty:ident) => {
+    ($ty:ty) => {
         impl<'s, 'a> TreeVisitable<'s, 'a> for $ty {}
-        impl<'s, 'a> TreeVisitableMut<'s, 'a> for $ty {}
         impl<'a, 's> SpanVisitable<'s, 'a> for $ty {}
-        impl<'a, 's> SpanVisitableMut<'s, 'a> for $ty {}
         impl<'a, 's> ItemVisitable<'s, 'a> for $ty {}
         impl<'s> span::Builder<'s> for $ty {
             fn add_to_span(&mut self, span: Span<'s>) -> Span<'s> {
@@ -1240,6 +1206,7 @@ macro_rules! spanless_leaf_impls {
 spanless_leaf_impls!(u32);
 spanless_leaf_impls!(bool);
 spanless_leaf_impls!(VisibleOffset);
+spanless_leaf_impls!(Cow<'static, str>);
 
 
 // === TreeVisitable special cases ===
@@ -1252,16 +1219,8 @@ impl<'s, 'a> TreeVisitable<'s, 'a> for Tree<'s> {
     }
 }
 
-impl<'s, 'a> TreeVisitableMut<'s, 'a> for Tree<'s> {
-    fn visit_mut<V: TreeVisitorMut<'s>>(&'a mut self, visitor: &mut V) {
-        if visitor.visit_mut(self) {
-            self.variant.visit_mut(visitor)
-        }
-    }
-}
 
 impl<'s, 'a, T> TreeVisitable<'s, 'a> for Token<'s, T> {}
-impl<'s, 'a, T> TreeVisitableMut<'s, 'a> for Token<'s, T> {}
 
 
 // === SpanVisitable special cases ===
@@ -1277,16 +1236,6 @@ impl<'s, 'a> SpanVisitable<'s, 'a> for Tree<'s> {
     }
 }
 
-impl<'s, 'a> SpanVisitableMut<'s, 'a> for Tree<'s> {
-    fn visit_span_mut<V: SpanVisitorMut<'s>>(&'a mut self, visitor: &mut V) {
-        if visitor.visit_mut(span::RefMut {
-            left_offset: &mut self.span.left_offset,
-            code_length: self.span.code_length,
-        }) {
-            self.variant.visit_span_mut(visitor)
-        }
-    }
-}
 
 impl<'a, 's, T> SpanVisitable<'s, 'a> for Token<'s, T> {
     fn visit_span<V: SpanVisitor<'s, 'a>>(&'a self, visitor: &mut V) {
@@ -1295,12 +1244,6 @@ impl<'a, 's, T> SpanVisitable<'s, 'a> for Token<'s, T> {
     }
 }
 
-impl<'a, 's, T> SpanVisitableMut<'s, 'a> for Token<'s, T> {
-    fn visit_span_mut<V: SpanVisitorMut<'s>>(&'a mut self, visitor: &mut V) {
-        let code_length = self.code.length();
-        visitor.visit_mut(span::RefMut { left_offset: &mut self.left_offset, code_length });
-    }
-}
 
 
 // === ItemVisitable special cases ===
@@ -1318,31 +1261,6 @@ where &'a Token<'s, T>: Into<token::Ref<'s, 'a>>
 {
     fn visit_item<V: ItemVisitor<'s, 'a>>(&'a self, visitor: &mut V) {
         visitor.visit_item(item::Ref::Token(self.into()));
-    }
-}
-
-
-// === String ===
-
-impl<'s, 'a> TreeVisitable<'s, 'a> for String {}
-impl<'s, 'a> TreeVisitableMut<'s, 'a> for String {}
-impl<'a, 's> SpanVisitable<'s, 'a> for String {}
-impl<'a, 's> SpanVisitableMut<'s, 'a> for String {}
-impl<'a, 's> ItemVisitable<'s, 'a> for String {}
-impl<'s> span::Builder<'s> for String {
-    fn add_to_span(&mut self, span: Span<'s>) -> Span<'s> {
-        span
-    }
-}
-
-impl<'s, 'a> TreeVisitable<'s, 'a> for Cow<'static, str> {}
-impl<'s, 'a> TreeVisitableMut<'s, 'a> for Cow<'static, str> {}
-impl<'a, 's> SpanVisitable<'s, 'a> for Cow<'static, str> {}
-impl<'a, 's> SpanVisitableMut<'s, 'a> for Cow<'static, str> {}
-impl<'a, 's> ItemVisitable<'s, 'a> for Cow<'static, str> {}
-impl<'s> span::Builder<'s> for Cow<'static, str> {
-    fn add_to_span(&mut self, span: Span<'s>) -> Span<'s> {
-        span
     }
 }
 
@@ -1391,36 +1309,6 @@ impl<'s> Tree<'s> {
 
 
 
-// ===========================
-// === RefCollectorVisitor ===
-// ===========================
-
-/// A visitor collecting references to all [`Tree`] nodes.
-#[derive(Debug, Default)]
-#[allow(missing_docs)]
-struct RefCollectorVisitor<'s, 'a> {
-    pub vec: Vec<&'a Tree<'s>>,
-}
-
-impl<'s, 'a> Visitor for RefCollectorVisitor<'s, 'a> {}
-impl<'s, 'a> TreeVisitor<'s, 'a> for RefCollectorVisitor<'s, 'a> {
-    fn visit(&mut self, ast: &'a Tree<'s>) -> bool {
-        self.vec.push(ast);
-        true
-    }
-}
-
-impl<'s> Tree<'s> {
-    /// Collect references to all [`Tree`] nodes and return them in a vector.
-    pub fn collect_vec_ref(&self) -> Vec<&Tree<'s>> {
-        let mut visitor = RefCollectorVisitor::default();
-        self.visit(&mut visitor);
-        visitor.vec
-    }
-}
-
-
-
 // =================
 // === FnVisitor ===
 // =================
@@ -1438,24 +1326,12 @@ impl<'s: 'a, 'a, T, F: Fn(&'a Tree<'s>) -> T> TreeVisitor<'s, 'a> for FnVisitor<
     }
 }
 
-impl<'s, T, F: Fn(&mut Tree<'s>) -> T> TreeVisitorMut<'s> for FnVisitor<F> {
-    fn visit_mut(&mut self, ast: &mut Tree<'s>) -> bool {
-        (self.0)(ast);
-        true
-    }
-}
 
 impl<'s> Tree<'s> {
     /// Map the provided function over each [`Tree`] node. The function results will be discarded.
     pub fn map<T>(&self, f: impl Fn(&Tree<'s>) -> T) {
         let mut visitor = FnVisitor(f);
         self.visit(&mut visitor);
-    }
-
-    /// Map the provided function over each [`Tree`] node. The function results will be discarded.
-    pub fn map_mut<T>(&mut self, f: impl Fn(&mut Tree<'s>) -> T) {
-        let mut visitor = FnVisitor(f);
-        self.visit_mut(&mut visitor);
     }
 }
 
@@ -1479,40 +1355,5 @@ impl<'s> Tree<'s> {
             }
         }
         self.variant.visit_item(&mut ItemFnVisitor { f });
-    }
-}
-
-
-
-// =================
-// === Traversal ===
-// =================
-
-impl<'s> Tree<'s> {
-    /// Return an iterator over the operands of the given left-associative operator, in reverse
-    /// order.
-    pub fn left_assoc_rev<'t, 'o>(&'t self, operator: &'o str) -> LeftAssocRev<'o, 't, 's> {
-        let tree = Some(self);
-        LeftAssocRev { operator, tree }
-    }
-}
-
-/// Iterator over the operands of a particular left-associative operator, in reverse order.
-#[derive(Debug)]
-pub struct LeftAssocRev<'o, 't, 's> {
-    operator: &'o str,
-    tree:     Option<&'t Tree<'s>>,
-}
-
-impl<'o, 't, 's> Iterator for LeftAssocRev<'o, 't, 's> {
-    type Item = &'t Tree<'s>;
-    fn next(&mut self) -> Option<Self::Item> {
-        if let box Variant::OprApp(OprApp { lhs, opr: Ok(opr), rhs }) = &self.tree?.variant
-            && opr.code == self.operator {
-            self.tree = lhs.into();
-            rhs.into()
-        } else {
-            self.tree.take()
-        }
     }
 }

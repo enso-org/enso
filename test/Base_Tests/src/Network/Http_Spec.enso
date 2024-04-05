@@ -71,6 +71,11 @@ add_specs suite_builder =
             http = HTTP.new (follow_redirects = False)
             http.follow_redirects.should_equal False
 
+            r = http.request (Request.new HTTP_Method.Get base_url_with_slash+"test_redirect")
+            r.should_fail_with HTTP_Error
+            r.catch.should_be_a HTTP_Error.Status_Error
+            r.catch.status_code.code . should_equal 302
+
         group_builder.specify "should create HTTP client with proxy setting" <|
             proxy_setting = Proxy.Address "example.com" 80
             http = HTTP.new (proxy = proxy_setting)
@@ -81,8 +86,8 @@ add_specs suite_builder =
             http = HTTP.new (version = version_setting)
             http.version.should_equal version_setting
 
+    url_get = base_url_with_slash.if_not_nothing <| base_url_with_slash + "get"
     suite_builder.group "fetch" pending=pending_has_url group_builder->
-        url_get = base_url_with_slash + "get"
         url_head = base_url_with_slash + "head"
         url_options = base_url_with_slash + "options"
 
@@ -133,7 +138,7 @@ add_specs suite_builder =
             uri_response.at "headers" . at "Content-Length" . should_equal "0"
 
         group_builder.specify "Can skip auto-parse" <|
-            response = Data.fetch url_get try_auto_parse_response=False
+            response = Data.fetch url_get format=Raw_Response
             response.code.code . should_equal 200
             expected_response = Json.parse <| '''
                 {
@@ -151,15 +156,15 @@ add_specs suite_builder =
                 }
             compare_responses response.decode_as_json expected_response
 
-            uri_response = url_get.to_uri.fetch try_auto_parse_response=False
+            uri_response = url_get.to_uri.fetch format=Raw_Response
             uri_response.code.code . should_equal 200
             compare_responses uri_response.decode_as_json expected_response
 
         group_builder.specify "Can still perform request when output context is disabled" <|
             run_with_and_without_output <|
-                Data.fetch url_get try_auto_parse_response=False . code . code . should_equal 200
-                Data.fetch url_get method=HTTP_Method.Head try_auto_parse_response=False . code . code . should_equal 200
-                Data.fetch url_get method=HTTP_Method.Options try_auto_parse_response=False . code . code . should_equal 200
+                Data.fetch url_get format=Raw_Response . code . code . should_equal 200
+                Data.fetch url_get method=HTTP_Method.Head format=Raw_Response . code . code . should_equal 200
+                Data.fetch url_get method=HTTP_Method.Options format=Raw_Response . code . code . should_equal 200
 
         group_builder.specify "Unsupported method" <|
             err = Data.fetch url_get method=HTTP_Method.Post
@@ -187,6 +192,27 @@ add_specs suite_builder =
             header_names.should_not_contain "connection"
             header_names.should_not_contain "http2-settings"
             header_names.should_not_contain "upgrade"
+
+    suite_builder.group "HTTP in Data.read" pending=pending_has_url group_builder->
+        group_builder.specify "can use URI in Data.read" <|
+            r = Data.read (URI.from url_get)
+            r.should_be_a JS_Object
+
+        group_builder.specify "works if HTTP is uppercase" <|
+            r = Data.fetch (url_get.replace "http" "HTTP")
+            r.should_be_a JS_Object
+
+        group_builder.specify "should follow redirects" <|
+            r = Data.read base_url_with_slash+"test_redirect"
+            r.should_be_a Text
+            r.trim . should_equal '{"hello": "world"}'
+
+        group_builder.specify "can override the format" <|
+            auto_response = Data.read url_get
+            auto_response.should_be_a JS_Object
+
+            plain_response = Data.read url_get format=Plain_Text
+            plain_response.should_be_a Text
 
     suite_builder.group "post" pending=pending_has_url group_builder->
         url_post = base_url_with_slash + "post"
@@ -318,7 +344,7 @@ add_specs suite_builder =
             compare_responses response expected_response
 
         group_builder.specify "Can skip auto-parse" <|
-            response = Data.post url_post (Request_Body.Text "hello world") try_auto_parse_response=False
+            response = Data.post url_post (Request_Body.Text "hello world") response_format=Raw_Response
             expected_response = echo_response_template "POST" "/post" "hello world" content_type="text/plain; charset=UTF-8"
             compare_responses response.decode_as_json expected_response
 
@@ -501,7 +527,7 @@ add_specs suite_builder =
             Data.post url_post (Request_Body.Text "hello world" encoding=Encoding.utf_8) headers=[Header.content_type "application/json"] . should_fail_with Illegal_Argument
 
         group_builder.specify "can also read headers from a response, when returning a raw response" <|
-            r1 = Data.post url_post (Request_Body.Text "hello world") try_auto_parse_response=False
+            r1 = Data.post url_post (Request_Body.Text "hello world") response_format=Raw_Response
             r1.should_be_a Response
             # The result is JSON data:
             r1.headers.find (p-> p.name.equals_ignore_case "Content-Type") . value . should_equal "application/json"
@@ -514,7 +540,7 @@ add_specs suite_builder =
             uri = URI.from (base_url_with_slash + "test_headers")
                 . add_query_argument "test-header" "test-value"
                 . add_query_argument "Other-Header" "some other value"
-            r2 = Data.fetch uri try_auto_parse_response=False
+            r2 = Data.fetch uri format=Raw_Response
             r2.should_be_a Response
             r2.headers.find (p-> p.name.equals_ignore_case "Test-Header") . value . should_equal "test-value"
             r2.headers.find (p-> p.name.equals_ignore_case "Other-Header") . value . should_equal "some other value"
@@ -524,7 +550,7 @@ add_specs suite_builder =
                 . add_query_argument "my-header" "value-1"
                 . add_query_argument "my-header" "value-2"
                 . add_query_argument "my-header" "value-44"
-            r1 = Data.fetch uri try_auto_parse_response=False
+            r1 = Data.fetch uri format=Raw_Response
             r1.should_be_a Response
             my_headers = r1.headers.filter (p-> p.name.equals_ignore_case "my-header") . map .value
             my_headers.sort . should_equal ["value-1", "value-2", "value-44"]

@@ -220,28 +220,24 @@ class RuntimeAsyncCommandsTest
     context.send(
       Api.Request(requestId, Api.InterruptContextRequest(contextId))
     )
-    context.receiveNIgnoreExpressionUpdates(
-      3
-    ) should contain theSameElementsAs Seq(
-      Api.Response(requestId, Api.InterruptContextResponse(contextId)),
-      Api.Response(
-        Api.ExecutionUpdate(
-          contextId,
-          Seq(
-            Api.ExecutionResult.Diagnostic(
-              Api.DiagnosticType.Warning,
-              Some("Execution of function main interrupted."),
-              None,
-              None,
-              None,
-              Vector()
-            )
-          )
-        )
-      ),
-      Api.Response(
-        Api.ExecutionComplete(contextId)
-      )
+    val responses = context.receiveNIgnoreExpressionUpdates(
+      2
     )
+    responses.length shouldEqual 2
+    responses should contain(
+      Api.Response(requestId, Api.InterruptContextResponse(contextId))
+    )
+
+    val failures = responses.filter(_.payload.isInstanceOf[Api.ExecutionFailed])
+    failures.length shouldEqual 1
+
+    val failure = failures.head.payload.asInstanceOf[Api.ExecutionFailed]
+    failure.contextId shouldEqual contextId
+    failure.result shouldBe a[Api.ExecutionResult.Diagnostic]
+
+    val diagnostic = failure.result.asInstanceOf[Api.ExecutionResult.Diagnostic]
+    diagnostic.kind shouldEqual Api.DiagnosticType.Error
+    diagnostic.message shouldEqual Some("sleep interrupted")
+    diagnostic.stack should not be empty
   }
 }

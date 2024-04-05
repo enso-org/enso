@@ -29,7 +29,7 @@ impl Archive {
         let file = file
             .try_into_std()
             .map_err(|_| anyhow!("Failed to convert tokio::fs::File to std::fs::File"))?;
-        let tar_stream = flate2::read::GzDecoder::new(file);
+        let tar_stream = GzDecoder::new(file);
         let archive = tar::Archive::new(tar_stream);
         let path = path.as_ref().to_owned().into_boxed_path();
         Ok(Self { path, file: archive })

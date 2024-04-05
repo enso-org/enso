@@ -5,6 +5,8 @@ import AddFolderIcon from 'enso-assets/add_folder.svg'
 import AddKeyIcon from 'enso-assets/add_key.svg'
 import AddNetworkIcon from 'enso-assets/add_network.svg'
 import AppDownloadIcon from 'enso-assets/app_download.svg'
+import ArrowLeftIcon from 'enso-assets/arrow_left.svg'
+import ArrowRightIcon from 'enso-assets/arrow_right.svg'
 import CameraIcon from 'enso-assets/camera.svg'
 import CloseIcon from 'enso-assets/close.svg'
 import CloudToIcon from 'enso-assets/cloud_to.svg'
@@ -54,6 +56,7 @@ export const BINDINGS = inputBindings.defineBindings({
   rename: { name: 'Rename', bindings: ['Mod+R'], icon: PenIcon },
   edit: { name: 'Edit', bindings: ['Mod+E'], icon: PenIcon },
   snapshot: { name: 'Snapshot', bindings: ['Mod+S'], icon: CameraIcon },
+  editDescription: { name: 'Edit Description', bindings: ['Mod+Shift+E'], icon: PenIcon },
   delete: {
     name: 'Delete',
     bindings: ['OsDelete'],
@@ -100,5 +103,17 @@ export const BINDINGS = inputBindings.defineBindings({
     name: 'Select Additional Range',
     bindings: ['Mod+Shift+PointerMain'],
     rebindable: false,
+  },
+  goBack: {
+    name: 'Go Back',
+    bindings: detect.isOnMacOS() ? ['Mod+ArrowLeft', 'Mod+['] : ['Alt+ArrowLeft'],
+    rebindable: true,
+    icon: ArrowLeftIcon,
+  },
+  goForward: {
+    name: 'Go Forward',
+    bindings: detect.isOnMacOS() ? ['Mod+ArrowRight', 'Mod+]'] : ['Alt+ArrowRight'],
+    rebindable: true,
+    icon: ArrowRightIcon,
   },
 })

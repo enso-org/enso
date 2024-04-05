@@ -86,7 +86,7 @@ export class VisualizationDataRegistry {
     return this.visualizationValues.get(visualizationId) ?? null
   }
 
-  destroy() {
+  dispose() {
     this.executionContext.off('visualizationsConfigured', this.reconfiguredHandler)
     this.dataServer.then((data) => {
       data.off(`${OutboundPayload.VISUALIZATION_UPDATE}`, this.dataHandler)

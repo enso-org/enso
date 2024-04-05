@@ -31,7 +31,7 @@ pub async fn download(url: impl IntoUrl) -> Result<impl Stream<Item = reqwest::R
 
 pub async fn download_to_dir(url: impl IntoUrl, dir: impl AsRef<Path>) -> Result<PathBuf> {
     let url = url.into_url()?;
-    let response = web::client::get(&default(), url.clone()).await?;
+    let response = client::get(&default(), url.clone()).await?;
     let filename = filename_from_response(&response)
         .map(ToOwned::to_owned)
         .or_else(|_| filename_from_url(&url))

@@ -1,4 +1,4 @@
-import { nonDictatedPlacement } from '@/components/ComponentBrowser/placement'
+import { usePlacement } from '@/components/ComponentBrowser/placement'
 import type { PortId } from '@/providers/portInfo'
 import type { WidgetUpdate } from '@/providers/widgetRegistry'
 import { GraphDb, asNodeId, type NodeId } from '@/stores/graph/graphDatabase'
@@ -33,7 +33,12 @@ import { iteratorFilter } from 'lib0/iterator'
 import { defineStore } from 'pinia'
 import { SourceDocument } from 'shared/ast/sourceDocument'
 import type { ExpressionUpdate, StackItem } from 'shared/languageServerTypes'
-import type { LocalOrigin, SourceRangeKey, VisualizationMetadata } from 'shared/yjsModel'
+import type {
+  LocalUserActionOrigin,
+  Origin,
+  SourceRangeKey,
+  VisualizationMetadata,
+} from 'shared/yjsModel'
 import { defaultLocalOrigin, sourceRangeKey, visMetadataEquals } from 'shared/yjsModel'
 import {
   computed,
@@ -83,6 +88,10 @@ export const useGraphStore = defineStore('graph', () => {
     const existing = iteratorFilter(nodeRects.entries(), ([id]) => db.nodeIdToNode.has(id))
     return Array.from(existing, ([id, rect]) => vizRects.get(id) ?? rect)
   })
+  function visibleArea(nodeId: NodeId): Rect | undefined {
+    if (!db.nodeIdToNode.has(nodeId)) return
+    return nodeRects.get(nodeId) ?? vizRects.get(nodeId)
+  }
 
   const db = new GraphDb(
     suggestionDb.entries,
@@ -130,8 +139,13 @@ export const useGraphStore = defineStore('graph', () => {
       id: AstId
       changes: NodeMetadata
     }[]
-    const dirtyNodeSet = new Set(update.nodesUpdated)
-    if (moduleChanged || dirtyNodeSet.size !== 0) {
+    const dirtyNodeSet = new Set(
+      (function* () {
+        yield* update.nodesUpdated
+        yield* update.nodesAdded
+      })(),
+    )
+    if (moduleChanged || dirtyNodeSet.size !== 0 || update.nodesDeleted.size !== 0) {
       db.updateExternalIds(root)
       toRaw = new Map()
       visitRecursive(Ast.parseEnso(moduleSource.text), (node) => {
@@ -234,31 +248,67 @@ export const useGraphStore = defineStore('graph', () => {
     unconnectedEdge.value = undefined
   }
 
+  function createNodes(
+    nodeOptions: {
+      position: Vec2
+      expression: string
+      metadata?: NodeMetadataFields
+      withImports?: RequiredImport[] | undefined
+    }[],
+  ): NodeId[] {
+    const method = syncModule.value ? methodAstInModule(syncModule.value) : undefined
+    if (!method) {
+      console.error(`BUG: Cannot add node: No current function.`)
+      return []
+    }
+    const created = new Array<NodeId>()
+    edit((edit) => {
+      const bodyBlock = edit.getVersion(method).bodyAsBlock()
+      for (const options of nodeOptions) {
+        const ident = generateUniqueIdent()
+        const metadata = { ...options.metadata, position: options.position.xy() }
+        const { assignment, id } = newAssignmentNode(
+          edit,
+          ident,
+          options.expression,
+          metadata,
+          options.withImports ?? [],
+        )
+        bodyBlock.push(assignment)
+        created.push(id)
+        nodeRects.set(id, new Rect(options.position, Vec2.Zero))
+      }
+    })
+    return created
+  }
+
+  function newAssignmentNode(
+    edit: MutableModule,
+    ident: Ast.Identifier,
+    expression: string,
+    metadata: NodeMetadataFields,
+    withImports: RequiredImport[],
+  ) {
+    const conflicts = addMissingImports(edit, withImports) ?? []
+    const rhs = Ast.parse(expression, edit)
+    rhs.setNodeMetadata(metadata)
+    const assignment = Ast.Assignment.new(edit, ident, rhs)
+    for (const _conflict of conflicts) {
+      // TODO: Substitution does not work, because we interpret imports wrongly. To be fixed in
+      // https://github.com/enso-org/enso/issues/9356
+      // substituteQualifiedName(edit, assignment, conflict.pattern, conflict.fullyQualified)
+    }
+    const id = asNodeId(rhs.id)
+    return { assignment, id }
+  }
+
   function createNode(
     position: Vec2,
     expression: string,
     metadata: NodeMetadataFields = {},
     withImports: RequiredImport[] | undefined = undefined,
   ): Opt<NodeId> {
-    const method = syncModule.value ? methodAstInModule(syncModule.value) : undefined
-    if (!method) {
-      console.error(`BUG: Cannot add node: No current function.`)
-      return
-    }
-    const ident = generateUniqueIdent()
-    metadata.position = { x: position.x, y: position.y }
-    return edit((edit) => {
-      const conflicts = withImports ? addMissingImports(edit, withImports) ?? [] : []
-      const rhs = Ast.parse(expression, edit)
-      rhs.setNodeMetadata(metadata)
-      const assignment = Ast.Assignment.new(edit, ident, rhs)
-      for (const _conflict of conflicts) {
-        // TODO: Sort out issues with FQN with the engine.
-        // substituteQualifiedName(edit, assignment, conflict.pattern, conflict.fullyQualified)
-      }
-      edit.getVersion(method).bodyAsBlock().push(assignment)
-      return asNodeId(rhs.id)
-    })
+    return createNodes([{ position, expression, metadata, withImports }])[0]
   }
 
   /* Try adding imports. Does nothing if conflict is detected, and returns `DectedConflict` in such case. */
@@ -314,7 +364,7 @@ export const useGraphStore = defineStore('graph', () => {
         for (const id of ids) {
           const node = db.nodeIdToNode.get(id)
           if (!node) continue
-          const outerExpr = edit.tryGet(node.outerExprId)
+          const outerExpr = edit.getVersion(node.outerExpr)
           if (outerExpr) Ast.deleteFromParentBlock(outerExpr)
           nodeRects.delete(id)
         }
@@ -339,7 +389,8 @@ export const useGraphStore = defineStore('graph', () => {
           return
         }
         for (const _conflict of conflicts) {
-          // TODO: Sort out issues with FQN with the engine.
+          // TODO: Substitution does not work, because we interpret imports wrongly. To be fixed in
+          // https://github.com/enso-org/enso/issues/9356
           // substituteQualifiedName(edit, wholeAssignment, conflict.pattern, conflict.fullyQualified)
         }
       }
@@ -363,6 +414,14 @@ export const useGraphStore = defineStore('graph', () => {
         metadata.set('position', { x: position.x, y: position.y }),
       )
     }
+  }
+
+  function overrideNodeColor(nodeId: NodeId, color: string) {
+    const nodeAst = syncModule.value?.tryGet(nodeId)
+    if (!nodeAst) return
+    editNodeMetadata(nodeAst, (metadata) => {
+      metadata.set('colorOverride', color)
+    })
   }
 
   function normalizeVisMetadata(
@@ -401,6 +460,7 @@ export const useGraphStore = defineStore('graph', () => {
   }
 
   const nodesToPlace = reactive<NodeId[]>([])
+  const { place: placeNode } = usePlacement(visibleNodeAreas, Rect.Zero)
 
   watch(nodesToPlace, (nodeIds) => {
     if (nodeIds.length === 0) return
@@ -411,19 +471,13 @@ export const useGraphStore = defineStore('graph', () => {
         const nodeAst = syncModule.value?.get(nodeId)
         const rect = nodeRects.get(nodeId)
         if (!rect || !nodeAst || nodeAst.nodeMetadata.get('position') != null) continue
-        const { position } = nonDictatedPlacement(rect.size, {
-          nodeRects: visibleNodeAreas.value,
-          // The rest of the properties should not matter.
-          selectedNodeRects: [],
-          screenBounds: Rect.Zero,
-          mousePosition: Vec2.Zero,
-        })
+        const { position } = placeNode([], rect.size)
         editNodeMetadata(nodeAst, (metadata) =>
           metadata.set('position', { x: position.x, y: position.y }),
         )
         nodeRects.set(nodeId, new Rect(position, rect.size))
       }
-    })
+    }, 'local:autoLayout')
   })
 
   function updateVizRect(id: NodeId, rect: Rect | undefined) {
@@ -506,7 +560,7 @@ export const useGraphStore = defineStore('graph', () => {
   function commitEdit(
     edit: MutableModule,
     skipTreeRepair?: boolean,
-    origin: LocalOrigin = defaultLocalOrigin,
+    origin: LocalUserActionOrigin = defaultLocalOrigin,
   ) {
     const root = edit.root()
     if (!(root instanceof Ast.BodyBlock)) {
@@ -542,9 +596,9 @@ export const useGraphStore = defineStore('graph', () => {
     return result!
   }
 
-  function batchEdits(f: () => void) {
+  function batchEdits(f: () => void, origin: Origin = defaultLocalOrigin) {
     assert(syncModule.value != null)
-    syncModule.value.transact(f, 'local')
+    syncModule.value.transact(f, origin)
   }
 
   function editNodeMetadata(ast: Ast.Ast, f: (metadata: Ast.MutableNodeMetadata) => void) {
@@ -594,8 +648,8 @@ export const useGraphStore = defineStore('graph', () => {
    * are also moved after it, keeping their relative order.
    */
   function ensureCorrectNodeOrder(edit: MutableModule, sourceNodeId: NodeId, targetNodeId: NodeId) {
-    const sourceExpr = db.nodeIdToNode.get(sourceNodeId)?.outerExprId
-    const targetExpr = db.nodeIdToNode.get(targetNodeId)?.outerExprId
+    const sourceExpr = db.nodeIdToNode.get(sourceNodeId)?.outerExpr.id
+    const targetExpr = db.nodeIdToNode.get(targetNodeId)?.outerExpr.id
     const body = edit.getVersion(methodAstInModule(edit)!).bodyAsBlock()
     assert(sourceExpr != null)
     assert(targetExpr != null)
@@ -610,7 +664,9 @@ export const useGraphStore = defineStore('graph', () => {
       // Find all transitive dependencies of the moved target node.
       const deps = db.dependantNodes(targetNodeId)
 
-      const dependantLines = new Set(Array.from(deps, (id) => db.nodeIdToNode.get(id)?.outerExprId))
+      const dependantLines = new Set(
+        Array.from(deps, (id) => db.nodeIdToNode.get(id)?.outerExpr.id),
+      )
       // Include the new target itself in the set of lines that must be placed after source node.
       dependantLines.add(targetExpr)
 
@@ -655,6 +711,7 @@ export const useGraphStore = defineStore('graph', () => {
     nodeRects,
     vizRects,
     visibleNodeAreas,
+    visibleArea,
     unregisterNodeRect,
     methodAst,
     createEdgeFromOutput,
@@ -662,10 +719,12 @@ export const useGraphStore = defineStore('graph', () => {
     disconnectTarget,
     clearUnconnected,
     moduleRoot,
+    createNodes,
     createNode,
     deleteNodes,
     ensureCorrectNodeOrder,
     batchEdits,
+    overrideNodeColor,
     setNodeContent,
     setNodePosition,
     setNodeVisualization,

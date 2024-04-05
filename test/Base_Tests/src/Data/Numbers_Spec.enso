@@ -101,6 +101,9 @@ add_specs suite_builder =
             (3 / 4) . should_equal 0.75 epsilon=eps
             (almost_max_long * 2 / almost_max_long_times_three) . should_equal 0.6666666 epsilon=eps
 
+            1/0 . is_infinite . should_be_true
+            -1/0 . is_infinite . should_be_true
+
         group_builder.specify "should support integer division" <|
             (10.div 3) . should_equal 3
             (10.div 0).should_fail_with Arithmetic_Error
@@ -342,12 +345,53 @@ add_specs suite_builder =
             1.0%0 . is_nan . should_be_true
             almost_max_long_times_three%0.0 . is_nan . should_be_true
 
-            1/0 . is_infinite . should_be_true
-            -1/0 . is_infinite . should_be_true
-
             hundred_factorial%0 . should_fail_with Arithmetic_Error
             hundred_factorial%hundred_factorial . should_equal 0
             10%hundred_factorial . should_equal 10
+
+            (9223372036854775807 % 10) . should_equal 7
+            (9223372036854775808 % 10) . should_equal 8
+            (9223372036854775809 % 10) . should_equal 9
+            (7000000000000000000007 % 10) . should_equal 7
+
+        group_builder.specify "should define modulo for negative integers and decimals" <|
+            -5%3 . should_equal -2
+            -5%3 . should_be_a Integer
+
+            -5.0%3.0 . should_equal -2.0
+            -5%3.0 . should_equal -2.0
+            -5.0%3 . should_equal -2.0
+            -5.0%3.0 . should_be_a Float
+            -5%3.0 . should_be_a Float
+            -5.0%3 . should_be_a Float
+
+            -3.5%2 . should_equal -1.5
+            -10.5%1.0 . should_equal -0.5
+
+            -3%1 . should_equal 0
+            -3%1 . should_be_a Integer
+
+            -3.5%1 . should_equal -0.5
+
+            (-almost_max_long_times_three)%10 . should_equal -8
+            -1000%almost_max_long_times_three . should_equal -1000
+
+            -1%0 . should_fail_with Arithmetic_Error
+            -almost_max_long_times_three%0 . should_fail_with Arithmetic_Error
+
+            -1.0%0.0 . is_nan . should_be_true
+            -1%0.0 . is_nan . should_be_true
+            -1.0%0 . is_nan . should_be_true
+            -almost_max_long_times_three%0.0 . is_nan . should_be_true
+
+            -hundred_factorial%0 . should_fail_with Arithmetic_Error
+            -hundred_factorial%hundred_factorial . should_equal 0
+            -10%hundred_factorial . should_equal -10
+
+            (-9223372036854775807 % 10) . should_equal -7
+            (-9223372036854775808 % 10) . should_equal -8
+            (-9223372036854775809 % 10) . should_equal -9
+            (-7000000000000000000007 % 10) . should_equal -7
 
         group_builder.specify "should support less than operator" <|
             (1 < 2).should_be_true
@@ -575,16 +619,6 @@ add_specs suite_builder =
             0.truncate . should_equal 0
             3.truncate . should_equal 3
             -3.truncate . should_equal -3
-
-    suite_builder.group "Hashing" group_builder->
-        # TODO: Pending https://github.com/enso-org/enso/issues/9296
-        group_builder.specify "Hash consistency for values near Double.MIN/MAX_VALUE" pending="hash consistency" <|
-            ok_values = [9223372036854775000, -9223372036854775000]
-            bad_values = [9223372036854776000, -9223372036854776000]
-            values = ok_values + bad_values
-            values.map i->
-                f = i.to_float
-                (Comparable.hash_builtin f) . should_equal (Comparable.hash_builtin i)
 
     suite_builder.group "Number Conversions" group_builder->
         group_builder.specify "Complex plus Integer" <|

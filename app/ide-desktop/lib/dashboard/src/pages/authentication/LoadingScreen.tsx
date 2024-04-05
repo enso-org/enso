@@ -1,8 +1,9 @@
 /** @file A loading screen, displayed while the user is logging in. */
 import * as React from 'react'
 
-import * as common from 'enso-common'
+import * as textProvider from '#/providers/TextProvider'
 
+import * as aria from '#/components/aria'
 import StatelessSpinner, * as statelessSpinner from '#/components/StatelessSpinner'
 
 // =================
@@ -18,6 +19,7 @@ const SPINNER_SIZE_PX = 64
 
 /** A loading screen. */
 export default function LoadingScreen() {
+  const { getText } = textProvider.useText()
   return (
     <div className="grid h-screen w-screen place-items-center text-primary">
       <div className="flex flex-col items-center gap-status-page text-center text-base">
@@ -25,7 +27,7 @@ export default function LoadingScreen() {
           state={statelessSpinner.SpinnerState.loadingMedium}
           size={SPINNER_SIZE_PX}
         />
-        <span>Logging in to {common.PRODUCT_NAME}...</span>
+        <aria.Text>{getText('loadingAppMessage')}</aria.Text>
       </div>
     </div>
   )

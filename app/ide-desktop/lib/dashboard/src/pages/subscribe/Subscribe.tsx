@@ -7,13 +7,16 @@ import * as stripe from '@stripe/stripe-js/pure'
 import * as toast from 'react-toastify'
 
 import * as appUtils from '#/appUtils'
+import type * as text from '#/text'
 
 import * as navigateHooks from '#/hooks/navigateHooks'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
 import * as backendProvider from '#/providers/BackendProvider'
+import * as textProvider from '#/providers/TextProvider'
 
 import Modal from '#/components/Modal'
+import UnstyledButton from '#/components/UnstyledButton'
 
 import * as backendModule from '#/services/Backend'
 
@@ -28,6 +31,11 @@ let stripePromise: Promise<stripeTypes.Stripe | null> | null = null
 
 /** The delay in milliseconds before redirecting back to the main page. */
 const REDIRECT_DELAY_MS = 1_500
+
+const PLAN_TO_TEXT_ID: Readonly<Record<backendModule.Plan, text.TextId>> = {
+  [backendModule.Plan.solo]: 'soloPlanName',
+  [backendModule.Plan.team]: 'teamPlanName',
+} satisfies { [Plan in backendModule.Plan]: `${Plan}PlanName` }
 
 // =================
 // === Subscribe ===
@@ -46,6 +54,7 @@ const REDIRECT_DELAY_MS = 1_500
  * sessionStatus.status = { status: 'complete',
  * paymentStatus: 'no_payment_required' || 'paid' || 'unpaid' }`). */
 export default function Subscribe() {
+  const { getText } = textProvider.useText()
   const navigate = navigateHooks.useNavigate()
   // Plan that the user has currently selected, if any (e.g., 'solo', 'team', etc.).
   const [plan, setPlan] = React.useState(() => {
@@ -121,21 +130,21 @@ export default function Subscribe() {
           event.stopPropagation()
         }}
       >
-        <div className="self-center text-xl">Upgrade to {string.capitalizeFirst(plan)}</div>
+        <div className="self-center text-xl">
+          {getText('upgradeTo', string.capitalizeFirst(plan))}
+        </div>
         <div className="flex h-row items-stretch rounded-full bg-gray-500/30 text-base">
           {backendModule.PLANS.map(newPlan => (
-            <button
+            <UnstyledButton
               key={newPlan}
-              disabled={plan === newPlan}
-              type="button"
+              isDisabled={plan === newPlan}
               className="flex-1 grow rounded-full disabled:bg-frame"
-              onClick={event => {
-                event.stopPropagation()
+              onPress={() => {
                 setPlan(newPlan)
               }}
             >
-              {string.capitalizeFirst(newPlan)}
-            </button>
+              {PLAN_TO_TEXT_ID[newPlan]}
+            </UnstyledButton>
           ))}
         </div>
         {sessionId && clientSecret ? (

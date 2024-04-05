@@ -12,12 +12,12 @@ import Category from '#/layouts/CategorySwitcher/Category'
 
 import type * as column from '#/components/dashboard/column'
 import PermissionDisplay from '#/components/dashboard/PermissionDisplay'
+import UnstyledButton from '#/components/UnstyledButton'
 
 import ManagePermissionsModal from '#/modals/ManagePermissionsModal'
 
 import type * as backendModule from '#/services/Backend'
 
-import * as object from '#/utilities/object'
 import * as permissions from '#/utilities/permissions'
 import * as uniqueString from '#/utilities/uniqueString'
 
@@ -41,7 +41,8 @@ export default function SharedWithColumn(props: SharedWithColumnPropsInternal) {
   const asset = item.item
   const { user } = authProvider.useNonPartialUserSession()
   const { setModal } = modalProvider.useSetModal()
-  const self = asset.permissions?.find(permission => permission.user.user_email === user?.email)
+  const plusButtonRef = React.useRef<HTMLButtonElement>(null)
+  const self = asset.permissions?.find(permission => permission.user.userId === user?.userId)
   const managesThisAsset =
     category !== Category.trash &&
     (self?.permission === permissions.PermissionAction.own ||
@@ -49,7 +50,7 @@ export default function SharedWithColumn(props: SharedWithColumnPropsInternal) {
   const setAsset = React.useCallback(
     (valueOrUpdater: React.SetStateAction<backendModule.AnyAsset>) => {
       setItem(oldItem =>
-        object.merge(oldItem, {
+        oldItem.with({
           item:
             typeof valueOrUpdater !== 'function' ? valueOrUpdater : valueOrUpdater(oldItem.item),
         })
@@ -57,38 +58,34 @@ export default function SharedWithColumn(props: SharedWithColumnPropsInternal) {
     },
     [/* should never change */ setItem]
   )
+
   return (
     <div className="group flex items-center gap-column-items">
       {(asset.permissions ?? []).map(otherUser => (
         <PermissionDisplay
-          key={otherUser.user.pk}
+          key={otherUser.user.userId}
           action={otherUser.permission}
-          onClick={event => {
+          onPress={event => {
             setQuery(oldQuery =>
-              oldQuery.withToggled(
-                'owners',
-                'negativeOwners',
-                otherUser.user.user_name,
-                event.shiftKey
-              )
+              oldQuery.withToggled('owners', 'negativeOwners', otherUser.user.name, event.shiftKey)
             )
           }}
         >
-          {otherUser.user.user_name}
+          {otherUser.user.name}
         </PermissionDisplay>
       ))}
       {managesThisAsset && (
-        <button
-          className="invisible shrink-0 group-hover:visible"
-          onClick={event => {
-            event.stopPropagation()
+        <UnstyledButton
+          ref={plusButtonRef}
+          className="shrink-0 rounded-full transparent group-hover:opacity-100 focus-visible:opacity-100"
+          onPress={() => {
             setModal(
               <ManagePermissionsModal
                 key={uniqueString.uniqueString()}
                 item={asset}
                 setItem={setAsset}
                 self={self}
-                eventTarget={event.currentTarget}
+                eventTarget={plusButtonRef.current}
                 doRemoveSelf={() => {
                   dispatchAssetEvent({
                     type: AssetEventType.removeSelf,
@@ -100,7 +97,7 @@ export default function SharedWithColumn(props: SharedWithColumnPropsInternal) {
           }}
         >
           <img className="size-plus-icon" src={Plus2Icon} />
-        </button>
+        </UnstyledButton>
       )}
     </div>
   )

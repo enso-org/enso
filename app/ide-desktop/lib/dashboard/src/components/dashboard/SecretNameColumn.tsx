@@ -14,6 +14,7 @@ import * as modalProvider from '#/providers/ModalProvider'
 import AssetEventType from '#/events/AssetEventType'
 import AssetListEventType from '#/events/AssetListEventType'
 
+import * as aria from '#/components/aria'
 import type * as column from '#/components/dashboard/column'
 import SvgMask from '#/components/SvgMask'
 
@@ -82,7 +83,7 @@ export default function SecretNameColumn(props: SecretNameColumnProps) {
       case AssetEventType.newSecret: {
         if (item.key === event.placeholderId) {
           if (backend.type !== backendModule.BackendType.remote) {
-            toastAndLog('Data connectors cannot be created on the local backend')
+            toastAndLog('localBackendSecretError')
           } else {
             rowState.setVisibility(Visibility.faded)
             try {
@@ -98,7 +99,7 @@ export default function SecretNameColumn(props: SecretNameColumnProps) {
                 type: AssetListEventType.delete,
                 key: item.key,
               })
-              toastAndLog('Error creating new data connector', error)
+              toastAndLog('createSecretError', error)
             }
           }
         }
@@ -148,9 +149,9 @@ export default function SecretNameColumn(props: SecretNameColumnProps) {
     >
       <SvgMask src={KeyIcon} className="m-name-column-icon size-icon" />
       {/* Secrets cannot be renamed. */}
-      <span data-testid="asset-row-name" className="text grow bg-transparent">
+      <aria.Text data-testid="asset-row-name" className="text grow bg-transparent">
         {asset.title}
-      </span>
+      </aria.Text>
     </div>
   )
 }

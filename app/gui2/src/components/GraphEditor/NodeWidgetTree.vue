@@ -2,12 +2,14 @@
 import NodeWidget from '@/components/GraphEditor/NodeWidget.vue'
 import SvgIcon from '@/components/SvgIcon.vue'
 import { useTransitioning } from '@/composables/animation'
+import { injectGraphSelection } from '@/providers/graphSelection'
 import { WidgetInput, type WidgetUpdate } from '@/providers/widgetRegistry'
+import { WidgetEditHandler } from '@/providers/widgetRegistry/editHandler'
 import { provideWidgetTree } from '@/providers/widgetTree'
 import { useGraphStore, type NodeId } from '@/stores/graph'
 import { Ast } from '@/util/ast'
 import type { Icon } from '@/util/iconName'
-import { computed, ref, toRef } from 'vue'
+import { computed, ref, toRef, watch } from 'vue'
 
 const props = defineProps<{
   ast: Ast.Ast
@@ -30,6 +32,7 @@ const rootPort = computed(() => {
   }
   return input
 })
+const selection = injectGraphSelection()
 
 const observedLayoutTransitions = new Set([
   'margin-left',
@@ -44,7 +47,12 @@ const observedLayoutTransitions = new Set([
   'height',
 ])
 
+function selectNode() {
+  selection.setSelection(new Set([props.nodeId]))
+}
+
 function handleWidgetUpdates(update: WidgetUpdate) {
+  selectNode()
   const edit = update.edit ?? graph.startEdit()
   if (update.portUpdate) {
     const { value, origin } = update.portUpdate
@@ -66,6 +74,9 @@ function handleWidgetUpdates(update: WidgetUpdate) {
   // This handler is guaranteed to be the last handler in the chain.
   return true
 }
+
+const currentEdit = ref<WidgetEditHandler>()
+watch(currentEdit, (edit) => edit && selectNode())
 
 /**
  * We have two goals for our DOM/CSS that are somewhat in conflict:
@@ -97,6 +108,7 @@ provideWidgetTree(
   toRef(props, 'conditionalPorts'),
   toRef(props, 'extended'),
   layoutTransitions.active,
+  currentEdit,
   () => {
     emit('openFullMenu')
   },

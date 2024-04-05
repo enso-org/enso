@@ -3,8 +3,6 @@ use crate::prelude::*;
 use crate::env::accessor::TypedVariable;
 use crate::extensions::child::ChildExt;
 
-use std::collections::HashMap;
-use std::fmt::Formatter;
 use std::process::Stdio;
 
 
@@ -428,18 +426,13 @@ impl RestartPolicy {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Default)]
 pub enum Network {
+    #[default]
     Bridge,
     Host,
     User(String),
     Container(ContainerId),
-}
-
-impl Default for Network {
-    fn default() -> Self {
-        Network::Bridge
-    }
 }
 
 impl Display for Network {
@@ -651,10 +644,7 @@ mod tests {
     // This function might be unused, depending on what platform-specific tests are compiled.
     #[allow(dead_code)]
     fn get_kernel_version() -> Result<u32> {
-        let mut sysinfo = sysinfo::System::new();
-        sysinfo.refresh_all();
-        let ret = sysinfo
-            .kernel_version()
+        let ret = sysinfo::System::kernel_version()
             .with_context(|| "Failed to get OS kernel version.")?
             .parse2()?;
         debug!("OS kernel version: {ret}.");

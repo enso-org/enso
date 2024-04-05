@@ -2,12 +2,15 @@
 import * as React from 'react'
 
 import * as localStorageProvider from '#/providers/LocalStorageProvider'
+import * as textProvider from '#/providers/TextProvider'
 
 import type * as assetEvent from '#/events/assetEvent'
 
 import AssetProperties from '#/layouts/AssetProperties'
-import AssetVersions from '#/layouts/AssetVersions'
+import AssetVersions from '#/layouts/AssetVersions/AssetVersions'
 import type Category from '#/layouts/CategorySwitcher/Category'
+
+import UnstyledButton from '#/components/UnstyledButton'
 
 import * as backend from '#/services/Backend'
 
@@ -64,6 +67,7 @@ export interface AssetPanelProps extends AssetPanelRequiredProps {
 export default function AssetPanel(props: AssetPanelProps) {
   const { item, setItem, setQuery, category, labels, dispatchAssetEvent } = props
 
+  const { getText } = textProvider.useText()
   const { localStorage } = localStorageProvider.useLocalStorage()
   const [initialized, setInitialized] = React.useState(false)
   const [tab, setTab] = React.useState(() => {
@@ -96,7 +100,7 @@ export default function AssetPanel(props: AssetPanelProps) {
   return (
     <div
       data-testid="asset-panel"
-      className="absolute flex h-full w-asset-panel flex-col gap-asset-panel border-l-2 border-black/[0.12] p-top-bar-margin pl-asset-panel-l"
+      className="pointer-events-none absolute flex h-full w-asset-panel flex-col gap-asset-panel border-l-2 border-black/[0.12] p-top-bar-margin pl-asset-panel-l"
       onClick={event => {
         event.stopPropagation()
       }}
@@ -105,11 +109,11 @@ export default function AssetPanel(props: AssetPanelProps) {
         {item != null &&
           item.item.type !== backend.AssetType.secret &&
           item.item.type !== backend.AssetType.directory && (
-            <button
-              className={`button select-none bg-frame px-button-x leading-cozy transition-colors hover:bg-selected-frame ${
+            <UnstyledButton
+              className={`button pointer-events-auto select-none bg-frame px-button-x leading-cozy transition-colors hover:bg-selected-frame ${
                 tab !== AssetPanelTab.versions ? '' : 'bg-selected-frame active'
               }`}
-              onClick={() => {
+              onPress={() => {
                 setTab(oldTab =>
                   oldTab === AssetPanelTab.versions
                     ? AssetPanelTab.properties
@@ -117,15 +121,15 @@ export default function AssetPanel(props: AssetPanelProps) {
                 )
               }}
             >
-              Versions
-            </button>
+              {getText('versions')}
+            </UnstyledButton>
           )}
         {/* Spacing. The top right asset and user bars overlap this area. */}
         <div className="grow" />
       </div>
       {item == null || setItem == null ? (
         <div className="grid grow place-items-center text-lg">
-          Select exactly one asset to view its details.
+          {getText('selectExactlyOneAssetToViewItsDetails')}
         </div>
       ) : (
         <>
@@ -139,7 +143,7 @@ export default function AssetPanel(props: AssetPanelProps) {
               dispatchAssetEvent={dispatchAssetEvent}
             />
           )}
-          <AssetVersions hidden={tab !== AssetPanelTab.versions} item={item} />
+          {tab === AssetPanelTab.versions && <AssetVersions item={item} />}
         </>
       )}
     </div>

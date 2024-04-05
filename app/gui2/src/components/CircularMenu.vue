@@ -19,7 +19,8 @@ const emit = defineEmits<{
   startEditingComment: []
   openFullMenu: []
   delete: []
-  createNode: [options: NodeCreationOptions]
+  createNodes: [options: NodeCreationOptions[]]
+  toggleColorPicker: []
 }>()
 </script>
 
@@ -33,6 +34,13 @@ const emit = defineEmits<{
         class="icon-container button slot2"
         :alt="`Edit comment`"
         @click.stop="emit('startEditingComment')"
+      />
+      <SvgIcon
+        v-if="isFullMenuVisible"
+        name="paint_palette"
+        class="icon-container button slot3"
+        :alt="`Choose color`"
+        @click.stop="emit('toggleColorPicker')"
       />
       <SvgIcon
         v-if="isFullMenuVisible"
@@ -67,7 +75,7 @@ const emit = defineEmits<{
     <SmallPlusButton
       v-if="!isVisualizationVisible"
       class="below-slot5"
-      @createNode="emit('createNode', $event)"
+      @createNodes="emit('createNodes', $event)"
     />
   </div>
 </template>

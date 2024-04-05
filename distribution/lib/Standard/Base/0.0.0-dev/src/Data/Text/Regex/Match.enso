@@ -55,7 +55,8 @@ type Match
     internal_end : Integer -> Integer
     internal_end self group = self.internal_regex_result.getEnd group
 
-    ## Returns the start UTF16 character index of a group.
+    ## ICON metadata
+       Returns the start UTF16 character index of a group.
 
        Arguments:
        - group: the group name or number. Marked groups defined in the regex are
@@ -65,7 +66,8 @@ type Match
         span = self.utf_16_span group
         if span.is_nothing then Nothing else span.start
 
-    ## Returns the end UTF16 character index, plus one, of a group.
+    ## ICON metadata
+       Returns the end UTF16 character index, plus one, of a group.
 
        Arguments:
        - group: the group name or number. Marked groups defined in the regex are
@@ -76,6 +78,7 @@ type Match
         if span.is_nothing then Nothing else span.end
 
     ## GROUP Metadata
+       ICON metadata
        Returns the start grapheme index of a group.
 
        ! What is a Character?
@@ -106,7 +109,8 @@ type Match
         span = self.span group
         if span.is_nothing then Nothing else span.end
 
-    ## Gets the UTF16 span matched by the group with the provided identifier, or
+    ## ICON metadata
+       Gets the UTF16 span matched by the group with the provided identifier, or
        a default value if the group did not participate in the match. If no such
        group exists for the provided identifier, a `No_Such_Group` is returned.
 
@@ -145,6 +149,7 @@ type Match
             Utf_16_Span.Value range self.input
 
     ## GROUP Metadata
+       ICON metadata
        Gets the grapheme span matched by the group with the provided identifier, or
        a default value if the group did not participate in the match. If no such group
        exists for the provided identifier, a `No_Such_Group` is returned.
@@ -179,6 +184,7 @@ type Match
         if result.is_nothing then default else result.to_grapheme_span
 
     ## GROUP Metadata
+       ICON metadata
        Gets the Text matched by the group with the provided identifier, or
        a default value if the group did not participate in the match. If no such
        group exists for the provided identifier, a `No_Such_Group` is returned.
@@ -208,6 +214,7 @@ type Match
         if result.is_nothing then default else result.text
 
     ## GROUP Metadata
+       ICON metadata
        Gets a vector containing the Text of _all_ of the capturing groups in
        the pattern, replacing the value of groups that did not participate in
        the match with `default`. This vector includes group 0, which contains
@@ -249,6 +256,7 @@ type Match
         group_numbers.map n-> (self.text n . if_nothing default)
 
     ## GROUP Metadata
+       ICON metadata
        Gets a map containing the named capturing groups for the pattern,
        replacing the value for groups that did not participate in the match with
        `default`.
@@ -293,6 +301,7 @@ type Match
         self.text index . catch No_Such_Group (_-> if_missing)
 
     ## GROUP Selections
+       ICON split_text
        Gets the grapheme span matched by the group with the provided index, or
        a default value if the group did not participate in the match.
        If the identifier is invalid then Index_Out_Of_Bounds is thrown.

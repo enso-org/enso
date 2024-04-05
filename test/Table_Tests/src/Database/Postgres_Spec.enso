@@ -1,7 +1,9 @@
 from Standard.Base import all
+import Standard.Base.Enso_Cloud.Data_Link.Data_Link_Format
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Errors.Illegal_State.Illegal_State
 import Standard.Base.Runtime.Ref.Ref
+import Standard.Base.System.File.Data_Link_Access.Data_Link_Access
 
 from Standard.Table import Table, Value_Type, Aggregate_Column, Bits, expr
 from Standard.Table.Errors import Invalid_Column_Names, Inexact_Type_Coercion, Duplicate_Output_Column_Names
@@ -10,10 +12,10 @@ import Standard.Database.DB_Column.DB_Column
 import Standard.Database.DB_Table.DB_Table
 import Standard.Database.SQL_Type.SQL_Type
 import Standard.Database.Internal.Postgres.Pgpass
-import Standard.Database.Internal.Postgres.Postgres_Entity_Naming_Properties
 import Standard.Database.Internal.Replace_Params.Replace_Params
 from Standard.Database import all
 from Standard.Database.Errors import all
+from Standard.Database.Internal.Postgres.Postgres_Connection import parse_postgres_encoding
 
 from Standard.Test import all
 import Standard.Test.Test_Environment
@@ -28,6 +30,7 @@ from project.Common_Table_Operations.Util import all
 from project.Database.Types.Postgres_Type_Mapping_Spec import default_text
 
 import enso_dev.Base_Tests.Network.Enso_Cloud.Cloud_Tests_Setup.Cloud_Tests_Setup
+import enso_dev.Base_Tests.Network.Http.Http_Test_Setup
 from enso_dev.Base_Tests.Network.Enso_Cloud.Cloud_Tests_Setup import with_retries
 
 
@@ -208,7 +211,7 @@ postgres_specific_spec suite_builder create_connection_fn db_name setup =
                 ["EUC_JIS_2004", "LATIN6", "LATIN8", "MULE_INTERNAL", "SHIFT_JIS_2004"]
 
             known_encodings.each encoding_name->
-                encoding = Postgres_Entity_Naming_Properties.parse_postgres_encoding encoding_name
+                encoding = parse_postgres_encoding encoding_name
                 encoding.should_be_a Encoding
 
                 case unsupported_encodings.contains encoding_name of
@@ -860,37 +863,37 @@ add_connection_setup_specs suite_builder = suite_builder.group "[PostgreSQL] Con
                     [c2, c3, c4].each c->
                         c.jdbc_properties . should_equal <| add_ssl [Pair.new "user" "other user", Pair.new "password" "other password"]
 
-add_datalink_specs suite_builder =
+add_data_link_specs suite_builder =
     connection_details = get_configured_connection_details
     pending = if connection_details.is_nothing then "PostgreSQL test database is not configured. See README.md for instructions."
 
     # This transforms the datalink file, replacing prepared constants with actual values.
     transform_file base_file =
-        contents = base_file.read Plain_Text
-        new_contents = contents
+        content = Data_Link_Format.read_raw_config base_file
+        new_content = content
             . replace "HOSTNAME" connection_details.host
             . replace "12345" connection_details.port.to_text
             . replace "DBNAME" connection_details.database
             . replace "USERNAME" connection_details.credentials.username
             . replace "PASSWORD" connection_details.credentials.password
-        tmp_file = File.create_temporary_file base_file.name base_file.extension
-        new_contents.write tmp_file . if_not_error tmp_file
+        temp_file = File.create_temporary_file base_file.name base_file.extension
+        Data_Link_Format.write_raw_config temp_file new_content replace_existing=True . if_not_error temp_file
 
     suite_builder.group "[PostgreSQL] DataLink" pending=pending group_builder->
         group_builder.specify "should be able to open a datalink setting up a connection to the database" <|
-            datalink_file = transform_file (enso_project.data / "datalinks" / "postgres-db.datalink")
+            data_link_file = transform_file (enso_project.data / "datalinks" / "postgres-db.datalink")
 
-            datalink_connection = Data.read datalink_file
-            Panic.with_finalizer datalink_connection.close <|
-                datalink_connection.tables.column_names . should_contain "Name"
+            data_link_connection = Data.read data_link_file
+            Panic.with_finalizer data_link_connection.close <|
+                data_link_connection.tables.column_names . should_contain "Name"
 
                 # Test that this is really a DB connection:
-                q = datalink_connection.query 'SELECT 1 AS "A"'
+                q = data_link_connection.query 'SELECT 1 AS "A"'
                 q.column_names . should_equal ["A"]
                 q.at "A" . to_vector . should_equal [1]
 
         group_builder.specify "should be able to open a datalink to a particular database table" <|
-            datalink_file = transform_file (enso_project.data / "datalinks" / "postgres-table.datalink")
+            data_link_file = transform_file (enso_project.data / "datalinks" / "postgres-table.datalink")
             connection = Database.connect connection_details
             Panic.with_finalizer connection.close <|
                 # We create the table that will then be accessed through the datalink, and ensure it's cleaned up afterwards.
@@ -899,17 +902,40 @@ add_datalink_specs suite_builder =
                 Panic.with_finalizer (connection.drop_table example_table.name) <|
                     ## Now we access this table but this time through a datalink.
                        Btw. this will keep a connection open until the table is garbage collected, but that is probably fine...
-                    datalink_table = Data.read datalink_file
-                    datalink_table.should_be_a DB_Table
-                    datalink_table.column_names . should_equal ["X", "Y"]
-                    datalink_table.at "X" . to_vector . should_equal [22]
-                    datalink_table.at "Y" . to_vector . should_equal ["o"]
+                    data_link_table = Data.read data_link_file
+                    data_link_table.should_be_a DB_Table
+                    data_link_table.column_names . should_equal ["X", "Y"]
+                    data_link_table.at "X" . to_vector . should_equal [22]
+                    data_link_table.at "Y" . to_vector . should_equal ["o"]
+
+        group_builder.specify "will reject any format overrides or stream operations on the data link" <|
+            data_link_file = transform_file (enso_project.data / "datalinks" / "postgres-db.datalink")
+
+            r1 = Data.read data_link_file Plain_Text
+            r1.should_fail_with Illegal_Argument
+            r1.catch.to_display_text . should_contain "Only the default Auto_Detect format should be used"
+
+            r2 = data_link_file.with_input_stream [File_Access.Read] .read_all_bytes
+            r2.should_fail_with Illegal_Argument
+
+            # But we can read the raw data link if we ask for it:
+            r3 = data_link_file.with_input_stream [File_Access.Read, Data_Link_Access.No_Follow] .read_all_bytes
+            r3.should_be_a Vector
+
+        group_builder.specify "will fail with a clear message if trying to download a Database datalink" pending=Http_Test_Setup.pending_has_url <|
+            url = Http_Test_Setup.base_url_with_slash+"testfiles/some-postgres.datalink"
+            target_file = enso_project.data / "transient" / "some-postgres-target"
+            target_file.delete_if_exists
+            r = Data.download url target_file
+            r.should_fail_with Illegal_Argument
+            r.catch.to_display_text . should_contain "The Postgres Data Link cannot be saved to a file."
+
 
 add_specs suite_builder =
     add_table_specs suite_builder
     add_pgpass_specs suite_builder
     add_connection_setup_specs suite_builder
-    add_datalink_specs suite_builder
+    add_data_link_specs suite_builder
 
 main filter=Nothing =
     suite = Test.build suite_builder->

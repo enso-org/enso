@@ -21,8 +21,7 @@ async function runApp(
   }
   const intermediateConfig = mergeConfig(baseConfig, urlParams(), { onUnrecognizedOption })
   const appConfig = mergeConfig(intermediateConfig, config ?? {})
-  const app = await mountProjectApp({ config: appConfig, accessToken, unrecognizedOptions }, pinia)
-  unmount = () => app.unmount()
+  unmount = await mountProjectApp({ config: appConfig, accessToken, unrecognizedOptions }, pinia)
 }
 
 function stopApp() {

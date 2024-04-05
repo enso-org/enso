@@ -29,6 +29,7 @@ type Exit_Code
     Failure code
 
     ## GROUP Conversions
+       ICON convert
        Convert exit code to a number.
 
        > Example

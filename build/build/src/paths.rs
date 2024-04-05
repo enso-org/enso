@@ -4,7 +4,6 @@ use crate::version::Versions;
 
 use std::env::consts::EXE_EXTENSION;
 use std::env::consts::EXE_SUFFIX;
-use std::fmt::Formatter;
 
 
 
@@ -87,7 +86,7 @@ impl TargetTriple {
     /// Get the triple effectively used by the Engine build.
     ///
     /// This might differ from `self` if Engine for some reason needs to cross-compile. Currently
-    /// this is not the case, previously it was used to force x64 on Applce Silicon.
+    /// this is not the case, previously it was used to force x64 on Apple Silicon.
     pub fn engine(&self) -> Self {
         self.clone()
     }

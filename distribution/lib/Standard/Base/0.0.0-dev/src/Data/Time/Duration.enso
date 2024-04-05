@@ -103,7 +103,7 @@ type Duration
 
              example_duration = Duration.new hours=2
     new : Integer -> Integer -> Integer -> Integer -> Integer -> Duration
-    new hours=0 minutes=0 seconds=0 milliseconds=0 nanoseconds=0 =
+    new (hours : Integer = 0) (minutes : Integer = 0) (seconds : Integer = 0) (milliseconds : Integer = 0) (nanoseconds : Integer = 0) =
         new_builtin hours minutes seconds milliseconds nanoseconds
 
     ## ICON date_and_time

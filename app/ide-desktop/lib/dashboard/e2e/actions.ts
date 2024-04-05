@@ -66,7 +66,7 @@ export function locateNewLabelModalColorButtons(page: test.Page) {
     locateNewLabelModal(page)
       .filter({ has: page.getByText('Color') })
       // The `radio` inputs are invisible, so they cannot be used in the locator.
-      .getByRole('button')
+      .locator('label[data-rac]')
   )
 }
 
@@ -199,47 +199,47 @@ export function locateNameColumnToggle(page: test.Locator | test.Page) {
 
 /** Find a toggle for the "Modified" column (if any) on the current page. */
 export function locateModifiedColumnToggle(page: test.Locator | test.Page) {
-  return page.getByAltText(/^(?:Show|Hide) Modified date$/)
+  return page.getByAltText(/^(?:Show|Hide) Modified date column$/)
 }
 
 /** Find a toggle for the "Shared with" column (if any) on the current page. */
 export function locateSharedWithColumnToggle(page: test.Locator | test.Page) {
-  return page.getByAltText(/^(?:Show|Hide) Shared with$/)
+  return page.getByAltText(/^(?:Show|Hide) Shared with column$/)
 }
 
 /** Find a toggle for the "Labels" column (if any) on the current page. */
 export function locateLabelsColumnToggle(page: test.Locator | test.Page) {
-  return page.getByAltText(/^(?:Show|Hide) Labels$/)
+  return page.getByAltText(/^(?:Show|Hide) Labels column$/)
 }
 
 /** Find a toggle for the "Accessed by projects" column (if any) on the current page. */
 export function locateAccessedByProjectsColumnToggle(page: test.Locator | test.Page) {
-  return page.getByAltText(/^(?:Show|Hide) Accessed by projects$/)
+  return page.getByAltText(/^(?:Show|Hide) Accessed by projects column$/)
 }
 
 /** Find a toggle for the "Accessed data" column (if any) on the current page. */
 export function locateAccessedDataColumnToggle(page: test.Locator | test.Page) {
-  return page.getByAltText(/^(?:Show|Hide) Accessed data$/)
+  return page.getByAltText(/^(?:Show|Hide) Accessed data column$/)
 }
 
 /** Find a toggle for the "Docs" column (if any) on the current page. */
 export function locateDocsColumnToggle(page: test.Locator | test.Page) {
-  return page.getByAltText(/^(?:Show|Hide) Docs$/)
+  return page.getByAltText(/^(?:Show|Hide) Docs column$/)
 }
 
 /** Find a button for the "Recent" category (if any) on the current page. */
 export function locateRecentCategory(page: test.Locator | test.Page) {
-  return page.getByTitle('Go To Recent')
+  return page.getByLabel('Go To Recent category')
 }
 
 /** Find a button for the "Home" category (if any) on the current page. */
 export function locateHomeCategory(page: test.Locator | test.Page) {
-  return page.getByTitle('Go To Homoe')
+  return page.getByLabel('Go To Home category')
 }
 
 /** Find a button for the "Trash" category (if any) on the current page. */
 export function locateTrashCategory(page: test.Locator | test.Page) {
-  return page.getByTitle('Go To Trash')
+  return page.getByLabel('Go To Trash category')
 }
 
 // === Context menu buttons ===
@@ -423,29 +423,34 @@ export function locateSortDescendingIcon(page: test.Locator | test.Page) {
 
 /** Find a "home page" icon (if any) on the current page. */
 export function locateHomePageIcon(page: test.Locator | test.Page) {
-  return page.getByAltText('Go to home page')
+  return page.getByAltText('Home tab')
 }
 
 /** Find a "drive page" icon (if any) on the current page. */
 export function locateDrivePageIcon(page: test.Locator | test.Page) {
-  return page.getByAltText('Go to drive page')
+  return page.getByAltText('Drive tab')
 }
 
 /** Find an "editor page" icon (if any) on the current page. */
 export function locateEditorPageIcon(page: test.Locator | test.Page) {
-  return page.getByAltText('Go to editor page')
+  return page.getByAltText('Project tab')
+}
+
+/** Find a "settings page" icon (if any) on the current page. */
+export function locateSettingsPageIcon(page: test.Locator | test.Page) {
+  return page.getByAltText('Settings tab')
 }
 
 /** Find a "name" column heading (if any) on the current page. */
 export function locateNameColumnHeading(page: test.Locator | test.Page) {
-  return page.getByTitle('Sort by name').or(page.getByTitle('Stop sorting by name'))
+  return page.getByLabel('Sort by name').or(page.getByLabel('Stop sorting by name'))
 }
 
 /** Find a "modified" column heading (if any) on the current page. */
 export function locateModifiedColumnHeading(page: test.Locator | test.Page) {
   return page
-    .getByTitle('Sort by modification date')
-    .or(page.getByTitle('Stop sorting by modification date'))
+    .getByLabel('Sort by modification date')
+    .or(page.getByLabel('Stop sorting by modification date'))
 }
 
 // === Container locators ===
@@ -665,10 +670,28 @@ export async function expectTrashPlaceholderRow(page: test.Page) {
 // === Mouse utilities ===
 // =======================
 
+// eslint-disable-next-line @typescript-eslint/no-magic-numbers
+const ASSET_ROW_SAFE_POSITION = { x: 300, y: 16 }
+
 /** Click an asset row. The center must not be clicked as that is the button for adding a label. */
 export async function clickAssetRow(assetRow: test.Locator) {
   // eslint-disable-next-line @typescript-eslint/no-magic-numbers
-  await assetRow.click({ position: { x: 300, y: 16 } })
+  await assetRow.click({ position: ASSET_ROW_SAFE_POSITION })
+}
+
+/** Drag an asset row. The center must not be clicked as that is the button for adding a label. */
+export async function dragAssetRowToAssetRow(from: test.Locator, to: test.Locator) {
+  // eslint-disable-next-line @typescript-eslint/no-magic-numbers
+  await from.dragTo(to, {
+    sourcePosition: ASSET_ROW_SAFE_POSITION,
+    targetPosition: ASSET_ROW_SAFE_POSITION,
+  })
+}
+
+/** Drag an asset row. The center must not be clicked as that is the button for adding a label. */
+export async function dragAssetRow(from: test.Locator, to: test.Locator) {
+  // eslint-disable-next-line @typescript-eslint/no-magic-numbers
+  await from.dragTo(to, { sourcePosition: ASSET_ROW_SAFE_POSITION })
 }
 
 // ==========================

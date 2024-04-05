@@ -2,50 +2,54 @@ from Standard.Base import all
 import Standard.Base.Errors.Empty_Error.Empty_Error
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
-import project.Data.Set_Mode.Set_Mode
-import project.Data.Table.Table
+import project.Set_Mode.Set_Mode
+import project.Table.Table
 from project.Errors import Missing_Input_Columns, No_Such_Column, Non_Unique_Key, Unmatched_Rows_In_Lookup
 
 ## PRIVATE
-replace : Table -> Table | Map -> (Text | Integer) -> (Text | Integer | Nothing) -> (Text | Integer | Nothing) -> Boolean -> Problem_Behavior -> Table ! Missing_Input_Columns | Non_Unique_Key | Unmatched_Rows_In_Lookup
-replace base_table lookup_table column:(Text | Integer) from_column:(Text | Integer | Nothing)=Nothing to_column:(Text | Integer | Nothing)=Nothing allow_unmatched_rows:Boolean=True on_problems:Problem_Behavior=Problem_Behavior.Report_Warning =
-    case lookup_table of
-        _ : Map ->
-            if from_column.is_nothing.not || to_column.is_nothing.not then Error.throw (Illegal_Argument.Error "If a Map is provided as the lookup_table, then from_column and to_column should not also be specified.") else 
-                handle_empty_lookup_table ~action =
-                    if lookup_table.is_empty.not then action else
-                        ## If the lookup table is empty but the base table is
-                           not, and allow_unmatched_rows=False, throw
-                           `Unmatched_Rows_In_Lookup` with the first row of the
-                           table. Otherwise, attach a warning.
-                        if base_table.row_count == 0 || allow_unmatched_rows then Warning.attach (Empty_Error.Error "lookup_table") base_table else
-                            base_table.select_columns column . if_not_error <|
-                                a_key_value = base_table.at column . at 0
-                                Error.throw (Unmatched_Rows_In_Lookup.Error [a_key_value])
-                handle_empty_lookup_table <|
-                    base_table.replace (base_table.make_table_from_map lookup_table 'from' 'to') column 'from' 'to' allow_unmatched_rows=allow_unmatched_rows on_problems=on_problems
+replace : Table -> (Table | Map) -> (Text | Integer | Vector (Text | Integer)) -> (Text | Integer | Nothing) -> (Text | Integer | Nothing) -> Boolean -> Problem_Behavior -> Table ! Missing_Input_Columns | Non_Unique_Key | Unmatched_Rows_In_Lookup
+replace base_table lookup_table columns:(Text | Integer | Vector (Text | Integer)) from_column:(Text | Integer | Nothing)=Nothing to_column:(Text | Integer | Nothing)=Nothing allow_unmatched_rows:Boolean=True on_problems:Problem_Behavior=Problem_Behavior.Report_Warning =
+    case columns of
+        _ : Vector -> columns.fold base_table (base_table -> column-> replace base_table lookup_table column from_column to_column allow_unmatched_rows on_problems)
         _ ->
-            from_column_resolved = from_column.if_nothing 0
-            to_column_resolved = to_column.if_nothing 1
-            selected_lookup_columns = lookup_table.select_columns [from_column_resolved, to_column_resolved]
-            base_table.select_columns column . if_not_error <| selected_lookup_columns . if_not_error <|
-                unique = base_table.column_naming_helper.create_unique_name_strategy
-                unique.mark_used (base_table.column_names)
+            column = columns
+            case lookup_table of
+                _ : Map ->
+                    if from_column.is_nothing.not || to_column.is_nothing.not then Error.throw (Illegal_Argument.Error "If a Map is provided as the lookup_table, then from_column and to_column should not also be specified.") else 
+                        handle_empty_lookup_table ~action =
+                            if lookup_table.is_empty.not then action else
+                                ## If the lookup table is empty but the base table is
+                                   not, and allow_unmatched_rows=False, throw
+                                   `Unmatched_Rows_In_Lookup` with the first row of the
+                                   table. Otherwise, attach a warning.
+                                if base_table.row_count == 0 || allow_unmatched_rows then Warning.attach (Empty_Error.Error "lookup_table") base_table else
+                                    base_table.select_columns column . if_not_error <|
+                                        a_key_value = base_table.at column . at 0
+                                        Error.throw (Unmatched_Rows_In_Lookup.Error [a_key_value])
+                        handle_empty_lookup_table <|
+                            base_table.replace (base_table.make_table_from_map lookup_table 'from' 'to') column 'from' 'to' allow_unmatched_rows=allow_unmatched_rows on_problems=on_problems
+                _ ->
+                    from_column_resolved = from_column.if_nothing 0
+                    to_column_resolved = to_column.if_nothing 1
+                    selected_lookup_columns = lookup_table.select_columns [from_column_resolved, to_column_resolved]
+                    base_table.select_columns column . if_not_error <| selected_lookup_columns . if_not_error <|
+                        unique = base_table.column_naming_helper.create_unique_name_strategy
+                        unique.mark_used (base_table.column_names)
 
-                ## We perform a `merge` into `column`, using a duplicate of `column`
-                    as the key column to join with `from_column`.
+                        ## We perform a `merge` into `column`, using a duplicate of `column`
+                           as the key column to join with `from_column`.
 
-                duplicate_key_column_name = unique.make_unique "duplicate_key"
-                duplicate_key_column = base_table.at column . rename duplicate_key_column_name
-                base_table_with_duplicate = base_table.set duplicate_key_column set_mode=Set_Mode.Add
+                        duplicate_key_column_name = unique.make_unique "duplicate_key"
+                        duplicate_key_column = base_table.at column . rename duplicate_key_column_name
+                        base_table_with_duplicate = base_table.set duplicate_key_column set_mode=Set_Mode.Add
 
-                ## Create a lookup table with just `to_column` and `from_column`,
-                    renamed to match the base table's `column` and its duplicate,
-                    respectively.
-                lookup_table_renamed = selected_lookup_columns . rename_columns (Map.from_vector [[from_column_resolved, duplicate_key_column_name], [to_column_resolved, column]])
+                        ## Create a lookup table with just `to_column` and `from_column`,
+                           renamed to match the base table's `column` and its duplicate,
+                           respectively.
+                        lookup_table_renamed = selected_lookup_columns . rename_columns (Map.from_vector [[from_column_resolved, duplicate_key_column_name], [to_column_resolved, column]])
 
-                warn_if_empty result_table = if lookup_table_renamed.row_count != 0 then result_table else Warning.attach (Empty_Error.Error "lookup_table") result_table
+                        warn_if_empty result_table = if lookup_table_renamed.row_count != 0 then result_table else Warning.attach (Empty_Error.Error "lookup_table") result_table
 
-                merged = base_table_with_duplicate.merge lookup_table_renamed duplicate_key_column_name add_new_columns=False allow_unmatched_rows=allow_unmatched_rows on_problems=on_problems
-                warn_if_empty <|
-                    merged.remove_columns duplicate_key_column_name
+                        merged = base_table_with_duplicate.merge lookup_table_renamed duplicate_key_column_name add_new_columns=False allow_unmatched_rows=allow_unmatched_rows on_problems=on_problems
+                        warn_if_empty <|
+                            merged.remove_columns duplicate_key_column_name
