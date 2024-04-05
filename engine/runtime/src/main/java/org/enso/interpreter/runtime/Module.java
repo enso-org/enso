@@ -57,7 +57,15 @@ public final class Module implements EnsoObject {
   private final Map<Source, Module> allSources = new WeakHashMap<>();
   private final Package<TruffleFile> pkg;
   private CompilationStage compilationStage = CompilationStage.INITIAL;
-  private boolean isIndexed = false;
+
+  enum IndexState {
+    NotIndexed,
+    NeedsIndexing,
+    Indexed
+  }
+
+  private IndexState indexState;
+  private Object indexingLock = new Object();
   private org.enso.compiler.core.ir.Module ir;
   private Map<UUID, IR> uuidsMap;
   private QualifiedName name;
@@ -495,15 +503,37 @@ public final class Module implements EnsoObject {
   }
 
   /**
-   * @return the indexed flag.
+   * @return true, if module has been indexed. False otherwise.
    */
   public boolean isIndexed() {
-    return isIndexed;
+    synchronized (indexingLock) {
+      return indexState == IndexState.Indexed;
+    }
   }
 
-  /** Set the indexed flag. */
-  public void setIndexed(boolean indexed) {
-    isIndexed = indexed;
+  /** Marks the module as fully indexed. */
+  public boolean indexed() {
+    synchronized (indexingLock) {
+      if (indexState == IndexState.NeedsIndexing) {
+        return false;
+      }
+      indexState = IndexState.Indexed;
+      return true;
+    }
+  }
+
+  /** Marks the module as requiring indexing. */
+  public void needsIndexing() {
+    synchronized (indexingLock) {
+      indexState = IndexState.NeedsIndexing;
+    }
+  }
+
+  /** Marks the module as not indexed, should be set at the beggining of the indexing operation. */
+  public void indexing() {
+    synchronized (indexingLock) {
+      indexState = IndexState.NotIndexed;
+    }
   }
 
   /**

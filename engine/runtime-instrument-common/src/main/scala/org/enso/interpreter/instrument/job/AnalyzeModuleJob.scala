@@ -74,6 +74,7 @@ object AnalyzeModuleJob {
       )
       sendModuleUpdate(notification)
     } else {
+      module.indexing()
       ctx.executionService.getLogger
         .log(Level.FINEST, s"Analyzing not-indexed module ${module.getName}")
       val newSuggestions =
@@ -88,8 +89,11 @@ object AnalyzeModuleJob {
         exports = ModuleExportsDiff.compute(prevExports, newExports),
         updates = SuggestionDiff.compute(Tree.empty, newSuggestions)
       )
-      sendModuleUpdate(notification)
-      module.setIndexed(true)
+      if (module.indexed()) {
+        sendModuleUpdate(notification)
+      } else {
+        doAnalyzeModule(module, changeset)
+      }
     }
   }
 
