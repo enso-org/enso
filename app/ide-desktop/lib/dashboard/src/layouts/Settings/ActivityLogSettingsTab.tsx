@@ -12,10 +12,15 @@ import * as asyncEffectHooks from '#/hooks/asyncEffectHooks'
 import * as backendProvider from '#/providers/BackendProvider'
 import * as textProvider from '#/providers/TextProvider'
 
+import * as aria from '#/components/aria'
 import DateInput from '#/components/DateInput'
 import Dropdown from '#/components/Dropdown'
 import StatelessSpinner, * as statelessSpinner from '#/components/StatelessSpinner'
+import FocusArea from '#/components/styled/FocusArea'
+import SettingsPage from '#/components/styled/settings/SettingsPage'
+import SettingsSection from '#/components/styled/settings/SettingsSection'
 import SvgMask from '#/components/SvgMask'
+import UnstyledButton from '#/components/UnstyledButton'
 
 import * as backendModule from '#/services/Backend'
 
@@ -117,64 +122,68 @@ export default function ActivityLogSettingsTab() {
   const isLoading = sortedLogs == null
 
   return (
-    <div className="flex flex-col gap-settings-subsection">
-      <div className="flex flex-col gap-settings-section-header">
-        <h3 className="settings-subheading">{getText('activityLog')}</h3>
-        <div className="flex gap-activity-log-filters">
-          <div className="flex items-center gap-activity-log-filter">
-            {getText('startDate')}
-            <DateInput date={startDate} onInput={setStartDate} />
-          </div>
-          <div className="flex items-center gap-activity-log-filter">
-            {getText('endDate')}
-            <DateInput date={endDate} onInput={setEndDate} />
-          </div>
-          <div className="flex items-center gap-activity-log-filter">
-            {getText('types')}
-            <Dropdown
-              multiple
-              items={backendModule.EVENT_TYPES}
-              selectedIndices={typeIndices}
-              render={props => EVENT_TYPE_NAME[props.item]}
-              renderMultiple={props =>
-                props.items.length === 0 || props.items.length === backendModule.EVENT_TYPES.length
-                  ? 'All'
-                  : (props.items[0] != null ? EVENT_TYPE_NAME[props.items[0]] : '') +
-                    (props.items.length <= 1 ? '' : ` (+${props.items.length - 1})`)
-              }
-              onClick={(items, indices) => {
-                setTypes(items)
-                setTypeIndices(indices)
-              }}
-            />
-          </div>
-          <div className="flex items-center gap-activity-log-filter">
-            {getText('users')}
-            <Dropdown
-              multiple
-              items={allEmails}
-              selectedIndices={emailIndices}
-              render={props => props.item}
-              renderMultiple={props =>
-                props.items.length === 0 || props.items.length === allEmails.length
-                  ? 'All'
-                  : (props.items[0] ?? '') +
-                    (props.items.length <= 1 ? '' : `(+${props.items.length - 1})`)
-              }
-              onClick={(items, indices) => {
-                setEmails(items)
-                setEmailIndices(indices)
-              }}
-            />
-          </div>
-        </div>
+    <SettingsPage>
+      <SettingsSection noFocusArea title={getText('activityLog')}>
+        <FocusArea direction="horizontal">
+          {innerProps => (
+            <div className="flex gap-activity-log-filters" {...innerProps}>
+              <div className="flex items-center gap-activity-log-filter">
+                {getText('startDate')}
+                <DateInput date={startDate} onInput={setStartDate} />
+              </div>
+              <div className="flex items-center gap-activity-log-filter">
+                {getText('endDate')}
+                <DateInput date={endDate} onInput={setEndDate} />
+              </div>
+              <div className="flex items-center gap-activity-log-filter">
+                {getText('types')}
+                <Dropdown
+                  multiple
+                  items={backendModule.EVENT_TYPES}
+                  selectedIndices={typeIndices}
+                  render={props => EVENT_TYPE_NAME[props.item]}
+                  renderMultiple={props =>
+                    props.items.length === 0 ||
+                    props.items.length === backendModule.EVENT_TYPES.length
+                      ? 'All'
+                      : (props.items[0] != null ? EVENT_TYPE_NAME[props.items[0]] : '') +
+                        (props.items.length <= 1 ? '' : ` (+${props.items.length - 1})`)
+                  }
+                  onClick={(items, indices) => {
+                    setTypes(items)
+                    setTypeIndices(indices)
+                  }}
+                />
+              </div>
+              <div className="flex items-center gap-activity-log-filter">
+                {getText('users')}
+                <Dropdown
+                  multiple
+                  items={allEmails}
+                  selectedIndices={emailIndices}
+                  render={props => props.item}
+                  renderMultiple={props =>
+                    props.items.length === 0 || props.items.length === allEmails.length
+                      ? 'All'
+                      : (props.items[0] ?? '') +
+                        (props.items.length <= 1 ? '' : `(+${props.items.length - 1})`)
+                  }
+                  onClick={(items, indices) => {
+                    setEmails(items)
+                    setEmailIndices(indices)
+                  }}
+                />
+              </div>
+            </div>
+          )}
+        </FocusArea>
         <table className="table-fixed self-start rounded-rows">
           <thead>
             <tr className="h-row">
               <th className="w-activity-log-icon-column border-x-2 border-transparent bg-clip-padding pl-cell-x pr-icon-column-r text-left text-sm font-semibold last:border-r-0" />
               <th className="w-activity-log-type-column border-x-2 border-transparent bg-clip-padding px-cell-x text-left text-sm font-semibold last:border-r-0">
-                <button
-                  title={
+                <UnstyledButton
+                  aria-label={
                     sortInfo?.field !== ActivityLogSortableColumn.type
                       ? getText('sortByName')
                       : isDescending
@@ -182,8 +191,7 @@ export default function ActivityLogSettingsTab() {
                         : getText('sortByNameDescending')
                   }
                   className="group flex h-drive-table-heading w-full items-center gap-icon-with-text px-name-column-x"
-                  onClick={event => {
-                    event.stopPropagation()
+                  onPress={() => {
                     const nextDirection =
                       sortInfo?.field === ActivityLogSortableColumn.type
                         ? sorting.nextSortDirection(sortInfo.direction)
@@ -198,7 +206,7 @@ export default function ActivityLogSettingsTab() {
                     }
                   }}
                 >
-                  <span className="text-header">{getText('type')}</span>
+                  <aria.Text className="text-header">{getText('type')}</aria.Text>
                   <img
                     alt={
                       sortInfo?.field === ActivityLogSortableColumn.type && isDescending
@@ -216,11 +224,11 @@ export default function ActivityLogSettingsTab() {
                         : ''
                     }`}
                   />
-                </button>
+                </UnstyledButton>
               </th>
               <th className="w-activity-log-email-column border-x-2 border-transparent bg-clip-padding px-cell-x text-left text-sm font-semibold last:border-r-0">
-                <button
-                  title={
+                <UnstyledButton
+                  aria-label={
                     sortInfo?.field !== ActivityLogSortableColumn.email
                       ? getText('sortByEmail')
                       : isDescending
@@ -228,8 +236,7 @@ export default function ActivityLogSettingsTab() {
                         : getText('sortByEmailDescending')
                   }
                   className="group flex h-drive-table-heading w-full items-center gap-icon-with-text px-name-column-x"
-                  onClick={event => {
-                    event.stopPropagation()
+                  onPress={() => {
                     const nextDirection =
                       sortInfo?.field === ActivityLogSortableColumn.email
                         ? sorting.nextSortDirection(sortInfo.direction)
@@ -244,7 +251,7 @@ export default function ActivityLogSettingsTab() {
                     }
                   }}
                 >
-                  <span className="text-header">{getText('email')}</span>
+                  <aria.Text className="text-header">{getText('email')}</aria.Text>
                   <img
                     alt={
                       sortInfo?.field === ActivityLogSortableColumn.email && isDescending
@@ -262,11 +269,11 @@ export default function ActivityLogSettingsTab() {
                         : ''
                     }`}
                   />
-                </button>
+                </UnstyledButton>
               </th>
               <th className="w-activity-log-timestamp-column border-x-2 border-transparent bg-clip-padding px-cell-x text-left text-sm font-semibold last:border-r-0">
-                <button
-                  title={
+                <UnstyledButton
+                  aria-label={
                     sortInfo?.field !== ActivityLogSortableColumn.timestamp
                       ? getText('sortByTimestamp')
                       : isDescending
@@ -274,8 +281,7 @@ export default function ActivityLogSettingsTab() {
                         : getText('sortByTimestampDescending')
                   }
                   className="group flex h-drive-table-heading w-full items-center gap-icon-with-text px-name-column-x"
-                  onClick={event => {
-                    event.stopPropagation()
+                  onPress={() => {
                     const nextDirection =
                       sortInfo?.field === ActivityLogSortableColumn.timestamp
                         ? sorting.nextSortDirection(sortInfo.direction)
@@ -290,7 +296,7 @@ export default function ActivityLogSettingsTab() {
                     }
                   }}
                 >
-                  <span className="text-header">{getText('timestamp')}</span>
+                  <aria.Text className="text-header">{getText('timestamp')}</aria.Text>
                   <img
                     alt={
                       sortInfo?.field === ActivityLogSortableColumn.timestamp && isDescending
@@ -308,7 +314,7 @@ export default function ActivityLogSettingsTab() {
                         : ''
                     }`}
                   />
-                </button>
+                </UnstyledButton>
               </th>
             </tr>
           </thead>
@@ -346,7 +352,7 @@ export default function ActivityLogSettingsTab() {
             )}
           </tbody>
         </table>
-      </div>
-    </div>
+      </SettingsSection>
+    </SettingsPage>
   )
 }
