@@ -2,7 +2,11 @@
 import { nodeEditBindings } from '@/bindings'
 import CircularMenu from '@/components/CircularMenu.vue'
 import GraphNodeComment from '@/components/GraphEditor/GraphNodeComment.vue'
-import GraphNodeError from '@/components/GraphEditor/GraphNodeMessage.vue'
+import GraphNodeMessage, {
+  colorForMessageType,
+  iconForMessageType,
+  type MessageType,
+} from '@/components/GraphEditor/GraphNodeMessage.vue'
 import GraphNodeSelection from '@/components/GraphEditor/GraphNodeSelection.vue'
 import GraphVisualization from '@/components/GraphEditor/GraphVisualization.vue'
 import NodeWidgetTree, {
@@ -27,7 +31,7 @@ import { Rect } from '@/util/data/rect'
 import { Vec2 } from '@/util/data/vec2'
 import { displayedIconOf } from '@/util/getIconName'
 import { setIfUndefined } from 'lib0/map'
-import type { VisualizationIdentifier } from 'shared/yjsModel'
+import type { ExternalId, VisualizationIdentifier } from 'shared/yjsModel'
 import type { EffectScope } from 'vue'
 import { computed, effectScope, onScopeDispose, onUnmounted, ref, watch, watchEffect } from 'vue'
 
@@ -88,30 +92,67 @@ const rootNode = ref<HTMLElement>()
 const contentNode = ref<HTMLElement>()
 const nodeSize = useResizeObserver(rootNode)
 
-const error = computed(() => {
+function inputExternalIds() {
+  const externalIds = new Array<ExternalId>()
+  for (const inputId of graph.db.nodeDependents.reverseLookup(nodeId.value)) {
+    const externalId = graph.db.idToExternal(inputId)
+    if (externalId) {
+      externalIds.push(externalId)
+    }
+  }
+  return externalIds
+}
+
+function getPanic(id: ExternalId) {
+  const info = projectStore.computedValueRegistry.db.get(id)
+  return info?.payload.type === 'Panic' ? info.payload.message : undefined
+}
+
+function getDataflowError(id: ExternalId) {
+  return projectStore.dataflowErrors.lookup(id)?.value?.message
+}
+
+interface Message {
+  type: MessageType
+  text: string
+  alwaysShow: boolean
+}
+const availableMessage = computed<Message | undefined>(() => {
   const externalId = graph.db.idToExternal(nodeId.value)
-  if (!externalId) return
+  if (!externalId) return undefined
   const info = projectStore.computedValueRegistry.db.get(externalId)
   switch (info?.payload.type) {
     case 'Panic': {
-      return info.payload.message
+      const text = info.payload.message
+      const alwaysShow = !inputExternalIds().some((id) => getPanic(id) === text)
+      return { type: 'panic', text, alwaysShow } satisfies Message
     }
     case 'DataflowError': {
-      return projectStore.dataflowErrors.lookup(externalId)?.value?.message.split(' (at')[0]
+      const rawText = getDataflowError(externalId)
+      const text = rawText?.split(' (at')[0]
+      if (!text) return undefined
+      const alwaysShow = !inputExternalIds().some((id) => getDataflowError(id) === rawText)
+      return { type: 'error', text, alwaysShow } satisfies Message
+    }
+    case 'Value': {
+      const warning = info.payload.warnings?.value
+      if (!warning) return undefined
+      return {
+        type: 'warning',
+        text: 'Warning: ' + warning,
+        alwaysShow: false,
+      } satisfies Message
     }
     default:
       return undefined
   }
 })
 
-const warning = computed(() => {
-  const externalId = graph.db.idToExternal(nodeId.value)
-  if (!externalId) return
-  const info = projectStore.computedValueRegistry.db.get(externalId)
-  const warning = info?.payload.type === 'Value' ? info.payload.warnings?.value : undefined
-  if (!warning) return
-  return 'Warning: ' + warning!
-})
+const visibleMessage = computed(
+  () =>
+    (availableMessage.value?.alwaysShow || nodeHovered.value || selected.value) &&
+    availableMessage.value,
+)
 
 const nodeHovered = ref(false)
 
@@ -517,16 +558,18 @@ const documentation = computed<string | undefined>({
       />
     </div>
     <div class="statuses">
-      <SvgIcon v-if="warning" name="warning" />
+      <SvgIcon
+        v-if="availableMessage && !visibleMessage"
+        :name="iconForMessageType[availableMessage.type]"
+        :style="{ color: colorForMessageType[availableMessage.type] }"
+      />
     </div>
-    <GraphNodeError v-if="error" class="afterNode" :message="error" type="error" />
-    <GraphNodeError
-      v-if="warning && (nodeHovered || selected)"
-      class="afterNode warning"
+    <GraphNodeMessage
+      v-if="visibleMessage"
+      class="afterNode"
       :class="{ messageWithMenu: menuVisible }"
-      :message="warning"
-      icon="warning"
-      type="warning"
+      :message="visibleMessage.text"
+      :type="visibleMessage.type"
     />
     <svg class="bgPaths" :style="bgStyleVariables">
       <rect class="bgFill" />
@@ -721,10 +764,6 @@ const documentation = computed<string | undefined>({
   margin-top: 4px;
 }
 
-.messageWarning {
-  margin-top: 8px;
-}
-
 .messageWithMenu {
   left: 40px;
 }
@@ -739,7 +778,6 @@ const documentation = computed<string | undefined>({
   top: 0;
   right: 100%;
   margin-right: 8px;
-  color: var(--color-warning);
   transition: opacity 0.2s ease-in-out;
 }
 
