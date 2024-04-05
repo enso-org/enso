@@ -1,4 +1,5 @@
 import project.Any.Any
+import project.Data.Locale.Locale
 import project.Data.Numeric.Internal.Decimal_Internal
 import project.Data.Numeric.Math_Context.Math_Context
 import project.Data.Numeric.Rounding_Mode.Rounding_Mode
@@ -13,10 +14,13 @@ from project.Data.Numbers import Float, Integer, Number, Number_Parse_Error
 from project.Data.Numeric.Internal.Decimal_Internal import Decimal_Comparator
 from project.Data.Ordering import Comparable, Ordering
 from project.Errors.Common import Arithmetic_Error, Loss_Of_Numeric_Precision, Out_Of_Range, Unsupported_Argument_Types
+from project.Widget_Helpers import make_number_format_selector
 
 polyglot java import java.lang.ArithmeticException
 polyglot java import java.lang.NumberFormatException
 polyglot java import java.math.BigDecimal
+polyglot java import java.text.DecimalFormat
+polyglot java import java.text.DecimalFormatSymbols
 polyglot java import org.enso.base.numeric.ConversionResult
 polyglot java import org.enso.base.numeric.Decimal_Utils
 
@@ -725,6 +729,67 @@ type Decimal
             message = "Outside representable Float range (approximately (-1.8E308, 1.8E308))"
             Warning.attach (Out_Of_Range.Error self message) f
 
+    ## GROUP Conversions
+       ICON convert
+       Converts a numeric value to a string, using the Java DecimalFormat
+       formatter.
+       
+       For details about the `DecimalFormat` format specifier, see
+       https://docs.oracle.com/javase/8/docs/api/java/text/DecimalFormat.html.
+
+       Arguments:
+       - format: The java-style formatting specifier.
+       - locale: Species the `Locale` to use for locale-specific number
+         formatting.
+
+       > Example
+         Convert a value to a string using the default format and locale
+
+             Decimal.new "123456789.87654" . format
+             # => "123,456,789.87654"
+
+       > Example
+         Convert a value to a string using a specific locale.
+
+             Decimal.new "123456789.87654" . format locale=Locale.italy
+             # => "123.456.789,87654"
+
+       > Example
+         Convert a value to a string using a specific format string.
+
+             Decimal.new "123456789.87654" . format format="#,###.##"
+             # => 123,456,789.88"
+    @format make_number_format_selector
+    @locale Locale.default_widget
+    format : Text -> Locale -> Text
+    format self format:Text="" locale:Locale=Locale.default =
+        symbols = DecimalFormatSymbols.new locale.java_locale
+        formatter = DecimalFormat.new format symbols
+        formatter.format self.big_decimal
+
+    ## ALIAS from text
+       GROUP Conversions
+       ICON convert
+
+       Parses a textual representation of a float into a float number, returning
+       a `Number_Parse_Error` if the text does not represent a valid float.
+
+       Arguments:
+       - text: The text to parse into a float.
+       - locale: The locale that specifies the format to use when parsing
+
+       > Example
+         Parse the text "7.6" into a float number.
+
+             Float.parse "7.6"
+    ##
+        parse_with_locale : Text -> Locale | Nothing -> Float ! Number_Parse_Error
+        parse_with_locale text locale=Nothing = case locale of
+            Nothing -> Panic.catch NumberFormatException (Double.parseDouble text) _->
+                Error.throw (Number_Parse_Error.Error text)
+            Locale.Value java_locale -> Panic.catch ParseException ((NumberFormat.getInstance java_locale).parse text) _->
+                Error.throw (Number_Parse_Error.Error text)
+
     ## PRIVATE
     precision : Integer
     precision self = self.big_decimal.precision
@@ -751,14 +816,12 @@ type Decimal
     ## PRIVATE
        Note: the underlying Java `BigDecimal` implementation is not affected by
        locale.
-    to_text : Text
     to_display_text : Text
     to_display_text self = self.big_decimal.toString
 
     ## PRIVATE
        Note: the underlying Java `BigDecimal` implementation is not affected by
        locale.
-    to_text : Text
     to_text_without_scientific_notation : Text
     to_text_without_scientific_notation  self = self.big_decimal.toPlainString
 

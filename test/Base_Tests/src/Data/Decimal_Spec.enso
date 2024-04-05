@@ -643,7 +643,7 @@ add_specs suite_builder =
             Decimal.new "10" . pow -1 . should_fail_with Arithmetic_Error
             Decimal.new "10" . pow 99999999999 . should_fail_with Arithmetic_Error
 
-    suite_builder.group "to_text" group_builder->
+    suite_builder.group "text conversion" group_builder->
         group_builder.specify "should convert to text correctly" <|
             Decimal.new "34.56" . to_text . should_equal "34.56"
             Decimal.new "34.56" . to_display_text . should_equal "34.56"
@@ -667,6 +667,16 @@ add_specs suite_builder =
             Decimal.new "-34.56" . to_text_without_scientific_notation . should_equal "-34.56"
             Decimal.new "-123E80" . to_text_without_scientific_notation . should_equal "-12300000000000000000000000000000000000000000000000000000000000000000000000000000000"
             Decimal.new "-0.00016E-20" . to_text_without_scientific_notation . should_equal "-0.0000000000000000000000016"
+
+        group_builder.specify "should format correctly" <|
+            d = Decimal.new "123456789.87654"
+
+            d.format . should_equal "123,456,789.87654"
+            d.format locale=Locale.italy . should_equal "123.456.789,87654"
+            d.format format="#,###.##" . should_equal "123,456,789.88"
+            d.format format="#,###.##" locale=Locale.italy . should_equal "123.456.789,88"
+            d.format format="#,##.##" . should_equal "1,23,45,67,89.88"
+            d.format format="#,##.##" locale=Locale.italy . should_equal "1.23.45.67.89,88"
 
 main =
     suite = Test.build suite_builder->
