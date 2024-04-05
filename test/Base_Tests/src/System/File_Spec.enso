@@ -338,6 +338,18 @@ add_specs suite_builder =
         group_builder.specify "correctly handles .. in the path when resolving parent (2)" pending=(if up3.is_nothing then "The current directory does not have enough nesting to run this test (it needs to go up from CWD 3 times).") <|
             (File.new "../..").parent . should_equal up3
 
+        group_builder.specify "should resolve .. when normalizing" <|
+            (File.new "a/b/c/../../d").normalize . should_equal (File.new "a/d")
+            (File.new "..").normalize . should_equal (File.new "." . parent)
+
+        group_builder.specify "should return the real file name, not just the last path segment" <|
+            (File.new "a/b/c/").name . should_equal "c"
+            (File.new "a/b/c/././.").name . should_equal "c"
+            (File.new "a/b/c/./../..").name . should_equal "a"
+
+            (File.new ".").name . should_equal (File.new "." . absolute . normalize . name)
+            (File.new "..").name . should_equal (File.new "." . parent . absolute . normalize . name)
+
     suite_builder.group "read_text" group_builder->
         group_builder.specify "should allow reading a UTF-8 file" <|
             contents = sample_file.read_text
