@@ -481,5 +481,10 @@
   "editAssetDescriptionModalTitle": "Edit Asset Description",
   "editAssetDescriptionModalPlaceholder": "Enter a description for the asset",
   "editAssetDescriptionModalSubmit": "Submit",
-  "editAssetDescriptionModalCancel": "Cancel"
+  "editAssetDescriptionModalCancel": "Cancel",
+
+  "memberUserGroups": "Member Roles",
+  "userGroup": "Role",
+  "newUserGroup": "New Role",
+  "userGroupNamePlaceholder": "Enter the name of the role"
 }
