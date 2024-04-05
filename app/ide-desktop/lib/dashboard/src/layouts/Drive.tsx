@@ -374,9 +374,9 @@ export default function Drive(props: DriveProps) {
       return (
         <div
           data-testid="drive-view"
-          className="mt-top-level flex flex-1 flex-col gap-drive-heading overflow-hidden px-page-x"
+          className="mt-top-level flex flex-1 flex-col gap-drive-heading overflow-hidden"
         >
-          <div className="flex flex-col items-start gap-icons self-start">
+          <div className="flex flex-col items-start gap-icons self-start px-page-x">
             <aria.Heading
               level={1}
               className="h-heading px-heading-x py-heading-y text-xl font-bold leading-snug"
@@ -395,7 +395,7 @@ export default function Drive(props: DriveProps) {
               dispatchAssetEvent={dispatchAssetEvent}
             />
           </div>
-          <div className="flex flex-1 gap-drive overflow-hidden">
+          <div className="flex flex-1 gap-drive overflow-hidden px-page-x">
             {isCloud && (
               <div className="flex w-drive-sidebar flex-col gap-drive-sidebar py-drive-sidebar-y">
                 <CategorySwitcher

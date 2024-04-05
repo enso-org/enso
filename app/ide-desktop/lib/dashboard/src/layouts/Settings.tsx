@@ -90,18 +90,20 @@ export default function Settings() {
   }
 
   return (
-    <div className="flex flex-1 flex-col gap-settings-header overflow-hidden px-page-x">
-      <aria.Heading level={1} className="flex h-heading px-heading-x text-xl font-bold">
-        <aria.Text className="py-heading-y">{getText('settingsFor')}</aria.Text>
-        {/* This UI element does not appear anywhere else. */}
-        {/* eslint-disable-next-line no-restricted-syntax */}
-        <div className="ml-[0.625rem] h-[2.25rem] rounded-full bg-frame px-[0.5625rem] pb-[0.3125rem] pt-[0.125rem] leading-snug">
-          {settingsTab !== SettingsTab.organization
-            ? user?.name ?? 'your account'
-            : organization.name ?? 'your organization'}
-        </div>
-      </aria.Heading>
-      <div className="flex flex-1 gap-settings overflow-hidden">
+    <div className="mt-top-level flex flex-1 flex-col gap-settings-header overflow-hidden">
+      <div className="px-page-x">
+        <aria.Heading level={1} className="flex h-heading px-heading-x text-xl font-bold">
+          <aria.Text className="py-heading-y">{getText('settingsFor')}</aria.Text>
+          {/* This UI element does not appear anywhere else. */}
+          {/* eslint-disable-next-line no-restricted-syntax */}
+          <div className="ml-[0.625rem] h-[2.25rem] rounded-full bg-frame px-[0.5625rem] pb-[0.3125rem] pt-[0.125rem] leading-snug">
+            {settingsTab !== SettingsTab.organization
+              ? user?.name ?? 'your account'
+              : organization.name ?? 'your organization'}
+          </div>
+        </aria.Heading>
+      </div>
+      <div className="flex flex-1 gap-settings overflow-hidden px-page-x">
         <SettingsSidebar settingsTab={settingsTab} setSettingsTab={setSettingsTab} />
         {content}
       </div>

@@ -484,7 +484,7 @@ export default function Dashboard(props: DashboardProps) {
             onSignOut={onSignOut}
           />
           <div
-            className={`flex w-[300%] transition-all duration-200 ${page === pageSwitcher.Page.drive ? '-translate-x-1/3' : page === pageSwitcher.Page.editor ? '-translate-x-2/3' : ''} ${page === pageSwitcher.Page.editor ? '' : 'overflow-x-hidden'}`}
+            className={`flex w-[400%] transition-all duration-200 ${page === pageSwitcher.Page.drive ? '-translate-x-1/4' : page === pageSwitcher.Page.editor ? '-translate-x-2/4' : page === pageSwitcher.Page.settings ? '-translate-x-3/4' : ''} ${page === pageSwitcher.Page.editor ? '' : 'overflow-x-hidden'}`}
           >
             <Home hidden={page !== pageSwitcher.Page.home} createProject={doCreateProject} />
             <Drive
@@ -514,8 +514,8 @@ export default function Dashboard(props: DashboardProps) {
               projectStartupInfo={projectStartupInfo}
               appRunner={appRunner}
             />
+            {page === pageSwitcher.Page.settings ? <Settings /> : <div className="flex-1" />}
           </div>
-          {page === pageSwitcher.Page.settings && <Settings />}
           {/* `session.accessToken` MUST be present in order for the `Chat` component to work. */}
           {session.accessToken != null && process.env.ENSO_CLOUD_CHAT_URL != null ? (
             <Chat
