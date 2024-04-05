@@ -645,6 +645,7 @@
 - [Implemented `.to_integer`, `.to_float`, and `from` conversions for
   `Decimal`][9462]
 - [Made `Integer.%` consistent across all `Integer` values.][9589]
+- [Added `Decimal.parse` and `.format`.][9637]
 
 [debug-shortcuts]:
   https://github.com/enso-org/enso/blob/develop/app/gui/docs/product/shortcuts.md#debug
@@ -940,6 +941,7 @@
 [9525]: https://github.com/enso-org/enso/pull/9525
 [9566]: https://github.com/enso-org/enso/pull/9566
 [9589]: https://github.com/enso-org/enso/pull/9589
+[9637]: https://github.com/enso-org/enso/pull/9637
 
 #### Enso Compiler
 
