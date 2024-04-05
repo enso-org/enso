@@ -6,7 +6,6 @@ import DefaultUserIcon from 'enso-assets/default_user.svg'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
 import * as authProvider from '#/providers/AuthProvider'
-import * as backendProvider from '#/providers/BackendProvider'
 import * as textProvider from '#/providers/TextProvider'
 
 import * as aria from '#/components/aria'
@@ -21,7 +20,6 @@ import SettingsSection from '#/components/styled/settings/SettingsSection'
 export default function ProfilePictureSettingsSection() {
   const toastAndLog = toastAndLogHooks.useToastAndLog()
   const { setUser } = authProvider.useAuth()
-  const { backend } = backendProvider.useBackend()
   const { user } = authProvider.useNonPartialUserSession()
   const { getText } = textProvider.useText()
 
@@ -29,9 +27,11 @@ export default function ProfilePictureSettingsSection() {
     const image = event.target.files?.[0]
     if (image == null) {
       toastAndLog('noNewProfilePictureError')
+    } else if (user == null) {
+      // Ignored.
     } else {
       try {
-        const newUser = await backend.uploadUserPicture({ fileName: image.name }, image)
+        const newUser = await user.uploadPicture({ fileName: image.name }, image)
         setUser(newUser)
       } catch (error) {
         toastAndLog(null, error)
@@ -47,7 +47,7 @@ export default function ProfilePictureSettingsSection() {
       <FocusRing within>
         <aria.Label className="flex h-profile-picture-large w-profile-picture-large cursor-pointer items-center overflow-clip rounded-full transition-colors hover:bg-frame">
           <img
-            src={user?.profilePicture ?? DefaultUserIcon}
+            src={user?.value.profilePicture ?? DefaultUserIcon}
             width={128}
             height={128}
             className="pointer-events-none"
