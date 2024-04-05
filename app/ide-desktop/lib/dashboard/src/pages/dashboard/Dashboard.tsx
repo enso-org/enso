@@ -166,13 +166,6 @@ export default function Dashboard(props: DashboardProps) {
   }, [])
 
   React.useEffect(() => {
-    unsetModal()
-    // FIXME [sb]: https://github.com/enso-org/cloud-v2/issues/777
-    // Workarounds for GUI1 should be removed when they are no longer necessary.
-    document.body.style.cursor = page === pageSwitcher.Page.editor ? 'none' : 'auto'
-  }, [page, /* should never change */ unsetModal])
-
-  React.useEffect(() => {
     if (query.query !== '') {
       setPage(pageSwitcher.Page.drive)
     }

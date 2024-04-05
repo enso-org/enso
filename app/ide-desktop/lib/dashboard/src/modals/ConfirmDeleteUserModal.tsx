@@ -6,7 +6,10 @@ import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 import * as modalProvider from '#/providers/ModalProvider'
 import * as textProvider from '#/providers/TextProvider'
 
+import * as aria from '#/components/aria'
 import Modal from '#/components/Modal'
+import ButtonRow from '#/components/styled/ButtonRow'
+import UnstyledButton from '#/components/UnstyledButton'
 
 // ==============================
 // === ConfirmDeleteUserModal ===
@@ -24,7 +27,7 @@ export default function ConfirmDeleteUserModal(props: ConfirmDeleteUserModalProp
   const { getText } = textProvider.useText()
   const toastAndLog = toastAndLogHooks.useToastAndLog()
 
-  const onSubmit = async () => {
+  const doSubmit = async () => {
     unsetModal()
     try {
       await doDelete()
@@ -42,24 +45,26 @@ export default function ConfirmDeleteUserModal(props: ConfirmDeleteUserModalProp
         }}
         tabIndex={-1}
         className="pointer-events-auto relative flex w-confirm-delete-user-modal flex-col items-center gap-modal rounded-default p-modal-wide pt-modal before:absolute before:inset before:h-full before:w-full before:rounded-default before:bg-selected-frame before:backdrop-blur-default"
-        onKeyDown={event => {
-          if (event.key !== 'Escape') {
-            event.stopPropagation()
-          }
-        }}
         onClick={event => {
           event.stopPropagation()
         }}
         onSubmit={event => {
           event.preventDefault()
-          void onSubmit()
+          void doSubmit()
         }}
       >
-        <h3 className="py-heading relative h-heading text-xl font-bold">{getText('areYouSure')}</h3>
-        <span className="relative">{getText('confirmDeleteUserAccountWarning')}</span>
-        <button type="submit" className="button relative bg-danger text-inversed active">
-          <span className="text">{getText('confirmDeleteUserAccountButtonLabel')}</span>
-        </button>
+        <aria.Heading className="py-heading relative h-heading text-xl font-bold">
+          {getText('areYouSure')}
+        </aria.Heading>
+        <aria.Text className="relative">{getText('confirmDeleteUserAccountWarning')}</aria.Text>
+        <ButtonRow position="center">
+          <UnstyledButton
+            className="button relative bg-danger text-inversed active"
+            onPress={doSubmit}
+          >
+            <aria.Text className="text">{getText('confirmDeleteUserAccountButtonLabel')}</aria.Text>
+          </UnstyledButton>
+        </ButtonRow>
       </form>
     </Modal>
   )

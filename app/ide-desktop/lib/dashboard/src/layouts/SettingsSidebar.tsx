@@ -1,17 +1,19 @@
 /** @file A panel to switch between settings tabs. */
 import * as React from 'react'
 
-import BellIcon from 'enso-assets/bell.svg'
 import KeyboardShortcutsIcon from 'enso-assets/keyboard_shortcuts.svg'
 import LogIcon from 'enso-assets/log.svg'
 import PeopleSettingsIcon from 'enso-assets/people_settings.svg'
 import PeopleIcon from 'enso-assets/people.svg'
 import SettingsIcon from 'enso-assets/settings.svg'
-import SlidersIcon from 'enso-assets/sliders.svg'
+
+import * as textProvider from '#/providers/TextProvider'
 
 import SettingsTab from '#/layouts/Settings/SettingsTab'
 
-import SvgMask from '#/components/SvgMask'
+import * as aria from '#/components/aria'
+import FocusArea from '#/components/styled/FocusArea'
+import SidebarTabButton from '#/components/styled/SidebarTabButton'
 
 // =================
 // === Constants ===
@@ -25,23 +27,11 @@ const SECTIONS: SettingsSectionData[] = [
         name: 'Account',
         settingsTab: SettingsTab.account,
         icon: SettingsIcon,
-        visible: true,
       },
       {
         name: 'Organization',
         settingsTab: SettingsTab.organization,
         icon: PeopleSettingsIcon,
-        visible: true,
-      },
-      {
-        name: 'Features',
-        settingsTab: SettingsTab.features,
-        icon: SlidersIcon,
-      },
-      {
-        name: 'Notifications',
-        settingsTab: SettingsTab.notifications,
-        icon: BellIcon,
       },
     ],
   },
@@ -52,7 +42,6 @@ const SECTIONS: SettingsSectionData[] = [
         name: 'Members',
         settingsTab: SettingsTab.members,
         icon: PeopleIcon,
-        visible: true,
       },
     ],
   },
@@ -63,7 +52,6 @@ const SECTIONS: SettingsSectionData[] = [
         name: 'Keyboard shortcuts',
         settingsTab: SettingsTab.keyboardShortcuts,
         icon: KeyboardShortcutsIcon,
-        visible: true,
       },
     ],
   },
@@ -74,7 +62,6 @@ const SECTIONS: SettingsSectionData[] = [
         name: 'Activity log',
         settingsTab: SettingsTab.activityLog,
         icon: LogIcon,
-        visible: true,
       },
     ],
   },
@@ -89,8 +76,6 @@ interface SettingsTabLabelData {
   readonly name: string
   readonly settingsTab: SettingsTab
   readonly icon: string
-  /** Temporary, until all tabs are implemented. */
-  readonly visible?: true
 }
 
 /** Metadata for rendering a settings section. */
@@ -112,46 +97,40 @@ export interface SettingsSidebarProps {
 /** A panel to switch between settings tabs. */
 export default function SettingsSidebar(props: SettingsSidebarProps) {
   const { settingsTab, setSettingsTab } = props
+  const { getText } = textProvider.useText()
+
   return (
-    <div className="flex w-settings-sidebar shrink-0 flex-col gap-settings-sidebar overflow-y-auto">
-      {SECTIONS.flatMap(section => {
-        const tabs = section.tabs.filter(tab => tab.visible)
-        return tabs.length === 0
-          ? []
-          : [
-              <div
-                key={section.name}
-                className="flex flex-col items-start gap-sidebar-section-heading"
+    <FocusArea direction="vertical">
+      {innerProps => (
+        <div
+          aria-label={getText('settingsSidebarLabel')}
+          className="flex w-settings-sidebar shrink-0 flex-col gap-settings-sidebar overflow-y-auto"
+          {...innerProps}
+        >
+          {SECTIONS.map(section => (
+            <div key={section.name} className="flex flex-col items-start">
+              <aria.Header
+                id={`${section.name}_header`}
+                className="mb-sidebar-section-heading-b h-text px-sidebar-section-heading-x py-sidebar-section-heading-y text-sm font-bold leading-cozy"
               >
-                <h2 className="h-text px-sidebar-section-heading-x py-sidebar-section-heading-y text-sm font-bold leading-cozy">
-                  {section.name}
-                </h2>
-                <ul className="flex flex-col items-start">
-                  {tabs.map(tab => (
-                    <li key={tab.settingsTab}>
-                      <button
-                        disabled={tab.settingsTab === settingsTab}
-                        className="button icon-with-text h-row px-button-x transition-colors selectable hover:bg-selected-frame disabled:bg-selected-frame disabled:active"
-                        onClick={() => {
-                          setSettingsTab(tab.settingsTab)
-                        }}
-                      >
-                        <SvgMask
-                          src={tab.icon}
-                          className={
-                            tab.settingsTab === settingsTab
-                              ? 'text-icon-selected'
-                              : 'text-icon-not-selected'
-                          }
-                        />
-                        <span className="text">{tab.name}</span>
-                      </button>
-                    </li>
-                  ))}
-                </ul>
-              </div>,
-            ]
-      })}
-    </div>
+                {section.name}
+              </aria.Header>
+              {section.tabs.map(tab => (
+                <SidebarTabButton
+                  key={tab.settingsTab}
+                  id={tab.settingsTab}
+                  icon={tab.icon}
+                  label={tab.name}
+                  active={tab.settingsTab === settingsTab}
+                  onPress={() => {
+                    setSettingsTab(tab.settingsTab)
+                  }}
+                />
+              ))}
+            </div>
+          ))}
+        </div>
+      )}
+    </FocusArea>
   )
 }
