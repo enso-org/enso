@@ -30,6 +30,7 @@ type Enso_User
        Fetch the current user.
     current : Enso_User
     current =
+        # TODO this should be cached for a longer period of time
         json = Utils.http_request_as_json HTTP_Method.Get (Utils.cloud_root_uri + "users/me")
         Enso_User.from json
 

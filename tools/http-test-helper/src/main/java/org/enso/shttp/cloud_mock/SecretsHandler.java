@@ -114,6 +114,7 @@ public class SecretsHandler implements CloudHandler {
     exchange.sendResponse(200, asJson);
   }
 
+  // TODO update this
   /**
    * This is a workaround because Enso_Secret.list currently relies on `list_directory` instead of
    * `list_secrets`, as `list_secrets` was unable to handle sub-directories. Once `list_secrets` is
