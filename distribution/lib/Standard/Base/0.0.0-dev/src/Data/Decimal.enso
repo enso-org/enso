@@ -807,7 +807,7 @@ type Decimal
              Decimal.parse "123.456.789,87654" locale=Locale.italy
              # => 123456789.87654
     parse : Text -> Locale | Nothing -> Decimal ! Number_Parse_Error
-    parse text locale:Locale=Nothing = case locale of
+    parse text locale:(Locale | Nothing)=Nothing = case locale of
         Nothing -> Decimal.from_string text
         Locale.Value java_locale -> Panic.catch ParseException ((NumberFormat.getInstance java_locale).parse text) _->
             Error.throw (Number_Parse_Error.Error text)
