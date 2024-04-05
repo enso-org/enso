@@ -676,12 +676,14 @@ export async function expectOnScreen(locator: test.Locator) {
           window.innerHeight,
         ])
         const boundingBox = await locator.evaluate(element => element.getBoundingClientRect())
-        return (
-          boundingBox.right > 0 &&
-          boundingBox.left < windowWidth &&
-          boundingBox.bottom > 0 &&
-          boundingBox.top < windowHeight
-        )
+        test
+          .expect(
+            boundingBox.right > 0 &&
+              boundingBox.left < windowWidth &&
+              boundingBox.bottom > 0 &&
+              boundingBox.top < windowHeight
+          )
+          .toBeTruthy()
       })
       .toPass()
   })
@@ -698,12 +700,14 @@ export async function expectNotOnScreen(locator: test.Locator) {
             window.innerHeight,
           ])
           const boundingBox = await locator.evaluate(element => element.getBoundingClientRect())
-          return (
-            boundingBox.right <= 0 ||
-            boundingBox.left >= windowWidth ||
-            boundingBox.bottom <= 0 ||
-            boundingBox.top >= windowHeight
-          )
+          test
+            .expect(
+              boundingBox.right <= 0 ||
+                boundingBox.left >= windowWidth ||
+                boundingBox.bottom <= 0 ||
+                boundingBox.top >= windowHeight
+            )
+            .toBeTruthy()
         })
         .toPass()
     }
