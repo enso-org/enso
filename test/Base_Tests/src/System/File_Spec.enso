@@ -321,6 +321,15 @@ add_specs suite_builder =
             root = File.new "/" . absolute . normalize
             root.parent . should_equal Nothing
 
+        group_builder.specify "will normalize the path when resolving parent to correctly handle . and .." <|
+            (File.new "a/b/c/././.").parent . should_equal (File.new "a/b")
+            (File.new "a/b/c/d/e/f/../../..").parent . should_equal (File.new "a/b")
+            (File.new "..").parent . should_equal (File.new "." . parent . parent)
+            (File.new "./././.").parent . should_equal (File.new "." . parent)
+
+            # This may not be necessary but it simplifies the logic a lot:
+            (File.new "a/b/../././c/d").parent . should_equal (File.new "a/c")
+
     suite_builder.group "read_text" group_builder->
         group_builder.specify "should allow reading a UTF-8 file" <|
             contents = sample_file.read_text
