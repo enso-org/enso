@@ -157,7 +157,7 @@ public final class EnsoFile implements EnsoObject {
   @CompilerDirectives.TruffleBoundary
   public EnsoObject getParent() {
     // Normalization is needed to correctly handle paths containing `..` and `.`.
-    var parentOrNull = this.truffleFile.normalize().getParent();
+    var parentOrNull = this.normalize().truffleFile.getParent();
 
     // If the path is relative, and it has no parent, try again after making it absolute:
     if (parentOrNull == null && !this.truffleFile.isAbsolute()) {
@@ -235,7 +235,7 @@ public final class EnsoFile implements EnsoObject {
   @Builtin.Method(name = "name")
   @CompilerDirectives.TruffleBoundary
   public Text getName() {
-    var name = this.truffleFile.getName();
+    var name = this.normalize().truffleFile.getName();
     return Text.create(name == null ? "/" : name);
   }
 
@@ -262,7 +262,13 @@ public final class EnsoFile implements EnsoObject {
   @Builtin.Method
   @CompilerDirectives.TruffleBoundary
   public EnsoFile normalize() {
-    return new EnsoFile(truffleFile.normalize());
+    TruffleFile simplyNormalized = truffleFile.normalize();
+    String name = simplyNormalized.getName();
+    boolean needsAbsolute = name != null && (name.equals("..") || name.equals("."));
+    if (needsAbsolute) {
+      simplyNormalized = simplyNormalized.getAbsoluteFile().normalize();
+    }
+    return new EnsoFile(simplyNormalized);
   }
 
   @Builtin.Method(name = "delete_builtin")
