@@ -602,12 +602,12 @@ case object AliasAnalysis extends IRPass {
               )
             )
         } else {
-          val f = scope.occurrences.collectFirst {
+          val f = scope.occurrences.values.collectFirst {
             case x if x.symbol == name.name => x
           }
           arg
             .copy(
-              ascribedType = Some(new Redefined.Arg(name, arg.location))
+              ascribedType = Some(Redefined.Arg(name, arg.location))
             )
             .updateMetadata(
               new MetadataPair(

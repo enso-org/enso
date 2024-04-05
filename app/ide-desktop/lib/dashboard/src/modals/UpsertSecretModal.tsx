@@ -1,6 +1,9 @@
 /** @file Modal for confirming delete of any type of asset. */
 import * as React from 'react'
 
+import EyeCrossedIcon from 'enso-assets/eye_crossed.svg'
+import EyeIcon from 'enso-assets/eye.svg'
+
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
 import * as modalProvider from '#/providers/ModalProvider'
@@ -11,6 +14,7 @@ import Modal from '#/components/Modal'
 import ButtonRow from '#/components/styled/ButtonRow'
 import FocusArea from '#/components/styled/FocusArea'
 import FocusRing from '#/components/styled/FocusRing'
+import SvgMask from '#/components/SvgMask'
 import UnstyledButton from '#/components/UnstyledButton'
 
 import type * as backend from '#/services/Backend'
@@ -35,6 +39,7 @@ export default function UpsertSecretModal(props: UpsertSecretModalProps) {
 
   const [name, setName] = React.useState(nameRaw ?? '')
   const [value, setValue] = React.useState('')
+  const [isShowingValue, setIsShowingValue] = React.useState(false)
   const isCreatingSecret = id == null
   const isNameEditable = nameRaw == null
   const canSubmit = Boolean(name && value)
@@ -89,20 +94,29 @@ export default function UpsertSecretModal(props: UpsertSecretModalProps) {
             {innerProps => (
               <aria.TextField className="relative flex h-row items-center" {...innerProps}>
                 <aria.Label className="text w-modal-label">{getText('value')}</aria.Label>
-                <FocusRing>
-                  <aria.Input
-                    autoFocus={!isNameEditable}
-                    placeholder={
-                      isNameEditable
-                        ? getText('secretValuePlaceholder')
-                        : getText('secretValueHidden')
-                    }
-                    className="focus-child text grow rounded-full border border-primary/10 bg-transparent px-input-x"
-                    onInput={event => {
-                      setValue(event.currentTarget.value)
+                <div className="relative grow">
+                  <FocusRing>
+                    <aria.Input
+                      autoFocus={!isNameEditable}
+                      placeholder={
+                        isNameEditable
+                          ? getText('secretValuePlaceholder')
+                          : getText('secretValueHidden')
+                      }
+                      className="focus-child text grow rounded-full border border-primary/10 bg-transparent px-input-x"
+                      onInput={event => {
+                        setValue(event.currentTarget.value)
+                      }}
+                    />
+                  </FocusRing>
+                  <SvgMask
+                    src={isShowingValue ? EyeIcon : EyeCrossedIcon}
+                    className="absolute right-2 top-1 cursor-pointer rounded-full"
+                    onClick={() => {
+                      setIsShowingValue(show => !show)
                     }}
                   />
-                </FocusRing>
+                </div>
               </aria.TextField>
             )}
           </FocusArea>
