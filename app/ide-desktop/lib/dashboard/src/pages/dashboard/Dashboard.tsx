@@ -454,7 +454,7 @@ export default function Dashboard(props: DashboardProps) {
         }`}
       >
         <div
-          className={`relative flex h-screen grow select-none flex-col container-size ${
+          className={`relative flex h-screen grow select-none flex-col transition-all container-size ${
             page === pageSwitcher.Page.home ? 'pb-home-page-b' : ''
           } ${page === pageSwitcher.Page.editor ? '' : 'overflow-hidden'}`}
           onContextMenu={event => {

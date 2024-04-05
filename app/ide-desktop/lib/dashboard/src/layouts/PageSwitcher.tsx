@@ -81,7 +81,7 @@ export default function PageSwitcher(props: PageSwitcherProps) {
                 isDisabled={pageData.page === Page.editor && isEditorDisabled}
                 error={ERRORS[pageData.page]}
                 onPress={() => {
-                  setPage(pageData.page)
+                  setPage(page === pageData.page ? Page.home : pageData.page)
                 }}
               />
             )

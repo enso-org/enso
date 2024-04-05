@@ -28,7 +28,7 @@ export default function Home(props: HomeProps) {
   const { createProject } = props
   const { getText } = textProvider.useText()
   return (
-    <div className="flex flex-1 flex-col gap-home overflow-auto scroll-hidden">
+    <div className="flex flex-1 flex-col gap-home overflow-auto">
       {/* For spacing */}
       <div />
       {/* Header */}
