@@ -52,6 +52,7 @@ export interface MetadataFields {
 export interface NodeMetadataFields {
   position?: { x: number; y: number } | undefined
   visualization?: VisualizationMetadata | undefined
+  colorOverride?: string | undefined
 }
 export type NodeMetadata = FixedMapView<NodeMetadataFields>
 export type MutableNodeMetadata = FixedMap<NodeMetadataFields>

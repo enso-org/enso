@@ -1,6 +1,6 @@
 use crate::project::*;
 
-use clap::ArgEnum;
+use clap::ValueEnum;
 use ide_ci::programs::cargo;
 use ide_ci::programs::wasm_pack;
 use ide_ci::programs::WasmPack;
@@ -33,7 +33,7 @@ pub const SOURCE_SUBDIRECTORIES: [&str; 4] = ["src", "benches", "examples", "tes
 /// Select which browser should be used to run wasm tests.
 ///
 /// In principle, wasm-pack is fine with passing multiple ones in a single call.
-#[derive(ArgEnum, Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(ValueEnum, Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Browser {
     /// Run tests in Chrome using `chromedriver`. <https://chromedriver.chromium.org/downloads>
     Chrome,

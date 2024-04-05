@@ -3,6 +3,7 @@ import * as React from 'react'
 
 import * as toast from 'react-toastify'
 
+import * as setAssetHooks from '#/hooks/setAssetHooks'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
 import * as authProvider from '#/providers/AuthProvider'
@@ -20,8 +21,8 @@ import GlobalContextMenu from '#/layouts/GlobalContextMenu'
 import ContextMenu from '#/components/ContextMenu'
 import ContextMenuEntry from '#/components/ContextMenuEntry'
 import ContextMenus from '#/components/ContextMenus'
-import ContextMenuSeparator from '#/components/ContextMenuSeparator'
 import type * as assetRow from '#/components/dashboard/AssetRow'
+import Separator from '#/components/styled/Separator'
 
 import ConfirmDeleteModal from '#/modals/ConfirmDeleteModal'
 import ManageLabelsModal from '#/modals/ManageLabelsModal'
@@ -49,6 +50,7 @@ export interface AssetContextMenuProps {
   readonly doDelete: () => void
   readonly doCopy: () => void
   readonly doCut: () => void
+  readonly doTriggerDescriptionEdit: () => void
   readonly doPaste: (
     newParentKey: backendModule.AssetId,
     newParentId: backendModule.DirectoryId
@@ -57,7 +59,16 @@ export interface AssetContextMenuProps {
 
 /** The context menu for an arbitrary {@link backendModule.Asset}. */
 export default function AssetContextMenu(props: AssetContextMenuProps) {
-  const { innerProps, event, eventTarget, doCopy, doCut, doPaste, doDelete } = props
+  const {
+    innerProps,
+    event,
+    eventTarget,
+    doCopy,
+    doCut,
+    doPaste,
+    doDelete,
+    doTriggerDescriptionEdit,
+  } = props
   const { hidden = false } = props
   const { item, setItem, state, setRowState } = innerProps
   const { category, hasPasteData, labels, dispatchAssetEvent, dispatchAssetListEvent } = state
@@ -87,25 +98,12 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
     backendModule.assetIsProject(asset) &&
     asset.projectState.opened_by != null &&
     asset.projectState.opened_by !== user?.email
-  const setAsset = React.useCallback(
-    (valueOrUpdater: React.SetStateAction<backendModule.AnyAsset>) => {
-      if (typeof valueOrUpdater === 'function') {
-        setItem(oldItem =>
-          oldItem.with({
-            item: valueOrUpdater(oldItem.item),
-          })
-        )
-      } else {
-        setItem(oldItem => oldItem.with({ item: valueOrUpdater }))
-      }
-    },
-    [/* should never change */ setItem]
-  )
+  const setAsset = setAssetHooks.useSetAsset(asset, setItem)
 
   return category === Category.trash ? (
     !ownsThisAsset ? null : (
       <ContextMenus hidden={hidden} key={asset.id} event={event}>
-        <ContextMenu hidden={hidden}>
+        <ContextMenu aria-label={getText('assetContextMenuLabel')} hidden={hidden}>
           <ContextMenuEntry
             hidden={hidden}
             action="undelete"
@@ -136,7 +134,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
     )
   ) : (
     <ContextMenus hidden={hidden} key={asset.id} event={event}>
-      <ContextMenu hidden={hidden}>
+      <ContextMenu aria-label={getText('assetContextMenuLabel')} hidden={hidden}>
         {asset.type === backendModule.AssetType.project &&
           canExecute &&
           !isRunningProject &&
@@ -225,7 +223,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
         {canExecute && !isRunningProject && !isOtherUserUsingProject && (
           <ContextMenuEntry
             hidden={hidden}
-            disabled={
+            isDisabled={
               asset.type !== backendModule.AssetType.project &&
               asset.type !== backendModule.AssetType.directory
             }
@@ -260,7 +258,17 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
         {isCloud && (
           <ContextMenuEntry
             hidden={hidden}
-            disabled
+            action="editDescription"
+            label={getText('editDescriptionShortcut')}
+            doAction={() => {
+              doTriggerDescriptionEdit()
+            }}
+          />
+        )}
+        {isCloud && (
+          <ContextMenuEntry
+            hidden={hidden}
+            isDisabled
             action="snapshot"
             doAction={() => {
               // No backend support yet.
@@ -291,7 +299,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
             }}
           />
         )}
-        {isCloud && <ContextMenuSeparator hidden={hidden} />}
+        {isCloud && <Separator hidden={hidden} />}
         {isCloud && managesThisAsset && self != null && (
           <ContextMenuEntry
             hidden={hidden}
@@ -331,10 +339,10 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
             }}
           />
         )}
-        {isCloud && managesThisAsset && self != null && <ContextMenuSeparator hidden={hidden} />}
+        {isCloud && managesThisAsset && self != null && <Separator hidden={hidden} />}
         <ContextMenuEntry
           hidden={hidden}
-          disabled={!isCloud}
+          isDisabled={!isCloud}
           action="duplicate"
           doAction={() => {
             unsetModal()
@@ -352,7 +360,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
         )}
         <ContextMenuEntry
           hidden={hidden}
-          disabled={
+          isDisabled={
             isCloud &&
             asset.type !== backendModule.AssetType.file &&
             asset.type !== backendModule.AssetType.dataLink &&
@@ -384,7 +392,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
       {category === Category.home && (
         <GlobalContextMenu
           hidden={hidden}
-          hasCopyData={hasPasteData}
+          hasPasteData={hasPasteData}
           directoryKey={
             // This is SAFE, as both branches are guaranteed to be `DirectoryId`s
             // eslint-disable-next-line no-restricted-syntax

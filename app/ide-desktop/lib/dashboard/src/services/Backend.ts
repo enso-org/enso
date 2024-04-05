@@ -360,6 +360,15 @@ export interface Version {
   readonly version_type: VersionType
 }
 
+/** Credentials that need to be passed to libraries to give them access to the Cloud API. */
+export interface CognitoCredentials {
+  readonly accessToken: string
+  readonly refreshToken: string
+  readonly refreshUrl: string
+  readonly clientId: string
+  readonly expireAt: dateTime.Rfc3339DateTime
+}
+
 /** Subscription plans. */
 export enum Plan {
   solo = 'solo',
@@ -534,9 +543,8 @@ export const COLORS: readonly [LChColor, ...LChColor[]] = [
 
 /** Converts a {@link LChColor} to a CSS color string. */
 export function lChColorToCssColor(color: LChColor): string {
-  return 'alpha' in color
-    ? `lcha(${color.lightness}% ${color.chroma} ${color.hue} / ${color.alpha})`
-    : `lch(${color.lightness}% ${color.chroma} ${color.hue})`
+  const alpha = 'alpha' in color ? ` / ${color.alpha}` : ''
+  return `lch(${color.lightness}% ${color.chroma} ${color.hue}${alpha})`
 }
 
 export const COLOR_STRING_TO_COLOR = new Map(
@@ -958,6 +966,8 @@ export interface UpdateProjectRequestBody {
 /** HTTP request body for the "open project" endpoint. */
 export interface OpenProjectRequestBody {
   readonly executeAsync: boolean
+  /** MUST be present on Remote backend; NOT REQUIRED on Local backend. */
+  readonly cognitoCredentials: CognitoCredentials | null
   /** Only used by the Local backend. */
   readonly parentId: DirectoryId
 }

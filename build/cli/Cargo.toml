@@ -8,7 +8,7 @@ default-run = "enso-build-cli"
 [dependencies]
 anyhow = { workspace = true }
 byte-unit = { workspace = true }
-clap = { version = "3.2.25", features = ["derive", "env", "wrap_help"] }
+clap = { workspace = true }
 derivative = { workspace = true }
 enso-build-base = { path = "../base" }
 enso-build = { path = "../build" }

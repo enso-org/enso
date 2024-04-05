@@ -12,6 +12,7 @@ import project.Data.Text.Text
 import project.Data.Text.Text_Sub_Range.Text_Sub_Range
 import project.Data.Vector.Vector
 import project.Error.Error
+import project.Errors.Deprecated.Deprecated
 import project.Meta
 import project.Nothing.Nothing
 import project.Warning.Warning
@@ -36,9 +37,10 @@ Error.to_json self = self.to_js_object.to_text
    For arrays or vectors, the elements are converted recursively.
    For atoms and maps, the object is converted to a JS_Object.
 Text.to_js_object : JS_Object | Text
-Text.to_js_object self = case self of
-    Text -> JS_Object.from_pairs [["type", "Text"]]
-    _ -> self
+Text.to_js_object self =
+    case self of
+        Text -> JS_Object.from_pairs [["type", "Text"]]
+        _ -> self
 
 ## PRIVATE
    Converts the given value to a JSON serializable object.
@@ -83,7 +85,7 @@ Nothing.to_js_object self = self
 Array.to_js_object : Vector
 Array.to_js_object self =
     stripped = Warning.clear self
-    proxy = Array_Proxy.new stripped.length i-> stripped.at i . to_js_object
+    proxy = Array_Proxy.new stripped.length i-> stripped.at i .to_js_object
     Vector.from_polyglot_array proxy
 
 ## PRIVATE
@@ -159,3 +161,10 @@ Map.to_js_object : JS_Object
 Map.to_js_object self =
     map_vector = self.to_vector
     map_vector.map p-> [p.first.to_js_object, p.second.to_js_object]
+
+## ICON convert
+   Extension for Text to allow use.
+Text.parse_fast_json : Nothing | Boolean | Number | Text | Vector | JS_Object
+Text.parse_fast_json self =
+    warning = Deprecated.Warning "Standard.Base.Data.Text.Text" "parse_fast_json" "Deprecated: The `parse_json` method uses a faster implementation now by default"
+    Warning.attach warning self.parse_json

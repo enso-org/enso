@@ -24,6 +24,7 @@ import org.enso.persist.Persistable;
 import org.enso.persist.Persistance;
 import org.openide.util.lookup.ServiceProvider;
 import scala.Option;
+import scala.Tuple2$;
 
 @Persistable(clazz = CachePreferenceAnalysis.WeightInfo.class, id = 1111)
 @Persistable(clazz = DataflowAnalysis.DependencyInfo.class, id = 1112)
@@ -128,7 +129,8 @@ public final class PassPersistance {
     @SuppressWarnings("unchecked")
     protected Graph.Scope readObject(Input in) throws IOException {
       var childScopes = in.readInline(scala.collection.immutable.List.class);
-      var occurrences = (scala.collection.immutable.Set) in.readObject();
+      var occurrencesValues = (scala.collection.immutable.Set<Graph.Occurrence>) in.readObject();
+      var occurrences = occurrencesValues.map(v -> Tuple2$.MODULE$.apply(v.id(), v)).toMap(null);
       var allDefinitions = in.readInline(scala.collection.immutable.List.class);
       var parent = new Graph.Scope(childScopes, occurrences, allDefinitions);
       var optionParent = Option.apply(parent);
@@ -145,7 +147,7 @@ public final class PassPersistance {
     @SuppressWarnings("unchecked")
     protected void writeObject(Graph.Scope obj, Output out) throws IOException {
       out.writeInline(scala.collection.immutable.List.class, obj.childScopes());
-      out.writeObject(obj.occurrences());
+      out.writeObject(obj.occurrences().values().toSet());
       out.writeInline(scala.collection.immutable.List.class, obj.allDefinitions());
     }
   }

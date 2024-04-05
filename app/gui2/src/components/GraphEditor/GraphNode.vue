@@ -28,7 +28,8 @@ import { Vec2 } from '@/util/data/vec2'
 import { displayedIconOf } from '@/util/getIconName'
 import { setIfUndefined } from 'lib0/map'
 import type { VisualizationIdentifier } from 'shared/yjsModel'
-import { computed, onUnmounted, ref, watch, watchEffect } from 'vue'
+import type { EffectScope } from 'vue'
+import { computed, effectScope, onScopeDispose, onUnmounted, ref, watch, watchEffect } from 'vue'
 
 const MAXIMUM_CLICK_LENGTH_MS = 300
 const MAXIMUM_CLICK_DISTANCE_SQ = 50
@@ -52,6 +53,7 @@ const emit = defineEmits<{
   outputPortDoubleClick: [portId: AstId]
   doubleClick: []
   createNodes: [options: NodeCreationOptions[]]
+  toggleColorPicker: []
   'update:edited': [cursorPosition: number]
   'update:rect': [rect: Rect]
   'update:visualizationId': [id: Opt<VisualizationIdentifier>]
@@ -347,25 +349,38 @@ const outputPorts = computed((): PortData[] => {
 })
 
 const outputHovered = ref<AstId>()
-const hoverAnimations = new Map<AstId, ReturnType<typeof useApproach>>()
+const hoverAnimations = new Map<AstId, [ReturnType<typeof useApproach>, EffectScope]>()
 watchEffect(() => {
   const ports = outputPortsSet.value
-  for (const key of hoverAnimations.keys()) if (!ports.has(key)) hoverAnimations.delete(key)
+  for (const key of hoverAnimations.keys())
+    if (!ports.has(key)) {
+      hoverAnimations.get(key)?.[1].stop()
+      hoverAnimations.delete(key)
+    }
   for (const port of outputPortsSet.value) {
-    setIfUndefined(hoverAnimations, port, () =>
-      useApproach(
-        () => (outputHovered.value === port || graph.unconnectedEdge?.target === port ? 1 : 0),
-        50,
-        0.01,
-      ),
-    )
+    setIfUndefined(hoverAnimations, port, () => {
+      // Because `useApproach` uses `onScopeDispose` and we are calling it dynamically (i.e. not at
+      // the setup top-level), we need to create a detached scope for each invocation.
+      const scope = effectScope(true)
+      const approach = scope.run(() =>
+        useApproach(
+          () => (outputHovered.value === port || graph.unconnectedEdge?.target === port ? 1 : 0),
+          50,
+          0.01,
+        ),
+      )!
+      return [approach, scope]
+    })
   }
 })
+
+// Clean up dynamically created detached scopes.
+onScopeDispose(() => hoverAnimations.forEach(([_, scope]) => scope.stop()))
 
 function portGroupStyle(port: PortData) {
   const [start, end] = port.clipRange
   return {
-    '--hover-animation': hoverAnimations.get(port.portId)?.value ?? 0,
+    '--hover-animation': hoverAnimations.get(port.portId)?.[0].value ?? 0,
     '--port-clip-start': start,
     '--port-clip-end': end,
   }
@@ -453,6 +468,7 @@ const documentation = computed<string | undefined>({
       @createNodes="emit('createNodes', $event)"
       @pointerenter="menuHovered = true"
       @pointerleave="menuHovered = false"
+      @toggleColorPicker="emit('toggleColorPicker')"
     />
     <GraphVisualization
       v-if="isVisualizationVisible"
