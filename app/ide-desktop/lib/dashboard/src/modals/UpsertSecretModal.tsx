@@ -97,13 +97,14 @@ export default function UpsertSecretModal(props: UpsertSecretModalProps) {
                 <div className="relative grow">
                   <FocusRing>
                     <aria.Input
+                      type={isShowingValue ? 'text' : 'password'}
                       autoFocus={!isNameEditable}
                       placeholder={
                         isNameEditable
                           ? getText('secretValuePlaceholder')
                           : getText('secretValueHidden')
                       }
-                      className="focus-child text grow rounded-full border border-primary/10 bg-transparent px-input-x"
+                      className="focus-child text w-full rounded-full border border-primary/10 bg-transparent px-input-x"
                       onInput={event => {
                         setValue(event.currentTarget.value)
                       }}
