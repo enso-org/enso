@@ -323,7 +323,7 @@ export default function Drive(props: DriveProps) {
           <div className="flex flex-col gap-status-page text-center text-base">
             <div>{getText('youAreNotLoggedIn')}</div>
             <UnstyledButton
-              className="button self-center bg-help text-white"
+              className="tw-button self-center bg-help text-white"
               onPress={() => {
                 navigate(appUtils.LOGIN_PATH)
               }}
@@ -348,12 +348,12 @@ export default function Drive(props: DriveProps) {
         <div className="mt-top-level grid flex-1 grow place-items-center">
           <div className="flex flex-col gap-status-page text-center text-base">
             {getText('upgradeToUseCloud')}
-            <a className="button self-center bg-help text-white" href="https://enso.org/pricing">
+            <a className="tw-button self-center bg-help text-white" href="https://enso.org/pricing">
               {getText('upgrade')}
             </a>
             {!supportsLocalBackend && (
               <UnstyledButton
-                className="button self-center bg-help text-white"
+                className="tw-button self-center bg-help text-white"
                 onPress={async () => {
                   const downloadUrl = await github.getDownloadUrl()
                   if (downloadUrl == null) {

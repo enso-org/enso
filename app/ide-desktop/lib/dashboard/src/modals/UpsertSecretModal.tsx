@@ -125,12 +125,15 @@ export default function UpsertSecretModal(props: UpsertSecretModalProps) {
         <ButtonRow>
           <UnstyledButton
             isDisabled={!canSubmit}
-            className="button bg-invite text-white enabled:active"
+            className="tw-button bg-invite text-white enabled:active"
             onPress={doSubmit}
           >
             {isCreatingSecret ? getText('create') : getText('update')}
           </UnstyledButton>
-          <UnstyledButton className="button bg-selected-frame enabled:active" onPress={unsetModal}>
+          <UnstyledButton
+            className="tw-button bg-selected-frame enabled:active"
+            onPress={unsetModal}
+          >
             {getText('cancel')}
           </UnstyledButton>
         </ButtonRow>

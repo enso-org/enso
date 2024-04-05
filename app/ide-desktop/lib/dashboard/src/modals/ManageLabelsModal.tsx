@@ -183,7 +183,7 @@ export default function ManageLabelsModal<
                   </FocusRing>
                   <UnstyledButton
                     isDisabled={!canCreateNewLabel}
-                    className="button bg-invite px-button-x text-tag-text enabled:active"
+                    className="tw-button bg-invite px-button-x text-tag-text enabled:active"
                     onPress={eventModule.submitForm}
                   >
                     <aria.Text className="h-text py-modal-invite-button-text-y">

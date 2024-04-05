@@ -110,7 +110,7 @@ export default function AssetPanel(props: AssetPanelProps) {
           item.item.type !== backend.AssetType.secret &&
           item.item.type !== backend.AssetType.directory && (
             <UnstyledButton
-              className={`button pointer-events-auto select-none bg-frame px-button-x leading-cozy transition-colors hover:bg-selected-frame ${
+              className={`tw-button pointer-events-auto select-none bg-frame px-button-x leading-cozy transition-colors hover:bg-selected-frame ${
                 tab !== AssetPanelTab.versions ? '' : 'bg-selected-frame active'
               }`}
               onPress={() => {

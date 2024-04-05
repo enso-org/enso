@@ -59,12 +59,12 @@ export default function ConfirmDeleteModal(props: ConfirmDeleteModalProps) {
       >
         <aria.Text className="relative">{getText('confirmPrompt', actionText)}</aria.Text>
         <ButtonRow>
-          <UnstyledButton className="button bg-delete text-white active" onPress={doSubmit}>
+          <UnstyledButton className="tw-button bg-delete text-white active" onPress={doSubmit}>
             {actionButtonLabel}
           </UnstyledButton>
           <UnstyledButton
             autoFocus
-            className="button bg-selected-frame active"
+            className="tw-button bg-selected-frame active"
             onPress={unsetModal}
           >
             {getText('cancel')}

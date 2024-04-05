@@ -59,7 +59,7 @@ export default function ConfirmDeleteUserModal(props: ConfirmDeleteUserModalProp
         <aria.Text className="relative">{getText('confirmDeleteUserAccountWarning')}</aria.Text>
         <ButtonRow position="center">
           <UnstyledButton
-            className="button relative bg-danger text-inversed active"
+            className="tw-button relative bg-danger text-inversed active"
             onPress={doSubmit}
           >
             <aria.Text className="text">{getText('confirmDeleteUserAccountButtonLabel')}</aria.Text>

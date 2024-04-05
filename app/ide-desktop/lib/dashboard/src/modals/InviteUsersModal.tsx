@@ -249,7 +249,7 @@ export default function InviteUsersModal(props: InviteUsersModalProps) {
           <ButtonRow>
             <UnstyledButton
               isDisabled={!canSubmit}
-              className="button bg-invite text-tag-text enabled:active"
+              className="tw-button bg-invite text-tag-text enabled:active"
               onPress={doSubmit}
             >
               {getText('invite')}

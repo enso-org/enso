@@ -123,7 +123,7 @@ export default function CaptureKeyboardShortcutModal(props: CaptureKeyboardShort
         <ButtonRow>
           <UnstyledButton
             isDisabled={!canSubmit}
-            className="button bg-invite text-white enabled:active"
+            className="tw-button bg-invite text-white enabled:active"
             onPress={() => {
               unsetModal()
               onSubmit(shortcut)
@@ -131,7 +131,7 @@ export default function CaptureKeyboardShortcutModal(props: CaptureKeyboardShort
           >
             {getText('confirm')}
           </UnstyledButton>
-          <UnstyledButton className="button bg-selected-frame active" onPress={unsetModal}>
+          <UnstyledButton className="tw-button bg-selected-frame active" onPress={unsetModal}>
             {getText('cancel')}
           </UnstyledButton>
         </ButtonRow>

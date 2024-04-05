@@ -311,7 +311,7 @@ export default function ManagePermissionsModal<
                         : users.length === 0 ||
                           (email != null && emailsOfUsersWithPermission.has(email))
                     }
-                    className="button bg-invite px-button-x text-tag-text selectable enabled:active"
+                    className="tw-button bg-invite px-button-x text-tag-text selectable enabled:active"
                     onPress={doSubmit}
                   >
                     <div className="h-text py-modal-invite-button-text-y">

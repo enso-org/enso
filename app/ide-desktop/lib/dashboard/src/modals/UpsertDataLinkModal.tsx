@@ -94,12 +94,12 @@ export default function UpsertDataLinkModal(props: UpsertDataLinkModalProps) {
         <ButtonRow>
           <UnstyledButton
             isDisabled={!isSubmittable}
-            className="button bg-invite text-white enabled:active"
+            className="tw-button bg-invite text-white enabled:active"
             onPress={doSubmit}
           >
             {getText('create')}
           </UnstyledButton>
-          <UnstyledButton className="button bg-selected-frame active" onPress={unsetModal}>
+          <UnstyledButton className="tw-button bg-selected-frame active" onPress={unsetModal}>
             {getText('cancel')}
           </UnstyledButton>
         </ButtonRow>

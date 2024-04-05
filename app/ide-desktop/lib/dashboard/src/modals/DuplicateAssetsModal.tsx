@@ -191,7 +191,7 @@ export default function DuplicateAssetsModal(props: DuplicateAssetsModalProps) {
               )}
               <UnstyledButton
                 isDisabled={didUploadNonConflicting}
-                className="button relative self-start rounded-full bg-selected-frame selectable enabled:active"
+                className="tw-button relative self-start rounded-full bg-selected-frame selectable enabled:active"
                 onPress={() => {
                   doUploadNonConflicting()
                   setDidUploadNonConflicting(true)
@@ -219,7 +219,7 @@ export default function DuplicateAssetsModal(props: DuplicateAssetsModalProps) {
             {count > 1 && (
               <ButtonRow>
                 <UnstyledButton
-                  className="button bg-selected-frame active"
+                  className="tw-button bg-selected-frame active"
                   onPress={() => {
                     doUpdate([firstConflict])
                     switch (firstConflict.new.type) {
@@ -237,7 +237,7 @@ export default function DuplicateAssetsModal(props: DuplicateAssetsModalProps) {
                   {getText('update')}
                 </UnstyledButton>
                 <UnstyledButton
-                  className="button  bg-selected-frame active"
+                  className="tw-button  bg-selected-frame active"
                   onPress={() => {
                     doRename([firstConflict])
                     switch (firstConflict.new.type) {
@@ -276,7 +276,7 @@ export default function DuplicateAssetsModal(props: DuplicateAssetsModalProps) {
         )}
         <ButtonRow>
           <UnstyledButton
-            className="button bg-invite text-white active"
+            className="tw-button bg-invite text-white active"
             onPress={() => {
               unsetModal()
               doUploadNonConflicting()
@@ -286,7 +286,7 @@ export default function DuplicateAssetsModal(props: DuplicateAssetsModalProps) {
             {count === 1 ? getText('update') : getText('updateAll')}
           </UnstyledButton>
           <UnstyledButton
-            className="button bg-invite text-white active"
+            className="tw-button bg-invite text-white active"
             onPress={() => {
               unsetModal()
               doUploadNonConflicting()
@@ -301,7 +301,7 @@ export default function DuplicateAssetsModal(props: DuplicateAssetsModalProps) {
                 ? getText('renameNewFiles')
                 : getText('renameNewProjects')}
           </UnstyledButton>
-          <UnstyledButton className="button bg-selected-frame active" onPress={unsetModal}>
+          <UnstyledButton className="tw-button bg-selected-frame active" onPress={unsetModal}>
             {getText('cancel')}
           </UnstyledButton>
         </ButtonRow>

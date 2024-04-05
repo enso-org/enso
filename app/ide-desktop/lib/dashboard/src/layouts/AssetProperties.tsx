@@ -179,7 +179,7 @@ export default function AssetProperties(props: AssetPropertiesProps) {
               />
               <div className="flex gap-buttons">
                 <UnstyledButton
-                  className="button self-start bg-selected-frame"
+                  className="tw-button self-start bg-selected-frame"
                   onPress={doEditDescription}
                 >
                   {getText('update')}
@@ -255,7 +255,7 @@ export default function AssetProperties(props: AssetPropertiesProps) {
                     {...(isDataLinkDisabled
                       ? { title: 'Edit the Data Link before updating it.' }
                       : {})}
-                    className="button bg-invite text-white enabled:active"
+                    className="tw-button bg-invite text-white enabled:active"
                     onPress={() => {
                       void (async () => {
                         if (item.item.type === backendModule.AssetType.dataLink) {
@@ -281,7 +281,7 @@ export default function AssetProperties(props: AssetPropertiesProps) {
                   </UnstyledButton>
                   <UnstyledButton
                     isDisabled={isDataLinkDisabled}
-                    className="button bg-selected-frame enabled:active"
+                    className="tw-button bg-selected-frame enabled:active"
                     onPress={() => {
                       setEditedDataLinkValue(dataLinkValue)
                     }}

@@ -31,7 +31,7 @@ export default function SidebarTabButton(props: SidebarTabButtonProps) {
       className={`rounded-full ${active ? 'focus-default' : ''}`}
     >
       <div
-        className={`button icon-with-text h-row px-button-x transition-colors selectable hover:bg-selected-frame ${active ? 'disabled bg-selected-frame active' : ''}`}
+        className={`tw-button icon-with-text h-row px-button-x transition-colors selectable hover:bg-selected-frame ${active ? 'disabled bg-selected-frame active' : ''}`}
       >
         <SvgMask src={icon} />
         <aria.Text className="text">{label}</aria.Text>

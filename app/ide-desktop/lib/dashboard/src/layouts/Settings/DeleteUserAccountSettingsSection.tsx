@@ -32,7 +32,7 @@ export default function DeleteUserAccountSettingsSection() {
     >
       <div className="flex gap-buttons">
         <UnstyledButton
-          className="button bg-danger px-delete-user-account-button-x text-inversed opacity-full hover:opacity-full"
+          className="tw-button bg-danger px-delete-user-account-button-x text-inversed opacity-full hover:opacity-full"
           onPress={() => {
             setModal(
               <ConfirmDeleteUserModal

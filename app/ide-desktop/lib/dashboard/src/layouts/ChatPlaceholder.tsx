@@ -52,7 +52,7 @@ export default function ChatPlaceholder(props: ChatPlaceholderProps) {
               {getText('placeholderChatPrompt')}
             </div>
             <UnstyledButton
-              className="button self-center bg-help text-white"
+              className="tw-button self-center bg-help text-white"
               onPress={() => {
                 navigate(appUtils.LOGIN_PATH)
               }}
@@ -60,7 +60,7 @@ export default function ChatPlaceholder(props: ChatPlaceholderProps) {
               {getText('login')}
             </UnstyledButton>
             <UnstyledButton
-              className="button self-center bg-help text-white"
+              className="tw-button self-center bg-help text-white"
               onPress={() => {
                 navigate(appUtils.REGISTRATION_PATH)
               }}

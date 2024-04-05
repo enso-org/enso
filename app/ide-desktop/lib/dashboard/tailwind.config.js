@@ -556,7 +556,7 @@ export default /** @satisfies {import('tailwindcss').Config} */ ({
 
       addComponents(
         {
-          '.button': {
+          '.tw-button': {
             '@apply inline-block rounded-full px-4 py-1 selectable': '',
           },
           '.icon-with-text': {
