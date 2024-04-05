@@ -11,7 +11,9 @@ import org.enso.compiler.context.LocalScope;
 import org.enso.compiler.core.CompilerError;
 import org.enso.interpreter.EnsoLanguage;
 import org.enso.interpreter.runtime.EnsoContext;
+import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.data.Type;
+import org.enso.interpreter.runtime.data.atom.AtomConstructor;
 import org.enso.interpreter.runtime.data.text.Text;
 import org.enso.interpreter.runtime.error.PanicException;
 import org.enso.interpreter.runtime.scope.ModuleScope;
@@ -82,6 +84,44 @@ public class MethodRootNode extends ClosureRootNode {
       Type type,
       String methodName) {
     return new MethodRootNode(language, localScope, moduleScope, body, section, type, methodName);
+  }
+
+  /**
+   * Builds root node for {@link AtomConstructor#getConstructorFunction() constructor function} of
+   * the provided {@code constructor}.
+   *
+   * @param language the language identifier
+   * @param localScope a description of the local scope
+   * @param moduleScope a description of the module scope
+   * @param body the program provider to be executed
+   * @param section a mapping from {@code provider} to the program source
+   * @param constructor constructor specifying type and name
+   * @return a node representing the specified closure
+   * @see #constructorFor(Function)
+   */
+  public static MethodRootNode buildConstructor(
+      EnsoLanguage language,
+      LocalScope localScope,
+      ModuleScope moduleScope,
+      ExpressionNode body,
+      SourceSection section,
+      AtomConstructor constructor) {
+    return new Constructor(language, localScope, moduleScope, body, section, constructor);
+  }
+
+  /**
+   * Finds constructor for given {@link AtomConstructor#getConstructorFunction() constructor
+   * function}.
+   *
+   * @param fn the function
+   * @return constructor or {@code null}
+   */
+  public static AtomConstructor constructorFor(Function fn) {
+    if (fn.getCallTarget().getRootNode() instanceof MethodRootNode node) {
+      return node instanceof Constructor consNode ? consNode.constructor : null;
+    } else {
+      return null;
+    }
   }
 
   public static MethodRootNode buildOperator(
@@ -181,7 +221,30 @@ public class MethodRootNode extends ClosureRootNode {
     }
   }
 
+  @Override
   public boolean isSubjectToInstrumentation() {
     return true;
+  }
+
+  private static final class Constructor extends MethodRootNode {
+    private final AtomConstructor constructor;
+
+    Constructor(
+        EnsoLanguage language,
+        LocalScope localScope,
+        ModuleScope moduleScope,
+        ExpressionNode body,
+        SourceSection section,
+        AtomConstructor constructor) {
+      super(
+          language,
+          localScope,
+          moduleScope,
+          body,
+          section,
+          constructor.getType(),
+          constructor.getName());
+      this.constructor = constructor;
+    }
   }
 }

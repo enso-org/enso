@@ -8,7 +8,9 @@ import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 import * as backendProvider from '#/providers/BackendProvider'
 import * as textProvider from '#/providers/TextProvider'
 
+import * as aria from '#/components/aria'
 import PermissionSelector from '#/components/dashboard/PermissionSelector'
+import FocusArea from '#/components/styled/FocusArea'
 
 import * as backendModule from '#/services/Backend'
 
@@ -50,6 +52,7 @@ export default function UserPermission(props: UserPermissionProps) {
   const { getText } = textProvider.useText()
   const toastAndLog = toastAndLogHooks.useToastAndLog()
   const [userPermission, setUserPermission] = React.useState(initialUserPermission)
+  const isDisabled = isOnlyOwner && userPermission.user.userId === self.user.userId
   const assetTypeName = getText(ASSET_TYPE_TO_TEXT_ID[asset.type])
 
   React.useEffect(() => {
@@ -73,22 +76,26 @@ export default function UserPermission(props: UserPermissionProps) {
   }
 
   return (
-    <div className="flex items-center gap-user-permission">
-      <PermissionSelector
-        showDelete
-        disabled={isOnlyOwner && userPermission.user.userId === self.user.userId}
-        error={isOnlyOwner ? getText('needsOwnerError', assetTypeName) : null}
-        selfPermission={self.permission}
-        action={userPermission.permission}
-        assetType={asset.type}
-        onChange={async permissions => {
-          await doSetUserPermission(object.merge(userPermission, { permission: permissions }))
-        }}
-        doDelete={() => {
-          doDelete(userPermission.user)
-        }}
-      />
-      <span className="text">{userPermission.user.name}</span>
-    </div>
+    <FocusArea active={!isDisabled} direction="horizontal">
+      {innerProps => (
+        <div className="flex items-center gap-user-permission" {...innerProps}>
+          <PermissionSelector
+            showDelete
+            isDisabled={isDisabled}
+            error={isOnlyOwner ? getText('needsOwnerError', assetTypeName) : null}
+            selfPermission={self.permission}
+            action={userPermission.permission}
+            assetType={asset.type}
+            onChange={async permissions => {
+              await doSetUserPermission(object.merge(userPermission, { permission: permissions }))
+            }}
+            doDelete={() => {
+              doDelete(userPermission.user)
+            }}
+          />
+          <aria.Text className="text">{userPermission.user.name}</aria.Text>
+        </div>
+      )}
+    </FocusArea>
   )
 }

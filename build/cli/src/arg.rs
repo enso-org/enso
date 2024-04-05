@@ -2,11 +2,14 @@
 
 use enso_build::prelude::*;
 
+use clap::builder::ArgPredicate;
+use clap::builder::PossibleValuesParser;
+use clap::builder::TypedValueParser;
 use clap::Arg;
-use clap::ArgEnum;
 use clap::Args;
 use clap::Parser;
 use clap::Subcommand;
+use clap::ValueEnum;
 use derivative::Derivative;
 use enso_build_base::extensions::path::display_fmt;
 use ide_ci::cache;
@@ -52,12 +55,12 @@ pub fn default_cache_path() -> Option<PathBuf> {
 }
 
 /// Extensions to the `clap::Arg`, intended to be used as argument attributes.
-pub trait ArgExt<'h>: Sized + 'h {
+pub trait ArgExt: Sized {
     /// Allow setting argument through an environment variable prefixed with Enso Build name.
     fn enso_env(self) -> Self;
 }
 
-impl<'h> ArgExt<'h> for Arg<'h> {
+impl ArgExt for Arg {
     fn enso_env(self) -> Self {
         self.prefixed_env(ENVIRONMENT_VARIABLE_NAME_PREFIX)
     }
@@ -162,7 +165,7 @@ pub struct Cli {
 
     /// Platform to target. Currently cross-compilation is enabled only for GUI/IDE (without
     /// Project Manager) on platforms where Electron Builder supports this.
-    #[clap(long, global = true, default_value_t = TARGET_OS, enso_env(), possible_values=[OS::Windows.as_str(), OS::Linux.as_str(), OS::MacOS.as_str()])]
+    #[clap(long, global = true, default_value_t = TARGET_OS, enso_env(), value_parser = possible_os_parser(&[OS::Windows, OS::Linux, OS::MacOS]))]
     pub target_os: OS,
 
     /// Does not check the program version requirements defined in the build-config.yaml.
@@ -182,30 +185,31 @@ pub struct Cli {
 /// This is the CLI representation of a [crate::source::Source] for a given target.
 #[derive(Args, Clone, Debug, Derivative)]
 #[derivative(PartialEq)]
+#[group(skip)]
 pub struct Source<Target: IsTargetSource> {
     /// How the given target should be acquired.
-    #[clap(name = Target::SOURCE_NAME, arg_enum, long, default_value_t= SourceKind::Build,
+    #[clap(id = Target::SOURCE_NAME, value_enum, long, default_value_t= SourceKind::Build,
     enso_env(),
-    default_value_if(Target::RUN_ID_NAME, None, Some("ci-run")),
-    default_value_if(Target::PATH_NAME, None, Some("local")),
-    default_value_if(Target::RELEASE_DESIGNATOR_NAME, None, Some("release")))]
+    default_value_if(Target::RUN_ID_NAME, ArgPredicate::IsPresent, Some("ci-run")),
+    default_value_if(Target::PATH_NAME, ArgPredicate::IsPresent, Some("local")),
+    default_value_if(Target::RELEASE_DESIGNATOR_NAME, ArgPredicate::IsPresent, Some("release")))]
     pub source: SourceKind,
 
     /// If source is `local`, this argument is used to give the path with the component.
     /// If missing, the default would-be output directory for this component shall be used.
-    #[clap(name = Target::PATH_NAME, long, default_value=Target::DEFAULT_OUTPUT_PATH, enso_env())]
+    #[clap(id = Target::PATH_NAME, long, default_value=Target::DEFAULT_OUTPUT_PATH, enso_env())]
     pub path: PathBuf,
 
     /// If source is `run`, this argument is required to provide CI run ID.
     ///
     /// `GITHUB_TOKEN` environment variable with "repo" access is required to download CI run
     /// artifacts.
-    #[clap(name = Target::RUN_ID_NAME, long, required_if_eq(Target::SOURCE_NAME, "ci-run"), enso_env())]
+    #[clap(id = Target::RUN_ID_NAME, long, required_if_eq(Target::SOURCE_NAME, "ci-run"), enso_env())]
     pub run_id: Option<RunId>,
 
     /// Artifact name to be used when downloading a run artifact. If not set, the default name for
     /// given target will be used.
-    #[clap(name = Target::ARTIFACT_NAME_NAME, long, enso_env())]
+    #[clap(id = Target::ARTIFACT_NAME_NAME, long, enso_env())]
     pub artifact_name: Option<String>,
 
     /// If source is `release`, this argument is required to identify a release with asset to
@@ -225,7 +229,7 @@ pub struct Source<Target: IsTargetSource> {
 }
 
 /// Discriminator denoting how some target artifact should be obtained.
-#[derive(ArgEnum, Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(ValueEnum, Clone, Copy, Debug, PartialEq, Eq)]
 pub enum SourceKind {
     /// Target will be built from the target repository's sources.
     Build,
@@ -241,11 +245,12 @@ pub enum SourceKind {
 
 /// Strongly typed argument for an output directory of a given build target.
 #[derive(Args, Clone, Derivative)]
+#[group(skip)]
 #[derivative(Debug, PartialEq)]
 pub struct OutputPath<Target: IsTargetSource> {
     /// Directory where artifacts should be placed.
     #[derivative(Debug(format_with = "display_fmt"))]
-    #[clap(name = Target::OUTPUT_PATH_NAME, long, parse(try_from_str=normalize_path), default_value = Target::DEFAULT_OUTPUT_PATH, enso_env())]
+    #[clap(name = Target::OUTPUT_PATH_NAME, long, value_parser(normalize_path), default_value = Target::DEFAULT_OUTPUT_PATH, enso_env())]
     pub output_path: PathBuf,
     #[derivative(Debug = "ignore", PartialEq(bound = ""))]
     #[allow(missing_docs)]
@@ -260,16 +265,28 @@ impl<Target: IsTargetSource> AsRef<Path> for OutputPath<Target> {
 }
 
 #[derive(Args, Clone, Derivative)]
+#[group(skip)]
 #[derivative(Debug, PartialEq)]
 pub struct BuildDescription<Target: IsTargetSource> {
     #[derivative(PartialEq(bound = ""))]
     #[clap(flatten)]
     pub input:           Target::BuildInput,
-    #[clap(name = Target::UPLOAD_ARTIFACT_NAME, long, enso_env(), default_value_t = ide_ci::actions::workflow::is_in_env())]
+    // Cumbersome way of defining a bool argument that can take explicit value.
+    // See: https://github.com/clap-rs/clap/issues/1649#issuecomment-1837123432
+    #[clap(
+        name = Target::UPLOAD_ARTIFACT_NAME,
+        long,
+        enso_env(),
+        default_value_t = ide_ci::actions::workflow::is_in_env(),
+        default_missing_value("true"),
+        num_args(0..=1),
+        action = clap::ArgAction::Set
+    )]
     pub upload_artifact: bool,
 }
 
 #[derive(Args, Clone, PartialEq, Derivative)]
+#[group(skip)]
 #[derivative(Debug)]
 pub struct BuildJob<Target: IsTargetSource> {
     #[clap(flatten)]
@@ -279,10 +296,19 @@ pub struct BuildJob<Target: IsTargetSource> {
 }
 
 #[derive(Args, Clone, PartialEq, Derivative)]
+#[group(skip)]
 #[derivative(Debug)]
 pub struct WatchJob<Target: IsWatchableSource> {
     #[clap(flatten)]
     pub build:       BuildJob<Target>,
     #[clap(flatten)]
     pub watch_input: Target::WatchInput,
+}
+
+/// Clap parser supporting a given set of [`OS`] values.
+pub fn possible_os_parser(possible_os: &[OS]) -> impl TypedValueParser<Value = OS> {
+    PossibleValuesParser::new(possible_os.iter().map(|os| os.as_str()))
+        // Unwrap below is safe, because it is symmetric to the `as_str` conversion above, and
+        // we'll get only the values that were generated from the `possible_os` array.
+        .map(|s| s.parse::<OS>().unwrap())
 }

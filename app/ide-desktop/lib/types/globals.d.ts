@@ -154,7 +154,6 @@ declare global {
 
     // These are used in other files (because they're globals)
     /* eslint-disable @typescript-eslint/naming-convention */
-    const BUNDLED_ENGINE_VERSION: string
     const BUILD_INFO: buildJson.BuildInfo
     const PROJECT_MANAGER_IN_BUNDLE_PATH: string
     const IS_VITE: boolean

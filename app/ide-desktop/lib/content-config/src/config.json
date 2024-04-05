@@ -51,12 +51,6 @@
           "value": "",
           "description": "The name of the project to be displayed to the user.",
           "primary": false
-        },
-        "platform": {
-          "value": "web",
-          "defaultDescription": "'web' if run in the browser, operating system name otherwise`",
-          "description": "The host platform on which the application is running. This is used to adjust some user interface elements. For example, on macOS, the window close buttons are integrated into the top application panel.",
-          "primary": false
         }
       }
     },
@@ -86,19 +80,6 @@
         "configUrl": {
           "value": "https://raw.githubusercontent.com/enso-org/ide/develop/config.json",
           "description": "The URL of the application configuration. Used to check for available updates.",
-          "primary": false
-        },
-        "skipMinVersionCheck": {
-          "value": false,
-          "valueEval": "scope.Version.isDev()",
-          "defaultDescription": "true in local builds, false otherwise.",
-          "description": "Determines whether the minimum engine version check should be performed.",
-          "primary": false
-        },
-        "preferredVersion": {
-          "value": "",
-          "valueEval": "String(scope.Version.ide)",
-          "description": "The preferred engine version.",
           "primary": false
         }
       }

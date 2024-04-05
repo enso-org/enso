@@ -56,6 +56,7 @@ export const BINDINGS = inputBindings.defineBindings({
   rename: { name: 'Rename', bindings: ['Mod+R'], icon: PenIcon },
   edit: { name: 'Edit', bindings: ['Mod+E'], icon: PenIcon },
   snapshot: { name: 'Snapshot', bindings: ['Mod+S'], icon: CameraIcon },
+  editDescription: { name: 'Edit Description', bindings: ['Mod+Shift+E'], icon: PenIcon },
   delete: {
     name: 'Delete',
     bindings: ['OsDelete'],

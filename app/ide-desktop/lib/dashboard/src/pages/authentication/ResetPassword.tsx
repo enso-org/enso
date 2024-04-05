@@ -16,10 +16,14 @@ import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 import * as authProvider from '#/providers/AuthProvider'
 import * as textProvider from '#/providers/TextProvider'
 
+import AuthenticationPage from '#/pages/authentication/AuthenticationPage'
+
+import * as aria from '#/components/aria'
 import Input from '#/components/Input'
 import Link from '#/components/Link'
 import SubmitButton from '#/components/SubmitButton'
 
+import * as eventModule from '#/utilities/event'
 import * as string from '#/utilities/string'
 import * as validation from '#/utilities/validation'
 
@@ -52,7 +56,7 @@ export default function ResetPassword() {
     }
   }, [email, navigate, verificationCode, getText, /* should never change */ toastAndLog])
 
-  const onSubmit = () => {
+  const doSubmit = () => {
     if (newPassword !== newPasswordConfirm) {
       toastAndLog('passwordMismatchError')
       return Promise.resolve()
@@ -63,62 +67,64 @@ export default function ResetPassword() {
   }
 
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center gap-auth text-sm text-primary">
-      <form
-        className="flex w-full max-w-md flex-col gap-auth rounded-auth bg-selected-frame p-auth shadow-md"
-        onSubmit={async event => {
-          event.preventDefault()
-          await onSubmit()
-        }}
-      >
-        <div className="self-center text-xl font-medium">{getText('resetYourPassword')}</div>
-        <input
-          required
-          readOnly
-          hidden
-          type="email"
-          autoComplete="email"
-          placeholder={getText('emailPlaceholder')}
-          value={email ?? ''}
-        />
-        <input
-          required
-          readOnly
-          hidden
-          type="text"
-          autoComplete="one-time-code"
-          placeholder={getText('confirmationCodePlaceholder')}
-          value={verificationCode ?? ''}
-        />
-        <Input
-          required
-          validate
-          allowShowingPassword
-          type="password"
-          autoComplete="new-password"
-          icon={LockIcon}
-          placeholder={getText('newPasswordPlaceholder')}
-          pattern={validation.PASSWORD_PATTERN}
-          error={getText('passwordValidationError')}
-          value={newPassword}
-          setValue={setNewPassword}
-        />
-        <Input
-          required
-          validate
-          allowShowingPassword
-          type="password"
-          autoComplete="new-password"
-          icon={LockIcon}
-          placeholder={getText('confirmNewPasswordPlaceholder')}
-          pattern={string.regexEscape(newPassword)}
-          error={getText('passwordMismatchError')}
-          value={newPasswordConfirm}
-          setValue={setNewPasswordConfirm}
-        />
-        <SubmitButton text={getText('reset')} icon={ArrowRightIcon} />
-      </form>
-      <Link to={appUtils.LOGIN_PATH} icon={GoBackIcon} text={getText('goBackToLogin')} />
-    </div>
+    <AuthenticationPage
+      title={getText('resetYourPassword')}
+      footer={<Link to={appUtils.LOGIN_PATH} icon={GoBackIcon} text={getText('goBackToLogin')} />}
+      onSubmit={async event => {
+        event.preventDefault()
+        await doSubmit()
+      }}
+    >
+      <aria.Input
+        required
+        readOnly
+        hidden
+        type="email"
+        autoComplete="email"
+        placeholder={getText('emailPlaceholder')}
+        value={email ?? ''}
+      />
+      <aria.Input
+        required
+        readOnly
+        hidden
+        type="text"
+        autoComplete="one-time-code"
+        placeholder={getText('confirmationCodePlaceholder')}
+        value={verificationCode ?? ''}
+      />
+      <Input
+        autoFocus
+        required
+        validate
+        allowShowingPassword
+        type="password"
+        autoComplete="new-password"
+        icon={LockIcon}
+        placeholder={getText('newPasswordPlaceholder')}
+        pattern={validation.PASSWORD_PATTERN}
+        error={getText('passwordValidationError')}
+        value={newPassword}
+        setValue={setNewPassword}
+      />
+      <Input
+        required
+        validate
+        allowShowingPassword
+        type="password"
+        autoComplete="new-password"
+        icon={LockIcon}
+        placeholder={getText('confirmNewPasswordPlaceholder')}
+        pattern={string.regexEscape(newPassword)}
+        error={getText('passwordMismatchError')}
+        value={newPasswordConfirm}
+        setValue={setNewPasswordConfirm}
+      />
+      <SubmitButton
+        text={getText('reset')}
+        icon={ArrowRightIcon}
+        onPress={eventModule.submitForm}
+      />
+    </AuthenticationPage>
   )
 }
