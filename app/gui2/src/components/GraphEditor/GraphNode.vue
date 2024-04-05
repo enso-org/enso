@@ -94,7 +94,6 @@ const nodeSize = useResizeObserver(rootNode)
 
 function inputExternalIds() {
   const externalIds = new Array<ExternalId>()
-
   for (const inputId of graph.db.nodeDependents.reverseLookup(nodeId.value)) {
     const externalId = graph.db.idToExternal(inputId)
     if (externalId) {

@@ -1,5 +1,5 @@
 import * as random from 'lib0/random'
-import { reachable } from '../util/data/graph.ts'
+import { reachable } from '../util/data/graph'
 import type { ExternalId } from '../yjsModel'
 import type { Module } from './mutableModule'
 import type { SyncTokenId } from './token'
