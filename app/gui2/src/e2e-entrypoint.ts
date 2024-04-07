@@ -10,6 +10,10 @@ import { MockTransport, MockWebSocket } from '@/util/net'
 import { createPinia } from 'pinia'
 import { mockDataHandler, mockLSHandler, mockYdocProvider } from '../mock/engine'
 
+const container = document.createElement('div')
+document.body.appendChild(container)
+container.id = 'app'
+
 import 'enso-dashboard/src/tailwind.css'
 
 MockTransport.addMock('engine', mockLSHandler)
