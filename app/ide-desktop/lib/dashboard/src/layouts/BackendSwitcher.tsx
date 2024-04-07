@@ -34,6 +34,7 @@ export default function BackendSwitcher(props: BackendSwitcherProps) {
       {innerProps => (
         <div className="flex shrink-0 gap-px" {...innerProps}>
           <UnstyledButton
+            aria-label={ getText('switchToCloudDrive')}
             isDisabled={isCloud}
             className="flex w-backend-switcher-option flex-col items-start bg-selected-frame px-selector-x py-selector-y text-primary selectable first:rounded-l-full last:rounded-r-full disabled:text-cloud disabled:active"
             onPress={() => {
@@ -46,6 +47,7 @@ export default function BackendSwitcher(props: BackendSwitcherProps) {
             </div>
           </UnstyledButton>
           <UnstyledButton
+            aria-label={getText('switchToLocalDrive')}
             isDisabled={!isCloud}
             className="flex w-backend-switcher-option flex-col items-start bg-selected-frame px-selector-x py-selector-y text-primary selectable first:rounded-l-full last:rounded-r-full disabled:text-cloud disabled:active"
             onPress={() => {

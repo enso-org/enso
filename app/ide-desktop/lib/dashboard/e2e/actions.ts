@@ -1,6 +1,7 @@
 /** @file Various actions, locators, and constants used in end-to-end tests. */
 import * as test from '@playwright/test'
 
+import ENGLISH from '../src/text/english.json' assert { type: 'json' }
 import * as apiModule from './api'
 
 // =================
@@ -241,27 +242,27 @@ export function locateDocsColumnToggle(page: test.Locator | test.Page) {
 
 /** Find a button for the "Recent" category (if any). */
 export function locateRecentCategory(page: test.Locator | test.Page) {
-  return page.getByLabel('Go To Recent category')
+  return page.getByLabel(ENGLISH.recentCategoryButtonLabel)
 }
 
 /** Find a button for the "Home" category (if any). */
 export function locateHomeCategory(page: test.Locator | test.Page) {
-  return page.getByLabel('Go To Home category')
+  return page.getByLabel(ENGLISH.homeCategoryButtonLabel)
 }
 
 /** Find a button for the "Trash" category (if any). */
 export function locateTrashCategory(page: test.Locator | test.Page) {
-  return page.getByLabel('Go to Trash category')
+  return page.getByLabel(ENGLISH.trashCategoryButtonLabel)
 }
 
 /** Find a button for the cloud backend (if any). */
 export function locateCloudBackendButton(page: test.Locator | test.Page) {
-  return page.getByTitle('Switch to cloud drive')
+  return page.getByLabel(ENGLISH.switchToCloudDrive)
 }
 
 /** Find a button for the local backend (if any). */
 export function locateLocalBackendButton(page: test.Locator | test.Page) {
-  return page.getByTitle('Switch to local drive')
+  return page.getByLabel(ENGLISH.switchToLocalDrive)
 }
 
 // === Context menu buttons ===
@@ -654,28 +655,28 @@ export async function expectNoBackground(locator: test.Locator) {
 
 /** A test assertion to confirm that the element has the class `selected`. */
 export async function expectClassSelected(locator: test.Locator) {
-  await test.test.step('Expect `selected`', async () => {
+  await test.test.step('Expect class `selected`', async () => {
     await test.expect(locator).toHaveClass(/(?:^| )selected(?: |$)/)
   })
 }
 
 /** A test assertion to confirm that the element has the class `active`. */
 export async function expectClassActive(locator: test.Locator) {
-  await test.test.step('Expect `active`', async () => {
+  await test.test.step('Expect class `active`', async () => {
     await test.expect(locator).toHaveClass(/(?:^| )active(?: |$)/)
   })
 }
 
 /** A test assertion to confirm that the element does not have the class `active`. */
 export async function expectNotClassActive(locator: test.Locator) {
-  await test.test.step('Expect `active`', async () => {
+  await test.test.step('Expect no class `active`', async () => {
     await test.expect(locator).not.toHaveClass(/(?:^| )active(?: |$)/)
   })
 }
 
 /** A test assertion to confirm that the element has `opacity > 0`. */
 export async function expectNotTransparent(locator: test.Locator) {
-  await test.test.step('expect.not.transparent', async () => {
+  await test.test.step('Expect not transparent', async () => {
     await test.expect
       .poll(() => locator.evaluate(element => getComputedStyle(element).opacity))
       .not.toBe('0')
@@ -684,7 +685,7 @@ export async function expectNotTransparent(locator: test.Locator) {
 
 /** A test assertion to confirm that the element has `opacity === 0`. */
 export async function expectTransparent(locator: test.Locator) {
-  await test.test.step('expect.transparent', async () => {
+  await test.test.step('Expect transparent', async () => {
     await test.expect
       .poll(() => locator.evaluate(element => getComputedStyle(element).opacity))
       .toBe('0')
@@ -786,11 +787,13 @@ export async function login(
   email = 'email@example.com',
   password = VALID_PASSWORD
 ) {
-  await page.goto('/')
-  await locateEmailInput(page).fill(email)
-  await locatePasswordInput(page).fill(password)
-  await locateLoginButton(page).click()
-  await locateToastCloseButton(page).click()
+  await test.test.step('Log in', async () => {
+    await page.goto('/')
+    await locateEmailInput(page).fill(email)
+    await locatePasswordInput(page).fill(password)
+    await locateLoginButton(page).click()
+    await locateToastCloseButton(page).click()
+  })
 }
 
 // ================
@@ -859,10 +862,12 @@ export const mockApi = apiModule.mockApi
 // This syntax is required for Playwright to work properly.
 // eslint-disable-next-line no-restricted-syntax
 export async function mockAll({ page }: MockParams) {
-  const api = await mockApi({ page })
-  await mockDate({ page })
-  await mockIDEContainer({ page })
-  return { api }
+  return await test.test.step('Mock all', async () => {
+    const api = await mockApi({ page })
+    await mockDate({ page })
+    await mockIDEContainer({ page })
+    return { api }
+  })
 }
 
 // =======================
@@ -873,10 +878,12 @@ export async function mockAll({ page }: MockParams) {
 // This syntax is required for Playwright to work properly.
 // eslint-disable-next-line no-restricted-syntax
 export async function mockAllAndLogin({ page }: MockParams) {
-  const mocks = await mockAll({ page })
-  await login({ page })
-  // This MUST run after login, otherwise the element's styles are reset when the browser
-  // is navigated to another page.
-  await mockIDEContainer({ page })
-  return mocks
+  return await test.test.step('Mock all and login', async () => {
+    const mocks = await mockAll({ page })
+    await login({ page })
+    // This MUST run after login, otherwise the element's styles are reset when the browser
+    // is navigated to another page.
+    await mockIDEContainer({ page })
+    return mocks
+  })
 }
