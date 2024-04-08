@@ -129,7 +129,7 @@
     "tsx": "^4.7.1",
     "typescript": "~5.2.2",
     "unbzip2-stream": "^1.4.3",
-    "vite": "^4.4.9",
+    "vite": "^4.5.3",
     "vite-plugin-inspect": "^0.7.38",
     "vitest": "^1.3.1",
     "vue-react-wrapper": "^0.3.1",
