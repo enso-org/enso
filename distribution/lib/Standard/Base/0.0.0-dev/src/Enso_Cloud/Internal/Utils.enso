@@ -72,8 +72,10 @@ flush_caches = CloudAPI.flushCloudCaches
    parsing the result as JSON.
 http_request_as_json (method : HTTP_Method) (url : URI) (body : Request_Body = Request_Body.Empty) (additional_headers : Vector = []) (error_handlers : Map Text (Any -> Any) = Map.empty) (retries : Integer = 3) -> Any ! Enso_Cloud_Error =
     response = http_request method url body additional_headers error_handlers retries
-    response.decode_as_json.catch Invalid_JSON error->
+    result = response.decode_as_json.catch Invalid_JSON error->
         Error.throw (Enso_Cloud_Error.Invalid_Response_Payload error)
+    Standard.Base.IO.println "Response: "+result.to_text
+    result
 
 ## PRIVATE
    Performs a standard request to the Enso Cloud API,
