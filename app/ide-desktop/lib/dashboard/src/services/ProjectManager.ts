@@ -1,6 +1,8 @@
 /** @file This module defines the Project Manager endpoint.
  * @see
  * https://github.com/enso-org/enso/blob/develop/docs/language-server/protocol-project-manager.md */
+import * as detect from 'enso-common/src/detect'
+
 import * as appBaseUrl from '#/utilities/appBaseUrl'
 import type * as dateTime from '#/utilities/dateTime'
 import * as newtype from '#/utilities/newtype'
@@ -231,6 +233,19 @@ export function joinPath(directoryPath: Path, fileName: string) {
   return Path(`${directoryPath}/${fileName}`)
 }
 
+// ========================
+// === normalizeSlashes ===
+// ========================
+
+/** Return the path, with backslashes (on Windows only) normalized to forward slashes. */
+function normalizeSlashes(path: string): Path {
+  if (detect.isOnWindows()) {
+    return Path(path.replace(/\\/g, '/'))
+  } else {
+    return Path(path)
+  }
+}
+
 // =======================
 // === Project Manager ===
 // =======================
@@ -322,7 +337,7 @@ export default class ProjectManager {
   static async loadRootDirectory() {
     const response = await fetch(`${appBaseUrl.APP_BASE_URL}/api/root-directory`)
     const text = await response.text()
-    this.internalRootDirectory = Path(text)
+    this.internalRootDirectory = normalizeSlashes(text)
   }
 
   /** Lazy initialization for the singleton instance. */
@@ -389,12 +404,12 @@ export default class ProjectManager {
       'filesystem-list',
       parentId ?? ProjectManager.rootDirectory
     )
-    return response.entries
+    return response.entries.map(entry => ({ ...entry, path: normalizeSlashes(entry.path) }))
   }
 
   /** Create a directory. */
   async createDirectory(path: Path) {
-    await this.runStandaloneCommand(null, 'filesystem-create-directory', path)
+    return this.runStandaloneCommand(null, 'filesystem-create-directory', path)
   }
 
   /** Create a file. */
