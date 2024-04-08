@@ -58,7 +58,7 @@ export const widgetDefinition = defineWidget(ArgumentApplicationKey, {
   </span>
 </template>
 
-<style>
+<style scoped>
 .WidgetApplication {
   display: flex;
   align-items: center;
