@@ -189,7 +189,13 @@ export default function projectManagerShimMiddleware(
                                         const entries: FileSystemEntry[] = []
                                         for (const entryName of entryNames) {
                                             const entryPath = path.join(directoryPath, entryName)
-                                            const stat = await fs.stat(entryPath)
+                                            let stat
+                                            try {
+                                                stat = await fs.stat(entryPath)
+                                            } catch {
+                                                // Probably a broken symlink.
+                                                continue
+                                            }
                                             const attributes: Attributes = {
                                                 byteSize: stat.size,
                                                 creationTime: new Date(stat.ctimeMs).toISOString(),
