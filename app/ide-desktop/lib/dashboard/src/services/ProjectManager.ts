@@ -1,6 +1,8 @@
 /** @file This module defines the Project Manager endpoint.
  * @see
  * https://github.com/enso-org/enso/blob/develop/docs/language-server/protocol-project-manager.md */
+import * as detect from 'enso-common/src/detect'
+
 import * as backend from '#/services/Backend'
 
 import * as appBaseUrl from '#/utilities/appBaseUrl'
@@ -251,6 +253,19 @@ export function joinPath(directoryPath: Path, fileName: string) {
   return Path(`${directoryPath}/${fileName}`)
 }
 
+// ========================
+// === normalizeSlashes ===
+// ========================
+
+/** Return the path, with backslashes (on Windows only) normalized to forward slashes. */
+function normalizeSlashes(path: string): Path {
+  if (detect.isOnWindows()) {
+    return Path(path.replace(/\\/g, '/'))
+  } else {
+    return Path(path)
+  }
+}
+
 // =======================
 // === Project Manager ===
 // =======================
@@ -403,12 +418,12 @@ export default class ProjectManager {
       'filesystem-list',
       parentId ?? this.rootDirectory
     )
-    return response.entries
+    return response.entries.map(entry => ({ ...entry, path: normalizeSlashes(entry.path) }))
   }
 
   /** Create a directory. */
   async createDirectory(path: Path) {
-    await this.runStandaloneCommand(null, 'filesystem-create-directory', path)
+    return this.runStandaloneCommand(null, 'filesystem-create-directory', path)
   }
 
   /** Create a file. */

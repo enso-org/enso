@@ -159,6 +159,7 @@
   "password": "Password",
   "reset": "Reset",
   "members": "Members",
+  "drop": "Drop",
   "clearTrash": "Clear Trash",
   "sharedWith": "Shared with",
   "editSecret": "Edit Secret",
@@ -209,6 +210,16 @@
   "homeCategory": "Home",
   "rootCategory": "Root",
   "trashCategory": "Trash",
+  "recentCategoryButtonLabel": "Go to Recent category",
+  "draftsCategoryButtonLabel": "Go to Drafts category",
+  "homeCategoryButtonLabel": "Go to Home category",
+  "rootCategoryButtonLabel": "Go to Root category",
+  "trashCategoryButtonLabel": "Go to Trash category",
+  "recentCategoryDropZoneLabel": "Move to Recent category",
+  "draftsCategoryDropZoneLabel": "Move to Drafts category",
+  "homeCategoryDropZoneLabel": "Move to Home category",
+  "rootCategoryDropZoneLabel": "Move to Root category",
+  "trashCategoryDropZoneLabel": "Move to Trash category",
 
   "newFolder": "New Folder",
   "newProject": "New Project",
@@ -250,7 +261,6 @@
   "newEmptyProject": "New empty project",
   "noProjectIsCurrentlyOpen": "No project is currently open.",
   "youAreNotLoggedIn": "You are not logged in.",
-  "dropToUploadFiles": "Drop to upload files",
   "downloadFreeEdition": "Download Free Edition",
   "thisFolderIsEmpty": "This folder is empty.",
   "yourTrashIsEmpty": "Your trash is empty.",
@@ -297,6 +307,7 @@
   "localAssetsDoNotHaveVersions": "Local assets do not have versions",
   "noVersionsFound": "No versions found",
   "latestIndicator": "(Latest)",
+  "noDateSelected": "No date selected",
 
   "deleteLabelActionText": "delete the label '$0'",
   "deleteSelectedAssetActionText": "delete '$0'",
@@ -448,6 +459,7 @@
   "copyAllShortcut": "Copy All",
   "cutAllShortcut": "Cut All",
   "pasteAllShortcut": "Paste All",
+  "deleteLabelShortcut": "Delete Label",
 
   "nameColumnShow": "Show Name column",
   "nameColumnHide": "Hide Name column",
@@ -483,5 +495,15 @@
   "editAssetDescriptionModalTitle": "Edit Asset Description",
   "editAssetDescriptionModalPlaceholder": "Enter a description for the asset",
   "editAssetDescriptionModalSubmit": "Submit",
-  "editAssetDescriptionModalCancel": "Cancel"
+  "editAssetDescriptionModalCancel": "Cancel",
+
+  "assetSearchFieldLabel": "Search through items",
+  "userMenuLabel": "User menu",
+  "categorySwitcherMenuLabel": "Category switcher",
+  "labelsListLabel": "Labels",
+  "globalContextMenuLabel": "Global context menu",
+  "assetsTableContextMenuLabel": "Drive context menu",
+  "assetContextMenuLabel": "Asset context menu",
+  "labelContextMenuLabel": "Label context menu",
+  "settingsSidebarLabel": "Settings sidebar"
 }

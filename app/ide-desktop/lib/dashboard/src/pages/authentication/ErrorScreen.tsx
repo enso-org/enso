@@ -3,6 +3,8 @@ import * as React from 'react'
 
 import * as textProvider from '#/providers/TextProvider'
 
+import * as aria from '#/components/aria'
+
 import * as errorModule from '#/utilities/error'
 
 // ===================
@@ -21,9 +23,9 @@ export default function ErrorScreen(props: ErrorScreenProps) {
   return (
     <div className="grid h-screen w-screen place-items-center text-primary">
       <div className="flex flex-col items-center gap-status-page text-center text-base">
-        <span>{getText('appErroredMessage')}</span>
-        <span>{getText('appErroredPrompt')}</span>
-        <span className="text-delete">{errorModule.getMessageOrToString(error)}</span>
+        <aria.Text>{getText('appErroredMessage')}</aria.Text>
+        <aria.Text>{getText('appErroredPrompt')}</aria.Text>
+        <aria.Text className="text-delete">{errorModule.getMessageOrToString(error)}</aria.Text>
       </div>
     </div>
   )

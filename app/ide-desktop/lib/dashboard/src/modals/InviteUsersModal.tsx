@@ -6,14 +6,21 @@ import isEmail from 'validator/es/lib/isEmail'
 import CrossIcon from 'enso-assets/cross.svg'
 
 import * as asyncEffectHooks from '#/hooks/asyncEffectHooks'
+import * as focusHooks from '#/hooks/focusHooks'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
 import * as authProvider from '#/providers/AuthProvider'
 import * as backendProvider from '#/providers/BackendProvider'
+import * as focusDirectionProvider from '#/providers/FocusDirectionProvider'
 import * as modalProvider from '#/providers/ModalProvider'
 import * as textProvider from '#/providers/TextProvider'
 
+import * as aria from '#/components/aria'
 import Modal from '#/components/Modal'
+import ButtonRow from '#/components/styled/ButtonRow'
+import FocusArea from '#/components/styled/FocusArea'
+import FocusRing from '#/components/styled/FocusRing'
+import UnstyledButton from '#/components/UnstyledButton'
 
 import * as backendModule from '#/services/Backend'
 
@@ -38,6 +45,8 @@ interface InternalEmailProps {
 /** A self-validating email display. */
 function Email(props: InternalEmailProps) {
   const { email, isValid, doDelete } = props
+  const focusChildProps = focusHooks.useFocusChild()
+
   return (
     <div
       // This UI element does not appear anywhere else.
@@ -46,13 +55,75 @@ function Email(props: InternalEmailProps) {
         isValid ? 'bg-dim/5' : 'bg-red-400/25 text-red-900'
       }`}
     >
-      {email}{' '}
+      <aria.Text {...focusChildProps}>{email}</aria.Text>{' '}
       <img
-        className="cursor-pointer rounded-full hover:brightness-50"
-        src={CrossIcon}
-        onClick={doDelete}
+        {...aria.mergeProps<JSX.IntrinsicElements['img']>()(focusChildProps, {
+          role: 'button',
+          className: 'cursor-pointer rounded-full hover:brightness-50',
+          src: CrossIcon,
+          onClick: doDelete,
+        })}
       />
     </div>
+  )
+}
+
+/** Props for a {@link EmailInput}. */
+interface InternalEmailInputProps {
+  readonly doAdd: (value: string) => void
+  readonly doDelete: () => void
+}
+
+/** An input for entering an email. */
+function EmailInput(props: InternalEmailInputProps) {
+  const { doAdd, doDelete } = props
+  const { getText } = textProvider.useText()
+  const focusDirection = focusDirectionProvider.useFocusDirection()
+  const handleFocusMove = focusHooks.useHandleFocusMove(focusDirection)
+
+  const doSubmit = (element: HTMLInputElement, force = false) => {
+    const value = element.value + (force ? ' ' : '')
+    if (/ /.test(value)) {
+      const parts = value.split(' ')
+      for (const newPart of parts.slice(0, -1).filter(part => part !== '')) {
+        doAdd(newPart)
+      }
+      element.value = parts[parts.length - 1] ?? ''
+      element.style.width = `${MIN_EMAIL_INPUT_WIDTH}px`
+    } else {
+      element.style.width = '0px'
+      const contentWidth = element.scrollWidth
+      element.style.width = `${Math.max(contentWidth, MIN_EMAIL_INPUT_WIDTH)}px`
+    }
+  }
+
+  return (
+    <FocusRing>
+      <aria.Input
+        autoFocus
+        type="text"
+        placeholder={getText('typeEmailToInvite')}
+        className="text max-w-full rounded-full bg-transparent px-input-x"
+        onKeyDown={event => {
+          if (
+            event.key === 'Backspace' &&
+            event.currentTarget.selectionStart === 0 &&
+            event.currentTarget.selectionEnd === 0
+          ) {
+            doDelete()
+          } else if (event.key === 'Enter' && event.currentTarget.value !== '') {
+            event.stopPropagation()
+            doSubmit(event.currentTarget, true)
+          } else {
+            handleFocusMove(event)
+          }
+        }}
+        onInput={event => {
+          event.stopPropagation()
+          doSubmit(event.currentTarget)
+        }}
+      />
+    </FocusRing>
   )
 }
 
@@ -75,7 +146,6 @@ export default function InviteUsersModal(props: InviteUsersModalProps) {
   const { getText } = textProvider.useText()
   const toastAndLog = toastAndLogHooks.useToastAndLog()
   const [newEmails, setNewEmails] = React.useState<string[]>([])
-  const [email, setEmail] = React.useState<string>('')
   const position = React.useMemo(() => eventTarget?.getBoundingClientRect(), [eventTarget])
   const members = asyncEffectHooks.useAsyncEffect([], () => backend.listUsers(), [backend])
   const existingEmails = React.useMemo(
@@ -130,84 +200,61 @@ export default function InviteUsersModal(props: InviteUsersModalProps) {
           mouseEvent.stopPropagation()
           mouseEvent.preventDefault()
         }}
-        onKeyDown={event => {
-          if (event.key !== 'Escape') {
-            event.stopPropagation()
-          }
-        }}
       >
         <div className="relative flex flex-col gap-modal rounded-default p-modal-wide pt-modal">
-          <h2 className="text text-sm font-bold">{getText('invite')}</h2>
+          <aria.Heading level={2} className="text text-sm font-bold">
+            {getText('invite')}
+          </aria.Heading>
           <form
             className="grow"
             onSubmit={event => {
               event.preventDefault()
-              if (email !== '') {
-                setNewEmails([...newEmails, email])
-                setEmail('')
-              } else if (canSubmit) {
+              if (canSubmit) {
                 doSubmit()
               }
             }}
           >
-            <label className="block min-h-paragraph-input rounded-default border border-primary/10 p-multiline-input">
-              {Array.from(newEmails, (newEmail, i) => (
-                <Email
-                  key={i}
-                  email={newEmail}
-                  isValid={
-                    isEmail(newEmail) &&
-                    !existingEmails.has(newEmail) &&
-                    newEmails.indexOf(newEmail) === i
-                  }
-                  doDelete={() => {
-                    setNewEmails([...newEmails.slice(0, i), ...newEmails.slice(i + 1)])
-                  }}
-                />
-              ))}
-              <input
-                autoFocus
-                type="text"
-                placeholder={getText('typeEmailToInvite')}
-                className="text max-w-full bg-transparent"
-                value={email}
-                onKeyDown={event => {
-                  if (
-                    event.key === 'Backspace' &&
-                    event.currentTarget.selectionStart === 0 &&
-                    event.currentTarget.selectionEnd === 0
-                  ) {
-                    setNewEmails(newEmails.slice(0, -1))
-                  }
-                }}
-                onInput={event => {
-                  const element = event.currentTarget
-                  const value = element.value
-                  if (/ /.test(value)) {
-                    const parts = value.split(' ')
-                    setNewEmails([...newEmails, ...parts.slice(0, -1).filter(part => part !== '')])
-                    setEmail(parts[parts.length - 1] ?? '')
-                    element.style.width = `${MIN_EMAIL_INPUT_WIDTH}px`
-                  } else {
-                    setEmail(value)
-                    element.style.width = '0px'
-                    const contentWidth = element.scrollWidth
-                    element.style.width = `${Math.max(contentWidth, MIN_EMAIL_INPUT_WIDTH)}px`
-                  }
-                }}
-              />
-            </label>
+            <FocusArea direction="horizontal">
+              {innerProps => (
+                <aria.TextField
+                  className="block min-h-paragraph-input rounded-default border border-primary/10 p-multiline-input"
+                  {...innerProps}
+                >
+                  {Array.from(newEmails, (newEmail, i) => (
+                    <Email
+                      key={i}
+                      email={newEmail}
+                      isValid={
+                        isEmail(newEmail) &&
+                        !existingEmails.has(newEmail) &&
+                        newEmails.indexOf(newEmail) === i
+                      }
+                      doDelete={() => {
+                        setNewEmails([...newEmails.slice(0, i), ...newEmails.slice(i + 1)])
+                      }}
+                    />
+                  ))}
+                  <EmailInput
+                    doAdd={value => {
+                      setNewEmails(emails => [...emails, value])
+                    }}
+                    doDelete={() => {
+                      setNewEmails(emails => emails.slice(0, -1))
+                    }}
+                  />
+                </aria.TextField>
+              )}
+            </FocusArea>
           </form>
-          <div className="self-start">
-            <button
-              type="submit"
-              disabled={!canSubmit}
+          <ButtonRow>
+            <UnstyledButton
+              isDisabled={!canSubmit}
               className="button bg-invite text-tag-text enabled:active"
-              onClick={doSubmit}
+              onPress={doSubmit}
             >
               {getText('invite')}
-            </button>
-          </div>
+            </UnstyledButton>
+          </ButtonRow>
         </div>
       </div>
     </Modal>

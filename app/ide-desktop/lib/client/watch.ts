@@ -42,10 +42,7 @@ process.env.ELECTRON_DEV_MODE = 'true'
 console.log('Cleaning IDE dist directory.')
 await fs.rm(IDE_DIR_PATH, { recursive: true, force: true })
 await fs.mkdir(IDE_DIR_PATH, { recursive: true })
-await fs.symlink(
-    path.resolve('../../../../node_modules'),
-    path.resolve(IDE_DIR_PATH, './node_modules')
-)
+const NODE_MODULES_PATH = path.resolve('../../../../node_modules')
 
 const ALL_BUNDLES_READY = new Promise<Watches>((resolve, reject) => {
     void (async () => {
@@ -81,6 +78,12 @@ const ALL_BUNDLES_READY = new Promise<Watches>((resolve, reject) => {
 
 await ALL_BUNDLES_READY
 console.log('Exposing Project Manager bundle.')
+console.log(
+    `Linking '${PROJECT_MANAGER_BUNDLE_PATH}' to '${path.join(
+        IDE_DIR_PATH,
+        paths.PROJECT_MANAGER_BUNDLE
+    )}'.`
+)
 await fs.symlink(
     PROJECT_MANAGER_BUNDLE_PATH,
     path.join(IDE_DIR_PATH, paths.PROJECT_MANAGER_BUNDLE),
@@ -104,6 +107,8 @@ while (true) {
     const electronProcess = childProcess.spawn('electron', ELECTRON_ARGS, {
         stdio: 'inherit',
         shell: true,
+        // eslint-disable-next-line @typescript-eslint/naming-convention
+        env: Object.assign({ NODE_MODULES_PATH }, process.env),
     })
     console.log('Waiting for Electron process to finish.')
     const result = await new Promise((resolve, reject) => {
