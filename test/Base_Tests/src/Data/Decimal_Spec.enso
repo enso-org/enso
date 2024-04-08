@@ -661,6 +661,7 @@ add_specs suite_builder =
             Decimal.new "-12.345" . signum . should_equal -1
             Decimal.new "12.345E97" . signum . should_equal 1
             Decimal.new "-12.345E97" . signum . should_equal -1
+            Decimal.new "0" . signum . should_equal 0
 
 main =
     suite = Test.build suite_builder->

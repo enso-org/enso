@@ -695,7 +695,7 @@ type Decimal
        > Example
          Compute the sign of a `Decimal`.
 
-             Decimal.new "-12.345" . negate
+             Decimal.new "-12.345" . signum
              # => -1
     signum : Integer
     signum self -> Integer = self.big_decimal.signum
