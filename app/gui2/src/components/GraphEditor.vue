@@ -60,8 +60,12 @@ const interaction = provideInteractionHandler()
 
 // === Viewport localstorage sync ===
 
-const graphUniqueKey = computed(() => {
+const graphViewportStorageKey = computed(() => {
   const encoded = encoding.encode((enc) => {
+    // Viewport needs to be stored separately for:
+    // - each project
+    // - each module (execution stack bottom)
+    // - each unique function within the module (execution stack top)
     encoding.writeVarString(enc, projectStore.name)
     encodeItemLocation(enc, projectStore.executionContext.getStackBottom())
     encodeItemLocation(enc, projectStore.executionContext.getStackTop())
@@ -74,7 +78,7 @@ const storedViewport = useLocalStorage<ViewportStorage>('enso-viewport', new Map
 const MAX_STORED_VIEWPORTS = 256
 
 watch(
-  graphUniqueKey,
+  graphViewportStorageKey,
   (key, prevKey) => {
     if (prevKey != null) storeCurrentViewport(prevKey)
     restoreViewport(key)
@@ -84,7 +88,7 @@ watch(
 
 debouncedWatch(
   () => [graphNavigator.targetCenter, graphNavigator.scale],
-  () => storeCurrentViewport(graphUniqueKey.value),
+  () => storeCurrentViewport(graphViewportStorageKey.value),
   { debounce: 200 },
 )
 
