@@ -175,7 +175,7 @@ add_specs suite_builder setup:Cloud_Tests_Setup = setup.with_prepared_environmen
             dir.is_descendant_of Enso_File.root . should_be_true
             Enso_File.root.is_descendant_of dir . should_be_false
 
-            nested_file.path . should_equal "enso://test-directory/another.txt"
+            nested_file.path . should_equal "enso://"+Enso_User.current.organization_name+"/test-directory/another.txt"
             nested_file.parent . should_equal dir
 
             nested_file.is_descendant_of dir . should_be_true

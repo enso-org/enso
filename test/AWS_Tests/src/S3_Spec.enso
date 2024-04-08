@@ -103,7 +103,7 @@ add_specs suite_builder =
 
             (root / "foo/../././bar") . should_equal (root / "bar")
             err = (root / "..")
-            err.should_fail_with S3_Error
+            err.should_fail_with Illegal_Argument
             err.catch.to_display_text . should_contain "Cannot move above root"
 
             hello_txt.parent.parent.parent . should_equal root
