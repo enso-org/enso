@@ -26,7 +26,10 @@ registerAutoBlurHandler()
 const appStyle = computed<CSSProperties>(() => {
   const topBarOptions = guiConfig.value.window.topBar
   const verticalDisplacement = topBarOptions.height + topBarOptions.margin * 2
-  return { marginTop: `-${verticalDisplacement}px` }
+  return {
+    marginTop: `-${verticalDisplacement}px`,
+    marginBottom: `${verticalDisplacement}px`,
+  }
 })
 
 // Initialize suggestion db immediately, so it will be ready when user needs it.
