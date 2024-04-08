@@ -105,7 +105,7 @@ export default function OrganizationSettingsSection(props: OrganizationSettingsS
     if (oldLocation !== location) {
       try {
         setOrganization(object.merger({ address: location }))
-        const newOrganization = await backend.updateOrganization({ location })
+        const newOrganization = await backend.updateOrganization({ address: location })
         if (newOrganization != null) {
           setOrganization(newOrganization)
         }
@@ -122,8 +122,9 @@ export default function OrganizationSettingsSection(props: OrganizationSettingsS
 
   return (
     <SettingsSection title={getText('organization')}>
-      <div className="flex flex-col">
+      <div key={JSON.stringify(organization)} className="flex flex-col">
         <aria.TextField
+          key={organization.name}
           defaultValue={organization.name ?? ''}
           className="flex h-row gap-settings-entry"
         >
@@ -138,6 +139,7 @@ export default function OrganizationSettingsSection(props: OrganizationSettingsS
           />
         </aria.TextField>
         <aria.TextField
+          key={organization.email}
           defaultValue={organization.email ?? ''}
           className="flex h-row gap-settings-entry"
         >
@@ -163,6 +165,7 @@ export default function OrganizationSettingsSection(props: OrganizationSettingsS
           />
         </aria.TextField>
         <aria.TextField
+          key={organization.website}
           defaultValue={organization.website ?? ''}
           className="flex h-row gap-settings-entry"
         >
@@ -177,6 +180,7 @@ export default function OrganizationSettingsSection(props: OrganizationSettingsS
           />
         </aria.TextField>
         <aria.TextField
+          key={organization.address}
           defaultValue={organization.address ?? ''}
           className="flex h-row gap-settings-entry"
         >
