@@ -5,21 +5,12 @@ import com.sun.net.httpserver.HttpHandler;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
-import java.util.Random;
 
 public abstract class SimpleHttpHandler implements HttpHandler {
   private final boolean logRequests = false;
 
-  private final Random random = new Random();
-
   @Override
   public final void handle(HttpExchange exchange) throws IOException {
-    if (random.nextBoolean()) {
-      System.out.println("I'm not doing stuff this time...");
-      exchange.close();
-      return;
-    }
-
     try {
       if (logRequests) {
         System.out.println(
