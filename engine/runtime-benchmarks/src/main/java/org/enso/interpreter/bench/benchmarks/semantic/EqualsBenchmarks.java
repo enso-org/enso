@@ -7,6 +7,7 @@ import java.util.List;
 import java.util.Random;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
+import org.enso.compiler.benchmarks.Utils;
 import org.enso.polyglot.MethodNames.Module;
 import org.graalvm.polyglot.Value;
 import org.openjdk.jmh.annotations.Benchmark;
@@ -53,7 +54,7 @@ public class EqualsBenchmarks {
   public void initializeBenchmark(BenchmarkParams params) throws Exception {
     var random = new Random(42);
 
-    var ctx = SrcUtil.newContextBuilder().build();
+    var ctx = Utils.createDefaultContextBuilder().build();
 
     var benchmarkName = SrcUtil.findName(params);
     var codeBuilder =
