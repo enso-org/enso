@@ -13,6 +13,7 @@ import { mockDataHandler, mockLSHandler, mockYdocProvider } from '../mock/engine
 const container = document.createElement('div')
 document.body.appendChild(container)
 container.id = 'app'
+container.style.setProperty('--top-bar-height', '0px')
 
 import 'enso-dashboard/src/tailwind.css'
 
