@@ -33,6 +33,7 @@ import { iteratorFilter } from 'lib0/iterator'
 import { defineStore } from 'pinia'
 import { SourceDocument } from 'shared/ast/sourceDocument'
 import type { ExpressionUpdate, StackItem } from 'shared/languageServerTypes'
+import { reachable } from 'shared/util/data/graph'
 import type {
   LocalUserActionOrigin,
   Origin,
@@ -662,7 +663,7 @@ export const useGraphStore = defineStore('graph', () => {
     // If source is placed after its new target, the nodes needs to be reordered.
     if (sourceIdx > targetIdx) {
       // Find all transitive dependencies of the moved target node.
-      const deps = db.dependantNodes(targetNodeId)
+      const deps = reachable([targetNodeId], (node) => db.nodeDependents.lookup(node))
 
       const dependantLines = new Set(
         Array.from(deps, (id) => db.nodeIdToNode.get(id)?.outerExpr.id),

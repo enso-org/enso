@@ -7,8 +7,13 @@ import * as dataLinkValidator from '#/data/dataLinkValidator'
 import * as modalProvider from '#/providers/ModalProvider'
 import * as textProvider from '#/providers/TextProvider'
 
+import * as aria from '#/components/aria'
 import DataLinkInput from '#/components/dashboard/DataLinkInput'
 import Modal from '#/components/Modal'
+import ButtonRow from '#/components/styled/ButtonRow'
+import FocusArea from '#/components/styled/FocusArea'
+import FocusRing from '#/components/styled/FocusRing'
+import UnstyledButton from '#/components/UnstyledButton'
 
 import * as jsonSchema from '#/utilities/jsonSchema'
 
@@ -39,54 +44,65 @@ export default function UpsertDataLinkModal(props: UpsertDataLinkModalProps) {
   const isValueSubmittable = React.useMemo(() => dataLinkValidator.validateDataLink(value), [value])
   const isSubmittable = name !== '' && isValueSubmittable
 
+  const doSubmit = () => {
+    unsetModal()
+    doCreate(name, value)
+  }
+
   return (
     <Modal centered className="bg-dim">
       <form
         className="pointer-events-auto relative flex w-upsert-data-link-modal flex-col gap-modal rounded-default p-modal-wide pt-modal before:absolute before:inset before:h-full before:w-full before:rounded-default before:bg-selected-frame before:backdrop-blur-default"
-        onKeyDown={event => {
-          if (event.key !== 'Escape') {
-            event.stopPropagation()
-          }
-        }}
         onClick={event => {
           event.stopPropagation()
         }}
         onSubmit={event => {
           event.preventDefault()
-          unsetModal()
-          doCreate(name, value)
+          doSubmit()
         }}
       >
-        <h1 className="relative text-sm font-semibold">{getText('createDataLink')}</h1>
-        <div className="relative flex items-center" title={getText('mustNotBeBlank')}>
-          <div className="text w-modal-label">{getText('name')}</div>
-          <input
-            autoFocus
-            placeholder={getText('dataLinkNamePlaceholder')}
-            className={`text grow rounded-full border bg-transparent px-input-x ${
-              name !== '' ? 'border-primary/10' : 'border-red-700/60'
-            }`}
-            value={name}
-            onInput={event => {
-              setName(event.currentTarget.value)
-            }}
-          />
-        </div>
+        <aria.Heading className="relative text-sm font-semibold">
+          {getText('createDataLink')}
+        </aria.Heading>
+        <FocusArea direction="horizontal">
+          {innerProps => (
+            <aria.TextField
+              aria-errormessage={getText('mustNotBeBlank')}
+              className="relative flex items-center"
+              {...innerProps}
+            >
+              <aria.Label className="text w-modal-label">{getText('name')}</aria.Label>
+              <FocusRing>
+                <aria.Input
+                  autoFocus
+                  placeholder={getText('dataLinkNamePlaceholder')}
+                  className={`focus-child text grow rounded-full border bg-transparent px-input-x ${
+                    name !== '' ? 'border-primary/10' : 'border-red-700/60'
+                  }`}
+                  value={name}
+                  onInput={event => {
+                    setName(event.currentTarget.value)
+                  }}
+                />
+              </FocusRing>
+            </aria.TextField>
+          )}
+        </FocusArea>
         <div className="relative">
           <DataLinkInput dropdownTitle="Type" value={value} setValue={setValue} />
         </div>
-        <div className="relative flex gap-buttons">
-          <button
-            type="submit"
-            disabled={!isSubmittable}
+        <ButtonRow>
+          <UnstyledButton
+            isDisabled={!isSubmittable}
             className="button bg-invite text-white enabled:active"
+            onPress={doSubmit}
           >
             {getText('create')}
-          </button>
-          <button type="button" className="button bg-selected-frame active" onClick={unsetModal}>
+          </UnstyledButton>
+          <UnstyledButton className="button bg-selected-frame active" onPress={unsetModal}>
             {getText('cancel')}
-          </button>
-        </div>
+          </UnstyledButton>
+        </ButtonRow>
       </form>
     </Modal>
   )
