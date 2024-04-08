@@ -529,11 +529,22 @@ type Decimal
        Arguments to `remainder` will undergo automatic conversions such that you
        need not convert other numeric types to `Decimal` manually.
 
+       ? Negative Arguments
+
+         When the first argument to `remainder` is negative, the result will
+         also be negative.
+
        > Example
          Computing the remainder when dividing 10 by 3 (which is 1).
 
              remainder = Decimal.new 10 . remainder 3
              # => 1
+
+       > Example
+         Computing the remainder of a negative number.
+
+             remainder = Decimal.new -5 . remainder 3
+             # => -2
     remainder : Decimal -> Decimal -> Decimal
     remainder self (that : Decimal) =
         handle_java_exception <|
@@ -550,11 +561,22 @@ type Decimal
        Arguments to `%` will undergo automatic conversions such that you
        need not convert other numeric types to `Decimal` manually.
 
+       ? Negative Arguments
+
+         When the first argument to `%` is negative, the result will also be
+         negative.
+
        > Example
          Computing the remainder when dividing 10 by 3 (which is 1).
 
              remainder = Decimal.new 10 % 3
              # => 1
+
+       > Example
+         Computing the remainder of a negative number.
+
+             remainder = Decimal.new -5 % 3
+             # => -2
     % : Decimal -> Decimal -> Decimal
     % self (that : Decimal) = self.remainder that
 
@@ -699,8 +721,9 @@ type Decimal
     to_float : Integer
     to_float self =
         f = self.big_decimal.doubleValue
-        if f.is_infinite then Warning.attach (Out_Of_Range.Error self) f else
-            attach_loss_of_numeric_precision self f
+        if f.is_finite then attach_loss_of_numeric_precision self f else
+            message = "Outside representable Float range (approximately (-1.8E308, 1.8E308))"
+            Warning.attach (Out_Of_Range.Error self message) f
 
     ## PRIVATE
     precision : Integer

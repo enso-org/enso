@@ -16,7 +16,7 @@ polyglot java import com.google.analytics.data.v1beta.RunReportRequest
 
 read_api_data property_id:Text dimensions:Vector metrics:Vector start_date:Date end_date:Date credentials:Google_Credential -> Table =
     managed_analytics_data = case credentials of
-        Google_Credential.Default -> Managed_Resource (BetaAnalyticsDataClient.create) r-> r.close
+        Google_Credential.Default -> Managed_Resource.register (BetaAnalyticsDataClient.create) r-> r.close
         Google_Credential.From_File _ -> 
             betaAnalyticsDataSettings = BetaAnalyticsDataSettings.newBuilder
                . setCredentialsProvider credentials.as_java
