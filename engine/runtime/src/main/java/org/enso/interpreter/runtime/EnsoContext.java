@@ -734,6 +734,11 @@ public final class EnsoContext {
     return threadExecutors.newCachedThreadPool(name, systemThreads, min, max);
   }
 
+  public ExecutorService newCachedThreadPool(
+      String name, int min, int max, int maxQueueSize, boolean systemThreads) {
+    return threadExecutors.newCachedThreadPool(name, systemThreads, min, max, maxQueueSize);
+  }
+
   /**
    * @param parallel amount of parallelism for the pool
    * @param name human-readable name of the pool

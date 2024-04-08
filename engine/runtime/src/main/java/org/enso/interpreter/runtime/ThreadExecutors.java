@@ -39,6 +39,22 @@ final class ThreadExecutors {
     return s;
   }
 
+  ExecutorService newCachedThreadPool(
+      String name, boolean systemThread, int min, int max, int maxQueueSize) {
+    assert min >= 0;
+    assert max <= Integer.MAX_VALUE;
+    var s =
+        new ThreadPoolExecutor(
+            min,
+            max,
+            60L,
+            TimeUnit.SECONDS,
+            new LinkedBlockingQueue<>(maxQueueSize),
+            new Factory(name, systemThread));
+    pools.put(s, name);
+    return s;
+  }
+
   ExecutorService newFixedThreadPool(int cnt, String name, boolean systemThread) {
     var s = Executors.newFixedThreadPool(cnt, new Factory(name, systemThread));
     pools.put(s, name);

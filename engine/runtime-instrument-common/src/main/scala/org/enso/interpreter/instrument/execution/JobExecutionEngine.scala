@@ -50,12 +50,13 @@ final class JobExecutionEngine(
     context.newCachedThreadPool(
       "prioritized-job-pool",
       2,
-      Integer.MAX_VALUE,
+      4,
+      20,
       false
     )
 
   private val backgroundJobExecutor: ExecutorService =
-    context.newFixedThreadPool(4, "background-job-pool", false)
+    context.newCachedThreadPool("background-job-pool", 1, 4, 20, false)
 
   private val runtimeContext =
     RuntimeContext(
