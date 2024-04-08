@@ -247,6 +247,7 @@ watchEffect(() => {
     : {
         type: typeof props.data,
         json: props.data,
+        // eslint-disable-next-line camelcase
         all_rows_count: 1,
         data: undefined,
         indices: undefined,
