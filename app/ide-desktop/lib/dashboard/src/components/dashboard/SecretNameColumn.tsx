@@ -44,11 +44,11 @@ export default function SecretNameColumn(props: SecretNameColumnProps) {
   const { setModal } = modalProvider.useSetModal()
   const { backend } = backendProvider.useBackend()
   const inputBindings = inputBindingsProvider.useInputBindings()
-  const asset = item.item
-  if (asset.type !== backendModule.AssetType.secret) {
+  if (item.type !== backendModule.AssetType.secret) {
     // eslint-disable-next-line no-restricted-syntax
     throw new Error('`SecretNameColumn` can only display secrets.')
   }
+  const asset = item.item
   const setAsset = setAssetHooks.useSetAsset(asset, setItem)
 
   eventHooks.useEventHandler(assetEvents, async event => {

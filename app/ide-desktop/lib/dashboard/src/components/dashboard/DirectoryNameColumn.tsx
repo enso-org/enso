@@ -45,11 +45,11 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
   const { backend } = backendProvider.useBackend()
   const { getText } = textProvider.useText()
   const inputBindings = inputBindingsProvider.useInputBindings()
-  const asset = item.item
-  if (asset.type !== backendModule.AssetType.directory) {
+  if (item.type !== backendModule.AssetType.directory) {
     // eslint-disable-next-line no-restricted-syntax
     throw new Error('`DirectoryNameColumn` can only display folders.')
   }
+  const asset = item.item
   const setAsset = setAssetHooks.useSetAsset(asset, setItem)
   const isCloud = backend.type === backendModule.BackendType.remote
 

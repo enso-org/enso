@@ -11,7 +11,7 @@ import SharedWithColumn from '#/components/dashboard/column/SharedWithColumn'
 
 import type * as backendModule from '#/services/Backend'
 
-import type AssetTreeNode from '#/utilities/AssetTreeNode'
+import type * as assetTreeNode from '#/utilities/AssetTreeNode'
 
 // ===================
 // === AssetColumn ===
@@ -20,8 +20,8 @@ import type AssetTreeNode from '#/utilities/AssetTreeNode'
 /** Props for an arbitrary variant of {@link backendModule.Asset}. */
 export interface AssetColumnProps {
   readonly keyProp: backendModule.AssetId
-  readonly item: AssetTreeNode
-  readonly setItem: React.Dispatch<React.SetStateAction<AssetTreeNode>>
+  readonly item: assetTreeNode.AnyAssetTreeNode
+  readonly setItem: React.Dispatch<React.SetStateAction<assetTreeNode.AnyAssetTreeNode>>
   readonly selected: boolean
   readonly setSelected: (selected: boolean) => void
   readonly isSoleSelected: boolean

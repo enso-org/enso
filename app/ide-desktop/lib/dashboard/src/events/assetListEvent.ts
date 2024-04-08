@@ -63,6 +63,7 @@ interface AssetListNewProjectEvent extends AssetListBaseEvent<AssetListEventType
   readonly parentId: backend.DirectoryId
   readonly templateId: string | null
   readonly templateName: string | null
+  readonly dataLinkId: backend.ConnectorId | null
   readonly onSpinnerStateChange: ((state: spinner.SpinnerState) => void) | null
 }
 
@@ -104,7 +105,7 @@ interface AssetListCloseFolderEvent extends AssetListBaseEvent<AssetListEventTyp
 
 /** A signal that files should be copied. */
 interface AssetListCopyEvent extends AssetListBaseEvent<AssetListEventType.copy> {
-  readonly newParentKey: backend.AssetId
+  readonly newParentKey: backend.DirectoryId
   readonly newParentId: backend.DirectoryId
   readonly items: backend.AnyAsset[]
 }
@@ -112,7 +113,7 @@ interface AssetListCopyEvent extends AssetListBaseEvent<AssetListEventType.copy>
 /** A signal that a file has been moved. */
 interface AssetListMoveEvent extends AssetListBaseEvent<AssetListEventType.move> {
   readonly key: backend.AssetId
-  readonly newParentKey: backend.AssetId
+  readonly newParentKey: backend.DirectoryId
   readonly newParentId: backend.DirectoryId
   readonly item: backend.AnyAsset
 }
