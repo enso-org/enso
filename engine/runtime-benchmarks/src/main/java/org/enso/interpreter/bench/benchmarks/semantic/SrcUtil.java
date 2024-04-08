@@ -3,15 +3,11 @@ package org.enso.interpreter.bench.benchmarks.semantic;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.nio.file.Paths;
 import java.util.Objects;
-import java.util.logging.Level;
 import org.enso.polyglot.MethodNames.Module;
-import org.enso.polyglot.RuntimeOptions;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Source;
 import org.graalvm.polyglot.Value;
-import org.graalvm.polyglot.io.IOAccess;
 import org.openjdk.jmh.infra.BenchmarkParams;
 
 final class SrcUtil {
@@ -48,25 +44,5 @@ final class SrcUtil {
       throw new AssertionError("Main method should be executable");
     }
     return main;
-  }
-
-  /**
-   * Typical builder suitable for benchmarking.
-   *
-   * @return preconfigured builder to use as a base for benchmarking
-   */
-  static Context.Builder newContextBuilder() {
-    return Context.newBuilder()
-        .allowExperimentalOptions(true)
-        .option(RuntimeOptions.LOG_LEVEL, Level.WARNING.getName())
-        .logHandler(System.err)
-        .allowIO(IOAccess.ALL)
-        .allowAllAccess(true)
-        .option("engine.MultiTier", "false")
-        .option("engine.BackgroundCompilation", "false")
-        .option("engine.CompilationFailureAction", "Print")
-        .option(
-            RuntimeOptions.LANGUAGE_HOME_OVERRIDE,
-            Paths.get("../../distribution/component").toFile().getAbsolutePath());
   }
 }
