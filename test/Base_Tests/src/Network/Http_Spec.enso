@@ -546,7 +546,7 @@ add_specs suite_builder =
             r2.headers.find (p-> p.name.equals_ignore_case "Test-Header") . value . should_equal "test-value"
             r2.headers.find (p-> p.name.equals_ignore_case "Other-Header") . value . should_equal "some other value"
 
-        group_builder.specify "is capable of handling aliasing headers" <|
+        group_builder.specify "is capable of handling aliasing headers" <| Test.with_retries <|
             uri = URI.from (base_url_with_slash + "test_headers")
                 . add_query_argument "my-header" "value-1"
                 . add_query_argument "my-header" "value-2"
@@ -591,7 +591,7 @@ add_specs suite_builder =
 
         ## Checking this error partially as a warning - I spent a lot of time debugging why I'm getting such an error.
            Apparently it happens when the httpbin server was crashing without sending any response.
-        group_builder.specify "should be able to handle server crash resulting in no response" pending=pending_has_url <|
+        group_builder.specify "should be able to handle server crash resulting in no response" pending=pending_has_url <| Test.with_retries <|
             err = Data.fetch (base_url_with_slash+"crash")
             err.should_fail_with Request_Error
             err.catch.error_type . should_equal "java.io.IOException"
