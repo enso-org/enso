@@ -186,10 +186,11 @@ add_specs suite_builder setup:Cloud_Tests_Setup = setup.with_prepared_environmen
             nested_file = dir / "another.txt"
             nested_file.path . should_equal "enso://test-directory/another.txt"
             nested_file.parent . should_equal dir
-               (even though one is a prefix of the other, but not in the directory tree sense)
+
             nested_file.is_descendant_of dir . should_be_true
             nested_file.is_descendant_of Enso_File.root . should_be_true
-            (root / "test-directory-longer-name") . is_descendant_of (root / "test-directory") . should_be_false
+            (Enso_File.root / "test-directory-longer-name") . is_descendant_of (Enso_File.root / "test-directory") . should_be_false
+            (Enso_File.root / "test-directory" / "non-existent") . is_descendant_of (Enso_File.root / "test-directory") . should_be_false
 
         group_builder.specify "should be able to read other file metadata" pending="TODO needs further design" <|
             nested_file = Enso_File.root / "test-directory" / "another.txt"
@@ -202,15 +203,13 @@ add_specs suite_builder setup:Cloud_Tests_Setup = setup.with_prepared_environmen
 
         group_builder.specify "should be able to copy a file" pending="TODO Cloud file writing" <|
             nested_file = Enso_File.root / "test-directory" / "another.txt"
-            ## TODO currently `/` only works if the file already exists, so how will we construct a path for a copy target?
-               We either need to make all files just paths (like on regular File), or we need to have concrete files (with ID) and abstract files (just path).
-            new_file = nested_file.copy_to "TODO this needs design"
+            new_file = nested_file.copy_to "TODO"
             nested_file.exists.should_be_true
             new_file.exists.should_be_true
 
         group_builder.specify "should be able to move a file" pending="TODO Cloud file writing" <|
             nested_file = Enso_File.root / "test-directory" / "another.txt"
-            nested_file.move_to "TODO this needs design"
+            nested_file.move_to "TODO"
             nested_file.exists . should_be_false
 
 main filter=Nothing =
