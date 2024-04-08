@@ -137,7 +137,6 @@ export interface AppProps {
   readonly initialProjectName: string | null
   readonly onAuthenticated: (accessToken: string | null) => void
   readonly projectManagerUrl: string | null
-  readonly projectManagerRootDirectory: projectManager.Path | null
   readonly appRunner: AppRunner
 }
 
@@ -190,7 +189,7 @@ export default function App(props: AppProps) {
       />
       <Router basename={getMainPageUrl().pathname}>
         <LocalStorageProvider>
-          <AppRouter {...props} />
+          <AppRouter {...props} projectManagerRootDirectory={rootDirectoryPath} />
         </LocalStorageProvider>
       </Router>
     </reactQuery.QueryClientProvider>
@@ -201,12 +200,17 @@ export default function App(props: AppProps) {
 // === AppRouter ===
 // =================
 
+/** Props for an {@link AppRouter}. */
+export interface AppRouterProps extends AppProps {
+  readonly projectManagerRootDirectory: projectManager.Path | null
+}
+
 /** Router definition for the app.
  *
  * The only reason the {@link AppRouter} component is separate from the {@link App} component is
  * because the {@link AppRouter} relies on React hooks, which can't be used in the same React
  * component as the component that defines the provider. */
-function AppRouter(props: AppProps) {
+function AppRouter(props: AppRouterProps) {
   const { logger, supportsLocalBackend, isAuthenticationDisabled, shouldShowDashboard } = props
   const { onAuthenticated, projectManagerUrl, projectManagerRootDirectory } = props
   // `navigateHooks.useNavigate` cannot be used here as it relies on `AuthProvider`, which has not
