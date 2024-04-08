@@ -1,18 +1,18 @@
 /** @file A Vue composable for panning and zooming a DOM element. */
 
-import { useApproach } from '@/composables/animation'
+import { useApproach, useApproachVec } from '@/composables/animation'
 import { PointerButtonMask, useEvent, usePointer, useResizeObserver } from '@/composables/events'
 import type { KeyboardComposable } from '@/composables/keyboard'
 import { Rect } from '@/util/data/rect'
 import { Vec2 } from '@/util/data/vec2'
-import { computed, proxyRefs, shallowRef, type Ref } from 'vue'
+import { computed, proxyRefs, readonly, shallowRef, toRef, type Ref } from 'vue'
 
 type ScaleRange = readonly [number, number]
-const DEFAULT_SCALE_RANGE: ScaleRange = [0.1, 10]
 const PAN_AND_ZOOM_DEFAULT_SCALE_RANGE: ScaleRange = [0.1, 1]
 const ZOOM_LEVELS = [
   0.1, 0.25, 0.33, 0.5, 0.67, 0.75, 0.8, 0.9, 1.0, 1.25, 1.5, 1.75, 2.0, 2.5, 3.0, 4.0, 5.0,
 ]
+const DEFAULT_SCALE_RANGE: ScaleRange = [Math.min(...ZOOM_LEVELS), Math.max(...ZOOM_LEVELS)]
 const ZOOM_LEVELS_REVERSED = [...ZOOM_LEVELS].reverse()
 /** The fraction of the next zoom level.
  * If we are that close to next zoom level, we should choose the next one instead
@@ -29,33 +29,12 @@ export type NavigatorComposable = ReturnType<typeof useNavigator>
 export function useNavigator(viewportNode: Ref<Element | undefined>, keyboard: KeyboardComposable) {
   const size = useResizeObserver(viewportNode)
   const targetCenter = shallowRef<Vec2>(Vec2.Zero)
-  const targetX = computed(() => targetCenter.value.x)
-  const targetY = computed(() => targetCenter.value.y)
-  const centerX = useApproach(targetX)
-  const centerY = useApproach(targetY)
-  const center = computed({
-    get() {
-      return new Vec2(centerX.value, centerY.value)
-    },
-    set(value) {
-      targetCenter.value = value
-      centerX.value = value.x
-      centerY.value = value.y
-    },
-  })
+  const center = useApproachVec(targetCenter)
+
   const targetScale = shallowRef(1)
-  const animatedScale = useApproach(targetScale)
-  const scale = computed({
-    get() {
-      return animatedScale.value
-    },
-    set(value) {
-      targetScale.value = value
-      animatedScale.value = value
-    },
-  })
+  const scale = useApproach(targetScale)
   const panPointer = usePointer((pos) => {
-    center.value = center.value.addScaled(pos.delta, -1 / scale.value)
+    scrollTo(center.value.addScaled(pos.delta, -1 / scale.value))
   }, PointerButtonMask.Auxiliary)
 
   function eventScreenPos(e: { clientX: number; clientY: number }): Vec2 {
@@ -101,11 +80,7 @@ export function useNavigator(viewportNode: Ref<Element | undefined>, keyboard: K
         viewportNode.value.clientWidth / rect.width,
       ),
     )
-    const centerX =
-      !Number.isFinite(rect.left) && !Number.isFinite(rect.width) ? 0 : rect.left + rect.width / 2
-    const centerY =
-      !Number.isFinite(rect.top) && !Number.isFinite(rect.height) ? 0 : rect.top + rect.height / 2
-    targetCenter.value = new Vec2(centerX, centerY)
+    targetCenter.value = rect.center().finiteOrZero()
   }
 
   /** Pan to include the given prioritized list of coordinates.
@@ -125,7 +100,8 @@ export function useNavigator(viewportNode: Ref<Element | undefined>, keyboard: K
 
   /** Pan immediately to center the viewport at the given point, in scene coordinates. */
   function scrollTo(newCenter: Vec2) {
-    center.value = newCenter
+    targetCenter.value = newCenter
+    center.skip()
   }
 
   let zoomPivot = Vec2.Zero
@@ -136,10 +112,12 @@ export function useNavigator(viewportNode: Ref<Element | undefined>, keyboard: K
 
     const prevScale = scale.value
     updateScale((oldValue) => oldValue * Math.exp(-pos.delta.y / 100))
-    center.value = center.value
-      .sub(zoomPivot)
-      .scale(prevScale / scale.value)
-      .add(zoomPivot)
+    scrollTo(
+      center.value
+        .sub(zoomPivot)
+        .scale(prevScale / scale.value)
+        .add(zoomPivot),
+    )
   }, PointerButtonMask.Secondary)
 
   const viewport = computed(() => {
@@ -227,28 +205,30 @@ export function useNavigator(viewportNode: Ref<Element | undefined>, keyboard: K
 
   function updateScale(f: (value: number) => number, range: ScaleRange = DEFAULT_SCALE_RANGE) {
     const oldValue = scale.value
-    scale.value = directedClamp(oldValue, f(oldValue), range)
+    targetScale.value = directedClamp(oldValue, f(oldValue), range)
+    scale.skip()
   }
 
   /** Step to the next level from {@link ZOOM_LEVELS}.
    * @param zoomStepDelta step direction. If positive select larger zoom level; if negative  select smaller.
    * If 0, resets zoom level to 1.0. */
   function stepZoom(zoomStepDelta: number) {
-    const oldValue = scale.value
+    const oldValue = targetScale.value
     const insideThreshold = (level: number) =>
       Math.abs(oldValue - level) <= level * ZOOM_SKIP_THRESHOLD
     if (zoomStepDelta > 0) {
       const lastZoomLevel = ZOOM_LEVELS[ZOOM_LEVELS.length - 1]!
-      scale.value =
+      targetScale.value =
         ZOOM_LEVELS.find((level) => level > oldValue && !insideThreshold(level)) ?? lastZoomLevel
     } else if (zoomStepDelta < 0) {
       const firstZoomLevel = ZOOM_LEVELS[0]!
-      scale.value =
+      targetScale.value =
         ZOOM_LEVELS_REVERSED.find((level) => level < oldValue && !insideThreshold(level)) ??
         firstZoomLevel
     } else {
-      scale.value = 1.0
+      targetScale.value = 1.0
     }
+    scale.skip()
   }
 
   return proxyRefs({
@@ -292,7 +272,7 @@ export function useNavigator(viewportNode: Ref<Element | undefined>, keyboard: K
           }
         } else {
           const delta = new Vec2(e.deltaX, e.deltaY)
-          center.value = center.value.addScaled(delta, 1 / scale.value)
+          scrollTo(center.value.addScaled(delta, 1 / scale.value))
         }
       },
       contextmenu(e: Event) {
@@ -300,8 +280,9 @@ export function useNavigator(viewportNode: Ref<Element | undefined>, keyboard: K
       },
     },
     translate,
-    targetScale,
-    scale,
+    targetCenter: readonly(targetCenter),
+    targetScale: readonly(targetScale),
+    scale: readonly(toRef(scale, 'value')),
     viewBox,
     transform,
     /** Use this transform instead, if the element should not be scaled. */
@@ -314,5 +295,11 @@ export function useNavigator(viewportNode: Ref<Element | undefined>, keyboard: K
     viewport,
     stepZoom,
     scrollTo,
+    setCenterAndScale(newCenter: Vec2, newScale: number) {
+      targetCenter.value = newCenter
+      targetScale.value = newScale
+      scale.skip()
+      center.skip()
+    },
   })
 }

@@ -41,6 +41,10 @@ export class Vec2 {
     return this.x === 0 && this.y === 0
   }
 
+  finiteOrZero(): Vec2 {
+    return new Vec2(Number.isFinite(this.x) ? this.x : 0, Number.isFinite(this.y) ? this.y : 0)
+  }
+
   scale(scalar: number): Vec2 {
     return new Vec2(this.x * scalar, this.y * scalar)
   }

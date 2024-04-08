@@ -1,7 +1,9 @@
+import * as encoding from 'lib0/encoding'
 import type {
   SuggestionsDatabaseEntry,
   SuggestionsDatabaseUpdate,
 } from './languageServerTypes/suggestions'
+import { assertNever } from './util/assert'
 import type { ExternalId, Uuid } from './yjsModel'
 
 export type { Uuid }
@@ -361,6 +363,23 @@ export interface ExplicitCall {
 export interface LocalCall {
   type: 'LocalCall'
   expressionId: ExpressionId
+}
+
+export function encodeItemLocation(enc: encoding.Encoder, item: StackItem) {
+  switch (item.type) {
+    case 'LocalCall':
+      encoding.writeUint8(enc, 0)
+      encoding.writeVarString(enc, item.expressionId)
+      break
+    case 'ExplicitCall':
+      encoding.writeUint8(enc, 1)
+      encoding.writeVarString(enc, item.methodPointer.module)
+      encoding.writeVarString(enc, item.methodPointer.name)
+      encoding.writeVarString(enc, item.methodPointer.definedOnType)
+      break
+    default:
+      assertNever(item)
+  }
 }
 
 export function stackItemsEqual(left: StackItem, right: StackItem): boolean {

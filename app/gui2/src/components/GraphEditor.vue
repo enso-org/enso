@@ -37,7 +37,10 @@ import { partition } from '@/util/data/array'
 import { Rect } from '@/util/data/rect'
 import { Vec2 } from '@/util/data/vec2'
 import { useToast } from '@/util/toast'
-import * as set from 'lib0/set'
+import { debouncedWatch, useLocalStorage } from '@vueuse/core'
+import { encoding, set } from 'lib0'
+import { xxHash128 } from 'shared/ast/ffi'
+import { encodeItemLocation } from 'shared/languageServerTypes'
 import { computed, onMounted, ref, toRef, watch } from 'vue'
 import { ProjectManagerEvents } from '../../../ide-desktop/lib/dashboard/src/services/ProjectManager'
 import { type Usage } from './ComponentBrowser/input'
@@ -54,6 +57,58 @@ const componentBrowserNodePosition = ref<Vec2>(Vec2.Zero)
 const componentBrowserUsage = ref<Usage>({ type: 'newNode' })
 const suggestionDb = useSuggestionDbStore()
 const interaction = provideInteractionHandler()
+
+// === Viewport localstorage sync ===
+
+const graphUniqueKey = computed(() => {
+  const encoded = encoding.encode((enc) => {
+    encoding.writeVarString(enc, projectStore.name)
+    encodeItemLocation(enc, projectStore.executionContext.getStackBottom())
+    encodeItemLocation(enc, projectStore.executionContext.getStackTop())
+  })
+  return xxHash128(encoded)
+})
+
+type ViewportStorage = Map<string, { x: number; y: number; scale: number }>
+const storedViewport = useLocalStorage<ViewportStorage>('enso-viewport', new Map())
+const MAX_STORED_VIEWPORTS = 256
+
+watch(
+  graphUniqueKey,
+  (key, prevKey) => {
+    if (prevKey != null) storeCurrentViewport(prevKey)
+    restoreViewport(key)
+  },
+  { immediate: true },
+)
+
+debouncedWatch(
+  () => [graphNavigator.targetCenter, graphNavigator.scale],
+  () => storeCurrentViewport(graphUniqueKey.value),
+  { debounce: 200 },
+)
+
+function storeCurrentViewport(storageKey: string) {
+  const pos = graphNavigator.targetCenter
+  const scale = graphNavigator.targetScale
+  storedViewport.value.set(storageKey, { x: pos.x, y: pos.y, scale })
+  // Ensure that the storage doesn't grow forever by periodically removing least recently
+  // written half of entries when we reach a limit.
+  if (storedViewport.value.size > MAX_STORED_VIEWPORTS) {
+    let toRemove = MAX_STORED_VIEWPORTS / 2
+    for (const key of storedViewport.value.keys()) {
+      if (toRemove-- <= 0) break
+      storedViewport.value.delete(key)
+    }
+  }
+}
+
+function restoreViewport(storageKey: string) {
+  const restored = storedViewport.value.get(storageKey)
+  const pos = restored ? Vec2.FromXY(restored) : Vec2.Zero
+  const scale = restored?.scale ?? 1
+  graphNavigator.setCenterAndScale(pos, scale)
+}
 
 // === toasts ===
 
@@ -122,7 +177,7 @@ function zoomToSelected() {
     const rect = graphStore.visibleArea(id)
     if (rect) bounds = Rect.Bounding(bounds, rect)
   }
-  graphNavigator.panAndZoomTo(bounds, 0.1, Math.max(1, graphNavigator.scale))
+  graphNavigator.panAndZoomTo(bounds, 0.1, Math.max(1, graphNavigator.targetScale))
 }
 
 const graphBindingsHandler = graphBindings.handler({
@@ -667,7 +722,7 @@ const colorPickerStyle = computed(() =>
       :breadcrumbs="stackNavigator.breadcrumbLabels.value"
       :allowNavigationLeft="stackNavigator.allowNavigationLeft.value"
       :allowNavigationRight="stackNavigator.allowNavigationRight.value"
-      :zoomLevel="100.0 * graphNavigator.scale"
+      :zoomLevel="100.0 * graphNavigator.targetScale"
       @breadcrumbClick="stackNavigator.handleBreadcrumbClick"
       @back="stackNavigator.exitNode"
       @forward="stackNavigator.enterNextNodeFromHistory"
