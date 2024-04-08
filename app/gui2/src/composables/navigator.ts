@@ -2,15 +2,22 @@
 
 import { useApproach } from '@/composables/animation'
 import { PointerButtonMask, useEvent, usePointer, useResizeObserver } from '@/composables/events'
+import type { KeyboardComposable } from '@/composables/keyboard'
 import { Rect } from '@/util/data/rect'
 import { Vec2 } from '@/util/data/vec2'
 import { computed, proxyRefs, shallowRef, type Ref } from 'vue'
 
 type ScaleRange = readonly [number, number]
-const WHEEL_SCALE_RANGE: ScaleRange = [0.5, 10]
-const DRAG_SCALE_RANGE: ScaleRange = [0.1, 10]
+const DEFAULT_SCALE_RANGE: ScaleRange = [0.1, 10]
 const PAN_AND_ZOOM_DEFAULT_SCALE_RANGE: ScaleRange = [0.1, 1]
-const ZOOM_STEP_DEFAULT_SCALE_RANGE: ScaleRange = [0.1, 10]
+const ZOOM_LEVELS = [
+  0.1, 0.25, 0.33, 0.5, 0.67, 0.75, 0.8, 0.9, 1.0, 1.25, 1.5, 1.75, 2.0, 2.5, 3.0, 4.0, 5.0,
+]
+const ZOOM_LEVELS_REVERSED = [...ZOOM_LEVELS].reverse()
+/** The fraction of the next zoom level.
+ * If we are that close to next zoom level, we should choose the next one instead
+ * to avoid small unnoticeable changes to zoom. */
+const ZOOM_SKIP_THRESHOLD = 0.05
 
 function elemRect(target: Element | undefined): Rect {
   if (target != null && target instanceof Element)
@@ -19,7 +26,7 @@ function elemRect(target: Element | undefined): Rect {
 }
 
 export type NavigatorComposable = ReturnType<typeof useNavigator>
-export function useNavigator(viewportNode: Ref<Element | undefined>) {
+export function useNavigator(viewportNode: Ref<Element | undefined>, keyboard: KeyboardComposable) {
   const size = useResizeObserver(viewportNode)
   const targetCenter = shallowRef<Vec2>(Vec2.Zero)
   const targetX = computed(() => targetCenter.value.x)
@@ -128,7 +135,7 @@ export function useNavigator(viewportNode: Ref<Element | undefined>) {
     }
 
     const prevScale = scale.value
-    updateScale((oldValue) => oldValue * Math.exp(-pos.delta.y / 100), DRAG_SCALE_RANGE)
+    updateScale((oldValue) => oldValue * Math.exp(-pos.delta.y / 100))
     center.value = center.value
       .sub(zoomPivot)
       .scale(prevScale / scale.value)
@@ -211,26 +218,6 @@ export function useNavigator(viewportNode: Ref<Element | undefined>) {
     { capture: true },
   )
 
-  let ctrlPressed = false
-  useEvent(
-    window,
-    'keydown',
-    (event) => {
-      if (event.key === 'Control') ctrlPressed = true
-      return false
-    },
-    { capture: true },
-  )
-  useEvent(
-    window,
-    'keyup',
-    (event) => {
-      if (event.key === 'Control') ctrlPressed = false
-      return false
-    },
-    { capture: true },
-  )
-
   /** Clamp the value to the given bounds, except if it is already outside the bounds allow the new value to be less
    *  outside the bounds. */
   function directedClamp(oldValue: number, newValue: number, [min, max]: ScaleRange): number {
@@ -238,28 +225,30 @@ export function useNavigator(viewportNode: Ref<Element | undefined>) {
     else return Math.max(min, newValue)
   }
 
-  function updateScale(f: (value: number) => number, range: ScaleRange) {
+  function updateScale(f: (value: number) => number, range: ScaleRange = DEFAULT_SCALE_RANGE) {
     const oldValue = scale.value
     scale.value = directedClamp(oldValue, f(oldValue), range)
   }
 
-  function zoomStepToScaleFactor(step: number): number {
-    return Math.pow(2, step / 2)
-  }
-  function zoomStepFromScaleFactor(scale: number): number {
-    return Math.round(Math.log2(scale) * 2)
-  }
-
-  function stepZoom(zoomStepDelta: number, range: ScaleRange = ZOOM_STEP_DEFAULT_SCALE_RANGE) {
-    updateScale(
-      (oldValue) => zoomStepToScaleFactor(zoomStepFromScaleFactor(oldValue) + zoomStepDelta),
-      range,
-    )
-  }
-
-  /** Update `ctrlPressed` from the event; this helps catch if we missed the `keyup` while focus was elsewhere. */
-  function updateCtrlState(e: KeyboardEvent | MouseEvent | PointerEvent) {
-    ctrlPressed = e.ctrlKey
+  /** Step to the next level from {@link ZOOM_LEVELS}.
+   * @param zoomStepDelta step direction. If positive select larger zoom level; if negative  select smaller.
+   * If 0, resets zoom level to 1.0. */
+  function stepZoom(zoomStepDelta: number) {
+    const oldValue = scale.value
+    const insideThreshold = (level: number) =>
+      Math.abs(oldValue - level) <= level * ZOOM_SKIP_THRESHOLD
+    if (zoomStepDelta > 0) {
+      const lastZoomLevel = ZOOM_LEVELS[ZOOM_LEVELS.length - 1]!
+      scale.value =
+        ZOOM_LEVELS.find((level) => level > oldValue && !insideThreshold(level)) ?? lastZoomLevel
+    } else if (zoomStepDelta < 0) {
+      const firstZoomLevel = ZOOM_LEVELS[0]!
+      scale.value =
+        ZOOM_LEVELS_REVERSED.find((level) => level < oldValue && !insideThreshold(level)) ??
+        firstZoomLevel
+    } else {
+      scale.value = 1.0
+    }
   }
 
   return proxyRefs({
@@ -270,14 +259,10 @@ export function useNavigator(viewportNode: Ref<Element | undefined>) {
       dragleave() {
         eventMousePos.value = null
       },
-      pointerenter(e: PointerEvent) {
-        updateCtrlState(e)
-      },
       pointermove(e: PointerEvent) {
         eventMousePos.value = eventScreenPos(e)
         panPointer.events.pointermove(e)
         zoomPointer.events.pointermove(e)
-        updateCtrlState(e)
       },
       pointerleave() {
         eventMousePos.value = null
@@ -297,19 +282,15 @@ export function useNavigator(viewportNode: Ref<Element | undefined>) {
         if (e.ctrlKey) {
           // A pinch gesture is represented by setting `e.ctrlKey`. It can be distinguished from an actual Ctrl+wheel
           // combination because the real Ctrl key emits keyup/keydown events.
-          const isGesture = !ctrlPressed
+          const isGesture = !keyboard.ctrl
           if (isGesture) {
             // OS X trackpad events provide usable rate-of-change information.
-            updateScale(
-              (oldValue: number) => oldValue * Math.exp(-e.deltaY / 100),
-              WHEEL_SCALE_RANGE,
-            )
+            updateScale((oldValue: number) => oldValue * Math.exp(-e.deltaY / 100))
           } else {
             // Mouse wheel rate information is unreliable. We just step in the direction of the sign.
-            stepZoom(-Math.sign(e.deltaY), WHEEL_SCALE_RANGE)
+            stepZoom(-Math.sign(e.deltaY))
           }
         } else {
-          updateCtrlState(e)
           const delta = new Vec2(e.deltaX, e.deltaY)
           center.value = center.value.addScaled(delta, 1 / scale.value)
         }

@@ -96,8 +96,6 @@
 use crate::prelude::*;
 use crate::source::*;
 
-use enso_shapely_macros::tagged_enum;
-
 
 
 // =============
@@ -621,15 +619,6 @@ macro_rules! generate_token_aliases {
                 $($($field : $field_ty),*)?
             ) -> $variant<'s> {
                 Token(left_offset, code, variant::$variant($($($field),*)?))
-            }
-
-            /// Constructor.
-            pub fn [<$variant:snake:lower _>]<'s> (
-                left_offset: impl Into<Offset<'s>>,
-                code: Code<'s>,
-                $($($field : $field_ty),*)?
-            ) -> Token<'s> {
-                Token(left_offset, code, variant::$variant($($($field),*)?)).into()
             }
 
             impl<'s> From<Token<'s, variant::$variant>> for Token<'s, Variant> {

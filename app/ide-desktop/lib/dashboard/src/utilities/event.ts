@@ -36,6 +36,23 @@ export function isPotentiallyShortcut(event: KeyboardEvent | React.KeyboardEvent
   return event.ctrlKey || event.metaKey || event.altKey
 }
 
+/** Return `true` if none of `Ctrl`, `Shift`, `Alt` and `Meta` are pressed.*/
+export function areNoModifiersPressed(
+  event: KeyboardEvent | MouseEvent | React.KeyboardEvent | React.MouseEvent
+) {
+  return !event.ctrlKey && !event.metaKey && !event.shiftKey && !event.altKey
+}
+
+/** Whether `event.key` is an arrow key. */
+export function isArrowKeyEvent(event: KeyboardEvent | React.KeyboardEvent) {
+  return (
+    event.key === 'ArrowLeft' ||
+    event.key === 'ArrowRight' ||
+    event.key === 'ArrowUp' ||
+    event.key === 'ArrowDown'
+  )
+}
+
 /** Whether `event.key` is a key used in text editing. */
 export function isTextInputKey(event: KeyboardEvent | React.KeyboardEvent) {
   return (
@@ -49,4 +66,78 @@ export function isTextInputKey(event: KeyboardEvent | React.KeyboardEvent) {
 export function isTextInputEvent(event: KeyboardEvent | React.KeyboardEvent) {
   // Allow `alt` key to be pressed in case it is being used to enter special characters.
   return !event.ctrlKey && !event.shiftKey && !event.metaKey && isTextInputKey(event)
+}
+
+/** Whether the element accepts text input. */
+export function isElementTextInput(
+  element: EventTarget | null
+): element is HTMLElement | HTMLInputElement | HTMLTextAreaElement {
+  return (
+    element != null &&
+    (isElementSingleLineTextInput(element) ||
+      element instanceof HTMLTextAreaElement ||
+      (element instanceof HTMLElement && element.isContentEditable))
+  )
+}
+
+const TEXT_INPUT_TYPES = new Set([
+  'text',
+  'password',
+  'search',
+  'tel',
+  'number',
+  'email',
+  'month',
+  'url',
+  'week',
+  'datetime',
+])
+
+/** Whether the element is a single-line text input. */
+export function isElementSingleLineTextInput(
+  element: EventTarget | null
+): element is HTMLInputElement {
+  return (
+    element != null && element instanceof HTMLInputElement && TEXT_INPUT_TYPES.has(element.type)
+  )
+}
+
+// =============================
+// === isElementPartOfMonaco ===
+// =============================
+
+/**
+ * Whether the element is part of a Monaco editor.
+ */
+export function isElementPartOfMonaco(element: EventTarget | null) {
+  const recursiveCheck = (htmlElement: HTMLElement | null): boolean => {
+    if (htmlElement == null || htmlElement === document.body) {
+      return false
+    } else if (
+      htmlElement instanceof HTMLElement &&
+      htmlElement.classList.contains('monaco-editor')
+    ) {
+      return true
+    } else {
+      return recursiveCheck(htmlElement.parentElement)
+    }
+  }
+  return element != null && element instanceof HTMLElement && recursiveCheck(element)
+}
+
+// ==================
+// === submitForm ===
+// ==================
+
+/** An event with an {@link Element} as its target. */
+interface EventWithElementTarget {
+  readonly target: Element
+}
+
+/** Search for an ancestor `form` element and try to submit it. */
+export function submitForm(event: EventWithElementTarget) {
+  const closestForm = event.target.closest('form')
+  if (closestForm != null) {
+    closestForm.requestSubmit()
+  }
 }

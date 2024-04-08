@@ -5,8 +5,6 @@ import java.util.HashSet;
 import java.util.Set;
 import org.enso.compiler.benchmarks.CodeGenerator;
 import org.enso.compiler.benchmarks.Utils;
-import org.enso.compiler.context.InlineContext;
-import org.enso.interpreter.node.MethodRootNode;
 import org.enso.interpreter.runtime.data.Type;
 import org.enso.polyglot.LanguageInfo;
 import org.enso.polyglot.MethodNames;
@@ -16,6 +14,16 @@ import org.graalvm.polyglot.Source;
 class InlineContextUtils {
   private InlineContextUtils() {}
 
+  static Set<String> localVarNames(int localVarsCnt) {
+    Set<String> localVarNames = new HashSet<>();
+
+    for (int i = 0; i < localVarsCnt; i++) {
+      var varName = "loc_var_" + i;
+      localVarNames.add(varName);
+    }
+    return localVarNames;
+  }
+
   /**
    * Creates a main method, generates some local variables, and fills their identifiers in the given
    * set.
@@ -23,18 +31,15 @@ class InlineContextUtils {
    * @param localVarsCnt How many local variables should be initialized in the main method
    * @return Body of the main method
    */
-  static InlineSource createMainMethodWithLocalVars(Context ctx, int localVarsCnt)
+  static InlineSource createMainMethodWithLocalVars(Context ctx, Set<String> localVarNames)
       throws IOException {
     var sb = new StringBuilder();
     sb.append("main = ").append(System.lineSeparator());
     var codeGen = new CodeGenerator();
-    Set<String> localVarNames = new HashSet<>();
-    for (int i = 0; i < localVarsCnt; i++) {
-      var varName = "loc_var_" + i;
-      localVarNames.add(varName);
+    for (String localVarName : localVarNames) {
       var literal = codeGen.nextLiteral();
       sb.append("    ")
-          .append(varName)
+          .append(localVarName)
           .append(" = ")
           .append(literal)
           .append(System.lineSeparator());
@@ -51,18 +56,11 @@ class InlineContextUtils {
     var moduleAssocType = module.invokeMember(MethodNames.Module.GET_ASSOCIATED_TYPE);
     var assocTypeReceiver = (Type) Utils.unwrapReceiver(ctx, moduleAssocType);
     var moduleScope = assocTypeReceiver.getDefinitionScope();
-    var mainFunc = moduleScope.getMethodForType(assocTypeReceiver, "main");
-    var mainFuncRootNode = (MethodRootNode) mainFunc.getCallTarget().getRootNode();
-    var mainLocalScope = mainFuncRootNode.getLocalScope();
     var compiler = ensoCtx.getCompiler();
-    var mainInlineContext =
-        InlineContext.fromJava(
-            mainLocalScope,
-            moduleScope.getModule().asCompilerModule(),
-            scala.Option.apply(false),
-            ensoCtx.getCompilerConfig(),
-            scala.Option.apply(compiler.packageRepository()));
-    return new InlineSource(sb.toString(), mainInlineContext, localVarNames);
+    var inlineCtxMeta =
+        new InlineContextResourceFactory(
+            moduleScope, assocTypeReceiver, ensoCtx, compiler.packageRepository());
+    return new InlineSource(sb.toString(), inlineCtxMeta, localVarNames);
   }
 
   static String createLongExpression(Set<String> localVars, int exprSize) {

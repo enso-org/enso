@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { ChangeSet, Diagnostic, Highlighter } from '@/components/CodeEditor/codemirror'
+import SvgIcon from '@/components/SvgIcon.vue'
 import { usePointer } from '@/composables/events'
 import { useGraphStore, type NodeId } from '@/stores/graph'
 import { useProjectStore } from '@/stores/project'
@@ -37,6 +38,8 @@ const {
   hoverTooltip,
   textEditToChangeSpec,
 } = await import('@/components/CodeEditor/codemirror')
+
+const emit = defineEmits<{ close: [] }>()
 
 const projectStore = useProjectStore()
 const graphStore = useGraphStore()
@@ -208,8 +211,8 @@ function resetView() {
 function commitPendingChanges() {
   if (!pendingChanges || !currentModule) return
   try {
-    currentModule.applyTextEdits(changeSetToTextEdits(pendingChanges), graphStore.viewModule())
-    graphStore.commitEdit(currentModule, undefined, 'local:CodeEditor')
+    currentModule.applyTextEdits(changeSetToTextEdits(pendingChanges), graphStore.viewModule)
+    graphStore.commitEdit(currentModule, undefined, 'local:userAction:CodeEditor')
   } catch (error) {
     console.error(`Code Editor failed to modify module`, error)
     resetView()
@@ -261,7 +264,7 @@ function observeSourceChange(textEdits: SourceRangeEdit[], origin: Origin | unde
     return
   }
   // When we aren't in the `needResync` state, we can ignore updates that originated in the Code Editor.
-  if (origin === 'local:CodeEditor') return
+  if (origin === 'local:userAction:CodeEditor') return
   if (pendingChanges) {
     console.info(`Deferring update (editor dirty).`)
     needResync = true
@@ -347,6 +350,7 @@ const editorStyle = computed(() => {
         <circle cx="14" cy="14" r="1.5" />
       </svg>
     </div>
+    <SvgIcon name="close" class="closeButton button" @click="emit('close')" />
   </div>
 </template>
 
@@ -400,6 +404,18 @@ const editorStyle = computed(() => {
 
   &:hover svg {
     opacity: 0.9;
+  }
+}
+
+.closeButton {
+  position: absolute;
+  top: 4px;
+  left: 6px;
+  color: red;
+  opacity: 0.3;
+
+  &:hover {
+    opacity: 0.6;
   }
 }
 

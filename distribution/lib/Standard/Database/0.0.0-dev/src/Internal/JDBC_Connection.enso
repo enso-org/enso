@@ -6,8 +6,7 @@ import Standard.Base.Runtime.Context
 import Standard.Base.Runtime.Managed_Resource.Managed_Resource
 from Standard.Base.Enso_Cloud.Enso_Secret import as_hideable_value
 
-import Standard.Table.Data.Table.Table
-import Standard.Table.Data.Type.Value_Type.Value_Type
+from Standard.Table import Table, Value_Type
 
 import project.Internal.Column_Fetcher as Column_Fetcher_Module
 import project.Internal.In_Transaction.In_Transaction
@@ -321,3 +320,13 @@ log_sql_if_enabled jdbc_connection ~query_text =
             log_line = timestamp + " [" + db_id + "] " + query_text + '\n'
             Context.Output.with_enabled <|
                 log_line.write path on_existing_file=Existing_File_Behavior.Append
+
+## PRIVATE
+get_pragma_value : JDBC_Connection -> Text -> Any
+get_pragma_value jdbc_connection sql =
+    table = jdbc_connection.raw_read_statement sql
+    if table.row_count != 1 then
+        Panic.throw (Illegal_State.Error "Unexpected amount of results to internal query: "+sql+"; expected 1 but got "+table.row_count.to_text+" rows.")
+    if table.columns.length != 1 then
+        Panic.throw (Illegal_State.Error "Unexpected amount of columns to internal query: "+sql+"; expected 1 but got "+table.columns.length.to_text+" columns.")
+    table.at 0 . at 0

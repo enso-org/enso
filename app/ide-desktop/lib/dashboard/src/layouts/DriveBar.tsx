@@ -11,13 +11,17 @@ import DataUploadIcon from 'enso-assets/data_upload.svg'
 import * as backendProvider from '#/providers/BackendProvider'
 import * as inputBindingsProvider from '#/providers/InputBindingsProvider'
 import * as modalProvider from '#/providers/ModalProvider'
+import * as textProvider from '#/providers/TextProvider'
 
 import type * as assetEvent from '#/events/assetEvent'
 import AssetEventType from '#/events/AssetEventType'
 
 import Category from '#/layouts/CategorySwitcher/Category'
 
-import Button from '#/components/Button'
+import * as aria from '#/components/aria'
+import Button from '#/components/styled/Button'
+import HorizontalMenuBar from '#/components/styled/HorizontalMenuBar'
+import UnstyledButton from '#/components/UnstyledButton'
 
 import ConfirmDeleteModal from '#/modals/ConfirmDeleteModal'
 import UpsertDataLinkModal from '#/modals/UpsertDataLinkModal'
@@ -34,7 +38,7 @@ import * as sanitizedEventTargets from '#/utilities/sanitizedEventTargets'
 /** Props for a {@link DriveBar}. */
 export interface DriveBarProps {
   readonly category: Category
-  readonly canDownloadFiles: boolean
+  readonly canDownload: boolean
   readonly doEmptyTrash: () => void
   readonly doCreateProject: () => void
   readonly doCreateDirectory: () => void
@@ -47,10 +51,11 @@ export interface DriveBarProps {
 /** Displays the current directory path and permissions, upload and download buttons,
  * and a column display mode switcher. */
 export default function DriveBar(props: DriveBarProps) {
-  const { category, canDownloadFiles, doEmptyTrash, doCreateProject, doCreateDirectory } = props
+  const { category, canDownload, doEmptyTrash, doCreateProject, doCreateDirectory } = props
   const { doCreateSecret, doCreateDataLink, doUploadFiles, dispatchAssetEvent } = props
   const { backend } = backendProvider.useBackend()
   const { setModal, unsetModal } = modalProvider.useSetModal()
+  const { getText } = textProvider.useText()
   const inputBindings = inputBindingsProvider.useInputBindings()
   const uploadFilesRef = React.useRef<HTMLInputElement>(null)
   const isCloud = backend.type === backendModule.BackendType.remote
@@ -80,52 +85,55 @@ export default function DriveBar(props: DriveBarProps) {
       // in the given directory, to avoid name collisions.
       return (
         <div className="flex h-row py-drive-bar-y">
-          <div className="flex gap-drive-bar" />
+          <HorizontalMenuBar />
         </div>
       )
     }
     case Category.trash: {
       return (
         <div className="flex h-row py-drive-bar-y">
-          <div className="flex gap-drive-bar">
-            <button
+          <HorizontalMenuBar>
+            <UnstyledButton
               className="flex h-row items-center rounded-full bg-frame px-new-project-button-x"
-              onClick={event => {
-                event.stopPropagation()
+              onPress={() => {
                 setModal(
                   <ConfirmDeleteModal
-                    actionText="all trashed items forever"
+                    actionText={getText('allTrashedItemsForever')}
                     doDelete={doEmptyTrash}
                   />
                 )
               }}
             >
-              <span className="text whitespace-nowrap font-semibold">Clear Trash</span>
-            </button>
-          </div>
+              <aria.Text className="text whitespace-nowrap font-semibold">
+                {getText('clearTrash')}
+              </aria.Text>
+            </UnstyledButton>
+          </HorizontalMenuBar>
         </div>
       )
     }
     case Category.home: {
       return (
         <div className="flex h-row py-drive-bar-y">
-          <div className="flex gap-drive-bar">
-            <button
+          <HorizontalMenuBar>
+            <UnstyledButton
               className="flex h-row items-center rounded-full bg-frame px-new-project-button-x"
-              onClick={() => {
+              onPress={() => {
                 unsetModal()
                 doCreateProject()
               }}
             >
-              <span className="text whitespace-nowrap font-semibold">New Project</span>
-            </button>
+              <aria.Text className="text whitespace-nowrap font-semibold">
+                {getText('newProject')}
+              </aria.Text>
+            </UnstyledButton>
             <div className="flex h-row items-center gap-icons rounded-full bg-frame px-drive-bar-icons-x text-black/50">
               {isCloud && (
                 <Button
                   active
                   image={AddFolderIcon}
-                  alt="New Folder"
-                  onClick={() => {
+                  alt={getText('newFolder')}
+                  onPress={() => {
                     unsetModal()
                     doCreateDirectory()
                   }}
@@ -135,9 +143,8 @@ export default function DriveBar(props: DriveBarProps) {
                 <Button
                   active
                   image={AddKeyIcon}
-                  alt="New Secret"
-                  onClick={event => {
-                    event.stopPropagation()
+                  alt={getText('newSecret')}
+                  onPress={() => {
                     setModal(<UpsertSecretModal id={null} name={null} doCreate={doCreateSecret} />)
                   }}
                 />
@@ -146,14 +153,13 @@ export default function DriveBar(props: DriveBarProps) {
                 <Button
                   active
                   image={AddConnectorIcon}
-                  alt="New Data Link"
-                  onClick={event => {
-                    event.stopPropagation()
+                  alt={getText('newDataLink')}
+                  onPress={() => {
                     setModal(<UpsertDataLinkModal doCreate={doCreateDataLink} />)
                   }}
                 />
               )}
-              <input
+              <aria.Input
                 ref={uploadFilesRef}
                 type="file"
                 multiple
@@ -173,30 +179,27 @@ export default function DriveBar(props: DriveBarProps) {
               <Button
                 active
                 image={DataUploadIcon}
-                alt="Upload Files"
-                onClick={() => {
+                alt={getText('uploadFiles')}
+                onPress={() => {
                   unsetModal()
                   uploadFilesRef.current?.click()
                 }}
               />
               <Button
-                active={canDownloadFiles}
-                disabled={!canDownloadFiles}
+                active={canDownload}
+                isDisabled={!canDownload}
                 image={DataDownloadIcon}
-                alt="Download Files"
+                alt={getText('downloadFiles')}
                 error={
-                  isCloud
-                    ? 'You currently can only download files.'
-                    : 'First select a project to download.'
+                  isCloud ? getText('canOnlyDownloadFilesError') : getText('noProjectSelectedError')
                 }
-                onClick={event => {
-                  event.stopPropagation()
+                onPress={() => {
                   unsetModal()
                   dispatchAssetEvent({ type: AssetEventType.downloadSelected })
                 }}
               />
             </div>
-          </div>
+          </HorizontalMenuBar>
         </div>
       )
     }

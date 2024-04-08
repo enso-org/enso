@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { visualizationBindings } from '@/bindings'
+import type { NodeCreationOptions } from '@/components/GraphEditor/nodeCreation'
 import LoadingErrorVisualization from '@/components/visualizations/LoadingErrorVisualization.vue'
 import LoadingVisualization from '@/components/visualizations/LoadingVisualization.vue'
 import { focusIsIn, useEvent } from '@/composables/events'
@@ -59,7 +60,7 @@ const emit = defineEmits<{
   'update:visible': [visible: boolean]
   'update:fullscreen': [fullscreen: boolean]
   'update:width': [width: number]
-  addNode: [pos: Vec2 | undefined]
+  createNodes: [options: NodeCreationOptions[]]
 }>()
 
 const visPreprocessor = ref(DEFAULT_VISUALIZATION_CONFIGURATION)
@@ -293,7 +294,7 @@ provideVisualizationConfig({
   },
   hide: () => emit('update:visible', false),
   updateType: (id) => emit('update:id', id),
-  addNode: (pos) => emit('addNode', pos),
+  createNodes: (...options) => emit('createNodes', options),
 })
 
 const effectiveVisualization = computed(() => {

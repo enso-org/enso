@@ -59,7 +59,7 @@ export type Choice = z.infer<typeof choiceSchema>
 export type WidgetConfiguration =
   | SingleChoice
   | VectorEditor
-  | MultiChoice
+  | MultipleChoice
   | CodeInput
   | BooleanInput
   | NumericInput
@@ -68,6 +68,7 @@ export type WidgetConfiguration =
   | FileBrowse
   | FunctionCall
   | OneOfFunctionCalls
+  | SomeOfFunctionCalls
 
 export interface VectorEditor {
   kind: 'Vector_Editor'
@@ -75,8 +76,10 @@ export interface VectorEditor {
   item_default: string
 }
 
-export interface MultiChoice {
-  kind: 'Multi_Choice'
+export interface MultipleChoice {
+  kind: 'Multiple_Choice'
+  label: string | null
+  values: Choice[]
 }
 
 export interface CodeInput {
@@ -130,6 +133,11 @@ export interface OneOfFunctionCalls {
   possibleFunctions: Map<string, FunctionCall>
 }
 
+export interface SomeOfFunctionCalls {
+  kind: 'SomeOfFunctionCalls'
+  possibleFunctions: Map<string, FunctionCall>
+}
+
 export const widgetConfigurationSchema: z.ZodType<
   WidgetConfiguration & WithDisplay,
   z.ZodTypeDef,
@@ -152,7 +160,13 @@ export const widgetConfigurationSchema: z.ZodType<
         /* eslint-enable camelcase */
       })
       .merge(withDisplay),
-    z.object({ kind: z.literal('Multi_Choice') }).merge(withDisplay),
+    z
+      .object({
+        kind: z.literal('Multiple_Choice'),
+        label: z.string().nullable(),
+        values: z.array(choiceSchema),
+      })
+      .merge(withDisplay),
     z.object({ kind: z.literal('Code_Input') }).merge(withDisplay),
     z.object({ kind: z.literal('Boolean_Input') }).merge(withDisplay),
     z
@@ -193,10 +207,20 @@ export function functionCallConfiguration(
   }
 }
 
-/** A configuration for the inner widget of the dropdown widget. */
+/** A configuration for the inner widget of a single-choice selection widget. */
 export function singleChoiceConfiguration(config: SingleChoice): OneOfFunctionCalls {
   return {
     kind: 'OneOfFunctionCalls',
+    possibleFunctions: new Map(
+      config.values.map((value) => [value.value, functionCallConfiguration(value.parameters)]),
+    ),
+  }
+}
+
+/** A configuration for the inner widget of a multiple-choice selection widget. */
+export function multipleChoiceConfiguration(config: MultipleChoice): SomeOfFunctionCalls {
+  return {
+    kind: 'SomeOfFunctionCalls',
     possibleFunctions: new Map(
       config.values.map((value) => [value.value, functionCallConfiguration(value.parameters)]),
     ),

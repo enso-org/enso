@@ -1,6 +1,10 @@
 /** @file A selector for all possible permission types. */
 import * as React from 'react'
 
+import * as aria from '#/components/aria'
+import FocusArea from '#/components/styled/FocusArea'
+import UnstyledButton from '#/components/UnstyledButton'
+
 import * as backend from '#/services/Backend'
 
 import * as permissions from '#/utilities/permissions'
@@ -83,55 +87,67 @@ export interface PermissionTypeSelectorProps {
 export default function PermissionTypeSelector(props: PermissionTypeSelectorProps) {
   const { showDelete = false, selfPermission, type, assetType, style, onChange } = props
   return (
-    <div
-      style={style}
-      className="pointer-events-auto sticky w-min rounded-permission-type-selector before:absolute before:h-full before:w-full before:rounded-permission-type-selector before:bg-selected-frame before:backdrop-blur-default"
-      onClick={event => {
-        event.stopPropagation()
-      }}
-    >
-      <div className="group relative flex w-permission-type-selector flex-col p-permission-type-selector">
-        {PERMISSION_TYPE_DATA.filter(
-          data =>
-            (showDelete ? true : data.type !== permissions.Permission.delete) &&
-            (selfPermission === permissions.PermissionAction.own
-              ? true
-              : data.type !== permissions.Permission.owner)
-        ).map(data => (
-          <button
-            key={data.type}
-            type="button"
-            className={`flex h-row items-start gap-permission-type-button rounded-full p-permission-type-button hover:bg-black/5 ${
-              type === data.type ? 'bg-black/5 hover:!bg-black/5 group-hover:bg-transparent' : ''
-            }`}
-            onClick={() => {
-              onChange(data.type)
-            }}
-          >
-            <div
-              className={`h-full w-permission-type rounded-full py-permission-type-y ${
-                permissions.PERMISSION_CLASS_NAME[data.type]
-              }`}
-            >
-              {data.type}
-            </div>
-            <span className="text font-normal">=</span>
-            {data.previous != null && (
-              <>
+    <FocusArea direction="vertical">
+      {innerProps => (
+        <div
+          style={style}
+          className="pointer-events-auto sticky w-min rounded-permission-type-selector before:absolute before:h-full before:w-full before:rounded-permission-type-selector before:bg-selected-frame before:backdrop-blur-default"
+          onClick={event => {
+            event.stopPropagation()
+          }}
+          {...innerProps}
+        >
+          <div className="group relative flex w-permission-type-selector flex-col p-permission-type-selector">
+            {PERMISSION_TYPE_DATA.filter(
+              data =>
+                (showDelete ? true : data.type !== permissions.Permission.delete) &&
+                (selfPermission === permissions.PermissionAction.own
+                  ? true
+                  : data.type !== permissions.Permission.owner)
+            ).map(data => (
+              <UnstyledButton
+                key={data.type}
+                className={`flex h-row items-start gap-permission-type-button rounded-full p-permission-type-button hover:bg-black/5 ${
+                  type === data.type
+                    ? 'bg-black/5 hover:!bg-black/5 group-hover:bg-transparent'
+                    : ''
+                }`}
+                onPress={() => {
+                  onChange(data.type)
+                }}
+              >
                 <div
-                  className={`h-full w-permission-type rounded-full py-permission-type-y text-center ${
-                    permissions.PERMISSION_CLASS_NAME[data.previous]
+                  className={`h-full w-permission-type rounded-full py-permission-type-y ${
+                    permissions.PERMISSION_CLASS_NAME[data.type]
                   }`}
                 >
-                  {data.previous}
+                  {data.type}
                 </div>
-                <span className="text font-normal">+</span>
-              </>
-            )}
-            <span className="text">{data.description(assetType)}</span>
-          </button>
-        ))}
-      </div>
-    </div>
+                {/* This is a symbol that should never need to be localized, since it is effectively
+                 * an icon. */}
+                {/* eslint-disable-next-line no-restricted-syntax */}
+                <aria.Text className="text font-normal">=</aria.Text>
+                {data.previous != null && (
+                  <>
+                    <div
+                      className={`h-full w-permission-type rounded-full py-permission-type-y text-center ${
+                        permissions.PERMISSION_CLASS_NAME[data.previous]
+                      }`}
+                    >
+                      {data.previous}
+                    </div>
+                    {/* This is a symbol that should never need to be localized, since it is effectively
+                     * an icon. */}
+                    {/* eslint-disable-next-line no-restricted-syntax */}
+                    <aria.Text className="text font-normal">+</aria.Text>
+                  </>
+                )}
+                <aria.Label className="text">{data.description(assetType)}</aria.Label>
+              </UnstyledButton>
+            ))}
+          </div>
+        </div>
+      )}
+    </FocusArea>
   )
 }

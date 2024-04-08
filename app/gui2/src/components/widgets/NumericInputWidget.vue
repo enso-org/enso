@@ -7,7 +7,12 @@ const props = defineProps<{
   modelValue: number | string
   limits?: { min: number; max: number } | undefined
 }>()
-const emit = defineEmits<{ 'update:modelValue': [modelValue: number | string] }>()
+const emit = defineEmits<{
+  'update:modelValue': [modelValue: number | string]
+  blur: []
+  focus: []
+  input: [content: string]
+}>()
 
 const inputFieldActive = ref(false)
 // Edited value reflects the `modelValue`, but does not update it until the user defocuses the field.
@@ -26,13 +31,13 @@ const dragPointer = usePointer(
     if (!(slider instanceof HTMLElement)) return false
 
     if (eventType === 'stop' && Math.abs(position.relative.x) < SLIDER_INPUT_THRESHOLD) {
-      event.stopImmediatePropagation()
-      return false
+      inputComponent.value?.focus()
+      return
     }
 
     if (eventType === 'start') {
       event.stopImmediatePropagation()
-      return false
+      return
     }
 
     if (inputFieldActive.value || props.limits == null) return false
@@ -51,10 +56,9 @@ const dragPointer = usePointer(
 
 const sliderWidth = computed(() => {
   if (props.limits == null) return undefined
-  if (typeof editedValue.value === 'string') return undefined
-  return `${
-    ((editedValue.value - props.limits.min) * 100) / (props.limits.max - props.limits.min)
-  }%`
+  const numberValue = parseFloat(editedValue.value)
+  if (isNaN(numberValue)) return undefined
+  return `${((numberValue - props.limits.min) * 100) / (props.limits.max - props.limits.min)}%`
 })
 
 const inputComponent = ref<ComponentInstance<typeof AutoSizedInput>>()
@@ -87,14 +91,25 @@ function emitUpdate() {
   }
 }
 
-function blur() {
+function blurred() {
   inputFieldActive.value = false
+  emit('blur')
   emitUpdate()
 }
 
-function focus() {
+function focused() {
   inputFieldActive.value = true
+  emit('focus')
 }
+
+defineExpose({
+  cancel: () => {
+    editedValue.value = `${props.modelValue}`
+    inputComponent.value?.blur()
+  },
+  blur: () => inputComponent.value?.blur(),
+  focus: () => inputComponent.value?.focus(),
+})
 </script>
 
 <template>
@@ -106,8 +121,10 @@ function focus() {
       autoSelect
       :style="inputStyle"
       v-on="dragPointer.events"
-      @blur="blur"
-      @focus="focus"
+      @click.stop
+      @blur="blurred"
+      @focus="focused"
+      @input="emit('input', editedValue)"
     />
   </label>
 </template>
@@ -115,6 +132,8 @@ function focus() {
 <style scoped>
 .NumericInputWidget {
   position: relative;
+  overflow: clip;
+  border-radius: var(--radius-full);
 }
 .AutoSizedInput {
   user-select: none;

@@ -47,7 +47,7 @@ pub fn copy(source_file: impl AsRef<Path>, destination_file: impl AsRef<Path>) -
     if let Some(parent) = destination_file.parent() {
         create_dir_if_missing(parent)?;
         if source_file.is_dir() {
-            let mut options = fs_extra::dir::CopyOptions::new();
+            let mut options = CopyOptions::new();
             options.overwrite = true;
             options.content_only = true;
             fs_extra::dir::copy(source_file, destination_file, &options)
@@ -89,7 +89,7 @@ pub async fn compressed_size(path: impl AsRef<Path>) -> Result<byte_unit::Byte> 
     // buffer gives very significant speedup over the default 8KB chunks.
     const READER_CAPACITY: usize = 4096 * 1024;
 
-    let file = crate::fs::tokio::open(&path).await?;
+    let file = tokio::open(&path).await?;
     let buf_file = ::tokio::io::BufReader::with_capacity(READER_CAPACITY, file);
     let encoded_stream = GzipEncoder::with_quality(buf_file, Level::Best);
     crate::io::read_length(encoded_stream).await.map(into)

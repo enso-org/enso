@@ -1,5 +1,5 @@
 from Standard.Base import all
-import Standard.Table.Data.Table.Table
+from Standard.Table import Table
 
 ## PRIVATE
 goal_placeholder = "__$$GOAL$$__"
@@ -28,8 +28,9 @@ Table.build_ai_prompt self =
     goal_line = "goal=" + goal_placeholder + "==>>`"
     base_prompt + '\n' + columns + goal_line
 
-## PRIVATE
-Any.build_ai_prompt self = "````"
+# TODO [ao]: commented, because it caused weird responses in GUI - see https://github.com/enso-org/enso/issues/9518
+# ## PRIVATE
+# Any.build_ai_prompt self = "````"
 
 ## PRIVATE
 build_ai_prompt subject = subject.build_ai_prompt

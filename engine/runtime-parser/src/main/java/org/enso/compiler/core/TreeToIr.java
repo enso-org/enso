@@ -636,6 +636,9 @@ final class TreeToIr {
           var at = args.size();
           var self = translateExpression(app.getLhs(), false);
           for (var l : app.getExpressions()) {
+            if (l.getExpression() == null) {
+              continue;
+            }
             var invoke = isDotOperator(l.getExpression().getOperator().getRight());
             if (self == null || !invoke) {
               return null;
@@ -1065,7 +1068,7 @@ final class TreeToIr {
         yield new Name.MethodReference(
                 Option.empty(),
                 methodName,
-                methodName.location(),
+                getIdentifiedLocation(autoscopedIdentifier),
                 meta(), diag()
         );
       }

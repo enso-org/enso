@@ -1,3 +1,4 @@
+import type { MockYdocProviderImpl } from '@/util/crdt'
 import * as random from 'lib0/random'
 import * as Ast from 'shared/ast'
 import {
@@ -22,6 +23,7 @@ import type { SuggestionEntry } from 'shared/languageServerTypes/suggestions'
 import { uuidToBits } from 'shared/uuid'
 import type { MockTransportData, WebSocketHandler } from 'src/util/net'
 import type { QualifiedName } from 'src/util/qualifiedName'
+import * as Y from 'yjs'
 import { mockFsDirectoryHandle, type FileTree } from '../src/util/convert/fsAccess'
 import mockDb from '../stories/mockSuggestions.json' assert { type: 'json' }
 
@@ -66,6 +68,7 @@ main =
     data = Data.read
     filtered = data.filter
     aggregated = data.aggregate
+    selected = data.select_columns
 `
 
 export function getMainFile() {
@@ -190,6 +193,34 @@ const mockVizData: Record<string, Uint8Array | ((params: string[]) => Uint8Array
             },
           ],
         ])
+      case '.select_columns':
+        return encodeJSON([
+          [
+            'columns',
+            {
+              type: 'Widget',
+              constructor: 'Multiple_Choice',
+              label: null,
+              values: [
+                {
+                  type: 'Choice',
+                  constructor: 'Option',
+                  value: "'Column A'",
+                  label: 'Column A',
+                  parameters: [],
+                },
+                {
+                  type: 'Choice',
+                  constructor: 'Option',
+                  value: "'Column B'",
+                  label: 'Column B',
+                  parameters: [],
+                },
+              ],
+              display: { type: 'Display', constructor: 'Always' },
+            },
+          ],
+        ])
       case '.aggregate':
         return encodeJSON([
           [
@@ -207,7 +238,7 @@ const mockVizData: Record<string, Uint8Array | ((params: string[]) => Uint8Array
                   {
                     type: 'Choice',
                     constructor: 'Option',
-                    value: 'Standard.Table.Data.Aggregate_Column.Aggregate_Column.Group_By',
+                    value: 'Standard.Table.Aggregate_Column.Aggregate_Column.Group_By',
                     label: null,
                     parameters: [
                       [
@@ -240,14 +271,14 @@ const mockVizData: Record<string, Uint8Array | ((params: string[]) => Uint8Array
                   {
                     type: 'Choice',
                     constructor: 'Option',
-                    value: 'Standard.Table.Data.Aggregate_Column.Aggregate_Column.Count',
+                    value: 'Standard.Table.Aggregate_Column.Aggregate_Column.Count',
                     label: null,
                     parameters: [],
                   },
                   {
                     type: 'Choice',
                     constructor: 'Option',
-                    value: 'Standard.Table.Data.Aggregate_Column.Aggregate_Column.Count_Distinct',
+                    value: 'Standard.Table.Aggregate_Column.Aggregate_Column.Count_Distinct',
                     label: null,
                     parameters: [
                       [
@@ -289,6 +320,8 @@ const mockVizData: Record<string, Uint8Array | ((params: string[]) => Uint8Array
         return encodeJSON([])
     }
   },
+  'Standard.Visualization.AI.build_ai_prompt': () => encodeJSON('Could you __$$GOAL$$__, please?'),
+
   // The following visualizations do not have unique transformation methods, and as such are only kept
   // for posterity.
   Image: encodeJSON({
@@ -465,6 +498,18 @@ export const mockLSHandler: MockTransportData = async (method, data, transport) 
         })),
       } satisfies response.FileList
     }
+    case 'ai/completion': {
+      const { prompt } = data
+      console.log(prompt)
+      const match = /^"Could you (.*), please\?"$/.exec(prompt)
+      if (!match) {
+        return { code: 'How rude!' }
+      } else if (match[1] === 'convert to table') {
+        return { code: 'to_table' }
+      } else {
+        return { code: '"I don\'t understand, sorry"' }
+      }
+    }
     default:
       return Promise.reject(`Method '${method}' not mocked`)
   }
@@ -490,3 +535,17 @@ export const mockDataHandler: WebSocketHandler = originalMockDataWSHandler(
   },
   (send) => (sendData = send),
 )
+
+export const mockYdocProvider: MockYdocProviderImpl = (msg, room, doc) => {
+  setTimeout(() => {
+    const srcFiles: Record<string, string> = fileTree.src
+    if (room === 'index') {
+      const modules = doc.getMap('modules')
+      for (const file in srcFiles) modules.set(file, new Y.Doc({ guid: `mock-${file}` }))
+    } else if (room.startsWith('mock-')) {
+      const fileContents = srcFiles[room.slice('mock-'.length)]
+      if (fileContents) new Ast.MutableModule(doc).syncToCode(fileContents)
+    }
+    msg.emit('sync', [])
+  }, 0)
+}

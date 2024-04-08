@@ -9,10 +9,15 @@ import GoBackIcon from 'enso-assets/go_back.svg'
 import * as appUtils from '#/appUtils'
 
 import * as authProvider from '#/providers/AuthProvider'
+import * as textProvider from '#/providers/TextProvider'
+
+import AuthenticationPage from '#/pages/authentication/AuthenticationPage'
 
 import Input from '#/components/Input'
 import Link from '#/components/Link'
 import SubmitButton from '#/components/SubmitButton'
+
+import * as eventModule from '#/utilities/event'
 
 // ======================
 // === ForgotPassword ===
@@ -21,32 +26,34 @@ import SubmitButton from '#/components/SubmitButton'
 /** A form for users to request for their password to be reset. */
 export default function ForgotPassword() {
   const { forgotPassword } = authProvider.useAuth()
-
+  const { getText } = textProvider.useText()
   const [email, setEmail] = React.useState('')
 
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center gap-auth text-sm text-primary">
-      <form
-        className="flex w-full max-w-md flex-col gap-auth rounded-auth bg-selected-frame p-auth shadow-md"
-        onSubmit={async event => {
-          event.preventDefault()
-          await forgotPassword(email)
-        }}
-      >
-        <div className="self-center text-xl font-medium">Forgot Your Password?</div>
-        <Input
-          required
-          validate
-          type="email"
-          autoComplete="email"
-          icon={AtIcon}
-          placeholder="Enter your email"
-          value={email}
-          setValue={setEmail}
-        />
-        <SubmitButton text="Send link" icon={ArrowRightIcon} />
-      </form>
-      <Link to={appUtils.LOGIN_PATH} icon={GoBackIcon} text="Go back to login" />
-    </div>
+    <AuthenticationPage
+      title={getText('forgotYourPassword')}
+      footer={<Link to={appUtils.LOGIN_PATH} icon={GoBackIcon} text={getText('goBackToLogin')} />}
+      onSubmit={async event => {
+        event.preventDefault()
+        await forgotPassword(email)
+      }}
+    >
+      <Input
+        autoFocus
+        required
+        validate
+        type="email"
+        autoComplete="email"
+        icon={AtIcon}
+        placeholder={getText('emailPlaceholder')}
+        value={email}
+        setValue={setEmail}
+      />
+      <SubmitButton
+        text={getText('sendLink')}
+        icon={ArrowRightIcon}
+        onPress={eventModule.submitForm}
+      />
+    </AuthenticationPage>
   )
 }

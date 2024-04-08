@@ -8,6 +8,7 @@ import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 import * as authProvider from '#/providers/AuthProvider'
 import * as backendProvider from '#/providers/BackendProvider'
 import * as modalProvider from '#/providers/ModalProvider'
+import * as textProvider from '#/providers/TextProvider'
 
 import Category from '#/layouts/CategorySwitcher/Category'
 
@@ -17,6 +18,7 @@ import type * as column from '#/components/dashboard/column'
 import Label from '#/components/dashboard/Label'
 import * as labelUtils from '#/components/dashboard/Label/labelUtils'
 import MenuEntry from '#/components/MenuEntry'
+import UnstyledButton from '#/components/UnstyledButton'
 
 import ManageLabelsModal from '#/modals/ManageLabelsModal'
 
@@ -39,9 +41,11 @@ export default function LabelsColumn(props: column.AssetColumnProps) {
   const session = authProvider.useNonPartialUserSession()
   const { setModal, unsetModal } = modalProvider.useSetModal()
   const { backend } = backendProvider.useBackend()
+  const { getText } = textProvider.useText()
   const toastAndLog = toastAndLogHooks.useToastAndLog()
+  const plusButtonRef = React.useRef<HTMLButtonElement>(null)
   const self = asset.permissions?.find(
-    permission => permission.user.user_email === session.user?.email
+    permission => permission.user.userId === session.user?.userId
   )
   const managesThisAsset =
     category !== Category.trash &&
@@ -50,7 +54,7 @@ export default function LabelsColumn(props: column.AssetColumnProps) {
   const setAsset = React.useCallback(
     (valueOrUpdater: React.SetStateAction<backendModule.AnyAsset>) => {
       setItem(oldItem =>
-        object.merge(oldItem, {
+        oldItem.with({
           item:
             typeof valueOrUpdater !== 'function' ? valueOrUpdater : valueOrUpdater(oldItem.item),
         })
@@ -58,6 +62,7 @@ export default function LabelsColumn(props: column.AssetColumnProps) {
     },
     [/* should never change */ setItem]
   )
+
   return (
     <div className="group flex items-center gap-column-items">
       {(asset.labels ?? [])
@@ -66,10 +71,10 @@ export default function LabelsColumn(props: column.AssetColumnProps) {
           <Label
             key={label}
             data-testid="asset-label"
-            title="Right click to remove label."
+            title={getText('rightClickToRemoveLabel')}
             color={labels.get(label)?.color ?? labelUtils.DEFAULT_LABEL_COLOR}
             active={!temporarilyRemovedLabels.has(label)}
-            disabled={temporarilyRemovedLabels.has(label)}
+            isDisabled={temporarilyRemovedLabels.has(label)}
             negated={temporarilyRemovedLabels.has(label)}
             className={
               temporarilyRemovedLabels.has(label)
@@ -83,30 +88,34 @@ export default function LabelsColumn(props: column.AssetColumnProps) {
                 unsetModal()
                 setAsset(oldAsset => {
                   const newLabels = oldAsset.labels?.filter(oldLabel => oldLabel !== label) ?? []
-                  void backend.associateTag(asset.id, newLabels, asset.title).catch(error => {
-                    toastAndLog(null, error)
-                    setAsset(oldAsset2 =>
-                      oldAsset2.labels?.some(oldLabel => oldLabel === label) === true
-                        ? oldAsset2
-                        : object.merge(oldAsset2, {
-                            labels: [...(oldAsset2.labels ?? []), label],
-                          })
-                    )
-                  })
+                  void backend
+                    .associateTag(asset.id, newLabels, asset.title)
+                    .catch((error: unknown) => {
+                      toastAndLog(null, error)
+                      setAsset(oldAsset2 =>
+                        oldAsset2.labels?.some(oldLabel => oldLabel === label) === true
+                          ? oldAsset2
+                          : object.merge(oldAsset2, {
+                              labels: [...(oldAsset2.labels ?? []), label],
+                            })
+                      )
+                    })
                   return object.merge(oldAsset, { labels: newLabels })
                 })
               }
               setModal(
                 <ContextMenus key={`label-${label}`} event={event}>
-                  <ContextMenu>
-                    <MenuEntry action="delete" doAction={doDelete} />
+                  <ContextMenu aria-label={getText('labelContextMenuLabel')}>
+                    <MenuEntry
+                      action="delete"
+                      label={getText('deleteLabelShortcut')}
+                      doAction={doDelete}
+                    />
                   </ContextMenu>
                 </ContextMenus>
               )
             }}
-            onClick={event => {
-              event.preventDefault()
-              event.stopPropagation()
+            onPress={event => {
               setQuery(oldQuery =>
                 oldQuery.withToggled('labels', 'negativeLabels', label, event.shiftKey)
               )
@@ -119,20 +128,20 @@ export default function LabelsColumn(props: column.AssetColumnProps) {
         .filter(label => asset.labels?.includes(label) !== true)
         .map(label => (
           <Label
-            disabled
+            isDisabled
             key={label}
             color={labels.get(label)?.color ?? labelUtils.DEFAULT_LABEL_COLOR}
             className="pointer-events-none"
-            onClick={() => {}}
+            onPress={() => {}}
           >
             {label}
           </Label>
         ))}
       {managesThisAsset && (
-        <button
-          className="invisible shrink-0 group-hover:visible"
-          onClick={event => {
-            event.stopPropagation()
+        <UnstyledButton
+          ref={plusButtonRef}
+          className="shrink-0 rounded-full transparent group-hover:opacity-100 focus-visible:opacity-100"
+          onPress={() => {
             setModal(
               <ManageLabelsModal
                 key={uniqueString.uniqueString()}
@@ -140,13 +149,13 @@ export default function LabelsColumn(props: column.AssetColumnProps) {
                 setItem={setAsset}
                 allLabels={labels}
                 doCreateLabel={doCreateLabel}
-                eventTarget={event.currentTarget}
+                eventTarget={plusButtonRef.current}
               />
             )
           }}
         >
           <img className="size-plus-icon" src={Plus2Icon} />
-        </button>
+        </UnstyledButton>
       )}
     </div>
   )

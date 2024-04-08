@@ -3,6 +3,8 @@ import * as React from 'react'
 
 import * as modalProvider from '#/providers/ModalProvider'
 
+import FocusRoot from '#/components/styled/FocusRoot'
+
 // =================
 // === Component ===
 // =================
@@ -29,27 +31,37 @@ export default function Modal(props: ModalProps) {
   const { unsetModal } = modalProvider.useSetModal()
 
   return (
-    <div
-      // The name comes from a third-party API and cannot be changed.
-      // eslint-disable-next-line @typescript-eslint/naming-convention
-      {...(!hidden ? { 'data-testid': 'modal-background' } : {})}
-      style={style}
-      // This MUST be z-3, unlike all other elements, because it MUST show above the IDE.
-      className={`inset z-3 ${centered ? 'size-screen fixed grid place-items-center' : ''} ${
-        className ?? ''
-      }`}
-      onClick={
-        onClick ??
-        (event => {
-          if (event.currentTarget === event.target && getSelection()?.type !== 'Range') {
-            event.stopPropagation()
-            unsetModal()
+    <FocusRoot active={!hidden}>
+      {innerProps => (
+        <div
+          // The name comes from a third-party API and cannot be changed.
+          // eslint-disable-next-line @typescript-eslint/naming-convention
+          {...(!hidden ? { 'data-testid': 'modal-background' } : {})}
+          style={style}
+          className={`inset z-1 ${centered ? 'size-screen fixed grid place-items-center' : ''} ${
+            className ?? ''
+          }`}
+          onClick={
+            onClick ??
+            (event => {
+              if (event.currentTarget === event.target && getSelection()?.type !== 'Range') {
+                event.stopPropagation()
+                unsetModal()
+              }
+            })
           }
-        })
-      }
-      onContextMenu={onContextMenu}
-    >
-      {children}
-    </div>
+          onContextMenu={onContextMenu}
+          {...innerProps}
+          onKeyDown={event => {
+            innerProps.onKeyDown?.(event)
+            if (event.key !== 'Escape') {
+              event.stopPropagation()
+            }
+          }}
+        >
+          {children}
+        </div>
+      )}
+    </FocusRoot>
   )
 }

@@ -146,11 +146,7 @@ pub trait IsTarget: Clone + Debug + Sized + Send + Sync + 'static {
         let span = debug_span!("Getting artifact from an external source");
         match source {
             ExternalSource::OngoingCiRun(OngoingCiRunSource { artifact_name }) => async move {
-                ide_ci::actions::artifacts::retrieve_compressed_directory(
-                    artifact_name,
-                    &destination,
-                )
-                .await?;
+                artifacts::retrieve_compressed_directory(artifact_name, &destination).await?;
                 this.adapt_artifact(destination).await
             }
             .boxed(),

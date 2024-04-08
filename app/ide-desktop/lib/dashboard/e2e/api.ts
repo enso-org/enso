@@ -48,11 +48,13 @@ export async function mockApi({ page }: MockParams) {
   const defaultEmail = 'email@example.com' as backend.EmailAddress
   const defaultUsername = 'user name'
   const defaultOrganizationId = backend.OrganizationId('organization-placeholder id')
+  const defaultUserId = backend.UserId('user-placeholder id')
   const defaultDirectoryId = backend.DirectoryId('directory-placeholder id')
   const defaultUser: backend.User = {
     email: defaultEmail,
     name: defaultUsername,
-    id: defaultOrganizationId,
+    organizationId: defaultOrganizationId,
+    userId: defaultUserId,
     profilePicture: null,
     isEnabled: true,
     rootDirectoryId: defaultDirectoryId,
@@ -561,12 +563,15 @@ export async function mockApi({ page }: MockParams) {
           // The type of the body sent by this app is statically known.
           // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
           const body: backend.CreateUserRequestBody = await request.postDataJSON()
-          const id = body.organizationId ?? defaultUser.id
-          const rootDirectoryId = backend.DirectoryId(id.replace(/^organization-/, 'directory-'))
+          const organizationId = body.organizationId ?? defaultUser.organizationId
+          const rootDirectoryId = backend.DirectoryId(
+            organizationId.replace(/^organization-/, 'directory-')
+          )
           currentUser = {
             email: body.userEmail,
             name: body.userName,
-            id: body.organizationId ?? defaultUser.id,
+            organizationId,
+            userId: backend.UserId(`user-${uniqueString.uniqueString()}`),
             profilePicture: null,
             isEnabled: false,
             rootDirectoryId,
@@ -633,12 +638,10 @@ export async function mockApi({ page }: MockParams) {
             permissions: [
               {
                 user: {
-                  pk: backend.Subject(''),
-                  /* eslint-disable @typescript-eslint/naming-convention */
-                  user_name: defaultUsername,
-                  user_email: defaultEmail,
-                  organization_id: defaultOrganizationId,
-                  /* eslint-enable @typescript-eslint/naming-convention */
+                  organizationId: defaultOrganizationId,
+                  userId: defaultUserId,
+                  name: defaultUsername,
+                  email: defaultEmail,
                 },
                 permission: permissions.PermissionAction.own,
               },
@@ -671,12 +674,10 @@ export async function mockApi({ page }: MockParams) {
             permissions: [
               {
                 user: {
-                  pk: backend.Subject(''),
-                  /* eslint-disable @typescript-eslint/naming-convention */
-                  user_name: defaultUsername,
-                  user_email: defaultEmail,
-                  organization_id: defaultOrganizationId,
-                  /* eslint-enable @typescript-eslint/naming-convention */
+                  organizationId: defaultOrganizationId,
+                  userId: defaultUserId,
+                  name: defaultUsername,
+                  email: defaultEmail,
                 },
                 permission: permissions.PermissionAction.own,
               },
@@ -696,6 +697,7 @@ export async function mockApi({ page }: MockParams) {
     defaultName: defaultUsername,
     defaultOrganizationId,
     defaultUser,
+    defaultUserId,
     rootDirectoryId: defaultDirectoryId,
     /** Returns the current value of `currentUser`. This is a getter, so its return value
      * SHOULD NOT be cached. */

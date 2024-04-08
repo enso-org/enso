@@ -9,3 +9,6 @@ ide-ci = { path = "../ci_utils" }
 enso-build = { path = "../build" }
 serde_yaml = { workspace = true }
 tokio = { workspace = true }
+
+[lints]
+workspace = true

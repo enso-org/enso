@@ -36,7 +36,8 @@ type Request
     new (method:HTTP_Method) (url:URI) (headers:(Vector Header)=[]) (body:Request_Body=Request_Body.Empty) =
         Request.Value method url headers body
 
-    ## Create an Options request.
+    ## ICON find
+       Create an Options request.
 
        Arguments:
 
@@ -82,7 +83,10 @@ type Request
     head : (Text | URI) -> Vector -> Request
     head url (headers = []) = Request.new HTTP_Method.Head url headers
 
-    ## Create a Post request.
+    ## ALIAS http post, upload
+       GROUP Output
+       ICON data_upload
+       Create a Post request.
 
        Arguments:
        - url: The address for the request.
@@ -100,7 +104,8 @@ type Request
     post : (Text | URI) -> Request_Body -> Vector -> Request
     post url body (headers = []) = Request.new HTTP_Method.Post url headers body
 
-    ## Create a Put request.
+    ## ICON data_upload
+       Create a Put request.
 
        Arguments:
        - url: The address for the request.
@@ -118,7 +123,8 @@ type Request
     put : (Text | URI) -> Request_Body -> Vector -> Request
     put url body (headers = []) = Request.new HTTP_Method.Put url headers body
 
-    ## Create a Delete request.
+    ## ICON trash
+       Create a Delete request.
 
        Arguments:
        - url: The address for the request.
@@ -145,7 +151,8 @@ type Request
        - body: The body of the request.
     Value (method : HTTP_Method) (uri : URI) (headers : Vector) (body : Request_Body)
 
-    ## Sets the header for the request.
+    ## ICON edit
+       Sets the header for the request.
 
        Arguments:
        - key: The name for the header in this request.
@@ -169,7 +176,8 @@ type Request
            Pair.Value acc False -> acc + [new_header]
        Request.Value self.method self.uri new_headers self.body
 
-    ## Sets the headers in the request.
+    ## ICON edit
+       Sets the headers in the request.
 
        Arguments:
        - new_headers: A vector of headers to put in the request. If `self` has
@@ -186,7 +194,8 @@ type Request
         update_header req new_header = req.with_header new_header.name new_header.value
         new_headers.fold self update_header
 
-    ## Set the body for the request.
+    ## ICON edit
+       Set the body for the request.
 
         Arguments:
         - new_body: The body to insert into the request.
@@ -203,7 +212,8 @@ type Request
     with_body : Request_Body -> Request
     with_body self new_body = Request.Value self.method self.uri self.headers new_body
 
-    ## Set the body text in the request encoded as "application/json".
+    ## ICON edit
+       Set the body text in the request encoded as "application/json".
 
        Arguments:
        - json_body: The body to add to the request. It must be textual JSON.
@@ -222,7 +232,8 @@ type Request
         new_body = Request_Body.Json json_body
         Request.Value self.method self.uri self.headers new_body . with_headers [Header.application_json]
 
-    ## Set body as vector of parts encoded as "application/x-www-form-urlencoded".
+    ## ICON data_input
+       Set body as vector of parts encoded as "application/x-www-form-urlencoded".
 
        Arguments:
        - parts: The parts of the form, or a form itself.

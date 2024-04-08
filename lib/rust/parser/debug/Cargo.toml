@@ -17,3 +17,6 @@ enso-reflect = { path = "../../reflect" }
 lexpr = "0.2.6"
 serde = { workspace = true }
 serde_json = { workspace = true }
+
+[lints]
+workspace = true
