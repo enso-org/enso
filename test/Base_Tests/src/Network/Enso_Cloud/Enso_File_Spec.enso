@@ -181,8 +181,11 @@ add_specs suite_builder setup:Cloud_Tests_Setup = setup.with_prepared_environmen
 
             nested_file.is_descendant_of dir . should_be_true
             nested_file.is_descendant_of Enso_File.root . should_be_true
+
+            # Some edge cases
             (Enso_File.root / "test-directory-longer-name") . is_descendant_of (Enso_File.root / "test-directory") . should_be_false
-            (Enso_File.root / "test-directory" / "non-existent") . is_descendant_of (Enso_File.root / "test-directory") . should_be_false
+            (Enso_File.root / "test-directory" / "non-existent") . is_descendant_of (Enso_File.root / "test-directory") . should_be_true
+            (Enso_File.root / "test-directory") . is_descendant_of (Enso_File.root / "test-directory" / "non-existent") . should_be_false
 
         group_builder.specify "allows / as well as .. and . in resolve" <|
             (Enso_File.root / "a/b/c") . should_equal (Enso_File.root / "a" / "b" / "c")

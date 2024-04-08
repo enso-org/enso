@@ -161,7 +161,7 @@ type Enso_File
        ICON metadata
        Checks if `self` is a descendant of `other`.
     is_descendant_of self (other : Enso_File) -> Boolean =
-        other.is_directory && self.path.starts_with other.path
+        self.enso_path.is_descendant_of other.enso_path
 
     ## PRIVATE
        ADVANCED

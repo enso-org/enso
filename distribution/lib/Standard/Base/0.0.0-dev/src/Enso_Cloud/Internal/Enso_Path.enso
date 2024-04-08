@@ -51,6 +51,12 @@ type Enso_Path
         Enso_Path.Value self.organization_name normalized_segments
 
     ## PRIVATE
+    is_descendant_of self (other : Enso_Path) -> Boolean =
+        if self.organization_name != other.organization_name then False else
+            if self.path_segments.length < other.path_segments.length then False else
+                (self.path_segments.take other.path_segments.length) == other.path_segments
+
+    ## PRIVATE
     to_text self -> Text =
         Enso_Path.protocol_prefix + self.organization_name + Enso_Path.delimiter + self.path_segments.join Enso_Path.delimiter
 
