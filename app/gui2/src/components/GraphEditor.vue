@@ -152,6 +152,12 @@ const nodeSelection = provideGraphSelection(
   },
 )
 
+// Clear selection whenever the graph view is switched.
+watch(
+  () => projectStore.executionContext.getStackTop(),
+  () => nodeSelection.deselectAll(),
+)
+
 const interactionBindingsHandler = interactionBindings.handler({
   cancel: () => interaction.handleCancel(),
 })
@@ -174,14 +180,17 @@ onMounted(() => viewportNode.value?.focus())
 
 function zoomToSelected() {
   if (!viewportNode.value) return
-  const nodesToCenter =
-    nodeSelection.selected.size === 0 ? graphStore.db.nodeIdToNode.keys() : nodeSelection.selected
+
+  const allNodes = graphStore.db.nodeIdToNode
+  const validSelected = [...nodeSelection.selected].filter((id) => allNodes.has(id))
+  const nodesToCenter = validSelected.length === 0 ? allNodes.keys() : validSelected
   let bounds = Rect.Bounding()
   for (const id of nodesToCenter) {
     const rect = graphStore.visibleArea(id)
     if (rect) bounds = Rect.Bounding(bounds, rect)
   }
-  graphNavigator.panAndZoomTo(bounds, 0.1, Math.max(1, graphNavigator.targetScale))
+  if (bounds.isFinite())
+    graphNavigator.panAndZoomTo(bounds, 0.1, Math.max(1, graphNavigator.targetScale))
 }
 
 const graphBindingsHandler = graphBindings.handler({
