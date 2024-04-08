@@ -46,5 +46,5 @@ import CONFIG from './config.json' assert { type: 'json' }
 export const OPTIONS = linkedDist.config.options.merge(
     // `valueEval` in `config.json` uses PascalCase scope variables for some reason.
     // eslint-disable-next-line @typescript-eslint/naming-convention
-    linkedDist.config.objectToGroup(CONFIG, { Version: VERSION })
+    linkedDist.config.objectToGroup(CONFIG)
 )

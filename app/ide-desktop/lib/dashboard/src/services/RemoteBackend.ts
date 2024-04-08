@@ -66,7 +66,7 @@ export async function waitUntilProjectIsReady(
   item: backendModule.ProjectAsset,
   abortController: AbortController = new AbortController()
 ) {
-  let project = await backend.getProjectDetails(item.id, null, item.title)
+  let project = await backend.getProjectDetails(item.id, item.parentId, item.title)
   if (!backendModule.IS_OPENING_OR_OPENED[project.state.type]) {
     await backend.openProject(item.id, null, item.title)
   }
@@ -80,8 +80,9 @@ export async function waitUntilProjectIsReady(
       setTimeout(resolve, Math.max(0, delayMs))
     })
     nextCheckTimestamp = Number(new Date()) + CHECK_STATUS_INTERVAL_MS
-    project = await backend.getProjectDetails(item.id, null, item.title)
+    project = await backend.getProjectDetails(item.id, item.parentId, item.title)
   }
+  return project
 }
 
 // =============
