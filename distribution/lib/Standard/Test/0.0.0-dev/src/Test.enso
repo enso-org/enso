@@ -10,6 +10,10 @@ import project.Suite.Suite
 import project.Suite.Suite_Builder
 import project.Test_Result.Test_Result
 
+
+polyglot java import java.lang.Thread
+
+
 ## Contains only static methods
 type Test
     ## Construct a Test Suite object
@@ -167,3 +171,30 @@ type Test
         result = behavior
         State.put Clue prev_clue
         result
+
+    ## A helper method that retries the action a few times if it panics.
+       It allows to make flaky tests more robust.
+
+       It waits for a short period of time between retries (in case the failures
+       are related e.g. to network conditions or propagation delays).
+    with_retries : Any -> Any
+    with_retries ~action =
+        loc = Meta.get_source_location 1
+
+        # Delays are in seconds
+        sleep_time = 0.1
+        total_sleep_delay = if Environment.get "CI" . is_nothing . not then 10 else 2
+
+        max_iterations = total_sleep_delay / sleep_time
+        go i =
+            Panic.catch Any action caught_panic->
+                # If the iterations are exhausted, we rethrow the panic.
+                if i > max_iterations then Panic.throw caught_panic else
+                    if i % 10 == 0 then
+                        IO.println "Still failing after "+i.to_text+" retries. ("+loc.to_display_text+")"
+                    Thread.sleep (1000*sleep_time . floor)
+                    ## TODO This used to be
+                            @Tail_Call go (i+1)
+                       We should re-add the tail call once https://github.com/enso-org/enso/issues/9251 is fixed.
+                    go (i+1)
+        go 1

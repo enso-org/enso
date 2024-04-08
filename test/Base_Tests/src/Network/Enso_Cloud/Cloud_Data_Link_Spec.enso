@@ -10,7 +10,6 @@ from Standard.Test import all
 import Standard.Test.Test_Environment
 
 import project.Network.Enso_Cloud.Cloud_Tests_Setup.Cloud_Tests_Setup
-from enso_dev.Base_Tests.Network.Enso_Cloud.Cloud_Tests_Setup import with_retries
 
 add_specs suite_builder setup:Cloud_Tests_Setup = setup.with_prepared_environment <|
     suite_builder.group "DataLinks in Enso Cloud" pending=setup.real_cloud_pending group_builder->
