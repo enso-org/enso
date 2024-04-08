@@ -3,7 +3,6 @@ import type {
   SuggestionsDatabaseEntry,
   SuggestionsDatabaseUpdate,
 } from './languageServerTypes/suggestions'
-import { assertNever } from './util/assert'
 import type { ExternalId, Uuid } from './yjsModel'
 
 export type { Uuid }
@@ -365,21 +364,10 @@ export interface LocalCall {
   expressionId: ExpressionId
 }
 
-export function encodeItemLocation(enc: encoding.Encoder, item: StackItem) {
-  switch (item.type) {
-    case 'LocalCall':
-      encoding.writeUint8(enc, 0)
-      encoding.writeVarString(enc, item.expressionId)
-      break
-    case 'ExplicitCall':
-      encoding.writeUint8(enc, 1)
-      encoding.writeVarString(enc, item.methodPointer.module)
-      encoding.writeVarString(enc, item.methodPointer.name)
-      encoding.writeVarString(enc, item.methodPointer.definedOnType)
-      break
-    default:
-      assertNever(item)
-  }
+export function encodeMethodPointer(enc: encoding.Encoder, ptr: MethodPointer) {
+  encoding.writeVarString(enc, ptr.module)
+  encoding.writeVarString(enc, ptr.name)
+  encoding.writeVarString(enc, ptr.definedOnType)
 }
 
 export function stackItemsEqual(left: StackItem, right: StackItem): boolean {

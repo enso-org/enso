@@ -12,6 +12,7 @@ import GraphEdges from '@/components/GraphEditor/GraphEdges.vue'
 import GraphNodes from '@/components/GraphEditor/GraphNodes.vue'
 import { performCollapse, prepareCollapsedInfo } from '@/components/GraphEditor/collapsing'
 import type { NodeCreationOptions } from '@/components/GraphEditor/nodeCreation'
+import { useGraphEditorToasts } from '@/components/GraphEditor/toasts'
 import { Uploader, uploadedExpression } from '@/components/GraphEditor/upload'
 import GraphMouse from '@/components/GraphMouse.vue'
 import PlusButton from '@/components/PlusButton.vue'
@@ -19,6 +20,7 @@ import SceneScroller from '@/components/SceneScroller.vue'
 import TopBar from '@/components/TopBar.vue'
 import { useDoubleClick } from '@/composables/doubleClick'
 import { keyboardBusy, keyboardBusyExceptIn, useEvent } from '@/composables/events'
+import { useNavigatorStorage } from '@/composables/navigatorStorage'
 import { useStackNavigator } from '@/composables/stackNavigator'
 import { provideGraphNavigator } from '@/providers/graphNavigator'
 import { provideGraphSelection } from '@/providers/graphSelection'
@@ -30,116 +32,64 @@ import type { RequiredImport } from '@/stores/graph/imports'
 import { useProjectStore } from '@/stores/project'
 import { groupColorVar, useSuggestionDbStore } from '@/stores/suggestionDatabase'
 import { assertNever, bail } from '@/util/assert'
-import type { AstId, NodeMetadataFields } from '@/util/ast/abstract'
+import type { AstId } from '@/util/ast/abstract'
 import type { Pattern } from '@/util/ast/match'
 import { colorFromString } from '@/util/colors'
 import { partition } from '@/util/data/array'
+import { filterDefined } from '@/util/data/iterable'
 import { Rect } from '@/util/data/rect'
 import { Vec2 } from '@/util/data/vec2'
-import { useToast } from '@/util/toast'
-import { debouncedWatch, useLocalStorage } from '@vueuse/core'
 import { encoding, set } from 'lib0'
-import { xxHash128 } from 'shared/ast/ffi'
-import { encodeItemLocation } from 'shared/languageServerTypes'
+import { encodeMethodPointer } from 'shared/languageServerTypes'
 import { computed, onMounted, ref, toRef, watch } from 'vue'
-import { ProjectManagerEvents } from '../../../ide-desktop/lib/dashboard/src/services/ProjectManager'
 import { type Usage } from './ComponentBrowser/input'
+import { useGraphEditorClipboard } from './GraphEditor/clipboard'
 
 const keyboard = provideKeyboard()
-const viewportNode = ref<HTMLElement>()
-const graphNavigator = provideGraphNavigator(viewportNode, keyboard)
 const graphStore = useGraphStore()
 const widgetRegistry = provideWidgetRegistry(graphStore.db)
 widgetRegistry.loadBuiltins()
 const projectStore = useProjectStore()
-const componentBrowserVisible = ref(false)
-const componentBrowserNodePosition = ref<Vec2>(Vec2.Zero)
-const componentBrowserUsage = ref<Usage>({ type: 'newNode' })
 const suggestionDb = useSuggestionDbStore()
-const interaction = provideInteractionHandler()
 
-// === Viewport localstorage sync ===
+// === Navigator ===
 
-const graphViewportStorageKey = computed(() => {
-  const encoded = encoding.encode((enc) => {
-    // Viewport needs to be stored separately for:
-    // - each project
-    // - each module (execution stack bottom)
-    // - each unique function within the module (execution stack top)
-    encoding.writeVarString(enc, projectStore.name)
-    encodeItemLocation(enc, projectStore.executionContext.getStackBottom())
-    encodeItemLocation(enc, projectStore.executionContext.getStackTop())
-  })
-  return xxHash128(encoded)
+const viewportNode = ref<HTMLElement>()
+onMounted(() => viewportNode.value?.focus())
+const graphNavigator = provideGraphNavigator(viewportNode, keyboard)
+useNavigatorStorage(graphNavigator, (enc) => {
+  // Navigator viewport needs to be stored separately for:
+  // - each project
+  // - each function within the project
+  encoding.writeVarString(enc, projectStore.name)
+  const methodPtr = graphStore.currentMethodPointer()
+  if (methodPtr != null) encodeMethodPointer(enc, methodPtr)
 })
 
-type ViewportStorage = Map<string, { x: number; y: number; scale: number }>
-const storedViewport = useLocalStorage<ViewportStorage>('enso-viewport', new Map())
-const MAX_STORED_VIEWPORTS = 256
+function zoomToSelected() {
+  if (!viewportNode.value) return
 
-watch(
-  graphViewportStorageKey,
-  (key, prevKey) => {
-    if (prevKey != null) storeCurrentViewport(prevKey)
-    restoreViewport(key)
-  },
-  { immediate: true },
-)
-
-debouncedWatch(
-  () => [graphNavigator.targetCenter, graphNavigator.scale],
-  () => storeCurrentViewport(graphViewportStorageKey.value),
-  { debounce: 200 },
-)
-
-function storeCurrentViewport(storageKey: string) {
-  const pos = graphNavigator.targetCenter
-  const scale = graphNavigator.targetScale
-  storedViewport.value.set(storageKey, { x: pos.x, y: pos.y, scale })
-  // Ensure that the storage doesn't grow forever by periodically removing least recently
-  // written half of entries when we reach a limit.
-  if (storedViewport.value.size > MAX_STORED_VIEWPORTS) {
-    let toRemove = MAX_STORED_VIEWPORTS / 2
-    for (const key of storedViewport.value.keys()) {
-      if (toRemove-- <= 0) break
-      storedViewport.value.delete(key)
-    }
+  const allNodes = graphStore.db.nodeIdToNode
+  const validSelected = [...nodeSelection.selected].filter((id) => allNodes.has(id))
+  const nodesToCenter = validSelected.length === 0 ? allNodes.keys() : validSelected
+  let bounds = Rect.Bounding()
+  for (const id of nodesToCenter) {
+    const rect = graphStore.visibleArea(id)
+    if (rect) bounds = Rect.Bounding(bounds, rect)
   }
+  if (bounds.isFinite())
+    graphNavigator.panAndZoomTo(bounds, 0.1, Math.max(1, graphNavigator.targetScale))
 }
 
-function restoreViewport(storageKey: string) {
-  const restored = storedViewport.value.get(storageKey)
-  const pos = restored ? Vec2.FromXY(restored) : Vec2.Zero
-  const scale = restored?.scale ?? 1
-  graphNavigator.setCenterAndScale(pos, scale)
-}
+// == Breadcrumbs ==
 
-// === toasts ===
+const stackNavigator = useStackNavigator()
 
-const toastStartup = useToast.info({ autoClose: false })
-const toastConnectionLost = useToast.error({ autoClose: false })
-const toastLspError = useToast.error()
-const toastConnectionError = useToast.error()
-const toastExecutionFailed = useToast.error()
+// === Toasts ===
 
-toastStartup.show('Initializing the project. This can take up to one minute.')
-projectStore.firstExecution.then(toastStartup.dismiss)
+useGraphEditorToasts()
 
-useEvent(document, ProjectManagerEvents.loadingFailed, () =>
-  toastConnectionLost.show('Lost connection to Language Server.'),
-)
-
-projectStore.lsRpcConnection.then(
-  (ls) => ls.client.onError((e) => toastLspError.show(`Language server error: ${e}`)),
-  (e) => toastConnectionError.show(`Connection to language server failed: ${JSON.stringify(e)}`),
-)
-
-projectStore.executionContext.on('executionComplete', () => toastExecutionFailed.dismiss())
-projectStore.executionContext.on('executionFailed', (e) =>
-  toastExecutionFailed.show(`Execution Failed: ${JSON.stringify(e)}`),
-)
-
-// === nodes ===
+// === Selection ===
 
 const nodeSelection = provideGraphSelection(
   graphNavigator,
@@ -158,6 +108,16 @@ watch(
   () => nodeSelection.deselectAll(),
 )
 
+// === Clipboard Copy/Paste ===
+
+const { copyNodeContent, readNodeFromClipboard } = useGraphEditorClipboard(
+  nodeSelection,
+  graphNavigator,
+)
+
+// === Interactions ===
+
+const interaction = provideInteractionHandler()
 const interactionBindingsHandler = interactionBindings.handler({
   cancel: () => interaction.handleCancel(),
 })
@@ -176,22 +136,7 @@ useEvent(window, 'pointerdown', (e) => interaction.handleClick(e, graphNavigator
   capture: true,
 })
 
-onMounted(() => viewportNode.value?.focus())
-
-function zoomToSelected() {
-  if (!viewportNode.value) return
-
-  const allNodes = graphStore.db.nodeIdToNode
-  const validSelected = [...nodeSelection.selected].filter((id) => allNodes.has(id))
-  const nodesToCenter = validSelected.length === 0 ? allNodes.keys() : validSelected
-  let bounds = Rect.Bounding()
-  for (const id of nodesToCenter) {
-    const rect = graphStore.visibleArea(id)
-    if (rect) bounds = Rect.Bounding(bounds, rect)
-  }
-  if (bounds.isFinite())
-    graphNavigator.panAndZoomTo(bounds, 0.1, Math.max(1, graphNavigator.targetScale))
-}
+// === Keyboard/Mouse bindings ===
 
 const graphBindingsHandler = graphBindings.handler({
   undo() {
@@ -324,6 +269,9 @@ const { handleClick } = useDoubleClick(
     stackNavigator.exitNode()
   },
 )
+
+// === Code Editor ===
+
 const codeEditorArea = ref<HTMLElement>()
 const showCodeEditor = ref(false)
 const toggleCodeEditor = () => {
@@ -334,6 +282,8 @@ const codeEditorHandler = codeEditorBindings.handler({
     toggleCodeEditor()
   },
 })
+
+// === Execution Mode ===
 
 /** Handle record-once button presses. */
 function onRecordOnceButtonPress() {
@@ -354,13 +304,11 @@ watch(
   },
 )
 
-const groupColors = computed(() => {
-  const styles: { [key: string]: string } = {}
-  for (let group of suggestionDb.groups) {
-    styles[groupColorVar(group)] = group.color ?? colorFromString(group.name)
-  }
-  return styles
-})
+// === Component Browser ===
+
+const componentBrowserVisible = ref(false)
+const componentBrowserNodePosition = ref<Vec2>(Vec2.Zero)
+const componentBrowserUsage = ref<Usage>({ type: 'newNode' })
 
 function openComponentBrowser(usage: Usage, position: Vec2) {
   componentBrowserUsage.value = usage
@@ -368,11 +316,78 @@ function openComponentBrowser(usage: Usage, position: Vec2) {
   componentBrowserVisible.value = true
 }
 
+function hideComponentBrowser() {
+  graphStore.editedNodeInfo = undefined
+  componentBrowserVisible.value = false
+}
+
 function editWithComponentBrowser(node: NodeId, cursorPos: number) {
   openComponentBrowser(
     { type: 'editNode', node, cursorPos },
     graphStore.db.nodeIdToNode.get(node)?.position ?? Vec2.Zero,
   )
+}
+
+function createWithComponentBrowser(options: NewNodeOptions) {
+  openComponentBrowser(
+    { type: 'newNode', sourcePort: options.sourcePort },
+    placeNode(options.placement),
+  )
+}
+
+function commitComponentBrowser(content: string, requiredImports: RequiredImport[]) {
+  if (content != null) {
+    if (graphStore.editedNodeInfo) {
+      // We finish editing a node.
+      graphStore.setNodeContent(graphStore.editedNodeInfo.id, content, requiredImports)
+    } else if (content != '') {
+      // We finish creating a new node.
+      const metadata = undefined
+      const createdNode = graphStore.createNode(
+        componentBrowserNodePosition.value,
+        content,
+        metadata,
+        requiredImports,
+      )
+      if (createdNode) nodeSelection.setSelection(new Set([createdNode]))
+    }
+  }
+  hideComponentBrowser()
+}
+
+// Watch the `editedNode` in the graph store and synchronize component browser display with it.
+watch(
+  () => graphStore.editedNodeInfo,
+  (editedInfo) => {
+    if (editedInfo) {
+      editWithComponentBrowser(editedInfo.id, editedInfo.initialCursorPos)
+    } else {
+      hideComponentBrowser()
+    }
+  },
+)
+
+// === Node Creation ===
+
+interface NewNodeOptions {
+  placement: PlacementType
+  sourcePort?: AstId | undefined
+}
+type PlacementType = 'viewport' | ['source', NodeId] | ['fixed', Vec2]
+
+const placeNode = (placement: PlacementType): Vec2 =>
+  placement === 'viewport' ? nodePlacement().position
+  : placement[0] === 'source' ?
+    nodePlacement(filterDefined([graphStore.visibleArea(placement[1])])).position
+  : placement[0] === 'fixed' ? placement[1]
+  : assertNever(placement)
+
+/**
+ * Start creating a node, basing its inputs and position on the current selection, if any;
+ * or the current viewport, otherwise.
+ */
+function addNodeAuto() {
+  createWithComponentBrowser(fromSelection() ?? { placement: 'viewport' })
 }
 
 function fromSelection(): NewNodeOptions | undefined {
@@ -384,41 +399,10 @@ function fromSelection(): NewNodeOptions | undefined {
   }
 }
 
-type PlacementType = 'viewport' | ['source', NodeId] | ['fixed', Vec2]
-
-function* filterDefined<T>(iterable: Iterable<T | undefined>): IterableIterator<T> {
-  for (const value of iterable) {
-    if (value !== undefined) yield value
-  }
-}
-
-const placeNode = (placement: PlacementType): Vec2 =>
-  placement === 'viewport' ? nodePlacement().position
-  : placement[0] === 'source' ?
-    nodePlacement(filterDefined([graphStore.visibleArea(placement[1])])).position
-  : placement[0] === 'fixed' ? placement[1]
-  : assertNever(placement)
-
-interface NewNodeOptions {
-  placement: PlacementType
-  sourcePort?: AstId | undefined
-}
-
-function createWithComponentBrowser(options: NewNodeOptions) {
-  openComponentBrowser(
-    {
-      type: 'newNode',
-      sourcePort: options.sourcePort,
-    },
-    placeNode(options.placement),
-  )
-}
-
-/** Start creating a node, basing its inputs and position on the current selection, if any;
- *  or the current viewport, otherwise.
- */
-function addNodeAuto() {
-  createWithComponentBrowser(fromSelection() ?? { placement: 'viewport' })
+function createNode(placement: PlacementType, sourcePort: AstId, pattern: Pattern) {
+  const position = placeNode(placement)
+  const content = pattern.instantiateCopied([graphStore.viewModule.get(sourcePort)]).code()
+  return graphStore.createNode(position, content, undefined, []) ?? undefined
 }
 
 function createNodesFromSource(sourceNode: NodeId, options: NodeCreationOptions[]) {
@@ -443,48 +427,20 @@ function createNodesFromSource(sourceNode: NodeId, options: NodeCreationOptions[
     createWithComponentBrowser({ placement: placementForOptions(options), sourcePort })
 }
 
-function createNode(placement: PlacementType, sourcePort: AstId, pattern: Pattern) {
-  const position = placeNode(placement)
-  const content = pattern.instantiateCopied([graphStore.viewModule.get(sourcePort)]).code()
-  return graphStore.createNode(position, content, undefined, []) ?? undefined
-}
-
-function hideComponentBrowser() {
-  graphStore.editedNodeInfo = undefined
-  componentBrowserVisible.value = false
-}
-
-function commitComponentBrowser(content: string, requiredImports: RequiredImport[]) {
-  if (content != null) {
-    if (graphStore.editedNodeInfo) {
-      // We finish editing a node.
-      graphStore.setNodeContent(graphStore.editedNodeInfo.id, content, requiredImports)
-    } else if (content != '') {
-      // We finish creating a new node.
-      const metadata = undefined
-      const createdNode = graphStore.createNode(
-        componentBrowserNodePosition.value,
-        content,
-        metadata,
-        requiredImports,
-      )
-      if (createdNode) nodeSelection.setSelection(new Set([createdNode]))
-    }
+function handleNodeOutputPortDoubleClick(id: AstId) {
+  const srcNode = graphStore.db.getPatternExpressionNodeId(id)
+  if (srcNode == null) {
+    console.error('Impossible happened: Double click on port not belonging to any node: ', id)
+    return
   }
-  hideComponentBrowser()
+  createWithComponentBrowser({ placement: ['source', srcNode], sourcePort: id })
 }
 
-// Watch the `editedNode` in the graph store
-watch(
-  () => graphStore.editedNodeInfo,
-  (editedInfo) => {
-    if (editedInfo) {
-      editWithComponentBrowser(editedInfo.id, editedInfo.initialCursorPos)
-    } else {
-      hideComponentBrowser()
-    }
-  },
-)
+function handleEdgeDrop(source: AstId, position: Vec2) {
+  createWithComponentBrowser({ placement: ['fixed', position], sourcePort: source })
+}
+
+// === Drag and drop ===
 
 async function handleFileDrop(event: DragEvent) {
   // A vertical gap between created nodes when multiple files were dropped together.
@@ -517,127 +473,6 @@ async function handleFileDrop(event: DragEvent) {
       console.error(`Uploading file failed. ${err}`)
     }
   })
-}
-
-// === Clipboard ===
-
-const ENSO_MIME_TYPE = 'web application/enso'
-
-/** The data that is copied to the clipboard. */
-interface ClipboardData {
-  nodes: CopiedNode[]
-}
-
-/** Node data that is copied to the clipboard. Used for serializing and deserializing the node information. */
-interface CopiedNode {
-  expression: string
-  metadata: NodeMetadataFields | undefined
-}
-
-/** Copy the content of the selected node to the clipboard. */
-function copyNodeContent() {
-  const id = nodeSelection.selected.values().next().value
-  const node = graphStore.db.nodeIdToNode.get(id)
-  if (!node) return
-  const content = node.innerExpr.code()
-  const nodeMetadata = node.rootExpr.nodeMetadata
-  const metadata = {
-    position: nodeMetadata.get('position'),
-    visualization: nodeMetadata.get('visualization'),
-  }
-  const copiedNode: CopiedNode = { expression: content, metadata }
-  const clipboardData: ClipboardData = { nodes: [copiedNode] }
-  const jsonItem = new Blob([JSON.stringify(clipboardData)], { type: ENSO_MIME_TYPE })
-  const textItem = new Blob([content], { type: 'text/plain' })
-  const clipboardItem = new ClipboardItem({ [jsonItem.type]: jsonItem, [textItem.type]: textItem })
-  navigator.clipboard.write([clipboardItem])
-}
-
-async function retrieveDataFromClipboard(): Promise<ClipboardData | undefined> {
-  const clipboardItems = await navigator.clipboard.read()
-  let fallback = undefined
-  for (const clipboardItem of clipboardItems) {
-    for (const type of clipboardItem.types) {
-      if (type === ENSO_MIME_TYPE) {
-        const blob = await clipboardItem.getType(type)
-        return JSON.parse(await blob.text())
-      }
-
-      if (type === 'text/html') {
-        const blob = await clipboardItem.getType(type)
-        const htmlContent = await blob.text()
-        const excelPayload = await readNodeFromExcelClipboard(htmlContent, clipboardItem)
-        if (excelPayload) {
-          return excelPayload
-        }
-      }
-
-      if (type === 'text/plain') {
-        const blob = await clipboardItem.getType(type)
-        const fallbackExpression = await blob.text()
-        const fallbackNode = { expression: fallbackExpression, metadata: undefined } as CopiedNode
-        fallback = { nodes: [fallbackNode] } as ClipboardData
-      }
-    }
-  }
-  return fallback
-}
-
-/// Read the clipboard and if it contains valid data, create a node from the content.
-async function readNodeFromClipboard() {
-  let clipboardData = await retrieveDataFromClipboard()
-  if (!clipboardData) {
-    console.warn('No valid data in clipboard.')
-    return
-  }
-  const copiedNode = clipboardData.nodes[0]
-  if (!copiedNode) {
-    console.warn('No valid node in clipboard.')
-    return
-  }
-  if (copiedNode.expression == null) {
-    console.warn('No valid expression in clipboard.')
-  }
-  graphStore.createNode(
-    graphNavigator.sceneMousePos ?? Vec2.Zero,
-    copiedNode.expression,
-    copiedNode.metadata,
-  )
-}
-
-async function readNodeFromExcelClipboard(
-  htmlContent: string,
-  clipboardItem: ClipboardItem,
-): Promise<ClipboardData | undefined> {
-  // Check we have a valid HTML table
-  // If it is Excel, we should have a plain-text version of the table with tab separators.
-  if (
-    clipboardItem.types.includes('text/plain') &&
-    htmlContent.startsWith('<table ') &&
-    htmlContent.endsWith('</table>')
-  ) {
-    const textData = await clipboardItem.getType('text/plain')
-    const text = await textData.text()
-    const payload = JSON.stringify(text).replaceAll(/^"|"$/g, '').replaceAll("'", "\\'")
-    const expression = `'${payload}'.to Table`
-    return { nodes: [{ expression: expression, metadata: undefined }] } as ClipboardData
-  }
-  return undefined
-}
-
-function handleNodeOutputPortDoubleClick(id: AstId) {
-  const srcNode = graphStore.db.getPatternExpressionNodeId(id)
-  if (srcNode == null) {
-    console.error('Impossible happened: Double click on port not belonging to any node: ', id)
-    return
-  }
-  createWithComponentBrowser({ placement: ['source', srcNode], sourcePort: id })
-}
-
-const stackNavigator = useStackNavigator()
-
-function handleEdgeDrop(source: AstId, position: Vec2) {
-  createWithComponentBrowser({ placement: ['fixed', position], sourcePort: source })
 }
 
 // === Color Picker ===
@@ -684,6 +519,14 @@ const colorPickerStyle = computed(() =>
     { transform: `translate(${colorPickerPos.value.x}px, ${colorPickerPos.value.y}px)` }
   : {},
 )
+
+const groupColors = computed(() => {
+  const styles: { [key: string]: string } = {}
+  for (let group of suggestionDb.groups) {
+    styles[groupColorVar(group)] = group.color ?? colorFromString(group.name)
+  }
+  return styles
+})
 </script>
 
 <template>
