@@ -86,7 +86,6 @@ http_request_as_json (method : HTTP_Method) (url : URI) (body : Request_Body = R
    (defined in the cloud project) to functions that take the full JSON payload
    and return a custom error.
 http_request (method : HTTP_Method) (url : URI) (body : Request_Body = Request_Body.Empty) (additional_headers : Vector = []) (error_handlers : Map Text (Any -> Any) = Map.empty) (retries : Integer = 3) -> Response ! Enso_Cloud_Error =
-    Standard.Base.IO.println method.to_text+" "+url.to_text
     all_headers = [authorization_header] + additional_headers
     as_connection_error err = Error.throw (Enso_Cloud_Error.Connection_Error err)
     response = HTTP.new.request (Request.new method url headers=all_headers body=body) error_on_failure_code=False
