@@ -6,8 +6,13 @@ import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 import * as modalProvider from '#/providers/ModalProvider'
 import * as textProvider from '#/providers/TextProvider'
 
+import * as aria from '#/components/aria'
 import ColorPicker from '#/components/ColorPicker'
 import Modal from '#/components/Modal'
+import ButtonRow from '#/components/styled/ButtonRow'
+import FocusArea from '#/components/styled/FocusArea'
+import FocusRing from '#/components/styled/FocusRing'
+import UnstyledButton from '#/components/UnstyledButton'
 
 import * as backend from '#/services/Backend'
 
@@ -28,7 +33,7 @@ export default function NewLabelModal(props: NewLabelModalProps) {
   const toastAndLog = toastAndLogHooks.useToastAndLog()
   const { unsetModal } = modalProvider.useSetModal()
   const { getText } = textProvider.useText()
-  const [value, setName] = React.useState('')
+  const [value, setValue] = React.useState('')
   const [color, setColor] = React.useState<backend.LChColor | null>(null)
   const labelNames = React.useMemo(
     () => new Set<string>(labels.map(label => label.value)),
@@ -38,12 +43,14 @@ export default function NewLabelModal(props: NewLabelModalProps) {
   const leastUsedColor = React.useMemo(() => backend.leastUsedColor(labels), [labels])
   const canSubmit = Boolean(value && !labelNames.has(value))
 
-  const onSubmit = () => {
-    unsetModal()
-    try {
-      doCreate(value, color ?? leastUsedColor)
-    } catch (error) {
-      toastAndLog(null, error)
+  const doSubmit = () => {
+    if (value !== '') {
+      unsetModal()
+      try {
+        doCreate(value, color ?? leastUsedColor)
+      } catch (error) {
+        toastAndLog(null, error)
+      }
     }
   }
 
@@ -57,11 +64,6 @@ export default function NewLabelModal(props: NewLabelModalProps) {
           top: position.top + window.scrollY,
         }}
         className="pointer-events-auto relative flex w-new-label-modal flex-col gap-modal rounded-default p-modal-wide pt-modal before:absolute before:inset before:h-full before:w-full before:rounded-default before:bg-selected-frame before:backdrop-blur-default"
-        onKeyDown={event => {
-          if (event.key !== 'Escape') {
-            event.stopPropagation()
-          }
-        }}
         onClick={event => {
           event.stopPropagation()
         }}
@@ -69,51 +71,66 @@ export default function NewLabelModal(props: NewLabelModalProps) {
           event.preventDefault()
           // Consider not calling `onSubmit()` here to make it harder to accidentally
           // delete an important asset.
-          onSubmit()
+          doSubmit()
         }}
       >
-        <h1 className="relative text-sm font-semibold">{getText('newLabel')}</h1>
-        <label className="relative flex items-center">
-          <div className="text w-modal-label">{getText('name')}</div>
-          <input
-            autoFocus
-            size={1}
-            placeholder={getText('labelNamePlaceholder')}
-            className={`text grow rounded-full border border-primary/10 bg-transparent px-input-x ${
-              // eslint-disable-next-line @typescript-eslint/no-magic-numbers
-              color != null && color.lightness <= 50
-                ? 'text-tag-text placeholder-selected-frame'
-                : 'text-primary'
-            }`}
-            style={color == null ? {} : { backgroundColor: backend.lChColorToCssColor(color) }}
-            onInput={event => {
-              setName(event.currentTarget.value)
-            }}
-          />
-        </label>
-        <label
-          className="relative flex items-center"
-          onClick={event => {
-            event.preventDefault()
-          }}
-        >
-          <div className="text w-modal-label">{getText('color')}</div>
-          <div className="grow">
-            <ColorPicker setColor={setColor} />
-          </div>
-        </label>
-        <div className="relative flex gap-buttons">
-          <button
-            disabled={!canSubmit}
-            type="submit"
+        <aria.Heading level={2} className="relative text-sm font-semibold">
+          {getText('newLabel')}
+        </aria.Heading>
+        <FocusArea direction="horizontal">
+          {innerProps => (
+            <aria.TextField className="relative flex items-center" {...innerProps}>
+              <aria.Label className="text w-modal-label">{getText('name')}</aria.Label>
+              <FocusRing>
+                <aria.Input
+                  autoFocus
+                  size={1}
+                  placeholder={getText('labelNamePlaceholder')}
+                  className={`focus-child text grow rounded-full border border-primary/10 bg-transparent px-input-x ${
+                    // eslint-disable-next-line @typescript-eslint/no-magic-numbers
+                    color != null && color.lightness <= 50
+                      ? 'text-tag-text placeholder-selected-frame'
+                      : 'text-primary'
+                  }`}
+                  style={
+                    color == null
+                      ? {}
+                      : {
+                          backgroundColor: backend.lChColorToCssColor(color),
+                        }
+                  }
+                  onInput={event => {
+                    setValue(event.currentTarget.value)
+                  }}
+                />
+              </FocusRing>
+            </aria.TextField>
+          )}
+        </FocusArea>
+        <FocusArea direction="horizontal">
+          {innerProps => (
+            <ColorPicker
+              className="relative flex items-center"
+              pickerClassName="grow"
+              setColor={setColor}
+              {...innerProps}
+            >
+              <aria.Label className="text w-modal-label">{getText('color')}</aria.Label>
+            </ColorPicker>
+          )}
+        </FocusArea>
+        <ButtonRow>
+          <UnstyledButton
+            isDisabled={!canSubmit}
             className="button bg-invite text-white enabled:active"
+            onPress={doSubmit}
           >
             {getText('create')}
-          </button>
-          <button type="button" className="button bg-selected-frame active" onClick={unsetModal}>
+          </UnstyledButton>
+          <UnstyledButton className="button bg-selected-frame active" onPress={unsetModal}>
             {getText('cancel')}
-          </button>
-        </div>
+          </UnstyledButton>
+        </ButtonRow>
       </form>
     </Modal>
   )

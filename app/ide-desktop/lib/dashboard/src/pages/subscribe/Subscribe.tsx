@@ -16,6 +16,7 @@ import * as backendProvider from '#/providers/BackendProvider'
 import * as textProvider from '#/providers/TextProvider'
 
 import Modal from '#/components/Modal'
+import UnstyledButton from '#/components/UnstyledButton'
 
 import * as backendModule from '#/services/Backend'
 
@@ -134,18 +135,16 @@ export default function Subscribe() {
         </div>
         <div className="flex h-row items-stretch rounded-full bg-gray-500/30 text-base">
           {backendModule.PLANS.map(newPlan => (
-            <button
+            <UnstyledButton
               key={newPlan}
-              disabled={plan === newPlan}
-              type="button"
+              isDisabled={plan === newPlan}
               className="flex-1 grow rounded-full disabled:bg-frame"
-              onClick={event => {
-                event.stopPropagation()
+              onPress={() => {
                 setPlan(newPlan)
               }}
             >
               {PLAN_TO_TEXT_ID[newPlan]}
-            </button>
+            </UnstyledButton>
           ))}
         </div>
         {sessionId && clientSecret ? (

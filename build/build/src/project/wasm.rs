@@ -16,7 +16,7 @@ pub mod test;
 
 
 #[derive(
-    clap::ArgEnum,
+    clap::ValueEnum,
     Clone,
     Copy,
     Debug,
@@ -36,7 +36,7 @@ pub enum ProfilingLevel {
 }
 
 #[derive(
-    clap::ArgEnum,
+    clap::ValueEnum,
     Clone,
     Copy,
     Debug,

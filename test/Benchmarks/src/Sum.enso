@@ -16,7 +16,7 @@ sum_tco = sum_to ->
     res = summator 0 sum_to
     res
 
-sum_tco_decimal = sum_to ->
+sum_tco_float = sum_to ->
     s = sum_to.to_float
     summator = acc -> current ->
         if current >= s then acc else
@@ -76,7 +76,7 @@ collect_benches = Bench.build builder->
 
     builder.group "Sum" options group_builder->
         group_builder.specify "sum_tco_corecursive" (sum_tco ten_mil)
-        group_builder.specify "sum_tco_float" (sum_tco_decimal ten_mil)
+        group_builder.specify "sum_tco_float" (sum_tco_float ten_mil)
         group_builder.specify "sum_tco" (sum_tco ten_mil)
         group_builder.specify "sum_tco_java" (sum_tco_java ten_mil)
         group_builder.specify "sum_state" (sum_state ten_mil)
