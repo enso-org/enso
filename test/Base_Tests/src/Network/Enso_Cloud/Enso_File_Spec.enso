@@ -75,6 +75,7 @@ add_specs suite_builder setup:Cloud_Tests_Setup = setup.with_prepared_environmen
         group_builder.specify "should be able to find a file by path" <|
             File.new "enso://"+Enso_User.current.organization_name+"/" . should_equal Enso_File.root
             File.new "enso://"+Enso_User.current.organization_name+"/test_file.json" . should_equal (Enso_File.root / "test_file.json")
+            File.new "enso://"+Enso_User.current.organization_name+"/abc/" . should_equal (Enso_File.root / "abc")
 
         group_builder.specify "should fail to read nonexistent files" <|
             f = Enso_File.root / "nonexistent_file.json"
