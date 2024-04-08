@@ -40,7 +40,6 @@ export default class AssetTreeNode<Item extends backendModule.AnyAsset = backend
      * from the backend. */
     public readonly key: Item['id'] = item.id
   ) {
-    this.key = item.id
     this.type = item.type
   }
 
