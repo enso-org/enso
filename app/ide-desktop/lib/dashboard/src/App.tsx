@@ -54,6 +54,7 @@ import LoggerProvider from '#/providers/LoggerProvider'
 import type * as loggerProvider from '#/providers/LoggerProvider'
 import ModalProvider from '#/providers/ModalProvider'
 import * as navigator2DProvider from '#/providers/Navigator2DProvider'
+import ProjectManagerProvider, * as projectManagerProvider from '#/providers/ProjectManagerProvider'
 import SessionProvider from '#/providers/SessionProvider'
 
 import ConfirmRegistration from '#/pages/authentication/ConfirmRegistration'
@@ -72,7 +73,7 @@ import * as rootComponent from '#/components/Root'
 
 import type Backend from '#/services/Backend'
 import LocalBackend from '#/services/LocalBackend'
-import * as projectManager from '#/services/ProjectManager'
+import ProjectManager, * as projectManagerModule from '#/services/ProjectManager'
 
 import * as appBaseUrl from '#/utilities/appBaseUrl'
 import * as eventModule from '#/utilities/event'
@@ -147,28 +148,32 @@ export interface AppProps {
  * This component handles all the initialization and rendering of the app, and manages the app's
  * routes. It also initializes an `AuthProvider` that will be used by the rest of the app. */
 export default function App(props: AppProps) {
-  const { supportsLocalBackend } = props
+  const { supportsLocalBackend, projectManagerUrl } = props
   // This is a React component even though it does not contain JSX.
   // eslint-disable-next-line no-restricted-syntax
   const Router = detect.isOnElectron() ? router.HashRouter : router.BrowserRouter
   const queryClient = React.useMemo(() => reactQueryClientModule.createReactQueryClient(), [])
-  const [rootDirectoryPath, setRootDirectoryPath] = React.useState<projectManager.Path | null>(null)
   const [error, setError] = React.useState<unknown>(null)
-  const isLoading = supportsLocalBackend && rootDirectoryPath == null
+  const [projectManager, setProjectManager] = React.useState<ProjectManager | null>(null)
+  const isLoading = supportsLocalBackend && projectManagerUrl != null && projectManager == null
 
   React.useEffect(() => {
-    if (supportsLocalBackend) {
+    if (supportsLocalBackend && projectManagerUrl != null) {
       void (async () => {
         try {
           const response = await fetch(`${appBaseUrl.APP_BASE_URL}/api/root-directory`)
-          const text = await response.text()
-          setRootDirectoryPath(projectManager.Path(text))
+          const rootPath = await response.text()
+          const newProjectManager = new ProjectManager(
+            projectManagerUrl,
+            projectManagerModule.Path(rootPath)
+          )
+          setProjectManager(newProjectManager)
         } catch (innerError) {
           setError(innerError)
         }
       })()
     }
-  }, [supportsLocalBackend])
+  }, [supportsLocalBackend, projectManagerUrl])
 
   // Both `BackendProvider` and `InputBindingsProvider` depend on `LocalStorageProvider`.
   // Note that the `Router` must be the parent of the `AuthProvider`, because the `AuthProvider`
@@ -190,7 +195,9 @@ export default function App(props: AppProps) {
       />
       <Router basename={getMainPageUrl().pathname}>
         <LocalStorageProvider>
-          <AppRouter {...props} projectManagerRootDirectory={rootDirectoryPath} />
+          <ProjectManagerProvider projectManager={projectManager}>
+            <AppRouter {...props} />
+          </ProjectManagerProvider>
         </LocalStorageProvider>
       </Router>
     </reactQuery.QueryClientProvider>
@@ -201,25 +208,21 @@ export default function App(props: AppProps) {
 // === AppRouter ===
 // =================
 
-/** Props for an {@link AppRouter}. */
-export interface AppRouterProps extends AppProps {
-  readonly projectManagerRootDirectory: projectManager.Path | null
-}
-
 /** Router definition for the app.
  *
  * The only reason the {@link AppRouter} component is separate from the {@link App} component is
  * because the {@link AppRouter} relies on React hooks, which can't be used in the same React
  * component as the component that defines the provider. */
-function AppRouter(props: AppRouterProps) {
+function AppRouter(props: AppProps) {
   const { logger, supportsLocalBackend, isAuthenticationDisabled, shouldShowDashboard } = props
-  const { onAuthenticated, projectManagerUrl, projectManagerRootDirectory } = props
+  const { onAuthenticated } = props
   // `navigateHooks.useNavigate` cannot be used here as it relies on `AuthProvider`, which has not
   // yet been initialized at this point.
   // eslint-disable-next-line no-restricted-properties
   const navigate = router.useNavigate()
   const { localStorage } = localStorageProvider.useLocalStorage()
   const navigator2D = navigator2DProvider.useNavigator2D()
+  const projectManager = projectManagerProvider.useProjectManager()
   if (detect.IS_DEV_MODE) {
     // @ts-expect-error This is used exclusively for debugging.
     window.navigate = navigate
@@ -305,8 +308,8 @@ function AppRouter(props: AppRouterProps) {
   const userSession = authService?.cognito.userSession.bind(authService.cognito) ?? null
   const registerAuthEventListener = authService?.registerAuthEventListener ?? null
   const initialBackend: Backend =
-    isAuthenticationDisabled && projectManagerUrl != null && projectManagerRootDirectory != null
-      ? new LocalBackend(projectManagerUrl, projectManagerRootDirectory)
+    isAuthenticationDisabled && projectManager != null
+      ? new LocalBackend(projectManager)
       : // This is SAFE, because the backend is always set by the authentication flow.
         // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
         null!
@@ -398,8 +401,6 @@ function AppRouter(props: AppRouterProps) {
       supportsLocalBackend={supportsLocalBackend}
       authService={authService}
       onAuthenticated={onAuthenticated}
-      projectManagerUrl={projectManagerUrl}
-      projectManagerRootDirectory={projectManagerRootDirectory}
     >
       {result}
     </AuthProvider>

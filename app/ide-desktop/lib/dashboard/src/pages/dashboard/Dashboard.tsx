@@ -13,6 +13,7 @@ import * as inputBindingsProvider from '#/providers/InputBindingsProvider'
 import * as localStorageProvider from '#/providers/LocalStorageProvider'
 import * as loggerProvider from '#/providers/LoggerProvider'
 import * as modalProvider from '#/providers/ModalProvider'
+import * as projectManagerProvider from '#/providers/ProjectManagerProvider'
 import * as textProvider from '#/providers/TextProvider'
 
 import type * as assetEvent from '#/events/assetEvent'
@@ -39,7 +40,6 @@ import type * as spinner from '#/components/Spinner'
 
 import * as backendModule from '#/services/Backend'
 import LocalBackend from '#/services/LocalBackend'
-import type * as projectManager from '#/services/ProjectManager'
 import RemoteBackend, * as remoteBackendModule from '#/services/RemoteBackend'
 
 import * as array from '#/utilities/array'
@@ -111,14 +111,11 @@ export interface DashboardProps {
   readonly supportsLocalBackend: boolean
   readonly appRunner: AppRunner
   readonly initialProjectName: string | null
-  readonly projectManagerUrl: string | null
-  readonly projectManagerRootDirectory: projectManager.Path | null
 }
 
 /** The component that contains the entire UI. */
 export default function Dashboard(props: DashboardProps) {
   const { supportsLocalBackend, appRunner, initialProjectName } = props
-  const { projectManagerUrl, projectManagerRootDirectory } = props
   const logger = loggerProvider.useLogger()
   const session = authProvider.useNonPartialUserSession()
   const { backend } = backendProvider.useBackend()
@@ -128,6 +125,7 @@ export default function Dashboard(props: DashboardProps) {
   const { localStorage } = localStorageProvider.useLocalStorage()
   const { getText } = textProvider.useText()
   const inputBindings = inputBindingsProvider.useInputBindings()
+  const projectManager = projectManagerProvider.useProjectManager()
   const [initialized, setInitialized] = React.useState(false)
   const [isHelpChatOpen, setIsHelpChatOpen] = React.useState(false)
 
@@ -177,11 +175,10 @@ export default function Dashboard(props: DashboardProps) {
     let currentBackend = backend
     if (
       supportsLocalBackend &&
-      projectManagerUrl != null &&
-      projectManagerRootDirectory != null &&
+      projectManager != null &&
       localStorage.get('backendType') === backendModule.BackendType.local
     ) {
-      currentBackend = new LocalBackend(projectManagerUrl, projectManagerRootDirectory)
+      currentBackend = new LocalBackend(projectManager)
       setBackend(currentBackend)
     }
     const savedProjectStartupInfo = localStorage.get('projectStartupInfo')
@@ -240,11 +237,9 @@ export default function Dashboard(props: DashboardProps) {
             })()
           }
         }
-      } else if (projectManagerUrl != null && projectManagerRootDirectory != null) {
+      } else if (projectManager != null) {
         const localBackend =
-          currentBackend instanceof LocalBackend
-            ? currentBackend
-            : new LocalBackend(projectManagerUrl, projectManagerRootDirectory)
+          currentBackend instanceof LocalBackend ? currentBackend : new LocalBackend(projectManager)
         void (async () => {
           await localBackend.openProject(
             savedProjectStartupInfo.projectAsset.id,
@@ -368,8 +363,8 @@ export default function Dashboard(props: DashboardProps) {
       if (newBackendType !== backend.type) {
         switch (newBackendType) {
           case backendModule.BackendType.local: {
-            if (projectManagerUrl != null && projectManagerRootDirectory != null) {
-              setBackend(new LocalBackend(projectManagerUrl, projectManagerRootDirectory))
+            if (projectManager != null) {
+              setBackend(new LocalBackend(projectManager))
             }
             break
           }
@@ -388,8 +383,7 @@ export default function Dashboard(props: DashboardProps) {
       session.accessToken,
       logger,
       getText,
-      /* should never change */ projectManagerUrl,
-      /* should never change */ projectManagerRootDirectory,
+      /* should never change */ projectManager,
       /* should never change */ setBackend,
     ]
   )

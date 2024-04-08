@@ -17,6 +17,7 @@ import * as appUtils from '#/appUtils'
 import * as backendProvider from '#/providers/BackendProvider'
 import * as localStorageProvider from '#/providers/LocalStorageProvider'
 import * as loggerProvider from '#/providers/LoggerProvider'
+import * as projectManagerProvider from '#/providers/ProjectManagerProvider'
 import * as sessionProvider from '#/providers/SessionProvider'
 import * as textProvider from '#/providers/TextProvider'
 
@@ -25,7 +26,6 @@ import LoadingScreen from '#/pages/authentication/LoadingScreen'
 import * as backendModule from '#/services/Backend'
 import type Backend from '#/services/Backend'
 import LocalBackend from '#/services/LocalBackend'
-import type * as projectManager from '#/services/ProjectManager'
 import RemoteBackend from '#/services/RemoteBackend'
 
 import * as errorModule from '#/utilities/error'
@@ -144,20 +144,19 @@ export interface AuthProviderProps {
   /** Callback to execute once the user has authenticated successfully. */
   readonly onAuthenticated: (accessToken: string | null) => void
   readonly children: React.ReactNode
-  readonly projectManagerUrl: string | null
-  readonly projectManagerRootDirectory: projectManager.Path | null
 }
 
 /** A React provider for the Cognito API. */
 export default function AuthProvider(props: AuthProviderProps) {
-  const { shouldStartInOfflineMode, supportsLocalBackend, authService, onAuthenticated } = props
-  const { children, projectManagerUrl, projectManagerRootDirectory } = props
+  const { shouldStartInOfflineMode, supportsLocalBackend, authService, children } = props
+  const { onAuthenticated } = props
   const logger = loggerProvider.useLogger()
   const { cognito } = authService ?? {}
   const { session, deinitializeSession, onSessionError } = sessionProvider.useSession()
   const { setBackendWithoutSavingType } = backendProvider.useSetBackend()
   const { localStorage } = localStorageProvider.useLocalStorage()
   const { getText } = textProvider.useText()
+  const projectManager = projectManagerProvider.useProjectManager()
   // This must not be `hooks.useNavigate` as `goOffline` would be inaccessible,
   // and the function call would error.
   // eslint-disable-next-line no-restricted-properties
@@ -186,8 +185,8 @@ export default function AuthProvider(props: AuthProviderProps) {
     setInitialized(true)
     sentry.setUser(null)
     setUserSession(OFFLINE_USER_SESSION)
-    if (supportsLocalBackend && projectManagerUrl != null && projectManagerRootDirectory != null) {
-      setBackendWithoutSavingType(new LocalBackend(projectManagerUrl, projectManagerRootDirectory))
+    if (supportsLocalBackend && projectManager != null) {
+      setBackendWithoutSavingType(new LocalBackend(projectManager))
     } else {
       // Provide dummy headers to avoid errors. This `Backend` will never be called as
       // the entire UI will be disabled.
@@ -196,8 +195,7 @@ export default function AuthProvider(props: AuthProviderProps) {
     }
   }, [
     getText,
-    /* should never change */ projectManagerUrl,
-    /* should never change */ projectManagerRootDirectory,
+    /* should never change */ projectManager,
     /* should never change */ supportsLocalBackend,
     /* should never change */ logger,
     /* should never change */ setBackendWithoutSavingType,

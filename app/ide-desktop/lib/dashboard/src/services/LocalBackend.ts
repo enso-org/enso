@@ -8,8 +8,8 @@ import * as detect from 'enso-common/src/detect'
 import * as appUtils from '#/appUtils'
 
 import Backend, * as backend from '#/services/Backend'
-import * as projectManager from '#/services/ProjectManager'
-import ProjectManager from '#/services/ProjectManager'
+import * as projectManagerModule from '#/services/ProjectManager'
+import type ProjectManager from '#/services/ProjectManager'
 
 import * as appBaseUrl from '#/utilities/appBaseUrl'
 import * as dateTime from '#/utilities/dateTime'
@@ -20,8 +20,8 @@ import * as fileInfo from '#/utilities/fileInfo'
 // === ipWithSocketToAddress ===
 // =============================
 
-/** Convert a {@link projectManager.IpWithSocket} to a {@link backend.Address}. */
-function ipWithSocketToAddress(ipWithSocket: projectManager.IpWithSocket) {
+/** Convert a {@link projectManagerModule.IpWithSocket} to a {@link backend.Address}. */
+function ipWithSocketToAddress(ipWithSocket: projectManagerModule.IpWithSocket) {
   return backend.Address(`ws://${ipWithSocket.host}:${ipWithSocket.port}`)
 }
 
@@ -30,36 +30,36 @@ function ipWithSocketToAddress(ipWithSocket: projectManager.IpWithSocket) {
 // ======================================
 
 /** Create a {@link backend.DirectoryId} from a path. */
-export function newDirectoryId(path: projectManager.Path) {
+export function newDirectoryId(path: projectManagerModule.Path) {
   return backend.DirectoryId(`${backend.AssetType.directory}-${path}`)
 }
 
 /** Create a {@link backend.ProjectId} from a UUID. */
-export function newProjectId(uuid: projectManager.UUID) {
+export function newProjectId(uuid: projectManagerModule.UUID) {
   return backend.ProjectId(`${backend.AssetType.project}-${uuid}`)
 }
 
 /** Create a {@link backend.FileId} from a path. */
-export function newFileId(path: projectManager.Path) {
+export function newFileId(path: projectManagerModule.Path) {
   return backend.FileId(`${backend.AssetType.file}-${path}`)
 }
 
 /** The internal asset type and properly typed corresponding internal ID of a directory. */
 interface DirectoryTypeAndId {
   readonly type: backend.AssetType.directory
-  readonly id: projectManager.Path
+  readonly id: projectManagerModule.Path
 }
 
 /** The internal asset type and properly typed corresponding internal ID of a project. */
 interface ProjectTypeAndId {
   readonly type: backend.AssetType.project
-  readonly id: projectManager.UUID
+  readonly id: projectManagerModule.UUID
 }
 
 /** The internal asset type and properly typed corresponding internal ID of a file. */
 interface FileTypeAndId {
   readonly type: backend.AssetType.file
-  readonly id: projectManager.Path
+  readonly id: projectManagerModule.Path
 }
 
 /** The internal asset type and properly typed corresponding internal ID of an arbitrary asset. */
@@ -75,13 +75,13 @@ export function extractTypeAndId<Id extends backend.AssetId>(id: Id): AssetTypeA
   const [, typeRaw, idRaw = ''] = id.match(/(.+?)-(.+)/) ?? []
   switch (typeRaw) {
     case backend.AssetType.directory: {
-      return { type: backend.AssetType.directory, id: projectManager.Path(idRaw) }
+      return { type: backend.AssetType.directory, id: projectManagerModule.Path(idRaw) }
     }
     case backend.AssetType.project: {
-      return { type: backend.AssetType.project, id: projectManager.UUID(idRaw) }
+      return { type: backend.AssetType.project, id: projectManagerModule.UUID(idRaw) }
     }
     case backend.AssetType.file: {
-      return { type: backend.AssetType.file, id: projectManager.Path(idRaw) }
+      return { type: backend.AssetType.file, id: projectManagerModule.Path(idRaw) }
     }
     default: {
       throw new Error(`Invalid type '${typeRaw}'`)
@@ -98,12 +98,10 @@ export function extractTypeAndId<Id extends backend.AssetId>(id: Id): AssetTypeA
 export default class LocalBackend extends Backend {
   private static readonly baseUrl = location.pathname.replace(appUtils.ALL_PATHS_REGEX, '')
   readonly type = backend.BackendType.local
-  private readonly projectManager: ProjectManager
 
   /** Create a {@link LocalBackend}. */
-  constructor(projectManagerUrl: string, rootDirectory: projectManager.Path) {
+  constructor(private readonly projectManager: ProjectManager) {
     super()
-    this.projectManager = new ProjectManager(projectManagerUrl, rootDirectory)
     if (detect.IS_DEV_MODE) {
       // @ts-expect-error This exists only for debugging purposes. It does not have types
       // because it MUST NOT be used in this codebase.
@@ -127,7 +125,7 @@ export default class LocalBackend extends Backend {
     return entries
       .map(entry => {
         switch (entry.type) {
-          case projectManager.FileSystemEntryType.DirectoryEntry: {
+          case projectManagerModule.FileSystemEntryType.DirectoryEntry: {
             return {
               type: backend.AssetType.directory,
               id: newDirectoryId(entry.path),
@@ -140,7 +138,7 @@ export default class LocalBackend extends Backend {
               description: null,
             } satisfies backend.DirectoryAsset
           }
-          case projectManager.FileSystemEntryType.ProjectEntry: {
+          case projectManagerModule.FileSystemEntryType.ProjectEntry: {
             return {
               type: backend.AssetType.project,
               id: newProjectId(entry.metadata.id),
@@ -160,7 +158,7 @@ export default class LocalBackend extends Backend {
               description: null,
             } satisfies backend.ProjectAsset
           }
-          case projectManager.FileSystemEntryType.FileEntry: {
+          case projectManagerModule.FileSystemEntryType.FileEntry: {
             return {
               type: backend.AssetType.file,
               id: newFileId(entry.path),
@@ -205,12 +203,12 @@ export default class LocalBackend extends Backend {
     const projectsDirectory =
       body.parentDirectoryId == null ? null : extractTypeAndId(body.parentDirectoryId).id
     const project = await this.projectManager.createProject({
-      name: projectManager.ProjectName(body.projectName),
+      name: projectManagerModule.ProjectName(body.projectName),
       ...(body.projectTemplateName != null ? { projectTemplate: body.projectTemplateName } : {}),
-      missingComponentAction: projectManager.MissingComponentAction.install,
+      missingComponentAction: projectManagerModule.MissingComponentAction.install,
       ...(projectsDirectory == null ? {} : { projectsDirectory }),
     })
-    const path = projectManager.joinPath(
+    const path = projectManagerModule.joinPath(
       projectsDirectory ?? this.projectManager.rootDirectory,
       project.projectNormalizedName
     )
@@ -258,7 +256,9 @@ export default class LocalBackend extends Backend {
       const entries = await this.projectManager.listDirectory(directoryId)
       const project = entries
         .flatMap(entry =>
-          entry.type === projectManager.FileSystemEntryType.ProjectEntry ? [entry.metadata] : []
+          entry.type === projectManagerModule.FileSystemEntryType.ProjectEntry
+            ? [entry.metadata]
+            : []
         )
         .find(metadata => metadata.id === id)
       if (project == null) {
@@ -327,7 +327,7 @@ export default class LocalBackend extends Backend {
       try {
         await this.projectManager.openProject({
           projectId: id,
-          missingComponentAction: projectManager.MissingComponentAction.install,
+          missingComponentAction: projectManagerModule.MissingComponentAction.install,
           ...(body?.parentId != null
             ? { projectsDirectory: extractTypeAndId(body.parentId).id }
             : {}),
@@ -356,14 +356,14 @@ export default class LocalBackend extends Backend {
       if (body.projectName != null) {
         await this.projectManager.renameProject({
           projectId: id,
-          name: projectManager.ProjectName(body.projectName),
+          name: projectManagerModule.ProjectName(body.projectName),
           projectsDirectory: extractTypeAndId(body.parentId).id,
         })
       }
       const parentId = extractTypeAndId(body.parentId).id
       const result = await this.projectManager.listDirectory(parentId)
       const project = result.flatMap(listedProject =>
-        listedProject.type === projectManager.FileSystemEntryType.ProjectEntry &&
+        listedProject.type === projectManagerModule.FileSystemEntryType.ProjectEntry &&
         listedProject.metadata.id === id
           ? [listedProject.metadata]
           : []
@@ -431,7 +431,9 @@ export default class LocalBackend extends Backend {
   /** Return a list of engine versions. */
   override async listVersions(params: backend.ListVersionsRequestParams) {
     const engineVersions = await this.projectManager.listAvailableEngineVersions()
-    const engineVersionToVersion = (version: projectManager.EngineVersion): backend.Version => ({
+    const engineVersionToVersion = (
+      version: projectManagerModule.EngineVersion
+    ): backend.Version => ({
       ami: null,
       created: dateTime.toRfc3339(new Date()),
       number: {
@@ -520,7 +522,7 @@ export default class LocalBackend extends Backend {
   ): Promise<backend.CreatedDirectory> {
     const parentDirectoryPath =
       body.parentId == null ? this.projectManager.rootDirectory : extractTypeAndId(body.parentId).id
-    const path = projectManager.joinPath(parentDirectoryPath, body.title)
+    const path = projectManagerModule.joinPath(parentDirectoryPath, body.title)
     await this.projectManager.createDirectory(path)
     return {
       id: newDirectoryId(path),
@@ -542,7 +544,10 @@ export default class LocalBackend extends Backend {
         throw new Error('Could not move project: project has no `projectPath`.')
       } else {
         const fileName = fileInfo.fileName(from)
-        const to = projectManager.joinPath(extractTypeAndId(body.parentDirectoryId).id, fileName)
+        const to = projectManagerModule.joinPath(
+          extractTypeAndId(body.parentDirectoryId).id,
+          fileName
+        )
         await this.projectManager.moveFile(from, to)
         return
       }
@@ -558,7 +563,7 @@ export default class LocalBackend extends Backend {
       params.parentDirectoryId == null
         ? this.projectManager.rootDirectory
         : extractTypeAndId(params.parentDirectoryId).id
-    const path = projectManager.joinPath(parentPath, params.fileName)
+    const path = projectManagerModule.joinPath(parentPath, params.fileName)
     // await this.projectManager.createFile(path, file)
     const searchParams = new URLSearchParams([
       ['file_name', params.fileName],
@@ -574,7 +579,7 @@ export default class LocalBackend extends Backend {
 
   /** Construct a new path using the given parent directory and a file name. */
   joinPath(parentId: backend.DirectoryId, fileName: string) {
-    return projectManager.joinPath(extractTypeAndId(parentId).id, fileName)
+    return projectManagerModule.joinPath(extractTypeAndId(parentId).id, fileName)
   }
 
   /** Invalid operation. */
