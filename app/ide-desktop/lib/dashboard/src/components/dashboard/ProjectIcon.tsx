@@ -103,13 +103,12 @@ export default function ProjectIcon(props: ProjectIconProps) {
           type: newState,
         })
         if (!backendModule.IS_OPENING_OR_OPENED[newState]) {
-          // eslint-disable-next-line @typescript-eslint/naming-convention, @typescript-eslint/no-unused-vars
-          const { opened_by, ...newProjectState2 } = newProjectState
+          // eslint-disable-next-line @typescript-eslint/no-unused-vars
+          const { openedBy, ...newProjectState2 } = newProjectState
           newProjectState = newProjectState2
         } else if (user != null) {
           newProjectState = object.merge(newProjectState, {
-            // eslint-disable-next-line @typescript-eslint/naming-convention
-            opened_by: user.email,
+            openedBy: user.email,
           })
         }
         return object.merge(oldItem, { projectState: newProjectState })
@@ -123,7 +122,7 @@ export default function ProjectIcon(props: ProjectIconProps) {
   >(null)
   const [shouldOpenWhenReady, setShouldOpenWhenReady] = React.useState(false)
   const [isRunningInBackground, setIsRunningInBackground] = React.useState(
-    item.projectState.execute_async ?? false
+    item.projectState.executeAsync ?? false
   )
   const [shouldSwitchPage, setShouldSwitchPage] = React.useState(false)
   const [toastId, setToastId] = React.useState<toast.Id | null>(null)
@@ -132,7 +131,7 @@ export default function ProjectIcon(props: ProjectIconProps) {
   const [closeProjectAbortController, setCloseProjectAbortController] =
     React.useState<AbortController | null>(null)
   const isOtherUserUsingProject =
-    backend.type !== backendModule.BackendType.local && item.projectState.opened_by !== user?.email
+    backend.type !== backendModule.BackendType.local && item.projectState.openedBy !== user?.email
 
   const openProject = React.useCallback(
     async (shouldRunInBackground: boolean) => {

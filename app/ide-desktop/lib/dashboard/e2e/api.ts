@@ -111,8 +111,7 @@ export async function mockApi({ page }: MockParams) {
         id: backend.ProjectId('project-' + uniqueString.uniqueString()),
         projectState: {
           type: backend.ProjectState.opened,
-          // eslint-disable-next-line @typescript-eslint/naming-convention
-          volume_id: '',
+          volumeId: '',
         },
         title,
         modifiedAt: dateTime.toRfc3339(new Date()),
@@ -350,23 +349,23 @@ export async function mockApi({ page }: MockParams) {
         const projectId = request.url().match(/[/]projects[/](.+?)[/]copy/)?.[1] ?? ''
         await route.fulfill({
           json: {
-            /* eslint-disable @typescript-eslint/naming-convention */
             organizationId: defaultOrganizationId,
             projectId: backend.ProjectId(projectId),
             name: 'example project name',
             state: {
               type: backend.ProjectState.opened,
-              volume_id: '',
-              opened_by: defaultEmail,
+              volumeId: '',
+              openedBy: defaultEmail,
             },
             packageName: 'Project_root',
+            /* eslint-disable @typescript-eslint/naming-convention */
             ide_version: null,
             engine_version: {
+              /* eslint-enable @typescript-eslint/naming-convention */
               value: '2023.2.1-nightly.2023.9.29',
               lifecycle: backend.VersionLifecycle.development,
             },
             address: backend.Address('ws://example.com/'),
-            /* eslint-enable @typescript-eslint/naming-convention */
           } satisfies backend.ProjectRaw,
         })
       }
@@ -626,8 +625,7 @@ export async function mockApi({ page }: MockParams) {
             organizationId: defaultOrganizationId,
             packageName: 'Project_root',
             projectId: id,
-            // eslint-disable-next-line @typescript-eslint/naming-convention
-            state: { type: backend.ProjectState.opened, volume_id: '' },
+            state: { type: backend.ProjectState.opened, volumeId: '' },
           }
           addProject(title, {
             description: null,

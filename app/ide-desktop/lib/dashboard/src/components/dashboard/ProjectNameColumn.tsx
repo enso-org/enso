@@ -71,8 +71,8 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
     (ownPermission != null && permissions.PERMISSION_ACTION_CAN_EXECUTE[ownPermission.permission])
   const isOtherUserUsingProject =
     backend.type !== backendModule.BackendType.local &&
-    projectState.opened_by != null &&
-    projectState.opened_by !== user?.email
+    projectState.openedBy != null &&
+    projectState.openedBy !== user?.email
 
   const doRename = async (newTitle: string) => {
     setRowState(object.merger({ isEditingName: false }))
