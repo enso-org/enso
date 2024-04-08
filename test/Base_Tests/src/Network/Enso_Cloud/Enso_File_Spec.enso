@@ -170,7 +170,7 @@ add_specs suite_builder setup:Cloud_Tests_Setup = setup.with_prepared_environmen
             Enso_File.root.parent . should_equal Nothing
             Enso_File.root.path . should_equal ("enso://"+Enso_User.current.organization_name+"/")
 
-            dir.path . should_equal "enso://"+Enso_User.current.organization_name+"/test-directory/"
+            dir.path . should_equal "enso://"+Enso_User.current.organization_name+"/test-directory"
             dir.parent . should_equal Enso_File.root
             dir.is_descendant_of Enso_File.root . should_be_true
             Enso_File.root.is_descendant_of dir . should_be_false
