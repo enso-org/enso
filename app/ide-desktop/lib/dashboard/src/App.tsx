@@ -69,6 +69,7 @@ import SetUsername from '#/pages/authentication/SetUsername'
 import Dashboard from '#/pages/dashboard/Dashboard'
 import Subscribe from '#/pages/subscribe/Subscribe'
 
+import * as errorBoundary from '#/components/ErrorBoundary'
 import * as rootComponent from '#/components/Root'
 
 import type Backend from '#/services/Backend'
@@ -382,7 +383,16 @@ function AppRouter(props: AppRouterProps) {
               path={appUtils.DASHBOARD_PATH}
               element={shouldShowDashboard && <Dashboard {...props} />}
             />
-            <router.Route path={appUtils.SUBSCRIBE_PATH} element={<Subscribe />} />
+            <router.Route
+              path={appUtils.SUBSCRIBE_PATH}
+              element={
+                <errorBoundary.ErrorBoundary>
+                  <React.Suspense fallback={<div>Loading...</div>}>
+                    <Subscribe />
+                  </React.Suspense>
+                </errorBoundary.ErrorBoundary>
+              }
+            />
           </router.Route>
         </router.Route>
 

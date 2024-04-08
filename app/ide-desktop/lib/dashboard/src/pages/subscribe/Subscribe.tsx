@@ -2,8 +2,8 @@
 import * as React from 'react'
 
 import * as stripeReact from '@stripe/react-stripe-js'
-import type * as stripeTypes from '@stripe/stripe-js'
 import * as stripe from '@stripe/stripe-js/pure'
+import * as reactQuery from '@tanstack/react-query'
 import * as toast from 'react-toastify'
 
 import * as load from 'enso-common/src/load'
@@ -12,6 +12,7 @@ import * as appUtils from '#/appUtils'
 import type * as text from '#/text'
 
 import * as navigateHooks from '#/hooks/navigateHooks'
+import { useSearchParamsState } from '#/hooks/searchParamsStateHooks'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
 import * as backendProvider from '#/providers/BackendProvider'
@@ -27,8 +28,6 @@ import * as string from '#/utilities/string'
 // =================
 // === Constants ===
 // =================
-
-let stripePromise: Promise<stripeTypes.Stripe | null> | null = null
 
 /** The delay in milliseconds before redirecting back to the main page. */
 const REDIRECT_DELAY_MS = 1_500
@@ -58,70 +57,63 @@ const PLAN_TO_TEXT_ID: Readonly<Record<backendModule.Plan, text.TextId>> = {
 export default function Subscribe() {
   const { getText } = textProvider.useText()
   const navigate = navigateHooks.useNavigate()
-  // Plan that the user has currently selected, if any (e.g., 'solo', 'team', etc.).
-  const [plan, setPlan] = React.useState(() => {
-    const initialPlan = new URLSearchParams(location.search).get('plan')
-    return backendModule.isPlan(initialPlan) ? initialPlan : backendModule.Plan.solo
-  })
-  // A client secret used to access details about a Checkout Session on the Stripe API. A Checkout
-  // Session represents a customer's session as they are in the process of paying for a
-  // subscription. The client secret is provided by Stripe when the Checkout Session is created.
-  const [clientSecret, setClientSecret] = React.useState('')
-  // The ID of a Checkout Session on the Stripe API. This is the same as the client secret, minus
-  // the secret part. Without the secret part, the session ID can be safely stored in the URL
-  // query.
-  const [sessionId, setSessionId] = React.useState<backendModule.CheckoutSessionId | null>(null)
-  // The status of a Checkout Session on the Stripe API. This stores whether or not the Checkout
-  // Session is complete (i.e., the user has provided payment information), and if so, whether
-  // payment has been confirmed.
-  const [sessionStatus, setSessionStatus] =
-    React.useState<backendModule.CheckoutSessionStatus | null>(null)
+
+  const [plan, setPlan] = useSearchParamsState(
+    'plan',
+    backendModule.Plan.solo,
+    (raw): raw is backendModule.Plan => backendModule.isPlan(raw)
+  )
+
   const { backend } = backendProvider.useBackend()
   const toastAndLog = toastAndLogHooks.useToastAndLog()
 
-  if (stripePromise == null && process.env.ENSO_CLOUD_STRIPE_KEY != null) {
-    const stripeKey = process.env.ENSO_CLOUD_STRIPE_KEY
-    stripePromise = load.loadScript('https://js.stripe.com/v3/').then(async script => {
-      const innerStripe = await stripe.loadStripe(stripeKey)
-      script.remove()
-      return innerStripe
-    })
-  }
+  const { data: stripeInstance } = reactQuery.useSuspenseQuery({
+    queryKey: ['stripe', process.env.ENSO_CLOUD_STRIPE_KEY],
+    staleTime: Infinity,
+    queryFn: async () => {
+      const stripeKey = process.env.ENSO_CLOUD_STRIPE_KEY
 
-  React.useEffect(() => {
-    void (async () => {
-      try {
-        const checkoutSession = await backend.createCheckoutSession(plan)
-        setClientSecret(checkoutSession.clientSecret)
-        setSessionId(checkoutSession.id)
-      } catch (error) {
-        toastAndLog(null, error)
+      if (stripeKey == null) {
+        throw new Error('Stripe key not found')
+      } else {
+        return load.loadScript('https://js.stripe.com/v3/').then(script =>
+          stripe.loadStripe(stripeKey).finally(() => {
+            script.remove()
+          })
+        )
       }
-    })()
-  }, [backend, plan, /* should never change */ toastAndLog])
+    },
+  })
 
-  React.useEffect(() => {
-    if (sessionStatus?.status === 'complete') {
-      toast.toast.success('Your plan has successfully been upgraded!')
-      window.setTimeout(() => {
-        navigate(appUtils.DASHBOARD_PATH)
-      }, REDIRECT_DELAY_MS)
-    }
-  }, [sessionStatus?.status, navigate])
+  const { data: checkoutSession } = reactQuery.useSuspenseQuery({
+    queryKey: ['checkoutSession', plan],
+    queryFn: async () => {
+      // backend.createCheckoutSession(plan)
+      return {
+        clientSecret: 'cs_foo',
+        id: 'cs_bar',
+      } as backendModule.CheckoutSession
+    },
+  })
 
-  const onComplete = React.useCallback(() => {
-    if (sessionId != null) {
-      void (async () => {
-        try {
-          setSessionStatus(await backend.getCheckoutSession(sessionId))
-        } catch (error) {
-          toastAndLog(null, error)
-        }
-      })()
-    }
-    // Stripe does not allow this callback to change.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [sessionId])
+  const onCompleteMutation = reactQuery.useMutation({
+    mutationKey: ['checkoutSessionStatus'],
+    mutationFn: async () => backend.getCheckoutSession(checkoutSession.id),
+    onSuccess: data => {
+      if (data.status === 'complete') {
+        toast.toast.success('Your plan has successfully been upgraded!')
+
+        window.setTimeout(() => {
+          navigate(appUtils.DASHBOARD_PATH)
+        }, REDIRECT_DELAY_MS)
+      }
+    },
+    onError: error => {
+      toastAndLog('asyncHookError', error.message)
+    },
+  })
+
+  const { clientSecret, id: sessionId } = checkoutSession
 
   return (
     <Modal centered className="bg-hover-bg text-xs text-primary">
@@ -149,25 +141,21 @@ export default function Subscribe() {
             </UnstyledButton>
           ))}
         </div>
-        {sessionId && clientSecret ? (
-          <div className="overflow-auto">
-            <stripeReact.EmbeddedCheckoutProvider
-              key={sessionId}
-              stripe={stripePromise}
-              // Above, `sessionId` is updated when the `checkoutSession` is created.
-              // This triggers a fetch of the session's `status`.
-              // The `status` is not going to be `complete` at that point
-              // (unless the user completes the checkout process before the fetch is complete).
-              // So the `status` needs to be fetched again when the `checkoutSession` is updated.
-              // This is done by passing a function to `onComplete`.
-              options={{ clientSecret, onComplete }}
-            >
-              <stripeReact.EmbeddedCheckout />
-            </stripeReact.EmbeddedCheckoutProvider>
-          </div>
-        ) : (
-          <div className="h-payment-form transition-all" />
-        )}
+        <div className="overflow-auto">
+          <stripeReact.EmbeddedCheckoutProvider
+            key={sessionId}
+            stripe={stripeInstance}
+            // Above, `sessionId` is updated when the `checkoutSession` is created.
+            // This triggers a fetch of the session's `status`.
+            // The `status` is not going to be `complete` at that point
+            // (unless the user completes the checkout process before the fetch is complete).
+            // So the `status` needs to be fetched again when the `checkoutSession` is updated.
+            // This is done by passing a function to `onComplete`.
+            options={{ clientSecret, onComplete: onCompleteMutation.mutate }}
+          >
+            <stripeReact.EmbeddedCheckout />
+          </stripeReact.EmbeddedCheckoutProvider>
+        </div>
       </div>
     </Modal>
   )
