@@ -167,13 +167,6 @@ add_specs suite_builder setup:Cloud_Tests_Setup = setup.with_prepared_environmen
             nested_file.creation_time . should_be_a Date_Time
             nested_file.last_modified_time . should_be_a Date_Time
 
-        group_builder.specify "currently does not support metadata for directories" <|
-            # TODO this test should be 'reversed' and merged with above once the metadata is implemented
-            dir = Enso_File.root / "test-directory"
-            Test.expect_panic Unimplemented dir.creation_time
-            Test.expect_panic Unimplemented dir.last_modified_time
-
-        group_builder.specify "should be able to read file metadata (v2)" pending="TODO Enso_File parent and path resolution" <|
             Enso_File.root.parent . should_equal Nothing
             Enso_File.root.path . should_equal "enso://"
 
@@ -191,6 +184,12 @@ add_specs suite_builder setup:Cloud_Tests_Setup = setup.with_prepared_environmen
             nested_file.is_descendant_of Enso_File.root . should_be_true
             (Enso_File.root / "test-directory-longer-name") . is_descendant_of (Enso_File.root / "test-directory") . should_be_false
             (Enso_File.root / "test-directory" / "non-existent") . is_descendant_of (Enso_File.root / "test-directory") . should_be_false
+
+        group_builder.specify "currently does not support metadata for directories" <|
+            # TODO this test should be 'reversed' and merged with above once the metadata is implemented
+            dir = Enso_File.root / "test-directory"
+            Test.expect_panic Unimplemented dir.creation_time
+            Test.expect_panic Unimplemented dir.last_modified_time
 
         group_builder.specify "should be able to read other file metadata" pending="TODO needs further design" <|
             nested_file = Enso_File.root / "test-directory" / "another.txt"
