@@ -125,7 +125,7 @@ export function useApproachVec(to: WatchSource<Vec2>, timeHorizon: number = 100,
     (targetVal, currentValue, dt) => {
       const diff = currentValue.sub(targetVal)
       if (diff.lengthSquared() > epsilon) {
-        return targetVal.add(diff).scale(1 / Math.exp(dt / timeHorizon))
+        return targetVal.add(diff.scale(1 / Math.exp(dt / timeHorizon)))
       } else {
         return targetVal
       }

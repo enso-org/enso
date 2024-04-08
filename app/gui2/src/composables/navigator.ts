@@ -29,7 +29,7 @@ export type NavigatorComposable = ReturnType<typeof useNavigator>
 export function useNavigator(viewportNode: Ref<Element | undefined>, keyboard: KeyboardComposable) {
   const size = useResizeObserver(viewportNode)
   const targetCenter = shallowRef<Vec2>(Vec2.Zero)
-  const center = useApproachVec(targetCenter)
+  const center = useApproachVec(targetCenter, 100, 0.02)
 
   const targetScale = shallowRef(1)
   const scale = useApproach(targetScale)
