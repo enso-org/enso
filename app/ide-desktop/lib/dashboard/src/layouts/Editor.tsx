@@ -11,8 +11,13 @@ import * as load from '#/utilities/load'
 // === Constants ===
 // =================
 
-/** The horizontal offset of the editor's top bar from the left edge of the window. */
-const TOP_BAR_X_OFFSET_PX = 64
+/** The margins of the top bar. */
+const TOP_BAR_MARGIN = 9
+/** The height of the top bar, excluding margins. */
+const TOP_BAR_HEIGHT = 32
+/** The horizontal offset of the editor's top bar from the left edge of the window,
+ * excluding margins. */
+const TOP_BAR_X_OFFSET_PX = 76
 const IDE_CDN_BASE_URL = 'https://cdn.enso.org/ide'
 const JS_EXTENSION: Readonly<Record<backendModule.BackendType, string>> = {
   [backendModule.BackendType.remote]: '.js.gz',
@@ -105,7 +110,11 @@ export default function Editor(props: EditorProps) {
                     displayedProjectName: project.name,
                   },
                   window: {
-                    topBarOffset: `${TOP_BAR_X_OFFSET_PX}`,
+                    topBar: {
+                      leftOffset: `${TOP_BAR_X_OFFSET_PX}`,
+                      margin: `${TOP_BAR_MARGIN}`,
+                      height: `${TOP_BAR_HEIGHT}`,
+                    },
                   },
                 },
                 accessToken,

@@ -8,7 +8,7 @@ import { registerAutoBlurHandler } from '@/util/autoBlur'
 import { configValue, type ApplicationConfig, type ApplicationConfigValue } from '@/util/config'
 import ProjectView from '@/views/ProjectView.vue'
 import { isDevMode } from 'shared/util/detect'
-import { computed, onMounted, onUnmounted, toRaw } from 'vue'
+import { computed, onMounted, onUnmounted, toRaw, type CSSProperties } from 'vue'
 
 const props = defineProps<{
   config: ApplicationConfig
@@ -18,9 +18,16 @@ const props = defineProps<{
 
 const classSet = provideAppClassSet()
 
-provideGuiConfig(computed((): ApplicationConfigValue => configValue(props.config)))
+const guiConfig = computed((): ApplicationConfigValue => configValue(props.config))
+provideGuiConfig(guiConfig)
 
 registerAutoBlurHandler()
+
+const appStyle = computed<CSSProperties>(() => {
+  const topBarOptions = guiConfig.value.window.topBar
+  const verticalDisplacement = topBarOptions.height + topBarOptions.margin * 2
+  return { marginTop: `-${verticalDisplacement}px` }
+})
 
 // Initialize suggestion db immediately, so it will be ready when user needs it.
 onMounted(() => {
@@ -40,7 +47,7 @@ onUnmounted(() => {
     :unrecognizedOptions="props.unrecognizedOptions"
     :config="props.config"
   />
-  <ProjectView v-else class="App" :class="[...classSet.keys()]" />
+  <ProjectView v-else class="App" :style="appStyle" :class="[...classSet.keys()]" />
 </template>
 
 <style scoped>

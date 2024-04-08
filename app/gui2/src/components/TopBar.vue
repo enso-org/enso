@@ -25,14 +25,16 @@ const emit = defineEmits<{
   toggleCodeEditor: []
 }>()
 
-const LEFT_PADDING_PX = 11
-
 const config = injectGuiConfig()
 
 const barStyle = computed(() => {
-  const offset = Number(config.value.window?.topBarOffset ?? '0')
+  const margin = config.value.window.topBar.margin
+  const leftOffset = config.value.window.topBar.leftOffset
   return {
-    marginLeft: `${offset + LEFT_PADDING_PX}px`,
+    marginLeft: `${leftOffset}px`,
+    width: `calc(100% - ${leftOffset + margin * 2}px)`,
+    top: `${margin}px`,
+    left: `${margin}px`,
   }
 })
 </script>
@@ -67,9 +69,5 @@ const barStyle = computed(() => {
   position: absolute;
   display: flex;
   gap: 8px;
-  top: 9px;
-  /* FIXME[sb]: Get correct offset from dashboard. */
-  left: 9px;
-  width: 100%;
 }
 </style>

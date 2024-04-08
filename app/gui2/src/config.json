@@ -2,12 +2,29 @@
   "groups": {
     "window": {
       "description": "The visual and tactile configurations of the application window.",
+      "groups": {
+        "topBar": {
+          "description": "Layout details for the top bar",
+          "options": {
+            "leftOffset": {
+              "description": "The offset of the IDE's toolbar from the window's left edge.",
+              "value": 0,
+              "primary": false
+            },
+            "margin": {
+              "description": "The margins around the IDE's toolbar.",
+              "value": 0,
+              "primary": false
+            },
+            "height": {
+              "description": "The height of the IDE's toolbar.",
+              "value": 0,
+              "primary": false
+            }
+          }
+        }
+      },
       "options": {
-        "topBarOffset": {
-          "description": "The offset of the IDE's toolbar from the window's left edge.",
-          "value": 0,
-          "primary": false
-        },
         "vibrancy": {
           "description": "Enable the vibrancy effect.",
           "value": false,
