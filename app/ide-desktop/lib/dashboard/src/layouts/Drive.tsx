@@ -222,8 +222,8 @@ export default function Drive(props: DriveProps) {
         parentKey: targetDirectoryNodeRef.current?.key ?? rootDirectoryId,
         parentId: targetDirectoryNodeRef.current?.item.id ?? rootDirectoryId,
         templateId,
-        templateName,
         dataLinkId: null,
+        preferredName: templateName,
         onSpinnerStateChange,
       })
     },
