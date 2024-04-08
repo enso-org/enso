@@ -5,6 +5,10 @@
 use crate::prelude::*;
 
 use crate::engine::bundle::GraalVmVersion;
+
+
+
+use crate::get_flatbuffers_version;
 use crate::get_graal_packages_version;
 use crate::get_graal_version;
 use crate::paths::generated;
@@ -29,11 +33,6 @@ pub mod package;
 pub mod sbt;
 
 pub use context::RunContext;
-
-
-
-/// Version of `flatc` (the FlatBuffers compiler) that we require.
-const FLATC_VERSION: Version = Version::new(1, 12, 0);
 
 /// Whether pure Enso tests should be run in parallel.
 const PARALLEL_ENSO_TESTS: AsyncPolicy = AsyncPolicy::Sequential;
@@ -327,4 +326,10 @@ pub async fn deduce_graal_bundle(
         graal:    get_graal_version(&build_sbt_content)?,
         packages: get_graal_packages_version(&build_sbt_content)?,
     })
+}
+
+/// Version of `flatc` (the FlatBuffers compiler) that Engine requires.
+pub async fn deduce_flatbuffers(build_sbt: &generated::RepoRootBuildSbt) -> Result<Version> {
+    let build_sbt_content = ide_ci::fs::tokio::read_to_string(build_sbt).await?;
+    get_flatbuffers_version(&build_sbt_content)
 }

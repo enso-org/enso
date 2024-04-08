@@ -72,25 +72,6 @@ pub fn is_github_hosted() -> String {
     "startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')".into()
 }
 
-/// Step that sets up `conda` on GitHub-hosted runners.
-///
-/// We set up `conda` on GitHub-hosted runners because we need it to install `flatbuffers` in
-/// required version. Our self-hosted runners have `flatc` already installed, so we don't need
-/// `conda` there.
-pub fn setup_conda() -> Step {
-    // use crate::actions::workflow::definition::step::CondaChannel;
-    Step {
-        name: Some("Setup conda (GH runners only)".into()),
-        uses: Some("s-weigand/setup-conda@v1.2.1".into()),
-        r#if: Some(is_github_hosted()),
-        with: Some(step::Argument::SetupConda {
-            update_conda:   Some(false),
-            conda_channels: Some("anaconda, conda-forge".into()),
-        }),
-        ..default()
-    }
-}
-
 pub fn setup_wasm_pack_step() -> Step {
     Step {
         name: Some("Installing wasm-pack".into()),
