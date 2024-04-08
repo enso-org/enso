@@ -48,7 +48,7 @@ export default function AssetVersions(props: AssetVersionsProps) {
   const latestVersion = versions?.find(version => version.isLatest)
 
   return (
-    <div className="flex flex-1 shrink-0 flex-col items-center overflow-y-auto overflow-x-hidden">
+    <div className="pointer-events-auto flex flex-1 shrink-0 flex-col items-center overflow-y-auto overflow-x-hidden">
       {(() => {
         if (!isCloud) {
           return <div>{getText('localAssetsDoNotHaveVersions')}</div>

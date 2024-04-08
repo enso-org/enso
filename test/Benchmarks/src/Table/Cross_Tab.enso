@@ -22,7 +22,7 @@ create_table num_rows =
     size = ["size", vgen sizes]
     store = ["store", vgen stores]
     typ = ["type", vgen types]
-    price = ["price", 0.up_to num_rows . map _-> faker.decimal -200.0 200.0]
+    price = ["price", 0.up_to num_rows . map _-> faker.float -200.0 200.0]
 
     Table.new [size, store, typ, price]
 

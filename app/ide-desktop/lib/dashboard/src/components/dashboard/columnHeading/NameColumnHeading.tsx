@@ -5,8 +5,10 @@ import SortAscendingIcon from 'enso-assets/sort_ascending.svg'
 
 import * as textProvider from '#/providers/TextProvider'
 
+import * as aria from '#/components/aria'
 import type * as column from '#/components/dashboard/column'
 import * as columnUtils from '#/components/dashboard/column/columnUtils'
+import UnstyledButton from '#/components/UnstyledButton'
 
 import * as sorting from '#/utilities/sorting'
 
@@ -19,8 +21,8 @@ export default function NameColumnHeading(props: column.AssetColumnHeadingProps)
   const isDescending = sortInfo?.direction === sorting.SortDirection.descending
 
   return (
-    <button
-      title={
+    <UnstyledButton
+      aria-label={
         !isSortActive
           ? getText('sortByName')
           : isDescending
@@ -28,8 +30,7 @@ export default function NameColumnHeading(props: column.AssetColumnHeadingProps)
             : getText('sortByNameDescending')
       }
       className="group flex h-drive-table-heading w-full items-center gap-icon-with-text px-name-column-x"
-      onClick={event => {
-        event.stopPropagation()
+      onPress={() => {
         const nextDirection = isSortActive
           ? sorting.nextSortDirection(sortInfo.direction)
           : sorting.SortDirection.ascending
@@ -40,7 +41,7 @@ export default function NameColumnHeading(props: column.AssetColumnHeadingProps)
         }
       }}
     >
-      <span className="text-header">{getText('nameColumnName')}</span>
+      <aria.Text className="text-header">{getText('nameColumnName')}</aria.Text>
       <img
         alt={isDescending ? getText('sortDescending') : getText('sortAscending')}
         src={SortAscendingIcon}
@@ -48,6 +49,6 @@ export default function NameColumnHeading(props: column.AssetColumnHeadingProps)
           isSortActive ? 'selectable active' : 'transparent group-hover:selectable'
         } ${isDescending ? 'rotate-180' : ''}`}
       />
-    </button>
+    </UnstyledButton>
   )
 }
