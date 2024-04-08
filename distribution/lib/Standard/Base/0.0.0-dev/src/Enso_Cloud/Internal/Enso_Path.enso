@@ -8,6 +8,7 @@ import project.Enso_Cloud.Enso_User.Enso_User
 import project.Error.Error
 import project.Errors.Illegal_Argument.Illegal_Argument
 import project.Errors.Unimplemented.Unimplemented
+import project.Internal.Path_Helpers
 import project.Nothing.Nothing
 from project.Data.Boolean import Boolean, False, True
 from project.Data.Text.Extensions import all
@@ -27,7 +28,8 @@ type Enso_Path
                 organization_name = raw_segments.first
                 if organization_name.is_empty then Error.throw (Illegal_Argument.Error "Invalid path - organization name cannot be empty.") else
                     segments = raw_segments.drop 1 . filter s-> s.is_empty.not
-                    Enso_Path.Value organization_name segments
+                    normalized = normalize segments
+                    Enso_Path.Value organization_name normalized
 
     ## PRIVATE
     root_for (organization_name : Text) =
@@ -45,7 +47,8 @@ type Enso_Path
     ## PRIVATE
     resolve self (subpath : Text) -> Enso_Path =
         new_segments = subpath.split Enso_Path.delimiter . filter (p-> p.is_empty.not)
-        Enso_Path.Value self.organization_name (self.path_segments + new_segments)
+        normalized_segments = normalize (self.path_segments + new_segments)
+        Enso_Path.Value self.organization_name normalized_segments
 
     ## PRIVATE
     to_text self -> Text =
@@ -56,3 +59,7 @@ type Enso_Path
 
     ## PRIVATE
     protocol_prefix = "enso://"
+
+## PRIVATE
+normalize segments =
+    Path_Helpers.normalize_segments segments (x->x)
