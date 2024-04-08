@@ -169,17 +169,22 @@ export default function projectManagerShimMiddleware(
                         .end('Command arguments must be an array of strings.')
                 } else {
                     void (async () => {
-                        const toJSONRPCResult = (result: unknown) =>
-                            JSON.stringify({ jsonrpc: '2.0', id: 0, result })
-                        const toJSONRPCError = (message: string, data?: unknown) =>
-                            JSON.stringify({
-                                jsonrpc: '2.0',
-                                id: 0,
-                                error: { code: 0, message, ...(data != null ? { data } : {}) },
-                            })
-                        let result = toJSONRPCError(`Error running Project Manager command.`, {
-                            command: cliArguments,
+                        const toJSONRPCResult = (result: unknown) => ({
+                            jsonrpc: '2.0',
+                            id: 0,
+                            result,
                         })
+                        const toJSONRPCError = (message: string, data?: unknown) => ({
+                            jsonrpc: '2.0',
+                            id: 0,
+                            error: { code: 0, message, ...(data != null ? { data } : {}) },
+                        })
+                        let result: object = toJSONRPCError(
+                            `Error running Project Manager command.`,
+                            {
+                                command: cliArguments,
+                            }
+                        )
                         try {
                             switch (cliArguments[0]) {
                                 case '--filesystem-list': {
@@ -313,9 +318,11 @@ export default function projectManagerShimMiddleware(
                         } catch {
                             // Ignored. `result` retains its original value indicating an error.
                         }
-                        const buffer = Buffer.from(result)
+                        const buffer = Buffer.from(JSON.stringify(result))
+                        const statusCode =
+                            'error' in result ? HTTP_STATUS_BAD_REQUEST : HTTP_STATUS_OK
                         response
-                            .writeHead(HTTP_STATUS_OK, [
+                            .writeHead(statusCode, [
                                 ['Content-Length', String(buffer.byteLength)],
                                 ['Content-Type', 'application/json'],
                                 ...common.COOP_COEP_CORP_HEADERS,
