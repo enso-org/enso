@@ -64,7 +64,7 @@ object GraalVM {
     "org.graalvm.tools"    % "profiler-tool"      % version,
     "org.graalvm.shadowed" % "json"               % version,
     "org.graalvm.shadowed" % "icu4j"              % version,
-    "org.tukaani"          % "xz"                 % "1.9"
+    "org.graalvm.shadowed" % "xz"                 % version
   )
 
   val jsPkgs = Seq(
