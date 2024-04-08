@@ -100,8 +100,6 @@ function makeExpressionFilter(pattern: Ast.Ast | string): ExpressionFilter | und
   const editedAst = typeof pattern === 'string' ? Ast.parse(pattern) : pattern
   const editedCode = pattern instanceof Ast.Ast ? pattern.code() : pattern
   if (editedAst instanceof Ast.TextLiteral) {
-    if (props.input.value instanceof Ast.TextLiteral && props.input.value.code() === editedCode)
-      return undefined
     return (tag: ExpressionTag) =>
       tag.expressionAst instanceof Ast.TextLiteral &&
       tag.expressionAst.rawTextContent.startsWith(editedAst.rawTextContent)

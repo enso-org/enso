@@ -31,7 +31,6 @@ class PortEditInteraction implements Interaction {
   readonly portId: PortId
   readonly argId: string | undefined
   readonly active: Ref<boolean>
-  private readonly interactionHandler
   private readonly resumable: PortEditResumeData
   private readonly interactions = new Array<PortEditSubinteraction>()
 
@@ -40,7 +39,7 @@ class PortEditInteraction implements Interaction {
     argId: string | undefined,
     resumable: PortEditResumeData | undefined,
     active: boolean,
-    interactionHandler = injectInteractionHandler(),
+    private readonly interactionHandler = injectInteractionHandler(),
   ) {
     this.portId = portId
     this.argId = argId
@@ -138,16 +137,12 @@ export interface WidgetEditHooks extends Interaction, Endable {
 /** @internal Public for unit testing.
  *  Obtains a top-level interaction to edit a port (see {@link PortEditInteraction}), which may be a pre-existing
  *  ongoing interaction, or a newly-started interaction. */
-export class PortEditor {
-  private readonly portId: PortId
-  private readonly argId: string | undefined
-  private readonly interactionHandler: InteractionHandler
-
-  constructor(portId: PortId, argId: string | undefined, interactionHandler: InteractionHandler) {
-    this.portId = portId
-    this.argId = argId
-    this.interactionHandler = interactionHandler
-  }
+export class PortEditInitiatorOrResumer {
+  constructor(
+    private readonly portId: PortId,
+    private readonly argId: string | undefined,
+    private readonly interactionHandler: InteractionHandler,
+  ) {}
 
   start() {
     const current = this.interactionHandler.getCurrent()
@@ -198,27 +193,20 @@ export class PortEditor {
  * is bound to two children, and one of them starts editing while the other is edited, the parent
  * will receive `cancel` feedback from the latter and then `start` from the former.
  *
- * **The `click` handler is a special case:** it acts as a capture-mode event handler; it is called on
+ * **The `pointerdown` handler is a special case:** it acts as a capture-mode event handler; it is called on
  * the top-most widget, and a widget may choose to delegate to its child (if any) by returning false.
  */
 export class WidgetEditHandler {
   readonly active = computed(() => this.portEdit.value?.active.value ?? false)
   private readonly portEdit = shallowRef<PortEditInteraction>()
   private readonly interaction: PortEditSubinteraction
-  private readonly portEditor: PortEditor
-  private readonly widgetId: WidgetId
-  private readonly hooks: WidgetEditHooks
-  private readonly parent: WidgetEditHandler | undefined
-  private readonly widgetTree: {
-    currentEdit: WidgetEditHandler | undefined
-  }
 
   constructor(
-    widgetId: WidgetId,
-    hooks: WidgetEditHooks,
-    parent: WidgetEditHandler | undefined,
-    portEditor: PortEditor,
-    widgetTree: {
+    private readonly widgetId: WidgetId,
+    private readonly hooks: WidgetEditHooks,
+    private readonly parent: WidgetEditHandler | undefined,
+    private readonly portEditor: PortEditInitiatorOrResumer,
+    private readonly widgetTree: {
       currentEdit: WidgetEditHandler | undefined
     } = injectWidgetTree(),
   ) {
@@ -259,7 +247,11 @@ export class WidgetEditHandler {
       widgetId as WidgetId,
       myInteraction,
       input.editHandler,
-      new PortEditor(input.portId, input[ArgumentInfoKey]?.argId, injectInteractionHandler()),
+      new PortEditInitiatorOrResumer(
+        input.portId,
+        input[ArgumentInfoKey]?.argId,
+        injectInteractionHandler(),
+      ),
     )
     const portEdit = editHandler.portEditor.tryResume()
     if (portEdit) {
