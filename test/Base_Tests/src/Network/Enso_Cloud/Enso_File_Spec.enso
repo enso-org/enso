@@ -186,7 +186,13 @@ add_specs suite_builder setup:Cloud_Tests_Setup = setup.with_prepared_environmen
             (Enso_File.root / "test-directory" / "non-existent") . is_descendant_of (Enso_File.root / "test-directory") . should_be_false
 
         group_builder.specify "allows / as well as .. and . in resolve" <|
+            Enso_File.root / "a/b/c" . should_equal (Enso_File.root / "a" / "b" / "c")
+            Enso_File.root / "a///b/c" . should_equal (Enso_File.root / "a" / "b" / "c")
             Enso_File.root / "a/b/c/./././d/e/../f/../.." . should_equal (Enso_File.root / "a" / "b" / "c")
+
+            r = Enso_File.root / ".."
+            r.should_fail_with Illegal_Argument
+            r.catch.to_display_text . should_contain "Cannot move above root"
 
         group_builder.specify "currently does not support metadata for directories" <|
             # TODO this test should be 'reversed' and merged with above once the metadata is implemented
