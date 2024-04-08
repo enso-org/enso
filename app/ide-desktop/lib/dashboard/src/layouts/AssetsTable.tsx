@@ -1485,7 +1485,7 @@ export default function AssetsTable(props: AssetsTableProps) {
         break
       }
       case AssetListEventType.newProject: {
-        const projectName = getNewProjectName(event.templateName, event.parentId)
+        const projectName = getNewProjectName(event.preferredName, event.parentId)
         const dummyId = backendModule.ProjectId(uniqueString.uniqueString())
         const path =
           backend instanceof LocalBackend ? backend.joinPath(event.parentId, projectName) : null
@@ -1513,7 +1513,7 @@ export default function AssetsTable(props: AssetsTableProps) {
           type: AssetEventType.newProject,
           placeholderId: dummyId,
           templateId: event.templateId,
-          dataLinkId: null,
+          dataLinkId: event.dataLinkId,
           onSpinnerStateChange: event.onSpinnerStateChange,
         })
         break

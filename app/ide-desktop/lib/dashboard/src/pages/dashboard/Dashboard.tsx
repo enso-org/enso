@@ -392,8 +392,8 @@ export default function Dashboard(props: DashboardProps) {
         parentKey: rootDirectoryId,
         parentId: rootDirectoryId,
         templateId: templateId,
-        templateName: templateName,
         dataLinkId: null,
+        preferredName: templateName,
         onSpinnerStateChange: onSpinnerStateChange,
       })
     },

@@ -146,8 +146,8 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
                 parentId: item.directoryId,
                 parentKey: item.directoryKey,
                 templateId: null,
-                templateName: null,
                 dataLinkId: asset.id,
+                preferredName: asset.title,
                 onSpinnerStateChange: null,
               })
             }}
