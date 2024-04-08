@@ -34,7 +34,11 @@ export function guiConfig(app: App) {
         projectManagerUrl: '',
       },
       window: {
-        topBarOffset: 96,
+        topBar: {
+          leftOffset: 76,
+          margin: 9,
+          height: 32,
+        },
         vibrancy: false,
       },
       authentication: {
