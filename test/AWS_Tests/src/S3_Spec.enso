@@ -19,7 +19,6 @@ import enso_dev.Table_Tests.Util
 from Standard.Test import all
 
 import enso_dev.Base_Tests.Network.Enso_Cloud.Cloud_Tests_Setup.Cloud_Tests_Setup
-from enso_dev.Base_Tests.Network.Enso_Cloud.Cloud_Tests_Setup import with_retries
 
 
 test_credentials -> AWS_Credential ! Illegal_State =
@@ -164,7 +163,7 @@ add_specs suite_builder =
             Panic.with_finalizer secret_key_id.delete <|
                 secret_key_value = Enso_Secret.create "my_test_secret-AWS-secretkey" test_credentials.secret_access_key
                 secret_key_value.should_succeed
-                Panic.with_finalizer secret_key_value.delete <| with_retries <|
+                Panic.with_finalizer secret_key_value.delete <| Test.with_retries <|
                     r2 = S3.list_buckets (AWS_Credential.Key secret_key_id secret_key_value)
                     r2.should_succeed
                     r2.should_be_a Vector
@@ -333,7 +332,7 @@ add_specs suite_builder =
 
             new_file.delete . should_succeed
 
-            with_retries <|
+            Test.with_retries <|
                 new_file.exists . should_be_false
                 my_writable_dir.list . should_not_contain new_file
 
@@ -344,7 +343,7 @@ add_specs suite_builder =
                 new_file.read . should_equal "Hello"
 
                 "World".write new_file on_existing_file=Existing_File_Behavior.Overwrite . should_succeed
-                with_retries <|
+                Test.with_retries <|
                     new_file.read . should_equal "World"
 
         group_builder.specify "should not be able to append to a file" <|
@@ -534,7 +533,7 @@ add_specs suite_builder =
             Panic.with_finalizer secret_key_id.delete <|
                 secret_key_value = Enso_Secret.create "datalink-secret-AWS-secretkey" test_credentials.secret_access_key
                 secret_key_value.should_succeed
-                Panic.with_finalizer secret_key_value.delete <| with_retries <|
+                Panic.with_finalizer secret_key_value.delete <| Test.with_retries <|
                     transformed_data_link_file.read . should_equal "Hello WORLD!"
 
         group_builder.specify "should be able to read a data link with a custom file format set" <| with_default_credentials <|
