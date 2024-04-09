@@ -3,6 +3,7 @@ package org.enso.base.numeric;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.math.MathContext;
+import java.math.RoundingMode;
 
 /** Utils for the Enso Decmial type. */
 public class Decimal_Utils {
@@ -90,5 +91,10 @@ public class Decimal_Utils {
       assert !isFractional;
       return bd.toBigIntegerExact().hashCode();
     }
+  }
+
+  public static BigDecimal round(BigDecimal bd, long decimalPlaces, boolean useBankers) {
+    var roundingMode = useBankers ? RoundingMode.HALF_EVEN : RoundingMode.HALF_UP;
+    return bd.setScale((int) decimalPlaces, roundingMode);
   }
 }
