@@ -27,6 +27,7 @@ import project.Runtime
 import project.Runtime.Context
 import project.System.Environment
 import project.System.File.Data_Link_Access.Data_Link_Access
+import project.System.File.File
 import project.System.File.File_Access.File_Access
 import project.System.File.Generic.File_Like.File_Like
 import project.System.File.Generic.Writable_File.Writable_File
@@ -415,3 +416,26 @@ File_Format_Metadata.from (that:Enso_File) =
 
 ## PRIVATE
 File_Like.from (that : Enso_File) = File_Like.Value that
+
+## PRIVATE
+upload_file (local_file : File) (destination : Enso_File) (replace_existing : Boolean) -> Enso_File =
+    parent_directory = destination.parent
+    if parent_directory.is_nothing then Error.throw (Illegal_Argument.Error "The root directory cannot be a destination for upload. The destination must be a path to a file.") else
+        parent_directory_asset = Existing_Enso_Asset.get_asset_reference_for parent_directory
+        # If the parent directory does not exist, we fail.
+        parent_directory_asset.if_not_error <|
+            existing_asset = Existing_Enso_Asset.get_asset_reference_for destination . catch File_Error _->Nothing
+            if existing_asset.is_nothing.not && replace_existing.not then Error.throw (File_Error.Already_Exists destination) else
+                if existing_asset.is_nothing.not && existing_asset.asset_type != Enso_Asset_Type.File then Error.throw (Illegal_Argument.Error "The destination must be a path to a file, not "+existing_asset.asset_type.to_text+".") else
+                    existing_asset_id = existing_asset.if_not_nothing <| existing_asset.id
+                    file_name = destination.name
+                    base_uri = URI.from Utils.files_api
+                        . add_query_argument "parent_directory_id" parent_directory_asset.id
+                        . add_query_argument "file_name" file_name
+                    full_uri = case existing_asset_id of
+                        Nothing -> base_uri
+                        _ -> base_uri . add_query_argument "file_id" existing_asset_id
+                    response = Utils.http_request HTTP_Method.Post full_uri local_file
+                    # TODO later we could cache the returned Existing_Enso_Asset here
+                    response.if_not_error <|
+                        destination
