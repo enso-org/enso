@@ -989,13 +989,6 @@ pub mod step {
             submodules: Option<CheckoutArgumentSubmodules>,
         },
         #[serde(rename_all = "kebab-case")]
-        SetupConda {
-            #[serde(skip_serializing_if = "Option::is_none")]
-            update_conda:   Option<bool>,
-            #[serde(skip_serializing_if = "Option::is_none")]
-            conda_channels: Option<String>, // conda_channels: Vec<CondaChannel>
-        },
-        #[serde(rename_all = "kebab-case")]
         GitHubScript {
             script: String,
         },
