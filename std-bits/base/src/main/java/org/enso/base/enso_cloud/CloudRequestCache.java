@@ -5,9 +5,14 @@ import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.function.Function;
 
+/**
+ * A cache that can be used to save results of cloud requests to avoid re-fetching them every time.
+ *
+ * <p>The cache is supposed to store the already processed (parsed etc.) result. If the result is
+ * not cached or the cache entry is expired, the cache will recompute the value using the provided
+ * callback.
+ */
 public final class CloudRequestCache {
-  private record CacheEntry(Object value, LocalDateTime expiresAt) {}
-
   private static final HashMap<String, CacheEntry> cache = new HashMap<>();
 
   public static void clear() {
@@ -24,4 +29,6 @@ public final class CloudRequestCache {
       return value;
     }
   }
+
+  private record CacheEntry(Object value, LocalDateTime expiresAt) {}
 }
