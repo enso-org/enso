@@ -717,7 +717,9 @@ type Decimal
              # => 2345
     to_integer : Integer
     to_integer self =
-        i = self.big_decimal.toBigInteger
+        i = if self <= 9223372036854775807 && self >= -9223372036854775808 then self.big_decimal.longValue else
+            self.big_decimal.toBigInteger
+        #IO.println "HMM "+self.to_text+" "+i.to_text+" "+(self == i).to_text
         if self == i then i else
             Warning.attach (Loss_Of_Numeric_Precision.Warning self i) i
 
