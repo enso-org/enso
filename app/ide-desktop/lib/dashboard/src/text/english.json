@@ -501,7 +501,7 @@
   "editAssetDescriptionModalSubmit": "Submit",
   "editAssetDescriptionModalCancel": "Cancel",
 
-  "memberUserGroups": "Member Roles",
+  "userGroups": "User Groups",
   "userGroup": "Role",
   "newUserGroup": "New Role",
   "userGroupNamePlaceholder": "Enter the name of the role",

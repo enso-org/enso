@@ -8,7 +8,12 @@ import * as backendProvider from '#/providers/BackendProvider'
 import * as modalProvider from '#/providers/ModalProvider'
 import * as textProvider from '#/providers/TextProvider'
 
+import * as aria from '#/components/aria'
 import StatelessSpinner, * as statelessSpinner from '#/components/StatelessSpinner'
+import HorizontalMenuBar from '#/components/styled/HorizontalMenuBar'
+import SettingsPage from '#/components/styled/settings/SettingsPage'
+import SettingsSection from '#/components/styled/settings/SettingsSection'
+import UnstyledButton from '#/components/UnstyledButton'
 
 import NewUserGroupModal from '#/modals/NewUserGroupModal'
 
@@ -32,20 +37,20 @@ export default function MemberRolesSettingsTab() {
   const isLoading = userGroups == null || users == null
 
   return (
-    <div className="flex flex-col gap-settings-subsection">
-      <div className="flex flex-col gap-settings-section-header">
-        <h3 className="settings-subheading">{getText('memberUserGroups')}</h3>
-        <div className="flex gap-drive-bar">
-          <button
+    <SettingsPage>
+      <SettingsSection noFocusArea title={getText('userGroups')}>
+        <HorizontalMenuBar>
+          <UnstyledButton
             className="flex h-row items-center rounded-full bg-frame px-new-project-button-x"
-            onClick={event => {
-              event.stopPropagation()
+            onPress={() => {
               setModal(<NewUserGroupModal onSubmit={doRefresh} />)
             }}
           >
-            <span className="text whitespace-nowrap font-semibold">{getText('newUserGroup')}</span>
-          </button>
-        </div>
+            <aria.Text className="text whitespace-nowrap font-semibold">
+              {getText('newUserGroup')}
+            </aria.Text>
+          </UnstyledButton>
+        </HorizontalMenuBar>
         <table className="table-fixed self-start rounded-rows">
           <thead>
             <tr className="h-row">
@@ -79,7 +84,7 @@ export default function MemberRolesSettingsTab() {
             )}
           </tbody>
         </table>
-      </div>
-    </div>
+      </SettingsSection>
+    </SettingsPage>
   )
 }
