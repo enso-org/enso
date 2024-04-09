@@ -7,7 +7,8 @@ import java.util.function.Function;
 
 public final class CloudRequestCache {
   private record CacheEntry(Object value, LocalDateTime expiresAt) {}
-  private final static HashMap<String, CacheEntry> cache = new HashMap<>();
+
+  private static final HashMap<String, CacheEntry> cache = new HashMap<>();
 
   public static void clear() {
     cache.clear();
