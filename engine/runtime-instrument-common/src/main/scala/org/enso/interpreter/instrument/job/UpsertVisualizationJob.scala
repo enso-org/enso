@@ -539,7 +539,7 @@ object UpsertVisualizationJob {
         module.getIr.bindings
           .collectFirst {
             case ExternalIdOfMethod(externalId, methodReference)
-                if methodReference.name == methodPointer.name =>
+                if methodReference.methodName.name == methodPointer.name =>
               externalId
           }
       case _: Api.VisualizationExpression.Text => None
@@ -552,13 +552,14 @@ object UpsertVisualizationJob {
           val methodReference        = method.methodReference
           val methodReferenceTypeOpt = methodReference.typePointer.map(_.name)
 
-          methodReferenceTypeOpt
-            .flatMap(_ =>
+          Option
+            .when(methodReferenceTypeOpt.isEmpty)(
               method.body match {
                 case fun: Function => fun.body.getExternalId
                 case _             => method.getExternalId
               }
             )
+            .flatten
             .map((_, methodReference))
         case _ =>
           None
