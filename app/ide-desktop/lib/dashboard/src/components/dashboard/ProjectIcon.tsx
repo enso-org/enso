@@ -103,9 +103,7 @@ export default function ProjectIcon(props: ProjectIconProps) {
           type: newState,
         })
         if (!backendModule.IS_OPENING_OR_OPENED[newState]) {
-          // eslint-disable-next-line @typescript-eslint/no-unused-vars
-          const { openedBy, ...newProjectState2 } = newProjectState
-          newProjectState = newProjectState2
+          newProjectState = object.omit(newProjectState, 'openedBy')
         } else if (user != null) {
           newProjectState = object.merge(newProjectState, {
             openedBy: user.email,

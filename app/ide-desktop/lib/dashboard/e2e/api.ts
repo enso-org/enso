@@ -358,10 +358,10 @@ export async function mockApi({ page }: MockParams) {
               openedBy: defaultEmail,
             },
             packageName: 'Project_root',
-            /* eslint-disable @typescript-eslint/naming-convention */
+            // eslint-disable-next-line @typescript-eslint/naming-convention
             ide_version: null,
+            // eslint-disable-next-line @typescript-eslint/naming-convention
             engine_version: {
-              /* eslint-enable @typescript-eslint/naming-convention */
               value: '2023.2.1-nightly.2023.9.29',
               lifecycle: backend.VersionLifecycle.development,
             },
