@@ -109,6 +109,15 @@ add_specs suite_builder setup:Cloud_Tests_Setup = setup.with_prepared_environmen
         group_builder.specify "should not allow to delete the root directory" <|
             Enso_File.root.delete . should_fail_with Illegal_Argument
 
+        group_builder.specify "should be able to write a file using with_output_stream" <|
+            # TODO use tmp dir for tests
+            f = Enso_File.root / "written_file.txt"
+            r = f.with_output_stream [File_Access.Write] output_stream->
+                output_stream.write_bytes "Hello".utf_8
+                42
+            r.should_equal 42
+            f.read Plain_Text . should_equal "Hello"
+
         group_builder.specify "should be able to create and delete a file" pending="TODO: Cloud file write support" <|
             Error.throw "TODO"
 
