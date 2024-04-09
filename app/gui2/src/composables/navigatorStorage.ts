@@ -5,17 +5,27 @@ import { xxHash128 } from 'shared/ast/ffi'
 import { computed, watch } from 'vue'
 import type { NavigatorComposable } from './navigator'
 
+/**
+ * Synchronize given navigator's viewport pan and zoom with `localStorage`.
+ *
+ * @param navigator The navigator representing a viewport to synchronize.
+ * @param reactiveStorageKeyEncoder A **reactive** encoder from which a storage key is derived. Data
+ * that is encoded in this function dictates the effective identity of stored viewport. Whenever the
+ * encoded data changes, the stored viewport value is restored to navigator.
+ */
 export function useNavigatorStorage(
   navigator: NavigatorComposable,
-  storageKeyEncoder: (enc: encoding.Encoder) => void,
+  reactiveStorageKeyEncoder: (enc: encoding.Encoder) => void,
 ) {
-  const graphViewportStorageKey = computed(() => xxHash128(encoding.encode(storageKeyEncoder)))
+  const graphViewportStorageKey = computed(() =>
+    xxHash128(encoding.encode(reactiveStorageKeyEncoder)),
+  )
 
   type ViewportStorage = Map<string, { x: number; y: number; s: number }>
   const storedViewport = useLocalStorage<ViewportStorage>('enso-viewport', new Map())
   /**
-   * Maximum number of viewports stored in localstorage. When it is exceeded, least recently used half
-   * of the stored data is removed.
+   * Maximum number of viewports stored in localStorage. When it is exceeded, least recently used
+   * half of the stored data is removed.
    */
   const MAX_STORED_VIEWPORTS = 256
 
@@ -23,6 +33,7 @@ export function useNavigatorStorage(
   watch(
     graphViewportStorageKey,
     (key, prevKey) => {
+      if (key === prevKey) return
       if (prevKey != null) storeCurrentViewport(prevKey)
       restoreViewport(key)
     },

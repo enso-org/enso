@@ -104,6 +104,14 @@ export function useNavigator(viewportNode: Ref<Element | undefined>, keyboard: K
     center.skip()
   }
 
+  /** Set viewport center point and scale value immediately, skipping animations. */
+  function setCenterAndScale(newCenter: Vec2, newScale: number) {
+    targetCenter.value = newCenter
+    targetScale.value = newScale
+    scale.skip()
+    center.skip()
+  }
+
   let zoomPivot = Vec2.Zero
   const zoomPointer = usePointer((pos, _event, ty) => {
     if (ty === 'start') {
@@ -295,11 +303,6 @@ export function useNavigator(viewportNode: Ref<Element | undefined>, keyboard: K
     viewport,
     stepZoom,
     scrollTo,
-    setCenterAndScale(newCenter: Vec2, newScale: number) {
-      targetCenter.value = newCenter
-      targetScale.value = newScale
-      scale.skip()
-      center.skip()
-    },
+    setCenterAndScale,
   })
 }
