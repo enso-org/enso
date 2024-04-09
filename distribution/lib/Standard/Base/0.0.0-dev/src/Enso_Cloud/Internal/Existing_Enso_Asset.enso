@@ -73,12 +73,16 @@ type Existing_Enso_Asset
        Fetches the basic information about an existing file from the Cloud.
        It will fail if the file does not exist.
     get_asset_reference_for (file : Enso_File) -> Existing_Enso_Asset ! File_Error =
-        handle_not_found _ =
-            Error.throw (File_Error.Not_Found file)
-        error_handlers = Map.from_vector [["resource_missing", handle_not_found]]
-
         # TODO remove workaround for bug https://github.com/enso-org/cloud-v2/issues/1173
         path = if file.enso_path.is_root then file.enso_path.to_text + "/" else file.enso_path.to_text
+        Existing_Enso_Asset.resolve_path path if_not_found=(Error.throw (File_Error.Not_Found file))
+
+    ## PRIVATE
+       Resolves a path to an existing asset in the cloud.
+    resolve_path (path : Text) ~if_not_found =
+        handle_not_found _ = if_not_found
+        error_handlers = Map.from_vector [["resource_missing", handle_not_found]]
+
         uri = Utils.cloud_root_uri+"path/resolve"
         payload = JS_Object.from_pairs [["path", path]]
 
