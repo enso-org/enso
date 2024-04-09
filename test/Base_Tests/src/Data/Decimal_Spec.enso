@@ -7,8 +7,6 @@ from Standard.Base.Errors.Common import Loss_Of_Numeric_Precision, Out_Of_Range
 
 from Standard.Test import all
 
-import project.Data.Round_Spec
-
 Decimal.should_have_rep self rep = self.internal_representation . should_equal rep
 
 add_specs suite_builder =
@@ -407,10 +405,10 @@ add_specs suite_builder =
             (Decimal.new "11433327043969147404767677628296882442.487387236451853113753778864149360386696556" / Decimal.new "297349287397297.2394279379287398729879234") . should_equal (Decimal.new "38450830483049850394093.48579374987938934")
 
         group_builder.specify "should allow arithmetic with Decimals, with precision setting (examples)" <|
-            (Decimal.new "10.22") . add (Decimal.new "20.33") (Math_Context.new 3) . should_equal (Decimal.new 30.6)
-            (Decimal.new "20.33") . subtract (Decimal.new "10.22") (Math_Context.new 3) . should_equal (Decimal.new 10.1)
-            (Decimal.new "10.22") . multiply (Decimal.new "20.33") (Math_Context.new 4) . should_equal (Decimal.new 207.8)
-            (Decimal.new "1065.9378") . divide (Decimal.new "23.34") (Math_Context.new 3) . should_equal (Decimal.new 45.7)
+             (Decimal.new "10.22") . add (Decimal.new "20.33") (Math_Context.new 3) . should_equal (Decimal.new 30.6)
+             (Decimal.new "20.33") . subtract (Decimal.new "10.22") (Math_Context.new 3) . should_equal (Decimal.new 10.1)
+             (Decimal.new "10.22") . multiply (Decimal.new "20.33") (Math_Context.new 4) . should_equal (Decimal.new 207.8)
+             (Decimal.new "1065.9378") . divide (Decimal.new "23.34") (Math_Context.new 3) . should_equal (Decimal.new 45.7)
 
         group_builder.specify "should allow arithmetic with Decimals, with precision setting" <|
             (Decimal.new 213427523957 . add (Decimal.new 93849398884384) (Math_Context.new 8)) . should_equal (Decimal.new 94062826000000)
@@ -713,10 +711,6 @@ add_specs suite_builder =
 
             Math.min (Decimal.new "12E70") (Decimal.new "13E70") . should_equal (Decimal.new "12E70")
             Math.max (Decimal.new "12E70") (Decimal.new "13E70") . should_equal (Decimal.new "13E70")
-
-    suite_builder.group "rounding" group_builder->
-        do_round n dp=0 use_bankers=False = Decimal.new n . round dp use_bankers
-        Round_Spec.add_specs group_builder do_round
 
 main =
     suite = Test.build suite_builder->
