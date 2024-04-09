@@ -3,7 +3,6 @@ import project.Data.Numeric.Internal.Decimal_Internal
 import project.Data.Numeric.Math_Context.Math_Context
 import project.Data.Numeric.Rounding_Mode.Rounding_Mode
 import project.Data.Text.Text
-import project.IO
 import project.Error.Error
 import project.Errors.Illegal_Argument.Illegal_Argument
 import project.Nothing.Nothing
@@ -717,9 +716,7 @@ type Decimal
              # => 2345
     to_integer : Integer
     to_integer self =
-        i = if self <= 9223372036854775807 && self >= -9223372036854775808 then self.big_decimal.longValue else
-            self.big_decimal.toBigInteger
-        #IO.println "HMM "+self.to_text+" "+i.to_text+" "+(self == i).to_text
+        i = self.big_decimal.toBigInteger
         if self == i then i else
             Warning.attach (Loss_Of_Numeric_Precision.Warning self i) i
 

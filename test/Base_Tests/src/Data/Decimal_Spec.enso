@@ -573,6 +573,10 @@ add_specs suite_builder =
         group_builder.specify "should attach a warning on loss of precision in integer conversion" <|
             Problems.expect_only_warning Loss_Of_Numeric_Precision (Decimal.new "125.2" . to_integer)
             Problems.not_expect_warning Loss_Of_Numeric_Precision (Decimal.new "125" . to_integer)
+            huge_int = Decimal.new "125E90"
+            huge_fraction = Decimal.new "125E90" + Decimal.new "0.2"
+            Problems.expect_only_warning Loss_Of_Numeric_Precision (huge_fraction . to_integer)
+            Problems.not_expect_warning Loss_Of_Numeric_Precision (huge_int . to_integer)
 
     suite_builder.group "remainder" group_builder->
         group_builder.specify "should define remainder" <|
