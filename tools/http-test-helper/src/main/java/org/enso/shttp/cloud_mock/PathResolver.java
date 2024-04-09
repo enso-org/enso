@@ -2,7 +2,6 @@ package org.enso.shttp.cloud_mock;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-
 import java.io.IOException;
 import java.util.regex.Pattern;
 
@@ -44,7 +43,8 @@ public class PathResolver implements CloudHandler {
       return;
     }
 
-    // The latter condition is a workaround for https://github.com/enso-org/cloud-v2/issues/1173 and it may be removed once that is fixed
+    // The latter condition is a workaround for https://github.com/enso-org/cloud-v2/issues/1173 and
+    // it may be removed once that is fixed
     boolean isRoot = subPath.isEmpty() || subPath.equals("/");
     if (isRoot) {
       String asJson = jsonMapper.writeValueAsString(assetStore.rootDirectory);
@@ -53,7 +53,8 @@ public class PathResolver implements CloudHandler {
     }
 
     if (subPath.contains("/")) {
-      exchange.sendResponse(400, "Invalid subpath: " + subPath + " - mock does not support subdirectories");
+      exchange.sendResponse(
+          400, "Invalid subpath: " + subPath + " - mock does not support subdirectories");
       return;
     }
 

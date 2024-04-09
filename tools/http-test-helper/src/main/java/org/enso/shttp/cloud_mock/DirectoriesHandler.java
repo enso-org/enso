@@ -47,6 +47,5 @@ public class DirectoriesHandler implements CloudHandler {
     exchange.sendResponse(200, asJson);
   }
 
-  private record ListDirectoryResponse(List<AssetStore.Asset> assets) {
-  }
+  private record ListDirectoryResponse(List<AssetStore.Asset> assets) {}
 }

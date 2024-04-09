@@ -48,7 +48,12 @@ public class AssetStore {
   }
 
   Secret findAssetInRootByTitle(String subPath) {
-    return secrets.stream().filter(secret -> secret.title.equals(subPath) && secret.parentDirectoryId.equals(ROOT_DIRECTORY_ID)).findFirst().orElse(null);
+    return secrets.stream()
+        .filter(
+            secret ->
+                secret.title.equals(subPath) && secret.parentDirectoryId.equals(ROOT_DIRECTORY_ID))
+        .findFirst()
+        .orElse(null);
   }
 
   record Secret(String id, String title, String value, String parentDirectoryId) {
