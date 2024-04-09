@@ -20,10 +20,14 @@ const child = computed(() => {
 <script lang="ts">
 import { Ast } from '@/util/ast'
 
-export const widgetDefinition = defineWidget(WidgetInput.astMatcher(Ast.Group), {
-  priority: 999,
-  score: Score.Perfect,
-})
+export const widgetDefinition = defineWidget(
+  WidgetInput.astMatcher(Ast.Group),
+  {
+    priority: 999,
+    score: Score.Perfect,
+  },
+  import.meta.hot,
+)
 </script>
 
 <template>
