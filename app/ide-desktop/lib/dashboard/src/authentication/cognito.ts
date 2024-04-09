@@ -283,7 +283,7 @@ export class Cognito {
 
       await new Promise((resolve, reject) => {
         currentUser.unwrap().refreshSession(refreshToken, (error, session) => {
-          if (error) {
+          if (error instanceof Error) {
             reject(error)
           } else {
             resolve(session)
