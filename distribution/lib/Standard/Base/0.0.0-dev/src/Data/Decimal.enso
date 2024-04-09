@@ -707,11 +707,6 @@ type Decimal
        Arguments:
        - that: The number to compare `self` against.
 
-       ? Math.min or Number.min
-         While we provide the min method on `Number`, we find it more intuitive to
-         write `Math.min a b` rather than `a.min b`. To that end, we recommend using
-         the first style.
-
        > Example
          Find the minimum of 12 and 13.
 
@@ -726,11 +721,6 @@ type Decimal
 
        Arguments:
        - that: The number to compare `self` against.
-
-       ? Math.max or Number.max
-         While we provide the max method on `Number`, we find it more intuitive to
-         write `Math.max a b` rather than `a.max b`. To that end, we recommend using
-         the first style.
 
        > Example
          Find the maximum of 12 and 13.
