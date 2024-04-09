@@ -7,7 +7,6 @@ from Standard.Test import all
 import Standard.Test.Test_Environment
 
 import project.Network.Enso_Cloud.Cloud_Tests_Setup.Cloud_Tests_Setup
-from enso_dev.Base_Tests.Network.Enso_Cloud.Cloud_Tests_Setup import with_retries
 
 add_specs suite_builder setup:Cloud_Tests_Setup = setup.with_prepared_environment <|
     suite_builder.group "Enso Cloud Files" pending=setup.real_cloud_pending group_builder->
@@ -30,7 +29,7 @@ add_specs suite_builder setup:Cloud_Tests_Setup = setup.with_prepared_environmen
             delete_on_fail caught_panic =
                 my_dir.delete
                 Panic.throw caught_panic
-            Panic.catch Any handler=delete_on_fail <| with_retries <|
+            Panic.catch Any handler=delete_on_fail <| Test.with_retries <|
                 my_dir.is_directory . should_be_true
                 my_dir.exists . should_be_true
                 my_dir.name . should_equal my_name
@@ -38,7 +37,7 @@ add_specs suite_builder setup:Cloud_Tests_Setup = setup.with_prepared_environmen
 
             my_dir.delete . should_succeed
 
-            with_retries <|
+            Test.with_retries <|
                 Enso_File.root.list . should_not_contain my_dir
 
                 # TODO the dir still shows as 'existing' after deletion, probably because it still is there in the Trash
@@ -98,7 +97,7 @@ add_specs suite_builder setup:Cloud_Tests_Setup = setup.with_prepared_environmen
 
             dir1.delete . should_succeed
 
-            with_retries <|
+            Test.with_retries <|
                 dir1.exists . should_be_false
                 # The inner directory should also have been trashed if its parent is removed
                 dir2.exists . should_be_false
