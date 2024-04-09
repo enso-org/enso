@@ -1,4 +1,12 @@
 <script lang="ts">
+import { useAutoBlur } from '@/util/autoBlur'
+import { VisualizationContainer } from '@/util/visualizationBuiltins'
+import '@ag-grid-community/styles/ag-grid.css'
+import '@ag-grid-community/styles/ag-theme-alpine.css'
+import type { ColumnResizedEvent, ICellRendererParams } from 'ag-grid-community'
+import type { ColDef, GridOptions, HeaderValueGetterParams } from 'ag-grid-enterprise'
+import { computed, onMounted, onUnmounted, reactive, ref, watchEffect, type Ref } from 'vue'
+
 export const name = 'Table'
 export const icon = 'table'
 export const inputType =
@@ -65,18 +73,14 @@ declare module 'ag-grid-enterprise' {
     field: string
   }
 }
+
+if (typeof import.meta.env.VITE_ENSO_AG_GRID_LICENSE_KEY !== 'string') {
+  console.warn('The AG_GRID_LICENSE_KEY is not defined.')
+}
 </script>
 
 <script setup lang="ts">
-import { useAutoBlur } from '@/util/autoBlur'
-import { VisualizationContainer } from '@/util/visualizationBuiltins'
-import '@ag-grid-community/styles/ag-grid.css'
-import '@ag-grid-community/styles/ag-theme-alpine.css'
-import { Grid, type ColumnResizedEvent, type ICellRendererParams } from 'ag-grid-community'
-import type { ColDef, GridOptions, HeaderValueGetterParams } from 'ag-grid-enterprise'
-import { computed, onMounted, onUnmounted, reactive, ref, watchEffect, type Ref } from 'vue'
-
-const { LicenseManager } = await import('ag-grid-enterprise')
+const { LicenseManager, Grid } = await import('ag-grid-enterprise')
 
 const props = defineProps<{ data: Data }>()
 const emit = defineEmits<{
@@ -243,6 +247,7 @@ watchEffect(() => {
     : {
         type: typeof props.data,
         json: props.data,
+        // eslint-disable-next-line camelcase
         all_rows_count: 1,
         data: undefined,
         indices: undefined,
@@ -384,8 +389,22 @@ onMounted(() => {
   const agGridLicenseKey = import.meta.env.VITE_ENSO_AG_GRID_LICENSE_KEY
   if (typeof agGridLicenseKey === 'string') {
     LicenseManager.setLicenseKey(agGridLicenseKey)
-  } else {
-    console.warn('The AG_GRID_LICENSE_KEY is not defined.')
+  } else if (import.meta.env.DEV) {
+    // Hide annoying license validation errors in dev mode when the license is not defined. The
+    // missing define warning is still displayed to not forget about it, but it isn't as obnoxious.
+    const origValidateLicense = LicenseManager.prototype.validateLicense
+    LicenseManager.prototype.validateLicense = function (this) {
+      if (!('licenseManager' in this))
+        Object.defineProperty(this, 'licenseManager', {
+          configurable: true,
+          set(value: any) {
+            Object.getPrototypeOf(value).validateLicense = () => {}
+            delete this.licenseManager
+            this.licenseManager = value
+          },
+        })
+      origValidateLicense.call(this)
+    }
   }
   new Grid(tableNode.value!, agGridOptions.value)
   updateColumnWidths()
