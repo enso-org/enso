@@ -124,7 +124,7 @@ final class EnsureCompiledJob(
               // Side-effect: ensures that module's source is correctly initialized.
               module.getSource()
               invalidateCaches(module, changeset)
-              if (module.isIndexed) {
+              if (ctx.state.suggestions.isIndexed(module)) {
                 ctx.jobProcessor.runBackground(
                   AnalyzeModuleJob(module, changeset)
                 )
@@ -145,7 +145,8 @@ final class EnsureCompiledJob(
   private def ensureCompiledScope(modulesInScope: Iterable[Module])(implicit
     ctx: RuntimeContext
   ): Iterable[CompilationStatus] = {
-    val notIndexedModulesInScope = modulesInScope.filter(!_.isIndexed)
+    val notIndexedModulesInScope =
+      modulesInScope.filter(m => !ctx.state.suggestions.isIndexed(m))
     val (modulesToAnalyzeBuilder, compilationStatusesBuilder) =
       notIndexedModulesInScope.foldLeft(
         (Set.newBuilder[Module], Vector.newBuilder[CompilationStatus])

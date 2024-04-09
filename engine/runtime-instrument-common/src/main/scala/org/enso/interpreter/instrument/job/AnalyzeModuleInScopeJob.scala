@@ -40,8 +40,8 @@ final class AnalyzeModuleInScopeJob(
   private def analyzeModuleInScope(module: Module)(implicit
     ctx: RuntimeContext
   ): Unit = {
-    if (!module.isIndexed && module.getSource != null) {
-      module.indexing()
+    if (!ctx.state.suggestions.isIndexed(module) && module.getSource != null) {
+      ctx.state.suggestions.markAsNotIndexed(module)
       ctx.executionService.getLogger
         .log(Level.FINEST, s"Analyzing module in scope ${module.getName}")
       val moduleName = module.getName
@@ -61,7 +61,7 @@ final class AnalyzeModuleInScopeJob(
         exports = ModuleExportsDiff.compute(prevExports, newExports),
         updates = SuggestionDiff.compute(Tree.empty, newSuggestions)
       )
-      if (!module.indexed()) {
+      if (!ctx.state.suggestions.markAsIndexed(module)) {
         ctx.executionService.getLogger
           .log(Level.FINEST, s"Analyzing module in scope ${module.getName}")
         analyzeModuleInScope(module);

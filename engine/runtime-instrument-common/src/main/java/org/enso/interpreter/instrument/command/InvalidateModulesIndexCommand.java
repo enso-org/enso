@@ -36,7 +36,10 @@ public final class InvalidateModulesIndexCommand extends AsynchronousCommand {
             ctx.jobControlPlane().abortBackgroundJobs(DeserializeLibrarySuggestionsJob.class);
 
             EnsoContext context = ctx.executionService().getContext();
-            context.getTopScope().getModules().forEach(module -> module.needsIndexing());
+            context
+                .getTopScope()
+                .getModules()
+                .forEach(module -> ctx.state().suggestions().markIndexAsDirty(module));
 
             context
                 .getPackageRepository()
