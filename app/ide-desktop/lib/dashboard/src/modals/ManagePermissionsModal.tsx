@@ -64,8 +64,7 @@ export default function ManagePermissionsModal<
   const toastAndLog = toastAndLogHooks.useToastAndLog()
   const { getText } = textProvider.useText()
   const [permissions, setPermissions] = React.useState(item.permissions ?? [])
-  // FIXME: setUsersAndUserGroups
-  const [usersAndUserGroups, setUsers] = React.useState<
+  const [usersAndUserGroups, setUserAndUserGroups] = React.useState<
     readonly (backendModule.UserGroupInfo | backendModule.UserInfo)[]
   >([])
   const [email, setEmail] = React.useState<string | null>(null)
@@ -164,7 +163,7 @@ export default function ManagePermissionsModal<
     const doSubmit = async () => {
       if (willInviteNewUser) {
         try {
-          setUsers([])
+          setUserAndUserGroups([])
           setEmail('')
           if (email != null) {
             await backend.inviteUser({
@@ -177,7 +176,7 @@ export default function ManagePermissionsModal<
           toastAndLog('couldNotInviteUser', error, email ?? '(unknown)')
         }
       } else {
-        setUsers([])
+        setUserAndUserGroups([])
         const addedPermissions = usersAndUserGroups.map<backendModule.AssetPermission>(
           newUserOrUserGroup =>
             'userId' in newUserOrUserGroup
@@ -322,7 +321,7 @@ export default function ManagePermissionsModal<
                             : getText('xUsersSelected', items.length)
                         }
                         values={usersAndUserGroups}
-                        setValues={setUsers}
+                        setValues={setUserAndUserGroups}
                         items={canAdd}
                         itemToKey={userOrGroup =>
                           'userId' in userOrGroup ? userOrGroup.userId : userOrGroup.id
