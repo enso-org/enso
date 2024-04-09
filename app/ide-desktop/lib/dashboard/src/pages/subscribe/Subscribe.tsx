@@ -12,7 +12,7 @@ import * as appUtils from '#/appUtils'
 import type * as text from '#/text'
 
 import * as navigateHooks from '#/hooks/navigateHooks'
-import { useSearchParamsState } from '#/hooks/searchParamsStateHooks'
+import * as searchParamsHooks from '#/hooks/searchParamsStateHooks'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
 import * as backendProvider from '#/providers/BackendProvider'
@@ -58,7 +58,7 @@ export default function Subscribe() {
   const { getText } = textProvider.useText()
   const navigate = navigateHooks.useNavigate()
 
-  const [plan, setPlan] = useSearchParamsState(
+  const [plan, setPlan] = searchParamsHooks.useSearchParamsState(
     'plan',
     backendModule.Plan.solo,
     (raw): raw is backendModule.Plan => backendModule.isPlan(raw)
@@ -67,33 +67,36 @@ export default function Subscribe() {
   const { backend } = backendProvider.useBackend()
   const toastAndLog = toastAndLogHooks.useToastAndLog()
 
-  const { data: stripeInstance } = reactQuery.useSuspenseQuery({
-    queryKey: ['stripe', process.env.ENSO_CLOUD_STRIPE_KEY],
-    staleTime: Infinity,
-    queryFn: async () => {
-      const stripeKey = process.env.ENSO_CLOUD_STRIPE_KEY
+  const [{ data: checkoutSession }, { data: stripeInstance }] = reactQuery.useSuspenseQueries({
+    queries: [
+      {
+        queryKey: ['checkoutSession', plan],
+        queryFn: async () => {
+          // backend.createCheckoutSession(plan)
+          return {
+            clientSecret: 'cs_foo',
+            id: 'cs_bar',
+          } as backendModule.CheckoutSession
+        },
+      },
+      {
+        queryKey: ['stripe', process.env.ENSO_CLOUD_STRIPE_KEY],
+        staleTime: Infinity,
+        queryFn: async () => {
+          const stripeKey = process.env.ENSO_CLOUD_STRIPE_KEY
 
-      if (stripeKey == null) {
-        throw new Error('Stripe key not found')
-      } else {
-        return load.loadScript('https://js.stripe.com/v3/').then(script =>
-          stripe.loadStripe(stripeKey).finally(() => {
-            script.remove()
-          })
-        )
-      }
-    },
-  })
-
-  const { data: checkoutSession } = reactQuery.useSuspenseQuery({
-    queryKey: ['checkoutSession', plan],
-    queryFn: async () => {
-      // backend.createCheckoutSession(plan)
-      return {
-        clientSecret: 'cs_foo',
-        id: 'cs_bar',
-      } as backendModule.CheckoutSession
-    },
+          if (stripeKey == null) {
+            throw new Error('Stripe key not found')
+          } else {
+            return load.loadScript('https://js.stripe.com/v3/').then(script =>
+              stripe.loadStripe(stripeKey).finally(() => {
+                script.remove()
+              })
+            )
+          }
+        },
+      },
+    ],
   })
 
   const onCompleteMutation = reactQuery.useMutation({
@@ -102,14 +105,13 @@ export default function Subscribe() {
     onSuccess: data => {
       if (data.status === 'complete') {
         toast.toast.success('Your plan has successfully been upgraded!')
-
         window.setTimeout(() => {
           navigate(appUtils.DASHBOARD_PATH)
         }, REDIRECT_DELAY_MS)
       }
     },
     onError: error => {
-      toastAndLog('asyncHookError', error.message)
+      toastAndLog('asyncHookError', error)
     },
   })
 
