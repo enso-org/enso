@@ -46,7 +46,7 @@ type Snowflake_Details
     jdbc_properties : Vector (Pair Text Text)
     jdbc_properties self =
         ## Avoid the Arrow dependency (https://community.snowflake.com/s/article/SAP-BW-Java-lang-NoClassDefFoundError-for-Apache-arrow)
-        no_arrow = [Pair.new 'jdbc_query_result_format' 'json']
+        no_arrow = [] #[Pair.new 'jdbc_query_result_format' 'json']
         account = [Pair.new 'account' self.account]
         credentials = [Pair.new 'user' self.credentials.username, Pair.new 'password' self.credentials.password]
         database = [Pair.new 'db' self.database]
