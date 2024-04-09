@@ -11,12 +11,15 @@ import org.enso.shttp.HttpMethod;
 
 public class SecretsHandler implements CloudHandler {
 
-  private static final String ROOT = "<//root//>";
+  private static final String ROOT = "directory-27xJM00p8jWoL2qByTo6tQfciWC";
   private final String SECRETS = "secrets";
   private final String HIDDEN_SECRETS = "s3cr3tz";
 
   // Temporary mock until we are back to `list_secrets` for `Enso_Secret.list`.
   private final String DIRECTORIES = "directories";
+
+  // Secrets are now being deleted through assets endpoint
+  private final String ASSETS = "assets/secret-";
 
   private final ObjectMapper jsonMapper = new ObjectMapper();
 
@@ -27,7 +30,8 @@ public class SecretsHandler implements CloudHandler {
   public boolean canHandle(String subPath) {
     return subPath.startsWith(SECRETS)
         || subPath.startsWith(HIDDEN_SECRETS)
-        || subPath.startsWith(DIRECTORIES);
+        || subPath.startsWith(DIRECTORIES)
+        || subPath.startsWith(ASSETS);
   }
 
   @Override
@@ -41,9 +45,20 @@ public class SecretsHandler implements CloudHandler {
       return;
     }
 
-    if (exchange.subPath().equals(DIRECTORIES)) {
+    if (exchange.subPath().startsWith(DIRECTORIES)) {
       if (method == HttpMethod.GET) {
-        listDirectory(exchange);
+        listDirectory(exchange.subPath().substring(DIRECTORIES.length() + 1), exchange);
+      } else {
+        exchange.sendResponse(405, "Method not allowed: " + method);
+      }
+      return;
+    }
+
+    if (exchange.subPath().startsWith(ASSETS)) {
+      if (method == HttpMethod.DELETE) {
+        String idOnly = exchange.subPath().substring(ASSETS.length());
+        String fullId = "secret-" + idOnly;
+        deleteSecret(fullId, exchange);
       } else {
         exchange.sendResponse(405, "Method not allowed: " + method);
       }
@@ -119,15 +134,15 @@ public class SecretsHandler implements CloudHandler {
    * `list_secrets`, as `list_secrets` was unable to handle sub-directories. Once `list_secrets` is
    * fixed, this temporary workaround may be removed from the mock.
    */
-  private void listDirectory(CloudExchange exchange) throws IOException {
-    String parentId = ROOT;
+  private void listDirectory(String parentId, CloudExchange exchange) throws IOException {
+    final String effectiveParentId = parentId.isEmpty() ? ROOT : parentId;
     ListDirectoryResponse response =
         new ListDirectoryResponse(
             accessRoot(parentId).entrySet().stream()
                 .map(
                     entry ->
                         new ListDirectoryResponse.Element(
-                            entry.getKey(), entry.getValue().name, parentId))
+                            entry.getKey(), entry.getValue().name, effectiveParentId))
                 .toList());
     String asJson = jsonMapper.writeValueAsString(response);
     exchange.sendResponse(200, asJson);

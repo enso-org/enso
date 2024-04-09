@@ -52,6 +52,10 @@ export class Rect {
     return a.equals(b)
   }
 
+  isFinite(): boolean {
+    return this.pos.isFinite() && this.size.isFinite()
+  }
+
   offsetBy(offset: Vec2): Rect {
     return new Rect(this.pos.add(offset), this.size)
   }

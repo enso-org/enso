@@ -438,7 +438,7 @@ type Decimal
     ## ALIAS times
        GROUP Operators
        ICON math
-       Multiplies a `Decimal` by another `Decimal` or other kind of number. 
+       Multiplies a `Decimal` by another `Decimal` or other kind of number.
 
        Arguments:
        - that: The number to multiply by this.
@@ -674,6 +674,33 @@ type Decimal
     negate : Decimal
     negate self = Decimal.Value self.big_decimal.negate
 
+    ## GROUP Math
+       ICON math
+       Computes the absolute value of this.
+
+       The absolute value of a positive number is itself, while the absolute
+       value of a negative number is that number multiplied by -1.
+
+       > Example
+         Compute the absolute value of a `Decimal`.
+
+             Decimal.new "-12.345" . abs
+             # => 12.345
+    abs : Decimal
+    abs self -> Decimal = Decimal.Value self.big_decimal.abs
+
+    ## GROUP Math
+       ICON math
+       Returns the sign of the number.
+
+       > Example
+         Compute the sign of a `Decimal`.
+
+             Decimal.new "-12.345" . signum
+             # => -1
+    signum : Integer
+    signum self -> Integer = self.big_decimal.signum
+
     ## GROUP CONVERSIONS
        Convert this to an `Integer`.
 
@@ -741,9 +768,8 @@ type Decimal
     scale self = self.big_decimal.scale
 
     ## PRIVATE
-       TODO: This +0 is needed to allow internal representations to be compared.
     unscaled_value : Integer
-    unscaled_value self = self.big_decimal.unscaledValue + 0
+    unscaled_value self = self.big_decimal.unscaledValue
 
     ## PRIVATE
     internal_representation : [Integer]
