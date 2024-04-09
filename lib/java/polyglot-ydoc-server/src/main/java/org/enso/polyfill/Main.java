@@ -1,10 +1,14 @@
 package org.enso.polyfill;
 
 import java.io.File;
-import java.io.IOException;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executors;
 
+import org.enso.polyfill.crypto.CryptoPolyfill;
+import org.enso.polyfill.encoding.EncodingPolyfill;
+import org.enso.polyfill.timers.TimersPolyfill;
+import org.enso.polyfill.web.AbortControllerPolyfill;
+import org.enso.polyfill.web.EventTargetPolyfill;
 import org.enso.polyfill.websocket.WebSocketPolyfill;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.HostAccess;
@@ -19,11 +23,8 @@ public class Main {
     }
 
     public static void main(String[] args) throws Exception {
-        var demo = ClasspathResource.createTempFile(YDOC_SERVER_PATH);
-        if (demo == null) {
-            throw new IOException("Cannot find " + YDOC_SERVER_PATH);
-        }
-        var commonJsRoot = new File(demo).getParent();
+        var ydoc = ClasspathResource.createTempFile(YDOC_SERVER_PATH);
+        var commonJsRoot = new File(ydoc).getParent();
 
         HostAccess hostAccess = HostAccess.newBuilder(HostAccess.EXPLICIT)
                 .allowArrayAccess(true)
@@ -35,22 +36,38 @@ public class Main {
                 .allowExperimentalOptions(true)
                 .option("js.commonjs-require", "true")
                 .option("js.commonjs-require-cwd", commonJsRoot);
-        var chromePort = Integer.getInteger("inspectPort", -1);
+        var chromePort = 34567;// Integer.getInteger("inspectPort", -1);
         if (chromePort > 0) {
             b.option("inspect", ":" + chromePort);
         }
 
         try (var executor = Executors.newSingleThreadExecutor()) {
-            var webSocketPolyfill = new WebSocketPolyfill(executor);
-            var demoJs = Source.newBuilder("js", demo.toURL())
+            var ydocJs = Source.newBuilder("js", ydoc.toURL())
                     .mimeType("application/javascript+module")
                     .build();
 
             CompletableFuture
                     .supplyAsync(b::build, executor)
                     .thenAcceptAsync(ctx -> {
+                        var eventTarget = new EventTargetPolyfill(executor);
+                        eventTarget.initialize(ctx);
+
+                        var timers = new TimersPolyfill(executor);
+                        timers.initialize(ctx);
+
+                        var crypto = new CryptoPolyfill();
+                        crypto.initialize(ctx);
+
+                        var encoding = new EncodingPolyfill();
+                        encoding.initialize(ctx);
+
+                        var abortController = new AbortControllerPolyfill();
+                        abortController.initialize(ctx);
+
+                        var webSocketPolyfill = new WebSocketPolyfill(executor);
                         webSocketPolyfill.initialize(ctx);
-                        ctx.eval(demoJs);
+
+                        ctx.eval(ydocJs);
                     }, executor)
                     .get();
 

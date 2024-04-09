@@ -11,9 +11,6 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 
 import org.enso.polyfill.Polyfill;
-import org.enso.polyfill.crypto.CryptoPolyfill;
-import org.enso.polyfill.encoding.EncodingPolyfill;
-import org.enso.polyfill.timers.TimersPolyfill;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Source;
 import org.graalvm.polyglot.Value;
@@ -53,15 +50,6 @@ public final class WebSocketPolyfill implements ProxyExecutable, Polyfill {
 
     @Override
     public void initialize(Context ctx) {
-        var timers = new TimersPolyfill(executor);
-        timers.initialize(ctx);
-
-        var crypto = new CryptoPolyfill();
-        crypto.initialize(ctx);
-
-        var encoding = new EncodingPolyfill();
-        encoding.initialize(ctx);
-
         Source webSocketPolyfillJs = Source
                 .newBuilder("js", WebSocketPolyfill.class.getResource(WEBSOCKET_POLYFILL_JS))
                 .buildLiteral();
@@ -127,7 +115,7 @@ public final class WebSocketPolyfill implements ProxyExecutable, Polyfill {
                 var handleMessage = arguments[6];
                 var connection = new WebSocketConnection(executor, new HashMap<>(), handleOpen, handleClose, handleError, handleMessage);
 
-                URI uri = null;
+                URI uri;
                 try {
                     uri = new URI(urlString);
                 } catch (URISyntaxException ex) {
