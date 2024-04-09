@@ -551,11 +551,7 @@ add_specs suite_builder =
         group_builder.specify "attaches a warning to the result of .to_float when it results in a loss of precision" <|
             Problems.expect_only_warning Loss_Of_Numeric_Precision (Decimal.new "0.1" . to_float)
 
-        group_builder.specify "should convert correctly to Integer and Float using implicit conversions" <|
-            i = Integer.from (Decimal.new "5634")
-            i.should_be_a Integer
-            i.should_equal 5634
-
+        group_builder.specify "should convert correctly to Float using implicit conversions" <|
             f = Float.from (Decimal.new "56.34")
             f.should_be_a Float
             f.should_equal 56.34
@@ -569,7 +565,7 @@ add_specs suite_builder =
 
         group_builder.specify "Decimal.to_integer should compare correctly with the original Decimal" <|
             huge_a = Decimal.new "3.4E320"
-            huge_a_int = Integer.from huge_a
+            huge_a_int = huge_a.to_integer
 
             (huge_a_int == huge_a) . should_be_true
             (huge_a == huge_a_int) . should_be_true
