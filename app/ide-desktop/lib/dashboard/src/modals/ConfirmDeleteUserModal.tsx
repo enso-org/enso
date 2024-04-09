@@ -56,7 +56,9 @@ export default function ConfirmDeleteUserModal(props: ConfirmDeleteUserModalProp
         <aria.Heading className="py-heading relative h-heading text-xl font-bold">
           {getText('areYouSure')}
         </aria.Heading>
-        <aria.Text className="relative mb-2 text-balance text-center">{getText('confirmDeleteUserAccountWarning')}</aria.Text>
+        <aria.Text className="relative mb-2 text-balance text-center">
+          {getText('confirmDeleteUserAccountWarning')}
+        </aria.Text>
         <ButtonRow position="center">
           <UnstyledButton
             className="button relative bg-danger text-inversed active"

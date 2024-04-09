@@ -12,6 +12,7 @@ import * as authProvider from '#/providers/AuthProvider'
 import * as backendProvider from '#/providers/BackendProvider'
 import * as textProvider from '#/providers/TextProvider'
 
+import * as aria from '#/components/aria'
 import * as ariaComponents from '#/components/AriaComponents'
 import SvgMask from '#/components/SvgMask'
 
@@ -35,10 +36,12 @@ export default function RestoreAccount() {
       <div className="flex min-h-96 w-full flex-col items-center justify-center">
         <SvgMask
           src={UntrashIcon}
-          className="mb-4 aspect-square h-12 bg-icon-selected"
+          className="bg-icon-selected mb-4 aspect-square h-12"
           color={''}
         />
-        <h1 className="mb-4 text-3xl">{getText('restoreAccount')}</h1>
+        <aria.Heading level={1} className="mb-4 text-3xl">
+          {getText('restoreAccount')}
+        </aria.Heading>
         <p className="max-w-[36rem] text-balance text-center">
           {getText('restoreAccountDescription')}
         </p>
