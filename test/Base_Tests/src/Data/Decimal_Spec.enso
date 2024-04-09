@@ -313,6 +313,15 @@ add_specs suite_builder =
                     (v > lesser) . should_be_true
                     (v < greater) . should_be_true
 
+                    (v == lesser) . should_be_false
+                    (lesser == v) . should_be_false
+                    (v != lesser) . should_be_true
+                    (lesser != v) . should_be_true
+                    (v == greater) . should_be_false
+                    (greater == v) . should_be_false
+                    (v != greater) . should_be_true
+                    (greater != v) . should_be_true
+
                     (d <= v) . should_be_true
                     (d >= v) . should_be_true
                     (v <= d) . should_be_true
@@ -342,6 +351,14 @@ add_specs suite_builder =
                         (d <= lesser) . should_be_false
                         (lesser > d) . should_be_false
                         (lesser >= d) . should_be_false
+
+        group_builder.specify "should not implicitly convert Decimal to Integer in comparison" <|
+            (Decimal.new "12.5" == 12) . should_be_false
+            (12 == Decimal.new "12.5") . should_be_false
+            large_int = 9223372036854775807000
+            large_fraction = Decimal.new "9223372036854775807000.3"
+            (large_fraction == large_int) . should_be_false
+            (large_int == large_fraction ) . should_be_false
 
     suite_builder.group "edge cases" group_builder->
         group_builder.specify "can support values outside the double range" <|
