@@ -644,6 +644,8 @@
 - [Added `pow`, `remainder`, and `div` to `Decimal`.][9566]
 - [Implemented `.to_integer`, `.to_float`, and `from` conversions for
   `Decimal`][9462]
+- [Made `Integer.%` consistent across all `Integer` values.][9589]
+- [Added `Decimal.abs`, `.negate` and `.signum`.][9641]
 
 [debug-shortcuts]:
   https://github.com/enso-org/enso/blob/develop/app/gui/docs/product/shortcuts.md#debug
@@ -938,6 +940,8 @@
 [9533]: https://github.com/enso-org/enso/pull/9533
 [9525]: https://github.com/enso-org/enso/pull/9525
 [9566]: https://github.com/enso-org/enso/pull/9566
+[9589]: https://github.com/enso-org/enso/pull/9589
+[9641]: https://github.com/enso-org/enso/pull/9641
 
 #### Enso Compiler
 

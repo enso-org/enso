@@ -12,7 +12,10 @@ import * as textProvider from '#/providers/TextProvider'
 import * as pageSwitcher from '#/layouts/PageSwitcher'
 import UserMenu from '#/layouts/UserMenu'
 
-import Button from '#/components/Button'
+import * as aria from '#/components/aria'
+import Button from '#/components/styled/Button'
+import FocusArea from '#/components/styled/FocusArea'
+import UnstyledButton from '#/components/UnstyledButton'
 
 import InviteUsersModal from '#/modals/InviteUsersModal'
 import ManagePermissionsModal from '#/modals/ManagePermissionsModal'
@@ -25,6 +28,9 @@ import * as backendModule from '#/services/Backend'
 
 /** Props for a {@link UserBar}. */
 export interface UserBarProps {
+  /** When `true`, the element occupies space in the layout but is not visible.
+   * Defaults to `false`. */
+  readonly invisible?: boolean
   readonly supportsLocalBackend: boolean
   readonly page: pageSwitcher.Page
   readonly setPage: (page: pageSwitcher.Page) => void
@@ -38,8 +44,8 @@ export interface UserBarProps {
 
 /** A toolbar containing chat and the user menu. */
 export default function UserBar(props: UserBarProps) {
-  const { supportsLocalBackend, page, setPage, isHelpChatOpen, setIsHelpChatOpen } = props
-  const { projectAsset, setProjectAsset, doRemoveSelf, onSignOut } = props
+  const { invisible = false, page, setPage, isHelpChatOpen, setIsHelpChatOpen } = props
+  const { supportsLocalBackend, projectAsset, setProjectAsset, doRemoveSelf, onSignOut } = props
   const { type: sessionType, user } = authProvider.useNonPartialUserSession()
   const { setModal, updateModal } = modalProvider.useSetModal()
   const { backend } = backendProvider.useBackend()
@@ -60,76 +66,80 @@ export default function UserBar(props: UserBarProps) {
     sessionType === authProvider.UserSessionType.full && !shouldShowShareButton
 
   return (
-    <div className="pointer-events-auto flex h-row shrink-0 cursor-default items-center gap-user-bar rounded-full bg-frame px-icons-x pr-profile-picture backdrop-blur-default">
-      <Button
-        active={isHelpChatOpen}
-        image={ChatIcon}
-        onClick={() => {
-          setIsHelpChatOpen(!isHelpChatOpen)
-        }}
-      />
-      {shouldShowInviteButton && (
-        <button
-          className="text my-auto rounded-full bg-share px-button-x text-inversed"
-          onClick={event => {
-            event.stopPropagation()
-            setModal(<InviteUsersModal eventTarget={null} />)
-          }}
+    <FocusArea active={!invisible} direction="horizontal">
+      {innerProps => (
+        <div
+          className="pointer-events-auto flex h-row shrink-0 cursor-default items-center gap-user-bar rounded-full bg-frame px-icons-x pr-profile-picture backdrop-blur-default"
+          {...innerProps}
         >
-          {getText('invite')}
-        </button>
+          <Button
+            active={isHelpChatOpen}
+            image={ChatIcon}
+            onPress={() => {
+              setIsHelpChatOpen(!isHelpChatOpen)
+            }}
+          />
+          {shouldShowInviteButton && (
+            <UnstyledButton
+              className="text my-auto rounded-full bg-share px-button-x text-inversed"
+              onPress={() => {
+                setModal(<InviteUsersModal eventTarget={null} />)
+              }}
+            >
+              <aria.Text slot="label">{getText('invite')}</aria.Text>
+            </UnstyledButton>
+          )}
+          {shouldShowShareButton && (
+            <UnstyledButton
+              className="text my-auto rounded-full bg-share px-button-x text-inversed"
+              onPress={() => {
+                setModal(
+                  <ManagePermissionsModal
+                    item={projectAsset}
+                    setItem={setProjectAsset}
+                    self={self}
+                    doRemoveSelf={doRemoveSelf}
+                    eventTarget={null}
+                  />
+                )
+              }}
+            >
+              <aria.Text slot="label">{getText('share')}</aria.Text>
+            </UnstyledButton>
+          )}
+          <UnstyledButton
+            className="flex size-profile-picture select-none items-center overflow-clip rounded-full"
+            onPress={() => {
+              updateModal(oldModal =>
+                oldModal?.type === UserMenu ? null : (
+                  <UserMenu
+                    setPage={setPage}
+                    supportsLocalBackend={supportsLocalBackend}
+                    onSignOut={onSignOut}
+                  />
+                )
+              )
+            }}
+          >
+            <img
+              src={user?.profilePicture ?? DefaultUserIcon}
+              alt={getText('openUserMenu')}
+              className="pointer-events-none"
+              height={28}
+              width={28}
+            />
+          </UnstyledButton>
+          {/* Required for shortcuts to work. */}
+          <div className="hidden">
+            <UserMenu
+              hidden
+              setPage={setPage}
+              supportsLocalBackend={supportsLocalBackend}
+              onSignOut={onSignOut}
+            />
+          </div>
+        </div>
       )}
-      {shouldShowShareButton && (
-        <button
-          className="text my-auto rounded-full bg-share px-button-x text-inversed"
-          onClick={event => {
-            event.stopPropagation()
-            setModal(
-              <ManagePermissionsModal
-                item={projectAsset}
-                setItem={setProjectAsset}
-                self={self}
-                doRemoveSelf={doRemoveSelf}
-                eventTarget={null}
-              />
-            )
-          }}
-        >
-          {getText('share')}
-        </button>
-      )}
-      <button
-        className="flex size-profile-picture select-none items-center overflow-clip rounded-full"
-        onClick={event => {
-          event.stopPropagation()
-          updateModal(oldModal =>
-            oldModal?.type === UserMenu ? null : (
-              <UserMenu
-                setPage={setPage}
-                supportsLocalBackend={supportsLocalBackend}
-                onSignOut={onSignOut}
-              />
-            )
-          )
-        }}
-      >
-        <img
-          src={user?.profilePicture ?? DefaultUserIcon}
-          alt={getText('openUserMenu')}
-          className="pointer-events-none"
-          height={28}
-          width={28}
-        />
-      </button>
-      {/* Required for shortcuts to work. */}
-      <div className="hidden">
-        <UserMenu
-          hidden
-          setPage={setPage}
-          supportsLocalBackend={supportsLocalBackend}
-          onSignOut={onSignOut}
-        />
-      </div>
-    </div>
+    </FocusArea>
   )
 }

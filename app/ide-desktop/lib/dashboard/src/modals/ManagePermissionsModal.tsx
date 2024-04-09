@@ -12,10 +12,13 @@ import * as backendProvider from '#/providers/BackendProvider'
 import * as modalProvider from '#/providers/ModalProvider'
 import * as textProvider from '#/providers/TextProvider'
 
+import * as aria from '#/components/aria'
 import Autocomplete from '#/components/Autocomplete'
 import Permission from '#/components/dashboard/Permission'
 import PermissionSelector from '#/components/dashboard/PermissionSelector'
 import Modal from '#/components/Modal'
+import FocusArea from '#/components/styled/FocusArea'
+import UnstyledButton from '#/components/UnstyledButton'
 
 import * as backendModule from '#/services/Backend'
 
@@ -274,89 +277,91 @@ export default function ManagePermissionsModal<
             mouseEvent.stopPropagation()
             mouseEvent.preventDefault()
           }}
-          onKeyDown={event => {
-            if (event.key !== 'Escape') {
-              event.stopPropagation()
-            }
-          }}
         >
           <div className="relative flex flex-col gap-modal rounded-default p-modal">
             <div className="flex h-row items-center gap-modal-tabs px-modal-tab-bar-x">
-              <h2 className="text text-sm font-bold">{getText('invite')}</h2>
+              <aria.Heading level={2} className="text text-sm font-bold">
+                {getText('invite')}
+              </aria.Heading>
               {/* Space reserved for other tabs. */}
             </div>
-            <form
-              className="flex gap-input-with-button"
-              onSubmit={event => {
-                event.preventDefault()
-                void doSubmit()
-              }}
-            >
-              <div className="flex grow items-center gap-user-permission rounded-full border border-primary/10 px-manage-permissions-modal-input">
-                <PermissionSelector
-                  input
-                  disabled={willInviteNewUser}
-                  selfPermission={self.permission}
-                  typeSelectorYOffsetPx={TYPE_SELECTOR_Y_OFFSET_PX}
-                  action={permissionsModule.PermissionAction.view}
-                  assetType={item.type}
-                  onChange={setAction}
-                />
-                <div className="-mx-button-px grow">
-                  <Autocomplete
-                    multiple
-                    autoFocus
-                    placeholder={
-                      // `listedUsers` will always include the current user.
-                      listedUsers?.length !== 1
-                        ? getText('inviteUserPlaceholder')
-                        : getText('inviteFirstUserPlaceholder')
+            <FocusArea direction="horizontal">
+              {innerProps => (
+                <form
+                  className="flex gap-input-with-button"
+                  onSubmit={event => {
+                    event.preventDefault()
+                    void doSubmit()
+                  }}
+                  {...innerProps}
+                >
+                  <div className="flex grow items-center gap-user-permission rounded-full border border-primary/10 px-manage-permissions-modal-input">
+                    <PermissionSelector
+                      input
+                      isDisabled={willInviteNewUser}
+                      selfPermission={self.permission}
+                      typeSelectorYOffsetPx={TYPE_SELECTOR_Y_OFFSET_PX}
+                      action={permissionsModule.PermissionAction.view}
+                      assetType={item.type}
+                      onChange={setAction}
+                    />
+                    <div className="-mx-button-px grow">
+                      <Autocomplete
+                        multiple
+                        autoFocus
+                        placeholder={
+                          // `listedUsers` will always include the current user.
+                          listedUsers?.length !== 1
+                            ? getText('inviteUserPlaceholder')
+                            : getText('inviteFirstUserPlaceholder')
+                        }
+                        type="text"
+                        itemsToString={items =>
+                          items.length === 1 && items[0] != null && 'email' in items[0]
+                            ? items[0].email
+                            : getText('xUsersSelected', items.length)
+                        }
+                        values={usersAndUserGroups}
+                        setValues={setUsers}
+                        items={canAdd}
+                        itemToKey={userOrGroup =>
+                          'userId' in userOrGroup ? userOrGroup.userId : userOrGroup.id
+                        }
+                        itemToString={userOrGroup =>
+                          'name' in userOrGroup
+                            ? `${userOrGroup.name} (${userOrGroup.email})`
+                            : userOrGroup.groupName
+                        }
+                        matches={(userOrGroup, text) =>
+                          ('email' in userOrGroup &&
+                            userOrGroup.email.toLowerCase().includes(text.toLowerCase())) ||
+                          ('name' in userOrGroup &&
+                            userOrGroup.name.toLowerCase().includes(text.toLowerCase())) ||
+                          ('groupName' in userOrGroup &&
+                            userOrGroup.groupName.toLowerCase().includes(text.toLowerCase()))
+                        }
+                        text={email}
+                        setText={setEmail}
+                      />
+                    </div>
+                  </div>
+                  <UnstyledButton
+                    isDisabled={
+                      willInviteNewUser
+                        ? email == null || !isEmail(email)
+                        : usersAndUserGroups.length === 0 ||
+                          (email != null && emailsOfUsersWithPermission.has(email))
                     }
-                    type="text"
-                    itemsToString={items =>
-                      items.length === 1 && items[0] != null && 'email' in items[0]
-                        ? items[0].email
-                        : getText('xUsersSelected', items.length)
-                    }
-                    values={usersAndUserGroups}
-                    setValues={setUsers}
-                    items={canAdd}
-                    itemToKey={userOrGroup =>
-                      'userId' in userOrGroup ? userOrGroup.userId : userOrGroup.id
-                    }
-                    itemToString={userOrGroup =>
-                      'name' in userOrGroup
-                        ? `${userOrGroup.name} (${userOrGroup.email})`
-                        : userOrGroup.groupName
-                    }
-                    matches={(userOrGroup, text) =>
-                      ('email' in userOrGroup &&
-                        userOrGroup.email.toLowerCase().includes(text.toLowerCase())) ||
-                      ('name' in userOrGroup &&
-                        userOrGroup.name.toLowerCase().includes(text.toLowerCase())) ||
-                      ('groupName' in userOrGroup &&
-                        userOrGroup.groupName.toLowerCase().includes(text.toLowerCase()))
-                    }
-                    text={email}
-                    setText={setEmail}
-                  />
-                </div>
-              </div>
-              <button
-                type="submit"
-                disabled={
-                  willInviteNewUser
-                    ? email == null || !isEmail(email)
-                    : usersAndUserGroups.length === 0 ||
-                      (email != null && emailsOfUsersWithPermission.has(email))
-                }
-                className="button bg-invite px-button-x text-tag-text selectable enabled:active"
-              >
-                <div className="h-text py-modal-invite-button-text-y">
-                  {willInviteNewUser ? 'Invite' : 'Share'}
-                </div>
-              </button>
-            </form>
+                    className="button bg-invite px-button-x text-tag-text selectable enabled:active"
+                    onPress={doSubmit}
+                  >
+                    <div className="h-text py-modal-invite-button-text-y">
+                      {willInviteNewUser ? getText('invite') : getText('share')}
+                    </div>
+                  </UnstyledButton>
+                </form>
+              )}
+            </FocusArea>
             <div className="max-h-manage-permissions-modal-permissions-list overflow-auto px-manage-permissions-modal-input">
               {editablePermissions.map(permission => (
                 <div

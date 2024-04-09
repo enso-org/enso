@@ -21,7 +21,6 @@ import type {
   VisualizationConfiguration,
   response,
 } from './languageServerTypes'
-import type { AbortScope } from './util/net'
 import type { Uuid } from './yjsModel'
 
 const DEBUG_LOG_RPC = false

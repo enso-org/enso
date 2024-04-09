@@ -24,7 +24,7 @@ get_required_field (key : Text) js_object (show_value : Boolean = True) (expecte
             suffix = if show_value then " in "+js_object.to_display_text else ""
             Error.throw (Enso_Cloud_Error.Invalid_Response_Payload "Missing required field `"+key+"`"+suffix+".")
         result = js_object.get key if_missing=handle_missing
-        if result.is_a expected_type then result else
+        result.if_not_error <| if result.is_a expected_type then result else
             representation = if show_value then result.to_display_text else Meta.type_of result . to_display_text
             Error.throw (Enso_Cloud_Error.Invalid_Response_Payload "Expected field `"+key+"` to be of type "+expected_type.to_display_text+", but got "+representation+".")
     _ ->

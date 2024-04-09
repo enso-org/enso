@@ -437,7 +437,7 @@ type Decimal
     ## ALIAS times
        GROUP Operators
        ICON math
-       Multiplies a `Decimal` by another `Decimal` or other kind of number. 
+       Multiplies a `Decimal` by another `Decimal` or other kind of number.
 
        Arguments:
        - that: The number to multiply by this.
@@ -529,11 +529,22 @@ type Decimal
        Arguments to `remainder` will undergo automatic conversions such that you
        need not convert other numeric types to `Decimal` manually.
 
+       ? Negative Arguments
+
+         When the first argument to `remainder` is negative, the result will
+         also be negative.
+
        > Example
          Computing the remainder when dividing 10 by 3 (which is 1).
 
              remainder = Decimal.new 10 . remainder 3
              # => 1
+
+       > Example
+         Computing the remainder of a negative number.
+
+             remainder = Decimal.new -5 . remainder 3
+             # => -2
     remainder : Decimal -> Decimal -> Decimal
     remainder self (that : Decimal) =
         handle_java_exception <|
@@ -550,11 +561,22 @@ type Decimal
        Arguments to `%` will undergo automatic conversions such that you
        need not convert other numeric types to `Decimal` manually.
 
+       ? Negative Arguments
+
+         When the first argument to `%` is negative, the result will also be
+         negative.
+
        > Example
          Computing the remainder when dividing 10 by 3 (which is 1).
 
              remainder = Decimal.new 10 % 3
              # => 1
+
+       > Example
+         Computing the remainder of a negative number.
+
+             remainder = Decimal.new -5 % 3
+             # => -2
     % : Decimal -> Decimal -> Decimal
     % self (that : Decimal) = self.remainder that
 
@@ -651,6 +673,33 @@ type Decimal
     negate : Decimal
     negate self = Decimal.Value self.big_decimal.negate
 
+    ## GROUP Math
+       ICON math
+       Computes the absolute value of this.
+
+       The absolute value of a positive number is itself, while the absolute
+       value of a negative number is that number multiplied by -1.
+
+       > Example
+         Compute the absolute value of a `Decimal`.
+
+             Decimal.new "-12.345" . abs
+             # => 12.345
+    abs : Decimal
+    abs self -> Decimal = Decimal.Value self.big_decimal.abs
+
+    ## GROUP Math
+       ICON math
+       Returns the sign of the number.
+
+       > Example
+         Compute the sign of a `Decimal`.
+
+             Decimal.new "-12.345" . signum
+             # => -1
+    signum : Integer
+    signum self -> Integer = self.big_decimal.signum
+
     ## GROUP CONVERSIONS
        Convert this to an `Integer`.
 
@@ -712,9 +761,8 @@ type Decimal
     scale self = self.big_decimal.scale
 
     ## PRIVATE
-       TODO: This +0 is needed to allow internal representations to be compared.
     unscaled_value : Integer
-    unscaled_value self = self.big_decimal.unscaledValue + 0
+    unscaled_value self = self.big_decimal.unscaledValue
 
     ## PRIVATE
     internal_representation : [Integer]

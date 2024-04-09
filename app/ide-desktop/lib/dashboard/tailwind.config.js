@@ -18,9 +18,6 @@ export default /** @satisfies {import('tailwindcss').Config} */ ({
         'hover-bg': 'rgb(0 0 0 / 10%)',
         frame: 'var(--frame-color)',
         'selected-frame': 'var(--selected-frame-color)',
-        'not-selected': 'rgb(0 0 0 / 40%)',
-        'icon-selected': 'rgb(0 0 0 / 50%)',
-        'icon-not-selected': 'rgb(0 0 0 / 30%)',
         'ide-bg': '#ebeef1',
         selected: 'rgb(255 255 255 / 40%)',
         // Should be `#3e515f14`, but `bg-opacity` does not work with RGBA.
@@ -67,9 +64,11 @@ export default /** @satisfies {import('tailwindcss').Config} */ ({
         'auth-heading': 'var(--auth-heading-font-size)',
       },
       borderRadius: {
+        inherit: 'inherit',
         '2.5xl': '1.25rem',
         '4xl': '2rem',
         default: 'var(--default-corner-radius)',
+        'button-focus-ring': 'var(--button-focus-ring-corner-radius)',
         auth: 'var(--auth-corner-radius)',
         input: 'var(--input-corner-radius)',
         'permission-type-selector': 'var(--permission-type-selector-corner-radius)',
@@ -90,9 +89,11 @@ export default /** @satisfies {import('tailwindcss').Config} */ ({
         'plus-icon': 'var(--plus-icon-size)',
         'chat-profile-picture': 'var(--chat-profile-picture-size)',
         'selection-brush-border': 'var(--selection-brush-border-width)',
+        'button-focus-ring-inset': 'var(--button-focus-ring-inset)',
         'row-h': 'var(--row-height)',
         'text-h': 'var(--text-height)',
         'top-bar-margin': 'var(--top-bar-margin)',
+        'asset-panel-w': 'var(--asset-panel-width)',
         'indent-1': 'var(--indent-1-size)',
         'indent-2': 'var(--indent-2-size)',
         'indent-3': 'var(--indent-3-size)',
@@ -234,7 +235,6 @@ export default /** @satisfies {import('tailwindcss').Config} */ ({
         'column-items': 'var(--column-items-gap)',
         labels: 'var(--labels-gap)',
         'label-icons': 'var(--label-icons-gap)',
-        'sidebar-section-heading': 'var(--sidebar-section-heading-gap)',
         'user-menu': 'var(--user-menu-gap)',
         'user-permission': 'var(--user-permission-gap)',
         'name-column-icon': 'var(--name-column-icon-gap)',
@@ -258,6 +258,9 @@ export default /** @satisfies {import('tailwindcss').Config} */ ({
         'heading-y': 'var(--heading-padding-y)',
         'auth-input-y': 'var(--auth-input-padding-y)',
         'auth-input-r': 'var(--auth-input-padding-right)',
+        'auth-link-x': 'var(--auth-link-padding-x)',
+        'auth-link-y': 'var(--auth-link-padding-y)',
+        'text-link-x': 'var(--text-link-padding-x)',
         'drive-sidebar-y': 'var(--drive-sidebar-padding-y)',
         'radio-button-dot': 'var(--radio-button-dot-padding)',
         'chat-y': 'chat-padding-y',
@@ -270,7 +273,6 @@ export default /** @satisfies {import('tailwindcss').Config} */ ({
         'selector-y': 'var(--selector-padding-y)',
         'menu-entry': 'var(--menu-entry-padding)',
         'context-menu-entry-x': 'var(--context-menu-entry-padding-x)',
-        'context-menu-separator-y': 'var(--context-menu-separator-padding-y)',
         'profile-picture': 'var(--profile-picture-padding)',
         'banner-x': 'var(--banner-padding-x)',
         'banner-y': 'var(--banner-padding-y)',
@@ -349,6 +351,10 @@ export default /** @satisfies {import('tailwindcss').Config} */ ({
         'chat-reaction-bar-py': 'var(--chat-reaction-bar-padding-y)',
         'chat-reaction-bar': 'var(--chat-reaction-bar-margin)',
         'chat-reaction': 'var(--chat-reaction-margin)',
+        'separator-y': 'var(--separator-margin-y)',
+        'sidebar-section-heading-b': 'var(--sidebar-section-heading-margin-b)',
+        'context-menu-entry-px': 'var(--context-menu-entry-padding-x)',
+        'text-link-px': 'var(--text-link-padding-x)',
       },
       lineHeight: {
         snug: 'var(--snug-line-height)',
@@ -441,14 +447,29 @@ export default /** @satisfies {import('tailwindcss').Config} */ ({
             },
           },
 
+          // === States ===
+
+          '.focus-ring, .focus-ring:focus, .focus-ring-outset, .focus-ring-outset:focus, .focus-ring-within[data-focus-visible=true]':
+            {
+              '@apply outline outline-2 -outline-offset-2 outline-primary transition-all': '',
+            },
+          '.focus-ring.checkbox, .focus-ring-outset, .focus-ring-outset:focus': {
+            '@apply outline-offset-0': '',
+          },
+          '.drop-target-after': {
+            '@apply relative after:pointer-events-none after:absolute after:inset after:rounded-inherit [&[data-drop-target=true]]:after:bg-primary/10':
+              '',
+          },
+
           // === Classes affecting opacity ===
 
           '.selectable': {
-            '@apply disabled:opacity-30 disabled:cursor-not-allowed opacity-50 hover:opacity-75 transition-all':
+            '@apply disabled:opacity-30 [&.disabled]:opacity-30 disabled:cursor-not-allowed [&.disabled]:cursor-not-allowed opacity-50 hover:opacity-75 transition-all':
               '',
           },
           '.active': {
-            '@apply opacity-100 disabled:opacity-100 hover:opacity-100 disabled:cursor-default': '',
+            '@apply opacity-100 disabled:opacity-100 [&.disabled]:opacity-100 hover:opacity-100 disabled:cursor-default [&.disabled]:cursor-default':
+              '',
           },
           '.placeholder': {
             '@apply opacity-75': '',
@@ -523,6 +544,16 @@ export default /** @satisfies {import('tailwindcss').Config} */ ({
         }
       )
 
+      matchUtilities(
+        {
+          'translate-z': value => ({
+            '--tw-translate-z': value,
+            transform: ` translate3d(var(--tw-translate-x), var(--tw-translate-y), var(--tw-translate-z)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y))`,
+          }),
+        },
+        { values: theme('translate', {}), supportsNegativeValues: true }
+      )
+
       addComponents(
         {
           '.button': {
@@ -545,9 +576,6 @@ export default /** @satisfies {import('tailwindcss').Config} */ ({
           },
           '.text-subheading': {
             '@apply text-xl leading-snug py-0.5': '',
-          },
-          '.settings-subheading': {
-            '@apply font-bold text-xl h-[2.375rem] py-0.5': '',
           },
           '.settings-value': {
             '@apply leading-cozy h-text py-px px-2': '',

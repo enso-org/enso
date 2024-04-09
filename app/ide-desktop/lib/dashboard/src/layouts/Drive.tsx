@@ -26,7 +26,9 @@ import Category from '#/layouts/CategorySwitcher/Category'
 import DriveBar from '#/layouts/DriveBar'
 import Labels from '#/layouts/Labels'
 
+import * as aria from '#/components/aria'
 import type * as spinner from '#/components/Spinner'
+import UnstyledButton from '#/components/UnstyledButton'
 
 import * as backendModule from '#/services/Backend'
 import * as projectManager from '#/services/ProjectManager'
@@ -320,14 +322,14 @@ export default function Drive(props: DriveProps) {
         <div className={`grid grow place-items-center ${hidden ? 'hidden' : ''}`}>
           <div className="flex flex-col gap-status-page text-center text-base">
             <div>{getText('youAreNotLoggedIn')}</div>
-            <button
+            <UnstyledButton
               className="button self-center bg-help text-white"
-              onClick={() => {
+              onPress={() => {
                 navigate(appUtils.LOGIN_PATH)
               }}
             >
               {getText('login')}
-            </button>
+            </UnstyledButton>
           </div>
         </div>
       )
@@ -350,9 +352,9 @@ export default function Drive(props: DriveProps) {
               {getText('upgrade')}
             </a>
             {!supportsLocalBackend && (
-              <button
+              <UnstyledButton
                 className="button self-center bg-help text-white"
-                onClick={async () => {
+                onPress={async () => {
                   const downloadUrl = await github.getDownloadUrl()
                   if (downloadUrl == null) {
                     toastAndLog('noAppDownloadError')
@@ -362,7 +364,7 @@ export default function Drive(props: DriveProps) {
                 }}
               >
                 {getText('downloadFreeEdition')}
-              </button>
+              </UnstyledButton>
             )}
           </div>
         </div>
@@ -376,10 +378,13 @@ export default function Drive(props: DriveProps) {
             hidden ? 'hidden' : ''
           }`}
         >
-          <div className="flex flex-col gap-icons self-start">
-            <h1 className="h-heading px-heading-x py-heading-y text-xl font-bold leading-snug">
+          <div className="flex flex-col items-start gap-icons self-start">
+            <aria.Heading
+              level={1}
+              className="h-heading px-heading-x py-heading-y text-xl font-bold leading-snug"
+            >
               {isCloud ? getText('cloudDrive') : getText('localDrive')}
-            </h1>
+            </aria.Heading>
             <DriveBar
               category={category}
               canDownload={canDownload}

@@ -3,6 +3,7 @@ package org.enso.interpreter.bench.benchmarks.semantic;
 import java.io.IOException;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
+import org.enso.compiler.benchmarks.Utils;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Value;
 import org.openjdk.jmh.annotations.Benchmark;
@@ -32,7 +33,7 @@ public class NestedPatternCompilationBenchmarks {
 
   @Setup
   public void initializeBenchmark(BenchmarkParams params) throws Exception {
-    ctx = SrcUtil.newContextBuilder().build();
+    ctx = Utils.createDefaultContextBuilder().build();
     benchmarkName = SrcUtil.findName(params);
     code =
         """
