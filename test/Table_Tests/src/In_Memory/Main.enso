@@ -1,6 +1,6 @@
 from Standard.Base import all
 
-from Standard.Test import Test_Suite
+from Standard.Test import all
 
 import project.In_Memory.Aggregate_Column_Spec
 import project.In_Memory.Builders_Spec
@@ -8,29 +8,36 @@ import project.In_Memory.Column_Spec
 import project.In_Memory.Column_Format_Spec
 import project.In_Memory.Common_Spec
 import project.In_Memory.Integer_Overflow_Spec
-import project.In_Memory.Join_Performance_Spec
 import project.In_Memory.Lossy_Conversions_Spec
 import project.In_Memory.Parse_To_Table_Spec
 import project.In_Memory.Split_Tokenize_Spec
 import project.In_Memory.Table_Spec
+import project.In_Memory.Table_Xml_Spec
+import project.In_Memory.Table_Conversion_Spec
 import project.In_Memory.Table_Date_Spec
 import project.In_Memory.Table_Date_Time_Spec
 import project.In_Memory.Table_Time_Of_Day_Spec
+import project.In_Memory.Table_Running_Spec
 
-spec =
-    Table_Spec.spec
-    Column_Spec.spec
-    Column_Format_Spec.spec
-    Common_Spec.spec
-    Integer_Overflow_Spec.spec
-    Lossy_Conversions_Spec.spec
-    Table_Date_Spec.spec
-    Table_Date_Time_Spec.spec
-    Table_Time_Of_Day_Spec.spec
-    Aggregate_Column_Spec.spec
-    Builders_Spec.spec
-    Join_Performance_Spec.spec
-    Split_Tokenize_Spec.spec
-    Parse_To_Table_Spec.spec
+add_specs suite_builder =
+    Table_Spec.add_specs suite_builder
+    Table_Xml_Spec.add_specs suite_builder
+    Column_Spec.add_specs suite_builder
+    Column_Format_Spec.add_specs suite_builder
+    Common_Spec.add_specs suite_builder
+    Integer_Overflow_Spec.add_specs suite_builder
+    Lossy_Conversions_Spec.add_specs suite_builder
+    Table_Conversion_Spec.add_specs suite_builder
+    Table_Date_Spec.add_specs suite_builder
+    Table_Date_Time_Spec.add_specs suite_builder
+    Table_Time_Of_Day_Spec.add_specs suite_builder
+    Table_Running_Spec.add_specs suite_builder
+    Aggregate_Column_Spec.add_specs suite_builder
+    Builders_Spec.add_specs suite_builder
+    Split_Tokenize_Spec.add_specs suite_builder
+    Parse_To_Table_Spec.add_specs suite_builder
 
-main = Test_Suite.run_main spec
+main filter=Nothing =
+    suite = Test.build suite_builder->
+        add_specs suite_builder
+    suite.run_with_filter filter

@@ -5,6 +5,7 @@ import io.circe.literal._
 import org.enso.languageserver.event.{BufferClosed, JsonSessionTerminated}
 import org.enso.languageserver.filemanager.Path
 import org.enso.languageserver.session.JsonSession
+import org.enso.logger.ReportLogsOnFailure
 import org.enso.polyglot.runtime.Runtime.Api
 import org.enso.testkit.FlakySpec
 import org.enso.text.editing.model
@@ -12,10 +13,12 @@ import org.enso.text.editing.model
 import java.io.File
 import java.nio.charset.StandardCharsets
 import java.nio.file.Files
-
 import scala.concurrent.duration._
 
-class TextOperationsTest extends BaseServerTest with FlakySpec {
+class TextOperationsTest
+    extends BaseServerTest
+    with FlakySpec
+    with ReportLogsOnFailure {
 
   override def isFileWatcherEnabled = true
 
@@ -68,6 +71,8 @@ class TextOperationsTest extends BaseServerTest with FlakySpec {
             }
           }
           """)
+
+      receiveAndReplyToOpenFile("grant_can_edit.txt")
 
       // 4
       client1.expectJson(json"""
@@ -180,6 +185,8 @@ class TextOperationsTest extends BaseServerTest with FlakySpec {
             }
           }
           """)
+
+      receiveAndReplyToOpenFile("take_can_edit.txt")
 
       client1.expectJson(json"""
           { "jsonrpc": "2.0",
@@ -310,6 +317,9 @@ class TextOperationsTest extends BaseServerTest with FlakySpec {
             }
           }
           """)
+
+      receiveAndReplyToOpenFile("to_refactor.txt")
+
       client.expectJson(json"""
           {
             "jsonrpc" : "2.0",
@@ -473,6 +483,8 @@ class TextOperationsTest extends BaseServerTest with FlakySpec {
           }
           """)
 
+      receiveAndReplyToOpenFile("foo.txt")
+
       // 4
       client.expectJson(json"""
           { "jsonrpc": "2.0",
@@ -539,6 +551,8 @@ class TextOperationsTest extends BaseServerTest with FlakySpec {
           }
           """)
 
+      receiveAndReplyToOpenFile("foo.txt")
+
       // 4
       client1.expectJson(json"""
           { "jsonrpc": "2.0",
@@ -604,6 +618,16 @@ class TextOperationsTest extends BaseServerTest with FlakySpec {
             }
           }
           """)
+
+      runtimeConnectorProbe.receiveN(1).head match {
+        case Api.Request(requestId, Api.OpenFileRequest(_, _)) =>
+          runtimeConnectorProbe.lastSender ! Api.Response(
+            requestId,
+            Api.OpenFileResponse
+          )
+        case msg =>
+          fail("expected OpenFile notification got " + msg)
+      }
 
       // 2
       client.expectJson(json"""
@@ -715,6 +739,9 @@ class TextOperationsTest extends BaseServerTest with FlakySpec {
             }
           }
           """)
+
+      receiveAndReplyToOpenFile("foo.txt")
+
       client1.expectJson(json"""
           {
             "jsonrpc" : "2.0",
@@ -833,6 +860,9 @@ class TextOperationsTest extends BaseServerTest with FlakySpec {
             }
           }
           """)
+
+      receiveAndReplyToOpenFile("foo.txt")
+
       client1.expectJson(json"""
           {
             "jsonrpc" : "2.0",
@@ -912,6 +942,9 @@ class TextOperationsTest extends BaseServerTest with FlakySpec {
             }
           }
           """)
+
+      receiveAndReplyToOpenFile("foo.txt")
+
       client1.expectJson(json"""
           {
             "jsonrpc" : "2.0",
@@ -1090,6 +1123,7 @@ class TextOperationsTest extends BaseServerTest with FlakySpec {
             }
           }
           """)
+      receiveAndReplyToOpenFile("foo.txt")
       client.expectJson(json"""
           {
             "jsonrpc" : "2.0",
@@ -1181,6 +1215,7 @@ class TextOperationsTest extends BaseServerTest with FlakySpec {
             }
           }
           """)
+      receiveAndReplyToOpenFile("foo.txt")
       client.expectJson(json"""
           {
             "jsonrpc" : "2.0",
@@ -1272,6 +1307,7 @@ class TextOperationsTest extends BaseServerTest with FlakySpec {
             }
           }
           """)
+      receiveAndReplyToOpenFile("foo.txt")
       client.expectJson(json"""
           {
             "jsonrpc" : "2.0",
@@ -1364,6 +1400,7 @@ class TextOperationsTest extends BaseServerTest with FlakySpec {
             }
           }
           """)
+      receiveAndReplyToOpenFile("foo.txt")
       client1.expectJson(json"""
           {
             "jsonrpc" : "2.0",
@@ -1478,6 +1515,7 @@ class TextOperationsTest extends BaseServerTest with FlakySpec {
             }
           }
           """)
+      receiveAndReplyToOpenFile("foo.txt")
       client.expectJson(json"""
           {
             "jsonrpc" : "2.0",
@@ -1574,6 +1612,7 @@ class TextOperationsTest extends BaseServerTest with FlakySpec {
             }
           }
           """)
+      receiveAndReplyToOpenFile("foo.txt")
       client1.expectJson(json"""
           {
             "jsonrpc" : "2.0",
@@ -1711,6 +1750,7 @@ class TextOperationsTest extends BaseServerTest with FlakySpec {
             }
           }
           """)
+      receiveAndReplyToOpenFile()
       client.expectJson(json"""
           {
             "jsonrpc" : "2.0",
@@ -1800,6 +1840,7 @@ class TextOperationsTest extends BaseServerTest with FlakySpec {
             }
           }
           """)
+      receiveAndReplyToOpenFile("foo.txt")
       client.expectJson(json"""
           {
             "jsonrpc" : "2.0",
@@ -1853,6 +1894,7 @@ class TextOperationsTest extends BaseServerTest with FlakySpec {
             }
           }
           """)
+      receiveAndReplyToOpenFile("foo.txt")
       client.expectJson(json"""
           {
             "jsonrpc" : "2.0",
@@ -1952,6 +1994,7 @@ class TextOperationsTest extends BaseServerTest with FlakySpec {
             }
           }
           """)
+      receiveAndReplyToOpenFile("foo.txt")
       client.expectJson(json"""
           {
             "jsonrpc" : "2.0",
@@ -2101,6 +2144,7 @@ class TextOperationsTest extends BaseServerTest with FlakySpec {
             }
           }
           """)
+      receiveAndReplyToOpenFile("foo.txt")
       client.expectJson(json"""
           {
             "jsonrpc" : "2.0",
@@ -2180,6 +2224,7 @@ class TextOperationsTest extends BaseServerTest with FlakySpec {
             }
           }
           """)
+      receiveAndReplyToOpenFile("foo.txt")
       client1.expectJson(json"""
           {
             "jsonrpc" : "2.0",
@@ -2281,6 +2326,7 @@ class TextOperationsTest extends BaseServerTest with FlakySpec {
             }
           }
           """)
+      receiveAndReplyToOpenFile("foo.txt")
       client.expectJson(json"""
           {
             "jsonrpc" : "2.0",
@@ -2395,6 +2441,7 @@ class TextOperationsTest extends BaseServerTest with FlakySpec {
             }
           }
           """)
+      receiveAndReplyToOpenFile()
       client.expectJson(json"""
           {
             "jsonrpc" : "2.0",

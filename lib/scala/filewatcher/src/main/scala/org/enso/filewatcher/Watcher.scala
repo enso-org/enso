@@ -1,11 +1,15 @@
 package org.enso.filewatcher
 
 import java.nio.file.Path
+import java.util.concurrent.Executor
 
 trait Watcher {
 
-  /** Start the file watcher. */
-  def start(): Unit
+  /** Start the file watcher.
+    *
+    * @param executor executor under which this watcher should be run in the background
+    */
+  def start(executor: Executor): Unit
 
   /** Stop the file watcher. */
   def stop(): Unit

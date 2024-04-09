@@ -12,6 +12,8 @@ import project.Internal.Rounding_Helpers
 import project.Nothing.Nothing
 import project.Panic.Panic
 from project.Data.Boolean import Boolean, False, True
+from project.Internal.Number_Builtins import all
+from project.Widget_Helpers import make_number_format_selector
 
 polyglot java import java.lang.Double
 polyglot java import java.lang.Long
@@ -31,6 +33,7 @@ polyglot java import org.enso.polyglot.common_utils.Core_Math_Utils
 type Number
     ## ALIAS add, plus
        GROUP Operators
+       ICON math
        Adds two arbitrary numbers.
 
        Arguments:
@@ -44,10 +47,11 @@ type Number
 
              10 + 15
     + : Number -> Number
-    + self that = @Builtin_Method "Integer.+"
+    + self that:Number -> Number = integer_plus self that
 
     ## ALIAS minus, subtract
        GROUP Operators
+       ICON math
        Subtract an arbitrary number from this.
 
        Arguments:
@@ -58,10 +62,11 @@ type Number
 
              2 - 5
     - : Number -> Number
-    - self that = @Builtin_Method "Integer.-"
+    - self that = integer_minus self that
 
     ## ALIAS multiply, product, times
        GROUP Operators
+       ICON math
        Multiply two arbitrary numbers.
 
        Arguments:
@@ -75,10 +80,11 @@ type Number
 
              3 * 5
     * : Number -> Number
-    * self that = @Builtin_Method "Integer.*"
+    * self that = integer_times self that
 
     ## ALIAS divide
        GROUP Operators
+       ICON math
        Divides an this by an arbitrary number.
 
        Arguments:
@@ -92,10 +98,11 @@ type Number
 
              10 / 4
     / : Number -> Number
-    / self that = @Builtin_Method "Integer./"
+    / self that = integer_divide self that
 
     ## ALIAS power
        GROUP Operators
+       ICON math
        Compute the result of raising this to the power that.
 
        Arguments:
@@ -106,10 +113,11 @@ type Number
 
              2^3
     ^ : Number -> Number
-    ^ self that = @Builtin_Method "Integer.^"
+    ^ self that = integer_pow self that
 
     ## ALIAS inverse sine
        GROUP Trigonometry
+       ICON math
 
        Computes the inverse of the sine function
 
@@ -124,6 +132,7 @@ type Number
 
     ## ALIAS inverse cosine
        GROUP Trigonometry
+       ICON math
 
        Computes the inverse of the cosine function.
 
@@ -138,6 +147,7 @@ type Number
 
     ## ALIAS inverse tangent
        GROUP Trigonometry
+       ICON math
 
        Computes the inverse of the tangent function.
 
@@ -151,6 +161,7 @@ type Number
     atan self = Math.atan self.to_float
 
     ## GROUP Trigonometry
+       ICON math
        Computes the argument (angle) in the conversion from cartesian
        to polar coordinates, taking `self` as the x coordinate.
 
@@ -168,6 +179,7 @@ type Number
 
     ## ALIAS sine
        GROUP Trigonometry
+       ICON math
 
        Computes the sine function.
 
@@ -180,6 +192,7 @@ type Number
 
     ## ALIAS cosine
        GROUP Trigonometry
+       ICON math
 
        Computes the cosine function.
 
@@ -192,6 +205,7 @@ type Number
 
     ## ALIAS tangent
        GROUP Trigonometry
+       ICON math
 
        Computes the tangent function.
 
@@ -203,6 +217,7 @@ type Number
     tan self = Math.tan self.to_float
 
     ## GROUP Trigonometry
+       ICON math
        Computes the hyperbolic sine function.
 
        > Example
@@ -213,6 +228,7 @@ type Number
     sinh self = Math.sinh self.to_float
 
     ## GROUP Trigonometry
+       ICON math
        Computes the hyperbolic cosine function.
 
        > Example
@@ -223,6 +239,7 @@ type Number
     cosh self = Math.cosh self.to_float
 
     ## GROUP Trigonometry
+       ICON math
        Computes the hyperbolic tangent function.
 
        > Example
@@ -247,6 +264,7 @@ type Number
 
     ## ALIAS natural logarithm
        GROUP Math
+       ICON math
 
        Computes the natural logarithm function.
 
@@ -259,6 +277,7 @@ type Number
 
     ## ALIAS square root
        GROUP Math
+       ICON math
 
        Computes the square root of `self`.
 
@@ -271,6 +290,7 @@ type Number
 
     ## ALIAS logarithm
        GROUP Math
+       ICON math
 
        Computes the `base`-log of `self`.
 
@@ -285,6 +305,7 @@ type Number
     log self base = self.ln / base.ln
 
     ## GROUP Conversions
+       ICON convert
        Converts a numeric value to a string, using the Java DecimalFormat
        formatter.
 
@@ -295,14 +316,16 @@ type Number
          Convert the value 5000 to a string.
 
              5000.format "#,##0"
+    @format make_number_format_selector
     @locale Locale.default_widget
     format : Text -> Locale -> Text
-    format self format locale=Locale.default =
+    format self format:Text="" locale:Locale=Locale.default =
         symbols = DecimalFormatSymbols.new locale.java_locale
         formatter = DecimalFormat.new format symbols
         formatter.format self
 
     ## GROUP Logical
+       ICON operators
        Checks equality of numbers, using an `epsilon` value.
 
        ! Error Conditions
@@ -317,11 +340,11 @@ type Number
          Check if 1 is equal to 1.0000001 within 0.001.
 
              1.equals 1.0000001 epsilon=0.001
-    equals : Number -> Number -> Boolean ! Incomparable_Values
-    equals self that epsilon=0.0 =
+    equals self that:Number epsilon=0.0:Number -> Boolean ! Incomparable_Values =
         (self == that) || ((self - that).abs <= epsilon)
 
     ## GROUP Math
+       ICON sigma
        Returns the smaller value of `self` and `that`.
 
        Arguments:
@@ -340,6 +363,7 @@ type Number
     min self that = if self < that then self else that
 
     ## GROUP Math
+       ICON math
        Returns the larger value of `self` and `that`.
 
        Arguments:
@@ -357,19 +381,23 @@ type Number
     max : Number -> Number
     max self that = if self > that then self else that
 
-    ## A constant holding the floating-point positive infinity.
+    ## ICON math
+       A constant holding the floating-point positive infinity.
     positive_infinity : Float
     positive_infinity = Double.POSITIVE_INFINITY
 
-    ## A constant holding the floating-point negative infinity.
+    ## ICON math
+       A constant holding the floating-point negative infinity.
     negative_infinity : Float
     negative_infinity = Double.NEGATIVE_INFINITY
 
-    ## A constant holding the floating-point Not-a-Number value.
+    ## ICON math
+       A constant holding the floating-point Not-a-Number value.
     nan : Float
     nan = Double.NaN
 
     ## GROUP Math
+       ICON metadata
        Checks if the given number is the floating-point Not-a-Number value.
 
        This is needed, because the NaN value will return `False` even when being
@@ -380,6 +408,7 @@ type Number
         _ -> False
 
     ## GROUP Math
+       ICON metadata
        Checks if the given number is infinite.
     is_infinite : Boolean
     is_infinite self = case self of
@@ -387,6 +416,15 @@ type Number
         _ -> False
 
     ## GROUP Math
+       ICON metadata
+       Checks if the given number is finite, i.e. not infinite nor NaN.
+    is_finite : Boolean
+    is_finite self = case self of
+        _ : Float -> (Double.isInfinite self).not && (Double.isNaN self).not
+        _ -> True
+
+    ## GROUP Math
+       ICON math
        Returns the sign of the number.
     signum : Integer
     signum self =
@@ -403,6 +441,7 @@ type Number
 type Float
     ## ALIAS add, plus
        GROUP Operators
+       ICON math
        Adds a float and an arbitrary number.
 
        Arguments:
@@ -415,11 +454,11 @@ type Float
          Adding 10.1 and 15.
 
              10.1 + 15
-    + : Number -> Number
-    + self that = @Builtin_Method "Float.+"
+    + self that:Number -> Number = float_plus self that
 
     ## ALIAS minus, subtract
        GROUP Operators
+       ICON math
        Subtract an arbitrary number from this.
 
        Arguments:
@@ -429,11 +468,11 @@ type Float
          Subtract 5 from 2.78.
 
              2.78 - 5
-    - : Number -> Number
-    - self that = @Builtin_Method "Float.-"
+    - self that:Number -> Number = float_minus self that
 
     ## ALIAS multiply, product, times
        GROUP Operators
+       ICON math
        Multiply a float by an arbitrary number.
 
        Arguments:
@@ -446,11 +485,11 @@ type Float
          Multiplying 3 by 5.27.
 
              5.27 * 3
-    * : Number -> Number
-    * self that = @Builtin_Method "Float.*"
+    * self that:Number -> Number = float_times self that
 
     ## ALIAS divide
        GROUP Operators
+       ICON math
        Divides a float by an arbitrary number.
 
        Arguments:
@@ -463,11 +502,11 @@ type Float
          Dividing 10 by 4.5.
 
              10 / 4.5
-    / : Number -> Number
-    / self that = @Builtin_Method "Float./"
+    / self that:Number -> Number = float_divide self that
 
     ## ALIAS modulo, modulus
        GROUP Operators
+       ICON math
        Computes the remainder when dividing this by that.
 
        Arguments:
@@ -475,6 +514,11 @@ type Float
 
        Modulus in Enso will undergo automatic conversions such that you need
        not convert between Integer and Float manually.
+
+       ? Negative Arguments
+
+         When the first argument to `%` is negative, the result will also be
+         negative.
 
        > Example
          Computing the remainder when dividing 3.5 by 2.
@@ -485,11 +529,16 @@ type Float
          Computing the fractional part of a number.
 
              10.5 % 1.0 == 0.5
-    % : Number -> Number ! Arithmetic_Error
-    % self that = @Builtin_Method "Float.%"
+
+       > Example
+         Computing the remainder of a negative number.
+
+             -5 % 3 == -2
+    % self that:Number -> Number ! Arithmetic_Error = float_mod self that
 
     ## ALIAS power
        GROUP Operators
+       ICON math
        Compute the result of raising this to the power that.
 
        Arguments:
@@ -499,11 +548,11 @@ type Float
          Computing 2.2 cubed.
 
              2.2^3
-    ^ : Number -> Number
-    ^ self that = @Builtin_Method "Float.^"
+    ^ self that:Number -> Number = float_pow self that
 
     ## ALIAS greater than
        GROUP Operators
+       ICON operators
        Checks if this is greater than that.
 
        Arguments:
@@ -513,11 +562,11 @@ type Float
          Checking if 10 is greater than 7.3.
 
              10 > 7.3
-    > : Number -> Boolean
-    > self that = @Builtin_Method "Float.>"
+    > self that:Number -> Boolean = float_greater self that
 
     ## ALIAS greater than or equal
        GROUP Operators
+       ICON operators
        Checks if this is greater than or equal to that.
 
        Arguments:
@@ -527,11 +576,11 @@ type Float
          Checking if 10 is greater than or equal to 7.3.
 
              10 >= 7.3
-    >= : Number -> Boolean
-    >= self that = @Builtin_Method "Float.>="
+    >= self that:Number -> Boolean = float_greater_equal self that
 
     ## ALIAS less than
        GROUP Operators
+       ICON operators
        Checks if this is less than that.
 
        Arguments:
@@ -541,11 +590,11 @@ type Float
          Checking if 10 is less than 7.3.
 
              10 < 7.3
-    < : Number -> Boolean
-    < self that = @Builtin_Method "Float.<"
+    < self that:Number -> Boolean = float_less self that
 
     ## ALIAS less than or equal
        GROUP Operators
+       ICON operators
        Checks if this is less than or equal to that.
 
        Arguments:
@@ -555,10 +604,10 @@ type Float
          Checking if 10.4 is less than or equal to 7.
 
              10.4 <= 7
-    <= : Number -> Boolean
-    <= self that = @Builtin_Method "Float.<="
+    <= self that:Number -> Boolean = float_less_equal self that
 
     ## GROUP Math
+       ICON math
        Computes the absolute value of this.
 
        The absolute value of a positive number is itself, while the absolute
@@ -568,10 +617,10 @@ type Float
          Computing the absolute value of -10.63.
 
             -10.63.abs
-    abs : Float
-    abs self = @Builtin_Method "Float.abs"
+    abs self -> Float = float_abs self
 
     ## GROUP Rounding
+       ICON math
        Computes the nearest integer above this number.
 
        This method provides a means of converting a Float to an Integer.
@@ -580,10 +629,10 @@ type Float
          Computing the ceiling of 4.736 (which is 5).
 
              4.736.ceil
-    ceil : Integer
-    ceil self = @Builtin_Method "Float.ceil"
+    ceil self -> Integer = float_ceil self
 
     ## GROUP Rounding
+       ICON math
        Computes the nearest integer below this float.
 
        This method provides a means of converting a Float to an Integer.
@@ -592,18 +641,18 @@ type Float
          Computing the floor of 4.323 (which is 4).
 
              4.323.floor
-    floor : Integer
-    floor self = @Builtin_Method "Float.floor"
+    floor self -> Integer = float_floor self
 
     ## ALIAS int
        GROUP Rounding
+       ICON math
 
        Truncate a floating-point number to an integer by dropping the fractional
        part. This is equivalent to "round-toward-zero".
-    truncate : Integer
-    truncate self = self.truncate_builtin
+    truncate self -> Integer = float_truncate_builtin self
 
     ## GROUP Rounding
+       ICON math
        Round to a specified number of decimal places.
 
        By default, rounding uses "asymmetric round-half-up", also known as
@@ -658,22 +707,20 @@ type Float
     round self (decimal_places:Integer=0) (use_bankers:Boolean=False) =
         report_unsupported cp = Error.throw (Illegal_Argument.Error cp.payload.message)
         Panic.catch Unsupported_Argument_Types handler=report_unsupported
-            Float.round_float_builtin self decimal_places use_bankers
-
-    ## PRIVATE
-    round_float_builtin n decimal_places use_bankers = @Builtin_Method "Float.round"
+            round_float_builtin self decimal_places use_bankers
 
     ## GROUP Operators
+       ICON operators
        Compute the negation of this.
 
        > Example
          Negate 5.1 to get -5.1.
 
              5.1.negate
-    negate : Float
-    negate self = @Builtin_Method "Float.negate"
+    negate self -> Float = float_negate self
 
-    ## Convert this to a float.
+    ## ICON convert
+       Convert this to a float.
 
        This is a no-op on floats, but is provided for completeness of the Enso
        Number API.
@@ -682,11 +729,11 @@ type Float
          Convert 5.0 to a float to get 5.0.
 
              5.0.to_float
-    to_float : Float
-    to_float self = @Builtin_Method "Float.to_float"
+    to_float self -> Float = self
 
     ## ALIAS from text
        GROUP Conversions
+       ICON convert
 
        Parses a textual representation of a float into a float number, returning
        a `Number_Parse_Error` if the text does not represent a valid float.
@@ -706,6 +753,20 @@ type Float
         Locale.Value java_locale -> Panic.catch ParseException ((NumberFormat.getInstance java_locale).parse text) _->
             Error.throw (Number_Parse_Error.Error text)
 
+    ## ICON number_input
+
+       Maximum representable positive value, from the underlying Java double
+       type.
+
+       The absolute-value-largest representable negative value is `-max_value`.
+    max_value = Double.MAX_VALUE
+
+    ## ICON number_input
+
+       Minimum representable positive value, from the underlying Java double
+       type.
+    min_value = Double.MIN_VALUE
+
 ## Integer is the type of integral numbers in Enso. They are of unbounded
    size and can grow as large as necessary.
 
@@ -723,6 +784,7 @@ type Float
 type Integer
     ## ALIAS add, plus
        GROUP Operators
+       ICON math
        Adds an integer and an arbitrary number.
 
        Arguments:
@@ -735,11 +797,11 @@ type Integer
          Adding 10 and 15.
 
              10 + 15
-    + : Number -> Number
-    + self that = @Builtin_Method "Integer.+"
+    + self that:Integer -> Integer = integer_plus self that
 
     ## ALIAS minus, subtract
        GROUP Operators
+       ICON math
        Subtract an arbitrary number from this.
 
        Arguments:
@@ -749,11 +811,11 @@ type Integer
          Subtract 5 from 2.
 
              2 - 5
-    - : Number -> Number
-    - self that = @Builtin_Method "Integer.-"
+    - self that:Integer -> Integer = integer_minus self that
 
     ## ALIAS multiply, product, times
        GROUP Operators
+       ICON math
        Multiply an integer by an arbitrary number.
 
        Arguments:
@@ -766,11 +828,11 @@ type Integer
          Multiplying 3 by 5.
 
              3 * 5
-    * : Number -> Number
-    * self that = @Builtin_Method "Integer.*"
+    * self that:Integer -> Integer = integer_times self that
 
     ## ALIAS divide
        GROUP Operators
+       ICON math
        Divides an integer by an arbitrary number.
 
        Arguments:
@@ -783,11 +845,11 @@ type Integer
          Dividing 10 by 4 to get 2.5.
 
              10 / 4
-    / : Number -> Number
-    / self that = @Builtin_Method "Integer./"
+    / self that:Integer -> Number = integer_divide self that
 
     ## ALIAS modulo, modulus
        GROUP Operators
+       ICON math
        Computes the remainder when dividing this by that.
 
        Arguments:
@@ -798,15 +860,25 @@ type Integer
 
        Returns an error if the shift amount exceeds 2^32.
 
+       ? Negative Arguments
+
+         When the first argument to `%` is negative, the result will also be
+         negative.
+
        > Example
          Computing the remainder when dividing 10 by 3 (which is 1).
 
              10 % 3
-    % : Number -> Number ! Arithmetic_Error
-    % self that = @Builtin_Method "Integer.%"
+
+       > Example
+         Computing the remainder of a negative number.
+
+             -5 % 3 == -2
+    % self that:Integer -> Integer ! Arithmetic_Error = integer_mod self that
 
     ## ALIAS power
        GROUP Operators
+       ICON math
        Compute the result of raising this to the power that.
 
        Arguments:
@@ -816,11 +888,11 @@ type Integer
          Computing 2 cubed.
 
              2^3
-    ^ : Number -> Number
-    ^ self that = @Builtin_Method "Integer.^"
+    ^ self that:Integer -> Number = integer_pow self that
 
     ## ALIAS greater than
        GROUP Operators
+       ICON operators
        Checks if this is greater than that.
 
        Arguments:
@@ -830,11 +902,11 @@ type Integer
          Checking if 10 is greater than 7.
 
              10 > 7
-    > : Number -> Boolean
-    > self that = @Builtin_Method "Integer.>"
+    > self that:Number -> Boolean = integer_greater self that
 
     ## ALIAS greater than or equal
        GROUP Operators
+       ICON operators
        Checks if this is greater than or equal to that.
 
        Arguments:
@@ -844,11 +916,11 @@ type Integer
          Checking if 10 is greater than or equal to 7.
 
              10 >= 7
-    >= : Number -> Boolean
-    >= self that = @Builtin_Method "Integer.>="
+    >= self that:Number -> Boolean = integer_greater_equal self that
 
     ## ALIAS less than
        GROUP Operators
+       ICON operators
        Checks if this is less than that.
 
        Arguments:
@@ -858,11 +930,11 @@ type Integer
          Checking if 10 is less than 7.
 
              10 < 7
-    < : Number -> Boolean
-    < self that = @Builtin_Method "Integer.<"
+    < self that:Number -> Boolean = integer_less self that
 
     ## ALIAS less than or equal
        GROUP Operators
+       ICON operators
        Checks if this is less than or equal to that.
 
        Arguments:
@@ -872,10 +944,10 @@ type Integer
          Checking if 10 is less than or equal to 7.
 
              10 <= 7
-    <= : Number -> Boolean
-    <= self that = @Builtin_Method "Integer.<="
+    <= self that:Number -> Boolean = integer_less_equal self that
 
     ## GROUP Math
+       ICON math
        Computes the absolute value of this.
 
        The absolute value of a positive number is itself, while the absolute
@@ -885,10 +957,10 @@ type Integer
          Computing the absolute value of -10.
 
             -10.abs
-    abs : Integer
-    abs self = @Builtin_Method "Integer.abs"
+    abs self -> Integer = integer_abs self
 
     ## GROUP Rounding
+       ICON math
        Computes the nearest integer above this integer.
 
        This is a no-op on integers but is provided for completeness of the Enso
@@ -898,10 +970,10 @@ type Integer
          Computing the ceiling of 4.
 
              4.ceil
-    ceil : Integer
-    ceil self = @Builtin_Method "Integer.ceil"
+    ceil self -> Integer = integer_ceil self
 
     ## GROUP Math
+       ICON math
        Computes the integer division of this by that.
 
        Arguments:
@@ -915,10 +987,10 @@ type Integer
          Dividing 10 by 3 to get 3.
 
              10.div 3
-    div : Integer -> Number ! Arithmetic_Error
-    div self that = @Builtin_Method "Integer.div"
+    div self that:Integer -> Integer ! Arithmetic_Error = integer_div self that
 
     ## GROUP Rounding
+       ICON math
        Computes the nearest integer below this integer.
 
        This is a no-op on integers but is provided for completeness of the Enso
@@ -928,18 +1000,18 @@ type Integer
          Computing the floor of 4.
 
              4.floor
-    floor : Integer
-    floor self = @Builtin_Method "Integer.floor"
+    floor self -> Integer = integer_floor self
 
     ## ALIAS int
        GROUP Rounding
+       ICON math
 
        Truncate an `Integer` to an `Integer`, i.e. returns its argument. For
        compatibility with `Float.truncate`.
-    truncate : Integer
-    truncate self = self
+    truncate self -> Integer = self
 
     ## GROUP Rounding
+       ICON math
        Round to a specified number of decimal places.
 
        For integers, rounding to 0 or more decimal places simply returns the
@@ -981,38 +1053,35 @@ type Integer
          Round to the nearest hundred, using Banker's Rounding.
 
             12250 . round -2 use_bankers=True == 12200
-    round : Integer -> Boolean -> Integer ! Illegal_Argument
-    round self (decimal_places:Integer=0) (use_bankers:Boolean=False) =
+    round self (decimal_places:Integer=0) (use_bankers:Boolean=False) -> Integer ! Illegal_Argument =
         ## We reject values outside the range of `long` here, so we don't also
            do this check in the Java.
         Rounding_Helpers.check_round_input self <|
             report_unsupported cp = Error.throw (Illegal_Argument.Error cp.payload.message)
             Panic.catch Unsupported_Argument_Types handler=report_unsupported
-                Integer.round_integer_builtin self decimal_places use_bankers
-
-    ## PRIVATE
-    round_integer_builtin n decimal_places use_bankers = @Builtin_Method "Integer.round"
+                round_integer_builtin self decimal_places use_bankers
 
     ## GROUP Operators
+       ICON operators
        Compute the negation of this.
 
        > Example
          Negate 5 to get -5.
 
              5.negate
-    negate : Integer
-    negate self = @Builtin_Method "Integer.negate"
+    negate self -> Integer = integer_negate self
 
-    ## Convert this to a float.
+    ## ICON convert
+       Convert this to a float.
 
        > Example
          Convert 5 to a float to get 5.0.
 
              5.to_float
-    to_float : Float
-    to_float self = @Builtin_Method "Integer.to_float"
+    to_float self -> Float = integer_to_float self
 
     ## GROUP Bitwise
+       ICON math
        Computes the bitwise and (conjunction) operation between this and
        that.
 
@@ -1026,10 +1095,10 @@ type Integer
          Computing the bitwise conjunction of 2_01101101 and 2_11110000.
 
              2_01101101.bit_and 2_11110000
-    bit_and : Integer -> Integer
-    bit_and self that = @Builtin_Method "Integer.bit_and"
+    bit_and self that:Integer -> Integer = integer_bit_and self that
 
     ## GROUP Bitwise
+       ICON math
        Computes the bitewise compliment of this.
 
        The bitwise compliment negates the value of each bit in the operand.
@@ -1038,10 +1107,10 @@ type Integer
          Bitwise negation of 2_0110.
 
              2_0110.bit_not
-    bit_not : Integer
-    bit_not self = @Builtin_Method "Integer.bit_not"
+    bit_not self -> Integer = integer_bit_not self
 
     ## GROUP Bitwise
+       ICON math
        Computes the bitwise or (disjunction) operation between this and
        that.
 
@@ -1055,10 +1124,10 @@ type Integer
          Computing the bitwise disjunction of 2_01101101 and 2_11110000.
 
              2_01101101.bit_or 2_11110000
-    bit_or : Integer -> Integer
-    bit_or self that = @Builtin_Method "Integer.bit_or"
+    bit_or self that:Integer -> Integer = integer_bit_or self that
 
     ## GROUP Bitwise
+       ICON math
        Computes the bitwise exclusive or between this and that.
 
        Arguments:
@@ -1071,10 +1140,10 @@ type Integer
          Computing the bitwise exclusive or of 2_01101101 and 2_11110000.
 
              2_01101101.bit_xor 2_11110000
-    bit_xor : Integer -> Integer
-    bit_xor self that = @Builtin_Method "Integer.bit_xor"
+    bit_xor self that:Integer -> Integer = integer_bit_xor self that
 
     ## GROUP Bitwise
+       ICON math
        Shifts the bits of this by the amount that.
 
        Left-shifts fill the new bits with zeroes, while right-shifts perform
@@ -1092,10 +1161,10 @@ type Integer
          Shift the bits of the number 1 left by four bits.
 
              1.bit_shift 4
-    bit_shift : Integer -> Integer ! Arithmetic_Error
-    bit_shift self that = @Builtin_Method "Integer.bit_shift"
+    bit_shift self that:Integer -> Integer ! Arithmetic_Error = integer_bit_shift self that
 
     ## GROUP Bitwise
+       ICON math
        Performs a bitwise left-shift on the number.
 
        Left-shifts fill the new bits with zeroes, while right-shifts perform
@@ -1112,10 +1181,10 @@ type Integer
          Shift the bits of the number 1 left by four bits.
 
              1.bit_shift_l 4
-    bit_shift_l : Integer -> Integer ! Arithmetic_Error
-    bit_shift_l self that = self.bit_shift that
+    bit_shift_l self that:Integer -> Integer ! Arithmetic_Error = self.bit_shift that
 
     ## GROUP Bitwise
+       ICON math
        Performs a bitwise right-shift on the number.
 
        Left-shifts fill the new bits with zeroes, while right-shifts perform
@@ -1132,11 +1201,11 @@ type Integer
          Shift the bits of the number 1 right by four bits.
 
              1.bit_shift_r 4
-    bit_shift_r : Integer -> Integer ! Arithmetic_Error
-    bit_shift_r self that = @Builtin_Method "Integer.bit_shift_r"
+    bit_shift_r self that:Integer -> Integer ! Arithmetic_Error = integer_bit_shift_r self that
 
     ## ALIAS from text
        GROUP Conversions
+       ICON convert
 
        Parses a textual representation of an integer into an integer number, returning
        a `Number_Parse_Error` if the text does not represent a valid integer.
@@ -1150,14 +1219,7 @@ type Integer
          Parse the text "20220216" into an integer number.
 
             Integer.parse "20220216"
-    parse : Text -> Integer -> Integer ! Number_Parse_Error
-    parse text (radix=10) = Integer.parse_builtin text radix
-
-    ## PRIVATE
-
-        Internally handles the parsing.
-
-    parse_builtin text radix = @Builtin_Method "Integer.parse"
+    parse text:Text (radix=10:Integer) -> Integer ! Number_Parse_Error = integer_parse text radix
 
 ## A syntax error when parsing a double.
 @Builtin_Type
@@ -1171,6 +1233,7 @@ type Number_Parse_Error
     to_display_text self =
         "Could not parse " + self.text.to_text + " as a double."
 
+## PRIVATE
 Float.from (that:Integer) = (1.0 * that):Float
 
 ## A wrapper type that ensures that a function may only take positive integers.
@@ -1190,7 +1253,8 @@ type Positive_Integer
         if integer > 0 then Positive_Integer.Value integer else
             Error.throw (Illegal_Argument.Error "Expected a positive integer, but got "+integer.to_display_text)
 
-## Allows to create a `Positive_Integer` from an `Integer`.
+## PRIVATE
+   Allows to create a `Positive_Integer` from an `Integer`.
    It will throw `Illegal_Argument` if the provided integer is not positive.
 Positive_Integer.from (that : Integer) = Positive_Integer.new that
 

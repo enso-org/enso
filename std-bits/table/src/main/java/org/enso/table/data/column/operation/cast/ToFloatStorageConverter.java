@@ -1,46 +1,50 @@
 package org.enso.table.data.column.operation.cast;
 
+import java.math.BigInteger;
 import org.enso.base.polyglot.NumericConverter;
 import org.enso.table.data.column.builder.DoubleBuilder;
 import org.enso.table.data.column.builder.NumericBuilder;
 import org.enso.table.data.column.storage.BoolStorage;
+import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.numeric.AbstractLongStorage;
 import org.enso.table.data.column.storage.numeric.BigIntegerStorage;
 import org.enso.table.data.column.storage.numeric.DoubleStorage;
-import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.type.AnyObjectType;
 import org.enso.table.data.column.storage.type.Bits;
 import org.enso.table.data.column.storage.type.FloatType;
 import org.graalvm.polyglot.Context;
 
-import java.math.BigInteger;
-
 public class ToFloatStorageConverter implements StorageConverter<Double> {
   public ToFloatStorageConverter(FloatType targetType) {
     if (targetType.bits() != Bits.BITS_64) {
-      throw new IllegalStateException("Internal error: Only 64-bit floats are currently supported.");
+      throw new IllegalStateException(
+          "Internal error: Only 64-bit floats are currently supported.");
     }
   }
 
-  public Storage<Double> cast(Storage<?> storage, CastProblemBuilder problemBuilder) {
+  @Override
+  public Storage<Double> cast(Storage<?> storage, CastProblemAggregator problemAggregator) {
     if (storage instanceof DoubleStorage doubleStorage) {
       return doubleStorage;
     } else if (storage instanceof AbstractLongStorage longStorage) {
-      return convertLongStorage(longStorage, problemBuilder);
+      return convertLongStorage(longStorage, problemAggregator);
     } else if (storage instanceof BoolStorage boolStorage) {
-      return convertBoolStorage(boolStorage, problemBuilder);
+      return convertBoolStorage(boolStorage, problemAggregator);
     } else if (storage instanceof BigIntegerStorage bigIntegerStorage) {
-      return convertBigIntegerStorage(bigIntegerStorage, problemBuilder);
+      return convertBigIntegerStorage(bigIntegerStorage, problemAggregator);
     } else if (storage.getType() instanceof AnyObjectType) {
-      return castFromMixed(storage, problemBuilder);
+      return castFromMixed(storage, problemAggregator);
     } else {
-      throw new IllegalStateException("No known strategy for casting storage " + storage + " to Float.");
+      throw new IllegalStateException(
+          "No known strategy for casting storage " + storage + " to Float.");
     }
   }
 
-  public Storage<Double> castFromMixed(Storage<?> mixedStorage, CastProblemBuilder problemBuilder) {
+  public Storage<Double> castFromMixed(
+      Storage<?> mixedStorage, CastProblemAggregator problemAggregator) {
     Context context = Context.getCurrent();
-    DoubleBuilder builder = NumericBuilder.createDoubleBuilder(mixedStorage.size());
+    DoubleBuilder builder =
+        NumericBuilder.createDoubleBuilder(mixedStorage.size(), problemAggregator);
     for (int i = 0; i < mixedStorage.size(); i++) {
       Object o = mixedStorage.getItemBoxed(i);
       if (o == null) {
@@ -56,22 +60,22 @@ public class ToFloatStorageConverter implements StorageConverter<Double> {
       } else if (o instanceof BigInteger bigInteger) {
         builder.appendBigInteger(bigInteger);
       } else {
-        problemBuilder.reportConversionFailure(o);
+        problemAggregator.reportConversionFailure(o);
         builder.appendNulls(1);
       }
 
       context.safepoint();
     }
 
-    problemBuilder.aggregateOtherProblems(builder.getProblems());
     return builder.seal();
   }
 
-  private Storage<Double> convertLongStorage(AbstractLongStorage longStorage, CastProblemBuilder problemBuilder) {
+  private Storage<Double> convertLongStorage(
+      AbstractLongStorage longStorage, CastProblemAggregator problemAggregator) {
     int n = longStorage.size();
-    DoubleBuilder builder = NumericBuilder.createDoubleBuilder(n);
+    DoubleBuilder builder = NumericBuilder.createDoubleBuilder(n, problemAggregator);
     for (int i = 0; i < n; i++) {
-      if (longStorage.isNa(i)) {
+      if (longStorage.isNothing(i)) {
         builder.appendNulls(1);
       } else {
         long value = longStorage.getItem(i);
@@ -79,15 +83,15 @@ public class ToFloatStorageConverter implements StorageConverter<Double> {
       }
     }
 
-    problemBuilder.aggregateOtherProblems(builder.getProblems());
     return builder.seal();
   }
 
-  private Storage<Double> convertBoolStorage(BoolStorage boolStorage, CastProblemBuilder problemBuilder) {
+  private Storage<Double> convertBoolStorage(
+      BoolStorage boolStorage, CastProblemAggregator problemAggregator) {
     int n = boolStorage.size();
-    DoubleBuilder builder = NumericBuilder.createDoubleBuilder(n);
+    DoubleBuilder builder = NumericBuilder.createDoubleBuilder(n, problemAggregator);
     for (int i = 0; i < n; i++) {
-      if (boolStorage.isNa(i)) {
+      if (boolStorage.isNothing(i)) {
         builder.appendNulls(1);
       } else {
         boolean value = boolStorage.getItem(i);
@@ -95,7 +99,6 @@ public class ToFloatStorageConverter implements StorageConverter<Double> {
       }
     }
 
-    problemBuilder.aggregateOtherProblems(builder.getProblems());
     return builder.seal();
   }
 
@@ -103,9 +106,10 @@ public class ToFloatStorageConverter implements StorageConverter<Double> {
     return value ? 1.0 : 0.0;
   }
 
-  private Storage<Double> convertBigIntegerStorage(Storage<BigInteger> storage, CastProblemBuilder problemBuilder) {
+  private Storage<Double> convertBigIntegerStorage(
+      Storage<BigInteger> storage, CastProblemAggregator problemAggregator) {
     int n = storage.size();
-    DoubleBuilder builder = NumericBuilder.createDoubleBuilder(n);
+    DoubleBuilder builder = NumericBuilder.createDoubleBuilder(n, problemAggregator);
     Context context = Context.getCurrent();
     for (int i = 0; i < n; i++) {
       BigInteger value = storage.getItemBoxed(i);
@@ -118,7 +122,6 @@ public class ToFloatStorageConverter implements StorageConverter<Double> {
       context.safepoint();
     }
 
-    problemBuilder.aggregateOtherProblems(builder.getProblems());
     return builder.seal();
   }
 }

@@ -7,7 +7,7 @@ export interface SuggestionEntryArgument {
   /** The argument name. */
   name: string
   /** The argument type. String 'Any' is used to specify generic types. */
-  type: string
+  reprType: string
   /** Indicates whether the argument is lazy. */
   isSuspended: boolean
   /** Indicates whether the argument has default value. */

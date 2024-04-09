@@ -3,28 +3,24 @@ use crate::prelude::*;
 use crate::ide::web::env::CSC_KEY_PASSWORD;
 use crate::paths::generated;
 use crate::project::gui::BuildInfo;
-use crate::project::wasm;
 use crate::project::IsArtifact;
-use crate::project::ProcessWrapper;
 
 use anyhow::Context;
 use futures_util::future::try_join;
-use futures_util::future::try_join3;
 use ide_ci::io::download_all;
-use ide_ci::ok_ready_boxed;
 use ide_ci::program::command::FallibleManipulator;
 use ide_ci::programs::node::NpmCommand;
 use ide_ci::programs::Npm;
 use std::process::Stdio;
 use tempfile::TempDir;
-use tokio::process::Child;
-use tracing::Span;
 
 
 // ==============
 // === Export ===
 // ==============
 
+pub mod dejavu_font;
+pub mod enso_font;
 pub mod fonts;
 pub mod google_font;
 
@@ -85,12 +81,66 @@ pub mod env {
         /// https://support.apple.com/HT204397
         APPLEIDPASS, String;
 
+        /// Apple Team ID.
+        APPLETEAMID, String;
+
         /// `true` or `false`. Defaults to `true` — on a macOS development machine valid and
         /// appropriate identity from your keychain will be automatically used.
         CSC_IDENTITY_AUTO_DISCOVERY, bool;
 
         /// Path to the python2 executable, used by electron-builder on macOS to package DMG.
         PYTHON_PATH, PathBuf;
+
+        /// Note that enabling CSC_FOR_PULL_REQUEST can pose serious security risks. Refer to the
+        /// [CircleCI documentation](https://circleci.com/docs/1.0/fork-pr-builds/) for more
+        /// information. If the project settings contain SSH keys, sensitive environment variables,
+        /// or AWS credentials, and untrusted forks can submit pull requests to your repository, it
+        /// is not recommended to enable this option.
+        ///
+        /// In our case we are careful to not expose any sensitive information to third-party forks,
+        /// so we can safely enable this option.
+        CSC_FOR_PULL_REQUEST, bool;
+    }
+
+    // Cloud environment configuration
+    define_env_var! {
+        /// The domain where the login link should redirect, without path or trailing slash.
+        ENSO_CLOUD_REDIRECT, String;
+
+        /// The name of the backend environment, typically 'production' for production builds.
+        ENSO_CLOUD_ENVIRONMENT, String;
+
+        /// The root path for all API endpoints, without a trailing slash.
+        ENSO_CLOUD_API_URL, String;
+
+        /// The URL for the WebSocket server for chat functionality.
+        ENSO_CLOUD_CHAT_URL, String;
+
+        /// The Sentry DSN for error reporting in this environment.
+        ENSO_CLOUD_SENTRY_DSN, String;
+
+        /// Stripe's publishable key for client-side operations.
+        ENSO_CLOUD_STRIPE_KEY, String;
+
+        /// The ID of the Amplify user pool for authentication.
+        ENSO_CLOUD_COGNITO_USER_POOL_ID, String;
+
+        /// The client-side key for the Amplify user pool.
+        ENSO_CLOUD_COGNITO_USER_POOL_WEB_CLIENT_ID, String;
+
+        /// The domain for Amplify requests.
+        ENSO_CLOUD_COGNITO_DOMAIN, String;
+
+        /// The AWS region for Amplify configuration, matching the domain region.
+        ENSO_CLOUD_COGNITO_REGION, String;
+    }
+
+    // GUI-specific environment variables
+    define_env_var! {
+        /// License key for the AG Grid library.
+        VITE_ENSO_AG_GRID_LICENSE_KEY, String;
+        /// The Mapbox API token for the GeoMap visualization.
+        VITE_ENSO_MAPBOX_API_TOKEN, String;
     }
 }
 
@@ -149,52 +199,6 @@ impl AsRef<OsStr> for Workspaces {
 pub enum Command {
     Build,
     Watch,
-}
-
-/// Things that are common to `watch` and `build`.
-#[derive(Debug)]
-pub struct ContentEnvironment<Assets, Output> {
-    pub asset_dir:   Assets,
-    pub wasm:        wasm::Artifact,
-    pub output_path: Output,
-}
-
-impl<Output: AsRef<Path>> ContentEnvironment<TempDir, Output> {
-    pub async fn new(
-        ide: &IdeDesktop,
-        wasm: impl Future<Output = Result<wasm::Artifact>>,
-        build_info: &BuildInfo,
-        output_path: Output,
-    ) -> Result<Self> {
-        crate::web::install(&ide.repo_root).await?;
-        let asset_dir = TempDir::new()?;
-        let assets_download = download_js_assets(&asset_dir);
-        let fonts_download = fonts::install_html_fonts(&ide.cache, &ide.octocrab, &asset_dir);
-        let (wasm, _, _) = try_join3(wasm, assets_download, fonts_download).await?;
-        ide.write_build_info(build_info)?;
-        Ok(ContentEnvironment { asset_dir, wasm, output_path })
-    }
-}
-
-impl<Assets: AsRef<Path>, Output: AsRef<Path>> FallibleManipulator
-    for ContentEnvironment<Assets, Output>
-{
-    fn try_applying<C: IsCommandWrapper + ?Sized>(&self, command: &mut C) -> Result {
-        let artifacts_for_gui =
-            self.wasm.files_to_ship().into_iter().map(|file| file.to_path_buf()).collect_vec();
-
-        command
-            .set_env(env::ENSO_BUILD_GUI, self.output_path.as_ref())?
-            .set_env(env::ENSO_BUILD_GUI_WASM_ARTIFACTS, &artifacts_for_gui)?
-            .set_env(env::ENSO_BUILD_GUI_ASSETS, self.asset_dir.as_ref())?;
-        Ok(())
-    }
-}
-
-impl<Assets, Output> Drop for ContentEnvironment<Assets, Output> {
-    fn drop(&mut self) {
-        info!("Dropping content environment.")
-    }
 }
 
 pub fn target_os_flag(os: OS) -> Result<&'static str> {
@@ -284,51 +288,6 @@ impl IdeDesktop {
         Ok(IconsArtifacts(output_path.as_ref().into()))
     }
 
-    #[tracing::instrument(name="Building IDE Content.", skip_all, fields(
-        dest = %output_path.as_ref().display(),
-        build_info,
-        err))]
-    pub async fn build_content<P: AsRef<Path>>(
-        &self,
-        wasm: impl Future<Output = Result<wasm::Artifact>>,
-        build_info: &BuildInfo,
-        output_path: P,
-    ) -> Result<ContentEnvironment<TempDir, P>> {
-        let env = ContentEnvironment::new(self, wasm, build_info, output_path).await?;
-        self.npm()?
-            .try_applying(&env)?
-            .workspace(Workspaces::Content)
-            .run("build")
-            .run_ok()
-            .await?;
-
-        Ok(env)
-    }
-
-
-    #[tracing::instrument(name="Setting up GUI Content watcher.",
-        fields(wasm = tracing::field::Empty),
-        err)]
-    pub async fn watch_content(
-        &self,
-        wasm: impl Future<Output = Result<wasm::Artifact>>,
-        build_info: &BuildInfo,
-    ) -> Result<Watcher> {
-        // When watching we expect our artifacts to be served through server, not appear in any
-        // specific location on the disk.
-        let output_path = TempDir::new()?;
-        let watch_environment =
-            ContentEnvironment::new(self, wasm, build_info, output_path).await?;
-        Span::current().record("wasm", watch_environment.wasm.as_ref().as_str());
-        let child_process = self
-            .npm()?
-            .try_applying(&watch_environment)?
-            .workspace(Workspaces::Content)
-            .run("watch")
-            .spawn_intercepting()?;
-        Ok(Watcher { child_process, watch_environment })
-    }
-
     /// Build the full Electron package, using the electron-builder.
     #[tracing::instrument(name="Preparing distribution of the IDE.", skip_all, fields(
         dest = %output_path.as_ref().display(),
@@ -376,7 +335,13 @@ impl IdeDesktop {
             // We can work around this by setting the `PYTHON_PATH` env variable. We attempt to
             // locate `python2` in PATH which is enough to work on GitHub-hosted macOS
             // runners.
-            Some(ide_ci::program::lookup("python2")?)
+            ide_ci::program::lookup("python2")
+                .inspect_err(|e| {
+                    // We do not fail, as this requirement might have been lifted by the
+                    // electron-builder bump. As for now, we do best effort to support both cases.
+                    warn!("Failed to locate python2 in PATH: {e}");
+                })
+                .ok()
         } else {
             None
         };
@@ -403,68 +368,6 @@ impl IdeDesktop {
             .await?;
 
         Ok(())
-    }
-
-    /// Spawn the watch script for the client.
-    pub async fn watch(
-        &self,
-        wasm_watch_job: BoxFuture<
-            'static,
-            Result<crate::project::PerhapsWatched<crate::project::Wasm>>,
-        >,
-        build_info: BoxFuture<'static, Result<BuildInfo>>,
-        get_project_manager: BoxFuture<'static, Result<crate::project::backend::Artifact>>,
-        ide_options: Vec<String>,
-    ) -> Result {
-        let npm_install_job = crate::web::install(&self.repo_root);
-        // TODO: This could be possibly optimized by awaiting WASM a bit later, and passing its
-        //       future to the ContentEnvironment. However, the code would get a little tricky.
-        //       Should be reconsidered in the future, based on actual timings.
-        let (_npm_installed, watched_wasm, project_manager) =
-            try_join!(npm_install_job, wasm_watch_job, get_project_manager)?;
-
-        let pm_bundle = ProjectManagerInfo::new(&project_manager)?;
-
-        let temp_dir_for_gui = TempDir::new()?;
-        let content_env = ContentEnvironment::new(
-            self,
-            ok_ready_boxed(watched_wasm.as_ref().clone()),
-            &build_info.await?,
-            &temp_dir_for_gui,
-        )
-        .await?;
-
-        let mut script_args = Vec::new();
-        if !ide_options.is_empty() {
-            script_args.push("--");
-            script_args.extend(ide_options.iter().map(String::as_str));
-        }
-
-
-        let temp_dir_for_ide = TempDir::new()?;
-        self.npm()?
-            .try_applying(&content_env)?
-            .set_env(env::ENSO_BUILD_IDE, temp_dir_for_ide.path())?
-            .try_applying(&pm_bundle)?
-            .workspace(Workspaces::Enso)
-            .run("watch")
-            .args(script_args)
-            .run_ok()
-            .await?;
-
-        Ok(())
-    }
-}
-
-#[derive(Debug)]
-pub struct Watcher {
-    pub watch_environment: ContentEnvironment<TempDir, TempDir>,
-    pub child_process:     Child,
-}
-
-impl ProcessWrapper for Watcher {
-    fn inner(&mut self) -> &mut Child {
-        &mut self.child_process
     }
 }
 

@@ -32,8 +32,8 @@ type ConnectionId = YjsConnection | string
 export class WSSharedDoc {
   doc: Y.Doc
   /**
-   * Maps from conn to set of controlled user ids. Delete all user ids from awareness when this conn
-   * is closed.
+   * Maps from connection id to set of controlled user ids.
+   * Delete all user ids from awareness when this conn is closed.
    */
   conns: Map<ConnectionId, Set<number>>
   awareness: Awareness
@@ -53,18 +53,15 @@ export class WSSharedDoc {
         if (conn !== null) {
           const connControlledIDs = this.conns.get(conn)
           if (connControlledIDs !== undefined) {
-            added.forEach((clientID) => {
-              connControlledIDs.add(clientID)
-            })
-            removed.forEach((clientID) => {
-              connControlledIDs.delete(clientID)
-            })
+            for (const clientID of added) connControlledIDs.add(clientID)
+            for (const clientID of removed) connControlledIDs.delete(clientID)
           }
         }
         // broadcast awareness update
         const encoder = encoding.createEncoder()
         encoding.writeVarUint(encoder, messageAwareness)
-        encoding.writeVarUint8Array(encoder, encodeAwarenessUpdate(this.awareness, changedClients))
+        const update = encodeAwarenessUpdate(this.awareness, changedClients)
+        encoding.writeVarUint8Array(encoder, update)
         this.broadcast(encoding.toUint8Array(encoder))
       },
     )
@@ -72,11 +69,9 @@ export class WSSharedDoc {
   }
 
   broadcast(message: Uint8Array) {
-    this.conns.forEach((_, conn) => {
-      if (typeof conn !== 'string') {
-        conn.send(message)
-      }
-    })
+    for (const [conn] of this.conns) {
+      if (typeof conn !== 'string') conn.send(message)
+    }
   }
 
   updateHandler(update: Uint8Array, _origin: any) {
@@ -88,8 +83,8 @@ export class WSSharedDoc {
 }
 
 /**
- * Handle servicing incoming websocket connection listening for given document updates.
- * @param ws The newly connected websocket requesting Yjs document synchronization
+ * Handle servicing incoming WebSocket connection listening for given document updates.
+ * @param ws The newly connected WebSocket requesting Yjs document synchronization
  * @param lsUrl Address of the language server to connect to. Each unique language server address
  * will be assigned its own `DistributedProject` instance with a unique namespace of Yjs documents.
  * @param docName The name of the document to synchronize. When the document name is `index`, the
@@ -99,20 +94,16 @@ export function setupGatewayClient(ws: WebSocket, lsUrl: string, docName: string
   const lsSession = LanguageServerSession.get(lsUrl)
   const wsDoc = lsSession.getYDoc(docName)
   if (wsDoc == null) {
-    console.log(`Document ${docName} not found in language server session ${lsUrl}`)
+    console.error(`Document '${docName}' not found in language server session '${lsUrl}'.`)
     ws.close()
     return
   }
   const connection = new YjsConnection(ws, wsDoc)
-
-  const doClose = () => connection.close()
-  lsSession.once('error', doClose)
   connection.once('close', async () => {
-    lsSession.off('error', doClose)
     try {
       await lsSession.release()
-    } catch (err) {
-      console.error('Session release failed.\n', err)
+    } catch (error) {
+      console.error('Session release failed.\n', error)
     }
   })
 }
@@ -129,11 +120,7 @@ class YjsConnection extends ObservableV2<{ close(): void }> {
     ws.binaryType = 'arraybuffer'
     ws.on('message', (message: ArrayBuffer) => this.messageListener(new Uint8Array(message)))
     ws.on('close', () => this.close())
-
-    if (!isLoaded) {
-      wsDoc.doc.load()
-    }
-
+    if (!isLoaded) wsDoc.doc.load()
     this.initPing()
     this.sendSyncMessage()
   }
@@ -143,24 +130,21 @@ class YjsConnection extends ObservableV2<{ close(): void }> {
     let pongReceived = true
     const pingInterval = setInterval(() => {
       if (!pongReceived) {
-        if (this.wsDoc.conns.has(this)) {
-          this.close()
-        }
+        if (this.wsDoc.conns.has(this)) this.close()
         clearInterval(pingInterval)
       } else if (this.wsDoc.conns.has(this)) {
         pongReceived = false
         try {
           this.ws.ping()
-        } catch (e) {
+        } catch (error) {
+          console.error('Error sending ping:', error)
           this.close()
           clearInterval(pingInterval)
         }
       }
     }, pingTimeout)
     this.ws.on('close', () => clearInterval(pingInterval))
-    this.ws.on('pong', () => {
-      pongReceived = true
-    })
+    this.ws.on('pong', () => (pongReceived = true))
   }
 
   sendSyncMessage() {
@@ -185,11 +169,7 @@ class YjsConnection extends ObservableV2<{ close(): void }> {
       this.close()
     }
     try {
-      this.ws.send(message, (error) => {
-        if (error != null) {
-          this.close()
-        }
-      })
+      this.ws.send(message, (error) => error && this.close())
     } catch (e) {
       this.close()
     }
@@ -201,10 +181,9 @@ class YjsConnection extends ObservableV2<{ close(): void }> {
       const decoder = decoding.createDecoder(message)
       const messageType = decoding.readVarUint(decoder)
       switch (messageType) {
-        case messageSync:
+        case messageSync: {
           encoding.writeVarUint(encoder, messageSync)
           readSyncMessage(decoder, encoder, this.wsDoc.doc, this)
-
           // If the `encoder` only contains the type of reply message and no
           // message, there is no need to send the message. When `encoder` only
           // contains the type of reply, its length is 1.
@@ -212,6 +191,7 @@ class YjsConnection extends ObservableV2<{ close(): void }> {
             this.send(encoding.toUint8Array(encoder))
           }
           break
+        }
         case messageAwareness: {
           const update = decoding.readVarUint8Array(decoder)
           applyAwarenessUpdate(this.wsDoc.awareness, update, this)

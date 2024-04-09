@@ -16,12 +16,16 @@ public class ConcatRope {
     this.right = right;
   }
 
-  /** @return the left operand of this concatenation. */
+  /**
+   * @return the left operand of this concatenation.
+   */
   public Object getLeft() {
     return left;
   }
 
-  /** @return the right operand of this concatenation. */
+  /**
+   * @return the right operand of this concatenation.
+   */
   public Object getRight() {
     return right;
   }

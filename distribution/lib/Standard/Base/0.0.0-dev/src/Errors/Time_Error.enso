@@ -20,4 +20,4 @@ type Time_Error
 
        Provides a human-readable representation of the time error.
     to_display_text : Text
-    to_display_text self = "Time_Error: " + self.error_message
+    to_display_text self = "Time_Error: " + self.error_message.to_text

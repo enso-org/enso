@@ -21,7 +21,8 @@ const CHECKSUM_TYPE = 'sha256'
 function getChecksum(path, type) {
     return new Promise(
         // This JSDoc annotation is required for correct types that are also type-safe.
-        /** @param {(value: string) => void} resolve - Fulfill the promise with the given value. */
+        /** Promise handler resolving to the file's checksum.
+         * @param {(value: string) => void} resolve - Fulfill the promise with the given value. */
         (resolve, reject) => {
             const hash = cryptoModule.createHash(type)
             const input = fs.createReadStream(path)

@@ -1,17 +1,21 @@
 <script lang="ts">
+import SvgIcon from '@/components/SvgIcon.vue'
+import { useEvent } from '@/composables/events'
+import { getTextWidthBySizeAndFamily } from '@/util/measurement'
 import { defineKeybinds } from '@/util/shortcuts'
+import { VisualizationContainer, useVisualizationConfig } from '@/util/visualizationBuiltins'
+import { computed, ref, watch, watchEffect, watchPostEffect } from 'vue'
 
 export const name = 'Histogram'
 export const inputType =
-  'Standard.Table.Data.Table.Table | Standard.Base.Data.Vector.Vector | Standard.Image.Data.Histogram.Histogram'
+  'Standard.Table.Table.Table | Standard.Base.Data.Vector.Vector | Standard.Image.Histogram.Histogram'
 export const defaultPreprocessor = [
   'Standard.Visualization.Histogram',
   'process_to_json_text',
 ] as const
 
 const bindings = defineKeybinds('histogram-visualization', {
-  zoomIn: ['Mod+Z'],
-  showAll: ['Mod+A'],
+  zoomToSelected: ['Mod+A'],
 })
 
 /**
@@ -105,16 +109,7 @@ interface Bin {
 </script>
 
 <script setup lang="ts">
-import { computed, ref, watch, watchEffect, watchPostEffect } from 'vue'
-
-import * as d3 from 'd3'
-
-import SvgIcon from '@/components/SvgIcon.vue'
-import VisualizationContainer from '@/components/VisualizationContainer.vue'
-import { useVisualizationConfig } from '@/providers/visualizationConfig.ts'
-
-import { useEvent, useEventConditional } from './events.ts'
-import { getTextWidth } from './measurement.ts'
+const d3 = await import('d3')
 
 const MARGIN = 25
 const AXIS_LABEL_HEIGHT = 10
@@ -251,24 +246,30 @@ const margin = computed(() => ({
   bottom: MARGIN + (axis.value?.x?.label ? AXIS_LABEL_HEIGHT : 0),
   left: MARGIN + (axis.value?.y?.label ? AXIS_LABEL_HEIGHT : 0),
 }))
-const width = ref(Math.max(config.value.width ?? 0, config.value.nodeSize.x))
+const width = ref(Math.max(config.width ?? 0, config.nodeSize.x))
 watchPostEffect(() => {
-  width.value = config.value.fullscreen
-    ? containerNode.value?.parentElement?.clientWidth ?? 0
-    : Math.max(config.value.width ?? 0, config.value.nodeSize.x)
+  width.value =
+    config.fullscreen ?
+      containerNode.value?.parentElement?.clientWidth ?? 0
+    : Math.max(config.width ?? 0, config.nodeSize.x)
 })
-const height = ref(config.value.height ?? (config.value.nodeSize.x * 3) / 4)
+const height = ref(config.height ?? (config.nodeSize.x * 3) / 4)
 watchPostEffect(() => {
-  height.value = config.value.fullscreen
-    ? containerNode.value?.parentElement?.clientHeight ?? 0
-    : config.value.height ?? (config.value.nodeSize.x * 3) / 4
+  height.value =
+    config.fullscreen ?
+      containerNode.value?.parentElement?.clientHeight ?? 0
+    : config.height ?? (config.nodeSize.x * 3) / 4
 })
 const boxWidth = computed(() => Math.max(0, width.value - margin.value.left - margin.value.right))
 const boxHeight = computed(() => Math.max(0, height.value - margin.value.top - margin.value.bottom))
 const xLabelTop = computed(() => boxHeight.value + margin.value.bottom - AXIS_LABEL_HEIGHT / 2)
-const xLabelLeft = computed(() => boxWidth.value / 2 + getTextWidth(axis.value.x?.label) / 2)
+const xLabelLeft = computed(
+  () => boxWidth.value / 2 + getTextWidthBySizeAndFamily(axis.value.x?.label) / 2,
+)
 const yLabelTop = computed(() => -margin.value.left + AXIS_LABEL_HEIGHT)
-const yLabelLeft = computed(() => -boxHeight.value / 2 + getTextWidth(axis.value.y?.label) / 2)
+const yLabelLeft = computed(
+  () => -boxHeight.value / 2 + getTextWidthBySizeAndFamily(axis.value.y?.label) / 2,
+)
 
 let startX = 0
 let startY = 0
@@ -310,7 +311,9 @@ const zoom = computed(() =>
       const medDelta = 0.05
       const maxDelta = 1
       const wheelSpeedMultiplier =
-        event.deltaMode === 1 ? medDelta : event.deltaMode ? maxDelta : minDelta
+        event.deltaMode === 1 ? medDelta
+        : event.deltaMode ? maxDelta
+        : minDelta
       return -event.deltaY * wheelSpeedMultiplier
     })
     .scaleExtent(ZOOM_EXTENT)
@@ -410,40 +413,6 @@ const brush = computed(() =>
 // Note: The brush element must be a child of the zoom element - this is only way we found to have
 // both zoom and brush events working at the same time. See https://stackoverflow.com/a/59757276.
 watchEffect(() => d3Brush.value.call(brush.value))
-
-/** Zoom into the selected area of the plot.
- *
- * Based on https://www.d3-graph-gallery.com/graph/interactivity_brush.html
- * Section "Brushing for zooming". */
-function zoomToSelected() {
-  if (brushExtent.value == null) {
-    return
-  }
-  focus.value = undefined
-  const xScale_ = xScale.value
-  const startRaw = brushExtent.value[0]
-  const endRaw = brushExtent.value[1]
-  const start = typeof startRaw === 'number' ? startRaw : startRaw[0]
-  const end = typeof endRaw === 'number' ? endRaw : endRaw[0]
-  const selectionWidth = end - start
-  zoomLevel.value *= boxWidth.value / selectionWidth
-  const xMin = xScale_.invert(start)
-  const xMax = xScale_.invert(end)
-  xDomain.value = [xMin, xMax]
-  shouldAnimate.value = true
-}
-
-function endBrushing() {
-  brushExtent.value = undefined
-  d3Brush.value.call(brush.value.move, null)
-}
-
-function zoomIn() {
-  zoomToSelected()
-  endBrushing()
-}
-
-useEventConditional(document, 'keydown', isBrushing, bindings.handler({ zoomIn }))
 
 /**
  * Return the extrema of the data and and paddings that ensure data will fit into the
@@ -560,15 +529,41 @@ watchPostEffect(() => {
 // === Event handlers ===
 // ======================
 
-function showAll() {
-  focus.value = undefined
-  zoomLevel.value = 1
-  xDomain.value = originalXScale.value.domain()
-  shouldAnimate.value = true
+function endBrushing() {
+  brushExtent.value = undefined
+  d3Brush.value.call(brush.value.move, null)
+}
+
+/** Zoom into the selected area of the plot.
+ *
+ * Based on https://www.d3-graph-gallery.com/graph/interactivity_brush.html
+ * Section "Brushing for zooming". */
+function zoomToSelected(override?: boolean) {
+  const shouldZoomToSelected = override ?? isBrushing.value
+  if (!shouldZoomToSelected) {
+    focus.value = undefined
+    zoomLevel.value = 1
+    xDomain.value = originalXScale.value.domain()
+    shouldAnimate.value = true
+  } else {
+    if (brushExtent.value == null) return
+    focus.value = undefined
+    const xScale_ = xScale.value
+    const startRaw = brushExtent.value[0]
+    const endRaw = brushExtent.value[1]
+    const start = typeof startRaw === 'number' ? startRaw : startRaw[0]
+    const end = typeof endRaw === 'number' ? endRaw : endRaw[0]
+    const selectionWidth = end - start
+    zoomLevel.value *= boxWidth.value / selectionWidth
+    const xMin = xScale_.invert(start)
+    const xMax = xScale_.invert(end)
+    xDomain.value = [xMin, xMax]
+    shouldAnimate.value = true
+  }
   endBrushing()
 }
 
-useEvent(document, 'keydown', bindings.handler({ showAll }))
+useEvent(document, 'keydown', bindings.handler({ zoomToSelected: () => zoomToSelected() }))
 useEvent(document, 'click', endBrushing)
 useEvent(document, 'auxclick', endBrushing)
 useEvent(document, 'contextmenu', endBrushing)
@@ -579,10 +574,10 @@ useEvent(document, 'scroll', endBrushing)
   <VisualizationContainer :belowToolbar="true">
     <template #toolbar>
       <button class="image-button active">
-        <SvgIcon name="show_all" alt="Fit all" @click="showAll" />
+        <SvgIcon name="show_all" alt="Fit all" @click="zoomToSelected(false)" />
       </button>
       <button class="image-button" :class="{ active: brushExtent != null }">
-        <SvgIcon name="find" alt="Zoom to selected" @click="zoomToSelected" />
+        <SvgIcon name="find" alt="Zoom to selected" @click="zoomToSelected(true)" />
       </button>
     </template>
     <div ref="containerNode" class="HistogramVisualization" @pointerdown.stop>

@@ -8,5 +8,5 @@ for opt in "$@"; do
 done
 
 
-exec java -jar -Dtruffle.class.path.append="$COMP_PATH/runtime.jar" $EXTRA_OPTS $JAVA_OPTS $COMP_PATH/runner.jar "$@"
+exec java --module-path $COMP_PATH $EXTRA_OPTS $JAVA_OPTS -m org.enso.runtime/org.enso.EngineRunnerBootLoader "$@"
 exit

@@ -1,4 +1,5 @@
 // === Features ===
+#![allow(incomplete_features)]
 #![feature(try_blocks)]
 #![feature(result_flattening)]
 #![feature(const_fmt_arguments_new)]
@@ -6,34 +7,18 @@
 #![feature(let_chains)]
 #![feature(min_specialization)]
 #![feature(exit_status_error)]
-#![feature(option_result_contains)]
 #![feature(associated_type_defaults)]
 #![feature(associated_type_bounds)]
 #![feature(exact_size_is_empty)]
 #![feature(async_closure)]
 #![feature(type_alias_impl_trait)]
-#![feature(default_free_fn)]
 #![feature(trait_alias)]
-#![feature(io_error_other)]
 #![feature(string_remove_matches)]
-#![feature(once_cell)]
-#![feature(const_deref)]
 #![feature(duration_constants)]
 #![feature(const_trait_impl)]
-#![feature(is_some_and)]
-#![feature(pin_macro)]
-#![feature(result_option_inspect)]
 #![feature(extend_one)]
-// === Standard Linter Configuration ===
-#![deny(non_ascii_idents)]
-#![warn(unsafe_code)]
-#![allow(clippy::bool_to_int_with_if)]
-#![allow(clippy::let_and_return)]
+#![feature(lazy_cell)]
 // === Non-Standard Linter Configuration ===
-#![warn(missing_copy_implementations)]
-#![warn(missing_debug_implementations)]
-#![warn(trivial_numeric_casts)]
-#![warn(unused_import_braces)]
 #![warn(unused_qualifications)]
 
 
@@ -86,9 +71,6 @@ pub mod prelude {
     pub use platforms::target::Arch;
     pub use platforms::target::OS;
     pub use semver::Version;
-    pub use sysinfo::PidExt as _;
-    pub use sysinfo::ProcessExt as _;
-    pub use sysinfo::SystemExt as _;
     pub use tokio::io::AsyncWriteExt as _;
     pub use url::Url;
     pub use uuid::Uuid;
@@ -128,9 +110,6 @@ pub mod prelude {
 }
 
 use prelude::*;
-use std::net::Ipv4Addr;
-use std::net::SocketAddrV4;
-use std::net::TcpListener;
 
 use ::anyhow::Context;
 
@@ -140,24 +119,11 @@ pub const EMPTY_REQUEST_BODY: Option<&()> = None;
 /// The user agent string name used by our HTTP clients.
 pub const USER_AGENT: &str = "enso-build";
 
-pub const UNREGISTERED_PORTS: Range<u16> = 49152..65535;
-
 pub const RECORD_SEPARATOR: &str = "\u{1E}";
 
-/// Looks up a free port in the IANA private or dynamic port range.
+/// Looks up a free port.
 pub fn get_free_port() -> Result<u16> {
-    let port_range = UNREGISTERED_PORTS;
-    port_range
-        .into_iter()
-        .find(|port| {
-            // Note that we must use Ipv4Addr::UNSPECIFIED. Ipv4Addr::LOCALHOST would not be enough,
-            // as it misses e.g. services spawned by docker subnetworks.
-            // This also makes us write this by hand, rather than use a crate.
-            let ipv4 = SocketAddrV4::new(Ipv4Addr::UNSPECIFIED, *port);
-            // FIXME investigate? this can show firewall dialog on windows
-            TcpListener::bind(ipv4).is_ok()
-        })
-        .context("Failed to find a free local port.")
+    portpicker::pick_unused_port().context("Failed to find a free available port.")
 }
 
 pub fn ok_ready_boxed<'a, T: 'a + Send>(t: T) -> BoxFuture<'a, Result<T>> {

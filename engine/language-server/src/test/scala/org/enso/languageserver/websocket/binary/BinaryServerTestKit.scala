@@ -36,7 +36,8 @@ abstract class BinaryServerTestKit
     with BeforeAndAfterEach {
 
   override def afterAll(): Unit = {
-    TestKit.shutdownActorSystem(system)
+    TestKit.shutdownActorSystem(system, verifySystemShutdown = true)
+    super.afterAll()
   }
 
   val interface       = "127.0.0.1"
@@ -59,6 +60,7 @@ abstract class BinaryServerTestKit
 
   override def afterEach(): Unit = {
     val _ = binding.unbind()
+    super.afterEach()
   }
 
   protected def newWsClient(): WsTestClient = new WsTestClient(address)

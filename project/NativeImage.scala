@@ -40,6 +40,8 @@ object NativeImage {
     "ch.qos.logback"
   )
 
+  val NATIVE_IMAGE_ARG_FILE = "native-image-args.txt"
+
   /** Creates a task that builds a native image for the current project.
     *
     * This task must be setup in such a way that the assembly JAR is built
@@ -68,6 +70,12 @@ object NativeImage {
     *                            time initialization is set to default
     * @param initializeAtBuildtime a list of classes that should be initialized at
     *                              build time.
+    * @param additionalCp additional class-path entries to be added to the
+    *                     native image.
+    * @param includeRuntime Whether `org.enso.runtime` should is included. If yes, then
+    *                       it will be passed as a module to the native-image along with other
+    *                       Graal and Truffle related modules.
+    * @param verbose whether to print verbose output from the native image.
     */
   def buildNativeImage(
     artifactName: String,
@@ -78,7 +86,9 @@ object NativeImage {
     initializeAtRuntime: Seq[String]         = Seq.empty,
     initializeAtBuildtime: Seq[String]       = defaultBuildTimeInitClasses,
     mainClass: Option[String]                = None,
-    cp: Option[String]                       = None
+    additionalCp: Seq[String]                = Seq(),
+    verbose: Boolean                         = false,
+    includeRuntime: Boolean                  = true
   ): Def.Initialize[Task[Unit]] = Def
     .task {
       val log            = state.value.log
@@ -92,13 +102,16 @@ object NativeImage {
         (assembly / assemblyOutputPath).value.toPath.toAbsolutePath.normalize
 
       if (!file(nativeImagePath).exists()) {
-        log.error("Native Image component not found in the JVM distribution.")
         log.error(
-          "You can install Native Image with `gu install native-image`."
+          "Unexpected: Native Image component not found in the JVM distribution."
+        )
+        log.error("Is this a GraalVM distribution?")
+        log.error(
+          "On older distributions, you can install Native Image with `gu install native-image`."
         )
         throw new RuntimeException(
           "Native Image build failed, " +
-          "because Native Image component was not found."
+          "because native-image binary was not found."
         )
       }
       if (additionalOptions.contains("--language:java")) {
@@ -157,8 +170,33 @@ object NativeImage {
           Seq(s"--initialize-at-run-time=$classes")
         }
 
-      var cmd =
-        Seq(nativeImagePath) ++
+      val runtimeCp = (LocalProject("runtime") / Runtime / fullClasspath).value
+      val runnerCp =
+        (LocalProject("engine-runner") / Runtime / fullClasspath).value
+      val ourCp      = (Runtime / fullClasspath).value
+      val cpToSearch = (ourCp ++ runtimeCp ++ runnerCp).distinct
+      val componentModules: Seq[String] = JPMSUtils
+        .filterModulesFromClasspath(
+          cpToSearch,
+          JPMSUtils.componentModules,
+          log,
+          shouldContainAll = true
+        )
+        .map(_.data.getAbsolutePath)
+
+      val fullCp =
+        if (includeRuntime) {
+          componentModules ++ additionalCp
+        } else {
+          ourCp.map(_.data.getAbsolutePath) ++ additionalCp
+        }
+      val cpStr = fullCp.mkString(File.pathSeparator)
+      log.debug("Class-path: " + cpStr)
+
+      val verboseOpt = if (verbose) Seq("--verbose") else Seq()
+
+      var args: Seq[String] =
+        Seq("-cp", cpStr) ++
         quickBuildOption ++
         debugParameters ++ staticParameters ++ configs ++
         Seq("--no-fallback", "--no-server") ++
@@ -167,38 +205,53 @@ object NativeImage {
         initializeAtRuntimeOptions ++
         buildMemoryLimitOptions ++
         runtimeMemoryOptions ++
-        additionalOptions
+        additionalOptions ++
+        Seq("-o", artifactName)
 
-      if (mainClass.isEmpty) {
-        cmd = cmd ++
-          Seq("-jar", pathToJAR.toString) ++
-          Seq(artifactName)
-      } else {
-        val cpf = new File(cp.get).getAbsoluteFile()
-        if (!cpf.exists()) throw new IllegalStateException("Cannot find " + cpf)
-        val joinCp = pathToJAR.toString + File.pathSeparator + cpf
-        System.out.println("Class-path: " + joinCp);
-
-        cmd = cmd ++
-          Seq("-cp", joinCp) ++
-          Seq(mainClass.get) ++
-          Seq(artifactName)
+      args = mainClass match {
+        case Some(main) =>
+          args ++
+          Seq(main)
+        case None =>
+          args ++
+          Seq("-jar", pathToJAR.toString)
       }
+
+      val targetDir = (Compile / target).value
+      val argFile   = targetDir.toPath.resolve(NATIVE_IMAGE_ARG_FILE)
+      IO.writeLines(argFile.toFile, args, append = false)
 
       val pathParts = pathExts ++ Option(System.getenv("PATH")).toSeq
       val newPath   = pathParts.mkString(File.pathSeparator)
+
+      val cmd =
+        Seq(nativeImagePath) ++
+        verboseOpt ++
+        Seq("@" + argFile.toAbsolutePath.toString)
 
       log.debug(s"""PATH="$newPath" ${cmd.mkString(" ")}""")
 
       val process =
         Process(cmd, None, "PATH" -> newPath)
 
-      if (process.! != 0) {
-        log.error("Native Image build failed.")
+      // All the output from native-image is redirected into a StringBuilder, and printed
+      // at the end of the build. This mitigates the problem when there are multiple sbt
+      // commands running in parallel and the output is intertwined.
+      val sb = new StringBuilder
+      val processLogger = ProcessLogger(str => {
+        log.info(str)
+        sb.append(str + System.lineSeparator())
+      })
+      log.info(
+        s"Started building $artifactName native image. The output is captured."
+      )
+      val retCode = process.!(processLogger)
+      if (retCode != 0) {
+        log.error("Native Image build failed, with output: ")
+        println(sb.toString())
         throw new RuntimeException("Native Image build failed")
       }
-
-      log.info("Native Image build successful.")
+      log.info(s"$artifactName native image build successful.")
     }
     .dependsOn(Compile / compile)
 

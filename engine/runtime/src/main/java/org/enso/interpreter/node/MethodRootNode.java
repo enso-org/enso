@@ -1,26 +1,27 @@
 package org.enso.interpreter.node;
 
-import java.util.function.Supplier;
-
-import org.enso.compiler.core.CompilerError;
-import org.enso.interpreter.EnsoLanguage;
-import org.enso.interpreter.runtime.EnsoContext;
-import org.enso.interpreter.runtime.data.Type;
-import org.enso.interpreter.runtime.data.text.Text;
-import org.enso.interpreter.runtime.error.PanicException;
-import org.enso.interpreter.runtime.scope.LocalScope;
-import org.enso.interpreter.runtime.scope.ModuleScope;
-
 import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.dsl.ReportPolymorphism;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.nodes.NodeInfo;
 import com.oracle.truffle.api.source.SourceSection;
+import java.util.function.Supplier;
+import org.enso.compiler.context.LocalScope;
+import org.enso.compiler.core.CompilerError;
+import org.enso.interpreter.EnsoLanguage;
+import org.enso.interpreter.runtime.EnsoContext;
+import org.enso.interpreter.runtime.callable.function.Function;
+import org.enso.interpreter.runtime.data.Type;
+import org.enso.interpreter.runtime.data.atom.AtomConstructor;
+import org.enso.interpreter.runtime.data.text.Text;
+import org.enso.interpreter.runtime.error.PanicException;
+import org.enso.interpreter.runtime.scope.ModuleScope;
 
 @ReportPolymorphism
 @NodeInfo(shortName = "Method", description = "A root node for Enso methods.")
 public class MethodRootNode extends ClosureRootNode {
+  private static final ExpressionNode[] NO_STATEMENTS = new ExpressionNode[0];
 
   private final Type type;
   private final String methodName;
@@ -33,12 +34,15 @@ public class MethodRootNode extends ClosureRootNode {
       SourceSection section,
       Type type,
       String methodName) {
-    super(language,
+    super(
+        language,
         localScope,
         moduleScope,
         body,
         section,
-        shortName(type.getName(), methodName), null, false);
+        shortName(type.getName(), methodName),
+        null,
+        false);
     this.type = type;
     this.methodName = methodName;
   }
@@ -68,13 +72,7 @@ public class MethodRootNode extends ClosureRootNode {
       Type type,
       String methodName) {
     return build(
-        language,
-        localScope,
-        moduleScope,
-        new LazyBodyNode(body),
-        section,
-        type,
-        methodName);
+        language, localScope, moduleScope, new LazyBodyNode(body), section, type, methodName);
   }
 
   public static MethodRootNode build(
@@ -85,8 +83,66 @@ public class MethodRootNode extends ClosureRootNode {
       SourceSection section,
       Type type,
       String methodName) {
-    return new MethodRootNode(
-        language, localScope, moduleScope, body, section, type, methodName);
+    return new MethodRootNode(language, localScope, moduleScope, body, section, type, methodName);
+  }
+
+  /**
+   * Builds root node for {@link AtomConstructor#getConstructorFunction() constructor function} of
+   * the provided {@code constructor}.
+   *
+   * @param language the language identifier
+   * @param localScope a description of the local scope
+   * @param moduleScope a description of the module scope
+   * @param body the program provider to be executed
+   * @param section a mapping from {@code provider} to the program source
+   * @param constructor constructor specifying type and name
+   * @return a node representing the specified closure
+   * @see #constructorFor(Function)
+   */
+  public static MethodRootNode buildConstructor(
+      EnsoLanguage language,
+      LocalScope localScope,
+      ModuleScope moduleScope,
+      ExpressionNode body,
+      SourceSection section,
+      AtomConstructor constructor) {
+    return new Constructor(language, localScope, moduleScope, body, section, constructor);
+  }
+
+  /**
+   * Finds constructor for given {@link AtomConstructor#getConstructorFunction() constructor
+   * function}.
+   *
+   * @param fn the function
+   * @return constructor or {@code null}
+   */
+  public static AtomConstructor constructorFor(Function fn) {
+    if (fn.getCallTarget().getRootNode() instanceof MethodRootNode node) {
+      return node instanceof Constructor consNode ? consNode.constructor : null;
+    } else {
+      return null;
+    }
+  }
+
+  public static MethodRootNode buildOperator(
+      EnsoLanguage language,
+      LocalScope localScope,
+      ModuleScope moduleScope,
+      Supplier<ExpressionNode> readLeft,
+      Supplier<ExpressionNode> readRight,
+      Supplier<ExpressionNode> body,
+      SourceSection section,
+      Type type,
+      String methodName) {
+    Supplier<ExpressionNode> supplyWholeBody =
+        () -> {
+          var readLeftNode = readLeft.get();
+          var readRightNode = readRight.get();
+          var exprNode = body.get();
+          var operatorNode = new BinaryOperatorNode(readLeftNode, readRightNode, exprNode);
+          return operatorNode;
+        };
+    return build(language, localScope, moduleScope, supplyWholeBody, section, type, methodName);
   }
 
   /**
@@ -105,12 +161,16 @@ public class MethodRootNode extends ClosureRootNode {
         + methodName;
   }
 
-  /** @return the constructor this method was defined for */
+  /**
+   * @return the constructor this method was defined for
+   */
   public Type getType() {
     return type;
   }
 
-  /** @return the method name */
+  /**
+   * @return the method name
+   */
   public String getMethodName() {
     return methodName;
   }
@@ -160,7 +220,31 @@ public class MethodRootNode extends ClosureRootNode {
       }
     }
   }
+
+  @Override
   public boolean isSubjectToInstrumentation() {
     return true;
+  }
+
+  private static final class Constructor extends MethodRootNode {
+    private final AtomConstructor constructor;
+
+    Constructor(
+        EnsoLanguage language,
+        LocalScope localScope,
+        ModuleScope moduleScope,
+        ExpressionNode body,
+        SourceSection section,
+        AtomConstructor constructor) {
+      super(
+          language,
+          localScope,
+          moduleScope,
+          body,
+          section,
+          constructor.getType(),
+          constructor.getName());
+      this.constructor = constructor;
+    }
   }
 }

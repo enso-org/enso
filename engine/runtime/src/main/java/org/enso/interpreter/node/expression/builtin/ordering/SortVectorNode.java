@@ -1,5 +1,18 @@
 package org.enso.interpreter.node.expression.builtin.ordering;
 
+import com.oracle.truffle.api.CompilerDirectives;
+import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
+import com.oracle.truffle.api.dsl.Cached;
+import com.oracle.truffle.api.dsl.Cached.Shared;
+import com.oracle.truffle.api.dsl.GenerateUncached;
+import com.oracle.truffle.api.dsl.Specialization;
+import com.oracle.truffle.api.frame.MaterializedFrame;
+import com.oracle.truffle.api.frame.VirtualFrame;
+import com.oracle.truffle.api.interop.InteropLibrary;
+import com.oracle.truffle.api.interop.InvalidArrayIndexException;
+import com.oracle.truffle.api.interop.UnsupportedMessageException;
+import com.oracle.truffle.api.library.CachedLibrary;
+import com.oracle.truffle.api.nodes.Node;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -9,19 +22,17 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.stream.Collectors;
-
 import org.enso.interpreter.dsl.AcceptsError;
 import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.node.callable.dispatch.CallOptimiserNode;
 import org.enso.interpreter.node.callable.resolver.MethodResolverNode;
 import org.enso.interpreter.node.expression.builtin.meta.EqualsNode;
-import org.enso.interpreter.node.expression.builtin.meta.TypeOfNode;
 import org.enso.interpreter.node.expression.builtin.text.AnyToTextNode;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
-import org.enso.interpreter.runtime.callable.atom.Atom;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.data.Type;
+import org.enso.interpreter.runtime.data.atom.Atom;
 import org.enso.interpreter.runtime.data.text.Text;
 import org.enso.interpreter.runtime.data.vector.ArrayLikeAtNode;
 import org.enso.interpreter.runtime.data.vector.ArrayLikeHelpers;
@@ -31,20 +42,9 @@ import org.enso.interpreter.runtime.error.PanicException;
 import org.enso.interpreter.runtime.error.Warning;
 import org.enso.interpreter.runtime.error.WarningsLibrary;
 import org.enso.interpreter.runtime.error.WithWarnings;
+import org.enso.interpreter.runtime.library.dispatch.TypeOfNode;
 import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
 import org.enso.interpreter.runtime.state.State;
-
-import com.oracle.truffle.api.CompilerDirectives;
-import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
-import com.oracle.truffle.api.dsl.Cached;
-import com.oracle.truffle.api.dsl.Cached.Shared;
-import com.oracle.truffle.api.dsl.GenerateUncached;
-import com.oracle.truffle.api.dsl.Specialization;
-import com.oracle.truffle.api.interop.InteropLibrary;
-import com.oracle.truffle.api.interop.InvalidArrayIndexException;
-import com.oracle.truffle.api.interop.UnsupportedMessageException;
-import com.oracle.truffle.api.library.CachedLibrary;
-import com.oracle.truffle.api.nodes.Node;
 
 /**
  * Sorts a vector with elements that have only Default_Comparator, thus, only elements with a
@@ -79,6 +79,7 @@ public abstract class SortVectorNode extends Node {
    * @return A new, sorted vector.
    */
   public abstract Object execute(
+      VirtualFrame frame,
       State state,
       @AcceptsError Object self,
       long ascending,
@@ -101,8 +102,9 @@ public abstract class SortVectorNode extends Node {
         "areAllDefaultComparators(lengthNode, atNode, comparators)",
         "interop.isNull(byFunc)",
         "interop.isNull(onFunc)"
-      }, limit = "3")
+      })
   Object sortPrimitives(
+      VirtualFrame frame,
       State state,
       Object self,
       long ascending,
@@ -133,7 +135,14 @@ public abstract class SortVectorNode extends Node {
     }
     var javaComparator =
         createDefaultComparator(
-            lessThanNode, equalsNode, typeOfNode, toTextNode, ascending, problemBehavior, interop);
+            frame.materialize(),
+            lessThanNode,
+            equalsNode,
+            typeOfNode,
+            toTextNode,
+            ascending,
+            problemBehavior,
+            interop);
     try {
       return sortPrimitiveVector(elems, javaComparator);
     } catch (CompareException e) {
@@ -144,6 +153,7 @@ public abstract class SortVectorNode extends Node {
 
   @TruffleBoundary
   private DefaultSortComparator createDefaultComparator(
+      MaterializedFrame frame,
       LessThanNode lessThanNode,
       EqualsNode equalsNode,
       TypeOfNode typeOfNode,
@@ -152,6 +162,7 @@ public abstract class SortVectorNode extends Node {
       long problemBehaviorNum,
       InteropLibrary interop) {
     return new DefaultSortComparator(
+        frame,
         lessThanNode,
         equalsNode,
         typeOfNode,
@@ -167,6 +178,7 @@ public abstract class SortVectorNode extends Node {
         "interop.hasArrayElements(self)",
       })
   Object sortGeneric(
+      MaterializedFrame frame,
       State state,
       Object self,
       long ascending,
@@ -189,8 +201,7 @@ public abstract class SortVectorNode extends Node {
     var problemBehavior = ProblemBehavior.fromInt((int) problemBehaviorNum);
     // Split into groups
     List<Object> elems = readInteropArray(lengthNode, atNode, warningsLib, self);
-    List<Type> comparators =
-        readInteropArray(lengthNode, atNode, warningsLib, comparatorsArray);
+    List<Type> comparators = readInteropArray(lengthNode, atNode, warningsLib, comparatorsArray);
     List<Function> compareFuncs =
         readInteropArray(lengthNode, atNode, warningsLib, compareFuncsArray);
     List<Group> groups = splitByComparators(elems, comparators, compareFuncs);
@@ -209,6 +220,7 @@ public abstract class SortVectorNode extends Node {
         if (interop.isNull(byFunc) && interop.isNull(onFunc) && isPrimitiveGroup(group)) {
           javaComparator =
               new DefaultSortComparator(
+                  frame,
                   lessThanNode,
                   equalsNode,
                   typeOfNode,
@@ -266,12 +278,15 @@ public abstract class SortVectorNode extends Node {
         }
         case REPORT_WARNING -> {
           return attachDifferentComparatorsWarning(
-              attachWarnings(sortedVector, gatheredWarnings), groups);
+              gatheredWarnings.isEmpty()
+                  ? sortedVector
+                  : attachWarnings(sortedVector, gatheredWarnings),
+              groups);
         }
         case IGNORE -> {
           return sortedVector;
         }
-        default -> throw new IllegalStateException("unreachable");
+        default -> throw EnsoContext.get(this).raiseAssertionPanic(this, "unreachable", null);
       }
     } catch (CompareException e) {
       return DataflowError.withoutTrace(
@@ -425,7 +440,8 @@ public abstract class SortVectorNode extends Node {
       return 50;
     } else {
       // Type is not a builtin type
-      throw new IllegalStateException("Should be a builtin type: " + builtinType);
+      throw EnsoContext.get(this)
+          .raiseAssertionPanic(this, "Should be a builtin type: " + builtinType, null);
     }
   }
 
@@ -449,8 +465,7 @@ public abstract class SortVectorNode extends Node {
 
   /** Returns true iff the given array of comparators is all Default_Comparator */
   boolean areAllDefaultComparators(
-    ArrayLikeLengthNode lengthNode, ArrayLikeAtNode atNode, Object comparators
-  ) {
+      ArrayLikeLengthNode lengthNode, ArrayLikeAtNode atNode, Object comparators) {
     var ctx = EnsoContext.get(this);
     var longSize = 0L;
     try {
@@ -557,12 +572,14 @@ public abstract class SortVectorNode extends Node {
    */
   final class DefaultSortComparator extends SortComparator {
 
+    private final MaterializedFrame frame;
     private final LessThanNode lessThanNode;
     private final EqualsNode equalsNode;
     private final TypeOfNode typeOfNode;
     private final boolean ascending;
 
     private DefaultSortComparator(
+        MaterializedFrame frame,
         LessThanNode lessThanNode,
         EqualsNode equalsNode,
         TypeOfNode typeOfNode,
@@ -571,6 +588,7 @@ public abstract class SortVectorNode extends Node {
         ProblemBehavior problemBehavior,
         InteropLibrary interop) {
       super(toTextNode, problemBehavior, interop);
+      this.frame = frame;
       this.lessThanNode = lessThanNode;
       this.equalsNode = equalsNode;
       this.typeOfNode = typeOfNode;
@@ -583,7 +601,7 @@ public abstract class SortVectorNode extends Node {
     }
 
     int compareValuesWithDefaultComparator(Object x, Object y) {
-      if (equalsNode.execute(x, y)) {
+      if (equalsNode.execute(frame, x, y)) {
         return 0;
       } else {
         // Check if x < y
@@ -666,9 +684,8 @@ public abstract class SortVectorNode extends Node {
   /**
    * Helper class that returns the comparator function.
    *
-   * The class is introduced to handle the presence of {@code UnresolvedSymbol},
-   * as the comparator function, which has to be first resolved before it
-   * can be used to compare values.
+   * <p>The class is introduced to handle the presence of {@code UnresolvedSymbol}, as the
+   * comparator function, which has to be first resolved before it can be used to compare values.
    */
   private abstract class Compare {
 
@@ -687,7 +704,6 @@ public abstract class SortVectorNode extends Node {
      * @return a non-null comparator function.
      */
     abstract Function get(Object arg);
-
   }
 
   private final class CompareFromFunction extends Compare {
@@ -719,21 +735,22 @@ public abstract class SortVectorNode extends Node {
     private final MethodResolverNode methodResolverNode;
     private final TypesLibrary typesLibrary;
 
-    private CompareFromUnresolvedSymbol(UnresolvedSymbol unresolvedSymbol,
-                                        MethodResolverNode methodResolvedNode,
-                                        TypesLibrary typesLibrary) {
+    private CompareFromUnresolvedSymbol(
+        UnresolvedSymbol unresolvedSymbol,
+        MethodResolverNode methodResolvedNode,
+        TypesLibrary typesLibrary) {
       this.unresolvedSymbol = unresolvedSymbol;
       this.methodResolverNode = methodResolvedNode;
       this.typesLibrary = typesLibrary;
-
     }
 
     @Override
     boolean hasFunctionSelfArgument(Object definedOn) {
-      var resolvedFunction = methodResolverNode.expectNonNull(definedOn, typesLibrary.getType(definedOn), unresolvedSymbol);
-      return resolvedFunction.getSchema().getArgumentsCount() > 0 &&
-        resolvedFunction.getSchema().getArgumentInfos()[0].getName().equals("self");
-
+      var resolvedFunction =
+          methodResolverNode.expectNonNull(
+              definedOn, typesLibrary.getType(definedOn), unresolvedSymbol);
+      return resolvedFunction.getSchema().getArgumentsCount() > 0
+          && resolvedFunction.getSchema().getArgumentInfos()[0].getName().equals("self");
     }
 
     @Override
@@ -750,6 +767,7 @@ public abstract class SortVectorNode extends Node {
   private final class GenericSortComparator extends SortComparator {
 
     private final boolean ascending;
+
     /**
      * Either function from `by` parameter to the `Vector.sort` method, or the `compare` function
      * extracted from the comparator for the appropriate group.
@@ -806,8 +824,10 @@ public abstract class SortVectorNode extends Node {
       Object yConverted;
       if (hasCustomOnFunc) {
         // onFunc cannot have `self` argument, we assume it has just one argument.
-        xConverted = callNode.executeDispatch(null, onFunc.get(x), null, state, new Object[]{x}, null);
-        yConverted = callNode.executeDispatch(null, onFunc.get(y), null, state, new Object[]{y}, null);
+        xConverted =
+            callNode.executeDispatch(null, onFunc.get(x), null, state, new Object[] {x}, null);
+        yConverted =
+            callNode.executeDispatch(null, onFunc.get(y), null, state, new Object[] {y}, null);
       } else {
         xConverted = x;
         yConverted = y;
@@ -818,7 +838,8 @@ public abstract class SortVectorNode extends Node {
       } else {
         args = new Object[] {xConverted, yConverted};
       }
-      Object res = callNode.executeDispatch(null, compareFunc.get(xConverted), null, state, args, null);
+      Object res =
+          callNode.executeDispatch(null, compareFunc.get(xConverted), null, state, args, null);
       if (res == less) {
         return ascending ? -1 : 1;
       } else if (res == equal) {
@@ -839,20 +860,30 @@ public abstract class SortVectorNode extends Node {
      * Checks value given for {@code by} parameter and converts it to {@link Function}. Throw a
      * dataflow error otherwise.
      */
-    private Compare checkAndConvertByFunc(Object byFuncObj, TypesLibrary typesLibrary, MethodResolverNode methodResolverNode) {
+    private Compare checkAndConvertByFunc(
+        Object byFuncObj, TypesLibrary typesLibrary, MethodResolverNode methodResolverNode) {
       return checkAndConvertFunction(
-          byFuncObj, "Unsupported argument for `by`, expected a method with two arguments", 2, 3,
-              typesLibrary, methodResolverNode);
+          byFuncObj,
+          "Unsupported argument for `by`, expected a method with two arguments",
+          2,
+          3,
+          typesLibrary,
+          methodResolverNode);
     }
 
     /**
      * Checks the value given for {@code on} parameter and converts it to {@link Function}. Throws a
      * dataflow error otherwise.
      */
-    private Compare checkAndConvertOnFunc(Object onFuncObj, TypesLibrary typesLibrary, MethodResolverNode methodResolverNode) {
+    private Compare checkAndConvertOnFunc(
+        Object onFuncObj, TypesLibrary typesLibrary, MethodResolverNode methodResolverNode) {
       return checkAndConvertFunction(
-          onFuncObj, "Unsupported argument for `on`, expected a method with one argument", 1, 1,
-              typesLibrary, methodResolverNode);
+          onFuncObj,
+          "Unsupported argument for `on`, expected a method with one argument",
+          1,
+          1,
+          typesLibrary,
+          methodResolverNode);
     }
 
     /**
@@ -862,8 +893,12 @@ public abstract class SortVectorNode extends Node {
      * @param typesLibrary types library for resolving the dispatch type for unresolved symbols.
      */
     private Compare checkAndConvertFunction(
-        Object funcObj, String errMsg, int minArgCount, int maxArgCount,
-        TypesLibrary typesLibrary, MethodResolverNode methodResolverNode) {
+        Object funcObj,
+        String errMsg,
+        int minArgCount,
+        int maxArgCount,
+        TypesLibrary typesLibrary,
+        MethodResolverNode methodResolverNode) {
       if (funcObj instanceof UnresolvedSymbol unresolved) {
         return new CompareFromUnresolvedSymbol(unresolved, methodResolverNode, typesLibrary);
       }

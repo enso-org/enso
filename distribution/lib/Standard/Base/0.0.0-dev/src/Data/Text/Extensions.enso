@@ -30,12 +30,12 @@ import project.Errors.Illegal_Argument.Illegal_Argument
 import project.Errors.Problem_Behavior.Problem_Behavior
 import project.Errors.Time_Error.Time_Error
 import project.Meta
-import project.Network.URI.URI
 import project.Nothing.Nothing
 from project.Data.Boolean import Boolean, False, True
 from project.Data.Json import Invalid_JSON, JS_Object, Json
 from project.Data.Numbers import Float, Integer, Number, Number_Parse_Error
 from project.Data.Range.Extensions import all
+from project.Metadata import Display, Widget
 from project.Widget_Helpers import make_date_format_selector, make_date_time_format_selector, make_delimiter_selector, make_regex_text_widget, make_time_format_selector
 
 polyglot java import com.ibm.icu.lang.UCharacter
@@ -46,6 +46,7 @@ polyglot java import org.enso.base.Regex_Utils
 polyglot java import org.enso.base.Text_Utils
 
 ## GROUP Text
+   ICON text
    Returns a new `Text` object with the characters in the reverse order of the input.
 
    ! What is a Character?
@@ -96,6 +97,7 @@ Text.each self function =
 
 ## ALIAS get character
    GROUP Selections
+   ICON split_text
 
    Returns a character from the text at the specified index (0-based).
 
@@ -114,11 +116,13 @@ Text.each self function =
      Get the individual characters in the text "건반(Korean)".
 
          "건반(Korean)".at 1 == "반"
+@index (t-> Widget.Numeric_Input minimum=0 maximum=t.length display=Display.Always)
 Text.at : Integer -> Text ! Index_Out_Of_Bounds
 Text.at self index =
     self.get index (Error.throw (Index_Out_Of_Bounds.Error index self.length))
 
 ## ALIAS get character
+   ICON split_text
 
    Returns a character from the text at the specified index (0-based).
    If the index is invalid then `if_missing` is returned.
@@ -139,6 +143,7 @@ Text.at self index =
      Get the individual characters in the text "건반(Korean)".
 
          "건반(Korean)".get 1 == "반"
+@index (t-> Widget.Numeric_Input minimum=0 maximum=t.length display=Display.Always)
 Text.get : Integer -> Any -> Any
 Text.get self index ~if_missing=Nothing =
     new_index = if index < 0 then index + self.length else index
@@ -151,6 +156,7 @@ Text.get self index ~if_missing=Nothing =
             Text_Utils.substring self first next
 
 ## GROUP Selections
+   ICON split_text
    Returns the first character from the text.
 
    ! What is a Character?
@@ -166,6 +172,7 @@ Text.first : Text ! Index_Out_Of_Bounds
 Text.first self = self.at 0
 
 ## GROUP Selections
+   ICON split_text
    Returns the second character from the text.
 
    ! What is a Character?
@@ -181,6 +188,7 @@ Text.second : Text ! Index_Out_Of_Bounds
 Text.second self = self.at 1
 
 ## GROUP Selections
+   ICON split_text
    Returns the last character from the text.
 
    ! What is a Character?
@@ -197,6 +205,7 @@ Text.last self = self.at -1
 
 ## ALIAS get characters
    GROUP Text
+   ICON convert
 
    Returns a vector containing all characters in the given text.
 
@@ -216,6 +225,7 @@ Text.characters self =
     bldr.to_vector
 
 ## GROUP Selections
+   ICON find
    Find the regular expression `pattern` in `self`, returning the first match
    if present or `Nothing` if not found.
 
@@ -244,6 +254,7 @@ Text.find self pattern=".*" case_sensitivity=Case_Sensitivity.Sensitive =
     compiled_pattern.match self
 
 ## GROUP Selections
+   ICON find
    Finds all the matches of the regular expression `pattern` in `self`,
    returning a Vector. If not found, will be an empty Vector.
 
@@ -273,6 +284,7 @@ Text.find_all self pattern=".*" case_sensitivity=Case_Sensitivity.Sensitive =
 
 ## ALIAS check matches
    GROUP Text
+   ICON preparation
 
    Checks if the whole text in `self` matches a provided `pattern`.
 
@@ -303,6 +315,7 @@ Text.match self pattern=".*" case_sensitivity=Case_Sensitivity.Sensitive =
     compiled_pattern.matches self
 
 ## GROUP Text
+   ICON text
    Compile the text into a regex pattern that can be used for matching.
 
    Arguments
@@ -322,6 +335,7 @@ Text.to_regex self case_insensitive=False = Regex.compile self case_insensitive
 
 ## ALIAS split text
    GROUP Conversions
+   ICON split_text
 
    Takes a delimiter and returns the vector that results from splitting `self`
    on each of its occurrences.
@@ -386,6 +400,7 @@ Text.split self delimiter="," case_sensitivity=Case_Sensitivity.Sensitive use_re
 
 ## ADVANCED
    GROUP Conversions
+   ICON split_text
    Takes an input string and and a pattern and returns all the matches as a
    `Vector Text`. If the pattern contains marked groups, the values are
    concatenated together; otherwise the whole match is returned.
@@ -418,6 +433,7 @@ Text.tokenize self pattern="." case_sensitivity=Case_Sensitivity.Sensitive =
 
 ## ALIAS replace text
    GROUP Text
+   ICON text
    Perform a text or regex replace.
 
    Returns the text with all matched elements replaced by the provided
@@ -511,6 +527,7 @@ Text.replace self term:(Text | Regex) replacement:Text (case_sensitivity:Case_Se
 
 ## ALIAS get words
    GROUP Text
+   ICON text
 
    Returns a vector containing all words in the given text.
 
@@ -555,6 +572,7 @@ Text.words self keep_whitespace=False =
 
 ## ALIAS get lines
    GROUP Text
+   ICON text
 
    Splits the text into lines, based on '\n', '\r' or '\r\n' line endings.
 
@@ -582,6 +600,7 @@ Text.lines self keep_endings=False =
     Vector.from_polyglot_array (Text_Utils.split_on_lines self keep_endings)
 
 ## GROUP Text
+   ICON text_input
    Inserts text value at the specified index.
 
    Arguments:
@@ -615,6 +634,7 @@ Text.insert self index that =
                 pre + that + post
 
 ## GROUP Logical
+   ICON metadata
    Returns if a character from the text at the specified index (0-based) is a
    digit (0-9).
 
@@ -643,6 +663,7 @@ Text.is_digit self (index=0) =
     char>=48 && char<=57
 
 ## GROUP Logical
+   ICON metadata
    Checks if the text consists only of whitespace characters.
 
    > Example
@@ -655,6 +676,7 @@ Text.is_whitespace self =
     Text_Utils.is_all_whitespace self
 
 ## ADVANCED
+   ICON convert
    Returns a vector containing bytes representing the specified encoding of the
    input text.
 
@@ -680,7 +702,8 @@ Text.bytes self encoding on_problems=Problem_Behavior.Report_Warning =
     if result.warnings.is_nothing then vector else
         on_problems.attach_problems_after vector [Encoding_Error.Error result.warnings]
 
-## Takes a vector of bytes and returns Text resulting from decoding it using the
+## ICON convert
+   Takes a vector of bytes and returns Text resulting from decoding it using the
    specified encoding.
 
    Arguments:
@@ -700,7 +723,8 @@ Text.from_bytes bytes encoding on_problems=Problem_Behavior.Report_Error =
     if result.warnings.is_nothing then result.result else
         on_problems.attach_problems_after result.result [Encoding_Error.Error result.warnings]
 
-## Returns a vector containing bytes representing the UTF-8 encoding of the
+## ICON convert
+   Returns a vector containing bytes representing the UTF-8 encoding of the
    input text.
 
    This is useful for low-level operations, such as binary data encoding and
@@ -721,7 +745,8 @@ Text.utf_8 : Problem_Behavior -> Vector Integer
 Text.utf_8 self on_problems=Problem_Behavior.Report_Warning =
     self.bytes Encoding.utf_8 on_problems
 
-## Takes a vector of bytes and returns Text resulting from decoding it as UTF-8.
+## ICON convert
+   Takes a vector of bytes and returns Text resulting from decoding it as UTF-8.
 
    Arguments:
    - bytes: The vector of UTF-8 bytes.
@@ -739,7 +764,8 @@ Text.from_utf_8 : Vector Integer -> Problem_Behavior -> Text
 Text.from_utf_8 bytes on_problems=Problem_Behavior.Report_Error =
     Text.from_bytes bytes Encoding.utf_8 on_problems
 
-## Returns a vector containing the UTF-16 characters that encode the input text.
+## ICON convert
+   Returns a vector containing the UTF-16 characters that encode the input text.
 
    This is useful for low-level operations, such as binary data encoding and
    decoding.
@@ -751,7 +777,8 @@ Text.from_utf_8 bytes on_problems=Problem_Behavior.Report_Error =
 Text.char_vector : Vector Integer
 Text.char_vector self = Vector.from_polyglot_array (Text_Utils.get_chars self)
 
-## Takes a vector of characters and returns the text that results from it.
+## ICON convert
+   Takes a vector of characters and returns the text that results from it.
 
    Arguments:
    - chars: The vector of UTF-16 characters.
@@ -761,7 +788,8 @@ Text.char_vector self = Vector.from_polyglot_array (Text_Utils.get_chars self)
 Text.from_char_vector : Vector Integer -> Text
 Text.from_char_vector chars = Text_Utils.from_chars chars
 
-## Returns a vector containing integers representing the Unicode codepoints of
+## ICON convert
+   Returns a vector containing integers representing the Unicode codepoints of
    the input text.
 
    This is useful for low-level operations, such as binary data encoding and
@@ -774,7 +802,8 @@ Text.from_char_vector chars = Text_Utils.from_chars chars
 Text.codepoints : Vector Integer
 Text.codepoints self = Vector.from_polyglot_array (Text_Utils.get_codepoints self)
 
-## Takes an array of numbers and returns the text resulting from interpreting it
+## ICON convert
+   Takes an array of numbers and returns the text resulting from interpreting it
    as a sequence of Unicode codepoints.
 
    This is useful for low-level operations, such as binary data encoding and
@@ -788,6 +817,7 @@ Text.from_codepoints codepoints = Text_Utils.from_codepoints codepoints
 
 ## ALIAS check prefix
    GROUP Text
+   ICON preparation
 
    Checks whether `self` starts with `prefix`.
 
@@ -822,6 +852,7 @@ Text.starts_with self prefix case_sensitivity=Case_Sensitivity.Sensitive = case 
 
 ## ALIAS check suffix
    GROUP Text
+   ICON preparation
 
    Checks whether `self` ends with `suffix`.
 
@@ -851,6 +882,7 @@ Text.ends_with self suffix case_sensitivity=Case_Sensitivity.Sensitive = case ca
 
 ## ALIAS contains
    GROUP Logical
+   ICON preparation
 
    Checks whether `self` contains `sequence` as its substring.
    Returns: `True` if term is found within `self`. `False` otherwise.
@@ -893,6 +925,7 @@ Text.contains self term="" case_sensitivity=Case_Sensitivity.Sensitive = case ca
         Text_Utils.contains_case_insensitive self term locale.java_locale
 
 ## GROUP Operators
+   ICON text
    Takes an integer and returns a new text, consisting of `count` concatenated
    copies of `self`.
 
@@ -913,6 +946,7 @@ Text.* : Integer -> Text
 Text.* self count = self.repeat count
 
 ## GROUP Calculations
+   ICON text
    Takes an integer and returns a new text, consisting of `count` concatenated
    copies of `self`.
 
@@ -933,8 +967,9 @@ Text.repeat : Integer -> Text
 Text.repeat self count=1 =
     0.up_to count . fold "" acc-> _-> acc + self
 
-## ALIAS first, last, left, mid, right, slice, substring
+## ALIAS first, head, last, left, limit, mid, right, slice, substring, tail, top
    GROUP Selections
+   ICON split_text
    Creates a new Text by selecting the specified range of the input.
 
    This can select a section of text from the beginning, end, or middle of the
@@ -983,6 +1018,7 @@ Text.take self range=(Index_Sub_Range.First 1) =
 
 ## ALIAS remove, skip
    GROUP Selections
+   ICON split_text
    Creates a new Text by removing the specified range of the input.
 
    This can select a section of text from the beginning, end, or middle of the
@@ -1037,6 +1073,7 @@ Text.drop self range=(Index_Sub_Range.First 1) =
 
 ## ALIAS lower, proper, title, upper
    GROUP Text
+   ICON text
    Converts each character in `self` to the specified case.
 
    Arguments:
@@ -1074,6 +1111,7 @@ Text.to_case self case_option=Case.Lower locale=Locale.default = case case_optio
     Case.Title -> UCharacter.toTitleCase locale.java_locale self Nothing
 
 ## GROUP Calculations
+   ICON text
    Returns the input padded to the specified `length`, using the `with_pad`
    string repeated at the start or the end.
 
@@ -1115,6 +1153,7 @@ Text.pad self length=0 with_pad=' ' at=Location.End = case at of
                         self + with_pad.repeat full_repetitions + with_pad.take (Index_Sub_Range.First remainder)
 
 ## GROUP Text
+   ICON text
    This function removes the specified `trim_characters`, by default any
    whitespace, from the start, the end, or both ends of the input.
 
@@ -1170,6 +1209,7 @@ Text.trim self where=Location.Both what=_.is_whitespace =
 
 ## ALIAS position_of, span_of
    GROUP Text
+   ICON find
    Find the location of the `term` in the input.
    Returns a Span representing the location at which the term was found, or
    `Nothing` if the term was not found in the input.
@@ -1272,6 +1312,7 @@ Text.locate self term="" mode=Matching_Mode.First case_sensitivity=Case_Sensitiv
 
 ## ALIAS index_of_all, position_of_all, span_of_all
    GROUP Text
+   ICON find
    Finds all the locations of the `term` in the input.
    If not found, the function returns an empty Vector.
 
@@ -1350,6 +1391,7 @@ Text.locate_all self term="" case_sensitivity=Case_Sensitivity.Sensitive = if te
             Span.Value (grapheme_span.grapheme_start.up_to grapheme_span.grapheme_end) self
 
 ## GROUP Values
+   ICON find
    Find the first index of the `term` in the input.
    Returns `Nothing` if the term was not found in the input.
 
@@ -1376,7 +1418,7 @@ Text.locate_all self term="" case_sensitivity=Case_Sensitivity.Sensitive = if te
          "Hello World!".index_of "J" == Nothing
          "Hello World!".index_of "o" == 4
 Text.index_of : Text -> Integer -> Case_Sensitivity -> Integer | Nothing
-Text.index_of self term="" start=0 case_sensitivity=Case_Sensitivity.Sensitive =
+Text.index_of self term="" (start : Integer = 0) case_sensitivity=Case_Sensitivity.Sensitive =
     used_start = if start < 0 then start+self.length else start
     if used_start < 0 || used_start > self.length then Error.throw (Index_Out_Of_Bounds.Error start self.length+1) else
         used = if used_start == 0 then self else self.drop used_start
@@ -1384,6 +1426,7 @@ Text.index_of self term="" start=0 case_sensitivity=Case_Sensitivity.Sensitive =
         if span.is_nothing then Nothing else span.start+used_start
 
 ## GROUP Values
+   ICON find
    Find the last index of the `term` in the input.
    Returns `Nothing` if the term was not found in the input.
 
@@ -1419,6 +1462,7 @@ Text.last_index_of self term="" start=-1 case_sensitivity=Case_Sensitivity.Sensi
 
 ## ALIAS float from text, to_float
    GROUP Conversions
+   ICON convert
 
    Parses a textual representation of a float into a float number, returning
    a `Number_Parse_Error` if the text does not represent a valid float.
@@ -1436,6 +1480,7 @@ Text.parse_float self locale=Nothing = Float.parse self locale
 
 ## ALIAS integer from text, to_integer
    GROUP Conversions
+   ICON convert
 
    Parses a textual representation of an integer into an integer number, returning
    a `Number_Parse_Error` if the text does not represent a valid integer.
@@ -1448,11 +1493,11 @@ Text.parse_float self locale=Nothing = Float.parse self locale
      Parse the text "20220216" into an integer number.
 
         "20220216".parse
-Text.parse_integer : Integer -> Integer ! Number_Parse_Error
-Text.parse_integer self (radix=10) = Integer.parse_builtin self radix
+Text.parse_integer self (radix:Integer = 10) -> Integer ! Number_Parse_Error = Integer.parse self radix
 
 ## ALIAS json from text
    GROUP Conversions
+   ICON convert
 
    Parse a Text value into a `JS_Object` or an Enso primitive value (like
    `Text`, `Number`, `Boolean`, `Nothing`), or a `Vector` of values.
@@ -1466,6 +1511,7 @@ Text.parse_json self = Json.parse self
 
 ## ALIAS date from text, to_date
    GROUP Conversions
+   ICON convert
 
    Converts text containing a date into a Date object.
 
@@ -1556,6 +1602,7 @@ Text.parse_date self format:Date_Time_Formatter=Date_Time_Formatter.iso_date =
 
 ## ALIAS date_time from text
    GROUP Conversions
+   ICON convert
 
    Obtains an instance of `Date_Time` from a text such as
    "2007-12-03T10:15:30+01:00 Europe/Paris".
@@ -1676,6 +1723,7 @@ Text.parse_date_time self format:Date_Time_Formatter=Date_Time_Formatter.default
 
 ## ALIAS time_of_day from text, to_time_of_day
    GROUP Conversions
+   ICON convert
 
    Obtains an instance of `Time_Of_Day` from a text such as "10:15".
 
@@ -1753,6 +1801,7 @@ Text.parse_time_of_day self format:Date_Time_Formatter=Date_Time_Formatter.iso_t
 
 ## ALIAS time_zone from text, to_time_zone
    GROUP Conversions
+   ICON convert
 
    This method parses the ID producing a `Time_Zone`.
 
@@ -1788,6 +1837,7 @@ Text.parse_time_zone self = Time_Zone.parse self
 
 ## ALIAS mid, slice, substring
    GROUP Selections
+   ICON split_text
    Creates a new Text by selecting the specified range of the input.
 
    Arguments:

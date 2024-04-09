@@ -96,6 +96,13 @@ case class SimpleReplIO(in: InputStream, out: OutputStream) extends ReplIO {
 /** An implementation of [[ReplIO]] using system terminal capabilities.
   */
 case class TerminalIO(historyFilePath: Path) extends ReplIO {
+  // jline uses the class loader from `Thread.currentThread().getContextClassLoader()` to
+  // load services. We need to override the context class loader to be `IsolatedClassLoader`
+  // from the runner.jar class loader.
+  private val prevClassLoader = Thread.currentThread().getContextClassLoader
+  Thread
+    .currentThread()
+    .setContextClassLoader(classOf[TerminalIO].getClassLoader)
   private val terminal: Terminal =
     TerminalBuilder.builder().system(true).build()
   private val parser: DefaultParser = new DefaultParser()
@@ -109,6 +116,7 @@ case class TerminalIO(historyFilePath: Path) extends ReplIO {
       .history(history)
       .terminal(terminal)
       .build()
+  Thread.currentThread().setContextClassLoader(prevClassLoader)
 
   Runtime.getRuntime.addShutdownHook(new Thread() {
     override def run(): Unit = {

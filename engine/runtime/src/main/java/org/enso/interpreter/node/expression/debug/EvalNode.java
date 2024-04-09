@@ -8,17 +8,17 @@ import com.oracle.truffle.api.dsl.ReportPolymorphism;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.nodes.NodeInfo;
 import org.enso.compiler.context.InlineContext;
+import org.enso.compiler.context.LocalScope;
 import org.enso.interpreter.Constants;
 import org.enso.interpreter.node.BaseNode;
 import org.enso.interpreter.node.ClosureRootNode;
-import org.enso.interpreter.node.ExpressionNode;
 import org.enso.interpreter.node.callable.thunk.ThunkExecutorNode;
 import org.enso.interpreter.node.expression.builtin.text.util.ToJavaStringNode;
 import org.enso.interpreter.runtime.EnsoContext;
+import org.enso.interpreter.runtime.IrToTruffle;
 import org.enso.interpreter.runtime.callable.CallerInfo;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.data.text.Text;
-import org.enso.interpreter.runtime.scope.LocalScope;
 import org.enso.interpreter.runtime.scope.ModuleScope;
 import org.enso.interpreter.runtime.state.State;
 
@@ -64,14 +64,29 @@ public abstract class EvalNode extends BaseNode {
   RootCallTarget parseExpression(LocalScope scope, ModuleScope moduleScope, String expression) {
     EnsoContext context = EnsoContext.get(this);
     LocalScope localScope = scope.createChild();
+    var compiler = context.getCompiler();
     InlineContext inlineContext =
         InlineContext.fromJava(
-            localScope, moduleScope, getTailStatus(), context.getCompilerConfig());
-    ExpressionNode expr =
-        context.getCompiler().runInline(expression, inlineContext).getOrElse(() -> null);
-    if (expr == null) {
+            localScope,
+            moduleScope.getModule().asCompilerModule(),
+            scala.Option.apply(getTailStatus() != TailStatus.NOT_TAIL),
+            context.getCompilerConfig(),
+            scala.Option.apply(compiler.packageRepository()));
+
+    var tuppleOption = compiler.runInline(expression, inlineContext);
+    if (tuppleOption.isEmpty()) {
       throw new RuntimeException("Invalid code passed to `eval`: " + expression);
     }
+    var newInlineContext = tuppleOption.get()._1();
+    var ir = tuppleOption.get()._2();
+    var src = tuppleOption.get()._3();
+
+    var sco = newInlineContext.localScope().getOrElse(LocalScope::root);
+    var mod = newInlineContext.module$access$0().module$access$0();
+
+    var m = org.enso.interpreter.runtime.Module.fromCompilerModule(mod);
+    var toTruffle = new IrToTruffle(context, src, m.getScope(), compiler.getConfig());
+    var expr = toTruffle.runInline(ir, sco, "<inline_source>");
 
     if (shouldCaptureResultScope) {
       expr = CaptureResultScopeNode.build(expr);
@@ -98,7 +113,8 @@ public abstract class EvalNode extends BaseNode {
       @Cached("toJavaStringNode.execute(expression)") String expressionStr,
       @Cached("callerInfo") CallerInfo cachedCallerInfo,
       @Cached(
-              "parseExpression(callerInfo.getLocalScope(), callerInfo.getModuleScope(), expressionStr)")
+              "parseExpression(callerInfo.getLocalScope(), callerInfo.getModuleScope(),"
+                  + " expressionStr)")
           RootCallTarget cachedCallTarget,
       @Shared("thunkExecutorNode") @Cached("build()") ThunkExecutorNode thunkExecutorNode) {
     Function thunk = Function.thunk(cachedCallTarget, callerInfo.getFrame());

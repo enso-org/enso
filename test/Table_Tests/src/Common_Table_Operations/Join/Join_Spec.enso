@@ -1,15 +1,18 @@
 from Standard.Base import all
+import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Errors.Illegal_State.Illegal_State
 
-from Standard.Table import all hiding Table
+from Standard.Table import all
 from Standard.Table.Errors import all
 
-from Standard.Database.Errors import Unsupported_Database_Operation
+from Standard.Database import all
+from Standard.Database.Errors import Unsupported_Database_Operation, Integrity_Error
 
-from Standard.Test import Test, Problems
-import Standard.Test.Extensions
+from Standard.Test import all
 
 from project.Common_Table_Operations.Util import expect_column_names, run_default_backend, within_table
+
+main filter=Nothing = run_default_backend add_specs filter
 
 type My_Type
     Value x y
@@ -23,28 +26,52 @@ type My_Type_Comparator
 
 Comparable.from (_:My_Type) = My_Type_Comparator
 
-main = run_default_backend spec
+type Data
+    Value ~data
 
-spec setup =
+    connection self = self.data.at 0
+    t1 self = self.data.at 1
+    t2 self = self.data.at 2
+    t3 self = self.data.at 3
+    t4 self = self.data.at 4
+
+    setup create_connection_fn table_builder = Data.Value <|
+        connection = create_connection_fn Nothing
+        t1 = table_builder [["X", [1, 2, 3]], ["Y", [4, 5, 6]]] connection=connection
+        t2 = table_builder [["Z", [2, 3, 2, 4]], ["W", [4, 5, 6, 7]]] connection=connection
+        t3 = table_builder [["X", [1, 1, 1, 2, 2, 2]], ["Y", ["A", "B", "B", "C", "C", "A"]], ["Z", [1, 2, 3, 4, 5, 6]]] connection=connection
+        t4 = table_builder [["X", [1, 1, 3, 2, 2, 4]], ["Y", ["B", "B", "C", "C", "D", "A"]], ["Z", [1, 2, 3, 4, 5, 6]]] connection=connection
+        [connection, t1, t2, t3, t4]
+
+    teardown self = self.connection.close
+
+
+add_specs suite_builder setup =
     prefix = setup.prefix
     table_builder = setup.table_builder
+    create_connection_fn = setup.create_connection_func
     materialize = setup.materialize
-    db_todo = if setup.is_database.not then Nothing else "ToDo: handling NULLs in equality conditions."
-    Test.group prefix+"Table.join" <|
-        t1 = table_builder [["X", [1, 2, 3]], ["Y", [4, 5, 6]]]
-        t2 = table_builder [["Z", [2, 3, 2, 4]], ["W", [4, 5, 6, 7]]]
 
-        Test.specify "should by default do a Left Outer join on equality of first column in the left table, correlated with column of the same name in the right one" <|
+    suite_builder.group prefix+"Table.join" group_builder->
+        data = Data.setup create_connection_fn table_builder
+
+        group_builder.teardown <|
+            data.teardown
+
+        table_builder cols =
+            setup.table_builder cols connection=data.connection
+
+        group_builder.specify "should by default do a Left Outer join on equality of first column in the left table, correlated with column of the same name in the right one" <|
             t3 = table_builder [["Z", [4, 5, 6, 7]], ["X", [2, 3, 2, 4]]]
-            t4 = t1.join t3 |> materialize |> _.order_by ["X", "Z"]
+            t4 = data.t1.join t3 |> materialize |> _.order_by ["X", "Z"]
             expect_column_names ["X", "Y", "Z", "Right X"] t4
             t4.at "X" . to_vector . should_equal   [1, 2, 2, 3]
             t4.at "Y" . to_vector . should_equal   [4, 5, 5, 6]
             t4.at "Right X" . to_vector . should_equal [Nothing, 2, 2, 3]
             t4.at "Z" . to_vector . should_equal   [Nothing, 4, 6, 5]
 
-        Test.specify "should allow Inner join" <|
-            t3 = t1.join t2 join_kind=Join_Kind.Inner on=(Join_Condition.Equals 0 0)
+        group_builder.specify "should allow Inner join" <|
+            t3 = data.t1.join data.t2 join_kind=Join_Kind.Inner on=(Join_Condition.Equals 0 0)
             expect_column_names ["X", "Y", "Z", "W"] t3
             t4 = t3 |> materialize |> _.order_by ["X", "W"]
             t4.at "X" . to_vector . should_equal [2, 2, 3]
@@ -52,35 +79,33 @@ spec setup =
             t4.at "Y" . to_vector . should_equal [5, 5, 6]
             t4.at "W" . to_vector . should_equal [4, 6, 5]
 
-        Test.specify "should allow Full join" <|
-            t3 = t1.join t2 join_kind=Join_Kind.Full on=(Join_Condition.Equals 0 0) |> materialize |> _.order_by ["X", "W"]
+        group_builder.specify "should allow Full join" <|
+            t3 = data.t1.join data.t2 join_kind=Join_Kind.Full on=(Join_Condition.Equals 0 0) |> materialize |> _.order_by ["X", "W"]
             expect_column_names ["X", "Y", "Z", "W"] t3
             t3.at "X" . to_vector . should_equal [Nothing, 1, 2, 2, 3]
             t3.at "Y" . to_vector . should_equal [Nothing, 4, 5, 5, 6]
             t3.at "Z" . to_vector . should_equal [4, Nothing, 2, 2, 3]
             t3.at "W" . to_vector . should_equal [7, Nothing, 4, 6, 5]
 
-        Test.specify "should allow Right Outer join" <|
-            t5 = t1.join t2 join_kind=Join_Kind.Right_Outer on=(Join_Condition.Equals 0 0) |> materialize |> _.order_by ["X", "W"]
+        group_builder.specify "should allow Right Outer join" <|
+            t5 = data.t1.join data.t2 join_kind=Join_Kind.Right_Outer on=(Join_Condition.Equals 0 0) |> materialize |> _.order_by ["X", "W"]
             expect_column_names ["X", "Y", "Z", "W"] t5
             t5.at "X" . to_vector . should_equal [Nothing, 2, 2, 3]
             t5.at "Y" . to_vector . should_equal [Nothing, 5, 5, 6]
             t5.at "Z" . to_vector . should_equal [4, 2, 2, 3]
             t5.at "W" . to_vector . should_equal [7, 4, 6, 5]
 
-        Test.specify "should allow to perform anti-joins" <|
-            t6 = t1.join t2 join_kind=Join_Kind.Left_Exclusive on=(Join_Condition.Equals 0 0) |> materialize |> _.order_by ["X"]
+        group_builder.specify "should allow to perform anti-joins" <|
+            t6 = data.t1.join data.t2 join_kind=Join_Kind.Left_Exclusive on=(Join_Condition.Equals 0 0) |> materialize |> _.order_by ["X"]
             t6.columns.map .name . should_equal ["X", "Y"]
             t6.at "X" . to_vector . should_equal [1]
             t6.at "Y" . to_vector . should_equal [4]
 
-            t7 = t1.join t2 join_kind=Join_Kind.Right_Exclusive on=(Join_Condition.Equals 0 0) |> materialize |> _.order_by ["Z"]
+            t7 = data.t1.join data.t2 join_kind=Join_Kind.Right_Exclusive on=(Join_Condition.Equals 0 0) |> materialize |> _.order_by ["Z"]
             t7.columns.map .name . should_equal ["Z", "W"]
             t7.at "Z" . to_vector . should_equal [4]
             t7.at "W" . to_vector . should_equal [7]
 
-        t3 = table_builder [["X", [1, 1, 1, 2, 2, 2]], ["Y", ["A", "B", "B", "C", "C", "A"]], ["Z", [1, 2, 3, 4, 5, 6]]]
-        t4 = table_builder [["X", [1, 1, 3, 2, 2, 4]], ["Y", ["B", "B", "C", "C", "D", "A"]], ["Z", [1, 2, 3, 4, 5, 6]]]
         check_xy_joined r =
             expect_column_names ["X", "Y", "Z", "Right Z"] r
             r.at "X" . to_vector . should_equal [1, 1, 1, 1, 2, 2]
@@ -88,20 +113,29 @@ spec setup =
             r.at "Z" . to_vector . should_equal [2, 2, 3, 3, 4, 5]
             r.at "Right Z" . to_vector . should_equal [1, 2, 1, 2, 4, 4]
 
-        Test.specify "should allow to join on equality of multiple columns and drop redundant columns if Inner join" <|
+        group_builder.specify "should allow to join on equality of multiple columns and drop redundant columns if Inner join" <|
             conditions = [Join_Condition.Equals "Y" "Y", Join_Condition.Equals "X" "X"]
-            r = t3.join t4 join_kind=Join_Kind.Inner on=conditions |> materialize |> _.order_by ["X", "Y", "Z", "Right Z"]
+            r = data.t3.join data.t4 join_kind=Join_Kind.Inner on=conditions |> materialize |> _.order_by ["X", "Y", "Z", "Right Z"]
             check_xy_joined r
 
             [Join_Kind.Full, Join_Kind.Left_Outer, Join_Kind.Right_Outer].each kind->
-                r2 = t3.join t4 join_kind=kind on=conditions
+                r2 = data.t3.join data.t4 join_kind=kind on=conditions
                 expect_column_names ["X", "Y", "Z", "Right X", "Right Y", "Right Z"] r2
 
-        Test.specify "should support same-name column join shorthand" <|
-            r = t3.join t4 join_kind=Join_Kind.Inner on=["X", "Y"] |> materialize |> _.order_by ["X", "Y", "Z", "Right Z"]
+        group_builder.specify "should support same-name column join shorthand" <|
+            r = data.t3.join data.t4 join_kind=Join_Kind.Inner on=["X", "Y"] |> materialize |> _.order_by ["X", "Y", "Z", "Right Z"]
             check_xy_joined r
 
-        Test.specify "should allow to join on text equality ignoring case" <|
+        group_builder.specify "should correctly handle duplicated rows in Equals" <|
+            t1 = table_builder [["X", [1, 2, 2, 3]]]
+            t2 = table_builder [["X", [1, 2, 2, 4]]]
+            r1 = t1.join t2 join_kind=Join_Kind.Full on="X" . order_by "X"
+            within_table r1 <|
+                # Both 2's from t1 match with _both_ ones from t2 _each_, so in total we get 4 `2` pairs:
+                r1.at "X" . to_vector . should_equal [Nothing, 1, 2, 2, 2, 2, 3]
+                r1.at "Right X" . to_vector . should_equal [4, 1, 2, 2, 2, 2, Nothing]
+
+        group_builder.specify "should allow to join on text equality ignoring case" <|
             t1 = table_builder [["X", ["a", "B"]], ["Y", [1, 2]]]
             t2 = table_builder [["X", ["A", "a", "b"]], ["Z", [1, 2, 3]]]
 
@@ -119,7 +153,7 @@ spec setup =
             r2 . at "Z" . to_vector . should_equal [1, 2, 3]
 
         if setup.test_selection.supports_unicode_normalization then
-            Test.specify "should correctly handle Unicode equality" <|
+            group_builder.specify "should correctly handle Unicode equality" <|
                 t1 = table_builder [["X", ['s\u0301', 'S\u0301']], ["Y", [1, 2]]]
                 t2 = table_builder [["X", ['s', 'S', 'ś']], ["Z", [1, 2, 3]]]
 
@@ -137,7 +171,7 @@ spec setup =
                 r2 . at "Z" . to_vector . should_equal [3, 3]
 
         # This may need a test_selection toggle in the future, depending on how well databases like coercing decimals and integers.
-        Test.specify "should correctly handle Enso Float-Integer equality" <|
+        group_builder.specify "should correctly handle Enso Float-Integer equality" <|
             t1 = table_builder [["X", [1, 2]], ["Y", [10, 20]]]
             t2 = table_builder [["X", [2.0, 2.1, 0.0]], ["Z", [1, 2, 3]]]
 
@@ -148,7 +182,7 @@ spec setup =
             r1 . at "Z" . to_vector . should_equal [1]
 
         if setup.supports_custom_objects then
-            Test.specify "should allow equality joins for custom objects" <|
+            group_builder.specify "should allow equality joins for custom objects" <|
                 t1 = table_builder [["X", [My_Type.Value 1 2, My_Type.Value 2 3]], ["Y", [1, 2]]]
                 t2 = table_builder [["X", [My_Type.Value 5 0, My_Type.Value 2 1]], ["Z", [10, 20]]]
 
@@ -163,32 +197,90 @@ spec setup =
                 r1 . at "Y" . to_vector . should_equal [1, 2]
                 r1 . at "Z" . to_vector . should_equal [20, 10]
 
-        Test.specify "should allow range-based joins (using Between) for numbers" <|
+        group_builder.specify "should allow range-based joins (using Between) for numbers" <|
             t1 = table_builder [["X", [1, 10, 12]], ["Y", [1, 2, 3]]]
             t2 = table_builder [["lower", [1, 10, 8, 12]], ["upper", [1, 12, 30, 0]], ["Z", [1, 2, 3, 4]]]
 
             r1 = t1.join join_kind=Join_Kind.Inner t2 on=(Join_Condition.Between "X" "lower" "upper") |> materialize |> _.order_by ["X", "Z"]
-            expect_column_names ["X", "Y", "lower", "upper", "Z"] r1
+            r1.column_names . should_equal ["X", "Y", "lower", "upper", "Z"]
             r1 . at "X" . to_vector . should_equal     [1, 10, 10, 12, 12]
             r1 . at "Y" . to_vector . should_equal     [1, 2,  2,  3,  3]
             r1 . at "lower" . to_vector . should_equal [1, 10, 8,  10, 8]
             r1 . at "upper" . to_vector . should_equal [1, 12, 30, 12, 30]
             r1 . at "Z" . to_vector . should_equal     [1, 2,  3,  2,  3]
 
-        Test.specify "should allow range-based joins (using Between) for text" <|
+        group_builder.specify "should allow range-based joins (using Between) for text" <|
             t1 = table_builder [["X", ["a", "b", "c"]], ["Y", [1, 2, 3]]]
             t2 = table_builder [["lower", ["a", "b"]], ["upper", ["a", "ccc"]], ["Z", [10, 20]]]
 
             r1 = t1.join t2 join_kind=Join_Kind.Inner on=(Join_Condition.Between "X" "lower" "upper") |> materialize |> _.order_by ["X", "Z"]
-            expect_column_names ["X", "Y", "lower", "upper", "Z"] r1
+            r1.column_names . should_equal ["X", "Y", "lower", "upper", "Z"]
             r1 . at "X" . to_vector . should_equal     ["a", "b",   "c"]
             r1 . at "Y" . to_vector . should_equal     [1,    2,     3]
             r1 . at "lower" . to_vector . should_equal ["a", "b",   "b"]
             r1 . at "upper" . to_vector . should_equal ["a", "ccc", "ccc"]
             r1 . at "Z" . to_vector . should_equal     [10,   20,    20]
 
+        group_builder.specify "should correctly handle Between edge cases (1)" pending=(if prefix.contains "PostgreSQL" then "TODO: fix issue #8243") <|
+            # 1. multiple rows with the same key value on the left side
+            # 2. fully duplicated rows (1, 7) on the left side
+            # 3. empty bounds (lower > upper: 10 > 0)
+            # 4. equal bounds (10 = 10)
+            # 5. unmatched rows on both sides - Full join
+            t1 = table_builder [["X", [1, 10, 20, 1, 2, 1, 1]], ["id", [1, 2, 3, 4, 5, 7, 7]]]
+            t2 = table_builder [["lower", [0, 10, 10]], ["upper", [3, 10, 0]], ["Z", ['a', 'b', 'c']]]
+            r1 = t1.join t2 join_kind=Join_Kind.Full on=(Join_Condition.Between "X" "lower" "upper") |> materialize |> _.order_by ["Z", "id"]
+            within_table r1 <|
+                r1.column_names . should_equal ["X", "id", "lower", "upper", "Z"]
+                rows = r1.rows.map .to_vector
+                rows.length . should_equal 8
+
+                rows.at 0 . should_equal [20, 3, Nothing, Nothing, Nothing]
+                rows.at 1 . should_equal [ 1, 1,  0,  3, 'a']
+                rows.at 2 . should_equal [ 1, 4,  0,  3, 'a']
+                rows.at 3 . should_equal [ 2, 5,  0,  3, 'a']
+                rows.at 4 . should_equal [ 1, 7,  0,  3, 'a']
+                rows.at 5 . should_equal [ 1, 7,  0,  3, 'a']
+                rows.at 6 . should_equal [10, 2, 10, 10, 'b']
+                rows.at 7 . should_equal [Nothing, Nothing, 10, 0, 'c']
+
+        group_builder.specify "should correctly handle Between edge cases (2)" <|
+            # 6. multiple Between conditions
+            xs = [0, 0, 1, 1, 1, 1, 2, 2, 3, 3, 3, 4, 4, 4]
+            ys = [1, 2, 3, 1, 9, 2, 3, 2, 4, 2, 1, 1, 1, 2]
+            pts = xs.zip ys . take (Index_Sub_Range.Sample xs.length seed=42)
+            t1 = table_builder [["X", pts.map .first], ["Y", pts.map .second]]
+
+            t2 = table_builder [["lx", [1]], ["ux", [3]], ["ly", [1]], ["uy", [2]]]
+            r2 = t1.join t2 join_kind=Join_Kind.Inner on=[Join_Condition.Between "X" "lx" "ux", Join_Condition.Between "Y" "ly" "uy"] |> materialize |> _.order_by ["X", "Y"]
+            within_table r2 <|
+                r2.at "X" . to_vector . should_equal [1, 1, 2, 3, 3]
+                r2.at "Y" . to_vector . should_equal [1, 2, 2, 1, 2]
+
+            t3 = table_builder [["lx", [1.9]], ["ux", [3]], ["ly", [1]], ["uy", [2]]]
+            r3 = t1.join t3 join_kind=Join_Kind.Inner on=[Join_Condition.Between "X" "lx" "ux", Join_Condition.Between "Y" "ly" "uy"] |> materialize |> _.order_by ["X", "Y"]
+            within_table r3 <|
+                r3.at "X" . to_vector . should_equal [2, 3, 3]
+                r3.at "Y" . to_vector . should_equal [2, 1, 2]
+
+        group_builder.specify "should correctly handle Between edge cases (3)" <|
+            # 7. duplicated rows on both sides
+            t1 = table_builder [["X", [10, 20, 20]]]
+            t2 = table_builder [["low", [15, 15]], ["high", [30, 30]]]
+            r1 = t1.join t2 join_kind=Join_Kind.Right_Outer on=(Join_Condition.Between "X" "low" "high")
+            within_table r1 <|
+                r1.at "X" . to_vector . should_equal [20, 20, 20, 20]
+                r1.at "low" . to_vector . should_equal [15, 15, 15, 15]
+                r1.at "high" . to_vector . should_equal [30, 30, 30, 30]
+
+            # 8. keep only unmatched rows
+            r2 = t1.join t2 join_kind=Join_Kind.Left_Exclusive on=(Join_Condition.Between "X" "low" "high")
+            within_table r2 <|
+                r2.column_names . should_equal ["X"]
+                r2.at "X" . to_vector . should_equal [10]
+
         if setup.test_selection.supports_unicode_normalization then
-            Test.specify "should allow range-based joins (using Between) for text with Unicode normalization" <|
+            group_builder.specify "should allow range-based joins (using Between) for text with Unicode normalization" <|
                 t1 = table_builder [["X", ['s\u0301', 's']], ["Y", [1, 2]]]
                 t2 = table_builder [["lower", ['s', 'ś']], ["upper", ['sa', 'ś']], ["Z", [10, 20]]]
 
@@ -201,7 +293,7 @@ spec setup =
                 r1 . at "Z" . to_vector . should_equal     [20, 10]
 
         if setup.supports_custom_objects then
-            Test.specify "should allow range-based joins (using Between) for custom objects" <|
+            group_builder.specify "should allow range-based joins (using Between) for custom objects" <|
                 t1 = table_builder [["X", [My_Type.Value 20 30, My_Type.Value 1 2]], ["Y", [1, 2]]]
                 t2 = table_builder [["lower", [My_Type.Value 3 0, My_Type.Value 10 10]], ["upper", [My_Type.Value 2 1, My_Type.Value 100 0]], ["Z", [10, 20]]]
 
@@ -213,23 +305,42 @@ spec setup =
                 r1 . at "upper" . to_vector . to_text . should_equal "[(My_Type.Value 2 1), (My_Type.Value 100 0)]"
                 r1 . at "Z" . to_vector . should_equal [10, 20]
 
-        Test.specify "should allow to mix join conditions of various kinds" <|
+        group_builder.specify "should allow to mix join conditions of various kinds" <|
             t1 = table_builder [["X", [1, 12, 12, 0]], ["Y", [1, 2, 3, 4]], ["Z", ["a", "A", "a", "ą"]], ["W", [1, 2, 3, 4]]]
-            t2 = table_builder [["X", [12, 12, 1]], ["l", [0, 100, 100]], ["u", [10, 100, 100]], ["Z", ["A", "A", "A"]], ["W'", [10, 20, 30]]]
+            t2 = table_builder [["X", [12, 12, 1]], ["l", [0, 100, 100]], ["u", [10, 100, 200]], ["Z", ["A", "A", "A"]], ["W'", [10, 20, 30]]]
 
-            r1 = t1.join t2 join_kind=Join_Kind.Inner on=[Join_Condition.Between "Y" "l" "u", Join_Condition.Equals_Ignore_Case "Z" "Z", Join_Condition.Equals "X" "X"] |> materialize |> _.order_by ["Y"]
-            expect_column_names ["X", "Y", "Z", "W", "l", "u", "Right Z", "W'"] r1
-            r1.at "X" . to_vector . should_equal [12, 12]
-            r1.at "Y" . to_vector . should_equal [2, 3]
-            r1.at "Z" . to_vector . should_equal ["A", "a"]
-            r1.at "W" . to_vector . should_equal [2, 3]
-            r1.at "l" . to_vector . should_equal [0, 0]
-            r1.at "u" . to_vector . should_equal [10, 10]
-            r1.at "Right Z" . to_vector . should_equal ["A", "A"]
-            r1.at "W'" . to_vector . should_equal [10, 10]
+            conditions = [Join_Condition.Between "Y" "l" "u", Join_Condition.Equals_Ignore_Case "Z" "Z", Join_Condition.Equals "X" "X"]
+            r1 = t1.join t2 join_kind=Join_Kind.Inner on=conditions |> materialize |> _.order_by ["Y"]
+            within_table r1 <|
+                r1.column_names.should_equal ["X", "Y", "Z", "W", "l", "u", "Right Z", "W'"]
+                r1.at "X" . to_vector . should_equal [12, 12]
+                r1.at "Y" . to_vector . should_equal [2, 3]
+                r1.at "Z" . to_vector . should_equal ["A", "a"]
+                r1.at "W" . to_vector . should_equal [2, 3]
+                r1.at "l" . to_vector . should_equal [0, 0]
+                r1.at "u" . to_vector . should_equal [10, 10]
+                r1.at "Right Z" . to_vector . should_equal ["A", "A"]
+                r1.at "W'" . to_vector . should_equal [10, 10]
 
-        Test.specify "should work fine if the same condition is specified multiple times" <|
-            r = t3.join t4 join_kind=Join_Kind.Inner on=["X", "X", "Y", "X", "Y"] |> materialize |> _.order_by ["X", "Y", "Z", "Right Z"]
+            r2 = t1.join t2 join_kind=Join_Kind.Left_Exclusive on=conditions |> materialize |> _.order_by ["Y"]
+            within_table r2 <|
+                r2.column_names.should_equal ["X", "Y", "Z", "W"]
+                r2.at "X" . to_vector . should_equal [1, 0]
+                r2.at "Y" . to_vector . should_equal [1, 4]
+                r2.at "Z" . to_vector . should_equal ["a", "ą"]
+                r2.at "W" . to_vector . should_equal [1, 4]
+
+            r3 = t1.join t2 join_kind=Join_Kind.Right_Exclusive on=conditions |> materialize |> _.order_by ["W'"]
+            within_table r3 <|
+                r3.column_names.should_equal ["X", "l", "u", "Z", "W'"]
+                r3.at "X" . to_vector . should_equal [12, 1]
+                r3.at "l" . to_vector . should_equal [100, 100]
+                r3.at "u" . to_vector . should_equal [100, 200]
+                r3.at "Z" . to_vector . should_equal ["A", "A"]
+                r3.at "W'" . to_vector . should_equal [20, 30]
+
+        group_builder.specify "should work fine if the same condition is specified multiple times" <|
+            r = data.t3.join data.t4 join_kind=Join_Kind.Inner on=["X", "X", "Y", "X", "Y"] |> materialize |> _.order_by ["X", "Y", "Z", "Right Z"]
             check_xy_joined r
 
             t5 = table_builder [["X", [1, 10, 12]], ["Y", [1, 2, 3]]]
@@ -248,7 +359,7 @@ spec setup =
             r2 . at "Right X" . to_vector . should_equal ["A", "a", "b"]
             r2 . at "Z" . to_vector . should_equal [1, 2, 3]
 
-        Test.specify "should correctly handle joining a table with itself" <|
+        group_builder.specify "should correctly handle joining a table with itself" <|
             t1 = table_builder [["X", [0, 1, 2, 3, 2]], ["Y", [1, 2, 3, 4, 100]], ["A", ["B", "C", "D", "E", "X"]]]
             t2 = t1.join t1 join_kind=Join_Kind.Inner on=(Join_Condition.Equals left="X" right="Y") |> materialize |> _.order_by ["X", "Y"]
 
@@ -271,19 +382,18 @@ spec setup =
             t3.at "Right X" . to_vector . should_equal [2, 3, Nothing, 0, 1, 1, 2]
             t3.at "Right A" . to_vector . should_equal ["X", "E", Nothing, "B", "C", "C", "D"]
 
-            t4 = table_builder [["X", [Nothing, "a", "B"]], ["Y", ["ą", "b", Nothing]], ["Z", [1, 2, 3]]]
+            t4 = table_builder [["X", [Nothing, "a", "B", "c"]], ["Y", ["ą", "b", "C", Nothing]], ["Z", [1, 2, 3, 4]]]
             t5 = t4.join t4 join_kind=Join_Kind.Inner on=(Join_Condition.Equals_Ignore_Case left="Y" right="X") |> materialize |> _.order_by ["Y"]
             expect_column_names ["X", "Y", "Z", "Right X", "Right Y", "Right Z"] t5
-            # TODO enable once we handle nothing properly
-            # t5.at "Y" . to_vector . should_equal [Nothing, "b"]
-            # t5.at "Right X" . to_vector . should_equal [Nothing, "B"]
+            within_table t5 <|
+                t5.at "X" . to_vector . should_equal ["B", "a"]
+                t5.at "Y" . to_vector . should_equal ["C", "b"]
+                t5.at "Z" . to_vector . should_equal [3, 2]
+                t5.at "Right X" . to_vector . should_equal ["c", "B"]
+                t5.at "Right Y" . to_vector . should_equal [Nothing, "C"]
+                t5.at "Right Z" . to_vector . should_equal [4, 3]
 
-            # t5.at "X" . to_vector . should_equal ["B", "a"]
-            # t5.at "Z" . to_vector . should_equal [3, 2]
-            # t5.at "Right Y" . to_vector . should_equal ["ą", Nothing]
-            # t5.at "Right Z" . to_vector . should_equal [1, 3]
-
-        Test.specify "should gracefully handle unmatched columns in Join_Conditions" <|
+        group_builder.specify "should gracefully handle unmatched columns in Join_Conditions" <|
             t1 = table_builder [["X", [1, 2]], ["Y", [3, 4]]]
             t2 = table_builder [["Z", [2, 1]], ["W", [5, 6]]]
 
@@ -305,7 +415,7 @@ spec setup =
             r3.catch.criteria.should_equal ["baz", 42, -3]
             r3.catch.to_display_text.should_equal "The criteria 'baz', 42 (index), -3 (index) did not match any columns in the right table."
 
-        Test.specify "should report Invalid_Value_Type if non-text columns are provided to Equals_Ignore_Case" <|
+        group_builder.specify "should report Invalid_Value_Type if non-text columns are provided to Equals_Ignore_Case" <|
             t1 = table_builder [["X", ["1", "2", "c"]], ["Y", [1, 2, 3]]]
             t2 = table_builder [["Z", ["1", "2", "c"]], ["W", [1, 2, 3]]]
 
@@ -318,14 +428,14 @@ spec setup =
             test <|
                 t1.join t2 on=(Join_Condition.Equals_Ignore_Case "Y" "Z") on_problems=Problem_Behavior.Ignore
 
-        Test.specify "should report Invalid_Value_Type if incompatible types are correlated" <|
+        group_builder.specify "should report Invalid_Value_Type if incompatible types are correlated" <|
             t1 = table_builder [["X", ["1", "2", "c"]]]
             t2 = table_builder [["X", [1, 2, 3]]]
 
             r1 = t1.join t2 on_problems=Problem_Behavior.Ignore
             r1.should_fail_with Invalid_Value_Type
 
-        Test.specify "should report Invalid_Value_Type if incompatible columns types are correlated in Between" <|
+        group_builder.specify "should report Invalid_Value_Type if incompatible columns types are correlated in Between" <|
             t1 = table_builder [["X", ["1", "2", "c"]], ["Y", [1, 2, 3]]]
             t2 = table_builder [["Z", ["1", "2", "c"]], ["W", [1, 2, 3]]]
 
@@ -333,7 +443,7 @@ spec setup =
             t1.join t2 on=(Join_Condition.Between "Y" "W" "Z") . should_fail_with Invalid_Value_Type
             t1.join t2 on=(Join_Condition.Between "Y" "Z" "W") . should_fail_with Invalid_Value_Type
 
-        Test.specify "should warn when joining on equality of Float columns" <|
+        group_builder.specify "should warn when joining on equality of Float columns" <|
             t1 = table_builder [["X", [1.5, 2.0, 2.00000000001]], ["Y", [10, 20, 30]]]
             t2 = table_builder [["Z", [2.0, 1.5, 2.0]], ["W", [1, 2, 3]]]
 
@@ -366,51 +476,123 @@ spec setup =
             if setup.supports_custom_objects then
                 t1 = table_builder [["X", [My_Type.Value 1 2, 2.0, 2]], ["Y", [10, 20, 30]]]
                 t2 = table_builder [["Z", [2.0, 1.5, 2.0]], ["W", [1, 2, 3]]]
-                action3 = t1.join t2 join_kind=Join_Kind.Inner on=(Join_Condition.Equals "X" "Z") on_problems=_
-                tester3 table =
-                    expect_column_names ["X", "Y", "Z", "W"] table
-                    t1 = table.order_by ["Y", "W"]
-                    t1.at "X" . to_vector . should_equal [2.0, 2.0, 2, 2]
-                    t1.at "Y" . to_vector . should_equal [20, 20, 30, 30]
-                    t1.at "Z" . to_vector . should_equal [2.0, 2.0, 2.0, 2.0]
-                    t1.at "W" . to_vector . should_equal [1, 3, 1, 3]
-                problems3 = [Floating_Point_Equality.Error "Z", Floating_Point_Equality.Error "X"]
-                Problems.test_problem_handling action3 problems3 tester3
+                r3 = t1.join t2 join_kind=Join_Kind.Inner on=(Join_Condition.Equals "X" "Z") on_problems=Problem_Behavior.Report_Warning
+                r3.column_names.should_equal ["X", "Y", "Z", "W"]
+                r4 = r3.order_by ["Y", "W"]
+                r4.at "X" . to_vector . should_equal [2.0, 2.0, 2, 2]
+                r4.at "Y" . to_vector . should_equal [20, 20, 30, 30]
+                r4.at "Z" . to_vector . should_equal [2.0, 2.0, 2.0, 2.0]
+                r4.at "W" . to_vector . should_equal [1, 3, 1, 3]
+                expected_problems = [Floating_Point_Equality.Error "Z", Floating_Point_Equality.Error "X"]
+                Problems.get_attached_warnings r3 . should_contain_the_same_elements_as expected_problems
 
-        Test.specify "should correctly handle nulls in equality conditions" pending=db_todo <|
-            t1 = table_builder [["X", ["A", Nothing, "a", Nothing, "ą"]], ["Y", [0, 1, 2, 3, 4]]]
-            t2 = table_builder [["X", ["a", Nothing, Nothing]], ["Z", [10, 20, 30]]]
+        group_builder.specify "should correctly handle nulls in equality conditions" <|
+            t1 = table_builder [["X", ["A", Nothing, "a", Nothing, "ą", "b"]], ["Y", [0, 1, 2, 3, 4, 5]]]
+            t2 = table_builder [["X", ["a", Nothing, Nothing, "b"]], ["Z", [10, 20, 30, 50]]]
 
             r1 = t1.join t2 join_kind=Join_Kind.Inner |> materialize |> _.order_by ["Y"]
             expect_column_names ["X", "Y", "Z"] r1
-            r1.at "X" . to_vector . should_equal [Nothing, Nothing, "a", Nothing, Nothing]
-            r1.at "Y" . to_vector . should_equal [1, 1, 2, 3, 3]
-            r1.at "Z" . to_vector . should_equal [20, 30, 10, 20, 30]
+            r1.at "X" . to_vector . should_equal ["a", "b"]
+            r1.at "Y" . to_vector . should_equal [2, 5]
+            r1.at "Z" . to_vector . should_equal [10, 50]
 
-        Test.specify "should correctly handle nulls in case-insensitive equality conditions" pending=db_todo <|
-            t1 = table_builder [["X", ["A", Nothing, "a", Nothing, "ą"]], ["Y", [0, 1, 2, 3, 4]]]
-            t2 = table_builder [["X", ["a", Nothing, Nothing]], ["Z", [10, 20, 30]]]
+        group_builder.specify "should correctly handle nulls in equality conditions in outer joins" <|
+            t1 = table_builder [["X", ["A", Nothing, "a", Nothing, "ą", "b"]], ["Y", [0, 1, 2, 3, 4, 5]]]
+            t2 = table_builder [["X", ["a", Nothing, Nothing, "b"]], ["Z", [10, 20, 30, 50]]]
+
+            r2 = t1.join t2 join_kind=Join_Kind.Left_Outer |> materialize |> _.order_by ["Y"]
+            expect_column_names ["X", "Y", "Right X", "Z"] r2
+            vs2 = r2 . rows . map .to_vector
+            within_table r2 <|
+                vs2.at 0 . to_vector . should_equal ["A", 0, Nothing, Nothing]
+                vs2.at 1 . to_vector . should_equal [Nothing, 1, Nothing, Nothing]
+                vs2.at 2 . to_vector . should_equal ["a", 2, "a", 10]
+                vs2.at 3 . to_vector . should_equal [Nothing, 3, Nothing, Nothing]
+                vs2.at 4 . to_vector . should_equal ["ą", 4, Nothing, Nothing]
+                vs2.at 5 . to_vector . should_equal ["b", 5, "b", 50]
+
+            r3 = t1.join t2 join_kind=Join_Kind.Right_Outer |> materialize |> _.order_by ["Z"]
+            expect_column_names ["X", "Y", "Right X", "Z"] r3
+            vs3 = r3 . rows . map .to_vector
+            within_table r3 <|
+                vs3.at 0 . to_vector . should_equal ["a", 2, "a", 10]
+                vs3.at 1 . to_vector . should_equal [Nothing, Nothing, Nothing, 20]
+                vs3.at 2 . to_vector . should_equal [Nothing, Nothing, Nothing, 30]
+                vs3.at 3 . to_vector . should_equal ["b", 5, "b", 50]
+
+        group_builder.specify "should correctly handle nulls in case-insensitive equality conditions" <|
+            t1 = table_builder [["X", ["A", Nothing, "a", Nothing, "ą", "b"]], ["Y", [0, 1, 2, 3, 4, 5]]]
+            t2 = table_builder [["X", ["a", Nothing, Nothing, "b"]], ["Z", [10, 20, 30, 50]]]
 
             r1 = t1.join t2 join_kind=Join_Kind.Inner on=(Join_Condition.Equals_Ignore_Case "X") |> materialize |> _.order_by ["Y"]
             expect_column_names ["X", "Y", "Right X", "Z"] r1
-            r1.at "X" . to_vector . should_equal ["A", Nothing, Nothing, "a", Nothing, Nothing]
-            r1.at "Right X" . to_vector . should_equal ["a", Nothing, Nothing, "a", Nothing, Nothing]
-            r1.at "Y" . to_vector . should_equal [0, 1, 1, 2, 3, 3]
-            r1.at "Z" . to_vector . should_equal [10, 20, 30, 10, 20, 30]
+            r1.at "X" . to_vector . should_equal ["A", "a", "b"]
+            r1.at "Y" . to_vector . should_equal [0, 2, 5]
+            r1.at "Right X" . to_vector . should_equal ["a", "a", "b"]
+            r1.at "Z" . to_vector . should_equal [10, 10, 50]
 
-        Test.specify "should correctly handle nulls in Between conditions" <|
-            t1 = table_builder [["X", [1, Nothing, 2, Nothing]], ["Y", [0, 1, 2, 3]]]
-            t2 = table_builder [["l", [Nothing, 0, 1]], ["u", [100, 10, Nothing]], ["Z", [10, 20, 30]]]
+        group_builder.specify "should correctly handle nulls in case-insensitive equality conditions in outer joins" <|
+            t1 = table_builder [["X", ["A", Nothing, "a", Nothing, "ą", "b"]], ["Y", [0, 1, 2, 3, 4, 5]]]
+            t2 = table_builder [["X", ["a", Nothing, Nothing, "b"]], ["Z", [10, 20, 30, 50]]]
+
+            r2 = t1.join t2 join_kind=Join_Kind.Left_Outer on=(Join_Condition.Equals_Ignore_Case "X") |> materialize |> _.order_by ["Y"]
+            expect_column_names ["X", "Y", "Right X", "Z"] r2
+            vs2 = r2 . rows . map .to_vector
+            within_table r2 <|
+                vs2.at 0 . to_vector . should_equal ["A", 0, "a", 10]
+                vs2.at 1 . to_vector . should_equal [Nothing, 1, Nothing, Nothing]
+                vs2.at 2 . to_vector . should_equal ["a", 2, "a", 10]
+                vs2.at 3 . to_vector . should_equal [Nothing, 3, Nothing, Nothing]
+                vs2.at 4 . to_vector . should_equal ["ą", 4, Nothing, Nothing]
+                vs2.at 5 . to_vector . should_equal ["b", 5, "b", 50]
+
+            r3 = t1.join t2 join_kind=Join_Kind.Right_Outer on=(Join_Condition.Equals_Ignore_Case "X") |> materialize |> _.order_by ["Z", "Y"]
+            expect_column_names ["X", "Y", "Right X", "Z"] r3
+            vs3 = r3 . rows . map .to_vector
+            within_table r3 <|
+                vs3.at 0 . to_vector . should_equal ["A", 0, "a", 10]
+                vs3.at 1 . to_vector . should_equal ["a", 2, "a", 10]
+                vs3.at 2 . to_vector . should_equal [Nothing, Nothing, Nothing, 20]
+                vs3.at 3 . to_vector . should_equal [Nothing, Nothing, Nothing, 30]
+                vs3.at 4 . to_vector . should_equal ["b", 5, "b", 50]
+
+        group_builder.specify "should correctly handle nulls in Between conditions" <|
+            t1 = table_builder [["X", [1, Nothing, 2, Nothing, 20]], ["Y", [0, 1, 2, 3, 4]]]
+            t2 = table_builder [["l", [Nothing, 0, 1, 20]], ["u", [100, 10, Nothing, 100]], ["Z", [10, 20, 30, 40]]]
 
             r1 = t1.join t2 join_kind=Join_Kind.Inner on=(Join_Condition.Between "X" "l" "u") |> materialize |> _.order_by ["Y"]
             expect_column_names ["X", "Y", "l", "u", "Z"] r1
-            r1.at "X" . to_vector . should_equal [1, 2]
-            r1.at "Y" . to_vector . should_equal [0, 2]
-            r1.at "l" . to_vector . should_equal [0, 0]
-            r1.at "u" . to_vector . should_equal [10, 10]
-            r1.at "Z" . to_vector . should_equal [20, 20]
+            vs1 = r1 . rows . map .to_vector
+            within_table r1 <|
+                vs1.at 0 . should_equal [1, 0, 0, 10, 20]
+                vs1.at 1 . should_equal [2, 2, 0, 10, 20]
+                vs1.at 2 . should_equal [20, 4, 20, 100, 40]
 
-        Test.specify "should rename columns of the right table to avoid duplicates" <|
+        group_builder.specify "should correctly handle nulls in Between conditions in outer joins" <|
+            t1 = table_builder [["X", [1, Nothing, 2, Nothing, 20]], ["Y", [0, 1, 2, 3, 4]]]
+            t2 = table_builder [["l", [Nothing, 0, 1, 20]], ["u", [100, 10, Nothing, 100]], ["Z", [10, 20, 30, 40]]]
+
+            r1 = t1.join t2 join_kind=Join_Kind.Left_Outer on=(Join_Condition.Between "X" "l" "u") |> materialize |> _.order_by ["Y"]
+            expect_column_names ["X", "Y", "l", "u", "Z"] r1
+            vs1 = r1 . rows . map .to_vector
+            within_table r1 <|
+                vs1.at 0 . should_equal [1, 0, 0, 10, 20]
+                vs1.at 1 . should_equal [Nothing, 1, Nothing, Nothing, Nothing]
+                vs1.at 2 . should_equal [2, 2, 0, 10, 20]
+                vs1.at 3 . should_equal [Nothing, 3, Nothing, Nothing, Nothing]
+                vs1.at 4 . should_equal [20, 4, 20, 100, 40]
+
+            r2 = t1.join t2 join_kind=Join_Kind.Right_Outer on=(Join_Condition.Between "X" "l" "u") |> materialize |> _.order_by ["Z", "Y"]
+            expect_column_names ["X", "Y", "l", "u", "Z"] r2
+            vs2 = r2 . rows . map .to_vector
+            within_table r2 <|
+                vs2.at 0 . should_equal [Nothing, Nothing, Nothing, 100, 10]
+                vs2.at 1 . should_equal [1, 0, 0, 10, 20]
+                vs2.at 2 . should_equal [2, 2, 0, 10, 20]
+                vs2.at 3 . should_equal [Nothing, Nothing, 1, Nothing, 30]
+                vs2.at 4 . should_equal [20, 4, 20, 100, 40]
+
+        group_builder.specify "should rename columns of the right table to avoid duplicates" <|
             t1 = table_builder [["X", [1, 2]], ["Y", [3, 4]], ["Right Y", [5, 6]]]
             t2 = table_builder [["X", [2, 1]], ["Y", [2, 2]]]
 
@@ -446,7 +628,7 @@ spec setup =
             t8 = t1.join t2 join_kind=Join_Kind.Inner right_prefix="P"
             t8.column_names.should_equal ["X", "Y", "Right Y", "PY"]
 
-        Test.specify "should warn about renamed columns" <|
+        group_builder.specify "should warn about renamed columns" <|
             t1 = table_builder [["X", [1, 2]], ["Y", [3, 4]]]
             t2 = table_builder [["X", [2, 1]], ["Y", [2, 2]], ["Right Y", [2, 44]]]
 
@@ -462,12 +644,12 @@ spec setup =
             problems2 = [Duplicate_Output_Column_Names.Error ["Right Y"]]
             Problems.test_problem_handling action2 problems2 tester2
 
-        Test.specify "should pass dataflow errors through" <|
+        group_builder.specify "should pass dataflow errors through" <|
             error = Error.throw (Illegal_State.Error "FOO")
-            t1.join error . should_fail_with Illegal_State
-            t1.join t2 on=[error, "X"] . should_fail_with Illegal_State
+            data.t1.join error . should_fail_with Illegal_State
+            data.t1.join data.t2 on=[error, "X"] . should_fail_with Illegal_State
 
-        Test.specify "should correctly handle all null rows" pending=db_todo <|
+        group_builder.specify "should correctly handle all null rows" <|
             t1 = table_builder [["A", [Nothing, 2, Nothing, 1]], ["B", [Nothing, 3, 4, 7]]]
             t2 = table_builder [["C", [Nothing, 2, Nothing, 4]], ["D", [Nothing, 5, 6, Nothing]]]
 
@@ -475,12 +657,8 @@ spec setup =
             expect_column_names ["A", "B", "C", "D"] t3
             r3 = materialize t3 . order_by ["A", "B", "D"] . rows . map .to_vector
             within_table t3 <|
-                r3.length . should_equal 5
-                r3.at 0 . should_equal [Nothing, Nothing, Nothing, Nothing]
-                r3.at 1 . should_equal [Nothing, Nothing, Nothing, 6]
-                r3.at 2 . should_equal [Nothing, 4, Nothing, Nothing]
-                r3.at 3 . should_equal [Nothing, 4, Nothing, 6]
-                r3.at 4 . should_equal [2, 3, 2, 5]
+                r3.length . should_equal 1
+                r3.at 0 . should_equal [2, 3, 2, 5]
 
             t4 = t1.join t2 on=[Join_Condition.Equals "A" "C"] join_kind=Join_Kind.Full
             expect_column_names ["A", "B", "C", "D"] t4
@@ -488,10 +666,10 @@ spec setup =
             within_table t4 <|
                 r4.length . should_equal 7
                 r4.at 0 . should_equal [Nothing, Nothing, Nothing, Nothing]
-                r4.at 1 . should_equal [Nothing, Nothing, 4, Nothing]
-                r4.at 2 . should_equal [Nothing, Nothing, Nothing, 6]
-                r4.at 3 . should_equal [Nothing, 4, Nothing, Nothing]
-                r4.at 4 . should_equal [Nothing, 4, Nothing, 6]
+                r4.at 1 . should_equal [Nothing, Nothing, Nothing, Nothing]
+                r4.at 2 . should_equal [Nothing, Nothing, 4, Nothing]
+                r4.at 3 . should_equal [Nothing, Nothing, Nothing, 6]
+                r4.at 4 . should_equal [Nothing, 4, Nothing, Nothing]
                 r4.at 5 . should_equal [1, 7, Nothing, Nothing]
                 r4.at 6 . should_equal [2, 3, 2, 5]
 
@@ -499,37 +677,39 @@ spec setup =
             expect_column_names ["A", "B", "C", "D"] t4_2
             r4_2 = materialize t4_2 . order_by ["A", "B", "D", "C"] . rows . map .to_vector
             within_table t4_2 <|
-                r4_2.length . should_equal 6
+                r4_2.length . should_equal 4
                 r4_2.at 0 . should_equal [Nothing, Nothing, Nothing, Nothing]
-                r4_2.at 1 . should_equal [Nothing, Nothing, Nothing, 6]
-                r4_2.at 2 . should_equal [Nothing, 4, Nothing, Nothing]
-                r4_2.at 3 . should_equal [Nothing, 4, Nothing, 6]
-                r4_2.at 4 . should_equal [1, 7, Nothing, Nothing]
-                r4_2.at 5 . should_equal [2, 3, 2, 5]
+                r4_2.at 1 . should_equal [Nothing, 4, Nothing, Nothing]
+                r4_2.at 2 . should_equal [1, 7, Nothing, Nothing]
+                r4_2.at 3 . should_equal [2, 3, 2, 5]
 
             t4_3 = t1.join t2 on=[Join_Condition.Equals "A" "C"] join_kind=Join_Kind.Right_Outer
             expect_column_names ["A", "B", "C", "D"] t4_3
-            r4_3 = materialize t4_3 . order_by ["A", "B", "D", "C"] . rows . map .to_vector
-            within_table t4_3 <|
-                r4_3.length . should_equal 6
+            r4_3 = materialize t4_3 . order_by ["A", "B", "C", "D"] . rows . map .to_vector
+            within_table r4_3 <|
+                r4_3.length . should_equal 4
                 r4_3.at 0 . should_equal [Nothing, Nothing, Nothing, Nothing]
-                r4_3.at 1 . should_equal [Nothing, Nothing, 4, Nothing]
-                r4_3.at 2 . should_equal [Nothing, Nothing, Nothing, 6]
-                r4_3.at 3 . should_equal [Nothing, 4, Nothing, Nothing]
-                r4_3.at 4 . should_equal [Nothing, 4, Nothing, 6]
-                r4_3.at 5 . should_equal [2, 3, 2, 5]
+                r4_3.at 1 . should_equal [Nothing, Nothing, Nothing, 6]
+                r4_3.at 2 . should_equal [Nothing, Nothing, 4, Nothing]
+                r4_3.at 3 . should_equal [2, 3, 2, 5]
 
             t5 = t1.join t2 on=[Join_Condition.Equals "A" "C"] join_kind=Join_Kind.Left_Exclusive
+            expect_column_names ["A", "B"] t5
+            r5 = materialize t5 . order_by ["A", "B"] . rows . map .to_vector
             within_table t5 <|
-                expect_column_names ["A", "B"] t5
-                t5.at "A" . to_vector . should_equal [1]
-                t5.at "B" . to_vector . should_equal [7]
+                r5.length . should_equal 3
+                r5.at 0 . should_equal [Nothing, Nothing]
+                r5.at 1 . should_equal [Nothing, 4]
+                r5.at 2 . should_equal [1, 7]
 
             t6 = t1.join t2 on=[Join_Condition.Equals "A" "C"] join_kind=Join_Kind.Right_Exclusive
+            expect_column_names ["C", "D"] t6
+            r6 = materialize t6 . order_by ["C", "D"] . rows . map .to_vector
             within_table t6 <|
-                expect_column_names ["C", "D"] t6
-                t6.at "C" . to_vector . should_equal [4]
-                t6.at "D" . to_vector . should_equal [Nothing]
+                r6.length . should_equal 3
+                r6.at 0 . should_equal [Nothing, Nothing]
+                r6.at 1 . should_equal [Nothing, 6]
+                r6.at 2 . should_equal [4, Nothing]
 
             t7 = table_builder [["A", [Nothing, 2]], ["B", [Nothing, 3]]]
             t8 = table_builder [["C", [2, 3]], ["D", [4, 5]]]
@@ -574,7 +754,7 @@ spec setup =
                 r12.length . should_equal 1
                 r12.at 0 . should_equal [3, 5]
 
-        Test.specify "should work correctly when composing multiple join operations" <|
+        group_builder.specify "should work correctly when composing multiple join operations" <|
             ta = table_builder [["id", [0, 1]], ["name", ["Foo", "X"]]]
             tb = table_builder [["id", [2, 0]], ["name", ["Bar", "Y"]]]
             tc = table_builder [["id_a", [0, 1]], ["id_b", [0, 2]]]
@@ -586,11 +766,11 @@ spec setup =
             r.at 0 . should_equal ["Foo", "Y"]
             r.at 1 . should_equal ["X", "Bar"]
 
-        Test.specify "should work correctly when the join is performed on a transformed table" <|
+        group_builder.specify "should work correctly when the join is performed on a transformed table" <|
             t1 = table_builder [["X", [1, 2, 3]]]
 
-            t1_2 = t1.set "10*[X]+1" new_name="A"
-            t1_3 = t1.set "[X]+20" new_name="B"
+            t1_2 = t1.set (expr "10*[X]+1") as="A"
+            t1_3 = t1.set (expr "[X]+20") as="B"
 
             t2 = t1_2.join t1_3 join_kind=Join_Kind.Inner on=(Join_Condition.Equals "A" "B")
             t2.at "A" . to_vector . should_equal [21]
@@ -601,7 +781,7 @@ spec setup =
             t4 = table_builder [["X", [1, 2, 3]], ["Y", [10, 20, 30]]]
             t5 = table_builder [["X", [5, 7, 1]], ["Z", [100, 200, 300]]]
 
-            t4_2 = t4.set "2*[X]+1" new_name="C"
+            t4_2 = t4.set (expr "2*[X]+1") as="C"
             t6 = t4_2.join t5 on=(Join_Condition.Equals "C" "X") join_kind=Join_Kind.Inner
             expect_column_names ["X", "Y", "C", "Right X", "Z"] t6
             r2 = materialize t6 . order_by ["Y"] . rows . map .to_vector
@@ -609,7 +789,7 @@ spec setup =
             r2.at 0 . should_equal [2, 20, 5, 5, 100]
             r2.at 1 . should_equal [3, 30, 7, 7, 200]
 
-        Test.specify "should allow full joins with more complex join conditions" <|
+        group_builder.specify "should allow full joins with more complex join conditions" <|
             t1 = table_builder [["X", ["a", "b", "c"]], ["Y", [10, 20, 30]]]
             t2 = table_builder [["X", ["Ć", "A", "b"]], ["Z", [100, 200, 300]]]
 
@@ -625,7 +805,7 @@ spec setup =
             t4 = table_builder [["X", [1, 2, 3]], ["Y", [10, 20, 30]]]
             t5 = table_builder [["X", [5, 7, 1]], ["Z", [100, 200, 300]]]
 
-            t4_2 = t4.set "2*[X]+1" new_name="C"
+            t4_2 = t4.set (expr "2*[X]+1") as="C"
             t6 = t4_2.join t5 on=(Join_Condition.Equals "C" "X") join_kind=Join_Kind.Full
             expect_column_names ["X", "Y", "C", "Right X", "Z"] t6
             r2 = materialize t6 . order_by ["Y"] . rows . map .to_vector
@@ -636,7 +816,7 @@ spec setup =
             r2.at 3 . should_equal [3, 30, 7, 7, 200]
 
             t4_3 = table_builder [["X", [Nothing, 2, 3]], ["Y", [10, 20, 30]]]
-            t4_4 = t4_3.set (t4_3.at "X" . fill_nothing 7) new_name="C"
+            t4_4 = t4_3.set (t4_3.at "X" . fill_nothing 7) as="C"
             t7 = t4_4.join t5 on=(Join_Condition.Equals "C" "X") join_kind=Join_Kind.Full
             within_table t7 <|
                 expect_column_names ["X", "Y", "C", "Right X", "Z"] t7
@@ -647,3 +827,21 @@ spec setup =
                 r3.at 2 . should_equal [Nothing, 10, 7, 7, 200]
                 r3.at 3 . should_equal [2, 20, 2, Nothing, Nothing]
                 r3.at 4 . should_equal [3, 30, 3, Nothing, Nothing]
+
+            t8 = table_builder [["X", [2, 99]], ["Y", [20, 99]], ["C", [5, 99]]]
+            t9 = t4_2.join t8 join_kind=Join_Kind.Full on=["X", "Y", "C"]
+            within_table t9 <|
+                t9.column_names . should_equal ["X", "Y", "C", "Right X", "Right Y", "Right C"]
+                r3 = materialize t9 . order_by ["X", "Right X"] . rows . map .to_vector
+                r3.length . should_equal 4
+                r3.at 0 . should_equal [Nothing, Nothing, Nothing, 99, 99, 99]
+                r3.at 1 . should_equal [1, 10, 3, Nothing, Nothing, Nothing]
+                r3.at 2 . should_equal [2, 20, 5, 2, 20, 5]
+                r3.at 3 . should_equal [3, 30, 7, Nothing, Nothing, Nothing]
+
+        group_builder.specify "should gracefully handle tables from different backends" <|
+            alternative_connection = Database.connect (SQLite In_Memory)
+            t0 = (Table.new [["X", [1, 2, 4]], ["Z", [10, 20, 30]]]).select_into_database_table alternative_connection "T0" temporary=True
+
+            r1 = data.t1.join t0
+            r1.should_fail_with Illegal_Argument

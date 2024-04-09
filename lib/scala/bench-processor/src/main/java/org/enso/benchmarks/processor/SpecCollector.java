@@ -8,14 +8,13 @@ import org.enso.benchmarks.ModuleBenchSuite;
 import org.enso.polyglot.MethodNames.Module;
 import org.graalvm.polyglot.Value;
 
-/**
- * Collect benchmark specifications from Enso source files.
- */
+/** Collect benchmark specifications from Enso source files. */
 public class SpecCollector {
   private SpecCollector() {}
 
   /**
    * Collects all the bench specifications from the given module in a variable with the given name.
+   *
    * @param varName Name of the variable that holds all the collected bench suites.
    * @return Empty list if no such variable exists, or if it is not a vector.
    */
@@ -32,9 +31,7 @@ public class SpecCollector {
       for (long i = 0; i < suitesValue.getArraySize(); i++) {
         Value suite = suitesValue.getArrayElement(i);
         BenchSuite benchSuite = suite.as(BenchSuite.class);
-        suites.add(
-            new ModuleBenchSuite(benchSuite, moduleQualifiedName)
-        );
+        suites.add(new ModuleBenchSuite(benchSuite, moduleQualifiedName));
       }
       return suites;
     }
@@ -43,11 +40,13 @@ public class SpecCollector {
 
   /**
    * Collects all the bench specifications from the given module in a variable with the given name.
+   *
    * @param groupName Name of the benchmark group
    * @param varName Name of the variable that holds all the collected bench suites.
    * @return null if no such group exists.
    */
-  public static BenchGroup collectBenchGroupFromModule(Value module, String groupName, String varName) {
+  public static BenchGroup collectBenchGroupFromModule(
+      Value module, String groupName, String varName) {
     var specs = collectBenchSpecsFromModule(module, varName);
     for (ModuleBenchSuite suite : specs) {
       BenchGroup group = suite.findGroupByName(groupName);

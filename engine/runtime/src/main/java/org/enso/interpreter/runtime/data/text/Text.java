@@ -1,18 +1,5 @@
 package org.enso.interpreter.runtime.data.text;
 
-import java.util.ArrayDeque;
-import java.util.Deque;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReentrantLock;
-
-import org.enso.interpreter.dsl.Builtin;
-import org.enso.interpreter.node.expression.builtin.text.util.ToJavaStringNode;
-import org.enso.interpreter.runtime.EnsoContext;
-import org.enso.interpreter.runtime.data.EnsoObject;
-import org.enso.interpreter.runtime.data.Type;
-import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
-import org.enso.polyglot.common_utils.Core_Text_Utils;
-
 import com.ibm.icu.text.Normalizer2;
 import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.dsl.Cached;
@@ -20,6 +7,19 @@ import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
+import com.oracle.truffle.api.strings.TruffleString;
+import com.oracle.truffle.api.strings.TruffleString.Encoding;
+import java.util.ArrayDeque;
+import java.util.Deque;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
+import org.enso.interpreter.dsl.Builtin;
+import org.enso.interpreter.node.expression.builtin.text.util.ToJavaStringNode;
+import org.enso.interpreter.runtime.EnsoContext;
+import org.enso.interpreter.runtime.data.EnsoObject;
+import org.enso.interpreter.runtime.data.Type;
+import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
+import org.enso.polyglot.common_utils.Core_Text_Utils;
 
 /** The main runtime type for Enso's Text. */
 @ExportLibrary(InteropLibrary.class)
@@ -44,7 +44,9 @@ public final class Text implements EnsoObject {
     this.contents = contents;
   }
 
-  @Builtin.Method(description = """
+  @Builtin.Method(
+      description =
+          """
   Computes the number of characters in the text.
 
     ! What is a Character?
@@ -66,7 +68,9 @@ public final class Text implements EnsoObject {
     return l;
   }
 
-  @Builtin.Method(description = """
+  @Builtin.Method(
+      description =
+          """
   Checks whether this text is in FCD normalized form.
 
   > Example
@@ -177,6 +181,11 @@ public final class Text implements EnsoObject {
     return toJavaStringNode.execute(this);
   }
 
+  @ExportMessage
+  TruffleString asTruffleString(@Cached TruffleString.FromJavaStringNode fromJavaStringNode) {
+    return fromJavaStringNode.execute(toString(), Encoding.UTF_16);
+  }
+
   @CompilerDirectives.TruffleBoundary
   private int computeLength() {
     return Core_Text_Utils.computeGraphemeLength(toString());
@@ -230,7 +239,7 @@ public final class Text implements EnsoObject {
   }
 
   @ExportMessage
-  Type getType(@CachedLibrary("this") TypesLibrary thisLib, @Cached(value="1") int ignore) {
+  Type getType(@CachedLibrary("this") TypesLibrary thisLib, @Cached(value = "1") int ignore) {
     return EnsoContext.get(thisLib).getBuiltins().text();
   }
 
@@ -270,5 +279,4 @@ public final class Text implements EnsoObject {
     }
     return result;
   }
-
 }

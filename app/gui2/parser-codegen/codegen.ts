@@ -14,7 +14,7 @@ import {
   abstractTypeDeserializer,
   abstractTypeVariants,
   fieldDeserializer,
-  fieldDynValue,
+  fieldVisitor,
   seekViewDyn,
   support,
   supportImports,
@@ -28,7 +28,7 @@ import {
   toCamel,
   toPascal,
 } from './util.js'
-const tsf = ts.factory
+const tsf: ts.NodeFactory = ts.factory
 
 const addressIdent = tsf.createIdentifier('address')
 const viewIdent = tsf.createIdentifier('view')
@@ -60,7 +60,7 @@ export function implement(schema: Schema.Schema): string {
           ),
         ),
       ),
-      tsf.createStringLiteral('@/util/parserSupport', true),
+      tsf.createStringLiteral('../parserSupport', true),
       undefined,
     ),
   )
@@ -245,54 +245,61 @@ function makeReadFunction(
   )
 }
 
-function makeDebugFunction(fields: Field[], typeName?: string): ts.MethodDeclaration {
-  const ident = tsf.createIdentifier('fields')
-  const fieldAssignments = fields.map((field) =>
-    tsf.createArrayLiteralExpression([
-      tsf.createStringLiteral(field.name),
-      fieldDynValue(field.type, field.offset),
-    ]),
+function makeVisitFunction(fields: Field[]): ts.MethodDeclaration {
+  const ident = tsf.createIdentifier('visitChildren')
+  const visitorParam = tsf.createIdentifier('visitor')
+  const visitorParamDecl = tsf.createParameterDeclaration(
+    undefined,
+    undefined,
+    visitorParam,
+    undefined,
+    support.ObjectVisitor,
   )
-  if (typeName != null) {
-    fieldAssignments.push(
-      tsf.createArrayLiteralExpression([
-        tsf.createStringLiteral('type'),
-        tsf.createObjectLiteralExpression([
-          tsf.createPropertyAssignment('type', tsf.createStringLiteral('primitive')),
-          tsf.createPropertyAssignment('value', tsf.createStringLiteral(typeName)),
+  const visitSuperChildren = tsf.createCallExpression(
+    tsf.createPropertyAccessExpression(tsf.createSuper(), ident),
+    undefined,
+    [visitorParam],
+  )
+  const fieldVisitations: ts.Expression[] = []
+  for (const field of fields) {
+    if (field.type.visitor === 'visitValue') {
+      fieldVisitations.push(
+        tsf.createCallExpression(visitorParam, undefined, [
+          tsf.createPropertyAccessExpression(tsf.createThis(), field.name),
         ]),
-      ]),
-    )
+      )
+    } else if (field.type.visitor != null) {
+      fieldVisitations.push(
+        tsf.createCallExpression(
+          tsf.createPropertyAccessExpression(tsf.createThis(), toCamel('visit_' + field.name)),
+          undefined,
+          [visitorParam],
+        ),
+      )
+    }
   }
+  const toBool = (value: ts.Expression) =>
+    tsf.createPrefixUnaryExpression(
+      ts.SyntaxKind.ExclamationToken,
+      tsf.createPrefixUnaryExpression(ts.SyntaxKind.ExclamationToken, value),
+    )
+  const expression = fieldVisitations.reduce(
+    (lhs, rhs) => tsf.createBinaryExpression(lhs, ts.SyntaxKind.BarBarToken, toBool(rhs)),
+    visitSuperChildren,
+  )
   return tsf.createMethodDeclaration(
-    [],
+    undefined,
     undefined,
     ident,
     undefined,
-    [],
-    [],
-    tsf.createTypeReferenceNode(`[string, ${support.DynValue}][]`),
-    tsf.createBlock([
-      tsf.createReturnStatement(
-        tsf.createArrayLiteralExpression(
-          [
-            tsf.createSpreadElement(
-              tsf.createCallExpression(
-                tsf.createPropertyAccessExpression(tsf.createSuper(), ident),
-                undefined,
-                undefined,
-              ),
-            ),
-            ...fieldAssignments,
-          ],
-          true,
-        ),
-      ),
-    ]),
+    undefined,
+    [visitorParamDecl],
+    tsf.createTypeReferenceNode('boolean'),
+    tsf.createBlock([tsf.createReturnStatement(expression)]),
   )
 }
 
-function makeGetters(id: string, schema: Schema.Schema, typeName?: string): ts.ClassElement[] {
+function makeGetters(id: string, schema: Schema.Schema): ts.ClassElement[] {
   const serialization = schema.serialization[id]
   const type = schema.types[id]
   if (serialization == null || type == null) throw new Error(`Invalid type id: ${id}`)
@@ -301,7 +308,17 @@ function makeGetters(id: string, schema: Schema.Schema, typeName?: string): ts.C
     if (field == null) throw new Error(`Invalid field name '${name}' for type '${type.name}'`)
     return makeField(name, field, offset, schema)
   })
-  return [...fields.map(makeGetter), makeDebugFunction(fields, typeName)]
+  return [
+    ...fields.map(makeGetter),
+    ...fields.map(makeElementVisitor).filter((v): v is ts.ClassElement => v != null),
+    makeVisitFunction(fields),
+  ]
+}
+
+function makeElementVisitor(field: Field): ts.ClassElement | undefined {
+  if (field.type.visitor == null) return undefined
+  const ident = tsf.createIdentifier(toCamel('visit_' + field.name))
+  return fieldVisitor(ident, field.type, field.offset)
 }
 
 function makeClass(
@@ -328,7 +345,6 @@ type ChildType = {
   definition: ts.ClassDeclaration
   name: ts.Identifier
   enumMember: ts.EnumMember
-  case: ts.CaseClause
 }
 
 function makeChildType(
@@ -391,12 +407,11 @@ function makeChildType(
           viewIdent,
           tsf.createNewExpression(ident, [], [seekViewDyn(viewIdent, addressIdent)]),
         ),
-        ...makeGetters(id, schema, name),
+        ...makeGetters(id, schema),
       ],
     ),
     name: tsf.createIdentifier(name),
-    enumMember: tsf.createEnumMember(toPascal(ty.name), discriminantInt),
-    case: tsf.createCaseClause(discriminantInt, [tsf.createReturnStatement(viewIdent)]),
+    enumMember: tsf.createEnumMember(name, discriminantInt),
   }
 }
 
@@ -413,6 +428,7 @@ function makeAbstractType(
   const ty = schema.types[id]!
   const name = toPascal(ty.name)
   const ident = tsf.createIdentifier(name)
+  const type = tsf.createTypeReferenceNode(ident)
   const baseIdent = tsf.createIdentifier('AbstractBase')
   const childTypes = Array.from(Object.entries(discriminants), ([discrim, id]: [string, string]) =>
     makeChildType(baseIdent, id, discrim, schema),
@@ -434,6 +450,12 @@ function makeAbstractType(
         'Type',
         childTypes.map((child) => child.enumMember),
       ),
+      makeExportConstVariable(
+        'typeNames',
+        tsf.createArrayLiteralExpression(
+          childTypes.map((child) => tsf.createStringLiteralFromNode(child.name)),
+        ),
+      ),
       ...childTypes.map((child) => child.definition),
       tsf.createTypeAliasDeclaration(
         [modifiers.export],
@@ -448,13 +470,55 @@ function makeAbstractType(
         viewIdent,
         abstractTypeDeserializer(ident, viewIdent, addressIdent),
       ),
+      makeIsInstance(type, baseIdent),
     ]),
   )
   const abstractTypeExport = tsf.createTypeAliasDeclaration(
     [modifiers.export],
     ident,
     undefined,
-    tsf.createTypeReferenceNode(tsf.createQualifiedName(tsf.createIdentifier(name), name)),
+    tsf.createTypeReferenceNode(tsf.createQualifiedName(ident, ident)),
   )
   return { module: moduleDecl, export: abstractTypeExport }
+}
+
+function makeExportConstVariable(
+  varName: string,
+  initializer: ts.Expression,
+): ts.VariableStatement {
+  return tsf.createVariableStatement(
+    [modifiers.export],
+    tsf.createVariableDeclarationList(
+      [
+        tsf.createVariableDeclaration(
+          varName,
+          undefined,
+          undefined,
+          tsf.createAsExpression(initializer, tsf.createTypeReferenceNode('const')),
+        ),
+      ],
+      ts.NodeFlags.Const,
+    ),
+  )
+}
+
+function makeIsInstance(type: ts.TypeNode, baseIdent: ts.Identifier): ts.FunctionDeclaration {
+  const param = tsf.createIdentifier('obj')
+  const paramDecl = tsf.createParameterDeclaration(
+    undefined,
+    undefined,
+    param,
+    undefined,
+    tsf.createTypeReferenceNode('unknown'),
+  )
+  const returnValue = tsf.createBinaryExpression(param, ts.SyntaxKind.InstanceOfKeyword, baseIdent)
+  return tsf.createFunctionDeclaration(
+    [modifiers.export],
+    undefined,
+    'isInstance',
+    undefined,
+    [paramDecl],
+    tsf.createTypePredicateNode(undefined, param, type),
+    tsf.createBlock([tsf.createReturnStatement(returnValue)]),
+  )
 }

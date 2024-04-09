@@ -1,14 +1,18 @@
 package org.enso.interpreter.node;
 
+import com.oracle.truffle.api.frame.FrameDescriptor;
+import com.oracle.truffle.api.frame.FrameSlotKind;
 import com.oracle.truffle.api.nodes.NodeInfo;
 import com.oracle.truffle.api.nodes.RootNode;
 import com.oracle.truffle.api.source.Source;
 import com.oracle.truffle.api.source.SourceSection;
 import java.util.Objects;
+import org.enso.compiler.context.LocalScope;
 import org.enso.interpreter.EnsoLanguage;
 import org.enso.interpreter.runtime.EnsoContext;
-import org.enso.interpreter.runtime.scope.LocalScope;
+import org.enso.interpreter.runtime.error.DataflowError;
 import org.enso.interpreter.runtime.scope.ModuleScope;
+import org.enso.interpreter.util.ScalaConversions;
 
 /** A common base class for all kinds of root node in Enso. */
 @NodeInfo(shortName = "Root", description = "A root node for Enso computations")
@@ -35,18 +39,36 @@ public abstract class EnsoRootNode extends RootNode {
       ModuleScope moduleScope,
       String name,
       SourceSection sourceSection) {
-    super(language, localScope.frameDescriptor());
+    super(language, buildFrameDescriptor(localScope));
     Objects.requireNonNull(language);
     this.name = name;
     this.localScope = localScope;
     this.moduleScope = moduleScope;
-    if (sourceSection == null || moduleScope.getModule().isModuleSource(sourceSection.getSource())) {
+    if (sourceSection == null
+        || moduleScope.getModule().isModuleSource(sourceSection.getSource())) {
       this.inlineSource = null;
     } else {
       this.inlineSource = sourceSection.getSource();
     }
     this.sourceStartIndex = sourceSection == null ? NO_SOURCE : sourceSection.getCharIndex();
     this.sourceLength = sourceSection == null ? NO_SOURCE : sourceSection.getCharLength();
+  }
+
+  /**
+   * Builds a {@link FrameDescriptor} from the alias analysis scope metadata for the local scope.
+   * See [[AliasAnalysis.Graph.Scope.allDefinitions]].
+   *
+   * @return {@link FrameDescriptor} built from the variable definitions in the local localScope.
+   */
+  private static FrameDescriptor buildFrameDescriptor(LocalScope localScope) {
+    var descriptorBuilder = FrameDescriptor.newBuilder();
+    descriptorBuilder.addSlot(FrameSlotKind.Object, LocalScope.monadicStateSlotName(), null);
+    for (var definition : ScalaConversions.asJava(localScope.scope().allDefinitions())) {
+      descriptorBuilder.addSlot(FrameSlotKind.Illegal, definition.symbol(), null);
+    }
+    descriptorBuilder.defaultValue(DataflowError.UNINITIALIZED);
+    var frameDescriptor = descriptorBuilder.build();
+    return frameDescriptor;
   }
 
   /**
@@ -89,13 +111,17 @@ public abstract class EnsoRootNode extends RootNode {
   }
 
   static final int NO_SOURCE = -1;
+
   static SourceSection findSourceSection(final RootNode n, int sourceStartIndex, int sourceLength) {
     if (sourceStartIndex != NO_SOURCE && n instanceof EnsoRootNode rootNode) {
       if (rootNode.inlineSource == null) {
         if (rootNode.sourceStartIndex == NO_SOURCE) {
           return null;
         } else {
-          return rootNode.getModuleScope().getModule().createSection(sourceStartIndex, sourceLength);
+          return rootNode
+              .getModuleScope()
+              .getModule()
+              .createSection(sourceStartIndex, sourceLength);
         }
       } else {
         return rootNode.inlineSource.createSection(sourceStartIndex, sourceLength);

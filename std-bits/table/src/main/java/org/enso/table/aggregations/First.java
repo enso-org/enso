@@ -5,6 +5,7 @@ import java.util.List;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.index.OrderedMultiValueKey;
 import org.enso.table.data.table.Column;
+import org.enso.table.problems.ProblemAggregator;
 import org.graalvm.polyglot.Context;
 
 /** Aggregate Column finding the first value in a group. */
@@ -38,7 +39,7 @@ public class First extends Aggregator {
   }
 
   @Override
-  public Object aggregate(List<Integer> indexes) {
+  public Object aggregate(List<Integer> indexes, ProblemAggregator problemAggregator) {
     if (orderByColumns.length == 0) {
       return firstByRowOrder(indexes);
     } else {

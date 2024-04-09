@@ -18,6 +18,8 @@ use crate::enso::IrCaches;
 use crate::paths::cache_directory;
 use crate::paths::Paths;
 use crate::paths::TargetTriple;
+use crate::paths::ENSO_DATA_DIRECTORY;
+use crate::paths::ENSO_JAVA;
 use crate::paths::ENSO_TEST_JUNIT_DIR;
 use crate::project::ProcessWrapper;
 
@@ -26,13 +28,11 @@ use ide_ci::actions::workflow::MessageLevel;
 use ide_ci::cache;
 use ide_ci::github::release::IsReleaseExt;
 use ide_ci::platform::DEFAULT_SHELL;
-use ide_ci::programs::graal;
 use ide_ci::programs::sbt;
 use ide_ci::programs::Flatc;
 use ide_ci::programs::Sbt;
 use std::env::consts::DLL_EXTENSION;
 use std::env::consts::EXE_EXTENSION;
-use sysinfo::SystemExt;
 
 
 
@@ -72,7 +72,7 @@ impl RunContext {
         triple: TargetTriple,
         external_runtime: Option<Arc<EnginePackageProvider>>,
     ) -> Result<Self> {
-        let paths = crate::paths::Paths::new_versions(&inner.repo_root, triple.versions)?;
+        let paths = Paths::new_versions(&inner.repo_root, triple.versions)?;
         let context = RunContext { config: config.into(), inner, paths, external_runtime };
         Ok(context)
     }
@@ -107,6 +107,7 @@ impl RunContext {
 
     /// Check that required programs are present (if not, installs them, if supported). Set
     /// environment variables for the build to follow.
+    #[instrument(skip(self))]
     pub async fn prepare_build_env(&self) -> Result {
         // Building native images with Graal on Windows requires Microsoft Visual C++ Build Tools
         // available in the environment. If it is not visible, we need to add it.
@@ -125,7 +126,7 @@ impl RunContext {
         ide_ci::programs::Npm.require_present().await?;
 
         let prepare_simple_library_server = {
-            if self.config.test_scala {
+            if self.config.test_jvm {
                 let simple_server_path = &self.paths.repo_root.tools.simple_library_server;
                 ide_ci::programs::git::new(simple_server_path)
                     .await?
@@ -194,17 +195,53 @@ impl RunContext {
 
         // Setup GraalVM
         let graalvm =
-            crate::engine::deduce_graal(self.octocrab.clone(), &self.repo_root.build_sbt).await?;
+            engine::deduce_graal(self.octocrab.clone(), &self.repo_root.build_sbt).await?;
         graalvm.install_if_missing(&self.cache).await?;
-        graal::Gu.require_present().await?;
+        let graal_version = engine::deduce_graal_bundle(&self.repo_root.build_sbt).await?;
+        let graalpy_version = graal_version.packages;
 
-        let required_components = [graal::ComponentId::NativeImage, graal::ComponentId::JS];
-        // Some GraalVM components depend on Sulong and are not available on all platforms (like
-        // Windows or M1 macOS). Thus, we treat them as optional. See e.g.
-        // https://github.com/oracle/graalpython/issues/156
-        let optional_components = [graal::ComponentId::Python];
-        graal::install_missing_components(required_components, optional_components).await?;
+        // Install GraalPy standalone distribution
+        // GraalPy has a version that corresponds to the `graalMavenPackagesVersion` variable in
+        // build.sbt
+        let graalpy = cache::goodie::graalpy::GraalPy {
+            client:  self.octocrab.clone(),
+            version: graalpy_version,
+            os:      self.paths.triple.os,
+            arch:    self.paths.triple.arch,
+        };
+        graalpy.install_if_missing(&self.cache).await?;
+        ide_ci::programs::graalpy::GraalPy.require_present().await?;
+
         prepare_simple_library_server.await??;
+        Ok(())
+    }
+
+    /// During the native-image build, the engine generates arg files. This function uploads them as
+    /// artifacts on the CI, so we can inspect them later.
+    /// Note that if something goes wrong, the native image arg files may not be present.
+    async fn upload_native_image_arg_files(&self) -> Result {
+        debug!("Uploading Native Image Arg Files");
+        let engine_runner_ni_argfile =
+            &self.repo_root.engine.runner.target.native_image_args_txt.path;
+        let launcher_ni_argfile = &self.repo_root.engine.launcher.target.native_image_args_txt.path;
+        let project_manager_ni_argfile =
+            &self.repo_root.lib.scala.project_manager.target.native_image_args_txt.path;
+        let native_image_arg_files = [
+            (engine_runner_ni_argfile, "Engine Runner native-image-args"),
+            (launcher_ni_argfile, "Launcher native-image-args"),
+            (project_manager_ni_argfile, "Project Manager native-image-args"),
+        ];
+        for (argfile, artifact_name) in native_image_arg_files {
+            if argfile.exists() {
+                ide_ci::actions::artifacts::upload_single_file(argfile, artifact_name).await?;
+            } else {
+                warn!(
+                    "Native Image Arg File for {} not found at {}",
+                    artifact_name,
+                    argfile.display()
+                );
+            }
+        }
         Ok(())
     }
 
@@ -219,19 +256,36 @@ impl RunContext {
 
             // Remove the benchmark reports. They are not meant currently to be incrementally
             // updated.
-            ide_ci::fs::remove_if_exists(&self.paths.repo_root.engine.runtime.bench_report_xml)?;
+
+            // We remove all "bench-report.xml" files across the repo, as they confuse the
+            // benchmark reporter. See the request: https://github.com/enso-org/enso/pull/8707#issuecomment-1882512361
+            let bench_report_xml = "**/bench-report.xml";
+            ide_ci::fs::remove_glob(bench_report_xml)?;
         }
 
-        let test_results_dir = if self.config.test_standard_library {
-            // If we run tests, make sure that old and new results won't end up mixed together.
-            let test_results_dir = ENSO_TEST_JUNIT_DIR
-                .get()
-                .unwrap_or_else(|_| self.paths.repo_root.target.test_results.path.clone());
-            ide_ci::fs::reset_dir(&test_results_dir)?;
-            Some(test_results_dir)
-        } else {
-            None
-        };
+
+        let _test_results_upload_guard =
+            if self.config.test_jvm || self.config.test_standard_library {
+                // If we run tests, make sure that old and new results won't end up mixed together.
+                let test_results_dir = ENSO_TEST_JUNIT_DIR
+                    .get()
+                    .unwrap_or_else(|_| self.paths.repo_root.target.test_results.path.clone());
+                ide_ci::fs::reset_dir(&test_results_dir)?;
+
+                // If we are run in CI conditions and we prepared some test results, we want to
+                // upload them as a separate artifact to ease debugging. And we do want to do that
+                // even if the tests fail and we are leaving the scope with an error.
+                is_in_env().then(|| {
+                    scopeguard::guard(test_results_dir, |test_results_dir| {
+                        ide_ci::global::spawn(
+                            "Upload test results",
+                            upload_test_results(test_results_dir),
+                        );
+                    })
+                })
+            } else {
+                None
+            };
 
         // Workaround for incremental compilation issue, as suggested by kustosz.
         // We target files like
@@ -272,8 +326,6 @@ impl RunContext {
             )],
         };
 
-        sbt.call_arg("bootstrap").await?;
-
         perhaps_generate_java_from_rust_job.await.transpose()?;
         let perhaps_test_java_generated_from_rust_job =
             ide_ci::future::perhaps(self.config.test_java_generated_from_rust, || {
@@ -283,66 +335,32 @@ impl RunContext {
         // If we have much memory, we can try building everything in a single batch. Reducing number
         // of SBT invocations significantly helps build time. However, it is more memory heavy, so
         // we don't want to call this in environments like GH-hosted runners.
-        let github_hosted_macos_memory = 15_032_385;
-        let big_memory_machine = system.total_memory() > github_hosted_macos_memory;
-        // Windows native runner is not yet supported.
-        let build_native_runner =
-            self.config.build_engine_package() && big_memory_machine && TARGET_OS != OS::Windows;
-
 
         // === Build project-manager distribution and native image ===
-        debug!("Bulding project-manager distribution and Native Image");
-        if big_memory_machine {
-            let mut tasks = vec![];
-
-            if self.config.build_engine_package() {
-                tasks.push("buildEngineDistribution");
-                tasks.push("engine-runner/assembly");
-            }
-            if build_native_runner {
-                tasks.push("engine-runner/buildNativeImage");
-            }
-
-            if TARGET_OS != OS::Windows {
-                // FIXME [mwu] apparently this is broken on Windows because of the line endings
-                // mismatch
-                tasks.push("verifyLicensePackages");
-            }
-
-            if self.config.build_project_manager_package() {
-                tasks.push("buildProjectManagerDistribution");
-            }
-
-            if self.config.build_launcher_package() {
-                tasks.push("buildLauncherDistribution");
-            }
-            sbt.call_arg(Sbt::concurrent_tasks(tasks)).await?;
-        } else {
-            // If we are run on a weak machine (like GH-hosted runner), we need to build things one
-            // by one.
-            sbt.call_arg("compile").await?;
-
-            // Build the Runner & Runtime Uberjars
-            sbt.call_arg("engine-runner/assembly").await?;
-
-            // Build the Launcher Native Image
-            sbt.call_arg("launcher/assembly").await?;
-            sbt.call_args(&["--mem", "1536", "launcher/buildNativeImage"]).await?;
-
-            // Build the PM Native Image
-            sbt.call_arg("project-manager/assembly").await?;
-            sbt.call_args(&["--mem", "1536", "project-manager/buildNativeImage"]).await?;
-
-            // Prepare Launcher Distribution
-            //create_launcher_package(&paths)?;
-            sbt.call_arg("buildLauncherDistribution").await?;
-
-            // Prepare Engine Distribution
-            sbt.call_arg("buildEngineDistribution").await?;
-
-            // Prepare Project Manager Distribution
-            sbt.call_arg("buildProjectManagerDistribution").await?;
+        let mut tasks = vec![];
+        if self.config.build_engine_package() {
+            tasks.push("engine-runner/assembly");
+            tasks.push("buildEngineDistribution");
         }
+        if self.config.build_native_runner {
+            tasks.push("engine-runner/buildNativeImage");
+        }
+        if self.config.build_project_manager_package() {
+            tasks.push("buildProjectManagerDistribution");
+        }
+        if self.config.build_launcher_package() {
+            tasks.push("buildLauncherDistribution");
+        }
+
+        if !tasks.is_empty() {
+            debug!("Building distributions and native images.");
+            if crate::ci::big_memory_machine() {
+                sbt.call_arg(Sbt::concurrent_tasks(tasks)).await?;
+            } else {
+                sbt.call_arg(Sbt::sequential_tasks(tasks)).await?;
+            }
+        }
+
         // === End of Build project-manager distribution and native image ===
 
         let ret = self.expected_artifacts();
@@ -377,76 +395,55 @@ impl RunContext {
 
         // === Unit tests and Enso tests ===
         debug!("Running unit tests and Enso tests.");
-        if self.config.test_scala {
+        // We store Scala test result but not immediately fail on it, as we want to run all the
+        // tests (including standard library ones) even if Scala tests fail.
+        let scala_test_result = if self.config.test_jvm {
+            // Make sure that `sbt buildEngineDistributionNoIndex` is run before
+            // `project-manager/test`. Note that we do not have to run
+            // `buildEngineDistribution` (with indexing), because it is unnecessary.
+            sbt.call_arg("buildEngineDistributionNoIndex").await?;
+
             // Run unit tests
-            sbt.call_arg("set Global / parallelExecution := false; test").await?;
-        }
+            sbt.call_arg("set Global / parallelExecution := false; test").await.inspect_err(|e| {
+                ide_ci::actions::workflow::error(format!("Scala Tests failed: {e:?}"))
+            })
+        } else {
+            // No tests - no fail.
+            Ok(())
+        };
+
         if self.config.test_standard_library {
             enso.run_tests(IrCaches::No, &sbt, PARALLEL_ENSO_TESTS).await?;
-        }
-        // If we are run in CI conditions and we prepared some test results, we want to upload
-        // them as a separate artifact to ease debugging.
-        if let Some(test_results_dir) = test_results_dir && is_in_env() {
-            // Each platform gets its own log results, so we need to generate unique names.
-            let name = format!("Test_Results_{TARGET_OS}");
-            if let Err(err) = ide_ci::actions::artifacts::upload_compressed_directory(&test_results_dir, name)
-                .await {
-                // We wouldn't want to fail the whole build if we can't upload the test results.
-                // Still, it should be somehow visible in the build summary.
-                ide_ci::actions::workflow::message(MessageLevel::Warning, format!("Failed to upload test results: {err}"));
-            }
         }
 
         perhaps_test_java_generated_from_rust_job.await.transpose()?;
 
         // === Run benchmarks ===
         debug!("Running benchmarks.");
-        if big_memory_machine {
-            let mut tasks = vec![];
-            // This just compiles benchmarks, not run them. At least we'll know that they can be
-            // run. Actually running them, as part of this routine, would be too heavy.
-            // TODO [mwu] It should be possible to run them through context config option.
-            if self.config.build_benchmarks {
-                tasks.extend([
-                    "runtime/Benchmark/compile",
-                    "language-server/Benchmark/compile",
-                    "searcher/Benchmark/compile",
-                    "std-benchmarks/Benchmark/compile",
-                ]);
-            }
-
-            let build_command = (!tasks.is_empty()).then_some(Sbt::concurrent_tasks(tasks));
-
-            // We want benchmarks to run only after the other build tasks are done, as they are
-            // really CPU-heavy.
-            let benchmark_tasks = self.config.execute_benchmarks.iter().flat_map(|b| b.sbt_task());
-            let command_sequence = build_command.as_deref().into_iter().chain(benchmark_tasks);
-            let final_command = Sbt::sequential_tasks(command_sequence);
-            if !final_command.is_empty() {
-                sbt.call_arg(final_command).await?;
+        let build_benchmark_task = if self.config.build_benchmarks {
+            let build_benchmark_task_names = [
+                "runtime-benchmarks/compile",
+                "language-server/Benchmark/compile",
+                "searcher/Benchmark/compile",
+                "std-benchmarks/compile",
+            ];
+            if crate::ci::big_memory_machine() {
+                Some(Sbt::concurrent_tasks(build_benchmark_task_names))
             } else {
-                debug!("No SBT tasks to run.");
+                Some(Sbt::sequential_tasks(build_benchmark_task_names))
             }
         } else {
-            if self.config.build_benchmarks {
-                // Check Runtime Benchmark Compilation
-                sbt.call_arg("runtime/Benchmark/compile").await?;
-
-                // Check Language Server Benchmark Compilation
-                sbt.call_arg("language-server/Benchmark/compile").await?;
-
-                // Check Searcher Benchmark Compilation
-                sbt.call_arg("searcher/Benchmark/compile").await?;
-
-                // Check Enso JMH benchmark compilation
-                sbt.call_arg("std-benchmarks/Benchmark/compile").await?;
-            }
-
-            for benchmark in &self.config.execute_benchmarks {
-                if let Some(task) = benchmark.sbt_task() {
-                    sbt.call_arg(task).await?;
-                }
-            }
+            None
+        };
+        let execute_benchmark_tasks =
+            self.config.execute_benchmarks.iter().flat_map(|b| b.sbt_task());
+        let build_and_execute_benchmark_task =
+            build_benchmark_task.as_deref().into_iter().chain(execute_benchmark_tasks);
+        let benchmark_command = Sbt::sequential_tasks(build_and_execute_benchmark_task);
+        if !benchmark_command.is_empty() {
+            sbt.call_arg(benchmark_command).await?;
+        } else {
+            debug!("No SBT tasks to run.");
         }
 
         if self.config.execute_benchmarks.contains(&Benchmarks::Enso) {
@@ -455,13 +452,19 @@ impl RunContext {
             enso.run_benchmarks(BenchmarkOptions { dry_run: true }).await?;
         }
 
-        // If we were running any benchmarks, they are complete by now. Upload the report.
         if is_in_env() {
+            self.upload_native_image_arg_files().await?;
+
+            // If we were running any benchmarks, they are complete by now. Upload the report.
             for bench in &self.config.execute_benchmarks {
                 match bench {
                     Benchmarks::Runtime => {
-                        let runtime_bench_report =
-                            &self.paths.repo_root.engine.runtime.bench_report_xml;
+                        let runtime_bench_report = &self
+                            .paths
+                            .repo_root
+                            .engine
+                            .join("runtime-benchmarks")
+                            .join("bench-report.xml");
                         if runtime_bench_report.exists() {
                             ide_ci::actions::artifacts::upload_single_file(
                                 runtime_bench_report,
@@ -499,50 +502,22 @@ impl RunContext {
 
         // === Build Distribution ===
         debug!("Building distribution");
-        if self.config.build_engine_package() {
-            let std_libs =
-                &self.repo_root.built_distribution.enso_engine_triple.engine_package.lib.standard;
-            // let std_libs = self.paths.engine.dir.join("lib").join("Standard");
-            // Compile the Standard Libraries (Unix)
-            debug!("Compiling standard libraries under {}", std_libs.display());
-            for entry in ide_ci::fs::read_dir(std_libs)? {
-                let entry = entry?;
-                let target = entry.path().join(self.paths.version().to_string());
-                enso.compile_lib(target)?.run_ok().await?;
-            }
+        if self.config.build_native_runner {
+            debug!("Building and testing native engine runners");
+            runner_sanity_test(&self.repo_root, None).await?;
+            ide_ci::fs::remove_file_if_exists(&self.repo_root.runner)?;
+            let enso_java = "espresso";
+            sbt.command()?
+                .env(ENSO_JAVA, enso_java)
+                .arg("engine-runner/buildNativeImage")
+                .run_ok()
+                .await?;
+            runner_sanity_test(&self.repo_root, Some(enso_java)).await?;
         }
 
-
-        // if build_native_runner {
-        //     let factorial_input = "6";
-        //     let factorial_expected_output = "720";
-        //     let output = Command::new(&self.repo_root.runner)
-        //         .args([
-        //             "--run",
-        //
-        // self.repo_root.engine.runner_native.src.test.resources.factorial_enso.as_str(),
-        //             factorial_input,
-        //         ])
-        //         .env(ENSO_DATA_DIRECTORY.name(), &self.paths.engine.dir)
-        //         .run_stdout()
-        //         .await?;
-        //     ensure!(
-        //         output.contains(factorial_expected_output),
-        //         "Native runner output does not contain expected result."
-        //     );
-        // }
-
-
-        // Verify License Packages in Distributions
+        // Verify Integrity of Generated License Packages in Distributions
         // FIXME apparently this does not work on Windows due to some CRLF issues?
         if self.config.verify_packages && TARGET_OS != OS::Windows {
-            /*  refversion=${{ env.ENSO_VERSION }}
-                binversion=${{ env.DIST_VERSION }}
-                engineversion=$(${{ env.ENGINE_DIST_DIR }}/bin/enso --version --json | jq -r '.version')
-                test $binversion = $refversion || (echo "Tag version $refversion and the launcher version $binversion do not match" && false)
-                test $engineversion = $refversion || (echo "Tag version $refversion and the engine version $engineversion do not match" && false)
-            */
-
             for package in ret.packages() {
                 package.verify_package_sbt(&sbt).await?;
             }
@@ -579,10 +554,12 @@ impl RunContext {
             }
         }
 
-        let graal_version = crate::engine::deduce_graal_bundle(&self.repo_root.build_sbt).await?;
+        let graal_version = engine::deduce_graal_bundle(&self.repo_root.build_sbt).await?;
         for bundle in ret.bundles() {
             bundle.create(&self.repo_root, &graal_version).await?;
         }
+
+        scala_test_result?;
 
         Ok(ret)
     }
@@ -617,7 +594,7 @@ impl RunContext {
                 if let Some(program) = run.next() {
                     debug!("Resolving program: {}", program.as_str());
                     let exe_path = ide_ci::program::lookup(program.as_str())?;
-                    ide_ci::program::Command::new(exe_path)
+                    Command::new(exe_path)
                         .args(run)
                         .current_dir(&self.paths.repo_root)
                         .spawn()?
@@ -631,6 +608,14 @@ impl RunContext {
                     shell.wait_ok().await?;
                 }
             }
+            Operation::Sbt(args) => {
+                self.prepare_build_env().await?;
+                let sbt = engine::sbt::Context {
+                    repo_root:         self.paths.repo_root.path.clone(),
+                    system_properties: default(),
+                };
+                sbt.call_args(args).await?;
+            }
             Operation::Build => {
                 self.build().boxed().await?;
             }
@@ -638,4 +623,53 @@ impl RunContext {
 
         Ok(())
     }
+}
+
+/// Upload the directory with Enso-generated test results.
+///
+/// This is meant to ease debugging, it does not really affect the build.
+#[context("Failed to upload test results.")]
+pub async fn upload_test_results(test_results_dir: PathBuf) -> Result {
+    // Each platform gets its own log results, so we need to generate unique
+    // names.
+    let name = format!("Test_Results_{TARGET_OS}");
+    let upload_result =
+        ide_ci::actions::artifacts::upload_compressed_directory(&test_results_dir, name).await;
+    if let Err(err) = &upload_result {
+        // We wouldn't want to fail the whole build if we can't upload the test
+        // results. Still, it should be somehow
+        // visible in the build summary.
+        ide_ci::actions::workflow::message(
+            MessageLevel::Warning,
+            format!("Failed to upload test results: {err}"),
+        );
+    }
+    upload_result
+}
+
+/// Run the native runner and check if it produces the expected output on a simple test.
+pub async fn runner_sanity_test(
+    repo_root: &crate::paths::generated::RepoRoot,
+    enso_java: Option<&str>,
+) -> Result {
+    let factorial_input = "6";
+    let factorial_expected_output = "720";
+    let engine_package = repo_root.built_distribution.enso_engine_triple.engine_package.as_path();
+    // The engine package is necessary for running the native runner.
+    ide_ci::fs::tokio::require_exist(engine_package).await?;
+    let output = Command::new(&repo_root.runner)
+        .args([
+            "--run",
+            repo_root.engine.runner.src.test.resources.factorial_enso.as_str(),
+            factorial_input,
+        ])
+        .set_env_opt(ENSO_JAVA, enso_java)?
+        .set_env(ENSO_DATA_DIRECTORY, engine_package)?
+        .run_stdout()
+        .await?;
+    ensure!(
+        output.contains(factorial_expected_output),
+        "Native runner output does not contain expected result '{factorial_expected_output}'. Output:\n{output}",
+    );
+    Ok(())
 }

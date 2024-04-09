@@ -85,11 +85,11 @@ public abstract class CaseNode extends ExpressionNode {
       @Shared("warnsLib") @CachedLibrary(limit = "3") WarningsLibrary warnings) {
     try {
       EnsoContext ctx = EnsoContext.get(this);
-      Warning[] ws = warnings.getWarnings(object, this);
+      Warning[] ws = warnings.getWarnings(object, this, false);
       Object result = doMatch(frame, warnings.removeWarnings(object), warnings);
       return WithWarnings.wrap(ctx, result, ws);
     } catch (UnsupportedMessageException e) {
-      throw new IllegalStateException(e);
+      throw EnsoContext.get(this).raiseAssertionPanic(this, null, e);
     }
   }
 

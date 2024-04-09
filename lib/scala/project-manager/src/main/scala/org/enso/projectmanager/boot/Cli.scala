@@ -7,14 +7,22 @@ import scala.util.Try
 
 object Cli {
 
-  val JSON_OPTION               = "json"
-  val HELP_OPTION               = "help"
-  val NO_LOG_MASKING            = "no-log-masking"
-  val VERBOSE_OPTION            = "verbose"
-  val VERSION_OPTION            = "version"
-  val PROFILING_PATH            = "profiling-path"
-  val PROFILING_TIME            = "profiling-time"
-  val PROFILING_EVENTS_LOG_PATH = "profiling-events-log-path"
+  val JSON_OPTION        = "json"
+  val HELP_OPTION        = "help"
+  val NO_LOG_MASKING     = "no-log-masking"
+  val VERBOSE_OPTION     = "verbose"
+  val VERSION_OPTION     = "version"
+  val PROFILING_PATH     = "profiling-path"
+  val PROFILING_TIME     = "profiling-time"
+  val PROJECTS_DIRECTORY = "projects-directory"
+  val PROJECT_LIST       = "project-list"
+
+  val FILESYSTEM_LIST             = "filesystem-list"
+  val FILESYSTEM_CREATE_DIRECTORY = "filesystem-create-directory"
+  val FILESYSTEM_DELETE           = "filesystem-delete"
+  val FILESYSTEM_MOVE_FROM        = "filesystem-move-from"
+  val FILESYSTEM_MOVE_TO          = "filesystem-move-to"
+  val FILESYSTEM_WRITE_PATH       = "filesystem-write-path"
 
   object option {
 
@@ -65,14 +73,69 @@ object Cli {
       .desc("The duration in seconds limiting the application profiling time.")
       .build()
 
-    val profilingEventsLogPath: cli.Option = cli.Option.builder
+    val projectsDirectory: cli.Option = cli.Option.builder
       .hasArg(true)
       .numberOfArgs(1)
-      .argName("file")
-      .longOpt(PROFILING_EVENTS_LOG_PATH)
-      .desc(
-        "The path to the runtime events log file. Enables the runtime events logging."
-      )
+      .argName("path")
+      .longOpt(PROJECTS_DIRECTORY)
+      .desc("The path to the projects directory.")
+      .build()
+
+    val projectList: cli.Option = cli.Option.builder
+      .optionalArg(true)
+      .numberOfArgs(1)
+      .`type`(classOf[java.lang.Number])
+      .argName("limit")
+      .longOpt(PROJECT_LIST)
+      .desc("List user projects.")
+      .build()
+
+    val filesystemList: cli.Option = cli.Option.builder
+      .hasArg(true)
+      .numberOfArgs(1)
+      .argName("path")
+      .longOpt(FILESYSTEM_LIST)
+      .desc("List directory.")
+      .build()
+
+    val filesystemCreateDirectory: cli.Option = cli.Option.builder
+      .hasArg(true)
+      .numberOfArgs(1)
+      .argName("path")
+      .longOpt(FILESYSTEM_CREATE_DIRECTORY)
+      .desc("Create directory.")
+      .build()
+
+    val filesystemDelete: cli.Option = cli.Option.builder
+      .hasArg(true)
+      .numberOfArgs(1)
+      .argName("path")
+      .longOpt(FILESYSTEM_DELETE)
+      .desc("Delete file or directory recursively.")
+      .build()
+
+    val filesystemMoveFrom: cli.Option = cli.Option.builder
+      .hasArg(true)
+      .numberOfArgs(1)
+      .argName("path")
+      .longOpt(FILESYSTEM_MOVE_FROM)
+      .desc("Move directory. Target.")
+      .build()
+
+    val filesystemMoveTo: cli.Option = cli.Option.builder
+      .hasArg(true)
+      .numberOfArgs(1)
+      .argName("path")
+      .longOpt(FILESYSTEM_MOVE_TO)
+      .desc("Move directory. Destination.")
+      .build()
+
+    val filesystemWritePath: cli.Option = cli.Option.builder
+      .hasArg(true)
+      .numberOfArgs(1)
+      .argName("path")
+      .longOpt(FILESYSTEM_WRITE_PATH)
+      .desc("Write data from stdin to the provided file")
       .build()
   }
 
@@ -85,7 +148,14 @@ object Cli {
       .addOption(option.noLogMasking)
       .addOption(option.profilingPath)
       .addOption(option.profilingTime)
-      .addOption(option.profilingEventsLogPath)
+      .addOption(option.projectsDirectory)
+      .addOption(option.projectList)
+      .addOption(option.filesystemList)
+      .addOption(option.filesystemCreateDirectory)
+      .addOption(option.filesystemDelete)
+      .addOption(option.filesystemMoveFrom)
+      .addOption(option.filesystemMoveTo)
+      .addOption(option.filesystemWritePath)
 
   /** Parse the command line options. */
   def parse(args: Array[String]): Either[String, cli.CommandLine] = {

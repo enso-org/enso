@@ -68,3 +68,15 @@ with an automatic propagation mechanism:
 > - Ensure that we are okay with initially designing everything around async
 >   exceptions as broken values are very hard to support without a type checker.
 > - Initially not supported for APIs.
+
+Broken values (implemented as `DataflowError` class in the interpreter) are fast
+to allocate and pass around the program. They record line of their own
+creation - e.g. where `Error.throw` has happened. Shall that not be enough, one
+can run with `-ea` flag, like:
+
+```bash
+enso$ JAVA_OPTS=-ea ./built-distribution/enso-engine-*/enso-*/bin/enso --run x.enso
+```
+
+to get full stack where the _broken value_ has been created. Collecting such
+full stack trace however prevents the execution to run at _full speed_.

@@ -2,10 +2,7 @@ package org.enso.logger;
 
 import static java.util.logging.Level.*;
 
-import java.util.logging.Formatter;
-import java.util.logging.Handler;
-import java.util.logging.LogRecord;
-import java.util.logging.SimpleFormatter;
+import java.util.logging.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

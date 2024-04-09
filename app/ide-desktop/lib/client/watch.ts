@@ -10,14 +10,11 @@
 import * as childProcess from 'node:child_process'
 import * as fs from 'node:fs/promises'
 import * as path from 'node:path'
-import * as url from 'node:url'
 import process from 'node:process'
 
 import * as esbuild from 'esbuild'
 
 import * as clientBundler from './esbuild-config'
-import * as contentBundler from '../content/esbuild-config'
-import * as dashboardBundler from '../dashboard/esbuild-config'
 import * as paths from './paths'
 
 // =============
@@ -26,17 +23,13 @@ import * as paths from './paths'
 
 /** Set of esbuild watches for the client and content. */
 interface Watches {
-    client: esbuild.BuildResult
-    dashboard: esbuild.BuildResult
-    content: esbuild.BuildResult
+    readonly client: esbuild.BuildResult
 }
 
 // =================
 // === Constants ===
 // =================
 
-/** The path of this file. */
-const THIS_PATH = path.resolve(path.dirname(url.fileURLToPath(import.meta.url)))
 const IDE_DIR_PATH = paths.getIdeDirectory()
 const PROJECT_MANAGER_BUNDLE_PATH = paths.getProjectManagerBundlePath()
 
@@ -44,14 +37,18 @@ const PROJECT_MANAGER_BUNDLE_PATH = paths.getProjectManagerBundlePath()
 // === Watch ===
 // =============
 
+// @ts-expect-error This is the only place where an environment variable should be written to.
+process.env.ELECTRON_DEV_MODE = 'true'
 console.log('Cleaning IDE dist directory.')
 await fs.rm(IDE_DIR_PATH, { recursive: true, force: true })
 await fs.mkdir(IDE_DIR_PATH, { recursive: true })
+const NODE_MODULES_PATH = path.resolve('../../../../node_modules')
 
 const ALL_BUNDLES_READY = new Promise<Watches>((resolve, reject) => {
     void (async () => {
         console.log('Bundling client.')
-        const clientBundlerOpts = clientBundler.bundlerOptionsFromEnv()
+        const devMode = true
+        const clientBundlerOpts = clientBundler.bundlerOptionsFromEnv(devMode)
         clientBundlerOpts.outdir = path.resolve(IDE_DIR_PATH)
         // Eslint is wrong here; `clientBundlerOpts.plugins` is actually `undefined`.
         // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
@@ -75,58 +72,18 @@ const ALL_BUNDLES_READY = new Promise<Watches>((resolve, reject) => {
         console.log('Result of client bundling: ', client)
         void clientBuilder.watch()
 
-        console.log('Bundling dashboard.')
-        const dashboardOpts = dashboardBundler.bundleOptions()
-        dashboardOpts.plugins.push({
-            name: 'enso-on-rebuild',
-            setup: build => {
-                build.onEnd(() => {
-                    console.log('Dashboard bundle updated.')
-                })
-            },
-        })
-        dashboardOpts.outdir = path.resolve(IDE_DIR_PATH, 'assets')
-        const dashboardBuilder = await esbuild.context(dashboardOpts)
-        const dashboard = await dashboardBuilder.rebuild()
-        console.log('Result of dashboard bundling: ', dashboard)
-        // We do not need to serve the dashboard as it outputs to the same directory.
-        // It will not rebuild on request, but it is not intended to rebuild on request anyway.
-        // This MUST be called before `builder.watch()` as `tailwind.css` must be generated
-        // before the copy plugin runs.
-        void dashboardBuilder.watch()
-
-        console.log('Bundling content.')
-        const contentOpts = contentBundler.bundlerOptionsFromEnv({
-            devMode: process.env.DEV_MODE !== 'false',
-            supportsLocalBackend: true,
-            supportsDeepLinks: false,
-        })
-        contentOpts.plugins.push({
-            name: 'enso-on-rebuild',
-            setup: build => {
-                build.onEnd(() => {
-                    console.log('Content bundle updated.')
-                })
-            },
-        })
-        contentOpts.pure.splice(contentOpts.pure.indexOf('assert'), 1)
-        ;(contentOpts.inject = contentOpts.inject ?? []).push(
-            path.resolve(THIS_PATH, '..', '..', 'debugGlobals.ts')
-        )
-        contentOpts.outdir = path.resolve(IDE_DIR_PATH, 'assets')
-        contentOpts.define['process.env.REDIRECT_OVERRIDE'] =
-            JSON.stringify('http://localhost:8080')
-        const contentBuilder = await esbuild.context(contentOpts)
-        const content = await contentBuilder.rebuild()
-        console.log('Result of content bundling: ', content)
-        void contentBuilder.watch()
-
-        resolve({ client, dashboard, content })
+        resolve({ client })
     })()
 })
 
 await ALL_BUNDLES_READY
 console.log('Exposing Project Manager bundle.')
+console.log(
+    `Linking '${PROJECT_MANAGER_BUNDLE_PATH}' to '${path.join(
+        IDE_DIR_PATH,
+        paths.PROJECT_MANAGER_BUNDLE
+    )}'.`
+)
 await fs.symlink(
     PROJECT_MANAGER_BUNDLE_PATH,
     path.join(IDE_DIR_PATH, paths.PROJECT_MANAGER_BUNDLE),
@@ -137,10 +94,12 @@ const ELECTRON_ARGS = [path.join(IDE_DIR_PATH, 'index.cjs'), '--', ...process.ar
 
 process.on('SIGINT', () => {
     console.log('SIGINT received. Exiting.')
-    // The `esbuild` process seems to remain alive at this point and will keep our process
-    // from ending. Thus, we exit manually. It seems to terminate the child `esbuild` process
-    // as well.
-    process.exit(0)
+    void fs.rm(IDE_DIR_PATH, { recursive: true, force: true }).then(() => {
+        // The `esbuild` process seems to remain alive at this point and will keep our process
+        // from ending. Thus, we exit manually. It seems to terminate the child `esbuild` process
+        // as well.
+        process.exit(0)
+    })
 })
 
 while (true) {
@@ -148,6 +107,8 @@ while (true) {
     const electronProcess = childProcess.spawn('electron', ELECTRON_ARGS, {
         stdio: 'inherit',
         shell: true,
+        // eslint-disable-next-line @typescript-eslint/naming-convention
+        env: Object.assign({ NODE_MODULES_PATH }, process.env),
     })
     console.log('Waiting for Electron process to finish.')
     const result = await new Promise((resolve, reject) => {

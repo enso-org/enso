@@ -52,11 +52,13 @@ trait NativeTest
     * @param extraEnv environment variables to override for the launched
     *                 program, do not use these to override PATH
     * @param extraJVMProps JVM properties to append to the launcher command
+    * @param timeoutSeconds timeout (in seconds) to wait for the launcher to finish
     */
   def runLauncher(
     args: Seq[String],
     extraEnv: Map[String, String]      = Map.empty,
-    extraJVMProps: Map[String, String] = Map.empty
+    extraJVMProps: Map[String, String] = Map.empty,
+    timeoutSeconds: Long               = 15
   ): RunResult = {
     if (extraEnv.contains("PATH")) {
       throw new IllegalArgumentException(
@@ -67,7 +69,8 @@ trait NativeTest
     runCommand(
       Seq(baseLauncherLocation.toAbsolutePath.toString) ++ args,
       extraEnv.toSeq,
-      extraJVMProps.toSeq
+      extraJVMProps.toSeq,
+      timeoutSeconds = timeoutSeconds
     )
   }
 
@@ -79,12 +82,14 @@ trait NativeTest
     * @param extraEnv environment variables to override for the launched
     *                 program, do not use these to override PATH
     * @param extraJVMProps JVM properties to append to the launcher command
+    * @param timeoutSeconds timeout (in seconds) to wait for the launcher to finish
     */
   def runLauncherAt(
     pathToLauncher: Path,
     args: Seq[String],
     extraEnv: Map[String, String]      = Map.empty,
-    extraJVMProps: Map[String, String] = Map.empty
+    extraJVMProps: Map[String, String] = Map.empty,
+    timeoutSeconds: Long               = 15
   ): RunResult = {
     if (extraEnv.contains("PATH")) {
       throw new IllegalArgumentException(
@@ -95,7 +100,8 @@ trait NativeTest
     runCommand(
       Seq(pathToLauncher.toAbsolutePath.toString) ++ args,
       extraEnv.toSeq,
-      extraJVMProps.toSeq
+      extraJVMProps.toSeq,
+      timeoutSeconds = timeoutSeconds
     )
   }
 
@@ -134,16 +140,19 @@ trait NativeTest
     * @param pathOverride the system PATH that should be set for the launched
     *                     program
     * @param extraJVMProps JVM properties to append to the launcher command
+    * @param timeoutSeconds timeout (in seconds) to wait for the launcher to finish
     */
   def runLauncherWithPath(
     args: Seq[String],
     pathOverride: String,
-    extraJVMProps: Map[String, String] = Map.empty
+    extraJVMProps: Map[String, String] = Map.empty,
+    timeoutSeconds: Long               = 15
   ): RunResult = {
     runCommand(
       Seq(baseLauncherLocation.toAbsolutePath.toString) ++ args,
       Seq(NativeTest.PATH -> pathOverride),
-      extraJVMProps.toSeq
+      extraJVMProps.toSeq,
+      timeoutSeconds = timeoutSeconds
     )
   }
 }

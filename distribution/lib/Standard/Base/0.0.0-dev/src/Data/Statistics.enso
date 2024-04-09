@@ -5,9 +5,11 @@ import project.Data.Numbers.Integer
 import project.Data.Numbers.Number
 import project.Data.Ordering.Comparable
 import project.Data.Ordering.Ordering
+import project.Data.Vector.No_Wrap
 import project.Data.Vector.Vector
 import project.Error.Error
 import project.Errors.Common.Incomparable_Values
+import project.Errors.Empty_Error.Empty_Error
 import project.Errors.Illegal_Argument.Illegal_Argument
 import project.Meta
 import project.Nothing.Nothing
@@ -15,7 +17,6 @@ import project.Panic.Panic
 import project.Runtime.Ref.Ref
 from project.Data.Boolean import Boolean, False, True
 from project.Data.Range.Extensions import all
-from project.Data.Vector import Empty_Error
 from project.Errors.Common import Unsupported_Argument_Types
 
 polyglot java import java.lang.NullPointerException
@@ -42,6 +43,7 @@ type Rank_Method
     Ordinal
 
     ## GROUP Statistics
+       ICON sigma
        Assigns a rank to each value of data, dealing with equal values according to the method.
 
        Arguments:
@@ -153,7 +155,7 @@ type Statistic
        - statistics: Set of statistics to calculate.
     compute_bulk : Vector -> Vector Statistic -> Vector Any
     compute_bulk data statistics=[Statistic.Count, Statistic.Sum] =
-        moment_order = statistics.map .order
+        moment_order = statistics.map on_problems=No_Wrap .order
         has_min_max = statistics.any (s-> s == Statistic.Minimum || s == Statistic.Maximum)
         max_moment_order = moment_order.filter (v-> v != Nothing) . fold 0 .max
         counter = data.fold (Accumulator.new has_min_max max_moment_order) current-> value-> compute_fold current value
@@ -164,7 +166,7 @@ type Statistic
             Error.throw (Illegal_Argument.Error ("Can only compute " + stat.to_text + " on numerical data sets."))
 
         if max_moment_order > 0 && counter.moments.is_nothing then report_error statistics else
-            statistics.map statistic-> case statistic of
+            statistics.map on_problems=No_Wrap statistic-> case statistic of
                 Statistic.Covariance series -> check_if_empty counter.count <| calculate_correlation_statistics data series . covariance
                 Statistic.Pearson series -> check_if_empty counter.count <| calculate_correlation_statistics data series . pearsonCorrelation
                 Statistic.R_Squared series -> check_if_empty counter.count <| calculate_correlation_statistics data series . rSquared
@@ -197,7 +199,7 @@ type Statistic
             _ -> False
 
         if statistics.any is_unsupported then Error.throw (Illegal_Argument.Error ("Unsupported Statistics ( " + (statistics.filter is_unsupported . to_text) ") for running calculations.")) else
-            moment_order = statistics.map .order
+            moment_order = statistics.map on_problems=No_Wrap .order
             has_min_max = statistics.any (s-> s == Statistic.Minimum || s == Statistic.Maximum)
             max_moment_order = moment_order.filter (v-> v != Nothing) . fold 0 .max
 
@@ -208,7 +210,7 @@ type Statistic
                 data.fold counter current->value->
                     result = compute_fold current value
 
-                    row = Panic.throw_wrapped_if_error <| statistics.map s-> case s of
+                    row = Panic.throw_wrapped_if_error <| statistics.map on_problems=No_Wrap s-> case s of
                         Statistic.Maximum -> if result.count == 0 then Nothing else result.maximum
                         Statistic.Minimum -> if result.count == 0 then Nothing else result.minimum
                         _ -> result.compute s
@@ -218,7 +220,8 @@ type Statistic
 
                 output.to_vector
 
-    ## Calculate a variance-covariance matrix between the input series.
+    ## ICON math
+       Calculate a variance-covariance matrix between the input series.
 
        Arguments:
        - data: The input data sets
@@ -227,7 +230,8 @@ type Statistic
         stats_vectors = calculate_correlation_statistics_matrix data
         stats_vectors.map v->(v.map .covariance)
 
-    ## Calculate a Pearson correlation matrix between the input series.
+    ## ICON math
+       Calculate a Pearson correlation matrix between the input series.
 
        Arguments:
        - data: The input data sets
@@ -236,7 +240,8 @@ type Statistic
         stats_vectors = calculate_correlation_statistics_matrix data
         stats_vectors.map v->(v.map .pearsonCorrelation)
 
-    ## Calculate a Spearman Rank correlation matrix between the input series.
+    ## ICON math
+       Calculate a Spearman Rank correlation matrix between the input series.
 
        Arguments:
        - data: The input data sets
@@ -294,6 +299,7 @@ calculate_correlation_statistics_matrix data =
     Vector.new stats_array.length i->(Vector.from_polyglot_array (stats_array.at i))
 
 ## GROUP Statistics
+   ICON sigma
    Compute a single statistic on the vector (ignoring Nothing and NaN values).
 
    Arguments:
@@ -302,7 +308,8 @@ Vector.compute : Statistic -> Any
 Vector.compute self statistic=Statistic.Count =
     self.compute_bulk [statistic] . first
 
-## Compute statistics on the vector (ignoring Nothing and NaN values).
+## ICON dataframe_map_column
+   Compute statistics on the vector (ignoring Nothing and NaN values).
 
    Arguments:
    - statistics: Set of statistics to calculate.
@@ -311,6 +318,7 @@ Vector.compute_bulk self statistics=[Statistic.Count, Statistic.Sum] =
     Statistic.compute_bulk self statistics
 
 ## GROUP Statistics
+   ICON math
    Compute a single running statistic on the vector (ignoring Nothing and NaN
    values).
 
@@ -320,7 +328,8 @@ Vector.running : Statistic -> Vector Any
 Vector.running self statistic=Statistic.Count =
     Statistic.running self statistic
 
-## Compute a set running statistics on the vector (ignoring Nothing and NaN
+## ICON math
+   Compute a set running statistics on the vector (ignoring Nothing and NaN
    values).
 
    Arguments:
@@ -330,6 +339,7 @@ Vector.running_bulk self statistics=[Statistic.Count, Statistic.Sum] =
     Statistic.running_bulk self statistics
 
 ## GROUP Statistics
+   ICON dataframe_map_column
    Assigns a rank to each value of data, dealing with equal values according to
    the method.
 
@@ -349,8 +359,8 @@ check_if_empty count ~action = if count == 0 then Number.nan else action
 empty_value statistic = case statistic of
     Statistic.Count -> 0
     Statistic.Sum -> 0
-    Statistic.Minimum -> Error.throw Empty_Error
-    Statistic.Maximum -> Error.throw Empty_Error
+    Statistic.Minimum -> Error.throw (Empty_Error.Error Vector)
+    Statistic.Maximum -> Error.throw (Empty_Error.Error Vector)
     _ -> Number.nan
 
 ## PRIVATE

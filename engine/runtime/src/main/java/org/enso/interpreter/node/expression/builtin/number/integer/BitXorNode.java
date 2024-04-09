@@ -13,7 +13,7 @@ import org.enso.interpreter.runtime.number.EnsoBigInteger;
 @BuiltinMethod(type = "Integer", name = "bit_xor", description = "Bitwise exclusive or.")
 public abstract class BitXorNode extends IntegerNode {
 
-  abstract Object execute(Object self, Object that);
+  abstract Object execute(Object own, Object that);
 
   static BitXorNode build() {
     return BitXorNodeGen.create();

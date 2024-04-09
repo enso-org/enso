@@ -21,6 +21,14 @@ class TimingsConfig(
     */
   def requestTimeout: FiniteDuration = timeout
 
+  /** A (internal) request timeout.
+    * It should be smaller than the `requestTimeout` to properly propagate failure upwards rather
+    * than request handler timing out.
+    *
+    * @return a duration to wait for the request to runtime to be handled
+    */
+  def runtimeRequestTimeout: FiniteDuration = timeout * 3 / 4
+
   /** Auto-save delay.
     *
     * @return if non-empty, determines the delay when auto-save should be triggered after the last edit

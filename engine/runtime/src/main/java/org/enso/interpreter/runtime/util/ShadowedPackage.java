@@ -19,17 +19,23 @@ public class ShadowedPackage {
     this.packageName = packageName;
   }
 
-  /** @return the path to the shadowed package */
+  /**
+   * @return the path to the shadowed package
+   */
   public String getShadowedPath() {
     return shadowedPath;
   }
 
-  /** @return the path to the package being shadowed */
+  /**
+   * @return the path to the package being shadowed
+   */
   public String getShadowingPath() {
     return shadowingPath;
   }
 
-  /** @return the package name that has clashed */
+  /**
+   * @return the package name that has clashed
+   */
   public String getPackageName() {
     return packageName;
   }

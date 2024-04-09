@@ -1,16 +1,15 @@
 package org.enso.table.data.column.operation.map.numeric.helpers;
 
+import java.math.BigInteger;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.numeric.AbstractLongStorage;
 import org.enso.table.data.column.storage.numeric.BigIntegerStorage;
 import org.enso.table.data.column.storage.numeric.DoubleStorage;
 
-import java.math.BigInteger;
-
 public interface DoubleArrayAdapter {
   double getItemAsDouble(int i);
 
-  boolean isNa(int i);
+  boolean isNothing(long i);
 
   int size();
 
@@ -31,7 +30,8 @@ public interface DoubleArrayAdapter {
       case DoubleStorage s -> fromStorage(s);
       case AbstractLongStorage s -> fromStorage(s);
       case BigIntegerStorage s -> fromStorage(s);
-      default -> throw new IllegalStateException("Unsupported storage: " + storage.getClass().getCanonicalName());
+      default -> throw new IllegalStateException(
+          "Unsupported storage: " + storage.getClass().getCanonicalName());
     };
   }
 
@@ -49,8 +49,8 @@ public interface DoubleArrayAdapter {
     }
 
     @Override
-    public boolean isNa(int i) {
-      return storage.isNa(i);
+    public boolean isNothing(long i) {
+      return storage.isNothing(i);
     }
 
     @Override
@@ -73,7 +73,7 @@ public interface DoubleArrayAdapter {
     }
 
     @Override
-    public boolean isNa(int i) {
+    public boolean isNothing(long i) {
       return storage.getItem(i) == null;
     }
 

@@ -14,10 +14,23 @@ Python in the runtime. Please familiarise yourself with the general operation of
 
 <!-- MarkdownTOC levels="2,3" autolink="true" -->
 
+- [Install Graal Python standalone distribution](#install-graal-python-standalone-distribution)
 - [Polyglot Library System](#polyglot-library-system)
 - [Using Python Libraries](#using-python-libraries)
 
 <!-- /MarkdownTOC -->
+
+## Install Graal Python standalone distribution
+
+Before continuing this tutorial, you need to install Graal Python standalone
+distribution. Follow the instructions from
+https://www.graalvm.org/latest/reference-manual/python/#installing-graalpy. Note
+that for the basic Python usage, it is not necessary to download the GraalPy
+standalone distribution, we just need it for this tutorial because we initialize
+the _virtual environment_ and install `numpy` package with it.
+
+In the rest of the document, `graalpy` points to the `bin/graalpy` binary from
+the downloaded Graal Python standalone distribution.
 
 ## Polyglot Library System
 
@@ -32,8 +45,7 @@ numenso/src
 numenso/src/Main.enso
 numenso/package.yaml
 $ mkdir numenso/polyglot
-$ graalvm/bin/gu install python
-$ graalvm/bin/graalpy -m venv numenso/polyglot/python
+$ graalpy -m venv numenso/polyglot/python
 $ ./numenso/polyglot/python/bin/graalpy -m pip install numpy
 Successfully installed numpy-1.23.5
 ```

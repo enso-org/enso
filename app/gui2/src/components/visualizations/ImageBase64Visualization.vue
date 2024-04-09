@@ -1,6 +1,7 @@
 <script lang="ts">
 export const name = 'Image'
-export const inputType = 'Standard.Image.Data.Image.Image'
+export const icon = 'image'
+export const inputType = 'Standard.Image.Image.Image'
 
 interface Data {
   mediaType?: string
@@ -9,9 +10,8 @@ interface Data {
 </script>
 
 <script setup lang="ts">
+import { VisualizationContainer } from '@/util/visualizationBuiltins'
 import { computed } from 'vue'
-
-import VisualizationContainer from '@/components/VisualizationContainer.vue'
 
 const props = defineProps<{ data: Data }>()
 

@@ -1,14 +1,17 @@
 package org.enso.languageserver.protocol.json
 
 import akka.actor.{Actor, ActorRef, Cancellable, Props, Stash, Status}
-import akka.pattern.pipe
+import akka.pattern.pipeCompletionStage
 import akka.util.Timeout
 import com.typesafe.scalalogging.LazyLogging
 import org.enso.cli.task.ProgressUnit
 import org.enso.cli.task.notifications.TaskNotificationApi
 import org.enso.jsonrpc._
 import org.enso.languageserver.ai.AICompletion
-import org.enso.languageserver.boot.resource.InitializationComponent
+import org.enso.languageserver.boot.resource.{
+  InitializationComponent,
+  InitializationComponentInitialized
+}
 import org.enso.languageserver.capability.CapabilityApi.{
   AcquireCapability,
   ForceReleaseCapability,
@@ -32,6 +35,11 @@ import org.enso.languageserver.libraries.LibraryConfig
 import org.enso.languageserver.libraries.handler._
 import org.enso.languageserver.monitoring.MonitoringApi.{InitialPing, Ping}
 import org.enso.languageserver.monitoring.MonitoringProtocol
+import org.enso.languageserver.profiling.ProfilingApi.{
+  ProfilingSnapshot,
+  ProfilingStart,
+  ProfilingStop
+}
 import org.enso.languageserver.refactoring.RefactoringApi.{
   RenameProject,
   RenameSymbol
@@ -43,6 +51,11 @@ import org.enso.languageserver.requesthandler.io._
 import org.enso.languageserver.requesthandler.monitoring.{
   InitialPingHandler,
   PingHandler
+}
+import org.enso.languageserver.requesthandler.profiling.{
+  ProfilingSnapshotHandler,
+  ProfilingStartHandler,
+  ProfilingStopHandler
 }
 import org.enso.languageserver.requesthandler.refactoring.{
   RenameProjectHandler,
@@ -99,8 +112,10 @@ import scala.concurrent.duration._
   * @param contentRootManager manages the available content roots
   * @param contextRegistry a router that dispatches execution context requests
   * @param suggestionsHandler a reference to the suggestions requests handler
+  * @param runtimeConnector a reference to the runtime connector
   * @param idlenessMonitor a reference to the idleness monitor actor
   * @param projectSettingsManager a reference to the project settings manager
+  * @param profilingManager a reference to the profiling manager
   * @param libraryConfig configuration of the library ecosystem
   * @param requestTimeout a request timeout
   */
@@ -120,6 +135,7 @@ class JsonConnectionController(
   val runtimeConnector: ActorRef,
   val idlenessMonitor: ActorRef,
   val projectSettingsManager: ActorRef,
+  val profilingManager: ActorRef,
   val libraryConfig: LibraryConfig,
   val languageServerConfig: Config,
   requestTimeout: FiniteDuration = 10.seconds
@@ -173,8 +189,15 @@ class JsonConnectionController(
           _,
           InitProtocolConnection.Params(clientId)
         ) =>
-      logger.info("Initializing resources.")
-      mainComponent.init().pipeTo(self)
+      logger.info(
+        "Initializing resources for [{}] [{}].",
+        clientId,
+        mainComponent
+      )
+      mainComponent
+        .init()
+        .thenApply(_ => InitializationComponentInitialized.getInstance)
+        .pipeTo(self)
       context.become(initializing(webActor, clientId, req, sender()))
 
     case Request(_, id, _) =>
@@ -190,7 +213,7 @@ class JsonConnectionController(
     request: Request[_, _],
     receiver: ActorRef
   ): Receive = {
-    case InitializationComponent.Initialized =>
+    case _: InitializationComponentInitialized =>
       logger.info("RPC session initialized for client [{}].", clientId)
       val session = JsonSession(clientId, self)
       context.system.eventStream.publish(JsonSessionInitialized(session))
@@ -331,13 +354,16 @@ class JsonConnectionController(
         FileModifiedOnDisk.Params(path)
       )
 
-    case TextProtocol.FileEvent(path, event) =>
-      webActor ! Notification(EventFile, EventFile.Params(path, event))
+    case TextProtocol.FileEvent(path, event, attributes) =>
+      webActor ! Notification(
+        EventFile,
+        EventFile.Params(path, event, attributes)
+      )
 
     case PathWatcherProtocol.FileEventResult(event) =>
       webActor ! Notification(
         EventFile,
-        EventFile.Params(event.path, event.kind)
+        EventFile.Params(event.path, event.kind, event.attributes.toOption)
       )
 
     case ContextRegistryProtocol
@@ -376,18 +402,16 @@ class JsonConnectionController(
       )
 
     case ContextRegistryProtocol.VisualizationEvaluationFailed(
-          contextId,
-          visualizationId,
-          expressionId,
+          ctx,
           message,
           diagnostic
         ) =>
       webActor ! Notification(
         VisualizationEvaluationFailed,
         VisualizationEvaluationFailed.Params(
-          contextId,
-          visualizationId,
-          expressionId,
+          ctx.contextId,
+          ctx.visualizationId,
+          ctx.expressionId,
           message,
           diagnostic
         )
@@ -620,6 +644,16 @@ class JsonConnectionController(
       RuntimeGetComponentGroups -> runtime.GetComponentGroupsHandler.props(
         requestTimeout,
         runtimeConnector
+      ),
+      ProfilingStart -> ProfilingStartHandler
+        .props(requestTimeout, profilingManager),
+      ProfilingStop -> ProfilingStopHandler.props(
+        requestTimeout,
+        profilingManager
+      ),
+      ProfilingSnapshot -> ProfilingSnapshotHandler.props(
+        requestTimeout,
+        profilingManager
       )
     )
   }
@@ -665,6 +699,10 @@ object JsonConnectionController {
     * @param contentRootManager manages the available content roots
     * @param contextRegistry a router that dispatches execution context requests
     * @param suggestionsHandler a reference to the suggestions requests handler
+    * @param runtimeConnector a reference to the runtime connector
+    * @param idlenessMonitor a reference to the idleness monitor actor
+    * @param projectSettingsManager a reference to the project settings manager
+    * @param profilingManager a reference to the profiling manager
     * @param libraryConfig configuration of the library ecosystem
     * @param requestTimeout a request timeout
     * @return a configuration object
@@ -685,6 +723,7 @@ object JsonConnectionController {
     runtimeConnector: ActorRef,
     idlenessMonitor: ActorRef,
     projectSettingsManager: ActorRef,
+    profilingManager: ActorRef,
     libraryConfig: LibraryConfig,
     languageServerConfig: Config,
     requestTimeout: FiniteDuration = 10.seconds
@@ -706,6 +745,7 @@ object JsonConnectionController {
         runtimeConnector       = runtimeConnector,
         idlenessMonitor        = idlenessMonitor,
         projectSettingsManager = projectSettingsManager,
+        profilingManager       = profilingManager,
         libraryConfig          = libraryConfig,
         languageServerConfig   = languageServerConfig,
         requestTimeout         = requestTimeout

@@ -12,15 +12,29 @@ use reqwest::Body;
 use tracing::instrument;
 
 
+// ==============
+// === Export ===
+// ==============
 
-/// The extensions that will be used for the archives in the GitHub release assets.
+pub use octocrab::models::ReleaseId as Id;
+
+
+
+/// Extension of the preferred archive format for release assets on the current platform.
+pub fn archive_extension() -> &'static str {
+    archive_extension_for(TARGET_OS)
+}
+
+/// Get archive format extension for release assets targeting the given operating system.
 ///
-/// On Windows we use `.zip`, because it has out-of-the-box support in the Explorer.
-/// On other platforms we use `.tar.gz`, because it is a good default.
-pub const ARCHIVE_EXTENSION: &str = match TARGET_OS {
-    OS::Windows => "zip",
-    _ => "tar.gz",
-};
+/// - For Windows, we use `.zip` because it has built-in support in Windows Explorer.
+/// - For all other operating systems, we use `.tar.gz` as the default.
+pub fn archive_extension_for(os: OS) -> &'static str {
+    match os {
+        OS::Windows => "zip",
+        _ => "tar.gz",
+    }
+}
 
 /// Types that uniquely identify a release and can be used to fetch it from GitHub.
 pub trait IsRelease: Debug {
@@ -81,14 +95,49 @@ pub trait IsReleaseExt: IsRelease + Sync {
 
     /// Upload a new asset to the release from a given file.
     ///
+    /// Given closure `f` is used to transform the filename.
+    #[instrument(skip_all, fields(source = %path.as_ref().display()), err)]
+    async fn upload_asset_file_with_custom_name(
+        &self,
+        path: impl AsRef<Path> + Send,
+        f: impl FnOnce(String) -> String + Send,
+    ) -> Result<Asset> {
+        let error_msg =
+            format!("Failed to upload an asset from the file under {}.", path.as_ref().display());
+        let filename = path.as_ref().try_file_name().map(|filename| f(filename.as_str().into()));
+        async move { self.upload_asset_file_as(path, &filename?).await }.await.context(error_msg)
+    }
+
+    /// Upload a new asset to the release from a given file.
+    ///
     /// The filename will be used to name the asset and deduce MIME content type.
     #[instrument(skip_all, fields(source = %path.as_ref().display()), err)]
     async fn upload_asset_file(&self, path: impl AsRef<Path> + Send) -> Result<Asset> {
         let error_msg =
             format!("Failed to upload an asset from the file under {}.", path.as_ref().display());
         async move {
+            let filename = path.try_file_name()?.to_owned();
+            self.upload_asset_file_as(path, filename).await
+        }
+        .await
+        .context(error_msg)
+    }
+
+    /// Upload a new asset to the release from a given file with a custom name.
+    #[instrument(skip_all, fields(source = %path.as_ref().display(), asset = %asset_filename.as_ref().display()), err)]
+    async fn upload_asset_file_as(
+        &self,
+        path: impl AsRef<Path> + Send,
+        asset_filename: impl AsRef<Path> + Send,
+    ) -> Result<Asset> {
+        let error_msg = format!(
+            "Failed to upload an asset from the file under {} as {}.",
+            path.as_ref().display(),
+            asset_filename.as_ref().display()
+        );
+        async move {
             let path = path.as_ref().to_path_buf();
-            let asset_name = path.try_file_name()?;
+            let asset_name = asset_filename.as_ref().to_owned();
             let content_type = new_mime_guess::from_path(&path).first_or_octet_stream();
             let metadata = crate::fs::tokio::metadata(&path).await?;
             trace!("File metadata: {metadata:#?}.");
@@ -113,7 +162,7 @@ pub trait IsReleaseExt: IsRelease + Sync {
         let dir_to_upload = dir_to_upload.as_ref();
         let temp_dir = tempfile::tempdir()?;
         let archive_path =
-            custom_name.with_parent(temp_dir.path()).with_appended_extension(ARCHIVE_EXTENSION);
+            custom_name.with_parent(temp_dir.path()).with_appended_extension(archive_extension());
         crate::archive::create(&archive_path, [&dir_to_upload]).await?;
         self.upload_asset_file(archive_path).await
     }
@@ -187,14 +236,13 @@ mod tests {
     use super::*;
 
     use reqwest::header::HeaderMap;
-    use reqwest::Body;
 
     #[tokio::test]
     #[ignore]
     pub async fn create_release() -> Result {
         let pat = std::env::var("GITHUB_TOKEN").unwrap();
 
-        let octocrab = octocrab::Octocrab::builder().personal_token(pat.clone()).build()?;
+        let octocrab = Octocrab::builder().personal_token(pat.clone()).build()?;
         let repo = octocrab.repos("enso-org", "ci-build");
         let release = if let Ok(release) = repo.releases().get_latest().await {
             release

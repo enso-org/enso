@@ -1,0 +1,65 @@
+from Standard.Base import all
+
+from Standard.Test import all
+
+
+import Standard.Base.Errors.Common.Type_Error
+
+add_specs suite_builder = suite_builder.group "Function Ascribed Parameters" group_builder->
+    t1 (f1 : Function) =
+        f1 "x"
+
+    t2 (f2 : (Text -> Any)) =
+        f2 "x"
+
+    t3 (f3 : (Integer | Function)) = case f3 of
+        n : Integer -> n*7
+        _ -> f3 "x"
+
+    t4 (f4 : (Integer | (Text -> Any))) = case f4 of
+        n : Integer -> n*7
+        _ -> f4 "x"
+
+    surround x = "|" + x + "|"
+
+    group_builder.specify "t1 with surround type check" <|
+        (t1 surround) . should_equal "|x|"
+
+    group_builder.specify "t2 with surround type check" <|
+        (t2 surround) . should_equal "|x|"
+
+    group_builder.specify "t3 with surround type check" <|
+        (t3 surround) . should_equal "|x|"
+
+    group_builder.specify "t4 with surround type check" <|
+        (t4 surround) . should_equal "|x|"
+
+    group_builder.specify "t1 with 42 type check" <|
+        Test.expect_panic Type_Error (t1 6)
+
+    group_builder.specify "t2 with 42 type check" <|
+        Test.expect_panic Type_Error (t2 6)
+
+    group_builder.specify "t3 with 42 type check" <|
+        (t3 6) . should_equal 42
+
+    group_builder.specify "t4 with 42 type check" <|
+        (t4 6) . should_equal 42
+
+    group_builder.specify "t1 with text type check" <|
+        Test.expect_panic Type_Error (t1 "hi")
+
+    group_builder.specify "t2 with text type check" <|
+        Test.expect_panic Type_Error (t2 "hi")
+
+    group_builder.specify "t3 with text type check" <|
+        Test.expect_panic Type_Error (t3 "hi")
+
+    group_builder.specify "t4 with text type check" <|
+        Test.expect_panic Type_Error (t4 "hi")
+
+
+main filter=Nothing =
+    suite = Test.build suite_builder->
+        add_specs suite_builder
+    suite.run_with_filter filter

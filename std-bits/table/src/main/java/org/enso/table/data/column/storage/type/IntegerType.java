@@ -17,6 +17,21 @@ public record IntegerType(Bits bits) implements StorageType {
     };
   }
 
+  @Override
+  public boolean isNumeric() {
+    return true;
+  }
+
+  @Override
+  public boolean hasDate() {
+    return false;
+  }
+
+  @Override
+  public boolean hasTime() {
+    return false;
+  }
+
   public long getMaxValue() {
     return switch (bits) {
       case BITS_8 -> Byte.MAX_VALUE;
@@ -55,7 +70,8 @@ public record IntegerType(Bits bits) implements StorageType {
   }
 
   /**
-   * Checks if this type can hold values of otherType - i.e. if otherType has the same or smaller number of bits.
+   * Checks if this type can hold values of otherType - i.e. if otherType has the same or smaller
+   * number of bits.
    */
   public boolean fits(IntegerType otherType) {
     return bits.toInteger() >= otherType.bits.toInteger();

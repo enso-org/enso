@@ -1,7 +1,10 @@
 /** @file Globals defined outside of TypeScript files.
  * These are from variables defined at build time, environment variables,
  * monkeypatching on `window` and generated code. */
+/// <reference types="vite/client" />
+
 // This file is being imported for its types.
+// prettier-ignore
 // eslint-disable-next-line no-restricted-syntax, @typescript-eslint/consistent-type-imports
 import * as buildJson from './../../build.json' assert { type: 'json' }
 
@@ -16,7 +19,7 @@ interface StringConfig {
 
 /** The public interface exposed to `window` by the IDE. */
 interface Enso {
-    main: (inputConfig?: StringConfig) => Promise<void>
+    readonly main: (inputConfig?: StringConfig) => Promise<void>
 }
 
 // ===================
@@ -27,7 +30,11 @@ interface Enso {
  * Electron context. It contains non-authentication-related functionality. */
 interface BackendApi {
     /** Return the ID of the new project. */
-    importProjectFromPath: (openedPath: string) => Promise<string>
+    readonly importProjectFromPath: (
+        openedPath: string,
+        directory: string | null,
+        name: string
+    ) => Promise<string>
 }
 
 // ==========================
@@ -45,12 +52,25 @@ interface BackendApi {
  * TypeScript checks for this interface when we use it. */
 interface AuthenticationApi {
     /** Open a URL in the system browser. */
-    openUrlInSystemBrowser: (url: string) => void
+    readonly openUrlInSystemBrowser: (url: string) => void
     /** Set the callback to be called when the system browser redirects back to a URL in the app,
-     * via a deep link. See {@link setDeepLinkHandler} for details. */
-    setDeepLinkHandler: (callback: (url: string) => void) => void
+     * via a deep link. See `setDeepLinkHandler` for details. */
+    readonly setDeepLinkHandler: (callback: (url: string) => void) => void
     /** Saves the access token to a file. */
-    saveAccessToken: (access_token: string) => void
+    readonly saveAccessToken: (accessToken: SaveAccessTokenPayload | null) => void
+}
+
+// ======================
+// === Navigation API ===
+// ======================
+
+/** `window.navigationApi` is a context bridge to the main process, when we're running in an
+ * Electron context. It contains navigation-related functionality. */
+interface NavigationApi {
+    /** Go back in the navigation history. */
+    readonly goBack: () => void
+    /** Go forward in the navigation history. */
+    readonly goForward: () => void
 }
 
 // =====================================
@@ -62,43 +82,81 @@ declare global {
     // Documentation is already inherited.
     /** */
     interface Window {
-        enso?: AppRunner & Enso
-        backendApi?: BackendApi
-        authenticationApi: AuthenticationApi
-    }
-
-    // Documentation is already inherited.
-    /** */
-    interface Object {
-        /** Log self and return self. Only available in development mode. */
-        $d$: <T>(this: T, message?: string) => T
+        readonly enso?: AppRunner & Enso
+        readonly backendApi?: BackendApi
+        readonly authenticationApi: AuthenticationApi
+        readonly navigationApi: NavigationApi
     }
 
     namespace NodeJS {
         /** Environment variables. */
+        // `TZ` MUST NOT be `readonly`, or else `@types/node` will error.
+        // eslint-disable-next-line no-restricted-syntax
         interface ProcessEnv {
+            readonly [key: string]: never
             // These are environment variables, and MUST be in CONSTANT_CASE.
             /* eslint-disable @typescript-eslint/naming-convention */
-            APPLEID?: string
-            APPLEIDPASS?: string
+            // This is declared in `@types/node`. It MUST be re-declared here to suppress the error
+            // about this property conflicting with the index signature above.
+            // @ts-expect-error The index signature is intentional to disallow unknown env vars.
+            TZ?: string
+            // @ts-expect-error The index signature is intentional to disallow unknown env vars.
+            readonly CI?: string
+            // @ts-expect-error The index signature is intentional to disallow unknown env vars.
+            readonly CSC_LINK?: string
+            // @ts-expect-error The index signature is intentional to disallow unknown env vars.
+            readonly APPLEID?: string
+            // @ts-expect-error The index signature is intentional to disallow unknown env vars.
+            readonly APPLEIDPASS?: string
+            // @ts-expect-error The index signature is intentional to disallow unknown env vars.
+            readonly APPLETEAMID?: string
+            // @ts-expect-error The index signature is intentional to disallow unknown env vars.
+            readonly ENSO_BUILD_ICONS?: string
+            // @ts-expect-error The index signature is intentional to disallow unknown env vars.
+            readonly npm_package_name?: string
+
+            // === Cloud environment variables ===
+
+            // @ts-expect-error The index signature is intentional to disallow unknown env vars.
+            readonly ENSO_CLOUD_REDIRECT: string
+            // When unset, the `.env` loader tries to load `.env` rather than `.<name>.env`.
+            // Set to the empty string to load `.env`.
+            // @ts-expect-error The index signature is intentional to disallow unknown env vars.
+            readonly ENSO_CLOUD_ENVIRONMENT: string
+            // @ts-expect-error The index signature is intentional to disallow unknown env vars.
+            readonly ENSO_CLOUD_API_URL?: string
+            // @ts-expect-error The index signature is intentional to disallow unknown env vars.
+            readonly ENSO_CLOUD_CHAT_URL?: string
+            // @ts-expect-error The index signature is intentional to disallow unknown env vars.
+            readonly ENSO_CLOUD_SENTRY_DSN?: string
+            // @ts-expect-error The index signature is intentional to disallow unknown env vars.
+            readonly ENSO_CLOUD_STRIPE_KEY?: string
+            // @ts-expect-error The index signature is intentional to disallow unknown env vars.
+            readonly ENSO_CLOUD_COGNITO_USER_POOL_ID?: string
+            // @ts-expect-error The index signature is intentional to disallow unknown env vars.
+            readonly ENSO_CLOUD_COGNITO_USER_POOL_WEB_CLIENT_ID?: string
+            // @ts-expect-error The index signature is intentional to disallow unknown env vars.
+            readonly ENSO_CLOUD_COGNITO_DOMAIN?: string
+            // @ts-expect-error The index signature is intentional to disallow unknown env vars.
+            readonly ENSO_CLOUD_COGNITO_REGION?: string
+            // @ts-expect-error The index signature is intentional to disallow unknown env vars.
+            readonly ENSO_SUPPORTS_VIBRANCY?: string
+
+            // === Electron watch script variables ===
+
+            // @ts-expect-error The index signature is intentional to disallow unknown env vars.
+            readonly ELECTRON_DEV_MODE?: string
+            // @ts-expect-error The index signature is intentional to disallow unknown env vars.
+            readonly GUI_CONFIG_PATH?: string
+            // @ts-expect-error The index signature is intentional to disallow unknown env vars.
+            readonly NODE_MODULES_PATH?: string
             /* eslint-enable @typescript-eslint/naming-convention */
         }
     }
 
     // These are used in other files (because they're globals)
     /* eslint-disable @typescript-eslint/naming-convention */
-    const BUNDLED_ENGINE_VERSION: string
     const BUILD_INFO: buildJson.BuildInfo
     const PROJECT_MANAGER_IN_BUNDLE_PATH: string
-    const IS_DEV_MODE: boolean
-    // This will be `undefined` when it is not defined by esbuild.
-    // eslint-disable-next-line no-restricted-syntax
-    const REDIRECT_OVERRIDE: string | undefined
-    // eslint-disable-next-line no-restricted-syntax
-    const CLOUD_ENV: 'npekin' | 'pbuchu' | 'production' | undefined
-    /* eslint-disable @typescript-eslint/naming-convention */
-    /** Only exists in development mode. */
-    // This is a function.
-    // eslint-disable-next-line no-restricted-syntax
-    const assert: (invariant: boolean, message: string) => void
+    const IS_VITE: boolean
 }

@@ -1,5 +1,7 @@
 use crate::prelude::*;
 
+use crate::archive::extract_files::ExtractFiles;
+
 use flate2::read::GzDecoder;
 use std::fs::File;
 
@@ -27,7 +29,7 @@ impl Archive {
         let file = file
             .try_into_std()
             .map_err(|_| anyhow!("Failed to convert tokio::fs::File to std::fs::File"))?;
-        let tar_stream = flate2::read::GzDecoder::new(file);
+        let tar_stream = GzDecoder::new(file);
         let archive = tar::Archive::new(tar_stream);
         let path = path.as_ref().to_owned().into_boxed_path();
         Ok(Self { path, file: archive })
@@ -64,17 +66,6 @@ impl Archive {
         Ok(())
     }
 
-    /// The given function will be called with the path of each file within the archive. For each
-    /// input path, if it returns a path the file will be extracted to the returned path.
-    ///
-    /// IMPORTANT: If the function uses its input path to generate an output path, care must be
-    /// taken that the output path is not in an unexpected location, especially if coming from an
-    /// untrusted archive.
-    pub async fn extract_files(self, filter: impl FnMut(&Path) -> Option<PathBuf>) -> Result {
-        let job = move || self.extract_files_sync(filter);
-        tokio::task::block_in_place(job)
-    }
-
     /// Extract all files from the specified subtree in the archive, placing them in the specified
     /// output directory.
     pub async fn extract_subtree(
@@ -104,5 +95,12 @@ impl Archive {
                 output.as_ref().display()
             )
         })
+    }
+}
+
+impl ExtractFiles for Archive {
+    async fn extract_files(self, filter: impl FnMut(&Path) -> Option<PathBuf>) -> Result {
+        let job = move || self.extract_files_sync(filter);
+        tokio::task::block_in_place(job)
     }
 }

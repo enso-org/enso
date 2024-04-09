@@ -2,11 +2,15 @@ package org.enso.languageserver.libraries
 
 import io.circe.DecodingFailure
 import org.enso.editions.LibraryName
+import org.enso.logger.ReportLogsOnFailure
 import org.enso.pkg.{ComponentGroups, Config, GroupName, GroupReference}
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 
-class ComponentGroupsValidatorSpec extends AnyWordSpec with Matchers {
+class ComponentGroupsValidatorSpec
+    extends AnyWordSpec
+    with Matchers
+    with ReportLogsOnFailure {
 
   import ComponentGroupsValidator._
   import ComponentGroupsValidatorSpec._

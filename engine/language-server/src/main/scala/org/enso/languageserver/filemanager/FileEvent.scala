@@ -8,8 +8,13 @@ import org.enso.filewatcher.Watcher
   *
   * @param path path to the file system object
   * @param kind type of file system event
+  * @param attributes the file attributes
   */
-case class FileEvent(path: Path, kind: FileEventKind)
+case class FileEvent(
+  path: Path,
+  kind: FileEventKind,
+  attributes: Either[FileSystemFailure, FileAttributes]
+)
 
 object FileEvent {
 
@@ -18,21 +23,27 @@ object FileEvent {
     * @param root a project root
     * @param base a watched path
     * @param event a file system event
+    * @param attributes a file attributes
     * @return file event
     */
   def fromWatcherEvent(
     root: File,
     base: Path,
-    event: Watcher.WatcherEvent
-  ): FileEvent =
+    event: Watcher.WatcherEvent,
+    attributes: Either[FileSystemFailure, FileSystemApi.Attributes]
+  ): FileEvent = {
+    val eventPath = Path.getRelativePath(root, base, event.path)
     FileEvent(
-      Path.getRelativePath(root, base, event.path),
-      FileEventKind(event.eventType)
+      eventPath,
+      FileEventKind(event.eventType),
+      attributes.map(
+        FileAttributes.fromFileSystemAttributes(root, eventPath, _)
+      )
     )
+  }
 }
 
-/** Type of a file event.
-  */
+/** Type of a file event. */
 sealed trait FileEventKind extends EnumEntry
 
 object FileEventKind extends Enum[FileEventKind] with CirceEnum[FileEventKind] {

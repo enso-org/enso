@@ -1,7 +1,7 @@
 package org.enso.runtimeversionmanager.runner
 
 import com.typesafe.scalalogging.Logger
-import nl.gn0s1s.bump.SemVer
+import org.enso.semver.SemVer
 import org.enso.distribution.{DistributionManager, Environment}
 import org.enso.editions.updater.EditionManager
 import org.enso.editions.{DefaultEnsoVersion, SemVerEnsoVersion}
@@ -168,8 +168,6 @@ class Runner(
         )
       }
 
-      val runnerJar = engine.runnerPath.toAbsolutePath.normalize.toString
-
       def translateJVMOption(option: (String, String)): String = {
         val name  = option._1
         val value = option._2
@@ -182,11 +180,29 @@ class Runner(
         engine.defaultJVMOptions.filter(_.isRelevant).map(_.substitute(context))
       val environmentOptions =
         jvmOptsFromEnvironment.map(_.split(' ').toIndexedSeq).getOrElse(Seq())
-      val commandLineOptions = jvmSettings.jvmOptions.map(translateJVMOption)
+      val commandLineOptions        = jvmSettings.jvmOptions.map(translateJVMOption)
+      val shouldInvokeViaModulePath = engine.graalRuntimeVersion.isUnchained
 
-      val jvmArguments =
-        manifestOptions ++ environmentOptions ++ commandLineOptions ++
-        Seq("-jar", runnerJar)
+      var jvmArguments =
+        manifestOptions ++ environmentOptions ++ commandLineOptions
+      if (shouldInvokeViaModulePath) {
+        jvmArguments = jvmArguments :++ Seq(
+          "--module-path",
+          engine.componentDirPath.toAbsolutePath.normalize.toString,
+          "-m",
+          "org.enso.runtime/org.enso.EngineRunnerBootLoader"
+        )
+      } else {
+        assert(
+          engine.runnerPath.isDefined,
+          "Engines path to runner.jar must be defined - it is not an unchained engine"
+        )
+        val runnerJar = engine.runnerPath.get.toAbsolutePath.normalize.toString
+        jvmArguments = jvmArguments :++ Seq(
+          "-jar",
+          runnerJar
+        )
+      }
 
       val loggingConnectionArguments =
         if (runSettings.connectLoggerIfAvailable)
@@ -276,7 +292,9 @@ class Runner(
       case Some(project) =>
         // TODO [RW] properly get the default edition, see #1864
         val version = project.edition
-          .map(edition => editionManager.resolveEngineVersion(edition).get)
+          .flatMap(edition =>
+            editionManager.resolveEngineVersion(edition).toOption
+          )
           .map(SemVerEnsoVersion)
           .getOrElse(DefaultEnsoVersion)
         version match {

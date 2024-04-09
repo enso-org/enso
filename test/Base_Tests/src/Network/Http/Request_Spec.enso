@@ -1,0 +1,54 @@
+from Standard.Base import all
+import Standard.Base.Errors.Common.Syntax_Error
+
+import Standard.Base.Network.HTTP.Request.Request
+import Standard.Base.Network.HTTP.Request_Body.Request_Body
+
+from Standard.Test import all
+
+
+add_specs suite_builder =
+    test_uri = URI.parse "https://httpbin.org/post"
+    test_headers = [Header.application_json, Header.new "X-Foo-Id" "0123456789"]
+    suite_builder.group "Request" group_builder->
+        group_builder.specify "should return error when creating request from invalid URI" <|
+            Request.new HTTP_Method.Post "invalid uri" . should_fail_with Syntax_Error
+        group_builder.specify "should get method" <|
+            req = Request.new HTTP_Method.Post test_uri
+            req.method.should_equal HTTP_Method.Post
+        group_builder.specify "should get uri" <|
+            req = Request.get test_uri
+            req.uri.should_equal test_uri
+        group_builder.specify "should get headers" <|
+            req = Request.get test_uri test_headers
+            req.headers.should_equal test_headers
+        group_builder.specify "should add header" <|
+            new_header = Header.accept_all
+            req = Request.get test_uri test_headers . with_header new_header.name new_header.value
+            req.headers.should_equal (test_headers + [new_header])
+        group_builder.specify "should update header" <|
+            req = Request.get test_uri test_headers . with_header "X-Foo-Id" "42"
+            req.headers.should_equal [Header.application_json, Header.new "X-Foo-Id" "42"]
+        group_builder.specify "should add headers" <|
+            req = Request.get test_uri . with_headers test_headers
+            req.headers.should_equal test_headers
+        group_builder.specify "should update headers" <|
+            new_headers = [Header.multipart_form_data, Header.accept_all]
+            req = Request.get test_uri test_headers . with_headers new_headers
+            req.headers.should_equal [Header.multipart_form_data, test_headers.at 1, Header.accept_all]
+        group_builder.specify "should set json body" <|
+            json = '{"key":"val"}'
+            req = Request.get test_uri . with_json json
+            req.body.should_equal (Request_Body.Json json)
+            req.headers.should_equal [Header.application_json]
+        group_builder.specify "should set form body" <|
+            body_form = Map.from_vector [["key", "val"]]
+            req = Request.get test_uri . with_form body_form
+            req.body.should_equal (Request_Body.Form_Data body_form)
+            req.headers.should_equal [Header.application_x_www_form_urlencoded]
+
+main filter=Nothing =
+    suite = Test.build suite_builder->
+        add_specs suite_builder
+    suite.run_with_filter filter
+

@@ -1,39 +1,5 @@
 package org.enso.interpreter.node.callable.argument;
 
-import java.util.Arrays;
-import java.util.List;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
-
-import org.enso.compiler.core.ir.Name;
-import org.enso.interpreter.EnsoLanguage;
-import org.enso.interpreter.node.BaseNode.TailStatus;
-import org.enso.interpreter.node.EnsoRootNode;
-import org.enso.interpreter.node.ExpressionNode;
-import org.enso.interpreter.node.callable.ApplicationNode;
-import org.enso.interpreter.node.callable.InvokeCallableNode.DefaultsExecutionMode;
-import org.enso.interpreter.node.callable.thunk.ThunkExecutorNode;
-import org.enso.interpreter.node.expression.builtin.meta.AtomWithAHoleNode;
-import org.enso.interpreter.node.expression.builtin.meta.IsValueOfTypeNode;
-import org.enso.interpreter.node.expression.builtin.meta.TypeOfNode;
-import org.enso.interpreter.node.expression.literal.LiteralNode;
-import org.enso.interpreter.runtime.EnsoContext;
-import org.enso.interpreter.runtime.callable.Annotation;
-import org.enso.interpreter.runtime.callable.UnresolvedConversion;
-import org.enso.interpreter.runtime.callable.argument.ArgumentDefinition;
-import org.enso.interpreter.runtime.callable.argument.ArgumentDefinition.ExecutionMode;
-import org.enso.interpreter.runtime.callable.argument.CallArgument;
-import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo;
-import org.enso.interpreter.runtime.callable.function.Function;
-import org.enso.interpreter.runtime.callable.function.FunctionSchema;
-import org.enso.interpreter.runtime.data.EnsoMultiValue;
-import org.enso.interpreter.runtime.data.Type;
-import org.enso.interpreter.runtime.error.DataflowError;
-import org.enso.interpreter.runtime.error.PanicException;
-import org.enso.interpreter.runtime.error.PanicSentinel;
-import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
-import org.graalvm.collections.Pair;
-
 import com.oracle.truffle.api.CompilerAsserts;
 import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.TruffleLanguage;
@@ -49,27 +15,60 @@ import com.oracle.truffle.api.nodes.InvalidAssumptionException;
 import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.nodes.NodeUtil;
 import com.oracle.truffle.api.nodes.RootNode;
+import java.util.Arrays;
+import java.util.List;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+import org.enso.interpreter.EnsoLanguage;
+import org.enso.interpreter.node.BaseNode.TailStatus;
+import org.enso.interpreter.node.EnsoRootNode;
+import org.enso.interpreter.node.ExpressionNode;
+import org.enso.interpreter.node.callable.ApplicationNode;
+import org.enso.interpreter.node.callable.InvokeCallableNode.DefaultsExecutionMode;
+import org.enso.interpreter.node.callable.thunk.ThunkExecutorNode;
+import org.enso.interpreter.node.expression.builtin.meta.AtomWithAHoleNode;
+import org.enso.interpreter.node.expression.builtin.meta.IsValueOfTypeNode;
+import org.enso.interpreter.node.expression.literal.LiteralNode;
+import org.enso.interpreter.runtime.EnsoContext;
+import org.enso.interpreter.runtime.callable.Annotation;
+import org.enso.interpreter.runtime.callable.UnresolvedConstructor;
+import org.enso.interpreter.runtime.callable.UnresolvedConversion;
+import org.enso.interpreter.runtime.callable.argument.ArgumentDefinition;
+import org.enso.interpreter.runtime.callable.argument.ArgumentDefinition.ExecutionMode;
+import org.enso.interpreter.runtime.callable.argument.CallArgument;
+import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo;
+import org.enso.interpreter.runtime.callable.function.Function;
+import org.enso.interpreter.runtime.callable.function.FunctionSchema;
+import org.enso.interpreter.runtime.data.EnsoMultiValue;
+import org.enso.interpreter.runtime.data.Type;
+import org.enso.interpreter.runtime.data.text.Text;
+import org.enso.interpreter.runtime.error.DataflowError;
+import org.enso.interpreter.runtime.error.PanicException;
+import org.enso.interpreter.runtime.error.PanicSentinel;
+import org.enso.interpreter.runtime.library.dispatch.TypeOfNode;
+import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
+import org.graalvm.collections.Pair;
 
 public abstract class ReadArgumentCheckNode extends Node {
-  private final String name;
-  @CompilerDirectives.CompilationFinal
-  private String expectedTypeMessage;
+  private final String comment;
+  @CompilerDirectives.CompilationFinal private String expectedTypeMessage;
 
-  ReadArgumentCheckNode(String name) {
-    this.name = name;
+  ReadArgumentCheckNode(String comment) {
+    this.comment = comment;
   }
 
-  /**
-   *
-   */
+  /** */
   public static ExpressionNode wrap(ExpressionNode original, ReadArgumentCheckNode check) {
     return new TypeCheckExpressionNode(original, check);
   }
 
-  /** Executes check or conversion of the value.abstract
+  /**
+   * Executes check or conversion of the value.
+   *
    * @param frame frame requesting the conversion
    * @param value the value to convert
-   * @return {@code null} when the check isn't satisfied and conversion isn't possible or non-{@code null} value that can be used as a result
+   * @return {@code null} when the check isn't satisfied and conversion isn't possible or non-{@code
+   *     null} value that can be used as a result
    */
   public final Object handleCheckOrConversion(VirtualFrame frame, Object value) {
     var result = executeCheckOrConversion(frame, value);
@@ -80,7 +79,9 @@ public abstract class ReadArgumentCheckNode extends Node {
   }
 
   abstract Object findDirectMatch(VirtualFrame frame, Object value);
+
   abstract Object executeCheckOrConversion(VirtualFrame frame, Object value);
+
   abstract String expectedTypeMessage();
 
   final PanicException panicAtTheEnd(Object v) {
@@ -89,39 +90,49 @@ public abstract class ReadArgumentCheckNode extends Node {
       expectedTypeMessage = expectedTypeMessage();
     }
     var ctx = EnsoContext.get(this);
-    var msg = name == null ? "expression" : name;
-    var err = ctx.getBuiltins().error().makeTypeError(expectedTypeMessage, v, msg);
+    Text msg;
+    if (v instanceof UnresolvedConstructor) {
+      msg = Text.create("Cannot find constructor {got} among {exp}");
+    } else {
+      var where = Text.create(comment == null ? "expression" : comment);
+      var exp = Text.create("expected ");
+      var got = Text.create(" to be {exp}, but got {got}");
+      msg = Text.create(exp, Text.create(where, got));
+    }
+    var err = ctx.getBuiltins().error().makeTypeErrorOfComment(expectedTypeMessage, v, msg);
     throw new PanicException(err, this);
   }
 
-  public static ReadArgumentCheckNode allOf(Name argumentName, ReadArgumentCheckNode... checks) {
+  public static ReadArgumentCheckNode allOf(String argumentName, ReadArgumentCheckNode... checks) {
     var list = Arrays.asList(checks);
-    var flatten = list.stream().flatMap(n -> n instanceof AllOfNode all ? Arrays.asList(all.checks).stream() : Stream.of(n)).toList();
+    var flatten =
+        list.stream()
+            .flatMap(
+                n -> n instanceof AllOfNode all ? Arrays.asList(all.checks).stream() : Stream.of(n))
+            .toList();
     var arr = toArray(flatten);
     return switch (arr.length) {
       case 0 -> null;
       case 1 -> arr[0];
-      default -> new AllOfNode(argumentName.name(), arr);
+      default -> new AllOfNode(argumentName, arr);
     };
   }
 
-  public static ReadArgumentCheckNode oneOf(Name argumentName, List<ReadArgumentCheckNode> checks) {
+  public static ReadArgumentCheckNode oneOf(String comment, List<ReadArgumentCheckNode> checks) {
     var arr = toArray(checks);
     return switch (arr.length) {
       case 0 -> null;
       case 1 -> arr[0];
-      default -> new OneOfNode(argumentName.name(), arr);
+      default -> new OneOfNode(comment, arr);
     };
   }
 
-  public static ReadArgumentCheckNode build(Name argumentName, Type expectedType) {
-    var n = argumentName == null ? null : argumentName.name();
-    return ReadArgumentCheckNodeFactory.TypeCheckNodeGen.create(n, expectedType);
+  public static ReadArgumentCheckNode build(String comment, Type expectedType) {
+    return ReadArgumentCheckNodeFactory.TypeCheckNodeGen.create(comment, expectedType);
   }
 
-  public static ReadArgumentCheckNode meta(Name argumentName, Object metaObject) {
-    var n = argumentName == null ? null : argumentName.name();
-    return ReadArgumentCheckNodeFactory.MetaCheckNodeGen.create(n, metaObject);
+  public static ReadArgumentCheckNode meta(String comment, Object metaObject) {
+    return ReadArgumentCheckNodeFactory.MetaCheckNodeGen.create(comment, metaObject);
   }
 
   public static boolean isWrappedThunk(Function fn) {
@@ -142,7 +153,7 @@ public abstract class ReadArgumentCheckNode extends Node {
     var cnt = (int) list.stream().filter(n -> n != null).count();
     var arr = new ReadArgumentCheckNode[cnt];
     var it = list.iterator();
-    for (int i = 0; i < cnt;) {
+    for (int i = 0; i < cnt; ) {
       var element = it.next();
       if (element != null) {
         arr[i++] = element;
@@ -152,10 +163,8 @@ public abstract class ReadArgumentCheckNode extends Node {
   }
 
   static final class AllOfNode extends ReadArgumentCheckNode {
-    @Children
-    private ReadArgumentCheckNode[] checks;
-    @Child
-    private TypesLibrary types;
+    @Children private ReadArgumentCheckNode[] checks;
+    @Child private TypesLibrary types;
 
     AllOfNode(String name, ReadArgumentCheckNode[] checks) {
       super(name);
@@ -188,13 +197,14 @@ public abstract class ReadArgumentCheckNode extends Node {
 
     @Override
     String expectedTypeMessage() {
-      return Arrays.stream(checks).map(n -> n.expectedTypeMessage()).collect(Collectors.joining(" & "));
+      return Arrays.stream(checks)
+          .map(n -> n.expectedTypeMessage())
+          .collect(Collectors.joining(" & "));
     }
   }
 
   static final class OneOfNode extends ReadArgumentCheckNode {
-    @Children
-    private ReadArgumentCheckNode[] checks;
+    @Children private ReadArgumentCheckNode[] checks;
 
     OneOfNode(String name, ReadArgumentCheckNode[] checks) {
       super(name);
@@ -231,18 +241,17 @@ public abstract class ReadArgumentCheckNode extends Node {
 
     @Override
     String expectedTypeMessage() {
-      return Arrays.stream(checks).map(n -> n.expectedTypeMessage()).collect(Collectors.joining(" | "));
+      return Arrays.stream(checks)
+          .map(n -> n.expectedTypeMessage())
+          .collect(Collectors.joining(" | "));
     }
   }
 
-  static abstract class TypeCheckNode extends ReadArgumentCheckNode {
+  abstract static class TypeCheckNode extends ReadArgumentCheckNode {
     private final Type expectedType;
-    @Child
-    IsValueOfTypeNode checkType;
-    @CompilerDirectives.CompilationFinal
-    private String expectedTypeMessage;
-    @CompilerDirectives.CompilationFinal
-    private LazyCheckRootNode lazyCheck;
+    @Child IsValueOfTypeNode checkType;
+    @CompilerDirectives.CompilationFinal private String expectedTypeMessage;
+    @CompilerDirectives.CompilationFinal private LazyCheckRootNode lazyCheck;
 
     TypeCheckNode(String name, Type expectedType) {
       super(name);
@@ -255,8 +264,18 @@ public abstract class ReadArgumentCheckNode extends Node {
       throw panicSentinel;
     }
 
+    @Specialization
+    Object doUnresolvedConstructor(
+        VirtualFrame frame,
+        UnresolvedConstructor unresolved,
+        @Cached UnresolvedConstructor.ConstructNode construct) {
+      var state = Function.ArgumentsHelper.getState(frame.getArguments());
+      return construct.execute(frame, state, expectedType, unresolved);
+    }
+
     @Specialization(rewriteOn = InvalidAssumptionException.class)
-    Object doCheckNoConversionNeeded(VirtualFrame frame, Object v) throws InvalidAssumptionException {
+    Object doCheckNoConversionNeeded(VirtualFrame frame, Object v)
+        throws InvalidAssumptionException {
       var ret = findDirectMatch(frame, v);
       if (ret != null) {
         return ret;
@@ -265,26 +284,21 @@ public abstract class ReadArgumentCheckNode extends Node {
       }
     }
 
-    @Specialization(limit = "10", guards = {
-      "cachedType != null",
-      "findType(typeOfNode, v) == cachedType"
-    })
+    @Specialization(
+        limit = "10",
+        guards = {"cachedType != null", "findType(typeOfNode, v, cachedType) == cachedType"})
     Object doWithConversionCached(
-            VirtualFrame frame, Object v,
-            @Shared("typeOfNode")
-            @Cached TypeOfNode typeOfNode,
-            @Cached("findType(typeOfNode, v)") Type cachedType,
-            @Cached("findConversionNode(cachedType)") ApplicationNode convertNode
-    ) {
+        VirtualFrame frame,
+        Object v,
+        @Shared("typeOfNode") @Cached TypeOfNode typeOfNode,
+        @Cached(value = "findType(typeOfNode, v)", dimensions = 1) Type[] cachedType,
+        @Cached("findConversionNode(cachedType)") ApplicationNode convertNode) {
       return handleWithConversion(frame, v, convertNode);
     }
 
     @Specialization(replaces = "doWithConversionCached")
     Object doWithConversionUncached(
-            VirtualFrame frame, Object v,
-            @Shared("typeOfNode")
-            @Cached TypeOfNode typeOfNode
-    ) {
+        VirtualFrame frame, Object v, @Shared("typeOfNode") @Cached TypeOfNode typeOfNode) {
       var type = findType(typeOfNode, v);
       return doWithConversionUncachedBoundary(frame == null ? null : frame.materialize(), v, type);
     }
@@ -332,45 +346,61 @@ public abstract class ReadArgumentCheckNode extends Node {
       return null;
     }
 
-    ApplicationNode findConversionNode(Type from) {
-      var convAndType = findConversion(from);
+    ApplicationNode findConversionNode(Type[] allTypes) {
+      if (allTypes == null) {
+        allTypes = new Type[] {null};
+      }
+      for (var from : allTypes) {
+        var convAndType = findConversion(from);
 
-      if (convAndType != null) {
-        if (NodeUtil.findParent(this, ReadArgumentNode.class) instanceof ReadArgumentNode ran) {
-          CompilerAsserts.neverPartOfCompilation();
-          var convNode = LiteralNode.build(convAndType.getLeft());
-          var intoNode = LiteralNode.build(convAndType.getRight());
-          var valueNode = ran.plainRead();
-          var args = new CallArgument[]{
-            new CallArgument(null, intoNode),
-            new CallArgument(null, valueNode)
-          };
-          return ApplicationNode.build(convNode, args, DefaultsExecutionMode.EXECUTE);
-        } else if (NodeUtil.findParent(this, TypeCheckExpressionNode.class) instanceof TypeCheckExpressionNode tcen) {
-          CompilerAsserts.neverPartOfCompilation();
-          var convNode = LiteralNode.build(convAndType.getLeft());
-          var intoNode = LiteralNode.build(convAndType.getRight());
-          var valueNode = tcen.original;
-          var args = new CallArgument[]{
-            new CallArgument(null, intoNode),
-            new CallArgument(null, valueNode)
-          };
-          return ApplicationNode.build(convNode, args, DefaultsExecutionMode.EXECUTE);
+        if (convAndType != null) {
+          if (NodeUtil.findParent(this, ReadArgumentNode.class) instanceof ReadArgumentNode ran) {
+            CompilerAsserts.neverPartOfCompilation();
+            var convNode = LiteralNode.build(convAndType.getLeft());
+            var intoNode = LiteralNode.build(convAndType.getRight());
+            var valueNode = ran.plainRead();
+            var args =
+                new CallArgument[] {
+                  new CallArgument(null, intoNode), new CallArgument(null, valueNode)
+                };
+            return ApplicationNode.build(convNode, args, DefaultsExecutionMode.EXECUTE);
+          } else if (NodeUtil.findParent(this, TypeCheckExpressionNode.class)
+              instanceof TypeCheckExpressionNode tcen) {
+            CompilerAsserts.neverPartOfCompilation();
+            var convNode = LiteralNode.build(convAndType.getLeft());
+            var intoNode = LiteralNode.build(convAndType.getRight());
+            var valueNode = tcen.original;
+            var args =
+                new CallArgument[] {
+                  new CallArgument(null, intoNode), new CallArgument(null, valueNode)
+                };
+            return ApplicationNode.build(convNode, args, DefaultsExecutionMode.EXECUTE);
+          }
         }
       }
       return null;
     }
 
-    Type findType(TypeOfNode typeOfNode, Object v) {
+    Type[] findType(TypeOfNode typeOfNode, Object v) {
+      return findType(typeOfNode, v, null);
+    }
+
+    Type[] findType(TypeOfNode typeOfNode, Object v, Type[] previous) {
+      if (v instanceof EnsoMultiValue multi) {
+        return multi.allTypes();
+      }
       if (typeOfNode.execute(v) instanceof Type from) {
-        return from;
+        if (previous != null && previous.length == 1 && previous[0] == from) {
+          return previous;
+        } else {
+          return new Type[] {from};
+        }
       }
       return null;
     }
 
-    private Object handleWithConversion(
-            VirtualFrame frame, Object v, ApplicationNode convertNode
-    ) throws PanicException {
+    private Object handleWithConversion(VirtualFrame frame, Object v, ApplicationNode convertNode)
+        throws PanicException {
       if (convertNode == null) {
         var ret = findDirectMatch(frame, v);
         if (ret != null) {
@@ -384,7 +414,8 @@ public abstract class ReadArgumentCheckNode extends Node {
     }
 
     @CompilerDirectives.TruffleBoundary
-    private Object doWithConversionUncachedBoundary(MaterializedFrame frame, Object v, Type type) {
+    private Object doWithConversionUncachedBoundary(
+        MaterializedFrame frame, Object v, Type[] type) {
       var convertNode = findConversionNode(type);
       return handleWithConversion(frame, v, convertNode);
     }
@@ -400,10 +431,9 @@ public abstract class ReadArgumentCheckNode extends Node {
     }
   }
 
-  static abstract class MetaCheckNode extends ReadArgumentCheckNode {
+  abstract static class MetaCheckNode extends ReadArgumentCheckNode {
     private final Object expectedMeta;
-    @CompilerDirectives.CompilationFinal
-    private String expectedTypeMessage;
+    @CompilerDirectives.CompilationFinal private String expectedTypeMessage;
 
     MetaCheckNode(String name, Object expectedMeta) {
       super(name);
@@ -416,10 +446,7 @@ public abstract class ReadArgumentCheckNode extends Node {
     }
 
     @Specialization()
-    Object verifyMetaObject(
-      VirtualFrame frame, Object v,
-      @Cached IsValueOfTypeNode isA
-    ) {
+    Object verifyMetaObject(VirtualFrame frame, Object v, @Cached IsValueOfTypeNode isA) {
       if (isAllFitValue(v)) {
         return v;
       }
@@ -429,6 +456,7 @@ public abstract class ReadArgumentCheckNode extends Node {
         return null;
       }
     }
+
     @Override
     String expectedTypeMessage() {
       if (expectedTypeMessage != null) {
@@ -447,18 +475,18 @@ public abstract class ReadArgumentCheckNode extends Node {
 
   private static final class LazyCheckRootNode extends RootNode {
 
-    @Child
-    private ThunkExecutorNode evalThunk;
-    @Child
-    private ReadArgumentCheckNode check;
+    @Child private ThunkExecutorNode evalThunk;
+    @Child private ReadArgumentCheckNode check;
 
-    static final FunctionSchema SCHEMA = new FunctionSchema(
+    static final FunctionSchema SCHEMA =
+        new FunctionSchema(
             FunctionSchema.CallerFrameAccess.NONE,
-            new ArgumentDefinition[]{new ArgumentDefinition(0, "delegate", null, null, ExecutionMode.EXECUTE)},
-            new boolean[]{true},
+            new ArgumentDefinition[] {
+              new ArgumentDefinition(0, "delegate", null, null, ExecutionMode.EXECUTE)
+            },
+            new boolean[] {true},
             new CallArgumentInfo[0],
-            new Annotation[0]
-    );
+            new Annotation[0]);
 
     LazyCheckRootNode(TruffleLanguage<?> language, ReadArgumentCheckNode check) {
       super(language);
@@ -467,7 +495,7 @@ public abstract class ReadArgumentCheckNode extends Node {
     }
 
     Function wrapThunk(Function thunk) {
-      return new Function(getCallTarget(), thunk.getScope(), SCHEMA, new Object[]{thunk}, null);
+      return new Function(getCallTarget(), thunk.getScope(), SCHEMA, new Object[] {thunk}, null);
     }
 
     @Override
@@ -483,10 +511,8 @@ public abstract class ReadArgumentCheckNode extends Node {
   }
 
   private static final class TypeCheckExpressionNode extends ExpressionNode {
-    @Child
-    private ExpressionNode original;
-    @Child
-    private ReadArgumentCheckNode check;
+    @Child private ExpressionNode original;
+    @Child private ReadArgumentCheckNode check;
 
     TypeCheckExpressionNode(ExpressionNode original, ReadArgumentCheckNode check) {
       this.check = check;
@@ -505,5 +531,4 @@ public abstract class ReadArgumentCheckNode extends Node {
       return false;
     }
   }
-
 }

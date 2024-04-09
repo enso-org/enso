@@ -9,7 +9,9 @@ import org.enso.compiler.core.ir.{Expression, IdentifiedLocation}
 trait Scope extends IR {
 
   /** @inheritdoc */
-  override def mapExpressions(fn: Expression => Expression): Scope
+  override def mapExpressions(
+    fn: java.util.function.Function[Expression, Expression]
+  ): Scope
 
   /** @inheritdoc */
   override def setLocation(location: Option[IdentifiedLocation]): Scope

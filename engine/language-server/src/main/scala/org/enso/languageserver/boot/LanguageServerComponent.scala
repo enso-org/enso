@@ -14,8 +14,13 @@ import org.enso.languageserver.runtime.RuntimeKiller.{
   RuntimeShutdownResult,
   ShutDownRuntime
 }
-import org.enso.profiling.{FileSampler, MethodsSampler, NoopSampler}
+import org.enso.profiling.sampler.{
+  MethodsSampler,
+  NoopSampler,
+  OutputStreamSampler
+}
 import org.slf4j.event.Level
+
 import scala.concurrent.duration._
 import scala.concurrent.{Await, ExecutionContextExecutor, Future}
 
@@ -90,7 +95,7 @@ class LanguageServerComponent(config: LanguageServerConfig, logLevel: Level)
       }
       _ <- Future {
         logger.info(
-          s"Started server at json:${config.interface}${config.rpcPort}, ${config.secureRpcPort
+          s"Started server at json:${config.interface}:${config.rpcPort}, ${config.secureRpcPort
             .map(p => s"secure-jsons:${config.interface}$p")
             .getOrElse("")}, " +
           s"binary:${config.interface}:${config.dataPort}${config.secureDataPort
@@ -105,12 +110,14 @@ class LanguageServerComponent(config: LanguageServerConfig, logLevel: Level)
   private def startSampling(config: LanguageServerConfig): MethodsSampler = {
     val sampler = config.profilingConfig.profilingPath match {
       case Some(path) =>
-        new FileSampler(path.toFile)
+        OutputStreamSampler.ofFile(path.toFile)
       case None =>
-        NoopSampler()
+        new NoopSampler()
     }
     sampler.start()
-    config.profilingConfig.profilingTime.foreach(sampler.stop(_))
+    config.profilingConfig.profilingTime.foreach(timeout =>
+      sampler.scheduleStop(timeout.length, timeout.unit, ec)
+    )
 
     sampler
   }

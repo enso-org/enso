@@ -3,12 +3,16 @@ package org.enso.languageserver.filemanager
 import io.circe.Json
 import io.circe.syntax._
 import io.circe.literal._
+import org.enso.logger.ReportLogsOnFailure
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 
 import java.util.UUID
 
-class ContentRootSerializationSpec extends AnyWordSpec with Matchers {
+class ContentRootSerializationSpec
+    extends AnyWordSpec
+    with Matchers
+    with ReportLogsOnFailure {
   "ContentRoot" should {
     "correctly serialize" in {
       val id = UUID.randomUUID()

@@ -46,6 +46,14 @@ final class JobExecutionEngine(
   val jobExecutor: ExecutorService =
     context.newFixedThreadPool(jobParallelism, "job-pool", false)
 
+  val highPriorityJobExecutor: ExecutorService =
+    context.newCachedThreadPool(
+      "prioritized-job-pool",
+      2,
+      Integer.MAX_VALUE,
+      false
+    )
+
   private val backgroundJobExecutor: ExecutorService =
     context.newFixedThreadPool(1, "background-job-pool", false)
 
@@ -66,27 +74,40 @@ final class JobExecutionEngine(
   override def runBackground[A](job: BackgroundJob[A]): Unit =
     synchronized {
       if (isBackgroundJobsStarted) {
+        cancelDuplicateJobs(job, backgroundJobsRef)
         runInternal(job, backgroundJobExecutor, backgroundJobsRef)
       } else {
+        job match {
+          case job: UniqueJob[_] =>
+            delayedBackgroundJobsQueue.removeIf {
+              case that: UniqueJob[_] => that.equalsTo(job)
+              case _                  => false
+            }
+          case _ =>
+        }
         delayedBackgroundJobsQueue.add(job)
       }
     }
 
   /** @inheritdoc */
   override def run[A](job: Job[A]): Future[A] = {
-    cancelDuplicateJobs(job)
-    runInternal(job, jobExecutor, runningJobsRef)
+    cancelDuplicateJobs(job, runningJobsRef)
+    val executor =
+      if (job.highPriority) highPriorityJobExecutor else jobExecutor
+    runInternal(job, executor, runningJobsRef)
   }
 
-  private def cancelDuplicateJobs[A](job: Job[A]): Unit = {
+  private def cancelDuplicateJobs[A](
+    job: Job[A],
+    runningJobsRef: AtomicReference[Vector[RunningJob]]
+  ): Unit = {
     job match {
       case job: UniqueJob[_] =>
         val allJobs =
           runningJobsRef.updateAndGet(_.filterNot(_.future.isCancelled))
         allJobs.foreach { runningJob =>
           runningJob.job match {
-            case jobRef: UniqueJob[_]
-                if jobRef.getClass == job.getClass && jobRef.key == job.key =>
+            case jobRef: UniqueJob[_] if jobRef.equalsTo(job) =>
               runtimeContext.executionService.getLogger
                 .log(Level.FINEST, s"Cancelling duplicate job [$jobRef].")
               runningJob.future.cancel(jobRef.mayInterruptIfRunning)
@@ -105,19 +126,21 @@ final class JobExecutionEngine(
     val jobId   = UUID.randomUUID()
     val promise = Promise[A]()
     val logger  = runtimeContext.executionService.getLogger
-    logger.log(Level.FINE, s"Submitting job: $job...")
+    logger.log(Level.FINE, s"Submitting job: {0}...", job)
     val future = executorService.submit(() => {
-      logger.log(Level.FINE, s"Executing job: $job...")
+      logger.log(Level.FINE, s"Executing job: {0}...", job)
       val before = System.currentTimeMillis()
       try {
         val result = job.run(runtimeContext)
         val took   = System.currentTimeMillis() - before
-        logger.log(Level.FINE, s"Job $job finished in $took ms.")
+        logger.log(Level.FINE, s"Job {0} finished in {1} ms.", Array(job, took))
         promise.success(result)
       } catch {
         case NonFatal(ex) =>
           logger.log(Level.SEVERE, s"Error executing $job", ex)
           promise.failure(ex)
+        case err: InterruptedException =>
+          logger.log(Level.WARNING, s"$job got interrupted", err)
         case err: Throwable =>
           logger.log(Level.SEVERE, s"Error executing $job", err)
           throw err
@@ -127,7 +150,8 @@ final class JobExecutionEngine(
     })
     val runningJob = RunningJob(jobId, job, future)
 
-    runningJobsRef.updateAndGet(_ :+ runningJob)
+    val queue = runningJobsRef.updateAndGet(_ :+ runningJob)
+    logger.log(Level.FINE, "Number of pending jobs: {}", queue.size)
 
     promise.future
   }
@@ -152,16 +176,51 @@ final class JobExecutionEngine(
   }
 
   /** @inheritdoc */
-  override def abortJobs(contextId: UUID): Unit = {
+  override def abortJobs(
+    contextId: UUID,
+    toAbort: Class[_ <: Job[_]]*
+  ): Unit = {
     val allJobs     = runningJobsRef.get()
     val contextJobs = allJobs.filter(_.job.contextIds.contains(contextId))
     contextJobs.foreach { runningJob =>
-      if (runningJob.job.isCancellable) {
+      if (
+        runningJob.job.isCancellable && (toAbort.isEmpty || toAbort
+          .contains(runningJob.getClass))
+      ) {
         runningJob.future.cancel(runningJob.job.mayInterruptIfRunning)
       }
     }
     runtimeContext.executionService.getContext.getThreadManager
       .interruptThreads()
+  }
+
+  /** @inheritdoc */
+  override def abortJobs(
+    contextId: UUID,
+    accept: java.util.function.Function[Job[_], java.lang.Boolean]
+  ): Unit = {
+    val allJobs     = runningJobsRef.get()
+    val contextJobs = allJobs.filter(_.job.contextIds.contains(contextId))
+    contextJobs.foreach { runningJob =>
+      if (runningJob.job.isCancellable && accept.apply(runningJob.job)) {
+        runningJob.future.cancel(runningJob.job.mayInterruptIfRunning)
+      }
+    }
+    runtimeContext.executionService.getContext.getThreadManager
+      .interruptThreads()
+  }
+
+  override def abortBackgroundJobs(toAbort: Class[_ <: Job[_]]*): Unit = {
+    val allJobs =
+      backgroundJobsRef.updateAndGet(_.filterNot(_.future.isCancelled))
+    val cancellableJobs = allJobs
+      .filter { runningJob =>
+        runningJob.job.isCancellable &&
+        toAbort.contains(runningJob.job.getClass)
+      }
+    cancellableJobs.foreach { runningJob =>
+      runningJob.future.cancel(runningJob.job.mayInterruptIfRunning)
+    }
   }
 
   /** @inheritdoc */
@@ -193,7 +252,18 @@ final class JobExecutionEngine(
 
   /** Submit background jobs preserving the stable order. */
   private def submitBackgroundJobsOrdered(): Unit = {
-    Collections.sort(delayedBackgroundJobsQueue)
+    Collections.sort(
+      delayedBackgroundJobsQueue,
+      BackgroundJob.BACKGROUND_JOBS_QUEUE_ORDER
+    )
+    runtimeContext.executionService.getLogger.log(
+      Level.FINE,
+      "Submitting {0} background jobs [{1}]",
+      Array[AnyRef](
+        delayedBackgroundJobsQueue.size(): Integer,
+        delayedBackgroundJobsQueue
+      )
+    )
     delayedBackgroundJobsQueue.forEach(job => runBackground(job))
     delayedBackgroundJobsQueue.clear()
   }

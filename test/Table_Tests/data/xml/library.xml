@@ -1,0 +1,7 @@
+<Library catalog="Fiction" letter="A">
+    Hello
+    <Book author="An Author">My Book</Book>
+    World
+    <Book author="Another Author">Your Book</Book>
+    <Magazine month="August-2023" series="AutoCar">Cheap Cars For You</Magazine>
+</Library>

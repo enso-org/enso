@@ -1,3 +1,4 @@
+import project.Data.Numbers.Integer
 import project.Data.Text.Extensions
 import project.Data.Text.Text
 import project.Error.Error
@@ -6,6 +7,8 @@ import project.Function.Function
 import project.Meta
 import project.Nothing.Nothing
 import project.Panic.Panic
+import project.Runtime
+import project.Runtime.Source_Location.Source_Location
 from project.Data.Boolean import Boolean, False, True
 
 polyglot java import java.lang.ArithmeticException
@@ -56,8 +59,9 @@ type Type_Error
        Arguments:
        - expected: The expected type at the error location.
        - actual: The actual type at the error location.
-       - name: The name of the argument whose type is mismatched.
-    Error expected actual name
+       - comment: Description of the value that was being checked,
+         e.g. function argument, result or an arbitrary expression.
+    Error expected actual comment
 
     ## PRIVATE
        Convert the Type_Error error to a human-readable format.
@@ -75,7 +79,17 @@ type Type_Error
                         _ -> ". Try to apply " + (missing_args.join ", ") + " arguments"
                _ -> tpe.to_text
 
-        "Type error: expected `"+self.name+"` to be "+self.expected.to_display_text+", but got "+type_of_actual+"."
+        got = if type_of_actual.is_a Text then type_of_actual else "<ERR>"
+        exp = self.expected.to_display_text
+        msg = self.comment
+            . replace "{exp}" exp
+            . replace "{got}" got
+        "Type error: "+msg+"."
+
+    ## PRIVATE
+       Render the error as text.
+    to_text : Text
+    to_text self = self.to_display_text
 
 @Builtin_Type
 type Compile_Error
@@ -376,16 +390,17 @@ type No_Conversion_Currying
 @Builtin_Type
 type Forbidden_Operation
     ## PRIVATE
-       An error that occurs when the action is not allowed to perform the operation in the given context.
+       An error that occurs when the action is not allowed to perform the
+       operation in the given context.
 
        Arguments:
-       - operation: attempted context that is not allowed.
-    Error operation
+       - message: message describing the operation that was not allowed.
+    Error message
 
     ## PRIVATE
        Convert the Forbidden_Operation error to a human-readable format.
     to_display_text : Text
-    to_display_text self = "Forbidden operation: "+self.operation+"."
+    to_display_text self = "Forbidden operation: "+self.message
 
 type Dry_Run_Operation
     ## PRIVATE
@@ -416,3 +431,84 @@ type Out_Of_Memory
     handle_java_exception operation ~function =
         Panic.catch OutOfMemoryError handler=(_-> Error.throw (Out_Of_Memory.Error operation)) <|
             function
+
+## Indicates that an expression cannot be evaluated because somewhere within it,
+   a function does not have all required arguments provided.
+type Missing_Required_Argument
+    ## PRIVATE
+       Indicates that an expression cannot be evaluated because somewhere within
+       it, a function does not have all required arguments provided.
+    Error (argument_name : Text) (function_name : Text) (call_location : Source_Location | Nothing)
+
+    ## PRIVATE
+    to_display_text : Text
+    to_display_text self =
+        "Missing required argument `" + self.argument_name + "` in function `" + self.function_name + "`."
+
+    ## PRIVATE
+       Throws an error saying that a required argument has not been provided.
+
+       This function is supposed to be used as a default value for arguments
+       that are supposed to be required and should prevent errors stemming from
+       a not-fully-applied function being passed around. Instead, this error is
+       raised and propagated to the top, so that the IDE can see that the node
+       still has some missing arguments within it.
+
+       > Example
+
+         my_function (arg1 = Missing_Required_Argument.ensure_present "arg1") (arg2 = 100) = arg1+arg2
+    ensure_present : Text -> Nothing ! Missing_Required_Argument
+    ensure_present (argument_name : Text = Missing_Required_Argument.ensure_present "argument_name") =
+        stack_trace = Runtime.get_stack_trace
+        function_frame = stack_trace . at 1
+        caller_frame = stack_trace . at 2
+
+        function_name = function_frame.name
+        call_location = caller_frame.source_location
+        Error.throw (Missing_Required_Argument.Error argument_name function_name call_location)
+
+## Warning when additional warnings occurred.
+type Additional_Warnings
+    ## PRIVATE
+    Error (count:Integer)
+
+    ## PRIVATE
+
+       Create a human-readable version of the error.
+    to_display_text : Text
+    to_display_text self =
+        "There were "+self.count.to_text+" additional issues."
+
+type Loss_Of_Numeric_Precision
+    ## PRIVATE
+       Indicates that a numeric conversion of a value has lost precision.
+    Warning original_value new_value
+
+    ## PRIVATE
+       Create a human-readable version of the error.
+    to_display_text : Text
+    to_display_text self =
+        "Loss of precision in converting "+self.original_value.to_text+" to "+self.new_value.to_text
+
+    ## PRIVATE
+    to_text : Text
+    to_text self =
+        "(Loss_Of_Numeric_Precision.Warning (original_value = "+self.original_value.to_text+") (new_value = " + self.new_value.to_text+"))"
+
+## Indicates that a computed or provided value is outside the allowable range.
+type Out_Of_Range
+    ## PRIVATE
+    Error value message=Nothing
+
+    ## PRIVATE
+       Create a human-readable version of the error.
+    to_display_text : Text
+    to_display_text self =
+        extra = if self.message.is_nothing then "" else ": "+self.message.to_text
+        "Value out of range: "+self.value.to_text+extra
+
+    ## PRIVATE
+    to_text : Text
+    to_text self =
+        extra = if self.message.is_nothing then "" else ": "+self.message.to_text
+        "(Out_Of_Range (value = "+self.value.to_text+")" + extra + ")"

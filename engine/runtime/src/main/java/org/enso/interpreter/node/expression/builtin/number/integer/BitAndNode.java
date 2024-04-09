@@ -13,7 +13,7 @@ import org.enso.interpreter.runtime.number.EnsoBigInteger;
 @BuiltinMethod(type = "Integer", name = "bit_and", description = "Bitwise and.")
 public abstract class BitAndNode extends IntegerNode {
 
-  public abstract Object execute(Object self, Object that);
+  public abstract Object execute(Object own, Object that);
 
   public static BitAndNode build() {
     return BitAndNodeGen.create();

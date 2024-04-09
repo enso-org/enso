@@ -4,12 +4,12 @@ from Standard.Table import Table, Column
 
 import Standard.Visualization.Scatter_Plot
 
-from Standard.Test import Test, Test_Suite
-import Standard.Test.Extensions
+from Standard.Test import all
+
 
 import project
 
-spec =
+add_specs suite_builder =
     expect_text text axis_expected_text data_expected_text =
         json = Json.parse text
         json.field_names.should_equal ['data', 'axis']
@@ -28,47 +28,47 @@ spec =
     labels x y = JS_Object.from_pairs [['x', axis x], ['y', axis y]] . to_text
     no_labels  = 'null'
 
-    Test.group "Scatter Plot Visualization" <|
-        Test.specify "plots first column if none recognized" <|
+    suite_builder.group "Scatter Plot Visualization" group_builder->
+        group_builder.specify "plots first column if none recognized" <|
             header = ['α', 'ω']
             row_1  = [11 , 10 ]
             row_2  = [21 , 20 ]
             table  = Table.from_rows header [row_1, row_2]
             expect table (labels index 'α') '[{"x":0,"y":11},{"x":1,"y":21}]'
 
-        Test.specify "plots 'y' against indices when no 'x' recognized" <|
+        group_builder.specify "plots 'y' against indices when no 'x' recognized" <|
             header = ['α', 'y']
             row_1 =  [11 , 10 ]
             row_2 =  [21 , 20 ]
             table = Table.from_rows header [row_1, row_2]
             expect table (labels index 'y') '[{"x":0,"y":10},{"x":1,"y":20}]'
 
-        Test.specify "recognizes all relevant columns" <|
+        group_builder.specify "recognizes all relevant columns" <|
             header = ['x' , 'y' , 'size' , 'shape'  , 'label' , 'color' ]
             row_1 =  [11  , 10  , 50     , 'square' , 'label' , 'ff0000']
             table = Table.from_rows header [row_1]
             expect table (labels 'x' 'y') '[{"color":"ff0000","label":"label","shape":"square","size":50,"x":11,"y":10}]'
 
-        Test.specify "is case-insensitive" <|
+        group_builder.specify "is case-insensitive" <|
             header = ['X' , 'Y' , 'Size' , 'Shape'  , 'Label' , 'Color' ]
             row_1 =  [11  , 10  , 50     , 'square' , 'label' , 'ff0000']
             table = Table.from_rows header [row_1]
             expect table (labels 'X' 'Y') '[{"color":"ff0000","label":"label","shape":"square","size":50,"x":11,"y":10}]'
 
-        Test.specify "uses first unrecognized numeric column as `y` fallback" <|
+        group_builder.specify "uses first unrecognized numeric column as `y` fallback" <|
             header = ['x' , 'size' , 'name'   , 'z' , 'ω']
             row_1 =  [11  , 50     , 'circul' ,  20 ,  30]
             table = Table.from_rows header [row_1]
             expect table (labels 'x' 'z') '[{"size":50,"x":11,"y":20}]'
 
-        Test.specify "provided only recognized columns" <|
+        group_builder.specify "provided only recognized columns" <|
             header = ['x', 'y' , 'bar' , 'size']
             row_1 =  [11 , 10  , 'aa'  , 40    ]
             row_2 =  [21 , 20  , 'bb'  , 50    ]
             table = Table.from_rows header [row_1, row_2]
             expect table (labels 'x' 'y') '[{"size":40,"x":11,"y":10},{"size":50,"x":21,"y":20}]'
 
-        Test.specify "provided only recognized columns within bounds" <|
+        group_builder.specify "provided only recognized columns within bounds" <|
             header = ['x', 'y' , 'bar' , 'size']
             row_1 =  [1  , 1   , '11'  , 30    ]
             row_2 =  [11 , 10  , 'aa'  , 40    ]
@@ -79,18 +79,18 @@ spec =
             text = Scatter_Plot.process_to_json_text table bounds
             expect_text text (labels 'x' 'y') '[{"size":40,"x":11,"y":10},{"size":50,"x":21,"y":20}]'
 
-        Test.specify "used default index for `x` if none set" <|
+        group_builder.specify "used default index for `x` if none set" <|
             header = [ 'y'  , 'bar' , 'size']
             row_1 =  [ 10   , 'aa'  , 40    ]
             row_2 =  [ 20   , 'bb'  , 50    ]
             table = Table.from_rows header [row_1, row_2]
             expect table (labels index 'y') '[{"size":40,"x":0,"y":10},{"size":50,"x":1,"y":20}]'
 
-        Test.specify "using indices for x if given a vector" <|
+        group_builder.specify "using indices for x if given a vector" <|
             vector = [0,10,20]
             expect vector no_labels '[{"x":0,"y":0},{"x":1,"y":10},{"x":2,"y":20}]'
 
-        Test.specify "limit the number of elements" <|
+        group_builder.specify "limit the number of elements" <|
             vector = [0,10,20,30]
             text = Scatter_Plot.process_to_json_text vector limit=2
             json = Json.parse text
@@ -99,7 +99,7 @@ spec =
             data.should_be_a Vector
             data.length . should_equal 2
 
-        Test.specify "limit the number of squared elements" <|
+        group_builder.specify "limit the number of squared elements" <|
             vector = (-15).up_to 15 . map (x -> x * x)
             text = Scatter_Plot.process_to_json_text vector limit=10
             json = Json.parse text
@@ -107,20 +107,24 @@ spec =
             data = json.get 'data'
             data.should_be_a Vector
             data.length . should_equal 10
-            (data.take (First 3)).to_text . should_equal '[{"x":0,"y":225}, {"x":29,"y":196}, {"x":15,"y":0}]'
+            (data.take (First 3) . sort on=(_.get "x")).to_text . should_equal '[{"x":0,"y":225}, {"x":15,"y":0}, {"x":29,"y":196}]'
 
-        Test.specify "filter the elements" <|
+        group_builder.specify "filter the elements" <|
             vector = [0,10,20,30]
             bounds = [0,5,10,25]
             text = Scatter_Plot.process_to_json_text vector bounds
             expect_text text no_labels '[{"x":1,"y":10},{"x":2,"y":20}]'
 
-        Test.specify "using indices for x if given a column" <|
+        group_builder.specify "using indices for x if given a column" <|
             column = Column.from_vector 'some_col' [10,2,3]
             expect column (labels 'index' 'some_col') '[{"x":0,"y":10},{"x":1,"y":2},{"x":2,"y":3}]'
 
-        Test.specify "using indices for x if given a range" <|
+        group_builder.specify "using indices for x if given a range" <|
             value = 2.up_to 5
             expect value no_labels '[{"x":0,"y":2},{"x":1,"y":3},{"x":2,"y":4}]'
 
-main = Test_Suite.run_main spec
+main filter=Nothing =
+    suite = Test.build suite_builder->
+        add_specs suite_builder
+    suite.run_with_filter filter
+

@@ -13,7 +13,7 @@ import org.enso.interpreter.runtime.data.text.Text;
     description = "Pretty prints a type.",
     autoRegister = false)
 public class GetSimpleTypeNameNode extends Node {
-  @Child @CompilationFinal TypeToDisplayTextNode displayTypeNode = TypeToDisplayTextNode.build();
+  @Child @CompilationFinal TypeToDisplayTextNode displayTypeNode = TypeToDisplayTextNode.create();
 
   Text execute(@AcceptsError Object value) {
     return Text.create(displayTypeNode.execute(value));

@@ -8,6 +8,9 @@ use crate::prelude::*;
 use crate::source::*;
 use crate::syntax::*;
 
+use crate::source::code::Length;
+use crate::source::code::Location;
+
 use std::str;
 
 
@@ -89,35 +92,13 @@ pub struct Lexer<'s> {
     token_storage: VecAllocation<Token<'s>>,
 }
 
-#[derive(Debug, Default, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
-struct StrOffset {
-    utf8:  Bytes,
-    utf16: u32,
-}
-
-impl Sub for StrOffset {
-    type Output = Self;
-
-    fn sub(self, rhs: Self) -> Self::Output {
-        Self { utf8: self.utf8 - rhs.utf8, utf16: self.utf16 - rhs.utf16 }
-    }
-}
-
-impl Add for StrOffset {
-    type Output = Self;
-
-    fn add(self, rhs: Self) -> Self::Output {
-        Self { utf8: self.utf8 + rhs.utf8, utf16: self.utf16 + rhs.utf16 }
-    }
-}
-
 /// Internal state of the [`Lexer`].
 #[derive(Debug, Default)]
 #[allow(missing_docs)]
 pub struct LexerState {
     current_char: Option<char>,
-    current_offset: StrOffset,
-    last_spaces_offset: StrOffset,
+    current_offset: Location,
+    last_spaces_offset: Location,
     last_spaces_visible_offset: VisibleOffset,
     current_block_indent: VisibleOffset,
     block_indent_stack: Vec<VisibleOffset>,
@@ -139,7 +120,11 @@ enum State {
     },
 }
 
-type Mark<'s> = (StrOffset, Offset<'s>);
+#[derive(Debug, Clone)]
+struct Mark<'s> {
+    location: Location,
+    offset:   Offset<'s>,
+}
 
 impl<'s> Lexer<'s> {
     /// Constructor.
@@ -163,17 +148,24 @@ impl<'s> Lexer<'s> {
     fn next_input_char(&mut self) -> bool {
         let next = self.iterator.next();
         if let Some((current_offset, current_char)) = next {
-            self.current_offset = StrOffset {
-                utf8:  Bytes(current_offset),
-                utf16: self.current_offset.utf16
-                    + self.current_char.map_or(0, |c| c.len_utf16() as u32),
+            let prev = self.current_offset;
+            let char_len16 = self.current_char.map_or(0, |c| c.len_utf16() as u32);
+            self.current_offset = Location {
+                utf8:  u32_from(current_offset),
+                utf16: prev.utf16 + char_len16,
+                line:  prev.line,
+                col16: prev.col16 + char_len16,
             };
             self.current_char = Some(current_char);
             true
         } else if let Some(c) = self.current_char {
-            self.current_offset = StrOffset {
-                utf8:  Bytes(self.input.len()),
-                utf16: self.current_offset.utf16 + c.len_utf16() as u32,
+            let prev = self.current_offset;
+            let char_len16 = c.len_utf16() as u32;
+            self.current_offset = Location {
+                utf8:  u32_from(self.input.len()),
+                utf16: prev.utf16 + char_len16,
+                line:  prev.line,
+                col16: prev.col16 + char_len16,
             };
             self.current_char = None;
             true
@@ -182,34 +174,28 @@ impl<'s> Lexer<'s> {
         }
     }
 
-    /// Run the provided function and compute how much input it consumed.
-    #[inline(always)]
-    fn run_and_get_offset<T>(&mut self, f: impl FnOnce(&mut Self) -> T) -> (T, StrOffset) {
-        let start_offset = self.current_offset;
-        let out = f(self);
-        let len = self.current_offset - start_offset;
-        (out, len)
-    }
-
     /// Run the provided function and check if it consumed any input.
     #[inline(always)]
     fn run_and_check_if_progressed(&mut self, f: impl FnOnce(&mut Self)) -> bool {
-        self.run_and_get_offset(f).1.utf8.is_positive()
+        let start = self.current_offset;
+        f(self);
+        let end = self.current_offset;
+        end != start
     }
 
     /// Consume spaces after parsing a [`Token`] and update the internal spacing info.
     #[inline(always)]
     fn spaces_after_lexeme(&mut self) {
-        (self.last_spaces_visible_offset, self.last_spaces_offset) =
-            self.run_and_get_offset(|this| this.spaces());
+        self.last_spaces_offset = self.current_offset;
+        self.last_spaces_visible_offset = self.spaces();
     }
 
     /// Consume spaces after parsing a [`Token`] and update the internal spacing info. Doesn't
     /// consume more than the specified [`VisibleOffset`] of spaces.
     #[inline(always)]
     fn spaces_after_lexeme_with_limit(&mut self, limit: VisibleOffset) {
-        (self.last_spaces_visible_offset, self.last_spaces_offset) =
-            self.run_and_get_offset(|this| this.spaces_with_limit(limit));
+        self.last_spaces_offset = self.current_offset;
+        self.last_spaces_visible_offset = self.spaces_with_limit(limit);
     }
 
     /// Run the provided function. If it consumed any chars, return the [`Token`] containing the
@@ -217,21 +203,19 @@ impl<'s> Lexer<'s> {
     #[inline(always)]
     fn token<T>(&mut self, f: impl FnOnce(&mut Self) -> T) -> Option<Token<'s, T>> {
         let start = self.current_offset;
-        let (elem, len) = self.run_and_get_offset(f);
-        len.utf8.is_positive().as_some_from(|| {
-            let end = start + len;
-            let left_offset_start = start - self.last_spaces_offset;
-            let (offset_code, code) = self
-                .input
-                .slice(left_offset_start.utf8..end.utf8)
-                .split_at(self.last_spaces_offset.utf8.unchecked_raw());
+        let elem = f(self);
+        let end = self.current_offset;
+        (end != start).as_some_from(|| {
+            let left_offset_start = self.last_spaces_offset;
+            let (offset_code, code) = self.input
+                [usize_from(left_offset_start.utf8)..usize_from(end.utf8)]
+                .split_at(usize_from(start.utf8 - left_offset_start.utf8));
             let visible_offset = self.last_spaces_visible_offset;
-            let offset = Offset(
-                visible_offset,
-                Code::from_str_at_offset(offset_code, left_offset_start.utf16),
-            );
+            let offset =
+                Offset(visible_offset, Code::from_str_at_location(offset_code, left_offset_start));
             self.spaces_after_lexeme();
-            Token(offset, Code::from_str_at_offset(code, start.utf16), elem)
+            debug_assert_eq!(left_offset_start + Length::of(offset_code), start);
+            Token(offset, Code::from_str_at_location(code, start), elem)
         })
     }
 
@@ -240,9 +224,9 @@ impl<'s> Lexer<'s> {
     #[inline(always)]
     fn marker_token<T>(&mut self, elem: T) -> Token<'s, T> {
         let visible_offset = VisibleOffset(0);
-        let start = self.current_offset - self.last_spaces_offset;
-        let offset = Offset(visible_offset, Code::empty(start.utf16));
-        Token(offset, Code::empty(start.utf16), elem)
+        let start = self.last_spaces_offset;
+        let offset = Offset(visible_offset, Code::empty(start));
+        Token(offset, Code::empty(start), elem)
     }
 
     /// Push the [`token`] to the result stream.
@@ -624,7 +608,10 @@ impl<'s> Lexer<'s> {
     /// If the current char could start an identifier, consume it and return true; otherwise, return
     /// false.
     fn ident_start_char(&mut self) -> bool {
-        if let Some(char) = self.current_char && is_ident_char(char) && char != '\'' {
+        if let Some(char) = self.current_char
+            && is_ident_char(char)
+            && char != '\''
+        {
             self.take_next();
             return true;
         }
@@ -657,7 +644,7 @@ impl<'s> Lexer<'s> {
             match token.code.as_ref() {
                 // Special-case: Split into multiple operators.
                 "+-" => {
-                    let (left, right) = token.split_at_(Bytes(1));
+                    let (left, right) = token.split_at(Length::of("+"));
                     let lhs = analyze_operator(&left.code);
                     self.submit_token(left.with_variant(token::Variant::operator(lhs)));
                     // The `-` in this case is not identical to a free `-`: It is only allowed a
@@ -668,14 +655,16 @@ impl<'s> Lexer<'s> {
                 }
                 // Composed of operator characters, but not an operator node.
                 "..." => {
-                    let token = token.with_variant(token::Variant::auto_scope());
+                    let token = token.with_variant(token::Variant::suspended_default_arguments());
                     self.submit_token(token);
                 }
                 // Decimal vs. method-application must be distinguished before parsing because they
                 // have different precedences; this is a special case here because the distinction
                 // requires lookahead.
                 "." if self.last_spaces_visible_offset.width_in_spaces == 0
-                    && let Some(char) = self.current_char && char.is_ascii_digit() => {
+                    && let Some(char) = self.current_char
+                    && char.is_ascii_digit() =>
+                {
                     let opr = token::OperatorProperties::new()
                         .with_binary_infix_precedence(81)
                         .as_decimal();
@@ -685,7 +674,9 @@ impl<'s> Lexer<'s> {
                 // The unary-negation operator binds tighter to numeric literals than other
                 // expressions.
                 "-" if self.last_spaces_visible_offset.width_in_spaces == 0
-                    && let Some(char) = self.current_char && char.is_ascii_digit() => {
+                    && let Some(char) = self.current_char
+                    && char.is_ascii_digit() =>
+                {
                     let opr = token::OperatorProperties::new()
                         .with_unary_prefix_mode(token::Precedence::unary_minus_numeric_literal())
                         .with_binary_infix_precedence(15);
@@ -730,6 +721,11 @@ fn analyze_operator(token: &str) -> token::OperatorProperties {
                 .with_unary_prefix_mode(token::Precedence::max())
                 .as_compile_time_operation()
                 .as_suspension(),
+        ".." =>
+            return operator
+                .with_unary_prefix_mode(token::Precedence::min_valid())
+                .as_compile_time_operation()
+                .as_autoscope(),
         "@" =>
             return operator
                 .with_unary_prefix_mode(token::Precedence::max())
@@ -886,23 +882,26 @@ impl<'s> Lexer<'s> {
         if let Some(token) = token {
             if let Some(base) = base {
                 self.submit_token(token.with_variant(token::Variant::number_base()));
-                let token = match base {
+                let after_base = self.current_offset;
+                if let Some(digits) = match base {
                     token::Base::Binary => self.token(|this| this.take_while(is_binary_digit)),
                     token::Base::Octal => self.token(|this| this.take_while(is_octal_digit)),
                     token::Base::Hexadecimal =>
                         self.token(|this| this.take_while(is_hexadecimal_digit)),
-                };
-                let joiner = token::OperatorProperties::new()
-                    .with_binary_infix_precedence(u32::MAX)
-                    .as_token_joiner();
-                self.submit_token(Token(
-                    Code::empty_without_offset(),
-                    Code::empty_without_offset(),
-                    token::Variant::operator(joiner),
-                ));
-                // Every number has a digits-token, even if it's zero-length.
-                let token = token.unwrap_or_default();
-                self.submit_token(token.with_variant(token::Variant::digits(Some(base))));
+                } {
+                    // The base and the digits are separate tokens so that they can have separate
+                    // spans. A pseudo-token binds them together tightly so that the parser can
+                    // assemble them into one number node.
+                    let joiner = token::OperatorProperties::new()
+                        .with_binary_infix_precedence(u32::MAX)
+                        .as_token_joiner();
+                    self.submit_token(Token(
+                        Code::empty(after_base),
+                        Code::empty(after_base),
+                        token::Variant::operator(joiner),
+                    ));
+                    self.submit_token(digits.with_variant(token::Variant::digits(Some(base))));
+                }
             } else {
                 self.submit_token(token.with_variant(token::Variant::digits(None)));
             }
@@ -935,16 +934,20 @@ impl<'s> Lexer<'s> {
         };
         let indent = self.current_block_indent;
         let open_quote_start = self.mark();
-        self.last_spaces_visible_offset = VisibleOffset(0);
-        self.last_spaces_offset = default();
         self.take_next();
+        self.last_spaces_visible_offset = VisibleOffset(0);
+        self.last_spaces_offset = self.current_offset;
         // At least two quote characters.
-        if let Some(char) = self.current_char && char == quote_char {
-            let close_quote_start = self.mark();
+        if let Some(char) = self.current_char
+            && char == quote_char
+        {
+            let close_quote_start = self.mark_without_whitespace();
             self.take_next();
             let mut multiline = false;
             // If more than two quote characters: Start a multiline quote.
-            while let Some(char) = self.current_char && char == quote_char {
+            while let Some(char) = self.current_char
+                && char == quote_char
+            {
                 multiline = true;
                 self.take_next();
             }
@@ -953,19 +956,22 @@ impl<'s> Lexer<'s> {
                 return;
             } else {
                 // Exactly two quote characters: Open and shut case.
-                let close_quote_end = self.mark();
-                let token = self.make_token(open_quote_start, close_quote_start.clone(),
-                                            token::Variant::text_start());
+                let close_quote_end = self.mark_without_whitespace();
+                let token = self.make_token(
+                    open_quote_start,
+                    close_quote_start.clone(),
+                    token::Variant::text_start(),
+                );
                 self.output.push(token);
-                let token = self.make_token(close_quote_start, close_quote_end,
-                                            token::Variant::text_end());
+                let token =
+                    self.make_token(close_quote_start, close_quote_end, token::Variant::text_end());
                 self.output.push(token);
             }
         } else {
             // One quote followed by non-quote character: Inline quote.
-            let open_quote_end = self.mark();
-            let token = self.make_token(open_quote_start, open_quote_end,
-                                        token::Variant::text_start());
+            let open_quote_end = self.mark_without_whitespace();
+            let token =
+                self.make_token(open_quote_start, open_quote_end, token::Variant::text_start());
             self.output.push(token);
             self.inline_quote(quote_char, text_type);
         }
@@ -978,11 +984,13 @@ impl<'s> Lexer<'s> {
         block_indent: VisibleOffset,
         text_type: TextType,
     ) {
-        let open_quote_end = self.mark();
+        let open_quote_end = self.mark_without_whitespace();
         let token = self.make_token(open_quote_start, open_quote_end, token::Variant::text_start());
         self.output.push(token);
         let mut initial_indent = None;
-        if text_type.expects_initial_newline() && let Some(newline) = self.line_break() {
+        if text_type.expects_initial_newline()
+            && let Some(newline) = self.line_break()
+        {
             self.output.push(newline.with_variant(token::Variant::text_initial_newline()));
             if self.last_spaces_visible_offset > block_indent {
                 initial_indent = self.last_spaces_visible_offset.into();
@@ -1000,9 +1008,9 @@ impl<'s> Lexer<'s> {
     }
 
     fn end_splice(&mut self, state: State) {
-        let splice_quote_start = self.mark();
+        let splice_quote_start = self.mark_without_whitespace();
         self.take_next();
-        let splice_quote_end = self.mark();
+        let splice_quote_end = self.mark_without_whitespace();
         let token =
             self.make_token(splice_quote_start, splice_quote_end, token::Variant::close_symbol());
         self.output.push(token);
@@ -1036,8 +1044,8 @@ impl<'s> Lexer<'s> {
                 let mut newlines = vec![];
                 let mut new_indent = None;
                 loop {
-                    let mut before_newline = self.mark();
-                    if before_newline.0 == text_start.0 {
+                    let mut before_newline = self.mark_without_whitespace();
+                    if before_newline.location == text_start.location {
                         before_newline = text_start.clone();
                     }
                     let mut newline = self.take_1('\r');
@@ -1057,7 +1065,8 @@ impl<'s> Lexer<'s> {
                     } else {
                         before_newline = text_start;
                     }
-                    let newline_end = self.mark();
+                    self.advance_line_pos();
+                    let newline_end = self.mark_without_whitespace();
                     let token =
                         self.make_token(before_newline, newline_end, token::Variant::newline());
                     newlines.push(token);
@@ -1076,18 +1085,23 @@ impl<'s> Lexer<'s> {
                 }
                 if let Some(indent) = new_indent {
                     if indent <= *block_indent {
-                        self.output.push(Token::from(token::text_end(
-                            Code::empty_without_offset(),
-                            Code::empty_without_offset(),
-                        )));
-                        self.end_blocks(indent);
+                        let text_end = {
+                            let location = newlines
+                                .first()
+                                .as_ref()
+                                .unwrap()
+                                .left_offset
+                                .code
+                                .position_before();
+                            let offset = Offset(VisibleOffset(0), location.clone());
+                            Token(offset, location, token::Variant::text_end())
+                        };
+                        self.output.push(text_end);
+                        self.end_blocks(indent, newlines.first().as_ref().unwrap());
                         self.output.extend(newlines);
-                        if self.current_offset == text_start.0 {
-                            self.last_spaces_visible_offset = text_start.1.visible;
-                            self.last_spaces_offset = StrOffset {
-                                utf8:  text_start.1.code.len(),
-                                utf16: text_start.1.code.len_utf16(),
-                            };
+                        if self.current_offset == text_start.location {
+                            self.last_spaces_visible_offset = text_start.offset.visible;
+                            self.last_spaces_offset = text_start.offset.code.range().start;
                         }
                         return TextEndedAt::End;
                     }
@@ -1099,7 +1113,7 @@ impl<'s> Lexer<'s> {
                 }
             }
             if interpolate && char == '\\' {
-                let mut backslash_start = self.mark();
+                let mut backslash_start = self.mark_without_whitespace();
                 self.take_next();
                 if let Some(char) = self.current_char {
                     let token = self.make_token(
@@ -1112,13 +1126,15 @@ impl<'s> Lexer<'s> {
                     } else {
                         self.output.push(token);
                     }
+                    self.last_spaces_offset = self.current_offset;
                     text_start = self.text_escape(backslash_start, char);
                     continue;
                 }
+                self.last_spaces_offset = self.current_offset;
                 continue;
             }
             if interpolate && char == '`' {
-                let mut splice_quote_start = self.mark();
+                let mut splice_quote_start = self.mark_without_whitespace();
                 let token = self.make_token(
                     text_start.clone(),
                     splice_quote_start.clone(),
@@ -1130,7 +1146,7 @@ impl<'s> Lexer<'s> {
                     self.output.push(token);
                 }
                 self.take_next();
-                let splice_quote_end = self.mark();
+                let splice_quote_end = self.mark_without_whitespace();
                 let token = self.make_token(
                     splice_quote_start,
                     splice_quote_end,
@@ -1138,21 +1154,25 @@ impl<'s> Lexer<'s> {
                 );
                 self.output.push(token);
                 self.stack.push(state);
+                self.last_spaces_offset = self.current_offset;
                 return TextEndedAt::Splice;
             }
             self.take_next();
         }
-        let text_end = self.mark();
+        let text_end = self.mark_without_whitespace();
         let token = self.make_token(text_start, text_end.clone(), token::Variant::text_section());
         if !(token.code.is_empty() && token.left_offset.code.is_empty()) {
             self.output.push(token);
         }
         let end_token = if self.current_char == closing_char {
             self.take_next();
-            let close_quote_end = self.mark();
+            let close_quote_end = self.mark_without_whitespace();
             self.make_token(text_end, close_quote_end, token::Variant::text_end())
         } else {
-            Token::from(token::text_end(Code::empty_without_offset(), Code::empty_without_offset()))
+            Token::from(token::text_end(
+                Code::empty(self.current_offset),
+                Code::empty(self.current_offset),
+            ))
         };
         self.output.push(end_token);
         TextEndedAt::End
@@ -1174,7 +1194,9 @@ impl<'s> Lexer<'s> {
             }
             let mut value: Option<u32> = None;
             for _ in 0..expect_len {
-                if let Some(c) = self.current_char && let Some(x) = decode_hexadecimal_digit(c) {
+                if let Some(c) = self.current_char
+                    && let Some(x) = decode_hexadecimal_digit(c)
+                {
                     value = Some(16 * value.unwrap_or_default() + x as u32);
                     self.take_next();
                 } else {
@@ -1184,7 +1206,7 @@ impl<'s> Lexer<'s> {
             if delimited && self.current_char == Some('}') {
                 self.take_next();
             }
-            let sequence_end = self.mark();
+            let sequence_end = self.mark_without_whitespace();
             let token = self.make_token(
                 backslash_start,
                 sequence_end.clone(),
@@ -1210,7 +1232,7 @@ impl<'s> Lexer<'s> {
                 _ => None,
             };
             self.take_next();
-            let escape_end = self.mark();
+            let escape_end = self.mark_without_whitespace();
             let token = self.make_token(
                 backslash_start,
                 escape_end.clone(),
@@ -1223,23 +1245,30 @@ impl<'s> Lexer<'s> {
 
     fn mark(&mut self) -> Mark<'s> {
         let start = self.current_offset;
-        let left_offset_start = start - self.last_spaces_offset;
-        let offset_code = self.input.slice(left_offset_start.utf8..start.utf8);
-        let visible_offset = self.last_spaces_visible_offset;
-        self.last_spaces_visible_offset = VisibleOffset(0);
-        self.last_spaces_offset = default();
-        (
-            start,
-            Offset(visible_offset, Code::from_str_at_offset(offset_code, left_offset_start.utf16)),
-        )
+        let visible_offset = mem::take(&mut self.last_spaces_visible_offset);
+        let left_offset_start = mem::replace(&mut self.last_spaces_offset, start);
+        let offset_code = &self.input[usize_from(left_offset_start.utf8)..usize_from(start.utf8)];
+        Mark {
+            location: start,
+            offset:   Offset(
+                visible_offset,
+                Code::from_str_at_location(offset_code, left_offset_start),
+            ),
+        }
+    }
+
+    fn mark_without_whitespace(&mut self) -> Mark<'s> {
+        let start = self.current_offset;
+        self.last_spaces_offset = start;
+        self.mark()
     }
 
     fn make_token(&self, from: Mark<'s>, to: Mark<'s>, variant: token::Variant) -> Token<'s> {
-        let (start, offset) = from;
-        let end = to.0;
-        let start8 = start.utf8.unchecked_raw();
-        let end8 = end.utf8.unchecked_raw();
-        Token(offset, Code::from_str_at_offset(&self.input[start8..end8], start.utf16), variant)
+        let Mark { location: start, offset } = from;
+        let end = to.location;
+        let start8 = usize_from(start.utf8);
+        let end8 = usize_from(end.utf8);
+        Token(offset, Code::from_str_at_location(&self.input[start8..end8], start), variant)
     }
 }
 
@@ -1306,15 +1335,26 @@ impl<'s> Lexer<'s> {
 // =============
 
 impl<'s> Lexer<'s> {
-    #[allow(clippy::collapsible_if)]
     fn line_break(&mut self) -> Option<Token<'s, ()>> {
-        self.token(|this| {
-            if !this.take_1('\n') {
-                if this.take_1('\r') {
-                    this.take_1('\n');
-                }
+        let token = self.token(|this| {
+            let matched = if this.take_1('\n') {
+                true
+            } else if this.take_1('\r') {
+                this.take_1('\n');
+                true
+            } else {
+                false
+            };
+            if matched {
+                this.advance_line_pos()
             }
-        })
+        });
+        token
+    }
+
+    fn advance_line_pos(&mut self) {
+        self.current_offset.line += 1;
+        self.current_offset.col16 = 0;
     }
 
     fn newlines(&mut self) {
@@ -1327,26 +1367,30 @@ impl<'s> Lexer<'s> {
         while let Some(token) = self.line_break() {
             newlines.push(token.with_variant(token::Variant::newline()));
         }
-        if !newlines.is_empty() {
+        if let Some(first) = newlines.first() {
             let block_indent = self.last_spaces_visible_offset;
             if block_indent > self.current_block_indent {
-                let block_start = self.marker_token(token::Variant::block_start());
+                let block_start = {
+                    let location = first.left_offset.code.position_before();
+                    let offset = Offset(VisibleOffset(0), location.clone());
+                    Token(offset, location, token::Variant::block_start())
+                };
                 self.submit_token(block_start);
                 self.start_block(block_indent);
             }
-            self.end_blocks(block_indent);
+            self.end_blocks(block_indent, newlines.first().as_ref().unwrap());
             newlines.drain(..).for_each(|token| self.submit_token(token));
         }
         self.token_storage.set_from(newlines);
     }
 
-    fn end_blocks(&mut self, block_indent: VisibleOffset) {
+    fn end_blocks(&mut self, block_indent: VisibleOffset, newline: &Token<'s>) {
         while block_indent < self.current_block_indent {
             let Some(previous_indent) = self.block_indent_stack.last().copied() else {
                 // If the file starts at indent > 0, we treat that as the root indent level
                 // instead of creating a sub-block. If indent then decreases below that level,
                 // there's no block to exit.
-                break
+                break;
             };
             if block_indent > previous_indent {
                 // The new line indent is smaller than current block but bigger than the
@@ -1355,7 +1399,11 @@ impl<'s> Lexer<'s> {
                 break;
             }
             self.end_block();
-            let block_end = self.marker_token(token::Variant::block_end());
+            let block_end = {
+                let location = newline.left_offset.code.position_before();
+                let offset = Offset(VisibleOffset(0), location.clone());
+                Token(offset, location, token::Variant::block_end())
+            };
             self.submit_token(block_end);
         }
     }
@@ -1385,40 +1433,42 @@ impl<'s> Lexer<'s> {
     /// Run the lexer. Return non-hierarchical list of tokens (the token groups will be represented
     /// as start and end tokens).
     pub fn run(mut self) -> ParseResult<Vec<Token<'s>>> {
+        // If the first line is indented, open a block for it.
         self.spaces_after_lexeme();
-        self.current_block_indent = self.last_spaces_visible_offset;
-        let mut any_parser_matched = true;
-        while any_parser_matched {
-            any_parser_matched = false;
-            for f in PARSERS {
-                if self.run_and_check_if_progressed(f) {
-                    any_parser_matched = true;
-                    break;
-                }
-            }
+        let first_block_indent = self.last_spaces_visible_offset;
+        if first_block_indent.width_in_spaces != 0 {
+            let start = Location::default();
+            self.submit_token(token::block_start(Code::empty(start), Code::empty(start)).into());
+            self.start_block(first_block_indent);
+            self.submit_token(token::newline(Code::empty(start), Code::empty(start)).into());
         }
+        // Main parsing loop.
+        while PARSERS.iter().any(|f| self.run_and_check_if_progressed(f)) {}
+        // If any blocks were still open at EOF, close them.
         while self.end_block().is_some() {
             let block_end = self.marker_token(token::Variant::block_end());
             self.submit_token(block_end);
         }
+        // If the last line ended in whitespace, ensure it is represented; we'll attach it to a
+        // phantom newline token.
         if self.last_spaces_visible_offset != VisibleOffset(0) {
-            let left_offset_start = self.current_offset - self.last_spaces_offset;
-            let offset_code = self.input.slice(left_offset_start.utf8..self.current_offset.utf8);
+            let left_offset_start = self.last_spaces_offset;
+            let offset_code = &self.input
+                [usize_from(left_offset_start.utf8)..usize_from(self.current_offset.utf8)];
             let visible_offset = self.last_spaces_visible_offset;
-            let offset = Offset(
-                visible_offset,
-                Code::from_str_at_offset(offset_code, left_offset_start.utf16),
-            );
+            let offset =
+                Offset(visible_offset, Code::from_str_at_location(offset_code, left_offset_start));
             let eof = token::variant::Variant::Newline(token::variant::Newline());
-            self.submit_token(Token(offset, Code::empty(self.current_offset.utf16), eof));
+            self.submit_token(Token(offset, Code::empty(self.current_offset), eof));
         }
+        // Sanity check.
         let mut internal_error = self.internal_error.take();
         if self.current_char.is_some() {
             let message = format!("Lexer did not consume all input. State: {self:?}");
             internal_error.get_or_insert(message);
         }
+
         let value = self.output;
-        trace!("Tokens:\n{:#?}", value);
         ParseResult { value, internal_error }
     }
 }
@@ -1441,7 +1491,7 @@ pub mod test {
     pub use token::*;
 
     fn test_code(code: &str) -> Code {
-        Code::from_str_without_offset(code)
+        Code::from_str_without_location(code)
     }
 
     /// Constructor.
@@ -1452,7 +1502,7 @@ pub mod test {
         let is_operator = false;
         let left_offset = test_code(left_offset);
         let code = test_code(code);
-        token::ident_(left_offset, code, is_free, lift_level, is_uppercase, is_operator, false)
+        ident(left_offset, code, is_free, lift_level, is_uppercase, is_operator, false).into()
     }
 
     /// Constructor.
@@ -1460,29 +1510,84 @@ pub mod test {
         let lift_level = code.chars().rev().take_while(|t| *t == '\'').count() as u32;
         let left_offset = test_code(left_offset);
         let code = test_code(code);
-        token::wildcard_(left_offset, code, lift_level)
+        wildcard(left_offset, code, lift_level).into()
+    }
+
+    /// Constructor.
+    pub fn digits_(code: &str) -> Token<'_> {
+        digits(test_code(""), test_code(code), None).into()
+    }
+    /// Constructor.
+    pub fn newline_<'s>(left_offset: &'s str, code: &'s str) -> Token<'s> {
+        newline(test_code(left_offset), test_code(code)).into()
     }
 
     /// Constructor.
     pub fn operator_<'s>(left_offset: &'s str, code: &'s str) -> Token<'s> {
-        let variant = token::Variant::operator(analyze_operator(code));
+        let variant = Variant::operator(analyze_operator(code));
         let left_offset = test_code(left_offset);
         let code = test_code(code);
         Token(left_offset, code, variant)
     }
 }
 
+fn usize_from(x: u32) -> usize {
+    usize::try_from(x).unwrap()
+}
+
+fn u32_from(x: usize) -> u32 {
+    u32::try_from(x).unwrap()
+}
+
+/// Testing/debugging helpers.
+pub mod debug {
+    use super::*;
+
+    /// Lex the input and check the spans for consistency.
+    pub fn lex_and_validate_spans(input: &str) -> Vec<Token> {
+        let tokens: Vec<_> = run(input).unwrap();
+        let mut sum_span = None;
+        fn concat<T: PartialEq + Debug + Copy>(a: &Option<Range<T>>, b: &Range<T>) -> Range<T> {
+            match a {
+                Some(a) => {
+                    assert_eq!(a.end, b.start);
+                    a.start..b.end
+                }
+                None => b.clone(),
+            }
+        }
+        let mut locations = code::debug::LocationCheck::new();
+        for token in &tokens {
+            let left_offset = token.left_offset.code.range();
+            let code = token.code.range();
+            sum_span = Some(concat(&sum_span, &left_offset));
+            sum_span = Some(concat(&sum_span, &code));
+            locations.extend(&[left_offset.start, left_offset.end, code.start, code.end]);
+        }
+        let sum_span = sum_span.unwrap_or_default();
+        let sum_span = sum_span.start.utf16..sum_span.end.utf16;
+        assert_eq!(sum_span, 0..(input.encode_utf16().count() as u32));
+        locations.check(input);
+        tokens
+    }
+}
+
 #[cfg(test)]
 mod tests {
+    use super::debug::*;
     use super::test::*;
     use super::*;
 
+    fn strip_offsets<'s>(tokens: impl IntoIterator<Item = Token<'s>>) -> Vec<Token<'s>> {
+        tokens.into_iter().map(|token| token.without_offsets()).collect()
+    }
+
     fn empty<'a>() -> Code<'a> {
-        Code::empty_without_offset()
+        Code::empty_without_location()
     }
 
     fn test_code(code: &str) -> Code {
-        Code::from_str_without_offset(code)
+        Code::from_str_without_location(code)
     }
 
     fn test_lexer_many<'s>(inputs: Vec<(&'s str, Vec<Token<'s>>)>) {
@@ -1492,8 +1597,7 @@ mod tests {
     }
 
     fn test_lexer<'s>(input: &'s str, expected: Vec<Token<'s>>) {
-        let result: Vec<_> =
-            run(input).unwrap().into_iter().map(|token| token.without_offsets()).collect();
+        let result = strip_offsets(lex_and_validate_spans(input));
         let expected: Vec<_> = expected.into_iter().map(|token| token.without_offsets()).collect();
         assert_eq!(result, expected);
     }
@@ -1516,46 +1620,52 @@ mod tests {
 
     #[test]
     fn test_case_block() {
-        let newline = newline_(empty(), test_code("\n"));
-        test_lexer_many(vec![
-            ("\n", vec![newline_(empty(), test_code("\n"))]),
-            ("\n  foo\n  bar", vec![
-                block_start_(empty(), empty()),
-                newline.clone(),
-                ident_("  ", "foo"),
-                newline.clone(),
-                ident_("  ", "bar"),
-                block_end_(empty(), empty()),
-            ]),
-            ("foo\n    +", vec![
-                ident_("", "foo"),
-                block_start_(empty(), empty()),
-                newline,
-                operator_("    ", "+"),
-                block_end_(empty(), empty()),
-            ]),
+        let newline = newline_("", "\n");
+        test_lexer("\n", vec![newline_("", "\n")]);
+        test_lexer("\n  foo\n  bar", vec![
+            block_start(empty(), empty()).into(),
+            newline.clone(),
+            ident_("  ", "foo"),
+            newline.clone(),
+            ident_("  ", "bar"),
+            block_end(empty(), empty()).into(),
+        ]);
+        test_lexer("foo\n    +", vec![
+            ident_("", "foo"),
+            block_start(empty(), empty()).into(),
+            newline,
+            operator_("    ", "+"),
+            block_end(empty(), empty()).into(),
         ]);
     }
 
     #[test]
     fn test_case_block_bad_indents() {
-        let newline = newline_(empty(), test_code("\n"));
+        let newline = newline_("", "\n");
         #[rustfmt::skip]
-        test_lexer_many(vec![
-            ("\n  foo\n bar\nbaz", vec![
-                block_start_(empty(), empty()),
-                newline.clone(), ident_("  ", "foo"),
-                newline.clone(), ident_(" ", "bar"),
-                block_end_(empty(), empty()),
-                newline.clone(), ident_("", "baz"),
-            ]),
-            ("\n  foo\n bar\n  baz", vec![
-                block_start_(empty(), empty()),
-                newline.clone(), ident_("  ", "foo"),
-                newline.clone(), ident_(" ", "bar"),
-                newline, ident_("  ", "baz"),
-                block_end_(empty(), empty()),
-            ]),
+        test_lexer("  foo\n  bar\nbaz", vec![
+            block_start(empty(), empty()).into(),
+            newline_("", ""),
+            ident_("  ", "foo"),
+            newline.clone(), ident_("  ", "bar"),
+            block_end(empty(), empty()).into(),
+            newline.clone(), ident_("", "baz"),
+        ]);
+        #[rustfmt::skip]
+        test_lexer("\n  foo\n bar\nbaz", vec![
+            block_start(empty(), empty()).into(),
+            newline.clone(), ident_("  ", "foo"),
+            newline.clone(), ident_(" ", "bar"),
+            block_end(empty(), empty()).into(),
+            newline.clone(), ident_("", "baz"),
+        ]);
+        #[rustfmt::skip]
+        test_lexer("\n  foo\n bar\n  baz", vec![
+            block_start(empty(), empty()).into(),
+            newline.clone(), ident_("  ", "foo"),
+            newline.clone(), ident_(" ", "bar"),
+            newline, ident_("  ", "baz"),
+            block_end(empty(), empty()).into(),
         ]);
     }
 
@@ -1563,8 +1673,8 @@ mod tests {
     fn test_case_whitespace_only_line() {
         test_lexer_many(vec![("foo\n    \nbar", vec![
             ident_("", "foo"),
-            newline_(empty(), test_code("\n")),
-            newline_(test_code("    "), test_code("\n")),
+            newline_("", "\n"),
+            newline_("    ", "\n"),
             ident_("", "bar"),
         ])]);
     }
@@ -1589,17 +1699,15 @@ mod tests {
 
     #[test]
     fn test_numeric_literal() {
-        test_lexer("10", vec![digits_(empty(), test_code("10"), None)]);
+        test_lexer("10", vec![digits_("10")]);
     }
 
     #[test]
     fn test_case_idents() {
-        test_lexer_many(vec![
-            ("", vec![]),
-            ("_", vec![wildcard_("", "_")]),
-            ("_'", vec![wildcard_("", "_'")]),
-            ("_''", vec![wildcard_("", "_''")]),
-        ]);
+        test_lexer("", vec![]);
+        test_lexer("_", vec![wildcard_("", "_")]);
+        test_lexer("_'", vec![wildcard_("", "_'")]);
+        test_lexer("_''", vec![wildcard_("", "_''")]);
         test_lexer_many(lexer_case_idents(&[
             "a",
             "a'",
@@ -1629,7 +1737,7 @@ mod tests {
     #[test]
     fn test_case_operators() {
         test_lexer_many(lexer_case_operators(&["+", "-", "=", "==", "===", ":", ","]));
-        assert_eq!(run("+-").unwrap().len(), 2);
+        assert_eq!(lex_and_validate_spans("+-").len(), 2);
     }
 
     /// Based on https://www.cl.cam.ac.uk/~mgk25/ucs/examples/UTF-8-test.txt.
@@ -1776,6 +1884,45 @@ mod tests {
             /* 5.2.7  U+DBFF U+DC00 = ed af bf ed b0 80 = */ "������"
             /* 5.2.8  U+DBFF U+DFFF = ed af bf ed bf bf = */ "������"
         }
+    }
+
+    #[test]
+    fn test_doc_comment() {
+        let code = ["## Foo.", "main = 23"].join("\n");
+        lex_and_validate_spans(&code);
+    }
+
+    #[test]
+    fn test_comment() {
+        let code = ["# comment", "main = 23"].join("\n");
+        lex_and_validate_spans(&code);
+    }
+
+    #[test]
+    fn test_text() {
+        lex_and_validate_spans("f 'foo' 'bar'");
+        lex_and_validate_spans(r#"'String with \' escape'"#);
+        lex_and_validate_spans("'String with `splice`.'");
+        lex_and_validate_spans(&["## a", "", "   b"].join("\n"));
+    }
+
+    #[test]
+    fn test_indented_doc_after_blank_line() {
+        let code = ["type Redshift_Error_Mapper", "", "    A"].join("\n");
+        lex_and_validate_spans(&code);
+    }
+
+    #[test]
+    fn test_based_numbers() {
+        lex_and_validate_spans("0x23");
+        lex_and_validate_spans("2_010101");
+    }
+
+    #[test]
+    fn test_line_endings() {
+        lex_and_validate_spans("Windows\r\n...");
+        lex_and_validate_spans("Linux\n...");
+        lex_and_validate_spans("Classic Mac OS\r...");
     }
 }
 

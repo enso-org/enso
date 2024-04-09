@@ -1,10 +1,9 @@
 package org.enso.table.formatting;
 
-import org.enso.base.time.EnsoDateTimeFormatter;
-import org.graalvm.polyglot.Value;
-
 import java.time.LocalDateTime;
 import java.time.ZonedDateTime;
+import org.enso.base.time.EnsoDateTimeFormatter;
+import org.graalvm.polyglot.Value;
 
 public class DateTimeFormatter implements DataFormatter {
   private final java.time.format.DateTimeFormatter formatter;
@@ -39,6 +38,8 @@ public class DateTimeFormatter implements DataFormatter {
 
   @Override
   public boolean canFormat(Object value) {
-    return value instanceof LocalDateTime || value instanceof ZonedDateTime || (value instanceof Value v && v.isDate() && v.isTime());
+    return value instanceof LocalDateTime
+        || value instanceof ZonedDateTime
+        || (value instanceof Value v && v.isDate() && v.isTime());
   }
 }

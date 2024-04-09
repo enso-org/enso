@@ -1,112 +1,124 @@
-import type { PlaywrightTestConfig } from '@playwright/test'
-import { devices } from '@playwright/test'
+/** @file Playwright browser testing configuration. */
+/** Note that running Playwright in CI poses a number of issues:
+ * - `backdrop-filter: blur` is disabled, due to issues with Chromium's `--disable-gpu` flag
+ * (see below).
+ * - System validation dialogs are not reliable between computers, as they may have different
+ * default fonts. */
+import { defineConfig } from '@playwright/test'
+import net from 'net'
 
-/**
- * Read environment variables from file.
- * https://github.com/motdotla/dotenv
- */
-// require('dotenv').config();
+const DEBUG = process.env.DEBUG_E2E === 'true'
 
-/**
- * See https://playwright.dev/docs/test-configuration.
- */
-const config: PlaywrightTestConfig = {
-  testDir: './e2e',
-  /* Maximum time one test can run for. */
-  timeout: 30 * 1000,
-  expect: {
-    /**
-     * Maximum time expect() should wait for the condition to be met.
-     * For example in `await expect(locator).toHaveText();`
-     */
-    timeout: 5000,
-  },
-  /* Fail the build on CI if you accidentally left test.only in the source code. */
-  forbidOnly: !!process.env.CI,
-  /* Retry on CI only */
-  retries: process.env.CI ? 2 : 0,
-  /* Opt out of parallel tests on CI. */
-  workers: process.env.CI ? 1 : undefined,
-  /* Reporter to use. See https://playwright.dev/docs/test-reporters */
-  reporter: 'html',
-  /* Shared settings for all the projects below. See https://playwright.dev/docs/api/class-testoptions. */
-  use: {
-    /* Maximum time each action such as `click()` can take. Defaults to 0 (no limit). */
-    actionTimeout: 0,
-    /* Base URL to use in actions like `await page.goto('/')`. */
-    baseURL: 'http://localhost:5173',
-
-    /* Collect trace when retrying the failed test. See https://playwright.dev/docs/trace-viewer */
-    trace: 'on-first-retry',
-
-    /* Only on CI systems run the tests headless */
-    headless: !!process.env.CI,
-  },
-
-  /* Configure projects for major browsers */
-  projects: [
-    {
-      name: 'chromium',
-      use: {
-        ...devices['Desktop Chrome'],
-      },
-    },
-    {
-      name: 'firefox',
-      use: {
-        ...devices['Desktop Firefox'],
-      },
-    },
-    {
-      name: 'webkit',
-      use: {
-        ...devices['Desktop Safari'],
-      },
-    },
-
-    /* Test against mobile viewports. */
-    // {
-    //   name: 'Mobile Chrome',
-    //   use: {
-    //     ...devices['Pixel 5'],
-    //   },
-    // },
-    // {
-    //   name: 'Mobile Safari',
-    //   use: {
-    //     ...devices['iPhone 12'],
-    //   },
-    // },
-
-    /* Test against branded browsers. */
-    // {
-    //   name: 'Microsoft Edge',
-    //   use: {
-    //     channel: 'msedge',
-    //   },
-    // },
-    // {
-    //   name: 'Google Chrome',
-    //   use: {
-    //     channel: 'chrome',
-    //   },
-    // },
-  ],
-
-  /* Folder for test artifacts such as screenshots, videos, traces, etc. */
-  // outputDir: 'test-results/',
-
-  /* Run your local dev server before starting the tests */
-  webServer: {
-    /**
-     * Use the dev server by default for faster feedback loop.
-     * Use the preview server on CI for more realistic testing.
-    Playwright will re-use the local server if there is already a dev-server running.
-     */
-    command: process.env.CI ? 'vite preview --port 5173' : 'vite dev',
-    port: 5173,
-    reuseExistingServer: !process.env.CI,
-  },
+async function findFreePortInRange(min: number, max: number) {
+  for (let i = 0; i < 50; i++) {
+    const portToCheck = Math.floor(Math.random() * (max - min + 1)) + min
+    if (await checkAvailablePort(portToCheck)) return portToCheck
+  }
+  throw new Error('Failed to find a free port.')
 }
 
-export default config
+function checkAvailablePort(port: number) {
+  return new Promise((resolve, reject) => {
+    const server = net.createServer()
+    server
+      .unref()
+      .on('error', (e: any) => ('EADDRINUSE' === e.code ? resolve(false) : reject(e)))
+      .listen({ host: '0.0.0.0', port }, () => server.close(() => resolve(true)))
+  })
+}
+
+const portFromEnv = parseInt(process.env.PLAYWRIGHT_PORT ?? '', 10)
+const PORT = Number.isFinite(portFromEnv) ? portFromEnv : await findFreePortInRange(4300, 4999)
+// Make sure to set the env to actual port that is being used. This is necessary for workers to
+// pick up the same configuration.
+process.env.PLAYWRIGHT_PORT = `${PORT}`
+
+export default defineConfig({
+  globalSetup: './e2e/setup.ts',
+  testDir: './e2e',
+  forbidOnly: !!process.env.CI,
+  repeatEach: process.env.CI ? 3 : 1,
+  ...(process.env.CI ? { workers: 1 } : {}),
+  timeout: 60000,
+  expect: {
+    timeout: 5000,
+    toHaveScreenshot: { threshold: 0 },
+  },
+  reporter: 'html',
+  use: {
+    headless: !DEBUG,
+    trace: 'retain-on-failure',
+    viewport: { width: 1920, height: 1600 },
+    ...(DEBUG ?
+      {}
+    : {
+        launchOptions: {
+          ignoreDefaultArgs: ['--headless'],
+          args: [
+            // Much closer to headful Chromium than classic headless.
+            '--headless=new',
+            // Required for `backdrop-filter: blur` to work.
+            '--use-angle=swiftshader',
+            // FIXME: `--disable-gpu` disables `backdrop-filter: blur`, which is not handled by
+            // the software (CPU) compositor. This SHOULD be fixed eventually, but this flag
+            // MUST stay as CI does not have a GPU.
+            '--disable-gpu',
+            // Fully disable GPU process.
+            '--disable-software-rasterizer',
+            // Disable text subpixel antialiasing.
+            '--font-render-hinting=none',
+            '--disable-skia-runtime-opts',
+            '--disable-system-font-check',
+            '--disable-font-subpixel-positioning',
+            '--disable-lcd-text',
+          ],
+        },
+      }),
+  },
+  // projects: [
+  // {
+  //   name: 'chromium',
+  //   use: {
+  //     ...devices['Desktop Chrome'],
+  //   },
+  // },
+  // {
+  //   name: 'firefox',
+  //   use: {
+  //     ...devices['Desktop Firefox'],
+  //   },
+  // },
+  // {
+  //   name: 'webkit',
+  //   use: {
+  //     ...devices['Desktop Safari'],
+  //   },
+  // },
+  // {
+  //   name: 'Mobile Chrome',
+  //   use: {
+  //     ...devices['Pixel 5'],
+  //   },
+  // },
+  // {
+  //   name: 'Mobile Safari',
+  //   use: {
+  //     ...devices['iPhone 12'],
+  //   },
+  // },
+  // ],
+  webServer: {
+    env: {
+      E2E: 'true',
+    },
+    command:
+      process.env.CI || process.env.PROD ?
+        `npx vite build && npx vite preview --port ${PORT} --strictPort`
+      : `npx vite dev --port ${PORT}`,
+    // Build from scratch apparently can take a while on CI machines.
+    timeout: 120 * 1000,
+    port: PORT,
+    // We use our special, mocked version of server, thus do not want to re-use user's one.
+    reuseExistingServer: false,
+  },
+})

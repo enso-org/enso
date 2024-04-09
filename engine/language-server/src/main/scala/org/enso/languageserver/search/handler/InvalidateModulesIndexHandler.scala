@@ -10,18 +10,20 @@ import org.enso.languageserver.util.UnhandledLogging
 import org.enso.polyglot.runtime.Runtime.Api
 
 import java.util.UUID
-import scala.concurrent.duration.FiniteDuration
+import scala.concurrent.duration._
 
 /** A request handler for invalidate modules index command.
   *
   * @param runtimeFailureMapper mapper for runtime failures
-  * @param timeout request timeout
   * @param runtime reference to the runtime connector
+  * @param suggestionsHandler reference to the suggestions handler
+  * @param timeout soft request timeout for detecting abnormal behavior
   */
 final class InvalidateModulesIndexHandler(
   runtimeFailureMapper: RuntimeFailureMapper,
-  timeout: FiniteDuration,
-  runtime: ActorRef
+  runtime: ActorRef,
+  suggestionsHandler: ActorRef,
+  timeout: FiniteDuration
 ) extends Actor
     with LazyLogging
     with UnhandledLogging {
@@ -32,24 +34,33 @@ final class InvalidateModulesIndexHandler(
 
   private def requestStage: Receive = {
     case SearchProtocol.InvalidateModulesIndex =>
-      runtime ! Api.Request(
+      val request = Api.Request(
         UUID.randomUUID(),
         Api.InvalidateModulesIndexRequest()
       )
+      runtime ! request
       val cancellable =
         context.system.scheduler.scheduleOnce(timeout, self, RequestTimeout)
-      context.become(responseStage(sender(), cancellable))
+      context.become(responseStage(sender(), request, cancellable))
   }
 
   private def responseStage(
     replyTo: ActorRef,
+    request: Api.Request,
     cancellable: Cancellable
   ): Receive = {
     case RequestTimeout =>
-      replyTo ! RequestTimeout
-      context.stop(self)
+      logger.warn(
+        "Failed to receive a [{}] response in [{}].",
+        request,
+        timeout
+      )
+      val newCancellable =
+        context.system.scheduler.scheduleOnce(timeout, self, RequestTimeout)
+      context.become(responseStage(replyTo, request, newCancellable))
 
     case Api.Response(_, Api.InvalidateModulesIndexResponse()) =>
+      suggestionsHandler ! SearchProtocol.ClearSuggestionsDatabase
       replyTo ! SearchProtocol.InvalidateSuggestionsDatabaseResult
       cancellable.cancel()
       context.stop(self)
@@ -66,15 +77,22 @@ object InvalidateModulesIndexHandler {
   /** Creates a configuration object used to create [[InvalidateModulesIndexHandler]].
     *
     * @param runtimeFailureMapper mapper for runtime failures
-    * @param timeout request timeout
-    * @param runtime reference to the runtime conector
+    * @param runtime reference to the runtime connector
+    * @param suggestionsHandler reference to the suggestions handler
+    * @param timeout soft request timeout for detecting abnormal behavior
     */
   def props(
     runtimeFailureMapper: RuntimeFailureMapper,
-    timeout: FiniteDuration,
-    runtime: ActorRef
+    runtime: ActorRef,
+    suggestionsHandler: ActorRef,
+    timeout: FiniteDuration = 30.seconds
   ): Props =
     Props(
-      new InvalidateModulesIndexHandler(runtimeFailureMapper, timeout, runtime)
+      new InvalidateModulesIndexHandler(
+        runtimeFailureMapper,
+        runtime,
+        suggestionsHandler,
+        timeout
+      )
     )
 }

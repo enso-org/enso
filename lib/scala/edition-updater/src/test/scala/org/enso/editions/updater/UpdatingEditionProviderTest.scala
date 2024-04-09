@@ -1,13 +1,13 @@
 package org.enso.editions.updater
 
-import nl.gn0s1s.bump.SemVer
+import org.enso.semver.SemVer
 import org.enso.librarymanager.published.repository.ExampleRepository
 import org.enso.testkit.WithTemporaryDirectory
 import org.scalatest.Inside
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 
-import java.nio.file.Files
+import java.nio.file.{Files, Path}
 
 class UpdatingEditionProviderTest
     extends AnyWordSpec
@@ -15,7 +15,7 @@ class UpdatingEditionProviderTest
     with Inside
     with WithTemporaryDirectory {
 
-  val repo      = new ExampleRepository
+  val repo      = new ExampleRepository(Path.of("."))
   def port: Int = 47309
   def repoPath  = getTestDirectory.resolve("repo")
   def cachePath = getTestDirectory.resolve("cache")
@@ -50,7 +50,7 @@ class UpdatingEditionProviderTest
         provider.findAvailableEditions(update = false) shouldBe empty
         inside(provider.findEditionForName("testlocal")) {
           case Right(edition) =>
-            edition.engineVersion shouldEqual Some(SemVer(0, 0, 0))
+            edition.engineVersion shouldEqual Some(SemVer.of(0, 0, 0))
         }
       }
     }

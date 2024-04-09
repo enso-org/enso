@@ -11,6 +11,7 @@ import org.enso.languageserver.monitoring.HealthCheckEndpointSpec.{
 }
 import org.enso.languageserver.monitoring.MonitoringProtocol.{Ping, Pong}
 import org.enso.languageserver.requesthandler.monitoring.PingHandler
+import org.enso.logger.ReportLogsOnFailure
 import org.enso.testkit.FlakySpec
 import org.scalatest.flatspec.AnyFlatSpecLike
 import org.scalatest.matchers.must.Matchers
@@ -22,7 +23,8 @@ class HealthCheckEndpointSpec
     with Matchers
     with FlakySpec
     with ScalatestRouteTest
-    with Directives {
+    with Directives
+    with ReportLogsOnFailure {
 
   implicit val timeout: RouteTestTimeout = RouteTestTimeout(25.seconds)
 

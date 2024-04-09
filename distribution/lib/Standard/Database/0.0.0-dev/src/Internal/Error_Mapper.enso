@@ -15,3 +15,11 @@ type Error_Mapper
     is_primary_key_violation error =
         _ = error
         Unimplemented.throw "This is an interface only."
+
+    ## PRIVATE
+       Called by `Table.read`, allowing the dialect to transform a generic
+       `SQL_Error` into a more specific error type, if applicable.
+    transform_custom_errors : SQL_Error -> Any
+    transform_custom_errors error =
+        _ = error
+        Unimplemented.throw "This is an interface only."

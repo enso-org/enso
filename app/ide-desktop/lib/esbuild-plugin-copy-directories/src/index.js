@@ -19,7 +19,8 @@ const NAMESPACE = NAME
 
 // This function is required. If narrowing is used instead,
 // TypeScript thinks `outputDir` may be `undefined` in functions.
-/** @param {string} message - The message with which to throw the `Error`.
+/** Throws an error. This is defined so that it is usable as an expression.
+ * @param {string} message - The message with which to throw the `Error`.
  * @returns {never} Always throws an error.
  * @throws {Error} Always. */
 function error(message) {
@@ -44,12 +45,15 @@ export default function esbuildPluginCopyDirectories(options) {
             let watchingPath = {}
             const outputDir =
                 build.initialOptions.outdir ?? error('Output directory must be given.')
-            /** @param {string} root - Path to the directory to watch. */
+            /** Continuously ensure that the folders are identical on both the content root,
+             * and the output directory.
+             * @param {string} root - Path to the directory to watch. */
             const continuouslySync = root => {
                 // It's theoretically possible to use a single `chokidar` instance,
                 // however the root directory path is needed for calculating the destination path.
                 const watcher = chokidar.watch(root, { cwd: root })
-                /** @param {string} path - Path to the file to be copied. */
+                /** Copies a path from the content root to the output directory.
+                 * @param {string} path - Path to the file to be copied. */
                 const copy = path => {
                     void (async () => {
                         const source = pathModule.resolve(root, path)

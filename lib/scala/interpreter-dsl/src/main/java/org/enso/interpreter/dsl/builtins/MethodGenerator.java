@@ -7,10 +7,15 @@ import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 import javax.annotation.processing.ProcessingEnvironment;
-import javax.lang.model.element.*;
+import javax.lang.model.element.AnnotationMirror;
+import javax.lang.model.element.AnnotationValue;
+import javax.lang.model.element.Element;
+import javax.lang.model.element.Name;
+import javax.lang.model.element.TypeElement;
+import javax.lang.model.element.VariableElement;
 import javax.lang.model.type.TypeMirror;
-import javax.lang.model.util.SimpleAnnotationValueVisitor14;
-import javax.lang.model.util.SimpleElementVisitor14;
+import javax.lang.model.util.SimpleAnnotationValueVisitor9;
+import javax.lang.model.util.SimpleElementVisitor9;
 import javax.lang.model.util.Types;
 import javax.tools.Diagnostic.Kind;
 import org.apache.commons.lang3.StringUtils;
@@ -24,11 +29,12 @@ public abstract class MethodGenerator {
   protected final ProcessingEnvironment processingEnvironment;
   private static final String FROM_ELEMENT_NAME = "from";
   private static final String TO_ELEMENT_NAME = "to";
-  private static final Class<? extends Annotation> wrapExceptionAnnotationClass = Builtin.WrapException.class;
-  private static final Class<? extends Annotation> wrapExceptionsAnnotationClass = Builtin.WrapExceptions.class;
+  private static final Class<? extends Annotation> wrapExceptionAnnotationClass =
+      Builtin.WrapException.class;
+  private static final Class<? extends Annotation> wrapExceptionsAnnotationClass =
+      Builtin.WrapExceptions.class;
 
-  protected SafeWrapException[] wrapExceptions(
-      Element element) {
+  protected SafeWrapException[] wrapExceptions(Element element) {
     return extractExceptions(element);
   }
 
@@ -89,7 +95,7 @@ public abstract class MethodGenerator {
     else {
       switch (tpe.kind()) {
         case OBJECT:
-          if (tpe.isValidGuestType()) {
+          if (tpe.isValidGuestType(processingEnvironment) || tpe.isObject()) {
             return tpe.baseType();
           } else {
             if (!convertToGuestValue) {
@@ -99,7 +105,8 @@ public abstract class MethodGenerator {
                       Kind.ERROR,
                       "Automatic conversion of value of type "
                           + tpe.baseType()
-                          + " to guest value requires explicit '@Builtin.ReturningGuestObject' annotation");
+                          + " to guest value requires explicit '@Builtin.ReturningGuestObject'"
+                          + " annotation");
             }
             return "Object";
           }
@@ -121,16 +128,16 @@ public abstract class MethodGenerator {
     String ensoName =
         CaseFormat.LOWER_CAMEL.to(CaseFormat.LOWER_UNDERSCORE, v.getSimpleName().toString());
     TypeWithKind tpe = TypeWithKind.createFromTpe(v.asType().toString());
-    if (tpe.kind() == TypeKind.ARRAY && !tpe.isValidGuestType()) {
+    if (tpe.kind() == TypeKind.ARRAY && !tpe.isValidGuestType(processingEnvironment)) {
       processingEnv
           .getMessager()
           .printMessage(
               Kind.ERROR,
               "Parameter "
                   + v
-                  + " is an array of host objects, which "
-                  + "is not supported by the MethodGenerator. Either use array of primitive, or valid guest objects, "
-                  + "or accept the array as Object and transform it in the method body.",
+                  + " is an array of host objects, which is not supported by the MethodGenerator."
+                  + " Either use array of primitive, or valid guest objects, or accept the array as"
+                  + " Object and transform it in the method body.",
               v);
     }
     return new MethodParameter(
@@ -143,8 +150,8 @@ public abstract class MethodGenerator {
   protected abstract Optional<Integer> expandVararg(int paramsLen, int paramIndex);
 
   /**
-   * Extract {@link org.enso.interpreter.dsl.Builtin.WrapException} from the annotated element in
-   * a mirror-safe manner.
+   * Extract {@link org.enso.interpreter.dsl.Builtin.WrapException} from the annotated element in a
+   * mirror-safe manner.
    *
    * @param element a method annotated with either {@link
    *     org.enso.interpreter.dsl.Builtin.WrapException} or {@link
@@ -164,7 +171,9 @@ public abstract class MethodGenerator {
 
   private SafeWrapException[] extractClassElementFromAnnotation(Element element) {
     Element builtinElement =
-        processingEnvironment.getElementUtils().getTypeElement(MethodGenerator.wrapExceptionAnnotationClass.getCanonicalName());
+        processingEnvironment
+            .getElementUtils()
+            .getTypeElement(MethodGenerator.wrapExceptionAnnotationClass.getCanonicalName());
     TypeMirror builtinType = builtinElement.asType();
 
     List<SafeWrapException> exceptionWrappers = new ArrayList<>();
@@ -190,8 +199,9 @@ public abstract class MethodGenerator {
 
   private SafeWrapException[] extractClassElementFromAnnotationContainer(Element element) {
     Element builtinElement =
-        processingEnvironment.getElementUtils().getTypeElement(
-            MethodGenerator.wrapExceptionsAnnotationClass.getCanonicalName());
+        processingEnvironment
+            .getElementUtils()
+            .getTypeElement(MethodGenerator.wrapExceptionsAnnotationClass.getCanonicalName());
     Types tpeUtils = processingEnvironment.getTypeUtils();
     TypeMirror builtinType = builtinElement.asType();
 
@@ -208,7 +218,8 @@ public abstract class MethodGenerator {
     return wrappedExceptions.toArray(SafeWrapException[]::new);
   }
 
-  private class AnnotationArrayVisitor extends SimpleAnnotationValueVisitor14<List<SafeWrapException>, Object> {
+  private class AnnotationArrayVisitor
+      extends SimpleAnnotationValueVisitor9<List<SafeWrapException>, Object> {
     private final List<SafeWrapException> elements = new ArrayList<>();
     private final AnnotationTypeVisitor typeVisitor = new AnnotationTypeVisitor();
 
@@ -229,9 +240,9 @@ public abstract class MethodGenerator {
         switch (name) {
           case FROM_ELEMENT_NAME -> valueFrom = entry.getValue().accept(typeVisitor, null);
           case TO_ELEMENT_NAME -> valueTo = entry.getValue().accept(typeVisitor, null);
-          default -> processingEnvironment.getMessager().printMessage(
-              Kind.ERROR,
-              "Unknown annotation element name: " + name);
+          default -> processingEnvironment
+              .getMessager()
+              .printMessage(Kind.ERROR, "Unknown annotation element name: " + name);
         }
       }
       if (valueFrom != null) {
@@ -242,19 +253,22 @@ public abstract class MethodGenerator {
     }
   }
 
-  private class AnnotationTypeVisitor extends SimpleAnnotationValueVisitor14<TypeElement, Object> {
+  private class AnnotationTypeVisitor extends SimpleAnnotationValueVisitor9<TypeElement, Object> {
     @Override
     public TypeElement visitType(TypeMirror t, Object o) {
       var element = processingEnvironment.getTypeUtils().asElement(t);
-      var elementVisitor = new SimpleElementVisitor14<TypeElement, Object>() {
-        @Override
-        public TypeElement visitType(TypeElement e, Object o) {
-          return e;
-        }
-      };
+      var elementVisitor =
+          new SimpleElementVisitor9<TypeElement, Object>() {
+            @Override
+            public TypeElement visitType(TypeElement e, Object o) {
+              return e;
+            }
+          };
       var typeElement = element.accept(elementVisitor, null);
       if (typeElement == null) {
-        processingEnvironment.getMessager().printMessage(Kind.ERROR, "Cannot find type element for " + t);
+        processingEnvironment
+            .getMessager()
+            .printMessage(Kind.ERROR, "Cannot find type element for " + t);
       }
       return typeElement;
     }

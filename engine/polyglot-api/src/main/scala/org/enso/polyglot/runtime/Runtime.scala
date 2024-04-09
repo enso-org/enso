@@ -97,8 +97,12 @@ object Runtime {
         name  = "getComponentGroupsResponse"
       ),
       new JsonSubTypes.Type(
-        value = classOf[Api.OpenFileNotification],
+        value = classOf[Api.OpenFileRequest],
         name  = "setModuleSourcesNotification"
+      ),
+      new JsonSubTypes.Type(
+        value = classOf[Api.OpenFileResponse.type],
+        name  = "moduleSourcesSetNotification"
       ),
       new JsonSubTypes.Type(
         value = classOf[Api.EditFileNotification],
@@ -123,6 +127,10 @@ object Runtime {
       new JsonSubTypes.Type(
         value = classOf[Api.AttachVisualization],
         name  = "attachVisualization"
+      ),
+      new JsonSubTypes.Type(
+        value = classOf[Api.ExecuteExpression],
+        name  = "executeExpression"
       ),
       new JsonSubTypes.Type(
         value = classOf[Api.VisualizationAttached],
@@ -616,17 +624,23 @@ object Runtime {
         *
         * @param module a qualified module name containing the expression
         * @param expression an expression that creates a visualization
+        * @param positionalArgumentsExpressions the list of arguments that will
+        * be passed to the method
         */
-      case class Text(module: String, expression: String)
-          extends VisualizationExpression {
-
-        override val positionalArgumentsExpressions: Vector[String] =
-          Vector()
+      case class Text(
+        module: String,
+        expression: String,
+        positionalArgumentsExpressions: Vector[String]
+      ) extends VisualizationExpression {
 
         /** @inheritdoc */
         override def toLogString(shouldMask: Boolean): String =
           s"Text(module=$module" +
-          s",expression=$expression" +
+          ",expression=" +
+          (if (shouldMask) STUB else expression) +
+          ",positionalArgumentsExpressions=" +
+          (if (shouldMask) STUB
+           else positionalArgumentsExpressions.mkString("[", ",", "]")) +
           ")"
       }
 
@@ -648,7 +662,8 @@ object Runtime {
         override def toLogString(shouldMask: Boolean): String =
           s"ModuleMethod(methodPointer=$methodPointer," +
           "positionalArgumentsExpressions=" +
-          positionalArgumentsExpressions.mkString("[", ",", "]") +
+          (if (shouldMask) STUB
+           else positionalArgumentsExpressions.mkString("[", ",", "]")) +
           ")"
       }
     }
@@ -799,7 +814,7 @@ object Runtime {
         * @param reexport the reexport field to update
         */
       case class Modify(
-        externalId: Option[Option[Suggestion.ExternalId]] = None,
+        externalId: Option[Option[Suggestion.ExternalID]] = None,
         arguments: Option[Seq[SuggestionArgumentAction]]  = None,
         returnType: Option[String]                        = None,
         documentation: Option[Option[String]]             = None,
@@ -1409,6 +1424,7 @@ object Runtime {
       * @param failure the detailed information about the failure
       */
     final case class VisualizationExpressionFailed(
+      ctx: VisualizationContext,
       message: String,
       failure: Option[ExecutionResult.Diagnostic]
     ) extends Error
@@ -1417,6 +1433,9 @@ object Runtime {
       /** @inheritdoc */
       override def toLogString(shouldMask: Boolean): String =
         "VisualizationExpressionFailed(" +
+        s"contextId=${ctx.contextId}," +
+        s"visualizationId=${ctx.visualizationId}," +
+        s"expressionId=${ctx.expressionId}," +
         s"message=${MaskedString(message).toLogString(shouldMask)}," +
         s"failure=${failure.map(_.toLogString(shouldMask))}" +
         ")"
@@ -1425,16 +1444,12 @@ object Runtime {
     /** Signals that an evaluation of a code responsible for generating
       * visualization data failed.
       *
-      * @param contextId the context's id.
-      * @param visualizationId the visualization identifier
-      * @param expressionId the identifier of a visualised expression
+      * @param ctx the visualization context
       * @param message the reason of the failure
       * @param diagnostic the detailed information about the failure
       */
     final case class VisualizationEvaluationFailed(
-      contextId: ContextId,
-      visualizationId: VisualizationId,
-      expressionId: ExpressionId,
+      ctx: VisualizationContext,
       message: String,
       diagnostic: Option[ExecutionResult.Diagnostic]
     ) extends ApiNotification
@@ -1443,9 +1458,7 @@ object Runtime {
       /** @inheritdoc */
       override def toLogString(shouldMask: Boolean): String =
         "VisualizationEvaluationFailed(" +
-        s"contextId=$contextId," +
-        s"visualizationId=$visualizationId," +
-        s"expressionId=$expressionId," +
+        s"ctx=$ctx," +
         s"message=${MaskedString(message).toLogString(shouldMask)}," +
         s"diagnostic=${diagnostic.map(_.toLogString(shouldMask))}" +
         ")"
@@ -1466,12 +1479,12 @@ object Runtime {
       */
     final case class InvalidStackItemError(contextId: ContextId) extends Error
 
-    /** A notification sent to the server about opening a file.
+    /** A request sent to the server to open a file with a contents.
       *
       * @param path the file being moved to memory.
       * @param contents the current module's contents.
       */
-    final case class OpenFileNotification(
+    final case class OpenFileRequest(
       path: File,
       contents: String
     ) extends ApiRequest
@@ -1479,11 +1492,15 @@ object Runtime {
 
       /** @inheritdoc */
       override def toLogString(shouldMask: Boolean): String =
-        "OpenFileNotification(" +
+        "OpenFileRequest(" +
         s"path=${MaskedPath(path.toPath).toLogString(shouldMask)}," +
         s"contents=${MaskedString(contents).toLogString(shouldMask)}," +
         ")"
     }
+
+    /** A response from the server confirming opening of a file.
+      */
+    final case object OpenFileResponse extends ApiResponse
 
     /** A notification sent to the server about in-memory file contents being
       * edited.
@@ -1552,6 +1569,13 @@ object Runtime {
       * message will be dropped.
       */
     final case class InitializedNotification() extends ApiResponse
+
+    final case class ExecuteExpression(
+      contextId: ContextId,
+      visualizationId: VisualizationId,
+      expressionId: ExpressionId,
+      expression: String
+    ) extends ApiRequest
 
     /** A request sent from the client to the runtime server, to create a new
       * visualization for an expression identified by `expressionId`.

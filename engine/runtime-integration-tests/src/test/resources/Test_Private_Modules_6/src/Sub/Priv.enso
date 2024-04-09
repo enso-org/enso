@@ -1,0 +1,6 @@
+# This is a private module, that is under a synthetic "Sub" module.
+# By default, synthetic modules are public.
+
+private
+
+foo = 42

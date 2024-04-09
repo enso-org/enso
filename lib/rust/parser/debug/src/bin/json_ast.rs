@@ -1,10 +1,8 @@
 //! Run the parser from the command line, and output the a JSON serialization of the AST for
 //! debugging.
 
-// === Features ===
-// === Standard Linter Configuration ===
-#![deny(non_ascii_idents)]
-#![warn(unsafe_code)]
+
+
 // === Non-Standard Linter Configuration ===
 
 fn main() {

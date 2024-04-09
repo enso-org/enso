@@ -1,8 +1,39 @@
-import { Ast, astContainingChar, parseEnso, readAstSpan, readTokenSpan } from '@/util/ast'
-import { GeneralOprApp } from '@/util/ast/opr'
-import { tryQualifiedName, type QualifiedName } from '@/util/qualifiedName'
-import { computed, ref, type ComputedRef, type Ref } from 'vue'
-import type { Filter } from './filtering'
+import type { Filter } from '@/components/ComponentBrowser/filtering'
+import { useGraphStore, type NodeId } from '@/stores/graph'
+import type { GraphDb } from '@/stores/graph/graphDatabase'
+import { requiredImportEquals, requiredImports, type RequiredImport } from '@/stores/graph/imports'
+import { useSuggestionDbStore, type SuggestionDb } from '@/stores/suggestionDatabase'
+import {
+  SuggestionKind,
+  entryQn,
+  type SuggestionEntry,
+  type SuggestionId,
+  type Typename,
+} from '@/stores/suggestionDatabase/entry'
+import { isOperator, type AstId } from '@/util/ast/abstract.ts'
+import { AliasAnalyzer } from '@/util/ast/aliasAnalysis'
+import { RawAstExtended } from '@/util/ast/extended'
+import { GeneralOprApp, type OperatorChain } from '@/util/ast/opr'
+import { RawAst, astContainingChar } from '@/util/ast/raw'
+import { MappedSet } from '@/util/containers'
+import type { Result } from '@/util/data/result'
+import {
+  qnFromSegments,
+  qnLastSegment,
+  qnSegments,
+  tryQualifiedName,
+  type QualifiedName,
+} from '@/util/qualifiedName'
+import { useToast } from '@/util/toast'
+import { equalFlat } from 'lib0/array'
+import { sourceRangeKey, type SourceRange } from 'shared/yjsModel'
+import { computed, nextTick, ref, type ComputedRef } from 'vue'
+import { useAI } from './ai'
+
+/** Information how the component browser is used, needed for proper input initializing. */
+export type Usage =
+  | { type: 'newNode'; sourcePort?: AstId | undefined }
+  | { type: 'editNode'; node: NodeId; cursorPos: number }
 
 /** Input's editing context.
  *
@@ -17,205 +48,506 @@ export type EditingContext =
   | {
       type: 'insert'
       position: number
-      accessOpr?: GeneralOprApp
+      oprApp?: GeneralOprApp<false>
     }
   // Suggestion should replace given identifier.
   | {
       type: 'changeIdentifier'
-      identifier: Ast.Tree.Ident
-      accessOpr?: GeneralOprApp
+      identifier: RawAstExtended<RawAst.Tree.Ident, false>
+      oprApp?: GeneralOprApp<false>
     }
   // Suggestion should replace given literal.
-  | { type: 'changeLiteral'; literal: Ast.Tree.TextLiteral | Ast.Tree.Number }
+  | {
+      type: 'changeLiteral'
+      literal: RawAstExtended<RawAst.Tree.TextLiteral | RawAst.Tree.Number, false>
+    }
+  // In process of writing AI prompt: no suggestion should be displayed.
+  | {
+      type: 'aiPrompt'
+      selfIdent: string
+      prompt: string
+    }
+
+/** An atomic change to the user input. */
+interface Change {
+  str: string
+  /** Range in the original code to be replaced with `str`. */
+  range: SourceRange
+}
 
 /** Component Browser Input Data */
-export class Input {
-  /** The current input's text (code). */
-  readonly code: Ref<string>
-  /** The current selection (or cursor position if start is equal to end). */
-  readonly selection: Ref<{ start: number; end: number }>
-  /** The editing context deduced from code and selection */
-  readonly context: ComputedRef<EditingContext>
-  /** The filter deduced from code and selection. */
-  readonly filter: ComputedRef<Filter>
+export function useComponentBrowserInput(
+  graphDb: GraphDb = useGraphStore().db,
+  suggestionDb: SuggestionDb = useSuggestionDbStore().entries,
+  ai: { query(query: string, sourcePort: string): Promise<Result<string>> } = useAI(),
+) {
+  const code = ref('')
+  const cbUsage = ref<Usage>()
+  const anyChange = ref(false)
+  const selection = ref({ start: 0, end: 0 })
+  const ast = computed(() => RawAstExtended.parse(code.value))
+  const imports = ref<RequiredImport[]>([])
+  const processingAIPrompt = ref(false)
+  const toastError = useToast.error()
 
-  constructor() {
-    this.code = ref('')
-    this.selection = ref({ start: 0, end: 0 })
+  // Code Model to being edited externally (by user).
+  //
+  // Some user actions (like typing operator right after input) may handled differently than
+  // internal changes (like applying suggestion).
+  const codeModel = computed({
+    get: () => code.value,
+    set: (newValue) => {
+      if (newValue != code.value) {
+        // When user, right after opening CB with source node types operator, we should
+        // re-initialize input with it instead of dot at the end.
+        const startedTyping = !anyChange.value && newValue.startsWith(code.value)
+        const typed = newValue.substring(code.value.length)
+        code.value = newValue
+        anyChange.value = true
 
-    this.context = computed(() => {
-      const input = this.code.value
-      const cursorPosition = this.selection.value.start
-      if (cursorPosition === 0) return { type: 'insert', position: 0 }
-      const editedPart = cursorPosition - 1
-      const inputAst = parseEnso(input)
-      const editedAst = astContainingChar(editedPart, inputAst)
-      const leaf = editedAst.next()
-      if (leaf.done) return { type: 'insert', position: cursorPosition }
-      switch (leaf.value.type) {
-        case Ast.Tree.Type.Ident:
-          return {
-            type: 'changeIdentifier',
-            identifier: leaf.value,
-            ...Input.readAccessOpr(editedAst.next(), input, leaf.value),
-          }
-        case Ast.Tree.Type.TextLiteral:
-        case Ast.Tree.Type.Number:
-          return { type: 'changeLiteral', literal: leaf.value }
-        default:
-          return {
-            type: 'insert',
-            position: cursorPosition,
-            ...Input.readAccessOpr(leaf, input),
-          }
+        if (
+          startedTyping &&
+          cbUsage.value?.type === 'newNode' &&
+          cbUsage.value?.sourcePort &&
+          isOperator(typed)
+        ) {
+          const sourcePort = cbUsage.value.sourcePort
+          // We do any code updates in next tick, as in the current we may yet expect selection
+          // changes we would like to override.
+          nextTick(() => setSourceNode(sourcePort, ` ${typed}`))
+        }
       }
-    })
+    },
+  })
 
-    const qualifiedNameFilter: ComputedRef<Filter> = computed(() => {
-      const code = this.code.value
-      const ctx = this.context.value
-      if (
-        (ctx.type == 'changeIdentifier' || ctx.type == 'insert') &&
-        ctx.accessOpr != null &&
-        ctx.accessOpr.lhs != null
-      ) {
-        const qn = Input.asQualifiedName(ctx.accessOpr, code)
-        if (qn != null) return { qualifiedNamePattern: qn }
+  const context: ComputedRef<EditingContext> = computed(() => {
+    const cursorPosition = selection.value.start
+    if (cursorPosition === 0) return { type: 'insert', position: 0 }
+    // TODO[ao]: refactor a bit before merging:
+    const aiPromptMatch = /^((?:[a-zA-Z_][0-9]*)+)\.AI:(.*)$/.exec(code.value)
+    if (aiPromptMatch) {
+      return {
+        type: 'aiPrompt',
+        selfIdent: aiPromptMatch[1] ?? '',
+        prompt: aiPromptMatch[2] ?? '',
       }
-      return {}
-    })
+    }
+    const editedPart = cursorPosition - 1
+    const inputAst = ast.value
+    const editedAst = inputAst
+      .mapIter((ast) => astContainingChar(editedPart, ast))
+      [Symbol.iterator]()
+    const leaf = editedAst.next()
+    if (leaf.done) return { type: 'insert', position: cursorPosition }
+    switch (leaf.value.inner.type) {
+      case RawAst.Tree.Type.Ident:
+        return {
+          type: 'changeIdentifier',
+          identifier: leaf.value as RawAstExtended<RawAst.Tree.Ident, false>,
+          ...readOprApp(editedAst.next(), leaf.value),
+        }
+      case RawAst.Tree.Type.TextLiteral:
+      case RawAst.Tree.Type.Number:
+        return {
+          type: 'changeLiteral',
+          literal: leaf.value as RawAstExtended<
+            RawAst.Tree.TextLiteral | RawAst.Tree.Number,
+            false
+          >,
+        }
+      default:
+        return {
+          type: 'insert',
+          position: cursorPosition,
+          ...readOprApp(leaf),
+        }
+    }
+  })
 
-    this.filter = computed(() => {
-      const code = this.code.value
-      const ctx = this.context.value
-      const filter = { ...qualifiedNameFilter.value }
-      if (ctx.type === 'changeIdentifier') {
-        const start =
-          ctx.identifier.whitespaceStartInCodeParsed + ctx.identifier.whitespaceLengthInCodeParsed
-        const end = this.selection.value.end
-        filter.pattern = code.substring(start, end)
-      } else if (ctx.type === 'changeLiteral') {
-        filter.pattern = readAstSpan(ctx.literal, code)
+  const internalUsages = computed(() => {
+    const analyzer = new AliasAnalyzer(code.value, ast.value.inner)
+    analyzer.process()
+    function* internalUsages() {
+      for (const [_definition, usages] of analyzer.aliases) {
+        yield* usages
       }
-      return filter
-    })
-  }
+    }
+    return new MappedSet(sourceRangeKey, internalUsages())
+  })
 
-  private static readAccessOpr(
-    leafParent: IteratorResult<Ast.Tree>,
-    code: string,
-    editedAst?: Ast.Tree,
+  // Filter deduced from the access (`.` operator) chain written by user.
+  const accessChainFilter: ComputedRef<Filter> = computed(() => {
+    const ctx = context.value
+    if (ctx.type === 'changeLiteral' || ctx.type === 'aiPrompt') return {}
+    if (ctx.oprApp == null || ctx.oprApp.lhs == null) return {}
+    const opr = ctx.oprApp.lastOpr()
+    if (opr == null || opr.repr() !== '.') return {}
+    const selfArg = pathAsSelfArgument(ctx.oprApp)
+    if (selfArg != null) return { selfArg: selfArg }
+    const qn = pathAsQualifiedName(ctx.oprApp)
+    if (qn != null) return { qualifiedNamePattern: qn }
+    return {}
+  })
+
+  const filter = computed(() => {
+    const input = code.value
+    const ctx = context.value
+    const filter = { ...accessChainFilter.value }
+    if (ctx.type === 'changeIdentifier') {
+      const start =
+        ctx.identifier.inner.whitespaceStartInCodeParsed +
+        ctx.identifier.inner.whitespaceLengthInCodeParsed
+      const end = selection.value.end
+      filter.pattern = input.substring(start, end)
+    } else if (ctx.type === 'changeLiteral') {
+      filter.pattern = ctx.literal.repr()
+    }
+    return filter
+  })
+
+  const autoSelectFirstComponent = computed(() => {
+    // We want to autoselect first component only when we may safely assume user want's to continue
+    // editing - they want to immediately see preview of best component and rather won't press
+    // enter (and if press, they won't be surprised by the results).
+    const ctx = context.value
+    // If no input, we're sure user want's to add something.
+    if (!code.value) return true
+    // When changing identifier, it is unfinished. Or, the best match should be exactly what
+    // the user wants
+    if (ctx.type === 'changeIdentifier') return true
+    // With partially written `.` chain we ssume user want's to add something.
+    if (ctx.type === 'insert' && ctx.oprApp?.lastOpr()?.repr() === '.') return true
+    return false
+  })
+
+  function readOprApp(
+    leafParent: IteratorResult<RawAstExtended<RawAst.Tree, false>>,
+    editedAst?: RawAstExtended<RawAst.Tree, false>,
   ): {
-    accessOpr?: GeneralOprApp
+    oprApp?: GeneralOprApp<false>
   } {
     if (leafParent.done) return {}
-    switch (leafParent.value.type) {
-      case Ast.Tree.Type.OprApp:
-      case Ast.Tree.Type.OperatorBlockApplication: {
-        const generalized = new GeneralOprApp(leafParent.value)
+    switch (leafParent.value.inner.type) {
+      case RawAst.Tree.Type.OprApp:
+      case RawAst.Tree.Type.OperatorBlockApplication: {
+        const generalized = new GeneralOprApp(leafParent.value as OperatorChain<false>)
         const opr = generalized.lastOpr()
-        if (opr == null || !opr.ok || readTokenSpan(opr.value, code) !== '.') return {}
-        // The filtering should be affected only when we edit right part of '.' application.
+        if (opr == null) return {}
+        // Opr application affects context only when we edit right part of operator.
         else if (
           editedAst != null &&
-          opr.value.startInCodeBuffer > editedAst.whitespaceStartInCodeParsed
+          opr.inner.startInCodeBuffer > editedAst.inner.whitespaceStartInCodeParsed
         )
           return {}
-        else return { accessOpr: generalized }
+        else return { oprApp: generalized }
       }
       default:
         return {}
     }
   }
 
-  /**
-   * Try to get a Qualified Name part from given accessor chain.
-   * @param accessorChain The accessorChain. It's not validated, i.e. the user must ensure
-   *   it's GeneralOprApp with `.` as leading operator.
-   * @param code The code from which `accessorChain` was generated.
-   * @returns If all segments except the last one are identifiers, returns QualifiedName with
-   *   those. Otherwise returns null.
-   */
-  private static asQualifiedName(accessorChain: GeneralOprApp, code: string): QualifiedName | null {
-    const operandsAsIdents = Array.from(
-      accessorChain.operandsOfLeftAssocOprChain(code, '.'),
-      (operand) =>
-        operand?.type === 'ast' && operand.ast.type === Ast.Tree.Type.Ident ? operand.ast : null,
-    ).slice(0, -1)
-    if (operandsAsIdents.some((optIdent) => optIdent == null)) return null
-    const segments = operandsAsIdents.map((ident) => readAstSpan(ident!, code))
+  function pathAsSelfArgument(
+    accessOpr: GeneralOprApp<false>,
+  ): { type: 'known'; typename: Typename } | { type: 'unknown' } | null {
+    if (accessOpr.lhs == null) return null
+    if (!accessOpr.lhs.isTree(RawAst.Tree.Type.Ident)) return null
+    if (accessOpr.apps.length > 1) return null
+    if (internalUsages.value.has(accessOpr.lhs.span())) return { type: 'unknown' }
+    const ident = accessOpr.lhs.repr()
+    const definition = graphDb.getIdentDefiningNode(ident)
+    if (definition == null) return null
+    const typename = graphDb.getExpressionInfo(definition)?.typename
+    return typename != null ? { type: 'known', typename } : { type: 'unknown' }
+  }
+
+  function pathAsQualifiedName(accessOpr: GeneralOprApp<false>): QualifiedName | null {
+    const operandsAsIdents = qnIdentifiers(accessOpr)
+    const segments = operandsAsIdents.map((ident) => ident.repr())
     const rawQn = segments.join('.')
     const qn = tryQualifiedName(rawQn)
     return qn.ok ? qn.value : null
   }
-}
 
-if (import.meta.vitest) {
-  const { test, expect } = import.meta.vitest
+  /**
+   * Read path segments as idents. The 'path' means all access chain operands except the last.
+   * If some of such operands is not and identifier, this returns `null`.
+   * @param opr
+   * @param code The code from which `opr` was generated.
+   * @returns If all path segments are identifiers, return them
+   */
+  function qnIdentifiers(opr: GeneralOprApp<false>): RawAstExtended<RawAst.Tree.Ident, false>[] {
+    const operandsAsIdents = Array.from(opr.operandsOfLeftAssocOprChain('.'), (operand) =>
+      operand?.type === 'ast' && operand.ast.isTree(RawAst.Tree.Type.Ident) ? operand.ast : null,
+    ).slice(0, -1)
+    if (operandsAsIdents.some((optIdent) => optIdent == null)) return []
+    else return operandsAsIdents as RawAstExtended<RawAst.Tree.Ident, false>[]
+  }
 
-  test.each([
-    ['', 0, { type: 'insert', position: 0 }, {}],
-    [
-      'Data.',
-      5,
-      { type: 'insert', position: 5, accessorChain: ['Data', '.', null] },
-      { qualifiedNamePattern: 'Data' },
-    ],
-    ['Data.', 4, { type: 'changeIdentifier', identifier: 'Data' }, { pattern: 'Data' }],
-    [
-      'Data.read',
-      5,
-      { type: 'insert', position: 5, accessorChain: ['Data', '.', 'read'] },
-      { qualifiedNamePattern: 'Data' },
-    ],
-    [
-      'Data.read',
-      7,
-      { type: 'changeIdentifier', identifier: 'read', accessorChain: ['Data', '.', 'read'] },
-      { pattern: 're', qualifiedNamePattern: 'Data' },
-    ],
-  ])(
-    "Input context and filtering, when content is '%s' and cursor at %i",
-    (
-      code,
-      cursorPosition,
-      expContext: {
-        type: string
-        position?: number
-        accessorChain?: (string | null)[]
-        identifier?: string
-        literal?: string
-      },
-      expFiltering: { pattern?: string; qualifiedNamePattern?: string },
-    ) => {
-      const input = new Input()
-      input.code.value = code
-      input.selection.value = { start: cursorPosition, end: cursorPosition }
-      const context = input.context.value
-      const filter = input.filter.value
-      expect(context.type).toStrictEqual(expContext.type)
-      switch (context.type) {
-        case 'insert':
-          expect(context.position).toStrictEqual(expContext.position)
-          expect(
-            context.accessOpr != null
-              ? Array.from(context.accessOpr.componentsReprs(code))
-              : undefined,
-          ).toStrictEqual(expContext.accessorChain)
-          break
-        case 'changeIdentifier':
-          expect(readAstSpan(context.identifier, code)).toStrictEqual(expContext.identifier)
-          expect(
-            context.accessOpr != null
-              ? Array.from(context.accessOpr.componentsReprs(code))
-              : undefined,
-          ).toStrictEqual(expContext.accessorChain)
-          break
-        case 'changeLiteral':
-          expect(readAstSpan(context.literal, code)).toStrictEqual(expContext.literal)
+  /** Apply given suggested entry to the input. */
+  function applySuggestion(id: SuggestionId) {
+    const entry = suggestionDb.get(id)
+    if (!entry) return
+    const { newCode, newCursorPos, requiredImport } = inputAfterApplyingSuggestion(entry)
+    code.value = newCode
+    selection.value = { start: newCursorPos, end: newCursorPos }
+    if (requiredImport) {
+      const [importId] = suggestionDb.nameToId.lookup(requiredImport)
+      if (importId) {
+        const requiredEntry = suggestionDb.get(importId)
+        if (requiredEntry) {
+          imports.value = imports.value.concat(requiredImports(suggestionDb, requiredEntry))
+        }
       }
-      expect(filter.pattern).toStrictEqual(expFiltering.pattern)
-      expect(filter.qualifiedNamePattern).toStrictEqual(expFiltering.qualifiedNamePattern)
-    },
-  )
+    } else {
+      imports.value = imports.value.concat(requiredImports(suggestionDb, entry))
+    }
+  }
+
+  function inputAfterApplyingSuggestion(entry: SuggestionEntry): {
+    newCode: string
+    newCursorPos: number
+    requiredImport: QualifiedName | null
+  } {
+    const { changes, requiredImport } = inputChangesAfterApplying(entry)
+    changes.reverse()
+    const newCodeUpToLastChange = changes.reduce(
+      (builder, change) => {
+        const oldCodeFragment = code.value.substring(builder.oldCodeIndex, change.range[0])
+        return {
+          code: builder.code + oldCodeFragment + change.str,
+          oldCodeIndex: change.range[1],
+        }
+      },
+      { code: '', oldCodeIndex: 0 },
+    )
+    const isModule = entry.kind === SuggestionKind.Module
+    const firstCharAfter = code.value[newCodeUpToLastChange.oldCodeIndex]
+    const shouldInsertSpace =
+      !isModule && (firstCharAfter == null || /^[a-zA-Z0-9_]$/.test(firstCharAfter))
+    const shouldMoveCursor = !isModule
+    const newCursorPos = newCodeUpToLastChange.code.length + (shouldMoveCursor ? 1 : 0)
+    return {
+      newCode:
+        newCodeUpToLastChange.code +
+        (shouldInsertSpace ? ' ' : '') +
+        code.value.substring(newCodeUpToLastChange.oldCodeIndex),
+      newCursorPos,
+      requiredImport,
+    }
+  }
+
+  /** List of imports required for applied suggestions.
+   *
+   * If suggestion was manually edited by the user after accepting, it is not included.
+   */
+  function importsToAdd(): RequiredImport[] {
+    const finalImports: RequiredImport[] = []
+    for (const anImport of imports.value) {
+      const alreadyAdded = finalImports.some((existing) => requiredImportEquals(existing, anImport))
+      const importedIdent =
+        anImport.kind == 'Qualified' ? qnLastSegment(anImport.module) : anImport.import
+      const noLongerNeeded = !code.value.includes(importedIdent)
+      if (!noLongerNeeded && !alreadyAdded) {
+        finalImports.push(anImport)
+      }
+    }
+    return finalImports
+  }
+
+  /** Return all input changes resulting from applying given suggestion.
+   *
+   * @returns The changes, starting from the rightmost. The `start` and `end` parameters refer
+   * to indices of "old" input content.
+   */
+  function inputChangesAfterApplying(entry: SuggestionEntry): {
+    changes: Change[]
+    requiredImport: QualifiedName | null
+  } {
+    const ctx = context.value
+    const str = codeToBeInserted(entry)
+    let mainChange: Change | undefined = undefined
+    switch (ctx.type) {
+      case 'insert': {
+        mainChange = { range: [ctx.position, ctx.position], str }
+        break
+      }
+      case 'changeIdentifier': {
+        mainChange = { range: ctx.identifier.span(), str }
+        break
+      }
+      case 'changeLiteral': {
+        mainChange = { range: ctx.literal.span(), str }
+        break
+      }
+      case 'aiPrompt': {
+        mainChange = { range: [0, code.value.length], str }
+        break
+      }
+    }
+    const qnChange = qnChanges(entry)
+    return { changes: [mainChange!, ...qnChange.changes], requiredImport: qnChange.requiredImport }
+  }
+
+  function codeToBeInserted(entry: SuggestionEntry): string {
+    const ctx = context.value
+    const opr = 'oprApp' in ctx && ctx.oprApp != null ? ctx.oprApp.lastOpr() : null
+    const oprAppSpacing =
+      ctx.type === 'insert' && opr != null && opr.inner.whitespaceLengthInCodeBuffer > 0 ?
+        ' '.repeat(opr.inner.whitespaceLengthInCodeBuffer)
+      : ''
+    const extendingAccessOprChain = opr != null && opr.repr() === '.'
+    // Modules are special case, as we want to encourage user to continue writing path.
+    if (entry.kind === SuggestionKind.Module) {
+      if (extendingAccessOprChain) return `${oprAppSpacing}${entry.name}${oprAppSpacing}.`
+      else return `${entry.definedIn}.`
+    }
+    // Always return single name if we're extending access opr chain.
+    if (extendingAccessOprChain) return oprAppSpacing + entry.name
+    // Otherwise they may be cases we want to add type/module name, or self argument placeholder.
+    if (entry.selfType != null) return `${oprAppSpacing}_.${entry.name}`
+    if (entry.memberOf != null) {
+      const parentName = qnLastSegment(entry.memberOf)
+      return `${oprAppSpacing}${parentName}.${entry.name}`
+    }
+    return oprAppSpacing + entry.name
+  }
+
+  /** All changes to the qualified name already written by the user. */
+  function qnChanges(entry: SuggestionEntry): {
+    changes: Change[]
+    requiredImport: QualifiedName | null
+  } {
+    if (entry.selfType != null) return { changes: [], requiredImport: null }
+    if (entry.kind === SuggestionKind.Local || entry.kind === SuggestionKind.Function)
+      return { changes: [], requiredImport: null }
+    if ('oprApp' in context.value && context.value.oprApp != null) {
+      // 1. Find the index of last identifier from the original qualified name that is already written by the user.
+      const qn = entryQn(entry)
+      const identifiers = qnIdentifiers(context.value.oprApp)
+      const writtenSegments = identifiers.map((ident) => ident.repr())
+      const allSegments = qnSegments(qn)
+      const windowSize = writtenSegments.length
+      let indexOfAlreadyWrittenSegment = undefined
+      for (let right = allSegments.length; right >= windowSize; right--) {
+        const left = right - windowSize
+        if (equalFlat(allSegments.slice(left, right), writtenSegments)) {
+          indexOfAlreadyWrittenSegment = left
+          break
+        }
+      }
+      if (indexOfAlreadyWrittenSegment == null) {
+        // We didn’t find the exact match, which probably means the user has written
+        // partial names, like `Dat.V.` instead of `Data.Vector`.
+        // In this case we will replace each written segment with the most recent
+        // segments of qualified name, and import what’s left.
+        indexOfAlreadyWrittenSegment = allSegments.length - 1 - writtenSegments.length
+      }
+      // `nameSegments` and `importSegments` overlap by one, because we need to import the first written identifier.
+      const nameSegments = allSegments.slice(indexOfAlreadyWrittenSegment, -1)
+      const importSegments = allSegments.slice(0, indexOfAlreadyWrittenSegment + 1)
+      // A correct qualified name contains more than 2 segments (namespace and project name).
+      const minimalNumberOfSegments = 2
+      const requiredImport =
+        importSegments.length < minimalNumberOfSegments ? null : qnFromSegments(importSegments)
+      // 2. We replace each written identifier with a correct one, and then append the rest of needed qualified name.
+      let lastEditedCharIndex = 0
+      const result = []
+      for (let i = 0; i < nameSegments.length; i++) {
+        const segment = nameSegments[i]
+        if (i < identifiers.length) {
+          // Identifier was already written by the user, we replace it with the correct one.
+          const span = identifiers[i]!.span()
+          lastEditedCharIndex = span[1]
+          result.push({ range: span, str: segment as string })
+        } else {
+          // The rest of qualified name needs to be added at the end.
+          const range: SourceRange = [lastEditedCharIndex, lastEditedCharIndex]
+          result.push({ range, str: ('.' + segment) as string })
+        }
+      }
+      return { changes: result.reverse(), requiredImport }
+    } else {
+      return { changes: [], requiredImport: null }
+    }
+  }
+
+  function reset(usage: Usage) {
+    switch (usage.type) {
+      case 'newNode':
+        if (usage.sourcePort) {
+          setSourceNode(usage.sourcePort)
+        } else {
+          code.value = ''
+          selection.value = { start: 0, end: 0 }
+        }
+        break
+      case 'editNode':
+        code.value = graphDb.nodeIdToNode.get(usage.node)?.innerExpr.code() ?? ''
+        selection.value = { start: usage.cursorPos, end: usage.cursorPos }
+        break
+    }
+    imports.value = []
+    cbUsage.value = usage
+    anyChange.value = false
+  }
+
+  function setSourceNode(sourcePort: AstId, operator: string = '.') {
+    const sourceNodeName = graphDb.getOutputPortIdentifier(sourcePort)
+    code.value = sourceNodeName ? `${sourceNodeName}${operator}` : ''
+    selection.value = { start: code.value.length, end: code.value.length }
+  }
+
+  function applyAIPrompt() {
+    const ctx = context.value
+    if (ctx.type !== 'aiPrompt') {
+      console.error('Cannot apply AI prompt in non-AI context')
+      return
+    }
+    processingAIPrompt.value = true
+    ai.query(ctx.prompt, ctx.selfIdent).then(
+      (result) => {
+        if (result.ok) {
+          code.value = `${ctx.selfIdent}.${result.value}`
+        } else {
+          const msg = result.error.message('Applying AI prompt failed')
+          console.error(msg)
+          toastError.show(msg)
+        }
+        processingAIPrompt.value = false
+      },
+      (err) => {
+        const msg = `Applying AI prompt failed: ${err}`
+        console.error(msg)
+        toastError.show(msg)
+        processingAIPrompt.value = false
+      },
+    )
+  }
+
+  return {
+    /** The current input's text (code). */
+    code: codeModel,
+    /** A flag indicating that input was changed after last reset. */
+    anyChange,
+    /** The current selection (or cursor position if start is equal to end). */
+    selection,
+    /** The editing context deduced from code and selection */
+    context,
+    /** The filter deduced from code and selection. */
+    filter,
+    /** Flag indicating that we should autoselect first component after last update */
+    autoSelectFirstComponent,
+    /** Flag indincating that we're waiting for AI's answer for user's prompt. */
+    processingAIPrompt,
+    /** Re-initializes the input for given usage. */
+    reset,
+    /** Apply given suggested entry to the input. */
+    applySuggestion,
+    /** Apply the currently written AI prompt */
+    applyAIPrompt,
+    /** Return input after applying given suggestion, without changing state. */
+    inputAfterApplyingSuggestion,
+    /** A list of imports to add when the suggestion is accepted */
+    importsToAdd,
+  }
 }

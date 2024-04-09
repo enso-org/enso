@@ -1,6 +1,5 @@
 package org.enso.table.data.table.join;
 
-import org.enso.table.problems.AggregatedProblems;
 import org.graalvm.polyglot.Context;
 
 public class CrossJoin {
@@ -9,11 +8,10 @@ public class CrossJoin {
     JoinResult.Builder resultBuilder = new JoinResult.Builder(leftRowCount * rightRowCount);
     for (int l = 0; l < leftRowCount; ++l) {
       for (int r = 0; r < rightRowCount; ++r) {
-        resultBuilder.addRow(l, r);
+        resultBuilder.addMatchedRowsPair(l, r);
         context.safepoint();
       }
     }
-
-    return resultBuilder.build(AggregatedProblems.of());
+    return resultBuilder.buildAndInvalidate();
   }
 }

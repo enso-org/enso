@@ -1,7 +1,9 @@
 from Standard.Base import all
 
 ## PRIVATE
+   Internal class to represent a constant value as a column.
 type Constant_Column
+    ## PRIVATE
     Value value:Any
 
 ## PRIVATE

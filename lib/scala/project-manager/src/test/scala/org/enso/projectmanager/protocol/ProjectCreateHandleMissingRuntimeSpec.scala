@@ -1,10 +1,13 @@
 package org.enso.projectmanager.protocol
 
+import org.enso.logger.ReportLogsOnFailure
 import org.enso.projectmanager.TestDistributionConfiguration
 import org.enso.runtimeversionmanager.runner.JVMSettings
 import org.enso.runtimeversionmanager.test.FakeReleases
 
-class ProjectCreateHandleMissingRuntimeSpec extends ProjectCreateSpecBase {
+class ProjectCreateHandleMissingRuntimeSpec
+    extends ProjectCreateSpecBase
+    with ReportLogsOnFailure {
   override val distributionConfiguration =
     new TestDistributionConfiguration(
       distributionRoot       = testDistributionRoot.toPath,

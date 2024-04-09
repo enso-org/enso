@@ -1,24 +1,35 @@
 <script setup lang="ts">
-import NavBreadcrumbs from '@/components/NavBreadcrumbs.vue'
+import NavBreadcrumbs, { type BreadcrumbItem } from '@/components/NavBreadcrumbs.vue'
 import SvgIcon from '@/components/SvgIcon.vue'
 
-const props = defineProps<{ breadcrumbs: string[] }>()
+const props = defineProps<{
+  breadcrumbs: BreadcrumbItem[]
+  allowNavigationLeft: boolean
+  allowNavigationRight: boolean
+}>()
 const emit = defineEmits<{ back: []; forward: []; breadcrumbClick: [index: number] }>()
 </script>
 
 <template>
-  <div class="NavBar">
+  <div class="NavBar" @pointerdown.stop @pointerup.stop @click.stop>
     <SvgIcon name="graph_editor" draggable="false" class="icon" />
     <div class="breadcrumbs-controls">
       <SvgIcon
         name="arrow_left"
         draggable="false"
-        class="icon button inactive"
-        @click="emit('back')"
+        class="icon button"
+        :class="{ inactive: !props.allowNavigationLeft }"
+        @click.stop="emit('back')"
       />
-      <SvgIcon name="arrow_right" draggable="false" class="icon button" @click="emit('forward')" />
+      <SvgIcon
+        name="arrow_right"
+        draggable="false"
+        class="icon button"
+        :class="{ inactive: !props.allowNavigationRight }"
+        @click.stop="emit('forward')"
+      />
     </div>
-    <NavBreadcrumbs :breadcrumbs="props.breadcrumbs" @click="emit('breadcrumbClick', $event)" />
+    <NavBreadcrumbs :breadcrumbs="props.breadcrumbs" @selected="emit('breadcrumbClick', $event)" />
   </div>
 </template>
 
@@ -28,6 +39,7 @@ const emit = defineEmits<{ back: []; forward: []; breadcrumbClick: [index: numbe
   display: flex;
   border-radius: var(--radius-full);
   background: var(--color-frame-bg);
+  backdrop-filter: var(--blur-app-bg);
   place-items: center;
   gap: 12px;
   padding-left: 8px;

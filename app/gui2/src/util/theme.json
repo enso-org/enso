@@ -1,0 +1,24 @@
+{
+  "node": {
+    "height": 32,
+    "corner_radius": 16,
+    "vertical_gap": 32,
+    "horizontal_gap": 32
+  },
+  "edge": {
+    "min_approach_height": 32,
+    "radius": 20,
+    "one_corner": {
+      "radius_y_adjustment": 29,
+      "radius_x_base": 20,
+      "radius_x_factor": 0.6,
+      "source_node_overlap": 4,
+      "minimum_tangent_exit_radius": 2
+    },
+    "three_corner": {
+      "radius_max": 20,
+      "backward_edge_arrow_threshold": 15,
+      "max_squeeze": 2
+    }
+  }
+}

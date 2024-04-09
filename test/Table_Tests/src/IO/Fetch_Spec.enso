@@ -1,0 +1,96 @@
+from Standard.Base import all
+import Standard.Base.Data.Base_64.Base_64
+import Standard.Base.Errors.File_Error.File_Error
+import Standard.Base.Network.HTTP.Response.Response
+import Standard.Base.Runtime.Context
+
+from Standard.Table import all
+import Standard.Table.Errors.Invalid_JSON_Format
+
+from Standard.Test import all
+
+from enso_dev.Base_Tests.Network.Http.Http_Test_Setup import base_url_with_slash, pending_has_url
+
+import project.Util
+
+main filter=Nothing =
+    suite = Test.build suite_builder->
+        add_specs suite_builder
+    suite.run_with_filter filter
+
+
+add_specs suite_builder =
+    suite_builder.group "fetching files using HTTP" pending=pending_has_url group_builder->
+        group_builder.specify "fetching json" <|
+            r = Data.fetch base_url_with_slash+"testfiles/table.json"
+            expected_table  = Table.from_rows ["A", "B"] [[1, "x"], [3, "y"]]
+            r.to Table . should_equal expected_table
+
+        group_builder.specify "fetching csv" <|
+            url = base_url_with_slash+"testfiles/table.csv"
+            r = Data.fetch url
+            expected_table  = Table.from_rows ["A", "B"] [[1, "x"], [3, "y"]]
+
+            r.should_be_a Table
+            r.should_equal expected_table
+
+            r2 = url.to_uri.fetch
+            r2.should_be_a Table
+            r2.should_equal expected_table
+
+        group_builder.specify "fetching xls" <|
+            url = base_url_with_slash+"testfiles/table.xls"
+            r = Data.fetch url
+            expected_table  = Table.from_rows ["A", "B"] [[1, "x"], [3, "y"]]
+
+            r.should_be_a Excel_Workbook
+            r.sheet_names . should_equal ["MyTestSheet"]
+            r.read "MyTestSheet" . should_equal expected_table
+
+            r2 = Data.fetch url format=Raw_Response . decode (Excel_Format.Sheet "MyTestSheet")
+            r2.should_be_a Table
+            r2.should_equal expected_table
+
+        group_builder.specify "fetching xlsx" <|
+            url = base_url_with_slash+"testfiles/table.xlsx"
+            r = Data.fetch url
+            expected_table  = Table.from_rows ["A", "B"] [[1, "x"], [3, "y"]]
+
+            r.should_be_a Excel_Workbook
+            r.sheet_names . should_equal ["MyTestSheet"]
+            r.read "MyTestSheet" . should_equal expected_table
+
+            r2 = Data.fetch url format=Raw_Response . decode (Excel_Format.Sheet "MyTestSheet")
+            r2.should_be_a Table
+            r2.should_equal expected_table
+
+            r3 = url.to_uri.fetch format=Raw_Response . decode (Excel_Format.Sheet "MyTestSheet")
+            r3.should_be_a Table
+            r3.should_equal expected_table
+
+        group_builder.specify "format detection based on Content-Type and Content-Disposition" <|
+            content = 'A,B\n1,x\n3,y'
+            uri = URI.from (base_url_with_slash+"test_headers")
+                . add_query_argument "base64_response_data" (Base_64.encode_text content)
+            expected_table = Table.from_rows ["A", "B"] [[1, "x"], [3, "y"]]
+
+            r0 = uri.fetch
+            # No automatic parsing, because no content type information is specified.
+            r0.should_be_a Response
+            r0.content_type . should_equal Nothing
+            r0.get_header "Content-Disposition" . should_equal Nothing
+
+            r1 = (uri.add_query_argument "Content-Type" "text/csv").fetch
+            r1.should_equal expected_table
+
+            r2 = (uri.add_query_argument "Content-Disposition" 'attachment; filename="my_table.csv"').fetch
+            r2.should_equal expected_table
+
+            # If the disposition suggest a text file, we will parse as text:
+            r3 = (uri.add_query_argument "Content-Disposition" 'attachment; filename="text.txt"').fetch
+            r3.should_be_a Text
+            r3.should_equal content
+
+            # Reinterpreting as TSV:
+            r4 = (uri.add_query_argument "Content-Type" "text/tab-separated-values").fetch
+            r4.should_equal (Table.from_rows ["Column 1"] [["A,B"], ["1,x"], ["3,y"]])

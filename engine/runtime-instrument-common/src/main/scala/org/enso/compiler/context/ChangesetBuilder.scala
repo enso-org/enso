@@ -1,16 +1,22 @@
 package org.enso.compiler.context
 
 import com.oracle.truffle.api.source.Source
+
 import java.util.UUID
-import org.enso.compiler.core.EnsoParser
-import org.enso.compiler.core.IR
+import org.enso.compiler.core.{
+  CompilerError,
+  EnsoParser,
+  ExternalID,
+  IR,
+  Identifier
+}
+import org.enso.compiler.core.Implicits.AsMetadata
 import org.enso.compiler.core.ir.Literal
+import org.enso.compiler.core.ir.Location
 import org.enso.compiler.core.ir.Name
 import org.enso.compiler.core.ir.module.scope.definition
-import org.enso.compiler.core.CompilerError
 import org.enso.compiler.pass.analyse.DataflowAnalysis
 import org.enso.interpreter.instrument.execution.model.PendingEdit
-import org.enso.syntax.text.Location
 import org.enso.text.editing.model.TextEdit
 import org.enso.text.editing.{IndexedSource, TextEditor}
 
@@ -30,7 +36,7 @@ case class Changeset[A](
   source: A,
   ir: IR,
   simpleUpdate: Option[SimpleUpdate],
-  invalidated: Set[IR.ExternalId]
+  invalidated: Set[UUID @ExternalID]
 )
 
 /** Compute invalidated expressions.
@@ -120,7 +126,7 @@ final class ChangesetBuilder[A: TextEditor: IndexedSource](
     * @return the set of all IR nodes affected by the edit
     */
   @throws[CompilerError]
-  def compute(edits: Seq[TextEdit]): Set[IR.ExternalId] = {
+  def compute(edits: Seq[TextEdit]): Set[UUID @ExternalID] = {
     val metadata = ir
       .unsafeGetMetadata(
         DataflowAnalysis,
@@ -131,7 +137,7 @@ final class ChangesetBuilder[A: TextEditor: IndexedSource](
     def go(
       queue: mutable.Queue[DataflowAnalysis.DependencyInfo.Type],
       visited: mutable.Set[DataflowAnalysis.DependencyInfo.Type]
-    ): Set[IR.ExternalId] =
+    ): Set[UUID @ExternalID] =
       if (queue.isEmpty) visited.flatMap(_.externalId).toSet
       else {
         val elem       = queue.dequeue()
@@ -221,8 +227,8 @@ object ChangesetBuilder {
     * @param name optional node name
     */
   case class NodeId(
-    internalId: IR.Identifier,
-    externalId: Option[IR.ExternalId],
+    internalId: UUID @Identifier,
+    externalId: Option[UUID @ExternalID],
     name: Option[Symbol]
   )
 
@@ -237,9 +243,10 @@ object ChangesetBuilder {
       new NodeId(ir.getId, ir.getExternalId, getName(ir))
 
     implicit val ordering: Ordering[NodeId] = (x: NodeId, y: NodeId) => {
-      val cmpInternal = Ordering[UUID].compare(x.internalId, y.internalId)
+      val cmpInternal =
+        Ordering[UUID @Identifier].compare(x.internalId, y.internalId)
       if (cmpInternal == 0) {
-        Ordering[Option[UUID]].compare(x.externalId, y.externalId)
+        Ordering[Option[UUID @ExternalID]].compare(x.externalId, y.externalId)
       } else {
         cmpInternal
       }
@@ -281,7 +288,7 @@ object ChangesetBuilder {
       * @return the node with a new location
       */
     def shift(offset: Int): Node = {
-      val newLocation = location.copy(
+      val newLocation = new Location(
         start = location.start + offset,
         end   = location.end + offset
       )
@@ -352,7 +359,7 @@ object ChangesetBuilder {
               val nodeBetweenPreviousPositionAndNextNode =
                 Node(
                   NodeId(currentIr),
-                  Location(previousPosition, nextNode.location.start),
+                  new Location(previousPosition, nextNode.location.start),
                   false
                 )
               acc += nodeBetweenPreviousPositionAndNextNode
@@ -371,7 +378,7 @@ object ChangesetBuilder {
           if (hasRemainingTextAfterLastChild) {
             val nodeAfterLastChild = Node(
               NodeId(currentIr),
-              Location(lastCoveredPosition, endOfNonLeafIr),
+              new Location(lastCoveredPosition, endOfNonLeafIr),
               false
             )
             acc += nodeAfterLastChild
@@ -484,7 +491,7 @@ object ChangesetBuilder {
     edit: TextEdit,
     source: A
   ): Location = {
-    Location(
+    new Location(
       IndexedSource[A].toIndex(edit.range.start, source),
       IndexedSource[A].toIndex(edit.range.end, source)
     )
@@ -512,7 +519,7 @@ object ChangesetBuilder {
     * @param id the node identifier
     * @return the node name
     */
-  private def getExpressionName(ir: IR, id: IR.Identifier): Option[String] =
+  private def getExpressionName(ir: IR, id: UUID @Identifier): Option[String] =
     ir.preorder.find(_.getId == id).collect {
       case name: Name =>
         name.name

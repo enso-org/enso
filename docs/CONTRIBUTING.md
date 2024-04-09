@@ -165,9 +165,7 @@ In order to build and run Enso you will need the following tools:
   [`project/build.properties`](../project/build.properties).
 - [Maven](https://maven.apache.org/) with version at least 3.6.3.
 - [GraalVM](https://www.graalvm.org/) with the same version as described in the
-  [`build.sbt`](../build.sbt) file, configured as your default JVM. GraalVM is
-  distributed for different Java versions, so you need a GraalVM distribution
-  for the same Java version as specified in [`build.sbt`](../build.sbt).
+  [`build.sbt`](../build.sbt) file, configured as your default JVM.
 - [Flatbuffers Compiler](https://google.github.io/flatbuffers) with version
   1.12.0.
 - [Rustup](https://rustup.rs), the rust toolchain management utility.
@@ -259,24 +257,6 @@ working on modern macOS properly. Thus, we've developed a replacement, the
 simply export the `USE_CARGO_WATCH_PLUS=1` in your shell and the build system
 will pick it up instead of the `cargo-watch`.
 
-### Getting Set Up (JVM)
-
-In order to properly build the `runtime` component, the JVM running SBT needs to
-have some dependency JARs available in its module path at startup. To ensure
-they are available, before running any compilation or other tasks, these
-dependencies should be prepared. To do so, run the following command in the
-repository root directory:
-
-```bash
-sbt bootstrap
-```
-
-It is preferred to not run this command from the sbt shell, but in batch mode,
-because SBT has to be launched again anyway to pick up these JARs at startup.
-
-Bootstrap has to be run only when building the project for the first time
-**and** after each change of Graal version.
-
 ### Getting Set Up (Documentation)
 
 We enforce automated formatting of all of our documentation and configuration
@@ -331,31 +311,6 @@ You can substitute both `bench` and `test` for `compile` in step 3, and the sbt
 shell will execute the appropriate thing. Furthermore we have `testOnly` and
 `benchOnly` that accept a glob pattern that delineates some subset of the tests
 or benchmarks to run (e.g. `testOnly *FunctionArguments*`).
-
-#### Building the Interpreter CLI Fat Jar
-
-In order to build a fat jar with the CLI component, run the `assembly` task
-inside the `runner` subproject:
-
-```bash
-sbt "engine-runner/assembly"
-```
-
-This will produce an executable `runner.jar` fat jar and a `runtime.jar` fat jar
-in the repository root. The `runner.jar` depends only on the `runtime.jar` and a
-vanilla GraalVM distribution.
-
-#### Building the Project Manager Fat Jar
-
-In order to build a fat jar with the Project Manager component, run the
-`assembly` task on the `project-manager` subproject:
-
-```bash
-sbt "project-manager/assembly"
-```
-
-This will produce a `project-manager` fat jar and a `runtime.jar` fat jar in the
-repository root.
 
 #### Building the Launcher Native Binary
 
@@ -565,7 +520,7 @@ To run the tests you can run the following commands (where `enso` refers to the
 built runner executable as explained above):
 
 ```bash
-enso --run test/Tests # for the Base library
+enso --run test/Base_Tests
 enso --run test/Geo_Tests
 enso --run test/Table_Tests
 ```
@@ -573,7 +528,7 @@ enso --run test/Table_Tests
 Or to run just a single test (e.g., `Duration_Spec.enso`):
 
 ```bash
-enso --in-project test/Tests --run test/Tests/src/Data/Time/Duration_Spec.enso
+enso --in-project test/Base_Tests --run test/Base_Tests/src/Data/Time/Duration_Spec.enso
 ```
 
 The Database tests will by default only test the SQLite backend, to test other
@@ -586,7 +541,7 @@ the `LANG` environment variable to `C` to make sure that the language is
 configured correctly and run the tests as following:
 
 ```bash
-LANG=C enso --run test/Tests
+LANG=C enso --run test/Base_Tests
 ```
 
 Note that JVM assertions are not enabled by default, one has to pass `-ea` via
@@ -600,7 +555,7 @@ assertions are enabled as well.
 To run all the stdlib test suites, set `CI=true` environment variable:
 
 ```bash
-env CI=true enso --run test/Tests/
+env CI=true enso --run test/Base_Tests/
 ```
 
 For more details about the CI setup, you can check the

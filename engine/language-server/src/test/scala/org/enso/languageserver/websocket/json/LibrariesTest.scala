@@ -3,7 +3,7 @@ package org.enso.languageserver.websocket.json
 import akka.testkit._
 import io.circe.literal._
 import io.circe.{Json, JsonObject}
-import nl.gn0s1s.bump.SemVer
+import org.enso.semver.SemVer
 import org.enso.distribution.FileSystem
 import org.enso.editions.{Editions, LibraryName}
 import org.enso.languageserver.libraries.LibraryEntry.PublishedLibraryVersion
@@ -19,21 +19,29 @@ import org.enso.librarymanager.published.repository.{
   ExampleRepository,
   LibraryManifest
 }
+import org.enso.logger.ReportLogsOnFailure
 import org.enso.pkg.{Config, Contact, Package, PackageManager}
+import org.enso.testkit.FlakySpec
 import org.enso.yaml.YamlHelper
 
 import java.nio.file.Files
-
+import java.nio.file.Path
 import scala.concurrent.duration._
 
-class LibrariesTest extends BaseServerTest {
+class LibrariesTest
+    extends BaseServerTest
+    with ReportLogsOnFailure
+    with FlakySpec {
   private val libraryRepositoryPort: Int = 47308
+  private val defaultTimeout             = 30.seconds
 
-  private val exampleRepo = new ExampleRepository {
+  private val exampleRepo = new ExampleRepository(
+    locateRootDirectory().toPath
+  ) {
     override def libraries: Seq[DummyLibrary] = Seq(
       DummyLibrary(
         LibraryName("Foo", "Bar"),
-        SemVer(1, 0, 0),
+        SemVer.of(1, 0, 0),
         """import Standard.Base
           |
           |baz = 42
@@ -52,7 +60,7 @@ class LibrariesTest extends BaseServerTest {
   )
 
   "LocalLibraryManager" should {
-    "create a library project and include it on the list of local projects" in {
+    "create a library project and include it on the list of local projects" taggedAs SkipOnFailure in {
       val client          = getInitialisedWsClient()
       val testLibraryName = LibraryName("user", "My_Local_Lib")
 
@@ -87,7 +95,10 @@ class LibrariesTest extends BaseServerTest {
         } yield libraryNames
 
       // The resolver may find the current project and other test projects on the path.
-      val msg1 = client.expectSomeJson()
+      val msg1 = client.expectSomeJson(
+        timeout                   = defaultTimeout,
+        printStackTracesOnFailure = true
+      )
       inside(findLibraryNamesInResponse(msg1)) { case Some(libs) =>
         // Ensure that before running this test, the library did not exist.
         libs should not contain testLibraryName
@@ -118,12 +129,15 @@ class LibrariesTest extends BaseServerTest {
             }
           }
           """)
-      client.expectJson(json"""
+      client.expectJson(
+        json"""
           { "jsonrpc": "2.0",
             "id": 1,
             "result": null
           }
-          """)
+          """,
+        timeout = defaultTimeout
+      )
 
       client.send(json"""
           { "jsonrpc": "2.0",
@@ -131,7 +145,7 @@ class LibrariesTest extends BaseServerTest {
             "id": 2
           }
           """)
-      val msg2 = client.expectSomeJson()
+      val msg2 = client.expectSomeJson(timeout = defaultTimeout)
       inside(findLibraryNamesInResponse(msg2)) { case Some(libs) =>
         libs should contain(testLibraryName)
       }
@@ -161,12 +175,15 @@ class LibrariesTest extends BaseServerTest {
             }
           }
           """)
-      client.expectJson(json"""
+      client.expectJson(
+        json"""
           { "jsonrpc": "2.0",
             "id": 0,
             "result": null
           }
-          """)
+          """,
+        timeout = defaultTimeout
+      )
 
       client.send(json"""
           { "jsonrpc": "2.0",
@@ -181,7 +198,8 @@ class LibrariesTest extends BaseServerTest {
             }
           }
           """)
-      client.expectJson(json"""
+      client.expectJson(
+        json"""
           { "jsonrpc": "2.0",
             "id": 1,
             "result": {
@@ -189,7 +207,9 @@ class LibrariesTest extends BaseServerTest {
               "tagLine": null
             }
           }
-          """)
+          """,
+        timeout = defaultTimeout
+      )
 
       client.send(json"""
           { "jsonrpc": "2.0",
@@ -203,12 +223,15 @@ class LibrariesTest extends BaseServerTest {
             }
           }
           """)
-      client.expectJson(json"""
+      client.expectJson(
+        json"""
           { "jsonrpc": "2.0",
             "id": 2,
             "result": null
           }
-          """)
+          """,
+        timeout = defaultTimeout
+      )
 
       client.send(json"""
           { "jsonrpc": "2.0",
@@ -223,7 +246,8 @@ class LibrariesTest extends BaseServerTest {
             }
           }
           """)
-      client.expectJson(json"""
+      client.expectJson(
+        json"""
           { "jsonrpc": "2.0",
             "id": 3,
             "result": {
@@ -231,7 +255,9 @@ class LibrariesTest extends BaseServerTest {
               "tagLine": "tag-line"
             }
           }
-          """)
+          """,
+        timeout = defaultTimeout
+      )
     }
 
     "return LibraryNotFound error when getting the metadata of unknown library" in {
@@ -249,7 +275,8 @@ class LibrariesTest extends BaseServerTest {
             }
           }
           """)
-      client.expectJson(json"""
+      client.expectJson(
+        json"""
           { "jsonrpc": "2.0",
             "id": 0,
             "error": {
@@ -257,7 +284,9 @@ class LibrariesTest extends BaseServerTest {
               "message": "Local library [user.Get_Package_Unknown] has not been found."
             }
           }
-          """)
+          """,
+        timeout = defaultTimeout
+      )
     }
 
     "get the package config" in {
@@ -276,12 +305,15 @@ class LibrariesTest extends BaseServerTest {
             }
           }
           """)
-      client.expectJson(json"""
+      client.expectJson(
+        json"""
           { "jsonrpc": "2.0",
             "id": 0,
             "result": null
           }
-          """)
+          """,
+        timeout = defaultTimeout
+      )
 
       val libraryRoot = getTestDirectory
         .resolve("test_home")
@@ -311,7 +343,7 @@ class LibrariesTest extends BaseServerTest {
             }
           }
           """)
-      val response = client.expectSomeJson()
+      val response = client.expectSomeJson(timeout = defaultTimeout)
 
       response.hcursor
         .downField("result")
@@ -344,7 +376,8 @@ class LibrariesTest extends BaseServerTest {
             }
           }
           """)
-      client.expectJson(json"""
+      client.expectJson(
+        json"""
           { "jsonrpc": "2.0",
             "id": 0,
             "error": {
@@ -352,7 +385,9 @@ class LibrariesTest extends BaseServerTest {
               "message": "Local library [user.Get_Package_Unknown] has not been found."
             }
           }
-          """)
+          """,
+        timeout = defaultTimeout
+      )
     }
 
     "create, publish a library and fetch its manifest from the server" in {
@@ -382,12 +417,15 @@ class LibrariesTest extends BaseServerTest {
             }
           }
           """)
-      client.expectJson(json"""
+      client.expectJson(
+        json"""
           { "jsonrpc": "2.0",
             "id": 0,
             "result": null
           }
-          """)
+          """,
+        timeout = defaultTimeout
+      )
 
       // Update Main.enso
       val libraryRoot = getTestDirectory
@@ -415,15 +453,20 @@ class LibrariesTest extends BaseServerTest {
             }
           }
           """)
-      client.expectJson(json"""
+      client.expectJson(
+        json"""
           { "jsonrpc": "2.0",
             "id": 1,
             "result": null
           }
-          """)
+          """,
+        timeout = defaultTimeout
+      )
 
-      val repoRoot = getTestDirectory.resolve("libraries_repo_root")
-      EmptyRepository.withServer(
+      val repoRoot        = getTestDirectory.resolve("libraries_repo_root")
+      val rootDir         = locateRootDirectory()
+      val emptyRepository = new EmptyRepository(rootDir.toPath)
+      emptyRepository.withServer(
         libraryRepositoryPort,
         repoRoot,
         uploads = true
@@ -507,7 +550,8 @@ class LibrariesTest extends BaseServerTest {
             }
           }
           """)
-        client.expectJson(json"""
+        client.expectJson(
+          json"""
           { "jsonrpc": "2.0",
             "id": 3,
             "result": {
@@ -515,7 +559,9 @@ class LibrariesTest extends BaseServerTest {
               "tagLine": "published-lib"
             }
           }
-          """)
+          """,
+          timeout = defaultTimeout
+        )
       }
 
       // Once the server is down, the metadata request should fail, especially as the published version is not cached.
@@ -534,7 +580,8 @@ class LibrariesTest extends BaseServerTest {
             }
           }
           """)
-      val errorMsg = client.expectSomeJson().asObject.value
+      val errorMsg =
+        client.expectSomeJson(timeout = defaultTimeout).asObject.value
       errorMsg("id").value.asNumber.value.toInt.value shouldEqual 4
       errorMsg("error").value.asObject shouldBe defined
     }
@@ -565,7 +612,8 @@ class LibrariesTest extends BaseServerTest {
         var waitingForResult = true
 
         while (waitingForTask || waitingForResult) {
-          val msg = client.expectSomeJson(10.seconds.dilated).asObject.value
+          val msg =
+            client.expectSomeJson(timeout = defaultTimeout).asObject.value
 
           msg("id") match {
             case Some(json) =>
@@ -609,7 +657,7 @@ class LibrariesTest extends BaseServerTest {
         val cachedLibraryRoot = readOnlyCache
           .findCachedLibrary(
             LibraryName("Foo", "Bar"),
-            SemVer(1, 0, 0)
+            SemVer.of(1, 0, 0)
           )
           .value
 
@@ -644,7 +692,8 @@ class LibrariesTest extends BaseServerTest {
             }
           }
           """)
-      client.expectJson(json"""
+      client.expectJson(
+        json"""
           { "jsonrpc": "2.0",
             "id": 0,
             "result": {
@@ -653,11 +702,13 @@ class LibrariesTest extends BaseServerTest {
               ]
             }
           }
-          """)
+          """,
+        timeout = defaultTimeout
+      )
     }
 
     "update the list of editions if requested" ignore {
-      val repo     = new ExampleRepository
+      val repo     = new ExampleRepository(Path.of("."))
       val repoPath = getTestDirectory.resolve("repo_root")
       repo.createRepository(repoPath)
       repo.withServer(43707, repoPath) {
@@ -672,7 +723,8 @@ class LibrariesTest extends BaseServerTest {
             }
           }
           """)
-        client.expectJson(json"""
+        client.expectJson(
+          json"""
           { "jsonrpc": "2.0",
             "id": 0,
             "result": {
@@ -682,7 +734,9 @@ class LibrariesTest extends BaseServerTest {
               ]
             }
           }
-          """)
+          """,
+          timeout = defaultTimeout
+        )
       }
     }
   }
@@ -724,7 +778,9 @@ class LibrariesTest extends BaseServerTest {
             }
           }
           """)
-      val published = extractPublishedLibraries(client.expectSomeJson())
+      val published = extractPublishedLibraries(
+        client.expectSomeJson(timeout = defaultTimeout)
+      )
 
       published should contain(
         PublishedLibrary("Standard", "Base", isCached = true)
@@ -746,7 +802,9 @@ class LibrariesTest extends BaseServerTest {
             }
           }
           """)
-      extractPublishedLibraries(client.expectSomeJson()) should contain(
+      extractPublishedLibraries(
+        client.expectSomeJson(timeout = defaultTimeout)
+      ) should contain(
         PublishedLibrary("Standard", "Base", isCached = true)
       )
     }
@@ -767,7 +825,7 @@ class LibrariesTest extends BaseServerTest {
           }
           """)
 
-      val response = client.expectSomeJson()
+      val response = client.expectSomeJson(timeout = defaultTimeout)
       val components = response.hcursor
         .downField("result")
         .downField("availableComponents")
@@ -793,7 +851,7 @@ class LibrariesTest extends BaseServerTest {
           }
           """)
 
-      val response2 = client.expectSomeJson()
+      val response2 = client.expectSomeJson(timeout = defaultTimeout)
       val components2 = response2.hcursor
         .downField("result")
         .downField("availableComponents")
@@ -824,14 +882,17 @@ class LibrariesTest extends BaseServerTest {
             }
           }
           """)
-      client.expectJson(json"""
+      client.expectJson(
+        json"""
           { "jsonrpc": "2.0",
             "id": 0,
             "result": {
               "engineVersion": $currentVersion
             }
           }
-          """)
+          """,
+        timeout = defaultTimeout
+      )
 
       client.send(json"""
           { "jsonrpc": "2.0",
@@ -845,14 +906,17 @@ class LibrariesTest extends BaseServerTest {
             }
           }
           """)
-      client.expectJson(json"""
+      client.expectJson(
+        json"""
           { "jsonrpc": "2.0",
             "id": 1,
             "result": {
               "engineVersion": $currentVersion
             }
           }
-          """)
+          """,
+        timeout = defaultTimeout
+      )
     }
   }
 }

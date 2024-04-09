@@ -8,10 +8,13 @@ import scala.concurrent.ExecutionContext
 
 /** A command that opens a file.
   *
+  * @param maybeRequestId an option with request id
   * @param request a request for a service
   */
-class OpenFileCmd(request: Api.OpenFileNotification)
-    extends SynchronousCommand(None) {
+class OpenFileCmd(
+  maybeRequestId: Option[Api.RequestId],
+  request: Api.OpenFileRequest
+) extends SynchronousCommand(None) {
 
   /** @inheritdoc */
   override def executeSynchronously(implicit
@@ -20,24 +23,29 @@ class OpenFileCmd(request: Api.OpenFileNotification)
   ): Unit = {
     val logger            = ctx.executionService.getLogger
     val readLockTimestamp = ctx.locking.acquireReadCompilationLock()
-    val fileLockTimestamp = ctx.locking.acquireFileLock(request.path)
     try {
-      ctx.executionService.setModuleSources(
-        request.path,
-        request.contents
-      )
+      val fileLockTimestamp = ctx.locking.acquireFileLock(request.path)
+      try {
+        ctx.executionService.setModuleSources(
+          request.path,
+          request.contents
+        )
+        ctx.endpoint.sendToClient(
+          Api.Response(maybeRequestId, Api.OpenFileResponse)
+        )
+      } finally {
+        ctx.locking.releaseFileLock(request.path)
+        logger.log(
+          Level.FINEST,
+          "Kept file lock [OpenFileCmd] for " + (System.currentTimeMillis - fileLockTimestamp) + " milliseconds"
+        )
+      }
     } finally {
-      ctx.locking.releaseFileLock(request.path)
-      logger.log(
-        Level.FINEST,
-        "Kept file lock [OpenFileCmd] for " + (System.currentTimeMillis - fileLockTimestamp) + " milliseconds"
-      )
       ctx.locking.releaseReadCompilationLock()
       logger.log(
         Level.FINEST,
         "Kept read compilation lock [OpenFileCmd] for " + (System.currentTimeMillis - readLockTimestamp) + " milliseconds"
       )
-
     }
   }
 }

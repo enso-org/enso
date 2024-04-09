@@ -5,15 +5,14 @@ from Standard.Table import Table
 
 import Standard.Visualization
 
-from Standard.Test import Test, Test_Suite
-import Standard.Test.Extensions
+from Standard.Test import all
+
 
 type My_Type
     Value my_field
 
-spec = Test.group "Serializable Visualization Identifiers" <|
-
-    Test.specify "serializes builtin visualizations in the correct format" <|
+add_specs suite_builder = suite_builder.group "Serializable Visualization Identifiers" group_builder->
+    group_builder.specify "serializes builtin visualizations in the correct format" <|
         json_for_name n = JS_Object.from_pairs [["library", Nothing], ["name", n]] . to_text
         Visualization.Id.json.to_json . should_equal (json_for_name "JSON")
         Visualization.Id.scatter_plot.to_json . should_equal (json_for_name "Scatter Plot")
@@ -24,7 +23,7 @@ spec = Test.group "Serializable Visualization Identifiers" <|
         Visualization.Id.geo_map.to_json . should_equal (json_for_name "Geo Map")
         Visualization.Id.image.to_json . should_equal (json_for_name "Image")
 
-    Test.specify "serializes library visualizations in the correct format" <|
+    group_builder.specify "serializes library visualizations in the correct format" <|
         expected p_name v_name =
             lib = JS_Object.from_pairs [["name", p_name]]
             JS_Object.from_pairs [["library", lib], ["name", v_name]] . to_text
@@ -33,17 +32,17 @@ spec = Test.group "Serializable Visualization Identifiers" <|
         v_1.to_json.should_equal (expected "enso_dev.Visualization_Tests" "My Vis")
         v_2.to_json.should_equal (expected "Standard.Base" "Other Vis")
 
-    Test.specify "specifies default JSON visualization for any type" <|
+    group_builder.specify "specifies default JSON visualization for any type" <|
         My_Type.Value 30 . default_visualization . should_equal Visualization.Id.json
         "foobar".default_visualization.should_equal Visualization.Id.json
         True.default_visualization.should_equal Visualization.Id.json
 
-    Test.specify "specifies default Table visualization for Vector and Array type" <|
+    group_builder.specify "specifies default Table visualization for Vector and Array type" <|
         [1,2,3].default_visualization.should_equal Visualization.Id.table
         [1,2,3].to_array.default_visualization.should_equal Visualization.Id.table
 
 
-    Test.specify "should specify Table's default visualizations correctly" <|
+    group_builder.specify "should specify Table's default visualizations correctly" <|
         c_1_1 = ['x', [1, 2, 3]]
         c_1_2 = ['Y', [5.3, 56.2, 6.3]]
         t_1 = Table.new [c_1_1, c_1_2]
@@ -60,4 +59,8 @@ spec = Test.group "Serializable Visualization Identifiers" <|
         t_3 = Table.new [c_3_1, c_3_2, c_3_3]
         t_3.default_visualization.should_equal Visualization.Id.table
 
-main = Test_Suite.run_main spec
+main filter=Nothing =
+    suite = Test.build suite_builder->
+        add_specs suite_builder
+    suite.run_with_filter filter
+

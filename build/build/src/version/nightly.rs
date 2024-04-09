@@ -4,7 +4,6 @@ use crate::version;
 
 use chrono::Datelike;
 use semver::Prerelease;
-use semver::Version;
 
 
 

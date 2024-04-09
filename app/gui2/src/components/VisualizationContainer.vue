@@ -1,11 +1,10 @@
 <script setup lang="ts">
+import SmallPlusButton from '@/components/SmallPlusButton.vue'
 import SvgIcon from '@/components/SvgIcon.vue'
 import VisualizationSelector from '@/components/VisualizationSelector.vue'
-
-import { PointerButtonMask, usePointer } from '@/util/events'
-
-import { ref } from 'vue'
-import { useVisualizationConfig } from '../providers/visualizationConfig'
+import { PointerButtonMask, isTriggeredByKeyboard, usePointer } from '@/composables/events'
+import { useVisualizationConfig } from '@/providers/visualizationConfig'
+import { onMounted, ref, watchEffect } from 'vue'
 
 const props = defineProps<{
   /** If true, the visualization should be `overflow: visible` instead of `overflow: hidden`. */
@@ -16,7 +15,14 @@ const props = defineProps<{
   belowToolbar?: boolean
 }>()
 
+/** The minimum width must be at least the total width of:
+ * - both of toolbars that are always visible (32px + 60px), and
+ * - the 4px flex gap between the toolbars. */
+const MIN_WIDTH_PX = 200
+
 const config = useVisualizationConfig()
+
+watchEffect(() => (config.isBelowToolbar = props.belowToolbar))
 
 const isSelectorVisible = ref(false)
 
@@ -30,23 +36,41 @@ function onWheel(event: WheelEvent) {
   }
 }
 
-const rootNode = ref<HTMLElement>()
+function blur(event: Event) {
+  const target = event.target
+  if (
+    !(target instanceof HTMLElement) &&
+    !(target instanceof SVGElement) &&
+    !(target instanceof MathMLElement)
+  )
+    return
+  setTimeout(() => target.blur(), 0)
+}
+
 const contentNode = ref<HTMLElement>()
+
+onMounted(() => (config.width = MIN_WIDTH_PX))
+
+function hideSelector() {
+  requestAnimationFrame(() => (isSelectorVisible.value = false))
+}
 
 const resizeRight = usePointer((pos, _, type) => {
   if (type !== 'move' || pos.delta.x === 0) {
     return
   }
-  const width = pos.absolute.x - (contentNode.value?.getBoundingClientRect().left ?? 0)
-  config.value.width = Math.max(config.value.nodeSize.x, width)
+  const width =
+    (pos.absolute.x - (contentNode.value?.getBoundingClientRect().left ?? 0)) / config.scale
+  config.width = Math.max(width, MIN_WIDTH_PX)
 }, PointerButtonMask.Main)
 
 const resizeBottom = usePointer((pos, _, type) => {
   if (type !== 'move' || pos.delta.y === 0) {
     return
   }
-  const height = pos.absolute.y - (contentNode.value?.getBoundingClientRect().top ?? 0)
-  config.value.height = Math.max(0, height)
+  const height =
+    (pos.absolute.y - (contentNode.value?.getBoundingClientRect().top ?? 0)) / config.scale
+  config.height = Math.max(0, height)
 }, PointerButtonMask.Main)
 
 const resizeBottomRight = usePointer((pos, _, type) => {
@@ -54,12 +78,14 @@ const resizeBottomRight = usePointer((pos, _, type) => {
     return
   }
   if (pos.delta.x !== 0) {
-    const width = pos.absolute.x - (contentNode.value?.getBoundingClientRect().left ?? 0)
-    config.value.width = Math.max(config.value.nodeSize.x, width)
+    const width =
+      (pos.absolute.x - (contentNode.value?.getBoundingClientRect().left ?? 0)) / config.scale
+    config.width = Math.max(0, width)
   }
   if (pos.delta.y !== 0) {
-    const height = pos.absolute.y - (contentNode.value?.getBoundingClientRect().top ?? 0)
-    config.value.height = Math.max(0, height)
+    const height =
+      (pos.absolute.y - (contentNode.value?.getBoundingClientRect().top ?? 0)) / config.scale
+    config.height = Math.max(0, height)
   }
 }, PointerButtonMask.Main)
 </script>
@@ -67,7 +93,6 @@ const resizeBottomRight = usePointer((pos, _, type) => {
 <template>
   <Teleport to="body" :disabled="!config.fullscreen">
     <div
-      ref="rootNode"
       class="VisualizationContainer"
       :class="{
         fullscreen: config.fullscreen,
@@ -77,20 +102,29 @@ const resizeBottomRight = usePointer((pos, _, type) => {
       }"
       :style="{
         '--color-visualization-bg': config.background,
+        '--node-height': `${config.nodeSize.y}px`,
       }"
+      @pointerdown.stop
+      @pointerup.stop
+      @click.stop
     >
       <div class="resizer-right" v-on="resizeRight.stop.events"></div>
       <div class="resizer-bottom" v-on="resizeBottom.stop.events"></div>
       <div class="resizer-bottom-right" v-on="resizeBottomRight.stop.events"></div>
+      <SmallPlusButton
+        v-if="config.isCircularMenuVisible"
+        class="below-viz"
+        @createNodes="config.createNodes(...$event)"
+      />
       <div
         ref="contentNode"
         class="content scrollable"
         :class="{ overflow: props.overflow }"
         :style="{
-          width: config.fullscreen
-            ? undefined
-            : `${Math.max(config.width ?? 0, config.nodeSize.x)}px`,
-          height: config.fullscreen ? undefined : `${config.height}px`,
+          width:
+            config.fullscreen ? undefined : `${Math.max(config.width ?? 0, config.nodeSize.x)}px`,
+          height:
+            config.fullscreen ? undefined : `${Math.max(config.height ?? 0, config.nodeSize.y)}px`,
         }"
         @wheel.passive="onWheel"
       >
@@ -103,44 +137,54 @@ const resizeBottomRight = usePointer((pos, _, type) => {
             invisible: config.isCircularMenuVisible,
             hidden: config.fullscreen,
           }"
+          @pointerdown.stop
+          @pointerup.stop
+          @click.stop
         >
-          <div class="background"></div>
-          <button class="image-button active" @pointerdown.stop="config.hide()">
-            <SvgIcon class="icon" name="eye" />
+          <button class="image-button active" @click.stop="config.hide()">
+            <SvgIcon class="icon" name="eye" alt="Hide visualization" />
           </button>
         </div>
         <div class="toolbar">
-          <div class="background"></div>
           <button
             class="image-button active"
-            @pointerdown.stop="config.fullscreen = !config.fullscreen"
+            @click.stop.prevent="(config.fullscreen = !config.fullscreen), blur($event)"
           >
-            <SvgIcon class="icon" :name="config.fullscreen ? 'exit_fullscreen' : 'fullscreen'" />
+            <SvgIcon
+              class="icon"
+              :name="config.fullscreen ? 'exit_fullscreen' : 'fullscreen'"
+              :alt="config.fullscreen ? 'Exit fullscreen' : 'Enter fullscreen'"
+            />
           </button>
           <div class="icon-container">
             <button
               class="image-button active"
-              @pointerdown.stop="isSelectorVisible = !isSelectorVisible"
-            >
-              <SvgIcon class="icon" name="compass" />
-            </button>
-            <VisualizationSelector
-              v-if="isSelectorVisible"
-              :types="config.types"
-              :modelValue="config.currentType"
-              @hide="isSelectorVisible = false"
-              @update:modelValue="
-                (type) => {
-                  isSelectorVisible = false
-                  config.updateType(type)
-                }
+              @click.stop.prevent="
+                (!isSelectorVisible || isTriggeredByKeyboard($event)) &&
+                  (isSelectorVisible = !isSelectorVisible)
               "
-            />
+            >
+              <SvgIcon
+                class="icon"
+                :name="config.icon ?? 'columns_increasing'"
+                :alt="
+                  isSelectorVisible ? 'Hide visualization selector' : 'Show visualization selector'
+                "
+              />
+            </button>
+            <Suspense>
+              <VisualizationSelector
+                v-if="isSelectorVisible"
+                :types="config.types"
+                :modelValue="config.currentType"
+                @hide="hideSelector"
+                @update:modelValue="(isSelectorVisible = false), config.updateType($event)"
+              />
+            </Suspense>
           </div>
         </div>
-        <div class="toolbar">
-          <div class="background"></div>
-          <slot name="toolbar"></slot>
+        <div v-if="$slots.toolbar" class="visualization-defined-toolbars">
+          <div class="toolbar"><slot name="toolbar"></slot></div>
         </div>
       </div>
     </div>
@@ -149,20 +193,23 @@ const resizeBottomRight = usePointer((pos, _, type) => {
 
 <style scoped>
 .VisualizationContainer {
+  --node-height: 32px;
+  --permanent-toolbar-width: 200px;
   color: var(--color-text);
   background: var(--color-visualization-bg);
   position: absolute;
   min-width: 100%;
   width: min-content;
   border-radius: var(--radius-default);
+  cursor: default;
 }
 
 .VisualizationContainer.below-node {
-  padding-top: 36px;
+  padding-top: --node-height;
 }
 
 .VisualizationContainer.below-toolbar {
-  padding-top: 72px;
+  padding-top: calc(var(--node-height) + 40px);
 }
 
 .VisualizationContainer.fullscreen {
@@ -177,14 +224,15 @@ const resizeBottomRight = usePointer((pos, _, type) => {
 }
 
 .VisualizationContainer.fullscreen.below-node {
-  padding-top: 0;
+  padding-top: 40px;
 }
 
 .VisualizationContainer.fullscreen.below-toolbar {
-  padding-top: 38px;
+  padding-top: 40px;
 }
 
 .toolbars {
+  width: 100%;
   transition-duration: 100ms;
   transition-property: padding-left;
 }
@@ -206,11 +254,18 @@ const resizeBottomRight = usePointer((pos, _, type) => {
   position: absolute;
   display: flex;
   gap: 4px;
-  top: 36px;
+  top: calc(var(--node-height) + 4px);
 }
 
 .VisualizationContainer.fullscreen .toolbars {
   top: 4px;
+}
+
+.below-viz {
+  position: absolute;
+  top: 100%;
+  width: 100%;
+  margin-top: 4px;
 }
 
 .toolbar {
@@ -219,8 +274,10 @@ const resizeBottomRight = usePointer((pos, _, type) => {
   border-radius: var(--radius-full);
   gap: 12px;
   padding: 8px;
+  z-index: 20;
 
-  > .background.background {
+  &:before {
+    content: '';
     position: absolute;
     top: 0;
     left: 0;
@@ -232,8 +289,15 @@ const resizeBottomRight = usePointer((pos, _, type) => {
   }
 }
 
-.toolbar:not(:first-child):not(:has(> :nth-child(2))) {
+.toolbar:not(:first-child):not(:has(> *)) {
   display: none;
+}
+
+.visualization-defined-toolbars {
+  max-width: calc(100% - var(--permanent-toolbar-width));
+  /* FIXME [sb]: This will cut off floating panels - consider investigating whether there's a better
+   * way to clip only the toolbar div itself. */
+  overflow-x: hidden;
 }
 
 .resizer-right {
@@ -288,26 +352,23 @@ const resizeBottomRight = usePointer((pos, _, type) => {
 .icon-container {
   display: inline-flex;
 }
-</style>
 
-<style>
-.VisualizationContainer > .toolbars > .toolbar > * {
+.VisualizationContainer :deep(> .toolbars > .toolbar > *) {
   position: relative;
 }
 
-.image-button {
-  cursor: none;
+:deep(.image-button) {
   background: none;
   padding: 0;
   border: none;
   opacity: 30%;
 }
 
-.image-button.active {
+:deep(.image-button.active) {
   opacity: unset;
 }
 
-.image-button > * {
+:deep(.image-button > *) {
   vertical-align: top;
 }
 </style>

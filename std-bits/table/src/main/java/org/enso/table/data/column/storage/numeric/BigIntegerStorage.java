@@ -2,8 +2,6 @@ package org.enso.table.data.column.storage.numeric;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
-import org.enso.table.data.column.builder.BigIntegerBuilder;
-import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.operation.map.MapOperationStorage;
 import org.enso.table.data.column.operation.map.numeric.arithmetic.AddOp;
 import org.enso.table.data.column.operation.map.numeric.arithmetic.DivideOp;
@@ -66,11 +64,6 @@ public class BigIntegerStorage extends SpecializedStorage<BigInteger> {
   @Override
   public StorageType getType() {
     return BigIntegerType.INSTANCE;
-  }
-
-  @Override
-  public Builder createDefaultBuilderOfSameType(int capacity) {
-    return new BigIntegerBuilder(capacity);
   }
 
   private long cachedMaxPrecisionStored = -1;

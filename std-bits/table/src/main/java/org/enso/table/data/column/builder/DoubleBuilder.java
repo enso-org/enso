@@ -1,5 +1,9 @@
 package org.enso.table.data.column.builder;
 
+import java.math.BigDecimal;
+import java.math.BigInteger;
+import java.util.BitSet;
+import java.util.Objects;
 import org.enso.base.polyglot.NumericConverter;
 import org.enso.table.data.column.operation.cast.ToFloatStorageConverter;
 import org.enso.table.data.column.storage.BoolStorage;
@@ -13,27 +17,24 @@ import org.enso.table.data.column.storage.type.FloatType;
 import org.enso.table.data.column.storage.type.IntegerType;
 import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.error.ValueTypeMismatchException;
-import org.enso.table.problems.AggregatedProblems;
+import org.enso.table.problems.ProblemAggregator;
 import org.enso.table.util.BitSets;
 
-import java.math.BigDecimal;
-import java.math.BigInteger;
-import java.util.BitSet;
-import java.util.Objects;
-
-/**
- * A builder for floating point columns.
- */
+/** A builder for floating point columns. */
 public class DoubleBuilder extends NumericBuilder {
-  DoubleBuilder(BitSet isMissing, long[] data, int currentSize) {
-    super(isMissing, data, currentSize);
+  DoubleBuilder(
+      BitSet isNothing, long[] data, int currentSize, ProblemAggregator problemAggregator) {
+    super(isNothing, data, currentSize);
+    precisionLossAggregator = new PrecisionLossAggregator(problemAggregator);
   }
 
   @Override
   public void retypeToMixed(Object[] items) {
-    throw new IllegalStateException("The DoubleBuilder cannot be retyped to the Mixed type, because it would lose " +
-        "type information about integers that were converted to doubles. If recasting is needed, " +
-        "InferringDoubleBuilder should be used instead. This error leaking is a bug in the Table library.");
+    throw new IllegalStateException(
+        "The DoubleBuilder cannot be retyped to the Mixed type, because it would lose type"
+            + " information about integers that were converted to doubles. If recasting is needed,"
+            + " InferringDoubleBuilder should be used instead. This error leaking is a bug in the"
+            + " Table library.");
   }
 
   @Override
@@ -54,7 +55,7 @@ public class DoubleBuilder extends NumericBuilder {
   @Override
   public void appendNoGrow(Object o) {
     if (o == null) {
-      isMissing.set(currentSize++);
+      isNothing.set(currentSize++);
     } else if (NumericConverter.isFloatLike(o)) {
       double value = NumericConverter.coerceToDouble(o);
       data[currentSize++] = Double.doubleToRawLongBits(value);
@@ -82,7 +83,7 @@ public class DoubleBuilder extends NumericBuilder {
         int n = doubleStorage.size();
         ensureFreeSpaceFor(n);
         System.arraycopy(doubleStorage.getRawData(), 0, data, currentSize, n);
-        BitSets.copy(doubleStorage.getIsMissing(), isMissing, currentSize, n);
+        BitSets.copy(doubleStorage.getIsNothingMap(), isNothing, currentSize, n);
         currentSize += n;
       } else {
         throw new IllegalStateException(
@@ -93,7 +94,7 @@ public class DoubleBuilder extends NumericBuilder {
     } else if (storage.getType() instanceof IntegerType) {
       if (storage instanceof AbstractLongStorage longStorage) {
         int n = longStorage.size();
-        BitSets.copy(longStorage.getIsMissing(), isMissing, currentSize, n);
+        BitSets.copy(longStorage.getIsNothingMap(), isNothing, currentSize, n);
         for (int i = 0; i < n; i++) {
           long item = longStorage.getItem(i);
           double converted = convertIntegerToDouble(item);
@@ -111,7 +112,7 @@ public class DoubleBuilder extends NumericBuilder {
         for (int i = 0; i < n; i++) {
           BigInteger item = bigIntegerStorage.getItem(i);
           if (item == null) {
-            isMissing.set(currentSize++);
+            isNothing.set(currentSize++);
           } else {
             double converted = convertBigIntegerToDouble(item);
             data[currentSize++] = Double.doubleToRawLongBits(converted);
@@ -127,8 +128,8 @@ public class DoubleBuilder extends NumericBuilder {
       if (storage instanceof BoolStorage boolStorage) {
         int n = boolStorage.size();
         for (int i = 0; i < n; i++) {
-          if (boolStorage.isNa(i)) {
-            isMissing.set(currentSize++);
+          if (boolStorage.isNothing(i)) {
+            isNothing.set(currentSize++);
           } else {
             double x = ToFloatStorageConverter.booleanAsDouble(boolStorage.getItem(i));
             data[currentSize++] = Double.doubleToRawLongBits(x);
@@ -159,8 +160,8 @@ public class DoubleBuilder extends NumericBuilder {
 
   /**
    * Append a new integer value to this builder, converting it to a double value.
-   * <p>
-   * It ensures that any loss of precision is reported.
+   *
+   * <p>It ensures that any loss of precision is reported.
    */
   public void appendLong(long integer) {
     if (currentSize >= this.data.length) {
@@ -182,19 +183,20 @@ public class DoubleBuilder extends NumericBuilder {
 
   @Override
   public Storage<Double> seal() {
-    return new DoubleStorage(data, currentSize, isMissing);
+    return new DoubleStorage(data, currentSize, isNothing);
   }
 
   /**
    * Converts and `long` value into `double`.
-   * <p>
-   * It verifies if the integer can be exactly represented in a double, and if not, it reports a warning.
+   *
+   * <p>It verifies if the integer can be exactly represented in a double, and if not, it reports a
+   * warning.
    */
   protected double convertIntegerToDouble(long integer) {
     double floatingPointValue = (double) integer;
     boolean isLosingPrecision = (long) floatingPointValue != integer;
     if (isLosingPrecision) {
-      reportPrecisionLoss(integer, floatingPointValue);
+      precisionLossAggregator.reportPrecisionLoss(integer, floatingPointValue);
     }
     return floatingPointValue;
   }
@@ -204,27 +206,35 @@ public class DoubleBuilder extends NumericBuilder {
     BigInteger reconstructed = BigDecimal.valueOf(floatingPointValue).toBigInteger();
     boolean isLosingPrecision = !bigInteger.equals(reconstructed);
     if (isLosingPrecision) {
-      reportPrecisionLoss(bigInteger, floatingPointValue);
+      precisionLossAggregator.reportPrecisionLoss(bigInteger, floatingPointValue);
     }
     return floatingPointValue;
   }
 
-  protected final void reportPrecisionLoss(Number number, double approximation) {
-    if (precisionLoss == null) {
-      precisionLoss = new LossOfIntegerPrecision(number, approximation);
-    } else {
-      precisionLoss.incrementAffectedRows();
+  protected static class PrecisionLossAggregator extends ProblemAggregator {
+    protected PrecisionLossAggregator(ProblemAggregator parent) {
+      super(parent);
+    }
+
+    private LossOfIntegerPrecision instance = null;
+
+    @Override
+    public ProblemSummary summarize() {
+      ProblemSummary summary = super.summarize();
+      if (instance != null) {
+        summary.add(instance);
+      }
+      return summary;
+    }
+
+    final void reportPrecisionLoss(Number number, double approximation) {
+      if (instance == null) {
+        instance = new LossOfIntegerPrecision(number, approximation);
+      } else {
+        instance.incrementAffectedRows();
+      }
     }
   }
 
-  protected LossOfIntegerPrecision precisionLoss = null;
-
-  @Override
-  public AggregatedProblems getProblems() {
-    AggregatedProblems problems = new AggregatedProblems(1);
-    if (precisionLoss != null) {
-      problems.add(precisionLoss);
-    }
-    return problems;
-  }
+  protected final PrecisionLossAggregator precisionLossAggregator;
 }

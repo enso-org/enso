@@ -7,20 +7,26 @@ import org.enso.compiler.context.{
   InlineContext,
   ModuleContext
 }
-import org.enso.compiler.core.IR
+import org.enso.compiler.core.{ExternalID, IR, Identifier}
 import org.enso.compiler.core.ir.{CallArgument, Expression, Function}
 import org.enso.compiler.core.ir.expression.Application
 import org.enso.compiler.core.ir.expression.errors
 import org.enso.compiler.core.ir.module.scope.definition
 import org.enso.compiler.pass.PassManager
-import org.enso.compiler.test.CompilerTest
-import org.enso.interpreter.runtime.scope.LocalScope
+import org.enso.compiler.test.CompilerTestSetup
+import org.enso.compiler.context.LocalScope
 import org.enso.text.buffer.Rope
+import org.enso.text.editing.JavaEditorAdapter
 import org.enso.text.editing.model.{Position, Range, TextEdit}
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AnyWordSpecLike
 
 import java.util.UUID
 
-class ChangesetBuilderTest extends CompilerTest {
+class ChangesetBuilderTest
+    extends AnyWordSpecLike
+    with Matchers
+    with CompilerTestSetup {
 
   implicit val passManager: PassManager = new Passes(defaultConfig).passManager
 
@@ -205,7 +211,7 @@ class ChangesetBuilderTest extends CompilerTest {
         .get
         .asInstanceOf[Function.Lambda]
       val secondLine =
-        ir.body.children(1).asInstanceOf[Application.Prefix]
+        ir.body.children()(1).asInstanceOf[Application.Prefix]
       val y =
         secondLine.arguments(0).asInstanceOf[CallArgument.Specified].value
       val plus = secondLine.function
@@ -245,7 +251,7 @@ class ChangesetBuilderTest extends CompilerTest {
         .preprocessExpression(freshInlineContext)
         .get
         .asInstanceOf[Function.Lambda]
-      val firstLine = ir.body.children(0).asInstanceOf[Expression.Binding]
+      val firstLine = ir.body.children()(0).asInstanceOf[Expression.Binding]
       val five      = firstLine.expression
 
       invalidated(ir, code, edit) should contain theSameElementsAs Seq(
@@ -265,10 +271,10 @@ class ChangesetBuilderTest extends CompilerTest {
         .preprocessExpression(freshInlineContext)
         .get
         .asInstanceOf[Function.Lambda]
-      val secondLine = ir.body.children(1).asInstanceOf[Expression.Binding]
+      val secondLine = ir.body.children()(1).asInstanceOf[Expression.Binding]
       val z          = secondLine.expression.asInstanceOf[Application.Force].target
       val thirdLine =
-        ir.body.children(2).asInstanceOf[Application.Prefix]
+        ir.body.children()(2).asInstanceOf[Application.Prefix]
       val y =
         thirdLine.arguments(0).asInstanceOf[CallArgument.Specified].value
       val plus = thirdLine.function
@@ -321,9 +327,9 @@ class ChangesetBuilderTest extends CompilerTest {
         .get
         .asInstanceOf[Expression.Binding]
       val body       = ir.expression.asInstanceOf[Function.Lambda].body
-      val secondLine = body.children(1).asInstanceOf[Expression.Binding]
+      val secondLine = body.children()(1).asInstanceOf[Expression.Binding]
       val z          = secondLine.expression.asInstanceOf[Application.Force].target
-      val thirdLine  = body.children(2).asInstanceOf[Application.Prefix]
+      val thirdLine  = body.children()(2).asInstanceOf[Application.Prefix]
       val y =
         thirdLine.arguments(0).asInstanceOf[CallArgument.Specified].value
       val plus = thirdLine.function
@@ -334,6 +340,22 @@ class ChangesetBuilderTest extends CompilerTest {
         y.getId,
         plus.getId
       )
+    }
+
+    "multiple last line" in {
+      val code =
+        """foo x =
+          |    z = 1
+          |    y = z
+          |    y + x""".stripMargin.linesIterator.mkString("\n")
+      val edits = Seq(
+        TextEdit(Range(Position(3, 4), Position(3, 9)), "y + x + y"),
+        TextEdit(Range(Position(3, 4), Position(3, 13)), "y + x + y + x"),
+        TextEdit(Range(Position(3, 4), Position(3, 17)), "y + x + y + x + 1")
+      )
+      val source = Rope(code)
+      val result = JavaEditorAdapter.applyEdits(source, edits)
+      result.isRight shouldBe true
     }
 
     "module with undefined literal" in {
@@ -445,7 +467,11 @@ class ChangesetBuilderTest extends CompilerTest {
     }
   }
 
-  def invalidated(ir: IR, code: String, edits: TextEdit*): Set[IR.Identifier] =
+  def invalidated(
+    ir: IR,
+    code: String,
+    edits: TextEdit*
+  ): Set[UUID @Identifier] =
     new ChangesetBuilder(Rope(code), ir)
       .invalidated(edits)
       .map(n => n.externalId.getOrElse(n.internalId))
@@ -454,7 +480,7 @@ class ChangesetBuilderTest extends CompilerTest {
     ir: IR,
     code: String,
     edits: TextEdit*
-  ): Set[IR.ExternalId] =
+  ): Set[UUID @ExternalID] =
     new ChangesetBuilder(Rope(code), ir).compute(edits)
 
   def freshModuleContext: ModuleContext =

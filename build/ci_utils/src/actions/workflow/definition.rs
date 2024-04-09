@@ -7,41 +7,81 @@ use crate::env::accessor::RawVariable;
 use heck::ToKebabCase;
 use std::collections::btree_map::Entry;
 use std::collections::BTreeMap;
-use std::collections::BTreeSet;
 use std::convert::identity;
 use std::sync::atomic::AtomicU64;
 use std::sync::atomic::Ordering;
 
 
 
+/// Operating system and architecture.
+///
+/// While this should be enough of a target information for a Job definition, it is not enough
+/// for a runner labels: self-hosted and GitHub-hosted runners use different label schemes.
+pub type Target = (OS, Arch);
+
 /// Default timeout for a job.
 ///
 /// We use a very long timeout because we want to avoid cancelling jobs that are just slow.
 pub const DEFAULT_TIMEOUT_IN_MINUTES: u32 = 360;
 
+/// The name of the field in the matrix strategy that we use by convention for different
+/// runner labels (OS-es, but also runner-identifying labels).
+const MATRIX_STRATEGY_OS: &str = "os";
+
+/// Wraps a given expression in GitHub Actions into `{{ ... }}`.
+///
+/// Expressions must be wrapped in this way to be evaluated by GitHub Actions, except for some
+/// special cases, e.g. `if` expressions.
 pub fn wrap_expression(expression: impl AsRef<str>) -> String {
     format!("${{{{ {} }}}}", expression.as_ref())
 }
 
 /// An expression that accesses a secret with a given name.
+///
+/// /// # Example
+///
+/// ```
+/// use ide_ci::actions::workflow::definition::secret_expression;
+///
+/// let secret_name = "MY_SECRET";
+/// let secret_expr = secret_expression(secret_name);
+/// assert_eq!(secret_expr, "${{ secrets.MY_SECRET }}");
+/// ```
 pub fn secret_expression(secret_name: impl AsRef<str>) -> String {
     wrap_expression(format!("secrets.{}", secret_name.as_ref()))
 }
 
+/// An expression that accesses a variable with a given name.
+pub fn variable_expression(secret_name: impl AsRef<str>) -> String {
+    wrap_expression(format!("vars.{}", secret_name.as_ref()))
+}
+
+/// An expression that accesses an environment variable with a given name.
 pub fn env_expression(environment_variable: &impl RawVariable) -> String {
     wrap_expression(format!("env.{}", environment_variable.name()))
 }
 
+/// Get expression that gets input from the workflow dispatch. See:
+/// <https://docs.github.com/en/actions/using-workflows/events-that-trigger-workflows#providing-inputs>
+pub fn get_input_expression(name: impl Into<String>) -> String {
+    wrap_expression(format!("inputs.{}", name.into()))
+}
 
+/// GH Actions expression piece that evaluates to `true` if run on a GitHub-hosted runner.
 pub fn is_github_hosted() -> String {
     "startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')".into()
 }
 
+/// Step that sets up `conda` on GitHub-hosted runners.
+///
+/// We set up `conda` on GitHub-hosted runners because we need it to install `flatbuffers` in
+/// required version. Our self-hosted runners have `flatc` already installed, so we don't need
+/// `conda` there.
 pub fn setup_conda() -> Step {
     // use crate::actions::workflow::definition::step::CondaChannel;
     Step {
         name: Some("Setup conda (GH runners only)".into()),
-        uses: Some("s-weigand/setup-conda@v1.0.6".into()),
+        uses: Some("s-weigand/setup-conda@v1.2.1".into()),
         r#if: Some(is_github_hosted()),
         with: Some(step::Argument::SetupConda {
             update_conda:   Some(false),
@@ -64,15 +104,17 @@ pub fn setup_wasm_pack_step() -> Step {
     }
 }
 
+/// Step that executes a given [GitHub Script](https://github.com/actions/github-script).
 pub fn github_script_step(name: impl Into<String>, script: impl Into<String>) -> Step {
     Step {
         name: Some(name.into()),
-        uses: Some("actions/github-script@v6".into()),
+        uses: Some("actions/github-script@v7".into()),
         with: Some(step::Argument::GitHubScript { script: script.into() }),
         ..default()
     }
 }
 
+/// Export environment needed by our [Artifact API wrappers](crate::actions::artifacts).
 pub fn setup_artifact_api() -> Step {
     let script = r#"
     core.exportVariable("ACTIONS_RUNTIME_TOKEN", process.env["ACTIONS_RUNTIME_TOKEN"])
@@ -83,22 +125,14 @@ pub fn setup_artifact_api() -> Step {
     github_script_step("Expose Artifact API and context information.", script)
 }
 
+/// An expression piece that evaluates to `true` if the current runner runs on Windows.
 pub fn is_windows_runner() -> String {
     "runner.os == 'Windows'".into()
 }
 
+/// An expression piece that evaluates to `true` if the current runner *does not* run on Windows.
 pub fn is_non_windows_runner() -> String {
     "runner.os != 'Windows'".into()
-}
-
-pub fn shell_os(os: OS, command_line: impl Into<String>) -> Step {
-    Step {
-        run: Some(command_line.into()),
-        env: once(github_token_env()).collect(),
-        r#if: Some(format!("runner.os {} 'Windows'", if os == OS::Windows { "==" } else { "!=" })),
-        shell: Some(if os == OS::Windows { Shell::Pwsh } else { Shell::Bash }),
-        ..default()
-    }
 }
 
 pub fn shell(command_line: impl Into<String>) -> Step {
@@ -113,7 +147,7 @@ pub fn run(run_args: impl AsRef<str>) -> Step {
 pub fn cancel_workflow_action() -> Step {
     Step {
         name: Some("Cancel Previous Runs".into()),
-        uses: Some("styfle/cancel-workflow-action@0.9.1".into()),
+        uses: Some("styfle/cancel-workflow-action@0.12.1".into()),
         with: Some(step::Argument::Other(BTreeMap::from_iter([(
             "access_token".into(),
             "${{ github.token }}".into(),
@@ -129,7 +163,11 @@ pub struct JobId(String);
 #[serde(rename_all = "kebab-case", untagged)]
 pub enum Concurrency {
     Plain(String),
-    Map { group: String, cancel_in_progress: bool },
+    #[serde(rename_all = "kebab-case")]
+    Map {
+        group:              String,
+        cancel_in_progress: String,
+    },
 }
 
 impl Concurrency {
@@ -164,6 +202,9 @@ pub enum Access {
     None,
 }
 
+/// Models a GitHub Actions workflow definition.
+///
+/// See: <https://docs.github.com/en/actions/using-workflows/workflow-syntax-for-github-actions>.
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct Workflow {
@@ -173,6 +214,7 @@ pub struct Workflow {
     pub on:          Event,
     #[serde(skip_serializing_if = "BTreeMap::is_empty")]
     pub permissions: BTreeMap<Permission, Access>,
+    // No additional clause, as the jobs must be non-empty.
     pub jobs:        BTreeMap<String, Job>,
     #[serde(skip_serializing_if = "BTreeMap::is_empty")]
     pub env:         BTreeMap<String, String>,
@@ -202,6 +244,10 @@ impl Workflow {
         Self { name: name.into(), ..Default::default() }
     }
 
+    /// Expose all outputs of one job to another.
+    ///
+    /// Note that while a source job must have been already added to the workflow, the consumer job
+    /// must not have been added yet. This step is meant to be a part of the consumer job building.
     pub fn expose_outputs(&self, source_job_id: impl AsRef<str>, consumer_job: &mut Job) {
         let source_job = self.jobs.get(source_job_id.as_ref()).unwrap();
         consumer_job.use_job_outputs(source_job_id.as_ref(), source_job);
@@ -217,17 +263,17 @@ impl Workflow {
         key
     }
 
-    pub fn add(&mut self, os: OS, job: impl JobArchetype) -> String {
-        self.add_customized(os, job, |_| {})
+    pub fn add(&mut self, target: Target, job: impl JobArchetype) -> String {
+        self.add_customized(target, job, |_| {})
     }
 
     pub fn add_customized(
         &mut self,
-        os: OS,
+        target: Target,
         job: impl JobArchetype,
         f: impl FnOnce(&mut Job),
     ) -> String {
-        let (key, mut job) = job.entry(os);
+        let (key, mut job) = job.entry(target);
         f(&mut job);
         self.jobs.insert(key.clone(), job);
         key
@@ -235,11 +281,11 @@ impl Workflow {
 
     pub fn add_dependent(
         &mut self,
-        os: OS,
+        target: Target,
         job: impl JobArchetype,
         needed: impl IntoIterator<Item: AsRef<str>>,
     ) -> String {
-        let (key, mut job) = job.entry(os);
+        let (key, mut job) = job.entry(target);
         for needed in needed {
             self.expose_outputs(needed.as_ref(), &mut job);
         }
@@ -781,12 +827,10 @@ impl Strategy {
         Ok(self)
     }
 
-    pub fn new_os(labels: impl Serialize) -> Strategy {
-        let oses = serde_json::to_value(labels).unwrap();
-        Strategy {
-            fail_fast: Some(false),
-            matrix:    [("os".to_string(), oses)].into_iter().collect(),
-        }
+    pub fn new_os(values: impl IntoIterator<Item: Serialize>) -> Result<Strategy> {
+        let mut matrix = Self { fail_fast: Some(false), ..default() };
+        matrix.insert_to_matrix(MATRIX_STRATEGY_OS, values)?;
+        Ok(matrix)
     }
 }
 
@@ -823,7 +867,33 @@ impl Step {
         self.with_secret_exposed_as(secret_name, env_name)
     }
 
+    /// Expose [a variable](https://docs.github.com/en/actions/learn-github-actions/variables) as an environment variable with the same name.
+    pub fn with_variable_exposed(self, variable: impl AsRef<str>) -> Self {
+        let variable_name = variable.as_ref();
+        let env_name = variable_name.to_owned();
+        self.with_variable_exposed_as(variable_name, env_name)
+    }
+
+    /// Expose [a variable](https://docs.github.com/en/actions/learn-github-actions/variables) as an environment variable with a given name.
+    pub fn with_variable_exposed_as(
+        self,
+        variable: impl AsRef<str>,
+        given_name: impl Into<String>,
+    ) -> Self {
+        let variable_expr = variable_expression(variable);
+        self.with_env(given_name, variable_expr)
+    }
+
     /// Expose a secret as an environment variable with a given name.
+    pub fn with_input_exposed_as(
+        self,
+        input: impl AsRef<str>,
+        given_name: impl Into<String>,
+    ) -> Self {
+        let input_expr = get_input_expression(input.as_ref());
+        self.with_env(given_name, input_expr)
+    }
+
     pub fn with_secret_exposed_as(
         self,
         secret: impl AsRef<str>,
@@ -978,55 +1048,20 @@ pub enum RunnerLabel {
     WindowsLatest,
     #[serde(rename = "X64")]
     X64,
-    #[serde(rename = "mwu-deluxe")]
-    MwuDeluxe,
+    #[serde(rename = "ARM64")]
+    Arm64,
     #[serde(rename = "benchmark")]
     Benchmark,
-    #[serde(rename = "${{ matrix.os }}")]
+    #[serde(rename = "metarunner")]
+    Metarunner,
+    #[serde(rename = "${{ matrix.os }}")] // Must be in sync with [`MATRIX_STRATEGY_OS`].
     MatrixOs,
 }
 
 pub fn checkout_repo_step_customized(f: impl FnOnce(Step) -> Step) -> Vec<Step> {
-    // This is a workaround for a bug in GH actions/checkout. If a submodule is added and removed,
-    // it effectively breaks any future builds of this repository on a given self-hosted runner.
-    // The workaround step below comes from:
-    // https://github.com/actions/checkout/issues/590#issuecomment-970586842
-    //
-    // As an exception to general rule, we use here bash even on Windows. As the bash us the one
-    // coming from a git installation, we can assume that git works nicely with it.
-    // Having this rewritten to github-script might have been nicer but it does not seem
-    // effort-worthy.
-    //
-    // See:
-    // https://github.com/actions/checkout/issues/590
-    // https://github.com/actions/checkout/issues/788
-    // and many other duplicate reports.
-    let git_bash_command = "git checkout -f $(git -c user.name=x -c user.email=x@x commit-tree $(git hash-object -t tree /dev/null) < /dev/null) || :";
-    let submodules_workaround_win = Step {
-        // We can't add git-bash to PATH because this would break the Rust build.
-        // Instead we manually spawn the bash with a given command from CMD shell.
-        run: Some(format!(r#""c:\Program Files\Git\bin\bash.exe" -c "{git_bash_command}""#)),
-        shell: Some(Shell::Cmd),
-        r#if: Some(is_windows_runner()),
-        name: Some(
-            "Workaround for https://github.com/actions/checkout/issues/590 (Windows)".into(),
-        ),
-        ..default()
-    };
-    let submodules_workaround_linux = Step {
-        run: Some(git_bash_command.into()),
-        shell: Some(Shell::Bash),
-        r#if: Some(is_non_windows_runner()),
-        name: Some(
-            "Workaround for  https://github.com/actions/checkout/issues/590 (non-Windows)".into(),
-        ),
-        ..default()
-    };
     let actual_checkout = Step {
         name: Some("Checking out the repository".into()),
-        // FIXME: Check what is wrong with v3. Seemingly Engine Tests fail because there's only a
-        //        shallow copy of the repo.
-        uses: Some("actions/checkout@v2".into()),
+        uses: Some("actions/checkout@v4".into()),
         with: Some(step::Argument::Checkout {
             repository: None,
             clean:      Some(false),
@@ -1036,9 +1071,10 @@ pub fn checkout_repo_step_customized(f: impl FnOnce(Step) -> Step) -> Vec<Step> 
     };
     // Apply customization.
     let actual_checkout = f(actual_checkout);
-    vec![submodules_workaround_win, submodules_workaround_linux, actual_checkout]
+    vec![actual_checkout]
 }
 
+/// See [`checkout_repo_step_customized`].
 pub fn checkout_repo_step() -> impl IntoIterator<Item = Step> {
     checkout_repo_step_customized(identity)
 }
@@ -1048,14 +1084,14 @@ pub trait JobArchetype {
         std::any::type_name::<Self>().to_kebab_case()
     }
 
-    fn key(&self, os: OS) -> String {
-        format!("{}-{}", self.id_key_base(), os)
+    fn key(&self, (os, arch): Target) -> String {
+        format!("{}-{os}-{arch}", self.id_key_base())
     }
 
-    fn job(&self, os: OS) -> Job;
+    fn job(&self, target: Target) -> Job;
 
-    fn entry(&self, os: OS) -> (String, Job) {
-        (self.key(os), self.job(os))
+    fn entry(&self, target: Target) -> (String, Job) {
+        (self.key(target), self.job(target))
     }
 
     // [Step ID] => [variable names]

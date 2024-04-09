@@ -1,0 +1,129 @@
+
+from Standard.Base import all
+import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
+import Standard.Base.Runtime.State
+from Standard.Base.Runtime import assert
+
+import project.Group.Group
+import project.Group.Group_Builder
+import project.Helpers
+import project.Suite_Config.Suite_Config
+import project.Test_Reporter
+
+polyglot java import java.lang.StringBuilder
+
+type Suite_Builder
+    ## PRIVATE
+
+       Arguments:
+       - builder: Vector builder that holds all the groups.
+    Impl builder
+
+    ## Add a group to the suite builder.
+
+       Arguments:
+       - name: Name of the group. When collecting multiple groups into a single suite, all the
+         group names must be unique. Otherwise, a panic is thrown.
+       - fn: A callback function that takes `Group_Builder` as an argument. You can call the
+         `specify` method on group builder. See its docs.
+       - pending: Contains a reason for why the test group should be ignored. If Nothing, the test
+         is not ignored.
+    group : Text -> (Group_Builder -> Any) -> (Text | Nothing) -> Nothing
+    group self (name:Text) (fn : (Group_Builder -> Any)) (pending : (Text | Nothing) = Nothing) =
+        group_builder = Group_Builder.Impl
+        case pending of
+            Nothing ->
+                fn group_builder
+                group = Group.Impl name group_builder.teardown_ref.get group_builder.builder.to_vector pending
+                self.builder.append group
+            pend_reason : Text ->
+                group = Group.Impl name group_builder.teardown_ref.get [] pend_reason
+                self.builder.append group
+
+
+## A testing suite that holds all the groups with test specs.
+
+   Users are expected to build the suite via `Suite_Builder`. That is, via `Test.build` method.
+type Suite
+    ## PRIVATE
+    Impl (groups : Vector Group)
+
+    ## Run only tests that match the provided filter.
+
+       Arguments:
+       - filter: Either text or Nothing. If Nothing, matches all the specs and all the groups.
+         If `filter` is text, it is first compiled into a regex and all the groups or the
+         specs that match the regex are run.
+       - should_exit: If true, executes `System.exit` at the end, so the method does not return.
+         If false, return boolean from the method indicating whether some tests failed.
+
+       Returns: Boolean if `should_exit` is False, otherwise exits the process.
+    run_with_filter self (filter : (Text | Nothing) = Nothing) should_exit=True -> (Boolean | Nothing) =
+        config = Suite_Config.from_environment
+
+        # Map of groups to vector of specs that match the filter
+        matching_specs = self.groups.fold Map.empty map-> group->
+            group_matches = name_matches group.name filter
+            case group_matches of
+                True ->
+                    # Include all the specs from the group
+                    map.insert group group.specs
+                False ->
+                    # Try to include only some specs from the group
+                    matched_specs = group.specs.filter spec->
+                        name_matches spec.name filter
+                    case matched_specs.is_empty of
+                        True -> map
+                        False ->
+                            assert (map.contains_key group . not)
+                            map.insert group matched_specs
+
+
+        all_results_bldr = Vector.new_builder
+        junit_sb_builder = if config.should_output_junit then StringBuilder.new else Nothing
+        Test_Reporter.wrap_junit_testsuites config junit_sb_builder <|
+            matching_specs.each_with_key group-> specs->
+                if group.is_pending.not then
+                    results = Helpers.run_specs_from_group specs group
+                    Test_Reporter.print_report results config junit_sb_builder
+                    all_results_bldr.append_vector_range results
+        all_results = all_results_bldr.to_vector
+        succ_tests = all_results.filter (r-> r.is_success) . length
+        failed_tests = all_results.filter (r-> r.is_fail) . length
+        skipped_tests = all_results.filter (r-> r.is_pending) . length
+        case should_exit of
+            True ->
+                IO.println <| succ_tests.to_text + " tests succeeded."
+                IO.println <| failed_tests.to_text + " tests failed."
+                IO.println <| skipped_tests.to_text + " tests skipped."
+                pending_groups = matching_specs.keys.filter (group-> group.is_pending)
+                pending_groups_details = case pending_groups.is_empty of
+                    True -> "."
+                    False -> ": " + (pending_groups.map (it-> it.name) . to_text)
+                IO.println <| pending_groups.length.to_text + " groups skipped" + pending_groups_details
+                exit_code = if failed_tests > 0 then 1 else 0
+                System.exit exit_code
+            False ->
+                failed_tests == 0
+
+    ## Gets the names of all the groups in this suite.
+    group_names self =
+        self.groups.map (_.name)
+
+    ## Print the structure of the suite to the console.
+    print_all self =
+        IO.println "Test Suite:"
+        self.groups.each group->
+            IO.println <| "  Group '" + group.name + "':"
+            group.specs.each spec->
+                IO.println <| "    " + spec.name
+
+
+## PRIVATE
+name_matches (name : Text) (filter : (Text | Nothing)) -> Boolean =
+    case filter of
+        text : Text ->
+            regex = Regex.compile text
+            if regex.is_error.not then regex.match name != Nothing else
+                Panic.throw (Illegal_Argument.Error ("Filter '" + text + "' cannot be converted to regex"))
+        Nothing -> True

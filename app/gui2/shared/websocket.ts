@@ -1,4 +1,8 @@
+/// <reference lib="DOM" />
 /* eslint-env browser */
+
+// The refernce to DOM types is requiredto use `WebSocket` as a type.
+// This is preferable over using `any`, for additional type safety.
 
 /* The MIT License (MIT)
  *
@@ -34,16 +38,17 @@
 import * as math from 'lib0/math'
 import { ObservableV2 } from 'lib0/observable'
 import * as time from 'lib0/time'
+import type { AbortScope } from './util/net'
 
 const reconnectTimeoutBase = 1200
 const maxReconnectTimeout = 2500
 // @todo - this should depend on awareness.outdatedTime
 const messageReconnectTimeout = 30000
 
-const setupWS = (wsclient: WebsocketClient) => {
-  if (wsclient.shouldConnect && wsclient.ws === null) {
-    // @ts-ignore I don't know why `lib` is misconfigured.
-    const websocket = new WebSocket(wsclient.url)
+const setupWS = (wsclient: WebsocketClient, ws?: WebSocket | null | undefined) => {
+  if (wsclient.shouldConnect && (wsclient.ws === null || ws)) {
+    // deepcode ignore MissingClose: This is closed by `WebsocketClient` below.
+    const websocket = ws ?? new WebSocket(wsclient.url)
     const binaryType = wsclient.binaryType
     let pingTimeout: any = null
     if (binaryType) {
@@ -115,7 +120,7 @@ type WebsocketEvents = {
 }
 
 export class WebsocketClient extends ObservableV2<WebsocketEvents> {
-  ws: any
+  ws: WebSocket | null
   binaryType
   sendPings
   connected
@@ -126,12 +131,14 @@ export class WebsocketClient extends ObservableV2<WebsocketEvents> {
   protected _checkInterval
   constructor(
     public url: string,
+    abort: AbortScope,
     {
       binaryType,
       sendPings,
     }: { binaryType?: 'arraybuffer' | 'blob' | null; sendPings?: boolean } = {},
   ) {
     super()
+    abort.handleDispose(this)
     this.ws = null
     this.binaryType = binaryType || null
     this.sendPings = sendPings ?? true
@@ -140,16 +147,17 @@ export class WebsocketClient extends ObservableV2<WebsocketEvents> {
     this.unsuccessfulReconnects = 0
     this.lastMessageReceived = 0
     /** Whether to connect to other peers or not */
-    this.shouldConnect = true
-    this._checkInterval = this.sendPings
-      ? setInterval(() => {
+    this.shouldConnect = false
+    this._checkInterval =
+      this.sendPings ?
+        setInterval(() => {
           if (
             this.connected &&
             messageReconnectTimeout < time.getUnixTime() - this.lastMessageReceived
           ) {
             // no message received in a long time - not even your own awareness
             // updates (which are updated every 15 seconds)
-            this.ws.close()
+            this.ws?.close()
           }
         }, messageReconnectTimeout / 2)
       : 0
@@ -157,16 +165,13 @@ export class WebsocketClient extends ObservableV2<WebsocketEvents> {
   }
 
   send(message: {} | ArrayBuffer | Blob) {
-    if (this.ws) {
-      const encoded =
-        message instanceof ArrayBuffer || message instanceof Blob
-          ? message
-          : JSON.stringify(message)
-      this.ws.send(encoded)
-    }
+    if (!this.ws) return
+    const encoded =
+      message instanceof ArrayBuffer || message instanceof Blob ? message : JSON.stringify(message)
+    this.ws.send(encoded)
   }
 
-  destroy() {
+  dispose() {
     clearInterval(this._checkInterval)
     this.disconnect()
     super.destroy()
@@ -174,15 +179,14 @@ export class WebsocketClient extends ObservableV2<WebsocketEvents> {
 
   disconnect() {
     this.shouldConnect = false
-    if (this.ws !== null) {
-      this.ws.close()
-    }
+    this.ws?.close()
   }
 
-  connect() {
+  connect(ws?: WebSocket | null | undefined) {
     this.shouldConnect = true
-    if (!this.connected && this.ws === null) {
-      setupWS(this)
+    if (ws) this.ws = ws
+    if ((!this.connected && !this.ws) || ws) {
+      setupWS(this, ws)
     }
   }
 }

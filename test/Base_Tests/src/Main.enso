@@ -1,0 +1,176 @@
+from Standard.Base import all
+
+from Standard.Test import all
+
+import project.Semantic.Any_Spec
+import project.Semantic.Case_Spec
+import project.Semantic.Conversion_Spec
+import project.Semantic.Deep_Export.Spec as Deep_Export_Spec
+import project.Semantic.Error_Spec
+import project.Semantic.Import_Loop.Spec as Import_Loop_Spec
+import project.Semantic.Meta_Spec
+import project.Semantic.Instrumentor_Spec
+import project.Semantic.Meta_Location_Spec
+import project.Semantic.Names_Spec
+import project.Semantic.Equals_Spec
+import project.Semantic.Runtime_Spec
+import project.Semantic.Self_Type_Spec
+import project.Semantic.Warnings_Spec
+
+import project.Semantic.Java_Interop_Spec
+import project.Semantic.Js_Interop_Spec
+import project.Semantic.Python_Interop_Spec
+import project.Semantic.R_Interop_Spec
+
+import project.Data.Array_Spec
+import project.Data.Array_Polyglot_Spec
+import project.Data.Array_Proxy_Spec
+import project.Data.Bool_Spec
+import project.Data.Base_64_Spec
+import project.Data.Decimal_Spec
+import project.Data.Function_Spec
+import project.Data.Interval_Spec
+import project.Data.Json_Spec
+import project.Data.List_Spec
+import project.Data.Locale_Spec
+import project.Data.Map_Spec
+import project.Data.Maybe_Spec
+import project.Data.Numbers_Spec
+import project.Data.Ordering_Spec
+import project.Data.Ordering.Comparator_Spec
+import project.Data.Ordering.Natural_Order_Spec
+import project.Data.Ordering.Vector_Lexicographic_Order_Spec
+import project.Data.Pair_Spec
+import project.Data.Polyglot_Spec
+import project.Data.Problems_Spec
+import project.Data.Range_Spec
+import project.Data.Regression_Spec
+import project.Data.Set_Spec
+import project.Data.Statistics_Spec
+import project.Data.Time.Spec as Time_Spec
+import project.Data.Vector_Spec
+
+import project.Data.Text_Spec
+import project.Data.Text.Text_Sub_Range_Spec
+import project.Data.Text.Encoding_Spec
+import project.Data.Text.Parse_Spec
+import project.Data.Text.Regex_Spec
+import project.Data.Text.Span_Spec
+import project.Data.Text.Utils_Spec
+import project.Data.XML.XML_Spec
+
+import project.Data.Vector.Slicing_Helpers_Spec
+
+import project.Network.Enso_Cloud.Main as Enso_Cloud_Main
+
+import project.Network.Http.Header_Spec as Http_Header_Spec
+import project.Network.Http.Request_Spec as Http_Request_Spec
+import project.Network.Http.Http_Auto_Parse_Spec
+import project.Network.Http.Http_Data_Link_Spec
+import project.Network.Http_Spec
+import project.Network.URI_Spec
+
+import project.Runtime.Ascribed_Parameters_Spec
+import project.Runtime.Asserts_Spec
+import project.Runtime.Lazy_Spec
+import project.Runtime.Lazy_Generator_Spec
+import project.Runtime.Managed_Resource_Spec
+import project.Runtime.Missing_Required_Arguments_Spec
+import project.Runtime.Ref_Spec
+import project.Runtime.State_Spec
+import project.Runtime.Stack_Traces_Spec
+
+import project.System.Environment_Spec
+import project.System.File_Spec
+import project.System.File_Read_Spec
+import project.System.Process_Spec
+import project.System.Reporting_Stream_Decoder_Spec
+import project.System.Reporting_Stream_Encoder_Spec
+import project.System.System_Spec
+import project.System.Temporary_File_Spec
+
+import project.Random_Spec
+
+main filter=Nothing =
+    suite = Test.build suite_builder->
+        Any_Spec.add_specs suite_builder
+        Array_Spec.add_specs suite_builder
+        Array_Proxy_Spec.add_specs suite_builder
+        Array_Polyglot_Spec.add_specs suite_builder
+        Bool_Spec.add_specs suite_builder
+        Base_64_Spec.add_specs suite_builder
+        Function_Spec.add_specs suite_builder
+        Case_Spec.add_specs suite_builder
+        Conversion_Spec.add_specs suite_builder
+        Deep_Export_Spec.add_specs suite_builder
+        Error_Spec.add_specs suite_builder
+        Environment_Spec.add_specs suite_builder
+        File_Spec.add_specs suite_builder
+        Temporary_File_Spec.add_specs suite_builder
+        File_Read_Spec.add_specs suite_builder
+        Reporting_Stream_Decoder_Spec.add_specs suite_builder
+        Reporting_Stream_Encoder_Spec.add_specs suite_builder
+        Http_Header_Spec.add_specs suite_builder
+        Http_Request_Spec.add_specs suite_builder
+        Http_Spec.add_specs suite_builder
+        Http_Auto_Parse_Spec.add_specs suite_builder
+        Http_Data_Link_Spec.add_specs suite_builder
+        Enso_Cloud_Main.add_specs suite_builder
+        Import_Loop_Spec.add_specs suite_builder
+        Interval_Spec.add_specs suite_builder
+        Java_Interop_Spec.add_specs suite_builder
+        Js_Interop_Spec.add_specs suite_builder
+        Json_Spec.add_specs suite_builder
+        List_Spec.add_specs suite_builder
+        Locale_Spec.add_specs suite_builder
+        Map_Spec.add_specs suite_builder
+        Set_Spec.add_specs suite_builder
+        Maybe_Spec.add_specs suite_builder
+        Meta_Spec.add_specs suite_builder
+        Instrumentor_Spec.add_specs suite_builder
+        Meta_Location_Spec.add_specs suite_builder
+        Names_Spec.add_specs suite_builder
+        Numbers_Spec.add_specs suite_builder
+        Equals_Spec.add_specs suite_builder
+        Ordering_Spec.add_specs suite_builder
+        Comparator_Spec.add_specs suite_builder
+        Natural_Order_Spec.add_specs suite_builder
+        Vector_Lexicographic_Order_Spec.add_specs suite_builder
+        Process_Spec.add_specs suite_builder
+        Python_Interop_Spec.add_specs suite_builder
+        R_Interop_Spec.add_specs suite_builder
+        Pair_Spec.add_specs suite_builder
+        Parse_Spec.add_specs suite_builder
+        Polyglot_Spec.add_specs suite_builder
+        Problems_Spec.add_specs suite_builder
+        Range_Spec.add_specs suite_builder
+        Ref_Spec.add_specs suite_builder
+        Regex_Spec.add_specs suite_builder
+        Ascribed_Parameters_Spec.add_specs suite_builder
+        Asserts_Spec.add_specs suite_builder
+        Lazy_Spec.add_specs suite_builder
+        Runtime_Spec.add_specs suite_builder
+        Self_Type_Spec.add_specs suite_builder
+        Span_Spec.add_specs suite_builder
+        State_Spec.add_specs suite_builder
+        Encoding_Spec.add_specs suite_builder
+        Text_Sub_Range_Spec.add_specs suite_builder
+        Managed_Resource_Spec.add_specs suite_builder
+        Missing_Required_Arguments_Spec.add_specs suite_builder
+        Lazy_Generator_Spec.add_specs suite_builder
+        Stack_Traces_Spec.add_specs suite_builder
+        Utils_Spec.add_specs suite_builder
+        Text_Spec.add_specs suite_builder
+        Time_Spec.add_specs suite_builder
+        URI_Spec.add_specs suite_builder
+        Vector_Spec.add_specs suite_builder
+        Slicing_Helpers_Spec.add_specs suite_builder
+        Statistics_Spec.add_specs suite_builder
+        Regression_Spec.add_specs suite_builder
+        Warnings_Spec.add_specs suite_builder
+        System_Spec.add_specs suite_builder
+        Random_Spec.add_specs suite_builder
+        XML_Spec.add_specs suite_builder
+        Decimal_Spec.add_specs suite_builder
+
+    suite.run_with_filter filter

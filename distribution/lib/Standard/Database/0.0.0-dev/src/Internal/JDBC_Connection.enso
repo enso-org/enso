@@ -4,17 +4,16 @@ import Standard.Base.Errors.Illegal_State.Illegal_State
 import Standard.Base.Errors.Unimplemented.Unimplemented
 import Standard.Base.Runtime.Context
 import Standard.Base.Runtime.Managed_Resource.Managed_Resource
+from Standard.Base.Enso_Cloud.Enso_Secret import as_hideable_value
 
-import Standard.Table.Data.Table.Table as Materialized_Table
-import Standard.Table.Data.Type.Value_Type.Value_Type
+from Standard.Table import Table, Value_Type
 
-import project.Data.SQL_Statement.SQL_Statement
-import project.Data.SQL_Type.SQL_Type
-import project.Data.Table.Table as Database_Table
 import project.Internal.Column_Fetcher as Column_Fetcher_Module
 import project.Internal.In_Transaction.In_Transaction
 import project.Internal.SQL_Warning_Helper
 import project.Internal.Statement_Setter.Statement_Setter
+import project.SQL_Statement.SQL_Statement
+import project.SQL_Type.SQL_Type
 from project.Errors import SQL_Error, SQL_Timeout
 from project.Internal.Result_Set import result_set_to_table
 
@@ -23,9 +22,9 @@ polyglot java import java.sql.DatabaseMetaData
 polyglot java import java.sql.PreparedStatement
 polyglot java import java.sql.SQLException
 polyglot java import java.sql.SQLTimeoutException
-polyglot java import java.util.Properties
 polyglot java import org.enso.database.dryrun.OperationSynchronizer
 polyglot java import org.enso.database.JDBCProxy
+polyglot java import org.graalvm.collections.Pair as Java_Pair
 
 type JDBC_Connection
     ## PRIVATE
@@ -157,7 +156,7 @@ type JDBC_Connection
 
        It may be used for accessing simple database metadata. It should never be
        used for proper queries.
-    raw_read_statement : Text -> Materialized_Table
+    raw_read_statement : Text -> Table
     raw_read_statement self raw_sql =
         self.with_prepared_statement raw_sql Statement_Setter.null stmt->
             log_sql_if_enabled self stmt.toString
@@ -226,8 +225,8 @@ type JDBC_Connection
 
        It is the caller's responsibility to call this method from within a
        transaction to ensure consistency.
-    batch_insert : Text -> Statement_Setter -> Materialized_Table -> Integer -> Integer | Nothing -> Nothing
-    batch_insert self insert_template statement_setter table batch_size row_limit=Nothing =
+    batch_insert : Text -> Statement_Setter -> Table -> Integer -> Vector Value_Type | Nothing -> Integer | Nothing -> Nothing
+    batch_insert self insert_template statement_setter table batch_size expected_type_hints=Nothing row_limit=Nothing =
         In_Transaction.ensure_in_transaction <| self.with_connection java_connection-> handle_sql_errors related_query=insert_template <|
             Managed_Resource.bracket (java_connection.prepareStatement insert_template) .close stmt->
                 log_sql_if_enabled self insert_template
@@ -244,7 +243,7 @@ type JDBC_Connection
                                 Panic.throw <| Illegal_State.Error "A single update within the batch unexpectedly affected "+affected_rows.to_text+" rows."
                 0.up_to num_rows . each row_id->
                     values = columns.map col-> col.at row_id
-                    set_statement_values stmt statement_setter values
+                    set_statement_values stmt statement_setter values expected_type_hints=expected_type_hints
                     stmt.addBatch
                     if (row_id+1 % batch_size) == 0 then check_rows stmt.executeBatch batch_size
                 if (num_rows % batch_size) != 0 then check_rows stmt.executeBatch (num_rows % batch_size)
@@ -259,11 +258,8 @@ type JDBC_Connection
    - properties: A vector of properties for the connection.
 create : Text -> Vector -> JDBC_Connection
 create url properties = handle_sql_errors <|
-    java_props = Properties.new
-    properties.each pair->
-        case pair.second of
-            Nothing -> Polyglot.invoke java_props "remove" [pair.first]
-            _ -> Polyglot.invoke java_props "setProperty" [pair.first, pair.second]
+    java_props = properties.map pair->
+        Java_Pair.create pair.first (as_hideable_value pair.second)
     java_connection = JDBCProxy.getConnection url java_props
 
     resource = Managed_Resource.register java_connection close_connection
@@ -298,9 +294,17 @@ handle_sql_errors ~action related_query=Nothing =
 ## PRIVATE
    Uses the provided `Statement_Setter` strategy to fill holes in a
    provided `PreparedStatement`.
-set_statement_values stmt statement_setter values =
+
+   A list of expected value types can be passed as `expected_type_hints` to add
+   these hints to the `Statement_Setter` to customize the behaviour for some
+   specific target value types.
+set_statement_values : PreparedStatement -> Statement_Setter -> Vector -> Vector Value_Type | Nothing -> Nothing
+set_statement_values stmt statement_setter values expected_type_hints=Nothing =
     values.each_with_index ix-> value->
-        statement_setter.fill_hole stmt (ix + 1) value
+        type_hint = case expected_type_hints of
+            Nothing -> Nothing
+            hints : Vector -> hints.at ix
+        statement_setter.fill_hole stmt (ix + 1) type_hint value
 
 ## PRIVATE
    A helper that logs performed SQL queries/statements to a file, if an
@@ -316,3 +320,13 @@ log_sql_if_enabled jdbc_connection ~query_text =
             log_line = timestamp + " [" + db_id + "] " + query_text + '\n'
             Context.Output.with_enabled <|
                 log_line.write path on_existing_file=Existing_File_Behavior.Append
+
+## PRIVATE
+get_pragma_value : JDBC_Connection -> Text -> Any
+get_pragma_value jdbc_connection sql =
+    table = jdbc_connection.raw_read_statement sql
+    if table.row_count != 1 then
+        Panic.throw (Illegal_State.Error "Unexpected amount of results to internal query: "+sql+"; expected 1 but got "+table.row_count.to_text+" rows.")
+    if table.columns.length != 1 then
+        Panic.throw (Illegal_State.Error "Unexpected amount of columns to internal query: "+sql+"; expected 1 but got "+table.columns.length.to_text+" columns.")
+    table.at 0 . at 0

@@ -1,0 +1,5 @@
+import project.Sub.Priv
+
+main =
+    Priv.foo
+

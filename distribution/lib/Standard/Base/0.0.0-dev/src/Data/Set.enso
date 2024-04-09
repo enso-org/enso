@@ -42,32 +42,60 @@ type Set
     empty = Set.Value Map.empty
 
     ## GROUP Conversions
+       ICON convert
        Returns a vector containing all elements of this set.
     to_vector : Vector
     to_vector self = self.underlying_map.keys
 
     ## GROUP Metadata
+       ICON metadata
        Returns the number of elements in this set.
     size : Integer
     size self = self.underlying_map.size
 
     ## GROUP Logical
+       ICON metadata
        Checks if the set is empty.
     is_empty : Boolean
     is_empty self = self.underlying_map.is_empty
 
     ## GROUP Logical
+       ICON metadata
        Checks if the set is not empty.
     not_empty : Boolean
     not_empty self = self.underlying_map.not_empty
 
     ## GROUP Logical
+       ICON preparation
        Checks if this set contains a given value.
     contains : Any -> Boolean
     contains self value = self.underlying_map.contains_key value
 
+    ## GROUP Logical
+       ICON preparation
+       Checks if this set contains a given value, treating Nothing as a
+       relational NULL.
+
+       If the argument is non-Nothing and exists in `value`, return true.
+
+       If the argument is non-Nothing and does not exist in `value`, return
+       false if `value` does not contain a Nothing, or Nothing if `value` does
+       contain a Nothing.
+
+       If the argument is Nothing, return Nothing if `value` is non-empty, or
+       false if `value` is empty.
+    contains_relational : Any -> Boolean | Nothing
+    contains_relational self value =
+        case value of
+            _ : Nothing -> if self.is_empty then False else Nothing
+            _ ->
+                if self.contains value then True else
+                    has_nulls = self.contains Nothing
+                    if has_nulls then Nothing else False
+
     ## ALIAS add
        GROUP Calculations
+       ICON row_add
        Adds a value to this set.
     insert : Any -> Set
     insert self value =
@@ -75,6 +103,7 @@ type Set
         Set.Value new_map
 
     ## GROUP Calculations
+       ICON dataframes_union
        Creates a union of the two sets.
     union : Set -> Set
     union self (other : Set) =
@@ -104,7 +133,7 @@ type Set
 
     ## PRIVATE
     to_text : Text
-    to_text self = self.to_vector.join ", " "Set{" "}"
+    to_text self = self.to_vector.map .pretty . join ", " "Set{" "}"
 
 ## PRIVATE
 type Set_Comparator

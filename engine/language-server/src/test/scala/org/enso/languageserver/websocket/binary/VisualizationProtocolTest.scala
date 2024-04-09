@@ -2,7 +2,6 @@ package org.enso.languageserver.websocket.binary
 
 import java.nio.ByteBuffer
 import java.util.UUID
-
 import org.enso.languageserver.protocol.binary.{
   OutboundMessage,
   OutboundPayload,
@@ -13,13 +12,15 @@ import org.enso.languageserver.runtime.ContextRegistryProtocol.{
   VisualizationUpdate
 }
 import org.enso.languageserver.util.binary.BinaryDecoder
+import org.enso.logger.ReportLogsOnFailure
 import org.enso.testkit.FlakySpec
 import org.scalatest.concurrent.Eventually
 
 class VisualizationProtocolTest
     extends BaseBinaryServerTest
     with Eventually
-    with FlakySpec {
+    with FlakySpec
+    with ReportLogsOnFailure {
 
   implicit private val decoder: BinaryDecoder[OutboundMessage] =
     OutboundMessageDecoder

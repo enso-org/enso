@@ -1,7 +1,12 @@
 package org.enso.filewatcher
 
-import io.methvin.watcher._
+import io.methvin.watcher.{
+  DirectoryChangeEvent,
+  DirectoryChangeListener,
+  DirectoryWatcher
+}
 
+import java.util.concurrent.Executor
 import java.nio.file.Path
 
 /** Watches the root with subdirectories and executes callback on file event.
@@ -24,8 +29,8 @@ final class WatcherAdapter(
     .build()
 
   /** @inheritdoc */
-  override def start(): Unit = {
-    watcher.watch()
+  override def start(executor: Executor): Unit = {
+    watcher.watchAsync(executor)
   }
 
   /** @inheritdoc */

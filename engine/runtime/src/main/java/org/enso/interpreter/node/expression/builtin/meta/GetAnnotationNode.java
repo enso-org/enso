@@ -11,11 +11,12 @@ import org.enso.interpreter.node.expression.builtin.text.util.ExpectStringNode;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.callable.Annotation;
 import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
-import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.data.Type;
+import org.enso.interpreter.runtime.data.atom.AtomConstructor;
 import org.enso.interpreter.runtime.error.DataflowError;
 import org.enso.interpreter.runtime.error.PanicException;
+import org.enso.interpreter.runtime.library.dispatch.TypeOfNode;
 import org.enso.interpreter.runtime.state.State;
 
 @BuiltinMethod(
@@ -52,9 +53,11 @@ public abstract class GetAnnotationNode extends BaseNode {
         CompilerDirectives.transferToInterpreter();
         var ctx = EnsoContext.get(this);
         var err = ctx.getBuiltins().error();
-        var payload = err.makeUnsupportedArgumentsError(new Object[] { method }, "Use .name to specify name of function");
+        var payload =
+            err.makeUnsupportedArgumentsError(
+                new Object[] {method}, "Use .name to specify name of function");
         throw new PanicException(payload, this);
-       }
+      }
       if (methodFunction != null) {
         String parameterName = expectStringNode.execute(parameter);
         Annotation annotation = methodFunction.getSchema().getAnnotation(parameterName);

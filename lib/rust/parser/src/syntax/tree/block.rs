@@ -2,9 +2,6 @@
 
 use crate::syntax::tree::*;
 
-use crate::syntax::item::Item;
-use crate::syntax::token;
-
 
 
 // =============
@@ -88,7 +85,7 @@ where I: Iterator<Item = Line<'s>>
             match line.expression.map(Prefix::try_from) {
                 Some(Ok(prefix)) => {
                     match self.prefixes.last_mut() {
-                        Some(prefix) => prefix.newlines().push(line.newline),
+                        Some(prefix) => prefix.push_newline(line.newline),
                         None => self.newline = Some(line.newline),
                     };
                     self.prefixes.push(prefix);
@@ -96,7 +93,7 @@ where I: Iterator<Item = Line<'s>>
                 Some(Err(mut statement)) => {
                     return Some(match self.prefixes.last_mut() {
                         Some(prefix) => {
-                            prefix.newlines().push(line.newline);
+                            prefix.push_newline(line.newline);
                             for prefix in self.prefixes.drain(..).rev() {
                                 statement = prefix.apply_to(statement);
                             }
@@ -108,7 +105,7 @@ where I: Iterator<Item = Line<'s>>
                 }
                 None => {
                     match self.prefixes.last_mut() {
-                        Some(prefix) => prefix.newlines().push(line.newline),
+                        Some(prefix) => prefix.push_newline(line.newline),
                         None => return Some(line.newline.into()),
                     };
                 }
@@ -154,23 +151,27 @@ impl<'s> TryFrom<Tree<'s>> for Prefix<'s> {
 }
 
 impl<'s> Prefix<'s> {
-    fn newlines(&mut self) -> &mut Vec<token::Newline<'s>> {
-        match self {
-            Prefix::Annotation { node: Annotated { newlines, .. }, .. }
-            | Prefix::BuiltinAnnotation { node: AnnotatedBuiltin { newlines, .. }, .. }
+    fn push_newline(&mut self, newline: token::Newline<'s>) {
+        let (newlines, span) = match self {
+            Prefix::Annotation { node: Annotated { newlines, .. }, span }
+            | Prefix::BuiltinAnnotation { node: AnnotatedBuiltin { newlines, .. }, span }
             | Prefix::Documentation {
                 node: Documented { documentation: DocComment { newlines, .. }, .. },
-                ..
-            } => newlines,
-        }
+                span,
+            } => (newlines, span),
+        };
+        span.code_length += newline.left_offset.code.length() + newline.code.length();
+        newlines.push(newline);
     }
 
     fn apply_to(mut self, expression: Tree<'s>) -> Tree<'s> {
-        *(match &mut self {
-            Prefix::Annotation { node, .. } => &mut node.expression,
-            Prefix::BuiltinAnnotation { node, .. } => &mut node.expression,
-            Prefix::Documentation { node, .. } => &mut node.expression,
-        }) = Some(expression);
+        let (expr, span) = match &mut self {
+            Prefix::Annotation { node, span } => (&mut node.expression, span),
+            Prefix::BuiltinAnnotation { node, span } => (&mut node.expression, span),
+            Prefix::Documentation { node, span } => (&mut node.expression, span),
+        };
+        span.code_length += expression.span.left_offset.code.length() + expression.span.code_length;
+        *expr = Some(expression);
         self.into()
     }
 }
@@ -208,17 +209,19 @@ fn to_operator_block_expression<'s>(
     items: Vec<Item<'s>>,
     precedence: &mut operator::Precedence<'s>,
 ) -> Result<OperatorBlockExpression<'s>, Tree<'s>> {
-    if let Some(b) = items.get(1) && b.left_visible_offset().width_in_spaces != 0
+    if let Some(b) = items.get(1)
+        && b.left_visible_offset().width_in_spaces != 0
         && let Some(Item::Token(a)) = items.first()
-        && let token::Variant::Operator(op) = &a.variant {
-            let operator = Ok(Token(a.left_offset.clone(), a.code.clone(), *op));
-            let mut items = items.into_iter();
-            items.next();
-            let expression = precedence.resolve(items).unwrap();
-            Ok(OperatorBlockExpression { operator, expression })
-        } else {
-            Err(precedence.resolve(items).unwrap())
-        }
+        && let token::Variant::Operator(op) = &a.variant
+    {
+        let operator = Ok(Token(a.left_offset.clone(), a.code.clone(), *op));
+        let mut items = items.into_iter();
+        items.next();
+        let expression = precedence.resolve(items).unwrap();
+        Ok(OperatorBlockExpression { operator, expression })
+    } else {
+        Err(precedence.resolve(items).unwrap())
+    }
 }
 
 impl<'s> span::Builder<'s> for OperatorBlockExpression<'s> {
@@ -313,14 +316,14 @@ impl<'s> Builder<'s> {
             Ok(expression) => {
                 let expression = Some(expression);
                 let mut operator_lines = Vec::with_capacity(empty_lines.size_hint().0 + new_lines);
-                operator_lines.extend(empty_lines.map(block::OperatorLine::from));
+                operator_lines.extend(empty_lines.map(OperatorLine::from));
                 operator_lines.push(OperatorLine { newline, expression });
                 Self::Operator { operator_lines, body_lines: default() }
             }
             Err(expression) => {
                 let expression = Some(expression);
                 let mut body_lines = Vec::with_capacity(empty_lines.size_hint().0 + new_lines);
-                body_lines.extend(empty_lines.map(block::Line::from));
+                body_lines.extend(empty_lines.map(Line::from));
                 body_lines.push(Line { newline, expression });
                 Self::NonOperator { body_lines }
             }

@@ -27,51 +27,33 @@ import glob from 'fast-glob'
 /** Parts of the GraalVM distribution that need to be signed by us in an extra step. */
 async function graalSignables(resourcesDir: string): Promise<Signable[]> {
     const archivePatterns: ArchivePattern[] = [
-        [`Contents/Home/jmods/jdk.jartool.jmod`, ['bin/jarsigner', 'bin/jar']],
-        [`Contents/Home/jmods/jdk.jdeps.jmod`, ['bin/javap', 'bin/jdeprscan', 'bin/jdeps']],
-        [`Contents/Home/jmods/jdk.jstatd.jmod`, ['bin/jstatd']],
-        [`Contents/Home/jmods/jdk.pack.jmod`, ['bin/unpack200', 'bin/pack200']],
-        [`Contents/Home/jmods/jdk.hotspot.agent.jmod`, ['bin/jhsdb']],
-        [`Contents/Home/jmods/jdk.jfr.jmod`, ['bin/jfr']],
-        [`Contents/Home/jmods/jdk.rmic.jmod`, ['bin/rmic']],
-        [`Contents/Home/jmods/java.rmi.jmod`, ['bin/rmid', 'bin/rmiregistry']],
         [`Contents/Home/jmods/java.base.jmod`, ['bin/java', 'bin/keytool', 'lib/jspawnhelper']],
-        [`Contents/Home/jmods/jdk.jlink.jmod`, ['bin/jmod', 'bin/jlink', 'bin/jimage']],
-        [`Contents/Home/jmods/jdk.scripting.nashorn.shell.jmod`, ['bin/jjs']],
-        [
-            `Contents/Home/jmods/jdk.jcmd.jmod`,
-            ['bin/jstack', 'bin/jcmd', 'bin/jps', 'bin/jmap', 'bin/jstat', 'bin/jinfo'],
-        ],
-        [`Contents/Home/jmods/jdk.jshell.jmod`, ['bin/jshell']],
-        [`Contents/Home/jmods/jdk.compiler.jmod`, ['bin/javac', 'bin/serialver']],
+        [`Contents/Home/jmods/java.rmi.jmod`, ['bin/rmiregistry']],
         [`Contents/Home/jmods/java.scripting.jmod`, ['bin/jrunscript']],
-        [`Contents/Home/jmods/jdk.jdi.jmod`, ['bin/jdb']],
+        [`Contents/Home/jmods/jdk.compiler.jmod`, ['bin/javac', 'bin/serialver']],
+        [`Contents/Home/jmods/jdk.hotspot.agent.jmod`, ['bin/jhsdb']],
+        [`Contents/Home/jmods/jdk.httpserver.jmod`, ['bin/jwebserver']],
+        [`Contents/Home/jmods/jdk.jartool.jmod`, ['bin/jarsigner', 'bin/jar']],
+        [`Contents/Home/jmods/jdk.javadoc.jmod`, ['bin/javadoc']],
         [`Contents/Home/jmods/jdk.javadoc.jmod`, ['bin/javadoc']],
         [`Contents/Home/jmods/jdk.jconsole.jmod`, ['bin/jconsole']],
-        [`Contents/Home/jmods/jdk.javadoc.jmod`, ['bin/javadoc']],
+        [`Contents/Home/jmods/jdk.jdeps.jmod`, ['bin/javap', 'bin/jdeprscan', 'bin/jdeps']],
+        [`Contents/Home/jmods/jdk.jdi.jmod`, ['bin/jdb']],
+        [`Contents/Home/jmods/jdk.jfr.jmod`, ['bin/jfr']],
+        [`Contents/Home/jmods/jdk.jlink.jmod`, ['bin/jmod', 'bin/jlink', 'bin/jimage']],
+        [`Contents/Home/jmods/jdk.jshell.jmod`, ['bin/jshell']],
         [
             `Contents/Home/jmods/jdk.jpackage.jmod`,
             ['bin/jpackage', 'classes/jdk/jpackage/internal/resources/jpackageapplauncher'],
         ],
+        [`Contents/Home/jmods/jdk.jstatd.jmod`, ['bin/jstatd']],
+        [
+            `Contents/Home/jmods/jdk.jcmd.jmod`,
+            ['bin/jstack', 'bin/jcmd', 'bin/jps', 'bin/jmap', 'bin/jstat', 'bin/jinfo'],
+        ],
     ]
 
-    const binariesPatterns = [
-        `Contents/Home/languages/llvm/native/bin/graalvm-native-ld`,
-        `Contents/Home/languages/llvm/native/bin/ld.lld`,
-        `Contents/Home/languages/R/library/class/libs/class.so`,
-        `Contents/Home/languages/R/library/cluster/libs/cluster.so`,
-        `Contents/Home/languages/R/library/foreign/libs/foreign.so`,
-        `Contents/Home/languages/R/library/KernSmooth/libs/KernSmooth.so`,
-        `Contents/Home/languages/R/library/lattice/libs/lattice.so`,
-        `Contents/Home/languages/R/library/MASS/libs/MASS.so`,
-        `Contents/Home/languages/R/library/Matrix/libs/Matrix.so`,
-        `Contents/Home/languages/R/library/nlme/libs/nlme.so`,
-        `Contents/Home/languages/R/library/nnet/libs/nnet.so`,
-        `Contents/Home/languages/R/library/rpart/libs/rpart.so`,
-        `Contents/Home/languages/R/library/spatial/libs/spatial.so`,
-        `Contents/Home/languages/R/library/survival/libs/survival.so`,
-        `Contents/MacOS/libjli.dylib`,
-    ]
+    const binariesPatterns = [`Contents/MacOS/libjli.dylib`]
 
     // We use `*` for Graal versioned directory to not have to update this script on every GraalVM
     // update. Updates might still be needed when the list of binaries to sign changes.
@@ -90,6 +72,33 @@ async function ensoPackageSignables(resourcesDir: string): Promise<Signable[]> {
     const engineDir = `${resourcesDir}/enso/dist/*`
     const archivePatterns: ArchivePattern[] = [
         [
+            `/component/runner/runner.jar`,
+            [
+                'org/sqlite/native/Mac/x86_64/libsqlitejdbc.jnilib',
+                'org/sqlite/native/Mac/aarch64/libsqlitejdbc.jnilib',
+                'com/sun/jna/darwin-aarch64/libjnidispatch.jnilib',
+                'com/sun/jna/darwin-x86-64/libjnidispatch.jnilib',
+            ],
+        ],
+        [
+            'component/python-resources-*.jar',
+            [
+                'META-INF/resources/darwin/*/lib/graalpy23.1/*.dylib',
+                'META-INF/resources/darwin/*/lib/graalpy23.1/modules/*.so',
+            ],
+        ],
+        [
+            `component/truffle-nfi-libffi-*.jar`,
+            ['META-INF/resources/nfi-native/libnfi/darwin/*/bin/libtrufflenfi.dylib'],
+        ],
+        [
+            `component/truffle-runtime-*.jar`,
+            [
+                'META-INF/resources/engine/libtruffleattach/darwin/amd64/bin/libtruffleattach.dylib',
+                'META-INF/resources/engine/libtruffleattach/darwin/aarch64/bin/libtruffleattach.dylib',
+            ],
+        ],
+        [
             `lib/Standard/Database/*/polyglot/java/sqlite-jdbc-*.jar`,
             [
                 'org/sqlite/native/Mac/aarch64/libsqlitejdbc.jnilib',
@@ -97,12 +106,19 @@ async function ensoPackageSignables(resourcesDir: string): Promise<Signable[]> {
             ],
         ],
         [
-            `/component/runner.jar`,
+            `lib/Standard/Snowflake/*/polyglot/java/snowflake-jdbc-*.jar`,
             [
-                'org/sqlite/native/Mac/x86_64/libsqlitejdbc.jnilib',
-                'com/sun/jna/darwin-aarch64/libjnidispatch.jnilib',
-                'com/sun/jna/darwin-x86-64/libjnidispatch.jnilib',
+                'META-INF/native/libconscrypt_openjdk_jni-osx-*.dylib',
+                'META-INF/native/libio_grpc_netty_shaded_netty_tcnative_osx_*.jnilib',
             ],
+        ],
+        [
+            `lib/Standard/Google_Api/*/polyglot/java/grpc-netty-shaded-*.jar`,
+            ['META-INF/native/libio_grpc_netty_shaded_netty_tcnative_osx_*.jnilib'],
+        ],
+        [
+            `lib/Standard/Google_Api/*/polyglot/java/conscrypt-openjdk-uber-*.jar`,
+            ['META-INF/native/libconscrypt_openjdk_jni-osx-*.dylib'],
         ],
     ]
     return ArchiveToSign.lookupMany(engineDir, archivePatterns)
@@ -116,15 +132,15 @@ async function ensoPackageSignables(resourcesDir: string): Promise<Signable[]> {
 interface SigningContext {
     /** A digital identity that is stored in a keychain that is on the calling user's keychain
      * search list. We rely on this already being set up by the Electron Builder. */
-    identity: string
+    readonly identity: string
     /** Path to the entitlements file. */
-    entitlements: string
+    readonly entitlements: string
 }
 
 /** An entity that we want to sign. */
 interface Signable {
     /** Sign this entity. */
-    sign: (context: SigningContext) => Promise<void>
+    readonly sign: (context: SigningContext) => Promise<void>
 }
 
 /** Placeholder name for temporary archives. */
@@ -287,7 +303,15 @@ function lookupManyHelper<T, R extends Signable>(
     lookup: (base: string, pattern: T) => Promise<R[]>
 ) {
     return async function (base: string, patterns: T[]) {
-        const results = await Promise.all(patterns.map(pattern => lookup(base, pattern)))
+        const results = await Promise.all(
+            patterns.map(async pattern => {
+                const ret = await lookup(base, pattern)
+                if (ret.length === 0) {
+                    console.warn(`No files found for pattern ${String(pattern)} in ${base}`)
+                }
+                return ret
+            })
+        )
         return results.flat()
     }
 }
@@ -312,8 +336,8 @@ async function getTmpDir(prefix?: string) {
 
 /** Input for this script. */
 interface Input extends SigningContext {
-    appOutDir: string
-    productFilename: string
+    readonly appOutDir: string
+    readonly productFilename: string
 }
 
 /** Entry point, meant to be used from an afterSign Electron Builder's hook. */

@@ -1,8 +1,17 @@
 package org.enso.interpreter.node.callable;
 
+import com.oracle.truffle.api.CompilerDirectives;
+import com.oracle.truffle.api.dsl.Cached;
+import com.oracle.truffle.api.dsl.Cached.Shared;
+import com.oracle.truffle.api.dsl.Specialization;
+import com.oracle.truffle.api.frame.VirtualFrame;
+import com.oracle.truffle.api.interop.InteropLibrary;
+import com.oracle.truffle.api.interop.UnsupportedMessageException;
+import com.oracle.truffle.api.library.CachedLibrary;
+import com.oracle.truffle.api.nodes.Node;
+import com.oracle.truffle.api.source.SourceSection;
 import java.util.UUID;
 import java.util.concurrent.locks.Lock;
-
 import org.enso.interpreter.node.BaseNode;
 import org.enso.interpreter.node.callable.dispatch.InvokeFunctionNode;
 import org.enso.interpreter.node.callable.resolver.ConversionResolverNode;
@@ -20,19 +29,8 @@ import org.enso.interpreter.runtime.error.PanicException;
 import org.enso.interpreter.runtime.error.PanicSentinel;
 import org.enso.interpreter.runtime.error.Warning;
 import org.enso.interpreter.runtime.error.WithWarnings;
-import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
+import org.enso.interpreter.runtime.library.dispatch.TypeOfNode;
 import org.enso.interpreter.runtime.state.State;
-
-import com.oracle.truffle.api.CompilerDirectives;
-import com.oracle.truffle.api.dsl.Cached;
-import com.oracle.truffle.api.dsl.Cached.Shared;
-import com.oracle.truffle.api.dsl.Specialization;
-import com.oracle.truffle.api.frame.VirtualFrame;
-import com.oracle.truffle.api.interop.InteropLibrary;
-import com.oracle.truffle.api.interop.UnsupportedMessageException;
-import com.oracle.truffle.api.library.CachedLibrary;
-import com.oracle.truffle.api.nodes.Node;
-import com.oracle.truffle.api.source.SourceSection;
 
 public abstract class InvokeConversionNode extends BaseNode {
   private @Child InvokeFunctionNode invokeFunctionNode;
@@ -101,7 +99,11 @@ public abstract class InvokeConversionNode extends BaseNode {
     return extractType(this, self);
   }
 
-  @Specialization(guards = {"dispatch.hasType(that)", "!dispatch.hasSpecialDispatch(that)"})
+  static boolean hasType(TypeOfNode typeOfNode, Object value) {
+    return typeOfNode.execute(value) instanceof Type;
+  }
+
+  @Specialization(guards = {"hasType(dispatch, that)"})
   Object doConvertFrom(
       VirtualFrame frame,
       State state,
@@ -109,9 +111,9 @@ public abstract class InvokeConversionNode extends BaseNode {
       Object self,
       Object that,
       Object[] arguments,
-      @Shared("typesLib") @CachedLibrary(limit = "10") TypesLibrary dispatch,
+      @Shared("typeOfNode") @Cached TypeOfNode dispatch,
       @Shared("conversionResolverNode") @Cached ConversionResolverNode resolveNode) {
-    var thatType = dispatch.getType(that);
+    var thatType = (Type) dispatch.execute(that);
     if (thatType == self) {
       return that;
     } else {
@@ -129,12 +131,11 @@ public abstract class InvokeConversionNode extends BaseNode {
       Object self,
       DataflowError that,
       Object[] arguments,
-      @Shared("typesLib") @CachedLibrary(limit = "10") TypesLibrary dispatch,
+      @Shared("typeOfNode") @Cached TypeOfNode dispatch,
       @Shared("conversionResolverNode") @Cached ConversionResolverNode conversionResolverNode) {
     Function function =
-        conversionResolverNode.execute(extractType(self),
-            EnsoContext.get(this).getBuiltins().dataflowError(),
-            conversion);
+        conversionResolverNode.execute(
+            extractType(self), EnsoContext.get(this).getBuiltins().dataflowError(), conversion);
     if (function != null) {
       return invokeFunctionNode.execute(function, frame, state, arguments);
     } else {
@@ -165,10 +166,7 @@ public abstract class InvokeConversionNode extends BaseNode {
     var result = that.castTo(type);
     if (result == null) {
       throw new PanicException(
-          EnsoContext.get(this)
-              .getBuiltins()
-              .error()
-              .makeNoSuchConversion(type, self, conversion),
+          EnsoContext.get(this).getBuiltins().error().makeNoSuchConversion(type, self, conversion),
           this);
     }
     return result;
@@ -206,7 +204,7 @@ public abstract class InvokeConversionNode extends BaseNode {
     }
     Object value = that.getValue();
     arguments[thatArgumentPosition] = value;
-    ArrayRope<Warning> warnings = that.getReassignedWarningsAsRope(this);
+    ArrayRope<Warning> warnings = that.getReassignedWarningsAsRope(this, false);
     try {
       Object result = childDispatch.execute(frame, state, conversion, self, value, arguments);
       return WithWarnings.appendTo(EnsoContext.get(this), result, warnings);
@@ -229,21 +227,18 @@ public abstract class InvokeConversionNode extends BaseNode {
       String str = interop.asString(that);
       Text txt = Text.create(str);
       Function function =
-          conversionResolverNode.expectNonNull(txt,
-              extractType(self),
-              EnsoContext.get(this).getBuiltins().text(),
-              conversion);
+          conversionResolverNode.expectNonNull(
+              txt, extractType(self), EnsoContext.get(this).getBuiltins().text(), conversion);
       arguments[0] = txt;
       return invokeFunctionNode.execute(function, frame, state, arguments);
     } catch (UnsupportedMessageException e) {
-      throw new IllegalStateException("Impossible, that is guaranteed to be a string.");
+      throw EnsoContext.get(this).raiseAssertionPanic(this, null, e);
     }
   }
 
   @Specialization(
       guards = {
-        "!typesLib.hasType(that)",
-        "!typesLib.hasSpecialDispatch(that)",
+        "!hasType(typeOfNode, that)",
         "!interop.isTime(that)",
         "interop.isDate(that)",
       })
@@ -255,17 +250,17 @@ public abstract class InvokeConversionNode extends BaseNode {
       Object that,
       Object[] arguments,
       @Shared("interop") @CachedLibrary(limit = "10") InteropLibrary interop,
-      @Shared("typesLib") @CachedLibrary(limit = "10") TypesLibrary typesLib,
+      @Shared("typeOfNode") @Cached TypeOfNode typeOfNode,
       @Shared("conversionResolverNode") @Cached ConversionResolverNode conversionResolverNode) {
     Function function =
-        conversionResolverNode.expectNonNull(that, extractType(self), EnsoContext.get(this).getBuiltins().date(), conversion);
+        conversionResolverNode.expectNonNull(
+            that, extractType(self), EnsoContext.get(this).getBuiltins().date(), conversion);
     return invokeFunctionNode.execute(function, frame, state, arguments);
   }
 
   @Specialization(
       guards = {
-        "!typesLib.hasType(that)",
-        "!typesLib.hasSpecialDispatch(that)",
+        "!hasType(typeOfNode, that)",
         "interop.isTime(that)",
         "!interop.isDate(that)",
       })
@@ -277,20 +272,17 @@ public abstract class InvokeConversionNode extends BaseNode {
       Object that,
       Object[] arguments,
       @Shared("interop") @CachedLibrary(limit = "10") InteropLibrary interop,
-      @Shared("typesLib") @CachedLibrary(limit = "10") TypesLibrary typesLib,
+      @Shared("typeOfNode") @Cached TypeOfNode typeOfNode,
       @Shared("conversionResolverNode") @Cached ConversionResolverNode conversionResolverNode) {
     Function function =
-        conversionResolverNode.expectNonNull(that,
-            extractType(self),
-            EnsoContext.get(this).getBuiltins().timeOfDay(),
-            conversion);
+        conversionResolverNode.expectNonNull(
+            that, extractType(self), EnsoContext.get(this).getBuiltins().timeOfDay(), conversion);
     return invokeFunctionNode.execute(function, frame, state, arguments);
   }
 
   @Specialization(
       guards = {
-        "!typesLib.hasType(that)",
-        "!typesLib.hasSpecialDispatch(that)",
+        "!hasType(typeOfNode, that)",
         "interop.isTime(that)",
         "interop.isDate(that)",
       })
@@ -302,20 +294,17 @@ public abstract class InvokeConversionNode extends BaseNode {
       Object that,
       Object[] arguments,
       @Shared("interop") @CachedLibrary(limit = "10") InteropLibrary interop,
-      @Shared("typesLib") @CachedLibrary(limit = "10") TypesLibrary typesLib,
+      @Shared("typeOfNode") @Cached TypeOfNode typeOfNode,
       @Shared("conversionResolverNode") @Cached ConversionResolverNode conversionResolverNode) {
     Function function =
-        conversionResolverNode.expectNonNull(that,
-            extractType(self),
-            EnsoContext.get(this).getBuiltins().dateTime(),
-            conversion);
+        conversionResolverNode.expectNonNull(
+            that, extractType(self), EnsoContext.get(this).getBuiltins().dateTime(), conversion);
     return invokeFunctionNode.execute(function, frame, state, arguments);
   }
 
   @Specialization(
       guards = {
-        "!typesLib.hasType(that)",
-        "!typesLib.hasSpecialDispatch(that)",
+        "!hasType(typeOfNode, that)",
         "interop.isDuration(that)",
       })
   Object doConvertDuration(
@@ -326,20 +315,17 @@ public abstract class InvokeConversionNode extends BaseNode {
       Object that,
       Object[] arguments,
       @Shared("interop") @CachedLibrary(limit = "10") InteropLibrary interop,
-      @Shared("typesLib") @CachedLibrary(limit = "10") TypesLibrary typesLib,
+      @Shared("typeOfNode") @Cached TypeOfNode typeOfNode,
       @Shared("conversionResolverNode") @Cached ConversionResolverNode conversionResolverNode) {
     Function function =
-        conversionResolverNode.expectNonNull(that,
-            extractType(self),
-            EnsoContext.get(this).getBuiltins().duration(),
-            conversion);
+        conversionResolverNode.expectNonNull(
+            that, extractType(self), EnsoContext.get(this).getBuiltins().duration(), conversion);
     return invokeFunctionNode.execute(function, frame, state, arguments);
   }
 
   @Specialization(
       guards = {
-        "!typesLib.hasType(thatMap)",
-        "!typesLib.hasSpecialDispatch(thatMap)",
+        "!hasType(typeOfNode, thatMap)",
         "interop.hasHashEntries(thatMap)",
       })
   Object doConvertMap(
@@ -350,22 +336,15 @@ public abstract class InvokeConversionNode extends BaseNode {
       Object thatMap,
       Object[] arguments,
       @Shared("interop") @CachedLibrary(limit = "10") InteropLibrary interop,
-      @Shared("typesLib") @CachedLibrary(limit = "10") TypesLibrary typesLib,
+      @Shared("typeOfNode") @Cached TypeOfNode typeOfNode,
       @Shared("conversionResolverNode") @Cached ConversionResolverNode conversionResolverNode) {
     Function function =
-        conversionResolverNode.expectNonNull(thatMap,
-            extractType(self),
-            EnsoContext.get(this).getBuiltins().map(),
-            conversion);
+        conversionResolverNode.expectNonNull(
+            thatMap, extractType(self), EnsoContext.get(this).getBuiltins().map(), conversion);
     return invokeFunctionNode.execute(function, frame, state, arguments);
   }
 
-  @Specialization(
-      guards = {
-        "!methods.hasType(that)",
-        "!interop.isString(that)",
-        "!methods.hasSpecialDispatch(that)"
-      })
+  @Specialization(guards = {"!hasType(methods, that)", "!interop.isString(that)"})
   Object doFallback(
       VirtualFrame frame,
       State state,
@@ -373,7 +352,7 @@ public abstract class InvokeConversionNode extends BaseNode {
       Object self,
       Object that,
       Object[] arguments,
-      @Shared("typesLib") @CachedLibrary(limit = "10") TypesLibrary methods,
+      @Shared("typeOfNode") @Cached TypeOfNode methods,
       @Shared("interop") @CachedLibrary(limit = "10") InteropLibrary interop,
       @Shared("conversionResolverNode") @Cached ConversionResolverNode conversionResolverNode) {
     var ctx = EnsoContext.get(this);

@@ -29,7 +29,7 @@ import scala.concurrent.duration._
   *
   * @param runtimeFailureMapper mapper for runtime failures
   * @param rpcSession reference to the client
-  * @param contextId exectuion context identifier
+  * @param contextId execution context identifier
   * @param sessionRouter the session router
   * @param updatesSendRate how often send the updates to the user
   */
@@ -63,7 +63,6 @@ final class ContextEventsListener(
     oneshotVisualizations: Set[Api.VisualizationContext],
     expressionUpdates: Vector[Api.ExpressionUpdate]
   ): Receive = {
-
     case RegisterOneshotVisualization(
           contextId,
           visualizationId,
@@ -145,9 +144,11 @@ final class ContextEventsListener(
       message.pipeTo(sessionRouter)
 
     case Api.VisualizationEvaluationFailed(
-          `contextId`,
-          visualizationId,
-          expressionId,
+          ctx @ Api.VisualizationContext(
+            visualizationId,
+            contextId,
+            expressionId
+          ),
           message,
           diagnostic
         ) =>
@@ -157,13 +158,26 @@ final class ContextEventsListener(
           .sequence
         payload =
           ContextRegistryProtocol.VisualizationEvaluationFailed(
-            contextId,
-            visualizationId,
-            expressionId,
+            VisualizationContext(visualizationId, contextId, expressionId),
             message,
             diagnostic
           )
       } yield DeliverToJsonController(rpcSession.clientId, payload)
+
+      if (oneshotVisualizations.contains(ctx)) {
+        context.parent ! DetachVisualization(
+          rpcSession.clientId,
+          contextId,
+          ctx.visualizationId,
+          ctx.expressionId
+        )
+        context.become(
+          withState(
+            oneshotVisualizations - ctx,
+            expressionUpdates
+          )
+        )
+      }
 
       response.pipeTo(sessionRouter)
 
@@ -299,7 +313,7 @@ object ContextEventsListener {
     *
     * @param runtimeFailureMapper mapper for runtime failures
     * @param rpcSession reference to the client
-    * @param contextId exectuion context identifier
+    * @param contextId execution context identifier
     * @param sessionRouter the session router
     * @param updatesSendRate how often send the updates to the user
     */

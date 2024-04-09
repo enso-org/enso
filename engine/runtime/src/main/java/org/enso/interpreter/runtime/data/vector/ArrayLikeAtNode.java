@@ -3,6 +3,7 @@ package org.enso.interpreter.runtime.data.vector;
 import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.dsl.NeverDefault;
 import com.oracle.truffle.api.dsl.Specialization;
+import com.oracle.truffle.api.exception.AbstractTruffleException;
 import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.InvalidArrayIndexException;
 import com.oracle.truffle.api.interop.UnsupportedMessageException;
@@ -33,7 +34,10 @@ public abstract class ArrayLikeAtNode extends Node {
     try {
       return self.getItems()[Math.toIntExact(index)];
     } catch (ArithmeticException | IndexOutOfBoundsException ex) {
-      throw InvalidArrayIndexException.create(index, ex);
+      var cause =
+          new AbstractTruffleException(
+              ex.getMessage(), ex, AbstractTruffleException.UNLIMITED_STACK_TRACE, this) {};
+      throw InvalidArrayIndexException.create(index, cause);
     }
   }
 

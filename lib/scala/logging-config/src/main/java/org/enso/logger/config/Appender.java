@@ -9,7 +9,8 @@ import org.slf4j.event.Level;
  * Base class for all appenders supported by Enso's logging configuration. Appenders determine what
  * to do with the recorded log events
  */
-public sealed abstract class Appender permits FileAppender, SocketAppender, SentryAppender, ConsoleAppender {
+public abstract sealed class Appender
+    permits ConsoleAppender, FileAppender, MemoryAppender, SentryAppender, SocketAppender {
 
   /**
    * Returns the name of the appender
@@ -36,6 +37,8 @@ public sealed abstract class Appender permits FileAppender, SocketAppender, Sent
           return SentryAppender.parse(config);
         case ConsoleAppender.appenderName:
           return ConsoleAppender.parse(config);
+        case MemoryAppender.appenderName:
+          return MemoryAppender.parse(config);
         default:
           return null;
       }

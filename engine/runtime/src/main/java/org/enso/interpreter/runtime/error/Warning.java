@@ -43,11 +43,13 @@ public final class Warning implements EnsoObject {
   }
 
   @Builtin.Method(name = "value", description = "Gets the payload of the warning.")
+  @SuppressWarnings("generic-enso-builtin-type")
   public Object getValue() {
     return value;
   }
 
   @Builtin.Method(name = "origin", description = "Gets the payload of the warning.")
+  @SuppressWarnings("generic-enso-builtin-type")
   public Object getOrigin() {
     return origin;
   }
@@ -92,8 +94,9 @@ public final class Warning implements EnsoObject {
       autoRegister = false)
   @Builtin.Specialize
   @CompilerDirectives.TruffleBoundary
-  public static EnsoObject getAll(WithWarnings value, WarningsLibrary warningsLib) {
-    Warning[] warnings = value.getWarningsArray(warningsLib);
+  public static EnsoObject getAll(
+      WithWarnings value, boolean shouldWrap, WarningsLibrary warningsLib) {
+    Warning[] warnings = value.getWarningsArray(warningsLib, shouldWrap);
     sortArray(warnings);
     return ArrayLikeHelpers.wrapEnsoObjects(warnings);
   }
@@ -103,14 +106,14 @@ public final class Warning implements EnsoObject {
       description = "Gets all the warnings associated with the value.",
       autoRegister = false)
   @Builtin.Specialize(fallback = true)
-  public static EnsoObject getAll(Object value, WarningsLibrary warnings) {
-    if (warnings.hasWarnings(value)) {
+  public static EnsoObject getAll(Object value, boolean shouldWrap, WarningsLibrary warningsLib) {
+    if (warningsLib.hasWarnings(value)) {
       try {
-        Warning[] arr = warnings.getWarnings(value, null);
-        sortArray(arr);
-        return ArrayLikeHelpers.wrapEnsoObjects(arr);
+        Warning[] warnings = warningsLib.getWarnings(value, null, shouldWrap);
+        sortArray(warnings);
+        return ArrayLikeHelpers.wrapEnsoObjects(warnings);
       } catch (UnsupportedMessageException e) {
-        throw new IllegalStateException(e);
+        throw EnsoContext.get(warningsLib).raiseAssertionPanic(warningsLib, null, e);
       }
     } else {
       return ArrayLikeHelpers.empty();
@@ -151,6 +154,7 @@ public final class Warning implements EnsoObject {
       description = "Sets all the warnings associated with the value.",
       autoRegister = false)
   @Builtin.Specialize
+  @SuppressWarnings("generic-enso-builtin-type")
   public static Object set(
       EnsoContext ctx, WithWarnings value, Object warnings, InteropLibrary interop) {
     return setGeneric(ctx, value.getValue(), interop, warnings);
@@ -160,6 +164,7 @@ public final class Warning implements EnsoObject {
       name = "set_array",
       description = "Sets all the warnings associated with the value.",
       autoRegister = false)
+  @SuppressWarnings("generic-enso-builtin-type")
   @Builtin.Specialize(fallback = true)
   public static Object set(EnsoContext ctx, Object value, Object warnings, InteropLibrary interop) {
     return setGeneric(ctx, value, interop, warnings);
@@ -178,8 +183,7 @@ public final class Warning implements EnsoObject {
       }
       return WithWarnings.wrap(ctx, value, warningsCast);
     } catch (UnsupportedMessageException | InvalidArrayIndexException ex) {
-      CompilerDirectives.transferToInterpreter();
-      throw new IllegalStateException(ex);
+      throw EnsoContext.get(interop).raiseAssertionPanic(interop, null, ex);
     }
   }
 
@@ -231,7 +235,7 @@ public final class Warning implements EnsoObject {
   public Warning reassign(Node location) {
     RootNode root = location.getRootNode();
     SourceSection section = location.getEncapsulatingSourceSection();
-    Reassignment reassignment = new Reassignment(root.getName(), section);
+    Reassignment reassignment = new Reassignment(root == null ? "" : root.getName(), section);
     return new Warning(value, origin, sequenceId, reassignments.prepend(reassignment));
   }
 
@@ -243,5 +247,13 @@ public final class Warning implements EnsoObject {
   @ExportMessage
   Type getType(@CachedLibrary("this") TypesLibrary thisLib, @Cached("1") int ignore) {
     return EnsoContext.get(thisLib).getBuiltins().warning();
+  }
+
+  public static Warning wrapMapError(WarningsLibrary warningsLib, Warning warning, long index) {
+    var ctx = EnsoContext.get(warningsLib);
+    var error = warning.getValue();
+    var wrappedError = ctx.getBuiltins().error().makeMapError(index, error);
+    var wrappedWarning = Warning.create(ctx, wrappedError, warning.getOrigin());
+    return wrappedWarning;
   }
 }

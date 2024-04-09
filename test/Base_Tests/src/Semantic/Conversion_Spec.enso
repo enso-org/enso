@@ -1,0 +1,634 @@
+from Standard.Base import all
+import Standard.Base.Errors.Common.No_Such_Conversion
+import Standard.Base.Errors.Common.Type_Error
+
+import Standard.Base.Runtime.State
+from Standard.Base.Errors.Common import Uninitialized_State
+
+import project.Semantic.Conversion.Methods
+import project.Semantic.Conversion.Types
+import project.Semantic.Conversion_Use.Hello
+
+from Standard.Test import all
+
+
+polyglot java import java.lang.Object
+polyglot java import java.time.format.DateTimeFormatter
+polyglot java import java.time.chrono.ChronoPeriod
+polyglot java import java.time.temporal.TemporalAmount
+polyglot java import java.time.Period as JPeriod
+
+type Foo
+    Value foo
+type Bar
+    Value bar
+type Baz
+    Value baz
+type Quux
+    Value quux
+type Quaffle
+type My_Error
+    Value err
+
+type Not_Foo
+    Value notfoo
+
+type Stateful
+    Value v:Number=(State.get Number)
+
+Foo.from (that:Bar) = Foo.Value that.bar
+Foo.from (that:Baz) = Foo.Value that.baz
+Foo.from (that:Text) = Foo.Value that.length
+Foo.from (that:Number) first_param=0 second_param=0 third_param=0 = Foo.Value [that, first_param, second_param, third_param]
+Foo.from (that:Function) = Foo.Value (that 5)
+Foo.from (that:Boolean) = Foo.Value that
+Foo.from (that:Array) = Foo.Value that.length
+
+Not_Foo.from (_:Boolean) = Not_Foo.Value True
+Not_Foo.from (_:Any) = Not_Foo.Value "ANY!!!"
+
+Foo.from (_:Quaffle) = Foo.Value "quaffle"
+Foo.from (_:Error) = Foo.Value "oops"
+
+type MultiNumber
+    Value v
+
+Integer.from (that:MultiNumber) = that.v * 19
+Number.from (that:MultiNumber) = that.v * 0.3
+Float.from (that:MultiNumber) = that.v * 0.7
+
+type Back
+    Times n:Integer
+
+    exchange : (Back | Forth) -> (Back | Forth)
+    exchange value:(Back | Forth) = value
+
+type Forth
+    Times n:Integer
+
+    exchange : (Forth | Back) -> (Forth | Back)
+    exchange value:(Forth | Back) = value
+
+Back.from (that:Forth) = Back.Times that.n+1
+Forth.from (that:Back) = Forth.Times that.n+1
+
+foreign js make_str x = """
+   return "js string"
+
+foreign js call_function fn arg_1 = """
+    return fn(arg_1, "a string");
+
+Number.foo self = "foo called"
+
+type Fool
+    Value fool
+
+    to_text : Text
+    to_text self = "{FOOL " + self.fool.to_text + "}"
+
+Fool.from (that : Any) = Fool.Value that
+
+type Blob
+    Text c:Text
+    Binary b:File
+    Json anything
+
+
+Blob.from (that:Text) = Blob.Text that
+Blob.from (that:File) = Blob.Binary that
+Blob.from (that:Any) = Blob.Json that
+
+add_specs suite_builder =
+    suite_builder.group "Conversion" group_builder->
+        group_builder.specify "should be able to convert atoms" <|
+            ((Foo.from (Baz.Value 10)).foo + (Foo.from (Bar.Value 20)).foo) . should_equal 30
+            Foo.from Quaffle . foo . should_equal "quaffle"
+        group_builder.specify "should be able to convert text" <|
+            Foo.from "123" . foo . should_equal 3
+        group_builder.specify "should be able to convert foreign text" <|
+            Foo.from (make_str 4) . foo . should_equal 9
+        group_builder.specify "should be able to convert numbers" <|
+            Foo.from 4 . should_equal (Foo.Value [4, 0, 0, 0])
+            Foo.from (10^100) . should_equal (Foo.Value [10^100, 0, 0, 0])
+            Foo.from 4.5 . should_equal (Foo.Value [4.5, 0, 0, 0])
+        group_builder.specify "should be able to convert dataflow errors" <|
+            Foo.from (Error.throw <| My_Error.Value "i was bad") . should_equal (Foo.Value "oops")
+        group_builder.specify "should be able to convert functions" <|
+            Foo.from (e -> e) . foo . should_equal 5
+        group_builder.specify "should be able to convert booleans" <|
+            Foo.from True . foo . should_be_true
+            Foo.from False . foo . should_be_false
+        group_builder.specify "should be able to convert arrays" <|
+            Foo.from [1,2,3].to_array . foo . should_equal 3
+        group_builder.specify "should be able to convert Any" <|
+            Not_Foo.from that=Quaffle . notfoo . should_equal "ANY!!!"
+            Not_Foo.from 4 . notfoo . should_equal "ANY!!!"
+            Not_Foo.from (e -> e) . notfoo . should_equal "ANY!!!"
+            Not_Foo.from [1,2,3].to_array . notfoo . should_equal "ANY!!!"
+            Not_Foo.from [1,2,3] . notfoo . should_equal "ANY!!!"
+        group_builder.specify "apply Any conversion to foreign object" <|
+            Not_Foo.from Object.new . notfoo . should_equal "ANY!!!"
+        group_builder.specify "apply Any conversion to type" <|
+            Not_Foo.from Boolean . notfoo . should_equal "ANY!!!"
+        group_builder.specify "should call intrinsic object conversions for unimported constructors" <|
+            Vector.from Methods.get_foo . should_equal ["foo"]
+        group_builder.specify "should call extension conversions" <|
+            Text.from Methods.get_bar . should_equal "bar"
+
+        group_builder.specify "should fail graciously when there is no conversion" <|
+            Panic.recover Any (Foo.from (Quux.Value 10)) . catch Any .to_display_text . should_equal "Could not find a conversion from `Quux.Value` to `Foo`."
+        group_builder.specify "should fail graciously when the conversion target is invalid" <|
+            Panic.recover Any (123.from (Quux.Value 10)) . catch Any .to_display_text . should_equal "123 is not a valid conversion target. Expected a type."
+
+        group_builder.specify "should be callable with by-name arguments" <|
+            .from self=Foo that=4 first_param=2 . should_equal (Foo.Value [4, 2, 0, 0])
+        group_builder.specify "should support the use of multiple arguments" <|
+            Foo.from that=4 second_param=1 2 . should_equal (Foo.Value [4, 2, 1, 0])
+
+        group_builder.specify "should play nicely with polyglot" <|
+            call_function .from Foo . should_equal (Foo.Value 8)
+
+        group_builder.specify "should support the meta functions" <|
+            meta_from = Meta.meta .from
+            is_symbol = case meta_from of
+                _ : Meta.Unresolved_Symbol -> True
+                _ -> False
+            is_symbol.should_be_true
+
+            .from . to_text . should_equal "UnresolvedConversion"
+
+            meta_from.name.should_equal "from"
+
+            Meta.meta .foo . rename "from" . should_equal .from
+            Meta.meta .foo . rename "from" Foo "hello" . should_equal (Foo.Value 5)
+
+            meta_from.rename "foo" 123 . should_equal "foo called"
+            meta_from.rename "foo" . should_equal .foo
+
+        group_builder.specify "should not allow currying" <|
+            Panic.recover Any (Foo.from) . catch Any .to_display_text . should_equal "Conversion currying without `that` argument is not supported."
+
+        group_builder.specify "Use conversions to in Conversion_Use module" <|
+            Hello.formulate [ Hello.Say "Proper", Hello.Say "Type" ] . should_equal "ProperType"
+            Hello.formulate [ Foo.Value "Perform", Bar.Value "Conversion" ] . should_equal "PERFORM conversion!"
+
+        group_builder.specify "Convert Foo.to Hello" <|
+            hello = Foo.Value "Perform" . to Hello
+            hello . msg . should_equal "PERFORM "
+
+        group_builder.specify "Convert Bar.to Hello" <|
+            hello = Bar.Value "Conversion" . to Hello
+            hello . msg . should_equal "conversion!"
+
+        group_builder.specify "Convert Bar.to Hello with other suffix" <|
+            hello = Bar.Value "Conversion" . to Hello suffix="?"
+            hello . msg . should_equal "conversion?"
+
+        group_builder.specify "Idempotent convert Hello.to Hello" <|
+            Hello.Say "Hi there!" . to Hello . msg . should_equal "Hi there!"
+
+        group_builder.specify "Unknown convertion Text.to Hello" <|
+            h = Panic.recover No_Such_Conversion <| "Hi there!" . to Hello
+            h . should_fail_with No_Such_Conversion
+
+        group_builder.specify "Use Any.to in Conversion_Use module" <|
+            Hello.formulate_with_to [ Hello.Say "Proper", Hello.Say "Type" ] . should_equal "ProperType"
+            Hello.formulate_with_to [ Foo.Value "Perform", Bar.Value "Conversion" ] . should_equal "PERFORM conversion!"
+
+        group_builder.specify "Avoid parameter conversion of Blob into Blob" <|
+            blob_me (b:Blob) = b
+
+            once = blob_me "Ahoj"
+            second = blob_me once
+
+            Meta.type_of once . should_equal Blob
+            Meta.type_of second . should_equal Blob
+            once . should_equal second
+            Meta.is_same_object once second . should_be_true
+
+        group_builder.specify "Avoid Any.to conversion of Blob into Blob" <|
+            blob_me b = b.to Blob
+
+            once = blob_me "Ahoj"
+            second = blob_me once
+
+            Meta.type_of once . should_equal Blob
+            Meta.type_of second . should_equal Blob
+            once . should_equal second
+            Meta.is_same_object once second . should_be_true
+
+        group_builder.specify "Avoid inline conversion of Blob into Blob" <|
+            once = "Ahoj" : Blob
+            second = once : Blob
+
+            Meta.type_of once . should_equal Blob
+            Meta.type_of second . should_equal Blob
+            once . should_equal second
+            Meta.is_same_object once second . should_be_true
+
+        group_builder.specify "Avoid back and forth conversions" <|
+            one = Forth.Times 1
+
+            two = Back.exchange one
+            three = Forth.exchange two
+            four = Back.exchange three
+            five = Forth.exchange four
+            six = Forth.exchange five
+            seven = Back.exchange six
+            eight = Back.exchange seven
+            nine = Forth.exchange eight
+
+            # no conversions needed when calling `exchange` methods
+            nine . should_equal one
+
+    suite_builder.group "MultiValue Conversions" group_builder->
+
+        group_builder.specify "Requesting Text & Foo" <|
+            check a (n : Text & Foo) = case a of
+                0 -> n.foo
+                1 -> n.take (First 3)
+
+            check 0 "Ahoj" . should_equal 4
+            check 1 "Ahoj" . should_equal "Aho"
+
+            # Boolean can be converted to Foo, but is not Text
+            Test.expect_panic Type_Error <| check 0 True
+
+        group_builder.specify "Requesting Foo & Not_Foo & Boolean" <|
+            check a (n : Foo & Not_Foo & Boolean) = case a of
+                0 -> n.foo
+                1 -> n.not
+                2 -> n.notfoo
+
+            check 0 True . should_be_true
+            check 1 True . should_be_false
+            check 2 True . should_be_true
+
+            Test.expect_panic Type_Error <| check 0 "not a boolean"
+
+        group_builder.specify "Requesting Number & Integer & Float" <|
+            m = MultiNumber.Value 5
+
+            m.to Number . should_equal 1.5
+            m.to Integer . should_equal 95
+            m.to Float . should_equal 3.5
+
+            to_1 (v : Number & Integer & Float) = v
+            to_1 m . should_equal 1.5
+
+            to_2 (v : Integer & Float & Number) = v
+            to_2 m . should_equal 95
+
+            to_3 (v : Float & Number & Integer) = v
+            to_3 m . should_equal 3.5
+
+            to_4 (v : Integer & Number & Float) = v
+            to_4 m . should_equal 95
+
+            to_5 (v : Float & Integer & Number) = v
+            to_5 m . should_equal 3.5
+
+            to_6 (v : Number & Float & Integer) = v
+            to_6 m . should_equal 1.5
+
+        group_builder.specify "Requesting Integer & Fool" <|
+            do_number (x : Integer & Fool) =
+                x.foo . should_equal "foo called"
+                x.fool . should_equal 42
+                x==x . should_be_true
+                (x:Integer)==42 . should_be_true
+                (x:Fool)==42 . should_be_false
+                x==42 . should_be_true
+                42==(x.to Integer) . should_be_true
+                42==(x.to Fool) . should_be_false
+                42==x . should_be_true
+                100+(x:Integer) . should_equal 142
+                (x:Integer)+100 . should_equal 142
+                x+100 . should_equal 142
+                100+x . should_equal 142
+                x.to_text . should_equal "{FOOL 42}"
+                (x:Fool).to_text . should_equal "{FOOL 42}"
+                (x:Integer).to_text . should_equal "42"
+
+            do_number 42
+
+        group_builder.specify "Requesting Float & Fool" <|
+            do_number (x : Float & Fool) =
+                x.foo . should_equal "foo called"
+                x.fool . should_equal 42.3
+                x==x . should_be_true
+                (x:Float)==42.3 . should_be_true
+                (x:Fool)==42.3 . should_be_false
+                x==42.3 . should_be_true
+                42.3==(x.to Float) . should_be_true
+                42.3==(x.to Fool) . should_be_false
+                42.3==x . should_be_true
+                100+(x:Float) . should_equal 142.3
+                (x:Float)+100 . should_equal 142.3
+                x+100 . should_equal 142.3
+                100+x . should_equal 142.3
+                x.to_text . should_equal "{FOOL 42.3}"
+                (x:Fool).to_text . should_equal "{FOOL 42.3}"
+                (x:Float).to_text . should_equal "42.3"
+
+            do_number 42.3
+
+        group_builder.specify "Requesting Boolean & Fool" <|
+            do_boolean (x : Boolean & Fool) =
+                x.fool . should_equal True
+                x==x . should_be_true
+                (x:Boolean) . should_be_true
+                (x:Fool)==True . should_be_false
+                x==True . should_be_true
+                True==(x:Boolean) . should_be_true
+                True==(x:Fool) . should_be_false
+                True==x . should_be_true
+                x.to_text . should_equal "{FOOL True}"
+                (x:Fool).to_text . should_equal "{FOOL True}"
+                (x:Boolean).to_text . should_equal "True"
+                Test.expect_panic Type_Error <| (x:Integer).to_text
+
+            do_boolean True
+
+        group_builder.specify "Requesting Text & Fool" <|
+            do_text (x : Text & Fool) =
+                x.fool . should_equal "Hello"
+                x==x . should_be_true
+                (x:Text)=="Hello" . should_be_true
+                (x:Fool)=="Hello" . should_be_false
+                x=="Hello" . should_be_true
+                "Hello"==(x:Text) . should_be_true
+                "Hello"==(x:Fool) . should_be_false
+                "Hello"==x . should_be_true
+                x.to_text . should_equal "Hello"
+                (x:Fool).to_text . should_equal "{FOOL Hello}"
+                (x:Text).to_text . should_equal "Hello"
+                Test.expect_panic Type_Error <| (x:Boolean).to_text
+
+            do_text "Hello"
+
+        group_builder.specify "Requesting Time_Of_Day & Fool" <|
+            now = Time_Of_Day.now
+
+            do_time (x : Time_Of_Day & Fool) =
+                x.fool . should_equal now
+                x==x . should_be_true
+                (x:Time_Of_Day)==now . should_be_true
+                (x:Fool)==now . should_be_false
+                x==now . should_be_true
+                now==(x:Time_Of_Day) . should_be_true
+                now==(x:Fool) . should_be_false
+                now==x . should_be_true
+                x.to_text . should_equal now.to_text
+
+            do_time now
+
+        group_builder.specify "Requesting Date & Fool" <|
+            now = Date.today
+
+            do_date (x : Date & Fool) =
+                x.fool . should_equal now
+                x==x . should_be_true
+                (x:Date)==now . should_be_true
+                (x:Fool)==now . should_be_false
+                x==now . should_be_true
+                now==(x:Date) . should_be_true
+                now==(x:Fool) . should_be_false
+                now==x . should_be_true
+                x.to_text . should_equal "{FOOL "+now.to_text+"}"
+
+            do_date now
+
+        group_builder.specify "Requesting Date_Time & Fool" <|
+            now = Date_Time.now
+
+            do_time (x : Date_Time & Fool) =
+                x.fool . should_equal now
+                x==x . should_be_true
+                (x:Date_Time)==now . should_be_true
+                (x:Fool)==now . should_be_false
+                x==now . should_be_true
+                now==(x:Date_Time) . should_be_true
+                now==(x:Fool) . should_be_false
+                now==x . should_be_true
+                x.to_text . should_equal now.to_text
+
+            do_time now
+
+        group_builder.specify "Requesting Duration & Fool" <|
+            now = Duration.new hours=5
+
+            do_duration (x : Duration & Fool) =
+                x.fool . should_equal now
+                x==x . should_be_true
+                (x:Duration)==now . should_be_true
+                (x:Fool)==now . should_be_false
+                x==now . should_be_true
+                now==(x:Duration) . should_be_true
+                now==(x:Fool) . should_be_false
+                now==x . should_be_true
+                x.to_text . should_equal "{FOOL "+now.to_text+"}"
+
+            do_duration now
+
+    suite_builder.group "Autoscoped Constructors" group_builder->
+
+        group_builder.specify "Foo.Value as autoscoped" <|
+
+            v = ..Value 10
+            foo = v:Foo
+            Foo.Value 10 . should_equal foo
+
+        group_builder.specify "Autoscope to two different values" <|
+
+            v = ..Value 10
+            foo = v:Foo
+            bar = v:Bar
+            Foo.Value 10 . should_equal foo
+            Bar.Value 10 . should_equal bar
+
+        group_builder.specify "Cannot find constructor" <|
+            v = ..Value 10
+
+            b = Test.expect_panic Type_Error <|
+                x = v:Back
+                x
+
+            msg = b.to_display_text
+            msg . should_contain "Cannot find constructor ..Value among Back"
+
+        group_builder.specify "Choose first constructor" <|
+            v = ..Value 10
+
+            m_foo (m:Foo|Bar|Back) = m
+            m_bar (m:Bar|Foo|Back) = m
+            m_back_foo (m:Back|Foo|Bar) = m
+            m_back_bar (m:Back|Bar|Foo) = m
+
+            m_foo v . should_equal <| Foo.Value 10
+            m_bar v . should_equal <| Bar.Value 10
+            m_back_foo v . should_equal <| Foo.Value 10
+            m_back_bar v . should_equal <| Bar.Value 10
+
+        group_builder.specify "Choose suitable constructor" <|
+            v = ..Times 10
+
+            m_foo (m:Foo|Bar) = m
+            m_bar (m:Bar|Foo) = m
+            m_back (m:Foo|Bar|Back) = m
+
+            Test.expect_panic Type_Error <| (m_foo v)
+            Test.expect_panic Type_Error <| (m_bar v)
+            m_back v . should_equal <| Back.Times 10
+
+        group_builder.specify "Lazy constructor with State" <|
+            v0 = ..Value
+            v1 = ..Value 33
+
+            State.run Number 42 <|
+                s42 = State.get Number
+                s42 . should_equal 42
+
+                v0:Stateful . should_equal <| Stateful.Value 42
+                v1:Stateful . should_equal <| Stateful.Value 33
+
+            v1:Stateful . should_equal <| Stateful.Value 33
+            err = Panic.recover Any <|
+                v = v0:Stateful
+                v
+            err . should_fail_with Uninitialized_State
+
+        group_builder.specify "Autoscope vector elements" <|
+
+            foo_vec (v:Vector) = v.map e->
+                e:Foo . foo
+
+            vec = [..Value 3, ..Value 4, ..Value 5]
+
+            foo_vec vec . should_equal [3, 4, 5]
+
+    suite_builder.group "Polyglot Argument" group_builder->
+        f1 (x : DateTimeFormatter) = x.to_text
+        f2 (x : Text | DateTimeFormatter) = case x of
+            _ : DateTimeFormatter -> "DateTimeFormatter: "+x.to_text
+            _ : Text -> "TEXT: "+x
+            _ -> "OTHER"
+        f3 (x : DateTimeFormatter | Text) = case x of
+            _ : DateTimeFormatter -> "DateTimeFormatter: "+x.to_text
+            _ : Text -> "TEXT: "+x
+            _ -> "OTHER"
+        f4 (x) = case x of
+            _ : DateTimeFormatter -> "DateTimeFormatter: "+x.to_text
+            _ : Text -> "TEXT: "+x
+            _ -> "OTHER"
+
+        d = DateTimeFormatter.ISO_DATE
+
+        group_builder.specify "f1 d" <|
+            (f1 d).to_display_text . should_contain "ParseCaseSensitive(false)(Value"
+
+        group_builder.specify "f1 42" <|
+            Test.expect_panic Type_Error <| (f1 42).to_display_text
+
+        group_builder.specify "f2 AAA" <|
+            (f2 "AAA").to_display_text . should_equal "TEXT: AAA"
+
+        group_builder.specify "f2 d" <|
+            (f2 d).to_display_text . should_contain "DateTimeFormatter: ParseCaseSensitive(false)(Value"
+
+        group_builder.specify "f3 AAA" <|
+            (f3 "AAA").to_display_text . should_equal "TEXT: AAA"
+
+        group_builder.specify "f3 d" <|
+            (f3 d).to_display_text . should_contain "DateTimeFormatter: ParseCaseSensitive(false)(Value"
+
+        group_builder.specify "f4 d" <|
+            (f4 d).to_display_text . should_contain "DateTimeFormatter: Parse"
+
+    suite_builder.group "Polyglot Argument with Inheritance" group_builder->
+        f1 (x : JPeriod) = x.to_text
+        f2 (x : ChronoPeriod) = x.negated.to_text
+        f3 (x : TemporalAmount) = x.getUnits.to_text
+
+        quarter = JPeriod.ofMonths 3
+
+        group_builder.specify "f1 quarter" <|
+            (f1 quarter) . should_equal "P3M"
+
+        group_builder.specify "f2 quarter" <|
+            (f2 quarter) . should_equal "P-3M"
+
+        group_builder.specify "f3 quarter" <|
+            (f3 quarter) . should_equal "[Years, Months, Days]"
+
+    suite_builder.group "Polyglot Conversion" group_builder->
+        f1 (x : DateTimeFormatter) = x.to_text
+        f2 (x : Hello | DateTimeFormatter) = case x of
+            _ : DateTimeFormatter -> "DateTimeFormatter: "+x.to_text
+            _ : Hello -> "HELLO: "+x.to_text
+            _ -> "OTHER"
+        f3 (x : DateTimeFormatter | Hello) = case x of
+            _ : DateTimeFormatter -> "DateTimeFormatter: "+x.to_text
+            _ : Hello -> "HELLO: "+x.to_text
+            _ -> "OTHER"
+        f4 (x) = case x of
+            _ : DateTimeFormatter -> "DateTimeFormatter: "+x.to_text
+            _ : Hello -> "HELLO: "+x.to_text
+            _ -> "OTHER"
+        f5 (x:Hello) = case x of
+            _ : DateTimeFormatter -> "DateTimeFormatter: "+x.to_text
+            _ : Hello -> "HELLO: "+x.to_text
+            _ -> "OTHER"
+
+        d = DateTimeFormatter.ISO_DATE
+
+        group_builder.specify "f1 d" <|
+            (f1 d).to_display_text . should_contain "ParseCaseSensitive(false)(Value"
+
+        group_builder.specify "f1 42" <|
+            Test.expect_panic Type_Error <| (f1 42).to_display_text
+
+        group_builder.specify "f2 foo AAA" <|
+            (f2 <| Foo.Value "AAA").to_display_text . should_equal "HELLO: (Say 'AAA ')"
+
+        group_builder.specify "f2 hello AAA" <|
+            (f2 <| Hello.Say "AAA").to_display_text . should_equal "HELLO: (Say 'AAA')"
+
+        group_builder.specify "f2 d" <|
+            (f2 d).to_display_text . should_contain "DateTimeFormatter: ParseCaseSensitive(false)(Value"
+
+        group_builder.specify "f3 bar AAA" <|
+            (f3 <| Bar.Value "AAA").to_display_text . should_equal "HELLO: (Say 'aaa!')"
+
+        group_builder.specify "f3 hello AAA" <|
+            (f3 <| Hello.Say "AAA").to_display_text . should_equal "HELLO: (Say 'AAA')"
+
+        group_builder.specify "f3 AAA" <|
+            (f3 'AAA').to_display_text . should_equal "HELLO: (Say 'Any fallback:AAA?')"
+
+        group_builder.specify "f3 d" <|
+            (f3 d).to_display_text . should_contain "DateTimeFormatter: ParseCaseSensitive(false)(Value"
+
+        group_builder.specify "f4 d" <|
+            (f4 d).to_display_text . should_contain "DateTimeFormatter: Parse"
+
+        group_builder.specify "f4 AAA" <|
+            (f4 'AAA').to_display_text . should_equal "OTHER"
+
+        group_builder.specify "f5 AAA" <|
+            (f5 'AAA').to_display_text . should_equal "HELLO: (Say 'Any fallback:AAA?')"
+
+        group_builder.specify "f5 hello AAA" <|
+            (f5 <| Hello.Say "AAA").to_display_text . should_equal "HELLO: (Say 'AAA')"
+
+        group_builder.specify "f5 d" <|
+            (f5 d).to_display_text . should_contain "HELLO: (Say 'Any fallback:ParseCaseSensitive(false)(Value"
+
+Hello.from (that:Any) suffix="?" = Hello.Say <| ("Any fallback:"+that.to_text) + suffix
+Hello.from (that:Foo) suffix=" " = Hello.Say <| (that.foo.to_case Case.Upper) + suffix
+Hello.from (that:Bar) suffix="!" = Hello.Say <| (that.bar.to_case Case.Lower) + suffix
+
+main filter=Nothing =
+    suite = Test.build suite_builder->
+        add_specs suite_builder
+    suite.run_with_filter filter

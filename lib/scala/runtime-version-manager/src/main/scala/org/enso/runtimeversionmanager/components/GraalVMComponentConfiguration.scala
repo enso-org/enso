@@ -16,17 +16,21 @@ class GraalVMComponentConfiguration extends RuntimeComponentConfiguration {
       if (os.hasPythonSupport) Seq(GraalVMComponent.python) else Seq()
     val optRComponent =
       if (os.hasRSupport) Seq(GraalVMComponent.R) else Seq()
-    version.graalVersion match {
-      case GraalVersions.Major(v) if v >= 23 =>
-        // Since 23.0.0, R is not bundled in the Graal release anymore.
-        Seq(GraalVMComponent.js) ++ optPythonComponent
-      case GraalVersions.Major(v) if v >= 22 =>
-        Seq(GraalVMComponent.js) ++ optRComponent ++ optPythonComponent
-      case GraalVersions.Major(v)
-          if v > 20 && os.hasSulongSupport && os.hasRSupport =>
-        Seq(GraalVMComponent.R) ++ optPythonComponent
-      case _ =>
-        Seq()
+    if (version.isUnchained) {
+      Seq()
+    } else {
+      version.graalVersion match {
+        case GraalVersions.Major(v) if v >= 23 =>
+          // Since 23.0.0, R is not bundled in the Graal release anymore.
+          Seq(GraalVMComponent.js) ++ optPythonComponent
+        case GraalVersions.Major(v) if v >= 22 =>
+          Seq(GraalVMComponent.js) ++ optRComponent ++ optPythonComponent
+        case GraalVersions.Major(v)
+            if v > 20 && os.hasSulongSupport && os.hasRSupport =>
+          Seq(GraalVMComponent.R) ++ optPythonComponent
+        case _ =>
+          Seq()
+      }
     }
   }
 

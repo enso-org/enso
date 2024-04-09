@@ -1,8 +1,7 @@
 from Standard.Base import all
-from Standard.Base.Random import random_uuid
 
 ## Generates a random name with a given prefix, ensuring relative uniqueness by
    appending a random UUID.
 random_name : Text -> Text
 random_name prefix =
-    prefix + "-" + random_uuid
+    prefix + "-" + Random.uuid

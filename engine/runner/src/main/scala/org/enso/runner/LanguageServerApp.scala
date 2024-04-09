@@ -23,19 +23,19 @@ object LanguageServerApp {
     *
     * @param config the application config
     * @param logLevel the logging level
-    * @param deamonize should the language server process be daemonized
+    * @param daemonize should the language server process be daemonized
     */
   def run(
     config: LanguageServerConfig,
     logLevel: Level,
-    deamonize: Boolean
+    daemonize: Boolean
   ): Unit = {
     val server = new LanguageServerComponent(config, logLevel)
     Runtime.getRuntime.addShutdownHook(new Thread(() => {
       stop(server, "shutdown hook")(config.computeExecutionContext)
     }))
     Await.result(server.start(), 1.minute)
-    if (deamonize) {
+    if (daemonize) {
       val lock = new AnyRef
       lock.synchronized {
         lock.wait()

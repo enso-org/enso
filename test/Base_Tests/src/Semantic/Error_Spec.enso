@@ -1,0 +1,480 @@
+from Standard.Base import all
+import Standard.Base.Errors.Common.Unsupported_Argument_Types
+import Standard.Base.Errors.Common.Type_Error
+import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
+import Standard.Base.Errors.Illegal_State.Illegal_State
+import Standard.Base.Errors.Wrapped_Error.Wrapped_Error
+import Standard.Base.Errors.Empty_Error.Empty_Error
+
+import Standard.Base.Runtime.Ref.Ref
+
+polyglot java import java.lang.Long
+polyglot java import java.lang.NumberFormatException
+polyglot java import java.lang.Exception as JException
+polyglot java import java.util.ArrayList
+polyglot java import java.util.Random as Java_Random
+
+from Standard.Test import all
+
+type My_Type
+    Value foo
+    Multi_Value foo bar
+    Default_Value foo=2 bar
+
+type My_Error
+    Error i:Integer
+
+type My_Error_Wrapper
+    Error inner_error
+
+Wrapped_Error.from (that : My_Error_Wrapper) = Wrapped_Error.Value that that.inner_error
+
+throw_a_bar = Error.throw "bar"
+throw_a_bar_panicking = Panic.throw "bar"
+throw_a_foo_panicking = Panic.throw "foo"
+throw_raw_java msg = Panic.throw (NumberFormatException.new msg)
+do_a_parse str = Long.parseLong str
+
+foreign js throw_js_int = """
+    throw 42;
+
+foreign js throw_js_str = """
+    throw "foo";
+
+foreign js throw_js_arr = """
+    throw [1,2,3];
+
+add_specs suite_builder =
+    suite_builder.group "No Method Errors" group_builder->
+        group_builder.specify "should be recoverable" <|
+            err_1 = Panic.recover Any (123 . foobar "baz") . catch
+            err_2 = Panic.recover Any ("foo" . baz 123) . catch
+            err_3 = Panic.recover Any (My_Type.Value False . nope) . catch
+
+            err_1.target.should_equal 123
+            err_1.method_name.should_equal "foobar"
+
+            err_2.target.should_equal "foo"
+            err_2.method_name.should_equal "baz"
+
+            err_3.target.to_text.should_equal "(My_Type.Value False)"
+            err_3.method_name.should_equal "nope"
+
+    suite_builder.group "Dataflow Errors" group_builder->
+        group_builder.specify "should be recoverable" <|
+            err = Error.throw 42
+            err.catch . should_equal 42
+            err.should_fail_with Integer
+
+        group_builder.specify "should allow recovery of only a specific error-type" <|
+            recover_illegal_argument ~action =
+                action . catch Illegal_Argument err->
+                    "recovered error: "+err.message
+            (recover_illegal_argument (Error.throw (Illegal_Argument.Error "foo"))) . should_equal "recovered error: foo"
+            (recover_illegal_argument (Error.throw (Illegal_State.Error "bar"))) . should_fail_with Illegal_State
+
+        group_builder.specify "should implement to_display_text" <|
+            Error.throw Nothing . to_display_text . should_equal "Error: Nothing"
+
+        group_builder.specify "should implement to_text" <|
+            Error.throw Nothing . to_text . should_equal "(Error: Nothing)"
+            Error.to_text Error . should_equal "Error"
+            case (Error.to_text) of
+                _ : Function -> Nothing
+                _ -> Test.fail "Expected the expression to be of Function type"
+
+        group_builder.specify "should be able to be mapped" <|
+            error = Error.throw 42
+            regular = 10
+            f x = 2*x
+            (error.map_error f . catch).should_equal 84
+            regular.map_error f . should_equal 10
+
+        group_builder.specify "should allow to check if the value is an error" <|
+            error = Error.throw 42
+            regular = 10
+
+            error.is_error . should_equal True
+            regular.is_error . should_equal False
+
+        group_builder.specify "should short-circuit polyglot evaluation" <|
+            error = Error.throw 42
+            Java_Random.new error . should_fail_with Integer
+
+        group_builder.specify "should allow to inspect their stacktrace" <|
+            error = throw_a_bar
+            error.catch . should_equal "bar"
+            arr = error.stack_trace
+            arr.length>=1 . should_be_true
+            arr.first.name . should_equal "Error_Spec.throw_a_bar"
+            arr.first.source_location.file.name . should_equal "Error_Spec.enso"
+            arr.first.source_location.start_line . should_equal 32
+
+        group_builder.specify "should allow to inspect the stack trace of a recovered panic" <|
+            error = Panic.recover Any <| throw_a_bar_panicking
+            error.catch . should_equal "bar"
+            error.stack_trace.first.name . should_equal "Error_Spec.throw_a_bar_panicking"
+
+        group_builder.specify "it should be possible to introduce arbitrary dataflow dependencies between values using `if_not_error`" <|
+            42.if_not_error 23 . should_equal 23
+
+            r1 = Error.throw (Illegal_State.Error "foo") . if_not_error 23
+            r1.should_fail_with Illegal_State
+
+            42.if_not_error (Error.throw (Illegal_State.Error "foo")) . should_fail_with Illegal_State
+
+        group_builder.specify "should allow calling catch on types" <|
+            Vector.catch . should_equal Vector
+            Any.catch . should_equal Any
+            Boolean.catch . should_equal Boolean
+
+    suite_builder.group "Panics" group_builder->
+        group_builder.specify "should be able to be caught" <|
+            result = Panic.catch Any (Panic.throw 42) caught_panic->
+                caught_panic.payload+10
+            result . should_equal 52
+
+            result_2 = Panic.catch Any (1 + 2) caught_panic->
+                caught_panic.payload+10
+            result_2 . should_equal 3
+
+        group_builder.specify "should not mix with dataflow errors" <|
+            result = Panic.catch Any (Error.throw 42) caught_panic->
+                caught_panic.payload+10
+            result.catch . should_equal 42
+
+        group_builder.specify "should provide access to stack traces" <|
+            stack = Panic.catch Any throw_a_bar_panicking caught_panic->
+                caught_panic.stack_trace
+            stack.first.name . should_equal "Error_Spec.throw_a_bar_panicking"
+
+        group_builder.specify "should provide access to Java stack traces" <|
+            stack_1 = Panic.recover Any (do_a_parse "foo") . stack_trace
+            stack_1.at 0 . name . should_equal "Error_Spec.do_a_parse"
+
+            stack_2 = Panic.catch Any (do_a_parse "foo") caught_panic->
+                caught_panic.stack_trace
+            stack_2.at 0 . name . should_equal "Error_Spec.do_a_parse"
+
+        group_builder.specify "should be able to be rethrown without changing the stack trace" <|
+            caught_panic = Panic.catch Any throw_a_bar_panicking x->x
+            rethrow foo = Panic.throw foo
+            rethrown_panic = Panic.catch Any (rethrow caught_panic) x->x
+            (rethrown_panic.stack_trace.length > 0).should_be_true
+            (rethrown_panic.stack_trace.map .name) . should_equal (caught_panic.stack_trace.map .name)
+
+        group_builder.specify "should allow the pattern for handling selected exceptions" <|
+            perform_operation ~action =
+                Panic.catch Any action caught_panic->
+                    if caught_panic.payload == "bar" then 42 else
+                        Panic.throw caught_panic
+            Panic.recover Any (perform_operation throw_a_bar_panicking) . should_equal 42
+
+            error = Panic.recover Any (perform_operation throw_a_foo_panicking)
+            error.catch . should_equal "foo"
+            error.stack_trace.first.name . should_equal "Error_Spec.throw_a_foo_panicking"
+
+        group_builder.specify "should work as in the examples" <|
+            fun ~act =
+                Panic.catch Any act caught_panic-> case caught_panic.payload of
+                    Illegal_Argument.Error message _ -> "Illegal arguments were provided: "+message
+                    other_panic -> Panic.throw other_panic
+            Panic.recover Any (fun "bar") . should_equal "bar"
+            Panic.recover Any (fun (Panic.throw "foo")) . catch . should_equal "foo"
+            Panic.recover Any (fun (Panic.throw (Illegal_Argument.Error "msg" Nothing))) . should_equal "Illegal arguments were provided: msg"
+
+        group_builder.specify "should allow catching Java exceptions easily" <|
+            parse str =
+                Panic.catch NumberFormatException (Long.parseLong str) caught_panic->
+                    Error.throw (Illegal_Argument.Error "The provided string is not a valid number: "+caught_panic.payload.getMessage)
+
+            parse "42" . should_equal 42
+            dataflow_error = parse "foo"
+            dataflow_error.catch . should_equal (Illegal_Argument.Error 'The provided string is not a valid number: For input string: "foo"')
+            Test.expect_panic_with (parse 0.0) Unsupported_Argument_Types
+
+        group_builder.specify "should allow to throw raw Java exceptions" <|
+            exception = Panic.catch NumberFormatException (throw_raw_java "foo") (p -> p)
+            exception.payload.getMessage . should_equal "foo"
+            Panic.get_attached_stack_trace exception . first . name . should_equal "Error_Spec.throw_raw_java"
+
+            caught_panic = Panic.catch Any (throw_raw_java "foo") x->x
+            caught_panic.stack_trace.first.name . should_equal "Error_Spec.throw_raw_java"
+            caught_panic.payload . should_be_a JException
+
+        group_builder.specify "should allow to re-throw raw Java exceptions" <|
+            message_1 = Ref.new ""
+            caught_1 = Panic.recover Any <|
+                Panic.catch NumberFormatException (do_a_parse "foo") caught_panic->
+                    message_1 . put caught_panic.payload.getMessage
+                    Panic.throw caught_panic.payload
+            message_1.get . should_equal 'For input string: "foo"'
+            caught_1.catch . should_be_a JException
+            caught_1.stack_trace.at 0 . name . should_equal "Error_Spec.do_a_parse"
+
+            message_2 = Ref.new ""
+            caught_2 = Panic.recover Any <|
+                Panic.catch NumberFormatException (throw_raw_java "foo") caught_panic->
+                    message_2.put caught_panic.payload.getMessage
+                    Panic.throw caught_panic.payload
+            message_2.get . should_equal "foo"
+            caught_2.catch . should_be_a JException
+            caught_2.stack_trace.first.name . should_equal "Error_Spec.throw_raw_java"
+
+        group_builder.specify "should allow to catch a specific panic type easily" <|
+            message_1 = Panic.catch Illegal_Argument (Panic.throw (Illegal_Argument.Error "msg" Nothing)) caught_panic->
+                caught_panic.payload.message
+            message_1 . should_equal "msg"
+
+            error = Panic.recover Any <| Panic.catch Illegal_Argument (Panic.throw (Illegal_State.Error "foo" Nothing)) caught_panic->
+                caught_panic.payload.message
+            error.catch . should_be_a Illegal_State.Error
+
+            message_2 = Panic.catch Any (Panic.throw (Illegal_Argument.Error "msg" Nothing)) _->
+                "caught"
+            message_2 . should_equal "caught"
+
+            message_3 = Panic.catch JException (Long.parseLong "foo") _->
+                "polyglot"
+            message_3 . should_equal "polyglot"
+            message_4 = Panic.catch Any (Long.parseLong "foo") _->
+                "polyglot2"
+            message_4 . should_equal "polyglot2"
+            message_5 = Panic.catch Unsupported_Argument_Types (Long.parseLong 0) _->
+                "uat"
+            message_5 . should_equal "uat"
+
+            Test.expect_panic_with (Panic.catch Illegal_Argument (Long.parseLong "foo") (_->"polyglot3")) JException
+            Test.expect_panic_with (Panic.catch Nothing (Long.parseLong 0) (_->"polyglot4")) Unsupported_Argument_Types
+
+        group_builder.specify "should be able to be recovered selectively" <|
+            Panic.recover Illegal_Argument (Panic.throw (Illegal_Argument.Error "msg" Nothing)) . catch . should_be_a Illegal_Argument.Error
+            Panic.recover Any (Panic.throw (Illegal_Argument.Error "msg" Nothing)) . catch . should_be_a Illegal_Argument.Error
+            Panic.recover [Illegal_Argument] (Panic.throw (Illegal_Argument.Error "msg" Nothing)) . catch . should_be_a Illegal_Argument.Error
+            Panic.recover [Illegal_State, Illegal_Argument] (Panic.throw (Illegal_Argument.Error "msg" Nothing)) . catch . should_be_a Illegal_Argument.Error
+
+            Test.expect_panic_with <| Panic.recover Illegal_State (Panic.throw (Illegal_Argument.Error "msg" Nothing)) . catch
+            Test.expect_panic_with <| Panic.recover [Illegal_State] (Panic.throw (Illegal_Argument.Error "msg" Nothing)) . catch
+            Test.expect_panic_with <| Panic.recover [] (Panic.throw (Illegal_Argument.Error "msg" Nothing)) . catch
+
+            Panic.recover [JException] (do_a_parse "foo") . catch . should_be_a JException
+
+            Panic.recover Any throw_a_bar_panicking . catch . should_equal "bar"
+            Panic.recover Text throw_a_bar_panicking . stack_trace . first . name . should_equal "Error_Spec.throw_a_bar_panicking"
+
+        group_builder.specify "Unsupported_Argument_Types message should be readable" <|
+            check err =
+                (err.payload.message) . should_equal "Cannot convert '42'(language: Java, type: java.lang.Long) to Java type 'java.lang.String': Invalid or lossy primitive coercion."
+                (err.payload.message) . should_equal (err.payload.to_display_text)
+
+            Panic.catch Unsupported_Argument_Types (Long.decode 42) handler=check
+
+        group_builder.specify "should be able to throw and catch polyglot arrays" <|
+            handle_panic caught prefix="" =
+                if prefix == "" then caught.payload.to_text else prefix+": "+caught.payload.to_text
+
+            Panic.catch Any (Panic.throw (ArrayList.new)) handler=(handle_panic prefix="Any") . should_equal "Any: []"
+            Panic.catch ArrayList (Panic.throw (ArrayList.new)) handler=handle_panic . should_equal "[]"
+
+            catch_any = Panic.catch Any handler=(handle_panic prefix="Any") <|
+              Panic.catch ArrayList handler=handle_panic <|
+                (Panic.throw (Vector.new 1 (i -> i + 1)))
+            catch_any . should_equal "Any: [1]"
+
+            catch_vector = Panic.catch Any handler=(handle_panic prefix="Any") <|
+              Panic.catch Vector handler=handle_panic <|
+                (Panic.throw (Vector.new 1 (i -> i + 1)))
+            catch_vector . should_equal "[1]"
+
+            catch_array = Panic.catch Any handler=(handle_panic prefix="Any") <|
+              Panic.catch Array handler=handle_panic <|
+                (Panic.throw (ArrayList.new))
+            catch_array . should_equal "[]"
+
+        group_builder.specify "should be able to throw and catch polyglot values"  <|
+            caught_js_int_panic = Panic.catch Any handler=err->"Any:"+err.payload.to_text <|
+                Panic.catch Integer handler=err->"JS integer:"+err.payload.to_text <|
+                    throw_js_int
+
+            caught_js_int_panic . should_equal "JS integer:42"
+
+            caught_js_str_panic = Panic.catch Any handler=err->"Any:"+err.payload.to_text <|
+                Panic.catch Text handler=err->"JS string:"+err.payload.to_text <|
+                    throw_js_str
+
+            caught_js_str_panic . should_equal "JS string:foo"
+
+            caught_js_arr_panic = Panic.catch Any handler=err->"Any:"+err.payload.to_text <|
+                Panic.catch Array handler=err->"JS array:"+err.payload.to_text <|
+                    throw_js_arr
+
+            caught_js_arr_panic . should_equal "JS array:[1, 2, 3]"
+
+        group_builder.specify "should allow to use `with_finalizer`" <|
+            ref1 = Ref.new ""
+            r1 = Panic.with_finalizer (ref1.put "finalized") <|
+                42
+            r1.should_equal 42
+            ref1.get . should_equal "finalized"
+
+            ref2 = Ref.new ""
+            Test.expect_panic_with matcher=Illegal_Argument <|
+                Panic.with_finalizer (ref2.put "finalized") <|
+                    ref2.put "in-progress"
+                    Panic.throw (Illegal_Argument.Error "msg")
+                    42
+            ref2.get . should_equal "finalized"
+
+            ref3 = Ref.new ""
+            r3 = Panic.with_finalizer (ref3.put "finalized") <|
+                ref3.put "in-progress"
+                Error.throw (Illegal_Argument.Error "msg2")
+            r3.should_fail_with Illegal_Argument
+            ref3.get . should_equal "finalized"
+
+        group_builder.specify "should propagate any panics raised in `with_finalizer` finalization" <|
+            v1 = Vector.new_builder
+            c1 = Panic.catch Any handler=(.payload) <|
+                do_finalize =
+                    v1.append 2
+                    Panic.throw "finalizer"
+                do_act =
+                    v1.append 1
+                    42
+                Panic.with_finalizer do_finalize do_act
+            c1 . should_equal "finalizer"
+            v1.to_vector . should_equal [1, 2]
+
+            v2 = Vector.new_builder
+            c2 = Panic.catch Any handler=(.payload) <|
+                do_finalize =
+                    v2.append 2
+                    Panic.throw "finalizer"
+                do_act =
+                    v2.append 1
+                    Panic.throw "action"
+                Panic.with_finalizer do_finalize do_act
+            c2 . should_equal "finalizer"
+            v2.to_vector . should_equal [1, 2]
+
+    suite_builder.group "Type Errors" group_builder->
+        my_func x y =
+            x + y
+
+        my_defaulted_func x=5 y =
+            x + y
+
+        neg n:Number = -n
+
+        extract x:My_Type = x.foo
+
+        group_builder.specify "everything is ok" <|
+            neg (my_func -5 -2) . should_equal 7
+
+        group_builder.specify "try to apply one argument" <|
+            r = Test.expect_panic Type_Error <| neg (my_func -5)
+            r.to_display_text.should_contain "Try to apply y argument."
+
+        group_builder.specify "try to apply two arguments" <|
+            r = Test.expect_panic Type_Error <| neg my_func
+            r.to_display_text.should_contain "Try to apply x, y arguments."
+
+        group_builder.specify "apply two arguments with one defaulted" <|
+            r = Test.expect_panic Type_Error <| neg my_defaulted_func
+            r.to_display_text.should_contain "Try to apply y argument."
+
+        group_builder.specify "printed non-defaulted argument" <|
+            r = Test.expect_panic Type_Error <| neg (my_defaulted_func 33)
+            r.to_display_text.should_contain "Try to apply y argument."
+            r.to_display_text.should_contain "x=33"
+
+        group_builder.specify "report unapplied constructor nicely" <|
+            r = Test.expect_panic Type_Error <| extract My_Type.Value
+            r.to_display_text.should_contain "Try to apply foo argument."
+
+        group_builder.specify "report unapplied constructor with default value nicely" <|
+            r = Test.expect_panic Type_Error <| extract My_Type.Default_Value
+            r.to_display_text.should_contain "Try to apply bar argument."
+
+        group_builder.specify "report non-defaulted constructor argument" <|
+            r = Test.expect_panic Type_Error <| extract (My_Type.Default_Value foo=33)
+            r.to_display_text.should_contain "Try to apply bar argument."
+            r.to_display_text.should_contain "foo=33"
+
+        group_builder.specify "report partially applied constructor nicely" <|
+            r = Test.expect_panic Type_Error <| extract (My_Type.Multi_Value 42)
+            r.to_display_text.should_contain "Try to apply bar argument."
+
+        group_builder.specify "try to apply two arguments with over-saturated" <|
+            r = Test.expect_panic Type_Error <| neg (my_func z=10)
+            r.to_display_text . should_contain "Try to apply x, y arguments"
+
+        group_builder.specify "types and unapplied arguments" <|
+            c = C.Baz C.to_text
+            r = Test.expect_panic Type_Error <| neg (c.to_num c=3)
+            r.to_display_text . should_contain "Try to apply a, b arguments"
+
+    suite_builder.group "Wrapped errors" group_builder->
+        group_builder.specify ".catch unwraps an error when the inner error is explicitly specified" <|
+            e = Error.throw (My_Error_Wrapper.Error (My_Error.Error 12)) . catch My_Error
+            e . should_equal (My_Error.Error 12)
+
+        group_builder.specify ".catch does not unwrap an error when the wrapper is explicitly specified" <|
+            e = Error.throw (My_Error_Wrapper.Error (My_Error.Error 12)) . catch My_Error_Wrapper
+            e . should_equal (My_Error_Wrapper.Error (My_Error.Error 12))
+
+        group_builder.specify ".catch does not unwrap an error when the wrapper is not specified" <|
+            e = Error.throw (My_Error_Wrapper.Error (My_Error.Error 12)) . catch
+            e . should_equal (My_Error_Wrapper.Error (My_Error.Error 12))
+
+        group_builder.specify "When unwrapping, .catch unwraps an error fully when it is wrapped multiple times" <|
+            wrap = My_Error_Wrapper.Error
+            error = My_Error.Error 12
+            [error, wrap error, wrap (wrap error), wrap (wrap (wrap error))].map err->
+                e = Error.throw err . catch My_Error
+                e . should_equal (My_Error.Error 12)
+
+        group_builder.specify "works with Nothing as an error" <|
+            e = Error.throw (My_Error_Wrapper.Error Nothing) . catch Nothing
+            e . should_equal Nothing
+
+        group_builder.specify "Can unwrap a wrapped error" <|
+            wrapped_error = My_Error_Wrapper.Error "error"
+            wrapped_error2 = My_Error_Wrapper.Error (My_Error_Wrapper.Error "error")
+            Error.unwrap wrapped_error . should_equal "error"
+            Error.unwrap wrapped_error2 . should_equal "error"
+
+        group_builder.specify "Can unwrap errors in test utils" <|
+            wrapped_error = My_Error_Wrapper.Error "error"
+            x = Warning.attach wrapped_error "12"
+            Problems.expect_warning "error" x
+            Problems.expect_only_warning "error" x
+            Error.throw wrapped_error . should_fail_with "error"
+
+        group_builder.specify "Unwrapping a non-error-wraper is the identity" <|
+            not_wrapped = Illegal_Argument.Error "abc"
+            Error.unwrap not_wrapped . should_equal not_wrapped
+
+    suite_builder.group "Empty errors" group_builder->
+        group_builder.specify "should implement to_display_text for List" <|
+            err = (Empty_Error.Error List)
+            err.to_display_text . should_equal "The List is empty."
+        group_builder.specify "should implement to_display_text for Vector" <|
+            err = (Empty_Error.Error Vector)
+            err.to_display_text . should_equal "The Vector is empty."
+        group_builder.specify "should implement to_display_text for Range" <|
+            err = (Empty_Error.Error Range)
+            err.to_display_text . should_equal "The Range is empty."
+        group_builder.specify "should implement to_display_text for Date_Range" <|
+            err = (Empty_Error.Error Date_Range)
+            err.to_display_text . should_equal "The Date_Range is empty."
+
+type C
+    Baz x
+
+C.to_num self a b c = a+b+c
+
+main filter=Nothing =
+    suite = Test.build suite_builder->
+        add_specs suite_builder
+    suite.run_with_filter filter

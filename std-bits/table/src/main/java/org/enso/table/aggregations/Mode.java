@@ -7,6 +7,8 @@ import org.enso.base.polyglot.NumericConverter;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.table.Column;
 import org.enso.table.data.table.problems.FloatingPointGrouping;
+import org.enso.table.problems.ColumnAggregatedProblemAggregator;
+import org.enso.table.problems.ProblemAggregator;
 import org.graalvm.polyglot.Context;
 
 /** Aggregate Column computing the most common value in a group (ignoring Nothing). */
@@ -19,7 +21,9 @@ public class Mode extends Aggregator {
   }
 
   @Override
-  public Object aggregate(List<Integer> indexes) {
+  public Object aggregate(List<Integer> indexes, ProblemAggregator problemAggregator) {
+    ColumnAggregatedProblemAggregator innerAggregator =
+        new ColumnAggregatedProblemAggregator(problemAggregator);
     Context context = Context.getCurrent();
     Object current = null;
     int count = 0;
@@ -32,7 +36,8 @@ public class Mode extends Aggregator {
         if (lValue == null) {
           Double dValue = NumericConverter.tryConvertingToDouble(value);
           if (dValue != null) {
-            this.addProblem(new FloatingPointGrouping(this.getName(), row));
+            innerAggregator.reportColumnAggregatedProblem(
+                new FloatingPointGrouping(this.getName(), row));
             value = dValue;
           }
         } else {

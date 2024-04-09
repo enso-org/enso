@@ -215,7 +215,7 @@ class BufferRegistry(
         registry
       )
 
-    case msg @ FileEvent(path, kind) =>
+    case msg @ FileEvent(path, kind, _) =>
       if (kind == FileEventKind.Added || kind == FileEventKind.Modified) {
         registry.get(path).foreach { buffer =>
           buffer ! msg

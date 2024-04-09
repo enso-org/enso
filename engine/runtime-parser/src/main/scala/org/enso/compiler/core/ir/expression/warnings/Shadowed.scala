@@ -25,8 +25,8 @@ object Shadowed {
     override val shadower: IR,
     override val location: Option[IdentifiedLocation]
   ) extends Shadowed {
-    override def message: String =
-      s"The argument $shadowedName is shadowed by $shadower"
+    override def message(source: (IdentifiedLocation => String)): String =
+      s"The argument '$shadowedName' is shadowed by another one with the same name."
 
     override def diagnosticKeys(): Array[Any] =
       Array(shadowedName, shadower)
@@ -44,8 +44,8 @@ object Shadowed {
     override val shadower: IR,
     override val location: Option[IdentifiedLocation]
   ) extends Shadowed {
-    override def message: String =
-      s"The pattern field $shadowedName is shadowed by $shadower."
+    override def message(source: (IdentifiedLocation => String)): String =
+      s"The pattern field '$shadowedName' is shadowed by another one with the same name."
 
     override def diagnosticKeys(): Array[Any] =
       Array(shadowedName, shadower)
@@ -65,7 +65,7 @@ object Shadowed {
     override val shadower: IR,
     override val location: Option[IdentifiedLocation]
   ) extends Shadowed {
-    override def message: String =
+    override def message(source: (IdentifiedLocation => String)): String =
       s"""Declaration of type $typeName shadows module ${moduleName.name} making it inaccessible via a qualified name."""
 
     override def diagnosticKeys(): Array[Any] =
@@ -88,7 +88,7 @@ object Shadowed {
     override val shadower: IR,
     override val location: Option[IdentifiedLocation]
   ) extends Shadowed {
-    override def message: String =
+    override def message(source: (IdentifiedLocation => String)): String =
       s"The exported type `$tpeName` in `$name` module will cause name conflict " +
       s"when attempting to use a fully qualified name of the `$firstConflict` module."
 

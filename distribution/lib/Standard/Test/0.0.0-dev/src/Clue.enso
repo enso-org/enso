@@ -1,0 +1,11 @@
+private
+
+## PRIVATE
+type Clue
+    ## PRIVATE
+
+       Represents a clue as to why a test failed
+
+       Arguments:
+       - add_clue: either Nothing or a function which modifies a failure message
+    Value add_clue

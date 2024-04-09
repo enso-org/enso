@@ -1,9 +1,9 @@
 package org.enso.filewatcher
 
-import java.nio.file.{Files, Path, Paths}
-import java.util.concurrent.{Executors, LinkedBlockingQueue, Semaphore}
-
 import org.apache.commons.io.FileUtils
+
+import java.nio.file.{Files, Path, Paths}
+import java.util.concurrent.{Executors, LinkedBlockingQueue}
 import org.enso.testkit.RetrySpec
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
@@ -66,19 +66,14 @@ class WatcherAdapterSpec extends AnyFlatSpec with Matchers with RetrySpec {
   def withWatcher(
     test: (Path, LinkedBlockingQueue[Watcher.WatcherEvent]) => Any
   ): Any = {
-    val lock     = new Semaphore(0)
     val executor = Executors.newSingleThreadExecutor()
     val tmp      = Files.createTempDirectory(null).toRealPath()
     val queue    = new LinkedBlockingQueue[Watcher.WatcherEvent]()
     val watcher  = new WatcherAdapterFactory().build(tmp, queue.put, println(_))
 
-    executor.submit[Any] { () =>
-      lock.release()
-      watcher.start()
-    }
+    watcher.start(executor)
 
     try {
-      lock.tryAcquire(Timeout.length, Timeout.unit)
       test(tmp, queue)
     } finally {
       watcher.stop()

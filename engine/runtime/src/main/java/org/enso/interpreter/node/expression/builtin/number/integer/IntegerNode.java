@@ -57,7 +57,7 @@ abstract class IntegerNode extends Node {
     return doOther(self, that);
   }
 
-  Object execute(Object self, Object that) {
+  Object execute(Object own, Object that) {
     throw new AbstractMethodError();
   }
 

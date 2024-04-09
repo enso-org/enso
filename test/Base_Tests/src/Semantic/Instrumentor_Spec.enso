@@ -1,0 +1,267 @@
+from Standard.Base import all
+from Standard.Test import all
+
+fib n b=1 = if n <= 1 then b else
+    a = fib n-1
+    b = fib n-2
+    a+b
+
+fib2 n f=1 s=1 =
+    acc at n1 n2 = if at > n then n1 else
+        @Tail_Call acc at+1 n2 n1+n2
+
+    acc f s 1
+
+add_specs suite_builder =
+    suite_builder.group "Instrument fibonacci" group_builder->
+        a_plus_b_uuid = "00000000-aaaa-bbbb-0000-000000000000" # UUID for a+b
+
+        group_builder.specify "collect and filter on return updates" <|
+            b = Vector.new_builder
+
+            collect uuid:Text result =
+                if uuid == a_plus_b_uuid then
+                    b.append result
+                Nothing
+
+            instrumenter = Meta.meta .fib . instrument . on_return collect . activate
+
+            instrumenter . with _->
+                result = fib 10
+
+                v = b.to_vector
+
+                v.length . should_equal 1
+                v.at 0 . should_equal 89
+                result . should_equal 89
+
+            instrumenter.finalize
+            # no op:
+            instrumenter.finalize
+
+            result = fib 10
+            result . should_equal 89
+
+            # no more instrumenting after finalize
+            b.to_vector.length . should_equal 1
+
+        group_builder.specify "access local variables " <|
+            b = Vector.new_builder
+
+            collect uuid:Text ~result =
+                if uuid == a_plus_b_uuid then
+                    case result of
+                        v : Vector -> b.append_vector_range v
+                        anything -> Test.fail <| "Should be a number: " + anything.to_text
+                Nothing
+
+            expr = "[a, b, a-b]"
+            instrumenter = Meta.meta .fib . instrument . on_return collect expression=expr . activate
+
+            instrumenter . with _->
+                result = fib 10
+
+                v = b.to_vector
+
+                v.length . should_equal 3
+                result . should_equal 89
+                v . should_equal [55, 34, 21]
+
+            instrumenter.finalize
+            # no op:
+            instrumenter.finalize
+
+            result = fib 10
+            result . should_equal 89
+
+            # no more instrumenting after finalize
+            b.to_vector.length . should_equal 3
+
+        group_builder.specify "replay with caches and specify different result" <|
+            replay uuid:Text = case uuid of
+                "00000000-ffff-bbbb-0000-000000000000" -> 42
+                _ -> Nothing
+
+            instrumenter = Meta.meta .fib . instrument . on_enter replay . activate
+
+            instrumenter . with _->
+                result = fib 10
+                result . should_equal 42
+
+            instrumenter.finalize
+
+            result = fib 10
+            result . should_equal 89
+
+    suite_builder.group "Instrument @Tail_Call fibonacci" group_builder->
+        group_builder.specify "check fib & fib2 are the same" <|
+            r1 = -10.up_to 10 . map fib
+            r2 = -10.up_to 10 . map fib2
+            r1 . should_equal r2
+
+        group_builder.specify "call and collect on return updates" <|
+            n1_plus_n2 = "00000000-eeee-bbbb-2222-000000000000" # UUID for n1+n2
+            b = Vector.new_builder
+
+            call_fn uuid:Text fn:Function (args : Vector Any) =
+                fn.to_text . should_contain "Integer.+"
+                uuid . should_equal n1_plus_n2
+                b.append args
+                Nothing
+
+            collect uuid:Text result =
+                uuid . should_equal n1_plus_n2
+                v = b.last:Vector
+                n1 = v.at 0
+                n2 = v.at 1
+
+                # arguments collected at `call_fn` were really added together
+                result . should_equal n1+n2
+                Nothing
+
+            instrumenter = Meta.meta .fib2 . instrument . on_return collect . on_call call_fn . activate
+
+            instrumenter . with _->
+                result = fib2 10
+
+                v = b.to_vector
+                v . should_equal [[1, 1], [1, 2], [2, 3], [3, 5], [5, 8], [8, 13], [13, 21], [21, 34], [34, 55], [55, 89]]
+                result . should_equal 89
+
+            instrumenter.finalize
+
+            result = fib2 10
+            result . should_equal 89
+
+            # no more instrumenting after finalize
+            b.to_vector.length . should_equal 10
+
+        group_builder.specify "* instead of + on return updates" <|
+            n1_plus_n2 = "00000000-eeee-bbbb-2222-000000000000" # UUID for n1+n2
+
+            call_fn uuid:Text fn:Function (args : Vector Any) =
+                fn.to_text . should_contain "Integer.+"
+                uuid . should_equal n1_plus_n2
+                n1 = args.at 0
+                n2 = args.at 1
+                if n2 == 1 then Nothing else
+                    n1 * n2
+
+            result1 = fib2 10
+            result1 . should_equal 89
+
+            instrumenter = Meta.meta .fib2 . instrument . on_call call_fn . activate
+
+            instrumenter . with _->
+                result2 = fib2 10
+                result2 . should_equal 17179869184
+
+            instrumenter.finalize
+
+            # behaves normally again
+            result3 = fib2 10
+            result3 . should_equal 89
+
+        group_builder.specify "Caching in on_enter prevents on_call" <|
+            n1_plus_n2 = "00000000-eeee-bbbb-2222-000000000000" # UUID for n1+n2
+
+            ninety uuid:Text =
+                uuid . should_equal n1_plus_n2
+                90
+
+            call_fn _:Text fn:Function _:Any =
+                Test.fail "Don't call me: "+fn.to_text
+
+            result1 = fib2 10
+            result1 . should_equal 89
+
+            instrumenter = Meta.meta .fib2 . instrument . on_enter ninety . on_call call_fn . activate
+
+            instrumenter . with _->
+                result2 = fib2 10
+                result2 . should_equal 90
+
+            instrumenter.finalize
+
+            # behaves normally again
+            result3 = fib2 10
+            result3 . should_equal 89
+
+
+        group_builder.specify "Access (even default) arguments of calls" <|
+            b = Vector.new_builder
+
+            call_fn uuid:Text fn:Function args:Any =
+                if uuid == "00000000-ffff-1111-bbbb-000000000000" then
+                    # calling fib function
+                    fn.to_text . should_contain "fib["
+                    # which has "self" plus two other arguments
+                    args.length . should_equal 3
+                    # but b=1 is defaulted - e.g. nothing
+                    args.at 2 . is_nothing . should_be_true
+                    b.append <| args.at 1
+
+                    # change the value for `fib 8`
+                    100
+
+            result1 = fib 10
+            result1 . should_equal 89
+
+            instrumenter = Meta.meta .fib . instrument . on_call call_fn . activate
+
+            instrumenter . with _->
+                result2 = fib 10
+                result2 . should_equal 155
+
+            instrumenter.finalize
+
+            # only first top most call to `fib n-2` is recorded
+            b.to_vector.to_text . should_equal "[8]"
+
+            # behaves normally again
+            result3 = fib 10
+            result3 . should_equal 89
+
+            # no change to the value
+            b.to_vector.to_text . should_equal "[8]"
+
+        group_builder.specify "GC disables Instrumentor" <|
+            n1_plus_n2 = "00000000-eeee-bbbb-2222-000000000000" # UUID for n1+n2
+
+            enable_instrumentor value:Integer =
+                return_cached_value uuid:Text =
+                    uuid . should_equal n1_plus_n2
+                    value
+
+                Meta.meta .fib2 . instrument . on_enter return_cached_value . activate
+
+                # make sure the managed resource is forgotten in this frame
+                Nothing
+
+            enable_instrumentor 42
+
+            repeat_gc count =
+                result = fib2 10
+                if result == 89 then result else
+                    if count <= 0 then result else
+                        if count % 100 == 0 then IO.println "Trying to GC instrumentor (still "+count.to_text+" to go), but result still remains "+result.to_text
+                        Runtime.gc
+                        @Tail_Call repeat_gc count-1
+
+            # instrumentor is gone and `fib2 10` is again `89`
+            repeat_gc 999 . should_equal 89
+
+            result3 = fib2 10
+            result3 . should_equal 89
+
+main filter=Nothing =
+    suite = Test.build suite_builder->
+        add_specs suite_builder
+    suite.run_with_filter filter
+
+
+
+
+#### METADATA ####
+[[{"index":{"value":131},"size":{"value":3}},"00000000-aaaa-bbbb-0000-000000000000"],[{"index":{"value":73},"size":{"value":61}},"00000000-ffff-bbbb-0000-000000000000"],[{"index":{"value":226},"size":{"value":5}},"00000000-eeee-bbbb-2222-000000000000"],[{"index":{"value":119},"size":{"value":7}},"00000000-ffff-1111-bbbb-000000000000"]]
+

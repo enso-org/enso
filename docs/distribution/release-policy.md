@@ -150,7 +150,7 @@ For example:
 minimum-launcher-version: 0.0.1
 minimum-project-manager-version: 0.0.1
 jvm-options:
-  - value: "-Dpolyglot.engine.IterativePartialEscape=true"
+  - value: "-Dpolyglot.compiler.IterativePartialEscape=true"
   - value: "-Dtruffle.class.path.append=$enginePackagePath\\component\\runtime.jar"
     os: "windows"
   - value: "-Dtruffle.class.path.append=$enginePackagePath/component/runtime.jar"

@@ -22,10 +22,13 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.WeakHashMap;
 import java.util.logging.Level;
-import org.enso.compiler.ModuleCache;
+import org.enso.compiler.context.CompilerContext;
+import org.enso.compiler.context.LocalScope;
 import org.enso.compiler.context.SimpleUpdate;
 import org.enso.compiler.core.IR;
 import org.enso.compiler.core.ir.Expression;
+import org.enso.interpreter.caches.Cache;
+import org.enso.interpreter.caches.ModuleCache;
 import org.enso.interpreter.node.callable.dispatch.CallOptimiserNode;
 import org.enso.interpreter.node.callable.dispatch.LoopingCallOptimiserNode;
 import org.enso.interpreter.runtime.builtin.BuiltinFunction;
@@ -36,7 +39,6 @@ import org.enso.interpreter.runtime.data.EnsoObject;
 import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.data.text.Text;
 import org.enso.interpreter.runtime.data.vector.ArrayLikeHelpers;
-import org.enso.interpreter.runtime.scope.LocalScope;
 import org.enso.interpreter.runtime.scope.ModuleScope;
 import org.enso.interpreter.runtime.type.Types;
 import org.enso.pkg.Package;
@@ -45,7 +47,6 @@ import org.enso.polyglot.CompilationStage;
 import org.enso.polyglot.LanguageInfo;
 import org.enso.polyglot.MethodNames;
 import org.enso.text.buffer.Rope;
-import scala.Function1;
 
 /** Represents a source module with a known location. */
 @ExportLibrary(InteropLibrary.class)
@@ -60,10 +61,10 @@ public final class Module implements EnsoObject {
   private org.enso.compiler.core.ir.Module ir;
   private Map<UUID, IR> uuidsMap;
   private QualifiedName name;
-  private final ModuleCache cache;
+  private final Cache<ModuleCache.CachedModule, ModuleCache.Metadata> cache;
   private boolean wasLoadedFromCache;
-  private boolean hasCrossModuleLinks;
   private final boolean synthetic;
+
   /**
    * This list is filled in case there is a directory with the same name as this module. The
    * directory then contains submodules of this module that should be directly accessible from this
@@ -86,9 +87,8 @@ public final class Module implements EnsoObject {
     this.sources = ModuleSources.NONE.newWith(sourceFile);
     this.pkg = pkg;
     this.name = name;
-    this.cache = new ModuleCache(this);
+    this.cache = ModuleCache.create(this);
     this.wasLoadedFromCache = false;
-    this.hasCrossModuleLinks = false;
     this.synthetic = false;
   }
 
@@ -104,9 +104,8 @@ public final class Module implements EnsoObject {
     this.sources = ModuleSources.NONE.newWith(Rope.apply(literalSource));
     this.pkg = pkg;
     this.name = name;
-    this.cache = new ModuleCache(this);
+    this.cache = ModuleCache.create(this);
     this.wasLoadedFromCache = false;
-    this.hasCrossModuleLinks = false;
     this.patchedValues = new PatchedModuleValues(this);
     this.synthetic = false;
   }
@@ -123,9 +122,8 @@ public final class Module implements EnsoObject {
     this.sources = ModuleSources.NONE.newWith(literalSource);
     this.pkg = pkg;
     this.name = name;
-    this.cache = new ModuleCache(this);
+    this.cache = ModuleCache.create(this);
     this.wasLoadedFromCache = false;
-    this.hasCrossModuleLinks = false;
     this.patchedValues = new PatchedModuleValues(this);
     this.synthetic = false;
   }
@@ -145,10 +143,19 @@ public final class Module implements EnsoObject {
     this.scope = new ModuleScope(this);
     this.pkg = pkg;
     this.compilationStage = synthetic ? CompilationStage.INITIAL : CompilationStage.AFTER_CODEGEN;
-    this.cache = new ModuleCache(this);
+    this.cache = ModuleCache.create(this);
     this.wasLoadedFromCache = false;
-    this.hasCrossModuleLinks = false;
     this.synthetic = synthetic;
+  }
+
+  /**
+   * Unwraps runtime module from compiler module.
+   *
+   * @param module module created by {@link #asCompilerModule()} method
+   * @return
+   */
+  public static Module fromCompilerModule(CompilerContext.Module module) {
+    return ((TruffleCompilerContext.Module) module).unsafeModule();
   }
 
   /**
@@ -183,17 +190,23 @@ public final class Module implements EnsoObject {
     this.compilationStage = CompilationStage.INITIAL;
   }
 
-  /** @return the literal source of this module. */
+  /**
+   * @return the literal source of this module.
+   */
   public Rope getLiteralSource() {
     return sources.rope();
   }
 
-  /** @return true if this module represents a synthetic (compiler-generated) module */
+  /**
+   * @return true if this module represents a synthetic (compiler-generated) module
+   */
   public boolean isSynthetic() {
     return synthetic;
   }
 
-  /** @return true iff this module is private (project-private). */
+  /**
+   * @return true iff this module is private (project-private).
+   */
   public boolean isPrivate() {
     return ir.isPrivate();
   }
@@ -247,8 +260,8 @@ public final class Module implements EnsoObject {
       }
       if (patchedValues.simpleUpdate(update)) {
         this.sources = this.sources.newWith(source);
-        final Function1<Expression, Expression> fn =
-            new Function1<Expression, Expression>() {
+        final java.util.function.Function<Expression, Expression> fn =
+            new java.util.function.Function<Expression, Expression>() {
               @Override
               public Expression apply(Expression v1) {
                 if (v1 == change) {
@@ -286,7 +299,9 @@ public final class Module implements EnsoObject {
     }
   }
 
-  /** @return the location of this module. */
+  /**
+   * @return the location of this module.
+   */
   public String getPath() {
     return sources.getPath();
   }
@@ -374,10 +389,12 @@ public final class Module implements EnsoObject {
     if (source == null) return;
     scope.reset();
     compilationStage = CompilationStage.INITIAL;
-    context.getCompiler().run(this);
+    context.getCompiler().run(asCompilerModule());
   }
 
-  /** @return IR defined by this module. */
+  /**
+   * @return IR defined by this module.
+   */
   public org.enso.compiler.core.ir.Module getIr() {
     return ir;
   }
@@ -404,7 +421,9 @@ public final class Module implements EnsoObject {
     return map.containsKey(id);
   }
 
-  /** @return the current compilation stage of this module. */
+  /**
+   * @return the current compilation stage of this module.
+   */
   public CompilationStage getCompilationStage() {
     return compilationStage;
   }
@@ -434,7 +453,9 @@ public final class Module implements EnsoObject {
     this.uuidsMap = null;
   }
 
-  /** @return the runtime scope of this module. */
+  /**
+   * @return the runtime scope of this module.
+   */
   public ModuleScope getScope() {
     return scope;
   }
@@ -453,7 +474,9 @@ public final class Module implements EnsoObject {
     }
   }
 
-  /** @return the qualified name of this module. */
+  /**
+   * @return the qualified name of this module.
+   */
   public QualifiedName getName() {
     return name;
   }
@@ -471,7 +494,9 @@ public final class Module implements EnsoObject {
     this.name = name.renameProject(newName);
   }
 
-  /** @return the indexed flag. */
+  /**
+   * @return the indexed flag.
+   */
   public boolean isIndexed() {
     return isIndexed;
   }
@@ -481,42 +506,48 @@ public final class Module implements EnsoObject {
     isIndexed = indexed;
   }
 
-  /** @return the source file of this module. */
+  /**
+   * @return the source file of this module.
+   */
   public TruffleFile getSourceFile() {
     return sources.file();
   }
 
-  /** @return {@code true} if the module is interactive, {@code false} otherwise */
+  /**
+   * @return {@code true} if the module is interactive, {@code false} otherwise
+   */
   public boolean isInteractive() {
     return patchedValues != null;
   }
 
-  /** @return the cache for this module */
-  public ModuleCache getCache() {
+  /**
+   * @return the cache for this module
+   */
+  public Cache<ModuleCache.CachedModule, ModuleCache.Metadata> getCache() {
     return cache;
   }
 
-  /** @return {@code true} if the module was loaded from the cache, {@code false} otherwise */
+  /**
+   * @return {@code true} if the module was loaded from the cache, {@code false} otherwise
+   */
   public boolean wasLoadedFromCache() {
     return wasLoadedFromCache;
   }
 
-  /** @param wasLoadedFromCache whether or not the module was loaded from the cache */
+  /**
+   * @param wasLoadedFromCache whether or not the module was loaded from the cache
+   */
   void setLoadedFromCache(boolean wasLoadedFromCache) {
     this.wasLoadedFromCache = wasLoadedFromCache;
   }
 
   /**
-   * @return {@code true} if the module has had its cross-module links restored, otherwise {@code
-   *     false}
+   * Turns this module into appropriate {@link CompilerContext} wrapper.
+   *
+   * @return instance of {@link CompilerContext.Module} that delegates to this module
    */
-  public boolean hasCrossModuleLinks() {
-    return hasCrossModuleLinks;
-  }
-
-  /** @param hasCrossModuleLinks whether or not the module has cross-module links restored */
-  void setHasCrossModuleLinks(boolean hasCrossModuleLinks) {
-    this.hasCrossModuleLinks = hasCrossModuleLinks;
+  public final CompilerContext.Module asCompilerModule() {
+    return new TruffleCompilerContext.Module(this);
   }
 
   /**
@@ -542,7 +573,8 @@ public final class Module implements EnsoObject {
         TruffleLogger logger = TruffleLogger.getLogger(LanguageInfo.ID, Module.class);
         logger.log(
             Level.SEVERE,
-            "Failed to get the requested method. Try clearing your IR caches or disabling caching.");
+            "Failed to get the requested method. Try clearing your IR caches or disabling"
+                + " caching.");
         throw npe;
       }
     }
@@ -606,12 +638,12 @@ public final class Module implements EnsoObject {
     }
 
     private static Object generateDocs(Module module, EnsoContext context) {
-      return context.getCompiler().generateDocs(module);
+      return context.getCompiler().generateDocs(module.asCompilerModule());
     }
 
     @CompilerDirectives.TruffleBoundary
     private static Object gatherImportStatements(Module module, EnsoContext context) {
-      String[] imports = context.getCompiler().gatherImportStatements(module);
+      String[] imports = context.getCompiler().gatherImportStatements(module.asCompilerModule());
       return ArrayLikeHelpers.wrapStrings(imports);
     }
 

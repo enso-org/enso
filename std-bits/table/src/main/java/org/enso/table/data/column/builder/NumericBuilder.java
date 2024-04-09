@@ -3,15 +3,16 @@ package org.enso.table.data.column.builder;
 import java.util.Arrays;
 import java.util.BitSet;
 import org.enso.table.data.column.storage.type.IntegerType;
+import org.enso.table.problems.ProblemAggregator;
 
 /** A common base for numeric builders. */
 public abstract class NumericBuilder extends TypedBuilder {
-  protected BitSet isMissing;
+  protected BitSet isNothing;
   protected long[] data;
   protected int currentSize;
 
-  NumericBuilder(BitSet isMissing, long[] data, int currentSize) {
-    this.isMissing = isMissing;
+  NumericBuilder(BitSet isNothing, long[] data, int currentSize) {
+    this.isNothing = isNothing;
     this.data = data;
     this.currentSize = currentSize;
   }
@@ -20,22 +21,24 @@ public abstract class NumericBuilder extends TypedBuilder {
    * Creates a {@link DoubleBuilder} that should be used to create columns of boolean type and are
    * not expected to be retyped.
    */
-  public static DoubleBuilder createDoubleBuilder(int size) {
-    return new DoubleBuilder(new BitSet(), new long[size], 0);
+  public static DoubleBuilder createDoubleBuilder(int size, ProblemAggregator problemAggregator) {
+    return new DoubleBuilder(new BitSet(), new long[size], 0, problemAggregator);
   }
 
   /** Creates a {@link DoubleBuilder} that may be retyped to Mixed type. */
-  public static DoubleBuilder createInferringDoubleBuilder(int size) {
-    return new InferringDoubleBuilder(new BitSet(), new long[size], 0);
+  public static DoubleBuilder createInferringDoubleBuilder(
+      int size, ProblemAggregator problemAggregator) {
+    return new InferringDoubleBuilder(new BitSet(), new long[size], 0, problemAggregator);
   }
 
-  public static LongBuilder createLongBuilder(int size, IntegerType type) {
-    return LongBuilder.make(size, type);
+  public static LongBuilder createLongBuilder(
+      int size, IntegerType type, ProblemAggregator problemAggregator) {
+    return LongBuilder.make(size, type, problemAggregator);
   }
 
   @Override
   public void appendNulls(int count) {
-    isMissing.set(currentSize, currentSize + count);
+    isNothing.set(currentSize, currentSize + count);
     currentSize += count;
   }
 

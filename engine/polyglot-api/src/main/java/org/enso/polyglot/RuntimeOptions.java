@@ -21,6 +21,11 @@ public class RuntimeOptions {
   private static final OptionDescriptor DISABLE_INLINE_CACHES_DESCRIPTOR =
       OptionDescriptor.newBuilder(DISABLE_INLINE_CACHES_KEY, DISABLE_INLINE_CACHES).build();
 
+  public static final String DISABLE_PRIVATE_CHECK = optionName("disablePrivateCheck");
+  public static final OptionKey<Boolean> DISABLE_PRIVATE_CHECK_KEY = new OptionKey<>(false);
+  private static final OptionDescriptor DISABLE_PRIVATE_CHECK_DESCRIPTOR =
+      OptionDescriptor.newBuilder(DISABLE_PRIVATE_CHECK_KEY, DISABLE_PRIVATE_CHECK).build();
+
   public static final String ENABLE_AUTO_PARALLELISM = optionName("withAutoParallelism");
   public static final OptionKey<Boolean> ENABLE_AUTO_PARALLELISM_KEY = new OptionKey<>(false);
   private static final OptionDescriptor ENABLE_AUTO_PARALLELISM_DESCRIPTOR =
@@ -46,6 +51,16 @@ public class RuntimeOptions {
       OptionDescriptor.newBuilder(
               INTERPRETER_SEQUENTIAL_COMMAND_EXECUTION_KEY,
               INTERPRETER_SEQUENTIAL_COMMAND_EXECUTION)
+          .build();
+
+  public static final String INTERPRETER_RANDOM_DELAYED_COMMAND_EXECUTION =
+      interpreterOptionName("randomDelayedCommandExecution");
+  public static final OptionKey<Boolean> INTERPRETER_RANDOM_DELAYED_COMMAND_EXECUTION_KEY =
+      new OptionKey<>(false);
+  public static final OptionDescriptor INTERPRETER_RANDOM_DELAYED_COMMAND_EXECUTION_DESCRIPTOR =
+      OptionDescriptor.newBuilder(
+              INTERPRETER_RANDOM_DELAYED_COMMAND_EXECUTION_KEY,
+              INTERPRETER_RANDOM_DELAYED_COMMAND_EXECUTION)
           .build();
 
   public static final String JOB_PARALLELISM = interpreterOptionName("jobParallelism");
@@ -125,6 +140,7 @@ public class RuntimeOptions {
               STRICT_ERRORS_DESCRIPTOR,
               LOG_MASKING_DESCRIPTOR,
               DISABLE_INLINE_CACHES_DESCRIPTOR,
+              DISABLE_PRIVATE_CHECK_DESCRIPTOR,
               ENABLE_AUTO_PARALLELISM_DESCRIPTOR,
               ENABLE_PROJECT_SUGGESTIONS_DESCRIPTOR,
               ENABLE_GLOBAL_SUGGESTIONS_DESCRIPTOR,
@@ -132,6 +148,7 @@ public class RuntimeOptions {
               LANGUAGE_HOME_OVERRIDE_DESCRIPTOR,
               EDITION_OVERRIDE_DESCRIPTOR,
               INTERPRETER_SEQUENTIAL_COMMAND_EXECUTION_DESCRIPTOR,
+              INTERPRETER_RANDOM_DELAYED_COMMAND_EXECUTION_DESCRIPTOR,
               JOB_PARALLELISM_DESCRIPTOR,
               DISABLE_IR_CACHES_DESCRIPTOR,
               PREINITIALIZE_DESCRIPTOR,

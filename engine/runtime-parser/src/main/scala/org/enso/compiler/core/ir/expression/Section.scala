@@ -1,14 +1,18 @@
 package org.enso.compiler.core.ir
 package expression
 
-import org.enso.compiler.core.IR
-import org.enso.compiler.core.IR.{randomId, Identifier, ToStringHelper}
+import org.enso.compiler.core.Implicits.{ShowPassData, ToStringHelper}
+import org.enso.compiler.core.{IR, Identifier}
+
+import java.util.UUID
 
 /** Operator sections. */
 sealed trait Section extends Operator {
 
   /** @inheritdoc */
-  override def mapExpressions(fn: Expression => Expression): Section
+  override def mapExpressions(
+    fn: java.util.function.Function[Expression, Expression]
+  ): Section
 
   /** @inheritdoc */
   override def setLocation(location: Option[IdentifiedLocation]): Section
@@ -36,11 +40,11 @@ object Section {
     arg: CallArgument,
     operator: Name,
     override val location: Option[IdentifiedLocation],
-    override val passData: MetadataStorage      = MetadataStorage(),
+    override val passData: MetadataStorage      = new MetadataStorage(),
     override val diagnostics: DiagnosticStorage = DiagnosticStorage()
   ) extends Section
-      with IRKind.Sugar {
-    override protected var id: Identifier = randomId
+      with IRKind.Sugar
+      with LazyId {
 
     /** Creates a copy of `this`.
       *
@@ -58,7 +62,7 @@ object Section {
       location: Option[IdentifiedLocation] = location,
       passData: MetadataStorage            = passData,
       diagnostics: DiagnosticStorage       = diagnostics,
-      id: IR.Identifier                    = id
+      id: UUID @Identifier                 = id
     ): Left = {
       val res = Left(arg, operator, location, passData, diagnostics)
       res.id = id
@@ -87,10 +91,11 @@ object Section {
             keepIdentifiers
           ),
         location = if (keepLocations) location else None,
-        passData = if (keepMetadata) passData.duplicate else MetadataStorage(),
+        passData =
+          if (keepMetadata) passData.duplicate else new MetadataStorage(),
         diagnostics =
           if (keepDiagnostics) diagnostics.copy else DiagnosticStorage(),
-        id = if (keepIdentifiers) id else randomId
+        id = if (keepIdentifiers) id else null
       )
 
     /** @inheritdoc */
@@ -98,7 +103,9 @@ object Section {
       copy(location = location)
 
     /** @inheritdoc */
-    override def mapExpressions(fn: Expression => Expression): Section =
+    override def mapExpressions(
+      fn: java.util.function.Function[Expression, Expression]
+    ): Section =
       copy(
         arg      = arg.mapExpressions(fn),
         operator = operator.mapExpressions(fn)
@@ -135,11 +142,11 @@ object Section {
   sealed case class Sides(
     operator: Name,
     override val location: Option[IdentifiedLocation],
-    override val passData: MetadataStorage      = MetadataStorage(),
+    override val passData: MetadataStorage      = new MetadataStorage(),
     override val diagnostics: DiagnosticStorage = DiagnosticStorage()
   ) extends Section
-      with IRKind.Sugar {
-    override protected var id: Identifier = randomId
+      with IRKind.Sugar
+      with LazyId {
 
     /** Creates a copy of `this`.
       *
@@ -155,7 +162,7 @@ object Section {
       location: Option[IdentifiedLocation] = location,
       passData: MetadataStorage            = passData,
       diagnostics: DiagnosticStorage       = diagnostics,
-      id: Identifier                       = id
+      id: UUID @Identifier                 = id
     ): Sides = {
       val res = Sides(operator, location, passData, diagnostics)
       res.id = id
@@ -178,10 +185,11 @@ object Section {
             keepIdentifiers
           ),
         location = if (keepLocations) location else None,
-        passData = if (keepMetadata) passData.duplicate else MetadataStorage(),
+        passData =
+          if (keepMetadata) passData.duplicate else new MetadataStorage(),
         diagnostics =
           if (keepDiagnostics) diagnostics.copy else DiagnosticStorage(),
-        id = if (keepIdentifiers) id else randomId
+        id = if (keepIdentifiers) id else null
       )
 
     /** @inheritdoc */
@@ -190,7 +198,9 @@ object Section {
     ): Sides = copy(location = location)
 
     /** @inheritdoc */
-    override def mapExpressions(fn: Expression => Expression): Section =
+    override def mapExpressions(
+      fn: java.util.function.Function[Expression, Expression]
+    ): Section =
       copy(operator = operator.mapExpressions(fn))
 
     /** @inheritdoc */
@@ -225,11 +235,11 @@ object Section {
     operator: Name,
     arg: CallArgument,
     override val location: Option[IdentifiedLocation],
-    override val passData: MetadataStorage      = MetadataStorage(),
+    override val passData: MetadataStorage      = new MetadataStorage(),
     override val diagnostics: DiagnosticStorage = DiagnosticStorage()
   ) extends Section
-      with IRKind.Sugar {
-    override protected var id: Identifier = randomId
+      with IRKind.Sugar
+      with LazyId {
 
     /** Creates a copy of `this`.
       *
@@ -247,7 +257,7 @@ object Section {
       location: Option[IdentifiedLocation] = location,
       passData: MetadataStorage            = passData,
       diagnostics: DiagnosticStorage       = diagnostics,
-      id: Identifier                       = id
+      id: UUID @Identifier                 = id
     ): Right = {
       val res = Right(operator, arg, location, passData, diagnostics)
       res.id = id
@@ -276,10 +286,11 @@ object Section {
           keepIdentifiers
         ),
         location = if (keepLocations) location else None,
-        passData = if (keepMetadata) passData.duplicate else MetadataStorage(),
+        passData =
+          if (keepMetadata) passData.duplicate else new MetadataStorage(),
         diagnostics =
           if (keepDiagnostics) diagnostics.copy else DiagnosticStorage(),
-        id = if (keepIdentifiers) id else randomId
+        id = if (keepIdentifiers) id else null
       )
 
     /** @inheritdoc */
@@ -288,7 +299,9 @@ object Section {
     ): Right = copy(location = location)
 
     /** @inheritdoc */
-    override def mapExpressions(fn: Expression => Expression): Section = {
+    override def mapExpressions(
+      fn: java.util.function.Function[Expression, Expression]
+    ): Section = {
       copy(
         operator = operator.mapExpressions(fn),
         arg      = arg.mapExpressions(fn)

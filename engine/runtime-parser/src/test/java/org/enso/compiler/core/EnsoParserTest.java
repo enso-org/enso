@@ -1,6 +1,9 @@
 package org.enso.compiler.core;
 
-import com.oracle.truffle.api.source.Source;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
+
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -9,10 +12,6 @@ import java.util.List;
 import java.util.function.Function;
 import org.enso.compiler.core.ir.Module;
 import org.junit.AfterClass;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
-
 import org.junit.BeforeClass;
 import org.junit.Test;
 
@@ -21,13 +20,16 @@ public class EnsoParserTest {
 
   @BeforeClass
   public static void initEnsoParser() {
-    ensoCompiler = new EnsoParser();
+    try {
+      ensoCompiler = new EnsoParser();
+    } catch (LinkageError e) {
+      throw new AssertionError(e);
+    }
   }
 
   @AfterClass
   public static void closeEnsoParser() throws Exception {
-    if (ensoCompiler != null)
-      ensoCompiler.close();
+    if (ensoCompiler != null) ensoCompiler.close();
   }
 
   @Test
@@ -53,23 +55,31 @@ public class EnsoParserTest {
 
   @Test
   public void testLocationsCorrectAssignmentOfVariableReads() throws Exception {
-    parseTest("""
+    parseTest(
+        """
     main =
         x = 2 + 2 * 2
         y = x * x
         IO.println y
-    """, true, true, true);
+    """,
+        true,
+        true,
+        true);
   }
 
   @Test
   public void testLocationsMethodWithComplexBody() throws Exception {
-    parseTest("""
+    parseTest(
+        """
     foo a b =
         x : Number
         x = a + 1
         y = b - 2
         x * y
-    """, true, true, true);
+    """,
+        true,
+        true,
+        true);
   }
 
   @Test
@@ -98,12 +108,16 @@ public class EnsoParserTest {
 
   @Test
   public void testLocationsDeeplyNestedFunctionsNoBlock() throws Exception {
-    parseTest("""
+    parseTest(
+        """
     Nothing.method =
         add = a -> b -> a + b
 
     main = Nothing.method
-    """, true, true, true);
+    """,
+        true,
+        true,
+        true);
   }
 
   @Test
@@ -116,7 +130,8 @@ public class EnsoParserTest {
 
   @Test
   public void testCase() throws Exception {
-    parseTest("""
+    parseTest(
+        """
     type Msg
         Ahoj
         Ciao
@@ -125,24 +140,24 @@ public class EnsoParserTest {
         Ahoj -> 0
         Ciao -> 1
         Msg.Ciao -> 2
-    """
-    );
+    """);
   }
 
   @Test
   public void testTypeMethodWithSignature() throws Exception {
-    parseTest("""
+    parseTest(
+        """
     @Builtin_Type
     type Fuzzy
         == : Correct -> Wrong
         == self right = @Builtin_Method "Fuzzy.=="
-    """
-    );
+    """);
   }
 
   @Test
   public void testImport() throws Exception {
-    parseTest("""
+    parseTest(
+        """
     import Standard.Base.Any.Any
     import project.IO
     import Standard.Base as Enso_List
@@ -156,7 +171,8 @@ public class EnsoParserTest {
 
   @Test
   public void testImportAll() throws Exception {
-    parseTest("""
+    parseTest(
+        """
     ## TODO Dubious constructor export
     from project.Network.Http.Version.Version import all
     from project.Network.Http.Version.Version export all
@@ -294,7 +310,8 @@ public class EnsoParserTest {
 
   @Test
   public void testBoolean() throws Exception {
-    parseTest("""
+    parseTest(
+        """
     @Builtin_Type
     type Boolean
         True
@@ -345,7 +362,8 @@ public class EnsoParserTest {
 
   @Test
   public void testAtEq() throws Exception {
-    parseTest("""
+    parseTest(
+        """
     type Array
         == : Array -> Boolean
         == self that =
@@ -357,7 +375,8 @@ public class EnsoParserTest {
 
   @Test
   public void testNestedBlocks() throws Exception {
-    parseTest("""
+    parseTest(
+        """
     type Array
         meaning =
             catch_primitive handler
@@ -384,7 +403,8 @@ public class EnsoParserTest {
 
   @Test
   public void testMetadataRaw() throws Exception {
-    parseTest("""
+    parseTest(
+        """
     main =
         foo = 42
 
@@ -405,7 +425,8 @@ public class EnsoParserTest {
 
   @Test
   public void testColumnSelector() throws Exception {
-    parseTest("""
+    parseTest(
+        """
     ## Specifies a selection of columns from the table on which an operation is
        going to be performed.
     type Column_Selector
@@ -416,7 +437,8 @@ public class EnsoParserTest {
 
   @Test
   public void testAssignments() throws Exception {
-    parseTest("""
+    parseTest(
+        """
       from_java_set java_set =
         owner = Vector.new_builder
         group = Vector.new_builder
@@ -426,7 +448,8 @@ public class EnsoParserTest {
 
   @Test
   public void testNumberTimes() throws Exception {
-    parseTest("""
+    parseTest(
+        """
     Standard.Base.Number.times : List Any
     Standard.Base.Number.times self act =
         act
@@ -435,7 +458,8 @@ public class EnsoParserTest {
 
   @Test
   public void testIfThenBlock() throws Exception {
-    parseTest("""
+    parseTest(
+        """
       from_java_set java_set =
         if java_set.contains PosixFilePermission.OWNER_READ then
             owner.append Read
@@ -446,7 +470,8 @@ public class EnsoParserTest {
 
   @Test
   public void testInvokeFilePermissions() throws Exception {
-    parseTest("""
+    parseTest(
+        """
       from_java_set java_set =
         File_Permissions owner.to_vector group.to_vector others.to_vector
         """);
@@ -511,7 +536,8 @@ public class EnsoParserTest {
 
   @Test
   public void testTextLiteralWithEscape() throws Exception {
-    parseTest("""
+    parseTest(
+        """
     wrap_junit_testsuites = '<?xml version="1.0"\\tencoding="UTF-8"?>\\n'
     """);
   }
@@ -543,7 +569,8 @@ public class EnsoParserTest {
 
   @Test
   public void testMultiParameterFunction() throws Exception {
-    parseTest("""
+    parseTest(
+        """
     from Standard.Base import all
     import Standard.Base.System
 
@@ -555,7 +582,8 @@ public class EnsoParserTest {
 
   @Test
   public void testTestGroup() throws Exception {
-    parseTest("""
+    parseTest(
+        """
     type Test
         ## Creates a new test group, describing properties of the object
            described by `self`.
@@ -579,7 +607,8 @@ public class EnsoParserTest {
 
   @Test
   public void testEmptyGroup() throws Exception {
-    parseTest("""
+    parseTest(
+        """
     main =
         x = Panic.catch Any () .convert_to_dataflow_error
         x.catch_primitive err->
@@ -599,7 +628,8 @@ public class EnsoParserTest {
 
   @Test
   public void testTestGroupSimple() throws Exception {
-    parseTest("""
+    parseTest(
+        """
     group1 : Text -> Any -> (Text | Nothing) -> Nothing
 
     type Test
@@ -609,7 +639,8 @@ public class EnsoParserTest {
 
   @Test
   public void testWildcardLeftHandSide() throws Exception {
-    parseTest("""
+    parseTest(
+        """
     Any.should_succeed self frames_to_skip=0 =
         _ = frames_to_skip
         """);
@@ -625,7 +656,8 @@ public class EnsoParserTest {
 
   @Test
   public void testReverseList() throws Exception {
-    parseTest("""
+    parseTest(
+        """
     reverse_list list =
         go = list -> acc -> case list of
             List.Cons h t -> go t (List.Cons h acc)
@@ -639,7 +671,8 @@ public class EnsoParserTest {
 
   @Test
   public void testProblemHandling() throws Exception {
-    parseTest("""
+    parseTest(
+        """
     test_problem_handling : (Problem_Behavior -> Any) -> Vector Any -> (Any -> Nothing) -> Nothing
     test_problem_handling action expected_problems result_checker =
         result_checker result_ignoring
@@ -648,7 +681,8 @@ public class EnsoParserTest {
 
   @Test
   public void testProblemHandling2() throws Exception {
-    parseTest("""
+    parseTest(
+        """
     test_problem_handling action expected_problems result_checker =
         error_result . should_fail_with first_problem_type frames_to_skip=3
         warnings_checker warnings =
@@ -694,7 +728,8 @@ public class EnsoParserTest {
 
   @Test
   public void testTableDataArgumentInCase() throws Exception {
-    parseTest("""
+    parseTest(
+        """
     process_to_json_text value =
         json = case value of
             Table.Table_Data _ -> json_from_table value
@@ -704,7 +739,8 @@ public class EnsoParserTest {
 
   @Test
   public void testVisualizationCaseOf() throws Exception {
-    parseTest("""
+    parseTest(
+        """
     prepare_visualization : Any -> Integer -> Json
     prepare_visualization x max_rows=1000 = case x of
         Array ->
@@ -718,7 +754,8 @@ public class EnsoParserTest {
 
   @Test
   public void testAggregateColumnGroupByTrue() throws Exception {
-    parseTest("""
+    parseTest(
+        """
     prepare_aggregate_columns : [Aggregate_Column] -> Table -> Problem_Behavior -> Resolved_Aggregate_Columns
     prepare_aggregate_columns aggregates table =
         # Grouping Key
@@ -759,7 +796,8 @@ public class EnsoParserTest {
 
   @Test
   public void testTypeSignature() throws Exception {
-    parseTest("""
+    parseTest(
+        """
     resolve_aggregate table problem_builder aggregate_column =
         table_columns = table.columns
 
@@ -794,7 +832,8 @@ public class EnsoParserTest {
 
   @Test
   public void testSelfTypeKeyword() throws Exception {
-    parseTest("""
+    parseTest(
+        """
     type My_Type
         Cons_A x
         Cons_B y=(Self.Cons_A 10)
@@ -816,8 +855,6 @@ public class EnsoParserTest {
             _ -> "it's a something else"
     """);
   }
-
-
 
   @Test
   public void testCaseOnTextLiteral() throws Exception {
@@ -871,7 +908,8 @@ public class EnsoParserTest {
 
   @Test
   public void testVectorVectorAny() throws Exception {
-    parseTest("""
+    parseTest(
+        """
     type Vector
         build : Standard.Base.Vector.Matrix Standard.Base.Any Standard.Base.Float
     """);
@@ -887,7 +925,8 @@ public class EnsoParserTest {
 
   @Test
   public void testOperatorSectionRight() throws Exception {
-    parseTest("""
+    parseTest(
+        """
     type Filter_Condition
         to_predicate self = case self of
             Less value -> <value
@@ -895,7 +934,7 @@ public class EnsoParserTest {
   }
 
   @Test
-  public void testAutoScope() throws Exception {
+  public void testSuspendedDefaultArguments() throws Exception {
     parseTest("""
     fn that_meta =
         c_2 = that_meta.constructor ...
@@ -903,7 +942,7 @@ public class EnsoParserTest {
   }
 
   @Test
-  public void testAutoScope2() throws Exception {
+  public void testSuspendedDefaultArguments2() throws Exception {
     parseTest("""
     fn1 = fn ...
     fn2 = fn 1 ...
@@ -927,7 +966,8 @@ public class EnsoParserTest {
 
   @Test
   public void testListBody() throws Exception {
-    parseTest("""
+    parseTest(
+        """
           list directory name_filter=Nothing recursive=False =
               new directory . list name_filter=name_filter recursive=recursive
                   """);
@@ -944,7 +984,8 @@ public class EnsoParserTest {
 
   @Test
   public void testCaseWithComment() throws Exception {
-    parseTest("""
+    parseTest(
+        """
     ansi_bold : Boolean -> Text -> Text
     ansi_bold enabled txt =
         case Platform.os of
@@ -964,7 +1005,8 @@ public class EnsoParserTest {
 
   @Test
   public void testGroupOfPatterns() throws Exception {
-    parseTest("""
+    parseTest(
+        """
     sum self = case self of
         Group (A _) (B _ _) (C _ e _) (D _ f _ g) -> e + f + g
     """);
@@ -1031,7 +1073,8 @@ public class EnsoParserTest {
 
   @Test
   public void testConstructorMultipleNamedArgs1() throws Exception {
-    parseTest("""
+    parseTest(
+        """
     x = Regex_Matcher.Regex_Matcher_Data case_sensitivity=Case_Sensitivity.Sensitive dot_matches_newline=True
     """);
   }
@@ -1061,7 +1104,8 @@ public class EnsoParserTest {
 
   @Test
   public void testRuntimeServerTestCode() throws Exception {
-    parseTest("""
+    parseTest(
+        """
     from Standard.Base.Data.Numbers import Number
 
     main =
@@ -1074,7 +1118,10 @@ public class EnsoParserTest {
         y = self + 3
         z = y * x
         z
-    """, true, true, true);
+    """,
+        true,
+        true,
+        true);
   }
 
   @Test
@@ -1095,7 +1142,8 @@ public class EnsoParserTest {
 
   @Test
   public void testAtomBenchmarks1() throws Exception {
-    parseTest("""
+    parseTest(
+        """
     import Standard.Base.Data.List.List
 
     main =
@@ -1107,7 +1155,8 @@ public class EnsoParserTest {
 
   @Test
   public void testAtomBenchmarks3() throws Exception {
-    parseTest("""
+    parseTest(
+        """
     import Standard.Base.Data.List.List
 
     List.mapReverse self f acc = case self of
@@ -1117,15 +1166,19 @@ public class EnsoParserTest {
     main = list ->
         res = list.mapReverse (x -> x + 1) List.Nil
         res
-    """, true, true, false);
+    """,
+        true,
+        true,
+        false);
   }
 
   @Test
   public void testShouldQuoteValuesContainingTheCommentSymbol() throws Exception {
-    parseTest("""
+    parseTest(
+        """
     suite =
         Test.specify "should quote values containing the comment symbol if comments are enabled" <|
-            format = Delimited ',' . with_comments
+            format = Delimited_Format.Delimited ',' . with_comments
             table.write file format on_problems=Report_Error . should_succeed
             expected_text_2 = normalize_lines <| \"""
                 "#",B
@@ -1135,31 +1188,43 @@ public class EnsoParserTest {
             text_2 = File.read_text file
             text_2.should_equal expected_text_2
             file.delete
-    """, true, true, false);
+    """,
+        true,
+        true,
+        false);
   }
 
   @Test
   public void testEmptyValueBetweenComments() throws Exception {
-    parseTest("""
+    parseTest(
+        """
     expected_text = normalize_lines <| \"""
                 A,B
                 1,
                 ,""
                 3,abc
-    """, true, true, false);
+    """,
+        true,
+        true,
+        false);
   }
 
   @Test
   public void testQuotedValues() throws Exception {
-    parseTest("""
+    parseTest(
+        """
     expected_text = normalize_lines <| \"""
         "one, two, three",-1.5,42,"4\"000",
-    """, true, true, false);
+    """,
+        true,
+        true,
+        false);
   }
 
   @Test
   public void testSimpleTripleQuote() throws Exception {
-    parseTest("""
+    parseTest(
+        """
     expected_response = Json.parse <| '''
         {
           "headers": {
@@ -1180,12 +1245,16 @@ public class EnsoParserTest {
     json = Json.parse <| '''
         {"key":"val"}
     res = Http.new.post_json url_post json
-        """, true, true, false);
+        """,
+        true,
+        true,
+        false);
   }
 
   @Test
   public void testInThePresenceOfComments() throws Exception {
-    parseTest("""
+    parseTest(
+        """
     # this is a comment
     #this too
     ## But this is a doc.
@@ -1243,19 +1312,85 @@ public class EnsoParserTest {
   }
 
   @Test
-  public void testPrivateModules() throws Exception {
-    List<String> moduleCodes = List.of(
-        "private",
+  public void testBlockSyntax() throws Exception {
+    equivalenceTest(
         """
+    nums v fm ff n = v . map fm . filter ff . take n
+    """,
+        """
+    nums v fm ff n = v
+        . map fm
+        . filter ff
+        . take n
+    """);
+  }
+
+  @Test
+  public void testBlockSyntaxOperators() throws Exception {
+    equivalenceTest(
+        """
+    value = nums * each random + constant
+    """,
+        """
+    value = nums
+        * each random
+        + constant
+    """);
+  }
+
+  @Test
+  public void testBlockSyntaxOperators2() throws Exception {
+    equivalenceTest(
+        """
+    value = (nums + each random) * constant
+    """,
+        """
+    value = nums
+        + each random
+        * constant
+    """);
+  }
+
+  @Test
+  public void testBlockSyntaxOperators3() throws Exception {
+    equivalenceTest(
+        """
+    v = (rect1 . width) . center
+    """,
+        """
+    v = rect1
+        . width
+        . center
+    """);
+  }
+
+  @Test
+  public void testBlockSyntaxOperators4() throws Exception {
+    equivalenceTest(
+        """
+    v = (rect1 . width 4) . center 3 2
+    """,
+        """
+    v = rect1
+        . width 4
+        . center 3 2
+    """);
+  }
+
+  @Test
+  public void testPrivateModules() throws Exception {
+    List<String> moduleCodes =
+        List.of(
+            "private",
+            """
         # Comment
         private
         """,
-        """
+            """
         # Comment with empty line
-        
+
         private
-        """
-    );
+        """);
     for (var moduleCode : moduleCodes) {
       parseTest(moduleCode);
       var module = compile("private");
@@ -1267,7 +1402,8 @@ public class EnsoParserTest {
 
   @Test
   public void ise_184219679() throws IOException {
-    parseTest("""
+    parseTest(
+        """
     from Standard.Base import all
 
     main =
@@ -1279,11 +1415,12 @@ public class EnsoParserTest {
   }
 
   private static void parseTest(String code) throws IOException {
-      parseTest(code, true, true, true);
+    parseTest(code, true, true, true);
   }
 
   @SuppressWarnings("unchecked")
-  private static void parseTest(String code, boolean noIds, boolean noLocations, boolean lessDocs) throws IOException {
+  private static void parseTest(String code, boolean noIds, boolean noLocations, boolean lessDocs)
+      throws IOException {
     var ir = compile(code);
     assertNotNull(ir);
   }
@@ -1300,8 +1437,7 @@ public class EnsoParserTest {
   }
 
   public static Module compile(EnsoParser c, String code) {
-    var src = Source.newBuilder("enso", code, "test-" + Integer.toHexString(code.hashCode()) + ".enso").build();
-    var ir = c.compile(src.getCharacters());
+    var ir = c.compile(code);
     assertNotNull("IR was generated", ir);
     return ir;
   }
@@ -1315,8 +1451,18 @@ public class EnsoParserTest {
       var home = new File(System.getProperty("java.io.tmpdir")).toPath();
       var file1 = home.resolve(name + ".1");
       var file2 = home.resolve(name + ".2");
-      Files.writeString(file1, ir1, StandardOpenOption.TRUNCATE_EXISTING, StandardOpenOption.CREATE, StandardOpenOption.WRITE);
-      Files.writeString(file2, ir2, StandardOpenOption.TRUNCATE_EXISTING, StandardOpenOption.CREATE, StandardOpenOption.WRITE);
+      Files.writeString(
+          file1,
+          ir1,
+          StandardOpenOption.TRUNCATE_EXISTING,
+          StandardOpenOption.CREATE,
+          StandardOpenOption.WRITE);
+      Files.writeString(
+          file2,
+          ir2,
+          StandardOpenOption.TRUNCATE_EXISTING,
+          StandardOpenOption.CREATE,
+          StandardOpenOption.WRITE);
       assertEquals(msg, file1, file2);
     }
   }
@@ -1330,46 +1476,32 @@ public class EnsoParserTest {
     throw new IllegalStateException();
   }
 
-  /** Takes an {@link IR} and converts it to text representation suitable for
-   * "diffing" while "simplifying" it.
+  /**
+   * Takes an {@link IR} and converts it to text representation suitable for "diffing" while
+   * "simplifying" it.
    *
    * @param ir the intermediate representation
-   * @param noIds remove all UUIDs or keep them? Multiple runs usually assign
-   *   random/different UUIDs to various IR elements. Removing them is a best
-   *   way to make the converted text comparable
-   * @param noLocations locations may slightly differ. Usually off-by-one.
-   *   Especially when running old and new parser in parallel - removing them
-   *   may be useful
-   * @param lessDocs documentation often isn't an essential part of the IR
-   *   one can easily remove it by specifying {@code false}
+   * @param noIds remove all UUIDs or keep them? Multiple runs usually assign random/different UUIDs
+   *     to various IR elements. Removing them is a best way to make the converted text comparable
+   * @param noLocations locations may slightly differ. Usually off-by-one. Especially when running
+   *     old and new parser in parallel - removing them may be useful
+   * @param lessDocs documentation often isn't an essential part of the IR one can easily remove it
+   *     by specifying {@code false}
    * @return string representation of the IR
    */
   private static String simplifyIR(IR ir, boolean noIds, boolean noLocations, boolean lessDocs) {
+    if (noLocations) {
+      ir = ir.duplicate(false, true, true, true);
+    }
     String txt = ir.pretty();
     if (noIds) {
-      txt = txt.replaceAll("[0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f]\\-[0-9a-f][0-9a-f][0-9a-f][0-9a-f]\\-[0-9a-f][0-9a-f][0-9a-f][0-9a-f]\\-[0-9a-f][0-9a-f][0-9a-f][0-9a-f]\\-[0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f]", "_");
-    }
-    if (noLocations) {
-      for (;;) {
-        final String pref = " Location(";
-        int at = txt.indexOf(pref);
-        if (at == -1) {
-          break;
-        }
-        int to = at + pref.length();
-        int depth = 1;
-        while (depth > 0) {
-          switch (txt.charAt(to)) {
-            case '(' -> depth++;
-            case ')' -> depth--;
-          }
-          to++;
-        }
-        txt = txt.substring(0, at) + "Location[_]" + txt.substring(to);
-      }
+      txt =
+          txt.replaceAll(
+              "[0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f]\\-[0-9a-f][0-9a-f][0-9a-f][0-9a-f]\\-[0-9a-f][0-9a-f][0-9a-f][0-9a-f]\\-[0-9a-f][0-9a-f][0-9a-f][0-9a-f]\\-[0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f]",
+              "_");
     }
     if (lessDocs) {
-      for (;;) {
+      for (; ; ) {
         final String pref = "Comment.Documentation(";
         int at = txt.indexOf(pref);
         if (at == -1) {
@@ -1378,7 +1510,7 @@ public class EnsoParserTest {
         int to = txt.indexOf("location =", at + pref.length());
         txt = txt.substring(0, at) + "Comment.Doc(" + txt.substring(to);
       }
-      for (;;) {
+      for (; ; ) {
         final String pref = "Case.Pattern.Doc(";
         int at = txt.indexOf(pref);
         if (at == -1) {
@@ -1388,7 +1520,7 @@ public class EnsoParserTest {
         txt = txt.substring(0, at) + "Comment.CaseDoc(" + txt.substring(to);
       }
     }
-    for (;;) {
+    for (; ; ) {
       final String pref = "errors.Syntax(";
       int at = txt.indexOf(pref);
       if (at == -1) {
@@ -1399,5 +1531,4 @@ public class EnsoParserTest {
     }
     return txt;
   }
-
 }

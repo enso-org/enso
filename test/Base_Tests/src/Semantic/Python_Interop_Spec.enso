@@ -1,0 +1,219 @@
+from Standard.Base import all
+
+from Standard.Test import all
+
+
+foreign python my_method a b = """
+    return a + b
+
+type My_Type
+    Value a b
+
+    foreign python my_method self = """
+        return self.a + self.b
+
+    my_method_2 self x = self.my_method * x
+
+    foreign python my_method_3 self y = """
+        r = self.my_method_2(y)
+        return r + 1
+
+    foreign python my_throw self = """
+        err = RuntimeError('Error!')
+        raise err
+
+    do_throw self = Panic.throw self
+
+    foreign python do_catch self = """
+        try:
+            self.do_throw()
+        except: # Polyglot exceptions can only be caught with except-all.
+            return self.a
+
+foreign python make_object = """
+    class My:
+        def __init__(self):
+            self.x = 10
+            self.y = False
+        def compare(self, guess):
+            return self.x < guess
+    return My()
+
+foreign python make_array = """
+    class My:
+        def __init__(self, x):
+            self.x = x
+        def compare(self, guess):
+            return self.x < guess
+    return [My(30), My(10), My(20)]
+
+foreign python make_num_array = """
+    return [30, 10, 20]
+
+foreign python make_str str = """
+    return ("foo " + str + " bar")
+
+foreign python py_is_str obj = """
+    if type(obj) == str:
+        return True
+    else:
+        return False
+
+foreign python make_int = """
+    return 10
+
+foreign python make_double = """
+    return 10.5
+
+foreign python make_true = """
+    return True
+
+foreign python make_false = """
+    return False
+
+foreign python make_null = """
+    return None
+
+foreign python does_not_parse = """
+    if? cxcc 531 6
+
+add_specs suite_builder =
+    pending = if Polyglot.is_language_installed "python" then Nothing else """
+        Can't run Python tests, Python is not installed.
+    suite_builder.group "Polyglot Python" pending=pending group_builder->
+        group_builder.specify "should allow declaring module-level methods in Python" <|
+            my_method 1 2 . should_equal 3
+
+        group_builder.specify "should allow mutual calling of instance-level methods" <|
+            My_Type.Value 3 4 . my_method_3 5 . should_equal 36
+
+        group_builder.specify "should expose methods and fields of Python objects" <|
+            obj = make_object
+            obj.x . should_equal 10
+            obj.y . should_be_false
+            obj.compare 5 . should_be_false
+            obj.compare 11 . should_be_true
+
+        group_builder.specify "should expose array interfaces for Python arrays" <|
+            vec = Vector.from_polyglot_array make_array
+            vec.map .x . should_equal [30, 10, 20]
+
+            arr = vec.map .x . to_array
+            sorted = arr.sort
+            arr . should_equal [30, 10, 20]
+            sorted . should_equal [10, 20, 30]
+
+            arr_2 = make_num_array
+            sorted_2 = arr_2.sort
+            arr_2 . should_equal [30, 10, 20]
+            sorted_2 . should_equal [10, 20, 30]
+
+
+        group_builder.specify "should recognize Text as Python string" <|
+            py_is_str "Hello" . should_be_true
+            py_is_str 10 . should_be_false
+            py_is_str Nothing . should_be_false
+
+
+        group_builder.specify "should correctly marshall strings" <|
+            str = make_str "x" + " baz"
+            str.should_equal "foo x bar baz"
+
+        group_builder.specify "should make Python strings type pattern-matchable" <|
+            str = make_str "x"
+            t = case str of
+                Text -> False
+                _ : Text -> True
+                _ -> False
+            t.should_be_true
+
+        group_builder.specify "should make Python booleans type pattern-matchable" <|
+            bool = make_true
+            t = case bool of
+                True -> True
+                _ -> False
+            t.should_be_true
+            bool_2 = make_false
+            f = case bool_2 of
+                False -> True
+                _ -> False
+            f.should_be_true
+            c = case bool of
+                _ : Boolean -> True
+                _ -> False
+            c.should_be_true
+            c_2 = case bool_2 of
+                _ : Boolean -> True
+                _ -> False
+            c_2.should_be_true
+
+        group_builder.specify "should make Python lists type pattern-matchable as arrays" <|
+            arr = make_array
+            r = case arr of
+                Array -> False
+                _ : Array -> True
+                _ -> False
+            r.should_be_true
+
+        group_builder.specify "should make Python numbers type pattern-matchable" <|
+            int_match = case make_int of
+                _ : Integer -> True
+                _ -> False
+            int_match.should_be_true
+            double_match = case make_double of
+                _ : Float -> True
+                _ -> False
+            double_match.should_be_true
+            num_int_match = case make_int of
+                _ : Number -> True
+                _ -> False
+            num_int_match.should_be_true
+            num_double_match = case make_double of
+                _ : Number -> True
+                _ -> False
+            num_double_match.should_be_true
+
+        group_builder.specify "should make Python number values equal to Enso ints" <|
+            py_10 = make_int
+            py_10 . should_equal 10
+
+        group_builder.specify "should make Python number values equal to Enso doubles" <|
+            py_d = make_double
+            py_d . should_equal 10.5
+
+        group_builder.specify "should make Python None values equal to Nothing" <|
+            py_null = make_null
+            py_null . should_equal Nothing
+
+        group_builder.specify "should allow Enso to catch Python exceptions" <|
+            value = My_Type.Value 1 2
+            result = Panic.recover Any <| value.my_throw
+            err = result.catch
+            err.args.at 0 . should_equal 'Error!'
+            err.to_text . should_equal "RuntimeError('Error!')"
+
+        group_builder.specify "should allow Python to catch Enso exceptions" <|
+            value = My_Type.Value 7 2
+            result = value.do_catch
+            result . should_equal 7
+
+        group_builder.specify "should properly handle parse errors" <|
+            err = Panic.recover Any does_not_parse . catch
+            err.args.at 0 . should_contain 'invalid syntax'
+
+        group_builder.specify "should perform maths with mixed numbers" <|
+            py_num = make_int
+            enso_num = 10
+            (enso_num + py_num) . should_equal 20
+            (py_num - enso_num) . should_equal 0
+
+        group_builder.specify "should propagate dataflow errors" <|
+            error = Error.throw 42
+            my_method error 0 . should_fail_with Integer
+
+main filter=Nothing =
+    suite = Test.build suite_builder->
+        add_specs suite_builder
+    suite.run_with_filter filter
+
+

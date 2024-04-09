@@ -23,7 +23,7 @@ class PortableDistributionManager(env: Environment)
     * This directory is checked for [[PORTABLE_MARK_FILENAME]]. If the mark file
     * is present, portable mode is selected.
     */
-  def possiblePortableRoot: Path =
+  private def possiblePortableRoot: Path =
     env.getPathToRunningExecutable.getParent.getParent
 
   /** Specifies whether the program has been run as a portable distribution or
@@ -79,6 +79,7 @@ class PortableDistributionManager(env: Environment)
         runRoot                   = root,
         locks                     = root / LOCK_DIRECTORY,
         logs                      = root / LOG_DIRECTORY,
+        profiling                 = root / PROFILING_DIRECTORY,
         unsafeTemporaryDirectory  = root / TMP_DIRECTORY,
         customEditions            = detectCustomEditionPaths(home),
         localLibrariesSearchPaths = detectLocalLibraryPaths(home),

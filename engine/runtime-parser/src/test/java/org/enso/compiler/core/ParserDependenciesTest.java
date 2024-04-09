@@ -17,4 +17,24 @@ public class ParserDependenciesTest {
       // correct
     }
   }
+
+  @Test
+  public void avoidTruffleDependency() {
+    try {
+      var clazz = Class.forName("com.oracle.truffle.api.source.Source");
+      assertNull("No Truffle classes shall be available in the parser project", clazz);
+    } catch (ClassNotFoundException ex) {
+      // correct
+    }
+  }
+
+  @Test
+  public void avoidPolyglotDependency() {
+    try {
+      var clazz = Class.forName("org.graalvm.polyglot.Source");
+      assertNull("No GraalVM polyglot classes shall be available in the parser project", clazz);
+    } catch (ClassNotFoundException ex) {
+      // correct
+    }
+  }
 }

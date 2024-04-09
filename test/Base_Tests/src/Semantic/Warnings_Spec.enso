@@ -1,0 +1,474 @@
+from Standard.Base import all
+import Standard.Base.Data.Vector.Map_Error
+import Standard.Base.Errors.Unimplemented.Unimplemented
+import Standard.Base.Errors.Illegal_State.Illegal_State
+
+polyglot java import java.lang.Long
+polyglot java import java.util.function.Function as Java_Function
+polyglot java import org.enso.base_test_helpers.CallbackHelper
+
+from Standard.Test import all
+
+
+type My_Warning
+    Value reason
+
+type My_Type
+    Value a b c
+My_Type.my_method self = self.a + self.b + self.c
+
+type Wrap
+    Value foo
+
+f x _ = Warning.attach "Baz!" x
+
+type My_Fancy_Collection
+    Value (x:Integer)
+
+    get_all : Vector Integer
+    get_all self = [self.x]
+
+    has_warnings : Boolean
+    has_warnings self = False
+
+    remove_warnings : Any -> Integer
+    remove_warnings self warning_type=Any =
+      _ = warning_type
+      42
+
+rewrap w = case w of
+    Wrap.Value a -> Wrap.Value a+1
+
+poly_sum x y =
+    Long.sum x y
+
+get_foo x = x.foo
+
+unwrap x = Integer.from x
+
+reassign_test x =
+    consed = Wrap.Value x
+    reconsed = rewrap consed
+    i = unwrap reconsed
+    rereconsed = Wrap.Value i
+    x1 = get_foo rereconsed
+    prim_sum = 1 + x1
+    r = poly_sum prim_sum 1
+    r
+
+baz value = Warning.attach value "I have warned you"
+bar value = baz value
+foo value = bar value
+
+Integer.from (that:Wrap) = that.foo
+
+attach_four_warnings value =
+    v1 = Warning.attach 4 value
+    v2 = Warning.attach 3 v1
+    v3 = Warning.attach 2 v2
+    v4 = Warning.attach 1 v3
+    v4
+
+odd_warning_mapper payload = case payload of
+    _ : Integer -> if payload % 2 == 0 then Nothing else Maybe.Some (payload + 10)
+    _ -> Nothing
+
+odd_warning_filter payload = case payload of
+    _ : Integer -> if payload % 2 == 0 then False else True
+    _ -> False
+
+map_odd_warnings value =
+    Warning.map_attached_warnings odd_warning_mapper value
+
+map_odd_warnings_and_errors value =
+    Warning.map_warnings_and_errors odd_warning_mapper value
+
+throw_a_bar =
+    Panic.throw "bar"
+
+Any.is_static_nothing self x = x.is_nothing
+
+do_fold_tail v =
+    v.fold 0 (+)
+
+do_fold_non_tail v =
+    res = v.fold 0 (+)
+    res
+
+add_specs suite_builder = suite_builder.group "Dataflow Warnings" group_builder->
+    group_builder.specify "should allow to attach multiple warnings and read them back" <|
+        x = 1233
+        y = Warning.attach "don't do this" x
+        z = Warning.attach "I'm serious" y
+        Warning.get_all z . map .value . should_equal ["I'm serious", "don't do this"]
+
+    group_builder.specify "should thread warnings through constructor calls" <|
+        z = Warning.attach (My_Warning.Value "warn!!!") 3
+        y = Warning.attach (My_Warning.Value "warn!!") 2
+        x = Warning.attach (My_Warning.Value "warn!") 1
+        mtp = My_Type.Value x y z
+        mtp.should_equal (My_Type.Value 1 2 3)
+        Warning.get_all mtp . map .value . should_equal [My_Warning.Value "warn!", My_Warning.Value "warn!!", My_Warning.Value "warn!!!"]
+
+    group_builder.specify "should thread warnings through method calls" <|
+        mtp = My_Type.Value 1 2 3
+        warned = Warning.attach "omgggg" mtp
+        r = warned.my_method
+        r.should_equal 6
+        Warning.get_all r . map .value . should_equal ["omgggg"]
+
+    group_builder.specify "should thread warnings through polyglot calls" <|
+        y = Warning.attach "warn!!" 2
+        x = Warning.attach "warn!" 1
+        r = Long.sum x y
+        r.should_equal 3
+        Warning.get_all r . map .value . should_equal ['warn!', 'warn!!']
+
+    group_builder.specify "should be passed correctly when combined with warnings added in branches" <|
+        one = Warning.attach "first" "1"
+
+        b = case one of
+            _ : Text -> Warning.attach "a" True
+            _        -> Warning.attach "b" False
+
+        v = case b of
+            True -> 0
+            False -> 1
+
+        v . should_equal 0
+        Warning.get_all v . map .value . should_equal ["a", "first"]
+
+    group_builder.specify "should thread warnings through case expressions" <|
+        z = Warning.attach (My_Warning.Value "warn!!!") 3
+        y = Warning.attach (My_Warning.Value "warn!!") 2
+        x = Warning.attach (My_Warning.Value "warn!") 1
+        mtp = My_Type.Value x y z
+        r = case mtp of
+            My_Type.Value a b c -> a + b + c
+        r.should_equal 6
+        Warning.get_all r . map .value . should_equal [My_Warning.Value "warn!", My_Warning.Value "warn!!", My_Warning.Value "warn!!!"]
+
+    group_builder.specify "should thread warnings through conversions" <|
+        z = Wrap.Value (Warning.attach 'warn!' 1)
+        i = Integer.from z
+        Warning.get_all i . map .value . should_equal ['warn!']
+
+    group_builder.specify "should attach correct stacktraces" <|
+        current = Runtime.get_stack_trace
+        warned = foo "value"
+        warning_stack = Warning.get_all warned . first . origin
+        relevant = warning_stack . drop (Last current.length)
+        relevant.map .name . should_equal (['baz', 'bar', 'foo'].map ('Warnings_Spec.'+))
+
+    group_builder.specify "should attach reassignment info in the last-reassigned-first order" <|
+        x = Warning.attach "warn!" 1
+        r = reassign_test x
+        warn = Warning.get_all r . first
+        reassignments = warn.reassignments.map .name
+        expected_stack = []
+            + [ 'Warnings_Spec.poly_sum' ]
+            + [ 'Integer.+' ]
+            + [ 'Warnings_Spec.get_foo' ]
+            + [ 'Wrap.Value' ]
+            + [ 'Integer.from' ]
+            + [ 'Warnings_Spec.rewrap' ]
+            + [ 'Wrap.Value' ]
+        reassignments.should_equal expected_stack.to_vector
+
+    group_builder.specify "should allow to set all warnings" <|
+        warned = Warning.attach 1 <| Warning.attach 2 <| Warning.attach 3 <| Warning.attach 4 "foo"
+        warnings = Warning.get_all warned
+        filtered = warnings.filter x-> x.value % 2 == 0
+        rewarned = Warning.set warned filtered
+        rewarned.should_equal 'foo'
+        Warning.get_all rewarned . map .value . should_contain_the_same_elements_as [2,4]
+
+    group_builder.specify "should allow checking for any warnings" <|
+        Warning.has_warnings "foo" . should_be_false
+        "foo".has_warnings.should_be_false
+
+        warned = Warning.attach 1 "foo"
+        warned.has_warnings.should_be_true
+        Warning.has_warnings warned . should_be_true
+
+    group_builder.specify "should allow to clear warnings" <|
+        warned = Warning.attach 1 <| Warning.attach 2 <| Warning.attach 3 <| Warning.attach 4 "foo"
+        cleared = Warning.clear warned
+        cleared.should_equal 'foo'
+        Warning.get_all cleared . map .value . should_equal []
+
+        clear_2 = warned.remove_warnings
+        clear_2.should_equal 'foo'
+        Warning.get_all clear_2 . map .value . should_equal []
+
+    group_builder.specify "should allow to run a function suspending warnings attached to an argument and reattach them to the result" <|
+        x = Warning.attach 1 <| Warning.attach 2 <| Warning.attach 3 <| Warning.attach 4 "foo"
+        y = Warning.with_suspended x x->
+            count = Warning.get_all x . length
+            Warning.attach "BAZ" count
+        y . should_equal 0
+        Warning.get_all y . map .value . should_contain_the_same_elements_as [4, 3, 2, 1, "BAZ"]
+
+    group_builder.specify "should allow to map the warnings, selectively" <|
+        warned = attach_four_warnings "foo"
+        mapped = map_odd_warnings warned
+        mapped . should_equal 'foo'
+        Warning.get_all mapped . map .value . should_contain_the_same_elements_as [11, 2, 13, 4]
+
+    group_builder.specify "should allow to map warnings and errors, selectively" <|
+        warned = attach_four_warnings "foo"
+        mapped = map_odd_warnings_and_errors warned
+        mapped . should_equal 'foo'
+        Warning.get_all mapped . map .value . should_contain_the_same_elements_as [11, 2, 13, 4]
+        Warning.get_all mapped . map (w-> w.origin.first.name) . should_contain_the_same_elements_as ["Warnings_Spec.map_odd_warnings_and_errors", "Warnings_Spec.attach_four_warnings"]
+
+        errored_2 = Error.throw 7
+        mapped_2 = map_odd_warnings_and_errors errored_2
+        mapped_2.catch . should_equal 17
+        Warning.get_all mapped_2 . catch . should_equal 17
+
+        errored_3 = Panic.recover Any throw_a_bar
+        mapped_3 = map_odd_warnings_and_errors errored_3
+        mapped_3.catch . should_equal "bar"
+        mapped_3.stack_trace.first.name . should_equal "Warnings_Spec.throw_a_bar"
+        Warning.get_all mapped_3 . catch . should_equal "bar"
+
+    group_builder.specify "should allow to detach warnings, selectively" <|
+        warned = attach_four_warnings "foo"
+        detached_pair = Warning.detach_selected_warnings warned odd_warning_filter
+        detached_pair . first . should_equal "foo"
+        Warning.get_all (detached_pair . first) . map .value . should_equal [2,4]
+        detached_pair.second . map .value . should_equal [1,3]
+
+    group_builder.specify "should allow to checking for warnings, by type" <|
+        warned = Warning.attach 1 <| Warning.attach "Alpha" <| Warning.attach Nothing <| Warning.attach (Unimplemented.Error "An Error Here") "foo"
+
+        warned.has_warnings.should_be_true
+        warned.has_warnings warning_type=Integer . should_be_true
+        warned.has_warnings warning_type=Number . should_be_true
+        warned.has_warnings warning_type=Float . should_be_false
+        warned.has_warnings warning_type=Text . should_be_true
+        warned.has_warnings warning_type=Nothing . should_be_true
+        warned.has_warnings warning_type=Unimplemented . should_be_true
+
+    group_builder.specify "should allow to remove warnings, by type" <|
+        warned = Warning.attach 1 <| Warning.attach "Alpha" <| Warning.attach Nothing <| Warning.attach (Unimplemented.Error "An Error Here") "foo"
+
+        no_int = warned.remove_warnings warning_type=Integer . first
+        Warning.get_all no_int . map .value . should_equal ["Alpha", Nothing, (Unimplemented.Error "An Error Here")]
+
+        no_text = warned.remove_warnings Text
+        Warning.get_all no_text . map .value . should_equal [1, Nothing, (Unimplemented.Error "An Error Here")]
+
+        no_nothing = warned.remove_warnings Nothing
+        Warning.get_all no_nothing . map .value . should_equal [1, "Alpha", (Unimplemented.Error "An Error Here")]
+
+        no_error = warned.remove_warnings Unimplemented
+        Warning.get_all no_error . map .value . should_equal [1, "Alpha", Nothing]
+
+    group_builder.specify "should allow raising warnings as errors, by type" <|
+        warned = Warning.attach 1 <| Warning.attach "Alpha" <| Warning.attach Nothing <| Warning.attach (Unimplemented.Error "An Error Here") "foo"
+
+        warned.throw_on_warning . should_fail_with Integer
+        warned.throw_on_warning warning_type=Text . should_fail_with Text
+        warned.throw_on_warning warning_type=Nothing . should_fail_with Nothing
+        warned.throw_on_warning warning_type=Unimplemented . should_fail_with Unimplemented
+
+    group_builder.specify "should allow to map the warnings, selectively" <|
+        x = Warning.attach "foo" 1
+        result = x.is_static_nothing x
+        result . should_equal False
+
+    group_builder.specify "should be allowed in Vector" <|
+        a = Warning.attach "a" 1
+        b = Warning.attach "b" 2
+        c = [a, b]
+        d = Warning.attach "d" c
+        c . should_equal [1, 2]
+        Warning.get_all c wrap_errors=True . map .value . should_equal [(Map_Error.Error 1 'b'), (Map_Error.Error 0 'a')]
+        Warning.get_all d wrap_errors=True . map .value . should_equal [(Map_Error.Error 1 'b'), (Map_Error.Error 0 'a'), 'd']
+
+    group_builder.specify "should be preserved after operations on Vector" <|
+        even x = (Warning.attach "warn"+x.to_text x) % 2
+        res = [1,2,3,4].map even
+
+        res . should_equal [1, 0, 1, 0]
+        Warning.get_all res wrap_errors=True . map .value . should_equal [(Map_Error.Error 3 'warn4'), (Map_Error.Error 2 'warn3'), (Map_Error.Error 1 'warn2'), (Map_Error.Error 0 'warn1')]
+        res.at 0 . should_equal 1
+        Warning.get_all (res.at 0) . map .value . should_equal ['warn4', 'warn3', 'warn2', 'warn1']
+
+        slice = res.slice 1 4
+        Warning.get_all slice wrap_errors=True . map .value . should_equal [(Map_Error.Error 3 'warn4'), (Map_Error.Error 2 'warn3'), (Map_Error.Error 1 'warn2'), (Map_Error.Error 0 'warn1')]
+
+        zero = even 0
+        Warning.get_all zero wrap_errors=True . map .value . should_equal ["warn"+0.to_text]
+
+        v = 0.up_to 10 . to_vector
+        r = v.map x->(if x % 2 == 0 then 10*x else Warning.attach 100*x x)
+        r.should_equal [0, 1, 20, 3, 40, 5, 60, 7, 80, 9]
+        Warning.get_all r wrap_errors=True . map .value . should_contain_the_same_elements_as [Map_Error.Error 1 100, Map_Error.Error 3 300, Map_Error.Error 5 500, Map_Error.Error 7 700, Map_Error.Error 9 900]
+
+    group_builder.specify "should be preserved after operations on multi-dimensional Vector" <|
+        even x = (Warning.attach x x) % 2
+        nested_range_even x =
+            (0.up_to x).to_vector.map even
+        res = [1, 2, 3, 4].map nested_range_even
+
+        res . should_equal [[0], [0, 1], [0, 1, 0], [0, 1, 0, 1]]
+        Warning.get_all res . map .value . should_equal [3, 2, 1, 0, 2, 1, 0, 1, 0, 0]
+        Warning.get_all res wrap_errors=True . map .value . should_equal [(Map_Error.Error 3 (Map_Error.Error 3 3)), (Map_Error.Error 3 (Map_Error.Error 2 2)), (Map_Error.Error 3 (Map_Error.Error 1 1)), (Map_Error.Error 3 (Map_Error.Error 0 0)), (Map_Error.Error 2 (Map_Error.Error 2 2)), (Map_Error.Error 2 (Map_Error.Error 1 1)), (Map_Error.Error 2 (Map_Error.Error 0 0)), (Map_Error.Error 1 (Map_Error.Error 1 1)), (Map_Error.Error 1 (Map_Error.Error 0 0)), (Map_Error.Error 0 (Map_Error.Error 0 0))]
+        Warning.get_all (res.at 2) . map .value . should_equal [3, 2, 1, 0, 2, 1, 0, 1, 0, 0]
+
+    group_builder.specify "should wrap errors with even deeper nesting" <|
+        Warning.get_all [[[Warning.attach "warning" 10]]] wrap_errors=True . map .value . should_equal [Map_Error.Error 0 (Map_Error.Error 0 (Map_Error.Error 0 "warning"))]
+        Warning.get_all [[[[Warning.attach "warning" 10]]]] wrap_errors=True . map .value . should_equal [Map_Error.Error 0 (Map_Error.Error 0 (Map_Error.Error 0 (Map_Error.Error 0 "warning")))]
+        Warning.get_all [[[[[Warning.attach "warning" 10]]]]] wrap_errors=True . map .value . should_equal [Map_Error.Error 0 (Map_Error.Error 0 (Map_Error.Error 0 (Map_Error.Error 0 (Map_Error.Error 0 "warning"))))]
+
+    group_builder.specify "should be preserved over arbitrary dataflow dependencies between values introduced using `if_not_error`" <|
+        a = Warning.attach "a" 1
+        b = Warning.attach "b" 2
+
+        r = a.if_not_error b
+        r.should_equal 2
+        Warning.get_all r . map .value . should_contain_the_same_elements_as ["b", "a"]
+        Warning.get_all a . map .value . should_contain_the_same_elements_as ["a"]
+        Warning.get_all b . map .value . should_contain_the_same_elements_as ["b"]
+
+    group_builder.specify "should be preserved around polyglot calls" <|
+        x = Warning.attach "x" 1
+
+        java_id = Java_Function.identity
+        f x = Warning.attach "f("+x.to_text+")" <| Pair.new "A" x+10
+        ## We compose our Enso functions with Java identity, forcing our methods
+           to be lifted into the Java polyglot world and being used as callbacks
+           from within Java.
+        javaized_f = Java_Function.identity.andThen f
+
+        r1 = java_id.apply x
+        r1.should_equal 1
+        Warning.get_all r1 . map .value . should_contain_the_same_elements_as ["x"]
+
+        r2 = javaized_f.apply x
+        r2.should_equal (Pair.new "A" 11)
+        Warning.get_all r2 . map .value . should_contain_the_same_elements_as ["f(1)", "x"]
+
+        ## The following will not work, as if the polyglot method expects an
+           `Object` it will get converted to a Java 'primitive' losing the
+           attached warnings. The only way to preserve warnings in that case is
+           to explicitly expect a `Value` return type, as in the test below.
+        #g x = Warning.attach "g("+x.to_text+")" x+10
+        #h x = Warning.attach "h("+x.to_text+")" "{x="+x.to_text+"}"
+        #i x = Warning.attach "i("+x.to_text+")" Nothing
+
+    group_builder.specify "should be better preserved around polyglot calls expecting a Value" <|
+        x = Warning.attach "x" 1
+
+        f x = Warning.attach "f("+x.to_text+")" <| Pair.new "A" x+10
+        g x = Warning.attach "g("+x.to_text+")" x+10
+        h x = Warning.attach "h("+x.to_text+")" "{x="+x.to_text+"}"
+        i x = Warning.attach "i("+x.to_text+")" Nothing
+
+        r1 = CallbackHelper.runCallbackInt f x
+        r1.should_equal (Pair.new "A" 11)
+        Warning.get_all r1 . map .value . should_contain_the_same_elements_as ["f(1)", "x"]
+
+        r2 = CallbackHelper.runCallbackInt g x
+        r2.should_equal 11
+        Warning.get_all r2 . map .value . should_contain_the_same_elements_as ["g(1)", "x"]
+
+        r3 = CallbackHelper.runCallbackInt h x
+        r3.should_equal "{x=1}"
+        Warning.get_all r3 . map .value . should_contain_the_same_elements_as ["h(1)", "x"]
+
+        r4 = CallbackHelper.runCallbackInt i x
+        r4.should_equal Nothing
+        Warning.get_all r4 . map .value . should_contain_the_same_elements_as ["i(1)", "x"]
+
+    group_builder.specify "should not affect method dispatch" <|
+        a = My_Fancy_Collection.Value 42
+        b = Warning.attach "WARN" <| My_Fancy_Collection.Value 23
+
+        a.get_all . should_equal [42]
+        b.get_all . should_equal [23]
+        a.has_warnings . should_equal False
+        b.has_warnings . should_equal False
+        a.remove_warnings . should_equal 42
+        b.remove_warnings . should_equal 42
+
+    group_builder.specify "should not automatically propagate from suspended arguments" <|
+        x1 = 33
+        x2 = Warning.attach "WARN" 44
+        x3 = Error.throw (Illegal_State.Error "ERR")
+
+        condition_1 x y = if x then y else 42
+        condition_2 x y = if x then y + 100 else 42
+
+        Problems.assume_no_problems <| condition_1 False x1
+        Problems.assume_no_problems <| condition_2 False x1
+
+        Problems.assume_no_problems <| condition_1 False x2
+        Problems.assume_no_problems <| condition_2 False x2
+
+        Problems.assume_no_problems <| condition_1 False x3
+        Problems.assume_no_problems <| condition_2 False x3
+
+    group_builder.specify "should only report unique warnings" <|
+        a = 1
+        b = Warning.attach "Foo!" a
+        c = Warning.attach "Bar!" b
+        d = Warning.attach "Foo!" b
+
+        result_1 = b + c
+        Warning.get_all result_1 . map (x-> x.value.to_text) . should_equal ["Bar!", "Foo!"]
+
+        result_2 = b + b + b
+        Warning.get_all result_2 . length . should_equal 1
+
+        result_3 = b + b + d
+        Warning.get_all result_3 . map (x-> x.value.to_text) . should_equal ["Foo!", "Foo!"]
+
+        result_4 = f a 1 + f a 2 + f a 3
+        Warning.get_all result_4 . map (x-> x.value.to_text) . should_equal ["Baz!", "Baz!", "Baz!"]
+
+    group_builder.specify "should only report the first 100 unique warnings" <|
+        vec = (0.up_to 500).map(e -> Warning.attach "Foo!" e)
+        vec_plus_1 = vec.map(e -> e+1)
+        Warning.get_all vec_plus_1 . length . should_equal 100
+        Warning.limit_reached vec . should_equal True
+
+        warn = Warning.attach "Boo!" 42
+        vec_2 = (0.up_to 500).map(e -> if (e < 30) then Warning.attach "Foo!" e else (warn + e))
+        Warning.get_all vec_2 . length . should_equal 31
+        Warning.limit_reached vec_2 . should_equal False
+
+    group_builder.specify "should preserve warnings in tail calls" <|
+        v = Warning.attach "Foo" [1, 2, 3]
+
+        result_tail = do_fold_tail v
+        result_tail . should_equal 6
+        Warning.get_all result_tail . map .value . should_equal ["Foo"]
+
+        result_non_tail = do_fold_non_tail v
+        result_non_tail . should_equal 6
+        Warning.get_all result_non_tail . map .value . should_equal ["Foo"]
+
+    group_builder.specify "should not break TCO when warnings are attached to arguments" <|
+        vec = Vector.new 10000 (i-> i+1)
+        elem1 = Warning.attach "WARNING1" 998
+        vec.contains 998 . should_equal True
+        res1 = vec.contains elem1
+        res1 . should_be_true
+        Warning.get_all res1 . map .value . should_equal ["WARNING1"]
+
+        elem2 = Warning.attach "WARNING2" 9988
+        vec.contains 9988 . should_be_true
+        vec.contains elem2 . should_be_true
+
+        res2 = vec.contains elem2
+        res2 . should_equal True
+        Warning.get_all res2 . map .value . should_equal ["WARNING2"]
+
+main filter=Nothing =
+    suite = Test.build suite_builder->
+        add_specs suite_builder
+    suite.run_with_filter filter

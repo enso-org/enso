@@ -1,6 +1,9 @@
 import project.Any.Any
 import project.Data.Text.Text
+import project.Error.Error
+import project.Network.HTTP.HTTP_Status_Code.HTTP_Status_Code
 import project.Network.URI.URI
+import project.Nothing.Nothing
 import project.Panic.Panic
 
 polyglot java import java.io.IOException
@@ -14,13 +17,28 @@ type HTTP_Error
        - message: The message for the error.
     IO_Error (uri:URI) (message:Text)
 
+    ## An error indicating that a non-200 status code was returned.
+
+       Arguments:
+       - status_code: The status code that was returned.
+       - message: The message for the error, if it was able to be read.
+       - uri: The uri that couldn't be read.
+    Status_Error (status_code:HTTP_Status_Code) (message:Text|Nothing) (uri:URI)
+
     ## PRIVATE
        Convert the HTTP_Error to a human-readable format.
     to_display_text : Text
-    to_display_text self = self.message + " (" + self.uri.to_text + ")."
+    to_display_text self = case self of
+        HTTP_Error.IO_Error uri message ->
+            "IO Error: " + message + " (" + uri.to_display_text + ")."
+        HTTP_Error.Status_Error status_code message uri ->
+            prefix = "HTTP responded with status " + status_code.to_text
+            uri_part = " (at URI: " + uri.to_display_text + ")"
+            suffix = if message.is_nothing then "." else ": " + message.to_text + "."
+            prefix + uri_part + suffix
 
     ## PRIVATE
        Utility method for running an action with Java exceptions mapping.
-    handle_java_exceptions uri:URI ~action =
+    handle_java_exceptions (uri:URI) ~action =
         Panic.catch IOException action caught_panic->
-            HTTP_Error.IO_Error uri ("An IO error has occurred: " + caught_panic.payload.to_text)
+            Error.throw (HTTP_Error.IO_Error uri ("An IO error has occurred: " + caught_panic.payload.to_text))

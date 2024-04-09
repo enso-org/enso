@@ -6,6 +6,7 @@ import org.apache.commons.io.FileUtils
 import org.bouncycastle.util.encoders.Hex
 import org.enso.languageserver.boot.{ProfilingConfig, StartupConfig}
 import org.enso.languageserver.data._
+import org.enso.logger.ReportLogsOnFailure
 import org.enso.polyglot.runtime.Runtime.Api
 import org.enso.testkit.RetrySpec
 
@@ -16,7 +17,10 @@ import java.security.MessageDigest
 import java.util.UUID
 import scala.concurrent.duration._
 
-class FileManagerTest extends BaseServerTest with RetrySpec {
+class FileManagerTest
+    extends BaseServerTest
+    with RetrySpec
+    with ReportLogsOnFailure {
 
   override def mkConfig: Config = {
     val directoriesDir = Files.createTempDirectory(null).toRealPath()

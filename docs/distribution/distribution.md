@@ -159,13 +159,15 @@ The layout of such a distribution is as follows:
 
 ```
 enso-1.0.0
-├── manifest.yaml    # A manifest file defining metadata about this Enso version.
-├── component        # Contains all the executable tools and their dependencies.
-│   ├── runner.jar   # The main executable of the distribution. CLI entry point.
-│   └── runtime.jar  # The language runtime. It is loaded by other JVM components, like the runner.
-├── native-libraries # Contains all shared libraries that are used by JVM components.
-│   └── parser.so    # The language parser. It is loaded by the runtime component.
-│                    # Alternative extensions are .dll Windows and .dylib on Mac.
+├── manifest.yaml       # A manifest file defining metadata about this Enso version.
+├── component           # Contains all the JAR modules of the dependencies.
+│   ├── runner          # Nested directory to "hide" the runner JAR from the JVM's module-path.
+│   │   └── runner.jar  # A Fat JAR containing almost all the dependencies of the engine runner.
+│   ├── runtime.jar     # The Enso runtime's module 'org.enso.runtime'. CLI entry point.
+│   ├── *.jar           # Other JAR modules that are essential for running Enso.
+├── native-libraries    # Contains all shared libraries that are used by JVM components.
+│   └── parser.so       # The language parser. It is loaded by the runtime component.
+│                       # Alternative extensions are .dll Windows and .dylib on Mac.
 └── lib          # Contains all the libraries that are pre-installed within that compiler version.
     └── Standard
         ├── Http

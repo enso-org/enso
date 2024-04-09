@@ -15,8 +15,8 @@ import org.enso.interpreter.runtime.number.EnsoBigInteger;
 public class CeilNode extends FloatNode {
   private final CountingConditionProfile fitsProfile = CountingConditionProfile.create();
 
-  Object execute(double self) {
-    double ceil = Math.ceil(self);
+  Object execute(double own) {
+    double ceil = Math.ceil(own);
     if (fitsProfile.profile(BigIntegerOps.fitsInLong(ceil))) {
       return (long) ceil;
     } else {

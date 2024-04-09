@@ -1,1 +1,0 @@
-Test Suite should report failed tests and failure reason

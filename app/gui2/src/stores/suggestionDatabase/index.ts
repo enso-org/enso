@@ -1,15 +1,49 @@
+import { useProjectStore } from '@/stores/project'
+import { entryQn, type SuggestionEntry, type SuggestionId } from '@/stores/suggestionDatabase/entry'
+import { applyUpdates, entryFromLs } from '@/stores/suggestionDatabase/lsUpdate'
+import { ReactiveDb, ReactiveIndex } from '@/util/database/reactiveDb'
 import { AsyncQueue, rpcWithRetries } from '@/util/net'
-import { type QualifiedName } from '@/util/qualifiedName'
-import * as map from 'lib0/map'
+import {
+  normalizeQualifiedName,
+  qnJoin,
+  qnParent,
+  tryQualifiedName,
+  type QualifiedName,
+} from '@/util/qualifiedName'
 import { defineStore } from 'pinia'
 import { LanguageServer } from 'shared/languageServer'
-import { reactive, ref, watchEffect, type Ref } from 'vue'
-import { useProjectStore } from '../project'
-import { type SuggestionEntry, type SuggestionId } from './entry'
-import { applyUpdates, entryFromLs } from './lsUpdate'
+import type { MethodPointer } from 'shared/languageServerTypes'
+import { markRaw, ref, type Ref } from 'vue'
 
-export type SuggestionDb = Map<SuggestionId, SuggestionEntry>
-export const SuggestionDb = Map<SuggestionId, SuggestionEntry>
+export class SuggestionDb extends ReactiveDb<SuggestionId, SuggestionEntry> {
+  nameToId = new ReactiveIndex(this, (id, entry) => [[entryQn(entry), id]])
+  childIdToParentId = new ReactiveIndex(this, (id, entry) => {
+    const qualifiedName = entry.memberOf ?? qnParent(entryQn(entry))
+    if (qualifiedName) {
+      const parents = this.nameToId.lookup(qualifiedName)
+      return Array.from(parents, (p) => [id, p])
+    }
+    return []
+  })
+  conflictingNames = new ReactiveIndex(this, (id, entry) => [[entry.name, id]])
+
+  getEntryByQualifiedName(name: QualifiedName): SuggestionEntry | undefined {
+    const [id] = this.nameToId.lookup(name)
+    if (id) {
+      return this.get(id)
+    }
+  }
+
+  findByMethodPointer(method: MethodPointer): SuggestionId | undefined {
+    if (method == null) return
+    const moduleName = tryQualifiedName(method.definedOnType)
+    const methodName = tryQualifiedName(method.name)
+    if (!moduleName.ok || !methodName.ok) return
+    const qualifiedName = qnJoin(normalizeQualifiedName(moduleName.value), methodName.value)
+    const [suggestionId] = this.nameToId.lookup(qualifiedName)
+    return suggestionId
+  }
+}
 
 export interface Group {
   color?: string
@@ -17,21 +51,33 @@ export interface Group {
   project: QualifiedName
 }
 
+export function groupColorVar(group: Group | undefined): string {
+  if (group) {
+    const name = `${group.project}-${group.name}`.replace(/[^\w]/g, '-')
+    return `--group-color-${name}`
+  } else {
+    return '--group-color-fallback'
+  }
+}
+
+export function groupColorStyle(group: Group | undefined): string {
+  return `var(${groupColorVar(group)})`
+}
+
 class Synchronizer {
-  entries: SuggestionDb
-  groups: Ref<Group[]>
   queue: AsyncQueue<{ currentVersion: number }>
 
-  constructor(entries: SuggestionDb, groups: Ref<Group[]>) {
-    this.entries = entries
-    this.groups = groups
-
+  constructor(
+    public entries: SuggestionDb,
+    public groups: Ref<Group[]>,
+  ) {
     const projectStore = useProjectStore()
     const initState = projectStore.lsRpcConnection.then(async (lsRpc) => {
       await rpcWithRetries(() =>
         lsRpc.acquireCapability('search/receivesSuggestionsDatabaseUpdates', {}),
       )
       this.setupUpdateHandler(lsRpc)
+      this.loadGroups(lsRpc, projectStore.firstExecution)
       return Synchronizer.loadDatabase(entries, lsRpc, groups.value)
     })
 
@@ -59,7 +105,18 @@ class Synchronizer {
   private setupUpdateHandler(lsRpc: LanguageServer) {
     lsRpc.on('search/suggestionsDatabaseUpdates', (param) => {
       this.queue.pushTask(async ({ currentVersion }) => {
-        if (param.currentVersion <= currentVersion) {
+        // There are rare cases where the database is updated twice in quick succession, with the
+        // second update containing the same version as the first. In this case, we still need to
+        // apply the second set of updates. Skipping it would result in the database then containing
+        // references to entries that don't exist. This might be an engine issue, but accepting the
+        // second updates seems to be harmless, so we do that.
+        if (param.currentVersion == currentVersion) {
+          console.log(
+            `Received multiple consecutive suggestion database updates with version ${param.currentVersion}`,
+          )
+        }
+
+        if (param.currentVersion < currentVersion) {
           console.log(
             `Skipping suggestion database update ${param.currentVersion}, because it's already applied`,
           )
@@ -70,7 +127,11 @@ class Synchronizer {
         }
       })
     })
-    lsRpc.once('executionContext/executionComplete', async () => {
+  }
+
+  private async loadGroups(lsRpc: LanguageServer, firstExecution: Promise<unknown>) {
+    this.queue.pushTask(async ({ currentVersion }) => {
+      await firstExecution
       const groups = await lsRpc.getComponentGroups()
       this.groups.value = groups.componentGroups.map(
         (group): Group => ({
@@ -79,28 +140,15 @@ class Synchronizer {
           project: group.library as QualifiedName,
         }),
       )
+      return { currentVersion }
     })
   }
 }
 
 export const useSuggestionDbStore = defineStore('suggestionDatabase', () => {
-  const entries = reactive(new SuggestionDb())
+  const entries = new SuggestionDb()
   const groups = ref<Group[]>([])
-  const methodPointerToEntry = reactive(new Map<string, Map<string, SuggestionEntry>>())
 
-  // FIXME: Replace this inefficient watcher with reactive index, once we have it developed.
-  watchEffect(() => {
-    methodPointerToEntry.clear()
-    for (const entry of entries.values()) {
-      const methodNameToEntry = map.setIfUndefined(
-        methodPointerToEntry,
-        entry.definedIn as string,
-        () => new Map<string, SuggestionEntry>(),
-      )
-      methodNameToEntry.set(entry.name, entry)
-    }
-  })
-
-  const synchronizer = new Synchronizer(entries, groups)
-  return { entries, groups, methodPointerToEntry, _synchronizer: synchronizer }
+  const _synchronizer = new Synchronizer(entries, groups)
+  return { entries: markRaw(entries), groups, _synchronizer }
 })

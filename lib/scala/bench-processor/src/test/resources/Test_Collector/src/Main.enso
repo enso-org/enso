@@ -1,11 +1,11 @@
 from Standard.Base import all
 from Standard.Test import Bench
 
-options = Bench.options.size 10 . iter 10
+options = Bench.options . set_warmup (Bench.phase_conf 11 12) . set_measure (Bench.phase_conf 13 14)
 
 collect_benches = Bench.build builder->
-    builder.group "Test Group" options group_builder->
-        group_builder.specify "Test Spec" (1 + 1)
+    builder.group "Test_Group" options group_builder->
+        group_builder.specify "Test_Spec" (1 + 1)
 
 group_1 = [collect_benches]
 

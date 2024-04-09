@@ -10,47 +10,51 @@ from Standard.AWS import all
 
 import Standard.Visualization.Widgets
 
-from Standard.Test import Test, Test_Suite
-import Standard.Test.Extensions
+from Standard.Test import all
 
-spec =
+
+add_specs suite_builder =
     connection = Database.connect (SQLite In_Memory)
     connection.execute_update 'CREATE TABLE "mock_table" ("A" VARCHAR, "B C" INTEGER, "D ""E""" BOOLEAN, "F.G/H\\I" REAL)'
     connection.execute_update 'CREATE TABLE "another" ("A" VARCHAR, "B C" INTEGER, "D ""E""" BOOLEAN, "F.G/H\\I" REAL)'
     connection.execute_update 'CREATE TABLE "a_table" ("A" VARCHAR, "B C" INTEGER, "D ""E""" BOOLEAN, "F.G/H\\I" REAL)'
 
-    Test.group "Widgets for In-Database Connection with table types" <|
-        Test.specify "works for `tables`" <|
+    suite_builder.group "Widgets for In-Database Connection with table types" group_builder->
+        group_builder.specify "works for `tables`" <|
             result = Widgets.get_widget_json connection .tables ["types"]
             result.should_contain "'TABLE'"
             result.should_contain "'VIEW'"
 
-    Test.group "Widgets for In-Database Connection with table name sets" <|
-        Test.specify "works for `query` and `read`" <|
+    suite_builder.group "Widgets for In-Database Connection with table name sets" group_builder->
+        group_builder.specify "works for `query` and `read`" <|
             choices = ['a_table', 'another', 'mock_table'] . map n-> Choice.Option n n.pretty
             expect = [["query", Widget.Single_Choice choices Nothing Display.Always]] . to_json
             Widgets.get_widget_json connection .query ["query"] . should_equal expect
             Widgets.get_widget_json connection .read ["query"] . should_equal expect
 
-    Test.group "Widgets for In-Database Table with column name sets" <|
+    suite_builder.group "Widgets for In-Database Table with column name sets" group_builder->
         mock_table = connection.query "mock_table"
 
-        Test.specify "works for `get` and `at`" <|
+        group_builder.specify "works for `get` and `at`" <|
             choices = mock_table.column_names . map n-> Choice.Option n n.pretty
             expect = [["selector", Widget.Single_Choice choices Nothing Display.Always]] . to_json
             Widgets.get_widget_json mock_table .get ["selector"] . should_equal expect
             Widgets.get_widget_json mock_table .at ["selector"] . should_equal expect
 
-        Test.specify "works for `filter`" <|
-            choices = mock_table.column_names . map n-> Choice.Option n n.pretty
+        group_builder.specify "works for `filter`" <|
+            choices = [Choice.Option "<Expression>" "(expr '[A]')"] + mock_table.column_names . map n-> Choice.Option n n.pretty
             expect = [["column", Widget.Single_Choice choices Nothing Display.Always]] . to_json
             Widgets.get_widget_json mock_table .filter ["column"] . should_equal expect
 
-    Test.group "Widgets for Database" <|
-        Test.specify "works for `connect`" <|
+    suite_builder.group "Widgets for Database" group_builder->
+        group_builder.specify "works for `connect`" <|
             result = Widgets.get_widget_json Database .connect ["details"]
             result.should_contain "SQLite"
             result.should_contain "Postgres"
             result.should_contain "Redshift"
 
-main = Test_Suite.run_main spec
+main filter=Nothing =
+    suite = Test.build suite_builder->
+        add_specs suite_builder
+    suite.run_with_filter filter
+

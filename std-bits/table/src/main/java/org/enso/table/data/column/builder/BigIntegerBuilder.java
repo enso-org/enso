@@ -12,17 +12,22 @@ import org.enso.table.data.column.storage.type.FloatType;
 import org.enso.table.data.column.storage.type.IntegerType;
 import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.error.ValueTypeMismatchException;
+import org.enso.table.problems.ProblemAggregator;
 import org.graalvm.polyglot.Context;
 
 // For now the BigInteger builder is just a stub, reusing the ObjectBuilder and adding a warning.
 public class BigIntegerBuilder extends TypedBuilderImpl<BigInteger> {
+  // The problem aggregator is only used so that when we are retyping, we can pass it on.
+  private final ProblemAggregator problemAggregator;
+
   @Override
   protected BigInteger[] newArray(int size) {
     return new BigInteger[size];
   }
 
-  public BigIntegerBuilder(int size) {
+  public BigIntegerBuilder(int size, ProblemAggregator problemAggregator) {
     super(size);
+    this.problemAggregator = problemAggregator;
   }
 
   @Override
@@ -38,7 +43,8 @@ public class BigIntegerBuilder extends TypedBuilderImpl<BigInteger> {
   @Override
   public TypedBuilder retypeTo(StorageType type) {
     if (type instanceof FloatType) {
-      DoubleBuilder res = NumericBuilder.createInferringDoubleBuilder(currentSize);
+      DoubleBuilder res =
+          NumericBuilder.createInferringDoubleBuilder(currentSize, problemAggregator);
       for (int i = 0; i < currentSize; i++) {
         if (data[i] == null) {
           res.appendNulls(1);
@@ -51,7 +57,6 @@ public class BigIntegerBuilder extends TypedBuilderImpl<BigInteger> {
       Object[] widenedData = Arrays.copyOf(data, data.length, Object[].class);
       ObjectBuilder res = new MixedBuilder(widenedData);
       res.setCurrentSize(currentSize);
-      res.setPreExistingProblems(getProblems());
       return res;
     } else {
       throw new UnsupportedOperationException();
@@ -91,7 +96,8 @@ public class BigIntegerBuilder extends TypedBuilderImpl<BigInteger> {
   }
 
   public static BigIntegerBuilder retypeFromLongBuilder(LongBuilder longBuilder) {
-    BigIntegerBuilder res = new BigIntegerBuilder(longBuilder.data.length);
+    BigIntegerBuilder res =
+        new BigIntegerBuilder(longBuilder.data.length, longBuilder.problemAggregator);
     int n = longBuilder.currentSize;
     Context context = Context.getCurrent();
     for (int i = 0; i < n; i++) {
@@ -107,7 +113,7 @@ public class BigIntegerBuilder extends TypedBuilderImpl<BigInteger> {
       if (storage instanceof AbstractLongStorage longStorage) {
         int n = longStorage.size();
         for (int i = 0; i < n; i++) {
-          if (storage.isNa(i)) {
+          if (storage.isNothing(i)) {
             data[currentSize++] = null;
           } else {
             long item = longStorage.getItem(i);

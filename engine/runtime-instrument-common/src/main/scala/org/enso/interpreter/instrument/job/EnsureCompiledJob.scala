@@ -4,11 +4,19 @@ import cats.implicits._
 import com.oracle.truffle.api.TruffleLogger
 import org.enso.compiler.CompilerResult
 import org.enso.compiler.context._
-import org.enso.compiler.core.CompilerError
-import org.enso.compiler.core.ir.{Diagnostic, Warning}
+import org.enso.compiler.core.Implicits.AsMetadata
+import org.enso.compiler.core.{ExternalID, IR}
+import org.enso.compiler.core.ir.{
+  expression,
+  Diagnostic,
+  IdentifiedLocation,
+  Warning
+}
 import org.enso.compiler.core.ir.expression.Error
+import org.enso.compiler.data.BindingsMap
 import org.enso.compiler.pass.analyse.{
   CachePreferenceAnalysis,
+  DataflowAnalysis,
   GatherDiagnostics
 }
 import org.enso.interpreter.instrument.execution.{
@@ -29,7 +37,9 @@ import org.enso.polyglot.runtime.Runtime.Api.StackItem
 import org.enso.text.buffer.Rope
 
 import java.io.File
+import java.util.UUID
 import java.util.logging.Level
+
 import scala.jdk.OptionConverters._
 
 /** A job that ensures that specified files are compiled.
@@ -98,19 +108,33 @@ final class EnsureCompiledJob(
     ctx: RuntimeContext,
     logger: TruffleLogger
   ): Option[CompilationStatus] = {
-    compile(module)
-    applyEdits(new File(module.getPath)).map { changeset =>
-      compile(module)
-        .map { _ =>
-          invalidateCaches(module, changeset)
-          if (module.isIndexed) {
-            ctx.jobProcessor.runBackground(AnalyzeModuleJob(module, changeset))
-          } else {
-            AnalyzeModuleJob.analyzeModule(module, changeset)
-          }
-          runCompilationDiagnostics(module)
+    val result = compile(module)
+    result match {
+      case Left(ex) =>
+        logger.log(
+          Level.WARNING,
+          s"Error while ensureCompiledModule ${module.getName}",
+          ex
+        )
+        Some(CompilationStatus.Failure)
+      case _ =>
+        applyEdits(new File(module.getPath)).map { changeset =>
+          compile(module)
+            .map { _ =>
+              // Side-effect: ensures that module's source is correctly initialized.
+              module.getSource()
+              invalidateCaches(module, changeset)
+              if (module.isIndexed) {
+                ctx.jobProcessor.runBackground(
+                  AnalyzeModuleJob(module, changeset)
+                )
+              } else {
+                AnalyzeModuleJob.analyzeModule(module, changeset)
+              }
+              runCompilationDiagnostics(module)
+            }
+            .getOrElse(CompilationStatus.Failure)
         }
-        .getOrElse(CompilationStatus.Failure)
     }
   }
 
@@ -140,7 +164,12 @@ final class EnsureCompiledJob(
           case Right(compilerResult) =>
             val status = runCompilationDiagnostics(module)
             (
-              modules.addAll(compilerResult.compiledModules).addOne(module),
+              modules
+                .addAll(
+                  compilerResult.compiledModules
+                    .map(Module.fromCompilerModule(_))
+                )
+                .addOne(module),
               statuses += status
             )
         }
@@ -168,7 +197,7 @@ final class EnsureCompiledJob(
       .runModule(
         module.getIr,
         ModuleContext(
-          module,
+          module.asCompilerModule(),
           compilerConfig = ctx.executionService.getContext.getCompilerConfig
         )
       )
@@ -199,14 +228,24 @@ final class EnsureCompiledJob(
     module: Module,
     diagnostic: Diagnostic
   ): Api.ExecutionResult.Diagnostic = {
+    val source = module.getSource
+
+    def fileLocationFromSection(loc: IdentifiedLocation) = {
+      val section =
+        source.createSection(loc.location().start(), loc.location().length());
+      val locStr = "" + section.getStartLine() + ":" + section
+        .getStartColumn() + "-" + section.getEndLine() + ":" + section
+        .getEndColumn()
+      source.getName() + "[" + locStr + "]";
+    }
     Api.ExecutionResult.Diagnostic(
       kind,
-      Option(diagnostic.formattedMessage),
+      Option(diagnostic.formattedMessage(fileLocationFromSection)),
       Option(module.getPath).map(new File(_)),
       diagnostic.location
         .map(loc =>
           LocationResolver
-            .locationToRange(loc.location, module.getSource.getCharacters)
+            .locationToRange(loc.location, source.getCharacters)
         ),
       diagnostic.location
         .flatMap(LocationResolver.getExpressionId(module.getIr, _))
@@ -229,7 +268,8 @@ final class EnsureCompiledJob(
       if (!compilationStage.isAtLeast(CompilationStage.AFTER_CODEGEN)) {
         ctx.executionService.getLogger
           .log(Level.FINEST, s"Compiling ${module.getName}.")
-        val result = ctx.executionService.getContext.getCompiler.run(module)
+        val result = ctx.executionService.getContext.getCompiler
+          .run(module.asCompilerModule())
         result.copy(compiledModules =
           result.compiledModules.filter(_.getName != module.getName)
         )
@@ -250,39 +290,44 @@ final class EnsureCompiledJob(
     ctx: RuntimeContext,
     logger: TruffleLogger
   ): Option[Changeset[Rope]] = {
-    val fileLockTimestamp         = ctx.locking.acquireFileLock(file)
-    val pendingEditsLockTimestamp = ctx.locking.acquirePendingEditsLock()
+    val fileLockTimestamp = ctx.locking.acquireFileLock(file)
     try {
-      val pendingEdits = ctx.state.pendingEdits.dequeue(file)
-      val edits        = pendingEdits.map(_.edit)
-      val shouldExecute =
-        pendingEdits.isEmpty || pendingEdits.exists(_.execute)
-      val module = ctx.executionService.getContext
-        .getModuleForFile(file)
-        .orElseThrow(() => new ModuleNotFoundForFileException(file))
-      val changesetBuilder = new ChangesetBuilder(
-        module.getLiteralSource,
-        module.getIr
-      )
-      val changeset = changesetBuilder.build(pendingEdits)
-      ctx.executionService.modifyModuleSources(
-        module,
-        edits,
-        changeset.simpleUpdate.orNull
-      )
-      Option.when(shouldExecute)(changeset)
+      val pendingEditsLockTimestamp = ctx.locking.acquirePendingEditsLock()
+      try {
+        val pendingEdits = ctx.state.pendingEdits.dequeue(file)
+        val edits        = pendingEdits.map(_.edit)
+        val shouldExecute =
+          pendingEdits.isEmpty || pendingEdits.exists(_.execute)
+        val module = ctx.executionService.getContext
+          .getModuleForFile(file)
+          .orElseThrow(() => new ModuleNotFoundForFileException(file))
+        val changesetBuilder = new ChangesetBuilder(
+          module.getLiteralSource,
+          module.getIr
+        )
+        val changeset = changesetBuilder.build(pendingEdits)
+        ctx.executionService.modifyModuleSources(
+          module,
+          edits,
+          changeset.simpleUpdate.orNull,
+          logger
+        )
+        Option.when(shouldExecute)(changeset)
+      } finally {
+        ctx.locking.releasePendingEditsLock()
+        logger.log(
+          Level.FINEST,
+          "Kept pending edits lock [EnsureCompiledJob] for {} milliseconds",
+          System.currentTimeMillis() - pendingEditsLockTimestamp
+        )
+      }
     } finally {
-      ctx.locking.releasePendingEditsLock()
-      logger.log(
-        Level.FINEST,
-        s"Kept pending edits lock [EnsureCompiledJob] for ${System.currentTimeMillis() - pendingEditsLockTimestamp} milliseconds"
-      )
       ctx.locking.releaseFileLock(file)
       logger.log(
         Level.FINEST,
-        s"Kept file lock [EnsureCompiledJob] for ${System.currentTimeMillis() - fileLockTimestamp} milliseconds"
+        "Kept file lock [EnsureCompiledJob] for {} milliseconds",
+        System.currentTimeMillis() - fileLockTimestamp
       )
-
     }
   }
 
@@ -290,17 +335,21 @@ final class EnsureCompiledJob(
     *
     * @param changeset the [[Changeset]] object capturing the previous
     * version of IR
+    * @param ir the IR of compiled module
     * @return the list of cache invalidation commands
     */
   private def buildCacheInvalidationCommands(
     changeset: Changeset[_],
-    source: CharSequence
+    ir: IR
   ): Seq[CacheInvalidation] = {
+    val resolutionErrors = findNodesWithResolutionErrors(ir)
     val invalidateExpressionsCommand =
-      CacheInvalidation.Command.InvalidateKeys(changeset.invalidated)
-    val scopeIds = splitMeta(source.toString)._2.map(_._2)
+      CacheInvalidation.Command.InvalidateKeys(
+        changeset.invalidated ++ resolutionErrors
+      )
+    val moduleIds = ir.preorder().flatMap(_.location()).flatMap(_.id()).toSet
     val invalidateStaleCommand =
-      CacheInvalidation.Command.InvalidateStale(scopeIds)
+      CacheInvalidation.Command.InvalidateStale(moduleIds)
     Seq(
       CacheInvalidation(
         CacheInvalidation.StackSelector.All,
@@ -315,35 +364,38 @@ final class EnsureCompiledJob(
     )
   }
 
-  type IDMap = Seq[(org.enso.data.Span, java.util.UUID)]
-  private def splitMeta(code: String): (String, IDMap, io.circe.Json) = {
-    import io.circe.Json
-    import io.circe.Error
-    import io.circe.generic.auto._
-    import io.circe.parser._
+  /** Looks for the nodes with the resolution error and their dependents.
+    *
+    * @param ir the module IR
+    * @return the set of node ids affected by a resolution error in the module
+    */
+  private def findNodesWithResolutionErrors(ir: IR): Set[UUID @ExternalID] = {
+    val metadata = ir
+      .unsafeGetMetadata(
+        DataflowAnalysis,
+        "Empty dataflow analysis metadata during the interactive compilation."
+      )
 
-    def idMapFromJson(json: String): Either[Error, IDMap] = decode[IDMap](json)
-
-    val METATAG = "\n\n\n#### METADATA ####\n"
-    code.split(METATAG) match {
-      case Array(input) => (input, Seq(), Json.obj())
-      case Array(input, rest) =>
-        val meta = rest.split('\n')
-        if (meta.length < 2) {
-          throw new CompilerError(s"Expected two lines after METADATA.")
+    val resolutionNotFoundKeys =
+      ir.preorder()
+        .collect {
+          case err @ expression.errors.Resolution(
+                _,
+                expression.errors.Resolution
+                  .ResolverError(BindingsMap.ResolutionNotFound),
+                _,
+                _
+              ) =>
+            DataflowAnalysis.DependencyInfo.Type.Static(
+              err.getId(),
+              err.getExternalId
+            )
         }
-        val idmap = idMapFromJson(meta(0)).left.map { error =>
-          throw new CompilerError("Could not deserialize idmap.", error)
-        }.merge
-        val metadata = decode[Json](meta(1)).left.map { error =>
-          throw new CompilerError("Could not deserialize metadata.", error)
-        }.merge
-        (input, idmap, metadata)
-      case arr: Array[_] =>
-        throw new CompilerError(
-          s"Could not not deserialize metadata (found ${arr.length - 1} metadata sections)"
-        )
-    }
+        .toSet
+
+    resolutionNotFoundKeys.flatMap(
+      metadata.dependents.getExternal(_).getOrElse(Set())
+    )
   }
 
   /** Run the invalidation commands.
@@ -355,12 +407,9 @@ final class EnsureCompiledJob(
   private def invalidateCaches(
     module: Module,
     changeset: Changeset[_]
-  )(implicit ctx: RuntimeContext, logger: TruffleLogger): Unit = {
+  )(implicit ctx: RuntimeContext): Unit = {
     val invalidationCommands =
-      buildCacheInvalidationCommands(
-        changeset,
-        module.getSource.getCharacters
-      )
+      buildCacheInvalidationCommands(changeset, module.getIr)
     ctx.contextManager.getAllContexts.values
       .foreach { stack =>
         if (stack.nonEmpty && isStackInModule(module.getName, stack)) {
@@ -383,7 +432,8 @@ final class EnsureCompiledJob(
     if (invalidatedVisualizations.nonEmpty) {
       ctx.executionService.getLogger.log(
         Level.FINEST,
-        s"Invalidated visualizations [${invalidatedVisualizations.map(_.id)}]"
+        "Invalidated visualizations [{}]",
+        invalidatedVisualizations.map(_.id)
       )
     }
 
@@ -497,7 +547,11 @@ final class EnsureCompiledJob(
     val packageRepository =
       ctx.executionService.getContext.getCompiler.packageRepository
     packageRepository.getMainProjectPackage
-      .map(pkg => packageRepository.getModulesForLibrary(pkg.libraryName))
+      .map(pkg =>
+        packageRepository
+          .getModulesForLibrary(pkg.libraryName)
+          .map(Module.fromCompilerModule(_))
+      )
       .getOrElse(Seq())
   }
 

@@ -30,6 +30,7 @@ use std::fmt::Display;
 use std::fmt::Formatter;
 
 
+
 // =================
 // === Constants ===
 // =================
@@ -268,8 +269,9 @@ impl<'a> ser::Serializer for &'a mut Serializer {
         T: ?Sized + Serialize,
     {
         if name == "Variant"
-                && let Some(ancestor) = self.parent_structs.last()
-                && ancestor.object_depth_inside == self.object_depth {
+            && let Some(ancestor) = self.parent_structs.last()
+            && ancestor.object_depth_inside == self.object_depth
+        {
             let parent_start = ancestor.begin;
             let _ancestor_name = ancestor._name;
             // Add the child's fields to the stack (following the parent's fields).

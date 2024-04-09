@@ -1,29 +1,29 @@
 package org.enso.compiler.core.ir.module.scope
 
-import org.enso.compiler.core.IR
+import org.enso.compiler.core.{IR, Identifier}
 import org.enso.compiler.core.ir.{
   DefinitionArgument,
   DiagnosticStorage,
   Expression,
   IRKind,
   IdentifiedLocation,
+  LazyId,
   MetadataStorage,
   Name
 }
 import org.enso.compiler.core.ir.module.Scope
-import org.enso.compiler.core.IR.{
-  indentLevel,
-  mkIndent,
-  randomId,
-  Identifier,
-  ToStringHelper
-}
+import org.enso.compiler.core.Implicits.{ShowPassData, ToStringHelper}
+import org.enso.compiler.core.IR.{indentLevel, mkIndent}
+
+import java.util.UUID
 
 /** A representation of top-level definitions. */
 trait Definition extends Scope {
 
   /** @inheritdoc */
-  override def mapExpressions(fn: Expression => Expression): Definition
+  override def mapExpressions(
+    fn: java.util.function.Function[Expression, Expression]
+  ): Definition
 
   /** @inheritdoc */
   override def setLocation(
@@ -57,12 +57,12 @@ object Definition {
     name: Name,
     params: List[DefinitionArgument],
     members: List[Data],
-    override val location: Option[IdentifiedLocation],
-    override val passData: MetadataStorage      = MetadataStorage(),
-    override val diagnostics: DiagnosticStorage = DiagnosticStorage()
+    location: Option[IdentifiedLocation],
+    passData: MetadataStorage      = new MetadataStorage(),
+    diagnostics: DiagnosticStorage = DiagnosticStorage()
   ) extends Definition
-      with IRKind.Primitive {
-    override protected var id: Identifier = randomId
+      with IRKind.Primitive
+      with LazyId {
 
     def copy(
       name: Name                           = name,
@@ -71,7 +71,7 @@ object Definition {
       location: Option[IdentifiedLocation] = location,
       passData: MetadataStorage            = passData,
       diagnostics: DiagnosticStorage       = diagnostics,
-      id: Identifier                       = id
+      id: UUID @Identifier                 = id
     ): Type = {
       val res =
         Type(name, params, members, location, passData, diagnostics)
@@ -102,10 +102,11 @@ object Definition {
           )
         ),
         location = if (keepLocations) location else None,
-        passData = if (keepMetadata) passData.duplicate else MetadataStorage(),
+        passData =
+          if (keepMetadata) passData.duplicate else new MetadataStorage(),
         diagnostics =
           if (keepDiagnostics) diagnostics.copy else DiagnosticStorage(),
-        id = if (keepIdentifiers) id else randomId
+        id = if (keepIdentifiers) id else null
       )
 
     /** @inheritdoc */
@@ -115,7 +116,9 @@ object Definition {
       copy(location = location)
 
     /** @inheritdoc */
-    override def mapExpressions(fn: Expression => Expression): Type =
+    override def mapExpressions(
+      fn: java.util.function.Function[Expression, Expression]
+    ): Type =
       copy(
         params  = params.map(_.mapExpressions(fn)),
         members = members.map(_.mapExpressions(fn))
@@ -159,12 +162,12 @@ object Definition {
     name: Name,
     arguments: List[DefinitionArgument],
     annotations: List[Name.GenericAnnotation],
-    override val location: Option[IdentifiedLocation],
-    override val passData: MetadataStorage      = MetadataStorage(),
-    override val diagnostics: DiagnosticStorage = DiagnosticStorage()
+    location: Option[IdentifiedLocation],
+    passData: MetadataStorage      = new MetadataStorage(),
+    diagnostics: DiagnosticStorage = DiagnosticStorage()
   ) extends IR
-      with IRKind.Primitive {
-    override protected var id: Identifier = randomId
+      with IRKind.Primitive
+      with LazyId {
 
     /** Creates a copy of `this`.
       *
@@ -184,7 +187,7 @@ object Definition {
       location: Option[IdentifiedLocation]      = location,
       passData: MetadataStorage                 = passData,
       diagnostics: DiagnosticStorage            = diagnostics,
-      id: Identifier                            = id
+      id: UUID @Identifier                      = id
     ): Data = {
       val res = Data(
         name,
@@ -221,10 +224,11 @@ object Definition {
           )
         ),
         location = if (keepLocations) location else None,
-        passData = if (keepMetadata) passData.duplicate else MetadataStorage(),
+        passData =
+          if (keepMetadata) passData.duplicate else new MetadataStorage(),
         diagnostics =
           if (keepDiagnostics) diagnostics.copy else DiagnosticStorage(),
-        id = if (keepIdentifiers) id else randomId
+        id = if (keepIdentifiers) id else null
       )
 
     /** @inheritdoc */
@@ -232,7 +236,9 @@ object Definition {
       copy(location = location)
 
     /** @inheritdoc */
-    override def mapExpressions(fn: Expression => Expression): Data = {
+    override def mapExpressions(
+      fn: java.util.function.Function[Expression, Expression]
+    ): Data = {
       copy(
         name        = name.mapExpressions(fn),
         arguments   = arguments.map(_.mapExpressions(fn)),
@@ -279,12 +285,12 @@ object Definition {
     name: Name,
     arguments: List[DefinitionArgument],
     body: List[IR],
-    override val location: Option[IdentifiedLocation],
-    override val passData: MetadataStorage      = MetadataStorage(),
-    override val diagnostics: DiagnosticStorage = DiagnosticStorage()
+    location: Option[IdentifiedLocation],
+    passData: MetadataStorage      = new MetadataStorage(),
+    diagnostics: DiagnosticStorage = DiagnosticStorage()
   ) extends Definition
-      with IRKind.Sugar {
-    override protected var id: Identifier = randomId
+      with IRKind.Sugar
+      with LazyId {
 
     /** Creates a copy of `this`.
       *
@@ -304,7 +310,7 @@ object Definition {
       location: Option[IdentifiedLocation] = location,
       passData: MetadataStorage            = passData,
       diagnostics: DiagnosticStorage       = diagnostics,
-      id: Identifier                       = id
+      id: UUID @Identifier                 = id
     ): SugaredType = {
       val res = SugaredType(
         name,
@@ -349,15 +355,16 @@ object Definition {
           )
         ),
         location = if (keepLocations) location else None,
-        passData = if (keepMetadata) passData.duplicate else MetadataStorage(),
+        passData =
+          if (keepMetadata) passData.duplicate else new MetadataStorage(),
         diagnostics =
           if (keepDiagnostics) diagnostics.copy else DiagnosticStorage(),
-        id = if (keepIdentifiers) id else randomId
+        id = if (keepIdentifiers) id else null
       )
 
     /** @inheritdoc */
     override def mapExpressions(
-      fn: Expression => Expression
+      fn: java.util.function.Function[Expression, Expression]
     ): SugaredType =
       copy(body = body.map(_.mapExpressions(fn)))
 

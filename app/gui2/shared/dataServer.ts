@@ -1,5 +1,6 @@
 import { ObservableV2 } from 'lib0/observable'
 import * as random from 'lib0/random'
+import type { Path as LSPath } from 'shared/languageServerTypes'
 import {
   Builder,
   ByteBuffer,
@@ -15,6 +16,7 @@ import {
   None,
   OutboundMessage,
   OutboundPayload,
+  Path,
   ReadBytesCommand,
   ReadBytesReply,
   ReadFileCommand,
@@ -23,21 +25,14 @@ import {
   WriteBytesCommand,
   WriteBytesReply,
   WriteFileCommand,
+  type AnyInboundPayload,
+  type Offset,
   type Table,
 } from './binaryProtocol'
+import type { AbortScope } from './util/net'
+import { uuidFromBits, uuidToBits } from './uuid'
 import type { WebsocketClient } from './websocket'
 import type { Uuid } from './yjsModel'
-
-export function uuidFromBits(leastSigBits: bigint, mostSigBits: bigint): Uuid {
-  const bits = (mostSigBits << 64n) | leastSigBits
-  const string = bits.toString(16).padStart(32, '0')
-  return string.replace(/(........)(....)(....)(....)(............)/, '$1-$2-$3-$4-$5') as Uuid
-}
-
-export function uuidToBits(uuid: string): [leastSigBits: bigint, mostSigBits: bigint] {
-  const bits = BigInt('0x' + uuid.replace(/-/g, ''))
-  return [bits & 0xffff_ffff_ffff_ffffn, bits >> 64n]
-}
 
 const PAYLOAD_CONSTRUCTOR = {
   [OutboundPayload.NONE]: None,
@@ -64,8 +59,12 @@ export class DataServer extends ObservableV2<DataServerEvents> {
   resolveCallbacks = new Map<string, (data: any) => void>()
 
   /** `websocket.binaryType` should be `ArrayBuffer`. */
-  constructor(public websocket: WebsocketClient) {
+  constructor(
+    public websocket: WebsocketClient,
+    abort: AbortScope,
+  ) {
     super()
+    abort.handleDispose(this)
     if (websocket.connected) {
       this.ready = Promise.resolve()
     } else {
@@ -84,23 +83,25 @@ export class DataServer extends ObservableV2<DataServerEvents> {
       const binaryMessage = OutboundMessage.getRootAsOutboundMessage(new ByteBuffer(rawPayload))
       const payloadType = binaryMessage.payloadType()
       const payload = binaryMessage.payload(new PAYLOAD_CONSTRUCTOR[payloadType]())
-      if (payload != null) {
-        this.emit(`${payloadType}`, [payload, null])
-        const id = binaryMessage.correlationId()
-        if (id != null) {
-          const uuid = uuidFromBits(id.leastSigBits(), id.mostSigBits())
-          this.emit(`${payloadType}`, [payload, uuid])
-          const callback = this.resolveCallbacks.get(uuid)
-          callback?.(payload)
-        } else if (payload instanceof VisualizationUpdate) {
-          const id = payload.visualizationContext()?.visualizationId()
-          if (id != null) {
-            const uuid = uuidFromBits(id.leastSigBits(), id.mostSigBits())
-            this.emit(`${payloadType}`, [payload, uuid])
-          }
-        }
+      if (!payload) return
+      this.emit(`${payloadType}`, [payload, null])
+      const id = binaryMessage.correlationId()
+      if (id != null) {
+        const uuid = uuidFromBits(id.leastSigBits(), id.mostSigBits())
+        this.emit(`${payloadType}`, [payload, uuid])
+        const callback = this.resolveCallbacks.get(uuid)
+        callback?.(payload)
+      } else if (payload instanceof VisualizationUpdate) {
+        const id = payload.visualizationContext()?.visualizationId()
+        if (!id) return
+        const uuid = uuidFromBits(id.leastSigBits(), id.mostSigBits())
+        this.emit(`${payloadType}`, [payload, uuid])
       }
     })
+  }
+
+  dispose() {
+    this.resolveCallbacks.clear()
   }
 
   async initialize(clientId: Uuid) {
@@ -114,14 +115,13 @@ export class DataServer extends ObservableV2<DataServerEvents> {
   protected send<T = void>(
     builder: Builder,
     payloadType: InboundPayload,
-    payloadOffset: number,
+    payloadOffset: Offset<AnyInboundPayload>,
   ): Promise<T> {
     const messageUuid = random.uuidv4()
-    const messageId = this.createUUID(builder, messageUuid)
     const rootTable = InboundMessage.createInboundMessage(
       builder,
-      messageId,
-      0 /* correlation id */,
+      this.createUUID(messageUuid),
+      null /* correlation id */,
       payloadType,
       payloadOffset,
     )
@@ -132,43 +132,53 @@ export class DataServer extends ObservableV2<DataServerEvents> {
     return promise
   }
 
-  protected createUUID(builder: Builder, uuid: string) {
+  protected createUUID(uuid: string) {
     const [leastSigBits, mostSigBits] = uuidToBits(uuid)
-    const identifier = EnsoUUID.createEnsoUUID(builder, leastSigBits, mostSigBits)
-    return identifier
+    return (builder: Builder) => EnsoUUID.createEnsoUUID(builder, leastSigBits, mostSigBits)
   }
 
-  initSession(): Promise<Success> {
+  initSession(): Promise<Success | Error> {
     const builder = new Builder()
-    const identifierOffset = this.createUUID(builder, this.clientId)
-    const commandOffset = InitSessionCommand.createInitSessionCommand(builder, identifierOffset)
-    return this.send<Success>(builder, InboundPayload.INIT_SESSION_CMD, commandOffset)
+    const commandOffset = InitSessionCommand.createInitSessionCommand(
+      builder,
+      this.createUUID(this.clientId),
+    )
+    return this.send(builder, InboundPayload.INIT_SESSION_CMD, commandOffset)
   }
 
-  async writeFile(path: string, contents: string | ArrayBuffer | Uint8Array) {
+  async writeFile(
+    path: LSPath,
+    contents: string | ArrayBuffer | Uint8Array,
+  ): Promise<Success | Error> {
     const builder = new Builder()
     const contentsOffset = builder.createString(contents)
-    const pathOffset = builder.createString(path)
+    const segmentOffsets = path.segments.map((segment) => builder.createString(segment))
+    const segmentsOffset = Path.createSegmentsVector(builder, segmentOffsets)
+    const pathOffset = Path.createPath(builder, this.createUUID(path.rootId), segmentsOffset)
     const command = WriteFileCommand.createWriteFileCommand(builder, pathOffset, contentsOffset)
     return await this.send(builder, InboundPayload.WRITE_FILE_CMD, command)
   }
 
-  async readFile(path: string) {
+  async readFile(path: LSPath): Promise<FileContentsReply | Error> {
     const builder = new Builder()
-    const pathOffset = builder.createString(path)
+    const segmentOffsets = path.segments.map((segment) => builder.createString(segment))
+    const segmentsOffset = Path.createSegmentsVector(builder, segmentOffsets)
+    const pathOffset = Path.createPath(builder, this.createUUID(path.rootId), segmentsOffset)
     const command = ReadFileCommand.createReadFileCommand(builder, pathOffset)
     return await this.send(builder, InboundPayload.READ_FILE_CMD, command)
   }
 
   async writeBytes(
-    path: string,
+    path: LSPath,
     index: bigint,
     overwriteExisting: boolean,
     contents: string | ArrayBuffer | Uint8Array,
-  ): Promise<WriteBytesReply> {
+  ): Promise<WriteBytesReply | Error> {
     const builder = new Builder()
     const bytesOffset = builder.createString(contents)
-    const pathOffset = builder.createString(path)
+    const segmentOffsets = path.segments.map((segment) => builder.createString(segment))
+    const segmentsOffset = Path.createSegmentsVector(builder, segmentOffsets)
+    const pathOffset = Path.createPath(builder, this.createUUID(path.rootId), segmentsOffset)
     const command = WriteBytesCommand.createWriteBytesCommand(
       builder,
       pathOffset,
@@ -176,24 +186,30 @@ export class DataServer extends ObservableV2<DataServerEvents> {
       overwriteExisting,
       bytesOffset,
     )
-    return await this.send<WriteBytesReply>(builder, InboundPayload.WRITE_BYTES_CMD, command)
+    return await this.send(builder, InboundPayload.WRITE_BYTES_CMD, command)
   }
 
-  async readBytes(path: string, index: bigint, length: bigint): Promise<ReadBytesReply> {
+  async readBytes(path: LSPath, index: bigint, length: bigint): Promise<ReadBytesReply | Error> {
     const builder = new Builder()
-    const pathOffset = builder.createString(path)
+    const segmentOffsets = path.segments.map((segment) => builder.createString(segment))
+    const segmentsOffset = Path.createSegmentsVector(builder, segmentOffsets)
+    const pathOffset = Path.createPath(builder, this.createUUID(path.rootId), segmentsOffset)
     const segmentOffset = FileSegment.createFileSegment(builder, pathOffset, index, length)
     const command = ReadBytesCommand.createReadBytesCommand(builder, segmentOffset)
-    return await this.send<ReadBytesReply>(builder, InboundPayload.READ_BYTES_CMD, command)
+    return await this.send(builder, InboundPayload.READ_BYTES_CMD, command)
   }
 
-  async checksumBytes(path: string, index: bigint, length: bigint): Promise<ChecksumBytesReply> {
+  async checksumBytes(
+    path: LSPath,
+    index: bigint,
+    length: bigint,
+  ): Promise<ChecksumBytesReply | Error> {
     const builder = new Builder()
-    const pathOffset = builder.createString(path)
+    const segmentOffsets = path.segments.map((segment) => builder.createString(segment))
+    const segmentsOffset = Path.createSegmentsVector(builder, segmentOffsets)
+    const pathOffset = Path.createPath(builder, this.createUUID(path.rootId), segmentsOffset)
     const segmentOffset = FileSegment.createFileSegment(builder, pathOffset, index, length)
     const command = ChecksumBytesCommand.createChecksumBytesCommand(builder, segmentOffset)
-    return await this.send<ChecksumBytesReply>(builder, InboundPayload.WRITE_BYTES_CMD, command)
+    return await this.send(builder, InboundPayload.WRITE_BYTES_CMD, command)
   }
-
-  // TODO: check whether any of these may send an "error" message instead
 }

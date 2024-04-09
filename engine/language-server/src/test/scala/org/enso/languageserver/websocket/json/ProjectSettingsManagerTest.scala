@@ -2,10 +2,13 @@ package org.enso.languageserver.websocket.json
 
 import io.circe.literal._
 import org.enso.distribution.FileSystem
+import org.enso.logger.ReportLogsOnFailure
 
 import java.nio.file.Files
 
-class ProjectSettingsManagerTest extends BaseServerTest {
+class ProjectSettingsManagerTest
+    extends BaseServerTest
+    with ReportLogsOnFailure {
   override def beforeEach(): Unit = {
     super.beforeEach()
 

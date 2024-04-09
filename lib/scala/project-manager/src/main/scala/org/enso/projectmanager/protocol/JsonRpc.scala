@@ -3,13 +3,15 @@ package org.enso.projectmanager.protocol
 import io.circe.generic.auto._
 import org.enso.jsonrpc.Protocol
 import org.enso.projectmanager.protocol.ProjectManagementApi._
+import org.enso.projectmanager.protocol.FileSystemManagementApi._
 import org.enso.cli.task.notifications.TaskNotificationApi._
 
 /** Implicits from this module are required for correct serialization.
   *
   * Do not remove this import.
   */
-import org.enso.editions.SemVerJson._
+import org.enso.semver.SemVerJson._
+import org.enso.projectmanager.infrastructure.file.FileJson._
 
 object JsonRpc {
 
@@ -35,6 +37,11 @@ object JsonRpc {
       .registerRequest(ConfigSet)
       .registerRequest(ConfigDelete)
       .registerRequest(LoggingServiceGetEndpoint)
+      .registerRequest(FileSystemList)
+      .registerRequest(FileSystemCreateDirectory)
+      .registerRequest(FileSystemDeleteDirectory)
+      .registerRequest(FileSystemMoveDirectory)
+      .registerRequest(FileSystemWritePath)
       .finalized()
 
 }

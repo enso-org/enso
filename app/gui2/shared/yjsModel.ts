@@ -1,13 +1,12 @@
-import * as decoding from 'lib0/decoding'
-import * as encoding from 'lib0/encoding'
 import * as object from 'lib0/object'
 import * as random from 'lib0/random'
 import * as Y from 'yjs'
 
 export type Uuid = `${string}-${string}-${string}-${string}-${string}`
-declare const brandExprId: unique symbol
-export type ExprId = Uuid & { [brandExprId]: never }
-export const NULL_EXPR_ID: ExprId = '00000000-0000-0000-0000-000000000000' as ExprId
+
+declare const brandExternalId: unique symbol
+/** Identifies an AST node or token. Used in module serialization and communication with the language server. */
+export type ExternalId = Uuid & { [brandExternalId]: never }
 
 export type VisualizationModule =
   | { kind: 'Builtin' }
@@ -19,8 +18,11 @@ export interface VisualizationIdentifier {
   name: string
 }
 
-export interface VisualizationMetadata extends VisualizationIdentifier {
+export interface VisualizationMetadata {
+  identifier: VisualizationIdentifier | null
   visible: boolean
+  fullscreen: boolean
+  width: number | null
 }
 
 export function visMetadataEquals(
@@ -28,30 +30,36 @@ export function visMetadataEquals(
   b: VisualizationMetadata | null | undefined,
 ) {
   return (
-    (a == null && b == null) ||
-    (a != null && b != null && a.visible === b.visible && visIdentifierEquals(a, b))
+    (!a && !b) ||
+    (a &&
+      b &&
+      a.visible === b.visible &&
+      a.fullscreen == b.fullscreen &&
+      a.width == b.width &&
+      visIdentifierEquals(a.identifier, b.identifier))
   )
 }
 
-export function visIdentifierEquals(a: VisualizationIdentifier, b: VisualizationIdentifier) {
-  return a.name === b.name && object.equalFlat(a.module, b.module)
+export function visIdentifierEquals(
+  a: VisualizationIdentifier | null | undefined,
+  b: VisualizationIdentifier | null | undefined,
+) {
+  return (!a && !b) || (a && b && a.name === b.name && object.equalFlat(a.module, b.module))
 }
 
-export interface NodeMetadata {
-  x: number
-  y: number
-  vis: VisualizationMetadata | null
-}
+export type ProjectSetting = string
 
 export class DistributedProject {
   doc: Y.Doc
   name: Y.Text
   modules: Y.Map<Y.Doc>
+  settings: Y.Map<ProjectSetting>
 
   constructor(doc: Y.Doc) {
     this.doc = doc
     this.name = this.doc.getText('name')
     this.modules = this.doc.getMap('modules')
+    this.settings = this.doc.getMap('settings')
   }
 
   moduleNames(): string[] {
@@ -82,12 +90,8 @@ export class DistributedProject {
     return new DistributedModule(doc)
   }
 
-  async createNewModule(name: string): Promise<DistributedModule> {
+  createNewModule(name: string): DistributedModule {
     return this.createUnloadedModule(name, new Y.Doc())
-  }
-
-  async openOrCreateModule(name: string): Promise<DistributedModule> {
-    return (await this.openModule(name)) ?? (await this.createNewModule(name))
   }
 
   deleteModule(name: string): void {
@@ -101,14 +105,10 @@ export class DistributedProject {
 
 export class ModuleDoc {
   ydoc: Y.Doc
-  contents: Y.Text
-  idMap: Y.Map<Uint8Array>
-  metadata: Y.Map<NodeMetadata>
+  nodes: Y.Map<any>
   constructor(ydoc: Y.Doc) {
     this.ydoc = ydoc
-    this.contents = ydoc.getText('contents')
-    this.idMap = ydoc.getMap('idMap')
-    this.metadata = ydoc.getMap('metadata')
+    this.nodes = ydoc.getMap('nodes')
   }
 }
 
@@ -124,70 +124,7 @@ export class DistributedModule {
 
   constructor(ydoc: Y.Doc) {
     this.doc = new ModuleDoc(ydoc)
-    this.undoManager = new Y.UndoManager([this.doc.contents, this.doc.idMap, this.doc.metadata])
-  }
-
-  insertNewNode(offset: number, content: string, meta: NodeMetadata): ExprId {
-    const range = [offset, offset + content.length] as const
-    const newId = random.uuidv4() as ExprId
-    this.transact(() => {
-      this.doc.contents.insert(offset, content + '\n')
-      const start = Y.createRelativePositionFromTypeIndex(this.doc.contents, range[0], -1)
-      const end = Y.createRelativePositionFromTypeIndex(this.doc.contents, range[1])
-      this.doc.idMap.set(newId, encodeRange([start, end]))
-      this.doc.metadata.set(newId, meta)
-    })
-    return newId
-  }
-
-  deleteExpression(id: ExprId): void {
-    const rangeBuffer = this.doc.idMap.get(id)
-    if (rangeBuffer == null) return
-    const [relStart, relEnd] = decodeRange(rangeBuffer)
-    const start = Y.createAbsolutePositionFromRelativePosition(relStart, this.doc.ydoc)?.index
-    const end = Y.createAbsolutePositionFromRelativePosition(relEnd, this.doc.ydoc)?.index
-    if (start == null || end == null) return
-    this.transact(() => {
-      this.doc.idMap.delete(id)
-      this.doc.metadata.delete(id)
-      this.doc.contents.delete(start, end - start)
-    })
-  }
-
-  replaceExpressionContent(id: ExprId, content: string, range?: ContentRange): void {
-    const rangeBuffer = this.doc.idMap.get(id)
-    if (rangeBuffer == null) return
-    const [relStart, relEnd] = decodeRange(rangeBuffer)
-    const exprStart = Y.createAbsolutePositionFromRelativePosition(relStart, this.doc.ydoc)?.index
-    const exprEnd = Y.createAbsolutePositionFromRelativePosition(relEnd, this.doc.ydoc)?.index
-    if (exprStart == null || exprEnd == null) return
-    const start = range == null ? exprStart : exprStart + range[0]
-    const end = range == null ? exprEnd : exprStart + range[1]
-    if (start > end) throw new Error('Invalid range')
-    if (start < exprStart || end > exprEnd) throw new Error('Range out of bounds')
-    this.transact(() => {
-      if (content.length > 0) {
-        this.doc.contents.insert(start, content)
-      }
-      if (start !== end) {
-        this.doc.contents.delete(start + content.length, end - start)
-      }
-    })
-  }
-
-  transact<T>(fn: () => T): T {
-    return this.doc.ydoc.transact(fn, 'local')
-  }
-
-  updateNodeMetadata(id: ExprId, meta: Partial<NodeMetadata>): void {
-    const existing = this.doc.metadata.get(id) ?? { x: 0, y: 0, vis: null }
-    this.transact(() => {
-      this.doc.metadata.set(id, { ...existing, ...meta })
-    })
-  }
-
-  getIdMap(): IdMap {
-    return new IdMap(this.doc.idMap, this.doc.contents)
+    this.undoManager = new Y.UndoManager([this.doc.nodes])
   }
 
   dispose(): void {
@@ -195,152 +132,111 @@ export class DistributedModule {
   }
 }
 
-export type RelativeRange = [Y.RelativePosition, Y.RelativePosition]
+export const localUserActionOrigins = ['local:userAction', 'local:userAction:CodeEditor'] as const
+export type LocalUserActionOrigin = (typeof localUserActionOrigins)[number]
+export type Origin = LocalUserActionOrigin | 'remote' | 'local:autoLayout'
+/** Locally-originated changes not otherwise specified. */
+export const defaultLocalOrigin: LocalUserActionOrigin = 'local:userAction'
+export function isLocalUserActionOrigin(origin: string): origin is LocalUserActionOrigin {
+  const localOriginNames: readonly string[] = localUserActionOrigins
+  return localOriginNames.includes(origin)
+}
+export function tryAsOrigin(origin: string): Origin | undefined {
+  if (isLocalUserActionOrigin(origin)) return origin
+  if (origin === 'local:autoLayout') return origin
+  if (origin === 'remote') return origin
+}
 
-/**
- * Accessor for the ID map stored in shared yjs map as relative ranges. Synchronizes the ranges
- * that were accessed during parsing, throws away stale ones. The text contents is used to translate
- * the relative ranges to absolute ranges, but it is not modified.
- */
+export type SourceRange = readonly [start: number, end: number]
+declare const brandSourceRangeKey: unique symbol
+export type SourceRangeKey = string & { [brandSourceRangeKey]: never }
+
+export function sourceRangeKey(range: SourceRange): SourceRangeKey {
+  return `${range[0].toString(16)}:${range[1].toString(16)}` as SourceRangeKey
+}
+export function sourceRangeFromKey(key: SourceRangeKey): SourceRange {
+  return key.split(':').map((x) => parseInt(x, 16)) as [number, number]
+}
+
 export class IdMap {
-  private contents: Y.Text
-  private doc: Y.Doc
-  private yMap: Y.Map<Uint8Array>
-  private rangeToExpr: Map<string, ExprId>
-  private accessed: Set<ExprId>
-  private finished: boolean
+  private readonly rangeToExpr: Map<string, ExternalId>
 
-  constructor(yMap: Y.Map<Uint8Array>, contents: Y.Text) {
-    if (yMap.doc == null) {
-      throw new Error('IdMap must be associated with a document')
-    }
-    this.doc = yMap.doc
-    this.contents = contents
-    this.yMap = yMap
-    this.rangeToExpr = new Map()
-    this.accessed = new Set()
-
-    yMap.forEach((rangeBuffer, expr) => {
-      if (!(isUuid(expr) && rangeBuffer instanceof Uint8Array)) return
-      const indices = this.modelToIndices(rangeBuffer)
-      if (indices == null) return
-      this.rangeToExpr.set(IdMap.keyForRange(indices), expr as ExprId)
-    })
-
-    this.finished = false
+  constructor(entries?: [string, ExternalId][]) {
+    this.rangeToExpr = new Map(entries ?? [])
   }
 
-  private static keyForRange(range: [number, number]): string {
-    return `${range[0].toString(16)}:${range[1].toString(16)}`
+  static Mock(): IdMap {
+    return new IdMap([])
   }
 
-  private static rangeForKey(key: string): [number, number] {
-    return key.split(':').map((x) => parseInt(x, 16)) as [number, number]
-  }
-
-  private modelToIndices(rangeBuffer: Uint8Array): [number, number] | null {
-    const [relStart, relEnd] = decodeRange(rangeBuffer)
-    const start = Y.createAbsolutePositionFromRelativePosition(relStart, this.doc)
-    const end = Y.createAbsolutePositionFromRelativePosition(relEnd, this.doc)
-    if (start == null || end == null) return null
-    return [start.index, end.index]
-  }
-
-  insertKnownId(range: [number, number], id: ExprId) {
-    if (this.finished) {
-      throw new Error('IdMap already finished')
-    }
-
-    const key = IdMap.keyForRange(range)
+  insertKnownId(range: SourceRange, id: ExternalId) {
+    const key = sourceRangeKey(range)
     this.rangeToExpr.set(key, id)
-    this.accessed.add(id)
   }
 
-  getOrInsertUniqueId(range: [number, number]): ExprId {
-    if (this.finished) {
-      throw new Error('IdMap already finished')
-    }
+  getIfExist(range: SourceRange): ExternalId | undefined {
+    const key = sourceRangeKey(range)
+    return this.rangeToExpr.get(key)
+  }
 
-    const key = IdMap.keyForRange(range)
+  getOrInsertUniqueId(range: SourceRange): ExternalId {
+    const key = sourceRangeKey(range)
     const val = this.rangeToExpr.get(key)
     if (val !== undefined) {
-      this.accessed.add(val)
       return val
     } else {
-      const newId = random.uuidv4() as ExprId
+      const newId = random.uuidv4() as ExternalId
       this.rangeToExpr.set(key, newId)
-      this.accessed.add(newId)
       return newId
     }
   }
 
-  accessedSoFar(): ReadonlySet<ExprId> {
-    return this.accessed
+  entries(): [SourceRangeKey, ExternalId][] {
+    return [...this.rangeToExpr] as [SourceRangeKey, ExternalId][]
   }
 
-  toRawRanges(): Record<string, [number, number]> {
-    const ranges: Record<string, [number, number]> = {}
-    for (const [key, expr] of this.rangeToExpr.entries()) {
-      ranges[expr] = IdMap.rangeForKey(key)
+  get size(): number {
+    return this.rangeToExpr.size
+  }
+
+  clear(): void {
+    this.rangeToExpr.clear()
+  }
+
+  isEqual(other: IdMap): boolean {
+    if (other.size !== this.size) return false
+    for (const [key, value] of this.rangeToExpr.entries()) {
+      const oldValue = other.rangeToExpr.get(key)
+      if (oldValue !== value) return false
     }
-    return ranges
+    return true
   }
 
-  /**
-   * Finish accessing or modifying ID map. Synchronizes the accessed keys back to the shared map,
-   * removes keys that were present previously, but were not accessed.
-   *
-   * Can be called at most once. After calling this method, the ID map is no longer usable.
-   */
-  finishAndSynchronize(): void {
-    if (this.finished) {
-      throw new Error('IdMap already finished')
+  validate() {
+    const uniqueValues = new Set(this.rangeToExpr.values())
+    if (uniqueValues.size < this.rangeToExpr.size) {
+      console.warn(`Duplicate UUID in IdMap`)
     }
-    this.finished = true
-
-    const doc = this.doc
-
-    doc.transact(() => {
-      this.yMap.forEach((_, expr) => {
-        // Expressions that were accessed and present in the map are guaranteed to match. There is
-        // no mechanism for modifying them, so we don't need to check for equality. We only need to
-        // delete the expressions ones that are not used anymore.
-        if (!this.accessed.delete(expr as ExprId)) {
-          this.yMap.delete(expr)
-        }
-      })
-
-      this.rangeToExpr.forEach((expr, key) => {
-        // For all remaining expressions, we need to write them into the map.
-        if (!this.accessed.has(expr)) return
-        const range = IdMap.rangeForKey(key)
-        const start = Y.createRelativePositionFromTypeIndex(this.contents, range[0], -1)
-        const end = Y.createRelativePositionFromTypeIndex(this.contents, range[1])
-        const encoded = encodeRange([start, end])
-        this.yMap.set(expr, encoded)
-      })
-    })
   }
-}
 
-function encodeRange(range: RelativeRange): Uint8Array {
-  const encoder = encoding.createEncoder()
-  const start = Y.encodeRelativePosition(range[0])
-  const end = Y.encodeRelativePosition(range[1])
-  encoding.writeUint8(encoder, start.length)
-  encoding.writeUint8Array(encoder, start)
-  encoding.writeUint8(encoder, end.length)
-  encoding.writeUint8Array(encoder, end)
-  return encoding.toUint8Array(encoder)
-}
+  clone(): IdMap {
+    return new IdMap(this.entries())
+  }
 
-export function decodeRange(buffer: Uint8Array): RelativeRange {
-  const decoder = decoding.createDecoder(buffer)
-  const startLen = decoding.readUint8(decoder)
-  const start = decoding.readUint8Array(decoder, startLen)
-  const endLen = decoding.readUint8(decoder)
-  const end = decoding.readUint8Array(decoder, endLen)
-  return [Y.decodeRelativePosition(start), Y.decodeRelativePosition(end)]
+  // Debugging.
+  compare(other: IdMap) {
+    console.info(`IdMap.compare -------`)
+    const allKeys = new Set<string>()
+    for (const key of this.rangeToExpr.keys()) allKeys.add(key)
+    for (const key of other.rangeToExpr.keys()) allKeys.add(key)
+    for (const key of allKeys) {
+      const mine = this.rangeToExpr.get(key)
+      const yours = other.rangeToExpr.get(key)
+      if (mine !== yours) {
+        console.info(`IdMap.compare[${key}]: ${mine} -> ${yours}`)
+      }
+    }
+  }
 }
 
 const uuidRegex = /^[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}$/
@@ -348,67 +244,27 @@ export function isUuid(x: unknown): x is Uuid {
   return typeof x === 'string' && x.length === 36 && uuidRegex.test(x)
 }
 
-export type ContentRange = [number, number]
+export function rangeEquals(a: SourceRange, b: SourceRange): boolean {
+  return a[0] == b[0] && a[1] == b[1]
+}
 
-export function rangeEncloses(a: ContentRange, b: ContentRange): boolean {
+export function rangeIncludes(a: SourceRange, b: number): boolean {
+  return a[0] <= b && a[1] >= b
+}
+
+export function rangeLength(a: SourceRange): number {
+  return a[1] - a[0]
+}
+
+export function rangeEncloses(a: SourceRange, b: SourceRange): boolean {
   return a[0] <= b[0] && a[1] >= b[1]
 }
 
-export function rangeIntersects(a: ContentRange, b: ContentRange): boolean {
+export function rangeIntersects(a: SourceRange, b: SourceRange): boolean {
   return a[0] <= b[1] && a[1] >= b[0]
 }
 
-if (import.meta.vitest) {
-  const { test, expect } = import.meta.vitest
-  type RangeTest = { a: ContentRange; b: ContentRange }
-
-  const equalRanges: RangeTest[] = [
-    { a: [0, 0], b: [0, 0] },
-    { a: [0, 1], b: [0, 1] },
-    { a: [-5, 5], b: [-5, 5] },
-  ]
-
-  const totalOverlap: RangeTest[] = [
-    { a: [0, 1], b: [0, 0] },
-    { a: [0, 2], b: [2, 2] },
-    { a: [-1, 1], b: [1, 1] },
-    { a: [0, 2], b: [0, 1] },
-    { a: [-10, 10], b: [-3, 7] },
-    { a: [0, 5], b: [1, 2] },
-    { a: [3, 5], b: [3, 4] },
-  ]
-
-  const reverseTotalOverlap: RangeTest[] = totalOverlap.map(({ a, b }) => ({ a: b, b: a }))
-
-  const noOverlap: RangeTest[] = [
-    { a: [0, 1], b: [2, 3] },
-    { a: [0, 1], b: [-1, -1] },
-    { a: [5, 6], b: [2, 3] },
-    { a: [0, 2], b: [-2, -1] },
-    { a: [-5, -3], b: [9, 10] },
-    { a: [-3, 2], b: [3, 4] },
-  ]
-
-  const partialOverlap: RangeTest[] = [
-    { a: [0, 3], b: [-1, 1] },
-    { a: [0, 1], b: [-1, 0] },
-    { a: [0, 0], b: [-1, 0] },
-    { a: [0, 2], b: [1, 4] },
-    { a: [-8, 0], b: [0, 10] },
-  ]
-
-  test.each([...equalRanges, ...totalOverlap])('Range $a should enclose $b', ({ a, b }) =>
-    expect(rangeEncloses(a, b)).toBe(true),
-  )
-  test.each([...noOverlap, ...partialOverlap, ...reverseTotalOverlap])(
-    'Range $a should not enclose $b',
-    ({ a, b }) => expect(rangeEncloses(a, b)).toBe(false),
-  )
-  test.each([...equalRanges, ...totalOverlap, ...reverseTotalOverlap, ...partialOverlap])(
-    'Range $a should intersect $b',
-    ({ a, b }) => expect(rangeIntersects(a, b)).toBe(true),
-  )
-  test.each([...noOverlap])('Range $a should not intersect $b', ({ a, b }) =>
-    expect(rangeIntersects(a, b)).toBe(false),
-  )
+/** Whether the given range is before the other range. */
+export function rangeIsBefore(a: SourceRange, b: SourceRange): boolean {
+  return a[1] <= b[0]
 }

@@ -1,0 +1,26 @@
+from Standard.Base import all
+from Standard.Base.Data.Index_Sub_Range import sort_and_merge_ranges
+
+from Standard.Test import all
+
+
+add_specs suite_builder = suite_builder.group "Vector Slicing Helpers" group_builder->
+    group_builder.specify "should be able to sort correctly merge neighboring sequences" <|
+        merge = sort_and_merge_ranges
+        merge [] . should_equal []
+        merge [0.up_to 0] . should_equal []
+        merge [0.up_to 10] . should_equal [0.up_to 10]
+        merge [0.up_to 10, 2.up_to 4] . should_equal [0.up_to 10]
+        merge [0.up_to 5, 5.up_to 10] . should_equal [0.up_to 10]
+        merge [5.up_to 10, 0.up_to 0, 0.up_to 1, 1.up_to 5] . should_equal [0.up_to 10]
+        merge [0.up_to 1, 1.up_to 2] . should_equal [0.up_to 2]
+        merge [6.up_to 7, 7.up_to 8, 5.up_to 5, 0.up_to 1, 2.up_to 3] . should_equal [0.up_to 1, 2.up_to 3, 6.up_to 8]
+        merge [5.up_to 10, 3.up_to 6, 3.up_to 6, 3.up_to 5, 3.up_to 7, 0.up_to 1] . should_equal [0.up_to 1, 3.up_to 10]
+        merge [0.up_to 1, 0.up_to 1] . should_equal [0.up_to 1]
+        merge [0.up_to 1, 1.up_to 2] . should_equal [0.up_to 2]
+
+main filter=Nothing =
+    suite = Test.build suite_builder->
+        add_specs suite_builder
+    suite.run_with_filter filter
+

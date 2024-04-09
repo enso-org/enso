@@ -1,0 +1,14 @@
+from Standard.Base import all
+
+type Prefix_Name
+    ## Do not add a prefix to the column name.
+    None
+
+    ## Use the column name as a prefix.
+    Column_Name
+
+    ## Add a custom prefix to the new name.
+    Custom value:Text
+
+## PRIVATE
+Prefix_Name.from (that:Text) = Prefix_Name.Custom that

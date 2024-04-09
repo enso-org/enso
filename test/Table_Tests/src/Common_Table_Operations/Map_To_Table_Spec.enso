@@ -1,0 +1,97 @@
+from Standard.Base import all
+import Standard.Base.Errors.Common.Assertion_Error
+import Standard.Base.Errors.Empty_Error.Empty_Error
+import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
+
+from Standard.Database.DB_Table import MAX_LITERAL_ELEMENT_COUNT
+
+from Standard.Test import all
+
+from project.Common_Table_Operations.Util import run_default_backend
+
+main = run_default_backend add_specs
+
+type Data
+    Value ~data
+
+    connection self = self.data.at 0
+    dummy_table self = self.data.at 1
+
+    setup test_setup create_connection_fn =
+        connection = (create_connection_fn Nothing)
+        dummy_table = test_setup.table_builder [['x', [1]]] connection=connection
+        Data.Value [connection, dummy_table]
+
+    teardown self = self.connection.close
+
+
+add_specs suite_builder setup =
+    prefix = setup.prefix
+    create_connection_fn = setup.create_connection_func
+    suite_builder.group prefix+"Table.make_table_from_map/vectors" group_builder->
+        data = Data.setup setup create_connection_fn
+
+        group_builder.teardown <|
+            data.teardown
+
+        group_builder.specify "should be able to create a literal table with one column" <|
+            vecs = [[0], [3], [6]]
+            t = data.dummy_table.make_table_from_vectors vecs ['x', 'y', 'z']
+            t.at 'x' . to_vector . should_equal [0]
+            t.at 'y' . to_vector . should_equal [3]
+            t.at 'z' . to_vector . should_equal [6]
+
+        group_builder.specify "should be able to create a literal table with three columns" <|
+            vecs = [[0, 1, 2], [3, 4, 5], [6, 7, 8]]
+            t = data.dummy_table.make_table_from_vectors vecs ['x', 'y', 'z']
+            t.at 'x' . to_vector . should_equal [0, 1, 2]
+            t.at 'y' . to_vector . should_equal [3, 4, 5]
+            t.at 'z' . to_vector . should_equal [6, 7, 8]
+
+        if setup.is_database then
+            group_builder.specify "should not be able to create a literal table with empty columns (db backend)" <|
+                data.dummy_table.make_table_from_vectors [[], [], []] ['x', 'y', 'z'] . read . should_fail_with Illegal_Argument
+
+        if setup.is_database.not then
+            group_builder.specify "should be able to create a literal table with empty columns (in-mem backend)" <|
+                t = data.dummy_table.make_table_from_vectors [[], [], []] ['x', 'y', 'z']
+                t.row_count . should_equal 0
+
+        group_builder.specify "should not be able to create a literal table with no columns" <|
+            data.dummy_table.make_table_from_vectors [] [] . read . should_fail_with Illegal_Argument
+
+        group_builder.specify "should fail if columns are unequal length" <|
+                vecs = [[0, 1, 2], [3, 5], [6, 7, 8]]
+                data.dummy_table.make_table_from_vectors vecs ['x', 'y', 'z'] . read . should_fail_with Illegal_Argument
+                vecs2 = [[], [3, 4, 5], [6, 7, 8]]
+                data.dummy_table.make_table_from_vectors vecs2 ['x', 'y', 'z'] . read . should_fail_with Illegal_Argument
+
+        group_builder.specify "should be able to create a literal table from a map" <|
+            map = Map.from_vector [['x', 1], ['y', 2], ['z', 3]]
+            t = data.dummy_table.make_table_from_map map 'k' 'v' . order_by 'v'
+            t.at 'k' . to_vector . should_equal ['x', 'y', 'z']
+            t.at 'v' . to_vector . should_equal [1, 2, 3]
+
+        if setup.is_database then
+            group_builder.specify "should not be able to create a literal table from an empty map" <|
+                map = Map.empty
+                data.dummy_table.make_table_from_map map 'k' 'v' . should_fail_with Illegal_Argument
+
+        if setup.is_database.not then
+            group_builder.specify "should be able to create a literal table from an empty map" <|
+                map = Map.empty
+                t = data.dummy_table.make_table_from_map map 'k' 'v'
+                t.row_count . should_equal 0
+
+        if setup.is_database then
+            group_builder.specify "should respect the maximum size" <|
+                cols = ['x', 'y', 'z']
+
+                ok_col_length = MAX_LITERAL_ELEMENT_COUNT.div 3
+                ok_vecs = 0.up_to 3 . map (_-> 0.up_to ok_col_length . to_vector)
+                ok_result = data.dummy_table.make_table_from_vectors ok_vecs cols
+                ok_result.read.row_count . should_equal ok_col_length
+
+                too_large_col_length = ok_col_length + 1
+                too_large_vecs = 0.up_to 3 . map (_-> 0.up_to too_large_col_length . to_vector)
+                data.dummy_table.make_table_from_vectors too_large_vecs cols . should_fail_with Illegal_Argument

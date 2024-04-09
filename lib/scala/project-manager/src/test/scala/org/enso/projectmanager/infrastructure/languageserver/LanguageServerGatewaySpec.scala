@@ -2,7 +2,8 @@ package org.enso.projectmanager.infrastructure.languageserver
 
 import akka.testkit.TestDuration
 import io.circe.literal._
-import nl.gn0s1s.bump.SemVer
+import org.enso.semver.SemVer
+import org.enso.logger.ReportLogsOnFailure
 import org.enso.projectmanager.test.Net._
 import org.enso.projectmanager.{BaseServerSpec, ProjectManagementOps}
 import org.enso.runtimeversionmanager.test.OverrideTestVersionSuite
@@ -13,11 +14,12 @@ import scala.concurrent.duration._
 class LanguageServerGatewaySpec
     extends BaseServerSpec
     with OverrideTestVersionSuite
-    with ProjectManagementOps {
+    with ProjectManagementOps
+    with ReportLogsOnFailure {
 
-  override val testVersion: SemVer = SemVer(0, 0, 1)
+  override val testVersion: SemVer = SemVer.of(0, 0, 1)
 
-  override val engineToInstall = Some(SemVer(0, 0, 1))
+  override val engineToInstall = Some(SemVer.of(0, 0, 1))
 
   "A language server service" must {
 

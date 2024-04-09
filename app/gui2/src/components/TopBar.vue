@@ -1,21 +1,33 @@
 <script setup lang="ts">
+import ExtendedMenu from '@/components/ExtendedMenu.vue'
 import NavBar from '@/components/NavBar.vue'
-import ProjectTitle from '@/components/ProjectTitle.vue'
-import { useGuiConfig } from '@/providers/guiConfig'
+import type { BreadcrumbItem } from '@/components/NavBreadcrumbs.vue'
+import RecordControl from '@/components/RecordControl.vue'
+import { injectGuiConfig } from '@/providers/guiConfig'
 import { computed } from 'vue'
 
-const props = defineProps<{ title: string; breadcrumbs: string[]; modes: string[]; mode: string }>()
+const props = defineProps<{
+  breadcrumbs: BreadcrumbItem[]
+  recordMode: boolean
+  allowNavigationLeft: boolean
+  allowNavigationRight: boolean
+  zoomLevel: number
+}>()
 const emit = defineEmits<{
-  execute: []
+  recordOnce: []
   back: []
   forward: []
   breadcrumbClick: [index: number]
-  'update:mode': [mode: string]
+  'update:recordMode': [enabled: boolean]
+  fitToAllClicked: []
+  zoomIn: []
+  zoomOut: []
+  toggleCodeEditor: []
 }>()
 
 const LEFT_PADDING_PX = 11
 
-const config = useGuiConfig()
+const config = injectGuiConfig()
 
 const barStyle = computed(() => {
   const offset = Number(config.value.window?.topBarOffset ?? '0')
@@ -27,18 +39,25 @@ const barStyle = computed(() => {
 
 <template>
   <div class="TopBar" :style="barStyle">
-    <ProjectTitle
-      :title="props.title"
-      :modes="props.modes"
-      :mode="props.mode"
-      @update:mode="emit('update:mode', $event)"
-      @execute="emit('execute')"
+    <RecordControl
+      :recordMode="props.recordMode"
+      @update:recordMode="emit('update:recordMode', $event)"
+      @recordOnce="emit('recordOnce')"
     />
     <NavBar
       :breadcrumbs="props.breadcrumbs"
+      :allowNavigationLeft="props.allowNavigationLeft"
+      :allowNavigationRight="props.allowNavigationRight"
       @back="emit('back')"
       @forward="emit('forward')"
       @breadcrumbClick="emit('breadcrumbClick', $event)"
+    />
+    <ExtendedMenu
+      :zoomLevel="props.zoomLevel"
+      @fitToAllClicked="emit('fitToAllClicked')"
+      @zoomIn="emit('zoomIn')"
+      @zoomOut="emit('zoomOut')"
+      @toggleCodeEditor="emit('toggleCodeEditor')"
     />
   </div>
 </template>
@@ -51,6 +70,6 @@ const barStyle = computed(() => {
   top: 9px;
   /* FIXME[sb]: Get correct offset from dashboard. */
   left: 9px;
+  width: 100%;
 }
 </style>
-@/providers/guiConfig

@@ -1,29 +1,39 @@
-import type { Vec2 } from '@/util/vec2'
+import type { NodeCreationOptions } from '@/components/GraphEditor/nodeCreation'
+import { createContextStore } from '@/providers'
+import type { URLString } from '@/util/data/urlString'
+import { Vec2 } from '@/util/data/vec2'
+import type { Icon } from '@/util/iconName'
 import type { VisualizationIdentifier } from 'shared/yjsModel'
-import { inject, provide, type InjectionKey, type Ref } from 'vue'
+import { reactive } from 'vue'
 
 export interface VisualizationConfig {
-  /** Possible visualization types that can be switched to. */
   background?: string
-  readonly types: readonly VisualizationIdentifier[]
+  /** Possible visualization types that can be switched to. */
+  readonly types: Iterable<VisualizationIdentifier>
   readonly currentType: VisualizationIdentifier
+  readonly icon: Icon | URLString | undefined
   readonly isCircularMenuVisible: boolean
   readonly nodeSize: Vec2
+  readonly scale: number
+  readonly isFocused: boolean
+  isBelowToolbar: boolean
   width: number | null
-  height: number | null
+  height: number
   fullscreen: boolean
   hide: () => void
   updateType: (type: VisualizationIdentifier) => void
+  createNodes: (...options: NodeCreationOptions[]) => void
 }
 
-const provideKey = Symbol('visualizationConfig') as InjectionKey<Ref<VisualizationConfig>>
+export { provideFn as provideVisualizationConfig }
+const { provideFn, injectFn } = createContextStore(
+  'Visualization config',
+  reactive<VisualizationConfig>,
+)
 
-export function useVisualizationConfig(): Ref<VisualizationConfig> {
-  const injected = inject(provideKey)
-  if (injected == null) throw new Error('AppConfig not provided')
-  return injected
-}
+// The visualization config public API should not expose the `allowMissing` parameter. It should
+// look like an ordinary vue composable.
 
-export function provideVisualizationConfig(visualizationConfig: Ref<VisualizationConfig>) {
-  provide(provideKey, visualizationConfig)
+export function useVisualizationConfig() {
+  return injectFn()
 }

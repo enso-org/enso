@@ -14,8 +14,10 @@ export type VisualizationMetadata = z.infer<typeof visualizationMetadata>
 const visualizationMetadata = z
   .object({
     show: z.boolean().default(true),
-    project: visualizationProject,
-    name: z.string(),
+    width: z.number().optional(),
+    fullscreen: z.boolean().optional(),
+    project: visualizationProject.optional(),
+    name: z.string().optional(),
   })
   .passthrough()
 
@@ -27,6 +29,7 @@ export const nodeMetadata = z
       return { vector: [0, 0] satisfies Vector }
     }),
     visualization: visualizationMetadata.optional().catch(() => undefined),
+    colorOverride: z.string().optional(),
   })
   .passthrough()
 

@@ -1,17 +1,102 @@
+import { SuggestionDb, type Group } from '@/stores/suggestionDatabase'
+import { SuggestionKind, entryQn, type SuggestionEntry } from '@/stores/suggestionDatabase/entry'
+import { applyUpdates } from '@/stores/suggestionDatabase/lsUpdate'
+import { unwrap } from '@/util/data/result'
 import { parseDocs } from '@/util/docParser'
-import { tryIdentifier, tryQualifiedName } from '@/util/qualifiedName'
-import { unwrap } from '@/util/result'
+import { tryIdentifier, tryQualifiedName, type QualifiedName } from '@/util/qualifiedName'
+import { initializeFFI } from 'shared/ast/ffi'
 import * as lsTypes from 'shared/languageServerTypes/suggestions'
 import { expect, test } from 'vitest'
-import { SuggestionDb, type Group } from '..'
-import { SuggestionKind, type SuggestionEntry } from '../entry'
-import { applyUpdates } from '../lsUpdate'
+
+await initializeFFI()
 
 test('Adding suggestion database entries', () => {
   const test = new Fixture()
   const db = new SuggestionDb()
   applyUpdates(db, test.addUpdatesForExpected(), test.groups)
   test.check(db)
+})
+
+test('Entry qualified names', () => {
+  const test = new Fixture()
+  const db = test.createDbWithExpected()
+  expect(entryQn(db.get(1)!)).toStrictEqual('Standard.Base')
+  expect(entryQn(db.get(2)!)).toStrictEqual('Standard.Base.Type')
+  expect(entryQn(db.get(3)!)).toStrictEqual('Standard.Base.Type.Con')
+  expect(entryQn(db.get(4)!)).toStrictEqual('Standard.Base.Type.method')
+  expect(entryQn(db.get(5)!)).toStrictEqual('Standard.Base.Type.static_method')
+  expect(entryQn(db.get(6)!)).toStrictEqual('Standard.Base.function')
+  expect(entryQn(db.get(7)!)).toStrictEqual('Standard.Base.local')
+})
+
+test('Qualified name indexing', () => {
+  const test = new Fixture()
+  const db = new SuggestionDb()
+  applyUpdates(db, test.addUpdatesForExpected(), test.groups)
+  for (let i = 1; i <= 7; i++) {
+    const qName = entryQn(db.get(i)!)
+    expect(db.nameToId.lookup(qName)).toEqual(new Set([i]))
+    expect(db.nameToId.reverseLookup(i)).toEqual(new Set([qName]))
+  }
+})
+
+test('Parent-children indexing', () => {
+  const test = new Fixture()
+  const db = new SuggestionDb()
+  applyUpdates(db, test.addUpdatesForExpected(), test.groups)
+  // Parent lookup.
+  expect(db.childIdToParentId.lookup(1)).toEqual(new Set([]))
+  expect(db.childIdToParentId.lookup(2)).toEqual(new Set([1]))
+  expect(db.childIdToParentId.lookup(3)).toEqual(new Set([2]))
+  expect(db.childIdToParentId.lookup(4)).toEqual(new Set([2]))
+  expect(db.childIdToParentId.lookup(5)).toEqual(new Set([2]))
+  expect(db.childIdToParentId.lookup(6)).toEqual(new Set([1]))
+  expect(db.childIdToParentId.lookup(7)).toEqual(new Set([1]))
+
+  // Children lookup.
+  expect(db.childIdToParentId.reverseLookup(1)).toEqual(new Set([2, 6, 7]))
+  expect(db.childIdToParentId.reverseLookup(2)).toEqual(new Set([3, 4, 5]))
+  expect(db.childIdToParentId.reverseLookup(3)).toEqual(new Set([]))
+  expect(db.childIdToParentId.reverseLookup(4)).toEqual(new Set([]))
+  expect(db.childIdToParentId.reverseLookup(5)).toEqual(new Set([]))
+  expect(db.childIdToParentId.reverseLookup(6)).toEqual(new Set([]))
+  expect(db.childIdToParentId.reverseLookup(7)).toEqual(new Set([]))
+
+  // Add new entry.
+  const modifications: lsTypes.SuggestionsDatabaseUpdate[] = [
+    {
+      type: 'Add',
+      id: 8,
+      suggestion: {
+        type: 'method',
+        module: 'Standard.Base',
+        name: 'method2',
+        selfType: 'Standard.Base.Type',
+        isStatic: false,
+        arguments: [],
+        returnType: 'Standard.Base.Number',
+        documentation: '',
+        annotations: [],
+      },
+    },
+  ]
+  applyUpdates(db, modifications, test.groups)
+  expect(db.childIdToParentId.lookup(8)).toEqual(new Set([2]))
+  expect(db.childIdToParentId.reverseLookup(8)).toEqual(new Set([]))
+  expect(db.childIdToParentId.reverseLookup(2)).toEqual(new Set([3, 4, 5, 8]))
+
+  // Remove entry.
+  const modifications2: lsTypes.SuggestionsDatabaseUpdate[] = [{ type: 'Remove', id: 3 }]
+  applyUpdates(db, modifications2, test.groups)
+  expect(db.childIdToParentId.lookup(3)).toEqual(new Set([]))
+  expect(db.childIdToParentId.reverseLookup(2)).toEqual(new Set([4, 5, 8]))
+
+  // Modify entry. Moving new method from `Standard.Base.Type` to `Standard.Base`.
+  db.get(8)!.memberOf = 'Standard.Base' as QualifiedName
+  expect(db.childIdToParentId.reverseLookup(1)).toEqual(new Set([2, 6, 7, 8]))
+  expect(db.childIdToParentId.lookup(8)).toEqual(new Set([1]))
+  expect(db.childIdToParentId.reverseLookup(8)).toEqual(new Set([]))
+  expect(db.childIdToParentId.reverseLookup(2)).toEqual(new Set([4, 5]))
 })
 
 test("Modifying suggestion entries' fields", () => {
@@ -109,7 +194,7 @@ test('Adding new argument', () => {
   const test = new Fixture()
   const newArg: lsTypes.SuggestionEntryArgument = {
     name: 'c',
-    type: 'Any',
+    reprType: 'Any',
     hasDefault: false,
     isSuspended: false,
   }
@@ -130,13 +215,13 @@ test('Adding new argument', () => {
 test('Modifying arguments', () => {
   const newArg1 = {
     name: 'c',
-    type: 'Standard.Base.Number',
+    reprType: 'Standard.Base.Number',
     isSuspended: true,
     hasDefault: false,
   }
   const newArg2 = {
     name: 'b',
-    type: 'Any',
+    reprType: 'Any',
     isSuspended: false,
     hasDefault: true,
     defaultValue: 'Nothing',
@@ -193,14 +278,14 @@ class Fixture {
   ]
   arg1 = {
     name: 'a',
-    type: 'Any',
+    reprType: 'Any',
     isSuspended: false,
     hasDefault: true,
     defaultValue: 'Nothing',
   }
   arg2 = {
     name: 'b',
-    type: 'Any',
+    reprType: 'Any',
     isSuspended: false,
     hasDefault: false,
   }
@@ -226,6 +311,7 @@ class Fixture {
     isPrivate: false,
     isUnstable: false,
     reexportedIn: unwrap(tryQualifiedName('Standard.Base.Another.Module')),
+    annotations: [],
   }
   expectedType: SuggestionEntry = {
     kind: SuggestionKind.Type,
@@ -238,6 +324,7 @@ class Fixture {
     isPrivate: false,
     isUnstable: false,
     reexportedIn: unwrap(tryQualifiedName('Standard.Base.Another.Module')),
+    annotations: [],
   }
   expectedCon: SuggestionEntry = {
     kind: SuggestionKind.Constructor,
@@ -251,6 +338,7 @@ class Fixture {
     isPrivate: false,
     isUnstable: true,
     reexportedIn: unwrap(tryQualifiedName('Standard.Base.Another.Module')),
+    annotations: ['Annotation 1'],
   }
   expectedMethod: SuggestionEntry = {
     kind: SuggestionKind.Method,
@@ -265,6 +353,7 @@ class Fixture {
     aliases: [],
     isPrivate: false,
     isUnstable: false,
+    annotations: ['Annotation 2', 'Annotation 3'],
   }
   expectedStaticMethod: SuggestionEntry = {
     kind: SuggestionKind.Method,
@@ -279,6 +368,7 @@ class Fixture {
     isPrivate: false,
     isUnstable: false,
     reexportedIn: unwrap(tryQualifiedName('Standard.Base.Another.Module')),
+    annotations: [],
   }
   expectedFunction: SuggestionEntry = {
     kind: SuggestionKind.Function,
@@ -291,9 +381,10 @@ class Fixture {
     isPrivate: false,
     isUnstable: false,
     scope: this.scope,
+    annotations: [],
   }
   expectedLocal: SuggestionEntry = {
-    kind: SuggestionKind.Function,
+    kind: SuggestionKind.Local,
     name: unwrap(tryIdentifier('local')),
     definedIn: unwrap(tryQualifiedName('Standard.Base')),
     arguments: [],
@@ -303,6 +394,7 @@ class Fixture {
     isPrivate: false,
     isUnstable: false,
     scope: this.scope,
+    annotations: [],
   }
 
   addUpdatesForExpected(): lsTypes.SuggestionsDatabaseUpdate[] {
@@ -340,7 +432,7 @@ class Fixture {
           returnType: 'Standard.Base.Type',
           documentation: this.conDocs,
           reexport: 'Standard.Base.Another.Module',
-          annotations: [],
+          annotations: ['Annotation 1'],
         },
       },
       {
@@ -355,7 +447,7 @@ class Fixture {
           arguments: [this.arg1],
           returnType: 'Standard.Base.Number',
           documentation: this.methodDocs,
-          annotations: [],
+          annotations: ['Annotation 2', 'Annotation 3'],
         },
       },
       {

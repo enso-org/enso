@@ -17,9 +17,18 @@ import java.util.logging.Level
   */
 class DetachVisualizationJob(
   visualizationId: VisualizationId,
-  expressionId: ExpressionId,
+  val expressionId: ExpressionId,
   contextId: ContextId
-) extends UniqueJob[Unit](expressionId, List(contextId), false) {
+) extends Job[Unit](List(contextId), false, false)
+    with UniqueJob[Unit] {
+
+  /** @inheritdoc */
+  override def equalsTo(that: UniqueJob[_]): Boolean =
+    that match {
+      case that: DetachVisualizationJob =>
+        this.expressionId == that.expressionId
+      case _ => false
+    }
 
   /** @inheritdoc */
   override def run(implicit ctx: RuntimeContext): Unit = {

@@ -103,6 +103,7 @@ class CommandExecutionEngine(interpreterContext: InterpreterContext)
   /** @inheritdoc */
   override def stop(): Unit = {
     jobExecutionEngine.stop()
+    sequentialExecutionService.shutdownNow()
     commandExecutor.shutdownNow()
   }
 

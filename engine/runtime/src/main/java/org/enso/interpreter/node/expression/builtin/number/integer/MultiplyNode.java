@@ -13,7 +13,7 @@ import org.enso.interpreter.runtime.number.EnsoBigInteger;
 @BuiltinMethod(type = "Integer", name = "*", description = "Multiplication of numbers.")
 public abstract class MultiplyNode extends IntegerNode {
 
-  abstract Object execute(Object self, Object that);
+  abstract Object execute(Object own, Object that);
 
   static MultiplyNode build() {
     return MultiplyNodeGen.create();

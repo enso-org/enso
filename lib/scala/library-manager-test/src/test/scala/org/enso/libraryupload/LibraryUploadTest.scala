@@ -1,6 +1,6 @@
 package org.enso.libraryupload
 
-import nl.gn0s1s.bump.SemVer
+import org.enso.semver.SemVer
 import org.enso.cli.task.{ProgressReporter, TaskProgress}
 import org.enso.editions.{Editions, LibraryName}
 import org.enso.librarymanager.published.repository.{
@@ -14,13 +14,15 @@ import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 
 import java.io.File
-import java.nio.file.Files
+import java.nio.file.{Files, Path}
 
 class LibraryUploadTest
     extends AnyWordSpec
     with Matchers
     with WithTemporaryDirectory
     with DownloaderTest {
+
+  val emptyRepository = new EmptyRepository(Path.of("../../../"))
 
   def port: Int = 47305
 
@@ -30,7 +32,7 @@ class LibraryUploadTest
       val repoRoot    = getTestDirectory.resolve("repo")
 
       val libraryName    = LibraryName("tester", "Upload_Test")
-      val libraryVersion = SemVer(1, 2, 3)
+      val libraryVersion = SemVer.of(1, 2, 3)
       PackageManager.Default.create(
         projectRoot.toFile,
         name      = libraryName.name,
@@ -38,14 +40,13 @@ class LibraryUploadTest
         version   = libraryVersion.toString
       )
 
-      EmptyRepository.withServer(port, repoRoot, uploads = true) {
+      emptyRepository.withServer(port, repoRoot, uploads = true) {
         val uploadUrl = s"http://localhost:$port/upload"
         val token     = SimpleHeaderToken("TODO")
         val dependencyExtractor = new DependencyExtractor[File] {
           override def findDependencies(pkg: Package[File]): Set[LibraryName] =
             Set(LibraryName("Standard", "Base"))
         }
-        import scala.concurrent.ExecutionContext.Implicits.global
         LibraryUploader(dependencyExtractor)
           .uploadLibrary(
             projectRoot,

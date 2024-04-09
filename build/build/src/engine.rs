@@ -4,16 +4,17 @@
 
 use crate::prelude::*;
 
+use crate::engine::bundle::GraalVmVersion;
 use crate::get_graal_packages_version;
 use crate::get_graal_version;
 use crate::paths::generated;
 
 use artifact::IsArtifact;
 use bundle::IsBundle;
+use ide_ci::cache::goodie::graalvm::Edition;
 use ide_ci::future::AsyncPolicy;
 use ide_ci::github::Repo;
 use package::IsPackage;
-use std::collections::BTreeSet;
 
 
 // ==============
@@ -27,7 +28,6 @@ pub mod env;
 pub mod package;
 pub mod sbt;
 
-use crate::engine::bundle::GraalVmVersion;
 pub use context::RunContext;
 
 
@@ -82,7 +82,7 @@ pub async fn download_project_templates(client: reqwest::Client, enso_root: Path
 }
 
 /// Describe, which benchmarks should be run.
-#[derive(Clone, Copy, Debug, Display, PartialEq, Eq, PartialOrd, Ord, clap::ArgEnum)]
+#[derive(Clone, Copy, Debug, Display, PartialEq, Eq, PartialOrd, Ord, clap::ValueEnum)]
 pub enum Benchmarks {
     /// Run all SBT-exposed benchmarks. Does *not* including pure [`Benchmarks::Enso`] benchmarks.
     All,
@@ -94,9 +94,9 @@ pub enum Benchmarks {
     EnsoJMH,
 }
 
-#[derive(Clone, Copy, Debug, Display, PartialEq, Eq, PartialOrd, Ord, clap::ArgEnum)]
+#[derive(Clone, Copy, Debug, Display, PartialEq, Eq, PartialOrd, Ord, clap::ValueEnum)]
 pub enum Tests {
-    Scala,
+    Jvm,
     #[clap(alias = "stdlib")]
     StandardLibrary,
 }
@@ -105,7 +105,7 @@ impl Benchmarks {
     pub fn sbt_task(self) -> Option<&'static str> {
         match self {
             Benchmarks::All => Some("bench"),
-            Benchmarks::Runtime => Some("runtime/bench"),
+            Benchmarks::Runtime => Some("runtime-benchmarks/bench"),
             Benchmarks::Enso => None,
             Benchmarks::EnsoJMH => Some("std-benchmarks/bench"),
         }
@@ -117,34 +117,34 @@ impl Benchmarks {
 /// Basically a recipe of what to do with `sbt` and its artifacts.
 #[derive(Clone, Debug)]
 pub struct BuildConfigurationFlags {
-    /// If true, repository shall be cleaned at the build start.
-    ///
-    /// Makes sense given that incremental builds with SBT are currently broken.
-    pub test_scala:                    bool,
+    /// Run JVM tests.
+    pub test_jvm: bool,
     /// Whether the Enso standard library should be tested.
-    pub test_standard_library:         bool,
+    pub test_standard_library: bool,
     /// Whether benchmarks are compiled.
     ///
     /// Note that this does not run the benchmarks, only ensures that they are buildable.
-    pub build_benchmarks:              bool,
+    pub build_benchmarks: bool,
     /// Whether the Enso-written benchmarks should be checked whether they compile.
     ///
     /// Note that this does not run benchmark, only ensures that they are buildable.
     /// Also, this does nothing if `execute_benchmarks` contains `Benchmarks::Enso`.
-    pub check_enso_benchmarks:         bool,
+    pub check_enso_benchmarks: bool,
     /// Which benchmarks should be run.
-    pub execute_benchmarks:            BTreeSet<Benchmarks>,
+    pub execute_benchmarks: BTreeSet<Benchmarks>,
     /// Used to check that benchmarks do not fail on runtime, rather than obtaining the results.
-    pub execute_benchmarks_once:       bool,
-    pub build_engine_package:          bool,
-    pub build_launcher_package:        bool,
+    pub execute_benchmarks_once: bool,
+    pub build_engine_package: bool,
+    /// Build the experimental native Engine Runner.
+    pub build_native_runner: bool,
+    pub build_launcher_package: bool,
     pub build_project_manager_package: bool,
-    pub build_launcher_bundle:         bool,
-    pub build_project_manager_bundle:  bool,
-    pub generate_java_from_rust:       bool,
+    pub build_launcher_bundle: bool,
+    pub build_project_manager_bundle: bool,
+    pub generate_java_from_rust: bool,
     pub test_java_generated_from_rust: bool,
     /// Verify License Packages in Distributions.
-    pub verify_packages:               bool,
+    pub verify_packages: bool,
 }
 
 impl From<BuildConfigurationFlags> for BuildConfigurationResolved {
@@ -196,6 +196,7 @@ impl BuildConfigurationFlags {
             || self.build_launcher_bundle
             || self.build_project_manager_bundle
             || self.test_standard_library
+            || self.build_native_runner
     }
 
     pub fn build_project_manager_package(&self) -> bool {
@@ -210,20 +211,21 @@ impl BuildConfigurationFlags {
 impl Default for BuildConfigurationFlags {
     fn default() -> Self {
         Self {
-            test_scala:                    false,
-            test_standard_library:         false,
-            build_benchmarks:              false,
-            check_enso_benchmarks:         false,
-            execute_benchmarks:            default(),
-            execute_benchmarks_once:       false,
-            build_engine_package:          false,
-            build_launcher_package:        false,
+            test_jvm: false,
+            test_standard_library: false,
+            build_benchmarks: false,
+            check_enso_benchmarks: false,
+            execute_benchmarks: default(),
+            execute_benchmarks_once: false,
+            build_engine_package: false,
+            build_launcher_package: false,
+            build_native_runner: false,
             build_project_manager_package: false,
-            build_launcher_bundle:         false,
-            build_project_manager_bundle:  false,
-            generate_java_from_rust:       true,
+            build_launcher_bundle: false,
+            build_project_manager_bundle: false,
+            generate_java_from_rust: true,
             test_java_generated_from_rust: false,
-            verify_packages:               false,
+            verify_packages: false,
         }
     }
 }
@@ -250,6 +252,7 @@ impl RunOperation {}
 pub enum Operation {
     Release(ReleaseOperation),
     Run(RunOperation),
+    Sbt(Vec<String>),
     Build,
 }
 
@@ -305,9 +308,12 @@ pub async fn deduce_graal(
     build_sbt: &generated::RepoRootBuildSbt,
 ) -> Result<ide_ci::cache::goodie::graalvm::GraalVM> {
     let build_sbt_content = ide_ci::fs::tokio::read_to_string(build_sbt).await?;
+    let graal_edition = env::GRAAL_EDITION.get().map_or(Edition::default(), |e| e);
+
     Ok(ide_ci::cache::goodie::graalvm::GraalVM {
         client,
         graal_version: get_graal_version(&build_sbt_content)?,
+        edition: graal_edition,
         os: TARGET_OS,
         arch: TARGET_ARCH,
     })

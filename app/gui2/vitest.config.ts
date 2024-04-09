@@ -10,6 +10,7 @@ export default mergeConfig(
       includeSource: ['./{src,shared,ydoc-server}/**/*.{ts,vue}'],
       exclude: [...configDefaults.exclude, 'e2e/*'],
       root: fileURLToPath(new URL('./', import.meta.url)),
+      restoreMocks: true,
     },
     define: {
       RUNNING_VITEST: true,

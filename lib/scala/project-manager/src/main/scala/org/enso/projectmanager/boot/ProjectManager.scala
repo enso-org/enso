@@ -3,17 +3,25 @@ package org.enso.projectmanager.boot
 import akka.http.scaladsl.Http
 import com.typesafe.scalalogging.LazyLogging
 import org.apache.commons.cli.CommandLine
-
 import org.enso.projectmanager.boot.Globals.{
   ConfigFilename,
   ConfigNamespace,
   FailureExitCode,
   SuccessExitCode
 }
+import org.enso.projectmanager.boot.command.filesystem.{
+  FileSystemCreateDirectoryCommand,
+  FileSystemDeleteCommand,
+  FileSystemListCommand,
+  FileSystemMoveDirectoryCommand,
+  FileSystemWritePathCommand
+}
+import org.enso.projectmanager.boot.command.{CommandHandler, ProjectListCommand}
 import org.enso.projectmanager.boot.configuration.{
   MainProcessConfig,
   ProjectManagerConfig
 }
+import org.enso.projectmanager.protocol.JsonRpcProtocolFactory
 import org.enso.version.VersionDescription
 import org.slf4j.event.Level
 import pureconfig.ConfigSource
@@ -40,6 +48,10 @@ object ProjectManager extends ZIOAppDefault with LazyLogging {
       .withFallback(ConfigSource.systemProperties)
       .at(ConfigNamespace)
       .loadOrThrow[ProjectManagerConfig]
+
+  private lazy val commandHandler = new CommandHandler(
+    new JsonRpcProtocolFactory().getProtocol()
+  )
 
   val computeThreadPool = new ScheduledThreadPoolExecutor(
     java.lang.Runtime.getRuntime.availableProcessors()
@@ -189,37 +201,10 @@ object ProjectManager extends ZIOAppDefault with LazyLogging {
         )
       }
 
-    val parseProfilingEventsLogPath = ZIO
-      .attempt {
-        Option(options.getOptionValue(Cli.PROFILING_EVENTS_LOG_PATH))
-          .map(Paths.get(_).toAbsolutePath)
-      }
-      .flatMap {
-        case pathOpt @ Some(path) =>
-          ZIO.ifZIO(ZIO.attempt(Files.isDirectory(path)))(
-            onTrue = printLineError(
-              s"Error: ${Cli.PROFILING_EVENTS_LOG_PATH} is a directory: $path"
-            ) *>
-              ZIO.fail(new FileAlreadyExistsException(path.toString)),
-            onFalse = ZIO.succeed(pathOpt)
-          )
-        case None =>
-          ZIO.succeed(None)
-      }
-      .catchAll { err =>
-        printLineError(s"Invalid ${Cli.PROFILING_EVENTS_LOG_PATH} argument.") *>
-        ZIO.fail(err)
-      }
-
     for {
-      profilingEventsLogPath <- parseProfilingEventsLogPath
-      profilingPath          <- parseProfilingPath
-      profilingTime          <- parseProfilingTime
-    } yield ProjectManagerOptions(
-      profilingEventsLogPath,
-      profilingPath,
-      profilingTime
-    )
+      profilingPath <- parseProfilingPath
+      profilingTime <- parseProfilingTime
+    } yield ProjectManagerOptions(profilingPath, profilingTime)
   }
 
   /** The main function of the application, which will be passed the command-line
@@ -231,6 +216,57 @@ object ProjectManager extends ZIOAppDefault with LazyLogging {
       ZIO.succeed(SuccessExitCode)
     } else if (options.hasOption(Cli.VERSION_OPTION)) {
       displayVersion(options.hasOption(Cli.JSON_OPTION))
+    } else if (options.hasOption(Cli.FILESYSTEM_LIST)) {
+      val directory = Paths.get(options.getOptionValue(Cli.FILESYSTEM_LIST))
+      val fileSystemListCommand =
+        FileSystemListCommand[ZIO[ZAny, +*, +*]](config, directory.toFile)
+      commandHandler.printJson(fileSystemListCommand.run)
+    } else if (options.hasOption(Cli.FILESYSTEM_CREATE_DIRECTORY)) {
+      val directory =
+        Paths.get(options.getOptionValue(Cli.FILESYSTEM_CREATE_DIRECTORY))
+      val fileSystemCreateDirectoryCommand =
+        FileSystemCreateDirectoryCommand[ZIO[ZAny, +*, +*]](
+          config,
+          directory.toFile
+        )
+      commandHandler.printJson(fileSystemCreateDirectoryCommand.run)
+    } else if (options.hasOption(Cli.FILESYSTEM_DELETE)) {
+      val directory =
+        Paths.get(options.getOptionValue(Cli.FILESYSTEM_DELETE))
+      val fileSystemDeleteDirectoryCommand =
+        FileSystemDeleteCommand[ZIO[ZAny, +*, +*]](config, directory.toFile)
+      commandHandler.printJson(fileSystemDeleteDirectoryCommand.run)
+    } else if (options.hasOption(Cli.FILESYSTEM_MOVE_FROM)) {
+      val from = Paths.get(options.getOptionValue(Cli.FILESYSTEM_MOVE_FROM))
+      val to   = Paths.get(options.getOptionValue(Cli.FILESYSTEM_MOVE_TO))
+      val fileSystemMoveDirectoryCommand =
+        FileSystemMoveDirectoryCommand[ZIO[ZAny, +*, +*]](
+          config,
+          from.toFile,
+          to.toFile
+        )
+      commandHandler.printJson(fileSystemMoveDirectoryCommand.run)
+    } else if (options.hasOption(Cli.FILESYSTEM_WRITE_PATH)) {
+      val path = Paths.get(options.getOptionValue(Cli.FILESYSTEM_WRITE_PATH))
+      val fileSystemMoveDirectoryCommand =
+        FileSystemWritePathCommand[ZIO[ZAny, +*, +*]](
+          config,
+          path.toFile
+        )
+      commandHandler.printJson(fileSystemMoveDirectoryCommand.run)
+    } else if (options.hasOption(Cli.PROJECT_LIST)) {
+      val projectsPathOpt =
+        Option(options.getOptionValue(Cli.PROJECTS_DIRECTORY))
+          .map(Paths.get(_).toFile)
+      val limitOpt = Option(
+        options
+          .getParsedOptionValue(Cli.PROJECT_LIST)
+          .asInstanceOf[java.lang.Number]
+      )
+        .map(_.intValue())
+      val projectListCommand =
+        ProjectListCommand[ZIO[ZAny, +*, +*]](config, projectsPathOpt, limitOpt)
+      commandHandler.printJson(projectListCommand.run)
     } else {
       val verbosity  = options.getOptions.count(_ == Cli.option.verbose)
       val logMasking = !options.hasOption(Cli.NO_LOG_MASKING)
@@ -240,7 +276,6 @@ object ProjectManager extends ZIOAppDefault with LazyLogging {
         logLevel <- setupLogging(verbosity, logMasking)
         procConf = MainProcessConfig(
           logLevel,
-          opts.profilingRuntimeEventsLog,
           opts.profilingPath,
           opts.profilingTime
         )
@@ -271,7 +306,7 @@ object ProjectManager extends ZIOAppDefault with LazyLogging {
         ()
       }
       .catchAll { exception =>
-        printLineError(s"Failed to setup logger: ${exception.getMessage()}")
+        printLineError(s"Failed to setup logger: ${exception.getMessage}")
       }
       .as(level)
   }
@@ -308,5 +343,4 @@ object ProjectManager extends ZIOAppDefault with LazyLogging {
         3.seconds
       )
     }
-
 }

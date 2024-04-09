@@ -1,14 +1,15 @@
 package org.enso.languageserver.websocket.json
 import java.util.UUID
-
 import io.circe.literal._
 import org.enso.languageserver.websocket.json.{SearchJsonMessages => json}
+import org.enso.logger.ReportLogsOnFailure
 import org.enso.testkit.{FlakySpec, RetrySpec}
 
 class SuggestionsHandlerTest
     extends BaseServerTest
     with FlakySpec
-    with RetrySpec {
+    with RetrySpec
+    with ReportLogsOnFailure {
 
   "SuggestionsHandler" must {
 

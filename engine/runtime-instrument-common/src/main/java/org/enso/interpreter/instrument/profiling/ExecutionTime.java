@@ -8,7 +8,9 @@ public class ExecutionTime implements ProfilingInfo {
     this.nanoTimeElapsed = nanoTimeElapsed;
   }
 
-  /** @return the time elapsed while executing the expression */
+  /**
+   * @return the time elapsed while executing the expression
+   */
   public long getNanoTimeElapsed() {
     return nanoTimeElapsed;
   }
@@ -18,7 +20,9 @@ public class ExecutionTime implements ProfilingInfo {
     return "ExecutionTime{nanoTimeElapsed=" + nanoTimeElapsed + "}";
   }
 
-  /** @return an execution time representing that no time has passed */
+  /**
+   * @return an execution time representing that no time has passed
+   */
   public static ExecutionTime empty() {
     return new ExecutionTime(0);
   }

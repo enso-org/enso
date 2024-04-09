@@ -1,0 +1,141 @@
+from Standard.Base import all
+import Standard.Base.Errors.Encoding_Error.Encoding_Error
+
+polyglot java import java.nio.CharBuffer
+
+from Standard.Test import all
+
+
+add_specs suite_builder =
+    windows_file = enso_project.data / "windows.txt"
+
+    suite_builder.group "ReportingStreamDecoder" group_builder->
+        group_builder.specify "should allow reading a file character by character" <|
+            f = enso_project.data / "short.txt"
+            f.delete_if_exists
+            f.exists.should_be_false
+            "Cup".write f . should_succeed
+            f.with_input_stream [File_Access.Read] stream->
+                stream.with_stream_decoder Encoding.utf_8 reporting_stream_decoder->
+                    reporting_stream_decoder.read.should_equal 67
+                    reporting_stream_decoder.read.should_equal 117
+                    reporting_stream_decoder.read.should_equal 112
+                    reporting_stream_decoder.read.should_equal -1
+            f.delete
+            f.exists.should_be_false
+
+        group_builder.specify "should work correctly when reading chunks of varying sizes" <|
+            f = enso_project.data / "transient" / "varying_chunks.txt"
+            fragment = 'Hello 😎🚀🚧!'
+            contents = 1.up_to 1000 . map _->fragment . join '\n'
+            contents.write f . should_succeed
+            all_codepoints = Vector.new_builder
+            read_chars decoder n =
+                case read_characters decoder n of
+                    Nothing -> Nothing
+                    chars ->
+                        chars.each all_codepoints.append
+                        chars
+
+            result = f.with_input_stream [File_Access.Read] stream->
+                stream.with_stream_decoder Encoding.utf_8 Problem_Behavior.Report_Error decoder->
+                    read_chars decoder 1 . should_equal "H".codepoints
+                    read_chars decoder 2 . should_equal "el".codepoints
+                    read_chars decoder 3 . should_equal "lo ".codepoints
+                    v1 = read_chars decoder 6
+                    Text.from_codepoints v1 . should_equal '😎🚀🚧'
+
+                    v2 = read_chars decoder 200
+                    ## Here we show that while the decoder is trying to read
+                       200 codepoints, some codepoints require more than one
+                       byte in UTF-8 to represent, so the actual result
+                       should be slightly smaller.
+                    (v2.length < 200) . should_be_true
+
+                    ## Now we read increasingly larger amounts, to trigger
+                       and test all paths of the input buffer resizing
+                       mechanism.
+                    read_chars decoder 40
+                    read_chars decoder 500
+                    read_chars decoder 1000
+                    read_chars decoder 1
+                    read_chars decoder 2
+                    read_chars decoder 10
+
+                    ## Finally read all the remaining contents of the file
+                       to verify they were decoded correctly as a whole.
+                    read_rest _ =
+                        case read_chars decoder 100 of
+                            Nothing -> Nothing
+                            _ -> @Tail_Call read_rest Nothing
+                    read_rest Nothing
+            Text.from_codepoints all_codepoints.to_vector . should_equal contents
+            result.should_succeed
+            f.delete
+
+        group_builder.specify "should allow reading a UTF-8 file" <|
+            f = enso_project.data / "transient" / "utf8.txt"
+            encoding = Encoding.utf_8
+            ((0.up_to 100).map _->'Hello World!' . join '\n').write f . should_succeed
+            expected_contents = f.read_text
+            contents = read_file_one_by_one f encoding expected_contents.length
+            contents.should_equal expected_contents
+
+        group_builder.specify "should allow reading a Windows file" <|
+            encoding = Encoding.windows_1252
+            expected_contents = "Hello World! $¢¤¥"
+            contents = read_file_one_by_one windows_file encoding expected_contents.length
+            contents.should_equal expected_contents
+
+        group_builder.specify "should raise warnings when reading invalid characters" <|
+            encoding = Encoding.ascii
+            expected_contents = 'Hello World! $\uFFFD\uFFFD\uFFFD'
+            expected_problems = [Encoding_Error.Error "Encoding issues at bytes 14, 15, 16."]
+            contents_1 = read_file_one_by_one windows_file encoding expected_contents.length on_problems=Problem_Behavior.Report_Warning
+            contents_1.should_equal expected_contents
+            Problems.get_attached_warnings contents_1 . should_equal expected_problems
+
+            contents_2 = windows_file.with_input_stream [File_Access.Read] stream->
+                stream.with_stream_decoder encoding Problem_Behavior.Report_Warning reporting_stream_decoder->
+                    codepoint_1 = reporting_stream_decoder.read
+                    codepoints_1 = read_characters reporting_stream_decoder 5
+                    codepoints_2 = read_characters reporting_stream_decoder 3
+                    codepoints_3 = read_characters reporting_stream_decoder 100
+                    reporting_stream_decoder.read.should_equal -1
+                    Text.from_codepoints <| [codepoint_1]+codepoints_1+codepoints_2+codepoints_3
+            contents_2.should_equal expected_contents
+            Problems.get_attached_warnings contents_2 . should_equal expected_problems
+
+        group_builder.specify "should work correctly if no data is read from it" <|
+            result = windows_file.with_input_stream [File_Access.Read] stream->
+                stream.with_stream_decoder Encoding.ascii Problem_Behavior.Report_Error _->Nothing
+            result.should_succeed
+
+read_file_one_by_one file encoding expected_size on_problems=Problem_Behavior.Report_Error =
+    file.with_input_stream [File_Access.Read] stream->
+        stream.with_stream_decoder encoding on_problems reporting_stream_decoder->
+            codepoints = 0.up_to expected_size . map _->
+                reporting_stream_decoder.read
+            reporting_stream_decoder.read.should_equal -1
+
+            Text.from_codepoints codepoints
+
+read_characters decoder n =
+    buffer = CharBuffer.allocate n
+    chars_read = decoder.read buffer
+    if chars_read == -1 then Nothing else
+        buffer.flip
+        v = Vector.new_builder
+        transfer_codepoints _ =
+            if buffer.hasRemaining.not then Nothing else
+                char = buffer.get
+                v.append char.codepoints.first
+                @Tail_Call transfer_codepoints Nothing
+        transfer_codepoints Nothing
+        v.to_vector
+
+main filter=Nothing =
+    suite = Test.build suite_builder->
+        add_specs suite_builder
+    suite.run_with_filter filter
+

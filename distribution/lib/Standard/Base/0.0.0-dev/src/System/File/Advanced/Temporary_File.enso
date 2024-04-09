@@ -1,0 +1,106 @@
+import project.Any.Any
+import project.Data.Text.Text
+import project.Errors.File_Error.File_Error
+import project.Errors.Illegal_State.Illegal_State
+import project.Nothing.Nothing
+import project.Panic.Panic
+import project.Runtime.Context
+import project.Runtime.Managed_Resource.Managed_Resource
+import project.Runtime.Ref.Ref
+import project.System.File.File
+import project.System.Input_Stream.Input_Stream
+
+## PRIVATE
+   ADVANCED
+   A reference to a temporary file that will be deleted once all references to
+   it are gone. This is an advanced helper facility for library developers, not
+   aimed to be used by regular users. Most users should just use
+   `File.create_temporary_file` instead.
+
+   This is helpful when implementing internal temporary files needed for some
+   operation, whose lifetime may have to be bound with some object (e.g. Excel
+   Workbook instance).
+
+   The advantage of using `Temporary_File` over `File.create_temporary_file` is
+   that the file is likely to get cleaned up earlier than JVM exit. If helper
+   files are only cleaned at JVM exit, we run the risk of exhausting disk
+   storage if the operation is ran numerous times. With this approach, the risk
+   should be much lower, because the files are cleaned up sooner - as soon as
+   the first GC run after the file is no longer reachable.
+
+   It has to be used with extra care, as anywhere where the internal File
+   reference is leaked without ensuring the lifetime of the `Temporary_File`
+   instance, that file reference may easily become invalid (i.e. its file may
+   get deleted).
+type Temporary_File
+    ## PRIVATE
+    Instance (file_resource_reference : Ref (Nothing | Managed_Resource File))
+
+    ## PRIVATE
+    with_file : (File -> Any) -> Any
+    with_file self action = self.access_resource.with action
+
+    ## PRIVATE
+       Gets the raw file reference.
+       Note that the underlying file may be deleted at any time, once `self` is
+       unreachable - so this method has to be used with extra care.
+    unsafe_get : File
+    unsafe_get self = self.with_file (f->f)
+
+    ## PRIVATE
+       Deletes the temporary file, invalidating the reference.
+    dispose : Nothing
+    dispose self =
+        self.access_resource.finalize
+        self.file_resource_reference.put Nothing
+
+    ## PRIVATE
+    access_resource : Managed_Resource File
+    access_resource self = case self.file_resource_reference.get of
+        Nothing -> Panic.throw (Illegal_State.Error "Using the Temporary_File after it has been disposed is not allowed.")
+        resource -> resource
+
+    ## PRIVATE
+    to_text : Text
+    to_text self = case self.file_resource_reference.get of
+        Nothing -> "Temporary_File (disposed)"
+        resource -> "Temporary_File (" + (resource.with .to_text) + ")"
+
+    ## PRIVATE
+       Creates a new empty `Temporary_File`.
+    new : Text -> Text -> Temporary_File
+    new prefix="temp" suffix=".tmp" =
+        # The file will be deleted on JVM exit, but we will try to delete it sooner.
+        file = File.create_temporary_file prefix suffix
+        resource = Managed_Resource.register file cleanup_tmp_file
+        Temporary_File.Instance (Ref.new resource)
+
+    ## PRIVATE
+       Materializes the provided `Input_Stream` into a `Temporary_File`.
+       It will work the same regardless of whether the output context is enabled.
+    from_stream : Input_Stream -> Temporary_File
+    from_stream stream = Context.Output.with_enabled <|
+        tmp_file = Temporary_File.new "enso-materialized-stream" ".tmp"
+        handler caught_panic =
+            tmp_file.dispose
+            Panic.throw caught_panic
+        Panic.catch Any handler=handler <|
+            tmp_file.with_file file->
+                Panic.rethrow <|
+                    File_Error.handle_java_exceptions Nothing <|
+                        stream.write_to_file file
+        tmp_file
+
+    ## PRIVATE
+       Materializes the provided `Input_Stream` into a `Temporary_File`.
+       If the stream is already backed by a temporary or regular file, that file is returned.
+    from_stream_light : Input_Stream -> Temporary_File | File
+    from_stream_light stream =
+        case stream.associated_file of
+            tmp : Temporary_File -> tmp
+            file : File -> file
+            _ -> Temporary_File.from_stream stream
+
+## PRIVATE
+cleanup_tmp_file file =
+    file.delete_if_exists

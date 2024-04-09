@@ -1,9 +1,8 @@
 package org.enso.base.text;
 
+import java.util.Locale;
 import org.enso.base.Text_Utils;
 import org.graalvm.collections.Equivalence;
-
-import java.util.Locale;
 
 /**
  * An {@link Equivalence} for Text that ensures the same behaviour as Enso case-insensitive equality
@@ -34,6 +33,7 @@ public class CaseInsensitiveUnicodeNormalizedTextEquivalence extends Equivalence
       return Text_Utils.unicodeNormalizedHashCode(keyed);
     }
 
-    throw new IllegalStateException("CaseInsensitiveUnicodeNormalizedTextEquivalence can only hash Strings.");
+    throw new IllegalStateException(
+        "CaseInsensitiveUnicodeNormalizedTextEquivalence can only hash Strings.");
   }
 }

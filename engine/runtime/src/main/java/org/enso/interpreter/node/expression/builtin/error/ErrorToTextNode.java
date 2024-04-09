@@ -6,6 +6,7 @@ import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import com.oracle.truffle.api.nodes.Node;
 import org.enso.interpreter.dsl.AcceptsError;
 import org.enso.interpreter.dsl.BuiltinMethod;
+import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.data.text.Text;
 import org.enso.interpreter.runtime.error.DataflowError;
@@ -28,8 +29,8 @@ public abstract class ErrorToTextNode extends Node {
   public Text doDataflowError(DataflowError self) {
     try {
       return Text.create(strings.asString(displays.toDisplayString(self)));
-    } catch (UnsupportedMessageException ignored) {
-      throw new IllegalStateException("Unreachable");
+    } catch (UnsupportedMessageException e) {
+      throw EnsoContext.get(this).raiseAssertionPanic(this, null, e);
     }
   }
 

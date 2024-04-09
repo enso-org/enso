@@ -1,7 +1,7 @@
 package org.enso.projectmanager.protocol
 
 import io.circe.Json
-import nl.gn0s1s.bump.SemVer
+import org.enso.semver.SemVer
 import org.enso.projectmanager.BaseServerSpec
 import org.enso.projectmanager.data.MissingComponentAction
 import org.enso.runtimeversionmanager.components.GraalVMVersion
@@ -17,8 +17,8 @@ trait MissingComponentBehavior {
 
   def isSuccess(json: Json): Boolean
 
-  val defaultVersion = SemVer(0, 0, 1)
-  val brokenVersion  = SemVer(0, 9999, 0, Some("broken"))
+  val defaultVersion = SemVer.of(0, 0, 1)
+  val brokenVersion  = SemVer.of(0, 9999, 0, "broken")
 
   def correctlyHandleMissingComponents(): Unit = {
     "fail if a missing version is requested with Fail" in {
@@ -59,13 +59,13 @@ trait MissingComponentBehavior {
   }
 
   /** This behaviour should be tested in a separate test suite, as it affects
-    *  the test environment and if run together with other tests it could affect
-    *  their results.
+    * the test environment and if run together with other tests it could affect
+    * their results.
     */
   def correctlyHandleMissingRuntimeInPresenceOfEngine(): Unit = {
     "make sure to check if the runtime is installed even if the engine was " +
     "already installed" in {
-      uninstallRuntime(GraalVMVersion("2.0.0", "11"))
+      uninstallRuntime(GraalVMVersion("23.2.0", "21.0.0"))
 
       val client = new WsTestClient(address)
       client.send(

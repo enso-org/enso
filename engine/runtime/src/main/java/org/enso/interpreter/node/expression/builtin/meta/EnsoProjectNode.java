@@ -14,9 +14,10 @@ import java.util.Optional;
 import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.node.EnsoRootNode;
 import org.enso.interpreter.runtime.EnsoContext;
-import org.enso.interpreter.runtime.callable.atom.Atom;
 import org.enso.interpreter.runtime.data.EnsoFile;
 import org.enso.interpreter.runtime.data.Type;
+import org.enso.interpreter.runtime.data.atom.Atom;
+import org.enso.interpreter.runtime.data.atom.AtomNewInstanceNode;
 import org.enso.interpreter.runtime.error.DataflowError;
 import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
 import org.enso.pkg.Package;
@@ -31,12 +32,8 @@ public abstract class EnsoProjectNode extends Node {
     return EnsoProjectNodeGen.create();
   }
 
-
-  /**
-   * A weak reference to the context in which this node was last executed.
-   */
-  @CompilationFinal
-  private WeakReference<EnsoContext> previousCtxRef = new WeakReference<>(null);
+  /** A weak reference to the context in which this node was last executed. */
+  @CompilationFinal private WeakReference<EnsoContext> previousCtxRef = new WeakReference<>(null);
 
   private Object cachedProjectDescr;
 
@@ -72,7 +69,8 @@ public abstract class EnsoProjectNode extends Node {
                         : "Should skip the first frame, therefore, callNode should not be null";
                     var callRootNode = callNode.getRootNode();
                     assert callRootNode != null
-                        : "Should be called only from Enso code, and thus, should always have a root node";
+                        : "Should be called only from Enso code, and thus, should always have a"
+                            + " root node";
                     if (callRootNode instanceof EnsoRootNode ensoRootNode) {
                       var pkg = ensoRootNode.getModuleScope().getModule().getPackage();
                       // Don't return null, as that would signal to Truffle that we want to
@@ -83,17 +81,20 @@ public abstract class EnsoProjectNode extends Node {
                         return Optional.empty();
                       }
                     } else {
-                      throw new IllegalStateException(
-                          "Should not reach here: callRootNode = "
-                              + callRootNode
-                              + ". Probably not called from Enso?");
+                      CompilerDirectives.transferToInterpreter();
+                      throw EnsoContext.get(this)
+                          .raiseAssertionPanic(
+                              this,
+                              "Should not reach here: callRootNode = "
+                                  + callRootNode
+                                  + ". Probably not called from Enso?",
+                              null);
                     }
                   },
                   // The first frame is always Enso_Project.enso_project
                   1);
       if (pkgOpt.isPresent()) {
-        cachedProjectDescr =
-            createProjectDescriptionAtom(ctx, pkgOpt.get());
+        cachedProjectDescr = createProjectDescriptionAtom(ctx, pkgOpt.get());
       } else {
         cachedProjectDescr = notInModuleError(ctx);
       }
@@ -105,8 +106,7 @@ public abstract class EnsoProjectNode extends Node {
   @Specialization(guards = "!isNothing(module)")
   @TruffleBoundary
   public Object getOtherProjectDescr(
-      Object module,
-      @CachedLibrary(limit = "5") TypesLibrary typesLib) {
+      Object module, @CachedLibrary(limit = "5") TypesLibrary typesLib) {
     var ctx = EnsoContext.get(this);
     if (!typesLib.hasType(module)) {
       return unsupportedArgsError(module);
@@ -125,12 +125,11 @@ public abstract class EnsoProjectNode extends Node {
   }
 
   private static Atom createProjectDescriptionAtom(EnsoContext ctx, Package<TruffleFile> pkg) {
-    EnsoFile rootPath = new EnsoFile(pkg.root().normalize());
-    Object cfg = ctx.asGuestValue(pkg.getConfig());
-    return ctx.getBuiltins()
-        .getProjectDescription()
-        .getUniqueConstructor()
-        .newInstance(rootPath, cfg);
+    var rootPath = new EnsoFile(pkg.root().normalize());
+    var cfg = ctx.asGuestValue(pkg.getConfig());
+    var cons = ctx.getBuiltins().getProjectDescription().getUniqueConstructor();
+
+    return AtomNewInstanceNode.getUncached().newInstance(cons, rootPath, cfg);
   }
 
   private DataflowError unsupportedArgsError(Object moduleActual) {
@@ -139,7 +138,7 @@ public abstract class EnsoProjectNode extends Node {
             .getBuiltins()
             .error()
             .makeUnsupportedArgumentsError(
-                new Object[]{moduleActual}, "The `module` argument does not refer to a module"),
+                new Object[] {moduleActual}, "The `module` argument does not refer to a module"),
         this);
   }
 

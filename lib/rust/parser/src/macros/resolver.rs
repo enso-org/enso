@@ -32,6 +32,7 @@ use crate::syntax::token;
 use crate::syntax::token::Token;
 
 use enso_data_structures::im_list::List;
+use std::collections::HashMap;
 use std::collections::VecDeque;
 
 
@@ -66,7 +67,6 @@ enum Context {
     Expression,
     Statement,
 }
-
 
 
 // ==================
@@ -142,24 +142,14 @@ pub struct Resolver<'s> {
 impl<'s> Resolver<'s> {
     /// Create a new resolver, in statement context.
     pub fn new_statement() -> Self {
-        let scopes = default();
-        let open_blocks = vec![syntax::item::Line {
-            newline: token::newline(Code::empty(0), Code::empty(0)),
-            items:   default(),
-        }];
-        let macro_stack = default();
-        let segments = default();
-        let items = default();
-        let context = Context::Statement;
-        let precedence = syntax::operator::Precedence::new();
         Self {
-            blocks: scopes,
-            lines: open_blocks,
-            macros: macro_stack,
-            segments,
-            items,
-            context,
-            precedence,
+            context:    Context::Statement,
+            precedence: syntax::operator::Precedence::new(),
+            blocks:     default(),
+            lines:      default(),
+            macros:     default(),
+            segments:   default(),
+            items:      default(),
         }
     }
 
@@ -169,6 +159,11 @@ impl<'s> Resolver<'s> {
         root_macro_map: &MacroMap,
         tokens: impl IntoIterator<Item = Token<'s>>,
     ) -> syntax::Tree<'s> {
+        let start = crate::source::code::Location::default();
+        self.lines.push(syntax::item::Line {
+            newline: token::newline(Code::empty(start), Code::empty(start)),
+            items:   default(),
+        });
         tokens.into_iter().for_each(|t| self.push(root_macro_map, t));
         self.finish_current_line();
         let lines = self.lines.drain(..).map(|syntax::item::Line { newline, items }| {
@@ -233,9 +228,11 @@ impl<'s> Resolver<'s> {
     /// Append a token to the state.
     fn push(&mut self, root_macro_map: &MacroMap, token: Token<'s>) {
         match token.variant {
-            token::Variant::Newline(_) => {
-                self.finish_current_line();
-                let newline = token::newline(token.left_offset, token.code);
+            token::Variant::Newline(newline) => {
+                if !self.lines.is_empty() {
+                    self.finish_current_line();
+                }
+                let newline = token.with_variant(newline);
                 self.lines.push(syntax::item::Line { newline, items: default() });
                 self.context = Context::Statement;
             }
@@ -352,7 +349,7 @@ impl<'s> Resolver<'s> {
     fn resolve_match(&mut self, macro_def: &macros::Definition, segments_start: usize) {
         let mut def_segments = macro_def.segments.to_vec().into_iter().rev();
         let segments = self.segments.drain(segments_start..).rev();
-        let segments: NonEmptyVec<_> = segments.collect_vec().try_into().unwrap();
+        let segments: NonEmptyVec<_> = segments.collect::<Vec<_>>().try_into().unwrap();
         let mut pattern_matched_segments = segments.mapped(|segment| {
             let count_must_match =
                 "Internal error. Macro definition and match segments count mismatch.";
@@ -360,7 +357,7 @@ impl<'s> Resolver<'s> {
             let items = self.items.drain(segment.items_start..).collect();
             (segment.header, def.pattern.resolve(items))
         });
-        pattern_matched_segments[..].reverse();
+        pattern_matched_segments.reverse();
         let unused_items_of_last_segment = match &mut pattern_matched_segments.last_mut().1 {
             Err(rest) => mem::take(rest),
             Ok(segment) => mem::take(&mut segment.rest),
@@ -437,7 +434,7 @@ impl<'s> Resolver<'s> {
         for segment_entry in possible_segments {
             if let Some(first) = segment_entry.required_segments.head() {
                 let tail = segment_entry.required_segments.tail().cloned().unwrap_or_default();
-                let definition = segment_entry.definition.clone_ref();
+                let definition = segment_entry.definition.clone();
                 let entry = SegmentEntry { required_segments: tail, definition };
                 if let Some(node) = new_section_tree.get_mut(&first.header) {
                     node.push(entry);
@@ -445,13 +442,12 @@ impl<'s> Resolver<'s> {
                     new_section_tree.insert(first.header, NonEmptyVec::singleton(entry));
                 }
             } else {
-                *matched_macro_def = Some(segment_entry.definition.clone_ref());
+                *matched_macro_def = Some(segment_entry.definition.clone());
             }
         }
         new_section_tree
     }
 }
-
 
 
 // =============================
@@ -470,7 +466,6 @@ struct PartiallyMatchedMacro<'s> {
     /// Height in `segments` where this macro's resolved segments begin.
     segments_start:         usize,
 }
-
 
 
 // ======================

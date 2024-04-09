@@ -1,0 +1,136 @@
+from Standard.Base import all
+import Standard.Base.Errors.Encoding_Error.Encoding_Error
+import Standard.Base.Errors.Illegal_State.Illegal_State
+
+polyglot java import org.enso.base.Encoding_Utils
+polyglot java import java.nio.CharBuffer
+
+from Standard.Test import all
+
+
+add_specs suite_builder =
+    suite_builder.group "ReportingStreamEncoder" group_builder->
+        group_builder.specify "should allow writing a file codepoint by codepoint" <|
+            f = enso_project.data / "transient" / "char-by-char.txt"
+            f.delete_if_exists
+            f.exists.should_be_false
+            contents = 1.up_to 7 . map _->'Cześc\u0301 😎🚀🚧!' . join '\n'
+            f.with_output_stream [File_Access.Write, File_Access.Create_New] stream->
+                stream.with_stream_encoder Encoding.utf_8 Problem_Behavior.Report_Error reporting_stream_encoder->
+                    contents.char_vector.each char->
+                        reporting_stream_encoder.write char
+            f.read_text.should_equal contents
+
+        group_builder.specify "should work correctly when writing chunks of varying sizes" <|
+            f = enso_project.data / "transient" / "varying-utf16.txt"
+            f.delete_if_exists
+            f.exists.should_be_false
+            encoding = Encoding.utf_16_be
+            big = 1.up_to 7 . map _->'Cześc\u0301 😎🚀🚧!' . join '\n'
+            f.with_output_stream [File_Access.Write, File_Access.Create_New] stream->
+                stream.with_stream_encoder encoding Problem_Behavior.Report_Error reporting_stream_encoder->
+                    reporting_stream_encoder.write "A"
+                    reporting_stream_encoder.write "Abc"
+                    reporting_stream_encoder.write "Defghi"
+                    reporting_stream_encoder.write 'O\u0301'
+                    reporting_stream_encoder.write "X"
+                    reporting_stream_encoder.write big
+                    reporting_stream_encoder.write "Y"
+                    reporting_stream_encoder.write "Ź"
+
+            contents = 'AAbcDefghiO\u0301X' + big + "YŹ"
+            f.read_text encoding . should_equal contents
+
+        group_builder.specify "should allow writing a Windows file" <|
+            f = enso_project.data / "transient" / "windows.txt"
+            encoding = Encoding.windows_1252
+            contents = "Hello World! $¢¤¥"
+
+            f.delete_if_exists
+            f.with_output_stream [File_Access.Write, File_Access.Create_New] stream->
+                stream.with_stream_encoder encoding Problem_Behavior.Report_Error reporting_stream_encoder->
+                    reporting_stream_encoder.write contents
+
+            f.read_text encoding . should_equal contents
+
+        group_builder.specify "should raise warnings when writing characters that cannot be encoded and replace them with the Unicode replacement character or a question mark" <|
+            f = enso_project.data / "transient" / "ascii.txt"
+            encoding = Encoding.ascii
+            contents = 'Sło\u0301wka!'
+            f.delete_if_exists
+            result = f.with_output_stream [File_Access.Write, File_Access.Create_New] stream->
+                stream.with_stream_encoder encoding Problem_Behavior.Report_Warning reporting_stream_encoder->
+                    reporting_stream_encoder.write contents
+            result.should_succeed
+            Problems.get_attached_warnings result . should_equal [Encoding_Error.Error "Encoding issues at codepoints 1, 3."]
+            f.read_text encoding . should_equal "S?o?wka!"
+
+            f.delete_if_exists
+            result_2 = f.with_output_stream [File_Access.Write, File_Access.Create_New] stream->
+                stream.with_stream_encoder encoding Problem_Behavior.Report_Warning reporting_stream_encoder->
+                    reporting_stream_encoder.write "ABC"
+                    reporting_stream_encoder.write "ą"
+                    reporting_stream_encoder.write "foo"
+                    reporting_stream_encoder.write " -🚧- "
+                    reporting_stream_encoder.write "bar"
+
+            result_2.should_succeed
+            Problems.get_attached_warnings result_2 . should_equal [Encoding_Error.Error "Encoding issues at codepoints 3, 9."]
+            f.read_text encoding . should_equal "ABC?foo -?- bar"
+
+        group_builder.specify "should work correctly if no data is written to it" <|
+            f = enso_project.data / "transient" / "empty.txt"
+            encoding = Encoding.ascii
+            f.delete_if_exists
+            result = f.with_output_stream [File_Access.Write, File_Access.Create_New] stream->
+                stream.with_stream_encoder encoding Problem_Behavior.Report_Error _->Nothing
+            result.should_succeed
+            f.read_text encoding . should_equal ""
+
+        group_builder.specify "should forward any dataflow errors raised in the inner action" <|
+            f = enso_project.data / "transient" / "error.txt"
+            encoding = Encoding.ascii
+            f.delete_if_exists
+            result = f.with_output_stream [File_Access.Write, File_Access.Create_New] stream->
+                stream.with_stream_encoder encoding Problem_Behavior.Ignore rse->
+                    rse.write "BAR"
+                    Error.throw (Illegal_State.Error "FOO")
+            result.should_fail_with Illegal_State
+            result.catch.message.should_equal "FOO"
+            f.delete_if_exists
+
+        group_builder.specify "should forward any warnings attached to the result of the inner action (1)" <|
+            f = enso_project.data / "transient" / "warning.txt"
+            encoding = Encoding.ascii
+            f.delete_if_exists
+            result = f.with_output_stream [File_Access.Write, File_Access.Create_New] stream->
+                stream.with_stream_encoder encoding Problem_Behavior.Ignore rse->
+                    rse.write "BAZ"
+                    result = Warning.attach "warn:1" <| Warning.attach "warn:2" <| 42
+                    rse.write "23"
+                    result
+            result . should_equal 42
+            Problems.get_attached_warnings result . should_contain_the_same_elements_as ["warn:1", "warn:2"]
+            f.read_text encoding . should_equal "BAZ23"
+            f.delete_if_exists
+
+        group_builder.specify "should forward any warnings attached to the result of the inner action (2)" <|
+            f = enso_project.data / "transient" / "warning.txt"
+            encoding = Encoding.ascii
+            f.delete_if_exists
+            result = f.with_output_stream [File_Access.Write, File_Access.Create_New] stream->
+                stream.with_stream_encoder encoding Problem_Behavior.Ignore rse->
+                    rse.write "BAZ"
+                    result = Warning.attach "warn:1" <| Warning.attach "warn:2" <| Nothing
+                    rse.write "23"
+                    result
+            result . should_equal Nothing
+            Problems.get_attached_warnings result . should_contain_the_same_elements_as ["warn:1", "warn:2"]
+            f.read_text encoding . should_equal "BAZ23"
+            f.delete_if_exists
+
+main filter=Nothing =
+    suite = Test.build suite_builder->
+        add_specs suite_builder
+    suite.run_with_filter filter
+

@@ -2,7 +2,7 @@ package org.enso.pkg
 
 import cats.Show
 import io.circe.{DecodingFailure, Json, JsonObject}
-import nl.gn0s1s.bump.SemVer
+import org.enso.semver.SemVer
 import org.enso.editions.LibraryName
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
@@ -38,7 +38,7 @@ class ConfigSpec
         version        = "dev",
         namespace      = "local",
         edition =
-          Some(Config.makeCompatibilityEditionFromVersion(SemVer(4, 5, 6))),
+          Some(Config.makeCompatibilityEditionFromVersion(SemVer.of(4, 5, 6))),
         license = "none",
         authors = List(),
         maintainers = List(
@@ -55,10 +55,10 @@ class ConfigSpec
     }
 
     "only require the name and use defaults for everything else" in {
-      val parsed = Config.fromYaml("name: FooBar").get
-      parsed.name shouldEqual "FooBar"
+      val parsed = Config.fromYaml("name: fooBar").get
+      parsed.name shouldEqual "fooBar"
       parsed.normalizedName shouldEqual None
-      parsed.moduleName shouldEqual "Foo_Bar"
+      parsed.moduleName shouldEqual "FooBar"
       parsed.edition shouldBe empty
     }
 
@@ -70,7 +70,7 @@ class ConfigSpec
           |""".stripMargin
       val parsed = Config.fromYaml(oldFormat).get
 
-      parsed.edition.get.engineVersion should contain(SemVer(1, 2, 3))
+      parsed.edition.get.engineVersion should contain(SemVer.of(1, 2, 3))
 
       val serialized  = parsed.toYaml
       val parsedAgain = Config.fromYaml(serialized).get

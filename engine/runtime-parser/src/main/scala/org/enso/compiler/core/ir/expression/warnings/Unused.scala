@@ -14,7 +14,8 @@ object Unused {
     * @param name the name that is unused
     */
   sealed case class FunctionArgument(override val name: Name) extends Unused {
-    override def message: String = s"Unused function argument ${name.name}."
+    override def message(source: (IdentifiedLocation => String)): String =
+      s"Unused function argument ${name.name}."
 
     override def diagnosticKeys(): Array[Any] = Array(name.name)
 
@@ -24,7 +25,8 @@ object Unused {
   }
 
   sealed case class PatternBinding(override val name: Name) extends Unused {
-    override def message: String = s"Unused pattern binding ${name.name}."
+    override def message(source: (IdentifiedLocation => String)): String =
+      s"Unused pattern binding ${name.name}."
 
     override def diagnosticKeys(): Array[Any] = Array(name.name)
 
@@ -38,7 +40,8 @@ object Unused {
     * @param name the name that is unused
     */
   sealed case class Binding(override val name: Name) extends Unused {
-    override def message: String = s"Unused variable ${name.name}."
+    override def message(source: (IdentifiedLocation => String)): String =
+      s"Unused variable ${name.name}."
 
     override def diagnosticKeys(): Array[Any] = Array(name.name)
 

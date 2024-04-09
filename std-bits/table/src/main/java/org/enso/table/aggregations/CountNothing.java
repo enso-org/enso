@@ -4,6 +4,7 @@ import java.util.List;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.type.IntegerType;
 import org.enso.table.data.table.Column;
+import org.enso.table.problems.ProblemAggregator;
 import org.graalvm.polyglot.Context;
 
 /**
@@ -28,7 +29,7 @@ public class CountNothing extends Aggregator {
   }
 
   @Override
-  public Object aggregate(List<Integer> indexes) {
+  public Object aggregate(List<Integer> indexes, ProblemAggregator problemAggregator) {
     Context context = Context.getCurrent();
     long count = 0;
     for (int row : indexes) {

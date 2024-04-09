@@ -28,7 +28,11 @@ final class SqlDatabase(config: Option[Config] = None)
     this.synchronized {
       if (db eq null) {
         db = SQLiteProfile.backend.Database
-          .forConfig(SqlDatabase.configPath, config.orNull)
+          .forConfig(
+            SqlDatabase.configPath,
+            config.orNull,
+            classLoader = getClass.getClassLoader
+          )
       }
     }
 
@@ -74,7 +78,9 @@ object SqlDatabase {
   def fromUrl(url: String): SqlDatabase = {
     val config = ConfigFactory
       .parseString(s"""$configPath.url = "$url"""")
-      .withFallback(ConfigFactory.load())
+      .withFallback(
+        ConfigFactory.load(getClass.getClassLoader)
+      )
     new SqlDatabase(Some(config))
   }
 

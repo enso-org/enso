@@ -2,7 +2,7 @@ package org.enso.runtimeversionmanager.components
 
 import java.nio.file.{Files, Path}
 
-import nl.gn0s1s.bump.SemVer
+import org.enso.semver.SemVer
 import org.enso.cli.OS
 import org.enso.distribution.FileSystem
 import org.enso.distribution.FileSystem.PathSyntax
@@ -21,20 +21,21 @@ class RuntimeVersionManagerSpec
     with OsSpec
     with OverrideTestVersionSuite {
 
-  override val testVersion: SemVer = SemVer(0, 0, 1)
+  override val testVersion: SemVer = SemVer.of(0, 0, 1)
 
   "RuntimeVersionManager" should {
     "find the latest engine version in semver ordering " +
     "(skipping broken releases)" in {
       val componentsManager = makeRuntimeVersionManager()
-      componentsManager.fetchLatestEngineVersion() shouldEqual SemVer(0, 1, 0)
+      componentsManager
+        .fetchLatestEngineVersion() shouldEqual SemVer.of(0, 1, 0)
     }
 
     "install the engine and a matching runtime for it" in {
       val (distributionManager, componentsManager, _) = makeManagers()
 
-      val version = SemVer(0, 0, 1)
-      val engine  = componentsManager.findOrInstallEngine(SemVer(0, 0, 1))
+      val version = SemVer.of(0, 0, 1)
+      val engine  = componentsManager.findOrInstallEngine(SemVer.of(0, 0, 1))
 
       engine.version shouldEqual version
       assert(
@@ -43,7 +44,7 @@ class RuntimeVersionManagerSpec
       )
 
       val runtime = componentsManager.findGraalRuntime(engine)
-      runtime.value.version shouldEqual GraalVMVersion("2.0.0", "11")
+      runtime.value.version shouldEqual GraalVMVersion("23.2.0", "21.0.0")
       assert(
         runtime.value.path.startsWith(distributionManager.paths.runtimes),
         "Engine should be installed in the engines directory."
@@ -53,11 +54,11 @@ class RuntimeVersionManagerSpec
     "list installed engines and runtimes" in {
       val componentsManager = makeRuntimeVersionManager()
       val engineVersions =
-        Set(SemVer(0, 0, 0), SemVer(0, 0, 1), SemVer(0, 0, 1, Some("pre")))
+        Set(SemVer.of(0, 0, 0), SemVer.of(0, 0, 1), SemVer.of(0, 1, 0))
       val runtimeVersions =
         Set(
           components.GraalVMVersion("1.0.0", "11"),
-          components.GraalVMVersion("2.0.0", "11")
+          components.GraalVMVersion("23.2.0", "21.0.0")
         )
       engineVersions.map(componentsManager.findOrInstallEngine)
 
@@ -70,9 +71,15 @@ class RuntimeVersionManagerSpec
         .map(_.version)
         .toSet shouldEqual runtimeVersions
 
+      val runtime1 =
+        componentsManager
+          .findGraalRuntime(components.GraalVMVersion("1.0.0", "11"))
+          .value
+      componentsManager.findEnginesUsingRuntime(runtime1) should have length 1
+
       val runtime2 =
         componentsManager
-          .findGraalRuntime(components.GraalVMVersion("2.0.0", "11"))
+          .findGraalRuntime(components.GraalVMVersion("23.2.0", "21.0.0"))
           .value
       componentsManager.findEnginesUsingRuntime(runtime2) should have length 2
     }
@@ -81,7 +88,7 @@ class RuntimeVersionManagerSpec
       val componentsManager = makeManagers(userInterface =
         new TestRuntimeVersionManagementUserInterface(installBroken = true)
       )._2
-      val brokenVersion = SemVer(0, 9999, 0, Some("broken"))
+      val brokenVersion = SemVer.of(0, 9999, 0, "broken")
       componentsManager.findOrInstallEngine(brokenVersion)
 
       assert(
@@ -102,8 +109,8 @@ class RuntimeVersionManagerSpec
           distributionManager
         )
 
-      val validVersion          = SemVer(0, 0, 1)
-      val newerButBrokenVersion = SemVer(0, 9999, 0, Some("broken"))
+      val validVersion          = SemVer.of(0, 0, 1)
+      val newerButBrokenVersion = SemVer.of(0, 9999, 0, "broken")
       componentsManager.findOrInstallEngine(validVersion)
       componentsManager.findOrInstallEngine(newerButBrokenVersion)
 
@@ -115,7 +122,7 @@ class RuntimeVersionManagerSpec
         new TestRuntimeVersionManagementUserInterface(installBroken = true)
       val componentsManager = makeManagers(userInterface = userInterface)._2
 
-      val brokenVersion = SemVer(0, 9999, 0, Some("broken"))
+      val brokenVersion = SemVer.of(0, 9999, 0, "broken")
       componentsManager.findOrInstallEngine(brokenVersion)
       assert(
         userInterface.wasAskedToInstallBroken,
@@ -126,7 +133,7 @@ class RuntimeVersionManagerSpec
 
     "issue a context-specific error when a nightly release cannot be found" in {
       val componentsManager = makeManagers()._2
-      val nightlyVersion    = SemVer(0, 0, 0, Some("SNAPSHOT.2000-01-01"))
+      val nightlyVersion    = SemVer.of(0, 0, 0, "SNAPSHOT.2000-01-01")
       val exception = intercept[ReleaseNotFound] {
         componentsManager.findOrInstallEngine(nightlyVersion)
       }
@@ -136,14 +143,14 @@ class RuntimeVersionManagerSpec
     "uninstall the runtime iff it is not used by any engines" in {
       val componentsManager = makeRuntimeVersionManager()
       val engineVersions =
-        Seq(SemVer(0, 0, 0), SemVer(0, 0, 1), SemVer(0, 0, 1, Some("pre")))
+        Seq(SemVer.of(0, 0, 0), SemVer.of(0, 0, 1), SemVer.of(0, 1, 0))
       engineVersions.map(componentsManager.findOrInstallEngine)
 
       componentsManager.listInstalledEngines() should have length 3
       componentsManager.listInstalledGraalRuntimes() should have length 2
 
       // remove the engine that shares the runtime with another one
-      val version1 = SemVer(0, 0, 1, Some("pre"))
+      val version1 = SemVer.of(0, 1, 0)
       componentsManager.uninstallEngine(version1)
       val engines1 = componentsManager.listInstalledEngines()
       engines1 should have length 2
@@ -151,7 +158,7 @@ class RuntimeVersionManagerSpec
       componentsManager.listInstalledGraalRuntimes() should have length 2
 
       // remove the second engine that shared the runtime
-      val version2 = SemVer(0, 0, 1)
+      val version2 = SemVer.of(0, 0, 1)
       componentsManager.uninstallEngine(version2)
       val engines2 = componentsManager.listInstalledEngines()
       engines2 should have length 1
@@ -164,7 +171,7 @@ class RuntimeVersionManagerSpec
       )
 
       // remove the last engine
-      componentsManager.uninstallEngine(SemVer(0, 0, 0))
+      componentsManager.uninstallEngine(SemVer.of(0, 0, 0))
       componentsManager.listInstalledEngines() should have length 0
       componentsManager.listInstalledGraalRuntimes() should have length 0
     }
@@ -175,15 +182,15 @@ class RuntimeVersionManagerSpec
       val launcher =
         makeManagers(installerKind = InstallerKind.Launcher)._2
 
-      val engineWithDifferentVersionRequirements = SemVer(0, 1, 0)
+      val engineWithDifferentVersionRequirements = SemVer.of(0, 1, 0)
 
       val manifest =
         launcher
           .findOrInstallEngine(engineWithDifferentVersionRequirements)
           .manifest
 
-      val usualVersion = SemVer(0, 0, 0, Some("dev"))
-      val bigVersion   = SemVer(9999, 0, 0)
+      val usualVersion = SemVer.of(0, 0, 0, "dev")
+      val bigVersion   = SemVer.of(9999, 0, 0)
       manifest.requiredInstallerVersions.launcher shouldEqual usualVersion
       manifest.requiredInstallerVersions.projectManager shouldEqual bigVersion
 
@@ -203,7 +210,7 @@ class RuntimeVersionManagerSpec
     }
 
     "support bundled components" in {
-      val engineVersion  = SemVer(0, 1, 0)
+      val engineVersion  = SemVer.of(0, 1, 0)
       val runtimeVersion = GraalVMVersion("1.0.0", "11")
       prepareBundle(
         engineVersion  = engineVersion,
@@ -221,7 +228,7 @@ class RuntimeVersionManagerSpec
     }
 
     "fail to uninstall a read-only bundled component" taggedAs OsUnix in {
-      val engineVersion  = SemVer(0, 1, 0)
+      val engineVersion  = SemVer.of(0, 1, 0)
       val runtimeVersion = GraalVMVersion("1.0.0", "11")
       prepareBundle(
         engineVersion  = engineVersion,
@@ -267,29 +274,29 @@ class RuntimeVersionManagerSpec
 
     "include both bundled and installed components in list" in {
       prepareBundle(
-        engineVersion  = SemVer(0, 0, 1),
-        runtimeVersion = GraalVMVersion("1.0.0", "11")
+        engineVersion  = SemVer.of(0, 0, 1),
+        runtimeVersion = GraalVMVersion("23.2.0", "21.0.0")
       )
       val manager = makeRuntimeVersionManager()
-      manager.findOrInstallEngine(SemVer(0, 1, 0))
+      manager.findOrInstallEngine(SemVer.of(0, 0, 1, "pre"))
 
       manager
         .listInstalledEngines()
         .map(_.version) should contain theSameElementsAs Seq(
-        SemVer(0, 0, 1),
-        SemVer(0, 1, 0)
+        SemVer.of(0, 0, 1),
+        SemVer.of(0, 0, 1, "pre")
       )
 
       val runtimeVersions = manager.listInstalledGraalRuntimes().map(_.version)
       runtimeVersions.map(_.graalVersion) should contain theSameElementsAs Seq(
-        "1.0.0",
+        "23.2.0",
         "2.0.0"
       )
-      runtimeVersions.map(_.javaVersion).toSet shouldEqual Set("11")
+      runtimeVersions.map(_.javaVersion).toSet shouldEqual Set("21.0.0", "11")
     }
 
     "cope with semantic versioning of Java" in {
-      val engineVersion = SemVer(0, 0, 3)
+      val engineVersion = SemVer.of(0, 0, 3)
       val graalVersion  = GraalVMVersion("23.0.0", "17.0.7")
       prepareBundle(
         engineVersion  = engineVersion,

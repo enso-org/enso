@@ -10,7 +10,7 @@ from Standard.Base import all
    - value: the value to be visualized.
 process_to_json_text : Any -> Text
 process_to_json_text value =
-    warnings = Warning.get_all value
+    warnings = Warning.get_all value wrap_errors=True
     texts = warnings.map w->w.value.to_display_text
     vec = case Warning.limit_reached value of
         True -> texts + ["Warnings limit reached."]

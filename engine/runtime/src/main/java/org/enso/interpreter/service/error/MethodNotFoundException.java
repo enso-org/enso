@@ -17,7 +17,9 @@ public class MethodNotFoundException extends RuntimeException implements Service
     this.module = module;
   }
 
-  /** @return module name */
+  /**
+   * @return module name
+   */
   public String getModule() {
     return module;
   }

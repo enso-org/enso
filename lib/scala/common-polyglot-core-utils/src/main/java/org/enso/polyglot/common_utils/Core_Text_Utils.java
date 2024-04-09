@@ -5,8 +5,7 @@ import com.ibm.icu.text.Normalizer;
 import com.ibm.icu.text.Normalizer2;
 
 public class Core_Text_Utils {
-  private Core_Text_Utils() {
-  }
+  private Core_Text_Utils() {}
 
   /** Computes the length of the string as the number of grapheme clusters it contains. */
   public static int computeGraphemeLength(String text) {
@@ -53,7 +52,9 @@ public class Core_Text_Utils {
   public static String take_prefix(String str, long grapheme_length) {
     BreakIterator iter = BreakIterator.getCharacterInstance();
     iter.setText(str);
-    if (iter.next(Math.toIntExact(grapheme_length)) == BreakIterator.DONE) {
+    if (grapheme_length <= 0) {
+      return "";
+    } else if (iter.next(Math.toIntExact(grapheme_length)) == BreakIterator.DONE) {
       return str;
     } else {
       return str.substring(0, iter.current());

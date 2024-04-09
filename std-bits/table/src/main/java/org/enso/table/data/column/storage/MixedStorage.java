@@ -1,13 +1,13 @@
 package org.enso.table.data.column.storage;
 
 import org.enso.table.data.column.builder.Builder;
-import org.enso.table.data.column.builder.MixedBuilder;
-import org.enso.table.data.column.operation.map.MapOperationProblemBuilder;
+import org.enso.table.data.column.operation.map.MapOperationProblemAggregator;
 import org.enso.table.data.column.storage.type.AnyObjectType;
 import org.enso.table.data.column.storage.type.BigIntegerType;
 import org.enso.table.data.column.storage.type.FloatType;
 import org.enso.table.data.column.storage.type.IntegerType;
 import org.enso.table.data.column.storage.type.StorageType;
+import org.enso.table.problems.BlackholeProblemAggregator;
 import org.graalvm.polyglot.Context;
 
 /**
@@ -17,7 +17,7 @@ import org.graalvm.polyglot.Context;
  * more precise type if all values have a common type, and will allow operations on this more
  * specific type.
  */
-public final class MixedStorage extends ObjectStorage {
+public final class MixedStorage extends ObjectStorage implements ColumnStorageWithInferredStorage {
   private StorageType inferredType = null;
 
   /**
@@ -119,13 +119,17 @@ public final class MixedStorage extends ObjectStorage {
     return specialized.inferPreciseTypeShrunk();
   }
 
-  private Storage<?> getInferredStorage() {
+  public Storage<?> getInferredStorage() {
     if (!hasSpecializedStorageBeenInferred) {
       StorageType inferredType = inferPreciseType();
       if (inferredType instanceof AnyObjectType) {
         cachedInferredStorage = null;
       } else {
-        Builder builder = Builder.getForType(inferredType, size());
+        // Any problems will be discarded - this is not a real conversion but just an approximation
+        // for purposes of a
+        // computation.
+        Builder builder =
+            Builder.getForType(inferredType, size(), BlackholeProblemAggregator.INSTANCE);
         for (int i = 0; i < size(); i++) {
           builder.appendNoGrow(getItemBoxed(i));
         }
@@ -141,37 +145,6 @@ public final class MixedStorage extends ObjectStorage {
     NOT_AVAILABLE,
     AVAILABLE_IN_SPECIALIZED_STORAGE,
     AVAILABLE_IN_SUPER
-  }
-
-  /**
-   * The resolution depends on the following philosophy:
-   *
-   * <p>1. If the inferred storage is already cached, we prefer to use it since it will provide us
-   * with a more efficient implementation.
-   *
-   * <p>2. If it is not yet cached, we do not want to compute it (since it is costly) unless it is
-   * necessary - if our basic storage already provides the operation, we will use that
-   * implementation - even if it may not be as fast as a specialized one, the cost of computing the
-   * precise storage may just not be worth it. If our storage does not provide the operation, we now
-   * need to try getting the inferred storage, to check if it may provide it.
-   */
-  private VectorizedOperationAvailability resolveUnaryOp(String name) {
-    // Shortcut - if the storage is already specialized - we prefer it.
-    if (cachedInferredStorage != null && cachedInferredStorage.isUnaryOpVectorized(name)) {
-      return VectorizedOperationAvailability.AVAILABLE_IN_SPECIALIZED_STORAGE;
-    }
-
-    // Otherwise, we try to avoid specializing if not yet necessary.
-    if (super.isUnaryOpVectorized(name)) {
-      return VectorizedOperationAvailability.AVAILABLE_IN_SUPER;
-    } else {
-      // But if our storage does not provide the operation, we have to try checking the other one.
-      if (getInferredStorage() != null && getInferredStorage().isUnaryOpVectorized(name)) {
-        return VectorizedOperationAvailability.AVAILABLE_IN_SPECIALIZED_STORAGE;
-      } else {
-        return VectorizedOperationAvailability.NOT_AVAILABLE;
-      }
-    }
   }
 
   /** {@see resolveUnaryOp} for explanations. */
@@ -215,33 +188,18 @@ public final class MixedStorage extends ObjectStorage {
   }
 
   @Override
-  public boolean isUnaryOpVectorized(String name) {
-    return resolveUnaryOp(name) != VectorizedOperationAvailability.NOT_AVAILABLE;
-  }
-
-  @Override
-  public Storage<?> runVectorizedUnaryMap(String name, MapOperationProblemBuilder problemBuilder) {
-    if (resolveUnaryOp(name) == VectorizedOperationAvailability.AVAILABLE_IN_SPECIALIZED_STORAGE) {
-      return getInferredStorage().runVectorizedUnaryMap(name, problemBuilder);
-    } else {
-      // Even if the operation is not available, we rely on super to report an exception.
-      return super.runVectorizedUnaryMap(name, problemBuilder);
-    }
-  }
-
-  @Override
   public boolean isBinaryOpVectorized(String name) {
     return resolveBinaryOp(name) != VectorizedOperationAvailability.NOT_AVAILABLE;
   }
 
   @Override
   public Storage<?> runVectorizedBinaryMap(
-      String name, Object argument, MapOperationProblemBuilder problemBuilder) {
+      String name, Object argument, MapOperationProblemAggregator problemAggregator) {
     if (resolveBinaryOp(name) == VectorizedOperationAvailability.AVAILABLE_IN_SPECIALIZED_STORAGE) {
-      return getInferredStorage().runVectorizedBinaryMap(name, argument, problemBuilder);
+      return getInferredStorage().runVectorizedBinaryMap(name, argument, problemAggregator);
     } else {
       // Even if the operation is not available, we rely on super to report an exception.
-      return super.runVectorizedBinaryMap(name, argument, problemBuilder);
+      return super.runVectorizedBinaryMap(name, argument, problemAggregator);
     }
   }
 
@@ -252,31 +210,29 @@ public final class MixedStorage extends ObjectStorage {
 
   @Override
   public Storage<?> runVectorizedTernaryMap(
-      String name, Object argument0, Object argument1, MapOperationProblemBuilder problemBuilder) {
+      String name,
+      Object argument0,
+      Object argument1,
+      MapOperationProblemAggregator problemAggregator) {
     if (resolveTernaryOp(name)
         == VectorizedOperationAvailability.AVAILABLE_IN_SPECIALIZED_STORAGE) {
       return getInferredStorage()
-          .runVectorizedTernaryMap(name, argument0, argument1, problemBuilder);
+          .runVectorizedTernaryMap(name, argument0, argument1, problemAggregator);
     } else {
       // Even if the operation is not available, we rely on super to report an exception.
-      return super.runVectorizedTernaryMap(name, argument0, argument1, problemBuilder);
+      return super.runVectorizedTernaryMap(name, argument0, argument1, problemAggregator);
     }
   }
 
   @Override
   public Storage<?> runVectorizedZip(
-      String name, Storage<?> argument, MapOperationProblemBuilder problemBuilder) {
+      String name, Storage<?> argument, MapOperationProblemAggregator problemAggregator) {
     if (resolveBinaryOp(name) == VectorizedOperationAvailability.AVAILABLE_IN_SPECIALIZED_STORAGE) {
-      return getInferredStorage().runVectorizedZip(name, argument, problemBuilder);
+      return getInferredStorage().runVectorizedZip(name, argument, problemAggregator);
     } else {
       // Even if the operation is not available, we rely on super to report an exception.
-      return super.runVectorizedZip(name, argument, problemBuilder);
+      return super.runVectorizedZip(name, argument, problemAggregator);
     }
-  }
-
-  @Override
-  public Builder createDefaultBuilderOfSameType(int capacity) {
-    return new MixedBuilder(capacity);
   }
 
   @Override

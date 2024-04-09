@@ -1,0 +1,50 @@
+polyglot java import org.enso.table.data.table.join.JoinKind as Java_Join_Kind
+
+type Join_Kind
+    ## Returns only rows where a match between the left and right table is
+       found. If one row from the left table matches multiple rows in the right
+       table, it is duplicated this many times to be correlated with each
+       matched row, and vice-versa.
+    Inner
+
+    ## Correlated rows are returned in the same way as with `Inner`, but each
+       row from the left table that did not match any rows from the right one is
+       also included - with columns of the right table being set to null for
+       that row.
+    Left_Outer
+
+    ## Correlated rows are returned in the same way as with `Inner`, but each
+       row from the right table that did not match any rows from the right one
+       is also included - with columns of the right table being set to null for
+       that row.
+    Right_Outer
+
+    ## Correlated rows are returned in the same way as with `Inner`, but each
+       row from the left and right table that did not match any rows from the
+       other one is also included - with columns of the other table being set to
+       null for that row.
+    Full
+
+    ## Returns just rows of the left table that did not match any in the right
+       table.
+
+       In this mode, unlike in others, only columns of the left table are
+       returned, since all columns of the right table would be all null anyway.
+    Left_Exclusive
+
+    ## Returns just rows of the right table that did not match any in the left
+       table.
+
+       In this mode, unlike in others, only columns of the right table are
+       returned, since all columns of the left table would be all null anyway.
+    Right_Exclusive
+
+    ## PRIVATE
+    to_java : Java_Join_Kind
+    to_java self = case self of
+        Join_Kind.Inner           -> Java_Join_Kind.INNER
+        Join_Kind.Left_Outer      -> Java_Join_Kind.LEFT_OUTER
+        Join_Kind.Right_Outer     -> Java_Join_Kind.RIGHT_OUTER
+        Join_Kind.Full            -> Java_Join_Kind.FULL
+        Join_Kind.Left_Exclusive  -> Java_Join_Kind.LEFT_ANTI
+        Join_Kind.Right_Exclusive -> Java_Join_Kind.RIGHT_ANTI

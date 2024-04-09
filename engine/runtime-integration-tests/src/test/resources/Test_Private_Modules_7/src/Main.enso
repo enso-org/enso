@@ -1,0 +1,6 @@
+import project.Sub.Pub
+export project.Sub.Pub
+
+main =
+    Pub.foo
+

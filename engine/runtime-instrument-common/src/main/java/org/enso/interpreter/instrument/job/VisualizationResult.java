@@ -8,8 +8,7 @@ import org.enso.interpreter.runtime.data.text.Text;
 import org.enso.interpreter.runtime.error.WithWarnings;
 
 public final class VisualizationResult {
-  private VisualizationResult() {
-  }
+  private VisualizationResult() {}
 
   /**
    * Extracts a string representation for a polyglot exception.

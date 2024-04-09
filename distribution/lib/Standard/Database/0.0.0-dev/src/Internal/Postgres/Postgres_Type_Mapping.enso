@@ -1,14 +1,15 @@
 from Standard.Base import all
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
-import Standard.Table.Data.Type.Value_Type.Bits
-import Standard.Table.Data.Type.Value_Type.Value_Type
+from Standard.Table import Bits, Value_Type
 from Standard.Table.Errors import Inexact_Type_Coercion
 
-import project.Data.SQL_Type.SQL_Type
+import project.Internal.Column_Fetcher as Column_Fetcher_Module
+import project.Internal.Column_Fetcher.Column_Fetcher
 import project.Internal.IR.SQL_Expression.SQL_Expression
 import project.Internal.SQL_Type_Mapping
 import project.Internal.SQL_Type_Reference.SQL_Type_Reference
+import project.SQL_Type.SQL_Type
 from project.Errors import Unsupported_Database_Operation
 
 polyglot java import java.sql.Types
@@ -55,6 +56,10 @@ type Postgres_Type_Mapping
                 type_name = if with_timezone then "timestamptz" else "timestamp"
                 SQL_Type.Value Types.TIMESTAMP type_name
             Value_Type.Binary _ _ ->
+                ## `bytea` is the compact storage for binary data, but it does not allow setting fixed size.
+                   We currently do not use Binary datatype much, so it is hard to decide which one is more appropriate,
+                   but we may also consider using the standard SQL `bit(n)` and `bit varying(n)` types.
+                   See: https://www.postgresql.org/docs/current/datatype-bit.html
                 SQL_Type.Value Types.BINARY "bytea" precision=max_precision
             Value_Type.Mixed ->
                 Error.throw (Unsupported_Database_Operation.Error "Postgres tables do not support Mixed types.")
@@ -108,6 +113,14 @@ type Postgres_Type_Mapping
     prepare_type_overrides column_type_suggestions = case column_type_suggestions of
         Nothing -> Nothing
         _ : Vector -> column_type_suggestions.map .to_type_override
+
+    ## PRIVATE
+       Creates a `Column_Fetcher` used to fetch data from a result set and build
+       an in-memory column from it, based on the given column type.
+    make_column_fetcher : SQL_Type -> Column_Fetcher
+    make_column_fetcher self sql_type =
+        value_type = self.sql_type_to_value_type sql_type
+        Column_Fetcher_Module.default_fetcher_for_value_type value_type
 
 ## PRIVATE
 simple_types_map = Map.from_vector <|

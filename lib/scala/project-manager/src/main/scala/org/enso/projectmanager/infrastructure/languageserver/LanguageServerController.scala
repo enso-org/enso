@@ -11,7 +11,7 @@ import akka.actor.{
   Terminated
 }
 import com.typesafe.scalalogging.LazyLogging
-import nl.gn0s1s.bump.SemVer
+import org.enso.semver.SemVer
 import org.enso.logger.akka.ActorMessageLogging
 import org.enso.projectmanager.boot.configuration._
 import org.enso.projectmanager.data.{LanguageServerSockets, Socket}
@@ -86,7 +86,6 @@ class LanguageServerController(
       engineVersion                  = engineVersion,
       jvmSettings                    = distributionConfiguration.defaultJVMSettings,
       discardOutput                  = distributionConfiguration.shouldDiscardChildOutput,
-      profilingEventsLogPath         = processConfig.profilingEventsLogPath,
       profilingPath                  = processConfig.profilingPath,
       profilingTime                  = processConfig.profilingTime,
       deferredLoggingServiceEndpoint = loggingServiceDescriptor.getEndpoint,

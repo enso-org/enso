@@ -109,6 +109,7 @@ class ModuleManagementTest
   it should "allow to create new, importable modules" in {
     ctx.writeMain("""
                     |import Enso_Test.Test.Foo
+                    |from Standard.Base import all
                     |
                     |main = Foo.foo + 1
                     |""".stripMargin)
@@ -135,6 +136,7 @@ class ModuleManagementTest
   it should "allow importing literal-source modules" in {
     ctx.writeMain("""
                     |import Enso_Test.Test.Foo
+                    |from Standard.Base import all
                     |
                     |main = Foo.foo + 1
                     |""".stripMargin)
@@ -169,6 +171,7 @@ class ModuleManagementTest
     val mod1 = ctx.executionContext.evalModule(
       """
         |import Enso_Test.Test.Main
+        |from Standard.Base import all
         |
         |bar = Main.foo + 1
         |""".stripMargin,

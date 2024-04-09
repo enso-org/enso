@@ -1,0 +1,5 @@
+import project.Sub
+export project.Sub
+
+main =
+    42

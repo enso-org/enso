@@ -82,26 +82,16 @@
 #![feature(if_let_guard)]
 #![feature(box_patterns)]
 #![feature(option_get_or_insert_default)]
-// === Standard Linter Configuration ===
-#![deny(non_ascii_idents)]
-#![warn(unsafe_code)]
-#![allow(clippy::bool_to_int_with_if)]
-#![allow(clippy::let_and_return)]
 // === Non-Standard Linter Configuration ===
 #![allow(clippy::option_map_unit_fn)]
 #![allow(clippy::precedence)]
 #![allow(dead_code)]
 #![deny(unconditional_recursion)]
-#![warn(missing_copy_implementations)]
-#![warn(missing_debug_implementations)]
 #![warn(missing_docs)]
 #![warn(trivial_casts)]
-#![warn(trivial_numeric_casts)]
-#![warn(unused_import_braces)]
 #![warn(unused_qualifications)]
 
 use crate::prelude::*;
-
 
 
 // ==============
@@ -117,14 +107,13 @@ pub mod source;
 pub mod syntax;
 
 
+
 /// Popular utilities, imported by most modules of this crate.
 pub mod prelude {
-    pub use enso_prelude::serde_reexports::*;
     pub use enso_prelude::*;
     pub use enso_reflect as reflect;
     pub use enso_reflect::Reflect;
-    pub use enso_types::traits::*;
-    pub use enso_types::unit2::Bytes;
+    pub(crate) use paste::paste;
 
     /// Return type for functions that will only fail in case of a bug in the implementation.
     #[derive(Debug, Default)]
@@ -153,7 +142,6 @@ pub mod prelude {
         }
     }
 }
-
 
 
 // ==============
@@ -201,62 +189,97 @@ impl Default for Parser {
 /// interpreted as a variable assignment or method definition.
 fn expression_to_statement(mut tree: syntax::Tree<'_>) -> syntax::Tree<'_> {
     use syntax::tree::*;
-    let mut left_offset = tree.span.left_offset.position_before();
-    if let Tree { variant: box Variant::Annotated(annotated), .. } = &mut tree {
-        annotated.expression = annotated.expression.take().map(expression_to_statement);
-        return tree;
-    }
-    if let Tree { variant: box Variant::AnnotatedBuiltin(annotated), .. } = &mut tree {
-        annotated.expression = annotated.expression.take().map(expression_to_statement);
-        return tree;
-    }
-    if let Tree { variant: box Variant::Documented(documented), .. } = &mut tree {
-        documented.expression = documented.expression.take().map(expression_to_statement);
-        return tree;
-    }
-    if let Tree { variant: box Variant::TypeAnnotated(annotated), span } = tree {
-        let colon = annotated.operator;
-        let type_ = annotated.type_;
-        let variable = annotated.expression;
-        let mut tree = Tree::type_signature(variable, colon, type_);
-        tree.span.left_offset += span.left_offset;
-        return tree;
-    }
-    let tree_ = &mut tree;
-    let opr_app = match tree_ {
-        Tree { variant: box Variant::OprApp(opr_app), span } => {
-            left_offset += &span.left_offset;
-            opr_app
+    match &mut *tree.variant {
+        Variant::Annotated(annotated) => {
+            annotated.expression = annotated.expression.take().map(expression_to_statement);
         }
-        _ => return tree,
-    };
-    if let OprApp { lhs: Some(lhs), opr: Ok(opr), rhs } = opr_app && opr.properties.is_assignment() {
-        let (leftmost, args) = collect_arguments(lhs.clone());
-        if let Some(rhs) = rhs {
-            if let Variant::Ident(ident) = &*leftmost.variant && ident.token.variant.is_type {
-                // If the LHS is a type, this is a (destructuring) assignment.
-                let lhs = expression_to_pattern(mem::take(lhs));
-                let mut result = Tree::assignment(lhs, mem::take(opr), mem::take(rhs));
-                result.span.left_offset += left_offset;
-                return result;
+        Variant::AnnotatedBuiltin(annotated) => {
+            annotated.expression = annotated.expression.take().map(expression_to_statement);
+        }
+        Variant::Documented(documented) => {
+            documented.expression = documented.expression.take().map(expression_to_statement);
+        }
+        Variant::ArgumentBlockApplication(ArgumentBlockApplication { lhs: None, .. }) => {
+            return tree.with_error("Expected expression before indented block.");
+        }
+        Variant::TypeAnnotated(typed) => {
+            tree.variant = Box::new(Variant::TypeSignature(TypeSignature {
+                variable: mem::take(&mut typed.expression),
+                operator: mem::take(&mut typed.operator),
+                type_:    mem::take(&mut typed.type_),
+            }));
+        }
+        Variant::OprApp(OprApp { lhs: Some(lhs), opr: Ok(opr), rhs })
+            if opr.properties.is_assignment() =>
+        {
+            let (lhs, return_spec) = match &mut *lhs.variant {
+                Variant::OprApp(OprApp { lhs: Some(lhs), opr: Ok(opr), rhs: Some(rhs) })
+                    if opr.properties.is_arrow() =>
+                    (
+                        lhs,
+                        Some(ReturnSpecification {
+                            arrow:  mem::take(opr),
+                            r#type: mem::take(rhs),
+                        }),
+                    ),
+                _ => (lhs, None),
+            };
+            let (leftmost, args) = collect_arguments(lhs.clone());
+            if return_spec.is_none() {
+                if let Some(rhs) = rhs {
+                    if let Variant::Ident(ident) = &*leftmost.variant
+                        && ident.token.variant.is_type
+                    {
+                        // If the LHS is a type, this is a (destructuring) assignment.
+                        let lhs = expression_to_pattern(mem::take(lhs));
+                        tree.variant = Box::new(Variant::Assignment(Assignment {
+                            pattern: lhs,
+                            equals:  mem::take(opr),
+                            expr:    mem::take(rhs),
+                        }));
+                        return tree;
+                    }
+                    if !is_invalid_pattern(&leftmost) && args.is_empty() && !is_body_block(rhs) {
+                        // If the LHS has no arguments, and there is a RHS, and the RHS is not a
+                        // body block, this is a variable assignment.
+                        tree.variant = Box::new(Variant::Assignment(Assignment {
+                            pattern: leftmost,
+                            equals:  mem::take(opr),
+                            expr:    mem::take(rhs),
+                        }));
+                        return tree;
+                    }
+                }
             }
-            if args.is_empty() && !is_body_block(rhs) {
-                // If the LHS has no arguments, and there is a RHS, and the RHS is not a body block,
-                // this is a variable assignment.
-                let mut result = Tree::assignment(leftmost, mem::take(opr), mem::take(rhs));
-                result.span.left_offset += left_offset;
-                return result;
+            if is_qualified_name(&leftmost) {
+                // If this is not a variable assignment, and the leftmost leaf of the `App` tree is
+                // a qualified name, this is a function definition.
+                tree.variant = Box::new(Variant::Function(Function {
+                    name: leftmost,
+                    args,
+                    returns: return_spec,
+                    equals: mem::take(opr),
+                    body: mem::take(rhs),
+                }));
+                return tree;
             }
+            return tree.with_error("Invalid use of assignment operator `=`.");
         }
-        if is_qualified_name(&leftmost) {
-            // If this is not a variable assignment, and the leftmost leaf of the `App` tree is
-            // a qualified name, this is a function definition.
-            let mut result = Tree::function(leftmost, args, mem::take(opr), mem::take(rhs));
-            result.span.left_offset += left_offset;
-            return result;
-        }
+        _ => (),
     }
     tree
+}
+
+/// If this function returns `true`, the input is not valid where a pattern is expected.
+fn is_invalid_pattern(tree: &syntax::Tree) -> bool {
+    use syntax::tree::*;
+    match &*tree.variant {
+        Variant::App(App { func: Tree { variant: box Variant::Ident(ident), .. }, arg }) =>
+            !ident.token.is_type || is_invalid_pattern(arg),
+        Variant::App(App { func, arg }) => is_invalid_pattern(func) || is_invalid_pattern(arg),
+        Variant::TypeAnnotated(TypeAnnotated { expression, .. }) => is_invalid_pattern(expression),
+        _ => false,
+    }
 }
 
 fn is_qualified_name(tree: &syntax::Tree) -> bool {
@@ -268,26 +291,6 @@ fn is_qualified_name(tree: &syntax::Tree) -> bool {
             is_qualified_name(lhs),
         _ => false,
     }
-}
-
-fn expression_to_type(mut input: syntax::Tree<'_>) -> syntax::Tree<'_> {
-    use syntax::tree::*;
-    if let Variant::Wildcard(wildcard) = &mut *input.variant {
-        wildcard.de_bruijn_index = None;
-        return input;
-    }
-    let mut out = match input.variant {
-        box Variant::TemplateFunction(TemplateFunction { ast, .. }) => expression_to_type(ast),
-        box Variant::Group(Group { open, body: Some(body), close }) =>
-            Tree::group(open, Some(expression_to_type(body)), close),
-        box Variant::OprApp(OprApp { lhs, opr, rhs }) =>
-            Tree::opr_app(lhs.map(expression_to_type), opr, rhs.map(expression_to_type)),
-        box Variant::App(App { func, arg }) =>
-            Tree::app(expression_to_type(func), expression_to_type(arg)),
-        _ => return input,
-    };
-    out.span.left_offset += input.span.left_offset;
-    out
 }
 
 fn expression_to_pattern(mut input: syntax::Tree<'_>) -> syntax::Tree<'_> {
@@ -304,6 +307,8 @@ fn expression_to_pattern(mut input: syntax::Tree<'_>) -> syntax::Tree<'_> {
             Tree::app(expression_to_pattern(func), expression_to_pattern(arg)),
         box Variant::TypeAnnotated(TypeAnnotated { expression, operator, type_ }) =>
             Tree::type_annotated(expression_to_pattern(expression), operator, type_),
+        box Variant::AutoscopedIdentifier(_) =>
+            return input.with_error("The autoscope operator (..) cannot be used in a pattern."),
         _ => return input,
     };
     out.span.left_offset += input.span.left_offset;
@@ -371,21 +376,6 @@ pub fn parse_argument_application<'s>(
                 close,
             })
         }
-        box Variant::DefaultApp(DefaultApp { func, default: default_ }) => {
-            let pattern = Tree::ident(default_.clone());
-            func.span.left_offset += expression.span.left_offset.take_as_prefix();
-            *expression = func.clone();
-            Some(ArgumentDefinition {
-                open: default(),
-                open2: default(),
-                suspension: default(),
-                pattern,
-                type_: default(),
-                close2: default(),
-                default: default(),
-                close: default(),
-            })
-        }
         _ => None,
     }
 }
@@ -406,7 +396,10 @@ pub fn parse_argument_definition(mut pattern: syntax::Tree) -> syntax::tree::Arg
         pattern = body;
     }
     let mut default_ = default();
-    if let Variant::OprApp(OprApp { lhs: Some(lhs), opr: Ok(opr), rhs: Some(rhs) }) = &*pattern.variant && opr.properties.is_assignment() {
+    if let Variant::OprApp(OprApp { lhs: Some(lhs), opr: Ok(opr), rhs: Some(rhs) }) =
+        &*pattern.variant
+        && opr.properties.is_assignment()
+    {
         let left_offset = pattern.span.left_offset;
         default_ = Some(ArgumentDefault { equals: opr.clone(), expression: rhs.clone() });
         pattern = lhs.clone();
@@ -437,7 +430,9 @@ pub fn parse_argument_definition(mut pattern: syntax::Tree) -> syntax::tree::Arg
         ast.span.left_offset += pattern.span.left_offset;
         pattern = ast;
     }
-    if let Variant::UnaryOprApp(UnaryOprApp { opr, rhs: Some(rhs) }) = &*pattern.variant && opr.properties.is_suspension() {
+    if let Variant::UnaryOprApp(UnaryOprApp { opr, rhs: Some(rhs) }) = &*pattern.variant
+        && opr.properties.is_suspension()
+    {
         let mut opr = opr.clone();
         opr.left_offset += pattern.span.left_offset;
         suspension = Some(opr);
@@ -456,7 +451,6 @@ fn is_body_block(expression: &syntax::tree::Tree<'_>) -> bool {
 }
 
 
-
 // ==================
 // === Benchmarks ===
 // ==================
@@ -464,7 +458,9 @@ fn is_body_block(expression: &syntax::tree::Tree<'_>) -> bool {
 #[cfg(test)]
 mod benches {
     use super::*;
+
     extern crate test;
+
     use test::Bencher;
 
     #[bench]

@@ -19,9 +19,8 @@
   "workspaces": [
     "app/ide-desktop",
     "app/ide-desktop/lib/*",
-    "app/ide-desktop/lib/dashboard/src/authentication",
-    "app/gui2",
-    "lib/rust/ensogl/pack/js"
+    "lib/js/runner",
+    "app/gui2"
   ],
   "overrides": {
     "tslib": "$tslib"

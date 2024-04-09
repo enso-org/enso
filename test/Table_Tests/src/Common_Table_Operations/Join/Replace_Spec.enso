@@ -1,0 +1,168 @@
+from Standard.Base import all
+import Standard.Base.Errors.Empty_Error.Empty_Error
+import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
+
+from Standard.Table import all
+from Standard.Table.Errors import all
+
+from Standard.Database import all
+
+from Standard.Test import all
+
+from project.Common_Table_Operations.Util import run_default_backend
+import project.Util
+
+main filter=Nothing = run_default_backend add_specs filter
+
+type Data
+    Value ~connection
+
+    setup create_connection_fn =
+        Data.Value (create_connection_fn Nothing)
+
+    teardown self = self.connection.close
+
+
+add_specs suite_builder setup =
+    prefix = setup.prefix
+    create_connection_fn = setup.create_connection_func
+    suite_builder.group prefix+"Table.replace" group_builder->
+        data = Data.setup create_connection_fn
+
+        group_builder.teardown <|
+            data.teardown
+
+        table_builder cols =
+            setup.table_builder cols connection=data.connection
+
+        table_builder_typed columns value_type =
+            cast_columns = columns.map c->
+                Column.from_vector (c.at 0) (c.at 1) . cast value_type
+            setup.table_builder cast_columns connection=data.connection
+
+        group_builder.specify "should be able to replace values via a lookup table, using from/to column defaults" <|
+            table = table_builder [['x', [1, 2, 3, 4, 2]], ['y', ['a', 'b', 'c', 'd', 'e']]]
+            lookup_table = table_builder [['x', [2, 1, 4, 3]], ['z', [20, 10, 40, 30]]]
+            expected = table_builder [['x', [10, 20, 20, 30, 40]], ['y', ['a', 'b', 'e', 'c', 'd']]]
+            result = table.replace lookup_table 'x' . order_by ["x", "y"]
+            result . should_equal expected
+
+        group_builder.specify "should be able to replace values via a lookup table, specifying from/to columns" <|
+            table = table_builder [['x', [1, 2, 3, 4, 2]], ['y', ['a', 'b', 'c', 'd', 'e']]]
+            lookup_table = table_builder [['d', [4, 5, 6, 7]], ['x', [2, 1, 4, 3]], ['d2', [5, 6, 7, 8]], ['z', [20, 10, 40, 30]]]
+            expected = table_builder [['x', [10, 20, 20, 30, 40]], ['y', ['a', 'b', 'e', 'c', 'd']]]
+            result = table.replace lookup_table 'x' 'x' 'z' . order_by ["x", "y"]
+            result . should_equal expected
+
+        group_builder.specify "should be able to replace values via a lookup table provided as a Map" <|
+            table = table_builder [['x', [1, 2, 3, 4, 2]], ['y', ['a', 'b', 'c', 'd', 'e']]]
+            lookup_table = Map.from_vector [[2, 20], [1, 10], [4, 40], [3, 30]]
+            expected = table_builder [['x', [10, 20, 20, 30, 40]], ['y', ['a', 'b', 'e', 'c', 'd']]]
+            result = table.replace lookup_table 'x' . order_by ["x", "y"]
+            result . should_equal expected
+
+        group_builder.specify "should be able to replace multiple columns" <|
+            table = table_builder [['x', [1, 2, 3, 4, 2]], ['x2', [2, 1, 2, 1, 4]], ['x3', [3, 4, 1, 3, 4]], ['y', ['a', 'b', 'c', 'd', 'e']]]
+            lookup_table = table_builder [['d', [4, 5, 6, 7]], ['x', [2, 1, 4, 3]], ['d2', [5, 6, 7, 8]], ['z', [20, 10, 40, 30]]]
+            expected = table_builder [['x', [10, 20, 20, 30, 40]], ['x2', [20, 10, 40, 20, 10]], ['x3', [30, 40, 40, 10, 30]], ['y', ['a', 'b', 'e', 'c', 'd']]]
+            result = table.replace lookup_table ['x', 'x2', 'x3'] 'x' 'z' . order_by ["x", "y"]
+            result . should_equal expected
+
+        group_builder.specify "should fail with Missing_Input_Columns if the specified columns do not exist" <|
+            table = table_builder [['x', [1, 2, 3, 4]], ['y', ['a', 'b', 'c', 'd']]]
+            lookup_table = table_builder [['x', [2, 1, 4, 3]], ['z', [20, 10, 40, 30]]]
+            table.replace lookup_table 'q' 'x' 'z' . should_fail_with Missing_Input_Columns
+            table.replace lookup_table 'x' 'q' 'z' . should_fail_with Missing_Input_Columns
+            table.replace lookup_table 'x' 'x' 'q' . should_fail_with Missing_Input_Columns
+
+        group_builder.specify "can allow unmatched rows" <|
+            table = table_builder [['x', [1, 2, 3, 4]], ['y', ['a', 'b', 'c', 'd']]]
+            lookup_table = table_builder [['x', [4, 3, 1]], ['z', [40, 30, 10]]]
+            expected = table_builder [['x', [2, 10, 30, 40]], ['y', ['b', 'a', 'c', 'd']]]
+            result = table.replace lookup_table 'x' . order_by "x"
+            result . should_equal expected
+
+        group_builder.specify "fails on unmatched rows" <|
+            table = table_builder [['x', [1, 2, 3, 4]], ['y', ['a', 'b', 'c', 'd']]]
+            lookup_table = table_builder [['x', [4, 3, 1]], ['z', [40, 30, 10]]]
+            table.replace lookup_table 'x' allow_unmatched_rows=False . should_fail_with Unmatched_Rows_In_Lookup
+
+        group_builder.specify "fails on non-unique keys" <|
+            table = table_builder [['x', [1, 2, 3, 4]], ['y', ['a', 'b', 'c', 'd']]]
+            lookup_table = table_builder [['x', [2, 1, 4, 1, 3]], ['z', [20, 10, 40, 11, 30]]]
+            table.replace lookup_table 'x' . should_fail_with Non_Unique_Key
+
+        group_builder.specify "should avoid name clashes in the (internally) generated column name" <|
+            table = table_builder [['duplicate_key', [1, 2, 3, 4]], ['y', ['a', 'b', 'c', 'd']]]
+            lookup_table = table_builder [['x', [2, 1, 4, 3]], ['z', [20, 10, 40, 30]]]
+            expected = table_builder [['duplicate_key', [10, 20, 30, 40]], ['y', ['a', 'b', 'c', 'd']]]
+            result = table.replace lookup_table 'duplicate_key'
+            result . should_equal expected
+
+        group_builder.specify "(edge-case) should allow lookup with itself" <|
+            table = table_builder [['x', [2, 1, 4, 3]], ['y', [20, 10, 40, 30]]]
+            expected = table_builder [['x', [10, 20, 30, 40]], ['y', [10, 20, 30, 40]]]
+            result = table.replace table 'x' . order_by "x"
+            result . should_equal expected
+
+        group_builder.specify "should not merge columns other than the one specified in the `column` param" <|
+            table = table_builder [['x', [1, 2, 3, 4, 2]], ['y', ['a', 'b', 'c', 'd', 'e']], ['q', [4, 5, 6, 7, 8]]]
+            lookup_table = table_builder [['x', [2, 1, 4, 3]], ['z', [20, 10, 40, 30]], ['q', [40, 50, 60, 70]]]
+            expected = table_builder [['x', [10, 20, 20, 30, 40]], ['y', ['a', 'b', 'e', 'c', 'd']], ['q', [4, 5, 8, 6, 7]]]
+            result = table.replace lookup_table 'x' . order_by ["x", "y"]
+            result . should_equal expected
+
+        group_builder.specify "should fail on null key values in lookup table" <|
+            table = table_builder [['x', [1, 2, 3, 4, 2]], ['y', ['a', 'b', 'c', 'd', 'e']]]
+            lookup_table = table_builder [['x', [2, 1, Nothing, 3]], ['z', [20, 10, 40, 30]]]
+            table.replace lookup_table 'x' . should_fail_with Null_Values_In_Key_Columns
+
+        group_builder.specify "should fail on an empty lookup table with no columns" <|
+            table = table_builder [['x', [1, 2, 3, 4, 2]], ['y', ['a', 'b', 'c', 'd', 'e']]]
+            lookup_table = table_builder []
+            table.replace lookup_table 'x' . should_fail_with Illegal_Argument
+
+        group_builder.specify "should accept an empty (but well-formed) lookup table if allow_unmatched_rows=True, but expect a warning" <|
+            table = table_builder [['x', [1, 2, 3, 4, 2]], ['y', ['a', 'b', 'c', 'd', 'e']]]
+            lookup_table = table_builder_typed [['x', []], ['z', []]] Value_Type.Integer
+            t = table.replace lookup_table 'x' . order_by ['y']
+            t . should_equal table
+            Problems.expect_warning (Empty_Error.Error "lookup_table") t
+
+        group_builder.specify "should throw an error on an empty (but well-formed) lookup table and non-empty base table if allow_unmatched_rows=False" <|
+            table = table_builder [['x', [1, 2, 3, 4, 2]], ['y', ['a', 'b', 'c', 'd', 'e']]] . order_by ['x']
+            lookup_table = table_builder_typed [['x', []], ['z', []]] Value_Type.Integer
+            t = table.replace lookup_table 'x' allow_unmatched_rows=False . order_by ['y']
+            t . should_fail_with Unmatched_Rows_In_Lookup
+
+        group_builder.specify "should accept an empty (but well-formed) lookup table if the base table is also empty, but expect a warning" <|
+            table = table_builder_typed [['x', []], ['z', []]] Value_Type.Integer
+            lookup_table = table_builder_typed [['x', []], ['z', []]] Value_Type.Integer
+            t = table.replace lookup_table 'x'
+            t . should_equal table
+            Problems.expect_warning (Empty_Error.Error "lookup_table") t
+
+        group_builder.specify "should accept an empty lookup map, if allow_unmatched_rows=True, but expect a warning" <|
+            table = table_builder [['x', [1, 2, 3, 4, 2]], ['y', ['a', 'b', 'c', 'd', 'e']]]
+            t = table.replace Map.empty 'x'
+            t . should_equal table
+            Problems.expect_warning (Empty_Error.Error "lookup_table") t
+
+        group_builder.specify "should throw an error on an empty lookup map and non-empty base table if allow_unmatched_rows=False" <|
+            table = table_builder [['x', [1, 2, 3, 4, 2]], ['y', ['a', 'b', 'c', 'd', 'e']]] . order_by ['x']
+            t = table.replace Map.empty 'x' allow_unmatched_rows=False
+            t . should_fail_with Unmatched_Rows_In_Lookup
+            t.catch.example_key_values . should_equal [1]
+
+        group_builder.specify "should accept an empty lookup map if the base table is also empty, but expect a warning" <|
+            table = table_builder_typed [['x', []], ['z', []]] Value_Type.Integer
+            t = table.replace Map.empty 'x'
+            t . should_equal table
+            Problems.expect_warning (Empty_Error.Error "lookup_table") t
+
+        group_builder.specify "should not allow from/to_coumn to specified if the argument is a Map" <|
+            table = table_builder [['x', [1, 2, 3, 4, 2]], ['y', ['a', 'b', 'c', 'd', 'e']]]
+            lookup_table = Map.from_vector [[2, 20], [1, 10], [4, 40], [3, 30]]
+            table.replace lookup_table 'x' from_column=8 . should_fail_with Illegal_Argument
+            table.replace lookup_table 'x' to_column=9 . should_fail_with Illegal_Argument
+            table.replace lookup_table 'x' from_column=8 to_column=9 . should_fail_with Illegal_Argument

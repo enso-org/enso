@@ -4,6 +4,7 @@ use crate::paths::Paths;
 use crate::paths::ENSO_ENABLE_ASSERTIONS;
 use crate::paths::ENSO_META_TEST_ARGS;
 use crate::paths::ENSO_META_TEST_COMMAND;
+use crate::paths::ENSO_TEST_ANSI_COLORS;
 use crate::postgres;
 use crate::postgres::EndpointConfiguration;
 use crate::postgres::Postgresql;
@@ -30,7 +31,7 @@ impl From<bool> for Boolean {
 }
 
 ide_ci::define_env_var! {
-    ENSO_JVM_OPTS, String;
+    JAVA_OPTS, String;
     ENSO_BENCHMARK_TEST_DRY_RUN, Boolean;
 }
 
@@ -79,32 +80,21 @@ impl BuiltEnso {
             .await
     }
 
-    pub fn run_test(&self, test: impl AsRef<Path>, ir_caches: IrCaches) -> Result<Command> {
-        let test_path = self.paths.repo_root.test.join(test);
+    pub fn run_test(&self, test_path: impl AsRef<Path>, ir_caches: IrCaches) -> Result<Command> {
         let mut command = self.cmd()?;
         command
             .arg(ir_caches)
             .arg("--run")
-            .arg(test_path)
+            .arg(test_path.as_ref())
             // This flag enables assertions in the JVM. Some of our stdlib tests had in the past
             // failed on Graal/Truffle assertions, so we want to have them triggered.
-            .set_env(ENSO_JVM_OPTS, &ide_ci::programs::java::Option::EnableAssertions.as_ref())?;
+            .set_env(JAVA_OPTS, &ide_ci::programs::java::Option::EnableAssertions.as_ref())?;
         Ok(command)
     }
 
     pub fn repl(&self) -> Result<Command> {
         let mut command = self.cmd()?;
         command.arg("--repl");
-        Ok(command)
-    }
-
-    pub fn compile_lib(&self, target: impl AsRef<Path>) -> Result<Command> {
-        ide_ci::fs::require_exist(&target)?;
-        let mut command = self.cmd()?;
-        command
-            .arg(IrCaches::Yes)
-            .args(["--no-compile-dependencies", "--no-global-cache", "--compile"])
-            .arg(target.as_ref());
         Ok(command)
     }
 
@@ -121,6 +111,7 @@ impl BuiltEnso {
         ENSO_META_TEST_ARGS.set(&format!("{} --run", ir_caches.flag()))?;
 
         ENSO_ENABLE_ASSERTIONS.set("true")?;
+        ENSO_TEST_ANSI_COLORS.set("true")?;
 
         // Prepare Engine Test Environment
         if let Ok(gdoc_key) = std::env::var("GDOC_KEY") {
@@ -155,8 +146,9 @@ impl BuiltEnso {
             _ => None,
         };
 
-        let futures = crate::paths::LIBRARIES_TO_TEST.map(ToString::to_string).map(|test| {
-            let command = self.run_test(test, ir_caches);
+        let std_tests = crate::paths::discover_standard_library_tests(&paths.repo_root)?;
+        let futures = std_tests.into_iter().map(|test_path| {
+            let command = self.run_test(test_path, ir_caches);
             async move { command?.run_ok().await }
         });
 

@@ -3,25 +3,17 @@ import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Errors.Illegal_State.Illegal_State
 import Standard.Base.Errors.Unimplemented.Unimplemented
 
-import Standard.Table.Data.Aggregate_Column.Aggregate_Column
-import Standard.Table.Data.Column.Column as Materialized_Column
 import Standard.Table.Internal.Problem_Builder.Problem_Builder
 import Standard.Table.Internal.Vector_Builder.Vector_Builder
-from Standard.Table import Value_Type
-from Standard.Table.Data.Aggregate_Column.Aggregate_Column import all
+from Standard.Table import Aggregate_Column, Column, Value_Type
+from Standard.Table.Aggregate_Column.Aggregate_Column import all
 from Standard.Table.Errors import Inexact_Type_Coercion
 
 import project.Connection.Connection.Connection
-import project.Data.Column.Column
-import project.Data.Dialect
-import project.Data.SQL.Builder
-import project.Data.SQL.SQL_Fragment
-import project.Data.SQL_Statement.SQL_Statement
-import project.Data.SQL_Type.SQL_Type
-import project.Data.Table.Table
+import project.DB_Column.DB_Column
+import project.DB_Table.DB_Table
+import project.Dialect
 import project.Internal.Base_Generator
-import project.Internal.Column_Fetcher as Column_Fetcher_Module
-import project.Internal.Column_Fetcher.Column_Fetcher
 import project.Internal.Common.Database_Distinct_Helper
 import project.Internal.Common.Database_Join_Helper
 import project.Internal.Error_Mapper.Error_Mapper
@@ -39,6 +31,10 @@ import project.Internal.Replace_Params.Replace_Params
 import project.Internal.SQL_Type_Mapping.SQL_Type_Mapping
 import project.Internal.SQL_Type_Reference.SQL_Type_Reference
 import project.Internal.Statement_Setter.Statement_Setter
+import project.SQL.SQL_Builder
+import project.SQL.SQL_Fragment
+import project.SQL_Statement.SQL_Statement
+import project.SQL_Type.SQL_Type
 from project.Errors import SQL_Error, Unsupported_Database_Operation
 from project.Internal.IR.Operation_Metadata import Date_Period_Metadata
 
@@ -56,15 +52,16 @@ type Postgres_Dialect
     ## PRIVATE
 
        The dialect of PostgreSQL databases.
-    Value internal_generator_dialect
+    Value internal_generator_dialect dialect_name:Text="PostgreSQL" dialect_to_text:Text="Postgres_Dialect" type_mapping=Postgres_Type_Mapping
 
     ## PRIVATE
        Name of the dialect.
     name : Text
-    name self = "PostgreSQL"
+    name self = self.dialect_name
 
     ## PRIVATE
-    to_text self = "Postgres_Dialect"
+    to_text : Text
+    to_text self = self.dialect_to_text
 
     ## PRIVATE
        A function which generates SQL code from the internal representation
@@ -76,7 +73,7 @@ type Postgres_Dialect
             Query.Truncate_Table name ->
                 wrapped_name = self.internal_generator_dialect.wrap_identifier name
                 # ONLY is used to avoid truncating other tables that inherit from this table, which is the default behaviour on Postgres.
-                (Builder.code "TRUNCATE TABLE ONLY " ++ wrapped_name) . build
+                (SQL_Builder.code "TRUNCATE TABLE ONLY " ++ wrapped_name) . build
             _ ->
                 # Rely on the base generator for most queries.
                 Base_Generator.generate_query self.internal_generator_dialect query . build
@@ -107,7 +104,7 @@ type Postgres_Dialect
 
     ## PRIVATE
        Prepares a distinct operation.
-    prepare_distinct : Table -> Vector -> Case_Sensitivity -> Problem_Builder -> Table
+    prepare_distinct : DB_Table -> Vector -> Case_Sensitivity -> Problem_Builder -> DB_Table
     prepare_distinct self table key_columns case_sensitivity problem_builder =
         table_name_deduplicator = table.connection.base_connection.table_naming_helper.create_unique_name_strategy
         table_name_deduplicator.mark_used table.name
@@ -134,16 +131,7 @@ type Postgres_Dialect
        Returns the mapping between SQL types of this dialect and Enso
        `Value_Type`.
     get_type_mapping : SQL_Type_Mapping
-    get_type_mapping self = Postgres_Type_Mapping
-
-    ## PRIVATE
-       Creates a `Column_Fetcher` used to fetch data from a result set and build
-       an in-memory column from it, based on the given column type.
-    make_column_fetcher_for_type : SQL_Type -> Column_Fetcher
-    make_column_fetcher_for_type self sql_type =
-        type_mapping = self.get_type_mapping
-        value_type = type_mapping.sql_type_to_value_type sql_type
-        Column_Fetcher_Module.default_fetcher_for_value_type value_type
+    get_type_mapping self = self.type_mapping
 
     ## PRIVATE
     get_statement_setter : Statement_Setter
@@ -249,25 +237,21 @@ type Postgres_Dialect
        if the given period is supported.
     prepare_metadata_for_period : Date_Period | Time_Period -> Value_Type -> Any
     prepare_metadata_for_period self period operation_input_type =
-        case period of
-            Time_Period.Nanosecond ->
-                Error.throw (Unsupported_Database_Operation.Error "Postgres backend does not support nanosecond precision in date/time operations.")
-            _ ->
-                Date_Period_Metadata.Value period operation_input_type
+        if period == Time_Period.Nanosecond && self.name == "PostgreSQL" then Error.throw (Unsupported_Database_Operation.Error "Postgres backend does not support nanosecond precision in date/time operations.") else
+            Date_Period_Metadata.Value period operation_input_type
 
     ## PRIVATE
        Returns true if the `replace` parameters are supported by this backend.
     if_replace_params_supports : Replace_Params -> Any -> Any
     if_replace_params_supports self replace_params ~action =
-        if supported_replace_params.contains replace_params then action else replace_params.throw_unsupported
-
+        if supported_replace_params.contains replace_params then action else replace_params.throw_unsupported self.name
 
     ## PRIVATE
-    value_type_for_upload_of_existing_column : Column -> Value_Type
+    value_type_for_upload_of_existing_column : DB_Column -> Value_Type
     value_type_for_upload_of_existing_column self column = case column of
         # Return the type as-is for database columns.
-        _ : Column -> column.value_type
-        _ : Materialized_Column ->
+        _ : DB_Column -> column.value_type
+        _ : Column ->
             base_type = column.value_type
             case base_type of
                 Value_Type.Decimal precision scale ->
@@ -280,14 +264,14 @@ type Postgres_Dialect
                                 True -> Value_Type.Decimal 1000 scale
                                 # If the needed precision is too big, we cannot set it, so we set the precision to unlimited. This loses scale.
                                 False -> Value_Type.Decimal Nothing Nothing
-                            Warning.attach (Inexact_Type_Coercion.Warning base_type new_type) new_type
+                            Warning.attach (Inexact_Type_Coercion.Warning base_type new_type unavailable=False) new_type
                         False -> base_type
                 _ -> base_type
 
 ## PRIVATE
 make_internal_generator_dialect =
     cases = [["LOWER", Base_Generator.make_function "LOWER"], ["UPPER", Base_Generator.make_function "UPPER"]]
-    text = [starts_with, contains, ends_with, agg_shortest, agg_longest, make_case_sensitive, ["REPLACE", replace]]+concat_ops+cases+trim_ops
+    text = [starts_with, contains, ends_with, agg_shortest, agg_longest, make_case_sensitive, ["REPLACE", replace], left, right]+concat_ops+cases+trim_ops
     counts = [agg_count_is_null, agg_count_empty, agg_count_not_empty, ["COUNT_DISTINCT", agg_count_distinct], ["COUNT_DISTINCT_INCLUDE_NULL", agg_count_distinct_include_null]]
     arith_extensions = [is_nan, is_inf, floating_point_div, mod_op, decimal_div, decimal_mod, ["ROW_MIN", Base_Generator.make_function "LEAST"], ["ROW_MAX", Base_Generator.make_function "GREATEST"]]
     bool = [bool_or]
@@ -295,9 +279,10 @@ make_internal_generator_dialect =
     stddev_pop = ["STDDEV_POP", Base_Generator.make_function "stddev_pop"]
     stddev_samp = ["STDDEV_SAMP", Base_Generator.make_function "stddev_samp"]
     stats = [agg_median, agg_mode, agg_percentile, stddev_pop, stddev_samp]
-    date_ops = [make_extract_as_int "year", make_extract_as_int "quarter", make_extract_as_int "month", make_extract_as_int "week", make_extract_as_int "day", make_extract_as_int "hour", make_extract_as_int "minute", make_extract_fractional_as_int "second", make_extract_fractional_as_int "millisecond" modulus=1000, make_extract_fractional_as_int "microsecond" modulus=1000, ["date_add", make_date_add], ["date_diff", make_date_diff]]
+    date_ops = [make_extract_as_int "year", make_extract_as_int "quarter", make_extract_as_int "month", make_extract_as_int "week", make_extract_as_int "day", make_extract_as_int "hour", make_extract_as_int "minute", make_extract_fractional_as_int "second", make_extract_fractional_as_int "millisecond" modulus=1000, make_extract_fractional_as_int "microsecond" modulus=1000, ["date_add", make_date_add], ["date_diff", make_date_diff], ["date_trunc_to_day", make_date_trunc_to_day]]
     special_overrides = [is_null, is_empty]
-    my_mappings = text + counts + stats + first_last_aggregators + arith_extensions + bool + date_ops + special_overrides
+    other = [["RUNTIME_ERROR", make_runtime_error_op]]
+    my_mappings = text + counts + stats + first_last_aggregators + arith_extensions + bool + date_ops + special_overrides + other
     Base_Generator.base_dialect . extend_with my_mappings
 
 ## PRIVATE
@@ -317,8 +302,8 @@ make_internal_generator_dialect =
    With the IR refactor, this should be done in some preprocess pass that still
    works on SQL_Expression and not raw SQL.
 is_null = Base_Generator.lift_unary_op "IS_NULL" arg->
-    if represents_an_untyped_null_expression arg then Builder.code "TRUE" else
-        Builder.code "(" ++ arg.paren ++ " IS NULL)"
+    if represents_an_untyped_null_expression arg then SQL_Builder.code "TRUE" else
+        SQL_Builder.code "(" ++ arg.paren ++ " IS NULL)"
 
 ## PRIVATE
    See `is_null` above.
@@ -344,43 +329,43 @@ is_empty = Base_Generator.lift_unary_op "IS_EMPTY" arg->
 
 ## PRIVATE
 agg_count_is_null = Base_Generator.lift_unary_op "COUNT_IS_NULL" arg->
-    Builder.code "COUNT(CASE WHEN " ++ arg.paren ++ " IS NULL THEN 1 END)"
+    SQL_Builder.code "COUNT(CASE WHEN " ++ arg.paren ++ " IS NULL THEN 1 END)"
 
 ## PRIVATE
 agg_count_empty = Base_Generator.lift_unary_op "COUNT_EMPTY" arg->
-    Builder.code "COUNT(CASE WHEN (" ++ arg.paren ++ " IS NULL) OR (" ++ arg.paren ++ " = '') THEN 1 END)"
+    SQL_Builder.code "COUNT(CASE WHEN (" ++ arg.paren ++ " IS NULL) OR (" ++ arg.paren ++ " = '') THEN 1 END)"
 
 ## PRIVATE
 agg_count_not_empty = Base_Generator.lift_unary_op "COUNT_NOT_EMPTY" arg->
-    Builder.code "COUNT(CASE WHEN (" ++ arg.paren ++ " IS NOT NULL) AND (" ++ arg.paren ++ " != '') THEN 1 END)"
+    SQL_Builder.code "COUNT(CASE WHEN (" ++ arg.paren ++ " IS NOT NULL) AND (" ++ arg.paren ++ " != '') THEN 1 END)"
 
 ## PRIVATE
 agg_median = Base_Generator.lift_unary_op "MEDIAN" arg->
-    median = Builder.code "percentile_cont(0.5) WITHIN GROUP (ORDER BY " ++ arg ++ ")"
+    median = SQL_Builder.code "percentile_cont(0.5) WITHIN GROUP (ORDER BY " ++ arg ++ ")"
     ## TODO Technically, this check may not be necessary if the input column has
        type INTEGER, because it is impossible to represent a NaN in that type.
        However, currently the column type inference is not tested well-enough to
        rely on this, so leaving an uniform approach regardless of type. This
        could be revisited when further work on column types takes place.
        See issue: https://www.pivotaltracker.com/story/show/180854759
-    has_nan = Builder.code "bool_or(" ++ arg ++ " = double precision 'NaN')"
-    Builder.code "CASE WHEN " ++ has_nan ++ " THEN 'NaN' ELSE " ++ median ++ " END"
+    has_nan = SQL_Builder.code "bool_or(" ++ arg ++ " = double precision 'NaN')"
+    SQL_Builder.code "CASE WHEN " ++ has_nan ++ " THEN 'NaN' ELSE " ++ median ++ " END"
 
 ## PRIVATE
 agg_mode = Base_Generator.lift_unary_op "MODE" arg->
-    Builder.code "mode() WITHIN GROUP (ORDER BY " ++ arg ++ ")"
+    SQL_Builder.code "mode() WITHIN GROUP (ORDER BY " ++ arg ++ ")"
 
 ## PRIVATE
 agg_percentile = Base_Generator.lift_binary_op "PERCENTILE" p-> expr->
-    percentile = Builder.code "percentile_cont(" ++ p ++ ") WITHIN GROUP (ORDER BY " ++ expr ++ ")"
+    percentile = SQL_Builder.code "percentile_cont(" ++ p ++ ") WITHIN GROUP (ORDER BY " ++ expr ++ ")"
     ## TODO Technically, this check may not be necessary if the input column has
        type INTEGER, because it is impossible to represent a NaN in that type.
        However, currently the column type inference is not tested well-enough to
        rely on this, so leaving an uniform approach regardless of type. This
        could be revisited when further work on column types takes place.
        See issue: https://www.pivotaltracker.com/story/show/180854759
-    has_nan = Builder.code "bool_or(" ++ expr ++ " = double precision 'NaN')"
-    Builder.code "CASE WHEN " ++ has_nan ++ " THEN 'NaN' ELSE " ++ percentile ++ " END"
+    has_nan = SQL_Builder.code "bool_or(" ++ expr ++ " = double precision 'NaN')"
+    SQL_Builder.code "CASE WHEN " ++ has_nan ++ " THEN 'NaN' ELSE " ++ percentile ++ " END"
 
 ## PRIVATE
    These are written in a not most-efficient way, but a way that makes them
@@ -400,32 +385,32 @@ make_first_aggregator reverse ignore_null args =
         order_bys = args.drop 1
 
         filter_clause = if ignore_null.not then "" else
-            Builder.code " FILTER (WHERE " ++ result_expr.paren ++ " IS NOT NULL)"
+            SQL_Builder.code " FILTER (WHERE " ++ result_expr.paren ++ " IS NOT NULL)"
         order_clause =
-            Builder.code " ORDER BY " ++ Builder.join "," order_bys
+            SQL_Builder.code " ORDER BY " ++ SQL_Builder.join "," order_bys
         index_expr = case reverse of
             True -> if ignore_null.not then "COUNT(*)" else
-                Builder.code "COUNT(" ++ result_expr ++ ")"
+                SQL_Builder.code "COUNT(" ++ result_expr ++ ")"
             False -> "1"
 
-        Builder.code "(array_agg(" ++ result_expr.paren ++ order_clause ++ ")" ++ filter_clause ++ ")[" ++ index_expr ++ "]"
+        SQL_Builder.code "(array_agg(" ++ result_expr.paren ++ order_clause ++ ")" ++ filter_clause ++ ")[" ++ index_expr ++ "]"
 
 ## PRIVATE
 agg_shortest = Base_Generator.lift_unary_op "SHORTEST" arg->
      order_clause =
-         Builder.code " ORDER BY char_length(" ++ arg ++ ") ASC NULLS LAST"
-     Builder.code "(array_agg(" ++ arg.paren ++ order_clause ++ "))[1]"
+         SQL_Builder.code " ORDER BY char_length(" ++ arg ++ ") ASC NULLS LAST"
+     SQL_Builder.code "(array_agg(" ++ arg.paren ++ order_clause ++ "))[1]"
 
 ## PRIVATE
 agg_longest = Base_Generator.lift_unary_op "LONGEST" arg->
      order_clause =
-         Builder.code " ORDER BY char_length(" ++ arg ++ ") DESC NULLS LAST"
-     Builder.code "(array_agg(" ++ arg.paren ++ order_clause ++ "))[1]"
+         SQL_Builder.code " ORDER BY char_length(" ++ arg ++ ") DESC NULLS LAST"
+     SQL_Builder.code "(array_agg(" ++ arg.paren ++ order_clause ++ "))[1]"
 
 ## PRIVATE
 concat_ops =
     make_raw_concat_expr expr separator =
-        Builder.code "string_agg(" ++ expr ++ ", " ++ separator ++ ")"
+        SQL_Builder.code "string_agg(" ++ expr ++ ", " ++ separator ++ ")"
     concat = Base_Generator.make_concat make_raw_concat_expr make_contains_expr
     [["CONCAT", concat (has_quote=False)], ["CONCAT_QUOTE_IF_NEEDED", concat (has_quote=True)]]
 
@@ -433,15 +418,15 @@ concat_ops =
 trim_ops =
     whitespace = "' ' || CHR(9) || CHR(10) || CHR(13)"
     make_fn fn_name = Base_Generator.lift_binary_op fn_name input-> chars-> case chars of
-            Nothing -> Builder.code fn_name+"(" ++ input ++ ", " ++ whitespace ++ ")"
+            Nothing -> SQL_Builder.code fn_name+"(" ++ input ++ ", " ++ whitespace ++ ")"
             _ ->
                 case chars.is_constant of
                     True ->
                         const = chars.fragments.vec.first.object
-                        if const.is_nothing || const.is_empty then Builder.code fn_name+"(" ++ input ++ ", " ++ whitespace ++ ")" else
-                            Builder.code fn_name+"(" ++ input ++ ", " ++ chars ++ ")"
+                        if const.is_nothing || const.is_empty then SQL_Builder.code fn_name+"(" ++ input ++ ", " ++ whitespace ++ ")" else
+                            SQL_Builder.code fn_name+"(" ++ input ++ ", " ++ chars ++ ")"
                     False ->
-                        Builder.code "CASE WHEN " ++ chars ++ " IS NULL OR " ++ chars ++ " = '' THEN " ++ fn_name ++ "(" ++ input ++ ") ELSE " ++ fn_name ++ "(" ++ input ++ ", " ++ chars ++ ") END"
+                        SQL_Builder.code "CASE WHEN " ++ chars ++ " IS NULL OR " ++ chars ++ " = '' THEN " ++ fn_name ++ "(" ++ input ++ ") ELSE " ++ fn_name ++ "(" ++ input ++ ", " ++ chars ++ ") END"
     [make_fn "TRIM", make_fn "LTRIM", make_fn "RTRIM"]
 
 ## PRIVATE
@@ -449,24 +434,24 @@ agg_count_distinct args = if args.is_empty then (Error.throw (Illegal_Argument.E
     case args.length == 1 of
         True ->
             ## A single null value will be skipped.
-            Builder.code "COUNT(DISTINCT " ++ args.first ++ ")"
+            SQL_Builder.code "COUNT(DISTINCT " ++ args.first ++ ")"
         False ->
             ## A tuple of nulls is not a null, so it will not be skipped - but
                we want to ignore all-null columns. So we manually filter them
                out.
-            count = Builder.code "COUNT(DISTINCT (" ++ Builder.join ", " args ++ "))"
+            count = SQL_Builder.code "COUNT(DISTINCT (" ++ SQL_Builder.join ", " args ++ "))"
             are_nulls = args.map arg-> arg.paren ++ " IS NULL"
-            all_nulls_filter = Builder.code " FILTER (WHERE NOT (" ++ Builder.join " AND " are_nulls ++ "))"
+            all_nulls_filter = SQL_Builder.code " FILTER (WHERE NOT (" ++ SQL_Builder.join " AND " are_nulls ++ "))"
             (count ++ all_nulls_filter).paren
 
 ## PRIVATE
 agg_count_distinct_include_null args =
     ## If we always count as tuples, then even null fields are counted.
-    Builder.code "COUNT(DISTINCT (" ++ Builder.join ", " args ++ ", 0))"
+    SQL_Builder.code "COUNT(DISTINCT (" ++ SQL_Builder.join ", " args ++ ", 0))"
 
 ## PRIVATE
 starts_with = Base_Generator.lift_binary_op "starts_with" str-> sub->
-    res = Builder.code "starts_with(" ++ str ++ "," ++ sub ++ ")"
+    res = SQL_Builder.code "starts_with(" ++ str ++ "," ++ sub ++ ")"
     res.paren
 
 ## PRIVATE
@@ -476,14 +461,22 @@ ends_with = Base_Generator.lift_binary_op "ends_with" str-> sub->
 
 ## PRIVATE
 make_case_sensitive = Base_Generator.lift_unary_op "MAKE_CASE_SENSITIVE" arg->
-    Builder.code "((" ++ arg ++ ') COLLATE "ucs_basic")'
+    SQL_Builder.code "((" ++ arg ++ ') COLLATE "ucs_basic")'
 
 ## PRIVATE
 make_contains_expr expr substring =
-    Builder.code "position(" ++ substring ++ " in " ++ expr ++ ") > 0"
+    SQL_Builder.code "position(" ++ substring ++ " in " ++ expr ++ ") > 0"
 
 ## PRIVATE
 contains = Base_Generator.lift_binary_op "contains" make_contains_expr
+
+## PRIVATE
+left = Base_Generator.lift_binary_op "LEFT" str-> n->
+    SQL_Builder.code "left(" ++ str ++ ", CAST(" ++ n ++ " AS INT))"
+
+## PRIVATE
+right = Base_Generator.lift_binary_op "RIGHT" str-> n->
+    SQL_Builder.code "right(" ++ str ++ ", CAST(" ++ n ++ " AS INT))"
 
 ## PRIVATE
 make_order_descriptor internal_column sort_direction text_ordering =
@@ -519,11 +512,11 @@ is_inf = Base_Generator.lift_unary_op "IS_INF" arg->
 
 ## PRIVATE
 bool_or = Base_Generator.lift_unary_op "BOOL_OR" arg->
-    Builder.code "bool_or(" ++ arg ++ ")"
+    SQL_Builder.code "bool_or(" ++ arg ++ ")"
 
 ## PRIVATE
 floating_point_div = Base_Generator.lift_binary_op "/" x-> y->
-    Builder.code "CAST(" ++ x ++ " AS double precision) / CAST(" ++ y ++ " AS double precision)"
+    SQL_Builder.code "CAST(" ++ x ++ " AS double precision) / CAST(" ++ y ++ " AS double precision)"
 
 ## PRIVATE
 mod_op = Base_Generator.lift_binary_op "mod" x-> y->
@@ -531,7 +524,7 @@ mod_op = Base_Generator.lift_binary_op "mod" x-> y->
 
 ## PRIVATE
 decimal_div = Base_Generator.lift_binary_op "DECIMAL_DIV" x-> y->
-    Builder.code "CAST(" ++ x ++ " AS decimal) / CAST(" ++ y ++ " AS decimal)"
+    SQL_Builder.code "CAST(" ++ x ++ " AS decimal) / CAST(" ++ y ++ " AS decimal)"
 
 ## PRIVATE
 decimal_mod = Base_Generator.lift_binary_op "DECIMAL_MOD" x-> y->
@@ -544,11 +537,11 @@ supported_replace_params =
     e1 = [Replace_Params.Value Text Case_Sensitivity.Sensitive True, Replace_Params.Value Text Case_Sensitivity.Insensitive False, Replace_Params.Value Text Case_Sensitivity.Insensitive True]
     e2 = [Replace_Params.Value Regex Case_Sensitivity.Default False, Replace_Params.Value Regex Case_Sensitivity.Default True, Replace_Params.Value Regex Case_Sensitivity.Sensitive False]
     e3 = [Replace_Params.Value Regex Case_Sensitivity.Sensitive True, Replace_Params.Value Regex Case_Sensitivity.Insensitive False, Replace_Params.Value Regex Case_Sensitivity.Insensitive True]
-    e4 = [Replace_Params.Value Column Case_Sensitivity.Default False, Replace_Params.Value Column Case_Sensitivity.Sensitive False]
+    e4 = [Replace_Params.Value DB_Column Case_Sensitivity.Default False, Replace_Params.Value DB_Column Case_Sensitivity.Sensitive False]
     Set.from_vector <| e0 + e1 + e2 + e3 + e4
 
 ## PRIVATE
-replace : Vector Builder -> Any -> Builder
+replace : Vector SQL_Builder -> Any -> SQL_Builder
 replace args metadata =
     input = args.at 0
     pattern = args.at 1
@@ -562,52 +555,52 @@ replace args metadata =
     expression = case replace_params.input_type of
         Text ->
             ## To use REGEXP_REPLACE on a non-regex, we have to escape it.
-            escaped_pattern = Builder.interpolation (Regex.escape raw_pattern)
+            escaped_pattern = SQL_Builder.interpolation (Regex.escape raw_pattern)
             case replace_params.only_first of
                 False -> case replace_params.case_sensitivity of
                     Case_Sensitivity.Insensitive _ ->
-                        Builder.code "REGEXP_REPLACE(" ++ input ++ ", " ++ escaped_pattern ++ ", " ++ replacement ++ ", 'ig')"
+                        SQL_Builder.code "REGEXP_REPLACE(" ++ input ++ ", " ++ escaped_pattern ++ ", " ++ replacement ++ ", 'ig')"
                     _ ->
-                        Builder.code "REPLACE(" ++ input ++ ", " ++ pattern ++ ", " ++ replacement ++ ")"
+                        SQL_Builder.code "REPLACE(" ++ input ++ ", " ++ pattern ++ ", " ++ replacement ++ ")"
                 True -> case replace_params.case_sensitivity of
                     Case_Sensitivity.Insensitive _ ->
-                        Builder.code "REGEXP_REPLACE(" ++ input ++ ", " ++ escaped_pattern ++ ", " ++ replacement ++ ", 'i')"
+                        SQL_Builder.code "REGEXP_REPLACE(" ++ input ++ ", " ++ escaped_pattern ++ ", " ++ replacement ++ ", 'i')"
                     _ ->
-                        Builder.code "REGEXP_REPLACE(" ++ input ++ ", " ++ escaped_pattern ++ ", " ++ replacement ++ ")"
+                        SQL_Builder.code "REGEXP_REPLACE(" ++ input ++ ", " ++ escaped_pattern ++ ", " ++ replacement ++ ")"
         Regex ->
-            pattern_string = Builder.interpolation raw_pattern.pattern_string
+            pattern_string = SQL_Builder.interpolation raw_pattern.pattern_string
             case replace_params.only_first of
                 False -> case replace_params.case_sensitivity of
                     Case_Sensitivity.Insensitive _ ->
-                        Builder.code "REGEXP_REPLACE(" ++ input ++ ", " ++ pattern_string ++ ", " ++ replacement ++ ", 'ig')"
+                        SQL_Builder.code "REGEXP_REPLACE(" ++ input ++ ", " ++ pattern_string ++ ", " ++ replacement ++ ", 'ig')"
                     _ ->
-                        Builder.code "REGEXP_REPLACE(" ++ input ++ ", " ++ pattern_string ++ ", " ++ replacement ++ ", 'g')"
+                        SQL_Builder.code "REGEXP_REPLACE(" ++ input ++ ", " ++ pattern_string ++ ", " ++ replacement ++ ", 'g')"
                 True -> case replace_params.case_sensitivity of
                     Case_Sensitivity.Insensitive _ ->
-                        Builder.code "REGEXP_REPLACE(" ++ input ++ ", " ++ pattern_string ++ ", " ++ replacement ++ ", 'i')"
+                        SQL_Builder.code "REGEXP_REPLACE(" ++ input ++ ", " ++ pattern_string ++ ", " ++ replacement ++ ", 'i')"
                     _ ->
-                        Builder.code "REGEXP_REPLACE(" ++ input ++ ", " ++ pattern_string ++ ", " ++ replacement ++ ")"
-        Column ->
+                        SQL_Builder.code "REGEXP_REPLACE(" ++ input ++ ", " ++ pattern_string ++ ", " ++ replacement ++ ")"
+        DB_Column ->
             case replace_params.only_first of
                 False -> case replace_params.case_sensitivity of
                     Case_Sensitivity.Insensitive _ ->
                         Nothing
                     _ ->
-                        Builder.code "REPLACE(" ++ input ++ ", " ++ pattern ++ ", " ++ replacement ++ ")"
+                        SQL_Builder.code "REPLACE(" ++ input ++ ", " ++ pattern ++ ", " ++ replacement ++ ")"
                 True -> Nothing
     case expression of
-        Nothing -> replace_params.throw_unsupported
+        Nothing -> replace_params.throw_unsupported "PostgreSQL"
        _ -> expression
 
 ## PRIVATE
 make_extract_as_int enso_name sql_name=enso_name =
     Base_Generator.lift_unary_op enso_name arg->
-        as_int32 <| Builder.code "EXTRACT(" ++ sql_name ++ " FROM " ++ arg ++ ")"
+        as_int32 <| SQL_Builder.code "EXTRACT(" ++ sql_name ++ " FROM " ++ arg ++ ")"
 
 ## PRIVATE
 make_extract_fractional_as_int enso_name sql_name=enso_name modulus=Nothing =
     Base_Generator.lift_unary_op enso_name arg->
-        result = as_int32 <| Builder.code "TRUNC(EXTRACT(" ++ sql_name ++ " FROM " ++ arg ++ "))"
+        result = as_int32 <| SQL_Builder.code "TRUNC(EXTRACT(" ++ sql_name ++ " FROM " ++ arg ++ "))"
         case modulus of
             Nothing -> result
             _ : Integer ->
@@ -641,11 +634,11 @@ make_date_add arguments (metadata : Date_Period_Metadata) =
                 "secs=>0.001"
             Time_Period.Microsecond ->
                 "secs=>0.000001"
-        interval_expression = Builder.code "make_interval(" ++ interval_arg ++ ")"
-        shifted = Builder.code "(" ++ expr ++ " + (" ++ amount ++ " * " ++ interval_expression ++ "))"
+        interval_expression = SQL_Builder.code "make_interval(" ++ interval_arg ++ ")"
+        shifted = SQL_Builder.code "(" ++ expr ++ " + (" ++ amount ++ " * " ++ interval_expression ++ "))"
         case metadata.input_value_type of
             Value_Type.Date ->
-                Builder.code "(" ++ shifted ++ "::date)"
+                SQL_Builder.code "(" ++ shifted ++ "::date)"
             _ -> shifted
 
 ## PRIVATE
@@ -655,16 +648,16 @@ make_date_diff arguments (metadata : Date_Period_Metadata) =
         end = arguments.at 1
 
         truncate expr =
-            Builder.code "TRUNC(" ++ expr ++ ")"
+            SQL_Builder.code "TRUNC(" ++ expr ++ ")"
 
         # `age` computes a 'symbolic' difference expressed in years, months and days.
         extract_years =
-            as_int32 <| Builder.code "EXTRACT(YEARS FROM age(" ++ end ++ ", " ++ start ++ "))"
+            as_int32 <| SQL_Builder.code "EXTRACT(YEARS FROM age(" ++ end ++ ", " ++ start ++ "))"
         # To get total months, we need to sum up with whole years.
         extract_months =
             months = as_int32 <|
-                Builder.code "EXTRACT(MONTHS FROM age(" ++ end ++ ", " ++ start ++ "))"
-            Builder.code "(" ++ extract_years ++ " * 12 + " ++ months ++ ")"
+                SQL_Builder.code "EXTRACT(MONTHS FROM age(" ++ end ++ ", " ++ start ++ "))"
+            SQL_Builder.code "(" ++ extract_years ++ " * 12 + " ++ months ++ ")"
         ## To get total days, we cannot use `age`, because we cannot convert an
            amount of months to days (month lengths vary). Instead we rely on `-`
            returning an interval based in 'raw' days.
@@ -674,14 +667,14 @@ make_date_diff arguments (metadata : Date_Period_Metadata) =
                    count of days.
                 Value_Type.Date -> (end ++ " - " ++ start).paren
                 # For others, it is an interval, so we need to extract.
-                _ -> Builder.code "EXTRACT(DAYS FROM (" ++ end ++ " - " ++ start ++ "))"
+                _ -> SQL_Builder.code "EXTRACT(DAYS FROM (" ++ end ++ " - " ++ start ++ "))"
         ## We round the amount of seconds towards zero, as we only count full
            elapsed seconds in the interval.
            Note that it is important the interval is computed using `-`. The
            symbolic `age` has no clear mapping to the count of days, skewing the
            result.
         extract_seconds =
-            seconds_numeric = Builder.code "EXTRACT(EPOCH FROM (" ++ end ++ " - " ++ start ++ "))"
+            seconds_numeric = SQL_Builder.code "EXTRACT(EPOCH FROM (" ++ end ++ " - " ++ start ++ "))"
             as_int64 (truncate seconds_numeric)
         case metadata.period of
             Date_Period.Year    -> extract_years
@@ -707,23 +700,52 @@ make_date_diff arguments (metadata : Date_Period_Metadata) =
                both.
             Time_Period.Millisecond ->
                 millis = truncate <|
-                    Builder.code "EXTRACT(MILLISECONDS FROM (" ++ end ++ " - " ++ start ++ "))"
+                    SQL_Builder.code "EXTRACT(MILLISECONDS FROM (" ++ end ++ " - " ++ start ++ "))"
                 as_int64 <|
                     ((extract_seconds ++ " * 1000").paren ++ " + " ++ (millis ++ " % 1000").paren).paren
             Time_Period.Microsecond ->
-                micros = Builder.code "EXTRACT(MICROSECONDS FROM (" ++ end ++ " - " ++ start ++ "))"
+                micros = SQL_Builder.code "EXTRACT(MICROSECONDS FROM (" ++ end ++ " - " ++ start ++ "))"
                 as_int64 <|
                     ((extract_seconds ++ " * 1000000").paren ++ " + " ++ (micros ++ " % 1000000").paren).paren
 
 ## PRIVATE
+make_date_trunc_to_day arguments =
+    if arguments.length != 1 then Error.throw (Illegal_State.Error "date_trunc_to_day expects exactly one sub expression. This is a bug in Database library.") else
+        expr = arguments.at 0
+        SQL_Builder.code "(DATE_TRUNC('day'," ++ expr ++ ") :: DATE)"
+
+## PRIVATE
    Alters the expression casting the value to a 64-bit integer.
 as_int64 expr =
-    Builder.code "(" ++ expr ++ "::int8)"
+    SQL_Builder.code "(" ++ expr ++ "::int8)"
 
 ## PRIVATE
    Alters the expression casting the value to a 32-bit integer (the default choice for integers in Postgres).
 as_int32 expr =
-    Builder.code "(" ++ expr ++ "::int4)"
+    SQL_Builder.code "(" ++ expr ++ "::int4)"
 
 ## PRIVATE
 postgres_statement_setter = Statement_Setter.default
+
+## PRIVATE
+   The RUNTIME_ERROR operation should allow the query to compile fine and it
+   will not prevent it from running if the branch including this operation is
+   not taken. But if the branch is computed, it should ensure the query fails.
+
+   This query never returns a value, so its type should be polymorphic. However,
+   that is not possible - so currently it just 'pretends' that it would return a
+   Boolean - because that is the type we expect in the use-case. This can be
+   altered if needed.
+
+   It takes a variable as the second argument. It can be any value that is not
+   statically known - this ensure that the optimizer will not be able to
+   pre-compute the expression too early (which could make the query fail
+   spuriously). See `make_invariant_check` in `Lookup_Query_Helper` for an
+   example.
+make_runtime_error_op arguments =
+    if arguments.length != 2 then
+        Panic.throw (Illegal_Argument.Error "RUNTIME_ERROR takes exactly 2 arguments (error message and a variable to ensure deferred execution).")
+    error_message = arguments.at 0
+    variable_to_defer = arguments.at 1
+
+    SQL_Builder.code "CAST('[ENSO INVARIANT VIOLATED: '||" ++ error_message ++ "||'] '||COALESCE(" ++ variable_to_defer ++ "::TEXT,'NULL') AS BOOLEAN)"

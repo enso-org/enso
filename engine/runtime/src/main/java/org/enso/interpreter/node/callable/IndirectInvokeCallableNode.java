@@ -16,9 +16,9 @@ import org.enso.interpreter.node.callable.thunk.ThunkExecutorNode;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
 import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo;
-import org.enso.interpreter.runtime.callable.atom.Atom;
-import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
 import org.enso.interpreter.runtime.callable.function.Function;
+import org.enso.interpreter.runtime.data.atom.Atom;
+import org.enso.interpreter.runtime.data.atom.AtomConstructor;
 import org.enso.interpreter.runtime.error.DataflowError;
 import org.enso.interpreter.runtime.error.PanicException;
 import org.enso.interpreter.runtime.error.PanicSentinel;
@@ -87,10 +87,11 @@ public abstract class IndirectInvokeCallableNode extends Node {
               argumentsExecutionMode,
               isTail);
 
-      Warning[] extracted = warnings.getWarnings(warning, null);
+      Warning[] extracted = warnings.getWarnings(warning, null, false);
       return WithWarnings.wrap(EnsoContext.get(this), result, extracted);
     } catch (UnsupportedMessageException e) {
-      throw CompilerDirectives.shouldNotReachHere(e);
+      var ctx = EnsoContext.get(this);
+      throw ctx.raiseAssertionPanic(this, null, e);
     }
   }
 

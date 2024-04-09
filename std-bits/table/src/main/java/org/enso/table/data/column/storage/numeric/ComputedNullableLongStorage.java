@@ -4,7 +4,6 @@ import java.util.BitSet;
 import java.util.List;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.type.IntegerType;
-import org.enso.table.data.index.Index;
 import org.enso.table.data.mask.OrderMask;
 import org.enso.table.data.mask.SliceRange;
 import org.graalvm.polyglot.Context;
@@ -18,6 +17,8 @@ import org.graalvm.polyglot.Context;
 public abstract class ComputedNullableLongStorage extends AbstractLongStorage {
   protected final int size;
 
+  protected BitSet isNothing = null;
+
   protected abstract Long computeItem(int idx);
 
   protected ComputedNullableLongStorage(int size) {
@@ -30,17 +31,12 @@ public abstract class ComputedNullableLongStorage extends AbstractLongStorage {
   }
 
   @Override
-  public int countMissing() {
-    return 0;
-  }
-
-  @Override
   public IntegerType getType() {
     return IntegerType.INT_64;
   }
 
   @Override
-  public boolean isNa(long idx) {
+  public boolean isNothing(long idx) {
     if (idx < 0 || idx >= size) {
       throw new IndexOutOfBoundsException(
           "Index " + idx + " is out of bounds for range of length " + size + ".");
@@ -64,30 +60,34 @@ public abstract class ComputedNullableLongStorage extends AbstractLongStorage {
   }
 
   @Override
-  public BitSet getIsMissing() {
-    BitSet missing = new BitSet();
-    Context context = Context.getCurrent();
-    for (int i = 0; i < size; i++) {
-      if (computeItem(i) == null) {
-        missing.set(i);
-      }
+  public BitSet getIsNothingMap() {
+    if (isNothing == null) {
+      // Only compute once as needed.
+      BitSet newIsNothing = new BitSet();
+      Context context = Context.getCurrent();
+      for (int i = 0; i < size; i++) {
+        if (computeItem(i) == null) {
+          newIsNothing.set(i);
+        }
 
-      context.safepoint();
+        context.safepoint();
+      }
+      isNothing = newIsNothing;
     }
-    return missing;
+    return isNothing;
   }
 
   @Override
-  public Storage<Long> mask(BitSet mask, int cardinality) {
-    BitSet newMissing = new BitSet();
-    long[] newData = new long[cardinality];
+  public Storage<Long> applyFilter(BitSet filterMask, int newLength) {
+    BitSet newIsNothing = new BitSet();
+    long[] newData = new long[newLength];
     int resIx = 0;
     Context context = Context.getCurrent();
     for (int i = 0; i < size; i++) {
-      if (mask.get(i)) {
+      if (filterMask.get(i)) {
         Long item = computeItem(i);
         if (item == null) {
-          newMissing.set(resIx++);
+          newIsNothing.set(resIx++);
         } else {
           newData[resIx++] = item;
         }
@@ -95,22 +95,22 @@ public abstract class ComputedNullableLongStorage extends AbstractLongStorage {
 
       context.safepoint();
     }
-    return new LongStorage(newData, cardinality, newMissing, getType());
+    return new LongStorage(newData, newLength, newIsNothing, getType());
   }
 
   @Override
   public Storage<Long> applyMask(OrderMask mask) {
-    int[] positions = mask.getPositions();
-    long[] newData = new long[positions.length];
-    BitSet newMissing = new BitSet();
+    long[] newData = new long[mask.length()];
+    BitSet newIsNothing = new BitSet();
     Context context = Context.getCurrent();
-    for (int i = 0; i < positions.length; i++) {
-      if (positions[i] == Index.NOT_FOUND) {
-        newMissing.set(i);
+    for (int i = 0; i < mask.length(); i++) {
+      int position = mask.get(i);
+      if (position == Storage.NOT_FOUND_INDEX) {
+        newIsNothing.set(i);
       } else {
-        Long item = computeItem(positions[i]);
+        Long item = computeItem(position);
         if (item == null) {
-          newMissing.set(i);
+          newIsNothing.set(i);
         } else {
           newData[i] = item;
         }
@@ -118,55 +118,32 @@ public abstract class ComputedNullableLongStorage extends AbstractLongStorage {
 
       context.safepoint();
     }
-    return new LongStorage(newData, positions.length, newMissing, getType());
-  }
-
-  @Override
-  public Storage<Long> countMask(int[] counts, int total) {
-    long[] newData = new long[total];
-    BitSet newMissing = new BitSet();
-    int pos = 0;
-    Context context = Context.getCurrent();
-    for (int i = 0; i < counts.length; i++) {
-      Long item = computeItem(i);
-      if (item == null) {
-        newMissing.set(pos, pos + counts[i]);
-        pos += counts[i];
-      } else {
-        long nonNullItem = item;
-        for (int j = 0; j < counts[i]; j++) {
-          newData[pos++] = nonNullItem;
-        }
-      }
-
-      context.safepoint();
-    }
-    return new LongStorage(newData, total, newMissing, getType());
+    return new LongStorage(newData, newData.length, newIsNothing, getType());
   }
 
   @Override
   public Storage<Long> slice(int offset, int limit) {
     int newSize = Math.min(size - offset, limit);
     long[] newData = new long[newSize];
-    BitSet newMissing = new BitSet();
+    BitSet newIsNothing = new BitSet();
     Context context = Context.getCurrent();
     for (int i = 0; i < newSize; i++) {
       Long item = computeItem(offset + i);
       if (item == null) {
-        newMissing.set(i);
+        newIsNothing.set(i);
       } else {
         newData[i] = item;
       }
       context.safepoint();
     }
-    return new LongStorage(newData, newSize, newMissing, getType());
+    return new LongStorage(newData, newSize, newIsNothing, getType());
   }
 
   @Override
   public Storage<Long> slice(List<SliceRange> ranges) {
     int newSize = SliceRange.totalLength(ranges);
     long[] newData = new long[newSize];
-    BitSet newMissing = new BitSet(newSize);
+    BitSet newIsNothing = new BitSet(newSize);
     int offset = 0;
     Context context = Context.getCurrent();
     for (SliceRange range : ranges) {
@@ -175,7 +152,7 @@ public abstract class ComputedNullableLongStorage extends AbstractLongStorage {
       for (int i = 0; i < length; i++) {
         Long item = computeItem(rangeStart + i);
         if (item == null) {
-          newMissing.set(offset + i);
+          newIsNothing.set(offset + i);
         } else {
           newData[offset + i] = item;
         }
@@ -184,7 +161,7 @@ public abstract class ComputedNullableLongStorage extends AbstractLongStorage {
       offset += length;
     }
 
-    return new LongStorage(newData, newSize, newMissing, getType());
+    return new LongStorage(newData, newSize, newIsNothing, getType());
   }
 
   @Override
@@ -193,5 +170,20 @@ public abstract class ComputedNullableLongStorage extends AbstractLongStorage {
     // just return self.
     assert getType().equals(IntegerType.INT_64);
     return this;
+  }
+
+  @Override
+  public Storage<Long> appendNulls(int count) {
+    final ComputedNullableLongStorage parent = this;
+    return new ComputedNullableLongStorage(parent.size + count) {
+      @Override
+      protected Long computeItem(int idx) {
+        if (idx < parent.size) {
+          return parent.computeItem(idx);
+        }
+
+        return null;
+      }
+    };
   }
 }

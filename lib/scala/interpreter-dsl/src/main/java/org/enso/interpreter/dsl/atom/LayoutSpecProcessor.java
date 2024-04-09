@@ -70,8 +70,8 @@ public class LayoutSpecProcessor extends AbstractProcessor {
     var file = processingEnv.getFiler().createSourceFile(pkg + "." + className);
     try (var out = new PrintWriter(file.openWriter())) {
       out.println("package " + pkg + ";");
-      out.println("import org.enso.interpreter.runtime.callable.atom.Atom;");
-      out.println("import org.enso.interpreter.runtime.callable.atom.AtomConstructor;");
+      out.println("import org.enso.interpreter.runtime.data.atom.Atom;");
+      out.println("import org.enso.interpreter.runtime.data.atom.AtomConstructor;");
       out.println("import com.oracle.truffle.api.dsl.NodeFactory;");
       out.println("import com.oracle.truffle.api.dsl.Specialization;");
       out.println();
@@ -96,7 +96,8 @@ public class LayoutSpecProcessor extends AbstractProcessor {
   private void writeFieldGetterFactoryGetter(
       PrintWriter out, String className, int countUnboxed, int countBoxed) {
     out.println(
-        "  public static NodeFactory<? extends FieldGetterNode> getFieldGetterNodeFactory(int storageIndex, boolean isDoubleIfUnboxed) {");
+        "  public static NodeFactory<? extends FieldGetterNode> getFieldGetterNodeFactory(int"
+            + " storageIndex, boolean isDoubleIfUnboxed) {");
     out.println("    return switch (storageIndex) {");
     for (int i = 0; i < countUnboxed; i++) {
       out.println("      case " + i + " -> isDoubleIfUnboxed ?");
@@ -123,7 +124,8 @@ public class LayoutSpecProcessor extends AbstractProcessor {
   private void writeFieldSetterFactoryGetter(
       PrintWriter out, String className, int countUnboxed, int countBoxed) {
     out.println(
-        "  public static NodeFactory<? extends FieldSetterNode> getFieldSetterNodeFactory(int storageIndex) {");
+        "  public static NodeFactory<? extends FieldSetterNode> getFieldSetterNodeFactory(int"
+            + " storageIndex) {");
     out.println("    return switch (storageIndex) {");
     for (int i = countUnboxed; i < countBoxed + countUnboxed; i++) {
       out.println(
@@ -264,7 +266,8 @@ public class LayoutSpecProcessor extends AbstractProcessor {
   private void writeGetterFactory(PrintWriter out, String layoutName, LayoutSpec spec) {
     out.println("  @SuppressWarnings(\"unchecked\")");
     out.println(
-        "  public static NodeFactory<UnboxingAtom.FieldGetterNode>[] getFieldGetterNodeFactories(int numDoubles, int numLongs, int numBoxed) {");
+        "  public static NodeFactory<UnboxingAtom.FieldGetterNode>[]"
+            + " getFieldGetterNodeFactories(int numDoubles, int numLongs, int numBoxed) {");
     out.println("    var arity = numDoubles + numLongs + numBoxed;");
     out.println("    var numUnboxed = numDoubles + numLongs;");
     out.println("    var result = new NodeFactory[arity];");
@@ -308,7 +311,8 @@ public class LayoutSpecProcessor extends AbstractProcessor {
   private void writeSetterFactory(PrintWriter out, String layoutName, LayoutSpec spec) {
     out.println("  @SuppressWarnings(\"unchecked\")");
     out.println(
-        "  public static NodeFactory<UnboxingAtom.FieldSetterNode>[] getFieldSetterNodeFactories(int numDoubles, int numLongs, int numBoxed) {");
+        "  public static NodeFactory<UnboxingAtom.FieldSetterNode>[]"
+            + " getFieldSetterNodeFactories(int numDoubles, int numLongs, int numBoxed) {");
     out.println("    var arity = numDoubles + numLongs + numBoxed;");
     out.println("    var numUnboxed = numDoubles + numLongs;");
     out.println("    var result = new NodeFactory[arity];");
@@ -339,7 +343,8 @@ public class LayoutSpecProcessor extends AbstractProcessor {
 
   private void writeInstantiatorFactory(PrintWriter out, String layoutName, LayoutSpec spec) {
     out.println(
-        "  public static NodeFactory<? extends UnboxingAtom.InstantiatorNode> getInstantiatorNodeFactory(int numUnboxed, int numBoxed) {");
+        "  public static NodeFactory<? extends UnboxingAtom.InstantiatorNode>"
+            + " getInstantiatorNodeFactory(int numUnboxed, int numBoxed) {");
     out.println("    return switch (numUnboxed) {");
     for (int unboxedCase = 0; unboxedCase <= spec.maxFields(); unboxedCase++) {
       out.println("      case " + unboxedCase + " -> switch (numBoxed) {");

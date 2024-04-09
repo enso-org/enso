@@ -3,7 +3,6 @@ package org.enso.table.data.column.operation.map;
 import java.util.BitSet;
 import java.util.HashSet;
 import java.util.List;
-
 import org.enso.table.data.column.storage.BoolStorage;
 import org.enso.table.data.column.storage.Storage;
 import org.graalvm.polyglot.Context;
@@ -43,7 +42,8 @@ public abstract class SpecializedIsInOp<T, S extends Storage<T>> extends BinaryM
   }
 
   @Override
-  public Storage<?> runBinaryMap(S storage, Object arg, MapOperationProblemBuilder problemBuilder) {
+  public Storage<?> runBinaryMap(
+      S storage, Object arg, MapOperationProblemAggregator problemAggregator) {
     if (arg instanceof List) {
       return runMap(storage, (List<?>) arg);
     } else {
@@ -55,20 +55,27 @@ public abstract class SpecializedIsInOp<T, S extends Storage<T>> extends BinaryM
     Context context = Context.getCurrent();
     CompactRepresentation<T> compactRepresentation = prepareList(arg);
     BitSet newVals = new BitSet();
-    for (int i = 0; i < storage.size(); i++) {
-      if (storage.isNa(i) && compactRepresentation.hasNulls) {
-        newVals.set(i);
-      } else if (compactRepresentation.coercedValues.contains(storage.getItemBoxed(i))) {
-        newVals.set(i);
-      }
+    BitSet isNothing = new BitSet();
+    if (!arg.isEmpty()) {
+      for (int i = 0; i < storage.size(); i++) {
+        if (storage.isNothing(i)) {
+          isNothing.set(i);
+        } else if (compactRepresentation.coercedValues.contains(storage.getItemBoxed(i))) {
+          newVals.set(i);
+        } else if (compactRepresentation.hasNulls) {
+          isNothing.set(i);
+        }
+        // Otherwise leave as default=false
 
-      context.safepoint();
+        context.safepoint();
+      }
     }
-    return new BoolStorage(newVals, new BitSet(), storage.size(), false);
+    return new BoolStorage(newVals, isNothing, storage.size(), false);
   }
 
   @Override
-  public Storage<?> runZip(S storage, Storage<?> arg, MapOperationProblemBuilder problemBuilder) {
+  public Storage<?> runZip(
+      S storage, Storage<?> arg, MapOperationProblemAggregator problemAggregator) {
     return runMap(storage, arg.toList());
   }
 

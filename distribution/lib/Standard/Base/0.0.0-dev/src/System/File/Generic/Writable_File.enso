@@ -1,0 +1,88 @@
+import project.Any.Any
+import project.Data.Text.Text
+import project.Data.Vector.Vector
+import project.Meta
+import project.Nothing.Nothing
+import project.System.File.Existing_File_Behavior.Existing_File_Behavior
+import project.System.File.File
+import project.System.File.File_Access.File_Access
+import project.System.File.Generic.File_Like.File_Like
+import project.System.File.Generic.File_Write_Strategy.File_Write_Strategy
+import project.System.File_Format_Metadata.File_Format_Metadata
+import project.System.Input_Stream.Input_Stream
+import project.System.Output_Stream.Output_Stream
+from project.Data.Boolean import Boolean, False, True
+
+## PRIVATE
+   Any type that represents a file that can be written to should be convertible
+   to this common type-class.
+
+   This allows our code to work with any kind of file backend, e.g. the local
+   file system as well as remote ones like S3, using the same basic interface.
+
+   The type-class currently provides the following capabilities:
+   - write_strategy: a `File_Write_Strategy` instance denoting how to handle
+     file writing depending on `Existing_File_Behavior` and dry run settings.
+   - exists: the underlying `file` should have an `exists` method available,
+     because it is used by some logic as an early exit condition.
+type Writable_File
+    ## PRIVATE
+    Value file (write_strategy : File_Write_Strategy)
+
+    ## PRIVATE
+    exists self -> Boolean = self.file.exists
+
+    ## PRIVATE
+    copy_to self destination replace_existing = self.file.copy_to destination replace_existing
+
+    ## PRIVATE
+    write self (existing_file_behavior : Existing_File_Behavior) (action : Output_Stream -> Any) -> Any =
+        self.write_strategy.write self.file existing_file_behavior action
+
+    ## PRIVATE
+    write_handling_dry_run self (existing_file_behavior : Existing_File_Behavior) (action : Any -> Output_Stream -> Any) -> Any =
+        self.write_strategy.write_handling_dry_run self.file existing_file_behavior action
+
+    ## PRIVATE
+    is_local self -> Boolean = self.file.is_a File
+
+    ## PRIVATE
+       This helper method may be used if the logic for writing the file requires a local filesystem file
+       (e.g. using some external libraries that prefer to work with a Java File).
+       It downloads a remote file to a local temporary location, runs the action
+       and then uploads the resulting file back to the remote backend.
+    write_requiring_local_file self (existing_file_behavior : Existing_File_Behavior) (action : File -> Any) -> Any =
+        self.write_strategy.write_with_local_file self.file existing_file_behavior action
+
+    ## PRIVATE
+       Writes a local file to this `Writable_File` destination.
+       This is used by `File.copy_to` and `File.move_to` to possibly implement
+       the upload more efficiently (avoiding duplicated temporary files).
+    copy_from_local self (source : File) (replace_existing : Boolean) =
+        self.write_strategy.copy_from_local source self.file replace_existing
+
+    ## PRIVATE
+    with_output_stream self (open_options : Vector) action =
+        self.file.with_output_stream open_options action
+
+    ## PRIVATE
+    to_text self -> Text =
+        "(Writable_File " + self.file.to_text + ")"
+
+    ## PRIVATE
+    pretty self -> Text = self.to_text
+
+    ## PRIVATE
+    to_display_text self -> Text = self.file.to_display_text
+
+## PRIVATE
+Writable_File.from (that : Text) = Writable_File.from (File.new that)
+
+## PRIVATE
+   If a conversion to `File_Format_Metadata` is needed, we delegate to the underlying file.
+   Every `Writable_File` should be able to provide its file format metadata.
+File_Format_Metadata.from (that : Writable_File) = File_Format_Metadata.from that.file
+
+## PRIVATE
+   If a conversion to `File_Like` is needed, we delegate to the underlying file.
+File_Like.from (that : Writable_File) = File_Like.from that.file

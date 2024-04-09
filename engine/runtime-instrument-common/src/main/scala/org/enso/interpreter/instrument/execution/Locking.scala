@@ -29,6 +29,10 @@ trait Locking {
     */
   def releaseWriteCompilationLock(): Unit
 
+  /** Aseerts a compilation write lock is held by the current thread.
+    */
+  def assertWriteCompilationLock(): Unit
+
   /** Acquires a compilation read lock and returns a timestamp when it succeeded.
     *
     * @return timestamp of when the lock was acquired

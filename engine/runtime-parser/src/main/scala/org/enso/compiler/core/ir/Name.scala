@@ -1,15 +1,18 @@
 package org.enso.compiler.core.ir
 
-import org.enso.compiler.core.{ConstantsNames, IR}
-import org.enso.compiler.core.IR.{randomId, Identifier, ToStringHelper}
-import org.enso.syntax.text.Location
+import org.enso.compiler.core.{ConstantsNames, IR, Identifier}
+import org.enso.compiler.core.Implicits.{ShowPassData, ToStringHelper}
+
+import java.util.UUID
 
 /** Enso names. */
 trait Name extends Expression with IRKind.Primitive {
   val name: String
 
   /** @inheritdoc */
-  override def mapExpressions(fn: Expression => Expression): Name
+  override def mapExpressions(
+    fn: java.util.function.Function[Expression, Expression]
+  ): Name
 
   /** @inheritdoc */
   override def setLocation(location: Option[IdentifiedLocation]): Name
@@ -40,17 +43,17 @@ object Name {
     * @param passData    the pass metadata associated with this node
     * @param diagnostics compiler diagnostics for this node
     */
-  sealed case class MethodReference(
+  final case class MethodReference(
     typePointer: Option[Name],
     methodName: Name,
-    override val location: Option[IdentifiedLocation],
-    override val passData: MetadataStorage      = MetadataStorage(),
-    override val diagnostics: DiagnosticStorage = DiagnosticStorage()
+    location: Option[IdentifiedLocation],
+    passData: MetadataStorage      = new MetadataStorage(),
+    diagnostics: DiagnosticStorage = DiagnosticStorage()
   ) extends Name
-      with IRKind.Sugar {
+      with IRKind.Sugar
+      with LazyId {
 
-    override val name: String             = showCode()
-    override protected var id: Identifier = randomId
+    override val name: String = showCode()
 
     /** Creates a copy of `this`.
       *
@@ -68,7 +71,7 @@ object Name {
       location: Option[IdentifiedLocation] = location,
       passData: MetadataStorage            = passData,
       diagnostics: DiagnosticStorage       = diagnostics,
-      id: Identifier                       = id
+      id: UUID @Identifier                 = id
     ): MethodReference = {
       val res =
         MethodReference(
@@ -105,15 +108,16 @@ object Name {
           keepIdentifiers
         ),
         location = if (keepLocations) location else None,
-        passData = if (keepMetadata) passData.duplicate else MetadataStorage(),
+        passData =
+          if (keepMetadata) passData.duplicate else new MetadataStorage(),
         diagnostics =
           if (keepDiagnostics) diagnostics.copy else DiagnosticStorage(),
-        id = if (keepIdentifiers) id else randomId
+        id = if (keepIdentifiers) id else null
       )
 
     /** @inheritdoc */
     override def mapExpressions(
-      fn: Expression => Expression
+      fn: java.util.function.Function[Expression, Expression]
     ): MethodReference =
       copy(
         typePointer = typePointer.map(_.mapExpressions(fn)),
@@ -178,8 +182,8 @@ object Name {
         (identLoc, segment) => {
           identLoc.flatMap(loc => {
             Some(
-              IdentifiedLocation(
-                Location(
+              new IdentifiedLocation(
+                new Location(
                   loc.location.start,
                   segment.location
                     .flatMap(l => Some(l.location.end))
@@ -201,17 +205,20 @@ object Name {
     * @param diagnostics compiler diagnostics for this node
     * @return a copy of `this`, updated with the specified values
     */
-  sealed case class Qualified(
+  final case class Qualified(
     parts: List[Name],
-    override val location: Option[IdentifiedLocation],
-    override val passData: MetadataStorage      = MetadataStorage(),
-    override val diagnostics: DiagnosticStorage = DiagnosticStorage()
+    location: Option[IdentifiedLocation],
+    passData: MetadataStorage      = new MetadataStorage(),
+    diagnostics: DiagnosticStorage = DiagnosticStorage()
   ) extends Name
-      with IRKind.Primitive {
+      with IRKind.Primitive
+      with LazyId {
 
     override val name: String = parts.map(_.name).mkString(".")
 
-    override def mapExpressions(fn: Expression => Expression): Name = this
+    override def mapExpressions(
+      fn: java.util.function.Function[Expression, Expression]
+    ): Name = this
 
     override def setLocation(location: Option[IdentifiedLocation]): Name =
       copy(location = location)
@@ -230,7 +237,7 @@ object Name {
       location: Option[IdentifiedLocation] = location,
       passData: MetadataStorage            = passData,
       diagnostics: DiagnosticStorage       = diagnostics,
-      id: Identifier                       = id
+      id: UUID @Identifier                 = id
     ): Qualified = {
       val res =
         Qualified(
@@ -260,17 +267,15 @@ object Name {
           )
         ),
         location = if (keepLocations) location else None,
-        passData = if (keepMetadata) passData.duplicate else MetadataStorage(),
+        passData =
+          if (keepMetadata) passData.duplicate else new MetadataStorage(),
         diagnostics =
           if (keepDiagnostics) diagnostics.copy else DiagnosticStorage(),
-        id = if (keepIdentifiers) id else randomId
+        id = if (keepIdentifiers) id else null
       )
 
     /** @inheritdoc */
     override def children: List[IR] = parts
-
-    /** @inheritdoc */
-    override protected var id: Identifier = randomId
 
     /** @inheritdoc */
     override def showCode(indent: Int): String = name
@@ -283,13 +288,13 @@ object Name {
     * @param diagnostics compiler diagnostics for this node
     */
   sealed case class Blank(
-    override val location: Option[IdentifiedLocation],
-    override val passData: MetadataStorage      = MetadataStorage(),
-    override val diagnostics: DiagnosticStorage = DiagnosticStorage()
+    location: Option[IdentifiedLocation],
+    passData: MetadataStorage      = new MetadataStorage(),
+    diagnostics: DiagnosticStorage = DiagnosticStorage()
   ) extends Name
-      with IRKind.Sugar {
-    override val name: String             = "_"
-    override protected var id: Identifier = randomId
+      with IRKind.Sugar
+      with LazyId {
+    override val name: String = "_"
 
     /** Creates a copy of `this`.
       *
@@ -303,7 +308,7 @@ object Name {
       location: Option[IdentifiedLocation] = location,
       passData: MetadataStorage            = passData,
       diagnostics: DiagnosticStorage       = diagnostics,
-      id: Identifier                       = id
+      id: UUID @Identifier                 = id
     ): Blank = {
       val res = Blank(location, passData, diagnostics)
       res.id = id
@@ -319,14 +324,17 @@ object Name {
     ): Blank =
       copy(
         location = if (keepLocations) location else None,
-        passData = if (keepMetadata) passData.duplicate else MetadataStorage(),
+        passData =
+          if (keepMetadata) passData.duplicate else new MetadataStorage(),
         diagnostics =
           if (keepDiagnostics) diagnostics.copy else DiagnosticStorage(),
-        id = if (keepIdentifiers) id else randomId
+        id = if (keepIdentifiers) id else null
       )
 
     /** @inheritdoc */
-    override def mapExpressions(fn: Expression => Expression): Blank =
+    override def mapExpressions(
+      fn: java.util.function.Function[Expression, Expression]
+    ): Blank =
       this
 
     /** @inheritdoc */
@@ -353,13 +361,13 @@ object Name {
 
   sealed case class Special(
     specialName: Special.Ident,
-    override val location: Option[IdentifiedLocation],
-    override val passData: MetadataStorage      = MetadataStorage(),
-    override val diagnostics: DiagnosticStorage = DiagnosticStorage()
+    location: Option[IdentifiedLocation],
+    passData: MetadataStorage      = new MetadataStorage(),
+    diagnostics: DiagnosticStorage = DiagnosticStorage()
   ) extends Name
-      with IRKind.Sugar {
-    override val name: String             = s"<special::${specialName}>"
-    override protected var id: Identifier = randomId
+      with IRKind.Sugar
+      with LazyId {
+    override val name: String = s"<special::${specialName}>"
 
     /** Creates a copy of `this`.
       *
@@ -374,7 +382,7 @@ object Name {
       location: Option[IdentifiedLocation] = location,
       passData: MetadataStorage            = passData,
       diagnostics: DiagnosticStorage       = diagnostics,
-      id: Identifier                       = id
+      id: UUID @Identifier                 = id
     ): Special = {
       val res = Special(specialName, location, passData, diagnostics)
       res.id = id
@@ -389,13 +397,16 @@ object Name {
     ): Special =
       copy(
         location = if (keepLocations) location else None,
-        passData = if (keepMetadata) passData.duplicate else MetadataStorage(),
+        passData =
+          if (keepMetadata) passData.duplicate else new MetadataStorage(),
         diagnostics =
           if (keepDiagnostics) diagnostics.copy else DiagnosticStorage(),
-        id = if (keepIdentifiers) id else randomId
+        id = if (keepIdentifiers) id else null
       )
 
-    override def mapExpressions(fn: Expression => Expression): Special =
+    override def mapExpressions(
+      fn: java.util.function.Function[Expression, Expression]
+    ): Special =
       this
 
     override def setLocation(location: Option[IdentifiedLocation]): Special =
@@ -436,23 +447,26 @@ object Name {
     * @param name        the literal text of the name
     * @param isMethod    is this a method call name
     * @param location    the source location that the node corresponds to
+    * @param originalName the name which this literal has replaced, if any
     * @param passData    the pass metadata associated with this node
     * @param diagnostics compiler diagnostics for this node
     */
   sealed case class Literal(
     override val name: String,
     override val isMethod: Boolean,
-    override val location: Option[IdentifiedLocation],
-    override val passData: MetadataStorage      = MetadataStorage(),
-    override val diagnostics: DiagnosticStorage = DiagnosticStorage()
-  ) extends Name {
-    override protected var id: Identifier = randomId
+    location: Option[IdentifiedLocation],
+    originalName: Option[Name]     = None,
+    passData: MetadataStorage      = new MetadataStorage(),
+    diagnostics: DiagnosticStorage = DiagnosticStorage()
+  ) extends Name
+      with LazyId {
 
     /** Creates a copy of `this`.
       *
       * @param name        the literal text of the name
       * @param isMethod    is this a method call name
       * @param location    the source location that the node corresponds to
+      * @param originalName the name which this literal has replaced, if any
       * @param passData    the pass metadata associated with this node
       * @param diagnostics compiler diagnostics for this node
       * @param id          the identifier for the new node
@@ -462,12 +476,13 @@ object Name {
       name: String                         = name,
       isMethod: Boolean                    = isMethod,
       location: Option[IdentifiedLocation] = location,
+      originalName: Option[Name]           = originalName,
       passData: MetadataStorage            = passData,
       diagnostics: DiagnosticStorage       = diagnostics,
-      id: Identifier                       = id
+      id: UUID @Identifier                 = id
     ): Literal = {
       val res =
-        Literal(name, isMethod, location, passData, diagnostics)
+        Literal(name, isMethod, location, originalName, passData, diagnostics)
       res.id = id
       res
     }
@@ -481,10 +496,11 @@ object Name {
     ): Literal =
       copy(
         location = if (keepLocations) location else None,
-        passData = if (keepMetadata) passData.duplicate else MetadataStorage(),
+        passData =
+          if (keepMetadata) passData.duplicate else new MetadataStorage(),
         diagnostics =
           if (keepDiagnostics) diagnostics.copy else DiagnosticStorage(),
-        id = if (keepIdentifiers) id else randomId
+        id = if (keepIdentifiers) id else null
       )
 
     /** @inheritdoc */
@@ -492,7 +508,9 @@ object Name {
       copy(location = location)
 
     /** @inheritdoc */
-    override def mapExpressions(fn: Expression => Expression): Literal = this
+    override def mapExpressions(
+      fn: java.util.function.Function[Expression, Expression]
+    ): Literal = this
 
     /** @inheritdoc */
     override def toString: String =
@@ -518,7 +536,9 @@ object Name {
   sealed trait Annotation extends Name with module.scope.Definition {
 
     /** @inheritdoc */
-    override def mapExpressions(fn: Expression => Expression): Annotation
+    override def mapExpressions(
+      fn: java.util.function.Function[Expression, Expression]
+    ): Annotation
 
     /** @inheritdoc */
     override def setLocation(location: Option[IdentifiedLocation]): Annotation
@@ -541,12 +561,12 @@ object Name {
     */
   sealed case class BuiltinAnnotation(
     override val name: String,
-    override val location: Option[IdentifiedLocation],
-    override val passData: MetadataStorage      = MetadataStorage(),
-    override val diagnostics: DiagnosticStorage = DiagnosticStorage()
+    location: Option[IdentifiedLocation],
+    passData: MetadataStorage      = new MetadataStorage(),
+    diagnostics: DiagnosticStorage = DiagnosticStorage()
   ) extends Annotation
-      with IRKind.Primitive {
-    override protected var id: Identifier = randomId
+      with IRKind.Primitive
+      with LazyId {
 
     /** Creates a copy of `this`.
       *
@@ -562,7 +582,7 @@ object Name {
       location: Option[IdentifiedLocation] = location,
       passData: MetadataStorage            = passData,
       diagnostics: DiagnosticStorage       = diagnostics,
-      id: Identifier                       = id
+      id: UUID @Identifier                 = id
     ): BuiltinAnnotation = {
       val res = BuiltinAnnotation(name, location, passData, diagnostics)
       res.id = id
@@ -578,10 +598,11 @@ object Name {
     ): BuiltinAnnotation =
       copy(
         location = if (keepLocations) location else None,
-        passData = if (keepMetadata) passData.duplicate else MetadataStorage(),
+        passData =
+          if (keepMetadata) passData.duplicate else new MetadataStorage(),
         diagnostics =
           if (keepDiagnostics) diagnostics.copy else DiagnosticStorage(),
-        id = if (keepIdentifiers) id else randomId
+        id = if (keepIdentifiers) id else null
       )
 
     /** @inheritdoc */
@@ -592,7 +613,7 @@ object Name {
 
     /** @inheritdoc */
     override def mapExpressions(
-      fn: Expression => Expression
+      fn: java.util.function.Function[Expression, Expression]
     ): BuiltinAnnotation =
       this
 
@@ -626,11 +647,11 @@ object Name {
   sealed case class GenericAnnotation(
     override val name: String,
     expression: Expression,
-    override val location: Option[IdentifiedLocation],
-    override val passData: MetadataStorage      = MetadataStorage(),
-    override val diagnostics: DiagnosticStorage = DiagnosticStorage()
-  ) extends Annotation {
-    override protected var id: Identifier = randomId
+    location: Option[IdentifiedLocation],
+    passData: MetadataStorage      = new MetadataStorage(),
+    diagnostics: DiagnosticStorage = DiagnosticStorage()
+  ) extends Annotation
+      with LazyId {
 
     /** Creates a copy of `this`.
       *
@@ -648,7 +669,7 @@ object Name {
       location: Option[IdentifiedLocation] = location,
       passData: MetadataStorage            = passData,
       diagnostics: DiagnosticStorage       = diagnostics,
-      id: Identifier                       = id
+      id: UUID @Identifier                 = id
     ): GenericAnnotation = {
       val res =
         GenericAnnotation(name, expression, location, passData, diagnostics)
@@ -665,10 +686,11 @@ object Name {
     ): GenericAnnotation =
       copy(
         location = if (keepLocations) location else None,
-        passData = if (keepMetadata) passData.duplicate else MetadataStorage(),
+        passData =
+          if (keepMetadata) passData.duplicate else new MetadataStorage(),
         diagnostics =
           if (keepDiagnostics) diagnostics.copy else DiagnosticStorage(),
-        id = if (keepIdentifiers) id else randomId
+        id = if (keepIdentifiers) id else null
       )
 
     /** @inheritdoc */
@@ -679,7 +701,7 @@ object Name {
 
     /** @inheritdoc */
     override def mapExpressions(
-      fn: Expression => Expression
+      fn: java.util.function.Function[Expression, Expression]
     ): GenericAnnotation =
       copy(expression = fn(expression))
 
@@ -711,13 +733,13 @@ object Name {
     * @param diagnostics compiler diagnostics for this node
     */
   sealed case class Self(
-    override val location: Option[IdentifiedLocation],
-    synthetic: Boolean                          = false,
-    override val passData: MetadataStorage      = MetadataStorage(),
-    override val diagnostics: DiagnosticStorage = DiagnosticStorage()
-  ) extends Name {
-    override protected var id: Identifier = randomId
-    override val name: String             = ConstantsNames.SELF_ARGUMENT
+    location: Option[IdentifiedLocation],
+    synthetic: Boolean             = false,
+    passData: MetadataStorage      = new MetadataStorage(),
+    diagnostics: DiagnosticStorage = DiagnosticStorage()
+  ) extends Name
+      with LazyId {
+    override val name: String = ConstantsNames.SELF_ARGUMENT
 
     /** Creates a copy of `self`.
       *
@@ -732,7 +754,7 @@ object Name {
       synthetic: Boolean                   = synthetic,
       passData: MetadataStorage            = passData,
       diagnostics: DiagnosticStorage       = diagnostics,
-      id: Identifier                       = id
+      id: UUID @Identifier                 = id
     ): Self = {
       val res = Self(location, synthetic, passData, diagnostics)
       res.id = id
@@ -748,10 +770,11 @@ object Name {
     ): Self =
       copy(
         location = if (keepLocations) location else None,
-        passData = if (keepMetadata) passData.duplicate else MetadataStorage(),
+        passData =
+          if (keepMetadata) passData.duplicate else new MetadataStorage(),
         diagnostics =
           if (keepDiagnostics) diagnostics.copy else DiagnosticStorage(),
-        id = if (keepIdentifiers) id else randomId
+        id = if (keepIdentifiers) id else null
       )
 
     /** @inheritdoc */
@@ -759,7 +782,9 @@ object Name {
       copy(location = location)
 
     /** @inheritdoc */
-    override def mapExpressions(fn: Expression => Expression): Self = this
+    override def mapExpressions(
+      fn: java.util.function.Function[Expression, Expression]
+    ): Self = this
 
     /** @inheritdoc */
     override def toString: String =
@@ -787,12 +812,12 @@ object Name {
     * @param diagnostics compiler diagnostics for this node
     */
   sealed case class SelfType(
-    override val location: Option[IdentifiedLocation],
-    override val passData: MetadataStorage      = MetadataStorage(),
-    override val diagnostics: DiagnosticStorage = DiagnosticStorage()
-  ) extends Name {
-    override protected var id: Identifier = randomId
-    override val name: String             = ConstantsNames.SELF_TYPE_ARGUMENT
+    location: Option[IdentifiedLocation],
+    passData: MetadataStorage      = new MetadataStorage(),
+    diagnostics: DiagnosticStorage = DiagnosticStorage()
+  ) extends Name
+      with LazyId {
+    override val name: String = ConstantsNames.SELF_TYPE_ARGUMENT
 
     /** Creates a copy of `Self`.
       *
@@ -806,7 +831,7 @@ object Name {
       location: Option[IdentifiedLocation] = location,
       passData: MetadataStorage            = passData,
       diagnostics: DiagnosticStorage       = diagnostics,
-      id: Identifier                       = id
+      id: UUID @Identifier                 = id
     ): SelfType = {
       val res = SelfType(location, passData, diagnostics)
       res.id = id
@@ -822,10 +847,11 @@ object Name {
     ): SelfType =
       copy(
         location = if (keepLocations) location else None,
-        passData = if (keepMetadata) passData.duplicate else MetadataStorage(),
+        passData =
+          if (keepMetadata) passData.duplicate else new MetadataStorage(),
         diagnostics =
           if (keepDiagnostics) diagnostics.copy else DiagnosticStorage(),
-        id = if (keepIdentifiers) id else randomId
+        id = if (keepIdentifiers) id else null
       )
 
     /** @inheritdoc */
@@ -833,7 +859,9 @@ object Name {
       copy(location = location)
 
     /** @inheritdoc */
-    override def mapExpressions(fn: Expression => Expression): SelfType = this
+    override def mapExpressions(
+      fn: java.util.function.Function[Expression, Expression]
+    ): SelfType = this
 
     /** @inheritdoc */
     override def toString: String =

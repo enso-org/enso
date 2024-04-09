@@ -1,6 +1,6 @@
 package org.enso.distribution.locking
 
-import nl.gn0s1s.bump.SemVer
+import org.enso.semver.SemVer
 import org.enso.cli.task.TaskProgress
 import org.enso.distribution.FileSystem.PathSyntax
 import org.enso.distribution.{
@@ -193,8 +193,10 @@ class ConcurrencyTest
         */
       val sync = new SlowTestSynchronizer
 
-      val engine1 = SemVer(0, 0, 1)
-      val engine2 = engine1.withPreRelease("pre")
+      /** Download only engines with associated runtimes.
+        */
+      val engine1 = SemVer.of(0, 0, 0)
+      val engine2 = SemVer.of(0, 0, 0, "pre")
 
       val tmpRoot = getTestDirectory / "test_data" / "tmp"
       Files.createDirectories(tmpRoot)
@@ -259,7 +261,7 @@ class ConcurrencyTest
         */
       val sync = new SlowTestSynchronizer
 
-      val engineVersion = SemVer(0, 0, 1)
+      val engineVersion = SemVer.of(0, 0, 0)
 
       sync.startThread("t1") {
         val componentsManager = makeComponentsManager(
@@ -317,7 +319,7 @@ class ConcurrencyTest
         */
       val sync = new SlowTestSynchronizer
 
-      val engineVersion = SemVer(0, 0, 1)
+      val engineVersion = SemVer.of(0, 0, 1)
 
       sync.startThread("t1") {
         val componentsManager = makeComponentsManager(

@@ -228,8 +228,33 @@ to allow use of some library functions (like `IO.println`) in the _Native Image_
 built runner.
 
 The support can be enabled by setting environment variable `ENSO_JAVA=espresso`
-and making sure Espresso is installed in GraalVM executing the Enso engine -
-e.g. by running `graalvm/bin/gu install espresso`. Then execute:
+and making sure Espresso is installed in the Enso engine `component` directory:
+
+```bash
+enso$ built-distribution/enso-engine-*/enso-*/component/
+```
+
+e.g. next to `js-language-*.jar` and other JARs. Download following these two
+JARs (tested for version 23.1.1) and copy them into the directory:
+
+```bash
+enso$ ls built-distribution/enso-engine-*/enso-*/component/espresso-*
+built-distribution/enso-engine-0.0.0-dev-linux-amd64/enso-0.0.0-dev/component/espresso-language-23.1.1.jar
+built-distribution/enso-engine-0.0.0-dev-linux-amd64/enso-0.0.0-dev/component/espresso-libs-resources-linux-amd64-23.1.1.jar
+built-distribution/enso-engine-0.0.0-dev-linux-amd64/enso-0.0.0-dev/component/espresso-runtime-resources-linux-amd64-23.1.1.jar
+```
+
+the libraries can be found at
+[Maven Central](https://repo1.maven.org/maven2/org/graalvm/espresso/). Version
+`23.1.1` is known to work.
+
+Alternatively just build the Enso code with `ENSO_JAVA=espresso` specified
+
+```bash
+enso$ ENSO_JAVA=espresso sbt --java-home /graalvm buildEngineDistribution
+```
+
+Then you can verify the support works:
 
 ```bash
 $ cat >hello.enso
@@ -237,7 +262,7 @@ import Standard.Base.IO
 
 main = IO.println <| "Hello World!"
 
-$ ENSO_JAVA=espresso ./enso-x.y.z-dev/bin/enso --run hello.enso
+$ ENSO_JAVA=espresso ./built-distribution/enso-engine-*/enso-*/bin/enso --run hello.enso
 ```
 
 Unless you see a warning containing _"No language for id java found."_ your code
@@ -250,13 +275,12 @@ $ JAVA_OPTS=-agentlib:jdwp=transport=dt_socket,address=5005 ENSO_JAVA=espresso e
 ```
 
 Espresso support works also with
-[native image support](#engine-runner-configuration). Just make sure Espresso is
-installed in your GraalVM (via `gu install espresso`) and then rebuild the
-`runner` executable:
+[native image support](#engine-runner-configuration). Just make sure
+`ENSO_JAVA=espresso` is specified when building the `runner` executable:
 
 ```bash
 enso$ rm runner
-enso$ sbt --java-home /graalvm
+enso$ ENSO_JAVA=espresso sbt --java-home /graalvm
 sbt> engine-runner/buildNativeImage
 ```
 

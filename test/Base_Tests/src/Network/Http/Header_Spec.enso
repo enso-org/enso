@@ -1,0 +1,18 @@
+from Standard.Base import all
+
+from Standard.Test import all
+
+
+add_specs suite_builder =
+    suite_builder.group "Header" group_builder->
+        group_builder.specify "should check equality" <|
+            Header.new "A" "B" . should_equal (Header.new "A" "B")
+            Header.new "A" "B" . should_equal (Header.new "a" "B")
+            (Header.new "A" "B" == Header.new "A" "b") . should_equal False
+            (Header.new "A" "B" == Header.new "a" "b") . should_equal False
+
+main filter=Nothing =
+    suite = Test.build suite_builder->
+        add_specs suite_builder
+    suite.run_with_filter filter
+

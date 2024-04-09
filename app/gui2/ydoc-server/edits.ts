@@ -4,107 +4,101 @@
  */
 
 import diff from 'fast-diff'
-import * as json from 'lib0/json'
-import * as Y from 'yjs'
+import type { ModuleUpdate } from '../shared/ast'
+import { MutableModule, print, spanMapToIdMap } from '../shared/ast'
+import { EnsoFileParts } from '../shared/ensoFile'
 import { TextEdit } from '../shared/languageServerTypes'
-import {
-  ModuleDoc,
-  decodeRange,
-  type NodeMetadata,
-  type VisualizationMetadata,
-} from '../shared/yjsModel'
+import { assert } from '../shared/util/assert'
+import { IdMap, ModuleDoc, type VisualizationMetadata } from '../shared/yjsModel'
 import * as fileFormat from './fileFormat'
 
-interface AppliedUpdates {
-  edits: TextEdit[]
-  newContent: string
-  newMetadata: fileFormat.Metadata
-}
+/**
+ * The simulated metadata of this size takes c.a. 1 second on my machine. It should be quite
+ * bearable, even on slower machines.
+ *
+ * Full benchmark results (from edits.bench.ts):
+ *   name                hz        min        max       mean        p75        p99       p995       p999      rme  samples
+ * · Diffing 10000   8.7370     108.66     132.93     114.46     111.73     132.93     132.93     132.93  ±11.28%        5
+ * · Diffing 15000   4.0483     239.82     257.99     247.02     257.99     257.99     257.99     257.99   ±9.71%        3
+ * · Diffing 20000   2.1577     462.40     464.52     463.46     464.52     464.52     464.52     464.52   ±2.90%        2
+ * · Diffing 25000   1.3744     727.61     727.61     727.61     727.61     727.61     727.61     727.61   ±0.00%        1
+ * · Diffing 30000   0.9850   1,015.25   1,015.25   1,015.25   1,015.25   1,015.25   1,015.25   1,015.25   ±0.00%        1
+ * · Diffing 35000   0.6934   1,442.27   1,442.27   1,442.27   1,442.27   1,442.27   1,442.27   1,442.27   ±0.00%        1
+ * · Diffing 40000   0.5141   1,945.24   1,945.24   1,945.24   1,945.24   1,945.24   1,945.24   1,945.24   ±0.00%        1
+ * · Diffing 50000   0.3315   3,016.59   3,016.59   3,016.59   3,016.59   3,016.59   3,016.59   3,016.59   ±0.00%        1
+ * · Diffing 60000   0.2270   4,405.46   4,405.46   4,405.46   4,405.46   4,405.46   4,405.46   4,405.46   ±0.00%        1
+ * · Diffing 70000   0.1602   6,240.52   6,240.52   6,240.52   6,240.52   6,240.52   6,240.52   6,240.52   ±0.00%        1
+ * · Diffing 80000   0.1233   8,110.54   8,110.54   8,110.54   8,110.54   8,110.54   8,110.54   8,110.54   ±0.00%        1
+ * · Diffing 90000   0.0954  10,481.47  10,481.47  10,481.47  10,481.47  10,481.47  10,481.47  10,481.47   ±0.00%        1
+ * · Diffing 100000  0.0788  12,683.46  12,683.46  12,683.46  12,683.46  12,683.46  12,683.46  12,683.46   ±0.00%        1
+ * · Diffing 250000  0.0107  93,253.97  93,253.97  93,253.97  93,253.97  93,253.97  93,253.97  93,253.97   ±0.00%        1
+ */
+const MAX_SIZE_FOR_NORMAL_DIFF = 30000
 
-const META_TAG = '\n\n\n#### METADATA ####'
+interface AppliedUpdates {
+  newCode: string | undefined
+  newIdMap: IdMap | undefined
+  newMetadata: fileFormat.IdeMetadata['node'] | undefined
+}
 
 export function applyDocumentUpdates(
   doc: ModuleDoc,
-  syncedMeta: fileFormat.Metadata,
-  syncedContent: string,
-  contentDelta: Y.YTextEvent['delta'] | null,
-  idMapKeys: Y.YMapEvent<Uint8Array>['keys'] | null,
-  metadataKeys: Y.YMapEvent<NodeMetadata>['keys'] | null,
+  synced: EnsoFileParts,
+  update: ModuleUpdate,
 ): AppliedUpdates {
-  const synced = preParseContent(syncedContent)
-  let newContent = ''
-
-  const allEdits: TextEdit[] = []
-  if (contentDelta && contentDelta.length > 0) {
-    const { code, edits } = convertDeltaToTextEdits(synced.code, contentDelta)
-    newContent += code
-    allEdits.push(...edits)
-  } else {
-    newContent += synced.code
-  }
-
-  const metaStartLine = (newContent.match(/\n/g) ?? []).length
-  let metaContent = META_TAG + '\n'
-
-  if (idMapKeys != null || synced.idMapJson == null || (contentDelta && contentDelta.length > 0)) {
-    const idMapJson = json.stringify(idMapToArray(doc.idMap))
-    metaContent += idMapJson + '\n'
-  } else {
-    metaContent += (synced.idMapJson ?? '[]') + '\n'
-  }
-
-  let newMetadata = syncedMeta
-  if (metadataKeys != null) {
-    const nodeMetadata = { ...syncedMeta.ide.node }
-    for (const [key, op] of metadataKeys) {
-      switch (op.action) {
-        case 'delete':
-          delete nodeMetadata[key]
-          break
-        case 'add':
-        case 'update': {
-          const updatedMeta = doc.metadata.get(key)
-          const oldMeta = nodeMetadata[key] ?? {}
-          if (updatedMeta == null) continue
-          nodeMetadata[key] = {
-            ...oldMeta,
-            position: {
-              vector: [updatedMeta.x, updatedMeta.y],
-            },
-            visualization: updatedMeta.vis
-              ? translateVisualizationToFile(updatedMeta.vis)
-              : undefined,
-          }
-          break
-        }
+  const codeChanged = update.nodesUpdated.size || update.nodesAdded.size || update.nodesDeleted.size
+  let idsChanged = false
+  let metadataChanged = false
+  for (const { changes } of update.metadataUpdated) {
+    for (const [key] of changes) {
+      if (key === 'externalId') {
+        idsChanged = true
+      } else {
+        metadataChanged = true
       }
     }
-    // Update the metadata object without changing the original order of keys.
-    newMetadata = { ...syncedMeta }
-    newMetadata.ide = { ...syncedMeta.ide }
-    newMetadata.ide.node = nodeMetadata
-    const metadataJson = json.stringify(newMetadata)
-    metaContent += metadataJson
-  } else {
-    metaContent += synced.metadataJson ?? '{}'
+    if (idsChanged && metadataChanged) break
   }
 
-  const oldMetaContent = syncedContent.slice(synced.code.length)
-  allEdits.push(...applyDiffAsTextEdits(metaStartLine, oldMetaContent, metaContent))
-  newContent += metaContent
+  let newIdMap = undefined
+  let newCode = undefined
+  let newMetadata = undefined
 
-  return {
-    edits: allEdits,
-    newContent,
-    newMetadata: newMetadata,
+  const syncModule = new MutableModule(doc.ydoc)
+  const root = syncModule.root()
+  assert(root != null)
+  if (codeChanged || idsChanged || synced.idMapJson == null) {
+    const { code, info } = print(root)
+    if (codeChanged) newCode = code
+    newIdMap = spanMapToIdMap(info)
   }
+  if (codeChanged || idsChanged || metadataChanged) {
+    // Update the metadata object.
+    // Depth-first key order keeps diffs small.
+    newMetadata = {} satisfies fileFormat.IdeMetadata['node']
+    root.visitRecursiveAst((ast) => {
+      let pos = ast.nodeMetadata.get('position')
+      const vis = ast.nodeMetadata.get('visualization')
+      const colorOverride = ast.nodeMetadata.get('colorOverride')
+      if (vis && !pos) pos = { x: 0, y: 0 }
+      if (pos) {
+        newMetadata![ast.externalId] = {
+          position: { vector: [Math.round(pos.x), Math.round(-pos.y)] },
+          visualization: vis && translateVisualizationToFile(vis),
+          colorOverride,
+        }
+      }
+    })
+  }
+
+  return { newCode, newIdMap, newMetadata }
 }
 
 function translateVisualizationToFile(
   vis: VisualizationMetadata,
 ): fileFormat.VisualizationMetadata | undefined {
   let project = undefined
-  switch (vis.module.kind) {
+  switch (vis.identifier?.module.kind) {
     case 'Builtin':
       project = { project: 'Builtin' } as const
       break
@@ -112,15 +106,19 @@ function translateVisualizationToFile(
       project = { project: 'CurrentProject' } as const
       break
     case 'Library':
-      project = { project: 'Library', contents: vis.module.name } as const
+      project = { project: 'Library', contents: vis.identifier.module.name } as const
       break
-    default:
-      return
   }
   return {
-    name: vis.name,
     show: vis.visible,
-    project,
+    fullscreen: vis.fullscreen,
+    width: vis.width ?? undefined,
+    ...(project == null || vis.identifier == null ?
+      {}
+    : {
+        project: project,
+        name: vis.identifier.name,
+      }),
   }
 }
 
@@ -128,7 +126,7 @@ export function translateVisualizationFromFile(
   vis: fileFormat.VisualizationMetadata,
 ): VisualizationMetadata | undefined {
   let module
-  switch (vis.project.project) {
+  switch (vis.project?.project) {
     case 'Builtin':
       module = { kind: 'Builtin' } as const
       break
@@ -139,130 +137,44 @@ export function translateVisualizationFromFile(
       module = { kind: 'Library', name: vis.project.contents } as const
       break
     default:
-      return
+      module = null
   }
   return {
-    name: vis.name,
+    identifier: module && vis.name ? { name: vis.name, module } : null,
     visible: vis.show,
-    module,
+    fullscreen: vis.fullscreen ?? false,
+    width: vis.width ?? null,
   }
 }
 
-export function convertDeltaToTextEdits(
-  prevText: string,
-  contentDelta: Y.YTextEvent['delta'],
-): { code: string; edits: TextEdit[] } {
-  const edits = []
-  let index = 0
-  let newIndex = 0
-  let lineNum = 0
-  let lineStartIdx = 0
-  let code = ''
-  for (const op of contentDelta) {
-    if (op.insert != null && typeof op.insert === 'string') {
-      const pos = {
-        character: newIndex - lineStartIdx,
-        line: lineNum,
-      }
-      // if the last edit was a delete on the same position, we can merge the insert into it
-      const lastEdit = edits[edits.length - 1]
-      if (
-        lastEdit &&
-        lastEdit.text.length === 0 &&
-        lastEdit.range.start.line === pos.line &&
-        lastEdit.range.start.character === pos.character
-      ) {
-        lastEdit.text = op.insert
-      } else {
-        edits.push({ range: { start: pos, end: pos }, text: op.insert })
-      }
-      const numLineBreaks = (op.insert.match(/\n/g) ?? []).length
-      if (numLineBreaks > 0) {
-        lineNum += numLineBreaks
-        lineStartIdx = newIndex + op.insert.lastIndexOf('\n') + 1
-      }
-      code += op.insert
-      newIndex += op.insert.length
-    } else if (op.delete != null) {
-      const start = {
-        character: newIndex - lineStartIdx,
-        line: lineNum,
-      }
-      const deleted = prevText.slice(index, index + op.delete)
-      const numLineBreaks = (deleted.match(/\n/g) ?? []).length
-      const character =
-        numLineBreaks > 0
-          ? deleted.length - (deleted.lastIndexOf('\n') + 1)
-          : newIndex - lineStartIdx + op.delete
-      const end = {
-        character,
-        line: lineNum + numLineBreaks,
-      }
-      edits.push({ range: { start, end }, text: '' })
-      index += op.delete
-    } else if (op.retain != null) {
-      const retained = prevText.slice(index, index + op.retain)
-      const numLineBreaks = (retained.match(/\n/g) ?? []).length
-      lineNum += numLineBreaks
-      if (numLineBreaks > 0) {
-        lineStartIdx = newIndex + retained.lastIndexOf('\n') + 1
-      }
-      code += retained
-      index += op.retain
-      newIndex += op.retain
-    }
-  }
-  code += prevText.slice(index)
-  return { code, edits }
-}
-
-interface PreParsedContent {
-  code: string
-  idMapJson: string | null
-  metadataJson: string | null
-}
-
-export function preParseContent(content: string): PreParsedContent {
-  const splitPoint = content.lastIndexOf(META_TAG)
-  if (splitPoint < 0) {
-    return {
-      code: content,
-      idMapJson: null,
-      metadataJson: null,
-    }
-  }
-  const code = content.slice(0, splitPoint)
-  const metadataString = content.slice(splitPoint + META_TAG.length)
-  const metaLines = metadataString.trim().split('\n')
-  const idMapJson = metaLines[0] ?? null
-  const metadataJson = metaLines[1] ?? null
-  return { code, idMapJson, metadataJson }
-}
-
-function idMapToArray(map: Y.Map<Uint8Array>): fileFormat.IdMapEntry[] {
-  const entries: fileFormat.IdMapEntry[] = []
-  const doc = map.doc!
-  map.forEach((rangeBuffer, id) => {
-    const decoded = decodeRange(rangeBuffer)
-    const index = Y.createAbsolutePositionFromRelativePosition(decoded[0], doc)?.index
-    const endIndex = Y.createAbsolutePositionFromRelativePosition(decoded[1], doc)?.index
-    if (index == null || endIndex == null) return
-    const size = endIndex - index
-    entries.push([{ index: { value: index }, size: { value: size } }, id])
-  })
-  entries.sort(idMapCmp)
-  return entries
-}
-
-function idMapCmp(a: fileFormat.IdMapEntry, b: fileFormat.IdMapEntry) {
-  const val1 = a[0]?.index?.value ?? 0
-  const val2 = b[0]?.index?.value ?? 0
-  if (val1 === val2) {
-    const size1 = a[0]?.size.value ?? 0
-    const size2 = b[0]?.size.value ?? 0
-    return size1 - size2
-  }
-  return val1 - val2
+/**
+ * A simplified diff algorithm.
+ *
+ * The `fast-diff` package uses Myers' https://neil.fraser.name/writing/diff/myers.pdf with some
+ * optimizations to generate minimal diff. Unfortunately, event this algorithm is still to slow
+ * for our metadata. Therefore we need to use faster algorithm which will not produce theoretically
+ * minimal diff.
+ *
+ * This is quick implementation making diff which just replaces entire string except common prefix
+ * and suffix.
+ */
+export function stupidFastDiff(oldString: string, newString: string): diff.Diff[] {
+  const minLength = Math.min(oldString.length, newString.length)
+  let commonPrefixLen, commonSuffixLen
+  for (commonPrefixLen = 0; commonPrefixLen < minLength; ++commonPrefixLen)
+    if (oldString[commonPrefixLen] !== newString[commonPrefixLen]) break
+  if (oldString.length === newString.length && oldString.length === commonPrefixLen)
+    return [[0, oldString]]
+  for (commonSuffixLen = 0; commonSuffixLen < minLength - commonPrefixLen; ++commonSuffixLen)
+    if (oldString.at(-1 - commonSuffixLen) !== newString.at(-1 - commonSuffixLen)) break
+  const commonPrefix = oldString.substring(0, commonPrefixLen)
+  const removed = oldString.substring(commonPrefixLen, oldString.length - commonSuffixLen)
+  const added = newString.substring(commonPrefixLen, newString.length - commonSuffixLen)
+  const commonSuffix = oldString.substring(oldString.length - commonSuffixLen, oldString.length)
+  return (commonPrefix ? ([[0, commonPrefix]] as diff.Diff[]) : [])
+    .concat(removed ? [[-1, removed]] : [])
+    .concat(added ? [[1, added]] : [])
+    .concat(commonSuffix ? [[0, commonSuffix]] : [])
 }
 
 export function applyDiffAsTextEdits(
@@ -270,7 +182,10 @@ export function applyDiffAsTextEdits(
   oldString: string,
   newString: string,
 ): TextEdit[] {
-  const changes = diff(oldString, newString)
+  const changes =
+    oldString.length + newString.length > MAX_SIZE_FOR_NORMAL_DIFF ?
+      stupidFastDiff(oldString, newString)
+    : diff(oldString, newString)
   let newIndex = 0
   let lineNum = lineOffset
   let lineStartIdx = 0
@@ -295,9 +210,9 @@ export function applyDiffAsTextEdits(
       }
       const numLineBreaks = (text.match(/\n/g) ?? []).length
       const character =
-        numLineBreaks > 0
-          ? text.length - (text.lastIndexOf('\n') + 1)
-          : newIndex - lineStartIdx + text.length
+        numLineBreaks > 0 ?
+          text.length - (text.lastIndexOf('\n') + 1)
+        : newIndex - lineStartIdx + text.length
       const end = {
         character,
         line: lineNum + numLineBreaks,
@@ -320,7 +235,8 @@ export function prettyPrintDiff(from: string, to: string): string {
   const colRed = '\x1b[31m'
   const colGreen = '\x1b[32m'
 
-  const diffs = diff(from, to)
+  const diffs =
+    from.length + to.length > MAX_SIZE_FOR_NORMAL_DIFF ? stupidFastDiff(from, to) : diff(from, to)
   if (diffs.length === 1 && diffs[0]![0] === 0) return 'No changes'
   let content = ''
   for (let i = 0; i < diffs.length; i++) {
@@ -349,4 +265,23 @@ export function prettyPrintDiff(from: string, to: string): string {
   }
   content += colReset
   return content
+}
+
+if (import.meta.vitest) {
+  const { test, expect } = import.meta.vitest
+
+  test.each`
+    oldStr     | newStr      | expected
+    ${''}      | ${'foo'}    | ${[[1, 'foo']]}
+    ${'foo'}   | ${''}       | ${[[-1, 'foo']]}
+    ${'foo'}   | ${'foo'}    | ${[[0, 'foo']]}
+    ${'foo'}   | ${'bar'}    | ${[[-1, 'foo'], [1, 'bar']]}
+    ${'ababx'} | ${'acacx'}  | ${[[0, 'a'], [-1, 'bab'], [1, 'cac'], [0, 'x']]}
+    ${'ax'}    | ${'acacx'}  | ${[[0, 'a'], [1, 'cac'], [0, 'x']]}
+    ${'ababx'} | ${'ax'}     | ${[[0, 'a'], [-1, 'bab'], [0, 'x']]}
+    ${'ababx'} | ${'abacax'} | ${[[0, 'aba'], [-1, 'b'], [1, 'ca'], [0, 'x']]}
+    ${'axxxa'} | ${'a'}      | ${[[0, 'a'], [-1, 'xxxa']]}
+  `('Stupid diff of $oldStr and $newStr', ({ oldStr, newStr, expected }) => {
+    expect(stupidFastDiff(oldStr, newStr)).toEqual(expected)
+  })
 }

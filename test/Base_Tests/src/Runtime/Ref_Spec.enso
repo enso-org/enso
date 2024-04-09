@@ -1,0 +1,28 @@
+from Standard.Base import all
+
+import Standard.Base.Runtime.Ref.Ref
+
+from Standard.Test import all
+
+
+add_specs suite_builder = suite_builder.group "Refs" group_builder->
+    group_builder.specify "should be able to store and retrieve value in references" <|
+        r = Ref.new 'foo'
+        r.get . should_equal 'foo'
+        r.put 'bar'
+        r.get . should_equal 'bar'
+        r.modify (_+'s') . should_equal "bar"
+        r.get . should_equal 'bars'
+
+        vec = [r, r]
+        vec.at 0 . put 123
+        vec.at 1 . get . should_equal 123
+
+    group_builder.specify "Example" <|
+        (Ref.new 10) . modify (_+1) . should_equal 10
+
+main filter=Nothing =
+    suite = Test.build suite_builder->
+        add_specs suite_builder
+    suite.run_with_filter filter
+

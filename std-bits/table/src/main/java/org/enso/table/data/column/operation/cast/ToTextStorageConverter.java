@@ -1,5 +1,10 @@
 package org.enso.table.data.column.operation.cast;
 
+import java.time.LocalDate;
+import java.time.LocalTime;
+import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.function.Function;
 import org.enso.polyglot.common_utils.Core_Date_Utils;
 import org.enso.table.data.column.builder.StringBuilder;
 import org.enso.table.data.column.storage.BoolStorage;
@@ -14,12 +19,6 @@ import org.enso.table.data.column.storage.type.AnyObjectType;
 import org.enso.table.data.column.storage.type.TextType;
 import org.graalvm.polyglot.Context;
 
-import java.time.LocalDate;
-import java.time.LocalTime;
-import java.time.ZonedDateTime;
-import java.time.format.DateTimeFormatter;
-import java.util.function.Function;
-
 public class ToTextStorageConverter implements StorageConverter<String> {
   private final TextType targetType;
 
@@ -27,58 +26,59 @@ public class ToTextStorageConverter implements StorageConverter<String> {
     targetType = textType;
   }
 
-  public Storage<String> cast(Storage<?> storage, CastProblemBuilder problemBuilder) {
+  @Override
+  public Storage<String> cast(Storage<?> storage, CastProblemAggregator problemAggregator) {
     if (storage instanceof StringStorage stringStorage) {
       if (canAvoidCopying(stringStorage)) {
         return retypeStringStorage(stringStorage);
       } else {
-        return adaptStringStorage(stringStorage, problemBuilder);
+        return adaptStringStorage(stringStorage, problemAggregator);
       }
     }
     if (storage instanceof AbstractLongStorage longStorage) {
-      return castLongStorage(longStorage, problemBuilder);
+      return castLongStorage(longStorage, problemAggregator);
     } else if (storage instanceof DoubleStorage doubleStorage) {
-      return castDoubleStorage(doubleStorage, problemBuilder);
+      return castDoubleStorage(doubleStorage, problemAggregator);
     } else if (storage instanceof BoolStorage boolStorage) {
-      return castBoolStorage(boolStorage, problemBuilder);
+      return castBoolStorage(boolStorage, problemAggregator);
     } else if (storage instanceof TimeOfDayStorage timeOfDayStorage) {
-      return castDateTimeStorage(timeOfDayStorage, this::convertTime, problemBuilder);
+      return castDateTimeStorage(timeOfDayStorage, this::convertTime, problemAggregator);
     } else if (storage instanceof DateStorage dateStorage) {
-      return castDateTimeStorage(dateStorage, this::convertDate, problemBuilder);
+      return castDateTimeStorage(dateStorage, this::convertDate, problemAggregator);
     } else if (storage instanceof DateTimeStorage dateTimeStorage) {
-      return castDateTimeStorage(dateTimeStorage, this::convertDateTime, problemBuilder);
+      return castDateTimeStorage(dateTimeStorage, this::convertDateTime, problemAggregator);
     } else if (storage.getType() instanceof AnyObjectType) {
-      return castFromMixed(storage, problemBuilder);
+      return castFromMixed(storage, problemAggregator);
     } else {
-      throw new IllegalStateException("No known strategy for casting storage " + storage + " to Text.");
+      throw new IllegalStateException(
+          "No known strategy for casting storage " + storage + " to Text.");
     }
   }
 
-  public Storage<String> castFromMixed(Storage<?> mixedStorage, CastProblemBuilder problemBuilder) {
+  public Storage<String> castFromMixed(
+      Storage<?> mixedStorage, CastProblemAggregator problemAggregator) {
     Context context = Context.getCurrent();
     StringBuilder builder = new StringBuilder(mixedStorage.size(), targetType);
     for (int i = 0; i < mixedStorage.size(); i++) {
       Object o = mixedStorage.getItemBoxed(i);
       switch (o) {
         case null -> builder.appendNulls(1);
-        case LocalTime d -> builder.append(adapt(convertTime(d), problemBuilder));
-        case LocalDate d -> builder.append(adapt(convertDate(d), problemBuilder));
-        case ZonedDateTime d -> builder.append(adapt(convertDateTime(d), problemBuilder));
-        case Boolean b -> builder.append(adapt(convertBoolean(b), problemBuilder));
-        default -> builder.append(adapt(o.toString(), problemBuilder));
+        case LocalTime d -> builder.append(adapt(convertTime(d), problemAggregator));
+        case LocalDate d -> builder.append(adapt(convertDate(d), problemAggregator));
+        case ZonedDateTime d -> builder.append(adapt(convertDateTime(d), problemAggregator));
+        case Boolean b -> builder.append(adapt(convertBoolean(b), problemAggregator));
+        default -> builder.append(adapt(o.toString(), problemAggregator));
       }
 
       context.safepoint();
     }
 
-    problemBuilder.aggregateOtherProblems(builder.getProblems());
     return builder.seal();
   }
 
   private final DateTimeFormatter dateFormatter = Core_Date_Utils.defaultLocalDateFormatter;
   private final DateTimeFormatter timeFormatter = Core_Date_Utils.defaultLocalTimeFormatter;
   private final DateTimeFormatter dateTimeFormatter = Core_Date_Utils.defaultZonedDateTimeFormatter;
-
 
   private String convertDate(LocalDate date) {
     return date.format(dateFormatter);
@@ -96,88 +96,88 @@ public class ToTextStorageConverter implements StorageConverter<String> {
     return b ? "True" : "False";
   }
 
-  private Storage<String> castLongStorage(AbstractLongStorage longStorage, CastProblemBuilder problemBuilder) {
+  private Storage<String> castLongStorage(
+      AbstractLongStorage longStorage, CastProblemAggregator problemAggregator) {
     Context context = Context.getCurrent();
     StringBuilder builder = new StringBuilder(longStorage.size(), targetType);
     for (int i = 0; i < longStorage.size(); i++) {
-      if (longStorage.isNa(i)) {
+      if (longStorage.isNothing(i)) {
         builder.appendNulls(1);
       } else {
         long value = longStorage.getItem(i);
-        builder.append(adapt(Long.toString(value), problemBuilder));
+        builder.append(adapt(Long.toString(value), problemAggregator));
       }
 
       context.safepoint();
     }
 
-    problemBuilder.aggregateOtherProblems(builder.getProblems());
     return builder.seal();
   }
 
-  private Storage<String> castBoolStorage(BoolStorage boolStorage, CastProblemBuilder problemBuilder) {
+  private Storage<String> castBoolStorage(
+      BoolStorage boolStorage, CastProblemAggregator problemAggregator) {
     Context context = Context.getCurrent();
     StringBuilder builder = new StringBuilder(boolStorage.size(), targetType);
     for (int i = 0; i < boolStorage.size(); i++) {
-      if (boolStorage.isNa(i)) {
+      if (boolStorage.isNothing(i)) {
         builder.appendNulls(1);
       } else {
         boolean value = boolStorage.getItem(i);
-        builder.append(adapt(convertBoolean(value), problemBuilder));
+        builder.append(adapt(convertBoolean(value), problemAggregator));
       }
 
       context.safepoint();
     }
 
-    problemBuilder.aggregateOtherProblems(builder.getProblems());
     return builder.seal();
   }
 
-  private Storage<String> castDoubleStorage(DoubleStorage doubleStorage, CastProblemBuilder problemBuilder) {
+  private Storage<String> castDoubleStorage(
+      DoubleStorage doubleStorage, CastProblemAggregator problemAggregator) {
     Context context = Context.getCurrent();
     StringBuilder builder = new StringBuilder(doubleStorage.size(), targetType);
     for (int i = 0; i < doubleStorage.size(); i++) {
-      if (doubleStorage.isNa(i)) {
+      if (doubleStorage.isNothing(i)) {
         builder.appendNulls(1);
       } else {
         double value = doubleStorage.getItemAsDouble(i);
-        builder.append(adapt(Double.toString(value), problemBuilder));
+        builder.append(adapt(Double.toString(value), problemAggregator));
       }
 
       context.safepoint();
     }
 
-    problemBuilder.aggregateOtherProblems(builder.getProblems());
     return builder.seal();
   }
 
-  private <T> Storage<String> castDateTimeStorage(Storage<T> storage, Function<T, String> converter,
-                                                  CastProblemBuilder problemBuilder) {
+  private <T> Storage<String> castDateTimeStorage(
+      Storage<T> storage, Function<T, String> converter, CastProblemAggregator problemAggregator) {
     Context context = Context.getCurrent();
     StringBuilder builder = new StringBuilder(storage.size(), targetType);
     for (int i = 0; i < storage.size(); i++) {
-      if (storage.isNa(i)) {
+      if (storage.isNothing(i)) {
         builder.appendNulls(1);
       } else {
         T value = storage.getItemBoxed(i);
         String converted = converter.apply(value);
-        builder.append(adapt(converted, problemBuilder));
+        builder.append(adapt(converted, problemAggregator));
       }
 
       context.safepoint();
     }
 
-    problemBuilder.aggregateOtherProblems(builder.getProblems());
     return builder.seal();
   }
 
-  private String adapt(String value, CastProblemBuilder problemBuilder) {
+  private String adapt(String value, CastProblemAggregator problemAggregator) {
     String adapted = adaptWithoutWarning(value);
 
     // If the value was truncated, report the data loss.
-    // (We can use the codepoint lengths here because truncation on grapheme length will still change the codepoint
+    // (We can use the codepoint lengths here because truncation on grapheme length will still
+    // change the codepoint
     // length too, and this check is simply faster.)
     if (adapted.length() < value.length()) {
-      problemBuilder.reportTextTooLong(value);
+      problemAggregator.reportTextTooLong(value);
     }
 
     return adapted;
@@ -187,11 +187,12 @@ public class ToTextStorageConverter implements StorageConverter<String> {
     return targetType.adapt(value);
   }
 
-  private Storage<String> adaptStringStorage(StringStorage stringStorage, CastProblemBuilder problemBuilder) {
+  private Storage<String> adaptStringStorage(
+      StringStorage stringStorage, CastProblemAggregator problemAggregator) {
     Context context = Context.getCurrent();
     StringBuilder builder = new StringBuilder(stringStorage.size(), targetType);
     for (int i = 0; i < stringStorage.size(); i++) {
-      if (stringStorage.isNa(i)) {
+      if (stringStorage.isNothing(i)) {
         builder.appendNulls(1);
       } else {
         String value = stringStorage.getItem(i);
@@ -202,7 +203,6 @@ public class ToTextStorageConverter implements StorageConverter<String> {
       context.safepoint();
     }
 
-    problemBuilder.aggregateOtherProblems(builder.getProblems());
     return builder.seal();
   }
 
@@ -238,8 +238,9 @@ public class ToTextStorageConverter implements StorageConverter<String> {
 
   /**
    * Creates a new storage re-using the existing array.
-   * <p>
-   * This can only be done if the values do not need any adaptations, checked by {@code canAvoidCopying}.
+   *
+   * <p>This can only be done if the values do not need any adaptations, checked by {@code
+   * canAvoidCopying}.
    */
   private Storage<String> retypeStringStorage(StringStorage stringStorage) {
     return new StringStorage(stringStorage.getData(), stringStorage.size(), targetType);

@@ -8,6 +8,7 @@ import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.data.vector.ArrayLikeAtNode;
 import org.enso.interpreter.runtime.data.vector.ArrayLikeLengthNode;
 import org.enso.interpreter.runtime.error.DataflowError;
+import org.enso.interpreter.runtime.error.PanicException;
 
 @BuiltinMethod(
     type = "Array_Like_Helpers",
@@ -25,7 +26,7 @@ public class AtVectorNode extends Node {
       var len = len(arrayLike);
       var ctx = EnsoContext.get(this);
       var payload = ctx.getBuiltins().error().makeIndexOutOfBounds(index, len);
-      return DataflowError.withoutTrace(payload, this);
+      return DataflowError.withTrace(payload, new PanicException(payload, this));
     }
   }
 

@@ -1,0 +1,21 @@
+from Standard.Base import all
+
+from Standard.Test import all
+
+
+type My_Type
+
+bar = Runtime.get_stack_trace
+baz = bar
+Number.foo self = baz
+foo x = x.foo
+My_Type.foo self = foo 123
+
+add_specs suite_builder = suite_builder.group "Stack traces" group_builder->
+    group_builder.specify "should capture traces correctly" <|
+        modname = Meta.get_simple_type_name Stack_Traces_Spec
+        stack = My_Type.foo
+        names = [modname + ".bar", modname + ".baz", "Number.foo", modname + ".foo", "My_Type.foo"]
+        stack.take (First 5) . map .name . should_equal names
+        file = enso_project.root / 'src' / 'Runtime' / 'Stack_Traces_Spec.enso'
+        stack.take (First 5) . map (.source_location >> .file) . each (_.should_equal file)

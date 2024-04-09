@@ -2,7 +2,7 @@ import type {
   SuggestionsDatabaseEntry,
   SuggestionsDatabaseUpdate,
 } from './languageServerTypes/suggestions'
-import type { ExprId, Uuid } from './yjsModel'
+import type { ExternalId, Uuid } from './yjsModel'
 
 export type { Uuid }
 
@@ -11,7 +11,7 @@ declare const brandChecksum: unique symbol
 export type Checksum = string & { [brandChecksum]: never }
 declare const brandContextId: unique symbol
 export type ContextId = Uuid & { [brandContextId]: never }
-export type ExpressionId = ExprId
+export type ExpressionId = ExternalId
 declare const brandUtcDateTime: unique symbol
 export type UTCDateTime = string & { [brandUtcDateTime]: never }
 
@@ -179,7 +179,17 @@ export interface MethodPointer {
   name: string
 }
 
-export type ProfilingInfo = ExecutionTime
+export function methodPointerEquals(left: MethodPointer, right: MethodPointer): boolean {
+  return (
+    left.module === right.module &&
+    left.definedOnType === right.definedOnType &&
+    left.name === right.name
+  )
+}
+
+export interface ProfilingInfo {
+  ExecutionTime: ExecutionTime
+}
 
 export interface ExecutionTime {
   /** The time elapsed during the expression's evaluation, in nanoseconds */
@@ -335,6 +345,8 @@ export type Notifications = {
   'refactoring/projectRenamed': (param: {}) => void
 }
 
+export type Event<T extends keyof Notifications> = Parameters<Notifications[T]>[0]
+
 export type ExecutionEnvironment = 'Design' | 'Live'
 
 export type StackItem = ExplicitCall | LocalCall
@@ -351,6 +363,18 @@ export interface LocalCall {
   expressionId: ExpressionId
 }
 
+export function stackItemsEqual(left: StackItem, right: StackItem): boolean {
+  if (left.type !== right.type) return false
+
+  if (left.type === 'ExplicitCall') {
+    const explicitRight = right as ExplicitCall
+    return methodPointerEquals(left.methodPointer, explicitRight.methodPointer)
+  } else {
+    const localRight = right as LocalCall
+    return left.expressionId === localRight.expressionId
+  }
+}
+
 export namespace response {
   export interface OpenTextFile {
     writeCapability: CapabilityRegistration | null
@@ -362,9 +386,7 @@ export namespace response {
     contentRoots: ContentRoot[]
   }
 
-  export interface FileContents {
-    contents: TextFileContents
-  }
+  export interface FileContents extends TextFileContents {}
 
   export interface FileExists {
     exists: boolean
@@ -418,6 +440,10 @@ export namespace response {
 
   export interface GetComponentGroups {
     componentGroups: LibraryComponentGroup[]
+  }
+
+  export interface AICompletion {
+    code: string
   }
 }
 

@@ -1,10 +1,10 @@
 package org.enso.interpreter.instrument.execution
 
-import com.oracle.truffle.api.{TruffleStackTrace, TruffleStackTraceElement}
+import com.oracle.truffle.api.interop.InteropLibrary
 import org.enso.polyglot.runtime.Runtime.Api
+import org.enso.interpreter.node.expression.builtin.runtime.GetStackTraceNode
 
 import java.io.File
-import scala.jdk.CollectionConverters._
 import scala.jdk.OptionConverters.RichOptional
 
 /** Methods for handling exceptions in the interpreter. */
@@ -19,42 +19,50 @@ object ErrorResolver {
   def getStackTrace(
     throwable: Throwable
   )(implicit ctx: RuntimeContext): Vector[Api.StackTraceElement] = {
-    TruffleStackTrace
-      .getStackTrace(throwable)
-      .asScala
-      .flatMap(toStackElement)
-      .toVector
+    val iop = InteropLibrary.getUncached
+    val arr = GetStackTraceNode.stackTraceToArray(iop, throwable)
+    val len = iop.getArraySize(arr)
+    val stackWithOptions = for (i <- 0L until len) yield {
+      val elem = iop.readArrayElement(arr, i)
+      toStackElement(iop, elem)
+    }
+    val stack = stackWithOptions.map(op => op.get)
+    stack.toVector
   }
 
   /** Convert from the truffle stack element to the runtime API representation.
     *
+    * @param iop interop library to use
     * @param element the trufle stack trace element
     * @param ctx the runtime context
     * @return the runtime API representation of the stack trace element
     */
   private def toStackElement(
-    element: TruffleStackTraceElement
+    iop: InteropLibrary,
+    element: Any
   )(implicit ctx: RuntimeContext): Option[Api.StackTraceElement] = {
-    val node = Option(element.getLocation)
-    node.flatMap(x => {
-      x.getEncapsulatingSourceSection match {
-        case null if x.getRootNode == null =>
+    if (!iop.hasExecutableName(element)) {
+      None
+    } else {
+      val name = iop.asString(iop.getExecutableName(element))
+      if (!iop.hasSourceLocation(element)) {
+        Some(Api.StackTraceElement(name, None, None, None))
+      } else {
+        val section = iop.getSourceLocation(element)
+        if (section.getSource.isInternal) {
           None
-        case null if x.getRootNode.isInternal =>
-          None
-        case null =>
-          Some(Api.StackTraceElement(x.getRootNode.getName, None, None, None))
-        case section =>
+        } else {
           Some(
             Api.StackTraceElement(
-              element.getTarget.getRootNode.getName,
+              name,
               findFileByModuleName(section.getSource.getName),
               Some(LocationResolver.sectionToRange(section)),
               LocationResolver.getExpressionId(section).map(_.externalId)
             )
           )
+        }
       }
-    })
+    }
   }
 
   /** Find source file path by the module name.

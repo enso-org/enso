@@ -20,4 +20,4 @@ file_uploading path =
    - file_path: The path at which the file is being uploaded.
 type File_Being_Uploaded
     ## PRIVATE
-    Value file_path
+    Value file_path:Text

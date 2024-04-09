@@ -39,4 +39,12 @@ public class DryRunFileManager {
           }
         });
   }
+
+  public static String preExistingTemporaryFile(String path) {
+    if (files.containsValue(path)) {
+      return path;
+    }
+
+    return files.get(path);
+  }
 }

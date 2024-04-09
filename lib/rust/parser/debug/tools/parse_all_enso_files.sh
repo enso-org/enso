@@ -15,7 +15,12 @@
 set -e
 
 cargo build -p enso-parser-debug --bin enso-parser-debug
+cargo build -p enso-parser-debug --bin lexer
 
 ENSO_FILES=$(find distribution/ test/ -name '*.enso' -print | sort)
-for x in $ENSO_FILES; do echo -n "$x "; target/rust/debug/enso-parser-debug <$x; done
+for x in $ENSO_FILES; do
+	echo -n "$x "
+	target/rust/debug/lexer <$x >/dev/null
+	target/rust/debug/enso-parser-debug <$x
+done
 

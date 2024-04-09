@@ -1,12 +1,5 @@
 package org.enso.base;
 
-import org.enso.base.time.Date_Time_Utils;
-import org.enso.base.time.Date_Utils;
-import org.enso.base.time.TimeUtilsBase;
-import org.enso.base.time.Time_Of_Day_Utils;
-import org.enso.polyglot.common_utils.Core_Date_Utils;
-import org.graalvm.polyglot.Value;
-
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.Period;
@@ -20,10 +13,14 @@ import java.time.temporal.TemporalField;
 import java.time.temporal.TemporalUnit;
 import java.time.temporal.WeekFields;
 import java.util.Locale;
+import org.enso.base.time.Date_Time_Utils;
+import org.enso.base.time.Date_Utils;
+import org.enso.base.time.TimeUtilsBase;
+import org.enso.base.time.Time_Of_Day_Utils;
+import org.enso.polyglot.common_utils.Core_Date_Utils;
+import org.graalvm.polyglot.Value;
 
-/**
- * Utils for standard library operations on Time.
- */
+/** Utils for standard library operations on Time. */
 public class Time_Utils {
   public enum AdjustOp {
     PLUS,
@@ -138,8 +135,8 @@ public class Time_Utils {
   }
 
   /**
-   * Normally this method could be done in Enso by pattern matching, but currently matching on Time types is not
-   * supported, so this is a workaround.
+   * Normally this method could be done in Enso by pattern matching, but currently matching on Time
+   * types is not supported, so this is a workaround.
    *
    * <p>TODO once the related issue is fixed, this workaround may be replaced with pattern matching
    * in Enso; <a href="https://github.com/enso-org/enso/issues/4597">Pivotal issue.</a>
@@ -157,29 +154,24 @@ public class Time_Utils {
     return datetime.getOffset();
   }
 
-  /**
-   * Counts days within the range from start (inclusive) to end (exclusive).
-   */
+  /** Counts days within the range from start (inclusive) to end (exclusive). */
   public static long days_between(LocalDate start, LocalDate end) {
     return ChronoUnit.DAYS.between(start, end);
   }
 
-  /**
-   * Counts months within the range from start (inclusive) to end (exclusive).
-   */
+  /** Counts months within the range from start (inclusive) to end (exclusive). */
   public static long months_between(LocalDate start, LocalDate end) {
     return ChronoUnit.MONTHS.between(start, end);
   }
 
-  /**
-   * Constructs a Date_Time from a Date, Time_Of_Day and Zone.
-   */
+  /** Constructs a Date_Time from a Date, Time_Of_Day and Zone. */
   public static ZonedDateTime make_zoned_date_time(LocalDate date, LocalTime time, ZoneId zone) {
     return ZonedDateTime.of(date, time, zone);
   }
 
   /**
-   * Constructs a new time instant referring to the same moment in time but in a different time zone.
+   * Constructs a new time instant referring to the same moment in time but in a different time
+   * zone.
    */
   public static ZonedDateTime with_zone_same_instant(ZonedDateTime dateTime, ZoneId zone) {
     return dateTime.withZoneSameInstant(zone);
@@ -187,57 +179,69 @@ public class Time_Utils {
 
   /**
    * This wrapper function is needed to ensure that EnsoDate gets converted to LocalDate correctly.
-   * <p>
-   * The {@code ChronoUnit::between} takes a value of type Temporal which does not trigger a polyglot conversion.
+   *
+   * <p>The {@code ChronoUnit::between} takes a value of type Temporal which does not trigger a
+   * polyglot conversion.
    */
   public static long unit_date_difference(TemporalUnit unit, LocalDate start, LocalDate end) {
     return unit.between(start, end);
   }
 
   /**
-   * This wrapper function is needed to ensure that EnsoTimeOfDay gets converted to LocalTime correctly.
-   * <p>
-   * The {@code ChronoUnit::between} takes a value of type Temporal which does not trigger a polyglot conversion.
+   * This wrapper function is needed to ensure that EnsoTimeOfDay gets converted to LocalTime
+   * correctly.
+   *
+   * <p>The {@code ChronoUnit::between} takes a value of type Temporal which does not trigger a
+   * polyglot conversion.
    */
   public static long unit_time_difference(TemporalUnit unit, LocalTime start, LocalTime end) {
     return unit.between(start, end);
   }
 
   /**
-   * This wrapper function is needed to ensure that EnsoDateTime gets converted to ZonedDateTime correctly.
-   * <p>
-   * The {@code ChronoUnit::between} takes a value of type Temporal which does not trigger a polyglot conversion.
+   * This wrapper function is needed to ensure that EnsoDateTime gets converted to ZonedDateTime
+   * correctly.
+   *
+   * <p>The {@code ChronoUnit::between} takes a value of type Temporal which does not trigger a
+   * polyglot conversion.
    */
-  public static long unit_datetime_difference(TemporalUnit unit, ZonedDateTime start, ZonedDateTime end) {
+  public static long unit_datetime_difference(
+      TemporalUnit unit, ZonedDateTime start, ZonedDateTime end) {
     return unit.between(start, end);
   }
 
   /**
-   * This wrapper function is needed to ensure that EnsoDateTime gets converted to LocalDate correctly.
+   * This wrapper function is needed to ensure that EnsoDateTime gets converted to LocalDate
+   * correctly.
    */
   public static LocalDate unit_date_add(TemporalUnit unit, LocalDate date, long amount) {
     return date.plus(amount, unit);
   }
 
   /**
-   * This wrapper function is needed to ensure that EnsoDateTime gets converted to LocalTime correctly.
+   * This wrapper function is needed to ensure that EnsoDateTime gets converted to LocalTime
+   * correctly.
    */
   public static LocalTime unit_time_add(TemporalUnit unit, LocalTime time, long amount) {
     return time.plus(amount, unit);
   }
 
   /**
-   * This wrapper function is needed to ensure that EnsoDateTime gets converted to ZonedDateTime correctly.
+   * This wrapper function is needed to ensure that EnsoDateTime gets converted to ZonedDateTime
+   * correctly.
    */
-  public static ZonedDateTime unit_datetime_add(TemporalUnit unit, ZonedDateTime datetime, long amount) {
+  public static ZonedDateTime unit_datetime_add(
+      TemporalUnit unit, ZonedDateTime datetime, long amount) {
     return datetime.plus(amount, unit);
   }
 
   /**
-   * This helper method is needed, because calling `appendValueReduced` directly from Enso fails to convert an EnsoDate
-   * to a LocalDate due to polyglot unable to handle the polymorphism of the method.
+   * This helper method is needed, because calling `appendValueReduced` directly from Enso fails to
+   * convert an EnsoDate to a LocalDate due to polyglot unable to handle the polymorphism of the
+   * method.
    */
-  public static void appendTwoDigitYear(DateTimeFormatterBuilder builder, TemporalField yearField, int maxYear) {
+  public static void appendTwoDigitYear(
+      DateTimeFormatterBuilder builder, TemporalField yearField, int maxYear) {
     int minYear = maxYear - 99;
     LocalDate baseDate = LocalDate.of(minYear, 1, 1);
     builder.appendValueReduced(yearField, 2, 2, baseDate);

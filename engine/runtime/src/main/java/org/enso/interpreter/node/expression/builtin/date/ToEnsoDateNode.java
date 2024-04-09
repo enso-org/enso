@@ -1,12 +1,12 @@
 package org.enso.interpreter.node.expression.builtin.date;
 
-import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.nodes.Node;
 import org.enso.interpreter.dsl.BuiltinMethod;
+import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.data.EnsoDate;
 
 @BuiltinMethod(
@@ -25,8 +25,7 @@ public abstract class ToEnsoDateNode extends Node {
     try {
       return new EnsoDate(iop.asDate(self));
     } catch (UnsupportedMessageException ex) {
-      CompilerDirectives.transferToInterpreter();
-      throw new IllegalStateException(ex);
+      throw EnsoContext.get(iop).raiseAssertionPanic(iop, null, ex);
     }
   }
 }

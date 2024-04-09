@@ -10,6 +10,7 @@ import org.eclipse.jgit.api.{Git => JGit}
 import org.eclipse.jgit.lib.Repository
 import org.eclipse.jgit.storage.file.FileRepositoryBuilder
 import org.eclipse.jgit.revwalk.RevCommit
+import org.enso.logger.ReportLogsOnFailure
 import org.enso.testkit.FlakySpec
 
 import scala.concurrent.duration._
@@ -19,7 +20,8 @@ class GitSpec
     extends AnyWordSpecLike
     with Matchers
     with Effects
-    with FlakySpec {
+    with FlakySpec
+    with ReportLogsOnFailure {
 
   override def opTimeout = 5.seconds
 
@@ -78,6 +80,29 @@ class GitSpec
         "dummy package json file".getBytes(StandardCharsets.UTF_8)
       )
 
+      val relativeUserDataDirectory = Path.of("data")
+      val userDataDirectory         = repoPath.resolve(relativeUserDataDirectory)
+      userDataDirectory.toFile.mkdir()
+      val relativeSomeUserDataFile =
+        relativeUserDataDirectory.resolve("test.csv")
+      val absoluteSomeUserDataFile = repoPath.resolve(relativeSomeUserDataFile)
+      createStubFile(absoluteSomeUserDataFile) should equal(true)
+      Files.write(
+        absoluteSomeUserDataFile,
+        "dummy,data,file".getBytes(StandardCharsets.UTF_8)
+      )
+
+      val relativeRandomDirectory = Path.of("meh")
+      val userRandomDirectory     = repoPath.resolve(relativeRandomDirectory)
+      userRandomDirectory.toFile.mkdir()
+      val relativeRandomFile = relativeRandomDirectory.resolve("nothing.csv")
+      val absoluteRandomFile = repoPath.resolve(relativeRandomFile)
+      createStubFile(absoluteRandomFile) should equal(true)
+      Files.write(
+        absoluteRandomFile,
+        "dummy,data,file".getBytes(StandardCharsets.UTF_8)
+      )
+
       val targetRepo =
         repoPath.resolve(dataDirectory).resolve(VcsApi.DefaultRepoDir)
       targetRepo.toFile shouldNot exist
@@ -97,17 +122,35 @@ class GitSpec
         repoPath.resolve(dataDirectory),
         relativePackageJsonFile
       ) shouldBe true
+      isPathUnderVcs(
+        repoPath.resolve(dataDirectory),
+        relativeRandomFile
+      ) shouldBe false
+      isPathUnderVcs(
+        repoPath.resolve(dataDirectory),
+        relativeSomeUserDataFile
+      ) shouldBe false
     }
   }
 
   "VCS save" should {
     "commit to the repo" in new TestCtx with InitialRepoSetup {
       createStubFile(repoPath.resolve("Foo.enso")) should equal(true)
+      val (srcDirRelative, _) = srcDirPaths()
+      val bazFile             = srcDirRelative.resolve("Baz.enso")
+      createStubFile(repoPath.resolve(bazFile)) should equal(true)
 
       val commitResult1 = vcs.commit(repoPath, "First").unsafeRunSync()
       commitResult1.isRight shouldBe true
 
-      createStubFile(repoPath.resolve("Bar.enso")) should equal(true)
+      val barFile = srcDirRelative.resolve("Bar.enso")
+      createStubFile(repoPath.resolve(barFile)) should equal(true)
+      val relativeDataDirectory = Path.of("data")
+      val dataDirectory         = repoPath.resolve(relativeDataDirectory)
+      dataDirectory.toFile.mkdir()
+      val relativeUserDataFile = relativeDataDirectory.resolve("test.csv")
+      val userDataFile         = repoPath.resolve(relativeUserDataFile)
+      createStubFile(userDataFile) should equal(true)
       val commitResult2 = vcs.commit(repoPath, "Second").unsafeRunSync()
       commitResult2.isRight shouldBe true
 
@@ -116,6 +159,18 @@ class GitSpec
       revisions(0).getFullMessage() should equal("Second")
       revisions(1).getFullMessage() should equal("First")
       revisions(2).getFullMessage() should equal("Initial commit")
+      isPathUnderVcs(
+        repoPath,
+        Path.of("Foo.enso")
+      ) shouldBe false
+      isPathUnderVcs(
+        repoPath,
+        bazFile
+      ) shouldBe true
+      isPathUnderVcs(
+        repoPath,
+        relativeUserDataFile
+      ) shouldBe false
     }
 
     "accept empty commits to the repo" in new TestCtx with InitialRepoSetup {
@@ -182,9 +237,10 @@ class GitSpec
       repoStatusIgnoreSha(r) should equal(
         RepoStatus(false, Set(), Some(RepoCommit(null, "Initial commit")))
       )
+      val (_, srcDir) = srcDirPaths()
 
-      createStubFile(repoPath.resolve("Foo.enso")) should equal(true)
-      createStubFile(repoPath.resolve("Bar.enso")) should equal(true)
+      createStubFile(srcDir.resolve("Foo.enso")) should equal(true)
+      createStubFile(srcDir.resolve("Bar.enso")) should equal(true)
       val commitResult = vcs.commit(repoPath, "New files").unsafeRunSync()
       commitResult.isRight shouldBe true
 
@@ -227,9 +283,10 @@ class GitSpec
   "VCS restore" should {
 
     "reset to last saved state" in new TestCtx with InitialRepoSetup {
-      val fooFile = repoPath.resolve("Foo.enso")
-      val barFile = repoPath.resolve("Bar.enso")
-      val bazFile = repoPath.resolve("Baz.enso")
+      val (relativeSrcDir, srcDir) = srcDirPaths()
+      val fooFile                  = srcDir.resolve("Foo.enso")
+      val barFile                  = srcDir.resolve("Bar.enso")
+      val bazFile                  = srcDir.resolve("Baz.enso")
       createStubFile(fooFile) should equal(true)
       Files.write(
         fooFile,
@@ -260,8 +317,8 @@ class GitSpec
       val restoreResult = vcs.restore(repoPath, commitId = None).unsafeRunSync()
       restoreResult.isRight shouldBe true
       restoreResult.getOrElse(Nil) shouldEqual List(
-        Path.of("Bar.enso"),
-        Path.of("Foo.enso")
+        relativeSrcDir.resolve("Bar.enso"),
+        relativeSrcDir.resolve("Foo.enso")
       )
 
       val text2 = Files.readAllLines(fooFile)
@@ -273,7 +330,8 @@ class GitSpec
 
     "reset to a named saved state while preserving original line endings" in new TestCtx
       with InitialRepoSetup {
-      val fooFile = repoPath.resolve("Foo.enso")
+      val (relativeSrcDir, srcDir) = srcDirPaths()
+      val fooFile                  = srcDir.resolve("Foo.enso")
       createStubFile(fooFile) should equal(true)
       val text1 = "file contents\r\nand more\u0000"
       Files.write(
@@ -299,7 +357,9 @@ class GitSpec
       val restoreResult =
         vcs.restore(repoPath, Some(commitId)).unsafeRunSync()
       restoreResult.isRight shouldBe true
-      restoreResult.getOrElse(Nil) shouldEqual List(Path.of("Foo.enso"))
+      restoreResult.getOrElse(Nil) shouldEqual List(
+        relativeSrcDir.resolve("Foo.enso")
+      )
 
       val fileText2 = Files.readString(fooFile)
       fileText2 should equal(text1)
@@ -423,6 +483,13 @@ class GitSpec
 
     def repoStatusIgnoreSha(r: RepoStatus) = {
       r.copy(lastCommit = r.lastCommit.map(_.copy(commitId = null)))
+    }
+
+    def srcDirPaths(): (Path, Path) = {
+      val relativeSrcDIr = Path.of("src")
+      val srcDir         = repoPath.resolve(relativeSrcDIr)
+      srcDir.toFile.mkdir()
+      (relativeSrcDIr, srcDir)
     }
   }
 

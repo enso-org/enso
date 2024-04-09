@@ -1,0 +1,29 @@
+from Standard.Base import all
+
+import Standard.Base.Runtime.State
+import Standard.Base.Errors.Common.Unsupported_Argument_Types
+
+from Standard.Test import all
+
+
+add_specs suite_builder = suite_builder.group "State" group_builder->
+    group_builder.specify "Type as a key" <|
+        s = State.run Test 42 <|
+            State.get Test
+        s . should_equal 42
+
+    group_builder.specify "string as a key" <|
+        s n = State.run "my_state" n <|
+            State.get "my_state"
+
+        p = Panic.catch Unsupported_Argument_Types (s 42) err->
+            err.payload
+
+        Meta.type_of p . should_equal Unsupported_Argument_Types
+
+
+main filter=Nothing =
+    suite = Test.build suite_builder->
+        add_specs suite_builder
+    suite.run_with_filter filter
+

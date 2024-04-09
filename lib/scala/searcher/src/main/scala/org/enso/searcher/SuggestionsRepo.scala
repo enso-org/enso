@@ -83,13 +83,13 @@ trait SuggestionsRepo[F[_]] {
     actions: Seq[SuggestionsDatabaseAction]
   ): F[Seq[QueryResult[SuggestionsDatabaseAction]]]
 
-  /** Apply the sequence of export updates on the database.
+  /** Get the suggestions related to the export updates.
     *
-    * @param updates the list of export updates
-    * @return the result of applying the updates
+    * @param actions the list of updates
+    * @return the suggestions ids associated with the export updates
     */
-  def applyExports(
-    updates: Seq[ExportsUpdate]
+  def getExportedSymbols(
+    actions: Seq[ExportsUpdate]
   ): F[Seq[QueryResult[ExportsUpdate]]]
 
   /** Remove the suggestion.
@@ -116,11 +116,10 @@ trait SuggestionsRepo[F[_]] {
     */
   def update(
     suggestion: Suggestion,
-    externalId: Option[Option[Suggestion.ExternalId]],
+    externalId: Option[Option[Suggestion.ExternalID]],
     returnType: Option[String],
     documentation: Option[Option[String]],
-    scope: Option[Suggestion.Scope],
-    reexport: Option[Option[String]]
+    scope: Option[Suggestion.Scope]
   ): F[(Long, Option[Long])]
 
   /** Update a list of suggestions by external id.
@@ -129,7 +128,7 @@ trait SuggestionsRepo[F[_]] {
     * @return the current database version and a list of updated suggestion ids
     */
   def updateAll(
-    expressions: Seq[(Suggestion.ExternalId, String)]
+    expressions: Seq[(Suggestion.ExternalID, String)]
   ): F[(Long, Seq[Option[Long]])]
 
   /** Cleans the repo resetting the version. */

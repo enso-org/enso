@@ -1,15 +1,28 @@
 from Standard.Base import all hiding Range
 from Standard.Test import Bench
-import project.Vector.Array_Proxy_Bench
-import project.Vector.Distinct
-import project.Vector.Operations
-import project.Vector.Sort
+import project.Collections
+import project.Column_Numeric
+import project.Decimal_Benchmark
+import project.Equality
+import project.Json_Bench
+import project.Map.Hash_Map
+import project.Natural_Order_Sort
+import project.Number_Parse
+import project.Numeric
+import project.Range
+import project.Runtime.Panics_And_Errors
+import project.Sieve
+import project.Startup.Startup
 import project.Statistics.Count_Min_Max
+import project.Sum
+import project.Table.Add_Row_Number
 import project.Table.Aggregate
 import project.Table.Arithmetic
 import project.Table.Column_From_Vector
 import project.Table.Cross_Tab
+import project.Table.Join
 import project.Table.Sorting
+import project.Table.Internal.Multi_Value_Key
 import project.Text.Build
 import project.Text.Compare
 import project.Text.Contains
@@ -17,15 +30,12 @@ import project.Text.Pretty
 import project.Text.Reverse
 import project.Time.Work_Days
 import project.Time.Format
-import project.Collections
-import project.Column_Numeric
-import project.Equality
-import project.Json_Bench
-import project.Natural_Order_Sort
-import project.Number_Parse
-import project.Numeric
-import project.Range
-import project.Sum
+import project.Vector.Array_Proxy_Bench
+import project.Vector.Distinct
+import project.Vector.Map_Error_Benchmark
+import project.Vector.Operations
+import project.Vector.Sort
+import project.Warnings
 from Standard.Base.Runtime import Debug
 
 all_benchmarks : Vector Bench.All
@@ -35,8 +45,12 @@ all_benchmarks =
     # Vector
     builder.append Array_Proxy_Bench.collect_benches
     builder.append Distinct.collect_benches
+    builder.append Map_Error_Benchmark.collect_benches
     builder.append Operations.collect_benches
     builder.append Sort.collect_benches
+
+    # Map
+    builder.append Hash_Map.collect_benches
 
     # Statistics
     builder.append Count_Min_Max.collect_benches
@@ -44,9 +58,12 @@ all_benchmarks =
     # Table
     builder.append Aggregate.collect_benches
     builder.append Arithmetic.collect_benches
+    builder.append Add_Row_Number.collect_benches
     builder.append Column_From_Vector.collect_benches
     builder.append Cross_Tab.collect_benches
+    builder.append Join.collect_benches
     builder.append Sorting.collect_benches
+    builder.append Multi_Value_Key.collect_benches
 
     # Text
     builder.append Build.collect_benches
@@ -62,6 +79,7 @@ all_benchmarks =
     # Vector
     builder.append Collections.collect_benches
     builder.append Column_Numeric.collect_benches
+    builder.append Decimal_Benchmark.collect_benches
     builder.append Equality.collect_benches
     builder.append Json_Bench.collect_benches
     builder.append Natural_Order_Sort.collect_benches
@@ -70,10 +88,31 @@ all_benchmarks =
     builder.append Range.collect_benches
     builder.append Sum.collect_benches
 
+    # Runtime
+    builder.append Panics_And_Errors.collect_benches
+
+    builder.append Startup.collect_benches
+    builder.append Sieve.Main.collect_benches
+
     builder.to_vector
 
-main =
-    benchmarks = all_benchmarks
+main filter=Nothing =
+    benchmarks = if filter.is_nothing then all_benchmarks else
+        no_nothing x = x.is_nothing.not
+
+        filter_benchmarks (b:Bench) = case b of
+            Bench.All groups ->
+                vec = groups.map filter_benchmarks . filter no_nothing
+                if vec.is_empty then Nothing else
+                    Bench.All vec
+            Bench.Group n opts specs -> if n.contains filter then b else
+                vec = specs.map filter_benchmarks . filter no_nothing
+                if vec.is_empty then Nothing else
+                    Bench.Group n opts vec
+            Bench.Spec n _ -> if n.contains filter then b else Nothing
+
+        all_benchmarks.map filter_benchmarks . filter no_nothing
+
     total_specs = benchmarks.map .total_specs . fold 0 (+)
     IO.println "Found "+benchmarks.length.to_text+" benchmark suites, containing "+total_specs.to_text+" specs in total."
     estimated_duration = benchmarks.map .estimated_runtime . fold Duration.zero (+)

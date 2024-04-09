@@ -1,0 +1,845 @@
+from Standard.Base import all
+import Standard.Base.Errors.Common.Incomparable_Values
+import Standard.Base.Errors.Common.Type_Error
+import Standard.Base.Errors.Time_Error.Time_Error
+
+from Standard.Test import all
+
+
+import project.Data.Time.Date_Part_Spec
+
+polyglot java import org.enso.base.Time_Utils
+polyglot java import java.time.ZonedDateTime
+polyglot java import java.time.LocalDateTime
+polyglot java import java.time.ZoneId
+polyglot java import java.time.ZoneOffset
+polyglot java import java.time.format.DateTimeFormatter
+polyglot java import java.lang.Exception as JException
+polyglot java import java.util.Objects
+
+add_specs suite_builder =
+    spec_with suite_builder "Date_Time" enso_datetime Date_Time.parse
+    spec_with suite_builder "JavascriptDate" js_datetime js_parse nanoseconds_loss_in_precision=True
+    if Polyglot.is_language_installed "python" then
+        spec_with suite_builder "PythonDate" python_datetime python_parse nanoseconds_loss_in_precision=True
+    spec_with suite_builder "JavaZonedDateTime" java_datetime java_parse
+    spec_with suite_builder "JavascriptDataInArray" js_array_datetime js_parse nanoseconds_loss_in_precision=True
+
+    suite_builder.group "Date_Time equality" group_builder->
+        group_builder.specify "should work with values coming from various sources" <|
+            d1 = Date_Time.new 2022 3 4 5 6
+            d2 = java_datetime 2022 3 4 5 6
+            d1 . should_equal d2
+
+            d3 = Date_Time.new 2022 (zone = Time_Zone.utc)
+            d4 = java_datetime 2022 (zone = Time_Zone.utc)
+            d5 = js_datetime 2022 (zone = Time_Zone.utc)
+
+            d3 . should_equal d4
+            d4 . should_equal d5
+
+        group_builder.specify "should provide equality operator" <|
+            (Date_Time.new 2022 zone=(Time_Zone.parse "CET")).should_not_equal (Date_Time.new 2022 zone=(Time_Zone.parse "UTC"))
+            (Date_Time.new 2022 zone=(Time_Zone.parse "CET")).should_equal (Date_Time.new 2022 zone=(Time_Zone.parse "CET"))
+            (Date_Time.new 2022 12 12).should_equal (Date_Time.new 2022 12 12)
+            (Date_Time.new 2022 12 12).should_not_equal (Date_Time.new 1996)
+
+    suite_builder.group "Unix epoch conversion" group_builder->
+        group_builder.specify "should allow creating from second and nanosecond" <|
+            Date_Time.from_unix_epoch_seconds 0 . should_equal (Date_Time.new 1970 1 1 zone=Time_Zone.utc)
+            Date_Time.from_unix_epoch_seconds 1 . should_equal (Date_Time.new 1970 1 1 0 0 1 zone=Time_Zone.utc)
+            Date_Time.from_unix_epoch_seconds 1 123456789 . should_equal (Date_Time.new 1970 1 1 0 0 1 nanosecond=123456789 zone=Time_Zone.utc)
+            Date_Time.from_unix_epoch_seconds 1704371744 . should_equal (Date_Time.new 2024 1 4 12 35 44 zone=Time_Zone.utc)
+            Date_Time.from_unix_epoch_seconds 1704371744 123456789 . should_equal (Date_Time.new 2024 1 4 12 35 44 nanosecond=123456789 zone=Time_Zone.utc)
+
+        group_builder.specify "should allow creating from milliseconds" <|
+            Date_Time.from_unix_epoch_milliseconds 0 . should_equal (Date_Time.new 1970 1 1 zone=Time_Zone.utc)
+            Date_Time.from_unix_epoch_milliseconds 1 . should_equal (Date_Time.new 1970 1 1 0 0 0 millisecond=1 zone=Time_Zone.utc)
+            Date_Time.from_unix_epoch_milliseconds 123 . should_equal (Date_Time.new 1970 1 1 0 0 0 millisecond=123 zone=Time_Zone.utc)
+            Date_Time.from_unix_epoch_milliseconds 1704371744123 . should_equal (Date_Time.new 2024 1 4 12 35 44 millisecond=123 zone=Time_Zone.utc)
+
+        group_builder.specify "should allow convert to epoch seconds" <|
+            Date_Time.new 1970 zone=Time_Zone.utc . to_unix_epoch_seconds . should_equal 0
+            Date_Time.new 1970 1 1 0 0 1 zone=Time_Zone.utc . to_unix_epoch_seconds . should_equal 1
+            Date_Time.new 1970 1 1 0 0 1 nanosecond=123456789 zone=Time_Zone.utc . to_unix_epoch_seconds . should_equal 1
+            Date_Time.new 2024 1 4 12 35 44 zone=Time_Zone.utc . to_unix_epoch_seconds . should_equal 1704371744
+
+        group_builder.specify "should allow convert to epoch milliseconds" <|
+            Date_Time.new 1970 zone=Time_Zone.utc . to_unix_epoch_milliseconds . should_equal 0
+            Date_Time.new 1970 1 1 0 0 0 millisecond=1 zone=Time_Zone.utc . to_unix_epoch_milliseconds . should_equal 1
+            Date_Time.new 1970 1 1 0 0 0 millisecond=1 microsecond=123 zone=Time_Zone.utc . to_unix_epoch_milliseconds . should_equal 1
+            Date_Time.new 2024 1 4 12 35 44 millisecond=123 zone=Time_Zone.utc . to_unix_epoch_milliseconds . should_equal 1704371744123
+
+spec_with suite_builder name create_new_datetime parse_datetime nanoseconds_loss_in_precision=False =
+    suite_builder.group name group_builder->
+
+        group_builder.specify "should create time" <|
+            time = create_new_datetime 1970 (zone = Time_Zone.utc)
+            time . year . should_equal 1970
+            time . month . should_equal 1
+            time . day . should_equal 1
+            time . hour . should_equal 0
+            time . minute . should_equal 0
+            time . second . should_equal 0
+            time . nanosecond . should_equal 0
+            time . zone . zone_id . should_equal Time_Zone.utc.zone_id
+
+        group_builder.specify "should handle errors when creating time" <|
+            case create_new_datetime 1970 0 0 . catch of
+                Time_Error.Error msg _ ->
+                    msg.to_text . contains "0" . should_be_true
+                    msg.to_text . contains "1" . should_be_true
+                    msg.to_text . contains "12" . should_be_true
+                result ->
+                    Test.fail ("Unexpected result: " + result.to_text)
+
+        group_builder.specify "should format using provided pattern" <|
+            text = create_new_datetime 1970 (zone = Time_Zone.utc) . format "yyyy-MM-dd'T'HH:mm:ss"
+            text . should_equal "1970-01-01T00:00:00"
+
+        group_builder.specify "should support to_display_text" <|
+            text = create_new_datetime 2020 12 21 11 23 45 nanosecond=123456789 . to_display_text
+            text . should_equal "2020-12-21 11:23:45.123"
+
+            text_2 = create_new_datetime 2020 12 21 11 23 45 . to_display_text
+            text_2 . should_equal "2020-12-21 11:23:45"
+
+        group_builder.specify "should format using provided pattern and locale" <|
+            d = create_new_datetime 2020 6 21
+            d.format (Date_Time_Formatter.from "d. MMMM yyyy" (Locale.new "gb")) . should_equal "21. Jun 2020"
+            d.format (Date_Time_Formatter.from "d. MMMM yyyy" (Locale.new "fr")) . should_equal "21. juin 2020"
+
+        group_builder.specify "should format using default pattern" <|
+            text = create_new_datetime 1970 (zone = Time_Zone.utc) . to_text
+            text . should_equal "1970-01-01 00:00:00Z[UTC]"
+
+        group_builder.specify "should convert to Json" <|
+            time = create_new_datetime 1970 12 21 (zone = Time_Zone.utc)
+            time.to_json.should_equal <|
+                zone_pairs = [["zone", Time_Zone.utc]]
+                time_pairs = [["year", 1970], ["month", 12], ["day", 21], ["hour", 0], ["minute", 0], ["second", 0], ["nanosecond", 0]]
+                JS_Object.from_pairs ([["type", "Date_Time"], ["constructor", "new"]] + time_pairs + zone_pairs) . to_text
+
+        group_builder.specify "should get Enso epoch seconds" <|
+            (create_new_datetime 1582 10 15 0 0 8 (zone = Time_Zone.utc)).to_enso_epoch_seconds . should_equal 8
+            (Date_Time.enso_epoch_start + (Duration.new minutes=2)).to_enso_epoch_seconds . should_equal (2 * 60)
+            (Date_Time.enso_epoch_start - (Duration.new minutes=2)).to_enso_epoch_seconds . should_equal -(2 * 60)
+
+        group_builder.specify "should get Enso epoch millis" <|
+            (create_new_datetime 1582 10 15 0 0 8 (zone = Time_Zone.utc)).to_enso_epoch_milliseconds . should_equal 8000
+            (Date_Time.enso_epoch_start + (Duration.new seconds=2)).to_enso_epoch_milliseconds . should_equal (2 * 1000)
+
+        group_builder.specify "should set offset-based timezone" <|
+            tz = Time_Zone.new 1 1 1
+            time = create_new_datetime 1970 (zone = Time_Zone.utc) . at_zone tz
+            time . year . should_equal 1970
+            time . month . should_equal 1
+            time . day . should_equal 1
+            time . hour . should_equal 1
+            time . minute . should_equal 1
+            time . second . should_equal 1
+            time . millisecond . should_equal 0
+            time . microsecond . should_equal 0
+            time . nanosecond . should_equal 0
+            time . zone . zone_id . should_equal tz.zone_id
+            time.to_display_text . should_equal "1970-01-01 01:01:01[+01:01:01]"
+
+        group_builder.specify "should set id-based timezone" <|
+            tz = Time_Zone.parse "Europe/Moscow"
+            time = create_new_datetime 1970 (zone = Time_Zone.utc) . at_zone tz
+            time . year . should_equal 1970
+            time . month . should_equal 1
+            time . day . should_equal 1
+            time . hour . should_equal 3
+            time . minute . should_equal 0
+            time . second . should_equal 0
+            time . millisecond . should_equal 0
+            time . microsecond . should_equal 0
+            time . nanosecond . should_equal 0
+            time . zone . zone_id . should_equal tz.zone_id
+            time.to_display_text . should_equal "1970-01-01 03:00:00[Europe/Moscow]"
+
+        group_builder.specify "should allow to set an interop timezone" <|
+            interop_tz = ZoneOffset.ofTotalSeconds 3600
+            dt0 = create_new_datetime 2020 (zone = Time_Zone.utc)
+            dt1 = dt0.at_zone interop_tz
+
+            dt1.zone . zone_id . should_equal interop_tz.zone_id
+            dt1.to_display_text . should_equal "2020-01-01 01:00:00[+01:00]"
+
+        group_builder.specify "should get time of day from offsed-based time" <|
+            time = parse_datetime "1970-01-01T00:00:01+01:00" . time_of_day
+            time . hour . should_equal 0
+            time . minute . should_equal 0
+            time . second . should_equal 1
+            time . millisecond . should_equal 0
+            time . microsecond . should_equal 0
+            time . nanosecond . should_equal 0
+
+        group_builder.specify "should get time of day from id-based time" <|
+            time = parse_datetime "1970-01-01T00:00:01+01:00[Europe/Paris]" . time_of_day
+            time . hour . should_equal 0
+            time . minute . should_equal 0
+            time . second . should_equal 1
+            time . millisecond . should_equal 0
+            time . microsecond . should_equal 0
+            time . nanosecond . should_equal 0
+
+        group_builder.specify "should get date from offsed-based time" <|
+            time = parse_datetime "1970-01-01T00:00:01+01:00" . date
+            time . year . should_equal 1970
+            time . month . should_equal 1
+            time . day . should_equal 1
+
+        group_builder.specify "should get date from id-based time" <|
+            time = parse_datetime "1970-01-01T00:00:01+01:00[Europe/Paris]" . date
+            time . year . should_equal 1970
+            time . month . should_equal 1
+            time . day . should_equal 1
+
+        group_builder.specify "should add Duration" <|
+            time = create_new_datetime 1970 (zone = Time_Zone.utc) + (Duration.new nanoseconds=1)
+            time . year . should_equal 1970
+            time . month . should_equal 1
+            time . day . should_equal 1
+            time . hour . should_equal 0
+            time . minute . should_equal 0
+            time . second . should_equal 0
+            time . millisecond . should_equal 0
+            time . microsecond . should_equal 0
+            time . nanosecond . should_equal 1
+            time . zone . should_equal Time_Zone.utc
+
+        group_builder.specify "should add Period" <|
+            time = (create_new_datetime 1970 (zone = Time_Zone.utc)) + (Period.new months=1)
+            time . year . should_equal 1970
+            time . month . should_equal 2
+            time . day . should_equal 1
+            time . hour . should_equal 0
+            time . minute . should_equal 0
+            time . second . should_equal 0
+            time . millisecond . should_equal 0
+            time . microsecond . should_equal 0
+            time . nanosecond . should_equal 0
+            time . zone . zone_id . should_equal Time_Zone.utc.zone_id
+
+        group_builder.specify "should add mixed Period and Duration" <|
+            time = create_new_datetime 1970 (zone = Time_Zone.utc) + (Period.new months=1) + (Duration.new hours=3)
+            time . year . should_equal 1970
+            time . month . should_equal 2
+            time . day . should_equal 1
+            time . hour . should_equal 3
+            time . minute . should_equal 0
+            time . second . should_equal 0
+            time . millisecond . should_equal 0
+            time . microsecond . should_equal 0
+            time . nanosecond . should_equal 0
+            time . zone . zone_id . should_equal Time_Zone.utc.zone_id
+
+        group_builder.specify "should subtract Duration" <|
+            time = create_new_datetime 1970 (zone = Time_Zone.utc) - (Duration.new hours=1)
+            time . year . should_equal 1969
+            time . month . should_equal 12
+            time . day . should_equal 31
+            time . hour . should_equal 23
+            time . minute . should_equal 0
+            time . second . should_equal 0
+            time . millisecond . should_equal 0
+            time . microsecond . should_equal 0
+            time . nanosecond . should_equal 0
+            time . zone . zone_id . should_equal Time_Zone.utc.zone_id
+
+        group_builder.specify "should subtract Period" <|
+            time = create_new_datetime 1970 (zone = Time_Zone.utc) - (Period.new months=1)
+            time . year . should_equal 1969
+            time . month . should_equal 12
+            time . day . should_equal 1
+            time . hour . should_equal 0
+            time . minute . should_equal 0
+            time . second . should_equal 0
+            time . millisecond . should_equal 0
+            time . microsecond . should_equal 0
+            time . nanosecond . should_equal 0
+            time . zone . zone_id . should_equal Time_Zone.utc.zone_id
+
+        group_builder.specify "should subtract mixed Period and Duration" <|
+            time = create_new_datetime 1970 (zone = Time_Zone.utc) - (Period.new months=1) - (Duration.new hours=3)
+            time . year . should_equal 1969
+            time . month . should_equal 11
+            time . day . should_equal 30
+            time . hour . should_equal 21
+            time . minute . should_equal 0
+            time . second . should_equal 0
+            time . millisecond . should_equal 0
+            time . microsecond . should_equal 0
+            time . nanosecond . should_equal 0
+            time . zone . zone_id . should_equal Time_Zone.utc.zone_id
+
+        group_builder.specify "should support mixed interval operators" <|
+            time = create_new_datetime 1970 (zone = Time_Zone.utc) - (Period.new months=1) + (Duration.new hours=12)
+            time . year . should_equal 1969
+            time . month . should_equal 12
+            time . day . should_equal 1
+            time . hour . should_equal 12
+            time . minute . should_equal 0
+            time . second . should_equal 0
+            time . millisecond . should_equal 0
+            time . microsecond . should_equal 0
+            time . nanosecond . should_equal 0
+            time . zone . zone_id . should_equal Time_Zone.utc.zone_id
+
+        group_builder.specify "should support addition of Date_Period" <|
+            time = create_new_datetime 1970 (zone = Time_Zone.utc)
+            time+Date_Period.Year . should_equal <| create_new_datetime 1971 (zone = Time_Zone.utc)
+            time+Date_Period.Quarter . should_equal <| create_new_datetime 1970 4 (zone = Time_Zone.utc)
+            time+Date_Period.Month . should_equal <| create_new_datetime 1970 2 (zone = Time_Zone.utc)
+            time+Date_Period.Week . should_equal <| create_new_datetime 1970 1 8 (zone = Time_Zone.utc)
+            time+Date_Period.Day . should_equal <| create_new_datetime 1970 1 2 (zone = Time_Zone.utc)
+
+        group_builder.specify "should support subtraction of Date_Period" <|
+            time = create_new_datetime 1970 (zone = Time_Zone.utc)
+            time-Date_Period.Year . should_equal <| create_new_datetime 1969 (zone = Time_Zone.utc)
+            time-Date_Period.Quarter . should_equal <| create_new_datetime 1969 10 (zone = Time_Zone.utc)
+            time-Date_Period.Month . should_equal <| create_new_datetime 1969 12 (zone = Time_Zone.utc)
+            time-Date_Period.Week . should_equal <| create_new_datetime 1969 12 25 (zone = Time_Zone.utc)
+            time-Date_Period.Day . should_equal <| create_new_datetime 1969 12 31 (zone = Time_Zone.utc)
+
+        group_builder.specify "should support addition of Time_Period" <|
+            time = create_new_datetime 1970 (zone = Time_Zone.utc)
+            time+Time_Period.Day . should_equal <| create_new_datetime 1970 1 2 (zone = Time_Zone.utc)
+            time+Time_Period.Hour . should_equal <| create_new_datetime 1970 1 1 1 (zone = Time_Zone.utc)
+            time+Time_Period.Minute . should_equal <| create_new_datetime 1970 1 1 0 1 (zone = Time_Zone.utc)
+            time+Time_Period.Second . should_equal <| create_new_datetime 1970 1 1 0 0 1 (zone = Time_Zone.utc)
+            time+Time_Period.Millisecond . should_equal <| create_new_datetime 1970 1 1 0 0 0 (10^6) (zone = Time_Zone.utc)
+            if nanoseconds_loss_in_precision.not then
+                time+Time_Period.Microsecond . should_equal <| create_new_datetime 1970 1 1 0 0 0 (10^3) (zone = Time_Zone.utc)
+                time+Time_Period.Nanosecond . should_equal <| create_new_datetime 1970 1 1 0 0 0 1 (zone = Time_Zone.utc)
+
+        group_builder.specify "should support subtraction of Time_Period" <|
+            time = create_new_datetime 1970 (zone = Time_Zone.utc)
+            time-Time_Period.Day . should_equal <| create_new_datetime 1969 12 31 (zone = Time_Zone.utc)
+            time-Time_Period.Hour . should_equal <| create_new_datetime 1969 12 31 23 (zone = Time_Zone.utc)
+            time-Time_Period.Minute . should_equal <| create_new_datetime 1969 12 31 23 59 (zone = Time_Zone.utc)
+            time-Time_Period.Second . should_equal <| create_new_datetime 1969 12 31 23 59 59 (zone = Time_Zone.utc)
+            second_in_nanos = 10^9
+            time-Time_Period.Millisecond . should_equal <| create_new_datetime 1969 12 31 23 59 59 (second_in_nanos - 10^6) (zone = Time_Zone.utc)
+            if nanoseconds_loss_in_precision.not then
+                time-Time_Period.Microsecond . should_equal <| create_new_datetime 1969 12 31 23 59 59 (second_in_nanos - 10^3) (zone = Time_Zone.utc)
+                time-Time_Period.Nanosecond . should_equal <| create_new_datetime 1969 12 31 23 59 59 (second_in_nanos - 1) (zone = Time_Zone.utc)
+
+        group_builder.specify "should support mixed addition and subtraction of Date_Period and Time_Period" <|
+            time = create_new_datetime 1970 (zone = Time_Zone.utc)
+            time+Date_Period.Quarter+Time_Period.Hour . should_equal <| create_new_datetime 1970 4 1 1 (zone = Time_Zone.utc)
+            time+Time_Period.Hour+Date_Period.Quarter . should_equal <| create_new_datetime 1970 4 1 1 (zone = Time_Zone.utc)
+            time+Date_Period.Year-Time_Period.Minute . should_equal <| create_new_datetime 1970 12 31 23 59 (zone = Time_Zone.utc)
+            time+Time_Period.Minute+Time_Period.Minute-Time_Period.Minute . should_equal <| create_new_datetime 1970 1 1 0 1 (zone = Time_Zone.utc)
+            time+Date_Period.Quarter-Date_Period.Month . should_equal <| create_new_datetime 1970 3 1 (zone = Time_Zone.utc)
+            time+Date_Period.Day-Time_Period.Day . should_equal <| create_new_datetime 1970 (zone = Time_Zone.utc)
+
+        group_builder.specify "will reflect that Time_Period.Day does not reflect daylight saving" <|
+            tz = Time_Zone.parse "Europe/Warsaw"
+            dt = Date_Time.new 2023 03 26 01 20 zone=tz
+
+            dt1 = dt + Time_Period.Day
+            dt2 = dt + Date_Period.Day
+
+            # Time Period adds 24 hours which will be 1 hour later due to the DST hole.
+            dt1 . should_equal (Date_Time.new 2023 03 27 02 20 zone=tz)
+
+            # Date Period shifts by 1 calendar day.
+            dt2 . should_equal (Date_Time.new 2023 03 27 01 20 zone=tz)
+
+        group_builder.specify "should get the default comparator for datetimes" <|
+            Comparable.from (create_new_datetime 2023 2 3 23 59) . should_equal Default_Comparator
+            Comparable.from (parse_datetime "2021-01-01T00:30:12.7102[UTC]") . should_equal Default_Comparator
+            Comparable.from (create_new_datetime 2022 10 31 2 30 55 1234) . should_equal Default_Comparator
+
+        group_builder.specify "should be comparable" <|
+            time_1 = parse_datetime "2021-01-01T00:30:12.7102[UTC]"
+            time_2 = parse_datetime "2021-01-01T04:00:10.0+04:00"
+            (time_1 == time_2) . should_be_false
+            if time_1==time_1 . not then
+                msg = "Equality isn't reflexive for " + (Objects.toString time_1) + " info:"
+                info_1 = " time_1.zone: " + (Objects.toString time_1.zone) + " type: " + (Meta.type_of time_1).to_text
+                info_2 = " Time_Zone.system: " + Time_Zone.system.to_text
+                Test.fail msg+info_1+info_2
+            time_1==time_1 . should_be_true
+            time_1!=time_2 . should_be_true
+            time_1>time_2 . should_be_true
+            time_1<time_2 . should_be_false
+
+            tod = Time_Of_Day.new 4 0 10
+            Ordering.compare time_1 tod . should_fail_with Incomparable_Values
+            time_1<tod . should_fail_with Incomparable_Values
+            time_1==tod . should_be_false
+
+            date = Date.new 2021 1 1
+            Ordering.compare time_1 date . should_fail_with Incomparable_Values
+            time_1==date . should_be_false
+
+        group_builder.specify "simple computations before Enso epoch should produce a warning" <|
+            expect_value_with_warning actual_value expected_value=Nothing =
+                if expected_value != Nothing then actual_value . should_equal expected_value
+                (((Warning.get_all actual_value).length) > 0) . should_be_true
+
+            expect_value_with_warning (Date_Time.enso_epoch_start - (Duration.new hours=3)) (create_new_datetime 1582 10 14 21 (zone = Time_Zone.utc))
+            expect_value_with_warning (Date_Time.enso_epoch_start - (Duration.new minutes=1)) (create_new_datetime 1582 10 14 23 59 (zone = Time_Zone.utc))
+
+            expect_value_with_warning (create_new_datetime 100).week_of_year
+            expect_value_with_warning (create_new_datetime 100).is_leap_year
+            expect_value_with_warning (create_new_datetime 100).length_of_year
+            expect_value_with_warning (create_new_datetime 100 4).length_of_month
+            expect_value_with_warning (create_new_datetime 100 4 15).day_of_week
+
+        group_builder.specify "should create datetime before epoch start" <|
+            (create_new_datetime 100 1 2 3 4).year   . should_equal 100
+            (create_new_datetime 100 1 2 3 4).month  . should_equal 1
+            (create_new_datetime 100 1 2 3 4).day    . should_equal 2
+            (create_new_datetime 100 1 2 3 4).hour   . should_equal 3
+            (create_new_datetime 100 1 2 3 4).minute . should_equal 4
+
+        group_builder.specify "should correctly determine the type of datetime" <|
+            new_datetime = create_new_datetime 2020 6 1 10 0 0
+            parsed_datetime = parse_datetime "2021-02-01T00:30:12.7102[UTC]"
+
+            Meta.type_of new_datetime . should_equal_type Date_Time
+            Meta.type_of parsed_datetime . should_equal_type Date_Time
+
+        max_nanos = 999999999
+        group_builder.specify "should allow to find start/end of a Date_Period containing the current datetime" <|
+            d1 = create_new_datetime 2022 9 12 15 37 58
+            d1.start_of Date_Period.Year . should_equal (Date_Time.new 2022 1 1)
+            d1.end_of Date_Period.Year . should_equal (Date_Time.new 2022 12 31 23 59 59 nanosecond=max_nanos)
+            d1.start_of Date_Period.Quarter . should_equal (Date_Time.new 2022 7 1)
+            d1.end_of Date_Period.Quarter . should_equal (Date_Time.new 2022 9 30 23 59 59 nanosecond=max_nanos)
+            d1.start_of Date_Period.Month . should_equal (Date_Time.new 2022 9 1)
+            d1.end_of Date_Period.Month . should_equal (Date_Time.new 2022 9 30 23 59 59 nanosecond=max_nanos)
+            d1.start_of (Date_Period.Week) . should_equal (Date_Time.new 2022 9 12)
+            d1.end_of (Date_Period.Week) . should_equal (Date_Time.new 2022 9 18 23 59 59 nanosecond=max_nanos)
+            d1.start_of (Date_Period.Week first_day=Day_Of_Week.Sunday) . should_equal (Date_Time.new 2022 9 11)
+            d1.end_of (Date_Period.Week first_day=Day_Of_Week.Sunday) . should_equal (Date_Time.new 2022 9 17 23 59 59 nanosecond=max_nanos)
+            d1.start_of (Date_Period.Week first_day=Day_Of_Week.Saturday) . should_equal (Date_Time.new 2022 9 10)
+            d1.end_of (Date_Period.Week first_day=Day_Of_Week.Saturday) . should_equal (Date_Time.new 2022 9 16 23 59 59 nanosecond=max_nanos)
+
+            d2 = create_new_datetime 2022 2 6 12 34 56 123456789
+            d2.start_of Date_Period.Quarter . should_equal (Date_Time.new 2022 1 1)
+            d2.end_of Date_Period.Quarter . should_equal (Date_Time.new 2022 3 31 23 59 59 nanosecond=max_nanos)
+            d2.start_of Date_Period.Month . should_equal (Date_Time.new 2022 2 1)
+            d2.end_of Date_Period.Month . should_equal (Date_Time.new 2022 2 28 23 59 59 nanosecond=max_nanos)
+            d2.start_of (Date_Period.Week) . should_equal (Date_Time.new 2022 1 31)
+            d2.end_of (Date_Period.Week) . should_equal (Date_Time.new 2022 2 6 23 59 59 nanosecond=max_nanos)
+            d2.start_of (Date_Period.Week first_day=Day_Of_Week.Sunday) . should_equal (Date_Time.new 2022 2 6)
+            d2.end_of (Date_Period.Week first_day=Day_Of_Week.Sunday) . should_equal (Date_Time.new 2022 2 12 23 59 59 nanosecond=max_nanos)
+
+            d3 = create_new_datetime 2020 2 19
+            d3.start_of Date_Period.Year . should_equal (Date_Time.new 2020 1 1)
+            d3.end_of Date_Period.Year . should_equal (Date_Time.new 2020 12 31 23 59 59 nanosecond=max_nanos)
+            d3.start_of Date_Period.Month . should_equal (Date_Time.new 2020 2 1)
+            d3.end_of Date_Period.Month . should_equal (Date_Time.new 2020 2 29 23 59 59 nanosecond=max_nanos)
+            d3.start_of (Date_Period.Week) . should_equal (Date_Time.new 2020 2 17)
+            d3.end_of (Date_Period.Week) . should_equal (Date_Time.new 2020 2 23 23 59 59 nanosecond=max_nanos)
+            d3.start_of (Date_Period.Week first_day=Day_Of_Week.Sunday) . should_equal (Date_Time.new 2020 2 16)
+            d3.end_of (Date_Period.Week first_day=Day_Of_Week.Sunday) . should_equal (Date_Time.new 2020 2 22 23 59 59 nanosecond=max_nanos)
+
+            d4 = create_new_datetime 1970 12 31 23 59 59 nanosecond=max_nanos
+            d4.start_of Date_Period.Year . should_equal (Date_Time.new 1970 1 1)
+            d4.end_of Date_Period.Year . should_equal (Date_Time.new 1970 12 31 23 59 59 nanosecond=max_nanos)
+            d4.start_of Date_Period.Quarter . should_equal (Date_Time.new 1970 10 1)
+            d4.end_of Date_Period.Quarter . should_equal (Date_Time.new 1970 12 31 23 59 59 nanosecond=max_nanos)
+            d4.start_of Date_Period.Month . should_equal (Date_Time.new 1970 12 1)
+            d4.end_of Date_Period.Month . should_equal (Date_Time.new 1970 12 31 23 59 59 nanosecond=max_nanos)
+
+            d5 = create_new_datetime 2040 1 1
+            d5.start_of Date_Period.Year . should_equal (Date_Time.new 2040 1 1)
+            d5.end_of Date_Period.Year . should_equal (Date_Time.new 2040 12 31 23 59 59 nanosecond=max_nanos)
+            d5.start_of Date_Period.Quarter . should_equal (Date_Time.new 2040 1 1)
+            d5.end_of Date_Period.Quarter . should_equal (Date_Time.new 2040 3 31 23 59 59 nanosecond=max_nanos)
+            d5.start_of Date_Period.Month . should_equal (Date_Time.new 2040 1 1)
+            d5.end_of Date_Period.Month . should_equal (Date_Time.new 2040 1 31 23 59 59 nanosecond=max_nanos)
+
+            (create_new_datetime 2000 7 1 14 54).start_of Date_Period.Quarter . should_equal (Date_Time.new 2000 7 1)
+            (create_new_datetime 2000 6 30 15 34).start_of Date_Period.Quarter . should_equal (Date_Time.new 2000 4 1)
+
+            (create_new_datetime 2000 7 1 16 50).end_of Date_Period.Quarter . should_equal (Date_Time.new 2000 9 30 23 59 59 nanosecond=max_nanos)
+            (create_new_datetime 2000 6 30 17 40).end_of Date_Period.Quarter . should_equal (Date_Time.new 2000 6 30 23 59 59 nanosecond=max_nanos)
+
+        group_builder.specify "should allow to find start/end of a Time_Period containing the current datetime" <|
+            d1 = create_new_datetime 2022 9 12 15 37 58 123456789
+            d1.start_of Time_Period.Day . should_equal (Date_Time.new 2022 9 12)
+            d1.end_of Time_Period.Day . should_equal (Date_Time.new 2022 9 12 23 59 59 nanosecond=max_nanos)
+            d1.start_of Time_Period.Hour . should_equal (Date_Time.new 2022 9 12 15 0 0 0)
+            d1.end_of Time_Period.Hour . should_equal (Date_Time.new 2022 9 12 15 59 59 nanosecond=max_nanos)
+            d1.start_of Time_Period.Minute . should_equal (Date_Time.new 2022 9 12 15 37 0 0)
+            d1.end_of Time_Period.Minute . should_equal (Date_Time.new 2022 9 12 15 37 59 nanosecond=max_nanos)
+            d1.start_of Time_Period.Second . should_equal (Date_Time.new 2022 9 12 15 37 58 0)
+            d1.end_of Time_Period.Second . should_equal (Date_Time.new 2022 9 12 15 37 58 nanosecond=max_nanos)
+            d1.start_of Time_Period.Millisecond . should_equal (Date_Time.new 2022 9 12 15 37 58 nanosecond=123000000)
+            d1.end_of Time_Period.Millisecond . should_equal (Date_Time.new 2022 9 12 15 37 58 nanosecond=123999999)
+
+            if nanoseconds_loss_in_precision.not then
+                d1.start_of Time_Period.Microsecond . should_equal (Date_Time.new 2022 9 12 15 37 58 nanosecond=123456000)
+                d1.end_of Time_Period.Microsecond . should_equal (Date_Time.new 2022 9 12 15 37 58 nanosecond=123456999)
+                # No change on nanosecond
+                d1.start_of Time_Period.Nanosecond . should_equal d1
+                d1.end_of Time_Period.Nanosecond . should_equal d1
+
+            d2 = create_new_datetime 1970 1 1 0 0 0
+            d2.start_of Time_Period.Day . should_equal (Date_Time.new 1970)
+            d2.end_of Time_Period.Day . should_equal (Date_Time.new 1970 1 1 23 59 59 nanosecond=max_nanos)
+            d2.start_of Time_Period.Hour . should_equal (Date_Time.new 1970 1 1 0 0 0 0)
+            d2.end_of Time_Period.Hour . should_equal (Date_Time.new 1970 1 1 0 59 59 nanosecond=max_nanos)
+            d2.start_of Time_Period.Minute . should_equal (Date_Time.new 1970 1 1 0 0 0 0)
+            d2.end_of Time_Period.Minute . should_equal (Date_Time.new 1970 1 1 0 0 59 nanosecond=max_nanos)
+            d2.start_of Time_Period.Second . should_equal (Date_Time.new 1970 1 1 0 0 0 0)
+            d2.end_of Time_Period.Second . should_equal (Date_Time.new 1970 1 1 0 0 0 nanosecond=max_nanos)
+
+            d3 = create_new_datetime 2100 12 31 23 59 59 max_nanos
+            d3.start_of Time_Period.Day . should_equal (Date_Time.new 2100 12 31)
+            d3.end_of Time_Period.Day . should_equal (Date_Time.new 2100 12 31 23 59 59 nanosecond=max_nanos)
+            d3.start_of Time_Period.Hour . should_equal (Date_Time.new 2100 12 31 23 0 0 0)
+            d3.end_of Time_Period.Hour . should_equal (Date_Time.new 2100 12 31 23 59 59 nanosecond=max_nanos)
+            d3.start_of Time_Period.Minute . should_equal (Date_Time.new 2100 12 31 23 59 0 0)
+            d3.end_of Time_Period.Minute . should_equal (Date_Time.new 2100 12 31 23 59 59 nanosecond=max_nanos)
+            d3.start_of Time_Period.Second . should_equal (Date_Time.new 2100 12 31 23 59 59 0)
+            d3.end_of Time_Period.Second . should_equal (Date_Time.new 2100 12 31 23 59 59 nanosecond=max_nanos)
+
+        offset_1_h = ZoneOffset.ofTotalSeconds 3600
+        offset_2_h = ZoneOffset.ofTotalSeconds 2*3600
+        tz = Time_Zone.parse "Europe/Warsaw"
+        dst_pending = if name.contains "Javascript" then "Javascript implementation does not support time zones correctly, so the tests for conversion around DST switches would fail and thus are disabled. We may revisit once JS gets better time support, see project Temporal: https://tc39.es/proposal-temporal/docs/ and our issue tracking our integration: https://github.com/enso-org/enso/issues/5384" else
+            if name.contains "Python" then "Python doesn't support time zones correctly" else
+                Nothing
+
+        group_builder.specify "should find start/end of a Date_Period or Time_Period containing the current datetime correctly near the spring DST switch" pending=dst_pending <|
+            d1 = create_new_datetime 2022 3 27 1 34 15 0 tz
+            d2 = create_new_datetime 2022 3 27 3 34 15 0 tz
+            d1_plus = d1 + (Duration.new hours=1)
+            d1_plus . should_equal d2
+
+            check_dates_spring date =
+                date.start_of Date_Period.Day . should_equal (Date_Time.new 2022 3 27 zone=tz)
+                date.end_of Date_Period.Day . should_equal (Date_Time.new 2022 3 27 23 59 59 nanosecond=max_nanos zone=tz)
+                date.start_of Time_Period.Day . should_equal (Date_Time.new 2022 3 27 zone=tz)
+                date.end_of Time_Period.Day . should_equal (Date_Time.new 2022 3 27 23 59 59 nanosecond=max_nanos zone=tz)
+
+                date.start_of Date_Period.Month . should_equal (Date_Time.new 2022 3 1 zone=tz)
+                date.end_of Date_Period.Month . should_equal (Date_Time.new 2022 3 31 23 59 59 nanosecond=max_nanos zone=tz)
+
+            check_dates_spring d1
+            check_dates_spring d2
+
+            d1_start = d1.start_of Time_Period.Hour
+            d1_end = d1.end_of Time_Period.Hour
+            (d1.to_enso_epoch_seconds - d1_start.to_enso_epoch_seconds) . should_equal (34*60 + 15)
+            (d1_end.to_enso_epoch_seconds - d1.to_enso_epoch_seconds) . should_equal (60*60 - (34*60 + 15) - 1)
+            d1_start . should_equal (Date_Time.new 2022 3 27 1 zone=tz)
+            d1_end . should_equal (Date_Time.new 2022 3 27 1 59 59 nanosecond=max_nanos zone=tz)
+            d1.start_of Time_Period.Minute . should_equal (Date_Time.new 2022 3 27 1 34 0 0 zone=tz)
+            d1.end_of Time_Period.Minute . should_equal (Date_Time.new 2022 3 27 1 34 59 nanosecond=max_nanos zone=tz)
+
+            d2_start = d2.start_of Time_Period.Hour
+            d2_end = d2.end_of Time_Period.Hour
+            (d2.to_enso_epoch_seconds - d2_start.to_enso_epoch_seconds) . should_equal (34*60 + 15)
+            (d2_end.to_enso_epoch_seconds - d2.to_enso_epoch_seconds) . should_equal (60*60 - (34*60 + 15) - 1)
+            d2_start . should_equal (Date_Time.new 2022 3 27 3 zone=tz)
+            d2_end . should_equal (Date_Time.new 2022 3 27 3 59 59 nanosecond=max_nanos zone=tz)
+
+        dst_overlap_message = "We cannot correctly migrate the datetime inside of the timeline overlap through the polyglot boundary - as due to polyglot conversion limitation, always the earlier one is chosen. See the bug report: https://github.com/oracle/graal/issues/4918"
+        group_builder.specify "should find start/end of a Date_Period or Time_Period containing the current datetime correctly near the autumn DST switch" pending=dst_overlap_message <|
+            d3 = create_new_datetime 2022 10 30 2 30 15 0 tz
+            d4 = d3 + (Duration.new hours=1)
+
+            d3.hour . should_equal 2
+            d4.hour . should_equal 2
+            d3.minute . should_equal 30
+            d4.minute . should_equal 30
+            (d4.to_enso_epoch_milliseconds - d3.to_enso_epoch_milliseconds) . should_equal 60*60*1000
+            Time_Utils.get_datetime_offset d3 . should_equal offset_2_h
+            Time_Utils.get_datetime_offset d4 . should_equal offset_1_h
+
+            check_dates_autumn date =
+                date.start_of Time_Period.Day . should_equal (Date_Time.new 2022 10 30 zone=tz)
+                date.end_of Time_Period.Day . should_equal (Date_Time.new 2022 10 30 23 59 59 nanosecond=max_nanos zone=tz)
+
+                date.start_of Date_Period.Month . should_equal (Date_Time.new 2022 10 1 zone=tz)
+                date.end_of Date_Period.Month . should_equal (Date_Time.new 2022 10 31 23 59 59 nanosecond=max_nanos zone=tz)
+
+            check_dates_autumn d3
+            check_dates_autumn d4
+
+            d3_start = d3.start_of Time_Period.Hour
+            d3_end = d3.end_of Time_Period.Hour
+            (d3.to_enso_epoch_seconds - d3_start.to_enso_epoch_seconds) . should_equal (30*60 + 15)
+            (d3_end.to_enso_epoch_seconds - d3.to_enso_epoch_seconds) . should_equal (60*60 - (30*60 + 15) - 1)
+            d3_start . should_equal (Date_Time.new 2022 10 30 2 zone=tz)
+            Time_Utils.get_datetime_offset d3_start . should_equal offset_2_h
+            d3_end . should_equal (Date_Time.new 2022 10 30 2 59 59 nanosecond=max_nanos zone=tz)
+            Time_Utils.get_datetime_offset d3_end . should_equal offset_2_h
+
+            d4_start = d4.start_of Time_Period.Hour
+            d4_end = d4.end_of Time_Period.Hour
+            (d4.to_enso_epoch_seconds - d4_start.to_enso_epoch_seconds) . should_equal (30*60 + 15)
+            (d4_end.to_enso_epoch_seconds - d4.to_enso_epoch_seconds) . should_equal (60*60 - (30*60 + 15) - 1)
+            d4_start.hour . should_equal 2
+            d4_start.minute . should_equal 0
+            Time_Utils.get_datetime_offset d4_start . should_equal offset_1_h
+            d4_end.hour . should_equal 2
+            d4_end.minute . should_equal 59
+            d4_end.second . should_equal 59
+            d4_end.millisecond . should_equal 999
+            d4_end.microsecond . should_equal 999
+            d4_end.nanosecond . should_equal 999
+            Time_Utils.get_datetime_offset d4_end . should_equal offset_1_h
+
+        group_builder.specify "should allow to shift the date by N working days" <|
+            # 2000-2-1 is a Tuesday
+            create_new_datetime 2000 2 1 12 30 . add_work_days 0 . should_equal (Date_Time.new 2000 2 1 12 30)
+            create_new_datetime 2000 2 1 12 15 55 . add_work_days . should_equal (Date_Time.new 2000 2 2 12 15 55)
+            create_new_datetime 2000 2 1 . add_work_days 2 . should_equal (Date_Time.new 2000 2 3)
+
+            create_new_datetime 2000 2 1 23 59 . add_work_days 21 . should_equal (Date_Time.new 2000 3 1 23 59)
+
+            # 2000-2-5 is a Saturday
+            create_new_datetime 2000 2 5 0 10 . add_work_days 0 . should_equal (Date_Time.new 2000 2 7 0 10)
+            create_new_datetime 2000 2 5 23 30 . add_work_days 1 . should_equal (Date_Time.new 2000 2 8 23 30)
+            create_new_datetime 2000 2 5 . add_work_days 2 . should_equal (Date_Time.new 2000 2 9)
+
+            # 2000-2-6 is a Sunday
+            create_new_datetime 2000 2 6 16 50 . add_work_days 0 . should_equal (Date_Time.new 2000 2 7 16 50)
+            create_new_datetime 2000 2 6 17 17 . add_work_days 1 . should_equal (Date_Time.new 2000 2 8 17 17)
+
+            # Behaviour in February depending on leap year.
+            create_new_datetime 2000 2 27 12 10 . add_work_days 3 . should_equal (Date_Time.new 2000 3 2 12 10)
+            create_new_datetime 1999 2 27 12 10 . add_work_days 3 . should_equal (Date_Time.new 1999 3 4 12 10)
+
+        group_builder.specify "should handle shifting dates around spring DST edge cases" pending=dst_pending <|
+            # 2022-10-30 and 2022-03-27 are DST switch days, Sundays.
+            (create_new_datetime 2022 10 30 2 30 55 1234 . add_work_days 0) . should_equal (create_new_datetime 2022 10 31 2 30 55 1234)
+            (create_new_datetime 2022 10 30 1 30 . add_work_days 1) . should_equal (Date_Time.new 2022 11 1 1 30)
+            (create_new_datetime 2022 10 30 3 30 . add_work_days 1) . should_equal (Date_Time.new 2022 11 1 3 30)
+
+            tz = Time_Zone.parse "Europe/Warsaw"
+            (create_new_datetime 2022 3 27 1 30 zone=tz . add_work_days 0) . should_equal (Date_Time.new 2022 3 28 1 30 zone=tz)
+            (create_new_datetime 2022 3 27 3 30 zone=tz . add_work_days 1) . should_equal (Date_Time.new 2022 3 29 3 30 zone=tz)
+
+        group_builder.specify "should handle shifting dates around autumn DST edge cases" pending=dst_overlap_message <|
+            d3 = create_new_datetime 2022 10 30 2 30 15 0 tz
+            d4 = d3 + (Duration.new hours=1)
+
+            # TODO we need to check and document the actual behaviour once it is expressible, it may be equally acceptable to shift to 3:30 instead of 2:30.
+            d4 . add_work_days 0 . should_equal (Date_Time.new 2022 10 31 2 30 15 0 tz)
+
+        group_builder.specify "should allow to shift the date by negative amount of working days" <|
+            # 2000-2-1 is a Tuesday
+            create_new_datetime 2000 2 1 12 30 . add_work_days -1 . should_equal (Date_Time.new 2000 1 31 12 30)
+            create_new_datetime 2000 2 1 13 30 . add_work_days -2 . should_equal (Date_Time.new 2000 1 28 13 30)
+
+            # 2000-2-6 is a Sunday
+            create_new_datetime 2000 2 6 14 45 . add_work_days -1 . should_equal (Date_Time.new 2000 2 4 14 45)
+            create_new_datetime 2000 2 6 0 1 . add_work_days -2 . should_equal (Date_Time.new 2000 2 3 0 1)
+            create_new_datetime 2000 2 6 23 59 . add_work_days -6 . should_equal (Date_Time.new 2000 1 28 23 59)
+
+        group_builder.specify "should allow to shift the date by N working days, skipping custom holidays" <|
+            all_year_holiday year =
+                first_day = Date.new year 1 1
+                Vector.new first_day.length_of_year (n -> first_day + (Period.new days=n))
+            holiday_november year =
+                [Date.new year 11 1, Date.new year 11 2, Date.new year 11 11]
+            # We duplicate the holiday entries to check that the functions are resilient to such input data.
+            duplicated_holiday_november year =
+                holiday_november year + holiday_november year + holiday_november year
+
+            # The whole year 1999 is skipped as it's marked as holiday, and 1st and 2nd of January of 2000 are a weekend.
+            create_new_datetime 1999 3 23 12 10 . add_work_days 0 (all_year_holiday 1999) . should_equal (Date_Time.new 2000 1 3 12 10)
+            create_new_datetime 1999 3 23 15 50 . add_work_days 1 (all_year_holiday 1999) . should_equal (Date_Time.new 2000 1 4 15 50)
+
+            # When going backwards, again whole 1999 is skipped and we wind back at Thursday 31 December 1998.
+            create_new_datetime 1999 3 23 22 40 . add_work_days -1 (all_year_holiday 1999) . should_equal (Date_Time.new 1998 12 31 22 40)
+
+            create_new_datetime 1999 10 30 11 30 . add_work_days 0 (holiday_november 1999) . should_equal (Date_Time.new 1999 11 3 11 30)
+            create_new_datetime 1999 10 30 12 30 . add_work_days 1 (holiday_november 1999) . should_equal (Date_Time.new 1999 11 4 12 30)
+            create_new_datetime 1999 10 30 23 59 . add_work_days -1 (holiday_november 1999) . should_equal (Date_Time.new 1999 10 29 23 59)
+            create_new_datetime 1999 10 30 14 40 . add_work_days 0 (duplicated_holiday_november 1999) . should_equal (Date_Time.new 1999 11 3 14 40)
+            create_new_datetime 1999 10 30 15 50 . add_work_days 1 (duplicated_holiday_november 1999) . should_equal (Date_Time.new 1999 11 4 15 50)
+
+        group_builder.specify "should allow extracting a date_part" <|
+            d1 = create_new_datetime 2023 12 30 15 37 58 123456789
+            d1.date_part Date_Period.Year . should_equal 2023
+            d1.date_part Date_Period.Quarter . should_equal 4
+            d1.date_part Date_Period.Month . should_equal 12
+            d1.date_part Date_Period.Week . should_equal 52
+            d1.date_part Date_Period.Day . should_equal 30
+            d1.date_part Time_Period.Day . should_equal 30
+            d1.date_part Time_Period.Hour . should_equal 15
+            d1.date_part Time_Period.Minute . should_equal 37
+            d1.date_part Time_Period.Second . should_equal 58
+            d1.date_part Time_Period.Millisecond . should_equal 123
+            if nanoseconds_loss_in_precision.not then
+                d1.date_part Time_Period.Microsecond . should_equal 456
+                d1.date_part Time_Period.Nanosecond . should_equal 789
+
+        pending_date_diff_test = if name.contains "Python" then "Loose Zone conversions are on, skipping the test"
+
+        group_builder.specify "should allow computing date_diff" pending=pending_date_diff_test <|
+            t1 = create_new_datetime 2021 11 3 10 15 0 zone=Time_Zone.utc
+            t2 = create_new_datetime 2021 12 5 12 30 20 zone=Time_Zone.utc
+
+            t1.date_diff t2 Date_Period.Day . should_equal 32
+            t2.date_diff t1 Date_Period.Day . should_equal -32
+            t1.date_diff (Date_Time.new 2021 11 3 10 15 0) Date_Period.Day . should_equal 0
+
+            t1.date_diff t2 Date_Period.Month . should_equal 1
+            t1.date_diff (Date_Time.new 2021 12 1 10 15 0) Date_Period.Month . should_equal 0
+
+            t1.date_diff t2 Date_Period.Year . should_equal 0
+            t1.date_diff (Date_Time.new 2031 12 1 10 15 0) Date_Period.Year . should_equal 10
+
+            t1.date_diff t2 Time_Period.Day . should_equal 32
+
+            t1.date_diff t2 Time_Period.Hour . should_equal 770
+            t1.date_diff (Date_Time.new 2021 11 3 12 15 0 zone=Time_Zone.utc) Time_Period.Hour . should_equal 2
+
+            t1.date_diff t2 Time_Period.Minute . should_equal 46215
+            t1.date_diff (Date_Time.new 2021 11 3 10 45 0 zone=Time_Zone.utc) Time_Period.Minute . should_equal 30
+
+            t1.date_diff t2 Time_Period.Second . should_equal 2772920
+            t1.date_diff (Date_Time.new 2021 11 3 10 15 30 zone=Time_Zone.utc) Time_Period.Second . should_equal 30
+
+            t1.date_diff t2 Time_Period.Millisecond . should_equal 2772920000
+            t1.date_diff (Date_Time.new 2021 11 3 10 15 30 123 zone=Time_Zone.utc) Time_Period.Millisecond . should_equal 30123
+
+            if nanoseconds_loss_in_precision.not then
+                t1.date_diff t2 Time_Period.Microsecond . should_equal 2772920000000
+                t1.date_diff (Date_Time.new 2021 11 3 10 15 30 123 456 zone=Time_Zone.utc) Time_Period.Microsecond . should_equal 30123456
+                t1.date_diff t2 Time_Period.Nanosecond . should_equal 2772920000000000
+                t1.date_diff (Date_Time.new 2021 11 3 10 15 30 123 456 789 zone=Time_Zone.utc) Time_Period.Nanosecond . should_equal 30123456789
+
+        group_builder.specify "should allow shifting with date_add" <|
+            t1 = Date_Time.new 2021 01 01 12 30 0
+            t1.date_add 5 Date_Period.Day . should_equal (Date_Time.new 2021 01 06 12 30 0)
+            t1.date_add -1 Time_Period.Day . should_equal (Date_Time.new 2020 12 31 12 30 0)
+            t1.date_add 1 Date_Period.Month . should_equal (Date_Time.new 2021 02 01 12 30 0)
+            t1.date_add 10 Date_Period.Year . should_equal (Date_Time.new 2031 01 01 12 30 0)
+
+            t1.date_add 24 Time_Period.Hour . should_equal (Date_Time.new 2021 01 02 12 30 0)
+            t1.date_add -1 Time_Period.Hour . should_equal (Date_Time.new 2021 01 01 11 30 0)
+            t1.date_add 23 Time_Period.Minute . should_equal (Date_Time.new 2021 01 01 12 53 0)
+            t1.date_add -15 Time_Period.Second . should_equal (Date_Time.new 2021 01 01 12 29 45)
+            t1.date_add 1 Time_Period.Millisecond . should_equal (Date_Time.new 2021 01 01 12 30 0 1)
+            if nanoseconds_loss_in_precision.not then
+                t1.date_add 1 Time_Period.Microsecond . should_equal (Date_Time.new 2021 01 01 12 30 0 microsecond=1)
+                t1.date_add 1 Time_Period.Nanosecond . should_equal (Date_Time.new 2021 01 01 12 30 0 nanosecond=1)
+
+            Test.expect_panic_with (t1.date_add 1.5 Date_Period.Day) Type_Error
+            Test.expect_panic_with (t1.date_add 1.0 Date_Period.Day) Type_Error
+
+        group_builder.specify "date_diff and date_add should behave well around DST" <|
+            zone = Time_Zone.parse "Europe/Warsaw"
+            dt1 = Date_Time.new 2023 03 26 00 30 00 zone=zone
+
+            # +24h will shift 1 day and 1 hour, because they 26th of March has only 23 hours within it
+            dt1.date_add 24 Time_Period.Hour . should_equal (Date_Time.new 2023 03 27 01 30 00 zone=zone)
+
+            # But 1 day date shift will shift 1 day, keeping the time, even if that particular day is only 23 hours.
+            dt1.date_add 1 Date_Period.Day . should_equal (Date_Time.new 2023 03 27 00 30 00 zone=zone)
+            # Time_Period.Day will shift by 24 hours.
+            dt1.date_add 1 Time_Period.Day . should_equal (Date_Time.new 2023 03 27 01 30 00 zone=zone)
+
+            dt2 = Date_Time.new 2023 03 27 00 30 00 zone=zone
+            dt1.date_diff dt2 Time_Period.Hour . should_equal 23
+
+            dt1.date_diff dt2 Date_Period.Day . should_equal 1
+            # But when counting in hours - 23 hours is not a full 24-hour day.
+            dt1.date_diff dt2 Time_Period.Day . should_equal 0
+
+            dt3 = Date_Time.new 2023 03 28 01 30 00 zone=zone
+            dt4 = Date_Time.new 2023 03 29 00 30 00 zone=zone
+
+            dt3.date_diff dt4 Date_Period.Day . should_equal 0
+            dt3.date_diff dt4 Time_Period.Day . should_equal 0
+            dt3.date_diff dt4 Time_Period.Hour . should_equal 23
+
+    Date_Part_Spec.add_specs suite_builder name create_new_datetime
+
+js_datetime year month=1 day=1 hour=0 minute=0 second=0 nanosecond=0 zone=Time_Zone.system =
+    Panic.catch Any (js_datetime_with_zone year month day hour minute second nanosecond zone) (err -> Error.throw (Time_Error.Error err.payload))
+
+# This ensures that date returned by javascript has the right timezone specified by the zone parameter.
+# Javascript's toLocaleString will accept the timezone but it will just adapt the datetime while keeping the local timezone.
+js_datetime_with_zone year month day hour minute second nanosecond zone =
+    js_set_zone (js_local_datetime_impl year month day hour minute second nanosecond) zone
+
+js_set_zone local_datetime zone =
+    datetime_with_tz = local_datetime.at_zone zone
+    diff = Duration.between datetime_with_tz local_datetime (timezone_aware=False)
+    datetime_with_tz + diff
+
+python_datetime year month=1 day=1 hour=0 minute=0 second=0 nanosecond=0 zone=Nothing =
+    z = if zone.is_nothing then -1 else zone
+    Panic.catch Any (python_datetime_impl year month day hour minute second nanosecond z) err->
+        Error.throw (Time_Error.Error err.payload)
+
+python_parse text format=Date_Time_Formatter.default_enso_zoned_date_time =
+    d = Date_Time.parse text format
+    python_datetime d.year d.month d.day d.hour d.minute d.second (d.nanosecond include_milliseconds=True) d.zone
+
+foreign js js_local_datetime_impl year month day hour minute second nanosecond = """
+    if (month > 12 || month < 1) {
+        throw `Invalid value for MonthOfYear (valid values 1 - 12): ${month}`;
+    }
+    return new Date(year, month - 1, day, hour, minute, second, nanosecond / 1000000);
+
+js_parse text format=Date_Time_Formatter.default_enso_zoned_date_time =
+    d = Date_Time.parse text format
+    js_datetime d.year d.month d.day d.hour d.minute d.second (d.nanosecond include_milliseconds=True) d.zone
+
+js_array_datetime year month=1 day=1 hour=0 minute=0 second=0 nanosecond=0 zone=Time_Zone.system =
+    arr = Panic.catch Any (js_array_datetimeCreate year month day hour minute second nanosecond) (err -> Error.throw (Time_Error.Error err.payload))
+    js_set_zone arr.at(0) zone
+
+foreign js js_array_datetimeCreate year month day hour minute second nanosecond = """
+    if (month > 12 || month < 1) {
+        throw `Invalid value for MonthOfYear (valid values 1 - 12): ${month}`;
+    }
+    return [ new Date(year, month - 1, day, hour, minute, second, nanosecond / 1000000) ];
+
+foreign python python_datetime_impl year month day hour minute second nanosecond zone = """
+    import datetime
+
+    if month > 12 or month < 1:
+        raise Exception("Invalid value for MonthOfYear (valid values 1 - 12): {}".format(month))
+
+    microseconds = int(nanosecond / 1000000) * 1000
+    if zone == -1:
+        return datetime.datetime(year, month, day, hour, minute, second, microseconds)
+    else:
+        return datetime.datetime(year, month, day, hour, minute, second, microseconds, zone)
+
+enso_datetime year month=1 day=1 hour=0 minute=0 second=0 nanosecond=0 zone=Time_Zone.system =
+    Date_Time.new year month day hour minute second nanosecond=nanosecond zone=zone
+
+java_datetime year month=1 day=1 hour=0 minute=0 second=0 nanosecond=0 zone=Time_Zone.system =
+    Panic.catch Any (ZonedDateTime.of year month day hour minute second nanosecond zone) (err -> Error.throw (Time_Error.Error <| err.payload.getMessage))
+
+maybe_parse_java_zoned text pattern=Nothing =
+    if pattern == Nothing then ZonedDateTime.parse text else
+        ZonedDateTime.parse text pattern
+
+parse_java_local original_error text pattern=Nothing =
+    Panic.catch Any handler=(_ -> Error.throw (Time_Error.Error original_error.getMessage)) <|
+        if pattern.is_nothing then LocalDateTime.parse text else
+            formatter = DateTimeFormatter.ofPattern pattern
+            LocalDateTime.parse text (formatter.withLocale Locale.default.java_locale)
+
+java_parse date_text_raw pattern=Nothing =
+  utc_replaced = date_text_raw.replace "[UTC]" "Z"
+  date_text = if utc_replaced.ends_with "ZZ" then date_text_raw else utc_replaced
+  if pattern == Nothing then Panic.catch Any (maybe_parse_java_zoned date_text) (cause -> parse_java_local cause.payload date_text pattern) else
+      formatter = DateTimeFormatter.ofPattern(pattern)
+      Panic.catch Any (maybe_parse_java_zoned date_text formatter) (cause -> parse_java_local cause.payload date_text pattern)
+
+main filter=Nothing =
+    suite = Test.build suite_builder->
+        add_specs suite_builder
+    suite.run_with_filter filter
+

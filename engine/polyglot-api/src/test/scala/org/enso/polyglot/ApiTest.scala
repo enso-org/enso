@@ -23,6 +23,7 @@ class ApiTest extends AnyFlatSpec with Matchers {
   "Parsing a file and calling a toplevel function defined in it" should "be possible" in {
     val code =
       """
+        |from Standard.Base import all
         |foo = x -> x + 1
         |bar = x -> foo x + 1
         |""".stripMargin
@@ -39,6 +40,7 @@ class ApiTest extends AnyFlatSpec with Matchers {
   "Parsing a file and calling a method on an arbitrary atom" should "be possible" in {
     val code =
       """
+        |from Standard.Base import all
         |type Vector
         |    Vec x y z
         |

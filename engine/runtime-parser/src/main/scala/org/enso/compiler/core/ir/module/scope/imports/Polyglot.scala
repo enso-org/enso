@@ -1,15 +1,18 @@
 package org.enso.compiler.core.ir.module.scope.imports
 
-import org.enso.compiler.core.IR
-import org.enso.compiler.core.IR.{randomId, Identifier, ToStringHelper}
+import org.enso.compiler.core.Implicits.{ShowPassData, ToStringHelper}
+import org.enso.compiler.core.{IR, Identifier}
 import org.enso.compiler.core.ir.module.scope.Import
 import org.enso.compiler.core.ir.{
   DiagnosticStorage,
   Expression,
   IRKind,
   IdentifiedLocation,
+  LazyId,
   MetadataStorage
 }
+
+import java.util.UUID
 
 /** An import of a polyglot class.
   *
@@ -24,11 +27,11 @@ sealed case class Polyglot(
   entity: Polyglot.Entity,
   rename: Option[String],
   override val location: Option[IdentifiedLocation],
-  override val passData: MetadataStorage      = MetadataStorage(),
+  override val passData: MetadataStorage      = new MetadataStorage(),
   override val diagnostics: DiagnosticStorage = DiagnosticStorage()
 ) extends Import
-    with IRKind.Primitive {
-  override protected var id: Identifier = randomId
+    with IRKind.Primitive
+    with LazyId {
 
   /** Creates a copy of `this`.
     *
@@ -47,7 +50,7 @@ sealed case class Polyglot(
     location: Option[IdentifiedLocation] = location,
     passData: MetadataStorage            = passData,
     diagnostics: DiagnosticStorage       = diagnostics,
-    id: Identifier                       = id
+    id: UUID @Identifier                 = id
   ): Polyglot = {
     val res =
       Polyglot(entity, rename, location, passData, diagnostics)
@@ -64,10 +67,11 @@ sealed case class Polyglot(
   ): Polyglot =
     copy(
       location = if (keepLocations) location else None,
-      passData = if (keepMetadata) passData.duplicate else MetadataStorage(),
+      passData =
+        if (keepMetadata) passData.duplicate else new MetadataStorage(),
       diagnostics =
         if (keepDiagnostics) diagnostics.copy else DiagnosticStorage(),
-      id = if (keepIdentifiers) id else randomId
+      id = if (keepIdentifiers) id else null
     )
 
   /** @inheritdoc */
@@ -76,7 +80,9 @@ sealed case class Polyglot(
   ): Polyglot = copy(location = location)
 
   /** @inheritdoc */
-  override def mapExpressions(fn: Expression => Expression): Polyglot =
+  override def mapExpressions(
+    fn: java.util.function.Function[Expression, Expression]
+  ): Polyglot =
     this
 
   /** Returns the name this object is visible as from Enso code.

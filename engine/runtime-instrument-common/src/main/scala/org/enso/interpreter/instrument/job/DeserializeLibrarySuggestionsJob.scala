@@ -13,25 +13,33 @@ import scala.jdk.CollectionConverters._
   * @param libraryName the name of loaded library
   */
 final class DeserializeLibrarySuggestionsJob(
-  libraryName: LibraryName
-) extends BackgroundJob[Unit](DeserializeLibrarySuggestionsJob.Priority) {
+  val libraryName: LibraryName
+) extends BackgroundJob[Unit](DeserializeLibrarySuggestionsJob.Priority, true)
+    with UniqueJob[Unit] {
+
+  /** @inheritdoc */
+  override def equalsTo(that: UniqueJob[_]): Boolean =
+    that match {
+      case that: DeserializeLibrarySuggestionsJob =>
+        this.libraryName == that.libraryName
+      case _ => false
+    }
 
   /** @inheritdoc */
   override def run(implicit ctx: RuntimeContext): Unit = {
     ctx.executionService.getLogger.log(
       Level.FINE,
-      s"Deserializing suggestions for library [$libraryName]."
+      "Deserializing suggestions for library [{}].",
+      libraryName
     )
-    val serializationManager =
-      ctx.executionService.getContext.getCompiler.getSerializationManager
-    serializationManager
+    ctx.executionService.getContext.getCompiler.context
       .deserializeSuggestions(libraryName)
       .foreach { cachedSuggestions =>
         ctx.endpoint.sendToClient(
           Api.Response(
             Api.SuggestionsDatabaseSuggestionsLoadedNotification(
               libraryName,
-              cachedSuggestions.getSuggestions.asScala.toVector
+              cachedSuggestions.asScala.toVector
             )
           )
         )

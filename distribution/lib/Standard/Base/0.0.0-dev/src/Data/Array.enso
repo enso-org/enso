@@ -7,12 +7,14 @@ import project.Data.Pair.Pair
 import project.Data.Range.Range
 import project.Data.Sort_Direction.Sort_Direction
 import project.Data.Text.Text
-import project.Data.Vector.Empty_Error
+import project.Data.Vector.No_Wrap
 import project.Data.Vector.Vector
 import project.Error.Error
 import project.Errors.Common.Incomparable_Values
 import project.Errors.Common.Index_Out_Of_Bounds
 import project.Errors.Common.Not_Found
+import project.Errors.Empty_Error.Empty_Error
+import project.Errors.Illegal_Argument.Illegal_Argument
 import project.Errors.Problem_Behavior.Problem_Behavior
 import project.Errors.Unimplemented.Unimplemented
 import project.Internal.Array_Like_Helpers
@@ -27,6 +29,7 @@ from project.Data.Range.Extensions import all
 @Builtin_Type
 type Array
     ## GROUP Selections
+       ICON select_row
        Gets an element from the array at a specified index (0-based).
 
        Arguments:
@@ -47,6 +50,7 @@ type Array
     at self index = Array_Like_Helpers.at self index
 
     ## GROUP Metadata
+       ICON metadata
        Returns the number of elements stored in this array.
 
        > Example
@@ -67,6 +71,7 @@ type Array
 
     ## ALIAS order_by
        GROUP Calculations
+       ICON order
        Sort the array.
 
        Arguments:
@@ -142,10 +147,11 @@ type Array
              [My_Type.Value 'hello', 1].to_array.sort == [1, My_Type.Value 'hello'].to_array
     sort : Sort_Direction -> (Any -> Any)|Nothing -> (Any -> Any -> (Ordering|Nothing))|Nothing -> Problem_Behavior -> Vector Any ! Incomparable_Values
     sort self (order = Sort_Direction.Ascending) on=Nothing by=Nothing on_incomparable=Problem_Behavior.Ignore =
-        Vector.sort self order on by on_incomparable
+        Array_Like_Helpers.sort self order on by on_incomparable
 
-    ## ALIAS first, last, slice, sample
+    ## ALIAS first, head, last, limit, sample, slice, tail, top
        GROUP Selections
+       ICON select_row
        Creates a new `Vector` with only the specified range of elements from the
        input, removing any elements outside the range.
 
@@ -156,9 +162,12 @@ type Array
          If a `Range`, the selection is specified by two indices, from and to.
     @range Index_Sub_Range.default_widget
     take : (Index_Sub_Range | Range | Integer) -> Vector Any
-    take self range=(Index_Sub_Range.First 1) = Vector.take self range
+    take self range=(Index_Sub_Range.First 1) =
+        Array_Like_Helpers.take self range
 
-    ## GROUP Selections
+    ## ALIAS skip
+       GROUP Selections
+       ICON select_row
        Creates a new `Vector`, removing any elements from the specified range.
 
        Arguments:
@@ -168,9 +177,11 @@ type Array
          If a `Range`, the selection is specified by two indices, from and to.
     @range Index_Sub_Range.default_widget
     drop : (Index_Sub_Range | Range | Integer) -> Vector Any
-    drop self range=(Index_Sub_Range.First 1) = Vector.drop self range
+    drop self range=(Index_Sub_Range.First 1) =
+        Array_Like_Helpers.drop self range
 
     ## GROUP Calculations
+       ICON row_add
        Inserts the given item into the array at the given index.
 
        Arguments:
@@ -187,9 +198,11 @@ type Array
             ['a', 'b', 'c'].to_array.insert -1 'X' == ['a', 'b', 'X', 'c'].to_array
             ['a', 'b', 'c'].to_array.insert item='X' == ['a', 'b', 'c', 'X'].to_array
     insert : Integer -> Any -> Vector ! Index_Out_Of_Bounds
-    insert self at=self.length item=Nothing = Vector.insert self at item
+    insert self at=self.length item=Nothing =
+        Array_Like_Helpers.insert self at item
 
     ## GROUP Selections
+       ICON table_clean
        Removes the item at the given index from the array.
 
        Arguments:
@@ -197,9 +210,10 @@ type Array
          If the index is less than 0, the index will be counted back from the
          end.
     remove : Integer -> Vector
-    remove self at=-1 = Vector.remove self at
+    remove self at=-1 = Array_Like_Helpers.remove self at
 
     ## GROUP Selections
+       ICON select_row
        Get the first element from the array, or an `Index_Out_Of_Bounds` if the array
        is empty.
 
@@ -211,6 +225,7 @@ type Array
     first self = self.at 0
 
     ## GROUP Selections
+       ICON select_row
        Get the second element from the array, or a `Index_Out_Of_Bounds` if the
        array doesn't have a second element.
 
@@ -224,6 +239,7 @@ type Array
     second self = self.at 1
 
     ## GROUP Selections
+       ICON select_row
        Get the last element of the array, or an `Index_Out_Of_Bounds` if the array is
        empty.
 
@@ -235,6 +251,7 @@ type Array
     last self = self.at -1
 
     ## GROUP Values
+       ICON find
        Returns the index of an element in the array.
        Returns Nothing if the element is not found.
 
@@ -254,9 +271,11 @@ type Array
 
              ["ab", "abab", "aba", "bbb"].to_array.index_of (s-> s == s.reverse) == 2
     index_of : (Any | Filter_Condition | (Any -> Boolean)) -> Integer -> Integer | Nothing
-    index_of self condition start=0 = Vector.index_of self condition start
+    index_of self condition (start : Integer = 0) =
+        Array_Like_Helpers.index_of self condition start
 
     ## GROUP Values
+       ICON find
        Returns the last index of an element in the array.
        Returns `Nothing` if the element is not found.
 
@@ -276,9 +295,11 @@ type Array
 
              ["ab", "abab", "aba", "bbb"].to_array.last_index_of (s-> s == s.reverse) == 3
     last_index_of : (Any | Filter_Condition | (Any -> Boolean)) -> Integer -> Integer | Nothing
-    last_index_of self condition start=-1 = Vector.last_index_of self condition start
+    last_index_of self condition (start : Integer = -1) =
+        Array_Like_Helpers.last_index_of self condition start
 
     ## GROUP Logical
+       ICON metadata
        Checks if this array is empty.
 
        > Example
@@ -288,11 +309,14 @@ type Array
     is_empty : Boolean
     is_empty self = self.length == 0
 
-    ## Converts the array to a list with the same elements.
+    ## ICON convert
+       Converts the array to a list with the same elements.
     to_list : List
-    to_list self = Vector.to_list self
+    to_list self = Array_Like_Helpers.to_list self
 
-    ## GROUP Selections
+    ## ALIAS deduplicate, unique
+       GROUP Selections
+       ICON preparation
        Keeps only unique elements within the array, removing any duplicates.
 
        Arguments:
@@ -315,37 +339,88 @@ type Array
 
              [Pair 1 "a", Pair 2 "b", Pair 1 "c"].to_array . distinct (on = _.first) == [Pair 1 "a", Pair 2 "b"].to_array
     distinct : (Any -> Any) -> Vector Any
-    distinct self (on = x->x) = Vector.distinct self on
+    distinct self (on = x->x) = Array_Like_Helpers.distinct self on
 
-    ## Applies a function to each element of the array, returning the `Vector` of
+    ## ICON dataframe_map_column
+       Applies a function to each element of the array, returning the `Vector` of
        results.
 
        Arguments:
        - function: A function that takes an element in the array and returns
          some transformation of that element.
+       - on_problems: Specifies how to handle any problems that arise in
+         `function`.
+
+       ? Problem Handling
+
+         The result of Errors thrown when executing the function depend on
+         `on_problems`:
+         - Report_Error: The first error is thrown, and is wrapped in
+           `Map_Error`.
+         - No_Wrap: The first error is thrown, and is not wrapped in
+           `Map_Error`.
+         - Report_Warning: The result for that element is `Nothing`, 
+           the error is attached as a warning. Currently unimplemented.
+         - Ignore: The result is `Nothing`, and the error is
+           ignored.
+
+         Errors that are thrown when executing the supplied function are wrapped
+         in `Map_Error`, which contains the index at which the error occurred.
+
+         In the `Problem_Behavior.Report_Warning` case, only `MAX_MAP_WARNINGS`
+         warnings are attached to result values. After that, the warnings are
+         dropped, but a count of the additional warnings is attached in an
+         `Additional_Warnings` warning.
 
        > Example
          Add 1 to each element of the array.
 
              [1, 2, 3].to_array . map +1
-    map : (Any -> Any) -> Vector Any
-    map self function = Vector.map self function
+    map : (Any -> Any) -> Problem_Behavior | No_Wrap -> Vector Any
+    map self function on_problems=Problem_Behavior.Report_Error =
+        Array_Like_Helpers.map self function on_problems
 
-    ## Applies a function to each element of the array, returning the `Vector`
+    ## ICON dataframes_union
+       Applies a function to each element of the array, returning the `Vector`
        that contains all results concatenated.
 
        Arguments:
        - function: A function that takes an element in the array, transforms
          it, and returns a `Vector`.
+       - on_problems: Specifies how to handle any problems that arise in
+         `function`.
+
+       ? Problem Handling
+
+         The result of Errors thrown when executing the function depend on
+         `on_problems`:
+         - Report_Error: The first error is thrown, and is wrapped in
+           `Map_Error`.
+         - No_Wrap: The first error is thrown, and is not wrapped in
+           `Map_Error`.
+         - Report_Warning: The result for that element is `Nothing`, 
+           the error is attached as a warning. Currently unimplemented.
+         - Ignore: The result is `Nothing`, and the error is
+           ignored.
+
+         Errors that are thrown when executing the supplied function are wrapped
+         in `Map_Error`, which contains the index at which the error occurred.
+
+         In the `Problem_Behavior.Report_Warning` case, only `MAX_MAP_WARNINGS`
+         warnings are attached to result values. After that, the warnings are
+         dropped, but a count of the additional warnings is attached in an
+         `Additional_Warnings` warning.
 
        > Example
          Replace each number `n` in the array with itself repeated n times.
 
             [0, 1, 2].to_array . flat_map (n -> Vector.fill n n)
-    flat_map : (Any -> Vector Any) -> Vector Any
-    flat_map self function = Vector.flat_map self function
+    flat_map : (Any -> Vector Any) -> Problem_Behavior | No_Wrap -> Vector Any
+    flat_map self function on_problems=Problem_Behavior.Report_Error =
+        Array_Like_Helpers.flat_map self function on_problems
 
     ## GROUP Selections
+       ICON preparation
        Selects all elements of this array which satisfy a condition.
 
        Arguments:
@@ -360,9 +435,10 @@ type Array
              [1, 2, 3, 4, 5].to_array.filter (> 3)
              [1, 2, 3, 4, 5].to_array.filter (Filter_Condition.Greater than=3)
     filter : (Filter_Condition | (Any -> Boolean)) -> Vector Any
-    filter self filter = Vector.filter self filter
+    filter self filter = Array_Like_Helpers.filter self filter
 
     ## GROUP Calculations
+       ICON dataframes_union
        Transforms an array of arrays into a `Vector` of inner elements - removes
        one layer of nesting from a stack of nested arrays.
 
@@ -371,14 +447,16 @@ type Array
 
             [[1, 2, 3].to_array, [4, 10].to_array, [].to_array, [0].to_array, [0].to_array].to_array . flatten == [1, 2, 3, 4, 10, 0, 0].to_array
     flatten : Vector Any
-    flatten self = Vector.flatten self
+    flatten self = Array_Like_Helpers.flatten self
 
     ## PRIVATE
        ADVANCED
     short_display_text : Integer -> Text
-    short_display_text self max_entries=10 = Vector.short_display_text self max_entries
+    short_display_text self max_entries=10 =
+        Array_Like_Helpers.short_display_text self max_entries
 
-    ## Combines all the elements of the array, by iteratively applying the
+    ## ICON dataframe_map_column
+       Combines all the elements of the array, by iteratively applying the
        passed function with the next element of the array. After each step the
        value is stored resulting in a new array of the same size as self.
 
@@ -391,9 +469,11 @@ type Array
 
             [1, 2, 3].to_array.running_fold 0 (+)
     running_fold : Any -> (Any -> Any -> Any) -> Vector Any
-    running_fold self init function = Vector.running_fold self init function
+    running_fold self init function =
+        Array_Like_Helpers.running_fold self init function
 
-    ## Combines all the elements of the array, by iteratively applying the
+    ## ICON dataframe_map_column
+       Combines all the elements of the array, by iteratively applying the
        passed function with next elements of the array.
 
        Arguments:
@@ -410,9 +490,11 @@ type Array
 
              [0, 1, 2].to_array . fold 0 (+)
     fold : Any -> (Any -> Any -> Any) -> Any
-    fold self init function = Vector.fold self init function
+    fold self init function =
+        Array_Like_Helpers.fold self init function
 
-    ## Combines all the elements of the array, by iteratively applying the
+    ## ICON dataframe_map_column
+       Combines all the elements of the array, by iteratively applying the
        passed function with next elements of the array.
 
        Arguments:
@@ -425,9 +507,11 @@ type Array
 
              [0, 1, 2].to_array . fold_with_index 0 (s->i->e->s+i+e)
     fold_with_index : Any -> (Any -> Integer -> Any -> Any) -> Any
-    fold_with_index self init function = Vector.fold_with_index self init function
+    fold_with_index self init function =
+        Array_Like_Helpers.fold_with_index self init function
 
     ## GROUP Calculations
+       ICON dataframes_union
        Extend `self` array to the length of `n` appending elements `elem` to
        the end.
 
@@ -448,9 +532,10 @@ type Array
 
              [1, 2, 3, 4, 5].to_array.pad 5 0 == [1, 2, 3, 4, 5].to_array
     pad : Integer -> Any -> Vector Any
-    pad self n elem = Vector.pad self n elem
+    pad self n elem = Array_Like_Helpers.pad self n elem
 
     ## GROUP Selections
+       ICON split_text
        Partitions the array into `Vector`s of elements which satisfy a given
        condition and ones that do not.
 
@@ -475,9 +560,11 @@ type Array
 
              [1, 2, 3, 4, 5].to_array.partition (x -> x % 2 == 0) == (Pair [2, 4].to_array [1, 3, 5].to_array)
     partition : (Filter_Condition | (Any -> Boolean)) -> Pair (Vector Any) (Vector Any)
-    partition self condition = Vector.partition self condition
+    partition self condition =
+        Array_Like_Helpers.partition self condition
 
-    ## Partitions the array into `Vector`s of elements which satisfy a given
+    ## ICON preparation
+       Partitions the array into `Vector`s of elements which satisfy a given
        predicate and ones that do not.
 
        Returns a `Pair` whose `first` element is the `Vector` of elements
@@ -496,26 +583,88 @@ type Array
 
              ["a", "b", "c", "d"].to_array.partition_with_index (ix -> _ -> ix % 2 == 0) == (Pair ["a", "c"].to_array ["b", "d"].to_array)
     partition_with_index : (Integer -> Any -> Boolean) -> Pair (Vector Any) (Vector Any)
-    partition_with_index self predicate = Vector.partition_with_index self predicate
+    partition_with_index self predicate =
+        Array_Like_Helpers.partition_with_index self predicate
 
-    ## Applies a function to each element of the array, returning the `Vector`
+    ## GROUP Selections
+       ICON dataframe_map_row
+       Swaps the rows and columns of a matrix represented by an array of arrays.
+
+       ! Error Conditions
+
+         - If the rows (subarrays) do not all have the same length, an
+         `Illegal_Argument` error is raised.
+
+       > Example
+         Transpose an array of arrays.
+
+             matrix = [[0, 1, 2].to_array, [3, 4, 5].to_array, [6, 7, 8].to_array].to_array
+             # +---+---+---+
+             # | 0 | 1 | 2 |
+             # +---+---+---+
+             # | 3 | 4 | 5 |
+             # +---+---+---+
+             # | 6 | 7 | 8 |
+             # +---+---+---+
+
+             transposed = [[0, 3, 6].to_array, [1, 4, 7].to_array, [2, 5, 8].to_array].to_array
+             # +---+---+---+
+             # | 0 | 3 | 6 |
+             # +---+---+---+
+             # | 1 | 4 | 7 |
+             # +---+---+---+
+             # | 2 | 5 | 8 |
+             # +---+---+---+
+
+             matrix.transposed == transposed
+             # => True
+    transpose : Array (Array Any) ! Illegal_Argument
+    transpose self =
+        Array_Like_Helpers.transpose self
+
+    ## ICON dataframe_map_column
+       Applies a function to each element of the array, returning the `Vector`
        of results.
 
        Arguments:
        - function: A function that takes an index and an item and calculates a
          new value for at that index.
+       - on_problems: Specifies how to handle any problems that arise in
+         `function`.
 
        The function is called with both the element index as well as the
        element itself.
+
+       ? Problem Handling
+
+         The result of Errors thrown when executing the function depend on
+         `on_problems`:
+         - Report_Error: The first error is thrown, and is wrapped in
+           `Map_Error`.
+         - No_Wrap: The first error is thrown, and is not wrapped in
+           `Map_Error`.
+         - Report_Warning: The result for that element is `Nothing`, 
+           the error is attached as a warning. Currently unimplemented.
+         - Ignore: The result is `Nothing`, and the error is
+           ignored.
+
+         Errors that are thrown when executing the supplied function are wrapped
+         in `Map_Error`, which contains the index at which the error occurred.
+
+         In the `Problem_Behavior.Report_Warning` case, only `MAX_MAP_WARNINGS`
+         warnings are attached to result values. After that, the warnings are
+         dropped, but a count of the additional warnings is attached in an
+         `Additional_Warnings` warning.
 
        > Example
          Sum numbers with their indices in an array.
 
              [1, 2, 3].to_array.map_with_index (+)
-    map_with_index : (Integer -> Any -> Any) -> Vector Any
-    map_with_index self function = Vector.map_with_index self function
+    map_with_index : (Integer -> Any -> Any) -> Problem_Behavior | No_Wrap -> Vector Any
+    map_with_index self function on_problems=Problem_Behavior.Report_Error =
+        Array_Like_Helpers.map_with_index self function on_problems
 
-    ## GROUP Selections
+    ## PRIVATE
        Creates a new array with the skipping elements until `start` and then
        continuing until `end` index.
 
@@ -528,9 +677,11 @@ type Array
 
              [1, 2, 3, 4, 5, 6, 7, 8].to_array.slice 2 5 == [3, 4, 5].to_array
     slice : Integer -> Integer -> Vector Any
-    slice self start end = Vector.slice self start end
+    slice self start end =
+        Array_Like_Helpers.slice self start end
 
     ## GROUP Selections
+       ICON find
        Returns the first element of the array that satisfies the condition or
        `if_missing` if no elements of the array satisfy it.
 
@@ -546,9 +697,11 @@ type Array
 
              [1, 2, 3, 4, 5].to_array.find (> 3)
     find : (Filter_Condition | (Any -> Boolean)) -> Integer -> Any -> Any
-    find self condition start=0 ~if_missing=(Error.throw Not_Found) = Vector.find self condition start if_missing
+    find self condition (start : Integer = 0) ~if_missing=(Error.throw Not_Found) =
+        Array_Like_Helpers.find self condition start if_missing
 
-    ## Gets an element from the array at a specified index (0-based).
+    ## ICON select_row
+       Gets an element from the array at a specified index (0-based).
        If the index is invalid then `if_missing` is returned.
 
        Arguments:
@@ -557,9 +710,11 @@ type Array
          of the array, i.e. -1 will correspond to the last element.
        - if_missing: The value to return if the index is out of bounds.
     get : Integer -> Any -> Any
-    get self index ~if_missing=Nothing = Vector.get self index if_missing
+    get self index ~if_missing=Nothing =
+        Array_Like_Helpers.get self index if_missing
 
     ## GROUP Logical
+       ICON metadata
        Checks if this array is not empty.
 
        > Example
@@ -570,6 +725,7 @@ type Array
     not_empty self = self.is_empty.not
 
     ## GROUP Selections
+       ICON preparation
        Selects all elements of this array which satisfy a predicate.
 
        Arguments:
@@ -582,9 +738,11 @@ type Array
 
              [0, 10, 2, 2].to_array.filter (==) == [0, 2].to_array
     filter_with_index : (Integer -> Any -> Boolean) -> Vector Any
-    filter_with_index self predicate = Vector.filter_with_index self predicate
+    filter_with_index self predicate =
+        Array_Like_Helpers.filter_with_index self predicate
 
     ## GROUP Calculations
+       ICON join
        When `self` is an array of text values, concatenates all the values by
        interspersing them with `separator`.
 
@@ -598,7 +756,8 @@ type Array
 
              ["foo", "bar", "baz"].to_array.join ", "
     join : Text -> Text -> Text -> Text
-    join self separator="" prefix="" suffix="" = Vector.join self separator prefix suffix
+    join self separator:Text="" prefix:Text="" suffix:Text="" =
+        Array_Like_Helpers.join self separator prefix suffix
 
     ## PRIVATE
        Generates a human-readable text representation of the array.
@@ -609,7 +768,8 @@ type Array
     to_display_text : Text
     to_display_text self = self.short_display_text max_entries=40
 
-    ## Combines all the elements of a non-empty array using a binary operation.
+    ## ICON dataframe_map_column
+       Combines all the elements of a non-empty array using a binary operation.
        If the array is empty, it returns `if_empty`.
 
        Arguments:
@@ -621,9 +781,11 @@ type Array
 
              [0, 1, 2].to_array . reduce (+)
     reduce : (Any -> Any -> Any) -> Any -> Any
-    reduce self function ~if_empty=(Error.throw Empty_Error) = Vector.reduce self function if_empty
+    reduce self function ~if_empty=(Error.throw (Empty_Error.Error Array)) =
+        Array_Like_Helpers.reduce self function if_empty
 
     ## GROUP Logical
+       ICON preparation
        Checks whether a predicate holds for at least one element of self array.
 
        Arguments:
@@ -640,9 +802,10 @@ type Array
 
              [1, 2, 3, 4, 5].to_array.any (x-> x%2 == 0)
     any : (Filter_Condition | (Any -> Boolean)) -> Boolean
-    any self condition = Vector.any self condition
+    any self condition = Array_Like_Helpers.any self condition
 
     ## GROUP Logical
+       ICON preparation
        Checks whether a condition holds for all elements in this array.
 
        Arguments:
@@ -659,9 +822,10 @@ type Array
 
              [-1, 1, 5, 8].to_array.all (x-> x%2 == 0)
     all : (Filter_Condition | (Any -> Boolean)) -> Boolean
-    all self condition = Vector.all self condition
+    all self condition = Array_Like_Helpers.all self condition
 
     ## GROUP Logical
+       ICON preparation
        Checks whether this array contains a given value as an element.
 
        Arguments:
@@ -674,8 +838,9 @@ type Array
     contains : Any -> Boolean
     contains self elem = self.any (== elem)
 
-    ## ALIAS combine, merge, join by row position
+    ## ALIAS combine, join by row position, merge
        GROUP Calculations
+       ICON dataframes_join
        Performs a pair-wise operation passed in `function` on consecutive
        elements of `self` and `that`.
 
@@ -683,9 +848,32 @@ type Array
        - that: The array to zip with `self`.
        - function: The function used to combine pairwise elements of `self` and
          `that`.
+       - on_problems: Specifies how to handle any problems that arise in
+         `function`.
 
        The result of this function is a `Vector` of length being the shorter of
        `self` and `that`, containing results of calling `function`.
+
+       ? Problem Handling
+
+         The result of Errors thrown when executing the function depend on
+         `on_problems`:
+         - Report_Error: The first error is thrown, and is wrapped in
+           `Map_Error`.
+         - No_Wrap: The first error is thrown, and is not wrapped in
+           `Map_Error`.
+         - Report_Warning: The result for that element is `Nothing`, 
+           the error is attached as a warning. Currently unimplemented.
+         - Ignore: The result is `Nothing`, and the error is
+           ignored.
+
+         Errors that are thrown when executing the supplied function are wrapped
+         in `Map_Error`, which contains the index at which the error occurred.
+
+         In the `Problem_Behavior.Report_Warning` case, only `MAX_MAP_WARNINGS`
+         warnings are attached to result values. After that, the warnings are
+         dropped, but a count of the additional warnings is attached in an
+         `Additional_Warnings` warning.
 
        > Example
          Calculate the pairwise sum of two arrays.
@@ -697,14 +885,18 @@ type Array
          of both elements.
 
              [1, 2, 3].to_array.zip [4, 5, 6].to_array == [[1, 4].to_array, [2, 5].to_array, [3, 6].to_array].to_array
-    zip : Vector Any -> (Any -> Any -> Any) -> Vector Any
-    zip self that:Vector function=[_,_] = Vector.zip self that function
+    zip : Vector Any -> (Any -> Any -> Any) -> Problem_Behavior | No_Wrap -> Vector Any
+    zip self that function=[_,_] on_problems=Problem_Behavior.Report_Error =
+        len = self.length.min that.length
+        Array_Like_Helpers.vector_from_function len (i-> function (self.at i) (that.at i)) on_problems
 
-    ## Returns the array as a `Vector`.
+    ## ICON convert
+       Returns the array as a `Vector`.
     to_vector : Vector
     to_vector self = Vector.from_polyglot_array self
 
     ## GROUP Selections
+       ICON order
        Reverses the array, returning a `Vector` with the same elements, but in
        the opposite order.
 
@@ -713,7 +905,7 @@ type Array
 
              [1, 2].to_array.reverse
     reverse : Vector Any
-    reverse self = Vector.reverse self
+    reverse self = Array_Like_Helpers.reverse self
 
     ## PRIVATE
        ADVANCED
@@ -730,7 +922,7 @@ type Array
 
              [1, 2, 3, 4, 5].to_array . each IO.println
     each : (Any -> Any) -> Nothing
-    each self f = Vector.each self f
+    each self f = Array_Like_Helpers.each self f
 
     ## PRIVATE
        ADVANCED
@@ -750,10 +942,11 @@ type Array
 
              [1, 2, 3, 4, 5].to_array . each_with_index (ix->elem-> IO.println Pair ix elem)
     each_with_index : (Integer -> Any -> Any) -> Nothing
-    each_with_index self f = Vector.each_with_index self f
+    each_with_index self f = Array_Like_Helpers.each_with_index self f
 
-    ## ALIAS concatenate, union, append
+    ## ALIAS append, concatenate, union
        GROUP Operators
+       ICON dataframes_union
        Concatenates two arrays, resulting in a new `Vector`, containing all the
        elements of `self`, followed by all the elements of `that`.
 
@@ -765,4 +958,4 @@ type Array
 
              [1].to_array + [2].to_array
     + : Vector Any -> Vector Any
-    + self that = Vector.+ self that
+    + self that = Array_Like_Helpers.plus self that

@@ -7,33 +7,21 @@ resolver = "2"
 # path, e.g. `lib/rust/ensogl/examples`, or `app/gui/view/examples`; this is used to optimize the application for
 # loading the IDE.
 members = [
-  "app/gui",
-  "app/gui/language/parser",
-  "app/gui/enso-profiler-enso-data",
-  "app/gui2/rust-ffi",
-  "build/cli",
-  "build/macros/proc-macro",
-  "build/ci-gen",
-  "build/cli",
-  "build/intellij-run-config-gen",
-  "build/deprecated/rust-scripts",
-  "build/shader-tools",
-  "lib/rust/*",
-  "lib/rust/parser/doc-parser",
-  "lib/rust/parser/src/syntax/tree/visitor",
-  "lib/rust/parser/jni",
-  "lib/rust/parser/generate-java",
-  "lib/rust/parser/schema",
-  "lib/rust/parser/debug",
-  "lib/rust/ensogl/pack",
-  "lib/rust/profiler/data",
-  "lib/rust/profiler/demo-data",
-  "integration-test",
-  "tools/language-server/logstat",
-  "tools/language-server/wstest",
+    "app/gui2/rust-ffi",
+    "build/cli",
+    "build/macros/proc-macro",
+    "build/ci-gen",
+    "build/cli",
+    "lib/rust/*",
+    "lib/rust/parser/doc-parser",
+    "lib/rust/parser/src/syntax/tree/visitor",
+    "lib/rust/parser/jni",
+    "lib/rust/parser/generate-java",
+    "lib/rust/parser/schema",
+    "lib/rust/parser/debug",
+    "tools/language-server/logstat",
+    "tools/language-server/wstest",
 ]
-# The default memebers are those we want to check and test by default.
-default-members = ["app/gui", "lib/rust/*"]
 
 # We are using a version with extended functionality. The changes have been PR'd upstream:
 # https://github.com/rustwasm/console_error_panic_hook/pull/24
@@ -64,7 +52,7 @@ debug-assertions = false
 [profile.test]
 opt-level = 0
 lto = false
-debug = 1
+debug = 2
 debug-assertions = true
 
 [profile.integration-test]
@@ -75,8 +63,25 @@ opt-level = 2
 inherits = "dev"
 opt-level = 1
 lto = false
-debug = true
+debug = "line-tables-only"
 debug-assertions = true
+
+[workspace.lints.rust]
+missing_copy_implementations = "warn"
+missing_debug_implementations = "warn"
+non_ascii_idents = "deny"
+unsafe_code = "warn"
+trivial_numeric_casts = "warn"
+unused_import_braces = "warn"
+unused_qualifications = "warn"
+# This is fine, since we plan to use our traits only in our own code and
+# potential ABI breaking changes are not a concern.
+async_fn_in_trait = "allow"
+
+[workspace.lints.clippy]
+bool_to_int_with_if = "allow"
+let_and_return = "allow"
+blocks_in_conditions = "allow" # Until the issue is fixed: https://github.com/rust-lang/rust-clippy/issues/12281
 
 [workspace.dependencies]
 # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -84,74 +89,64 @@ debug-assertions = true
 # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 # We are tryingto maintain minimum set of dependencies. Before adding a new dependency, consult it
 # with the core development team. Thank you!
-console-subscriber = "0.1.8"
-nix = "0.26.1"
+clap = { version = "4.5.4", features = ["derive", "env", "wrap_help", "string"] }
+derive-where = "1.2.7"
+dirs = { version = "5.0.1" }
 octocrab = { git = "https://github.com/enso-org/octocrab", default-features = false, features = [
-  "rustls",
+    "rustls",
 ] }
+platforms = { version = "3.2.0", features = ["serde"] }
+portpicker = { version = "0.1.1" }
 regex = { version = "1.6.0" }
+serde = { version = "1.0.130", features = ["derive", "rc"] }
 serde_yaml = { version = "0.9.16" }
-serde-wasm-bindgen = { version = "0.4.5" }
+sysinfo = { version = "0.30.7" }
 tokio = { version = "1.23.0", features = ["full", "tracing"] }
 tokio-stream = { version = "0.1.12", features = ["fs"] }
 tokio-util = { version = "0.7.4", features = ["full"] }
-wasm-bindgen = { version = "0.2.87", features = [] }
+wasm-bindgen = { version = "0.2.92", features = [] }
 wasm-bindgen-test = { version = "0.3.34" }
 anyhow = { version = "1.0.66" }
 failure = { version = "0.1.8" }
 derive_more = { version = "0.99" }
-assert_approx_eq = { version = "1.1.0" }
-backtrace = { version = "0.3.53" }
 boolinator = { version = "2.4.0" }
 derivative = { version = "2.2" }
 futures = { version = "0.3" }
-itertools = { version = "0.10.5" }
+itertools = { version = "0.12.1" }
 lazy_static = { version = "1.4" }
-paste = { version = "1.0" }
 serde_json = { version = "1.0", features = ["raw_value"] }
 smallvec = { version = "1.0.0" }
-weak-table = { version = "0.3.0" }
-gen-iter = { version = "0.2.1" }
 js-sys = { version = "0.3" }
 owned_ttf_parser = { version = "0.15.1" }
-nalgebra = { version = "0.26.1", features = ["serde-serialize"] }
-const_format = { version = "0.2.22" }
 convert_case = { version = "0.6.0" }
-multi-map = { version = "1.3.0" }
-ordered-float = { version = "3.0.0" }
 rustybuzz = { version = "0.5.1" }
 bincode = { version = "2.0.0-rc.1" }
-byte-unit = { version = "4.0.14", features = ["serde"] }
+byte-unit = { version = "5.1.4", features = ["serde"] }
 bytes = { version = "1.1.0" }
 matches = { version = "0.1" }
 console_error_panic_hook = { version = "0.1.6" }
-reqwest = { version = "0.11.5", default-features = false, features = [
-  "rustls-tls"
+reqwest = { version = "0.11.27", default-features = false, features = [
+    "rustls-tls",
+    "stream",
 ] }
-proc-macro2 = { version = "1.0.50" }
+proc-macro2 = { version = "1.0.79" }
 syn = { version = "2.0", features = [
-  "full",
-  "extra-traits",
-  "printing",
-  "parsing",
-  "visit",
-  "visit-mut",
+    "full",
+    "extra-traits",
+    "printing",
+    "parsing",
+    "visit",
+    "visit-mut",
 ] }
 syn_1 = { package = "syn", version = "1.0", features = [
-  "full",
-  "extra-traits",
-  "printing",
-  "parsing",
-  "visit",
-  "visit-mut",
+    "full",
+    "extra-traits",
+    "printing",
+    "parsing",
+    "visit",
+    "visit-mut",
 ] }
 quote = { version = "1.0.23" }
 semver = { version = "1.0.0", features = ["serde"] }
-strum = { version = "0.24.0", features = ["derive"] }
+strum = { version = "0.26.2", features = ["derive"] }
 thiserror = "1.0.40"
-bytemuck = { version = "1.13.1", features = ["derive"] }
-bitflags = { version = "2.2.1" }
-superslice = { version = "1.0.0" }
-# We don't use serde-wasm-bindgen in some cases, because it cannot deal properly with flattened fields, see:
-# https://github.com/cloudflare/serde-wasm-bindgen/issues/9
-gloo-utils = { version = "0.1.7" }

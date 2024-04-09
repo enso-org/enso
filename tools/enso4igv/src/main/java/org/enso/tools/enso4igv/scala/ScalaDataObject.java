@@ -25,7 +25,7 @@ import org.openide.windows.TopComponent;
         displayName = "#LBL_Scala_LOADER",
         mimeType = "text/x-scala",
         extension = {"scala", "sbt"},
-        position = 330
+        position = 333
 )
 @DataObject.Registration(
         mimeType = "text/x-scala",

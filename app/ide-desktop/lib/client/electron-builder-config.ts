@@ -10,7 +10,7 @@ import * as childProcess from 'node:child_process'
 import * as fs from 'node:fs/promises'
 
 import * as electronBuilder from 'electron-builder'
-import * as electronNotarize from 'electron-notarize'
+import * as electronNotarize from '@electron/notarize'
 import type * as macOptions from 'app-builder-lib/out/options/macOptions'
 import yargs from 'yargs'
 
@@ -28,17 +28,16 @@ import BUILD_INFO from '../../../../build.json' assert { type: 'json' }
 // =============
 
 /** The parts of the electron-builder configuration that we want to keep configurable.
- *
  * @see `args` definition below for fields description. */
 export interface Arguments {
     // The types come from a third-party API and cannot be changed.
     // eslint-disable-next-line no-restricted-syntax
-    target?: string | undefined
-    iconsDist: string
-    guiDist: string
-    ideDist: string
-    projectManagerDist: string
-    platform: electronBuilder.Platform
+    readonly target?: string | undefined
+    readonly iconsDist: string
+    readonly guiDist: string
+    readonly ideDist: string
+    readonly projectManagerDist: string
+    readonly platform: electronBuilder.Platform
 }
 
 //======================================
@@ -93,14 +92,31 @@ export const args: Arguments = await yargs(process.argv.slice(2))
 
 /** Based on the given arguments, creates a configuration for the Electron Builder. */
 export function createElectronBuilderConfig(passedArgs: Arguments): electronBuilder.Configuration {
+    let version = BUILD_INFO.version
+    if (
+        passedArgs.target === 'msi' ||
+        (passedArgs.target == null && process.platform === 'win32')
+    ) {
+        // MSI installer imposes some restrictions on the version number. Namely, product version must have a major
+        // version less than 256, a minor version less than 256, and a build version less than 65536.
+        //
+        // As a workaround (we use year, like 2023, as a major version), we drop two leading digits from the major
+        // version number.
+        version = version.substring(2)
+    }
+
     return {
         appId: 'org.enso',
         productName: common.PRODUCT_NAME,
         extraMetadata: {
-            version: BUILD_INFO.version,
+            version,
         },
         copyright: `Copyright © ${new Date().getFullYear()} ${common.COMPANY_NAME}`,
-        artifactName: 'enso-${os}-${version}.${ext}',
+
+        // Note that the `artifactName` uses the "canonical" version of the product, not one that might have been
+        // simplified for the MSI installer to cope.
+        artifactName: 'enso-${os}-${arch}-' + BUILD_INFO.version + '.${ext}',
+
         /** Definitions of URL {@link electronBuilder.Protocol} schemes used by the IDE.
          *
          * Electron will register all URL protocol schemes defined here with the OS.
@@ -186,6 +202,9 @@ export function createElectronBuilderConfig(passedArgs: Arguments): electronBuil
         directories: {
             output: `${passedArgs.ideDist}`,
         },
+        msi: {
+            runAfterFinish: false,
+        },
         nsis: {
             // Disables "block map" generation during electron building. Block maps
             // can be used for incremental package update on client-side. However,
@@ -230,8 +249,6 @@ export function createElectronBuilderConfig(passedArgs: Arguments): electronBuil
             ) {
                 const {
                     packager: {
-                        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-                        platformSpecificBuildOptions: buildOptions,
                         appInfo: { productFilename: appName },
                         config: { mac: macConfig },
                     },
@@ -250,20 +267,17 @@ export function createElectronBuilderConfig(passedArgs: Arguments): electronBuil
                 })
 
                 console.log('  • Notarizing.')
-                // The type-cast is safe because this is only executes
-                // when `platform === electronBuilder.Platform.MAC`.
-                // eslint-disable-next-line no-restricted-syntax
-                const macBuildOptions = buildOptions as macOptions.MacConfiguration
+
                 await electronNotarize.notarize({
-                    // This will always be defined since we set it at the top of this object.
-                    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-                    appBundleId: macBuildOptions.appId!,
+                    tool: 'notarytool',
                     appPath: `${appOutDir}/${appName}.app`,
                     // It is a mistake for either of these to be undefined.
                     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
                     appleId: process.env.APPLEID!,
                     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
                     appleIdPassword: process.env.APPLEIDPASS!,
+                    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+                    teamId: process.env.APPLETEAMID!,
                 })
             }
         },

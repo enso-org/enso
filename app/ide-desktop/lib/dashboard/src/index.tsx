@@ -1,64 +1,93 @@
-/** @file Entry point into the cloud dashboard. */
-import * as authentication from 'enso-authentication'
+/** @file Authentication module used by Enso IDE & Cloud.
+ *
+ * This module declares the main DOM structure for the authentication/dashboard app. */
+import * as React from 'react'
+
+import * as sentry from '@sentry/react'
+import * as reactDOM from 'react-dom/client'
+import * as reactRouter from 'react-router-dom'
 
 import * as detect from 'enso-common/src/detect'
+
+import type * as app from '#/App'
+import App from '#/App'
 
 // =================
 // === Constants ===
 // =================
 
-/** Path to the SSE endpoint over which esbuild sends events. */
-const ESBUILD_PATH = './esbuild'
-/** SSE event indicating a build has finished. */
-const ESBUILD_EVENT_NAME = 'change'
-/** Path to the service worker that resolves all extensionless paths to `/index.html`.
- * This service worker is required for client-side routing to work when doing local development. */
-const SERVICE_WORKER_PATH = './serviceWorker.js'
+/** The `id` attribute of the root element that the app will be rendered into. */
+const ROOT_ELEMENT_ID = 'enso-dashboard'
+/** The fraction of non-erroring interactions that should be sampled by Sentry. */
+const SENTRY_SAMPLE_RATE = 0.005
 
-// ===================
-// === Live reload ===
-// ===================
+// ===========
+// === run ===
+// ===========
 
-if (detect.IS_DEV_MODE) {
-    new EventSource(ESBUILD_PATH).addEventListener(ESBUILD_EVENT_NAME, () => {
-        // This acts like `location.reload`, but it preserves the query-string.
-        // The `toString()` is to bypass a lint without using a comment.
-        location.href = location.href.toString()
+/** Entrypoint for the authentication/dashboard app.
+ *
+ * Running this function finds a `div` element with the ID `dashboard`, and renders the
+ * authentication/dashboard UI using React. It also handles routing and other interactions (e.g.,
+ * for redirecting the user to/from the login page). */
+export // This export declaration must be broken up to satisfy the `require-jsdoc` rule.
+// This is not a React component even though it contains JSX.
+// eslint-disable-next-line no-restricted-syntax
+function run(props: app.AppProps) {
+  const { logger, vibrancy, supportsDeepLinks } = props
+  logger.log('Starting authentication/dashboard UI.')
+  if (
+    !detect.IS_DEV_MODE &&
+    process.env.ENSO_CLOUD_SENTRY_DSN != null &&
+    process.env.ENSO_CLOUD_API_URL != null
+  ) {
+    sentry.init({
+      dsn: process.env.ENSO_CLOUD_SENTRY_DSN,
+      environment: process.env.ENSO_CLOUD_ENVIRONMENT,
+      integrations: [
+        new sentry.BrowserTracing({
+          routingInstrumentation: sentry.reactRouterV6Instrumentation(
+            React.useEffect,
+            reactRouter.useLocation,
+            reactRouter.useNavigationType,
+            reactRouter.createRoutesFromChildren,
+            reactRouter.matchRoutes
+          ),
+        }),
+        new sentry.Replay(),
+      ],
+      tracesSampleRate: SENTRY_SAMPLE_RATE,
+      tracePropagationTargets: [process.env.ENSO_CLOUD_API_URL.split('//')[1] ?? ''],
+      replaysSessionSampleRate: SENTRY_SAMPLE_RATE,
+      replaysOnErrorSampleRate: 1.0,
     })
-    void navigator.serviceWorker.register(SERVICE_WORKER_PATH)
-} else {
-    void navigator.serviceWorker
-        .getRegistration()
-        .then(serviceWorker => serviceWorker?.unregister())
+  }
+
+  if (vibrancy) {
+    document.body.classList.add('vibrancy')
+  }
+
+  /** The root element into which the authentication/dashboard app will be rendered. */
+  const root = document.getElementById(ROOT_ELEMENT_ID)
+  if (root == null) {
+    logger.error(`Could not find root element with ID '${ROOT_ELEMENT_ID}'.`)
+  } else {
+    // `supportsDeepLinks` will be incorrect when accessing the installed Electron app's pages
+    // via the browser.
+    const actuallySupportsDeepLinks = supportsDeepLinks && detect.isOnElectron()
+    reactDOM.createRoot(root).render(
+      <sentry.ErrorBoundary>
+        {detect.IS_DEV_MODE ? (
+          <React.StrictMode>
+            <App {...props} />
+          </React.StrictMode>
+        ) : (
+          <App {...props} supportsDeepLinks={actuallySupportsDeepLinks} />
+        )}
+      </sentry.ErrorBoundary>
+    )
+  }
 }
 
-// ===================
-// === Entry point ===
-// ===================
-
-authentication.run({
-    logger: console,
-    // This file is only included when building for the cloud.
-    supportsLocalBackend: false,
-    supportsDeepLinks: false,
-    isAuthenticationDisabled: false,
-    shouldShowDashboard: true,
-    initialProjectName: null,
-    /** The `onAuthenticated` option is mandatory but is not needed here,
-     * so this function is empty. */
-    onAuthenticated() {
-        // eslint-disable-next-line @typescript-eslint/no-empty-function
-    },
-    /** The cloud frontend is not capable of running a Project Manager. */
-    projectManagerUrl: null,
-    // This cannot be `appRunner: window.enso` as `window.enso` is set to a new value
-    // every time a new project is opened.
-    appRunner: {
-        stopApp: () => {
-            window.enso?.stopApp()
-        },
-        runApp: async (config, accessToken) => {
-            await window.enso?.runApp(config, accessToken)
-        },
-    },
-})
+/** Global configuration for the {@link App} component. */
+export type AppProps = app.AppProps

@@ -1,12 +1,10 @@
 package org.enso.table.data.column.operation.map.text;
 
-import org.enso.table.data.column.operation.map.SpecializedIsInOp;
-import org.enso.table.data.column.storage.Storage;
-import org.enso.table.data.column.storage.StringStorage;
-import org.graalvm.polyglot.Context;
-
 import java.util.HashSet;
 import java.util.List;
+import org.enso.table.data.column.operation.map.SpecializedIsInOp;
+import org.enso.table.data.column.storage.Storage;
+import org.graalvm.polyglot.Context;
 
 public class StringIsInOp<S extends Storage<String>> extends SpecializedIsInOp<String, S> {
   @Override

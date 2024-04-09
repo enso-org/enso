@@ -82,5 +82,25 @@ class GraalVMComponentConfigurationSpec extends AnyWordSpec with Matchers {
         GraalVMComponent.js
       )
     }
+
+    "return no required components for Truffle unchained" in {
+      val conf = new GraalVMComponentConfiguration
+      val versions = Seq(
+        GraalVMVersion("23.0.0", "21"),
+        GraalVMVersion("23.0.1", "21"),
+        GraalVMVersion("23.0.0", "21.0.1"),
+        GraalVMVersion("23.0.1", "21.0.1"),
+        GraalVMVersion("23.0.0", "21.0.1+5.1"),
+        GraalVMVersion("23.0.1", "21.0.1+5.1"),
+        GraalVMVersion("23.1.0", "21")
+      )
+      versions.forall(_.isUnchained) shouldBe true
+      versions.foreach(version => {
+        conf.getRequiredComponents(
+          version,
+          OS.Linux
+        ) shouldBe empty
+      })
+    }
   }
 }

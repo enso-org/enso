@@ -2,8 +2,9 @@ package org.enso.compiler.core.ir
 package expression
 package errors
 
-import org.enso.compiler.core.IR
-import org.enso.compiler.core.IR.{randomId, Identifier}
+import org.enso.compiler.core.{IR, Identifier}
+
+import java.util.UUID
 
 /** A representation of an error resulting from wrong pattern matches.
   *
@@ -16,12 +17,15 @@ import org.enso.compiler.core.IR.{randomId, Identifier}
 sealed case class Pattern(
   originalPattern: org.enso.compiler.core.ir.Pattern,
   reason: Pattern.Reason,
-  override val passData: MetadataStorage      = MetadataStorage(),
-  override val diagnostics: DiagnosticStorage = DiagnosticStorage()
+  passData: MetadataStorage      = new MetadataStorage(),
+  diagnostics: DiagnosticStorage = DiagnosticStorage()
 ) extends Error
     with Diagnostic.Kind.Interactive
-    with org.enso.compiler.core.ir.Pattern {
-  override def mapExpressions(fn: Expression => Expression): Pattern =
+    with org.enso.compiler.core.ir.Pattern
+    with LazyId {
+  override def mapExpressions(
+    fn: java.util.function.Function[Expression, Expression]
+  ): Pattern =
     copy(originalPattern = originalPattern.mapExpressions(fn))
 
   override def setLocation(location: Option[IdentifiedLocation]): Pattern =
@@ -41,7 +45,7 @@ sealed case class Pattern(
     reason: Pattern.Reason                             = reason,
     passData: MetadataStorage                          = passData,
     diagnostics: DiagnosticStorage                     = diagnostics,
-    id: Identifier                                     = id
+    id: UUID @Identifier                               = id
   ): Pattern = {
     val res = Pattern(originalPattern, reason, passData, diagnostics)
     res.id = id
@@ -63,13 +67,15 @@ sealed case class Pattern(
           keepDiagnostics,
           keepIdentifiers
         ),
-      passData = if (keepMetadata) passData.duplicate else MetadataStorage(),
+      passData =
+        if (keepMetadata) passData.duplicate else new MetadataStorage(),
       diagnostics =
         if (keepDiagnostics) diagnostics.copy else DiagnosticStorage(),
-      id = if (keepIdentifiers) id else randomId
+      id = if (keepIdentifiers) id else null
     )
 
-  override def message: String = reason.explain
+  override def message(source: (IdentifiedLocation => String)): String =
+    reason.explain
 
   override def diagnosticKeys(): Array[Any] = Array(reason)
 
@@ -77,8 +83,6 @@ sealed case class Pattern(
     originalPattern.location
 
   override def children: List[IR] = List(originalPattern)
-
-  override protected var id: Identifier = randomId
 
   override def showCode(indent: Int): String =
     originalPattern.showCode(indent)

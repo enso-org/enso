@@ -1,7 +1,5 @@
 package org.enso.interpreter.dsl;
 
-import org.enso.interpreter.dsl.builtins.*;
-
 import com.google.common.base.CaseFormat;
 import java.io.IOException;
 import java.io.PrintWriter;
@@ -12,15 +10,26 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
-import org.openide.util.lookup.ServiceProvider;
-
-import javax.annotation.processing.*;
-import javax.lang.model.SourceVersion;
-import javax.lang.model.element.*;
-import javax.tools.Diagnostic;
-import javax.tools.JavaFileObject;
-
 import java.util.stream.IntStream;
+import javax.annotation.processing.AbstractProcessor;
+import javax.annotation.processing.Processor;
+import javax.annotation.processing.RoundEnvironment;
+import javax.annotation.processing.SupportedAnnotationTypes;
+import javax.lang.model.SourceVersion;
+import javax.lang.model.element.Element;
+import javax.lang.model.element.ElementKind;
+import javax.lang.model.element.ExecutableElement;
+import javax.lang.model.element.PackageElement;
+import javax.lang.model.element.TypeElement;
+import javax.tools.Diagnostic;
+import javax.tools.Diagnostic.Kind;
+import javax.tools.JavaFileObject;
+import org.enso.interpreter.dsl.builtins.ClassName;
+import org.enso.interpreter.dsl.builtins.MethodNodeClassGenerator;
+import org.enso.interpreter.dsl.builtins.NoSpecializationClassGenerator;
+import org.enso.interpreter.dsl.builtins.SpecializationClassGenerator;
+import org.enso.interpreter.dsl.builtins.TypeWithKind;
+import org.openide.util.lookup.ServiceProvider;
 
 /**
  * The processor used to generate code from the methods of the runtime representations annotated
@@ -91,11 +100,17 @@ public class BuiltinsProcessor extends AbstractProcessor {
         processingEnv.getFiler().createSourceFile(builtinType.fullyQualifiedName());
     Optional<String> stdLibName =
         annotation.stdlibName().isEmpty() ? Optional.empty() : Optional.of(annotation.stdlibName());
-    generateBuiltinType(gen, builtinType, stdLibName, elt.getSimpleName().toString());
+    generateBuiltinType(
+        gen, builtinType, stdLibName, elt.getSimpleName().toString(), annotation.containsValues());
   }
 
   private void generateBuiltinType(
-      JavaFileObject gen, ClassName builtinType, Optional<String> stdLibName, String underlyingTypeName) throws IOException {
+      JavaFileObject gen,
+      ClassName builtinType,
+      Optional<String> stdLibName,
+      String underlyingTypeName,
+      boolean containsValues)
+      throws IOException {
     try (PrintWriter out = new PrintWriter(gen.openWriter())) {
       out.println("package " + builtinType.pkg() + ";");
       out.println();
@@ -103,13 +118,24 @@ public class BuiltinsProcessor extends AbstractProcessor {
         out.println("import " + importPkg + ";");
       }
       out.println();
-      String builtinTypeAnnotation = "@BuiltinType(" + stdLibName.map(n -> "name = \"" + n + "\", ").orElse("") + "underlyingTypeName = \"" + underlyingTypeName + "\")";
+      String builtinTypeAnnotation =
+          "@BuiltinType("
+              + stdLibName.map(n -> "name = \"" + n + "\", ").orElse("")
+              + "underlyingTypeName = \""
+              + underlyingTypeName
+              + "\")";
       out.println(builtinTypeAnnotation);
       out.println("public class " + builtinType.name() + " extends Builtin {");
       out.println("""
-        @Override
-        public boolean containsValues() {
-          return true;
+          @Override
+          public boolean containsValues() {
+        """);
+      if (containsValues) {
+        out.println("    return true;");
+      } else {
+        out.println("    return false;");
+      }
+      out.println("""
         }
       }
       """);
@@ -152,6 +178,27 @@ public class BuiltinsProcessor extends AbstractProcessor {
       Boolean needsFrame = checkNeedsFrame(element);
       boolean isConstructor = method.getKind() == ElementKind.CONSTRUCTOR;
 
+      OK:
+      if (!TypeWithKind.isValidGuestType(processingEnv, method.getReturnType())) {
+        if (method.getAnnotation(Builtin.ReturningGuestObject.class) != null) {
+          // guest objects can be of any type
+          break OK;
+        }
+        if (method.getAnnotation(SuppressWarnings.class) instanceof SuppressWarnings sw
+            && Arrays.asList(sw.value()).contains("generic-enso-builtin-type")) {
+          // assume the case was review
+          break OK;
+        }
+        processingEnv
+            .getMessager()
+            .printMessage(
+                Kind.WARNING,
+                "Suspicious return type: "
+                    + method.getReturnType()
+                    + " use @SuppressWarnings(\"generic-enso-builtin-type\") if OK",
+                method);
+      }
+
       if (annotation.expandVarargs() != 0) {
         if (annotation.expandVarargs() < 0)
           throw new RuntimeException(
@@ -178,13 +225,19 @@ public class BuiltinsProcessor extends AbstractProcessor {
                   try {
                     MethodNodeClassGenerator classGenerator =
                         new NoSpecializationClassGenerator(
-                            processingEnv, method, builtinMethodNode, ownerClass, stdLibOwnerClass, i);
+                            processingEnv,
+                            method,
+                            builtinMethodNode,
+                            ownerClass,
+                            stdLibOwnerClass,
+                            i);
                     classGenerator.generate(
                         processingEnv,
                         methodName,
                         annotation.description(),
                         method.getSimpleName().toString(),
-                        annotation.autoRegister(), needsFrame);
+                        annotation.autoRegister(),
+                        needsFrame);
                   } catch (IOException ioe) {
                     throw new RuntimeException(ioe);
                   }
@@ -238,7 +291,8 @@ public class BuiltinsProcessor extends AbstractProcessor {
                 builtinMethodName,
                 annotation.description(),
                 method.getSimpleName().toString(),
-                annotation.autoRegister(), needsFrame);
+                annotation.autoRegister(),
+                needsFrame);
           }
         } else {
           MethodNodeClassGenerator classGenerator =
@@ -249,7 +303,8 @@ public class BuiltinsProcessor extends AbstractProcessor {
               builtinMethodName,
               annotation.description(),
               method.getSimpleName().toString(),
-              annotation.autoRegister(), needsFrame);
+              annotation.autoRegister(),
+              needsFrame);
         }
       }
     } else {

@@ -1,7 +1,11 @@
 package org.enso.interpreter.node.callable;
 
-import com.oracle.truffle.api.dsl.*;
+import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.dsl.Cached.Shared;
+import com.oracle.truffle.api.dsl.GenerateUncached;
+import com.oracle.truffle.api.dsl.ImportStatic;
+import com.oracle.truffle.api.dsl.ReportPolymorphism;
+import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.frame.MaterializedFrame;
 import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.UnsupportedMessageException;
@@ -16,21 +20,28 @@ import org.enso.interpreter.runtime.callable.UnresolvedConversion;
 import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.data.ArrayRope;
+import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.data.text.Text;
-import org.enso.interpreter.runtime.error.*;
-import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
+import org.enso.interpreter.runtime.error.DataflowError;
+import org.enso.interpreter.runtime.error.PanicException;
+import org.enso.interpreter.runtime.error.PanicSentinel;
+import org.enso.interpreter.runtime.error.Warning;
+import org.enso.interpreter.runtime.error.WithWarnings;
+import org.enso.interpreter.runtime.library.dispatch.TypeOfNode;
 
 @GenerateUncached
 @ReportPolymorphism
 @ImportStatic({HostMethodCallNode.PolyglotCallType.class, HostMethodCallNode.class})
-public abstract class IndirectInvokeConversionNode extends Node {
+abstract class IndirectInvokeConversionNode extends Node {
 
-  /** @return a new indirect method invocation node */
-  public static IndirectInvokeConversionNode build() {
+  /**
+   * @return a new indirect method invocation node
+   */
+  static IndirectInvokeConversionNode build() {
     return IndirectInvokeConversionNodeGen.create();
   }
 
-  public abstract Object execute(
+  abstract Object execute(
       MaterializedFrame frame,
       Object state,
       UnresolvedConversion conversion,
@@ -43,7 +54,11 @@ public abstract class IndirectInvokeConversionNode extends Node {
       BaseNode.TailStatus isTail,
       int thatArgumentPosition);
 
-  @Specialization(guards = {"typesLib.hasType(that)", "!typesLib.hasSpecialDispatch(that)"})
+  static boolean hasType(TypeOfNode typeOfNode, Object value) {
+    return typeOfNode.execute(value) instanceof Type;
+  }
+
+  @Specialization(guards = {"hasType(typeOfNode, that)"})
   Object doConvertFrom(
       MaterializedFrame frame,
       Object state,
@@ -56,13 +71,16 @@ public abstract class IndirectInvokeConversionNode extends Node {
       InvokeCallableNode.ArgumentsExecutionMode argumentsExecutionMode,
       BaseNode.TailStatus isTail,
       int thatArgumentPosition,
-      @Shared("typesLib") @CachedLibrary(limit = "10") TypesLibrary typesLib,
+      @Shared("typeOfNode") @Cached TypeOfNode typeOfNode,
       @Shared("conversionResolverNode") @Cached ConversionResolverNode conversionResolverNode,
       @Shared("indirectInvokeFunctionNode") @Cached
           IndirectInvokeFunctionNode indirectInvokeFunctionNode) {
     Function function =
         conversionResolverNode.expectNonNull(
-            that, InvokeConversionNode.extractType(this, self), typesLib.getType(that), conversion);
+            that,
+            InvokeConversionNode.extractType(this, self),
+            (Type) typeOfNode.execute(that),
+            conversion);
     return indirectInvokeFunctionNode.execute(
         function,
         frame,
@@ -141,7 +159,7 @@ public abstract class IndirectInvokeConversionNode extends Node {
       int thatArgumentPosition,
       @Cached IndirectInvokeConversionNode childDispatch) {
     arguments[thatArgumentPosition] = that.getValue();
-    ArrayRope<Warning> warnings = that.getReassignedWarningsAsRope(this);
+    ArrayRope<Warning> warnings = that.getReassignedWarningsAsRope(this, false);
     Object result =
         childDispatch.execute(
             frame,
@@ -195,16 +213,11 @@ public abstract class IndirectInvokeConversionNode extends Node {
           argumentsExecutionMode,
           isTail);
     } catch (UnsupportedMessageException e) {
-      throw new IllegalStateException("Impossible, that is guaranteed to be a string.");
+      throw EnsoContext.get(this).raiseAssertionPanic(this, null, e);
     }
   }
 
-  @Specialization(
-      guards = {
-        "!methods.hasType(that)",
-        "!interop.isString(that)",
-        "!methods.hasSpecialDispatch(that)"
-      })
+  @Specialization(guards = {"hasType(methods, that)", "!interop.isString(that)"})
   Object doFallback(
       MaterializedFrame frame,
       Object state,
@@ -217,7 +230,7 @@ public abstract class IndirectInvokeConversionNode extends Node {
       InvokeCallableNode.ArgumentsExecutionMode argumentsExecutionMode,
       BaseNode.TailStatus isTail,
       int thatArgumentPosition,
-      @Shared("typesLib") @CachedLibrary(limit = "10") TypesLibrary methods,
+      @Shared("typeOfNode") @Cached TypeOfNode methods,
       @Shared("interop") @CachedLibrary(limit = "10") InteropLibrary interop) {
     throw new PanicException(
         EnsoContext.get(this).getBuiltins().error().makeNoSuchConversion(self, that, conversion),

@@ -10,18 +10,18 @@ import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.nodes.NodeInfo;
 import com.oracle.truffle.api.profiles.CountingConditionProfile;
 import org.enso.interpreter.node.expression.builtin.meta.IsSameObjectNode;
-import org.enso.interpreter.node.expression.builtin.meta.TypeOfNode;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.builtin.Builtins;
-import org.enso.interpreter.runtime.callable.atom.Atom;
+import org.enso.interpreter.runtime.data.atom.Atom;
 import org.enso.interpreter.runtime.error.PanicException;
+import org.enso.interpreter.runtime.library.dispatch.TypeOfNode;
 
 /** An implementation of the case expression specialised to working on polyglot types. */
 @NodeInfo(shortName = "PolyglotSymbolTypeMatch")
 public abstract class PolyglotSymbolTypeBranchNode extends BranchNode {
 
   private final Object polyglotSymbol;
-  private @Child TypeOfNode typeOfNode = TypeOfNode.build();
+  private @Child TypeOfNode typeOfNode = TypeOfNode.create();
   private @Child IsSameObjectNode isSameObject = IsSameObjectNode.build();
   private final CountingConditionProfile profile = CountingConditionProfile.create();
   private final CountingConditionProfile subtypeProfile = CountingConditionProfile.create();

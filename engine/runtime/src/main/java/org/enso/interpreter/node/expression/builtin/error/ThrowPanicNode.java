@@ -13,8 +13,8 @@ import com.oracle.truffle.api.profiles.BranchProfile;
 import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.builtin.Builtins;
-import org.enso.interpreter.runtime.callable.atom.Atom;
-import org.enso.interpreter.runtime.callable.atom.StructsLibrary;
+import org.enso.interpreter.runtime.data.atom.Atom;
+import org.enso.interpreter.runtime.data.atom.StructsLibrary;
 import org.enso.interpreter.runtime.error.PanicException;
 
 @BuiltinMethod(
@@ -48,8 +48,7 @@ public abstract class ThrowPanicNode extends Node {
       try {
         throw interopLibrary.throwException(originalException);
       } catch (UnsupportedMessageException e) {
-        throw new IllegalStateException(
-            "Impossible, `isException` returned true for `originalException`.");
+        throw EnsoContext.get(this).raiseAssertionPanic(this, null, e);
       }
     } else {
       typeErrorProfile.enter();
@@ -69,7 +68,7 @@ public abstract class ThrowPanicNode extends Node {
     try {
       throw interopLibrary.throwException(payload);
     } catch (UnsupportedMessageException e) {
-      throw new IllegalStateException("Impossible, `isException` returned true for `payload`.");
+      throw EnsoContext.get(this).raiseAssertionPanic(this, null, e);
     }
   }
 
