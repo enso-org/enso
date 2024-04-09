@@ -1,12 +1,14 @@
 import { sha3_224 as SHA3 } from '@noble/hashes/sha3'
 import { bytesToHex } from '@noble/hashes/utils'
-import { Client } from '@open-rpc/client-js'
+import { Client, RequestManager } from '@open-rpc/client-js'
 import { ObservableV2 } from 'lib0/observable'
 import { uuidv4 } from 'lib0/random'
+import type { TransportWithWebsocketEvents } from 'shared/util/net'
 import { z } from 'zod'
 import { walkFs } from './languageServer/files'
 import type {
   Checksum,
+  ContentRoot,
   ContextId,
   Event,
   ExecutionEnvironment,
@@ -21,7 +23,7 @@ import type {
   VisualizationConfiguration,
   response,
 } from './languageServerTypes'
-import type { AbortScope } from './util/net'
+import { rpcWithRetries, type AbortScope } from './util/net'
 import type { Uuid } from './yjsModel'
 
 const DEBUG_LOG_RPC = false
@@ -106,26 +108,54 @@ export class LsRpcError extends Error {
 
 /** [Documentation](https://github.com/enso-org/enso/blob/develop/docs/language-server/protocol-language-server.md) */
 export class LanguageServer extends ObservableV2<Notifications> {
+  transport: TransportWithWebsocketEvents
   client: Client
+  initialized: Promise<{ contentRoots: ContentRoot[] }>
   handlers: Map<string, Set<(...params: any[]) => void>>
   retainCount = 1
 
-  constructor(client: Client) {
+  constructor(clientID: Uuid, transport: TransportWithWebsocketEvents) {
     super()
-    this.client = client
-    this.handlers = new Map()
+    this.transport = transport
+    const requestManager = new RequestManager([transport])
+    this.client = new Client(requestManager)
+    const initialize = () =>
+      rpcWithRetries(() => this.initProtocolConnection(clientID), {
+        onBeforeRetry: (error, _, delay) => {
+          console.warn(
+            `Failed to initialize language server connection, retrying after ${delay}ms...\n`,
+            error,
+          )
+        },
+      }).catch((error) => {
+        console.error('Error initializing Language Server RPC:', error)
+        throw error
+      })
 
-    client.onNotification((notification) => {
+    this.initialized = initialize()
+
+    this.handlers = new Map()
+    this.client.onNotification((notification) => {
       this.emit(notification.method as keyof Notifications, [notification.params])
     })
-    client.onError((error) => {
+    this.client.onError((error) => {
       console.error(`Unexpected LS connection error:`, error)
     })
+    this.transport.on('error', (error) => console.error('Language Server transport error:', error))
+    this.transport.on('close', () => {
+      this.initialized = initialize()
+      this.emit('transport/closed', [])
+    })
+    this.transport.on('open', () => this.emit('transport/reconnected', []))
+  }
+
+  get contentRoots(): Promise<ContentRoot[]> {
+    return this.initialized.then(({ contentRoots }) => contentRoots)
   }
 
   // The "magic bag of holding" generic that is only present in the return type is UNSOUND.
   // However, it is SAFE, as the return type of the API is statically known.
-  private async request<T>(method: string, params: object): Promise<T> {
+  private async request<T>(method: string, params: object, waitForInit = true): Promise<T> {
     if (this.retainCount === 0) return Promise.reject(new Error('LanguageServer disposed'))
     const uuid = uuidv4()
     const now = performance.now()
@@ -134,6 +164,7 @@ export class LanguageServer extends ObservableV2<Notifications> {
         console.log(`LS [${uuid}] ${method}:`)
         console.dir(params)
       }
+      if (waitForInit) await this.initialized
       return await this.client.request({ method, params }, RPC_TIMEOUT_MS)
     } catch (error) {
       const remoteError = RemoteRpcErrorSchema.safeParse(error)
@@ -166,7 +197,7 @@ export class LanguageServer extends ObservableV2<Notifications> {
 
   /** [Documentation](https://github.com/enso-org/enso/blob/develop/docs/language-server/protocol-language-server.md#sessioninitprotocolconnection) */
   initProtocolConnection(clientId: Uuid): Promise<response.InitProtocolConnection> {
-    return this.request('session/initProtocolConnection', { clientId })
+    return this.request('session/initProtocolConnection', { clientId }, false)
   }
 
   /** [Documentation](https://github.com/enso-org/enso/blob/develop/docs/language-server/protocol-language-server.md#textopenfile) */

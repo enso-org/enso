@@ -1,90 +1,23 @@
-import { ResultError, rejectionToResult, type Result } from '@/util/data/result'
-import WebSocketTransport from '@/util/net/ReconnectingWSTransport'
 import type {
   IJSONRPCNotificationResponse,
   JSONRPCRequestData,
 } from '@open-rpc/client-js/build/Request'
 import { Transport } from '@open-rpc/client-js/build/transports/Transport'
 import { type ArgumentsType } from '@vueuse/core'
-import { wait } from 'lib0/promise'
-import { LsRpcError } from 'shared/languageServer'
 import type { Notifications } from 'shared/languageServerTypes'
-import { AbortScope } from 'shared/util/net'
+import { AbortScope, type TransportWithWebsocketEvents } from 'shared/util/net'
+import ReconnectingWebSocketTransport from 'shared/util/net/ReconnectingWSTransport'
 import { WebsocketClient } from 'shared/websocket'
 import { onScopeDispose } from 'vue'
 
-export interface BackoffOptions<E> {
-  maxRetries?: number
-  retryDelay?: number
-  retryDelayMultiplier?: number
-  retryDelayMax?: number
-  /**
-   * Called when the promise return an error result, and the next retry is about to be attempted.
-   * When this function returns `false`, the backoff is immediately aborted. When this function is
-   * not provided, the backoff will always continue until the maximum number of retries is reached.
-   */
-  onBeforeRetry?: (error: ResultError<E>, retryCount: number, delay: number) => boolean | void
-}
+export { AbortScope, rpcWithRetries } from 'shared/util/net'
 
-const defaultBackoffOptions: Required<BackoffOptions<any>> = {
-  maxRetries: 3,
-  retryDelay: 1000,
-  retryDelayMultiplier: 2,
-  retryDelayMax: 10000,
-  onBeforeRetry: () => {},
-}
-
-/**
- * Retry a failing promise function with exponential backoff.
- */
-export async function exponentialBackoff<T, E>(
-  f: () => Promise<Result<T, E>>,
-  backoffOptions?: BackoffOptions<E>,
-): Promise<Result<T, E>> {
-  const options = { ...defaultBackoffOptions, ...backoffOptions }
-  for (
-    let retries = 0, delay = options.retryDelay;
-    ;
-    retries += 1, delay = Math.min(options.retryDelayMax, delay * options.retryDelayMultiplier)
-  ) {
-    const result = await f()
-    if (
-      result.ok ||
-      retries >= options.maxRetries ||
-      options.onBeforeRetry(result.error, retries, delay) === false
-    ) {
-      return result
-    }
-    await wait(delay)
-  }
-}
-
-export const lsRequestResult = rejectionToResult(LsRpcError)
-
-/**
- * Retry a failing Language Server RPC call with exponential backoff. The provided async function is
- * called on each retry.
- */
-export async function rpcWithRetries<T>(
-  f: () => Promise<T>,
-  backoffOptions?: BackoffOptions<LsRpcError>,
-): Promise<T> {
-  const result = await exponentialBackoff(() => lsRequestResult(f()), backoffOptions)
-  if (result.ok) return result.value
-  else {
-    console.error('Too many failed retries.')
-    throw result.error
-  }
-}
-
-type QueueTask<State> = (state: State) => Promise<State>
-
-export function createRpcTransport(url: string): Transport {
+export function createRpcTransport(url: string): TransportWithWebsocketEvents {
   if (url.startsWith('mock://')) {
     const mockName = url.slice('mock://'.length)
     return new MockTransport(mockName)
   } else {
-    const transport = new WebSocketTransport(url)
+    const transport = new ReconnectingWebSocketTransport(url)
     return transport
   }
 }
@@ -136,6 +69,15 @@ export class MockTransport extends Transport {
       params,
     } as IJSONRPCNotificationResponse)
   }
+
+  on<K extends keyof WebSocketEventMap>(
+    _type: K,
+    _cb: (event: WebSocketEventMap[K]) => void,
+  ): void {}
+  off<K extends keyof WebSocketEventMap>(
+    _type: K,
+    _cb: (event: WebSocketEventMap[K]) => void,
+  ): void {}
 }
 
 export interface WebSocketHandler {
@@ -194,6 +136,8 @@ export class MockWebSocketClient extends WebsocketClient {
     super.connect(new MockWebSocket(url, url.slice('mock://'.length)))
   }
 }
+
+type QueueTask<State> = (state: State) => Promise<State>
 
 /**
  * A serializing queue of asynchronous tasks transforming a state. Each task is a function that

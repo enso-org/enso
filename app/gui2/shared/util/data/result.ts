@@ -87,3 +87,5 @@ export function rejectionToResult<ErrorKind extends new (...args: any[]) => any>
     }
   }
 }
+
+export function anyRejectionToResult<T>(promise: Promise<T>): Promise<Result<T, any>> {}

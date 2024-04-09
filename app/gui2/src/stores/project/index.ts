@@ -15,7 +15,6 @@ import {
   useAbortScope,
 } from '@/util/net'
 import { tryQualifiedName } from '@/util/qualifiedName'
-import { Client, RequestManager } from '@open-rpc/client-js'
 import { computedAsync } from '@vueuse/core'
 import * as array from 'lib0/array'
 import * as object from 'lib0/object'
@@ -26,7 +25,6 @@ import { OutboundPayload, VisualizationUpdate } from 'shared/binaryProtocol'
 import { DataServer } from 'shared/dataServer'
 import { LanguageServer } from 'shared/languageServer'
 import type {
-  ContentRoot,
   ContextId,
   Diagnostic,
   ExecutionEnvironment,
@@ -75,32 +73,11 @@ function resolveLsUrl(config: GuiConfig): LsUrls {
   throw new Error('Incomplete engine configuration')
 }
 
-async function initializeLsRpcConnection(
-  clientId: Uuid,
-  url: string,
-  abort: AbortScope,
-): Promise<{
-  connection: LanguageServer
-  contentRoots: ContentRoot[]
-}> {
+function createLsRpcConnection(clientId: Uuid, url: string, abort: AbortScope): LanguageServer {
   const transport = createRpcTransport(url)
-  const requestManager = new RequestManager([transport])
-  const client = new Client(requestManager)
-  const connection = new LanguageServer(client)
+  const connection = new LanguageServer(clientId, transport)
   abort.onAbort(() => connection.release())
-  const initialization = await lsRpcWithRetries(() => connection.initProtocolConnection(clientId), {
-    onBeforeRetry: (error, _, delay) => {
-      console.warn(
-        `Failed to initialize language server connection, retrying after ${delay}ms...\n`,
-        error,
-      )
-    },
-  }).catch((error) => {
-    console.error('Error initializing Language Server RPC:', error)
-    throw error
-  })
-  const contentRoots = initialization.contentRoots
-  return { connection, contentRoots }
+  return connection
 }
 
 async function initializeDataConnection(clientId: Uuid, url: string, abort: AbortScope) {
@@ -181,20 +158,20 @@ export class ExecutionContext extends ObservableV2<ExecutionContextNotification>
   visualizationConfigs: Map<Uuid, NodeVisualizationConfiguration> = new Map()
 
   constructor(
-    lsRpc: Promise<LanguageServer>,
+    lsRpc: LanguageServer,
     entryPoint: EntryPoint,
     private abort: AbortScope,
   ) {
     super()
     this.abort.handleDispose(this)
 
-    this.queue = new AsyncQueue(
-      lsRpc.then((lsRpc) => ({
+    this.queue = new AsyncQueue<ExecutionContextState>(
+      Promise.resolve({
         lsRpc,
         created: false,
         visualizations: new Map(),
         stack: [],
-      })),
+      }),
     )
     this.registerHandlers()
     this.create()
@@ -451,21 +428,8 @@ export const useProjectStore = defineStore('project', () => {
 
   const clientId = random.uuidv4() as Uuid
   const lsUrls = resolveLsUrl(config.value)
-  const initializedConnection = initializeLsRpcConnection(clientId, lsUrls.rpcUrl, abort)
-  const lsRpcConnection = initializedConnection.then(
-    ({ connection }) => connection,
-    (error) => {
-      console.error('Error getting Language Server connection:', error)
-      throw error
-    },
-  )
-  const contentRoots = initializedConnection.then(
-    ({ contentRoots }) => contentRoots,
-    (error) => {
-      console.error('Error getting content roots:', error)
-      throw error
-    },
-  )
+  const lsRpcConnection = createLsRpcConnection(clientId, lsUrls.rpcUrl, abort)
+  const contentRoots = lsRpcConnection.contentRoots
 
   const dataConnection = initializeDataConnection(clientId, lsUrls.dataUrl, abort)
   const rpcUrl = new URL(lsUrls.rpcUrl)
@@ -563,14 +527,9 @@ export const useProjectStore = defineStore('project', () => {
     )
   }
 
-  const firstExecution = lsRpcConnection.then(
-    (lsRpc) =>
-      nextEvent(lsRpc, 'executionContext/executionComplete').catch((error) => {
-        console.error('First execution failed:', error)
-        throw error
-      }),
+  const firstExecution = nextEvent(lsRpcConnection, 'executionContext/executionComplete').catch(
     (error) => {
-      console.error('Could not get Language Server for first execution:', error)
+      console.error('First execution failed:', error)
       throw error
     },
   )

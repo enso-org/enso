@@ -3,14 +3,14 @@ import * as json from 'lib0/json'
 import * as map from 'lib0/map'
 import { ObservableV2 } from 'lib0/observable'
 import * as random from 'lib0/random'
+import { Ok, Result, rejectionToResult } from 'shared/util/data/result'
 import * as Y from 'yjs'
 import * as Ast from '../shared/ast'
 import { astCount } from '../shared/ast'
 import { EnsoFileParts, combineFileParts, splitFileContents } from '../shared/ensoFile'
 import { LanguageServer, computeTextChecksum } from '../shared/languageServer'
 import { Checksum, FileEdit, Path, TextEdit, response } from '../shared/languageServerTypes'
-import { exponentialBackoff, printingCallbacks } from '../shared/retry'
-import { AbortScope } from '../shared/util/net'
+import { AbortScope, exponentialBackoff, printingCallbacks } from '../shared/util/net'
 import {
   DistributedProject,
   ExternalId,
@@ -109,30 +109,30 @@ export class LanguageServerSession {
       if (DEBUG_LOG_SYNC) {
         console.log('file/event', event)
       }
+      let result: Result<void, Error> = Ok()
       const path = event.path.segments.join('/')
-      try {
-        switch (event.kind) {
-          case 'Added': {
-            if (isSourceFile(event.path)) {
-              const fileInfo = await this.ls.fileInfo(event.path)
-              if (fileInfo.attributes.kind.type == 'File') {
-                await exponentialBackoff(
-                  () => this.getModuleModel(event.path).open(),
-                  printingCallbacks(`opened new file '${path}'`, `open new file '${path}'`),
-                )
-              }
+      switch (event.kind) {
+        case 'Added': {
+          if (isSourceFile(event.path)) {
+            const fileInfo = await this.ls.fileInfo(event.path)
+            if (fileInfo.attributes.kind.type == 'File') {
+              result = await exponentialBackoff(
+                () => rejectionToResult(Error)(this.getModuleModel(event.path).open()),
+                printingCallbacks(`opened new file '${path}'`, `open new file '${path}'`),
+              )
             }
-            break
           }
-          case 'Modified': {
-            await exponentialBackoff(
-              async () => this.tryGetExistingModuleModel(event.path)?.reload(),
-              printingCallbacks(`reloaded file '${path}'`, `reload file '${path}'`),
-            )
-            break
-          }
+          break
         }
-      } catch {
+        case 'Modified': {
+          result = await exponentialBackoff(
+            () => rejectionToResult(Error)(this.tryGetExistingModuleModel(event.path)?.reload()),
+            printingCallbacks(`reloaded file '${path}'`, `reload file '${path}'`),
+          )
+          break
+        }
+      }
+      if (!result.ok) {
         this.restartClient()
       }
     })
