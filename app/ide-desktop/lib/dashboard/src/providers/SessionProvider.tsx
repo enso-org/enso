@@ -46,7 +46,7 @@ export interface SessionProviderProps {
   readonly mainPageUrl: URL
   readonly registerAuthEventListener: listen.ListenFunction | null
   readonly userSession: (() => Promise<cognito.UserSession | null>) | null
-  readonly refreshUserSession: (() => Promise<unknown>) | null
+  readonly refreshUserSession: (() => Promise<void>) | null
   readonly children: React.ReactNode
 }
 

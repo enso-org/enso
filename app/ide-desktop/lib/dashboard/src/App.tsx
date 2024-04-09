@@ -427,7 +427,13 @@ function AppRouter(props: AppRouterProps) {
       mainPageUrl={mainPageUrl}
       userSession={userSession}
       registerAuthEventListener={registerAuthEventListener}
-      refreshUserSession={refreshUserSession}
+      refreshUserSession={
+        refreshUserSession
+          ? async () => {
+              await refreshUserSession()
+            }
+          : null
+      }
     >
       {result}
     </SessionProvider>
