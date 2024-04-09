@@ -44,8 +44,10 @@ public class UsersHandler implements CloudHandler {
   private final String currentUser =
       """
       {
-          "id": "organization-27xJM00p8jWoL2qByTo6tQfciWC",
+          "userId": "user-2Xcxm00p8jWoL2qByTo6tQfciWC",
+          "organizationId": "organization-27xJM00p8jWoL2qByTo6tQfciWC",
           "name": "My test User 1",
+          "organizationName": "Test.ORG",
           "email": "enso-test-user-1@example.com",
           "isEnabled": true,
           "rootDirectoryId": "directory-27xJM00p8jWoL2qByTo6tQfciWC"
@@ -55,11 +57,13 @@ public class UsersHandler implements CloudHandler {
   private final String otherUser =
       """
       {
-          "id": "organization-44AAA00A8AAAA2AAAAA6AAAAAAA",
+          "userId": "user-44AAA00A8AAAA2AAAAA6AAAAAAA",
+          "organizationId": "organization-27xJM00p8jWoL2qByTo6tQfciWC",
           "name": "My test User 2",
+          "organizationName": "Test.ORG",
           "email": "enso-test-user-2@example.com",
           "isEnabled": false,
-          "rootDirectoryId": "directory-44AAA00A8AAAA2AAAAA6AAAAAAA"
+          "rootDirectoryId": "directory-27xJM00p8jWoL2qByTo6tQfciWC"
       }
       """;
 }
