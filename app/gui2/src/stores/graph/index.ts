@@ -365,6 +365,8 @@ export const useGraphStore = defineStore('graph', () => {
         for (const id of ids) {
           const node = db.nodeIdToNode.get(id)
           if (!node) continue
+          const usages = db.getNodeUsages(id)
+          for (const usage of usages) updatePortValue(edit, usage, undefined)
           const outerExpr = edit.getVersion(node.outerExpr)
           if (outerExpr) Ast.deleteFromParentBlock(outerExpr)
           nodeRects.delete(id)
