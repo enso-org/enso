@@ -19,6 +19,9 @@ public final class ClasspathResource {
     target.toFile().deleteOnExit();
 
     try (InputStream in = ClasspathResource.class.getResourceAsStream(name)) {
+      if (in == null) {
+        throw new IOException("Cannot find " + name);
+      }
       Files.copy(in, target, StandardCopyOption.REPLACE_EXISTING);
     }
 

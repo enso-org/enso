@@ -1141,6 +1141,8 @@ lazy val `polyglot-ydoc-server` = project
     autoScalaLibrary := false,
     Compile / run / fork := true,
     Test / fork := true,
+    run / connectInput := true,
+    commands += WithDebugCommand.withDebug,
     modulePath := {
       JPMSUtils.filterModulesFromUpdate(
         update.value,
@@ -1176,7 +1178,7 @@ lazy val `polyglot-ydoc-server` = project
     },
     libraryDependencies ++= Seq(
       "org.graalvm.polyglot" % "polyglot"                    % graalMavenPackagesVersion % "provided",
-      "org.graalvm.polyglot" % "inspect"                     % graalMavenPackagesVersion % "provided",
+      "org.graalvm.polyglot" % "inspect"                     % graalMavenPackagesVersion % "runtime",
       "org.graalvm.polyglot" % "js"                          % graalMavenPackagesVersion % "provided,runtime",
       "io.helidon.webclient" % "helidon-webclient-websocket" % helidonVersion,
       "io.helidon.webserver" % "helidon-webserver-websocket" % helidonVersion,
