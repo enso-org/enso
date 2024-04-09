@@ -2409,7 +2409,9 @@ export default function AssetsTable(props: AssetsTableProps) {
                     {getText('noFilesMatchTheCurrentFilters')}
                   </aria.Text>
                 ) : (
-                  <aria.Text className="px-cell-x placeholder">{getText('yourTrashIsEmpty')}</aria.Text>
+                  <aria.Text className="px-cell-x placeholder">
+                    {getText('yourTrashIsEmpty')}
+                  </aria.Text>
                 )
               ) : query.query !== '' ? (
                 <aria.Text className="px-cell-x placeholder">
