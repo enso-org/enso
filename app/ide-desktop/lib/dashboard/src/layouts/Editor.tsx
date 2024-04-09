@@ -1,6 +1,8 @@
 /** @file The container that launches the IDE. */
 import * as React from 'react'
 
+import * as appUtils from '#/appUtils'
+
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
 import * as backendModule from '#/services/Backend'
@@ -114,7 +116,10 @@ export default function Editor(props: EditorProps) {
                   },
                 },
                 accessToken,
-                { projectId: project.projectId }
+                {
+                  projectId: project.projectId,
+                  ignoreParamsRegex: new RegExp(`^${appUtils.SEARCH_PARAMS_PREFIX}(.+)$`),
+                }
               )
             } catch (error) {
               toastAndLog('openEditorError', error)
