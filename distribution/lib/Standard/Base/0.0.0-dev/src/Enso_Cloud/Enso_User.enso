@@ -53,8 +53,6 @@ Enso_User.from (that:JS_Object) =
     id = get_required_field "userId" that expected_type=Text
     name = get_required_field "name" that expected_type=Text
     email = get_required_field "email" that expected_type=Text
-    # Organization id is currently not being used
-    # organization_id = get_required_field "organizationId" that expected_type=Text
     organization_name = get_required_field "organizationName" that expected_type=Text
     effective_organization_name = if organization_name == "" then name else organization_name
     is_enabled = get_optional_field "isEnabled" that if_missing=True expected_type=Boolean
