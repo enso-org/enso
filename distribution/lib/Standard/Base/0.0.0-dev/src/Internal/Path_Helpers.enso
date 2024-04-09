@@ -1,0 +1,21 @@
+import project.Any.Any
+import project.Data.List.List
+import project.Data.Text.Text
+import project.Data.Vector.Vector
+import project.Error.Error
+import project.Errors.Illegal_Argument.Illegal_Argument
+
+## PRIVATE
+   A helper that gathers the common logic of normalizing the `..` and `.`
+   entries in paths.
+
+   It raises `Illegal_Argument` if the `..` entries try to go above the root of
+   the path.
+normalize_segments (segments : Vector) (get_name : Any -> Text) -> Vector ! Illegal_Argument =
+    new_stack = segments.fold List.Nil stack-> part-> case get_name part of
+        "." -> stack
+        ".." -> case stack of
+            List.Nil -> Error.throw (Illegal_Argument.Error "Cannot move above root folder.")
+            List.Cons _ tail -> tail
+        _ -> List.Cons part stack
+    new_stack.to_vector.reverse

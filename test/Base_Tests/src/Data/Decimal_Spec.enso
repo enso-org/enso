@@ -688,6 +688,26 @@ add_specs suite_builder =
 
             Decimal.parse "123,456,789.87654" . should_fail_with Number_Parse_Error
 
+    suite_builder.group "signs" group_builder->
+        group_builder.specify "should calculate abs correctly" <|
+            Decimal.new "12.345" . abs . should_equal 12.345
+            Decimal.new "-12.345" . abs . should_equal 12.345
+            Decimal.new "12.345E97" . abs . should_equal (Decimal.new "12.345E97")
+            Decimal.new "-12.345E97" . abs . should_equal (Decimal.new "12.345E97")
+
+        group_builder.specify "should calculate negate correctly" <|
+            Decimal.new "12.345" . negate . should_equal -12.345
+            Decimal.new "-12.345" . negate . should_equal 12.345
+            Decimal.new "12.345E97" . negate . should_equal (Decimal.new "-12.345E97")
+            Decimal.new "-12.345E97" . negate . should_equal (Decimal.new "12.345E97")
+
+        group_builder.specify "should calculate signum correctly" <|
+            Decimal.new "12.345" . signum . should_equal 1
+            Decimal.new "-12.345" . signum . should_equal -1
+            Decimal.new "12.345E97" . signum . should_equal 1
+            Decimal.new "-12.345E97" . signum . should_equal -1
+            Decimal.new "0" . signum . should_equal 0
+
 main =
     suite = Test.build suite_builder->
         add_specs suite_builder

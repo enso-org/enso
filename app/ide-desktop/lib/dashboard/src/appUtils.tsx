@@ -4,6 +4,10 @@
 // === Constants ===
 // =================
 
+// =============
+// === Paths ===
+// =============
+
 /** Path to the root of the app (i.e., the Cloud dashboard). */
 export const DASHBOARD_PATH = '/'
 /** Path to the login page. */
@@ -28,3 +32,9 @@ export const ALL_PATHS_REGEX = new RegExp(
     `${FORGOT_PASSWORD_PATH}|${RESET_PASSWORD_PATH}|${SET_USERNAME_PATH}|` +
     `${ENTER_OFFLINE_MODE_PATH}|${SUBSCRIBE_PATH})$`
 )
+
+// ===========
+// === URL ===
+// ===========
+
+export const SEARCH_PARAMS_PREFIX = 'cloud-ide_'
