@@ -35,6 +35,7 @@ object JVMSettings {
       extraOptions
     )
 
+  // See propositions in #9475 for alternatives
   private val nioOpen: (String, String) =
     ("add-opens", "java.base/java.nio=ALL-UNNAMED")
 
