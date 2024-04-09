@@ -71,7 +71,7 @@ export default function Subscribe() {
       {
         queryKey: ['checkoutSession', plan],
         queryFn: async () => {
-          // backend.createCheckoutSession(plan)
+          return backend.createCheckoutSession(plan)
           return {
             clientSecret: 'cs_foo',
             id: 'cs_bar',
