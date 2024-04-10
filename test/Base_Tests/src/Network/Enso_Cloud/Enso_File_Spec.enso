@@ -13,13 +13,13 @@ type Temporary_Directory
     Value ~get
 
     make -> Temporary_Directory = Temporary_Directory.Value <|
-        name = ("test-run-"+(Date_Time.now.format "yyyy-MM-dd_HHmmss.fV" . replace "/" "|")+"/")
+        name = "test-run-"+(Date_Time.now.format "yyyy-MM-dd_HHmmss.fV" . replace "/" "|")
 
         # Create the expected directory structure.
-        root = Enso_File.root.create_directory name
-        Temporary_Directory.test_file_text.write (root / "test_file.json")
-        sub = root.create_directory "test-directory"
-        "Hello Another!".write (sub / "another.txt")
+        root = Panic.rethrow <| Enso_File.root.create_directory name
+        Panic.rethrow <| Temporary_Directory.test_file_text.write (root / "test_file.json")
+        sub = Panic.rethrow <| root.create_directory "test-directory"
+        Panic.rethrow <| "Hello Another!".write (sub / "another.txt")
         root
 
     cleanup self = self.get.delete_if_exists
@@ -166,7 +166,7 @@ add_specs suite_builder setup:Cloud_Tests_Setup = suite_builder.group "Enso Clou
         Enso_File.root.exists . should_be_true
         Enso_File.root.name . should_equal ""
 
-        dir = test_root / "test-directory"
+        dir = test_root.get / "test-directory"
         dir.exists.should_be_true
         dir.name . should_equal "test-directory"
         dir.extension . should_equal ""

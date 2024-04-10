@@ -10,6 +10,7 @@ import project.Enso_Cloud.Data_Link
 import project.Enso_Cloud.Enso_User.Enso_User
 import project.Enso_Cloud.Errors.Enso_Cloud_Error
 import project.Enso_Cloud.Internal.Enso_Path.Enso_Path
+import project.Enso_Cloud.Internal.Enso_File_Write_Strategy
 import project.Enso_Cloud.Internal.Existing_Enso_Asset.Existing_Enso_Asset
 import project.Enso_Cloud.Internal.Utils
 import project.Error.Error
@@ -36,6 +37,7 @@ import project.System.File_Format_Metadata.File_Format_Metadata
 import project.System.Input_Stream.Input_Stream
 import project.System.Output_Stream.Output_Stream
 from project.Data.Boolean import Boolean, False, True
+from project.Data.Index_Sub_Range.Index_Sub_Range import Last
 from project.Data.Text.Extensions import all
 from project.Enso_Cloud.Public_Utils import get_required_field
 from project.System.File_Format import Auto_Detect, Bytes, File_Format, Plain_Text_Format
@@ -312,11 +314,12 @@ type Enso_File
        Creates a subdirectory in a specified directory.
     create_directory : Text -> Enso_File
     create_directory self (name : Text) =
+        effective_name = if name.ends_with "/" then name.drop (Last 1) else name
         asset = Existing_Enso_Asset.get_asset_reference_for self
         if asset.is_directory.not then Error.throw (Illegal_Argument.Error "Only directories can contain subdirectories.") else
             parent_field = if self.is_current_user_root then [] else
                 [["parentId", [asset.id]]]
-            body = JS_Object.from_pairs [["title", name]]+parent_field
+            body = JS_Object.from_pairs [["title", effective_name]]+parent_field
             response = Utils.http_request_as_json HTTP_Method.Post Utils.directory_api body
             # TODO we could cache the asset maybe? but for how long should we do that?
             created_asset = Existing_Enso_Asset.from_json response
@@ -329,7 +332,9 @@ type Enso_File
     delete : Nothing
     delete self = if self.enso_path.is_root then Error.throw (Illegal_Argument.Error "The root directory cannot be deleted.") else
         asset = Existing_Enso_Asset.get_asset_reference_for self
-        uri = URI.from asset.asset_uri . add_query_argument "force" "true"
+        # The `if_not_error` here is a workaround for bug https://github.com/enso-org/enso/issues/9669
+        uri = asset.if_not_error <|
+            URI.from asset.asset_uri . add_query_argument "force" "true"
         response = Utils.http_request HTTP_Method.Delete uri
         response.if_not_error Nothing
 
@@ -423,8 +428,7 @@ File_Like.from (that : Enso_File) = File_Like.Value that
 
 ## PRIVATE
 Writable_File.from (that : Enso_File) =
-    # TODO write strategy
-    Writable_File.Value that Nothing
+    Writable_File.Value that Enso_File_Write_Strategy.instance
 
 ## PRIVATE
 upload_file (local_file : File) (destination : Enso_File) (replace_existing : Boolean) -> Enso_File =
