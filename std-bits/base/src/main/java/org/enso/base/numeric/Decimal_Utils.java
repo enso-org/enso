@@ -95,6 +95,7 @@ public class Decimal_Utils {
 
   public static BigDecimal round(BigDecimal bd, long decimalPlaces, boolean useBankers) {
     var roundingMode = useBankers ? RoundingMode.HALF_EVEN : RoundingMode.HALF_UP;
+    // The Enso wrapper `Decimal.round` ensures that `decimalPlaces` is in `Integer` range.
     return bd.setScale((int) decimalPlaces, roundingMode);
   }
 }

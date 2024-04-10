@@ -17,6 +17,7 @@ from project.Errors.Common import Arithmetic_Error, Loss_Of_Numeric_Precision, O
 
 polyglot java import java.lang.ArithmeticException
 polyglot java import java.lang.NumberFormatException
+polyglot java import java.lang.Integer as Java_Integer
 polyglot java import java.math.BigDecimal
 polyglot java import org.enso.base.numeric.ConversionResult
 polyglot java import org.enso.base.numeric.Decimal_Utils
@@ -818,7 +819,10 @@ type Decimal
     round self (decimal_places:Integer=0) (use_bankers:Boolean=False) =
         #rounding_mode = if use_bankers then Rounding_Mode.bankers else Rounding_Mode.half_up
         #Decimal.Value (self.big_decimal.setScale decimal_places rounding_mode)
-        Decimal.Value (Decimal_Utils.round self.big_decimal decimal_places use_bankers)
+        out_of_range = decimal_places > Java_Integer.MAX_VALUE || decimal_places < Java_Integer.MIN_VALUE
+        if out_of_range.not then Decimal.Value (Decimal_Utils.round self.big_decimal decimal_places use_bankers) else
+            message = "round decimal_places must be between "+Java_Integer.MIN_VALUE.to_text+" and "+Java_Integer.MAX_VALUE.to_text+" (inclusive), but was "+decimal_places.to_text
+            Error.throw (Out_Of_Range.Error decimal_places message)
 
     ## PRIVATE
     precision : Integer
