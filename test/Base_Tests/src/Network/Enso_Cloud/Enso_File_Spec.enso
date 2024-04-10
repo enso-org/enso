@@ -149,10 +149,10 @@ add_specs suite_builder setup:Cloud_Tests_Setup = suite_builder.group "Enso Clou
 
     group_builder.specify "does not currently support append" <|
         f = test_root.get / "written_file3.txt"
-        r = f.with_output_stream [File_Access.Append, File_Access.Write] output_stream->
-            output_stream.write_bytes "DEF".utf_8
-            42
-        r.should_fail_with Unimplemented
+        Test.expect_panic Unimplemented <|
+            f.with_output_stream [File_Access.Append, File_Access.Write] output_stream->
+                output_stream.write_bytes "DEF".utf_8
+                42
 
     group_builder.specify "does not create additional files in Backup mode, because Cloud has its own versioning" <|
         dir = test_root.get.create_directory "empty-folder"
@@ -160,8 +160,8 @@ add_specs suite_builder setup:Cloud_Tests_Setup = suite_builder.group "Enso Clou
 
         f = dir / "file.txt"
         f.exists.should_be_false
-        "ABC".write f Existing_File_Behavior.Overwrite . should_equal f
-        "DEF".write f Existing_File_Behavior.Backup . should_equal f
+        "ABC".write f on_existing_file=Existing_File_Behavior.Overwrite . should_equal f
+        "DEF".write f on_existing_file=Existing_File_Behavior.Backup . should_equal f
         f.read Plain_Text . should_equal "DEF"
 
         # But there should not be any other files in the directory
@@ -171,8 +171,8 @@ add_specs suite_builder setup:Cloud_Tests_Setup = suite_builder.group "Enso Clou
         f = test_root.get / "existing-file-behavior-error.txt"
 
         f.exists.should_be_false
-        "ABC".write f Existing_File_Behavior.Error . should_equal f
-        r = "DEF".write f Existing_File_Behavior.Error
+        "ABC".write f on_existing_file=Existing_File_Behavior.Error . should_equal f
+        r = "DEF".write f on_existing_file=Existing_File_Behavior.Error
         r.should_fail_with File_Error
         r.catch.should_be_a File_Error.Already_Exists
 
