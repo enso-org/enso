@@ -167,7 +167,9 @@ In order to build and run Enso you will need the following tools:
 - [GraalVM](https://www.graalvm.org/) with the same version as described in the
   [`build.sbt`](../build.sbt) file, configured as your default JVM.
 - [Flatbuffers Compiler](https://google.github.io/flatbuffers) with version
-  1.12.0.
+  24.3.25. It is automatically downloaded when using the `run` command. For
+  direct `sbt` usage, you can download the `flatc` binary from the
+  [release assets](https://github.com/google/flatbuffers/releases/tag/v24.3.25).
 - [Rustup](https://rustup.rs), the rust toolchain management utility.
 - On MacOS and Linux, the `tar` command is required for running some tests. It
   should be installed by default on most distributions.
