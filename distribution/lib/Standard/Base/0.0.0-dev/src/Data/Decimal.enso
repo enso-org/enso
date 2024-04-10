@@ -3,7 +3,6 @@ import project.Data.Numeric.Internal.Decimal_Internal
 import project.Data.Numeric.Math_Context.Math_Context
 import project.Data.Numeric.Rounding_Mode.Rounding_Mode
 import project.Data.Text.Text
-import project.IO
 import project.Error.Error
 import project.Errors.Illegal_Argument.Illegal_Argument
 import project.Nothing.Nothing
@@ -784,41 +783,8 @@ type Decimal
             message = "Outside representable Float range (approximately (-1.8E308, 1.8E308))"
             Warning.attach (Out_Of_Range.Error self message) f
 
-    ##
-        orig_round : Integer -> Boolean -> Decimal
-        orig_round self (decimal_places:Integer=0) (use_bankers:Boolean=False) =
-            digits_left_of_decimal_point = self.big_decimal.precision - self.big_decimal.scale
-            desired_precision = digits_left_of_decimal_point + decimal_places
-            IO.println "AAA "+digits_left_of_decimal_point.to_text+" "+desired_precision.to_text
-
-            rounding_mode = if use_bankers then Rounding_Mode.bankers else Rounding_Mode.half_up
-            math_context = Math_Context.new desired_precision rounding_mode
-            Decimal.Value (self.big_decimal.round math_context.math_context)
-
-        compensate_round : Integer -> Boolean -> Decimal
-        compensate_round self (decimal_places:Integer=0) (use_bankers:Boolean=False) =
-            digits_left_of_decimal_point = self.big_decimal.precision - self.big_decimal.scale
-            desired_precision = digits_left_of_decimal_point + decimal_places
-            # desired_precision = self.big_decimal.precision - self.big_decimal.scale + decimal_places
-            IO.println "AAA "+digits_left_of_decimal_point.to_text+" "+desired_precision.to_text
-
-            case desired_precision < 1 of
-                False ->
-                    rounding_mode = if use_bankers then Rounding_Mode.bankers else Rounding_Mode.half_up
-                    math_context = Math_Context.new desired_precision rounding_mode
-                    Decimal.Value (self.big_decimal.round math_context.math_context)
-                True ->
-                    scale_oom = 1 - desired_precision
-                    self_scaled = Decimal.Value (self.big_decimal.scaleByPowerOfTen scale_oom)
-                    rounding_mode = if use_bankers then Rounding_Mode.bankers else Rounding_Mode.half_up
-                    math_context = Math_Context.new 0 rounding_mode
-                    IO.println "AAA "+self_scaled.to_text+" "+scale_oom.to_text+" "+rounding_mode.to_text+" "+math_context.to_text
-                    Decimal.Value (self_scaled.big_decimal.round math_context.math_context)
-
     round : Integer -> Boolean -> Decimal
     round self (decimal_places:Integer=0) (use_bankers:Boolean=False) =
-        #rounding_mode = if use_bankers then Rounding_Mode.bankers else Rounding_Mode.half_up
-        #Decimal.Value (self.big_decimal.setScale decimal_places rounding_mode)
         out_of_range = decimal_places > Java_Integer.MAX_VALUE || decimal_places < Java_Integer.MIN_VALUE
         if out_of_range.not then Decimal.Value (Decimal_Utils.round self.big_decimal decimal_places use_bankers) else
             message = "round decimal_places must be between "+Java_Integer.MIN_VALUE.to_text+" and "+Java_Integer.MAX_VALUE.to_text+" (inclusive), but was "+decimal_places.to_text
