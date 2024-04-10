@@ -802,7 +802,7 @@ type Decimal
              Decimal.new "2.5" . round use_bankers=True
              # => 2
     round : Integer -> Boolean -> Decimal
-    round self (decimal_places:Integer=0) (use_bankers:Boolean=False) =
+    round self (decimal_places:Integer=0) (use_bankers:Boolean=False) -> Decimal =
         out_of_range = decimal_places > Java_Integer.MAX_VALUE || decimal_places < Java_Integer.MIN_VALUE
         if out_of_range.not then Decimal.Value (Decimal_Utils.round self.big_decimal decimal_places use_bankers) else
             message = "round decimal_places must be between "+Java_Integer.MIN_VALUE.to_text+" and "+Java_Integer.MAX_VALUE.to_text+" (inclusive), but was "+decimal_places.to_text
