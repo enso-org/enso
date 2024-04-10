@@ -17,9 +17,11 @@ from Standard.Test import all
 from project.S3_Spec import api_pending, writable_root, with_default_credentials
 
 add_specs suite_builder =
-    my_writable_s3_dir = writable_root / "inter-backend-test-run-"+(Date_Time.now.format "yyyy-MM-dd_HHmmss.fV" . replace "/" "|")+"/"
-    sources = [my_writable_s3_dir / "source1.txt", File.create_temporary_file "source2" ".txt"]
-    destinations = [my_writable_s3_dir / "destination1.txt", File.create_temporary_file "destination2" ".txt"]
+    tmp_dir_name = "inter-backend-test-run-"+(Date_Time.now.format "yyyy-MM-dd_HHmmss.fV" . replace "/" "|")+"/"
+    my_writable_s3_dir = writable_root / tmp_dir_name
+    # TODO figure this out
+    sources = [my_writable_s3_dir / "source1.txt", File.create_temporary_file "source2" ".txt", Enso_File.root / tmp_dir_name / "source3.txt"]
+    destinations = [my_writable_s3_dir / "destination1.txt", File.create_temporary_file "destination2" ".txt", Enso_File.root / tmp_dir_name / "destination3.txt"]
     sources.each source_file-> destinations.each destination_file-> if source_file.is_a File && destination_file.is_a File then Nothing else
         src_typ = Meta.type_of source_file . to_display_text
         dest_typ = Meta.type_of destination_file . to_display_text
