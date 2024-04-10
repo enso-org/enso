@@ -119,6 +119,7 @@ export default function MembersTable(props: MembersTableProps) {
           members.map(member => (
             <aria.Row key={member.userId} id={member.userId} className="group h-row">
               <aria.Cell className="text border-x-2 border-transparent bg-clip-padding px-cell-x first:rounded-l-full last:rounded-r-full last:border-r-0 group-selected:bg-selected-frame">
+                {draggable && <aria.Button slot="drag" />}
                 {member.name}
               </aria.Cell>
               <aria.Cell className="text border-x-2 border-transparent bg-clip-padding px-cell-x first:rounded-l-full last:rounded-r-full last:border-r-0 group-selected:bg-selected-frame">

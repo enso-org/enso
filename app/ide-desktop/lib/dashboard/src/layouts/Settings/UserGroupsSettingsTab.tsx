@@ -23,6 +23,8 @@ import NewUserGroupModal from '#/modals/NewUserGroupModal'
 
 import * as backendModule from '#/services/Backend'
 
+import * as object from '#/utilities/object'
+
 // ==============================
 // === MemberRolesSettingsTab ===
 // ==============================
@@ -38,7 +40,7 @@ export default function MemberRolesSettingsTab() {
     backend,
     refresh,
   ])
-  const users = asyncEffectHooks.useAsyncEffect(null, () => backend.listUsers(), [backend])
+  const [users, setUsers] = React.useState<backendModule.User[]>()
   const usersByGroup = React.useMemo(() => {
     const map = new Map<backendModule.UserGroupId, backendModule.User[]>()
     for (const user of users ?? []) {
@@ -74,15 +76,22 @@ export default function MemberRolesSettingsTab() {
               const groups = user.userGroups ?? []
               if (!groups.includes(userGroupId)) {
                 try {
-                  // FIXME: Update users list.
+                  const newUserGroups = [...groups, userGroupId]
+                  setUsers(oldUsers => [
+                    ...(oldUsers ?? []).filter(otherUser => otherUser.userId !== user.userId),
+                    object.merge(user, { userGroups: newUserGroups }),
+                  ])
                   await backend.changeUserGroup(
                     user.userId,
-                    { userGroups: [...groups, userGroupId] },
+                    { userGroups: newUserGroups },
                     user.name
                   )
                 } catch (error) {
                   toastAndLog('changeUserGroupsError', error)
-                  // FIXME: Revert update to users list.
+                  setUsers(oldUsers => [
+                    ...(oldUsers ?? []).filter(otherUser => otherUser.userId !== user.userId),
+                    user,
+                  ])
                 }
               }
             })
@@ -91,6 +100,12 @@ export default function MemberRolesSettingsTab() {
       }
     },
   })
+
+  React.useEffect(() => {
+    void backend.listUsers().then(newUsers => {
+      setUsers(newUsers)
+    })
+  }, [backend])
 
   return (
     <div className="flex h flex-col gap-settings-section lg:h-auto lg:flex-row">
@@ -148,12 +163,12 @@ export default function MemberRolesSettingsTab() {
                     </aria.Cell>
                   </aria.Row>,
                   (usersByGroup.get(userGroup.id) ?? []).map(user => (
-                    <aria.Row
-                      key={user.userId}
-                      id={user.userId}
-                      className="ml-indent-1 h-row rounded-rows-skip-level"
-                    >
-                      {user.name}
+                    <aria.Row key={user.userId} id={user.userId} className="h-row">
+                      <aria.Cell className="text border-x-2 border-transparent bg-clip-padding rounded-rows-skip-level last:border-r-0">
+                        <div className="ml-indent-1 flex h-row min-w-max items-center whitespace-nowrap rounded-full px-name-column-x py-name-column-y">
+                          <aria.Text className="grow">{user.name}</aria.Text>
+                        </div>
+                      </aria.Cell>
                     </aria.Row>
                   )),
                 ])
