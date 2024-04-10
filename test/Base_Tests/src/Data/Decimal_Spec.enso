@@ -705,6 +705,11 @@ add_specs suite_builder =
             Decimal.new "-12E73" . max (Decimal.new "-13E60") . should_equal (Decimal.new "-13E60")
             Decimal.new "-12E73" . max (Decimal.new "-13E80") . should_equal (Decimal.new "-12E73")
 
+            Decimal.new "12" . min (Decimal.new "12.3") . should_equal (Decimal.new "12")
+            Decimal.new "12.2" . min (Decimal.new "11") . should_equal (Decimal.new "11")
+            Decimal.new "-12" . min (Decimal.new "-12.3") . should_equal (Decimal.new "-12.3")
+            Decimal.new "-12.2" . min (Decimal.new "-11") . should_equal (Decimal.new "-12.2")
+
         group_builder.specify "should calculate min and max correctly, with Math.min/max" <|
             Math.min (Decimal.new "12") (Decimal.new "13") . should_equal (Decimal.new "12")
             Math.max (Decimal.new "12") (Decimal.new "13") . should_equal (Decimal.new "13")
