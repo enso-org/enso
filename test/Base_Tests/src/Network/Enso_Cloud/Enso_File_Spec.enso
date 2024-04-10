@@ -15,7 +15,7 @@ type Temporary_Directory
     Value ~get
 
     make -> Temporary_Directory = Temporary_Directory.Value <|
-        name = "test-run-"+(Date_Time.now.format "yyyy-MM-dd_HHmmss.fV" . replace "/" "|")
+        name = "test-run-Enso_File-"+(Date_Time.now.format "yyyy-MM-dd_HHmmss.fV" . replace "/" "|")
 
         # Create the expected directory structure.
         root = Panic.rethrow <| Enso_File.root.create_directory name
