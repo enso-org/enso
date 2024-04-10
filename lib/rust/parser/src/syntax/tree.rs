@@ -1291,4 +1291,24 @@ impl<'s> Tree<'s> {
         }
         self.variant.visit_item(&mut ItemFnVisitor { f });
     }
+
+    /// Apply the provided function recursively to each [`Tree`] that is a descendant of the node.
+    pub fn visit_trees<F>(&self, f: F)
+    where F: for<'a> FnMut(&'a Tree<'s>) {
+        struct ItemFnVisitor<F> {
+            f: F,
+        }
+        impl<F> Visitor for ItemFnVisitor<F> {}
+        impl<'a, 's: 'a, F> ItemVisitor<'s, 'a> for ItemFnVisitor<F>
+        where F: FnMut(&'a Tree<'s>)
+        {
+            fn visit_item(&mut self, item: item::Ref<'s, 'a>) -> bool {
+                if let item::Ref::Tree(tree) = item {
+                    (self.f)(tree);
+                }
+                true
+            }
+        }
+        self.variant.visit_item(&mut ItemFnVisitor { f });
+    }
 }
