@@ -5,6 +5,7 @@ import * as mimeTypes from '#/data/mimeTypes'
 
 import * as asyncEffectHooks from '#/hooks/asyncEffectHooks'
 import * as refreshHooks from '#/hooks/refreshHooks'
+import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
 import * as backendProvider from '#/providers/BackendProvider'
 import * as modalProvider from '#/providers/ModalProvider'
@@ -31,14 +32,27 @@ export default function MemberRolesSettingsTab() {
   const { backend } = backendProvider.useBackend()
   const { setModal } = modalProvider.useSetModal()
   const { getText } = textProvider.useText()
+  const toastAndLog = toastAndLogHooks.useToastAndLog()
   const [refresh, doRefresh] = refreshHooks.useRefresh()
   const userGroups = asyncEffectHooks.useAsyncEffect(null, () => backend.listUserGroups(), [
     backend,
     refresh,
   ])
-  // NOTE: Neither users nor user groups currently return the information needed to list users
-  // within a group.
   const users = asyncEffectHooks.useAsyncEffect(null, () => backend.listUsers(), [backend])
+  const usersByGroup = React.useMemo(() => {
+    const map = new Map<backendModule.UserGroupId, backendModule.User[]>()
+    for (const user of users ?? []) {
+      for (const userGroupId of user.userGroups ?? []) {
+        let userList = map.get(userGroupId)
+        if (userList == null) {
+          userList = []
+          map.set(userGroupId, userList)
+        }
+        userList.push(user)
+      }
+    }
+    return map
+  }, [users])
   const isLoading = userGroups == null || users == null
   const { dragAndDropHooks } = aria.useDragAndDrop({
     getDropOperation: (target, types, allowedOperations) =>
@@ -59,11 +73,17 @@ export default function MemberRolesSettingsTab() {
               const user: backendModule.User = JSON.parse(text)
               const groups = user.userGroups ?? []
               if (!groups.includes(userGroupId)) {
-                await backend.changeUserGroup(
-                  user.userId,
-                  { userGroups: [...groups, userGroupId] },
-                  user.name
-                )
+                try {
+                  // FIXME: Update users list.
+                  await backend.changeUserGroup(
+                    user.userId,
+                    { userGroups: [...groups, userGroupId] },
+                    user.name
+                  )
+                } catch (error) {
+                  toastAndLog('changeUserGroupsError', error)
+                  // FIXME: Revert update to users list.
+                }
               }
             })
           }
@@ -127,6 +147,15 @@ export default function MemberRolesSettingsTab() {
                       {userGroup.groupName}
                     </aria.Cell>
                   </aria.Row>,
+                  (usersByGroup.get(userGroup.id) ?? []).map(user => (
+                    <aria.Row
+                      key={user.userId}
+                      id={user.userId}
+                      className="ml-indent-1 h-row rounded-rows-skip-level"
+                    >
+                      {user.name}
+                    </aria.Row>
+                  )),
                 ])
               )}
             </aria.TableBody>

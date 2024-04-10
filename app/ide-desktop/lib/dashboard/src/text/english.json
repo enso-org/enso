@@ -41,6 +41,7 @@
   "needsOwnerError": "This $0 must have at least one owner.",
   "asyncHookError": "Error while fetching data",
   "fetchLatestVersionError": "Could not get the latest version of the asset",
+  "changeUserGroupsError": "Could not set user groups",
   "uploadProjectToCloudSuccess": "Successfully uploaded local project to the cloud!",
 
   "projectHasNoSourceFilesPhrase": "project has no source files",

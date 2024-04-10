@@ -20,6 +20,7 @@ import Modal from '#/components/Modal'
 import ButtonRow from '#/components/styled/ButtonRow'
 import FocusArea from '#/components/styled/FocusArea'
 import FocusRing from '#/components/styled/FocusRing'
+import SvgMask from '#/components/SvgMask'
 import UnstyledButton from '#/components/UnstyledButton'
 
 import * as backendModule from '#/services/Backend'
@@ -29,7 +30,7 @@ import * as backendModule from '#/services/Backend'
 // =================
 
 /** The minimum width of the input for adding a new email. */
-const MIN_EMAIL_INPUT_WIDTH = 120
+const MIN_EMAIL_INPUT_WIDTH = 128
 
 // =============
 // === Email ===
@@ -56,14 +57,15 @@ function Email(props: InternalEmailProps) {
       }`}
     >
       <aria.Text {...focusChildProps}>{email}</aria.Text>{' '}
-      <img
-        {...aria.mergeProps<JSX.IntrinsicElements['img']>()(focusChildProps, {
+      <div
+        {...aria.mergeProps<JSX.IntrinsicElements['div']>()(focusChildProps, {
           role: 'button',
-          className: 'cursor-pointer rounded-full hover:brightness-50',
-          src: CrossIcon,
+          className: 'flex cursor-pointer rounded-full transition-colors hover:bg-primary/10',
           onClick: doDelete,
         })}
-      />
+      >
+        <SvgMask src={CrossIcon} />
+      </div>
     </div>
   )
 }
@@ -216,7 +218,7 @@ export default function InviteUsersModal(props: InviteUsersModalProps) {
           >
             <FocusArea direction="horizontal">
               {innerProps => (
-                <aria.TextField
+                <div
                   className="block min-h-paragraph-input rounded-default border border-primary/10 p-multiline-input"
                   {...innerProps}
                 >
@@ -242,7 +244,7 @@ export default function InviteUsersModal(props: InviteUsersModalProps) {
                       setNewEmails(emails => emails.slice(0, -1))
                     }}
                   />
-                </aria.TextField>
+                </div>
               )}
             </FocusArea>
           </form>
