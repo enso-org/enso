@@ -7,10 +7,10 @@ import * as React from 'react'
 
 import * as errorBoundary from 'react-error-boundary'
 
-import Close from 'enso-assets/close.svg'
+import * as textProvider from '#/providers/TextProvider'
 
 import * as aria from '#/components/AriaComponents'
-import SvgMask from '#/components/SvgMask'
+import * as result from '#/components/Result'
 
 /**
  * Props for the ErrorBoundary component
@@ -51,15 +51,20 @@ export function ErrorBoundary(props: ErrorBoundaryProps) {
  */
 function DefaultFallbackComponent(props: errorBoundary.FallbackProps): React.JSX.Element {
   const { resetErrorBoundary } = props
+
+  const { getText } = textProvider.useText()
+
   return (
-    <div className="flex h-full min-h-5 w-full flex-col items-center justify-center">
-      <SvgMask src={Close} className="mb-4 h-16 w-16 flex-none text-red-800" />
-      <h1 className="mb-2 text-2xl">Something went wrong</h1>
-      <p className="mb-8 text-lg">There was an error in the application</p>
+    <result.Result
+      className="h-full"
+      status="error"
+      title={getText('arbitraryErrorTitle')}
+      subtitle={getText('arbitraryErrorSubtitle')}
+    >
       <aria.Button variant="submit" onPress={resetErrorBoundary}>
-        Try again
+        {getText('tryAgain')}
       </aria.Button>
-    </div>
+    </result.Result>
   )
 }
 

@@ -534,8 +534,12 @@
   "assetsTableContextMenuLabel": "Drive context menu",
   "assetContextMenuLabel": "Asset context menu",
   "labelContextMenuLabel": "Label context menu",
+  "settingsSidebarLabel": "Settings sidebar",
+
+  "tryAgain": "Try again",
+  "arbitraryErrorTitle": "An error occurred",
+  "arbitraryErrorSubtitle": "Please try again or contact the administrators."
   "userContextMenuLabel": "User context menu",
   "userGroupContextMenuLabel": "User Group context menu",
   "userGroupUserContextMenuLabel": "User Group User context menu",
-  "settingsSidebarLabel": "Settings sidebar"
 }
