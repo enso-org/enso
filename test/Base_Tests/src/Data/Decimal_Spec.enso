@@ -671,6 +671,17 @@ add_specs suite_builder =
         do_round n dp=0 use_bankers=False = Decimal.new n . round dp use_bankers
         Round_Spec.add_specs group_builder do_round
 
+        group_builder.specify "Large values" <|
+            Decimal.new "1234.5678E-50" . round 53 . should_equal (Decimal.new "1234.568E-50")
+            Decimal.new "1234.5678E-50" . round 52 . should_equal (Decimal.new "1234.57E-50")
+            Decimal.new "1234.5678E-100" . round 101 . should_equal (Decimal.new "1234.6E-100")
+            Decimal.new "1234.5678E-100" . round 103 . should_equal (Decimal.new "1234.568E-100")
+
+            Decimal.new "-1234.5678E-50" . round 53 . should_equal (Decimal.new "-1234.568E-50")
+            Decimal.new "-1234.5678E-50" . round 52 . should_equal (Decimal.new "-1234.57E-50")
+            Decimal.new "-1234.5678E-100" . round 101 . should_equal (Decimal.new "-1234.6E-100")
+            Decimal.new "-1234.5678E-100" . round 103 . should_equal (Decimal.new "-1234.568E-100")
+
         group_builder.specify "Strips trailing zeros" <|
             Decimal.new "1234.5678" . round 5 . internal_representation . should_equal [12345678, 8, 4]
 
