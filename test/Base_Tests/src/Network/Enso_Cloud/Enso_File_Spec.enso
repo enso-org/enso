@@ -30,7 +30,7 @@ add_specs suite_builder setup:Cloud_Tests_Setup = suite_builder.group "Enso Clou
     test_root = Temporary_Directory.make
     group_builder.teardown test_root.cleanup
 
-    group_builder.specify "should be able to list the root directory" <| setup.with_prepared_environment <|
+    group_builder.specify "should be able to list the root directory" <|
         assets = Enso_File.root.list
         # We don't a priori know the contents, so we can only check very generic properties
         assets . should_be_a Vector
@@ -38,7 +38,7 @@ add_specs suite_builder setup:Cloud_Tests_Setup = suite_builder.group "Enso Clou
 
         assets.map .name . should_contain "test_file.json"
 
-    group_builder.specify "should allow to create and delete a directory" <| setup.with_prepared_environment <|
+    group_builder.specify "should allow to create and delete a directory" <|
         my_name = "my_test_dir-" + (Random.uuid.take 5)
         my_dir = Enso_File.root.create_directory my_name
         my_dir.should_succeed
@@ -57,7 +57,7 @@ add_specs suite_builder setup:Cloud_Tests_Setup = suite_builder.group "Enso Clou
             Enso_File.root.list . should_not_contain my_dir
             my_dir.exists . should_be_false
 
-    group_builder.specify "should set the current working directory by environment variable" <| setup.with_prepared_environment <|
+    group_builder.specify "should set the current working directory by environment variable" <|
         # If nothing set, defaults to root:
         Enso_File.current_working_directory . should_equal Enso_File.root
 
@@ -76,7 +76,7 @@ add_specs suite_builder setup:Cloud_Tests_Setup = suite_builder.group "Enso Clou
         # It should be back to default afterwards:
         Enso_File.current_working_directory . should_equal Enso_File.root
 
-    group_builder.specify "should allow to find a file by name" <| setup.with_prepared_environment <|
+    group_builder.specify "should allow to find a file by name" <|
         # TODO the file should be created programmatically when write is implemented
         f = Enso_File.root / "test_file.json"
         f.should_succeed
@@ -84,12 +84,12 @@ add_specs suite_builder setup:Cloud_Tests_Setup = suite_builder.group "Enso Clou
         f.is_directory . should_be_false
         f.exists . should_be_true
 
-    group_builder.specify "should be able to find a file by path" <| setup.with_prepared_environment <|
+    group_builder.specify "should be able to find a file by path" <|
         File.new "enso://"+Enso_User.current.organization_name+"/" . should_equal Enso_File.root
         File.new "enso://"+Enso_User.current.organization_name+"/test_file.json" . should_equal (Enso_File.root / "test_file.json")
         File.new "enso://"+Enso_User.current.organization_name+"/abc/" . should_equal (Enso_File.root / "abc")
 
-    group_builder.specify "should fail to read nonexistent files" <| setup.with_prepared_environment <|
+    group_builder.specify "should fail to read nonexistent files" <|
         f = Enso_File.root / "nonexistent_file.json"
         f.should_succeed
         f.exists . should_be_false
@@ -97,7 +97,7 @@ add_specs suite_builder setup:Cloud_Tests_Setup = suite_builder.group "Enso Clou
         r.should_fail_with File_Error
         r.catch.should_be_a File_Error.Not_Found
 
-    group_builder.specify "should not allow to create a directory inside of a regular file" <| setup.with_prepared_environment <|
+    group_builder.specify "should not allow to create a directory inside of a regular file" <|
         # TODO the file should be created programmatically when write is implemented
         test_file = Enso_File.root / "test_file.json"
         test_file.exists . should_be_true
@@ -106,7 +106,7 @@ add_specs suite_builder setup:Cloud_Tests_Setup = suite_builder.group "Enso Clou
         r.should_fail_with Illegal_Argument
 
     # TODO expand with #8993
-    group_builder.specify "should delete all contents of a directory when deleting a directory" <| setup.with_prepared_environment <|
+    group_builder.specify "should delete all contents of a directory when deleting a directory" <|
         dir1 = test_root.get.create_directory "my_test_dir1"+(Random.uuid.take 5)
         dir1.should_succeed
 
@@ -120,10 +120,10 @@ add_specs suite_builder setup:Cloud_Tests_Setup = suite_builder.group "Enso Clou
             # The inner directory should also have been trashed if its parent is removed
             dir2.exists . should_be_false
 
-    group_builder.specify "should not allow to delete the root directory" <| setup.with_prepared_environment <|
+    group_builder.specify "should not allow to delete the root directory" <|
         Enso_File.root.delete . should_fail_with Illegal_Argument
 
-    group_builder.specify "should be able to write a file using with_output_stream" <| setup.with_prepared_environment <|
+    group_builder.specify "should be able to write a file using with_output_stream" <|
         f = test_root.get / "written_file.txt"
         r = f.with_output_stream [File_Access.Write] output_stream->
             output_stream.write_bytes "Hello".utf_8
@@ -131,7 +131,7 @@ add_specs suite_builder setup:Cloud_Tests_Setup = suite_builder.group "Enso Clou
         r.should_equal 42
         f.read Plain_Text . should_equal "Hello"
 
-    group_builder.specify "should be able to read and decode a file using various formats" <| setup.with_prepared_environment <|
+    group_builder.specify "should be able to read and decode a file using various formats" <|
         test_file = test_root.get / "test_file.json"
         test_file.exists . should_be_true
 
@@ -144,7 +144,7 @@ add_specs suite_builder setup:Cloud_Tests_Setup = suite_builder.group "Enso Clou
 
         test_file.read_bytes . should_equal Temporary_Directory.test_file_text.utf_8
 
-    group_builder.specify "should be able to read the file by path using Data.read" <| setup.with_prepared_environment <|
+    group_builder.specify "should be able to read the file by path using Data.read" <|
         test_root.get.path . should_contain "enso://"
         Data.read test_root.get.path+"/test_file.json" . should_equal [1, 2, 3, "foo"]
         Data.read test_root.get.path+"/test-directory/another.txt" . should_equal "Hello Another!"
@@ -153,7 +153,7 @@ add_specs suite_builder setup:Cloud_Tests_Setup = suite_builder.group "Enso Clou
         r.should_fail_with File_Error
         r.catch.should_be_a File_Error.Not_Found
 
-    group_builder.specify "should be able to open a file as input stream" <| setup.with_prepared_environment <|
+    group_builder.specify "should be able to open a file as input stream" <|
         test_file = test_root.get / "test_file.json"
         test_file.exists . should_be_true
 
@@ -162,7 +162,7 @@ add_specs suite_builder setup:Cloud_Tests_Setup = suite_builder.group "Enso Clou
 
         bytes.should_equal Temporary_Directory.test_file_text.utf_8
 
-    group_builder.specify "should be able to read file metadata" <| setup.with_prepared_environment <|
+    group_builder.specify "should be able to read file metadata" <|
         Enso_File.root.exists . should_be_true
         Enso_File.root.name . should_equal ""
 
@@ -205,7 +205,7 @@ add_specs suite_builder setup:Cloud_Tests_Setup = suite_builder.group "Enso Clou
         (Enso_File.root / "test-directory" / "non-existent") . is_descendant_of (Enso_File.root / "test-directory") . should_be_true
         (Enso_File.root / "test-directory") . is_descendant_of (Enso_File.root / "test-directory" / "non-existent") . should_be_false
 
-    group_builder.specify "allows / as well as .. and . in resolve" <| setup.with_prepared_environment <|
+    group_builder.specify "allows / as well as .. and . in resolve" <|
         (Enso_File.root / "a/b/c") . should_equal (Enso_File.root / "a" / "b" / "c")
         (Enso_File.root / "a///b/c") . should_equal (Enso_File.root / "a" / "b" / "c")
         (Enso_File.root / "a/b/c/./././d/e/../f/../..") . should_equal (Enso_File.root / "a" / "b" / "c")
@@ -214,13 +214,13 @@ add_specs suite_builder setup:Cloud_Tests_Setup = suite_builder.group "Enso Clou
         r.should_fail_with Illegal_Argument
         r.catch.to_display_text . should_contain "Cannot move above root"
 
-    group_builder.specify "currently does not support metadata for directories" <| setup.with_prepared_environment <|
+    group_builder.specify "currently does not support metadata for directories" <|
         # TODO this test should be 'reversed' and merged with above once the metadata is implemented
         dir = test_root.get / "test-directory"
         Test.expect_panic Unimplemented dir.creation_time
         Test.expect_panic Unimplemented dir.last_modified_time
 
-    group_builder.specify "should be able to read other file metadata" pending="TODO needs further design" <| setup.with_prepared_environment <|
+    group_builder.specify "should be able to read other file metadata" pending="TODO needs further design" <|
         nested_file = Enso_File.root / "test-directory" / "another.txt"
 
         nested_file.is_absolute.should_be_true
