@@ -756,9 +756,17 @@ type Decimal
     round : Integer -> Boolean -> Decimal
     round self (decimal_places:Integer=0) (use_bankers:Boolean=False) =
         out_of_range = decimal_places > Java_Integer.MAX_VALUE || decimal_places < Java_Integer.MIN_VALUE
-        if out_of_range.not then Decimal.Value (Decimal_Utils.round self.big_decimal decimal_places use_bankers) else
+        ## `strip_trailing_zeros` is necessary because rounding can produce
+           results that have extra trailing zeros, which take up space and slow
+           down later calculations.
+        if out_of_range.not then Decimal.Value (Decimal_Utils.round self.big_decimal decimal_places use_bankers) . strip_trailing_zeros else
             message = "round decimal_places must be between "+Java_Integer.MIN_VALUE.to_text+" and "+Java_Integer.MAX_VALUE.to_text+" (inclusive), but was "+decimal_places.to_text
             Error.throw (Out_Of_Range.Error decimal_places message)
+
+    ## PRIVATE
+    strip_trailing_zeros : Decimal
+    strip_trailing_zeros self -> Decimal =
+        Decimal.Value (self.big_decimal.stripTrailingZeros)
 
     ## PRIVATE
     precision : Integer

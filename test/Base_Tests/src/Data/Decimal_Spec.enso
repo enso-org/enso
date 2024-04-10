@@ -674,7 +674,6 @@ add_specs suite_builder =
         group_builder.specify "Decimal places out of range" <|
             too_big_positive = Java_Integer.MAX_VALUE + 1
             too_big_negative = Java_Integer.MIN_VALUE - 1
-            IO.println (Decimal.new "3.1" . round too_big_positive)
             Decimal.new "3.1" . round too_big_positive . should_fail_with (Out_Of_Range.Error too_big_positive "round decimal_places must be between "+Java_Integer.MIN_VALUE.to_text+" and "+Java_Integer.MAX_VALUE.to_text+" (inclusive), but was "+too_big_positive.to_text)
             Decimal.new "3.1" . round too_big_negative . should_fail_with (Out_Of_Range.Error too_big_negative "round decimal_places must be between "+Java_Integer.MIN_VALUE.to_text+" and "+Java_Integer.MAX_VALUE.to_text+" (inclusive), but was "+too_big_negative.to_text)
 
