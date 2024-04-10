@@ -31,7 +31,7 @@ case class GraalRuntime(version: GraalVMVersion, path: Path) {
   def javaHome: Path =
     OS.operatingSystem match {
       case OS.Linux   => path
-      case OS.MacOS   => path / "Contents" / "Home"
+      case OS.MacOS   => path
       case OS.Windows => path
     }
 

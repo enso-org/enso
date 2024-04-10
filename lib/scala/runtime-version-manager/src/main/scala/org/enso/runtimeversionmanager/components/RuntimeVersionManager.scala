@@ -152,6 +152,9 @@ class RuntimeVersionManager(
   ): R = {
     val engine  = findOrInstallEngine(version = engineVersion)
     val runtime = findOrInstallGraalRuntime(engine)
+    println("AAA")
+    println(runtime)
+    println(runtime.getClass())
     resourceManager.withResources(
       userInterface,
       Resources.Engine(engineVersion)    -> LockType.Shared,
