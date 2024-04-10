@@ -712,8 +712,8 @@ type Decimal
 
              Decimal.new "12" . min (Decimal.new "13")
              # => Decimal.new "12"
-    min : Number -> Number
-    min self (that : Number) = if self < that then self else that
+    min : Decimal -> Decimal
+    min self (that : Decimal) = if self < that then self else that
 
     ## GROUP Math
        ICON math
@@ -727,8 +727,8 @@ type Decimal
 
              Decimal.new "12" . max (Decimal.new "13")
              # => Decimal.new "13"
-    max : Number -> Number
-    max self (that : Number) = if self > that then self else that
+    max : Decimal -> Decimal
+    max self (that : Decimal) = if self > that then self else that
 
     ## GROUP CONVERSIONS
        Convert this to an `Integer`.
