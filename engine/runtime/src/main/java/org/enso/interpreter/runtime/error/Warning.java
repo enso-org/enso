@@ -1,11 +1,10 @@
 package org.enso.interpreter.runtime.error;
 
 import com.oracle.truffle.api.CompilerDirectives;
-import com.oracle.truffle.api.dsl.Cached;
+import com.oracle.truffle.api.dsl.Bind;
 import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.InvalidArrayIndexException;
 import com.oracle.truffle.api.interop.UnsupportedMessageException;
-import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
 import com.oracle.truffle.api.nodes.Node;
@@ -245,8 +244,8 @@ public final class Warning implements EnsoObject {
   }
 
   @ExportMessage
-  Type getType(@CachedLibrary("this") TypesLibrary thisLib, @Cached("1") int ignore) {
-    return EnsoContext.get(thisLib).getBuiltins().warning();
+  Type getType(@Bind("$node") Node node) {
+    return EnsoContext.get(node).getBuiltins().warning();
   }
 
   public static Warning wrapMapError(WarningsLibrary warningsLib, Warning warning, long index) {
