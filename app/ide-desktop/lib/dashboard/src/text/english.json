@@ -514,5 +514,9 @@
   "assetsTableContextMenuLabel": "Drive context menu",
   "assetContextMenuLabel": "Asset context menu",
   "labelContextMenuLabel": "Label context menu",
-  "settingsSidebarLabel": "Settings sidebar"
+  "settingsSidebarLabel": "Settings sidebar",
+
+  "tryAgain": "Try again",
+  "arbitraryErrorTitle": "An error occurred",
+  "arbitraryErrorSubtitle": "Please try again or contact the administrators."
 }
