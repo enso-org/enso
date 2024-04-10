@@ -701,36 +701,6 @@ type Decimal
     signum : Integer
     signum self -> Integer = self.big_decimal.signum
 
-    ## GROUP Math
-       ICON sigma
-       Returns the smaller value of `self` and `that`.
-
-       Arguments:
-       - that: The number to compare `self` against.
-
-       > Example
-         Find the minimum of 12 and 13.
-
-             Decimal.new "12" . min (Decimal.new "13")
-             # => Decimal.new "12"
-    min : Number -> Number
-    min self that = if self < that then self else that
-
-    ## GROUP Math
-       ICON math
-       Returns the larger value of `self` and `that`.
-
-       Arguments:
-       - that: The number to compare `self` against.
-
-       > Example
-         Find the maximum of 12 and 13.
-
-             Decimal.new "12" . max (Decimal.new "13")
-             # => Decimal.new "13"
-    max : Number -> Number
-    max self that = if self > that then self else that
-
     ## GROUP CONVERSIONS
        Convert this to an `Integer`.
 

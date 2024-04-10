@@ -409,10 +409,10 @@ add_specs suite_builder =
             (Decimal.new "11433327043969147404767677628296882442.487387236451853113753778864149360386696556" / Decimal.new "297349287397297.2394279379287398729879234") . should_equal (Decimal.new "38450830483049850394093.48579374987938934")
 
         group_builder.specify "should allow arithmetic with Decimals, with precision setting (examples)" <|
-            (Decimal.new "10.22") . add (Decimal.new "20.33") (Math_Context.new 3) . should_equal (Decimal.new 30.6)
-            (Decimal.new "20.33") . subtract (Decimal.new "10.22") (Math_Context.new 3) . should_equal (Decimal.new 10.1)
-            (Decimal.new "10.22") . multiply (Decimal.new "20.33") (Math_Context.new 4) . should_equal (Decimal.new 207.8)
-            (Decimal.new "1065.9378") . divide (Decimal.new "23.34") (Math_Context.new 3) . should_equal (Decimal.new 45.7)
+             (Decimal.new "10.22") . add (Decimal.new "20.33") (Math_Context.new 3) . should_equal (Decimal.new 30.6)
+             (Decimal.new "20.33") . subtract (Decimal.new "10.22") (Math_Context.new 3) . should_equal (Decimal.new 10.1)
+             (Decimal.new "10.22") . multiply (Decimal.new "20.33") (Math_Context.new 4) . should_equal (Decimal.new 207.8)
+             (Decimal.new "1065.9378") . divide (Decimal.new "23.34") (Math_Context.new 3) . should_equal (Decimal.new 45.7)
 
         group_builder.specify "should allow arithmetic with Decimals, with precision setting" <|
             (Decimal.new 213427523957 . add (Decimal.new 93849398884384) (Math_Context.new 8)) . should_equal (Decimal.new 94062826000000)
@@ -666,55 +666,6 @@ add_specs suite_builder =
             Decimal.new "12.345E97" . signum . should_equal 1
             Decimal.new "-12.345E97" . signum . should_equal -1
             Decimal.new "0" . signum . should_equal 0
-
-    suite_builder.group "min/max" group_builder->
-        group_builder.specify "should calculate min and max correctly" <|
-            Decimal.new "12" . min (Decimal.new "13") . should_equal (Decimal.new "12")
-            Decimal.new "12" . min (Decimal.new "11") . should_equal (Decimal.new "11")
-            Decimal.new "-12" . min (Decimal.new "-13") . should_equal (Decimal.new "-13")
-            Decimal.new "-12" . min (Decimal.new "-11") . should_equal (Decimal.new "-12")
-
-            Decimal.new "12.1" . min (Decimal.new "12.3") . should_equal (Decimal.new "12.1")
-            Decimal.new "12.2" . min (Decimal.new "11.7") . should_equal (Decimal.new "11.7")
-            Decimal.new "-12.1" . min (Decimal.new "-12.3") . should_equal (Decimal.new "-12.3")
-            Decimal.new "-12.2" . min (Decimal.new "-11.7") . should_equal (Decimal.new "-12.2")
-
-            Decimal.new "0" . min (Decimal.new "-1") . should_equal (Decimal.new "-1")
-            Decimal.new "0" . min (Decimal.new "1") . should_equal (Decimal.new "0")
-            Decimal.new "-1" . min (Decimal.new "0") . should_equal (Decimal.new "-1")
-            Decimal.new "1" . min (Decimal.new "0") . should_equal (Decimal.new "0")
-
-            Decimal.new "12E73" . min (Decimal.new "13E60") . should_equal (Decimal.new "13E60")
-            Decimal.new "12E73" . min (Decimal.new "13E80") . should_equal (Decimal.new "12E73")
-            Decimal.new "-12E73" . min (Decimal.new "-13E60") . should_equal (Decimal.new "-12E73")
-            Decimal.new "-12E73" . min (Decimal.new "-13E80") . should_equal (Decimal.new "-13E80")
-
-            Decimal.new "12" . max (Decimal.new "13") . should_equal (Decimal.new "13")
-            Decimal.new "12" . max (Decimal.new "11") . should_equal (Decimal.new "12")
-            Decimal.new "-12" . max (Decimal.new "-13") . should_equal (Decimal.new "-12")
-            Decimal.new "-12" . max (Decimal.new "-11") . should_equal (Decimal.new "-11")
-
-            Decimal.new "12.1" . max (Decimal.new "12.3") . should_equal (Decimal.new "12.3")
-            Decimal.new "12.2" . max (Decimal.new "11.7") . should_equal (Decimal.new "12.2")
-            Decimal.new "-12.1" . max (Decimal.new "-12.3") . should_equal (Decimal.new "-12.1")
-            Decimal.new "-12.2" . max (Decimal.new "-11.7") . should_equal (Decimal.new "-11.7")
-
-            Decimal.new "0" . max (Decimal.new "-1") . should_equal (Decimal.new "0")
-            Decimal.new "0" . max (Decimal.new "1") . should_equal (Decimal.new "1")
-            Decimal.new "-1" . max (Decimal.new "0") . should_equal (Decimal.new "0")
-            Decimal.new "1" . max (Decimal.new "0") . should_equal (Decimal.new "1")
-
-            Decimal.new "12E73" . max (Decimal.new "13E60") . should_equal (Decimal.new "12E73")
-            Decimal.new "12E73" . max (Decimal.new "13E80") . should_equal (Decimal.new "13E80")
-            Decimal.new "-12E73" . max (Decimal.new "-13E60") . should_equal (Decimal.new "-13E60")
-            Decimal.new "-12E73" . max (Decimal.new "-13E80") . should_equal (Decimal.new "-12E73")
-
-        group_builder.specify "should calculate min and max correctly, with Math.min/max" <|
-            Math.min (Decimal.new "12") (Decimal.new "13") . should_equal (Decimal.new "12")
-            Math.max (Decimal.new "12") (Decimal.new "13") . should_equal (Decimal.new "13")
-
-            Math.min (Decimal.new "12E70") (Decimal.new "13E70") . should_equal (Decimal.new "12E70")
-            Math.max (Decimal.new "12E70") (Decimal.new "13E70") . should_equal (Decimal.new "13E70")
 
     suite_builder.group "rounding" group_builder->
         do_round n dp=0 use_bankers=False = Decimal.new n . round dp use_bankers
