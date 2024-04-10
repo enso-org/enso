@@ -42,11 +42,19 @@ export interface AssetPropertiesProps {
   readonly labels: backendModule.Label[]
   readonly setQuery: React.Dispatch<React.SetStateAction<AssetQuery>>
   readonly dispatchAssetEvent: (event: assetEvent.AssetEvent) => void
+  readonly isReadonly?: boolean
 }
 
 /** Display and modify the properties of an asset. */
 export default function AssetProperties(props: AssetPropertiesProps) {
-  const { item: itemRaw, setItem: setItemRaw, category, labels, setQuery } = props
+  const {
+    item: itemRaw,
+    setItem: setItemRaw,
+    category,
+    labels,
+    setQuery,
+    isReadonly = false,
+  } = props
   const { dispatchAssetEvent } = props
 
   const { user } = authProvider.useNonPartialUserSession()
@@ -132,7 +140,7 @@ export default function AssetProperties(props: AssetPropertiesProps) {
           className="flex h-side-panel-heading items-center gap-side-panel-section py-side-panel-heading-y text-lg leading-snug"
         >
           {getText('description')}
-          {ownsThisAsset && !isEditingDescription && (
+          {!isReadonly && ownsThisAsset && !isEditingDescription && (
             <Button
               image={PenIcon}
               onPress={() => {
@@ -206,6 +214,7 @@ export default function AssetProperties(props: AssetPropertiesProps) {
               </td>
               <td className="w-full p">
                 <SharedWithColumn
+                  isReadonly={isReadonly}
                   item={item}
                   setItem={setItem}
                   state={{ category, dispatchAssetEvent, setQuery }}

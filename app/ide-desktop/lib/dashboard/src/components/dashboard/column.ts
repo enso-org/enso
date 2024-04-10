@@ -1,4 +1,6 @@
 /** @file Column types and column display modes. */
+import type * as React from 'react'
+
 import type * as assetsTable from '#/layouts/AssetsTable'
 
 import * as columnUtils from '#/components/dashboard/column/columnUtils'
@@ -28,6 +30,7 @@ export interface AssetColumnProps {
   readonly state: assetsTable.AssetsTableState
   readonly rowState: assetsTable.AssetRowState
   readonly setRowState: React.Dispatch<React.SetStateAction<assetsTable.AssetRowState>>
+  readonly isEditable: boolean
 }
 
 /** Props for a {@link AssetColumn}. */
@@ -39,8 +42,8 @@ export interface AssetColumnHeadingProps {
 export interface AssetColumn {
   readonly id: string
   readonly className?: string
-  readonly heading: (props: AssetColumnHeadingProps) => JSX.Element
-  readonly render: (props: AssetColumnProps) => JSX.Element
+  readonly heading: (props: AssetColumnHeadingProps) => React.JSX.Element
+  readonly render: (props: AssetColumnProps) => React.JSX.Element
 }
 
 // =======================
@@ -49,7 +52,7 @@ export interface AssetColumn {
 
 /** React components for every column. */
 export const COLUMN_RENDERER: Readonly<
-  Record<columnUtils.Column, (props: AssetColumnProps) => JSX.Element>
+  Record<columnUtils.Column, (props: AssetColumnProps) => React.JSX.Element>
 > = {
   [columnUtils.Column.name]: NameColumn,
   [columnUtils.Column.modified]: ModifiedColumn,
