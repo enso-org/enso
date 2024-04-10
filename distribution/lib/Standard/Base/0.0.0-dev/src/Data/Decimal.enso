@@ -753,6 +753,54 @@ type Decimal
             message = "Outside representable Float range (approximately (-1.8E308, 1.8E308))"
             Warning.attach (Out_Of_Range.Error self message) f
 
+    ## GROUP Rounding
+       ICON math
+       Round to a specified number of decimal places.
+
+       By default, rounding uses "symmetric round-half-up", also known as
+       "half-up." If use_bankers=True, then it uses "round-half-even", also
+       known as "banker's rounding".
+
+       Arguments:
+       - decimal_places: The number of decimal places to round to. Can be
+         negative, which results in rounding to positive integer powers of 10.
+         Must be between Java `Integer.MIN_VALUE` and `Integer.MAX_VALUE`
+         (-2147483648 and 2147483647) (inclusive).
+       - use_bankers: Rounds mid-point to nearest even number.
+
+       ! Error Conditions
+
+         If `decimal_places` is outside the range `Integer.MIN_VALUE` and
+         `Integer.MAX_VALUE` (inclusive), an `Illegal_Argument` error is thrown.
+
+       ? Negative decimal place counts
+         Rounding to `n` digits can be thought of as "rounding to the nearest
+         multiple of 10^(-n)". For negative decimal counts, this results in
+         rounding to the nearest positive integer power of 10.
+
+       > Example
+         Round to the nearest integer.
+
+             Decimal.new "3.3" . round
+             # => Decimal.new "3"
+
+       > Example
+         Round to two decimal places.
+
+             Decimal.new "3.1415" . round 2
+             # => Decimal.new "3.14"
+
+       > Example
+         Round a very large number.
+
+             Decimal.new "1234.5678E-50" . round 53
+             # => Decimal.new "1234.568E-50"
+
+       > Example
+         Use Banker's Rounding.
+
+             Decimal.new "2.5" . round use_bankers=True
+             # => 2
     round : Integer -> Boolean -> Decimal
     round self (decimal_places:Integer=0) (use_bankers:Boolean=False) =
         out_of_range = decimal_places > Java_Integer.MAX_VALUE || decimal_places < Java_Integer.MIN_VALUE
