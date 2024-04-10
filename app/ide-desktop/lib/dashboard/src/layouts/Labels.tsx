@@ -31,6 +31,7 @@ import * as string from '#/utilities/string'
 
 /** Props for a {@link Labels}. */
 export interface LabelsProps {
+  readonly draggable: boolean
   readonly labels: backend.Label[]
   readonly query: AssetQuery
   readonly setQuery: React.Dispatch<React.SetStateAction<AssetQuery>>
@@ -42,8 +43,16 @@ export interface LabelsProps {
 
 /** A list of selectable labels. */
 export default function Labels(props: LabelsProps) {
-  const { labels, query, setQuery, doCreateLabel, doDeleteLabel, newLabelNames } = props
-  const { deletedLabelNames } = props
+  const {
+    labels,
+    query,
+    setQuery,
+    doCreateLabel,
+    doDeleteLabel,
+    newLabelNames,
+    draggable = true,
+    deletedLabelNames,
+  } = props
   const currentLabels = query.labels
   const currentNegativeLabels = query.negativeLabels
   const { setModal } = modalProvider.useSetModal()
@@ -79,7 +88,7 @@ export default function Labels(props: LabelsProps) {
               return (
                 <div key={label.id} className="group relative flex items-center gap-label-icons">
                   <Label
-                    draggable
+                    draggable={draggable}
                     color={label.color}
                     active={
                       negated || currentLabels.some(term => array.shallowEqual(term, [label.value]))
