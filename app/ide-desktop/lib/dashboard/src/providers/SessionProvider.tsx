@@ -103,7 +103,14 @@ export default function SessionProvider(props: SessionProviderProps) {
 
   reactQuery.useQuery({
     queryKey: ['userSession'],
-    queryFn: refreshUserSession ? () => refreshUserSession().then(doRefresh) : reactQuery.skipToken,
+    queryFn: refreshUserSession
+      ? () =>
+          refreshUserSession()
+            .then(() => {
+              doRefresh()
+            })
+            .then(() => null)
+      : reactQuery.skipToken,
     refetchOnWindowFocus: true,
     refetchIntervalInBackground: true,
     refetchInterval: timeUntilRefresh < SIX_HOURS_MS ? timeUntilRefresh : SIX_HOURS_MS,
