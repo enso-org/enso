@@ -22,6 +22,7 @@ import SvgMask from '#/components/SvgMask'
 import UnstyledButton from '#/components/UnstyledButton'
 
 import type * as backend from '#/services/Backend'
+import * as mimeTypes from '#/data/mimeTypes'
 
 // =============
 // === Types ===
@@ -170,7 +171,7 @@ export default function CategorySwitcher(props: CategorySwitcherProps) {
                 acceptedDragTypes={
                   (category === Category.trash && data.category === Category.home) ||
                   (category !== Category.trash && data.category === Category.trash)
-                    ? ['application/vnd.enso.assets+json']
+                    ? [mimeTypes.ASSETS_MIME_TYPE]
                     : []
                 }
                 onDrop={event => {
@@ -178,7 +179,7 @@ export default function CategorySwitcher(props: CategorySwitcherProps) {
                   void Promise.all(
                     event.items.flatMap(async item => {
                       if (item.kind === 'text') {
-                        const text = await item.getText('application/vnd.enso.assets+json')
+                        const text = await item.getText(mimeTypes.ASSETS_MIME_TYPE)
                         const payload: unknown = JSON.parse(text)
                         return Array.isArray(payload)
                           ? payload.flatMap(key =>

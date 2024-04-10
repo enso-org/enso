@@ -65,6 +65,7 @@ import * as sorting from '#/utilities/sorting'
 import * as string from '#/utilities/string'
 import * as uniqueString from '#/utilities/uniqueString'
 import Visibility from '#/utilities/Visibility'
+import * as mimeTypes from '#/data/mimeTypes'
 
 // ============================
 // === Global configuration ===
@@ -2237,7 +2238,7 @@ export default function AssetsTable(props: AssetsTableProps) {
               asset: node.item,
             }))
             event.dataTransfer.setData(
-              'application/vnd.enso.assets+json',
+              mimeTypes.ASSETS_MIME_TYPE,
               JSON.stringify(nodes.map(node => node.key))
             )
             drag.setDragImageToBlank(event)

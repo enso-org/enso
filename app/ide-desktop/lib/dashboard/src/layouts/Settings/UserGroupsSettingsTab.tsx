@@ -1,6 +1,8 @@
 /** @file Settings tab for viewing and editing roles for all users in the organization. */
 import * as React from 'react'
 
+import * as mimeTypes from '#/data/mimeTypes'
+
 import * as asyncEffectHooks from '#/hooks/asyncEffectHooks'
 import * as refreshHooks from '#/hooks/refreshHooks'
 
@@ -17,6 +19,8 @@ import SettingsSection from '#/components/styled/settings/SettingsSection'
 import UnstyledButton from '#/components/UnstyledButton'
 
 import NewUserGroupModal from '#/modals/NewUserGroupModal'
+
+import * as backendModule from '#/services/Backend'
 
 // ==============================
 // === MemberRolesSettingsTab ===
@@ -36,6 +40,33 @@ export default function MemberRolesSettingsTab() {
   // within a group.
   const users = asyncEffectHooks.useAsyncEffect(null, () => backend.listUsers(), [backend])
   const isLoading = userGroups == null || users == null
+  const { dragAndDropHooks } = aria.useDragAndDrop({
+    getDropOperation: (target, types, allowedOperations) =>
+      allowedOperations.includes('copy') &&
+      types.has(mimeTypes.USER_MIME_TYPE) &&
+      target.type === 'item' &&
+      typeof target.key === 'string' &&
+      backendModule.isUserGroupId(target.key)
+        ? 'copy'
+        : 'cancel',
+    onItemDrop: event => {
+      if (typeof event.target.key === 'string' && backendModule.isUserGroupId(event.target.key)) {
+        const userGroupId = event.target.key
+        for (const item of event.items) {
+          if (item.kind === 'text' && item.types.has(mimeTypes.USER_MIME_TYPE)) {
+            void item.getText(mimeTypes.USER_MIME_TYPE).then(async text => {
+              // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+              const user: backendModule.User = JSON.parse(text)
+              const groups = user.userGroups ?? []
+              if (!groups.includes(userGroupId)) {
+                await backend.changeUserGroup(user.userId, [...groups, userGroupId], user.name)
+              }
+            })
+          }
+        }
+      }
+    },
+  })
 
   return (
     <div className="flex h flex-col gap-settings-section lg:h-auto lg:flex-row">
@@ -53,43 +84,53 @@ export default function MemberRolesSettingsTab() {
               </aria.Text>
             </UnstyledButton>
           </HorizontalMenuBar>
-          <table className="table-fixed self-start rounded-rows">
-            <thead>
-              <tr className="h-row">
-                <th className="w-members-name-column border-x-2 border-transparent bg-clip-padding px-cell-x text-left text-sm font-semibold last:border-r-0">
-                  {getText('userGroup')}
-                </th>
-              </tr>
-            </thead>
-            <tbody className="select-text">
+          <aria.Table
+            aria-label={getText('userGroups')}
+            className="table-fixed self-start rounded-rows"
+            dragAndDropHooks={dragAndDropHooks}
+          >
+            <aria.TableHeader className="h-row">
+              <aria.Column
+                isRowHeader
+                className="w-members-name-column border-x-2 border-transparent bg-clip-padding px-cell-x text-left text-sm font-semibold last:border-r-0"
+              >
+                {getText('userGroup')}
+              </aria.Column>
+            </aria.TableHeader>
+            <aria.TableBody className="select-text">
               {isLoading ? (
-                <tr className="h-row">
-                  <td colSpan={3} className="bg-transparent">
+                <aria.Row className="h-row">
+                  <aria.Cell
+                    ref={element => {
+                      if (element != null) {
+                        element.colSpan = 3
+                      }
+                    }}
+                    className="bg-transparent"
+                  >
                     <div className="flex justify-center">
                       <StatelessSpinner
                         size={32}
                         state={statelessSpinner.SpinnerState.loadingMedium}
                       />
                     </div>
-                  </td>
-                </tr>
+                  </aria.Cell>
+                </aria.Row>
               ) : (
-                userGroups.map(userGroup => {
-                  return (
-                    <tr key={userGroup.groupName} className="h-row">
-                      <td className="text border-x-2 border-transparent bg-clip-padding px-cell-x first:rounded-l-full last:rounded-r-full last:border-r-0">
-                        {userGroup.groupName}
-                      </td>
-                    </tr>
-                  )
-                })
+                userGroups.flatMap(userGroup => [
+                  <aria.Row key={userGroup.id} id={userGroup.id} className="h-row">
+                    <aria.Cell className="text border-x-2 border-transparent bg-clip-padding px-cell-x first:rounded-l-full last:rounded-r-full last:border-r-0">
+                      {userGroup.groupName}
+                    </aria.Cell>
+                  </aria.Row>,
+                ])
               )}
-            </tbody>
-          </table>
+            </aria.TableBody>
+          </aria.Table>
         </SettingsSection>
       </div>
       <SettingsSection noFocusArea title={getText('users')}>
-        <MembersTable />
+        <MembersTable draggable />
       </SettingsSection>
     </div>
   )

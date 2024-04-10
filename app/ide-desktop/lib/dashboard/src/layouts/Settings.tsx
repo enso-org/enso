@@ -10,10 +10,10 @@ import * as textProvider from '#/providers/TextProvider'
 import AccountSettingsTab from '#/layouts/Settings/AccountSettingsTab'
 import ActivityLogSettingsTab from '#/layouts/Settings/ActivityLogSettingsTab'
 import KeyboardShortcutsSettingsTab from '#/layouts/Settings/KeyboardShortcutsSettingsTab'
-import MemberRolesSettingsTab from '#/layouts/Settings/UserGroupsSettingsTab'
 import MembersSettingsTab from '#/layouts/Settings/MembersSettingsTab'
 import OrganizationSettingsTab from '#/layouts/Settings/OrganizationSettingsTab'
 import SettingsTab from '#/layouts/Settings/SettingsTab'
+import UserGroupsSettingsTab from '#/layouts/Settings/UserGroupsSettingsTab'
 import SettingsSidebar from '#/layouts/SettingsSidebar'
 
 import * as aria from '#/components/aria'
@@ -75,8 +75,8 @@ export default function Settings() {
       content = <MembersSettingsTab />
       break
     }
-    case SettingsTab.memberRoles: {
-      content = <MemberRolesSettingsTab />
+    case SettingsTab.userGroups: {
+      content = <UserGroupsSettingsTab />
       break
     }
     case SettingsTab.keyboardShortcuts: {
@@ -103,7 +103,7 @@ export default function Settings() {
         <div className="ml-[0.625rem] h-[2.25rem] rounded-full bg-frame px-[0.5625rem] pb-[0.3125rem] pt-[0.125rem] leading-snug">
           {settingsTab !== SettingsTab.organization &&
           settingsTab !== SettingsTab.members &&
-          settingsTab !== SettingsTab.memberRoles
+          settingsTab !== SettingsTab.userGroups
             ? user?.name ?? 'your account'
             : organization.name ?? 'your organization'}
         </div>

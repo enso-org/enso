@@ -45,7 +45,7 @@ const SECTIONS: SettingsSectionData[] = [
       },
       {
         name: 'User Groups',
-        settingsTab: SettingsTab.memberRoles,
+        settingsTab: SettingsTab.userGroups,
         icon: PeopleSettingsIcon,
       },
     ],

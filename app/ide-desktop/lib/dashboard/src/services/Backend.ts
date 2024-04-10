@@ -99,6 +99,16 @@ export const Path = newtype.newtypeConstructor<Path>()
 
 /* eslint-enable @typescript-eslint/no-redeclare */
 
+/** Whether a given {@link string} is an {@link UserId}. */
+export function isUserId(id: string): id is UserId {
+  return id.startsWith('user-')
+}
+
+/** Whether a given {@link string} is an {@link UserGroupId}. */
+export function isUserGroupId(id: string): id is UserGroupId {
+  return id.startsWith('usergroup-')
+}
+
 // =============
 // === Types ===
 // =============
@@ -1181,7 +1191,7 @@ export default abstract class Backend {
   /** Return the ID of the root directory, if known. */
   abstract rootDirectoryId(user: User | null): DirectoryId | null
   /** Return a list of all users in the same organization. */
-  abstract listUsers(): Promise<UserInfo[]>
+  abstract listUsers(): Promise<User[]>
   /** Set the username of the current user. */
   abstract createUser(body: CreateUserRequestBody): Promise<User>
   /** Change the username of the current user. */

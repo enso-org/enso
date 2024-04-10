@@ -1,4 +1,8 @@
 /** @file A list of members in the organization. */
+import * as React from 'react'
+
+import * as mimeTypes from '#/data/mimeTypes'
+
 import * as asyncEffectHooks from '#/hooks/asyncEffectHooks'
 
 import * as backendProvider from '#/providers/BackendProvider'
@@ -7,18 +11,82 @@ import * as textProvider from '#/providers/TextProvider'
 import * as aria from '#/components/aria'
 import StatelessSpinner, * as statelessSpinner from '#/components/StatelessSpinner'
 
+import * as backendModule from '#/services/Backend'
+
+// ====================
+// === MembersTable ===
+// ====================
+
+/** Props for a {@link MembersTable}. */
+export interface MembersTableProps {
+  readonly draggable?: boolean
+}
+
 /** A list of members in the organization. */
-export default function MembersTable() {
+export default function MembersTable(props: MembersTableProps) {
+  const { draggable = false } = props
   const { backend } = backendProvider.useBackend()
   const { getText } = textProvider.useText()
+  const [selectedKeys, setSelectedKeys] = React.useState<aria.Selection>(new Set())
+  const rootRef = React.useRef<HTMLTableElement | null>(null)
   const members = asyncEffectHooks.useAsyncEffect(null, () => backend.listUsers(), [backend])
+  const membersMap = React.useMemo(
+    () => new Map((members ?? []).map(member => [member.userId, member])),
+    [members]
+  )
   const isLoading = members == null
+  const { dragAndDropHooks } = aria.useDragAndDrop({
+    getItems: keys =>
+      [...keys].flatMap(key => {
+        const userId = backendModule.UserId(String(key))
+        const member = membersMap.get(userId)
+        return member != null ? [{ [mimeTypes.USER_MIME_TYPE]: JSON.stringify(member) }] : []
+      }),
+    renderDragPreview: items => {
+      return (
+        <div className="flex flex-col rounded-default bg-white backdrop-blur-default">
+          {items.flatMap(item => {
+            const payload = item[mimeTypes.USER_MIME_TYPE]
+            if (payload == null) {
+              return []
+            } else {
+              // This is SAFE. The type of the payload is known as it is set in `getItems` above.
+              // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+              const member: backendModule.User = JSON.parse(payload)
+              return [
+                <div key={member.userId} className="flex h-row items-center px-cell-x">
+                  <aria.Text className="text">{member.name}</aria.Text>
+                </div>,
+              ]
+            }
+          })}
+        </div>
+      )
+    },
+  })
+
+  React.useEffect(() => {
+    const onClick = (event: Event) => {
+      if (event.target instanceof Node && rootRef.current?.contains(event.target) === false) {
+        setSelectedKeys(new Set())
+      }
+    }
+    document.addEventListener('click', onClick, { capture: true })
+    return () => {
+      document.removeEventListener('click', onClick, { capture: true })
+    }
+  }, [])
 
   return (
     <aria.Table
+      ref={rootRef}
       aria-label={getText('users')}
-      selectionMode="multiple"
+      selectionMode={draggable ? 'multiple' : 'none'}
+      selectionBehavior="replace"
+      selectedKeys={selectedKeys}
+      onSelectionChange={setSelectedKeys}
       className="table-fixed self-start rounded-rows"
+      {...(draggable ? { dragAndDropHooks } : {})}
     >
       <aria.TableHeader className="h-row">
         <aria.Column
@@ -49,11 +117,11 @@ export default function MembersTable() {
           </aria.Row>
         ) : (
           members.map(member => (
-            <aria.Row key={member.userId} className="h-row">
-              <aria.Cell className="text border-x-2 border-transparent bg-clip-padding px-cell-x first:rounded-l-full last:rounded-r-full last:border-r-0">
+            <aria.Row key={member.userId} id={member.userId} className="group h-row">
+              <aria.Cell className="text border-x-2 border-transparent bg-clip-padding px-cell-x first:rounded-l-full last:rounded-r-full last:border-r-0 group-selected:bg-selected-frame">
                 {member.name}
               </aria.Cell>
-              <aria.Cell className="text border-x-2 border-transparent bg-clip-padding px-cell-x first:rounded-l-full last:rounded-r-full last:border-r-0">
+              <aria.Cell className="text border-x-2 border-transparent bg-clip-padding px-cell-x first:rounded-l-full last:rounded-r-full last:border-r-0 group-selected:bg-selected-frame">
                 {member.email}
               </aria.Cell>
             </aria.Row>
