@@ -189,7 +189,7 @@ add_specs suite_builder setup:Cloud_Tests_Setup = suite_builder.group "Enso Clou
 
         dir.path . should_contain "enso://"
         dir.path . should_contain "/test-directory"
-        dir.parent . should_equal test_root
+        dir.parent . should_equal test_root.get
         dir.is_descendant_of Enso_File.root . should_be_true
         Enso_File.root.is_descendant_of dir . should_be_false
 

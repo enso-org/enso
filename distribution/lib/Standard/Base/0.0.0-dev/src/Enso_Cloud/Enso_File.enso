@@ -318,7 +318,7 @@ type Enso_File
         asset = Existing_Enso_Asset.get_asset_reference_for self
         if asset.is_directory.not then Error.throw (Illegal_Argument.Error "Only directories can contain subdirectories.") else
             parent_field = if self.is_current_user_root then [] else
-                [["parentId", [asset.id]]]
+                [["parentId", asset.id]]
             body = JS_Object.from_pairs [["title", effective_name]]+parent_field
             response = Utils.http_request_as_json HTTP_Method.Post Utils.directory_api body
             # TODO we could cache the asset maybe? but for how long should we do that?
