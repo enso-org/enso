@@ -59,7 +59,11 @@ export default function MemberRolesSettingsTab() {
               const user: backendModule.User = JSON.parse(text)
               const groups = user.userGroups ?? []
               if (!groups.includes(userGroupId)) {
-                await backend.changeUserGroup(user.userId, [...groups, userGroupId], user.name)
+                await backend.changeUserGroup(
+                  user.userId,
+                  { userGroups: [...groups, userGroupId] },
+                  user.name
+                )
               }
             })
           }

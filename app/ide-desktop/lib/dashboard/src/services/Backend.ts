@@ -893,22 +893,20 @@ export const assetIsDataLink = assetIsType(AssetType.dataLink)
 export const assetIsSecret = assetIsType(AssetType.secret)
 /** A type guard that returns whether an {@link Asset} is a {@link FileAsset}. */
 export const assetIsFile = assetIsType(AssetType.file)
-/* eslint-disable no-restricted-syntax */
+/* eslint-enable no-restricted-syntax */
 
 /** Metadata describing a specific version of an asset. */
 export interface S3ObjectVersion {
-  versionId: string
-  lastModified: dateTime.Rfc3339DateTime
-  isLatest: boolean
-  /**
-   * The field points to an archive containing the all the project files object in the S3 bucket,
-   */
-  key: string
+  readonly versionId: string
+  readonly lastModified: dateTime.Rfc3339DateTime
+  readonly isLatest: boolean
+  /** An archive containing the all the project files object in the S3 bucket. */
+  readonly key: string
 }
 
 /** A list of asset versions. */
 export interface AssetVersions {
-  versions: S3ObjectVersion[]
+  readonly versions: S3ObjectVersion[]
 }
 
 // ===============================
@@ -955,15 +953,20 @@ export interface CreateUserRequestBody {
 
 /** HTTP request body for the "update user" endpoint. */
 export interface UpdateUserRequestBody {
-  username: string | null
+  readonly username: string | null
+}
+
+/** HTTP request body for the "change user group" endpoint. */
+export interface ChangeUserGroupRequestBody {
+  readonly userGroups: UserGroupId[]
 }
 
 /** HTTP request body for the "update organization" endpoint. */
 export interface UpdateOrganizationRequestBody {
-  name?: string
-  email?: EmailAddress
-  website?: HttpsUrl
-  address?: string
+  readonly name?: string
+  readonly email?: EmailAddress
+  readonly website?: HttpsUrl
+  readonly address?: string
 }
 
 /** HTTP request body for the "invite user" endpoint. */
@@ -1045,10 +1048,10 @@ export interface UpdateSecretRequestBody {
 
 /** HTTP request body for the "create connector" endpoint. */
 export interface CreateConnectorRequestBody {
-  name: string
-  value: unknown
-  parentDirectoryId: DirectoryId | null
-  connectorId: ConnectorId | null
+  readonly name: string
+  readonly value: unknown
+  readonly parentDirectoryId: DirectoryId | null
+  readonly connectorId: ConnectorId | null
 }
 
 /** HTTP request body for the "create tag" endpoint. */
@@ -1064,7 +1067,7 @@ export interface CreateUserGroupRequestBody {
 
 /** HTTP request body for the "create checkout session" endpoint. */
 export interface CreateCheckoutSessionRequestBody {
-  plan: Plan
+  readonly plan: Plan
 }
 
 /** URL query string parameters for the "list directory" endpoint. */
@@ -1120,15 +1123,17 @@ export function compareAssets(a: AnyAsset, b: AnyAsset) {
   const relativeTypeOrder = ASSET_TYPE_ORDER[a.type] - ASSET_TYPE_ORDER[b.type]
   if (relativeTypeOrder !== 0) {
     return relativeTypeOrder
+  } else {
+    const aModified = Number(new Date(a.modifiedAt))
+    const bModified = Number(new Date(b.modifiedAt))
+    const modifiedDelta = aModified - bModified
+    if (modifiedDelta !== 0) {
+      // Sort by date descending, rather than ascending.
+      return -modifiedDelta
+    } else {
+      return a.title > b.title ? 1 : a.title < b.title ? -1 : 0
+    }
   }
-  const aModified = Number(new Date(a.modifiedAt))
-  const bModified = Number(new Date(b.modifiedAt))
-  const modifiedDelta = aModified - bModified
-  if (modifiedDelta !== 0) {
-    // Sort by date descending, rather than ascending.
-    return -modifiedDelta
-  }
-  return a.title > b.title ? 1 : a.title < b.title ? -1 : 0
 }
 
 // ==================
@@ -1147,7 +1152,7 @@ export function getAssetId<Type extends AssetType>(asset: Asset<Type>) {
 
 /** A subset of properties of the JS `File` type. */
 interface JSFile {
-  name: string
+  readonly name: string
 }
 
 /** Whether a `File` is a project. */
@@ -1203,7 +1208,7 @@ export default abstract class Backend {
   /** Set the list of groups a user is in. */
   abstract changeUserGroup(
     userId: UserId,
-    userGroups: UserGroupId[],
+    userGroups: ChangeUserGroupRequestBody,
     name: string | null
   ): Promise<User>
   /** Invite a new user to the organization by email. */
