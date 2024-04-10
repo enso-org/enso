@@ -3,8 +3,6 @@ import * as json from 'lib0/json'
 import * as map from 'lib0/map'
 import { ObservableV2 } from 'lib0/observable'
 import * as random from 'lib0/random'
-import { Err, Ok, Result, withContext } from 'shared/util/data/result'
-import ReconnectingWebSocketTransport from 'shared/util/net/ReconnectingWSTransport'
 import * as Y from 'yjs'
 import * as Ast from '../shared/ast'
 import { astCount } from '../shared/ast'
@@ -18,7 +16,9 @@ import {
   TextEdit,
   response,
 } from '../shared/languageServerTypes'
+import { Err, Ok, Result, withContext } from '../shared/util/data/result'
 import { AbortScope, exponentialBackoff, printingCallbacks } from '../shared/util/net'
+import ReconnectingWebSocketTransport from '../shared/util/net/ReconnectingWSTransport'
 import {
   DistributedProject,
   ExternalId,

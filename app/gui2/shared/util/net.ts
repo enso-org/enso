@@ -1,7 +1,7 @@
 import { Transport } from '@open-rpc/client-js/build/transports/Transport'
 import type { ObservableV2 } from 'lib0/observable'
 import { wait } from 'lib0/promise'
-import { type Result, type ResultError } from 'shared/util/data/result'
+import { type Result, type ResultError } from './data/result'
 
 interface Disposable {
   dispose(): void

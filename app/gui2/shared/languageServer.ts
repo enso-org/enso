@@ -3,7 +3,6 @@ import { bytesToHex } from '@noble/hashes/utils'
 import { Client, RequestManager } from '@open-rpc/client-js'
 import { ObservableV2 } from 'lib0/observable'
 import { uuidv4 } from 'lib0/random'
-import type { ReconnectingTransportWithWebsocketEvents } from 'shared/util/net'
 import { z } from 'zod'
 import { walkFs } from './languageServer/files'
 import type {
@@ -24,6 +23,7 @@ import type {
   response,
 } from './languageServerTypes'
 import { Err, Ok, type Result } from './util/data/result'
+import type { ReconnectingTransportWithWebsocketEvents } from './util/net'
 import { exponentialBackoff } from './util/net'
 import type { Uuid } from './yjsModel'
 

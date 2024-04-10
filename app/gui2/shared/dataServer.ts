@@ -1,6 +1,5 @@
 import { ObservableV2 } from 'lib0/observable'
 import * as random from 'lib0/random'
-import type { Path as LSPath } from 'shared/languageServerTypes'
 import {
   Builder,
   ByteBuffer,
@@ -29,6 +28,7 @@ import {
   type Offset,
   type Table,
 } from './binaryProtocol'
+import type { Path as LSPath } from './languageServerTypes'
 import type { AbortScope } from './util/net'
 import { uuidFromBits, uuidToBits } from './uuid'
 import type { WebsocketClient } from './websocket'
