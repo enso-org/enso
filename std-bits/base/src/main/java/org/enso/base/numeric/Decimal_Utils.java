@@ -96,6 +96,9 @@ public class Decimal_Utils {
   public static BigDecimal round(BigDecimal bd, long decimalPlaces, boolean useBankers) {
     var roundingMode = useBankers ? RoundingMode.HALF_EVEN : RoundingMode.HALF_UP;
     // The Enso wrapper `Decimal.round` ensures that `decimalPlaces` is in `Integer` range.
-    return bd.setScale((int) decimalPlaces, roundingMode);
+    // `stripTrailingZeros` is necessary because rounding can produce results
+    // that have extra trailing zeros, which take up space and slow down later
+    // calculations.
+    return bd.setScale((int) decimalPlaces, roundingMode).stripTrailingZeros();
   }
 }

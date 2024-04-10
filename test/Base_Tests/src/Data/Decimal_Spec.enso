@@ -671,6 +671,9 @@ add_specs suite_builder =
         do_round n dp=0 use_bankers=False = Decimal.new n . round dp use_bankers
         Round_Spec.add_specs group_builder do_round
 
+        group_builder.specify "Strips trailing zeros" <|
+            Decimal.new "1234.5678" . round 5 . internal_representation . should_equal [12345678, 8, 4]
+
         group_builder.specify "Decimal places out of range" <|
             too_big_positive = Java_Integer.MAX_VALUE + 1
             too_big_negative = Java_Integer.MIN_VALUE - 1
