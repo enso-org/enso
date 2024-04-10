@@ -23,7 +23,7 @@ class ReconnectingWebSocketTransport extends Transport {
   constructor(uri: string) {
     super()
     this.uri = uri
-    this.connection = new WebSocket(uri, undefined, { WebSocket: WS, maxEnqueuedMessages: 0 })
+    this.connection = new WebSocket(uri, undefined, { WebSocket: WS })
     this.events = new ObservableV2()
   }
   public connect(): Promise<any> {
@@ -38,6 +38,10 @@ class ReconnectingWebSocketTransport extends Transport {
         this.transportRequestManager.resolveResponse(data)
       })
     })
+  }
+
+  public reconnect() {
+    this.connection.reconnect()
   }
 
   public async sendData(data: JSONRPCRequestData, timeout: number | null = 5000): Promise<any> {

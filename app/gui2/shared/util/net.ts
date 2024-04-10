@@ -1,8 +1,7 @@
 import { Transport } from '@open-rpc/client-js/build/transports/Transport'
 import type { ObservableV2 } from 'lib0/observable'
 import { wait } from 'lib0/promise'
-import { LsRpcError } from 'shared/languageServer'
-import { rejectionToResult, type Result, type ResultError } from 'shared/util/data/result'
+import { type Result, type ResultError } from 'shared/util/data/result'
 
 interface Disposable {
   dispose(): void
@@ -160,25 +159,8 @@ export function printingCallbacks(successDescription: string, errorDescription: 
   } satisfies BackoffOptions<unknown>
 }
 
-export const lsRequestResult = rejectionToResult(LsRpcError)
-
-/**
- * Retry a failing Language Server RPC call with exponential backoff. The provided async function is
- * called on each retry.
- */
-export async function rpcWithRetries<T>(
-  f: () => Promise<T>,
-  backoffOptions?: BackoffOptions<LsRpcError>,
-): Promise<T> {
-  const result = await exponentialBackoff(() => lsRequestResult(f()), backoffOptions)
-  if (result.ok) return result.value
-  else {
-    console.error('Too many failed retries.')
-    throw result.error
-  }
-}
-
-export type TransportWithWebsocketEvents = Transport & {
+export type ReconnectingTransportWithWebsocketEvents = Transport & {
   on<K extends keyof WebSocketEventMap>(type: K, cb: (event: WebSocketEventMap[K]) => void): void
   off<K extends keyof WebSocketEventMap>(type: K, cb: (event: WebSocketEventMap[K]) => void): void
+  reconnect(): void
 }

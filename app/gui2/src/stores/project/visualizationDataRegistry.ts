@@ -1,4 +1,4 @@
-import type { ExecutionContext } from '@/stores/project'
+import type { ExecutionContext } from '@/stores/project/executionContext'
 import { Err, Ok, type Result } from '@/util/data/result'
 import { OutboundPayload, VisualizationUpdate } from 'shared/binaryProtocol'
 import type { DataServer } from 'shared/dataServer'

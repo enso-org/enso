@@ -3,13 +3,21 @@ import * as json from 'lib0/json'
 import * as map from 'lib0/map'
 import { ObservableV2 } from 'lib0/observable'
 import * as random from 'lib0/random'
-import { Ok, Result, rejectionToResult } from 'shared/util/data/result'
+import { Err, Ok, Result, withContext } from 'shared/util/data/result'
+import ReconnectingWebSocketTransport from 'shared/util/net/ReconnectingWSTransport'
 import * as Y from 'yjs'
 import * as Ast from '../shared/ast'
 import { astCount } from '../shared/ast'
 import { EnsoFileParts, combineFileParts, splitFileContents } from '../shared/ensoFile'
 import { LanguageServer, computeTextChecksum } from '../shared/languageServer'
-import { Checksum, FileEdit, Path, TextEdit, response } from '../shared/languageServerTypes'
+import {
+  Checksum,
+  FileEdit,
+  FileEventKind,
+  Path,
+  TextEdit,
+  response,
+} from '../shared/languageServerTypes'
 import { AbortScope, exponentialBackoff, printingCallbacks } from '../shared/util/net'
 import {
   DistributedProject,
@@ -34,14 +42,14 @@ const EXTENSION = '.enso'
 
 const DEBUG_LOG_SYNC = false
 
-function createOpenRPCClient(url: string) {
-  const transport = new WebSocketTransport(url)
-  const requestManager = new RequestManager([transport])
-  transport.connection.on('error', (error) =>
-    console.error('Language Server transport error:', error),
-  )
-  return new Client(requestManager)
-}
+// function createOpenRPCClient(url: string) {
+//   const transport = new WebSocketTransport(url)
+//   const requestManager = new RequestManager([transport])
+//   transport.connection.on('error', (error) =>
+//     console.error('Language Server transport error:', error),
+//   )
+//   return new Client(requestManager)
+// }
 
 export class LanguageServerSession {
   clientId: Uuid
@@ -49,7 +57,6 @@ export class LanguageServerSession {
   docs: Map<string, WSSharedDoc>
   retainCount: number
   url: string
-  client: Client
   ls: LanguageServer
   connection: response.InitProtocolConnection | undefined
   model: DistributedProject
@@ -78,9 +85,9 @@ export class LanguageServerSession {
         if (!persistence) continue
       }
     })
-    const { client, ls } = this.setupClient()
-    this.client = client
-    this.ls = ls
+    this.ls = new LanguageServer(this.clientId, new ReconnectingWebSocketTransport(this.url))
+    this.clientScope.onAbort(() => this.ls.release())
+    this.setupClient()
   }
 
   static sessions = new Map<string, LanguageServerSession>()
@@ -95,57 +102,25 @@ export class LanguageServerSession {
   }
 
   private restartClient() {
-    this.clientScope.dispose('Client restarted.')
-    this.clientScope = new AbortScope()
-    this.connection = undefined
-    this.setupClient()
+    this.ls.reconnect()
+    return exponentialBackoff(() => this.readInitialState())
   }
 
   private setupClient() {
-    this.client = createOpenRPCClient(this.url)
-    this.ls = new LanguageServer(this.client)
-    this.clientScope.onAbort(() => this.ls.release())
     this.ls.on('file/event', async (event) => {
       if (DEBUG_LOG_SYNC) {
         console.log('file/event', event)
       }
-      let result: Result<void, Error> = Ok()
-      const path = event.path.segments.join('/')
-      switch (event.kind) {
-        case 'Added': {
-          if (isSourceFile(event.path)) {
-            const fileInfo = await this.ls.fileInfo(event.path)
-            if (fileInfo.attributes.kind.type == 'File') {
-              result = await exponentialBackoff(
-                () => rejectionToResult(Error)(this.getModuleModel(event.path).open()),
-                printingCallbacks(`opened new file '${path}'`, `open new file '${path}'`),
-              )
-            }
-          }
-          break
-        }
-        case 'Modified': {
-          result = await exponentialBackoff(
-            () => rejectionToResult(Error)(this.tryGetExistingModuleModel(event.path)?.reload()),
-            printingCallbacks(`reloaded file '${path}'`, `reload file '${path}'`),
-          )
-          break
-        }
-      }
-      if (!result.ok) {
-        this.restartClient()
-      }
+      const result = await this.handleFileEvent(event)
+      if (!result.ok) this.restartClient()
     })
     this.ls.on('text/fileModifiedOnDisk', async (event) => {
       const path = event.path.segments.join('/')
-      try {
-        await exponentialBackoff(
-          async () => this.tryGetExistingModuleModel(event.path)?.reload(),
-          printingCallbacks(`reloaded file '${path}'`, `reload file '${path}'`),
-        )
-      } catch {
-        this.restartClient()
-      }
+      const result = await exponentialBackoff(
+        async () => this.tryGetExistingModuleModel(event.path)?.reload() ?? Ok(),
+        printingCallbacks(`reloaded file '${path}'`, `reload file '${path}'`),
+      )
+      if (!result.ok) this.restartClient()
     })
     exponentialBackoff(
       () => this.readInitialState(),
@@ -158,41 +133,81 @@ export class LanguageServerSession {
         printingCallbacks('restarted RPC client', 'restart RPC client'),
       )
     })
-    return { client: this.client, ls: this.ls }
+  }
+
+  private handleFileEvent(event: { path: Path; kind: FileEventKind }): Promise<Result<void>> {
+    return withContext(
+      () => 'Handling file/event',
+      async () => {
+        const path = event.path.segments.join('/')
+        switch (event.kind) {
+          case 'Added': {
+            if (isSourceFile(event.path)) {
+              const fileInfo = await this.ls.fileInfo(event.path)
+              if (!fileInfo.ok) return fileInfo
+              if (fileInfo.value.attributes.kind.type == 'File') {
+                return await exponentialBackoff(
+                  () => this.getModuleModel(event.path).open(),
+                  printingCallbacks(`opened new file '${path}'`, `open new file '${path}'`),
+                )
+              }
+            }
+            break
+          }
+          case 'Modified': {
+            return await exponentialBackoff(
+              () => this.tryGetExistingModuleModel(event.path)?.reload() ?? Promise.resolve(Ok()),
+              printingCallbacks(`reloaded file '${path}'`, `reload file '${path}'`),
+            )
+          }
+        }
+        return Ok()
+      },
+    )
   }
 
   private assertProjectRoot(): asserts this is { projectRootId: Uuid } {
     if (this.projectRootId == null) throw new Error('Missing project root')
   }
 
-  private async readInitialState() {
-    let moduleOpenPromises: Promise<void>[] = []
-    try {
-      const connection = this.connection ?? (await this.ls.initProtocolConnection(this.clientId))
-      this.connection = connection
-      const projectRoot = connection.contentRoots.find((root) => root.type === 'Project')
-      if (!projectRoot) throw new Error('Missing project root')
-      this.projectRootId = projectRoot.id
-      await this.ls.acquireReceivesTreeUpdates({ rootId: this.projectRootId, segments: [] })
-      const files = await this.scanSourceFiles()
-      moduleOpenPromises = this.indexDoc.doc.transact(
-        () =>
-          files.map((file) => this.getModuleModel(pushPathSegment(file.path, file.name)).open()),
-        this,
-      )
-      await Promise.all(moduleOpenPromises)
-    } catch (error) {
-      console.error('LS initialization failed.')
-      throw error
-    }
-    console.log('LS connection initialized.')
+  private async readInitialState(): Promise<Result<void>> {
+    return await withContext(
+      () => 'When reading initial state',
+      async () => {
+        let moduleOpenPromises: Promise<Result<void>>[] = []
+        const projectRoot = (await this.ls.contentRoots).find((root) => root.type === 'Project')
+        if (!projectRoot) return Err('Missing project root')
+        this.projectRootId = projectRoot.id
+        const aquireResult = await this.ls.acquireReceivesTreeUpdates({
+          rootId: this.projectRootId,
+          segments: [],
+        })
+        if (!aquireResult.ok) return aquireResult
+        const files = await this.scanSourceFiles()
+        if (!files.ok) return files
+        moduleOpenPromises = this.indexDoc.doc.transact(
+          () =>
+            files.value.map((file) =>
+              this.getModuleModel(pushPathSegment(file.path, file.name)).open(),
+            ),
+          this,
+        )
+        const results = await Promise.all(moduleOpenPromises)
+        return results.find((res) => !res.ok) ?? Ok()
+      },
+    )
   }
 
   async scanSourceFiles() {
     this.assertProjectRoot()
     const sourceDir: Path = { rootId: this.projectRootId, segments: [SOURCE_DIR] }
     const srcModules = await this.ls.listFiles(sourceDir)
-    return srcModules.paths.filter((file) => file.type === 'File' && file.name.endsWith(EXTENSION))
+    if (!srcModules.ok) return srcModules
+    return Ok(
+      srcModules.value.paths.filter(
+        (file) => file.type === 'File' && file.name.endsWith(EXTENSION),
+      ),
+    )
   }
 
   tryGetExistingModuleModel(path: Path): ModulePersistence | undefined {
@@ -341,51 +356,69 @@ class ModulePersistence extends ObservableV2<{ removed: () => void }> {
 
   /** Set the current state to the given state while the callback is running.
    * Set the current state back to {@link LsSyncState.Synchronized} when the callback finishes. */
-  private async withState(state: LsSyncState, callback: () => void | Promise<void>) {
+  private async withState(state: LsSyncState, callback: () => void | Promise<void>): Promise<void>
+  private async withState(
+    state: LsSyncState,
+    callback: () => Result<void> | Promise<Result<void>>,
+  ): Promise<Result<void>>
+  private async withState(
+    state: LsSyncState,
+    callback: () => void | Promise<void> | Result<void> | Promise<Result<void>>,
+  ): Promise<Result<void> | void> {
     this.setState(state)
-    await callback()
+    const result = await callback()
+    if (result && !result.ok) return result
     this.setState(LsSyncState.Synchronized)
+    if (result) return result
   }
 
-  async open() {
-    this.queuedAction = LsAction.Open
-    switch (this.state) {
-      case LsSyncState.Disposed:
-      case LsSyncState.WritingFile:
-      case LsSyncState.Synchronized:
-      case LsSyncState.WriteError:
-      case LsSyncState.Reloading: {
-        return
-      }
-      case LsSyncState.Closing: {
-        await this.lastAction
-        if (this.queuedAction === LsAction.Open) await this.open()
-        return
-      }
-      case LsSyncState.Opening: {
-        await this.lastAction
-        return
-      }
-      case LsSyncState.Closed: {
-        await this.withState(LsSyncState.Opening, async () => {
-          const promise = this.ls.openTextFile(this.path)
-          this.setLastAction(promise.catch(() => this.setState(LsSyncState.Closed)))
-          const result = await promise
-          if (!result.writeCapability) {
-            console.error('Could not acquire write capability for module:', this.path)
-            throw new Error(
-              `Could not acquire write capability for module '${this.path.segments.join('/')}'`,
-            )
+  async open(): Promise<Result<void>> {
+    return await withContext(
+      () => `When opening module ${this.path}`,
+      async () => {
+        this.queuedAction = LsAction.Open
+        switch (this.state) {
+          case LsSyncState.Disposed:
+          case LsSyncState.WritingFile:
+          case LsSyncState.Synchronized:
+          case LsSyncState.WriteError:
+          case LsSyncState.Reloading: {
+            return Ok()
           }
-          this.syncFileContents(result.content, result.currentVersion)
-        })
-        return
-      }
-      default: {
-        this.state satisfies never
-        return
-      }
-    }
+          case LsSyncState.Closing: {
+            await this.lastAction
+            if (this.queuedAction === LsAction.Open) return await this.open()
+            return Ok()
+          }
+          case LsSyncState.Opening: {
+            await this.lastAction
+            return Ok()
+          }
+          case LsSyncState.Closed: {
+            await this.withState(LsSyncState.Opening, async () => {
+              const promise = this.ls.openTextFile(this.path)
+              this.setLastAction(
+                promise.then((res) => !res.ok && this.setState(LsSyncState.Closed)),
+              )
+              const result = await promise
+              if (!result.ok) return result
+              if (!result.value.writeCapability) {
+                return Err(
+                  `Could not acquire write capability for module '${this.path.segments.join('/')}'`,
+                )
+              }
+              this.syncFileContents(result.value.content, result.value.currentVersion)
+              return Ok()
+            })
+            return Ok()
+          }
+          default: {
+            this.state satisfies never
+            return Ok()
+          }
+        }
+      },
+    )
   }
 
   handleFileRemoved() {
@@ -620,56 +653,56 @@ class ModulePersistence extends ObservableV2<{ removed: () => void }> {
     }
   }
 
-  async reload() {
-    this.queuedAction = LsAction.Reload
-    switch (this.state) {
-      case LsSyncState.Opening:
-      case LsSyncState.Disposed:
-      case LsSyncState.Closed:
-      case LsSyncState.Closing: {
-        return
-      }
-      case LsSyncState.Reloading: {
-        await this.lastAction
-        return
-      }
-      case LsSyncState.WritingFile: {
-        await this.lastAction
-        if (this.queuedAction === LsAction.Reload) await this.reload()
-        return
-      }
-      case LsSyncState.Synchronized: {
-        this.withState(LsSyncState.Reloading, async () => {
-          const promise = Promise.all([
-            this.ls.readFile(this.path),
-            this.ls.fileChecksum(this.path),
-          ])
-          this.setLastAction(promise)
-          const [contents, checksum] = await promise
-          this.syncFileContents(contents.contents, checksum.checksum)
-        })
-        return
-      }
-      case LsSyncState.WriteError: {
-        this.withState(LsSyncState.Reloading, async () => {
-          const path = this.path.segments.join('/')
-          const reloading = this.ls
-            .closeTextFile(this.path)
-            .catch((error) => {
-              console.error('Could not close file after write error:')
-              console.error(error)
+  async reload(): Promise<Result<void>> {
+    return await withContext(
+      () => `When reloading module ${this.path}`,
+      async () => {
+        this.queuedAction = LsAction.Reload
+        switch (this.state) {
+          case LsSyncState.Opening:
+          case LsSyncState.Disposed:
+          case LsSyncState.Closed:
+          case LsSyncState.Closing: {
+            return Ok()
+          }
+          case LsSyncState.Reloading: {
+            await this.lastAction
+            return Ok()
+          }
+          case LsSyncState.WritingFile: {
+            await this.lastAction
+            if (this.queuedAction === LsAction.Reload) return await this.reload()
+            return Ok()
+          }
+          case LsSyncState.Synchronized: {
+            return this.withState(LsSyncState.Reloading, async () => {
+              const promise = Promise.all([
+                this.ls.readFile(this.path),
+                this.ls.fileChecksum(this.path),
+              ])
+              this.setLastAction(promise)
+              const [contents, checksum] = await promise
+              if (!contents.ok) return contents
+              if (!checksum.ok) return checksum
+              this.syncFileContents(contents.value.contents, checksum.value.checksum)
+              return Ok()
             })
-            .then(
-              () =>
-                exponentialBackoff(
+          }
+          case LsSyncState.WriteError: {
+            return this.withState(LsSyncState.Reloading, async () => {
+              const path = this.path.segments.join('/')
+              const reloading = this.ls.closeTextFile(this.path).then(async (closing) => {
+                if (!closing.ok) closing.error.log('Could not close file after write error:')
+                return exponentialBackoff(
                   async () => {
                     const result = await this.ls.openTextFile(this.path)
-                    if (!result.writeCapability) {
-                      const message = `Could not acquire write capability for module '${this.path.segments.join(
-                        '/',
-                      )}'`
-                      console.error(message)
-                      throw new Error(message)
+                    if (!result.ok) return result
+                    if (!result.value.writeCapability) {
+                      return Err(
+                        `Could not acquire write capability for module '${this.path.segments.join(
+                          '/',
+                        )}'`,
+                      )
                     }
                     return result
                   },
@@ -677,25 +710,23 @@ class ModulePersistence extends ObservableV2<{ removed: () => void }> {
                     `opened file '${path}' for writing`,
                     `open file '${path}' for writing`,
                   ),
-                ),
-              (error) => {
-                console.error('Could not reopen file after write error:')
-                console.error(error)
-                // This error is unrecoverable.
-                throw error
-              },
-            )
-          this.setLastAction(reloading)
-          const result = await reloading
-          this.syncFileContents(result.content, result.currentVersion)
-        })
-        return
-      }
-      default: {
-        this.state satisfies never
-        return
-      }
-    }
+                )
+              })
+
+              this.setLastAction(reloading)
+              const result = await reloading
+              if (!result.ok) return result
+              this.syncFileContents(result.value.content, result.value.currentVersion)
+              return Ok()
+            })
+          }
+          default: {
+            this.state satisfies never
+            return Ok()
+          }
+        }
+      },
+    )
   }
 
   async dispose(): Promise<void> {
@@ -703,6 +734,9 @@ class ModulePersistence extends ObservableV2<{ removed: () => void }> {
     const alreadyClosed = this.inState(LsSyncState.Closing, LsSyncState.Closed)
     this.setState(LsSyncState.Disposed)
     if (alreadyClosed) return Promise.resolve()
-    return this.ls.closeTextFile(this.path)
+    const closing = await this.ls.closeTextFile(this.path)
+    if (!closing.ok) {
+      closing.error.log(`Closing text file ${this.path}`)
+    }
   }
 }

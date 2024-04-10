@@ -11,34 +11,38 @@ const AI_STOP_SEQUENCE = '`'
 export function useAI(
   graphDb: GraphDb = useGraphStore().db,
   project: {
-    lsRpcConnection: Promise<LanguageServer>
+    lsRpcConnection: LanguageServer
     executeExpression(expressionId: ExternalId, expression: string): Promise<Result<string> | null>
   } = useProjectStore(),
 ) {
   async function query(query: string, sourceIdentifier: string): Promise<Result<string>> {
-    const lsRpc = await project.lsRpcConnection
-    const sourceNodeId = graphDb.getIdentDefiningNode(sourceIdentifier)
-    const contextId = sourceNodeId && graphDb.nodeIdToNode.get(sourceNodeId)?.outerExpr.externalId
-    if (!contextId) return Err(`Cannot find node with name ${sourceIdentifier}`)
+    return withContext(
+      () => 'When getting AI completion',
+      async () => {
+        const lsRpc = project.lsRpcConnection
+        const sourceNodeId = graphDb.getIdentDefiningNode(sourceIdentifier)
+        const contextId =
+          sourceNodeId && graphDb.nodeIdToNode.get(sourceNodeId)?.outerExpr.externalId
+        if (!contextId) return Err(`Cannot find node with name ${sourceIdentifier}`)
 
-    const prompt = await project.executeExpression(
-      contextId,
-      `Standard.Visualization.AI.build_ai_prompt ${sourceIdentifier}`,
+        const prompt = await withContext(
+          () => 'When building AI propt',
+          async () => {
+            const prompt = await project.executeExpression(
+              contextId,
+              `Standard.Visualization.AI.build_ai_prompt ${sourceIdentifier}`,
+            )
+            if (!prompt) return Err('No data from AI visualization')
+            return prompt
+          },
+        )
+        if (!prompt.ok) return prompt
+        const promptWithGoal = prompt.value.replace(AI_GOAL_PLACEHOLDER, query)
+        const completion = await lsRpc.aiCompletion(promptWithGoal, AI_STOP_SEQUENCE)
+        if (!completion.ok) return completion
+        return Ok(completion.value.code)
+      },
     )
-    if (!prompt) return Err('No data from AI visualization')
-    if (!prompt.ok)
-      return withContext(
-        () => 'When building AI propt',
-        () => prompt,
-      )
-    const promptWithGoal = prompt.value.replace(AI_GOAL_PLACEHOLDER, query)
-    if (!prompt.ok) return prompt
-    try {
-      const { code } = await lsRpc.aiCompletion(promptWithGoal, AI_STOP_SEQUENCE)
-      return Ok(code)
-    } catch (err) {
-      return Err(`Error when getting AI completion: ${err}`)
-    }
   }
 
   return {

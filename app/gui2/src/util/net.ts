@@ -5,14 +5,14 @@ import type {
 import { Transport } from '@open-rpc/client-js/build/transports/Transport'
 import { type ArgumentsType } from '@vueuse/core'
 import type { Notifications } from 'shared/languageServerTypes'
-import { AbortScope, type TransportWithWebsocketEvents } from 'shared/util/net'
+import { AbortScope, type ReconnectingTransportWithWebsocketEvents } from 'shared/util/net'
 import ReconnectingWebSocketTransport from 'shared/util/net/ReconnectingWSTransport'
 import { WebsocketClient } from 'shared/websocket'
 import { onScopeDispose } from 'vue'
 
-export { AbortScope, rpcWithRetries } from 'shared/util/net'
+export { AbortScope } from 'shared/util/net'
 
-export function createRpcTransport(url: string): TransportWithWebsocketEvents {
+export function createRpcTransport(url: string): ReconnectingTransportWithWebsocketEvents {
   if (url.startsWith('mock://')) {
     const mockName = url.slice('mock://'.length)
     return new MockTransport(mockName)
@@ -54,6 +54,7 @@ export class MockTransport extends Transport {
   connect(): Promise<any> {
     return Promise.resolve()
   }
+  reconnect() {}
   close(): void {}
   sendData(data: JSONRPCRequestData, timeout?: number | null): Promise<any> {
     if (Array.isArray(data)) return Promise.all(data.map((d) => this.sendData(d.request, timeout)))
