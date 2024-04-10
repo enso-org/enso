@@ -98,6 +98,6 @@ public class Decimal_Utils {
     // `stripTrailingZeros` is necessary because rounding can produce results
     // that have extra trailing zeros, which take up space and slow down later
     // calculations.
-    return bd.setScale((int) decimalPlaces, roundingMode).stripTrailingZeros();
+    return bd.setScale(decimalPlaces, roundingMode).stripTrailingZeros();
   }
 }
