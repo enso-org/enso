@@ -73,13 +73,12 @@ export default function JSONSchemaInput(props: JSONSchemaInputProps) {
               setAutocompleteItems([])
               void (async () => {
                 const secrets = await backend.listSecrets()
-                // FIXME: Extract secret path instead of ID.
-                setAutocompleteItems(secrets.map(secret => secret.id))
+                setAutocompleteItems(secrets.map(secret => secret.path))
               })()
             }
             children.push(
               <div
-                className={`rounded-default border ${
+                className={`grow rounded-default border ${
                   isValid ? 'border-primary/10' : 'border-red-700/60'
                 }`}
               >
@@ -220,7 +219,7 @@ export default function JSONSchemaInput(props: JSONSchemaInputProps) {
                         {innerProps => (
                           <UnstyledButton
                             isDisabled={!isOptional}
-                            className={`text inline-block w-json-schema-object-key whitespace-nowrap rounded-full px-button-x text-left ${
+                            className={`text inline-block grow whitespace-nowrap rounded-full px-button-x text-left ${
                               isOptional ? 'hover:bg-hover-bg' : ''
                             }`}
                             onPress={() => {
