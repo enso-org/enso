@@ -36,7 +36,8 @@ case class GraalRuntime(version: GraalVMVersion, path: Path) {
     }
 
   /** The bin/ directory may or may not be inside Contents/Home, so check both
-    * possibilities. */
+    * possibilities.
+    */
   def findMacOSJavaPath(): Path = {
     val contentsHomePath = path / "Contents" / "Home"
     if (Files.exists(contentsHomePath))
