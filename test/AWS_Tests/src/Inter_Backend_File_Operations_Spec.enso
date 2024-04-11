@@ -7,6 +7,7 @@
 
 from Standard.Base import all
 import Standard.Base.Enso_Cloud.Data_Link.Data_Link_Format
+import Standard.Base.Errors.Common.Not_Found
 import Standard.Base.Errors.File_Error.File_Error
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
@@ -14,54 +15,85 @@ from Standard.AWS import S3_File
 
 from Standard.Test import all
 
+import enso_dev.Base_Tests.Network.Enso_Cloud.Cloud_Tests_Setup.Cloud_Tests_Setup
+
 from project.S3_Spec import api_pending, writable_root, with_default_credentials
 
 type Temporary_Local_File
     Value ~get
 
     make name = Temporary_Local_File.Value <|
-        File.create_temporary_file name ".txt"
+        File.create_temporary_file "local" name
 
     cleanup self =
         Panic.rethrow <| self.get.delete_if_exists
-
-    backend_name self = "local"
 
 type Temporary_S3_File
     # Does not have to be lazy, because merely allocating the path does not create anything
     Value get
 
     make location name = Temporary_S3_File.Value <|
-        location / (name+".txt")
+        location / ("s3-"+name)
 
     cleanup self =
         Panic.rethrow <| self.get.delete_if_exists
-
-    backend_name self = "S3"
 
 type Temporary_Enso_Cloud_File
     Value get
 
     make location name = Temporary_Enso_Cloud_File.Value <|
         Panic.rethrow <| if location.exists.not then location.parent.create_directory location.name
-        location / (name+".txt")
+        location / ("cloud-"+name)
 
     cleanup self =
         parent = self.get.parent
         Panic.rethrow <| self.get.delete_if_exists
-        Panic.rethrow <| if parent.list.is_empty then parent.delete_if_exists
+        Panic.rethrow <|
+            needs_delete = parent.list.is_empty . catch File_Error _->False
+            if needs_delete then parent.delete_if_exists
 
-    backend_name self = "Enso Cloud"
+type Backend
+    Ready name:Text make_temp_file
+    Pending name:Text reason:Text
+
+    is_pending self = case self of
+        Backend.Pending _ _ -> True
+        _ -> False
+
+## Returns the first pending reason from the given vector of values, or Nothing if all values are available.
+any_pending (backends : Vector Backend) -> Text|Nothing =
+    backends.find .is_pending . reason . catch Not_Found _->Nothing
+
+prepare_available_backends s3_root cloud_root =
+    builder = Vector.new_builder
+
+    # Local
+    builder.append (Backend.Ready "Local" Temporary_Local_File.make)
+
+    # Cloud
+    cloud_setup = Cloud_Tests_Setup.prepare
+    builder.append <| Panic.rethrow <| case cloud_setup.real_cloud_pending of
+        Nothing -> Backend.Ready "Enso Cloud" (Temporary_Enso_Cloud_File.make cloud_root)
+        reason -> Backend.Pending "Enso Cloud" reason
+
+    # S3
+    builder.append <| Panic.rethrow <| case api_pending of
+        Nothing -> Backend.Ready "S3" (Temporary_S3_File.make s3_root)
+        reason -> Backend.Pending "S3" reason
+
+    builder.to_vector
 
 add_specs suite_builder =
     tmp_dir_name = "inter-backend-test-run-"+(Date_Time.now.format "yyyy-MM-dd_HHmmss.fV" . replace "/" "|")+"/"
     my_writable_s3_dir = writable_root / tmp_dir_name
     my_enso_cloud_tmp_root = Enso_File.root / tmp_dir_name
 
-    sources = [Temporary_Local_File.make "local-src", Temporary_Enso_Cloud_File.make my_enso_cloud_tmp_root "cloud-src", Temporary_S3_File.make my_writable_s3_dir "s3-src"]
-    destinations = [Temporary_Local_File.make "local-dest", Temporary_Enso_Cloud_File.make my_enso_cloud_tmp_root "cloud-dest", Temporary_S3_File.make my_writable_s3_dir "s3-dest"]
-    sources.each source_file_provider-> destinations.each destination_file_provider->
-        suite_builder.group "("+source_file_provider.backend_name+" -> "+destination_file_provider.backend_name+") copying/moving" pending=api_pending group_builder->
+    backends = prepare_available_backends my_writable_s3_dir my_enso_cloud_tmp_root
+    IO.println backends
+    backends.each source_backend-> backends.each destination_backend->
+        suite_builder.group "("+source_backend.name+" -> "+destination_backend.name+") copying/moving" pending=(any_pending [source_backend, destination_backend]) group_builder->
+            source_file_provider = source_backend.make_temp_file "src.txt"
+            destination_file_provider = destination_backend.make_temp_file "dest.txt"
             group_builder.teardown <|
                 source_file_provider.cleanup
                 destination_file_provider.cleanup
@@ -140,21 +172,26 @@ add_specs suite_builder =
 
     sample_data_link_content = Data_Link_Format.read_raw_config (enso_project.data / "simple.datalink")
     # TODO Enso_File datalink once Enso_File & cloud datalink write is supported
-    data_link_sources = [my_writable_s3_dir / "s3.datalink", File.create_temporary_file "local" ".datalink"]
-    data_link_destinations = [my_writable_s3_dir / "s3-target.datalink", File.create_temporary_file "local-target" ".datalink"]
+    datalink_backends = backends.filter b-> b.name != "Enso Cloud"
     ## This introduces a lot of combinations for testing the datalink copy/move logic, but unfortunately it is needed,
        because various combinations of backends may rely on different logic (different operations happen under the hood
        if a file is moved locally vs if it is moved from a local filesystem to S3 or vice versa), and all that different
        logic may be prone to mis-handling datalinks - so we need to test all paths to ensure coverage.
-    data_link_sources.each source_file-> data_link_destinations.each destination_file->
-        src_typ = Meta.type_of source_file . to_display_text
-        dest_typ = Meta.type_of destination_file . to_display_text
-        suite_builder.group "("+src_typ+" -> "+dest_typ+") Data Link copying/moving" pending=api_pending group_builder->
+    datalink_backends.each source_backend-> datalink_backends.each destination_backend->
+        ## All Data Link tests depend on S3 - even if the backends do not use S3, the datalink itself targets S3,
+           so `api_pending` is always checked and the test will not be run without S3 config present.
+        pending = any_pending [source_backend, destination_backend] . if_nothing api_pending
+        suite_builder.group "("+source_backend.name+" -> "+destination_backend.name+") Data Link copying/moving" pending=pending group_builder->
+            source_file_provider = source_backend.make_temp_file "src.datalink"
+            destination_file_provider = destination_backend.make_temp_file "dest.datalink"
             group_builder.teardown <|
-                source_file.delete_if_exists
-                destination_file.delete_if_exists
+                source_file_provider.cleanup
+                destination_file_provider.cleanup
 
             group_builder.specify "should be able to copy a datalink file to a regular file" <| with_default_credentials <|
+                source_file = source_file_provider.get
+                destination_file = destination_file_provider.get
+
                 regular_destination_file = destination_file.parent / destination_file.name+".txt"
                 regular_destination_file.delete_if_exists
                 Data_Link_Format.write_raw_config source_file sample_data_link_content replace_existing=True . should_succeed
@@ -165,6 +202,9 @@ add_specs suite_builder =
                     regular_destination_file.read . should_contain '"libraryName": "Standard.AWS"'
 
             group_builder.specify "should be able to copy a datalink file to another datalink" <| with_default_credentials <|
+                source_file = source_file_provider.get
+                destination_file = destination_file_provider.get
+
                 destination_file.delete_if_exists
                 Data_Link_Format.write_raw_config source_file sample_data_link_content replace_existing=True . should_succeed
 
@@ -176,6 +216,9 @@ add_specs suite_builder =
                 Data_Link_Format.read_raw_config destination_file . should_equal sample_data_link_content
 
             group_builder.specify "should be able to move a datalink" <| with_default_credentials <|
+                source_file = source_file_provider.get
+                destination_file = destination_file_provider.get
+
                 destination_file.delete_if_exists
                 Data_Link_Format.write_raw_config source_file sample_data_link_content replace_existing=True . should_succeed
 
@@ -186,6 +229,8 @@ add_specs suite_builder =
                 Data_Link_Format.read_raw_config destination_file . should_equal sample_data_link_content
 
             group_builder.specify "should be able to move a regular file to become a datalink" <| with_default_credentials <|
+                source_file = source_file_provider.get
+                destination_file = destination_file_provider.get
                 destination_file.delete_if_exists
 
                 regular_source_file = source_file.parent / source_file.name+".txt"
