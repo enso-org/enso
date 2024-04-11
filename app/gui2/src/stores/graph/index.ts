@@ -750,7 +750,6 @@ export const useGraphStore = defineStore('graph', () => {
     isConnectedTarget,
     currentMethodPointer() {
       const currentMethod = proj.executionContext.getStackTop()
-      console.log('currentMethod', currentMethod)
       if (currentMethod.type === 'ExplicitCall') return currentMethod.methodPointer
       return db.getExpressionInfo(currentMethod.expressionId)?.methodCall?.methodPointer
     },

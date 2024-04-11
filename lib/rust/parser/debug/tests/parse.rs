@@ -1702,7 +1702,7 @@ impl Errors {
         let ast = parse(code);
         expect_tree_representing_code(code, &ast);
         let errors = core::cell::Cell::new(Errors::default());
-        ast.map(|tree| match &*tree.variant {
+        ast.visit_trees(|tree| match &*tree.variant {
             enso_parser::syntax::tree::Variant::Invalid(_) => {
                 errors.update(|e| Self { invalid_node: true, ..e });
             }

@@ -309,6 +309,7 @@ export interface SecretAndInfo {
 export interface SecretInfo {
   readonly name: string
   readonly id: SecretId
+  readonly path: string
 }
 
 /** A Data Link. */
