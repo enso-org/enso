@@ -7,6 +7,6 @@ for opt in "$@"; do
   fi
 done
 
-
+JAVA_OPTS="--add-opens=java.base/java.nio=ALL-UNNAMED $JAVA_OPTS"
 exec java --module-path $COMP_PATH $EXTRA_OPTS $JAVA_OPTS -m org.enso.runtime/org.enso.EngineRunnerBootLoader "$@"
 exit
