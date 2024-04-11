@@ -142,8 +142,8 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
               const createdProject = await backend.createProject({
                 parentDirectoryId: asset.parentId,
                 projectName: asset.title,
-                projectTemplateName: event.templateId,
-                datalinkId: event.datalinkId,
+                ...(event.templateId == null ? {} : { projectTemplateName: event.templateId }),
+                ...(event.datalinkId == null ? {} : { datalinkId: event.datalinkId }),
               })
               rowState.setVisibility(Visibility.visible)
               setAsset(

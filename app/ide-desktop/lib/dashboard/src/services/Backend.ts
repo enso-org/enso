@@ -951,9 +951,9 @@ export interface DeleteAssetRequestBody {
 /** HTTP request body for the "create project" endpoint. */
 export interface CreateProjectRequestBody {
   readonly projectName: string
-  readonly projectTemplateName: string | null
-  readonly parentDirectoryId: DirectoryId | null
-  readonly datalinkId: ConnectorId | null
+  readonly projectTemplateName?: string
+  readonly parentDirectoryId?: DirectoryId
+  readonly datalinkId?: ConnectorId
 }
 
 /** HTTP request body for the "update project" endpoint.
