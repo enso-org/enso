@@ -1,5 +1,4 @@
-
-module PolyglotYdocServer {
+module YdocServer {
   requires org.graalvm.polyglot;
   requires io.helidon.webclient;
   requires io.helidon.webclient.websocket;
