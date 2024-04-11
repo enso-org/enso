@@ -91,7 +91,7 @@ export async function waitUntilProjectIsReady(
 
 /** HTTP response body for the "list users" endpoint. */
 export interface ListUsersResponseBody {
-  readonly users: backendModule.UserInfo[]
+  readonly users: backendModule.User[]
 }
 
 /** HTTP response body for the "list projects" endpoint. */
@@ -197,7 +197,7 @@ export default class RemoteBackend extends Backend {
   }
 
   /** Return a list of all users in the same organization. */
-  override async listUsers(): Promise<backendModule.UserInfo[]> {
+  override async listUsers(): Promise<backendModule.User[]> {
     const path = remoteBackendPaths.LIST_USERS_PATH
     const response = await this.get<ListUsersResponseBody>(path)
     if (!responseIsSuccessful(response)) {
@@ -290,7 +290,7 @@ export default class RemoteBackend extends Backend {
   /** Set the list of groups a user is in. */
   override async changeUserGroup(
     userId: backendModule.UserId,
-    userGroups: backendModule.UserGroupId[],
+    userGroups: backendModule.ChangeUserGroupRequestBody,
     name: string
   ): Promise<backendModule.User> {
     const path = remoteBackendPaths.changeUserGroupPath(userId)
