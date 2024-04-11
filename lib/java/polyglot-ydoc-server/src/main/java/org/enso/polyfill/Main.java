@@ -1,6 +1,5 @@
 package org.enso.polyfill;
 
-import java.io.File;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executors;
 
@@ -24,8 +23,7 @@ public class Main {
     }
 
     public static void main(String[] args) throws Exception {
-        var ydoc = ClasspathResource.createTempFile(YDOC_SERVER_PATH);
-        var commonJsRoot = new File(ydoc).getParent();
+        var ydoc = Main.class.getResource(YDOC_SERVER_PATH);
 
         HostAccess hostAccess = HostAccess.newBuilder(HostAccess.EXPLICIT)
                 .allowArrayAccess(true)
@@ -34,16 +32,14 @@ public class Main {
         var b = Context.newBuilder("js")
                 .allowIO(IOAccess.ALL)
                 .allowHostAccess(hostAccess)
-                .allowExperimentalOptions(true)
-                .option("js.commonjs-require", "true")
-                .option("js.commonjs-require-cwd", commonJsRoot);
+                .allowExperimentalOptions(true);
         var chromePort = Integer.getInteger("inspectPort", -1);
         if (chromePort > 0) {
             b.option("inspect", ":" + chromePort);
         }
 
         try (var executor = Executors.newSingleThreadExecutor()) {
-            var ydocJs = Source.newBuilder("js", ydoc.toURL())
+            var ydocJs = Source.newBuilder("js", ydoc)
                     .mimeType("application/javascript+module")
                     .build();
 
