@@ -3,10 +3,12 @@ package org.enso.compiler.phase
 import org.enso.compiler.Compiler
 import org.enso.compiler.context.CompilerContext.Module
 import org.enso.compiler.core.Implicits.AsMetadata
-import org.enso.compiler.core.ir.module.scope.Import
+import org.enso.compiler.core.ir.{DiagnosticStorage, MetadataStorage}
+import org.enso.compiler.core.ir.module.scope.{Export, Import}
 import org.enso.compiler.data.BindingsMap
 import org.enso.compiler.pass.analyse.BindingAnalysis
 import org.enso.polyglot.CompilationStage
+
 import scala.collection.mutable
 import java.io.IOException
 
@@ -72,8 +74,18 @@ final class ImportResolver(compiler: Compiler) extends ImportResolverForIR {
               tryResolveImport(ir, imp)
             case other => (other, None)
           }
-        currentLocal.resolvedImports = importedModules.flatMap(_._2)
-        val newIr = ir.copy(imports = importedModules.map(_._1))
+
+        val resolvedImports = importedModules.flatMap(_._2)
+
+        val syntheticImports         = addSyntheticImports(ir, resolvedImports)
+        val resolvedSyntheticImports = syntheticImports.map(_._2)
+
+        val newImportIRs =
+          importedModules.map(_._1) ++ syntheticImports.map(_._1)
+
+        currentLocal.resolvedImports =
+          resolvedImports ++ resolvedSyntheticImports
+        val newIr = ir.copy(imports = newImportIRs)
         context.updateModule(
           current,
           { u =>
@@ -150,5 +162,57 @@ final class ImportResolver(compiler: Compiler) extends ImportResolverForIR {
   }
 
   private[phase] def getCompiler(): Compiler = compiler
+
+  /** Traverses all the exports from the IR. Looks for exports that do not have associated imports.
+    * Note that it is valid to export an entity via fully qualified name without importing it first
+    * (at least in the current project).
+    * @param ir IR of the module.
+    * @param resolvedImports List of all the resolved imports gathered so far from import IRs.
+    * @return List of tuples - first is the synthetic import IR, second is its resolved import.
+    */
+  private def addSyntheticImports(
+    ir: org.enso.compiler.core.ir.Module,
+    resolvedImports: List[BindingsMap.ResolvedImport]
+  ): List[(Import, BindingsMap.ResolvedImport)] = {
+    val resolvedImportNames = resolvedImports.map(_.importDef.name)
+    ir.exports.flatMap {
+      case Export.Module(
+            expName,
+            rename,
+            isAll,
+            onlyNames,
+            hiddenNames,
+            _,
+            isSynthetic,
+            _,
+            _
+          ) if !isSynthetic =>
+        if (!resolvedImportNames.contains(expName)) {
+          val syntheticImport = Import.Module(
+            expName,
+            rename,
+            isAll,
+            onlyNames,
+            hiddenNames,
+            location    = None,
+            isSynthetic = true,
+            passData    = new MetadataStorage(),
+            diagnostics = DiagnosticStorage()
+          )
+          tryResolveImport(ir, syntheticImport) match {
+            case (_, Some(resolvedImp)) =>
+              Some(
+                (
+                  syntheticImport,
+                  resolvedImp
+                )
+              )
+            case _ => None
+          }
+        } else {
+          None
+        }
+    }
+  }
 
 }
