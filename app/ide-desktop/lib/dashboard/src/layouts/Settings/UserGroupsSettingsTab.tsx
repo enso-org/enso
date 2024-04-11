@@ -67,7 +67,8 @@ export default function MemberRolesSettingsTab() {
       types.has(mimeTypes.USER_MIME_TYPE) &&
       target.type === 'item' &&
       typeof target.key === 'string' &&
-      backendModule.isUserGroupId(target.key)
+      backendModule.isUserGroupId(target.key) &&
+      !backendModule.isPlaceholderUserGroupId(target.key)
         ? 'copy'
         : 'cancel',
     onItemDrop: event => {
@@ -130,10 +131,19 @@ export default function MemberRolesSettingsTab() {
               })
         ) ?? null
     )
+    setUserGroups(oldUserGroups => {
+      const newUserGroups =
+        oldUserGroups?.filter(otherUserGroup => otherUserGroup.id !== userGroup.id) ?? null
+      return newUserGroups?.length === 0 ? null : newUserGroups
+    })
     try {
       await backend.deleteUserGroup(userGroup.id, userGroup.groupName)
     } catch (error) {
       const usersInGroup = usersByGroup.get(userGroup.id)
+      setUserGroups(oldUserGroups => [
+        ...(oldUserGroups?.filter(otherUserGroup => otherUserGroup.id !== userGroup.id) ?? []),
+        userGroup,
+      ])
       if (usersInGroup != null) {
         const userIds = new Set(usersInGroup.map(otherUser => otherUser.userId))
         setUsers(
@@ -273,7 +283,7 @@ export default function MemberRolesSettingsTab() {
                     id={userGroup.id}
                     className={`group h-row ${backendModule.isPlaceholderUserGroupId(userGroup.id) ? 'pointer-events-none placeholder' : ''}`}
                   >
-                    <aria.Cell className="flex bg-transparent p transparent group-hover-2:opacity-100">
+                    <aria.Cell className="bg-transparent p transparent group-hover-2:opacity-100">
                       <UnstyledButton
                         onPress={() => {
                           void doDeleteUserGroup(userGroup)
@@ -287,12 +297,13 @@ export default function MemberRolesSettingsTab() {
                     </aria.Cell>
                   </aria.Row>,
                   (usersByGroup.get(userGroup.id) ?? []).map(otherUser => (
-                    <aria.Row key={otherUser.userId} id={otherUser.userId} className="h-row">
+                    <aria.Row key={otherUser.userId} id={otherUser.userId} className="group h-row">
                       <aria.Cell className="bg-transparent p transparent group-hover-2:opacity-100">
                         <UnstyledButton
                           onPress={() => {
                             void doRemoveUserFromUserGroup(otherUser, userGroup)
                           }}
+                          className="translate-x-indent-1"
                         >
                           <img src={Cross2} className="size-icon" />
                         </UnstyledButton>
