@@ -39,7 +39,7 @@ type Temporary_S3_File
         Panic.rethrow <| self.get.delete_if_exists
 
 type Temporary_Enso_Cloud_File
-    Value get
+    Value ~get
 
     make location name = Temporary_Enso_Cloud_File.Value <|
         Panic.rethrow <| if location.exists.not then location.parent.create_directory location.name
@@ -89,7 +89,6 @@ add_specs suite_builder =
     my_enso_cloud_tmp_root = Enso_File.root / tmp_dir_name
 
     backends = prepare_available_backends my_writable_s3_dir my_enso_cloud_tmp_root
-    IO.println backends
     backends.each source_backend-> backends.each destination_backend->
         suite_builder.group "("+source_backend.name+" -> "+destination_backend.name+") copying/moving" pending=(any_pending [source_backend, destination_backend]) group_builder->
             source_file_provider = source_backend.make_temp_file "src.txt"
