@@ -2,6 +2,8 @@ package org.enso.interpreter.instrument.execution;
 
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.atomic.AtomicBoolean;
+
 import org.enso.compiler.core.IR;
 import org.enso.interpreter.runtime.Module;
 
@@ -13,16 +15,15 @@ public final class ModuleIndexing {
    * @param isIndexed true, if IR has been already indexed. False otherwise
    * @param ir IR of a module that has been/needs to be indexed
    */
-  public record IndexState(boolean isIndexed, IR ir, IndexState from) {
+  public record IndexState(boolean isIndexed, IR ir) {
     private IndexState toIndexed() {
       assert !isIndexed;
-      assert from == null;
-      return new IndexState(true, ir, this);
+      return new IndexState(true, ir);
     }
 
     private IndexState withIr(IR ir) {
       assert isIndexed;
-      return new IndexState(true, ir, this);
+      return new IndexState(true, ir);
     }
   }
 
@@ -52,7 +53,7 @@ public final class ModuleIndexing {
    * @return index state assigned to the module, or a new one if absent
    */
   public IndexState getOrCreateFresh(Module module, IR ir) {
-    return modules.computeIfAbsent(module, m -> new IndexState(false, ir, null));
+    return modules.computeIfAbsent(module, m -> new IndexState(false, ir));
   }
 
   /**
@@ -64,8 +65,16 @@ public final class ModuleIndexing {
    *     state was not up-to-date.
    */
   public boolean markAsIndexed(Module module, IndexState state) {
-    var computed = modules.compute(module, (k, v) -> v == state ? state.toIndexed() : v);
-    return computed.from() == state;
+    AtomicBoolean updated = new AtomicBoolean(false);
+    modules.compute(module, (k, v) -> {
+      if (v == state) {
+        updated.set(true);
+        return state.toIndexed();
+      } else {
+        return v;
+      }
+    });
+    return updated.get();
   }
 
   /**
@@ -78,8 +87,16 @@ public final class ModuleIndexing {
    *     state was not up-to-date.
    */
   public boolean updateState(Module module, IndexState state, IR ir) {
-    var computed = modules.compute(module, (k, v) -> v == state ? state.withIr(ir) : v);
-    return computed.from() == state;
+    AtomicBoolean updated = new AtomicBoolean(false);
+    modules.compute(module, (k, v) -> {
+      if (v == state) {
+        updated.set(true);
+        return state.withIr(ir);
+      } else {
+        return v;
+      }
+    });
+    return updated.get();
   }
 
   /** Clear index state for a provided module. */
