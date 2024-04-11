@@ -8,7 +8,7 @@ use serde::Serialize;
 
 
 /// A subset of the configuration options available in the `electron-builder` configuration.
-#[derive(Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Config {
     /// The application ID, usually in reverse domain name notation. Example: `"org.enso"`.
@@ -47,14 +47,14 @@ pub struct Config {
     pub publisher: String,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ExtraMetadata {
     /// Version of the application. Example: `"2023.2.1-dev"`.
     pub version: Version,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Protocol {
     /// Name of the protocol. Example: `"Enso url"`.
@@ -67,14 +67,14 @@ pub struct Protocol {
     pub role: String,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct WinConfig {
     /// Path to the icon file for Windows. Example: `"/tmp/.tmpMPYWpz/icon.ico"`.
     pub icon: PathBuf,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct FileAssociation {
     /// File extension to associate. Example: `"enso"`.
@@ -91,7 +91,7 @@ pub struct FileAssociation {
     pub mime_type: String,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Directories {
     /// Output directory for the build. Example: `"/home/mwu/Desktop/enso/dist/ide2"`.

@@ -7,6 +7,7 @@ use winreg::enums::*;
 const UNINSTALL_KEY_PATH: &str = "Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall";
 
 /// Struct representing the uninstall information stored in the `Uninstall` key.
+#[derive(Debug)]
 pub struct UninstallInfo {
     /// The name of the application as it appears in the Add/Remove Programs dialog.
     pub display_name: String,

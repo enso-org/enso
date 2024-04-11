@@ -12,3 +12,5 @@ ide-ci = { path = "../../ci_utils" }
 serde = { workspace = true }
 serde_json = { workspace = true }
 
+[lints]
+workspace = true

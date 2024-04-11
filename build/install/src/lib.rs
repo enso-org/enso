@@ -1,6 +1,5 @@
 // === Features ===
-#![feature(default_free_fn)]
-#![feature(once_cell)]
+#![feature(lazy_cell)]
 // === Standard Linter Configuration ===
 #![deny(non_ascii_idents)]
 #![warn(unsafe_code)]

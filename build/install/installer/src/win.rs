@@ -100,6 +100,7 @@ pub fn install(
 }
 
 /// All the configuration and constants needed to build the installer.
+#[derive(Debug)]
 pub struct Config {
     /// E.g. `Enso.exe`.
     pub executable_filename: PathBuf,

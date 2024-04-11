@@ -6,8 +6,10 @@ use crate::paths::generated;
 use crate::project::gui::BuildInfo;
 use crate::project::IsArtifact;
 
+use crate::version::ENSO_VERSION;
 use anyhow::Context;
-use futures_util::future::try_join;
+use enso_install_config::INSTALLER_NAME;
+use enso_install_config::UNINSTALLER_NAME;
 use ide_ci::io::download_all;
 use ide_ci::program::command::FallibleManipulator;
 use ide_ci::programs::cargo;

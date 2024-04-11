@@ -6,8 +6,7 @@
 #![allow(clippy::bool_to_int_with_if)]
 #![allow(clippy::let_and_return)]
 
-#[cfg(windows)]
-use win::main;
+use enso_install::prelude::*;
 
 
 // ==============
@@ -17,6 +16,11 @@ use win::main;
 #[cfg(windows)]
 pub mod win;
 
+#[cfg(windows)]
+#[tokio::main]
+pub async fn main() -> Result {
+    win::main().await
+}
 
 
 #[cfg(not(windows))]

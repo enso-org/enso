@@ -38,3 +38,6 @@ winreg = { workspace = true }
 embed-resource = "2.4.0"
 ide-ci = { path = "../ci_utils" }
 enso-install-config = { path = "config" }
+
+[lints]
+workspace = true

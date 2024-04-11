@@ -1,6 +1,5 @@
 // === Features ===
-#![feature(core_intrinsics)]
-#![feature(default_free_fn)]
+// #![feature(core_intrinsics)]
 // === Standard Linter Configuration ===
 #![deny(non_ascii_idents)]
 #![warn(unsafe_code)]

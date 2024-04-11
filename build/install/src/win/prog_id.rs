@@ -51,6 +51,7 @@ impl PerceivedType {
 /// The file extension description.
 ///
 /// Apart from some basic information, it directs to the ProgID of the file type.
+#[derive(Debug)]
 pub struct FileExtension {
     /// The file extension including the leading dot, e.g. `.enso`.
     pub extension:      String,
@@ -83,6 +84,7 @@ impl FileExtension {
 /// These are associated with file extensions in the Windows registry and describe how to
 /// open files of that type. More than one file extension can be associated with a single
 /// ProgID.
+#[derive(Debug)]
 pub struct FileType {
     /// The absolute path to the application executable.
     pub application_path: PathBuf,
@@ -129,6 +131,7 @@ pub fn delete(prog_id: &str) -> Result {
 }
 
 /// Information about a URL protocol.
+#[derive(Debug)]
 pub struct ProtocolInfo {
     /// The protocol sheme name, e.g. `enso`.
     pub protocol:     String,
