@@ -45,10 +45,6 @@ case class GraalRuntime(version: GraalVMVersion, path: Path) {
   /** The path to the `java` executable associated with this runtime. */
   def javaExecutable: Path = {
     val executableName = if (OS.isWindows) "java.exe" else "java"
-    println("AAA2")
-    println(path)
-    println(javaHome)
-    println(javaHome / "bin" / executableName)
     javaHome / "bin" / executableName
   }
 

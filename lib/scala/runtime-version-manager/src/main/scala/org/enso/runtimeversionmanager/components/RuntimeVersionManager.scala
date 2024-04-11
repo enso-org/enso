@@ -74,7 +74,6 @@ class RuntimeVersionManager(
       })
       .orElse {
         val pathOpt = findGraalRuntimeOnSearchPath(version)
-        logger.warn("AAA3 "+pathOpt)
         pathOpt.map { path =>
           // TODO [RW] for now an exception is thrown if the installation is
           //  corrupted, in #1052 offer to repair the broken installation
@@ -105,11 +104,7 @@ class RuntimeVersionManager(
     version: GraalVMVersion
   ): Option[Path] = {
     val name = graalRuntimeNameForVersion(version)
-    logger.warn("AAA4 "+name)
-    logger.warn(""+distributionManager.paths.runtimeSearchPaths)
-    val fe = firstExisting(distributionManager.paths.runtimeSearchPaths.map(_ / name))
-    logger.warn("AAA4 2 "+fe)
-    fe
+    firstExisting(distributionManager.paths.runtimeSearchPaths.map(_ / name))
   }
 
   /** Executes the provided action with a requested engine version.
@@ -157,9 +152,6 @@ class RuntimeVersionManager(
   ): R = {
     val engine  = findOrInstallEngine(version = engineVersion)
     val runtime = findOrInstallGraalRuntime(engine)
-    logger.warn("AAA")
-    logger.warn(""+runtime)
-    logger.warn(""+runtime.getClass())
     resourceManager.withResources(
       userInterface,
       Resources.Engine(engineVersion)    -> LockType.Shared,
