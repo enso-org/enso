@@ -46,6 +46,10 @@ import a file in the same project. Therefore, the file
 `src/Varia/Tools/Manager.enso` in `My_Lib` published (or not) by `wdanilo` may
 use `project.Stuff.Things.Util` to refer to the previously mentioned file.
 
+Currently, the `project` keyword works only in import and export statements.
+Note that it is possible to export a symbol from the current project with the
+`project` keyword without first importing it.
+
 ## Import Syntax
 
 There are two main ways of importing a module into the current scope.
