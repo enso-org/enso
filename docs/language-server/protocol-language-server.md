@@ -187,6 +187,9 @@ transport formats, please look [here](./protocol-architecture).
 - [Profiling Operations](#profiling-operations)
   - [`profiling/start`](#profilingstart)
   - [`profiling/stop`](#profilingstop)
+- [AI Operations](#ai-operations)
+  - [`ai/completion`](#aicompletion)
+  - [`ai/completionProgress`](#aicompletionprogres)
 - [Errors](#errors-75)
   - [`Error`](#error)
   - [`AccessDeniedError`](#accessdeniederror)
@@ -5177,6 +5180,75 @@ interface ProfilingStopResult {}
 #### Errors
 
 None
+
+## AI Operations
+
+### `ai/completion`
+
+TODO: technilcally we already have an `ai/completion` request. Either rename the
+old completion request or make this one v2.
+
+Sent from the client to the server to ask the AI model the code suggestion.
+
+- **Type:** Request
+- **Direction:** Client -> Server
+- **Connection:** Protocol
+- **Visibility:** Public
+
+#### Parameters
+
+```typescript
+interface AiCompletionParameters {
+  prompt: string;
+}
+```
+
+#### Result
+
+```typescript
+type AiCompletionResult = AiCompletionResultSuccess | AiCompletionResultFailure;
+
+interface AiCompletionResultSuccess {
+  /** The code of the function producing the desired result. */
+  fn: string;
+
+  /** The code of how to call the suggested function. */
+  fnCall: string;
+}
+
+interface AiCompletionResultFailure {
+  /**
+   * The explanation given by the AI model for why it was unable to provide the
+   * answer.
+   */
+  reason: string;
+}
+```
+
+#### Errors
+
+TBD
+
+### `ai/completionProgress`
+
+Sent from server to the client to inform abouth the progress of the
+[`ai/completion`](#aicompletion) request.
+
+- **Type:** Notification
+- **Direction:** Server -> Client
+- **Connection:** Protocol
+- **Visibility:** Public
+
+#### Notification
+
+```typescript
+interface AiCompletionProgressNotification {
+  /** Code snippte that AI model requested to evaluate. */
+  code: string;
+  /** Explanation given by the AI model why it needs an extra information. */
+  reason: string;
+}
+```
 
 ## Errors
 
