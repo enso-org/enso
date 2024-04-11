@@ -115,13 +115,14 @@ export class LanguageServerSession {
     exponentialBackoff(
       () => this.readInitialState(),
       printingCallbacks('read initial state', 'read initial state'),
-    ).catch((error) => {
-      console.error('Could not read initial state.')
-      console.error(error)
-      exponentialBackoff(
-        async () => this.restartClient(),
-        printingCallbacks('restarted RPC client', 'restart RPC client'),
-      )
+    ).then((result) => {
+      if (!result.ok) {
+        result.error.log('Could not read initial state')
+        exponentialBackoff(
+          async () => this.restartClient(),
+          printingCallbacks('restarted RPC client', 'restart RPC client'),
+        )
+      }
     })
   }
 

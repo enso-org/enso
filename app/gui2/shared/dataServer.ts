@@ -29,10 +29,9 @@ import {
   type Table,
 } from './binaryProtocol'
 import type { Path as LSPath } from './languageServerTypes'
+import { Err, Ok, type Result } from './util/data/result'
 import { exponentialBackoff, type AbortScope } from './util/net'
 import { uuidFromBits, uuidToBits } from './uuid'
-// import type { WebsocketClient } from './websocket'
-import { Err, Ok, type Result } from './util/data/result'
 import type { Uuid } from './yjsModel'
 
 const PAYLOAD_CONSTRUCTOR = {
@@ -66,7 +65,7 @@ export class DataServer extends ObservableV2<DataServerEvents> {
     super()
     abort.handleDispose(this)
 
-    websocket.addEventListener('message', (rawPayload) => {
+    websocket.addEventListener('message', ({ data: rawPayload }) => {
       if (!(rawPayload instanceof ArrayBuffer)) {
         console.warn('Data Server: Data type was invalid:', rawPayload)
         // Ignore all non-binary messages. If the messages are `Blob`s instead, this is a

@@ -217,9 +217,9 @@ export const useVisualizationStore = defineStore('visualization', () => {
       .promise
     if (!watching.ok) {
       if (
-        watching.error instanceof LsRpcError &&
-        watching.error.cause instanceof RemoteRpcError &&
-        watching.error.cause.code === ErrorCode.FILE_NOT_FOUND
+        watching.error.payload instanceof LsRpcError &&
+        watching.error.payload.cause instanceof RemoteRpcError &&
+        watching.error.payload.cause.code === ErrorCode.FILE_NOT_FOUND
       ) {
         console.info(
           "'visualizations/' folder not found in project directory. " +

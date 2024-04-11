@@ -104,6 +104,10 @@ export class LsRpcError {
     this.request = request
     this.params = params
   }
+
+  toString() {
+    return `Language server request '${this.request} failed: ${this.cause instanceof RemoteRpcError ? this.cause.message : this.cause}`
+  }
 }
 
 export type LsRpcResult<T> = Result<T, LsRpcError>
@@ -190,7 +194,7 @@ export class LanguageServer extends ObservableV2<Notifications> {
       } else if (error instanceof Error) {
         return Err(new LsRpcError(error, method, params))
       } else {
-        return Err(new LsRpcError(new Error(`Unspecified error: ${error}`), method, params))
+        return Err(new LsRpcError(`Unspecified error: ${error}`, method, params))
       }
     } finally {
       if (DEBUG_LOG_RPC) {
@@ -493,6 +497,7 @@ export class LanguageServer extends ObservableV2<Notifications> {
     if (this.retainCount > 0) {
       this.retainCount -= 1
       if (this.retainCount === 0) {
+        console.error(new Error('Language Server DISPOSED'))
         this.client.close()
       }
     } else {
