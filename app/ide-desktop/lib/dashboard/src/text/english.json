@@ -510,9 +510,9 @@
   "editAssetDescriptionModalCancel": "Cancel",
 
   "userGroups": "User Groups",
-  "userGroup": "Role",
-  "newUserGroup": "New Role",
-  "userGroupNamePlaceholder": "Enter the name of the role",
+  "userGroup": "User Group",
+  "newUserGroup": "New User Group",
+  "userGroupNamePlaceholder": "Enter the name of the user group",
 
   "assetSearchFieldLabel": "Search through items",
   "userMenuLabel": "User menu",

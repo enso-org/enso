@@ -20,11 +20,12 @@ import * as backendModule from '#/services/Backend'
 /** Props for a {@link MembersTable}. */
 export interface MembersTableProps {
   readonly draggable?: boolean
+  readonly allowDelete?: boolean
 }
 
 /** A list of members in the organization. */
 export default function MembersTable(props: MembersTableProps) {
-  const { draggable = false } = props
+  const { draggable = false, allowDelete = false } = props
   const { backend } = backendProvider.useBackend()
   const { getText } = textProvider.useText()
   const [selectedKeys, setSelectedKeys] = React.useState<aria.Selection>(new Set())

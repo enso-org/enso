@@ -420,7 +420,9 @@ export default /** @satisfies {import('tailwindcss').Config} */ ({
   },
   plugins: [
     reactAriaComponents,
-    plugin(({ addUtilities, matchUtilities, addComponents, theme }) => {
+    plugin(({ addVariant, addUtilities, matchUtilities, addComponents, theme }) => {
+      addVariant('group-hover-2', ['.group:where([data-hovered]) &', '.group:where(:hover) &'])
+
       addUtilities(
         {
           '.container-size': {

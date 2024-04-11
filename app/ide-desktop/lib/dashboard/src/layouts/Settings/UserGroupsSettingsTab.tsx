@@ -1,6 +1,8 @@
 /** @file Settings tab for viewing and editing roles for all users in the organization. */
 import * as React from 'react'
 
+import Cross2 from 'enso-assets/cross2.svg'
+
 import * as mimeTypes from '#/data/mimeTypes'
 
 import * as asyncEffectHooks from '#/hooks/asyncEffectHooks'
@@ -40,7 +42,7 @@ export default function MemberRolesSettingsTab() {
     backend,
     refresh,
   ])
-  const [users, setUsers] = React.useState<backendModule.User[]>()
+  const [users, setUsers] = React.useState<backendModule.User[] | null>(null)
   const usersByGroup = React.useMemo(() => {
     const map = new Map<backendModule.UserGroupId, backendModule.User[]>()
     for (const user of users ?? []) {
@@ -77,10 +79,14 @@ export default function MemberRolesSettingsTab() {
               if (!groups.includes(userGroupId)) {
                 try {
                   const newUserGroups = [...groups, userGroupId]
-                  setUsers(oldUsers => [
-                    ...(oldUsers ?? []).filter(otherUser => otherUser.userId !== user.userId),
-                    object.merge(user, { userGroups: newUserGroups }),
-                  ])
+                  setUsers(
+                    oldUsers =>
+                      oldUsers?.map(otherUser =>
+                        otherUser.userId !== user.userId
+                          ? otherUser
+                          : object.merge(user, { userGroups: newUserGroups })
+                      ) ?? null
+                  )
                   await backend.changeUserGroup(
                     user.userId,
                     { userGroups: newUserGroups },
@@ -88,10 +94,17 @@ export default function MemberRolesSettingsTab() {
                   )
                 } catch (error) {
                   toastAndLog('changeUserGroupsError', error)
-                  setUsers(oldUsers => [
-                    ...(oldUsers ?? []).filter(otherUser => otherUser.userId !== user.userId),
-                    user,
-                  ])
+                  setUsers(
+                    oldUsers =>
+                      oldUsers?.map(otherUser =>
+                        otherUser.userId !== user.userId
+                          ? otherUser
+                          : object.merge(user, {
+                              userGroups:
+                                otherUser.userGroups?.filter(id => id !== userGroupId) ?? null,
+                            })
+                      ) ?? null
+                  )
                 }
               }
             })
@@ -106,6 +119,68 @@ export default function MemberRolesSettingsTab() {
       setUsers(newUsers)
     })
   }, [backend])
+
+  const doDeleteUserGroup = async (userGroup: backendModule.UserGroupInfo) => {
+    setUsers(
+      oldUsers =>
+        oldUsers?.map(user =>
+          user.userGroups?.includes(userGroup.id) !== true
+            ? user
+            : object.merge(user, {
+                userGroups: user.userGroups.filter(userGroupId => userGroupId !== userGroup.id),
+              })
+        ) ?? null
+    )
+    try {
+      await backend.deleteUserGroup(userGroup.id, userGroup.groupName)
+    } catch (error) {
+      const usersInGroup = usersByGroup.get(userGroup.id)
+      if (usersInGroup != null) {
+        const userIds = new Set(usersInGroup.map(user => user.userId))
+        setUsers(
+          oldUsers =>
+            oldUsers?.map(user =>
+              !userIds.has(user.userId) || user.userGroups?.includes(userGroup.id) === true
+                ? user
+                : object.merge(user, {
+                    userGroups: [...(user.userGroups ?? []), userGroup.id],
+                  })
+            ) ?? null
+        )
+      }
+    }
+  }
+
+  const doRemoveUserFromUserGroup = async (
+    user: backendModule.User,
+    userGroup: backendModule.UserGroupInfo
+  ) => {
+    try {
+      const intermediateUserGroups =
+        user.userGroups?.filter(userGroupId => userGroupId !== userGroup.id) ?? null
+      const newUserGroups = intermediateUserGroups?.length === 0 ? null : intermediateUserGroups
+      setUsers(
+        oldUsers =>
+          oldUsers?.map(otherUser =>
+            otherUser.userId !== user.userId
+              ? otherUser
+              : object.merge(user, { userGroups: newUserGroups })
+          ) ?? null
+      )
+      await backend.changeUserGroup(user.userId, { userGroups: newUserGroups ?? [] }, user.name)
+    } catch (error) {
+      setUsers(
+        oldUsers =>
+          oldUsers?.map(otherUser =>
+            otherUser.userId !== user.userId
+              ? otherUser
+              : object.merge(user, {
+                  userGroups: [...(otherUser.userGroups ?? []), userGroup.id],
+                })
+          ) ?? null
+      )
+    }
+  }
 
   return (
     <div className="flex h flex-col gap-settings-section lg:h-auto lg:flex-row">
@@ -129,6 +204,8 @@ export default function MemberRolesSettingsTab() {
             dragAndDropHooks={dragAndDropHooks}
           >
             <aria.TableHeader className="h-row">
+              {/* Delete button. */}
+              <aria.Column className="border-0" />
               <aria.Column
                 isRowHeader
                 className="w-members-name-column border-x-2 border-transparent bg-clip-padding px-cell-x text-left text-sm font-semibold last:border-r-0"
@@ -142,7 +219,7 @@ export default function MemberRolesSettingsTab() {
                   <aria.Cell
                     ref={element => {
                       if (element != null) {
-                        element.colSpan = 3
+                        element.colSpan = 2
                       }
                     }}
                     className="bg-transparent"
@@ -157,16 +234,36 @@ export default function MemberRolesSettingsTab() {
                 </aria.Row>
               ) : (
                 userGroups.flatMap(userGroup => [
-                  <aria.Row key={userGroup.id} id={userGroup.id} className="h-row">
-                    <aria.Cell className="text border-x-2 border-transparent bg-clip-padding px-cell-x first:rounded-l-full last:rounded-r-full last:border-r-0">
+                  <aria.Row key={userGroup.id} id={userGroup.id} className="group h-row">
+                    <aria.Cell className="flex bg-transparent p transparent group-hover-2:opacity-100">
+                      <UnstyledButton
+                        onPress={() => {
+                          void doDeleteUserGroup(userGroup)
+                        }}
+                      >
+                        <img src={Cross2} className="size-icon" />
+                      </UnstyledButton>
+                    </aria.Cell>
+                    <aria.Cell className="text rounded-l-full border-x-2 border-transparent bg-clip-padding px-cell-x last:rounded-r-full last:border-r-0">
                       {userGroup.groupName}
                     </aria.Cell>
                   </aria.Row>,
                   (usersByGroup.get(userGroup.id) ?? []).map(user => (
                     <aria.Row key={user.userId} id={user.userId} className="h-row">
+                      <aria.Cell className="bg-transparent p transparent group-hover-2:opacity-100">
+                        <UnstyledButton
+                          onPress={() => {
+                            void doRemoveUserFromUserGroup(user, userGroup)
+                          }}
+                        >
+                          <img src={Cross2} className="size-icon" />
+                        </UnstyledButton>
+                      </aria.Cell>
                       <aria.Cell className="text border-x-2 border-transparent bg-clip-padding rounded-rows-skip-level last:border-r-0">
-                        <div className="ml-indent-1 flex h-row min-w-max items-center whitespace-nowrap rounded-full px-name-column-x py-name-column-y">
-                          <aria.Text className="grow">{user.name}</aria.Text>
+                        <div className="ml-indent-1 flex h-row min-w-max items-center whitespace-nowrap rounded-full">
+                          <aria.Text className="grow px-name-column-x py-name-column-y">
+                            {user.name}
+                          </aria.Text>
                         </div>
                       </aria.Cell>
                     </aria.Row>
