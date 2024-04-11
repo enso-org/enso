@@ -54,11 +54,6 @@ export class WidgetEditHandler {
       currentEdit: WidgetEditHandler | undefined
     } = injectWidgetTree(),
   ) {
-    this.widgetId = widgetId
-    this.hooks = hooks
-    this.parent = parent
-    this.widgetTree = widgetTree
-    this.portEditor = portEditor
     const noLongerActive = () => {
       if (widgetTree.currentEdit === this) {
         widgetTree.currentEdit = undefined
