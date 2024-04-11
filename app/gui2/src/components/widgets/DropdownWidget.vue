@@ -61,8 +61,14 @@ export interface DropdownEntry {
 </script>
 
 <template>
-  <div class="Dropdown" @pointerdown.stop @pointerup.stop @click.stop>
-    <ul class="list scrollable" :style="{ background: color, borderColor: color }" @wheel.stop>
+  <div
+    class="DropdownWidget"
+    :style="{ '--dropdown-bg': color }"
+    @pointerdown.stop
+    @pointerup.stop
+    @click.stop
+  >
+    <ul class="list scrollable" @wheel.stop>
       <template v-for="entry in sortedValues" :key="entry.value">
         <li v-if="entry.selected">
           <div class="item selected button" @click.stop="emit('clickEntry', entry, $event.altKey)">
@@ -75,7 +81,7 @@ export interface DropdownEntry {
       </template>
     </ul>
     <div v-if="enableSortButton" class="sort button">
-      <div class="sort-background" :style="{ background: color }"></div>
+      <div class="sort-background"></div>
       <SvgIcon
         :name="ICON_LOOKUP[sortDirection]"
         @click="sortDirection = NEXT_SORT_DIRECTION[sortDirection]"
@@ -85,25 +91,44 @@ export interface DropdownEntry {
 </template>
 
 <style scoped>
-.Dropdown {
-  position: absolute;
-  top: 100%;
-  margin-top: 8px;
-  overflow: visible;
-}
-
-.list {
+.DropdownWidget {
   position: relative;
   user-select: none;
-  overflow: auto;
+  overflow: clip;
+  min-width: 100%;
+
+  /* When dropdown is displayed right below the last node's argument, the rounded corner needs to be
+     covered. This is done by covering extra node-sized space at the top of the dropdown. */
+  --dropdown-extend: calc(var(--node-height) - 1px);
+  margin-top: calc(0px - var(--dropdown-extend));
+  padding-top: var(--dropdown-extend);
+  background-color: var(--dropdown-bg);
   border-radius: 16px;
+
+  &:before {
+    content: '';
+    display: block;
+    position: absolute;
+    top: var(--dropdown-extend);
+    left: 4px;
+    right: 4px;
+    border-top: 1px solid rgb(0 0 0 / 0.12);
+    z-index: 1;
+  }
+}
+.list {
+  overflow: auto;
   width: min-content;
+  border-radius: 0 0 16px 16px;
+  min-width: 100%;
   max-height: 152px;
   list-style-type: none;
   color: var(--color-text-light);
+  background: var(--dropdown-bg);
   scrollbar-width: thin;
   padding: 4px 0;
-  border: 2px solid;
+  border: 2px solid var(--dropdown-bg);
+  position: relative;
 }
 
 li {
@@ -124,6 +149,7 @@ li {
   position: absolute;
   border-top-left-radius: var(--radius-full);
   border-bottom-left-radius: var(--radius-full);
+  background: var(--dropdown-bg);
   opacity: 0.5;
   left: 0;
   top: 0;
@@ -146,15 +172,17 @@ li {
 }
 
 .item {
-  margin-right: 8px;
+  margin-right: 4px;
+  margin-left: 4px;
   padding-left: 8px;
   padding-right: 8px;
-}
-
-.item.selected {
-  margin-left: 8px;
   border-radius: var(--radius-full);
-  background-color: var(--color-port-connected);
-  width: min-content;
+
+  &:hover {
+    background-color: color-mix(in oklab, var(--color-port-connected) 50%, transparent 50%);
+  }
+  &.selected {
+    background-color: var(--color-port-connected);
+  }
 }
 </style>
