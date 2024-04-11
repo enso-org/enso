@@ -953,7 +953,7 @@ export interface CreateProjectRequestBody {
   readonly projectName: string
   readonly projectTemplateName: string | null
   readonly parentDirectoryId: DirectoryId | null
-  readonly dataLinkId: ConnectorId | null
+  readonly datalinkId: ConnectorId | null
 }
 
 /** HTTP request body for the "update project" endpoint.

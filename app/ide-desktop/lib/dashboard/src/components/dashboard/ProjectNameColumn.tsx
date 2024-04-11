@@ -143,7 +143,7 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
                 parentDirectoryId: asset.parentId,
                 projectName: asset.title,
                 projectTemplateName: event.templateId,
-                dataLinkId: event.dataLinkId,
+                datalinkId: event.datalinkId,
               })
               rowState.setVisibility(Visibility.visible)
               setAsset(

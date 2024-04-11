@@ -63,7 +63,7 @@ type SanityCheck<
 export interface AssetNewProjectEvent extends AssetBaseEvent<AssetEventType.newProject> {
   readonly placeholderId: backend.ProjectId
   readonly templateId: string | null
-  readonly dataLinkId: backend.ConnectorId | null
+  readonly datalinkId: backend.ConnectorId | null
   readonly onSpinnerStateChange: ((state: spinner.SpinnerState) => void) | null
 }
 

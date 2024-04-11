@@ -106,7 +106,7 @@ export default function GlobalContextMenu(props: GlobalContextMenuProps) {
             parentKey: directoryKey ?? rootDirectoryId,
             parentId: directoryId ?? rootDirectoryId,
             templateId: null,
-            dataLinkId: null,
+            datalinkId: null,
             preferredName: null,
             onSpinnerStateChange: null,
           })
