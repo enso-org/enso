@@ -2,6 +2,7 @@ package org.enso.jsonrpc
 
 import akka.NotUsed
 import akka.actor.{ActorRef, ActorSystem, Props}
+import akka.http.scaladsl.model.headers
 import akka.http.scaladsl.model.ws.{BinaryMessage, Message, TextMessage}
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.Route
@@ -10,6 +11,7 @@ import akka.stream.{Materializer, OverflowStrategy}
 import com.typesafe.scalalogging.LazyLogging
 
 import java.util.UUID
+
 import scala.concurrent.duration._
 import scala.concurrent.ExecutionContext
 
@@ -94,7 +96,7 @@ class JsonRpcServer(
   override protected def serverRoute(port: Int): Route = {
     val webSocketEndpoint =
       path(config.path) {
-        get { handleWebSocketMessages(newUser(port)) }
+        get { handleWebSocketMessages1(newUser(port)) }
       }
 
     optionalEndpoints.foldLeft(webSocketEndpoint) { (chain, next) =>
@@ -104,6 +106,21 @@ class JsonRpcServer(
 
   override protected def secureConfig(): Option[SecureConnectionConfig] =
     config.secureConfig
+
+  // TODO[DB]: Workaround for helidon-io/helidon#8647
+  private def handleWebSocketMessages1(
+    handler: Flow[Message, Message, Any]
+  ): Route =
+    extractWebSocketUpgrade { upgrade =>
+      complete(
+        upgrade
+          .handleMessages(handler, None)
+          .mapHeaders(_.map { h =>
+            if (h.is("connection")) headers.Connection("Upgrade") else h
+          })
+      )
+    }
+
 }
 
 object JsonRpcServer {

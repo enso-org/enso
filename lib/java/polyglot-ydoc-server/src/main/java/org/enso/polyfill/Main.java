@@ -9,6 +9,7 @@ import org.enso.polyfill.encoding.EncodingPolyfill;
 import org.enso.polyfill.timers.TimersPolyfill;
 import org.enso.polyfill.web.AbortControllerPolyfill;
 import org.enso.polyfill.web.EventTargetPolyfill;
+import org.enso.polyfill.web.PerformancePolyfill;
 import org.enso.polyfill.websocket.WebSocketPolyfill;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.HostAccess;
@@ -36,7 +37,7 @@ public class Main {
                 .allowExperimentalOptions(true)
                 .option("js.commonjs-require", "true")
                 .option("js.commonjs-require-cwd", commonJsRoot);
-        var chromePort = 34567;// Integer.getInteger("inspectPort", -1);
+        var chromePort = 34567; //Integer.getInteger("inspectPort", -1);
         if (chromePort > 0) {
             b.option("inspect", ":" + chromePort);
         }
@@ -49,6 +50,9 @@ public class Main {
             CompletableFuture
                     .supplyAsync(b::build, executor)
                     .thenAcceptAsync(ctx -> {
+                        var performance = new PerformancePolyfill();
+                        performance.initialize(ctx);
+
                         var eventTarget = new EventTargetPolyfill(executor);
                         eventTarget.initialize(ctx);
 
