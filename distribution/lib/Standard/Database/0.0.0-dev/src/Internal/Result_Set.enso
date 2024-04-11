@@ -1,10 +1,10 @@
 from Standard.Base import all
 
-import Standard.Table.Data.Table.Table as Materialized_Table
 import Standard.Table.Internal.Java_Problems
+from Standard.Table import Table
 
-import project.Data.SQL_Type.SQL_Type
 import project.Internal.Column_Fetcher.Column_Fetcher
+import project.SQL_Type.SQL_Type
 from project.Internal.SQL_Warning_Helper import extract_warnings_into_builder
 
 polyglot java import java.sql.ResultSet
@@ -26,8 +26,8 @@ read_column result_set column_name =
         builder.to_vector
 
 ## PRIVATE
-   Converts a ResultSet into a Materialized_Table.
-result_set_to_table : ResultSet -> (SQL_Type -> Column_Fetcher) -> (Vector (SQL_Type | Nothing) | Nothing) -> Boolean -> Materialized_Table
+   Converts a ResultSet into a Table.
+result_set_to_table : ResultSet -> (SQL_Type -> Column_Fetcher) -> (Vector (SQL_Type | Nothing) | Nothing) -> Boolean -> Table
 result_set_to_table result_set make_column_fetcher type_overrides=Nothing last_row_only=False =
     metadata = result_set.getMetaData
     ncols = metadata.getColumnCount
@@ -74,4 +74,4 @@ result_set_to_table result_set make_column_fetcher type_overrides=Nothing last_r
         Problem_Behavior.Report_Warning.attach_problems_before warnings_builder.to_vector <|
             columns = column_builders.zip column_names builder-> name->
                 builder.make_column name
-            Materialized_Table.new columns
+            Table.new columns

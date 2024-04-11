@@ -12,6 +12,7 @@ import {
   createRpcTransport,
   createWebsocketClient,
   rpcWithRetries as lsRpcWithRetries,
+  useAbortScope,
 } from '@/util/net'
 import { tryQualifiedName } from '@/util/qualifiedName'
 import { Client, RequestManager } from '@open-rpc/client-js'
@@ -32,19 +33,26 @@ import type {
   ExplicitCall,
   ExpressionId,
   ExpressionUpdate,
+  MethodPointer,
   StackItem,
   VisualizationConfiguration,
 } from 'shared/languageServerTypes'
-import { DistributedProject, type ExternalId, type Uuid } from 'shared/yjsModel'
+import type { AbortScope } from 'shared/util/net'
+import {
+  DistributedProject,
+  localUserActionOrigins,
+  type ExternalId,
+  type Uuid,
+} from 'shared/yjsModel'
 import {
   computed,
   markRaw,
+  onScopeDispose,
   reactive,
   ref,
   shallowRef,
   watch,
   watchEffect,
-  type ShallowRef,
   type WatchSource,
   type WritableComputedRef,
 } from 'vue'
@@ -70,6 +78,7 @@ function resolveLsUrl(config: GuiConfig): LsUrls {
 async function initializeLsRpcConnection(
   clientId: Uuid,
   url: string,
+  abort: AbortScope,
 ): Promise<{
   connection: LanguageServer
   contentRoots: ContentRoot[]
@@ -78,6 +87,7 @@ async function initializeLsRpcConnection(
   const requestManager = new RequestManager([transport])
   const client = new Client(requestManager)
   const connection = new LanguageServer(client)
+  abort.onAbort(() => connection.release())
   const initialization = await lsRpcWithRetries(() => connection.initProtocolConnection(clientId), {
     onBeforeRetry: (error, _, delay) => {
       console.warn(
@@ -93,9 +103,10 @@ async function initializeLsRpcConnection(
   return { connection, contentRoots }
 }
 
-async function initializeDataConnection(clientId: Uuid, url: string) {
-  const client = createWebsocketClient(url, { binaryType: 'arraybuffer', sendPings: false })
-  const connection = new DataServer(client)
+async function initializeDataConnection(clientId: Uuid, url: string, abort: AbortScope) {
+  const client = createWebsocketClient(url, abort, { binaryType: 'arraybuffer', sendPings: false })
+  const connection = new DataServer(client, abort)
+  onScopeDispose(() => connection.dispose())
   await connection.initialize(clientId).catch((error) => {
     console.error('Error initializing data connection:', error)
     throw error
@@ -168,14 +179,14 @@ export class ExecutionContext extends ObservableV2<ExecutionContextNotification>
   visSyncScheduled = false
   desiredStack: StackItem[] = reactive([])
   visualizationConfigs: Map<Uuid, NodeVisualizationConfiguration> = new Map()
-  abortCtl = new AbortController()
 
-  constructor(lsRpc: Promise<LanguageServer>, entryPoint: EntryPoint) {
+  constructor(
+    lsRpc: Promise<LanguageServer>,
+    entryPoint: EntryPoint,
+    private abort: AbortScope,
+  ) {
     super()
-
-    this.abortCtl.signal.addEventListener('abort', () => {
-      this.queue.clear()
-    })
+    this.abort.handleDispose(this)
 
     this.queue = new AsyncQueue(
       lsRpc.then((lsRpc) => ({
@@ -194,7 +205,7 @@ export class ExecutionContext extends ObservableV2<ExecutionContextNotification>
   private withBackoff<T>(f: () => Promise<T>, message: string): Promise<T> {
     return lsRpcWithRetries(f, {
       onBeforeRetry: (error, _, delay) => {
-        if (this.abortCtl.signal.aborted) return false
+        if (this.abort.signal.aborted) return false
         console.warn(
           `${message}: ${error.payload.cause.message}. Retrying after ${delay}ms...\n`,
           error,
@@ -204,11 +215,11 @@ export class ExecutionContext extends ObservableV2<ExecutionContextNotification>
   }
 
   private syncVisualizations() {
-    if (this.visSyncScheduled) return
+    if (this.visSyncScheduled || this.abort.signal.aborted) return
     this.visSyncScheduled = true
     this.queue.pushTask(async (state) => {
       this.visSyncScheduled = false
-      if (!state.created) return state
+      if (!state.created || this.abort.signal.aborted) return state
       this.emit('newVisualizationConfiguration', [new Set(this.visualizationConfigs.keys())])
       const promises: Promise<void>[] = []
 
@@ -219,9 +230,9 @@ export class ExecutionContext extends ObservableV2<ExecutionContextNotification>
               executionContextId: this.id,
               expression: config.expression,
               visualizationModule: config.visualizationModule,
-              ...(config.positionalArgumentsExpressions
-                ? { positionalArgumentsExpressions: config.positionalArgumentsExpressions }
-                : {}),
+              ...(config.positionalArgumentsExpressions ?
+                { positionalArgumentsExpressions: config.positionalArgumentsExpressions }
+              : {}),
             }),
           'Failed to attach visualization',
         ).then(() => {
@@ -236,9 +247,9 @@ export class ExecutionContext extends ObservableV2<ExecutionContextNotification>
               executionContextId: this.id,
               expression: config.expression,
               visualizationModule: config.visualizationModule,
-              ...(config.positionalArgumentsExpressions
-                ? { positionalArgumentsExpressions: config.positionalArgumentsExpressions }
-                : {}),
+              ...(config.positionalArgumentsExpressions ?
+                { positionalArgumentsExpressions: config.positionalArgumentsExpressions }
+              : {}),
             }),
           'Failed to modify visualization',
         ).then(() => {
@@ -347,33 +358,28 @@ export class ExecutionContext extends ObservableV2<ExecutionContextNotification>
         if (result.contextId !== this.id) {
           throw new Error('Unexpected Context ID returned by the language server.')
         }
+        state.lsRpc.retain()
         return { ...state, created: true }
       }, 'Failed to create execution context')
-    })
-    this.abortCtl.signal.addEventListener('abort', () => {
-      this.queue.pushTask(async (state) => {
-        if (!state.created) return state
-        await state.lsRpc.destroyExecutionContext(this.id)
-        return { ...state, created: false }
-      })
     })
   }
 
   private registerHandlers() {
     this.queue.pushTask(async (state) => {
-      const expressionUpdates = state.lsRpc.on('executionContext/expressionUpdates', (event) => {
+      this.abort.handleObserve(state.lsRpc, 'executionContext/expressionUpdates', (event) => {
         if (event.contextId == this.id) this.emit('expressionUpdates', [event.updates])
       })
-      const executionFailed = state.lsRpc.on('executionContext/executionFailed', (event) => {
+      this.abort.handleObserve(state.lsRpc, 'executionContext/executionFailed', (event) => {
         if (event.contextId == this.id) this.emit('executionFailed', [event.message])
       })
-      const executionComplete = state.lsRpc.on('executionContext/executionComplete', (event) => {
+      this.abort.handleObserve(state.lsRpc, 'executionContext/executionComplete', (event) => {
         if (event.contextId == this.id) this.emit('executionComplete', [])
       })
-      const executionStatus = state.lsRpc.on('executionContext/executionStatus', (event) => {
+      this.abort.handleObserve(state.lsRpc, 'executionContext/executionStatus', (event) => {
         if (event.contextId == this.id) this.emit('executionStatus', [event.diagnostics])
       })
-      const visualizationEvaluationFailed = state.lsRpc.on(
+      this.abort.handleObserve(
+        state.lsRpc,
         'executionContext/visualizationEvaluationFailed',
         (event) => {
           if (event.contextId == this.id)
@@ -385,16 +391,6 @@ export class ExecutionContext extends ObservableV2<ExecutionContextNotification>
             ])
         },
       )
-      this.abortCtl.signal.addEventListener('abort', () => {
-        state.lsRpc.off('executionContext/expressionUpdates', expressionUpdates)
-        state.lsRpc.off('executionContext/executionFailed', executionFailed)
-        state.lsRpc.off('executionContext/executionComplete', executionComplete)
-        state.lsRpc.off('executionContext/executionStatus', executionStatus)
-        state.lsRpc.off(
-          'executionContext/visualizationEvaluationFailed',
-          visualizationEvaluationFailed,
-        )
-      })
       return state
     })
   }
@@ -425,8 +421,13 @@ export class ExecutionContext extends ObservableV2<ExecutionContextNotification>
     })
   }
 
-  destroy() {
-    this.abortCtl.abort()
+  dispose() {
+    this.queue.pushTask(async (state) => {
+      if (!state.created) return state
+      await state.lsRpc.destroyExecutionContext(this.id)
+      state.lsRpc.release()
+      return { ...state, created: false }
+    })
   }
 }
 
@@ -436,6 +437,8 @@ export class ExecutionContext extends ObservableV2<ExecutionContextNotification>
  * client, it is submitted to the language server as a document update.
  */
 export const useProjectStore = defineStore('project', () => {
+  const abort = useAbortScope()
+
   const observedFileName = ref<string>()
 
   const doc = new Y.Doc()
@@ -448,7 +451,7 @@ export const useProjectStore = defineStore('project', () => {
 
   const clientId = random.uuidv4() as Uuid
   const lsUrls = resolveLsUrl(config.value)
-  const initializedConnection = initializeLsRpcConnection(clientId, lsUrls.rpcUrl)
+  const initializedConnection = initializeLsRpcConnection(clientId, lsUrls.rpcUrl, abort)
   const lsRpcConnection = initializedConnection.then(
     ({ connection }) => connection,
     (error) => {
@@ -463,8 +466,8 @@ export const useProjectStore = defineStore('project', () => {
       throw error
     },
   )
-  const dataConnection = initializeDataConnection(clientId, lsUrls.dataUrl)
 
+  const dataConnection = initializeDataConnection(clientId, lsUrls.dataUrl, abort)
   const rpcUrl = new URL(lsUrls.rpcUrl)
   const isOnLocalBackend =
     rpcUrl.protocol === 'mock:' ||
@@ -501,11 +504,6 @@ export const useProjectStore = defineStore('project', () => {
 
   let yDocsProvider: ReturnType<typeof attachProvider> | undefined
   watchEffect((onCleanup) => {
-    if (lsUrls.rpcUrl.startsWith('mock://')) {
-      doc.load()
-      doc.emit('load', [])
-      return
-    }
     // For now, let's assume that the websocket server is running on the same host as the web server.
     // Eventually, we can make this configurable, or even runtime variable.
     const socketUrl = new URL(location.origin)
@@ -544,18 +542,25 @@ export const useProjectStore = defineStore('project', () => {
     const moduleName = projectModel.findModuleByDocId(guid)
     if (moduleName == null) return null
     const mod = await projectModel.openModule(moduleName)
-    mod?.undoManager.addTrackedOrigin('local')
+    for (const origin of localUserActionOrigins) mod?.undoManager.addTrackedOrigin(origin)
     return mod
   })
 
-  function createExecutionContextForMain(): ExecutionContext {
+  const entryPoint = computed<MethodPointer>(() => {
     const projectName = fullName.value
     const mainModule = `${projectName}.Main`
-    const entryPoint = { module: mainModule, definedOnType: mainModule, name: 'main' }
-    return new ExecutionContext(lsRpcConnection, {
-      methodPointer: entryPoint,
-      positionalArgumentsExpressions: [],
-    })
+    return { module: mainModule, definedOnType: mainModule, name: 'main' }
+  })
+
+  function createExecutionContextForMain(): ExecutionContext {
+    return new ExecutionContext(
+      lsRpcConnection,
+      {
+        methodPointer: entryPoint.value,
+        positionalArgumentsExpressions: [],
+      },
+      abort,
+    )
   }
 
   const firstExecution = lsRpcConnection.then(
@@ -573,14 +578,12 @@ export const useProjectStore = defineStore('project', () => {
   const visualizationDataRegistry = new VisualizationDataRegistry(executionContext, dataConnection)
   const computedValueRegistry = ComputedValueRegistry.WithExecutionContext(executionContext)
 
-  const diagnostics = ref<Diagnostic[]>([])
+  const diagnostics = shallowRef<Diagnostic[]>([])
   executionContext.on('executionStatus', (newDiagnostics) => {
     diagnostics.value = newDiagnostics
   })
 
-  function useVisualizationData(
-    configuration: WatchSource<Opt<NodeVisualizationConfiguration>>,
-  ): ShallowRef<Result<{}> | undefined> {
+  function useVisualizationData(configuration: WatchSource<Opt<NodeVisualizationConfiguration>>) {
     const id = random.uuidv4() as Uuid
 
     watch(
@@ -589,31 +592,35 @@ export const useProjectStore = defineStore('project', () => {
         executionContext.setVisualization(id, config)
         onCleanup(() => executionContext.setVisualization(id, null))
       },
-      { immediate: true },
+      // Make sure to flush this watch in 'post', otherwise it might cause operations on stale
+      // ASTs just before the widget tree renders and cleans up the associated widget instances.
+      { immediate: true, flush: 'post' },
     )
 
-    return shallowRef(
-      computed(() => {
-        const json = visualizationDataRegistry.getRawData(id)
-        if (!json?.ok) return json ?? undefined
-        else return Ok(JSON.parse(json.value))
-      }),
-    )
+    return computed(() => {
+      const json = visualizationDataRegistry.getRawData(id)
+      if (!json?.ok) return json ?? undefined
+      const parsed = Ok(JSON.parse(json.value))
+      markRaw(parsed)
+      return parsed
+    })
   }
 
   const dataflowErrors = new ReactiveMapping(computedValueRegistry.db, (id, info) => {
-    if (info.payload.type !== 'DataflowError') return
-    const data = useVisualizationData(
-      ref({
-        expressionId: id,
-        visualizationModule: 'Standard.Visualization.Preprocessor',
-        expression: {
-          module: 'Standard.Visualization.Preprocessor',
-          definedOnType: 'Standard.Visualization.Preprocessor',
-          name: 'error_preprocessor',
-        },
-      }),
+    const config = computed(() =>
+      info.payload.type === 'DataflowError' ?
+        {
+          expressionId: id,
+          visualizationModule: 'Standard.Visualization.Preprocessor',
+          expression: {
+            module: 'Standard.Visualization.Preprocessor',
+            definedOnType: 'Standard.Visualization.Preprocessor',
+            name: 'error_preprocessor',
+          },
+        }
+      : null,
     )
+    const data = useVisualizationData(config)
     return computed<{ kind: 'Dataflow'; message: string } | undefined>(() => {
       const visResult = data.value
       if (!visResult) return
@@ -632,7 +639,7 @@ export const useProjectStore = defineStore('project', () => {
     })
   })
 
-  const isOutputContextEnabled = computed(() => executionMode.value === 'live')
+  const isRecordingEnabled = computed(() => executionMode.value === 'live')
 
   function stopCapturingUndo() {
     module.value?.undoManager.stopCapturing()
@@ -679,9 +686,21 @@ export const useProjectStore = defineStore('project', () => {
     yDocsProvider = undefined
   }
 
+  const recordMode = computed({
+    get() {
+      return executionMode.value === 'live'
+    },
+    set(value) {
+      executionMode.value = value ? 'live' : 'design'
+    },
+  })
+
   return {
     setObservedFileName(name: string) {
       observedFileName.value = name
+    },
+    get observedFileName() {
+      return observedFileName.value
     },
     name: projectName,
     displayName: projectDisplayName,
@@ -691,6 +710,7 @@ export const useProjectStore = defineStore('project', () => {
     diagnostics,
     module,
     modulePath,
+    entryPoint,
     projectModel,
     contentRoots,
     awareness: markRaw(awareness),
@@ -698,9 +718,10 @@ export const useProjectStore = defineStore('project', () => {
     lsRpcConnection: markRaw(lsRpcConnection),
     dataConnection: markRaw(dataConnection),
     useVisualizationData,
-    isOutputContextEnabled,
+    isRecordingEnabled,
     stopCapturingUndo,
     executionMode,
+    recordMode,
     dataflowErrors,
     executeExpression,
     disposeYDocsProvider,

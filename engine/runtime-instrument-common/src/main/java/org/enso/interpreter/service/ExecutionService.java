@@ -742,6 +742,10 @@ public final class ExecutionService {
       if (cons != null) {
         return fromAtomConstructor(cons);
       }
+      cons = MethodRootNode.constructorFor(function);
+      if (cons != null) {
+        return fromAtomConstructor(cons);
+      }
       RootNode rootNode = function.getCallTarget().getRootNode();
 
       QualifiedName moduleName;
@@ -775,7 +779,7 @@ public final class ExecutionService {
       if (preAppliedArguments == null) {
         preAppliedArguments = new Object[functionSchema.getArgumentsCount()];
       }
-      boolean isStatic = preAppliedArguments[0] instanceof Type;
+      boolean isStatic = preAppliedArguments.length == 0 || preAppliedArguments[0] instanceof Type;
       int selfArgumentPosition = isStatic ? -1 : 0;
       int[] notAppliedArguments = new int[functionSchema.getArgumentsCount()];
       int notAppliedArgumentsLength = 0;
@@ -831,7 +835,7 @@ public final class ExecutionService {
       Object[] arguments = call.getArguments();
       int[] notAppliedArgs = new int[arguments.length];
       int notAppliedArgsSize = 0;
-      boolean isStatic = arguments[0] instanceof Type;
+      boolean isStatic = arguments.length > 0 && arguments[0] instanceof Type;
       int selfTypePosition = isStatic ? -1 : 0;
 
       for (int i = 0; i < arguments.length; i++) {

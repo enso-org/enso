@@ -215,6 +215,20 @@ pub struct FileToUpload {
 }
 
 impl FileToUpload {
+    /// Create a new file to upload.
+    ///
+    /// The file will be uploaded directly to the root of the artifact container.
+    ///
+    /// # Example
+    /// ```
+    /// use ide_ci::actions::artifacts::upload::FileToUpload;
+    /// use std::path::Path;
+    ///
+    /// let local_path = Path::new("/home/user/uploaded/file");
+    /// let file = FileToUpload::new_in_root(local_path).unwrap();
+    /// assert_eq!(file.local_path, local_path);
+    /// assert_eq!(file.remote_path, Path::new("file"));
+    /// ```
     pub fn new_in_root(path: impl Into<PathBuf>) -> Result<Self> {
         let local_path = path.into();
         let remote_path = local_path.file_name().map(into).ok_or_else(|| {
@@ -223,6 +237,19 @@ impl FileToUpload {
         Ok(Self { local_path, remote_path })
     }
 
+    /// Create a new file to upload with a relative path.
+    ///
+    /// # Example
+    /// ```
+    /// use ide_ci::actions::artifacts::upload::FileToUpload;
+    /// use std::path::Path;
+    ///
+    /// let root_path = Path::new("/home/user");
+    /// let local_path = Path::new("/home/user/uploaded/subdir/file");
+    /// let file = FileToUpload::new_relative(&root_path, &local_path).unwrap();
+    /// assert_eq!(file.local_path, local_path);
+    /// assert_eq!(file.remote_path, Path::new("uploaded/subdir/file"));
+    /// ```
     pub fn new_relative(
         root_path: impl AsRef<Path>,
         local_path: impl Into<PathBuf>,
@@ -254,7 +281,6 @@ mod tests {
     use super::*;
     use crate::actions::artifacts;
     use crate::actions::artifacts::models::CreateArtifactResponse;
-    use crate::log::setup_logging;
 
     #[tokio::test]
     #[ignore]

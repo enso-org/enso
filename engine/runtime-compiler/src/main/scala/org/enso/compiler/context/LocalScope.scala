@@ -1,12 +1,7 @@
 package org.enso.compiler.context
 
-import org.enso.compiler.pass.analyse.AliasAnalysis.Graph
-import org.enso.compiler.pass.analyse.AliasAnalysis.Graph.{
-  Id,
-  Occurrence,
-  Scope => AliasScope
-}
-import org.enso.compiler.pass.analyse.{AliasAnalysis, DataflowAnalysis}
+import org.enso.compiler.pass.analyse.DataflowAnalysis
+import org.enso.compiler.pass.analyse.alias.{Graph => AliasGraph}
 
 import scala.jdk.CollectionConverters._
 
@@ -33,19 +28,19 @@ import scala.jdk.CollectionConverters._
   */
 class LocalScope(
   final val parentScope: Option[LocalScope],
-  final val aliasingGraph: AliasAnalysis.Graph,
-  final val scope: AliasAnalysis.Graph.Scope,
+  final val aliasingGraph: AliasGraph,
+  final val scope: AliasGraph.Scope,
   final val dataflowInfo: DataflowAnalysis.Metadata,
-  final val flattenToParent: Boolean                  = false,
-  private val parentFrameSlotIdxs: Map[Graph.Id, Int] = Map()
+  final val flattenToParent: Boolean                       = false,
+  private val parentFrameSlotIdxs: Map[AliasGraph.Id, Int] = Map()
 ) {
-  private lazy val localFrameSlotIdxs: Map[Graph.Id, Int] =
+  private lazy val localFrameSlotIdxs: Map[AliasGraph.Id, Int] =
     gatherLocalFrameSlotIdxs()
 
   /** All frame slot indexes, including local and all the parents.
     * Useful for quick searching for [[FramePointer]] of parent scopes.
     */
-  private lazy val allFrameSlotIdxs: Map[Graph.Id, Int] =
+  private lazy val allFrameSlotIdxs: Map[AliasGraph.Id, Int] =
     parentFrameSlotIdxs ++ localFrameSlotIdxs
 
   /** Creates a new child with a new aliasing scope.
@@ -62,7 +57,7 @@ class LocalScope(
     * @return a child of this scope
     */
   def createChild(
-    childScope: AliasScope,
+    childScope: AliasGraph.Scope,
     flattenToParent: Boolean = false
   ): LocalScope = {
     new LocalScope(
@@ -83,7 +78,7 @@ class LocalScope(
     *           analysis.
     * @return the frame slot index for `id`.
     */
-  def getVarSlotIdx(id: Graph.Id): Int = {
+  def getVarSlotIdx(id: AliasGraph.Id): Int = {
     assert(
       localFrameSlotIdxs.contains(id),
       "Cannot find " + id + " in " + localFrameSlotIdxs
@@ -98,7 +93,7 @@ class LocalScope(
     *           analysis
     * @return the frame pointer for `id`, if it exists
     */
-  def getFramePointer(id: Graph.Id): Option[FramePointer] = {
+  def getFramePointer(id: AliasGraph.Id): Option[FramePointer] = {
     aliasingGraph
       .defLinkFor(id)
       .flatMap { link =>
@@ -126,7 +121,7 @@ class LocalScope(
     *         indexes in the frame. Takes into account all the
     *         internal slots, that are prepended to every frame.
     */
-  private def gatherLocalFrameSlotIdxs(): Map[Id, Int] = {
+  private def gatherLocalFrameSlotIdxs(): Map[AliasGraph.Id, Int] = {
     scope.allDefinitions.zipWithIndex.map { case (definition, i) =>
       definition.id -> (i + LocalScope.internalSlotsSize)
     }.toMap
@@ -139,16 +134,16 @@ class LocalScope(
     */
   private def flattenBindingsWithLevel(
     level: Int
-  ): Map[Graph.Symbol, FramePointer] = {
-    var parentResult: Map[Graph.Symbol, FramePointer] = parentScope
+  ): Map[AliasGraph.Symbol, FramePointer] = {
+    var parentResult: Map[AliasGraph.Symbol, FramePointer] = parentScope
       .flatMap(scope => Some(scope.flattenBindingsWithLevel(level + 1)))
       .getOrElse(Map())
 
     scope.occurrences.foreach {
-      case x: Occurrence.Def =>
+      case (id, x: AliasGraph.Occurrence.Def) =>
         parentResult += x.symbol -> new FramePointer(
           level,
-          allFrameSlotIdxs(x.id)
+          allFrameSlotIdxs(id)
         )
       case _ =>
     }
@@ -166,7 +161,7 @@ object LocalScope {
     * @return a defaulted local scope
     */
   def root: LocalScope = {
-    val graph = new AliasAnalysis.Graph
+    val graph = new AliasGraph
     new LocalScope(
       None,
       graph,

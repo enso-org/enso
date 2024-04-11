@@ -3,18 +3,19 @@ import Standard.Base.Data.Vector.No_Wrap
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Errors.Illegal_State.Illegal_State
 
-import project.Data.Aggregate_Column.Aggregate_Column
-import project.Data.Blank_Selector.Blank_Selector
-import project.Data.Column.Column
-import project.Data.Position.Position
-import project.Data.Set_Mode.Set_Mode
-import project.Data.Sort_Column.Sort_Column
-import project.Data.Table.Table
-import project.Data.Type.Value_Type.Value_Type
-import project.Data.Type.Value_Type_Helpers
+import project.Aggregate_Column.Aggregate_Column
+import project.Blank_Selector.Blank_Selector
+import project.Column.Column
+import project.Expression.Expression
 import project.Internal.Column_Naming_Helper.Column_Naming_Helper
 import project.Internal.Problem_Builder.Problem_Builder
-from project.Errors import Ambiguous_Column_Rename, Column_Type_Mismatch, Invalid_Aggregate_Column, Missing_Input_Columns, No_Common_Type, No_Input_Columns_Selected, No_Output_Columns, Too_Many_Column_Names_Provided
+import project.Internal.Value_Type_Helpers
+import project.Position.Position
+import project.Set_Mode.Set_Mode
+import project.Sort_Column.Sort_Column
+import project.Table.Table
+import project.Value_Type.Value_Type
+from project.Errors import Ambiguous_Column_Rename, Column_Type_Mismatch, Invalid_Aggregate_Column, Missing_Input_Columns, No_Common_Type, No_Input_Columns_Selected, No_Output_Columns, No_Such_Column, Too_Many_Column_Names_Provided
 
 polyglot java import java.util.HashSet
 
@@ -70,6 +71,21 @@ type Table_Column_Helper
             if error_on_empty && result.is_empty then problem_builder.raise_no_output_columns_with_cause else result
 
     ## PRIVATE
+       A helper to returns a set of columns filtered by the type of the column.
+
+       Arguments:
+       - types: The types of columns to select.
+       - strict: If `True`, only columns with exactly the specified types will
+         be selected. If `False`, columns with types that are subtypes of the
+         specified types will also be selected (i.e. ignore size, precision).
+    select_by_type : Vector Value_Type -> Boolean -> Vector
+    select_by_type self types:Vector strict:Boolean=False =
+        columns = if strict then self.internal_columns.filter c-> types.contains c.value_type else
+            self.internal_columns.filter c-> types.any t-> c.value_type.is_same_type t
+        if columns.length == 0 then Error.throw (No_Output_Columns.Error "No columns of the specified types were found.") else
+            columns
+
+    ## PRIVATE
        A helper function encapsulating shared code for `remove_columns`
        implementations of various Table variants. See the documentation for the
        Table type for details.
@@ -99,6 +115,22 @@ type Table_Column_Helper
             should_be_removed.not
         if result.is_empty then Error.throw No_Output_Columns.Error else
             problem_builder.attach_problems_after on_problems result
+
+    ## PRIVATE
+       A helper to returns a set of columns filtering out based on the type of
+       the column.
+
+       Arguments:
+       - types: The types of columns to remove.
+       - strict: If `True`, only columns with exactly the specified types will
+         be selected. If `False`, columns with types that are subtypes of the
+         specified types will also be selected (i.e. ignore size, precision).
+    remove_by_type : Vector Value_Type -> Boolean -> Vector
+    remove_by_type self types:Vector strict:Boolean=False =
+        columns = if strict then self.internal_columns.filter (c->(types.contains c.value_type).not) else
+            self.internal_columns.filter c->(types.all (t->(c.value_type.is_same_type t . not)))
+        if columns.length == 0 then Error.throw (No_Output_Columns.Error "No columns of the specified types were found.") else
+            columns
 
     ## PRIVATE
        A helper function encapsulating shared code for `reorder_columns`
@@ -177,16 +209,18 @@ type Table_Column_Helper
 
        It may allow selection of columns by index, name or computing a derived
        expression.
-    resolve_column_or_expression : (Integer | Text) -> Problem_Builder -> Any | Nothing
+    resolve_column_or_expression : (Integer | Text | Expression) -> Problem_Builder -> Any | Nothing
     resolve_column_or_expression self selector problem_builder = case selector of
         _ : Text ->
             matched_columns = self.internal_columns.filter column->(column.name==selector)
             if matched_columns.length == 1 then matched_columns.first else
                 if matched_columns.length != 0 then Panic.throw (Illegal_State.Error "Bug in Table library: A single exact match should never match more than one column. Perhaps the table breaks the invariant of unique column names?") else
-                    (self.table.evaluate_expression selector).catch Any expression_error->
-                        invalid_column = Invalid_Aggregate_Column.Error selector expression_error
-                        problem_builder.report_other_warning invalid_column
-                        Nothing
+                    problem_builder.report_other_warning (Invalid_Aggregate_Column.Error selector (No_Such_Column.Error selector))
+                    Nothing
+        _ : Expression ->
+            (self.table.evaluate_expression selector).catch Any expression_error->
+                problem_builder.report_other_warning (Invalid_Aggregate_Column.Error selector.expression expression_error)
+                Nothing
         _ : Integer -> case is_index_valid self.internal_columns.length selector of
             True -> self.internal_columns.at selector
             False ->
@@ -230,7 +264,7 @@ type Table_Column_Helper
             Blank_Selector.All_Cells -> Aggregate_Column.Minimum _
         aggregates = blanks.map blanks_col-> col_aggregate blanks_col.name
 
-        aggregate_result = just_indicators.aggregate aggregates on_problems=Problem_Behavior.Report_Error
+        aggregate_result = just_indicators.aggregate columns=aggregates on_problems=Problem_Behavior.Report_Error
         materialized_result = self.materialize <| aggregate_result.catch Any error->
             msg = "Unexpected dataflow error has been thrown in an `select_blank_columns_helper`. This is a bug in the Table library. The unexpected error was: "+error.to_display_text
             Panic.throw (Illegal_State.Error message=msg cause=error)
@@ -430,14 +464,13 @@ resolve_order_by internal_columns column_selectors problem_builder =
         name : Text -> resolve_selector (Sort_Column.Name name)
         ix : Integer -> resolve_selector (Sort_Column.Index ix)
         Sort_Column.Name name direction ->
-            resolve_selector (Sort_Column.Select_By_Name name direction Case_Sensitivity.Sensitive use_regex=False)
+            resolve_selector (Sort_Column.Select_By_Name name direction Case_Sensitivity.Sensitive)
         Sort_Column.Index ix _ ->
             if is_index_valid internal_columns.length ix then [Column_Transform_Element.Value (internal_columns.at ix) selector] else
                 problem_builder.report_oob_indices [ix]
                 []
-        Sort_Column.Select_By_Name name _ case_sensitivity use_regex ->
-            regex_or_text = if use_regex then name.to_regex else name
-            matches = match_columns regex_or_text case_sensitivity internal_columns
+        Sort_Column.Select_By_Name name _ case_sensitivity ->
+            matches = match_columns name case_sensitivity internal_columns
             if matches.is_empty then problem_builder.report_missing_input_columns [name]
             matches.map c-> Column_Transform_Element.Value c selector
     selectors_vec = case column_selectors of
@@ -467,7 +500,7 @@ filter_blank_rows table when treat_nans_as_blank =
    Currently, it relies on a hack - it checks if the object has a method
    `is_table` and if it returns `True`.
 is_column obj =
-    known_types = ["Standard.Table.Data.Column.Column", "Standard.Database.Data.Column.Column"]
+    known_types = ["Standard.Table.Column.Column", "Standard.Database.DB_Column.DB_Column"]
     known_types.contains (Meta.get_qualified_type_name obj)
 
 ## PRIVATE

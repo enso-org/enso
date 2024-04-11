@@ -3,7 +3,7 @@ package org.enso.projectmanager.service
 import akka.actor.ActorRef
 import cats.MonadError
 import com.typesafe.scalalogging.Logger
-import nl.gn0s1s.bump.SemVer
+import org.enso.semver.SemVer
 import org.enso.editions.DefaultEdition
 import org.enso.pkg.Config
 import org.enso.pkg.validation.NameValidation
@@ -29,6 +29,7 @@ import org.enso.projectmanager.infrastructure.repository.ProjectRepositoryFailur
 }
 import org.enso.projectmanager.infrastructure.repository.{
   ProjectRepository,
+  ProjectRepositoryFactory,
   ProjectRepositoryFailure
 }
 import org.enso.projectmanager.infrastructure.time.Clock
@@ -42,12 +43,13 @@ import org.enso.projectmanager.service.versionmanagement.RuntimeVersionManagerFa
 import org.enso.projectmanager.versionmanagement.DistributionConfiguration
 import org.enso.runtimeversionmanager.CurrentVersion
 
+import java.io.File
 import java.util.UUID
 
 /** Implementation of business logic for project management.
   *
   * @param validator a project validator
-  * @param repo a project repository
+  * @param projectRepositoryFactory a project repository factory
   * @param projectCreationService a service for creating projects
   * @param configurationService a service for managing configuration
   * @param log a logging facility
@@ -58,7 +60,7 @@ class ProjectService[
   F[+_, +_]: Sync: ErrorChannel: CovariantFlatMap
 ](
   validator: ProjectNameValidator[F],
-  repo: ProjectRepository[F],
+  projectRepositoryFactory: ProjectRepositoryFactory[F],
   projectCreationService: ProjectCreationServiceApi[F],
   configurationService: GlobalConfigServiceApi[F],
   log: Logging[F],
@@ -69,11 +71,12 @@ class ProjectService[
 )(implicit E: MonadError[F[ProjectServiceFailure, *], ProjectServiceFailure])
     extends ProjectServiceApi[F] {
 
+  import E._
+  import ProjectService._
+
   private lazy val logger = Logger[ProjectService[F]]
 
   private val listProjectsLock: Semaphore[F] = Semaphore.unsafeMake(1)
-
-  import E._
 
   /** @inheritdoc */
   override def createUserProject(
@@ -81,19 +84,22 @@ class ProjectService[
     projectName: String,
     engineVersion: SemVer,
     projectTemplate: Option[String],
-    missingComponentAction: MissingComponentAction
+    missingComponentAction: MissingComponentAction,
+    projectsDirectory: Option[File]
   ): F[ProjectServiceFailure, Project] = for {
     projectId <- gen.randomUUID()
     _ <- log.debug(
-      "Creating project [{}, {}, {}].",
+      "Creating project [{}, {}, {}, {}].",
       projectName,
       projectId,
-      projectTemplate
+      projectTemplate,
+      projectsDirectory
     )
-    name         <- getNameForNewProject(projectName, projectTemplate)
+    repo = projectRepositoryFactory.getProjectRepository(projectsDirectory)
+    name         <- getNameForNewProject(projectName, projectTemplate, repo)
     _            <- log.info("Created project with actual name [{}].", name)
     _            <- validateProjectName(name)
-    _            <- checkIfNameExists(name)
+    _            <- checkIfNameExists(name, repo)
     creationTime <- clock.nowInUtc()
     moduleName = NameValidation.normalizeName(name)
     path <- repo.findPathForNewProject(moduleName).mapError(toServiceFailure)
@@ -135,11 +141,15 @@ class ProjectService[
 
   /** @inheritdoc */
   override def deleteUserProject(
-    projectId: UUID
+    projectId: UUID,
+    projectsDirectory: Option[File]
   ): F[ProjectServiceFailure, Unit] =
     log.debug("Deleting project [{}].", projectId) *>
     ensureProjectIsNotRunning(projectId) *>
-    repo.delete(projectId).mapError(toServiceFailure) *>
+    projectRepositoryFactory
+      .getProjectRepository(projectsDirectory)
+      .delete(projectId)
+      .mapError(toServiceFailure) *>
     log.info("Project deleted [{}].", projectId)
 
   private def ensureProjectIsNotRunning(
@@ -162,20 +172,22 @@ class ProjectService[
   /** @inheritdoc */
   override def renameProject(
     projectId: UUID,
-    newName: String
+    newName: String,
+    projectsDirectory: Option[File]
   ): F[ProjectServiceFailure, Unit] = {
     for {
-      _          <- log.debug("Renaming project [{}] to [{}].", projectId, newName)
-      _          <- validateProjectName(newName)
-      _          <- checkIfProjectExists(projectId)
-      _          <- checkIfNameExists(newName)
+      _ <- log.debug("Renaming project [{}] to [{}].", projectId, newName)
+      _ <- validateProjectName(newName)
+      repo = projectRepositoryFactory.getProjectRepository(projectsDirectory)
+      _          <- checkIfProjectExists(projectId, repo)
+      _          <- checkIfNameExists(newName, repo)
       oldPackage <- repo.getPackageName(projectId).mapError(toServiceFailure)
       namespace <- repo
         .getPackageNamespace(projectId)
         .mapError(toServiceFailure)
       newPackage = NameValidation.normalizeName(newName)
       _ <- repo.rename(projectId, newName).mapError(toServiceFailure)
-      _ <- renameProjectDirOrRegisterShutdownHook(projectId, newPackage)
+      _ <- renameProjectDirOrRegisterShutdownHook(projectId, newPackage, repo)
       _ <- refactorProjectName(projectId, namespace, oldPackage, newPackage)
       _ <- log.info("Project renamed [{}].", projectId)
     } yield ()
@@ -183,7 +195,8 @@ class ProjectService[
 
   private def renameProjectDirOrRegisterShutdownHook(
     projectId: UUID,
-    newName: String
+    newName: String,
+    repo: ProjectRepository[F]
   ): F[ProjectServiceFailure, Unit] = {
     val cmd = new MoveProjectDirCmd[F](projectId, newName, repo, log)
     CovariantFlatMap[F]
@@ -249,9 +262,10 @@ class ProjectService[
       }
 
   private def checkIfProjectExists(
-    projectId: UUID
+    projectId: UUID,
+    projectRepository: ProjectRepository[F]
   ): F[ProjectServiceFailure, Unit] =
-    repo
+    projectRepository
       .findById(projectId)
       .mapError(toServiceFailure)
       .flatMap {
@@ -262,7 +276,7 @@ class ProjectService[
         log.debug(
           "Checked if the project [{}] exists in repo [{}].",
           projectId,
-          repo
+          projectRepository
         )
       }
 
@@ -271,11 +285,13 @@ class ProjectService[
     progressTracker: ActorRef,
     clientId: UUID,
     projectId: UUID,
-    missingComponentAction: MissingComponentAction
+    missingComponentAction: MissingComponentAction,
+    projectsDirectory: Option[File]
   ): F[ProjectServiceFailure, RunningLanguageServerInfo] = {
     for {
-      _        <- log.debug(s"Opening project [{}].", projectId)
-      project  <- getUserProject(projectId)
+      _ <- log.debug(s"Opening project [{}].", projectId)
+      repo = projectRepositoryFactory.getProjectRepository(projectsDirectory)
+      project  <- getUserProject(projectId, repo)
       openTime <- clock.nowInUtc()
       updated = project.copy(lastOpened = Some(openTime))
       _ <- repo.update(updated).mapError(toServiceFailure)
@@ -362,7 +378,7 @@ class ProjectService[
     maybeSize: Option[Int]
   ): F[ProjectServiceFailure, List[ProjectMetadata]] =
     listProjectsLock
-      .withPermit(repo.getAll())
+      .withPermit(projectRepositoryFactory.getProjectRepository(None).getAll())
       .map(
         _.sorted(RecentlyUsedProjectsOrdering)
           .take(maybeSize.getOrElse(Int.MaxValue))
@@ -370,19 +386,11 @@ class ProjectService[
       .mapError(toServiceFailure)
       .map(_.map(toProjectMetadata))
 
-  private def toProjectMetadata(project: Project): ProjectMetadata =
-    ProjectMetadata(
-      name       = project.name,
-      namespace  = project.namespace,
-      id         = project.id,
-      created    = project.created,
-      lastOpened = project.lastOpened
-    )
-
   private def getUserProject(
-    projectId: UUID
-  ): F[ProjectServiceFailure, Project] =
-    repo
+    projectId: UUID,
+    projectRepository: ProjectRepository[F]
+  ): F[ProjectServiceFailure, Project] = {
+    projectRepository
       .findById(projectId)
       .mapError(toServiceFailure)
       .flatMap {
@@ -391,14 +399,16 @@ class ProjectService[
       }
       .flatMap { project =>
         log
-          .debug("Found project [{}] in [{}].", projectId, repo)
+          .debug("Found project [{}] in [{}].", projectId, projectRepository)
           .map(_ => project)
       }
+  }
 
   private def checkIfNameExists(
-    name: String
-  ): F[ProjectServiceFailure, Unit] =
-    repo
+    name: String,
+    projectRepository: ProjectRepository[F]
+  ): F[ProjectServiceFailure, Unit] = {
+    projectRepository
       .exists(name)
       .mapError(toServiceFailure)
       .flatMap { exists =>
@@ -409,20 +419,9 @@ class ProjectService[
         log.debug(
           "Checked if the project name [{}] exists in [{}].",
           name,
-          repo
+          projectRepository
         )
       }
-
-  private val toServiceFailure
-    : ProjectRepositoryFailure => ProjectServiceFailure = {
-    case CannotLoadIndex(msg) =>
-      DataStoreFailure(s"Cannot load project index [$msg].")
-    case StorageFailure(msg) =>
-      DataStoreFailure(s"Storage failure [$msg].")
-    case ProjectNotFoundInIndex =>
-      ProjectNotFound
-    case InconsistentStorage(msg) =>
-      DataStoreFailure(s"Project repository inconsistency detected [$msg].")
   }
 
   private def validateProjectName(
@@ -475,7 +474,8 @@ class ProjectService[
 
   private def getNameForNewProject(
     projectName: String,
-    projectTemplate: Option[String]
+    projectTemplate: Option[String],
+    projectRepository: ProjectRepository[F]
   ): F[ProjectServiceFailure, String] = {
     def mkName(name: String, suffix: Int): String =
       s"${name}_${suffix}"
@@ -484,7 +484,7 @@ class ProjectService[
       suffix: Int
     ): F[ProjectRepositoryFailure, String] = {
       val newName = mkName(projectName, suffix)
-      CovariantFlatMap[F].ifM(repo.exists(newName))(
+      CovariantFlatMap[F].ifM(projectRepository.exists(newName))(
         ifTrue  = findAvailableName(projectName, suffix + 1),
         ifFalse = CovariantFlatMap[F].pure(newName)
       )
@@ -493,7 +493,7 @@ class ProjectService[
     projectTemplate match {
       case Some(_) =>
         CovariantFlatMap[F]
-          .ifM(repo.exists(projectName))(
+          .ifM(projectRepository.exists(projectName))(
             ifTrue  = findAvailableName(projectName, 1),
             ifFalse = CovariantFlatMap[F].pure(projectName)
           )
@@ -520,4 +520,27 @@ class ProjectService[
       .map(e => LanguageServerStatus(e._1, e._2))
       .mapError(_ => LanguageServerFailure("failed to retrieve project state"))
   }
+}
+
+object ProjectService {
+
+  val toServiceFailure: ProjectRepositoryFailure => ProjectServiceFailure = {
+    case CannotLoadIndex(msg) =>
+      DataStoreFailure(s"Cannot load project index [$msg].")
+    case StorageFailure(msg) =>
+      DataStoreFailure(s"Storage failure [$msg].")
+    case ProjectNotFoundInIndex =>
+      ProjectNotFound
+    case InconsistentStorage(msg) =>
+      DataStoreFailure(s"Project repository inconsistency detected [$msg].")
+  }
+
+  def toProjectMetadata(project: Project): ProjectMetadata =
+    ProjectMetadata(
+      name       = project.name,
+      namespace  = project.namespace,
+      id         = project.id,
+      created    = project.created,
+      lastOpened = project.lastOpened
+    )
 }

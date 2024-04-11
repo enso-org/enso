@@ -38,8 +38,8 @@ add_specs suite_builder = suite_builder.group "Text.Span" group_builder->
         Utf_16_Span.Value (0.up_to 3) text . to_grapheme_span . should_equal (Span.Value (0.up_to 2) text)
         Utf_16_Span.Value (0.up_to 2) text . to_grapheme_span . should_equal (Span.Value (0.up_to 1) text)
 
-main =
+main filter=Nothing =
     suite = Test.build suite_builder->
         add_specs suite_builder
-    suite.run_with_filter
+    suite.run_with_filter filter
 

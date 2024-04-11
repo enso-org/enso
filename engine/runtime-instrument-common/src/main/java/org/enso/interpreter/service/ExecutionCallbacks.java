@@ -6,23 +6,22 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.function.Consumer;
 import org.enso.interpreter.instrument.MethodCallsCache;
+import org.enso.interpreter.instrument.OneshotExpression;
 import org.enso.interpreter.instrument.RuntimeCache;
 import org.enso.interpreter.instrument.UpdatesSynchronizationState;
-import org.enso.interpreter.instrument.Visualization;
 import org.enso.interpreter.instrument.VisualizationHolder;
 import org.enso.interpreter.instrument.profiling.ExecutionTime;
 import org.enso.interpreter.instrument.profiling.ProfilingInfo;
 import org.enso.interpreter.node.callable.FunctionCallInstrumentationNode;
-import org.enso.interpreter.node.expression.builtin.meta.TypeOfNode;
 import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
 import org.enso.interpreter.runtime.data.Type;
+import org.enso.interpreter.runtime.library.dispatch.TypeOfNode;
 import org.enso.interpreter.runtime.type.Constants;
 import org.enso.interpreter.service.ExecutionService.ExpressionCall;
 import org.enso.interpreter.service.ExecutionService.ExpressionValue;
 import org.enso.interpreter.service.ExecutionService.FunctionCallInfo;
 import org.enso.polyglot.debugger.ExecutedVisualization;
 import org.enso.polyglot.debugger.IdExecutionService;
-import scala.collection.Iterator;
 
 final class ExecutionCallbacks implements IdExecutionService.Callbacks {
 
@@ -164,24 +163,21 @@ final class ExecutionCallbacks implements IdExecutionService.Callbacks {
   }
 
   private void executeOneshotExpressions(UUID nodeId, Object result, IdExecutionService.Info info) {
-    Iterator<Visualization> visualizations = findVisualizations(nodeId);
-    while (visualizations.hasNext()) {
-      Visualization visualization = visualizations.next();
+    OneshotExpression oneshotExpression = getOneshotExpression(nodeId);
 
-      if (visualization instanceof Visualization.OneshotExpression oneshotExpression) {
-        Object visualizationResult = null;
-        Throwable visualizationError = null;
-        try {
-          visualizationResult = info.eval(oneshotExpression.expression());
-        } catch (Exception exception) {
-          visualizationError = exception;
-        }
-
-        ExecutedVisualization executedVisualization =
-            new ExecutedVisualization(
-                visualizationResult, visualizationError, visualization.id(), nodeId, result);
-        callOnExecutedVisualizationCallback(executedVisualization);
+    if (oneshotExpression != null) {
+      Object visualizationResult = null;
+      Throwable visualizationError = null;
+      try {
+        visualizationResult = info.eval(oneshotExpression.expression());
+      } catch (Exception exception) {
+        visualizationError = exception;
       }
+
+      ExecutedVisualization executedVisualization =
+          new ExecutedVisualization(
+              visualizationResult, visualizationError, oneshotExpression.id(), nodeId, result);
+      callOnExecutedVisualizationCallback(executedVisualization);
     }
   }
 
@@ -196,8 +192,8 @@ final class ExecutionCallbacks implements IdExecutionService.Callbacks {
   }
 
   @CompilerDirectives.TruffleBoundary
-  private Iterator<Visualization> findVisualizations(UUID nodeId) {
-    return visualizationHolder.find(nodeId).iterator();
+  private OneshotExpression getOneshotExpression(UUID nodeId) {
+    return visualizationHolder.getOneshotExpression(nodeId);
   }
 
   @CompilerDirectives.TruffleBoundary

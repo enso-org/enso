@@ -1,7 +1,6 @@
 from Standard.Base import all
 
-from Standard.Table import Table, Delimited, Column, Data_Formatter
-import Standard.Table.Data.Type.Value_Type.Value_Type
+from Standard.Table import Table, Delimited_Format, Column, Data_Formatter, Value_Type
 from Standard.Table.Extensions.Table_Conversions import all
 
 from Standard.Test import all
@@ -28,7 +27,7 @@ type Data
 
 add_specs suite_builder =
     data = Data.setup
-    
+
     suite_builder.group "File.read (Delimited) should work with Time_Of_Days" group_builder->
         group_builder.specify "should be able to read in a data.table with dates" <|
             data.table.column_count.should_equal 3
@@ -52,18 +51,18 @@ add_specs suite_builder =
         group_builder.specify "should serialise back to input" <|
             expected_text = normalize_lines <|
                 (enso_project.data / "time_of_day_sample_normalized_hours.csv").read_text
-            delimited = Text.from data.expected format=(Delimited "," line_endings=Line_Ending_Style.Unix)
+            delimited = Text.from data.expected format=(Delimited_Format.Delimited "," line_endings=Line_Ending_Style.Unix)
             delimited.should_equal expected_text
 
         group_builder.specify "should serialise dates with format" <|
             test_table = Table.new [data.c_time]
             expected_text = 'Posting time\n09-00-00\n14-00-12\n09-00-00\n17-30-00\n09-00-04\n15-30-00\n'
             data_formatter = Data_Formatter.Value . with_datetime_formats time_formats=["HH-mm-ss"]
-            delimited = Text.from test_table format=(Delimited "," value_formatter=data_formatter line_endings=Line_Ending_Style.Unix)
+            delimited = Text.from test_table format=(Delimited_Format.Delimited "," value_formatter=data_formatter line_endings=Line_Ending_Style.Unix)
             delimited.should_equal expected_text
 
-main =
+main filter=Nothing =
     suite = Test.build suite_builder->
         add_specs suite_builder
-    suite.run_with_filter
+    suite.run_with_filter filter
 

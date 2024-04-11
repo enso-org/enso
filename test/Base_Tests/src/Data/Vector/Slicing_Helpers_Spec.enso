@@ -19,8 +19,8 @@ add_specs suite_builder = suite_builder.group "Vector Slicing Helpers" group_bui
         merge [0.up_to 1, 0.up_to 1] . should_equal [0.up_to 1]
         merge [0.up_to 1, 1.up_to 2] . should_equal [0.up_to 2]
 
-main =
+main filter=Nothing =
     suite = Test.build suite_builder->
         add_specs suite_builder
-    suite.run_with_filter
+    suite.run_with_filter filter
 

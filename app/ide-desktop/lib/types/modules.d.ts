@@ -20,7 +20,7 @@ declare module '*/build.json' {
     export default BUILD_INFO
 }
 
-declare module '*/gui/config.yaml' {
+declare module '*/gui2/config.yaml' {
     /** Content of the GUI config file. */
     interface Config {
         readonly windowAppScopeName: string
@@ -85,6 +85,7 @@ declare module 'eslint-plugin-react' {
         readonly 'jsx-sort-default-props': object
         readonly 'jsx-space-before-closing': object
     }
+
     /* eslint-enable @typescript-eslint/naming-convention */
 
     /** The default export of this ESLint plugin. */

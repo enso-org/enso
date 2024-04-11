@@ -1,5 +1,5 @@
 from Standard.Base import all
-import Standard.Base.Data.List.Empty_Error
+import Standard.Base.Errors.Empty_Error.Empty_Error
 import Standard.Base.Errors.Common.Index_Out_Of_Bounds
 import Standard.Base.Errors.Common.Not_Found
 import Standard.Base.Errors.Common.Type_Error
@@ -25,7 +25,7 @@ add_specs suite_builder = suite_builder.group "List" group_builder->
     group_builder.specify "should allow reducing the list with an arbitrary operation with .reduce" <|
         l.reduce (+) . should_equal 6
         l.reduce (*) . should_equal 6
-        empty.reduce (+) . should_fail_with Empty_Error
+        empty.reduce (+) . should_fail_with (Empty_Error.Error List)
         empty.reduce (+) 0 . should_equal 0
 
     group_builder.specify "should allow checking if an element satisfies a predicate with .any" <|
@@ -294,8 +294,8 @@ add_specs suite_builder = suite_builder.group "List" group_builder->
         l.get 3 . should_equal Nothing
         l.get -4 . should_equal Nothing
 
-main =
+main filter=Nothing =
     suite = Test.build suite_builder->
         add_specs suite_builder
-    suite.run_with_filter
+    suite.run_with_filter filter
 

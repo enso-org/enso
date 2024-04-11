@@ -10,7 +10,7 @@ from Standard.Test import all
 
 from project.Common_Table_Operations.Util import all
 
-main = run_default_backend add_specs
+main filter=Nothing = run_default_backend add_specs filter
 
 type Data
     Value ~data
@@ -336,7 +336,6 @@ add_specs suite_builder setup =
             t3 = table_builder [["X", [Time_Of_Day.new 10 15 0]], ["Y", [Time_Of_Day.new 12 30 20]]]
 
             # There is no default period:
-            (t3.at "X").date_diff (t3.at "Y") . should_be_a Function
             (t3.at "X").date_diff (t3.at "Y") Date_Period.Month . should_fail_with Illegal_Argument
 
             # This will always be 0, should it be allowed?

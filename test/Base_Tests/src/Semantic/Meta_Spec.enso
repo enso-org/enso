@@ -379,7 +379,7 @@ add_specs suite_builder =
         group_builder.specify "reject wrong type" <|
             pair = Meta.atom_with_hole (e -> My_Ascribed_Type.Value_With_Type 1 e 3)
             fill = pair.fill
-            Panic.catch Any (fill "Two") err->err.convert_to_dataflow_error . should_fail_with Type_Error
+            Test.expect_panic Type_Error (fill "Two")
 
         group_builder.specify "direct use of pair.fill" <|
             pair = Meta.atom_with_hole (e -> My_Ascribed_Type.Value_With_Type 1 e 3)
@@ -398,26 +398,22 @@ add_specs suite_builder =
         group_builder.specify "fail if non-atom is created" <|
             key = Panic.catch Uninitialized_State handler=(caught_panic-> caught_panic.payload.key) <|
                 Meta.atom_with_hole (_ -> 2)
-            case key of
-                t : Number ->
-                    t . should_equal 2
+            key . should_equal 2
 
-        group_builder.specify "only one atom_with_hole is used" <|
-            pair = Meta.atom_with_hole (e -> My_Type.Value e e e)
+        group_builder.specify "only one hole can be used" <|
+            Panic.catch Uninitialized_State (Meta.atom_with_hole (e -> My_Type.Value e e e)) err->
+                err.payload.should_be_a Uninitialized_State
+
+        group_builder.specify "fill called twice does not change anything" <|
+            pair = Meta.atom_with_hole (e -> My_Type.Value e 2 3)
             atom = pair.value
             fill = pair.fill
 
             Meta.is_atom atom . should_be_true
 
-            case atom.foo of
-                n : Number -> Test.fail "Shouldn't be number yet: "+n
-                _ -> Nothing
-            case atom.baz of
-                n : Number -> Test.fail "Shouldn't be number yet: "+n
-                _ -> Nothing
-            case atom.bar of
-                n : Number -> Test.fail "Shouldn't be number yet: "+n
-                _ -> Nothing
+            atom.foo.to_text . should_equal "Meta.atom_with_hole"
+            atom.bar.to_text . should_equal "2"
+            atom.baz.to_text . should_equal "3"
 
             fill 2
             atom.foo . should_equal 2
@@ -425,12 +421,26 @@ add_specs suite_builder =
             fill 10 # no change
             atom.foo . should_equal 2
 
-            case atom.baz of
-                n : Number -> Test.fail "Not changed to number: "+n
-                _ -> Nothing
-            case atom.bar of
-                n : Number -> Test.fail "Not changed to number: "+n
-                _ -> Nothing
+        group_builder.specify "should not leak index value to different atoms" <|
+            at1 = Meta.atom_with_hole (e -> My_Type.Value 1 e 3)
+            at1.fill 2
+            at1.value.foo . should_equal 1
+            at1.value.bar . should_equal 2
+            at1.value.baz . should_equal 3
+
+            at2 = Meta.atom_with_hole (e -> My_Type.Value e 2 3)
+            at2.fill 1
+            at2.value.foo . should_equal 1
+            at2.value.bar . should_equal 2
+            at2.value.baz . should_equal 3
+
+            at3 = Meta.atom_with_hole (e -> My_Type.Value 1 2 e)
+            at3.fill 3
+            at3.value.foo . should_equal 1
+            at3.value.bar . should_equal 2
+            at3.value.baz . should_equal 3
+
+
     suite_builder.group "Unresolved symbol" group_builder->
         group_builder.specify "should be treated as a Function" <|
             (_.is_nothing) . is_a Function . should_equal True
@@ -466,8 +476,7 @@ add_specs suite_builder =
             typ = Meta.Type.find fqn
             typ . should_equal meta_type
 
-main =
+main filter=Nothing =
     suite = Test.build suite_builder->
         add_specs suite_builder
-    suite.run_with_filter
-
+    suite.run_with_filter filter

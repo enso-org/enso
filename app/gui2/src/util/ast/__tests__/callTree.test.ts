@@ -19,7 +19,10 @@ const prefixFixture = {
     arguments: ['self', 'a', 'b', 'c', 'd'].map((name) => makeArgument(name)),
   },
   argsParameters: new Map<string, widgetCfg.WidgetConfiguration & widgetCfg.WithDisplay>([
-    ['a', { kind: 'Multi_Choice', display: widgetCfg.DisplayMode.Always }],
+    [
+      'a',
+      { kind: 'Multiple_Choice', display: widgetCfg.DisplayMode.Always, label: null, values: [] },
+    ],
     ['b', { kind: 'Code_Input', display: widgetCfg.DisplayMode.Always }],
     ['c', { kind: 'Boolean_Input', display: widgetCfg.DisplayMode.Always }],
   ]),
@@ -32,7 +35,10 @@ const infixFixture = {
     arguments: ['lhs', 'rhs'].map((name) => makeArgument(name)),
   },
   argsParameters: new Map<string, widgetCfg.WidgetConfiguration & widgetCfg.WithDisplay>([
-    ['lhs', { kind: 'Multi_Choice', display: widgetCfg.DisplayMode.Always }],
+    [
+      'lhs',
+      { kind: 'Multiple_Choice', display: widgetCfg.DisplayMode.Always, label: null, values: [] },
+    ],
     ['rhs', { kind: 'Code_Input', display: widgetCfg.DisplayMode.Always }],
   ]),
 }
@@ -107,11 +113,9 @@ function printArgPattern(application: ArgumentApplication | Ast.Ast) {
 
   while (current instanceof ArgumentApplication) {
     const sigil =
-      current.argument instanceof ArgumentPlaceholder
-        ? '?'
-        : current.appTree instanceof Ast.App && current.appTree.argumentName
-        ? '='
-        : '@'
+      current.argument instanceof ArgumentPlaceholder ? '?'
+      : current.appTree instanceof Ast.App && current.appTree.argumentName ? '='
+      : '@'
     parts.push(sigil + (current.argument.argInfo?.name ?? '_'))
     current = current.target
   }

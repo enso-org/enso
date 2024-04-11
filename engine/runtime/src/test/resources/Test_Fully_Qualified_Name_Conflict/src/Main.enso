@@ -1,7 +1,0 @@
-import local.Test_Fully_Qualified_Name_Conflict.Atom.Atom
-export local.Test_Fully_Qualified_Name_Conflict.Atom.Atom
-from Standard.Base.Errors.Common import all
-
-main =
-    Atom.A 1
-    local.Test_Fully_Qualified_Name_Conflict.Atom.Foo 1

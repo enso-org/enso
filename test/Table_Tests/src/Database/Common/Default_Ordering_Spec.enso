@@ -2,7 +2,7 @@ from Standard.Base import all
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 from Standard.Base.Runtime import assert
 
-from Standard.Table import Table, Sort_Column, Aggregate_Column
+from Standard.Table import Table, Sort_Column, Aggregate_Column, expr
 from Standard.Table.Errors import all
 
 from Standard.Database import all
@@ -14,10 +14,10 @@ import Standard.Test.Suite.Suite_Builder
 import project.Util
 import project.Database.Helpers.Name_Generator
 
-main =
+main filter=Nothing =
     suite = Test.build suite_builder->
         add_specs suite_builder "[SQLite]" (_-> Database.connect (SQLite In_Memory))
-    suite.run_with_filter
+    suite.run_with_filter filter
 
 
 type Data
@@ -61,14 +61,14 @@ add_specs (suite_builder : Suite_Builder) (prefix : Text) (create_connection_fn 
             v1.first.expression.name . should_equal "X"
             v1.first.direction . should_equal Sort_Direction.Ascending
 
-            t2 = data.db_table_with_key.set "10 - [X]" "X"
+            t2 = data.db_table_with_key.set (expr "10 - [X]") "X"
             v2 = t2.default_ordering
             v2.length . should_equal 1
             v2.first.expression.name . should_equal "X"
 
         group_builder.specify "will return Nothing for composite tables (join, aggregate)"
             data.db_table_with_key.join data.db_table_with_key . default_ordering . should_equal Nothing
-            data.db_table_with_key.aggregate [Aggregate_Column.Group_By "X"] . default_ordering . should_equal Nothing
+            data.db_table_with_key.aggregate ["X"] . default_ordering . should_equal Nothing
 
         group_builder.specify "will return the ordering determined by order_by" <|
             v1 = data.db_table_with_key.order_by ["Y", Sort_Column.Name "X" Sort_Direction.Descending] . default_ordering

@@ -22,8 +22,6 @@ add_specs suite_builder = suite_builder.group "Function Ascribed Parameters" gro
 
     surround x = "|" + x + "|"
 
-    with_type_error ~action = Panic.catch Type_Error action panic->panic.convert_to_dataflow_error
-
     group_builder.specify "t1 with surround type check" <|
         (t1 surround) . should_equal "|x|"
 
@@ -37,10 +35,10 @@ add_specs suite_builder = suite_builder.group "Function Ascribed Parameters" gro
         (t4 surround) . should_equal "|x|"
 
     group_builder.specify "t1 with 42 type check" <|
-        with_type_error (t1 6) . should_fail_with Type_Error
+        Test.expect_panic Type_Error (t1 6)
 
     group_builder.specify "t2 with 42 type check" <|
-        with_type_error (t2 6) . should_fail_with Type_Error
+        Test.expect_panic Type_Error (t2 6)
 
     group_builder.specify "t3 with 42 type check" <|
         (t3 6) . should_equal 42
@@ -49,20 +47,19 @@ add_specs suite_builder = suite_builder.group "Function Ascribed Parameters" gro
         (t4 6) . should_equal 42
 
     group_builder.specify "t1 with text type check" <|
-        with_type_error (t1 "hi") . should_fail_with Type_Error
+        Test.expect_panic Type_Error (t1 "hi")
 
     group_builder.specify "t2 with text type check" <|
-        with_type_error (t2 "hi") . should_fail_with Type_Error
+        Test.expect_panic Type_Error (t2 "hi")
 
     group_builder.specify "t3 with text type check" <|
-        with_type_error (t3 "hi") . should_fail_with Type_Error
+        Test.expect_panic Type_Error (t3 "hi")
 
     group_builder.specify "t4 with text type check" <|
-        with_type_error (t4 "hi") . should_fail_with Type_Error
+        Test.expect_panic Type_Error (t4 "hi")
 
 
-main =
+main filter=Nothing =
     suite = Test.build suite_builder->
         add_specs suite_builder
-    suite.run_with_filter
-
+    suite.run_with_filter filter

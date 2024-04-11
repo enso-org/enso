@@ -4,8 +4,10 @@ import type { WidgetConfiguration } from '@/providers/widgetRegistry/configurati
 import type { GraphDb } from '@/stores/graph/graphDatabase'
 import type { Typename } from '@/stores/suggestionDatabase/entry'
 import { Ast } from '@/util/ast'
-import { MutableModule, type TokenId } from '@/util/ast/abstract.ts'
+import { MutableModule } from '@/util/ast/abstract.ts'
+import type { ViteHotContext } from 'vite/types/hot'
 import { computed, shallowReactive, type Component, type PropType } from 'vue'
+import type { WidgetEditHandler } from './widgetRegistry/editHandler'
 
 export type WidgetComponent<T extends WidgetInput> = Component<WidgetProps<T>>
 
@@ -33,6 +35,12 @@ export namespace WidgetInput {
   export function astMatcher<T extends Ast.Ast>(nodeType: new (...args: any[]) => T) {
     return (input: WidgetInput): input is WidgetInput & { value: T } =>
       input.value instanceof nodeType
+  }
+
+  /** Match input against a placeholder or specific AST node type. */
+  export function placeholderOrAstMatcher<T extends Ast.Ast>(nodeType: new (...args: any[]) => T) {
+    return (input: WidgetInput): input is WidgetInput & { value: T } =>
+      isPlaceholder(input) || input.value instanceof nodeType
   }
 
   export function isAst(input: WidgetInput): input is WidgetInput & { value: Ast.Ast } {
@@ -92,7 +100,7 @@ export interface WidgetInput {
    *
    * Also, used as usage key (see {@link usageKeyForInput})
    */
-  portId: PortId | TokenId
+  portId: PortId
   /**
    * An expected widget value. If Ast.Ast or Ast.Token, the widget represents an existing part of
    * code. If string, it may be e.g. a default value of an argument.
@@ -104,6 +112,7 @@ export interface WidgetInput {
   dynamicConfig?: WidgetConfiguration | undefined
   /** Force the widget to be a connectible port. */
   forcePort?: boolean
+  editHandler?: WidgetEditHandler
 }
 
 /**
@@ -133,7 +142,7 @@ export interface WidgetProps<T> {
 /**
  * Information about widget update.
  *
- * When widget want's to change its value, it should emit this with `portUpdate` set (as their
+ * When widget wants to change its value, it should emit this with `portUpdate` set (as their
  * port may not represent any existing AST node) with `edit` containing any additional modifications
  * (like inserting necessary imports).
  *
@@ -171,12 +180,10 @@ export function widgetProps<T extends WidgetInput>(_def: WidgetDefinition<T>) {
 type InputMatcherFn<T extends WidgetInput> = (input: WidgetInput) => input is T
 type InputMatcher<T extends WidgetInput> = keyof WidgetInput | InputMatcherFn<T>
 
-type InputTy<M> = M extends (infer T)[]
-  ? InputTy<T>
-  : M extends InputMatcherFn<infer T>
-  ? T
-  : M extends keyof WidgetInput
-  ? WidgetInput & Required<Pick<WidgetInput, M>>
+type InputTy<M> =
+  M extends (infer T)[] ? InputTy<T>
+  : M extends InputMatcherFn<infer T> ? T
+  : M extends keyof WidgetInput ? WidgetInput & Required<Pick<WidgetInput, M>>
   : never
 
 export interface WidgetOptions<T extends WidgetInput> {
@@ -245,7 +252,6 @@ function isWidgetComponent(component: unknown): component is WidgetComponent<any
 function isWidgetDefinition(config: unknown): config is WidgetDefinition<any> {
   return typeof config === 'object' && config !== null && 'priority' in config && 'match' in config
 }
-
 /**
  *
  * @param matchInputs Filter the widget input to only accept specific types of input. The
@@ -259,6 +265,7 @@ function isWidgetDefinition(config: unknown): config is WidgetDefinition<any> {
 export function defineWidget<M extends InputMatcher<any> | InputMatcher<any>[]>(
   matchInputs: M,
   definition: WidgetOptions<InputTy<M>>,
+  hmr?: ViteHotContext,
 ): WidgetDefinition<InputTy<M>> {
   let score: WidgetDefinition<InputTy<M>>['score']
   if (typeof definition.score === 'function') {
@@ -268,12 +275,22 @@ export function defineWidget<M extends InputMatcher<any> | InputMatcher<any>[]>(
     score = () => staticScore
   }
 
-  return {
+  const resolved: WidgetDefinition<InputTy<M>> = {
     priority: definition.priority,
     match: makeInputMatcher<InputTy<M>>(matchInputs),
     score,
     prevent: definition.prevent,
   }
+
+  if (import.meta.hot && hmr) {
+    if (hmr.data.widgetDefinition) {
+      Object.assign(hmr.data.widgetDefinition, resolved)
+    } else {
+      hmr.data.widgetDefinition = shallowReactive(resolved)
+    }
+    return hmr.data.widgetDefinition
+  }
+  return resolved
 }
 
 function makeInputMatcher<T extends WidgetInput>(
@@ -315,15 +332,11 @@ export class WidgetRegistry {
   async loadAndCheckWidgetModules(
     asyncModules: [path: string, asyncModule: () => Promise<unknown>][],
   ) {
-    const modules = await Promise.allSettled(
-      asyncModules.map(([path, mod]) => mod().then((m) => [path, m] as const)),
-    )
-    for (const result of modules) {
-      if (result.status === 'fulfilled') {
-        const [path, mod] = result.value
+    for (const [path, mod] of asyncModules) {
+      mod().then((mod) => {
         if (isWidgetModule(mod)) this.registerWidgetModule(mod)
         else console.error('Invalid widget module:', path, mod)
-      }
+      })
     }
   }
 
@@ -370,5 +383,3 @@ export class WidgetRegistry {
     return best
   }
 }
-
-// TODO: add tests for select

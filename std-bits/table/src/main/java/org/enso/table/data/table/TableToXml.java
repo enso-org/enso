@@ -6,8 +6,6 @@ import java.util.stream.Stream;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
 import org.apache.xmlbeans.XmlException;
-import org.apache.xmlbeans.XmlObject;
-import org.apache.xmlbeans.XmlOptions;
 import org.graalvm.polyglot.Context;
 import org.w3c.dom.DOMException;
 import org.w3c.dom.Document;
@@ -15,7 +13,7 @@ import org.w3c.dom.Element;
 
 public class TableToXml {
 
-  public static String to_xml(
+  public static Document to_xml(
       int rowCount,
       Column[] element_columns,
       Column[] attribute_columns,
@@ -56,17 +54,7 @@ public class TableToXml {
       context.safepoint();
     }
 
-    return convert_to_string(doc);
-  }
-
-  private static String convert_to_string(Document doc) throws XmlException {
-    var xmlObject = XmlObject.Factory.parse(doc);
-    var options = new XmlOptions();
-    options.setSavePrettyPrint();
-
-    String xmlString = xmlObject.xmlText(options);
-
-    return xmlString;
+    return doc;
   }
 
   private static void get_set_attribute(

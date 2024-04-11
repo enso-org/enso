@@ -3,9 +3,9 @@ import Standard.Base.Errors.Common.Arithmetic_Error
 import Standard.Base.Errors.Illegal_State.Illegal_State
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
-from Standard.Table import Table, Column, Sort_Column, Aggregate_Column, Value_Type
+from Standard.Table import Table, Column, Sort_Column, Aggregate_Column, Value_Type, expr
 from Standard.Table.Errors import all
-import Standard.Table.Data.Expression.Expression_Error
+import Standard.Table.Expression.Expression_Error
 
 from Standard.Database.Errors import SQL_Error
 
@@ -15,7 +15,7 @@ from Standard.Test import all
 from project.Util import all
 from project.Common_Table_Operations.Util import run_default_backend
 
-main = run_default_backend (add_specs detailed=True)
+main filter=Nothing = run_default_backend (add_specs detailed=True) filter
 
 add_specs suite_builder detailed setup =
     prefix = setup.prefix
@@ -349,8 +349,8 @@ add_specs suite_builder detailed setup =
 
     suite_builder.group prefix+"Expression Errors should be handled" group_builder->
         error_tester expression fail_ctor =
-            test_table.set expression new_name="NEW_COL" . should_fail_with Expression_Error
-            test_table.set expression new_name="NEW_COL" . catch . should_be_a fail_ctor
+            test_table.set (expr expression) as="NEW_COL" . should_fail_with Expression_Error
+            test_table.set (expr expression) as="NEW_COL" . catch . should_be_a fail_ctor
 
         specify_test "should fail with Syntax_Error if badly formed" group_builder expression_test=error_tester expression_test->
             expression_test "IIF [A] THEN 1 ELSE 2" Expression_Error.Syntax_Error
@@ -401,7 +401,7 @@ add_specs suite_builder detailed setup =
             c1 = t1.evaluate_expression "3 / [X]" on_problems=Problem_Behavior.Report_Warning
             Problems.expect_warning Arithmetic_Error c1
 
-            t2 = t1.set c1 new_name="Y"
+            t2 = t1.set c1 as="Y"
             Problems.expect_warning Arithmetic_Error t2
             Problems.expect_warning Arithmetic_Error (t2.at "Y")
 
@@ -412,10 +412,10 @@ add_specs suite_builder detailed setup =
             c3 = t2.evaluate_expression "[Y] == 42.0" on_problems=Problem_Behavior.Report_Error
             c3.should_fail_with Floating_Point_Equality
 
-            t3 = t2.set 'if [Y] == 42.0 then "A" else "B"' new_name="Z" on_problems=Problem_Behavior.Report_Error
+            t3 = t2.set (expr 'if [Y] == 42.0 then "A" else "B"') as="Z" on_problems=Problem_Behavior.Report_Error
             t3.should_fail_with Floating_Point_Equality
 
-            t4 = t2.set 'if [Y] >= 42.0 then "A" else "B"' new_name="Z" on_problems=Problem_Behavior.Report_Error
+            t4 = t2.set (expr 'if [Y] >= 42.0 then "A" else "B"') as="Z" on_problems=Problem_Behavior.Report_Error
             t4.at "Z" . to_vector . should_equal ["B", "B", "A"]
             # Should still keep the inherited warning from "Y".
             Problems.expect_warning Arithmetic_Error t4
@@ -425,7 +425,7 @@ add_specs suite_builder detailed setup =
             c1 = Warning.attach (Illegal_State.Error "FOO") (t1.evaluate_expression "[X] + 3.0")
             Problems.expect_warning Illegal_State c1
 
-            t2 = t1.set c1 new_name="Y"
+            t2 = t1.set c1 as="Y"
             Problems.expect_warning Illegal_State t2
             Problems.expect_warning Illegal_State (t2.at "Y")
 
@@ -442,10 +442,10 @@ add_specs suite_builder detailed setup =
             # Should still keep the inherited warning from "Y".
             Problems.expect_warning Illegal_State c4
 
-            t3 = t2.set 'if [Y] == 42.0 then "A" else "B"' new_name="Z" on_problems=Problem_Behavior.Report_Error
+            t3 = t2.set (expr 'if [Y] == 42.0 then "A" else "B"') as="Z" on_problems=Problem_Behavior.Report_Error
             t3.should_fail_with Floating_Point_Equality
 
-            t4 = t2.set 'if [Y] >= 3.5 then "A" else "B"' new_name="Z" on_problems=Problem_Behavior.Report_Error
+            t4 = t2.set (expr 'if [Y] >= 3.5 then "A" else "B"') as="Z" on_problems=Problem_Behavior.Report_Error
             t4.at "Z" . to_vector . should_equal ["A", "A", "B"]
             # Should still keep the inherited warning from "Y".
             Problems.expect_warning Illegal_State t4

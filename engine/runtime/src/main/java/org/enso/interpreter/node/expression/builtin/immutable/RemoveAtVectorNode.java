@@ -10,7 +10,7 @@ import org.enso.interpreter.runtime.data.vector.ArrayLikeHelpers;
 import org.enso.interpreter.runtime.data.vector.ArrayLikeLengthNode;
 
 @BuiltinMethod(
-    type = "Vector",
+    type = "Array_Like_Helpers",
     name = "remove_builtin",
     description = "Removes a value for the vector at the specified index.",
     autoRegister = false)

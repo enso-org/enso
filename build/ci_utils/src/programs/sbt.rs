@@ -1,26 +1,25 @@
 use crate::prelude::*;
 
+use crate::define_env_var;
+use crate::program::command::Manipulator;
 
 
-macro_rules! strong_string {
-    ($name:ident($inner_ty:ty)) => {
-        paste::paste! {
-            #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq, Hash, PartialOrd, Ord)]
-            pub struct $name(pub <$inner_ty as ToOwned>::Owned);
 
-            impl $name {
-                pub fn new(inner: impl Into<<$inner_ty as ToOwned>::Owned>) -> Self {
-                    Self(inner.into())
-                }
-            }
-
-            #[derive(Debug, Serialize, PartialEq, Eq, Hash, PartialOrd, Ord)]
-            pub struct [<$name Ref>]<'a>(pub &'a $inner_ty);
-        }
-    };
+define_env_var! {
+    /// Force the SBT server to start, avoiding `ServerAlreadyBootingException`.
+    /// See: https://github.com/sbt/sbt/issues/6777#issuecomment-1613316167
+    SBT_SERVER_FORCESTART, bool;
 }
 
-strong_string!(Task(str));
+#[derive(Clone, Copy, Debug)]
+pub struct ServerAutostart(pub bool);
+impl Manipulator for ServerAutostart {
+    fn apply<C: IsCommandWrapper + ?Sized>(&self, command: &mut C) {
+        let arg = "sbt.server.autostart";
+        let arg = format!("-D{arg}={}", self.0);
+        command.arg(arg);
+    }
+}
 
 #[derive(Clone, Copy, Debug, Default)]
 pub struct Sbt;

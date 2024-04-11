@@ -1,6 +1,6 @@
 from Standard.Base import all
 from Standard.Base.Data.Array_Proxy import Array_Proxy
-import Standard.Base.Data.Vector.Empty_Error
+import Standard.Base.Errors.Empty_Error.Empty_Error
 import Standard.Base.Data.Vector.Map_Error
 import Standard.Base.Data.Vector.No_Wrap
 import Standard.Base.Errors.Common.Additional_Warnings
@@ -155,8 +155,9 @@ type_spec suite_builder name alter = suite_builder.group name group_builder->
 
     group_builder.specify "should allow to reduce elements if it is non-empty" <|
         alter [1,2,3] . reduce (+) . should_equal 6
-        alter [] . reduce (+) . should_fail_with Empty_Error
-        alter [] . reduce (+) 0 . should_equal 0
+        empty_vec = alter []
+        empty_vec . reduce (+) . should_fail_with (Empty_Error.Error (Meta.type_of empty_vec))
+        empty_vec . reduce (+) 0 . should_equal 0
 
     group_builder.specify "should check any" <|
         vec = alter [1, 2, 3, 4, 5]
@@ -538,7 +539,7 @@ type_spec suite_builder name alter = suite_builder.group name group_builder->
         vec.slice 1 3 . should_equal [2, 3]
         vec.slice 1 1 . should_equal []
         vec.slice 0 100 . should_equal [1, 2, 3, 4, 5, 6]
-        Meta.is_same_object vec (vec.slice 0 100) . should_be_true
+
         Meta.get_qualified_type_name (vec.slice 1 1) . should_equal (Meta.meta Vector . qualified_name)
         Meta.get_simple_type_name (vec.slice 1 1) . should_equal "Vector"
 
@@ -675,8 +676,8 @@ type_spec suite_builder name alter = suite_builder.group name group_builder->
                 v.take (Sample 3) . should_not_equal (v.take (Sample 3))
 
     group_builder.specify "take/drop should gracefully handle missing constructor arguments" <|
-        [].take "FOO" . should_fail_with Type_Error
-        [].drop "FOO" . should_fail_with Type_Error
+        Test.expect_panic Type_Error <| [].take "FOO"
+        Test.expect_panic Type_Error <| [].drop "FOO"
 
         r1 = [].take (Index_Sub_Range.While)
         r1.should_fail_with Illegal_Argument
@@ -982,6 +983,22 @@ type_spec suite_builder name alter = suite_builder.group name group_builder->
         vec = alter [1, 2, 0, 3]
         vec.flat_map on_problems=No_Wrap (n-> Error.throw (My_Error.Error n)) . catch . should_equal (My_Error.Error 1)
 
+    group_builder.specify "can transpose a vector of vectors" <|
+        mat = alter [alter [0, 1, 2], alter [3, 4, 5], alter [6, 7, 8]]
+        expected = alter [alter [0, 3, 6], alter [1, 4, 7], alter [2, 5, 8]]
+        mat.transpose . should_equal expected
+
+    group_builder.specify "can transpose a vector of vectors, edge cases" <|
+        mat1 = alter [alter [], alter [], alter []]
+        mat1.transpose . should_equal []
+        mat2 = alter []
+        mat2.transpose . should_equal []
+
+    group_builder.specify "transpose throws an Illegal_Argument error if the 'matrix' has uneven rows" <|
+        mat1 = alter [alter [0, 1, 2], alter [3, 5], alter [6, 7, 8]]
+        mat1.transpose . should_fail_with Illegal_Argument
+        mat2 = alter [alter [], alter [3, 4, 5], alter [6, 7, 8]]
+        mat2.transpose . should_fail_with Illegal_Argument
 
 add_specs suite_builder =
     suite_builder.group "Vector builder" group_builder->
@@ -1081,8 +1098,7 @@ type Fib
         start = Fib.Number 1 <| Fib.Number 1 (sum_two start)
         start
 
-main =
+main filter=Nothing =
     suite = Test.build suite_builder->
         add_specs suite_builder
-    suite.run_with_filter
-
+    suite.run_with_filter filter

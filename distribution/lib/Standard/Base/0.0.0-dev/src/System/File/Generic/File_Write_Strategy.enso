@@ -1,0 +1,145 @@
+import project.Error.Error
+import project.Errors.File_Error.File_Error
+import project.Panic.Panic
+import project.Runtime.Context
+import project.System.File.Data_Link_Access.Data_Link_Access
+import project.System.File.Existing_File_Behavior.Existing_File_Behavior
+import project.System.File.File
+import project.System.File.File_Access.File_Access
+import project.System.File.Generic.Writable_File.Writable_File
+from project.Data.Boolean import Boolean, False, True
+
+## PRIVATE
+   Specifies the logic for handling writing files with options like `Existing_File_Behavior` and dry run.
+type File_Write_Strategy
+    ## PRIVATE
+       Each of the `write_` strategies takes the file as the first argument,
+       `Existing_File_Behavior` as second argument, and an action taking an
+       `Output_Stream` as the third argument and should run this action against
+       the output stream opened for the file and return its result.
+
+       The `create_dry_run_file` takes a destination file and a boolean flag
+       stating if it needs to copy the original file as part of preparation. It
+       should return a dry run counterpart that is associated with it. It may
+       raise an error if dry runs are not supported on a given backend. Note
+       that currently there is no mechanism for managing cleanup of the dry run
+       files, so they only should be created if a 'temporary directory' is
+       available.
+
+       The `write_with_local_file` action takes the file, the
+       `Existing_File_Behavior` and an action.
+       A remote file is downloaded to a temporary file and the provided action
+       is called with that local temporary file. Then that file is uploaded to
+       replace the remote file.
+
+       The `copy_from_local` action creates the file on a given backend from a
+       local file. It can be used to implement more efficient upload strategies
+       than ones based on just writing to an output stream.
+       The default `generic_copy` implementation can always be used here.
+    Value write_overwriting write_appending write_raising_error write_backing_up create_dry_run_file write_with_local_file copy_from_local
+
+    ## PRIVATE
+       Writes to a file according to the provided existing file behaviour.
+       This variant does not handle dry run logic.
+       It will most likely fail at `with_output_stream` if the output context is
+       not enabled. It may be used if the caller has custom handling for dry run
+       and calls this method within `Context.Output.with_enabled`.
+    write self file (existing_file_behavior : Existing_File_Behavior) action =
+        case existing_file_behavior of
+            Existing_File_Behavior.Overwrite -> self.write_overwriting file action
+            Existing_File_Behavior.Backup -> self.write_backing_up file action
+            Existing_File_Behavior.Append -> self.write_appending file action
+            Existing_File_Behavior.Error -> self.write_raising_error file action
+
+    ## PRIVATE
+       Writes to a file, executing a default dry-run logic if the Output Context
+       is disabled.
+
+       The `action` is called with the effective file (original destination file
+       or its dry run counterpart) and an output stream to that file.
+    write_handling_dry_run self file (existing_file_behavior : Existing_File_Behavior) action =
+        if Context.Output.is_enabled then self.write file existing_file_behavior (action file) else
+            effective_behavior = dry_run_behavior file existing_file_behavior
+            effective_file = self.create_dry_run_file file effective_behavior.copy_original
+            effective_file.if_not_error <| Context.Output.with_enabled <|
+                self.write effective_file effective_behavior.existing_file_behavior output_stream->
+                    action effective_file output_stream
+
+## PRIVATE
+default_overwrite file action =
+    file.with_output_stream [File_Access.Write, File_Access.Create, File_Access.Truncate_Existing] action
+
+## PRIVATE
+default_append file action =
+    file.with_output_stream [File_Access.Write, File_Access.Create, File_Access.Append] action
+
+## PRIVATE
+default_raise_error file action =
+    file.with_output_stream [File_Access.Write, File_Access.Create_New] action
+
+## PRIVATE
+generic_remote_write_with_local_file (file : Writable_File) existing_file_behavior action =
+    Context.Output.if_enabled disabled_message="Writing to remote file backends is not allowed in dry-run mode." panic=False <|
+        temp_file = File.create_temporary_file prefix="remote-write-"
+        Panic.with_finalizer temp_file.delete <|
+            tmp_synchronized = case file.exists of
+                ## Copy the file to a local temporary file.
+                   The copy is needed because we may be appending new sheets, so existing data must also be taken into account.
+                True -> file.copy_to temp_file replace_existing=True
+                # The temporarily created empty file should not exist to reflect that the original destination did not exist.
+                False -> temp_file.delete_if_exists
+
+            ## The behavior to apply when uploading the written temporary file back to the remote backend.
+               In case the strategy was `Append`, we need to change it to `Overwrite` for upload,
+               as the `Append` logic should have been handled by the `action` itself, and now we are replacing the _full_ file.
+            effective_file_behavior = case existing_file_behavior of
+                Existing_File_Behavior.Append -> Existing_File_Behavior.Overwrite
+                _ -> existing_file_behavior
+
+            tmp_synchronized.if_not_error <|
+                result = action temp_file
+                result.if_not_error <|
+                    ## Copy the local temporary file back to the remote file, but using the write strategy to automatically handle stuff like Backup:
+                    copy_success = file.write effective_file_behavior output_stream->
+                        temp_file.with_input_stream [File_Access.Read] input_stream->
+                            output_stream.write_stream input_stream
+                    copy_success.if_not_error <|
+                        result
+
+## PRIVATE
+type Dry_Run_File_Settings
+    ## PRIVATE
+       Arguments:
+       - existing_file_behavior: Specifies how to treat an existing dry run file.
+         Usually, `Overwrite` is used regardless of the original setting.
+         The exception is `Append`, which usually requires to copy the original
+         file first to keep the state consistent.
+       - copy_original: Specifies whether to copy the original file to the dry
+         run file before writing. If the file is not copied, contents from a
+         previous dry run may still be there, so any options other than
+         `Overwrite` may be risky.
+    Value existing_file_behavior:Existing_File_Behavior copy_original:Boolean
+
+## PRIVATE
+dry_run_behavior file behavior:Existing_File_Behavior -> Dry_Run_File_Settings = case behavior of
+    Existing_File_Behavior.Error ->
+        ## In case the _original_ file exists, the dry run will raise error because the actual write would have errored.
+           If the original file does not exist, we can just overwrite the dry run file.
+        if file.exists then Error.throw (File_Error.Already_Exists file) else
+            Dry_Run_File_Settings.Value Existing_File_Behavior.Overwrite copy_original=False
+    Existing_File_Behavior.Backup ->
+        Dry_Run_File_Settings.Value Existing_File_Behavior.Overwrite copy_original=False
+    Existing_File_Behavior.Overwrite ->
+        Dry_Run_File_Settings.Value Existing_File_Behavior.Overwrite copy_original=False
+    Existing_File_Behavior.Append ->
+        Dry_Run_File_Settings.Value Existing_File_Behavior.Append copy_original=True
+
+## PRIVATE
+   Generic `copy` implementation between two backends.
+   The files only need to support `with_input_stream` and `with_output_stream`.
+generic_copy source destination replace_existing =
+    source.with_input_stream [File_Access.Read, Data_Link_Access.No_Follow] input_stream->
+        replace_options = if replace_existing then [File_Access.Create, File_Access.Truncate_Existing] else [File_Access.Create_New]
+        options = [File_Access.Write, Data_Link_Access.No_Follow] + replace_options
+        destination.with_output_stream options output_stream->
+            output_stream.write_stream input_stream . if_not_error destination

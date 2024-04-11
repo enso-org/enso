@@ -17,25 +17,29 @@ export enum SpinnerState {
 
 export const SPINNER_CSS_CLASSES: Readonly<Record<SpinnerState, string>> = {
   [SpinnerState.initial]: 'dasharray-5 ease-linear',
-  [SpinnerState.loadingSlow]: 'dasharray-75 duration-90000 ease-linear',
-  [SpinnerState.loadingMedium]: 'dasharray-75 duration-5000 ease-linear',
-  [SpinnerState.loadingFast]: 'dasharray-75 duration-1000 ease-linear',
-  [SpinnerState.done]: 'dasharray-100 duration-1000 ease-in',
+  [SpinnerState.loadingSlow]: 'dasharray-75 duration-spinner-slow ease-linear',
+  [SpinnerState.loadingMedium]: 'dasharray-75 duration-spinner-medium ease-linear',
+  [SpinnerState.loadingFast]: 'dasharray-75 duration-spinner-fast ease-linear',
+  [SpinnerState.done]: 'dasharray-100 duration-spinner-fast ease-in',
 }
 
 /** Props for a {@link Spinner}. */
 export interface SpinnerProps {
-  readonly size: number
+  readonly size?: number
+  readonly padding?: number
+  readonly className?: string
   readonly state: SpinnerState
 }
 
 /** A spinning arc that animates using the `dasharray-<percentage>` custom Tailwind classes. */
 export default function Spinner(props: SpinnerProps) {
-  const { size, state } = props
+  const { size, padding, className, state } = props
   return (
     <svg
       width={size}
       height={size}
+      className={className}
+      style={{ padding }}
       viewBox="0 0 24 24"
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
@@ -49,10 +53,7 @@ export default function Spinner(props: SpinnerProps) {
         stroke="currentColor"
         strokeLinecap="round"
         strokeWidth={3}
-        className={
-          'animate-spin-ease origin-center transition-stroke-dasharray ' +
-          `pointer-events-none ${SPINNER_CSS_CLASSES[state]}`
-        }
+        className={`pointer-events-none origin-center animate-spin-ease transition-stroke-dasharray ${SPINNER_CSS_CLASSES[state]}`}
       />
     </svg>
   )

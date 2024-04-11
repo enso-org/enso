@@ -11,7 +11,7 @@ import org.enso.interpreter.instrument.execution.{
 }
 import org.enso.interpreter.instrument.profiling.ExecutionTime
 import org.enso.interpreter.node.callable.FunctionCallInstrumentationNode.FunctionCall
-import org.enso.interpreter.node.expression.builtin.meta.TypeOfNode
+import org.enso.interpreter.runtime.library.dispatch.TypeOfNode
 import org.enso.interpreter.runtime.`type`.{Types, TypesGen}
 import org.enso.interpreter.runtime.data.atom.AtomConstructor
 import org.enso.interpreter.runtime.callable.function.Function
@@ -244,10 +244,10 @@ object ProgramExecutionSupport {
       }
 
     val (explicitCallOpt, localCalls) = unwind(stack, Nil, Nil)
-    val executionResult = for {
+    val executionResult: Either[Option[Api.ExecutionResult], Unit] = for {
       stackItem <- Either.fromOption(
         explicitCallOpt,
-        Api.ExecutionResult.Failure("Execution stack is empty.", None)
+        Some(Api.ExecutionResult.Failure("Execution stack is empty.", None))
       )
       _ <-
         Either
@@ -255,7 +255,7 @@ object ProgramExecutionSupport {
           .leftMap(onExecutionError(stackItem.item, _))
     } yield ()
     logger.log(Level.FINEST, s"Execution finished: $executionResult")
-    executionResult.fold(Some(_), _ => None)
+    executionResult.fold(identity, _ => None)
   }
 
   /** Execution error handler.
@@ -267,24 +267,24 @@ object ProgramExecutionSupport {
   private def onExecutionError(
     item: ExecutionItem,
     error: Throwable
-  )(implicit ctx: RuntimeContext): Api.ExecutionResult = {
+  )(implicit ctx: RuntimeContext): Option[Api.ExecutionResult] = {
     val itemName = item match {
       case ExecutionItem.Method(_, _, function) => function
       case ExecutionItem.CallData(_, call)      => call.getFunction.getName
     }
     val executionUpdate = getExecutionOutcome(error)
     val reason          = VisualizationResult.findExceptionMessage(error)
-    def onFailure() = error match {
+    def onFailure(): Option[Api.ExecutionResult] = error match {
       case _: ThreadInterruptedException =>
         val message = s"Execution of function $itemName interrupted."
         ctx.executionService.getLogger.log(Level.FINE, message)
-        ExecutionResult.Diagnostic.warning(message, None)
+        None
       case _ =>
         val message = s"Execution of function $itemName failed ($reason)."
         ctx.executionService.getLogger.log(Level.WARNING, message, error)
-        ExecutionResult.Failure(message, None)
+        Some(ExecutionResult.Failure(message, None))
     }
-    executionUpdate.getOrElse(onFailure())
+    executionUpdate.orElse(onFailure())
   }
 
   /** Convert the runtime exception to the corresponding API error messages.
@@ -395,10 +395,22 @@ object ProgramExecutionSupport {
                 )
               val warningsCount = warnings.length
               val warning =
-                if (warningsCount == 1) {
-                  Option(
-                    ctx.executionService.toDisplayString(warnings(0).getValue)
-                  )
+                if (warningsCount > 0) {
+                  Either
+                    .catchNonFatal(
+                      WarningPreview.execute(warnings(0).getValue)
+                    )
+                    .fold(
+                      error => {
+                        ctx.executionService.getLogger.log(
+                          Level.SEVERE,
+                          "Failed to execute warning preview of expression [{0}].",
+                          Array[Object](expressionId, error)
+                        )
+                        None
+                      },
+                      Some(_)
+                    )
                 } else {
                   None
                 }
@@ -483,22 +495,21 @@ object ProgramExecutionSupport {
           contextId,
           value.getExpressionId
         )
-      visualizations.collect {
-        case visualization: Visualization.AttachedVisualization =>
-          executeAndSendVisualizationUpdate(
-            contextId,
-            syncState,
-            visualization,
-            value.getExpressionId,
-            value.getValue
-          )
+      visualizations.foreach { visualization =>
+        executeAndSendVisualizationUpdate(
+          contextId,
+          syncState,
+          visualization,
+          value.getExpressionId,
+          value.getValue
+        )
       }
     }
   }
 
   private def executeVisualization(
     contextId: ContextId,
-    visualization: Visualization.AttachedVisualization,
+    visualization: Visualization,
     expressionId: UUID,
     expressionValue: AnyRef
   )(implicit ctx: RuntimeContext): Either[Throwable, AnyRef] =
@@ -553,12 +564,13 @@ object ProgramExecutionSupport {
               .getOrElse(expressionValue.getClass)
           ctx.executionService.getLogger.log(
             Level.WARNING,
-            "Execution of visualization [{0}] on value [{1}] of [{2}] failed. {3}",
+            "Execution of visualization [{0}] on value [{1}] of [{2}] failed. {3} | {4}",
             Array[Object](
               visualizationId,
               expressionId,
               typeOfNode,
               message,
+              expressionValue,
               error
             )
           )
@@ -614,25 +626,23 @@ object ProgramExecutionSupport {
     visualization: Visualization,
     expressionId: UUID,
     expressionValue: AnyRef
-  )(implicit ctx: RuntimeContext): Unit =
-    visualization match {
-      case visualization: Visualization.AttachedVisualization =>
-        val visualizationResult = executeVisualization(
-          contextId,
-          visualization,
-          expressionId,
-          expressionValue
-        )
-        sendVisualizationUpdate(
-          visualizationResult,
-          contextId,
-          syncState,
-          visualization.id,
-          expressionId,
-          expressionValue
-        )
-      case _: Visualization.OneshotExpression =>
-    }
+  )(implicit ctx: RuntimeContext): Unit = {
+    val visualizationResult =
+      executeVisualization(
+        contextId,
+        visualization,
+        expressionId,
+        expressionValue
+      )
+    sendVisualizationUpdate(
+      visualizationResult,
+      contextId,
+      syncState,
+      visualization.id,
+      expressionId,
+      expressionValue
+    )
+  }
 
   /** Convert the result of Enso visualization function to a byte array.
     *

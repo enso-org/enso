@@ -1,12 +1,12 @@
 <script setup lang="ts">
 import NumericInputWidget from '@/components/widgets/NumericInputWidget.vue'
 import { Score, WidgetInput, defineWidget, widgetProps } from '@/providers/widgetRegistry'
+import { WidgetEditHandler } from '@/providers/widgetRegistry/editHandler'
 import { Ast } from '@/util/ast'
-import type { TokenId } from '@/util/ast/abstract.ts'
-import { asNot } from '@/util/data/types.ts'
-import { computed } from 'vue'
+import { computed, ref, type ComponentInstance } from 'vue'
 
 const props = defineProps(widgetProps(widgetDefinition))
+const inputComponent = ref<ComponentInstance<typeof NumericInputWidget>>()
 const value = computed({
   get() {
     const valueStr = WidgetInput.valueRepr(props.input)
@@ -14,7 +14,7 @@ const value = computed({
   },
   set(value) {
     props.onUpdate({
-      portUpdate: { value: value.toString(), origin: asNot<TokenId>(props.input.portId) },
+      portUpdate: { value: value.toString(), origin: props.input.portId },
     })
   },
 })
@@ -27,32 +27,53 @@ const limits = computed(() => {
     return undefined
   }
 })
-</script>
 
-<script lang="ts">
-export const widgetDefinition = defineWidget(WidgetInput.isAstOrPlaceholder, {
-  priority: 1001,
-  score: (props) => {
-    if (
-      props.input.value instanceof Ast.NumericLiteral ||
-      (props.input.value instanceof Ast.NegationApp &&
-        props.input.value.argument instanceof Ast.NumericLiteral)
-    )
-      return Score.Perfect
-    const type = props.input.expectedType
-    if (
-      type === 'Standard.Base.Data.Number' ||
-      type === 'Standard.Base.Data.Numbers.Integer' ||
-      type === 'Standard.Data.Numbers.Float'
-    )
-      return Score.Good
-    return Score.Mismatch
-  },
+const editHandler = WidgetEditHandler.New('WidgetNumber', props.input, {
+  cancel: () => inputComponent.value?.cancel(),
+  start: () => inputComponent.value?.focus(),
+  end: () => inputComponent.value?.blur(),
 })
 </script>
 
+<script lang="ts">
+export const widgetDefinition = defineWidget(
+  WidgetInput.isAstOrPlaceholder,
+  {
+    priority: 1001,
+    score: (props) => {
+      if (
+        props.input.value instanceof Ast.NumericLiteral ||
+        (props.input.value instanceof Ast.NegationApp &&
+          props.input.value.argument instanceof Ast.NumericLiteral)
+      )
+        return Score.Perfect
+      const type = props.input.expectedType
+      if (
+        type === 'Standard.Base.Data.Numbers.Number' ||
+        type === 'Standard.Base.Data.Numbers.Integer' ||
+        type === 'Standard.Base.Data.Numbers.Float'
+      )
+        return Score.Good
+      return Score.Mismatch
+    },
+  },
+  import.meta.hot,
+)
+</script>
+
 <template>
-  <NumericInputWidget v-model="value" class="WidgetNumber r-24" :limits="limits" />
+  <!-- See comment in GraphNode next to dragPointer definition about stopping pointerdown and pointerup -->
+  <NumericInputWidget
+    ref="inputComponent"
+    v-model="value"
+    class="WidgetNumber r-24"
+    :limits="limits"
+    @pointerdown.stop
+    @pointerup.stop
+    @focus="editHandler.start()"
+    @blur="editHandler.end()"
+    @input="editHandler.edit($event)"
+  />
 </template>
 
 <style scoped>

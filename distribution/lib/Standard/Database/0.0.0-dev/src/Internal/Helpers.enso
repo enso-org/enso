@@ -2,8 +2,8 @@ from Standard.Base import all
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 from Standard.Base.Runtime import assert
 
-import project.Data.Column.Column
-import project.Data.Table.Table
+import project.DB_Column.DB_Column
+import project.DB_Table.DB_Table
 import project.Internal.IR.Internal_Column.Internal_Column
 from project.Errors import Unsupported_Database_Operation
 
@@ -20,7 +20,7 @@ polyglot java import java.util.regex.Pattern
 
    To combine different objects they need to satisfy this requirement, otherwise
    the combination would be ill-formed.
-check_integrity : (Table | Column) -> (Table | Column) -> Boolean
+check_integrity : (DB_Table | DB_Column) -> (DB_Table | DB_Column) -> Boolean
 check_integrity entity1 entity2 =
     ctx = entity1.context == entity2.context
     ctx && (check_connection entity1 entity2)
@@ -32,7 +32,7 @@ check_integrity entity1 entity2 =
    Arguments:
    - entity1: The entity to check against the second.
    - entity2: The entity to check against the first.
-check_connection : (Table | Column) -> (Table | Column) -> Boolean
+check_connection : (DB_Table | DB_Column) -> (DB_Table | DB_Column) -> Boolean
 check_connection entity1 entity2 =
     # The `if_not_error` is needed `Meta.is_same_object` does not forward dataflow errors.
     entity1.if_not_error <| entity2.if_not_error <|

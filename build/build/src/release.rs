@@ -9,11 +9,6 @@ use crate::paths::generated;
 use crate::paths::TargetTriple;
 use crate::paths::EDITION_FILE_ARTIFACT_NAME;
 use crate::project;
-use crate::project::gui;
-use crate::project::Gui;
-use crate::project::IsTarget;
-use crate::source::ExternalSource;
-use crate::source::FetchTargetJob;
 use crate::version;
 use crate::version::promote::Designation;
 use crate::version::Versions;
@@ -29,6 +24,13 @@ use serde_json::json;
 use tempfile::tempdir;
 
 
+// ==============
+// === Export ===
+// ==============
+
+pub mod manifest;
+
+
 
 /// Get the prefix of URL of the release's asset in GitHub.
 ///
@@ -41,10 +43,22 @@ use tempfile::tempdir;
 /// let repo = RepoRef::new("enso-org", "enso");
 /// let version = Version::from_str("2020.1.1").unwrap();
 /// let prefix = download_asset_prefix(&repo, &version);
-/// assert_eq!(prefix, "https://github.com/enso-org/enso/releases/download/2020.1.1");
+/// assert_eq!(prefix.as_str(), "https://github.com/enso-org/enso/releases/download/2020.1.1");
 /// ```
-pub fn download_asset_prefix(repo: &impl IsRepo, version: &Version) -> String {
-    format!("https://github.com/{repo}/releases/download/{version}",)
+pub fn download_asset_prefix(repo: &impl IsRepo, version: &Version) -> Url {
+    let text = format!("https://github.com/{repo}/releases/download/{version}",);
+    Url::from_str(&text).expect("Failed to parse the URL.")
+}
+
+/// Get the URL for downloading the asset from the GitHub release.
+pub fn download_asset(
+    repo: &impl IsRepo,
+    version: &Version,
+    asset_name: impl AsRef<str>,
+) -> String {
+    let prefix = download_asset_prefix(repo, version);
+    let asset_name = asset_name.as_ref();
+    format!("{prefix}/{asset_name}")
 }
 
 /// Generate placeholders for the release notes.
@@ -60,12 +74,11 @@ pub fn release_body_placeholders(
     ret.insert("edition", context.triple.versions.edition_name().into());
     ret.insert("repo", serde_json::to_value(&context.remote_repo)?);
     ret.insert(
-        "download_prefix",
-        format!(
-            "https://github.com/{}/releases/download/{}",
-            context.remote_repo, context.triple.versions.version
-        )
-        .into(),
+        "assets",
+        serde_json::to_value(manifest::Assets::new(
+            &context.remote_repo,
+            &context.triple.versions.version,
+        ))?,
     );
 
     // Generate the release notes.
@@ -163,7 +176,7 @@ pub async fn publish_release(context: &BuildContext) -> Result {
     debug!("Done. Release URL: {}", release.url);
 
     let temp = tempdir()?;
-    let edition_file_path = crate::paths::generated::RepoRootDistributionEditions::new_root(
+    let edition_file_path = generated::RepoRootDistributionEditions::new_root(
         temp.path(),
         triple.versions.edition_name(),
     )
@@ -179,6 +192,39 @@ pub async fn publish_release(context: &BuildContext) -> Result {
     debug!("Updating edition in the AWS S3.");
     crate::aws::update_manifest(&remote_repo, &edition_file_path).await?;
 
+    // Add assets manifest.
+    let manifest = manifest::Assets::new(&remote_repo, &triple.versions.version);
+    let tempdir = tempdir()?;
+    let manifest_path = tempdir.path().join(manifest::ASSETS_MANIFEST_FILENAME);
+    ide_ci::fs::write_json(&manifest_path, &manifest)?;
+    release_handle.upload_asset_file(&manifest_path).await?;
+
+    // The validation step is performed to enable issue reporting and enhance issue visibility.
+    // Currently, even if the validation fails, the release will not be retracted.
+    validate_release(release_handle).await?;
+
+    Ok(())
+}
+
+/// Perform basic check if the release contains advertised assets.
+///
+/// This should be run only on a published (non-draft) release, as asset download URLs change after
+/// publishing.
+#[context("Failed to validate release: {release:?}")]
+pub async fn validate_release(release: github::release::Handle) -> Result {
+    let info = release.get().await?;
+    ensure!(!info.draft, "Release is a draft.");
+    let version = Version::from_str(&info.tag_name)?;
+    let manifest_url = download_asset(&release.repo, &version, manifest::ASSETS_MANIFEST_FILENAME);
+    let manifest = ide_ci::io::download_all(&manifest_url)
+        .await
+        .context("Failed to download assets manifest.")?;
+    let manifest: manifest::Assets =
+        serde_json::from_slice(&manifest).context("Failed to parse assets manifest.")?;
+    for asset in manifest.assets() {
+        let response = reqwest::Client::new().get(&asset.url).send().await?;
+        ensure!(response.status().is_success(), "Failed to download asset: {}", asset.url);
+    }
     Ok(())
 }
 
@@ -242,50 +288,6 @@ pub async fn deploy_to_ecr(context: &BuildContext, repository: String) -> Result
     Ok(())
 }
 
-/// Download the GUI artifacts from the current CI run artifacts.
-pub async fn get_gui_from_current_ci_run(
-    context: &BuildContext,
-    out_dir: impl Into<PathBuf>,
-) -> Result<gui::Artifact> {
-    let target = Gui;
-    let source = ExternalSource::new_ongoing_ci_run(target.artifact_name());
-    let fetch_job = FetchTargetJob { destination: out_dir.into(), inner: source };
-    target.get_external(context.inner.clone(), fetch_job).await
-}
-
-/// Upload GUI to the cloud (AWS S3).
-pub async fn upload_gui_to_cloud_good(context: &BuildContext) -> Result {
-    let temp = tempdir()?;
-    let gui = get_gui_from_current_ci_run(context, temp.path()).await?;
-    upload_gui_to_cloud(&gui.assets, &context.triple.versions.version).await?;
-    notify_cloud_about_gui(&context.triple.versions.version).await?;
-    Ok(())
-}
-
-/// Upload GUI to the cloud (AWS S3).
-pub async fn upload_gui_to_cloud(
-    assets: &crate::paths::generated::RepoRootDistGuiAssets,
-    version: &Version,
-) -> Result {
-    let bucket = crate::aws::s3::gui::context(version).await?;
-
-    // Some file we upload as-is, some gzipped. This seems somewhat arbitrary now.
-    let files_to_upload = [
-        assets.pkg_opt_wasm.as_path(),
-        assets.style_css.as_path(),
-        assets.dynamic_assets.as_path(),
-    ];
-    let files_to_upload_gzipped = [assets.entrypoint_js.as_path(), assets.pkg_js.as_path()];
-
-    for file in files_to_upload.iter() {
-        bucket.put_item(file).await?;
-    }
-
-    put_files_gzipping(&bucket, &files_to_upload_gzipped).await?;
-
-    Ok(())
-}
-
 /// Packs given files with `gzip` and uploads them to the S3 bucket.
 ///
 /// The files are uploaded with the same name, but with `.gz` extension.
@@ -342,23 +344,11 @@ pub async fn promote_release(context: &BuildContext, version_designation: Design
     Ok(())
 }
 
-
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    #[tokio::test]
-    #[ignore]
-    async fn upload_gui() -> Result {
-        setup_logging()?;
-        let assets = crate::paths::generated::RepoRootDistGuiAssets::new_root(
-            r"H:\NBO\enso4\dist\gui\assets",
-        );
-        let version = "2023.1.1-dev.cloud.test".parse2()?;
-        upload_gui_to_cloud(&assets, &version).await?;
-        notify_cloud_about_gui(&version).await?;
-        Ok(())
-    }
+    use ide_ci::cache::Cache;
+    use ide_ci::github::setup_octocrab;
 
     #[tokio::test]
     #[ignore]
@@ -366,6 +356,41 @@ mod tests {
         setup_logging()?;
         let version = Version::from_str("2022.1.1-rc.2")?;
         notify_cloud_about_gui(&version).await?;
+        Ok(())
+    }
+
+    #[tokio::test]
+    #[ignore]
+    async fn release_assets() -> Result {
+        setup_logging()?;
+
+        let crate_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        let repo_root = crate_dir.parent().unwrap().parent().unwrap();
+        let version = Version::from_str("2024.1.1-nightly.2024.3.26")?;
+        let triple = TargetTriple::new(Versions::new(version.clone()));
+        let context = BuildContext {
+            inner:       project::Context {
+                repo_root: crate::paths::new_repo_root(repo_root, &triple),
+                octocrab:  setup_octocrab().await?,
+                cache:     Cache::new_default().await?,
+            },
+            remote_repo: github::Repo::new("enso-org", "enso"),
+            triple:      TargetTriple::new(Versions::new(version.clone())),
+        };
+
+        let release_body = generate_release_body(&context).await?;
+        debug!("Release body: {}", release_body);
+
+        let manifest = manifest::Assets::new(&context.remote_repo, &version);
+        let manifest_json = serde_json::to_string_pretty(&manifest)?;
+        debug!("Manifest: {}", manifest_json);
+
+        let all_assets = manifest.ide.iter().chain(&manifest.engine);
+        for asset in all_assets {
+            let response = reqwest::Client::new().get(&asset.url).send().await?;
+            ensure!(response.status().is_success(), "Failed to download asset: {}", asset.url);
+        }
+
         Ok(())
     }
 }

@@ -1,5 +1,5 @@
 from Standard.Base import all
-import Standard.Base.Data.Enso_Cloud.Enso_Secret.Enso_Secret_Error
+import Standard.Base.Enso_Cloud.Enso_Secret.Enso_Secret_Error
 import Standard.Base.Errors.Common.Syntax_Error
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Network.HTTP.Request.Request
@@ -7,7 +7,6 @@ import Standard.Base.Network.HTTP.Request.Request
 from Standard.Test import all
 
 import project.Network.Enso_Cloud.Cloud_Tests_Setup.Cloud_Tests_Setup
-from project.Network.Enso_Cloud.Cloud_Tests_Setup import with_retries
 
 add_specs suite_builder =
     ## To run this test locally:
@@ -312,7 +311,7 @@ add_specs suite_builder =
                         uri.to_text . should_equal (cloud_setup.httpbin_secure_uri.to_text + "get?arg1=__SECRET__&arg2=plain+value&arg3=__SECRET__")
                         uri.raw_query . should_fail_with Enso_Secret_Error
 
-                        with_retries <|
+                        Test.with_retries <|
                             response = cloud_setup.httpbin_secure_client.request (Request.get uri)
                             decode_query_params response.decode_as_json . should_equal [["arg1", "My Very Secret Value"], ["arg2", "plain value"], ["arg3", s2]]
 
@@ -330,10 +329,10 @@ add_specs suite_builder =
                     r1.should_fail_with Illegal_Argument
                     r1.catch.to_display_text . should_contain "Secrets are not allowed in HTTP connections, use HTTPS instead."
 
-main =
+main filter=Nothing =
     suite = Test.build suite_builder->
         add_specs suite_builder
-    suite.run_with_filter
+    suite.run_with_filter filter
 
 
 decode_query_params : Json -> Vector (Pair Text Text)

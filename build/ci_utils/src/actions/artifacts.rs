@@ -8,7 +8,6 @@ use crate::actions::artifacts::upload::UploadOptions;
 
 use anyhow::Context as Trait_anyhow_Context;
 use flume::Sender;
-use serde::de::DeserializeOwned;
 use tempfile::tempdir;
 
 
@@ -67,46 +66,47 @@ pub fn discover_recursive(
     rx.into_stream()
 }
 
-pub async fn upload(
+
+pub fn upload(
     file_provider: impl Stream<Item = FileToUpload> + Send + 'static,
-    artifact_name: impl AsRef<str>,
+    artifact_name: impl Into<String>,
     options: UploadOptions,
-) -> Result {
-    let handler =
-        ArtifactUploader::new(SessionClient::new_from_env()?, artifact_name.as_ref()).await?;
-    let result = handler.upload_artifact_to_file_container(file_provider, &options).await;
-    // We want to patch size even if there were some failures.
-    handler.patch_artifact_size().await?;
-    result
+) -> BoxFuture<'static, Result> {
+    let artifact_name = artifact_name.into();
+    let span = info_span!("Artifact upload", artifact_name);
+    async move {
+        let handler = ArtifactUploader::new(SessionClient::new_from_env()?, artifact_name).await?;
+        let result = handler.upload_artifact_to_file_container(file_provider, &options).await;
+        // We want to patch size even if there were some failures.
+        handler.patch_artifact_size().await?;
+        result
+    }
+    .instrument(span)
+    .boxed()
 }
 
 pub fn upload_single_file(
     file: impl Into<PathBuf>,
-    artifact_name: impl AsRef<str>,
-) -> impl Future<Output = Result> {
+    artifact_name: impl Into<String>,
+) -> BoxFuture<'static, Result> {
     let file = file.into();
-    let files = single_file_provider(file.clone());
-    let span = info_span!("upload_single_file", artifact_name = %artifact_name.as_ref(), file = %file.display());
-    async move {
-        upload(files?, &artifact_name, default()).await.with_context(|| {
-            format!(
-                "Failed to upload file {} as artifact {}.",
-                file.display(),
-                artifact_name.as_ref()
-            )
-        })
-    }
-    .instrument(span)
+    let artifact_name = artifact_name.into();
+    info!("Uploading file {} as artifact {artifact_name}.", file.display());
+    single_file_provider(file)
+        .and_then_async(move |stream| upload(stream, artifact_name, default()))
+        .boxed()
 }
 
 pub fn upload_directory(
     dir: impl Into<PathBuf>,
-    artifact_name: impl AsRef<str>,
-) -> impl Future<Output = Result> {
+    artifact_name: impl Into<String>,
+) -> BoxFuture<'static, Result> {
     let dir = dir.into();
-    info!("Uploading directory {}.", dir.display());
-    let files = single_dir_provider(&dir);
-    (async move || -> Result { upload(files?, artifact_name, default()).await })()
+    let artifact_name = artifact_name.into();
+    info!("Uploading directory {} as artifact {artifact_name}.", dir.display());
+    single_dir_provider(&dir)
+        .and_then_async(move |stream| upload(stream, artifact_name, default()))
+        .boxed()
 }
 
 #[tracing::instrument(skip_all , fields(artifact_name = %artifact_name.as_ref(), target = %target.as_ref().display()), err)]
@@ -137,14 +137,61 @@ pub fn single_file_provider(
     Ok(futures::stream::iter([file]))
 }
 
+/// Scan recursively directory with its subtree for files to upload to the artifact.
+///
+/// The directory name will be preserved in the artifact container.
+///
+/// # Example
+/// ```
+/// # use ide_ci::prelude::*;
+/// # use tempfile::TempDir;
+/// # use ide_ci::actions::artifacts::single_dir_provider;
+/// # use std::path::Path;
+///
+/// # #[tokio::main]
+/// # async fn main() -> Result {
+/// //  temp_dir/
+/// // ├── sibling/
+/// // │   └── file
+/// // └── uploaded_dir/
+/// //     ├── file
+/// //     └── subdir/
+/// //         └── nested_file
+/// let dir = TempDir::new()?;
+/// let sibling = dir.path().join("sibling");
+/// let file_in_sibling = sibling.join("file");
+/// let uploaded = dir.path().join("uploaded_dir");
+/// let file1 = uploaded.join("file");
+/// let file2 = uploaded.join_iter(["subdir/nested_file"]);
+/// ide_ci::fs::create_dir_all(&uploaded)?;
+/// ide_ci::fs::create(&file1)?;
+/// ide_ci::fs::create(&file2)?;
+/// ide_ci::fs::create_dir_all(&sibling)?;
+/// ide_ci::fs::create(&file_in_sibling)?;
+///
+/// let stream = single_dir_provider(&uploaded)?;
+/// let mut found_files = stream.collect::<Vec<_>>().await;
+/// // Make discovery order irrelevant.
+/// found_files.sort_by(|a, b| a.local_path.cmp(&b.local_path));
+///
+/// assert_eq!(found_files.len(), 2);
+/// assert_eq!(found_files[0].local_path, file1);
+/// assert_eq!(found_files[0].remote_path, Path::new("uploaded_dir/file"));
+/// assert_eq!(found_files[1].local_path, file2);
+/// assert_eq!(found_files[1].remote_path, Path::new("uploaded_dir/subdir/nested_file"));
+/// // Note that sibling directory has not been included.
+/// # Ok(())
+/// # }
+/// ```
 pub fn single_dir_provider(path: &Path) -> Result<impl Stream<Item = FileToUpload> + 'static> {
     // TODO not optimal, could discover files at the same time as handling them.
+    let parent_path = path.try_parent()?;
     let files = walkdir::WalkDir::new(path)
         .into_iter()
         .try_collect_vec()?
         .into_iter()
         .filter(|entry| !entry.file_type().is_dir())
-        .map(|entry| FileToUpload::new_relative(path, entry.path()))
+        .map(|entry| FileToUpload::new_relative(parent_path, entry.path()))
         .try_collect_vec()?;
 
     info!("Discovered {} files under the {}.", files.len(), path.display());
@@ -189,7 +236,6 @@ mod tests {
     use super::*;
     use crate::actions::artifacts::models::CreateArtifactResponse;
     use reqwest::StatusCode;
-    use tempfile::TempDir;
     use wiremock::matchers::method;
     use wiremock::Mock;
     use wiremock::MockServer;
@@ -230,17 +276,6 @@ mod tests {
         // artifacts::upload_path(path_to_upload).await?;
         Ok(())
         //let client = reqwest::Client::builder().default_headers().
-    }
-
-    #[tokio::test]
-    async fn discover_files_in_dir() -> Result {
-        let dir = TempDir::new()?;
-        crate::fs::create(dir.join_iter(["file"]))?;
-        crate::fs::create(dir.join_iter(["subdir/nested_file"]))?;
-        let stream = single_dir_provider(dir.as_ref())?;
-        let v = stream.collect::<Vec<_>>().await;
-        dbg!(v);
-        Ok(())
     }
 
     #[test]

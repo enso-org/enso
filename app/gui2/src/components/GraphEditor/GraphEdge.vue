@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { injectGraphNavigator } from '@/providers/graphNavigator'
 import { injectGraphSelection } from '@/providers/graphSelection'
-import { useGraphStore, type Edge } from '@/stores/graph'
+import { isConnected, useGraphStore, type Edge } from '@/stores/graph'
 import { assert } from '@/util/assert'
 import { Rect } from '@/util/data/rect'
 import { Vec2 } from '@/util/data/vec2'
@@ -15,6 +15,7 @@ const graph = useGraphStore()
 
 const props = defineProps<{
   edge: Edge
+  maskSource?: boolean
 }>()
 
 const base = ref<SVGPathElement>()
@@ -49,26 +50,56 @@ const targetNode = computed(
 )
 const targetNodeRect = computed(() => targetNode.value && graph.nodeRects.get(targetNode.value))
 
-const targetRect = computed<Rect | undefined>(() => {
+const targetPos = computed<Vec2 | undefined>(() => {
   const expr = targetExpr.value
   if (expr != null && targetNode.value != null && targetNodeRect.value != null) {
     const targetRectRelative = graph.getPortRelativeRect(expr)
     if (targetRectRelative == null) return
-    return targetRectRelative.offsetBy(targetNodeRect.value.pos)
+    const yAdjustment =
+      targetIsSelfArgument.value ? -(selfArgumentArrowHeight + selfArgumentArrowYOffset) : 0
+    return targetNodeRect.value.pos.add(new Vec2(targetRectRelative.center().x, yAdjustment))
+  } else if (navigator?.sceneMousePos != null) {
+    return navigator.sceneMousePos
+  } else {
+    return undefined
+  }
+})
+
+const sourceNodeRect = computed<Rect | undefined>(() => {
+  return sourceNode.value && graph.nodeRects.get(sourceNode.value)
+})
+
+const sourceRect = computed<Rect | undefined>(() => {
+  if (sourceNodeRect.value) {
+    return sourceNodeRect.value
   } else if (navigator?.sceneMousePos != null) {
     return new Rect(navigator.sceneMousePos, Vec2.Zero)
   } else {
     return undefined
   }
 })
-const sourceRect = computed<Rect | undefined>(() => {
-  if (sourceNode.value != null) {
-    return graph.nodeRects.get(sourceNode.value)
-  } else if (navigator?.sceneMousePos != null) {
-    return new Rect(navigator.sceneMousePos, Vec2.Zero)
-  } else {
-    return undefined
-  }
+
+/** Edges which do not have `sourceRect` and `targetPos` initialized are marked by a special
+ * `broken-edge` data-testid, for debugging and e2e test purposes. */
+const edgeIsBroken = computed(
+  () =>
+    sourceRect.value == null ||
+    targetPos.value == null ||
+    (sourceRect.value.pos.equals(targetPos.value) && sourceRect.value.size.equals(Vec2.Zero)),
+)
+
+type NodeMask = {
+  id: string
+  rect: Rect
+  radius: number
+}
+const sourceMask = computed<NodeMask | undefined>(() => {
+  if (!props.maskSource) return
+  const rect = sourceNodeRect.value
+  if (!rect) return
+  const radius = 16
+  const id = `mask_for_edge_to-${props.edge.target ?? 'unconnected'}`
+  return { id, rect, radius }
 })
 
 const edgeColor = computed(
@@ -82,20 +113,14 @@ interface Inputs {
   /** The width and height of the node that originates the edge, if any.
    *  The edge may begin anywhere around the bottom half of the node. */
   sourceSize: Vec2
-  /** The width and height of the port that the edge is attached to, if any. */
-  targetSize: Vec2
   /** The coordinates of the node input port that is the edge's destination, relative to the source
    * position. The edge enters the port from above. */
   targetOffset: Vec2
-  /** The distance between the target port top edge and the target node top edge. It is undefined
-   *  when there is no clear target node set, e.g. when the edge is being dragged. */
-  targetPortTopDistanceInNode: number | undefined
 }
 
 interface JunctionPoints {
   points: Vec2[]
   maxRadius: number
-  targetAttachment: { target: Vec2; length: number } | undefined
 }
 
 function circleIntersection(x: number, r1: number, r2: number): number {
@@ -140,26 +165,17 @@ function circleIntersection(x: number, r1: number, r2: number): number {
  */
 
 /** Calculate the start and end positions of each 1-corner section composing an edge to the
- *  given offset. Return the points, the maximum radius that should be used to draw the corners
- *  connecting them, and the length of the target attachment bit.
+ *  given offset. Return the points and the maximum radius that should be used to draw the corners
+ *  connecting them.
  */
 function junctionPoints(inputs: Inputs): JunctionPoints | null {
   let halfSourceSize = inputs.sourceSize?.scale(0.5) ?? Vec2.Zero
   // The maximum x-distance from the source (our local coordinate origin) for the point where the
   // edge will begin.
   const sourceMaxXOffset = Math.max(halfSourceSize.x - theme.node.corner_radius, 0)
-  const attachment =
-    inputs.targetPortTopDistanceInNode != null
-      ? {
-          target: inputs.targetOffset.add(new Vec2(0, inputs.targetSize.y * -0.5)),
-          length: inputs.targetPortTopDistanceInNode,
-        }
-      : undefined
-
-  const targetWellBelowSource =
-    inputs.targetOffset.y - (inputs.targetPortTopDistanceInNode ?? 0) >=
-    theme.edge.min_approach_height
-  const targetBelowSource = inputs.targetOffset.y > theme.node.height / 2.0
+  const attachmentTarget = inputs.targetOffset
+  const targetWellBelowSource = inputs.targetOffset.y >= theme.edge.min_approach_height
+  const targetBelowSource = inputs.targetOffset.y > 0
   const targetBeyondSource = Math.abs(inputs.targetOffset.x) > sourceMaxXOffset
   const horizontalRoomFor3Corners =
     targetBeyondSource &&
@@ -199,18 +215,9 @@ function junctionPoints(inputs: Inputs): JunctionPoints | null {
       sourceDY = -innerTheme.source_node_overlap + halfSourceSize.y
     }
     const source = new Vec2(sourceX, sourceDY)
-    // The target attachment will extend as far toward the edge of the node as it can without
-    // rising above the source.
-    let attachmentHeight =
-      inputs.targetPortTopDistanceInNode != null
-        ? Math.min(inputs.targetPortTopDistanceInNode, Math.abs(inputs.targetOffset.y))
-        : 0
-    let attachmentY = inputs.targetOffset.y - attachmentHeight - inputs.targetSize.y / 2.0
-    let targetAttachment = new Vec2(inputs.targetOffset.x, attachmentY)
     return {
-      points: [source, targetAttachment],
+      points: [source, inputs.targetOffset],
       maxRadius,
-      targetAttachment: attachment,
     }
   } else {
     const radiusMax = theme.edge.three_corner.radius_max
@@ -249,20 +256,16 @@ function junctionPoints(inputs: Inputs): JunctionPoints | null {
       heightAdjustment = 0
     }
     if (j0x == null || j1x == null || heightAdjustment == null) return null
-    const attachmentHeight = inputs.targetPortTopDistanceInNode ?? 0
     const top = Math.min(
-      inputs.targetOffset.y - theme.edge.min_approach_height - attachmentHeight + heightAdjustment,
+      inputs.targetOffset.y - theme.edge.min_approach_height + heightAdjustment,
       0,
     )
     const source = new Vec2(sourceX, 0)
     const j0 = new Vec2(j0x, top / 2)
     const j1 = new Vec2(j1x, top)
-    // The corners meet the target attachment at the top of the node.
-    const attachmentTarget = attachment?.target ?? inputs.targetOffset
     return {
       points: [source, j0, j1, attachmentTarget],
       maxRadius: radiusMax,
-      targetAttachment: attachment,
     }
   }
 }
@@ -330,15 +333,12 @@ function render(sourcePos: Vec2, elements: Element[]): string {
 }
 
 const currentJunctionPoints = computed(() => {
-  const target = targetRect.value
-  const targetNode = targetNodeRect.value
+  const target = targetPos.value
   const source = sourceRect.value
   if (target == null || source == null) return null
   const inputs: Inputs = {
-    targetOffset: target.center().sub(source.center()),
     sourceSize: source.size,
-    targetSize: target.size,
-    targetPortTopDistanceInNode: targetNode != null ? target.top - targetNode.top : undefined,
+    targetOffset: target.sub(source.center()),
   }
   return junctionPoints(inputs)
 })
@@ -358,14 +358,12 @@ const activePath = computed(() => {
   else return undefined
 })
 
-function lengthTo(pos: Vec2): number | undefined {
-  const path = base.value
-  if (path == null) return undefined
+function lengthTo(path: SVGPathElement, pos: Vec2): number {
   const totalLength = path.getTotalLength()
   let best: number | undefined
   let bestDist: number | undefined
   const tryPos = (len: number) => {
-    const dist = pos.distanceSquared(Vec2.FromDomPoint(path.getPointAtLength(len)))
+    const dist = pos.distanceSquared(Vec2.FromXY(path.getPointAtLength(len)))
     if (bestDist == null || dist < bestDist) {
       best = len
       bestDist = dist
@@ -383,93 +381,172 @@ function lengthTo(pos: Vec2): number | undefined {
   return best
 }
 
+const mouseLocationOnEdge = computed(() => {
+  if (navigator?.sceneMousePos == null) return
+  if (base.value == null) return
+  const sourceToMouse = lengthTo(base.value, navigator.sceneMousePos)
+  const sourceToTarget = base.value.getTotalLength()
+  const mouseToTarget = sourceToTarget - sourceToMouse
+  return { sourceToMouse, sourceToTarget, mouseToTarget }
+})
+
 const hovered = ref(false)
 const activeStyle = computed(() => {
   if (!hovered.value) return {}
   if (props.edge.source == null || props.edge.target == null) return {}
-  if (base.value == null) return {}
-  if (navigator?.sceneMousePos == null) return {}
-  const length = base.value.getTotalLength()
-  let offset = lengthTo(navigator.sceneMousePos)
-  if (offset == null) return {}
-  offset = length - offset
-  if (offset < length / 2) {
-    offset += length
-  }
+  const distances = mouseLocationOnEdge.value
+  if (distances == null) return {}
+  const offset =
+    distances.sourceToMouse < distances.mouseToTarget ?
+      distances.mouseToTarget
+    : -distances.sourceToMouse
   return {
     ...baseStyle.value,
-    strokeDasharray: length,
+    strokeDasharray: distances.sourceToTarget,
     strokeDashoffset: offset,
   }
+})
+
+const targetEndIsDimmed = computed(() => {
+  if (!hovered.value) return false
+  const distances = mouseLocationOnEdge.value
+  if (!distances) return false
+  return distances.sourceToMouse < distances.mouseToTarget
 })
 
 const baseStyle = computed(() => ({ '--node-base-color': edgeColor.value ?? 'tan' }))
 
 function click() {
-  if (base.value == null) return
-  if (navigator?.sceneMousePos == null) return
-  const length = base.value.getTotalLength()
-  let offset = lengthTo(navigator?.sceneMousePos)
-  if (offset == null) return
-  if (offset < length / 2) graph.disconnectTarget(props.edge)
+  const distances = mouseLocationOnEdge.value
+  if (distances == null) return
+  if (distances.sourceToMouse < distances.mouseToTarget) graph.disconnectTarget(props.edge)
   else graph.disconnectSource(props.edge)
 }
 
-function arrowPosition(): Vec2 | undefined {
+function svgTranslate(offset: Vec2): string {
+  return `translate(${offset.x},${offset.y})`
+}
+
+const backwardEdgeArrowTransform = computed<string | undefined>(() => {
   if (props.edge.source == null || props.edge.target == null) return
   const points = currentJunctionPoints.value?.points
   if (points == null || points.length < 3) return
-  const target = targetRect.value
+  const target = targetPos.value
   const source = sourceRect.value
   if (target == null || source == null) return
-  if (target.pos.y > source.pos.y - theme.edge.three_corner.backward_edge_arrow_threshold) return
+  if (target.y > source.pos.y - theme.edge.three_corner.backward_edge_arrow_threshold) return
   if (points[1] == null) return
-  return source.center().add(points[1])
-}
-
-const arrowTransform = computed(() => {
-  const pos = arrowPosition()
-  if (pos != null) return `translate(${pos.x},${pos.y})`
-  else return undefined
+  return svgTranslate(source.center().add(points[1]))
 })
+
+const targetIsSelfArgument = computed(() => {
+  if (!targetExpr.value) return
+  const nodeId = graph.getPortNodeId(targetExpr.value)
+  if (!nodeId) return
+  const primarySubject = graph.db.nodeIdToNode.get(nodeId)?.primarySubject
+  if (!primarySubject) return
+  return targetExpr.value === primarySubject
+})
+
+const selfArgumentArrowHeight = 9
+const selfArgumentArrowYOffset = 0
+const selfArgumentArrowTransform = computed<string | undefined>(() => {
+  const selfArgumentArrowTopOffset = 4
+  const selfArgumentArrowWidth = 12
+  if (!targetIsSelfArgument.value) return
+  const target = targetPos.value
+  if (target == null) return
+  const pos = target.sub(new Vec2(selfArgumentArrowWidth / 2, selfArgumentArrowTopOffset))
+  return svgTranslate(pos)
+})
+
+const selfArgumentArrowPath = [
+  'M10.9635 1.5547',
+  'L6.83205 7.75193',
+  'C6.43623 8.34566 5.56377 8.34566 5.16795 7.75192',
+  'L1.03647 1.5547',
+  'C0.593431 0.890146 1.06982 0 1.86852 0',
+  'L10.1315 0',
+  'C10.9302 0 11.4066 0.890147 10.9635 1.5547',
+  'Z',
+].join('')
+
+const connected = computed(() => isConnected(props.edge))
 </script>
 
 <template>
   <template v-if="basePath">
-    <path
-      v-if="activePath"
-      :d="basePath"
-      class="edge visible dimmed"
-      :style="baseStyle"
-      :data-source-node-id="sourceNode"
-      :data-target-node-id="targetNode"
-    />
-    <path
-      :d="basePath"
-      class="edge io"
-      :data-source-node-id="sourceNode"
-      :data-target-node-id="targetNode"
-      @pointerdown="click"
-      @pointerenter="hovered = true"
-      @pointerleave="hovered = false"
-    />
-    <path
-      ref="base"
-      :d="activePath ?? basePath"
-      class="edge visible"
-      :style="activePath ? activeStyle : baseStyle"
-      :data-source-node-id="sourceNode"
-      :data-target-node-id="targetNode"
-    />
-    <polygon
-      v-if="arrowTransform"
-      :transform="arrowTransform"
-      points="0,-9.375 -9.375,9.375 9.375,9.375"
-      class="arrow visible"
-      :style="baseStyle"
-      :data-source-node-id="sourceNode"
-      :data-target-node-id="targetNode"
-    />
+    <mask
+      v-if="sourceMask && navigator"
+      :id="sourceMask.id"
+      :x="navigator.viewport.left"
+      :y="navigator.viewport.top"
+      width="100%"
+      height="100%"
+      maskUnits="userSpaceOnUse"
+    >
+      <rect
+        :x="navigator.viewport.left"
+        :y="navigator.viewport.top"
+        width="100%"
+        height="100%"
+        fill="white"
+      />
+      <rect
+        :x="sourceMask.rect.left"
+        :y="sourceMask.rect.top"
+        :width="sourceMask.rect.width"
+        :height="sourceMask.rect.height"
+        :rx="sourceMask.radius"
+        :ry="sourceMask.radius"
+        fill="black"
+      />
+    </mask>
+    <g v-bind="sourceMask && { mask: `url('#${sourceMask.id}')` }">
+      <path
+        v-if="activePath"
+        :d="basePath"
+        class="edge visible dimmed"
+        :style="baseStyle"
+        :data-source-node-id="sourceNode"
+        :data-target-node-id="targetNode"
+      />
+      <path
+        v-if="connected"
+        :d="basePath"
+        class="edge io"
+        :data-source-node-id="sourceNode"
+        :data-target-node-id="targetNode"
+        :data-testid="edgeIsBroken ? 'broken-edge' : null"
+        @pointerdown.stop="click"
+        @pointerenter="hovered = true"
+        @pointerleave="hovered = false"
+      />
+      <path
+        ref="base"
+        :d="activePath ?? basePath"
+        class="edge visible"
+        :style="activePath ? activeStyle : baseStyle"
+        :data-source-node-id="sourceNode"
+        :data-target-node-id="targetNode"
+      />
+      <polygon
+        v-if="backwardEdgeArrowTransform"
+        :transform="backwardEdgeArrowTransform"
+        points="0,-9.375 -9.375,9.375 9.375,9.375"
+        class="arrow visible"
+        :style="baseStyle"
+        :data-source-node-id="sourceNode"
+        :data-target-node-id="targetNode"
+      />
+      <path
+        v-if="selfArgumentArrowTransform"
+        :transform="selfArgumentArrowTransform"
+        :d="selfArgumentArrowPath"
+        :class="{ arrow: true, visible: true, dimmed: targetEndIsDimmed }"
+        :style="baseStyle"
+      />
+    </g>
   </template>
 </template>
 
@@ -493,6 +570,7 @@ const arrowTransform = computed(() => {
 .edge.io {
   stroke-width: 14;
   stroke: transparent;
+  pointer-events: stroke;
 }
 .edge.visible {
   stroke-width: 4;
@@ -502,5 +580,9 @@ const arrowTransform = computed(() => {
 .edge.visible.dimmed {
   /* stroke: rgba(255, 255, 255, 0.4); */
   stroke: color-mix(in oklab, var(--edge-color) 60%, white 40%);
+}
+
+.arrow.visible.dimmed {
+  fill: color-mix(in oklab, var(--edge-color) 60%, white 40%);
 }
 </style>

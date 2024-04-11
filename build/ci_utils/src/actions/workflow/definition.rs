@@ -7,7 +7,6 @@ use crate::env::accessor::RawVariable;
 use heck::ToKebabCase;
 use std::collections::btree_map::Entry;
 use std::collections::BTreeMap;
-use std::collections::BTreeSet;
 use std::convert::identity;
 use std::sync::atomic::AtomicU64;
 use std::sync::atomic::Ordering;
@@ -50,6 +49,11 @@ pub fn wrap_expression(expression: impl AsRef<str>) -> String {
 /// ```
 pub fn secret_expression(secret_name: impl AsRef<str>) -> String {
     wrap_expression(format!("secrets.{}", secret_name.as_ref()))
+}
+
+/// An expression that accesses a variable with a given name.
+pub fn variable_expression(secret_name: impl AsRef<str>) -> String {
+    wrap_expression(format!("vars.{}", secret_name.as_ref()))
 }
 
 /// An expression that accesses an environment variable with a given name.
@@ -861,6 +865,23 @@ impl Step {
         let secret_name = secret.as_ref();
         let env_name = secret_name.to_owned();
         self.with_secret_exposed_as(secret_name, env_name)
+    }
+
+    /// Expose [a variable](https://docs.github.com/en/actions/learn-github-actions/variables) as an environment variable with the same name.
+    pub fn with_variable_exposed(self, variable: impl AsRef<str>) -> Self {
+        let variable_name = variable.as_ref();
+        let env_name = variable_name.to_owned();
+        self.with_variable_exposed_as(variable_name, env_name)
+    }
+
+    /// Expose [a variable](https://docs.github.com/en/actions/learn-github-actions/variables) as an environment variable with a given name.
+    pub fn with_variable_exposed_as(
+        self,
+        variable: impl AsRef<str>,
+        given_name: impl Into<String>,
+    ) -> Self {
+        let variable_expr = variable_expression(variable);
+        self.with_env(given_name, variable_expr)
     }
 
     /// Expose a secret as an environment variable with a given name.

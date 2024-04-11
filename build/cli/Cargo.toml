@@ -22,3 +22,6 @@ tempfile = "3.2.0"
 tokio = { workspace = true }
 toml = "0.5.9"
 tracing = { workspace = true }
+
+[lints]
+workspace = true

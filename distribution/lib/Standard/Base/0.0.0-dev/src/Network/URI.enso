@@ -1,6 +1,3 @@
-import project.Data.Enso_Cloud.Enso_Secret.Enso_Secret
-import project.Data.Enso_Cloud.Enso_Secret.Enso_Secret_Error
-import project.Data.Enso_Cloud.Utils as Cloud_Utils
 import project.Data.Json.JS_Object
 import project.Data.Numbers.Integer
 import project.Data.Ordering.Comparable
@@ -9,6 +6,8 @@ import project.Data.Pair.Pair
 import project.Data.Text.Text
 import project.Data.Vector.No_Wrap
 import project.Data.Vector.Vector
+import project.Enso_Cloud.Enso_Secret.Enso_Secret
+import project.Enso_Cloud.Enso_Secret.Enso_Secret_Error
 import project.Error.Error
 import project.Errors.Common.Syntax_Error
 import project.Errors.Illegal_Argument.Illegal_Argument
@@ -18,8 +17,9 @@ import project.Meta
 import project.Nothing.Nothing
 import project.Panic.Panic
 from project.Data.Boolean.Boolean import False, True
-from project.Data.Enso_Cloud.Enso_Secret import as_hideable_value
 from project.Data.Text.Extensions import all
+from project.Enso_Cloud.Enso_Secret import as_hideable_value
+from project.Widget_Helpers import make_text_secret_selector
 
 polyglot java import java.net.URI as Java_URI
 polyglot java import java.net.URISyntaxException
@@ -32,6 +32,7 @@ polyglot java import org.graalvm.collections.Pair as Java_Pair
 type URI
     ## ALIAS get uri
        GROUP Conversions
+       ICON convert
 
        Parse a URI from text.
 
@@ -55,6 +56,7 @@ type URI
             Error.throw (Syntax_Error.Error truncated)
 
     ## GROUP Metadata
+       ICON metadata
        Get the scheme part of this URI.
 
        > Example
@@ -68,6 +70,7 @@ type URI
         self.to_java_representation.getScheme
 
     ## GROUP Metadata
+       ICON metadata
        Get the user info part of this URI.
 
        > Example
@@ -81,6 +84,7 @@ type URI
         self.to_java_representation.getUserInfo
 
     ## GROUP Metadata
+       ICON metadata
        Get the host part of this URI.
 
        > Example
@@ -93,7 +97,8 @@ type URI
     host self = handle_resolve_errors <|
         self.to_java_representation.getHost
 
-    ## Get the authority (user info and host) part of this URI.
+    ## ICON metadata
+       Get the authority (user info and host) part of this URI.
 
        > Example
          Return the authority portion of the URI.
@@ -105,7 +110,8 @@ type URI
     authority self = handle_resolve_errors <|
         self.to_java_representation.getAuthority
 
-    ## Get the port part of this URI.
+    ## ICON metadata
+       Get the port part of this URI.
 
        > Example
          Return the port portion of the URI
@@ -119,6 +125,7 @@ type URI
         if port_number == -1 then Nothing else port_number
 
     ## GROUP Metadata
+       ICON metadata
        Get the path part of this URI.
 
        > Example
@@ -131,7 +138,8 @@ type URI
     path self = handle_resolve_errors <|
         self.to_java_representation.getPath
 
-    ## GROUP Calculations
+    ## GROUP Operators
+       ICON folder
        Extends the path of this URI with an additional segment.
 
        Arguments:
@@ -150,6 +158,7 @@ type URI
         Problem_Behavior.Report_Warning.attach_problems_before (has_question_mark+has_hash) result
 
     ## GROUP Metadata
+       ICON metadata
        Get the query part of this URI.
 
        > Example
@@ -163,22 +172,26 @@ type URI
         self.to_java_representation.getQuery
 
     ## GROUP Calculations
+       ICON edit
        Adds a query parameter to the URI.
 
        Arguments:
        - key: The key of the query parameter.
        - value: The value of the query parameter.
+    @value make_text_secret_selector
     add_query_argument : Text -> Text | Enso_Secret -> URI
     add_query_argument self key:Text value:(Text | Enso_Secret) =
         URI.Value self.internal_uri self.additional_query_parameters+[Pair.new key value]
 
     ## GROUP Calculations
+       ICON trash
        Removes any query parameters within the URI.
     reset_query_arguments : URI
     reset_query_arguments self = handle_resolve_errors <|
         URI.Value (URITransformer.removeQueryParameters self.internal_uri) []
 
-    ## Get the fragment part of this URI.
+    ## ICON metadata
+       Get the fragment part of this URI.
 
        > Example
          Return the fragment portion of the URI.

@@ -91,12 +91,12 @@ test.each([
     `'${target}' has CST ${extracted != null ? '' : 'not '}matching '${pattern}'`,
   ).toBe(extracted != null)
   expect(
-    patternAst.match(targetAst)?.map((match) => module.get(match)?.code()),
-    extracted != null
-      ? `'${target}' matches '${pattern}' with '__'s corresponding to ${JSON.stringify(extracted)
-          .slice(1, -1)
-          .replace(/"/g, "'")}`
-      : `'${target}' does not match '${pattern}'`,
+    patternAst.match(targetAst)?.map((match) => module.tryGet(match)?.code()),
+    extracted != null ?
+      `'${target}' matches '${pattern}' with '__'s corresponding to ${JSON.stringify(extracted)
+        .slice(1, -1)
+        .replace(/"/g, "'")}`
+    : `'${target}' does not match '${pattern}'`,
   ).toStrictEqual(extracted)
 })
 

@@ -13,3 +13,6 @@ serde = "1.0.145"
 serde_json = { workspace = true }
 serde_yaml = { workspace = true }
 tracing = { workspace = true }
+
+[lints]
+workspace = true

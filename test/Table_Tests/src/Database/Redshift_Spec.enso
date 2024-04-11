@@ -1,8 +1,7 @@
 from Standard.Base import all
 import Standard.Base.Runtime.Ref.Ref
 
-import Standard.Table.Data.Type.Value_Type.Bits
-from Standard.Table import Table, Value_Type
+from Standard.Table import Table, Value_Type, Bits
 
 from Standard.Database import all
 
@@ -139,7 +138,7 @@ add_specs suite_builder =
                 Database.connect connection_details
             add_database_specs suite_builder create_connection_fn
 
-main =
+main filter=Nothing =
     suite = Test.build suite_builder->
         add_specs suite_builder
-    suite.run_with_filter
+    suite.run_with_filter filter

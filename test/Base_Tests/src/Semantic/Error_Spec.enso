@@ -4,6 +4,7 @@ import Standard.Base.Errors.Common.Type_Error
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Errors.Illegal_State.Illegal_State
 import Standard.Base.Errors.Wrapped_Error.Wrapped_Error
+import Standard.Base.Errors.Empty_Error.Empty_Error
 
 import Standard.Base.Runtime.Ref.Ref
 
@@ -14,7 +15,6 @@ polyglot java import java.util.ArrayList
 polyglot java import java.util.Random as Java_Random
 
 from Standard.Test import all
-
 
 type My_Type
     Value foo
@@ -372,56 +372,46 @@ add_specs suite_builder =
             neg (my_func -5 -2) . should_equal 7
 
         group_builder.specify "try to apply one argument" <|
-            r = Panic.recover Type_Error <| neg (my_func -5)
-            r . should_fail_with Type_Error
+            r = Test.expect_panic Type_Error <| neg (my_func -5)
             r.to_display_text.should_contain "Try to apply y argument."
 
         group_builder.specify "try to apply two arguments" <|
-            r = Panic.recover Type_Error <| neg my_func
-            r . should_fail_with Type_Error
+            r = Test.expect_panic Type_Error <| neg my_func
             r.to_display_text.should_contain "Try to apply x, y arguments."
 
         group_builder.specify "apply two arguments with one defaulted" <|
-            r = Panic.recover Type_Error <| neg my_defaulted_func
-            r . should_fail_with Type_Error
+            r = Test.expect_panic Type_Error <| neg my_defaulted_func
             r.to_display_text.should_contain "Try to apply y argument."
 
         group_builder.specify "printed non-defaulted argument" <|
-            r = Panic.recover Type_Error <| neg (my_defaulted_func 33)
-            r . should_fail_with Type_Error
+            r = Test.expect_panic Type_Error <| neg (my_defaulted_func 33)
             r.to_display_text.should_contain "Try to apply y argument."
             r.to_display_text.should_contain "x=33"
 
         group_builder.specify "report unapplied constructor nicely" <|
-            r = Panic.recover Type_Error <| extract My_Type.Value
-            r . should_fail_with Type_Error
+            r = Test.expect_panic Type_Error <| extract My_Type.Value
             r.to_display_text.should_contain "Try to apply foo argument."
 
         group_builder.specify "report unapplied constructor with default value nicely" <|
-            r = Panic.recover Type_Error <| extract My_Type.Default_Value
-            r . should_fail_with Type_Error
+            r = Test.expect_panic Type_Error <| extract My_Type.Default_Value
             r.to_display_text.should_contain "Try to apply bar argument."
 
         group_builder.specify "report non-defaulted constructor argument" <|
-            r = Panic.recover Type_Error <| extract (My_Type.Default_Value foo=33)
-            r . should_fail_with Type_Error
+            r = Test.expect_panic Type_Error <| extract (My_Type.Default_Value foo=33)
             r.to_display_text.should_contain "Try to apply bar argument."
             r.to_display_text.should_contain "foo=33"
 
         group_builder.specify "report partially applied constructor nicely" <|
-            r = Panic.recover Type_Error <| extract (My_Type.Multi_Value 42)
-            r . should_fail_with Type_Error
+            r = Test.expect_panic Type_Error <| extract (My_Type.Multi_Value 42)
             r.to_display_text.should_contain "Try to apply bar argument."
 
         group_builder.specify "try to apply two arguments with over-saturated" <|
-            r = Panic.recover Type_Error <| neg (my_func z=10)
-            r . should_fail_with Type_Error
+            r = Test.expect_panic Type_Error <| neg (my_func z=10)
             r.to_display_text . should_contain "Try to apply x, y arguments"
 
         group_builder.specify "types and unapplied arguments" <|
             c = C.Baz C.to_text
-            r = Panic.recover Type_Error <| neg (c.to_num c=3)
-            r . should_fail_with Type_Error
+            r = Test.expect_panic Type_Error <| neg (c.to_num c=3)
             r.to_display_text . should_contain "Try to apply a, b arguments"
 
     suite_builder.group "Wrapped errors" group_builder->
@@ -465,13 +455,26 @@ add_specs suite_builder =
             not_wrapped = Illegal_Argument.Error "abc"
             Error.unwrap not_wrapped . should_equal not_wrapped
 
+    suite_builder.group "Empty errors" group_builder->
+        group_builder.specify "should implement to_display_text for List" <|
+            err = (Empty_Error.Error List)
+            err.to_display_text . should_equal "The List is empty."
+        group_builder.specify "should implement to_display_text for Vector" <|
+            err = (Empty_Error.Error Vector)
+            err.to_display_text . should_equal "The Vector is empty."
+        group_builder.specify "should implement to_display_text for Range" <|
+            err = (Empty_Error.Error Range)
+            err.to_display_text . should_equal "The Range is empty."
+        group_builder.specify "should implement to_display_text for Date_Range" <|
+            err = (Empty_Error.Error Date_Range)
+            err.to_display_text . should_equal "The Date_Range is empty."
+
 type C
     Baz x
 
 C.to_num self a b c = a+b+c
 
-main =
+main filter=Nothing =
     suite = Test.build suite_builder->
         add_specs suite_builder
-    suite.run_with_filter
-
+    suite.run_with_filter filter

@@ -1,5 +1,7 @@
 /** @file Utilities for working with permissions. */
-import * as backend from '../services/Backend'
+import type * as text from '#/text'
+
+import type * as backend from '#/services/Backend'
 
 // ========================
 // === PermissionAction ===
@@ -90,7 +92,7 @@ export const DOCS_CLASS_NAME = 'text-tag-text bg-permission-docs'
 export const EXEC_CLASS_NAME = 'text-tag-text bg-permission-exec'
 
 /** The corresponding {@link Permissions} for each {@link PermissionAction}. */
-export const FROM_PERMISSION_ACTION: Readonly<Record<PermissionAction, Readonly<Permissions>>> = {
+export const FROM_PERMISSION_ACTION: Readonly<Record<PermissionAction, Permissions>> = {
   [PermissionAction.own]: { type: Permission.owner },
   [PermissionAction.admin]: { type: Permission.admin },
   [PermissionAction.edit]: { type: Permission.edit },
@@ -134,9 +136,20 @@ export const TYPE_TO_PERMISSION_ACTION: Readonly<Record<Permission, PermissionAc
   [Permission.edit]: PermissionAction.edit,
   [Permission.read]: PermissionAction.read,
   [Permission.view]: PermissionAction.view,
-  // SHould never happen, but provide a fallback just in case.
+  // Should never happen, but provide a fallback just in case.
   [Permission.delete]: PermissionAction.view,
 }
+
+/** The corresponding {@link text.TextId} for each {@link Permission}.
+ * Assumes no docs sub-permission and no execute sub-permission. */
+export const TYPE_TO_TEXT_ID: Readonly<Record<Permission, text.TextId>> = {
+  [Permission.owner]: 'ownerPermissionType',
+  [Permission.admin]: 'adminPermissionType',
+  [Permission.edit]: 'editPermissionType',
+  [Permission.read]: 'readPermissionType',
+  [Permission.view]: 'viewPermissionType',
+  [Permission.delete]: 'deletePermissionType',
+} satisfies { [P in Permission]: `${P}PermissionType` }
 
 /** The equivalent backend `PermissionAction` for a `Permissions`. */
 export function toPermissionAction(permissions: Permissions): PermissionAction {
@@ -157,8 +170,8 @@ export function toPermissionAction(permissions: Permissions): PermissionAction {
             PermissionAction.readAndExec
           : PermissionAction.readAndExec
         : permissions.docs
-        ? PermissionAction.readAndDocs
-        : PermissionAction.read
+          ? PermissionAction.readAndDocs
+          : PermissionAction.read
     }
     case Permission.view: {
       return permissions.execute
@@ -167,8 +180,8 @@ export function toPermissionAction(permissions: Permissions): PermissionAction {
             PermissionAction.viewAndExec
           : PermissionAction.viewAndExec
         : permissions.docs
-        ? PermissionAction.viewAndDocs
-        : PermissionAction.view
+          ? PermissionAction.viewAndDocs
+          : PermissionAction.view
     }
   }
 }
@@ -224,20 +237,16 @@ export const DEFAULT_PERMISSIONS: Permissions = Object.freeze({
 /** Return an array containing the owner permission if `owner` is not `null`,
  * else return an empty array (`[]`). */
 export function tryGetSingletonOwnerPermission(
-  owner: backend.UserOrOrganization | null,
-  user: backend.SimpleUser | null
+  owner: backend.User | null
 ): backend.UserPermission[] {
   return owner != null
     ? [
         {
           user: {
-            // The names are defined by the backend and cannot be changed.
-            /* eslint-disable @typescript-eslint/naming-convention */
-            pk: user?.id ?? backend.Subject(''),
-            organization_id: owner.id,
-            user_email: owner.email,
-            user_name: owner.name,
-            /* eslint-enable @typescript-eslint/naming-convention */
+            organizationId: owner.organizationId,
+            userId: owner.userId,
+            name: owner.name,
+            email: owner.email,
           },
           permission: PermissionAction.own,
         },

@@ -6,9 +6,9 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 [dependencies]
 anyhow = { workspace = true }
-aws-config = "0.49.0"
-aws-sdk-ecr = "0.19.0"
-aws-sdk-s3 = "0.19.0"
+aws-config = "0.51.0"
+aws-sdk-ecr = "0.21.0"
+aws-sdk-s3 = "0.21.0"
 base64 = "0.13.0"
 bytes = { workspace = true }
 byte-unit = { workspace = true }
@@ -21,11 +21,11 @@ futures = { workspace = true }
 futures-util = "0.3.17"
 glob = "0.3.0"
 handlebars = "4.3.5"
+heck = "0.4.0"
 enso-build-base = { path = "../base" }
 enso-enso-font = { path = "../../lib/rust/enso-font" }
 enso-font = { path = "../../lib/rust/font" }
 enso-install-config = { path = "../install/config" }
-ensogl-pack = { path = "../../lib/rust/ensogl/pack" }
 ide-ci = { path = "../ci_utils" }
 mime = "0.3.16"
 new_mime_guess = "4.0.1"
@@ -55,3 +55,6 @@ zip = { version = "0.6.2", default-features = false, features = ["deflate"] }
 enso-build-macros-lib = { path = "../macros/lib" }
 ide-ci = { path = "../ci_utils" }
 serde_yaml = { workspace = true }
+
+[lints]
+workspace = true

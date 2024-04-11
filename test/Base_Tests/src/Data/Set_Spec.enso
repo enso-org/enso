@@ -62,8 +62,14 @@ add_specs suite_builder =
             (s1 == s1) . should_be_true
             (s1 == s3) . should_be_false
 
-main =
+        group_builder.specify "should be able to convert to text" <|
+            s1 = Set.from_vector ["1", "2", "3"]
+            s2 = Set.from_vector [1, 2, 3]
+            s1.to_text.should_equal "Set{'1', '2', '3'}"
+            s2.to_text.should_equal "Set{1, 2, 3}"
+
+main filter=Nothing =
     suite = Test.build suite_builder->
         add_specs suite_builder
-    suite.run_with_filter
+    suite.run_with_filter filter
 

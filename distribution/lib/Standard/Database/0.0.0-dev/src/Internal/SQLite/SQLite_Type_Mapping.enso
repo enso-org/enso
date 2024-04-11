@@ -2,18 +2,18 @@ from Standard.Base import all
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Errors.Illegal_State.Illegal_State
 
-import Standard.Table.Data.Type.Enso_Types
-import Standard.Table.Data.Type.Value_Type.Bits
-import Standard.Table.Data.Type.Value_Type.Value_Type
-import Standard.Table.Data.Type.Value_Type_Helpers
+import Standard.Table.Internal.Value_Type_Helpers
+from Standard.Table import Bits, Value_Type
 from Standard.Table.Errors import Inexact_Type_Coercion
 
-import project.Data.Column.Column
-import project.Data.SQL_Type.SQL_Type
+import project.DB_Column.DB_Column
+import project.Internal.Column_Fetcher as Column_Fetcher_Module
+import project.Internal.Column_Fetcher.Column_Fetcher
 import project.Internal.IR.Internal_Column.Internal_Column
 import project.Internal.IR.SQL_Expression.SQL_Expression
 import project.Internal.SQL_Type_Mapping
 import project.Internal.SQL_Type_Reference.SQL_Type_Reference
+import project.SQL_Type.SQL_Type
 from project.Errors import Unsupported_Database_Operation
 
 polyglot java import java.sql.Types
@@ -109,6 +109,14 @@ type SQLite_Type_Mapping
         Nothing -> Nothing
         _ : Vector -> column_type_suggestions.map .get
 
+    ## PRIVATE
+       Creates a `Column_Fetcher` used to fetch data from a result set and build
+       an in-memory column from it, based on the given column type.
+    make_column_fetcher : SQL_Type -> Column_Fetcher
+    make_column_fetcher self sql_type =
+        value_type = self.sql_type_to_value_type sql_type
+        Column_Fetcher_Module.default_fetcher_for_value_type value_type
+
 ## PRIVATE
    The types that SQLite JDBC driver will report are: BOOLEAN, TINYINT,
    SMALLINT, BIGINT, INTEGER, DECIMAL, DOUBLE, REAL, FLOAT, NUMERIC, DATE,
@@ -142,10 +150,10 @@ name_based_workarounds = Map.from_vector <|
 operations_map : Map Text (Vector -> SQL_Type)
 operations_map =
     find_type arg = case arg of
-        column : Column -> column.value_type
+        column : DB_Column -> column.value_type
         internal_column : Internal_Column ->
             SQLite_Type_Mapping.sql_type_to_value_type internal_column.sql_type_reference.get
-        enso_value -> Enso_Types.most_specific_value_type enso_value use_smallest=True
+        enso_value -> Value_Type_Helpers.most_specific_value_type enso_value use_smallest=True
 
     ## We actually re-use the logic from the in-memory backend, since the
        SQLite types essentially implement a very simple subset of our types.

@@ -59,7 +59,7 @@ export type Choice = z.infer<typeof choiceSchema>
 export type WidgetConfiguration =
   | SingleChoice
   | VectorEditor
-  | MultiChoice
+  | MultipleChoice
   | CodeInput
   | BooleanInput
   | NumericInput
@@ -67,6 +67,8 @@ export type WidgetConfiguration =
   | FolderBrowse
   | FileBrowse
   | FunctionCall
+  | OneOfFunctionCalls
+  | SomeOfFunctionCalls
 
 export interface VectorEditor {
   kind: 'Vector_Editor'
@@ -74,8 +76,10 @@ export interface VectorEditor {
   item_default: string
 }
 
-export interface MultiChoice {
-  kind: 'Multi_Choice'
+export interface MultipleChoice {
+  kind: 'Multiple_Choice'
+  label: string | null
+  values: Choice[]
 }
 
 export interface CodeInput {
@@ -110,9 +114,28 @@ export interface SingleChoice {
   values: Choice[]
 }
 
+/** Dynamic configuration for a function call with a list of arguments with known dynamic configuration.
+ * This kind of config is not provided by the engine directly, but is derived from other config types by widgets. */
 export interface FunctionCall {
   kind: 'FunctionCall'
   parameters: Map<string, (WidgetConfiguration & WithDisplay) | null>
+}
+
+/** Dynamic configuration for one of the possible function calls. It is typically the case for dropdown widget.
+ * One of function calls will be chosen by WidgetFunction basing on the actual AST at the call site,
+ * and the configuration will be used in child widgets.
+ * This kind of config is not provided by the engine directly, but is derived from other config types by widgets. */
+export interface OneOfFunctionCalls {
+  kind: 'OneOfFunctionCalls'
+  /** A list of possible function calls and their corresponding configuration.
+   * The key is typically a fully qualified name of the function, but in general it can be anything,
+   * depending on the widget implementation. */
+  possibleFunctions: Map<string, FunctionCall>
+}
+
+export interface SomeOfFunctionCalls {
+  kind: 'SomeOfFunctionCalls'
+  possibleFunctions: Map<string, FunctionCall>
 }
 
 export const widgetConfigurationSchema: z.ZodType<
@@ -137,7 +160,13 @@ export const widgetConfigurationSchema: z.ZodType<
         /* eslint-enable camelcase */
       })
       .merge(withDisplay),
-    z.object({ kind: z.literal('Multi_Choice') }).merge(withDisplay),
+    z
+      .object({
+        kind: z.literal('Multiple_Choice'),
+        label: z.string().nullable(),
+        values: z.array(choiceSchema),
+      })
+      .merge(withDisplay),
     z.object({ kind: z.literal('Code_Input') }).merge(withDisplay),
     z.object({ kind: z.literal('Boolean_Input') }).merge(withDisplay),
     z
@@ -160,9 +189,40 @@ export type ArgumentWidgetConfiguration = z.infer<typeof argumentSchema>
 export const argsWidgetConfigurationSchema = z.array(argumentSchema)
 export type ArgsWidgetConfiguration = z.infer<typeof argsWidgetConfigurationSchema>
 
-export function functionCallConfiguration(parameters: ArgumentWidgetConfiguration[]): FunctionCall {
+/**
+ * Create {@link WidgetConfiguration} object from parameters received from the engine, possibly
+ * applying those to an inherited config received from parent widget.
+ */
+export function functionCallConfiguration(
+  parameters: ArgumentWidgetConfiguration[],
+  inherited?: FunctionCall,
+): FunctionCall {
+  const parametersMap = new Map(inherited?.parameters)
+  for (const [name, param] of parameters) {
+    parametersMap.set(name, param)
+  }
   return {
     kind: 'FunctionCall',
-    parameters: new Map(parameters),
+    parameters: parametersMap,
+  }
+}
+
+/** A configuration for the inner widget of a single-choice selection widget. */
+export function singleChoiceConfiguration(config: SingleChoice): OneOfFunctionCalls {
+  return {
+    kind: 'OneOfFunctionCalls',
+    possibleFunctions: new Map(
+      config.values.map((value) => [value.value, functionCallConfiguration(value.parameters)]),
+    ),
+  }
+}
+
+/** A configuration for the inner widget of a multiple-choice selection widget. */
+export function multipleChoiceConfiguration(config: MultipleChoice): SomeOfFunctionCalls {
+  return {
+    kind: 'SomeOfFunctionCalls',
+    possibleFunctions: new Map(
+      config.values.map((value) => [value.value, functionCallConfiguration(value.parameters)]),
+    ),
   }
 }

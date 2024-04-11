@@ -1,8 +1,7 @@
 from Standard.Base import all
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
-import Standard.Table.Data.Type.Value_Type.Bits
-from Standard.Table import Value_Type
+from Standard.Table import Value_Type, Bits
 from Standard.Table.Errors import Missing_Input_Columns, Conversion_Failure
 
 from Standard.Database.Errors import Unsupported_Database_Operation
@@ -13,7 +12,7 @@ from project.Common_Table_Operations.Util import run_default_backend
 
 polyglot java import java.lang.Long as Java_Long
 
-main = run_default_backend add_specs
+main filter=Nothing = run_default_backend add_specs filter
 
 type My_Type
     Value x

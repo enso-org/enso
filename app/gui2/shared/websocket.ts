@@ -38,6 +38,7 @@
 import * as math from 'lib0/math'
 import { ObservableV2 } from 'lib0/observable'
 import * as time from 'lib0/time'
+import type { AbortScope } from './util/net'
 
 const reconnectTimeoutBase = 1200
 const maxReconnectTimeout = 2500
@@ -130,12 +131,14 @@ export class WebsocketClient extends ObservableV2<WebsocketEvents> {
   protected _checkInterval
   constructor(
     public url: string,
+    abort: AbortScope,
     {
       binaryType,
       sendPings,
     }: { binaryType?: 'arraybuffer' | 'blob' | null; sendPings?: boolean } = {},
   ) {
     super()
+    abort.handleDispose(this)
     this.ws = null
     this.binaryType = binaryType || null
     this.sendPings = sendPings ?? true
@@ -145,8 +148,9 @@ export class WebsocketClient extends ObservableV2<WebsocketEvents> {
     this.lastMessageReceived = 0
     /** Whether to connect to other peers or not */
     this.shouldConnect = false
-    this._checkInterval = this.sendPings
-      ? setInterval(() => {
+    this._checkInterval =
+      this.sendPings ?
+        setInterval(() => {
           if (
             this.connected &&
             messageReconnectTimeout < time.getUnixTime() - this.lastMessageReceived
@@ -167,7 +171,7 @@ export class WebsocketClient extends ObservableV2<WebsocketEvents> {
     this.ws.send(encoded)
   }
 
-  destroy() {
+  dispose() {
     clearInterval(this._checkInterval)
     this.disconnect()
     super.destroy()

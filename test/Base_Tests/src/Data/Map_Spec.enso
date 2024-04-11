@@ -51,6 +51,9 @@ foreign js js_dict_from_vec vec = """
     }
     return dict
 
+foreign python py_none = """
+    return None
+
 foreign python py_dict_from_vec vec = """
     d = {}
     for i in range(0, len(vec), 2):
@@ -92,42 +95,20 @@ type GrandParent
     Value parent
 
 add_specs suite_builder =
+    Vector.new_builder
+        . append ["Enso", _-> Map.empty, Nothing]
+        . append ["Java", _-> JavaMap.of, Nothing]
+        . append ["JavaScript", _-> js_empty_dict, Nothing]
+        . append ["Python", _-> py_empty_dict, pending_python_missing]
+        . to_vector
+        . each entry->
+            lang = entry.get 0
+            empty_map_fn = entry.get 1
+            pending = entry.get 2
+            add_common_specs suite_builder lang pending empty_map_fn
+            
     suite_builder.group "Enso maps" group_builder->
-        group_builder.specify "should allow checking for emptiness" <|
-            empty_map = Map.empty
-            non_empty = Map.empty . insert "foo" 1234
-            empty_map.is_empty . should_be_true
-            non_empty.is_empty . should_be_false
 
-        group_builder.specify "should get the default comparator for polyglot maps" <|
-            Comparable.from (Map.empty) . should_equal Default_Comparator
-            Comparable.from (js_empty_dict) . should_equal Default_Comparator
-            Comparable.from (JavaMap.of "A" 1 "B" 2) . should_equal Default_Comparator
-
-        group_builder.specify "should compare two hash maps" <|
-            (Map.singleton "a" 1).should_equal (Map.singleton "a" 1)
-            (Map.singleton "b" 2).should_not_equal (Map.singleton "a" 1)
-            Map.empty.should_equal Map.empty
-            Map.empty.should_not_equal (Map.singleton "a" 1)
-            (Map.empty.insert "a" 1 . insert "b" 2).should_equal (Map.empty.insert "b" 2 . insert "a" 1)
-
-        group_builder.specify "should allow checking for non emptiness" <|
-            empty_map = Map.empty
-            non_empty = Map.empty . insert "foo" 1234
-            empty_map.not_empty . should_be_false
-            non_empty.not_empty . should_be_true
-
-        group_builder.specify "should allow checking its size" <|
-            empty_map = Map.empty
-            non_empty = Map.singleton "a" "b" . insert "x" "y"
-            empty_map.size . should_equal 0
-            non_empty.size . should_equal 2
-
-        group_builder.specify "should support arbitrary atoms as keys" <|
-            map = Map.singleton (Pair.new "one" "two") 42
-            (map.get (Pair.new "one" "two")).should_equal 42
-            (map.get (Pair.new "A" "B")).should_equal Nothing
-            (map.get (Pair.new "two" "two")).should_equal Nothing
 
         group_builder.specify "should use proper hash code for keys" <|
             single_key_map key = Map.singleton key 42
@@ -144,40 +125,6 @@ add_specs suite_builder =
             (single_key_map (Json.parse '{"a": 1}') . at (Json.parse '{"a": 1}')) . should_equal 42
             (single_key_map (Child.Value 1) . at (Child.Value 1.0)) . should_equal 42
 
-        group_builder.specify "should support vectors as keys" <|
-            map = Map.singleton [1, "a", 2] "Value"
-            map.size.should_equal 1
-            map.get [1, "a", 2] . should_equal "Value"
-
-        group_builder.specify "should support NaN as keys" <|
-            Map.empty.insert Number.nan 1 . contains_key Number.nan . should_be_true
-            Map.empty.insert Number.nan 1 . values . should_equal [1]
-            Map.empty.insert Number.nan 1 . insert Number.nan 2 . contains_key Number.nan . should_be_true
-            Map.empty.insert Number.nan 1 . insert Number.nan 2 . values . should_equal [2]
-            Map.empty.insert Number.nan 1 . insert "key" 2 . insert Number.nan 3 . contains_key Number.nan . should_be_true
-            Map.empty.insert Number.nan 1 . insert "key" 2 . insert Number.nan 3 . contains_key "key" . should_be_true
-            Map.empty.insert Number.nan 1 . insert "key" 2 . insert Number.nan 3 . at Number.nan . should_equal 3
-            Map.empty.insert Number.nan 1 . insert "key" 2 . insert Number.nan 3 . at "key" . should_equal 2
-            Map.empty.insert Number.nan 1 . insert Number.nan Number.nan . at Number.nan . to_text . should_equal "NaN"
-            Map.empty.insert Number.nan 1 . insert Number.nan Number.nan . remove Number.nan . size . should_equal 0
-
-        group_builder.specify "should support dates as keys" <|
-            map = Map.empty.insert (Date.new 1993) 1 . insert (Date.new 1993 2 5) 2 . insert (Date_Time.new 1993 2 5 13 45) 3
-            map.size.should_equal 3
-            map.get (Date.new 1993 6 7) . should_equal Nothing
-            map.get (Date.new 1993) . should_equal 1
-            map.get (Date_Time.new 1993) . should_equal Nothing
-            map.get (Date.new 1993 2 5) . should_equal 2
-            map.get (Date_Time.new 1993 2 5) . should_equal Nothing
-            map.get (Date_Time.new 1993 2 5 13 45) . should_equal 3
-
-        group_builder.specify "should support another hash map as key" <|
-            key_map = Map.singleton (Pair.new "one" "two") 42
-            map = Map.singleton key_map 23
-            map.size.should_equal 1
-            (map.get "A").should_equal Nothing
-            (map.get key_map).should_equal 23
-            (map.get map).should_equal Nothing
 
         group_builder.specify "should support another hash map with NaN keys as key" <|
             Map.singleton (Map.singleton Number.nan 1) 42 . size . should_equal 1
@@ -220,38 +167,6 @@ add_specs suite_builder =
                     acc_map.insert item True
             distinct_key_values.size . should_equal 5
 
-        group_builder.specify "should handle keys with standard equality semantics" <|
-            map = Map.singleton 2 "Hello"
-            (map.get 2).should_equal "Hello"
-            (map.get 2.0).should_equal "Hello"
-            (Map.singleton 2 "Hello").should_equal (Map.singleton 2.0 "Hello")
-
-        group_builder.specify "should handle Nothing as keys" <|
-            Map.singleton Nothing 3 . get Nothing . should_equal 3
-            Map.singleton Nothing 1 . insert Nothing 2 . get Nothing . should_equal 2
-            Map.singleton Nothing 1 . should_equal (Map.singleton Nothing 1)
-            Map.singleton Nothing 1 . insert Nothing 2 . at Nothing . should_equal 2
-            Map.singleton js_null 1 . at Nothing . should_equal 1
-
-        group_builder.specify "should handle incomparable values as keys" <|
-            Map.empty.insert Number.nan 1 . insert Number.nan 2 . get Number.nan . should_equal 2
-
-        group_builder.specify "should handle Nothing as values" <|
-            Map.singleton 1 Nothing . at 1 . should_equal Nothing
-            Map.singleton Nothing Nothing . at Nothing . should_equal Nothing
-
-        group_builder.specify "should support rewriting values with same keys" <|
-            map = Map.empty.insert "a" 1 . insert "a" 42
-            map.size.should_equal 1
-            map.get "a" . should_equal 42
-
-        group_builder.specify "should allow storing atoms as values" <|
-            json = Json.parse '{"a": 1}'
-            pair = Pair.new "first" "second"
-            map = Map.empty.insert 0 json . insert 1 pair
-            map.get 0 . should_equal json
-            map.get 1 . should_equal pair
-
         group_builder.specify "should not drop warnings from keys" <|
             key = Warning.attach "my_warn" "my_key"
             map = Map.singleton key 42
@@ -287,6 +202,9 @@ add_specs suite_builder =
             vec = [[0, 0], [3, -5], [1, 2]]
             Map.from_vector vec . should_equal expected
 
+        group_builder.specify "should fail when building the map from wrong vector" <|
+          Map.from_vector [["A", 1, "B", 2]] . should_fail_with Illegal_Argument
+
         group_builder.specify "should not allow duplicates when building the map from a vector, unless explicitly allowed" <|
             vec = [[0, 0], [3, -5], [1, 2], [0, 1]]
             m1 = Map.from_vector vec
@@ -297,51 +215,6 @@ add_specs suite_builder =
             Problems.assume_no_problems m2
             m2.get 0 . should_equal 1
             m2.get 3 . should_equal -5
-
-        group_builder.specify "should define a well-defined text conversion" <|
-            m = Map.empty . insert 0 0 . insert 3 -5 . insert 1 2
-            m.to_text . should_contain "0=0"
-            m.to_text . should_contain "3=-5"
-            m.to_text . should_contain "1=2"
-
-        group_builder.specify "should define structural equality" <|
-            map_1 = Map.empty . insert "1" 2 . insert "2" "1"
-            map_2 = Map.empty . insert "1" 2 . insert "2" "1"
-            map_3 = Map.empty
-            map_1==map_2 . should_be_true
-            map_1==map_3 . should_be_false
-            map_2==map_3 . should_be_false
-
-        group_builder.specify "should allow inserting and looking up values" <|
-            m = Map.empty . insert "foo" 134 . insert "bar" 654 . insert "baz" "spam"
-            m.at "foo" . should_equal 134
-            m.at "bar" . should_equal 654
-            m.at "baz" . should_equal "spam"
-            (m.at "nope").should_fail_with No_Such_Key
-
-        group_builder.specify "should support get" <|
-            m = Map.empty . insert 2 3
-            m.get 2 0 . should_equal 3
-            m.get 1 10 . should_equal 10
-            m.get 2 (Panic.throw "missing") . should_equal 3
-
-        group_builder.specify "should allow getting a vector of the keys" <|
-            m = Map.empty . insert 1 2 . insert 2 4
-            m.keys . should_equal [1, 2]
-
-        group_builder.specify "should allow getting a vector of the values" <|
-            m = Map.empty . insert 1 2 . insert 2 4
-            m.values . should_equal [2, 4]
-
-        group_builder.specify "should support contains_key" <|
-            m = Map.empty . insert 2 3
-            m.contains_key 2 . should_be_true
-            m.contains_key 1 . should_be_false
-
-        group_builder.specify "should allow transforming the map" <|
-            m = Map.empty . insert 1 2 . insert 2 4
-            expected = Map.empty . insert "1" 4 . insert "2" 8
-            m.transform (k -> v -> [k.to_text, v*2]) . should_equal expected
 
         group_builder.specify "should disallow duplicate keys when transforming the map" <|
             m = Map.from_vector [[1, 2], [11, 3]]
@@ -397,26 +270,6 @@ add_specs suite_builder =
             m.at 100 . should_equal 2
             m.at 200 . should_equal 3
             m.at Nothing . should_equal 1
-
-        group_builder.specify "should be able to remove entries (1)" <|
-            m1 = Map.empty.insert "A" 1 . insert "B" 2
-            m2 = m1.remove "B"
-            m2.get "A" . should_equal 1
-            m2.remove "A" . should_equal Map.empty
-            Test.expect_panic_with (m1.remove "foo") Any
-
-        group_builder.specify "should be able to remove entries (2)" <|
-            m1 = Map.empty.insert "A" 1
-            m2 = m1.insert "B" 2
-            m3 = m1.insert "C" 3
-            m2.remove "A" . to_vector . should_equal [["B", 2]]
-            m2.remove "B" . to_vector . should_equal [["A", 1]]
-            m3.remove "A" . to_vector . should_equal [["C", 3]]
-            m3.remove "C" . to_vector . should_equal [["A", 1]]
-
-        group_builder.specify "should be able to remove entries (3)" <|
-            m = Map.empty.insert "A" 1 . insert "B" 2 . insert "C" 3
-            m.remove "B" . should_equal (Map.singleton "A" 1 . insert "C" 3)
 
     suite_builder.group "Polyglot keys and values" group_builder->
         group_builder.specify "should support polyglot keys" <|
@@ -583,6 +436,13 @@ add_specs suite_builder =
             py_empty_dict.is_empty.should_be_true
             py_empty_dict.insert "A" 1 . insert "A" 2 . get "A" . should_equal 2
 
+        group_builder.specify "should be able to remove entries" pending=pending_python_missing <|
+            py_dict_from_vec ["A", 1, "B", 2] . remove "A" . size . should_equal 1
+            py_dict_from_vec ["A", 1, "B", 2] . remove "A" . get "B" . should_equal 2
+
+        group_builder.specify "should be able to remove NaN keys" pending=pending_python_missing <|
+            py_dict_from_vec [Number.nan, 1] . remove Number.nan . size . should_equal 0
+
         group_builder.specify "should pass maps with null keys to Python and back" pending=pending_python_missing <|
             # Python supports None as keys, Enso support Nothing as keys
             py_dict = py_dict_from_map (Map.singleton Nothing 42)
@@ -597,8 +457,178 @@ add_specs suite_builder =
             py_vec_from_map map2 . should_contain_the_same_elements_as [["A", 1], [Nothing, 2]]
 
 
-main =
+add_common_specs suite_builder prefix:Text (pending : (Text | Nothing)) (empty_map_fn : (Nothing -> Map)) =
+    # Not on a single line - empty_map is a method, not a variable
+    empty_map =
+        empty_map_fn Nothing
+
+    suite_builder.group prefix+": Common polyglot Map operations" pending=pending group_builder->
+        group_builder.specify "should get the default comparator for polyglot maps" <|
+            Comparable.from empty_map . should_equal Default_Comparator
+            
+        group_builder.specify "should compare two hash maps" <|
+            (empty_map.insert "a" 1).should_equal (empty_map.insert "a" 1)
+            (empty_map.insert "b" 2).should_not_equal (empty_map.insert "a" 1)
+            empty_map.should_equal empty_map
+            empty_map.should_not_equal (empty_map.insert "a" 1)
+            (empty_map.insert "a" 1 . insert "b" 2).should_equal (empty_map.insert "b" 2 . insert "a" 1)
+            
+        group_builder.specify "should allow checking for non emptiness" <|
+            non_empty = empty_map . insert "foo" 1234
+            empty_map.not_empty . should_be_false
+            non_empty.not_empty . should_be_true
+
+        group_builder.specify "should allow checking its size" <|
+            non_empty = empty_map.insert "a" "b" . insert "x" "y"
+            empty_map.size . should_equal 0
+            non_empty.size . should_equal 2
+            
+        group_builder.specify "should allow checking for emptiness" <|
+            non_empty = empty_map . insert "foo" 1234
+            empty_map.is_empty . should_be_true
+            non_empty.is_empty . should_be_false
+
+        group_builder.specify "should handle incomparable values as keys" <|
+            empty_map.insert Number.nan 1 . insert Number.nan 2 . get Number.nan . should_equal 2
+
+        group_builder.specify "should handle Nothing as values" <|
+            empty_map.insert 1 Nothing . at 1 . should_equal Nothing
+            empty_map.insert Nothing Nothing . at Nothing . should_equal Nothing
+
+        group_builder.specify "should support rewriting values with same keys" <|
+            map = Map.empty.insert "a" 1 . insert "a" 42
+            map.size.should_equal 1
+            map.get "a" . should_equal 42
+
+        group_builder.specify "should allow storing atoms as values" <|
+            json = Json.parse '{"a": 1}'
+            pair = Pair.new "first" "second"
+            map = Map.empty.insert 0 json . insert 1 pair
+            map.get 0 . should_equal json
+            map.get 1 . should_equal pair
+
+        group_builder.specify "should support NaN as keys" <|
+            empty_map.insert Number.nan 1 . contains_key Number.nan . should_be_true
+            empty_map.insert Number.nan 1 . values . should_equal [1]
+            empty_map.insert Number.nan 1 . insert Number.nan 2 . contains_key Number.nan . should_be_true
+            empty_map.insert Number.nan 1 . insert Number.nan 2 . values . should_equal [2]
+            empty_map.insert Number.nan 1 . insert "key" 2 . insert Number.nan 3 . contains_key Number.nan . should_be_true
+            empty_map.insert Number.nan 1 . insert "key" 2 . insert Number.nan 3 . contains_key "key" . should_be_true
+            empty_map.insert Number.nan 1 . insert "key" 2 . insert Number.nan 3 . at Number.nan . should_equal 3
+            empty_map.insert Number.nan 1 . insert "key" 2 . insert Number.nan 3 . at "key" . should_equal 2
+            empty_map.insert Number.nan 1 . insert Number.nan Number.nan . at Number.nan . to_text . should_equal "NaN"
+            empty_map.insert Number.nan 1 . insert Number.nan Number.nan . remove Number.nan . size . should_equal 0
+
+        group_builder.specify "should support arbitrary atoms as keys" <|
+            map = empty_map . insert (Pair.new "one" "two") 42
+            (map.get (Pair.new "one" "two")).should_equal 42
+            (map.get (Pair.new "A" "B")).should_equal Nothing
+            (map.get (Pair.new "two" "two")).should_equal Nothing
+
+        group_builder.specify "should support vectors as keys" <|
+            map = empty_map . insert [1, "a", 2] "Value"
+            map.size.should_equal 1
+            map.get [1, "a", 2] . should_equal "Value"
+
+        group_builder.specify "should support dates as keys" <|
+            map = empty_map.insert (Date.new 1993) 1 . insert (Date.new 1993 2 5) 2 . insert (Date_Time.new 1993 2 5 13 45) 3
+            map.size.should_equal 3
+            map.get (Date.new 1993 6 7) . should_equal Nothing
+            map.get (Date.new 1993) . should_equal 1
+            map.get (Date_Time.new 1993) . should_equal Nothing
+            map.get (Date.new 1993 2 5) . should_equal 2
+            map.get (Date_Time.new 1993 2 5) . should_equal Nothing
+            map.get (Date_Time.new 1993 2 5 13 45) . should_equal 3
+
+        group_builder.specify "should support another hash map as key" <|
+            key_map = empty_map.insert (Pair.new "one" "two") 42
+            map = empty_map.insert key_map 23
+            map.size.should_equal 1
+            (map.get "A").should_equal Nothing
+            (map.get key_map).should_equal 23
+            (map.get map).should_equal Nothing
+
+        group_builder.specify "should handle keys with standard equality semantics" <|
+            map = empty_map.insert 2 "Hello"
+            (map.get 2).should_equal "Hello"
+            (map.get 2.0).should_equal "Hello"
+            (empty_map.insert 2 "Hello").should_equal (empty_map.insert 2.0 "Hello")
+
+        group_builder.specify "should handle Nothing as keys" <|
+            empty_map.insert Nothing 3 . get Nothing . should_equal 3
+            empty_map.insert Nothing 1 . insert Nothing 2 . get Nothing . should_equal 2
+            empty_map.insert Nothing 1 . should_equal (empty_map.insert Nothing 1)
+            empty_map.insert Nothing 1 . insert Nothing 2 . at Nothing . should_equal 2
+            empty_map.insert js_null 1 . at Nothing . should_equal 1
+            empty_map.insert py_none 1 . at Nothing . should_equal 1
+
+        group_builder.specify "should define a well-defined text conversion" <|
+            m = empty_map . insert 0 0 . insert 3 -5 . insert 1 2
+            m.to_text . should_contain "0=0"
+            m.to_text . should_contain "3=-5"
+            m.to_text . should_contain "1=2"
+
+        group_builder.specify "should define structural equality" <|
+            map_1 = empty_map . insert "1" 2 . insert "2" "1"
+            map_2 = empty_map . insert "1" 2 . insert "2" "1"
+            map_3 = empty_map
+            map_1==map_2 . should_be_true
+            map_1==map_3 . should_be_false
+            map_2==map_3 . should_be_false
+
+        group_builder.specify "should allow inserting and looking up values" <|
+            m = empty_map . insert "foo" 134 . insert "bar" 654 . insert "baz" "spam"
+            m.at "foo" . should_equal 134
+            m.at "bar" . should_equal 654
+            m.at "baz" . should_equal "spam"
+            (m.at "nope").should_fail_with No_Such_Key
+
+        group_builder.specify "should support get" <|
+            m = empty_map . insert 2 3
+            m.get 2 0 . should_equal 3
+            m.get 1 10 . should_equal 10
+            m.get 2 (Panic.throw "missing") . should_equal 3
+
+        group_builder.specify "should allow getting a vector of the keys" <|
+            m = empty_map . insert 1 2 . insert 2 4
+            m.keys . should_equal [1, 2]
+
+        group_builder.specify "should allow getting a vector of the values" <|
+            m = empty_map . insert 1 2 . insert 2 4
+            m.values . should_equal [2, 4]
+
+        group_builder.specify "should support contains_key" <|
+            m = empty_map . insert 2 3
+            m.contains_key 2 . should_be_true
+            m.contains_key 1 . should_be_false
+
+        group_builder.specify "should allow transforming the map" <|
+            m = empty_map . insert 1 2 . insert 2 4
+            expected = empty_map . insert "1" 4 . insert "2" 8
+            m.transform (k -> v -> [k.to_text, v*2]) . should_equal expected
+
+        group_builder.specify "should be able to remove entries (1)" <|
+            m1 = empty_map.insert "A" 1 . insert "B" 2
+            m2 = m1.remove "B"
+            m2.get "A" . should_equal 1
+            m2.remove "A" . should_equal empty_map
+            m1.remove "foo" . should_fail_with No_Such_Key
+
+        group_builder.specify "should be able to remove entries (2)" <|
+            m1 = empty_map.insert "A" 1
+            m2 = m1.insert "B" 2
+            m3 = m1.insert "C" 3
+            m2.remove "A" . to_vector . should_equal [["B", 2]]
+            m2.remove "B" . to_vector . should_equal [["A", 1]]
+            m3.remove "A" . to_vector . should_equal [["C", 3]]
+            m3.remove "C" . to_vector . should_equal [["A", 1]]
+
+        group_builder.specify "should be able to remove entries (3)" <|
+            m = empty_map.insert "A" 1 . insert "B" 2 . insert "C" 3
+            m.remove "B" . should_equal (empty_map.insert "A" 1 . insert "C" 3)
+
+
+main filter=Nothing =
     suite = Test.build suite_builder->
         add_specs suite_builder
-    suite.run_with_filter
-
+    suite.run_with_filter filter

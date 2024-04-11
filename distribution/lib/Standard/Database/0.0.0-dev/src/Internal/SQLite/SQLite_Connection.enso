@@ -4,20 +4,19 @@ import Standard.Base.Metadata.Display
 from Standard.Base.Metadata.Choice import Option
 from Standard.Base.Metadata.Widget import Single_Choice
 
-import Standard.Table.Data.Table.Table as Materialized_Table
-import Standard.Table.Data.Type.Value_Type.Value_Type
+from Standard.Table import Table, Value_Type
 
+import project.Column_Description.Column_Description
 import project.Connection.Connection.Connection
-import project.Data.Column_Description.Column_Description
-import project.Data.Dialect
-import project.Data.SQL_Query.SQL_Query
-import project.Data.SQL_Statement.SQL_Statement
-import project.Data.SQL_Type.SQL_Type
-import project.Data.Table.Table as Database_Table
+import project.DB_Table.DB_Table
+import project.Dialect
 import project.Internal.IR.Query.Query
 import project.Internal.JDBC_Connection
 import project.Internal.SQL_Type_Reference.SQL_Type_Reference
 import project.Internal.SQLite.SQLite_Entity_Naming_Properties
+import project.SQL_Query.SQL_Query
+import project.SQL_Statement.SQL_Statement
+import project.SQL_Type.SQL_Type
 from project.Connection.Connection import make_schema_selector, make_structure_creator, make_table_name_selector, make_table_types_selector
 from project.Errors import SQL_Error, Table_Already_Exists, Table_Not_Found
 from project.Internal.Upload_Table import first_column_name_in_structure
@@ -43,22 +42,26 @@ type SQLite_Connection
        - connection: the underlying connection.
     Value connection
 
-    ## Closes the connection releasing the underlying database resources
+    ## ICON data_input
+       Closes the connection releasing the underlying database resources
        immediately instead of waiting for them to be automatically released.
 
        The connection is not usable afterwards.
     close : Nothing
     close self = self.connection.close
 
-    ## Returns the list of databases (or catalogs) for the connection.
+    ## ICON metadata
+       Returns the list of databases (or catalogs) for the connection.
     databases : Vector Text
     databases self = [Nothing]
 
-    ## Returns the name of the current database (or catalog).
+    ## ICON metadata
+       Returns the name of the current database (or catalog).
     database : Text
     database self = self.connection.database
 
-    ## Returns a new Connection with the specified database set as default.
+    ## ICON data_input
+       Returns a new Connection with the specified database set as default.
 
        Arguments:
         - database: The name of the database to connect to.
@@ -68,15 +71,18 @@ type SQLite_Connection
         if database == self.database then self else
             SQL_Error.throw_sql_error "Changing database is not supported."
 
-    ## Returns the list of schemas for the connection within the current database (or catalog).
+    ## ICON metadata
+       Returns the list of schemas for the connection within the current database (or catalog).
     schemas : Vector Text
     schemas self = [Nothing]
 
-    ## Returns the name of the current schema.
+    ## ICON metadata
+       Returns the name of the current schema.
     schema : Text
     schema self = self.connection.schema
 
-    ## Returns a new Connection with the specified schema set as default.
+    ## ICON data_input
+       Returns a new Connection with the specified schema set as default.
 
        Arguments:
         - schema: The name of the schema to connect to.
@@ -87,11 +93,13 @@ type SQLite_Connection
             SQL_Error.throw_sql_error "Changing schema is not supported."
 
     ## GROUP Standard.Base.Metadata
+       ICON metadata
        Gets a list of the table types
     table_types : Vector Text
     table_types self = self.connection.table_types
 
     ## GROUP Standard.Base.Metadata
+       ICON metadata
        Returns a materialized Table of all the matching views and tables.
 
        ? Temporary Tables
@@ -110,12 +118,13 @@ type SQLite_Connection
          commonly used table types, ignoring internal system tables or indices.
        - all_fields: Return all the fields in the metadata table.
     @types make_table_types_selector
-    @schema make_schema_selector
-    tables : Text -> Text -> Text -> Vector -> Boolean -> Materialized_Table
+    @schema (make_schema_selector include_any=True)
+    tables : Text -> Text -> Text -> Vector -> Boolean -> Table
     tables self name_like=Nothing database=self.database schema=Nothing types=self.dialect.default_table_types all_fields=False =
         self.connection.tables name_like database schema types all_fields
 
     ## GROUP Standard.Base.Input
+       ICON data_input
        Set up a query returning a Table object, which can be used to work with
        data within the database or load it into memory.
 
@@ -133,7 +142,7 @@ type SQLite_Connection
          - If provided with a `Table_Name` or a text short-hand and the table is
            not found, a `Table_Not_Found` error is raised.
     @query make_table_name_selector
-    query : Text | SQL_Query -> Text -> Database_Table ! Table_Not_Found
+    query : Text | SQL_Query -> Text -> DB_Table ! Table_Not_Found
     query self query alias="" = self.connection.query query alias
 
     ## GROUP Standard.Base.Input
@@ -157,7 +166,7 @@ type SQLite_Connection
          `execute_update` for DML queries, or if they are supposed to return
          results, the `read` should be wrapped in an execution context check.
     @query make_table_name_selector
-    read : Text | SQL_Query -> Integer | Nothing -> Boolean -> Materialized_Table ! Table_Not_Found
+    read : Text | SQL_Query -> Integer | Nothing -> Boolean -> Table ! Table_Not_Found
     read self query (limit : Integer | Nothing = 1000) (warn_if_more_rows : Boolean = True) =
         self.connection.read query limit warn_if_more_rows
 
@@ -204,12 +213,13 @@ type SQLite_Connection
          (like missing columns) and if successful, return a temporary table with
          a `Dry_Run_Operation` warning attached.
     @structure make_structure_creator
-    create_table : Text  -> Vector Column_Description | Database_Table | Materialized_Table -> Vector Text | Nothing -> Boolean -> Boolean -> Problem_Behavior -> Database_Table ! Table_Already_Exists
-    create_table self (table_name : Text) (structure : Vector Column_Description | Database_Table | Materialized_Table) (primary_key : (Vector Text | Nothing) = [first_column_name_in_structure structure]) (temporary : Boolean = False) (allow_existing : Boolean = False) (on_problems:Problem_Behavior = Problem_Behavior.Report_Warning) =
+    create_table : Text  -> Vector Column_Description | DB_Table | Table -> Vector Text | Nothing -> Boolean -> Boolean -> Problem_Behavior -> DB_Table ! Table_Already_Exists
+    create_table self (table_name : Text) (structure : Vector Column_Description | DB_Table | Table) (primary_key : (Vector Text | Nothing) = [first_column_name_in_structure structure]) (temporary : Boolean = False) (allow_existing : Boolean = False) (on_problems:Problem_Behavior = Problem_Behavior.Report_Warning) =
         self.connection.create_table table_name structure primary_key temporary allow_existing on_problems
 
     ## ADVANCED
        GROUP Standard.Base.Output
+       ICON data_output
 
        Executes a raw update query. If the query was inserting, updating or
        deleting rows, the number of affected rows is returned; otherwise it

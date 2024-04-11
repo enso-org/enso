@@ -33,7 +33,7 @@ add_specs suite_builder =
     Common_Table_Operations.Main.add_specs suite_builder setup
 
 
-main =
+main filter=Nothing =
     suite = Test.build suite_builder->
         add_specs suite_builder
-    suite.run_with_filter
+    suite.run_with_filter filter

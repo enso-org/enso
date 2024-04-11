@@ -1,19 +1,18 @@
 from Standard.Base import all
 
-import Standard.Database.Data.Table.Table as Database_Table
-import Standard.Database.Data.Column.Column as Database_Column
-import Standard.Table.Data.Table.Table as In_Memory_Table
-import Standard.Table.Data.Column.Column as In_Memory_Column
+import Standard.Database.DB_Table.DB_Table
+import Standard.Database.DB_Column.DB_Column
+from Standard.Table import Column, Table
 
 from Standard.Test import all
 
 polyglot java import org.enso.base_test_helpers.FileSystemHelper
 
-In_Memory_Table.should_equal : Any -> Integer -> Any
-In_Memory_Table.should_equal self expected frames_to_skip=0 =
+Table.should_equal : Any -> Integer -> Any
+Table.should_equal self expected frames_to_skip=0 =
     loc = Meta.get_source_location 1+frames_to_skip
     case expected of
-        _ : In_Memory_Table ->
+        _ : Table ->
             tables_equal t0 t1 =
                 same_headers = (t0.columns.map .name) == (t1.columns.map .name)
                 same_columns = (t0.columns.map .to_vector) == (t1.columns.map .to_vector)
@@ -24,11 +23,11 @@ In_Memory_Table.should_equal self expected frames_to_skip=0 =
                 Test.fail msg
         _ -> Test.fail "Got a Table, but expected a "+expected.to_display_text+' (at '+loc+').'
 
-In_Memory_Column.should_equal : Any -> Integer -> Any
-In_Memory_Column.should_equal self expected frames_to_skip=0 =
+Column.should_equal : Any -> Integer -> Any
+Column.should_equal self expected frames_to_skip=0 =
     loc = Meta.get_source_location 1+frames_to_skip
     case expected of
-        _ : In_Memory_Column ->
+        _ : Column ->
             if self.name != expected.name then
                 Test.fail "Expected column name "+expected.name+", but got "+self.name+" (at "+loc+")."
             if self.length != expected.length then
@@ -36,14 +35,14 @@ In_Memory_Column.should_equal self expected frames_to_skip=0 =
             self.to_vector.should_equal expected.to_vector 2+frames_to_skip
         _ -> Test.fail "Got a Column, but expected a "+expected.to_display_text+' (at '+loc+').'
 
-Database_Table.should_equal : Database_Table -> Integer -> Any
-Database_Table.should_equal self expected frames_to_skip=0 =
+DB_Table.should_equal : DB_Table -> Integer -> Any
+DB_Table.should_equal self expected frames_to_skip=0 =
     t0 = self.read
     t1 = expected.read
     t0 . should_equal t1 frames_to_skip
 
-Database_Column.should_equal : Database_Column -> Integer -> Any
-Database_Column.should_equal self expected frames_to_skip=0 =
+DB_Column.should_equal : DB_Column -> Integer -> Any
+DB_Column.should_equal self expected frames_to_skip=0 =
     t0 = self.read
     t1 = expected.read
     t0 . should_equal t1 frames_to_skip

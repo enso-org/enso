@@ -1,15 +1,17 @@
-import { Err, Ok, ResultError, rejectionToResult, type Result } from '@/util/data/result'
+import { ResultError, rejectionToResult, type Result } from '@/util/data/result'
 import { WebSocketTransport } from '@open-rpc/client-js'
 import type {
   IJSONRPCNotificationResponse,
   JSONRPCRequestData,
 } from '@open-rpc/client-js/build/Request'
 import { Transport } from '@open-rpc/client-js/build/transports/Transport'
-import type { ArgumentsType } from '@vueuse/core'
+import { type ArgumentsType } from '@vueuse/core'
 import { wait } from 'lib0/promise'
 import { LsRpcError } from 'shared/languageServer'
 import type { Notifications } from 'shared/languageServerTypes'
+import { AbortScope } from 'shared/util/net'
 import { WebsocketClient } from 'shared/websocket'
+import { onScopeDispose } from 'vue'
 
 export interface BackoffOptions<E> {
   maxRetries?: number
@@ -82,20 +84,22 @@ export function createRpcTransport(url: string): Transport {
     const mockName = url.slice('mock://'.length)
     return new MockTransport(mockName)
   } else {
-    return new WebSocketTransport(url)
+    const transport = new WebSocketTransport(url)
+    return transport
   }
 }
 
 export function createWebsocketClient(
   url: string,
+  abort: AbortScope,
   options?: { binaryType?: 'arraybuffer' | 'blob' | null; sendPings?: boolean },
 ): WebsocketClient {
   if (url.startsWith('mock://')) {
-    const mockWs = new MockWebSocketClient(url)
+    const mockWs = new MockWebSocketClient(url, abort)
     if (options?.binaryType) mockWs.binaryType = options.binaryType
     return mockWs
   } else {
-    const client = new WebsocketClient(url, options)
+    const client = new WebsocketClient(url, abort, options)
     client.connect()
     return client
   }
@@ -185,8 +189,8 @@ export class MockWebSocket extends EventTarget implements WebSocket {
 }
 
 export class MockWebSocketClient extends WebsocketClient {
-  constructor(url: string) {
-    super(url)
+  constructor(url: string, abort: AbortScope) {
+    super(url, abort)
     super.connect(new MockWebSocket(url, url.slice('mock://'.length)))
   }
 }
@@ -245,119 +249,9 @@ export class AsyncQueue<State> {
   }
 }
 
-if (import.meta.vitest) {
-  const { describe, test, expect, beforeEach, afterEach, vi } = import.meta.vitest
-
-  beforeEach(() => {
-    vi.useFakeTimers()
-  })
-  afterEach(() => {
-    vi.useRealTimers()
-  })
-
-  describe('AsyncQueue', () => {
-    test('sets initial state', async () => {
-      const queue = new AsyncQueue(Promise.resolve(1))
-      expect(await queue.waitForCompletion()).toBe(1)
-    })
-
-    test('runs tasks in sequence', async () => {
-      const queue = new AsyncQueue(Promise.resolve(1))
-      queue.pushTask(async (state) => {
-        expect(state).toBe(1)
-        await wait(100)
-        return 2
-      })
-      queue.pushTask(async (state) => {
-        expect(state).toBe(2)
-        return 3
-      })
-      vi.runAllTimersAsync()
-      expect(await queue.waitForCompletion()).toBe(3)
-    })
-
-    test('clear removes all not yet started tasks', async () => {
-      const queue = new AsyncQueue(Promise.resolve(1))
-      queue.pushTask(async (state) => {
-        expect(state).toBe(1)
-        await wait(100)
-        return 2
-      })
-      queue.pushTask(async (state) => {
-        expect(state).toBe(2)
-        return 3
-      })
-      queue.clear()
-      queue.pushTask(async (state) => {
-        expect(state).toBe(2)
-        return 5
-      })
-      vi.runAllTimersAsync()
-      expect(await queue.waitForCompletion()).toBe(5)
-    })
-  })
-
-  describe('exponentialBackoff', () => {
-    test('runs successful task once', async () => {
-      const task = vi.fn(async () => Ok(1))
-      const result = await exponentialBackoff(task)
-      expect(result).toEqual({ ok: true, value: 1 })
-      expect(task).toHaveBeenCalledTimes(1)
-    })
-
-    test('retry failing task up to a limit', async () => {
-      const task = vi.fn(async () => Err(1))
-      const promise = exponentialBackoff(task, { maxRetries: 4 })
-      vi.runAllTimersAsync()
-      const result = await promise
-      expect(result).toEqual({ ok: false, error: new ResultError(1) })
-      expect(task).toHaveBeenCalledTimes(5)
-    })
-
-    test('wait before retrying', async () => {
-      const task = vi.fn(async () => Err(null))
-      exponentialBackoff(task, {
-        maxRetries: 10,
-        retryDelay: 100,
-        retryDelayMultiplier: 3,
-        retryDelayMax: 1000,
-      })
-      expect(task).toHaveBeenCalledTimes(1)
-      await vi.advanceTimersByTimeAsync(100)
-      expect(task).toHaveBeenCalledTimes(2)
-      await vi.advanceTimersByTimeAsync(300)
-      expect(task).toHaveBeenCalledTimes(3)
-      await vi.advanceTimersByTimeAsync(900)
-      expect(task).toHaveBeenCalledTimes(4)
-      await vi.advanceTimersByTimeAsync(5000)
-      expect(task).toHaveBeenCalledTimes(9)
-    })
-
-    test('retry task until success', async () => {
-      const task = vi.fn()
-      task.mockReturnValueOnce(Promise.resolve(Err(3)))
-      task.mockReturnValueOnce(Promise.resolve(Err(2)))
-      task.mockReturnValueOnce(Promise.resolve(Ok(1)))
-      const promise = exponentialBackoff(task)
-      vi.runAllTimersAsync()
-      const result = await promise
-      expect(result).toEqual({ ok: true, value: 1 })
-      expect(task).toHaveBeenCalledTimes(3)
-    })
-
-    test('call retry callback', async () => {
-      const task = vi.fn()
-      task.mockReturnValueOnce(Promise.resolve(Err(3)))
-      task.mockReturnValueOnce(Promise.resolve(Err(2)))
-      task.mockReturnValueOnce(Promise.resolve(Ok(1)))
-      const onBeforeRetry = vi.fn()
-
-      const promise = exponentialBackoff(task, { onBeforeRetry })
-      vi.runAllTimersAsync()
-      await promise
-      expect(onBeforeRetry).toHaveBeenCalledTimes(2)
-      expect(onBeforeRetry).toHaveBeenNthCalledWith(1, new ResultError(3), 0, 1000)
-      expect(onBeforeRetry).toHaveBeenNthCalledWith(2, new ResultError(2), 1, 2000)
-    })
-  })
+/** Create an abort signal that is signalled when containing Vue scope is disposed. */
+export function useAbortScope(): AbortScope {
+  const scope = new AbortScope()
+  onScopeDispose(() => scope.dispose('Vue scope disposed.'))
+  return scope
 }

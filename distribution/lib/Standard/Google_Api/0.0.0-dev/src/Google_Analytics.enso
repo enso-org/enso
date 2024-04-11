@@ -1,0 +1,38 @@
+from Standard.Base import all
+import Standard.Base.Data.Array_Proxy.Array_Proxy
+import Standard.Base.Metadata.Display
+from Standard.Base.Metadata import make_single_choice, Widget
+from Standard.Base.Metadata.Widget import Single_Choice, Vector_Editor
+
+from Standard.Table import Table
+
+import project.Google_Credential.Google_Credential
+from project.Internal.Google_Analytics_Internal import all
+
+## PRIVATE
+make_dimensions_vector_selector : Widget
+make_dimensions_vector_selector =
+    item_editor = make_single_choice ['country', 'date', 'isConversionEvent', 'language', 'userAgeBracket', 'userGender']
+    Vector_Editor item_editor=item_editor item_default=item_editor.values.first.value display=Display.Always
+
+## PRIVATE
+make_metrics_vector_selector : Widget
+make_metrics_vector_selector =
+    item_editor = make_single_choice ['activeUsers', 'bounceRate', 'conversions', 'newUsers', 'sessionsPerUser', 'userConversionRate']
+    Vector_Editor item_editor=item_editor item_default=item_editor.values.first.value display=Display.Always
+
+## GROUP Standard.Base.Input
+   ICON data_input
+   Performs google analytics call
+   This method calls the google reporting v4 api. 
+   Arguments:
+   - property_id: The Google Analytics property_id that is being queried
+   - start_date: The beginning date of the query. Default is 2020-03-31
+   - end_date: The end date being queried. Defaults to today.
+@dimensions make_dimensions_vector_selector
+@metrics make_metrics_vector_selector
+read : Text -> (Vector Text) -> (Vector Text) -> Date -> Date -> Google_Credential -> Table
+read property_id:Text dimensions:Vector=['country'] metrics:Vector=['activeUsers'] start_date:Date=(Date.today.previous Date_Period.Year) end_date:Date=Date.today credentials:Google_Credential=Google_Credential.Default -> Table =
+    case credentials of
+        Google_Credential.Sample -> read_sample_data dimensions metrics start_date end_date
+        _ -> read_api_data property_id dimensions metrics start_date end_date credentials

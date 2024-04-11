@@ -1,163 +1,348 @@
 <script setup lang="ts">
 import NodeWidget from '@/components/GraphEditor/NodeWidget.vue'
 import SvgIcon from '@/components/SvgIcon.vue'
-import DropdownWidget from '@/components/widgets/DropdownWidget.vue'
-import { Score, WidgetInput, defineWidget, widgetProps } from '@/providers/widgetRegistry'
+import DropdownWidget, { type DropdownEntry } from '@/components/widgets/DropdownWidget.vue'
+import { unrefElement } from '@/composables/events'
+import { defineWidget, Score, WidgetInput, widgetProps } from '@/providers/widgetRegistry'
 import {
-  functionCallConfiguration,
+  multipleChoiceConfiguration,
+  singleChoiceConfiguration,
   type ArgumentWidgetConfiguration,
 } from '@/providers/widgetRegistry/configuration'
+import { WidgetEditHandler } from '@/providers/widgetRegistry/editHandler'
+import { injectWidgetTree } from '@/providers/widgetTree.ts'
 import { useGraphStore } from '@/stores/graph'
 import { requiredImports, type RequiredImport } from '@/stores/graph/imports.ts'
 import { useSuggestionDbStore } from '@/stores/suggestionDatabase'
-import { type SuggestionEntry } from '@/stores/suggestionDatabase/entry.ts'
-import { Ast } from '@/util/ast'
-import type { TokenId } from '@/util/ast/abstract.ts'
-import { ArgumentInfoKey } from '@/util/callTree'
-import { asNot } from '@/util/data/types.ts'
 import {
-  qnLastSegment,
-  tryQualifiedName,
-  type IdentifierOrOperatorIdentifier,
-} from '@/util/qualifiedName'
-import { computed, ref, watch } from 'vue'
+  type SuggestionEntry,
+  type SuggestionEntryArgument,
+} from '@/stores/suggestionDatabase/entry.ts'
+import { Ast } from '@/util/ast'
+import { targetIsOutside } from '@/util/autoBlur'
+import { ArgumentInfoKey } from '@/util/callTree'
+import { arrayEquals } from '@/util/data/array'
+import type { Opt } from '@/util/data/opt'
+import { qnLastSegment, tryQualifiedName } from '@/util/qualifiedName'
+import { computed, ref, watch, type ComponentInstance } from 'vue'
 
 const props = defineProps(widgetProps(widgetDefinition))
 const suggestions = useSuggestionDbStore()
 const graph = useGraphStore()
 
-interface Tag {
-  /** If not set, the label is same as expression */
-  label?: string
-  expression: string
-  requiredImports?: RequiredImport[]
-  parameters?: ArgumentWidgetConfiguration[]
-}
+const tree = injectWidgetTree()
 
-function identToLabel(name: IdentifierOrOperatorIdentifier): string {
-  return name.replaceAll('_', ' ')
-}
+const dropdownElement = ref<ComponentInstance<typeof DropdownWidget>>()
 
-function tagFromExpression(expression: string): Tag {
-  const qn = tryQualifiedName(expression)
-  if (!qn.ok) return { expression }
-  const entry = suggestions.entries.getEntryByQualifiedName(qn.value)
-  if (entry) return tagFromEntry(entry)
-  return {
-    label: identToLabel(qnLastSegment(qn.value)),
-    expression: qn.value,
+const editedWidget = ref<string>()
+const editedValue = ref<Ast.Owned | string | undefined>()
+const isHovered = ref(false)
+
+class ExpressionTag {
+  private cachedExpressionAst: Ast.Ast | undefined
+
+  constructor(
+    readonly expression: string,
+    private explicitLabel?: Opt<string>,
+    readonly requiredImports?: RequiredImport[],
+    public parameters?: ArgumentWidgetConfiguration[],
+  ) {}
+
+  static FromQualifiedName(qn: Ast.QualifiedName, label?: Opt<string>): ExpressionTag {
+    const entry = suggestions.entries.getEntryByQualifiedName(qn)
+    if (entry) return ExpressionTag.FromEntry(entry, label)
+    return new ExpressionTag(qn, label ?? qnLastSegment(qn))
+  }
+
+  static FromExpression(expression: string, label?: Opt<string>): ExpressionTag {
+    const qn = tryQualifiedName(expression)
+    if (qn.ok) return ExpressionTag.FromQualifiedName(qn.value, label)
+    return new ExpressionTag(expression, label)
+  }
+
+  static FromEntry(entry: SuggestionEntry, label?: Opt<string>): ExpressionTag {
+    const expression =
+      entry.selfType != null ? `_.${entry.name}`
+      : entry.memberOf ? `${qnLastSegment(entry.memberOf)}.${entry.name}`
+      : entry.name
+    return new ExpressionTag(
+      expression,
+      label ?? entry.name,
+      requiredImports(suggestions.entries, entry),
+    )
+  }
+
+  get label() {
+    return this.explicitLabel ?? this.expression
+  }
+
+  get expressionAst() {
+    if (this.cachedExpressionAst == null) {
+      this.cachedExpressionAst = Ast.parse(this.expression)
+    }
+    return this.cachedExpressionAst
   }
 }
 
-function tagFromEntry(entry: SuggestionEntry): Tag {
-  return {
-    label: identToLabel(entry.name),
-    expression:
-      entry.selfType != null
-        ? `_.${entry.name}`
-        : entry.memberOf
-        ? `${qnLastSegment(entry.memberOf)}.${entry.name}`
-        : entry.name,
-    requiredImports: requiredImports(suggestions.entries, entry),
+class ActionTag {
+  constructor(
+    readonly label: string,
+    readonly onClick: () => void,
+  ) {}
+
+  static FromItem(item: CustomDropdownItem): ActionTag {
+    return new ActionTag(item.label, item.onClick)
   }
 }
 
-const staticTags = computed<Tag[]>(() => {
+type ExpressionFilter = (tag: ExpressionTag) => boolean
+function makeExpressionFilter(pattern: Ast.Ast | string): ExpressionFilter | undefined {
+  const editedAst = typeof pattern === 'string' ? Ast.parse(pattern) : pattern
+  const editedCode = pattern instanceof Ast.Ast ? pattern.code() : pattern
+  if (editedAst instanceof Ast.TextLiteral) {
+    return (tag: ExpressionTag) =>
+      tag.expressionAst instanceof Ast.TextLiteral &&
+      tag.expressionAst.rawTextContent.startsWith(editedAst.rawTextContent)
+  }
+  if (editedCode) {
+    return (tag: ExpressionTag) => tag.expression.startsWith(editedCode)
+  }
+  return undefined
+}
+
+const staticTags = computed<ExpressionTag[]>(() => {
   const tags = props.input[ArgumentInfoKey]?.info?.tagValues
   if (tags == null) return []
-  return tags.map(tagFromExpression)
+  return tags.map((t) => ExpressionTag.FromExpression(t))
 })
 
-const dynamicTags = computed<Tag[]>(() => {
+const dynamicTags = computed<ExpressionTag[]>(() => {
   const config = props.input.dynamicConfig
-  if (config?.kind !== 'Single_Choice') return []
-  return config.values.map((value) => ({
-    ...tagFromExpression(value.value),
-    ...(value.label ? { label: value.label } : {}),
-    parameters: value.parameters,
+  if (config?.kind !== 'Single_Choice' && config?.kind !== 'Multiple_Choice') return []
+
+  return config.values.map((value) => {
+    const tag = ExpressionTag.FromExpression(value.value, value.label)
+    tag.parameters = value.parameters
+    return tag
+  })
+})
+
+const filteredTags = computed(() => {
+  const expressionTags = dynamicTags.value.length > 0 ? dynamicTags.value : staticTags.value
+  const expressionFilter =
+    !isMulti.value && editedValue.value && makeExpressionFilter(editedValue.value)
+  if (expressionFilter) {
+    return expressionTags.filter(expressionFilter)
+  } else {
+    const actionTags = props.input[CustomDropdownItemsKey]?.map(ActionTag.FromItem) ?? []
+    return [...actionTags, ...expressionTags]
+  }
+})
+interface Entry extends DropdownEntry {
+  tag: ExpressionTag | ActionTag
+}
+const entries = computed<Entry[]>(() => {
+  return filteredTags.value.map((tag, index) => ({
+    value: tag.label,
+    selected: tag instanceof ExpressionTag && selectedExpressions.value.has(tag.expression),
+    tag,
   }))
 })
 
-const tags = computed(() => (dynamicTags.value.length > 0 ? dynamicTags.value : staticTags.value))
-const tagLabels = computed(() => tags.value.map((tag) => tag.label ?? tag.expression))
-
 const removeSurroundingParens = (expr?: string) => expr?.trim().replaceAll(/(^[(])|([)]$)/g, '')
 
-const selectedIndex = ref<number>()
-const selectedTag = computed(() => {
-  if (selectedIndex.value != null) {
-    return tags.value[selectedIndex.value]
+const selectedExpressions = computed(() => {
+  const selected = new Set<string>()
+  if (isMulti.value) {
+    for (const element of getValues(props.input.value)) {
+      const normalized = removeSurroundingParens(element.code())
+      if (normalized) selected.add(normalized)
+    }
   } else {
-    const currentExpression = removeSurroundingParens(WidgetInput.valueRepr(props.input))
-    if (!currentExpression) return undefined
-    // We need to find the tag that matches the (beginning of) current expression.
-    // To prevent partial prefix matches, we arrange tags in reverse lexicographical order.
-    const sortedTags = tags.value
-      .map((tag, index) => [removeSurroundingParens(tag.expression), index] as [string, number])
-      .sort(([a], [b]) => (a < b ? 1 : a > b ? -1 : 0))
-    const [_, index] = sortedTags.find(([expr]) => currentExpression.startsWith(expr)) ?? []
-    return index != null ? tags.value[index] : undefined
+    const code = removeSurroundingParens(WidgetInput.valueRepr(props.input))
+    if (code) selected.add(code)
+  }
+  return selected
+})
+const innerWidgetInput = computed<WidgetInput>(() => {
+  const dynamicConfig =
+    props.input.dynamicConfig?.kind === 'Single_Choice' ?
+      singleChoiceConfiguration(props.input.dynamicConfig)
+    : props.input.dynamicConfig?.kind === 'Multiple_Choice' ?
+      multipleChoiceConfiguration(props.input.dynamicConfig)
+    : props.input.dynamicConfig
+  return {
+    ...props.input,
+    editHandler: dropDownInteraction,
+    dynamicConfig,
   }
 })
-
-const selectedExpression = computed(() => {
-  if (selectedTag.value == null) return WidgetInput.valueRepr(props.input)
-  return selectedTag.value.expression
+const isMulti = computed(() => props.input.dynamicConfig?.kind === 'Multiple_Choice')
+const dropDownInteraction = WidgetEditHandler.New('WidgetSelection', props.input, {
+  cancel: () => {},
+  pointerdown: (e, _) => {
+    if (targetIsOutside(e, unrefElement(dropdownElement))) {
+      dropDownInteraction.end()
+      if (editedWidget.value)
+        props.onUpdate({ portUpdate: { origin: props.input.portId, value: editedValue.value } })
+    }
+  },
+  start: () => {
+    editedWidget.value = undefined
+    editedValue.value = undefined
+  },
+  edit: (origin, value) => {
+    editedWidget.value = origin
+    editedValue.value = value
+  },
+  addItem: () => {
+    dropDownInteraction.start()
+    return true
+  },
 })
-const innerWidgetInput = computed(() => {
-  if (selectedTag.value == null) return props.input
-  const parameters = selectedTag.value.parameters
-  if (!parameters) return props.input
-  const config = functionCallConfiguration(parameters)
-  return { ...props.input, dynamicConfig: config }
-})
-const showDropdownWidget = ref(false)
 
 function toggleDropdownWidget() {
-  showDropdownWidget.value = !showDropdownWidget.value
+  if (!dropDownInteraction.active.value) dropDownInteraction.start()
+  else dropDownInteraction.cancel()
 }
 
-// When the selected index changes, we update the expression content.
-watch(selectedIndex, (_index) => {
-  let edit: Ast.MutableModule | undefined
-  if (selectedTag.value?.requiredImports) {
-    edit = graph.startEdit()
-    graph.addMissingImports(edit, selectedTag.value.requiredImports)
+function onClick(clickedEntry: Entry, keepOpen: boolean) {
+  if (clickedEntry.tag instanceof ActionTag) clickedEntry.tag.onClick()
+  else expressionTagClicked(clickedEntry.tag, clickedEntry.selected)
+  if (!(keepOpen || isMulti.value)) {
+    // We cancel interaction instead of ending it to restore the old value in the inner widget;
+    // if we clicked already selected entry, there would be no AST change, thus the inner
+    // widget's content would not be updated.
+    dropDownInteraction.cancel()
   }
-  props.onUpdate({
-    edit,
-    portUpdate: {
-      value: selectedExpression.value,
-      origin: asNot<TokenId>(props.input.portId),
-    },
-  })
-  showDropdownWidget.value = false
+}
+
+/** Add any necessary imports for `tag`, and return it with any necessary qualification. */
+function resolveTagExpression(edit: Ast.MutableModule, tag: ExpressionTag) {
+  if (tag.requiredImports) {
+    const conflicts = graph.addMissingImports(edit, tag.requiredImports)
+    if (conflicts != null && conflicts.length > 0) {
+      // TODO: Substitution does not work, because we interpret imports wrongly. To be fixed in
+      // https://github.com/enso-org/enso/issues/9356
+      // And here it was wrong anyway: we should replace only conflicting name, not entire expression!
+      // // Is there is a conflict, it would be a single one, because we only ask about a single entry.
+      // return conflicts[0]?.fullyQualified!
+    }
+  }
+  // Unless a conflict occurs, we use the selected expression as is.
+  return tag.expression
+}
+
+function* getValues(expression: Ast.Ast | string | undefined) {
+  if (expression instanceof Ast.Vector) {
+    yield* expression.values()
+  } else if (expression instanceof Ast.Ast) {
+    yield expression
+  }
+}
+
+function toggleVectorValue(vector: Ast.MutableVector, value: string, previousState: boolean) {
+  if (previousState) {
+    vector.keep((ast) => ast.code() !== value)
+  } else {
+    vector.push(Ast.parse(value, vector.module))
+  }
+}
+
+function expressionTagClicked(tag: ExpressionTag, previousState: boolean) {
+  const edit = graph.startEdit()
+  const tagValue = resolveTagExpression(edit, tag)
+  if (isMulti.value) {
+    const inputValue = props.input.value
+    if (inputValue instanceof Ast.Vector) {
+      toggleVectorValue(edit.getVersion(inputValue), tagValue, previousState)
+      props.onUpdate({ edit })
+    } else {
+      const vector = Ast.Vector.new(
+        edit,
+        inputValue instanceof Ast.Ast ? [edit.take(inputValue.id)] : [],
+      )
+      toggleVectorValue(vector, tagValue, previousState)
+      props.onUpdate({ edit, portUpdate: { value: vector, origin: props.input.portId } })
+    }
+  } else {
+    props.onUpdate({ edit, portUpdate: { value: tagValue, origin: props.input.portId } })
+  }
+}
+
+let endClippingInhibition: (() => void) | undefined
+watch(dropDownInteraction.active, (visible) => {
+  if (visible) {
+    const { unregister } = tree.inhibitClipping()
+    endClippingInhibition = unregister
+  } else {
+    endClippingInhibition?.()
+    endClippingInhibition = undefined
+  }
 })
 </script>
 
 <script lang="ts">
-export const widgetDefinition = defineWidget(WidgetInput.isAstOrPlaceholder, {
-  priority: 50,
-  score: (props) => {
-    if (props.input.dynamicConfig?.kind === 'Single_Choice') return Score.Perfect
-    if (props.input[ArgumentInfoKey]?.info?.tagValues != null) return Score.Perfect
-    return Score.Mismatch
+function isHandledByCheckboxWidget(parameter: SuggestionEntryArgument | undefined): boolean {
+  return (
+    parameter?.tagValues != null &&
+    arrayEquals(Array.from(parameter.tagValues).sort(), [
+      'Standard.Base.Data.Boolean.Boolean.False',
+      'Standard.Base.Data.Boolean.Boolean.True',
+    ])
+  )
+}
+
+export const widgetDefinition = defineWidget(
+  WidgetInput.isAstOrPlaceholder,
+  {
+    priority: 50,
+    score: (props) =>
+      props.input[CustomDropdownItemsKey] != null ? Score.Perfect
+      : props.input.dynamicConfig?.kind === 'Single_Choice' ? Score.Perfect
+      : props.input.dynamicConfig?.kind === 'Multiple_Choice' ? Score.Perfect
+      : isHandledByCheckboxWidget(props.input[ArgumentInfoKey]?.info) ? Score.Mismatch
+      : props.input[ArgumentInfoKey]?.info?.tagValues != null ? Score.Perfect
+      : Score.Mismatch,
   },
-})
+  import.meta.hot,
+)
+
+/** Custom item added to dropdown. These items can’t be selected, but can be clicked. */
+export interface CustomDropdownItem {
+  /** Displayed label. */
+  label: string
+  /** Action to perform when clicked. */
+  onClick: () => void
+}
+
+export const CustomDropdownItemsKey: unique symbol = Symbol('CustomDropdownItems')
+declare module '@/providers/widgetRegistry' {
+  export interface WidgetInput {
+    [CustomDropdownItemsKey]?: readonly CustomDropdownItem[]
+  }
+}
 </script>
 
 <template>
-  <div class="WidgetSelection" @pointerdown.stop="toggleDropdownWidget">
-    <NodeWidget ref="childWidgetRef" :input="innerWidgetInput" />
-    <SvgIcon name="arrow_right_head_only" class="arrow" />
+  <!-- See comment in GraphNode next to dragPointer definition about stopping pointerdown and pointerup -->
+  <div
+    class="WidgetSelection"
+    :class="{ multiSelect: isMulti }"
+    @pointerdown.stop
+    @pointerup.stop
+    @click.stop="toggleDropdownWidget"
+    @pointerover="isHovered = true"
+    @pointerout="isHovered = false"
+  >
+    <NodeWidget :input="innerWidgetInput" />
+    <SvgIcon v-if="isHovered" name="arrow_right_head_only" class="arrow" />
     <DropdownWidget
-      v-if="showDropdownWidget"
-      class="dropdownContainer"
+      v-if="dropDownInteraction.active.value"
+      ref="dropdownElement"
       :color="'var(--node-color-primary)'"
-      :values="tagLabels"
-      :selectedValue="selectedExpression"
-      @pointerdown.stop
-      @click="selectedIndex = $event"
+      :entries="entries"
+      @clickEntry="onClick"
     />
   </div>
 </template>
@@ -170,8 +355,11 @@ export const widgetDefinition = defineWidget(WidgetInput.isAstOrPlaceholder, {
 
 .arrow {
   position: absolute;
-  bottom: -6px;
+  bottom: -7px;
   left: 50%;
-  transform: translateX(-50%) rotate(90deg);
+  transform: translateX(-50%) rotate(90deg) scale(0.7);
+  opacity: 0.5;
+  /* Prevent the parent from receiving a pointerout event if the mouse is over the arrow, which causes flickering. */
+  pointer-events: none;
 }
 </style>

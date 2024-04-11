@@ -1,6 +1,7 @@
 /** @file Type definitions common between all backends. */
 import type * as React from 'react'
 
+import * as array from '#/utilities/array'
 import * as dateTime from '#/utilities/dateTime'
 import * as newtype from '#/utilities/newtype'
 import * as permissions from '#/utilities/permissions'
@@ -13,9 +14,13 @@ import * as uniqueString from '#/utilities/uniqueString'
 // These are constructor functions that construct values of the type they are named after.
 /* eslint-disable @typescript-eslint/no-redeclare */
 
-/** Unique identifier for a user/organization. */
-export type UserOrOrganizationId = newtype.Newtype<string, 'UserOrOrganizationId'>
-export const UserOrOrganizationId = newtype.newtypeConstructor<UserOrOrganizationId>()
+/** Unique identifier for an organization. */
+export type OrganizationId = newtype.Newtype<string, 'OrganizationId'>
+export const OrganizationId = newtype.newtypeConstructor<OrganizationId>()
+
+/** Unique identifier for a user. */
+export type UserId = newtype.Newtype<string, 'UserId'>
+export const UserId = newtype.newtypeConstructor<UserId>()
 
 /** Unique identifier for a directory. */
 export type DirectoryId = newtype.Newtype<string, 'DirectoryId'>
@@ -42,8 +47,16 @@ export const FileId = newtype.newtypeConstructor<FileId>()
 export type SecretId = newtype.Newtype<string, 'SecretId'>
 export const SecretId = newtype.newtypeConstructor<SecretId>()
 
+/** Unique identifier for a Data Link. */
+export type ConnectorId = newtype.Newtype<string, 'ConnectorId'>
+export const ConnectorId = newtype.newtypeConstructor<ConnectorId>()
+
 /** Unique identifier for an arbitrary asset. */
 export type AssetId = IdType[keyof IdType]
+
+/** Unique identifier for a payment checkout session. */
+export type CheckoutSessionId = newtype.Newtype<string, 'CheckoutSessionId'>
+export const CheckoutSessionId = newtype.newtypeConstructor<CheckoutSessionId>()
 
 /** The name of an asset label. */
 export type LabelName = newtype.Newtype<string, 'LabelName'>
@@ -56,6 +69,10 @@ export const TagId = newtype.newtypeConstructor<TagId>()
 /** A URL. */
 export type Address = newtype.Newtype<string, 'Address'>
 export const Address = newtype.newtypeConstructor<Address>()
+
+/** A HTTPS URL. */
+export type HttpsUrl = newtype.Newtype<string, 'HttpsUrl'>
+export const HttpsUrl = newtype.newtypeConstructor<HttpsUrl>()
 
 /** An email address. */
 export type EmailAddress = newtype.Newtype<string, 'EmailAddress'>
@@ -73,6 +90,10 @@ export const Ami = newtype.newtypeConstructor<Ami>()
 export type Subject = newtype.Newtype<string, 'Subject'>
 export const Subject = newtype.newtypeConstructor<Subject>()
 
+/** An filesystem path. Only present on the local backend. */
+export type Path = newtype.Newtype<string, 'Path'>
+export const Path = newtype.newtypeConstructor<Path>()
+
 /* eslint-enable @typescript-eslint/no-redeclare */
 
 // =============
@@ -85,17 +106,31 @@ export enum BackendType {
   remote = 'remote',
 }
 
-/** A user/organization in the application. These are the primary owners of a project. */
-export interface UserOrOrganization {
-  readonly id: UserOrOrganizationId
+/** Metadata uniquely identifying a user inside an organization. */
+export interface UserInfo {
+  /** The ID of the parent organization. If this is a sole user, they are implicitly in an
+   * organization consisting of only themselves. */
+  readonly organizationId: OrganizationId
+  /** The ID of this user.
+   *
+   * The user ID is globally unique. Thus, the user ID is always sufficient to uniquely identify a
+   * user. The user ID is guaranteed to never change, once assigned. For these reasons, the user ID
+   * should be the preferred way to uniquely refer to a user. That is, when referring to a user,
+   * prefer this field over `name`, `email`, `subject`, or any other mechanism, where possible. */
+  readonly userId: UserId
   readonly name: string
   readonly email: EmailAddress
+}
+
+/** A user in the application. These are the primary owners of a project. */
+export interface User extends UserInfo {
   /** A URL. */
   readonly profilePicture: string | null
   /** If `false`, this account is awaiting acceptance from an admin, and endpoints other than
    * `usersMe` will not work. */
   readonly isEnabled: boolean
   readonly rootDirectoryId: DirectoryId
+  readonly removeAt?: dateTime.Rfc3339DateTime | null
 }
 
 /** A `Directory` returned by `createDirectory`. */
@@ -109,6 +144,7 @@ export interface CreatedDirectory {
 export enum ProjectState {
   created = 'Created',
   new = 'New',
+  scheduled = 'Scheduled',
   openInProgress = 'OpenInProgress',
   provisioned = 'Provisioned',
   opened = 'Opened',
@@ -134,12 +170,27 @@ export interface ProjectStateType {
   readonly ec2_public_ip_address?: string
   readonly current_session_id?: string
   readonly opened_by?: EmailAddress
+  /** Only present on the Local backend. */
+  readonly path?: Path
   /* eslint-enable @typescript-eslint/naming-convention */
 }
 
-export const DOES_PROJECT_STATE_INDICATE_VM_EXISTS: Readonly<Record<ProjectState, boolean>> = {
+export const IS_OPENING: Readonly<Record<ProjectState, boolean>> = {
   [ProjectState.created]: false,
   [ProjectState.new]: false,
+  [ProjectState.scheduled]: true,
+  [ProjectState.openInProgress]: true,
+  [ProjectState.provisioned]: true,
+  [ProjectState.opened]: false,
+  [ProjectState.closed]: false,
+  [ProjectState.placeholder]: true,
+  [ProjectState.closing]: false,
+}
+
+export const IS_OPENING_OR_OPENED: Readonly<Record<ProjectState, boolean>> = {
+  [ProjectState.created]: false,
+  [ProjectState.new]: false,
+  [ProjectState.scheduled]: true,
   [ProjectState.openInProgress]: true,
   [ProjectState.provisioned]: true,
   [ProjectState.opened]: true,
@@ -192,6 +243,8 @@ export interface Project extends ListedProject {
   readonly ideVersion: VersionNumber | null
   readonly engineVersion: VersionNumber | null
   readonly openedBy?: EmailAddress
+  /** On the Remote (Cloud) Backend, this is a S3 url that is valid for only 120 seconds. */
+  readonly url?: HttpsUrl
 }
 
 /** A user/organization's project containing and/or currently executing code. */
@@ -210,8 +263,8 @@ export interface ProjectStartupInfo {
   readonly accessToken: string | null
 }
 
-/** Metadata describing an uploaded file. */
-export interface File {
+/** Metadata describing the location of an uploaded file. */
+export interface FileLocator {
   readonly fileId: FileId
   readonly fileName: string | null
   readonly path: S3FilePath
@@ -226,9 +279,17 @@ export interface FileInfo {
   readonly project: CreatedProject | null
 }
 
+/** Metadata for a file. */
+export interface FileMetadata {
+  readonly size: number
+}
+
 /** All metadata related to a file. */
 export interface FileDetails {
-  readonly file: File
+  readonly file: FileLocator
+  readonly metadata: FileMetadata
+  /** On the Remote (Cloud) Backend, this is a S3 url that is valid for only 120 seconds. */
+  readonly url?: string
 }
 
 /** A secret environment variable. */
@@ -248,6 +309,15 @@ export interface SecretAndInfo {
 export interface SecretInfo {
   readonly name: string
   readonly id: SecretId
+  readonly path: string
+}
+
+/** A Data Link. */
+export type Connector = newtype.Newtype<unknown, 'Connector'>
+
+/** Metadata uniquely identifying a Data Link. */
+export interface ConnectorInfo {
+  readonly id: ConnectorId
 }
 
 /** A label. */
@@ -292,6 +362,43 @@ export interface Version {
   readonly version_type: VersionType
 }
 
+/** Credentials that need to be passed to libraries to give them access to the Cloud API. */
+export interface CognitoCredentials {
+  readonly accessToken: string
+  readonly refreshToken: string
+  readonly refreshUrl: string
+  readonly clientId: string
+  readonly expireAt: dateTime.Rfc3339DateTime
+}
+
+/** Subscription plans. */
+export enum Plan {
+  solo = 'solo',
+  team = 'team',
+}
+
+export const PLANS = Object.values(Plan)
+
+// This is a function, even though it does not look like one.
+// eslint-disable-next-line no-restricted-syntax
+export const isPlan = array.includesPredicate(PLANS)
+
+/** Metadata uniquely describing a payment checkout session. */
+export interface CheckoutSession {
+  /** ID of the checkout session, suffixed with a secret value. */
+  readonly clientSecret: string
+  /** ID of the checkout session. */
+  readonly id: CheckoutSessionId
+}
+
+/** Metadata describing the status of a payment checkout session. */
+export interface CheckoutSessionStatus {
+  /** Status of the payment for the checkout session. */
+  readonly paymentStatus: string
+  /** Status of the checkout session. */
+  readonly status: string
+}
+
 /** Resource usage of a VM. */
 export interface ResourceUsage {
   /** Percentage of memory used. */
@@ -302,27 +409,19 @@ export interface ResourceUsage {
   readonly storage: number
 }
 
-/** Metadata uniquely identifying a user. */
-export interface User {
-  /* eslint-disable @typescript-eslint/naming-convention */
-  readonly pk: Subject
-  readonly user_name: string
-  readonly user_email: EmailAddress
-  readonly organization_id: UserOrOrganizationId
-  /* eslint-enable @typescript-eslint/naming-convention */
-}
-
-/** Metadata uniquely identifying a user inside an organization.
- * This is similar to {@link User}, but without `organization_id`. */
-export interface SimpleUser {
-  readonly id: Subject
-  readonly name: string
-  readonly email: EmailAddress
+/** Metadata for an organization. */
+export interface OrganizationInfo {
+  readonly id: OrganizationId
+  readonly name: string | null
+  readonly email: EmailAddress | null
+  readonly website: HttpsUrl | null
+  readonly address: string | null
+  readonly picture: HttpsUrl | null
 }
 
 /** User permission for a specific user. */
 export interface UserPermission {
-  readonly user: User
+  readonly user: UserInfo
   readonly permission: permissions.PermissionAction
 }
 
@@ -355,6 +454,60 @@ export enum FilterBy {
   recent = 'Recent',
   trashed = 'Trashed',
 }
+
+/** An event in an audit log. */
+export interface Event {
+  readonly organizationId: OrganizationId
+  readonly userEmail: EmailAddress
+  readonly timestamp: dateTime.Rfc3339DateTime | null
+  // Called `EventKind` in the backend.
+  readonly metadata: EventMetadata
+}
+
+/** Possible types of event in an audit log. */
+export enum EventType {
+  GetSecret = 'getSecret',
+  DeleteAssets = 'deleteAssets',
+  ListSecrets = 'listSecrets',
+  OpenProject = 'openProject',
+  UploadFile = 'uploadFile',
+}
+
+export const EVENT_TYPES = Object.freeze(Object.values(EventType))
+
+/** An event indicating that a secret was accessed. */
+interface GetSecretEventMetadata {
+  readonly type: EventType.GetSecret
+  readonly secretId: SecretId
+}
+
+/** An event indicating that one or more assets were deleted. */
+interface DeleteAssetsEventMetadata {
+  readonly type: EventType.DeleteAssets
+}
+
+/** An event indicating that all secrets were listed. */
+interface ListSecretsEventMetadata {
+  readonly type: EventType.ListSecrets
+}
+
+/** An event indicating that a project was opened. */
+interface OpenProjectEventMetadata {
+  readonly type: EventType.OpenProject
+}
+
+/** An event indicating that a file was uploaded. */
+interface UploadFileEventMetadata {
+  readonly type: EventType.UploadFile
+}
+
+/** All possible types of metadata for an event in the audit log. */
+export type EventMetadata =
+  | DeleteAssetsEventMetadata
+  | GetSecretEventMetadata
+  | ListSecretsEventMetadata
+  | OpenProjectEventMetadata
+  | UploadFileEventMetadata
 
 /** A color in the LCh colorspace. */
 export interface LChColor {
@@ -392,9 +545,8 @@ export const COLORS: readonly [LChColor, ...LChColor[]] = [
 
 /** Converts a {@link LChColor} to a CSS color string. */
 export function lChColorToCssColor(color: LChColor): string {
-  return 'alpha' in color
-    ? `lcha(${color.lightness}% ${color.chroma} ${color.hue} / ${color.alpha})`
-    : `lch(${color.lightness}% ${color.chroma} ${color.hue})`
+  const alpha = 'alpha' in color ? ` / ${color.alpha}` : ''
+  return `lch(${color.lightness}% ${color.chroma} ${color.hue}${alpha})`
 }
 
 export const COLOR_STRING_TO_COLOR = new Map(
@@ -424,32 +576,24 @@ export enum AssetType {
   project = 'project',
   file = 'file',
   secret = 'secret',
+  dataLink = 'connector',
   directory = 'directory',
   /** A special {@link AssetType} representing the unknown items of a directory, before the
    * request to retrieve the items completes. */
-  specialLoading = 'special-loading',
+  specialLoading = 'specialLoading',
   /** A special {@link AssetType} representing the sole child of an empty directory. */
-  specialEmpty = 'special-empty',
+  specialEmpty = 'specialEmpty',
 }
 
 /** The corresponding ID newtype for each {@link AssetType}. */
 export interface IdType {
   readonly [AssetType.project]: ProjectId
   readonly [AssetType.file]: FileId
+  readonly [AssetType.dataLink]: ConnectorId
   readonly [AssetType.secret]: SecretId
   readonly [AssetType.directory]: DirectoryId
   readonly [AssetType.specialLoading]: LoadingAssetId
   readonly [AssetType.specialEmpty]: EmptyAssetId
-}
-
-/** The english name of each asset type. */
-export const ASSET_TYPE_NAME: Readonly<Record<AssetType, string>> = {
-  [AssetType.directory]: 'folder',
-  [AssetType.project]: 'project',
-  [AssetType.file]: 'file',
-  [AssetType.secret]: 'secret',
-  [AssetType.specialLoading]: 'special loading asset',
-  [AssetType.specialEmpty]: 'special empty asset',
 }
 
 /** Integers (starting from 0) corresponding to the order in which each asset type should appear
@@ -461,7 +605,8 @@ export const ASSET_TYPE_ORDER: Readonly<Record<AssetType, number>> = {
   [AssetType.directory]: 0,
   [AssetType.project]: 1,
   [AssetType.file]: 2,
-  [AssetType.secret]: 3,
+  [AssetType.dataLink]: 3,
+  [AssetType.secret]: 4,
   [AssetType.specialLoading]: 999,
   [AssetType.specialEmpty]: 1000,
   /* eslint-enable @typescript-eslint/no-magic-numbers */
@@ -501,6 +646,9 @@ export interface ProjectAsset extends Asset<AssetType.project> {}
 
 /** A convenience alias for {@link Asset}<{@link AssetType.file}>. */
 export interface FileAsset extends Asset<AssetType.file> {}
+
+/** A convenience alias for {@link Asset}<{@link AssetType.dataLink}>. */
+export interface DataLinkAsset extends Asset<AssetType.dataLink> {}
 
 /** A convenience alias for {@link Asset}<{@link AssetType.secret}>. */
 export interface SecretAsset extends Asset<AssetType.secret> {}
@@ -551,7 +699,8 @@ export function createPlaceholderProjectAsset(
   title: string,
   parentId: DirectoryId,
   assetPermissions: UserPermission[],
-  organization: UserOrOrganization | null
+  organization: User | null,
+  path: Path | null
 ): ProjectAsset {
   return {
     type: AssetType.project,
@@ -566,6 +715,7 @@ export function createPlaceholderProjectAsset(
       volume_id: '',
       // eslint-disable-next-line @typescript-eslint/naming-convention
       ...(organization != null ? { opened_by: organization.email } : {}),
+      ...(path != null ? { path } : {}),
     },
     labels: [],
     description: null,
@@ -604,14 +754,22 @@ export function createSpecialEmptyAsset(directoryId: DirectoryId): SpecialEmptyA
   }
 }
 
+/** Any object with a `type` field matching the given `AssetType`. */
+interface HasType<Type extends AssetType> {
+  readonly type: Type
+}
+
 /** A union of all possible {@link Asset} variants. */
-export type AnyAsset =
+export type AnyAsset<Type extends AssetType = AssetType> = Extract<
+  | DataLinkAsset
   | DirectoryAsset
   | FileAsset
   | ProjectAsset
   | SecretAsset
   | SpecialEmptyAsset
-  | SpecialLoadingAsset
+  | SpecialLoadingAsset,
+  HasType<Type>
+>
 
 /** A type guard that returns whether an {@link Asset} is a specific type of asset. */
 export function assetIsType<Type extends AssetType>(type: Type) {
@@ -640,6 +798,10 @@ export function createPlaceholderAssetId<Type extends AssetType>(
       result = FileId(id)
       break
     }
+    case AssetType.dataLink: {
+      result = ConnectorId(id)
+      break
+    }
     case AssetType.secret: {
       result = SecretId(id)
       break
@@ -653,7 +815,7 @@ export function createPlaceholderAssetId<Type extends AssetType>(
       break
     }
   }
-  // This is SAFE, just too complex for TypeScript to correctly typecheck.
+  // This is SAFE, just too dynamic for TypeScript to correctly typecheck.
   // eslint-disable-next-line no-restricted-syntax
   return result as IdType[Type]
 }
@@ -664,6 +826,8 @@ export function createPlaceholderAssetId<Type extends AssetType>(
 export const assetIsProject = assetIsType(AssetType.project)
 /** A type guard that returns whether an {@link Asset} is a {@link DirectoryAsset}. */
 export const assetIsDirectory = assetIsType(AssetType.directory)
+/** A type guard that returns whether an {@link Asset} is a {@link DataLinkAsset}. */
+export const assetIsDataLink = assetIsType(AssetType.dataLink)
 /** A type guard that returns whether an {@link Asset} is a {@link SecretAsset}. */
 export const assetIsSecret = assetIsType(AssetType.secret)
 /** A type guard that returns whether an {@link Asset} is a {@link FileAsset}. */
@@ -675,6 +839,10 @@ export interface S3ObjectVersion {
   versionId: string
   lastModified: dateTime.Rfc3339DateTime
   isLatest: boolean
+  /**
+   * The field points to an archive containing the all the project files object in the S3 bucket,
+   */
+  key: string
 }
 
 /** A list of asset versions. */
@@ -699,19 +867,21 @@ export function compareUserPermissions(a: UserPermission, b: UserPermission) {
   if (relativePermissionPrecedence !== 0) {
     return relativePermissionPrecedence
   } else {
-    const aName = a.user.user_name
-    const bName = b.user.user_name
-    const aEmail = a.user.user_email
-    const bEmail = b.user.user_email
+    // NOTE [NP]: Although `userId` is unique, and therefore sufficient to sort permissions, sort
+    // name first, so that it's easier to find a permission in a long list (i.e., for readability).
+    const aName = a.user.name
+    const bName = b.user.name
+    const aUserId = a.user.userId
+    const bUserId = b.user.userId
     return aName < bName
       ? COMPARE_LESS_THAN
       : aName > bName
-      ? 1
-      : aEmail < bEmail
-      ? COMPARE_LESS_THAN
-      : aEmail > bEmail
-      ? 1
-      : 0
+        ? 1
+        : aUserId < bUserId
+          ? COMPARE_LESS_THAN
+          : aUserId > bUserId
+            ? 1
+            : 0
   }
 }
 
@@ -723,7 +893,7 @@ export function compareUserPermissions(a: UserPermission, b: UserPermission) {
 export interface CreateUserRequestBody {
   readonly userName: string
   readonly userEmail: EmailAddress
-  readonly organizationId: UserOrOrganizationId | null
+  readonly organizationId: OrganizationId | null
 }
 
 /** HTTP request body for the "update user" endpoint. */
@@ -731,15 +901,23 @@ export interface UpdateUserRequestBody {
   username: string | null
 }
 
+/** HTTP request body for the "update organization" endpoint. */
+export interface UpdateOrganizationRequestBody {
+  name?: string
+  email?: EmailAddress
+  website?: HttpsUrl
+  address?: string
+}
+
 /** HTTP request body for the "invite user" endpoint. */
 export interface InviteUserRequestBody {
-  readonly organizationId: UserOrOrganizationId
+  readonly organizationId: OrganizationId
   readonly userEmail: EmailAddress
 }
 
 /** HTTP request body for the "create permission" endpoint. */
 export interface CreatePermissionRequestBody {
-  readonly userSubjects: Subject[]
+  readonly actorsIds: UserId[]
   readonly resourceId: AssetId
   readonly action: permissions.PermissionAction | null
 }
@@ -759,13 +937,23 @@ export interface UpdateDirectoryRequestBody {
 export interface UpdateAssetRequestBody {
   readonly parentDirectoryId: DirectoryId | null
   readonly description: string | null
+  /** Only present on the Local backend. */
+  readonly projectPath?: Path
+}
+
+/** HTTP request body for the "delete asset" endpoint. */
+export interface DeleteAssetRequestBody {
+  readonly force: boolean
+  /** Only used by the Local backend. */
+  readonly parentId: DirectoryId
 }
 
 /** HTTP request body for the "create project" endpoint. */
 export interface CreateProjectRequestBody {
   readonly projectName: string
-  readonly projectTemplateName: string | null
-  readonly parentDirectoryId: DirectoryId | null
+  readonly projectTemplateName?: string
+  readonly parentDirectoryId?: DirectoryId
+  readonly datalinkId?: ConnectorId
 }
 
 /** HTTP request body for the "update project" endpoint.
@@ -774,12 +962,17 @@ export interface UpdateProjectRequestBody {
   readonly projectName: string | null
   readonly ami: Ami | null
   readonly ideVersion: VersionNumber | null
+  /** Only used by the Local backend. */
+  readonly parentId: DirectoryId
 }
 
 /** HTTP request body for the "open project" endpoint. */
 export interface OpenProjectRequestBody {
-  readonly forceCreate: boolean
   readonly executeAsync: boolean
+  /** MUST be present on Remote backend; NOT REQUIRED on Local backend. */
+  readonly cognitoCredentials: CognitoCredentials | null
+  /** Only used by the Local backend. */
+  readonly parentId: DirectoryId
 }
 
 /** HTTP request body for the "create secret" endpoint. */
@@ -794,15 +987,28 @@ export interface UpdateSecretRequestBody {
   readonly value: string
 }
 
+/** HTTP request body for the "create connector" endpoint. */
+export interface CreateConnectorRequestBody {
+  name: string
+  value: unknown
+  parentDirectoryId: DirectoryId | null
+  connectorId: ConnectorId | null
+}
+
 /** HTTP request body for the "create tag" endpoint. */
 export interface CreateTagRequestBody {
   readonly value: string
   readonly color: LChColor
 }
 
+/** HTTP request body for the "create checkout session" endpoint. */
+export interface CreateCheckoutSessionRequestBody {
+  plan: Plan
+}
+
 /** URL query string parameters for the "list directory" endpoint. */
 export interface ListDirectoryRequestParams {
-  readonly parentId: string | null
+  readonly parentId: DirectoryId | null
   readonly filterBy: FilterBy | null
   readonly labels: LabelName[] | null
   readonly recentProjects: boolean
@@ -816,8 +1022,8 @@ export interface UploadFileRequestParams {
   readonly parentDirectoryId: DirectoryId | null
 }
 
-/** URL query string parameters for the "upload user profile picture" endpoint. */
-export interface UploadUserPictureRequestParams {
+/** URL query string parameters for the "upload profile picture" endpoint. */
+export interface UploadPictureRequestParams {
   readonly fileName: string | null
 }
 
@@ -854,7 +1060,14 @@ export function compareAssets(a: AnyAsset, b: AnyAsset) {
   if (relativeTypeOrder !== 0) {
     return relativeTypeOrder
   }
-  return a.title > b.title ? 1 : a.title < b.title ? COMPARE_LESS_THAN : 0
+  const aModified = Number(new Date(a.modifiedAt))
+  const bModified = Number(new Date(b.modifiedAt))
+  const modifiedDelta = aModified - bModified
+  if (modifiedDelta !== 0) {
+    // Sort by date descending, rather than ascending.
+    return -modifiedDelta
+  }
+  return a.title > b.title ? 1 : a.title < b.title ? -1 : 0
 }
 
 // ==================
@@ -914,94 +1127,109 @@ export function extractProjectExtension(name: string) {
 export default abstract class Backend {
   abstract readonly type: BackendType
 
+  /** Return the ID of the root directory, if known. */
+  abstract rootDirectoryId(user: User | null): DirectoryId | null
   /** Return a list of all users in the same organization. */
-  abstract listUsers(): Promise<SimpleUser[]>
+  abstract listUsers(): Promise<UserInfo[]>
   /** Set the username of the current user. */
-  abstract createUser(body: CreateUserRequestBody): Promise<UserOrOrganization>
+  abstract createUser(body: CreateUserRequestBody): Promise<User>
   /** Change the username of the current user. */
   abstract updateUser(body: UpdateUserRequestBody): Promise<void>
+  /** Restore the current user. */
+  abstract restoreUser(): Promise<void>
   /** Delete the current user. */
   abstract deleteUser(): Promise<void>
   /** Upload a new profile picture for the current user. */
-  abstract uploadUserPicture(
-    params: UploadUserPictureRequestParams,
-    file: Blob
-  ): Promise<UserOrOrganization>
+  abstract uploadUserPicture(params: UploadPictureRequestParams, file: Blob): Promise<User>
   /** Invite a new user to the organization by email. */
   abstract inviteUser(body: InviteUserRequestBody): Promise<void>
+  /** Get the details of the current organization. */
+  abstract getOrganization(): Promise<OrganizationInfo | null>
+  /** Change the details of the current organization. */
+  abstract updateOrganization(body: UpdateOrganizationRequestBody): Promise<OrganizationInfo | null>
+  /** Upload a new profile picture for the current organization. */
+  abstract uploadOrganizationPicture(
+    params: UploadPictureRequestParams,
+    file: Blob
+  ): Promise<OrganizationInfo>
   /** Adds a permission for a specific user on a specific asset. */
   abstract createPermission(body: CreatePermissionRequestBody): Promise<void>
   /** Return user details for the current user. */
-  abstract usersMe(): Promise<UserOrOrganization | null>
+  abstract usersMe(): Promise<User | null>
   /** Return a list of assets in a directory. */
-  abstract listDirectory(
-    query: ListDirectoryRequestParams,
-    title: string | null
-  ): Promise<AnyAsset[]>
+  abstract listDirectory(query: ListDirectoryRequestParams, title: string): Promise<AnyAsset[]>
   /** Create a directory. */
   abstract createDirectory(body: CreateDirectoryRequestBody): Promise<CreatedDirectory>
   /** Change the name of a directory. */
   abstract updateDirectory(
     directoryId: DirectoryId,
     body: UpdateDirectoryRequestBody,
-    title: string | null
+    title: string
   ): Promise<UpdatedDirectory>
   /** List previous versions of an asset. */
   abstract listAssetVersions(assetId: AssetId, title: string | null): Promise<AssetVersions>
   /** Change the parent directory of an asset. */
-  abstract updateAsset(
-    assetId: AssetId,
-    body: UpdateAssetRequestBody,
-    title: string | null
-  ): Promise<void>
+  abstract updateAsset(assetId: AssetId, body: UpdateAssetRequestBody, title: string): Promise<void>
   /** Delete an arbitrary asset. */
-  abstract deleteAsset(assetId: AssetId, title: string | null): Promise<void>
+  abstract deleteAsset(assetId: AssetId, body: DeleteAssetRequestBody, title: string): Promise<void>
   /** Restore an arbitrary asset from the trash. */
-  abstract undoDeleteAsset(assetId: AssetId, title: string | null): Promise<void>
+  abstract undoDeleteAsset(assetId: AssetId, title: string): Promise<void>
   /** Copy an arbitrary asset to another directory. */
   abstract copyAsset(
     assetId: AssetId,
     parentDirectoryId: DirectoryId,
-    title: string | null,
-    parentDirectoryTitle: string | null
+    title: string,
+    parentDirectoryTitle: string
   ): Promise<CopyAssetResponse>
   /** Return a list of projects belonging to the current user. */
   abstract listProjects(): Promise<ListedProject[]>
   /** Create a project for the current user. */
   abstract createProject(body: CreateProjectRequestBody): Promise<CreatedProject>
   /** Close a project. */
-  abstract closeProject(projectId: ProjectId, title: string | null): Promise<void>
+  abstract closeProject(projectId: ProjectId, title: string): Promise<void>
   /** Return project details. */
-  abstract getProjectDetails(projectId: ProjectId, title: string | null): Promise<Project>
+  abstract getProjectDetails(
+    projectId: ProjectId,
+    directoryId: DirectoryId | null,
+    title: string
+  ): Promise<Project>
   /** Set a project to an open state. */
   abstract openProject(
     projectId: ProjectId,
     body: OpenProjectRequestBody | null,
-    title: string | null
+    title: string
   ): Promise<void>
   /** Change the AMI or IDE version of a project. */
   abstract updateProject(
     projectId: ProjectId,
     body: UpdateProjectRequestBody,
-    title: string | null
+    title: string
   ): Promise<UpdatedProject>
+  /** Fetch the content of the `Main.enso` file of a project. */
+  abstract getFileContent(projectId: ProjectId, version: string, title: string): Promise<string>
   /** Return project memory, processor and storage usage. */
-  abstract checkResources(projectId: ProjectId, title: string | null): Promise<ResourceUsage>
+  abstract checkResources(projectId: ProjectId, title: string): Promise<ResourceUsage>
   /** Return a list of files accessible by the current user. */
-  abstract listFiles(): Promise<File[]>
+  abstract listFiles(): Promise<FileLocator[]>
   /** Upload a file. */
   abstract uploadFile(params: UploadFileRequestParams, file: Blob): Promise<FileInfo>
   /** Return file details. */
-  abstract getFileDetails(fileId: FileId, title: string | null): Promise<FileDetails>
+  abstract getFileDetails(fileId: FileId, title: string): Promise<FileDetails>
+  /** Create a Data Link. */
+  abstract createConnector(body: CreateConnectorRequestBody): Promise<ConnectorInfo>
+  /** Return a Data Link. */
+  abstract getConnector(connectorId: ConnectorId, title: string | null): Promise<Connector>
+  /** Delete a Data Link. */
+  abstract deleteConnector(connectorId: ConnectorId, title: string | null): Promise<void>
   /** Create a secret environment variable. */
   abstract createSecret(body: CreateSecretRequestBody): Promise<SecretId>
   /** Return a secret environment variable. */
-  abstract getSecret(secretId: SecretId, title: string | null): Promise<Secret>
+  abstract getSecret(secretId: SecretId, title: string): Promise<Secret>
   /** Change the value of a secret. */
   abstract updateSecret(
     secretId: SecretId,
     body: UpdateSecretRequestBody,
-    title: string | null
+    title: string
   ): Promise<void>
   /** Return the secret environment variables accessible by the user. */
   abstract listSecrets(): Promise<SecretInfo[]>
@@ -1010,9 +1238,15 @@ export default abstract class Backend {
   /** Return all labels accessible by the user. */
   abstract listTags(): Promise<Label[]>
   /** Set the full list of labels for a specific asset. */
-  abstract associateTag(assetId: AssetId, tagIds: LabelName[], title: string | null): Promise<void>
+  abstract associateTag(assetId: AssetId, tagIds: LabelName[], title: string): Promise<void>
   /** Delete a label. */
   abstract deleteTag(tagId: TagId, value: LabelName): Promise<void>
   /** Return a list of backend or IDE versions. */
   abstract listVersions(params: ListVersionsRequestParams): Promise<Version[]>
+  /** Create a payment checkout session. */
+  abstract createCheckoutSession(plan: Plan): Promise<CheckoutSession>
+  /** Get the status of a payment checkout session. */
+  abstract getCheckoutSession(sessionId: CheckoutSessionId): Promise<CheckoutSessionStatus>
+  /** List events in the organization's audit log. */
+  abstract getLogEvents(): Promise<Event[]>
 }

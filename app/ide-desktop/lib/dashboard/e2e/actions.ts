@@ -22,7 +22,7 @@ export const VALID_EMAIL = 'email@example.com'
 
 /** Find an email input (if any) on the current page. */
 export function locateEmailInput(page: test.Locator | test.Page) {
-  return page.getByLabel('Email')
+  return page.getByPlaceholder('Enter your email')
 }
 
 /** Find a password input (if any) on the current page. */
@@ -32,12 +32,12 @@ export function locatePasswordInput(page: test.Locator | test.Page) {
 
 /** Find a "confirm password" input (if any) on the current page. */
 export function locateConfirmPasswordInput(page: test.Locator | test.Page) {
-  return page.getByLabel('Confirm password')
+  return page.getByPlaceholder('Confirm your password')
 }
 
-/** Find an "old password" input (if any) on the current page. */
-export function locateOldPasswordInput(page: test.Locator | test.Page) {
-  return page.getByLabel('Old password')
+/** Find a "current password" input (if any) on the current page. */
+export function locateCurrentPasswordInput(page: test.Locator | test.Page) {
+  return page.getByPlaceholder('Enter your current password')
 }
 
 /** Find a "new password" input (if any) on the current page. */
@@ -56,34 +56,34 @@ export function locateUsernameInput(page: test.Locator | test.Page) {
 }
 
 /** Find a "name" input for a "new label" modal (if any) on the current page. */
-export function locateNewLabelModalNameInput(page: test.Locator | test.Page) {
+export function locateNewLabelModalNameInput(page: test.Page) {
   return locateNewLabelModal(page).getByLabel('Name')
 }
 
 /** Find all color radio button inputs for a "new label" modal (if any) on the current page. */
-export function locateNewLabelModalColorButtons(page: test.Locator | test.Page) {
+export function locateNewLabelModalColorButtons(page: test.Page) {
   return (
     locateNewLabelModal(page)
       .filter({ has: page.getByText('Color') })
       // The `radio` inputs are invisible, so they cannot be used in the locator.
-      .getByRole('button')
+      .locator('label[data-rac]')
   )
 }
 
 /** Find a "name" input for an "upsert secret" modal (if any) on the current page. */
-export function locateSecretNameInput(page: test.Locator | test.Page) {
+export function locateSecretNameInput(page: test.Page) {
   return locateUpsertSecretModal(page).getByPlaceholder('Enter the name of the secret')
 }
 
 /** Find a "value" input for an "upsert secret" modal (if any) on the current page. */
-export function locateSecretValueInput(page: test.Locator | test.Page) {
+export function locateSecretValueInput(page: test.Page) {
   return locateUpsertSecretModal(page).getByPlaceholder('Enter the value of the secret')
 }
 
 /** Find a search bar input (if any) on the current page. */
-export function locateSearchBarInput(page: test.Locator | test.Page) {
+export function locateSearchBarInput(page: test.Page) {
   return locateSearchBar(page).getByPlaceholder(
-    'Type to search for projects, data connectors, users, and more.'
+    'Type to search for projects, Data Links, users, and more.'
   )
 }
 
@@ -94,41 +94,34 @@ export function locateAssetRowName(locator: test.Locator) {
 
 // === Button locators ===
 
-/** Find a toast close button (if any) on the current page. */
+/** Find a toast close button (if any) on the current locator. */
 export function locateToastCloseButton(page: test.Locator | test.Page) {
   // There is no other simple way to uniquely identify this element.
   // eslint-disable-next-line no-restricted-properties
   return page.locator('.Toastify__close-button')
 }
 
-/** Find a login button (if any) on the current page. */
+/** Find a "login" button (if any) on the current locator. */
 export function locateLoginButton(page: test.Locator | test.Page) {
   return page.getByRole('button', { name: 'Login', exact: true }).getByText('Login')
 }
 
-/** Find a register button (if any) on the current page. */
+/** Find a "register" button (if any) on the current locator. */
 export function locateRegisterButton(page: test.Locator | test.Page) {
   return page.getByRole('button', { name: 'Register' }).getByText('Register')
 }
 
-/** Find a reset button (if any) on the current page. */
-export function locateResetButton(page: test.Locator | test.Page) {
-  return page.getByRole('button', { name: 'Reset' }).getByText('Reset')
+/** Find a "change" button (if any) on the current locator. */
+export function locateChangeButton(page: test.Locator | test.Page) {
+  return page.getByRole('button', { name: 'Change' }).getByText('Change')
 }
 
-/** Find a user menu button (if any) on the current page. */
+/** Find a user menu button (if any) on the current locator. */
 export function locateUserMenuButton(page: test.Locator | test.Page) {
-  return page.getByAltText('Open user menu')
+  return page.getByAltText('Open user menu').locator('visible=true')
 }
 
-/** Find a change password button (if any) on the current page. */
-export function locateChangePasswordButton(page: test.Locator | test.Page) {
-  return page
-    .getByRole('button', { name: 'Change your password' })
-    .getByText('Change your password')
-}
-
-/** Find a "sign out" button (if any) on the current page. */
+/** Find a "sign out" button (if any) on the current locator. */
 export function locateLogoutButton(page: test.Locator | test.Page) {
   return page.getByRole('button', { name: 'Logout' }).getByText('Logout')
 }
@@ -164,7 +157,7 @@ export function locateStopProjectButton(page: test.Locator | test.Page) {
 }
 
 /** Find all labels in the labels panel (if any) on the current page. */
-export function locateLabelsPanelLabels(page: test.Locator | test.Page) {
+export function locateLabelsPanelLabels(page: test.Page) {
   return (
     locateLabelsPanel(page)
       .getByRole('button')
@@ -199,39 +192,54 @@ export function locateAssetLabels(page: test.Locator | test.Page) {
   return page.getByTestId('asset-label')
 }
 
+/** Find a toggle for the "Name" column (if any) on the current page. */
+export function locateNameColumnToggle(page: test.Locator | test.Page) {
+  return page.getByAltText(/^(?:Show|Hide) Name$/)
+}
+
+/** Find a toggle for the "Modified" column (if any) on the current page. */
+export function locateModifiedColumnToggle(page: test.Locator | test.Page) {
+  return page.getByAltText(/^(?:Show|Hide) Modified date column$/)
+}
+
+/** Find a toggle for the "Shared with" column (if any) on the current page. */
+export function locateSharedWithColumnToggle(page: test.Locator | test.Page) {
+  return page.getByAltText(/^(?:Show|Hide) Shared with column$/)
+}
+
 /** Find a toggle for the "Labels" column (if any) on the current page. */
 export function locateLabelsColumnToggle(page: test.Locator | test.Page) {
-  return page.getByAltText(/^(?:Show|Hide) Labels$/)
+  return page.getByAltText(/^(?:Show|Hide) Labels column$/)
 }
 
 /** Find a toggle for the "Accessed by projects" column (if any) on the current page. */
 export function locateAccessedByProjectsColumnToggle(page: test.Locator | test.Page) {
-  return page.getByAltText(/^(?:Show|Hide) Accessed by projects$/)
+  return page.getByAltText(/^(?:Show|Hide) Accessed by projects column$/)
 }
 
 /** Find a toggle for the "Accessed data" column (if any) on the current page. */
 export function locateAccessedDataColumnToggle(page: test.Locator | test.Page) {
-  return page.getByAltText(/^(?:Show|Hide) Accessed data$/)
+  return page.getByAltText(/^(?:Show|Hide) Accessed data column$/)
 }
 
 /** Find a toggle for the "Docs" column (if any) on the current page. */
 export function locateDocsColumnToggle(page: test.Locator | test.Page) {
-  return page.getByAltText(/^(?:Show|Hide) Docs$/)
+  return page.getByAltText(/^(?:Show|Hide) Docs column$/)
 }
 
 /** Find a button for the "Recent" category (if any) on the current page. */
 export function locateRecentCategory(page: test.Locator | test.Page) {
-  return page.getByTitle('Go To Recent')
+  return page.getByLabel('Go To Recent category')
 }
 
 /** Find a button for the "Home" category (if any) on the current page. */
 export function locateHomeCategory(page: test.Locator | test.Page) {
-  return page.getByTitle('Go To Homoe')
+  return page.getByLabel('Go To Home category')
 }
 
 /** Find a button for the "Trash" category (if any) on the current page. */
 export function locateTrashCategory(page: test.Locator | test.Page) {
-  return page.getByTitle('Go To Trash')
+  return page.getByLabel('Go To Trash category')
 }
 
 // === Context menu buttons ===
@@ -375,21 +383,24 @@ export function locateDownloadFilesIcon(page: test.Locator | test.Page) {
 
 /** Find an icon to open or close the asset panel (if any) on the current page. */
 export function locateAssetPanelIcon(page: test.Locator | test.Page) {
-  return page.getByAltText('Open Asset Panel').or(page.getByAltText('Close Asset Panel'))
+  return page
+    .getByAltText('Open Asset Panel')
+    .or(page.getByAltText('Close Asset Panel'))
+    .locator('visible=true')
 }
 
 /** Find a list of tags in the search bar (if any) on the current page. */
-export function locateSearchBarTags(page: test.Locator | test.Page) {
+export function locateSearchBarTags(page: test.Page) {
   return locateSearchBar(page).getByTestId('asset-search-tag-names').getByRole('button')
 }
 
 /** Find a list of labels in the search bar (if any) on the current page. */
-export function locateSearchBarLabels(page: test.Locator | test.Page) {
+export function locateSearchBarLabels(page: test.Page) {
   return locateSearchBar(page).getByTestId('asset-search-labels').getByRole('button')
 }
 
 /** Find a list of labels in the search bar (if any) on the current page. */
-export function locateSearchBarSuggestions(page: test.Locator | test.Page) {
+export function locateSearchBarSuggestions(page: test.Page) {
   return locateSearchBar(page).getByTestId('asset-search-suggestion')
 }
 
@@ -412,29 +423,34 @@ export function locateSortDescendingIcon(page: test.Locator | test.Page) {
 
 /** Find a "home page" icon (if any) on the current page. */
 export function locateHomePageIcon(page: test.Locator | test.Page) {
-  return page.getByAltText('Go to home page')
+  return page.getByAltText('Home tab')
 }
 
 /** Find a "drive page" icon (if any) on the current page. */
 export function locateDrivePageIcon(page: test.Locator | test.Page) {
-  return page.getByAltText('Go to drive page')
+  return page.getByAltText('Drive tab')
 }
 
 /** Find an "editor page" icon (if any) on the current page. */
 export function locateEditorPageIcon(page: test.Locator | test.Page) {
-  return page.getByAltText('Go to editor page')
+  return page.getByAltText('Project tab')
+}
+
+/** Find a "settings page" icon (if any) on the current page. */
+export function locateSettingsPageIcon(page: test.Locator | test.Page) {
+  return page.getByAltText('Settings tab')
 }
 
 /** Find a "name" column heading (if any) on the current page. */
 export function locateNameColumnHeading(page: test.Locator | test.Page) {
-  return page.getByTitle('Sort by name').or(page.getByTitle('Stop sorting by name'))
+  return page.getByLabel('Sort by name').or(page.getByLabel('Stop sorting by name'))
 }
 
 /** Find a "modified" column heading (if any) on the current page. */
 export function locateModifiedColumnHeading(page: test.Locator | test.Page) {
   return page
-    .getByTitle('Sort by modification date')
-    .or(page.getByTitle('Stop sorting by modification date'))
+    .getByLabel('Sort by modification date')
+    .or(page.getByLabel('Stop sorting by modification date'))
 }
 
 // === Container locators ===
@@ -468,7 +484,7 @@ export function locateEditor(page: test.Page) {
   // This is fine as this element is defined in `index.html`, rather than from React.
   // Using `data-testid` may be more correct though.
   // eslint-disable-next-line no-restricted-properties
-  return page.locator('#root')
+  return page.locator('#app')
 }
 
 /** Find an assets table (if any) on the current page. */
@@ -498,82 +514,90 @@ export function locateCollapsibleDirectories(page: test.Page) {
   return locateAssetRows(page).filter({ has: page.getByAltText('Collapse') })
 }
 
-/** Find a "change password" modal (if any) on the current page. */
-export function locateChangePasswordModal(page: test.Locator | test.Page) {
-  // This has no identifying features.
-  return page.getByTestId('change-password-modal')
-}
-
 /** Find a "confirm delete" modal (if any) on the current page. */
-export function locateConfirmDeleteModal(page: test.Locator | test.Page) {
+export function locateConfirmDeleteModal(page: test.Page) {
   // This has no identifying features.
   return page.getByTestId('confirm-delete-modal')
 }
 
 /** Find a "new label" modal (if any) on the current page. */
-export function locateNewLabelModal(page: test.Locator | test.Page) {
+export function locateNewLabelModal(page: test.Page) {
   // This has no identifying features.
   return page.getByTestId('new-label-modal')
 }
 
 /** Find an "upsert secret" modal (if any) on the current page. */
-export function locateUpsertSecretModal(page: test.Locator | test.Page) {
+export function locateUpsertSecretModal(page: test.Page) {
   // This has no identifying features.
   return page.getByTestId('upsert-secret-modal')
 }
 
 /** Find a user menu (if any) on the current page. */
-export function locateUserMenu(page: test.Locator | test.Page) {
+export function locateUserMenu(page: test.Page) {
   // This has no identifying features.
   return page.getByTestId('user-menu')
 }
 
 /** Find a "set username" panel (if any) on the current page. */
-export function locateSetUsernamePanel(page: test.Locator | test.Page) {
+export function locateSetUsernamePanel(page: test.Page) {
   // This has no identifying features.
   return page.getByTestId('set-username-panel')
 }
 
 /** Find a set of context menus (if any) on the current page. */
-export function locateContextMenus(page: test.Locator | test.Page) {
+export function locateContextMenus(page: test.Page) {
   // This has no identifying features.
   return page.getByTestId('context-menus')
 }
 
 /** Find a labels panel (if any) on the current page. */
-export function locateLabelsPanel(page: test.Locator | test.Page) {
+export function locateLabelsPanel(page: test.Page) {
   // This has no identifying features.
   return page.getByTestId('labels')
 }
 
 /** Find a list of labels (if any) on the current page. */
-export function locateLabelsList(page: test.Locator | test.Page) {
+export function locateLabelsList(page: test.Page) {
   // This has no identifying features.
   return page.getByTestId('labels-list')
 }
 
 /** Find an asset panel (if any) on the current page. */
-export function locateAssetPanel(page: test.Locator | test.Page) {
+export function locateAssetPanel(page: test.Page) {
   // This has no identifying features.
   return page.getByTestId('asset-panel')
 }
 
 /** Find a search bar (if any) on the current page. */
-export function locateSearchBar(page: test.Locator | test.Page) {
+export function locateSearchBar(page: test.Page) {
   // This has no identifying features.
   return page.getByTestId('asset-search-bar')
+}
+
+/** Find an extra columns button panel (if any) on the current page. */
+export function locateExtraColumns(page: test.Page) {
+  // This has no identifying features.
+  return page.getByTestId('extra-columns')
+}
+
+/** Find a root directory dropzone (if any) on the current page.
+ * This is the empty space below the assets table, if it doesn't take up the whole screen
+ * vertically. */
+export function locateRootDirectoryDropzone(page: test.Page) {
+  // This has no identifying features.
+  return page.getByTestId('root-directory-dropzone')
 }
 
 // === Content locators ===
 
 /** Find an asset description in an asset panel (if any) on the current page. */
-export function locateAssetPanelDescription(page: test.Locator | test.Page) {
+export function locateAssetPanelDescription(page: test.Page) {
   // This has no identifying features.
   return locateAssetPanel(page).getByTestId('asset-panel-description')
 }
 
 /** Find asset permissions in an asset panel (if any) on the current page. */
-export function locateAssetPanelPermissions(page: test.Locator | test.Page) {
+export function locateAssetPanelPermissions(page: test.Page) {
   // This has no identifying features.
   return locateAssetPanel(page).getByTestId('asset-panel-permissions').getByRole('button')
 }
@@ -587,6 +611,35 @@ export function locateAssetPanelPermissions(page: test.Locator | test.Page) {
  * to do anything with the returned values other than comparing them. */
 export function getAssetRowLeftPx(locator: test.Locator) {
   return locator.evaluate(el => el.children[0]?.children[0]?.getBoundingClientRect().left ?? 0)
+}
+
+// ===================================
+// === expect functions for themes ===
+// ===================================
+
+/** A test assertion to confirm that the element has the class `selected`. */
+export async function expectClassSelected(locator: test.Locator) {
+  await test.test.step('Expect `selected`', async () => {
+    await test.expect(locator).toHaveClass(/(?:^| )selected(?: |$)/)
+  })
+}
+
+/** A test assertion to confirm that the element has the class `selected`. */
+export async function expectNotTransparent(locator: test.Locator) {
+  await test.test.step('expect.not.transparent', async () => {
+    await test.expect
+      .poll(() => locator.evaluate(element => getComputedStyle(element).opacity))
+      .not.toBe('0')
+  })
+}
+
+/** A test assertion to confirm that the element has the class `selected`. */
+export async function expectTransparent(locator: test.Locator) {
+  await test.test.step('expect.transparent', async () => {
+    await test.expect
+      .poll(() => locator.evaluate(element => getComputedStyle(element).opacity))
+      .toBe('0')
+  })
 }
 
 // ============================
@@ -613,6 +666,34 @@ export async function expectTrashPlaceholderRow(page: test.Page) {
   })
 }
 
+// =======================
+// === Mouse utilities ===
+// =======================
+
+// eslint-disable-next-line @typescript-eslint/no-magic-numbers
+const ASSET_ROW_SAFE_POSITION = { x: 300, y: 16 }
+
+/** Click an asset row. The center must not be clicked as that is the button for adding a label. */
+export async function clickAssetRow(assetRow: test.Locator) {
+  // eslint-disable-next-line @typescript-eslint/no-magic-numbers
+  await assetRow.click({ position: ASSET_ROW_SAFE_POSITION })
+}
+
+/** Drag an asset row. The center must not be clicked as that is the button for adding a label. */
+export async function dragAssetRowToAssetRow(from: test.Locator, to: test.Locator) {
+  // eslint-disable-next-line @typescript-eslint/no-magic-numbers
+  await from.dragTo(to, {
+    sourcePosition: ASSET_ROW_SAFE_POSITION,
+    targetPosition: ASSET_ROW_SAFE_POSITION,
+  })
+}
+
+/** Drag an asset row. The center must not be clicked as that is the button for adding a label. */
+export async function dragAssetRow(from: test.Locator, to: test.Locator) {
+  // eslint-disable-next-line @typescript-eslint/no-magic-numbers
+  await from.dragTo(to, { sourcePosition: ASSET_ROW_SAFE_POSITION })
+}
+
 // ==========================
 // === Keyboard utilities ===
 // ==========================
@@ -634,12 +715,11 @@ export async function press(page: test.Page, keyOrShortcut: string) {
     await test.test.step('Detect browser OS', async () => {
       userAgent = await page.evaluate(() => navigator.userAgent)
     })
-    // This should be `Meta` (`Cmd`) on macOS, and `Control` on all other systems
-    const ctrlKey = /\bMac OS\b/i.test(userAgent) ? 'Meta' : 'Control'
-    const deleteKey = /\bMac OS\b/i.test(userAgent) ? 'Backspace' : 'Delete'
-    await page.keyboard.press(
-      keyOrShortcut.replace(/\bMod\b/g, ctrlKey).replace(/\bDelete\b/, deleteKey)
-    )
+    const isMacOS = /\bMac OS\b/i.test(userAgent)
+    const ctrlKey = isMacOS ? 'Meta' : 'Control'
+    const deleteKey = isMacOS ? 'Backspace' : 'Delete'
+    const shortcut = keyOrShortcut.replace(/\bMod\b/, ctrlKey).replace(/\bDelete\b/, deleteKey)
+    await test.test.step(`Press '${shortcut}'`, () => page.keyboard.press(shortcut))
   } else {
     await page.keyboard.press(keyOrShortcut)
   }
@@ -706,7 +786,7 @@ async function mockDate({ page }: MockParams) {
 // eslint-disable-next-line no-restricted-syntax
 export async function mockIDEContainer({ page }: MockParams) {
   await page.evaluate(() => {
-    const ideContainer = document.getElementById('root')
+    const ideContainer = document.getElementById('app')
     if (ideContainer) {
       ideContainer.style.height = '100vh'
       ideContainer.style.width = '100vw'

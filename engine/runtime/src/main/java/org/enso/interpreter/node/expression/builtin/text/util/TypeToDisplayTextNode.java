@@ -5,9 +5,9 @@ import com.oracle.truffle.api.dsl.NeverDefault;
 import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import com.oracle.truffle.api.nodes.Node;
-import org.enso.interpreter.node.expression.builtin.meta.TypeOfNode;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.data.Type;
+import org.enso.interpreter.runtime.library.dispatch.TypeOfNode;
 
 public final class TypeToDisplayTextNode extends Node {
   @Child private TypeOfNode typeOfNode;
@@ -30,7 +30,7 @@ public final class TypeToDisplayTextNode extends Node {
    */
   @NeverDefault
   public static TypeToDisplayTextNode create() {
-    return new TypeToDisplayTextNode(TypeOfNode.build());
+    return new TypeToDisplayTextNode(TypeOfNode.create());
   }
 
   public static TypeToDisplayTextNode getUncached() {
@@ -54,7 +54,12 @@ public final class TypeToDisplayTextNode extends Node {
         throw EnsoContext.get(this).raiseAssertionPanic(this, null, e);
       }
     } else {
-      return "a polyglot object";
+      try {
+        var res = iop.toDisplayString(value);
+        return iop.asString(res);
+      } catch (UnsupportedMessageException ex) {
+        return "a polyglot object";
+      }
     }
   }
 }

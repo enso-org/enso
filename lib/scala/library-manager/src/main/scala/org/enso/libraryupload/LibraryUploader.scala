@@ -1,10 +1,7 @@
 package org.enso.libraryupload
 
-import akka.http.scaladsl.marshalling.Marshal
-import akka.http.scaladsl.model._
-import akka.stream.scaladsl.Source
 import com.typesafe.scalalogging.Logger
-import nl.gn0s1s.bump.SemVer
+import org.enso.semver.SemVer
 import org.enso.cli.task.{ProgressReporter, TaskProgress}
 import org.enso.distribution.FileSystem
 import org.enso.distribution.FileSystem.PathSyntax
@@ -17,8 +14,8 @@ import org.enso.pkg.{Package, PackageManager}
 import org.enso.yaml.YamlHelper
 
 import java.io.File
+import java.net.URI
 import java.nio.file.{Files, Path}
-import scala.concurrent.{ExecutionContext, Future}
 import scala.jdk.CollectionConverters._
 import scala.util.{Failure, Success, Try, Using}
 
@@ -34,17 +31,16 @@ class LibraryUploader(dependencyExtractor: DependencyExtractor[File]) {
     *                  the repository
     * @param progressReporter a [[ProgressReporter]] to track long running tasks
     *                         like compression and upload
-    * @param ec an execution context used for handling Futures
     */
   def uploadLibrary(
     projectRoot: Path,
     uploadUrl: String,
     authToken: auth.Token,
     progressReporter: ProgressReporter
-  )(implicit ec: ExecutionContext): Try[Unit] = Try {
+  ): Try[Unit] = Try {
     FileSystem.withTemporaryDirectory("enso-upload") { tmpDir =>
       val pkg = PackageManager.Default.loadPackage(projectRoot.toFile).get
-      val version = SemVer(pkg.getConfig().version).getOrElse {
+      val version = SemVer.parse(pkg.getConfig().version).getOrElse {
         throw new IllegalStateException(
           s"Project version [${pkg.getConfig().version}] is not a valid semver " +
           s"string."
@@ -113,7 +109,7 @@ class LibraryUploader(dependencyExtractor: DependencyExtractor[File]) {
     baseUploadUrl: String,
     libraryName: LibraryName,
     version: SemVer
-  ): Uri = {
+  ): URI = {
     URIBuilder
       .fromUri(baseUploadUrl)
       .addQuery("namespace", libraryName.namespace)
@@ -166,24 +162,6 @@ class LibraryUploader(dependencyExtractor: DependencyExtractor[File]) {
     }
   }
 
-  /** Creates a [[RequestEntity]] that will upload the provided files. */
-  private def createRequestEntity(
-    files: Seq[Path]
-  )(implicit ec: ExecutionContext): Future[RequestEntity] = {
-
-    val fileBodies = files.map { path =>
-      val filename = path.getFileName.toString
-      Multipart.FormData.BodyPart(
-        filename,
-        HttpEntity.fromPath(detectContentType(path), path),
-        Map("filename" -> filename)
-      )
-    }
-
-    val formData = Multipart.FormData(Source(fileBodies))
-    Marshal(formData).to[RequestEntity]
-  }
-
   /** Loads a manifest, if it exists. */
   private def loadSavedManifest(manifestPath: Path): Option[LibraryManifest] = {
     if (Files.exists(manifestPath)) {
@@ -192,36 +170,21 @@ class LibraryUploader(dependencyExtractor: DependencyExtractor[File]) {
     } else None
   }
 
-  /** Tries to detect the content type of the file to upload.
-    *
-    * If it is not a known type, it falls back to `application/octet-stream`.
-    */
-  private def detectContentType(path: Path): ContentType = {
-    val filename = path.getFileName.toString
-    if (filename.endsWith(".tgz") || filename.endsWith(".tar.gz"))
-      ContentType(MediaTypes.`application/x-gtar`)
-    else if (filename.endsWith(".yaml") || filename.endsWith(".enso"))
-      ContentTypes.`text/plain(UTF-8)`
-    else ContentTypes.`application/octet-stream`
-  }
-
   /** Uploads the provided files to the provided url, using the provided token
     * for authentication.
     */
   private def uploadFiles(
-    uri: Uri,
+    uri: URI,
     authToken: auth.Token,
     files: Seq[Path]
-  )(implicit ec: ExecutionContext): TaskProgress[Unit] = {
-    val future = createRequestEntity(files).map { entity =>
-      val request = authToken
-        .alterRequest(HTTPRequestBuilder.fromURI(uri))
-        .setEntity(entity)
-        .POST
-      // TODO [RW] upload progress
-      HTTPDownload.fetchString(request).force()
-    }
-    TaskProgress.fromFuture(future).flatMap { response =>
+  ): TaskProgress[Unit] = {
+    val request = authToken
+      .alterRequest(HTTPRequestBuilder.fromURI(uri))
+      .postFiles(files)
+      .build()
+    // TODO [RW] upload progress
+    val responseFut = HTTPDownload.fetchString(request)
+    responseFut.flatMap { response =>
       if (response.statusCode == 200) {
         logger.debug("Server responded with 200 OK.")
         Success(())

@@ -1,6 +1,6 @@
-import { expect, test, type Page } from '@playwright/test'
+import { test, type Page } from '@playwright/test'
 import * as actions from './actions'
-import * as customExpect from './customExpect'
+import { expect } from './customExpect'
 import { mockExpressionUpdate } from './expressionUpdates'
 import * as locate from './locate'
 import { graphNodeByBinding } from './locate'
@@ -10,7 +10,7 @@ import { graphNodeByBinding } from './locate'
  */
 async function initGraph(page: Page) {
   await actions.goToGraph(page)
-  await mockExpressionUpdate(page, 'aggregated', { type: 'Standard.Table.Data.Table.Table' })
+  await mockExpressionUpdate(page, 'aggregated', { type: 'Standard.Table.Table.Table' })
 }
 
 /**
@@ -26,7 +26,7 @@ test('Load Table Visualisation', async ({ page }) => {
   await page.keyboard.press('Space')
   await page.waitForTimeout(1000)
   const tableVisualization = locate.tableVisualization(page)
-  await customExpect.toExist(tableVisualization)
+  await expect(tableVisualization).toExist()
   await expect(tableVisualization).toContainText('10 rows.')
   await expect(tableVisualization).toContainText('0,0')
   await expect(tableVisualization).toContainText('1,0')

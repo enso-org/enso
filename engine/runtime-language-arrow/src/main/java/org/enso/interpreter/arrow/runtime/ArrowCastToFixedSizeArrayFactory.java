@@ -13,10 +13,8 @@ import com.oracle.truffle.api.interop.UnsupportedTypeException;
 import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
-import java.nio.ByteBuffer;
-import java.nio.ByteOrder;
 import org.enso.interpreter.arrow.LogicalLayout;
-import org.enso.interpreter.arrow.util.MemoryUtil;
+import org.graalvm.collections.Pair;
 
 @ExportLibrary(InteropLibrary.class)
 public class ArrowCastToFixedSizeArrayFactory implements TruffleObject {
@@ -45,8 +43,9 @@ public class ArrowCastToFixedSizeArrayFactory implements TruffleObject {
         Object[] args,
         @Cached.Shared("interop") @CachedLibrary(limit = "1") InteropLibrary iop)
         throws UnsupportedMessageException, ArityException, UnsupportedTypeException {
-      var unit = ArrowFixedArrayDate.DateUnit.Day;
-      return new ArrowFixedArrayDate(pointer(args, iop, unit), unit);
+      var unit = LogicalLayout.Date32;
+      var pair = pointer(args, iop, unit);
+      return new ArrowFixedArrayDate(pair.getLeft(), pair.getRight(), unit);
     }
 
     @Specialization(guards = "receiver.getLayout() == Date64")
@@ -55,8 +54,9 @@ public class ArrowCastToFixedSizeArrayFactory implements TruffleObject {
         Object[] args,
         @Cached.Shared("interop") @CachedLibrary(limit = "1") InteropLibrary iop)
         throws UnsupportedMessageException, ArityException, UnsupportedTypeException {
-      var unit = ArrowFixedArrayDate.DateUnit.Millisecond;
-      return new ArrowFixedArrayDate(pointer(args, iop, unit), unit);
+      var unit = LogicalLayout.Date64;
+      var pair = pointer(args, iop, unit);
+      return new ArrowFixedArrayDate(pair.getLeft(), pair.getRight(), unit);
     }
 
     @Specialization(guards = "receiver.getLayout() == Int8")
@@ -65,8 +65,9 @@ public class ArrowCastToFixedSizeArrayFactory implements TruffleObject {
         Object[] args,
         @Cached.Shared("interop") @CachedLibrary(limit = "1") InteropLibrary iop)
         throws UnsupportedMessageException, ArityException, UnsupportedTypeException {
-      var unit = ArrowFixedArrayInt.IntUnit.Byte1;
-      return new ArrowFixedArrayInt(pointer(args, iop, unit), unit);
+      var unit = LogicalLayout.Int8;
+      var pair = pointer(args, iop, unit);
+      return new ArrowFixedArrayInt(pair.getLeft(), pair.getRight(), unit);
     }
 
     @Specialization(guards = "receiver.getLayout() == Int16")
@@ -75,8 +76,9 @@ public class ArrowCastToFixedSizeArrayFactory implements TruffleObject {
         Object[] args,
         @Cached.Shared("interop") @CachedLibrary(limit = "1") InteropLibrary iop)
         throws UnsupportedMessageException, ArityException, UnsupportedTypeException {
-      var unit = ArrowFixedArrayInt.IntUnit.Byte2;
-      return new ArrowFixedArrayInt(pointer(args, iop, unit), unit);
+      var unit = LogicalLayout.Int16;
+      var pair = pointer(args, iop, unit);
+      return new ArrowFixedArrayInt(pair.getLeft(), pair.getRight(), unit);
     }
 
     @Specialization(guards = "receiver.getLayout() == Int32")
@@ -85,8 +87,9 @@ public class ArrowCastToFixedSizeArrayFactory implements TruffleObject {
         Object[] args,
         @Cached.Shared("interop") @CachedLibrary(limit = "1") InteropLibrary iop)
         throws UnsupportedMessageException, ArityException, UnsupportedTypeException {
-      var unit = ArrowFixedArrayInt.IntUnit.Byte4;
-      return new ArrowFixedArrayInt(pointer(args, iop, unit), unit);
+      var unit = LogicalLayout.Int32;
+      var pair = pointer(args, iop, unit);
+      return new ArrowFixedArrayInt(pair.getLeft(), pair.getRight(), unit);
     }
 
     @Specialization(guards = "receiver.getLayout() == Int64")
@@ -95,12 +98,14 @@ public class ArrowCastToFixedSizeArrayFactory implements TruffleObject {
         Object[] args,
         @Cached.Shared("interop") @CachedLibrary(limit = "1") InteropLibrary iop)
         throws UnsupportedMessageException, ArityException, UnsupportedTypeException {
-      var unit = ArrowFixedArrayInt.IntUnit.Byte8;
-      return new ArrowFixedArrayInt(pointer(args, iop, unit), unit);
+      var unit = LogicalLayout.Int64;
+      var pair = pointer(args, iop, unit);
+      return new ArrowFixedArrayInt(pair.getLeft(), pair.getRight(), unit);
     }
 
     @CompilerDirectives.TruffleBoundary
-    private static ByteBufferDirect pointer(Object[] args, InteropLibrary interop, SizeInBytes unit)
+    private static Pair<ByteBufferDirect, Integer> pointer(
+        Object[] args, InteropLibrary interop, SizeInBytes unit)
         throws ArityException, UnsupportedTypeException, UnsupportedMessageException {
       if (args.length < 2) {
         throw ArityException.create(2, 3, args.length);
@@ -114,20 +119,19 @@ public class ArrowCastToFixedSizeArrayFactory implements TruffleObject {
             new Object[] {args[0]}, "Size of allocated memory is invalid");
       }
 
-      var size = interop.asInt(args[1]);
-      var targetSize = size * unit.sizeInBytes();
-      ByteBuffer buffer = MemoryUtil.directBuffer(interop.asLong(args[0]), targetSize);
-      buffer.order(ByteOrder.LITTLE_ENDIAN);
+      var capacity = interop.asInt(args[1]);
       if (args.length == 3) {
         if (!interop.isNumber(args[2]) || !interop.fitsInLong(args[2])) {
           throw UnsupportedTypeException.create(
               new Object[] {args[2]}, "Address of non-null bitmap is invalid");
         }
-        ByteBuffer validityMap =
-            MemoryUtil.directBuffer(interop.asLong(args[2]), (int) Math.ceil(size / 8) + 1);
-        return new ByteBufferDirect(buffer, validityMap);
+        return Pair.create(
+            ByteBufferDirect.fromAddress(
+                interop.asLong(args[0]), interop.asLong(args[2]), capacity, unit),
+            capacity);
       } else {
-        return new ByteBufferDirect(buffer, size);
+        return Pair.create(
+            ByteBufferDirect.fromAddress(interop.asLong(args[0]), capacity, unit), capacity);
       }
     }
 

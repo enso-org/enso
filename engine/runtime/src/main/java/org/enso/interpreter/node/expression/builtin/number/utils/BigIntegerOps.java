@@ -71,12 +71,12 @@ public class BigIntegerOps {
 
   @CompilerDirectives.TruffleBoundary
   public static BigInteger modulo(BigInteger a, long b) {
-    return a.mod(BigInteger.valueOf(b));
+    return a.remainder(BigInteger.valueOf(b));
   }
 
   @CompilerDirectives.TruffleBoundary
   public static BigInteger modulo(BigInteger a, BigInteger b) {
-    return a.mod(b);
+    return a.remainder(b);
   }
 
   @CompilerDirectives.TruffleBoundary

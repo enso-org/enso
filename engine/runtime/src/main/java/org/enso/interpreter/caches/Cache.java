@@ -99,40 +99,28 @@ public final class Cache<T, M> {
    * @param entry data to save
    * @param context the language context in which loading is taking place
    * @param useGlobalCacheLocations if true, will use global cache location, local one otherwise
-   * @return if non-empty, returns the location of the successfully saved location of the cached
-   *     data
+   * @return the location of the successfully saved location of the cached data
+   * @throws IOException if something goes wrong
    */
-  public final Optional<TruffleFile> save(
-      T entry, EnsoContext context, boolean useGlobalCacheLocations) {
+  public final TruffleFile save(T entry, EnsoContext context, boolean useGlobalCacheLocations)
+      throws IOException {
     TruffleLogger logger = context.getLogger(this.getClass());
-    return spi.getCacheRoots(context)
-        .flatMap(
-            roots -> {
-              try {
-                if (useGlobalCacheLocations) {
-                  if (saveCacheTo(context, roots.globalCacheRoot, entry, logger)) {
-                    return Optional.of(roots.globalCacheRoot);
-                  }
-                } else {
-                  logger.log(
-                      logLevel, "Skipping use of global cache locations for " + logName + ".");
-                }
+    var rootsOption = spi.getCacheRoots(context);
+    if (rootsOption.isPresent()) {
+      var roots = rootsOption.get();
+      if (useGlobalCacheLocations) {
+        if (saveCacheTo(context, roots.globalCacheRoot, entry, logger)) {
+          return roots.globalCacheRoot;
+        }
+      } else {
+        logger.log(logLevel, "Skipping use of global cache locations for " + logName + ".");
+      }
 
-                if (saveCacheTo(context, roots.localCacheRoot, entry, logger)) {
-                  return Optional.of(roots.localCacheRoot);
-                }
-
-                logger.log(logLevel, "Unable to write cache data for " + logName + ".");
-                return Optional.empty();
-              } catch (ClassNotFoundException e) {
-                logger.log(
-                    Level.SEVERE, "Failed to save cache for " + logName + ": " + e.getMessage());
-                return Optional.empty();
-              } catch (IOException ioe) {
-                logger.log(Level.SEVERE, "Failed to save cache for " + logName + ".", ioe);
-                return Optional.empty();
-              }
-            });
+      if (saveCacheTo(context, roots.localCacheRoot, entry, logger)) {
+        return roots.localCacheRoot;
+      }
+    }
+    throw new IOException("Unable to write cache data for " + logName + ".");
   }
 
   /**
@@ -146,14 +134,14 @@ public final class Cache<T, M> {
    */
   private boolean saveCacheTo(
       EnsoContext context, TruffleFile cacheRoot, T entry, TruffleLogger logger)
-      throws IOException, ClassNotFoundException {
+      throws IOException {
     if (ensureRoot(cacheRoot)) {
       byte[] bytesToWrite = spi.serialize(context, entry);
 
       String blobDigest = CacheUtils.computeDigestFromBytes(ByteBuffer.wrap(bytesToWrite));
       String sourceDigest = spi.computeDigest(entry, logger).get();
       if (sourceDigest == null) {
-        throw new ClassNotFoundException("unable to compute digest");
+        throw new IOException("unable to compute digest");
       }
       byte[] metadataBytes = spi.metadata(sourceDigest, blobDigest, entry);
 

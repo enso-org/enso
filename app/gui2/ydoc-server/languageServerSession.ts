@@ -4,18 +4,13 @@ import * as map from 'lib0/map'
 import { ObservableV2 } from 'lib0/observable'
 import * as random from 'lib0/random'
 import * as Y from 'yjs'
-import {
-  Ast,
-  MutableModule,
-  parseBlockWithSpans,
-  setExternalIds,
-  spanMapToIdMap,
-} from '../shared/ast'
-import { print } from '../shared/ast/parse'
+import * as Ast from '../shared/ast'
+import { astCount } from '../shared/ast'
 import { EnsoFileParts, combineFileParts, splitFileContents } from '../shared/ensoFile'
 import { LanguageServer, computeTextChecksum } from '../shared/languageServer'
 import { Checksum, FileEdit, Path, TextEdit, response } from '../shared/languageServerTypes'
 import { exponentialBackoff, printingCallbacks } from '../shared/retry'
+import { AbortScope } from '../shared/util/net'
 import {
   DistributedProject,
   ExternalId,
@@ -60,8 +55,10 @@ export class LanguageServerSession {
   model: DistributedProject
   projectRootId: Uuid | null
   authoritativeModules: Map<string, ModulePersistence>
+  clientScope: AbortScope
 
   constructor(url: string) {
+    this.clientScope = new AbortScope()
     this.clientId = random.uuidv4() as Uuid
     this.docs = new Map()
     this.retainCount = 0
@@ -98,8 +95,8 @@ export class LanguageServerSession {
   }
 
   private restartClient() {
-    this.client.close()
-    this.ls.destroy()
+    this.clientScope.dispose('Client restarted.')
+    this.clientScope = new AbortScope()
     this.connection = undefined
     this.setupClient()
   }
@@ -107,6 +104,7 @@ export class LanguageServerSession {
   private setupClient() {
     this.client = createOpenRPCClient(this.url)
     this.ls = new LanguageServer(this.client)
+    this.clientScope.onAbort(() => this.ls.release())
     this.ls.on('file/event', async (event) => {
       if (DEBUG_LOG_SYNC) {
         console.log('file/event', event)
@@ -230,7 +228,7 @@ export class LanguageServerSession {
     const moduleDisposePromises = Array.from(modules, (mod) => mod.dispose())
     this.authoritativeModules.clear()
     this.model.doc.destroy()
-    this.ls.dispose()
+    this.clientScope.dispose('LangueServerSession disposed.')
     LanguageServerSession.sessions.delete(this.url)
     await Promise.all(moduleDisposePromises)
   }
@@ -416,7 +414,7 @@ class ModulePersistence extends ObservableV2<{ removed: () => void }> {
     const update = this.updateToApply
     this.updateToApply = null
 
-    const syncModule = new MutableModule(this.doc.ydoc)
+    const syncModule = new Ast.MutableModule(this.doc.ydoc)
     const moduleUpdate = syncModule.applyUpdate(update, 'remote')
     if (moduleUpdate && this.syncedContent) {
       const synced = splitFileContents(this.syncedContent)
@@ -511,24 +509,35 @@ class ModulePersistence extends ObservableV2<{ removed: () => void }> {
       const nodeMeta = Object.entries(metadata.ide.node)
 
       let parsedSpans
-      const syncModule = new MutableModule(this.doc.ydoc)
+      const syncModule = new Ast.MutableModule(this.doc.ydoc)
       if (code !== this.syncedCode) {
-        const { root, spans } = parseBlockWithSpans(code, syncModule)
-        syncModule.syncRoot(root)
-        parsedSpans = spans
+        const syncRoot = syncModule.root()
+        if (syncRoot) {
+          const edit = syncModule.edit()
+          edit.getVersion(syncRoot).syncToCode(code)
+          const editedRoot = edit.root()
+          if (editedRoot instanceof Ast.BodyBlock) Ast.repair(editedRoot, edit)
+          syncModule.applyEdit(edit)
+        } else {
+          const { root, spans } = Ast.parseBlockWithSpans(code, syncModule)
+          syncModule.syncRoot(root)
+          parsedSpans = spans
+        }
       }
       const astRoot = syncModule.root()
       if (!astRoot) return
       if ((code !== this.syncedCode || idMapJson !== this.syncedIdMap) && idMapJson) {
         const idMap = deserializeIdMap(idMapJson)
-        const spans = parsedSpans ?? print(astRoot).info
-        const newExternalIds = setExternalIds(syncModule, spans, idMap)
-        if (newExternalIds !== 0) {
+        const spans = parsedSpans ?? Ast.print(astRoot).info
+        const idsAssigned = Ast.setExternalIds(syncModule, spans, idMap)
+        const numberOfAsts = astCount(astRoot)
+        const idsNotSetByMap = numberOfAsts - idsAssigned
+        if (idsNotSetByMap > 0) {
           if (code !== this.syncedCode) {
-            unsyncedIdMap = spanMapToIdMap(spans)
+            unsyncedIdMap = Ast.spanMapToIdMap(spans)
           } else {
             console.warn(
-              `The LS sent an IdMap-only edit that is missing ${newExternalIds} of our expected ASTs.`,
+              `The LS sent an IdMap-only edit that is missing ${idsNotSetByMap} of our expected ASTs.`,
             )
           }
         }
@@ -539,7 +548,7 @@ class ModulePersistence extends ObservableV2<{ removed: () => void }> {
           metadataJson !== this.syncedMetaJson) &&
         nodeMeta.length !== 0
       ) {
-        const externalIdToAst = new Map<ExternalId, Ast>()
+        const externalIdToAst = new Map<ExternalId, Ast.Ast>()
         astRoot.visitRecursiveAst((ast) => {
           if (!externalIdToAst.has(ast.externalId)) externalIdToAst.set(ast.externalId, ast)
         })
@@ -558,6 +567,9 @@ class ModulePersistence extends ObservableV2<{ removed: () => void }> {
           const oldVis = metadata.get('visualization')
           const newVis = meta.visualization && translateVisualizationFromFile(meta.visualization)
           if (!visMetadataEquals(newVis, oldVis)) metadata.set('visualization', newVis)
+          const oldColorOverride = metadata.get('colorOverride')
+          const newColorOverride = meta.colorOverride
+          if (oldColorOverride !== newColorOverride) metadata.set('colorOverride', newColorOverride)
         }
       }
 

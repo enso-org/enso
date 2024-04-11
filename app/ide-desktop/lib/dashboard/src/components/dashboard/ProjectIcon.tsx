@@ -12,19 +12,20 @@ import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
 import * as authProvider from '#/providers/AuthProvider'
 import * as backendProvider from '#/providers/BackendProvider'
-import * as localStorageProvider from '#/providers/LocalStorageProvider'
 import * as modalProvider from '#/providers/ModalProvider'
+import * as sessionProvider from '#/providers/SessionProvider'
+import * as textProvider from '#/providers/TextProvider'
 
 import type * as assetEvent from '#/events/assetEvent'
 import AssetEventType from '#/events/AssetEventType'
 
 import Spinner, * as spinner from '#/components/Spinner'
 import SvgMask from '#/components/SvgMask'
+import UnstyledButton from '#/components/UnstyledButton'
 
 import * as backendModule from '#/services/Backend'
 import * as remoteBackend from '#/services/RemoteBackend'
 
-import * as errorModule from '#/utilities/error'
 import * as object from '#/utilities/object'
 
 // =================
@@ -33,8 +34,6 @@ import * as object from '#/utilities/object'
 
 /** The size of the icon, in pixels. */
 const ICON_SIZE_PX = 24
-/** The styles of the icons. */
-const ICON_CLASSES = 'w-6 h-6'
 const LOADING_MESSAGE =
   'Your environment is being created. It will take some time, please be patient.'
 /** The corresponding {@link spinner.SpinnerState} for each {@link backendModule.ProjectState},
@@ -47,6 +46,7 @@ const REMOTE_SPINNER_STATE: Readonly<Record<backendModule.ProjectState, spinner.
   [backendModule.ProjectState.placeholder]: spinner.SpinnerState.loadingSlow,
   [backendModule.ProjectState.openInProgress]: spinner.SpinnerState.loadingSlow,
   [backendModule.ProjectState.provisioned]: spinner.SpinnerState.loadingSlow,
+  [backendModule.ProjectState.scheduled]: spinner.SpinnerState.loadingSlow,
   [backendModule.ProjectState.opened]: spinner.SpinnerState.done,
 }
 /** The corresponding {@link spinner.SpinnerState} for each {@link backendModule.ProjectState},
@@ -59,6 +59,7 @@ const LOCAL_SPINNER_STATE: Readonly<Record<backendModule.ProjectState, spinner.S
   [backendModule.ProjectState.placeholder]: spinner.SpinnerState.loadingMedium,
   [backendModule.ProjectState.openInProgress]: spinner.SpinnerState.loadingMedium,
   [backendModule.ProjectState.provisioned]: spinner.SpinnerState.loadingMedium,
+  [backendModule.ProjectState.scheduled]: spinner.SpinnerState.loadingMedium,
   [backendModule.ProjectState.opened]: spinner.SpinnerState.done,
 }
 
@@ -74,18 +75,20 @@ export interface ProjectIconProps {
   readonly assetEvents: assetEvent.AssetEvent[]
   /** Called when the project is opened via the {@link ProjectIcon}. */
   readonly doOpenManually: (projectId: backendModule.ProjectId) => void
-  readonly onClose: () => void
-  readonly openIde: (switchPage: boolean) => void
+  readonly doCloseEditor: () => void
+  readonly doOpenEditor: (switchPage: boolean) => void
 }
 
 /** An interactive icon indicating the status of a project. */
 export default function ProjectIcon(props: ProjectIconProps) {
-  const { keyProp: key, item, setItem, assetEvents, doOpenManually, onClose, openIde } = props
+  const { keyProp: key, item, setItem, assetEvents, doOpenManually } = props
+  const { doCloseEditor, doOpenEditor } = props
   const { backend } = backendProvider.useBackend()
-  const { organization } = authProvider.useNonPartialUserSession()
+  const { session } = sessionProvider.useSession()
+  const { user } = authProvider.useNonPartialUserSession()
   const { unsetModal } = modalProvider.useSetModal()
-  const { localStorage } = localStorageProvider.useLocalStorage()
   const toastAndLog = toastAndLogHooks.useToastAndLog()
+  const { getText } = textProvider.useText()
   const state = item.projectState.type
   const setState = React.useCallback(
     (stateOrUpdater: React.SetStateAction<backendModule.ProjectState>) => {
@@ -99,20 +102,20 @@ export default function ProjectIcon(props: ProjectIconProps) {
         let newProjectState: backendModule.ProjectStateType = object.merge(oldItem.projectState, {
           type: newState,
         })
-        if (!backendModule.DOES_PROJECT_STATE_INDICATE_VM_EXISTS[newState]) {
+        if (!backendModule.IS_OPENING_OR_OPENED[newState]) {
           // eslint-disable-next-line @typescript-eslint/naming-convention, @typescript-eslint/no-unused-vars
           const { opened_by, ...newProjectState2 } = newProjectState
           newProjectState = newProjectState2
-        } else if (organization != null) {
+        } else if (user != null) {
           newProjectState = object.merge(newProjectState, {
             // eslint-disable-next-line @typescript-eslint/naming-convention
-            opened_by: organization.email,
+            opened_by: user.email,
           })
         }
         return object.merge(oldItem, { projectState: newProjectState })
       })
     },
-    [organization, /* should never change */ setItem]
+    [user, /* should never change */ setItem]
   )
   const [spinnerState, setSpinnerState] = React.useState(spinner.SpinnerState.initial)
   const [onSpinnerStateChange, setOnSpinnerStateChange] = React.useState<
@@ -129,8 +132,7 @@ export default function ProjectIcon(props: ProjectIconProps) {
   const [closeProjectAbortController, setCloseProjectAbortController] =
     React.useState<AbortController | null>(null)
   const isOtherUserUsingProject =
-    backend.type !== backendModule.BackendType.local &&
-    item.projectState.opened_by !== organization?.email
+    backend.type !== backendModule.BackendType.local && item.projectState.opened_by !== user?.email
 
   const openProject = React.useCallback(
     async (shouldRunInBackground: boolean) => {
@@ -147,8 +149,9 @@ export default function ProjectIcon(props: ProjectIconProps) {
               await backend.openProject(
                 item.id,
                 {
-                  forceCreate: false,
                   executeAsync: shouldRunInBackground,
+                  parentId: item.parentId,
+                  cognitoCredentials: session,
                 },
                 item.title
               )
@@ -170,8 +173,9 @@ export default function ProjectIcon(props: ProjectIconProps) {
             await backend.openProject(
               item.id,
               {
-                forceCreate: false,
                 executeAsync: shouldRunInBackground,
+                parentId: item.parentId,
+                cognitoCredentials: null,
               },
               item.title
             )
@@ -184,11 +188,9 @@ export default function ProjectIcon(props: ProjectIconProps) {
           }
         }
       } catch (error) {
-        const project = await backend.getProjectDetails(item.id, item.title)
+        const project = await backend.getProjectDetails(item.id, item.parentId, item.title)
         setItem(object.merger({ projectState: project.state }))
-        toastAndLog(
-          errorModule.tryGetMessage(error)?.slice(0, -1) ?? `Could not open project '${item.title}'`
-        )
+        toastAndLog('openProjectError', error, item.title)
         setState(backendModule.ProjectState.closed)
       }
     },
@@ -197,7 +199,8 @@ export default function ProjectIcon(props: ProjectIconProps) {
       backend,
       item,
       closeProjectAbortController,
-      /* should never change */ toastAndLog,
+      session,
+      toastAndLog,
       /* should never change */ setState,
       /* should never change */ setItem,
     ]
@@ -236,6 +239,7 @@ export default function ProjectIcon(props: ProjectIconProps) {
     switch (event.type) {
       case AssetEventType.newFolder:
       case AssetEventType.uploadFiles:
+      case AssetEventType.newDataLink:
       case AssetEventType.newSecret:
       case AssetEventType.copy:
       case AssetEventType.updateFiles:
@@ -243,6 +247,7 @@ export default function ProjectIcon(props: ProjectIconProps) {
       case AssetEventType.cancelCut:
       case AssetEventType.move:
       case AssetEventType.delete:
+      case AssetEventType.deleteForever:
       case AssetEventType.restore:
       case AssetEventType.download:
       case AssetEventType.downloadSelected:
@@ -252,17 +257,17 @@ export default function ProjectIcon(props: ProjectIconProps) {
       case AssetEventType.addLabels:
       case AssetEventType.removeLabels:
       case AssetEventType.deleteLabel: {
-        // Ignored. Any missing project-related events should be handled by
-        // `ProjectNameColumn`. `deleteMultiple`, `restoreMultiple`, `download`,
-        // and `downloadSelected` are handled by `AssetRow`.
+        // Ignored. Any missing project-related events should be handled by `ProjectNameColumn`.
+        // `delete`, `deleteForever`, `restore`, `download`, and `downloadSelected`
+        // are handled by`AssetRow`.
         break
       }
       case AssetEventType.openProject: {
         if (event.id !== item.id) {
           if (!event.runInBackground && !isRunningInBackground) {
             setShouldOpenWhenReady(false)
-            if (!isOtherUserUsingProject) {
-              void closeProject(false)
+            if (!isOtherUserUsingProject && backendModule.IS_OPENING_OR_OPENED[state]) {
+              // void closeProject(false)
             }
           }
         } else {
@@ -280,19 +285,6 @@ export default function ProjectIcon(props: ProjectIconProps) {
         }
         break
       }
-      case AssetEventType.cancelOpeningAllProjects: {
-        if (!isRunningInBackground) {
-          setShouldOpenWhenReady(false)
-          onSpinnerStateChange?.(null)
-          setOnSpinnerStateChange(null)
-          openProjectAbortController?.abort()
-          setOpenProjectAbortController(null)
-          if (!isOtherUserUsingProject) {
-            void closeProject(false)
-          }
-        }
-        break
-      }
       case AssetEventType.newProject: {
         if (event.placeholderId === key) {
           setOnSpinnerStateChange(() => event.onSpinnerStateChange)
@@ -307,18 +299,17 @@ export default function ProjectIcon(props: ProjectIconProps) {
   React.useEffect(() => {
     if (state === backendModule.ProjectState.opened) {
       if (shouldOpenWhenReady) {
-        openIde(shouldSwitchPage)
+        doOpenEditor(shouldSwitchPage)
         setShouldOpenWhenReady(false)
       }
     }
-    // `openIde` is a callback, not a dependency.
+    // `doOpenEditor` is a callback, not a dependency.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [shouldOpenWhenReady, shouldSwitchPage, state])
 
   const closeProject = async (triggerOnClose = true) => {
     if (triggerOnClose) {
-      onClose()
-      localStorage.delete('projectStartupInfo')
+      doCloseEditor()
     }
     setToastId(null)
     setShouldOpenWhenReady(false)
@@ -329,7 +320,7 @@ export default function ProjectIcon(props: ProjectIconProps) {
     setOpenProjectAbortController(null)
     const abortController = new AbortController()
     setCloseProjectAbortController(abortController)
-    if (backendModule.DOES_PROJECT_STATE_INDICATE_VM_EXISTS[state]) {
+    if (backendModule.IS_OPENING_OR_OPENED[state]) {
       try {
         if (
           backend.type === backendModule.BackendType.local &&
@@ -359,74 +350,75 @@ export default function ProjectIcon(props: ProjectIconProps) {
     case backendModule.ProjectState.closing:
     case backendModule.ProjectState.closed:
       return (
-        <button
-          className="w-6 h-6 disabled:opacity-50"
-          onClick={clickEvent => {
-            clickEvent.stopPropagation()
+        <UnstyledButton
+          className="size-project-icon rounded-full"
+          onPress={() => {
             unsetModal()
             doOpenManually(item.id)
           }}
         >
-          <SvgMask alt="Open in editor" className={ICON_CLASSES} src={PlayIcon} />
-        </button>
+          <SvgMask alt={getText('openInEditor')} src={PlayIcon} className="size-project-icon" />
+        </UnstyledButton>
       )
     case backendModule.ProjectState.openInProgress:
+    case backendModule.ProjectState.scheduled:
     case backendModule.ProjectState.provisioned:
     case backendModule.ProjectState.placeholder:
       return (
-        <button
-          disabled={isOtherUserUsingProject}
+        <UnstyledButton
+          isDisabled={isOtherUserUsingProject}
           {...(isOtherUserUsingProject ? { title: 'Someone else is using this project.' } : {})}
-          className="w-6 h-6 disabled:opacity-50"
-          onClick={async clickEvent => {
-            clickEvent.stopPropagation()
+          className="size-project-icon rounded-full selectable enabled:active"
+          onPress={() => {
             unsetModal()
-            await closeProject(!isRunningInBackground)
+            void closeProject(!isRunningInBackground)
           }}
         >
-          <div className={`relative h-0 ${isRunningInBackground ? 'text-green' : ''}`}>
+          <div className={`relative h ${isRunningInBackground ? 'text-green' : ''}`}>
             <Spinner size={ICON_SIZE_PX} state={spinnerState} />
           </div>
           <SvgMask
-            alt="Stop execution"
+            alt={getText('stopExecution')}
             src={StopIcon}
-            className={`${ICON_CLASSES} ${isRunningInBackground ? 'text-green' : ''}`}
+            className={`size-project-icon ${isRunningInBackground ? 'text-green' : ''}`}
           />
-        </button>
+        </UnstyledButton>
       )
     case backendModule.ProjectState.opened:
       return (
         <div>
-          <button
-            disabled={isOtherUserUsingProject}
+          <UnstyledButton
+            isDisabled={isOtherUserUsingProject}
             {...(isOtherUserUsingProject ? { title: 'Someone else has this project open.' } : {})}
-            className="w-6 h-6 disabled:opacity-50"
-            onClick={async clickEvent => {
-              clickEvent.stopPropagation()
+            className="size-project-icon rounded-full selectable enabled:active"
+            onPress={() => {
               unsetModal()
-              await closeProject(!isRunningInBackground)
+              void closeProject(!isRunningInBackground)
             }}
           >
-            <div className={`relative h-0 ${isRunningInBackground ? 'text-green' : ''}`}>
-              <Spinner size={24} state={spinnerState} />
+            <div className={`relative h ${isRunningInBackground ? 'text-green' : ''}`}>
+              <Spinner className="size-project-icon" state={spinnerState} />
             </div>
             <SvgMask
-              alt="Stop execution"
+              alt={getText('stopExecution')}
               src={StopIcon}
-              className={`${ICON_CLASSES} ${isRunningInBackground ? 'text-green' : ''}`}
+              className={`size-project-icon ${isRunningInBackground ? 'text-green' : ''}`}
             />
-          </button>
+          </UnstyledButton>
           {!isOtherUserUsingProject && !isRunningInBackground && (
-            <button
-              className="w-6 h-6"
-              onClick={clickEvent => {
-                clickEvent.stopPropagation()
+            <UnstyledButton
+              className="size-project-icon rounded-full"
+              onPress={() => {
                 unsetModal()
-                openIde(true)
+                doOpenEditor(true)
               }}
             >
-              <SvgMask alt="Open in editor" src={ArrowUpIcon} className={ICON_CLASSES} />
-            </button>
+              <SvgMask
+                alt={getText('openInEditor')}
+                src={ArrowUpIcon}
+                className="size-project-icon"
+              />
+            </UnstyledButton>
           )}
         </div>
       )

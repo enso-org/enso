@@ -2,6 +2,7 @@ import project.Any.Any
 import project.Data.Array.Array
 import project.Data.Array_Proxy.Array_Proxy
 import project.Data.Map.Map
+import project.Data.Numbers.Float
 import project.Data.Numbers.Integer
 import project.Data.Numbers.Number
 import project.Data.Pair.Pair
@@ -29,10 +30,24 @@ from project.Data.Text.Extensions import all
 from project.Metadata.Choice import Option
 from project.Metadata.Widget import Single_Choice
 
+polyglot java import com.fasterxml.jackson.core.JsonProcessingException
+polyglot java import com.fasterxml.jackson.databind.JsonNode
+polyglot java import com.fasterxml.jackson.databind.node.ArrayNode
+polyglot java import com.fasterxml.jackson.databind.node.BooleanNode
+polyglot java import com.fasterxml.jackson.databind.node.DoubleNode
+polyglot java import com.fasterxml.jackson.databind.node.JsonNodeFactory
+polyglot java import com.fasterxml.jackson.databind.node.JsonNodeType
+polyglot java import com.fasterxml.jackson.databind.node.LongNode
+polyglot java import com.fasterxml.jackson.databind.node.NullNode
+polyglot java import com.fasterxml.jackson.databind.node.ObjectNode
+polyglot java import com.fasterxml.jackson.databind.node.TextNode
+polyglot java import com.fasterxml.jackson.databind.ObjectMapper
+
 ## Methods for serializing from and to JSON.
 type Json
     ## ALIAS from text
        GROUP Conversions
+       ICON convert
 
        Parse a Text value into a `JS_Object` or an Enso primitive value (like
        `Text`, `Number`, `Boolean`, `Nothing`), or a `Vector` of values.
@@ -41,21 +56,24 @@ type Json
         Parse the text "[null, null, true, false]".
 
             Json.parse "[null, null, true, false]"
-    parse : Text -> JS_Object | Boolean | Number | Nothing | Text | Vector ! Invalid_JSON
+    parse : Text -> Nothing | Boolean | Number | Text | Vector | Date | Date_Time | Time_Of_Day | JS_Object ! Invalid_JSON
     parse json =
         error_handler js_exception =
-            Error.throw (Invalid_JSON.Error js_exception.payload.message)
+            line = js_exception.payload.getLocation.getLineNr.to_text
+            col = js_exception.payload.getLocation.getColumnNr.to_text
+            pos = '[line: '+line+', column: '+col+']'
+            Error.throw (Invalid_JSON.Error js_exception.payload.getOriginalMessage+' at position '+pos)
 
-        Panic.catch Any handler=error_handler <|
-            parsed = json_parse json
-            make_enso parsed
+        Panic.catch JsonProcessingException handler=error_handler <|
+            node = ObjectMapper.new.readTree json
+            make_enso (read_json_node node)
 
     ## PRIVATE
        ADVANCED
        Serialize an Object to JSON.
-    stringify : (JS_Object | Boolean | Number | Nothing | Text | Vector) -> Text
+    stringify : Any -> Text
     stringify object =
-        json_stringify (make_javascript object.to_js_object)
+        to_json_node object . toString
 
     ## PRIVATE
        Convert a Vector of Keys and Values to JSON.
@@ -77,83 +95,107 @@ type Invalid_JSON
     to_display_text self =
         "Parse error in parsing JSON: " + self.message.to_text + "."
 
-## A failure indicating the inability to marshall a `Json` object into the
-   specified format.
-type Marshalling_Error
-    ## PRIVATE
+## PRIVATE
+   Read a JsonNode to an Enso type
+read_json_node : JsonNode -> Nothing | Boolean | Number | Text | Vector | JS_Object
+read_json_node node = case node.getNodeType of
+    JsonNodeType.NULL -> Nothing
+    JsonNodeType.BOOLEAN -> node.asBoolean
+    JsonNodeType.STRING -> node.asText
+    JsonNodeType.NUMBER ->
+        if node.isFloatingPointNumber then node.asDouble else node.asLong
+    JsonNodeType.ARRAY -> read_json_array node
+    JsonNodeType.OBJECT -> JS_Object.new node
 
-       The `json` object could not be converted into `format`, due to a type
-       mismatch.
+## PRIVATE
+    Read a JsonNode to a Vector
+read_json_array : ArrayNode -> Vector
+read_json_array node =
+    proxy = Array_Proxy.new node.size i->  (read_json_node (node.get i))
+    Vector.from_polyglot_array proxy
 
-       Arguments:
-       - json: The JSON that could not be marshalled.
-       - format: The type format that did not match.
 
-       This can occur e.g. when trying to reinterpret a number as a `Text`, etc.
-    Type_Mismatch json format
-
-    ## PRIVATE
-       The `json` object could not be converted into `format`, due to a field
-       missing in the `json` structure.
-
-       Arguments:
-       - json: The json that had a missing field.
-       - field: The field name that was missing.
-       - format: The type format that diud not match.
-
-       This can occure when trying to reinterpret a JSON object into an atom,
-       when the JSON does not contain all the fields required by the atom.
-    Missing_Field json field format
-
-    ## PRIVATE
-       Convert the marshalling error into a human-readable format.
-    to_display_text : Text
-    to_display_text self = case self of
-        Marshalling_Error.Type_Mismatch json format ->
-            json_text = Meta.get_simple_type_name json
-            format_text = Meta.get_simple_type_name format
-            "Type mismatch error: the json with type `" + json_text + "` did not match the format `" + format_text + "`."
-        Marshalling_Error.Missing_Field _ field _ ->
-            "Missing field in Json: the field `" + field.to_text "` was missing in the json."
+## PRIVATE
+    Convert a value to a JsonNode
+to_json_node : Any -> Any
+to_json_node value =
+    case value of
+        Nothing -> NullNode.getInstance
+        b : Boolean -> BooleanNode.valueOf b
+        n : Integer -> LongNode.valueOf(n)
+        f : Float   ->
+            if f.is_nan || f.is_infinite then NullNode.getInstance else DoubleNode.valueOf(f)
+        t : Text    ->
+            TextNode.valueOf(t)
+        v : Vector  ->
+            n = ArrayNode.new JsonNodeFactory.instance
+            v.each e-> n.add (to_json_node e)
+            n
+        a : Array  ->
+            n = ArrayNode.new JsonNodeFactory.instance
+            a.each e-> n.add (to_json_node e)
+            n
+        j : JS_Object -> j.object_node
+        other ->
+            to_json_node other.to_js_object
 
 ## PRIVATE
 type JS_Object
     ## PRIVATE
-       Creates a JS_Object from a list of key-value pairs.
+       Creates a new `JS_Object` from an `ObjectNode`.
+    new : ObjectNode -> JS_Object
+    new object_node =
+        make_field_names object =
+            name_iterator = object.fieldNames
+            builder = Vector.new_builder object.size
+            loop iterator builder =
+                if iterator.hasNext.not then builder.to_vector else
+                    builder.append iterator.next
+                    @Tail_Call loop iterator builder
+            loop name_iterator builder
+        JS_Object.Value object_node (make_field_names object_node)
+
+    ## PRIVATE
+       Creates a Jackon_Object from a list of key-value pairs.
        Keys must be `Text` values.
        Values will be recursively converted to JSON serializable as needed.
     from_pairs : Vector -> JS_Object
     from_pairs pairs =
-        js_object = pairs.fold new_object current->pair->
+        mapper = ObjectMapper.new
+        new_object = mapper.createObjectNode
+        keys = pairs.fold Vector.new_builder current->pair->
             case pair.first of
                 text : Text ->
-                    js_value = pair.second.to_js_object
-                    set_value current text js_value
+                    jackson_value_node = to_json_node pair.second.to_js_object
+                    new_object.set text jackson_value_node
+                    current.append text
                 _ -> Error.throw (Illegal_Argument.Error "JS_Object.from_pairs: key must be a Text value")
-        JS_Object.Value js_object
+        JS_Object.Value new_object keys.to_vector
 
     ## PRIVATE
-    Value js_object
+    Value object_node ~field_array
 
     ## GROUP Logical
        ICON preparation
        Returns True iff the objects contains the given `key`.
     contains_key : Text -> Boolean
-    contains_key self key:Text = has_property self.js_object key
+    contains_key self key:Text = self.object_node.has key
 
-    ## Get a value for a key of the object, or a default value if that key is not present.
+    ## ICON select_row
+       Get a value for a key of the object, or a default value if that key is not present.
 
        Arguments:
        - key: The key to get.
        - if_missing: The value to return if the key is not found.
     @key make_field_name_selector
-    get : Text -> Any -> JS_Object | Boolean | Number | Nothing | Text | Vector
+    get : Text -> Any -> Nothing | Boolean | Number | Text | Vector | JS_Object
     get self key:Text ~if_missing=Nothing =
-        if (has_property self.js_object key) . not then if_missing else
-            value = get_value self.js_object key
-            make_enso value
+        if self.contains_key key . not then if_missing else
+            child = self.object_node.get key
+            make_enso (read_json_node child)
 
     ## GROUP Selections
+       ICON select_row
        Get a value for a key of the object.
        If the key is not found, throws a `No_Such_Key` error.
 
@@ -164,12 +206,13 @@ type JS_Object
     at self key:Text = self.get key (Error.throw (No_Such_Key.Error self key))
 
     ## GROUP Metadata
+       ICON metadata
        Get the keys of the object.
     field_names : Vector
-    field_names self =
-        Vector.from_polyglot_array (get_property_names self.js_object)
+    field_names self = self.field_array
 
-    ## Maps a function over each value in this object
+    ## ICON dataframe_map_column
+       Maps a function over each value in this object
 
        Arguments:
        - function: The function to apply to each value in the map, taking a
@@ -191,26 +234,29 @@ type JS_Object
             function key value
 
     ## GROUP Metadata
+       ICON metadata
        Gets the number of keys in the object.
     length : Number
-    length self =
-        get_property_names self.js_object . length
+    length self = self.object_node.size
 
     ## GROUP Logical
+       ICON metadata
        Returns True iff the Map is empty, i.e., does not have any entries.
     is_empty : Boolean
     is_empty self = self.length == 0
 
     ## GROUP Logical
+       ICON metadata
        Returns True iff the Map is not empty, i.e., has at least one entry.
     not_empty : Boolean
     not_empty self = self.is_empty.not
 
     ## GROUP Conversions
-       Convert the object to a Vector of Key and Values.
+       ICON convert
+       Convert the object to a Vector of Pairs.
     to_vector : Vector
     to_vector self =
-        keys = get_property_names self.js_object
+        keys = self.field_array
         proxy = Array_Proxy.new keys.length (i-> [(keys.at i), (self.get (keys.at i))])
         Vector.from_polyglot_array proxy
 
@@ -222,7 +268,7 @@ type JS_Object
     ## PRIVATE
        Convert to a Text.
     to_text : Text
-    to_text self = Json.stringify self
+    to_text self = self.to_json
 
     ## PRIVATE
        Convert JS_Object to a friendly string.
@@ -233,7 +279,7 @@ type JS_Object
     ## PRIVATE
        Convert to a JSON representation.
     to_json : Text
-    to_json self = self.to_text
+    to_json self = self.object_node.toString
 
     ## PRIVATE
        Transform the vector into text for displaying as part of its default
@@ -243,13 +289,14 @@ type JS_Object
         render self
 
     ## GROUP Conversions
+       ICON convert
        Creates an Enso object from the JS_Object.
     into : Any -> Any
     into self target_type = case target_type of
         JS_Object -> self
-        Vector -> self.to_vector
-        Map -> Map.from_vector self.to_vector
-        _ ->
+        Vector    -> self.to_vector
+        Map       -> Map.from_vector self.to_vector
+        _         ->
             ## First try a conversion
             Panic.catch No_Such_Conversion (self.to target_type) _->
                 ## If that fails, try to construct the type
@@ -267,7 +314,7 @@ type JS_Object
                             Error.throw (Illegal_Argument.Error "Unable to build a "+target_type.to_text+" - the constructor "+constructor.name+"'s fields "+missing_fields.to_display_text+" not found in the source object.")
                     _ -> Error.throw (Illegal_Argument.Error "Unable to build a "+target_type.to_text+" cannot find unique constructor.")
 
-    ## Modify a field of a JSON object, returing the updated object.
+    ## Modify a field of a JSON object, returning a new updated object.
 
        Arguments:
        - key: the name of the field to modify.
@@ -280,7 +327,17 @@ type JS_Object
              obj.set_value "foo" "asdf"
              # => {"foo":"asdf","baz":"quux"}
     set_value : Text -> Any -> JS_Object
-    set_value self key:Text value = JS_Object.Value (set_value self.js_object key value.to_js_object)
+    set_value self key:Text value =
+        copied_object_node = self.object_node.deepCopy
+        jackson_value_node = to_json_node value.to_js_object
+        copied_object_node.set key jackson_value_node
+        JS_Object.Value copied_object_node self.field_array
+
+## PRIVATE
+   Make a field name selector
+make_field_name_selector : JS_Object -> Display -> Widget
+make_field_name_selector js_object display=Display.Always =
+    Single_Choice display=display values=(js_object.field_names.map n->(Option n n.pretty))
 
 ## PRIVATE
 type JS_Object_Comparator
@@ -315,8 +372,8 @@ render object depth=0 max_depth=5 max_length=100 = case object of
             children = keys.map key-> key.to_json + ': ' + (render (object.get key) (depth+1) max_depth max_length)
             '{' + (children.join ", ") + (if len > max_length then ', "...": "Another ' + (len - max_length).to_text + ' items truncated."' else "") + '}'
     _ : Vector ->
-        if depth == max_depth then '"[...]"' else
-            len = object.length
+        len = object.length
+        if len == 0 then '[]' else if depth == max_depth then '"[...]"' else
             children = 0.up_to (max_length.min len) . map i-> render (object.at i) (depth+1) max_depth max_length
             "[" + (children.join ", ") + (if len > max_length then ', "... another ' + (len - max_length).to_text + ' items truncated."' else "") + "]"
     _ : Array ->
@@ -326,91 +383,28 @@ render object depth=0 max_depth=5 max_length=100 = case object of
     _ : Text -> object.to_json
     _ : Boolean -> object.to_json
     _ : Number -> object.to_json
-    _ -> @Tail_Call render (JS_Object.Value object) depth max_depth max_length
+    _ -> @Tail_Call render (JS_Object.new object) depth max_depth max_length
 
 ## PRIVATE
-   Internal function ensuring that a JavaScript object is presented appropriately to Enso.
-   js_object must be a Native JS Object, Text, Boolean, Nothing, Number, Vector, Array, JS_Object.
-   Children of these types will be recursively passed through this function.
-make_enso js_object =
-    case js_object of
-        Nothing -> Nothing
-        _ : Text -> js_object
-        _ : Boolean -> js_object
-        _ : Number -> js_object
-        _ : Vector ->
-            proxy = Array_Proxy.new js_object.length (i-> make_enso (js_object.at i))
+   Internal function ensuring that a Jackson object is presented appropriately to Enso.
+make_enso object =
+    case object of
+        Nothing     -> Nothing
+        _ : Text    -> object
+        _ : Boolean -> object
+        _ : Number  -> object
+        v : Vector  ->
+            proxy = Array_Proxy.new v.length (i-> make_enso (v.at i))
             Vector.from_polyglot_array proxy
-        _ : Array ->
-            proxy = Array_Proxy.new js_object.length (i-> make_enso (js_object.at i))
+        a : Array   ->
+            proxy = Array_Proxy.new a.length (i-> make_enso (a.at i))
             Vector.from_polyglot_array proxy
-        _ : JS_Object -> js_object
-        _ ->
-            wrapped = JS_Object.Value js_object
-
+        js_object : JS_Object ->
             ## Handle deserializing date and time types.
-            type_name = wrapped.get "type"
-            parsed = if type_name == "Date" then Date.from wrapped else
-                if type_name == "Date_Time" then Date_Time.from wrapped else
-                    if type_name == "Time_Of_Day" then Time_Of_Day.from wrapped else
-                        wrapped
+            type_name = js_object.get "type"
+            parsed = if type_name == "Date" then Date.from js_object else
+                if type_name == "Date_Time" then Date_Time.from js_object else
+                    if type_name == "Time_Of_Day" then Time_Of_Day.from js_object else
+                        js_object
 
-            if parsed.is_error then wrapped else parsed
-
-
-## PRIVATE
-   Internal function to convert any JS_Objects into their native JS objects before passing to JS.
-   enso_object must be Text, Boolean, Nothing, Number, Vector, Array, JS_Object (and children as well).
-make_javascript enso_object =
-    ## Have to remove warnings before passing into JavaScript otherwise will be an Object.
-    if Warning.get_all enso_object != [] then make_javascript (Warning.clear enso_object) else
-        case enso_object of
-            _ : JS_Object ->
-                enso_object.field_names.fold new_object current->key->
-                    value = enso_object.get key
-                    js_value = make_javascript value
-                    set_value current key js_value
-            _ : Vector -> enso_object.map make_javascript
-            _ : Array -> Vector.from_polyglot_array enso_object . map make_javascript
-            _ -> enso_object
-
-## PRIVATE
-   Make a field name selector
-make_field_name_selector : JS_Object -> Display -> Widget
-make_field_name_selector js_object display=Display.Always =
-    Single_Choice display=display values=(js_object.field_names.map n->(Option n n.pretty))
-
-## PRIVATE
-   Make a new JavaScript object.
-foreign js new_object = """
-    return {}
-
-## PRIVATE
-   Parse a text value into JavaScript object.
-foreign js json_parse text = """
-    return JSON.parse(text)
-
-## PRIVATE
-   Convert a JavaScript object to a text value.
-foreign js json_stringify js_object = """
-    return JSON.stringify(js_object)
-
-## PRIVATE
-   Check a JavaScript object has a given property.
-foreign js has_property js_object key = """
-    return js_object.hasOwnProperty(key)
-
-## PRIVATE
-   Get a value from a JavaScript object.
-foreign js get_value object key = """
-    return object[key]
-
-## PRIVATE
-   Set a value on a JavaScript object and return the new object.
-foreign js set_value object key value = """
-    return {...object, [key]: value}
-
-## PRIVATE
-   Gets all the property names of a JavaScript object.
-foreign js get_property_names object = """
-    return Object.getOwnPropertyNames(object)
+            if parsed.is_error then js_object else parsed

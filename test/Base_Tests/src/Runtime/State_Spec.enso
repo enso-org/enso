@@ -22,8 +22,8 @@ add_specs suite_builder = suite_builder.group "State" group_builder->
         Meta.type_of p . should_equal Unsupported_Argument_Types
 
 
-main =
+main filter=Nothing =
     suite = Test.build suite_builder->
         add_specs suite_builder
-    suite.run_with_filter
+    suite.run_with_filter filter
 

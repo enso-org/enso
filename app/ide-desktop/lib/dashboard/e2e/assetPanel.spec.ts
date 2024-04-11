@@ -12,7 +12,7 @@ test.test('open and close asset panel', async ({ page }) => {
   const assetRows = actions.locateAssetRows(page)
 
   await actions.locateNewFolderIcon(page).click()
-  await assetRows.nth(0).click()
+  await actions.clickAssetRow(assetRows.nth(0))
   await test.expect(actions.locateAssetPanel(page)).not.toBeVisible()
   await actions.locateAssetPanelIcon(page).click()
   await test.expect(actions.locateAssetPanel(page)).toBeVisible()
@@ -22,7 +22,7 @@ test.test('open and close asset panel', async ({ page }) => {
 
 test.test('asset panel contents', async ({ page }) => {
   const { api } = await actions.mockAll({ page })
-  const { defaultOrganizationId } = api
+  const { defaultOrganizationId, defaultUserId } = api
   const assetRows = actions.locateAssetRows(page)
   const description = 'foo bar'
   const username = 'baz quux'
@@ -33,12 +33,10 @@ test.test('asset panel contents', async ({ page }) => {
       {
         permission: permissions.PermissionAction.own,
         user: {
-          /* eslint-disable @typescript-eslint/naming-convention */
-          pk: backend.Subject(''),
-          organization_id: defaultOrganizationId,
-          user_name: username,
-          user_email: backend.EmailAddress(email),
-          /* eslint-enable @typescript-eslint/naming-convention */
+          organizationId: defaultOrganizationId,
+          userId: defaultUserId,
+          name: username,
+          email: backend.EmailAddress(email),
         },
       },
     ],
@@ -46,7 +44,7 @@ test.test('asset panel contents', async ({ page }) => {
   await page.goto('/')
   await actions.login({ page })
 
-  await assetRows.nth(0).click()
+  await actions.clickAssetRow(assetRows.nth(0))
   await actions.locateAssetPanelIcon(page).click()
   await test.expect(actions.locateAssetPanelDescription(page)).toHaveText(description)
   // `getByText` is required so that this assertion works if there are multiple permissions.

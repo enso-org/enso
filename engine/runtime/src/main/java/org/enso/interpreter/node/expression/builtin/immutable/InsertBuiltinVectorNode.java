@@ -10,7 +10,7 @@ import org.enso.interpreter.runtime.data.vector.ArrayLikeHelpers;
 import org.enso.interpreter.runtime.data.vector.ArrayLikeLengthNode;
 
 @BuiltinMethod(
-    type = "Vector",
+    type = "Array_Like_Helpers",
     name = "insert_builtin",
     description = "Inserts a set of values into the Vector at the specified index.",
     autoRegister = false)

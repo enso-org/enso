@@ -4,11 +4,10 @@ import Standard.Base.Errors.Illegal_State.Illegal_State
 import Standard.Test.Test_Environment
 
 
-polyglot java import java.lang.Thread
 polyglot java import java.security.KeyStore
 polyglot java import javax.net.ssl.SSLContext
 polyglot java import javax.net.ssl.TrustManagerFactory
-polyglot java import org.enso.base.enso_cloud.AuthenticationProvider
+polyglot java import org.enso.base.enso_cloud.CloudAPI
 
 type Cloud_Tests_Setup
     Mock api_url:URI credentials_location:File
@@ -16,19 +15,16 @@ type Cloud_Tests_Setup
     None
 
     with_prepared_environment self ~action =
-        if self == Cloud_Tests_Setup.None then action else
-            Test_Environment.unsafe_with_environment_override "ENSO_CLOUD_API_URI" self.api_url.to_text <|
-                Test_Environment.unsafe_with_environment_override "ENSO_CLOUD_CREDENTIALS_FILE" self.credentials_location.absolute.normalize.path <|
-                    action
+        Cloud_Tests_Setup.reset
+        Panic.with_finalizer Cloud_Tests_Setup.reset <|
+            if self == Cloud_Tests_Setup.None then action else
+                Test_Environment.unsafe_with_environment_override "ENSO_CLOUD_API_URI" self.api_url.to_text <|
+                    Test_Environment.unsafe_with_environment_override "ENSO_CLOUD_CREDENTIALS_FILE" self.credentials_location.absolute.normalize.path <|
+                        action
 
     pending self = case self of
         Cloud_Tests_Setup.None -> "Cloud tests run only if ENSO_RUN_REAL_CLOUD_TEST or ENSO_HTTP_TEST_HTTPBIN_URL environment variable is defined."
         _ -> Nothing
-
-    mock_only_pending self = case self of
-        Cloud_Tests_Setup.Mock _ _ -> Nothing
-        Cloud_Tests_Setup.Cloud _ _ -> "Mock cloud tests only run if ENSO_RUN_REAL_CLOUD_TEST is NOT defined, as they would interfere with other cloud tests."
-        _ -> "Cloud tests run only if ENSO_HTTP_TEST_HTTPBIN_URL environment variable is defined."
 
     real_cloud_pending self = case self of
         Cloud_Tests_Setup.Cloud _ _ -> Nothing
@@ -72,9 +68,8 @@ type Cloud_Tests_Setup
         Cloud_Tests_Setup.Mock _ _ -> True
         _ -> False
 
-    ## Resets the user token, to avoid cached token from other tests interfering.
-    reset_token =
-        AuthenticationProvider.setToken Nothing
+    ## Flushes all cloud caches in order to allow switch between real and mock cloud environments.
+    reset = CloudAPI.flushCloudCaches
 
     ## Detects the setup based on environment settings.
     prepare : Cloud_Tests_Setup
@@ -87,41 +82,78 @@ type Cloud_Tests_Setup
                 credentials_location = Environment.get "ENSO_CLOUD_CREDENTIALS_FILE" . if_nothing <|
                     Panic.throw (Illegal_State.Error "If ENSO_RUN_REAL_CLOUD_TEST is defined, ENSO_CLOUD_CREDENTIALS_FILE must be defined as well.")
 
-                Cloud_Tests_Setup.reset_token
                 Cloud_Tests_Setup.Cloud (URI.from api_url) (File.new credentials_location)
+            False -> Cloud_Tests_Setup.prepare_mock_setup
 
-            False ->
-                base_url = Environment.get "ENSO_HTTP_TEST_HTTPBIN_URL"
-                if base_url.is_nothing then Cloud_Tests_Setup.None else
-                    with_slash = if base_url.ends_with "/" then base_url else base_url + "/"
-                    enso_cloud_url = with_slash + "enso-cloud-mock/"
+    ## Runs the action inside of an environment set up with the Cloud Mock
+       running on our HTTP helper, regardless if the 'real' cloud environment is
+       available for testing.
 
-                    tmp_cred_file = File.create_temporary_file "enso-test-credentials" ".txt"
-                    Cloud_Tests_Setup.test_token.write tmp_cred_file
+       That's because some of our tests should always run on the mock environment
+       - for example authentication tests, because only these allow us enough
+       customization.
 
-                    Cloud_Tests_Setup.reset_token
-                    Cloud_Tests_Setup.Mock (URI.from enso_cloud_url) tmp_cred_file
+       If `custom_credentials` are not specified, the default test credentials are used.
+    run_with_mock_cloud ~action (custom_credentials : Mock_Credentials | Nothing = Nothing) =
+        setup = Cloud_Tests_Setup.prepare_mock_setup custom_credentials
+        setup.with_prepared_environment action
 
-    test_token -> Text = "TEST-ENSO-TOKEN-caffee"
+    prepare_mock_setup (custom_credentials : Mock_Credentials | Nothing = Nothing) -> Cloud_Tests_Setup =
+        base_url = Environment.get "ENSO_HTTP_TEST_HTTPBIN_URL"
+        if base_url.is_nothing then Cloud_Tests_Setup.None else
+            with_slash = if base_url.ends_with "/" then base_url else base_url + "/"
+            enso_cloud_url = with_slash + "enso-cloud-mock/"
 
-## PRIVATE
-   A helper method that retries the action a few times, to allow tests that may fail due to propagation delays to pass.
-   This is needed, because after creating a secret, there is a slight delay before it shows up within `list`.
-   To make tests robust, we add this retry logic.
-with_retries ~action =
-    loc = Meta.get_source_location 1
+            credentials_payload = (custom_credentials.if_nothing (Mock_Credentials.default with_slash)).to_json
+            tmp_cred_file = File.create_temporary_file "enso-test-credentials" ".json"
+            credentials_payload.write tmp_cred_file
 
-    # Delays are in seconds
-    sleep_time = 0.1
-    total_sleep_delay = if Environment.get "CI" . is_nothing . not then 10 else 5
+            Cloud_Tests_Setup.Mock (URI.from enso_cloud_url) tmp_cred_file
 
-    max_iterations = total_sleep_delay / sleep_time
-    go i =
-        Panic.catch Any action caught_panic->
-            # If the iterations are exhausted, we rethrow the panic.
-            if i > max_iterations then Panic.throw caught_panic else
-                if i % 10 == 0 then
-                    IO.println "Still failing after "+i.to_text+" retries. ("+loc.to_display_text+")"
-                Thread.sleep (1000*sleep_time . floor)
-                @Tail_Call go (i+1)
-    go 1
+    ## Returns the number of times requests failed due to an expired token.
+       Only valid for Mock setup.
+    get_expired_token_failures_count self -> Integer = case self of
+        Cloud_Tests_Setup.Mock _ _ ->
+            uri = self.httpbin_uri / "COUNT-EXPIRED-TOKEN-FAILURES"
+            HTTP.fetch uri . decode_as_json
+        _ -> Panic.throw (Illegal_State.Error "This method is only valid for Mock setup.")
+
+type Mock_Credentials
+    Value access_token:Text expire_at:Date_Time refresh_token:Text refresh_url:Text client_id:Text
+
+    default (base_http_url : URI) -> Mock_Credentials =
+        expire_at = (Date_Time.now.start_of Time_Period.Minute) + (Period.new years=1)
+        refresh_url = base_http_url / "enso-cloud-auth-renew/"
+        Mock_Credentials.Value "TEST-ENSO-TOKEN-caffee" expire_at "TEST-ENSO-REFRESH-caffee" refresh_url.to_text "TEST-ENSO-CLIENT-ID"
+
+    to_json self -> Text =
+        fields = []
+            + [["access_token", self.access_token]]
+            + [["expire_at", self.expire_at.at_zone Time_Zone.utc . format Date_Time_Formatter.iso_offset_date_time]]
+            + [["refresh_token", self.refresh_token]]
+            + [["refresh_url", self.refresh_url]]
+            + [["client_id", self.client_id]]
+        JS_Object.from_pairs fields . to_json
+
+    set_refresh_token self token:Text =
+        Mock_Credentials.Value self.access_token self.expire_at token self.refresh_url self.client_id
+
+    ## Returns a credential whose access token is invalid.
+       This will test the case where the refresh token has expired and the user has to re-authenticate.
+    invalid_refresh_token self -> Mock_Credentials =
+        self.set_refresh_token "INVALID-ENSO-REFRESH-caffee"
+
+    ## Returns a credential whose token has already expired, according to the `expire_at` field.
+    locally_expired self -> Mock_Credentials =
+        new_expire_at = (Date_Time.now.start_of Time_Period.Minute) - (Duration.new hours=1)
+        Mock_Credentials.Value self.access_token new_expire_at self.refresh_token self.refresh_url self.client_id
+
+    ## Returns a credential which does not seem expired, but will be considered expired by the cloud.
+       This is to test the very rare edge case when a token is considered not expired locally, but the cloud does consider it expired.
+    remotely_expired self -> Mock_Credentials =
+        Mock_Credentials.Value "TEST-EXPIRED-TOKEN-beef" self.expire_at self.refresh_token self.refresh_url self.client_id
+
+    ## Returns a credential whose token is about to expire in less than 2 minutes (1 minute).
+    about_to_expire self -> Mock_Credentials =
+        new_expire_at = Date_Time.now + (Duration.new minutes=1)
+        Mock_Credentials.Value self.access_token new_expire_at self.refresh_token self.refresh_url self.client_id

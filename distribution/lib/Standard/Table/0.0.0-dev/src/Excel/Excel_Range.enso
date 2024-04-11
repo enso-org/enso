@@ -21,24 +21,29 @@ type Excel_Range
     Value java_range:Java_Range
 
     ## GROUP Standard.Base.Metadata
+       ICON metadata
        Gets the name of the sheet.
     sheet_name : Text
     sheet_name self = self.java_range.getSheetName
 
     ## GROUP Standard.Base.Metadata
+       ICON metadata
        Gets the index (1-based) of the top row of the range.
        Returns `Nothing` if referring to a complete column.
     top_row : Integer | Nothing
     top_row self = if self.java_range.isWholeColumn then Nothing else
         self.java_range.getTopRow
 
-    ## Gets the index (1-based) of the bottom row of the range.
+    ## GROUP Standard.Base.Metadata
+       ICON metadata
+       Gets the index (1-based) of the bottom row of the range.
        Returns `Nothing` if referring to a complete column.
     bottom_row : Integer | Nothing
     bottom_row self = if self.java_range.isWholeColumn then Nothing else
         self.java_range.getBottomRow
 
     ## GROUP Standard.Base.Metadata
+       ICON metadata
        Gets the index (1-based) of the left column of the range.
        Returns `Nothing` if referring to a complete row.
     left_column : Integer | Nothing
@@ -46,6 +51,7 @@ type Excel_Range
         self.java_range.getLeftColumn
 
     ## GROUP Standard.Base.Metadata
+       ICON metadata
        Gets the index (1-based) of the right column of the range.
        Returns `Nothing` if referring to a complete row.
     right_column : Integer | Nothing
@@ -53,11 +59,14 @@ type Excel_Range
         self.java_range.getRightColumn
 
     ## GROUP Standard.Base.Metadata
+       ICON metadata
        Is the Excel_Range referring to a single cell
     is_single_cell : Boolean
     is_single_cell self = self.java_range.isSingleCell
 
-    ## Gets the address to this in A1 format.
+    ## GROUP Standard.Base.Metadata
+       ICON metadata
+       Gets the address to this in A1 format.
     address : Text
     address self = self.java_range.getAddress
 
@@ -97,13 +106,15 @@ type Excel_Range
         _ : Text -> Java_Range.parseA1Column column
         _ -> Error.throw (Illegal_Argument.Error "Column must be a Text or Integer")
 
-    ## Creates a Range from an address.
+    ## ICON data_input
+       Creates a Range from an address.
     from_address : Text -> Excel_Range
     from_address address =
         Illegal_Argument.handle_java_exception <|
             Excel_Range.Value (Java_Range.new address)
 
-    ## Create a Range for a single cell.
+    ## ICON data_input
+       Create a Range for a single cell.
     for_cell : Text -> (Text|Integer) -> Integer -> Excel_Range
     for_cell sheet column row =
         col_index = Excel_Range.column_index column
@@ -114,7 +125,8 @@ type Excel_Range
         col_valid <| row_valid <|
             Excel_Range.Value (Java_Range.new sheet col_index row)
 
-    ## Create an Excel_Range for a range of cells.
+    ## ICON data_input
+       Create an Excel_Range for a range of cells.
     for_range : Text -> (Text|Integer) -> Integer -> (Text|Integer) -> Integer -> Excel_Range
     for_range sheet left top right bottom =
         left_index = Excel_Range.column_index left
@@ -128,7 +140,8 @@ type Excel_Range
         left_valid <| right_valid <| top_valid <| bottom_valid <|
             Excel_Range.Value (Java_Range.new sheet left_index top right_index bottom)
 
-    ## Create an Excel_Range for a set of columns.
+    ## ICON data_input
+       Create an Excel_Range for a set of columns.
     for_columns : Text -> (Text|Integer) -> (Text|Integer) -> Excel_Range
     for_columns sheet left (right=left) =
         left_index = Excel_Range.column_index left
@@ -140,7 +153,8 @@ type Excel_Range
         left_valid <| right_valid <|
             Excel_Range.Value (Java_Range.forColumns sheet left_index right_index)
 
-    ## Create an Excel_Range for a set of rows.
+    ## ICON data_input
+       Create an Excel_Range for a set of rows.
     for_rows : Text -> Integer -> Integer -> Excel_Range
     for_rows sheet top (bottom=top) =
         top_valid = validate (Excel_Range.is_valid_row top) ("Invalid top row for Excel: " + top.to_text + ".")

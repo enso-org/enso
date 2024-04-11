@@ -6,6 +6,7 @@ import {
 import type { Opt } from '@/util/data/opt'
 import { Range } from '@/util/data/range'
 import { qnIsTopElement, qnParent, type QualifiedName } from '@/util/qualifiedName'
+import escapeStringRegexp from '@/util/regexp'
 
 export type SelfArg =
   | {
@@ -58,7 +59,9 @@ class FilteringWithPattern {
     // - The unmatched rest of the word, up to, but excluding, the next underscore
     // - The unmatched words before the next matched word, including any underscores
     this.wordMatchRegex = new RegExp(
-      '(^|.*?_)(' + pattern.replace(/_/g, ')([^_]*)(.*?)(_') + ')([^_]*)(.*)',
+      '(^|.*?_)(' +
+        escapeStringRegexp(pattern).replace(/_/g, ')([^_]*)(.*?)([_ ]') +
+        ')([^_]*)(.*)',
       'i',
     )
     if (pattern.length > 1 && !/_/.test(pattern)) {
@@ -70,8 +73,8 @@ class FilteringWithPattern {
       // - The unmatched part up to the next matched letter
       const regex = pattern
         .split('')
-        .map((c) => `(${c})`)
-        .join('([^_]*?_)')
+        .map((c) => `(${escapeStringRegexp(c)})`)
+        .join('([^_]*?[_ ])')
       this.initialsMatchRegex = new RegExp('(^|.*?_)' + regex + '(.*)', 'i')
     }
   }
@@ -302,10 +305,11 @@ export class Filtering {
       let prefix = ''
       let suffix = ''
       for (const [, text, separator] of this.fullPattern.matchAll(/(.+?)([._]|$)/g)) {
+        const escaped = escapeStringRegexp(text ?? '')
         const segment =
-          separator === '_'
-            ? `()(${text})([^_.]*)(_)`
-            : `([^.]*_)?(${text})([^.]*)(${separator === '.' ? '\\.' : ''})`
+          separator === '_' ?
+            `()(${escaped})([^_.]*)(_)`
+          : `([^.]*_)?(${escaped})([^.]*)(${separator === '.' ? '\\.' : ''})`
         prefix = '(?:' + prefix
         suffix += segment + ')?'
       }

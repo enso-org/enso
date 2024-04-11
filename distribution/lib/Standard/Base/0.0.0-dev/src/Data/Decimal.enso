@@ -1,0 +1,1005 @@
+import project.Any.Any
+import project.Data.Locale.Locale
+import project.Data.Numeric.Internal.Decimal_Internal
+import project.Data.Numeric.Math_Context.Math_Context
+import project.Data.Numeric.Rounding_Mode.Rounding_Mode
+import project.Data.Text.Text
+import project.Error.Error
+import project.Errors.Illegal_Argument.Illegal_Argument
+import project.Nothing.Nothing
+import project.Panic.Panic
+import project.Warning.Warning
+from project.Data.Boolean import Boolean, False, True
+from project.Data.Numbers import Float, Integer, Number, Number_Parse_Error
+from project.Data.Numeric.Internal.Decimal_Internal import Decimal_Comparator
+from project.Data.Ordering import Comparable, Ordering
+from project.Errors.Common import Arithmetic_Error, Loss_Of_Numeric_Precision, Out_Of_Range, Unsupported_Argument_Types
+from project.Widget_Helpers import make_number_format_selector
+
+polyglot java import java.lang.ArithmeticException
+polyglot java import java.lang.NumberFormatException
+polyglot java import java.lang.Integer as Java_Integer
+polyglot java import java.math.BigDecimal
+polyglot java import java.text.DecimalFormat
+polyglot java import java.text.DecimalFormatSymbols
+polyglot java import java.text.NumberFormat
+polyglot java import java.text.ParseException
+polyglot java import org.enso.base.numeric.ConversionResult
+polyglot java import org.enso.base.numeric.Decimal_Utils
+
+## Decimal is the type of decimal (base-10-scaled) numbers in Enso. An Enso
+   `Decimal` is a wrapper around a Java `BigDecimal`.
+
+   `Decimal` values have more overhead than standard `Float` values, but they
+   have the advantage of being able to precisely specify values such as `0.1`,
+   which is important for certain kinds of calculations, such as currency.
+
+   A `Decimal` value is represented internally by a Java `BigInteger` "unscaled
+   value" and a "scale value". The numerical value of the `Decimal` is
+   `(unscaledValue * 10^(-scale))`. Scale values are maintained automatically by
+   the constructors and numerical operations.
+
+   Scale values can allow distinctions between values that would be identical as
+   `Float`s. For example, the following values have different internal
+   representations:
+
+       a = Decimal.new "2.0"
+       b = Decimal.new "2.00"
+       a == b
+       # => True
+
+   These two values have different internal representations, but they are still
+   considered the same value by `==`.
+
+   All of the constructors, and many of the operations, can take an additional
+   `Math_Context` value, which can specify two things:
+
+   - precision: the number of decimal digits to use to represent a value or
+     result; results are rounded to this precision.
+   - rounding_mode: the method to use for rounding. See `Rounding_Mode` for
+     details about each rounding method.
+
+   When a `Math_Context` value is used in an operation, and causes a loss of
+   precision, a `Loss_Of_Numeric_Precision` warning is attached to the result.
+
+   If no `Math_Context` value is supplied, the default is to make all operations
+   exact. A `Math_Context` with a precision of `0` has the same effect.
+
+   A `Decimal` can represent any `Float` precisely. However, some `Float`
+   literals, such as `0.1`, cannot be represented exactly to infinite
+   precision by a `Float`. For this reason, constructing a `Decimal` from
+   a `Float` always attaches a `Loss_Of_Numeric_Precision` warning to the
+   result. To avoid this problem, it is recommended to create `Decimal`s from
+   fractional values by passing the value in as a `Text`, where possible and
+   convenient.
+
+   The `Decimal` class provides arithmetic operations `add`, `subtract`,
+   `multiply`, and `divide`, which can take a `Math_Context` argument. You can
+   also use the usual operators `+`, `-`, `*`, `/`, which are the same as the
+   named methods, but which cannot take a `Math_Context`.
+
+   In the case of `divide`, it is possible that the result will have a
+   non-terminating deicmal expansion. If the operation did not specify a
+   `Math_Context`, or specified an explicit `Math_Context` with infinite
+   precision, then it is impossible to represent the result as requested, and an
+   `Arithmetic_Error` will be thrown. In this case, the solution is to specify
+   an explicit precision using a `Math_Context`.
+type Decimal
+    ## PRIVATE
+    Value (big_decimal : BigDecimal)
+
+    ## ICON number_input
+       Construct a `Decimal` from a string or integer.
+
+       Arguments:
+       - x: The `Text`, `Integer`, or `Float` to construct a `Decimal` from.
+       - mc: The `Math_Context` to use to specify precision and `Rounding_Mode`.
+         If a `Math_Context` is used, there is a possibility of a loss of
+         precision.
+
+       ? Number Format
+
+         The textual format for a Decimal is defined at
+         https://docs.oracle.com/javase/8/docs/api/java/math/BigDecimal.html#BigDecimal-java.lang.String-.
+
+       ! Error Conditions
+
+         - If the `Text` argument is incorrectly formatted, a `Number_Parse_Error`
+           is thrown.
+         - If the construction of the Decimal results in a loss of precision, a
+           `Loss_Of_Numeric_Precision` warning is attached. This can only happen
+           if a `Math_Context` value is explicitly passed.
+
+        ^ Example
+          Create a `Decimal` from a string.
+
+              c = Decimal.new "12.345"
+    new : Text | Integer | Float -> Math_Context | Nothing -> Decimal ! Arithmetic_Error | Number_Parse_Error
+    new (x : Text | Integer | Float) (mc : Math_Context | Nothing = Nothing) -> Decimal ! Arithmetic_Error | Number_Parse_Error =
+        handle_java_exception <|
+            case x of
+                _ : Text -> Decimal.from_string x mc
+                _ : Integer -> Decimal.from_integer x mc
+                _ : Float -> Decimal.from_float x mc
+
+    ## GROUP conversions
+       ICON convert
+       Construct a `Decimal` from a `Text`.
+
+       Arguments:
+       - s: The `Text` to construct a `Decimal` from.
+       - mc: The `Math_Context` to use to specify precision and `Rounding_Mode`.
+         If a `Math_Context` is used, there is a possibility of a loss of
+         precision.
+
+       ? Number Format
+
+         The textual format for a Decimal is defined at
+         https://docs.oracle.com/javase/8/docs/api/java/math/BigDecimal.html#BigDecimal-java.lang.String-.
+
+       ! Error Conditions
+
+         - If `s` is incorrectly formatted, a `Number_Parse_Error` is thrown.
+         - If the construction of the Decimal results in a loss of precision, a
+           `Loss_Of_Numeric_Precision` warning is attached. This can only happen
+           if a `Math_Context` value is explicitly passed.
+
+        ^ Example
+          Create a `Decimal` from a string.
+
+              d = Decimal.from_string "12.345"
+    from_string : Text -> Math_Context | Nothing -> Decimal ! Number_Parse_Error
+    from_string (s : Text) (mc : Math_Context | Nothing = Nothing) -> Decimal ! Number_Parse_Error =
+        handle_java_exception <| handle_number_format_exception <|
+            case mc of
+                _ : Math_Context -> Decimal.Value <| handle_precision_loss s <| Decimal_Utils.fromString s mc.math_context
+                _ : Nothing -> Decimal.Value (Decimal_Utils.fromString s)
+
+    ## GROUP conversions
+       ICON convert
+       Construct a `Decimal` from an `Integer`.
+
+       Arguments:
+       - i: The `Integer` to construct a `Decimal` from.
+       - mc: The `Math_Context` to use to specify precision and `Rounding_Mode`.
+         If a `Math_Context` is used, there is a possibility of a loss of
+         precision.
+
+       ! Error Conditions
+
+         - If the construction of the Decimal results in a loss of precision, a
+           `Loss_Of_Numeric_Precision` warning is attached. This can only happen
+           if a `Math_Context` value is explicitly passed.
+
+        ^ Example
+          Create a `Decimal` from an integer.
+
+              d = Decimal.from_integer 12
+    from_integer : Integer -> Math_Context | Nothing -> Decimal
+    from_integer (i : Integer) (mc : Math_Context | Nothing = Nothing) -> Decimal =
+        handle_java_exception <|
+            case mc of
+                _ : Math_Context -> Decimal.Value <| handle_precision_loss i <| Decimal_Utils.fromInteger i mc.math_context
+                _ : Nothing -> Decimal.Value (Decimal_Utils.fromInteger i)
+
+    ## GROUP conversions
+       ICON convert
+       Construct a `Decimal` from a `Float`.
+
+       Arguments:
+       - f: The `Float` to construct a `Decimal` from.
+       - mc: The `Math_Context` to use to specify precision and `Rounding_Mode`.
+         If a `Math_Context` is used, there is a possibility of a loss of
+         precision.
+
+       ? Precision Loss
+
+         A `Decimal` can represent any `Float` precisely. However, some `Float`
+         literals, such as `0.1`, cannot be represented exactly to infinite
+         precision by a `Float`. For this reason, constructing a `Decimal` from
+         a `Float` always attaches a `Loss_Of_Numeric_Precision` warning to the
+         result.
+
+       ! Error Conditions
+
+         - A `Loss_Of_Numeric_Precision` warning is always attached when
+           converting to `Decimal` from `Float`.
+         - If `f` is NaN or +/-Inf, an Illegal_Argument error is thrown.
+
+        ^ Example
+          Create a `Decimal` from a float.
+
+              d = Decimal.from_integer 12.345
+    from_float : Float -> Math_Context | Nothing -> Decimal ! Arithmetic_Error | Illegal_Argument
+    from_float (f : Float) (mc : Math_Context | Nothing = Nothing) -> Decimal ! Arithmetic_Error | Illegal_Argument =
+        is_exceptional = f.is_nan || f.is_infinite
+        if is_exceptional then Error.throw (Illegal_Argument.Error "Cannot convert "+f.to_text+" to a Decimal") else
+            handle_java_exception <| attach_loss_of_numeric_precision f <|
+                case mc of
+                    _ : Math_Context -> Decimal.Value <| handle_precision_loss f <| Decimal_Utils.fromFloat f mc.math_context
+                    _ : Nothing -> Decimal.Value (Decimal_Utils.fromFloat f)
+
+    ## ALIAS greater than
+       GROUP Operators
+       ICON operators
+       Checks if this is greater than that.
+
+       Arguments:
+       - that: The number to compare this against.
+
+       > Example
+         Checking if 10 is greater than 7.
+
+             Decimal.new 10 > 7
+             # => True
+    > : Decimal -> Boolean
+    > self (that : Decimal) -> Boolean = Decimal_Comparator.compare self that == Ordering.Greater
+
+    ## ALIAS greater than or equal
+       GROUP Operators
+       ICON operators
+       Checks if this is greater than or equal to that.
+
+       Arguments:
+       - that: The number to compare this against.
+
+       > Example
+         Checking if 10 is greater than or equal to 7.
+
+             Decimal.new 10 >= 7
+             # => True
+    >= : Decimal -> Boolean
+    >= self (that : Decimal) -> Boolean =
+        ordering = Decimal_Comparator.compare self that
+        ordering == Ordering.Greater || ordering == Ordering.Equal
+
+    ## ALIAS less than
+       GROUP Operators
+       ICON operators
+       Checks if this is less than that.
+
+       Arguments:
+       - that: The number to compare this against.
+
+       > Example
+         Checking if 10 is less than 7.
+
+             Decimal.new 10 < 7
+             # => False
+    < : Decimal -> Boolean
+    < self (that : Decimal) -> Boolean = Decimal_Comparator.compare self that == Ordering.Less
+
+    ## ALIAS less than or equal
+       GROUP Operators
+       ICON operators
+       Checks if this is less than or equal to that.
+
+       Arguments:
+       - that: The number to compare this against.
+
+       > Example
+         Checking if 10 is less than or equal to 7.
+
+             Decimal.new 10 <= 7
+             # => False
+    <= : Decimal -> Boolean
+    <= self (that : Decimal) -> Boolean =
+        ordering = Decimal_Comparator.compare self that
+        ordering == Ordering.Less || ordering == Ordering.Equal
+
+    ## ALIAS plus
+       GROUP Operators
+       ICON math
+       Adds a `Decimal` to another `Decimal` or other kind of number. A
+       `Math_Context` value can be specified to set the precision and
+       `Rounding_Mode`.
+
+       Arguments:
+       - that: The number to add to this.
+       - math_context: Used to optionally specify precision and `Rounding_Mode`.
+
+       Arguments to `add` will undergo automatic conversions such that you
+       need not convert other numeric types to `Decimal` manually.
+
+       > Example
+         Adding 10.22 and 20.33.
+
+             a = Decimal.new "10.22"
+             b = Decimal.new "20.33"
+             c = a.add b
+             # => Decimal.new 30.55
+
+       > Example
+         Adding 10.22 and 20.33, rounding to 3 digits of precision (1 decimal
+         place).
+
+             a = Decimal.new "10.22"
+             b = Decimal.new "20.33"
+             a.add b (Math_Context.new 3)
+             # => Decimal.new 30.5
+    add : Decimal -> Math_Context | Nothing -> Decimal ! Arithmetic_Error
+    add self (that : Decimal) (math_context : Math_Context | Nothing = Nothing) -> Decimal ! Arithmetic_Error =
+        handle_java_exception <|
+            case math_context of
+                Nothing -> Decimal.Value (self.big_decimal.add that.big_decimal)
+                _ -> Decimal.Value (self.big_decimal.add that.big_decimal math_context.math_context)
+
+    ## ALIAS plus
+       GROUP Operators
+       ICON math
+       Adds a `Decimal` to another `Decimal` or other kind of number.
+
+       Arguments:
+       - that: The number to add to this.
+
+       Arguments to `+` will undergo automatic conversions such that you
+       need not convert other numeric types to `Decimal` manually.
+
+       > Example
+         Adding 10.22 and 20.33.
+
+             a = Decimal.new "10.22"
+             b = Decimal.new "20.33"
+             c = a + b
+             # => Decimal.new 30.55
+    + : Decimal -> Decimal
+    + self (that : Decimal) = self.add that
+
+    ## ALIAS minus
+       GROUP Operators
+       ICON math
+       Subtract a `Decimal` or other kind of number from another `Decimal`, or
+       subtract  a `Decimal` from another kind of number. A `Math_Context` value
+       can be specified to set the precision and `Rounding_Mode`.
+
+       Arguments:
+       - that: The number to subtract from this.
+       - math_context: Used to optionally specify precision and `Rounding_Mode`.
+
+       Arguments to `subtract` will undergo automatic conversions such that you
+       need not convert other numeric types to `Decimal` manually.
+
+       > Example
+         Subtracting 10.22 from 20.33.
+
+             a = Decimal.new "20.33"
+             b = Decimal.new "10.22"
+             c = a.subtract b
+             # => Decimal.new 10.11
+
+       > Example
+         Subtracting 10.22 from 20.33, rounding to 3 digits of precision (1
+         decimal place).
+
+             a = Decimal.new "20.33"
+             b = Decimal.new "10.22"
+             c = a.subtract b (Math_Context.new 3)
+             # => Decimal.new 10.1
+    subtract : Decimal -> Math_Context | Nothing -> Decimal ! Arithmetic_Error
+    subtract self (that : Decimal) (math_context : Math_Context | Nothing = Nothing) -> Decimal ! Arithmetic_Error =
+        handle_java_exception <|
+            case math_context of
+                Nothing -> Decimal.Value (self.big_decimal.subtract that.big_decimal)
+                _ -> Decimal.Value (self.big_decimal.subtract that.big_decimal math_context.math_context)
+
+    ## ALIAS minus
+       GROUP Operators
+       ICON math
+       Subtract a `Decimal` or other kind of number from another `Decimal`, or
+       subtract  a `Decimal` from another kind of number.
+
+       Arguments:
+       - that: The number to subtract from this.
+
+       Arguments to `-` will undergo automatic conversions such that you
+       need not convert other numeric types to `Decimal` manually.
+
+       > Example
+         Subtracting 10.22 from 20.33.
+
+             a = Decimal.new "20.33"
+             b = Decimal.new "10.22"
+             c = a - b
+             # => Decimal.new 10.11
+    - : Decimal -> Decimal
+    - self (that : Decimal) = self.subtract that
+
+    ## ALIAS times
+       GROUP Operators
+       ICON math
+       Multiplies a `Decimal` by another `Decimal` or other kind of number. A
+       `Math_Context` value can be specified to set the precision and
+       `Rounding_Mode`.
+
+       Arguments:
+       - that: The number to multiply by this.
+       - math_context: Used to optionally specify precision and `Rounding_Mode`.
+
+       Arguments to `multiply` will undergo automatic conversions such that you
+       need not convert other numeric types to `Decimal` manually.
+
+       > Example
+         Multiplying 10.22 and 20.33.
+
+             a = Decimal.new "10.22"
+             b = Decimal.new "20.33"
+             c = a.multiply b
+             # => Decimal.new 207.7726
+
+       > Example
+         Multiplying 10.22 and 20.33, rounding to 4 digits of precision (1
+         decimal place).
+
+             a = Decimal.new "10.22"
+             b = Decimal.new "20.33"
+             c = a.multiply b (Math_Context.new 4)
+             # => Decimal.new 207.8
+    multiply : Decimal -> Math_Context | Nothing -> Decimal ! Arithmetic_Error
+    multiply self (that : Decimal) (math_context : Math_Context | Nothing = Nothing) -> Decimal ! Arithmetic_Error =
+        handle_java_exception <|
+            case math_context of
+                Nothing -> Decimal.Value (self.big_decimal.multiply that.big_decimal)
+                _ -> Decimal.Value (self.big_decimal.multiply that.big_decimal math_context.math_context)
+
+    ## ALIAS times
+       GROUP Operators
+       ICON math
+       Multiplies a `Decimal` by another `Decimal` or other kind of number.
+
+       Arguments:
+       - that: The number to multiply by this.
+
+       Arguments to `*` will undergo automatic conversions such that you
+       need not convert other numeric types to `Decimal` manually.
+
+       > Example
+         Multiplying 10.22 and 20.33.
+
+             a = Decimal.new "10.22"
+             b = Decimal.new "20.33"
+             c = a * b
+             # => Decimal.new 207.7726
+    * : Decimal -> Decimal
+    * self (that : Decimal) = self.multiply that
+
+    ## GROUP Operators
+       ICON math
+       Divide a `Decimal` by another `Decimal` or other kind of number, or
+       divide another kind of number by a `Decimal`. A `Math_Context` value can
+       be specified to set the precision and `Rounding_Mode`.
+
+       Arguments:
+       - that: The number to divide by this.
+       - math_context: Used to optionally specify precision and `Rounding_Mode`.
+
+       Arguments to `divide` will undergo automatic conversions such that you
+       need not convert other numeric types to `Decimal` manually.
+
+       ! Error Conditions
+
+         - If the precision specified in `math_context` is 0, or if
+         `match_context` is unspecified, and the quotient has a non-terminating
+         decimal expansion, an `Arithmetic_Error` is thrown.
+
+       > Example
+         Dividing 1065.9378 by 23.34.
+
+             a = Decimal.new "1065.9378"
+             b = Decimal.new "23.34"
+             c = a.divide b
+             # => Decimal.new 45.67
+
+       > Example
+         Dividing 1065.9378 by 23.34, rounding to 3 digits of precision (1
+         decimal place).
+
+            a = Decimal.new "1065.9378"
+             b = Decimal.new "23.34"
+             c = a.divide b (Math_Context.new 3)
+             # => Decimal.new 45.7
+    divide : Decimal -> Math_Context | Nothing -> Decimal ! Arithmetic_Error
+    divide self (that : Decimal) (math_context : Math_Context | Nothing = Nothing) -> Decimal ! Arithmetic_Error =
+        handle_java_exception <|
+            case math_context of
+                Nothing -> Decimal.Value (self.big_decimal.divide that.big_decimal)
+                _ -> Decimal.Value (self.big_decimal.divide that.big_decimal math_context.math_context)
+
+    ## GROUP Operators
+       ICON math
+       Divides a `Decimal` by another `Decimal` or other kind of number, or
+       divides another kind of number by a `Decimal`.
+
+       Arguments:
+       - that: The number to divide by this.
+
+       Arguments to `/` will undergo automatic conversions such that you
+       need not convert other numeric types to `Decimal` manually.
+
+       > Example
+         Dividing 1065.9378 by 23.34.
+
+             a = Decimal.new "1065.9378"
+             b = Decimal.new "23.34"
+             c = a / b
+             # => Decimal.new 45.67
+    / : Decimal -> Decimal
+    / self (that : Decimal) = self.divide that
+
+    ## ALIAS modulo, modulus
+       GROUP Operators
+       ICON math
+       Computes the remainder when dividing this by that.
+
+       Arguments:
+       - that: The number to divide this by.
+
+       Arguments to `remainder` will undergo automatic conversions such that you
+       need not convert other numeric types to `Decimal` manually.
+
+       ? Negative Arguments
+
+         When the first argument to `remainder` is negative, the result will
+         also be negative.
+
+       > Example
+         Computing the remainder when dividing 10 by 3 (which is 1).
+
+             remainder = Decimal.new 10 . remainder 3
+             # => 1
+
+       > Example
+         Computing the remainder of a negative number.
+
+             remainder = Decimal.new -5 . remainder 3
+             # => -2
+    remainder : Decimal -> Decimal -> Decimal
+    remainder self (that : Decimal) =
+        handle_java_exception <|
+            Decimal.Value (self.big_decimal.remainder that.big_decimal)
+
+    ## ALIAS modulo, modulus, remainder
+       GROUP Operators
+       ICON math
+       Computes the remainder when dividing this by that.
+
+       Arguments:
+       - that: The number to divide this by.
+
+       Arguments to `%` will undergo automatic conversions such that you
+       need not convert other numeric types to `Decimal` manually.
+
+       ? Negative Arguments
+
+         When the first argument to `%` is negative, the result will also be
+         negative.
+
+       > Example
+         Computing the remainder when dividing 10 by 3 (which is 1).
+
+             remainder = Decimal.new 10 % 3
+             # => 1
+
+       > Example
+         Computing the remainder of a negative number.
+
+             remainder = Decimal.new -5 % 3
+             # => -2
+    % : Decimal -> Decimal -> Decimal
+    % self (that : Decimal) = self.remainder that
+
+    ## GROUP Math
+       ICON math
+       Computes the integer division of this by that.
+
+       Arguments:
+       - that: The number to divide this by.
+
+       Integer division of Decimals rounds down to the nearest integer.
+
+       Arguments to `div` will undergo automatic conversions such that you
+       need not convert other numeric types to `Decimal` manually.
+
+       ! Error Conditions
+
+         - If `that` is 0, `div` throws an Arithmetic_Error.
+
+       > Example
+         Dividing 10 by 3 to get 3.
+
+             Decimal.new "10" . div (Decimal.new "3")
+             # => 3
+
+       > Example
+         Dividing 10.28 by 3.01 to get 3.
+
+             Decimal.new "10.28" . div (Decimal.new "3.01")
+             # => 3
+    div : Decimal -> Decimal
+    div self that:Decimal -> Decimal =
+        handle_java_exception <|
+            Decimal.Value (self.big_decimal.divideToIntegralValue that.big_decimal)
+
+    ## ALIAS power
+       GROUP Operators
+       ICON math
+       Compute the result of raising this to the positive integer power `exp`.
+
+       Arguments:
+       - exp: The exponent. Must be an integer in the range 0 through
+         999999999 (inclusive).
+
+       ! Error Conditions
+
+         - If `exp` is outside the range 0 through
+           999999999 (inclusive), `Arithmetic_Error` will be thrown.
+
+       > Example
+         Computing 2.25 to the fifth power.
+
+             Decimal.new "2.25" . pow (Decimal.new "5")
+             # => 57.6650390625
+    pow : Integer -> Decimal
+    pow self exp:Integer =
+        ## If `exp` is an integer that does not fit in a Java Integer,
+           UnsuppUnsupported_Argument_Types is raised, so we convert that to an
+           Arithmetic_Error.
+        handle_java_exception <| handle_unsupported_argument_types <|
+            Decimal.Value (self.big_decimal.pow exp)
+
+    ## ALIAS power
+       GROUP Operators
+       ICON math
+       Compute the result of raising this to the positive integer power `exp`.
+
+       Arguments:
+       - exp: The exponent. Must be an integer in the range 0 through
+         999999999 (inclusive).
+
+       ! Error Conditions
+
+         - If `exp` is outside the range 0 through
+           999999999 (inclusive), `Arithmetic_Error` will be thrown.
+
+       > Example
+         Computing 2.25 to the fifth power.
+
+             Decimal.new "2.25" ^ Decimal.new "5"
+             # => 57.6650390625
+    ^ : Integer -> Decimal
+    ^ self exp:Integer = self.pow exp
+
+    ## GROUP Operators
+       ICON operators
+       Compute the negation of this.
+
+       > Example
+         Negate 5.1 to get -5.1.
+
+             5.1.negate
+             # => Decimal.new -5.1
+    negate : Decimal
+    negate self = Decimal.Value self.big_decimal.negate
+
+    ## GROUP Math
+       ICON math
+       Computes the absolute value of this.
+
+       The absolute value of a positive number is itself, while the absolute
+       value of a negative number is that number multiplied by -1.
+
+       > Example
+         Compute the absolute value of a `Decimal`.
+
+             Decimal.new "-12.345" . abs
+             # => 12.345
+    abs : Decimal
+    abs self -> Decimal = Decimal.Value self.big_decimal.abs
+
+    ## GROUP Math
+       ICON math
+       Returns the sign of the number.
+
+       > Example
+         Compute the sign of a `Decimal`.
+
+             Decimal.new "-12.345" . signum
+             # => -1
+    signum : Integer
+    signum self -> Integer = self.big_decimal.signum
+
+    ## GROUP Math
+       ICON sigma
+       Returns the smaller value of `self` and `that`.
+
+       Arguments:
+       - that: The number to compare `self` against.
+
+       > Example
+         Find the minimum of 12 and 13.
+
+             Decimal.new "12" . min (Decimal.new "13")
+             # => Decimal.new "12"
+    min : Decimal -> Decimal
+    min self (that : Decimal) -> Decimal = if self < that then self else that
+
+    ## GROUP Math
+       ICON math
+       Returns the larger value of `self` and `that`.
+
+       Arguments:
+       - that: The number to compare `self` against.
+
+       > Example
+         Find the maximum of 12 and 13.
+
+             Decimal.new "12" . max (Decimal.new "13")
+             # => Decimal.new "13"
+    max : Decimal -> Decimal
+    max self (that : Decimal) -> Decimal = if self > that then self else that
+
+    ## GROUP CONVERSIONS
+       Convert this to an `Integer`.
+
+       Conversion to `Integer` uses truncation: the fractional portion is
+       dropped.
+
+       If the conversion resulted in a loss of precision, a
+       `Loss_Of_Numeric_Precision` warning is attached.
+
+       > Example
+         Convert `Decimal` 2345.6 to an `Integer`.
+             d = Decimal.new "2345.6"
+             d.to_integer
+             # => 2345
+    to_integer : Integer
+    to_integer self =
+        i = self.big_decimal.toBigInteger
+        if self == i then i else
+            Warning.attach (Loss_Of_Numeric_Precision.Warning self i) i
+
+    ## GROUP CONVERSIONS
+       Convert this to a `Float`.
+
+       ? Precision Loss
+
+         While any `Float` can be precisely represented by a `Decimal`, not
+         every `Decimal` can be accurange represented by a `Float`, so this
+         conversion can lose precision. For this reason, converting a
+         `Decimal` to a `Float` always attaches a `Loss_Of_Numeric_Precision`
+         warning to the result.
+
+       ? Representable Values
+
+         If the `Decimal` is outside the representable range of `Float` (which
+         is `(-Double.MAX_VALUE, Double.MAX_VALUE)`, inclusive), `+/-Inf` is
+         returned, and an `Out_Of_Range` warning is attached.
+
+       ! Error Conditions
+
+         - If the `Decimal` is outside the representable range of `Float` (which
+           is `(-Double.MAX_VALUE, Double.MAX_VALUE)`, inclusive), `+/-Inf` is
+           returned, and an `Out_Of_Range` warning is attached.
+         - If the conversion results in a loss of precision, a
+           `Loss_Of_Numeric_Precision` warning is attached.
+
+       > Example
+         Convert `Decimal` 23.45 to a `Float`.
+
+             d = Decimal.new "23.45"
+             d.to_float
+             # => 23.45
+    to_float : Integer
+    to_float self =
+        f = self.big_decimal.doubleValue
+        if f.is_finite then attach_loss_of_numeric_precision self f else
+            message = "Outside representable Float range (approximately (-1.8E308, 1.8E308))"
+            Warning.attach (Out_Of_Range.Error self message) f
+
+    ## GROUP Rounding
+       ICON math
+       Round to a specified number of decimal places.
+
+       By default, rounding uses "symmetric round-half-up", also known as
+       "half-up." If use_bankers=True, then it uses "round-half-even", also
+       known as "banker's rounding".
+
+       Arguments:
+       - decimal_places: The number of decimal places to round to. Can be
+         negative, which results in rounding to positive integer powers of 10.
+         Must be between Java `Integer.MIN_VALUE` and `Integer.MAX_VALUE`
+         (-2147483648 and 2147483647) (inclusive).
+       - use_bankers: Rounds mid-point to nearest even number.
+
+       ! Error Conditions
+
+         If `decimal_places` is outside the range `Integer.MIN_VALUE` and
+         `Integer.MAX_VALUE` (inclusive), an `Illegal_Argument` error is thrown.
+
+       ? Negative decimal place counts
+         Rounding to `n` digits can be thought of as "rounding to the nearest
+         multiple of 10^(-n)". For negative decimal counts, this results in
+         rounding to the nearest positive integer power of 10.
+
+       > Example
+         Round to the nearest integer.
+
+             Decimal.new "3.3" . round
+             # => Decimal.new "3"
+
+       > Example
+         Round to two decimal places.
+
+             Decimal.new "3.1415" . round 2
+             # => Decimal.new "3.14"
+
+       > Example
+         Round a very large number.
+
+             Decimal.new "1234.5678E-50" . round 53
+             # => Decimal.new "1234.568E-50"
+
+       > Example
+         Use Banker's Rounding.
+
+             Decimal.new "2.5" . round use_bankers=True
+             # => 2
+    round : Integer -> Boolean -> Decimal
+    round self (decimal_places:Integer=0) (use_bankers:Boolean=False) -> Decimal =
+        out_of_range = decimal_places > Java_Integer.MAX_VALUE || decimal_places < Java_Integer.MIN_VALUE
+        if out_of_range.not then Decimal.Value (Decimal_Utils.round self.big_decimal decimal_places use_bankers) else
+            message = "round decimal_places must be between "+Java_Integer.MIN_VALUE.to_text+" and "+Java_Integer.MAX_VALUE.to_text+" (inclusive), but was "+decimal_places.to_text
+            Error.throw (Out_Of_Range.Error decimal_places message)
+
+    ## GROUP Conversions
+       ICON convert
+       Converts a `Decimal` to a string, using the Java `DecimalFormat` formatter.
+
+       For details about the `DecimalFormat` format specifier, see
+       https://docs.oracle.com/javase/8/docs/api/java/text/DecimalFormat.html.
+
+       Arguments:
+       - format: The Java-style formatting specifier.
+       - locale: Species the `Locale` to use for locale-specific number
+         formatting.
+
+       > Example
+         Convert a `Decimal` to a string using the default format and locale.
+
+             Decimal.new "123456789.87654" . format
+             # => "123,456,789.87654"
+
+       > Example
+         Convert a `Decimal` to a string using a specific locale.
+
+             Decimal.new "123456789.87654" . format locale=Locale.italy
+             # => "123.456.789,87654"
+
+       > Example
+         Convert a `Decimal` to a string using a specific format string.
+
+             Decimal.new "123456789.87654" . format format="#,###.##"
+             # => 123,456,789.88"
+    @format make_number_format_selector
+    @locale Locale.default_widget
+    format : Text -> Locale -> Text
+    format self format:Text="" locale:Locale=Locale.default =
+        symbols = DecimalFormatSymbols.new locale.java_locale
+        formatter = DecimalFormat.new format symbols
+        formatter.format self.big_decimal
+
+    ## ALIAS from text
+       GROUP Conversions
+       ICON convert
+
+       Parses a string into a `Decimal`, returning a `Number_Parse_Error` if the
+       text does not represent a valid `Decimal`.
+
+       Arguments:
+       - text: The text to parse into a `Decimal`.
+       - locale: The locale that specifies the format to use when parsing.
+
+       ! Error Conditions
+
+         - If `text` is incorrectly formatted, a `Number_Parse_Error` is thrown.
+
+       > Example
+         Parse a `Decimal` with no local specifier.
+
+             Decimal.parse "123456789.87654"
+             # => 123456789.87654
+
+       > Example
+         Parse a `Decimal` with the default locale.
+
+             Decimal.parse "123,456,789.87654" locale=Locale.default
+             # => 123456789.87654
+
+       > Example
+         Parse a `Decimal` with the US locale.
+
+             Decimal.parse "123,456,789.87654" locale=Locale.us
+             # => 123456789.87654
+
+       > Example
+         Parse a `Decimal` with the Italy locale.
+
+             Decimal.parse "123.456.789,87654" locale=Locale.italy
+             # => 123456789.87654
+    parse : Text -> Locale | Nothing -> Decimal ! Number_Parse_Error
+    parse text locale:(Locale | Nothing)=Nothing = case locale of
+        Nothing -> Decimal.from_string text
+        Locale.Value java_locale -> Panic.catch ParseException ((NumberFormat.getInstance java_locale).parse text) _->
+            Error.throw (Number_Parse_Error.Error text)
+
+    ## PRIVATE
+    precision : Integer
+    precision self = self.big_decimal.precision
+
+    ## PRIVATE
+    scale : Integer
+    scale self = self.big_decimal.scale
+
+    ## PRIVATE
+    unscaled_value : Integer
+    unscaled_value self = self.big_decimal.unscaledValue
+
+    ## PRIVATE
+    internal_representation : [Integer]
+    internal_representation self = [self.unscaled_value, self.precision, self.scale]
+
+    ## PRIVATE
+       Note: the underlying Java `BigDecimal` implementation is not affected by
+       locale.
+    to_text : Text
+    to_text self = self.big_decimal.toString
+
+    ## PRIVATE
+       Note: the underlying Java `BigDecimal` implementation is not affected by
+       locale.
+    to_display_text : Text
+    to_display_text self = self.big_decimal.toString
+
+    ## PRIVATE
+       Note: the underlying Java `BigDecimal` implementation is not affected by
+       locale.
+    to_text_without_scientific_notation : Text
+    to_text_without_scientific_notation  self = self.big_decimal.toPlainString
+
+## PRIVATE
+handle_number_format_exception ~action =
+    Panic.catch NumberFormatException action caught_panic->
+        Error.throw (Number_Parse_Error.Error caught_panic.payload.getMessage)
+
+## PRIVATE
+handle_precision_loss : Any -> ConversionResult -> Any
+handle_precision_loss original_value conversion_result:ConversionResult -> Any =
+    if conversion_result.hasPrecisionLoss.not then conversion_result.newValue else
+        new_value = conversion_result.newValue
+        Warning.attach (Loss_Of_Numeric_Precision.Warning original_value new_value) new_value
+
+## PRIVATE
+attach_loss_of_numeric_precision : Float -> Any -> Any
+attach_loss_of_numeric_precision x value =
+    Warning.attach (Loss_Of_Numeric_Precision.Warning x value) value
+
+## PRIVATE
+handle_java_exception ~action =
+    Panic.catch ArithmeticException action caught_panic->
+        Error.throw (Arithmetic_Error.Error caught_panic.payload.getMessage)
+
+## PRIVATE
+handle_unsupported_argument_types ~action =
+    Panic.catch Unsupported_Argument_Types action _->
+        Error.throw (Arithmetic_Error.Error "Exponent out of range 0..999999999 (inclusive)")
+
+## PRIVATE
+
+Comparable.from (_ : Decimal) = Decimal_Comparator
+
+Comparable.from (_ : Number) = Decimal_Comparator
+
+Decimal.from (that : Text) = Decimal.from_string that
+
+Decimal.from (that : Number) = Decimal.new that
+
+Float.from (that : Decimal) = that.to_float

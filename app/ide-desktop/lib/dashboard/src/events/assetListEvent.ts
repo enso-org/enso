@@ -29,12 +29,14 @@ interface AssetListEvents {
   readonly newProject: AssetListNewProjectEvent
   readonly uploadFiles: AssetListUploadFilesEvent
   readonly newSecret: AssetListNewSecretEvent
+  readonly newDataLink: AssetListNewDataLinkEvent
   readonly insertAssets: AssetListInsertAssetsEvent
   readonly closeFolder: AssetListCloseFolderEvent
   readonly copy: AssetListCopyEvent
   readonly move: AssetListMoveEvent
   readonly willDelete: AssetListWillDeleteEvent
   readonly delete: AssetListDeleteEvent
+  readonly emptyTrash: AssetListEmptyTrashEvent
   readonly removeSelf: AssetListRemoveSelfEvent
 }
 
@@ -60,7 +62,8 @@ interface AssetListNewProjectEvent extends AssetListBaseEvent<AssetListEventType
   readonly parentKey: backend.DirectoryId
   readonly parentId: backend.DirectoryId
   readonly templateId: string | null
-  readonly templateName: string | null
+  readonly datalinkId: backend.ConnectorId | null
+  readonly preferredName: string | null
   readonly onSpinnerStateChange: ((state: spinner.SpinnerState) => void) | null
 }
 
@@ -69,6 +72,14 @@ interface AssetListUploadFilesEvent extends AssetListBaseEvent<AssetListEventTyp
   readonly parentKey: backend.DirectoryId
   readonly parentId: backend.DirectoryId
   readonly files: File[]
+}
+
+/** A signal to create a new secret. */
+interface AssetListNewDataLinkEvent extends AssetListBaseEvent<AssetListEventType.newDataLink> {
+  readonly parentKey: backend.DirectoryId
+  readonly parentId: backend.DirectoryId
+  readonly name: string
+  readonly value: unknown
 }
 
 /** A signal to create a new secret. */
@@ -94,7 +105,7 @@ interface AssetListCloseFolderEvent extends AssetListBaseEvent<AssetListEventTyp
 
 /** A signal that files should be copied. */
 interface AssetListCopyEvent extends AssetListBaseEvent<AssetListEventType.copy> {
-  readonly newParentKey: backend.AssetId
+  readonly newParentKey: backend.DirectoryId
   readonly newParentId: backend.DirectoryId
   readonly items: backend.AnyAsset[]
 }
@@ -102,7 +113,7 @@ interface AssetListCopyEvent extends AssetListBaseEvent<AssetListEventType.copy>
 /** A signal that a file has been moved. */
 interface AssetListMoveEvent extends AssetListBaseEvent<AssetListEventType.move> {
   readonly key: backend.AssetId
-  readonly newParentKey: backend.AssetId
+  readonly newParentKey: backend.DirectoryId
   readonly newParentId: backend.DirectoryId
   readonly item: backend.AnyAsset
 }
@@ -117,6 +128,9 @@ interface AssetListWillDeleteEvent extends AssetListBaseEvent<AssetListEventType
 interface AssetListDeleteEvent extends AssetListBaseEvent<AssetListEventType.delete> {
   readonly key: backend.AssetId
 }
+
+/** A signal to permanently delete all files in Trash. */
+interface AssetListEmptyTrashEvent extends AssetListBaseEvent<AssetListEventType.emptyTrash> {}
 
 /** A signal for a file to remove itself from the asset list, without being deleted. */
 interface AssetListRemoveSelfEvent extends AssetListBaseEvent<AssetListEventType.removeSelf> {

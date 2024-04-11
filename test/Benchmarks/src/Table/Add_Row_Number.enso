@@ -48,6 +48,6 @@ collect_benches = Bench.build builder->
             group_builder.specify "Sort_Table" <|
                 data.table.order_by "X"
             group_builder.specify "Group_And_Sort" <|
-                data.table.aggregate [Aggregate_Column.Group_By "X", Aggregate_Column.Last "Y" order_by="Y"]
+                data.table.aggregate ["X"] [Aggregate_Column.Last "Y" order_by="Y"]
 
 main = collect_benches . run_main

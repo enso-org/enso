@@ -44,7 +44,65 @@ export function unsafeMutable<T extends object>(object: T): { -readonly [K in ke
  * extra keys. */
 export function unsafeEntries<T extends object>(
   object: T
-): { [K in keyof T]: [K, T[K]] }[keyof T][] {
+): readonly { [K in keyof T]: readonly [K, T[K]] }[keyof T][] {
   // @ts-expect-error This is intentionally a wrapper function with a different type.
   return Object.entries(object)
+}
+
+// ==================
+// === mapEntries ===
+// ==================
+
+/** Return the entries of an object. UNSAFE only when it is possible for an object to have
+ * extra keys. */
+export function mapEntries<K extends PropertyKey, V, W>(
+  object: Record<K, V>,
+  map: (key: K, value: V) => W
+): Readonly<Record<K, W>> {
+  // @ts-expect-error It is known that the set of keys is the same for the input and the output,
+  // because the output is dynamically generated based on the input.
+  return Object.fromEntries(
+    unsafeEntries(object).map<[K, W]>(kv => {
+      const [k, v] = kv
+      return [k, map(k, v)]
+    })
+  )
+}
+
+// ================
+// === asObject ===
+// ================
+
+/** Either return the object unchanged, if the input was an object, or `null`. */
+export function asObject(value: unknown): object | null {
+  return typeof value === 'object' && value != null ? value : null
+}
+
+// =============================
+// === singletonObjectOrNull ===
+// =============================
+
+/** Either return a singleton object, if the input was an object, or an empty array. */
+export function singletonObjectOrNull(value: unknown): [] | [object] {
+  return typeof value === 'object' && value != null ? [value] : []
+}
+
+// ============
+// === omit ===
+// ============
+
+/** UNSAFE when `Ks` contains strings that are not in the runtie array. */
+export function omit<T, Ks extends readonly (string & keyof T)[] | []>(
+  object: T,
+  ...keys: Ks
+): Omit<T, Ks[number]> {
+  const keysSet = new Set<string>(keys)
+  // eslint-disable-next-line no-restricted-syntax
+  return Object.fromEntries(
+    // This is SAFE, as it is a reaonly upcast.
+    // eslint-disable-next-line no-restricted-syntax
+    Object.entries(object as Readonly<Record<string, unknown>>).flatMap(kv =>
+      !keysSet.has(kv[0]) ? [kv] : []
+    )
+  ) as Omit<T, Ks[number]>
 }

@@ -1,5 +1,5 @@
 from Standard.Base import all
-from Standard.Base.Data.Vector import Empty_Error
+import Standard.Base.Errors.Empty_Error.Empty_Error
 import Standard.Base.Errors.Common.Incomparable_Values
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Errors.Illegal_State.Illegal_State
@@ -169,8 +169,8 @@ add_specs suite_builder =
             [].compute Statistic.Sum . should_equal 0
 
         group_builder.specify "should fail with Empty_Error for Minimum and Maximum on empty Vector" <|
-            [].compute Statistic.Minimum . should_fail_with Empty_Error
-            [].compute Statistic.Maximum . should_fail_with Empty_Error
+            [].compute Statistic.Minimum . should_fail_with (Empty_Error.Error Vector)
+            [].compute Statistic.Maximum . should_fail_with (Empty_Error.Error Vector)
 
         group_builder.specify "should be NaN for other statistics sum on empty Vector" <|
             [].compute Statistic.Mean . is_nan . should_equal True
@@ -186,9 +186,9 @@ add_specs suite_builder =
             [Number.nan, Number.nan].running Statistic.Sum . should_equal [0, 0]
 
         group_builder.specify "should fail with Empty_Error for Minimum and Maximum on NaN Vector" <|
-            [Number.nan, Number.nan].compute Statistic.Minimum . should_fail_with Empty_Error
+            [Number.nan, Number.nan].compute Statistic.Minimum . should_fail_with (Empty_Error.Error Vector)
             [Number.nan, Number.nan].running Statistic.Minimum . should_equal [Nothing, Nothing]
-            [Number.nan, Number.nan].compute Statistic.Maximum . should_fail_with Empty_Error
+            [Number.nan, Number.nan].compute Statistic.Maximum . should_fail_with (Empty_Error.Error Vector)
             [Number.nan, Number.nan].running Statistic.Maximum . should_equal [Nothing, Nothing]
 
         group_builder.specify "should be NaN for other statistics sum on NaN Vector" <|
@@ -205,9 +205,9 @@ add_specs suite_builder =
             [Nothing, Nothing].running Statistic.Sum . should_equal [0, 0]
 
         group_builder.specify "should fail with Empty_Error for Minimum and Maximum on Nothing Vector" <|
-            [Nothing, Nothing].compute Statistic.Minimum . should_fail_with Empty_Error
+            [Nothing, Nothing].compute Statistic.Minimum . should_fail_with (Empty_Error.Error Vector)
             [Nothing, Nothing].running Statistic.Minimum . should_equal [Nothing, Nothing]
-            [Nothing, Nothing].compute Statistic.Maximum . should_fail_with Empty_Error
+            [Nothing, Nothing].compute Statistic.Maximum . should_fail_with (Empty_Error.Error Vector)
             [Nothing, Nothing].running Statistic.Maximum . should_equal [Nothing, Nothing]
 
         group_builder.specify "should be NaN for other statistics sum on Nothing Vector" <|
@@ -348,8 +348,8 @@ add_specs suite_builder =
             Statistic.covariance_matrix series . should_fail_with Illegal_Argument
             Statistic.pearson_correlation series . should_fail_with Illegal_Argument
 
-main =
+main filter=Nothing =
     suite = Test.build suite_builder->
         add_specs suite_builder
-    suite.run_with_filter
+    suite.run_with_filter filter
 

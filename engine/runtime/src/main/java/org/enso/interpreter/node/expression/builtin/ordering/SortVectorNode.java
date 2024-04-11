@@ -6,6 +6,8 @@ import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.dsl.Cached.Shared;
 import com.oracle.truffle.api.dsl.GenerateUncached;
 import com.oracle.truffle.api.dsl.Specialization;
+import com.oracle.truffle.api.frame.MaterializedFrame;
+import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.InvalidArrayIndexException;
 import com.oracle.truffle.api.interop.UnsupportedMessageException;
@@ -25,7 +27,6 @@ import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.node.callable.dispatch.CallOptimiserNode;
 import org.enso.interpreter.node.callable.resolver.MethodResolverNode;
 import org.enso.interpreter.node.expression.builtin.meta.EqualsNode;
-import org.enso.interpreter.node.expression.builtin.meta.TypeOfNode;
 import org.enso.interpreter.node.expression.builtin.text.AnyToTextNode;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
@@ -41,6 +42,7 @@ import org.enso.interpreter.runtime.error.PanicException;
 import org.enso.interpreter.runtime.error.Warning;
 import org.enso.interpreter.runtime.error.WarningsLibrary;
 import org.enso.interpreter.runtime.error.WithWarnings;
+import org.enso.interpreter.runtime.library.dispatch.TypeOfNode;
 import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
 import org.enso.interpreter.runtime.state.State;
 
@@ -77,6 +79,7 @@ public abstract class SortVectorNode extends Node {
    * @return A new, sorted vector.
    */
   public abstract Object execute(
+      VirtualFrame frame,
       State state,
       @AcceptsError Object self,
       long ascending,
@@ -101,6 +104,7 @@ public abstract class SortVectorNode extends Node {
         "interop.isNull(onFunc)"
       })
   Object sortPrimitives(
+      VirtualFrame frame,
       State state,
       Object self,
       long ascending,
@@ -131,7 +135,14 @@ public abstract class SortVectorNode extends Node {
     }
     var javaComparator =
         createDefaultComparator(
-            lessThanNode, equalsNode, typeOfNode, toTextNode, ascending, problemBehavior, interop);
+            frame.materialize(),
+            lessThanNode,
+            equalsNode,
+            typeOfNode,
+            toTextNode,
+            ascending,
+            problemBehavior,
+            interop);
     try {
       return sortPrimitiveVector(elems, javaComparator);
     } catch (CompareException e) {
@@ -142,6 +153,7 @@ public abstract class SortVectorNode extends Node {
 
   @TruffleBoundary
   private DefaultSortComparator createDefaultComparator(
+      MaterializedFrame frame,
       LessThanNode lessThanNode,
       EqualsNode equalsNode,
       TypeOfNode typeOfNode,
@@ -150,6 +162,7 @@ public abstract class SortVectorNode extends Node {
       long problemBehaviorNum,
       InteropLibrary interop) {
     return new DefaultSortComparator(
+        frame,
         lessThanNode,
         equalsNode,
         typeOfNode,
@@ -165,6 +178,7 @@ public abstract class SortVectorNode extends Node {
         "interop.hasArrayElements(self)",
       })
   Object sortGeneric(
+      MaterializedFrame frame,
       State state,
       Object self,
       long ascending,
@@ -206,6 +220,7 @@ public abstract class SortVectorNode extends Node {
         if (interop.isNull(byFunc) && interop.isNull(onFunc) && isPrimitiveGroup(group)) {
           javaComparator =
               new DefaultSortComparator(
+                  frame,
                   lessThanNode,
                   equalsNode,
                   typeOfNode,
@@ -557,12 +572,14 @@ public abstract class SortVectorNode extends Node {
    */
   final class DefaultSortComparator extends SortComparator {
 
+    private final MaterializedFrame frame;
     private final LessThanNode lessThanNode;
     private final EqualsNode equalsNode;
     private final TypeOfNode typeOfNode;
     private final boolean ascending;
 
     private DefaultSortComparator(
+        MaterializedFrame frame,
         LessThanNode lessThanNode,
         EqualsNode equalsNode,
         TypeOfNode typeOfNode,
@@ -571,6 +588,7 @@ public abstract class SortVectorNode extends Node {
         ProblemBehavior problemBehavior,
         InteropLibrary interop) {
       super(toTextNode, problemBehavior, interop);
+      this.frame = frame;
       this.lessThanNode = lessThanNode;
       this.equalsNode = equalsNode;
       this.typeOfNode = typeOfNode;
@@ -583,7 +601,7 @@ public abstract class SortVectorNode extends Node {
     }
 
     int compareValuesWithDefaultComparator(Object x, Object y) {
-      if (equalsNode.execute(x, y)) {
+      if (equalsNode.execute(frame, x, y)) {
         return 0;
       } else {
         // Check if x < y

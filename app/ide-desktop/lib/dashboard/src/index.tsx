@@ -12,8 +12,6 @@ import * as detect from 'enso-common/src/detect'
 import type * as app from '#/App'
 import App from '#/App'
 
-import * as config from '#/utilities/config'
-
 // =================
 // === Constants ===
 // =================
@@ -36,12 +34,16 @@ export // This export declaration must be broken up to satisfy the `require-jsdo
 // This is not a React component even though it contains JSX.
 // eslint-disable-next-line no-restricted-syntax
 function run(props: app.AppProps) {
-  const { logger, supportsDeepLinks } = props
+  const { logger, vibrancy, supportsDeepLinks } = props
   logger.log('Starting authentication/dashboard UI.')
-  if (!detect.IS_DEV_MODE) {
+  if (
+    !detect.IS_DEV_MODE &&
+    process.env.ENSO_CLOUD_SENTRY_DSN != null &&
+    process.env.ENSO_CLOUD_API_URL != null
+  ) {
     sentry.init({
-      dsn: 'https://0dc7cb80371f466ab88ed01739a7822f@o4504446218338304.ingest.sentry.io/4506070404300800',
-      environment: config.ENVIRONMENT,
+      dsn: process.env.ENSO_CLOUD_SENTRY_DSN,
+      environment: process.env.ENSO_CLOUD_ENVIRONMENT,
       integrations: [
         new sentry.BrowserTracing({
           routingInstrumentation: sentry.reactRouterV6Instrumentation(
@@ -52,13 +54,19 @@ function run(props: app.AppProps) {
             reactRouter.matchRoutes
           ),
         }),
+        new sentry.BrowserProfilingIntegration(),
         new sentry.Replay(),
       ],
+      profilesSampleRate: SENTRY_SAMPLE_RATE,
       tracesSampleRate: SENTRY_SAMPLE_RATE,
-      tracePropagationTargets: [config.ACTIVE_CONFIG.apiUrl.split('//')[1] ?? ''],
+      tracePropagationTargets: [process.env.ENSO_CLOUD_API_URL.split('//')[1] ?? ''],
       replaysSessionSampleRate: SENTRY_SAMPLE_RATE,
       replaysOnErrorSampleRate: 1.0,
     })
+  }
+
+  if (vibrancy) {
+    document.body.classList.add('vibrancy')
   }
 
   /** The root element into which the authentication/dashboard app will be rendered. */

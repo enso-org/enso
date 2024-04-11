@@ -28,6 +28,7 @@ type Pair
     Value first second
 
     ## GROUP Selections
+       ICON select_row
        Get the last element of the pair.
 
        > Example
@@ -37,7 +38,8 @@ type Pair
     last : Any
     last self = self.second
 
-    ## Applies the provided function to both elements of the pair.
+    ## ICON dataframe_map_column
+       Applies the provided function to both elements of the pair.
 
        > Example
          Adding one to two elements of the pair.
@@ -48,15 +50,18 @@ type Pair
         Pair.new (fun self.first) (fun self.second)
 
     ## GROUP Metadata
+       ICON metadata
        Returns the length of the Pair (which is always equal to 2).
     length : Integer
     length self = 2
 
-    ## Returns the pair as a Vector.
+    ## ICON convert
+       Returns the pair as a Vector.
     to_vector : Vector
     to_vector self = [self.first, self.second]
 
     ## GROUP Selections
+       ICON select_row
        Gets an element from the pair at a specified index (0-based).
 
        Arguments:
@@ -131,6 +136,7 @@ type Pair
     contains self elem = self.first == elem || self.second == elem
 
     ## GROUP Selections
+       ICON find
        Returns the first element of the pair that satisfies the predicate or
        if no elements satisfy the predicate, returns `if_missing`.
 
@@ -147,13 +153,14 @@ type Pair
 
              Pair.new 1 6 .find (> 3)
     find : (Any -> Boolean) -> Integer -> Any -> Any
-    find self predicate start=0 ~if_missing=(Error.throw Not_Found) =
+    find self predicate (start : Integer = 0) ~if_missing=(Error.throw Not_Found) =
         check_start_valid start used_start->
             if used_start<1 && predicate self.first then self.first else
                 if used_start<2 && predicate self.second then self.second else
                     if_missing
 
     ## GROUP Values
+       ICON find
        Returns the index of an element in the pair.
        Returns Nothing if the element is not found.
 
@@ -169,7 +176,7 @@ type Pair
              Pair.new 1 2 . index_of 2 == 1
              Pair.new 2 2 . index_of 2 == 0
     index_of : (Any | (Any -> Boolean)) -> Integer -> Integer | Nothing
-    index_of self element start=0 = check_start_valid start used_start->
+    index_of self element (start : Integer = 0) = check_start_valid start used_start->
         predicate = case element of
             _ : Function -> element
             _ -> (==element)
@@ -178,6 +185,7 @@ type Pair
                 Nothing
 
     ## GROUP Values
+       ICON find
        Returns the last index of an element in the pair.
        Returns Nothing if the element is not found.
 
@@ -192,7 +200,7 @@ type Pair
 
              Pair.new 2 2 . last_index_of 2 == 1
     last_index_of : (Any | (Any -> Boolean)) -> Integer -> Integer | Nothing
-    last_index_of self element start=-1 = check_start_valid start max=2 used_start->
+    last_index_of self element (start : Integer = -1) = check_start_valid start max=2 used_start->
         predicate = case element of
             _ : Function -> element
             _ -> (==element)
@@ -215,7 +223,8 @@ type Pair
     fold self init function =
         function (function init self.first) self.second
 
-    ## Combines all the elements of the pair using a binary operation.
+    ## ICON preparation
+       Combines all the elements of the pair using a binary operation.
 
        Arguments:
        - function: A binary operation that takes two items and combines them.
@@ -229,6 +238,7 @@ type Pair
         function self.first self.second
 
     ## GROUP Selections
+       ICON order
        Reverses the pair, returning a pair with the same elements, but in
        the opposite order.
 

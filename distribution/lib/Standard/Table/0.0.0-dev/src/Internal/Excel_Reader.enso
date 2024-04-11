@@ -3,10 +3,10 @@ import Standard.Base.Errors.File_Error.File_Error
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.System.Input_Stream.Input_Stream
 
-import project.Data.Table.Table
 import project.Excel.Excel_Range.Excel_Range
-import project.Excel.Excel_Section.Excel_Section
+import project.Internal.Excel_Section.Excel_Section
 import project.Internal.Java_Problems
+import project.Table.Table
 from project.Errors import Duplicate_Output_Column_Names, Empty_Sheet_Error, Invalid_Column_Names, Invalid_Location
 
 polyglot java import java.io.File as Java_File
@@ -50,20 +50,17 @@ handle_reader file reader =
      If set to `Ignore`, the operation proceeds without errors or warnings.
    - xls_format: If `True` then the file is read in using Excel 95-2003 format
      otherwise reads in Excel 2007+ format.
-read_file : File -> Excel_Section -> (Boolean|Infer) -> Problem_Behavior -> Boolean -> (Table | Vector)
-read_file file section headers on_problems xls_format=False =
+read_file : File -> Excel_Section -> Problem_Behavior -> Boolean -> (Table | Vector)
+read_file file section on_problems xls_format=False =
     file_format = if xls_format then ExcelFileFormat.XLS else ExcelFileFormat.XLSX
     reader java_file = case section of
-        Excel_Section.Workbook -> Error.throw (Illegal_Argument.Error "Cannot read an entire workbook.")
-        Excel_Section.Sheet_Names -> Vector.from_polyglot_array (ExcelReader.readSheetNames java_file file_format)
-        Excel_Section.Range_Names -> Vector.from_polyglot_array (ExcelReader.readRangeNames java_file file_format)
-        Excel_Section.Worksheet sheet skip_rows row_limit ->
+        Excel_Section.Worksheet sheet headers skip_rows row_limit ->
             Java_Problems.with_problem_aggregator on_problems java_problem_aggregator->
                 java_table = case sheet of
                     _ : Integer -> ExcelReader.readSheetByIndex java_file sheet (make_java_headers headers) skip_rows row_limit file_format java_problem_aggregator
                     _ : Text -> ExcelReader.readSheetByName java_file sheet (make_java_headers headers) skip_rows row_limit file_format java_problem_aggregator
                 Table.Value java_table
-        Excel_Section.Cell_Range address skip_rows row_limit ->
+        Excel_Section.Cell_Range address headers skip_rows row_limit ->
             Java_Problems.with_problem_aggregator on_problems java_problem_aggregator->
                 java_table = case address of
                     _ : Excel_Range -> ExcelReader.readRange java_file address.java_range (make_java_headers headers) skip_rows row_limit file_format java_problem_aggregator

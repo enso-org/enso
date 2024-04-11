@@ -13,7 +13,7 @@ import { computed, ref, shallowReactive, watchEffect, watchPostEffect } from 'vu
 <script setup lang="ts" generic="T">
 const props = defineProps<{
   modelValue: T[]
-  default: () => T
+  newItem: () => T | undefined
   getKey?: (item: T) => string | number | undefined
   /** If present, a {@link DataTransferItem} is added with a MIME type of `text/plain`.
    * This is useful if the drag payload has a representation that can be pasted in terminals,
@@ -46,9 +46,9 @@ const dragMetaMimePrefix = 'application/x-enso-list-item;item='
 
 function stringToHex(str: string) {
   return Array.from(str, (c) =>
-    c.charCodeAt(0) < 128
-      ? c.charCodeAt(0).toString(16)
-      : encodeURIComponent(c).replace(/%/g, '').toLowerCase(),
+    c.charCodeAt(0) < 128 ?
+      c.charCodeAt(0).toString(16)
+    : encodeURIComponent(c).replace(/%/g, '').toLowerCase(),
   ).join('')
 }
 
@@ -354,6 +354,11 @@ function setItemRef(el: unknown, index: number) {
 watchPostEffect(() => {
   itemRefs.length = props.modelValue.length
 })
+
+function addItem() {
+  const item = props.newItem()
+  if (item) emit('update:modelValue', [...props.modelValue, item])
+}
 </script>
 
 <template>
@@ -365,7 +370,7 @@ watchPostEffect(() => {
       !$event.shiftKey && !$event.altKey && !$event.metaKey && $event.stopImmediatePropagation()
     "
   >
-    <div class="vector-literal literal">
+    <div class="vector-literal">
       <span class="token">[</span>
       <TransitionGroup
         tag="ul"
@@ -401,18 +406,7 @@ watchPostEffect(() => {
           </template>
         </template>
       </TransitionGroup>
-      <SvgIcon
-        class="add-item"
-        name="vector_add"
-        @pointerdown="
-          !$event.ctrlKey &&
-            !$event.shiftKey &&
-            !$event.altKey &&
-            !$event.metaKey &&
-            $event.stopImmediatePropagation()
-        "
-        @click="emit('update:modelValue', [...props.modelValue, props.default()])"
-      />
+      <SvgIcon class="add-item" name="vector_add" @click.stop="addItem" />
       <span class="token">]</span>
     </div>
     <div

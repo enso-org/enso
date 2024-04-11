@@ -4,7 +4,7 @@ import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
 from Standard.Table import all
 from Standard.Table.Errors import all
-import Standard.Table.Data.Expression.Expression_Error
+import Standard.Table.Expression.Expression_Error
 
 from Standard.Database import all
 from Standard.Database.Errors import Integrity_Error
@@ -14,7 +14,7 @@ from Standard.Test import all
 
 from project.Common_Table_Operations.Util import run_default_backend
 
-main = run_default_backend add_specs
+main filter=Nothing = run_default_backend add_specs filter
 
 type Data
     Value ~data
@@ -172,7 +172,7 @@ add_specs suite_builder setup =
             t3.column_names . should_equal ["foo", "bar", "Baz", "foo 1", "foo 2", "ab.+123", "abcd123", "bar2", "bar3"]
 
         group_builder.specify "should not allow illegal column names" <|
-            data.table.set (data.table.get "bar") new_name='a\0b' . should_fail_with Invalid_Column_Names
+            data.table.set (data.table.get "bar") as='a\0b' . should_fail_with Invalid_Column_Names
 
         group_builder.specify "should allow replacing a column" <|
             foo = data.table.get "bar" . rename "foo"
@@ -192,9 +192,9 @@ add_specs suite_builder setup =
 
         group_builder.specify "should not affect existing columns that depended on the old column being replaced" <|
             t1 = table_builder [["X", [1,2,3]]]
-            t2 = t1.set (t1.at "X" * 100) new_name="Y"
-            t3 = t2.set "[X] + 10" new_name="Z"
-            t4 = t3.set "[X] + 1000" new_name="X"
+            t2 = t1.set (t1.at "X" * 100) as="Y"
+            t3 = t2.set (expr "[X] + 10") as="Z"
+            t4 = t3.set (Simple_Expression.From (Column_Ref.Name "X") (Simple_Calculation.Add 1000)) as="X"
 
             t4.at "X" . to_vector . should_equal [1001, 1002, 1003]
             t4.at "Y" . to_vector . should_equal [100, 200, 300]
@@ -202,27 +202,27 @@ add_specs suite_builder setup =
 
         group_builder.specify "should gracefully handle expression failures" <|
             t1 = table_builder [["X", [1,2,3]]]
-            t1.set "[unknown] + 10" new_name="Z" . should_fail_with No_Such_Column
-            t1.set "[[[[" . should_fail_with Expression_Error
-            t1.set "[[[[" . catch . should_be_a Expression_Error.Syntax_Error
+            t1.set (expr "[unknown] + 10") as="Z" . should_fail_with No_Such_Column
+            t1.set (expr "[[[[") . should_fail_with Expression_Error
+            t1.set (expr "[[[[") . catch . should_be_a Expression_Error.Syntax_Error
 
         group_builder.specify "should forward expression problems" <|
             t1 = table_builder [["X", [1.5, 2.0, 0.0]]]
 
-            r1 = t1.set "([X] == 2) || ([X] + 0.5 == 2)" on_problems=Problem_Behavior.Ignore
+            r1 = t1.set (expr "([X] == 2) || ([X] + 0.5 == 2)") on_problems=Problem_Behavior.Ignore
             Problems.assume_no_problems r1
             r1.at -1 . to_vector . should_equal [True, True, False]
 
-            r2 = t1.set "([X] == 2) || ([X] + 0.5 == 2)" on_problems=Problem_Behavior.Report_Warning
+            r2 = t1.set (expr "([X] == 2) || ([X] + 0.5 == 2)") on_problems=Problem_Behavior.Report_Warning
             Problems.expect_warning Floating_Point_Equality r2
             r2.at -1 . to_vector . should_equal [True, True, False]
 
-            err3 = t1.set "([X] == 2) || ([X] + 0.5 == 2)" on_problems=Problem_Behavior.Report_Error
+            err3 = t1.set (expr "([X] == 2) || ([X] + 0.5 == 2)") on_problems=Problem_Behavior.Report_Error
             err3.should_fail_with Floating_Point_Equality
 
             # These errors currently only work in in-memory.
             if setup.is_database.not then
-                action2 = t1.set "3 / [X]" new_name="Z" on_problems=_
+                action2 = t1.set (expr "3 / [X]") as="Z" on_problems=_
                 tester2 table =
                     table.at "Z" . to_vector . should_equal [2.0, 1.5, Number.positive_infinity]
                 problems2 = [Arithmetic_Error.Error "Division by zero (at rows [2])."]

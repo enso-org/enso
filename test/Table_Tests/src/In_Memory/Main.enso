@@ -12,13 +12,16 @@ import project.In_Memory.Lossy_Conversions_Spec
 import project.In_Memory.Parse_To_Table_Spec
 import project.In_Memory.Split_Tokenize_Spec
 import project.In_Memory.Table_Spec
+import project.In_Memory.Table_Xml_Spec
 import project.In_Memory.Table_Conversion_Spec
 import project.In_Memory.Table_Date_Spec
 import project.In_Memory.Table_Date_Time_Spec
 import project.In_Memory.Table_Time_Of_Day_Spec
+import project.In_Memory.Table_Running_Spec
 
 add_specs suite_builder =
     Table_Spec.add_specs suite_builder
+    Table_Xml_Spec.add_specs suite_builder
     Column_Spec.add_specs suite_builder
     Column_Format_Spec.add_specs suite_builder
     Common_Spec.add_specs suite_builder
@@ -28,12 +31,13 @@ add_specs suite_builder =
     Table_Date_Spec.add_specs suite_builder
     Table_Date_Time_Spec.add_specs suite_builder
     Table_Time_Of_Day_Spec.add_specs suite_builder
+    Table_Running_Spec.add_specs suite_builder
     Aggregate_Column_Spec.add_specs suite_builder
     Builders_Spec.add_specs suite_builder
     Split_Tokenize_Spec.add_specs suite_builder
     Parse_To_Table_Spec.add_specs suite_builder
 
-main =
+main filter=Nothing =
     suite = Test.build suite_builder->
         add_specs suite_builder
-    suite.run_with_filter
+    suite.run_with_filter filter

@@ -12,14 +12,16 @@ test('Existence of edges between nodes', async ({ page }) => {
 
   await expect(await edgesFromNodeWithBinding(page, 'aggregated')).toHaveCount(0)
   await expect(await edgesFromNodeWithBinding(page, 'filtered')).toHaveCount(0)
-  await expect(await edgesFromNodeWithBinding(page, 'data')).toHaveCount(2 * EDGE_PARTS)
+  await expect(await edgesFromNodeWithBinding(page, 'data')).toHaveCount(3 * EDGE_PARTS)
   await expect(await edgesFromNodeWithBinding(page, 'list')).toHaveCount(0)
   await expect(await edgesFromNodeWithBinding(page, 'final')).toHaveCount(0)
+  await expect(await edgesFromNodeWithBinding(page, 'selected')).toHaveCount(0)
   await expect(await edgesFromNodeWithBinding(page, 'prod')).toHaveCount(EDGE_PARTS)
   await expect(await edgesFromNodeWithBinding(page, 'sum')).toHaveCount(EDGE_PARTS)
   await expect(await edgesFromNodeWithBinding(page, 'ten')).toHaveCount(EDGE_PARTS)
   await expect(await edgesFromNodeWithBinding(page, 'five')).toHaveCount(EDGE_PARTS)
 
+  await expect(await edgesToNodeWithBinding(page, 'selected')).toHaveCount(EDGE_PARTS)
   await expect(await edgesToNodeWithBinding(page, 'aggregated')).toHaveCount(EDGE_PARTS)
   await expect(await edgesToNodeWithBinding(page, 'filtered')).toHaveCount(EDGE_PARTS)
   await expect(await edgesToNodeWithBinding(page, 'data')).toHaveCount(0)
@@ -63,9 +65,9 @@ test('Hover behaviour of edges', async ({ page }) => {
   await expect(hoveredEdgeElements).toHaveCount(SPLIT_EDGE_PARTS)
 
   // Expect the top edge part to be dimmed
-  const topEdge = page.locator('path:nth-child(3)')
+  const topEdge = page.locator('svg.behindNodes g:nth-child(2) path:nth-child(1)')
   await expect(topEdge).toHaveClass('edge visible dimmed')
   // Expect the bottom edge part not to be dimmed
-  const bottomEdge = page.locator('path:nth-child(5)')
+  const bottomEdge = page.locator('svg.behindNodes g:nth-child(2) path:nth-child(3)')
   await expect(bottomEdge).toHaveClass('edge visible')
 })

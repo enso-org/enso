@@ -81,18 +81,18 @@ async function ensoPackageSignables(resourcesDir: string): Promise<Signable[]> {
             ],
         ],
         [
-            'component/python-resources-23.1.0.jar',
+            'component/python-resources-*.jar',
             [
                 'META-INF/resources/darwin/*/lib/graalpy23.1/*.dylib',
                 'META-INF/resources/darwin/*/lib/graalpy23.1/modules/*.so',
             ],
         ],
         [
-            `component/truffle-nfi-libffi-23.1.0.jar`,
+            `component/truffle-nfi-libffi-*.jar`,
             ['META-INF/resources/nfi-native/libnfi/darwin/*/bin/libtrufflenfi.dylib'],
         ],
         [
-            `component/truffle-runtime-23.1.0.jar`,
+            `component/truffle-runtime-*.jar`,
             [
                 'META-INF/resources/engine/libtruffleattach/darwin/amd64/bin/libtruffleattach.dylib',
                 'META-INF/resources/engine/libtruffleattach/darwin/aarch64/bin/libtruffleattach.dylib',
@@ -104,6 +104,21 @@ async function ensoPackageSignables(resourcesDir: string): Promise<Signable[]> {
                 'org/sqlite/native/Mac/aarch64/libsqlitejdbc.jnilib',
                 'org/sqlite/native/Mac/x86_64/libsqlitejdbc.jnilib',
             ],
+        ],
+        [
+            `lib/Standard/Snowflake/*/polyglot/java/snowflake-jdbc-*.jar`,
+            [
+                'META-INF/native/libconscrypt_openjdk_jni-osx-*.dylib',
+                'META-INF/native/libio_grpc_netty_shaded_netty_tcnative_osx_*.jnilib',
+            ],
+        ],
+        [
+            `lib/Standard/Google_Api/*/polyglot/java/grpc-netty-shaded-*.jar`,
+            ['META-INF/native/libio_grpc_netty_shaded_netty_tcnative_osx_*.jnilib'],
+        ],
+        [
+            `lib/Standard/Google_Api/*/polyglot/java/conscrypt-openjdk-uber-*.jar`,
+            ['META-INF/native/libconscrypt_openjdk_jni-osx-*.dylib'],
         ],
     ]
     return ArchiveToSign.lookupMany(engineDir, archivePatterns)

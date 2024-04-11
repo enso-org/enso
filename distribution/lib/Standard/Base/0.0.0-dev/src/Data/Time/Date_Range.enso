@@ -4,7 +4,6 @@ import project.Data.Filter_Condition.Filter_Condition
 import project.Data.Json.JS_Object
 import project.Data.Numbers.Integer
 import project.Data.Pair.Pair
-import project.Data.Range.Empty_Error
 import project.Data.Text.Text
 import project.Data.Time.Date.Date
 import project.Data.Time.Date_Period.Date_Period
@@ -12,6 +11,7 @@ import project.Data.Time.Period.Period
 import project.Data.Vector.Vector
 import project.Error.Error
 import project.Errors.Common.Index_Out_Of_Bounds
+import project.Errors.Empty_Error.Empty_Error
 import project.Errors.Illegal_Argument.Illegal_Argument
 import project.Function.Function
 import project.Nothing.Nothing
@@ -29,7 +29,8 @@ type Date_Range
        allow to verify invariants and may lead to unexpected behavior.
     Internal_Constructor (start : Date) (end : Date) (step : Period) (increasing : Boolean) (cached_length : Integer)
 
-    ## Create a representation of a right-exclusive range of dates.
+    ## ICON date_and_time
+       Create a representation of a right-exclusive range of dates.
 
        The range is increasing or decreasing, depending on if the start date is
        before or after the end date.
@@ -52,7 +53,8 @@ type Date_Range
         base_length = start.days_until end . abs
         Date_Range.Internal_Constructor start end one_day increasing base_length . with_step step
 
-    ## GROUP Metadata
+    ## GROUP Calculations
+       ICON date_and_time
        Creates a copy of this range with a changed step.
 
        Arguments:
@@ -109,18 +111,21 @@ type Date_Range
         JS_Object.from_pairs [["type", "Date_Range"], ["start", self.start.to_js_object], ["end", self.end.to_js_object], ["step", self.step.to_js_object], ["increasing", self.increasing]]
 
     ## GROUP Selections
+       ICON select_row
        Returns the first element that is included within the range or `Nothing`
        if the range is empty.
     first : Integer ! Index_Out_Of_Bounds
     first self = if self.is_empty then Error.throw (Index_Out_Of_Bounds.Error 0 0) else self.start
 
     ## GROUP Selections
+       ICON select_row
        Returns the second element that is included within the range or `Nothing`
        if the range has less than 2 element
     second : Integer ! Index_Out_Of_Bounds
     second self = if self.length < 2 then Error.throw (Index_Out_Of_Bounds.Error 1 self.length) else self.start + self.step
 
     ## GROUP Selections
+       ICON select_row
        Returns the last element that is included within the range or `Nothing`
        if the range is empty.
     last : Integer ! Index_Out_Of_Bounds
@@ -128,6 +133,7 @@ type Date_Range
         self.start + self.step*(self.length - 1)
 
     ## GROUP Metadata
+       ICON metadata
        Get the number of elements in the range.
 
        > Example
@@ -138,6 +144,7 @@ type Date_Range
     length self = self.cached_length
 
     ## GROUP Selections
+       ICON date_and_time
        Gets an element from the range at a specified index (0-based).
 
        Arguments:
@@ -180,7 +187,8 @@ type Date_Range
     internal_at self i =
         nth_element_of_range self.start self.step self.increasing i
 
-    ## Applies a function to each element in the range, producing a vector of
+    ## ICON dataframe_map_column
+       Applies a function to each element in the range, producing a vector of
        results.
 
        Arguments:
@@ -196,6 +204,7 @@ type Date_Range
         Vector.new self.length (i -> function (self.internal_at i))
 
     ## GROUP Conversions
+       ICON convert
        Converts the range to a vector containing the dates in the range.
 
        > Example
@@ -230,6 +239,7 @@ type Date_Range
     not_empty self = self.is_empty.not
 
     ## GROUP Selections
+       ICON preparation
        Returns a vector of all elements of this range which satisfy a condition.
 
        Arguments:
@@ -252,6 +262,7 @@ type Date_Range
         builder.to_vector
 
     ## GROUP Selections
+       ICON preparation
        Partitions the range into `Vector`s of elements which satisfy a given
        condition and ones that do not.
 
@@ -338,7 +349,8 @@ type Date_Range
         (0.up_to self.length).fold init acc-> ix->
             function acc (self.internal_at ix)
 
-    ## Combines all the elements of the range, by iteratively applying the
+    ## ICON dataframe_map_column
+       Combines all the elements of the range, by iteratively applying the
        passed function with the next element of the range. After each step the
        value is stored resulting in a new Vector of the same size as self.
 
@@ -385,6 +397,7 @@ type Date_Range
     any self condition = self.find condition . is_nothing . not
 
     ## GROUP Selections
+       ICON find
        Gets the first index when a condition is satisfied this range.
        If no index satisfies the predicate, returns `if_missing`.
 
@@ -401,7 +414,7 @@ type Date_Range
                 (Date.new 2020 10 01).up_to (Date.new 2020 10 31) . find (d-> d.day_of_week == Day_Of_Week.Monday)
     @condition date_range_default_filter_condition_widget
     find : (Filter_Condition | (Date -> Boolean)) -> Integer -> Any -> Any
-    find self condition start=0 ~if_missing=Nothing =
+    find self condition (start : Integer = 0) ~if_missing=Nothing =
         predicate = unify_condition_or_predicate condition
         index = self.index_of predicate start
         case index of
@@ -420,6 +433,7 @@ type Date_Range
     contains self value = self.find (== value) . is_nothing . not
 
     ## GROUP Values
+       ICON find
        Returns the index of an element in the range.
        Returns Nothing if the element is not found.
 
@@ -435,11 +449,12 @@ type Date_Range
              (Date.new 2020 10 01).up_to (Date.new 2020 10 31) . index_of (d-> d.day_of_week == Day_Of_Week.Monday)
     @condition date_range_default_filter_condition_widget
     index_of : (Date | Filter_Condition | (Date -> Boolean)) -> Integer -> Integer | Nothing
-    index_of self condition start=0 =
+    index_of self condition (start : Integer = 0) =
         predicate = unify_condition_for_index_of condition
         (0.up_to self.length).index_of (ix-> predicate (self.internal_at ix)) start
 
     ## GROUP Values
+       ICON find
        Returns the last index of an element in the range.
        Returns Nothing if the element is not found.
 
@@ -455,11 +470,12 @@ type Date_Range
              (Date.new 2020 10 01).up_to (Date.new 2020 10 31) . last_index_of (d-> d.day_of_week == Day_Of_Week.Monday)
     @condition date_range_default_filter_condition_widget
     last_index_of : (Date | Filter_Condition | (Date -> Boolean)) -> Integer -> Integer | Nothing
-    last_index_of self condition start=-1 =
+    last_index_of self condition (start : Integer = -1) =
         predicate = unify_condition_for_index_of condition
         (0.up_to self.length).last_index_of (ix-> predicate (self.internal_at ix)) start
 
     ## GROUP Selections
+       ICON order
        Reverses the range, returning a vector with the same elements as the
        original range, but in the opposite order.
 
@@ -479,7 +495,8 @@ type Date_Range
     reverse : Vector Date
     reverse self = self.to_vector.reverse
 
-    ## Combines all the elements of a non-empty range using a binary operation.
+    ## ICON preparation
+       Combines all the elements of a non-empty range using a binary operation.
        If the range is empty, returns `if_empty`.
 
        Arguments:
@@ -487,7 +504,7 @@ type Date_Range
          into a new date.
        - if_empty: Value returned if the range is empty.
     reduce : (Date -> Date -> Date) -> Any -> Any
-    reduce self function ~if_empty=(Error.throw Empty_Error) =
+    reduce self function ~if_empty=(Error.throw (Empty_Error.Error Date_Range)) =
         case self.length of
             0 -> if_empty
             1 -> self.start

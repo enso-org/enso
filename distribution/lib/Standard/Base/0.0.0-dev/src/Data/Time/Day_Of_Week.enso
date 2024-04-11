@@ -30,6 +30,7 @@ type Day_Of_Week
     Saturday
 
     ## GROUP Conversions
+       ICON convert
        Convert the Day_Of_Week to an Integer.
 
        Arguments:

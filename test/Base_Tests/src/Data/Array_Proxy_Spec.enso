@@ -43,7 +43,7 @@ add_specs suite_builder =
 
         group_builder.specify "should check validity at construction" <|
             Test.expect_panic_with (Array_Proxy.new 0 0) Type_Error
-            Test.expect_panic_with (Array_Proxy.new -1 (x->x)) Illegal_Argument
+            (Array_Proxy.new -1 (x->x)).should_fail_with Illegal_Argument
 
         group_builder.specify "should pretend to just be an Array" <|
             proxy = Array_Proxy.new 3 (ix -> ix + 10)
@@ -55,8 +55,7 @@ add_specs suite_builder =
             Meta.get_qualified_type_name proxy . should_equal "Standard.Base.Data.Array.Array"
             Meta.get_simple_type_name proxy . should_equal "Array"
 
-main =
+main filter=Nothing =
     suite = Test.build suite_builder->
         add_specs suite_builder
-    suite.run_with_filter
-
+    suite.run_with_filter filter

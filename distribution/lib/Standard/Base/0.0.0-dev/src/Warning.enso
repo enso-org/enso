@@ -50,11 +50,11 @@ type Warning
 
        Arguments:
        - warning_type: The type to throw if attached to the value. Defaults to all warnings.
-    throw_on_warning : Any -> Any
-    throw_on_warning self warning_type=Any =
-        warnings = Warning.get_all self
+    throw_on_warning : Any -> Any -> Any
+    throw_on_warning value warning_type=Any =
+        warnings = Warning.get_all value
         first = warnings.find (w-> w.value.is_a warning_type) if_missing=Nothing
-        if first.is_nothing then self else Error.throw first.value
+        if first.is_nothing then value else Error.throw first.value
 
     ## PRIVATE
        ADVANCED

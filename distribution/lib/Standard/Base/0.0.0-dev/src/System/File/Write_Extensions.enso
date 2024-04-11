@@ -1,3 +1,4 @@
+import project.Any.Any
 import project.Data.Text.Encoding.Encoding
 import project.Data.Text.Text
 import project.Data.Vector.Vector
@@ -12,9 +13,11 @@ import project.Panic.Panic
 import project.Runtime.Context
 import project.System.File.Existing_File_Behavior.Existing_File_Behavior
 import project.System.File.File
+import project.System.File.Generic.Writable_File.Writable_File
 import project.Warning.Warning
 from project.Data.Boolean import Boolean, False, True
 from project.Data.Text.Extensions import all
+from project.Metadata import Display, Widget
 
 polyglot java import org.enso.base.Array_Utils
 
@@ -49,20 +52,15 @@ polyglot java import org.enso.base.Array_Utils
      be automatically deleted on exit of the Enso process.
 
      This allows for building the workflow without affecting the real files.
+@path (Widget.Text_Input display=Display.Always)
 @encoding Encoding.default_widget
-Text.write : File -> Encoding -> Existing_File_Behavior -> Problem_Behavior -> File ! Encoding_Error | Illegal_Argument | File_Error
-Text.write self path:File encoding=Encoding.utf_8 on_existing_file=Existing_File_Behavior.Backup on_problems=Problem_Behavior.Report_Warning =
+Text.write : Writable_File -> Encoding -> Existing_File_Behavior -> Problem_Behavior -> File ! Encoding_Error | Illegal_Argument | File_Error
+Text.write self (path : Writable_File) (encoding : Encoding = Encoding.utf_8) (on_existing_file : Existing_File_Behavior = Existing_File_Behavior.Backup) (on_problems : Problem_Behavior = Problem_Behavior.Report_Warning) =
     bytes = self.bytes encoding on_problems
     bytes.if_not_error <|
-        effective_existing_behaviour = on_existing_file.get_effective_behavior path
-        file = if Context.Output.is_enabled then path else
-            should_copy_file = on_existing_file==Existing_File_Behavior.Append
-            path.create_dry_run_file copy_original=should_copy_file
-
-        Context.Output.with_enabled <|
-            r = effective_existing_behaviour.write file stream->
-                stream.write_bytes bytes
-            r.if_not_error file
+        path.write_handling_dry_run on_existing_file effective_file-> stream->
+            # If the write succeeded, we return the file that was written to (original file or a dry run file).
+            stream.write_bytes bytes . if_not_error effective_file
 
 ## ICON data_output
    Writes (or appends) the Vector of bytes into the specified file. The behavior
@@ -96,12 +94,14 @@ Text.write self path:File encoding=Encoding.utf_8 on_existing_file=Existing_File
          import Standard.Examples
 
          [36, -62, -93, -62, -89, -30, -126, -84, -62, -94].write_bytes Examples.scratch_file.write_bytes Examples.scratch_file Existing_File_Behavior.Append
-Vector.write_bytes : File -> Existing_File_Behavior -> File ! Illegal_Argument | File_Error
-Vector.write_bytes self path:File on_existing_file=Existing_File_Behavior.Backup =
+Vector.write_bytes : Writable_File -> Existing_File_Behavior -> Any ! Illegal_Argument | File_Error
+Vector.write_bytes self (path : Writable_File) (on_existing_file : Existing_File_Behavior = Existing_File_Behavior.Backup) =
     Panic.catch Unsupported_Argument_Types handler=(_ -> Error.throw (Illegal_Argument.Error "Only Vectors consisting of bytes (integers in the range from -128 to 127) are supported by the `write_bytes` method.")) <|
         ## Convert to a byte array before writing - and fail early if there is any problem.
         byte_array = Array_Utils.ensureByteArray self
 
-        r = on_existing_file.write path stream->
+        # write_bytes does not allow dry run
+        r = path.write on_existing_file stream->
+            # If the write succeeded, we return the file that was written to (original file or a dry run file).
             stream.write_bytes (Vector.from_polyglot_array byte_array)
-        r.if_not_error path
+        r.if_not_error path.file

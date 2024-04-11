@@ -30,6 +30,7 @@ public final class Ref implements EnsoObject {
    * @return the current value of the reference.
    */
   @Builtin.Method(name = "get", description = "Gets the value stored in the reference")
+  @SuppressWarnings("generic-enso-builtin-type")
   public Object getValue() {
     return value;
   }
@@ -41,6 +42,7 @@ public final class Ref implements EnsoObject {
    * @returns the original value
    */
   @Builtin.Method(name = "put", description = "Stores a new value in the reference")
+  @SuppressWarnings("generic-enso-builtin-type")
   public Object setValue(Object value) {
     Object old = this.value;
     this.value = value;

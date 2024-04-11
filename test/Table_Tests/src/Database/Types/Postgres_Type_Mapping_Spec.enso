@@ -1,8 +1,7 @@
 from Standard.Base import all
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
-from Standard.Table import Aggregate_Column, Value_Type, Table
-import Standard.Table.Data.Type.Value_Type.Bits
+from Standard.Table import Aggregate_Column, Value_Type, Table, Bits
 from Standard.Table.Errors import Inexact_Type_Coercion
 
 from Standard.Database import all
@@ -111,7 +110,7 @@ add_specs suite_builder create_connection_fn =
             t.evaluate_expression 'is_nan([d])' . value_type . should_equal Value_Type.Boolean
             t.evaluate_expression 'is_nothing([a])' . value_type . should_equal Value_Type.Boolean
 
-            t2 = t.aggregate [Aggregate_Column.Group_By "b", Aggregate_Column.Sum "a", Aggregate_Column.Maximum "a", Aggregate_Column.Count_Not_Nothing "c", Aggregate_Column.Concatenate "b", Aggregate_Column.Count, (Aggregate_Column.First "c" order_by="a")]
+            t2 = t.aggregate ["b"] [Aggregate_Column.Sum "a", Aggregate_Column.Maximum "a", Aggregate_Column.Count_Not_Nothing "c", Aggregate_Column.Concatenate "b", Aggregate_Column.Count, (Aggregate_Column.First "c" order_by="a")]
             t2.at "b" . value_type . should_equal default_text
             t2.at "Sum a" . value_type . should_equal (Value_Type.Integer Bits.Bits_64)
             t2.at "Maximum a" . value_type . should_equal (Value_Type.Integer Bits.Bits_16)
@@ -194,11 +193,11 @@ add_specs suite_builder create_connection_fn =
             beef = [-66, -17]
             materialized_table.at "B" . to_vector . should_equal [ffff, caffee, beef]
 
-main =
+main filter=Nothing =
     create_connection_fn = _-> create_connection_builder Nothing
     suite = Test.build suite_builder->
         add_specs suite_builder create_connection_fn
-    suite.run_with_filter
+    suite.run_with_filter filter
 
 max_int4 = 2147483647
 default_text = Value_Type.Char size=Nothing variable_length=True

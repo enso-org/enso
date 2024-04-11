@@ -27,7 +27,8 @@ type Date_Time_Formatter
     ## PRIVATE
     Value (underlying : EnsoDateTimeFormatter) (~deferred_parsing_warnings = [])
 
-    ## Creates a formatter from a simple date-time format pattern.
+    ## ICON convert
+       Creates a formatter from a simple date-time format pattern.
 
        Every letter in the pattern is interpreted as a pattern character as
        described in the table below. Any character that is not a letter in the
@@ -124,7 +125,7 @@ type Date_Time_Formatter
              Date.parse "1 Nov '95" "d MMM ''yy{2099}" == (Date.new 2095 11 01)
     @locale Locale.default_widget
     from_simple_pattern : Text -> Locale -> Date_Time_Formatter ! Date_Time_Format_Parse_Error
-    from_simple_pattern pattern:Text locale:Locale=Locale.default =
+    from_simple_pattern pattern:Text='' locale:Locale=Locale.default =
         used_locale = if locale == Locale.default then Locale.us else locale
         FormatterCache.SIMPLE_FORMAT.get_or_set (FormatterCacheKey.new pattern used_locale.java_locale) _->
             parsed = Tokenizer.tokenize pattern |> Parser.parse_simple_date_pattern
@@ -133,7 +134,8 @@ type Date_Time_Formatter
                 As_Java_Formatter_Interpreter.interpret used_locale parsed
             Date_Time_Formatter.Value (EnsoDateTimeFormatter.new java_formatter pattern FormatterKind.SIMPLE) deferred_parsing_warnings=analyzer.get_parsing_only_warnings
 
-    ## Creates a formatter from a pattern for the ISO 8601 leap week calendar.
+    ## ICON convert
+       Creates a formatter from a pattern for the ISO 8601 leap week calendar.
 
        The ISO 8601 leap week calendar is a variation of the ISO 8601 calendar
        that defines a leap week as the week that contains the 29th of February.
@@ -186,6 +188,7 @@ type Date_Time_Formatter
             Date_Time_Formatter.Value (EnsoDateTimeFormatter.new java_formatter pattern FormatterKind.ISO_WEEK_DATE) deferred_parsing_warnings=analyzer.get_parsing_only_warnings
 
     ## ADVANCED
+       ICON convert
        Creates a formatter from a Java `DateTimeFormatter` instance or a text
        pattern parsed using the Java parser: `DateTimeFormatter.ofPattern`.
 
@@ -213,7 +216,8 @@ type Date_Time_Formatter
             Date_Time_Formatter.Value (EnsoDateTimeFormatter.new java_formatter pattern FormatterKind.RAW_JAVA)
         _ -> Error.throw (Illegal_Argument.Error "The pattern must either be a string or a Java DateTimeFormatter instance.")
 
-    ## The default format for date-time used in Enso.
+    ## ICON convert
+       The default format for date-time used in Enso.
        It acts as `ISO_Zoned_Date_Time` but both offset and timezone are optional.
 
        For example, it may parse date of the form `2011-12-03 10:15:30+01:00[Europe/Paris]`,
@@ -222,7 +226,8 @@ type Date_Time_Formatter
     default_enso_zoned_date_time =
         Date_Time_Formatter.Value EnsoDateTimeFormatter.default_enso_zoned_date_time_formatter
 
-    ## The ISO 8601 format for date-time with offset and timezone.
+    ## ICON convert
+       The ISO 8601 format for date-time with offset and timezone.
        The date and time parts may be separated by a single space or a `T`.
 
        For example, it may parse date of the form `2011-12-03 10:15:30+01:00[Europe/Paris]`.
@@ -230,7 +235,8 @@ type Date_Time_Formatter
     iso_zoned_date_time =
         Date_Time_Formatter.Value (EnsoDateTimeFormatter.makeISOConstant DateTimeFormatter.ISO_ZONED_DATE_TIME "iso_zoned_date_time")
 
-    ## The ISO 8601 format for date-time with offset.
+    ## ICON convert
+       The ISO 8601 format for date-time with offset.
        The date and time parts may be separated by a single space or a `T`.
 
        For example, it may parse date of the form `2011-12-03 10:15:30+01:00`.
@@ -238,7 +244,8 @@ type Date_Time_Formatter
     iso_offset_date_time =
         Date_Time_Formatter.Value (EnsoDateTimeFormatter.makeISOConstant DateTimeFormatter.ISO_OFFSET_DATE_TIME "iso_offset_date_time")
 
-    ## The ISO 8601 format for date-time without a timezone.
+    ## ICON convert
+       The ISO 8601 format for date-time without a timezone.
        The date and time parts may be separated by a single space or a `T`.
 
        For example, it may parse date of the form `2011-12-03 10:15:30`. The
@@ -247,14 +254,16 @@ type Date_Time_Formatter
     iso_local_date_time =
         Date_Time_Formatter.Value (EnsoDateTimeFormatter.makeISOConstant DateTimeFormatter.ISO_LOCAL_DATE_TIME "iso_local_date_time")
 
-    ## The ISO 8601 format for date.
+    ## ICON convert
+       The ISO 8601 format for date.
 
        For example, it may parse date of the form `2011-12-03`.
     iso_date : Date_Time_Formatter
     iso_date =
         Date_Time_Formatter.Value (EnsoDateTimeFormatter.makeISOConstant DateTimeFormatter.ISO_DATE "iso_date")
 
-    ## The ISO 8601 format for time.
+    ## ICON convert
+       The ISO 8601 format for time.
 
        For example, it may parse time of the form `10:15:30`.
     iso_time : Date_Time_Formatter
@@ -281,7 +290,8 @@ type Date_Time_Formatter
     to_display_text : Text
     to_display_text self = self.to_text
 
-    ## Returns a copy of this formatter with a changed locale.
+    ## ICON convert
+       Returns a copy of this formatter with a changed locale.
     with_locale : Locale -> Date_Time_Formatter
     with_locale self (locale : Locale) =
         Date_Time_Formatter.Value (self.underlying.withLocale locale.java_locale)
@@ -349,7 +359,6 @@ type Date_Time_Formatter
             "iso_date" -> "(ISO date) yyyy-MM-dd"
             "iso_time" -> "(ISO time) HH:mm[:ss[.f]]"
             other -> other
-
 
 ## PRIVATE
 Date_Time_Formatter.from (that:Text) (locale:Locale = Locale.default) =

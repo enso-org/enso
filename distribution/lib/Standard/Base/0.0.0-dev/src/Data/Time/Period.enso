@@ -39,7 +39,8 @@ ensure_period object ~action error_msg="Cannot use Duration as a parameter" =
    daylight saving time. This means that a Period of 1 day does not necessarily
    have to be 24 hours of Duration.
 type Period
-    ## Create a Period representing the time interval between two dates.
+    ## ICON date_and_time
+       Create a Period representing the time interval between two dates.
 
        Arguments:
        - start_date_inclusive: The start date of the period, included.
@@ -56,6 +57,7 @@ type Period
         Period.Value (Java_Period.between start_date_inclusive end_date_exclusive)
 
     ## GROUP DateTime
+       ICON date_and_time
        Create a new Period from years, months and days.
 
        Arguments:
@@ -81,6 +83,7 @@ type Period
     Value (internal_period : Java_Period)
 
     ## GROUP DateTime
+       ICON date_and_time
        Get the portion of the period expressed in years.
     years : Integer
     years self = self.internal_period.getYears
@@ -92,6 +95,7 @@ type Period
     months self = self.internal_period.getMonths
 
     ## GROUP DateTime
+       ICON date_and_time
        Get the portion of the period coming from months and years as months
        (every year is translated to 12 months).
     total_months : Integer
@@ -166,6 +170,7 @@ type Period
             Period.Value (self.internal_period.multipliedBy factor)
 
     ## GROUP Operators
+       ICON operators
        Negate all amounts in the period.
 
        This is useful when a period used for going forward in time needs to be

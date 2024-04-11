@@ -8,7 +8,7 @@ import akka.testkit.TestActors.blackholeProps
 import akka.testkit._
 import io.circe.Json
 import io.circe.parser.parse
-import nl.gn0s1s.bump.SemVer
+import org.enso.semver.SemVer
 import org.apache.commons.io.FileUtils
 import org.enso.distribution.FileSystem.PathSyntax
 import org.enso.distribution.FileSystem
@@ -30,7 +30,7 @@ import org.enso.projectmanager.infrastructure.languageserver.{
   ShutdownHookActivator
 }
 import org.enso.projectmanager.infrastructure.log.Slf4jLogging
-import org.enso.projectmanager.infrastructure.repository.ProjectFileRepository
+import org.enso.projectmanager.infrastructure.repository.ProjectFileRepositoryFactory
 import org.enso.projectmanager.protocol.{
   JsonRpcProtocolFactory,
   ManagerClientControllerFactory
@@ -54,6 +54,7 @@ import zio.interop.catz.core._
 import zio.{Runtime, Semaphore, ZAny, ZIO}
 
 import java.net.URISyntaxException
+
 import scala.concurrent.duration._
 import scala.concurrent.{Await, Future}
 
@@ -133,8 +134,8 @@ class BaseServerSpec extends JsonRpcServerTestKit with BeforeAndAfterAll {
       Runtime.default.unsafe.run(Semaphore.make(1)).getOrThrow()
     }
 
-  lazy val projectRepository =
-    new ProjectFileRepository(
+  lazy val projectRepositoryFactory =
+    new ProjectFileRepositoryFactory(
       testStorageConfig,
       testClock,
       fileSystem,
@@ -192,7 +193,7 @@ class BaseServerSpec extends JsonRpcServerTestKit with BeforeAndAfterAll {
   lazy val projectService =
     new ProjectService[ZIO[ZAny, +*, +*]](
       projectNameValidator,
-      projectRepository,
+      projectRepositoryFactory,
       projectCreationService,
       globalConfigService,
       new Slf4jLogging[ZIO[ZAny, +*, +*]],

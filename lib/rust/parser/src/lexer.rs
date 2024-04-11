@@ -608,7 +608,10 @@ impl<'s> Lexer<'s> {
     /// If the current char could start an identifier, consume it and return true; otherwise, return
     /// false.
     fn ident_start_char(&mut self) -> bool {
-        if let Some(char) = self.current_char && is_ident_char(char) && char != '\'' {
+        if let Some(char) = self.current_char
+            && is_ident_char(char)
+            && char != '\''
+        {
             self.take_next();
             return true;
         }
@@ -652,14 +655,16 @@ impl<'s> Lexer<'s> {
                 }
                 // Composed of operator characters, but not an operator node.
                 "..." => {
-                    let token = token.with_variant(token::Variant::auto_scope());
+                    let token = token.with_variant(token::Variant::suspended_default_arguments());
                     self.submit_token(token);
                 }
                 // Decimal vs. method-application must be distinguished before parsing because they
                 // have different precedences; this is a special case here because the distinction
                 // requires lookahead.
                 "." if self.last_spaces_visible_offset.width_in_spaces == 0
-                    && let Some(char) = self.current_char && char.is_ascii_digit() => {
+                    && let Some(char) = self.current_char
+                    && char.is_ascii_digit() =>
+                {
                     let opr = token::OperatorProperties::new()
                         .with_binary_infix_precedence(81)
                         .as_decimal();
@@ -669,7 +674,9 @@ impl<'s> Lexer<'s> {
                 // The unary-negation operator binds tighter to numeric literals than other
                 // expressions.
                 "-" if self.last_spaces_visible_offset.width_in_spaces == 0
-                    && let Some(char) = self.current_char && char.is_ascii_digit() => {
+                    && let Some(char) = self.current_char
+                    && char.is_ascii_digit() =>
+                {
                     let opr = token::OperatorProperties::new()
                         .with_unary_prefix_mode(token::Precedence::unary_minus_numeric_literal())
                         .with_binary_infix_precedence(15);
@@ -714,6 +721,11 @@ fn analyze_operator(token: &str) -> token::OperatorProperties {
                 .with_unary_prefix_mode(token::Precedence::max())
                 .as_compile_time_operation()
                 .as_suspension(),
+        ".." =>
+            return operator
+                .with_unary_prefix_mode(token::Precedence::min_valid())
+                .as_compile_time_operation()
+                .as_autoscope(),
         "@" =>
             return operator
                 .with_unary_prefix_mode(token::Precedence::max())
@@ -926,12 +938,16 @@ impl<'s> Lexer<'s> {
         self.last_spaces_visible_offset = VisibleOffset(0);
         self.last_spaces_offset = self.current_offset;
         // At least two quote characters.
-        if let Some(char) = self.current_char && char == quote_char {
+        if let Some(char) = self.current_char
+            && char == quote_char
+        {
             let close_quote_start = self.mark_without_whitespace();
             self.take_next();
             let mut multiline = false;
             // If more than two quote characters: Start a multiline quote.
-            while let Some(char) = self.current_char && char == quote_char {
+            while let Some(char) = self.current_char
+                && char == quote_char
+            {
                 multiline = true;
                 self.take_next();
             }
@@ -941,18 +957,21 @@ impl<'s> Lexer<'s> {
             } else {
                 // Exactly two quote characters: Open and shut case.
                 let close_quote_end = self.mark_without_whitespace();
-                let token = self.make_token(open_quote_start, close_quote_start.clone(),
-                                            token::Variant::text_start());
+                let token = self.make_token(
+                    open_quote_start,
+                    close_quote_start.clone(),
+                    token::Variant::text_start(),
+                );
                 self.output.push(token);
-                let token = self.make_token(close_quote_start, close_quote_end,
-                                            token::Variant::text_end());
+                let token =
+                    self.make_token(close_quote_start, close_quote_end, token::Variant::text_end());
                 self.output.push(token);
             }
         } else {
             // One quote followed by non-quote character: Inline quote.
             let open_quote_end = self.mark_without_whitespace();
-            let token = self.make_token(open_quote_start, open_quote_end,
-                                        token::Variant::text_start());
+            let token =
+                self.make_token(open_quote_start, open_quote_end, token::Variant::text_start());
             self.output.push(token);
             self.inline_quote(quote_char, text_type);
         }
@@ -969,7 +988,9 @@ impl<'s> Lexer<'s> {
         let token = self.make_token(open_quote_start, open_quote_end, token::Variant::text_start());
         self.output.push(token);
         let mut initial_indent = None;
-        if text_type.expects_initial_newline() && let Some(newline) = self.line_break() {
+        if text_type.expects_initial_newline()
+            && let Some(newline) = self.line_break()
+        {
             self.output.push(newline.with_variant(token::Variant::text_initial_newline()));
             if self.last_spaces_visible_offset > block_indent {
                 initial_indent = self.last_spaces_visible_offset.into();
@@ -1173,7 +1194,9 @@ impl<'s> Lexer<'s> {
             }
             let mut value: Option<u32> = None;
             for _ in 0..expect_len {
-                if let Some(c) = self.current_char && let Some(x) = decode_hexadecimal_digit(c) {
+                if let Some(c) = self.current_char
+                    && let Some(x) = decode_hexadecimal_digit(c)
+                {
                     value = Some(16 * value.unwrap_or_default() + x as u32);
                     self.take_next();
                 } else {
@@ -1367,7 +1390,7 @@ impl<'s> Lexer<'s> {
                 // If the file starts at indent > 0, we treat that as the root indent level
                 // instead of creating a sub-block. If indent then decreases below that level,
                 // there's no block to exit.
-                break
+                break;
             };
             if block_indent > previous_indent {
                 // The new line indent is smaller than current block but bigger than the
@@ -1479,7 +1502,7 @@ pub mod test {
         let is_operator = false;
         let left_offset = test_code(left_offset);
         let code = test_code(code);
-        token::ident_(left_offset, code, is_free, lift_level, is_uppercase, is_operator, false)
+        ident(left_offset, code, is_free, lift_level, is_uppercase, is_operator, false).into()
     }
 
     /// Constructor.
@@ -1487,7 +1510,16 @@ pub mod test {
         let lift_level = code.chars().rev().take_while(|t| *t == '\'').count() as u32;
         let left_offset = test_code(left_offset);
         let code = test_code(code);
-        token::wildcard_(left_offset, code, lift_level)
+        wildcard(left_offset, code, lift_level).into()
+    }
+
+    /// Constructor.
+    pub fn digits_(code: &str) -> Token<'_> {
+        digits(test_code(""), test_code(code), None).into()
+    }
+    /// Constructor.
+    pub fn newline_<'s>(left_offset: &'s str, code: &'s str) -> Token<'s> {
+        newline(test_code(left_offset), test_code(code)).into()
     }
 
     /// Constructor.
@@ -1588,52 +1620,52 @@ mod tests {
 
     #[test]
     fn test_case_block() {
-        let newline = newline_(empty(), test_code("\n"));
-        test_lexer("\n", vec![newline_(empty(), test_code("\n"))]);
+        let newline = newline_("", "\n");
+        test_lexer("\n", vec![newline_("", "\n")]);
         test_lexer("\n  foo\n  bar", vec![
-            block_start_(empty(), empty()),
+            block_start(empty(), empty()).into(),
             newline.clone(),
             ident_("  ", "foo"),
             newline.clone(),
             ident_("  ", "bar"),
-            block_end_(empty(), empty()),
+            block_end(empty(), empty()).into(),
         ]);
         test_lexer("foo\n    +", vec![
             ident_("", "foo"),
-            block_start_(empty(), empty()),
+            block_start(empty(), empty()).into(),
             newline,
             operator_("    ", "+"),
-            block_end_(empty(), empty()),
+            block_end(empty(), empty()).into(),
         ]);
     }
 
     #[test]
     fn test_case_block_bad_indents() {
-        let newline = newline_(empty(), test_code("\n"));
+        let newline = newline_("", "\n");
         #[rustfmt::skip]
         test_lexer("  foo\n  bar\nbaz", vec![
-            block_start_(empty(), empty()),
-            newline_(empty(), empty()),
+            block_start(empty(), empty()).into(),
+            newline_("", ""),
             ident_("  ", "foo"),
             newline.clone(), ident_("  ", "bar"),
-            block_end_(empty(), empty()),
+            block_end(empty(), empty()).into(),
             newline.clone(), ident_("", "baz"),
         ]);
         #[rustfmt::skip]
         test_lexer("\n  foo\n bar\nbaz", vec![
-            block_start_(empty(), empty()),
+            block_start(empty(), empty()).into(),
             newline.clone(), ident_("  ", "foo"),
             newline.clone(), ident_(" ", "bar"),
-            block_end_(empty(), empty()),
+            block_end(empty(), empty()).into(),
             newline.clone(), ident_("", "baz"),
         ]);
         #[rustfmt::skip]
         test_lexer("\n  foo\n bar\n  baz", vec![
-            block_start_(empty(), empty()),
+            block_start(empty(), empty()).into(),
             newline.clone(), ident_("  ", "foo"),
             newline.clone(), ident_(" ", "bar"),
             newline, ident_("  ", "baz"),
-            block_end_(empty(), empty()),
+            block_end(empty(), empty()).into(),
         ]);
     }
 
@@ -1641,8 +1673,8 @@ mod tests {
     fn test_case_whitespace_only_line() {
         test_lexer_many(vec![("foo\n    \nbar", vec![
             ident_("", "foo"),
-            newline_(empty(), test_code("\n")),
-            newline_(test_code("    "), test_code("\n")),
+            newline_("", "\n"),
+            newline_("    ", "\n"),
             ident_("", "bar"),
         ])]);
     }
@@ -1667,7 +1699,7 @@ mod tests {
 
     #[test]
     fn test_numeric_literal() {
-        test_lexer("10", vec![digits_(empty(), test_code("10"), None)]);
+        test_lexer("10", vec![digits_("10")]);
     }
 
     #[test]

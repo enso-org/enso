@@ -4,25 +4,17 @@ import Standard.Base.Errors.Encoding_Error.Encoding_Error
 
 import Standard.Base.Network.HTTP.Response.Response
 
-
 from Standard.Test import all
 
-main =
+from project.Network.Http.Http_Test_Setup import base_url_with_slash, pending_has_url
+
+main filter=Nothing =
     suite = Test.build suite_builder->
         add_specs suite_builder
-    suite.run_with_filter
+    suite.run_with_filter filter
 
 
 add_specs suite_builder =
-    ## To run this test locally:
-       $ sbt 'http-test-helper/run localhost 8080'
-       $ export ENSO_HTTP_TEST_HTTPBIN_URL=http://localhost:8080/
-    base_url = Environment.get "ENSO_HTTP_TEST_HTTPBIN_URL"
-    pending_has_url = if base_url != Nothing then Nothing else
-        "The HTTP tests only run when the `ENSO_HTTP_TEST_HTTPBIN_URL` environment variable is set to URL of the httpbin server"
-    base_url_with_slash = base_url.if_not_nothing <|
-        if base_url.ends_with "/" then base_url else base_url + "/"
-
     suite_builder.group "Format Detection in HTTP Fetch" pending=pending_has_url group_builder->
         content_utf = '["x", "Hello! 😊👍 ąę"]'
         content_windows_1250 = '["y", "Hello! ąę"]'
@@ -35,24 +27,24 @@ add_specs suite_builder =
             . add_query_argument "Content-Type" "text/plain; charset=windows-1250"
             . add_query_argument "base64_response_data" (Base_64.encode_text content_windows_1250 Encoding.windows_1250)
 
-        group_builder.specify "should detect the encoding from Content-Type in fetch" <|
+        group_builder.specify "should detect the encoding from Content-Type in fetch" <| Test.with_retries <|
             url_utf8.fetch . should_equal content_utf
             url_windows_1250.fetch . should_equal content_windows_1250
 
-        group_builder.specify "should detect the encoding from Content-Type in decode_as_text" <|
-            r1 = url_utf8.fetch try_auto_parse_response=False
+        group_builder.specify "should detect the encoding from Content-Type in decode_as_text" <| Test.with_retries <|
+            r1 = url_utf8.fetch format=Raw_Response
             r1.decode_as_text . should_equal content_utf
 
-            r2 = url_windows_1250.fetch try_auto_parse_response=False
+            r2 = url_windows_1250.fetch format=Raw_Response
             r2.decode_as_text . should_equal content_windows_1250
 
-            r3 = url_utf8.fetch try_auto_parse_response=False
+            r3 = url_utf8.fetch format=Raw_Response
             # We may override the encoding detected from Content-Type:
             r3.decode_as_text Encoding.ascii . should_fail_with Encoding_Error
 
-        group_builder.specify "should detect the encoding from Content-Type in decode_as_json" <|
-            r1 = url_utf8.fetch try_auto_parse_response=False
+        group_builder.specify "should detect the encoding from Content-Type in decode_as_json" <| Test.with_retries <|
+            r1 = url_utf8.fetch format=Raw_Response
             r1.decode_as_json . should_equal ["x", "Hello! 😊👍 ąę"]
 
-            r2 = url_windows_1250.fetch try_auto_parse_response=False
+            r2 = url_windows_1250.fetch format=Raw_Response
             r2.decode_as_json . should_equal ["y", "Hello! ąę"]

@@ -21,7 +21,8 @@ polyglot java import org.enso.base.arrays.LongArrayList
 polyglot java import org.enso.base.FileLineReader
 
 type File_By_Line
-    ## Creates a new File_By_Line object.
+    ## ICON data_input
+       Creates a new File_By_Line object.
 
        Arguments
        - file: The file to read.
@@ -48,7 +49,9 @@ type File_By_Line
        - file_end: The end of the file in bytes.
     Reader file:File encoding:Encoding limit_lines:(Integer|Nothing) filter_func row_map file_end=file.size
 
-    ## Reads a specific line from the file.
+    ## GROUP Selections
+       ICON select_row
+       Reads a specific line from the file.
 
        Arguments
        - line: The line to read (0 indexed).
@@ -56,15 +59,21 @@ type File_By_Line
     get self line:Integer = if self.limit_lines.is_nothing.not && line>self.limit_lines then Error.throw (Index_Out_Of_Bounds.Error line self.limit_lines) else
         read_line self line
 
-    ## Reads the first line
+    ## GROUP Selections
+       ICON select_row
+       Reads the first line
     first : Text
     first self = self.get 0
 
-    ## Reads the first line
+    ## GROUP Selections
+       ICON select_row
+       Reads the first line
     second : Text
     second self = self.get 1
 
-    ## Counts the number of lines in the file.
+    ## GROUP Metadata
+       ICON metadata
+       Counts the number of lines in the file.
     count : Integer
     count self =
         end_at = if self.limit_lines.is_nothing then -1 else self.limit_lines
@@ -73,13 +82,16 @@ type File_By_Line
            As row_map can be shared if we have a limit return that.
         if end_at == -1 then self.row_map.getSize-1 else end_at.min self.row_map.getSize-1
 
-    ## Returns the lines in the file as a vector.
+    ## GROUP Conversions
+       ICON convert
+       Returns the lines in the file as a vector.
     to_vector : Vector Text
     to_vector self = File_Error.handle_java_exceptions self.file <|
         end_at = if self.limit_lines.is_nothing then Nothing else self.limit_lines-1
         FileLineReader.readLines self.java_file self.file_end self.row_map 0 end_at self.charset self.filter_func
 
-    ## Performs an action on each line.
+    ## ICON parse3
+       Performs an action on each line.
 
        Arguments
        - function: The action to perform on each line.
@@ -88,7 +100,8 @@ type File_By_Line
         new_function _ t = function t
         self.each_with_index new_function
 
-    ## Performs an action on each line.
+    ## ICON parse3
+       Performs an action on each line.
 
        Arguments:
        - function: A function to apply that takes an index and an item.
@@ -100,7 +113,8 @@ type File_By_Line
         end_at = if self.limit_lines.is_nothing then Nothing else self.limit_lines-1
         for_each_lines self 0 end_at function
 
-    ## Transforms each line in the file and returns the result as a vector.
+    ## ICON dataframe_map_column
+       Transforms each line in the file and returns the result as a vector.
 
        Arguments
        - action: The action to perform on each line.
@@ -111,7 +125,8 @@ type File_By_Line
         self.each_with_index wrapped_action
         builder.to_vector
 
-    ## Transforms each line in the file and returns the result as a vector.
+    ## ICON dataframe_map_column
+       Transforms each line in the file and returns the result as a vector.
 
        Arguments
        - action: The action to perform on each line.
@@ -122,7 +137,9 @@ type File_By_Line
         self.each_with_index wrapped_action
         builder.to_vector
 
-    ## Skips the specified number of lines.
+    ## GROUP Selections
+       ICON select_row
+       Skips the specified number of lines.
 
        Arguments
        - lines: The number of lines to skip.
@@ -140,7 +157,9 @@ type File_By_Line
         new_limit = if self.limit_lines.is_nothing then lines else lines.min self.limit_lines
         File_By_Line.Reader self.file self.encoding new_limit self.filter_func (create_row_map self lines) self.file_end
 
-    ## Limits a file to a specific number of lines.
+    ## GROUP Selections
+       ICON select_row
+       Limits a file to a specific number of lines.
 
        Arguments
        - lines: The number of lines to limit the file to.
@@ -148,7 +167,9 @@ type File_By_Line
     limit self lines:Integer =
         File_By_Line.Reader self.file self.encoding lines self.filter_func self.row_map self.file_end
 
-    ## Filters the file by a predicate.
+    ## GROUP Selections
+       ICON preparation
+       Filters the file by a predicate.
 
        Arguments
        - predicate: The predicate to filter by.
@@ -184,6 +205,7 @@ type File_By_Line
             File_By_Line.Reader self.file self.encoding Nothing new_predicate (make_filter_map self new_filter) (index_of self self.limit_lines)
 
     ## ADVANCED
+       ICON metadata
        Exports the row_map
     row_positions : Vector Integer
     row_positions self = Vector.from_polyglot_array <|

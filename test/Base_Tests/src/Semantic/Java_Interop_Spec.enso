@@ -46,12 +46,6 @@ add_specs suite_builder =
             x = Java_Integer.valueOf 1
             x.test_me x . should_equal False
 
-    suite_builder.group "Numeric values" group_builder->
-        group_builder.specify "can be passed in host calls without lossy coercion exception" <|
-            large_long = 6907338656278321365
-            moments = Moments.new 1
-            moments.add large_long
-
     suite_builder.group "Java/Enso Date" group_builder->
         group_builder.specify "Java date has Enso properties" <|
             april1st = LocalDate.of 2022 04 01
@@ -91,8 +85,8 @@ add_specs suite_builder =
             err.to_text . contains "NON_EXISTING" . should_be_true
             err.to_text . contains "is not visible in this scope" . should_be_true
 
-main =
+main filter=Nothing =
     suite = Test.build suite_builder->
         add_specs suite_builder
-    suite.run_with_filter
+    suite.run_with_filter filter
 

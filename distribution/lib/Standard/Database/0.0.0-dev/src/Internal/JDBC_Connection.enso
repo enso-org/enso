@@ -4,18 +4,16 @@ import Standard.Base.Errors.Illegal_State.Illegal_State
 import Standard.Base.Errors.Unimplemented.Unimplemented
 import Standard.Base.Runtime.Context
 import Standard.Base.Runtime.Managed_Resource.Managed_Resource
-from Standard.Base.Data.Enso_Cloud.Enso_Secret import as_hideable_value
+from Standard.Base.Enso_Cloud.Enso_Secret import as_hideable_value
 
-import Standard.Table.Data.Table.Table as Materialized_Table
-import Standard.Table.Data.Type.Value_Type.Value_Type
+from Standard.Table import Table, Value_Type
 
-import project.Data.SQL_Statement.SQL_Statement
-import project.Data.SQL_Type.SQL_Type
-import project.Data.Table.Table as Database_Table
 import project.Internal.Column_Fetcher as Column_Fetcher_Module
 import project.Internal.In_Transaction.In_Transaction
 import project.Internal.SQL_Warning_Helper
 import project.Internal.Statement_Setter.Statement_Setter
+import project.SQL_Statement.SQL_Statement
+import project.SQL_Type.SQL_Type
 from project.Errors import SQL_Error, SQL_Timeout
 from project.Internal.Result_Set import result_set_to_table
 
@@ -158,7 +156,7 @@ type JDBC_Connection
 
        It may be used for accessing simple database metadata. It should never be
        used for proper queries.
-    raw_read_statement : Text -> Materialized_Table
+    raw_read_statement : Text -> Table
     raw_read_statement self raw_sql =
         self.with_prepared_statement raw_sql Statement_Setter.null stmt->
             log_sql_if_enabled self stmt.toString
@@ -227,7 +225,7 @@ type JDBC_Connection
 
        It is the caller's responsibility to call this method from within a
        transaction to ensure consistency.
-    batch_insert : Text -> Statement_Setter -> Materialized_Table -> Integer -> Vector Value_Type | Nothing -> Integer | Nothing -> Nothing
+    batch_insert : Text -> Statement_Setter -> Table -> Integer -> Vector Value_Type | Nothing -> Integer | Nothing -> Nothing
     batch_insert self insert_template statement_setter table batch_size expected_type_hints=Nothing row_limit=Nothing =
         In_Transaction.ensure_in_transaction <| self.with_connection java_connection-> handle_sql_errors related_query=insert_template <|
             Managed_Resource.bracket (java_connection.prepareStatement insert_template) .close stmt->
@@ -322,3 +320,13 @@ log_sql_if_enabled jdbc_connection ~query_text =
             log_line = timestamp + " [" + db_id + "] " + query_text + '\n'
             Context.Output.with_enabled <|
                 log_line.write path on_existing_file=Existing_File_Behavior.Append
+
+## PRIVATE
+get_pragma_value : JDBC_Connection -> Text -> Any
+get_pragma_value jdbc_connection sql =
+    table = jdbc_connection.raw_read_statement sql
+    if table.row_count != 1 then
+        Panic.throw (Illegal_State.Error "Unexpected amount of results to internal query: "+sql+"; expected 1 but got "+table.row_count.to_text+" rows.")
+    if table.columns.length != 1 then
+        Panic.throw (Illegal_State.Error "Unexpected amount of columns to internal query: "+sql+"; expected 1 but got "+table.columns.length.to_text+" columns.")
+    table.at 0 . at 0

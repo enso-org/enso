@@ -8,7 +8,8 @@
     "shared/**/*.vue",
     "src/util/theme.json",
     "stories/mockSuggestions.json",
-    "mock/**/*"
+    "mock/**/*",
+    "mock/**/*.vue"
   ],
   "exclude": ["src/**/__tests__/*", "shared/**/__tests__/*", "public/**/__tests__/*"],
   "compilerOptions": {
@@ -18,6 +19,7 @@
     "outDir": "../../node_modules/.cache/tsc",
     "baseUrl": ".",
     "noEmit": true,
+    "strict": true,
     "allowImportingTsExtensions": true,
     "noUncheckedIndexedAccess": true,
     "exactOptionalPropertyTypes": true,

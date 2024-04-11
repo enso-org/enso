@@ -1,7 +1,7 @@
 from Standard.Base import all
 
 from Standard.Image import Image, Matrix
-import Standard.Image.Data.Matrix_Error.Matrix_Error
+import Standard.Image.Matrix_Error.Matrix_Error
 
 from Standard.Test import all
 
@@ -398,8 +398,8 @@ add_specs suite_builder =
             o = Matrix.ones 2 3
             zeros/o . should_fail_with Matrix_Error.Dimensions_Not_Equal
 
-main =
+main filter=Nothing =
     suite = Test.build suite_builder->
         add_specs suite_builder
-    suite.run_with_filter
+    suite.run_with_filter filter
 

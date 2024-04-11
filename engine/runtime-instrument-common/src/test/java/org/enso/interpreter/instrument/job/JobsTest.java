@@ -8,13 +8,16 @@ import org.enso.polyglot.runtime.Runtime$Api$VisualizationConfiguration;
 import org.enso.polyglot.runtime.Runtime$Api$VisualizationExpression$Text;
 import org.junit.Test;
 import scala.Option;
+import scala.collection.immutable.Vector$;
 
 public class JobsTest {
   @Test
   public void upsertJobUniqueness() {
     var config =
         new Runtime$Api$VisualizationConfiguration(
-            UUID.randomUUID(), new Runtime$Api$VisualizationExpression$Text("foo", "bar"), "test");
+            UUID.randomUUID(),
+            new Runtime$Api$VisualizationExpression$Text("foo", "bar", Vector$.MODULE$.empty()),
+            "test");
     var expression1 = UUID.randomUUID();
     var expression2 = UUID.randomUUID();
     var visualization1 = UUID.randomUUID();

@@ -4,9 +4,9 @@ import java.io.FileReader
 import java.nio.file.Path
 import cats.Show
 import io.circe.{yaml, Decoder}
-import nl.gn0s1s.bump.SemVer
+import org.enso.semver.SemVer
 import org.enso.cli.OS
-import org.enso.editions.SemVerJson._
+import org.enso.semver.SemVerJson._
 import org.enso.runtimeversionmanager.components.Manifest.{
   JVMOption,
   RequiredInstallerVersions
