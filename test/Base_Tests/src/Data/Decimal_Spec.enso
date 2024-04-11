@@ -708,6 +708,85 @@ add_specs suite_builder =
             Decimal.new "-12.345E97" . signum . should_equal -1
             Decimal.new "0" . signum . should_equal 0
 
+    suite_builder.group "min/max" group_builder->
+        group_builder.specify "should calculate min and max correctly" <|
+            Decimal.new "12" . min (Decimal.new "13") . should_equal (Decimal.new "12")
+            Decimal.new "12" . min (Decimal.new "11") . should_equal (Decimal.new "11")
+            Decimal.new "-12" . min (Decimal.new "-13") . should_equal (Decimal.new "-13")
+            Decimal.new "-12" . min (Decimal.new "-11") . should_equal (Decimal.new "-12")
+
+            Decimal.new "12.1" . min (Decimal.new "12.3") . should_equal (Decimal.new "12.1")
+            Decimal.new "12.2" . min (Decimal.new "11.7") . should_equal (Decimal.new "11.7")
+            Decimal.new "-12.1" . min (Decimal.new "-12.3") . should_equal (Decimal.new "-12.3")
+            Decimal.new "-12.2" . min (Decimal.new "-11.7") . should_equal (Decimal.new "-12.2")
+
+            Decimal.new "0" . min (Decimal.new "-1") . should_equal (Decimal.new "-1")
+            Decimal.new "0" . min (Decimal.new "1") . should_equal (Decimal.new "0")
+            Decimal.new "-1" . min (Decimal.new "0") . should_equal (Decimal.new "-1")
+            Decimal.new "1" . min (Decimal.new "0") . should_equal (Decimal.new "0")
+
+            Decimal.new "12E73" . min (Decimal.new "13E60") . should_equal (Decimal.new "13E60")
+            Decimal.new "12E73" . min (Decimal.new "13E80") . should_equal (Decimal.new "12E73")
+            Decimal.new "-12E73" . min (Decimal.new "-13E60") . should_equal (Decimal.new "-12E73")
+            Decimal.new "-12E73" . min (Decimal.new "-13E80") . should_equal (Decimal.new "-13E80")
+
+            Decimal.new "12" . max (Decimal.new "13") . should_equal (Decimal.new "13")
+            Decimal.new "12" . max (Decimal.new "11") . should_equal (Decimal.new "12")
+            Decimal.new "-12" . max (Decimal.new "-13") . should_equal (Decimal.new "-12")
+            Decimal.new "-12" . max (Decimal.new "-11") . should_equal (Decimal.new "-11")
+
+            Decimal.new "12.1" . max (Decimal.new "12.3") . should_equal (Decimal.new "12.3")
+            Decimal.new "12.2" . max (Decimal.new "11.7") . should_equal (Decimal.new "12.2")
+            Decimal.new "-12.1" . max (Decimal.new "-12.3") . should_equal (Decimal.new "-12.1")
+            Decimal.new "-12.2" . max (Decimal.new "-11.7") . should_equal (Decimal.new "-11.7")
+
+            Decimal.new "0" . max (Decimal.new "-1") . should_equal (Decimal.new "0")
+            Decimal.new "0" . max (Decimal.new "1") . should_equal (Decimal.new "1")
+            Decimal.new "-1" . max (Decimal.new "0") . should_equal (Decimal.new "0")
+            Decimal.new "1" . max (Decimal.new "0") . should_equal (Decimal.new "1")
+
+            Decimal.new "12E73" . max (Decimal.new "13E60") . should_equal (Decimal.new "12E73")
+            Decimal.new "12E73" . max (Decimal.new "13E80") . should_equal (Decimal.new "13E80")
+            Decimal.new "-12E73" . max (Decimal.new "-13E60") . should_equal (Decimal.new "-13E60")
+            Decimal.new "-12E73" . max (Decimal.new "-13E80") . should_equal (Decimal.new "-12E73")
+
+            Decimal.new "12" . min (Decimal.new "12.3") . should_equal (Decimal.new "12")
+            Decimal.new "12.2" . min (Decimal.new "11") . should_equal (Decimal.new "11")
+            Decimal.new "-12" . min (Decimal.new "-12.3") . should_equal (Decimal.new "-12.3")
+            Decimal.new "-12.2" . min (Decimal.new "-11") . should_equal (Decimal.new "-12.2")
+
+        group_builder.specify "should calculate min and max correctly, with mixed Decimal and Int/Float" <|
+            Decimal.new "12" . min 13 . should_equal (Decimal.new "12")
+            12 . min (Decimal.new "13") . should_equal (Decimal.new "12")
+
+            Decimal.new "12.1" . min 12.3 . should_equal (Decimal.new "12.1")
+            12.1 . min (Decimal.new "12.3") . should_equal (Decimal.new "12.1")
+
+            Decimal.new "0" . min (Decimal.new "-1") . should_equal (Decimal.new "-1")
+            0 . min (Decimal.new "-1") . should_equal (Decimal.new "-1")
+
+            Decimal.new "12" . max 13 . should_equal (Decimal.new "13")
+            12 . max (Decimal.new "13") . should_equal (Decimal.new "13")
+
+            Decimal.new "12.1" . max 12.3 . should_equal (Decimal.new "12.3")
+            12.1 . max (Decimal.new "12.3") . should_equal (Decimal.new "12.3")
+
+            Decimal.new "0" . max -1 . should_equal (Decimal.new "0")
+            0 . max (Decimal.new "-1") . should_equal (Decimal.new "0")
+
+            Decimal.new "12" . min 12.3 . should_equal (Decimal.new "12")
+            12 . min (Decimal.new "12.3") . should_equal (Decimal.new "12")
+
+            Decimal.new "12" . max 12.3 . should_equal (Decimal.new "12.3")
+            12 . max (Decimal.new "12.3") . should_equal (Decimal.new "12.3")
+
+        group_builder.specify "should calculate min and max correctly, with Math.min/max" <|
+            Math.min (Decimal.new "12") (Decimal.new "13") . should_equal (Decimal.new "12")
+            Math.max (Decimal.new "12") (Decimal.new "13") . should_equal (Decimal.new "13")
+
+            Math.min (Decimal.new "12E70") (Decimal.new "13E70") . should_equal (Decimal.new "12E70")
+            Math.max (Decimal.new "12E70") (Decimal.new "13E70") . should_equal (Decimal.new "13E70")
+
 main =
     suite = Test.build suite_builder->
         add_specs suite_builder
