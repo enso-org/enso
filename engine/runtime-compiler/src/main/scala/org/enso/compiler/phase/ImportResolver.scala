@@ -77,7 +77,7 @@ final class ImportResolver(compiler: Compiler) extends ImportResolverForIR {
 
         val resolvedImports = importedModules.flatMap(_._2)
 
-        val syntheticImports         = addSyntheticImports(ir, resolvedImports)
+        val syntheticImports         = addSyntheticImports(current, resolvedImports)
         val resolvedSyntheticImports = syntheticImports.map(_._2)
 
         val newImportIRs =
@@ -166,16 +166,17 @@ final class ImportResolver(compiler: Compiler) extends ImportResolverForIR {
   /** Traverses all the exports from the IR. Looks for exports that do not have associated imports.
     * Note that it is valid to export an entity via fully qualified name without importing it first
     * (at least in the current project).
-    * @param ir IR of the module.
+    * @param module IR of the module.
     * @param resolvedImports List of all the resolved imports gathered so far from import IRs.
     * @return List of tuples - first is the synthetic import IR, second is its resolved import.
     */
   private def addSyntheticImports(
-    ir: org.enso.compiler.core.ir.Module,
+    module: Module,
     resolvedImports: List[BindingsMap.ResolvedImport]
   ): List[(Import, BindingsMap.ResolvedImport)] = {
     val resolvedImportNames = resolvedImports.map(_.importDef.name.name)
-    ir.exports.flatMap {
+    val curModName = module.getName.toString
+    module.getIr.exports.flatMap {
       case Export.Module(
             expName,
             rename,
@@ -187,8 +188,9 @@ final class ImportResolver(compiler: Compiler) extends ImportResolverForIR {
             _,
             _
           ) if !isSynthetic =>
+        val exportsItself = curModName.equals(expName.name)
         // Skip the exports that already have associated resolved import.
-        if (!resolvedImportNames.contains(expName.name)) {
+        if (!exportsItself && !resolvedImportNames.contains(expName.name)) {
           val syntheticImport = Import.Module(
             expName,
             rename,
@@ -200,7 +202,7 @@ final class ImportResolver(compiler: Compiler) extends ImportResolverForIR {
             passData    = new MetadataStorage(),
             diagnostics = DiagnosticStorage()
           )
-          tryResolveImport(ir, syntheticImport) match {
+          tryResolveImport(module.getIr, syntheticImport) match {
             case (_, Some(resolvedImp)) =>
               Some(
                 (
