@@ -4,6 +4,7 @@ import type {
 } from '@open-rpc/client-js/build/Request'
 import { Transport } from '@open-rpc/client-js/build/transports/Transport'
 import { type ArgumentsType } from '@vueuse/core'
+import { WebSocket as ReconnectingWebSocket } from 'partysocket'
 import type { Notifications } from 'shared/languageServerTypes'
 import { AbortScope, type ReconnectingTransportWithWebsocketEvents } from 'shared/util/net'
 import ReconnectingWebSocketTransport from 'shared/util/net/ReconnectingWSTransport'
@@ -22,19 +23,15 @@ export function createRpcTransport(url: string): ReconnectingTransportWithWebsoc
   }
 }
 
-export function createWebsocketClient(
-  url: string,
-  abort: AbortScope,
-  options?: { binaryType?: 'arraybuffer' | 'blob' | null; sendPings?: boolean },
-): WebsocketClient {
+export function createDataWebsocket(url: string, binaryType: 'arraybuffer' | 'blob'): WebSocket {
   if (url.startsWith('mock://')) {
-    const mockWs = new MockWebSocketClient(url, abort)
-    if (options?.binaryType) mockWs.binaryType = options.binaryType
+    const mockWs = new MockWebSocket(url, 'Data connection')
+    mockWs.binaryType = binaryType
     return mockWs
   } else {
-    const client = new WebsocketClient(url, abort, options)
-    client.connect()
-    return client
+    const websocket = new ReconnectingWebSocket(url)
+    websocket.binaryType = binaryType
+    return websocket as WebSocket
   }
 }
 

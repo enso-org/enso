@@ -11,7 +11,7 @@ import { nextEvent } from '@/util/data/observable'
 import { type Opt } from '@/util/data/opt'
 import { Err, Ok, type Result } from '@/util/data/result'
 import { ReactiveMapping } from '@/util/database/reactiveDb'
-import { createRpcTransport, createWebsocketClient, useAbortScope } from '@/util/net'
+import { createDataWebsocket, createRpcTransport, useAbortScope } from '@/util/net'
 import { tryQualifiedName } from '@/util/qualifiedName'
 import { computedAsync } from '@vueuse/core'
 import * as random from 'lib0/random'
@@ -65,13 +65,10 @@ function createLsRpcConnection(clientId: Uuid, url: string, abort: AbortScope): 
 }
 
 async function initializeDataConnection(clientId: Uuid, url: string, abort: AbortScope) {
-  const client = createWebsocketClient(url, abort, { binaryType: 'arraybuffer', sendPings: false })
-  const connection = new DataServer(client, abort)
+  const client = createDataWebsocket(url, 'arraybuffer')
+  const connection = new DataServer(clientId, client, abort)
+  abort.handleDispose(connection)
   onScopeDispose(() => connection.dispose())
-  await connection.initialize(clientId).catch((error) => {
-    console.error('Error initializing data connection:', error)
-    throw error
-  })
   return connection
 }
 
