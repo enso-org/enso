@@ -16,21 +16,60 @@ from Standard.Test import all
 
 from project.S3_Spec import api_pending, writable_root, with_default_credentials
 
+type Temporary_Local_File
+    Value ~get
+
+    make name = Temporary_Local_File.Value <|
+        File.create_temporary_file name ".txt"
+
+    cleanup self =
+        Panic.rethrow <| self.get.delete_if_exists
+
+    backend_name self = "local"
+
+type Temporary_S3_File
+    # Does not have to be lazy, because merely allocating the path does not create anything
+    Value get
+
+    make location name = Temporary_S3_File.Value <|
+        location / (name+".txt")
+
+    cleanup self =
+        Panic.rethrow <| self.get.delete_if_exists
+
+    backend_name self = "S3"
+
+type Temporary_Enso_Cloud_File
+    Value get
+
+    make location name = Temporary_Enso_Cloud_File.Value <|
+        Panic.rethrow <| if location.exists.not then location.parent.create_directory location.name
+        location / (name+".txt")
+
+    cleanup self =
+        parent = self.get.parent
+        Panic.rethrow <| self.get.delete_if_exists
+        Panic.rethrow <| if parent.list.is_empty then parent.delete_if_exists
+
+    backend_name self = "Enso Cloud"
+
 add_specs suite_builder =
     tmp_dir_name = "inter-backend-test-run-"+(Date_Time.now.format "yyyy-MM-dd_HHmmss.fV" . replace "/" "|")+"/"
     my_writable_s3_dir = writable_root / tmp_dir_name
-    # TODO figure this out
-    sources = [my_writable_s3_dir / "source1.txt", File.create_temporary_file "source2" ".txt", Enso_File.root / tmp_dir_name / "source3.txt"]
-    destinations = [my_writable_s3_dir / "destination1.txt", File.create_temporary_file "destination2" ".txt", Enso_File.root / tmp_dir_name / "destination3.txt"]
-    sources.each source_file-> destinations.each destination_file-> if source_file.is_a File && destination_file.is_a File then Nothing else
-        src_typ = Meta.type_of source_file . to_display_text
-        dest_typ = Meta.type_of destination_file . to_display_text
-        suite_builder.group "("+src_typ+" -> "+dest_typ+") copying/moving" pending=api_pending group_builder->
+    my_enso_cloud_tmp_root = Enso_File.root / tmp_dir_name
+
+    sources = [Temporary_Local_File.make "local-src", Temporary_Enso_Cloud_File.make my_enso_cloud_tmp_root "cloud-src", Temporary_S3_File.make my_writable_s3_dir "s3-src"]
+    destinations = [Temporary_Local_File.make "local-dest", Temporary_Enso_Cloud_File.make my_enso_cloud_tmp_root "cloud-dest", Temporary_S3_File.make my_writable_s3_dir "s3-dest"]
+    sources.each source_file_provider-> destinations.each destination_file_provider->
+        suite_builder.group "("+source_file_provider.backend_name+" -> "+destination_file_provider.backend_name+") copying/moving" pending=api_pending group_builder->
             group_builder.teardown <|
-                source_file.delete_if_exists
-                destination_file.delete_if_exists
+                source_file_provider.cleanup
+                destination_file_provider.cleanup
 
             group_builder.specify "should be able to copy files" <|
+                source_file = source_file_provider.get
+                destination_file = destination_file_provider.get
+
                 "Hello".write source_file on_existing_file=Existing_File_Behavior.Overwrite . should_succeed
                 destination_file.delete_if_exists
 
@@ -39,6 +78,9 @@ add_specs suite_builder =
                 source_file.exists . should_be_true
 
             group_builder.specify "should be able to move files" <|
+                source_file = source_file_provider.get
+                destination_file = destination_file_provider.get
+
                 "Hello".write source_file on_existing_file=Existing_File_Behavior.Overwrite . should_succeed
                 destination_file.delete_if_exists
 
@@ -47,6 +89,9 @@ add_specs suite_builder =
                 source_file.exists . should_be_false
 
             group_builder.specify "should fail if the source file does not exist" <|
+                source_file = source_file_provider.get
+                destination_file = destination_file_provider.get
+
                 source_file.delete_if_exists
                 destination_file.delete_if_exists
 
@@ -61,6 +106,9 @@ add_specs suite_builder =
                 destination_file.exists . should_be_false
 
             group_builder.specify "should fail to copy/move a file if it exists and replace_existing=False" <|
+                source_file = source_file_provider.get
+                destination_file = destination_file_provider.get
+
                 "Hello".write source_file on_existing_file=Existing_File_Behavior.Overwrite . should_succeed
                 "World".write destination_file on_existing_file=Existing_File_Behavior.Overwrite . should_succeed
 
@@ -75,6 +123,9 @@ add_specs suite_builder =
                 destination_file.read . should_equal "World"
 
             group_builder.specify "should overwrite existing destination in copy/move if replace_existing=True" <|
+                source_file = source_file_provider.get
+                destination_file = destination_file_provider.get
+
                 "Hello".write source_file on_existing_file=Existing_File_Behavior.Overwrite . should_succeed
                 "World".write destination_file on_existing_file=Existing_File_Behavior.Overwrite . should_succeed
 
