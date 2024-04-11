@@ -742,13 +742,19 @@ type Decimal
        Conversion to `Integer` uses truncation: the fractional portion is
        dropped.
 
+       If the conversion resulted in a loss of precision, a
+       `Loss_Of_Numeric_Precision` warning is attached.
+
        > Example
          Convert `Decimal` 2345.6 to an `Integer`.
              d = Decimal.new "2345.6"
              d.to_integer
              # => 2345
     to_integer : Integer
-    to_integer self = self.big_decimal.toBigInteger
+    to_integer self =
+        i = self.big_decimal.toBigInteger
+        if self == i then i else
+            Warning.attach (Loss_Of_Numeric_Precision.Warning self i) i
 
     ## GROUP CONVERSIONS
        Convert this to a `Float`.
@@ -939,7 +945,5 @@ Comparable.from (_ : Number) = Decimal_Comparator
 Decimal.from (that : Text) = Decimal.from_string that
 
 Decimal.from (that : Number) = Decimal.new that
-
-Integer.from (that : Decimal) = that.to_integer
 
 Float.from (that : Decimal) = that.to_float

@@ -313,6 +313,15 @@ add_specs suite_builder =
                     (v > lesser) . should_be_true
                     (v < greater) . should_be_true
 
+                    (v == lesser) . should_be_false
+                    (lesser == v) . should_be_false
+                    (v != lesser) . should_be_true
+                    (lesser != v) . should_be_true
+                    (v == greater) . should_be_false
+                    (greater == v) . should_be_false
+                    (v != greater) . should_be_true
+                    (greater != v) . should_be_true
+
                     (d <= v) . should_be_true
                     (d >= v) . should_be_true
                     (v <= d) . should_be_true
@@ -342,6 +351,14 @@ add_specs suite_builder =
                         (d <= lesser) . should_be_false
                         (lesser > d) . should_be_false
                         (lesser >= d) . should_be_false
+
+        group_builder.specify "should not implicitly convert Decimal to Integer in comparison" <|
+            (Decimal.new "12.5" == 12) . should_be_false
+            (12 == Decimal.new "12.5") . should_be_false
+            large_int = 9223372036854775807000
+            large_fraction = Decimal.new "9223372036854775807000.3"
+            (large_fraction == large_int) . should_be_false
+            (large_int == large_fraction ) . should_be_false
 
     suite_builder.group "edge cases" group_builder->
         group_builder.specify "can support values outside the double range" <|
@@ -551,11 +568,7 @@ add_specs suite_builder =
         group_builder.specify "attaches a warning to the result of .to_float when it results in a loss of precision" <|
             Problems.expect_only_warning Loss_Of_Numeric_Precision (Decimal.new "0.1" . to_float)
 
-        group_builder.specify "should convert correctly to Integer and Float using implicit conversions" <|
-            i = Integer.from (Decimal.new "5634")
-            i.should_be_a Integer
-            i.should_equal 5634
-
+        group_builder.specify "should convert correctly to Float using implicit conversions" <|
             f = Float.from (Decimal.new "56.34")
             f.should_be_a Float
             f.should_equal 56.34
@@ -569,10 +582,18 @@ add_specs suite_builder =
 
         group_builder.specify "Decimal.to_integer should compare correctly with the original Decimal" <|
             huge_a = Decimal.new "3.4E320"
-            huge_a_int = Integer.from huge_a
+            huge_a_int = huge_a.to_integer
 
             (huge_a_int == huge_a) . should_be_true
             (huge_a == huge_a_int) . should_be_true
+
+        group_builder.specify "should attach a warning on loss of precision in integer conversion" <|
+            Problems.expect_only_warning Loss_Of_Numeric_Precision (Decimal.new "125.2" . to_integer)
+            Problems.not_expect_warning Loss_Of_Numeric_Precision (Decimal.new "125" . to_integer)
+            huge_int = Decimal.new "125E90"
+            huge_fraction = Decimal.new "125E90" + Decimal.new "0.2"
+            Problems.expect_only_warning Loss_Of_Numeric_Precision (huge_fraction . to_integer)
+            Problems.not_expect_warning Loss_Of_Numeric_Precision (huge_int . to_integer)
 
     suite_builder.group "remainder" group_builder->
         group_builder.specify "should define remainder" <|
