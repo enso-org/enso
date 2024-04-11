@@ -251,7 +251,7 @@ export default function MemberRolesSettingsTab() {
           >
             <aria.TableHeader className="h-row">
               {/* Delete button. */}
-              <aria.Column className="border-0" />
+              <aria.Column className="relative border-0" />
               <aria.Column
                 isRowHeader
                 className="w-members-name-column border-x-2 border-transparent bg-clip-padding px-cell-x text-left text-sm font-semibold last:border-r-0"
@@ -285,11 +285,12 @@ export default function MemberRolesSettingsTab() {
                     id={userGroup.id}
                     className={`group h-row ${backendModule.isPlaceholderUserGroupId(userGroup.id) ? 'pointer-events-none placeholder' : ''}`}
                   >
-                    <aria.Cell className="bg-transparent p transparent group-hover-2:opacity-100">
+                    <aria.Cell className="relative bg-transparent p transparent group-hover-2:opacity-100">
                       <UnstyledButton
                         onPress={() => {
                           void doDeleteUserGroup(userGroup)
                         }}
+                        className="absolute right-full size-icon -translate-y-1/2"
                       >
                         <img src={Cross2} className="size-icon" />
                       </UnstyledButton>
@@ -300,12 +301,12 @@ export default function MemberRolesSettingsTab() {
                   </aria.Row>,
                   (usersByGroup.get(userGroup.id) ?? []).map(otherUser => (
                     <aria.Row key={otherUser.userId} id={otherUser.userId} className="group h-row">
-                      <aria.Cell className="bg-transparent p transparent group-hover-2:opacity-100">
+                      <aria.Cell className="relative bg-transparent p transparent group-hover-2:opacity-100">
                         <UnstyledButton
                           onPress={() => {
                             void doRemoveUserFromUserGroup(otherUser, userGroup)
                           }}
-                          className="translate-x-indent-1"
+                          className="absolute right-full size-icon -translate-y-1/2 translate-x-indent-1"
                         >
                           <img src={Cross2} className="size-icon" />
                         </UnstyledButton>

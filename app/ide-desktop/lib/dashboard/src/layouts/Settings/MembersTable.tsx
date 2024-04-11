@@ -137,18 +137,18 @@ export default function MembersTable(props: MembersTableProps) {
           members.map(member => (
             <aria.Row key={member.userId} id={member.userId} className="group h-row">
               {allowDelete && (
-                <aria.Cell className="bg-transparent p transparent group-hover-2:opacity-100">
+                <aria.Cell className="relative bg-transparent p transparent group-hover-2:opacity-100">
                   <UnstyledButton
                     onPress={() => {
                       void doDeleteUser(member)
                     }}
-                    className="translate-x-indent-1"
+                    className="absolute right-full size-icon -translate-y-1/2"
                   >
                     <img src={Cross2} className="size-icon" />
                   </UnstyledButton>
                 </aria.Cell>
               )}
-              <aria.Cell className="text border-x-2 border-transparent bg-clip-padding px-cell-x first:rounded-l-full last:rounded-r-full last:border-r-0 group-selected:bg-selected-frame">
+              <aria.Cell className="text rounded-l-full border-x-2 border-transparent bg-clip-padding px-cell-x last:rounded-r-full last:border-r-0 group-selected:bg-selected-frame">
                 {draggable && <aria.Button slot="drag" />}
                 {member.name}
               </aria.Cell>
