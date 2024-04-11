@@ -1,7 +1,6 @@
-import test, { type Locator, type Page } from 'playwright/test'
+import test from 'playwright/test'
 import * as actions from './actions'
 import { expect } from './customExpect'
-import { mockMethodCallInfo } from './expressionUpdates'
 import * as locate from './locate'
 
 test('Adding new node', async ({ page }) => {

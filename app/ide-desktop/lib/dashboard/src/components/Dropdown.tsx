@@ -206,7 +206,7 @@ function Dropdown<T>(props: DropdownProps<T>, ref: React.ForwardedRef<HTMLDivEle
               onClick={event => {
                 event.stopPropagation()
                 if (!justFocusedRef.current && !readOnly) {
-                  setIsDropdownVisible(false)
+                  setIsDropdownVisible(!isDropdownVisible)
                 }
                 justFocusedRef.current = false
               }}
@@ -285,8 +285,7 @@ function Dropdown<T>(props: DropdownProps<T>, ref: React.ForwardedRef<HTMLDivEle
           onClick={event => {
             event.stopPropagation()
             if (!justFocusedRef.current && !readOnly) {
-              setIsDropdownVisible(false)
-              justBlurredRef.current = true
+              setIsDropdownVisible(!isDropdownVisible)
             }
             justFocusedRef.current = false
           }}

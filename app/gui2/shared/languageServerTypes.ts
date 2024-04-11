@@ -1,3 +1,4 @@
+import * as encoding from 'lib0/encoding'
 import type {
   SuggestionsDatabaseEntry,
   SuggestionsDatabaseUpdate,
@@ -361,6 +362,12 @@ export interface ExplicitCall {
 export interface LocalCall {
   type: 'LocalCall'
   expressionId: ExpressionId
+}
+
+export function encodeMethodPointer(enc: encoding.Encoder, ptr: MethodPointer) {
+  encoding.writeVarString(enc, ptr.module)
+  encoding.writeVarString(enc, ptr.name)
+  encoding.writeVarString(enc, ptr.definedOnType)
 }
 
 export function stackItemsEqual(left: StackItem, right: StackItem): boolean {

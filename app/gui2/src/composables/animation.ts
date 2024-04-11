@@ -1,7 +1,17 @@
 /** @file Vue composables for running a callback on every frame, and smooth interpolation. */
 
+import type { Vec2 } from '@/util/data/vec2'
 import { watchSourceToRef } from '@/util/reactivity'
-import { onScopeDispose, proxyRefs, ref, watch, type WatchSource } from 'vue'
+import {
+  onScopeDispose,
+  proxyRefs,
+  readonly,
+  ref,
+  shallowRef,
+  watch,
+  type Ref,
+  type WatchSource,
+} from 'vue'
 
 const rafCallbacks: { fn: (t: number, dt: number) => void; priority: number }[] = []
 
@@ -73,8 +83,6 @@ function runRaf() {
   }
 }
 
-const defaultDiffFn = (a: number, b: number): number => b - a
-
 /**
  * Animate value over time using exponential approach.
  * http://badladns.com/stories/exp-approach
@@ -84,32 +92,59 @@ const defaultDiffFn = (a: number, b: number): number => b - a
  * represents a speed of the approach. Lower values means faster animation.
  * @param epsilon The approach will stop when the difference between the current value and the
  * target value is less than `epsilon`. This is to prevent the animation from running forever.
- * @param diffFn Function that will be used to calculate the difference between two values.
- * By default, the difference is calculated as simple number difference `b - a`.
- * Custom `diffFn` can be used to implement e.g. angle value approach over the shortest arc.
  */
-export function useApproach(
-  to: WatchSource<number>,
-  timeHorizon: number = 100,
-  epsilon = 0.005,
-  diffFn = defaultDiffFn,
+export function useApproach(to: WatchSource<number>, timeHorizon: number = 100, epsilon = 0.005) {
+  return useApproachBase(
+    to,
+    (t, c) => t == c,
+    (targetVal, currentValue, dt) => {
+      const diff = currentValue - targetVal
+      if (Math.abs(diff) > epsilon) {
+        return targetVal + diff / Math.exp(dt / timeHorizon)
+      } else {
+        return targetVal
+      }
+    },
+  )
+}
+
+/**
+ * Animate a vector value over time using exponential approach.
+ * http://badladns.com/stories/exp-approach
+ *
+ * @param to Target vector value to approach.
+ * @param timeHorizon Time at which the approach will be at 63% of the target value. Effectively
+ * represents a speed of the approach. Lower values means faster animation.
+ * @param epsilon The approach will stop when the squared distance between the current vector and
+ * the target value is less than `epsilon`. This is to prevent the animation from running forever.
+ */
+export function useApproachVec(to: WatchSource<Vec2>, timeHorizon: number = 100, epsilon = 0.003) {
+  return useApproachBase(
+    to,
+    (t, c) => t.equals(c),
+    (targetVal, currentValue, dt) => {
+      const diff = currentValue.sub(targetVal)
+      if (diff.lengthSquared() > epsilon) {
+        return targetVal.add(diff.scale(1 / Math.exp(dt / timeHorizon)))
+      } else {
+        return targetVal
+      }
+    },
+  )
+}
+
+function useApproachBase<T>(
+  to: WatchSource<T>,
+  stable: (target: T, current: T) => boolean,
+  update: (target: T, current: T, dt: number) => T,
 ) {
   const target = watchSourceToRef(to)
-  const current = ref(target.value)
+  const current: Ref<T> = shallowRef(target.value)
 
   useRaf(
-    () => target.value != current.value,
+    () => !stable(target.value, current.value),
     (_, dt) => {
-      const targetVal = target.value
-      const currentValue = current.value
-      if (targetVal != currentValue) {
-        const diff = diffFn(targetVal, currentValue)
-        if (Math.abs(diff) > epsilon) {
-          current.value = targetVal + diff / Math.exp(dt / timeHorizon)
-        } else {
-          current.value = targetVal
-        }
-      }
+      current.value = update(target.value, current.value, dt)
     },
   )
 
@@ -117,7 +152,7 @@ export function useApproach(
     current.value = target.value
   }
 
-  return proxyRefs({ value: current, skip })
+  return readonly(proxyRefs({ value: current, skip }))
 }
 
 export function useTransitioning(observedProperties?: Set<string>) {

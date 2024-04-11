@@ -54,8 +54,10 @@ function run(props: app.AppProps) {
             reactRouter.matchRoutes
           ),
         }),
+        new sentry.BrowserProfilingIntegration(),
         new sentry.Replay(),
       ],
+      profilesSampleRate: SENTRY_SAMPLE_RATE,
       tracesSampleRate: SENTRY_SAMPLE_RATE,
       tracePropagationTargets: [process.env.ENSO_CLOUD_API_URL.split('//')[1] ?? ''],
       replaysSessionSampleRate: SENTRY_SAMPLE_RATE,

@@ -35,3 +35,10 @@ type Spec_Result
     is_success self = case self of
         Spec_Result.Success -> True
         _ -> False
+
+    ## PRIVATE
+    to_display_text : Text
+    to_display_text self = case self of
+        Spec_Result.Success -> "Success"
+        Spec_Result.Failure message _ -> "Failure: " + message.to_display_text
+        Spec_Result.Pending reason -> "Pending: " + reason.to_display_text
