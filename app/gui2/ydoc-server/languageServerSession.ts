@@ -1,4 +1,3 @@
-import { Client, RequestManager, WebSocketTransport } from '@open-rpc/client-js'
 import * as json from 'lib0/json'
 import * as map from 'lib0/map'
 import { ObservableV2 } from 'lib0/observable'
@@ -41,15 +40,6 @@ const SOURCE_DIR = 'src'
 const EXTENSION = '.enso'
 
 const DEBUG_LOG_SYNC = false
-
-// function createOpenRPCClient(url: string) {
-//   const transport = new WebSocketTransport(url)
-//   const requestManager = new RequestManager([transport])
-//   transport.connection.on('error', (error) =>
-//     console.error('Language Server transport error:', error),
-//   )
-//   return new Client(requestManager)
-// }
 
 export class LanguageServerSession {
   clientId: Uuid
