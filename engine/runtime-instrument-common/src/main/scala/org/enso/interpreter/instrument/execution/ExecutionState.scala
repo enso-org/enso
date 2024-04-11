@@ -6,5 +6,5 @@ final class ExecutionState {
   /** The storage for pending file edits */
   val pendingEdits: PendingEdits = new PendingFileEdits()
 
-  val suggestions: ModuleIndexing = new ModuleIndexing()
+  val suggestions: ModuleIndexing = ModuleIndexing.getInstance()
 }

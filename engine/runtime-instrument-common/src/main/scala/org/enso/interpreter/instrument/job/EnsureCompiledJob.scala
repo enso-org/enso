@@ -124,12 +124,19 @@ final class EnsureCompiledJob(
               // Side-effect: ensures that module's source is correctly initialized.
               module.getSource()
               invalidateCaches(module, changeset)
-              if (ctx.state.suggestions.isIndexed(module)) {
+              val state =
+                ctx.state.suggestions.getOrCreateFresh(module, module.getIr)
+              if (state.isIndexed) {
                 ctx.jobProcessor.runBackground(
-                  AnalyzeModuleJob(module, changeset)
+                  AnalyzeModuleJob(module, state, module.getIr(), changeset)
                 )
               } else {
-                AnalyzeModuleJob.analyzeModule(module, changeset)
+                AnalyzeModuleJob.analyzeModule(
+                  module,
+                  state,
+                  module.getIr(),
+                  changeset
+                )
               }
               runCompilationDiagnostics(module)
             }
@@ -146,7 +153,7 @@ final class EnsureCompiledJob(
     ctx: RuntimeContext
   ): Iterable[CompilationStatus] = {
     val notIndexedModulesInScope =
-      modulesInScope.filter(m => !ctx.state.suggestions.isIndexed(m))
+      modulesInScope.filterNot(ctx.state.suggestions.isIndexed)
     val (modulesToAnalyzeBuilder, compilationStatusesBuilder) =
       notIndexedModulesInScope.foldLeft(
         (Set.newBuilder[Module], Vector.newBuilder[CompilationStatus])
@@ -178,7 +185,15 @@ final class EnsureCompiledJob(
     val modulesToAnalyze = modulesToAnalyzeBuilder.result()
     if (modulesToAnalyze.nonEmpty) {
       ctx.jobProcessor.runBackground(
-        AnalyzeModuleInScopeJob(modulesToAnalyze)
+        AnalyzeModuleInScopeJob(
+          modulesToAnalyze.map(m =>
+            (
+              m,
+              ctx.state.suggestions.getOrCreateFresh(m, m.getIr),
+              m.getSource() != null
+            )
+          )
+        )
       )
     }
     compilationStatusesBuilder.result()

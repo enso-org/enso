@@ -8,11 +8,10 @@ import org.enso.interpreter.runtime.Module;
 public final class ModuleIndexing {
 
   /**
-   * State of indexing encapsulating the indexed IR
+   * State of indexing encapsulating for a given IR
    *
    * @param isIndexed true, if IR has been already indexed. False otherwise
    * @param ir IR of a module that has been/needs to be indexed
-   * @param hasSource true, if
    */
   public record IndexState(boolean isIndexed, IR ir, IndexState from) {
     private IndexState toIndexed() {
@@ -45,26 +44,45 @@ public final class ModuleIndexing {
     return result != null && result.isIndexed();
   }
 
+  /**
+   * Get index state for a module or assigns a new one.
+   *
+   * @param module module for which lookup is performed
+   * @param ir IR for which index is calculated, if new
+   * @return index state assigned to the module, or a new one if absent
+   */
   public IndexState getOrCreateFresh(Module module, IR ir) {
     return modules.computeIfAbsent(module, m -> new IndexState(false, ir, null));
   }
 
   /**
-   * Stores the updated state for the module iff the state was the last to be returned.
+   * Attempts to update the index state for a module. If the provided state does not match the one
+   * currently assigned to the module, no update is performed.
    *
-   * @return true if the operation of updating the state was successful, false otherwise.
+   * @param state reference index state to be updated
+   * @return true if the operation of updating the state was successful, false if the reference
+   *     state was not up-to-date.
    */
   public boolean markAsIndexed(Module module, IndexState state) {
     var computed = modules.compute(module, (k, v) -> v == state ? state.toIndexed() : v);
     return computed.from() == state;
   }
 
+  /**
+   * Attempts to update the index state for a module with a given IR. If the provided state does not
+   * match the one currently assigned to the module, no update is performed.
+   *
+   * @param state reference index state to be updated
+   * @param ir IR for which the index has been calculated
+   * @return true if the operation of updating the state was successful, false if the reference
+   *     state was not up-to-date.
+   */
   public boolean updateState(Module module, IndexState state, IR ir) {
     var computed = modules.compute(module, (k, v) -> v == state ? state.withIr(ir) : v);
     return computed.from() == state;
   }
 
-  /** Marks the module as requiring indexing. */
+  /** Clear index state for a provided module. */
   public void markIndexAsDirty(Module module) {
     modules.compute(module, (k, v) -> null);
   }
