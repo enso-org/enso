@@ -307,16 +307,20 @@ function isHandledByCheckboxWidget(parameter: SuggestionEntryArgument | undefine
   )
 }
 
-export const widgetDefinition = defineWidget(WidgetInput.isAstOrPlaceholder, {
-  priority: 50,
-  score: (props) =>
-    props.input[CustomDropdownItemsKey] != null ? Score.Perfect
-    : props.input.dynamicConfig?.kind === 'Single_Choice' ? Score.Perfect
-    : props.input.dynamicConfig?.kind === 'Multiple_Choice' ? Score.Perfect
-    : isHandledByCheckboxWidget(props.input[ArgumentInfoKey]?.info) ? Score.Mismatch
-    : props.input[ArgumentInfoKey]?.info?.tagValues != null ? Score.Perfect
-    : Score.Mismatch,
-})
+export const widgetDefinition = defineWidget(
+  WidgetInput.isAstOrPlaceholder,
+  {
+    priority: 50,
+    score: (props) =>
+      props.input[CustomDropdownItemsKey] != null ? Score.Perfect
+      : props.input.dynamicConfig?.kind === 'Single_Choice' ? Score.Perfect
+      : props.input.dynamicConfig?.kind === 'Multiple_Choice' ? Score.Perfect
+      : isHandledByCheckboxWidget(props.input[ArgumentInfoKey]?.info) ? Score.Mismatch
+      : props.input[ArgumentInfoKey]?.info?.tagValues != null ? Score.Perfect
+      : Score.Mismatch,
+  },
+  import.meta.hot,
+)
 
 /** Custom item added to dropdown. These items can’t be selected, but can be clicked. */
 export interface CustomDropdownItem {

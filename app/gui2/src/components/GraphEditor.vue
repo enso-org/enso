@@ -41,7 +41,7 @@ import { Rect } from '@/util/data/rect'
 import { Vec2 } from '@/util/data/vec2'
 import { encoding, set } from 'lib0'
 import { encodeMethodPointer } from 'shared/languageServerTypes'
-import { computed, onMounted, ref, toRef, watch } from 'vue'
+import { computed, onMounted, ref, shallowRef, toRef, watch } from 'vue'
 import { type Usage } from './ComponentBrowser/input'
 import { useGraphEditorClipboard } from './GraphEditor/clipboard'
 
@@ -91,6 +91,7 @@ useGraphEditorToasts()
 
 // === Selection ===
 
+const graphNodeSelections = shallowRef<HTMLElement>()
 const nodeSelection = provideGraphSelection(
   graphNavigator,
   graphStore.nodeRects,
@@ -543,6 +544,7 @@ const groupColors = computed(() => {
   >
     <div class="layer" :style="{ transform: graphNavigator.transform }">
       <GraphNodes
+        :graphNodeSelections="graphNodeSelections"
         @nodeOutputPortDoubleClick="handleNodeOutputPortDoubleClick"
         @nodeDoubleClick="(id) => stackNavigator.enterNode(id)"
         @createNodes="createNodesFromSource"
@@ -558,7 +560,7 @@ const groupColors = computed(() => {
       />
     </div>
     <div
-      id="graphNodeSelections"
+      ref="graphNodeSelections"
       class="layer"
       :style="{ transform: graphNavigator.transform, 'z-index': -1 }"
     />
