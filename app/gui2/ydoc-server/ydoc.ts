@@ -165,9 +165,12 @@ class YjsConnection extends ObservableV2<{ close(): void }> {
   }
 
   send(message: Uint8Array) {
-    if (this.ws.readyState !== WebSocket.CONNECTING && this.ws.readyState !== WebSocket.OPEN) {
+    if (this.ws.readyState !== 0 && this.ws.readyState !== 1) {
       this.close()
     }
+    /* if (this.ws.readyState !== WebSocket.CONNECTING && this.ws.readyState !== WebSocket.OPEN) {
+      this.close()
+    } */
     try {
       this.ws.send(message, (error) => error && this.close())
     } catch (e) {

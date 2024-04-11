@@ -128,7 +128,6 @@ public final class WebSocketPolyfill implements ProxyExecutable, Polyfill {
                 }
 
                 var wsClient = WsClient.builder()
-                        .addHeader("Connection", "Upgrade")
                         .protocolConfig(protocolConfig.build())
                         .build();
                 wsClient.connect(uri, connection);
@@ -284,6 +283,7 @@ public final class WebSocketPolyfill implements ProxyExecutable, Polyfill {
                     listener.executeVoid(event);
                 } catch (Exception e) {
                     System.err.println("Error dispatching event [" + type + "] " + listener + " " + event + " " + e);
+                    e.printStackTrace(System.err);
                 }
             });
         }
