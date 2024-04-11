@@ -21,7 +21,7 @@ export default function MembersSettingsTab() {
     <SettingsPage>
       <SettingsSection noFocusArea title={getText('members')}>
         <MembersSettingsTabBar />
-        <MembersTable />
+        <MembersTable allowDelete />
       </SettingsSection>
     </SettingsPage>
   )

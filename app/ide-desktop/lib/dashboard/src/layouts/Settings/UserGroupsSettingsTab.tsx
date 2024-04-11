@@ -139,6 +139,7 @@ export default function MemberRolesSettingsTab() {
     try {
       await backend.deleteUserGroup(userGroup.id, userGroup.groupName)
     } catch (error) {
+      toastAndLog('deleteUserGroupError', error, userGroup.groupName)
       const usersInGroup = usersByGroup.get(userGroup.id)
       setUserGroups(oldUserGroups => [
         ...(oldUserGroups?.filter(otherUserGroup => otherUserGroup.id !== userGroup.id) ?? []),
@@ -182,6 +183,7 @@ export default function MemberRolesSettingsTab() {
         otherUser.name
       )
     } catch (error) {
+      toastAndLog('removeUserFromUserGroupError', error, otherUser.name, userGroup.groupName)
       setUsers(
         oldUsers =>
           oldUsers?.map(oldUser =>

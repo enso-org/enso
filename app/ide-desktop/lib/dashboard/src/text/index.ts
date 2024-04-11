@@ -53,6 +53,9 @@ interface PlaceholderOverrides {
   readonly downloadProjectError: [string]
   readonly downloadFileError: [string]
   readonly downloadDataLinkError: [string]
+  readonly deleteUserGroupError: [string]
+  readonly removeUserFromUserGroupError: [string, string]
+  readonly deleteUserError: [string]
 
   readonly inviteUserBackendError: [string]
   readonly changeUserGroupsBackendError: [string]

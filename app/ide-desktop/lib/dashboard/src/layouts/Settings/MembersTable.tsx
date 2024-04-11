@@ -1,15 +1,19 @@
 /** @file A list of members in the organization. */
 import * as React from 'react'
 
+import Cross2 from 'enso-assets/cross2.svg'
+
 import * as mimeTypes from '#/data/mimeTypes'
 
 import * as asyncEffectHooks from '#/hooks/asyncEffectHooks'
+import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
 import * as backendProvider from '#/providers/BackendProvider'
 import * as textProvider from '#/providers/TextProvider'
 
 import * as aria from '#/components/aria'
 import StatelessSpinner, * as statelessSpinner from '#/components/StatelessSpinner'
+import UnstyledButton from '#/components/UnstyledButton'
 
 import * as backendModule from '#/services/Backend'
 
@@ -28,6 +32,7 @@ export default function MembersTable(props: MembersTableProps) {
   const { draggable = false, allowDelete = false } = props
   const { backend } = backendProvider.useBackend()
   const { getText } = textProvider.useText()
+  const toastAndLog = toastAndLogHooks.useToastAndLog()
   const [selectedKeys, setSelectedKeys] = React.useState<aria.Selection>(new Set())
   const rootRef = React.useRef<HTMLTableElement | null>(null)
   const members = asyncEffectHooks.useAsyncEffect(null, () => backend.listUsers(), [backend])
@@ -78,6 +83,16 @@ export default function MembersTable(props: MembersTableProps) {
     }
   }, [])
 
+  const doDeleteUser = async (user: backendModule.User) => {
+    try {
+      await Promise.resolve()
+      throw new Error('Not implemented yet')
+    } catch (error) {
+      toastAndLog('deleteUserError', error, user.name)
+      return
+    }
+  }
+
   return (
     <aria.Table
       ref={rootRef}
@@ -90,6 +105,8 @@ export default function MembersTable(props: MembersTableProps) {
       {...(draggable ? { dragAndDropHooks } : {})}
     >
       <aria.TableHeader className="h-row">
+        {/* Delete button. */}
+        {allowDelete && <aria.Column className="border-0" />}
         <aria.Column
           isRowHeader
           className="w-members-name-column border-x-2 border-transparent bg-clip-padding px-cell-x text-left text-sm font-semibold last:border-r-0"
@@ -106,7 +123,7 @@ export default function MembersTable(props: MembersTableProps) {
             <aria.Cell
               ref={element => {
                 if (element != null) {
-                  element.colSpan = 2
+                  element.colSpan = allowDelete ? 3 : 2
                 }
               }}
               className="rounded-full bg-transparent"
@@ -119,6 +136,18 @@ export default function MembersTable(props: MembersTableProps) {
         ) : (
           members.map(member => (
             <aria.Row key={member.userId} id={member.userId} className="group h-row">
+              {allowDelete && (
+                <aria.Cell className="bg-transparent p transparent group-hover-2:opacity-100">
+                  <UnstyledButton
+                    onPress={() => {
+                      void doDeleteUser(member)
+                    }}
+                    className="translate-x-indent-1"
+                  >
+                    <img src={Cross2} className="size-icon" />
+                  </UnstyledButton>
+                </aria.Cell>
+              )}
               <aria.Cell className="text border-x-2 border-transparent bg-clip-padding px-cell-x first:rounded-l-full last:rounded-r-full last:border-r-0 group-selected:bg-selected-frame">
                 {draggable && <aria.Button slot="drag" />}
                 {member.name}
