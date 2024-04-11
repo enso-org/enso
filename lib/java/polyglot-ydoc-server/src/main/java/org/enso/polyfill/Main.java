@@ -37,7 +37,7 @@ public class Main {
                 .allowExperimentalOptions(true)
                 .option("js.commonjs-require", "true")
                 .option("js.commonjs-require-cwd", commonJsRoot);
-        var chromePort = 34567; //Integer.getInteger("inspectPort", -1);
+        var chromePort = Integer.getInteger("inspectPort", -1);
         if (chromePort > 0) {
             b.option("inspect", ":" + chromePort);
         }

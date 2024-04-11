@@ -3,6 +3,7 @@
 import { getDefines, readEnvironmentFromFile } from 'enso-common/src/appConfig'
 import { fileURLToPath } from 'node:url'
 import { defineConfig } from 'vite'
+
 const localServerPort = 8080
 const projectManagerUrl = 'ws://127.0.0.1:30535'
 
@@ -20,6 +21,7 @@ export default defineConfig({
     alias: {
       shared: fileURLToPath(new URL('./shared', import.meta.url)),
       '@': fileURLToPath(new URL('./src', import.meta.url)),
+      //ws: fileURLToPath(new URL('../../node_modules/ws/index.js', import.meta.url)),
     },
   },
   define: {
@@ -31,17 +33,17 @@ export default defineConfig({
     // Single hardcoded usage of `global` in aws-amplify.
     'global.TYPED_ARRAY_SUPPORT': true,
     // One of the libraries refers to self in `self.fetch.bind(self)`
-    'self': 'globalThis'
+    self: 'globalThis',
   },
   build: {
     minify: false, // For debugging
     emptyOutDir: true,
     outDir: '../../lib/java/polyglot-ydoc-server/target/classes/dist',
-    /* lib: {
-      entry: fileURLToPath(new URL('ydoc-server/server.ts', import.meta.url)),
+    /*lib: {
       name: 'ydocServer',
-      fileName: 'ydocServer'
-    }, */
+      entry: fileURLToPath(new URL('ydoc-server/server.ts', import.meta.url)),
+      fileName: () => 'ydocServer.js',
+    },*/
     rollupOptions: {
       input: {
         ydocServer: fileURLToPath(new URL('ydoc-server/server.ts', import.meta.url)),

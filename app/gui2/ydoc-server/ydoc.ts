@@ -18,6 +18,10 @@ const pingTimeout = 30000
 const messageSync = 0
 const messageAwareness = 1
 
+// Workaround 'ws' dependency
+const CONNECTING = 0
+const OPEN = 1
+
 interface AwarenessUpdate {
   added: number[]
   updated: number[]
@@ -165,12 +169,9 @@ class YjsConnection extends ObservableV2<{ close(): void }> {
   }
 
   send(message: Uint8Array) {
-    if (this.ws.readyState !== 0 && this.ws.readyState !== 1) {
+    if (this.ws.readyState !== CONNECTING && this.ws.readyState !== OPEN) {
       this.close()
     }
-    /* if (this.ws.readyState !== WebSocket.CONNECTING && this.ws.readyState !== WebSocket.OPEN) {
-      this.close()
-    } */
     try {
       this.ws.send(message, (error) => error && this.close())
     } catch (e) {
