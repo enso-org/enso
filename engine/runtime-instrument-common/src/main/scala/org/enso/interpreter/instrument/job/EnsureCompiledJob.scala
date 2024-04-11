@@ -153,7 +153,10 @@ final class EnsureCompiledJob(
     ctx: RuntimeContext
   ): Iterable[CompilationStatus] = {
     val notIndexedModulesInScope =
-      modulesInScope.filterNot(ctx.state.suggestions.isIndexed)
+      modulesInScope.filter(m => {
+        val state = ctx.state.suggestions.find(m)
+        state == null || !state.isIndexed
+      })
     val (modulesToAnalyzeBuilder, compilationStatusesBuilder) =
       notIndexedModulesInScope.foldLeft(
         (Set.newBuilder[Module], Vector.newBuilder[CompilationStatus])

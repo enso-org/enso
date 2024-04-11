@@ -3,7 +3,6 @@ package org.enso.interpreter.instrument.execution;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicBoolean;
-
 import org.enso.compiler.core.IR;
 import org.enso.interpreter.runtime.Module;
 
@@ -33,16 +32,15 @@ public final class ModuleIndexing {
     this.modules = new ConcurrentHashMap<>();
   }
 
-  public static ModuleIndexing getInstance() {
+  public static ModuleIndexing createInstance() {
     return new ModuleIndexing();
   }
 
   /**
    * @return true, if module has been isIndexed. False otherwise.
    */
-  public boolean isIndexed(Module module) {
-    var result = modules.get(module);
-    return result != null && result.isIndexed();
+  public IndexState find(Module module) {
+    return modules.get(module);
   }
 
   /**
@@ -66,14 +64,16 @@ public final class ModuleIndexing {
    */
   public boolean markAsIndexed(Module module, IndexState state) {
     AtomicBoolean updated = new AtomicBoolean(false);
-    modules.compute(module, (k, v) -> {
-      if (v == state) {
-        updated.set(true);
-        return state.toIndexed();
-      } else {
-        return v;
-      }
-    });
+    modules.compute(
+        module,
+        (k, v) -> {
+          if (v == state) {
+            updated.set(true);
+            return state.toIndexed();
+          } else {
+            return v;
+          }
+        });
     return updated.get();
   }
 
@@ -88,14 +88,16 @@ public final class ModuleIndexing {
    */
   public boolean updateState(Module module, IndexState state, IR ir) {
     AtomicBoolean updated = new AtomicBoolean(false);
-    modules.compute(module, (k, v) -> {
-      if (v == state) {
-        updated.set(true);
-        return state.withIr(ir);
-      } else {
-        return v;
-      }
-    });
+    modules.compute(
+        module,
+        (k, v) -> {
+          if (v == state) {
+            updated.set(true);
+            return state.withIr(ir);
+          } else {
+            return v;
+          }
+        });
     return updated.get();
   }
 
