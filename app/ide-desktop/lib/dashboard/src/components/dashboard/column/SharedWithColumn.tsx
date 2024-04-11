@@ -31,12 +31,13 @@ interface SharedWithColumnStateProp
 
 /** Props for a {@link SharedWithColumn}. */
 interface SharedWithColumnPropsInternal extends Pick<column.AssetColumnProps, 'item' | 'setItem'> {
+  readonly isReadonly?: boolean
   readonly state: SharedWithColumnStateProp
 }
 
 /** A column listing the users with which this asset is shared. */
 export default function SharedWithColumn(props: SharedWithColumnPropsInternal) {
-  const { item, setItem, state } = props
+  const { item, setItem, state, isReadonly = false } = props
   const { category, dispatchAssetEvent, setQuery } = state
   const asset = item.item
   const { user } = authProvider.useNonPartialUserSession()
@@ -44,6 +45,7 @@ export default function SharedWithColumn(props: SharedWithColumnPropsInternal) {
   const plusButtonRef = React.useRef<HTMLButtonElement>(null)
   const self = asset.permissions?.find(permission => permission.user.userId === user?.userId)
   const managesThisAsset =
+    !isReadonly &&
     category !== Category.trash &&
     (self?.permission === permissions.PermissionAction.own ||
       self?.permission === permissions.PermissionAction.admin)

@@ -475,6 +475,11 @@ export default class LocalBackend extends Backend {
   }
 
   /** Invalid operation. */
+  override restoreUser() {
+    return this.invalidOperation()
+  }
+
+  /** Invalid operation. */
   override deleteUser() {
     return this.invalidOperation()
   }

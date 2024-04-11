@@ -13,7 +13,7 @@ add_specs suite_builder =
     suite_builder.group "construction" group_builder->
         group_builder.specify "should be able to construct a Decimal from a string" <|
             Decimal.new "123.45" . should_have_rep [12345, 5, 2]
-            Decimal.parse "123.45" . should_have_rep [12345, 5, 2]
+            Decimal.from_string "123.45" . should_have_rep [12345, 5, 2]
 
         group_builder.specify "should throw Number_Parse_Error on a badly-formatted string" <|
             Decimal.new "ee" . should_fail_with Number_Parse_Error
@@ -31,7 +31,7 @@ add_specs suite_builder =
 
         group_builder.specify "should be able to construct a Decimal from a long string" <|
             Decimal.new "495782984723948723947239938732974241.2345" . should_have_rep [4957829847239487239472399387329742412345, 40, 4]
-            Decimal.parse "495782984723948723947239938732974241.2345" . should_have_rep [4957829847239487239472399387329742412345, 40, 4]
+            Decimal.from_string "495782984723948723947239938732974241.2345" . should_have_rep [4957829847239487239472399387329742412345, 40, 4]
 
         group_builder.specify "should be able to construct a Decimal from a small integer" <|
             Decimal.new 1234500 . should_have_rep [1234500, 7, 0]
@@ -112,7 +112,7 @@ add_specs suite_builder =
 
         group_builder.specify "should be convertible via .from" <|
             Decimal.from "123.45" . should_equal (Decimal.new "123.45")
-            Decimal.from "123.45" . should_equal (Decimal.parse "123.45")
+            Decimal.from "123.45" . should_equal (Decimal.from_string "123.45")
             Decimal.from 123.45 . should_equal (Decimal.new 123.45)
             Decimal.from 123.45 . should_equal (Decimal.from_float 123.45)
             Decimal.from 12345 . should_equal (Decimal.new 12345)
@@ -663,6 +663,51 @@ add_specs suite_builder =
         group_builder.specify "should throw an error for exponent out of range" <|
             Decimal.new "10" . pow -1 . should_fail_with Arithmetic_Error
             Decimal.new "10" . pow 99999999999 . should_fail_with Arithmetic_Error
+
+    suite_builder.group "text conversion" group_builder->
+        group_builder.specify "should convert to text correctly" <|
+            Decimal.new "34.56" . to_text . should_equal "34.56"
+            Decimal.new "34.56" . to_display_text . should_equal "34.56"
+            Decimal.new "123E80" . to_text . should_equal "1.23E+82"
+            Decimal.new "123E80" . to_display_text . should_equal "1.23E+82"
+            Decimal.new "0.00016E-20" . to_text . should_equal "1.6E-24"
+            Decimal.new "0.00016E-20" . to_display_text . should_equal "1.6E-24"
+
+            Decimal.new "-34.56" . to_text . should_equal "-34.56"
+            Decimal.new "-34.56" . to_display_text . should_equal "-34.56"
+            Decimal.new "-123E80" . to_text . should_equal "-1.23E+82"
+            Decimal.new "-123E80" . to_display_text . should_equal "-1.23E+82"
+            Decimal.new "-0.00016E-20" . to_text . should_equal "-1.6E-24"
+            Decimal.new "-0.00016E-20" . to_display_text . should_equal "-1.6E-24"
+
+        group_builder.specify "should convert to text without scientific notation correctly" <|
+            Decimal.new "34.56" . to_text_without_scientific_notation . should_equal "34.56"
+            Decimal.new "123E80" . to_text_without_scientific_notation . should_equal "12300000000000000000000000000000000000000000000000000000000000000000000000000000000"
+            Decimal.new "0.00016E-20" . to_text_without_scientific_notation . should_equal "0.0000000000000000000000016"
+
+            Decimal.new "-34.56" . to_text_without_scientific_notation . should_equal "-34.56"
+            Decimal.new "-123E80" . to_text_without_scientific_notation . should_equal "-12300000000000000000000000000000000000000000000000000000000000000000000000000000000"
+            Decimal.new "-0.00016E-20" . to_text_without_scientific_notation . should_equal "-0.0000000000000000000000016"
+
+        group_builder.specify "should format correctly" <|
+            d = Decimal.new "123456789.87654"
+
+            d.format . should_equal "123,456,789.87654"
+            d.format locale=Locale.italy . should_equal "123.456.789,87654"
+            d.format format="#,###.##" . should_equal "123,456,789.88"
+            d.format format="#,###.##" locale=Locale.italy . should_equal "123.456.789,88"
+            d.format format="#,##.##" . should_equal "1,23,45,67,89.88"
+            d.format format="#,##.##" locale=Locale.italy . should_equal "1.23.45.67.89,88"
+
+        group_builder.specify "should parse correctly" <|
+            Decimal.parse "123456789.87654" . should_equal 123456789.87654
+            Decimal.parse "123,456,789.87654" locale=Locale.default . should_equal 123456789.87654
+            Decimal.parse "123,456,789.87654" locale=Locale.us . should_equal 123456789.87654
+            Decimal.parse "123.456.789,87654" locale=Locale.italy . should_equal 123456789.87654
+            Decimal.parse "123,456,789.87654" locale=Locale.italy . should_equal 123.456
+            Decimal.parse "123.456.789,87654" locale=Locale.us . should_equal 123.456
+
+            Decimal.parse "123,456,789.87654" . should_fail_with Number_Parse_Error
 
     suite_builder.group "signs" group_builder->
         group_builder.specify "should calculate abs correctly" <|
