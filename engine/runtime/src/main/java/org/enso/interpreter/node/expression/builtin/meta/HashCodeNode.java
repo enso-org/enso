@@ -143,7 +143,7 @@ public abstract class HashCodeNode extends Node {
     return bigInteger.getValue().hashCode();
   }
 
-  @Specialization(guards = {"interop.isNumber(v)"})
+  @Specialization(guards = {"interop.fitsInLong(v) || interop.fitsInBigInteger(v)"})
   @TruffleBoundary
   long hashCodeForBigInteger(
       Object v, @Shared("interop") @CachedLibrary(limit = "10") InteropLibrary interop) {
