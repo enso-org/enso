@@ -20,6 +20,12 @@ import type { ExternalId, SourceRange, VisualizationMetadata } from 'shared/yjsM
 import { isUuid, sourceRangeKey, visMetadataEquals } from 'shared/yjsModel'
 import { reactive, ref, type Ref } from 'vue'
 
+export interface MethodCallInfo {
+  methodCall: MethodCall
+  suggestion: SuggestionEntry
+  partiallyApplied: boolean
+}
+
 export interface BindingInfo {
   identifier: string
   usages: Set<AstId>
@@ -267,11 +273,7 @@ export class GraphDb {
     )
   }
 
-  getMethodCallInfo(
-    id: AstId,
-  ):
-    | { methodCall: MethodCall; suggestion: SuggestionEntry; partiallyApplied: boolean }
-    | undefined {
+  getMethodCallInfo(id: AstId): MethodCallInfo | undefined {
     const info = this.getExpressionInfo(id)
     if (info == null) return
     const payloadFuncSchema =

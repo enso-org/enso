@@ -17,12 +17,14 @@ import { useProjectStore, type NodeVisualizationConfiguration } from '@/stores/p
 import { entryQn } from '@/stores/suggestionDatabase/entry'
 import { assert, assertUnreachable } from '@/util/assert'
 import { Ast } from '@/util/ast'
+import type { AstId } from '@/util/ast/abstract'
 import {
   ArgumentApplication,
   ArgumentApplicationKey,
   ArgumentAst,
   ArgumentPlaceholder,
   getAccessOprSubject,
+  getMethodCallInfoRecursively,
   interpretCall,
 } from '@/util/callTree'
 import { partitionPoint } from '@/util/data/array'
@@ -38,11 +40,20 @@ const project = useProjectStore()
 provideFunctionInfo(
   proxyRefs({
     callId: computed(() => props.input.value.id),
+    prefixCalls: computed(() => {
+      const ids: AstId[] = []
+      let ast: any = props.input.value
+      while (ast instanceof Ast.App) {
+        ids.push(ast.function.id)
+        ast = ast.function
+      }
+      return ids
+    }),
   }),
 )
 
 const methodCallInfo = computed(() => {
-  return graph.db.getMethodCallInfo(props.input.value.id)
+  return getMethodCallInfoRecursively(props.input.value, graph.db)
 })
 
 const interpreted = computed(() => {
@@ -306,9 +317,12 @@ export const widgetDefinition = defineWidget(WidgetInput.isFunctionCall, {
     // and to resolve the infix call as its own application.
     if (prevFunctionState?.callId === ast.id) return Score.Mismatch
 
+    // We only render the function widget on the top-level AST node.
+    if (prevFunctionState?.prefixCalls.includes(ast.id)) return Score.Mismatch
+
     if (ast instanceof Ast.App || ast instanceof Ast.OprApp) return Score.Perfect
 
-    const info = db.getMethodCallInfo(ast.id)
+    const info = getMethodCallInfoRecursively(ast, db)
     if (prevFunctionState != null && info?.partiallyApplied === true && ast instanceof Ast.Ident) {
       return Score.Mismatch
     }
