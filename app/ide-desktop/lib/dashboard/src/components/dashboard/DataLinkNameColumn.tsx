@@ -39,11 +39,11 @@ export default function DataLinkNameColumn(props: DataLinkNameColumnProps) {
   const toastAndLog = toastAndLogHooks.useToastAndLog()
   const { backend } = backendProvider.useBackend()
   const inputBindings = inputBindingsProvider.useInputBindings()
-  const asset = item.item
-  if (asset.type !== backendModule.AssetType.dataLink) {
+  if (item.type !== backendModule.AssetType.dataLink) {
     // eslint-disable-next-line no-restricted-syntax
     throw new Error('`DataLinkNameColumn` can only display Data Links.')
   }
+  const asset = item.item
   const setAsset = setAssetHooks.useSetAsset(asset, setItem)
 
   const setIsEditing = (isEditingName: boolean) => {

@@ -26,7 +26,7 @@ export interface GlobalContextMenuProps {
   readonly directoryId: backendModule.DirectoryId | null
   readonly dispatchAssetListEvent: (event: assetListEventModule.AssetListEvent) => void
   readonly doPaste: (
-    newParentKey: backendModule.AssetId,
+    newParentKey: backendModule.DirectoryId,
     newParentId: backendModule.DirectoryId
   ) => void
 }
@@ -106,7 +106,8 @@ export default function GlobalContextMenu(props: GlobalContextMenuProps) {
             parentKey: directoryKey ?? rootDirectoryId,
             parentId: directoryId ?? rootDirectoryId,
             templateId: null,
-            templateName: null,
+            datalinkId: null,
+            preferredName: null,
             onSpinnerStateChange: null,
           })
         }}

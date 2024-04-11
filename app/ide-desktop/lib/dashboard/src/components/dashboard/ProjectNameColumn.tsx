@@ -51,11 +51,11 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
   const { user } = authProvider.useNonPartialUserSession()
   const { getText } = textProvider.useText()
   const inputBindings = inputBindingsProvider.useInputBindings()
-  const asset = item.item
-  if (asset.type !== backendModule.AssetType.project) {
+  if (item.type !== backendModule.AssetType.project) {
     // eslint-disable-next-line no-restricted-syntax
     throw new Error('`ProjectNameColumn` can only display projects.')
   }
+  const asset = item.item
   const setAsset = setAssetHooks.useSetAsset(asset, setItem)
   const ownPermission =
     asset.permissions?.find(permission => permission.user.userId === user?.userId) ?? null
@@ -142,7 +142,8 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
               const createdProject = await backend.createProject({
                 parentDirectoryId: asset.parentId,
                 projectName: asset.title,
-                projectTemplateName: event.templateId,
+                ...(event.templateId == null ? {} : { projectTemplateName: event.templateId }),
+                ...(event.datalinkId == null ? {} : { datalinkId: event.datalinkId }),
               })
               rowState.setVisibility(Visibility.visible)
               setAsset(

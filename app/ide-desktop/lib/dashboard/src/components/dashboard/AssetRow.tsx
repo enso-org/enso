@@ -32,6 +32,7 @@ import * as backendModule from '#/services/Backend'
 import * as localBackend from '#/services/LocalBackend'
 import * as projectManager from '#/services/ProjectManager'
 
+import type * as assetTreeNode from '#/utilities/AssetTreeNode'
 import AssetTreeNode from '#/utilities/AssetTreeNode'
 import * as dateTime from '#/utilities/dateTime'
 import * as download from '#/utilities/download'
@@ -61,8 +62,8 @@ const DRAG_EXPAND_DELAY_MS = 500
 /** Common properties for state and setters passed to event handlers on an {@link AssetRow}. */
 export interface AssetRowInnerProps {
   readonly key: backendModule.AssetId
-  readonly item: AssetTreeNode
-  readonly setItem: React.Dispatch<React.SetStateAction<AssetTreeNode>>
+  readonly item: assetTreeNode.AnyAssetTreeNode
+  readonly setItem: React.Dispatch<React.SetStateAction<assetTreeNode.AnyAssetTreeNode>>
   readonly state: assetsTable.AssetsTableState
   readonly rowState: assetsTable.AssetRowState
   readonly setRowState: React.Dispatch<React.SetStateAction<assetsTable.AssetRowState>>
@@ -71,7 +72,7 @@ export interface AssetRowInnerProps {
 /** Props for an {@link AssetRow}. */
 export interface AssetRowProps
   extends Readonly<Omit<JSX.IntrinsicElements['tr'], 'onClick' | 'onContextMenu'>> {
-  readonly item: AssetTreeNode
+  readonly item: assetTreeNode.AnyAssetTreeNode
   readonly state: assetsTable.AssetsTableState
   readonly hidden: boolean
   readonly columns: columnUtils.Column[]
@@ -189,7 +190,7 @@ export default function AssetRow(props: AssetRowProps) {
 
   const doMove = React.useCallback(
     async (
-      newParentKey: backendModule.AssetId | null,
+      newParentKey: backendModule.DirectoryId | null,
       newParentId: backendModule.DirectoryId | null
     ) => {
       const rootDirectoryId = user?.rootDirectoryId ?? backendModule.DirectoryId('')
@@ -726,7 +727,7 @@ export default function AssetRow(props: AssetRowProps) {
                   unsetModal()
                   onClick(innerProps, event)
                   if (
-                    asset.type === backendModule.AssetType.directory &&
+                    item.type === backendModule.AssetType.directory &&
                     eventModule.isDoubleClick(event) &&
                     !rowState.isEditingName
                   ) {
@@ -735,7 +736,7 @@ export default function AssetRow(props: AssetRowProps) {
                     window.setTimeout(() => {
                       setSelected(false)
                     })
-                    doToggleDirectoryExpansion(asset.id, item.key, asset.title)
+                    doToggleDirectoryExpansion(item.item.id, item.key, asset.title)
                   }
                 }}
                 onContextMenu={event => {
@@ -772,9 +773,9 @@ export default function AssetRow(props: AssetRowProps) {
                   if (dragOverTimeoutHandle.current != null) {
                     window.clearTimeout(dragOverTimeoutHandle.current)
                   }
-                  if (backendModule.assetIsDirectory(asset)) {
+                  if (item.type === backendModule.AssetType.directory) {
                     dragOverTimeoutHandle.current = window.setTimeout(() => {
-                      doToggleDirectoryExpansion(asset.id, item.key, asset.title, true)
+                      doToggleDirectoryExpansion(item.item.id, item.key, asset.title, true)
                     }, DRAG_EXPAND_DELAY_MS)
                   }
                   // Required because `dragover` does not fire on `mouseenter`.
@@ -814,7 +815,7 @@ export default function AssetRow(props: AssetRowProps) {
                     props.onDrop?.(event)
                     clearDragState()
                     const [directoryKey, directoryId, directoryTitle] =
-                      item.item.type === backendModule.AssetType.directory
+                      item.type === backendModule.AssetType.directory
                         ? [item.key, item.item.id, asset.title]
                         : [item.directoryKey, item.directoryId, null]
                     const payload = drag.ASSET_ROWS.lookup(event)
@@ -841,10 +842,7 @@ export default function AssetRow(props: AssetRowProps) {
                       doToggleDirectoryExpansion(directoryId, directoryKey, directoryTitle, true)
                       dispatchAssetListEvent({
                         type: AssetListEventType.uploadFiles,
-                        // This is SAFE, as it is guarded by the condition above:
-                        // `item.item.type === backendModule.AssetType.directory`
-                        // eslint-disable-next-line no-restricted-syntax
-                        parentKey: directoryKey as backendModule.DirectoryId,
+                        parentKey: directoryKey,
                         parentId: directoryId,
                         files: Array.from(event.dataTransfer.files),
                       })
