@@ -133,7 +133,7 @@ useEvent(window, 'keydown', (event) => {
     (!keyboardBusy() && graphBindingsHandler(event)) ||
     (!keyboardBusyExceptIn(codeEditorArea.value) && codeEditorHandler(event))
 })
-useEvent(window, 'pointerdown', (e) => interaction.handleClick(e, graphNavigator), {
+useEvent(window, 'pointerdown', (e) => interaction.handlePointerDown(e, graphNavigator), {
   capture: true,
 })
 

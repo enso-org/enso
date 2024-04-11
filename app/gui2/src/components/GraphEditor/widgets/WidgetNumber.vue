@@ -28,7 +28,7 @@ const limits = computed(() => {
   }
 })
 
-const editHandler = WidgetEditHandler.New(props.input, {
+const editHandler = WidgetEditHandler.New('WidgetNumber', props.input, {
   cancel: () => inputComponent.value?.cancel(),
   start: () => inputComponent.value?.focus(),
   end: () => inputComponent.value?.blur(),

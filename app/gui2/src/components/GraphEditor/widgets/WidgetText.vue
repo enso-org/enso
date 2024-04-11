@@ -15,12 +15,12 @@ const graph = useGraphStore()
 const input = ref<ComponentInstance<typeof AutoSizedInput>>()
 const widgetRoot = ref<HTMLElement>()
 
-const editing = WidgetEditHandler.New(props.input, {
+const editing = WidgetEditHandler.New('WidgetText', props.input, {
   cancel() {
     editedContents.value = textContents.value
     input.value?.blur()
   },
-  click(event) {
+  pointerdown(event) {
     if (targetIsOutside(event, unrefElement(input))) accepted()
     return false
   },

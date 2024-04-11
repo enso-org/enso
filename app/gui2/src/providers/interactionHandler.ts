@@ -33,6 +33,10 @@ export class InteractionHandler {
     }
   }
 
+  getCurrent(): Interaction | undefined {
+    return this.currentInteraction
+  }
+
   /** Unset the current interaction, if it is the specified instance. */
   end(interaction: Interaction) {
     if (this.isActive(interaction)) this.currentInteraction = undefined
@@ -49,9 +53,9 @@ export class InteractionHandler {
     return hasCurrent
   }
 
-  handleClick(event: PointerEvent, graphNavigator: GraphNavigator): boolean {
-    if (!this.currentInteraction?.click) return false
-    const handled = this.currentInteraction.click(event, graphNavigator) !== false
+  handlePointerDown(event: PointerEvent, graphNavigator: GraphNavigator): boolean {
+    if (!this.currentInteraction?.pointerdown) return false
+    const handled = this.currentInteraction.pointerdown(event, graphNavigator) !== false
     if (handled) {
       event.stopImmediatePropagation()
       event.preventDefault()
@@ -61,7 +65,7 @@ export class InteractionHandler {
 }
 
 export interface Interaction {
-  cancel?(): void
+  cancel(): void
   /** Uses a `capture` event handler to allow an interaction to respond to clicks over any element. */
-  click?(event: PointerEvent, navigator: GraphNavigator): boolean | void
+  pointerdown?(event: PointerEvent, navigator: GraphNavigator): boolean | void
 }

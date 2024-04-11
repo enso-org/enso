@@ -3,7 +3,6 @@ import NodeWidget from '@/components/GraphEditor/NodeWidget.vue'
 import SvgIcon from '@/components/SvgIcon.vue'
 import DropdownWidget, { type DropdownEntry } from '@/components/widgets/DropdownWidget.vue'
 import { unrefElement } from '@/composables/events'
-import type { PortId } from '@/providers/portInfo'
 import { defineWidget, Score, WidgetInput, widgetProps } from '@/providers/widgetRegistry'
 import {
   multipleChoiceConfiguration,
@@ -35,7 +34,7 @@ const tree = injectWidgetTree()
 
 const dropdownElement = ref<ComponentInstance<typeof DropdownWidget>>()
 
-const editedWidget = ref<PortId>()
+const editedWidget = ref<string>()
 const editedValue = ref<Ast.Owned | string | undefined>()
 const isHovered = ref(false)
 
@@ -99,12 +98,12 @@ class ActionTag {
 type ExpressionFilter = (tag: ExpressionTag) => boolean
 function makeExpressionFilter(pattern: Ast.Ast | string): ExpressionFilter | undefined {
   const editedAst = typeof pattern === 'string' ? Ast.parse(pattern) : pattern
+  const editedCode = pattern instanceof Ast.Ast ? pattern.code() : pattern
   if (editedAst instanceof Ast.TextLiteral) {
     return (tag: ExpressionTag) =>
       tag.expressionAst instanceof Ast.TextLiteral &&
       tag.expressionAst.rawTextContent.startsWith(editedAst.rawTextContent)
   }
-  const editedCode = pattern instanceof Ast.Ast ? pattern.code() : pattern
   if (editedCode) {
     return (tag: ExpressionTag) => tag.expression.startsWith(editedCode)
   }
@@ -179,24 +178,16 @@ const innerWidgetInput = computed<WidgetInput>(() => {
   }
 })
 const isMulti = computed(() => props.input.dynamicConfig?.kind === 'Multiple_Choice')
-const dropdownVisible = ref(false)
-const dropDownInteraction = WidgetEditHandler.New(props.input, {
-  cancel: () => {
-    dropdownVisible.value = false
-  },
-  click: (e, _, childHandler) => {
+const dropDownInteraction = WidgetEditHandler.New('WidgetSelection', props.input, {
+  cancel: () => {},
+  pointerdown: (e, _) => {
     if (targetIsOutside(e, unrefElement(dropdownElement))) {
-      if (childHandler) return childHandler()
-      else {
-        dropDownInteraction.end()
-        if (editedWidget.value)
-          props.onUpdate({ portUpdate: { origin: editedWidget.value, value: editedValue.value } })
-      }
+      dropDownInteraction.end()
+      if (editedWidget.value)
+        props.onUpdate({ portUpdate: { origin: props.input.portId, value: editedValue.value } })
     }
-    return false
   },
   start: () => {
-    dropdownVisible.value = true
     editedWidget.value = undefined
     editedValue.value = undefined
   },
@@ -204,19 +195,14 @@ const dropDownInteraction = WidgetEditHandler.New(props.input, {
     editedWidget.value = origin
     editedValue.value = value
   },
-  end: () => {
-    dropdownVisible.value = false
-  },
   addItem: () => {
-    dropdownVisible.value = true
-    editedWidget.value = undefined
-    editedValue.value = undefined
+    dropDownInteraction.start()
     return true
   },
 })
 
 function toggleDropdownWidget() {
-  if (!dropdownVisible.value) dropDownInteraction.start()
+  if (!dropDownInteraction.active.value) dropDownInteraction.start()
   else dropDownInteraction.cancel()
 }
 
@@ -285,7 +271,7 @@ function expressionTagClicked(tag: ExpressionTag, previousState: boolean) {
 }
 
 let endClippingInhibition: (() => void) | undefined
-watch(dropdownVisible, (visible) => {
+watch(dropDownInteraction.active, (visible) => {
   if (visible) {
     const { unregister } = tree.inhibitClipping()
     endClippingInhibition = unregister
@@ -352,11 +338,11 @@ declare module '@/providers/widgetRegistry' {
     <NodeWidget :input="innerWidgetInput" />
     <SvgIcon v-if="isHovered" name="arrow_right_head_only" class="arrow" />
     <DropdownWidget
-      v-if="dropdownVisible"
+      v-if="dropDownInteraction.active.value"
       ref="dropdownElement"
       :color="'var(--node-color-primary)'"
       :entries="entries"
-      @click="onClick"
+      @clickEntry="onClick"
     />
   </div>
 </template>
@@ -373,5 +359,7 @@ declare module '@/providers/widgetRegistry' {
   left: 50%;
   transform: translateX(-50%) rotate(90deg) scale(0.7);
   opacity: 0.5;
+  /* Prevent the parent from receiving a pointerout event if the mouse is over the arrow, which causes flickering. */
+  pointer-events: none;
 }
 </style>

@@ -90,10 +90,11 @@ test('Multi-selection widget', async ({ page }) => {
   await expect(vector).toBeVisible()
   await expect(vectorItems).toHaveCount(1)
   await expect(vectorItems.first()).toHaveValue('Column A')
-  // Known bug: Dropdown closes after first item has been set.
-  //await page.keyboard('Escape')
+  await dropDown.expectVisibleWithOptions(['Column A', 'Column B'])
 
-  // Add-item button opens dropdown.
+  // Add-item button opens dropdown, after closing with escape.
+  await page.keyboard.press('Escape')
+  await expect(page.locator('.Dropdown')).not.toBeVisible()
   await vector.locator('.add-item').click()
   await expect(dropDown.items).toHaveCount(2)
   await expect(dropDown.selectedItems).toHaveCount(1)
