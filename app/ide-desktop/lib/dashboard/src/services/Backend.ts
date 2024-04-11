@@ -130,6 +130,7 @@ export interface User extends UserInfo {
    * `usersMe` will not work. */
   readonly isEnabled: boolean
   readonly rootDirectoryId: DirectoryId
+  readonly removeAt?: dateTime.Rfc3339DateTime | null
 }
 
 /** A `Directory` returned by `createDirectory`. */
@@ -308,6 +309,7 @@ export interface SecretAndInfo {
 export interface SecretInfo {
   readonly name: string
   readonly id: SecretId
+  readonly path: string
 }
 
 /** A Data Link. */
@@ -904,7 +906,7 @@ export interface UpdateOrganizationRequestBody {
   name?: string
   email?: EmailAddress
   website?: HttpsUrl
-  location?: string
+  address?: string
 }
 
 /** HTTP request body for the "invite user" endpoint. */
@@ -1133,6 +1135,8 @@ export default abstract class Backend {
   abstract createUser(body: CreateUserRequestBody): Promise<User>
   /** Change the username of the current user. */
   abstract updateUser(body: UpdateUserRequestBody): Promise<void>
+  /** Restore the current user. */
+  abstract restoreUser(): Promise<void>
   /** Delete the current user. */
   abstract deleteUser(): Promise<void>
   /** Upload a new profile picture for the current user. */

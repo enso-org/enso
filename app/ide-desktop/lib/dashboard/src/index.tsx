@@ -12,8 +12,6 @@ import * as detect from 'enso-common/src/detect'
 import type * as app from '#/App'
 import App from '#/App'
 
-import ProjectManager from '#/services/ProjectManager'
-
 // =================
 // === Constants ===
 // =================
@@ -36,7 +34,7 @@ export // This export declaration must be broken up to satisfy the `require-jsdo
 // This is not a React component even though it contains JSX.
 // eslint-disable-next-line no-restricted-syntax
 function run(props: app.AppProps) {
-  const { logger, vibrancy, supportsDeepLinks, supportsLocalBackend } = props
+  const { logger, vibrancy, supportsDeepLinks } = props
   logger.log('Starting authentication/dashboard UI.')
   if (
     !detect.IS_DEV_MODE &&
@@ -56,8 +54,10 @@ function run(props: app.AppProps) {
             reactRouter.matchRoutes
           ),
         }),
+        new sentry.BrowserProfilingIntegration(),
         new sentry.Replay(),
       ],
+      profilesSampleRate: SENTRY_SAMPLE_RATE,
       tracesSampleRate: SENTRY_SAMPLE_RATE,
       tracePropagationTargets: [process.env.ENSO_CLOUD_API_URL.split('//')[1] ?? ''],
       replaysSessionSampleRate: SENTRY_SAMPLE_RATE,
@@ -77,22 +77,17 @@ function run(props: app.AppProps) {
     // `supportsDeepLinks` will be incorrect when accessing the installed Electron app's pages
     // via the browser.
     const actuallySupportsDeepLinks = supportsDeepLinks && detect.isOnElectron()
-    void (async () => {
-      if (supportsLocalBackend) {
-        await ProjectManager.loadRootDirectory()
-      }
-      reactDOM.createRoot(root).render(
-        <sentry.ErrorBoundary>
-          {detect.IS_DEV_MODE ? (
-            <React.StrictMode>
-              <App {...props} />
-            </React.StrictMode>
-          ) : (
-            <App {...props} supportsDeepLinks={actuallySupportsDeepLinks} />
-          )}
-        </sentry.ErrorBoundary>
-      )
-    })()
+    reactDOM.createRoot(root).render(
+      <sentry.ErrorBoundary>
+        {detect.IS_DEV_MODE ? (
+          <React.StrictMode>
+            <App {...props} />
+          </React.StrictMode>
+        ) : (
+          <App {...props} supportsDeepLinks={actuallySupportsDeepLinks} />
+        )}
+      </sentry.ErrorBoundary>
+    )
   }
 }
 

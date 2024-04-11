@@ -9,7 +9,6 @@ import { MockTransport, MockWebSocket } from '@/util/net'
 import { getActivePinia } from 'pinia'
 import { ref, type App } from 'vue'
 import { mockDataHandler, mockLSHandler } from './engine'
-export * as providers from './providers'
 export * as vue from './vue'
 
 export function languageServer() {

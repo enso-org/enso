@@ -38,7 +38,7 @@ export interface DirectoryNameColumnProps extends column.AssetColumnProps {}
  * @throws {Error} when the asset is not a {@link backendModule.DirectoryAsset}.
  * This should never happen. */
 export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
-  const { item, setItem, selected, state, rowState, setRowState } = props
+  const { item, setItem, selected, state, rowState, setRowState, isEditable } = props
   const { selectedKeys, assetEvents, dispatchAssetListEvent, nodeMap } = state
   const { doToggleDirectoryExpansion } = state
   const toastAndLog = toastAndLogHooks.useToastAndLog()
@@ -53,74 +53,86 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
   const setAsset = setAssetHooks.useSetAsset(asset, setItem)
   const isCloud = backend.type === backendModule.BackendType.remote
 
+  const setIsEditing = (isEditingName: boolean) => {
+    if (isEditable) {
+      setRowState(object.merger({ isEditingName }))
+    }
+  }
+
   const doRename = async (newTitle: string) => {
-    setRowState(object.merger({ isEditingName: false }))
-    if (string.isWhitespaceOnly(newTitle)) {
-      // Do nothing.
-    } else if (isCloud && newTitle !== asset.title) {
-      const oldTitle = asset.title
-      setAsset(object.merger({ title: newTitle }))
-      try {
-        await backend.updateDirectory(asset.id, { title: newTitle }, asset.title)
-      } catch (error) {
-        toastAndLog('renameFolderError', error)
-        setAsset(object.merger({ title: oldTitle }))
+    if (isEditable) {
+      setIsEditing(false)
+      if (string.isWhitespaceOnly(newTitle)) {
+        // Do nothing.
+      } else if (isCloud && newTitle !== asset.title) {
+        const oldTitle = asset.title
+        setAsset(object.merger({ title: newTitle }))
+        try {
+          await backend.updateDirectory(asset.id, { title: newTitle }, asset.title)
+        } catch (error) {
+          toastAndLog('renameFolderError', error)
+          setAsset(object.merger({ title: oldTitle }))
+        }
       }
     }
   }
 
-  eventHooks.useEventHandler(assetEvents, async event => {
-    switch (event.type) {
-      case AssetEventType.newProject:
-      case AssetEventType.uploadFiles:
-      case AssetEventType.newDataLink:
-      case AssetEventType.newSecret:
-      case AssetEventType.openProject:
-      case AssetEventType.updateFiles:
-      case AssetEventType.closeProject:
-      case AssetEventType.copy:
-      case AssetEventType.cut:
-      case AssetEventType.cancelCut:
-      case AssetEventType.move:
-      case AssetEventType.delete:
-      case AssetEventType.deleteForever:
-      case AssetEventType.restore:
-      case AssetEventType.download:
-      case AssetEventType.downloadSelected:
-      case AssetEventType.removeSelf:
-      case AssetEventType.temporarilyAddLabels:
-      case AssetEventType.temporarilyRemoveLabels:
-      case AssetEventType.addLabels:
-      case AssetEventType.removeLabels:
-      case AssetEventType.deleteLabel: {
-        // Ignored. These events should all be unrelated to directories.
-        // `delete`, `deleteForever`, `restore`, `download`, and `downloadSelected`
-        // are handled by`AssetRow`.
-        break
-      }
-      case AssetEventType.newFolder: {
-        if (item.key === event.placeholderId) {
-          rowState.setVisibility(Visibility.faded)
-          try {
-            const createdDirectory = await backend.createDirectory({
-              parentId: asset.parentId,
-              title: asset.title,
-            })
-            rowState.setVisibility(Visibility.visible)
-            setAsset(object.merge(asset, createdDirectory))
-          } catch (error) {
-            dispatchAssetListEvent({ type: AssetListEventType.delete, key: item.key })
-            toastAndLog('createFolderError', error)
-          }
+  eventHooks.useEventHandler(
+    assetEvents,
+    async event => {
+      switch (event.type) {
+        case AssetEventType.newProject:
+        case AssetEventType.uploadFiles:
+        case AssetEventType.newDataLink:
+        case AssetEventType.newSecret:
+        case AssetEventType.openProject:
+        case AssetEventType.updateFiles:
+        case AssetEventType.closeProject:
+        case AssetEventType.copy:
+        case AssetEventType.cut:
+        case AssetEventType.cancelCut:
+        case AssetEventType.move:
+        case AssetEventType.delete:
+        case AssetEventType.deleteForever:
+        case AssetEventType.restore:
+        case AssetEventType.download:
+        case AssetEventType.downloadSelected:
+        case AssetEventType.removeSelf:
+        case AssetEventType.temporarilyAddLabels:
+        case AssetEventType.temporarilyRemoveLabels:
+        case AssetEventType.addLabels:
+        case AssetEventType.removeLabels:
+        case AssetEventType.deleteLabel: {
+          // Ignored. These events should all be unrelated to directories.
+          // `delete`, `deleteForever`, `restore`, `download`, and `downloadSelected`
+          // are handled by`AssetRow`.
+          break
         }
-        break
+        case AssetEventType.newFolder: {
+          if (item.key === event.placeholderId) {
+            rowState.setVisibility(Visibility.faded)
+            try {
+              const createdDirectory = await backend.createDirectory({
+                parentId: asset.parentId,
+                title: asset.title,
+              })
+              rowState.setVisibility(Visibility.visible)
+              setAsset(object.merge(asset, createdDirectory))
+            } catch (error) {
+              dispatchAssetListEvent({ type: AssetListEventType.delete, key: item.key })
+              toastAndLog('createFolderError', error)
+            }
+          }
+          break
+        }
       }
-    }
-  })
+    },
+    { isDisabled: !isEditable }
+  )
 
   const handleClick = inputBindings.handler({
     editName: () => {
-      setRowState(object.merger({ isEditingName: true }))
+      setIsEditing(true)
     },
   })
 
@@ -143,7 +155,7 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
           selectedKeys.current.size === 1
         ) {
           event.stopPropagation()
-          setRowState(object.merger({ isEditingName: true }))
+          setIsEditing(true)
         }
       }}
     >
@@ -179,7 +191,7 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
         }
         onSubmit={doRename}
         onCancel={() => {
-          setRowState(object.merger({ isEditingName: false }))
+          setIsEditing(false)
         }}
       >
         {asset.title}

@@ -57,6 +57,7 @@ export interface AssetPanelRequiredProps {
 
 /** Props for an {@link AssetPanel}. */
 export interface AssetPanelProps extends AssetPanelRequiredProps {
+  readonly isReadonly?: boolean
   readonly setQuery: React.Dispatch<React.SetStateAction<AssetQuery>>
   readonly category: Category
   readonly labels: backend.Label[]
@@ -65,7 +66,15 @@ export interface AssetPanelProps extends AssetPanelRequiredProps {
 
 /** A panel containing the description and settings for an asset. */
 export default function AssetPanel(props: AssetPanelProps) {
-  const { item, setItem, setQuery, category, labels, dispatchAssetEvent } = props
+  const {
+    item,
+    setItem,
+    setQuery,
+    category,
+    labels,
+    dispatchAssetEvent,
+    isReadonly = false,
+  } = props
 
   const { getText } = textProvider.useText()
   const { localStorage } = localStorageProvider.useLocalStorage()
@@ -135,6 +144,7 @@ export default function AssetPanel(props: AssetPanelProps) {
         <>
           {tab === AssetPanelTab.properties && (
             <AssetProperties
+              isReadonly={isReadonly}
               item={item}
               setItem={setItem}
               category={category}

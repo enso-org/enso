@@ -1885,9 +1885,9 @@ export default function AssetsTable(props: AssetsTableProps) {
     }
   }
 
-  const state = React.useMemo(
+  const state = React.useMemo<AssetsTableState>(
     // The type MUST be here to trigger excess property errors at typecheck time.
-    (): AssetsTableState => ({
+    () => ({
       visibilities,
       selectedKeys: selectedKeysRef,
       scrollContainerRef: rootRef,
@@ -2271,6 +2271,7 @@ export default function AssetsTable(props: AssetsTableProps) {
                     setSelected={() => {}}
                     setItem={() => {}}
                     setRowState={() => {}}
+                    isEditable={false}
                   />
                 ))}
               </DragModal>
@@ -2410,9 +2411,15 @@ export default function AssetsTable(props: AssetsTableProps) {
           <tr className="hidden h-row first:table-row">
             <td colSpan={columns.length} className="bg-transparent">
               {category === Category.trash ? (
-                <aria.Text className="px-cell-x placeholder">
-                  {getText('yourTrashIsEmpty')}
-                </aria.Text>
+                query.query !== '' ? (
+                  <aria.Text className="px-cell-x placeholder">
+                    {getText('noFilesMatchTheCurrentFilters')}
+                  </aria.Text>
+                ) : (
+                  <aria.Text className="px-cell-x placeholder">
+                    {getText('yourTrashIsEmpty')}
+                  </aria.Text>
+                )
               ) : query.query !== '' ? (
                 <aria.Text className="px-cell-x placeholder">
                   {getText('noFilesMatchTheCurrentFilters')}

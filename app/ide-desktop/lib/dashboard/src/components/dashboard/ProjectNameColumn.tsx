@@ -43,7 +43,7 @@ export interface ProjectNameColumnProps extends column.AssetColumnProps {}
  * @throws {Error} when the asset is not a {@link backendModule.ProjectAsset}.
  * This should never happen. */
 export default function ProjectNameColumn(props: ProjectNameColumnProps) {
-  const { item, setItem, selected, rowState, setRowState, state } = props
+  const { item, setItem, selected, rowState, setRowState, state, isEditable } = props
   const { selectedKeys, assetEvents, dispatchAssetEvent, dispatchAssetListEvent } = state
   const { nodeMap, doOpenManually, doOpenEditor, doCloseEditor } = state
   const toastAndLog = toastAndLogHooks.useToastAndLog()
@@ -67,15 +67,24 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
   }
   const isRunning = backendModule.IS_OPENING_OR_OPENED[projectState.type]
   const canExecute =
-    backend.type === backendModule.BackendType.local ||
-    (ownPermission != null && permissions.PERMISSION_ACTION_CAN_EXECUTE[ownPermission.permission])
+    isEditable &&
+    (backend.type === backendModule.BackendType.local ||
+      (ownPermission != null &&
+        permissions.PERMISSION_ACTION_CAN_EXECUTE[ownPermission.permission]))
   const isOtherUserUsingProject =
     backend.type !== backendModule.BackendType.local &&
     projectState.opened_by != null &&
     projectState.opened_by !== user?.email
 
+  const setIsEditing = (isEditingName: boolean) => {
+    if (isEditable) {
+      setRowState(object.merger({ isEditingName }))
+    }
+  }
+
   const doRename = async (newTitle: string) => {
-    setRowState(object.merger({ isEditingName: false }))
+    setIsEditing(false)
+
     if (string.isWhitespaceOnly(newTitle)) {
       // Do nothing.
     } else if (newTitle !== asset.title) {
@@ -94,145 +103,153 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
     }
   }
 
-  eventHooks.useEventHandler(assetEvents, async event => {
-    switch (event.type) {
-      case AssetEventType.newFolder:
-      case AssetEventType.newDataLink:
-      case AssetEventType.newSecret:
-      case AssetEventType.openProject:
-      case AssetEventType.closeProject:
-      case AssetEventType.copy:
-      case AssetEventType.cut:
-      case AssetEventType.cancelCut:
-      case AssetEventType.move:
-      case AssetEventType.delete:
-      case AssetEventType.deleteForever:
-      case AssetEventType.restore:
-      case AssetEventType.download:
-      case AssetEventType.downloadSelected:
-      case AssetEventType.removeSelf:
-      case AssetEventType.temporarilyAddLabels:
-      case AssetEventType.temporarilyRemoveLabels:
-      case AssetEventType.addLabels:
-      case AssetEventType.removeLabels:
-      case AssetEventType.deleteLabel: {
-        // Ignored. Any missing project-related events should be handled by `ProjectIcon`.
-        // `delete`, `deleteForever`, `restore`, `download`, and `downloadSelected`
-        // are handled by`AssetRow`.
-        break
-      }
-      case AssetEventType.newProject: {
-        // This should only run before this project gets replaced with the actual project
-        // by this event handler. In both cases `key` will match, so using `key` here
-        // is a mistake.
-        if (asset.id === event.placeholderId) {
-          rowState.setVisibility(Visibility.faded)
-          try {
-            const createdProject = await backend.createProject({
-              parentDirectoryId: asset.parentId,
-              projectName: asset.title,
-              projectTemplateName: event.templateId,
-              dataLinkId: event.dataLinkId,
-            })
-            rowState.setVisibility(Visibility.visible)
-            setAsset(
-              object.merge(asset, {
-                id: createdProject.projectId,
-                projectState: object.merge(projectState, {
-                  type: backendModule.ProjectState.placeholder,
-                  ...(backend.type === backendModule.BackendType.remote
-                    ? {}
-                    : { path: createdProject.state.path }),
-                }),
+  eventHooks.useEventHandler(
+    assetEvents,
+    async event => {
+      switch (event.type) {
+        case AssetEventType.newFolder:
+        case AssetEventType.newDataLink:
+        case AssetEventType.newSecret:
+        case AssetEventType.openProject:
+        case AssetEventType.closeProject:
+        case AssetEventType.copy:
+        case AssetEventType.cut:
+        case AssetEventType.cancelCut:
+        case AssetEventType.move:
+        case AssetEventType.delete:
+        case AssetEventType.deleteForever:
+        case AssetEventType.restore:
+        case AssetEventType.download:
+        case AssetEventType.downloadSelected:
+        case AssetEventType.removeSelf:
+        case AssetEventType.temporarilyAddLabels:
+        case AssetEventType.temporarilyRemoveLabels:
+        case AssetEventType.addLabels:
+        case AssetEventType.removeLabels:
+        case AssetEventType.deleteLabel: {
+          // Ignored. Any missing project-related events should be handled by `ProjectIcon`.
+          // `delete`, `deleteForever`, `restore`, `download`, and `downloadSelected`
+          // are handled by`AssetRow`.
+          break
+        }
+        case AssetEventType.newProject: {
+          // This should only run before this project gets replaced with the actual project
+          // by this event handler. In both cases `key` will match, so using `key` here
+          // is a mistake.
+          if (asset.id === event.placeholderId) {
+            rowState.setVisibility(Visibility.faded)
+            try {
+              const createdProject = await backend.createProject({
+                parentDirectoryId: asset.parentId,
+                projectName: asset.title,
+                projectTemplateName: event.templateId,
+                dataLinkId: event.dataLinkId,
               })
-            )
-            dispatchAssetEvent({
-              type: AssetEventType.openProject,
-              id: createdProject.projectId,
-              shouldAutomaticallySwitchPage: true,
-              runInBackground: false,
-            })
-          } catch (error) {
-            dispatchAssetListEvent({ type: AssetListEventType.delete, key: item.key })
-            toastAndLog('createProjectError', error)
-          }
-        }
-        break
-      }
-      case AssetEventType.updateFiles:
-      case AssetEventType.uploadFiles: {
-        const file = event.files.get(item.key)
-        if (file != null) {
-          const fileId = event.type !== AssetEventType.updateFiles ? null : asset.id
-          rowState.setVisibility(Visibility.faded)
-          const { extension } = backendModule.extractProjectExtension(file.name)
-          const title = backendModule.stripProjectExtension(asset.title)
-          setAsset(object.merge(asset, { title }))
-          try {
-            if (backend.type === backendModule.BackendType.local) {
-              const directory = localBackend.extractTypeAndId(item.directoryId).id
-              let id: string
-              if (
-                'backendApi' in window &&
-                // This non-standard property is defined in Electron.
-                'path' in file &&
-                typeof file.path === 'string'
-              ) {
-                id = await window.backendApi.importProjectFromPath(file.path, directory, title)
-              } else {
-                const searchParams = new URLSearchParams({ directory, name: title }).toString()
-                // Ideally this would use `file.stream()`, to minimize RAM
-                // requirements. for uploading large projects. Unfortunately,
-                // this requires HTTP/2, which is HTTPS-only, so it will not
-                // work on `http://localhost`.
-                const body =
-                  window.location.protocol === 'https:' ? file.stream() : await file.arrayBuffer()
-                const path = `./api/upload-project?${searchParams}`
-                const response = await fetch(path, { method: 'POST', body })
-                id = await response.text()
-              }
-              const projectId = localBackend.newProjectId(projectManager.UUID(id))
-              const listedProject = await backend.getProjectDetails(
-                projectId,
-                asset.parentId,
-                file.name
-              )
               rowState.setVisibility(Visibility.visible)
-              setAsset(object.merge(asset, { title: listedProject.packageName, id: projectId }))
-            } else {
-              const createdFile = await backend.uploadFile(
-                { fileId, fileName: `${title}.${extension}`, parentDirectoryId: asset.parentId },
-                file
+              setAsset(
+                object.merge(asset, {
+                  id: createdProject.projectId,
+                  projectState: object.merge(projectState, {
+                    type: backendModule.ProjectState.placeholder,
+                    ...(backend.type === backendModule.BackendType.remote
+                      ? {}
+                      : { path: createdProject.state.path }),
+                  }),
+                })
               )
-              const project = createdFile.project
-              if (project == null) {
-                throw new Error('The uploaded file was not a project.')
-              } else {
-                rowState.setVisibility(Visibility.visible)
-                setAsset(
-                  object.merge(asset, { title, id: project.projectId, projectState: project.state })
-                )
-                return
-              }
+              dispatchAssetEvent({
+                type: AssetEventType.openProject,
+                id: createdProject.projectId,
+                shouldAutomaticallySwitchPage: true,
+                runInBackground: false,
+              })
+            } catch (error) {
+              dispatchAssetListEvent({ type: AssetListEventType.delete, key: item.key })
+              toastAndLog('createProjectError', error)
             }
-          } catch (error) {
-            switch (event.type) {
-              case AssetEventType.uploadFiles: {
-                dispatchAssetListEvent({ type: AssetListEventType.delete, key: item.key })
-                toastAndLog('uploadProjectError', error)
-                break
+          }
+          break
+        }
+        case AssetEventType.updateFiles:
+        case AssetEventType.uploadFiles: {
+          const file = event.files.get(item.key)
+          if (file != null) {
+            const fileId = event.type !== AssetEventType.updateFiles ? null : asset.id
+            rowState.setVisibility(Visibility.faded)
+            const { extension } = backendModule.extractProjectExtension(file.name)
+            const title = backendModule.stripProjectExtension(asset.title)
+            setAsset(object.merge(asset, { title }))
+            try {
+              if (backend.type === backendModule.BackendType.local) {
+                const directory = localBackend.extractTypeAndId(item.directoryId).id
+                let id: string
+                if (
+                  'backendApi' in window &&
+                  // This non-standard property is defined in Electron.
+                  'path' in file &&
+                  typeof file.path === 'string'
+                ) {
+                  id = await window.backendApi.importProjectFromPath(file.path, directory, title)
+                } else {
+                  const searchParams = new URLSearchParams({ directory, name: title }).toString()
+                  // Ideally this would use `file.stream()`, to minimize RAM
+                  // requirements. for uploading large projects. Unfortunately,
+                  // this requires HTTP/2, which is HTTPS-only, so it will not
+                  // work on `http://localhost`.
+                  const body =
+                    window.location.protocol === 'https:' ? file.stream() : await file.arrayBuffer()
+                  const path = `./api/upload-project?${searchParams}`
+                  const response = await fetch(path, { method: 'POST', body })
+                  id = await response.text()
+                }
+                const projectId = localBackend.newProjectId(projectManager.UUID(id))
+                const listedProject = await backend.getProjectDetails(
+                  projectId,
+                  asset.parentId,
+                  file.name
+                )
+                rowState.setVisibility(Visibility.visible)
+                setAsset(object.merge(asset, { title: listedProject.packageName, id: projectId }))
+              } else {
+                const createdFile = await backend.uploadFile(
+                  { fileId, fileName: `${title}.${extension}`, parentDirectoryId: asset.parentId },
+                  file
+                )
+                const project = createdFile.project
+                if (project == null) {
+                  throw new Error('The uploaded file was not a project.')
+                } else {
+                  rowState.setVisibility(Visibility.visible)
+                  setAsset(
+                    object.merge(asset, {
+                      title,
+                      id: project.projectId,
+                      projectState: project.state,
+                    })
+                  )
+                  return
+                }
               }
-              case AssetEventType.updateFiles: {
-                toastAndLog('updateProjectError', error)
-                break
+            } catch (error) {
+              switch (event.type) {
+                case AssetEventType.uploadFiles: {
+                  dispatchAssetListEvent({ type: AssetListEventType.delete, key: item.key })
+                  toastAndLog('uploadProjectError', error)
+                  break
+                }
+                case AssetEventType.updateFiles: {
+                  toastAndLog('updateProjectError', error)
+                  break
+                }
               }
             }
           }
+          break
         }
-        break
       }
-    }
-  })
+    },
+    { isDisabled: !isEditable }
+  )
 
   const handleClick = inputBindings.handler({
     open: () => {
@@ -252,7 +269,7 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
       })
     },
     editName: () => {
-      setRowState(object.merger({ isEditingName: true }))
+      setIsEditing(true)
     },
   })
 
@@ -277,7 +294,7 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
           selected &&
           selectedKeys.current.size === 1
         ) {
-          setRowState(object.merger({ isEditingName: true }))
+          setIsEditing(true)
         }
       }}
     >
@@ -324,7 +341,7 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
         }
         onSubmit={doRename}
         onCancel={() => {
-          setRowState(object.merger({ isEditingName: false }))
+          setIsEditing(false)
         }}
         {...(backend.type === backendModule.BackendType.local
           ? {

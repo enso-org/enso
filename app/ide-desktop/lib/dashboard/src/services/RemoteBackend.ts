@@ -66,7 +66,7 @@ export async function waitUntilProjectIsReady(
   item: backendModule.ProjectAsset,
   abortController: AbortController = new AbortController()
 ) {
-  let project = await backend.getProjectDetails(item.id, null, item.title)
+  let project = await backend.getProjectDetails(item.id, item.parentId, item.title)
   if (!backendModule.IS_OPENING_OR_OPENED[project.state.type]) {
     await backend.openProject(item.id, null, item.title)
   }
@@ -80,8 +80,9 @@ export async function waitUntilProjectIsReady(
       setTimeout(resolve, Math.max(0, delayMs))
     })
     nextCheckTimestamp = Number(new Date()) + CHECK_STATUS_INTERVAL_MS
-    project = await backend.getProjectDetails(item.id, null, item.title)
+    project = await backend.getProjectDetails(item.id, item.parentId, item.title)
   }
+  return project
 }
 
 // =============
@@ -227,6 +228,20 @@ export default class RemoteBackend extends Backend {
       return body.username != null
         ? await this.throw(response, 'updateUsernameBackendError')
         : await this.throw(response, 'updateUserBackendError')
+    } else {
+      return
+    }
+  }
+
+  /**
+   * Restore a user that has been soft-deleted.
+   */
+  async restoreUser(): Promise<void> {
+    const response = await this.put(remoteBackendPaths.UPDATE_CURRENT_USER_PATH, {
+      clearRemoveAt: true,
+    })
+    if (!responseIsSuccessful(response)) {
+      return await this.throw(response, 'restoreUserBackendError')
     } else {
       return
     }

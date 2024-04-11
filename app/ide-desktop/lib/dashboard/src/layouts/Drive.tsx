@@ -5,7 +5,6 @@ import * as appUtils from '#/appUtils'
 
 import * as eventCallback from '#/hooks/eventCallbackHooks'
 import * as navigateHooks from '#/hooks/navigateHooks'
-import * as searchParamsState from '#/hooks/searchParamsStateHooks'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
 import * as authProvider from '#/providers/AuthProvider'
@@ -33,29 +32,11 @@ import UnstyledButton from '#/components/UnstyledButton'
 import * as backendModule from '#/services/Backend'
 import * as projectManager from '#/services/ProjectManager'
 
-import * as array from '#/utilities/array'
 import type AssetQuery from '#/utilities/AssetQuery'
 import type AssetTreeNode from '#/utilities/AssetTreeNode'
 import * as download from '#/utilities/download'
 import * as github from '#/utilities/github'
-import LocalStorage from '#/utilities/LocalStorage'
 import * as uniqueString from '#/utilities/uniqueString'
-
-// ============================
-// === Global configuration ===
-// ============================
-
-declare module '#/utilities/LocalStorage' {
-  /** */
-  interface LocalStorageData {
-    readonly driveCategory: Category
-  }
-}
-
-const CATEGORIES = Object.values(Category)
-LocalStorage.registerKey('driveCategory', {
-  tryParse: value => (array.includes(CATEGORIES, value) ? value : null),
-})
 
 // ===================
 // === DriveStatus ===
@@ -81,6 +62,8 @@ enum DriveStatus {
 
 /** Props for a {@link Drive}. */
 export interface DriveProps {
+  readonly category: Category
+  readonly setCategory: (category: Category) => void
   readonly supportsLocalBackend: boolean
   readonly hidden: boolean
   readonly hideRows: boolean
@@ -116,6 +99,7 @@ export default function Drive(props: DriveProps) {
   const { assetListEvents, dispatchAssetListEvent, assetEvents, dispatchAssetEvent } = props
   const { setAssetPanelProps, doOpenEditor, doCloseEditor } = props
   const { setIsAssetPanelTemporarilyVisible } = props
+  const { category, setCategory } = props
 
   const navigate = navigateHooks.useNavigate()
   const toastAndLog = toastAndLogHooks.useToastAndLog()
@@ -125,11 +109,6 @@ export default function Drive(props: DriveProps) {
   const { getText } = textProvider.useText()
   const [canDownload, setCanDownload] = React.useState(false)
   const [didLoadingProjectManagerFail, setDidLoadingProjectManagerFail] = React.useState(false)
-  const [category, setCategory] = searchParamsState.useSearchParamsState(
-    'driveCategory',
-    () => localStorage.get('driveCategory') ?? Category.home,
-    (value): value is Category => array.includes(Object.values(Category), value)
-  )
   const [newLabelNames, setNewLabelNames] = React.useState(new Set<backendModule.LabelName>())
   const [deletedLabelNames, setDeletedLabelNames] = React.useState(
     new Set<backendModule.LabelName>()
@@ -407,6 +386,7 @@ export default function Drive(props: DriveProps) {
                   dispatchAssetEvent={dispatchAssetEvent}
                 />
                 <Labels
+                  draggable={category !== Category.trash}
                   labels={labels}
                   query={query}
                   setQuery={setQuery}

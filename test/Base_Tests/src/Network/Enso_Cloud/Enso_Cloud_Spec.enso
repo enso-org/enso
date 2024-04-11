@@ -23,19 +23,20 @@ add_specs suite_builder setup:Cloud_Tests_Setup =
         group_builder.specify "is correctly parsed from JSON" <|
             json = Json.parse """
                 {
-                    "id": "organization-27xJM00p8jWoL2qByTo6tQfciWC",
+                    "userId": "user-2Xcxm00p8jWoL2qByTo6tQfciWC",
+                    "organizationId": "organization-27xJM00p8jWoL2qByTo6tQfciWC",
                     "name": "Parsed user",
+                    "organizationName": "Test.ORG",
                     "email": "enso-parse-test@example.com",
                     "isEnabled": true,
                     "rootDirectoryId": "directory-27xJM00p8jWoL2qByTo6tQfciWC"
                 }
             parsed_user = Enso_User.from json
-            parsed_user.id.should_equal "organization-27xJM00p8jWoL2qByTo6tQfciWC"
+            parsed_user.id.should_equal "user-2Xcxm00p8jWoL2qByTo6tQfciWC"
             parsed_user.name.should_equal "Parsed user"
+            parsed_user.organization_name.should_equal "Test.ORG"
             parsed_user.email.should_equal "enso-parse-test@example.com"
             parsed_user.is_enabled.should_be_true
-            parsed_user.home . should_be_a Enso_File
-            parsed_user.home.is_directory.should_be_true
 
             invalid_json = Json.parse "{}"
             r = Enso_User.from invalid_json
@@ -47,15 +48,10 @@ add_specs suite_builder setup:Cloud_Tests_Setup =
     suite_builder.group "Enso_User - local mock integration tests" pending=setup.httpbin_pending group_builder->
         group_builder.specify "current user can be fetched from mock API" <| Cloud_Tests_Setup.run_with_mock_cloud <|
             current = Enso_User.current
-            current.id.should_equal "organization-27xJM00p8jWoL2qByTo6tQfciWC"
+            current.id.should_equal "user-2Xcxm00p8jWoL2qByTo6tQfciWC"
             current.name.should_equal "My test User 1"
             current.email.should_equal "enso-test-user-1@example.com"
             current.is_enabled.should_be_true
-
-            # TODO separate Enso_File tests could test that this is a valid directory
-            home = current.home
-            home . should_be_a Enso_File
-            home.is_directory.should_be_true
 
         group_builder.specify "user list can be fetched from mock API" <| Cloud_Tests_Setup.run_with_mock_cloud <|
             users = Enso_User.list
@@ -68,7 +64,7 @@ add_specs suite_builder setup:Cloud_Tests_Setup =
             users.should_contain Enso_User.current
 
     suite_builder.group "Enso_User" group_builder->
-        group_builder.specify "user can be fetched from real API" pending=(setup.real_cloud_pending.if_nothing "Disabled until https://github.com/enso-org/cloud-v2/issues/912 is resolved.") <|
+        group_builder.specify "user can be fetched from real API" pending=setup.real_cloud_pending <|
             setup.with_prepared_environment <|
                 Enso_User.list . should_contain Enso_User.current
 
