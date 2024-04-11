@@ -5,10 +5,9 @@ import Cross2 from 'enso-assets/cross2.svg'
 
 import * as mimeTypes from '#/data/mimeTypes'
 
-import * as asyncEffectHooks from '#/hooks/asyncEffectHooks'
-import * as refreshHooks from '#/hooks/refreshHooks'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
+import * as authProvider from '#/providers/AuthProvider'
 import * as backendProvider from '#/providers/BackendProvider'
 import * as modalProvider from '#/providers/ModalProvider'
 import * as textProvider from '#/providers/TextProvider'
@@ -34,30 +33,34 @@ import * as object from '#/utilities/object'
 /** Settings tab for viewing and editing organization members. */
 export default function MemberRolesSettingsTab() {
   const { backend } = backendProvider.useBackend()
+  const { user } = authProvider.useNonPartialUserSession()
   const { setModal } = modalProvider.useSetModal()
   const { getText } = textProvider.useText()
   const toastAndLog = toastAndLogHooks.useToastAndLog()
-  const [refresh, doRefresh] = refreshHooks.useRefresh()
-  const userGroups = asyncEffectHooks.useAsyncEffect(null, () => backend.listUserGroups(), [
-    backend,
-    refresh,
-  ])
+  const [userGroups, setUserGroups] = React.useState<backendModule.UserGroupInfo[] | null>(null)
+
   const [users, setUsers] = React.useState<backendModule.User[] | null>(null)
   const usersByGroup = React.useMemo(() => {
     const map = new Map<backendModule.UserGroupId, backendModule.User[]>()
-    for (const user of users ?? []) {
-      for (const userGroupId of user.userGroups ?? []) {
+    for (const otherUser of users ?? []) {
+      for (const userGroupId of otherUser.userGroups ?? []) {
         let userList = map.get(userGroupId)
         if (userList == null) {
           userList = []
           map.set(userGroupId, userList)
         }
-        userList.push(user)
+        userList.push(otherUser)
       }
     }
     return map
   }, [users])
   const isLoading = userGroups == null || users == null
+
+  React.useEffect(() => {
+    void backend.listUsers().then(setUsers)
+    void backend.listUserGroups().then(setUserGroups)
+  }, [backend])
+
   const { dragAndDropHooks } = aria.useDragAndDrop({
     getDropOperation: (target, types, allowedOperations) =>
       allowedOperations.includes('copy') &&
@@ -74,32 +77,32 @@ export default function MemberRolesSettingsTab() {
           if (item.kind === 'text' && item.types.has(mimeTypes.USER_MIME_TYPE)) {
             void item.getText(mimeTypes.USER_MIME_TYPE).then(async text => {
               // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-              const user: backendModule.User = JSON.parse(text)
-              const groups = user.userGroups ?? []
+              const newUser: backendModule.User = JSON.parse(text)
+              const groups = newUser.userGroups ?? []
               if (!groups.includes(userGroupId)) {
                 try {
                   const newUserGroups = [...groups, userGroupId]
                   setUsers(
                     oldUsers =>
                       oldUsers?.map(otherUser =>
-                        otherUser.userId !== user.userId
+                        otherUser.userId !== newUser.userId
                           ? otherUser
-                          : object.merge(user, { userGroups: newUserGroups })
+                          : object.merge(newUser, { userGroups: newUserGroups })
                       ) ?? null
                   )
                   await backend.changeUserGroup(
-                    user.userId,
+                    newUser.userId,
                     { userGroups: newUserGroups },
-                    user.name
+                    newUser.name
                   )
                 } catch (error) {
                   toastAndLog('changeUserGroupsError', error)
                   setUsers(
                     oldUsers =>
                       oldUsers?.map(otherUser =>
-                        otherUser.userId !== user.userId
+                        otherUser.userId !== newUser.userId
                           ? otherUser
-                          : object.merge(user, {
+                          : object.merge(newUser, {
                               userGroups:
                                 otherUser.userGroups?.filter(id => id !== userGroupId) ?? null,
                             })
@@ -114,20 +117,16 @@ export default function MemberRolesSettingsTab() {
     },
   })
 
-  React.useEffect(() => {
-    void backend.listUsers().then(newUsers => {
-      setUsers(newUsers)
-    })
-  }, [backend])
-
   const doDeleteUserGroup = async (userGroup: backendModule.UserGroupInfo) => {
     setUsers(
       oldUsers =>
-        oldUsers?.map(user =>
-          user.userGroups?.includes(userGroup.id) !== true
-            ? user
-            : object.merge(user, {
-                userGroups: user.userGroups.filter(userGroupId => userGroupId !== userGroup.id),
+        oldUsers?.map(otherUser =>
+          otherUser.userGroups?.includes(userGroup.id) !== true
+            ? otherUser
+            : object.merge(otherUser, {
+                userGroups: otherUser.userGroups.filter(
+                  userGroupId => userGroupId !== userGroup.id
+                ),
               })
         ) ?? null
     )
@@ -136,14 +135,14 @@ export default function MemberRolesSettingsTab() {
     } catch (error) {
       const usersInGroup = usersByGroup.get(userGroup.id)
       if (usersInGroup != null) {
-        const userIds = new Set(usersInGroup.map(user => user.userId))
+        const userIds = new Set(usersInGroup.map(otherUser => otherUser.userId))
         setUsers(
           oldUsers =>
-            oldUsers?.map(user =>
-              !userIds.has(user.userId) || user.userGroups?.includes(userGroup.id) === true
-                ? user
-                : object.merge(user, {
-                    userGroups: [...(user.userGroups ?? []), userGroup.id],
+            oldUsers?.map(oldUser =>
+              !userIds.has(oldUser.userId) || oldUser.userGroups?.includes(userGroup.id) === true
+                ? oldUser
+                : object.merge(oldUser, {
+                    userGroups: [...(oldUser.userGroups ?? []), userGroup.id],
                   })
             ) ?? null
         )
@@ -152,30 +151,34 @@ export default function MemberRolesSettingsTab() {
   }
 
   const doRemoveUserFromUserGroup = async (
-    user: backendModule.User,
+    otherUser: backendModule.User,
     userGroup: backendModule.UserGroupInfo
   ) => {
     try {
       const intermediateUserGroups =
-        user.userGroups?.filter(userGroupId => userGroupId !== userGroup.id) ?? null
+        otherUser.userGroups?.filter(userGroupId => userGroupId !== userGroup.id) ?? null
       const newUserGroups = intermediateUserGroups?.length === 0 ? null : intermediateUserGroups
       setUsers(
         oldUsers =>
-          oldUsers?.map(otherUser =>
-            otherUser.userId !== user.userId
-              ? otherUser
-              : object.merge(user, { userGroups: newUserGroups })
+          oldUsers?.map(oldUser =>
+            oldUser.userId !== otherUser.userId
+              ? oldUser
+              : object.merge(otherUser, { userGroups: newUserGroups })
           ) ?? null
       )
-      await backend.changeUserGroup(user.userId, { userGroups: newUserGroups ?? [] }, user.name)
+      await backend.changeUserGroup(
+        otherUser.userId,
+        { userGroups: newUserGroups ?? [] },
+        otherUser.name
+      )
     } catch (error) {
       setUsers(
         oldUsers =>
-          oldUsers?.map(otherUser =>
-            otherUser.userId !== user.userId
-              ? otherUser
-              : object.merge(user, {
-                  userGroups: [...(otherUser.userGroups ?? []), userGroup.id],
+          oldUsers?.map(oldUser =>
+            oldUser.userId !== otherUser.userId
+              ? oldUser
+              : object.merge(otherUser, {
+                  userGroups: [...(oldUser.userGroups ?? []), userGroup.id],
                 })
           ) ?? null
       )
@@ -190,7 +193,38 @@ export default function MemberRolesSettingsTab() {
             <UnstyledButton
               className="flex h-row items-center rounded-full bg-frame px-new-project-button-x"
               onPress={() => {
-                setModal(<NewUserGroupModal onSubmit={doRefresh} />)
+                const placeholderId = backendModule.newPlaceholderUserGroupId()
+                setModal(
+                  <NewUserGroupModal
+                    userGroups={userGroups}
+                    onSubmit={name => {
+                      if (user != null) {
+                        setUserGroups(oldUserGroups => [
+                          ...(oldUserGroups ?? []),
+                          {
+                            organizationId: user.organizationId,
+                            id: placeholderId,
+                            groupName: name,
+                          },
+                        ])
+                      }
+                    }}
+                    onSuccess={newUserGroup => {
+                      setUserGroups(
+                        oldUserGroups =>
+                          oldUserGroups?.map(userGroup =>
+                            userGroup.id !== placeholderId ? userGroup : newUserGroup
+                          ) ?? null
+                      )
+                    }}
+                    onFailure={() => {
+                      setUserGroups(
+                        oldUserGroups =>
+                          oldUserGroups?.filter(userGroup => userGroup.id !== placeholderId) ?? null
+                      )
+                    }}
+                  />
+                )
               }}
             >
               <aria.Text className="text whitespace-nowrap font-semibold">
@@ -234,7 +268,11 @@ export default function MemberRolesSettingsTab() {
                 </aria.Row>
               ) : (
                 userGroups.flatMap(userGroup => [
-                  <aria.Row key={userGroup.id} id={userGroup.id} className="group h-row">
+                  <aria.Row
+                    key={userGroup.id}
+                    id={userGroup.id}
+                    className={`group h-row ${backendModule.isPlaceholderUserGroupId(userGroup.id) ? 'pointer-events-none placeholder' : ''}`}
+                  >
                     <aria.Cell className="flex bg-transparent p transparent group-hover-2:opacity-100">
                       <UnstyledButton
                         onPress={() => {
@@ -248,12 +286,12 @@ export default function MemberRolesSettingsTab() {
                       {userGroup.groupName}
                     </aria.Cell>
                   </aria.Row>,
-                  (usersByGroup.get(userGroup.id) ?? []).map(user => (
-                    <aria.Row key={user.userId} id={user.userId} className="h-row">
+                  (usersByGroup.get(userGroup.id) ?? []).map(otherUser => (
+                    <aria.Row key={otherUser.userId} id={otherUser.userId} className="h-row">
                       <aria.Cell className="bg-transparent p transparent group-hover-2:opacity-100">
                         <UnstyledButton
                           onPress={() => {
-                            void doRemoveUserFromUserGroup(user, userGroup)
+                            void doRemoveUserFromUserGroup(otherUser, userGroup)
                           }}
                         >
                           <img src={Cross2} className="size-icon" />
@@ -262,7 +300,7 @@ export default function MemberRolesSettingsTab() {
                       <aria.Cell className="text border-x-2 border-transparent bg-clip-padding rounded-rows-skip-level last:border-r-0">
                         <div className="ml-indent-1 flex h-row min-w-max items-center whitespace-nowrap rounded-full">
                           <aria.Text className="grow px-name-column-x py-name-column-y">
-                            {user.name}
+                            {otherUser.name}
                           </aria.Text>
                         </div>
                       </aria.Cell>

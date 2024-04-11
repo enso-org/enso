@@ -109,6 +109,19 @@ export function isUserGroupId(id: string): id is UserGroupId {
   return id.startsWith('usergroup-')
 }
 
+const PLACEHOLDER_USER_GROUP_PREFIX = 'usergroup-placeholder-'
+
+/** Whether a given {@link string} is an {@link UserGroupId}. */
+export function isPlaceholderUserGroupId(id: string): id is UserGroupId {
+  return id.startsWith(PLACEHOLDER_USER_GROUP_PREFIX)
+}
+
+/** Return a new {@link UserGroupId} that represents a placeholder user group that is yet to finish
+ * being created on the backend. */
+export function newPlaceholderUserGroupId() {
+  return UserGroupId(`${PLACEHOLDER_USER_GROUP_PREFIX}${uniqueString.uniqueString()}`)
+}
+
 // =============
 // === Types ===
 // =============
