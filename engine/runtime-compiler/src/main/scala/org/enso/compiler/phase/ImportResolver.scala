@@ -174,7 +174,7 @@ final class ImportResolver(compiler: Compiler) extends ImportResolverForIR {
     ir: org.enso.compiler.core.ir.Module,
     resolvedImports: List[BindingsMap.ResolvedImport]
   ): List[(Import, BindingsMap.ResolvedImport)] = {
-    val resolvedImportNames = resolvedImports.map(_.importDef.name)
+    val resolvedImportNames = resolvedImports.map(_.importDef.name.name)
     ir.exports.flatMap {
       case Export.Module(
             expName,
@@ -187,7 +187,8 @@ final class ImportResolver(compiler: Compiler) extends ImportResolverForIR {
             _,
             _
           ) if !isSynthetic =>
-        if (!resolvedImportNames.contains(expName)) {
+        // Skip the exports that already have associated resolved import.
+        if (!resolvedImportNames.contains(expName.name)) {
           val syntheticImport = Import.Module(
             expName,
             rename,
@@ -212,6 +213,7 @@ final class ImportResolver(compiler: Compiler) extends ImportResolverForIR {
         } else {
           None
         }
+      case _ => None
     }
   }
 
