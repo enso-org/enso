@@ -175,7 +175,7 @@ final class ImportResolver(compiler: Compiler) extends ImportResolverForIR {
     resolvedImports: List[BindingsMap.ResolvedImport]
   ): List[(Import, BindingsMap.ResolvedImport)] = {
     val resolvedImportNames = resolvedImports.map(_.importDef.name.name)
-    val curModName = module.getName.toString
+    val curModName          = module.getName.toString
     module.getIr.exports.flatMap {
       case Export.Module(
             expName,

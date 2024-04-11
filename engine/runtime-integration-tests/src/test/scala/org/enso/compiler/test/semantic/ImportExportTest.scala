@@ -432,24 +432,18 @@ class ImportExportTest
         .createModule(packageQualifiedName.createChild("A_Module"))
 
       val mainModule = s"""
-         |export $namespace.$packageName.A_Module.A_Type
-         |""".stripMargin
+                          |export $namespace.$packageName.A_Module.A_Type
+                          |""".stripMargin
         .createModule(packageQualifiedName.createChild("Main"))
 
-      mainModule.getIr.imports
-        .size shouldBe(1)
-      mainModule.getIr.imports
-        .head
+      mainModule.getIr.imports.size shouldBe 1
+      mainModule.getIr.imports.head
         .asInstanceOf[Import.Module]
-        .isSynthetic shouldBe(true)
+        .isSynthetic shouldBe true
 
       val resolvedExports = mainModule.getIr.unwrapBindingMap.resolvedExports
-      resolvedExports.size shouldBe(1)
-      resolvedExports
-        .head
-        .target
-        .qualifiedName
-        .item shouldBe("A_Type")
+      resolvedExports.size shouldBe 1
+      resolvedExports.head.target.qualifiedName.item shouldBe "A_Type"
     }
 
     "(from) export type without import should insert synthetic import" in {
@@ -463,21 +457,19 @@ class ImportExportTest
                           |""".stripMargin
         .createModule(packageQualifiedName.createChild("Main"))
 
-      mainModule.getIr.imports
-        .size shouldBe(1)
-      mainModule.getIr.imports
-        .head
+      mainModule.getIr.imports.size shouldBe 1
+      mainModule.getIr.imports.head
         .asInstanceOf[Import.Module]
-        .isSynthetic shouldBe(true)
+        .isSynthetic shouldBe true
 
       val resolvedExports = mainModule.getIr.unwrapBindingMap.resolvedExports
-      resolvedExports.size shouldBe(1)
+      resolvedExports.size shouldBe 1
     }
 
     "export module without import should insert synthetic import" in {
       // A_Module is empty on purpose
       """
-         |""".stripMargin
+        |""".stripMargin
         .createModule(packageQualifiedName.createChild("A_Module"))
 
       val mainModule = s"""
@@ -485,20 +477,14 @@ class ImportExportTest
                           |""".stripMargin
         .createModule(packageQualifiedName.createChild("Main"))
 
-      mainModule.getIr.imports
-        .size shouldBe(1)
-      mainModule.getIr.imports
-        .head
+      mainModule.getIr.imports.size shouldBe 1
+      mainModule.getIr.imports.head
         .asInstanceOf[Import.Module]
-        .isSynthetic shouldBe(true)
+        .isSynthetic shouldBe true
 
       val resolvedExports = mainModule.getIr.unwrapBindingMap.resolvedExports
-      resolvedExports.size shouldBe(1)
-      resolvedExports
-        .head
-        .target
-        .qualifiedName
-        .item shouldBe("A_Module")
+      resolvedExports.size shouldBe 1
+      resolvedExports.head.target.qualifiedName.item shouldBe "A_Module"
     }
 
     "export unknown type without import should result in error" in {
@@ -512,11 +498,9 @@ class ImportExportTest
                           |""".stripMargin
         .createModule(packageQualifiedName.createChild("Main"))
 
-      mainModule.getIr.imports
-        .size shouldBe(1)
-      mainModule.getIr.imports
-        .head
-        .isInstanceOf[errors.ImportExport] shouldBe(true)
+      mainModule.getIr.imports.size shouldBe 1
+      mainModule.getIr.imports.head
+        .isInstanceOf[errors.ImportExport] shouldBe true
     }
   }
 
