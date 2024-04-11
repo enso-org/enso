@@ -616,7 +616,15 @@ public abstract class HashCodeNode extends Node {
     return 0;
   }
 
-  @Specialization(guards = "isJavaObject(hostObject)")
+  @Specialization(
+      guards = {
+        "isJavaObject(hostObject)",
+        "!interop.hasMembers(hostObject)",
+        "!interop.hasArrayElements(hostObject)",
+        "!interop.isTime(hostObject)",
+        "!interop.isDate(hostObject)",
+        "!interop.isTimeZone(hostObject)"
+      })
   long hashCodeForHostObject(
       Object hostObject, @Shared("interop") @CachedLibrary(limit = "10") InteropLibrary interop) {
     try {

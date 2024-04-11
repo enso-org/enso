@@ -36,14 +36,14 @@ export default function SvgMask(props: SvgMaskProps) {
       style={{
         ...(style ?? {}),
         backgroundColor: color ?? 'currentcolor',
-        mask,
+        maskImage: mask,
         maskPosition: 'center',
         maskRepeat: 'no-repeat',
         maskSize: 'contain',
         ...(invert ? { maskComposite: 'exclude, exclude' } : {}),
         // The names come from a third-party API and cannot be changed.
         /* eslint-disable @typescript-eslint/naming-convention */
-        WebkitMask: mask,
+        WebkitMaskImage: mask,
         WebkitMaskPosition: 'center',
         WebkitMaskRepeat: 'no-repeat',
         WebkitMaskSize: 'contain',

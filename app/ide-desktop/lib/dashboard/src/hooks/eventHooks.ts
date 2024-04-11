@@ -3,9 +3,21 @@ import * as React from 'react'
 
 import * as detect from 'enso-common/src/detect'
 
+import * as syncRef from '#/hooks/syncRefHooks'
+
 // =======================
 // === Reactive Events ===
 // =======================
+
+/**
+ * Parameters for the `useEventHandler` hook.
+ */
+export interface UseEventHandlerOptions {
+  /**
+   * Disable the event handler.
+   */
+  readonly isDisabled?: boolean
+}
 
 /** A map containing all known event types. Names MUST be chosen carefully to avoid conflicts.
  * The simplest way to achieve this is by namespacing names using a prefix. */
@@ -35,11 +47,19 @@ export function useEvent<T extends KnownEvent>(): [events: T[], dispatchEvent: (
 /** A wrapper around `useEffect` that has `event` as its sole dependency. */
 export function useEventHandler<T extends KnownEvent>(
   events: T[],
-  effect: (event: T) => Promise<void> | void
+  effect: (event: T) => Promise<void> | void,
+  params: UseEventHandlerOptions = {}
 ) {
+  const { isDisabled = false } = params
+
   let hasEffectRun = false
+
+  const isDisabledRef = syncRef.useSyncRef(isDisabled)
+
   React.useLayoutEffect(() => {
-    if (detect.IS_DEV_MODE) {
+    if (isDisabledRef.current) {
+      return
+    } else if (detect.IS_DEV_MODE) {
       if (hasEffectRun) {
         // This is the second time this event is being run in React Strict Mode.
         // Event handlers are not supposed to be idempotent, so it is a mistake to execute it

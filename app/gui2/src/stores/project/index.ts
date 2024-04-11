@@ -330,6 +330,9 @@ export const useProjectStore = defineStore('project', () => {
     setObservedFileName(name: string) {
       observedFileName.value = name
     },
+    get observedFileName() {
+      return observedFileName.value
+    },
     name: projectName,
     displayName: projectDisplayName,
     isOnLocalBackend,
