@@ -7,6 +7,8 @@ import Trash2Icon from 'enso-assets/trash2.svg'
 
 import type * as text from '#/text'
 
+import * as mimeTypes from '#/data/mimeTypes'
+
 import * as localStorageProvider from '#/providers/LocalStorageProvider'
 import * as modalProvider from '#/providers/ModalProvider'
 import * as textProvider from '#/providers/TextProvider'
@@ -22,7 +24,6 @@ import SvgMask from '#/components/SvgMask'
 import UnstyledButton from '#/components/UnstyledButton'
 
 import type * as backend from '#/services/Backend'
-import * as mimeTypes from '#/data/mimeTypes'
 
 // =============
 // === Types ===

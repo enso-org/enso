@@ -3,6 +3,8 @@ import * as React from 'react'
 
 import * as toast from 'react-toastify'
 
+import * as mimeTypes from '#/data/mimeTypes'
+
 import * as asyncEffectHooks from '#/hooks/asyncEffectHooks'
 import * as eventHooks from '#/hooks/eventHooks'
 import * as scrollHooks from '#/hooks/scrollHooks'
@@ -65,7 +67,6 @@ import * as sorting from '#/utilities/sorting'
 import * as string from '#/utilities/string'
 import * as uniqueString from '#/utilities/uniqueString'
 import Visibility from '#/utilities/Visibility'
-import * as mimeTypes from '#/data/mimeTypes'
 
 // ============================
 // === Global configuration ===
