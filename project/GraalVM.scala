@@ -10,7 +10,7 @@ import scala.collection.immutable.Seq
   */
 object GraalVM {
   // Keep in sync with graalMavenPackagesVersion in build.sbt
-  val version: String = "23.1.2"
+  val version: String = "24.0.0"
 
   /** The list of modules that are included in the `component` directory in engine distribution.
     * When invoking the `java` command, these modules need to be put on the module-path.
@@ -64,7 +64,7 @@ object GraalVM {
     "org.graalvm.tools"    % "profiler-tool"      % version,
     "org.graalvm.shadowed" % "json"               % version,
     "org.graalvm.shadowed" % "icu4j"              % version,
-    "org.tukaani"          % "xz"                 % "1.9"
+    "org.graalvm.shadowed" % "xz"                 % version
   )
 
   val jsPkgs = Seq(
