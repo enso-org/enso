@@ -27,7 +27,7 @@ public class TypeInferenceConsistencyTest extends TestBase {
     ctx =
         defaultContextBuilder()
             .option(RuntimeOptions.STRICT_ERRORS, "true")
-            .option(RuntimeOptions.ENABLE_TYPE_CHECK, "true")
+            .option(RuntimeOptions.ENABLE_STATIC_ANALYSIS, "true")
             .out(output)
             .err(output)
             .build();

@@ -27,7 +27,7 @@ import org.slf4j.event.Level;
  * @param logLevel the log level for this context
  * @param enableIrCaches whether or not IR caching should be enabled
  * @param disablePrivateCheck If `private` keyword should be disabled.
- * @param enableTypeCheck whether or not to enable static type checking
+ * @param enableStaticAnalysis whether or not to enable static type checking
  * @param strictErrors whether or not to use strict errors
  * @param useGlobalIrCacheLocation whether or not to use the global IR cache location
  * @param options additional options for the Context
@@ -43,7 +43,7 @@ final class ContextFactory {
   private boolean logMasking;
   private boolean enableIrCaches;
   private boolean disablePrivateCheck;
-  private boolean enableTypeCheck;
+  private boolean enableStaticAnalysis;
   private boolean strictErrors;
   private boolean useGlobalIrCacheLocation = true;
   private boolean enableAutoParallelism;
@@ -97,8 +97,8 @@ final class ContextFactory {
     return this;
   }
 
-  public ContextFactory enableTypeCheck(boolean enableTypeCheck) {
-    this.enableTypeCheck = enableTypeCheck;
+  public ContextFactory enableStaticAnalysis(boolean enableStaticAnalysis) {
+    this.enableStaticAnalysis = enableStaticAnalysis;
     return this;
   }
 
@@ -151,7 +151,7 @@ final class ContextFactory {
                 Boolean.toString(useGlobalIrCacheLocation))
             .option(RuntimeOptions.DISABLE_IR_CACHES, Boolean.toString(!enableIrCaches))
             .option(RuntimeOptions.DISABLE_PRIVATE_CHECK, Boolean.toString(disablePrivateCheck))
-            .option(RuntimeOptions.ENABLE_TYPE_CHECK, Boolean.toString(enableTypeCheck))
+            .option(RuntimeOptions.ENABLE_STATIC_ANALYSIS, Boolean.toString(enableStaticAnalysis))
             .option(DebugServerInfo.ENABLE_OPTION, "true")
             .option(RuntimeOptions.LOG_MASKING, Boolean.toString(logMasking))
             .options(options)

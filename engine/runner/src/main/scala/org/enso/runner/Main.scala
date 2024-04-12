@@ -69,7 +69,7 @@ object Main {
   private val NO_IR_CACHES_OPTION            = "no-ir-caches"
   private val NO_READ_IR_CACHES_OPTION       = "no-read-ir-caches"
   private val DISABLE_PRIVATE_CHECK_OPTION   = "disable-private-check"
-  private val ENABLE_TYPE_CHECK_OPTION       = "enable-type-check"
+  private val ENABLE_STATIC_ANALYSIS_OPTION  = "enable-static-analysis"
   private val COMPILE_OPTION                 = "compile"
   private val NO_COMPILE_DEPENDENCIES_OPTION = "no-compile-dependencies"
   private val NO_GLOBAL_CACHE_OPTION         = "no-global-cache"
@@ -355,9 +355,9 @@ object Main {
         "Disable `private` access checks. Used for running white-box tests."
       )
       .build()
-    val enableTypeCheckOption = CliOption.builder
-      .longOpt(ENABLE_TYPE_CHECK_OPTION)
-      .desc("Enable some type checking (Experimental).")
+    val enableStaticAnalysisOption = CliOption.builder
+      .longOpt(ENABLE_STATIC_ANALYSIS_OPTION)
+      .desc("Enable static analysis (Experimental type inference).")
       .build()
 
     val irCachesOption = CliOption.builder
@@ -455,7 +455,7 @@ object Main {
       .addOption(noReadIrCachesOption)
       .addOption(compileOption)
       .addOption(disablePrivateCheck)
-      .addOption(enableTypeCheckOption)
+      .addOption(enableStaticAnalysisOption)
       .addOption(noCompileDependenciesOption)
       .addOption(noGlobalCacheOption)
       .addOptionGroup(cacheOptionsGroup)
@@ -549,7 +549,7 @@ object Main {
     *                                  should also be compiled
     * @param shouldUseGlobalCache whether or not the compilation result should
     *                             be written to the global cache
-    * @param enableTypeCheck whether or not type checking is enabled
+    * @param enableStaticAnalysis whether or not static analysis should be enabled
     * @param logLevel the logging level
     * @param logMasking whether or not log masking is enabled
     */
@@ -557,7 +557,7 @@ object Main {
     packagePath: String,
     shouldCompileDependencies: Boolean,
     shouldUseGlobalCache: Boolean,
-    enableTypeCheck: Boolean,
+    enableStaticAnalysis: Boolean,
     logLevel: Level,
     logMasking: Boolean
   ): Unit = {
@@ -576,7 +576,7 @@ object Main {
       .logLevel(logLevel)
       .logMasking(logMasking)
       .enableIrCaches(true)
-      .enableTypeCheck(enableTypeCheck)
+      .enableStaticAnalysis(enableStaticAnalysis)
       .strictErrors(true)
       .useGlobalIrCacheLocation(shouldUseGlobalCache)
       .build
@@ -606,7 +606,7 @@ object Main {
     * @param logMasking     is the log masking enabled
     * @param enableIrCaches are IR caches enabled
     * @param disablePrivateCheck Is private modules check disabled. If yes, `private` keyword is ignored.
-    * @param enableTypeCheck is type checking enabled.
+    * @param enableStaticAnalysis is static analysis enabled.
     * @param enableAutoParallelism is auto parallelism enabled.
     * @param inspect        shall inspect option be enabled
     * @param dump           shall graphs be sent to the IGV
@@ -620,7 +620,7 @@ object Main {
     logMasking: Boolean,
     enableIrCaches: Boolean,
     disablePrivateCheck: Boolean,
-    enableTypeCheck: Boolean,
+    enableStaticAnalysis: Boolean,
     enableAutoParallelism: Boolean,
     inspect: Boolean,
     dump: Boolean,
@@ -652,7 +652,7 @@ object Main {
       .logLevel(logLevel)
       .logMasking(logMasking)
       .enableIrCaches(enableIrCaches)
-      .enableTypeCheck(enableTypeCheck)
+      .enableStaticAnalysis(enableStaticAnalysis)
       .disablePrivateCheck(disablePrivateCheck)
       .strictErrors(true)
       .enableAutoParallelism(enableAutoParallelism)
@@ -915,13 +915,14 @@ object Main {
     * @param logLevel    log level to set for the engine runtime
     * @param logMasking  is the log masking enabled
     * @param enableIrCaches are IR caches enabled
+    * @param enableStaticAnalysis is static analysis enabled
     */
   private def runRepl(
     projectPath: Option[String],
     logLevel: Level,
     logMasking: Boolean,
     enableIrCaches: Boolean,
-    enableTypeCheck: Boolean
+    enableStaticAnalysis: Boolean
   ): Unit = {
     val mainMethodName = "internal_repl_entry_point___"
     val dummySourceToTriggerRepl =
@@ -942,7 +943,7 @@ object Main {
         .logLevel(logLevel)
         .logMasking(logMasking)
         .enableIrCaches(enableIrCaches)
-        .enableTypeCheck(enableTypeCheck)
+        .enableStaticAnalysis(enableStaticAnalysis)
         .build
     val mainModule =
       context.evalModule(dummySourceToTriggerRepl, replModuleName)
@@ -1217,7 +1218,7 @@ object Main {
         packagePaths,
         shouldCompileDependencies,
         shouldUseGlobalCache,
-        enableTypeCheck = line.hasOption(ENABLE_TYPE_CHECK_OPTION),
+        enableStaticAnalysis = line.hasOption(ENABLE_STATIC_ANALYSIS_OPTION),
         logLevel,
         logMasking
       )
@@ -1232,7 +1233,7 @@ object Main {
         logMasking,
         enableIrCaches        = shouldEnableIrCaches(line),
         disablePrivateCheck   = line.hasOption(DISABLE_PRIVATE_CHECK_OPTION),
-        enableTypeCheck       = line.hasOption(ENABLE_TYPE_CHECK_OPTION),
+        enableStaticAnalysis  = line.hasOption(ENABLE_STATIC_ANALYSIS_OPTION),
         enableAutoParallelism = line.hasOption(AUTO_PARALLELISM_OPTION),
         inspect               = line.hasOption(INSPECT_OPTION),
         dump                  = line.hasOption(DUMP_GRAPHS_OPTION),
@@ -1250,7 +1251,7 @@ object Main {
         logLevel,
         logMasking,
         shouldEnableIrCaches(line),
-        enableTypeCheck = line.hasOption(ENABLE_TYPE_CHECK_OPTION)
+        enableStaticAnalysis = line.hasOption(ENABLE_STATIC_ANALYSIS_OPTION)
       )
     }
     if (line.hasOption(DOCS_OPTION)) {
