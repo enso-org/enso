@@ -114,9 +114,9 @@ const selfArgumentExternalId = computed<Opt<ExternalId>>(() => {
 const visualizationConfig = computed<Opt<NodeVisualizationConfiguration>>(() => {
   // Even if we inherit dynamic config in props.input.dynamicConfig, we should also read it for
   // the current call and then merge them.
-  function collectArgumentNamesAndUuids(v : Ast.Ast) {
+  function collectArgumentNamesAndUuids() {
     var arr : Array<any> = [];
-    v.visitRecursiveAst(function(f) {
+    function process(f : Ast.Ast) {
       console.log("type: " + f.typeName())
       if (f instanceof Ast.TextLiteral) {
         // console.log("  raw2: " + f.rawTextContent)
@@ -132,6 +132,11 @@ const visualizationConfig = computed<Opt<NodeVisualizationConfiguration>>(() => 
         console.log("  num : " + f.code())
       } else if (f instanceof Ast.Ident) {
         console.log("  iden: " + f.code())
+        arr.push({
+          name : f.code(),
+          code : f.code(),
+          uuid : f.externalId
+        })
       } else if (f instanceof Ast.PropertyAccess) {
         console.log("  self: " + f.lhs?.code())
         console.log("  oper: " + f.operator.code())
@@ -140,8 +145,26 @@ const visualizationConfig = computed<Opt<NodeVisualizationConfiguration>>(() => 
         console.log(f.typeName());
       }
       console.log("    has ID: " + f.externalId)
-    })
-    arr.reverse()
+    }
+
+    let args = ArgumentApplication.FromInterpretedWithInfo(interpreted.value)
+    if (args instanceof ArgumentApplication) {
+      let it = args.iterApplications();
+      for (;;) {
+        let n = it.next();
+        if (n.done) {
+          break
+        }
+        let a = n.value.argument
+        if (a instanceof ArgumentPlaceholder) {
+          console.log("Place holder " + a);
+        } else {
+          process(a.ast)
+        }
+      }
+    } else {
+      process(args);
+    }
 
     let m : any = {}
     let index = 0
@@ -154,11 +177,7 @@ const visualizationConfig = computed<Opt<NodeVisualizationConfiguration>>(() => 
     return m
   }
 
-  let v = props.input.value
-  let m = {}
-  if (v instanceof Ast.App) {
-    m = collectArgumentNamesAndUuids(v);
-  }
+  let m = collectArgumentNamesAndUuids()
 
   const expressionId = selfArgumentExternalId.value
   const astId = props.input.value.id
