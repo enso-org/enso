@@ -185,7 +185,6 @@ type Enso_File
     with_output_stream : Vector File_Access -> (Output_Stream -> Any ! File_Error) -> Any ! File_Error
     with_output_stream self (open_options : Vector) action =
         Context.Output.if_enabled disabled_message="Writing to an Enso_File is forbidden as the Output context is disabled." panic=False <|
-            # TODO this is actually fetching the asset twice, we should avoid that
             open_as_data_link = (open_options.contains Data_Link_Access.No_Follow . not) && (Data_Link.is_data_link self)
             if open_as_data_link then Data_Link.write_data_link_as_stream self open_options action else
                 if open_options.contains File_Access.Append then Unimplemented.throw "Enso_File currently does not support appending to a file. Instead you may read it, modify and then write the new contents." else
@@ -256,7 +255,6 @@ type Enso_File
             Enso_Asset_Type.File -> File_Format.handle_format_missing_arguments format <|
                 read_with_format effective_format =
                     metadata = File_Format_Metadata.from self
-                    # TODO maybe avoid fetching asset id twice here? maybe move with_input_stream to asset? or helper?
                     self.with_input_stream [File_Access.Read] (stream-> effective_format.read_stream stream metadata)
 
                 if format != Auto_Detect then read_with_format format else
