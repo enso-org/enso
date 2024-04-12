@@ -101,15 +101,15 @@ public class Decimal_Utils {
     return bd.setScale(decimalPlaces, roundingMode).stripTrailingZeros();
   }
 
-  public static BigDecimal floor(BigDecimal bd) {
-    return bd.setScale(0, RoundingMode.FLOOR);
+  public static BigInteger floor(BigDecimal bd) {
+    return bd.setScale(0, RoundingMode.FLOOR).toBigInteger();
   }
 
-  public static BigDecimal ceil(BigDecimal bd) {
-    return bd.setScale(0, RoundingMode.CEILING);
+  public static BigInteger ceil(BigDecimal bd) {
+    return bd.setScale(0, RoundingMode.CEILING).toBigInteger();
   }
 
-  public static BigDecimal truncate(BigDecimal bd) {
-    return bd.setScale(0, RoundingMode.DOWN);
+  public static BigInteger truncate(BigDecimal bd) {
+    return bd.setScale(0, RoundingMode.DOWN).toBigInteger();
   }
 }

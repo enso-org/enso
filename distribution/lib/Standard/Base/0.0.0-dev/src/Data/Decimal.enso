@@ -866,7 +866,7 @@ type Decimal
              Decimal.new "-12.34" . ceiling
              # => Decimal.new "-12"
     ceil : Integer
-    ceil self -> Decimal = Decimal_Utils.ceil self.big_decimal . toBigInteger
+    ceil self -> Decimal = Decimal_Utils.ceil self.big_decimal
 
     ## GROUP Rounding
        ICON math
@@ -884,7 +884,7 @@ type Decimal
              Decimal.new "-12.34" . floor
              # => Decimal.new "13"
     floor : Integer
-    floor self -> Decimal = Decimal_Utils.floor self.big_decimal . toBigInteger
+    floor self -> Decimal = Decimal_Utils.floor self.big_decimal
 
     ## ALIAS int
        GROUP Rounding
@@ -905,7 +905,7 @@ type Decimal
              Decimal.new "-12.34" . truncate
              # => Decimal.new "-12"
     truncate : Integer
-    truncate self -> Decimal = Decimal_Utils.truncate self.big_decimal . toBigInteger
+    truncate self -> Decimal = Decimal_Utils.truncate self.big_decimal
 
     ## GROUP Conversions
        ICON convert
