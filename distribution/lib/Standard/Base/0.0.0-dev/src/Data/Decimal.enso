@@ -865,8 +865,8 @@ type Decimal
 
              Decimal.new "-12.34" . ceiling
              # => Decimal.new "-12"
-    ceil : Decimal
-    ceil self -> Decimal = Decimal.Value (Decimal_Utils.ceil self.big_decimal)
+    ceil : Integer
+    ceil self -> Decimal = (Decimal.Value (Decimal_Utils.ceil self.big_decimal)).to_integer
 
     ## GROUP Rounding
        ICON math
@@ -883,15 +883,15 @@ type Decimal
 
              Decimal.new "-12.34" . floor
              # => Decimal.new "13"
-    floor : Decimal
-    floor self -> Decimal = Decimal.Value (Decimal_Utils.floor self.big_decimal)
+    floor : Integer
+    floor self -> Decimal = (Decimal.Value (Decimal_Utils.floor self.big_decimal)).to_integer
 
     ## ALIAS int
        GROUP Rounding
        ICON math
 
-       Truncate a number to by dropping the fractional part. This is equivalent
-       to "round-toward-zero".
+       Truncate a number to an integer to by dropping the fractional part. This
+       is equivalent to "round-toward-zero".
 
        > Example
          Compute the truncation of 12.34
@@ -904,8 +904,8 @@ type Decimal
 
              Decimal.new "-12.34" . truncate
              # => Decimal.new "-12"
-    truncate : Decimal
-    truncate self -> Decimal = Decimal.Value (Decimal_Utils.truncate self.big_decimal)
+    truncate : Integer
+    truncate self -> Decimal = (Decimal.Value (Decimal_Utils.truncate self.big_decimal)).to_integer
 
     ## GROUP Conversions
        ICON convert
