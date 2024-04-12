@@ -251,14 +251,14 @@ export default function UserGroupsSettingsTab() {
             dragAndDropHooks={dragAndDropHooks}
           >
             <aria.TableHeader className="h-row">
-              {/* Delete button. */}
-              <aria.Column className="relative border-0" />
               <aria.Column
                 isRowHeader
                 className="w-members-name-column border-x-2 border-transparent bg-clip-padding px-cell-x text-left text-sm font-semibold last:border-r-0"
               >
                 {getText('userGroup')}
               </aria.Column>
+              {/* Delete button. */}
+              <aria.Column className="relative border-0" />
             </aria.TableHeader>
             <aria.TableBody
               items={userGroups ?? []}
@@ -290,6 +290,9 @@ export default function UserGroupsSettingsTab() {
                       id={userGroup.id}
                       className={`group h-row ${backendModule.isPlaceholderUserGroupId(userGroup.id) ? 'pointer-events-none placeholder' : ''}`}
                     >
+                      <aria.Cell className="text rounded-r-full border-x-2 border-transparent bg-clip-padding px-cell-x first:rounded-l-full last:border-r-0">
+                        {userGroup.groupName}
+                      </aria.Cell>
                       <aria.Cell className="relative bg-transparent p transparent group-hover-2:opacity-100">
                         <UnstyledButton
                           onPress={() => {
@@ -305,13 +308,10 @@ export default function UserGroupsSettingsTab() {
                               />
                             )
                           }}
-                          className="absolute right-full size-icon -translate-y-1/2"
+                          className="absolute left-full size-icon -translate-y-1/2"
                         >
                           <img src={Cross2} className="size-icon" />
                         </UnstyledButton>
-                      </aria.Cell>
-                      <aria.Cell className="text rounded-l-full border-x-2 border-transparent bg-clip-padding px-cell-x last:rounded-r-full last:border-r-0">
-                        {userGroup.groupName}
                       </aria.Cell>
                     </aria.Row>
                     {(usersByGroup.get(userGroup.id) ?? []).map(otherUser => (
@@ -320,6 +320,13 @@ export default function UserGroupsSettingsTab() {
                         id={`${userGroup.id}-${otherUser.userId}`}
                         className="group h-row"
                       >
+                        <aria.Cell className="text border-x-2 border-transparent bg-clip-padding rounded-rows-skip-level last:border-r-0">
+                          <div className="ml-indent-1 flex h-row min-w-max items-center whitespace-nowrap rounded-full">
+                            <aria.Text className="grow px-name-column-x py-name-column-y">
+                              {otherUser.name}
+                            </aria.Text>
+                          </div>
+                        </aria.Cell>
                         <aria.Cell className="relative bg-transparent p transparent group-hover-2:opacity-100">
                           <UnstyledButton
                             onPress={() => {
@@ -337,17 +344,10 @@ export default function UserGroupsSettingsTab() {
                                 />
                               )
                             }}
-                            className="absolute right-full size-icon -translate-y-1/2 translate-x-indent-1"
+                            className="absolute left-full size-icon -translate-y-1/2"
                           >
                             <img src={Cross2} className="size-icon" />
                           </UnstyledButton>
-                        </aria.Cell>
-                        <aria.Cell className="text border-x-2 border-transparent bg-clip-padding rounded-rows-skip-level last:border-r-0">
-                          <div className="ml-indent-1 flex h-row min-w-max items-center whitespace-nowrap rounded-full">
-                            <aria.Text className="grow px-name-column-x py-name-column-y">
-                              {otherUser.name}
-                            </aria.Text>
-                          </div>
                         </aria.Cell>
                       </aria.Row>
                     ))}
