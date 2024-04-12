@@ -54,6 +54,7 @@ export type DataServerEvents = {
 
 export class DataServer extends ObservableV2<DataServerEvents> {
   initialized: Promise<Result<void, Error>>
+  private initializationScheduled = false
   resolveCallbacks = new Map<string, (data: any) => void>()
 
   /** `websocket.binaryType` should be `ArrayBuffer`. */
@@ -94,7 +95,7 @@ export class DataServer extends ObservableV2<DataServerEvents> {
       console.error('Language Server Binary socket error:', error),
     )
     websocket.addEventListener('close', () => {
-      this.initialize()
+      this.scheduleInitializationAfterConnect()
     })
 
     this.initialized = this.initialize()
@@ -105,8 +106,22 @@ export class DataServer extends ObservableV2<DataServerEvents> {
     this.resolveCallbacks.clear()
   }
 
+  private scheduleInitializationAfterConnect() {
+    if (this.initializationScheduled) return this.initialized
+    this.initializationScheduled = true
+    this.initialized = new Promise((resolve) => {
+      const cb = () => {
+        this.websocket.removeEventListener('open', cb)
+        this.initializationScheduled = false
+        resolve(this.initialize())
+      }
+      this.websocket.addEventListener('open', cb)
+    })
+    return this.initialized
+  }
+
   private initialize() {
-    this.initialized = exponentialBackoff(() => this.initSession().then(responseAsResult), {
+    return exponentialBackoff(() => this.initSession().then(responseAsResult), {
       onBeforeRetry: (error, _, delay) => {
         console.warn(
           `Failed to initialize language server binary connection, retrying after ${delay}ms...\n`,
@@ -119,7 +134,6 @@ export class DataServer extends ObservableV2<DataServerEvents> {
         return result
       } else return Ok()
     })
-    return this.initialized
   }
 
   protected async send<T = void>(

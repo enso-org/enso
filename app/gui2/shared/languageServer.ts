@@ -166,6 +166,7 @@ export class LanguageServer extends ObservableV2<Notifications> {
     this.initialized = new Promise((resolve) => {
       const cb = () => {
         this.transport.off('open', cb)
+        this.initializationScheduled = false
         exponentialBackoff(() => this.initProtocolConnection(this.clientID), {
           onBeforeRetry: (error, _, delay) => {
             console.warn(
