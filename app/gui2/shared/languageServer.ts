@@ -116,22 +116,32 @@ export class LsRpcError {
 
 export type LsRpcResult<T> = Result<T, LsRpcError>
 
-/** [Documentation](https://github.com/enso-org/enso/blob/develop/docs/language-server/protocol-language-server.md) */
+/**
+ * This client implements the [Language Server Protocol](https://github.com/enso-org/enso/blob/develop/docs/language-server/protocol-language-server.md)
+ *
+ * It also handles the initialization (and re-initialization on every reconnect); each method
+ * repressenting a remote call (except the `initProtocolConnection` obviously) waits for
+ * initialization before sending the request.
+ */
 export class LanguageServer extends ObservableV2<Notifications> {
   client: Client
-  clientScope: AbortScope = new AbortScope()
+  /**
+   * This promise is resolved once the LS protocol is initialized. When connection is lost, this
+   * field becomes again an unresolved promise until reconnected and reinitialized.
+   */
   initialized: Promise<LsRpcResult<response.InitProtocolConnection>>
-  handlers: Map<string, Set<(...params: any[]) => void>>
-  retainCount = 1
+  private clientScope: AbortScope = new AbortScope()
+  private initializationScheduled = false
+  private retainCount = 1
 
   constructor(
     private clientID: Uuid,
     private transport: ReconnectingTransportWithWebsocketEvents,
   ) {
     super()
+    this.initialized = this.scheduleInitializationAfterConnect()
     const requestManager = new RequestManager([transport])
     this.client = new Client(requestManager)
-    this.handlers = new Map()
     this.client.onNotification((notification) => {
       this.emit(notification.method as keyof Notifications, [notification.params])
     })
@@ -139,35 +149,45 @@ export class LanguageServer extends ObservableV2<Notifications> {
       console.error(`Unexpected LS connection error:`, error)
     })
     transport.on('error', (error) => console.error('Language Server transport error:', error))
-    const cb2 = () => {
-      console.log('Websocket closed; reinitializing')
-      this.initialize()
-      this.emit('transport/closed', [])
+    const reinitializeCb = () => {
+      console.log('Websocket closed')
+      this.scheduleInitializationAfterConnect()
     }
-    transport.on('close', cb2)
-    transport.on('open', () => this.emit('transport/reconnected', []))
+    transport.on('close', reinitializeCb)
     this.clientScope.onAbort(() => {
-      console.log('CLOSING WEBSOCKET')
-      this.transport.off('close', cb2)
+      this.transport.off('close', reinitializeCb)
       this.transport.close()
     })
-    this.initialized = this.initialize()
   }
 
-  private initialize() {
-    this.initialized = exponentialBackoff(() => this.initProtocolConnection(this.clientID), {
-      onBeforeRetry: (error, _, delay) => {
-        console.warn(
-          `Failed to initialize language server connection, retrying after ${delay}ms...\n`,
-          error,
-        )
-      },
-    }).then((result) => {
-      if (!result.ok) {
-        result.error.log('Error initializing Language Server RPC')
+  private scheduleInitializationAfterConnect() {
+    if (this.initializationScheduled) return this.initialized
+    this.initializationScheduled = true
+    console.log('schedule reinitializing')
+    this.initialized = new Promise((resolve) => {
+      const cb = () => {
+        resolve(undefined)
+        this.transport.off('open', cb)
       }
-      return result
+      this.transport.on('open', cb)
     })
+      .then(() => {
+        this.initializationScheduled = false
+        return exponentialBackoff(() => this.initProtocolConnection(this.clientID), {
+          onBeforeRetry: (error, _, delay) => {
+            console.warn(
+              `Failed to initialize language server connection, retrying after ${delay}ms...\n`,
+              error,
+            )
+          },
+        })
+      })
+      .then((result) => {
+        if (!result.ok) {
+          result.error.log('Error initializing Language Server RPC')
+        }
+        return result
+      })
     return this.initialized
   }
 
