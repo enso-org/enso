@@ -310,7 +310,6 @@ final class WebSocket implements ProxyExecutable, Polyfill {
       System.err.println("WebSocketListener.onMessageBinary\n" + buffer.debugDataHex(true));
 
       // Passing byte array to JS requires `HostAccess.allowArrayAccess()`
-      // TODO: try passing ByteBuffer to avoid copying
       Object data = buffer.readBytes();
       executor.execute(() -> handleMessage.executeVoid(data));
     }
