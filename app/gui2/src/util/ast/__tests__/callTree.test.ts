@@ -162,6 +162,13 @@ test.each([
     expectedNotAppliedArguments: [],
   },
   {
+    description: '2 args, notAppliedArguments are incorrectly empty.',
+    code: 'Aggregate_Column.Sum x y',
+    subapplicationIndex: 2,
+    notAppliedArguments: [],
+    expectedNotAppliedArguments: [],
+  },
+  {
     description: '1 arg, notAppliedArguments unsorted.',
     code: 'Aggregate_Column.Sum x',
     subapplicationIndex: 1,

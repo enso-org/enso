@@ -406,11 +406,9 @@ export function getMethodCallInfoRecursively(
   ast: Ast.Ast,
   db: GraphDb,
 ): MethodCallInfo | undefined {
-  const get = (
-    ast: Ast.Ast,
-    appliedArgs: number,
-    appliedNamedArgs: string[],
-  ): MethodCallInfo | undefined => {
+  let appliedArgs = 0
+  const appliedNamedArgs: string[] = []
+  for (;;) {
     const info = db.getMethodCallInfo(ast.id)
     if (info) {
       // There is an info available! Stop the recursion and adjust `notAppliedArguments`.
@@ -421,26 +419,29 @@ export function getMethodCallInfoRecursively(
             .map((arg, index) => (appliedNamedArgs.includes(arg.name) ? index : -1))
             .filter((i) => i !== -1)
         : []
-      const correctedNotAppliedArguments = info.methodCall.notAppliedArguments.filter(
+      const withoutNamed = info.methodCall.notAppliedArguments.filter(
         (idx) => !appliedNamed.includes(idx),
       )
       return {
         methodCall: {
           ...info.methodCall,
-          notAppliedArguments: correctedNotAppliedArguments.sort().slice(appliedArgs),
+          notAppliedArguments: withoutNamed.sort().slice(appliedArgs),
         },
         suggestion: info.suggestion,
-        partiallyApplied: info.partiallyApplied,
       }
     }
     // No info, continue recursion to the next sub-application AST.
     if (ast instanceof Ast.App) {
-      if (ast.argumentName)
-        return get(ast.function, appliedArgs, [...appliedNamedArgs, ast.argumentName.code()])
-      return get(ast.function, appliedArgs + 1, appliedNamedArgs)
+      if (ast.argumentName) {
+        appliedNamedArgs.push(ast.argumentName.code())
+      } else {
+        appliedArgs += 1
+      }
+      ast = ast.function
+    } else {
+      break
     }
   }
-  return get(ast, 0, [])
 }
 
 export const ArgumentApplicationKey: unique symbol = Symbol('ArgumentApplicationKey')

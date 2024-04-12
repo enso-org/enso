@@ -23,7 +23,6 @@ import { reactive, ref, type Ref } from 'vue'
 export interface MethodCallInfo {
   methodCall: MethodCall
   suggestion: SuggestionEntry
-  partiallyApplied: boolean
 }
 
 export interface BindingInfo {
@@ -284,8 +283,7 @@ export class GraphDb {
     if (suggestionId == null) return
     const suggestion = this.suggestionDb.get(suggestionId)
     if (suggestion == null) return
-    const partiallyApplied = mathodCallEquals(methodCall, payloadFuncSchema)
-    return { methodCall, suggestion, partiallyApplied }
+    return { methodCall, suggestion }
   }
 
   getNodeColorStyle(id: NodeId): string {
@@ -523,7 +521,7 @@ const baseMockNode = {
   conditionalPorts: new Set(),
 } satisfies Partial<Node>
 
-function mathodCallEquals(a: MethodCall | undefined, b: MethodCall | undefined): boolean {
+export function mathodCallEquals(a: MethodCall | undefined, b: MethodCall | undefined): boolean {
   return (
     a === b ||
     (a != null &&
