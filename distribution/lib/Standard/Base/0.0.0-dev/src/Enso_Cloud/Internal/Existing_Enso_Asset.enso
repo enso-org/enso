@@ -74,10 +74,7 @@ type Existing_Enso_Asset
        Fetches the basic information about an existing file from the Cloud.
        It will fail if the file does not exist.
     get_asset_reference_for (file : Enso_File) -> Existing_Enso_Asset ! File_Error =
-        Standard.Base.IO.println "resolving "+file.to_text
-        r = fetch_asset_reference file
-        Standard.Base.IO.println "=> "+r.id.catch.to_text
-        r
+        fetch_asset_reference file
 
     ## PRIVATE
        Resolves a path to an existing asset in the cloud.
@@ -91,8 +88,6 @@ type Existing_Enso_Asset
         # TODO remove workaround - this should be a Get endpoint, not Post
         response = Context.Output.with_enabled <|
             Utils.http_request_as_json HTTP_Method.Post uri payload error_handlers=error_handlers
-        #Standard.Base.Runtime.get_stack_trace.each e-> Standard.Base.IO.println "        "+e.to_display_text
-        #Standard.Base.IO.println ""
         Existing_Enso_Asset.from_json response
 
     ## PRIVATE

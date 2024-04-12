@@ -31,16 +31,10 @@ public final class CloudRequestCache {
   }
 
   public static void invalidateEntry(String key) {
-    if (cache.remove(key) != null) {
-      System.out.println("Invalidated cache entry for key: " + key);
-    }
+    cache.remove(key);
   }
 
   public static void invalidatePrefix(String prefix) {
-    long cnt = cache.keySet().stream().filter(key -> key.startsWith(prefix)).count();
-    if (cnt > 0) {
-      System.out.println("Invalidated " + cnt + " cache entries with prefix: " + prefix);
-    }
     cache.keySet().removeIf(key -> key.startsWith(prefix));
   }
 
