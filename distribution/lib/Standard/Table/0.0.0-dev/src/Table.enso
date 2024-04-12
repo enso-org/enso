@@ -2319,7 +2319,7 @@ type Table
          retyped to the `Mixed` type to indicate that intention. Note that the
          `Mixed` type may not be supported by most Database backends.
     union : (Table | Vector Table) -> Match_Columns -> Boolean | Report_Unmatched -> Boolean -> Problem_Behavior -> Table
-    union self tables:(Table | Vector) match_columns=Match_Columns.By_Name keep_unmatched_columns=Report_Unmatched allow_type_widening=True on_problems=Report_Warning =
+    union self tables:(Table | Vector)=[] match_columns=Match_Columns.By_Name keep_unmatched_columns=Report_Unmatched allow_type_widening=True on_problems=Report_Warning =
         Table.from_union ([self] + Vector.unify_vector_or_element tables) match_columns keep_unmatched_columns allow_type_widening on_problems
 
     ## ALIAS drop_missing_rows, dropna
@@ -2999,7 +2999,7 @@ type Table
          retyped to the `Mixed` type to indicate that intention. Note that the
          `Mixed` type may not be supported by most Database backends.
     from_union : (Vector Table) -> Match_Columns -> Boolean | Report_Unmatched -> Boolean -> Problem_Behavior -> Table
-    from_union tables:(Vector) match_columns=Match_Columns.By_Name keep_unmatched_columns=Report_Unmatched allow_type_widening=True on_problems=Report_Warning =
+    from_union tables:Vector=[] match_columns=Match_Columns.By_Name keep_unmatched_columns=Report_Unmatched allow_type_widening=True on_problems=Report_Warning =
         all_tables = (tables.map t-> Table.from t)
         all_tables.if_not_error <|
             ## We keep separate problem builders, because if we are reporting `No_Output_Columns`,

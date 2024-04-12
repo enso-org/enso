@@ -298,17 +298,19 @@ calculate_correlation_statistics_matrix data =
     stats_array = wrap_java_call <| CorrelationStatistics.computeMatrix data_array
     Vector.new stats_array.length i->(Vector.from_polyglot_array (stats_array.at i))
 
-## GROUP Statistics
+## ALIAS aggregate, summarize
+   GROUP Statistics
    ICON sigma
    Compute a single statistic on the vector (ignoring Nothing and NaN values).
 
    Arguments:
    - statistic: Statistic to calculate.
 Vector.compute : Statistic -> Any
-Vector.compute self statistic=Statistic.Count =
+Vector.compute self statistic:Statistic=Statistic.Count =
     self.compute_bulk [statistic] . first
 
-## ICON dataframe_map_column
+## ALIAS aggregate, summarize
+   ICON dataframe_map_column
    Compute statistics on the vector (ignoring Nothing and NaN values).
 
    Arguments:
@@ -325,7 +327,7 @@ Vector.compute_bulk self statistics=[Statistic.Count, Statistic.Sum] =
    Arguments:
    - statistic: Statistic to calculate.
 Vector.running : Statistic -> Vector Any
-Vector.running self statistic=Statistic.Count =
+Vector.running self statistic:Statistic=Statistic.Count =
     Statistic.running self statistic
 
 ## ICON math

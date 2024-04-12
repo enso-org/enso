@@ -31,7 +31,7 @@ make_aggregate_column_selector table display=Display.Always =
     count_distinct = Option "Count Distinct" fqn+".Count_Distinct" [["columns", col_names_selector]]
 
     ## Currently can't support nested vector editors so using single order by picker
-    order_by_selector = make_order_by_selector table . item_editor
+    order_by_selector = make_order_by_selector table
     first = Option "First" fqn+".First" [column_widget, ["order_by" , order_by_selector]]
     last = Option "Last" fqn+".Last" [column_widget, ["order_by" , order_by_selector]]
 
