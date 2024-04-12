@@ -158,6 +158,7 @@
   "upload": "Upload",
   "uploaded": "Uploaded",
   "delete": "Delete",
+  "remove": "Remove",
   "invite": "Invite",
   "color": "Color",
   "labels": "Labels",
@@ -323,6 +324,8 @@
   "deleteSelectedAssetsActionText": "delete $0 selected items",
   "deleteSelectedAssetForeverActionText": "delete '$0' forever",
   "deleteSelectedAssetsForeverActionText": "delete $0 selected items forever",
+  "deleteUserGroupActionText": "delete the user group '$0'",
+  "removeUserFromUserGroupActionText": "remove the user '$0' from the user group '$1'",
 
   "enterTheNewKeyboardShortcutFor": "Enter the new keyboard shortcut for $0.",
   "noShortcutEntered": "No shortcut entered",

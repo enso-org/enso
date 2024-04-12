@@ -20,6 +20,7 @@ import HorizontalMenuBar from '#/components/styled/HorizontalMenuBar'
 import SettingsSection from '#/components/styled/settings/SettingsSection'
 import UnstyledButton from '#/components/UnstyledButton'
 
+import ConfirmDeleteModal from '#/modals/ConfirmDeleteModal'
 import NewUserGroupModal from '#/modals/NewUserGroupModal'
 
 import * as backendModule from '#/services/Backend'
@@ -292,7 +293,17 @@ export default function MemberRolesSettingsTab() {
                       <aria.Cell className="relative bg-transparent p transparent group-hover-2:opacity-100">
                         <UnstyledButton
                           onPress={() => {
-                            void doDeleteUserGroup(userGroup)
+                            setModal(
+                              <ConfirmDeleteModal
+                                actionText={getText(
+                                  'deleteUserGroupActionText',
+                                  userGroup.groupName
+                                )}
+                                doDelete={() => {
+                                  void doDeleteUserGroup(userGroup)
+                                }}
+                              />
+                            )
                           }}
                           className="absolute right-full size-icon -translate-y-1/2"
                         >
@@ -312,7 +323,19 @@ export default function MemberRolesSettingsTab() {
                         <aria.Cell className="relative bg-transparent p transparent group-hover-2:opacity-100">
                           <UnstyledButton
                             onPress={() => {
-                              void doRemoveUserFromUserGroup(otherUser, userGroup)
+                              setModal(
+                                <ConfirmDeleteModal
+                                  actionText={getText(
+                                    'removeUserFromUserGroupActionText',
+                                    otherUser.name,
+                                    userGroup.groupName
+                                  )}
+                                  actionButtonLabel={getText('remove')}
+                                  doDelete={() => {
+                                    void doRemoveUserFromUserGroup(otherUser, userGroup)
+                                  }}
+                                />
+                              )
                             }}
                             className="absolute right-full size-icon -translate-y-1/2 translate-x-indent-1"
                           >
