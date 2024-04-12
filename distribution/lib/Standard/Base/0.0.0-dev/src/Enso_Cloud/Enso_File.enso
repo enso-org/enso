@@ -308,8 +308,9 @@ type Enso_File
         # Remove secrets from the list - they are handled separately in `Enso_Secret.list`.
         assets = list_assets self . filter f-> f.asset_type != Enso_Asset_Type.Secret
         assets.map asset->
-            # TODO we could cache the asset maybe? but for how long should we do that?
-            Enso_File.Value (self.enso_path.resolve asset.name)
+            file = Enso_File.Value (self.enso_path.resolve asset.name)
+            Asset_Cache.update file asset
+            file
 
     ## UNSTABLE
        GROUP Output
