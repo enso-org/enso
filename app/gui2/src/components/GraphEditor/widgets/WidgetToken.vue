@@ -9,10 +9,14 @@ const repr = computed(() => props.input.value.code())
 </script>
 
 <script lang="ts">
-export const widgetDefinition = defineWidget(WidgetInput.isToken, {
-  priority: 0,
-  score: Score.Good,
-})
+export const widgetDefinition = defineWidget(
+  WidgetInput.isToken,
+  {
+    priority: 0,
+    score: Score.Good,
+  },
+  import.meta.hot,
+)
 </script>
 
 <template>

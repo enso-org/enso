@@ -2,7 +2,7 @@ package org.enso.base.enso_cloud;
 
 import org.enso.base.Environment_Utils;
 
-public class CloudAPI {
+public final class CloudAPI {
   public static String getAPIRootURI() {
     var envUri = Environment_Utils.get_environment_variable("ENSO_CLOUD_API_URI");
     var effectiveUri =
@@ -12,6 +12,7 @@ public class CloudAPI {
   }
 
   public static void flushCloudCaches() {
+    CloudRequestCache.clear();
     AuthenticationProvider.reset();
     EnsoSecretReader.flushCache();
   }

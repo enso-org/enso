@@ -46,6 +46,7 @@ const MENU_CLOSE_TIMEOUT_MS = 300
 const props = defineProps<{
   node: Node
   edited: boolean
+  graphNodeSelections: HTMLElement | undefined
 }>()
 
 const emit = defineEmits<{
@@ -470,7 +471,7 @@ const documentation = computed<string | undefined>({
     @pointerleave="(nodeHovered = false), updateNodeHover(undefined)"
     @pointermove="updateNodeHover"
   >
-    <Teleport to="#graphNodeSelections">
+    <Teleport :to="graphNodeSelections">
       <GraphNodeSelection
         v-if="navigator"
         :nodePosition="props.node.position"
@@ -549,6 +550,7 @@ const documentation = computed<string | undefined>({
       <NodeWidgetTree
         :ast="props.node.innerExpr"
         :nodeId="nodeId"
+        :nodeElement="rootNode"
         :icon="icon"
         :connectedSelfArgumentId="connectedSelfArgumentId"
         :potentialSelfArgumentId="potentialSelfArgumentId"
