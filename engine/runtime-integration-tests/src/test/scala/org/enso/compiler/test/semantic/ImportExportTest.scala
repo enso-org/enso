@@ -424,6 +424,84 @@ class ImportExportTest
         .asInstanceOf[errors.ImportExport.SymbolDoesNotExist]
         .symbolName shouldEqual "A_Type"
     }
+
+    "export type without import should insert synthetic import" in {
+      s"""
+         |type A_Type
+         |""".stripMargin
+        .createModule(packageQualifiedName.createChild("A_Module"))
+
+      val mainModule = s"""
+                          |export $namespace.$packageName.A_Module.A_Type
+                          |""".stripMargin
+        .createModule(packageQualifiedName.createChild("Main"))
+
+      mainModule.getIr.imports.size shouldBe 1
+      mainModule.getIr.imports.head
+        .asInstanceOf[Import.Module]
+        .isSynthetic shouldBe true
+
+      val resolvedExports = mainModule.getIr.unwrapBindingMap.resolvedExports
+      resolvedExports.size shouldBe 1
+      resolvedExports.head.target.qualifiedName.item shouldBe "A_Type"
+    }
+
+    "(from) export type without import should insert synthetic import" in {
+      s"""
+         |type A_Type
+         |""".stripMargin
+        .createModule(packageQualifiedName.createChild("A_Module"))
+
+      val mainModule = s"""
+                          |from $namespace.$packageName.A_Module export A_Type
+                          |""".stripMargin
+        .createModule(packageQualifiedName.createChild("Main"))
+
+      mainModule.getIr.imports.size shouldBe 1
+      mainModule.getIr.imports.head
+        .asInstanceOf[Import.Module]
+        .isSynthetic shouldBe true
+
+      val resolvedExports = mainModule.getIr.unwrapBindingMap.resolvedExports
+      resolvedExports.size shouldBe 1
+    }
+
+    "export module without import should insert synthetic import" in {
+      // A_Module is empty on purpose
+      """
+        |""".stripMargin
+        .createModule(packageQualifiedName.createChild("A_Module"))
+
+      val mainModule = s"""
+                          |export $namespace.$packageName.A_Module
+                          |""".stripMargin
+        .createModule(packageQualifiedName.createChild("Main"))
+
+      mainModule.getIr.imports.size shouldBe 1
+      mainModule.getIr.imports.head
+        .asInstanceOf[Import.Module]
+        .isSynthetic shouldBe true
+
+      val resolvedExports = mainModule.getIr.unwrapBindingMap.resolvedExports
+      resolvedExports.size shouldBe 1
+      resolvedExports.head.target.qualifiedName.item shouldBe "A_Module"
+    }
+
+    "export unknown type without import should result in error" in {
+      s"""
+         |type A_Type
+         |""".stripMargin
+        .createModule(packageQualifiedName.createChild("A_Module"))
+
+      val mainModule = s"""
+                          |from $namespace.$packageName.A_Module export UNKNOWN_TYPE_FOO
+                          |""".stripMargin
+        .createModule(packageQualifiedName.createChild("Main"))
+
+      mainModule.getIr.imports.size shouldBe 1
+      mainModule.getIr.imports.head
+        .isInstanceOf[errors.ImportExport] shouldBe true
+    }
   }
 
   "Exporting non-existing symbols" should {

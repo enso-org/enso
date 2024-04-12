@@ -61,8 +61,6 @@ add_specs suite_builder =
     very_negative = -99223372036854775808
 
     suite_builder.group "Integers" group_builder->
-        Round_Spec.add_specs group_builder (.round)
-
         group_builder.specify "should be of unbound size when multiplied" <|
             1.up_to 101 . fold 1 (*) . should_equal hundred_factorial
 
@@ -604,6 +602,13 @@ add_specs suite_builder =
         group_builder.specify "Can handle small numbers computed from bigints" <|
             (922337203685477580712345 - 922337203685477580700000) . round . should_equal 12345
             ((99999999999998 * 1000).div 1000) . round . should_equal 99999999999998
+
+    suite_builder.group "Rounding" group_builder->
+        Round_Spec.add_specs group_builder (.round)
+
+        group_builder.specify "Decimal places out of range" <|
+            3.1 . round 16 . should_fail_with Illegal_Argument
+            3.1 . round -16 . should_fail_with Illegal_Argument
 
     suite_builder.group "Float.truncate" group_builder->
 

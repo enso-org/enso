@@ -91,7 +91,7 @@ export function singletonObjectOrNull(value: unknown): [] | [object] {
 // === omit ===
 // ============
 
-/** UNSAFE when `Ks` contains strings that are not in the runtie array. */
+/** UNSAFE when `Ks` contains strings that are not in the runtime array. */
 export function omit<T, Ks extends readonly (string & keyof T)[] | []>(
   object: T,
   ...keys: Ks
