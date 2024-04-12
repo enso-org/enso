@@ -1,4 +1,5 @@
 import project.Data.Time.Duration.Duration
+import project.Enso_Cloud.Internal.Existing_Enso_Asset.Asset_Cache
 import project.Nothing.Nothing
 
 polyglot java import org.enso.base.enso_cloud.CacheSettings
@@ -20,6 +21,8 @@ polyglot java import org.enso.base.enso_cloud.CacheSettings
    generic operations may perform multiple cloud requests.
 set_file_cache_ttl (duration : Duration | Nothing) =
     CacheSettings.setFileCacheTTL duration
+    if duration.is_nothing then
+        Asset_Cache.invalidate_all
 
 ## UNSTABLE
    ADVANCED

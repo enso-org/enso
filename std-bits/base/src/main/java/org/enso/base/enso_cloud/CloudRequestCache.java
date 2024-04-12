@@ -20,6 +20,11 @@ public final class CloudRequestCache {
   }
 
   public static Object getOrCompute(String key, Function<String, Object> compute, Duration ttl) {
+    if (ttl == null) {
+      // If the TTL is null, we deliberately ignore the cache.
+      return compute.apply(key);
+    }
+
     var entry = cache.get(key);
     if (entry != null && entry.expiresAt.isAfter(LocalDateTime.now())) {
       return entry.value;
@@ -39,6 +44,11 @@ public final class CloudRequestCache {
   }
 
   public static void put(String key, Object value, Duration ttl) {
+    if (ttl == null) {
+      // If the TTL is null, we deliberately ignore the cache.
+      return;
+    }
+
     cache.put(key, new CacheEntry(value, LocalDateTime.now().plus(ttl)));
   }
 

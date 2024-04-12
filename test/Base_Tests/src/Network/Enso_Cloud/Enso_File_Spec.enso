@@ -1,4 +1,5 @@
 from Standard.Base import all
+import Standard.Base.Enso_Cloud.Cloud_Caching_Settings
 import Standard.Base.Errors.Common.Forbidden_Operation
 import Standard.Base.Errors.Common.Not_Found
 import Standard.Base.Errors.File_Error.File_Error
@@ -38,7 +39,8 @@ add_specs suite_builder setup:Cloud_Tests_Setup = suite_builder.group "Enso Clou
         assets . should_be_a Vector
         assets.each f-> f.should_be_a Enso_File
 
-        assets.map .name . should_contain "test_file.json"
+        # We know something about contents of our prepared test directory though
+        test_root.get.list.map .name . should_contain "test_file.json"
 
     group_builder.specify "should allow to create and delete a directory" <|
         my_name = "my_test_dir-" + (Random.uuid.take 5)
@@ -84,6 +86,18 @@ add_specs suite_builder setup:Cloud_Tests_Setup = suite_builder.group "Enso Clou
         f.name . should_equal "test_file.json"
         f.is_directory . should_be_false
         f.exists . should_be_true
+
+    group_builder.specify "should work if cache is disabled" <|
+        old_ttl = Cloud_Caching_Settings.get_file_cache_ttl
+        Panic.with_finalizer (Cloud_Caching_Settings.set_file_cache_ttl old_ttl) <|
+            # Disable the cache
+            Cloud_Caching_Settings.set_file_cache_ttl Nothing
+
+            # We cannot easily check if one or two requests are made, but we just ensure that this doesn't crash.
+            f = test_root.get / "test_file.json"
+            test_root.get.list . should_contain f
+            f.exists . should_be_true
+            f.exists . should_be_true
 
     group_builder.specify "should be able to find a file by path" <|
         File.new "enso://"+Enso_User.current.organization_name+"/" . should_equal Enso_File.root

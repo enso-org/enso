@@ -114,7 +114,9 @@ type Existing_Enso_Asset
 
 ## PRIVATE
 type Asset_Cache
-    asset_key (file : Enso_File) -> Text = "asset:"+file.enso_path.to_text
+    asset_prefix = "asset:"
+
+    asset_key (file : Enso_File) -> Text = Asset_Cache.asset_prefix+file.enso_path.to_text
 
     ## PRIVATE
     invalidate (file : Enso_File) =
@@ -122,6 +124,9 @@ type Asset_Cache
 
     invalidate_subtree (file : Enso_File) =
         Utils.invalidate_caches_with_prefix (Asset_Cache.asset_key file)
+
+    invalidate_all =
+        Utils.invalidate_caches_with_prefix Asset_Cache.asset_prefix
 
     update (file : Enso_File) (asset : Existing_Enso_Asset) =
         Utils.set_cached (Asset_Cache.asset_key file) asset cache_duration=Cloud_Caching_Settings.get_file_cache_ttl
