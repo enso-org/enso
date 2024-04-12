@@ -46,6 +46,7 @@ const ACTION_TO_TEXT_ID: Readonly<Record<inputBindings.DashboardBindingKey, text
   newFolder: 'newFolderShortcut',
   newDataLink: 'newDataLinkShortcut',
   newSecret: 'newSecretShortcut',
+  useInNewProject: 'useInNewProjectShortcut',
   closeModal: 'closeModalShortcut',
   cancelEditName: 'cancelEditNameShortcut',
   signIn: 'signInShortcut',

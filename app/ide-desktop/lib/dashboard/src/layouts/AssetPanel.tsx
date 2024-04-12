@@ -16,7 +16,7 @@ import * as backend from '#/services/Backend'
 
 import * as array from '#/utilities/array'
 import type AssetQuery from '#/utilities/AssetQuery'
-import type AssetTreeNode from '#/utilities/AssetTreeNode'
+import type * as assetTreeNode from '#/utilities/AssetTreeNode'
 import LocalStorage from '#/utilities/LocalStorage'
 
 // =====================
@@ -51,8 +51,8 @@ LocalStorage.registerKey('assetPanelTab', {
 
 /** The subset of {@link AssetPanelProps} that are required to be supplied by the row. */
 export interface AssetPanelRequiredProps {
-  readonly item: AssetTreeNode | null
-  readonly setItem: React.Dispatch<React.SetStateAction<AssetTreeNode>> | null
+  readonly item: assetTreeNode.AnyAssetTreeNode | null
+  readonly setItem: React.Dispatch<React.SetStateAction<assetTreeNode.AnyAssetTreeNode>> | null
 }
 
 /** Props for an {@link AssetPanel}. */

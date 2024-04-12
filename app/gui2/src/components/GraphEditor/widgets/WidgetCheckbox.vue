@@ -82,15 +82,20 @@ function setBoolNode(ast: Ast.Mutable, value: Identifier): { requiresImport: boo
   }
 }
 
-export const widgetDefinition = defineWidget(WidgetInput.isAstOrPlaceholder, {
-  priority: 500,
-  score: (props) => {
-    if (props.input.value instanceof Ast.Ast && isBoolNode(props.input.value)) return Score.Perfect
-    return props.input.expectedType === 'Standard.Base.Data.Boolean.Boolean' ?
-        Score.Good
-      : Score.Mismatch
+export const widgetDefinition = defineWidget(
+  WidgetInput.isAstOrPlaceholder,
+  {
+    priority: 500,
+    score: (props) => {
+      if (props.input.value instanceof Ast.Ast && isBoolNode(props.input.value))
+        return Score.Perfect
+      return props.input.expectedType === 'Standard.Base.Data.Boolean.Boolean' ?
+          Score.Good
+        : Score.Mismatch
+    },
   },
-})
+  import.meta.hot,
+)
 </script>
 
 <template>

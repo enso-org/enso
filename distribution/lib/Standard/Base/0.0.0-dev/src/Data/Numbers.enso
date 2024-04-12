@@ -655,9 +655,9 @@ type Float
        ICON math
        Round to a specified number of decimal places.
 
-       By default, rounding uses "asymmetric round-half-up", also known as
-       "round towards positive infinity." If use_bankers=True, then it uses
-       "round-half-even", also known as "banker's rounding".
+       By default, rounding uses "symmetric round-half-up", also known as
+       "half-up." If use_bankers=True, then it uses "round-half-even", also
+       known as "banker's rounding".
 
        If `decimal_places` > 0, `round` returns a `Float`; otherwise, it
        returns an `Integer`.
@@ -1017,9 +1017,9 @@ type Integer
        For integers, rounding to 0 or more decimal places simply returns the
        argument. For negative decimal places, see below.
 
-       By default, rounding uses "asymmetric round-half-up", also known as
-       "round towards positive infinity." If use_bankers=True, then it uses
-       "round-half-even", also known as "banker's rounding".
+       By default, rounding uses "symmetric round-half-up", also known as
+       "half-up." If use_bankers=True, then it uses "round-half-even", also
+       known as "banker's rounding".
 
        Arguments:
        - decimal_places: The number of decimal places to round to. Can be

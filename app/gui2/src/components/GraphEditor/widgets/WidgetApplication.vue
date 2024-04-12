@@ -36,9 +36,13 @@ const operatorStyle = computed(() => {
 </script>
 
 <script lang="ts">
-export const widgetDefinition = defineWidget(ArgumentApplicationKey, {
-  priority: -20,
-})
+export const widgetDefinition = defineWidget(
+  ArgumentApplicationKey,
+  {
+    priority: -20,
+  },
+  import.meta.hot,
+)
 </script>
 
 <template>

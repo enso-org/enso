@@ -15,12 +15,12 @@ const graph = useGraphStore()
 const input = ref<ComponentInstance<typeof AutoSizedInput>>()
 const widgetRoot = ref<HTMLElement>()
 
-const editing = WidgetEditHandler.New(props.input, {
+const editing = WidgetEditHandler.New('WidgetText', props.input, {
   cancel() {
     editedContents.value = textContents.value
     input.value?.blur()
   },
-  click(event) {
+  pointerdown(event) {
     if (targetIsOutside(event, unrefElement(input))) accepted()
     return false
   },
@@ -76,16 +76,20 @@ watch(textContents, (value) => (editedContents.value = value))
 </script>
 
 <script lang="ts">
-export const widgetDefinition = defineWidget(WidgetInput.isAstOrPlaceholder, {
-  priority: 1001,
-  score: (props) => {
-    if (props.input.value instanceof Ast.TextLiteral) return Score.Perfect
-    if (props.input.dynamicConfig?.kind === 'Text_Input') return Score.Perfect
-    const type = props.input.expectedType
-    if (type === 'Standard.Base.Data.Text.Text') return Score.Good
-    return Score.Mismatch
+export const widgetDefinition = defineWidget(
+  WidgetInput.isAstOrPlaceholder,
+  {
+    priority: 1001,
+    score: (props) => {
+      if (props.input.value instanceof Ast.TextLiteral) return Score.Perfect
+      if (props.input.dynamicConfig?.kind === 'Text_Input') return Score.Perfect
+      const type = props.input.expectedType
+      if (type === 'Standard.Base.Data.Text.Text') return Score.Good
+      return Score.Mismatch
+    },
   },
-})
+  import.meta.hot,
+)
 </script>
 
 <template>
