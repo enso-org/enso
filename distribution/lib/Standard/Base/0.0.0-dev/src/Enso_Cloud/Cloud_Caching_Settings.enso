@@ -4,7 +4,8 @@ import project.Nothing.Nothing
 
 polyglot java import org.enso.base.enso_cloud.CacheSettings
 
-## UNSTABLE
+## PRIVATE
+   UNSTABLE
    ADVANCED
    Sets for how long is Enso Cloud file information cached without checking for
    external updates.
@@ -26,7 +27,7 @@ set_file_cache_ttl (duration : Duration | Nothing) =
     CacheSettings.setFileCacheTTL duration
     Asset_Cache.invalidate_all
 
-## UNSTABLE
+## PRIVATE
    ADVANCED
    Returns the current file cache TTL.
 get_file_cache_ttl -> Duration | Nothing = CacheSettings.getFileCacheTTL
