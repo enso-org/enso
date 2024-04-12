@@ -98,7 +98,7 @@ class Passes(
       UnusedBindings,
       NoSelfInStatic,
       GenericAnnotations
-    ) ++ (if (config.typeInferenceEnabled) {
+    ) ++ (if (config.staticTypeInferenceEnabled) {
             List(
               TypeInference.INSTANCE
             )
