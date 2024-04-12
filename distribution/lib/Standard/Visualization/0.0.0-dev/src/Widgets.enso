@@ -7,7 +7,7 @@ from Standard.Base.Meta import Instrumentor
    Returns full annotation data for all requested arguments.
 get_widget_json : Any -> Any -> Vector Text -> Text
 get_widget_json value call_name argument_names =
-    other_args = argument_names.at 1 . parse_json
+    other_args = argument_names.last . parse_json
 
     cache (name_or_index:Text|Integer) -> Any =
         arg = other_args.get name_or_index.to_text
@@ -21,6 +21,6 @@ get_widget_json value call_name argument_names =
             _ : Function -> annotation value cache=cache
             _ -> annotation
 
-    arg = argument_names.at 0
-    annotations =  [ [arg, read_annotation arg] ]
+    just_names = argument_names . drop (Index_Sub_Range.Last 1)
+    annotations = just_names.map (arg -> [arg, read_annotation arg])
     annotations.to_json
