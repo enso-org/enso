@@ -4,14 +4,13 @@ import org.enso.compiler.core.CompilerStub;
 import org.enso.compiler.core.ir.ProcessingPass;
 import scala.Option;
 
+/**
+ * The metadata information associated with the {@link TypeInference} pass.
+ *
+ * @param type the type inferred for a given expression
+ * @see TypeInference
+ */
 public record InferredType(TypeRepresentation type) implements ProcessingPass.Metadata {
-  // TODO maybe later we may want to use:
-  enum Origin {
-    Checked,
-    Literal,
-    Inferred
-  }
-
   @Override
   public String metadataName() {
     return "Inferred Type";
