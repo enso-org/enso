@@ -150,7 +150,7 @@ export class LanguageServer extends ObservableV2<Notifications> {
     })
     transport.on('error', (error) => console.error('Language Server transport error:', error))
     const reinitializeCb = () => {
-      console.log('Websocket closed')
+      console.log('Language Server: websocket closed')
       this.scheduleInitializationAfterConnect()
     }
     transport.on('close', reinitializeCb)
@@ -163,31 +163,25 @@ export class LanguageServer extends ObservableV2<Notifications> {
   private scheduleInitializationAfterConnect() {
     if (this.initializationScheduled) return this.initialized
     this.initializationScheduled = true
-    console.log('schedule reinitializing')
     this.initialized = new Promise((resolve) => {
       const cb = () => {
-        resolve(undefined)
         this.transport.off('open', cb)
-      }
-      this.transport.on('open', cb)
-    })
-      .then(() => {
-        this.initializationScheduled = false
-        return exponentialBackoff(() => this.initProtocolConnection(this.clientID), {
+        exponentialBackoff(() => this.initProtocolConnection(this.clientID), {
           onBeforeRetry: (error, _, delay) => {
             console.warn(
               `Failed to initialize language server connection, retrying after ${delay}ms...\n`,
               error,
             )
           },
+        }).then((result) => {
+          if (!result.ok) {
+            result.error.log('Error initializing Language Server RPC')
+          }
+          resolve(result)
         })
-      })
-      .then((result) => {
-        if (!result.ok) {
-          result.error.log('Error initializing Language Server RPC')
-        }
-        return result
-      })
+      }
+      this.transport.on('open', cb)
+    })
     return this.initialized
   }
 
@@ -206,7 +200,8 @@ export class LanguageServer extends ObservableV2<Notifications> {
     params: object,
     waitForInit = true,
   ): Promise<LsRpcResult<T>> {
-    if (this.retainCount === 0) throw new Error('LanguageServer disposed')
+    if (this.retainCount === 0)
+      return Err(new LsRpcError('LanguageServer disposed', method, params))
     const uuid = uuidv4()
     const now = performance.now()
     try {
@@ -526,11 +521,9 @@ export class LanguageServer extends ObservableV2<Notifications> {
   }
 
   release() {
-    console.log('Releasing', this.retainCount)
     if (this.retainCount > 0) {
       this.retainCount -= 1
       if (this.retainCount === 0) {
-        console.log('LANGUAGE SERVER DISPOSED')
         this.clientScope.dispose('Language server released')
       }
     } else {
