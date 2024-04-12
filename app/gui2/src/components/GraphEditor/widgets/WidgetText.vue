@@ -115,7 +115,6 @@ export const widgetDefinition = defineWidget(
   display: inline-flex;
   background: var(--color-widget);
   border-radius: var(--radius-full);
-  position: relative;
   user-select: none;
   border-radius: var(--radius-full);
   padding: 0px 4px;
