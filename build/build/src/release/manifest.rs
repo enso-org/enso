@@ -6,7 +6,6 @@ use crate::prelude::*;
 
 use crate::paths::TargetTriple;
 use crate::project;
-use crate::release;
 use crate::version::Versions;
 
 
@@ -21,13 +20,13 @@ pub const ASSETS_MANIFEST_FILENAME: &str = "assets.json";
 pub struct Asset {
     pub os:            OS,
     pub arch:          Arch,
-    pub url:           String,
+    pub url:           Url,
     /// User-friendly description of the target platform.
     pub target_pretty: String,
 }
 
 impl Asset {
-    pub fn new(url: String, triple: &TargetTriple) -> Self {
+    pub fn new(url: Url, triple: &TargetTriple) -> Self {
         let target_pretty = match (triple.os, triple.arch) {
             (OS::Windows, Arch::X86_64) => "Windows".into(),
             (OS::Linux, Arch::X86_64) => "Linux".into(),
@@ -42,7 +41,7 @@ impl Asset {
     pub fn new_ide(repo: &impl IsRepo, triple: &TargetTriple) -> Self {
         let filename =
             project::ide::electron_image_filename(triple.os, triple.arch, &triple.versions.version);
-        let url = release::download_asset(repo, &triple.versions.version, filename);
+        let url = ide_ci::github::release::download_asset(repo, &triple.versions.version, filename);
         Self::new(url, triple)
     }
 
@@ -52,7 +51,7 @@ impl Asset {
         let stem = RepoRootBuiltDistributionEnsoBundleTriple::segment_name(triple.to_string());
         let ext = ide_ci::github::release::archive_extension_for(triple.os);
         let filename = format!("{stem}.{ext}");
-        let url = release::download_asset(repo, &triple.versions.version, filename);
+        let url = ide_ci::github::release::download_asset(repo, &triple.versions.version, filename);
         Self::new(url, triple)
     }
 }
