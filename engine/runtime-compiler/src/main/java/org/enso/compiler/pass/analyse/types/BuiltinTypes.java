@@ -6,7 +6,8 @@ import org.enso.pkg.QualifiedName$;
 /** A helper class providing the builtin types. */
 public class BuiltinTypes {
   // TODO in next iterations we will want to resolve descriptions of these types based on the loaded
-  // std-lib (from PackageRepository, if available)
+  // std-lib (from PackageRepository, if available). Note that if the std-lib is not imported,
+  // some builtin types have different names - this should be handled here in some sane way.
 
   public final TypeRepresentation INTEGER = fromQualifiedName("Standard.Base.Data.Numbers.Integer");
   public final TypeRepresentation FLOAT = fromQualifiedName("Standard.Base.Data.Numbers.Float");
