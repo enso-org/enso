@@ -1,12 +1,35 @@
-<script setup lang="ts" functional>
+<script lang="ts">
+/**
+ * A component for performing flawless layout-based (width, height, margin, etc.) show and hide
+ * transitions. Works with any style definitions, including default `auto` size. Gracefuly supports
+ * canceled animations, such as switching to "leaving" state in the middle of "entering" animation,
+ * without causing any visual jumps. The animation always starts from most recent element position.
+ *
+ * Implemented in terms of Vue's `Transition`, but opting out from class-based transitions. Instead,
+ * the animation is driven by [Web Animations API][api], and element's "full size" style shapshot is
+ * used as a final keyframe.
+ *
+ * [api]: https://developer.mozilla.org/en-US/docs/Web/API/Web_Animations_API
+ */
+export default {}
+</script>
+<script setup lang="ts">
+import { hookBeforeFunctionCall } from '@/util/patching'
 import { nextTick } from 'process'
 
 const props = withDefaults(
   defineProps<{
+    /** Enable width transition. Implies `overflow-x: clip` during animation. */
     width?: boolean
+    /** Enable height transition. Implies `overflow-y: clip` during animation. */
     height?: boolean
+    /**
+     * Compensate for parent grid or flexbox `gap` by animating `margin-left` from negative value.
+     */
     leftGap?: boolean
+    /** Total animation duration in milliseconds. */
     duration?: number
+    /** Animation easing function. Can be any CSS easing function. */
     easing?: string
   }>(),
   { duration: 200, easing: 'ease-out' },
@@ -19,7 +42,7 @@ const animationsMap = new WeakMap<HTMLElement, Animation>()
 let leavingElement: HTMLElement | undefined = undefined
 
 function onEnter(e: Element, done: Done) {
-  if (e instanceof HTMLElement) animRun(e, done, true)
+  if (e instanceof HTMLElement) runAnimation(e, done, true)
 }
 
 function onBeforeLeave(e: Element) {
@@ -38,21 +61,13 @@ function onLeave(e: Element, done: Done) {
     // already been removed from the document. In fact, `leaveCancelled` and `afterLeave` are called
     // right after that happens. In order to intercept the removal, we need to gently override the
     // vue's internal hook that performs the removal and calls the aforementioned public hooks.
+    // See: https://github.com/vuejs/core/blob/ca84316bfb3410efe21333670a6ad5cd21857396/packages/runtime-core/src/components/BaseTransition.ts#L363-L371
     {
-      const leaveCbKey = Object.getOwnPropertySymbols(e).find((sym) =>
-        sym.toString().includes('_leaveCb'),
-      )
-      const el = leaveCbKey && (e as HTMLElement & Record<typeof leaveCbKey, Function>)
-      if (el && typeof el[leaveCbKey] === 'function') {
-        const originalHook = el[leaveCbKey]!
-        el[leaveCbKey] = function (...args: any[]) {
-          snapshotCurrentStyles(e)
-          originalHook.apply(this, args)
-        }
-      }
+      const leaveCbKey = Object.getOwnPropertySymbols(e).find((s) => String(s).includes('_leaveCb'))
+      if (leaveCbKey) hookBeforeFunctionCall(e, leaveCbKey, () => snapshotCurrentStyles(e))
     }
 
-    animRun(e, done, false)
+    runAnimation(e, done, false)
   }
 }
 
@@ -67,15 +82,13 @@ function snapshotCurrentStyles(e: HTMLElement) {
   styleSnapshots.set(e, { width, height, marginLeft })
 }
 
-function animRun(e: HTMLElement, done: Done, isEnter: boolean) {
+function runAnimation(e: HTMLElement, done: Done, isEnter: boolean) {
   const lastSnapshot =
     styleSnapshots.get(e) ?? (leavingElement ? styleSnapshots.get(leavingElement) : undefined)
 
   // If there already is an animation running, stop it before reading final state styles.
   const prevAnimation = animationsMap.get(e)
-  if (prevAnimation && !prevAnimation.finished) {
-    prevAnimation.cancel()
-  }
+  if (prevAnimation && !prevAnimation.finished) prevAnimation.cancel()
   const current = getComputedStyle(e)
 
   const start: Keyframe = { composite: 'replace', easing: props.easing }
