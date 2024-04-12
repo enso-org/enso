@@ -88,7 +88,7 @@ export default function MemberRolesSettingsTab() {
                       oldUsers?.map(otherUser =>
                         otherUser.userId !== newUser.userId
                           ? otherUser
-                          : object.merge(newUser, { userGroups: newUserGroups })
+                          : object.merge(otherUser, { userGroups: newUserGroups })
                       ) ?? null
                   )
                   await backend.changeUserGroup(
@@ -103,7 +103,7 @@ export default function MemberRolesSettingsTab() {
                       oldUsers?.map(otherUser =>
                         otherUser.userId !== newUser.userId
                           ? otherUser
-                          : object.merge(newUser, {
+                          : object.merge(otherUser, {
                               userGroups:
                                 otherUser.userGroups?.filter(id => id !== userGroupId) ?? null,
                             })
@@ -259,7 +259,11 @@ export default function MemberRolesSettingsTab() {
                 {getText('userGroup')}
               </aria.Column>
             </aria.TableHeader>
-            <aria.TableBody className="select-text">
+            <aria.TableBody
+              items={userGroups ?? []}
+              dependencies={[isLoading, userGroups, usersByGroup]}
+              className="select-text"
+            >
               {isLoading ? (
                 <aria.Row className="h-row">
                   <aria.Cell
@@ -279,48 +283,53 @@ export default function MemberRolesSettingsTab() {
                   </aria.Cell>
                 </aria.Row>
               ) : (
-                userGroups.flatMap(userGroup => [
-                  <aria.Row
-                    key={userGroup.id}
-                    id={userGroup.id}
-                    className={`group h-row ${backendModule.isPlaceholderUserGroupId(userGroup.id) ? 'pointer-events-none placeholder' : ''}`}
-                  >
-                    <aria.Cell className="relative bg-transparent p transparent group-hover-2:opacity-100">
-                      <UnstyledButton
-                        onPress={() => {
-                          void doDeleteUserGroup(userGroup)
-                        }}
-                        className="absolute right-full size-icon -translate-y-1/2"
-                      >
-                        <img src={Cross2} className="size-icon" />
-                      </UnstyledButton>
-                    </aria.Cell>
-                    <aria.Cell className="text rounded-l-full border-x-2 border-transparent bg-clip-padding px-cell-x last:rounded-r-full last:border-r-0">
-                      {userGroup.groupName}
-                    </aria.Cell>
-                  </aria.Row>,
-                  (usersByGroup.get(userGroup.id) ?? []).map(otherUser => (
-                    <aria.Row key={otherUser.userId} id={otherUser.userId} className="group h-row">
+                userGroup => (
+                  <>
+                    <aria.Row
+                      id={userGroup.id}
+                      className={`group h-row ${backendModule.isPlaceholderUserGroupId(userGroup.id) ? 'pointer-events-none placeholder' : ''}`}
+                    >
                       <aria.Cell className="relative bg-transparent p transparent group-hover-2:opacity-100">
                         <UnstyledButton
                           onPress={() => {
-                            void doRemoveUserFromUserGroup(otherUser, userGroup)
+                            void doDeleteUserGroup(userGroup)
                           }}
-                          className="absolute right-full size-icon -translate-y-1/2 translate-x-indent-1"
+                          className="absolute right-full size-icon -translate-y-1/2"
                         >
                           <img src={Cross2} className="size-icon" />
                         </UnstyledButton>
                       </aria.Cell>
-                      <aria.Cell className="text border-x-2 border-transparent bg-clip-padding rounded-rows-skip-level last:border-r-0">
-                        <div className="ml-indent-1 flex h-row min-w-max items-center whitespace-nowrap rounded-full">
-                          <aria.Text className="grow px-name-column-x py-name-column-y">
-                            {otherUser.name}
-                          </aria.Text>
-                        </div>
+                      <aria.Cell className="text rounded-l-full border-x-2 border-transparent bg-clip-padding px-cell-x last:rounded-r-full last:border-r-0">
+                        {userGroup.groupName}
                       </aria.Cell>
                     </aria.Row>
-                  )),
-                ])
+                    {(usersByGroup.get(userGroup.id) ?? []).map(otherUser => (
+                      <aria.Row
+                        key={otherUser.userId}
+                        id={`${userGroup.id}-${otherUser.userId}`}
+                        className="group h-row"
+                      >
+                        <aria.Cell className="relative bg-transparent p transparent group-hover-2:opacity-100">
+                          <UnstyledButton
+                            onPress={() => {
+                              void doRemoveUserFromUserGroup(otherUser, userGroup)
+                            }}
+                            className="absolute right-full size-icon -translate-y-1/2 translate-x-indent-1"
+                          >
+                            <img src={Cross2} className="size-icon" />
+                          </UnstyledButton>
+                        </aria.Cell>
+                        <aria.Cell className="text border-x-2 border-transparent bg-clip-padding rounded-rows-skip-level last:border-r-0">
+                          <div className="ml-indent-1 flex h-row min-w-max items-center whitespace-nowrap rounded-full">
+                            <aria.Text className="grow px-name-column-x py-name-column-y">
+                              {otherUser.name}
+                            </aria.Text>
+                          </div>
+                        </aria.Cell>
+                      </aria.Row>
+                    ))}
+                  </>
+                )
               )}
             </aria.TableBody>
           </aria.Table>
