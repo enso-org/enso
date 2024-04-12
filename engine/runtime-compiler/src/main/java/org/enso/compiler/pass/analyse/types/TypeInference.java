@@ -265,13 +265,7 @@ public final class TypeInference implements IRPass {
   private void checkInferredAndAscribedTypeCompatibility(
       Expression ir, TypeRepresentation inferredType, TypeRepresentation ascribedType) {
     if (ascribedType != null && inferredType != null) {
-      if (inferredType.equals(ascribedType)) {
-        // maybe we could report this as a warning? a type ascription that is not necessary
-        logger.debug(
-            "redundant type ascription: {} - confirming inferred type {}",
-            ir.showCode(),
-            inferredType);
-      } else {
+      if (!inferredType.equals(ascribedType)) {
         logger.trace(
             "type ascription: {} - overwriting inferred type {}", ir.showCode(), inferredType);
       }
