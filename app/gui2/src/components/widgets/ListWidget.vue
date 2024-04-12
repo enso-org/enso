@@ -370,7 +370,7 @@ function addItem() {
       !$event.shiftKey && !$event.altKey && !$event.metaKey && $event.stopImmediatePropagation()
     "
   >
-    <div class="vector-literal literal">
+    <div class="vector-literal">
       <span class="token">[</span>
       <TransitionGroup
         tag="ul"

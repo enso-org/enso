@@ -5,7 +5,7 @@ import org.enso.compiler.core.ir.{Module, ProcessingPass, Warning}
 import org.enso.compiler.core.ir.expression.errors
 import org.enso.compiler.core.ir.module.scope.Import
 import org.enso.compiler.data.BindingsMap
-import org.enso.compiler.pass.analyse.BindingAnalysis
+import org.enso.compiler.pass.analyse.{BindingAnalysis, GatherDiagnostics}
 import org.enso.interpreter.runtime
 import org.enso.interpreter.runtime.EnsoContext
 import org.enso.persist.Persistance
@@ -46,6 +46,7 @@ class ImportExportTest
     .err(out)
     .option(RuntimeOptions.LOG_LEVEL, Level.WARNING.getName())
     .option(RuntimeOptions.DISABLE_IR_CACHES, "true")
+    .option(RuntimeOptions.STRICT_ERRORS, "false")
     .logHandler(System.err)
     .option(
       RuntimeOptions.LANGUAGE_HOME_OVERRIDE,
@@ -423,6 +424,84 @@ class ImportExportTest
         .asInstanceOf[errors.ImportExport.SymbolDoesNotExist]
         .symbolName shouldEqual "A_Type"
     }
+
+    "export type without import should insert synthetic import" in {
+      s"""
+         |type A_Type
+         |""".stripMargin
+        .createModule(packageQualifiedName.createChild("A_Module"))
+
+      val mainModule = s"""
+                          |export $namespace.$packageName.A_Module.A_Type
+                          |""".stripMargin
+        .createModule(packageQualifiedName.createChild("Main"))
+
+      mainModule.getIr.imports.size shouldBe 1
+      mainModule.getIr.imports.head
+        .asInstanceOf[Import.Module]
+        .isSynthetic shouldBe true
+
+      val resolvedExports = mainModule.getIr.unwrapBindingMap.resolvedExports
+      resolvedExports.size shouldBe 1
+      resolvedExports.head.target.qualifiedName.item shouldBe "A_Type"
+    }
+
+    "(from) export type without import should insert synthetic import" in {
+      s"""
+         |type A_Type
+         |""".stripMargin
+        .createModule(packageQualifiedName.createChild("A_Module"))
+
+      val mainModule = s"""
+                          |from $namespace.$packageName.A_Module export A_Type
+                          |""".stripMargin
+        .createModule(packageQualifiedName.createChild("Main"))
+
+      mainModule.getIr.imports.size shouldBe 1
+      mainModule.getIr.imports.head
+        .asInstanceOf[Import.Module]
+        .isSynthetic shouldBe true
+
+      val resolvedExports = mainModule.getIr.unwrapBindingMap.resolvedExports
+      resolvedExports.size shouldBe 1
+    }
+
+    "export module without import should insert synthetic import" in {
+      // A_Module is empty on purpose
+      """
+        |""".stripMargin
+        .createModule(packageQualifiedName.createChild("A_Module"))
+
+      val mainModule = s"""
+                          |export $namespace.$packageName.A_Module
+                          |""".stripMargin
+        .createModule(packageQualifiedName.createChild("Main"))
+
+      mainModule.getIr.imports.size shouldBe 1
+      mainModule.getIr.imports.head
+        .asInstanceOf[Import.Module]
+        .isSynthetic shouldBe true
+
+      val resolvedExports = mainModule.getIr.unwrapBindingMap.resolvedExports
+      resolvedExports.size shouldBe 1
+      resolvedExports.head.target.qualifiedName.item shouldBe "A_Module"
+    }
+
+    "export unknown type without import should result in error" in {
+      s"""
+         |type A_Type
+         |""".stripMargin
+        .createModule(packageQualifiedName.createChild("A_Module"))
+
+      val mainModule = s"""
+                          |from $namespace.$packageName.A_Module export UNKNOWN_TYPE_FOO
+                          |""".stripMargin
+        .createModule(packageQualifiedName.createChild("Main"))
+
+      mainModule.getIr.imports.size shouldBe 1
+      mainModule.getIr.imports.head
+        .isInstanceOf[errors.ImportExport] shouldBe true
+    }
   }
 
   "Exporting non-existing symbols" should {
@@ -566,7 +645,7 @@ class ImportExportTest
     }
   }
 
-  "Import resolution from another library honor Main" should {
+  "Import resolution from another library from micro-distribution honor Main" should {
     "resolve Api from Main" in {
       val mainIr = """
                      |from Test.Logical_Export import Api
@@ -1224,6 +1303,29 @@ class ImportExportTest
 
       val errors = mainIr.preorder.filter(x => x.isInstanceOf[Error])
       errors.size shouldEqual 0
+    }
+  }
+
+  "Fully qualified names" should {
+    "be able to resolve symbols from local project with import" in {
+      val modName = packageQualifiedName.createChild("Module")
+      """
+        |type Type
+        |""".stripMargin
+        .createModule(modName)
+
+      val mainIr =
+        s"""
+           |import $namespace.$packageName
+           |main = $namespace.$packageName.Type
+           |""".stripMargin
+          .createModule(packageQualifiedName.createChild("Main"))
+          .getIr
+
+      val diags = mainIr
+        .unsafeGetMetadata(GatherDiagnostics, "Should be included")
+        .diagnostics
+      diags.size shouldEqual 0
     }
   }
 }

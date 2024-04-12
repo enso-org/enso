@@ -6,6 +6,7 @@ import * as textProvider from '#/providers/TextProvider'
 import Samples from '#/layouts/Samples'
 import WhatsNew from '#/layouts/WhatsNew'
 
+import * as aria from '#/components/aria'
 import type * as spinner from '#/components/Spinner'
 
 // ============
@@ -36,12 +37,15 @@ export default function Home(props: HomeProps) {
       <div />
       {/* Header */}
       <div className="flex flex-col gap-banner px-banner-x py-banner-y">
-        <h1 className="self-center py-banner-item text-center text-4xl leading-snug">
+        <aria.Heading
+          level={1}
+          className="self-center py-banner-item text-center text-4xl leading-snug"
+        >
           {getText('welcomeMessage')}
-        </h1>
-        <h2 className="self-center py-banner-item text-center text-xl font-normal leading-snug">
+        </aria.Heading>
+        <aria.Text className="self-center py-banner-item text-center text-xl font-normal leading-snug">
           {getText('welcomeSubtitle')}
-        </h2>
+        </aria.Text>
       </div>
       <WhatsNew />
       <Samples createProject={createProject} />

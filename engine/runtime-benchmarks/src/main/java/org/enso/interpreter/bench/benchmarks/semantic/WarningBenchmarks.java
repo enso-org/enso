@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Random;
 import java.util.concurrent.TimeUnit;
+import org.enso.compiler.benchmarks.Utils;
 import org.enso.polyglot.MethodNames;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Value;
@@ -67,7 +68,7 @@ public class WarningBenchmarks {
 
   @Setup
   public void initializeBench(BenchmarkParams params) throws IOException {
-    this.ctx = SrcUtil.newContextBuilder().build();
+    this.ctx = Utils.createDefaultContextBuilder().build();
     var random = new Random(42);
 
     benchmarkName = SrcUtil.findName(params);

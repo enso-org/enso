@@ -161,6 +161,19 @@ export class GraphDb {
     return Array.from(this.connectionsFromBindings(info, alias, srcNode))
   })
 
+  nodeDependents = new ReactiveIndex(this.nodeIdToNode, (id) => {
+    const result = new Set<NodeId>()
+    const outputPorts = this.nodeOutputPorts.lookup(id)
+    for (const outputPort of outputPorts) {
+      const connectedPorts = this.connections.lookup(outputPort)
+      for (const port of connectedPorts) {
+        const portNode = this.getExpressionNodeId(port)
+        if (portNode != null) result.add(portNode)
+      }
+    }
+    return Array.from(result, (target) => [id, target])
+  })
+
   private *connectionsFromBindings(
     info: BindingInfo,
     alias: AstId,
@@ -197,7 +210,8 @@ export class GraphDb {
     return this.suggestionDb.get(suggestionId)
   })
 
-  nodeColor = new ReactiveMapping(this.nodeIdToNode, (id, _entry) => {
+  nodeColor = new ReactiveMapping(this.nodeIdToNode, (id, entry) => {
+    if (entry.colorOverride != null) return entry.colorOverride
     const index = this.nodeMainSuggestion.lookup(id)?.groupIndex
     const group = tryGetIndex(this.groups.value, index)
     if (group == null) {
@@ -251,32 +265,6 @@ export class GraphDb {
     return (
       info.methodCall ?? (info.payload.type === 'Value' ? info.payload.functionSchema : undefined)
     )
-  }
-
-  /**
-   * Get a list of all nodes that depend on given node. Includes transitive dependencies.
-   */
-  dependantNodes(id: NodeId): Set<NodeId> {
-    const toVisit = [id]
-    const result = new Set<NodeId>()
-
-    let currentNode: NodeId | undefined
-    while ((currentNode = toVisit.pop())) {
-      const outputPorts = this.nodeOutputPorts.lookup(currentNode)
-      for (const outputPort of outputPorts) {
-        const connectedPorts = this.connections.lookup(outputPort)
-        for (const port of connectedPorts) {
-          const portNode = this.getExpressionNodeId(port)
-          if (portNode == null) continue
-          if (!result.has(portNode)) {
-            result.add(portNode)
-            toVisit.push(portNode)
-          }
-        }
-      }
-    }
-
-    return result
   }
 
   getMethodCallInfo(
@@ -348,19 +336,12 @@ export class GraphDb {
       const node = this.nodeIdToNode.get(nodeId)
       currentNodeIds.add(nodeId)
       if (node == null) {
-        let metadataFields: NodeDataFromMetadata = {
-          position: new Vec2(0, 0),
-          vis: undefined,
-        }
-        // We are notified of new or changed metadata by `updateMetadata`, so we only need to read existing metadata
-        // when we switch to a different function.
-        if (functionChanged) {
-          const nodeMeta = newNode.rootExpr.nodeMetadata
-          const pos = nodeMeta.get('position') ?? { x: 0, y: 0 }
-          metadataFields = {
-            position: new Vec2(pos.x, pos.y),
-            vis: nodeMeta.get('visualization'),
-          }
+        const nodeMeta = newNode.rootExpr.nodeMetadata
+        const pos = nodeMeta.get('position') ?? { x: 0, y: 0 }
+        const metadataFields = {
+          position: new Vec2(pos.x, pos.y),
+          vis: nodeMeta.get('visualization'),
+          colorOverride: nodeMeta.get('colorOverride'),
         }
         this.nodeIdToNode.set(nodeId, { ...newNode, ...metadataFields, zIndex: this.highestZIndex })
       } else {
@@ -435,6 +416,9 @@ export class GraphDb {
     if (changes.has('visualization')) {
       const newVis = changes.get('visualization')
       if (!visMetadataEquals(newVis, node.vis)) node.vis = newVis
+    }
+    if (changes.has('colorOverride')) {
+      node.colorOverride = changes.get('colorOverride')
     }
   }
 
@@ -520,6 +504,7 @@ export interface NodeDataFromAst {
 export interface NodeDataFromMetadata {
   position: Vec2
   vis: Opt<VisualizationMetadata>
+  colorOverride: Opt<string>
 }
 
 export interface Node extends NodeDataFromAst, NodeDataFromMetadata {
@@ -532,6 +517,7 @@ const baseMockNode = {
   prefixes: { enableRecording: undefined },
   primarySubject: undefined,
   documentation: undefined,
+  colorOverride: undefined,
   conditionalPorts: new Set(),
 } satisfies Partial<Node>
 

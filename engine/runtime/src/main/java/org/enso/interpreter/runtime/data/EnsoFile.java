@@ -25,6 +25,7 @@ import java.util.Set;
 import java.util.function.IntFunction;
 import org.enso.interpreter.dsl.Builtin;
 import org.enso.interpreter.runtime.EnsoContext;
+import org.enso.interpreter.runtime.data.text.Text;
 import org.enso.interpreter.runtime.data.vector.ArrayLikeHelpers;
 import org.enso.interpreter.runtime.error.PanicException;
 import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
@@ -130,7 +131,6 @@ public final class EnsoFile implements EnsoObject {
 
   @Builtin.Method(name = "creation_time_builtin")
   @Builtin.WrapException(from = IOException.class)
-  @Builtin.ReturningGuestObject
   @CompilerDirectives.TruffleBoundary
   public EnsoDateTime getCreationTime() throws IOException {
     return new EnsoDateTime(
@@ -139,7 +139,6 @@ public final class EnsoFile implements EnsoObject {
 
   @Builtin.Method(name = "last_modified_time_builtin")
   @Builtin.WrapException(from = IOException.class)
-  @Builtin.ReturningGuestObject
   @CompilerDirectives.TruffleBoundary
   public EnsoDateTime getLastModifiedTime() throws IOException {
     return new EnsoDateTime(
@@ -156,8 +155,16 @@ public final class EnsoFile implements EnsoObject {
 
   @Builtin.Method(name = "parent")
   @CompilerDirectives.TruffleBoundary
-  public Object getParent() {
-    var parentOrNull = this.truffleFile.getParent();
+  public EnsoObject getParent() {
+    // Normalization is needed to correctly handle paths containing `..` and `.`.
+    var parentOrNull = this.normalize().truffleFile.getParent();
+
+    // If the path has no parent because it is relative and there are no more segments, try again
+    // after making it absolute:
+    if (parentOrNull == null && !this.truffleFile.isAbsolute()) {
+      parentOrNull = this.truffleFile.getAbsoluteFile().normalize().getParent();
+    }
+
     if (parentOrNull != null) {
       return new EnsoFile(parentOrNull);
     } else {
@@ -174,8 +181,8 @@ public final class EnsoFile implements EnsoObject {
 
   @Builtin.Method(name = "path")
   @CompilerDirectives.TruffleBoundary
-  public String getPath() {
-    return this.truffleFile.getPath();
+  public Text getPath() {
+    return Text.create(this.truffleFile.getPath());
   }
 
   @Builtin.Method
@@ -228,9 +235,9 @@ public final class EnsoFile implements EnsoObject {
 
   @Builtin.Method(name = "name")
   @CompilerDirectives.TruffleBoundary
-  public String getName() {
-    var name = this.truffleFile.getName();
-    return name == null ? "/" : name;
+  public Text getName() {
+    var name = this.normalize().truffleFile.getName();
+    return Text.create(name == null ? "/" : name);
   }
 
   @Builtin.Method(name = "size_builtin")
@@ -256,7 +263,13 @@ public final class EnsoFile implements EnsoObject {
   @Builtin.Method
   @CompilerDirectives.TruffleBoundary
   public EnsoFile normalize() {
-    return new EnsoFile(truffleFile.normalize());
+    TruffleFile simplyNormalized = truffleFile.normalize();
+    String name = simplyNormalized.getName();
+    boolean needsAbsolute = name != null && (name.equals("..") || name.equals("."));
+    if (needsAbsolute) {
+      simplyNormalized = simplyNormalized.getAbsoluteFile().normalize();
+    }
+    return new EnsoFile(simplyNormalized);
   }
 
   @Builtin.Method(name = "delete_builtin")

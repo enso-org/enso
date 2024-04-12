@@ -130,6 +130,7 @@ export interface User extends UserInfo {
    * `usersMe` will not work. */
   readonly isEnabled: boolean
   readonly rootDirectoryId: DirectoryId
+  readonly removeAt?: dateTime.Rfc3339DateTime | null
 }
 
 /** A `Directory` returned by `createDirectory`. */
@@ -159,19 +160,17 @@ export enum ProjectState {
 /** Wrapper around a project state value. */
 export interface ProjectStateType {
   readonly type: ProjectState
-  /* eslint-disable @typescript-eslint/naming-convention */
-  readonly volume_id: string
-  readonly instance_id?: string
-  readonly execute_async?: boolean
+  readonly volumeId: string
+  readonly instanceId?: string
+  readonly executeAsync?: boolean
   readonly address?: string
-  readonly security_group_id?: string
-  readonly ec2_id?: string
-  readonly ec2_public_ip_address?: string
-  readonly current_session_id?: string
-  readonly opened_by?: EmailAddress
+  readonly securityGroupId?: string
+  readonly ec2Id?: string
+  readonly ec2PublicIpAddress?: string
+  readonly currentSessionId?: string
+  readonly openedBy?: EmailAddress
   /** Only present on the Local backend. */
   readonly path?: Path
-  /* eslint-enable @typescript-eslint/naming-convention */
 }
 
 export const IS_OPENING: Readonly<Record<ProjectState, boolean>> = {
@@ -308,6 +307,7 @@ export interface SecretAndInfo {
 export interface SecretInfo {
   readonly name: string
   readonly id: SecretId
+  readonly path: string
 }
 
 /** A Data Link. */
@@ -358,6 +358,15 @@ export interface Version {
   // so we need to match it.
   // eslint-disable-next-line @typescript-eslint/naming-convention
   readonly version_type: VersionType
+}
+
+/** Credentials that need to be passed to libraries to give them access to the Cloud API. */
+export interface CognitoCredentials {
+  readonly accessToken: string
+  readonly refreshToken: string
+  readonly refreshUrl: string
+  readonly clientId: string
+  readonly expireAt: dateTime.Rfc3339DateTime
 }
 
 /** Subscription plans. */
@@ -534,9 +543,8 @@ export const COLORS: readonly [LChColor, ...LChColor[]] = [
 
 /** Converts a {@link LChColor} to a CSS color string. */
 export function lChColorToCssColor(color: LChColor): string {
-  return 'alpha' in color
-    ? `lcha(${color.lightness}% ${color.chroma} ${color.hue} / ${color.alpha})`
-    : `lch(${color.lightness}% ${color.chroma} ${color.hue})`
+  const alpha = 'alpha' in color ? ` / ${color.alpha}` : ''
+  return `lch(${color.lightness}% ${color.chroma} ${color.hue}${alpha})`
 }
 
 export const COLOR_STRING_TO_COLOR = new Map(
@@ -701,10 +709,8 @@ export function createPlaceholderProjectAsset(
     modifiedAt: dateTime.toRfc3339(new Date()),
     projectState: {
       type: ProjectState.new,
-      // eslint-disable-next-line @typescript-eslint/naming-convention
-      volume_id: '',
-      // eslint-disable-next-line @typescript-eslint/naming-convention
-      ...(organization != null ? { opened_by: organization.email } : {}),
+      volumeId: '',
+      ...(organization != null ? { openedBy: organization.email } : {}),
       ...(path != null ? { path } : {}),
     },
     labels: [],
@@ -896,7 +902,7 @@ export interface UpdateOrganizationRequestBody {
   name?: string
   email?: EmailAddress
   website?: HttpsUrl
-  location?: string
+  address?: string
 }
 
 /** HTTP request body for the "invite user" endpoint. */
@@ -941,8 +947,9 @@ export interface DeleteAssetRequestBody {
 /** HTTP request body for the "create project" endpoint. */
 export interface CreateProjectRequestBody {
   readonly projectName: string
-  readonly projectTemplateName: string | null
-  readonly parentDirectoryId: DirectoryId | null
+  readonly projectTemplateName?: string
+  readonly parentDirectoryId?: DirectoryId
+  readonly datalinkId?: ConnectorId
 }
 
 /** HTTP request body for the "update project" endpoint.
@@ -958,6 +965,8 @@ export interface UpdateProjectRequestBody {
 /** HTTP request body for the "open project" endpoint. */
 export interface OpenProjectRequestBody {
   readonly executeAsync: boolean
+  /** MUST be present on Remote backend; NOT REQUIRED on Local backend. */
+  readonly cognitoCredentials: CognitoCredentials | null
   /** Only used by the Local backend. */
   readonly parentId: DirectoryId
 }
@@ -1122,6 +1131,8 @@ export default abstract class Backend {
   abstract createUser(body: CreateUserRequestBody): Promise<User>
   /** Change the username of the current user. */
   abstract updateUser(body: UpdateUserRequestBody): Promise<void>
+  /** Restore the current user. */
+  abstract restoreUser(): Promise<void>
   /** Delete the current user. */
   abstract deleteUser(): Promise<void>
   /** Upload a new profile picture for the current user. */

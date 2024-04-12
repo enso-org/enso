@@ -9,11 +9,14 @@ homepage = "https://github.com/enso-org/enso"
 repository = "https://github.com/enso-org/enso"
 license-file = "../../LICENSE"
 
+[features]
+debug = ["dep:enso-parser-syntax-tree-visitor"]
+
 [dependencies]
 enso-prelude = { path = "../prelude" }
 enso-reflect = { path = "../reflect" }
 enso-data-structures = { path = "../data-structures" }
-enso-parser-syntax-tree-visitor = { path = "src/syntax/tree/visitor" }
+enso-parser-syntax-tree-visitor = { path = "src/syntax/tree/visitor", optional = true }
 paste = { version = "1.0" }
 serde = { workspace = true }
 serde_json = { workspace = true }

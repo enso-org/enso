@@ -10,7 +10,6 @@ use crate::engine::BuiltArtifacts;
 use crate::engine::Operation;
 use crate::engine::ReleaseCommand;
 use crate::engine::ReleaseOperation;
-use crate::engine::FLATC_VERSION;
 use crate::engine::PARALLEL_ENSO_TESTS;
 use crate::enso::BenchmarkOptions;
 use crate::enso::BuiltEnso;
@@ -29,7 +28,6 @@ use ide_ci::cache;
 use ide_ci::github::release::IsReleaseExt;
 use ide_ci::platform::DEFAULT_SHELL;
 use ide_ci::programs::sbt;
-use ide_ci::programs::Flatc;
 use ide_ci::programs::Sbt;
 use std::env::consts::DLL_EXTENSION;
 use std::env::consts::EXE_EXTENSION;
@@ -126,7 +124,7 @@ impl RunContext {
         ide_ci::programs::Npm.require_present().await?;
 
         let prepare_simple_library_server = {
-            if self.config.test_scala {
+            if self.config.test_jvm {
                 let simple_server_path = &self.paths.repo_root.tools.simple_library_server;
                 ide_ci::programs::git::new(simple_server_path)
                     .await?
@@ -146,35 +144,15 @@ impl RunContext {
         };
         let prepare_simple_library_server = tokio::spawn(prepare_simple_library_server);
 
-        // Setup Conda Environment
-        // Install FlatBuffers Compiler
-        // If it is not available, we require conda to install it. We should not require conda in
-        // other scenarios.
-        // TODO: After flatc version is bumped, it should be possible to get it without `conda`.
-        //       See: https://www.pivotaltracker.com/story/show/180303547
-        if let Err(e) = Flatc.require_present_at(&FLATC_VERSION).await {
-            warn!("Cannot find expected flatc: {}", e);
-            warn!("Will try to install it using conda. In case of issues, please install flatc manually, to avoid dependency on conda.");
-            // GitHub-hosted runner has `conda` on PATH but not things installed by it.
-            // It provides `CONDA` variable pointing to the relevant location.
-            if let Some(conda_path) = std::env::var_os("CONDA").map(PathBuf::from) {
-                ide_ci::env::prepend_to_path(conda_path.join("bin"))?;
-                if TARGET_OS == OS::Windows {
-                    // Not sure if it documented anywhere, but this is where installed `flatc`
-                    // appears on Windows.
-                    ide_ci::env::prepend_to_path(conda_path.join("Library").join("bin"))?;
-                }
-            }
+        // Setup flatc (FlatBuffers compiler), required for building the engine.
+        let flatc_goodie = cache::goodie::flatc::Flatc {
+            version:  engine::deduce_flatbuffers(&self.repo_root.build_sbt).await?,
+            platform: TARGET_OS,
+        };
+        flatc_goodie.install_if_missing(&self.cache).await?;
 
-            ide_ci::programs::Conda
-                .cmd()?
-                .args(["install", "-y", "--freeze-installed", "flatbuffers=1.12.0"])
-                .run_ok()
-                .await?;
-            Flatc.lookup()?;
-        }
 
-        self.paths.emit_env_to_actions().await?; // Ignore error: we might not be run on CI.
+        self.paths.emit_env_to_actions().await?;
         debug!("Build configuration: {:#?}", self.config);
 
         // Setup Tests on Windows
@@ -265,7 +243,7 @@ impl RunContext {
 
 
         let _test_results_upload_guard =
-            if self.config.test_scala || self.config.test_standard_library {
+            if self.config.test_jvm || self.config.test_standard_library {
                 // If we run tests, make sure that old and new results won't end up mixed together.
                 let test_results_dir = ENSO_TEST_JUNIT_DIR
                     .get()
@@ -397,7 +375,7 @@ impl RunContext {
         debug!("Running unit tests and Enso tests.");
         // We store Scala test result but not immediately fail on it, as we want to run all the
         // tests (including standard library ones) even if Scala tests fail.
-        let scala_test_result = if self.config.test_scala {
+        let scala_test_result = if self.config.test_jvm {
             // Make sure that `sbt buildEngineDistributionNoIndex` is run before
             // `project-manager/test`. Note that we do not have to run
             // `buildEngineDistribution` (with indexing), because it is unnecessary.

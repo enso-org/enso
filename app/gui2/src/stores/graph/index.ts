@@ -33,7 +33,13 @@ import { iteratorFilter } from 'lib0/iterator'
 import { defineStore } from 'pinia'
 import { SourceDocument } from 'shared/ast/sourceDocument'
 import type { ExpressionUpdate, StackItem } from 'shared/languageServerTypes'
-import type { LocalOrigin, SourceRangeKey, VisualizationMetadata } from 'shared/yjsModel'
+import { reachable } from 'shared/util/data/graph'
+import type {
+  LocalUserActionOrigin,
+  Origin,
+  SourceRangeKey,
+  VisualizationMetadata,
+} from 'shared/yjsModel'
 import { defaultLocalOrigin, sourceRangeKey, visMetadataEquals } from 'shared/yjsModel'
 import {
   computed,
@@ -134,8 +140,13 @@ export const useGraphStore = defineStore('graph', () => {
       id: AstId
       changes: NodeMetadata
     }[]
-    const dirtyNodeSet = new Set(update.nodesUpdated)
-    if (moduleChanged || dirtyNodeSet.size !== 0) {
+    const dirtyNodeSet = new Set(
+      (function* () {
+        yield* update.nodesUpdated
+        yield* update.nodesAdded
+      })(),
+    )
+    if (moduleChanged || dirtyNodeSet.size !== 0 || update.nodesDeleted.size !== 0) {
       db.updateExternalIds(root)
       toRaw = new Map()
       visitRecursive(Ast.parseEnso(moduleSource.text), (node) => {
@@ -284,7 +295,8 @@ export const useGraphStore = defineStore('graph', () => {
     rhs.setNodeMetadata(metadata)
     const assignment = Ast.Assignment.new(edit, ident, rhs)
     for (const _conflict of conflicts) {
-      // TODO: Sort out issues with FQN with the engine.
+      // TODO: Substitution does not work, because we interpret imports wrongly. To be fixed in
+      // https://github.com/enso-org/enso/issues/9356
       // substituteQualifiedName(edit, assignment, conflict.pattern, conflict.fullyQualified)
     }
     const id = asNodeId(rhs.id)
@@ -378,7 +390,8 @@ export const useGraphStore = defineStore('graph', () => {
           return
         }
         for (const _conflict of conflicts) {
-          // TODO: Sort out issues with FQN with the engine.
+          // TODO: Substitution does not work, because we interpret imports wrongly. To be fixed in
+          // https://github.com/enso-org/enso/issues/9356
           // substituteQualifiedName(edit, wholeAssignment, conflict.pattern, conflict.fullyQualified)
         }
       }
@@ -402,6 +415,14 @@ export const useGraphStore = defineStore('graph', () => {
         metadata.set('position', { x: position.x, y: position.y }),
       )
     }
+  }
+
+  function overrideNodeColor(nodeId: NodeId, color: string) {
+    const nodeAst = syncModule.value?.tryGet(nodeId)
+    if (!nodeAst) return
+    editNodeMetadata(nodeAst, (metadata) => {
+      metadata.set('colorOverride', color)
+    })
   }
 
   function normalizeVisMetadata(
@@ -457,7 +478,7 @@ export const useGraphStore = defineStore('graph', () => {
         )
         nodeRects.set(nodeId, new Rect(position, rect.size))
       }
-    })
+    }, 'local:autoLayout')
   })
 
   function updateVizRect(id: NodeId, rect: Rect | undefined) {
@@ -540,7 +561,7 @@ export const useGraphStore = defineStore('graph', () => {
   function commitEdit(
     edit: MutableModule,
     skipTreeRepair?: boolean,
-    origin: LocalOrigin = defaultLocalOrigin,
+    origin: LocalUserActionOrigin = defaultLocalOrigin,
   ) {
     const root = edit.root()
     if (!(root instanceof Ast.BodyBlock)) {
@@ -576,9 +597,9 @@ export const useGraphStore = defineStore('graph', () => {
     return result!
   }
 
-  function batchEdits(f: () => void) {
+  function batchEdits(f: () => void, origin: Origin = defaultLocalOrigin) {
     assert(syncModule.value != null)
-    syncModule.value.transact(f, 'local')
+    syncModule.value.transact(f, origin)
   }
 
   function editNodeMetadata(ast: Ast.Ast, f: (metadata: Ast.MutableNodeMetadata) => void) {
@@ -642,7 +663,7 @@ export const useGraphStore = defineStore('graph', () => {
     // If source is placed after its new target, the nodes needs to be reordered.
     if (sourceIdx > targetIdx) {
       // Find all transitive dependencies of the moved target node.
-      const deps = db.dependantNodes(targetNodeId)
+      const deps = reachable([targetNodeId], (node) => db.nodeDependents.lookup(node))
 
       const dependantLines = new Set(
         Array.from(deps, (id) => db.nodeIdToNode.get(id)?.outerExpr.id),
@@ -704,6 +725,7 @@ export const useGraphStore = defineStore('graph', () => {
     deleteNodes,
     ensureCorrectNodeOrder,
     batchEdits,
+    overrideNodeColor,
     setNodeContent,
     setNodePosition,
     setNodeVisualization,
@@ -726,6 +748,11 @@ export const useGraphStore = defineStore('graph', () => {
     addMissingImports,
     addMissingImportsDisregardConflicts,
     isConnectedTarget,
+    currentMethodPointer() {
+      const currentMethod = proj.executionContext.getStackTop()
+      if (currentMethod.type === 'ExplicitCall') return currentMethod.methodPointer
+      return db.getExpressionInfo(currentMethod.expressionId)?.methodCall?.methodPointer
+    },
   }
 })
 

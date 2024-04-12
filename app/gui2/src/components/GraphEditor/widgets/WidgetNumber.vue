@@ -28,7 +28,7 @@ const limits = computed(() => {
   }
 })
 
-const editHandler = WidgetEditHandler.New(props.input, {
+const editHandler = WidgetEditHandler.New('WidgetNumber', props.input, {
   cancel: () => inputComponent.value?.cancel(),
   start: () => inputComponent.value?.focus(),
   end: () => inputComponent.value?.blur(),
@@ -36,25 +36,29 @@ const editHandler = WidgetEditHandler.New(props.input, {
 </script>
 
 <script lang="ts">
-export const widgetDefinition = defineWidget(WidgetInput.isAstOrPlaceholder, {
-  priority: 1001,
-  score: (props) => {
-    if (
-      props.input.value instanceof Ast.NumericLiteral ||
-      (props.input.value instanceof Ast.NegationApp &&
-        props.input.value.argument instanceof Ast.NumericLiteral)
-    )
-      return Score.Perfect
-    const type = props.input.expectedType
-    if (
-      type === 'Standard.Base.Data.Number' ||
-      type === 'Standard.Base.Data.Numbers.Integer' ||
-      type === 'Standard.Base.Data.Numbers.Float'
-    )
-      return Score.Good
-    return Score.Mismatch
+export const widgetDefinition = defineWidget(
+  WidgetInput.isAstOrPlaceholder,
+  {
+    priority: 1001,
+    score: (props) => {
+      if (
+        props.input.value instanceof Ast.NumericLiteral ||
+        (props.input.value instanceof Ast.NegationApp &&
+          props.input.value.argument instanceof Ast.NumericLiteral)
+      )
+        return Score.Perfect
+      const type = props.input.expectedType
+      if (
+        type === 'Standard.Base.Data.Numbers.Number' ||
+        type === 'Standard.Base.Data.Numbers.Integer' ||
+        type === 'Standard.Base.Data.Numbers.Float'
+      )
+        return Score.Good
+      return Score.Mismatch
+    },
   },
-})
+  import.meta.hot,
+)
 </script>
 
 <template>

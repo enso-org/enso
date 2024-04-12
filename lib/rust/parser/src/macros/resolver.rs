@@ -302,19 +302,16 @@ impl<'s> Resolver<'s> {
         if self.macros.len() > self.macro_scope_start() {
             let current_macro = self.macros.last_mut().unwrap();
             if let Some(subsegments) = current_macro.possible_next_segments.get(repr) {
-                trace!("Entering next segment of the current macro.");
                 let mut new_match_tree =
                     Self::move_to_next_segment(&mut current_macro.matched_macro_def, subsegments);
                 mem::swap(&mut new_match_tree, &mut current_macro.possible_next_segments);
                 return Step::StartSegment(token);
             } else if let Some(popped) = self.pop_macro_stack_if_reserved(repr) {
-                trace!("Next token reserved by parent macro. Resolving current macro.");
                 self.resolve(popped);
                 return Step::MacroStackPop(token.into());
             }
         }
         if let Some(segments) = root_macro_map.get(repr, context) {
-            trace!("Starting a new nested macro resolution.");
             let mut matched_macro_def = default();
             let segments_start = self.segments.len();
             let new_macro = PartiallyMatchedMacro {
@@ -328,7 +325,6 @@ impl<'s> Resolver<'s> {
             self.macros.push(new_macro);
             Step::StartSegment(token)
         } else {
-            trace!("Consuming token as current segment body.");
             Step::NormalToken(token.into())
         }
     }

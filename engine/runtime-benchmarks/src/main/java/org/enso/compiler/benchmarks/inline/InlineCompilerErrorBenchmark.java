@@ -6,7 +6,6 @@ import java.io.OutputStream;
 import java.util.concurrent.TimeUnit;
 import org.enso.compiler.Compiler;
 import org.enso.compiler.benchmarks.Utils;
-import org.enso.compiler.context.InlineContext;
 import org.enso.polyglot.RuntimeOptions;
 import org.graalvm.polyglot.Context;
 import org.openjdk.jmh.annotations.Benchmark;
@@ -48,7 +47,7 @@ public class InlineCompilerErrorBenchmark {
   private Compiler compiler;
 
   private Context ctx;
-  private InlineContext mainInlineContext;
+  private InlineContextResourceFactory mainInlineContextResourceFactory;
   private String expressionWithErrors;
 
   @Setup
@@ -63,11 +62,12 @@ public class InlineCompilerErrorBenchmark {
     var ensoCtx = Utils.leakEnsoContext(ctx);
     compiler = ensoCtx.getCompiler();
 
-    var inlineSource = InlineContextUtils.createMainMethodWithLocalVars(ctx, LOCAL_VARS_CNT);
+    var localVarNames = InlineContextUtils.localVarNames(LOCAL_VARS_CNT);
+    var inlineSource = InlineContextUtils.createMainMethodWithLocalVars(ctx, localVarNames);
     var longExpression =
         InlineContextUtils.createLongExpression(inlineSource.localVarNames(), LONG_EXPR_SIZE);
     expressionWithErrors = "UNDEFINED * " + longExpression + " * UNDEFINED";
-    mainInlineContext = inlineSource.mainInlineContext();
+    mainInlineContextResourceFactory = inlineSource.inlineContextFactory();
   }
 
   @TearDown
@@ -79,8 +79,10 @@ public class InlineCompilerErrorBenchmark {
   }
 
   @Benchmark
-  public void expressionWithErrors(Blackhole blackhole) {
-    var tuppleOpt = compiler.runInline(expressionWithErrors, mainInlineContext);
-    blackhole.consume(tuppleOpt);
+  public void expressionWithErrors(Blackhole blackhole) throws IOException {
+    try (InlineContextResource resource = mainInlineContextResourceFactory.create()) {
+      var tuppleOpt = compiler.runInline(expressionWithErrors, resource.inlineContext());
+      blackhole.consume(tuppleOpt);
+    }
   }
 }

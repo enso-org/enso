@@ -56,6 +56,7 @@ export const BINDINGS = inputBindings.defineBindings({
   rename: { name: 'Rename', bindings: ['Mod+R'], icon: PenIcon },
   edit: { name: 'Edit', bindings: ['Mod+E'], icon: PenIcon },
   snapshot: { name: 'Snapshot', bindings: ['Mod+S'], icon: CameraIcon },
+  editDescription: { name: 'Edit Description', bindings: ['Mod+Shift+E'], icon: PenIcon },
   delete: {
     name: 'Delete',
     bindings: ['OsDelete'],
@@ -84,6 +85,11 @@ export const BINDINGS = inputBindings.defineBindings({
     name: 'New Data Link',
     bindings: !detect.isOnMacOS() ? ['Mod+Alt+Shift+N'] : ['Mod+Alt+Shift+N', 'Mod+Alt+Shift+~'],
     icon: AddConnectorIcon,
+  },
+  useInNewProject: {
+    name: 'Use In New Project',
+    bindings: ['Mod+P'],
+    icon: AddNetworkIcon,
   },
   signIn: { name: 'Login', bindings: [], icon: SignInIcon },
   signOut: { name: 'Logout', bindings: [], icon: SignOutIcon, color: 'rgb(243 24 10 / 0.87)' },

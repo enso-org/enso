@@ -29,6 +29,7 @@ import {
   type Offset,
   type Table,
 } from './binaryProtocol'
+import type { AbortScope } from './util/net'
 import { uuidFromBits, uuidToBits } from './uuid'
 import type { WebsocketClient } from './websocket'
 import type { Uuid } from './yjsModel'
@@ -58,8 +59,12 @@ export class DataServer extends ObservableV2<DataServerEvents> {
   resolveCallbacks = new Map<string, (data: any) => void>()
 
   /** `websocket.binaryType` should be `ArrayBuffer`. */
-  constructor(public websocket: WebsocketClient) {
+  constructor(
+    public websocket: WebsocketClient,
+    abort: AbortScope,
+  ) {
     super()
+    abort.handleDispose(this)
     if (websocket.connected) {
       this.ready = Promise.resolve()
     } else {
@@ -93,6 +98,10 @@ export class DataServer extends ObservableV2<DataServerEvents> {
         this.emit(`${payloadType}`, [payload, uuid])
       }
     })
+  }
+
+  dispose() {
+    this.resolveCallbacks.clear()
   }
 
   async initialize(clientId: Uuid) {

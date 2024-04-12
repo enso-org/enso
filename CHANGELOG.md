@@ -641,6 +641,14 @@
 - [Make expand_to_rows, expand_column support Rows, Tables, Column data
   types][9533]
 - [Data Link for `Enso_File`.][9525]
+- [Added `pow`, `remainder`, and `div` to `Decimal`.][9566]
+- [Implemented `.to_integer`, `.to_float`, and `from` conversions for
+  `Decimal`][9462]
+- [Made `Integer.%` consistent across all `Integer` values.][9589]
+- [Added `Decimal.parse` and `.format`.][9637]
+- [Added `Decimal.abs`, `.negate` and `.signum`.][9641]
+- [Added `Decimal.min` and `.max`.][9663]
+- [Added `Decimal.round`.][9672]
 
 [debug-shortcuts]:
   https://github.com/enso-org/enso/blob/develop/app/gui/docs/product/shortcuts.md#debug
@@ -931,8 +939,15 @@
 [9343]: https://github.com/enso-org/enso/pull/9343
 [9406]: https://github.com/enso-org/enso/pull/9406
 [9435]: https://github.com/enso-org/enso/pull/9435
+[9462]: https://github.com/enso-org/enso/pull/9462
 [9533]: https://github.com/enso-org/enso/pull/9533
 [9525]: https://github.com/enso-org/enso/pull/9525
+[9566]: https://github.com/enso-org/enso/pull/9566
+[9589]: https://github.com/enso-org/enso/pull/9589
+[9637]: https://github.com/enso-org/enso/pull/9637
+[9641]: https://github.com/enso-org/enso/pull/9641
+[9663]: https://github.com/enso-org/enso/pull/9663
+[9672]: https://github.com/enso-org/enso/pull/9672
 
 #### Enso Compiler
 

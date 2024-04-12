@@ -5,7 +5,6 @@ import * as appUtils from '#/appUtils'
 
 import * as eventCallback from '#/hooks/eventCallbackHooks'
 import * as navigateHooks from '#/hooks/navigateHooks'
-import * as searchParamsState from '#/hooks/searchParamsStateHooks'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
 import * as authProvider from '#/providers/AuthProvider'
@@ -26,34 +25,18 @@ import Category from '#/layouts/CategorySwitcher/Category'
 import DriveBar from '#/layouts/DriveBar'
 import Labels from '#/layouts/Labels'
 
+import * as aria from '#/components/aria'
 import type * as spinner from '#/components/Spinner'
+import UnstyledButton from '#/components/UnstyledButton'
 
 import * as backendModule from '#/services/Backend'
 import * as projectManager from '#/services/ProjectManager'
 
-import * as array from '#/utilities/array'
 import type AssetQuery from '#/utilities/AssetQuery'
 import type AssetTreeNode from '#/utilities/AssetTreeNode'
 import * as download from '#/utilities/download'
 import * as github from '#/utilities/github'
-import LocalStorage from '#/utilities/LocalStorage'
 import * as uniqueString from '#/utilities/uniqueString'
-
-// ============================
-// === Global configuration ===
-// ============================
-
-declare module '#/utilities/LocalStorage' {
-  /** */
-  interface LocalStorageData {
-    readonly driveCategory: Category
-  }
-}
-
-const CATEGORIES = Object.values(Category)
-LocalStorage.registerKey('driveCategory', {
-  tryParse: value => (array.includes(CATEGORIES, value) ? value : null),
-})
 
 // ===================
 // === DriveStatus ===
@@ -79,6 +62,8 @@ enum DriveStatus {
 
 /** Props for a {@link Drive}. */
 export interface DriveProps {
+  readonly category: Category
+  readonly setCategory: (category: Category) => void
   readonly supportsLocalBackend: boolean
   readonly hidden: boolean
   readonly hideRows: boolean
@@ -114,6 +99,7 @@ export default function Drive(props: DriveProps) {
   const { assetListEvents, dispatchAssetListEvent, assetEvents, dispatchAssetEvent } = props
   const { setAssetPanelProps, doOpenEditor, doCloseEditor } = props
   const { setIsAssetPanelTemporarilyVisible } = props
+  const { category, setCategory } = props
 
   const navigate = navigateHooks.useNavigate()
   const toastAndLog = toastAndLogHooks.useToastAndLog()
@@ -123,11 +109,6 @@ export default function Drive(props: DriveProps) {
   const { getText } = textProvider.useText()
   const [canDownload, setCanDownload] = React.useState(false)
   const [didLoadingProjectManagerFail, setDidLoadingProjectManagerFail] = React.useState(false)
-  const [category, setCategory] = searchParamsState.useSearchParamsState(
-    'driveCategory',
-    () => localStorage.get('driveCategory') ?? Category.home,
-    (value): value is Category => array.includes(Object.values(Category), value)
-  )
   const [newLabelNames, setNewLabelNames] = React.useState(new Set<backendModule.LabelName>())
   const [deletedLabelNames, setDeletedLabelNames] = React.useState(
     new Set<backendModule.LabelName>()
@@ -220,7 +201,8 @@ export default function Drive(props: DriveProps) {
         parentKey: targetDirectoryNodeRef.current?.key ?? rootDirectoryId,
         parentId: targetDirectoryNodeRef.current?.item.id ?? rootDirectoryId,
         templateId,
-        templateName,
+        datalinkId: null,
+        preferredName: templateName,
         onSpinnerStateChange,
       })
     },
@@ -320,14 +302,14 @@ export default function Drive(props: DriveProps) {
         <div className={`grid grow place-items-center ${hidden ? 'hidden' : ''}`}>
           <div className="flex flex-col gap-status-page text-center text-base">
             <div>{getText('youAreNotLoggedIn')}</div>
-            <button
+            <UnstyledButton
               className="button self-center bg-help text-white"
-              onClick={() => {
+              onPress={() => {
                 navigate(appUtils.LOGIN_PATH)
               }}
             >
               {getText('login')}
-            </button>
+            </UnstyledButton>
           </div>
         </div>
       )
@@ -350,9 +332,9 @@ export default function Drive(props: DriveProps) {
               {getText('upgrade')}
             </a>
             {!supportsLocalBackend && (
-              <button
+              <UnstyledButton
                 className="button self-center bg-help text-white"
-                onClick={async () => {
+                onPress={async () => {
                   const downloadUrl = await github.getDownloadUrl()
                   if (downloadUrl == null) {
                     toastAndLog('noAppDownloadError')
@@ -362,7 +344,7 @@ export default function Drive(props: DriveProps) {
                 }}
               >
                 {getText('downloadFreeEdition')}
-              </button>
+              </UnstyledButton>
             )}
           </div>
         </div>
@@ -376,10 +358,13 @@ export default function Drive(props: DriveProps) {
             hidden ? 'hidden' : ''
           }`}
         >
-          <div className="flex flex-col gap-icons self-start">
-            <h1 className="h-heading px-heading-x py-heading-y text-xl font-bold leading-snug">
+          <div className="flex flex-col items-start gap-icons self-start">
+            <aria.Heading
+              level={1}
+              className="h-heading px-heading-x py-heading-y text-xl font-bold leading-snug"
+            >
               {isCloud ? getText('cloudDrive') : getText('localDrive')}
-            </h1>
+            </aria.Heading>
             <DriveBar
               category={category}
               canDownload={canDownload}
@@ -401,6 +386,7 @@ export default function Drive(props: DriveProps) {
                   dispatchAssetEvent={dispatchAssetEvent}
                 />
                 <Labels
+                  draggable={category !== Category.trash}
                   labels={labels}
                   query={query}
                   setQuery={setQuery}

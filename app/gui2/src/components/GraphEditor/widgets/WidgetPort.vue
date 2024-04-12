@@ -135,38 +135,42 @@ useRaf(toRef(tree, 'hasActiveAnimations'), updateRect)
 </script>
 
 <script lang="ts">
-export const widgetDefinition = defineWidget(WidgetInput.isAstOrPlaceholder, {
-  priority: 0,
-  score: (props, _db) => {
-    const portInfo = injectPortInfo(true)
-    const value = props.input.value
-    if (portInfo != null && value instanceof Ast.Ast && portInfo.portId === value.id) {
+export const widgetDefinition = defineWidget(
+  WidgetInput.isAstOrPlaceholder,
+  {
+    priority: 0,
+    score: (props, _db) => {
+      const portInfo = injectPortInfo(true)
+      const value = props.input.value
+      if (portInfo != null && value instanceof Ast.Ast && portInfo.portId === value.id) {
+        return Score.Mismatch
+      }
+
+      if (
+        props.input.forcePort ||
+        WidgetInput.isPlaceholder(props.input) ||
+        props.input[ArgumentInfoKey] != undefined
+      )
+        return Score.Perfect
+
+      if (
+        props.input.value instanceof Ast.Invalid ||
+        props.input.value instanceof Ast.BodyBlock ||
+        props.input.value instanceof Ast.Group ||
+        props.input.value instanceof Ast.NumericLiteral ||
+        props.input.value instanceof Ast.OprApp ||
+        props.input.value instanceof Ast.PropertyAccess ||
+        props.input.value instanceof Ast.UnaryOprApp ||
+        props.input.value instanceof Ast.Wildcard ||
+        props.input.value instanceof Ast.TextLiteral
+      )
+        return Score.Perfect
+
       return Score.Mismatch
-    }
-
-    if (
-      props.input.forcePort ||
-      WidgetInput.isPlaceholder(props.input) ||
-      props.input[ArgumentInfoKey] != undefined
-    )
-      return Score.Perfect
-
-    if (
-      props.input.value instanceof Ast.Invalid ||
-      props.input.value instanceof Ast.BodyBlock ||
-      props.input.value instanceof Ast.Group ||
-      props.input.value instanceof Ast.NumericLiteral ||
-      props.input.value instanceof Ast.OprApp ||
-      props.input.value instanceof Ast.PropertyAccess ||
-      props.input.value instanceof Ast.UnaryOprApp ||
-      props.input.value instanceof Ast.Wildcard ||
-      props.input.value instanceof Ast.TextLiteral
-    )
-      return Score.Perfect
-
-    return Score.Mismatch
+    },
   },
-})
+  import.meta.hot,
+)
 </script>
 
 <template>

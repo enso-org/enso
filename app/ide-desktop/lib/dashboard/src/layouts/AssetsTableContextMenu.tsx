@@ -22,7 +22,7 @@ import ConfirmDeleteModal from '#/modals/ConfirmDeleteModal'
 
 import * as backendModule from '#/services/Backend'
 
-import type AssetTreeNode from '#/utilities/AssetTreeNode'
+import type * as assetTreeNode from '#/utilities/AssetTreeNode'
 import type * as pasteDataModule from '#/utilities/pasteData'
 import * as permissions from '#/utilities/permissions'
 import * as uniqueString from '#/utilities/uniqueString'
@@ -38,14 +38,16 @@ export interface AssetsTableContextMenuProps {
   readonly pasteData: pasteDataModule.PasteData<ReadonlySet<backendModule.AssetId>> | null
   readonly selectedKeys: ReadonlySet<backendModule.AssetId>
   readonly clearSelectedKeys: () => void
-  readonly nodeMapRef: React.MutableRefObject<ReadonlyMap<backendModule.AssetId, AssetTreeNode>>
+  readonly nodeMapRef: React.MutableRefObject<
+    ReadonlyMap<backendModule.AssetId, assetTreeNode.AnyAssetTreeNode>
+  >
   readonly event: Pick<React.MouseEvent<Element, MouseEvent>, 'pageX' | 'pageY'>
   readonly dispatchAssetEvent: (event: assetEvent.AssetEvent) => void
   readonly dispatchAssetListEvent: (event: assetListEvent.AssetListEvent) => void
   readonly doCopy: () => void
   readonly doCut: () => void
   readonly doPaste: (
-    newParentKey: backendModule.AssetId,
+    newParentKey: backendModule.DirectoryId,
     newParentId: backendModule.DirectoryId
   ) => void
 }
@@ -110,7 +112,7 @@ export default function AssetsTableContextMenu(props: AssetsTableContextMenuProp
       <></>
     ) : (
       <ContextMenus key={uniqueString.uniqueString()} hidden={hidden} event={event}>
-        <ContextMenu hidden={hidden}>
+        <ContextMenu aria-label={getText('assetsTableContextMenuLabel')} hidden={hidden}>
           <ContextMenuEntry
             hidden={hidden}
             action="undelete"
@@ -156,7 +158,7 @@ export default function AssetsTableContextMenu(props: AssetsTableContextMenuProp
     return (
       <ContextMenus key={uniqueString.uniqueString()} hidden={hidden} event={event}>
         {selectedKeys.size !== 0 && (
-          <ContextMenu hidden={hidden}>
+          <ContextMenu aria-label={getText('assetsTableContextMenuLabel')} hidden={hidden}>
             {ownsAllSelectedAssets && (
               <ContextMenuEntry
                 hidden={hidden}
@@ -192,7 +194,7 @@ export default function AssetsTableContextMenu(props: AssetsTableContextMenuProp
                     selectedKeys.size === 1 && firstKey != null
                       ? nodeMapRef.current.get(firstKey)
                       : null
-                  if (selectedNode?.item.type === backendModule.AssetType.directory) {
+                  if (selectedNode?.type === backendModule.AssetType.directory) {
                     doPaste(selectedNode.key, selectedNode.item.id)
                   } else {
                     doPaste(rootDirectoryId, rootDirectoryId)
@@ -204,7 +206,7 @@ export default function AssetsTableContextMenu(props: AssetsTableContextMenuProp
         )}
         <GlobalContextMenu
           hidden={hidden}
-          hasCopyData={pasteData != null}
+          hasPasteData={pasteData != null}
           directoryKey={null}
           directoryId={null}
           dispatchAssetListEvent={dispatchAssetListEvent}

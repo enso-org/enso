@@ -11,28 +11,29 @@ async function runApp(
   _metadata?: object | undefined,
   pinia?: Pinia | undefined,
 ) {
+  const ignoreParamsRegex = (() => {
+    if (_metadata)
+      if ('ignoreParamsRegex' in _metadata)
+        if (_metadata['ignoreParamsRegex'] instanceof RegExp) return _metadata['ignoreParamsRegex']
+
+    return null
+  })()
+
   running = true
   const { mountProjectApp } = await import('./createApp')
   if (!running) return
   unmount?.()
   const unrecognizedOptions: string[] = []
-  // function onUnrecognizedOption(path: string[]) {
-  //   unrecognizedOptions.push(path.join('.'))
-  // }
-  // FIXME: https://github.com/enso-org/enso/issues/8610
-  // Currently, options are provided that are not relevant to GUI2. These options cannot be removed
-  // until GUI1 is removed, as GUI1 still needs them.
-  const intermediateConfig = mergeConfig(baseConfig, urlParams())
-  const appConfig = mergeConfig(intermediateConfig, config ?? {})
-  const app = await mountProjectApp(
-    {
-      config: appConfig,
-      accessToken,
-      unrecognizedOptions,
-    },
-    pinia,
+  function onUnrecognizedOption(path: string[]) {
+    unrecognizedOptions.push(path.join('.'))
+  }
+  const intermediateConfig = mergeConfig(
+    baseConfig,
+    urlParams({ ignoreKeysRegExp: ignoreParamsRegex }),
+    { onUnrecognizedOption },
   )
-  unmount = () => app.unmount()
+  const appConfig = mergeConfig(intermediateConfig, config ?? {})
+  unmount = await mountProjectApp({ config: appConfig, accessToken, unrecognizedOptions }, pinia)
 }
 
 function stopApp() {

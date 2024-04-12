@@ -107,6 +107,7 @@ export class LsRpcError extends Error {
 export class LanguageServer extends ObservableV2<Notifications> {
   client: Client
   handlers: Map<string, Set<(...params: any[]) => void>>
+  retainCount = 1
 
   constructor(client: Client) {
     super()
@@ -124,6 +125,7 @@ export class LanguageServer extends ObservableV2<Notifications> {
   // The "magic bag of holding" generic that is only present in the return type is UNSOUND.
   // However, it is SAFE, as the return type of the API is statically known.
   private async request<T>(method: string, params: object): Promise<T> {
+    if (this.retainCount === 0) return Promise.reject(new Error('LanguageServer disposed'))
     const uuid = uuidv4()
     const now = performance.now()
     try {
@@ -432,8 +434,22 @@ export class LanguageServer extends ObservableV2<Notifications> {
     }
   }
 
-  dispose() {
-    this.client.close()
+  retain() {
+    if (this.retainCount === 0) {
+      throw new Error('Trying to retain already disposed language server.')
+    }
+    this.retainCount += 1
+  }
+
+  release() {
+    if (this.retainCount > 0) {
+      this.retainCount -= 1
+      if (this.retainCount === 0) {
+        this.client.close()
+      }
+    } else {
+      throw new Error('Released already disposed language server.')
+    }
   }
 }
 

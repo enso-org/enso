@@ -10,11 +10,13 @@ import AssetProperties from '#/layouts/AssetProperties'
 import AssetVersions from '#/layouts/AssetVersions/AssetVersions'
 import type Category from '#/layouts/CategorySwitcher/Category'
 
+import UnstyledButton from '#/components/UnstyledButton'
+
 import * as backend from '#/services/Backend'
 
 import * as array from '#/utilities/array'
 import type AssetQuery from '#/utilities/AssetQuery'
-import type AssetTreeNode from '#/utilities/AssetTreeNode'
+import type * as assetTreeNode from '#/utilities/AssetTreeNode'
 import LocalStorage from '#/utilities/LocalStorage'
 
 // =====================
@@ -49,12 +51,13 @@ LocalStorage.registerKey('assetPanelTab', {
 
 /** The subset of {@link AssetPanelProps} that are required to be supplied by the row. */
 export interface AssetPanelRequiredProps {
-  readonly item: AssetTreeNode | null
-  readonly setItem: React.Dispatch<React.SetStateAction<AssetTreeNode>> | null
+  readonly item: assetTreeNode.AnyAssetTreeNode | null
+  readonly setItem: React.Dispatch<React.SetStateAction<assetTreeNode.AnyAssetTreeNode>> | null
 }
 
 /** Props for an {@link AssetPanel}. */
 export interface AssetPanelProps extends AssetPanelRequiredProps {
+  readonly isReadonly?: boolean
   readonly setQuery: React.Dispatch<React.SetStateAction<AssetQuery>>
   readonly category: Category
   readonly labels: backend.Label[]
@@ -63,7 +66,15 @@ export interface AssetPanelProps extends AssetPanelRequiredProps {
 
 /** A panel containing the description and settings for an asset. */
 export default function AssetPanel(props: AssetPanelProps) {
-  const { item, setItem, setQuery, category, labels, dispatchAssetEvent } = props
+  const {
+    item,
+    setItem,
+    setQuery,
+    category,
+    labels,
+    dispatchAssetEvent,
+    isReadonly = false,
+  } = props
 
   const { getText } = textProvider.useText()
   const { localStorage } = localStorageProvider.useLocalStorage()
@@ -98,7 +109,7 @@ export default function AssetPanel(props: AssetPanelProps) {
   return (
     <div
       data-testid="asset-panel"
-      className="absolute flex h-full w-asset-panel flex-col gap-asset-panel border-l-2 border-black/[0.12] p-top-bar-margin pl-asset-panel-l"
+      className="pointer-events-none absolute flex h-full w-asset-panel flex-col gap-asset-panel border-l-2 border-black/[0.12] p-top-bar-margin pl-asset-panel-l"
       onClick={event => {
         event.stopPropagation()
       }}
@@ -107,11 +118,11 @@ export default function AssetPanel(props: AssetPanelProps) {
         {item != null &&
           item.item.type !== backend.AssetType.secret &&
           item.item.type !== backend.AssetType.directory && (
-            <button
-              className={`button select-none bg-frame px-button-x leading-cozy transition-colors hover:bg-selected-frame ${
+            <UnstyledButton
+              className={`button pointer-events-auto select-none bg-frame px-button-x leading-cozy transition-colors hover:bg-selected-frame ${
                 tab !== AssetPanelTab.versions ? '' : 'bg-selected-frame active'
               }`}
-              onClick={() => {
+              onPress={() => {
                 setTab(oldTab =>
                   oldTab === AssetPanelTab.versions
                     ? AssetPanelTab.properties
@@ -120,7 +131,7 @@ export default function AssetPanel(props: AssetPanelProps) {
               }}
             >
               {getText('versions')}
-            </button>
+            </UnstyledButton>
           )}
         {/* Spacing. The top right asset and user bars overlap this area. */}
         <div className="grow" />
@@ -133,6 +144,7 @@ export default function AssetPanel(props: AssetPanelProps) {
         <>
           {tab === AssetPanelTab.properties && (
             <AssetProperties
+              isReadonly={isReadonly}
               item={item}
               setItem={setItem}
               category={category}

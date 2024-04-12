@@ -10,8 +10,10 @@ import type * as inputBindings from '#/configurations/inputBindings'
 import * as inputBindingsProvider from '#/providers/InputBindingsProvider'
 import * as textProvider from '#/providers/TextProvider'
 
+import * as aria from '#/components/aria'
 import KeyboardShortcut from '#/components/dashboard/KeyboardShortcut'
 import SvgMask from '#/components/SvgMask'
+import UnstyledButton from '#/components/UnstyledButton'
 
 import * as sanitizedEventTargets from '#/utilities/sanitizedEventTargets'
 
@@ -27,6 +29,7 @@ const ACTION_TO_TEXT_ID: Readonly<Record<inputBindings.DashboardBindingKey, text
   uploadToCloud: 'uploadToCloudShortcut',
   rename: 'renameShortcut',
   edit: 'editShortcut',
+  editDescription: 'editDescriptionShortcut',
   snapshot: 'snapshotShortcut',
   delete: 'deleteShortcut',
   undelete: 'undeleteShortcut',
@@ -43,6 +46,7 @@ const ACTION_TO_TEXT_ID: Readonly<Record<inputBindings.DashboardBindingKey, text
   newFolder: 'newFolderShortcut',
   newDataLink: 'newDataLinkShortcut',
   newSecret: 'newSecretShortcut',
+  useInNewProject: 'useInNewProjectShortcut',
   closeModal: 'closeModalShortcut',
   cancelEditName: 'cancelEditNameShortcut',
   signIn: 'signInShortcut',
@@ -68,7 +72,7 @@ export interface MenuEntryProps {
   /** Overrides the text for the menu entry. */
   readonly label?: string
   /** When true, the button is not clickable. */
-  readonly disabled?: boolean
+  readonly isDisabled?: boolean
   readonly title?: string
   readonly isContextMenuEntry?: boolean
   readonly doAction: () => void
@@ -76,48 +80,40 @@ export interface MenuEntryProps {
 
 /** An item in a menu. */
 export default function MenuEntry(props: MenuEntryProps) {
-  const {
-    hidden = false,
-    action,
-    label,
-    disabled = false,
-    title,
-    isContextMenuEntry = false,
-  } = props
-  const { doAction } = props
+  const { hidden = false, action, label, isDisabled = false, title } = props
+  const { isContextMenuEntry = false, doAction } = props
   const { getText } = textProvider.useText()
   const inputBindings = inputBindingsProvider.useInputBindings()
   const info = inputBindings.metadata[action]
   React.useEffect(() => {
     // This is slower (but more convenient) than registering every shortcut in the context menu
     // at once.
-    if (disabled) {
+    if (isDisabled) {
       return
     } else {
       return inputBindings.attach(sanitizedEventTargets.document.body, 'keydown', {
         [action]: doAction,
       })
     }
-  }, [disabled, inputBindings, action, doAction])
+  }, [isDisabled, inputBindings, action, doAction])
 
   return hidden ? null : (
-    <button
-      disabled={disabled}
-      title={title}
-      className={`items -center flex h-row
-      place-content-between rounded-menu-entry p-menu-entry text-left selectable enabled:active hover:bg-hover-bg disabled:bg-transparent ${
-        isContextMenuEntry ? 'px-context-menu-entry-x' : ''
-      }`}
-      onClick={event => {
-        event.stopPropagation()
-        doAction()
-      }}
+    <UnstyledButton
+      isDisabled={isDisabled}
+      className="group flex w-full rounded-menu-entry"
+      onPress={doAction}
     >
-      <div className="flex items-center gap-menu-entry whitespace-nowrap">
-        <SvgMask src={info.icon ?? BlankIcon} color={info.color} className="size-icon" />
-        {label ?? getText(ACTION_TO_TEXT_ID[action])}
+      <div
+        className={`flex h-row grow place-content-between items-center rounded-inherit p-menu-entry text-left selectable group-enabled:active hover:bg-hover-bg disabled:bg-transparent ${
+          isContextMenuEntry ? 'px-context-menu-entry-x' : ''
+        }`}
+      >
+        <div title={title} className="flex items-center gap-menu-entry whitespace-nowrap">
+          <SvgMask src={info.icon ?? BlankIcon} color={info.color} className="size-icon" />
+          <aria.Text slot="label">{label ?? getText(ACTION_TO_TEXT_ID[action])}</aria.Text>
+        </div>
+        <KeyboardShortcut action={action} />
       </div>
-      <KeyboardShortcut action={action} />
-    </button>
+    </UnstyledButton>
   )
 }

@@ -40,9 +40,9 @@ public class WarningsTest extends TestBase {
   public void doubleWithWarningsWrap() {
     var warn1 = Warning.create(ensoContext, "w1", this);
     var warn2 = Warning.create(ensoContext, "w2", this);
-    var value = 42;
+    var value = 42L;
 
-    var with1 = WithWarnings.wrap(ensoContext, 42, warn1);
+    var with1 = WithWarnings.wrap(ensoContext, value, warn1);
     var with2 = WithWarnings.wrap(ensoContext, with1, warn2);
 
     assertEquals(value, with1.getValue());

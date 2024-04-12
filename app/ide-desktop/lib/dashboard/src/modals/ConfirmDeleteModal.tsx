@@ -6,7 +6,10 @@ import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 import * as modalProvider from '#/providers/ModalProvider'
 import * as textProvider from '#/providers/TextProvider'
 
+import * as aria from '#/components/aria'
 import Modal from '#/components/Modal'
+import ButtonRow from '#/components/styled/ButtonRow'
+import UnstyledButton from '#/components/UnstyledButton'
 
 // ==========================
 // === ConfirmDeleteModal ===
@@ -28,7 +31,7 @@ export default function ConfirmDeleteModal(props: ConfirmDeleteModalProps) {
   const { unsetModal } = modalProvider.useSetModal()
   const toastAndLog = toastAndLogHooks.useToastAndLog()
 
-  const onSubmit = () => {
+  const doSubmit = () => {
     unsetModal()
     try {
       doDelete()
@@ -46,28 +49,27 @@ export default function ConfirmDeleteModal(props: ConfirmDeleteModalProps) {
         }}
         tabIndex={-1}
         className="pointer-events-auto relative flex w-confirm-delete-modal flex-col gap-modal rounded-default p-modal-wide py-modal before:absolute before:inset before:h-full before:w-full before:rounded-default before:bg-selected-frame before:backdrop-blur-default"
-        onKeyDown={event => {
-          if (event.key !== 'Escape') {
-            event.stopPropagation()
-          }
-        }}
         onClick={event => {
           event.stopPropagation()
         }}
         onSubmit={event => {
           event.preventDefault()
-          onSubmit()
+          doSubmit()
         }}
       >
-        <div className="relative">{getText('confirmPrompt', actionText)}</div>
-        <div className="relative flex gap-buttons">
-          <button type="submit" className="button bg-delete text-white active">
+        <aria.Text className="relative">{getText('confirmPrompt', actionText)}</aria.Text>
+        <ButtonRow>
+          <UnstyledButton className="button bg-delete text-white active" onPress={doSubmit}>
             {actionButtonLabel}
-          </button>
-          <button type="button" className="button bg-selected-frame active" onClick={unsetModal}>
+          </UnstyledButton>
+          <UnstyledButton
+            autoFocus
+            className="button bg-selected-frame active"
+            onPress={unsetModal}
+          >
             {getText('cancel')}
-          </button>
-        </div>
+          </UnstyledButton>
+        </ButtonRow>
       </form>
     </Modal>
   )
