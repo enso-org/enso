@@ -202,15 +202,6 @@ pyenv global 2.7.18
 export PYTHON_PATH=$(pyenv root)/shims/python
 ```
 
-The flatbuffers `flatc` compiler can be installed from the following locations:
-
-- Using the `conda` package manager (`conda install flatbuffers`). This will
-  work on all platforms, but requires some knowledge of `conda` and how its
-  environments work.
-- Windows users can download binaries directly from the flatbuffers github
-  [releases](https://github.com/google/flatbuffers/releases).
-- MacOS users can install it via homebrew (`brew install flatbuffers`).
-
 ### Getting the Sources
 
 Given you've probably been reading this document on GitHub, you might have an
