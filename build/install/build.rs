@@ -77,4 +77,18 @@ END
         ide_ci::fs::write(&path, version_rc).unwrap();
         embed_resource::compile(&path, embed_resource::NONE);
     }
+
+    // Embed the manifest file.
+    // Necessary to avoid the issue with `GetWindowSubclass`. See:
+    // * https://github.com/gabdube/native-windows-gui/issues/251
+    // * https://github.com/microsoft/windows-rs/issues/1294
+    let manifest_path = Path::new("enso-install.manifest");
+    assert!(manifest_path.exists(), "Manifest file does not exist: {}", manifest_path.display());
+    let rc_path = OUT_DIR.get().unwrap().join("manifest.rc");
+    ide_ci::fs::write(
+        &rc_path,
+        format!("#define RT_MANIFEST 24\n1 RT_MANIFEST \"{}\"", manifest_path.display()),
+    )
+    .unwrap();
+    embed_resource::compile(&rc_path, embed_resource::NONE);
 }
