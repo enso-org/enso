@@ -550,6 +550,7 @@ const documentation = computed<string | undefined>({
       <NodeWidgetTree
         :ast="props.node.innerExpr"
         :nodeId="nodeId"
+        :nodeElement="rootNode"
         :icon="icon"
         :connectedSelfArgumentId="connectedSelfArgumentId"
         :potentialSelfArgumentId="potentialSelfArgumentId"
