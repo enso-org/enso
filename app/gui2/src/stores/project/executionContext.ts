@@ -330,8 +330,13 @@ export class ExecutionContext extends ObservableV2<ExecutionContextNotification>
 
   dispose() {
     this.queue.pushTask(async (state) => {
+      console.log('Disposing Execution Context', state.created)
       if (!state.created) return state
-      await state.lsRpc.destroyExecutionContext(this.id)
+      const result = await state.lsRpc.destroyExecutionContext(this.id)
+      if (!result.ok) {
+        result.error.log('Failed to destroy execution context')
+      }
+      console.log('Disposing Execution Context: releasing LS')
       state.lsRpc.release()
       return { ...state, created: false }
     })

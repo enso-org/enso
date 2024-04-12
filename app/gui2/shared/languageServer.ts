@@ -1,6 +1,7 @@
 import { sha3_224 as SHA3 } from '@noble/hashes/sha3'
 import { bytesToHex } from '@noble/hashes/utils'
 import { Client, RequestManager } from '@open-rpc/client-js'
+import { toHexString } from 'lib0/buffer'
 import { ObservableV2 } from 'lib0/observable'
 import { uuidv4 } from 'lib0/random'
 import { z } from 'zod'
@@ -23,8 +24,11 @@ import type {
   response,
 } from './languageServerTypes'
 import { Err, Ok, type Result } from './util/data/result'
-import type { ReconnectingTransportWithWebsocketEvents } from './util/net'
-import { exponentialBackoff } from './util/net'
+import {
+  AbortScope,
+  exponentialBackoff,
+  type ReconnectingTransportWithWebsocketEvents,
+} from './util/net'
 import type { Uuid } from './yjsModel'
 
 const DEBUG_LOG_RPC = false
@@ -115,6 +119,7 @@ export type LsRpcResult<T> = Result<T, LsRpcError>
 /** [Documentation](https://github.com/enso-org/enso/blob/develop/docs/language-server/protocol-language-server.md) */
 export class LanguageServer extends ObservableV2<Notifications> {
   client: Client
+  clientScope: AbortScope = new AbortScope()
   initialized: Promise<LsRpcResult<response.InitProtocolConnection>>
   handlers: Map<string, Set<(...params: any[]) => void>>
   retainCount = 1
@@ -134,11 +139,18 @@ export class LanguageServer extends ObservableV2<Notifications> {
       console.error(`Unexpected LS connection error:`, error)
     })
     transport.on('error', (error) => console.error('Language Server transport error:', error))
-    transport.on('close', () => {
+    const cb2 = () => {
+      console.log('Websocket closed; reinitializing')
       this.initialize()
       this.emit('transport/closed', [])
-    })
+    }
+    transport.on('close', cb2)
     transport.on('open', () => this.emit('transport/reconnected', []))
+    this.clientScope.onAbort(() => {
+      console.log('CLOSING WEBSOCKET')
+      this.transport.off('close', cb2)
+      this.transport.close()
+    })
     this.initialized = this.initialize()
   }
 
@@ -494,11 +506,12 @@ export class LanguageServer extends ObservableV2<Notifications> {
   }
 
   release() {
+    console.log('Releasing', this.retainCount)
     if (this.retainCount > 0) {
       this.retainCount -= 1
       if (this.retainCount === 0) {
-        console.error(new Error('Language Server DISPOSED'))
-        this.client.close()
+        console.log('LANGUAGE SERVER DISPOSED')
+        this.clientScope.dispose('Language server released')
       }
     } else {
       throw new Error('Released already disposed language server.')

@@ -8,7 +8,6 @@ import { WebSocket as ReconnectingWebSocket } from 'partysocket'
 import type { Notifications } from 'shared/languageServerTypes'
 import { AbortScope, type ReconnectingTransportWithWebsocketEvents } from 'shared/util/net'
 import ReconnectingWebSocketTransport from 'shared/util/net/ReconnectingWSTransport'
-import { WebsocketClient } from 'shared/websocket'
 import { onScopeDispose } from 'vue'
 
 export { AbortScope } from 'shared/util/net'
@@ -125,13 +124,6 @@ export class MockWebSocket extends EventTarget implements WebSocket {
   }
   close() {
     this.readyState = WebSocket.CLOSED
-  }
-}
-
-export class MockWebSocketClient extends WebsocketClient {
-  constructor(url: string, abort: AbortScope) {
-    super(url, abort)
-    super.connect(new MockWebSocket(url, url.slice('mock://'.length)))
   }
 }
 
