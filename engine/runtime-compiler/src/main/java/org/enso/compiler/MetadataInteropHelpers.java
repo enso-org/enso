@@ -11,7 +11,7 @@ import scala.Option;
  *
  * <p>This encapsulates the friction of interop between Scala and Java types.
  */
-public class MetadataInteropHelpers {
+public final class MetadataInteropHelpers {
   public static <T> Optional<T> getOptionalMetadata(IR ir, IRPass pass, Class<T> expectedType) {
     Option<ProcessingPass.Metadata> option = ir.passData().get(pass);
     if (option.isDefined()) {
@@ -39,4 +39,6 @@ public class MetadataInteropHelpers {
 
     return optional.get();
   }
+
+  private MetadataInteropHelpers() {}
 }
