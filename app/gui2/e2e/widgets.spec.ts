@@ -12,7 +12,7 @@ class DropDownLocator {
 
   constructor(ancestor: Locator) {
     this.rootWidget = ancestor.locator('.WidgetSelection')
-    this.dropDown = ancestor.locator('.Dropdown')
+    this.dropDown = ancestor.locator('.DropdownWidget')
     this.items = this.dropDown.locator('.item')
     this.selectedItems = this.dropDown.locator('.item.selected')
   }
@@ -94,7 +94,7 @@ test('Multi-selection widget', async ({ page }) => {
 
   // Add-item button opens dropdown, after closing with escape.
   await page.keyboard.press('Escape')
-  await expect(page.locator('.Dropdown')).not.toBeVisible()
+  await expect(page.locator('.DropdownWidget')).not.toBeVisible()
   await vector.locator('.add-item').click()
   await expect(dropDown.items).toHaveCount(2)
   await expect(dropDown.selectedItems).toHaveCount(1)
@@ -181,7 +181,7 @@ test('Selection widgets in Data.read node', async ({ page }) => {
   // Set value on `path` (dynamic config)
   const pathArg = argumentNames.filter({ has: page.getByText('path') })
   await pathArg.click()
-  await expect(page.locator('.Dropdown')).toBeVisible()
+  await expect(page.locator('.DropdownWidget')).toBeVisible()
   await dropDown.expectVisibleWithOptions(['Choose file…', 'File 1', 'File 2'])
   await dropDown.clickOption('File 2')
   await expect(pathArg.locator('.WidgetText > input')).toHaveValue('File 2')
@@ -210,7 +210,7 @@ test('Selection widget with text widget as input', async ({ page }) => {
   const pathArg = argumentNames.filter({ has: page.getByText('path') })
   const pathArgInput = pathArg.locator('.WidgetText > input')
   await pathArg.click()
-  await expect(page.locator('.Dropdown')).toBeVisible()
+  await expect(page.locator('.DropdownWidget')).toBeVisible()
   await dropDown.clickOption('File 2')
   await expect(pathArgInput).toHaveValue('File 2')
 
