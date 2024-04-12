@@ -198,9 +198,9 @@ export default function MemberRolesSettingsTab() {
   }
 
   return (
-    <div className="flex h flex-col gap-settings-section lg:h-auto lg:flex-row">
-      <div className="flex w-settings-main-section flex-col gap-settings-subsection">
-        <SettingsSection noFocusArea title={getText('userGroups')}>
+    <div className="flex h min-h-full flex-1 flex-col gap-settings-section overflow-auto lg:h-auto lg:flex-row">
+      <div className="flex w-settings-main-section flex-col gap-settings-subsection lg:min-w">
+        <SettingsSection noFocusArea title={getText('userGroups')} className="overflow-auto">
           <HorizontalMenuBar>
             <UnstyledButton
               className="flex h-row items-center rounded-full bg-frame px-new-project-button-x"
