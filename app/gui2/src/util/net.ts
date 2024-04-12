@@ -41,6 +41,7 @@ export interface MockTransportData<Methods extends string = string> {
 
 export class MockTransport extends Transport {
   static mocks: Map<string, MockTransportData> = new Map()
+  private openEventListeners = new Set<(event: WebSocketEventMap['open']) => void>()
   constructor(public name: string) {
     super()
   }
@@ -49,6 +50,7 @@ export class MockTransport extends Transport {
     MockTransport.mocks.set(name, data as any)
   }
   connect(): Promise<any> {
+    for (const listener of this.openEventListeners) listener(new Event('open'))
     return Promise.resolve()
   }
   reconnect() {}
@@ -68,14 +70,14 @@ export class MockTransport extends Transport {
     } as IJSONRPCNotificationResponse)
   }
 
-  on<K extends keyof WebSocketEventMap>(
-    _type: K,
-    _cb: (event: WebSocketEventMap[K]) => void,
-  ): void {}
-  off<K extends keyof WebSocketEventMap>(
-    _type: K,
-    _cb: (event: WebSocketEventMap[K]) => void,
-  ): void {}
+  on<K extends keyof WebSocketEventMap>(type: K, cb: (event: WebSocketEventMap[K]) => void): void {
+    if (type === 'open')
+      this.openEventListeners.add(cb as (event: WebSocketEventMap['open']) => void)
+  }
+  off<K extends keyof WebSocketEventMap>(type: K, cb: (event: WebSocketEventMap[K]) => void): void {
+    if (type === 'open')
+      this.openEventListeners.delete(cb as (event: WebSocketEventMap['open']) => void)
+  }
 }
 
 export interface WebSocketHandler {

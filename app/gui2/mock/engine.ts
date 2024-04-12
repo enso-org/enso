@@ -477,7 +477,7 @@ export const mockLSHandler: MockTransportData = async (method, data, transport) 
       const data_ = data as { path: Path }
       if (!data_.path) return Promise.reject(`'path' parameter missing in '${method}'`)
       if (data_.path.rootId !== mockProjectId)
-        return Promise.reject(
+        return (
           `Only the project's 'rootId' is supported, got '${data_.path.rootId}'`,
         )
       let child: FileTree | string | ArrayBuffer | undefined = fileTree
