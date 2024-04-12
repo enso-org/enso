@@ -291,30 +291,38 @@ function handleArgUpdate(update: WidgetUpdate): boolean {
 }
 </script>
 <script lang="ts">
-export const widgetDefinition = defineWidget(WidgetInput.isFunctionCall, {
-  priority: 200,
-  score: (props, db) => {
-    // If ArgumentApplicationKey is stored, we already are handled by some WidgetFunction.
-    if (props.input[ArgumentApplicationKey]) return Score.Mismatch
-    const ast = props.input.value
-    if (ast.id == null) return Score.Mismatch
-    const prevFunctionState = injectFunctionInfo(true)
+export const widgetDefinition = defineWidget(
+  WidgetInput.isFunctionCall,
+  {
+    priority: 200,
+    score: (props, db) => {
+      // If ArgumentApplicationKey is stored, we already are handled by some WidgetFunction.
+      if (props.input[ArgumentApplicationKey]) return Score.Mismatch
+      const ast = props.input.value
+      if (ast.id == null) return Score.Mismatch
+      const prevFunctionState = injectFunctionInfo(true)
 
-    // It is possible to try to render the same function application twice, e.g. when detected an
-    // application with no arguments applied yet, but the application target is also an infix call.
-    // In that case, the reentrant call method info must be ignored to not create an infinite loop,
-    // and to resolve the infix call as its own application.
-    if (prevFunctionState?.callId === ast.id) return Score.Mismatch
+      // It is possible to try to render the same function application twice, e.g. when detected an
+      // application with no arguments applied yet, but the application target is also an infix call.
+      // In that case, the reentrant call method info must be ignored to not create an infinite loop,
+      // and to resolve the infix call as its own application.
+      if (prevFunctionState?.callId === ast.id) return Score.Mismatch
 
-    if (ast instanceof Ast.App || ast instanceof Ast.OprApp) return Score.Perfect
+      if (ast instanceof Ast.App || ast instanceof Ast.OprApp) return Score.Perfect
 
-    const info = db.getMethodCallInfo(ast.id)
-    if (prevFunctionState != null && info?.partiallyApplied === true && ast instanceof Ast.Ident) {
-      return Score.Mismatch
-    }
-    return info != null ? Score.Perfect : Score.Mismatch
+      const info = db.getMethodCallInfo(ast.id)
+      if (
+        prevFunctionState != null &&
+        info?.partiallyApplied === true &&
+        ast instanceof Ast.Ident
+      ) {
+        return Score.Mismatch
+      }
+      return info != null ? Score.Perfect : Score.Mismatch
+    },
   },
-})
+  import.meta.hot,
+)
 </script>
 
 <template>

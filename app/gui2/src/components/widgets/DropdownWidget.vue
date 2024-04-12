@@ -10,7 +10,7 @@ enum SortDirection {
 }
 
 const props = defineProps<{ color: string; entries: Entry[] }>()
-const emit = defineEmits<{ click: [entry: Entry, keepOpen: boolean] }>()
+const emit = defineEmits<{ clickEntry: [entry: Entry, keepOpen: boolean] }>()
 
 const sortDirection = ref<SortDirection>(SortDirection.none)
 
@@ -65,11 +65,11 @@ export interface DropdownEntry {
     <ul class="list scrollable" :style="{ background: color, borderColor: color }" @wheel.stop>
       <template v-for="entry in sortedValues" :key="entry.value">
         <li v-if="entry.selected">
-          <div class="item selected button" @click.stop="emit('click', entry, $event.altKey)">
+          <div class="item selected button" @click.stop="emit('clickEntry', entry, $event.altKey)">
             <span v-text="entry.value"></span>
           </div>
         </li>
-        <li v-else class="item button" @click.stop="emit('click', entry, $event.altKey)">
+        <li v-else class="item button" @click.stop="emit('clickEntry', entry, $event.altKey)">
           <span v-text="entry.value"></span>
         </li>
       </template>

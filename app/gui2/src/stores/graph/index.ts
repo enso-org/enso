@@ -748,6 +748,11 @@ export const useGraphStore = defineStore('graph', () => {
     addMissingImports,
     addMissingImportsDisregardConflicts,
     isConnectedTarget,
+    currentMethodPointer() {
+      const currentMethod = proj.executionContext.getStackTop()
+      if (currentMethod.type === 'ExplicitCall') return currentMethod.methodPointer
+      return db.getExpressionInfo(currentMethod.expressionId)?.methodCall?.methodPointer
+    },
   }
 })
 
