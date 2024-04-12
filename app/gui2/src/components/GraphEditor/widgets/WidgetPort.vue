@@ -110,6 +110,23 @@ const enabled = computed(() => {
   return !isConditional || keyboard.mod
 })
 
+/**
+ * NOTE: Reactive dependencies of this function are enforced externally in a `watch` below. This is
+ * necessary, since we don't want to introduce very noisy dependencies through `clientToSceneRect`
+ * call. Since this function calls `getBoundingClientRect`, it can't automatically track all its
+ * dependencies anyway and external refresh mechanisms are required.
+ */
+function updateRect() {
+  const oldRect = portRect.value
+  const newRect = relativePortSceneRect()
+  if (
+    oldRect !== newRect &&
+    (oldRect == null || newRect == null || !oldRect.equalsApproximately(newRect, 0.01))
+  ) {
+    portRect.value = newRect
+  }
+}
+
 function relativePortSceneRect(): Rect | undefined {
   const domNode = rootNode.value
   const rootDomNode = tree.nodeElement
@@ -122,18 +139,10 @@ function relativePortSceneRect(): Rect | undefined {
   return exprSceneRect.offsetBy(exprNodeRect.pos.inverse())
 }
 
-function updateRect() {
-  const oldRect = portRect.value
-  const newRect = relativePortSceneRect()
-  if (
-    oldRect !== newRect &&
-    (oldRect == null || newRect == null || !oldRect.equalsApproximately(newRect, 0.01))
-  ) {
-    portRect.value = newRect
-  }
-}
-
-watch(() => [nodeSize.value, rootNode.value, tree.nodeElement, tree.nodeSize], updateRect)
+watch(
+  () => [nodeSize.value, rootNode.value, tree.nodeElement, tree.nodeSize, enabled.value],
+  updateRect,
+)
 onUpdated(() => nextTick(updateRect))
 onMounted(() => nextTick(updateRect))
 useRaf(toRef(tree, 'hasActiveAnimations'), updateRect)
