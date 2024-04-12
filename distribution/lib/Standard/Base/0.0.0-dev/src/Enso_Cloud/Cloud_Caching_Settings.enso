@@ -19,10 +19,12 @@ polyglot java import org.enso.base.enso_cloud.CacheSettings
 
    Note that completely disabling the caching will affect performance, as some
    generic operations may perform multiple cloud requests.
+
+   Changing the TTL invalidates all existing cache entries, because their
+   expiration time was calculated using the old TTL.
 set_file_cache_ttl (duration : Duration | Nothing) =
     CacheSettings.setFileCacheTTL duration
-    if duration.is_nothing then
-        Asset_Cache.invalidate_all
+    Asset_Cache.invalidate_all
 
 ## UNSTABLE
    ADVANCED
