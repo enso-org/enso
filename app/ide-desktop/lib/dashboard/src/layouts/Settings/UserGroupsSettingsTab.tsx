@@ -27,12 +27,12 @@ import * as backendModule from '#/services/Backend'
 
 import * as object from '#/utilities/object'
 
-// ==============================
-// === MemberRolesSettingsTab ===
-// ==============================
+// =============================
+// === UserGroupsSettingsTab ===
+// =============================
 
 /** Settings tab for viewing and editing organization members. */
-export default function MemberRolesSettingsTab() {
+export default function UserGroupsSettingsTab() {
   const { backend } = backendProvider.useBackend()
   const { user } = authProvider.useNonPartialUserSession()
   const { setModal } = modalProvider.useSetModal()
