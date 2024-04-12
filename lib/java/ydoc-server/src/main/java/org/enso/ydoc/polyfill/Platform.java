@@ -12,6 +12,9 @@ public final class Platform {
     var eventTarget = new EventTarget(executor);
     eventTarget.initialize(ctx);
 
+    var eventEmitter = new EventEmitter();
+    eventEmitter.initialize(ctx);
+
     var timers = new Timers(executor);
     timers.initialize(ctx);
 
