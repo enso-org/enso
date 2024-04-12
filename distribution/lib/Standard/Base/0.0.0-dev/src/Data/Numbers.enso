@@ -633,7 +633,7 @@ type Float
 
     ## GROUP Rounding
        ICON math
-       Computes the nearest integer equal to or below this float.
+       Computes the nearest integer equal to or below this number.
 
        This method provides a means of converting a Float to an Integer.
 

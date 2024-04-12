@@ -10,10 +10,6 @@ public class Decimal_Utils {
   private static final BigDecimal MIN_LONG_BIGDECIMAL = BigDecimal.valueOf(Long.MIN_VALUE);
   private static final BigDecimal MAX_LONG_BIGDECIMAL = BigDecimal.valueOf(Long.MAX_VALUE);
 
-  //private static final MathContext FLOOR_MATH_CONTEXT = new MathContext(0, RoundingMode.FLOOR);
-  //private static final MathContext CEIL_MATH_CONTEXT = new MathContext(0, RoundingMode.CEILING);
-  //private static final MathContext TRUNCATE_MATH_CONTEXT = new MathContext(0, RoundingMode.DOWN);
-
   public static BigDecimal fromString(String s) {
     return new BigDecimal(s);
   }

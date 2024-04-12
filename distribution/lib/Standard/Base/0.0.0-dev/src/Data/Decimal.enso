@@ -870,7 +870,7 @@ type Decimal
 
     ## GROUP Rounding
        ICON math
-       Computes the nearest integer equal to or below this float.
+       Computes the nearest integer equal to or below this number.
 
        > Example
          Compute the floor of 12.34.
@@ -889,7 +889,7 @@ type Decimal
     ## ALIAS int
        GROUP Rounding
        ICON math
-       
+
        Truncate a number to by dropping the fractional part. This is equivalent
        to "round-toward-zero".
 
