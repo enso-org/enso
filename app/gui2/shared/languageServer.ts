@@ -1,7 +1,6 @@
 import { sha3_224 as SHA3 } from '@noble/hashes/sha3'
 import { bytesToHex } from '@noble/hashes/utils'
 import { Client, RequestManager } from '@open-rpc/client-js'
-import { toHexString } from 'lib0/buffer'
 import { ObservableV2 } from 'lib0/observable'
 import { uuidv4 } from 'lib0/random'
 import { z } from 'zod'

@@ -1,3 +1,5 @@
+/// <reference lib="DOM" />
+/* eslint-env browser */
 import { ObservableV2 } from 'lib0/observable'
 import * as random from 'lib0/random'
 import {

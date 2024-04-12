@@ -5,6 +5,7 @@ import type {
 import { Transport } from '@open-rpc/client-js/build/transports/Transport'
 import { type ArgumentsType } from '@vueuse/core'
 import { WebSocket as ReconnectingWebSocket } from 'partysocket'
+import { type WebSocketEventMap } from 'partysocket/ws'
 import type { Notifications } from 'shared/languageServerTypes'
 import { AbortScope, type ReconnectingTransportWithWebsocketEvents } from 'shared/util/net'
 import ReconnectingWebSocketTransport from 'shared/util/net/ReconnectingWSTransport'

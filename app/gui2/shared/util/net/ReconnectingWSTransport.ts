@@ -12,19 +12,17 @@ import {
 } from '@open-rpc/client-js/build/Request'
 import { Transport } from '@open-rpc/client-js/build/transports/Transport'
 import WS from 'isomorphic-ws'
-import { ObservableV2 } from 'lib0/observable'
 import { WebSocket } from 'partysocket'
+import { type WebSocketEventMap } from 'partysocket/ws'
 
 class ReconnectingWebSocketTransport extends Transport {
   public connection: WebSocket
   public uri: string
-  public events: ObservableV2<{ closed(event: CloseEvent): void }>
 
   constructor(uri: string) {
     super()
     this.uri = uri
     this.connection = new WebSocket(uri, undefined, { WebSocket: WS })
-    this.events = new ObservableV2()
   }
   public connect(): Promise<any> {
     return new Promise<void>((resolve) => {
