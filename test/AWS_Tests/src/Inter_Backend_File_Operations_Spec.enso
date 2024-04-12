@@ -89,6 +89,8 @@ add_specs suite_builder =
     my_enso_cloud_tmp_root = Enso_File.root / tmp_dir_name
 
     backends = prepare_available_backends my_writable_s3_dir my_enso_cloud_tmp_root
+    ## TODO: as the number of backends grows, we probably don't want to test every combination anymore.
+       Still, every backend should have at least X->Local, Local->X, X->X (within itself) and one test with another remote backend (e.g. X->S3).
     backends.each source_backend-> backends.each destination_backend->
         suite_builder.group "("+source_backend.name+" -> "+destination_backend.name+") copying/moving" pending=(any_pending [source_backend, destination_backend]) group_builder->
             source_file_provider = source_backend.make_temp_file "src.txt"
