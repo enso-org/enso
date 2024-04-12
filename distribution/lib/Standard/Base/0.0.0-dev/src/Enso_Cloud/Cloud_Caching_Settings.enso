@@ -1,0 +1,27 @@
+import project.Data.Time.Duration.Duration
+import project.Nothing.Nothing
+
+polyglot java import org.enso.base.enso_cloud.CacheSettings
+
+## UNSTABLE
+   ADVANCED
+   Sets for how long is Enso Cloud file information cached without checking for
+   external updates.
+
+   The default TTL is 60 seconds.
+
+   Side effects from this Enso workflow will invalidate the cache immediately,
+   but any external operations (done from other Enso instances) will not be
+   visible until a cached value expires. Thus if the workflow is expected to
+   co-operate with other workflows, it may be useful to decrease the cache TTL
+   or disable it completely by passing `Nothing`.
+
+   Note that completely disabling the caching will affect performance, as some
+   generic operations may perform multiple cloud requests.
+set_file_cache_ttl (duration : Duration | Nothing) =
+    CacheSettings.setFileCacheTTL duration
+
+## UNSTABLE
+   ADVANCED
+   Returns the current file cache TTL.
+get_file_cache_ttl -> Duration | Nothing = CacheSettings.getFileCacheTTL

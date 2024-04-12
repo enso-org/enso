@@ -12,6 +12,7 @@ import project.Enso_Cloud.Errors.Enso_Cloud_Error
 import project.Enso_Cloud.Internal.Enso_Path.Enso_Path
 import project.Enso_Cloud.Internal.Enso_File_Write_Strategy
 import project.Enso_Cloud.Internal.Existing_Enso_Asset.Existing_Enso_Asset
+import project.Enso_Cloud.Internal.Existing_Enso_Asset.Asset_Cache
 import project.Enso_Cloud.Internal.Utils
 import project.Error.Error
 import project.Errors.Common.Not_Found
@@ -321,11 +322,13 @@ type Enso_File
             parent_field = if self.is_current_user_root then [] else
                 [["parentId", asset.id]]
             body = JS_Object.from_pairs [["title", effective_name]]+parent_field
+            created_directory = Enso_File.Value (self.enso_path.resolve name)
+            Asset_Cache.invalidate created_directory
             response = Utils.http_request_as_json HTTP_Method.Post Utils.directory_api body
-            # TODO we could cache the asset maybe? but for how long should we do that?
             created_asset = Existing_Enso_Asset.from_json response
             created_asset.if_not_error <|
-                Enso_File.Value (self.enso_path.resolve name)
+                Asset_Cache.update created_directory created_asset
+                created_directory
 
     ## UNSTABLE
        GROUP Output
@@ -337,6 +340,7 @@ type Enso_File
         uri = asset.if_not_error <|
             URI.from asset.asset_uri . add_query_argument "force" "true"
         response = Utils.http_request HTTP_Method.Delete uri
+        if asset.is_directory then Asset_Cache.invalidate_subtree self else Asset_Cache.invalidate self
         response.if_not_error Nothing
 
     ## ICON data_output
@@ -465,7 +469,8 @@ perform_upload (destination : Enso_File) (allow_existing : Boolean) (~generate_r
                         Nothing -> base_uri
                         _ -> base_uri . add_query_argument "file_id" existing_asset_id
                     pair = generate_request_body_and_result
+                    Asset_Cache.invalidate destination
                     response = Utils.http_request HTTP_Method.Post full_uri pair.first
-                    # TODO later we could cache the returned Existing_Enso_Asset here
                     response.if_not_error <|
+                        Asset_Cache.update destination (Existing_Enso_Asset.from_json response)
                         pair.second

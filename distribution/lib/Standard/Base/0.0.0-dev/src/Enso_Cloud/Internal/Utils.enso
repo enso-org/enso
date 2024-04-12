@@ -87,12 +87,15 @@ http_request_as_json (method : HTTP_Method) (url : URI) (body : Request_Body = R
    Custom error handlers can be provided as a mapping from error codes
    (defined in the cloud project) to functions that take the full JSON payload
    and return a custom error.
-http_request (method : HTTP_Method) (url : URI) (body : Request_Body = Request_Body.Empty) (additional_headers : Vector = []) (error_handlers : Map Text (Any -> Any) = Map.empty) (retries : Integer = 3) -> Response ! Enso_Cloud_Error =
+http_request (method : HTTP_Method) (url : URI) (body : Request_Body = Request_Body.Empty) (additional_headers : Vector = []) (error_handlers : Map Text (Any -> Any) = Map.empty) (retries : Integer = 3) -> Response ! Enso_Cloud_Error = method.if_not_error <| url.if_not_error <| body.if_not_error <| additional_headers.if_not_error <|
     all_headers = [authorization_header] + additional_headers
     as_connection_error err = Error.throw (Enso_Cloud_Error.Connection_Error err)
-    response = HTTP.new.request (Request.new method url headers=all_headers body=body) error_on_failure_code=False
+
+    r = Standard.Base.Data.Time.Duration.Duration.time_execution <| HTTP.new.request (Request.new method url headers=all_headers body=body) error_on_failure_code=False
         . catch HTTP_Error as_connection_error
         . catch Request_Error as_connection_error
+    Standard.Base.IO.println method.to_text+" "+url.to_text+" --> "+r.second.code.to_text+" took "+r.first.to_display_text
+    response = r.second
     if response.is_error && (retries > 0) then http_request method url body additional_headers error_handlers (retries - 1) else
         if response.code.is_success then response else
             is_unauthorized = (response.code == HTTP_Status_Code.unauthorized) || (response.code == HTTP_Status_Code.forbidden)
@@ -117,3 +120,17 @@ http_request (method : HTTP_Method) (url : URI) (body : Request_Body = Request_B
    action and caches it for future use.
 get_cached (key : Text) ~action (cache_duration : Duration = Duration.new seconds=60) =
     CloudRequestCache.getOrCompute key (_->action) cache_duration
+
+## PRIVATE
+   Invalidates the cache entry for the given key.
+invalidate_cache (key : Text) =
+    CloudRequestCache.invalidateEntry key
+
+## PRIVATE
+   Invalidates all cache entries that share a common prefix.
+invalidate_caches_with_prefix (prefix : Text) =
+    CloudRequestCache.invalidatePrefix prefix
+
+## PRIVATE
+set_cached (key : Text) value (cache_duration : Duration = Duration.new seconds=60) =
+    CloudRequestCache.put key value cache_duration

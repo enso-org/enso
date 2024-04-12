@@ -25,9 +25,27 @@ public final class CloudRequestCache {
       return entry.value;
     } else {
       var value = compute.apply(key);
-      cache.put(key, new CacheEntry(value, LocalDateTime.now().plus(ttl)));
+      put(key, value, ttl);
       return value;
     }
+  }
+
+  public static void invalidateEntry(String key) {
+    if (cache.remove(key) != null) {
+      System.out.println("Invalidated cache entry for key: " + key);
+    }
+  }
+
+  public static void invalidatePrefix(String prefix) {
+    long cnt = cache.keySet().stream().filter(key -> key.startsWith(prefix)).count();
+    if (cnt > 0) {
+      System.out.println("Invalidated " + cnt + " cache entries with prefix: " + prefix);
+    }
+    cache.keySet().removeIf(key -> key.startsWith(prefix));
+  }
+
+  public static void put(String key, Object value, Duration ttl) {
+    cache.put(key, new CacheEntry(value, LocalDateTime.now().plus(ttl)));
   }
 
   private record CacheEntry(Object value, LocalDateTime expiresAt) {}
