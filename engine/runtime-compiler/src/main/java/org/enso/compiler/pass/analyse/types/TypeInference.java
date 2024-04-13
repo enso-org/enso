@@ -44,38 +44,40 @@ import scala.jdk.javaapi.CollectionConverters$;
  *
  * <p>It implements a basic flow of types through expressions, and reports warnings if situations
  * that surely will lead to runtime errors are detected.
- * <p>
- * This pass is still a work in progress and much of the functionality is not yet implemented.
+ *
+ * <p>This pass is still a work in progress and much of the functionality is not yet implemented.
  *
  * <h2>Type Propagation</h2>
  *
  * The expressions are analyzed from the bottom up, propagating types through the expression tree.
- * The leaf expression types are inferred either based on an inherent type of a literal (e.g. `42` is an Integer),
- * based on an already known type of a referenced binding, or based on type ascriptions which assert the type in the
- * runtime (thus the static analysis pass knows that if the runtime gets past such an ascription, the value must have
- * contained the correct type - otherwise an exception would prevent such block from continuing execution).
- * <p>
- * Whenever a type is inferred for a sub-expression, it is stored as {@link InferredType} in its metadata. This metadata
- * is then checked by the composite expressions to infer their types. For example, the result type of a function or
- * constructor application can be computed based on known signature and known argument types.
- * <p>
- * Currently, the type propagation does not handle module-level bindings nor recursion. This will be addressed in future
- * iterations.
+ * The leaf expression types are inferred either based on an inherent type of a literal (e.g. `42`
+ * is an Integer), based on an already known type of a referenced binding, or based on type
+ * ascriptions which assert the type in the runtime (thus the static analysis pass knows that if the
+ * runtime gets past such an ascription, the value must have contained the correct type - otherwise
+ * an exception would prevent such block from continuing execution).
+ *
+ * <p>Whenever a type is inferred for a sub-expression, it is stored as {@link InferredType} in its
+ * metadata. This metadata is then checked by the composite expressions to infer their types. For
+ * example, the result type of a function or constructor application can be computed based on known
+ * signature and known argument types.
+ *
+ * <p>Currently, the type propagation does not handle module-level bindings nor recursion. This will
+ * be addressed in future iterations.
  *
  * <h2>Reporting Warnings</h2>
  *
- * We can easily detect a situation where function application is applied to a non-functional type (e.g. Integer).
- * We know that this will result in `Not_Invokable` error in the runtime. Thus, such code is considered broken and the
- * static analysis pass emits a warning letting the user know.
- * <p>
- * The `Not_Invokable` warning is only emitted if the error is guaranteed to happen at runtime (if the code path is
- * reached). If the inferred type is e.g. `Function | Integer`, that means the error may or may not happen depending on
- * actual value. In such case, at least currently, no warning is emitted, because that could lead to too many false
- * positives.
- * <p>
- * Later, we plan to expand the type compatibility checks to type mismatches in function arguments and type ascriptions.
- * However, to do so we need to first handle type conversions that may make the types compatible, to avoid false
- * positives.
+ * We can easily detect a situation where function application is applied to a non-functional type
+ * (e.g. Integer). We know that this will result in `Not_Invokable` error in the runtime. Thus, such
+ * code is considered broken and the static analysis pass emits a warning letting the user know.
+ *
+ * <p>The `Not_Invokable` warning is only emitted if the error is guaranteed to happen at runtime
+ * (if the code path is reached). If the inferred type is e.g. `Function | Integer`, that means the
+ * error may or may not happen depending on actual value. In such case, at least currently, no
+ * warning is emitted, because that could lead to too many false positives.
+ *
+ * <p>Later, we plan to expand the type compatibility checks to type mismatches in function
+ * arguments and type ascriptions. However, to do so we need to first handle type conversions that
+ * may make the types compatible, to avoid false positives.
  *
  * @see TypePropagation for more details on the type propagation mechanism
  */

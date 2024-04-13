@@ -24,7 +24,7 @@ import scala.jdk.javaapi.CollectionConverters;
  * A helper class for resolving expressions in type position into a {@link TypeRepresentation}, and
  * building complex types from parts - e.g. function type.
  */
-class TypeResolver {
+public class TypeResolver {
   private static final Logger logger = LoggerFactory.getLogger(TypeResolver.class);
 
   TypeRepresentation resolveTypeExpression(Expression type) {
@@ -125,7 +125,8 @@ class TypeResolver {
   }
 
   TypeRepresentation.TypeObject resolvedTypeAsTypeObject(BindingsMap.ResolvedType resolvedType) {
-    return new TypeRepresentation.TypeObject(resolvedType.qualifiedName(), resolvedType.tp());
+    var iface = new AtomTypeInterfaceFromBindingsMap(resolvedType.tp());
+    return new TypeRepresentation.TypeObject(resolvedType.qualifiedName(), iface);
   }
 
   TypeRepresentation resolvedTypeAsAtomType(BindingsMap.ResolvedType resolvedType) {
@@ -178,22 +179,24 @@ class TypeResolver {
   }
 
   TypeRepresentation buildAtomConstructorType(
-      TypeRepresentation.TypeObject parentType, BindingsMap.Cons constructor) {
-    if (constructor.anyFieldsDefaulted()) {
+      TypeRepresentation.TypeObject parentType, AtomTypeInterface.Constructor constructor) {
+    boolean hasAnyDefaults =
+        constructor.arguments().stream().anyMatch(AtomTypeInterface.Argument::hasDefaultValue);
+    if (hasAnyDefaults) {
       // TODO implement handling of default arguments - not only ctors will need this!
       return null;
     }
 
     var arguments =
-        constructor
-            .arguments()
+        constructor.arguments().stream()
             .map(
-                (arg) ->
-                    arg.typ()
-                        .map(this::resolveTypeExpression)
-                        .getOrElse(() -> TypeRepresentation.UNKNOWN));
+                (arg) -> {
+                  var typ = arg.getType(this);
+                  return typ != null ? typ : TypeRepresentation.UNKNOWN;
+                })
+            .toList();
     var resultType = parentType.instanceType();
-    return TypeRepresentation.buildFunction(CollectionConverters.asJava(arguments), resultType);
+    return TypeRepresentation.buildFunction(arguments, resultType);
   }
 
   private TypeRepresentation resolveTypeExpression(Persistance.Reference<Expression> ref) {

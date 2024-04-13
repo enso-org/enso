@@ -98,9 +98,7 @@ public class TypeInferenceConsistencyTest extends TestBase {
     assertEquals("No warning diagnostics are expected.", "", getOutput());
   }
 
-  /**
-   * Tests that a sum type that _may_ be a function, does not emit a warning.
-   */
+  /** Tests that a sum type that _may_ be a function, does not emit a warning. */
   @Test
   public void notInvokableSumTypeNoWarning() throws Exception {
     final URI uri = new URI("memory://notInvokableSumTypeNoWarning.enso");
@@ -134,9 +132,7 @@ public class TypeInferenceConsistencyTest extends TestBase {
     assertEquals("No warning diagnostics are expected.", "", getOutput());
   }
 
-  /**
-   * Tests that a sum type that _may_ be a function, does not emit a warning.
-   */
+  /** Tests that a sum type that _may_ be a function, does not emit a warning. */
   @Test
   public void notInvokableAnyNoWarning() throws Exception {
     final URI uri = new URI("memory://notInvokableAnyNoWarning.enso");
@@ -261,7 +257,11 @@ public class TypeInferenceConsistencyTest extends TestBase {
   }
 
   private void assertNotInvokableWarning(String expectedType, String message) {
-    assertContains("Invoking a value that has a non-function type " + expectedType + " will result in a Not_Invokable error in runtime.", message);
+    assertContains(
+        "Invoking a value that has a non-function type "
+            + expectedType
+            + " will result in a Not_Invokable error in runtime.",
+        message);
   }
 
   private void assertNotInvokableRuntimeError(String got, PolyglotException exception) {

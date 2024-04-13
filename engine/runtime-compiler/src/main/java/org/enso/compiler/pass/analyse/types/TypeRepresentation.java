@@ -5,7 +5,6 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-import org.enso.compiler.data.BindingsMap;
 import org.enso.pkg.QualifiedName;
 
 public sealed interface TypeRepresentation
@@ -47,7 +46,7 @@ public sealed interface TypeRepresentation
    * <p>Instances that are assigned this type are built with one of the available constructors, but
    * statically we do not necessarily know which one.
    */
-  record AtomType(QualifiedName fqn, BindingsMap.Type typeDescription)
+  record AtomType(QualifiedName fqn, AtomTypeInterface typeInterface)
       implements TypeRepresentation {
     @Override
     public String toString() {
@@ -138,9 +137,9 @@ public sealed interface TypeRepresentation
    * using its constructors, which will be assigned the corresponding AtomType.
    *
    * @param name the qualified name of the type
-   * @param typeDescription the type description from the BindingsMap
+   * @param typeInterface the declared interface of the type
    */
-  record TypeObject(QualifiedName name, BindingsMap.Type typeDescription)
+  record TypeObject(QualifiedName name, AtomTypeInterface typeInterface)
       implements TypeRepresentation {
     @Override
     public String toString() {
@@ -160,7 +159,7 @@ public sealed interface TypeRepresentation
         return new ArrowType(TypeRepresentation.ANY, TypeRepresentation.ANY);
       }
 
-      return new AtomType(name, typeDescription);
+      return new AtomType(name, typeInterface);
     }
 
     @Override

@@ -114,9 +114,12 @@ class TypeCompatibility {
         || type instanceof TypeRepresentation.UnresolvedSymbol;
   }
 
-  /** A broader variant of {@code isFunctionLike}, that returns true for types that _may or may not_ contain a function value in the runtime.
-   * <p>
-   * For example a sum type or Any type may contain a function. */
+  /**
+   * A broader variant of {@code isFunctionLike}, that returns true for types that _may or may not_
+   * contain a function value in the runtime.
+   *
+   * <p>For example a sum type or Any type may contain a function.
+   */
   boolean mayBeFunctionLike(TypeRepresentation type) {
     if (isFunctionLike(type)) {
       return true;
@@ -124,10 +127,10 @@ class TypeCompatibility {
 
     return switch (type) {
       case TypeRepresentation.TopType top -> true;
-      case TypeRepresentation.SumType sumType ->
-        sumType.types().stream().anyMatch(this::mayBeFunctionLike);
-      case TypeRepresentation.IntersectionType intersectionType ->
-        intersectionType.types().stream().anyMatch(this::mayBeFunctionLike);
+      case TypeRepresentation.SumType sumType -> sumType.types().stream()
+          .anyMatch(this::mayBeFunctionLike);
+      case TypeRepresentation.IntersectionType intersectionType -> intersectionType.types().stream()
+          .anyMatch(this::mayBeFunctionLike);
       default -> false;
     };
   }

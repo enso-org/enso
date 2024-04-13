@@ -744,9 +744,6 @@ object BindingsMap {
 
     /** Whether all fields provide a default value. */
     def allFieldsDefaulted: Boolean = arguments.forall(_.hasDefaultValue)
-
-    /** Whether any fields provide a default value. */
-    def anyFieldsDefaulted: Boolean = arguments.exists(_.hasDefaultValue)
   }
 
   case class Argument(
