@@ -37,34 +37,45 @@ import static org.enso.compiler.pass.analyse.types.CommonTypeHelpers.getInferred
 abstract class TypePropagation {
   private static final Logger logger = LoggerFactory.getLogger(TypePropagation.class);
   private final TypeResolver typeResolver;
+  private final TypeCompatibility compatibilityChecker;
   private final BuiltinTypes builtinTypes;
 
-  TypePropagation(TypeResolver typeResolver, BuiltinTypes builtinTypes) {
+  TypePropagation(TypeResolver typeResolver, TypeCompatibility compatibilityChecker, BuiltinTypes builtinTypes) {
     this.typeResolver = typeResolver;
+    this.compatibilityChecker = compatibilityChecker;
     this.builtinTypes = builtinTypes;
   }
 
 
   /**
-   * The callback that is called when two types are being reconciled.
-   * <p>
-   * The implementation defines its own logic to check if the two types are compatible and how to handle reporting warnings if they are not.
+   * The callback that is called when two types are being reconciled and are deemed incompatible by the {@link TypeCompatibility} checker.
    *
    * @param relatedIr the IR element that caused the reconciliation, e.g. an argument of a function call
-   * @param expected the type that is expected in this place (e.g. argument type expected by a function)
-   * @param provided the actual (inferred) type of the encountered element
+   * @param expected  the type that is expected in this place (e.g. argument type expected by a function)
+   * @param provided  the actual (inferred) type of the encountered element
    */
-  protected abstract void checkTypeCompatibility(IR relatedIr, TypeRepresentation expected, TypeRepresentation provided);
+  protected abstract void encounteredIncompatibleTypes(IR relatedIr, TypeRepresentation expected, TypeRepresentation provided);
 
-  /** The callback that is called when a value of a non-function type is being invoked as a function. */
+  /**
+   * The callback that is called when a value of a non-function type is being invoked as a function.
+   */
   protected abstract void encounteredInvocationOfNonFunctionType(IR relatedIr, TypeRepresentation type);
+
+  void checkTypeCompatibility(
+      IR relatedIr, TypeRepresentation expected, TypeRepresentation provided) {
+    TypeCompatibility.Compatibility compatibility =
+        compatibilityChecker.computeTypeCompatibility(expected, provided);
+    if (compatibility == TypeCompatibility.Compatibility.NEVER_COMPATIBLE) {
+      encounteredIncompatibleTypes(relatedIr, expected, provided);
+    }
+  }
 
   /**
    * The main entry point to the type propagation logic.
    * <p>
    * It tries to infer the type of the given expression, based on already inferred types of its parts.
    *
-   * @param expression the expression whose type we want to infer
+   * @param expression          the expression whose type we want to infer
    * @param localBindingsTyping map of registered known types of local bindings
    * @return the inferred type of the given expression, or null if it could not be inferred
    */
@@ -157,11 +168,18 @@ abstract class TypePropagation {
         return processUnresolvedSymbolApplication(unresolvedSymbol, argument.value());
       }
 
-      case TypeRepresentation.TopType() -> {
-        // we ignore this branch - Any type can be whatever, it could be a function, so we cannot emit a 'guaranteed' error
+      default -> {
+        if (compatibilityChecker.mayBeFunctionLike(functionType)) {
+          // if the type is Any or a sum type that _may_ be a function type (but may not),
+          // we can neither warn (because the computation may succeed)
+          // nor infer a type (because the type may be incorrect, depending on the runtime value),
+          // we really cannot tell anything
+          return null;
+        } else {
+          // If the type surely is not function-like, we report the warning.
+          encounteredInvocationOfNonFunctionType(relatedIR, functionType);
+        }
       }
-
-      default -> encounteredInvocationOfNonFunctionType(relatedIR, functionType);
     }
 
     return null;

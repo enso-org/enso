@@ -2,8 +2,6 @@ package org.enso.compiler.pass.analyse.types;
 
 /** A class that helps with computing compatibility between types. */
 class TypeCompatibility {
-  // TODO we should take into account conversion scope
-
   TypeCompatibility(BuiltinTypes builtinTypes) {
     this.builtinTypes = builtinTypes;
   }
@@ -109,8 +107,28 @@ class TypeCompatibility {
     return Compatibility.UNKNOWN;
   }
 
-  private boolean isFunctionLike(TypeRepresentation type) {
+  /** Checks if a given type is function-like, i.e. it can be used as a target of an application. */
+  boolean isFunctionLike(TypeRepresentation type) {
+    // TODO think what to do with IntersectionType here
     return type instanceof TypeRepresentation.ArrowType
         || type instanceof TypeRepresentation.UnresolvedSymbol;
+  }
+
+  /** A broader variant of {@code isFunctionLike}, that returns true for types that _may or may not_ contain a function value in the runtime.
+   * <p>
+   * For example a sum type or Any type may contain a function. */
+  boolean mayBeFunctionLike(TypeRepresentation type) {
+    if (isFunctionLike(type)) {
+      return true;
+    }
+
+    return switch (type) {
+      case TypeRepresentation.TopType top -> true;
+      case TypeRepresentation.SumType sumType ->
+        sumType.types().stream().anyMatch(this::mayBeFunctionLike);
+      case TypeRepresentation.IntersectionType intersectionType ->
+        intersectionType.types().stream().anyMatch(this::mayBeFunctionLike);
+      default -> false;
+    };
   }
 }

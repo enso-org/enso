@@ -62,14 +62,11 @@ public class TypeInferenceConsistencyTest extends TestBase {
       var res = module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "foo");
       fail("Expecting an exception, not: " + res);
     } catch (PolyglotException e) {
-      assertContains("Type error: expected a function, but got 1", e.getMessage());
+      assertNotInvokableRuntimeError("1", e);
     }
 
     // But we also expect the compile warning:
-    assertContains(
-        "Invoking a value that has a non-function type Integer will result in a Not_Invokable error"
-            + " in runtime.",
-        getOutput());
+    assertNotInvokableWarning("Integer", getOutput());
   }
 
   /**
@@ -99,6 +96,113 @@ public class TypeInferenceConsistencyTest extends TestBase {
     assertEquals(124, result.asLong());
 
     assertEquals("No warning diagnostics are expected.", "", getOutput());
+  }
+
+  /**
+   * Tests that a sum type that _may_ be a function, does not emit a warning.
+   */
+  @Test
+  public void notInvokableSumTypeNoWarning() throws Exception {
+    final URI uri = new URI("memory://notInvokableSumTypeNoWarning.enso");
+    final Source src =
+        Source.newBuilder(
+                "enso",
+                """
+                    import Standard.Base.Data.Numbers
+                    import Standard.Base.Data.Numbers.Integer
+                    import Standard.Base.Function.Function
+                    foo (fun : Function | Integer)  =
+                        f = fun
+                        x1 = f 123
+                        x1
+                    """,
+                uri.getAuthority())
+            .uri(uri)
+            .buildLiteral();
+
+    var module = ctx.eval(src);
+    var r1 = module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "foo (x -> x + 1)");
+    assertEquals(124, r1.asLong());
+
+    try {
+      var r2 = module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "foo 123");
+      fail("Expecting an exception, not: " + r2);
+    } catch (PolyglotException e) {
+      assertNotInvokableRuntimeError("123", e);
+    }
+
+    assertEquals("No warning diagnostics are expected.", "", getOutput());
+  }
+
+  /**
+   * Tests that a sum type that _may_ be a function, does not emit a warning.
+   */
+  @Test
+  public void notInvokableAnyNoWarning() throws Exception {
+    final URI uri = new URI("memory://notInvokableAnyNoWarning.enso");
+    final Source src =
+        Source.newBuilder(
+                "enso",
+                """
+                    import Standard.Base.Any.Any
+                    import Standard.Base.Data.Numbers
+                    foo (fun : Any)  =
+                        f = fun
+                        x1 = f 123
+                        x1
+                    """,
+                uri.getAuthority())
+            .uri(uri)
+            .buildLiteral();
+
+    var module = ctx.eval(src);
+    var r1 = module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "foo (x -> x + 1)");
+    assertEquals(124, r1.asLong());
+
+    try {
+      var r2 = module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "foo 123");
+      fail("Expecting an exception, not: " + r2);
+    } catch (PolyglotException e) {
+      assertNotInvokableRuntimeError("123", e);
+    }
+
+    assertEquals("No warning diagnostics are expected.", "", getOutput());
+  }
+
+  @Test
+  public void notInvokableWrongSumType() throws Exception {
+    final URI uri = new URI("memory://notInvokableWrongSumType.enso");
+    final Source src =
+        Source.newBuilder(
+                "enso",
+                """
+                    foo x =
+                        f = case x of
+                          1 -> 33
+                          _ -> "foo"
+                        x1 = f 123
+                        x1
+                    """,
+                uri.getAuthority())
+            .uri(uri)
+            .buildLiteral();
+
+    var module = ctx.eval(src);
+    try {
+      var r1 = module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "foo 1");
+      fail("Expecting an exception, not: " + r1);
+    } catch (PolyglotException e) {
+      assertNotInvokableRuntimeError("33", e);
+    }
+
+    try {
+      var r2 = module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "foo 2");
+      fail("Expecting an exception, not: " + r2);
+    } catch (PolyglotException e) {
+      assertNotInvokableRuntimeError("foo", e);
+    }
+
+    assertNotInvokableWarning("(Integer | Text)", getOutput());
   }
 
   /**
@@ -154,5 +258,13 @@ public class TypeInferenceConsistencyTest extends TestBase {
     var module = ctx.eval(src);
     var result = module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "foo");
     assertEquals("101", result.as(Object.class));
+  }
+
+  private void assertNotInvokableWarning(String expectedType, String message) {
+    assertContains("Invoking a value that has a non-function type " + expectedType + " will result in a Not_Invokable error in runtime.", message);
+  }
+
+  private void assertNotInvokableRuntimeError(String got, PolyglotException exception) {
+    assertContains("Type error: expected a function, but got " + got, exception.getMessage());
   }
 }

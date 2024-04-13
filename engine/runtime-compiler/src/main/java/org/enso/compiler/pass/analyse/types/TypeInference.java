@@ -86,11 +86,15 @@ public final class TypeInference implements IRPass {
   private final TypeResolver typeResolver = new TypeResolver();
   private final TypeCompatibility checker = new TypeCompatibility(builtinTypes);
   private final TypePropagation typePropagation =
-      new TypePropagation(typeResolver, builtinTypes) {
+      new TypePropagation(typeResolver, checker, builtinTypes) {
         @Override
-        protected void checkTypeCompatibility(
+        protected void encounteredIncompatibleTypes(
             IR relatedIr, TypeRepresentation expected, TypeRepresentation provided) {
-          TypeInference.this.checkTypeCompatibility(relatedIr, expected, provided);
+          relatedIr
+              .diagnostics()
+              .add(
+                  new Warning.TypeMismatch(
+                      relatedIr.location(), expected.toString(), provided.toString()));
         }
 
         @Override
@@ -102,19 +106,6 @@ public final class TypeInference implements IRPass {
         }
       };
   private UUID uuid;
-
-  private void checkTypeCompatibility(
-      IR relatedIr, TypeRepresentation expected, TypeRepresentation provided) {
-    TypeCompatibility.Compatibility compatibility =
-        checker.computeTypeCompatibility(expected, provided);
-    if (compatibility == TypeCompatibility.Compatibility.NEVER_COMPATIBLE) {
-      relatedIr
-          .diagnostics()
-          .add(
-              new Warning.TypeMismatch(
-                  relatedIr.location(), expected.toString(), provided.toString()));
-    }
-  }
 
   @Override
   public void org$enso$compiler$pass$IRPass$_setter_$key_$eq(UUID v) {
@@ -306,7 +297,7 @@ public final class TypeInference implements IRPass {
 
       // If the inferred type implies the ascription will fail at runtime, we can report a warning
       // here.
-      checkTypeCompatibility(ir, ascribedType, inferredType);
+      typePropagation.checkTypeCompatibility(ir, ascribedType, inferredType);
     }
   }
 
