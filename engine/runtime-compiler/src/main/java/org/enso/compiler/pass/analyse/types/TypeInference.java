@@ -76,6 +76,8 @@ import scala.jdk.javaapi.CollectionConverters$;
  * Later, we plan to expand the type compatibility checks to type mismatches in function arguments and type ascriptions.
  * However, to do so we need to first handle type conversions that may make the types compatible, to avoid false
  * positives.
+ *
+ * @see TypePropagation for more details on the type propagation mechanism
  */
 public final class TypeInference implements IRPass {
   public static final TypeInference INSTANCE = new TypeInference();
