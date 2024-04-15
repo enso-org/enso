@@ -273,6 +273,10 @@ export class Cognito {
       return results.Err(cognitoUserResult.val)
     }
   }
+
+  async refreshUserSession() {
+    return results.Ok(null)
+  }
 }
 
 // ===================
