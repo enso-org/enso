@@ -1,6 +1,8 @@
 from Standard.Base import all
 import Standard.Base.Errors.Illegal_State.Illegal_State
+import Standard.Base.Runtime.Context
 
+from Standard.Test import Problems
 import Standard.Test.Test_Environment
 
 
@@ -107,8 +109,11 @@ type Cloud_Tests_Setup
             enso_cloud_url = with_slash + "enso-cloud-mock/"
 
             credentials_payload = (custom_credentials.if_nothing (Mock_Credentials.default with_slash)).to_json
-            tmp_cred_file = File.create_temporary_file "enso-test-credentials" ".json"
-            credentials_payload.write tmp_cred_file
+            # We need to override the Context in case the tests were running in disabled context mode
+            tmp_cred_file = Context.Output.with_enabled <|
+                tmp_cred_file = File.create_temporary_file "enso-test-credentials" ".json"
+                credentials_payload.write tmp_cred_file
+            Problems.assume_no_problems <| tmp_cred_file
 
             Cloud_Tests_Setup.Mock (URI.from enso_cloud_url) tmp_cred_file
 
