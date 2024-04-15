@@ -26,7 +26,7 @@ export interface ButtonProps extends Readonly<aria.ButtonProps> {
 }
 
 const DEFAULT_CLASSES =
-  'flex cursor-pointer rounded-full border border-transparent transition-opacity duration-200 ease-in-out'
+  'flex cursor-pointer rounded-sm border border-transparent transition-[opacity,outline-offset] duration-200 ease-in-out'
 const FOCUS_CLASSES =
   'focus-visible:outline-offset-2 focus:outline-none focus-visible:outline focus-visible:outline-primary'
 const SUBMIT_CLASSES = 'bg-invite text-white opacity-80 hover:opacity-100'

@@ -11,13 +11,17 @@ const icon = computed(() => tree.icon)
 </script>
 
 <script lang="ts">
-export const widgetDefinition = defineWidget(WidgetInput.isAst, {
-  priority: 1,
-  score: (props, _db) =>
-    props.input.value.id === injectWidgetTree().connectedSelfArgumentId ?
-      Score.Perfect
-    : Score.Mismatch,
-})
+export const widgetDefinition = defineWidget(
+  WidgetInput.isAst,
+  {
+    priority: 1,
+    score: (props, _db) =>
+      props.input.value.id === injectWidgetTree().connectedSelfArgumentId ?
+        Score.Perfect
+      : Score.Mismatch,
+  },
+  import.meta.hot,
+)
 </script>
 
 <template>

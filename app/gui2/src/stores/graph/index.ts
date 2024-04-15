@@ -91,7 +91,7 @@ export const useGraphStore = defineStore('graph', () => {
   })
   function visibleArea(nodeId: NodeId): Rect | undefined {
     if (!db.nodeIdToNode.has(nodeId)) return
-    return nodeRects.get(nodeId) ?? vizRects.get(nodeId)
+    return vizRects.get(nodeId) ?? nodeRects.get(nodeId)
   }
 
   const db = new GraphDb(
@@ -748,6 +748,11 @@ export const useGraphStore = defineStore('graph', () => {
     addMissingImports,
     addMissingImportsDisregardConflicts,
     isConnectedTarget,
+    currentMethodPointer() {
+      const currentMethod = proj.executionContext.getStackTop()
+      if (currentMethod.type === 'ExplicitCall') return currentMethod.methodPointer
+      return db.getExpressionInfo(currentMethod.expressionId)?.methodCall?.methodPointer
+    },
   }
 })
 

@@ -1,5 +1,6 @@
 import project.Data.Json.JS_Object
 import project.Data.Text.Text
+import project.Data.Time.Duration.Duration
 import project.Data.Vector.Vector
 import project.Enso_Cloud.Enso_File.Enso_Asset_Type
 import project.Enso_Cloud.Enso_File.Enso_File
@@ -20,16 +21,19 @@ type Enso_User
        - name: The user's name.
        - email: The user's email address.
        - id: The user's unique ID.
-       - home: The user's home directory.
        - is_enabled: Whether the user is enabled.
-    User name:Text email:Text id:Text home:Enso_File is_enabled:Boolean=True
+       - root_directory_id: The ID of the user's root directory.
+       - organization_name: The name of the organization the user belongs to.
+         If it is missing, it is set to the user's name.
+    User name:Text email:Text id:Text is_enabled:Boolean root_directory_id:Text organization_name:Text
 
     ## ICON people
        Fetch the current user.
     current : Enso_User
     current =
-        json = Utils.http_request_as_json HTTP_Method.Get (Utils.cloud_root_uri + "users/me")
-        Enso_User.from json
+        Utils.get_cached "users/me" cache_duration=(Duration.new minutes=120) <|
+            json = Utils.http_request_as_json HTTP_Method.Get (Utils.cloud_root_uri + "users/me")
+            Enso_User.from json
 
     ## ICON people
        Lists all known users.
@@ -47,10 +51,11 @@ type Enso_User
 
 ## PRIVATE
 Enso_User.from (that:JS_Object) =
-    root_folder_id = get_required_field "rootDirectoryId" that expected_type=Text
-    root_folder = Enso_File.Value "" root_folder_id "" Enso_Asset_Type.Directory
-    is_enabled = get_optional_field "isEnabled" that if_missing=True expected_type=Boolean
+    id = get_required_field "userId" that expected_type=Text
     name = get_required_field "name" that expected_type=Text
     email = get_required_field "email" that expected_type=Text
-    id = get_required_field "id" that expected_type=Text
-    Enso_User.User name email id root_folder is_enabled
+    organization_name = get_required_field "organizationName" that expected_type=Text
+    effective_organization_name = if organization_name == "" then name else organization_name
+    is_enabled = get_optional_field "isEnabled" that if_missing=True expected_type=Boolean
+    root_directory_id = get_required_field "rootDirectoryId" that expected_type=Text
+    Enso_User.User name email id is_enabled root_directory_id effective_organization_name

@@ -395,6 +395,8 @@ public final class ValuesGenerator {
       collect.add(ctx.asValue((float) Math.PI));
       collect.add(ctx.asValue((double) Math.E));
       collect.add(ctx.asValue(Double.NaN));
+      collect.add(ctx.asValue(BigInteger.valueOf(10)));
+      collect.add(ctx.asValue(BigInteger.valueOf(10).pow(20)));
       collect.add(ctx.asValue(BigInteger.valueOf(10).pow(40)));
       collect.add(ctx.asValue(BigInteger.valueOf(10).pow(40).doubleValue()));
       collect.add(ctx.asValue(BigInteger.valueOf(10).pow(40).doubleValue() + 1.0));

@@ -19,7 +19,13 @@ public abstract class ImportResolverAlgorithm<
 
   protected abstract String nameForType(ResolvedType e);
 
-  protected abstract java.util.List<Export> exportsFor(Module module, String impName);
+  /**
+   * Returns a list of all the exports from the module of the given symbol
+   *
+   * @param module the module to search for exports in
+   * @param symbol FQN symbol contained in the returned exports.
+   */
+  protected abstract java.util.List<Export> exportsFor(Module module, String symbol);
 
   protected abstract boolean isAll(Export ex);
 
