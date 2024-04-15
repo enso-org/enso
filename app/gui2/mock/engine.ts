@@ -10,6 +10,7 @@ import {
   VisualizationUpdate,
 } from 'shared/binaryProtocol'
 import { mockDataWSHandler as originalMockDataWSHandler } from 'shared/dataServer/mock'
+import { ErrorCode } from 'shared/languageServer'
 import type {
   ContextId,
   ExpressionId,
@@ -477,7 +478,7 @@ export const mockLSHandler: MockTransportData = async (method, data, transport) 
       const data_ = data as { path: Path }
       if (!data_.path) return Promise.reject(`'path' parameter missing in '${method}'`)
       if (data_.path.rootId !== mockProjectId)
-        return (
+        return Promise.reject(
           `Only the project's 'rootId' is supported, got '${data_.path.rootId}'`,
         )
       let child: FileTree | string | ArrayBuffer | undefined = fileTree
@@ -487,9 +488,16 @@ export const mockLSHandler: MockTransportData = async (method, data, transport) 
           if (!child || typeof child === 'string' || child instanceof ArrayBuffer) break
         }
       }
-      if (!child) return Promise.reject(`Folder '/${data_.path.segments.join('/')}' not found.`)
+      if (!child)
+        return Promise.reject({
+          code: ErrorCode.FILE_NOT_FOUND,
+          message: `Folder '/${data_.path.segments.join('/')}' not found.`,
+        })
       if (typeof child === 'string' || child instanceof ArrayBuffer)
-        return Promise.reject(`File '/${data_.path.segments.join('/')}' is not a folder.`)
+        return Promise.reject({
+          code: ErrorCode.NOT_DIRECTORY,
+          message: `File '/${data_.path.segments.join('/')}' is not a folder.`,
+        })
       return {
         paths: Object.entries(child).map(([name, entry]) => ({
           type: typeof entry === 'string' || entry instanceof ArrayBuffer ? 'File' : 'Directory',
