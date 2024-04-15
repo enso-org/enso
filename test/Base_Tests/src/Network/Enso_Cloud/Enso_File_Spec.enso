@@ -99,6 +99,10 @@ add_specs suite_builder setup:Cloud_Tests_Setup = suite_builder.group "Enso Clou
             f.exists . should_be_true
             f.exists . should_be_true
 
+            Test.with_clue "metadata is also readable if the Output Context is disabled: " <|
+                Context.Output.with_disabled <|
+                    f.size.should_equal 16
+
     group_builder.specify "should be able to find a file by path" <|
         File.new "enso://"+Enso_User.current.organization_name+"/" . should_equal Enso_File.root
         File.new "enso://"+Enso_User.current.organization_name+"/test_file.json" . should_equal (Enso_File.root / "test_file.json")

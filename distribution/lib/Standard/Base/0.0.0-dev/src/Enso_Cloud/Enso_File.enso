@@ -392,6 +392,11 @@ type Enso_File
     to_text self -> Text =
         "Enso_File "+self.path
 
+    ## PRIVATE
+    to_js_object : JS_Object
+    to_js_object self =
+        JS_Object.from_pairs [["type", "Enso_File"], ["constructor", "new"], ["path", self.path.to_text]]
+
 ## PRIVATE
 list_assets (parent : Enso_File) -> Vector Existing_Enso_Asset =
     Existing_Enso_Asset.get_asset_reference_for parent . list_directory
