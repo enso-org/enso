@@ -150,7 +150,14 @@ const visualizationConfig = computed<Opt<NodeVisualizationConfiguration>>(() => 
     let m : any = {}
     let index = 0
     for (let e of arr) {
-      m["" + (index++)] = e.uuid
+      m[""+index] = e.uuid
+      let n : string | undefined = methodCallInfo.value?.suggestion.arguments[index + 1]?.name
+      if (n) {
+        m[n] = e.uuid
+      }
+      index++
+    }
+    for (let e of arr) {
       if (e.name) {
         m[e.name] = e.uuid
       }
