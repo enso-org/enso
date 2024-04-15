@@ -69,7 +69,6 @@ make_aggregate_column_vector_selector table display=Display.Always =
 
 ## PRIVATE
 intersect_column_names table:Table (right_table:Nothing|Table) =
-    IO.println "intersect_column_names, right table: "+right_table.to_text
     if right_table.is_nothing then table.column_names else
         table.column_names.filter n->
             right_table.column_names.contains n
@@ -168,12 +167,14 @@ make_join_condition_selector table display=Display.Always cache=Nothing =
     right = if cache.is_nothing.not then cache "right"
 
     col_names = intersect_column_names table right
-    col_names_selector = make_column_name_selector table display=Display.Always right_table=right
+    self_selector = make_column_name_selector table display=Display.Always
+    right_selector = if right.is_nothing then Text_Input else
+        make_column_name_selector right display=Display.Always
 
     fqn = Meta.get_qualified_type_name Join_Condition
-    equals = Option "Equals" fqn+".Equals" [["left", col_names_selector], ["right", Text_Input]]
-    equals_ci = Option "Equals (Ignore Case)" fqn+".Equals_Ignore_Case" [["left", col_names_selector], ["right", Text_Input]]
-    between = Option "Between" fqn+".Between" [["left", col_names_selector], ["right_lower", Text_Input], ["right_upper", Text_Input]]
+    equals = Option "Equals" fqn+".Equals" [["left", self_selector], ["right", right_selector]]
+    equals_ci = Option "Equals (Ignore Case)" fqn+".Equals_Ignore_Case" [["left", self_selector], ["right", right_selector]]
+    between = Option "Between" fqn+".Between" [["left", self_selector], ["right_lower", right_selector], ["right_upper", right_selector]]
     names=[equals, equals_ci, between]
 
     item_editor = Single_Choice display=display values=names
