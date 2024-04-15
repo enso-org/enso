@@ -18,7 +18,10 @@ public class Main {
     var ydoc = Main.class.getResource(YDOC_SERVER_PATH);
 
     HostAccess hostAccess =
-        HostAccess.newBuilder(HostAccess.EXPLICIT).allowArrayAccess(true).build();
+        HostAccess.newBuilder(HostAccess.EXPLICIT)
+            .allowArrayAccess(true)
+            .allowBufferAccess(true)
+            .build();
 
     var b =
         Context.newBuilder("js")

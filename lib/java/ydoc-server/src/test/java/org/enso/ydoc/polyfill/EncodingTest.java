@@ -20,6 +20,7 @@ public class EncodingTest {
   public void setup() throws Exception {
     executor = Executors.newSingleThreadExecutor();
     var encoding = new Encoding();
+
     var b = Context.newBuilder("js");
 
     var chromePort = Integer.getInteger("inspectPort", -1);

@@ -16,6 +16,7 @@ import org.enso.ydoc.Polyfill;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Source;
 import org.graalvm.polyglot.Value;
+import org.graalvm.polyglot.io.ByteSequence;
 import org.graalvm.polyglot.proxy.ProxyExecutable;
 
 final class WebSocket implements ProxyExecutable, Polyfill {
@@ -59,8 +60,7 @@ final class WebSocket implements ProxyExecutable, Polyfill {
         var handleError = arguments[5];
         var handleMessage = arguments[6];
         var connection =
-            new WebSocketConnection(
-                executor, handleOpen, handleClose, handleError, handleMessage);
+            new WebSocketConnection(executor, handleOpen, handleClose, handleError, handleMessage);
 
         URI uri;
         try {
@@ -86,8 +86,7 @@ final class WebSocket implements ProxyExecutable, Polyfill {
         var handleError = arguments[3];
         var handleMessage = arguments[4];
         var connection =
-            new WebSocketConnection(
-                executor, handleOpen, handleClose, handleError, handleMessage);
+            new WebSocketConnection(executor, handleOpen, handleClose, handleError, handleMessage);
 
         yield connection;
       }
@@ -136,14 +135,9 @@ final class WebSocket implements ProxyExecutable, Polyfill {
 
       case WEB_SOCKET_SEND_BINARY -> {
         var connection = arguments[1].as(WebSocketConnection.class);
-        var data = arguments[2].as(int[].class);
+        var data = arguments[2].as(ByteSequence.class);
 
-        // Convert unsigned Uint8Array to byte[]
-        var bytes = new byte[data.length];
-        for (int i = 0; i < data.length; i++) {
-          bytes[i] = (byte) data[i];
-        }
-        var bufferData = BufferData.create(bytes);
+        var bufferData = BufferData.create(data.toByteArray());
 
         yield connection.getSession().send(bufferData, true);
       }
@@ -202,9 +196,9 @@ final class WebSocket implements ProxyExecutable, Polyfill {
     public void onMessage(WsSession session, BufferData buffer, boolean last) {
       System.err.println("WebSocketListener.onMessageBinary\n" + buffer.debugDataHex(true));
 
-      // Passing byte array to JS requires `HostAccess.allowArrayAccess()`
-      Object data = buffer.readBytes();
-      executor.execute(() -> handleMessage.executeVoid(data));
+      // Passing byte sequence to JS requires `HostAccess.allowBufferAccess()`
+      var bytes = ByteSequence.create(buffer.readBytes());
+      executor.execute(() -> handleMessage.executeVoid(bytes));
     }
 
     @Override

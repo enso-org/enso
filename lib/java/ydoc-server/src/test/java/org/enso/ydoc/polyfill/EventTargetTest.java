@@ -78,5 +78,4 @@ public class EventTargetTest {
     Assert.assertEquals(1, arr.length);
     Assert.assertNotNull(arr[0]);
   }
-
 }
