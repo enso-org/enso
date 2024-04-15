@@ -109,7 +109,7 @@ add_specs suite_builder =
 
             g.delete_if_exists
             g.parent.delete_if_exists
-            f.delete_if_exists
+            f.delete_if_exists recursive=True
 
         group_builder.specify "should only allow creating a directory if Output is enabled" <|
             f = enso_project.data / "bad_dir"
