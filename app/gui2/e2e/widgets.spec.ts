@@ -18,6 +18,7 @@ class DropDownLocator {
   }
 
   async expectVisibleWithOptions(options: string[]): Promise<void> {
+    await this.expectVisible()
     const page = this.dropDown.page()
     await expect(this.items.first()).toBeVisible()
     for (const option of options) {
@@ -26,6 +27,14 @@ class DropDownLocator {
       ).toBeVisible()
     }
     await expect(this.items).toHaveCount(options.length)
+  }
+
+  async expectVisible(): Promise<void> {
+    await expect(this.dropDown).toBeVisible()
+  }
+
+  async expectNotVisible(): Promise<void> {
+    await expect(this.dropDown).not.toBeVisible()
   }
 
   async clickOption(option: string): Promise<void> {
@@ -37,7 +46,6 @@ class DropDownLocator {
     await this.rootWidget.hover()
     await expect(this.rootWidget.locator('.arrow')).toBeVisible()
     await this.rootWidget.locator('.arrow').click({ force: true })
-    await expect(this.dropDown).toBeVisible()
   }
 }
 
@@ -94,7 +102,7 @@ test('Multi-selection widget', async ({ page }) => {
 
   // Add-item button opens dropdown, after closing with escape.
   await page.keyboard.press('Escape')
-  await expect(page.locator('.DropdownWidget')).not.toBeVisible()
+  await dropDown.expectNotVisible()
   await vector.locator('.add-item').click()
   await expect(dropDown.items).toHaveCount(2)
   await expect(dropDown.selectedItems).toHaveCount(1)
@@ -181,7 +189,6 @@ test('Selection widgets in Data.read node', async ({ page }) => {
   // Set value on `path` (dynamic config)
   const pathArg = argumentNames.filter({ has: page.getByText('path') })
   await pathArg.click()
-  await expect(page.locator('.DropdownWidget')).toBeVisible()
   await dropDown.expectVisibleWithOptions(['Choose file…', 'File 1', 'File 2'])
   await dropDown.clickOption('File 2')
   await expect(pathArg.locator('.WidgetText > input')).toHaveValue('File 2')
@@ -210,7 +217,7 @@ test('Selection widget with text widget as input', async ({ page }) => {
   const pathArg = argumentNames.filter({ has: page.getByText('path') })
   const pathArgInput = pathArg.locator('.WidgetText > input')
   await pathArg.click()
-  await expect(page.locator('.DropdownWidget')).toBeVisible()
+  await dropDown.expectVisible()
   await dropDown.clickOption('File 2')
   await expect(pathArgInput).toHaveValue('File 2')
 
