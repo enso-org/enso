@@ -145,7 +145,7 @@ fn main() -> enso_build_base::prelude::Result {
     nwg::Font::set_global_default(Some(font));
     let app = BasicApp::default();
 
-    let mut app = BasicApp::build_ui(app).expect("Failed to build UI");
+    let app = BasicApp::build_ui(app).expect("Failed to build UI");
 
     app.window.set_text(&format!("{} installer", &config.pretty_name));
     //
@@ -156,9 +156,10 @@ fn main() -> enso_build_base::prelude::Result {
 
     let install_dir = enso_install::win::user_program_files()?.join(&config.pretty_name);
     let (handle, receiver) =
-        enso_installer::win::spawn_installer_thread(&install_dir, archive, config);
+        enso_installer::win::spawn_installer_thread(&install_dir, archive, config.clone());
     *app.installer_state.borrow_mut() = Some(receiver);
 
+    let installed_app = install_dir.join(&config.executable_filename);
 
     // app.label.set_size(64, 64);
 
@@ -182,6 +183,11 @@ fn main() -> enso_build_base::prelude::Result {
 
     debug!("Starting event loop");
     nwg::dispatch_thread_events();
+    debug!("Event loop finished");
+
+    info!("Starting installed application: {}", installed_app.display());
+    Command::new(installed_app).spawn().expect("Failed to start the installed application");
+
     Ok(())
 }
 
