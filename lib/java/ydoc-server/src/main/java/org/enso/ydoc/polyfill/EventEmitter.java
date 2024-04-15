@@ -14,6 +14,7 @@ import org.graalvm.polyglot.proxy.ProxyExecutable;
 final class EventEmitter implements ProxyExecutable, Polyfill {
 
   private static final String NEW_EVENT_STORE = "new-event-store";
+  private static final String GET_LISTENERS = "get-listeners";
   private static final String ADD_LISTENER = "add-listener";
   private static final String REMOVE_LISTENER = "remove-listener";
   private static final String EMIT = "emit";
@@ -37,6 +38,13 @@ final class EventEmitter implements ProxyExecutable, Polyfill {
 
     return switch (command) {
       case NEW_EVENT_STORE -> new Store(new HashMap<>());
+
+      case GET_LISTENERS -> {
+        var store = arguments[1].as(Store.class);
+        var eventName = arguments[2].asString();
+
+        yield store.getListeners(eventName);
+      }
 
       case ADD_LISTENER -> {
         var store = arguments[1].as(Store.class);
@@ -75,6 +83,10 @@ final class EventEmitter implements ProxyExecutable, Polyfill {
 
     Store(Map<String, Set<Value>> listeners) {
       this.listeners = listeners;
+    }
+
+    public Value[] getListeners(String type) {
+      return listeners.getOrDefault(type, new HashSet<>()).toArray(new Value[0]);
     }
 
     public void addListener(String type, Value listener) {

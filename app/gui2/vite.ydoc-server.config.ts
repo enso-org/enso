@@ -38,7 +38,7 @@ export default defineConfig({
   build: {
     minify: false, // For debugging
     emptyOutDir: true,
-    outDir: '../../lib/java/polyglot-ydoc-server/target/classes/dist',
+    outDir: '../../lib/java/ydoc-server/target/classes/dist',
     /*lib: {
       name: 'ydocServer',
       entry: fileURLToPath(new URL('ydoc-server/server.ts', import.meta.url)),

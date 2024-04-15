@@ -10,10 +10,6 @@ import io.helidon.websocket.WsSession;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.Arrays;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import org.enso.ydoc.Polyfill;
@@ -24,11 +20,6 @@ import org.graalvm.polyglot.proxy.ProxyExecutable;
 
 final class WebSocket implements ProxyExecutable, Polyfill {
 
-  private static final String ADD_EVENT_LISTENER = "add-event-listener";
-  private static final String REMOVE_EVENT_LISTENER = "remove-event-listener";
-  private static final String DISPATCH_EVENT = "dispatch-event";
-  private static final String SET_ON_LISTENER = "set-on-listener";
-  private static final String GET_ON_LISTENER = "get-on-listener";
   private static final String NEW_WEB_SOCKET = "new-web-socket";
   private static final String NEW_WEB_SOCKET_CONECTION = "new-web-socket-connection";
   private static final String WEB_SOCKET_SEND_TEXT = "web-socket-send-text";
@@ -60,49 +51,6 @@ final class WebSocket implements ProxyExecutable, Polyfill {
     System.err.println(command + " " + Arrays.toString(arguments));
 
     return switch (command) {
-      case ADD_EVENT_LISTENER -> {
-        var connection = arguments[1].as(WebSocketConnection.class);
-        var type = arguments[2].asString();
-        var listener = arguments[3];
-
-        connection.addEventListener(type, listener);
-        yield null;
-      }
-
-      case REMOVE_EVENT_LISTENER -> {
-        var connection = arguments[1].as(WebSocketConnection.class);
-        var type = arguments[2].asString();
-        var listener = arguments[3];
-
-        connection.removeEventListener(type, listener);
-        yield null;
-      }
-
-      case DISPATCH_EVENT -> {
-        var connection = arguments[1].as(WebSocketConnection.class);
-        var type = arguments[2].asString();
-        var event = arguments[3];
-
-        connection.dispatchEvent(type, event);
-        yield null;
-      }
-
-      case SET_ON_LISTENER -> {
-        var connection = arguments[1].as(WebSocketConnection.class);
-        var type = arguments[2].asString();
-        var listener = arguments[3];
-
-        connection.setEventListener(type, listener);
-        yield null;
-      }
-
-      case GET_ON_LISTENER -> {
-        var connection = arguments[1].as(WebSocketConnection.class);
-        var type = arguments[2].asString();
-
-        yield connection.getEventListener(type);
-      }
-
       case NEW_WEB_SOCKET -> {
         var urlString = arguments[1].asString();
         var protocols = arguments[2].as(String[].class);
@@ -112,7 +60,7 @@ final class WebSocket implements ProxyExecutable, Polyfill {
         var handleMessage = arguments[6];
         var connection =
             new WebSocketConnection(
-                executor, new HashMap<>(), handleOpen, handleClose, handleError, handleMessage);
+                executor, handleOpen, handleClose, handleError, handleMessage);
 
         URI uri;
         try {
@@ -139,7 +87,7 @@ final class WebSocket implements ProxyExecutable, Polyfill {
         var handleMessage = arguments[4];
         var connection =
             new WebSocketConnection(
-                executor, new HashMap<>(), handleOpen, handleClose, handleError, handleMessage);
+                executor, handleOpen, handleClose, handleError, handleMessage);
 
         yield connection;
       }
@@ -222,7 +170,6 @@ final class WebSocket implements ProxyExecutable, Polyfill {
   private static final class WebSocketConnection implements WsListener {
 
     private final ExecutorService executor;
-    private final Map<String, Set<Value>> listeners;
 
     private final Value handleOpen;
     private final Value handleClose;
@@ -233,13 +180,11 @@ final class WebSocket implements ProxyExecutable, Polyfill {
 
     private WebSocketConnection(
         ExecutorService executor,
-        Map<String, Set<Value>> listeners,
         Value handleOpen,
         Value handleClose,
         Value handleError,
         Value handleMessage) {
       this.executor = executor;
-      this.listeners = listeners;
       this.handleOpen = handleOpen;
       this.handleClose = handleClose;
       this.handleError = handleError;
@@ -248,58 +193,6 @@ final class WebSocket implements ProxyExecutable, Polyfill {
 
     public WsSession getSession() {
       return session;
-    }
-
-    /*
-     * Event listener
-     */
-    public void addEventListener(String type, Value listener) {
-      listeners.compute(
-          type,
-          (k, v) -> {
-            var set = v == null ? new HashSet<Value>() : v;
-            set.add(listener);
-            return set;
-          });
-    }
-
-    public void setEventListener(String type, Value listener) {
-      var set = new HashSet<Value>();
-      set.add(listener);
-      listeners.put(type, set);
-    }
-
-    public Value getEventListener(String type) {
-      var set = listeners.get(type);
-      return set == null ? null : set.iterator().next();
-    }
-
-    public void removeEventListener(String type, Value listener) {
-      listeners.compute(
-          type,
-          (k, v) -> {
-            if (v == null) {
-              return v;
-            } else {
-              v.remove(listener);
-              return v.isEmpty() ? null : v;
-            }
-          });
-    }
-
-    public void dispatchEvent(String type, Value event) {
-      listeners
-          .getOrDefault(type, Set.of())
-          .forEach(
-              listener -> {
-                try {
-                  listener.executeVoid(event);
-                } catch (Exception e) {
-                  System.err.println(
-                      "Error dispatching event [" + type + "] " + listener + " " + event + " " + e);
-                  e.printStackTrace(System.err);
-                }
-              });
     }
 
     /*
