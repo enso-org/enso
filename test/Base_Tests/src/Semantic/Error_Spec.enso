@@ -357,6 +357,23 @@ add_specs suite_builder =
             c2 . should_equal "finalizer"
             v2.to_vector . should_equal [1, 2]
 
+        group_builder.specify "should be caught in a loop" <|
+            fn_without_tco x =
+                if x > 10 then Panic.throw "fn_without_tco" else
+                    fn_without_tco x+1
+
+            p = Panic.catch Any handler=(.payload) <| fn_without_tco 0
+            p . should_equal "fn_without_tco"
+
+        group_builder.specify "should be caught in a TCO loop" <|
+            fn_with_tco x =
+                if x > 10 then Panic.throw "fn_with_tco" else
+                    @Tail_Call fn_with_tco x+1
+
+            p = Panic.catch Any handler=(.payload) <| fn_with_tco 0
+            p . should_equal "fn_with_tco"
+
+
     suite_builder.group "Type Errors" group_builder->
         my_func x y =
             x + y
