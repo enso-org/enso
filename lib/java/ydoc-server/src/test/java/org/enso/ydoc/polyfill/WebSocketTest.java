@@ -12,6 +12,7 @@ import java.util.concurrent.Semaphore;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 import org.graalvm.polyglot.Context;
+import org.graalvm.polyglot.HostAccess;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -41,7 +42,15 @@ public class WebSocketTest {
     webServerExecutor = Executors.newSingleThreadExecutor();
     ws = startWebSocketServer(webServerExecutor);
 
-    var b = Context.newBuilder("js").allowAllAccess(true);
+    var hostAccess =
+        HostAccess.newBuilder(HostAccess.EXPLICIT)
+            .allowAccess(AtomicBoolean.class.getDeclaredMethod("set", boolean.class))
+            .allowAccess(AtomicReference.class.getDeclaredMethod("set", Object.class))
+            .allowAccess(Semaphore.class.getDeclaredMethod("release"))
+            .allowArrayAccess(true)
+            .allowBufferAccess(true)
+            .build();
+    var b = Context.newBuilder("js").allowHostAccess(hostAccess);
 
     var chromePort = Integer.getInteger("inspectPort", -1);
     if (chromePort > 0) {

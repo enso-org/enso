@@ -8,6 +8,7 @@ import org.enso.ydoc.Polyfill;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Source;
 import org.graalvm.polyglot.Value;
+import org.graalvm.polyglot.io.ByteSequence;
 import org.graalvm.polyglot.proxy.ProxyExecutable;
 
 final class Encoding implements ProxyExecutable, Polyfill {
@@ -34,16 +35,11 @@ final class Encoding implements ProxyExecutable, Polyfill {
     return switch (command) {
       case TEXT_DECODER_DECODE -> {
         var encoding = arguments[1].asString();
-        var data = arguments[2].as(int[].class);
+        var data = arguments[2].as(ByteSequence.class);
 
         var charset = encoding == null ? StandardCharsets.UTF_8 : Charset.forName(encoding);
-        // Convert unsigned Uint8Array to byte[]
-        var bytes = new byte[data.length];
-        for (int i = 0; i < data.length; i++) {
-          bytes[i] = (byte) data[i];
-        }
 
-        yield charset.decode(ByteBuffer.wrap(bytes)).toString();
+        yield charset.decode(ByteBuffer.wrap(data.toByteArray())).toString();
       }
 
       default -> throw new IllegalStateException(command);
