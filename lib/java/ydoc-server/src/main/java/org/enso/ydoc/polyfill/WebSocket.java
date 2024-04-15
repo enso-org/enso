@@ -1,6 +1,8 @@
 package org.enso.ydoc.polyfill;
 
 import io.helidon.common.buffers.BufferData;
+import io.helidon.http.Headers;
+import io.helidon.http.HttpPrologue;
 import io.helidon.webclient.websocket.WsClient;
 import io.helidon.webclient.websocket.WsClientProtocolConfig;
 import io.helidon.webserver.WebServer;
@@ -10,6 +12,7 @@ import io.helidon.websocket.WsSession;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.Arrays;
+import java.util.Optional;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import org.enso.ydoc.Polyfill;
@@ -63,6 +66,7 @@ final class WebSocket implements ProxyExecutable, Polyfill {
         var handleMessage = arguments[6];
         var handlePing = arguments[7];
         var handlePong = arguments[8];
+        var handleUpgrade = arguments[9];
         var connection =
             new WebSocketConnection(
                 executor,
@@ -71,7 +75,8 @@ final class WebSocket implements ProxyExecutable, Polyfill {
                 handleError,
                 handleMessage,
                 handlePing,
-                handlePong);
+                handlePong,
+                handleUpgrade);
 
         URI uri;
         try {
@@ -98,17 +103,17 @@ final class WebSocket implements ProxyExecutable, Polyfill {
         var handleMessage = arguments[4];
         var handlePing = arguments[5];
         var handlePong = arguments[6];
-        var connection =
-            new WebSocketConnection(
-                executor,
-                handleOpen,
-                handleClose,
-                handleError,
-                handleMessage,
-                handlePing,
-                handlePong);
+        var handleUpgrade = arguments[7];
 
-        yield connection;
+        yield new WebSocketConnection(
+            executor,
+            handleOpen,
+            handleClose,
+            handleError,
+            handleMessage,
+            handlePing,
+            handlePong,
+            handleUpgrade);
       }
 
       case NEW_WEB_SOCKET_SERVER -> {
@@ -119,7 +124,7 @@ final class WebSocket implements ProxyExecutable, Polyfill {
         var routing =
             WsRouting.builder()
                 .endpoint(
-                    "/",
+                    "*",
                     () -> {
                       var connectionFuture =
                           executor.submit(
@@ -135,9 +140,8 @@ final class WebSocket implements ProxyExecutable, Polyfill {
 
                       return connection;
                     });
-        var webServer = WebServer.builder().host(host).port(port).addRouting(routing).build();
 
-        yield webServer;
+        yield WebServer.builder().host(host).port(port).addRouting(routing).build();
       }
 
       case WEB_SOCKET_SERVER_START -> {
@@ -205,6 +209,7 @@ final class WebSocket implements ProxyExecutable, Polyfill {
     private final Value handleMessage;
     private final Value handlePing;
     private final Value handlePong;
+    private final Value handleUpgrade;
 
     private WsSession session;
 
@@ -215,7 +220,8 @@ final class WebSocket implements ProxyExecutable, Polyfill {
         Value handleError,
         Value handleMessage,
         Value handlePing,
-        Value handlePong) {
+        Value handlePong,
+        Value handleUpgrade) {
       this.executor = executor;
       this.handleOpen = handleOpen;
       this.handleClose = handleClose;
@@ -223,6 +229,7 @@ final class WebSocket implements ProxyExecutable, Polyfill {
       this.handleMessage = handleMessage;
       this.handlePing = handlePing;
       this.handlePong = handlePong;
+      this.handleUpgrade = handleUpgrade;
     }
 
     public WsSession getSession() {
@@ -269,6 +276,7 @@ final class WebSocket implements ProxyExecutable, Polyfill {
       System.err.println("WebSocketListener.onOpen");
 
       this.session = session;
+
       executor.execute(() -> handleOpen.executeVoid());
     }
 
@@ -285,6 +293,15 @@ final class WebSocket implements ProxyExecutable, Polyfill {
       System.err.println("WebSocketListener.onError " + t);
 
       executor.execute(() -> handleError.executeVoid(t.getMessage()));
+    }
+
+    @Override
+    public Optional<Headers> onHttpUpgrade(HttpPrologue prologue, Headers headers) {
+      System.err.println("WebSocketListener.onHttpUpgrade " + prologue);
+
+      executor.execute(() -> handleUpgrade.executeVoid(prologue.uriPath().path()));
+
+      return Optional.empty();
     }
   }
 }

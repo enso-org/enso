@@ -50,7 +50,7 @@ public class WebSocketTest {
             .allowArrayAccess(true)
             .allowBufferAccess(true)
             .build();
-    var b = Context.newBuilder("js").allowHostAccess(hostAccess);
+    var b = Context.newBuilder("js").allowHostAccess(hostAccess).allowExperimentalOptions(true);
 
     var chromePort = Integer.getInteger("inspectPort", -1);
     if (chromePort > 0) {

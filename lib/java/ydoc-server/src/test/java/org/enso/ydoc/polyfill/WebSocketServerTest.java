@@ -33,7 +33,7 @@ public class WebSocketServerTest {
             .allowArrayAccess(true)
             .allowBufferAccess(true)
             .build();
-    var b = Context.newBuilder("js").allowHostAccess(hostAccess);
+    var b = Context.newBuilder("js").allowHostAccess(hostAccess).allowExperimentalOptions(true);
 
     var chromePort = Integer.getInteger("inspectPort", -1);
     if (chromePort > 0) {
@@ -65,7 +65,7 @@ public class WebSocketServerTest {
     var code =
         """
         const onconnect = (ws, url) => {
-            res.set(0, ws.readyState === WebSocket.OPEN);
+            res.set(0, ws.readyState === WebSocket.CONNECTING);
             res.set(1, url);
             lock.release();
         }
@@ -82,12 +82,12 @@ public class WebSocketServerTest {
     CompletableFuture.supplyAsync(() -> context.eval("js", code), executor).get();
 
     var ws = WsClient.builder().build();
-    ws.connect("ws://localhost:33445/", new TestWsListener());
+    ws.connect("ws://localhost:33445/hello", new TestWsListener());
 
     lock.acquire();
 
     Assert.assertTrue((boolean) res.get(0));
-    Assert.assertEquals("/", res.get(1));
+    Assert.assertEquals("/hello", res.get(1));
   }
 
   private static final class TestWsListener implements WsListener {
