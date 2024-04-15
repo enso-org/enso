@@ -13,45 +13,97 @@ export const enum ApplicationKind {
   Infix,
 }
 
-/**
- * Information about an argument that doesn't have an assigned value yet, therefore are not
- * represented in the AST.
- */
-export class ArgumentPlaceholder {
-  private constructor(
-    public callId: string,
-    public index: number,
-    public argInfo: SuggestionEntryArgument,
-    public kind: ApplicationKind,
-    public insertAsNamed: boolean,
-    public dynamicConfig?: (WidgetConfiguration & { display?: DisplayMode }) | undefined,
+class ArgumentFactory {
+  constructor(
+    private callId: string,
+    private kind: ApplicationKind,
+    private widgetCfg: widgetCfg.FunctionCall | undefined,
   ) {}
 
-  static WithRetrievedConfig(
-    callId: string,
-    index: number,
-    info: SuggestionEntryArgument,
-    kind: ApplicationKind,
-    insertAsNamed: boolean,
-    functionCallConfig: widgetCfg.FunctionCall | undefined,
-  ) {
-    const cfg =
-      info != null ? functionCallConfig?.parameters.get(info.name) ?? undefined : undefined
-    return new ArgumentPlaceholder(callId, index, info, kind, insertAsNamed, cfg)
+  placeholder(index: number, info: SuggestionEntryArgument, insertAsNamed: boolean) {
+    return new ArgumentPlaceholder(
+      this.callId,
+      this.kind,
+      this.dynamicConfig(info.name),
+      index,
+      info,
+      insertAsNamed,
+    )
+  }
+
+  argument(ast: Ast.Ast, index: number | undefined, info: SuggestionEntryArgument | undefined) {
+    return new ArgumentAst(
+      this.callId,
+      this.kind,
+      info && this.dynamicConfig(info.name),
+      index,
+      info,
+      ast,
+    )
+  }
+
+  private dynamicConfig(name: string) {
+    return this.widgetCfg?.parameters.get(name) ?? undefined
+  }
+}
+
+type ArgWidgetConfiguration = WidgetConfiguration & { display?: DisplayMode }
+type WidgetInputValue = Ast.Ast | Ast.Token | string | undefined
+abstract class Argument {
+  protected constructor(
+    public callId: string,
+    public kind: ApplicationKind,
+    public dynamicConfig: ArgWidgetConfiguration | undefined,
+    public index: number | undefined,
+    public argInfo: SuggestionEntryArgument | undefined,
+  ) {}
+
+  abstract get portId(): PortId
+  abstract get value(): WidgetInputValue
+
+  get argId(): string | undefined {
+    return this.argInfo && `${this.callId}[${this.argInfo.name}]`
+  }
+
+  get hideByDefault(): boolean {
+    return false
   }
 
   toWidgetInput(): WidgetInput {
     return {
       portId: this.portId,
-      value: this.argInfo.defaultValue,
-      expectedType: this.argInfo.reprType,
-      [ArgumentInfoKey]: { info: this.argInfo, appKind: this.kind },
+      value: this.value,
+      expectedType: this.argInfo?.reprType,
+      [ArgumentInfoKey]: { info: this.argInfo, appKind: this.kind, argId: this.argId },
       dynamicConfig: this.dynamicConfig,
     }
+  }
+}
+
+/**
+ * Information about an argument that doesn't have an assigned value yet, therefore are not
+ * represented in the AST.
+ */
+export class ArgumentPlaceholder extends Argument {
+  public declare index: number
+  public declare argInfo: SuggestionEntryArgument
+  constructor(
+    callId: string,
+    kind: ApplicationKind,
+    dynamicConfig: ArgWidgetConfiguration | undefined,
+    index: number,
+    argInfo: SuggestionEntryArgument,
+    public insertAsNamed: boolean,
+  ) {
+    super(callId, kind, dynamicConfig, index, argInfo)
   }
 
   get portId(): PortId {
     return `${this.callId}[${this.index}]` as PortId
+  }
+
+  get value(): WidgetInputValue {
+    return this.argInfo.defaultValue
   }
 
   get hideByDefault(): boolean {
@@ -59,43 +111,24 @@ export class ArgumentPlaceholder {
   }
 }
 
-export class ArgumentAst {
+export class ArgumentAst extends Argument {
   constructor(
-    public ast: Ast.Ast,
-    public index: number | undefined,
-    public argInfo: SuggestionEntryArgument | undefined,
-    public kind: ApplicationKind,
-    public dynamicConfig?: WidgetConfiguration | undefined,
-  ) {}
-
-  static WithRetrievedConfig(
-    ast: Ast.Ast,
-    index: number | undefined,
-    info: SuggestionEntryArgument | undefined,
+    callId: string,
     kind: ApplicationKind,
-    functionCallConfig: widgetCfg.FunctionCall | undefined,
+    dynamicConfig: ArgWidgetConfiguration | undefined,
+    index: number | undefined,
+    argInfo: SuggestionEntryArgument | undefined,
+    public ast: Ast.Ast,
   ) {
-    const cfg =
-      info != null ? functionCallConfig?.parameters.get(info.name) ?? undefined : undefined
-    return new ArgumentAst(ast, index, info, kind, cfg)
-  }
-
-  toWidgetInput(): WidgetInput {
-    return {
-      portId: this.portId,
-      value: this.ast,
-      expectedType: this.argInfo?.reprType,
-      [ArgumentInfoKey]: { appKind: this.kind, info: this.argInfo },
-      dynamicConfig: this.dynamicConfig,
-    }
+    super(callId, kind, dynamicConfig, index, argInfo)
   }
 
   get portId(): PortId {
     return this.ast.id
   }
 
-  get hideByDefault(): boolean {
-    return false
+  get value() {
+    return this.ast
   }
 }
 
@@ -172,15 +205,13 @@ export class ArgumentApplication {
   private static FromInterpretedInfix(interpreted: InterpretedInfix, callInfo: CallInfo) {
     const { suggestion, widgetCfg } = callInfo
 
-    const kind = ApplicationKind.Infix
-    const callId = interpreted.appTree.id
-
+    const makeArg = new ArgumentFactory(interpreted.appTree.id, ApplicationKind.Infix, widgetCfg)
     const argFor = (key: 'lhs' | 'rhs', index: number) => {
       const tree = interpreted[key]
       const info = tryGetIndex(suggestion?.arguments, index) ?? unknownArgInfoNamed(key)
       return tree != null ?
-          ArgumentAst.WithRetrievedConfig(tree, index, info, kind, widgetCfg)
-        : ArgumentPlaceholder.WithRetrievedConfig(callId, index, info, kind, false, widgetCfg)
+          makeArg.argument(tree, index, info)
+        : makeArg.placeholder(index, info, false)
     }
     return new ArgumentApplication(
       interpreted.appTree,
@@ -192,7 +223,6 @@ export class ArgumentApplication {
 
   private static FromInterpretedPrefix(interpreted: InterpretedPrefix, callInfo: CallInfo) {
     const { notAppliedArguments, suggestion, widgetCfg, subjectAsSelf } = callInfo
-    const callId = interpreted.func.id
 
     const knownArguments = suggestion?.arguments
     const allPossiblePrefixArguments = Array.from(knownArguments ?? [], (_, i) => i)
@@ -246,6 +276,8 @@ export class ArgumentApplication {
 
     let nextArgDefinition: ReturnType<typeof takeNextArgumentFromDefinition>
 
+    const makeArg = new ArgumentFactory(interpreted.func.id, ApplicationKind.Prefix, widgetCfg)
+
     // Always insert a placeholder for the missing argument at the first position that is legal
     // and don't invalidate further positional arguments, treating the named arguments at correct
     // position as if they were positional.
@@ -280,14 +312,7 @@ export class ArgumentApplication {
           } else {
             resolvedArgs.push({
               appTree: argumentInCode.appTree.function,
-              argument: ArgumentPlaceholder.WithRetrievedConfig(
-                callId,
-                index,
-                info,
-                ApplicationKind.Prefix,
-                placeholderAlreadyInserted,
-                widgetCfg,
-              ),
+              argument: makeArg.placeholder(index, info, placeholderAlreadyInserted),
             })
             placeholderAlreadyInserted = true
           }
@@ -298,12 +323,10 @@ export class ArgumentApplication {
         const { index, info } = takeNamedArgumentFromDefinition(argumentInCode.argName) ?? {}
         resolvedArgs.push({
           appTree: argumentInCode.appTree,
-          argument: ArgumentAst.WithRetrievedConfig(
+          argument: makeArg.argument(
             argumentInCode.argument,
             index,
             info ?? unknownArgInfoNamed(argumentInCode.argName),
-            ApplicationKind.Prefix,
-            widgetCfg,
           ),
         })
       } else {
@@ -314,15 +337,13 @@ export class ArgumentApplication {
         const { index, info } = argumentFromDefinition ?? {}
         resolvedArgs.push({
           appTree: argumentInCode.appTree,
-          argument: ArgumentAst.WithRetrievedConfig(
+          argument: makeArg.argument(
             argumentInCode.argument,
             index,
             info ??
               (argumentInCode.argName != null ?
                 unknownArgInfoNamed(argumentInCode.argName)
               : undefined),
-            ApplicationKind.Prefix,
-            widgetCfg,
           ),
         })
       }
@@ -334,14 +355,7 @@ export class ArgumentApplication {
       const { index, info } = nextArgDefinition
       resolvedArgs.push({
         appTree: outerApp,
-        argument: ArgumentPlaceholder.WithRetrievedConfig(
-          callId,
-          index,
-          info,
-          ApplicationKind.Prefix,
-          placeholderAlreadyInserted,
-          widgetCfg,
-        ),
+        argument: makeArg.placeholder(index, info, placeholderAlreadyInserted),
       })
       placeholderAlreadyInserted = true
     }
@@ -403,6 +417,7 @@ declare module '@/providers/widgetRegistry' {
     [ArgumentInfoKey]?: {
       appKind: ApplicationKind
       info: SuggestionEntryArgument | undefined
+      argId: string | undefined
     }
   }
 }

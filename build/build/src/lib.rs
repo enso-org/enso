@@ -99,6 +99,11 @@ pub fn get_graal_packages_version(build_sbt_contents: &str) -> Result<Version> {
     get_string_assignment_value(build_sbt_contents, "graalMavenPackagesVersion")?.parse2()
 }
 
+/// Get version of GraalVM packages from the `build.sbt` file contents.
+pub fn get_flatbuffers_version(build_sbt_contents: &str) -> Result<Version> {
+    get_string_assignment_value(build_sbt_contents, "flatbuffersVersion")?.parse2()
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

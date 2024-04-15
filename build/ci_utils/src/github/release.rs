@@ -36,6 +36,54 @@ pub fn archive_extension_for(os: OS) -> &'static str {
     }
 }
 
+/// Get the prefix of URL of the release's asset in GitHub.
+///
+/// By joining it with the asset name, we can get the URL of the asset.
+///
+/// ```
+/// # use ide_ci::prelude::*;
+/// # use ide_ci::github::release::download_asset_prefix;
+/// # use ide_ci::github::RepoRef;
+/// let repo = RepoRef::new("enso-org", "enso");
+/// let version = Version::from_str("2020.1.1").unwrap();
+/// let prefix = download_asset_prefix(&repo, &version);
+/// assert_eq!(prefix.as_str(), "https://github.com/enso-org/enso/releases/download/2020.1.1/");
+/// ```
+pub fn download_asset_prefix(repo: &impl IsRepo, release_tag: &impl Display) -> Url {
+    let text = format!("https://github.com/{repo}/releases/download/{release_tag}/",);
+    Url::from_str(&text).expect("Failed to parse the URL.")
+}
+
+/// Get the URL for downloading the asset from the GitHub release.
+///
+/// ```
+/// # use ide_ci::prelude::*;
+/// # use ide_ci::github::release::download_asset;
+/// # use ide_ci::github::RepoRef;
+/// let repo = RepoRef::new("enso-org", "enso");
+/// let version = Version::from_str("2020.1.1").unwrap();
+/// let name = "foo.zip";
+/// let url = download_asset(&repo, &version, name);
+/// assert_eq!(url.as_str(), "https://github.com/enso-org/enso/releases/download/2020.1.1/foo.zip");
+/// ```
+pub fn download_asset(
+    repo: &impl IsRepo,
+    release_tag: &impl Display,
+    asset_name: impl AsRef<str>,
+) -> Url {
+    let prefix = download_asset_prefix(repo, release_tag);
+    prefix
+        .join(asset_name.as_ref())
+        .with_context(|| {
+            format!(
+                "Failed to join the prefix {} with the asset name {}.",
+                prefix,
+                asset_name.as_ref()
+            )
+        })
+        .expect("Failed to join the URL.")
+}
+
 /// Types that uniquely identify a release and can be used to fetch it from GitHub.
 pub trait IsRelease: Debug {
     /// The release ID.

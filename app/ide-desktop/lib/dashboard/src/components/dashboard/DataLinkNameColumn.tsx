@@ -34,17 +34,23 @@ export interface DataLinkNameColumnProps extends column.AssetColumnProps {}
  * @throws {Error} when the asset is not a {@link backendModule.DataLinkAsset}.
  * This should never happen. */
 export default function DataLinkNameColumn(props: DataLinkNameColumnProps) {
-  const { item, setItem, selected, state, rowState, setRowState } = props
+  const { item, setItem, selected, state, rowState, setRowState, isEditable } = props
   const { assetEvents, dispatchAssetListEvent, setIsAssetPanelTemporarilyVisible } = state
   const toastAndLog = toastAndLogHooks.useToastAndLog()
   const { backend } = backendProvider.useBackend()
   const inputBindings = inputBindingsProvider.useInputBindings()
-  const asset = item.item
-  if (asset.type !== backendModule.AssetType.dataLink) {
+  if (item.type !== backendModule.AssetType.dataLink) {
     // eslint-disable-next-line no-restricted-syntax
     throw new Error('`DataLinkNameColumn` can only display Data Links.')
   }
+  const asset = item.item
   const setAsset = setAssetHooks.useSetAsset(asset, setItem)
+
+  const setIsEditing = (isEditingName: boolean) => {
+    if (isEditable) {
+      setRowState(object.merger({ isEditingName }))
+    }
+  }
 
   // TODO[sb]: Wait for backend implementation. `editable` should also be re-enabled, and the
   // context menu entry should be re-added.
@@ -53,64 +59,68 @@ export default function DataLinkNameColumn(props: DataLinkNameColumnProps) {
     await Promise.resolve(null)
   }
 
-  eventHooks.useEventHandler(assetEvents, async event => {
-    switch (event.type) {
-      case AssetEventType.newProject:
-      case AssetEventType.newFolder:
-      case AssetEventType.uploadFiles:
-      case AssetEventType.newSecret:
-      case AssetEventType.openProject:
-      case AssetEventType.updateFiles:
-      case AssetEventType.closeProject:
-      case AssetEventType.copy:
-      case AssetEventType.cut:
-      case AssetEventType.cancelCut:
-      case AssetEventType.move:
-      case AssetEventType.delete:
-      case AssetEventType.deleteForever:
-      case AssetEventType.restore:
-      case AssetEventType.download:
-      case AssetEventType.downloadSelected:
-      case AssetEventType.removeSelf:
-      case AssetEventType.temporarilyAddLabels:
-      case AssetEventType.temporarilyRemoveLabels:
-      case AssetEventType.addLabels:
-      case AssetEventType.removeLabels:
-      case AssetEventType.deleteLabel: {
-        // Ignored. These events should all be unrelated to secrets.
-        // `delete`, `deleteForever`, `restoreMultiple`, `download`, and `downloadSelected`
-        // are handled by `AssetRow`.
-        break
-      }
-      case AssetEventType.newDataLink: {
-        if (item.key === event.placeholderId) {
-          if (backend.type !== backendModule.BackendType.remote) {
-            toastAndLog('localBackendDataLinkError')
-          } else {
-            rowState.setVisibility(Visibility.faded)
-            try {
-              const { id } = await backend.createConnector({
-                parentDirectoryId: asset.parentId,
-                connectorId: null,
-                name: asset.title,
-                value: event.value,
-              })
-              rowState.setVisibility(Visibility.visible)
-              setAsset(object.merger({ id }))
-            } catch (error) {
-              dispatchAssetListEvent({ type: AssetListEventType.delete, key: item.key })
-              toastAndLog('createDataLinkError', error)
+  eventHooks.useEventHandler(
+    assetEvents,
+    async event => {
+      switch (event.type) {
+        case AssetEventType.newProject:
+        case AssetEventType.newFolder:
+        case AssetEventType.uploadFiles:
+        case AssetEventType.newSecret:
+        case AssetEventType.openProject:
+        case AssetEventType.updateFiles:
+        case AssetEventType.closeProject:
+        case AssetEventType.copy:
+        case AssetEventType.cut:
+        case AssetEventType.cancelCut:
+        case AssetEventType.move:
+        case AssetEventType.delete:
+        case AssetEventType.deleteForever:
+        case AssetEventType.restore:
+        case AssetEventType.download:
+        case AssetEventType.downloadSelected:
+        case AssetEventType.removeSelf:
+        case AssetEventType.temporarilyAddLabels:
+        case AssetEventType.temporarilyRemoveLabels:
+        case AssetEventType.addLabels:
+        case AssetEventType.removeLabels:
+        case AssetEventType.deleteLabel: {
+          // Ignored. These events should all be unrelated to secrets.
+          // `delete`, `deleteForever`, `restoreMultiple`, `download`, and `downloadSelected`
+          // are handled by `AssetRow`.
+          break
+        }
+        case AssetEventType.newDataLink: {
+          if (item.key === event.placeholderId) {
+            if (backend.type !== backendModule.BackendType.remote) {
+              toastAndLog('localBackendDataLinkError')
+            } else {
+              rowState.setVisibility(Visibility.faded)
+              try {
+                const { id } = await backend.createConnector({
+                  parentDirectoryId: asset.parentId,
+                  connectorId: null,
+                  name: asset.title,
+                  value: event.value,
+                })
+                rowState.setVisibility(Visibility.visible)
+                setAsset(object.merger({ id }))
+              } catch (error) {
+                dispatchAssetListEvent({ type: AssetListEventType.delete, key: item.key })
+                toastAndLog('createDataLinkError', error)
+              }
             }
           }
+          break
         }
-        break
       }
-    }
-  })
+    },
+    { isDisabled: !isEditable }
+  )
 
   const handleClick = inputBindings.handler({
     editName: () => {
-      setRowState(object.merger({ isEditingName: true }))
+      setIsEditing(true)
     },
   })
 
@@ -128,7 +138,7 @@ export default function DataLinkNameColumn(props: DataLinkNameColumnProps) {
         if (handleClick(event)) {
           // Already handled.
         } else if (eventModule.isSingleClick(event) && selected) {
-          setRowState(object.merger({ isEditingName: true }))
+          setIsEditing(true)
         } else if (eventModule.isDoubleClick(event)) {
           event.stopPropagation()
           setIsAssetPanelTemporarilyVisible(true)
@@ -139,7 +149,8 @@ export default function DataLinkNameColumn(props: DataLinkNameColumnProps) {
       <EditableSpan
         editable={false}
         onSubmit={async newTitle => {
-          setRowState(object.merger({ isEditingName: false }))
+          setIsEditing(false)
+
           if (newTitle !== asset.title) {
             const oldTitle = asset.title
             setAsset(object.merger({ title: newTitle }))
@@ -151,7 +162,7 @@ export default function DataLinkNameColumn(props: DataLinkNameColumnProps) {
           }
         }}
         onCancel={() => {
-          setRowState(object.merger({ isEditingName: false }))
+          setIsEditing(false)
         }}
         className="text grow bg-transparent"
       >

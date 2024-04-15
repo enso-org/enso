@@ -91,18 +91,22 @@ const TEXT_TYPE = 'Standard.Base.Data.Text.Text'
 const FILE_MODULE = 'Standard.Base.System.File'
 const FILE_TYPE = FILE_MODULE + '.File'
 
-export const widgetDefinition = defineWidget(WidgetInput.isAstOrPlaceholder, {
-  priority: 49,
-  score: (props) => {
-    if (
-      props.input.dynamicConfig?.kind === 'File_Browse' ||
-      props.input.dynamicConfig?.kind === 'Folder_Browse'
-    )
-      return Score.Perfect
-    if (props.input[ArgumentInfoKey]?.info?.reprType.includes(FILE_TYPE)) return Score.Perfect
-    return Score.Mismatch
+export const widgetDefinition = defineWidget(
+  WidgetInput.isAstOrPlaceholder,
+  {
+    priority: 49,
+    score: (props) => {
+      if (
+        props.input.dynamicConfig?.kind === 'File_Browse' ||
+        props.input.dynamicConfig?.kind === 'Folder_Browse'
+      )
+        return Score.Perfect
+      if (props.input[ArgumentInfoKey]?.info?.reprType.includes(FILE_TYPE)) return Score.Perfect
+      return Score.Mismatch
+    },
   },
-})
+  import.meta.hot,
+)
 </script>
 
 <template>
