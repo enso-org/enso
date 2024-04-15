@@ -60,7 +60,7 @@ public class WebSocketServerTest {
             lock.release();
         }
 
-        var wss = new WebSocketServer({host: 'localhost', port: 33445});
+        let wss = new WebSocketServer({host: 'localhost', port: 33445});
         wss.onconnect = onconnect;
 
         wss.start();
