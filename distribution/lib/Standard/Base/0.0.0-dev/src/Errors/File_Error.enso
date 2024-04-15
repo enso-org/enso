@@ -14,6 +14,7 @@ polyglot java import java.io.FileNotFoundException
 polyglot java import java.io.IOException
 polyglot java import java.io.UncheckedIOException
 polyglot java import java.nio.file.AccessDeniedException
+polyglot java import java.nio.file.DirectoryNotEmptyException
 polyglot java import java.nio.file.FileAlreadyExistsException
 polyglot java import java.nio.file.NoSuchFileException
 
@@ -39,6 +40,10 @@ type File_Error
        - message: The message for the error.
     IO_Error (file : File_Like | Nothing) (message : Text)
 
+    ## Indicates that the given directory was not empty, but `recursive` was not
+       set to `True`.
+    Directory_Not_Empty (file : File_Like)
+
     ## Indicates that the given file's type is not supported.
     Unsupported_Type (file : File_Format_Metadata)
 
@@ -60,6 +65,7 @@ type File_Error
             msg + suffix
         File_Error.Already_Exists file -> "The file at "+file.path+" already exists."
         File_Error.Access_Denied file -> "Insufficient permissions to perform the desired operation on the file at "+file.path+"."
+        File_Error.Directory_Not_Empty file -> "The directory at "+file.path+" is not empty."
         File_Error.Unsupported_Type metadata -> "Could not recognize the type of file "+metadata.to_display_text+"."
         File_Error.Unsupported_Output_Type format data_type ->
             name_from_constructor =
@@ -101,4 +107,5 @@ type File_Error
             _ : FileNotFoundException -> Error.throw (File_Error.Not_Found file)
             _ : FileAlreadyExistsException -> Error.throw (File_Error.Already_Exists file)
             _ : AccessDeniedException -> File_Error.access_denied file
+            _ : DirectoryNotEmptyException -> Error.throw (File_Error.Directory_Not_Empty file)
             _ -> Error.throw (File_Error.IO_Error file "An IO error has occurred: "+io_exception.to_text)

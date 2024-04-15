@@ -17,6 +17,7 @@ import java.io.OutputStream;
 import java.nio.ByteBuffer;
 import java.nio.channels.SeekableByteChannel;
 import java.nio.file.CopyOption;
+import java.nio.file.LinkOption;
 import java.nio.file.OpenOption;
 import java.nio.file.StandardOpenOption;
 import java.nio.file.attribute.PosixFilePermission;
@@ -276,8 +277,21 @@ public final class EnsoFile implements EnsoObject {
   @Builtin.Method(name = "delete_builtin")
   @Builtin.WrapException(from = IOException.class)
   @CompilerDirectives.TruffleBoundary
-  public void delete() throws IOException {
-    truffleFile.delete();
+  public void delete(boolean recursive) throws IOException {
+    if (recursive && truffleFile.isDirectory(LinkOption.NOFOLLOW_LINKS)) {
+      deleteRecursively(truffleFile);
+    } else {
+      truffleFile.delete();
+    }
+  }
+
+  private void deleteRecursively(TruffleFile file) throws IOException {
+    if (file.isDirectory(LinkOption.NOFOLLOW_LINKS)) {
+      for (TruffleFile child : file.list()) {
+        deleteRecursively(child);
+      }
+    }
+    file.delete();
   }
 
   @Builtin.Method(name = "copy_builtin", description = "Copy this file to a target destination")

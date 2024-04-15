@@ -100,6 +100,7 @@ add_specs suite_builder =
             f.exists.should_be_true
             f.is_directory.should_be_true
 
+            # It will create all needed parent directories in the path.
             g = f / "bar" / "baz"
             g.exists.should_be_false
 
@@ -150,18 +151,6 @@ add_specs suite_builder =
                 f.exists.should_be_false
 
             f.delete_if_exists
-
-        group_builder.specify "should only allow deleting a file if Output is enabled" <|
-            f = enso_project.data / "short.txt"
-            f.delete_if_exists
-            "Cup".write f on_existing_file=Existing_File_Behavior.Overwrite
-
-            Context.Output.with_disabled <|
-                f.delete . should_fail_with Forbidden_Operation
-                f.exists.should_be_true
-
-            f.delete.should_succeed
-            f.exists.should_be_false
 
         group_builder.specify "should only allow copying a file if Output is enabled" <|
             f = enso_project.data / "short.txt"
@@ -876,6 +865,42 @@ add_specs suite_builder =
 
             filtered4 = root.list name_filter="nested/*.txt" recursive=True . map .to_text
             filtered4.sort.should_equal (resolve ["subdirectory/nested/b.txt"])
+
+        add_delete_specs group_builder (enso_project.data / "transient")
+
+add_delete_specs group_builder parent_dir =
+    group_builder.specify "should only allow deleting a file if Output is enabled" <|
+        f = parent_dir / "short.txt"
+        f.delete_if_exists
+        "Cup".write f on_existing_file=Existing_File_Behavior.Overwrite
+
+        Context.Output.with_disabled <|
+            f.delete . should_fail_with Forbidden_Operation
+            f.exists.should_be_true
+
+        f.delete.should_succeed
+        f.exists.should_be_false
+
+    group_builder.specify "will only allow to delete a non-empty directory if recursive=True" <|
+        f = (parent_dir / "non_empty") . create_directory
+        "Cup".write (f / "short.txt") on_existing_file=Existing_File_Behavior.Overwrite
+
+        # By default recursive=False, so delete will fail:
+        r = f.delete
+        r.should_fail_with File_Error
+        r.catch.should_be_a File_Error.Directory_Not_Empty
+        r.catch.to_display_text . should_contain "non_empty"
+        r.catch.to_display_text . should_contain "is not empty"
+
+        # Delete if exists works the same way
+        f.delete_if_exists . should_fail_with File_Error
+
+        f.exists . should_be_true
+        (f / "short.txt").exists . should_be_true
+
+        f.delete recursive=True . should_succeed
+        f.exists.should_be_false
+        f.delete_if_exists . should_succeed
 
 main filter=Nothing =
     suite = Test.build suite_builder->
