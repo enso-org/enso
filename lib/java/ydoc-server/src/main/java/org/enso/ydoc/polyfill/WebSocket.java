@@ -26,6 +26,8 @@ final class WebSocket implements ProxyExecutable, Polyfill {
   private static final String WEB_SOCKET_SEND_TEXT = "web-socket-send-text";
   private static final String WEB_SOCKET_SEND_BINARY = "web-socket-send-binary";
   private static final String WEB_SOCKET_CLOSE = "web-socket-close";
+  private static final String WEB_SOCKET_PING = "web-socket-ping";
+  private static final String WEB_SOCKET_PONG = "web-socket-pong";
   private static final String WEB_SOCKET_TERMINATE = "web-socket-terminate";
   private static final String NEW_WEB_SOCKET_SERVER = "new-web-socket-server";
   private static final String WEB_SOCKET_SERVER_START = "web-socket-server-start";
@@ -59,8 +61,17 @@ final class WebSocket implements ProxyExecutable, Polyfill {
         var handleClose = arguments[4];
         var handleError = arguments[5];
         var handleMessage = arguments[6];
+        var handlePing = arguments[7];
+        var handlePong = arguments[8];
         var connection =
-            new WebSocketConnection(executor, handleOpen, handleClose, handleError, handleMessage);
+            new WebSocketConnection(
+                executor,
+                handleOpen,
+                handleClose,
+                handleError,
+                handleMessage,
+                handlePing,
+                handlePong);
 
         URI uri;
         try {
@@ -85,8 +96,17 @@ final class WebSocket implements ProxyExecutable, Polyfill {
         var handleClose = arguments[2];
         var handleError = arguments[3];
         var handleMessage = arguments[4];
+        var handlePing = arguments[5];
+        var handlePong = arguments[6];
         var connection =
-            new WebSocketConnection(executor, handleOpen, handleClose, handleError, handleMessage);
+            new WebSocketConnection(
+                executor,
+                handleOpen,
+                handleClose,
+                handleError,
+                handleMessage,
+                handlePing,
+                handlePong);
 
         yield connection;
       }
@@ -157,6 +177,20 @@ final class WebSocket implements ProxyExecutable, Polyfill {
         yield connection.getSession().close(code, reason);
       }
 
+      case WEB_SOCKET_PING -> {
+        var connection = arguments[1].as(WebSocketConnection.class);
+        var data = arguments[2].as(ByteSequence.class);
+
+        yield connection.getSession().ping(BufferData.create(data.toByteArray()));
+      }
+
+      case WEB_SOCKET_PONG -> {
+        var connection = arguments[1].as(WebSocketConnection.class);
+        var data = arguments[2].as(ByteSequence.class);
+
+        yield connection.getSession().pong(BufferData.create(data.toByteArray()));
+      }
+
       default -> throw new IllegalStateException(command);
     };
   }
@@ -169,6 +203,8 @@ final class WebSocket implements ProxyExecutable, Polyfill {
     private final Value handleClose;
     private final Value handleError;
     private final Value handleMessage;
+    private final Value handlePing;
+    private final Value handlePong;
 
     private WsSession session;
 
@@ -177,12 +213,16 @@ final class WebSocket implements ProxyExecutable, Polyfill {
         Value handleOpen,
         Value handleClose,
         Value handleError,
-        Value handleMessage) {
+        Value handleMessage,
+        Value handlePing,
+        Value handlePong) {
       this.executor = executor;
       this.handleOpen = handleOpen;
       this.handleClose = handleClose;
       this.handleError = handleError;
       this.handleMessage = handleMessage;
+      this.handlePing = handlePing;
+      this.handlePong = handlePong;
     }
 
     public WsSession getSession() {
@@ -211,11 +251,17 @@ final class WebSocket implements ProxyExecutable, Polyfill {
     @Override
     public void onPing(WsSession session, BufferData buffer) {
       System.err.println("WebSocketListener.onPing " + buffer);
+
+      var bytes = ByteSequence.create(buffer.readBytes());
+      executor.execute(() -> handlePing.executeVoid(bytes));
     }
 
     @Override
     public void onPong(WsSession session, BufferData buffer) {
       System.err.println("WebSocketListener.onPong " + buffer);
+
+      var bytes = ByteSequence.create(buffer.readBytes());
+      executor.execute(() -> handlePong.executeVoid(bytes));
     }
 
     @Override

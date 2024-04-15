@@ -178,6 +178,33 @@ public class WebSocketTest {
     Assert.assertEquals("0,31,255", res.get());
   }
 
+  @Test
+  public void ping() throws Exception {
+    var lock = new Semaphore(0);
+    var res = new AtomicBoolean(false);
+
+    var code =
+        """
+        const ws = new WebSocket('ws://localhost:22334');
+        ws.on('open', () => {
+          ws.ping();
+        });
+        ws.on('pong', () => {
+          res.set(true);
+          lock.release();
+        });
+        """;
+
+    context.getBindings("js").putMember("lock", lock);
+    context.getBindings("js").putMember("res", res);
+
+    CompletableFuture.supplyAsync(() -> context.eval("js", code), executor).get();
+
+    lock.acquire();
+
+    Assert.assertTrue(res.get());
+  }
+
   private static final class TestWsListener implements WsListener {
     TestWsListener() {}
 
@@ -189,6 +216,10 @@ public class WebSocketTest {
     @Override
     public void onMessage(WsSession session, BufferData buffer, boolean last) {
       session.send(buffer, last);
+    }
+
+    public void onPing(WsSession session, BufferData buffer) {
+      session.pong(buffer);
     }
   }
 }
