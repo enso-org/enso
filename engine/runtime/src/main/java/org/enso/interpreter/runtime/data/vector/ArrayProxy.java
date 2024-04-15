@@ -1,6 +1,7 @@
 package org.enso.interpreter.runtime.data.vector;
 
 import com.oracle.truffle.api.CompilerDirectives;
+import com.oracle.truffle.api.dsl.Bind;
 import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.dsl.ImportStatic;
 import com.oracle.truffle.api.interop.ArityException;
@@ -11,6 +12,7 @@ import com.oracle.truffle.api.interop.UnsupportedTypeException;
 import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
+import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.profiles.BranchProfile;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.data.EnsoObject;
@@ -84,8 +86,8 @@ final class ArrayProxy implements EnsoObject {
   }
 
   @ExportMessage
-  Type getMetaObject(@CachedLibrary("this") InteropLibrary thisLib) {
-    return EnsoContext.get(thisLib).getBuiltins().array();
+  Type getMetaObject(@Bind("$node") Node node) {
+    return EnsoContext.get(node).getBuiltins().array();
   }
 
   @Override
@@ -100,7 +102,7 @@ final class ArrayProxy implements EnsoObject {
   }
 
   @ExportMessage
-  Type getType(@CachedLibrary("this") TypesLibrary thisLib, @Cached("1") int ignore) {
-    return EnsoContext.get(thisLib).getBuiltins().array();
+  Type getType(@Bind("$node") Node node) {
+    return EnsoContext.get(node).getBuiltins().array();
   }
 }

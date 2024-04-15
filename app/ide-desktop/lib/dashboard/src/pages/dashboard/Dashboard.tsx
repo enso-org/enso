@@ -39,6 +39,7 @@ import type * as spinner from '#/components/Spinner'
 
 import * as backendModule from '#/services/Backend'
 import LocalBackend from '#/services/LocalBackend'
+import type * as projectManager from '#/services/ProjectManager'
 import RemoteBackend, * as remoteBackendModule from '#/services/RemoteBackend'
 
 import * as array from '#/utilities/array'
@@ -55,6 +56,7 @@ import * as sanitizedEventTargets from '#/utilities/sanitizedEventTargets'
 declare module '#/utilities/LocalStorage' {
   /** */
   interface LocalStorageData {
+    readonly driveCategory: Category
     readonly isAssetPanelVisible: boolean
     readonly page: pageSwitcher.Page
     readonly projectStartupInfo: backendModule.ProjectStartupInfo
@@ -68,6 +70,11 @@ LocalStorage.registerKey('isAssetPanelVisible', {
 const PAGES = Object.values(pageSwitcher.Page)
 LocalStorage.registerKey('page', {
   tryParse: value => (array.includes(PAGES, value) ? value : null),
+})
+
+const CATEGORIES = Object.values(Category)
+LocalStorage.registerKey('driveCategory', {
+  tryParse: value => (array.includes(CATEGORIES, value) ? value : null),
 })
 
 const BACKEND_TYPES = Object.values(backendModule.BackendType)
@@ -111,12 +118,13 @@ export interface DashboardProps {
   readonly appRunner: AppRunner
   readonly initialProjectName: string | null
   readonly projectManagerUrl: string | null
+  readonly projectManagerRootDirectory: projectManager.Path | null
 }
 
 /** The component that contains the entire UI. */
 export default function Dashboard(props: DashboardProps) {
   const { supportsLocalBackend, appRunner, initialProjectName } = props
-  const { projectManagerUrl } = props
+  const { projectManagerUrl, projectManagerRootDirectory } = props
   const logger = loggerProvider.useLogger()
   const session = authProvider.useNonPartialUserSession()
   const { backend } = backendProvider.useBackend()
@@ -153,6 +161,12 @@ export default function Dashboard(props: DashboardProps) {
     () => localStorage.get('isAssetPanelVisible') ?? false
   )
   const [isAssetPanelTemporarilyVisible, setIsAssetPanelTemporarilyVisible] = React.useState(false)
+  const [category, setCategory] = searchParamsState.useSearchParamsState(
+    'driveCategory',
+    () => localStorage.get('driveCategory') ?? Category.home,
+    (value): value is Category => array.includes(Object.values(Category), value)
+  )
+
   const isCloud = backend.type === backendModule.BackendType.remote
   const rootDirectoryId = React.useMemo(
     () => session.user?.rootDirectoryId ?? backendModule.DirectoryId(''),
@@ -175,9 +189,11 @@ export default function Dashboard(props: DashboardProps) {
     let currentBackend = backend
     if (
       supportsLocalBackend &&
+      projectManagerUrl != null &&
+      projectManagerRootDirectory != null &&
       localStorage.get('backendType') === backendModule.BackendType.local
     ) {
-      currentBackend = new LocalBackend(projectManagerUrl)
+      currentBackend = new LocalBackend(projectManagerUrl, projectManagerRootDirectory)
       setBackend(currentBackend)
     }
     const savedProjectStartupInfo = localStorage.get('projectStartupInfo')
@@ -218,17 +234,12 @@ export default function Dashboard(props: DashboardProps) {
                   savedProjectStartupInfo.projectAsset.title
                 )
                 if (backendModule.IS_OPENING_OR_OPENED[oldProject.state.type]) {
-                  await remoteBackendModule.waitUntilProjectIsReady(
+                  const project = await remoteBackendModule.waitUntilProjectIsReady(
                     remoteBackend,
                     savedProjectStartupInfo.projectAsset,
                     abortController
                   )
                   if (!abortController.signal.aborted) {
-                    const project = await remoteBackend.getProjectDetails(
-                      savedProjectStartupInfo.projectAsset.id,
-                      savedProjectStartupInfo.projectAsset.parentId,
-                      savedProjectStartupInfo.projectAsset.title
-                    )
                     setProjectStartupInfo(object.merge(savedProjectStartupInfo, { project }))
                     if (page === pageSwitcher.Page.editor) {
                       setPage(page)
@@ -241,12 +252,19 @@ export default function Dashboard(props: DashboardProps) {
             })()
           }
         }
-      } else {
-        const localBackend = new LocalBackend(projectManagerUrl)
+      } else if (projectManagerUrl != null && projectManagerRootDirectory != null) {
+        const localBackend =
+          currentBackend instanceof LocalBackend
+            ? currentBackend
+            : new LocalBackend(projectManagerUrl, projectManagerRootDirectory)
         void (async () => {
           await localBackend.openProject(
             savedProjectStartupInfo.projectAsset.id,
-            null,
+            {
+              executeAsync: false,
+              cognitoCredentials: null,
+              parentId: savedProjectStartupInfo.projectAsset.parentId,
+            },
             savedProjectStartupInfo.projectAsset.title
           )
           const project = await localBackend.getProjectDetails(
@@ -255,6 +273,9 @@ export default function Dashboard(props: DashboardProps) {
             savedProjectStartupInfo.projectAsset.title
           )
           setProjectStartupInfo(object.merge(savedProjectStartupInfo, { project }))
+          if (page === pageSwitcher.Page.editor) {
+            setPage(page)
+          }
         })()
       }
     }
@@ -358,9 +379,12 @@ export default function Dashboard(props: DashboardProps) {
     (newBackendType: backendModule.BackendType) => {
       if (newBackendType !== backend.type) {
         switch (newBackendType) {
-          case backendModule.BackendType.local:
-            setBackend(new LocalBackend(projectManagerUrl))
+          case backendModule.BackendType.local: {
+            if (projectManagerUrl != null && projectManagerRootDirectory != null) {
+              setBackend(new LocalBackend(projectManagerUrl, projectManagerRootDirectory))
+            }
             break
+          }
           case backendModule.BackendType.remote: {
             const client = new HttpClient([
               ['Authorization', `Bearer ${session.accessToken ?? ''}`],
@@ -377,6 +401,7 @@ export default function Dashboard(props: DashboardProps) {
       logger,
       getText,
       /* should never change */ projectManagerUrl,
+      /* should never change */ projectManagerRootDirectory,
       /* should never change */ setBackend,
     ]
   )
@@ -392,7 +417,8 @@ export default function Dashboard(props: DashboardProps) {
         parentKey: rootDirectoryId,
         parentId: rootDirectoryId,
         templateId: templateId,
-        templateName: templateName,
+        datalinkId: null,
+        preferredName: templateName,
         onSpinnerStateChange: onSpinnerStateChange,
       })
     },
@@ -485,6 +511,8 @@ export default function Dashboard(props: DashboardProps) {
           />
           <Home hidden={page !== pageSwitcher.Page.home} createProject={doCreateProject} />
           <Drive
+            category={category}
+            setCategory={setCategory}
             supportsLocalBackend={supportsLocalBackend}
             hidden={page !== pageSwitcher.Page.drive}
             hideRows={page !== pageSwitcher.Page.drive && page !== pageSwitcher.Page.home}
@@ -545,6 +573,7 @@ export default function Dashboard(props: DashboardProps) {
               category={Category.home}
               labels={labels}
               dispatchAssetEvent={dispatchAssetEvent}
+              isReadonly={category === Category.trash}
             />
           )}
         </div>

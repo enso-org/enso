@@ -31,7 +31,7 @@ val graalVersion = "21.0.2"
 // Version used for the Graal/Truffle related Maven packages
 // Keep in sync with GraalVM.version. Do not change the name of this variable,
 // it is used by the Rust build script via regex matching.
-val graalMavenPackagesVersion = "23.1.2"
+val graalMavenPackagesVersion = "24.0.0"
 val targetJavaVersion         = "17"
 val defaultDevEnsoVersion     = "0.0.0-dev"
 val ensoVersion = sys.env.getOrElse(
@@ -486,7 +486,7 @@ val zio = Seq(
 val bcpkixJdk15Version      = "1.70"
 val declineVersion          = "2.4.1"
 val directoryWatcherVersion = "0.18.0"
-val flatbuffersVersion      = "1.12.0"
+val flatbuffersVersion      = "24.3.25"
 val guavaVersion            = "32.0.0-jre"
 val jlineVersion            = "3.23.0"
 val jgitVersion             = "6.7.0.202309050840-r"

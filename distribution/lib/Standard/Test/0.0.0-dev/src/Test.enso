@@ -10,6 +10,10 @@ import project.Suite.Suite
 import project.Suite.Suite_Builder
 import project.Test_Result.Test_Result
 
+
+polyglot java import java.lang.Thread
+
+
 ## Contains only static methods
 type Test
     ## Construct a Test Suite object
@@ -167,3 +171,41 @@ type Test
         result = behavior
         State.put Clue prev_clue
         result
+
+    ## A helper method that retries the action a few times if it panics.
+       It allows to make flaky tests more robust.
+
+       It waits for a short period of time between retries (in case the failures
+       are related e.g. to network conditions or propagation delays).
+
+       This function should be placed inside of the `specify` block. It can be
+       used to retry the whole test, or it can be applied to a specific block
+       inside of the test to only re-run that specific block (in such case, any
+       side-effects must be considered carefully).
+
+       The method returns the first successful value returned by the action,
+       or fails with the last error thrown by the action after exhausting retry
+       attempts.
+    with_retries : Any -> Any
+    with_retries ~action =
+        loc = Meta.get_source_location 1
+
+        milliseconds_between_attempts = 100
+        ## We give the CI a bit more attempts, as failures are more annoying there.
+           For local development, a bit less retries is enough - there it is more
+           likely that a failure is not flaky but it is an actual error so we
+           don't want to spend too much time retrying when debugging the tests locally.
+        max_retries = if Environment.get "CI" . is_nothing . not then 100 else 20
+
+        go i =
+            Panic.catch Any action caught_panic->
+                # If the iterations are exhausted, we rethrow the panic.
+                if i > max_retries then Panic.throw caught_panic else
+                    if i % 10 == 0 then
+                        IO.println 'Still failing after '+i.to_text+' retries ('+loc.to_display_text+'):\n'+caught_panic.payload.to_display_text
+                    Thread.sleep milliseconds_between_attempts
+                    ## TODO This used to be
+                            @Tail_Call go (i+1)
+                       We should re-add the tail call once https://github.com/enso-org/enso/issues/9251 is fixed.
+                    go (i+1)
+        go 1

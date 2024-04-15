@@ -17,6 +17,7 @@ import AssetListEventType from '#/events/AssetListEventType'
 
 import AssetContextMenu from '#/layouts/AssetContextMenu'
 import type * as assetsTable from '#/layouts/AssetsTable'
+import Category from '#/layouts/CategorySwitcher/Category'
 
 import * as aria from '#/components/aria'
 import * as assetRowUtils from '#/components/dashboard/AssetRow/assetRowUtils'
@@ -31,6 +32,7 @@ import * as backendModule from '#/services/Backend'
 import * as localBackend from '#/services/LocalBackend'
 import * as projectManager from '#/services/ProjectManager'
 
+import type * as assetTreeNode from '#/utilities/AssetTreeNode'
 import AssetTreeNode from '#/utilities/AssetTreeNode'
 import * as dateTime from '#/utilities/dateTime'
 import * as download from '#/utilities/download'
@@ -60,8 +62,8 @@ const DRAG_EXPAND_DELAY_MS = 500
 /** Common properties for state and setters passed to event handlers on an {@link AssetRow}. */
 export interface AssetRowInnerProps {
   readonly key: backendModule.AssetId
-  readonly item: AssetTreeNode
-  readonly setItem: React.Dispatch<React.SetStateAction<AssetTreeNode>>
+  readonly item: assetTreeNode.AnyAssetTreeNode
+  readonly setItem: React.Dispatch<React.SetStateAction<assetTreeNode.AnyAssetTreeNode>>
   readonly state: assetsTable.AssetsTableState
   readonly rowState: assetsTable.AssetRowState
   readonly setRowState: React.Dispatch<React.SetStateAction<assetsTable.AssetRowState>>
@@ -70,7 +72,7 @@ export interface AssetRowInnerProps {
 /** Props for an {@link AssetRow}. */
 export interface AssetRowProps
   extends Readonly<Omit<JSX.IntrinsicElements['tr'], 'onClick' | 'onContextMenu'>> {
-  readonly item: AssetTreeNode
+  readonly item: assetTreeNode.AnyAssetTreeNode
   readonly state: assetsTable.AssetsTableState
   readonly hidden: boolean
   readonly columns: columnUtils.Column[]
@@ -188,7 +190,7 @@ export default function AssetRow(props: AssetRowProps) {
 
   const doMove = React.useCallback(
     async (
-      newParentKey: backendModule.AssetId | null,
+      newParentKey: backendModule.DirectoryId | null,
       newParentId: backendModule.DirectoryId | null
     ) => {
       const rootDirectoryId = user?.rootDirectoryId ?? backendModule.DirectoryId('')
@@ -396,240 +398,260 @@ export default function AssetRow(props: AssetRowProps) {
   }, [setModal, asset.description, setAsset, backend, item.item.id, item.item.title])
 
   eventHooks.useEventHandler(assetEvents, async event => {
-    switch (event.type) {
-      // These events are handled in the specific `NameColumn` files.
-      case AssetEventType.newProject:
-      case AssetEventType.newFolder:
-      case AssetEventType.uploadFiles:
-      case AssetEventType.newDataLink:
-      case AssetEventType.newSecret:
-      case AssetEventType.updateFiles:
-      case AssetEventType.openProject:
-      case AssetEventType.closeProject: {
-        break
-      }
-      case AssetEventType.copy: {
-        if (event.ids.has(item.key)) {
-          await doCopyOnBackend(event.newParentId)
+    if (state.category === Category.trash) {
+      switch (event.type) {
+        case AssetEventType.deleteForever: {
+          if (event.ids.has(item.key)) {
+            await doDelete(true)
+          }
+          break
         }
-        break
-      }
-      case AssetEventType.cut: {
-        if (event.ids.has(item.key)) {
-          setInsertionVisibility(Visibility.faded)
+        case AssetEventType.restore: {
+          if (event.ids.has(item.key)) {
+            await doRestore()
+          }
+          break
         }
-        break
-      }
-      case AssetEventType.cancelCut: {
-        if (event.ids.has(item.key)) {
-          setInsertionVisibility(Visibility.visible)
+        default: {
+          return
         }
-        break
       }
-      case AssetEventType.move: {
-        if (event.ids.has(item.key)) {
-          setInsertionVisibility(Visibility.visible)
-          await doMove(event.newParentKey, event.newParentId)
+    } else {
+      switch (event.type) {
+        // These events are handled in the specific `NameColumn` files.
+        case AssetEventType.newProject:
+        case AssetEventType.newFolder:
+        case AssetEventType.uploadFiles:
+        case AssetEventType.newDataLink:
+        case AssetEventType.newSecret:
+        case AssetEventType.updateFiles:
+        case AssetEventType.openProject:
+        case AssetEventType.closeProject: {
+          break
         }
-        break
-      }
-      case AssetEventType.delete: {
-        if (event.ids.has(item.key)) {
-          await doDelete(false)
+        case AssetEventType.copy: {
+          if (event.ids.has(item.key)) {
+            await doCopyOnBackend(event.newParentId)
+          }
+          break
         }
-        break
-      }
-      case AssetEventType.deleteForever: {
-        if (event.ids.has(item.key)) {
-          await doDelete(true)
+        case AssetEventType.cut: {
+          if (event.ids.has(item.key)) {
+            setInsertionVisibility(Visibility.faded)
+          }
+          break
         }
-        break
-      }
-      case AssetEventType.restore: {
-        if (event.ids.has(item.key)) {
-          await doRestore()
+        case AssetEventType.cancelCut: {
+          if (event.ids.has(item.key)) {
+            setInsertionVisibility(Visibility.visible)
+          }
+          break
         }
-        break
-      }
-      case AssetEventType.download:
-      case AssetEventType.downloadSelected: {
-        if (event.type === AssetEventType.downloadSelected ? selected : event.ids.has(item.key)) {
-          if (isCloud) {
-            switch (asset.type) {
-              case backendModule.AssetType.project: {
-                try {
-                  const details = await backend.getProjectDetails(
-                    asset.id,
-                    asset.parentId,
-                    asset.title
-                  )
-                  if (details.url != null) {
-                    download.download(details.url, asset.title)
-                  } else {
-                    const error: unknown = getText('projectHasNoSourceFilesPhrase')
+        case AssetEventType.move: {
+          if (event.ids.has(item.key)) {
+            setInsertionVisibility(Visibility.visible)
+            await doMove(event.newParentKey, event.newParentId)
+          }
+          break
+        }
+        case AssetEventType.delete: {
+          if (event.ids.has(item.key)) {
+            await doDelete(false)
+          }
+          break
+        }
+        case AssetEventType.deleteForever: {
+          if (event.ids.has(item.key)) {
+            await doDelete(true)
+          }
+          break
+        }
+        case AssetEventType.restore: {
+          if (event.ids.has(item.key)) {
+            await doRestore()
+          }
+          break
+        }
+        case AssetEventType.download:
+        case AssetEventType.downloadSelected: {
+          if (event.type === AssetEventType.downloadSelected ? selected : event.ids.has(item.key)) {
+            if (isCloud) {
+              switch (asset.type) {
+                case backendModule.AssetType.project: {
+                  try {
+                    const details = await backend.getProjectDetails(
+                      asset.id,
+                      asset.parentId,
+                      asset.title
+                    )
+                    if (details.url != null) {
+                      download.download(details.url, asset.title)
+                    } else {
+                      const error: unknown = getText('projectHasNoSourceFilesPhrase')
+                      toastAndLog('downloadProjectError', error, asset.title)
+                    }
+                  } catch (error) {
                     toastAndLog('downloadProjectError', error, asset.title)
                   }
-                } catch (error) {
-                  toastAndLog('downloadProjectError', error, asset.title)
+                  break
                 }
-                break
-              }
-              case backendModule.AssetType.file: {
-                try {
-                  const details = await backend.getFileDetails(asset.id, asset.title)
-                  if (details.url != null) {
-                    download.download(details.url, asset.title)
-                  } else {
-                    const error: unknown = getText('fileNotFoundPhrase')
+                case backendModule.AssetType.file: {
+                  try {
+                    const details = await backend.getFileDetails(asset.id, asset.title)
+                    if (details.url != null) {
+                      download.download(details.url, asset.title)
+                    } else {
+                      const error: unknown = getText('fileNotFoundPhrase')
+                      toastAndLog('downloadFileError', error, asset.title)
+                    }
+                  } catch (error) {
                     toastAndLog('downloadFileError', error, asset.title)
                   }
-                } catch (error) {
-                  toastAndLog('downloadFileError', error, asset.title)
+                  break
                 }
-                break
-              }
-              case backendModule.AssetType.dataLink: {
-                try {
-                  const value = await backend.getConnector(asset.id, asset.title)
-                  const fileName = `${asset.title}.datalink`
-                  download.download(
-                    URL.createObjectURL(
-                      new File([JSON.stringify(value)], fileName, {
-                        type: 'application/json+x-enso-data-link',
-                      })
-                    ),
-                    fileName
-                  )
-                } catch (error) {
-                  toastAndLog('downloadDataLinkError', error, asset.title)
+                case backendModule.AssetType.dataLink: {
+                  try {
+                    const value = await backend.getConnector(asset.id, asset.title)
+                    const fileName = `${asset.title}.datalink`
+                    download.download(
+                      URL.createObjectURL(
+                        new File([JSON.stringify(value)], fileName, {
+                          type: 'application/json+x-enso-data-link',
+                        })
+                      ),
+                      fileName
+                    )
+                  } catch (error) {
+                    toastAndLog('downloadDataLinkError', error, asset.title)
+                  }
+                  break
                 }
-                break
+                default: {
+                  toastAndLog('downloadInvalidTypeError')
+                  break
+                }
               }
-              default: {
-                toastAndLog('downloadInvalidTypeError')
-                break
+            } else {
+              if (asset.type === backendModule.AssetType.project) {
+                const uuid = localBackend.extractTypeAndId(asset.id).id
+                download.download(
+                  `./api/project-manager/projects/${uuid}/enso-project`,
+                  `${asset.title}.enso-project`
+                )
               }
             }
-          } else {
-            if (asset.type === backendModule.AssetType.project) {
-              const uuid = localBackend.extractTypeAndId(asset.id).id
-              download.download(
-                `./api/project-manager/projects/${uuid}/enso-project`,
-                `${asset.title}.enso-project`
-              )
+          }
+          break
+        }
+        case AssetEventType.removeSelf: {
+          // This is not triggered from the asset list, so it uses `item.id` instead of `key`.
+          if (event.id === asset.id && user != null && user.isEnabled) {
+            setInsertionVisibility(Visibility.hidden)
+            try {
+              await backend.createPermission({
+                action: null,
+                resourceId: asset.id,
+                actorsIds: [user.userId],
+              })
+              dispatchAssetListEvent({ type: AssetListEventType.delete, key: item.key })
+            } catch (error) {
+              setInsertionVisibility(Visibility.visible)
+              toastAndLog(null, error)
             }
           }
+          break
         }
-        break
-      }
-      case AssetEventType.removeSelf: {
-        // This is not triggered from the asset list, so it uses `item.id` instead of `key`.
-        if (event.id === asset.id && user != null && user.isEnabled) {
-          setInsertionVisibility(Visibility.hidden)
-          try {
-            await backend.createPermission({
-              action: null,
-              resourceId: asset.id,
-              actorsIds: [user.userId],
-            })
-            dispatchAssetListEvent({ type: AssetListEventType.delete, key: item.key })
-          } catch (error) {
-            setInsertionVisibility(Visibility.visible)
-            toastAndLog(null, error)
+        case AssetEventType.temporarilyAddLabels: {
+          const labels = event.ids.has(item.key) ? event.labelNames : set.EMPTY
+          setRowState(oldRowState =>
+            oldRowState.temporarilyAddedLabels === labels &&
+            oldRowState.temporarilyRemovedLabels === set.EMPTY
+              ? oldRowState
+              : object.merge(oldRowState, {
+                  temporarilyAddedLabels: labels,
+                  temporarilyRemovedLabels: set.EMPTY,
+                })
+          )
+          break
+        }
+        case AssetEventType.temporarilyRemoveLabels: {
+          const labels = event.ids.has(item.key) ? event.labelNames : set.EMPTY
+          setRowState(oldRowState =>
+            oldRowState.temporarilyAddedLabels === set.EMPTY &&
+            oldRowState.temporarilyRemovedLabels === labels
+              ? oldRowState
+              : object.merge(oldRowState, {
+                  temporarilyAddedLabels: set.EMPTY,
+                  temporarilyRemovedLabels: labels,
+                })
+          )
+          break
+        }
+        case AssetEventType.addLabels: {
+          setRowState(oldRowState =>
+            oldRowState.temporarilyAddedLabels === set.EMPTY
+              ? oldRowState
+              : object.merge(oldRowState, { temporarilyAddedLabels: set.EMPTY })
+          )
+          const labels = asset.labels
+          if (
+            event.ids.has(item.key) &&
+            (labels == null || [...event.labelNames].some(label => !labels.includes(label)))
+          ) {
+            const newLabels = [
+              ...(labels ?? []),
+              ...[...event.labelNames].filter(label => labels?.includes(label) !== true),
+            ]
+            setAsset(object.merger({ labels: newLabels }))
+            try {
+              await backend.associateTag(asset.id, newLabels, asset.title)
+            } catch (error) {
+              setAsset(object.merger({ labels }))
+              toastAndLog(null, error)
+            }
           }
+          break
         }
-        break
-      }
-      case AssetEventType.temporarilyAddLabels: {
-        const labels = event.ids.has(item.key) ? event.labelNames : set.EMPTY
-        setRowState(oldRowState =>
-          oldRowState.temporarilyAddedLabels === labels &&
-          oldRowState.temporarilyRemovedLabels === set.EMPTY
-            ? oldRowState
-            : object.merge(oldRowState, {
-                temporarilyAddedLabels: labels,
-                temporarilyRemovedLabels: set.EMPTY,
-              })
-        )
-        break
-      }
-      case AssetEventType.temporarilyRemoveLabels: {
-        const labels = event.ids.has(item.key) ? event.labelNames : set.EMPTY
-        setRowState(oldRowState =>
-          oldRowState.temporarilyAddedLabels === set.EMPTY &&
-          oldRowState.temporarilyRemovedLabels === labels
-            ? oldRowState
-            : object.merge(oldRowState, {
-                temporarilyAddedLabels: set.EMPTY,
-                temporarilyRemovedLabels: labels,
-              })
-        )
-        break
-      }
-      case AssetEventType.addLabels: {
-        setRowState(oldRowState =>
-          oldRowState.temporarilyAddedLabels === set.EMPTY
-            ? oldRowState
-            : object.merge(oldRowState, { temporarilyAddedLabels: set.EMPTY })
-        )
-        const labels = asset.labels
-        if (
-          event.ids.has(item.key) &&
-          (labels == null || [...event.labelNames].some(label => !labels.includes(label)))
-        ) {
-          const newLabels = [
-            ...(labels ?? []),
-            ...[...event.labelNames].filter(label => labels?.includes(label) !== true),
-          ]
-          setAsset(object.merger({ labels: newLabels }))
-          try {
-            await backend.associateTag(asset.id, newLabels, asset.title)
-          } catch (error) {
-            setAsset(object.merger({ labels }))
-            toastAndLog(null, error)
+        case AssetEventType.removeLabels: {
+          setRowState(oldRowState =>
+            oldRowState.temporarilyAddedLabels === set.EMPTY
+              ? oldRowState
+              : object.merge(oldRowState, { temporarilyAddedLabels: set.EMPTY })
+          )
+          const labels = asset.labels
+          if (
+            event.ids.has(item.key) &&
+            labels != null &&
+            [...event.labelNames].some(label => labels.includes(label))
+          ) {
+            const newLabels = labels.filter(label => !event.labelNames.has(label))
+            setAsset(object.merger({ labels: newLabels }))
+            try {
+              await backend.associateTag(asset.id, newLabels, asset.title)
+            } catch (error) {
+              setAsset(object.merger({ labels }))
+              toastAndLog(null, error)
+            }
           }
+          break
         }
-        break
-      }
-      case AssetEventType.removeLabels: {
-        setRowState(oldRowState =>
-          oldRowState.temporarilyAddedLabels === set.EMPTY
-            ? oldRowState
-            : object.merge(oldRowState, { temporarilyAddedLabels: set.EMPTY })
-        )
-        const labels = asset.labels
-        if (
-          event.ids.has(item.key) &&
-          labels != null &&
-          [...event.labelNames].some(label => labels.includes(label))
-        ) {
-          const newLabels = labels.filter(label => !event.labelNames.has(label))
-          setAsset(object.merger({ labels: newLabels }))
-          try {
-            await backend.associateTag(asset.id, newLabels, asset.title)
-          } catch (error) {
-            setAsset(object.merger({ labels }))
-            toastAndLog(null, error)
-          }
+        case AssetEventType.deleteLabel: {
+          setAsset(oldAsset => {
+            // The IIFE is required to prevent TypeScript from narrowing this value.
+            let found = (() => false)()
+            const labels =
+              oldAsset.labels?.filter(label => {
+                if (label === event.labelName) {
+                  found = true
+                  return false
+                } else {
+                  return true
+                }
+              }) ?? null
+            return found ? object.merge(oldAsset, { labels }) : oldAsset
+          })
+          break
         }
-        break
-      }
-      case AssetEventType.deleteLabel: {
-        setAsset(oldAsset => {
-          // The IIFE is required to prevent TypeScript from narrowing this value.
-          let found = (() => false)()
-          const labels =
-            oldAsset.labels?.filter(label => {
-              if (label === event.labelName) {
-                found = true
-                return false
-              } else {
-                return true
-              }
-            }) ?? null
-          return found ? object.merge(oldAsset, { labels }) : oldAsset
-        })
-        break
       }
     }
   })
@@ -652,7 +674,10 @@ export default function AssetRow(props: AssetRowProps) {
       event.dataTransfer.types.includes('Files')
     ) {
       event.preventDefault()
-      if (item.item.type === backendModule.AssetType.directory) {
+      if (
+        item.item.type === backendModule.AssetType.directory &&
+        state.category !== Category.trash
+      ) {
         setIsDraggedOver(true)
       }
     }
@@ -702,7 +727,7 @@ export default function AssetRow(props: AssetRowProps) {
                   unsetModal()
                   onClick(innerProps, event)
                   if (
-                    asset.type === backendModule.AssetType.directory &&
+                    item.type === backendModule.AssetType.directory &&
                     eventModule.isDoubleClick(event) &&
                     !rowState.isEditingName
                   ) {
@@ -711,7 +736,7 @@ export default function AssetRow(props: AssetRowProps) {
                     window.setTimeout(() => {
                       setSelected(false)
                     })
-                    doToggleDirectoryExpansion(asset.id, item.key, asset.title)
+                    doToggleDirectoryExpansion(item.item.id, item.key, asset.title)
                   }
                 }}
                 onContextMenu={event => {
@@ -748,9 +773,9 @@ export default function AssetRow(props: AssetRowProps) {
                   if (dragOverTimeoutHandle.current != null) {
                     window.clearTimeout(dragOverTimeoutHandle.current)
                   }
-                  if (backendModule.assetIsDirectory(asset)) {
+                  if (item.type === backendModule.AssetType.directory) {
                     dragOverTimeoutHandle.current = window.setTimeout(() => {
-                      doToggleDirectoryExpansion(asset.id, item.key, asset.title, true)
+                      doToggleDirectoryExpansion(item.item.id, item.key, asset.title, true)
                     }, DRAG_EXPAND_DELAY_MS)
                   }
                   // Required because `dragover` does not fire on `mouseenter`.
@@ -758,6 +783,10 @@ export default function AssetRow(props: AssetRowProps) {
                   onDragOver(event)
                 }}
                 onDragOver={event => {
+                  if (state.category === Category.trash) {
+                    event.dataTransfer.dropEffect = 'none'
+                  }
+
                   props.onDragOver?.(event)
                   onDragOver(event)
                 }}
@@ -782,43 +811,42 @@ export default function AssetRow(props: AssetRowProps) {
                   props.onDragLeave?.(event)
                 }}
                 onDrop={event => {
-                  props.onDrop?.(event)
-                  clearDragState()
-                  const [directoryKey, directoryId, directoryTitle] =
-                    item.item.type === backendModule.AssetType.directory
-                      ? [item.key, item.item.id, asset.title]
-                      : [item.directoryKey, item.directoryId, null]
-                  const payload = drag.ASSET_ROWS.lookup(event)
-                  if (
-                    payload != null &&
-                    payload.every(innerItem => innerItem.key !== directoryKey)
-                  ) {
-                    event.preventDefault()
-                    event.stopPropagation()
-                    unsetModal()
-                    doToggleDirectoryExpansion(directoryId, directoryKey, directoryTitle, true)
-                    const ids = payload
-                      .filter(payloadItem => payloadItem.asset.parentId !== directoryId)
-                      .map(dragItem => dragItem.key)
-                    dispatchAssetEvent({
-                      type: AssetEventType.move,
-                      newParentKey: directoryKey,
-                      newParentId: directoryId,
-                      ids: new Set(ids),
-                    })
-                  } else if (event.dataTransfer.types.includes('Files')) {
-                    event.preventDefault()
-                    event.stopPropagation()
-                    doToggleDirectoryExpansion(directoryId, directoryKey, directoryTitle, true)
-                    dispatchAssetListEvent({
-                      type: AssetListEventType.uploadFiles,
-                      // This is SAFE, as it is guarded by the condition above:
-                      // `item.item.type === backendModule.AssetType.directory`
-                      // eslint-disable-next-line no-restricted-syntax
-                      parentKey: directoryKey as backendModule.DirectoryId,
-                      parentId: directoryId,
-                      files: Array.from(event.dataTransfer.files),
-                    })
+                  if (state.category !== Category.trash) {
+                    props.onDrop?.(event)
+                    clearDragState()
+                    const [directoryKey, directoryId, directoryTitle] =
+                      item.type === backendModule.AssetType.directory
+                        ? [item.key, item.item.id, asset.title]
+                        : [item.directoryKey, item.directoryId, null]
+                    const payload = drag.ASSET_ROWS.lookup(event)
+                    if (
+                      payload != null &&
+                      payload.every(innerItem => innerItem.key !== directoryKey)
+                    ) {
+                      event.preventDefault()
+                      event.stopPropagation()
+                      unsetModal()
+                      doToggleDirectoryExpansion(directoryId, directoryKey, directoryTitle, true)
+                      const ids = payload
+                        .filter(payloadItem => payloadItem.asset.parentId !== directoryId)
+                        .map(dragItem => dragItem.key)
+                      dispatchAssetEvent({
+                        type: AssetEventType.move,
+                        newParentKey: directoryKey,
+                        newParentId: directoryId,
+                        ids: new Set(ids),
+                      })
+                    } else if (event.dataTransfer.types.includes('Files')) {
+                      event.preventDefault()
+                      event.stopPropagation()
+                      doToggleDirectoryExpansion(directoryId, directoryKey, directoryTitle, true)
+                      dispatchAssetListEvent({
+                        type: AssetListEventType.uploadFiles,
+                        parentKey: directoryKey,
+                        parentId: directoryId,
+                        files: Array.from(event.dataTransfer.files),
+                      })
+                    }
                   }
                 }}
               >
@@ -838,6 +866,7 @@ export default function AssetRow(props: AssetRowProps) {
                         state={state}
                         rowState={rowState}
                         setRowState={setRowState}
+                        isEditable={state.category !== Category.trash}
                       />
                     </td>
                   )

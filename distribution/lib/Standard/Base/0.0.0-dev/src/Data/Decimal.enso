@@ -1,4 +1,5 @@
 import project.Any.Any
+import project.Data.Locale.Locale
 import project.Data.Numeric.Internal.Decimal_Internal
 import project.Data.Numeric.Math_Context.Math_Context
 import project.Data.Numeric.Rounding_Mode.Rounding_Mode
@@ -13,10 +14,16 @@ from project.Data.Numbers import Float, Integer, Number, Number_Parse_Error
 from project.Data.Numeric.Internal.Decimal_Internal import Decimal_Comparator
 from project.Data.Ordering import Comparable, Ordering
 from project.Errors.Common import Arithmetic_Error, Loss_Of_Numeric_Precision, Out_Of_Range, Unsupported_Argument_Types
+from project.Widget_Helpers import make_number_format_selector
 
 polyglot java import java.lang.ArithmeticException
 polyglot java import java.lang.NumberFormatException
+polyglot java import java.lang.Integer as Java_Integer
 polyglot java import java.math.BigDecimal
+polyglot java import java.text.DecimalFormat
+polyglot java import java.text.DecimalFormatSymbols
+polyglot java import java.text.NumberFormat
+polyglot java import java.text.ParseException
 polyglot java import org.enso.base.numeric.ConversionResult
 polyglot java import org.enso.base.numeric.Decimal_Utils
 
@@ -111,7 +118,7 @@ type Decimal
     new (x : Text | Integer | Float) (mc : Math_Context | Nothing = Nothing) -> Decimal ! Arithmetic_Error | Number_Parse_Error =
         handle_java_exception <|
             case x of
-                _ : Text -> Decimal.parse x mc
+                _ : Text -> Decimal.from_string x mc
                 _ : Integer -> Decimal.from_integer x mc
                 _ : Float -> Decimal.from_float x mc
 
@@ -140,9 +147,9 @@ type Decimal
         ^ Example
           Create a `Decimal` from a string.
 
-              d = Decimal.parse "12.345"
-    parse : Text -> Math_Context | Nothing -> Decimal ! Arithmetic_Error | Number_Parse_Error
-    parse (s : Text) (mc : Math_Context | Nothing = Nothing) -> Decimal ! Arithmetic_Error | Number_Parse_Error =
+              d = Decimal.from_string "12.345"
+    from_string : Text -> Math_Context | Nothing -> Decimal ! Number_Parse_Error
+    from_string (s : Text) (mc : Math_Context | Nothing = Nothing) -> Decimal ! Number_Parse_Error =
         handle_java_exception <| handle_number_format_exception <|
             case mc of
                 _ : Math_Context -> Decimal.Value <| handle_precision_loss s <| Decimal_Utils.fromString s mc.math_context
@@ -168,8 +175,8 @@ type Decimal
           Create a `Decimal` from an integer.
 
               d = Decimal.from_integer 12
-    from_integer : Integer -> Math_Context | Nothing -> Decimal ! Arithmetic_Error
-    from_integer (i : Integer) (mc : Math_Context | Nothing = Nothing) -> Decimal ! Arithmetic_Error =
+    from_integer : Integer -> Math_Context | Nothing -> Decimal
+    from_integer (i : Integer) (mc : Math_Context | Nothing = Nothing) -> Decimal =
         handle_java_exception <|
             case mc of
                 _ : Math_Context -> Decimal.Value <| handle_precision_loss i <| Decimal_Utils.fromInteger i mc.math_context
@@ -437,7 +444,7 @@ type Decimal
     ## ALIAS times
        GROUP Operators
        ICON math
-       Multiplies a `Decimal` by another `Decimal` or other kind of number. 
+       Multiplies a `Decimal` by another `Decimal` or other kind of number.
 
        Arguments:
        - that: The number to multiply by this.
@@ -673,11 +680,71 @@ type Decimal
     negate : Decimal
     negate self = Decimal.Value self.big_decimal.negate
 
+    ## GROUP Math
+       ICON math
+       Computes the absolute value of this.
+
+       The absolute value of a positive number is itself, while the absolute
+       value of a negative number is that number multiplied by -1.
+
+       > Example
+         Compute the absolute value of a `Decimal`.
+
+             Decimal.new "-12.345" . abs
+             # => 12.345
+    abs : Decimal
+    abs self -> Decimal = Decimal.Value self.big_decimal.abs
+
+    ## GROUP Math
+       ICON math
+       Returns the sign of the number.
+
+       > Example
+         Compute the sign of a `Decimal`.
+
+             Decimal.new "-12.345" . signum
+             # => -1
+    signum : Integer
+    signum self -> Integer = self.big_decimal.signum
+
+    ## GROUP Math
+       ICON sigma
+       Returns the smaller value of `self` and `that`.
+
+       Arguments:
+       - that: The number to compare `self` against.
+
+       > Example
+         Find the minimum of 12 and 13.
+
+             Decimal.new "12" . min (Decimal.new "13")
+             # => Decimal.new "12"
+    min : Decimal -> Decimal
+    min self (that : Decimal) -> Decimal = if self < that then self else that
+
+    ## GROUP Math
+       ICON math
+       Returns the larger value of `self` and `that`.
+
+       Arguments:
+       - that: The number to compare `self` against.
+
+       > Example
+         Find the maximum of 12 and 13.
+
+             Decimal.new "12" . max (Decimal.new "13")
+             # => Decimal.new "13"
+    max : Decimal -> Decimal
+    max self (that : Decimal) -> Decimal = if self > that then self else that
+
     ## GROUP CONVERSIONS
        Convert this to an `Integer`.
 
        Conversion to `Integer` uses truncation: the fractional portion is
        dropped.
+
+       If the conversion resulted in a loss of precision, a
+       `Loss_Of_Numeric_Precision` warning is attached.
 
        > Example
          Convert `Decimal` 2345.6 to an `Integer`.
@@ -685,7 +752,10 @@ type Decimal
              d.to_integer
              # => 2345
     to_integer : Integer
-    to_integer self = self.big_decimal.toBigInteger
+    to_integer self =
+        i = self.big_decimal.toBigInteger
+        if self == i then i else
+            Warning.attach (Loss_Of_Numeric_Precision.Warning self i) i
 
     ## GROUP CONVERSIONS
        Convert this to a `Float`.
@@ -725,6 +795,142 @@ type Decimal
             message = "Outside representable Float range (approximately (-1.8E308, 1.8E308))"
             Warning.attach (Out_Of_Range.Error self message) f
 
+    ## GROUP Rounding
+       ICON math
+       Round to a specified number of decimal places.
+
+       By default, rounding uses "symmetric round-half-up", also known as
+       "half-up." If use_bankers=True, then it uses "round-half-even", also
+       known as "banker's rounding".
+
+       Arguments:
+       - decimal_places: The number of decimal places to round to. Can be
+         negative, which results in rounding to positive integer powers of 10.
+         Must be between Java `Integer.MIN_VALUE` and `Integer.MAX_VALUE`
+         (-2147483648 and 2147483647) (inclusive).
+       - use_bankers: Rounds mid-point to nearest even number.
+
+       ! Error Conditions
+
+         If `decimal_places` is outside the range `Integer.MIN_VALUE` and
+         `Integer.MAX_VALUE` (inclusive), an `Illegal_Argument` error is thrown.
+
+       ? Negative decimal place counts
+         Rounding to `n` digits can be thought of as "rounding to the nearest
+         multiple of 10^(-n)". For negative decimal counts, this results in
+         rounding to the nearest positive integer power of 10.
+
+       > Example
+         Round to the nearest integer.
+
+             Decimal.new "3.3" . round
+             # => Decimal.new "3"
+
+       > Example
+         Round to two decimal places.
+
+             Decimal.new "3.1415" . round 2
+             # => Decimal.new "3.14"
+
+       > Example
+         Round a very large number.
+
+             Decimal.new "1234.5678E-50" . round 53
+             # => Decimal.new "1234.568E-50"
+
+       > Example
+         Use Banker's Rounding.
+
+             Decimal.new "2.5" . round use_bankers=True
+             # => 2
+    round : Integer -> Boolean -> Decimal
+    round self (decimal_places:Integer=0) (use_bankers:Boolean=False) -> Decimal =
+        out_of_range = decimal_places > Java_Integer.MAX_VALUE || decimal_places < Java_Integer.MIN_VALUE
+        if out_of_range.not then Decimal.Value (Decimal_Utils.round self.big_decimal decimal_places use_bankers) else
+            message = "round decimal_places must be between "+Java_Integer.MIN_VALUE.to_text+" and "+Java_Integer.MAX_VALUE.to_text+" (inclusive), but was "+decimal_places.to_text
+            Error.throw (Out_Of_Range.Error decimal_places message)
+
+    ## GROUP Conversions
+       ICON convert
+       Converts a `Decimal` to a string, using the Java `DecimalFormat` formatter.
+
+       For details about the `DecimalFormat` format specifier, see
+       https://docs.oracle.com/javase/8/docs/api/java/text/DecimalFormat.html.
+
+       Arguments:
+       - format: The Java-style formatting specifier.
+       - locale: Species the `Locale` to use for locale-specific number
+         formatting.
+
+       > Example
+         Convert a `Decimal` to a string using the default format and locale.
+
+             Decimal.new "123456789.87654" . format
+             # => "123,456,789.87654"
+
+       > Example
+         Convert a `Decimal` to a string using a specific locale.
+
+             Decimal.new "123456789.87654" . format locale=Locale.italy
+             # => "123.456.789,87654"
+
+       > Example
+         Convert a `Decimal` to a string using a specific format string.
+
+             Decimal.new "123456789.87654" . format format="#,###.##"
+             # => 123,456,789.88"
+    @format make_number_format_selector
+    @locale Locale.default_widget
+    format : Text -> Locale -> Text
+    format self format:Text="" locale:Locale=Locale.default =
+        symbols = DecimalFormatSymbols.new locale.java_locale
+        formatter = DecimalFormat.new format symbols
+        formatter.format self.big_decimal
+
+    ## ALIAS from text
+       GROUP Conversions
+       ICON convert
+
+       Parses a string into a `Decimal`, returning a `Number_Parse_Error` if the
+       text does not represent a valid `Decimal`.
+
+       Arguments:
+       - text: The text to parse into a `Decimal`.
+       - locale: The locale that specifies the format to use when parsing.
+
+       ! Error Conditions
+
+         - If `text` is incorrectly formatted, a `Number_Parse_Error` is thrown.
+
+       > Example
+         Parse a `Decimal` with no local specifier.
+
+             Decimal.parse "123456789.87654"
+             # => 123456789.87654
+
+       > Example
+         Parse a `Decimal` with the default locale.
+
+             Decimal.parse "123,456,789.87654" locale=Locale.default
+             # => 123456789.87654
+
+       > Example
+         Parse a `Decimal` with the US locale.
+
+             Decimal.parse "123,456,789.87654" locale=Locale.us
+             # => 123456789.87654
+
+       > Example
+         Parse a `Decimal` with the Italy locale.
+
+             Decimal.parse "123.456.789,87654" locale=Locale.italy
+             # => 123456789.87654
+    parse : Text -> Locale | Nothing -> Decimal ! Number_Parse_Error
+    parse text locale:(Locale | Nothing)=Nothing = case locale of
+        Nothing -> Decimal.from_string text
+        Locale.Value java_locale -> Panic.catch ParseException ((NumberFormat.getInstance java_locale).parse text) _->
+            Error.throw (Number_Parse_Error.Error text)
+
     ## PRIVATE
     precision : Integer
     precision self = self.big_decimal.precision
@@ -734,19 +940,28 @@ type Decimal
     scale self = self.big_decimal.scale
 
     ## PRIVATE
-       TODO: This +0 is needed to allow internal representations to be compared.
     unscaled_value : Integer
-    unscaled_value self = self.big_decimal.unscaledValue + 0
+    unscaled_value self = self.big_decimal.unscaledValue
 
     ## PRIVATE
     internal_representation : [Integer]
     internal_representation self = [self.unscaled_value, self.precision, self.scale]
 
     ## PRIVATE
+       Note: the underlying Java `BigDecimal` implementation is not affected by
+       locale.
     to_text : Text
     to_text self = self.big_decimal.toString
 
     ## PRIVATE
+       Note: the underlying Java `BigDecimal` implementation is not affected by
+       locale.
+    to_display_text : Text
+    to_display_text self = self.big_decimal.toString
+
+    ## PRIVATE
+       Note: the underlying Java `BigDecimal` implementation is not affected by
+       locale.
     to_text_without_scientific_notation : Text
     to_text_without_scientific_notation  self = self.big_decimal.toPlainString
 
@@ -783,10 +998,8 @@ Comparable.from (_ : Decimal) = Decimal_Comparator
 
 Comparable.from (_ : Number) = Decimal_Comparator
 
-Decimal.from (that : Text) = Decimal.parse that
+Decimal.from (that : Text) = Decimal.from_string that
 
 Decimal.from (that : Number) = Decimal.new that
-
-Integer.from (that : Decimal) = that.to_integer
 
 Float.from (that : Decimal) = that.to_float

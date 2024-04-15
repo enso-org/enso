@@ -246,9 +246,7 @@ impl<'a, L: Location> Span<'a, L> {
                 }
                 Some(_) => break,
                 None => {
-                    let unexpected_condition = "Internal error: Expected greater indent level.";
-                    self.warn(unexpected_condition);
-                    warn!("{unexpected_condition}");
+                    self.warn("Internal error: Expected greater indent level.");
                     break;
                 }
             }

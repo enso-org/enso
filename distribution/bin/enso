@@ -8,5 +8,5 @@ for opt in "$@"; do
 done
 
 JAVA_OPTS="--add-opens=java.base/java.nio=ALL-UNNAMED $JAVA_OPTS"
-exec java --module-path $COMP_PATH $EXTRA_OPTS $JAVA_OPTS -m org.enso.runtime/org.enso.EngineRunnerBootLoader "$@"
+exec java --module-path $COMP_PATH -Dorg.graalvm.language.enso.home=$COMP_PATH $EXTRA_OPTS $JAVA_OPTS -m org.enso.runtime/org.enso.EngineRunnerBootLoader "$@"
 exit

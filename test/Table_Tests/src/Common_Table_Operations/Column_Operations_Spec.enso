@@ -181,6 +181,10 @@ add_specs suite_builder setup =
 
         Round_Spec.add_specs group_builder do_round
 
+        group_builder.specify "Decimal places out of range" <|
+            3.1 . round 16 . should_fail_with Illegal_Argument
+            3.1 . round -16 . should_fail_with Illegal_Argument
+
     ## Runs the provided callback with a few combinations of columns, where some
        of them are made Mixed (but still contain only the original values).
        If the backend does not support mixed columns, the callback is run only

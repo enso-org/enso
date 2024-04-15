@@ -13,11 +13,9 @@ import type { Vec2 } from '@/util/data/vec2'
 import { stackItemsEqual } from 'shared/languageServerTypes'
 import { computed, toRaw } from 'vue'
 
-const projectStore = useProjectStore()
-const graphStore = useGraphStore()
-const dragging = useDragging()
-const selection = injectGraphSelection(true)
-const navigator = injectGraphNavigator(true)
+const props = defineProps<{
+  graphNodeSelections: HTMLElement | undefined
+}>()
 
 const emit = defineEmits<{
   nodeOutputPortDoubleClick: [portId: AstId]
@@ -25,6 +23,12 @@ const emit = defineEmits<{
   createNodes: [source: NodeId, options: NodeCreationOptions[]]
   toggleColorPicker: []
 }>()
+
+const projectStore = useProjectStore()
+const graphStore = useGraphStore()
+const dragging = useDragging()
+const selection = injectGraphSelection(true)
+const navigator = injectGraphNavigator(true)
 
 function nodeIsDragged(movedId: NodeId, offset: Vec2) {
   const scaledOffset = offset.scale(1 / (navigator?.scale ?? 1))
@@ -49,6 +53,7 @@ const uploadingFiles = computed<[FileName, File][]>(() => {
     :key="id"
     :node="node"
     :edited="id === graphStore.editedNodeInfo?.id"
+    :graphNodeSelections="props.graphNodeSelections"
     @pointerenter="hoverNode(id)"
     @pointerleave="hoverNode(undefined)"
     @delete="graphStore.deleteNodes([id])"

@@ -32,35 +32,6 @@ pub mod manifest;
 
 
 
-/// Get the prefix of URL of the release's asset in GitHub.
-///
-/// By joining it with the asset name, we can get the URL of the asset.
-///
-/// ```
-/// # use enso_build::prelude::*;
-/// # use enso_build::release::download_asset_prefix;
-/// # use ide_ci::github::RepoRef;
-/// let repo = RepoRef::new("enso-org", "enso");
-/// let version = Version::from_str("2020.1.1").unwrap();
-/// let prefix = download_asset_prefix(&repo, &version);
-/// assert_eq!(prefix.as_str(), "https://github.com/enso-org/enso/releases/download/2020.1.1");
-/// ```
-pub fn download_asset_prefix(repo: &impl IsRepo, version: &Version) -> Url {
-    let text = format!("https://github.com/{repo}/releases/download/{version}",);
-    Url::from_str(&text).expect("Failed to parse the URL.")
-}
-
-/// Get the URL for downloading the asset from the GitHub release.
-pub fn download_asset(
-    repo: &impl IsRepo,
-    version: &Version,
-    asset_name: impl AsRef<str>,
-) -> String {
-    let prefix = download_asset_prefix(repo, version);
-    let asset_name = asset_name.as_ref();
-    format!("{prefix}/{asset_name}")
-}
-
 /// Generate placeholders for the release notes.
 pub fn release_body_placeholders(
     context: &BuildContext,
@@ -215,14 +186,18 @@ pub async fn validate_release(release: github::release::Handle) -> Result {
     let info = release.get().await?;
     ensure!(!info.draft, "Release is a draft.");
     let version = Version::from_str(&info.tag_name)?;
-    let manifest_url = download_asset(&release.repo, &version, manifest::ASSETS_MANIFEST_FILENAME);
-    let manifest = ide_ci::io::download_all(&manifest_url)
+    let manifest_url = github::release::download_asset(
+        &release.repo,
+        &version,
+        manifest::ASSETS_MANIFEST_FILENAME,
+    );
+    let manifest = ide_ci::io::download_all(manifest_url)
         .await
         .context("Failed to download assets manifest.")?;
     let manifest: manifest::Assets =
         serde_json::from_slice(&manifest).context("Failed to parse assets manifest.")?;
     for asset in manifest.assets() {
-        let response = reqwest::Client::new().get(&asset.url).send().await?;
+        let response = reqwest::Client::new().get(asset.url.clone()).send().await?;
         ensure!(response.status().is_success(), "Failed to download asset: {}", asset.url);
     }
     Ok(())
@@ -384,12 +359,6 @@ mod tests {
         let manifest = manifest::Assets::new(&context.remote_repo, &version);
         let manifest_json = serde_json::to_string_pretty(&manifest)?;
         debug!("Manifest: {}", manifest_json);
-
-        let all_assets = manifest.ide.iter().chain(&manifest.engine);
-        for asset in all_assets {
-            let response = reqwest::Client::new().get(&asset.url).send().await?;
-            ensure!(response.status().is_success(), "Failed to download asset: {}", asset.url);
-        }
 
         Ok(())
     }

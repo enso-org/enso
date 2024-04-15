@@ -3,13 +3,14 @@ package org.enso.interpreter.runtime.data;
 import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
 import com.oracle.truffle.api.TruffleFile;
-import com.oracle.truffle.api.dsl.Cached;
+import com.oracle.truffle.api.dsl.Bind;
 import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.InvalidArrayIndexException;
 import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
+import com.oracle.truffle.api.nodes.Node;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -156,7 +157,15 @@ public final class EnsoFile implements EnsoObject {
   @Builtin.Method(name = "parent")
   @CompilerDirectives.TruffleBoundary
   public EnsoObject getParent() {
-    var parentOrNull = this.truffleFile.getParent();
+    // Normalization is needed to correctly handle paths containing `..` and `.`.
+    var parentOrNull = this.normalize().truffleFile.getParent();
+
+    // If the path has no parent because it is relative and there are no more segments, try again
+    // after making it absolute:
+    if (parentOrNull == null && !this.truffleFile.isAbsolute()) {
+      parentOrNull = this.truffleFile.getAbsoluteFile().normalize().getParent();
+    }
+
     if (parentOrNull != null) {
       return new EnsoFile(parentOrNull);
     } else {
@@ -228,7 +237,7 @@ public final class EnsoFile implements EnsoObject {
   @Builtin.Method(name = "name")
   @CompilerDirectives.TruffleBoundary
   public Text getName() {
-    var name = this.truffleFile.getName();
+    var name = this.normalize().truffleFile.getName();
     return Text.create(name == null ? "/" : name);
   }
 
@@ -255,7 +264,13 @@ public final class EnsoFile implements EnsoObject {
   @Builtin.Method
   @CompilerDirectives.TruffleBoundary
   public EnsoFile normalize() {
-    return new EnsoFile(truffleFile.normalize());
+    TruffleFile simplyNormalized = truffleFile.normalize();
+    String name = simplyNormalized.getName();
+    boolean needsAbsolute = name != null && (name.equals("..") || name.equals("."));
+    if (needsAbsolute) {
+      simplyNormalized = simplyNormalized.getAbsoluteFile().normalize();
+    }
+    return new EnsoFile(simplyNormalized);
   }
 
   @Builtin.Method(name = "delete_builtin")
@@ -346,7 +361,7 @@ public final class EnsoFile implements EnsoObject {
   }
 
   @ExportMessage
-  Type getType(@CachedLibrary("this") TypesLibrary thisLib, @Cached("1") int ignore) {
-    return EnsoContext.get(thisLib).getBuiltins().file();
+  Type getType(@Bind("$node") Node node) {
+    return EnsoContext.get(node).getBuiltins().file();
   }
 }
