@@ -310,17 +310,19 @@ type Enso_File
             Asset_Cache.update file asset
             file
 
-    ## UNSTABLE
+    ## ICON folder_add
        GROUP Output
-       Creates a subdirectory in a specified directory.
-    create_directory : Text -> Enso_File
-    create_directory self (name : Text) =
-        effective_name = if name.ends_with "/" then name.drop (Last 1) else name
+       Creates the directory represented by this file if it did not exist.
+
+       It also creates parent directories if they did not exist.
+    create_directory : Enso_File
+    create_directory self =
+        # TODO!
         asset = Existing_Enso_Asset.get_asset_reference_for self
         if asset.is_directory.not then Error.throw (Illegal_Argument.Error "Only directories can contain subdirectories.") else
             parent_field = if self.is_current_user_root then [] else
                 [["parentId", asset.id]]
-            body = JS_Object.from_pairs [["title", effective_name]]+parent_field
+            body = JS_Object.from_pairs [["title", name]]+parent_field
             created_directory = Enso_File.Value (self.enso_path.resolve name)
             Asset_Cache.invalidate created_directory
             response = Utils.http_request_as_json HTTP_Method.Post Utils.directory_api body
@@ -332,8 +334,15 @@ type Enso_File
     ## UNSTABLE
        GROUP Output
        Deletes the file or directory.
-    delete : Nothing
-    delete self = if self.enso_path.is_root then Error.throw (Illegal_Argument.Error "The root directory cannot be deleted.") else
+
+       Arguments:
+       - recursive: If the target is a non-empty directory, it will only be
+         removed if this is set to `True`. Defaults to `False`, meaning that the
+         operation will fail if the directory is not empty. This option has no
+         effect for files or data links.
+    delete : Boolean -> Nothing
+    delete self (recursive : Boolean = False) = if self.enso_path.is_root then Error.throw (Illegal_Argument.Error "The root directory cannot be deleted.") else
+        # TODO recursive
         asset = Existing_Enso_Asset.get_asset_reference_for self
         # The `if_not_error` here is a workaround for bug https://github.com/enso-org/enso/issues/9669
         uri = asset.if_not_error <|
@@ -344,9 +353,15 @@ type Enso_File
 
     ## ICON data_output
        Deletes the file if it had existed.
-    delete_if_exists : Nothing
-    delete_if_exists self =
-        r = self.delete
+
+       Arguments:
+       - recursive: If the target is a non-empty directory, it will only be
+         removed if this is set to `True`. Defaults to `False`, meaning that the
+         operation will fail if the directory is not empty. This option has no
+         effect for files or data links.
+    delete_if_exists : Boolean -> Nothing
+    delete_if_exists self (recursive : Boolean = False) =
+        r = self.delete recursive
         r.catch File_Error err-> case err of
             File_Error.Not_Found _ -> Nothing
             _ -> r

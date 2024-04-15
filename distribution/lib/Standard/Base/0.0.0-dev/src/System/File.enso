@@ -496,6 +496,7 @@ type File
     is_directory self = @Builtin_Method "File.is_directory"
 
     ## ICON folder_add
+       GROUP Output
        Creates the directory represented by this file if it did not exist.
 
        It also creates parent directories if they did not exist.
@@ -659,7 +660,7 @@ type File
                  file = Examples.data_dir / "my_file"
                  file.write_text "hello"
                  file.delete
-    delete : Nothing ! File_Error
+    delete : Boolean -> Nothing ! File_Error
     delete self (recursive : Boolean = False) =
         Context.Output.if_enabled disabled_message="File deleting is forbidden as the Output context is disabled." panic=False <|
             File_Error.handle_java_exceptions self (self.delete_builtin recursive)
@@ -710,7 +711,7 @@ type File
              import Standard.Examples
 
              example_del_if_exists = Examples.scratch_file.delete_if_exists
-    delete_if_exists : Nothing ! File_Error
+    delete_if_exists : Boolean -> Nothing ! File_Error
     delete_if_exists self (recursive : Boolean = False) = if self.exists then self.delete recursive else Nothing
 
     ## PRIVATE
