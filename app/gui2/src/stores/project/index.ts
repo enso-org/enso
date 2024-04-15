@@ -64,7 +64,7 @@ function createLsRpcConnection(clientId: Uuid, url: string, abort: AbortScope): 
   return connection
 }
 
-async function initializeDataConnection(clientId: Uuid, url: string, abort: AbortScope) {
+function initializeDataConnection(clientId: Uuid, url: string, abort: AbortScope) {
   const client = createDataWebsocket(url, 'arraybuffer')
   const connection = new DataServer(clientId, client, abort)
   abort.handleDispose(connection)
@@ -273,37 +273,35 @@ export const useProjectStore = defineStore('project', () => {
     expression: string,
   ): Promise<Result<string> | null> {
     return new Promise((resolve) => {
-      Promise.all([lsRpcConnection, dataConnection]).then(([lsRpc, data]) => {
-        const visualizationId = random.uuidv4() as Uuid
-        const dataHandler = (visData: VisualizationUpdate, uuid: Uuid | null) => {
-          if (uuid === visualizationId) {
-            const dataStr = visData.dataString()
-            resolve(dataStr != null ? Ok(dataStr) : null)
-            data.off(`${OutboundPayload.VISUALIZATION_UPDATE}`, dataHandler)
-            executionContext.off('visualizationEvaluationFailed', errorHandler)
-          }
+      const visualizationId = random.uuidv4() as Uuid
+      const dataHandler = (visData: VisualizationUpdate, uuid: Uuid | null) => {
+        if (uuid === visualizationId) {
+          const dataStr = visData.dataString()
+          resolve(dataStr != null ? Ok(dataStr) : null)
+          dataConnection.off(`${OutboundPayload.VISUALIZATION_UPDATE}`, dataHandler)
+          executionContext.off('visualizationEvaluationFailed', errorHandler)
         }
-        const errorHandler = (
-          uuid: Uuid,
-          _expressionId: ExpressionId,
-          message: string,
-          _diagnostic: Diagnostic | undefined,
-        ) => {
-          if (uuid == visualizationId) {
-            resolve(Err(message))
-            data.off(`${OutboundPayload.VISUALIZATION_UPDATE}`, dataHandler)
-            executionContext.off('visualizationEvaluationFailed', errorHandler)
-          }
+      }
+      const errorHandler = (
+        uuid: Uuid,
+        _expressionId: ExpressionId,
+        message: string,
+        _diagnostic: Diagnostic | undefined,
+      ) => {
+        if (uuid == visualizationId) {
+          resolve(Err(message))
+          dataConnection.off(`${OutboundPayload.VISUALIZATION_UPDATE}`, dataHandler)
+          executionContext.off('visualizationEvaluationFailed', errorHandler)
         }
-        data.on(`${OutboundPayload.VISUALIZATION_UPDATE}`, dataHandler)
-        executionContext.on('visualizationEvaluationFailed', errorHandler)
-        return lsRpc.executeExpression(
-          executionContext.id,
-          visualizationId,
-          expressionId,
-          expression,
-        )
-      })
+      }
+      dataConnection.on(`${OutboundPayload.VISUALIZATION_UPDATE}`, dataHandler)
+      executionContext.on('visualizationEvaluationFailed', errorHandler)
+      return lsRpcConnection.executeExpression(
+        executionContext.id,
+        visualizationId,
+        expressionId,
+        expression,
+      )
     })
   }
 

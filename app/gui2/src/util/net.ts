@@ -25,7 +25,7 @@ export function createRpcTransport(url: string): ReconnectingTransportWithWebsoc
 
 export function createDataWebsocket(url: string, binaryType: 'arraybuffer' | 'blob'): WebSocket {
   if (url.startsWith('mock://')) {
-    const mockWs = new MockWebSocket(url, 'Data connection')
+    const mockWs = new MockWebSocket(url, url.slice('mock://'.length))
     mockWs.binaryType = binaryType
     return mockWs
   } else {
