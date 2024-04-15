@@ -274,8 +274,11 @@ export class Cognito {
     }
   }
 
+  /**
+   * Refresh the current user's session.
+   */
   async refreshUserSession() {
-    return results.Ok(null)
+    return Promise.resolve(results.Ok(null))
   }
 }
 
