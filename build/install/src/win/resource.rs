@@ -19,9 +19,7 @@ pub fn get_binary(name: &str) -> Result<&'static [u8]> {
         Foundation::SetLastError(Foundation::WIN32_ERROR::default());
         let resource =
             LibraryLoader::FindResourceW(None, &HSTRING::from(name), crate::win::RT_RCDATA);
-        Foundation::GetLastError()
-            .with_context(|| format!("Failed to find resource: {name:?}"))
-            .unwrap();
+        Foundation::GetLastError().with_context(|| format!("Failed to find resource: {name:?}"))?;
         let global = LibraryLoader::LoadResource(None, resource).unwrap();
         let data = LibraryLoader::LockResource(global);
         let size = LibraryLoader::SizeofResource(None, resource);

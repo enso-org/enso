@@ -1508,7 +1508,7 @@ dependencies = [
  "tar",
  "tokio",
  "tracing",
- "windows",
+ "windows 0.53.0",
  "winreg 0.52.0",
 ]
 
@@ -1539,7 +1539,8 @@ dependencies = [
  "tar",
  "tokio",
  "tracing",
- "windows",
+ "winapi",
+ "windows 0.52.0",
 ]
 
 [[package]]
@@ -2768,16 +2769,15 @@ dependencies = [
 
 [[package]]
 name = "named-lock"
-version = "0.3.0"
+version = "0.4.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0b4a84f3731e71a5792fca72324356bf700c8959d31a2ac34134b25989f254c3"
+checksum = "988ce9f7411c058a1d6788e60897a949dcdf5aa66202d789da045a03b4e4f406"
 dependencies = [
  "libc",
  "once_cell",
  "parking_lot",
  "thiserror",
- "widestring",
- "winapi",
+ "windows 0.53.0",
 ]
 
 [[package]]
@@ -4260,7 +4260,7 @@ dependencies = [
  "ntapi",
  "once_cell",
  "rayon",
- "windows",
+ "windows 0.52.0",
 ]
 
 [[package]]
@@ -5095,12 +5095,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "widestring"
-version = "1.1.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7219d36b6eac893fa81e84ebe06485e7dcbb616177469b142df14f1f4deb1311"
-
-[[package]]
 name = "winapi"
 version = "0.3.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -5143,7 +5137,17 @@ version = "0.52.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e48a53791691ab099e5e2ad123536d0fff50652600abaf43bbf952894110d0be"
 dependencies = [
- "windows-core",
+ "windows-core 0.52.0",
+ "windows-targets 0.52.4",
+]
+
+[[package]]
+name = "windows"
+version = "0.53.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "efc5cf48f83140dcaab716eeaea345f9e93d0018fb81162753a3f76c3397b538"
+dependencies = [
+ "windows-core 0.53.0",
  "windows-targets 0.52.4",
 ]
 
@@ -5152,6 +5156,25 @@ name = "windows-core"
 version = "0.52.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "33ab640c8d7e35bf8ba19b884ba838ceb4fba93a4e8c65a9059d08afcfc683d9"
+dependencies = [
+ "windows-targets 0.52.4",
+]
+
+[[package]]
+name = "windows-core"
+version = "0.53.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9dcc5b895a6377f1ab9fa55acedab1fd5ac0db66ad1e6c7f47e28a22e446a5dd"
+dependencies = [
+ "windows-result",
+ "windows-targets 0.52.4",
+]
+
+[[package]]
+name = "windows-result"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "cd19df78e5168dfb0aedc343d1d1b8d422ab2db6756d2dc3fef75035402a3f64"
 dependencies = [
  "windows-targets 0.52.4",
 ]

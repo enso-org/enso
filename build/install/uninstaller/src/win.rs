@@ -44,7 +44,6 @@ fn handle_error<T>(errors: &mut Vec<anyhow::Error>, result: Result<T>) -> Option
     }
 }
 
-#[tokio::main]
 pub async fn main() -> Result {
     let mut errors = vec![];
 
@@ -54,7 +53,9 @@ pub async fn main() -> Result {
 
     let install_dir = parent_directory().unwrap();
 
-    // Make sure that Enso.exe is in the same directory as this installer.
+    // Make sure that Enso.exe is in the same directory as this uninstaller. This is to prevent
+    // situation where just the uninstaller binary is placed by accident elsewhere and ends up
+    // deleting the whole directory.
     let executable_filename = enso_install::executable_filename();
     let expected_executable = install_dir.join(&executable_filename);
     let shortcut_name = enso_install::shortcut_name();

@@ -1,4 +1,4 @@
-//! Rust representation of the `electron-builder` configuration.
+//! Rust representation of the `electron-builder` configuration subset.
 
 use crate::prelude::*;
 

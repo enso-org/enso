@@ -33,6 +33,7 @@ fn main() {
 mod tests {
     #[test]
     fn uninstaller_name_matches() {
+        // Make sure the uninstaller expected filename matches the package name.
         assert_eq!(enso_install_config::UNINSTALLER_NAME, env!("CARGO_PKG_NAME"));
     }
 }

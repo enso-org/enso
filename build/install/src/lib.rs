@@ -20,17 +20,37 @@ pub mod prelude {
 }
 
 use enso_install_config::electron_builder;
+use enso_install_config::ENSO_INSTALL_ARCHIVE_PATH;
+use enso_install_config::INSTALLER_PAYLOAD_ID;
 use prelude::*;
 
 #[cfg(windows)]
 pub mod win;
 
+/// Get compiled-in `electron builder`-based configuration.
+///
+/// # Panics
+///
+/// This function will panic if the path to the configuration was not set during the build process,
+/// or if the configuration was invalid.
 pub fn sanitized_electron_builder_config() -> &'static electron_builder::Config {
     static CONFIG: std::sync::LazyLock<electron_builder::Config> = std::sync::LazyLock::new(|| {
+        let config_path = env!("ENSO_INSTALL_ELECTRON_BUILDER_CONFIG");
         let data = include_str!(env!("ENSO_INSTALL_ELECTRON_BUILDER_CONFIG"));
+        if config_path.is_empty() {
+            panic!("The path to the electron-builder config is empty. The installer was built without `ENSO_INSTALL_ELECTRON_BUILDER_CONFIG` environment variable set.");
+        }
+        if data.is_empty() {
+            panic!("The electron-builder config is empty. Probably the installer was built without `ENSO_BUILD_ELECTRON_BUILDER_CONFIG` environment variable set.");
+        }
         serde_json::from_str(data).expect("Failed to parse the electron-builder config.")
     });
     &CONFIG
+}
+
+/// Get the binary payload of the installer that was compiled into the executable.
+pub fn get_package_payload() -> Result<&'static [u8]> {
+    win::resource::get_binary(INSTALLER_PAYLOAD_ID).with_context(|| format!("Failed to get the installer payload. Was {ENSO_INSTALL_ARCHIVE_PATH} defined during the build?"))
 }
 
 /// The name of the Windows registry key where uninstall information is stored.
@@ -52,20 +72,6 @@ pub fn executable_filename() -> PathBuf {
 pub fn shortcut_name() -> &'static str {
     &sanitized_electron_builder_config().product_name
 }
-
-// pub mod config {
-//
-//     pub const SOURCE_FILE_PROG_ID: &str = "Enso.Source";
-//
-//     /// The [programmatic identifier](https://docs.microsoft.com/en-us/windows/win32/shell/fa-progids) of the Enso Project Bundle.
-//     pub const PROJECT_BUNDLE_PROG_ID: &str = "Enso.ProjectBundle";
-//
-//     /// The [programmatic identifiers](https://docs.microsoft.com/en-us/windows/win32/shell/fa-progids) registered by the Enso installer.
-//     pub const PROG_IDS: &[&str] = &[SOURCE_FILE_PROG_ID, PROJECT_BUNDLE_PROG_ID];
-//
-//     /// The publisher name that will be displayed in the Add/Remove Programs dialog.
-//     pub const PUBLISHER_NAME: &str = "New Byte Order sp. z o.o.";
-// }
 
 /// Acquire a named file lock.
 ///

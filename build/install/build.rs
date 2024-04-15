@@ -24,6 +24,7 @@ fn try_embedding_icon() -> Result {
 }
 
 fn main() {
+    setup_logging().ok();
     // Ignore error, not compiling the icon is not a big deal, especially if we compile to check, to
     // not generate final package. (Obtaining icon is a bit of a hassle, as it is generated
     // temporarily by the enso-build.)
@@ -74,7 +75,7 @@ END
             copyright = config.copyright
         );
         let path = OUT_DIR.get().unwrap().join("version.rc");
-        ide_ci::fs::write(&path, version_rc).unwrap();
+        ide_ci::fs::write_if_different(&path, version_rc).unwrap();
         embed_resource::compile(&path, embed_resource::NONE);
     }
 
@@ -85,7 +86,7 @@ END
     let manifest_path = Path::new("enso-install.manifest");
     assert!(manifest_path.exists(), "Manifest file does not exist: {}", manifest_path.display());
     let rc_path = OUT_DIR.get().unwrap().join("manifest.rc");
-    ide_ci::fs::write(
+    ide_ci::fs::write_if_different(
         &rc_path,
         format!("#define RT_MANIFEST 24\n1 RT_MANIFEST \"{}\"", manifest_path.display()),
     )

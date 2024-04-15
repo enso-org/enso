@@ -48,6 +48,84 @@ pub fn register_uninstaller(
     Ok(())
 }
 
+pub fn install_with_updates(
+    install_location: &Path,
+    archive_payload: &[u8],
+    config: &Config,
+    sender: std::sync::mpsc::Sender<crate::InstallerUpdate>,
+) -> Result {
+    let stage = |text| sender.send(crate::InstallerUpdate::Stage(text));
+    // Helper formatting macro for sending stage updates.
+    macro_rules! stage {
+        ($($arg:tt)*) => {
+            stage(format!($($arg)*));
+            info!($($arg)*);
+        };
+    }
+    macro_rules! stage_at {
+        ($progress:literal, $($arg:tt)*) => {
+            stage(format!($($arg)*));
+            sender.send(crate::InstallerUpdate::Progress($progress));
+            info!($($arg)*);
+        };
+    }
+
+    stage_at!(0.0, "Removing old installation files (if present).");
+    ide_ci::fs::reset_dir(install_location)?;
+
+    let to_our_path = |path_in_archive: &Path| -> Option<PathBuf> {
+        Some(install_location.join(path_in_archive))
+    };
+    let executable_location = install_location.join(&config.executable_filename);
+
+    // Extract the files.
+    let decoder = flate2::read::GzDecoder::new(archive_payload);
+    let archive = tar::Archive::new(decoder);
+    stage_at!(0.05, "Extracting files.");
+    ide_ci::archive::tar::extract_files_sync(archive, to_our_path)?;
+
+    stage_at!(0.75, "Registering file types.");
+    register_file_associations(&config.file_associations)?;
+
+    for protocol in &config.url_protocols {
+        stage_at!(0.79, "Registering URL protocol '{protocol}'.");
+        register_url_protocol(&executable_location, protocol)?;
+    }
+
+    stage_at!(0.83, "Registering the application path.");
+    let app_paths_info = enso_install::win::app_paths::AppPathInfo::new(&executable_location);
+    app_paths_info.write_to_registry()?;
+
+    stage_at!(0.87, "Registering the uninstaller.");
+    register_uninstaller(config, install_location, &install_location.join("enso-uninstaller.exe"))?;
+
+    stage_at!(0.91, "Creating Start Menu entry.");
+    enso_install::win::shortcut::Location::Menu
+        .create_shortcut(&config.shortcut_name, &executable_location)?;
+
+    stage_at!(94.0, "Creating Desktop shortcut.");
+    enso_install::win::shortcut::Location::Desktop
+        .create_shortcut(&config.shortcut_name, &executable_location)?;
+
+
+    stage_at!(1.0, "Installation complete.");
+    sender.send(crate::InstallerUpdate::Finished(Ok(())));
+    Ok(())
+}
+
+pub fn spawn_installer_thread(
+    install_location: impl AsRef<Path>,
+    archive_payload: &'static [u8],
+    config: Config,
+) -> (std::thread::JoinHandle<Result>, std::sync::mpsc::Receiver<crate::InstallerUpdate>) {
+    let install_location = install_location.as_ref().to_path_buf();
+    let (sender, receiver) = std::sync::mpsc::channel();
+    let handle = std::thread::spawn(move || {
+        install_with_updates(&install_location, archive_payload, &config, sender)
+    });
+    (handle, receiver)
+}
+
 /// Install Enso.
 ///
 /// The archive payload is binary data of the tar.gz archive that contains the Enso app.

@@ -45,7 +45,9 @@ pub fn desktop() -> Result<PathBuf> {
     dirs::desktop_dir().context("Failed to get the local user's Desktop directory path.")
 }
 
-/// Start Menu programs location.
+/// Start Menu programs location for the local user.
+///
+/// By default, this is `%APPDATA%\Microsoft\Windows\Start Menu\Programs`.
 pub fn start_menu_programs() -> Result<PathBuf> {
     known_folder(Shell::FOLDERID_Programs)
         .context("Failed to get the local user's Start Menu programs directory path.")
@@ -60,24 +62,29 @@ pub fn user_program_files() -> Result<PathBuf> {
 }
 
 /// Query WinAPI for the path of a known folder.
-#[cfg(windows)]
+///
+/// Please refer to the [official documentation](https://learn.microsoft.com/en-us/windows/win32/shell/knownfolderid#constants) for the list of available folders.
+
 #[context("Failed to get the path of a known folder by GUID {folder_id:?}.")]
 pub fn known_folder(folder_id: windows::core::GUID) -> Result<PathBuf> {
+    #[cfg(windows)]
     unsafe {
         let path = Shell::SHGetKnownFolderPath(&folder_id, default(), None)?;
         let ret = OsString::from_wide(path.as_wide());
         windows::Win32::System::Com::CoTaskMemFree(Some(path.0 as *mut c_void));
         Ok(ret.into())
     }
-}
-
-/// Query WinAPI for the path of a known folder.
-#[cfg(not(windows))]
-pub fn known_folder(folder_id: windows::core::GUID) -> Result<PathBuf> {
+    #[cfg(not(windows))]
     panic!("Not supported on non-Windows platforms.")
 }
 
-/// Notify shell that file associations have changed.
+// /// Query WinAPI for the path of a known folder.
+// #[cfg(not(windows))]
+// pub fn known_folder(folder_id: windows::core::GUID) -> Result<PathBuf> {
+//     panic!("Not supported on non-Windows platforms.")
+// }
+
+/// Notify shell that file associations or registered protocol have changed.
 ///
 /// This is needed to make the changes visible without restarting the system. See:
 /// * https://learn.microsoft.com/en-us/windows/win32/shell/fa-file-types#setting-optional-subkeys-and-file-type-extension-attributes

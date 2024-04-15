@@ -86,12 +86,13 @@ pub fn sanitize_and_expose_electron_builder_config() -> Result<electron_builder:
     let config = electron_builder_config_from_env();
     let out_config_path = sanitized_electron_builder_config_path()?;
     if let Ok(config) = &config {
-        ide_ci::fs::write_json(&out_config_path, &config)?;
+        let json_text = serde_json::to_string_pretty(config)?;
+        ide_ci::fs::write_if_different(&out_config_path, json_text)?;
     } else {
         // We write dummy. This is to avoid the build script failing if the config is not available.
         // This allows checking if the installer compiles without involving any electron-builder
         // configuration.
-        ide_ci::fs::write(&out_config_path, "")?;
+        ide_ci::fs::write_if_different(&out_config_path, "")?;
     }
     ide_ci::programs::cargo::build::expose_env_var(
         ENSO_INSTALL_ELECTRON_BUILDER_CONFIG,
@@ -141,19 +142,25 @@ pub fn embed_resource_from_file(
 ) -> Result {
     let rc_file = OUT_DIR.get().unwrap().join(resource_id).with_extension("rc");
     println!("cargo:rerun-if-changed={}", rc_file.display());
-    println!("cargo:rerun-if-changed={OUT_DIR}");
+    // println!("cargo:rerun-if-changed={OUT_DIR}");
     // We need to either replace backslashes with forward slashes or escape them, as RC file is
     // kinda-compiled. The former is easier.
     let sanitized_path = resource_path.to_str().unwrap().replace('\\', "/");
     println!("cargo:rerun-if-changed={sanitized_path}");
     let contents = format!(r#"{resource_id} {resource_type} "{sanitized_path}""#);
-    ide_ci::fs::write(&rc_file, contents)?;
+    ide_ci::fs::write_if_different(&rc_file, contents)?;
     embed_resource::compile(&rc_file, embed_resource::NONE);
     Ok(())
 }
 
 
 /// Embeds a resource using a path from an environment variable.
+///
+/// It should be preferred over [`embed_resource_from_file`] as it will ensure that the build script
+/// is rerun when the environment variable changes.
+///
+///
+/// This function is intended to be used by the installer/uninstaller's `build.rs`.
 pub fn embed_resource_from_env(
     resource_id: &str,
     resource_type: ResourceType,
