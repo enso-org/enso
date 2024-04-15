@@ -1194,12 +1194,12 @@ class RuntimeErrorsTest
         contextId,
         xId,
         Api.MethodCall(Api.MethodPointer(moduleName, moduleName, "foo")),
-        Api.ExpressionUpdate.Payload.DataflowError(Seq(fooThrowId, xId))
+        Api.ExpressionUpdate.Payload.DataflowError(Seq(fooThrowId))
       ),
       TestMessages.error(
         contextId,
         yId,
-        Api.ExpressionUpdate.Payload.DataflowError(Seq(fooThrowId, xId))
+        Api.ExpressionUpdate.Payload.DataflowError(Seq(fooThrowId))
       ),
       TestMessages.update(contextId, mainResId, ConstantsGen.NOTHING),
       context.executionComplete(contextId)
@@ -1230,12 +1230,12 @@ class RuntimeErrorsTest
         Api.MethodCall(Api.MethodPointer(moduleName, moduleName, "foo")),
         fromCache   = false,
         typeChanged = false,
-        Api.ExpressionUpdate.Payload.DataflowError(Seq(fooThrowId, xId))
+        Api.ExpressionUpdate.Payload.DataflowError(Seq(fooThrowId))
       ),
       TestMessages.error(
         contextId,
         yId,
-        Api.ExpressionUpdate.Payload.DataflowError(Seq(fooThrowId, xId)),
+        Api.ExpressionUpdate.Payload.DataflowError(Seq(fooThrowId)),
         typeChanged = false
       ),
       TestMessages.update(
@@ -2024,12 +2024,12 @@ class RuntimeErrorsTest
         contextId,
         xId,
         Api.MethodCall(Api.MethodPointer(moduleName, moduleName, "foo")),
-        Api.ExpressionUpdate.Payload.DataflowError(Seq(xId))
+        Api.ExpressionUpdate.Payload.DataflowError(Seq())
       ),
       TestMessages.error(
         contextId,
         yId,
-        Api.ExpressionUpdate.Payload.DataflowError(Seq(xId))
+        Api.ExpressionUpdate.Payload.DataflowError(Seq())
       ),
       TestMessages.update(
         contextId,
