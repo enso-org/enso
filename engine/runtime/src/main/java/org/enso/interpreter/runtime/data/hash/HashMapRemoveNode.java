@@ -44,7 +44,7 @@ public abstract class HashMapRemoveNode extends Node {
     if (mapBuilder.remove(frame, key, hashCodeNode, equalsNode)) {
       return mapBuilder.build();
     } else {
-      throw DataflowError.withoutTrace("No such key", null);
+      throw DataflowError.withDefaultTrace("No such key", null);
     }
   }
 
@@ -92,7 +92,7 @@ public abstract class HashMapRemoveNode extends Node {
       return EnsoHashMap.createWithBuilder(mapBuilder);
     } else {
       CompilerDirectives.transferToInterpreter();
-      throw DataflowError.withoutTrace("No such key " + keyToRemove, interop);
+      throw DataflowError.withDefaultTrace("No such key " + keyToRemove, interop);
     }
   }
 

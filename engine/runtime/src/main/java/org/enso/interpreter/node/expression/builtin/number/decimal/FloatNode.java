@@ -48,6 +48,6 @@ abstract class FloatNode extends Node {
   final DataflowError incomparableError(Object self, Object that) {
     var builtins = EnsoContext.get(this).getBuiltins();
     var incomparableErr = builtins.error().makeIncomparableValues(self, that);
-    return DataflowError.withoutTrace(incomparableErr, this);
+    return DataflowError.withDefaultTrace(incomparableErr, this);
   }
 }

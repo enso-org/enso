@@ -13,6 +13,6 @@ import org.enso.interpreter.runtime.state.State;
     inlineable = true)
 public class ThrowErrorNode extends Node {
   public Object execute(VirtualFrame giveMeAStackFrame, State state, Object payload) {
-    return DataflowError.withoutTrace(state, payload, this);
+    return DataflowError.withDefaultTrace(state, payload, this);
   }
 }

@@ -95,7 +95,7 @@ public abstract class TypeOfNode extends Node {
   @Fallback
   @CompilerDirectives.TruffleBoundary
   Object doAny(Object value) {
-    return DataflowError.withoutTrace(
+    return DataflowError.withDefaultTrace(
         EnsoContext.get(this)
             .getBuiltins()
             .error()
@@ -187,7 +187,7 @@ public abstract class TypeOfNode extends Node {
     @Fallback
     @CompilerDirectives.TruffleBoundary
     Object doAny(Interop any, Object value) {
-      return DataflowError.withoutTrace(
+      return DataflowError.withDefaultTrace(
           EnsoContext.get(this)
               .getBuiltins()
               .error()

@@ -41,7 +41,7 @@ public final class DataflowError extends AbstractTruffleException {
    * @param location the node in which the error was created
    * @return a new dataflow error
    */
-  public static DataflowError withoutTrace(State state, Object payload, Node location) {
+  public static DataflowError withDefaultTrace(State state, Object payload, Node location) {
     assert payload != null;
     boolean attachFullStackTrace =
         state == null ? true : state.currentEnvironment().hasContextEnabled("Dataflow_Stack_Trace");
@@ -55,8 +55,8 @@ public final class DataflowError extends AbstractTruffleException {
     }
   }
 
-  public static DataflowError withoutTrace(Object payload, Node location) {
-    return withoutTrace(null, payload, location);
+  public static DataflowError withDefaultTrace(Object payload, Node location) {
+    return withDefaultTrace(null, payload, location);
   }
 
   /**

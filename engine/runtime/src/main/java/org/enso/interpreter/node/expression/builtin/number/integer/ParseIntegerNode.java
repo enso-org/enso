@@ -36,7 +36,7 @@ public final class ParseIntegerNode extends IntegerNode {
       noEx2.enter();
       var errors = EnsoContext.get(this).getBuiltins().error();
       var err = errors.makeNumberParseError(ex.getMessage());
-      return DataflowError.withoutTrace(err, this);
+      return DataflowError.withDefaultTrace(err, this);
     }
   }
 }
