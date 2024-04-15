@@ -153,9 +153,6 @@ make_filter_condition_selector table display=Display.Always =
     builder.append (Option "Is In" fqn+".Is_In")
     Single_Choice builder.to_vector display=display
 
-foreign js dbg = """
-    debugger;
-
 ## PRIVATE
    Make a join kind selector - Needed to override display.
 make_join_kind_selector : Display -> Widget
@@ -169,7 +166,6 @@ make_join_kind_selector display=Display.Always =
 make_join_condition_selector : Table -> Display -> Function -> Widget
 make_join_condition_selector table display=Display.Always cache=Nothing =
     right = if cache.is_nothing.not then
-        dbg
         right_arg = cache "right"
         if right_arg.is_nothing.not then right_arg else
             zero_arg = cache 0
