@@ -116,34 +116,14 @@ const visualizationConfig = computed<Opt<NodeVisualizationConfiguration>>(() => 
   // the current call and then merge them.
   function collectArgumentNamesAndUuids() {
     var arr : Array<any> = [];
-    function process(f : Ast.Ast) {
+    function process(f : Ast.Ast, n?: String) {
       console.log("type: " + f.typeName())
-      if (f instanceof Ast.TextLiteral) {
-        // console.log("  raw2: " + f.rawTextContent)
-      } else if (f instanceof Ast.App) {
-        console.log("  argn: " + f.argumentName?.code())
-        console.log("  argv: " + f.argument.code())
-        arr.push({
-          name : f.argumentName?.code(),
-          code : f.argument.code(),
-          uuid : f.argument.externalId
-        })
-      } else if (f instanceof Ast.NumericLiteral) {
-        console.log("  num : " + f.code())
-      } else if (f instanceof Ast.Ident) {
-        console.log("  iden: " + f.code())
-        arr.push({
-          name : f.code(),
-          code : f.code(),
-          uuid : f.externalId
-        })
-      } else if (f instanceof Ast.PropertyAccess) {
-        console.log("  self: " + f.lhs?.code())
-        console.log("  oper: " + f.operator.code())
-        console.log("  meth: " + f.rhs.code())
-      } else {
-        console.log(f.typeName());
-      }
+      console.log("  iden: " + f.code())
+      arr.push({
+        name : n ? n : null,
+        code : f.code(),
+        uuid : f.externalId
+      })
       console.log("    has ID: " + f.externalId)
     }
 
@@ -159,12 +139,13 @@ const visualizationConfig = computed<Opt<NodeVisualizationConfiguration>>(() => 
         if (a instanceof ArgumentPlaceholder) {
           console.log("Place holder " + a);
         } else {
-          process(a.ast)
+          process(a.ast, a.argInfo?.name)
         }
       }
     } else {
       process(args);
     }
+    arr.reverse()
 
     let m : any = {}
     let index = 0
