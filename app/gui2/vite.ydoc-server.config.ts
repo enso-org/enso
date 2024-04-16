@@ -1,8 +1,9 @@
 /// <reference types="histoire" />
 
 import { getDefines, readEnvironmentFromFile } from 'enso-common/src/appConfig'
+import * as fs from 'node:fs'
 import { fileURLToPath } from 'node:url'
-import { defineConfig } from 'vite'
+import { defineConfig, type Plugin } from 'vite'
 
 const localServerPort = 8080
 const projectManagerUrl = 'ws://127.0.0.1:30535'
@@ -17,6 +18,7 @@ export default defineConfig({
   cacheDir: fileURLToPath(new URL('../../node_modules/.cache/vite', import.meta.url)),
   publicDir: fileURLToPath(new URL('./public', import.meta.url)),
   envDir: fileURLToPath(new URL('.', import.meta.url)),
+  plugins: [useJavaFfi()],
   resolve: {
     alias: {
       shared: fileURLToPath(new URL('./shared', import.meta.url)),
@@ -54,3 +56,23 @@ export default defineConfig({
     },
   },
 })
+
+/**
+ * Use `ffiJava` module as `ffi` interface during the build.
+ */
+function useJavaFfi(): Plugin {
+  const ffiJava = fileURLToPath(new URL('./shared/ast/ffiJava.ts', import.meta.url))
+  const ffiWasm = fileURLToPath(new URL('./shared/ast/ffiWasm.ts', import.meta.url))
+  const ffi = fileURLToPath(new URL('./shared/ast/ffi.ts', import.meta.url))
+
+  return {
+    name: 'use-java-ffi',
+    options: () => {
+      fs.renameSync(ffi, ffiWasm)
+      fs.copyFileSync(ffiJava, ffi)
+    },
+    buildEnd: () => {
+      fs.renameSync(ffiWasm, ffi)
+    },
+  }
+}
