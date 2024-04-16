@@ -872,11 +872,15 @@ test.each([
   ['\\`foo\\` \\`bar\\` \\`baz\\`', '`foo` `bar` `baz`'],
 ])(
   'Applying and escaping text literal interpolation',
-  (escapedText: string, rawText: string, roundtrip?: string) => {
+  (escapedText: string, rawText: string, normalizedEscapedText?: string) => {
+    if (normalizedEscapedText != null) {
+      // If `normalizedEscapedText` is provided, it must be a representation of the same raw value as `escapedText`.
+      const rawTextFromNormalizedInput = unescapeTextLiteral(normalizedEscapedText)
+      expect(rawTextFromNormalizedInput).toBe(rawText)
+    }
     const actualApplied = unescapeTextLiteral(escapedText)
     const actualEscaped = escapeTextLiteral(rawText)
-
-    expect(actualEscaped).toBe(roundtrip ?? escapedText)
+    expect(actualEscaped).toBe(normalizedEscapedText ?? escapedText)
     expect(actualApplied).toBe(rawText)
   },
 )
