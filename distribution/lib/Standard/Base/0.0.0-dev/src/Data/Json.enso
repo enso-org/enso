@@ -147,12 +147,12 @@ type JS_Object
     new object_node =
         make_field_names object =
             name_iterator = object.fieldNames
-            builder = Vector.new_builder object.size
-            loop iterator builder =
-                if iterator.hasNext.not then builder.to_vector else
-                    builder.append iterator.next
-                    @Tail_Call loop iterator builder
-            loop name_iterator builder
+            Vector.build limit=object.size builder->
+                loop iterator builder =
+                    if iterator.hasNext then
+                        builder.append iterator.next
+                        @Tail_Call loop iterator builder
+                loop name_iterator builder
         JS_Object.Value object_node (make_field_names object_node)
 
     ## PRIVATE
@@ -163,14 +163,15 @@ type JS_Object
     from_pairs pairs =
         mapper = ObjectMapper.new
         new_object = mapper.createObjectNode
-        keys = pairs.fold Vector.new_builder current->pair->
-            case pair.first of
-                text : Text ->
-                    jackson_value_node = to_json_node pair.second.to_js_object
-                    new_object.set text jackson_value_node
-                    current.append text
-                _ -> Error.throw (Illegal_Argument.Error "JS_Object.from_pairs: key must be a Text value")
-        JS_Object.Value new_object keys.to_vector
+        keys = Vector.build builder->
+            pairs.map pair->
+                case pair.first of
+                    text : Text ->
+                        jackson_value_node = to_json_node pair.second.to_js_object
+                        new_object.set text jackson_value_node
+                        builder.append text
+                    _ -> Error.throw (Illegal_Argument.Error "JS_Object.from_pairs: key must be a Text value")
+        JS_Object.Value new_object keys
 
     ## PRIVATE
     Value object_node ~field_array
