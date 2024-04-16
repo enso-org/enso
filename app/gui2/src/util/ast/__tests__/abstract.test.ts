@@ -867,7 +867,7 @@ test.each([
   ['\\x20', ' ', ' '],
   ['\\b', '\b'],
   ['abcdef_123', 'abcdef_123'],
-  ['\\t\\r\\n\\v\\\'\\`', '\t\r\n\v\'`', '\\t\\r\\n\\v\\\'\\`'],
+  ["\\t\\r\\n\\v\\'\\`", "\t\r\n\v'`", "\\t\\r\\n\\v\\'\\`"],
   // Escaping a double quote is allowed, but not necessary.
   ['\\"', '"', '"'],
   // Undefined/malformed escape sequences are left unevaluated, and properly escaped when normalized.

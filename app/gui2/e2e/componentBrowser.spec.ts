@@ -1,10 +1,9 @@
 import { test, type Page } from '@playwright/test'
-import os from 'os'
 import * as actions from './actions'
 import { expect } from './customExpect'
+import { CONTROL_KEY } from './keyboard'
 import * as locate from './locate'
 
-const CONTROL_KEY = os.platform() === 'darwin' ? 'Meta' : 'Control'
 const ACCEPT_SUGGESTION_SHORTCUT = `${CONTROL_KEY}+Enter`
 
 async function deselectAllNodes(page: Page) {
