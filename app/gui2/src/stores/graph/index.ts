@@ -91,7 +91,7 @@ export const useGraphStore = defineStore('graph', () => {
   })
   function visibleArea(nodeId: NodeId): Rect | undefined {
     if (!db.nodeIdToNode.has(nodeId)) return
-    return nodeRects.get(nodeId) ?? vizRects.get(nodeId)
+    return vizRects.get(nodeId) ?? nodeRects.get(nodeId)
   }
 
   const db = new GraphDb(

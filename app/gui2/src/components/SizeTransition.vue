@@ -111,10 +111,21 @@ function runAnimation(e: HTMLElement, done: Done, isEnter: boolean) {
     end.marginLeft = isEnter ? current.marginLeft : negativeGap
   }
   const animation = e.animate([start, end], { duration: props.duration })
-  animation.addEventListener('finish', () => done(false))
-  animation.addEventListener('cancel', () => done(true))
+  animation.addEventListener('finish', () => {
+    cleanup(e)
+    done(false)
+  })
+  animation.addEventListener('cancel', () => {
+    cleanup(e)
+    done(true)
+  })
+  e.dataset['transitioning'] = ''
   animation.play()
   animationsMap.set(e, animation)
+}
+
+function cleanup(e: HTMLElement) {
+  delete e.dataset['transitioning']
 }
 </script>
 
