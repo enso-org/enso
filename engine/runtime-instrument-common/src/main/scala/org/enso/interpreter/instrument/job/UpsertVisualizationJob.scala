@@ -5,7 +5,7 @@ import com.oracle.truffle.api.TruffleLogger
 import org.enso.compiler.core.Implicits.AsMetadata
 import org.enso.compiler.core.ir.Function
 import org.enso.compiler.core.ir.Name
-import org.enso.compiler.core.ir.module.scope.definition
+import org.enso.compiler.core.ir.module.scope.{definition, Definition}
 import org.enso.compiler.pass.analyse.{
   CachePreferenceAnalysis,
   DataflowAnalysis
@@ -27,6 +27,7 @@ import org.enso.interpreter.runtime.control.ThreadInterruptedException
 import org.enso.pkg.QualifiedName
 import org.enso.polyglot.runtime.Runtime.Api
 
+import java.util.UUID
 import java.util.logging.Level
 import scala.annotation.unused
 
@@ -536,25 +537,35 @@ object UpsertVisualizationJob {
     visualizationExpression match {
       case Api.VisualizationExpression.ModuleMethod(methodPointer, _) =>
         module.getIr.bindings
-          .collect { case method: definition.Method =>
-            val methodReference        = method.methodReference
-            val methodReferenceName    = methodReference.methodName.name
-            val methodReferenceTypeOpt = methodReference.typePointer.map(_.name)
-
-            val externalIdOpt = method.body match {
-              case fun: Function => fun.body.getExternalId
-              case _             => method.getExternalId
-            }
-            externalIdOpt.filter { _ =>
-              methodReferenceName == methodPointer.name &&
-              methodReferenceTypeOpt.isEmpty
-            }
+          .collectFirst {
+            case ExternalIdOfMethod(externalId, methodReference)
+                if methodReference.methodName.name == methodPointer.name =>
+              externalId
           }
-          .flatten
-          .headOption
-
       case _: Api.VisualizationExpression.Text => None
     }
+
+  private object ExternalIdOfMethod {
+    def unapply(d: Definition): Option[(UUID, Name.MethodReference)] = {
+      d match {
+        case method: definition.Method =>
+          val methodReference        = method.methodReference
+          val methodReferenceTypeOpt = methodReference.typePointer.map(_.name)
+
+          Option
+            .when(methodReferenceTypeOpt.isEmpty)(
+              method.body match {
+                case fun: Function => fun.body.getExternalId
+                case _             => method.getExternalId
+              }
+            )
+            .flatten
+            .map((_, methodReference))
+        case _ =>
+          None
+      }
+    }
+  }
 
   /** Update the caches. */
   private def invalidateCaches(

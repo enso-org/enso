@@ -304,6 +304,8 @@ function AppRouter(props: AppRouterProps) {
   }, [props, /* should never change */ navigate])
 
   const userSession = authService?.cognito.userSession.bind(authService.cognito) ?? null
+  const refreshUserSession =
+    authService?.cognito.refreshUserSession.bind(authService.cognito) ?? null
   const registerAuthEventListener = authService?.registerAuthEventListener ?? null
   const initialBackend: Backend =
     isAuthenticationDisabled && projectManagerUrl != null && projectManagerRootDirectory != null
@@ -425,6 +427,13 @@ function AppRouter(props: AppRouterProps) {
       mainPageUrl={mainPageUrl}
       userSession={userSession}
       registerAuthEventListener={registerAuthEventListener}
+      refreshUserSession={
+        refreshUserSession
+          ? async () => {
+              await refreshUserSession()
+            }
+          : null
+      }
     >
       {result}
     </SessionProvider>

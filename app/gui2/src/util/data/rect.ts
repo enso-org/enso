@@ -88,6 +88,13 @@ export class Rect {
     return this.pos.equals(other.pos) && this.size.equals(other.size)
   }
 
+  equalsApproximately(other: Rect, epsilon: number): boolean {
+    return (
+      this.pos.equalsApproximately(other.pos, epsilon) &&
+      this.size.equalsApproximately(other.size, epsilon)
+    )
+  }
+
   within(other: Rect): boolean {
     return (
       this.left >= other.left &&
