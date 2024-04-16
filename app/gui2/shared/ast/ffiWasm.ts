@@ -1,10 +1,11 @@
+import type { IDataType } from 'hash-wasm/dist/lib/util'
 import { createXXHash128 } from 'hash-wasm'
 import init, { is_ident_or_operator, parse, parse_doc_to_json } from '../../rust-ffi/pkg/rust_ffi'
 import { assertDefined } from '../util/assert'
 import { isNode } from '../util/detect'
 
 let xxHasher128: Awaited<ReturnType<typeof createXXHash128>> | undefined
-export function xxHash128(input: string) {
+export function xxHash128(input: IDataType) {
   assertDefined(xxHasher128, 'Module should have been loaded with `initializeFFI`.')
   xxHasher128.init()
   xxHasher128.update(input)
