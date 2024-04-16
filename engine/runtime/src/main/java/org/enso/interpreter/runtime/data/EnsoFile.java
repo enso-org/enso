@@ -200,13 +200,10 @@ public final class EnsoFile implements EnsoObject {
   }
 
   @Builtin.Method(name = "create_directory_builtin")
+  @Builtin.WrapException(from = IOException.class)
   @CompilerDirectives.TruffleBoundary
-  public void createDirectories() {
-    try {
-      this.truffleFile.createDirectories();
-    } catch (IOException e) {
-      e.printStackTrace();
-    }
+  public void createDirectories() throws IOException {
+    this.truffleFile.createDirectories();
   }
 
   @Builtin.Method(name = "list_immediate_children_array")
