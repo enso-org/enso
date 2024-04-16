@@ -27,7 +27,7 @@ export default defineConfig({
   envDir: fileURLToPath(new URL('.', import.meta.url)),
   plugins: [
     vue(),
-    gatewayServer(),
+    //gatewayServer(),
     ...(process.env.ELECTRON_DEV_MODE === 'true' ?
       [
         (await import('@vitejs/plugin-react')).default({

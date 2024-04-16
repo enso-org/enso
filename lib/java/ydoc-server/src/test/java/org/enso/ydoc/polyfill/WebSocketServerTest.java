@@ -60,13 +60,14 @@ public class WebSocketServerTest {
   @Test
   public void webSocketServer() throws Exception {
     var lock = new Semaphore(0);
-    var res = new AtomicReferenceArray<>(new Object[2]);
+    var res = new AtomicReferenceArray<>(new Object[3]);
 
     var code =
         """
         const onconnect = (ws, url) => {
             res.set(0, ws.readyState === WebSocket.CONNECTING);
-            res.set(1, url);
+            res.set(1, url.pathname);
+            res.set(2, url.searchParams.toString());
             lock.release();
         }
 
@@ -82,12 +83,13 @@ public class WebSocketServerTest {
     CompletableFuture.supplyAsync(() -> context.eval("js", code), executor).get();
 
     var ws = WsClient.builder().build();
-    ws.connect("ws://localhost:33445/hello", new TestWsListener());
+    ws.connect("ws://localhost:33445/hello?foo=bar", new TestWsListener());
 
     lock.acquire();
 
     Assert.assertTrue((boolean) res.get(0));
     Assert.assertEquals("/hello", res.get(1));
+    Assert.assertEquals("foo=bar", res.get(2));
   }
 
   private static final class TestWsListener implements WsListener {

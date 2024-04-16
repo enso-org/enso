@@ -169,16 +169,26 @@ final class WebSocket implements ProxyExecutable, Polyfill {
       case WEB_SOCKET_TERMINATE -> {
         var connection = arguments[1].as(WebSocketConnection.class);
 
-        yield connection.getSession().terminate();
+        var session = connection.getSession();
+        if (session != null) {
+          session.terminate();
+        }
+
+        yield null;
       }
 
       case WEB_SOCKET_CLOSE -> {
         var connection = arguments[1].as(WebSocketConnection.class);
         var code = arguments[2].asInt();
         var reasonArgument = arguments[3];
-        var reason = reasonArgument == null ? "Close" : reasonArgument.asString();
 
-        yield connection.getSession().close(code, reason);
+        var session = connection.getSession();
+        if (session != null) {
+          var reason = reasonArgument == null ? "Close" : reasonArgument.asString();
+          session.close(code, reason);
+        }
+
+        yield null;
       }
 
       case WEB_SOCKET_PING -> {
@@ -299,7 +309,8 @@ final class WebSocket implements ProxyExecutable, Polyfill {
     public Optional<Headers> onHttpUpgrade(HttpPrologue prologue, Headers headers) {
       System.err.println("WebSocketListener.onHttpUpgrade " + prologue);
 
-      executor.execute(() -> handleUpgrade.executeVoid(prologue.uriPath().path()));
+      var url = new URL(prologue);
+      executor.execute(() -> handleUpgrade.executeVoid(url));
 
       return Optional.empty();
     }
