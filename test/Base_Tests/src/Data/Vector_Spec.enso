@@ -1034,6 +1034,26 @@ add_specs suite_builder =
             v = Vector.collect l .x .xs limit=30 stop_at=(_==List.Nil)
             v . should_equal [1, 2, 3]
 
+    suite_builder.group "Vector.build" group_builder->
+        group_builder.specify "Should be able to build a vector" <|
+            v = Vector.build builder->
+                builder.append 1
+                builder.append 2
+                builder.append Nothing
+                builder.append 3
+            v . should_equal [1, 2, Nothing, 3]
+
+            v2 = Vector.build builder->
+                _ = builder  # Do nothing
+            v2 . should_equal []
+
+        group_builder.specify "Should propagate dataflow errors" <|
+            v = Vector.build builder->
+                builder.append 1
+                builder.append 2
+                Error.throw (Illegal_Argument.Error "asdf")
+            v . should_fail_with (Illegal_Argument.Error "asdf")
+
     suite_builder.group "Vector/Array equality" group_builder->
         v1 = [1, 2, 3]
         a1 = v1.to_array
