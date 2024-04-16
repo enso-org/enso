@@ -1134,6 +1134,21 @@ lazy val `ydoc-server` = project
         }
       )
       .evaluated,
+      assembly / assemblyMergeStrategy := {
+        case PathList("META-INF", file, xs @ _*) if file.endsWith(".DSA") =>
+          MergeStrategy.discard
+        case PathList("META-INF", file, xs @ _*) if file.endsWith(".SF") =>
+          MergeStrategy.discard
+        case PathList("META-INF", "MANIFEST.MF", xs @ _*) =>
+          MergeStrategy.discard
+        case PathList("META-INF", "services", xs @ _*) =>
+          MergeStrategy.concat
+        case PathList("module-info.class") =>
+          MergeStrategy.preferProject
+        case PathList(xs @ _*) if xs.last.contains("module-info.class") =>
+          MergeStrategy.discard
+        case _ => MergeStrategy.first
+      },
     commands += WithDebugCommand.withDebug,
     modulePath := {
       JPMSUtils.filterModulesFromUpdate(
@@ -1169,9 +1184,9 @@ lazy val `ydoc-server` = project
       )
     },
     libraryDependencies ++= Seq(
-      "org.graalvm.polyglot" % "polyglot"                    % graalMavenPackagesVersion % "provided",
+      "org.graalvm.polyglot" % "polyglot"                    % graalMavenPackagesVersion,
       "org.graalvm.polyglot" % "inspect"                     % graalMavenPackagesVersion % "runtime",
-      "org.graalvm.polyglot" % "js"                          % graalMavenPackagesVersion % "provided,runtime",
+      "org.graalvm.polyglot" % "js"                          % graalMavenPackagesVersion % "runtime",
       "io.helidon.webclient" % "helidon-webclient-websocket" % helidonVersion,
       "io.helidon.webserver" % "helidon-webserver-websocket" % helidonVersion,
       "junit"                % "junit"                       % junitVersion              % Test,
