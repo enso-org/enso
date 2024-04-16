@@ -715,14 +715,33 @@ fn freeze<'s>() -> Definition<'s> {
     crate::macro_definition! {("FREEZE", everything()) capture_expressions}
 }
 
+/// private can be either specified as the very first statement in the module, marking the
+/// whole module as private. Or it can be prepended to some definitions. For example it can
+/// be prepended to atom constructor definition.
 fn private_keyword<'s>(
     segments: NonEmptyVec<MatchedSegment<'s>>,
     precedence: &mut operator::Precedence<'s>,
 ) -> syntax::Tree<'s> {
     let segment = segments.pop().0;
     let keyword = into_private(segment.header);
-    let body = precedence.resolve(segment.result.tokens());
-    syntax::Tree::private(keyword, body)
+    let body_opt = precedence.resolve(segment.result.tokens());
+    match body_opt {
+        Some(body) => {
+            let body_ = body.clone();
+            let new_body = to_body_statement(body_);
+            match new_body.variant {
+                box syntax::tree::Variant::ConstructorDefinition(_) =>
+                    syntax::Tree::private(keyword, Some(new_body)),
+                _ => syntax::Tree::private(keyword, Some(body))
+                    .with_error("Unsupported private body."),
+            }
+        }
+        None => {
+            // Just a private keyword without a body. This is valid as the first statement in the
+            // module, to declare the module as private.
+            syntax::Tree::private(keyword, None)
+        }
+    }
 }
 
 /// Macro body builder that just parses the tokens of each segment as expressions, and places them
