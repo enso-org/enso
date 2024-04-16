@@ -20,6 +20,11 @@ import type { ExternalId, SourceRange, VisualizationMetadata } from 'shared/yjsM
 import { isUuid, sourceRangeKey, visMetadataEquals } from 'shared/yjsModel'
 import { reactive, ref, type Ref } from 'vue'
 
+export interface MethodCallInfo {
+  methodCall: MethodCall
+  suggestion: SuggestionEntry
+}
+
 export interface BindingInfo {
   identifier: string
   usages: Set<AstId>
@@ -270,11 +275,7 @@ export class GraphDb {
     )
   }
 
-  getMethodCallInfo(
-    id: AstId,
-  ):
-    | { methodCall: MethodCall; suggestion: SuggestionEntry; partiallyApplied: boolean }
-    | undefined {
+  getMethodCallInfo(id: AstId): MethodCallInfo | undefined {
     const info = this.getExpressionInfo(id)
     if (info == null) return
     const payloadFuncSchema =
@@ -285,8 +286,7 @@ export class GraphDb {
     if (suggestionId == null) return
     const suggestion = this.suggestionDb.get(suggestionId)
     if (suggestion == null) return
-    const partiallyApplied = mathodCallEquals(methodCall, payloadFuncSchema)
-    return { methodCall, suggestion, partiallyApplied }
+    return { methodCall, suggestion }
   }
 
   getNodeColorStyle(id: NodeId): string {
@@ -524,7 +524,7 @@ const baseMockNode = {
   conditionalPorts: new Set(),
 } satisfies Partial<Node>
 
-function mathodCallEquals(a: MethodCall | undefined, b: MethodCall | undefined): boolean {
+export function mathodCallEquals(a: MethodCall | undefined, b: MethodCall | undefined): boolean {
   return (
     a === b ||
     (a != null &&
