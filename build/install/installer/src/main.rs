@@ -10,15 +10,11 @@ extern crate native_windows_gui as nwg;
 
 
 use enso_install_config::ENSO_ICON_ID;
-use enso_install_config::INSTALLER_PAYLOAD_ID;
 use enso_installer::InstallerUpdate;
 use nwd::NwgUi;
 use nwg::NativeUi;
 use std::ops::Deref;
-use std::sync::Arc;
-use std::sync::Mutex;
 use tracing::info;
-use windows::Win32::Foundation::HWND;
 
 #[derive(Default, NwgUi)]
 #[allow(missing_debug_implementations)]
@@ -41,7 +37,7 @@ pub struct BasicApp {
 
     #[nwg_control(step: 1, range: 0..100)]
     #[nwg_layout_item(layout: grid, row: 2, col: 0)]
-    name_edit: nwg::ProgressBar,
+    progress_bar: nwg::ProgressBar,
 
     #[nwg_resource]
     embed: nwg::EmbedResource,
@@ -64,13 +60,27 @@ impl BasicApp {
                 info!("Update: {:?}", update);
                 match update {
                     InstallerUpdate::Progress(progress) => {
-                        self.name_edit.set_pos((progress * 100.0) as u32);
+                        self.progress_bar.set_pos((progress * 100.0) as u32);
                     }
                     InstallerUpdate::Stage(stage) => {
                         self.label.set_text(&stage);
                     }
                     InstallerUpdate::Finished(result) => {
-                        self.label.set_text(&format!("Done: {result:?}"));
+                        // self.label.set_text(&format!("Done: {result:?}"));
+
+                        if let Err(err) = result {
+                            self.label.set_text("Installation failed.");
+                            self.progress_bar.set_state(nwg::ProgressBarState::Error);
+                            self.progress_bar.set_pos(100);
+                            nwg::modal_error_message(
+                                self.window.handle,
+                                "Installation error",
+                                &format!("The installation has failed: {err}"),
+                            );
+                        } else {
+                            self.label.set_text("Installation complete.");
+                        }
+
                         // Close window and stop the program.
                         nwg::stop_thread_dispatch();
                         self.window.close();

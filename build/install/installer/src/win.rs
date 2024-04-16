@@ -52,20 +52,12 @@ pub fn install_with_updates(
     install_location: &Path,
     archive_payload: &[u8],
     config: &Config,
-    sender: std::sync::mpsc::Sender<crate::InstallerUpdate>,
+    sender: &std::sync::mpsc::Sender<crate::InstallerUpdate>,
 ) -> Result {
-    let stage = |text| sender.send(crate::InstallerUpdate::Stage(text));
-    // Helper formatting macro for sending stage updates.
-    macro_rules! stage {
-        ($($arg:tt)*) => {
-            stage(format!($($arg)*));
-            info!($($arg)*);
-        };
-    }
     macro_rules! stage_at {
         ($progress:literal, $($arg:tt)*) => {
-            stage(format!($($arg)*));
-            sender.send(crate::InstallerUpdate::Progress($progress));
+            let _ = sender.send(crate::InstallerUpdate::Stage(format!($($arg)*)));
+            let _ = sender.send(crate::InstallerUpdate::Progress($progress));
             info!($($arg)*);
         };
     }
@@ -121,7 +113,13 @@ pub fn spawn_installer_thread(
     let install_location = install_location.as_ref().to_path_buf();
     let (sender, receiver) = std::sync::mpsc::channel();
     let handle = std::thread::spawn(move || {
-        install_with_updates(&install_location, archive_payload, &config, sender)
+        let result = install_with_updates(&install_location, archive_payload, &config, &sender);
+        if let Err(err) = result {
+            let msg = format!("Installation failed: {err:?}.");
+            sender.send(crate::InstallerUpdate::Finished(Result::Err(err)));
+            bail!(msg);
+        }
+        Ok(())
     });
     (handle, receiver)
 }
