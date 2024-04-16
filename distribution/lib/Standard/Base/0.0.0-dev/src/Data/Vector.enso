@@ -91,11 +91,13 @@ type Vector a
              Vector.collect (List.Cons 1 <| List.Cons 2 <| List.Nil) .x .xs stop_at=(_==List.Nil)
     collect : Any -> (Any -> Any) -> (Any -> Any) -> Integer | Nothing -> (Any -> Boolean) -> Vector Any
     collect seq element:(Any -> Any) next:(Any -> Any) limit:(Integer | Nothing)=Nothing stop_at:(Any -> Boolean)=(_==Nothing) =
-        b = Vector.new_builder (if limit.is_nothing then 10 else limit)
-        iterate item remaining = if remaining == 0 || (stop_at item) then b.to_vector else
-            b.append <| element item
-            @Tail_Call iterate (next item) (if remaining.is_nothing then Nothing else remaining-1)
-        iterate seq limit
+        Vector.build limit=(if limit.is_nothing then 10 else limit) builder->
+            iterate item remaining =
+                done = remaining == 0 || (stop_at item)
+                if done.not then
+                    builder.append <| element item
+                    @Tail_Call iterate (next item) (if remaining.is_nothing then Nothing else remaining-1)
+            iterate seq limit
 
     ## PRIVATE
        ADVANCED
