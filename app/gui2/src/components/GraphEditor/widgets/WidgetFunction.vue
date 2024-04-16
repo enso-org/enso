@@ -175,9 +175,6 @@ const visualizationConfig = computed<Opt<NodeVisualizationConfiguration>>(() => 
   const args = info.suggestion.annotations
   if (args.length === 0) return null
   const name = info.suggestion.name
-  let argsAndInfo = new Array()
-  argsAndInfo.push(...args)
-  argsAndInfo.push(JSON.stringify(m))
   return {
     expressionId,
     visualizationModule: 'Standard.Visualization.Widgets',
@@ -188,7 +185,8 @@ const visualizationConfig = computed<Opt<NodeVisualizationConfiguration>>(() => 
     },
     positionalArgumentsExpressions: [
       `.${name}`,
-      Ast.Vector.build(argsAndInfo, Ast.TextLiteral.new).code()
+      Ast.Vector.build(args, Ast.TextLiteral.new).code(),
+      Ast.TextLiteral.new(JSON.stringify(m)).code()
     ],
   }
 })
