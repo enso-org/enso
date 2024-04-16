@@ -124,12 +124,19 @@ final class EnsureCompiledJob(
               // Side-effect: ensures that module's source is correctly initialized.
               module.getSource()
               invalidateCaches(module, changeset)
-              if (module.isIndexed) {
+              val state =
+                ctx.state.suggestions.getOrCreateFresh(module, module.getIr)
+              if (state.isIndexed) {
                 ctx.jobProcessor.runBackground(
-                  AnalyzeModuleJob(module, changeset)
+                  AnalyzeModuleJob(module, state, module.getIr(), changeset)
                 )
               } else {
-                AnalyzeModuleJob.analyzeModule(module, changeset)
+                AnalyzeModuleJob.analyzeModule(
+                  module,
+                  state,
+                  module.getIr(),
+                  changeset
+                )
               }
               runCompilationDiagnostics(module)
             }
@@ -145,7 +152,11 @@ final class EnsureCompiledJob(
   private def ensureCompiledScope(modulesInScope: Iterable[Module])(implicit
     ctx: RuntimeContext
   ): Iterable[CompilationStatus] = {
-    val notIndexedModulesInScope = modulesInScope.filter(!_.isIndexed)
+    val notIndexedModulesInScope =
+      modulesInScope.filter(m => {
+        val state = ctx.state.suggestions.find(m)
+        state == null || !state.isIndexed
+      })
     val (modulesToAnalyzeBuilder, compilationStatusesBuilder) =
       notIndexedModulesInScope.foldLeft(
         (Set.newBuilder[Module], Vector.newBuilder[CompilationStatus])
@@ -177,7 +188,15 @@ final class EnsureCompiledJob(
     val modulesToAnalyze = modulesToAnalyzeBuilder.result()
     if (modulesToAnalyze.nonEmpty) {
       ctx.jobProcessor.runBackground(
-        AnalyzeModuleInScopeJob(modulesToAnalyze)
+        AnalyzeModuleInScopeJob(
+          modulesToAnalyze.map(m =>
+            (
+              m,
+              ctx.state.suggestions.getOrCreateFresh(m, m.getIr),
+              m.getSource() != null
+            )
+          )
+        )
       )
     }
     compilationStatusesBuilder.result()
