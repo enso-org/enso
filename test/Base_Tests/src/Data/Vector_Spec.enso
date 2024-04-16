@@ -420,9 +420,9 @@ type_spec suite_builder name alter = suite_builder.group name group_builder->
 
     group_builder.specify "should allow applying a function to each element" <|
         vec = alter [1, 2, 3, 4]
-        vec_mut = Vector.new_builder
-        vec.each vec_mut.append
-        vec_mut.to_vector . should_equal vec
+        result = Vector.build builder->
+            vec.each builder.append
+        result . should_equal vec
 
     group_builder.specify "should accept changed elements" <|
         vec_mut = Vector.new_builder
