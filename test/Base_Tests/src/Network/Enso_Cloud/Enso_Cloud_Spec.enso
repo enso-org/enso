@@ -8,6 +8,7 @@ import Standard.Base.Errors.Illegal_State.Illegal_State
 
 from Standard.Test import all
 import Standard.Test.Test_Environment
+from Standard.Test.Execution_Context_Helpers import run_with_and_without_output
 
 
 import project.Network.Enso_Cloud.Cloud_Tests_Setup.Cloud_Tests_Setup
@@ -109,7 +110,7 @@ add_specs suite_builder setup:Cloud_Tests_Setup =
             AuthenticationProvider.getAuthenticationServiceEnsoInstance.auth_data.get.access_token
         base_credentials = Lazy_Ref.Value <|
             Mock_Credentials.default Cloud_Tests_Setup.prepare_mock_setup.httpbin_uri
-        group_builder.specify "refreshes an expired token" <|
+        group_builder.specify "refreshes an expired token" <| run_with_and_without_output <|
             Cloud_Tests_Setup.run_with_mock_cloud custom_credentials=base_credentials.get.locally_expired <|
                 previous_token = get_current_token
                 ## Trigger some cloud endpoint - it should succeed
@@ -134,7 +135,7 @@ add_specs suite_builder setup:Cloud_Tests_Setup =
                 count_after = mock_setup.get_expired_token_failures_count
                 count_after . should_equal count_before+1
 
-        group_builder.specify "refreshes a token that is about to expire" <|
+        group_builder.specify "refreshes a token that is about to expire" <| run_with_and_without_output <|
             # The token here is not yet expired, but we still refresh it.
             Cloud_Tests_Setup.run_with_mock_cloud custom_credentials=base_credentials.get.about_to_expire <|
                 previous_token = get_current_token
