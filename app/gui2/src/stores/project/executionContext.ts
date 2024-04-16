@@ -86,7 +86,7 @@ export class ExecutionContext extends ObservableV2<ExecutionContextNotification>
   readonly id: ContextId = random.uuidv4() as ContextId
   private queue: AsyncQueue<ExecutionContextState>
   private syncScheduled = false
-  private desiredStack: StackItem[] = reactive([])
+  desiredStack: StackItem[] = reactive([])
   private visualizationConfigs: Map<Uuid, NodeVisualizationConfiguration> = new Map()
 
   constructor(
@@ -128,6 +128,11 @@ export class ExecutionContext extends ObservableV2<ExecutionContextNotification>
           ])
       },
     )
+    this.abort.handleObserve(this.lsRpc, 'transport/reconnected', () => {
+      this.queue.pushTask(() => Promise.resolve({ status: 'not-created' }))
+      this.syncScheduled = false
+      this.sync()
+    })
   }
 
   private pushItem(item: StackItem) {
