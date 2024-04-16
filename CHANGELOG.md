@@ -649,6 +649,7 @@
 - [Added `Decimal.abs`, `.negate` and `.signum`.][9641]
 - [Added `Decimal.min` and `.max`.][9663]
 - [Added `Decimal.round`.][9672]
+- [Added `Integer.to_decimal` and `Float.to_decimal`.][9716]
 
 [debug-shortcuts]:
   https://github.com/enso-org/enso/blob/develop/app/gui/docs/product/shortcuts.md#debug
@@ -948,6 +949,7 @@
 [9641]: https://github.com/enso-org/enso/pull/9641
 [9663]: https://github.com/enso-org/enso/pull/9663
 [9672]: https://github.com/enso-org/enso/pull/9672
+[9716]: https://github.com/enso-org/enso/pull/9716
 
 #### Enso Compiler
 
