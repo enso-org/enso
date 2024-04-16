@@ -331,14 +331,15 @@ type Enso_File
          effect for files or data links.
     delete : Boolean -> Nothing
     delete self (recursive : Boolean = False) = if self.enso_path.is_root then Error.throw (Illegal_Argument.Error "The root directory cannot be deleted.") else
-        # TODO recursive
         asset = Existing_Enso_Asset.get_asset_reference_for self
-        # The `if_not_error` here is a workaround for bug https://github.com/enso-org/enso/issues/9669
-        uri = asset.if_not_error <|
-            URI.from asset.asset_uri . add_query_argument "force" "true"
-        response = Utils.http_request HTTP_Method.Delete uri
-        if asset.is_directory then Asset_Cache.invalidate_subtree self else Asset_Cache.invalidate self
-        response.if_not_error Nothing
+        # The cloud defaults to recursively removing the whole directory, so we need a check on our side.
+        # The `self.list` is last of the `&&` conditions because it is the most expensive one.
+        # TODO ideally we should have a parameter `recursive` that would move this check to be local
+        if asset.is_directory && recursive.not && self.list.is_empty.not then Error.throw (File_Error.Directory_Not_Empty self) else
+            uri = URI.from asset.asset_uri . add_query_argument "force" "true"
+            response = Utils.http_request HTTP_Method.Delete uri
+            if asset.is_directory then Asset_Cache.invalidate_subtree self else Asset_Cache.invalidate self
+            response.if_not_error Nothing
 
     ## ICON data_output
        Deletes the file if it had existed.

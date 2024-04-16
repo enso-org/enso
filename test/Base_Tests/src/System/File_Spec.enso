@@ -932,6 +932,16 @@ add_create_and_delete_directory_specs group_builder ~parent_dir =
             r.catch.to_display_text . should_contain "is not a directory"
             dir.exists . should_be_false
 
+    group_builder.specify "`delete` will fail if the directory does not exist, but `delete_if_exists` will not" <|
+        dir = parent_dir / "non_existent"
+        dir.exists . should_be_false
+
+        r = dir.delete
+        r.should_fail_with File_Error
+        r.catch.should_be_a File_Error.Not_Found
+
+        dir.delete_if_exists . should_equal Nothing
+
 main filter=Nothing =
     suite = Test.build suite_builder->
         add_specs suite_builder

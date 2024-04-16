@@ -118,13 +118,6 @@ add_specs suite_builder setup:Cloud_Tests_Setup = suite_builder.group "Enso Clou
         r.should_fail_with File_Error
         r.catch.should_be_a File_Error.Not_Found
 
-    group_builder.specify "should not allow to create a directory inside of a regular file" <|
-        test_file = test_root.get / "test_file.json"
-        test_file.exists . should_be_true
-
-        r = (test_file / "my_test_dir").create_directory
-        r.should_fail_with Illegal_Argument
-
     group_builder.specify "should not allow to delete the root directory" <|
         Enso_File.root.delete . should_fail_with Illegal_Argument
 
