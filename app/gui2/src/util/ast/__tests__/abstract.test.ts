@@ -867,7 +867,11 @@ test.each([
   ['\\x20', ' ', ' '],
   ['\\b', '\b'],
   ['abcdef_123', 'abcdef_123'],
-  ['\\t\\r\\n\\v\\"\\\'\\`', '\t\r\n\v"\'`'],
+  ['\\t\\r\\n\\v\\\'\\`', '\t\r\n\v\'`', '\\t\\r\\n\\v\\\'\\`'],
+  // Escaping a double quote is allowed, but not necessary.
+  ['\\"', '"', '"'],
+  // Undefined/malformed escape sequences are left unevaluated, and properly escaped when normalized.
+  ['\\q\\u', '\\q\\u', '\\\\q\\\\u'],
   ['\\u00B6\\u{20}\\U\\u{D8\\xBFF}', '\xB6 \\U\xD8\xBFF}', '\xB6 \\\\U\xD8\xBFF}'],
   ['\\`foo\\` \\`bar\\` \\`baz\\`', '`foo` `bar` `baz`'],
   // Enso source code must be valid UTF-8 (per the specification), so Unicode unpaired surrogates must be escaped.
