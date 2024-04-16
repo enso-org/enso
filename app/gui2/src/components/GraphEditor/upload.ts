@@ -56,7 +56,7 @@ export class Uploader {
 
   static async Create(
     rpc: LanguageServer,
-    binary: Promise<DataServer>,
+    binary: DataServer,
     contentRoots: Promise<ContentRoot[]>,
     awareness: Awareness,
     file: File,
@@ -70,7 +70,7 @@ export class Uploader {
     if (!projectRootId) throw new Error('Could not find project root, uploading not possible.')
     const instance = new Uploader(
       rpc,
-      await binary,
+      binary,
       awareness,
       file,
       projectRootId.id,
