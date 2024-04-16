@@ -866,9 +866,10 @@ add_specs suite_builder =
             filtered4 = root.list name_filter="nested/*.txt" recursive=True . map .to_text
             filtered4.sort.should_equal (resolve ["subdirectory/nested/b.txt"])
 
-        add_delete_specs group_builder (enso_project.data / "transient")
+        add_create_and_delete_directory_specs group_builder (enso_project.data / "transient")
 
-add_delete_specs group_builder parent_dir =
+# `parent_dir` is lazy on purpose to avoid creating a temporary directory in setup phase
+add_create_and_delete_directory_specs group_builder ~parent_dir =
     group_builder.specify "should only allow deleting a file if Output is enabled" <|
         f = parent_dir / "short.txt"
         f.delete_if_exists
@@ -901,6 +902,29 @@ add_delete_specs group_builder parent_dir =
         f.delete recursive=True . should_succeed
         f.exists.should_be_false
         f.delete_if_exists . should_succeed
+
+    group_builder.specify "`create_directory` will create any parent directories, and succeed if the directory already exists" <|
+        f = parent_dir / "subdir1" / "subdir2" / "subdir3"
+        f.exists . should_be_false
+        f.parent.exists . should_be_false
+
+        f.create_directory . should_equal f
+        f.exists . should_be_true
+        f.parent.exists . should_be_true
+
+        # Creating an existing directory does not fail:
+        f.create_directory . should_equal f
+
+        (parent_dir / "subdir1").delete recursive=True . should_succeed
+
+    group_builder.specify "`create_directory` will fail if the parent is a file" <|
+        f = parent_dir / "file.txt"
+        "Cup".write f on_existing_file=Existing_File_Behavior.Overwrite
+        Panic.with_finalizer f.delete_if_exists <|
+            d = f / "subdir"
+            r = d.create_directory
+            r.should_fail_with File_Error
+            IO.println r.catch
 
 main filter=Nothing =
     suite = Test.build suite_builder->

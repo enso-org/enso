@@ -205,7 +205,7 @@ type S3_File
          effect for files or data links.
     delete : Boolean -> Nothing
     delete self (recursive : Boolean = False) =
-        # TODO implement recursive deletion for S3 folders: https://github.com/enso-org/enso/issues/9704
+        # TODO improve recursive deletion for S3 folders: https://github.com/enso-org/enso/issues/9704
         if self.is_directory then Error.throw (S3_Error.Error "Deleting S3 folders is currently not implemented." self.uri) else
             if self.exists.not then Error.throw (File_Error.Not_Found self) else
                 self.delete_if_exists recursive
@@ -219,9 +219,15 @@ type S3_File
          operation will fail if the directory is not empty. This option has no
          effect for files or data links.
     delete_if_exists : Boolean -> Nothing
-    delete_if_exists self (recursive : Boolean = False) = if self.is_directory then Error.throw (S3_Error.Error "Deleting S3 folders is currently not implemented." self.uri) else
+    delete_if_exists self (recursive : Boolean = False) =
         Context.Output.if_enabled disabled_message="Deleting an S3_File is forbidden as the Output context is disabled." panic=False <|
-            translate_file_errors self <| S3.delete_object self.s3_path.bucket self.s3_path.key self.credentials . if_not_error Nothing
+            case self.is_directory of
+                True ->
+                    children = self.list
+                    if children.is_empty.not && recursive.not then Error.throw (File_Error.Directory_Not_Empty self) else
+                        r = children.map child-> child.delete_if_exists recursive
+                        r.if_not_error self
+                False -> translate_file_errors self <| S3.delete_object self.s3_path.bucket self.s3_path.key self.credentials . if_not_error Nothing
 
     ## ICON data_output
        Copies the file to the specified destination.

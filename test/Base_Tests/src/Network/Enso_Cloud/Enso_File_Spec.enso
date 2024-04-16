@@ -12,6 +12,8 @@ import Standard.Test.Test_Environment
 
 import project.Network.Enso_Cloud.Cloud_Tests_Setup.Cloud_Tests_Setup
 
+import enso_dev.Base_Tests.System.File_Spec as Local_File_Spec
+
 type Temporary_Directory
     Value ~get
 
@@ -25,7 +27,7 @@ type Temporary_Directory
         Panic.rethrow <| "Hello Another!".write (sub / "another.txt")
         root
 
-    cleanup self = self.get.delete_if_exists
+    cleanup self = self.get.delete_if_exists recursive=True
 
     test_file_text = '[1, 2, 3, "foo"]'
 
@@ -312,6 +314,8 @@ add_specs suite_builder setup:Cloud_Tests_Setup = suite_builder.group "Enso Clou
         nested_file.normalize . should_equal nested_file
         nested_file.posix_permissions . should_be_a File_Permissions
         nested_file.is_writable . should_be_a Boolean
+
+    Local_File_Spec.add_create_and_delete_directory_specs group_builder test_root.get
 
 main filter=Nothing =
     setup = Cloud_Tests_Setup.prepare
