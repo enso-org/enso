@@ -609,7 +609,7 @@ final class TruffleCompilerContext implements CompilerContext {
         return scala.Option.apply(loaded.get());
       } else {
         logSerializationManager(
-            Level.FINE, "Unable to load suggestions for library [{0}].", libraryName);
+            Level.WARNING, "Unable to load suggestions for library [{0}].", libraryName);
         return scala.Option.empty();
       }
     }
