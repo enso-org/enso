@@ -883,50 +883,54 @@ add_create_and_delete_directory_specs group_builder ~parent_dir =
         f.exists.should_be_false
 
     group_builder.specify "will only allow to delete a non-empty directory if recursive=True" <|
-        f = (parent_dir / "non_empty") . create_directory
-        "Cup".write (f / "short.txt") on_existing_file=Existing_File_Behavior.Overwrite
+        dir = (parent_dir / "non_empty") . create_directory
+        inner_file = dir / "short.txt"
+        "Cup".write inner_file on_existing_file=Existing_File_Behavior.Overwrite
 
         # By default recursive=False, so delete will fail:
-        r = f.delete
+        r = dir.delete
         r.should_fail_with File_Error
         r.catch.should_be_a File_Error.Directory_Not_Empty
         r.catch.to_display_text . should_contain "non_empty"
         r.catch.to_display_text . should_contain "is not empty"
 
         # Delete if exists works the same way
-        f.delete_if_exists . should_fail_with File_Error
+        dir.delete_if_exists . should_fail_with File_Error
 
-        f.exists . should_be_true
-        (f / "short.txt").exists . should_be_true
+        dir.exists . should_be_true
+        inner_file.exists . should_be_true
 
-        f.delete recursive=True . should_succeed
-        f.exists.should_be_false
-        f.delete_if_exists . should_succeed
+        dir.delete recursive=True . should_succeed
+        dir.exists.should_be_false
+        inner_file.exists.should_be_false
+        dir.delete_if_exists . should_succeed
 
     group_builder.specify "`create_directory` will create any parent directories, and succeed if the directory already exists" <|
-        f = parent_dir / "subdir1" / "subdir2" / "subdir3"
-        f.exists . should_be_false
-        f.parent.exists . should_be_false
+        first_dir = parent_dir / "subdir1"
+        subdir = first_dir / "subdir2" / "subdir3"
+        subdir.exists . should_be_false
+        subdir.parent.exists . should_be_false
 
-        f.create_directory . should_equal f
-        f.exists . should_be_true
-        f.parent.exists . should_be_true
+        subdir.create_directory . should_equal subdir
+        subdir.exists . should_be_true
+        subdir.parent.exists . should_be_true
 
         # Creating an existing directory does not fail:
-        f.create_directory . should_equal f
+        subdir.create_directory . should_equal subdir
 
-        (parent_dir / "subdir1").delete recursive=True . should_succeed
+        first_dir.delete recursive=True . should_succeed
+        subdir.exists.should_be_false
 
     group_builder.specify "`create_directory` will fail if the parent is a file" <|
         f = parent_dir / "file.txt"
         "Cup".write f on_existing_file=Existing_File_Behavior.Overwrite
         Panic.with_finalizer f.delete_if_exists <|
-            d = f / "subdir"
-            d.exists . should_be_false
-            r = d.create_directory
+            dir = f / "subdir"
+            dir.exists . should_be_false
+            r = dir.create_directory
             r.should_fail_with File_Error
             r.catch.to_display_text . should_contain "is not a directory"
-            d.exists . should_be_false
+            dir.exists . should_be_false
 
 main filter=Nothing =
     suite = Test.build suite_builder->
