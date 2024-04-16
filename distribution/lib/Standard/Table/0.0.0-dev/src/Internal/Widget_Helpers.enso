@@ -164,7 +164,7 @@ make_join_kind_selector display=Display.Always =
    Make a join condition selector.
 make_join_condition_selector : Table -> Display -> Function -> Widget
 make_join_condition_selector table display=Display.Always cache=Nothing =
-    right = if cache.is_nothing.not then cache "right"
+    right = cache.if_not_nothing <| cache "right"
 
     col_names = intersect_column_names table right
     self_selector = make_column_name_selector table display=Display.Always
