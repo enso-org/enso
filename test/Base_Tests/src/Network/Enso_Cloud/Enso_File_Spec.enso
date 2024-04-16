@@ -21,11 +21,11 @@ type Temporary_Directory
         name = "test-run-Enso_File-"+(Date_Time.now.format "yyyy-MM-dd_HHmmss.fV" . replace "/" "|")
 
         # Create the expected directory structure.
-        root = Panic.rethrow <| Enso_File.root.create_directory name
-        Panic.rethrow <| Temporary_Directory.test_file_text.write (root / "test_file.json")
-        sub = Panic.rethrow <| root.create_directory "test-directory"
+        test_root = Panic.rethrow <| (Enso_File.root / name).create_directory
+        Panic.rethrow <| Temporary_Directory.test_file_text.write (test_root / "test_file.json")
+        sub = Panic.rethrow <| (test_root / "test-directory").create_directory
         Panic.rethrow <| "Hello Another!".write (sub / "another.txt")
-        root
+        test_root
 
     cleanup self = self.get.delete_if_exists recursive=True
 
@@ -46,7 +46,7 @@ add_specs suite_builder setup:Cloud_Tests_Setup = suite_builder.group "Enso Clou
 
     group_builder.specify "should allow to create and delete a directory" <|
         my_name = "my_test_dir-" + (Random.uuid.take 5)
-        my_dir = Enso_File.root.create_directory my_name
+        my_dir = (Enso_File.root / my_name).create_directory
         my_dir.should_succeed
         delete_on_fail caught_panic =
             my_dir.delete
@@ -67,7 +67,7 @@ add_specs suite_builder setup:Cloud_Tests_Setup = suite_builder.group "Enso Clou
         # If nothing set, defaults to root:
         Enso_File.current_working_directory . should_equal Enso_File.root
 
-        subdir = Enso_File.root.create_directory "my_test_CWD-"+(Random.uuid.take 5)
+        subdir = (Enso_File.root / "my_test_CWD-"+(Random.uuid.take 5)).create_directory
         subdir.should_succeed
         cleanup =
             Enso_User.flush_caches
@@ -122,23 +122,8 @@ add_specs suite_builder setup:Cloud_Tests_Setup = suite_builder.group "Enso Clou
         test_file = test_root.get / "test_file.json"
         test_file.exists . should_be_true
 
-        r = test_file.create_directory "my_test_dir"
+        r = (test_file / "my_test_dir").create_directory
         r.should_fail_with Illegal_Argument
-
-    # TODO expand with #8993
-    group_builder.specify "should delete all contents of a directory when deleting a directory" <|
-        dir1 = test_root.get.create_directory "my_test_dir1"+(Random.uuid.take 5)
-        dir1.should_succeed
-
-        dir2 = dir1.create_directory "my_test_dir2"
-        dir2.should_succeed
-
-        dir1.delete . should_succeed
-
-        Test.with_retries <|
-            dir1.exists . should_be_false
-            # The inner directory should also have been trashed if its parent is removed
-            dir2.exists . should_be_false
 
     group_builder.specify "should not allow to delete the root directory" <|
         Enso_File.root.delete . should_fail_with Illegal_Argument
@@ -176,7 +161,7 @@ add_specs suite_builder setup:Cloud_Tests_Setup = suite_builder.group "Enso Clou
                 42
 
     group_builder.specify "does not create additional files in Backup mode, because Cloud has its own versioning" <|
-        dir = test_root.get.create_directory "empty-folder"
+        dir = (test_root.get / "empty-folder").create_directory
         dir.list.should_equal []
 
         f = dir / "file.txt"

@@ -43,7 +43,7 @@ type Temporary_Enso_Cloud_File
 
     make tmp_dir_name name = Temporary_Enso_Cloud_File.Value <|
         location = Enso_File.root / tmp_dir_name
-        Panic.rethrow <| if location.exists.not then location.parent.create_directory location.name
+        Panic.rethrow <| location.create_directory
         location / ("cloud-"+name)
 
     cleanup self =
