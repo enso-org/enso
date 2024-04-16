@@ -922,9 +922,11 @@ add_create_and_delete_directory_specs group_builder ~parent_dir =
         "Cup".write f on_existing_file=Existing_File_Behavior.Overwrite
         Panic.with_finalizer f.delete_if_exists <|
             d = f / "subdir"
+            d.exists . should_be_false
             r = d.create_directory
             r.should_fail_with File_Error
-            IO.println r.catch
+            r.catch.to_display_text . should_contain "is not a directory"
+            d.exists . should_be_false
 
 main filter=Nothing =
     suite = Test.build suite_builder->
