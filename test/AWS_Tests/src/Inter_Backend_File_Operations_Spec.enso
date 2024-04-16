@@ -26,7 +26,7 @@ type Temporary_Local_File
         File.create_temporary_file "local" name
 
     cleanup self =
-        Panic.rethrow <| self.get.delete_if_exists
+        Panic.rethrow <| self.get.delete_if_exists recursive=True
 
 type Temporary_S3_File
     # Does not have to be lazy, because merely allocating the path does not create anything
@@ -36,7 +36,7 @@ type Temporary_S3_File
         location / ("s3-"+name)
 
     cleanup self =
-        Panic.rethrow <| self.get.delete_if_exists
+        Panic.rethrow <| self.get.delete_if_exists recursive=True
 
 type Temporary_Enso_Cloud_File
     Value ~get
@@ -48,7 +48,7 @@ type Temporary_Enso_Cloud_File
 
     cleanup self =
         parent = self.get.parent
-        Panic.rethrow <| self.get.delete_if_exists
+        Panic.rethrow <| self.get.delete_if_exists recursive=True
         Panic.rethrow <|
             needs_delete = parent.list.is_empty . catch File_Error _->False
             if needs_delete then parent.delete_if_exists
