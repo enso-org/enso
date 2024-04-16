@@ -3,6 +3,7 @@ import { codeEditorBindings, graphBindings, interactionBindings } from '@/bindin
 import CodeEditor from '@/components/CodeEditor.vue'
 import ColorPicker from '@/components/ColorPicker.vue'
 import ComponentBrowser from '@/components/ComponentBrowser.vue'
+import { type Usage } from '@/components/ComponentBrowser/input'
 import {
   DEFAULT_NODE_SIZE,
   mouseDictatedPlacement,
@@ -10,6 +11,7 @@ import {
 } from '@/components/ComponentBrowser/placement'
 import GraphEdges from '@/components/GraphEditor/GraphEdges.vue'
 import GraphNodes from '@/components/GraphEditor/GraphNodes.vue'
+import { useGraphEditorClipboard } from '@/components/GraphEditor/clipboard'
 import { performCollapse, prepareCollapsedInfo } from '@/components/GraphEditor/collapsing'
 import type { NodeCreationOptions } from '@/components/GraphEditor/nodeCreation'
 import { useGraphEditorToasts } from '@/components/GraphEditor/toasts'
@@ -42,8 +44,6 @@ import { Vec2 } from '@/util/data/vec2'
 import { encoding, set } from 'lib0'
 import { encodeMethodPointer } from 'shared/languageServerTypes'
 import { computed, onMounted, ref, shallowRef, toRef, watch } from 'vue'
-import { type Usage } from './ComponentBrowser/input'
-import { useGraphEditorClipboard } from './GraphEditor/clipboard'
 
 const keyboard = provideKeyboard()
 const graphStore = useGraphStore()
@@ -111,7 +111,7 @@ watch(
 
 // === Clipboard Copy/Paste ===
 
-const { copyNodeContent, readNodeFromClipboard } = useGraphEditorClipboard(
+const { copySelectionToClipboard, createNodesFromClipboard } = useGraphEditorClipboard(
   nodeSelection,
   graphNavigator,
 )
@@ -198,11 +198,11 @@ const graphBindingsHandler = graphBindings.handler({
   },
   copyNode() {
     if (keyboardBusy()) return false
-    copyNodeContent()
+    copySelectionToClipboard()
   },
   pasteNode() {
     if (keyboardBusy()) return false
-    readNodeFromClipboard()
+    createNodesFromClipboard()
   },
   collapse() {
     if (keyboardBusy()) return false
