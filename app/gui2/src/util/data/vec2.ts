@@ -37,6 +37,10 @@ export class Vec2 {
     return this.x === other.x && this.y === other.y
   }
 
+  equalsApproximately(other: Vec2, epsilon: number): boolean {
+    return Math.abs(this.x - other.x) < epsilon && Math.abs(this.y - other.y) < epsilon
+  }
+
   isZero(): boolean {
     return this.x === 0 && this.y === 0
   }

@@ -723,15 +723,15 @@ public final class EnsoContext {
 
   /**
    * @param name human-readable name of the pool
+   * @param min minimal number of threads kept-alive in the pool
+   * @param max maximal number of available threads
+   * @param maxQueueSize maximal number of pending tasks
    * @param systemThreads use system threads or polyglot threads
    * @return new execution service for this context
    */
-  public ExecutorService newCachedThreadPool(String name, boolean systemThreads) {
-    return threadExecutors.newCachedThreadPool(name, systemThreads);
-  }
-
-  public ExecutorService newCachedThreadPool(String name, int min, int max, boolean systemThreads) {
-    return threadExecutors.newCachedThreadPool(name, systemThreads, min, max);
+  public ExecutorService newCachedThreadPool(
+      String name, int min, int max, int maxQueueSize, boolean systemThreads) {
+    return threadExecutors.newCachedThreadPool(name, systemThreads, min, max, maxQueueSize);
   }
 
   /**
