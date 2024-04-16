@@ -282,10 +282,7 @@ macro_rules! with_token_definition { ($f:ident ($($args:tt)*)) => { $f! { $($arg
         TextEnd,
         TextSection,
         TextEscape {
-            #[serde(serialize_with = "crate::serialization::serialize_optional_char")]
-            #[serde(deserialize_with = "crate::serialization::deserialize_optional_char")]
-            #[reflect(as = "char")]
-            pub value: Option<char>,
+            pub value: Codepoint,
         },
         TextInitialNewline,
         TextNewline,
@@ -591,6 +588,66 @@ pub enum Base {
     Octal,
     /// Base 16.
     Hexadecimal,
+}
+
+
+// === Text literals ===
+
+/// Represents any of:
+/// - A valid Unicode codepoint (i.e. a `char`).
+/// - A value that does not constitute a legal codepoint according to the Unicode standard, but is
+///   allowed in Enso strings and can be included in Enso text as an escape sequence. This includes
+///   unpaired surrogates.
+/// - A value representing the absence of a valid Unicode codepoint; this is included in the
+///   `Codepoint` type rather than using `Option<Codepoint>` in order to simplify defining efficient
+///   serialization for optional codepoints.
+#[derive(Clone, Copy, PartialEq, Eq, Serialize, Reflect, Deserialize, Debug)]
+pub struct Codepoint(#[reflect(as = "char")] u32);
+
+impl Default for Codepoint {
+    fn default() -> Self {
+        Codepoint::none()
+    }
+}
+
+impl Codepoint {
+    /// Cast a `char` to a `Codepoint`; this is a widening conversion and will never result in
+    /// `Codepoint::none`.
+    pub const fn from_char(value: char) -> Self {
+        Codepoint(value as u32)
+    }
+
+    fn is_allowed_invalid_codepoint(value: u32) -> bool {
+        let unpaired_surrogates = 0xD800..=0xDFFF;
+        unpaired_surrogates.contains(&value)
+    }
+
+    /// Create either a valid `Codepoint` or `Codepoint::none` from the given value.
+    pub fn from_u32(value: u32) -> Self {
+        if let Some(c) = char::from_u32(value) {
+            Self::from_char(c)
+        } else if Self::is_allowed_invalid_codepoint(value) {
+            Codepoint(value)
+        } else {
+            Codepoint::none()
+        }
+    }
+
+    /// Return the representation of an unspecified or out-of-range codepoint.
+    pub const fn none() -> Self {
+        Codepoint(0xFFFF_FFFF)
+    }
+
+    /// Return true if this value is `Codepoint::none`.
+    pub const fn is_none(self) -> bool {
+        self.0 == Self::none().0
+    }
+
+    /// Return the value as a `char`, if it is a valid unicode Codepoint (and not
+    /// `Codepoint::none` or an unpaired surrogate).
+    pub const fn to_char(self) -> Option<char> {
+        char::from_u32(self.0)
+    }
 }
 
 
