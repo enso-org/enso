@@ -91,7 +91,7 @@ type Vector a
              Vector.collect (List.Cons 1 <| List.Cons 2 <| List.Nil) .x .xs stop_at=(_==List.Nil)
     collect : Any -> (Any -> Any) -> (Any -> Any) -> Integer | Nothing -> (Any -> Boolean) -> Vector Any
     collect seq element:(Any -> Any) next:(Any -> Any) limit:(Integer | Nothing)=Nothing stop_at:(Any -> Boolean)=(_==Nothing) =
-        Vector.build limit=(if limit.is_nothing then 10 else limit) builder->
+        Vector.build capacity=(if limit.is_nothing then 10 else limit) builder->
             iterate item remaining =
                 done = remaining == 0 || (stop_at item)
                 if done.not then
@@ -197,6 +197,7 @@ type Vector a
 
        Arguments:
        - function: a function taking a `Builder` and using it to add elements.
+       - capacity: Initial capacity of the Vector.Builder
 
        ! Error Conditions
 
@@ -212,8 +213,8 @@ type Vector a
                  builder.append 3
              # => [1, 2, 3]
     build : (Builder -> Any) -> Integer -> Vector
-    build (function : Builder -> Any) (limit : Integer = 10) -> Vector =
-        builder = Builder.new limit
+    build (function : Builder -> Any) (capacity : Integer = 10) -> Vector =
+        builder = Builder.new capacity
         result = function builder
         result.if_not_error builder.to_vector
 
