@@ -206,19 +206,19 @@ resolve_index_or_range text descriptor = Panic.recover [Index_Out_Of_Bounds, Ill
                 case true_range.step == 1 of
                     True -> Span_Module.range_to_char_indices text true_range
                     False ->
-                        ranges = Vector.new_builder
-                        if true_range.step <= 0 then panic_on_non_positive_step
-                        go start_index current_grapheme =
-                            end_index = iterator.next
-                            if (start_index == -1) || (end_index == -1) || (current_grapheme >= true_range.end) then Nothing else
-                                ranges.append (start_index.up_to end_index)
-                                ## We advance by step-1, because we already advanced by
-                                   one grapheme when looking for the end of the previous
-                                   one.
-                                @Tail_Call go (iterator.next true_range.step-1) current_grapheme+true_range.step
+                        ranges = Vector.build builder->
+                            if true_range.step <= 0 then panic_on_non_positive_step
+                            go start_index current_grapheme =
+                                end_index = iterator.next
+                                if (start_index == -1) || (end_index == -1) || (current_grapheme >= true_range.end) then Nothing else
+                                    builder.append (start_index.up_to end_index)
+                                    ## We advance by step-1, because we already advanced by
+                                    one grapheme when looking for the end of the previous
+                                    one.
+                                    @Tail_Call go (iterator.next true_range.step-1) current_grapheme+true_range.step
 
-                        go (iterator.next true_range.start) true_range.start
-                        Codepoint_Ranges.Value ranges.to_vector is_sorted_and_distinct=True
+                            go (iterator.next true_range.start) true_range.start
+                        Codepoint_Ranges.Value ranges is_sorted_and_distinct=True
 
 ## PRIVATE
    Returns an array of UTF-16 code-unit indices corresponding to the beginning
@@ -228,12 +228,11 @@ resolve_index_or_range text descriptor = Panic.recover [Index_Out_Of_Bounds, Ill
 character_ranges text =
     iterator = BreakIterator.getCharacterInstance
     iterator.setText text
-    ranges = Vector.new_builder
-    go prev nxt = if nxt == -1 then Nothing else
-        ranges.append (prev.up_to nxt)
-        @Tail_Call go nxt iterator.next
-    go iterator.first iterator.next
-    ranges.to_vector
+    Vector.build builder->
+        go prev nxt = if nxt == -1 then Nothing else
+            builder.append (prev.up_to nxt)
+            @Tail_Call go nxt iterator.next
+        go iterator.first iterator.next
 
 ## PRIVATE
 batch_resolve_indices_or_ranges text descriptors = Panic.recover [Index_Out_Of_Bounds, Illegal_Argument] <|
@@ -244,25 +243,25 @@ batch_resolve_indices_or_ranges text descriptors = Panic.recover [Index_Out_Of_B
        demand, using a Vector.Builder to cache any prior ranges for random
        access.
     characters = character_ranges text
-    ranges = Vector.new_builder
-    descriptors.each descriptor->
-        case descriptor of
-            _ : Integer ->
-                ranges.append (Panic.rethrow <| characters.at descriptor)
-            _ : Range ->
-                if descriptor.is_empty then 0.up_to 0 else
-                    true_range = normalize_range descriptor characters.length
-                    case true_range.step == 1 of
-                        True ->
-                            first_grapheme = Panic.rethrow <| characters.at true_range.start
-                            last_grapheme = Panic.rethrow <| characters.at true_range.end-1
-                            ranges.append (first_grapheme.start.up_to last_grapheme.end)
-                        False ->
-                            if true_range.start >= characters.length then
-                                Panic.throw (Index_Out_Of_Bounds.Error true_range.start characters.length)
-                            true_range.to_vector.each ix->
-                                ranges.append (Panic.rethrow <| characters.at ix)
-    Codepoint_Ranges.Value ranges.to_vector is_sorted_and_distinct=False
+    ranges = Vector.build builder->
+        descriptors.each descriptor->
+            case descriptor of
+                _ : Integer ->
+                    builder.append (Panic.rethrow <| characters.at descriptor)
+                _ : Range ->
+                    if descriptor.is_empty then 0.up_to 0 else
+                        true_range = normalize_range descriptor characters.length
+                        case true_range.step == 1 of
+                            True ->
+                                first_grapheme = Panic.rethrow <| characters.at true_range.start
+                                last_grapheme = Panic.rethrow <| characters.at true_range.end-1
+                                builder.append (first_grapheme.start.up_to last_grapheme.end)
+                            False ->
+                                if true_range.start >= characters.length then
+                                    Panic.throw (Index_Out_Of_Bounds.Error true_range.start characters.length)
+                                true_range.to_vector.each ix->
+                                    builder.append (Panic.rethrow <| characters.at ix)
+    Codepoint_Ranges.Value ranges is_sorted_and_distinct=False
 
 ## PRIVATE
 panic_on_non_positive_step =
