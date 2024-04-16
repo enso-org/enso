@@ -145,6 +145,7 @@ type Vector a
 
     ## PRIVATE
        ADVANCED
+       DEPRECATED
        Creates a new vector builder instance.
 
        A vector `Builder` is a mutable data structure, that allows for gathering
