@@ -845,7 +845,6 @@ add_specs suite_builder =
             (Decimal.new "-1E100" + Decimal.new "-3.5") . truncate . should_equal (Decimal.new "-1E100" + Decimal.new "-3")
             (Decimal.new "-1E100" + Decimal.new "-3.7") . truncate . should_equal (Decimal.new "-1E100" + Decimal.new "-3")
 
-        group_builder.specify "should return an Integer" <|
             small = Decimal.new "1.1"
             big = Decimal.new "1E120" + small
             small.ceil . should_be_a Integer
