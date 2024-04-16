@@ -77,7 +77,6 @@ public final class ExecutionService {
   private final CallRootNode call = new CallRootNode();
   private final InvokeMemberRootNode invoke = new InvokeMemberRootNode();
   private final Timer timer;
-  private RuntimeCache lastExecCache;
 
   /**
    * Creates a new instance of this service.
@@ -180,7 +179,6 @@ public final class ExecutionService {
     if (src == null) {
       throw new SourceNotFoundException(call.getFunction().getName());
     }
-    lastExecCache = cache;
     var callbacks =
         new ExecutionCallbacks(
             visualizationHolder,
@@ -321,6 +319,7 @@ public final class ExecutionService {
   public Object callFunctionWithInstrument(
       VisualizationHolder visualizationHolder,
       RuntimeCache cache,
+      RuntimeCache lastExecCache,
       Module module,
       Object function,
       Object... arguments) {
