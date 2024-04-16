@@ -71,6 +71,11 @@ export class Vec2 {
     return new Vec2(1 / this.x, 1 / this.y)
   }
 
+  /** Return a `Vec2` equal to this `Vec2` reflected over the line `y=x`, i.e. with the x and y axes swapped. */
+  reflectXY() {
+    return new Vec2(this.y, this.x)
+  }
+
   add(other: Vec2): Vec2 {
     return new Vec2(this.x + other.x, this.y + other.y)
   }

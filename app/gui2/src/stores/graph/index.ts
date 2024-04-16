@@ -25,7 +25,6 @@ import type {
 import { MutableModule, isIdentifier } from '@/util/ast/abstract'
 import { RawAst, visitRecursive } from '@/util/ast/raw'
 import { partition } from '@/util/data/array'
-import type { Opt } from '@/util/data/opt'
 import { Rect } from '@/util/data/rect'
 import { Vec2 } from '@/util/data/vec2'
 import { map, set } from 'lib0'
@@ -251,11 +250,10 @@ export const useGraphStore = defineStore('graph', () => {
 
   function createNodes(
     nodeOptions: {
-      position: Vec2
       expression: string
-      metadata?: NodeMetadataFields | undefined
-      withImports?: RequiredImport[] | undefined
-      documentation?: string | undefined
+      metadata: NodeMetadataFields & { position: { x: number; y: number } }
+      withImports: RequiredImport[]
+      documentation: string | undefined
     }[],
   ): NodeId[] {
     const method = syncModule.value ? methodAstInModule(syncModule.value) : undefined
@@ -268,18 +266,17 @@ export const useGraphStore = defineStore('graph', () => {
       const bodyBlock = edit.getVersion(method).bodyAsBlock()
       for (const options of nodeOptions) {
         const ident = generateUniqueIdent()
-        const metadata = { ...options.metadata, position: options.position.xy() }
         const { rootExpression, id } = newAssignmentNode(
           edit,
           ident,
           options.expression,
-          metadata,
-          options.withImports ?? [],
+          options.metadata,
+          options.withImports,
           options.documentation,
         )
         bodyBlock.push(rootExpression)
         created.push(id)
-        nodeRects.set(id, new Rect(options.position, Vec2.Zero))
+        nodeRects.set(id, new Rect(Vec2.FromXY(options.metadata.position), Vec2.Zero))
       }
     })
     return created
@@ -306,16 +303,6 @@ export const useGraphStore = defineStore('graph', () => {
     const rootExpression =
       documentation != null ? Ast.Documented.new(documentation, assignment) : assignment
     return { rootExpression, id }
-  }
-
-  function createNode(
-    position: Vec2,
-    expression: string,
-    metadata: NodeMetadataFields = {},
-    withImports: RequiredImport[] | undefined = undefined,
-    documentation?: string | undefined,
-  ): Opt<NodeId> {
-    return createNodes([{ position, expression, metadata, withImports, documentation }])[0]
   }
 
   /* Try adding imports. Does nothing if conflict is detected, and returns `DectedConflict` in such case. */
@@ -480,7 +467,7 @@ export const useGraphStore = defineStore('graph', () => {
         const nodeAst = syncModule.value?.get(nodeId)
         const rect = nodeRects.get(nodeId)
         if (!rect || !nodeAst || nodeAst.nodeMetadata.get('position') != null) continue
-        const { position } = placeNode([], rect.size)
+        const position = placeNode([], rect.size)
         editNodeMetadata(nodeAst, (metadata) =>
           metadata.set('position', { x: position.x, y: position.y }),
         )
@@ -729,7 +716,6 @@ export const useGraphStore = defineStore('graph', () => {
     clearUnconnected,
     moduleRoot,
     createNodes,
-    createNode,
     deleteNodes,
     ensureCorrectNodeOrder,
     batchEdits,

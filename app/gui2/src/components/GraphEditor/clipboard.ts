@@ -1,10 +1,9 @@
-import type { NavigatorComposable } from '@/composables/navigator'
+import type { NodeCreation } from '@/composables/nodeCreation'
 import type { GraphSelection } from '@/providers/graphSelection'
 import type { Node } from '@/stores/graph'
 import { useGraphStore } from '@/stores/graph'
 import { Ast } from '@/util/ast'
 import { Pattern } from '@/util/ast/match'
-import { Vec2 } from '@/util/data/vec2'
 import type { NodeMetadataFields } from 'shared/ast'
 import { computed } from 'vue'
 
@@ -121,7 +120,7 @@ function getClipboard() {
 
 export function useGraphEditorClipboard(
   nodeSelection: GraphSelection,
-  graphNavigator: NavigatorComposable,
+  createNodes: NodeCreation['createNodes'],
 ) {
   const graphStore = useGraphStore()
 
@@ -147,16 +146,14 @@ export function useGraphEditorClipboard(
       console.warn('No valid node in clipboard.')
       return
     }
-    for (const copiedNode of clipboardData) {
-      const { expression, documentation, metadata } = copiedNode
-      graphStore.createNode(
-        (clipboardData.length === 1 ? graphNavigator.sceneMousePos : null) ?? Vec2.Zero,
+    createNodes(
+      clipboardData.map(({ expression, documentation, metadata }) => ({
+        placement: 'mouse',
         expression,
         metadata,
-        undefined,
         documentation,
-      )
-    }
+      })),
+    )
   }
 
   return {
