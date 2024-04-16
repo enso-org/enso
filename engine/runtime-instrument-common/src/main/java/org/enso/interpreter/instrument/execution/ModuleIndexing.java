@@ -37,7 +37,9 @@ public final class ModuleIndexing {
   }
 
   /**
-   * @return true, if module has been isIndexed. False otherwise.
+   * Finds `IndexState` corresponding to the module.
+   *
+   * @return IndexState corresponding to `module`, or null if it doesn't exist.
    */
   public IndexState find(Module module) {
     return modules.get(module);
