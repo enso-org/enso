@@ -37,11 +37,17 @@ red text =
 green text =
     '\u001b[32;1m' + text + '\u001b[0m'
 
+highlighted text =
+    '\u001b[1;1m' + text + '\u001b[0m'
+
 maybe_red_text (text : Text) (config : Suite_Config) =
     if config.use_ansi_colors then (red text) else text
 
 maybe_green_text (text : Text) (config : Suite_Config) =
     if config.use_ansi_colors then (green text) else text
+
+maybe_highlighted_text (text : Text) (config : Suite_Config) =
+    if config.use_ansi_colors then (highlighted text) else text
 
 ## Print result for a single Spec run
 print_single_result : Test_Result -> Suite_Config -> Nothing
@@ -49,6 +55,10 @@ print_single_result (test_result : Test_Result) (config : Suite_Config) =
     times_suffix =
         times = test_result.time_taken.total_milliseconds.to_text + "ms"
         "[" + times + "]"
+
+    decorate_stack_trace = case config.use_ansi_colors && config.caller_project_root.is_nothing.not of
+        True -> decorate_stack_trace_text config.caller_project_root (maybe_highlighted_text _ config)
+        False -> (x->x)
 
     case test_result.spec_result of
         Spec_Result.Success ->
@@ -60,7 +70,7 @@ print_single_result (test_result : Test_Result) (config : Suite_Config) =
             IO.println (maybe_red_text txt config)
             IO.println ("        Reason: " + msg)
             if details.is_nothing.not then
-                IO.println details
+                IO.println (decorate_stack_trace details)
         Spec_Result.Pending reason ->
             if config.print_only_failures.not then
                 IO.println ("    - [PENDING] " + test_result.spec_name)
@@ -146,3 +156,21 @@ print_group_report group_name test_results config builder =
 escape_xml : Text -> Text
 escape_xml input =
     input.replace '&' '&amp;' . replace '"' '&quot;' . replace "'" '&apos;' . replace '<' '&lt;' . replace '>' '&gt;'
+
+## PRIVATE
+decorate_stack_trace_text (project_root : File) (decorator : Text -> Text) (stack_trace_text : Text) -> Text =
+    ## This regex matches lines like:
+           at <enso> something(/path/to/file.enso:123:4-5)
+       and extracts the path `/path/to/file.enso`.
+    regex = Regex.compile "\s+at [^()]+\(([^()]*?):[\d:-]+\)"
+    normalized_root = project_root.absolute.normalize
+    stack_trace_text.lines
+        . map line->
+            is_line_from_current_project = case regex.match line . get 1 of
+                Nothing -> False
+                matched_path ->
+                    f = File.new matched_path . catch Any _->Nothing
+                    if f.is_nothing then False else
+                        f.absolute.normalize.is_descendant_of normalized_root
+            if is_line_from_current_project then decorator line else line
+        . join '\n'
