@@ -182,13 +182,15 @@ type Vector a
        a number of elements and then converting them into a vector. This is
        particularly useful when the number of elements is not known upfront.
 
-       `.build` creates a new `Builder`, passes it to the provided function, and
-       then closes the `Builder and returns the resulting `Vector`.
+       `.build` creates a new `Builder`, passes it to the provided function,
+       which can add elements using the `Builder`'s `.append` method. When the
+       function is done, `.build` then closes the `Builder and returns the
+       resulting `Vector`.
 
        The provided function should call `.append` to add new elements to the
        `Builder`. The return value of the provided function is not used, unless
        it is a dataflow error, in which case the `Vector` is not built, and the
-       error is propagted instead.
+       dataflow error is propagted instead.
 
        A vector allows to store an arbitrary number of elements in linear
        memory. It is the recommended data structure for most applications.
