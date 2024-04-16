@@ -1142,6 +1142,14 @@ lazy val `ydoc-server` = project
     Compile / run / fork := true,
     Test / fork := true,
     run / connectInput := true,
+    Compile / run := (Compile / run)
+      .dependsOn(
+        Def.task {
+          import scala.sys.process._
+          "npm --workspace=enso-gui2 run build-ydoc-server" ! streams.value.log
+        }
+      )
+      .evaluated,
     commands += WithDebugCommand.withDebug,
     modulePath := {
       JPMSUtils.filterModulesFromUpdate(
