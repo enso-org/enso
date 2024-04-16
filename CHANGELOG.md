@@ -650,6 +650,7 @@
 - [Added `Decimal.min` and `.max`.][9663]
 - [Added `Decimal.round`.][9672]
 - [Implemented write support for Enso Cloud files.][9686]
+- [Added `recursive` option to `File.delete`.][9719]
 
 [debug-shortcuts]:
   https://github.com/enso-org/enso/blob/develop/app/gui/docs/product/shortcuts.md#debug
@@ -950,6 +951,7 @@
 [9663]: https://github.com/enso-org/enso/pull/9663
 [9672]: https://github.com/enso-org/enso/pull/9672
 [9686]: https://github.com/enso-org/enso/pull/9686
+[9719]: https://github.com/enso-org/enso/pull/9719
 
 #### Enso Compiler
 
