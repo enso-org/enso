@@ -115,6 +115,11 @@ export class LsRpcError {
 
 export type LsRpcResult<T> = Result<T, LsRpcError>
 
+export type TransportEvents = {
+  'transport/closed': () => void
+  'transport/connected': () => void
+}
+
 /**
  * This client implements the [Language Server Protocol](https://github.com/enso-org/enso/blob/develop/docs/language-server/protocol-language-server.md)
  *
@@ -122,7 +127,7 @@ export type LsRpcResult<T> = Result<T, LsRpcError>
  * repressenting a remote call (except the `initProtocolConnection` obviously) waits for
  * initialization before sending the request.
  */
-export class LanguageServer extends ObservableV2<Notifications> {
+export class LanguageServer extends ObservableV2<Notifications & TransportEvents> {
   client: Client
   /**
    * This promise is resolved once the LS protocol is initialized. When connection is lost, this
@@ -149,6 +154,7 @@ export class LanguageServer extends ObservableV2<Notifications> {
     })
     transport.on('error', (error) => console.error('Language Server transport error:', error))
     const reinitializeCb = () => {
+      this.emit('transport/closed', [])
       console.log('Language Server: websocket closed')
       this.scheduleInitializationAfterConnect()
     }
@@ -165,6 +171,7 @@ export class LanguageServer extends ObservableV2<Notifications> {
     this.initialized = new Promise((resolve) => {
       const cb = () => {
         this.transport.off('open', cb)
+        this.emit('transport/connected', [])
         this.initializationScheduled = false
         exponentialBackoff(() => this.initProtocolConnection(this.clientID), {
           onBeforeRetry: (error, _, delay) => {
@@ -220,9 +227,7 @@ export class LanguageServer extends ObservableV2<Notifications> {
         return Err(new LsRpcError(new RemoteRpcError(remoteError.data), method, params))
       } else if (error instanceof Error) {
         return Err(new LsRpcError(error, method, params))
-      } else {
-        return Err(new LsRpcError(`Unspecified error: ${error}`, method, params))
-      }
+      } else throw error
     } finally {
       if (DEBUG_LOG_RPC) {
         console.log(`LS [${uuid}] ${method} took ${performance.now() - now}ms`)

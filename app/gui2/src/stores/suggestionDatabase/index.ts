@@ -95,8 +95,9 @@ class Synchronizer {
   ): Promise<{ currentVersion: number }> {
     const initialDb = await exponentialBackoff(() => lsRpc.getSuggestionsDatabase())
     if (!initialDb.ok) {
-      initialDb.error.log('Cannot load initial suggestion database')
-      console.error('Continuing with empty suggestion database')
+      initialDb.error.log(
+        'Cannot load initial suggestion database. Continuing with empty suggestion database',
+      )
       return { currentVersion: 0 }
     }
     for (const lsEntry of initialDb.value.entries) {
@@ -143,8 +144,7 @@ class Synchronizer {
       await firstExecution
       const groups = await exponentialBackoff(() => lsRpc.getComponentGroups())
       if (!groups.ok) {
-        groups.error.log('Cannot read component groups')
-        console.error('Continuing without gruops')
+        groups.error.log('Cannot read component groups. Continuing without gruops.')
         return { currentVersion }
       }
       this.groups.value = groups.value.componentGroups.map(
