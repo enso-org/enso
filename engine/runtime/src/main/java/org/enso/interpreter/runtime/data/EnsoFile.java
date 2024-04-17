@@ -287,7 +287,11 @@ public final class EnsoFile implements EnsoObject {
   @Override
   public boolean equals(Object obj) {
     if (obj instanceof EnsoFile otherFile) {
-      return truffleFile.getPath().equals(otherFile.truffleFile.getPath());
+      if (truffleFile.getPath().equals(otherFile.truffleFile.getPath())) {
+        return true;
+      } else {
+        return truffleFile.getAbsoluteFile().normalize().getPath().equals(otherFile.truffleFile.getAbsoluteFile().normalize().getPath());
+      }
     } else {
       return false;
     }
