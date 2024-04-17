@@ -1,0 +1,21 @@
+private
+
+from Standard.Base import all
+
+## PRIVATE
+decorate_stack_trace_text (project_root : File) (decorator : Text -> Text) (stack_trace_text : Text) -> Text =
+    ## This regex matches lines like:
+           at <enso> something(/path/to/file.enso:123:4-5)
+       and extracts the path `/path/to/file.enso`.
+    regex = Regex.compile "\s+at [^()]+\(([^()]*?):[\d:-]+\)"
+    normalized_root = project_root.absolute.normalize
+    stack_trace_text.lines
+        . map line->
+            is_line_from_current_project = case regex.match line . get 1 of
+                Nothing -> False
+                matched_path ->
+                    f = File.new matched_path . catch Any _->Nothing
+                    if f.is_nothing then False else
+                        f.absolute.normalize.is_descendant_of normalized_root
+            if is_line_from_current_project then decorator line else line
+        . join '\n'
