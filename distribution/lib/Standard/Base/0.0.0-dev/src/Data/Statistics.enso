@@ -246,7 +246,7 @@ type Statistic
     spearman_correlation : Vector Vector -> Vector Vector
     spearman_correlation data =
         Panic.handle_wrapped_dataflow_error <|
-            Vector.build data.length builder->
+            Vector.build initial_capacity=data.length builder->
                 0.up_to data.length . each i->
                     builder.append <|
                         Vector.new data.length j->

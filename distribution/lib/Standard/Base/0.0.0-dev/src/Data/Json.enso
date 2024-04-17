@@ -148,7 +148,7 @@ type JS_Object
     new object_node =
         make_field_names object =
             name_iterator = object.fieldNames
-            Vector.build limit=object.size builder->
+            Vector.build initial_capacity=object.size builder->
                 loop iterator builder =
                     if iterator.hasNext then
                         builder.append iterator.next

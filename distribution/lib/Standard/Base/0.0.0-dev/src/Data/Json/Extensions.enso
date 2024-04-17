@@ -116,7 +116,7 @@ Any.to_js_object self =
                 fs = m.fields
                 field_names = cons.fields
 
-                pairs = Vector.build capcity=field_names.length+2 builder->
+                pairs = Vector.build initial_capacity=field_names.length+2 builder->
                     builder.append type_pair
                     builder.append ["constructor", cons.name]
                     0.up_to field_names.length . map i-> builder.append [field_names.at i, fs.at i . to_js_object]
@@ -144,7 +144,7 @@ Error.to_js_object self =
    Custom serialization for Locale, serializes the language, country and variant.
 Locale.to_js_object : JS_Object
 Locale.to_js_object self =
-    pairs = Vector.build capacity=5 b->
+    pairs = Vector.build initial_capacity=5 b->
         b.append ["type", "Locale"]
         b.append ["constructor", "new"]
         b.append ["language", self.language]

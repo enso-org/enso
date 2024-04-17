@@ -280,7 +280,7 @@ type Duration
              example_to_json = (Duration.new seconds=10).to_js_object
     to_js_object : JS_Object
     to_js_object self =
-        v = Vector.new_builder initial_capacity=7 builder->
+        v = Vector.build initial_capacity=7 builder->
             builder.append ["type", "Duration"]
             builder.append ["constructor", "new"]
             if self.hours==0 . not then builder.append ["hours", self.hours]
