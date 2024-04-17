@@ -828,16 +828,15 @@ type File
    itself is returned.
 list_descendants : File -> Vector File
 list_descendants file =
-    builder = Vector.new_builder
-    go file =
-        builder.append file
-        case file.is_directory of
-            True ->
-                children = file.list_immediate_children
-                children.each go
-            False -> Nothing
-    go file
-    builder.to_vector
+    Vector.build builder->
+        go file =
+            builder.append file
+            case file.is_directory of
+                True ->
+                    children = file.list_immediate_children
+                    children.each go
+                False -> Nothing
+        go file
 
 ## PRIVATE
 

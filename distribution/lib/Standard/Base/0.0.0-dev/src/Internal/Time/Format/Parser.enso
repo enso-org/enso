@@ -128,9 +128,9 @@ type Parser
                 if optional_nesting_level > 0 then
                     Panic.throw (Illegal_State.Error "Unterminated optional section. This should have been caught by the tokenizer.")
             Format_Token.Optional_Section_Start ->
-                inner_builder = Vector.new_builder
-                go inner_builder (optional_nesting_level+1)
-                current_builder.append (Common_Nodes.Optional_Section inner_builder.to_vector)
+                results = Vector.build inner_builder->
+                    go inner_builder (optional_nesting_level+1)
+                current_builder.append (Common_Nodes.Optional_Section results)
                 @Tail_Call go current_builder optional_nesting_level
             Format_Token.Optional_Section_End ->
                 if optional_nesting_level <= 0 then
@@ -139,9 +139,8 @@ type Parser
                 parsed_node = self.parse_common_token other_token
                 current_builder.append parsed_node
                 @Tail_Call go current_builder optional_nesting_level
-        root_builder = Vector.new_builder
-        go root_builder 0
-        root_builder.to_vector
+        Vector.builder root_builder->
+            go root_builder 0
 
     ## PRIVATE
     parse_common_token self token = case token of

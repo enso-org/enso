@@ -47,21 +47,20 @@ type Analyzer
     ## PRIVATE
        Runs basic validations that can happen on construction of the formatter, regardless of the context.
     validate_after_parsing self ~continuation =
-        problem_builder = Vector.new_builder
-        self.check_possible_m_mismatches problem_builder
-        self.check_possible_seconds_aliasing problem_builder
-        self.check_24h_and_am_pm_collision problem_builder
-        Problem_Behavior.Report_Warning.attach_problems_after continuation problem_builder.to_vector
+        Vector.build problem_builder->
+            self.check_possible_m_mismatches problem_builder
+            self.check_possible_seconds_aliasing problem_builder
+            self.check_24h_and_am_pm_collision problem_builder
+            Problem_Behavior.Report_Warning.attach_problems_after continuation problem_builder
 
     ## PRIVATE
        Prepares a list of warnings that are only reported when parsing using the
        formatter.
     get_parsing_only_warnings : Vector
     get_parsing_only_warnings self =
-        problem_builder = Vector.new_builder
-        self.check_missing_am_pm_in_hour_parse problem_builder
-        self.check_missing_year_in_date_parse problem_builder
-        problem_builder.to_vector
+        Vector.build problem_builder->
+            self.check_missing_am_pm_in_hour_parse problem_builder
+            self.check_missing_year_in_date_parse problem_builder
 
     ## PRIVATE
     check_possible_m_mismatches self problem_builder =
