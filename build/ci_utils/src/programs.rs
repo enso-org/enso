@@ -7,6 +7,7 @@ pub mod cmake;
 pub mod cmd;
 pub mod conda;
 pub mod docker;
+pub mod explorer;
 pub mod flatc;
 pub mod git;
 pub mod go;

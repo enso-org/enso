@@ -4,87 +4,67 @@ use tracing_subscriber::prelude::*;
 use crate::global;
 
 use std::io;
-use std::sync::Once;
-use tracing::span::Attributes;
 use tracing::subscriber::Interest;
-use tracing::Event;
-use tracing::Id;
 use tracing::Metadata;
 use tracing::Subscriber;
 use tracing_subscriber::filter::LevelFilter;
 use tracing_subscriber::fmt::format::FmtSpan;
 use tracing_subscriber::registry::LookupSpan;
+use tracing_subscriber::Layer;
 use tracing_subscriber::Registry;
 
 
 
 pub fn is_our_module_path(path: impl AsRef<str>) -> bool {
-    // true
     ["ide_ci::", "enso"].into_iter().any(|prefix| path.as_ref().starts_with(prefix))
 }
 
+/// A layer that filters out all spans/events that are not in our module path.
 #[derive(Clone, Copy, Debug, Display)]
-pub struct MyLayer;
+pub struct GlobalFilteringLayer;
 
-impl<S: Subscriber + Debug + for<'a> LookupSpan<'a>> tracing_subscriber::Layer<S> for MyLayer {
+impl<S: Subscriber + Debug + for<'a> LookupSpan<'a>> Layer<S> for GlobalFilteringLayer {
     fn register_callsite(&self, metadata: &'static Metadata<'static>) -> Interest {
         if metadata.module_path().is_some_and(is_our_module_path) {
             Interest::always()
         } else {
-            // dbg!(metadata);
             Interest::never()
         }
     }
-
-    fn on_new_span(
-        &self,
-        _attrs: &Attributes<'_>,
-        _id: &Id,
-        _ctx: tracing_subscriber::layer::Context<'_, S>,
-    ) {
-        // let span = ctx.span(id).unwrap();
-        // let bar = crate::global::new_spinner(format!("In span {id:?}: {:?}", span.name()));
-        // span.extensions_mut().insert(bar);
-        // crate::global::println(format!("Create {id:?}"));
-    }
-    fn on_event(&self, _event: &Event<'_>, _ctx: tracing_subscriber::layer::Context<'_, S>) {
-        // tracing_log::dbg!(event);
-    }
-    fn on_enter(&self, _id: &Id, _ctx: tracing_subscriber::layer::Context<'_, S>) {
-        // ide_ci::global::println(format!("Enter {id:?}"));
-    }
-    fn on_exit(&self, _id: &Id, _ctx: tracing_subscriber::layer::Context<'_, S>) {
-        // ide_ci::global::println(format!("Leave {id:?}"));
-    }
-
-    fn on_close(&self, _id: Id, _ctx: tracing_subscriber::layer::Context<'_, S>) {
-        // crate::global::println(format!("Close {id:?}"));
-    }
 }
 
+/// Layer that prints logs to stderr.
+///
+/// It uses the `ENSO_BUILD_LOG` environment variable to determine the [log filtering](https://docs.rs/tracing-subscriber/latest/tracing_subscriber/filter/struct.EnvFilter.html#directives).
+pub fn stderr_log_layer<S>() -> impl Layer<S> + Debug
+where S: Subscriber + for<'a> LookupSpan<'a> + Debug + Send + Sync + 'static {
+    let filter = tracing_subscriber::EnvFilter::builder()
+        .with_env_var("ENSO_BUILD_LOG")
+        .with_default_directive(LevelFilter::TRACE.into())
+        .from_env_lossy();
 
+    let progress_bar_writer = IndicatifWriter::new();
+    tracing_subscriber::fmt::layer()
+        .without_time()
+        .with_span_events(FmtSpan::NEW | FmtSpan::CLOSE)
+        .with_writer(progress_bar_writer)
+        .with_filter(filter)
+}
+
+pub fn file_log_layer<S>(file: std::fs::File) -> impl Layer<S> + Debug
+where S: Subscriber + for<'a> LookupSpan<'a> + Debug + Send + Sync + 'static {
+    tracing_subscriber::fmt::layer()
+        .with_span_events(FmtSpan::NEW | FmtSpan::CLOSE)
+        .with_writer(file)
+}
+
+/// Install global `tracing` subscriber that logs to stderr.
+///
+/// Should be called only once, otherwise it will fail.
 pub fn setup_logging() -> Result {
-    static GUARD: Once = Once::new();
-    GUARD.call_once(|| {
-        let filter = tracing_subscriber::EnvFilter::builder()
-            .with_env_var("ENSO_BUILD_LOG")
-            .with_default_directive(LevelFilter::TRACE.into())
-            .from_env_lossy();
-
-        let progress_bar_writer = IndicatifWriter::new();
-
-        tracing::subscriber::set_global_default(
-            Registry::default().with(MyLayer).with(
-                tracing_subscriber::fmt::layer()
-                    .without_time()
-                    .with_span_events(FmtSpan::NEW | FmtSpan::CLOSE)
-                    .with_writer(progress_bar_writer)
-                    .with_filter(filter),
-            ),
-        )
-        .unwrap()
-    });
-    Ok(())
+    let registry = Registry::default().with(GlobalFilteringLayer).with(stderr_log_layer());
+    tracing::subscriber::set_global_default(registry)
+        .context("Failed to set global default subscriber.")
 }
 
 

@@ -16,6 +16,7 @@ ide-ci = { path = "../../ci_utils" }
 tar = { workspace = true }
 tokio = { workspace = true }
 tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
 windows = { workspace = true }
 winapi = "0.3"
 

@@ -112,13 +112,14 @@ serde = { version = "1.0.130", features = ["derive", "rc"] }
 serde_yaml = { version = "0.9.16" }
 sysinfo = { version = "0.30.7" }
 tar = { version = "0.4.40" }
-tokio = { version = "1.23.0", features = ["full", "tracing"] }
-tokio-stream = { version = "0.1.12", features = ["fs"] }
-tokio-util = { version = "0.7.4", features = ["full"] }
+tokio = { version = "1.37.0", features = ["full", "tracing"] }
+tokio-stream = { version = "0.1.15", features = ["fs"] }
+tokio-util = { version = "0.7.10", features = ["full"] }
 tracing = { version = "0.1.40" }
+tracing-subscriber = { version = "0.3.18", features = ["env-filter"] }
 wasm-bindgen = { version = "0.2.92", features = [] }
 wasm-bindgen-test = { version = "0.3.34" }
-windows =  { version = "0.52.0", features = ["Win32", "Win32_UI", "Win32_UI_Shell", "Win32_System", "Win32_System_LibraryLoader", "Win32_Foundation", "Win32_System_Com"] }
+windows = { version = "0.52.0", features = ["Win32", "Win32_UI", "Win32_UI_Shell", "Win32_System", "Win32_System_LibraryLoader", "Win32_Foundation", "Win32_System_Com"] }
 winreg = { version = "0.52.0" }
 anyhow = { version = "1.0.66" }
 failure = { version = "0.1.8" }

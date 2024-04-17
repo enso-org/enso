@@ -9,6 +9,7 @@ extern crate native_windows_derive as nwd;
 extern crate native_windows_gui as nwg;
 
 
+use anyhow::Context;
 use enso_install_config::ENSO_ICON_ID;
 use enso_installer::InstallerUpdate;
 use nwd::NwgUi;
@@ -87,58 +88,35 @@ impl BasicApp {
                     }
                 }
             }
-            // let lock = self.installer_state.lock().unwrap();
-            // let text = &lock.text;
-            // if self.label.text() != *text {
-            //     info!("Tick: {}", text);
-            //     self.label.set_text(&text);
-            // }
-            // let progress: u32 = (lock.progress * 100.0).floor() as u32;
-            // if self.name_edit.pos() != progress {
-            //     self.name_edit.set_pos(progress);
-            // }
-            //
-            // // Send custom app-specific event into the event loop.
-            // unsafe {
-            //     winapi::um::winuser::PostMessageW(self.window.handle.hwnd().unwrap(), 0x8000, 0,
-            // 0);
         }
     }
 }
-//
-// #[derive(Clone, Debug, Default)]
-// pub struct InstallerState {
-//     pub text:     String,
-//     /// Overall progress of the installation process (0.0 - 1.0).
-//     pub progress: f32,
-//
-//     pub error: String,
-// }
-//
-// impl InstallerState {
-//     pub fn new() -> Arc<Mutex<Self>> {
-//         let ret = Self::default();
-//         Arc::new(Mutex::new(ret))
-//     }
-//
-//     pub fn spawn(state: &Arc<Mutex<Self>>) {
-//         let state = state.clone();
-//         std::thread::spawn(move || {
-//             let mut i = 0;
-//             loop {
-//                 std::thread::sleep(std::time::Duration::from_secs(1));
-//                 let mut state = state.lock().unwrap();
-//                 state.text = format!("Progress: {}", i);
-//                 state.progress = i as f32 / 100.0;
-//                 i += 1;
-//             }
-//         });
-//     }
-// }
+
+pub fn setup_logging() -> ide_ci::prelude::Result<std::path::PathBuf> {
+    use ide_ci::log::*;
+    use tracing_subscriber::prelude::*;
+    // Generate filename based on the current time.
+    let crate_name = env!("CARGO_PKG_NAME");
+    let timestamp = chrono::Local::now().format("%Y-%m-%d-%H-%M-%S");
+    let filename = format!("{crate_name}-{timestamp}.log");
+    let temp_location = std::env::temp_dir();
+    let log_file = temp_location.join(filename);
+    let file = ide_ci::fs::create(&log_file)?;
+    let registry = tracing_subscriber::Registry::default()
+        .with(GlobalFilteringLayer)
+        .with(stderr_log_layer())
+        .with(file_log_layer(file));
+
+    tracing::subscriber::set_global_default(registry)
+        .context("Failed to set global default subscriber.")?;
+    Ok(log_file)
+}
 
 fn main() -> enso_build_base::prelude::Result {
     use enso_install::prelude::*;
-    setup_logging()?;
+
+    let logfile = crate::setup_logging()?;
+    info!("Logging to: {}", logfile.display());
 
     // let config = enso_install_config::electron_builder_config_from_env()?;
     // let config = enso_install::sanitized_electron_builder_config();
@@ -158,11 +136,6 @@ fn main() -> enso_build_base::prelude::Result {
     let app = BasicApp::build_ui(app).expect("Failed to build UI");
 
     app.window.set_text(&format!("{} installer", &config.pretty_name));
-    //
-    // app.label.set_text("Foo b\r\nBar\n✅");
-    // info!("Label size: {:?}", app.label.size());
-
-    // InstallerState::spawn(&app.installer_state);
 
     let install_dir = enso_install::win::user_program_files()?.join(&config.pretty_name);
     let (handle, receiver) =
@@ -171,34 +144,24 @@ fn main() -> enso_build_base::prelude::Result {
 
     let installed_app = install_dir.join(&config.executable_filename);
 
-    // app.label.set_size(64, 64);
-
-    // let handle_events = move |evt, evt_data, handle| {
-    //     trace!("Event: {:?}", evt);
-    // };
-    // nwg::full_bind_event_handler(&app.window.handle, handle_events);
-
-
-    // Post message using windows crate
-    // let hwnd = app.window.handle.hwnd().unwrap();
-    // second_thread(hwnd);
-    // unsafe {
-    //     winapi::um::winuser::PostMessageW(hwnd, 0x8001, 0, 0);
-    // }
-    // let hwnd = app.window.handle.hwnd();
-    // unsafe {
-    //     windows::Win32::UI::WindowsAndMessaging::PostMessageW(hwnd, 0x8000, 0, 0);
-    // };
-
 
     debug!("Starting event loop");
     nwg::dispatch_thread_events();
     debug!("Event loop finished");
-
-    info!("Starting installed application: {}", installed_app.display());
-    Command::new(installed_app).spawn().expect("Failed to start the installed application");
-
-    Ok(())
+    let result = handle.join().expect("Failed to join the installer thread");
+    if let Err(err) = &result {
+        nwg::modal_error_message(
+            app.window.handle,
+            "Installation error",
+            &format!("The installation has failed: {err}"),
+        );
+        ide_ci::programs::explorer::show_selected(&logfile)?;
+        result
+    } else {
+        info!("Starting installed application: {}", installed_app.display());
+        Command::new(installed_app).spawn().expect("Failed to start the installed application");
+        Ok(())
+    }
 }
 
 
