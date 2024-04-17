@@ -16,7 +16,8 @@ class PrivateModifierTest extends CompilerTest {
   val passes = new Passes(defaultConfig)
 
   /** The passes that need to be run before the alias analysis pass. */
-  val precursorPasses: PassGroup = passes.getPrecursors(PrivateConstructorAnalysis.INSTANCE).get
+  val precursorPasses: PassGroup =
+    passes.getPrecursors(PrivateConstructorAnalysis.INSTANCE).get
 
   val passConfig: PassConfiguration = PassConfiguration()
 
@@ -24,15 +25,15 @@ class PrivateModifierTest extends CompilerTest {
     new PassManager(List(precursorPasses), passConfig)
 
   /** Adds an extension method to run private constructor analysis on an [[Module]].
-   *
-   * @param ir the module to run private constructor analysis on
-   */
+    *
+    * @param ir the module to run private constructor analysis on
+    */
   implicit class AnalyseModule(ir: Module) {
 
     /** Runs alias analysis on a module.
-     *
-     * @return [[ir]], with attached aliasing information
-     */
+      *
+      * @return [[ir]], with attached aliasing information
+      */
     def analyse: Module = {
       PrivateConstructorAnalysis.INSTANCE.runModule(
         ir,
@@ -42,9 +43,9 @@ class PrivateModifierTest extends CompilerTest {
   }
 
   /** Creates a defaulted module context.
-   *
-   * @return a defaulted module context
-   */
+    *
+    * @return a defaulted module context
+    */
   def mkModuleContext: ModuleContext = {
     buildModuleContext(freshNameSupply = Some(new FreshNameSupply))
   }
@@ -60,10 +61,10 @@ class PrivateModifierTest extends CompilerTest {
           |type My_Type
           |    private Value a b c
           |""".stripMargin.preprocessModule.analyse
-      ir.bindings.size shouldBe(1)
-      ir.bindings.head.isInstanceOf[Definition.Type] shouldBe(true)
+      ir.bindings.size shouldBe 1
+      ir.bindings.head.isInstanceOf[Definition.Type] shouldBe true
       val tp = ir.bindings.head.asInstanceOf[Definition.Type]
-      tp.members.size shouldBe(1)
+      tp.members.size shouldBe 1
       tp.members.head
     }
 
@@ -74,9 +75,9 @@ class PrivateModifierTest extends CompilerTest {
           |    private Priv_Cons a b
           |    Pub_Cons c d
           |""".stripMargin.preprocessModule.analyse
-      val errors = ir.preorder().collect { case err: Syntax => err}
-      errors.size shouldBe(1)
-      errors.head.reason shouldBe(Syntax.InconsistentConstructorVisibility)
+      val errors = ir.preorder().collect { case err: Syntax => err }
+      errors.size shouldBe 1
+      errors.head.reason shouldBe (Syntax.InconsistentConstructorVisibility)
     }
 
     "should accept more private constructors in a type" in {
@@ -86,8 +87,8 @@ class PrivateModifierTest extends CompilerTest {
           |    Pub_Cons_1 a b
           |    Pub_Cons_2 c d
           |""".stripMargin.preprocessModule.analyse
-      val errors = ir.preorder().collect { case err: Syntax => err}
-      errors.isEmpty shouldBe(true)
+      val errors = ir.preorder().collect { case err: Syntax => err }
+      errors.isEmpty shouldBe true
     }
   }
 }
