@@ -91,7 +91,7 @@ type Vector a
              Vector.collect (List.Cons 1 <| List.Cons 2 <| List.Nil) .x .xs stop_at=(_==List.Nil)
     collect : Any -> (Any -> Any) -> (Any -> Any) -> Integer | Nothing -> (Any -> Boolean) -> Vector Any
     collect seq element:(Any -> Any) next:(Any -> Any) limit:(Integer | Nothing)=Nothing stop_at:(Any -> Boolean)=(_==Nothing) =
-        Vector.build capacity=(if limit.is_nothing then 10 else limit) builder->
+        Vector.build initial_capacity=(if limit.is_nothing then 10 else limit) builder->
             iterate item remaining =
                 done = remaining == 0 || (stop_at item)
                 if done.not then

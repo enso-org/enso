@@ -1043,6 +1043,10 @@ add_specs suite_builder =
                 _ = builder  # Do nothing
             v2 . should_equal []
 
+            v3 = Vector.build initial_capacity=20 builder->
+                builder.append 1
+            v3 . should_equal [1]
+
         group_builder.specify "Should propagate dataflow errors" <|
             v = Vector.build builder->
                 builder.append 1
