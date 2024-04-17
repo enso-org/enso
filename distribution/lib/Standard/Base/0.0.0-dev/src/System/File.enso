@@ -496,6 +496,7 @@ type File
     is_directory self = @Builtin_Method "File.is_directory"
 
     ## ICON folder_add
+       GROUP Output
        Creates the directory represented by this file if it did not exist.
 
        It also creates parent directories if they did not exist.
@@ -507,11 +508,10 @@ type File
 
              example_is_directory =
                 (Examples.data_dir / "my_directory") . create_directory
-    create_directory : Nothing
+    create_directory : File ! File_Error
     create_directory self =
         Context.Output.if_enabled disabled_message="Directory creation is forbidden as the Output context is disabled." panic=False <|
-            self.create_directory_builtin
-
+            File_Error.handle_java_exceptions self self.create_directory_builtin . if_not_error self
 
     ## PRIVATE
        Creates the directory represented by this file if it did not exist.
@@ -643,8 +643,11 @@ type File
     ## ICON data_output
        Deletes the file.
 
-       If the file is a directory, it must be empty, otherwise a `Panic` will
-       be thrown.
+       Arguments:
+       - recursive: If the target is a non-empty directory, it will only be
+         removed if this is set to `True`. Defaults to `False`, meaning that the
+         operation will fail if the directory is not empty. This option has no
+         effect for files, data links or symlinks.
 
        > Example
          Create a file and then delete it.
@@ -655,10 +658,10 @@ type File
                  file = Examples.data_dir / "my_file"
                  file.write_text "hello"
                  file.delete
-    delete : Nothing ! File_Error
-    delete self =
+    delete : Boolean -> Nothing ! File_Error
+    delete self (recursive : Boolean = False) =
         Context.Output.if_enabled disabled_message="File deleting is forbidden as the Output context is disabled." panic=False <|
-            File_Error.handle_java_exceptions self self.delete_builtin
+            File_Error.handle_java_exceptions self (self.delete_builtin recursive)
 
     ## ICON data_output
        Copies the file to the specified destination.
@@ -694,8 +697,11 @@ type File
     ## ICON data_output
        Deletes the file if it exists on disk.
 
-       If the file is a directory, it must be empty, otherwise a `Panic` will
-       be thrown.
+       Arguments:
+       - recursive: If the target is a non-empty directory, it will only be
+         removed if this is set to `True`. Defaults to `False`, meaning that the
+         operation will fail if the directory is not empty. This option has no
+         effect for files, data links or symlinks.
 
        > Example
          Delete a file if it exists on disk.
@@ -703,8 +709,8 @@ type File
              import Standard.Examples
 
              example_del_if_exists = Examples.scratch_file.delete_if_exists
-    delete_if_exists : Nothing ! File_Error
-    delete_if_exists self = if self.exists then self.delete else Nothing
+    delete_if_exists : Boolean -> Nothing ! File_Error
+    delete_if_exists self (recursive : Boolean = False) = if self.exists then self.delete recursive else Nothing
 
     ## PRIVATE
        Reads first `n` bytes from the file (or less if the file is too small)
