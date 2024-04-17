@@ -220,13 +220,7 @@ export const useProjectStore = defineStore('project', () => {
       { immediate: true, flush: 'post' },
     )
 
-    return computed(() => {
-      const json = visualizationDataRegistry.getRawData(id)
-      if (!json?.ok) return json ?? undefined
-      const parsed = Ok(JSON.parse(json.value))
-      markRaw(parsed)
-      return parsed
-    })
+    return computed(() => parseVisualizationData(visualizationDataRegistry.getRawData(id)))
   }
 
   const dataflowErrors = new ReactiveMapping(computedValueRegistry.db, (id, info) => {
@@ -271,15 +265,15 @@ export const useProjectStore = defineStore('project', () => {
   function executeExpression(
     expressionId: ExternalId,
     expression: string,
-  ): Promise<Result<string> | null> {
+  ): Promise<Result<any> | null> {
     return new Promise((resolve) => {
       const visualizationId = random.uuidv4() as Uuid
       const dataHandler = (visData: VisualizationUpdate, uuid: Uuid | null) => {
         if (uuid === visualizationId) {
-          const dataStr = visData.dataString()
-          resolve(dataStr != null ? Ok(dataStr) : null)
           dataConnection.off(`${OutboundPayload.VISUALIZATION_UPDATE}`, dataHandler)
           executionContext.off('visualizationEvaluationFailed', errorHandler)
+          const dataStr = Ok(visData.dataString())
+          resolve(parseVisualizationData(dataStr))
         }
       }
       const errorHandler = (
@@ -303,6 +297,18 @@ export const useProjectStore = defineStore('project', () => {
         expression,
       )
     })
+  }
+
+  function parseVisualizationData(data: Result<string | null> | null): Result<any> | null {
+    if (!data?.ok) return data
+    if (data.value == null) return null
+    try {
+      return Ok(markRaw(JSON.parse(data.value)))
+    } catch (error) {
+      if (error instanceof SyntaxError)
+        return Err(`Parsing visualization result failed: ${error.message}`)
+      else throw error
+    }
   }
 
   const { executionMode } = setupSettings(projectModel)

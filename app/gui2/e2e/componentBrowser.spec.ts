@@ -254,9 +254,7 @@ test('Visualization preview: user visualization selection', async ({ page }) => 
   await input.fill('4')
   await expect(input).toHaveValue('4')
   await expect(locate.jsonVisualization(page)).toExist()
-  // Before picking table vis, we must make sure we wan't be hit by debounced visualization update
-  // during the process.
-  await page.waitForTimeout(250)
+  await expect(locate.jsonVisualization(page)).toContainText('"visualizedExpr": "4"')
   await locate.showVisualizationSelectorButton(page).click()
   await page.getByRole('button', { name: 'Table' }).click()
   // The table visualization is not currently working with `executeExpression` (#9194), but we can test that the JSON

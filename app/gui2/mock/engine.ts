@@ -94,17 +94,19 @@ const visualizationExprIds = new Map<Uuid, ExpressionId>()
 const encoder = new TextEncoder()
 const encodeJSON = (data: unknown) => encoder.encode(JSON.stringify(data))
 
-const scatterplotJson = encodeJSON({
-  axis: {
-    x: { label: 'x-axis label', scale: 'linear' },
-    y: { label: 'y-axis label', scale: 'logarithmic' },
-  },
-  points: { labels: 'visible' },
-  data: [
-    { x: 0.1, y: 0.7, label: 'foo', color: '#FF0000', shape: 'circle', size: 0.2 },
-    { x: 0.4, y: 0.2, label: 'baz', color: '#0000FF', shape: 'square', size: 0.3 },
-  ],
-})
+const scatterplotJson = (params: string[]) =>
+  encodeJSON({
+    visualizedExpr: params[0],
+    axis: {
+      x: { label: 'x-axis label', scale: 'linear' },
+      y: { label: 'y-axis label', scale: 'logarithmic' },
+    },
+    points: { labels: 'visible' },
+    data: [
+      { x: 0.1, y: 0.7, label: 'foo', color: '#FF0000', shape: 'circle', size: 0.2 },
+      { x: 0.4, y: 0.2, label: 'baz', color: '#0000FF', shape: 'square', size: 0.3 },
+    ],
+  })
 
 const mockVizData: Record<string, Uint8Array | ((params: string[]) => Uint8Array)> = {
   // JSON
