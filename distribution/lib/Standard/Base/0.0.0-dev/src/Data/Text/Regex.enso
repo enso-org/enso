@@ -120,7 +120,7 @@ type Regex
     match_all self (input : Text) =
         pattern_is_empty = self.pattern == ''
         if pattern_is_empty then Error.throw (Illegal_Argument.Error "Cannot run match_all with an empty pattern") else
-            Vector.build builder ->
+            Vector.build builder->
                 it = Match_Iterator.new self input
                 go it = case it.next of
                     Match_Iterator_Value.Next _ match next_it ->

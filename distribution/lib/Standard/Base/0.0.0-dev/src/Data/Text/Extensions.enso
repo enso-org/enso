@@ -553,7 +553,7 @@ Text.words : Boolean -> Vector Text
 Text.words self keep_whitespace=False =
     iterator = BreakIterator.getWordInstance
     iterator.setText self
-    Vector.build builder ->
+    Vector.build builder->
         fst = iterator.first
         nxt = iterator.next
 

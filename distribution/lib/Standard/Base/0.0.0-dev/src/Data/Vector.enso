@@ -147,7 +147,7 @@ type Vector a
 
     ## PRIVATE
        ADVANCED
-       DEPRECATED
+       DEPRECATED `Vector.build` is the preferred way to build `Vector`s.
        Creates a new vector builder instance.
 
        A vector `Builder` is a mutable data structure, that allows for gathering
@@ -156,6 +156,9 @@ type Vector a
 
        A vector allows to store an arbitrary number of elements in linear
        memory. It is the recommended data structure for most applications.
+
+       The `Vector.build` method is preferred over `.new_builder`, since it
+       automatically closes and returns the finished `Vector`.
 
        Arguments:
        - capacity: Initial capacity of the Vector.Builder

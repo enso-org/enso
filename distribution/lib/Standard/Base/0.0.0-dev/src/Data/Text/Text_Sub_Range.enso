@@ -213,8 +213,8 @@ resolve_index_or_range text descriptor = Panic.recover [Index_Out_Of_Bounds, Ill
                                 if (start_index == -1) || (end_index == -1) || (current_grapheme >= true_range.end) then Nothing else
                                     builder.append (start_index.up_to end_index)
                                     ## We advance by step-1, because we already advanced by
-                                    one grapheme when looking for the end of the previous
-                                    one.
+                                       one grapheme when looking for the end of the previous
+                                       one.
                                     @Tail_Call go (iterator.next true_range.step-1) current_grapheme+true_range.step
 
                             go (iterator.next true_range.start) true_range.start

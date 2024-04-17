@@ -150,7 +150,7 @@ Locale.to_js_object self =
         b.append ["language", self.language]
         b.append ["country", self.country]
         b.append ["variant", self.variant]
-    JS_Object.from_pairs b.to_vector
+    JS_Object.from_pairs pairs
 
 ## PRIVATE
    Converts the given value to a JSON serializable object.

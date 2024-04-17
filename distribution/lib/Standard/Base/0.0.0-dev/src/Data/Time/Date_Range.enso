@@ -257,9 +257,9 @@ type Date_Range
     filter : (Filter_Condition | (Date -> Boolean)) -> Vector Date
     filter self filter =
         predicate = unify_condition_or_predicate filter
-        builder = self.fold Vector.new_builder builder-> elem->
-            if predicate elem then builder.append elem else builder
-        builder.to_vector
+        Vector.build builder->
+            self.map elem->
+                if predicate elem then builder.append elem else builder
 
     ## GROUP Selections
        ICON preparation
