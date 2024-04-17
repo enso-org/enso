@@ -103,10 +103,8 @@ type File_Error
     access_denied file = Error.throw (File_Error.Access_Denied file)
 
     ## PRIVATE
-
        Converts a Java `IOException` into its Enso counterpart.
     wrap_io_exception (file : File | Nothing) io_exception =
-        Standard.Base.IO.println io_exception.to_text
         associated_file = case io_exception of
             _ : FileSystemException ->
                 path_from_exception = io_exception.getFile
