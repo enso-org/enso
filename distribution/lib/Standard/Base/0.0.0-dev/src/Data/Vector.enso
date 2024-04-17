@@ -1255,8 +1255,15 @@ type Builder
        Appends a new element into this builder and returns it, propagating any
        errors that the provided element could have contained.
 
+       Returns the builder, unless `item` is a dataflow error, in which case the
+       error is propagated.
+
        Arguments:
        - item: The item to append to the vector builder.
+
+       ! Error Conditions
+
+         - If `item` is a dataflow error, the error is propagated.
 
        > Example
          Append two items.
