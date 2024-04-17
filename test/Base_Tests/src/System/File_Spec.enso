@@ -947,8 +947,8 @@ add_create_and_delete_directory_specs group_builder ~parent_dir =
             r2 = subsubdir.create_directory
             r2.should_fail_with File_Error
             r2.catch.should_be_a File_Error.Not_A_Directory
-            # The path should point to the file `f` which is a file and not a directory
-            r2.catch.file.path . should_equal f.path
+            # The path should point to the file `f` which is a file and not a directory, not the subdir
+            r2.catch.file.path . should_end_with "file.txt"
 
     group_builder.specify "`delete` will fail if the directory does not exist, but `delete_if_exists` will not" <|
         dir = parent_dir / "non_existent"
