@@ -129,12 +129,7 @@ const visualizationConfig = computed<Opt<NodeVisualizationConfiguration>>(() => 
 
     let args = ArgumentApplication.FromInterpretedWithInfo(interpreted.value)
     if (args instanceof ArgumentApplication) {
-      let it = args.iterApplications();
-      for (;;) {
-        let n = it.next();
-        if (n.done) {
-          break
-        }
+      for (const app of args.iterApplications()) {
         let a = n.value.argument
         if (a instanceof ArgumentPlaceholder) {
           console.log("Place holder " + a);
