@@ -209,18 +209,21 @@ public final class EnsoFile implements EnsoObject {
     try {
       this.truffleFile.createDirectories();
     } catch (NoSuchFileException e) {
-      throw replaceCreateDirectoriesException(e);
+      System.out.println(e.getReason());
+      throw replaceCreateDirectoriesNoSuchFileException(e);
+    } catch (FileSystemException e) {
+      throw replaceCreateDirectoriesGenericException(e);
     }
   }
 
   /**
-   * A workaround is needed, because on Windows `createDirectories` wrongly throws a {@link
-   * NoSuchFileException} instead of {@link NotDirectoryException}, if a file on the parents path is
-   * not a directory.
+   * This method detects if a more correct exception can be thrown instead of unrelated {@link
+   * NoSuchFileException}.
    *
-   * <p>This method detects this situation and replaces the exception with another if needed.
+   * <p>On Windows `createDirectories` wrongly throws a {@link NoSuchFileException} instead of
+   * {@link NotDirectoryException}, if a file on the parents path is not a directory.
    */
-  private static FileSystemException replaceCreateDirectoriesException(
+  private static FileSystemException replaceCreateDirectoriesNoSuchFileException(
       NoSuchFileException noSuchFileException) {
     var parent =
         fromString(EnsoContext.get(null), noSuchFileException.getFile()).truffleFile.getParent();
@@ -237,6 +240,22 @@ public final class EnsoFile implements EnsoObject {
       return new NotDirectoryException(parent.getPath());
     } else {
       return noSuchFileException;
+    }
+  }
+
+  /**
+   * This method detects if a more specific exception can be thrown instead of generic {@link
+   * FileSystemException}.
+   *
+   * <p>Apparently, on Linux `createDirectories` throws a generic {@link FileSystemException}
+   * instead of the more fitting {@link NotDirectoryException}.
+   */
+  private static FileSystemException replaceCreateDirectoriesGenericException(
+      FileSystemException genericException) {
+    if (genericException.getReason().equals("Not a directory")) {
+      return new NotDirectoryException(genericException.getFile());
+    } else {
+      return genericException;
     }
   }
 
@@ -290,7 +309,11 @@ public final class EnsoFile implements EnsoObject {
       if (truffleFile.getPath().equals(otherFile.truffleFile.getPath())) {
         return true;
       } else {
-        return truffleFile.getAbsoluteFile().normalize().getPath().equals(otherFile.truffleFile.getAbsoluteFile().normalize().getPath());
+        return truffleFile
+            .getAbsoluteFile()
+            .normalize()
+            .getPath()
+            .equals(otherFile.truffleFile.getAbsoluteFile().normalize().getPath());
       }
     } else {
       return false;
