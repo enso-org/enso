@@ -57,16 +57,17 @@ type Json
 
             Json.parse "[null, null, true, false]"
     parse : Text -> Nothing | Boolean | Number | Text | Vector | Date | Date_Time | Time_Of_Day | JS_Object ! Invalid_JSON
-    parse json =
+    parse (json : Text) =
         error_handler js_exception =
             line = js_exception.payload.getLocation.getLineNr.to_text
             col = js_exception.payload.getLocation.getColumnNr.to_text
             pos = '[line: '+line+', column: '+col+']'
             Error.throw (Invalid_JSON.Error js_exception.payload.getOriginalMessage+' at position '+pos)
 
-        Panic.catch JsonProcessingException handler=error_handler <|
-            node = ObjectMapper.new.readTree json
-            make_enso (read_json_node node)
+        if json.is_empty then Error.throw (Invalid_JSON.Error "Empty string is not valid JSON.") else
+            Panic.catch JsonProcessingException handler=error_handler <|
+                node = ObjectMapper.new.readTree json
+                make_enso (read_json_node node)
 
     ## PRIVATE
        ADVANCED

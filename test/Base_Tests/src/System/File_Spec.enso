@@ -12,6 +12,15 @@ polyglot java import org.enso.base_test_helpers.FileSystemHelper
 
 from Standard.Test import all
 
+## We rely on a less strict equality for `File` as it is fine if a relative file gets resolved to absolute.
+File.should_equal self other frames_to_skip=0 =
+    loc = Meta.get_source_location 1+frames_to_skip
+    are_same = case other of
+        _ : File -> self.absolute.normalize.path == other.absolute.normalize.path
+        _ -> False
+    if are_same then self else
+        Test.fail "Expected "+self.to_text+" to be equal to "+other.to_text+" (at "+loc+")."
+
 
 set_writable file writable =
     path = file.absolute.path
@@ -100,6 +109,7 @@ add_specs suite_builder =
             f.exists.should_be_true
             f.is_directory.should_be_true
 
+            # It will create all needed parent directories in the path.
             g = f / "bar" / "baz"
             g.exists.should_be_false
 
@@ -108,7 +118,7 @@ add_specs suite_builder =
 
             g.delete_if_exists
             g.parent.delete_if_exists
-            f.delete_if_exists
+            f.delete_if_exists recursive=True
 
         group_builder.specify "should only allow creating a directory if Output is enabled" <|
             f = enso_project.data / "bad_dir"
@@ -150,18 +160,6 @@ add_specs suite_builder =
                 f.exists.should_be_false
 
             f.delete_if_exists
-
-        group_builder.specify "should only allow deleting a file if Output is enabled" <|
-            f = enso_project.data / "short.txt"
-            f.delete_if_exists
-            "Cup".write f on_existing_file=Existing_File_Behavior.Overwrite
-
-            Context.Output.with_disabled <|
-                f.delete . should_fail_with Forbidden_Operation
-                f.exists.should_be_true
-
-            f.delete.should_succeed
-            f.exists.should_be_false
 
         group_builder.specify "should only allow copying a file if Output is enabled" <|
             f = enso_project.data / "short.txt"
@@ -876,6 +874,91 @@ add_specs suite_builder =
 
             filtered4 = root.list name_filter="nested/*.txt" recursive=True . map .to_text
             filtered4.sort.should_equal (resolve ["subdirectory/nested/b.txt"])
+
+        add_create_and_delete_directory_specs group_builder (enso_project.data / "transient")
+
+# `parent_dir` is lazy on purpose to avoid creating a temporary directory in setup phase
+add_create_and_delete_directory_specs group_builder ~parent_dir =
+    group_builder.specify "should only allow deleting a file if Output is enabled" <|
+        f = parent_dir / "short.txt"
+        f.delete_if_exists
+        "Cup".write f on_existing_file=Existing_File_Behavior.Overwrite
+
+        Context.Output.with_disabled <|
+            f.delete . should_fail_with Forbidden_Operation
+            f.exists.should_be_true
+
+        f.delete.should_succeed
+        f.exists.should_be_false
+
+    group_builder.specify "will only allow to delete a non-empty directory if recursive=True" <|
+        dir = (parent_dir / "non_empty") . create_directory
+        inner_file = dir / "short.txt"
+        "Cup".write inner_file on_existing_file=Existing_File_Behavior.Overwrite
+
+        # By default recursive=False, so delete will fail:
+        r = dir.delete
+        r.should_fail_with File_Error
+        r.catch.should_be_a File_Error.Directory_Not_Empty
+        r.catch.to_display_text . should_contain "non_empty"
+        r.catch.to_display_text . should_contain "is not empty"
+
+        # Delete if exists works the same way
+        dir.delete_if_exists . should_fail_with File_Error
+
+        dir.exists . should_be_true
+        inner_file.exists . should_be_true
+
+        dir.delete recursive=True . should_succeed
+        dir.exists.should_be_false
+        inner_file.exists.should_be_false
+        dir.delete_if_exists . should_succeed
+
+    group_builder.specify "`create_directory` will create any parent directories, and succeed if the directory already exists" <|
+        first_dir = parent_dir / "subdir1"
+        subdir = first_dir / "subdir2" / "subdir3"
+        subdir.exists . should_be_false
+        subdir.parent.exists . should_be_false
+
+        subdir.create_directory . should_equal subdir
+        subdir.exists . should_be_true
+        subdir.parent.exists . should_be_true
+
+        # Creating an existing directory does not fail:
+        subdir.create_directory . should_equal subdir
+
+        first_dir.delete recursive=True . should_succeed
+        subdir.exists.should_be_false
+
+    group_builder.specify "`create_directory` will fail if the parent is a file" <|
+        f = parent_dir / "file.txt"
+        "Cup".write f on_existing_file=Existing_File_Behavior.Overwrite
+        Panic.with_finalizer f.delete_if_exists <|
+            dir = f / "subdir"
+            dir.exists . should_be_false
+            r = dir.create_directory
+            r.should_fail_with File_Error
+            r.catch.should_be_a File_Error.Not_A_Directory
+            r.catch.to_display_text . should_contain "is not a directory"
+            dir.exists . should_be_false
+
+            subsubdir = f / "subdir" / "subsubdir" / "subsubsubdir"
+            subsubdir.exists . should_be_false
+            r2 = subsubdir.create_directory
+            r2.should_fail_with File_Error
+            r2.catch.should_be_a File_Error.Not_A_Directory
+            # The path should point to the file `f` which is a file and not a directory, not the subdir
+            r2.catch.file.path . should_end_with "file.txt"
+
+    group_builder.specify "`delete` will fail if the directory does not exist, but `delete_if_exists` will not" <|
+        dir = parent_dir / "non_existent"
+        dir.exists . should_be_false
+
+        r = dir.delete
+        r.should_fail_with File_Error
+        r.catch.should_be_a File_Error.Not_Found
+
+        dir.delete_if_exists . should_equal Nothing
 
 main filter=Nothing =
     suite = Test.build suite_builder->
