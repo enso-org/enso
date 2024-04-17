@@ -225,8 +225,12 @@ public final class EnsoFile implements EnsoObject {
    */
   private static FileSystemException replaceCreateDirectoriesNoSuchFileException(
       NoSuchFileException noSuchFileException) {
-    var parent =
-        fromString(EnsoContext.get(null), noSuchFileException.getFile()).truffleFile.getParent();
+    var path = noSuchFileException.getFile();
+    if (path == null) {
+      return noSuchFileException;
+    }
+
+    var parent = fromString(EnsoContext.get(null), path).truffleFile.getParent();
     // Unknown parent, so the heuristic cannot be applied - return the original.
     if (parent == null) {
       return noSuchFileException;
@@ -253,7 +257,25 @@ public final class EnsoFile implements EnsoObject {
   private static FileSystemException replaceCreateDirectoriesGenericException(
       FileSystemException genericException) {
     if (genericException.getReason().equals("Not a directory")) {
-      return new NotDirectoryException(genericException.getFile());
+      var path = genericException.getFile();
+      if (path == null) {
+        return genericException;
+      }
+
+      // On Linux, when creating a directory tree `foo/my-file.txt/a/b/c`, the operation fails with
+      // `FileSystemException` with the full path (`foo/my-file.txt/a/b/c`). So we need to traverse
+      // this path to find the actually problematic part.
+      var file = fromString(EnsoContext.get(null), path).truffleFile;
+      // We try to find the first file that exists on the path.
+      while (file != null && !file.exists()) {
+        file = file.getParent();
+      }
+
+      if (file != null && !file.isDirectory()) {
+        return new NotDirectoryException(file.getPath());
+      } else {
+        return genericException;
+      }
     } else {
       return genericException;
     }
