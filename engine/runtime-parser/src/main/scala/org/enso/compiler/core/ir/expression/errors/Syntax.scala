@@ -147,6 +147,11 @@ object Syntax {
       s"Syntax is not supported yet: $syntaxName"
   }
 
+  case object InconsistentConstructorVisibility extends Reason {
+    override def explanation: String =
+      "All the constructors of a type must be either public or private"
+  }
+
   case object InvalidUnderscore extends Reason {
     override def explanation: String =
       s"Invalid use of _"
