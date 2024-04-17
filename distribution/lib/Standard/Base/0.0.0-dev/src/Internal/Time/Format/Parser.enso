@@ -139,7 +139,7 @@ type Parser
                 parsed_node = self.parse_common_token other_token
                 current_builder.append parsed_node
                 @Tail_Call go current_builder optional_nesting_level
-        Vector.builder root_builder->
+        Vector.build root_builder->
             go root_builder 0
 
     ## PRIVATE
