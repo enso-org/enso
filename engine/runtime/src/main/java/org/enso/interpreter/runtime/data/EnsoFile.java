@@ -209,7 +209,6 @@ public final class EnsoFile implements EnsoObject {
     try {
       this.truffleFile.createDirectories();
     } catch (NoSuchFileException e) {
-      System.out.println(e.getReason());
       throw replaceCreateDirectoriesNoSuchFileException(e);
     } catch (FileSystemException e) {
       throw replaceCreateDirectoriesGenericException(e);
