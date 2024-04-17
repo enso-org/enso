@@ -1054,6 +1054,15 @@ add_specs suite_builder =
                 Error.throw (Illegal_Argument.Error "asdf")
             v . should_fail_with (Illegal_Argument.Error "asdf")
 
+        group_builder.specify "example" <|
+            vec = Vector.build initial_capacity=5 builder->
+                do_build start stop =
+                    builder.append start
+                    if start >= stop then Nothing else
+                        @Tail_Call do_build start+1 stop
+                do_build 1 5
+            vec . should_equal [1, 2, 3, 4, 5]
+
     suite_builder.group "Vector/Array equality" group_builder->
         v1 = [1, 2, 3]
         a1 = v1.to_array

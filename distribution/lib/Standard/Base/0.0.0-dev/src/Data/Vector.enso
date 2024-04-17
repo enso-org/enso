@@ -1200,12 +1200,17 @@ type Builder
        number of elements and then convert them to a vector. This is
        particularly useful when the number of elements is not known upfront.
 
-       > Example
-         In the following example we'll read items from the standard input,
-         until the string "end" is entered by the user and then return a vector
-         containing all items.
+       There are two common ways to create and use a `Builder`:
+       `Vector.new_builder` and `Vector.build`. `.build` is the preferred
+       approach.
+       - `Vector.new_builder`: creates a new `Builder`, which you have to
+         "close" at the end to get your newly-created `Vector`.
+       - `Vector.build`: takes a function which uses the `Builder`, and
+         automatically "closes" and returns the newly-created `Vector`.
 
-             Construct a vector using a builder that contains the items 1 to 10.
+       > Example
+             Construct a vector using a builder that contains the items 1 to 5,
+             using `.new_builder`.
 
                  example_new_builder =
                      do_build builder start stop =
@@ -1214,6 +1219,18 @@ type Builder
                              @Tail_Call do_build new_builder start+1 stop
                      builder = do_build Vector.new_builder 1 10
                      builder.to_vector
+
+       > Example
+             Construct a vector using a builder that contains the items 1 to 5,
+             using `.build`.
+
+             Vector.build initial_capacity=5 builder->
+                 do_build start stop =
+                     builder.append start
+                     if start >= stop then Nothing else
+                         @Tail_Call do_build start+1 stop
+                 do_build 1 5
+             # => [1, 2, 3, 4, 5]
 
        ! TODO
          We may want to revisit the fold pattern - it is required for correct
