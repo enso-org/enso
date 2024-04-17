@@ -205,10 +205,8 @@ type S3_File
          effect for files or data links.
     delete : Boolean -> Nothing
     delete self (recursive : Boolean = False) =
-        # TODO improve recursive deletion for S3 folders: https://github.com/enso-org/enso/issues/9704
-        if self.is_directory then Error.throw (S3_Error.Error "Deleting S3 folders is currently not implemented." self.uri) else
-            if self.exists.not then Error.throw (File_Error.Not_Found self) else
-                self.delete_if_exists recursive
+        if self.exists.not then Error.throw (File_Error.Not_Found self) else
+            self.delete_if_exists recursive
 
     ## ICON data_output
        Deletes the file if it had existed.
@@ -223,6 +221,8 @@ type S3_File
         Context.Output.if_enabled disabled_message="Deleting an S3_File is forbidden as the Output context is disabled." panic=False <|
             case self.is_directory of
                 True ->
+                    # This is a temporary simplified implementation to ensure cleaning up after tests
+                    # TODO improve recursive deletion for S3 folders: https://github.com/enso-org/enso/issues/9704
                     children = self.list
                     if children.is_empty.not && recursive.not then Error.throw (File_Error.Directory_Not_Empty self) else
                         r = children.map child-> child.delete_if_exists recursive
