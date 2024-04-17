@@ -322,6 +322,7 @@ export const widgetDefinition = defineWidget(
       if (ast instanceof Ast.App || ast instanceof Ast.OprApp) return Score.Perfect
 
       const info = getMethodCallInfoRecursively(ast, db)
+      console.log(info)
       return info != null ? Score.Perfect : Score.Mismatch
     },
   },
