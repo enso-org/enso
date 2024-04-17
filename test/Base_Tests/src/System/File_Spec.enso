@@ -12,6 +12,15 @@ polyglot java import org.enso.base_test_helpers.FileSystemHelper
 
 from Standard.Test import all
 
+## We rely on a less strict equality for `File` as it is fine if a relative file gets resolved to absolute.
+File.should_equal self other frames_to_skip=0 =
+    loc = Meta.get_source_location 1+frames_to_skip
+    are_same = case other of
+        _ : File -> self.absolute.normalize.path == other.absolute.normalize.path
+        _ -> False
+    if are_same then self else
+        Test.fail "Expected "+self.to_text+" to be equal to "+other.to_text+" (at "+loc+")."
+
 
 set_writable file writable =
     path = file.absolute.path
