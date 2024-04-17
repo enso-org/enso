@@ -22,6 +22,8 @@ use jni::JNIEnv;
 // === Java Interface ===
 // ======================
 
+static DIRECT_ALLOCATED: &str = "Internal Error: ByteBuffer must be direct-allocated.";
+
 /// Parse the input. Returns a serialized representation of the parse tree. The caller is
 /// responsible for freeing the memory associated with the returned buffer.
 ///
@@ -40,8 +42,7 @@ pub extern "system" fn Java_org_enso_syntax2_Parser_parseInput(
     input: JByteBuffer,
 ) -> jobject {
     let state = unsafe { &mut *(state as usize as *mut State) };
-    let direct_allocated = "Internal Error: ByteBuffer must be direct-allocated.";
-    let input = env.get_direct_buffer_address(input).expect(direct_allocated);
+    let input = env.get_direct_buffer_address(input).expect(&DIRECT_ALLOCATED);
     let input = if cfg!(debug_assertions) {
         std::str::from_utf8(input).unwrap()
     } else {
@@ -70,6 +71,36 @@ pub extern "system" fn Java_org_enso_syntax2_Parser_parseInput(
     state.metadata = meta;
     let result = env.new_direct_byte_buffer(&mut state.output);
     result.unwrap().into_inner()
+}
+
+/// Determine the token variant of the provided input.
+#[allow(unsafe_code)]
+#[no_mangle]
+pub extern "system" fn Java_org_enso_syntax2_Parser_isIdentOrOperator(
+    env: JNIEnv,
+    _class: JClass,
+    input: JByteBuffer,
+) -> u64 {
+    let input = env.get_direct_buffer_address(input).expect(&DIRECT_ALLOCATED);
+    let input = if cfg!(debug_assertions) {
+        std::str::from_utf8(input).unwrap()
+    } else {
+        unsafe { std::str::from_utf8_unchecked(input) }
+    };
+
+    let parsed = enso_parser::lexer::run(input);
+    if parsed.internal_error.is_some() {
+        return 0;
+    }
+    let token = match &parsed.value[..] {
+        [token] => token,
+        _ => return 0,
+    };
+    match &token.variant {
+        enso_parser::syntax::token::Variant::Ident(_) => 1,
+        enso_parser::syntax::token::Variant::Operator(_) => 2,
+        _ => 0,
+    }
 }
 
 /// Return the `base` parameter to pass to the `Message` class along with the other output of the

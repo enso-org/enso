@@ -30,9 +30,7 @@ public final class URL {
     return prologue.toString();
   }
 
-  /**
-   * Implements Node.js URLSearchParams interface.
-   */
+  /** Implements Node.js URLSearchParams interface. */
   public static final class URLSearchParams {
 
     private final UriQuery uriQuery;

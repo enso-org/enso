@@ -21,7 +21,7 @@ public class EncodingTest {
     executor = Executors.newSingleThreadExecutor();
     var encoding = new Encoding();
 
-    var b = Context.newBuilder("js");
+    var b = Context.newBuilder("js").allowExperimentalOptions(true);
 
     var chromePort = Integer.getInteger("inspectPort", -1);
     if (chromePort > 0) {

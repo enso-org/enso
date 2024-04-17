@@ -2,6 +2,7 @@ package org.enso.ydoc;
 
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executors;
+import org.enso.ydoc.polyfill.ParserPolyfill;
 import org.enso.ydoc.polyfill.Platform;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.HostAccess;
@@ -33,13 +34,16 @@ public class Main {
       b.option("inspect", ":" + chromePort);
     }
 
-    try (var executor = Executors.newSingleThreadExecutor()) {
+    try (var executor = Executors.newSingleThreadExecutor();
+        var parser = new ParserPolyfill()) {
       var ydocJs = Source.newBuilder("js", ydoc).mimeType("application/javascript+module").build();
 
       CompletableFuture.supplyAsync(b::build, executor)
           .thenAcceptAsync(
               ctx -> {
                 Platform.initialize(ctx, executor);
+                parser.initialize(ctx);
+
                 ctx.eval(ydocJs);
               },
               executor)
