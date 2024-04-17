@@ -86,6 +86,7 @@ export class ExecutionContext extends ObservableV2<ExecutionContextNotification>
   readonly id: ContextId = random.uuidv4() as ContextId
   private queue: AsyncQueue<ExecutionContextState>
   private syncScheduled = false
+  private clearScheduled = false
   desiredStack: StackItem[] = reactive([])
   private visualizationConfigs: Map<Uuid, NodeVisualizationConfiguration> = new Map()
 
@@ -128,10 +129,17 @@ export class ExecutionContext extends ObservableV2<ExecutionContextNotification>
           ])
       },
     )
-    this.abort.handleObserve(this.lsRpc, 'transport/reconnected', () => {
-      this.queue.pushTask(() => Promise.resolve({ status: 'not-created' }))
+    this.lsRpc.on('transport/closed', () => {
+      // Connection closed: the created execution context is no longer available
+      // There is no point in any scheduled action until resynchronization
+      this.queue.clear()
       this.syncScheduled = false
-      this.sync()
+      this.queue.pushTask(() => {
+        this.clearScheduled = false
+        this.sync()
+        return Promise.resolve({ status: 'not-created' })
+      })
+      this.clearScheduled = true
     })
   }
 
@@ -216,7 +224,7 @@ export class ExecutionContext extends ObservableV2<ExecutionContextNotification>
   private withBackoff<T>(f: () => Promise<Result<T>>, message: string): Promise<Result<T>> {
     return exponentialBackoff(f, {
       onBeforeRetry: (error, _, delay) => {
-        if (this.abort.signal.aborted) return false
+        if (this.abort.signal.aborted || this.clearScheduled) return false
         console.warn(`${error.message(message)}. Retrying after ${delay}ms...\n`)
       },
       onFailure(error) {
