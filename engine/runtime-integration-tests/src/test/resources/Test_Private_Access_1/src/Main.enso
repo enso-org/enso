@@ -1,0 +1,17 @@
+type My_Type
+    private Priv_Ctor f1 f2
+
+    create data = My_Type.Priv_Ctor data data
+
+    get_data self = self.f1
+
+    ## Returns the private constructor as a reference to a method. This is valid.
+       But it is not valid to call that method outside this project.
+    get_ctor =
+        func = x -> My_Type.Priv_Ctor x x
+        func
+
+    ## Access the private field of the given object. This is a public wrapper for a
+       private getter method.
+    field_accessor_fn obj =
+        obj.f1

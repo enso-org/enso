@@ -17,9 +17,11 @@ import java.util.function.Function;
 import java.util.logging.Level;
 import org.enso.interpreter.EnsoLanguage;
 import org.enso.interpreter.runtime.EnsoContext;
+import org.enso.pkg.PackageManager;
 import org.enso.polyglot.LanguageInfo;
 import org.enso.polyglot.MethodNames.Module;
 import org.enso.polyglot.MethodNames.TopScope;
+import org.enso.polyglot.PolyglotContext;
 import org.enso.polyglot.RuntimeOptions;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Language;
@@ -144,6 +146,27 @@ public abstract class TestBase {
     Value assocType = module.invokeMember(Module.GET_ASSOCIATED_TYPE);
     Value mainMethod = module.invokeMember(Module.GET_METHOD, assocType, "main");
     return mainMethod.execute();
+  }
+
+  /** Evaluates a project from tests resources. */
+  protected static Value evalTestProject(Context.Builder ctxBuilder, String projectName) {
+    var resourceUrl = TestBase.class.getClassLoader().getResource(projectName);
+    var projectPath = Paths.get(resourceUrl.getPath());
+    var pkg = PackageManager.Default().fromDirectory(projectPath.toFile()).get();
+    var mainFile = pkg.mainFile();
+    var mainModule = pkg.moduleNameForFile(mainFile);
+    try (var ctx =
+        ctxBuilder
+            .option(RuntimeOptions.PROJECT_ROOT, projectPath.toAbsolutePath().toString())
+            .build()) {
+      ctx.initialize(LanguageInfo.ID);
+      var executionContext = new PolyglotContext(ctx);
+      var topScope = executionContext.getTopScope();
+      var mainModuleScope = topScope.getModule(mainModule.toString());
+      var assocCons = mainModuleScope.getAssociatedType();
+      var mainMethod = mainModuleScope.getMethod(assocCons, "main").get();
+      return mainMethod.value().execute();
+    }
   }
 
   /**
