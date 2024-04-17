@@ -302,6 +302,18 @@ fn type_constructor_private() {
              Rectangle #((() (Ident width) () ()) (() (Ident height) () ())) #())
            (ConstructorDefinition Point #() #())))];
     test(&code.join("\n"), expected);
+
+    #[rustfmt::skip]
+    let code = [
+        "type My_Type",
+        "    private Value a b c"
+    ];
+    let expected = block![
+        (TypeDef type My_Type #()
+          #((Private (ConstructorDefinition Value #((() (Ident a) () ()) (() (Ident b) () ()) (() (Ident c) () ())) #())))
+        )
+    ];
+    test(&code.join("\n"), expected);
 }
 
 #[test]
