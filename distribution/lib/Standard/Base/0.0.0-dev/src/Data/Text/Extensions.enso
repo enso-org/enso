@@ -220,9 +220,8 @@ Text.last self = self.at -1
          "건반(Korean)".characters
 Text.characters : Vector Text
 Text.characters self =
-    bldr = Vector.new_builder
-    self.each bldr.append
-    bldr.to_vector
+    Vector.build builder->
+        self.each builder.append
 
 ## GROUP Selections
    ICON find
@@ -554,21 +553,19 @@ Text.words : Boolean -> Vector Text
 Text.words self keep_whitespace=False =
     iterator = BreakIterator.getWordInstance
     iterator.setText self
-    bldr = Vector.new_builder
-    fst = iterator.first
-    nxt = iterator.next
+    Vector.build builder ->
+        fst = iterator.first
+        nxt = iterator.next
 
-    build prev nxt = if nxt == -1 then Nothing else
-        word = Text_Utils.substring self prev nxt
-        word_not_whitespace = (Text_Utils.is_all_whitespace word).not
-        if word_not_whitespace || keep_whitespace then bldr.append word
+        build prev nxt = if nxt == -1 then Nothing else
+            word = Text_Utils.substring self prev nxt
+            word_not_whitespace = (Text_Utils.is_all_whitespace word).not
+            if word_not_whitespace || keep_whitespace then builder.append word
 
-        next_nxt = iterator.next
-        @Tail_Call build nxt next_nxt
+            next_nxt = iterator.next
+            @Tail_Call build nxt next_nxt
 
-    build fst nxt
-
-    bldr.to_vector
+        build fst nxt
 
 ## ALIAS get lines
    GROUP Text
@@ -1686,7 +1683,7 @@ Text.parse_date self format:Date_Time_Formatter=Date_Time_Formatter.iso_date =
 
          import Standard.Base.Data.Text.Extensions
 
-         example_parse = "2020-10-01T04:11:12-04:00[America/New_York]".parse_date_time
+        example_parse = "2020-10-01T04:11:12-04:00[America/New_York]".parse_date_time
 
    > Example
      Parse UTC-04:00 time with nanoseconds.
