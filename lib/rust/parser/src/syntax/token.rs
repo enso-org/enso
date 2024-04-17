@@ -602,6 +602,7 @@ pub enum Base {
 ///   `Codepoint` type rather than using `Option<Codepoint>` in order to simplify defining efficient
 ///   serialization for optional codepoints.
 #[derive(Clone, Copy, PartialEq, Eq, Serialize, Reflect, Deserialize, Debug)]
+#[reflect(transparent)]
 pub struct Codepoint(#[reflect(as = "char")] u32);
 
 impl Default for Codepoint {
