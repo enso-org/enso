@@ -9,7 +9,6 @@ import {
   VisualizationContext,
   VisualizationUpdate,
 } from 'shared/binaryProtocol'
-import { mockDataWSHandler as originalMockDataWSHandler } from 'shared/dataServer/mock'
 import { ErrorCode } from 'shared/languageServer'
 import type {
   ContextId,
@@ -27,6 +26,7 @@ import type { QualifiedName } from 'src/util/qualifiedName'
 import * as Y from 'yjs'
 import { mockFsDirectoryHandle, type FileTree } from '../src/util/convert/fsAccess'
 import mockDb from '../stories/mockSuggestions.json' assert { type: 'json' }
+import { mockDataWSHandler as originalMockDataWSHandler } from './dataServer'
 
 const mockProjectId = random.uuidv4() as Uuid
 const standardBase = 'Standard.Base' as QualifiedName

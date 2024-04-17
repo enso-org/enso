@@ -12,7 +12,7 @@ export function useAI(
   graphDb: GraphDb = useGraphStore().db,
   project: {
     lsRpcConnection: LanguageServer
-    executeExpression(expressionId: ExternalId, expression: string): Promise<Result<string> | null>
+    executeExpression(expressionId: ExternalId, expression: string): Promise<Result<any> | null>
   } = useProjectStore(),
 ) {
   async function query(query: string, sourceIdentifier: string): Promise<Result<string>> {

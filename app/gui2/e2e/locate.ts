@@ -143,13 +143,15 @@ function componentLocator<T extends string>(className: SanitizeClassName<T>) {
 }
 
 export const graphEditor = componentLocator('GraphEditor')
-// @ts-expect-error
-export const anyVisualization = componentLocator('GraphVisualization > *')
 export const circularMenu = componentLocator('CircularMenu')
 export const addNewNodeButton = componentLocator('PlusButton')
 export const componentBrowser = componentLocator('ComponentBrowser')
 export const nodeOutputPort = componentLocator('outputPortHoverArea')
 export const smallPlusButton = componentLocator('SmallPlusButton')
+
+export function anyLoadedVisualization(page: Locator | Page) {
+  return page.locator('.GraphVisualization > :not(.LoadingVisualization)')
+}
 
 export function componentBrowserEntry(
   page: Locator | Page,

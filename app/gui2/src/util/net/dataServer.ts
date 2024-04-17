@@ -1,5 +1,3 @@
-/// <reference lib="DOM" />
-/* eslint-env browser */
 import { ObservableV2 } from 'lib0/observable'
 import * as random from 'lib0/random'
 import {
@@ -29,12 +27,12 @@ import {
   type AnyInboundPayload,
   type Offset,
   type Table,
-} from './binaryProtocol'
-import type { Path as LSPath } from './languageServerTypes'
-import { Err, Ok, type Result } from './util/data/result'
-import { exponentialBackoff, type AbortScope } from './util/net'
-import { uuidFromBits, uuidToBits } from './uuid'
-import type { Uuid } from './yjsModel'
+} from 'shared/binaryProtocol'
+import type { Path as LSPath } from 'shared/languageServerTypes'
+import { Err, Ok, type Result } from 'shared/util/data/result'
+import { exponentialBackoff, type AbortScope } from 'shared/util/net'
+import { uuidFromBits, uuidToBits } from 'shared/uuid'
+import type { Uuid } from 'shared/yjsModel'
 
 const PAYLOAD_CONSTRUCTOR = {
   [OutboundPayload.NONE]: None,

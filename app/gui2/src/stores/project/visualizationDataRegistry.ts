@@ -1,7 +1,7 @@
 import type { ExecutionContext } from '@/stores/project/executionContext'
 import { Err, Ok, type Result } from '@/util/data/result'
+import type { DataServer } from '@/util/net/dataServer'
 import { OutboundPayload, VisualizationUpdate } from 'shared/binaryProtocol'
-import type { DataServer } from 'shared/dataServer'
 import type {
   Diagnostic,
   ExpressionId,
