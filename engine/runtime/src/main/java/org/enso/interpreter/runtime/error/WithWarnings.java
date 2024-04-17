@@ -2,6 +2,7 @@ package org.enso.interpreter.runtime.error;
 
 import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.dsl.Cached.Shared;
+import com.oracle.truffle.api.interop.TruffleObject;
 import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.library.ExportLibrary;
@@ -12,6 +13,7 @@ import com.oracle.truffle.api.nodes.Node;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.data.ArrayRope;
 import org.enso.interpreter.runtime.data.EnsoObject;
+import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
 import org.graalvm.collections.EconomicSet;
 import org.graalvm.collections.Equivalence;
@@ -38,7 +40,7 @@ public final class WithWarnings implements EnsoObject {
    * @param warnings non-empty warnings to be attached to a value
    */
   private WithWarnings(Object value, int maxWarnings, boolean limitReached, Warning... warnings) {
-    assert !(value instanceof WithWarnings);
+    assert isAcceptableValue(value);
     this.warnings = createSetFromArray(maxWarnings, warnings);
     assert this.warnings.size() > 0;
     this.value = value;
@@ -68,7 +70,7 @@ public final class WithWarnings implements EnsoObject {
       EconomicSet<Warning> warnings,
       boolean limitReached,
       Warning... additionalWarnings) {
-    assert !(value instanceof WithWarnings);
+    assert isAcceptableValue(value);
     this.warnings = cloneSetAndAppend(maxWarnings, warnings, additionalWarnings);
     assert this.warnings.size() > 0;
     this.value = value;
@@ -79,6 +81,18 @@ public final class WithWarnings implements EnsoObject {
   private WithWarnings(
       Object value, int maxWarnings, EconomicSet<Warning> warnings, Warning... additionalWarnings) {
     this(value, maxWarnings, warnings, false, additionalWarnings);
+  }
+
+  private static boolean isAcceptableValue(Object value) {
+    assert value != null;
+    assert !(value instanceof WithWarnings) : "Trying to double wrap WithWarnings " + value;
+    boolean goodValue =
+        value instanceof TruffleObject
+            || value instanceof Long
+            || value instanceof Double
+            || value instanceof Boolean;
+    assert goodValue : "Unexpected value floating around " + value + " type: " + value.getClass();
+    return goodValue;
   }
 
   public static WithWarnings wrap(EnsoContext ctx, Object value, Warning... warnings) {
@@ -219,6 +233,16 @@ public final class WithWarnings implements EnsoObject {
   @ExportMessage
   public boolean isLimitReached() {
     return limitReached;
+  }
+
+  @ExportMessage
+  boolean hasType(@Shared("typesLib") @CachedLibrary(limit = "3") TypesLibrary types) {
+    return types.hasType(value);
+  }
+
+  @ExportMessage
+  Type getType(@Shared("typesLib") @CachedLibrary(limit = "3") TypesLibrary types) {
+    return types.getType(value);
   }
 
   @ExportMessage

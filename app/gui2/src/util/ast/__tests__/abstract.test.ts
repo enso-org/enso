@@ -1,9 +1,18 @@
-import { assert } from '@/util/assert'
+import { assert, assertDefined } from '@/util/assert'
 import { Ast } from '@/util/ast'
+import {
+  MutableModule,
+  TextLiteral,
+  escapeTextLiteral,
+  substituteQualifiedName,
+  unescapeTextLiteral,
+  type Identifier,
+} from '@/util/ast/abstract'
+import { tryQualifiedName } from '@/util/qualifiedName'
+import { fc, test } from '@fast-check/vitest'
 import { initializeFFI } from 'shared/ast/ffi'
-import { expect, test } from 'vitest'
-import { MutableModule, type Identifier } from '../abstract'
-import { escape, unescape } from '../text'
+import { unwrap } from 'shared/util/data/result'
+import { describe, expect } from 'vitest'
 import { findExpressions, testCase, tryFindExpressions } from './testCase'
 
 await initializeFFI()
@@ -274,6 +283,9 @@ const cases = [
   '{x, y}',
   '[ x , y , z ]',
   '[x, y, z]',
+  '[x ,y ,z]',
+  '[,,,,,]',
+  '[]',
   'x + y * z',
   'x * y + z',
   ["'''", ' `splice` at start'].join('\n'),
@@ -450,6 +462,24 @@ test('Replace subexpression', () => {
   expect(printed).toEqual("main =\n    text1 = 'bar'\n")
 })
 
+test('Modify subexpression - setting a vector', () => {
+  // A case where the #9357 bug was visible.
+  const code = 'main =\n    text1 = foo\n'
+  const root = Ast.parseBlock(code)
+  const main = Ast.functionBlock(root, 'main')!
+  expect(main).not.toBeNull()
+  const assignment: Ast.Assignment = main.statements().next().value
+  expect(assignment).toBeInstanceOf(Ast.Assignment)
+
+  const edit = root.module.edit()
+  const transientModule = MutableModule.Transient()
+  const newValue = Ast.Vector.new(transientModule, [Ast.parse('bar')])
+  expect(newValue.code()).toBe('[bar]')
+  edit.replaceValue(assignment.expression.id, newValue)
+  const printed = edit.getVersion(root).code()
+  expect(printed).toEqual('main =\n    text1 = [bar]\n')
+})
+
 test('Change ID of node', () => {
   const { root, assignment } = simpleModule()
   expect(assignment.expression).not.toBeNull()
@@ -564,211 +594,422 @@ test('Tree repair: Non-canonical block line attribution', () => {
   expect(afterRepair['main ='].id).toBe(before['main ='].id)
 })
 
-test('Code edit: Change argument type', () => {
-  const beforeRoot = Ast.parse('func arg1 arg2')
-  beforeRoot.module.replaceRoot(beforeRoot)
-  const before = findExpressions(beforeRoot, {
-    func: Ast.Ident,
-    arg1: Ast.Ident,
-    arg2: Ast.Ident,
-    'func arg1': Ast.App,
-    'func arg1 arg2': Ast.App,
+describe('Code edit', () => {
+  test('Change argument type', () => {
+    const beforeRoot = Ast.parse('func arg1 arg2')
+    beforeRoot.module.replaceRoot(beforeRoot)
+    const before = findExpressions(beforeRoot, {
+      func: Ast.Ident,
+      arg1: Ast.Ident,
+      arg2: Ast.Ident,
+      'func arg1': Ast.App,
+      'func arg1 arg2': Ast.App,
+    })
+    const edit = beforeRoot.module.edit()
+    const newCode = 'func 123 arg2'
+    edit.getVersion(beforeRoot).syncToCode(newCode)
+    // Ensure the change was made.
+    expect(edit.root()?.code()).toBe(newCode)
+    // Ensure the identities of all the original nodes were maintained.
+    const after = findExpressions(edit.root()!, {
+      func: Ast.Ident,
+      '123': Ast.NumericLiteral,
+      arg2: Ast.Ident,
+      'func 123': Ast.App,
+      'func 123 arg2': Ast.App,
+    })
+    expect(after.func.id).toBe(before.func.id)
+    expect(after.arg2.id).toBe(before.arg2.id)
+    expect(after['func 123'].id).toBe(before['func arg1'].id)
+    expect(after['func 123 arg2'].id).toBe(before['func arg1 arg2'].id)
   })
-  const edit = beforeRoot.module.edit()
-  const newCode = 'func 123 arg2'
-  edit.getVersion(beforeRoot).syncToCode(newCode)
-  // Ensure the change was made.
-  expect(edit.root()?.code()).toBe(newCode)
-  // Ensure the identities of all the original nodes were maintained.
-  const after = findExpressions(edit.root()!, {
-    func: Ast.Ident,
-    '123': Ast.NumericLiteral,
-    arg2: Ast.Ident,
-    'func 123': Ast.App,
-    'func 123 arg2': Ast.App,
+
+  test('Insert argument names', () => {
+    const beforeRoot = Ast.parse('func arg1 arg2')
+    beforeRoot.module.replaceRoot(beforeRoot)
+    const before = findExpressions(beforeRoot, {
+      func: Ast.Ident,
+      arg1: Ast.Ident,
+      arg2: Ast.Ident,
+      'func arg1': Ast.App,
+      'func arg1 arg2': Ast.App,
+    })
+    const edit = beforeRoot.module.edit()
+    const newCode = 'func name1=arg1 name2=arg2'
+    edit.getVersion(beforeRoot).syncToCode(newCode)
+    // Ensure the change was made.
+    expect(edit.root()?.code()).toBe(newCode)
+    // Ensure the identities of all the original nodes were maintained.
+    const after = findExpressions(edit.root()!, {
+      func: Ast.Ident,
+      arg1: Ast.Ident,
+      arg2: Ast.Ident,
+      'func name1=arg1': Ast.App,
+      'func name1=arg1 name2=arg2': Ast.App,
+    })
+    expect(after.func.id).toBe(before.func.id)
+    expect(after.arg1.id).toBe(before.arg1.id)
+    expect(after.arg2.id).toBe(before.arg2.id)
+    expect(after['func name1=arg1'].id).toBe(before['func arg1'].id)
+    expect(after['func name1=arg1 name2=arg2'].id).toBe(before['func arg1 arg2'].id)
   })
-  expect(after.func.id).toBe(before.func.id)
-  expect(after.arg2.id).toBe(before.arg2.id)
-  expect(after['func 123'].id).toBe(before['func arg1'].id)
-  expect(after['func 123 arg2'].id).toBe(before['func arg1 arg2'].id)
+
+  test('Remove argument names', () => {
+    const beforeRoot = Ast.parse('func name1=arg1 name2=arg2')
+    beforeRoot.module.replaceRoot(beforeRoot)
+    const before = findExpressions(beforeRoot, {
+      func: Ast.Ident,
+      arg1: Ast.Ident,
+      arg2: Ast.Ident,
+      'func name1=arg1': Ast.App,
+      'func name1=arg1 name2=arg2': Ast.App,
+    })
+    const edit = beforeRoot.module.edit()
+    const newCode = 'func arg1 arg2'
+    edit.getVersion(beforeRoot).syncToCode(newCode)
+    // Ensure the change was made.
+    expect(edit.root()?.code()).toBe(newCode)
+    // Ensure the identities of all the original nodes were maintained.
+    const after = findExpressions(edit.root()!, {
+      func: Ast.Ident,
+      arg1: Ast.Ident,
+      arg2: Ast.Ident,
+      'func arg1': Ast.App,
+      'func arg1 arg2': Ast.App,
+    })
+    expect(after.func.id).toBe(before.func.id)
+    expect(after.arg1.id).toBe(before.arg1.id)
+    expect(after.arg2.id).toBe(before.arg2.id)
+    expect(after['func arg1'].id).toBe(before['func name1=arg1'].id)
+    expect(after['func arg1 arg2'].id).toBe(before['func name1=arg1 name2=arg2'].id)
+  })
+
+  test('Rearrange block', () => {
+    const beforeCase = testCase({
+      'main =': Ast.Function,
+      '    call_result = func sum 12': Ast.Assignment,
+      '    sum = value + 23': Ast.Assignment,
+      '    value = 42': Ast.Assignment,
+    })
+    const before = beforeCase.statements
+
+    const edit = beforeCase.module.edit()
+    const newCode = [
+      'main =',
+      '\n    value = 42',
+      '\n    sum = value + 23',
+      '\n    call_result = func sum 12',
+    ].join('')
+    edit.root()!.syncToCode(newCode)
+    // Ensure the change was made.
+    expect(edit.root()?.code()).toBe(newCode)
+    // Ensure the identities of all the original nodes were maintained.
+    const after = tryFindExpressions(edit.root()!, {
+      'main =': Ast.Function,
+      'call_result = func sum 12': Ast.Assignment,
+      'sum = value + 23': Ast.Assignment,
+      'value = 42': Ast.Assignment,
+    })
+    expect(after['call_result = func sum 12']?.id).toBe(before['    call_result = func sum 12'].id)
+    expect(after['sum = value + 23']?.id).toBe(before['    sum = value + 23'].id)
+    expect(after['value = 42']?.id).toBe(before['    value = 42'].id)
+  })
+
+  test('Inline expression change', () => {
+    const beforeRoot = Ast.parse('func name1=arg1 name2=arg2')
+    beforeRoot.module.replaceRoot(beforeRoot)
+    const before = findExpressions(beforeRoot, {
+      func: Ast.Ident,
+      arg1: Ast.Ident,
+      arg2: Ast.Ident,
+      'func name1=arg1': Ast.App,
+      'func name1=arg1 name2=arg2': Ast.App,
+    })
+    const edit = beforeRoot.module.edit()
+    const newArg1Code = 'arg1+1'
+    edit.getVersion(before['arg1']).syncToCode(newArg1Code)
+    // Ensure the change was made.
+    expect(edit.root()?.code()).toBe('func name1=arg1+1 name2=arg2')
+    // Ensure the identities of all the original nodes were maintained.
+    const after = findExpressions(edit.root()!, {
+      func: Ast.Ident,
+      arg1: Ast.Ident,
+      arg2: Ast.Ident,
+      'arg1+1': Ast.OprApp,
+      'func name1=arg1+1': Ast.App,
+      'func name1=arg1+1 name2=arg2': Ast.App,
+    })
+    expect(after.func.id).toBe(before.func.id)
+    expect(after.arg1.id).toBe(before.arg1.id)
+    expect(after.arg2.id).toBe(before.arg2.id)
+    expect(after['func name1=arg1+1'].id).toBe(before['func name1=arg1'].id)
+    expect(after['func name1=arg1+1 name2=arg2'].id).toBe(before['func name1=arg1 name2=arg2'].id)
+  })
+
+  test('No-op inline expression change', () => {
+    const code = 'a = 1'
+    const expression = Ast.parse(code)
+    const module = expression.module
+    module.replaceRoot(expression)
+    expression.syncToCode(code)
+    expect(module.root()?.code()).toBe(code)
+  })
+
+  test('No-op block change', () => {
+    const code = 'a = 1\nb = 2\n'
+    const block = Ast.parseBlock(code)
+    const module = block.module
+    module.replaceRoot(block)
+    block.syncToCode(code)
+    expect(module.root()?.code()).toBe(code)
+  })
+
+  test('Shifting whitespace ownership', () => {
+    const beforeRoot = Ast.parseBlock('value = 1 +\n')
+    beforeRoot.module.replaceRoot(beforeRoot)
+    const before = findExpressions(beforeRoot, {
+      value: Ast.Ident,
+      '1': Ast.NumericLiteral,
+      'value = 1 +': Ast.Assignment,
+    })
+    const edit = beforeRoot.module.edit()
+    const newCode = 'value = 1 \n'
+    edit.getVersion(beforeRoot).syncToCode(newCode)
+    // Ensure the change was made.
+    expect(edit.root()?.code()).toBe(newCode)
+    // Ensure the identities of all the original nodes were maintained.
+    const after = findExpressions(edit.root()!, {
+      value: Ast.Ident,
+      '1': Ast.NumericLiteral,
+      'value = 1': Ast.Assignment,
+    })
+    expect(after.value.id).toBe(before.value.id)
+    expect(after['1'].id).toBe(before['1'].id)
+    expect(after['value = 1'].id).toBe(before['value = 1 +'].id)
+  })
+
+  test('merging', () => {
+    const block = Ast.parseBlock('a = 1\nb = 2')
+    const module = block.module
+    module.replaceRoot(block)
+
+    const editA = module.edit()
+    editA.getVersion(block).syncToCode('a = 10\nb = 2')
+
+    const editB = module.edit()
+    editB.getVersion(block).syncToCode('a = 1\nb = 20')
+
+    module.applyEdit(editA)
+    module.applyEdit(editB)
+    expect(module.root()?.code()).toBe('a = 10\nb = 20')
+  })
 })
 
-test('Code edit: Insert argument names', () => {
-  const beforeRoot = Ast.parse('func arg1 arg2')
-  beforeRoot.module.replaceRoot(beforeRoot)
-  const before = findExpressions(beforeRoot, {
-    func: Ast.Ident,
-    arg1: Ast.Ident,
-    arg2: Ast.Ident,
-    'func arg1': Ast.App,
-    'func arg1 arg2': Ast.App,
-  })
-  const edit = beforeRoot.module.edit()
-  const newCode = 'func name1=arg1 name2=arg2'
-  edit.getVersion(beforeRoot).syncToCode(newCode)
-  // Ensure the change was made.
-  expect(edit.root()?.code()).toBe(newCode)
-  // Ensure the identities of all the original nodes were maintained.
-  const after = findExpressions(edit.root()!, {
-    func: Ast.Ident,
-    arg1: Ast.Ident,
-    arg2: Ast.Ident,
-    'func name1=arg1': Ast.App,
-    'func name1=arg1 name2=arg2': Ast.App,
-  })
-  expect(after.func.id).toBe(before.func.id)
-  expect(after.arg1.id).toBe(before.arg1.id)
-  expect(after.arg2.id).toBe(before.arg2.id)
-  expect(after['func name1=arg1'].id).toBe(before['func arg1'].id)
-  expect(after['func name1=arg1 name2=arg2'].id).toBe(before['func arg1 arg2'].id)
+test('Analyze app-like', () => {
+  const appLike = Ast.parse('(Preprocessor.default_preprocessor 3 _ 5 _ <| 4) <| 6')
+  const { func, args } = Ast.analyzeAppLike(appLike)
+  expect(func.code()).toBe('Preprocessor.default_preprocessor')
+  expect(args.map((ast) => ast.code())).toEqual(['3', '4', '5', '6'])
 })
 
-test('Code edit: Remove argument names', () => {
-  const beforeRoot = Ast.parse('func name1=arg1 name2=arg2')
-  beforeRoot.module.replaceRoot(beforeRoot)
-  const before = findExpressions(beforeRoot, {
-    func: Ast.Ident,
-    arg1: Ast.Ident,
-    arg2: Ast.Ident,
-    'func name1=arg1': Ast.App,
-    'func name1=arg1 name2=arg2': Ast.App,
-  })
-  const edit = beforeRoot.module.edit()
-  const newCode = 'func arg1 arg2'
-  edit.getVersion(beforeRoot).syncToCode(newCode)
-  // Ensure the change was made.
-  expect(edit.root()?.code()).toBe(newCode)
-  // Ensure the identities of all the original nodes were maintained.
-  const after = findExpressions(edit.root()!, {
-    func: Ast.Ident,
-    arg1: Ast.Ident,
-    arg2: Ast.Ident,
-    'func arg1': Ast.App,
-    'func arg1 arg2': Ast.App,
-  })
-  expect(after.func.id).toBe(before.func.id)
-  expect(after.arg1.id).toBe(before.arg1.id)
-  expect(after.arg2.id).toBe(before.arg2.id)
-  expect(after['func arg1'].id).toBe(before['func name1=arg1'].id)
-  expect(after['func arg1 arg2'].id).toBe(before['func name1=arg1 name2=arg2'].id)
+test.each([
+  {
+    original: 'Vector.new',
+    pattern: 'Vector.new',
+    substitution: 'Standard.Base.Vector.new',
+    expected: 'Standard.Base.Vector.new',
+  },
+  {
+    original: 'x = Table.from_vec (Vector.new 1 2 3)',
+    pattern: 'Vector.new',
+    substitution: 'NotReallyVector.create',
+    expected: 'x = Table.from_vec (NotReallyVector.create 1 2 3)',
+  },
+  {
+    original: 'x',
+    pattern: 'x',
+    substitution: 'y',
+    expected: 'y',
+  },
+  {
+    original: 'x + y',
+    pattern: 'x',
+    substitution: 'z',
+    expected: 'z + y',
+  },
+  {
+    original: 'Data.Table.new',
+    pattern: 'Data',
+    substitution: 'Project.Foo.Data',
+    expected: 'Project.Foo.Data.Table.new',
+  },
+  {
+    original: 'Data.Table.new',
+    pattern: 'Table',
+    substitution: 'ShouldNotWork',
+    expected: 'Data.Table.new',
+  },
+])('Substitute $pattern insde $original', ({ original, pattern, substitution, expected }) => {
+  const expression = Ast.parse(original)
+  expression.module.replaceRoot(expression)
+  const edit = expression.module.edit()
+  substituteQualifiedName(
+    edit,
+    expression,
+    pattern as Ast.QualifiedName,
+    unwrap(tryQualifiedName(substitution)),
+  )
+  expect(edit.root()?.code()).toEqual(expected)
 })
 
-test('Code edit: Rearrange block', () => {
-  const beforeCase = testCase({
-    'main =': Ast.Function,
-    '    call_result = func sum 12': Ast.Assignment,
-    '    sum = value + 23': Ast.Assignment,
-    '    value = 42': Ast.Assignment,
-  })
-  const before = beforeCase.statements
+test.each([
+  ['', ''],
+  ['\\x20', ' ', ' '],
+  ['\\b', '\b'],
+  ['abcdef_123', 'abcdef_123'],
+  ['\\t\\r\\n\\v\\"\\\'\\`', '\t\r\n\v"\'`'],
+  ['\\u00B6\\u{20}\\U\\u{D8\\xBFF}', '\xB6 \0\xD8\xBFF}', '\xB6 \\0\xD8\xBFF}'],
+  ['\\`foo\\` \\`bar\\` \\`baz\\`', '`foo` `bar` `baz`'],
+])(
+  'Applying and escaping text literal interpolation',
+  (escapedText: string, rawText: string, roundtrip?: string) => {
+    const actualApplied = unescapeTextLiteral(escapedText)
+    const actualEscaped = escapeTextLiteral(rawText)
 
-  const edit = beforeCase.module.edit()
-  const newCode = [
-    'main =',
-    '\n    value = 42',
-    '\n    sum = value + 23',
-    '\n    call_result = func sum 12',
-  ].join('')
-  edit.root()!.syncToCode(newCode)
-  // Ensure the change was made.
-  expect(edit.root()?.code()).toBe(newCode)
-  // Ensure the identities of all the original nodes were maintained.
-  const after = tryFindExpressions(edit.root()!, {
-    'main =': Ast.Function,
-    'call_result = func sum 12': Ast.Assignment,
-    'sum = value + 23': Ast.Assignment,
-    'value = 42': Ast.Assignment,
-  })
-  expect(after['call_result = func sum 12']?.id).toBe(before['    call_result = func sum 12'].id)
-  expect(after['sum = value + 23']?.id).toBe(before['    sum = value + 23'].id)
-  expect(after['value = 42']?.id).toBe(before['    value = 42'].id)
+    expect(actualEscaped).toBe(roundtrip ?? escapedText)
+    expect(actualApplied).toBe(rawText)
+  },
+)
+
+const sometimesUnicodeString = fc.oneof(fc.string(), fc.unicodeString())
+
+test.prop({ rawText: sometimesUnicodeString })('Text interpolation roundtrip', ({ rawText }) => {
+  expect(unescapeTextLiteral(escapeTextLiteral(rawText))).toBe(rawText)
 })
 
-test('Code edit: Inline expression change', () => {
-  const beforeRoot = Ast.parse('func name1=arg1 name2=arg2')
-  beforeRoot.module.replaceRoot(beforeRoot)
-  const before = findExpressions(beforeRoot, {
-    func: Ast.Ident,
-    arg1: Ast.Ident,
-    arg2: Ast.Ident,
-    'func name1=arg1': Ast.App,
-    'func name1=arg1 name2=arg2': Ast.App,
-  })
-  const edit = beforeRoot.module.edit()
-  const newArg1Code = 'arg1+1'
-  edit.getVersion(before['arg1']).syncToCode(newArg1Code)
-  // Ensure the change was made.
-  expect(edit.root()?.code()).toBe('func name1=arg1+1 name2=arg2')
-  // Ensure the identities of all the original nodes were maintained.
-  const after = findExpressions(edit.root()!, {
-    func: Ast.Ident,
-    arg1: Ast.Ident,
-    arg2: Ast.Ident,
-    'arg1+1': Ast.OprApp,
-    'func name1=arg1+1': Ast.App,
-    'func name1=arg1+1 name2=arg2': Ast.App,
-  })
-  expect(after.func.id).toBe(before.func.id)
-  expect(after.arg1.id).toBe(before.arg1.id)
-  expect(after.arg2.id).toBe(before.arg2.id)
-  expect(after['func name1=arg1+1'].id).toBe(before['func name1=arg1'].id)
-  expect(after['func name1=arg1+1 name2=arg2'].id).toBe(before['func name1=arg1 name2=arg2'].id)
+test.prop({ rawText: sometimesUnicodeString })('AST text literal new', ({ rawText }) => {
+  const literal = TextLiteral.new(rawText)
+  expect(literal.rawTextContent).toBe(rawText)
 })
 
-test('Code edit: No-op inline expression change', () => {
-  const code = 'a = 1'
-  const expression = Ast.parse(code)
-  const module = expression.module
-  module.replaceRoot(expression)
-  expression.syncToCode(code)
-  expect(module.root()?.code()).toBe(code)
+test.prop({
+  boundary: fc.constantFrom('"', "'"),
+  rawText: sometimesUnicodeString,
+})('AST text literal rawTextContent', ({ boundary, rawText }) => {
+  const literal = TextLiteral.new('')
+  literal.setBoundaries(boundary)
+  literal.setRawTextContent(rawText)
+  expect(literal.rawTextContent).toBe(rawText)
+  const codeAsInterpolated = `'${escapeTextLiteral(rawText)}'`
+  if (boundary === "'") {
+    expect(literal.code()).toBe(codeAsInterpolated)
+  } else {
+    const codeAsRaw = `"${rawText}"`
+    // Uninterpolated text will be promoted to interpolated if necessary to escape a special character.
+    expect([codeAsInterpolated, codeAsRaw]).toContainEqual(literal.code())
+  }
 })
 
-test('Code edit: No-op block change', () => {
-  const code = 'a = 1\nb = 2\n'
-  const block = Ast.parseBlock(code)
-  const module = block.module
-  module.replaceRoot(block)
-  block.syncToCode(code)
-  expect(module.root()?.code()).toBe(code)
+test('setRawTextContent promotes single-line uninterpolated text to interpolated if a newline is added', () => {
+  const literal = TextLiteral.new('')
+  literal.setBoundaries('"')
+  const rawText = '\n'
+  literal.setRawTextContent(rawText)
+  expect(literal.rawTextContent).toBe(rawText)
+  expect(literal.code()).toBe(`'${escapeTextLiteral(rawText)}'`)
 })
 
-test('Code edit: Shifting whitespace ownership', () => {
-  const beforeRoot = Ast.parseBlock('value = 1 +\n')
-  beforeRoot.module.replaceRoot(beforeRoot)
-  const before = findExpressions(beforeRoot, {
-    value: Ast.Ident,
-    '1': Ast.NumericLiteral,
-    'value = 1 +': Ast.Assignment,
-  })
-  const edit = beforeRoot.module.edit()
-  const newCode = 'value = 1 \n'
-  edit.getVersion(beforeRoot).syncToCode(newCode)
-  // Ensure the change was made.
-  expect(edit.root()?.code()).toBe(newCode)
-  // Ensure the identities of all the original nodes were maintained.
-  const after = findExpressions(edit.root()!, {
-    value: Ast.Ident,
-    '1': Ast.NumericLiteral,
-    'value = 1': Ast.Assignment,
-  })
-  expect(after.value.id).toBe(before.value.id)
-  expect(after['1'].id).toBe(before['1'].id)
-  expect(after['value = 1'].id).toBe(before['value = 1 +'].id)
+const docEditCases = [
+  { code: '## Simple\nnode', documentation: 'Simple' },
+  {
+    code: '## Preferred indent\n   2nd line\n   3rd line\nnode',
+    documentation: 'Preferred indent\n2nd line\n3rd line',
+  },
+  {
+    code: '## Extra-indented child\n 2nd line\n   3rd line\nnode',
+    documentation: 'Extra-indented child\n2nd line\n3rd line',
+    normalized: '## Extra-indented child\n   2nd line\n   3rd line\nnode',
+  },
+  {
+    code: '## Extra-indented child, beyond 4th column\n 2nd line\n        3rd line\nnode',
+    documentation: 'Extra-indented child, beyond 4th column\n2nd line\n    3rd line',
+    normalized: '## Extra-indented child, beyond 4th column\n   2nd line\n       3rd line\nnode',
+  },
+  {
+    code: '##Preferred indent, no initial space\n  2nd line\n  3rd line\nnode',
+    documentation: 'Preferred indent, no initial space\n2nd line\n3rd line',
+    normalized: '## Preferred indent, no initial space\n   2nd line\n   3rd line\nnode',
+  },
+  {
+    code: '## Minimum indent\n 2nd line\n 3rd line\nnode',
+    documentation: 'Minimum indent\n2nd line\n3rd line',
+    normalized: '## Minimum indent\n   2nd line\n   3rd line\nnode',
+  },
+]
+test.each(docEditCases)('Documentation edit round trip: $code', (docCase) => {
+  const { code, documentation } = docCase
+  const parsed = Ast.Documented.tryParse(code)
+  assert(parsed != null)
+  const parsedDocumentation = parsed.documentation()
+  expect(parsedDocumentation).toBe(documentation)
+  const edited = MutableModule.Transient().copy(parsed)
+  edited.setDocumentationText(parsedDocumentation)
+  expect(edited.code()).toBe(docCase.normalized ?? code)
 })
 
-test('Code edit merging', () => {
-  const block = Ast.parseBlock('a = 1\nb = 2')
-  const module = block.module
-  module.replaceRoot(block)
+test('Adding comments', () => {
+  const expr = Ast.parse('2 + 2')
+  expr.module.replaceRoot(expr)
+  expr.update((expr) => Ast.Documented.new('Calculate five', expr))
+  expect(expr.module.root()?.code()).toBe('## Calculate five\n2 + 2')
+})
 
-  const editA = module.edit()
-  editA.getVersion(block).syncToCode('a = 10\nb = 2')
+test.each([
+  { code: 'operator1', expected: { subject: 'operator1', accesses: [] } },
+  { code: 'operator1 foo bar', expected: { subject: 'operator1 foo bar', accesses: [] } },
+  { code: 'operator1.parse_json', expected: { subject: 'operator1', accesses: ['parse_json'] } },
+  {
+    code: 'operator1.parse_json operator2.to_json',
+    expected: { subject: 'operator1.parse_json operator2.to_json', accesses: [] },
+  },
+  {
+    code: 'operator1.parse_json foo bar',
+    expected: { subject: 'operator1.parse_json foo bar', accesses: [] },
+  },
+  {
+    code: 'operator1.parse_json.length',
+    expected: { subject: 'operator1', accesses: ['parse_json', 'length'] },
+  },
+  {
+    code: 'operator1.parse_json.length foo bar',
+    expected: { subject: 'operator1.parse_json.length foo bar', accesses: [] },
+  },
+  { code: 'operator1 + operator2', expected: { subject: 'operator1 + operator2', accesses: [] } },
+])('Access chain in $code', ({ code, expected }) => {
+  const ast = Ast.parse(code)
+  const { subject, accessChain } = Ast.accessChain(ast)
+  expect({
+    subject: subject.code(),
+    accesses: accessChain.map((ast) => ast.rhs.code()),
+  }).toEqual(expected)
+})
 
-  const editB = module.edit()
-  editB.getVersion(block).syncToCode('a = 1\nb = 20')
-
-  module.applyEdit(editA)
-  module.applyEdit(editB)
-  expect(module.root()?.code()).toBe('a = 10\nb = 20')
+test('Vector modifications', () => {
+  const vector = Ast.Vector.tryParse('[1, 2]')
+  expect(vector).toBeDefined()
+  assertDefined(vector)
+  vector.push(Ast.parse('"Foo"', vector.module))
+  expect(vector.code()).toBe('[1, 2, "Foo"]')
+  vector.keep((ast) => ast instanceof Ast.NumericLiteral)
+  expect(vector.code()).toBe('[1, 2]')
+  vector.push(Ast.parse('3', vector.module))
+  expect(vector.code()).toBe('[1, 2, 3]')
+  vector.keep((ast) => ast.code() !== '4')
+  expect(vector.code()).toBe('[1, 2, 3]')
+  vector.keep((ast) => ast.code() !== '2')
+  expect(vector.code()).toBe('[1, 3]')
+  vector.keep((ast) => ast.code() !== '1')
+  expect(vector.code()).toBe('[3]')
+  vector.keep(() => false)
+  expect(vector.code()).toBe('[]')
 })

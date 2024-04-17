@@ -3,41 +3,26 @@ package org.enso.interpreter.test;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 
 import java.io.ByteArrayOutputStream;
-import java.nio.file.Paths;
 import java.util.Map;
 import java.util.function.Function;
-import java.util.logging.Level;
-import org.enso.polyglot.RuntimeOptions;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Language;
 import org.graalvm.polyglot.Source;
-import org.graalvm.polyglot.io.IOAccess;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
-public class InsightForEnsoTest {
+public class InsightForEnsoTest extends TestBase {
   private Context ctx;
   private AutoCloseable insightHandle;
   private final ByteArrayOutputStream out = new ByteArrayOutputStream();
 
   @Before
   public void initContext() throws Exception {
-    this.ctx =
-        Context.newBuilder()
-            .allowExperimentalOptions(true)
-            .option(
-                RuntimeOptions.LANGUAGE_HOME_OVERRIDE,
-                Paths.get("../../distribution/component").toFile().getAbsolutePath())
-            .option(RuntimeOptions.LOG_LEVEL, Level.WARNING.getName())
-            .logHandler(System.err)
-            .allowExperimentalOptions(true)
-            .allowIO(IOAccess.ALL)
-            .out(out)
-            .allowAllAccess(true)
-            .build();
+    this.ctx = defaultContextBuilder().out(out).build();
 
     var engine = ctx.getEngine();
     Map<String, Language> langs = engine.getLanguages();
@@ -107,5 +92,76 @@ public class InsightForEnsoTest {
         "Uninitialized variables are seen as JavaScript null: " + msgs,
         -1,
         msgs.indexOf("n=null v=null acc=function"));
+  }
+
+  @Test
+  public void instantiateConstructor() throws Exception {
+    doInstantiateConstructor(false, false);
+  }
+
+  @Test
+  public void instantiateAutoscopedConstructor() throws Exception {
+    doInstantiateConstructor(true, false);
+  }
+
+  @Test
+  public void lazyInstantiateConstructor() throws Exception {
+    doInstantiateConstructor(false, true);
+  }
+
+  @Test
+  public void lazyInstantiateAutoscopedConstructor() throws Exception {
+    doInstantiateConstructor(true, true);
+  }
+
+  private void doInstantiateConstructor(boolean useAutoscoping, boolean lazy) throws Exception {
+    var code =
+        Source.newBuilder(
+                "enso",
+                """
+                type Complex
+                    Number re im
+
+                    switch n:Complex = Complex.Number n.im n.re
+                    switch_lazy (~n:Complex) = Complex.Number n.im n.re
+
+                alloc1 a b = Complex.switch (Complex.Number a b)
+                alloc2 a b = Complex.switch (..Number a b)
+                alloc3 a b = Complex.switch_lazy (Complex.Number a b)
+                alloc4 a b = Complex.switch_lazy (..Number a b)
+                """,
+                "complex.enso")
+            .build();
+
+    var m = ctx.eval(code);
+    var alloc1 = m.invokeMember("eval_expression", "alloc1");
+    var alloc2 = m.invokeMember("eval_expression", "alloc2");
+    var alloc3 = m.invokeMember("eval_expression", "alloc3");
+    var alloc4 = m.invokeMember("eval_expression", "alloc4");
+
+    var useAlloc = useAutoscoping ? (lazy ? alloc4 : alloc2) : (lazy ? alloc3 : alloc1);
+    var res = useAlloc.execute(3, 4);
+    assertEquals("Complex", res.getMetaObject().getMetaSimpleName());
+    assertEquals(3, res.getMember("im").asInt());
+    assertEquals(4, res.getMember("re").asInt());
+
+    var msgs = out.toString();
+
+    var firstCons = msgs.indexOf("complex::complex.Complex::Number");
+    var secondCons = msgs.lastIndexOf("complex::complex.Complex::Number");
+    var switchCall = msgs.indexOf("complex::complex.Complex.type::switch");
+
+    assertNotEquals(msgs, -1, switchCall);
+    assertNotEquals(msgs, -1, firstCons);
+    assertNotEquals(msgs, -1, secondCons);
+    assertTrue(
+        "First constructor call must be sooner than second:\n" + msgs, firstCons < secondCons);
+
+    if (useAutoscoping || lazy) {
+      assertTrue("Switch call first and then both constructors:\n" + msgs, switchCall < firstCons);
+    } else {
+      assertTrue("First constructor sooner than switch call:\n" + msgs, firstCons < switchCall);
+      assertTrue("Switch call sooner than second constructor:\n" + msgs, switchCall < secondCons);
+    }
   }
 }

@@ -28,10 +28,10 @@ import org.enso.interpreter.node.callable.InvokeCallableNode.DefaultsExecutionMo
 import org.enso.interpreter.node.callable.thunk.ThunkExecutorNode;
 import org.enso.interpreter.node.expression.builtin.meta.AtomWithAHoleNode;
 import org.enso.interpreter.node.expression.builtin.meta.IsValueOfTypeNode;
-import org.enso.interpreter.node.expression.builtin.meta.TypeOfNode;
 import org.enso.interpreter.node.expression.literal.LiteralNode;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.callable.Annotation;
+import org.enso.interpreter.runtime.callable.UnresolvedConstructor;
 import org.enso.interpreter.runtime.callable.UnresolvedConversion;
 import org.enso.interpreter.runtime.callable.argument.ArgumentDefinition;
 import org.enso.interpreter.runtime.callable.argument.ArgumentDefinition.ExecutionMode;
@@ -41,9 +41,11 @@ import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.callable.function.FunctionSchema;
 import org.enso.interpreter.runtime.data.EnsoMultiValue;
 import org.enso.interpreter.runtime.data.Type;
+import org.enso.interpreter.runtime.data.text.Text;
 import org.enso.interpreter.runtime.error.DataflowError;
 import org.enso.interpreter.runtime.error.PanicException;
 import org.enso.interpreter.runtime.error.PanicSentinel;
+import org.enso.interpreter.runtime.library.dispatch.TypeOfNode;
 import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
 import org.graalvm.collections.Pair;
 
@@ -88,7 +90,15 @@ public abstract class ReadArgumentCheckNode extends Node {
       expectedTypeMessage = expectedTypeMessage();
     }
     var ctx = EnsoContext.get(this);
-    var msg = comment == null ? "expression" : comment;
+    Text msg;
+    if (v instanceof UnresolvedConstructor) {
+      msg = Text.create("Cannot find constructor {got} among {exp}");
+    } else {
+      var where = Text.create(comment == null ? "expression" : comment);
+      var exp = Text.create("expected ");
+      var got = Text.create(" to be {exp}, but got {got}");
+      msg = Text.create(exp, Text.create(where, got));
+    }
     var err = ctx.getBuiltins().error().makeTypeErrorOfComment(expectedTypeMessage, v, msg);
     throw new PanicException(err, this);
   }
@@ -252,6 +262,15 @@ public abstract class ReadArgumentCheckNode extends Node {
     @Specialization
     Object doPanicSentinel(VirtualFrame frame, PanicSentinel panicSentinel) {
       throw panicSentinel;
+    }
+
+    @Specialization
+    Object doUnresolvedConstructor(
+        VirtualFrame frame,
+        UnresolvedConstructor unresolved,
+        @Cached UnresolvedConstructor.ConstructNode construct) {
+      var state = Function.ArgumentsHelper.getState(frame.getArguments());
+      return construct.execute(frame, state, expectedType, unresolved);
     }
 
     @Specialization(rewriteOn = InvalidAssumptionException.class)

@@ -6,7 +6,7 @@ import {
   parsedTreeOrTokenRange,
   readAstOrTokenSpan,
   readTokenSpan,
-} from '@/util/ast'
+} from '@/util/ast/raw'
 import { MappedKeyMap, MappedSet, NonEmptyStack } from '@/util/containers'
 import type { LazyObject } from 'shared/ast/parserSupport'
 import { rangeIsBefore, sourceRangeKey, type SourceRange } from 'shared/yjsModel'
@@ -302,10 +302,9 @@ export class AliasAnalyzer {
           const expression = caseLine.case?.expression
           if (pattern) {
             const armStart = parsedTreeOrTokenRange(pattern)[0]
-            const armEnd = expression
-              ? parsedTreeOrTokenRange(expression)[1]
-              : arrow
-              ? parsedTreeOrTokenRange(arrow)[1]
+            const armEnd =
+              expression ? parsedTreeOrTokenRange(expression)[1]
+              : arrow ? parsedTreeOrTokenRange(arrow)[1]
               : parsedTreeOrTokenRange(pattern)[1]
 
             const armRange: SourceRange = [armStart, armEnd]

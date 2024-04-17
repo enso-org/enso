@@ -4,27 +4,26 @@ import type { SuggestionEntry } from '@/stores/suggestionDatabase/entry'
 import { assert } from '@/util/assert'
 import { Ast, RawAst } from '@/util/ast'
 import type { AstId, NodeMetadata } from '@/util/ast/abstract'
-import { subtrees } from '@/util/ast/abstract'
+import { MutableModule, autospaced, subtrees } from '@/util/ast/abstract'
 import { AliasAnalyzer } from '@/util/ast/aliasAnalysis'
-import { nodeFromAst, primaryApplicationSubject } from '@/util/ast/node'
+import { nodeFromAst } from '@/util/ast/node'
 import { colorFromString } from '@/util/colors'
 import { MappedKeyMap, MappedSet } from '@/util/containers'
 import { arrayEquals, tryGetIndex } from '@/util/data/array'
-import type { Opt } from '@/util/data/opt'
 import { Vec2 } from '@/util/data/vec2'
 import { ReactiveDb, ReactiveIndex, ReactiveMapping } from '@/util/database/reactiveDb'
-import * as random from 'lib0/random'
+import { syncSet } from '@/util/reactivity'
 import * as set from 'lib0/set'
 import { methodPointerEquals, type MethodCall, type StackItem } from 'shared/languageServerTypes'
-import {
-  isUuid,
-  sourceRangeKey,
-  visMetadataEquals,
-  type ExternalId,
-  type SourceRange,
-  type VisualizationMetadata,
-} from 'shared/yjsModel'
+import type { Opt } from 'shared/util/data/opt'
+import type { ExternalId, SourceRange, VisualizationMetadata } from 'shared/yjsModel'
+import { isUuid, sourceRangeKey, visMetadataEquals } from 'shared/yjsModel'
 import { reactive, ref, type Ref } from 'vue'
+
+export interface MethodCallInfo {
+  methodCall: MethodCall
+  suggestion: SuggestionEntry
+}
 
 export interface BindingInfo {
   identifier: string
@@ -127,6 +126,7 @@ export class BindingsDb {
 
 export class GraphDb {
   nodeIdToNode = new ReactiveDb<NodeId, Node>()
+  private highestZIndex = 0
   private readonly idToExternalMap = reactive(new Map<Ast.AstId, ExternalId>())
   private readonly idFromExternalMap = reactive(new Map<ExternalId, Ast.AstId>())
   private bindings = new BindingsDb()
@@ -146,7 +146,7 @@ export class GraphDb {
 
   private nodeIdToExprIds = new ReactiveIndex(this.nodeIdToNode, (id, entry) => {
     const exprs: AstId[] = []
-    entry.rootSpan.visitRecursiveAst((ast) => void exprs.push(ast.id))
+    entry.innerExpr.visitRecursiveAst((ast) => void exprs.push(ast.id))
     return Array.from(exprs, (expr) => [id, expr])
   })
 
@@ -164,6 +164,15 @@ export class GraphDb {
   allConnections = new ReactiveIndex(this.bindings.bindings, (alias, info) => {
     const srcNode = this.getPatternExpressionNodeId(alias)
     return Array.from(this.connectionsFromBindings(info, alias, srcNode))
+  })
+
+  nodeDependents = new ReactiveIndex(this.nodeIdToNode, (id) => {
+    const result = new Set<NodeId>()
+    for (const port of this.getNodeUsages(id)) {
+      const portNode = this.getExpressionNodeId(port)
+      if (portNode != null) result.add(portNode)
+    }
+    return Array.from(result, (target) => [id, target])
   })
 
   private *connectionsFromBindings(
@@ -193,8 +202,8 @@ export class GraphDb {
     return Array.from(ports, (port) => [id, port])
   })
 
-  nodeMainSuggestion = new ReactiveMapping(this.nodeIdToNode, (id, _entry) => {
-    const expressionInfo = this.getExpressionInfo(id)
+  nodeMainSuggestion = new ReactiveMapping(this.nodeIdToNode, (id, entry) => {
+    const expressionInfo = this.getExpressionInfo(entry.innerExpr.id)
     const method = expressionInfo?.methodCall?.methodPointer
     if (method == null) return
     const suggestionId = this.suggestionDb.findByMethodPointer(method)
@@ -202,7 +211,8 @@ export class GraphDb {
     return this.suggestionDb.get(suggestionId)
   })
 
-  nodeColor = new ReactiveMapping(this.nodeIdToNode, (id, _entry) => {
+  nodeColor = new ReactiveMapping(this.nodeIdToNode, (id, entry) => {
+    if (entry.colorOverride != null) return entry.colorOverride
     const index = this.nodeMainSuggestion.lookup(id)?.groupIndex
     const group = tryGetIndex(this.groups.value, index)
     if (group == null) {
@@ -214,6 +224,13 @@ export class GraphDb {
 
   getNodeFirstOutputPort(id: NodeId): AstId {
     return set.first(this.nodeOutputPorts.lookup(id)) ?? id
+  }
+
+  *getNodeUsages(id: NodeId): IterableIterator<AstId> {
+    const outputPorts = this.nodeOutputPorts.lookup(id)
+    for (const outputPort of outputPorts) {
+      yield* this.connections.lookup(outputPort)
+    }
   }
 
   getExpressionNodeId(exprId: AstId | undefined): NodeId | undefined {
@@ -258,37 +275,7 @@ export class GraphDb {
     )
   }
 
-  /**
-   * Get a list of all nodes that depend on given node. Includes transitive dependencies.
-   */
-  dependantNodes(id: NodeId): Set<NodeId> {
-    const toVisit = [id]
-    const result = new Set<NodeId>()
-
-    let currentNode: NodeId | undefined
-    while ((currentNode = toVisit.pop())) {
-      const outputPorts = this.nodeOutputPorts.lookup(currentNode)
-      for (const outputPort of outputPorts) {
-        const connectedPorts = this.connections.lookup(outputPort)
-        for (const port of connectedPorts) {
-          const portNode = this.getExpressionNodeId(port)
-          if (portNode == null) continue
-          if (!result.has(portNode)) {
-            result.add(portNode)
-            toVisit.push(portNode)
-          }
-        }
-      }
-    }
-
-    return result
-  }
-
-  getMethodCallInfo(
-    id: AstId,
-  ):
-    | { methodCall: MethodCall; suggestion: SuggestionEntry; partiallyApplied: boolean }
-    | undefined {
+  getMethodCallInfo(id: AstId): MethodCallInfo | undefined {
     const info = this.getExpressionInfo(id)
     if (info == null) return
     const payloadFuncSchema =
@@ -299,8 +286,7 @@ export class GraphDb {
     if (suggestionId == null) return
     const suggestion = this.suggestionDb.get(suggestionId)
     if (suggestion == null) return
-    const partiallyApplied = mathodCallEquals(methodCall, payloadFuncSchema)
-    return { methodCall, suggestion, partiallyApplied }
+    return { methodCall, suggestion }
   }
 
   getNodeColorStyle(id: NodeId): string {
@@ -308,7 +294,10 @@ export class GraphDb {
   }
 
   moveNodeToTop(id: NodeId) {
-    this.nodeIdToNode.moveToLast(id)
+    const node = this.nodeIdToNode.get(id)
+    if (!node) return
+    node.zIndex = this.highestZIndex + 1
+    this.highestZIndex++
   }
 
   /** Get the method name from the stack item. */
@@ -346,29 +335,55 @@ export class GraphDb {
     for (const nodeAst of functionAst_.bodyExpressions()) {
       const newNode = nodeFromAst(nodeAst)
       if (!newNode) continue
-      const nodeId = asNodeId(newNode.rootSpan.id)
+      const nodeId = asNodeId(newNode.rootExpr.id)
       const node = this.nodeIdToNode.get(nodeId)
-      const nodeMeta = (node ?? newNode).rootSpan.nodeMetadata
       currentNodeIds.add(nodeId)
       if (node == null) {
-        // We are notified of new or changed metadata by `updateMetadata`, so we only need to read existing metadata
-        // when we switch to a different function.
-        if (functionChanged) {
-          const pos = nodeMeta.get('position') ?? { x: 0, y: 0 }
-          newNode.position = new Vec2(pos.x, pos.y)
-          newNode.vis = nodeMeta.get('visualization')
+        const nodeMeta = newNode.rootExpr.nodeMetadata
+        const pos = nodeMeta.get('position') ?? { x: 0, y: 0 }
+        const metadataFields = {
+          position: new Vec2(pos.x, pos.y),
+          vis: nodeMeta.get('visualization'),
+          colorOverride: nodeMeta.get('colorOverride'),
         }
-        this.nodeIdToNode.set(nodeId, newNode)
+        this.nodeIdToNode.set(nodeId, { ...newNode, ...metadataFields, zIndex: this.highestZIndex })
       } else {
+        const {
+          outerExpr,
+          pattern,
+          rootExpr,
+          innerExpr,
+          primarySubject,
+          prefixes,
+          documentation,
+          conditionalPorts,
+        } = newNode
         const differentOrDirty = (a: Ast.Ast | undefined, b: Ast.Ast | undefined) =>
           a?.id !== b?.id || (a && subtreeDirty(a.id))
-        if (differentOrDirty(node.pattern, newNode.pattern)) node.pattern = newNode.pattern
-        if (node.outerExprId !== newNode.outerExprId) node.outerExprId = newNode.outerExprId
-        if (differentOrDirty(node.rootSpan, newNode.rootSpan)) {
-          node.rootSpan = newNode.rootSpan
-          const primarySubject = primaryApplicationSubject(newNode.rootSpan)
-          if (node.primarySubject !== primarySubject) node.primarySubject = primarySubject
-        }
+        if (differentOrDirty(node.outerExpr, outerExpr)) node.outerExpr = outerExpr
+        if (differentOrDirty(node.pattern, pattern)) node.pattern = pattern
+        if (differentOrDirty(node.rootExpr, rootExpr)) node.rootExpr = rootExpr
+        if (differentOrDirty(node.innerExpr, innerExpr)) node.innerExpr = innerExpr
+        if (node.primarySubject !== primarySubject) node.primarySubject = primarySubject
+        if (node.documentation !== documentation) node.documentation = documentation
+        if (
+          Object.entries(node.prefixes).some(
+            ([k, v]) => prefixes[k as keyof typeof node.prefixes] !== v,
+          )
+        )
+          node.prefixes = prefixes
+        syncSet(node.conditionalPorts, conditionalPorts)
+        // Ensure new fields can't be added to `NodeAstData` without this code being updated.
+        const _allFieldsHandled = {
+          outerExpr,
+          pattern,
+          rootExpr,
+          innerExpr,
+          primarySubject,
+          prefixes,
+          documentation,
+          conditionalPorts,
+        } satisfies NodeDataFromAst
       }
     }
     for (const nodeId of this.nodeIdToNode.keys()) {
@@ -387,7 +402,7 @@ export class GraphDb {
       idToExternalNew.set(ast.id, ast.externalId)
       idFromExternalNew.set(ast.externalId, ast.id)
     })
-    const updateMap = (map: Map<any, any>, newMap: Map<any, any>) => {
+    const updateMap = <K, V>(map: Map<K, V>, newMap: Map<K, V>) => {
       for (const key of map.keys()) if (!newMap.has(key)) map.delete(key)
       for (const [key, value] of newMap) map.set(key, value)
     }
@@ -404,6 +419,9 @@ export class GraphDb {
     if (changes.has('visualization')) {
       const newVis = changes.get('visualization')
       if (!visMetadataEquals(newVis, node.vis)) node.vis = newVis
+    }
+    if (changes.has('colorOverride')) {
+      node.colorOverride = changes.get('colorOverride')
     }
   }
 
@@ -434,12 +452,23 @@ export class GraphDb {
   }
 
   mockNode(binding: string, id: Ast.AstId, code?: string): Node {
-    const pattern = Ast.parse(binding)
+    const edit = MutableModule.Transient()
+    const pattern = Ast.parse(binding, edit)
+    const expression = Ast.parse(code ?? '0', edit)
+    const outerExpr = Ast.Assignment.concrete(
+      edit,
+      autospaced(pattern),
+      { node: Ast.Token.new('='), whitespace: ' ' },
+      { node: expression, whitespace: ' ' },
+    )
+
     const node: Node = {
       ...baseMockNode,
-      outerExprId: id,
+      outerExpr,
       pattern,
-      rootSpan: Ast.parse(code ?? '0'),
+      rootExpr: Ast.parse(code ?? '0'),
+      innerExpr: Ast.parse(code ?? '0'),
+      zIndex: this.highestZIndex,
     }
     const bindingId = pattern.id
     this.nodeIdToNode.set(asNodeId(id), node)
@@ -454,34 +483,48 @@ export function asNodeId(id: Ast.AstId): NodeId {
   return id as NodeId
 }
 
-export interface Node {
-  outerExprId: Ast.AstId
+export interface NodeDataFromAst {
+  /** The outer expression, usually an assignment expression (`a = b`). */
+  outerExpr: Ast.Ast
+  /** The left side of the assignment experssion, if `outerExpr` is an assignment expression. */
   pattern: Ast.Ast | undefined
-  rootSpan: Ast.Ast
-  position: Vec2
-  vis: Opt<VisualizationMetadata>
+  /** The value of the node. The right side of the assignment, if `outerExpr` is an assignment
+   * expression, else the entire `outerExpr`. */
+  rootExpr: Ast.Ast
+  /** The expression displayed by the node. This is `rootExpr`, minus the prefixes, which are in
+   * `prefixes`. */
+  innerExpr: Ast.Ast
+  /** Prefixes that are present in `rootExpr` but omitted in `innerExpr` to ensure a clean output.
+   */
+  prefixes: Record<'enableRecording', Ast.AstId[] | undefined>
   /** A child AST in a syntactic position to be a self-argument input to the node. */
   primarySubject: Ast.AstId | undefined
+  documentation: string | undefined
+  /** Ports that are not targetable by default; they can be targeted while holding the modifier key. */
+  conditionalPorts: Set<Ast.AstId>
+}
+
+export interface NodeDataFromMetadata {
+  position: Vec2
+  vis: Opt<VisualizationMetadata>
+  colorOverride: Opt<string>
+}
+
+export interface Node extends NodeDataFromAst, NodeDataFromMetadata {
+  zIndex: number
 }
 
 const baseMockNode = {
   position: Vec2.Zero,
   vis: undefined,
+  prefixes: { enableRecording: undefined },
   primarySubject: undefined,
-}
+  documentation: undefined,
+  colorOverride: undefined,
+  conditionalPorts: new Set(),
+} satisfies Partial<Node>
 
-/** This should only be used for supplying as initial props when testing.
- * Please do {@link GraphDb.mockNode} with a `useGraphStore().db` after mount. */
-export function mockNode(exprId?: Ast.AstId): Node {
-  return {
-    ...baseMockNode,
-    outerExprId: exprId ?? (random.uuidv4() as Ast.AstId),
-    pattern: undefined,
-    rootSpan: Ast.parse('0'),
-  }
-}
-
-function mathodCallEquals(a: MethodCall | undefined, b: MethodCall | undefined): boolean {
+export function mathodCallEquals(a: MethodCall | undefined, b: MethodCall | undefined): boolean {
   return (
     a === b ||
     (a != null &&

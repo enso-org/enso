@@ -58,6 +58,7 @@ type Map key value
 
     ## ALIAS dictionary, lookup table
        GROUP Constants
+       ICON convert
        Builds a map from two Vectors. The first vector contains the keys, and
        the second vector contains the values. The two vectors must be of the
        same length.
@@ -79,6 +80,7 @@ type Map key value
 
     ## ALIAS dictionary, lookup table
        GROUP Constants
+       ICON convert
        Builds a map from a vector of key-value pairs, with each key-value pair
        represented as a 2 element vector.
 
@@ -117,11 +119,13 @@ type Map key value
     not_empty self = self.is_empty.not
 
     ## GROUP Metadata
+       ICON metadata
        Returns the number of entries in this map.
     size : Integer
     size self = @Builtin_Method "Map.size"
 
     ## GROUP Calculations
+       ICON row_add
        Inserts a key-value mapping into this map, overriding any existing
        instance of `key` with the new `value`.
 
@@ -148,6 +152,7 @@ type Map key value
     insert self key value = @Builtin_Method "Map.insert"
 
     ## GROUP Selections
+       ICON table_clean
        Removes an entry specified by the given key from this map, and
        returns a new map without this entry. Throw `No_Such_Key.Error`
        if `key` is not present.
@@ -168,6 +173,7 @@ type Map key value
             Error.throw (No_Such_Key.Error self key)
 
     ## GROUP Selections
+       ICON select_row
        Gets the value associated with `key` in this map, or throws a
        `No_Such_Key.Error` if `key` is not present.
 
@@ -212,17 +218,20 @@ type Map key value
     contains_key : Any -> Boolean
     contains_key self key = @Builtin_Method "Map.contains_key"
 
-    ## GROUP Metadata
+    ## GROUP Selections
+       ICON select_column
        Returns an unsorted vector of all the keys in this Map.
     keys : Vector Any
     keys self = self.to_vector.map pair-> pair.at 0
 
-    ## GROUP Metadata
+    ## GROUP Selections
+       ICON select_column
        Returns an unsorted vector of all the values in this Map.
     values : Vector Any
     values self = self.to_vector.map pair-> pair.at 1
 
-    ## Maps a function over each value in this map.
+    ## ICON dataframe_map_column
+       Maps a function over each value in this map.
 
        Arguments:
        - function: The function to apply to each value in the map, taking a
@@ -240,7 +249,8 @@ type Map key value
         kv_func = _ -> function
         self.map_with_key kv_func
 
-    ## Maps a function over each key-value pair in the map, transforming the
+    ## ICON dataframe_map_column
+       Maps a function over each key-value pair in the map, transforming the
        value.
 
        Arguments:
@@ -262,7 +272,8 @@ type Map key value
             value = pair.last
             [key, (function key value)]
 
-    ## Maps a function over each key in this map.
+    ## ICON dataframe_map_column
+       Maps a function over each key in this map.
 
        Arguments:
        - function: The function to apply to each key in the map, taking a key
@@ -280,7 +291,8 @@ type Map key value
         trans_function = k -> v -> [function k, v]
         self.transform trans_function
 
-    ## Transforms the map's keys and values to create a new map.
+    ## ICON dataframe_map_column
+       Transforms the map's keys and values to create a new map.
 
        Arguments:
        - function: The function used to transform the map, taking a key and a
@@ -395,6 +407,7 @@ type Map key value
             function pair.first pair.last
 
     ## GROUP Conversions
+       ICON convert
        Returns an unsorted vector of key-value pairs (nested 2 element vectors).
        `Map.from_vector` method is an inverse method, so the following expression
        is true for all maps: `Map.from_vector map.to_vector == map`.

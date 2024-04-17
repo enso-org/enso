@@ -6,22 +6,21 @@ import Standard.Base.Errors.Illegal_State.Illegal_State
 import Standard.Base.Runtime.Context
 from Standard.Base.Runtime import assert
 
-import Standard.Table.Data.Table.Table
 import Standard.Table.Internal.Problem_Builder.Problem_Builder
-from Standard.Table import Aggregate_Column, Join_Kind, Value_Type
+from Standard.Table import Aggregate_Column, Join_Kind, Table, Value_Type
 from Standard.Table.Errors import all
 
+import project.Column_Constraint.Column_Constraint
+import project.Column_Description.Column_Description
 import project.Connection.Connection.Connection
-import project.Data.Column_Constraint.Column_Constraint
-import project.Data.Column_Description.Column_Description
-import project.Data.SQL_Query.SQL_Query
-import project.Data.SQL_Statement.SQL_Statement
-import project.Data.DB_Table.DB_Table
-import project.Data.Update_Action.Update_Action
+import project.DB_Table.DB_Table
 import project.Internal.In_Transaction.In_Transaction
 import project.Internal.IR.Create_Column_Descriptor.Create_Column_Descriptor
 import project.Internal.IR.Query.Query
 import project.Internal.IR.SQL_Expression.SQL_Expression
+import project.SQL_Query.SQL_Query
+import project.SQL_Statement.SQL_Statement
+import project.Update_Action.Update_Action
 from project.Errors import all
 from project.Internal.Result_Set import result_set_to_table
 
@@ -52,7 +51,7 @@ create_table_implementation connection table_name structure primary_key temporar
                     internal_create_table_structure connection effective_table_name structure primary_key effective_temporary on_problems
                 if dry_run.not then connection.query (SQL_Query.Table_Name created_table_name) else
                     created_table = connection.base_connection.internal_allocate_dry_run_table created_table_name
-                    warning = Dry_Run_Operation.Warning "Only a dry run of `create_table` has occurred, creating a temporary table ("+created_table_name.pretty+") instead of the actual one."
+                    warning = Dry_Run_Operation.Warning "Only a dry run of `create_table` has occurred, creating a temporary table ("+created_table_name.pretty+").  Press the Record Once button ❙⬤❙ to create the actual one."
                     Warning.attach warning created_table
 
 ## PRIVATE
@@ -119,7 +118,7 @@ select_into_table_implementation source_table connection table_name primary_key 
                                 connection.drop_table tmp_table_name if_exists=True
                                 internal_upload_table source_table connection tmp_table_name primary_key temporary=True on_problems=on_problems row_limit=dry_run_row_limit
                             temporary_table = connection.base_connection.internal_allocate_dry_run_table table.name
-                            warning = Dry_Run_Operation.Warning "Only a dry run of `select_into_database_table` was performed - a temporary table ("+tmp_table_name+") was created, containing a sample of the data."
+                            warning = Dry_Run_Operation.Warning "Only a dry run of `select_into_database_table` was performed - a temporary table ("+tmp_table_name+") was created, containing a sample of the data.  Press the Record Once button ❙⬤❙ to write to the actual table."
                             Warning.attach warning temporary_table
 
 ## PRIVATE
@@ -345,7 +344,7 @@ common_update_table (source_table : DB_Table | Table) (target_table : DB_Table) 
                                above fails, the whole transaction will be rolled back.
                             connection.drop_table tmp_table.name
                             if dry_run.not then resulting_table else
-                                warning = Dry_Run_Operation.Warning "Only a dry run of `update_rows` was performed - the target table has been returned unchanged."
+                                warning = Dry_Run_Operation.Warning "Only a dry run of `update_rows` was performed - the target table has been returned unchanged.  Press the Record Once button ❙⬤❙ to update the actual table."
                                 Warning.attach warning resulting_table
 
 ## PRIVATE
@@ -550,7 +549,7 @@ common_delete_rows target_table key_values_to_delete key_columns allow_duplicate
                         source.drop_temporary_table connection
                         if dry_run.not then affected_row_count else
                             suffix = source.dry_run_message_suffix
-                            warning = Dry_Run_Operation.Warning "Only a dry run of `delete_rows` was performed - the target table has not been changed."+suffix
+                            warning = Dry_Run_Operation.Warning "Only a dry run of `delete_rows` was performed - the target table has not been changed. Press the Record Once button ❙⬤❙ to update the actual table."+suffix
                             Warning.attach warning affected_row_count
 
 ## PRIVATE

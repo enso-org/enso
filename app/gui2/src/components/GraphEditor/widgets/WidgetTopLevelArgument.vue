@@ -7,13 +7,17 @@ const props = defineProps(widgetProps(widgetDefinition))
 </script>
 
 <script lang="ts">
-export const widgetDefinition = defineWidget(ArgumentInfoKey, {
-  priority: -1,
-  score: (props) =>
-    props.nesting < 2 && props.input[ArgumentInfoKey].appKind === ApplicationKind.Prefix
-      ? Score.Perfect
+export const widgetDefinition = defineWidget(
+  ArgumentInfoKey,
+  {
+    priority: -1,
+    score: (props) =>
+      props.nesting < 2 && props.input[ArgumentInfoKey].appKind === ApplicationKind.Prefix ?
+        Score.Perfect
       : Score.Mismatch,
-})
+  },
+  import.meta.hot,
+)
 </script>
 
 <template>
@@ -27,7 +31,6 @@ export const widgetDefinition = defineWidget(ArgumentInfoKey, {
   display: inline-flex;
   flex-direction: row;
   place-items: center;
-  position: relative;
   height: var(--node-height);
 
   &:before {

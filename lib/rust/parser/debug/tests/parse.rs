@@ -172,7 +172,7 @@ fn plain_comments() {
 #[test]
 fn doc_comments() {
     #[rustfmt::skip]
-    let lines = vec![
+    let lines = [
         "## The Identity Function",
         "",
         "   Arguments:",
@@ -189,7 +189,7 @@ fn doc_comments() {
          #(()))
          (Function (Ident id) #((() (Ident x) () ())) () "=" (Ident x)))]);
     #[rustfmt::skip]
-    let lines = vec![
+    let lines = [
         "type Foo",
         " ## Test indent handling",
         "  ",
@@ -865,6 +865,25 @@ fn method_app_in_minus_unary() {
         (UnaryOprApp "-" (OprApp (Ident Number) (Ok ".") (Ident positive_infinity))));
 }
 
+#[test]
+fn autoscope_operator() {
+    test!("x : ..True", (TypeSignature (Ident x) ":" (AutoscopedIdentifier ".." True)));
+    test!("x = ..True", (Assignment (Ident x) "=" (AutoscopedIdentifier ".." True)));
+    test!("x = f ..True",
+        (Assignment (Ident x) "=" (App (Ident f) (AutoscopedIdentifier ".." True))));
+    expect_invalid_node("x = ..not_a_constructor");
+    expect_invalid_node("x = case a of ..True -> True");
+    expect_invalid_node("x = ..4");
+    expect_invalid_node("x = ..Foo.Bar");
+    expect_invalid_node("x = f .. True");
+    expect_invalid_node("x = f(.. ..)");
+    expect_invalid_node("x = f(.. *)");
+    expect_invalid_node("x = f(.. True)");
+    expect_multiple_operator_error("x = ..");
+    expect_multiple_operator_error("x = .. True");
+    expect_multiple_operator_error("x : .. True");
+}
+
 
 // === Import/Export ===
 
@@ -1005,7 +1024,10 @@ fn type_annotations() {
              (App (Ident foo)
               (Group (TypeAnnotated (Ident x) ":" (Ident Int)))))]),
         ("(x : My_Type _)", block![
-            (Group (TypeAnnotated (Ident x) ":" (App (Ident My_Type) (Wildcard -1))))]),
+            (Group
+             (TypeAnnotated (Ident x)
+                            ":"
+                            (App (Ident My_Type) (TemplateFunction 1 (Wildcard 0)))))]),
         ("x : List Int -> Int", block![
             (TypeSignature (Ident x) ":"
              (OprApp (App (Ident List) (Ident Int)) (Ok "->") (Ident Int)))]),
@@ -1219,8 +1241,13 @@ fn case_expression() {
         (CaseOf (Ident foo) #(
          ((() (TypeAnnotated (Ident v) ":" (Ident My_Type)) "->" (Ident x)))
          ((() (TypeAnnotated (Ident v) ":"
-            (Group (App (App (Ident My_Type) (Wildcard -1)) (Wildcard -1))))
-           "->" (Ident x)))))];
+          (Group (App
+                  (App
+                   (Ident My_Type)
+                   (TemplateFunction 1 (Wildcard 0)))
+                  (TemplateFunction 1 (Wildcard 0)))))
+          "->" (Ident x)))))
+    ];
     test(&code.join("\n"), expected);
 }
 
@@ -1269,7 +1296,7 @@ fn case_by_type() {
 }
 
 #[test]
-fn pattern_match_auto_scope() {
+fn pattern_match_suspended_default_arguments() {
     #[rustfmt::skip]
     let code = [
         "case self of",
@@ -1277,7 +1304,7 @@ fn pattern_match_auto_scope() {
     ];
     #[rustfmt::skip]
     let expected = block![
-        (CaseOf (Ident self) #(((() (App (Ident Vector_2d) (AutoScope)) "->" (Ident x)))))];
+        (CaseOf (Ident self) #(((() (App (Ident Vector_2d) (SuspendedDefaultArguments)) "->" (Ident x)))))];
     test(&code.join("\n"), expected);
 }
 
@@ -1294,7 +1321,7 @@ fn private_keyword() {
 fn private_is_first_statement() {
     // Comments and empty lines are allowed before `private`.
     #[rustfmt::skip]
-    let lines = vec![
+    let lines = [
         "# Some comment",
         "# Other comment",
         "",
@@ -1303,7 +1330,7 @@ fn private_is_first_statement() {
     test(&lines.join("\n"), block![()()()(Private)]);
 
     #[rustfmt::skip]
-    let lines = vec![
+    let lines = [
         "type T",
         "",
         "private"
@@ -1675,7 +1702,7 @@ impl Errors {
         let ast = parse(code);
         expect_tree_representing_code(code, &ast);
         let errors = core::cell::Cell::new(Errors::default());
-        ast.map(|tree| match &*tree.variant {
+        ast.visit_trees(|tree| match &*tree.variant {
             enso_parser::syntax::tree::Variant::Invalid(_) => {
                 errors.update(|e| Self { invalid_node: true, ..e });
             }

@@ -4,14 +4,14 @@ import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.System.File.Generic.Writable_File.Writable_File
 import Standard.Base.System.Output_Stream.Output_Stream
 
-import project.Data.Data_Formatter.Data_Formatter
-import project.Data.Match_Columns.Match_Columns
-import project.Data.Table.Table
+import project.Data_Formatter.Data_Formatter
 import project.Delimited.Delimited_Format.Delimited_Format
 import project.Delimited.Quote_Style.Quote_Style
 import project.Internal.Delimited_Reader
 import project.Internal.Delimited_Reader.Detected_Headers
 import project.Internal.Java_Problems
+import project.Match_Columns.Match_Columns
+import project.Table.Table
 from project.Errors import Column_Count_Mismatch, Column_Name_Mismatch
 
 polyglot java import java.io.IOException
@@ -50,7 +50,7 @@ write_file table format (file : Writable_File) on_existing_file match_columns on
    against the ones already in the file.
 
    If the file does not exist or is empty, it acts like a regular overwrite.
-append_to_file : Table -> Delimited_Format -> File -> Match_Columns -> Problem_Behavior -> Any
+append_to_file : Table -> Delimited_Format -> Writable_File -> Match_Columns -> Problem_Behavior -> Any
 append_to_file table format (file : Writable_File) match_columns on_problems =
     if file.is_local then append_to_local_file table format file.file match_columns on_problems else
         ## TODO in the future, if we have remote backends that _do support_ proper append, we could avoid downloading

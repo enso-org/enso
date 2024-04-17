@@ -1,11 +1,10 @@
 package org.enso.projectmanager.infrastructure.file
-import java.io.{File, FileNotFoundException}
+import java.io.{File, FileNotFoundException, InputStream}
 import java.nio.file.{
   AccessDeniedException,
   NoSuchFileException,
   NotDirectoryException
 }
-
 import org.apache.commons.io.{FileExistsException, FileUtils}
 import org.enso.projectmanager.control.effect.syntax._
 import org.enso.projectmanager.control.effect.{ErrorChannel, Sync}
@@ -34,6 +33,18 @@ class BlockingFileSystem[F[+_, +_]: Sync: ErrorChannel](
       .mapError(toFsFailure)
       .timeoutFail(OperationTimeout)(ioTimeout)
 
+  /** Writes binary content to a file.
+    *
+    * @param file path to the file
+    * @param contents a textual contents of the file
+    * @return either [[FileSystemFailure]] or Unit
+    */
+  def writeFile(file: File, contents: InputStream): F[FileSystemFailure, Unit] =
+    Sync[F]
+      .blockingOp { FileUtils.copyInputStreamToFile(contents, file) }
+      .mapError(toFsFailure)
+      .timeoutFail(OperationTimeout)(ioTimeout)
+
   /** Writes textual content to a file.
     *
     * @param file path to the file
@@ -49,14 +60,17 @@ class BlockingFileSystem[F[+_, +_]: Sync: ErrorChannel](
       .mapError(toFsFailure)
       .timeoutFail(OperationTimeout)(ioTimeout)
 
-  /** Deletes the specified directory recursively.
-    *
-    * @param path a path to the directory
-    * @return either [[FileSystemFailure]] or Unit
-    */
-  override def removeDir(path: File): F[FileSystemFailure, Unit] =
+  /** @inheritdoc */
+  override def createDir(path: File): F[FileSystemFailure, Unit] =
     Sync[F]
-      .blockingOp { FileUtils.deleteDirectory(path) }
+      .blockingOp { FileUtils.forceMkdir(path) }
+      .mapError(toFsFailure)
+      .timeoutFail(OperationTimeout)(ioTimeout)
+
+  /** @inheritdoc */
+  override def remove(path: File): F[FileSystemFailure, Unit] =
+    Sync[F]
+      .blockingOp { FileUtils.forceDelete(path) }
       .mapError(toFsFailure)
       .timeoutFail(OperationTimeout)(ioTimeout)
 

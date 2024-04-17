@@ -18,7 +18,8 @@ export { EditorView, tooltips, type TooltipView } from '@codemirror/view'
 export { type Highlighter } from '@lezer/highlight'
 export { minimalSetup } from 'codemirror'
 export { yCollab } from 'y-codemirror.next'
-import { RawAst, RawAstExtended } from '@/util/ast'
+import { RawAstExtended } from '@/util/ast/extended'
+import { RawAst } from '@/util/ast/raw'
 import {
   Language,
   LanguageSupport,
@@ -28,6 +29,7 @@ import {
   syntaxTree,
 } from '@codemirror/language'
 import { type Diagnostic } from '@codemirror/lint'
+import type { ChangeSpec } from '@codemirror/state'
 import { hoverTooltip as originalHoverTooltip, type TooltipView } from '@codemirror/view'
 import {
   NodeProp,
@@ -43,6 +45,7 @@ import { styleTags, tags } from '@lezer/highlight'
 import { EditorView } from 'codemirror'
 import type { Diagnostic as LSDiagnostic } from 'shared/languageServerTypes'
 import { tryGetSoleValue } from 'shared/util/data/iterable'
+import type { SourceRangeEdit } from 'shared/util/data/text'
 
 export function lsDiagnosticsToCMDiagnostics(
   source: string,
@@ -67,7 +70,9 @@ export function lsDiagnosticsToCMDiagnostics(
       continue
     }
     const severity =
-      diagnostic.kind === 'Error' ? 'error' : diagnostic.kind === 'Warning' ? 'warning' : 'info'
+      diagnostic.kind === 'Error' ? 'error'
+      : diagnostic.kind === 'Warning' ? 'warning'
+      : 'info'
     results.push({ from, to, message: diagnostic.message, severity })
   }
   return results
@@ -192,4 +197,8 @@ export function hoverTooltip(
       create: typeof domOrCreate !== 'function' ? () => domOrCreate : domOrCreate,
     }
   })
+}
+
+export function textEditToChangeSpec({ range: [from, to], insert }: SourceRangeEdit): ChangeSpec {
+  return { from, to, insert }
 }

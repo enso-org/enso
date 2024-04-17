@@ -8,7 +8,7 @@ const emit = defineEmits<{ recordOnce: []; 'update:recordMode': [enabled: boolea
 
 <template>
   <div class="RecordControl" @pointerdown.stop @pointerup.stop @click.stop>
-    <div class="control left-end">
+    <div class="control left-end" @click.stop="() => emit('update:recordMode', !props.recordMode)">
       <ToggleIcon
         icon="record"
         class="button"
@@ -17,14 +17,8 @@ const emit = defineEmits<{ recordOnce: []; 'update:recordMode': [enabled: boolea
         @update:modelValue="emit('update:recordMode', $event)"
       />
     </div>
-    <div class="control right-end">
-      <SvgIcon
-        alt="Record once"
-        class="button"
-        name="record_once"
-        draggable="false"
-        @click.stop="() => emit('recordOnce')"
-      />
+    <div class="control right-end" @click.stop="() => emit('recordOnce')">
+      <SvgIcon alt="Record once" class="button" name="record_once" draggable="false" :scale="1.5" />
     </div>
   </div>
 </template>
@@ -34,21 +28,33 @@ const emit = defineEmits<{ recordOnce: []; 'update:recordMode': [enabled: boolea
   user-select: none;
   display: flex;
   place-items: center;
-  backdrop-filter: var(--blur-app-bg);
   gap: 1px;
 }
 
 .control {
   background: var(--color-frame-bg);
+  backdrop-filter: var(--blur-app-bg);
   padding: 8px 8px;
+  width: 42px;
+  cursor: pointer;
 }
 
 .left-end {
   border-radius: var(--radius-full) 0 0 var(--radius-full);
+
+  .button {
+    margin: 0 4px 0 auto;
+  }
 }
 
 .right-end {
   border-radius: 0 var(--radius-full) var(--radius-full) 0;
+
+  .button {
+    position: relative;
+    top: -4px;
+    margin: 0 auto 0 0;
+  }
 }
 
 .toggledOn {

@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import GraphNode from '@/components/GraphEditor/GraphNode.vue'
+import { useKeyboard } from '@/composables/keyboard'
 import { useNavigator } from '@/composables/navigator'
 import { provideGraphSelection } from '@/providers/graphSelection'
 import type { Node } from '@/stores/graph'
@@ -7,11 +8,9 @@ import { Ast } from '@/util/ast'
 import { Rect } from '@/util/data/rect'
 import { Vec2 } from '@/util/data/vec2'
 import { logEvent } from 'histoire/client'
+import { type SourceRange } from 'shared/yjsModel'
 import { computed, reactive, ref, watchEffect } from 'vue'
-import { IdMap, type SourceRange } from '../shared/yjsModel'
 import { createSetupComponent } from './histoire/utils'
-
-const idMap = new IdMap()
 
 const nodeBinding = ref('binding')
 const nodeContent = ref('content')
@@ -31,32 +30,41 @@ function updateContent(updates: [range: SourceRange, content: string][]) {
   nodeContent.value = content
 }
 
-const rootSpan = computed(() => Ast.parseTransitional(nodeContent.value, idMap))
-const pattern = computed(() => Ast.parseTransitional(nodeBinding.value, idMap))
+const innerExpr = computed(() => Ast.parse(nodeContent.value))
+const pattern = computed(() => Ast.parse(nodeBinding.value))
 
 const node = computed((): Node => {
   return {
-    outerExprId: '' as any,
+    outerExpr: '' as any,
+    colorOverride: null,
+    zIndex: 1,
     pattern: pattern.value,
     position: position.value,
-    rootSpan: rootSpan.value,
+    prefixes: { enableRecording: undefined },
+    rootExpr: innerExpr.value,
+    innerExpr: innerExpr.value,
+    primarySubject: undefined,
     vis: undefined,
+    documentation: undefined,
+    conditionalPorts: new Set(),
   }
 })
 
 const mockRects = reactive(new Map())
 
 watchEffect((onCleanup) => {
-  const id = node.value.rootSpan.id
+  const id = node.value.innerExpr.id
   mockRects.set(id, Rect.Zero)
   onCleanup(() => {
     mockRects.delete(id)
   })
 })
 
-const navigator = useNavigator(ref())
+const keyboard = useKeyboard()
+const navigator = useNavigator(ref(), keyboard)
+const allPortsEnabled = () => true
 const SetupStory = createSetupComponent((app) => {
-  const selection = provideGraphSelection._mock([navigator, mockRects], app)
+  const selection = provideGraphSelection._mock([navigator, mockRects, allPortsEnabled], app)
   watchEffect(() => {
     if (selected.value) {
       selection.selectAll()

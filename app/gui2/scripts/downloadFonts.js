@@ -1,5 +1,5 @@
 /** @file ⚠️⚠️⚠️ THIS SCRIPT IS PROVIDED ONLY FOR CONVENIENCE. ⚠️⚠️⚠️
- * The sources of truth are at `build/build/src/project/gui2.rs` and
+ * The sources of truth are at `build/build/src/project/gui.rs` and
  * `build/build/src/ide/web/fonts.rs`. */
 
 import * as fsSync from 'node:fs'
@@ -40,9 +40,9 @@ function get(options, callback) {
     const location = response.headers.location
     if (location) {
       get(
-        typeof options === 'string' || options instanceof URL
-          ? location
-          : { ...options, ...new URL(location) },
+        typeof options === 'string' || options instanceof URL ?
+          location
+        : { ...options, ...new URL(location) },
         callback,
       )
     } else {
@@ -53,11 +53,13 @@ function get(options, callback) {
 
 /** @param {unknown} error */
 function errorCode(error) {
-  return typeof error === 'object' &&
-    error != null &&
-    'code' in error &&
-    typeof error.code === 'string'
-    ? error.code
+  return (
+      typeof error === 'object' &&
+        error != null &&
+        'code' in error &&
+        typeof error.code === 'string'
+    ) ?
+      error.code
     : undefined
 }
 

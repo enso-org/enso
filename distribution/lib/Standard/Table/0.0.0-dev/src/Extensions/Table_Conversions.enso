@@ -6,12 +6,12 @@ import Standard.Base.Errors.Unimplemented.Unimplemented
 import Standard.Base.System.File.Generic.Writable_File.Writable_File
 from Standard.Base.Metadata import make_single_choice
 
-import project.Data.Match_Columns.Match_Columns
-import project.Data.Table.Table
 import project.Errors.Invalid_JSON_Format
 import project.Internal.Expand_Objects_Helpers
 import project.Internal.Parse_To_Table
 import project.Internal.Widget_Helpers
+import project.Match_Columns.Match_Columns
+import project.Table.Table
 
 ## GROUP Standard.Base.Conversions
    ICON convert
@@ -23,6 +23,37 @@ import project.Internal.Widget_Helpers
 Vector.to_table : Vector | Nothing -> Table ! Type_Error
 Vector.to_table self fields=Nothing =
     Table.from_objects self fields
+
+## GROUP Standard.Base.Conversions
+   ICON convert
+   Converts this `Range` into a `Table`.
+
+   Arguments:
+   - name: The name of the column to use for the range.
+Range.to_table : Text -> Table
+Range.to_table self name:Text="Range" =
+    self.to Table name
+
+## GROUP Standard.Base.Conversions
+   ICON convert
+   Converts this `Date_Range` into a `Table`.
+
+   Arguments:
+   - name: The name of the column to use for the range.
+Date_Range.to_table : Text -> Table
+Date_Range.to_table self name:Text=self.default_column_name =
+    self.to Table name
+
+## GROUP Standard.Base.Conversions
+   ICON convert
+   Converts this `JS_Object` into a `Table`.
+
+   Arguments:
+   - fields: a Vector of Text representing the names of fields to look up.
+     If `Nothing` then all fields found are added.
+JS_Object.to_table : Vector | Nothing -> Table ! Type_Error
+JS_Object.to_table self fields=Nothing =
+    self.to Table fields
 
 ## GROUP Standard.Base.Constants
    ICON data_input
@@ -50,6 +81,7 @@ Table.from_objects value (fields : Vector | Nothing = Nothing) =
     Expand_Objects_Helpers.create_table_from_objects value fields
 
 ## GROUP Standard.Base.Conversions
+   ICON convert
    Converts a Text into a Table using a regular expression pattern.
 
    Each match becomes a row in the table.

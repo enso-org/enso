@@ -1,5 +1,4 @@
 import project.Any.Any
-import project.Enso_Cloud.Enso_Secret.Enso_Secret
 import project.Data.Map.Map
 import project.Data.Pair.Pair
 import project.Data.Set.Set
@@ -8,6 +7,7 @@ import project.Data.Text.Text
 import project.Data.Time.Duration.Duration
 import project.Data.Vector.No_Wrap
 import project.Data.Vector.Vector
+import project.Enso_Cloud.Enso_Secret.Enso_Secret
 import project.Error.Error
 import project.Errors.Common.Forbidden_Operation
 import project.Errors.Illegal_Argument.Illegal_Argument
@@ -86,6 +86,7 @@ type HTTP
     Value timeout follow_redirects proxy version custom_ssl_context
 
     ## ADVANCED
+       ICON data_download
        Sends a request using the HTTP client.
        The response body will contain a raw Input_Stream which can be read once.
        Please note, this must be closed after use (either directly or via the

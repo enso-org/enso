@@ -1,9 +1,8 @@
 from Standard.Base import all
 import Standard.Base.Errors.Common.No_Such_Method
-import Standard.Base.Errors.Common.Type_Error
 from Standard.Base.Data.Filter_Condition.Filter_Condition import all
 
-import project.Data.Type.Value_Type.Value_Type
+import project.Value_Type.Value_Type
 from project.Errors import Nothing_Value_In_Filter_Condition
 
 ## PRIVATE

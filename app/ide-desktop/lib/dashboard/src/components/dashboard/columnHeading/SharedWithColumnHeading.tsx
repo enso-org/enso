@@ -3,17 +3,31 @@ import * as React from 'react'
 
 import PeopleIcon from 'enso-assets/people.svg'
 
+import * as textProvider from '#/providers/TextProvider'
+
+import * as aria from '#/components/aria'
+import type * as column from '#/components/dashboard/column'
 import * as columnUtils from '#/components/dashboard/column/columnUtils'
 import SvgMask from '#/components/SvgMask'
 
 /** A heading for the "Shared with" column. */
-export default function SharedWithColumnHeading(): JSX.Element {
+export default function SharedWithColumnHeading(props: column.AssetColumnHeadingProps) {
+  const { state } = props
+  const { hideColumn } = state
+  const { getText } = textProvider.useText()
+
   return (
-    <div className="flex items-center gap-2">
-      <SvgMask src={PeopleIcon} className="h-4 w-4" />
-      <span className="leading-144.5 h-6 py-0.5">
-        {columnUtils.COLUMN_NAME[columnUtils.Column.sharedWith]}
-      </span>
+    <div className="flex h-drive-table-heading w-full items-center gap-icon-with-text">
+      <SvgMask
+        src={PeopleIcon}
+        className="size-icon"
+        title={getText('sharedWithColumnHide')}
+        onClick={event => {
+          event.stopPropagation()
+          hideColumn(columnUtils.Column.sharedWith)
+        }}
+      />
+      <aria.Text className="text-header">{getText('sharedWithColumnName')}</aria.Text>
     </div>
   )
 }

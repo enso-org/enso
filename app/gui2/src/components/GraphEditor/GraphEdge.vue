@@ -55,9 +55,8 @@ const targetPos = computed<Vec2 | undefined>(() => {
   if (expr != null && targetNode.value != null && targetNodeRect.value != null) {
     const targetRectRelative = graph.getPortRelativeRect(expr)
     if (targetRectRelative == null) return
-    const yAdjustment = targetIsSelfArgument.value
-      ? -(selfArgumentArrowHeight + selfArgumentArrowYOffset)
-      : 0
+    const yAdjustment =
+      targetIsSelfArgument.value ? -(selfArgumentArrowHeight + selfArgumentArrowYOffset) : 0
     return targetNodeRect.value.pos.add(new Vec2(targetRectRelative.center().x, yAdjustment))
   } else if (navigator?.sceneMousePos != null) {
     return navigator.sceneMousePos
@@ -79,6 +78,15 @@ const sourceRect = computed<Rect | undefined>(() => {
     return undefined
   }
 })
+
+/** Edges which do not have `sourceRect` and `targetPos` initialized are marked by a special
+ * `broken-edge` data-testid, for debugging and e2e test purposes. */
+const edgeIsBroken = computed(
+  () =>
+    sourceRect.value == null ||
+    targetPos.value == null ||
+    (sourceRect.value.pos.equals(targetPos.value) && sourceRect.value.size.equals(Vec2.Zero)),
+)
 
 type NodeMask = {
   id: string
@@ -355,7 +363,7 @@ function lengthTo(path: SVGPathElement, pos: Vec2): number {
   let best: number | undefined
   let bestDist: number | undefined
   const tryPos = (len: number) => {
-    const dist = pos.distanceSquared(Vec2.FromDomPoint(path.getPointAtLength(len)))
+    const dist = pos.distanceSquared(Vec2.FromXY(path.getPointAtLength(len)))
     if (bestDist == null || dist < bestDist) {
       best = len
       bestDist = dist
@@ -389,9 +397,9 @@ const activeStyle = computed(() => {
   const distances = mouseLocationOnEdge.value
   if (distances == null) return {}
   const offset =
-    distances.sourceToMouse < distances.mouseToTarget
-      ? distances.mouseToTarget
-      : -distances.sourceToMouse
+    distances.sourceToMouse < distances.mouseToTarget ?
+      distances.mouseToTarget
+    : -distances.sourceToMouse
   return {
     ...baseStyle.value,
     strokeDasharray: distances.sourceToTarget,
@@ -509,7 +517,8 @@ const connected = computed(() => isConnected(props.edge))
         class="edge io"
         :data-source-node-id="sourceNode"
         :data-target-node-id="targetNode"
-        @pointerdown="click"
+        :data-testid="edgeIsBroken ? 'broken-edge' : null"
+        @pointerdown.stop="click"
         @pointerenter="hovered = true"
         @pointerleave="hovered = false"
       />
@@ -561,6 +570,7 @@ const connected = computed(() => isConnected(props.edge))
 .edge.io {
   stroke-width: 14;
   stroke: transparent;
+  pointer-events: stroke;
 }
 .edge.visible {
   stroke-width: 4;

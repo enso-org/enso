@@ -1331,21 +1331,6 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
 
     context.send(
       Api.Request(
-        Api.EditFileNotification(
-          mainFile,
-          Seq(
-            TextEdit(
-              model.Range(model.Position(4, 8), model.Position(4, 9)),
-              "7"
-            )
-          ),
-          execute = true
-        )
-      )
-    )
-
-    context.send(
-      Api.Request(
         requestId,
         Api.AttachVisualization(
           visualizationId2,
@@ -1363,16 +1348,36 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
       )
     )
 
-    val attachVisualizationResponses = context.receiveN(2)
+    context.send(
+      Api.Request(
+        Api.EditFileNotification(
+          mainFile,
+          Seq(
+            TextEdit(
+              model.Range(model.Position(4, 8), model.Position(4, 9)),
+              "7"
+            )
+          ),
+          execute = true
+        )
+      )
+    )
 
-    attachVisualizationResponses.filter(
+    val responses =
+      context.receiveNIgnoreExpressionUpdates(7)
+
+    responses should contain allOf (
+      Api.Response(requestId, Api.VisualizationAttached()),
+      context.executionComplete(contextId)
+    )
+
+    responses.filter(
       _.payload.isInstanceOf[Api.VisualizationAttached]
     ) shouldEqual List(
       Api.Response(requestId, Api.VisualizationAttached()),
       Api.Response(requestId, Api.VisualizationAttached())
     )
 
-    val responses = context.receiveNIgnoreExpressionUpdates(3)
     val visualizationUpdatesResponses =
       responses.filter(_.payload.isInstanceOf[Api.VisualizationUpdate])
     val expectedExpressionId = context.Main.idMainX
@@ -1392,8 +1397,10 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
         `expectedExpressionId`
       ),
     )
-    val data = visualizationUpdates.head.data
-    data.sameElements("6".getBytes) shouldBe true
+
+    visualizationUpdates.map(update =>
+      new String(update.data)
+    ) should contain allOf ("6", "7")
 
     // modify visualization
     context.send(
@@ -1413,12 +1420,15 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
         )
       )
     )
-    val modifyVisualizationResponses = context.receiveN(5)
-    modifyVisualizationResponses should contain(
-      Api.Response(requestId, Api.VisualizationModified())
+    val modifyVisualizationResponses =
+      context.receiveNIgnoreExpressionUpdates(4)
+
+    modifyVisualizationResponses should contain allOf (
+      Api.Response(requestId, Api.VisualizationModified()),
+      context.executionComplete(contextId)
     )
-    val Some((dataAfterModification, foundVisualizatonId)) =
-      modifyVisualizationResponses.collectFirst {
+    val visualizationUpdates2 =
+      modifyVisualizationResponses.collect {
         case Api.Response(
               None,
               Api.VisualizationUpdate(
@@ -1433,9 +1443,9 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
           (data, modifiedId)
       }
 
-    List(visualizationId, visualizationId2) should contain(foundVisualizatonId)
+    visualizationUpdates2.map(_._2) should contain(visualizationId)
 
-    dataAfterModification.sameElements("7".getBytes) shouldBe true
+    visualizationUpdates2.map(p => new String(p._1)) should contain("8")
   }
 
   it should "not emit visualization update when visualization is detached" in withContext() {
@@ -1996,7 +2006,7 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
         )
       )
 
-      val attachVisualizationResponses = context.receiveN(8)
+      val attachVisualizationResponses = context.receiveN(7)
       attachVisualizationResponses should contain allOf (
         Api.Response(requestId, Api.VisualizationAttached()),
         context.executionComplete(contextId)
@@ -2017,7 +2027,7 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
           data
       }
 
-      data.sameElements("(Builtin 'JSON')".getBytes) shouldBe true
+      new String(data) shouldEqual "(Builtin 'JSON')"
 
       val loadedLibraries = attachVisualizationResponses
         .collect {
@@ -3498,7 +3508,7 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
           ConstantsGen.INTEGER,
           payload = Api.ExpressionUpdate.Payload.Value(
             Some(
-              Api.ExpressionUpdate.Payload.Value.Warnings(1, Some("'y'"), false)
+              Api.ExpressionUpdate.Payload.Value.Warnings(1, Some("y"), false)
             )
           )
         ),
@@ -3602,7 +3612,7 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
           ConstantsGen.VECTOR,
           payload = Api.ExpressionUpdate.Payload.Value(
             Some(
-              Api.ExpressionUpdate.Payload.Value.Warnings(1, Some("'y'"), false)
+              Api.ExpressionUpdate.Payload.Value.Warnings(1, Some("y"), false)
             )
           )
         ),
@@ -3719,7 +3729,7 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
           ),
           payload = Api.ExpressionUpdate.Payload.Value(
             Some(
-              Api.ExpressionUpdate.Payload.Value.Warnings(1, Some("'x'"), false)
+              Api.ExpressionUpdate.Payload.Value.Warnings(1, Some("x"), false)
             )
           )
         ),
@@ -3735,7 +3745,7 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
           ),
           payload = Api.ExpressionUpdate.Payload.Value(
             Some(
-              Api.ExpressionUpdate.Payload.Value.Warnings(1, Some("'x'"), false)
+              Api.ExpressionUpdate.Payload.Value.Warnings(1, Some("x"), false)
             )
           )
         ),
@@ -3782,6 +3792,273 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
           data
       }
       new String(data, StandardCharsets.UTF_8) shouldEqual "(Mk_Newtype 42)"
+  }
+
+  it should "visualize normal atomconstructor" in withContext() { context =>
+    val contextId       = UUID.randomUUID()
+    val requestId       = UUID.randomUUID()
+    val visualizationId = UUID.randomUUID()
+    val moduleName      = "Enso_Test.Test.Main"
+    val metadata        = new Metadata
+
+    val idX    = metadata.addItem(103, 35, "aaaa")
+    val idCons = metadata.addItem(116, 21, "cccc")
+    val idRes  = metadata.addItem(143, 1, "eeee")
+
+    val code =
+      """from Standard.Base import all
+        |
+        |type Newtype
+        |    Mk_Newtype value
+        |
+        |    fix t:Newtype = t
+        |main =
+        |    x = Newtype.fix (Newtype.Mk_Newtype 42)
+        |    x
+        |""".stripMargin.linesIterator.mkString("\n")
+    val contents = metadata.appendToCode(code)
+    val mainFile = context.writeMain(contents)
+
+    metadata.assertInCode(idX, code, "Newtype.fix (Newtype.Mk_Newtype 42)")
+    metadata.assertInCode(idCons, code, "Newtype.Mk_Newtype 42")
+    metadata.assertInCode(idRes, code, "x")
+
+    // create context
+    context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
+    context.receive shouldEqual Some(
+      Api.Response(requestId, Api.CreateContextResponse(contextId))
+    )
+
+    // Open the new file
+    context.send(
+      Api.Request(requestId, Api.OpenFileRequest(mainFile, contents))
+    )
+    context.receive shouldEqual Some(
+      Api.Response(Some(requestId), Api.OpenFileResponse)
+    )
+
+    // push main
+    val item1 = Api.StackItem.ExplicitCall(
+      Api.MethodPointer(moduleName, "Enso_Test.Test.Main", "main"),
+      None,
+      Vector()
+    )
+    context.send(
+      Api.Request(requestId, Api.PushContextRequest(contextId, item1))
+    )
+    context.receiveNIgnorePendingExpressionUpdates(
+      5
+    ) should contain theSameElementsAs Seq(
+      Api.Response(requestId, Api.PushContextResponse(contextId)),
+      TestMessages.update(
+        contextId,
+        idCons,
+        s"$moduleName.Newtype",
+        methodCall = Some(
+          Api.MethodCall(
+            Api.MethodPointer(
+              s"$moduleName",
+              s"$moduleName.Newtype",
+              "Mk_Newtype"
+            )
+          )
+        ),
+        payload = Api.ExpressionUpdate.Payload.Value(None)
+      ),
+      TestMessages.update(
+        contextId,
+        idX,
+        s"$moduleName.Newtype",
+        methodCall = Some(
+          Api.MethodCall(
+            Api
+              .MethodPointer(moduleName, s"$moduleName.Newtype", "fix")
+          )
+        ),
+        payload = Api.ExpressionUpdate.Payload.Value(None)
+      ),
+      TestMessages.update(
+        contextId,
+        idRes,
+        s"$moduleName.Newtype",
+        methodCall = None,
+        payload    = Api.ExpressionUpdate.Payload.Value(None)
+      ),
+      context.executionComplete(contextId)
+    )
+
+    // attach visualization
+    context.send(
+      Api.Request(
+        requestId,
+        Api.AttachVisualization(
+          visualizationId,
+          idRes,
+          Api.VisualizationConfiguration(
+            contextId,
+            Api.VisualizationExpression.Text(
+              "Enso_Test.Test.Main",
+              "x -> x.to_text",
+              Vector()
+            ),
+            "Enso_Test.Test.Main"
+          )
+        )
+      )
+    )
+    val attachVisualizationResponses =
+      context.receiveNIgnoreExpressionUpdates(3)
+    attachVisualizationResponses should contain allOf (
+      Api.Response(requestId, Api.VisualizationAttached()),
+      context.executionComplete(contextId)
+    )
+    val Some(data) = attachVisualizationResponses.collectFirst {
+      case Api.Response(
+            None,
+            Api.VisualizationUpdate(
+              Api.VisualizationContext(
+                `visualizationId`,
+                `contextId`,
+                `idRes`
+              ),
+              data
+            )
+          ) =>
+        data
+    }
+    new String(data, StandardCharsets.UTF_8) shouldEqual "(Mk_Newtype 42)"
+  }
+
+  it should "visualize autoscoped atomconstructor" in withContext() { context =>
+    val contextId       = UUID.randomUUID()
+    val requestId       = UUID.randomUUID()
+    val visualizationId = UUID.randomUUID()
+    val moduleName      = "Enso_Test.Test.Main"
+    val metadata        = new Metadata
+
+    val idX    = metadata.addItem(103, 29, "aaaa")
+    val idCons = metadata.addItem(116, 15, "cccc")
+    val idRes  = metadata.addItem(137, 1, "eeee")
+
+    val code =
+      """from Standard.Base import all
+        |
+        |type Newtype
+        |    Mk_Newtype value
+        |
+        |    fix t:Newtype = t
+        |main =
+        |    x = Newtype.fix (..Mk_Newtype 42)
+        |    x
+        |""".stripMargin.linesIterator.mkString("\n")
+    val contents = metadata.appendToCode(code)
+    val mainFile = context.writeMain(contents)
+
+    metadata.assertInCode(idX, code, "Newtype.fix (..Mk_Newtype 42)")
+    metadata.assertInCode(idCons, code, "..Mk_Newtype 42")
+    metadata.assertInCode(idRes, code, "x")
+
+    // create context
+    context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
+    context.receive shouldEqual Some(
+      Api.Response(requestId, Api.CreateContextResponse(contextId))
+    )
+
+    // Open the new file
+    context.send(
+      Api.Request(requestId, Api.OpenFileRequest(mainFile, contents))
+    )
+    context.receive shouldEqual Some(
+      Api.Response(Some(requestId), Api.OpenFileResponse)
+    )
+
+    // push main
+    val item1 = Api.StackItem.ExplicitCall(
+      Api.MethodPointer(moduleName, "Enso_Test.Test.Main", "main"),
+      None,
+      Vector()
+    )
+    context.send(
+      Api.Request(requestId, Api.PushContextRequest(contextId, item1))
+    )
+    context.receiveNIgnorePendingExpressionUpdates(
+      5
+    ) should contain theSameElementsAs Seq(
+      Api.Response(requestId, Api.PushContextResponse(contextId)),
+      TestMessages.update(
+        contextId,
+        idCons,
+        s"$moduleName.Newtype",
+        methodCall = Some(
+          Api.MethodCall(
+            Api
+              .MethodPointer(moduleName, s"$moduleName.Newtype", "Mk_Newtype")
+          )
+        ),
+        payload = Api.ExpressionUpdate.Payload.Value(None)
+      ),
+      TestMessages.update(
+        contextId,
+        idX,
+        s"$moduleName.Newtype",
+        methodCall = Some(
+          Api.MethodCall(
+            Api
+              .MethodPointer(moduleName, s"$moduleName.Newtype", "fix")
+          )
+        ),
+        payload = Api.ExpressionUpdate.Payload.Value(None)
+      ),
+      TestMessages.update(
+        contextId,
+        idRes,
+        s"$moduleName.Newtype",
+        methodCall = None,
+        payload    = Api.ExpressionUpdate.Payload.Value(None)
+      ),
+      context.executionComplete(contextId)
+    )
+
+    // attach visualization
+    context.send(
+      Api.Request(
+        requestId,
+        Api.AttachVisualization(
+          visualizationId,
+          idRes,
+          Api.VisualizationConfiguration(
+            contextId,
+            Api.VisualizationExpression.Text(
+              "Enso_Test.Test.Main",
+              "x -> x.to_text",
+              Vector()
+            ),
+            "Enso_Test.Test.Main"
+          )
+        )
+      )
+    )
+    val attachVisualizationResponses =
+      context.receiveNIgnoreExpressionUpdates(3)
+    attachVisualizationResponses should contain allOf (
+      Api.Response(requestId, Api.VisualizationAttached()),
+      context.executionComplete(contextId)
+    )
+    val Some(data) = attachVisualizationResponses.collectFirst {
+      case Api.Response(
+            None,
+            Api.VisualizationUpdate(
+              Api.VisualizationContext(
+                `visualizationId`,
+                `contextId`,
+                `idRes`
+              ),
+              data
+            )
+          ) =>
+        data
+    }
+    new String(data, StandardCharsets.UTF_8) shouldEqual "(Mk_Newtype 42)"
   }
 
   it should "emit visualization update for the target of a method call" in withContext() {

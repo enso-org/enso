@@ -3,31 +3,19 @@ package org.enso.interpreter.bench;
 import jakarta.xml.bind.JAXBException;
 import java.io.File;
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
-import java.util.stream.Collectors;
 import org.openjdk.jmh.results.RunResult;
-import org.openjdk.jmh.runner.BenchmarkList;
-import org.openjdk.jmh.runner.BenchmarkListEntry;
 import org.openjdk.jmh.runner.Runner;
 import org.openjdk.jmh.runner.RunnerException;
 import org.openjdk.jmh.runner.options.CommandLineOptionException;
 import org.openjdk.jmh.runner.options.CommandLineOptions;
 import org.openjdk.jmh.runner.options.OptionsBuilder;
+import org.openjdk.jmh.runner.options.TimeValue;
 
 /** Runner class for the benchmarks. Discovers, runs and reports benchmark results. */
 public class BenchmarksRunner {
   public static final File REPORT_FILE = new File("./bench-report.xml");
-
-  /**
-   * @return A list of qualified names of all benchmarks visible to JMH.
-   */
-  public List<String> getAvailable() {
-    return BenchmarkList.defaultList().getAll(null, new ArrayList<>()).stream()
-        .map(BenchmarkListEntry::getUsername)
-        .collect(Collectors.toList());
-  }
 
   public static void run(String[] args) throws RunnerException {
     CommandLineOptions cmdOpts = null;
@@ -74,30 +62,35 @@ public class BenchmarksRunner {
     }
   }
 
-  private static Collection<RunResult> runCompileOnly(List<String> includes)
-      throws RunnerException {
-    System.out.println("Running benchmarks " + includes + " in compileOnly mode");
-    var optsBuilder = new OptionsBuilder().measurementIterations(1).warmupIterations(0).forks(0);
+  /**
+   * Results from compileOnly mode are not reported. Moreover, if some of the benchmarks in this
+   * mode fails, the whole process immediately fails. This behavior is different to *normal*
+   * benchmarks, where a single failure does not stop the whole process.
+   */
+  private static void runCompileOnly(List<String> includes) {
+    if (includes.isEmpty()) {
+      System.out.println("Running all benchmarks in compileOnly mode");
+    } else {
+      System.out.println("Running benchmarks " + includes + " in compileOnly mode");
+    }
+    var optsBuilder =
+        new OptionsBuilder()
+            .measurementTime(TimeValue.seconds(1))
+            .measurementIterations(1)
+            .warmupIterations(0)
+            .shouldFailOnError(true)
+            .forks(0);
     includes.forEach(optsBuilder::include);
     var opts = optsBuilder.build();
     var runner = new Runner(opts);
-    return runner.run();
-  }
-
-  public static BenchmarkItem runSingle(String label) throws RunnerException, JAXBException {
-    String includeRegex = "^" + label + "$";
-    if (Boolean.getBoolean("bench.compileOnly")) {
-      var results = runCompileOnly(List.of(includeRegex));
-      var firstResult = results.iterator().next();
-      return reportResult(label, firstResult);
-    } else {
-      var opts =
-          new OptionsBuilder()
-              .jvmArgsAppend("-Xss16M", "-Dpolyglot.engine.MultiTier=false")
-              .include(includeRegex)
-              .build();
-      RunResult benchmarksResult = new Runner(opts).runSingle();
-      return reportResult(label, benchmarksResult);
+    try {
+      runner.run();
+      System.out.println(
+          "benchmarks run successfully in compileOnly mode. Results are not reported.");
+    } catch (RunnerException e) {
+      System.err.println("Benchmark run failed: " + e.getMessage());
+      e.printStackTrace(System.err);
+      System.exit(1);
     }
   }
 

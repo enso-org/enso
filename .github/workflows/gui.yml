@@ -1,13 +1,19 @@
 # This file is auto-generated. Do not edit it manually!
 # Edit the enso_build::ci_gen module instead and run `cargo run --package enso-build-ci-gen`.
 
-name: GUI CI
+name: GUI Packaging
 on:
   push:
     branches:
       - develop
   pull_request: {}
-  workflow_dispatch: {}
+  workflow_dispatch:
+    inputs:
+      clean_build_required:
+        description: Clean before and after the run.
+        required: false
+        type: boolean
+        default: false
 jobs:
   enso-build-ci-gen-job-build-backend-linux-x86_64:
     name: Build Backend (linux, x86_64)
@@ -15,12 +21,6 @@ jobs:
       - self-hosted
       - Linux
     steps:
-      - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
-        name: Setup conda (GH runners only)
-        uses: s-weigand/setup-conda@v1.2.1
-        with:
-          update-conda: false
-          conda-channels: anaconda, conda-forge
       - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
         name: Installing wasm-pack
         uses: jetli/wasm-pack-action@v0.4.0
@@ -36,10 +36,10 @@ jobs:
           clean: false
           submodules: recursive
       - name: Build Script Setup
-        run: ./run --help
+        run: ./run --help || (git clean -ffdx && ./run --help)
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - if: "contains(github.event.pull_request.labels.*.name, 'CI: Clean build required')"
+      - if: "(contains(github.event.pull_request.labels.*.name, 'CI: Clean build required') || inputs.clean_build_required)"
         name: Clean before
         run: ./run git-clean
         env:
@@ -53,7 +53,7 @@ jobs:
       - if: failure() && runner.os != 'Windows'
         name: List files if failed (non-Windows)
         run: ls -lAR
-      - if: "always() && contains(github.event.pull_request.labels.*.name, 'CI: Clean build required')"
+      - if: "(always()) && (contains(github.event.pull_request.labels.*.name, 'CI: Clean build required') || inputs.clean_build_required)"
         name: Clean after
         run: ./run git-clean
         env:
@@ -64,12 +64,6 @@ jobs:
       - macos-latest
     steps:
       - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
-        name: Setup conda (GH runners only)
-        uses: s-weigand/setup-conda@v1.2.1
-        with:
-          update-conda: false
-          conda-channels: anaconda, conda-forge
-      - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
         name: Installing wasm-pack
         uses: jetli/wasm-pack-action@v0.4.0
         with:
@@ -84,10 +78,10 @@ jobs:
           clean: false
           submodules: recursive
       - name: Build Script Setup
-        run: ./run --help
+        run: ./run --help || (git clean -ffdx && ./run --help)
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - if: "contains(github.event.pull_request.labels.*.name, 'CI: Clean build required')"
+      - if: "(contains(github.event.pull_request.labels.*.name, 'CI: Clean build required') || inputs.clean_build_required)"
         name: Clean before
         run: ./run git-clean
         env:
@@ -101,7 +95,7 @@ jobs:
       - if: failure() && runner.os != 'Windows'
         name: List files if failed (non-Windows)
         run: ls -lAR
-      - if: "always() && contains(github.event.pull_request.labels.*.name, 'CI: Clean build required')"
+      - if: "(always()) && (contains(github.event.pull_request.labels.*.name, 'CI: Clean build required') || inputs.clean_build_required)"
         name: Clean after
         run: ./run git-clean
         env:
@@ -113,12 +107,6 @@ jobs:
       - Windows
     steps:
       - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
-        name: Setup conda (GH runners only)
-        uses: s-weigand/setup-conda@v1.2.1
-        with:
-          update-conda: false
-          conda-channels: anaconda, conda-forge
-      - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
         name: Installing wasm-pack
         uses: jetli/wasm-pack-action@v0.4.0
         with:
@@ -133,10 +121,10 @@ jobs:
           clean: false
           submodules: recursive
       - name: Build Script Setup
-        run: ./run --help
+        run: ./run --help || (git clean -ffdx && ./run --help)
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - if: "contains(github.event.pull_request.labels.*.name, 'CI: Clean build required')"
+      - if: "(contains(github.event.pull_request.labels.*.name, 'CI: Clean build required') || inputs.clean_build_required)"
         name: Clean before
         run: ./run git-clean
         env:
@@ -150,7 +138,7 @@ jobs:
       - if: failure() && runner.os != 'Windows'
         name: List files if failed (non-Windows)
         run: ls -lAR
-      - if: "always() && contains(github.event.pull_request.labels.*.name, 'CI: Clean build required')"
+      - if: "(always()) && (contains(github.event.pull_request.labels.*.name, 'CI: Clean build required') || inputs.clean_build_required)"
         name: Clean after
         run: ./run git-clean
         env:
@@ -167,116 +155,12 @@ jobs:
           access_token: ${{ github.token }}
     permissions:
       actions: write
-  enso-build-ci-gen-job-lint-linux-x86_64:
-    name: Lint (linux, x86_64)
-    runs-on:
-      - self-hosted
-      - Linux
-    steps:
-      - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
-        name: Setup conda (GH runners only)
-        uses: s-weigand/setup-conda@v1.2.1
-        with:
-          update-conda: false
-          conda-channels: anaconda, conda-forge
-      - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
-        name: Installing wasm-pack
-        uses: jetli/wasm-pack-action@v0.4.0
-        with:
-          version: v0.10.2
-      - name: Expose Artifact API and context information.
-        uses: actions/github-script@v7
-        with:
-          script: "\n    core.exportVariable(\"ACTIONS_RUNTIME_TOKEN\", process.env[\"ACTIONS_RUNTIME_TOKEN\"])\n    core.exportVariable(\"ACTIONS_RUNTIME_URL\", process.env[\"ACTIONS_RUNTIME_URL\"])\n    core.exportVariable(\"GITHUB_RETENTION_DAYS\", process.env[\"GITHUB_RETENTION_DAYS\"])\n    console.log(context)\n    "
-      - name: Checking out the repository
-        uses: actions/checkout@v4
-        with:
-          clean: false
-          submodules: recursive
-      - name: Build Script Setup
-        run: ./run --help
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - if: "contains(github.event.pull_request.labels.*.name, 'CI: Clean build required')"
-        name: Clean before
-        run: ./run git-clean
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - run: ./run lint
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - if: failure() && runner.os == 'Windows'
-        name: List files if failed (Windows)
-        run: Get-ChildItem -Force -Recurse
-      - if: failure() && runner.os != 'Windows'
-        name: List files if failed (non-Windows)
-        run: ls -lAR
-      - if: "always() && contains(github.event.pull_request.labels.*.name, 'CI: Clean build required')"
-        name: Clean after
-        run: ./run git-clean
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-  enso-build-ci-gen-job-native-test-linux-x86_64:
-    name: Native GUI tests (linux, x86_64)
-    runs-on:
-      - self-hosted
-      - Linux
-    steps:
-      - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
-        name: Setup conda (GH runners only)
-        uses: s-weigand/setup-conda@v1.2.1
-        with:
-          update-conda: false
-          conda-channels: anaconda, conda-forge
-      - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
-        name: Installing wasm-pack
-        uses: jetli/wasm-pack-action@v0.4.0
-        with:
-          version: v0.10.2
-      - name: Expose Artifact API and context information.
-        uses: actions/github-script@v7
-        with:
-          script: "\n    core.exportVariable(\"ACTIONS_RUNTIME_TOKEN\", process.env[\"ACTIONS_RUNTIME_TOKEN\"])\n    core.exportVariable(\"ACTIONS_RUNTIME_URL\", process.env[\"ACTIONS_RUNTIME_URL\"])\n    core.exportVariable(\"GITHUB_RETENTION_DAYS\", process.env[\"GITHUB_RETENTION_DAYS\"])\n    console.log(context)\n    "
-      - name: Checking out the repository
-        uses: actions/checkout@v4
-        with:
-          clean: false
-          submodules: recursive
-      - name: Build Script Setup
-        run: ./run --help
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - if: "contains(github.event.pull_request.labels.*.name, 'CI: Clean build required')"
-        name: Clean before
-        run: ./run git-clean
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - run: ./run wasm test --no-wasm
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - if: failure() && runner.os == 'Windows'
-        name: List files if failed (Windows)
-        run: Get-ChildItem -Force -Recurse
-      - if: failure() && runner.os != 'Windows'
-        name: List files if failed (non-Windows)
-        run: ls -lAR
-      - if: "always() && contains(github.event.pull_request.labels.*.name, 'CI: Clean build required')"
-        name: Clean after
-        run: ./run git-clean
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
   enso-build-ci-gen-job-new-gui-build-linux-x86_64:
-    name: New (Vue) GUI build (linux, x86_64)
+    name: GUI build (linux, x86_64)
     runs-on:
       - self-hosted
       - Linux
     steps:
-      - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
-        name: Setup conda (GH runners only)
-        uses: s-weigand/setup-conda@v1.2.1
-        with:
-          update-conda: false
-          conda-channels: anaconda, conda-forge
       - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
         name: Installing wasm-pack
         uses: jetli/wasm-pack-action@v0.4.0
@@ -292,39 +176,45 @@ jobs:
           clean: false
           submodules: recursive
       - name: Build Script Setup
-        run: ./run --help
+        run: ./run --help || (git clean -ffdx && ./run --help)
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - if: "contains(github.event.pull_request.labels.*.name, 'CI: Clean build required')"
+      - if: "(contains(github.event.pull_request.labels.*.name, 'CI: Clean build required') || inputs.clean_build_required)"
         name: Clean before
         run: ./run git-clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - run: ./run gui2 build
+      - run: ./run gui build
         env:
+          ENSO_CLOUD_API_URL: ${{ vars.ENSO_CLOUD_API_URL }}
+          ENSO_CLOUD_CHAT_URL: ${{ vars.ENSO_CLOUD_CHAT_URL }}
+          ENSO_CLOUD_COGNITO_DOMAIN: ${{ vars.ENSO_CLOUD_COGNITO_DOMAIN }}
+          ENSO_CLOUD_COGNITO_REGION: ${{ vars.ENSO_CLOUD_COGNITO_REGION }}
+          ENSO_CLOUD_COGNITO_USER_POOL_ID: ${{ vars.ENSO_CLOUD_COGNITO_USER_POOL_ID }}
+          ENSO_CLOUD_COGNITO_USER_POOL_WEB_CLIENT_ID: ${{ vars.ENSO_CLOUD_COGNITO_USER_POOL_WEB_CLIENT_ID }}
+          ENSO_CLOUD_ENVIRONMENT: ${{ vars.ENSO_CLOUD_ENVIRONMENT }}
+          ENSO_CLOUD_REDIRECT: ${{ vars.ENSO_CLOUD_REDIRECT }}
+          ENSO_CLOUD_SENTRY_DSN: ${{ vars.ENSO_CLOUD_SENTRY_DSN }}
+          ENSO_CLOUD_STRIPE_KEY: ${{ vars.ENSO_CLOUD_STRIPE_KEY }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VITE_ENSO_AG_GRID_LICENSE_KEY: ${{ vars.ENSO_AG_GRID_LICENSE_KEY }}
+          VITE_ENSO_MAPBOX_API_TOKEN: ${{ vars.ENSO_MAPBOX_API_TOKEN }}
       - if: failure() && runner.os == 'Windows'
         name: List files if failed (Windows)
         run: Get-ChildItem -Force -Recurse
       - if: failure() && runner.os != 'Windows'
         name: List files if failed (non-Windows)
         run: ls -lAR
-      - if: "always() && contains(github.event.pull_request.labels.*.name, 'CI: Clean build required')"
+      - if: "(always()) && (contains(github.event.pull_request.labels.*.name, 'CI: Clean build required') || inputs.clean_build_required)"
         name: Clean after
         run: ./run git-clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
   enso-build-ci-gen-job-new-gui-build-macos-x86_64:
-    name: New (Vue) GUI build (macos, x86_64)
+    name: GUI build (macos, x86_64)
     runs-on:
       - macos-latest
     steps:
-      - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
-        name: Setup conda (GH runners only)
-        uses: s-weigand/setup-conda@v1.2.1
-        with:
-          update-conda: false
-          conda-channels: anaconda, conda-forge
       - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
         name: Installing wasm-pack
         uses: jetli/wasm-pack-action@v0.4.0
@@ -340,41 +230,47 @@ jobs:
           clean: false
           submodules: recursive
       - name: Build Script Setup
-        run: ./run --help
+        run: ./run --help || (git clean -ffdx && ./run --help)
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - if: "contains(github.event.pull_request.labels.*.name, 'CI: Clean build required')"
+      - if: "(contains(github.event.pull_request.labels.*.name, 'CI: Clean build required') || inputs.clean_build_required)"
         name: Clean before
         run: ./run git-clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - run: ./run gui2 build
+      - run: ./run gui build
         env:
+          ENSO_CLOUD_API_URL: ${{ vars.ENSO_CLOUD_API_URL }}
+          ENSO_CLOUD_CHAT_URL: ${{ vars.ENSO_CLOUD_CHAT_URL }}
+          ENSO_CLOUD_COGNITO_DOMAIN: ${{ vars.ENSO_CLOUD_COGNITO_DOMAIN }}
+          ENSO_CLOUD_COGNITO_REGION: ${{ vars.ENSO_CLOUD_COGNITO_REGION }}
+          ENSO_CLOUD_COGNITO_USER_POOL_ID: ${{ vars.ENSO_CLOUD_COGNITO_USER_POOL_ID }}
+          ENSO_CLOUD_COGNITO_USER_POOL_WEB_CLIENT_ID: ${{ vars.ENSO_CLOUD_COGNITO_USER_POOL_WEB_CLIENT_ID }}
+          ENSO_CLOUD_ENVIRONMENT: ${{ vars.ENSO_CLOUD_ENVIRONMENT }}
+          ENSO_CLOUD_REDIRECT: ${{ vars.ENSO_CLOUD_REDIRECT }}
+          ENSO_CLOUD_SENTRY_DSN: ${{ vars.ENSO_CLOUD_SENTRY_DSN }}
+          ENSO_CLOUD_STRIPE_KEY: ${{ vars.ENSO_CLOUD_STRIPE_KEY }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VITE_ENSO_AG_GRID_LICENSE_KEY: ${{ vars.ENSO_AG_GRID_LICENSE_KEY }}
+          VITE_ENSO_MAPBOX_API_TOKEN: ${{ vars.ENSO_MAPBOX_API_TOKEN }}
       - if: failure() && runner.os == 'Windows'
         name: List files if failed (Windows)
         run: Get-ChildItem -Force -Recurse
       - if: failure() && runner.os != 'Windows'
         name: List files if failed (non-Windows)
         run: ls -lAR
-      - if: "always() && contains(github.event.pull_request.labels.*.name, 'CI: Clean build required')"
+      - if: "(always()) && (contains(github.event.pull_request.labels.*.name, 'CI: Clean build required') || inputs.clean_build_required)"
         name: Clean after
         run: ./run git-clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
   enso-build-ci-gen-job-new-gui-build-windows-x86_64:
-    name: New (Vue) GUI build (windows, x86_64)
+    name: GUI build (windows, x86_64)
     runs-on:
       - self-hosted
       - Windows
     steps:
       - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
-        name: Setup conda (GH runners only)
-        uses: s-weigand/setup-conda@v1.2.1
-        with:
-          update-conda: false
-          conda-channels: anaconda, conda-forge
-      - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
         name: Installing wasm-pack
         uses: jetli/wasm-pack-action@v0.4.0
         with:
@@ -389,78 +285,41 @@ jobs:
           clean: false
           submodules: recursive
       - name: Build Script Setup
-        run: ./run --help
+        run: ./run --help || (git clean -ffdx && ./run --help)
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - if: "contains(github.event.pull_request.labels.*.name, 'CI: Clean build required')"
+      - if: "(contains(github.event.pull_request.labels.*.name, 'CI: Clean build required') || inputs.clean_build_required)"
         name: Clean before
         run: ./run git-clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - run: ./run gui2 build
+      - run: ./run gui build
         env:
+          ENSO_CLOUD_API_URL: ${{ vars.ENSO_CLOUD_API_URL }}
+          ENSO_CLOUD_CHAT_URL: ${{ vars.ENSO_CLOUD_CHAT_URL }}
+          ENSO_CLOUD_COGNITO_DOMAIN: ${{ vars.ENSO_CLOUD_COGNITO_DOMAIN }}
+          ENSO_CLOUD_COGNITO_REGION: ${{ vars.ENSO_CLOUD_COGNITO_REGION }}
+          ENSO_CLOUD_COGNITO_USER_POOL_ID: ${{ vars.ENSO_CLOUD_COGNITO_USER_POOL_ID }}
+          ENSO_CLOUD_COGNITO_USER_POOL_WEB_CLIENT_ID: ${{ vars.ENSO_CLOUD_COGNITO_USER_POOL_WEB_CLIENT_ID }}
+          ENSO_CLOUD_ENVIRONMENT: ${{ vars.ENSO_CLOUD_ENVIRONMENT }}
+          ENSO_CLOUD_REDIRECT: ${{ vars.ENSO_CLOUD_REDIRECT }}
+          ENSO_CLOUD_SENTRY_DSN: ${{ vars.ENSO_CLOUD_SENTRY_DSN }}
+          ENSO_CLOUD_STRIPE_KEY: ${{ vars.ENSO_CLOUD_STRIPE_KEY }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VITE_ENSO_AG_GRID_LICENSE_KEY: ${{ vars.ENSO_AG_GRID_LICENSE_KEY }}
+          VITE_ENSO_MAPBOX_API_TOKEN: ${{ vars.ENSO_MAPBOX_API_TOKEN }}
       - if: failure() && runner.os == 'Windows'
         name: List files if failed (Windows)
         run: Get-ChildItem -Force -Recurse
       - if: failure() && runner.os != 'Windows'
         name: List files if failed (non-Windows)
         run: ls -lAR
-      - if: "always() && contains(github.event.pull_request.labels.*.name, 'CI: Clean build required')"
+      - if: "(always()) && (contains(github.event.pull_request.labels.*.name, 'CI: Clean build required') || inputs.clean_build_required)"
         name: Clean after
         run: ./run git-clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-  enso-build-ci-gen-job-new-gui-test-linux-x86_64:
-    name: New (Vue) GUI tests (linux, x86_64)
-    runs-on:
-      - self-hosted
-      - Linux
-    steps:
-      - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
-        name: Setup conda (GH runners only)
-        uses: s-weigand/setup-conda@v1.2.1
-        with:
-          update-conda: false
-          conda-channels: anaconda, conda-forge
-      - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
-        name: Installing wasm-pack
-        uses: jetli/wasm-pack-action@v0.4.0
-        with:
-          version: v0.10.2
-      - name: Expose Artifact API and context information.
-        uses: actions/github-script@v7
-        with:
-          script: "\n    core.exportVariable(\"ACTIONS_RUNTIME_TOKEN\", process.env[\"ACTIONS_RUNTIME_TOKEN\"])\n    core.exportVariable(\"ACTIONS_RUNTIME_URL\", process.env[\"ACTIONS_RUNTIME_URL\"])\n    core.exportVariable(\"GITHUB_RETENTION_DAYS\", process.env[\"GITHUB_RETENTION_DAYS\"])\n    console.log(context)\n    "
-      - name: Checking out the repository
-        uses: actions/checkout@v4
-        with:
-          clean: false
-          submodules: recursive
-      - name: Build Script Setup
-        run: ./run --help
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - if: "contains(github.event.pull_request.labels.*.name, 'CI: Clean build required')"
-        name: Clean before
-        run: ./run git-clean
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - run: ./run gui2 test
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - if: failure() && runner.os == 'Windows'
-        name: List files if failed (Windows)
-        run: Get-ChildItem -Force -Recurse
-      - if: failure() && runner.os != 'Windows'
-        name: List files if failed (non-Windows)
-        run: ls -lAR
-      - if: "always() && contains(github.event.pull_request.labels.*.name, 'CI: Clean build required')"
-        name: Clean after
-        run: ./run git-clean
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-  enso-build-ci-gen-job-package-new-ide-linux-x86_64:
+  enso-build-ci-gen-job-package-ide-linux-x86_64:
     name: Package New IDE (linux, x86_64)
     needs:
       - enso-build-ci-gen-job-build-backend-linux-x86_64
@@ -469,12 +328,6 @@ jobs:
       - Linux
     steps:
       - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
-        name: Setup conda (GH runners only)
-        uses: s-weigand/setup-conda@v1.2.1
-        with:
-          update-conda: false
-          conda-channels: anaconda, conda-forge
-      - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
         name: Installing wasm-pack
         uses: jetli/wasm-pack-action@v0.4.0
         with:
@@ -489,29 +342,41 @@ jobs:
           clean: false
           submodules: recursive
       - name: Build Script Setup
-        run: ./run --help
+        run: ./run --help || (git clean -ffdx && ./run --help)
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - if: "contains(github.event.pull_request.labels.*.name, 'CI: Clean build required')"
+      - if: "(contains(github.event.pull_request.labels.*.name, 'CI: Clean build required') || inputs.clean_build_required)"
         name: Clean before
         run: ./run git-clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - run: ./run ide2 build --backend-source current-ci-run --gui2-upload-artifact false
+      - run: ./run ide build --backend-source current-ci-run --gui-upload-artifact false
         env:
+          ENSO_CLOUD_API_URL: ${{ vars.ENSO_CLOUD_API_URL }}
+          ENSO_CLOUD_CHAT_URL: ${{ vars.ENSO_CLOUD_CHAT_URL }}
+          ENSO_CLOUD_COGNITO_DOMAIN: ${{ vars.ENSO_CLOUD_COGNITO_DOMAIN }}
+          ENSO_CLOUD_COGNITO_REGION: ${{ vars.ENSO_CLOUD_COGNITO_REGION }}
+          ENSO_CLOUD_COGNITO_USER_POOL_ID: ${{ vars.ENSO_CLOUD_COGNITO_USER_POOL_ID }}
+          ENSO_CLOUD_COGNITO_USER_POOL_WEB_CLIENT_ID: ${{ vars.ENSO_CLOUD_COGNITO_USER_POOL_WEB_CLIENT_ID }}
+          ENSO_CLOUD_ENVIRONMENT: ${{ vars.ENSO_CLOUD_ENVIRONMENT }}
+          ENSO_CLOUD_REDIRECT: ${{ vars.ENSO_CLOUD_REDIRECT }}
+          ENSO_CLOUD_SENTRY_DSN: ${{ vars.ENSO_CLOUD_SENTRY_DSN }}
+          ENSO_CLOUD_STRIPE_KEY: ${{ vars.ENSO_CLOUD_STRIPE_KEY }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VITE_ENSO_AG_GRID_LICENSE_KEY: ${{ vars.ENSO_AG_GRID_LICENSE_KEY }}
+          VITE_ENSO_MAPBOX_API_TOKEN: ${{ vars.ENSO_MAPBOX_API_TOKEN }}
       - if: failure() && runner.os == 'Windows'
         name: List files if failed (Windows)
         run: Get-ChildItem -Force -Recurse
       - if: failure() && runner.os != 'Windows'
         name: List files if failed (non-Windows)
         run: ls -lAR
-      - if: "always() && contains(github.event.pull_request.labels.*.name, 'CI: Clean build required')"
+      - if: "(always()) && (contains(github.event.pull_request.labels.*.name, 'CI: Clean build required') || inputs.clean_build_required)"
         name: Clean after
         run: ./run git-clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-  enso-build-ci-gen-job-package-new-ide-macos-x86_64:
+  enso-build-ci-gen-job-package-ide-macos-x86_64:
     name: Package New IDE (macos, x86_64)
     needs:
       - enso-build-ci-gen-job-build-backend-macos-x86_64
@@ -519,12 +384,6 @@ jobs:
       - macos-latest
     steps:
       - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
-        name: Setup conda (GH runners only)
-        uses: s-weigand/setup-conda@v1.2.1
-        with:
-          update-conda: false
-          conda-channels: anaconda, conda-forge
-      - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
         name: Installing wasm-pack
         uses: jetli/wasm-pack-action@v0.4.0
         with:
@@ -539,10 +398,10 @@ jobs:
           clean: false
           submodules: recursive
       - name: Build Script Setup
-        run: ./run --help
+        run: ./run --help || (git clean -ffdx && ./run --help)
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - if: "contains(github.event.pull_request.labels.*.name, 'CI: Clean build required')"
+      - if: "(contains(github.event.pull_request.labels.*.name, 'CI: Clean build required') || inputs.clean_build_required)"
         name: Clean before
         run: ./run git-clean
         env:
@@ -553,7 +412,7 @@ jobs:
         run: npm uninstall --save --workspace enso electron-builder
       - name: Install new Electron Builder
         run: npm install --save-dev --workspace enso electron-builder@24.6.4
-      - run: ./run ide2 build --backend-source current-ci-run --gui2-upload-artifact false
+      - run: ./run ide build --backend-source current-ci-run --gui-upload-artifact false
         env:
           APPLEID: ${{ secrets.APPLE_NOTARIZATION_USERNAME }}
           APPLEIDPASS: ${{ secrets.APPLE_NOTARIZATION_PASSWORD }}
@@ -562,19 +421,31 @@ jobs:
           CSC_IDENTITY_AUTO_DISCOVERY: "true"
           CSC_KEY_PASSWORD: ${{ secrets.APPLE_CODE_SIGNING_CERT_PASSWORD }}
           CSC_LINK: ${{ secrets.APPLE_CODE_SIGNING_CERT }}
+          ENSO_CLOUD_API_URL: ${{ vars.ENSO_CLOUD_API_URL }}
+          ENSO_CLOUD_CHAT_URL: ${{ vars.ENSO_CLOUD_CHAT_URL }}
+          ENSO_CLOUD_COGNITO_DOMAIN: ${{ vars.ENSO_CLOUD_COGNITO_DOMAIN }}
+          ENSO_CLOUD_COGNITO_REGION: ${{ vars.ENSO_CLOUD_COGNITO_REGION }}
+          ENSO_CLOUD_COGNITO_USER_POOL_ID: ${{ vars.ENSO_CLOUD_COGNITO_USER_POOL_ID }}
+          ENSO_CLOUD_COGNITO_USER_POOL_WEB_CLIENT_ID: ${{ vars.ENSO_CLOUD_COGNITO_USER_POOL_WEB_CLIENT_ID }}
+          ENSO_CLOUD_ENVIRONMENT: ${{ vars.ENSO_CLOUD_ENVIRONMENT }}
+          ENSO_CLOUD_REDIRECT: ${{ vars.ENSO_CLOUD_REDIRECT }}
+          ENSO_CLOUD_SENTRY_DSN: ${{ vars.ENSO_CLOUD_SENTRY_DSN }}
+          ENSO_CLOUD_STRIPE_KEY: ${{ vars.ENSO_CLOUD_STRIPE_KEY }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VITE_ENSO_AG_GRID_LICENSE_KEY: ${{ vars.ENSO_AG_GRID_LICENSE_KEY }}
+          VITE_ENSO_MAPBOX_API_TOKEN: ${{ vars.ENSO_MAPBOX_API_TOKEN }}
       - if: failure() && runner.os == 'Windows'
         name: List files if failed (Windows)
         run: Get-ChildItem -Force -Recurse
       - if: failure() && runner.os != 'Windows'
         name: List files if failed (non-Windows)
         run: ls -lAR
-      - if: "always() && contains(github.event.pull_request.labels.*.name, 'CI: Clean build required')"
+      - if: "(always()) && (contains(github.event.pull_request.labels.*.name, 'CI: Clean build required') || inputs.clean_build_required)"
         name: Clean after
         run: ./run git-clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-  enso-build-ci-gen-job-package-new-ide-windows-x86_64:
+  enso-build-ci-gen-job-package-ide-windows-x86_64:
     name: Package New IDE (windows, x86_64)
     needs:
       - enso-build-ci-gen-job-build-backend-windows-x86_64
@@ -583,12 +454,6 @@ jobs:
       - Windows
     steps:
       - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
-        name: Setup conda (GH runners only)
-        uses: s-weigand/setup-conda@v1.2.1
-        with:
-          update-conda: false
-          conda-channels: anaconda, conda-forge
-      - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
         name: Installing wasm-pack
         uses: jetli/wasm-pack-action@v0.4.0
         with:
@@ -603,17 +468,29 @@ jobs:
           clean: false
           submodules: recursive
       - name: Build Script Setup
-        run: ./run --help
+        run: ./run --help || (git clean -ffdx && ./run --help)
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - if: "contains(github.event.pull_request.labels.*.name, 'CI: Clean build required')"
+      - if: "(contains(github.event.pull_request.labels.*.name, 'CI: Clean build required') || inputs.clean_build_required)"
         name: Clean before
         run: ./run git-clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - run: ./run ide2 build --backend-source current-ci-run --gui2-upload-artifact false
+      - run: ./run ide build --backend-source current-ci-run --gui-upload-artifact false
         env:
+          ENSO_CLOUD_API_URL: ${{ vars.ENSO_CLOUD_API_URL }}
+          ENSO_CLOUD_CHAT_URL: ${{ vars.ENSO_CLOUD_CHAT_URL }}
+          ENSO_CLOUD_COGNITO_DOMAIN: ${{ vars.ENSO_CLOUD_COGNITO_DOMAIN }}
+          ENSO_CLOUD_COGNITO_REGION: ${{ vars.ENSO_CLOUD_COGNITO_REGION }}
+          ENSO_CLOUD_COGNITO_USER_POOL_ID: ${{ vars.ENSO_CLOUD_COGNITO_USER_POOL_ID }}
+          ENSO_CLOUD_COGNITO_USER_POOL_WEB_CLIENT_ID: ${{ vars.ENSO_CLOUD_COGNITO_USER_POOL_WEB_CLIENT_ID }}
+          ENSO_CLOUD_ENVIRONMENT: ${{ vars.ENSO_CLOUD_ENVIRONMENT }}
+          ENSO_CLOUD_REDIRECT: ${{ vars.ENSO_CLOUD_REDIRECT }}
+          ENSO_CLOUD_SENTRY_DSN: ${{ vars.ENSO_CLOUD_SENTRY_DSN }}
+          ENSO_CLOUD_STRIPE_KEY: ${{ vars.ENSO_CLOUD_STRIPE_KEY }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VITE_ENSO_AG_GRID_LICENSE_KEY: ${{ vars.ENSO_AG_GRID_LICENSE_KEY }}
+          VITE_ENSO_MAPBOX_API_TOKEN: ${{ vars.ENSO_MAPBOX_API_TOKEN }}
           WIN_CSC_KEY_PASSWORD: ${{ secrets.MICROSOFT_CODE_SIGNING_CERT_PASSWORD }}
           WIN_CSC_LINK: ${{ secrets.MICROSOFT_CODE_SIGNING_CERT }}
       - if: failure() && runner.os == 'Windows'
@@ -622,56 +499,7 @@ jobs:
       - if: failure() && runner.os != 'Windows'
         name: List files if failed (non-Windows)
         run: ls -lAR
-      - if: "always() && contains(github.event.pull_request.labels.*.name, 'CI: Clean build required')"
-        name: Clean after
-        run: ./run git-clean
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-  enso-build-ci-gen-job-wasm-test-linux-x86_64:
-    name: WASM GUI tests (linux, x86_64)
-    runs-on:
-      - self-hosted
-      - Linux
-    steps:
-      - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
-        name: Setup conda (GH runners only)
-        uses: s-weigand/setup-conda@v1.2.1
-        with:
-          update-conda: false
-          conda-channels: anaconda, conda-forge
-      - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
-        name: Installing wasm-pack
-        uses: jetli/wasm-pack-action@v0.4.0
-        with:
-          version: v0.10.2
-      - name: Expose Artifact API and context information.
-        uses: actions/github-script@v7
-        with:
-          script: "\n    core.exportVariable(\"ACTIONS_RUNTIME_TOKEN\", process.env[\"ACTIONS_RUNTIME_TOKEN\"])\n    core.exportVariable(\"ACTIONS_RUNTIME_URL\", process.env[\"ACTIONS_RUNTIME_URL\"])\n    core.exportVariable(\"GITHUB_RETENTION_DAYS\", process.env[\"GITHUB_RETENTION_DAYS\"])\n    console.log(context)\n    "
-      - name: Checking out the repository
-        uses: actions/checkout@v4
-        with:
-          clean: false
-          submodules: recursive
-      - name: Build Script Setup
-        run: ./run --help
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - if: "contains(github.event.pull_request.labels.*.name, 'CI: Clean build required')"
-        name: Clean before
-        run: ./run git-clean
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - run: ./run wasm test --no-native
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - if: failure() && runner.os == 'Windows'
-        name: List files if failed (Windows)
-        run: Get-ChildItem -Force -Recurse
-      - if: failure() && runner.os != 'Windows'
-        name: List files if failed (non-Windows)
-        run: ls -lAR
-      - if: "always() && contains(github.event.pull_request.labels.*.name, 'CI: Clean build required')"
+      - if: "(always()) && (contains(github.event.pull_request.labels.*.name, 'CI: Clean build required') || inputs.clean_build_required)"
         name: Clean after
         run: ./run git-clean
         env:

@@ -45,13 +45,16 @@ import org.enso.compiler.data.BindingsMap.{
 }
 import org.enso.compiler.data.{BindingsMap, CompilerConfig}
 import org.enso.compiler.exception.BadPatternMatch
-import org.enso.compiler.pass.analyse.AliasAnalysis.Graph.{Scope => AliasScope}
-import org.enso.compiler.pass.analyse.AliasAnalysis.{Graph => AliasGraph}
+import org.enso.compiler.pass.analyse.alias.Graph.{Scope => AliasScope}
 import org.enso.compiler.pass.analyse.{
   AliasAnalysis,
   BindingAnalysis,
   DataflowAnalysis,
   TailCall
+}
+import org.enso.compiler.pass.analyse.alias.{
+  Graph => AliasGraph,
+  Info => AliasInfo
 }
 import org.enso.compiler.pass.resolve.{
   ExpressionAnnotations,
@@ -90,7 +93,7 @@ import org.enso.interpreter.node.{
 }
 import org.enso.interpreter.runtime.EnsoContext
 import org.enso.interpreter.runtime.callable
-import org.enso.interpreter.runtime.callable.argument.{ArgumentDefinition}
+import org.enso.interpreter.runtime.callable.argument.ArgumentDefinition
 import org.enso.interpreter.runtime.data.atom.{Atom, AtomConstructor}
 import org.enso.interpreter.runtime.callable.function.{
   FunctionSchema,
@@ -103,7 +106,7 @@ import org.enso.interpreter.runtime.callable.{
 }
 import org.enso.interpreter.runtime.data.Type
 import org.enso.interpreter.runtime.data.text.Text
-import org.enso.interpreter.runtime.scope.{ModuleScope}
+import org.enso.interpreter.runtime.scope.ModuleScope
 import org.enso.interpreter.{Constants, EnsoLanguage}
 
 import java.math.BigInteger
@@ -258,7 +261,7 @@ class IrToTruffle(
               AliasAnalysis,
               "No root scope on an atom definition."
             )
-            .unsafeAs[AliasAnalysis.Info.Scope.Root]
+            .unsafeAs[AliasInfo.Scope.Root]
 
           val dataflowInfo = atomDefn.unsafeGetMetadata(
             DataflowAnalysis,
@@ -289,7 +292,7 @@ class IrToTruffle(
                 AliasAnalysis,
                 "No occurrence on an argument definition."
               )
-              .unsafeAs[AliasAnalysis.Info.Occurrence]
+              .unsafeAs[AliasInfo.Occurrence]
             val slotIdx = localScope.getVarSlotIdx(occInfo.id)
             argDefs(idx) = arg
             val readArg =
@@ -358,7 +361,7 @@ class IrToTruffle(
           s"Missing scope information for method " +
           s"`${methodDef.typeName.map(_.name + ".").getOrElse("")}${methodDef.methodName.name}`."
         )
-        .unsafeAs[AliasAnalysis.Info.Scope.Root]
+        .unsafeAs[AliasInfo.Scope.Root]
       val dataflowInfo = methodDef.unsafeGetMetadata(
         DataflowAnalysis,
         "Method definition missing dataflow information."
@@ -540,7 +543,7 @@ class IrToTruffle(
                     true
                   )
 
-                val operators = ".!$%&*+-/<>?^~\\"
+                val operators = ".!$%&*+-/<>?^~\\="
                 def isOperator(n: Name): Boolean = {
                   n.name
                     .chars()
@@ -594,7 +597,7 @@ class IrToTruffle(
                               scopeElements.init
                                 .mkString(Constants.SCOPE_SEPARATOR)
                             )
-                            .unsafeAs[AliasAnalysis.Info.Scope.Root]
+                            .unsafeAs[AliasInfo.Scope.Root]
                           val dataflowInfo = annotation.unsafeGetMetadata(
                             DataflowAnalysis,
                             "Missing dataflow information for annotation " +
@@ -671,7 +674,7 @@ class IrToTruffle(
           s"Missing scope information for conversion " +
           s"`${methodDef.typeName.map(_.name + ".").getOrElse("")}${methodDef.methodName.name}`."
         )
-        .unsafeAs[AliasAnalysis.Info.Scope.Root]
+        .unsafeAs[AliasInfo.Scope.Root]
       val dataflowInfo = methodDef.unsafeGetMetadata(
         DataflowAnalysis,
         "Method definition missing dataflow information."
@@ -1121,7 +1124,7 @@ class IrToTruffle(
             AliasAnalysis,
             "Missing scope information on block."
           )
-          .unsafeAs[AliasAnalysis.Info.Scope.Child]
+          .unsafeAs[AliasInfo.Scope.Child]
 
         val childFactory = this.createChild("suspended-block", scopeInfo.scope)
         val childScope   = childFactory.scope
@@ -1231,7 +1234,7 @@ class IrToTruffle(
           AliasAnalysis,
           "No scope information on a case branch."
         )
-        .unsafeAs[AliasAnalysis.Info.Scope.Child]
+        .unsafeAs[AliasInfo.Scope.Child]
 
       val childProcessor = this.createChild("case_branch", scopeInfo.scope)
 
@@ -1600,7 +1603,7 @@ class IrToTruffle(
           AliasAnalysis,
           "Binding with missing occurrence information."
         )
-        .unsafeAs[AliasAnalysis.Info.Occurrence]
+        .unsafeAs[AliasInfo.Occurrence]
 
       currentVarName = binding.name.name
 
@@ -1624,7 +1627,7 @@ class IrToTruffle(
     ): RuntimeExpression = {
       val scopeInfo = function
         .unsafeGetMetadata(AliasAnalysis, "No scope info on a function.")
-        .unsafeAs[AliasAnalysis.Info.Scope.Child]
+        .unsafeAs[AliasInfo.Scope.Child]
 
       if (function.body.isInstanceOf[Function]) {
         throw new CompilerError(
@@ -1664,7 +1667,7 @@ class IrToTruffle(
               AliasAnalysis,
               "No occurrence on variable usage."
             )
-            .unsafeAs[AliasAnalysis.Info.Occurrence]
+            .unsafeAs[AliasInfo.Occurrence]
 
           val framePointer = scope.getFramePointer(useInfo.id)
           val global       = name.getMetadata(GlobalNames)
@@ -1680,6 +1683,14 @@ class IrToTruffle(
               UnresolvedSymbol.build(nameStr, moduleScope)
             )
           }
+        case Name.MethodReference(
+              None,
+              Name.Literal(nameStr, _, _, _, _, _),
+              _,
+              _,
+              _
+            ) =>
+          DynamicSymbolNode.buildUnresolvedConstructor(nameStr)
         case Name.Self(location, _, passData, _) =>
           processName(
             Name.Literal(
@@ -1714,10 +1725,6 @@ class IrToTruffle(
         case _: Name.Blank =>
           throw new CompilerError(
             "Blanks should not be present at codegen time."
-          )
-        case _: Name.MethodReference =>
-          throw new CompilerError(
-            "Method references should not be present at codegen time."
           )
         case _: Name.Qualified =>
           throw new CompilerError(
@@ -1909,6 +1916,7 @@ class IrToTruffle(
           case Foreign.Definition(lang, code, _, _, _) =>
             buildForeignBody(
               lang,
+              body.location,
               code,
               arguments.map(_.name.name),
               argSlotIdxs
@@ -1938,7 +1946,7 @@ class IrToTruffle(
                 AliasAnalysis,
                 "No occurrence on an argument definition."
               )
-              .unsafeAs[AliasAnalysis.Info.Occurrence]
+              .unsafeAs[AliasInfo.Occurrence]
 
             val slotIdx = scope.getVarSlotIdx(occInfo.id)
             val readArg =
@@ -1970,12 +1978,18 @@ class IrToTruffle(
 
     private def buildForeignBody(
       language: String,
+      location: Option[IdentifiedLocation],
       code: String,
       argumentNames: List[String],
       argumentSlotIdxs: List[Int]
     ): RuntimeExpression = {
-      val src =
-        Source.newBuilder("epb", language + "#" + code, scopeName).build()
+      val line = location
+        .map(l => source.createSection(l.start, l.length).getStartLine())
+        .getOrElse(0)
+      val name = scopeName.replace('.', '_') + "." + language
+      val b    = Source.newBuilder("epb", language + ":" + line + "#" + code, name)
+      b.uri(source.getURI())
+      val src       = b.build()
       val foreignCt = context.parseInternal(src, argumentNames: _*)
       val argumentReaders = argumentSlotIdxs
         .map(slotIdx =>
@@ -2162,7 +2176,7 @@ class IrToTruffle(
               AliasAnalysis,
               "No scope attached to a call argument."
             )
-            .unsafeAs[AliasAnalysis.Info.Scope.Child]
+            .unsafeAs[AliasInfo.Scope.Child]
 
           val shouldCreateClosureRootNode = value match {
             case _: Name           => false

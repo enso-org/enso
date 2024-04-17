@@ -239,6 +239,7 @@ object NativeImage {
       // commands running in parallel and the output is intertwined.
       val sb = new StringBuilder
       val processLogger = ProcessLogger(str => {
+        log.info(str)
         sb.append(str + System.lineSeparator())
       })
       log.info(

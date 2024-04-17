@@ -20,11 +20,11 @@ const STRING_TO_BOOLEAN: Record<string, boolean> = {
  * a string 'true', 'false', '1', or '0', it is converted to a boolean value. Otherwise, null is
  * returned. */
 function parseBoolean(value: unknown): boolean | null {
-  return typeof value === 'boolean'
-    ? value
-    : typeof value === 'string'
-    ? STRING_TO_BOOLEAN[value] ?? null
+  return (
+    typeof value === 'boolean' ? value
+    : typeof value === 'string' ? STRING_TO_BOOLEAN[value] ?? null
     : null
+  )
 }
 
 export interface StringConfig {
@@ -69,12 +69,12 @@ export interface Group<T = Required<RawGroup>> extends Config<T> {
 }
 
 export interface Config<T = Required<RawConfig>> {
-  options: T extends { options: infer Options extends object }
-    ? { [K in keyof Options]: Option<Options[K]> }
-    : {}
-  groups: T extends { groups: infer Groups extends object }
-    ? { [K in keyof Groups]: Group<Groups[K]> }
-    : {}
+  options: T extends { options: infer Options extends object } ?
+    { [K in keyof Options]: Option<Options[K]> }
+  : {}
+  groups: T extends { groups: infer Groups extends object } ?
+    { [K in keyof Groups]: Group<Groups[K]> }
+  : {}
 }
 
 function loadOption<T>(option: T): Option<T> {
@@ -87,12 +87,14 @@ function loadOption<T>(option: T): Option<T> {
     description: String(obj.description ?? ''),
     defaultDescription: obj.defaultDescription != null ? String(obj.defaultDescription) : undefined,
     value:
-      typeof value === 'string' ||
-      typeof value === 'number' ||
-      typeof value === 'boolean' ||
-      (Array.isArray(value) && value.every((item) => typeof item === 'string'))
-        ? value
-        : '',
+      (
+        typeof value === 'string' ||
+        typeof value === 'number' ||
+        typeof value === 'boolean' ||
+        (Array.isArray(value) && value.every((item) => typeof item === 'string'))
+      ) ?
+        value
+      : '',
     primary: Boolean(obj.primary ?? true),
   } satisfies Option<RawOption> as any
 }
@@ -111,13 +113,13 @@ export function loadConfig<T>(config: T): Config<T> {
   }
   return {
     options:
-      'options' in config && typeof config.options === 'object' && config.options != null
-        ? Object.fromEntries(Object.entries(config.options).map(([k, v]) => [k, loadOption(v)]))
-        : {},
+      'options' in config && typeof config.options === 'object' && config.options != null ?
+        Object.fromEntries(Object.entries(config.options).map(([k, v]) => [k, loadOption(v)]))
+      : {},
     groups:
-      'groups' in config && typeof config.groups === 'object' && config.groups != null
-        ? Object.fromEntries(Object.entries(config.groups).map(([k, v]) => [k, loadGroup(v)]))
-        : {},
+      'groups' in config && typeof config.groups === 'object' && config.groups != null ?
+        Object.fromEntries(Object.entries(config.groups).map(([k, v]) => [k, loadGroup(v)]))
+      : {},
   } satisfies Config as any
 }
 
@@ -143,13 +145,10 @@ export type ConfigValue<T extends Config<any> = Config> = ConfigOptionValues<T> 
   ConfigGroupValues<T>
 
 export function configValue<T extends Config<any>>(config: T): ConfigValue<T> {
-  // The object may be undefined if we pass an incomplete `ApplicationConfigValue` to `provideGuiConfig._mock`.
-  const options = config.options ?? {}
-  const groups = config.groups ?? {}
   return Object.fromEntries([
-    ...Object.entries(options).map(([k, v]) => [k, optionValue(v as Option)]),
-    ...Object.entries(groups).map(([k, v]) => [k, groupValue(v as Group)]),
-  ]) satisfies ConfigValue as any
+    ...Object.entries(config.options).map(([k, v]) => [k, optionValue(v as Option)]),
+    ...Object.entries(config.groups).map(([k, v]) => [k, groupValue(v as Group)]),
+  ])
 }
 
 interface MergeOptions {

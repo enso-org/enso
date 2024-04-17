@@ -1,0 +1,49 @@
+from Standard.Base import all
+import Standard.Base.Data.Array_Proxy.Array_Proxy
+import Standard.Base.Metadata.Display
+from Standard.Base.Metadata import make_single_choice, Widget
+from Standard.Base.Metadata.Widget import Single_Choice, Vector_Editor
+from Standard.Table import Table
+
+polyglot java import com.google.api.client.googleapis.auth.oauth2.GoogleCredential
+polyglot java import com.google.api.client.googleapis.javanet.GoogleNetHttpTransport
+polyglot java import com.google.api.client.json.gson.GsonFactory
+polyglot java import com.google.api.services.sheets.v4.Sheets
+polyglot java import com.google.api.services.sheets.v4.SheetsScopes
+polyglot java import java.util.Collections
+
+type Google_Sheets
+    ## PRIVATE
+    Service java_service
+
+    ## Initializes the Google Sheets instance using the given credentials file.
+
+       Arguments:
+       - secret_file: a file containing Google Service Account credentials to use to
+         access Google services. The credentials file can be downloaded from the
+         Google Admin Console when generating a key.
+    initialize : File -> Google_Sheets
+    initialize secret_file =
+        app_name = 'Enso'
+        credential = secret_file.with_input_stream [File_Access.Read] stream->
+            stream.with_java_stream is->
+                GoogleCredential.fromStream is . createScoped (Collections.singleton SheetsScopes.SPREADSHEETS)
+        http_transport = GoogleNetHttpTransport.newTrustedTransport
+        json_factory = GsonFactory.getDefaultInstance
+        service = Sheets.Builder.new http_transport json_factory credential . setApplicationName app_name . build
+        Google_Sheets.Service service
+
+    ## Gets a table with the given ID and sheet range.
+
+       Arguments:
+       - sheet_id: the ID of the downloaded spreadsheet. It can be read from the
+         spreadsheet URL.
+       - sheet_range: specifies the sheet and cell range to read, e.g.
+         `'Sheet1!A1:B7'`.
+    get_table : Text -> Text -> Table
+    get_table self sheet_id sheet_range =
+        request = self.java_service.spreadsheets.values.get sheet_id sheet_range . setMajorDimension 'COLUMNS' . setValueRenderOption 'UNFORMATTED_VALUE'
+        response = request.execute
+        values = Vector.from_polyglot_array response.getValues
+        columned = values.map v-> [v.first, v.drop 1]
+        Table.new columned

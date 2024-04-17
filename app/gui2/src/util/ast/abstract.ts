@@ -1,13 +1,25 @@
-import { parseEnso } from '@/util/ast'
-import type { AstId, MutableAst, NodeKey, Owned, TokenId, TokenKey } from 'shared/ast'
+import { normalizeQualifiedName, qnFromSegments } from '@/util/qualifiedName'
+import type {
+  AstId,
+  IdentifierOrOperatorIdentifier,
+  MutableAst,
+  NodeKey,
+  Owned,
+  QualifiedName,
+  TokenId,
+  TokenKey,
+} from 'shared/ast'
 import {
   Ast,
   BodyBlock,
   Function,
+  Ident,
   MutableBodyBlock,
   MutableModule,
+  NumericLiteral,
+  OprApp,
+  PropertyAccess,
   Token,
-  abstract,
   isTokenId,
   print,
 } from 'shared/ast'
@@ -15,13 +27,9 @@ export * from 'shared/ast'
 
 export function deserialize(serialized: string): Owned {
   const parsed: SerializedPrintedSource = JSON.parse(serialized)
-  const module = MutableModule.Transient()
-  const tree = parseEnso(parsed.code)
-  const ast = abstract(module, tree, parsed.code)
-  // const nodes = new Map(unsafeEntries(parsed.info.nodes))
-  // const tokens = new Map(unsafeEntries(parsed.info.tokens))
-  // TODO: ast <- nodes,tokens
-  return ast.root
+  // Not implemented: restoring serialized external IDs. This is not the best approach anyway;
+  // Y.Js can't merge edits to objects when they're being serialized and deserialized.
+  return Ast.parse(parsed.code)
 }
 
 interface SerializedInfoMap {
@@ -98,6 +106,103 @@ export function deleteFromParentBlock(ast: MutableAst) {
   const parent = ast.mutableParent()
   if (parent instanceof MutableBodyBlock)
     parent.updateLines((lines) => lines.filter((line) => line.expression?.node.id !== ast.id))
+}
+
+/** If the input is a chain of applications of the given left-associative operator, and all the leaves of the
+ *  operator-application tree are identifier expressions, return the identifiers from left to right.
+ *  This is analogous to `ast.code().split(operator)`, but type-enforcing.
+ */
+export function unrollOprChain(
+  ast: Ast,
+  leftAssociativeOperator: string,
+): IdentifierOrOperatorIdentifier[] | null {
+  const idents: IdentifierOrOperatorIdentifier[] = []
+  let ast_: Ast | undefined = ast
+  while (
+    ast_ instanceof OprApp &&
+    ast_.operator.ok &&
+    ast_.operator.value.code() === leftAssociativeOperator
+  ) {
+    if (!(ast_.rhs instanceof Ident)) return null
+    idents.unshift(ast_.rhs.code())
+    ast_ = ast_.lhs
+  }
+  if (!(ast_ instanceof Ident)) return null
+  idents.unshift(ast_.code())
+  return idents
+}
+
+/** If the input is a chain of property accesses (uses of the `.` operator with a syntactic identifier on the RHS), and
+ *  the value at the beginning of the sequence is an identifier expression, return all the identifiers from left to
+ *  right. This is analogous to `ast.code().split('.')`, but type-enforcing.
+ */
+export function unrollPropertyAccess(ast: Ast): IdentifierOrOperatorIdentifier[] | null {
+  const idents: IdentifierOrOperatorIdentifier[] = []
+  let ast_: Ast | undefined = ast
+  while (ast_ instanceof PropertyAccess) {
+    idents.unshift(ast_.rhs.code())
+    ast_ = ast_.lhs
+  }
+  if (!(ast_ instanceof Ident)) return null
+  idents.unshift(ast_.code())
+  return idents
+}
+
+export function parseIdent(ast: Ast): IdentifierOrOperatorIdentifier | null {
+  if (ast instanceof Ident) {
+    return ast.code()
+  } else {
+    return null
+  }
+}
+
+export function parseIdents(ast: Ast): IdentifierOrOperatorIdentifier[] | null {
+  return unrollOprChain(ast, ',')
+}
+
+export function parseQualifiedName(ast: Ast): QualifiedName | null {
+  const idents = unrollPropertyAccess(ast)
+  return idents && normalizeQualifiedName(qnFromSegments(idents))
+}
+
+/* Substitute `pattern` inside `expression` with `to`.
+ * Replaces identifier, the whole qualified name, or the beginning of the qualified name (first segments of property access chain). */
+export function substituteQualifiedName(
+  module: MutableModule,
+  expression: Ast,
+  pattern: QualifiedName | IdentifierOrOperatorIdentifier,
+  to: QualifiedName,
+) {
+  const expr = module.getVersion(expression) ?? expression
+  if (expr instanceof PropertyAccess || expr instanceof Ident) {
+    const qn = parseQualifiedName(expr)
+    if (qn === pattern) {
+      expr.updateValue(() => Ast.parse(to, module))
+    } else if (qn && qn.startsWith(pattern)) {
+      const withoutPattern = qn.replace(pattern, '')
+      expr.updateValue(() => Ast.parse(to + withoutPattern, module))
+    }
+  } else {
+    for (const child of expr.children()) {
+      if (child instanceof Token) {
+        continue
+      }
+      substituteQualifiedName(module, child, pattern, to)
+    }
+  }
+}
+
+/** Try to convert the number to an Enso value.
+ *
+ *  Returns `undefined` if the input is not a real number. NOTE: The current implementation doesn't support numbers that
+ *  JS prints in scientific notation.
+ */
+export function tryNumberToEnso(value: number, module: MutableModule) {
+  if (!Number.isFinite(value)) return
+  const literal = NumericLiteral.tryParse(value.toString(), module)
+  if (!literal)
+    console.warn(`Not implemented: Converting scientific-notation number to Enso value`, value)
+  return literal
 }
 
 declare const tokenKey: unique symbol

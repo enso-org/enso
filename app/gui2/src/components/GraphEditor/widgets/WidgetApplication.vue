@@ -1,11 +1,14 @@
 <script setup lang="ts">
 import NodeWidget from '@/components/GraphEditor/NodeWidget.vue'
+import SizeTransition from '@/components/SizeTransition.vue'
 import { WidgetInput, defineWidget, widgetProps } from '@/providers/widgetRegistry'
+import { injectWidgetTree } from '@/providers/widgetTree'
 import { Ast } from '@/util/ast'
 import { ArgumentApplication, ArgumentApplicationKey } from '@/util/callTree'
 import { computed } from 'vue'
 
 const props = defineProps(widgetProps(widgetDefinition))
+const tree = injectWidgetTree()
 const application = computed(() => props.input[ArgumentApplicationKey])
 const targetMaybePort = computed(() => {
   const target = application.value.target
@@ -34,9 +37,13 @@ const operatorStyle = computed(() => {
 </script>
 
 <script lang="ts">
-export const widgetDefinition = defineWidget(ArgumentApplicationKey, {
-  priority: -20,
-})
+export const widgetDefinition = defineWidget(
+  ArgumentApplicationKey,
+  {
+    priority: -20,
+  },
+  import.meta.hot,
+)
 </script>
 
 <template>
@@ -45,11 +52,15 @@ export const widgetDefinition = defineWidget(ArgumentApplicationKey, {
     <div v-if="application.infixOperator" class="infixOp" :style="operatorStyle">
       <NodeWidget :input="WidgetInput.FromAst(application.infixOperator)" />
     </div>
-    <NodeWidget :input="application.argument.toWidgetInput()" nest />
+    <SizeTransition width leftGap>
+      <div v-if="tree.extended || !application.argument.hideByDefault" class="argument">
+        <NodeWidget :input="application.argument.toWidgetInput()" nest />
+      </div>
+    </SizeTransition>
   </span>
 </template>
 
-<style>
+<style scoped>
 .WidgetApplication {
   display: flex;
   align-items: center;
@@ -74,5 +85,11 @@ export const widgetDefinition = defineWidget(ArgumentApplicationKey, {
     display: inline;
     white-space: pre;
   }
+}
+
+.argument {
+  display: flex;
+  flex-direction: row;
+  place-items: center;
 }
 </style>

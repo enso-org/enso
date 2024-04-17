@@ -11,7 +11,10 @@ import java.util.concurrent.Semaphore;
 import java.util.stream.Stream;
 import org.enso.shttp.auth.BasicAuthTestHandler;
 import org.enso.shttp.auth.TokenAuthTestHandler;
+import org.enso.shttp.cloud_mock.CloudAuthRenew;
 import org.enso.shttp.cloud_mock.CloudRoot;
+import org.enso.shttp.cloud_mock.ExpiredTokensCounter;
+import org.enso.shttp.test_helpers.*;
 import sun.misc.Signal;
 import sun.misc.SignalHandler;
 
@@ -24,31 +27,34 @@ public class HTTPTestHelperServer {
     }
     String host = args[0];
     int port = Integer.parseInt(args[1]);
-    Semaphore stopNotification = new Semaphore(0, false);
+    final Semaphore stopNotification = new Semaphore(0, false);
     HybridHTTPServer server = null;
     try {
       server = createServer(host, port, null, true);
-      final HybridHTTPServer server1 = server;
-      SignalHandler stopServerHandler =
-          (Signal sig) -> {
-            System.out.println("Stopping server... (SIG" + sig.getName() + ")");
-            server1.stop();
-          };
-      for (String signalName : List.of("TERM", "INT")) {
-        Signal.handle(new Signal(signalName), stopServerHandler);
-      }
-      server.start();
-      // Make sure the execution is blocked until the process is interrupted.
-      stopNotification.acquire();
     } catch (URISyntaxException | IOException e) {
       e.printStackTrace();
+      System.exit(1);
+    }
+
+    SignalHandler stopServerHandler =
+        (Signal sig) -> {
+          System.out.println("Stopping server... (SIG" + sig.getName() + ")");
+          stopNotification.release();
+        };
+    for (String signalName : List.of("TERM", "INT")) {
+      Signal.handle(new Signal(signalName), stopServerHandler);
+    }
+
+    server.start();
+
+    try {
+      // Make sure the main thread is blocked for as long as the server is running.
+      stopNotification.acquire();
     } catch (InterruptedException e) {
-      System.out.println("Server interrupted");
+      System.out.println(
+          "Server main thread was unexpectedly interrupted. The server will now stop.");
     } finally {
-      stopNotification.release();
-      if (server != null) {
-        server.stop();
-      }
+      server.stop();
     }
   }
 
@@ -76,13 +82,24 @@ public class HTTPTestHelperServer {
       server.addHandler(path, new TestHandler(method));
     }
 
+    // HTTP helpers
+    setupFileServer(server, projectRoot);
     server.addHandler("/test_headers", new HeaderTestHandler());
     server.addHandler("/test_token_auth", new TokenAuthTestHandler());
     server.addHandler("/test_basic_auth", new BasicAuthTestHandler());
     server.addHandler("/crash", new CrashingTestHandler());
-    CloudRoot cloudRoot = new CloudRoot();
+    server.addHandler("/test_redirect", new RedirectTestHandler("/testfiles/js.txt"));
+
+    // Cloud mock
+    var expiredTokensCounter = new ExpiredTokensCounter();
+    server.addHandler("/COUNT-EXPIRED-TOKEN-FAILURES", expiredTokensCounter);
+    CloudRoot cloudRoot = new CloudRoot(expiredTokensCounter);
     server.addHandler(cloudRoot.prefix, cloudRoot);
-    setupFileServer(server, projectRoot);
+    server.addHandler("/enso-cloud-auth-renew", new CloudAuthRenew());
+
+    // Data link helpers
+    server.addHandler("/dynamic-datalink", new GenerateDataLinkHandler(true));
+    server.addHandler("/dynamic.datalink", new GenerateDataLinkHandler(false));
   }
 
   private static void setupFileServer(HybridHTTPServer server, Path projectRoot) {

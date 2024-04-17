@@ -27,6 +27,7 @@ import project.Data.Array_Polyglot_Spec
 import project.Data.Array_Proxy_Spec
 import project.Data.Bool_Spec
 import project.Data.Base_64_Spec
+import project.Data.Decimal_Spec
 import project.Data.Function_Spec
 import project.Data.Interval_Spec
 import project.Data.Json_Spec
@@ -65,6 +66,7 @@ import project.Network.Enso_Cloud.Main as Enso_Cloud_Main
 import project.Network.Http.Header_Spec as Http_Header_Spec
 import project.Network.Http.Request_Spec as Http_Request_Spec
 import project.Network.Http.Http_Auto_Parse_Spec
+import project.Network.Http.Http_Data_Link_Spec
 import project.Network.Http_Spec
 import project.Network.URI_Spec
 
@@ -112,6 +114,7 @@ main filter=Nothing =
         Http_Request_Spec.add_specs suite_builder
         Http_Spec.add_specs suite_builder
         Http_Auto_Parse_Spec.add_specs suite_builder
+        Http_Data_Link_Spec.add_specs suite_builder
         Enso_Cloud_Main.add_specs suite_builder
         Import_Loop_Spec.add_specs suite_builder
         Interval_Spec.add_specs suite_builder
@@ -168,5 +171,6 @@ main filter=Nothing =
         System_Spec.add_specs suite_builder
         Random_Spec.add_specs suite_builder
         XML_Spec.add_specs suite_builder
+        Decimal_Spec.add_specs suite_builder
 
     suite.run_with_filter filter

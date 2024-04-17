@@ -16,7 +16,7 @@ pub fn open(path: impl AsRef<Path>) -> Result<ZipArchive<std::fs::File>> {
 
 #[context("Failed to extract in-memory archive to {}.", output_dir.as_ref().display())]
 pub fn extract_bytes(bytes: Bytes, output_dir: impl AsRef<Path>) -> Result {
-    let mut archive = zip::ZipArchive::new(Cursor::new(&bytes))?;
+    let mut archive = ZipArchive::new(Cursor::new(&bytes))?;
     archive.extract(&output_dir)?;
     Ok(())
 }

@@ -1,0 +1,185 @@
+private
+
+import project.Data.Json.Invalid_JSON
+import project.Data.Json.JS_Object
+import project.Data.Numbers.Integer
+import project.Data.Text.Text
+import project.Data.Time.Date_Time.Date_Time
+import project.Data.Time.Date_Time_Formatter.Date_Time_Formatter
+import project.Data.Time.Duration.Duration
+import project.Data.Time.Time_Zone.Time_Zone
+import project.Enso_Cloud.Errors.Cloud_Session_Expired
+import project.Enso_Cloud.Errors.Enso_Cloud_Error
+import project.Enso_Cloud.Errors.Not_Logged_In
+import project.Errors.File_Error.File_Error
+import project.Errors.Illegal_State.Illegal_State
+import project.Errors.Time_Error.Time_Error
+import project.Meta
+import project.Network.HTTP.Header.Header
+import project.Network.HTTP.HTTP
+import project.Network.HTTP.HTTP_Error.HTTP_Error
+import project.Network.HTTP.HTTP_Method.HTTP_Method
+import project.Network.HTTP.HTTP_Status_Code.HTTP_Status_Code
+import project.Network.HTTP.Request.Request
+import project.Network.HTTP.Request_Body.Request_Body
+import project.Network.HTTP.Request_Error
+import project.Network.HTTP.Response.Response
+import project.Network.URI.URI
+import project.Nothing.Nothing
+import project.Panic.Panic
+import project.Runtime.Context
+import project.Runtime.Ref.Ref
+import project.System.Environment
+import project.System.File.File
+from project.Data.Boolean import Boolean, False, True
+from project.Data.Text.Extensions import all
+from project.Enso_Cloud.Public_Utils import get_required_field
+
+polyglot java import org.enso.base.enso_cloud.AuthenticationProvider
+
+## PRIVATE
+   Returns an access token for the current user, that should be valid for
+   at least 2 more minutes.
+
+   If the current token is expired or <2m from expiration, it will be refreshed
+   and a new one will be returned. Because of that, this method may make network
+   requests.
+get_access_token : Text
+get_access_token = AuthenticationProvider.getAccessToken
+
+## PRIVATE
+   Forcibly refreshes the access token.
+refresh_access_token : Nothing
+refresh_access_token =
+    AuthenticationProvider.getAuthenticationServiceEnsoInstance.force_refresh
+
+## PRIVATE
+credentials_file : File
+credentials_file = case Environment.get "ENSO_CLOUD_CREDENTIALS_FILE" of
+    Nothing -> File.home / ".enso" / "credentials"
+    path -> File.new path
+
+## PRIVATE
+type Authentication_Service
+    ## PRIVATE
+    Instance (auth_data : Ref Authentication_Data)
+
+    ## PRIVATE
+    get_access_token self -> Text =
+        is_still_valid = self.auth_data.get.expire_at > (Date_Time.now + token_early_refresh_period)
+        if is_still_valid then self.auth_data.get.access_token else
+            # The token has expired or will expire soon, so we need to refresh it.
+            self.force_refresh
+            self.auth_data.get.access_token
+
+    ## PRIVATE
+       Refreshes the access token using the refresh token, regardless of its freshness.
+    force_refresh self -> Nothing =
+        refresh_token_data = Refresh_Token_Data.read_from_credentials
+        new_auth_data = refresh_token_data.fetch_new_access_token
+        Panic.rethrow <| self.auth_data.put new_auth_data
+        Nothing
+
+    ## PRIVATE
+    new -> Authentication_Service =
+        initial_data = Authentication_Data.read_from_credentials
+        Authentication_Service.Instance (Ref.new initial_data)
+
+## PRIVATE
+   The method called from Java that creates a new instance of the service, to be
+   stored in the global state.
+instantiate_authentication_service =
+    # We rethrow any dataflow errors, because this is fed back to Java code that only understands exceptions (panics).
+    Panic.rethrow <|
+        Authentication_Service.new
+
+## PRIVATE
+type Authentication_Data
+    ## PRIVATE
+    Value access_token:Text expire_at:Date_Time
+
+    ## PRIVATE
+    read_from_credentials -> Authentication_Data =
+        content = credentials_file.read_text . catch File_Error error-> case error of
+            File_Error.Not_Found _ -> Panic.throw Not_Logged_In.Error
+            _ -> Panic.throw (Illegal_State.Error "Failed to read credentials file: "+error.to_display_text cause=error)
+        invalid_format_prefix = "Invalid credentials file format: "
+        as_json = content.parse_json.catch Invalid_JSON error->
+            Panic.throw (Illegal_State.Error invalid_format_prefix+error.to_display_text cause=error)
+        get_field = file_get_required_string_field as_json invalid_format_prefix
+        token = get_field "access_token"
+        expiration_date_string = get_field "expire_at"
+        expiration_date = Date_Time.parse expiration_date_string format=Date_Time_Formatter.iso_zoned_date_time . catch Time_Error error->
+            Panic.throw (Illegal_State.Error invalid_format_prefix+"invalid date format in `expire_at` field: "+error.to_display_text cause=error)
+        Authentication_Data.Value access_token=token expire_at=expiration_date
+
+## PRIVATE
+type Refresh_Token_Data
+    ## PRIVATE
+    Value client_id:Text refresh_url:Text refresh_token:Text
+
+    ## PRIVATE
+    read_from_credentials -> Refresh_Token_Data =
+        content = credentials_file.read_text . catch File_Error error->
+            Panic.throw (Illegal_State.Error "Token refresh failed - cannot read credentials file: "+error.to_display_text cause=error)
+        as_json = content.parse_json.catch Invalid_JSON error->
+            Panic.throw (Illegal_State.Error "Token refresh failed due to invalid credentials file format: "+error.to_display_text cause=error)
+
+        get_field = file_get_required_string_field as_json "Token refresh failed due to invalid credentials file format: "
+        client_id = get_field "client_id"
+        refresh_url = get_field "refresh_url"
+        refresh_token = get_field "refresh_token"
+        Refresh_Token_Data.Value client_id=client_id refresh_url=refresh_url refresh_token=refresh_token
+
+    ## PRIVATE
+    fetch_new_access_token self -> Authentication_Data =
+        headers = [Header.content_type "application/x-amz-json-1.1", Header.new "X-Amz-Target" "AWSCognitoIdentityProviderService.InitiateAuth"]
+        auth_parameters = JS_Object.from_pairs [["REFRESH_TOKEN", self.refresh_token], ["DEVICE_KEY", Nothing]]
+        payload = JS_Object.from_pairs [["ClientId", self.client_id], ["AuthFlow", "REFRESH_TOKEN_AUTH"], ["AuthParameters", auth_parameters]]
+        response = Context.Output.with_enabled <| HTTP.post self.refresh_url body=(Request_Body.Json payload) headers=headers
+            . catch HTTP_Error error-> case error of
+                HTTP_Error.Status_Error status _ _ ->
+                    # If the status code is 400-499, then most likely the reason is that the session has expired, so we ask the user to log in again.
+                    if (400 <= status.code) && (status.code < 500) then Panic.throw (Cloud_Session_Expired.Error error) else
+                        # Otherwise, we fail with the generic error that gives more details.
+                        Panic.throw (Enso_Cloud_Error.Connection_Error error)
+                _ -> Panic.throw (Enso_Cloud_Error.Connection_Error error)
+            . catch Request_Error error->
+                Panic.throw (Enso_Cloud_Error.Connection_Error error)
+        response_received_time = Date_Time.now
+
+        json = response.decode_as_json . catch Invalid_JSON error->
+            Panic.throw (Enso_Cloud_Error.Invalid_Response_Payload error)
+        auth_result = Panic.rethrow <| get_required_field "AuthenticationResult" json show_value=False expected_type=JS_Object
+        access_token = Panic.rethrow <| get_required_field "AccessToken" auth_result show_value=False expected_type=Text
+        token_type = Panic.rethrow <| get_required_field "TokenType" auth_result show_value=False expected_type=Text
+        expires_in = Panic.rethrow <| get_required_field "ExpiresIn" auth_result show_value=False expected_type=Integer
+
+        token_lifetime = Duration.new seconds=expires_in
+        if token_lifetime < token_early_refresh_period then
+            Panic.throw (Enso_Cloud_Error.Invalid_Response_Payload "Token lifetime is too short: "+token_lifetime.to_display_text+", smaller than our minimum lifetime of "+token_early_refresh_period.to_display_text+".")
+        expire_at = (response_received_time + token_lifetime) . at_zone Time_Zone.utc
+
+        if token_type != "Bearer" then
+            Panic.throw (Enso_Cloud_Error.Invalid_Response_Payload "Invalid `TokenType` field in response: expected `Bearer`, got `"+token_type+"`.")
+        Authentication_Data.Value access_token=access_token expire_at=expire_at
+
+## PRIVATE
+   The amount of time before the token expiration that we pro-actively refresh
+   it to reduce the chance of it expiring during a request.
+token_early_refresh_period = Duration.new minutes=2
+
+## PRIVATE
+   A sibling to `get_required_field`.
+   This one raises `Illegal_State` error, because it is dealing with local files and not cloud responses.
+file_get_required_string_field json prefix field_name = case json of
+    _ : JS_Object ->
+        result = json.get field_name if_missing=(Panic.throw (Illegal_State.Error prefix+"missing field `"+field_name+"`."))
+        case result of
+            _ : Text -> result
+            _ ->
+                got_type = Meta.type_of result . to_display_text
+                Panic.throw (Illegal_State.Error prefix+"expected `"+field_name+"` to be a string, but got "+got_type+".")
+    _ ->
+        got_type = Meta.type_of json . to_display_text
+        Panic.throw (Illegal_State.Error prefix+"expected an object, got "+got_type)

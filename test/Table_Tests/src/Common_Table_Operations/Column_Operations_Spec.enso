@@ -4,15 +4,14 @@ import Standard.Base.Errors.Common.Arithmetic_Error
 import Standard.Base.Errors.Common.Incomparable_Values
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Meta.Type
-import Standard.Database.Data.DB_Column.DB_Column
+import Standard.Database.DB_Column.DB_Column
 import Standard.Database.Internal.Replace_Params.Replace_Params
 
-from Standard.Table import Value_Type, Column_Ref
-from Standard.Table.Data.Type.Value_Type import Bits
+from Standard.Table import Bits, Value_Type, Column_Ref
 from Standard.Table.Errors import all
 
 from Standard.Database.Errors import all
-import Standard.Database.Data.DB_Table.DB_Table
+import Standard.Database.DB_Table.DB_Table
 
 from Standard.Test import all
 
@@ -181,6 +180,10 @@ add_specs suite_builder setup =
         do_round n dp=0 use_bankers=False = do_op n (_.round dp use_bankers)
 
         Round_Spec.add_specs group_builder do_round
+
+        group_builder.specify "Decimal places out of range" <|
+            3.1 . round 16 . should_fail_with Illegal_Argument
+            3.1 . round -16 . should_fail_with Illegal_Argument
 
     ## Runs the provided callback with a few combinations of columns, where some
        of them are made Mixed (but still contain only the original values).

@@ -676,8 +676,8 @@ type_spec suite_builder name alter = suite_builder.group name group_builder->
                 v.take (Sample 3) . should_not_equal (v.take (Sample 3))
 
     group_builder.specify "take/drop should gracefully handle missing constructor arguments" <|
-        [].take "FOO" . should_fail_with Type_Error
-        [].drop "FOO" . should_fail_with Type_Error
+        Test.expect_panic Type_Error <| [].take "FOO"
+        Test.expect_panic Type_Error <| [].drop "FOO"
 
         r1 = [].take (Index_Sub_Range.While)
         r1.should_fail_with Illegal_Argument
@@ -983,6 +983,22 @@ type_spec suite_builder name alter = suite_builder.group name group_builder->
         vec = alter [1, 2, 0, 3]
         vec.flat_map on_problems=No_Wrap (n-> Error.throw (My_Error.Error n)) . catch . should_equal (My_Error.Error 1)
 
+    group_builder.specify "can transpose a vector of vectors" <|
+        mat = alter [alter [0, 1, 2], alter [3, 4, 5], alter [6, 7, 8]]
+        expected = alter [alter [0, 3, 6], alter [1, 4, 7], alter [2, 5, 8]]
+        mat.transpose . should_equal expected
+
+    group_builder.specify "can transpose a vector of vectors, edge cases" <|
+        mat1 = alter [alter [], alter [], alter []]
+        mat1.transpose . should_equal []
+        mat2 = alter []
+        mat2.transpose . should_equal []
+
+    group_builder.specify "transpose throws an Illegal_Argument error if the 'matrix' has uneven rows" <|
+        mat1 = alter [alter [0, 1, 2], alter [3, 5], alter [6, 7, 8]]
+        mat1.transpose . should_fail_with Illegal_Argument
+        mat2 = alter [alter [], alter [3, 4, 5], alter [6, 7, 8]]
+        mat2.transpose . should_fail_with Illegal_Argument
 
 add_specs suite_builder =
     suite_builder.group "Vector builder" group_builder->

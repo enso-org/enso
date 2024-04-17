@@ -1,0 +1,54 @@
+private
+
+from Standard.Base import all
+from Standard.Table import Table, Delimited_Format
+from Standard.Base.Runtime.Managed_Resource import Managed_Resource
+
+import project.Google_Credential.Google_Credential
+from project.Internal.Google_Credential_Internal import all
+
+polyglot java import com.google.analytics.data.v1beta.BetaAnalyticsDataClient
+polyglot java import com.google.analytics.data.v1beta.BetaAnalyticsDataSettings
+polyglot java import com.google.analytics.data.v1beta.DateRange
+polyglot java import com.google.analytics.data.v1beta.Dimension
+polyglot java import com.google.analytics.data.v1beta.Metric
+polyglot java import com.google.analytics.data.v1beta.RunReportRequest
+
+read_api_data property_id:Text dimensions:Vector metrics:Vector start_date:Date end_date:Date credentials:Google_Credential -> Table =
+    managed_analytics_data = case credentials of
+        Google_Credential.Default -> Managed_Resource.register (BetaAnalyticsDataClient.create) r-> r.close
+        Google_Credential.From_File _ -> 
+            betaAnalyticsDataSettings = BetaAnalyticsDataSettings.newBuilder
+               . setCredentialsProvider credentials.as_java
+               . build
+            Managed_Resource.register (BetaAnalyticsDataClient.create betaAnalyticsDataSettings) r-> r.close
+    request_builder = RunReportRequest.newBuilder
+        . setProperty ("properties/"+property_id)
+        . addDateRanges (DateRange.newBuilder.setStartDate start_date.to_text . setEndDate end_date.to_text)
+    dimensions.distinct.each dimension->
+        request_builder.addDimensions (Dimension.newBuilder.setName dimension)
+    metrics.distinct.each metric->
+        request_builder.addMetrics (Metric.newBuilder.setName metric)
+
+    request = request_builder.build
+    response = managed_analytics_data.with (analytics_data-> analytics_data.runReport request)
+    managed_analytics_data.finalize
+
+    dimension_count = response.getDimensionHeadersCount
+    dimension_headers = 0.up_to dimension_count . map i-> response.getDimensionHeaders i . getName
+    metric_count = response.getMetricHeadersCount
+    metric_headers = 0.up_to metric_count . map i-> response.getMetricHeaders i . getName
+    headers = dimension_headers + metric_headers
+
+    row_count = response.getRowCount
+    rows = Vector.new row_count i->
+        row = response.getRows i
+        dimension_values = 0.up_to dimension_count . map i-> row.getDimensionValues i . getValue
+        metric_values = 0.up_to metric_count . map i-> row.getMetricValues i . getValue
+        dimension_values + metric_values
+
+    Table.from_rows headers rows
+
+read_sample_data dimensions:Vector metrics:Vector start_date:Date end_date:Date -> Table =
+    _ = [dimensions, metrics, start_date, end_date]
+    Data.read ((Project_Description.new Standard.Google_Api . data) / "Google_Analytics_Sample.csv") (Delimited_Format.Delimited value_formatter=Standard.Base.Nothing)

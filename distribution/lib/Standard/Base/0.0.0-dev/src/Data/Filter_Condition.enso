@@ -142,7 +142,8 @@ type Filter_Condition
          will likely be faster than using the vector directly.
     Is_In values:Vector|Any action:Filter_Action=Filter_Action.Keep
 
-    ## Converts a `Filter_Condition` condition into a predicate taking an
+    ## ICON convert
+       Converts a `Filter_Condition` condition into a predicate taking an
        element and returning a value indicating whether the element should be
        accepted by the filter.
 
@@ -271,7 +272,7 @@ type Filter_Action
     Remove
 
 ## PRIVATE
-sql_like_to_regex sql_pattern =
+sql_like_to_regex (sql_pattern : Text) =
     regex_pattern = Regex_Utils.sql_like_pattern_to_regex sql_pattern
     Regex.compile regex_pattern
 

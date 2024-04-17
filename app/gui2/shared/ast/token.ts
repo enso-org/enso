@@ -1,4 +1,5 @@
-import type { AstId, Owned } from '.'
+import type { DeepReadonly } from 'vue'
+import type { AstId, NodeChild, Owned } from '.'
 import { Ast, newExternalId } from '.'
 import { assert } from '../util/assert'
 import type { ExternalId } from '../yjsModel'
@@ -8,6 +9,10 @@ import * as RawAst from './generated/ast'
 
 export function isToken(t: unknown): t is Token {
   return t instanceof Token
+}
+
+export function isTokenChild(child: NodeChild<unknown>): child is NodeChild<Token> {
+  return isToken(child.node)
 }
 
 declare const brandTokenId: unique symbol
@@ -20,8 +25,8 @@ function newTokenId(): TokenId {
 /** @internal */
 export interface SyncTokenId {
   readonly id: TokenId
-  code_: string
-  tokenType_: RawAst.Token.Type | undefined
+  readonly code_: string
+  readonly tokenType_: RawAst.Token.Type | undefined
 }
 
 export class Token implements SyncTokenId {
@@ -116,12 +121,18 @@ export function isIdentifier(code: string): code is Identifier {
   return is_ident_or_operator(code) === 1
 }
 
+export function identifier(code: string): Identifier | undefined {
+  if (isIdentifier(code)) return code
+}
+
 /** Returns true if `code` is lexically an operator. */
 export function isOperator(code: string): code is Operator {
   return is_ident_or_operator(code) === 2
 }
 
 /** @internal */
-export function isTokenId(t: SyncTokenId | AstId | Ast | Owned<Ast> | Owned): t is SyncTokenId {
+export function isTokenId(
+  t: DeepReadonly<SyncTokenId | AstId | Ast | Owned<Ast> | Owned>,
+): t is DeepReadonly<SyncTokenId> {
   return typeof t === 'object' && !(t instanceof Ast)
 }

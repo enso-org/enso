@@ -1,11 +1,20 @@
 from Standard.Base import all hiding Range
 from Standard.Test import Bench
-import project.Vector.Array_Proxy_Bench
-import project.Vector.Distinct
-import project.Vector.Map_Error_Benchmark
-import project.Vector.Operations
-import project.Vector.Sort
+import project.Collections
+import project.Column_Numeric
+import project.Decimal_Benchmark
+import project.Equality
+import project.Json_Bench
+import project.Map.Hash_Map
+import project.Natural_Order_Sort
+import project.Number_Parse
+import project.Numeric
+import project.Range
+import project.Runtime.Panics_And_Errors
+import project.Sieve
+import project.Startup.Startup
 import project.Statistics.Count_Min_Max
+import project.Sum
 import project.Table.Add_Row_Number
 import project.Table.Aggregate
 import project.Table.Arithmetic
@@ -21,19 +30,11 @@ import project.Text.Pretty
 import project.Text.Reverse
 import project.Time.Work_Days
 import project.Time.Format
-import project.Collections
-import project.Column_Numeric
-import project.Equality
-import project.Json_Bench
-import project.Map.Hash_Map
-import project.Natural_Order_Sort
-import project.Number_Parse
-import project.Numeric
-import project.Range
-import project.Sieve
-import project.Sum
-import project.Startup.Startup
-import project.Runtime.Panics_And_Errors
+import project.Vector.Array_Proxy_Bench
+import project.Vector.Distinct
+import project.Vector.Map_Error_Benchmark
+import project.Vector.Operations
+import project.Vector.Sort
 import project.Warnings
 from Standard.Base.Runtime import Debug
 
@@ -78,6 +79,7 @@ all_benchmarks =
     # Vector
     builder.append Collections.collect_benches
     builder.append Column_Numeric.collect_benches
+    builder.append Decimal_Benchmark.collect_benches
     builder.append Equality.collect_benches
     builder.append Json_Bench.collect_benches
     builder.append Natural_Order_Sort.collect_benches

@@ -2,7 +2,9 @@ private
 
 from Standard.Base import all
 import Standard.Base.Runtime.Ref.Ref
+
 import project.Spec.Spec
+
 polyglot java import java.lang.StringBuilder
 
 type Group_Builder
@@ -52,8 +54,8 @@ type Group
         self.pending.is_nothing.not
 
 
-# Group is used as a key inside a map, so we define its comparator which uses only the
-# `name` field.
+## Group is used as a key inside a map, so we define its comparator which uses only the
+   `name` field.
 type Group_Comparator
     compare (g1 : Group) (g2 : Group) -> (Ordering | Nothing) =
         text_comp = Comparable.from g1.name

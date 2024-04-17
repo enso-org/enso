@@ -45,6 +45,8 @@ import org.enso.polyglot.CompilationStage;
 import org.enso.polyglot.LanguageInfo;
 import org.enso.polyglot.Suggestion;
 import org.enso.polyglot.data.TypeGraph;
+import scala.collection.immutable.ListSet;
+import scala.collection.immutable.SetOps;
 
 final class TruffleCompilerContext implements CompilerContext {
 
@@ -557,8 +559,12 @@ final class TruffleCompilerContext implements CompilerContext {
               })
           .map(
               suggestion -> {
-                var reexport = exportsMap.get(suggestion).map(s -> s.toString());
-                return suggestion.withReexport(reexport);
+                scala.collection.immutable.Set<String> identity = new ListSet<>();
+                var reexports =
+                    exportsMap.get(suggestion).stream()
+                        .map(QualifiedName::toString)
+                        .reduce(identity, SetOps::incl, SetOps::union);
+                return suggestion.withReexports(reexports);
               })
           .foreach(suggestions::add);
 
@@ -569,7 +575,7 @@ final class TruffleCompilerContext implements CompilerContext {
               context
                   .getPackageRepository()
                   .getPackageForLibraryJava(libraryName)
-                  .map(p -> p.listSourcesJava()));
+                  .map(Package::listSourcesJava));
       var cache = SuggestionsCache.create(libraryName);
       var file = saveCache(cache, cachedSuggestions, useGlobalCacheLocations);
       return file != null;
@@ -603,7 +609,7 @@ final class TruffleCompilerContext implements CompilerContext {
         return scala.Option.apply(loaded.get());
       } else {
         logSerializationManager(
-            Level.FINE, "Unable to load suggestions for library [{0}].", libraryName);
+            Level.WARNING, "Unable to load suggestions for library [{0}].", libraryName);
         return scala.Option.empty();
       }
     }

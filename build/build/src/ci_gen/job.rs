@@ -4,10 +4,16 @@ use crate::ci_gen::not_default_branch;
 use crate::ci_gen::runs_on;
 use crate::ci_gen::secret;
 use crate::ci_gen::step;
+use crate::ci_gen::variables::ENSO_AG_GRID_LICENSE_KEY;
+use crate::ci_gen::variables::ENSO_MAPBOX_API_TOKEN;
 use crate::ci_gen::RunStepsBuilder;
 use crate::ci_gen::RunnerType;
 use crate::ci_gen::RELEASE_CLEANING_POLICY;
+use crate::engine::env;
+use crate::ide::web::env::VITE_ENSO_AG_GRID_LICENSE_KEY;
+use crate::ide::web::env::VITE_ENSO_MAPBOX_API_TOKEN;
 
+use heck::ToKebabCase;
 use ide_ci::actions::workflow::definition::cancel_workflow_action;
 use ide_ci::actions::workflow::definition::Access;
 use ide_ci::actions::workflow::definition::Job;
@@ -17,6 +23,7 @@ use ide_ci::actions::workflow::definition::RunnerLabel;
 use ide_ci::actions::workflow::definition::Step;
 use ide_ci::actions::workflow::definition::Strategy;
 use ide_ci::actions::workflow::definition::Target;
+use ide_ci::cache::goodie::graalvm;
 
 
 
@@ -110,8 +117,49 @@ pub fn plain_job(
     RunStepsBuilder::new(command_line).build_job(name, runs_on)
 }
 
+/// Pretty print arguments to `./run` that will invoke SBT with the given command.
+///
+/// Meant to be used together with [`RunStepsBuilder::new`].
+///
+/// ```
+/// use enso_build::ci_gen::job::sbt_command;
+/// assert_eq!(sbt_command("verifyLicensePackages"), "backend sbt '--' verifyLicensePackages");
+/// ```
+pub fn sbt_command(command: impl AsRef<str>) -> String {
+    // Note that we put -- in quotes to avoid issues with powershell (which is default on Windows).
+    // Otherwise, pwsh would handle `--` by itself, rather than passing it to build script's args.
+    // See: https://stackoverflow.com/questions/15780174/powershell-command-line-parameters-and
+    format!("backend sbt '--' {}", command.as_ref())
+}
+
+/// Expose variables for cloud configuration, needed during the dashboard build.
+pub fn expose_cloud_vars(step: Step) -> Step {
+    use crate::ide::web::env::*;
+    step.with_variable_exposed(ENSO_CLOUD_REDIRECT)
+        .with_variable_exposed(ENSO_CLOUD_ENVIRONMENT)
+        .with_variable_exposed(ENSO_CLOUD_API_URL)
+        .with_variable_exposed(ENSO_CLOUD_CHAT_URL)
+        .with_variable_exposed(ENSO_CLOUD_SENTRY_DSN)
+        .with_variable_exposed(ENSO_CLOUD_STRIPE_KEY)
+        .with_variable_exposed(ENSO_CLOUD_COGNITO_USER_POOL_ID)
+        .with_variable_exposed(ENSO_CLOUD_COGNITO_USER_POOL_WEB_CLIENT_ID)
+        .with_variable_exposed(ENSO_CLOUD_COGNITO_DOMAIN)
+        .with_variable_exposed(ENSO_CLOUD_COGNITO_REGION)
+}
+
+/// Expose variables for the GUI build.
+pub fn expose_gui_vars(step: Step) -> Step {
+    let step = step
+        .with_variable_exposed_as(ENSO_AG_GRID_LICENSE_KEY, VITE_ENSO_AG_GRID_LICENSE_KEY)
+        .with_variable_exposed_as(ENSO_MAPBOX_API_TOKEN, VITE_ENSO_MAPBOX_API_TOKEN);
+
+    // GUI includes the cloud-delivered dashboard.
+    expose_cloud_vars(step)
+}
+
 #[derive(Clone, Copy, Debug)]
 pub struct CancelWorkflow;
+
 impl JobArchetype for CancelWorkflow {
     fn job(&self, _target: Target) -> Job {
         Job {
@@ -132,7 +180,92 @@ impl JobArchetype for CancelWorkflow {
 }
 
 #[derive(Clone, Copy, Debug)]
+pub struct VerifyLicensePackages;
+impl JobArchetype for VerifyLicensePackages {
+    fn job(&self, target: Target) -> Job {
+        RunStepsBuilder::new(sbt_command("verifyLicensePackages"))
+            .build_job("Verify License Packages", target)
+    }
+}
+
+#[derive(Clone, Copy, Debug)]
+pub struct JvmTests {
+    pub graal_edition: graalvm::Edition,
+}
+
+impl JobArchetype for JvmTests {
+    fn job(&self, target: Target) -> Job {
+        let graal_edition = self.graal_edition;
+        let job_name = format!("JVM Tests ({graal_edition})");
+        let mut job = RunStepsBuilder::new("backend test jvm")
+            .customize(move |step| vec![step, step::engine_test_reporter(target, graal_edition)])
+            .build_job(job_name, target)
+            .with_permission(Permission::Checks, Access::Write);
+        match graal_edition {
+            graalvm::Edition::Community => job.env(env::GRAAL_EDITION, graalvm::Edition::Community),
+            graalvm::Edition::Enterprise =>
+                job.env(env::GRAAL_EDITION, graalvm::Edition::Enterprise),
+        }
+        job
+    }
+
+    fn key(&self, (os, arch): Target) -> String {
+        format!(
+            "{}-{}-{os}-{arch}",
+            self.id_key_base(),
+            self.graal_edition.to_string().to_kebab_case()
+        )
+    }
+}
+
+#[derive(Clone, Copy, Debug)]
+pub struct StandardLibraryTests {
+    pub graal_edition: graalvm::Edition,
+}
+
+impl JobArchetype for StandardLibraryTests {
+    fn job(&self, target: Target) -> Job {
+        let graal_edition = self.graal_edition;
+        let job_name = format!("Standard Library Tests ({graal_edition})");
+        let mut job = RunStepsBuilder::new("backend test standard-library")
+            .customize(move |step| {
+                let main_step = step
+                    .with_secret_exposed_as(
+                        secret::ENSO_LIB_S3_AWS_REGION,
+                        crate::libraries_tests::s3::env::ENSO_LIB_S3_AWS_REGION,
+                    )
+                    .with_secret_exposed_as(
+                        secret::ENSO_LIB_S3_AWS_ACCESS_KEY_ID,
+                        crate::libraries_tests::s3::env::ENSO_LIB_S3_AWS_ACCESS_KEY_ID,
+                    )
+                    .with_secret_exposed_as(
+                        secret::ENSO_LIB_S3_AWS_SECRET_ACCESS_KEY,
+                        crate::libraries_tests::s3::env::ENSO_LIB_S3_AWS_SECRET_ACCESS_KEY,
+                    );
+                vec![main_step, step::stdlib_test_reporter(target, graal_edition)]
+            })
+            .build_job(job_name, target)
+            .with_permission(Permission::Checks, Access::Write);
+        match graal_edition {
+            graalvm::Edition::Community => job.env(env::GRAAL_EDITION, graalvm::Edition::Community),
+            graalvm::Edition::Enterprise =>
+                job.env(env::GRAAL_EDITION, graalvm::Edition::Enterprise),
+        }
+        job
+    }
+
+    fn key(&self, (os, arch): Target) -> String {
+        format!(
+            "{}-{}-{os}-{arch}",
+            self.id_key_base(),
+            self.graal_edition.to_string().to_kebab_case()
+        )
+    }
+}
+
+#[derive(Clone, Copy, Debug)]
 pub struct Lint;
+
 impl JobArchetype for Lint {
     fn job(&self, target: Target) -> Job {
         plain_job(target, "Lint", "lint")
@@ -141,61 +274,47 @@ impl JobArchetype for Lint {
 
 #[derive(Clone, Copy, Debug)]
 pub struct NativeTest;
+
 impl JobArchetype for NativeTest {
     fn job(&self, target: Target) -> Job {
-        plain_job(target, "Native GUI tests", "wasm test --no-wasm")
+        plain_job(target, "Native Rust tests", "wasm test --no-wasm")
     }
 }
 
 #[derive(Clone, Copy, Debug)]
-pub struct NewGuiTest;
-impl JobArchetype for NewGuiTest {
+pub struct GuiTest;
+
+impl JobArchetype for GuiTest {
     fn job(&self, target: Target) -> Job {
-        plain_job(target, "New (Vue) GUI tests", "gui2 test")
+        plain_job(target, "GUI tests", "gui test")
     }
 }
+
 
 #[derive(Clone, Copy, Debug)]
 pub struct NewGuiBuild;
+
 impl JobArchetype for NewGuiBuild {
     fn job(&self, target: Target) -> Job {
-        plain_job(target, "New (Vue) GUI build", "gui2 build")
+        let command = "gui build";
+        RunStepsBuilder::new(command)
+            .customize(|step| vec![expose_gui_vars(step)])
+            .build_job("GUI build", target)
     }
 }
 
 #[derive(Clone, Copy, Debug)]
 pub struct WasmTest;
+
 impl JobArchetype for WasmTest {
     fn job(&self, target: Target) -> Job {
-        plain_job(target, "WASM GUI tests", "wasm test --no-native")
-    }
-}
-
-#[derive(Clone, Copy, Debug)]
-pub struct IntegrationTest;
-impl JobArchetype for IntegrationTest {
-    fn job(&self, target: Target) -> Job {
-        plain_job(
-            target,
-            "IDE integration tests",
-            "ide integration-test --backend-source current-ci-run",
-        )
-    }
-}
-
-#[derive(Clone, Copy, Debug)]
-pub struct BuildWasm;
-impl JobArchetype for BuildWasm {
-    fn job(&self, target: Target) -> Job {
-        let command = "wasm build --wasm-upload-artifact ${{ runner.os == 'Linux' }}";
-        RunStepsBuilder::new(command)
-            .customize(|step| vec![step.with_secret_exposed(crate::env::ENSO_AG_GRID_LICENSE_KEY)])
-            .build_job("Build GUI (WASM)", target)
+        plain_job(target, "WASM tests", "wasm test --no-native")
     }
 }
 
 #[derive(Clone, Copy, Debug)]
 pub struct BuildBackend;
+
 impl JobArchetype for BuildBackend {
     fn job(&self, target: Target) -> Job {
         plain_job(target, "Build Backend", "backend get")
@@ -204,6 +323,7 @@ impl JobArchetype for BuildBackend {
 
 #[derive(Clone, Copy, Debug)]
 pub struct UploadBackend;
+
 impl JobArchetype for UploadBackend {
     fn job(&self, target: Target) -> Job {
         RunStepsBuilder::new("backend upload")
@@ -214,6 +334,7 @@ impl JobArchetype for UploadBackend {
 
 #[derive(Clone, Copy, Debug)]
 pub struct DeployRuntime;
+
 impl JobArchetype for DeployRuntime {
     fn job(&self, target: Target) -> Job {
         RunStepsBuilder::new("release deploy-runtime")
@@ -234,26 +355,6 @@ impl JobArchetype for DeployRuntime {
             .build_job("Upload Runtime to ECR", target)
     }
 }
-
-#[derive(Clone, Copy, Debug)]
-pub struct DeployGui;
-impl JobArchetype for DeployGui {
-    fn job(&self, target: Target) -> Job {
-        RunStepsBuilder::new("release deploy-gui")
-            .customize(|step| {
-                vec![step
-                    .with_secret_exposed_as(secret::CI_PRIVATE_TOKEN, ide_ci::github::GITHUB_TOKEN)
-                    .with_secret_exposed_as(secret::ARTEFACT_S3_ACCESS_KEY_ID, "AWS_ACCESS_KEY_ID")
-                    .with_secret_exposed_as(
-                        secret::ARTEFACT_S3_SECRET_ACCESS_KEY,
-                        "AWS_SECRET_ACCESS_KEY",
-                    )
-                    .with_secret_exposed_as(secret::ENSO_ADMIN_TOKEN, crate::env::ENSO_ADMIN_TOKEN)]
-            })
-            .build_job("Upload GUI to S3", target)
-    }
-}
-
 
 pub fn expose_os_specific_signing_secret(os: OS, step: Step) -> Step {
     match os {
@@ -310,14 +411,19 @@ pub fn bump_electron_builder() -> Vec<Step> {
 
 /// Prepares the packaging steps for the given OS.
 ///
-/// This involves exposing secrets necessary for code signing and notarization. Additionally, on
-/// macOS, it bumps the version of the Electron Builder to [`ELECTRON_BUILDER_MACOS_VERSION`].
+/// This involves:
+/// * exposing secrets necessary for code signing and notarization;
+/// * exposing variables defining cloud environment for dashboard;
+/// * (macOS only) bumping the version of the Electron Builder to
+///   [`ELECTRON_BUILDER_MACOS_VERSION`].
 pub fn prepare_packaging_steps(os: OS, step: Step) -> Vec<Step> {
+    let step = expose_gui_vars(step);
+    let step = expose_os_specific_signing_secret(os, step);
     let mut steps = Vec::new();
     if os == OS::MacOS {
         steps.extend(bump_electron_builder());
     }
-    steps.push(expose_os_specific_signing_secret(os, step));
+    steps.push(step);
     steps
 }
 
@@ -329,11 +435,12 @@ pub fn with_packaging_steps(os: OS) -> impl FnOnce(Step) -> Vec<Step> {
 }
 
 #[derive(Clone, Copy, Debug)]
-pub struct PackageNewIde;
-impl JobArchetype for PackageNewIde {
+pub struct PackageIde;
+
+impl JobArchetype for PackageIde {
     fn job(&self, target: Target) -> Job {
         RunStepsBuilder::new(
-            "ide2 build --backend-source current-ci-run --gui2-upload-artifact false",
+            "ide build --backend-source current-ci-run --gui-upload-artifact false",
         )
         .customize(with_packaging_steps(target.0))
         .build_job("Package New IDE", target)
@@ -341,31 +448,27 @@ impl JobArchetype for PackageNewIde {
 }
 
 #[derive(Clone, Copy, Debug)]
-pub struct CiCheckBackend;
+pub struct CiCheckBackend {
+    pub graal_edition: graalvm::Edition,
+}
+
 impl JobArchetype for CiCheckBackend {
     fn job(&self, target: Target) -> Job {
-        RunStepsBuilder::new("backend ci-check")
-            .customize(move |step| {
-                let main_step = step
-                    .with_secret_exposed_as(
-                        secret::ENSO_LIB_S3_AWS_REGION,
-                        crate::aws::env::AWS_REGION,
-                    )
-                    .with_secret_exposed_as(
-                        secret::ENSO_LIB_S3_AWS_ACCESS_KEY_ID,
-                        crate::aws::env::AWS_ACCESS_KEY_ID,
-                    )
-                    .with_secret_exposed_as(
-                        secret::ENSO_LIB_S3_AWS_SECRET_ACCESS_KEY,
-                        crate::aws::env::AWS_SECRET_ACCESS_KEY,
-                    );
-                vec![
-                    main_step,
-                    step::engine_test_reporter(target),
-                    step::stdlib_test_reporter(target),
-                ]
-            })
-            .build_job("Engine", target)
-            .with_permission(Permission::Checks, Access::Write)
+        let job_name = format!("Engine ({})", self.graal_edition);
+        let mut job = RunStepsBuilder::new("backend ci-check").build_job(job_name, target);
+        match self.graal_edition {
+            graalvm::Edition::Community => job.env(env::GRAAL_EDITION, graalvm::Edition::Community),
+            graalvm::Edition::Enterprise =>
+                job.env(env::GRAAL_EDITION, graalvm::Edition::Enterprise),
+        }
+        job
+    }
+
+    fn key(&self, (os, arch): Target) -> String {
+        format!(
+            "{}-{}-{os}-{arch}",
+            self.id_key_base(),
+            self.graal_edition.to_string().to_kebab_case()
+        )
     }
 }

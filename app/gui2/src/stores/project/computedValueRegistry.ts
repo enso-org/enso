@@ -44,8 +44,8 @@ export class ComputedValueRegistry {
   processUpdates(updates: ExpressionUpdate[]) {
     for (const update of updates) {
       const info = this.db.get(update.expressionId)
-      const newInfo = combineInfo(info, update)
-      this.db.set(update.expressionId, newInfo)
+      if (info) updateInfo(info, update)
+      else this.db.set(update.expressionId, combineInfo(undefined, update))
     }
   }
 
@@ -53,9 +53,17 @@ export class ComputedValueRegistry {
     return this.db.get(exprId)
   }
 
-  destroy() {
+  dispose() {
     this.executionContext?.off('expressionUpdates', this._updateHandler)
   }
+}
+
+function updateInfo(info: ExpressionInfo, update: ExpressionUpdate) {
+  const newInfo = combineInfo(info, update)
+  if (newInfo.typename !== info.typename) info.typename = newInfo.typename
+  if (newInfo.methodCall !== info.methodCall) info.methodCall = newInfo.methodCall
+  if (newInfo.payload !== info.payload) info.payload = newInfo.payload
+  if (newInfo.profilingInfo !== info.profilingInfo) info.profilingInfo = update.profilingInfo
 }
 
 function combineInfo(info: ExpressionInfo | undefined, update: ExpressionUpdate): ExpressionInfo {

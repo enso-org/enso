@@ -92,8 +92,6 @@ final class SuggestionsHandler(
   import context.dispatcher
   import SuggestionsHandler._
 
-  private val timeout = config.executionContext.requestTimeout
-
   override def preStart(): Unit = {
     logger.info(
       "Starting suggestions handler from [{}, {}].",
@@ -357,7 +355,6 @@ final class SuggestionsHandler(
       val handler = context.system.actorOf(
         InvalidateModulesIndexHandler.props(
           RuntimeFailureMapper(contentRootManager),
-          timeout,
           runtimeConnector,
           self
         )
@@ -454,7 +451,6 @@ final class SuggestionsHandler(
       val handler = context.system.actorOf(
         InvalidateModulesIndexHandler.props(
           runtimeFailureMapper,
-          timeout,
           runtimeConnector,
           self
         )
@@ -550,7 +546,7 @@ final class SuggestionsHandler(
     for {
       actionResults <- suggestionsRepo.applyActions(msg.actions)
       treeResults   <- suggestionsRepo.applyTree(msg.updates.toVector)
-      exportResults <- suggestionsRepo.applyExports(msg.exports)
+      exportResults <- suggestionsRepo.getExportedSymbols(msg.exports)
       version       <- suggestionsRepo.currentVersion
     } yield {
       val actionUpdates = actionResults.flatMap {

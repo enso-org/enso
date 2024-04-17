@@ -4,6 +4,7 @@ import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
 import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.dsl.Cached.Shared;
 import com.oracle.truffle.api.dsl.GenerateUncached;
+import com.oracle.truffle.api.dsl.ReportPolymorphism;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.interop.InteropLibrary;
@@ -15,6 +16,7 @@ import java.math.BigInteger;
 import org.enso.interpreter.node.expression.builtin.number.utils.BigIntegerOps;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.data.EnsoMultiValue;
+import org.enso.interpreter.runtime.data.EnsoObject;
 import org.enso.interpreter.runtime.data.atom.Atom;
 import org.enso.interpreter.runtime.data.atom.AtomConstructor;
 import org.enso.interpreter.runtime.data.text.Text;
@@ -23,6 +25,7 @@ import org.enso.interpreter.runtime.number.EnsoBigInteger;
 import org.enso.polyglot.common_utils.Core_Text_Utils;
 
 @GenerateUncached
+@ReportPolymorphism
 public abstract class EqualsSimpleNode extends Node {
 
   public static EqualsSimpleNode build() {
@@ -365,11 +368,13 @@ public abstract class EqualsSimpleNode extends Node {
   }
 
   static boolean isBigInteger(InteropLibrary iop, Object v) {
-    if (v instanceof EnsoBigInteger) {
-      return true;
-    } else {
-      return !iop.fitsInDouble(v) && !iop.fitsInLong(v) && iop.fitsInBigInteger(v);
-    }
+    return switch (v) {
+      case EnsoBigInteger b -> true;
+      case EnsoObject no -> false;
+      case Long ok -> true;
+      case Double doesNotFit -> false;
+      default -> iop.fitsInBigInteger(v);
+    };
   }
 
   BigInteger asBigInteger(InteropLibrary iop, Object v) {

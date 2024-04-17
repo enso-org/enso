@@ -1,0 +1,42 @@
+private
+
+from Standard.Base import all
+import Standard.Base.Errors.Illegal_State.Illegal_State
+import Standard.Base.System.Input_Stream.Input_Stream
+from Standard.Base.Enso_Cloud.Data_Link import Data_Link_With_Input_Stream, parse_format
+from Standard.Base.Enso_Cloud.Public_Utils import get_optional_field, get_required_field
+
+import project.AWS_Credential.AWS_Credential
+import project.S3.S3_File.S3_File
+from project.Internal.Data_Link_Helpers import decode_aws_credential
+
+## PRIVATE
+type S3_Data_Link
+    ## PRIVATE
+    Value (uri : Text) format_json (credentials : AWS_Credential)
+
+    ## PRIVATE
+    parse json -> S3_Data_Link =
+        uri = get_required_field "uri" json expected_type=Text
+        auth = decode_aws_credential (get_required_field "auth" json)
+        format_json = get_optional_field "format" json
+        S3_Data_Link.Value uri format_json auth
+
+    ## PRIVATE
+    as_file self -> S3_File = S3_File.new self.uri self.credentials
+
+    ## PRIVATE
+    default_format self -> Any ! Illegal_State =
+        parse_format self.format_json
+
+    ## PRIVATE
+    read self (format = Auto_Detect) (on_problems : Problem_Behavior) =
+        effective_format = if format != Auto_Detect then format else self.default_format
+        self.as_file.read effective_format on_problems
+
+    ## PRIVATE
+    with_input_stream self (open_options : Vector) (action : Input_Stream -> Any) -> Any =
+        self.as_file.with_input_stream open_options action
+
+## PRIVATE
+Data_Link_With_Input_Stream.from (that:S3_Data_Link) = Data_Link_With_Input_Stream.Value that

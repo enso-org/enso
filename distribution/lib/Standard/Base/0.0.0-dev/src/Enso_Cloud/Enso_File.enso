@@ -1,49 +1,85 @@
 import project.Any.Any
-import project.Enso_Cloud.Errors.Enso_Cloud_Error
-import project.Enso_Cloud.Utils
-import project.Data.Index_Sub_Range.Index_Sub_Range
 import project.Data.Json.JS_Object
 import project.Data.Numbers.Integer
 import project.Data.Text.Encoding.Encoding
-import project.Data.Text.Matching_Mode.Matching_Mode
 import project.Data.Text.Text
-import project.Data.Text.Text_Sub_Range.Text_Sub_Range
 import project.Data.Time.Date_Time.Date_Time
 import project.Data.Time.Date_Time_Formatter.Date_Time_Formatter
 import project.Data.Vector.Vector
+import project.Enso_Cloud.Data_Link
+import project.Enso_Cloud.Enso_User.Enso_User
+import project.Enso_Cloud.Errors.Enso_Cloud_Error
+import project.Enso_Cloud.Internal.Enso_Path.Enso_Path
+import project.Enso_Cloud.Internal.Enso_File_Write_Strategy
+import project.Enso_Cloud.Internal.Existing_Enso_Asset.Existing_Enso_Asset
+import project.Enso_Cloud.Internal.Existing_Enso_Asset.Asset_Cache
+import project.Enso_Cloud.Internal.Utils
 import project.Error.Error
 import project.Errors.Common.Not_Found
 import project.Errors.File_Error.File_Error
 import project.Errors.Illegal_Argument.Illegal_Argument
-import project.Errors.Illegal_State.Illegal_State
 import project.Errors.Problem_Behavior.Problem_Behavior
 import project.Errors.Time_Error.Time_Error
 import project.Errors.Unimplemented.Unimplemented
 import project.Network.HTTP.HTTP
 import project.Network.HTTP.HTTP_Method.HTTP_Method
+import project.Network.HTTP.Request_Error
+import project.Network.URI.URI
 import project.Nothing.Nothing
+import project.Panic.Panic
+import project.Runtime
 import project.Runtime.Context
+import project.System.Environment
+import project.System.File.Data_Link_Access.Data_Link_Access
+import project.System.File.File
 import project.System.File.File_Access.File_Access
+import project.System.File.Generic.File_Like.File_Like
 import project.System.File.Generic.Writable_File.Writable_File
 import project.System.File_Format_Metadata.File_Format_Metadata
 import project.System.Input_Stream.Input_Stream
 import project.System.Output_Stream.Output_Stream
 from project.Data.Boolean import Boolean, False, True
-from project.Enso_Cloud.Utils import get_required_field
+from project.Data.Index_Sub_Range.Index_Sub_Range import Last
 from project.Data.Text.Extensions import all
-from project.System.File.Generic.File_Write_Strategy import generic_copy
+from project.Enso_Cloud.Public_Utils import get_required_field
 from project.System.File_Format import Auto_Detect, Bytes, File_Format, Plain_Text_Format
+from project.System.File.Generic.File_Write_Strategy import generic_copy
+from project.System.File import find_extension_from_name
 
 type Enso_File
+    ## ICON data_input
+       Resolves an `enso://` path and returns the corresponding `Enso_File`
+       instance.
+
+       Arguments:
+       - path: The `enso://` path to a file or directory.
+
+       ? Enso Cloud Paths
+
+         The paths consist of the organization (user) name followed by a path to
+         the file/directory delimited by `/`.
+         For example `enso://my_org/some_dir/some-file.txt`.
+
+       ! Work in progress - only existing resources
+
+         Currently the API is only able to resolve paths to existing files or
+         directories. This is a temporary limitation and it will be improved in
+         the future, alongside with implementing the capabilities to write new
+         files.
+    new : Text -> Enso_File ! Not_Found
+    new (path : Text) =
+        Enso_File.Value (Enso_Path.parse path)
+
     ## PRIVATE
-       Represents a file or folder within the Enso cloud.
-    Value name:Text id:Text organization:Text asset_type:Enso_Asset_Type
+    Value (enso_path : Enso_Path)
 
-    ## Represents the root folder of the current users.
+    ## ICON folder
+       Represents the root folder of the current users.
     root : Enso_File
-    root = Enso_File.Value "/" "" "" Enso_Asset_Type.Directory
+    root = Enso_File.Value (Enso_Path.root_for Enso_User.current.organization_name)
 
-    ## Represents the current working directory.
+    ## ICON folder
+       Represents the current working directory.
 
        If the workflow is running on the Cloud, this will be the directory
        containing the current project.
@@ -52,79 +88,86 @@ type Enso_File
        directory.
     current_working_directory : Enso_File
     current_working_directory =
-        java_dir = Utils.internal_cloud_project_directory
-        if java_dir.is_nothing then Enso_File.root else
-            Enso_File.Value java_dir.name java_dir.id java_dir.organizationId Enso_Asset_Type.Directory
+        path = Environment.get "ENSO_PROJECT_DIRECTORY_PATH"
+        if path.is_nothing then Enso_File.root else
+            Enso_File.new path
 
     ## PRIVATE
-       Target URI for the api
-    internal_uri : Text
-    internal_uri self = case self.id of
-        "" -> if self.asset_type == Enso_Asset_Type.Directory then Utils.directory_api else
-            Error.throw (Illegal_Argument.Error "Invalid ID for a "+self.asset_type.to_text+".")
-        _ -> case self.asset_type of
-            Enso_Asset_Type.Directory -> Utils.directory_api + "/" + self.id
-            Enso_Asset_Type.File -> Utils.files_api + "/" + self.id
-            Enso_Asset_Type.Project -> Utils.projects_api + "/" + self.id
-            Enso_Asset_Type.Data_Link -> Utils.secrets_api + "/" + self.id
-            Enso_Asset_Type.Secret -> Error.throw (Illegal_Argument.Error "Secrets cannot be accessed directly.")
+    asset_type self -> Enso_Asset_Type =
+        # TODO maybe we can short circuit if it ends with `.datalink` or `.secret`?
+        Existing_Enso_Asset.get_asset_reference_for self . asset_type
 
     ## GROUP Metadata
+       ICON metadata
        Checks if the folder or file exists
     exists : Boolean
     exists self =
-        response = Utils.http_request HTTP_Method.Get self.internal_uri
-        response.code.is_success
+        Existing_Enso_Asset.get_asset_reference_for self . is_error . not
 
     ## GROUP Metadata
+       ICON metadata
        Gets the size of a file in bytes.
     size : Integer
-    size self -> Integer = if self.is_regular_file.not then Error.throw (Illegal_Argument.Error "`size` can only be queried for regular files.") else
-        metadata = get_file_description self |> get_required_field "metadata"
-        get_required_field "size" metadata
+    size self -> Integer =
+        asset = Existing_Enso_Asset.get_asset_reference_for self
+        if asset.is_regular_file.not then Error.throw (Illegal_Argument.Error "`size` can only be queried for regular files.") else
+            metadata = asset.get_file_description |> get_required_field "metadata"
+            get_required_field "size" metadata expected_type=Integer
 
     ## GROUP Metadata
+       ICON metadata
        Gets the creation time of a file.
     creation_time : Date_Time
-    creation_time self -> Date_Time = if self.is_directory then Unimplemented.throw "Enso_File.creation_time is not implemented yet for directories." else
-        metadata = get_file_description self |> get_required_field "metadata"
-        Date_Time.parse (get_required_field "created_at" metadata) Date_Time_Formatter.iso_offset_date_time
-            . catch Time_Error error-> Error.throw (Enso_Cloud_Error.Invalid_Response_Payload error)
+    creation_time self -> Date_Time =
+        asset = Existing_Enso_Asset.get_asset_reference_for self
+        if asset.is_directory then Unimplemented.throw "Enso_File.creation_time is not implemented yet for directories." else
+            metadata = asset.get_file_description |> get_required_field "metadata"
+            Date_Time.parse (get_required_field "created_at" metadata expected_type=Text) Date_Time_Formatter.iso_offset_date_time
+                . catch Time_Error error-> Error.throw (Enso_Cloud_Error.Invalid_Response_Payload error)
 
     ## GROUP Metadata
+       ICON metadata
        Gets the last modified time of a file.
     last_modified_time : Date_Time
-    last_modified_time self = if self.is_directory then Unimplemented.throw "Enso_File.last_modified_time is not implemented yet for directories." else
-        metadata = get_file_description self |> get_required_field "metadata"
-        Date_Time.parse (get_required_field "modified_at" metadata) Date_Time_Formatter.iso_offset_date_time
-            . catch Time_Error error-> Error.throw (Enso_Cloud_Error.Invalid_Response_Payload error)
+    last_modified_time self =
+        asset = Existing_Enso_Asset.get_asset_reference_for self
+        if asset.is_directory then Unimplemented.throw "Enso_File.last_modified_time is not implemented yet for directories." else
+            metadata = asset.get_file_description |> get_required_field "metadata"
+            Date_Time.parse (get_required_field "modified_at" metadata expected_type=Text) Date_Time_Formatter.iso_offset_date_time
+                . catch Time_Error error-> Error.throw (Enso_Cloud_Error.Invalid_Response_Payload error)
 
     ## GROUP Metadata
+       ICON metadata
        Checks if this is a folder
     is_directory : Boolean
-    is_directory self = self.asset_type == Enso_Asset_Type.Directory
+    is_directory self =
+        Existing_Enso_Asset.get_asset_reference_for self . is_directory
 
     ## GROUP Metadata
+       ICON metadata
        Checks if this is a regular file
     is_regular_file : Boolean
-    is_regular_file self = self.asset_type == Enso_Asset_Type.File
+    is_regular_file self =
+        Existing_Enso_Asset.get_asset_reference_for self . is_regular_file
 
     ## GROUP Metadata
+       ICON folder
        Finds the parent Enso_File for this file.
     parent : Enso_File | Nothing
-    parent self = Unimplemented.throw "Enso_File.parent is not implemented"
+    parent self =
+        if self.enso_path.is_root then Nothing else
+            Enso_File.Value self.enso_path.parent
 
     ## GROUP Metadata
+       ICON metadata
        Returns the path of this file.
-    path : Text
-    path self = Unimplemented.throw "Enso_File.path is not implemented"
+    path self -> Text = self.enso_path.to_text
 
     ## GROUP Metadata
+       ICON metadata
        Checks if `self` is a descendant of `other`.
-    is_descendant_of : Enso_File -> Boolean
-    is_descendant_of self (other : Enso_File) =
-        _ = other
-        Unimplemented.throw "Enso_File.is_descendant_of is not implemented"
+    is_descendant_of self (other : Enso_File) -> Boolean =
+        self.enso_path.is_descendant_of other.enso_path
 
     ## PRIVATE
        ADVANCED
@@ -141,8 +184,17 @@ type Enso_File
          value. The value is returned from this method.
     with_output_stream : Vector File_Access -> (Output_Stream -> Any ! File_Error) -> Any ! File_Error
     with_output_stream self (open_options : Vector) action =
-        _ = [open_options, action]
-        Unimplemented.throw "Writing to Enso_Files is not currently implemented."
+        Context.Output.if_enabled disabled_message="Writing to an Enso_File is forbidden as the Output context is disabled." panic=False <|
+            open_as_data_link = (open_options.contains Data_Link_Access.No_Follow . not) && (Data_Link.is_data_link self)
+            if open_as_data_link then Data_Link.write_data_link_as_stream self open_options action else
+                if open_options.contains File_Access.Append then Unimplemented.throw "Enso_File currently does not support appending to a file. Instead you may read it, modify and then write the new contents." else
+                    File_Access.ensure_only_allowed_options "with_output_stream" [File_Access.Write, File_Access.Create_New, File_Access.Truncate_Existing, File_Access.Create, Data_Link_Access.No_Follow] open_options <|
+                        allow_existing = open_options.contains File_Access.Create_New . not
+                        tmp_file = File.create_temporary_file "enso-cloud-write-tmp"
+                        Panic.with_finalizer tmp_file.delete <|
+                            perform_upload self allow_existing <|
+                                result = tmp_file.with_output_stream [File_Access.Write] action
+                                result.if_not_error [tmp_file, result]
 
     ## PRIVATE
        ADVANCED
@@ -158,11 +210,20 @@ type Enso_File
        The created stream is automatically closed when `action` returns (even
        if it returns exceptionally).
     with_input_stream : Vector File_Access -> (Input_Stream -> Any ! File_Error) -> Any ! File_Error | Illegal_Argument
-    with_input_stream self (open_options : Vector) action = if self.asset_type != Enso_Asset_Type.File then Error.throw (Illegal_Argument.Error "Only files can be opened as a stream.") else
-        if (open_options !=  [File_Access.Read]) then Error.throw (Illegal_Argument.Error "Files can only be opened for reading.") else
-            s3_url = get_download_url_for_file self
-            response = HTTP.fetch s3_url HTTP_Method.Get []
-            response.if_not_error <| response.body.with_stream action
+    with_input_stream self (open_options : Vector) action =
+        open_as_data_link = (open_options.contains Data_Link_Access.No_Follow . not) && (Data_Link.is_data_link self)
+        if open_as_data_link then Data_Link.read_data_link_as_stream self open_options action else
+            File_Access.ensure_only_allowed_options "with_input_stream" [File_Access.Read, Data_Link_Access.No_Follow] open_options <|
+                asset = Existing_Enso_Asset.get_asset_reference_for self
+                uri = case asset.asset_type of
+                    Enso_Asset_Type.File -> asset.get_download_url
+                    Enso_Asset_Type.Data_Link ->
+                        Runtime.assert (open_options.contains Data_Link_Access.No_Follow)
+                        asset.internal_uri
+                    _ ->
+                        Error.throw (Illegal_Argument.Error "Only files can be opened as a stream.")
+                response = HTTP.fetch uri HTTP_Method.Get []
+                response.if_not_error <| response.body.with_stream action
 
     ## ALIAS load, open
        GROUP Input
@@ -181,21 +242,25 @@ type Enso_File
          If set to `Ignore`, the operation proceeds without errors or warnings.
     @format File_Format.default_widget
     read : File_Format -> Problem_Behavior -> Any ! Illegal_Argument | File_Error
-    read self format=Auto_Detect (on_problems=Problem_Behavior.Report_Warning) = case self.asset_type of
-        Enso_Asset_Type.Project -> Error.throw (Illegal_Argument.Error "Projects cannot be read within Enso code. Open using the IDE.")
-        Enso_Asset_Type.Secret -> Error.throw (Illegal_Argument.Error "Secrets cannot be read directly.")
-        Enso_Asset_Type.Data_Link -> Unimplemented.throw "Reading from a Data Link is not implemented yet."
-        Enso_Asset_Type.Directory -> if format == Auto_Detect then self.list else Error.throw (Illegal_Argument.Error "Directories can only be read using the Auto_Detect format.")
-        Enso_Asset_Type.File -> case format of
-            Auto_Detect ->
-                real_format = Auto_Detect.get_reading_format self
-                if real_format == Nothing then Error.throw (File_Error.Unsupported_Type self) else
-                    self.read real_format on_problems
-            _ ->
-                # TODO this is just a placeholder, until we implement the proper path
-                path = "enso://"+self.id
-                metadata = File_Format_Metadata.Value path=path name=self.name
-                self.with_input_stream [File_Access.Read] (stream-> format.read_stream stream metadata)
+    read self format=Auto_Detect (on_problems=Problem_Behavior.Report_Warning) =
+        asset = Existing_Enso_Asset.get_asset_reference_for self
+        case asset.asset_type of
+            Enso_Asset_Type.Project -> Error.throw (Illegal_Argument.Error "Projects cannot be read within Enso code. Open using the IDE.")
+            Enso_Asset_Type.Secret -> Error.throw (Illegal_Argument.Error "Secrets cannot be read directly.")
+            Enso_Asset_Type.Data_Link ->
+                json = Utils.http_request_as_json HTTP_Method.Get asset.internal_uri
+                datalink = Data_Link.interpret_json_as_data_link json
+                datalink.read format on_problems
+            Enso_Asset_Type.Directory -> if format == Auto_Detect then self.list else Error.throw (Illegal_Argument.Error "Directories can only be read using the Auto_Detect format.")
+            Enso_Asset_Type.File -> File_Format.handle_format_missing_arguments format <|
+                read_with_format effective_format =
+                    metadata = File_Format_Metadata.from self
+                    self.with_input_stream [File_Access.Read] (stream-> effective_format.read_stream stream metadata)
+
+                if format != Auto_Detect then read_with_format format else
+                    real_format = Auto_Detect.get_reading_format self
+                    if real_format == Nothing then Error.throw (File_Error.Unsupported_Type self) else
+                        read_with_format real_format
 
     ## ALIAS load bytes, open bytes
        ICON data_input
@@ -221,46 +286,64 @@ type Enso_File
         self.read (Plain_Text_Format.Plain_Text encoding) on_problems
 
     ## GROUP Metadata
+       ICON metadata
+       Returns the name of this file.
+    name self -> Text =
+        if self.enso_path.path_segments.is_empty then "" else
+            self.enso_path.path_segments.last
+
+    ## GROUP Metadata
+       ICON metadata
        Returns the extension of the file.
-    extension : Text
-    extension self = case self.asset_type of
-        Enso_Asset_Type.Directory -> Error.throw (Illegal_Argument.Error "Directories do not have extensions.")
-        Enso_Asset_Type.Secret -> Error.throw (Illegal_Argument.Error "Secrets cannot be accessed directly.")
-        Enso_Asset_Type.Project -> ".enso"
-        _ ->
-            name = self.name
-            last_dot = name.locate "." mode=Matching_Mode.Last
-            if last_dot.is_nothing then "" else
-                extension = name.drop (Index_Sub_Range.First last_dot.start)
-                if extension == "." then "" else extension
+    extension self -> Text =
+        find_extension_from_name self.name
 
     ## GROUP Input
+       ICON data_input
        Gets a list of assets within self.
     list : Vector Enso_File
     list self =
         # Remove secrets from the list - they are handled separately in `Enso_Secret.list`.
-        list_assets self . filter f-> f.asset_type != Enso_Asset_Type.Secret
+        assets = list_assets self . filter f-> f.asset_type != Enso_Asset_Type.Secret
+        assets.map asset->
+            file = Enso_File.Value (self.enso_path.resolve asset.name)
+            Asset_Cache.update file asset
+            file
 
     ## UNSTABLE
        GROUP Output
        Creates a subdirectory in a specified directory.
     create_directory : Text -> Enso_File
-    create_directory self (name : Text) = if self.is_directory.not then Error.throw (Illegal_Argument.Error "Only directories can contain subdirectories.") else
-        name_field = [["title", name]]
-        parent_field = if self.id == "" then [] else [["parentId", self.id]]
-        body = JS_Object.from_pairs (name_field + parent_field)
-        response = Utils.http_request_as_json HTTP_Method.Post Utils.directory_api body
-        response.into Enso_File
+    create_directory self (name : Text) =
+        effective_name = if name.ends_with "/" then name.drop (Last 1) else name
+        asset = Existing_Enso_Asset.get_asset_reference_for self
+        if asset.is_directory.not then Error.throw (Illegal_Argument.Error "Only directories can contain subdirectories.") else
+            parent_field = if self.is_current_user_root then [] else
+                [["parentId", asset.id]]
+            body = JS_Object.from_pairs [["title", effective_name]]+parent_field
+            created_directory = Enso_File.Value (self.enso_path.resolve name)
+            Asset_Cache.invalidate created_directory
+            response = Utils.http_request_as_json HTTP_Method.Post Utils.directory_api body
+            created_asset = Existing_Enso_Asset.from_json response
+            created_asset.if_not_error <|
+                Asset_Cache.update created_directory created_asset
+                created_directory
 
     ## UNSTABLE
        GROUP Output
        Deletes the file or directory.
     delete : Nothing
-    delete self = if self.id == "" then Error.throw (Illegal_Argument.Error "The root directory cannot be deleted.") else
-        response = Utils.http_request HTTP_Method.Delete self.internal_uri
+    delete self = if self.enso_path.is_root then Error.throw (Illegal_Argument.Error "The root directory cannot be deleted.") else
+        asset = Existing_Enso_Asset.get_asset_reference_for self
+        # The `if_not_error` here is a workaround for bug https://github.com/enso-org/enso/issues/9669
+        uri = asset.if_not_error <|
+            URI.from asset.asset_uri . add_query_argument "force" "true"
+        response = Utils.http_request HTTP_Method.Delete uri
+        if asset.is_directory then Asset_Cache.invalidate_subtree self else Asset_Cache.invalidate self
         response.if_not_error Nothing
 
-    ## Deletes the file if it had existed.
+    ## ICON data_output
+       Deletes the file if it had existed.
     delete_if_exists : Nothing
     delete_if_exists self =
         r = self.delete
@@ -268,7 +351,8 @@ type Enso_File
             File_Error.Not_Found _ -> Nothing
             _ -> r
 
-    ## Copies the file to the specified destination.
+    ## ICON data_output
+       Copies the file to the specified destination.
 
        Arguments:
        - destination: the destination to move the file to.
@@ -278,7 +362,8 @@ type Enso_File
     copy_to self (destination : Writable_File) (replace_existing : Boolean = False) =
         generic_copy self destination.file replace_existing
 
-    ## Moves the file to the specified destination.
+    ## ICON data_output
+       Moves the file to the specified destination.
 
        Arguments:
        - destination: the destination to move the file to.
@@ -286,38 +371,35 @@ type Enso_File
          destination file already exists. Defaults to `False`.
     move_to : Writable_File -> Boolean -> Nothing ! File_Error
     move_to self (destination : Writable_File) (replace_existing : Boolean = False) =
-        _ = [destination, replace_existing]
-        Context.Output.if_enabled disabled_message="File moving is forbidden as the Output context is disabled." panic=False <|
-            Unimplemented.throw "Enso_File.move_to is not implemented"
+        # TODO we could have a fast path if Cloud will support renaming files
+        generic_copy self destination.file replace_existing . if_not_error <|
+            self.delete . if_not_error <| destination.file
 
-    ## UNSTABLE
-       GROUP Operators
+    ## GROUP Operators
+       ICON folder
        Resolves a file or directory within this directory.
     / : Text -> Enso_File ! Not_Found
     / self (name : Text) -> Enso_File ! Not_Found =
-        if self.is_directory.not then Error.throw (Illegal_Argument.Error "/ can only be used for directories") else
-            if name.contains "/" then Error.throw (Illegal_Argument.Error "Resolving sub-paths (/) is not implemented. Temporary workaround: use the `/` operator multiple times.") else
-                self.list . find f-> f.name == name
+        Enso_File.Value (self.enso_path.resolve name)
 
-    ## Returns the text representation of the file descriptor.
+    ## PRIVATE
+    is_current_user_root self -> Boolean =
+        self.enso_path.is_root && self.enso_path.organization_name == Enso_User.current.organization_name
+
+    ## PRIVATE
+       Returns the text representation of the file descriptor.
     to_text : Text
     to_text self -> Text =
-        if self == Enso_File.root then "Cloud Root Directory" else
-            "Cloud " + self.asset_type.to_text + " " + self.name
+        "Enso_File "+self.path
+
+    ## PRIVATE
+    to_js_object : JS_Object
+    to_js_object self =
+        JS_Object.from_pairs [["type", "Enso_File"], ["constructor", "new"], ["path", self.path.to_text]]
 
 ## PRIVATE
-list_assets parent = if parent.asset_type != Enso_Asset_Type.Directory then Error.throw (Illegal_Argument.Error "Only directories can be listed.") else
-     response = Utils.http_request_as_json HTTP_Method.Get parent.internal_uri
-     assets = get_required_field "assets" response
-     assets.map t-> t.into Enso_File
-
-## PRIVATE
-Enso_File.from (that:JS_Object) = if ["title", "id", "parentId"].any (k-> that.contains_key k . not) then Error.throw (Illegal_Argument.Error "Invalid JSON for an Enso_File.") else
-    name = that.get "title"
-    id = that.get "id"
-    org = that.get "organizationId" ""
-    asset_type = (id.take (Text_Sub_Range.Before "-")):Enso_Asset_Type
-    Enso_File.Value name id org asset_type
+list_assets (parent : Enso_File) -> Vector Existing_Enso_Asset =
+    Existing_Enso_Asset.get_asset_reference_for parent . list_directory
 
 type Enso_Asset_Type
     ## Represents an Enso project.
@@ -341,23 +423,58 @@ Enso_Asset_Type.from (that:Text) = case that of
     "file" -> Enso_Asset_Type.File
     "directory" -> Enso_Asset_Type.Directory
     "secret" -> Enso_Asset_Type.Secret
-    "connection" -> Enso_Asset_Type.Data_Link
-    _ -> Error.throw (Illegal_Argument.Error "Invalid asset type.")
+    "connector" -> Enso_Asset_Type.Data_Link
+    _ -> Error.throw (Illegal_Argument.Error "Invalid asset type: "+that.pretty+".")
 
 ## PRIVATE
-File_Format_Metadata.from (that:Enso_File) = File_Format_Metadata.Value Nothing that.name (that.extension.catch _->Nothing)
+File_Format_Metadata.from (that:Enso_File) =
+    asset_type = that.asset_type.catch File_Error _->Nothing
+    if asset_type == Enso_Asset_Type.Data_Link then File_Format_Metadata.Value path=that.path name=that.name content_type=Data_Link.data_link_content_type else
+        File_Format_Metadata.Value path=that.path name=that.name extension=(that.extension.catch _->Nothing)
 
 ## PRIVATE
-   Fetches the basic information about a file from the Cloud endpoint.
-get_file_description file:Enso_File -> JS_Object =
-    Utils.http_request_as_json HTTP_Method.Get file.internal_uri
+File_Like.from (that : Enso_File) = File_Like.Value that
 
 ## PRIVATE
-   The returned URL may be valid only for a very short time, so it should not be
-   stored anywhere.
-get_download_url_for_file file:Enso_File -> Text =
-    file_description = get_file_description file
-    ## TODO migrate to the pre-signed URLs once that is implemented
-       presigned_url = file_description |> get_required_field "url"
-    path = file_description |> get_required_field "file" |> get_required_field "path"
-    path.replace "s3://production-enso-organizations-files/" "https://production-enso-organizations-files.s3.eu-west-1.amazonaws.com/"
+Writable_File.from (that : Enso_File) =
+    Writable_File.Value that Enso_File_Write_Strategy.instance
+
+## PRIVATE
+upload_file (local_file : File) (destination : Enso_File) (replace_existing : Boolean) -> Enso_File =
+    result = perform_upload destination replace_existing [local_file, destination]
+    result.catch Enso_Cloud_Error error->
+        is_source_file_not_found = case error of
+            Enso_Cloud_Error.Connection_Error cause -> case cause of
+                request_error : Request_Error -> request_error.error_type == 'java.io.FileNotFoundException'
+                _ -> False
+            _ -> False
+        if is_source_file_not_found then Error.throw (File_Error.Not_Found local_file) else result
+
+## PRIVATE
+   `generate_request_body_and_result` should return a pair,
+   where the first element is the request body and the second element is the result to be returned.
+   It is executed lazily, only after all pre-conditions are successfully met.
+perform_upload (destination : Enso_File) (allow_existing : Boolean) (~generate_request_body_and_result) =
+    parent_directory = destination.parent
+    if parent_directory.is_nothing then Error.throw (Illegal_Argument.Error "The root directory cannot be a destination for upload. The destination must be a path to a file.") else
+        parent_directory_asset = Existing_Enso_Asset.get_asset_reference_for parent_directory
+        # If the parent directory does not exist, we fail.
+        parent_directory_asset.if_not_error <|
+            existing_asset = Existing_Enso_Asset.get_asset_reference_for destination
+                . catch File_Error _->Nothing
+            if existing_asset.is_nothing.not && allow_existing.not then Error.throw (File_Error.Already_Exists destination) else
+                if existing_asset.is_nothing.not && existing_asset.asset_type != Enso_Asset_Type.File then Error.throw (Illegal_Argument.Error "The destination must be a path to a file, not "+existing_asset.asset_type.to_text+".") else
+                    existing_asset_id = existing_asset.if_not_nothing <| existing_asset.id
+                    file_name = destination.name
+                    base_uri = URI.from Utils.files_api
+                        . add_query_argument "parent_directory_id" parent_directory_asset.id
+                        . add_query_argument "file_name" file_name
+                    full_uri = case existing_asset_id of
+                        Nothing -> base_uri
+                        _ -> base_uri . add_query_argument "file_id" existing_asset_id
+                    pair = generate_request_body_and_result
+                    Asset_Cache.invalidate destination
+                    response = Utils.http_request HTTP_Method.Post full_uri pair.first
+                    response.if_not_error <|
+                        Asset_Cache.update destination (Existing_Enso_Asset.from_json response)
+                        pair.second

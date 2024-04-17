@@ -276,32 +276,48 @@ context-dependent manner that is discussed properly in the
 [type system design document](../types/README.md), but is summarised briefly
 below.
 
-- **Name and Fields:** When you provide the keyword with only a name and some
-  field names, this creates an atom.
-
-  ```ruby
-  type Just value
-  ```
-
 - **Body with Atom Definitions:** If you provide a body with atom definitions,
   this defines a smart constructor that defines the atoms and related functions
   by returning a typeset.
 
   ```ruby
-  type Maybe a
+  type Maybe
       Nothing
-      type Just (value : a)
+      Just (value : Integer)
 
-      isJust = case this of
-          Nothing -> False
-          Just _ -> True
+      is_just self = case self of
+          Maybe.Nothing -> False
+          Maybe.Just _ -> True
 
-      nothing = not isJust
+      nothing self = self.is_just.not
   ```
 
-  Please note that the `type Foo (a : t)` is syntax only allowable inside a type
-  definition. It defines an atom `Foo`, but constrains the type variable of the
-  atom _in this usage_.
+  To reference atoms use type name followed by the name of the atom. E.g.
+  `Maybe.Nothing` or `Maybe.Just 2`. Atom constructors act like functions and
+  fully support currying - e.g. one can create `fn = Maybe.Just` and later apply
+  two to it (`fn 2`) to obtain new atom.
+
+- **Autoscoped Constructors:** Referencing constructors via their type name may
+  lead to long and boilerplate code. To simplify referencing constructors when
+  the _context is known_ a special `..` syntax is supported. Should there be a
+  method `describe`:
+
+  ```ruby
+  describe (m : Maybe) -> Text = if m.is_just then m.value.to_text else "Empty"
+  ```
+
+  one may invoke it as `describe (Maybe.Just 5)` - e.g. the regular way. Or one
+  may use _autoscoped constructors_ and call
+
+  ```ruby
+  describe (..Just 5)
+  ```
+
+  the argument `(..Just 5)` is _recorded but not executed_ until it is send to
+  the `describe` method. The argument of the `describe` method is known to be of
+  type `Maybe` and have `Just` constructor. The _scope_ is now known and the so
+  far deferred `..` value gets evaluated. `Maybe.Just 5` atom is constructed and
+  execution of `describe` method continues with such atom.
 
 - **Body Without Atom Definitions:** If you provide a body and do not define any
   atoms within it, this creates an interface that asserts no atoms as part of

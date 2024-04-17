@@ -124,12 +124,19 @@ final class EnsureCompiledJob(
               // Side-effect: ensures that module's source is correctly initialized.
               module.getSource()
               invalidateCaches(module, changeset)
-              if (module.isIndexed) {
+              val state =
+                ctx.state.suggestions.getOrCreateFresh(module, module.getIr)
+              if (state.isIndexed) {
                 ctx.jobProcessor.runBackground(
-                  AnalyzeModuleJob(module, changeset)
+                  AnalyzeModuleJob(module, state, module.getIr(), changeset)
                 )
               } else {
-                AnalyzeModuleJob.analyzeModule(module, changeset)
+                AnalyzeModuleJob.analyzeModule(
+                  module,
+                  state,
+                  module.getIr(),
+                  changeset
+                )
               }
               runCompilationDiagnostics(module)
             }
@@ -145,7 +152,11 @@ final class EnsureCompiledJob(
   private def ensureCompiledScope(modulesInScope: Iterable[Module])(implicit
     ctx: RuntimeContext
   ): Iterable[CompilationStatus] = {
-    val notIndexedModulesInScope = modulesInScope.filter(!_.isIndexed)
+    val notIndexedModulesInScope =
+      modulesInScope.filter(m => {
+        val state = ctx.state.suggestions.find(m)
+        state == null || !state.isIndexed
+      })
     val (modulesToAnalyzeBuilder, compilationStatusesBuilder) =
       notIndexedModulesInScope.foldLeft(
         (Set.newBuilder[Module], Vector.newBuilder[CompilationStatus])
@@ -177,7 +188,15 @@ final class EnsureCompiledJob(
     val modulesToAnalyze = modulesToAnalyzeBuilder.result()
     if (modulesToAnalyze.nonEmpty) {
       ctx.jobProcessor.runBackground(
-        AnalyzeModuleInScopeJob(modulesToAnalyze)
+        AnalyzeModuleInScopeJob(
+          modulesToAnalyze.map(m =>
+            (
+              m,
+              ctx.state.suggestions.getOrCreateFresh(m, m.getIr),
+              m.getSource() != null
+            )
+          )
+        )
       )
     }
     compilationStatusesBuilder.result()
@@ -290,35 +309,38 @@ final class EnsureCompiledJob(
     ctx: RuntimeContext,
     logger: TruffleLogger
   ): Option[Changeset[Rope]] = {
-    val fileLockTimestamp         = ctx.locking.acquireFileLock(file)
-    val pendingEditsLockTimestamp = ctx.locking.acquirePendingEditsLock()
+    val fileLockTimestamp = ctx.locking.acquireFileLock(file)
     try {
-      val pendingEdits = ctx.state.pendingEdits.dequeue(file)
-      val edits        = pendingEdits.map(_.edit)
-      val shouldExecute =
-        pendingEdits.isEmpty || pendingEdits.exists(_.execute)
-      val module = ctx.executionService.getContext
-        .getModuleForFile(file)
-        .orElseThrow(() => new ModuleNotFoundForFileException(file))
-      val changesetBuilder = new ChangesetBuilder(
-        module.getLiteralSource,
-        module.getIr
-      )
-      val changeset = changesetBuilder.build(pendingEdits)
-      ctx.executionService.modifyModuleSources(
-        module,
-        edits,
-        changeset.simpleUpdate.orNull,
-        logger
-      )
-      Option.when(shouldExecute)(changeset)
+      val pendingEditsLockTimestamp = ctx.locking.acquirePendingEditsLock()
+      try {
+        val pendingEdits = ctx.state.pendingEdits.dequeue(file)
+        val edits        = pendingEdits.map(_.edit)
+        val shouldExecute =
+          pendingEdits.isEmpty || pendingEdits.exists(_.execute)
+        val module = ctx.executionService.getContext
+          .getModuleForFile(file)
+          .orElseThrow(() => new ModuleNotFoundForFileException(file))
+        val changesetBuilder = new ChangesetBuilder(
+          module.getLiteralSource,
+          module.getIr
+        )
+        val changeset = changesetBuilder.build(pendingEdits)
+        ctx.executionService.modifyModuleSources(
+          module,
+          edits,
+          changeset.simpleUpdate.orNull,
+          logger
+        )
+        Option.when(shouldExecute)(changeset)
+      } finally {
+        ctx.locking.releasePendingEditsLock()
+        logger.log(
+          Level.FINEST,
+          "Kept pending edits lock [EnsureCompiledJob] for {} milliseconds",
+          System.currentTimeMillis() - pendingEditsLockTimestamp
+        )
+      }
     } finally {
-      ctx.locking.releasePendingEditsLock()
-      logger.log(
-        Level.FINEST,
-        "Kept pending edits lock [EnsureCompiledJob] for {} milliseconds",
-        System.currentTimeMillis() - pendingEditsLockTimestamp
-      )
       ctx.locking.releaseFileLock(file)
       logger.log(
         Level.FINEST,

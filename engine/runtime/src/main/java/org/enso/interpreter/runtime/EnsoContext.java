@@ -222,7 +222,7 @@ public final class EnsoContext {
 
   private static final Assumption checkNodes =
       Truffle.getRuntime().createAssumption("context check");
-  private static final Set<Node> reportedNulllRootNodes = new HashSet<>();
+  private static final Set<Node> reportedNullRootNodes = new HashSet<>();
   private static long checkUntil = Long.MAX_VALUE;
 
   @TruffleBoundary
@@ -230,9 +230,9 @@ public final class EnsoContext {
     if (System.currentTimeMillis() > checkUntil) {
       checkNodes.invalidate();
     }
-    if (reportedNulllRootNodes.add(n)) {
+    if (reportedNullRootNodes.add(n)) {
       var ex =
-          new Exception(
+          new AssertionError(
               """
         no root node for {n}
         with section: {s}
@@ -243,6 +243,11 @@ public final class EnsoContext {
                   .replace("{r}", "" + n.getRootNode()));
       ex.printStackTrace();
       checkUntil = System.currentTimeMillis() + 10000;
+      var assertsOn = false;
+      assert assertsOn = true;
+      if (assertsOn) {
+        throw ex;
+      }
     }
   }
 
@@ -718,11 +723,15 @@ public final class EnsoContext {
 
   /**
    * @param name human-readable name of the pool
+   * @param min minimal number of threads kept-alive in the pool
+   * @param max maximal number of available threads
+   * @param maxQueueSize maximal number of pending tasks
    * @param systemThreads use system threads or polyglot threads
    * @return new execution service for this context
    */
-  public ExecutorService newCachedThreadPool(String name, boolean systemThreads) {
-    return threadExecutors.newCachedThreadPool(name, systemThreads);
+  public ExecutorService newCachedThreadPool(
+      String name, int min, int max, int maxQueueSize, boolean systemThreads) {
+    return threadExecutors.newCachedThreadPool(name, systemThreads, min, max, maxQueueSize);
   }
 
   /**

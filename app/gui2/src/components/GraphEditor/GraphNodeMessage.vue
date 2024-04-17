@@ -1,23 +1,37 @@
 <script setup lang="ts">
-/// types of messages
-export type GraphNodeMessageType = 'error' | 'warning'
+import SvgIcon from '@/components/SvgIcon.vue'
+import type { Icon } from '@/util/iconName'
 
-const props = defineProps<{ message: string; type: GraphNodeMessageType }>()
+const props = defineProps<{
+  message: string
+  type: MessageType
+}>()
+</script>
 
-function styleClassForType(type: GraphNodeMessageType) {
-  switch (type) {
-    case 'error':
-      return 'GraphNodeError'
-    case 'warning':
-      return 'GraphNodeWarning'
-    default:
-      return ''
-  }
+<script lang="ts">
+/** The type of a message. */
+export type MessageType = 'error' | 'warning' | 'panic'
+export const iconForMessageType: Record<MessageType, Icon> = {
+  error: 'error',
+  warning: 'warning',
+  panic: 'panic',
+}
+export const colorForMessageType: Record<MessageType, string> = {
+  error: 'var(--color-error)',
+  warning: 'var(--color-warning)',
+  panic: 'var(--color-error)',
 }
 </script>
 
 <template>
-  <div class="GraphNodeMessage" :class="styleClassForType(props.type)" v-text="props.message"></div>
+  <div
+    class="GraphNodeMessage"
+    :class="props.type"
+    :style="{ backgroundColor: colorForMessageType[props.type] }"
+  >
+    <SvgIcon class="icon" :name="iconForMessageType[props.type]" />
+    <div v-text="props.message"></div>
+  </div>
 </template>
 
 <style scoped>
@@ -26,7 +40,7 @@ function styleClassForType(type: GraphNodeMessageType) {
   height: 24px;
   padding: 1px 8px;
   align-items: flex-start;
-  gap: 10px;
+  gap: 6px;
   font-weight: 800;
   white-space: nowrap;
   border-radius: var(--radius-full);
@@ -34,11 +48,7 @@ function styleClassForType(type: GraphNodeMessageType) {
   line-height: 20px;
 }
 
-.GraphNodeWarning {
-  background-color: #faa212;
-}
-
-.GraphNodeError {
-  background-color: #e85252;
+.icon {
+  margin: auto 0;
 }
 </style>

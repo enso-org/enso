@@ -56,11 +56,8 @@ public abstract class SpecializedStorage<T> extends Storage<T> {
     return data[idx];
   }
 
-  /**
-   * @inheritDoc
-   */
   @Override
-  public boolean isNa(long idx) {
+  public boolean isNothing(long idx) {
     return data[(int) idx] == null;
   }
 
@@ -157,7 +154,7 @@ public abstract class SpecializedStorage<T> extends Storage<T> {
     Context context = Context.getCurrent();
     for (int i = 0; i < size; i++) {
       boolean isCurrentValueMissing =
-          missingIndicator == null ? isNa(i) : missingIndicator.getItem(i);
+          missingIndicator == null ? isNothing(i) : missingIndicator.getItem(i);
       if (!isCurrentValueMissing) {
         previous = data[i];
         hasPrevious = true;

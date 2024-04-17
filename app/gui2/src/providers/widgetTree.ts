@@ -2,8 +2,10 @@ import { createContextStore } from '@/providers'
 import { useGraphStore } from '@/stores/graph'
 import { type NodeId } from '@/stores/graph/graphDatabase'
 import { Ast } from '@/util/ast'
+import type { Vec2 } from '@/util/data/vec2'
 import type { Icon } from '@/util/iconName'
 import { computed, proxyRefs, type Ref } from 'vue'
+import type { WidgetEditHandler } from './widgetRegistry/editHandler'
 
 export { injectFn as injectWidgetTree, provideFn as provideWidgetTree }
 const { provideFn, injectFn } = createContextStore(
@@ -11,10 +13,15 @@ const { provideFn, injectFn } = createContextStore(
   (
     astRoot: Ref<Ast.Ast>,
     nodeId: Ref<NodeId>,
+    nodeElement: Ref<HTMLElement | undefined>,
+    nodeSize: Ref<Vec2>,
     icon: Ref<Icon>,
     connectedSelfArgumentId: Ref<Ast.AstId | undefined>,
     potentialSelfArgumentId: Ref<Ast.AstId | undefined>,
+    conditionalPorts: Ref<Set<Ast.AstId>>,
+    extended: Ref<boolean>,
     hasActiveAnimations: Ref<boolean>,
+    currentEdit: Ref<WidgetEditHandler | undefined>,
     emitOpenFullMenu: () => void,
   ) => {
     const graph = useGraphStore()
@@ -22,11 +29,16 @@ const { provideFn, injectFn } = createContextStore(
     return proxyRefs({
       astRoot,
       nodeId,
+      nodeElement,
+      nodeSize,
       icon,
       connectedSelfArgumentId,
       potentialSelfArgumentId,
+      conditionalPorts,
+      extended,
       nodeSpanStart,
       hasActiveAnimations,
+      currentEdit,
       emitOpenFullMenu,
     })
   },

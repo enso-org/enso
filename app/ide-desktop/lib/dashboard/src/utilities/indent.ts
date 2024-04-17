@@ -8,18 +8,18 @@
  * the classes in the final CSS file. */
 const INDENT_CLASSES = [
   '',
-  'ml-6',
-  'ml-12',
-  'ml-18',
-  'ml-24',
-  'ml-30',
-  'ml-36',
-  'ml-42',
-  'ml-48',
-  'ml-54',
-  'ml-60',
+  'ml-indent-1',
+  'ml-indent-2',
+  'ml-indent-3',
+  'ml-indent-4',
+  'ml-indent-5',
+  'ml-indent-6',
+  'ml-indent-7',
+  'ml-indent-8',
+  'ml-indent-9',
+  'ml-indent-10',
 ]
-const FALLBACK_INDENT_CLASS = 'w-60'
+const FALLBACK_INDENT_CLASS = 'ml-indent-10'
 
 /** Returns the appropriate Tailwind class for the given amount of nesting.. */
 export function indentClass(depth: number): string {

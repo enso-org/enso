@@ -4,7 +4,7 @@ import type { RequiredImport } from '@/stores/graph/imports'
 import { ComputedValueRegistry } from '@/stores/project/computedValueRegistry'
 import { SuggestionDb } from '@/stores/suggestionDatabase'
 import {
-  makeCon,
+  makeConstructor,
   makeFunction,
   makeLocal,
   makeMethod,
@@ -18,12 +18,14 @@ import type { AstId } from '@/util/ast/abstract'
 import { unwrap } from '@/util/data/result'
 import { tryIdentifier, tryQualifiedName } from '@/util/qualifiedName'
 import { initializeFFI } from 'shared/ast/ffi'
+import { assertUnreachable } from 'shared/util/assert'
 import type { ExternalId, Uuid } from 'shared/yjsModel'
 import { expect, test } from 'vitest'
 import { nextTick } from 'vue'
 
 await initializeFFI()
 
+const aiMock = { query: assertUnreachable }
 const operator1Id = '3d0e9b96-3ca0-4c35-a820-7d3a1649de55' as AstId
 const operator1ExternalId = operator1Id as Uuid as ExternalId
 const operator2Id = '5eb16101-dd2b-4034-a6e2-476e8bfa1f2b' as AstId
@@ -120,7 +122,7 @@ test.each([
       selfArg?: { type: string; typename?: string }
     },
   ) => {
-    const input = useComponentBrowserInput(mockGraphDb(), new SuggestionDb())
+    const input = useComponentBrowserInput(mockGraphDb(), new SuggestionDb(), aiMock)
     input.code.value = code
     input.selection.value = { start: cursorPos, end: cursorPos }
     const context = input.context.value
@@ -184,7 +186,7 @@ const baseCases: ApplySuggestionCase[] = [
   },
   {
     code: '',
-    suggestion: makeCon('local.Project.Main.Option.Some'),
+    suggestion: makeConstructor('local.Project.Main.Option.Some'),
     expected: 'Option.Some ',
   },
   {
@@ -287,11 +289,14 @@ test.each([
   ({ code, cursorPos, suggestion, expected, expectedCursorPos }) => {
     cursorPos = cursorPos ?? code.length
     expectedCursorPos = expectedCursorPos ?? expected.length
+    const db = new SuggestionDb()
+    const dummyId = 1
+    db.set(dummyId, suggestion)
     const graphMock = GraphDb.Mock()
-    const input = useComponentBrowserInput(graphMock, new SuggestionDb())
+    const input = useComponentBrowserInput(graphMock, db, aiMock)
     input.code.value = code
     input.selection.value = { start: cursorPos, end: cursorPos }
-    input.applySuggestion(suggestion)
+    input.applySuggestion(dummyId)
     expect(input.code.value).toEqual(expected)
     expect(input.selection.value).toStrictEqual({
       start: expectedCursorPos,
@@ -350,13 +355,12 @@ test.each([
     const db = new SuggestionDb()
     db.set(1, makeModule('Standard.Base'))
     db.set(2, makeType('Standard.Base.Table'))
-    db.set(3, makeCon('Standard.Base.Table.new'))
+    db.set(3, makeConstructor('Standard.Base.Table.new'))
     const graphMock = GraphDb.Mock(undefined, db)
-    const input = useComponentBrowserInput(graphMock, db)
+    const input = useComponentBrowserInput(graphMock, db, aiMock)
     input.code.value = initialCode
     input.selection.value = { start: initialCode.length, end: initialCode.length }
-    const suggestion = db.get(suggestionId)!
-    input.applySuggestion(suggestion)
+    input.applySuggestion(suggestionId)
     if (manuallyEditedCode != null) {
       input.code.value = manuallyEditedCode
     }
@@ -374,7 +378,7 @@ test.each`
   const mockDb = mockGraphDb()
   const sourceNode = operator1Id
   const sourcePort = mockDb.getNodeFirstOutputPort(asNodeId(sourceNode))
-  const input = useComponentBrowserInput(mockDb, new SuggestionDb())
+  const input = useComponentBrowserInput(mockDb, new SuggestionDb(), aiMock)
 
   // Without source node
   input.reset({ type: 'newNode' })
@@ -405,7 +409,7 @@ test.each`
 })
 
 test('Initialize input for edited node', async () => {
-  const input = useComponentBrowserInput(mockGraphDb(), new SuggestionDb())
+  const input = useComponentBrowserInput(mockGraphDb(), new SuggestionDb(), aiMock)
   input.reset({ type: 'editNode', node: asNodeId(operator1Id), cursorPos: 4 })
   expect(input.code.value).toBe('Data.read')
   expect(input.selection.value).toEqual({ start: 4, end: 4 })

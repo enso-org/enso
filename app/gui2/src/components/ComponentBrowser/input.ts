@@ -7,13 +7,16 @@ import {
   SuggestionKind,
   entryQn,
   type SuggestionEntry,
+  type SuggestionId,
   type Typename,
 } from '@/stores/suggestionDatabase/entry'
-import { RawAst, RawAstExtended, astContainingChar } from '@/util/ast'
 import { isOperator, type AstId } from '@/util/ast/abstract.ts'
 import { AliasAnalyzer } from '@/util/ast/aliasAnalysis'
+import { RawAstExtended } from '@/util/ast/extended'
 import { GeneralOprApp, type OperatorChain } from '@/util/ast/opr'
+import { RawAst, astContainingChar } from '@/util/ast/raw'
 import { MappedSet } from '@/util/containers'
+import type { Result } from '@/util/data/result'
 import {
   qnFromSegments,
   qnLastSegment,
@@ -21,9 +24,11 @@ import {
   tryQualifiedName,
   type QualifiedName,
 } from '@/util/qualifiedName'
+import { useToast } from '@/util/toast'
 import { equalFlat } from 'lib0/array'
 import { sourceRangeKey, type SourceRange } from 'shared/yjsModel'
 import { computed, nextTick, ref, type ComputedRef } from 'vue'
+import { useAI } from './ai'
 
 /** Information how the component browser is used, needed for proper input initializing. */
 export type Usage =
@@ -56,6 +61,12 @@ export type EditingContext =
       type: 'changeLiteral'
       literal: RawAstExtended<RawAst.Tree.TextLiteral | RawAst.Tree.Number, false>
     }
+  // In process of writing AI prompt: no suggestion should be displayed.
+  | {
+      type: 'aiPrompt'
+      selfIdent: string
+      prompt: string
+    }
 
 /** An atomic change to the user input. */
 interface Change {
@@ -68,6 +79,7 @@ interface Change {
 export function useComponentBrowserInput(
   graphDb: GraphDb = useGraphStore().db,
   suggestionDb: SuggestionDb = useSuggestionDbStore().entries,
+  ai: { query(query: string, sourcePort: string): Promise<Result<string>> } = useAI(),
 ) {
   const code = ref('')
   const cbUsage = ref<Usage>()
@@ -75,6 +87,8 @@ export function useComponentBrowserInput(
   const selection = ref({ start: 0, end: 0 })
   const ast = computed(() => RawAstExtended.parse(code.value))
   const imports = ref<RequiredImport[]>([])
+  const processingAIPrompt = ref(false)
+  const toastError = useToast.error()
 
   // Code Model to being edited externally (by user).
   //
@@ -109,6 +123,15 @@ export function useComponentBrowserInput(
   const context: ComputedRef<EditingContext> = computed(() => {
     const cursorPosition = selection.value.start
     if (cursorPosition === 0) return { type: 'insert', position: 0 }
+    // TODO[ao]: refactor a bit before merging:
+    const aiPromptMatch = /^((?:[a-zA-Z_][0-9]*)+)\.AI:(.*)$/.exec(code.value)
+    if (aiPromptMatch) {
+      return {
+        type: 'aiPrompt',
+        selfIdent: aiPromptMatch[1] ?? '',
+        prompt: aiPromptMatch[2] ?? '',
+      }
+    }
     const editedPart = cursorPosition - 1
     const inputAst = ast.value
     const editedAst = inputAst
@@ -155,7 +178,7 @@ export function useComponentBrowserInput(
   // Filter deduced from the access (`.` operator) chain written by user.
   const accessChainFilter: ComputedRef<Filter> = computed(() => {
     const ctx = context.value
-    if (ctx.type === 'changeLiteral') return {}
+    if (ctx.type === 'changeLiteral' || ctx.type === 'aiPrompt') return {}
     if (ctx.oprApp == null || ctx.oprApp.lhs == null) return {}
     const opr = ctx.oprApp.lastOpr()
     if (opr == null || opr.repr() !== '.') return {}
@@ -261,14 +284,16 @@ export function useComponentBrowserInput(
   }
 
   /** Apply given suggested entry to the input. */
-  function applySuggestion(entry: SuggestionEntry) {
+  function applySuggestion(id: SuggestionId) {
+    const entry = suggestionDb.get(id)
+    if (!entry) return
     const { newCode, newCursorPos, requiredImport } = inputAfterApplyingSuggestion(entry)
     code.value = newCode
     selection.value = { start: newCursorPos, end: newCursorPos }
     if (requiredImport) {
-      const [id] = suggestionDb.nameToId.lookup(requiredImport)
-      if (id) {
-        const requiredEntry = suggestionDb.get(id)
+      const [importId] = suggestionDb.nameToId.lookup(requiredImport)
+      if (importId) {
+        const requiredEntry = suggestionDb.get(importId)
         if (requiredEntry) {
           imports.value = imports.value.concat(requiredImports(suggestionDb, requiredEntry))
         }
@@ -354,6 +379,10 @@ export function useComponentBrowserInput(
         mainChange = { range: ctx.literal.span(), str }
         break
       }
+      case 'aiPrompt': {
+        mainChange = { range: [0, code.value.length], str }
+        break
+      }
     }
     const qnChange = qnChanges(entry)
     return { changes: [mainChange!, ...qnChange.changes], requiredImport: qnChange.requiredImport }
@@ -361,11 +390,11 @@ export function useComponentBrowserInput(
 
   function codeToBeInserted(entry: SuggestionEntry): string {
     const ctx = context.value
-    const opr = ctx.type !== 'changeLiteral' && ctx.oprApp != null ? ctx.oprApp.lastOpr() : null
+    const opr = 'oprApp' in ctx && ctx.oprApp != null ? ctx.oprApp.lastOpr() : null
     const oprAppSpacing =
-      ctx.type === 'insert' && opr != null && opr.inner.whitespaceLengthInCodeBuffer > 0
-        ? ' '.repeat(opr.inner.whitespaceLengthInCodeBuffer)
-        : ''
+      ctx.type === 'insert' && opr != null && opr.inner.whitespaceLengthInCodeBuffer > 0 ?
+        ' '.repeat(opr.inner.whitespaceLengthInCodeBuffer)
+      : ''
     const extendingAccessOprChain = opr != null && opr.repr() === '.'
     // Modules are special case, as we want to encourage user to continue writing path.
     if (entry.kind === SuggestionKind.Module) {
@@ -391,7 +420,7 @@ export function useComponentBrowserInput(
     if (entry.selfType != null) return { changes: [], requiredImport: null }
     if (entry.kind === SuggestionKind.Local || entry.kind === SuggestionKind.Function)
       return { changes: [], requiredImport: null }
-    if (context.value.type !== 'changeLiteral' && context.value.oprApp != null) {
+    if ('oprApp' in context.value && context.value.oprApp != null) {
       // 1. Find the index of last identifier from the original qualified name that is already written by the user.
       const qn = entryQn(entry)
       const identifiers = qnIdentifiers(context.value.oprApp)
@@ -453,7 +482,7 @@ export function useComponentBrowserInput(
         }
         break
       case 'editNode':
-        code.value = graphDb.nodeIdToNode.get(usage.node)?.rootSpan.code() ?? ''
+        code.value = graphDb.nodeIdToNode.get(usage.node)?.innerExpr.code() ?? ''
         selection.value = { start: usage.cursorPos, end: usage.cursorPos }
         break
     }
@@ -466,6 +495,33 @@ export function useComponentBrowserInput(
     const sourceNodeName = graphDb.getOutputPortIdentifier(sourcePort)
     code.value = sourceNodeName ? `${sourceNodeName}${operator}` : ''
     selection.value = { start: code.value.length, end: code.value.length }
+  }
+
+  function applyAIPrompt() {
+    const ctx = context.value
+    if (ctx.type !== 'aiPrompt') {
+      console.error('Cannot apply AI prompt in non-AI context')
+      return
+    }
+    processingAIPrompt.value = true
+    ai.query(ctx.prompt, ctx.selfIdent).then(
+      (result) => {
+        if (result.ok) {
+          code.value = `${ctx.selfIdent}.${result.value}`
+        } else {
+          const msg = result.error.message('Applying AI prompt failed')
+          console.error(msg)
+          toastError.show(msg)
+        }
+        processingAIPrompt.value = false
+      },
+      (err) => {
+        const msg = `Applying AI prompt failed: ${err}`
+        console.error(msg)
+        toastError.show(msg)
+        processingAIPrompt.value = false
+      },
+    )
   }
 
   return {
@@ -481,10 +537,14 @@ export function useComponentBrowserInput(
     filter,
     /** Flag indicating that we should autoselect first component after last update */
     autoSelectFirstComponent,
+    /** Flag indincating that we're waiting for AI's answer for user's prompt. */
+    processingAIPrompt,
     /** Re-initializes the input for given usage. */
     reset,
     /** Apply given suggested entry to the input. */
     applySuggestion,
+    /** Apply the currently written AI prompt */
+    applyAIPrompt,
     /** Return input after applying given suggestion, without changing state. */
     inputAfterApplyingSuggestion,
     /** A list of imports to add when the suggestion is accepted */

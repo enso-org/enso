@@ -1,13 +1,9 @@
 package org.enso.interpreter.bench.benchmarks.semantic;
 
-import java.nio.file.Paths;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
-import java.util.logging.Level;
-import org.enso.polyglot.RuntimeOptions;
-import org.graalvm.polyglot.Context;
+import org.enso.compiler.benchmarks.Utils;
 import org.graalvm.polyglot.Value;
-import org.graalvm.polyglot.io.IOAccess;
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.BenchmarkMode;
 import org.openjdk.jmh.annotations.Fork;
@@ -38,17 +34,7 @@ public class ListBenchmarks {
 
   @Setup
   public void initializeBenchmark(BenchmarkParams params) throws Exception {
-    var ctx =
-        Context.newBuilder()
-            .allowExperimentalOptions(true)
-            .allowIO(IOAccess.ALL)
-            .allowAllAccess(true)
-            .option(RuntimeOptions.LOG_LEVEL, Level.WARNING.getName())
-            .logHandler(System.err)
-            .option(
-                "enso.languageHomeOverride",
-                Paths.get("../../distribution/component").toFile().getAbsolutePath())
-            .build();
+    var ctx = Utils.createDefaultContextBuilder().build();
 
     var benchmarkName = SrcUtil.findName(params);
     var code =

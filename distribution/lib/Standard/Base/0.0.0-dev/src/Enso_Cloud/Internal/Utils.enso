@@ -1,0 +1,136 @@
+private
+
+import project.Any.Any
+import project.Data.Json.Invalid_JSON
+import project.Data.Map.Map
+import project.Data.Numbers.Integer
+import project.Data.Text.Text
+import project.Data.Time.Duration.Duration
+import project.Data.Vector.Vector
+import project.Enso_Cloud.Errors.Enso_Cloud_Error
+import project.Enso_Cloud.Errors.Not_Logged_In
+import project.Enso_Cloud.Internal.Authentication
+import project.Error.Error
+import project.Function.Function
+import project.Network.HTTP.Header.Header
+import project.Network.HTTP.HTTP
+import project.Network.HTTP.HTTP_Error.HTTP_Error
+import project.Network.HTTP.HTTP_Method.HTTP_Method
+import project.Network.HTTP.HTTP_Status_Code.HTTP_Status_Code
+import project.Network.HTTP.Request.Request
+import project.Network.HTTP.Request_Body.Request_Body
+import project.Network.HTTP.Request_Error
+import project.Network.HTTP.Response.Response
+import project.Network.URI.URI
+import project.Nothing.Nothing
+from project.Data.Boolean import Boolean, False, True
+from project.Data.Text.Extensions import all
+
+polyglot java import org.enso.base.enso_cloud.CloudAPI
+polyglot java import org.enso.base.enso_cloud.CloudRequestCache
+
+## PRIVATE
+cloud_root_uri = "" + CloudAPI.getAPIRootURI
+
+## PRIVATE
+   Construct the authorization header for the request
+authorization_header : Header
+authorization_header =
+    token = Authentication.get_access_token
+    Header.authorization_bearer token
+
+## PRIVATE
+   Root address for listing folders
+assets_api = cloud_root_uri + "assets"
+
+## PRIVATE
+   Root address for listing folders.
+directory_api = cloud_root_uri + "directories"
+
+## PRIVATE
+   Root address for file details metadata.
+files_api = cloud_root_uri + "files"
+
+## PRIVATE
+   Root address for project information.
+projects_api = cloud_root_uri + "projects"
+
+## PRIVATE
+   Root address for Secrets API.
+secrets_api = cloud_root_uri + "secrets"
+
+## PRIVATE
+   Root address for DataLinks API.
+datalinks_api = cloud_root_uri + "connectors"
+
+## PRIVATE
+   Flushes all cloud caches, including the authentication data
+   (so the next request will re-read the credentials file).
+flush_caches : Nothing
+flush_caches = CloudAPI.flushCloudCaches
+
+## PRIVATE
+   Performs a standard request to the Enso Cloud API,
+   parsing the result as JSON.
+http_request_as_json (method : HTTP_Method) (url : URI) (body : Request_Body = Request_Body.Empty) (additional_headers : Vector = []) (error_handlers : Map Text (Any -> Any) = Map.empty) (retries : Integer = 3) -> Any ! Enso_Cloud_Error =
+    response = http_request method url body additional_headers error_handlers retries
+    response.decode_as_json.catch Invalid_JSON error->
+        Error.throw (Enso_Cloud_Error.Invalid_Response_Payload error)
+
+## PRIVATE
+   Performs a standard request to the Enso Cloud API,
+   returning a raw response on success, but handling the error responses.
+
+   This method has built-in retry mechanism that may retry the request if it
+   failed due to a network error or access token expiration.
+
+   Custom error handlers can be provided as a mapping from error codes
+   (defined in the cloud project) to functions that take the full JSON payload
+   and return a custom error.
+http_request (method : HTTP_Method) (url : URI) (body : Request_Body = Request_Body.Empty) (additional_headers : Vector = []) (error_handlers : Map Text (Any -> Any) = Map.empty) (retries : Integer = 3) -> Response ! Enso_Cloud_Error = method.if_not_error <| url.if_not_error <| body.if_not_error <| additional_headers.if_not_error <|
+    all_headers = [authorization_header] + additional_headers
+    as_connection_error err = Error.throw (Enso_Cloud_Error.Connection_Error err)
+
+    response = HTTP.new.request (Request.new method url headers=all_headers body=body) error_on_failure_code=False
+        . catch HTTP_Error as_connection_error
+        . catch Request_Error as_connection_error
+    if response.is_error && (retries > 0) then http_request method url body additional_headers error_handlers (retries - 1) else
+        if response.code.is_success then response else
+            is_unauthorized = (response.code == HTTP_Status_Code.unauthorized) || (response.code == HTTP_Status_Code.forbidden)
+            case is_unauthorized of
+                True -> if retries < 0 then Error.throw Enso_Cloud_Error.Unauthorized else
+                    Authentication.refresh_access_token
+                    http_request method url body additional_headers error_handlers (retries - 1)
+                False ->
+                    payload = response.decode_as_text
+                    ## If the payload can be parsed as JSON, contains a `code` field and this `code` is found in the error
+                       handlers, a specialized handler will be used for the error. Otherwise, a generic Unexpected_Service_Error
+                       will be reported, containing the payload for inspection.
+                    json_payload = payload.parse_json.catch Invalid_JSON (_->Nothing)
+                    error_code = json_payload.get "code"
+                    handler = error_code.if_not_nothing <| error_handlers.get error_code
+                    case handler of
+                        Nothing -> Error.throw (Enso_Cloud_Error.Unexpected_Service_Error response.code payload)
+                        _ : Function -> handler json_payload
+
+## PRIVATE
+   Returns the cached value for the given key, or computes it using the given
+   action and caches it for future use.
+   If `cache_duration` is set to `Nothing`, then the cache is always skipped.
+get_cached (key : Text) ~action (cache_duration : Duration | Nothing = Duration.new seconds=60) =
+    CloudRequestCache.getOrCompute key (_->action) cache_duration
+
+## PRIVATE
+   Invalidates the cache entry for the given key.
+invalidate_cache (key : Text) =
+    CloudRequestCache.invalidateEntry key
+
+## PRIVATE
+   Invalidates all cache entries that share a common prefix.
+invalidate_caches_with_prefix (prefix : Text) =
+    CloudRequestCache.invalidatePrefix prefix
+
+## PRIVATE
+   If `cache_duration` is set to `Nothing`, then this action does not do anything.
+set_cached (key : Text) value (cache_duration : Duration | Nothing = Duration.new seconds=60) =
+    CloudRequestCache.put key value cache_duration

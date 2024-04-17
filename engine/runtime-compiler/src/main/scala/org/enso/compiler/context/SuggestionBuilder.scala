@@ -1,7 +1,6 @@
 package org.enso.compiler.context
 
 import org.enso.compiler.Compiler
-import org.enso.compiler.context.CompilerContext
 import org.enso.compiler.core.Implicits.AsMetadata
 import org.enso.compiler.core.{ExternalID, IR}
 import org.enso.compiler.core.ir.expression.{Application, Operator}
@@ -640,25 +639,42 @@ final class SuggestionBuilder[A: IndexedSource](
       isSuspended  = varg.suspended,
       hasDefault   = varg.defaultValue.isDefined,
       defaultValue = varg.defaultValue.map(buildDefaultValue),
-      tagValues    = buildTagValues(targ)
+      tagValues    = buildTagValues(targ, varg.ascribedType.nonEmpty)
     )
 
   /** Build tag values of type argument.
     *
     * @param targ the type argument
+    * @param hasTypeAscription if the type ascription was used in type definition
     * @return the list of tag values
     */
-  private def buildTagValues(targ: TypeArg): Option[Seq[String]] = {
-    def go(arg: TypeArg): Seq[String] = arg match {
-      case TypeArg.Sum(_, List())   => Seq()
-      case TypeArg.Sum(_, variants) => variants.flatMap(go)
-      case TypeArg.Value(n)         => Seq(n.toString)
-      case _                        => Seq()
+  private def buildTagValues(
+    targ: TypeArg,
+    hasTypeAscription: Boolean
+  ): Option[Seq[String]] = {
+    def mkUnqualified(name: QualifiedName): String =
+      name.item
+    def mkQualified(name: QualifiedName): String =
+      name.toString
+    def mkAutoScopeCall(name: String): String =
+      s"..$name"
+    def go(arg: TypeArg, useAutoScope: Boolean): Seq[String] = arg match {
+      case TypeArg.Sum(_, List()) => Seq()
+      case TypeArg.Sum(_, variants) =>
+        variants.flatMap(go(_, useAutoScope))
+      case TypeArg.Value(n) =>
+        Seq(if (useAutoScope) mkUnqualified(n) else mkQualified(n))
+      case _ => Seq()
     }
 
     targ match {
       case s: TypeArg.Sum =>
-        val tagValues = go(s)
+        val tagItems = go(s, hasTypeAscription)
+        val canUseAutoScope =
+          hasTypeAscription && tagItems.distinct.length == tagItems.length
+        val tagValues =
+          if (canUseAutoScope) tagItems.map(mkAutoScopeCall)
+          else go(s, useAutoScope = false)
         Option.unless(tagValues.isEmpty)(tagValues)
       case _ => None
 
@@ -702,7 +718,7 @@ final class SuggestionBuilder[A: IndexedSource](
     * @return the suggestion argument
     */
   private def buildArgument(arg: DefinitionArgument): Suggestion.Argument = {
-    buildTypeSignatureFromMetadata(arg.name.getMetadata(TypeSignatures)) match {
+    buildTypeSignatureFromMetadata(arg.getMetadata(TypeSignatures)) match {
       case Vector(targ) =>
         buildTypedArgument(arg, targ)
       case _ =>

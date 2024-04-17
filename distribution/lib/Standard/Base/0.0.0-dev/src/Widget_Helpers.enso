@@ -4,11 +4,19 @@ import project.Data.Time.Date.Date
 import project.Data.Time.Date_Time.Date_Time
 import project.Data.Time.Date_Time_Formatter.Date_Time_Formatter
 import project.Data.Time.Time_Of_Day.Time_Of_Day
+import project.Enso_Cloud.Enso_Secret.Enso_Secret
 import project.Meta
 import project.Metadata.Widget
 from project.Data.Boolean import Boolean, False, True
 from project.Metadata import make_single_choice
 from project.Metadata.Choice import Option
+
+## PRIVATE
+   Creates a Single_Choice Widget for text or secret value.
+make_text_secret_selector : Widget
+make_text_secret_selector =
+    fqn = Meta.get_qualified_type_name Enso_Secret
+    make_single_choice [['<Text Value>', '""'], ['<Secret Value>', fqn+".get"]]
 
 ## PRIVATE
    Creates a Regex / Text Widget for search and replace.
@@ -30,7 +38,7 @@ make_file_read_delimiter_selector =
 
 ## PRIVATE
    Creates a Single_Choice Widget for formatting decimals.
-make_number_format_selector : Widget
+make_number_format_selector : Number -> Widget
 make_number_format_selector (value:Number=1234.564321) =
     formats = ['0', '#,##0', '#,##0.00', '#,##0.00##', '#,##0.00;(#,##0.00)', '0.####', '0.######E0']
     mapped_formats = formats.map f-> [f + " (e.g. " + (value.format f) + ")", f.pretty]

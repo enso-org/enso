@@ -1,6 +1,6 @@
-import { assertDefined } from '@/util/assert'
+import { assert, assertDefined } from '@/util/assert'
 import { Ast } from '@/util/ast'
-import { MutableModule } from '@/util/ast/abstract'
+import { MutableModule, isIdentifier } from '@/util/ast/abstract'
 import { zipLongest } from '@/util/data/iterable'
 
 export class Pattern {
@@ -8,17 +8,23 @@ export class Pattern {
   private readonly placeholders: Ast.AstId[]
   private readonly placeholder: string
 
-  constructor(template: string, placeholder: string) {
-    const ast = Ast.parse(template)
-    this.template = ast
-    this.placeholders = findPlaceholders(ast, placeholder)
+  private constructor(template: Ast.Owned, placeholder: string) {
+    this.template = template
+    this.placeholders = findPlaceholders(template, placeholder)
     this.placeholder = placeholder
   }
 
   /** Parse an expression template in which a specified identifier (by default `__`)
    *  may match any arbitrary subtree. */
   static parse(template: string, placeholder: string = '__'): Pattern {
-    return new Pattern(template, placeholder)
+    const ast = Ast.parse(template)
+    return new Pattern(ast, placeholder)
+  }
+
+  static new(f: (placeholder: Ast.Owned) => Ast.Owned, placeholder: string = '__'): Pattern {
+    assert(isIdentifier(placeholder))
+    const module = MutableModule.Transient()
+    return new Pattern(f(Ast.Ident.new(module, placeholder)), placeholder)
   }
 
   /** If the given expression matches the pattern, return the subtrees that matched the holes in the pattern. */
@@ -43,6 +49,19 @@ export class Pattern {
       placeholder.replace(replacement)
     }
     return template
+  }
+
+  instantiateCopied(subtrees: Ast.Ast[], edit?: MutableModule): Ast.Owned {
+    const module = edit ?? MutableModule.Transient()
+    return this.instantiate(
+      module,
+      subtrees.map((ast) => module.copy(ast)),
+    )
+  }
+
+  compose(f: (pattern: Ast.Owned) => Ast.Owned): Pattern {
+    const module = MutableModule.Transient()
+    return new Pattern(f(module.copy(this.template)), this.placeholder)
   }
 }
 

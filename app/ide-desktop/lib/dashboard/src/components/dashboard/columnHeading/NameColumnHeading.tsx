@@ -3,55 +3,52 @@ import * as React from 'react'
 
 import SortAscendingIcon from 'enso-assets/sort_ascending.svg'
 
+import * as textProvider from '#/providers/TextProvider'
+
+import * as aria from '#/components/aria'
 import type * as column from '#/components/dashboard/column'
 import * as columnUtils from '#/components/dashboard/column/columnUtils'
+import UnstyledButton from '#/components/UnstyledButton'
 
-import SortDirection, * as sortDirectionModule from '#/utilities/SortDirection'
+import * as sorting from '#/utilities/sorting'
 
 /** A heading for the "Name" column. */
 export default function NameColumnHeading(props: column.AssetColumnHeadingProps): JSX.Element {
   const { state } = props
-  const { sortColumn, setSortColumn, sortDirection, setSortDirection } = state
-  const [isHovered, setIsHovered] = React.useState(false)
-  const isSortActive = sortColumn === columnUtils.Column.name && sortDirection != null
+  const { sortInfo, setSortInfo } = state
+  const { getText } = textProvider.useText()
+  const isSortActive = sortInfo?.field === columnUtils.Column.name
+  const isDescending = sortInfo?.direction === sorting.SortDirection.descending
+
   return (
-    <button
-      title={
+    <UnstyledButton
+      aria-label={
         !isSortActive
-          ? 'Sort by name'
-          : sortDirection === SortDirection.ascending
-          ? 'Sort by name descending'
-          : 'Stop sorting by name'
+          ? getText('sortByName')
+          : isDescending
+            ? getText('stopSortingByName')
+            : getText('sortByNameDescending')
       }
-      className="flex items-center gap-2 pt-1 pb-1.5"
-      onMouseEnter={() => {
-        setIsHovered(true)
-      }}
-      onMouseLeave={() => {
-        setIsHovered(false)
-      }}
-      onClick={event => {
-        event.stopPropagation()
-        if (sortColumn === columnUtils.Column.name) {
-          setSortDirection(sortDirectionModule.NEXT_SORT_DIRECTION[sortDirection ?? 'null'])
+      className="group flex h-drive-table-heading w-full items-center gap-icon-with-text px-name-column-x"
+      onPress={() => {
+        const nextDirection = isSortActive
+          ? sorting.nextSortDirection(sortInfo.direction)
+          : sorting.SortDirection.ascending
+        if (nextDirection == null) {
+          setSortInfo(null)
         } else {
-          setSortColumn(columnUtils.Column.name)
-          setSortDirection(SortDirection.ascending)
+          setSortInfo({ field: columnUtils.Column.name, direction: nextDirection })
         }
       }}
     >
-      <span className="leading-144.5 h-6 py-0.5">
-        {columnUtils.COLUMN_NAME[columnUtils.Column.name]}
-      </span>
+      <aria.Text className="text-header">{getText('nameColumnName')}</aria.Text>
       <img
-        alt={
-          !isSortActive || sortDirection === SortDirection.ascending
-            ? 'Sort Ascending'
-            : 'Sort Descending'
-        }
-        src={isSortActive ? columnUtils.SORT_ICON[sortDirection] : SortAscendingIcon}
-        className={isSortActive ? '' : isHovered ? 'opacity-50' : 'invisible'}
+        alt={isDescending ? getText('sortDescending') : getText('sortAscending')}
+        src={SortAscendingIcon}
+        className={`transition-all duration-arrow ${
+          isSortActive ? 'selectable active' : 'transparent group-hover:selectable'
+        } ${isDescending ? 'rotate-180' : ''}`}
       />
-    </button>
+    </UnstyledButton>
   )
 }

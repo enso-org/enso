@@ -1,7 +1,7 @@
 import { fc, test } from '@fast-check/vitest'
 import { Position, TextEdit } from 'shared/languageServerTypes'
 import { describe, expect } from 'vitest'
-import { applyDiffAsTextEdits } from '../edits'
+import { applyDiffAsTextEdits, stupidFastDiff } from '../edits'
 
 // ======================
 // === Test utilities ===
@@ -99,4 +99,19 @@ describe('applyDiffAsTextEdits', () => {
     const applied = applyTextEdits(before, edits)
     expect(applied).toBe(after)
   })
+})
+
+test.each`
+  oldStr     | newStr      | expected
+  ${''}      | ${'foo'}    | ${[[1, 'foo']]}
+  ${'foo'}   | ${''}       | ${[[-1, 'foo']]}
+  ${'foo'}   | ${'foo'}    | ${[[0, 'foo']]}
+  ${'foo'}   | ${'bar'}    | ${[[-1, 'foo'], [1, 'bar']]}
+  ${'ababx'} | ${'acacx'}  | ${[[0, 'a'], [-1, 'bab'], [1, 'cac'], [0, 'x']]}
+  ${'ax'}    | ${'acacx'}  | ${[[0, 'a'], [1, 'cac'], [0, 'x']]}
+  ${'ababx'} | ${'ax'}     | ${[[0, 'a'], [-1, 'bab'], [0, 'x']]}
+  ${'ababx'} | ${'abacax'} | ${[[0, 'aba'], [-1, 'b'], [1, 'ca'], [0, 'x']]}
+  ${'axxxa'} | ${'a'}      | ${[[0, 'a'], [-1, 'xxxa']]}
+`('Stupid diff of $oldStr and $newStr', ({ oldStr, newStr, expected }) => {
+  expect(stupidFastDiff(oldStr, newStr)).toEqual(expected)
 })

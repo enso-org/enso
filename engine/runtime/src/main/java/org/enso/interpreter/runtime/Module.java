@@ -57,7 +57,6 @@ public final class Module implements EnsoObject {
   private final Map<Source, Module> allSources = new WeakHashMap<>();
   private final Package<TruffleFile> pkg;
   private CompilationStage compilationStage = CompilationStage.INITIAL;
-  private boolean isIndexed = false;
   private org.enso.compiler.core.ir.Module ir;
   private Map<UUID, IR> uuidsMap;
   private QualifiedName name;
@@ -492,18 +491,6 @@ public final class Module implements EnsoObject {
    */
   public void renameProject(String newName) {
     this.name = name.renameProject(newName);
-  }
-
-  /**
-   * @return the indexed flag.
-   */
-  public boolean isIndexed() {
-    return isIndexed;
-  }
-
-  /** Set the indexed flag. */
-  public void setIndexed(boolean indexed) {
-    isIndexed = indexed;
   }
 
   /**

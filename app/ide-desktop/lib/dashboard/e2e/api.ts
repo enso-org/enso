@@ -5,7 +5,6 @@ import * as backend from '#/services/Backend'
 import type * as remoteBackend from '#/services/RemoteBackend'
 import * as remoteBackendPaths from '#/services/remoteBackendPaths'
 
-import * as config from '#/utilities/config'
 import * as dateTime from '#/utilities/dateTime'
 import * as object from '#/utilities/object'
 import * as permissions from '#/utilities/permissions'
@@ -30,7 +29,7 @@ const GLOB_PROJECT_ID = backend.ProjectId('*')
 /** A tag ID that is a path glob. */
 const GLOB_TAG_ID = backend.TagId('*')
 /* eslint-enable no-restricted-syntax */
-const BASE_URL = config.ACTIVE_CONFIG.apiUrl + '/'
+const BASE_URL = 'https://mock/'
 
 // ===============
 // === mockApi ===
@@ -49,16 +48,19 @@ export async function mockApi({ page }: MockParams) {
   const defaultEmail = 'email@example.com' as backend.EmailAddress
   const defaultUsername = 'user name'
   const defaultOrganizationId = backend.OrganizationId('organization-placeholder id')
+  const defaultUserId = backend.UserId('user-placeholder id')
   const defaultDirectoryId = backend.DirectoryId('directory-placeholder id')
   const defaultUser: backend.User = {
     email: defaultEmail,
     name: defaultUsername,
-    id: defaultOrganizationId,
+    organizationId: defaultOrganizationId,
+    userId: defaultUserId,
     profilePicture: null,
     isEnabled: true,
     rootDirectoryId: defaultDirectoryId,
   }
   let currentUser: backend.User | null = defaultUser
+  let currentOrganization: backend.OrganizationInfo | null = null
   const assetMap = new Map<backend.AssetId, backend.AnyAsset>()
   const deletedAssets = new Set<backend.AssetId>()
   const assets: backend.AnyAsset[] = []
@@ -109,8 +111,7 @@ export async function mockApi({ page }: MockParams) {
         id: backend.ProjectId('project-' + uniqueString.uniqueString()),
         projectState: {
           type: backend.ProjectState.opened,
-          // eslint-disable-next-line @typescript-eslint/naming-convention
-          volume_id: '',
+          volumeId: '',
         },
         title,
         modifiedAt: dateTime.toRfc3339(new Date()),
@@ -203,6 +204,10 @@ export async function mockApi({ page }: MockParams) {
   }
 
   await test.test.step('Mock API', async () => {
+    await page.route('https://cdn.enso.org/**', async route => {
+      await route.fulfill()
+    })
+
     await page.route('https://www.google-analytics.com/**', async route => {
       await route.fulfill()
     })
@@ -344,23 +349,23 @@ export async function mockApi({ page }: MockParams) {
         const projectId = request.url().match(/[/]projects[/](.+?)[/]copy/)?.[1] ?? ''
         await route.fulfill({
           json: {
-            /* eslint-disable @typescript-eslint/naming-convention */
             organizationId: defaultOrganizationId,
             projectId: backend.ProjectId(projectId),
             name: 'example project name',
             state: {
               type: backend.ProjectState.opened,
-              volume_id: '',
-              opened_by: defaultEmail,
+              volumeId: '',
+              openedBy: defaultEmail,
             },
             packageName: 'Project_root',
+            // eslint-disable-next-line @typescript-eslint/naming-convention
             ide_version: null,
+            // eslint-disable-next-line @typescript-eslint/naming-convention
             engine_version: {
               value: '2023.2.1-nightly.2023.9.29',
               lifecycle: backend.VersionLifecycle.development,
             },
             address: backend.Address('ws://example.com/'),
-            /* eslint-enable @typescript-eslint/naming-convention */
           } satisfies backend.ProjectRaw,
         })
       }
@@ -557,12 +562,15 @@ export async function mockApi({ page }: MockParams) {
           // The type of the body sent by this app is statically known.
           // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
           const body: backend.CreateUserRequestBody = await request.postDataJSON()
-          const id = body.organizationId ?? defaultUser.id
-          const rootDirectoryId = backend.DirectoryId(id.replace(/^organization-/, 'directory-'))
+          const organizationId = body.organizationId ?? defaultUser.organizationId
+          const rootDirectoryId = backend.DirectoryId(
+            organizationId.replace(/^organization-/, 'directory-')
+          )
           currentUser = {
             email: body.userEmail,
             name: body.userName,
-            id: body.organizationId ?? defaultUser.id,
+            organizationId,
+            userId: backend.UserId(`user-${uniqueString.uniqueString()}`),
             profilePicture: null,
             isEnabled: false,
             rootDirectoryId,
@@ -578,8 +586,13 @@ export async function mockApi({ page }: MockParams) {
       }
     )
     await page.route(BASE_URL + remoteBackendPaths.USERS_ME_PATH + '*', async route => {
+      await route.fulfill({ json: currentUser })
+    })
+    await page.route(BASE_URL + remoteBackendPaths.GET_ORGANIZATION_PATH + '*', async route => {
       await route.fulfill({
-        json: currentUser,
+        json: currentOrganization,
+        // eslint-disable-next-line @typescript-eslint/no-magic-numbers
+        status: currentOrganization == null ? 404 : 200,
       })
     })
     await page.route(BASE_URL + remoteBackendPaths.CREATE_TAG_PATH + '*', async route => {
@@ -612,8 +625,7 @@ export async function mockApi({ page }: MockParams) {
             organizationId: defaultOrganizationId,
             packageName: 'Project_root',
             projectId: id,
-            // eslint-disable-next-line @typescript-eslint/naming-convention
-            state: { type: backend.ProjectState.opened, volume_id: '' },
+            state: { type: backend.ProjectState.opened, volumeId: '' },
           }
           addProject(title, {
             description: null,
@@ -624,12 +636,10 @@ export async function mockApi({ page }: MockParams) {
             permissions: [
               {
                 user: {
-                  pk: backend.Subject(''),
-                  /* eslint-disable @typescript-eslint/naming-convention */
-                  user_name: defaultUsername,
-                  user_email: defaultEmail,
-                  organization_id: defaultOrganizationId,
-                  /* eslint-enable @typescript-eslint/naming-convention */
+                  organizationId: defaultOrganizationId,
+                  userId: defaultUserId,
+                  name: defaultUsername,
+                  email: defaultEmail,
                 },
                 permission: permissions.PermissionAction.own,
               },
@@ -662,12 +672,10 @@ export async function mockApi({ page }: MockParams) {
             permissions: [
               {
                 user: {
-                  pk: backend.Subject(''),
-                  /* eslint-disable @typescript-eslint/naming-convention */
-                  user_name: defaultUsername,
-                  user_email: defaultEmail,
-                  organization_id: defaultOrganizationId,
-                  /* eslint-enable @typescript-eslint/naming-convention */
+                  organizationId: defaultOrganizationId,
+                  userId: defaultUserId,
+                  name: defaultUsername,
+                  email: defaultEmail,
                 },
                 permission: permissions.PermissionAction.own,
               },
@@ -687,6 +695,7 @@ export async function mockApi({ page }: MockParams) {
     defaultName: defaultUsername,
     defaultOrganizationId,
     defaultUser,
+    defaultUserId,
     rootDirectoryId: defaultDirectoryId,
     /** Returns the current value of `currentUser`. This is a getter, so its return value
      * SHOULD NOT be cached. */
@@ -695,6 +704,14 @@ export async function mockApi({ page }: MockParams) {
     },
     setCurrentUser: (user: backend.User | null) => {
       currentUser = user
+    },
+    /** Returns the current value of `currentUser`. This is a getter, so its return value
+     * SHOULD NOT be cached. */
+    get currentOrganization() {
+      return currentOrganization
+    },
+    setCurrentOrganization: (user: backend.OrganizationInfo | null) => {
+      currentOrganization = user
     },
     addAsset,
     deleteAsset,

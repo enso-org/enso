@@ -86,6 +86,28 @@ class ComplexTypeTest extends CompilerTest {
       tp.members(1).name.name shouldEqual "Bar"
     }
 
+    "have their annotations correct" in {
+      val ir =
+        """
+          |type MyType
+          |    @a 42
+          |    bar self = self
+          |
+          |    Foo
+          |""".stripMargin.preprocessModule.desugar
+      ir.bindings.length shouldEqual 3
+
+      val tp = ir.bindings(0).asInstanceOf[Definition.Type]
+      tp.name.name shouldEqual "MyType"
+      tp.members(0).name.name shouldEqual "Foo"
+
+      val a = ir.bindings(1).asInstanceOf[Name.GenericAnnotation]
+      a.name shouldEqual "a"
+
+      val bar = ir.bindings(2).asInstanceOf[definition.Method.Binding]
+      bar.methodName.name shouldEqual "bar"
+    }
+
     "have their methods desugared to binding methods" in {
       ir.bindings(3) shouldBe an[definition.Method.Binding]
       val isJust = ir.bindings(3).asInstanceOf[definition.Method.Binding]

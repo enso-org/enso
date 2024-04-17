@@ -12,12 +12,15 @@ license-file = "../../LICENSE"
 [dependencies]
 enso-parser = { path = ".." }
 enso-prelude = { path = "../../prelude" }
-enso-profiler = { path = "../../profiler" }
 enso-reflect = { path = "../../reflect" }
 serde = { workspace = true }
 
 [dev-dependencies]
 enso-metamodel = { path = "../../metamodel", features = ["rust"] }
 enso-metamodel-lexpr = { path = "../../metamodel/lexpr" }
+enso-parser = { path = "..", features = ["debug"] }
 lexpr = "0.2.6"
 pretty_assertions = "1.4"
+
+[lints]
+workspace = true

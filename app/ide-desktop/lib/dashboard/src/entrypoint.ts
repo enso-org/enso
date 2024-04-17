@@ -1,14 +1,16 @@
 /** @file Entry point into the cloud dashboard. */
 import '#/tailwind.css'
 
-import * as authentication from '#/index'
+import * as main from '#/index'
 
 // ===================
 // === Entry point ===
 // ===================
 
-authentication.run({
+main.run({
   logger: console,
+  // Browsers usually do not support vibrancy for webpages.
+  vibrancy: false,
   // This file is only included when building for the cloud.
   supportsLocalBackend: false,
   supportsDeepLinks: false,

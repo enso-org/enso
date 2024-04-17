@@ -34,7 +34,7 @@ public class ToBigIntegerConverter implements StorageConverter<BigInteger> {
     int n = doubleStorage.size();
     BigIntegerBuilder builder = new BigIntegerBuilder(n, problemAggregator);
     for (int i = 0; i < n; i++) {
-      if (doubleStorage.isNa(i)) {
+      if (doubleStorage.isNothing(i)) {
         builder.appendNulls(1);
       } else {
         double x = doubleStorage.getItemAsDouble(i);
@@ -50,7 +50,7 @@ public class ToBigIntegerConverter implements StorageConverter<BigInteger> {
     int n = longStorage.size();
     BigIntegerBuilder builder = new BigIntegerBuilder(n, problemAggregator);
     for (int i = 0; i < n; i++) {
-      if (longStorage.isNa(i)) {
+      if (longStorage.isNothing(i)) {
         builder.appendNulls(1);
       } else {
         long x = longStorage.getItem(i);
@@ -66,7 +66,7 @@ public class ToBigIntegerConverter implements StorageConverter<BigInteger> {
     int n = boolStorage.size();
     BigIntegerBuilder builder = new BigIntegerBuilder(n, problemAggregator);
     for (int i = 0; i < n; i++) {
-      if (boolStorage.isNa(i)) {
+      if (boolStorage.isNothing(i)) {
         builder.appendNulls(1);
       } else {
         boolean x = boolStorage.getItem(i);

@@ -124,6 +124,7 @@ type Vector a
 
     ## ALIAS repeat
        GROUP Constants
+       ICON data_input
        Creates a new vector of the given length, filling the elements with
        the provided constant.
 
@@ -191,6 +192,7 @@ type Vector a
     to_array self = Array_Like_Helpers.vector_to_array self
 
     ## GROUP Metadata
+       ICON metadata
        Returns the number of elements stored in this vector.
 
        > Example
@@ -272,7 +274,8 @@ type Vector a
     fold_with_index self init function =
         Array_Like_Helpers.fold_with_index self init function
 
-    ## Combines all the elements of the vector, by iteratively applying the
+    ## ICON dataframe_map_column
+       Combines all the elements of the vector, by iteratively applying the
        passed function with the next element of the vector. After each step the
        value is stored resulting in a new vector of the same size as self.
 
@@ -305,6 +308,7 @@ type Vector a
         Array_Like_Helpers.reduce self function if_empty
 
     ## GROUP Selections
+       ICON find
        Returns the first element of the vector that satisfies the condition or
        `if_missing` if no elements of the vector satisfy it.
 
@@ -324,6 +328,7 @@ type Vector a
         Array_Like_Helpers.find self condition start if_missing
 
     ## GROUP Values
+       ICON find
        Returns the index of an element in the vector.
        Returns Nothing if the element is not found.
 
@@ -347,6 +352,7 @@ type Vector a
         Array_Like_Helpers.index_of self condition start
 
     ## GROUP Values
+       ICON find
        Returns the last index of an element in the vector.
        Returns `Nothing` if the element is not found.
 
@@ -512,7 +518,8 @@ type Vector a
     partition self condition =
         Array_Like_Helpers.partition self condition
 
-    ## Partitions the vector into `Vector`s of elements which satisfy a given
+    ## ICON preparation
+       Partitions the vector into `Vector`s of elements which satisfy a given
        predicate and ones that do not.
 
        Returns a `Pair` whose `first` element is the `Vector` of elements
@@ -533,6 +540,42 @@ type Vector a
     partition_with_index : (Integer -> Any -> Boolean) -> Pair (Vector Any) (Vector Any)
     partition_with_index self predicate =
         Array_Like_Helpers.partition_with_index self predicate
+
+    ## GROUP Selections
+       ICON dataframe_map_row
+       Swaps the rows and columns of a matrix represented by a vector of vectors.
+
+       ! Error Conditions
+
+         - If the rows (subvectors) do not all have the same length, an
+         `Illegal_Argument` error is raised.
+
+       > Example
+         Transpose a vector of vectors.
+
+             matrix = [[0, 1, 2], [3, 4, 5], [6, 7, 8]]
+             # +---+---+---+
+             # | 0 | 1 | 2 |
+             # +---+---+---+
+             # | 3 | 4 | 5 |
+             # +---+---+---+
+             # | 6 | 7 | 8 |
+             # +---+---+---+
+
+             transposed = [[0, 3, 6], [1, 4, 7], [2, 5, 8]]
+             # +---+---+---+
+             # | 0 | 3 | 6 |
+             # +---+---+---+
+             # | 1 | 4 | 7 |
+             # +---+---+---+
+             # | 2 | 5 | 8 |
+             # +---+---+---+
+
+             matrix.transposed == transposed
+             # => True
+    transpose : Vector (Vector Any) ! Illegal_Argument
+    transpose self =
+        Array_Like_Helpers.transpose self
 
     ## ICON dataframe_map_column
        Applies a function to each element of the vector, returning the `Vector` of
@@ -573,7 +616,8 @@ type Vector a
     map self function on_problems=Problem_Behavior.Report_Error =
         Array_Like_Helpers.map self function on_problems
 
-    ## Applies a function to each element of the vector, returning the `Vector`
+    ## ICON dataframes_union
+       Applies a function to each element of the vector, returning the `Vector`
        that contains all results concatenated.
 
        Arguments:
@@ -612,6 +656,7 @@ type Vector a
         Array_Like_Helpers.flat_map self function on_problems
 
     ## GROUP Calculations
+       ICON dataframes_union
        Transforms a vector of vectors into a `Vector` of inner elements - removes
        one layer of nesting from a stack of nested vectors.
 
@@ -622,7 +667,8 @@ type Vector a
     flatten : Vector Any
     flatten self = Array_Like_Helpers.flatten self
 
-    ## Applies a function to each element of the vector, returning the `Vector`
+    ## ICON dataframe_map_column
+       Applies a function to each element of the vector, returning the `Vector`
        of results.
 
        Arguments:
@@ -703,6 +749,7 @@ type Vector a
         Array_Like_Helpers.each_with_index self f
 
     ## GROUP Selections
+       ICON order
        Reverses the vector, returning a `Vector` with the same elements, but in
        the opposite order.
 
@@ -760,6 +807,7 @@ type Vector a
         Array_Like_Helpers.plus self that
 
     ## GROUP Calculations
+       ICON row_add
        Inserts the given item into the vector at the given index.
 
        Arguments:
@@ -780,6 +828,7 @@ type Vector a
         Array_Like_Helpers.insert self at item
 
     ## GROUP Selections
+       ICON table_clean
        Removes the item at the given index from the vector.
 
        Arguments:
@@ -823,7 +872,7 @@ type Vector a
     slice : Integer -> Integer -> Vector Any
     slice self start end = Array_Like_Helpers.slice self start end
 
-    ## ALIAS first, last, sample, slice
+    ## ALIAS first, head, last, limit, sample, slice, tail, top
        GROUP Selections
        ICON select_row
        Creates a new `Vector` with only the specified range of elements from the
@@ -907,6 +956,7 @@ type Vector a
         Array_Like_Helpers.vector_from_function len (i-> function (self.at i) (that.at i)) on_problems
 
     ## GROUP Calculations
+       ICON dataframes_union
        Extend `self` vector to the length of `n` appending elements `elem` to
        the end.
 
@@ -970,6 +1020,7 @@ type Vector a
 
     ## ALIAS order_by
        GROUP Calculations
+       ICON order
        Sort the vector.
 
        Arguments:
@@ -1047,7 +1098,7 @@ type Vector a
     sort self (order = Sort_Direction.Ascending) on=Nothing by=Nothing on_incomparable=Problem_Behavior.Ignore =
         Array_Like_Helpers.sort self order on by on_incomparable
 
-    ## ALIAS unique, deduplicate
+    ## ALIAS deduplicate, unique
        GROUP Selections
        ICON preparation
        Keeps only unique elements within the vector, removing any duplicates.
@@ -1075,11 +1126,13 @@ type Vector a
     distinct self (on = x->x) =
         Array_Like_Helpers.distinct self on
 
-    ## Returns the vector as a `Vector`.
+    ## ICON convert
+       Returns the vector as a `Vector`.
     to_vector : Vector
     to_vector self = self
 
-    ## Converts the vector to a list with the same elements.
+    ## ICON convert
+       Converts the vector to a list with the same elements.
     to_list : List
     to_list self = Array_Like_Helpers.to_list self
 
@@ -1145,11 +1198,13 @@ type Builder
     not_empty self = self.is_empty.not
 
     ## GROUP Metadata
+       ICON metadata
        Gets the current length of the builder.
     length : Integer
     length self = self.java_builder.getSize
 
-    ## Appends a new element into this builder and returns it, propagating any
+    ## ICON join
+       Appends a new element into this builder and returns it, propagating any
        errors that the provided element could have contained.
 
        Arguments:
@@ -1166,7 +1221,8 @@ type Builder
             self.unsafe_append item
             self
 
-    ## Appends a part of a given vector to this builder
+    ## ICON join
+       Appends a part of a given vector to this builder
 
        Arguments:
        - vector: The vector from which the elements are sourced.
@@ -1224,6 +1280,7 @@ type Builder
             Error.throw (Index_Out_Of_Bounds.Error index self.length)
 
     ## GROUP Selections
+       ICON select_row
        Get the first element from the vector, or an `Index_Out_Of_Bounds` if the vector
        is empty.
 
@@ -1235,6 +1292,7 @@ type Builder
     first self = self.at 0
 
     ## GROUP Selections
+       ICON select_row
        Get the last element of the vector, or an `Index_Out_Of_Bounds` if the vector is
        empty.
 
@@ -1259,6 +1317,7 @@ type Builder
         0.up_to self.length . any (idx -> (predicate (self.java_builder.get idx)))
 
     ## GROUP Conversions
+       ICON convert
        Converts this builder to a vector containing all the appended elements.
 
        > Example

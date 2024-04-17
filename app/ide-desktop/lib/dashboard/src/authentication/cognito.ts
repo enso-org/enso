@@ -37,7 +37,9 @@ import * as detect from 'enso-common/src/detect'
 
 import type * as loggerProvider from '#/providers/LoggerProvider'
 
-import * as config from '#/authentication/config'
+import * as dateTime from '#/utilities/dateTime'
+
+import * as service from '#/authentication/service'
 
 // =================
 // === Constants ===
@@ -48,6 +50,8 @@ import * as config from '#/authentication/config'
  * This provider alone requires a string because it is not a standard provider, and thus has no
  * constant defined in the AWS Amplify library. */
 const GITHUB_PROVIDER = 'Github'
+/** One second, in milliseconds. */
+const SEC_MS = 1_000
 
 // ================
 // === UserInfo ===
@@ -148,6 +152,7 @@ export enum CognitoErrorType {
   notAuthorized = 'NotAuthorized',
   userNotConfirmed = 'UserNotConfirmed',
   userNotFound = 'UserNotFound',
+  userBrokenState = 'UserBrokenState',
   amplifyError = 'AmplifyError',
   authError = 'AuthError',
   noCurrentUser = 'NoCurrentUser',
@@ -172,19 +177,19 @@ export class Cognito {
   constructor(
     private readonly logger: loggerProvider.Logger,
     private readonly supportsDeepLinks: boolean,
-    private readonly amplifyConfig: config.AmplifyConfig
+    private readonly amplifyConfig: service.AmplifyConfig
   ) {
     /** Amplify expects `Auth.configure` to be called before any other `Auth` methods are
      * called. By wrapping all the `Auth` methods we care about and returning an `Cognito` API
      * object containing them, we ensure that `Auth.configure` is called before any other `Auth`
      * methods are called. */
-    const nestedAmplifyConfig = config.toNestedAmplifyConfig(amplifyConfig)
+    const nestedAmplifyConfig = service.toNestedAmplifyConfig(amplifyConfig)
     amplify.Auth.configure(nestedAmplifyConfig)
   }
 
   /** Save the access token to a file for further reuse. */
-  saveAccessToken(accessToken: string | null) {
-    this.amplifyConfig.saveAccessToken?.(accessToken)
+  saveAccessToken(accessTokenPayload: SaveAccessTokenPayload | null) {
+    this.amplifyConfig.saveAccessToken?.(accessTokenPayload)
   }
 
   /** Return the current {@link UserSession}, or `None` if the user is not logged in.
@@ -193,7 +198,10 @@ export class Cognito {
   async userSession() {
     const currentSession = await results.Result.wrapAsync(() => amplify.Auth.currentSession())
     const amplifySession = currentSession.mapErr(intoCurrentSessionErrorType)
-    return amplifySession.map(parseUserSession).unwrapOr(null)
+
+    return amplifySession
+      .map(session => parseUserSession(session, this.amplifyConfig.userPoolWebClientId))
+      .unwrapOr(null)
   }
 
   /** Returns the associated organization ID of the current user, which is passed during signup,
@@ -261,7 +269,29 @@ export class Cognito {
     const result = await results.Result.wrapAsync(async () => {
       await amplify.Auth.signIn(username, password)
     })
+
     return result.mapErr(intoAmplifyErrorOrThrow).mapErr(intoSignInWithPasswordErrorOrThrow)
+  }
+
+  /**
+   * Refresh the current user session.
+   */
+  async refreshUserSession() {
+    const result = await results.Result.wrapAsync(async () => {
+      const currentUser = await currentAuthenticatedUser()
+      const refreshToken = (await amplify.Auth.currentSession()).getRefreshToken()
+
+      await new Promise((resolve, reject) => {
+        currentUser.unwrap().refreshSession(refreshToken, (error, session) => {
+          if (error instanceof Error) {
+            reject(error)
+          } else {
+            resolve(session)
+          }
+        })
+      })
+    })
+    return result.mapErr(intoCurrentSessionErrorType)
   }
 
   /** Sign out the current user. */
@@ -366,19 +396,57 @@ export interface UserSession {
   readonly email: string
   /** User's access token, used to authenticate the user (e.g., when making API calls). */
   readonly accessToken: string
+  /** User's refresh token, used to refresh the access token when it expires. */
+  readonly refreshToken: string
+  /** URL to refresh the access token. */
+  readonly refreshUrl: string
+  /** Time when the access token will expire, date and time in ISO 8601 format (UTC timezone). */
+  readonly expireAt: dateTime.Rfc3339DateTime
+  /** Cognito app integration client id.. */
+  readonly clientId: string
 }
 
 /** Parse a `CognitoUserSession` into a {@link UserSession}.
  * @throws If the `email` field of the payload is not a string. */
-function parseUserSession(session: cognito.CognitoUserSession): UserSession {
+function parseUserSession(session: cognito.CognitoUserSession, clientId: string): UserSession {
   const payload: Readonly<Record<string, unknown>> = session.getIdToken().payload
   const email = payload.email
+  const refreshUrl = extractRefreshUrlFromSession(session)
   /** The `email` field is mandatory, so we assert that it exists and is a string. */
   if (typeof email !== 'string') {
     throw new Error('Payload does not have an email field.')
   } else {
-    const accessToken = session.getAccessToken().getJwtToken()
-    return { email, accessToken }
+    const expirationTimestamp = session.getAccessToken().getExpiration()
+
+    const expireAt = dateTime.toRfc3339(new Date(expirationTimestamp * SEC_MS))
+
+    return {
+      email,
+      clientId,
+      expireAt,
+      refreshUrl,
+      accessToken: session.getAccessToken().getJwtToken(),
+      refreshToken: session.getRefreshToken().getToken(),
+    }
+  }
+}
+
+/**
+ * Extract the refresh session endpoint URL from the JWT token payload
+ * @see https://docs.aws.amazon.com/cognito/latest/developerguide/amazon-cognito-user-pools-using-the-access-token.html
+ * @throws Error if the `iss` field of the payload is not a valid URL.
+ */
+function extractRefreshUrlFromSession(session: cognito.CognitoUserSession): string {
+  const { iss } = session.getAccessToken().payload
+
+  if (typeof iss !== 'string') {
+    throw new Error('Payload does not have an iss field.')
+  } else {
+    try {
+      return new URL(iss).toString()
+    } catch (e) {
+      throw new Error('iss field is not a valid URL')
+    }
   }
 }
 
@@ -546,7 +614,10 @@ export function intoSignInWithPasswordErrorOrThrow(error: AmplifyError): SignInW
 
 /** An error that may occur when requesting a password reset. */
 export interface ForgotPasswordError extends CognitoError {
-  readonly type: CognitoErrorType.userNotConfirmed | CognitoErrorType.userNotFound
+  readonly type:
+    | CognitoErrorType.userBrokenState
+    | CognitoErrorType.userNotConfirmed
+    | CognitoErrorType.userNotFound
   readonly message: string
 }
 
@@ -570,6 +641,14 @@ export function intoForgotPasswordErrorOrThrow(error: AmplifyError): ForgotPassw
       message:
         'Cannot reset password for user with an unverified email. ' +
         'Please verify your email first.',
+    }
+  } else if (
+    error.code === 'NotAuthorizedException' &&
+    error.message === 'User password cannot be reset in the current state.'
+  ) {
+    return {
+      type: CognitoErrorType.userBrokenState,
+      message: 'User account is in a broken state. Please contact support.',
     }
   } else {
     throw error

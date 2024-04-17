@@ -26,7 +26,7 @@ const editingEdge: Interaction = {
   cancel() {
     graph.clearUnconnected()
   },
-  click(_e: MouseEvent, graphNavigator: GraphNavigator): boolean {
+  pointerdown(_e: PointerEvent, graphNavigator: GraphNavigator): boolean {
     if (graph.unconnectedEdge == null) return false
     let source: AstId | undefined
     let sourceNode: NodeId | undefined
@@ -75,7 +75,6 @@ function disconnectEdge(target: PortId) {
 function createEdge(source: AstId, target: PortId) {
   const ident = graph.db.getOutputPortIdentifier(source)
   if (ident == null) return
-  const identAst = Ast.parse(ident)
 
   const sourceNode = graph.db.getPatternExpressionNodeId(source)
   const targetNode = graph.getPortNodeId(target)
@@ -89,6 +88,7 @@ function createEdge(source: AstId, target: PortId) {
     // Creating this edge would create a circular dependency. Prevent that and display error.
     toast.error('Could not connect due to circular dependency.')
   } else {
+    const identAst = Ast.parse(ident, edit)
     if (!graph.updatePortValue(edit, target, identAst)) {
       if (isAstId(target)) {
         console.warn(`Failed to connect edge to port ${target}, falling back to direct edit.`)
@@ -122,6 +122,7 @@ function createEdge(source: AstId, target: PortId) {
   position: absolute;
   top: 0;
   left: 0;
+  pointer-events: none;
 }
 
 .overlay.behindNodes {
@@ -130,9 +131,5 @@ function createEdge(source: AstId, target: PortId) {
 
 .overlay.aboveNodes {
   z-index: 20;
-}
-
-.nonInteractive {
-  pointer-events: none;
 }
 </style>

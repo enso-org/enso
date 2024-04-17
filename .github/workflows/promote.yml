@@ -28,12 +28,6 @@ jobs:
       - Linux
     steps:
       - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
-        name: Setup conda (GH runners only)
-        uses: s-weigand/setup-conda@v1.2.1
-        with:
-          update-conda: false
-          conda-channels: anaconda, conda-forge
-      - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
         name: Installing wasm-pack
         uses: jetli/wasm-pack-action@v0.4.0
         with:
@@ -48,10 +42,10 @@ jobs:
           clean: false
           submodules: recursive
       - name: Build Script Setup
-        run: ./run --help
+        run: ./run --help || (git clean -ffdx && ./run --help)
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - if: "contains(github.event.pull_request.labels.*.name, 'CI: Clean build required')"
+      - if: "(contains(github.event.pull_request.labels.*.name, 'CI: Clean build required') || inputs.clean_build_required)"
         name: Clean before
         run: ./run git-clean
         env:
@@ -66,7 +60,7 @@ jobs:
       - if: failure() && runner.os != 'Windows'
         name: List files if failed (non-Windows)
         run: ls -lAR
-      - if: "always() && contains(github.event.pull_request.labels.*.name, 'CI: Clean build required')"
+      - if: "(always()) && (contains(github.event.pull_request.labels.*.name, 'CI: Clean build required') || inputs.clean_build_required)"
         name: Clean after
         run: ./run git-clean
         env:

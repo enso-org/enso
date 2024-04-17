@@ -7,7 +7,6 @@ use crate::env::accessor::RawVariable;
 use heck::ToKebabCase;
 use std::collections::btree_map::Entry;
 use std::collections::BTreeMap;
-use std::collections::BTreeSet;
 use std::convert::identity;
 use std::sync::atomic::AtomicU64;
 use std::sync::atomic::Ordering;
@@ -52,6 +51,11 @@ pub fn secret_expression(secret_name: impl AsRef<str>) -> String {
     wrap_expression(format!("secrets.{}", secret_name.as_ref()))
 }
 
+/// An expression that accesses a variable with a given name.
+pub fn variable_expression(secret_name: impl AsRef<str>) -> String {
+    wrap_expression(format!("vars.{}", secret_name.as_ref()))
+}
+
 /// An expression that accesses an environment variable with a given name.
 pub fn env_expression(environment_variable: &impl RawVariable) -> String {
     wrap_expression(format!("env.{}", environment_variable.name()))
@@ -66,25 +70,6 @@ pub fn get_input_expression(name: impl Into<String>) -> String {
 /// GH Actions expression piece that evaluates to `true` if run on a GitHub-hosted runner.
 pub fn is_github_hosted() -> String {
     "startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')".into()
-}
-
-/// Step that sets up `conda` on GitHub-hosted runners.
-///
-/// We set up `conda` on GitHub-hosted runners because we need it to install `flatbuffers` in
-/// required version. Our self-hosted runners have `flatc` already installed, so we don't need
-/// `conda` there.
-pub fn setup_conda() -> Step {
-    // use crate::actions::workflow::definition::step::CondaChannel;
-    Step {
-        name: Some("Setup conda (GH runners only)".into()),
-        uses: Some("s-weigand/setup-conda@v1.2.1".into()),
-        r#if: Some(is_github_hosted()),
-        with: Some(step::Argument::SetupConda {
-            update_conda:   Some(false),
-            conda_channels: Some("anaconda, conda-forge".into()),
-        }),
-        ..default()
-    }
 }
 
 pub fn setup_wasm_pack_step() -> Step {
@@ -863,6 +848,23 @@ impl Step {
         self.with_secret_exposed_as(secret_name, env_name)
     }
 
+    /// Expose [a variable](https://docs.github.com/en/actions/learn-github-actions/variables) as an environment variable with the same name.
+    pub fn with_variable_exposed(self, variable: impl AsRef<str>) -> Self {
+        let variable_name = variable.as_ref();
+        let env_name = variable_name.to_owned();
+        self.with_variable_exposed_as(variable_name, env_name)
+    }
+
+    /// Expose [a variable](https://docs.github.com/en/actions/learn-github-actions/variables) as an environment variable with a given name.
+    pub fn with_variable_exposed_as(
+        self,
+        variable: impl AsRef<str>,
+        given_name: impl Into<String>,
+    ) -> Self {
+        let variable_expr = variable_expression(variable);
+        self.with_env(given_name, variable_expr)
+    }
+
     /// Expose a secret as an environment variable with a given name.
     pub fn with_input_exposed_as(
         self,
@@ -985,13 +987,6 @@ pub mod step {
             clean:      Option<bool>,
             #[serde(skip_serializing_if = "Option::is_none")]
             submodules: Option<CheckoutArgumentSubmodules>,
-        },
-        #[serde(rename_all = "kebab-case")]
-        SetupConda {
-            #[serde(skip_serializing_if = "Option::is_none")]
-            update_conda:   Option<bool>,
-            #[serde(skip_serializing_if = "Option::is_none")]
-            conda_channels: Option<String>, // conda_channels: Vec<CondaChannel>
         },
         #[serde(rename_all = "kebab-case")]
         GitHubScript {
