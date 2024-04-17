@@ -64,6 +64,8 @@ public final class Parser implements AutoCloseable {
 
   private static native ByteBuffer parseInput(long state, ByteBuffer input);
 
+  private static native long isIdentOrOperator(ByteBuffer input);
+
   private static native long getLastInputBase(long state);
 
   private static native long getMetadata(long state);
@@ -77,11 +79,23 @@ public final class Parser implements AutoCloseable {
     return new Parser(state);
   }
 
-  public Tree parse(CharSequence input) {
+  public long isIdentOrOperator(CharSequence input) {
     byte[] inputBytes = input.toString().getBytes(StandardCharsets.UTF_8);
     ByteBuffer inputBuf = ByteBuffer.allocateDirect(inputBytes.length);
     inputBuf.put(inputBytes);
-    var serializedTree = parseInput(state, inputBuf);
+
+    return isIdentOrOperator(inputBuf);
+  }
+
+  public ByteBuffer parseInput(CharSequence input) {
+    byte[] inputBytes = input.toString().getBytes(StandardCharsets.UTF_8);
+    ByteBuffer inputBuf = ByteBuffer.allocateDirect(inputBytes.length);
+    inputBuf.put(inputBytes);
+    return parseInput(state, inputBuf);
+  }
+
+  public Tree parse(CharSequence input) {
+    var serializedTree = parseInput(input);
     var base = getLastInputBase(state);
     var metadata = getMetadata(state);
     serializedTree.order(ByteOrder.LITTLE_ENDIAN);

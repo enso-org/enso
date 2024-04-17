@@ -684,12 +684,12 @@ def generateRustParser(
 
 lazy val `syntax-rust-definition` = project
   .in(file("lib/rust/parser"))
+  .enablePlugins(JPMSPlugin)
   .configs(Test)
   .settings(
     Compile / sourceGenerators += generateParserJavaSources,
     Compile / resourceGenerators += generateRustParserLib,
-    Compile / javaSource := baseDirectory.value / "generate-java" / "java",
-    frgaalJavaCompilerSetting
+    Compile / javaSource := baseDirectory.value / "generate-java" / "java"
   )
 
 lazy val pkg = (project in file("lib/scala/pkg"))
@@ -1150,21 +1150,21 @@ lazy val `ydoc-server` = project
         }
       )
       .evaluated,
-      assembly / assemblyMergeStrategy := {
-        case PathList("META-INF", file, xs @ _*) if file.endsWith(".DSA") =>
-          MergeStrategy.discard
-        case PathList("META-INF", file, xs @ _*) if file.endsWith(".SF") =>
-          MergeStrategy.discard
-        case PathList("META-INF", "MANIFEST.MF", xs @ _*) =>
-          MergeStrategy.discard
-        case PathList("META-INF", "services", xs @ _*) =>
-          MergeStrategy.concat
-        case PathList("module-info.class") =>
-          MergeStrategy.preferProject
-        case PathList(xs @ _*) if xs.last.contains("module-info.class") =>
-          MergeStrategy.discard
-        case _ => MergeStrategy.first
-      },
+    assembly / assemblyMergeStrategy := {
+      case PathList("META-INF", file, xs @ _*) if file.endsWith(".DSA") =>
+        MergeStrategy.discard
+      case PathList("META-INF", file, xs @ _*) if file.endsWith(".SF") =>
+        MergeStrategy.discard
+      case PathList("META-INF", "MANIFEST.MF", xs @ _*) =>
+        MergeStrategy.discard
+      case PathList("META-INF", "services", xs @ _*) =>
+        MergeStrategy.concat
+      case PathList("module-info.class") =>
+        MergeStrategy.preferProject
+      case PathList(xs @ _*) if xs.last.contains("module-info.class") =>
+        MergeStrategy.discard
+      case _ => MergeStrategy.first
+    },
     commands += WithDebugCommand.withDebug,
     modulePath := {
       JPMSUtils.filterModulesFromUpdate(
@@ -1199,6 +1199,7 @@ lazy val `ydoc-server` = project
         shouldContainAll = true
       )
     },
+    modulePath += (`syntax-rust-definition` / Compile / productDirectories).value.head,
     libraryDependencies ++= Seq(
       "org.graalvm.polyglot" % "polyglot"                    % graalMavenPackagesVersion,
       "org.graalvm.polyglot" % "inspect"                     % graalMavenPackagesVersion % "runtime",
@@ -1209,6 +1210,7 @@ lazy val `ydoc-server` = project
       "com.github.sbt"       % "junit-interface"             % junitIfVersion            % Test
     )
   )
+  .dependsOn(`syntax-rust-definition`)
 
 lazy val `persistance` = (project in file("lib/java/persistance"))
   .settings(
