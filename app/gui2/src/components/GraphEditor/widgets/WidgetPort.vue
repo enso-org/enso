@@ -19,6 +19,7 @@ import { isUuid } from 'shared/yjsModel'
 import {
   computed,
   nextTick,
+  onMounted,
   onUpdated,
   proxyRefs,
   shallowRef,
@@ -109,28 +110,41 @@ const enabled = computed(() => {
   return !isConditional || keyboard.mod
 })
 
-const computedRect = computed(() => {
+/**
+ * NOTE: Reactive dependencies of this function are enforced externally in a `watch` below. This is
+ * necessary, since we don't want to introduce very noisy dependencies through `clientToSceneRect`
+ * call. Since this function calls `getBoundingClientRect`, it can't automatically track all its
+ * dependencies anyway and external refresh mechanisms are required.
+ */
+function updateRect() {
+  const oldRect = portRect.value
+  const newRect = relativePortSceneRect()
+  if (
+    oldRect !== newRect &&
+    (oldRect == null || newRect == null || !oldRect.equalsApproximately(newRect, 0.01))
+  ) {
+    portRect.value = newRect
+  }
+}
+
+function relativePortSceneRect(): Rect | undefined {
   const domNode = rootNode.value
-  const rootDomNode = domNode?.closest('.GraphNode')
+  const rootDomNode = tree.nodeElement
   if (domNode == null || rootDomNode == null) return
   if (!enabled.value) return
-  let _nodeSizeEffect = nodeSize.value
   const exprClientRect = Rect.FromDomRect(domNode.getBoundingClientRect())
   const nodeClientRect = Rect.FromDomRect(rootDomNode.getBoundingClientRect())
   const exprSceneRect = navigator.clientToSceneRect(exprClientRect)
   const exprNodeRect = navigator.clientToSceneRect(nodeClientRect)
   return exprSceneRect.offsetBy(exprNodeRect.pos.inverse())
-})
-
-function updateRect() {
-  const newRect = computedRect.value
-  if (!Rect.Equal(portRect.value, newRect)) {
-    portRect.value = newRect
-  }
 }
 
-watch(computedRect, updateRect)
+watch(
+  () => [nodeSize.value, rootNode.value, tree.nodeElement, tree.nodeSize, enabled.value],
+  updateRect,
+)
 onUpdated(() => nextTick(updateRect))
+onMounted(() => nextTick(updateRect))
 useRaf(toRef(tree, 'hasActiveAnimations'), updateRect)
 </script>
 

@@ -27,6 +27,7 @@ import project.Network.HTTP.Response.Response
 import project.Network.URI.URI
 import project.Nothing.Nothing
 import project.Panic.Panic
+import project.Runtime.Context
 import project.Runtime.Ref.Ref
 import project.System.Environment
 import project.System.File.File
@@ -135,7 +136,7 @@ type Refresh_Token_Data
         headers = [Header.content_type "application/x-amz-json-1.1", Header.new "X-Amz-Target" "AWSCognitoIdentityProviderService.InitiateAuth"]
         auth_parameters = JS_Object.from_pairs [["REFRESH_TOKEN", self.refresh_token], ["DEVICE_KEY", Nothing]]
         payload = JS_Object.from_pairs [["ClientId", self.client_id], ["AuthFlow", "REFRESH_TOKEN_AUTH"], ["AuthParameters", auth_parameters]]
-        response = HTTP.post self.refresh_url body=(Request_Body.Json payload) headers=headers
+        response = Context.Output.with_enabled <| HTTP.post self.refresh_url body=(Request_Body.Json payload) headers=headers
             . catch HTTP_Error error-> case error of
                 HTTP_Error.Status_Error status _ _ ->
                     # If the status code is 400-499, then most likely the reason is that the session has expired, so we ask the user to log in again.
@@ -179,4 +180,6 @@ file_get_required_string_field json prefix field_name = case json of
             _ ->
                 got_type = Meta.type_of result . to_display_text
                 Panic.throw (Illegal_State.Error prefix+"expected `"+field_name+"` to be a string, but got "+got_type+".")
-    _ -> Panic.throw (Illegal_State.Error prefix+"expected an object, got "+(Meta.type_of json))
+    _ ->
+        got_type = Meta.type_of json . to_display_text
+        Panic.throw (Illegal_State.Error prefix+"expected an object, got "+got_type)

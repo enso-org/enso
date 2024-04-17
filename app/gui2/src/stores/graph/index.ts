@@ -91,7 +91,7 @@ export const useGraphStore = defineStore('graph', () => {
   })
   function visibleArea(nodeId: NodeId): Rect | undefined {
     if (!db.nodeIdToNode.has(nodeId)) return
-    return nodeRects.get(nodeId) ?? vizRects.get(nodeId)
+    return vizRects.get(nodeId) ?? nodeRects.get(nodeId)
   }
 
   const db = new GraphDb(
@@ -365,6 +365,8 @@ export const useGraphStore = defineStore('graph', () => {
         for (const id of ids) {
           const node = db.nodeIdToNode.get(id)
           if (!node) continue
+          const usages = db.getNodeUsages(id)
+          for (const usage of usages) updatePortValue(edit, usage, undefined)
           const outerExpr = edit.getVersion(node.outerExpr)
           if (outerExpr) Ast.deleteFromParentBlock(outerExpr)
           nodeRects.delete(id)

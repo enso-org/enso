@@ -33,7 +33,7 @@ test_credentials -> AWS_Credential ! Illegal_State =
 with_default_credentials ~action =
     AWS_Credential.with_default_override test_credentials action
 
-api_pending = if test_credentials.is_nothing then "No Access Key found." else Nothing
+api_pending = if test_credentials.is_error then test_credentials.catch.message else Nothing
 
 bucket_name = "enso-data-samples"
 writable_bucket_name = "enso-ci-s3-test-stage"

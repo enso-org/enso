@@ -273,6 +273,27 @@ export class Cognito {
     return result.mapErr(intoAmplifyErrorOrThrow).mapErr(intoSignInWithPasswordErrorOrThrow)
   }
 
+  /**
+   * Refresh the current user session.
+   */
+  async refreshUserSession() {
+    const result = await results.Result.wrapAsync(async () => {
+      const currentUser = await currentAuthenticatedUser()
+      const refreshToken = (await amplify.Auth.currentSession()).getRefreshToken()
+
+      await new Promise((resolve, reject) => {
+        currentUser.unwrap().refreshSession(refreshToken, (error, session) => {
+          if (error instanceof Error) {
+            reject(error)
+          } else {
+            resolve(session)
+          }
+        })
+      })
+    })
+    return result.mapErr(intoCurrentSessionErrorType)
+  }
+
   /** Sign out the current user. */
   async signOut() {
     // FIXME [NP]: https://github.com/enso-org/cloud-v2/issues/341
