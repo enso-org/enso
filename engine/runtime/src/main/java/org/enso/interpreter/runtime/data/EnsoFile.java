@@ -17,7 +17,10 @@ import java.io.OutputStream;
 import java.nio.ByteBuffer;
 import java.nio.channels.SeekableByteChannel;
 import java.nio.file.CopyOption;
+import java.nio.file.FileSystemException;
 import java.nio.file.LinkOption;
+import java.nio.file.NoSuchFileException;
+import java.nio.file.NotDirectoryException;
 import java.nio.file.OpenOption;
 import java.nio.file.StandardOpenOption;
 import java.nio.file.attribute.PosixFilePermission;
@@ -203,7 +206,38 @@ public final class EnsoFile implements EnsoObject {
   @Builtin.WrapException(from = IOException.class)
   @CompilerDirectives.TruffleBoundary
   public void createDirectories() throws IOException {
-    this.truffleFile.createDirectories();
+    try {
+      this.truffleFile.createDirectories();
+    } catch (NoSuchFileException e) {
+      throw replaceCreateDirectoriesException(e);
+    }
+  }
+
+  /**
+   * A workaround is needed, because on Windows `createDirectories` wrongly throws a {@link
+   * NoSuchFileException} instead of {@link NotDirectoryException}, if a file on the parents path is
+   * not a directory.
+   *
+   * <p>This method detects this situation and replaces the exception with another if needed.
+   */
+  private static FileSystemException replaceCreateDirectoriesException(
+      NoSuchFileException noSuchFileException) {
+    var parent =
+        fromString(EnsoContext.get(null), noSuchFileException.getFile()).truffleFile.getParent();
+    // Unknown parent, so the heuristic cannot be applied - return the original.
+    if (parent == null) {
+      return noSuchFileException;
+    }
+
+    // On Windows, when creating a directory tree `foo/my-file.txt/a/b/c`, the operation fails with
+    // `NoSuchFileException` with path `foo/my-file.txt/a`. So the heuristic checks the path's
+    // parent `foo/my-file.txt` if it exists but is not a directory that means we encountered this
+    // edge case and the exception should be replaced.
+    if (parent.exists() && !parent.isDirectory()) {
+      return new NotDirectoryException(parent.getPath());
+    } else {
+      return noSuchFileException;
+    }
   }
 
   @Builtin.Method(name = "list_immediate_children_array")

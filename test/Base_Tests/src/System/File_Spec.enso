@@ -929,8 +929,15 @@ add_create_and_delete_directory_specs group_builder ~parent_dir =
             dir.exists . should_be_false
             r = dir.create_directory
             r.should_fail_with File_Error
+            r.catch.should_be_a File_Error.Not_A_Directory
             r.catch.to_display_text . should_contain "is not a directory"
             dir.exists . should_be_false
+
+            subsubdir = f / "subdir" / "subsubdir" / "subsubsubdir"
+            subsubdir.exists . should_be_false
+            r2 = subsubdir.create_directory
+            r2.should_fail_with File_Error
+            r2.catch.should_be_a File_Error.Not_A_Directory
 
     group_builder.specify "`delete` will fail if the directory does not exist, but `delete_if_exists` will not" <|
         dir = parent_dir / "non_existent"

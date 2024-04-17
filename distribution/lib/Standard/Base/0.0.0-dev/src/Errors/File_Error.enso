@@ -16,7 +16,9 @@ polyglot java import java.io.UncheckedIOException
 polyglot java import java.nio.file.AccessDeniedException
 polyglot java import java.nio.file.DirectoryNotEmptyException
 polyglot java import java.nio.file.FileAlreadyExistsException
+polyglot java import java.nio.file.FileSystemException
 polyglot java import java.nio.file.NoSuchFileException
+polyglot java import java.nio.file.NotDirectoryException
 
 ## Errors when reading or writing to a file.
 type File_Error
@@ -44,6 +46,11 @@ type File_Error
        set to `True`.
     Directory_Not_Empty (file : File_Like)
 
+    ## Indicates that the given path was expected to be a directory, but it is not.
+       Raised for example when creating a new file or directory inside of a path
+       that is a regular file.
+    Not_A_Directory (file : File_Like)
+
     ## Indicates that the given file's type is not supported.
     Unsupported_Type (file : File_Format_Metadata)
 
@@ -66,6 +73,7 @@ type File_Error
         File_Error.Already_Exists file -> "The file at "+file.path+" already exists."
         File_Error.Access_Denied file -> "Insufficient permissions to perform the desired operation on the file at "+file.path+"."
         File_Error.Directory_Not_Empty file -> "The directory at "+file.path+" is not empty."
+        File_Error.Not_A_Directory file -> "The file "+file.path+" is not a directory."
         File_Error.Unsupported_Type metadata -> "Could not recognize the type of file "+metadata.to_display_text+"."
         File_Error.Unsupported_Output_Type format data_type ->
             name_from_constructor =
@@ -98,14 +106,23 @@ type File_Error
 
        Converts a Java `IOException` into its Enso counterpart.
     wrap_io_exception (file : File | Nothing) io_exception =
+        Standard.Base.IO.println io_exception.to_text
+        associated_file = case io_exception of
+            _ : FileSystemException ->
+                path_from_exception = io_exception.getFile
+                if path_from_exception.is_nothing then file else
+                    File.new path_from_exception
+            _ -> file
+
         ## If the file is not known, all we can do is throw a generic IO error.
            This will only usually matter on stream operations, where there is no relevant file -
            and so the exceptions like `NoSuchFileException` should not occur in such context.
            But instead of risking a Type_Error, we just throw the more generic IO_Error.
-        if file.is_nothing then Error.throw (File_Error.IO_Error Nothing "An IO error has occurred: "+io_exception.to_text) else case io_exception of
-            _ : NoSuchFileException -> Error.throw (File_Error.Not_Found file)
-            _ : FileNotFoundException -> Error.throw (File_Error.Not_Found file)
-            _ : FileAlreadyExistsException -> Error.throw (File_Error.Already_Exists file)
-            _ : AccessDeniedException -> File_Error.access_denied file
-            _ : DirectoryNotEmptyException -> Error.throw (File_Error.Directory_Not_Empty file)
-            _ -> Error.throw (File_Error.IO_Error file "An IO error has occurred: "+io_exception.to_text)
+        if associated_file.is_nothing then Error.throw (File_Error.IO_Error Nothing "An IO error has occurred: "+io_exception.to_text) else case io_exception of
+            _ : FileNotFoundException -> Error.throw (File_Error.Not_Found associated_file)
+            _ : NoSuchFileException -> Error.throw (File_Error.Not_Found associated_file)
+            _ : FileAlreadyExistsException -> Error.throw (File_Error.Already_Exists associated_file)
+            _ : AccessDeniedException -> File_Error.access_denied associated_file
+            _ : DirectoryNotEmptyException -> Error.throw (File_Error.Directory_Not_Empty associated_file)
+            _ : NotDirectoryException -> Error.throw (File_Error.Not_A_Directory associated_file)
+            _ -> Error.throw (File_Error.IO_Error associated_file "An IO error has occurred: "+io_exception.to_text)

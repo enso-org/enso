@@ -511,16 +511,7 @@ type File
     create_directory : File ! File_Error
     create_directory self =
         Context.Output.if_enabled disabled_message="Directory creation is forbidden as the Output context is disabled." panic=False <|
-            r = File_Error.handle_java_exceptions self self.create_directory_builtin . if_not_error self
-            r.catch File_Error error-> case error of
-                ## If the parent directory is not a directory but e.g. a regular file, the underlying Java operation
-                   throws Not_Found but that is misleading, so we have a special check:
-                File_Error.Not_Found _ ->
-                    parent = self.parent
-                    if parent.exists && parent.is_directory.not then Error.throw (File_Error.IO_Error self "Cannot create directory "+self.path+", because its parent "+parent.path+" exists, but is not a directory.") else
-                        # If the Not_Found error was caused by something else, we propagate it unchanged.
-                        r
-                _ -> r
+            File_Error.handle_java_exceptions self self.create_directory_builtin . if_not_error self
 
     ## PRIVATE
        Creates the directory represented by this file if it did not exist.

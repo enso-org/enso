@@ -67,7 +67,7 @@ create_directory_with_parents (target : Enso_File) -> Existing_Enso_Asset =
             if parent_file.enso_path.is_root then Error.throw (Illegal_State.Error "Unexpected error: when creating directory "+target.path+", reached the root directory and the backend reported that it does not exist - which should not happen. Please report this error.") else
                 create_directory_with_parents parent_file
         _ -> error
-    if parent_asset.is_directory.not then Error.throw (File_Error.IO_Error target "Cannot create directory "+target.path+", because its parent "+parent_file.path+" exists, but is not a directory, but a "+parent_asset.asset_type.to_text+".") else
+    if parent_asset.is_directory.not then Error.throw (File_Error.Not_A_Directory parent_file) else
         body = JS_Object.from_pairs [["title", target.name], ["parentId", parent_asset.id]]
         Asset_Cache.invalidate target
         response = Utils.http_request_as_json HTTP_Method.Post Utils.directory_api body
