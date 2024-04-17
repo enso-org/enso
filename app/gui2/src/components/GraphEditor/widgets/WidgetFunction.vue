@@ -142,7 +142,7 @@ const visualizationConfig = computed<Opt<NodeVisualizationConfiguration>>(() => 
     }
     arr.reverse()
 
-    let m : any = {}
+    const m : Record<string, ExternalId> = {}
     let index = 0
     for (let e of arr) {
       m[""+index] = e.uuid
