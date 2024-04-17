@@ -4,6 +4,7 @@ from Standard.Base import all
 import Standard.Base.Runtime.Context
 from Standard.Base.Runtime import assert
 
+import project.Internal.Stack_Trace_Helpers
 import project.Spec_Result.Spec_Result
 import project.Suite_Config.Suite_Config
 import project.Test.Test
@@ -37,11 +38,17 @@ red text =
 green text =
     '\u001b[32;1m' + text + '\u001b[0m'
 
+highlighted text =
+    '\u001b[1;1m' + text + '\u001b[0m'
+
 maybe_red_text (text : Text) (config : Suite_Config) =
     if config.use_ansi_colors then (red text) else text
 
 maybe_green_text (text : Text) (config : Suite_Config) =
     if config.use_ansi_colors then (green text) else text
+
+maybe_highlighted_text (text : Text) (config : Suite_Config) =
+    if config.use_ansi_colors then (highlighted text) else text
 
 ## Print result for a single Spec run
 print_single_result : Test_Result -> Suite_Config -> Nothing
@@ -49,6 +56,10 @@ print_single_result (test_result : Test_Result) (config : Suite_Config) =
     times_suffix =
         times = test_result.time_taken.total_milliseconds.to_text + "ms"
         "[" + times + "]"
+
+    decorate_stack_trace = case config.use_ansi_colors && config.caller_project_root.is_nothing.not of
+        True -> Stack_Trace_Helpers.decorate_stack_trace_text config.caller_project_root (maybe_highlighted_text _ config)
+        False -> (x->x)
 
     case test_result.spec_result of
         Spec_Result.Success ->
@@ -60,7 +71,7 @@ print_single_result (test_result : Test_Result) (config : Suite_Config) =
             IO.println (maybe_red_text txt config)
             IO.println ("        Reason: " + msg)
             if details.is_nothing.not then
-                IO.println details
+                IO.println (decorate_stack_trace details)
         Spec_Result.Pending reason ->
             if config.print_only_failures.not then
                 IO.println ("    - [PENDING] " + test_result.spec_name)
