@@ -58,7 +58,7 @@ type Suite
          If false, return boolean from the method indicating whether some tests failed.
 
        Returns: Boolean if `should_exit` is False, otherwise exits the process.
-    run_with_filter self (filter : (Text | Nothing) = Nothing) should_exit=True -> (Boolean | Nothing) =
+    run_with_filter self (filter : (Text | Nothing) = Nothing) (should_exit : Boolean = True) -> (Boolean | Nothing) =
         config = Suite_Config.from_environment
 
         # Map of groups to vector of specs that match the filter
