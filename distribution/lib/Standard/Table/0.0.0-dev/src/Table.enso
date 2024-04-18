@@ -384,7 +384,7 @@ type Table
          Select the first two columns and the last column, moving the last one to front.
 
              table.select_columns [-1, 0, 1] reorder=True
-    @columns Widget_Helpers.make_column_name_multi_selector
+    @columns (Widget_Helpers.make_column_name_multi_selector add_regex=True)
     select_columns :  Vector (Integer | Text | Regex) | Text | Integer | Regex -> Boolean -> Case_Sensitivity -> Boolean -> Problem_Behavior -> Table ! No_Output_Columns | Missing_Input_Columns
     select_columns self (columns : (Vector | Text | Integer | Regex) = [self.columns.first.name]) (reorder:Boolean=False) (case_sensitivity=Case_Sensitivity.Default) (error_on_missing_columns:Boolean=True) (on_problems:Problem_Behavior=Report_Warning) =
         new_columns = self.columns_helper.select_columns columns case_sensitivity reorder error_on_missing_columns on_problems
@@ -454,7 +454,7 @@ type Table
          Remove the first two columns and the last column.
 
              table.remove_columns [-1, 0, 1]
-    @columns Widget_Helpers.make_column_name_vector_selector
+    @columns (Widget_Helpers.make_column_name_multi_selector add_regex=True)
     remove_columns :  Vector (Integer | Text | Regex) | Text | Integer | Regex -> Case_Sensitivity -> Boolean -> Problem_Behavior -> Table ! No_Output_Columns | Missing_Input_Columns
     remove_columns self (columns : (Vector | Text | Integer | Regex) = [self.columns.first.name]) (case_sensitivity=Case_Sensitivity.Default) (error_on_missing_columns:Boolean=False) (on_problems:Problem_Behavior=Report_Warning) =
         new_columns = self.columns_helper.remove_columns columns case_sensitivity error_on_missing_columns=error_on_missing_columns on_problems=on_problems
@@ -577,7 +577,7 @@ type Table
          Move the first column to back.
 
              table.reorder_columns [0] position=Position.After_Other_Columns
-    @columns Widget_Helpers.make_column_name_vector_selector
+    @columns (Widget_Helpers.make_column_name_multi_selector add_regex=True)
     reorder_columns : Vector (Integer | Text | Regex) | Text | Integer | Regex -> Position -> Case_Sensitivity -> Boolean -> Problem_Behavior -> Table ! Missing_Input_Columns
     reorder_columns self (columns : (Vector | Text | Integer | Regex) = [self.columns.first.name]) (position:Position=Position.Before_Other_Columns) (case_sensitivity=Case_Sensitivity.Default) (error_on_missing_columns:Boolean=False) (on_problems:Problem_Behavior=Report_Warning) =
         new_columns = self.columns_helper.reorder_columns columns position case_sensitivity error_on_missing_columns on_problems
@@ -777,7 +777,7 @@ type Table
          Group by the Key column, count the rows
 
               table.aggregate ["Key"] [Aggregate_Column.Count]
-    @group_by Widget_Helpers.make_column_name_vector_selector
+    @group_by Widget_Helpers.make_column_name_multi_selector
     @columns Widget_Helpers.make_aggregate_column_vector_selector
     aggregate : Vector (Integer | Text | Regex | Aggregate_Column) | Text | Integer | Regex -> Vector Aggregate_Column -> Boolean -> Problem_Behavior -> Table ! No_Output_Columns | Invalid_Aggregate_Column | Invalid_Column_Names | Duplicate_Output_Column_Names | Floating_Point_Equality | Invalid_Aggregation | Unquoted_Delimiter | Additional_Warnings
     aggregate self group_by=[] columns=[] (error_on_missing_columns=False) (on_problems=Report_Warning) =
@@ -918,7 +918,7 @@ type Table
          - If floating points values are present in the distinct columns, a
            `Floating_Point_Equality` is reported according to the `on_problems`
            setting.
-    @columns Widget_Helpers.make_column_name_vector_selector
+    @columns Widget_Helpers.make_column_name_multi_selector
     distinct : Vector (Integer | Text | Regex) | Text | Integer | Regex -> Case_Sensitivity -> Boolean -> Problem_Behavior -> Table ! No_Output_Columns | Missing_Input_Columns | No_Input_Columns_Selected | Floating_Point_Equality
     distinct self (columns = self.column_names) case_sensitivity=Case_Sensitivity.Default error_on_missing_columns=True on_problems=Report_Warning =
         key_columns = self.columns_helper.select_columns columns Case_Sensitivity.Default reorder=True error_on_missing_columns=error_on_missing_columns on_problems=on_problems . catch No_Output_Columns _->
@@ -1020,7 +1020,7 @@ type Table
          Parse all columns inferring their types, using `,` as the decimal point for numbers.
 
              table.parse format=(Data_Formatter.Value.with_number_formatting decimal_point=',')
-    @columns Widget_Helpers.make_column_name_vector_selector
+    @columns (Widget_Helpers.make_column_name_multi_selector add_regex=True)
     @type Widget_Helpers.parse_type_selector
     @format (make_format_chooser include_number=False)
     parse : Vector (Text | Integer | Regex) | Text | Integer | Regex -> Value_Type | Auto -> Text | Data_Formatter -> Boolean -> Problem_Behavior -> Table
@@ -1125,9 +1125,9 @@ type Table
          Format all columns in the table using the default formatter.
 
              table.format
-    @columns Widget_Helpers.make_column_name_vector_selector
+    @columns (Widget_Helpers.make_column_name_multi_selector add_regex=True)
     @locale Locale.default_widget
-    @format (make_format_chooser include_number=False)
+    @format (make_format_chooser include_number=True)
     format : Vector (Text | Integer | Regex) | Text | Integer | Regex -> Text | Date_Time_Formatter | Column -> Locale -> Boolean -> Problem_Behavior -> Table ! Date_Time_Format_Parse_Error | Illegal_Argument
     format self columns format:(Text | Date_Time_Formatter | Column)="" locale=Locale.default error_on_missing_columns=True on_problems=Report_Warning =
         select_problem_builder = Problem_Builder.new error_on_missing_columns=error_on_missing_columns
@@ -1201,7 +1201,7 @@ type Table
          The `parse` method should be used to convert text values into other
          types. Due to this, a Mixed column containing values `[2, "3"]` will
          actually be converted into `[2, Nothing]` when casting to Integer type.
-    @columns Widget_Helpers.make_column_name_vector_selector
+    @columns (Widget_Helpers.make_column_name_multi_selector add_regex=True)
     cast : Vector (Text | Integer | Regex) | Text | Integer | Regex -> Value_Type -> Boolean -> Problem_Behavior -> Table ! Illegal_Argument | Inexact_Type_Coercion | Conversion_Failure
     cast self columns=[0] value_type error_on_missing_columns=True on_problems=Problem_Behavior.Report_Warning =
         selected = self.columns_helper.select_columns columns Case_Sensitivity.Default reorder=False error_on_missing_columns=error_on_missing_columns on_problems=on_problems error_on_empty=False
@@ -1248,6 +1248,7 @@ type Table
              elements are no longer than 255 characters, the column will get a
              max length of 255. Otherwise, the column size limit will stay
              unchanged.
+    @columns (Widget_Helpers.make_column_name_multi_selector use_regex=True)
     auto_value_types : Vector (Text | Integer | Regex) | Text | Integer | Regex -> Boolean -> Boolean -> Problem_Behavior -> Table
     auto_value_types self columns=self.column_names shrink_types=False error_on_missing_columns=True on_problems=Problem_Behavior.Report_Warning =
         selected = self.columns_helper.select_columns columns Case_Sensitivity.Default reorder=False error_on_missing_columns=error_on_missing_columns on_problems=on_problems error_on_empty=False
@@ -1367,6 +1368,7 @@ type Table
        If the new name is already in use it will be renamed following the normal
        suffixing strategy.
     @column Widget_Helpers.make_column_name_selector
+    @pattern Widget.Text_Input
     parse_to_columns : Text | Integer -> Text | Regex -> Case_Sensitivity -> Boolean -> Problem_Behavior -> Table
     parse_to_columns self column pattern="." case_sensitivity=Case_Sensitivity.Sensitive parse_values=True on_problems=Report_Error =
         Split_Tokenize.parse_to_columns self column pattern case_sensitivity parse_values on_problems
@@ -1490,7 +1492,8 @@ type Table
             table_at = self.at column
             self.filter table_at filter on_problems
 
-    ## ALIAS filter rows
+    ## PRIVATE
+       ALIAS filter rows
        GROUP Standard.Base.Selections
        ICON preparation
 
@@ -1630,7 +1633,7 @@ type Table
            existing column is renamed to avoid the clash.
          - If grouping on floating point numbers, a `Floating_Point_Equality`
            problem is reported.
-    @group_by Widget_Helpers.make_column_name_vector_selector
+    @group_by Widget_Helpers.make_column_name_multi_selector
     @order_by Widget_Helpers.make_order_by_selector
     add_row_number : Text -> Integer -> Integer -> Vector (Text | Integer | Regex) | Text | Integer | Regex -> Vector (Text | Sort_Column) | Text -> Problem_Behavior -> Table
     add_row_number self (name:Text="Row") (from:Integer=1) (step:Integer=1) (group_by:(Vector | Text | Integer | Regex)=[]) (order_by:(Vector | Text)=[]) (on_problems:Problem_Behavior=Problem_Behavior.Report_Warning) =
@@ -1716,7 +1719,8 @@ type Table
             problem_builder.report_unique_name_strategy unique
             problem_builder.attach_problems_after on_problems new_table
 
-    ## Given an expression, create a derived column where each value is the
+    ## PRIVATE
+       Given an expression, create a derived column where each value is the
        result of evaluating the expression for the row.
 
        Arguments:
@@ -2043,7 +2047,7 @@ type Table
              a `Floating_Point_Equality`.
            - If `add_new_columns` is `False` and the lookup table has columns
              that are not present in this table, an `Unexpected_Extra_Columns`.
-    @key_columns Widget_Helpers.make_column_name_vector_selector
+    @key_columns Widget_Helpers.make_column_name_multi_selector
     merge : Table -> (Vector (Integer | Text | Regex) | Text | Integer | Regex) -> Boolean -> Boolean -> Problem_Behavior -> Table ! Missing_Input_Columns | Non_Unique_Key | Unmatched_Rows_In_Lookup
     merge self lookup_table:Table key_columns:(Vector (Integer | Text | Regex) | Text | Integer | Regex) add_new_columns:Boolean=False allow_unmatched_rows:Boolean=True on_problems:Problem_Behavior=Problem_Behavior.Report_Warning =
         lookup_columns = Lookup_Helpers.prepare_columns_for_lookup self lookup_table key_columns add_new_columns allow_unmatched_rows on_problems
@@ -2153,7 +2157,7 @@ type Table
              #    1 | 20 | b | f
              #    2 | 30 | c | g
              #    3 | 40 | d | h
-    @columns Widget_Helpers.make_column_name_vector_selector
+    @columns (Widget_Helpers.make_column_name_multi_selector use_regex=True)
     @from_column Widget.Text_Input
     @to_column Widget.Text_Input
     replace : (Table | Map) -> (Text | Integer | Vector (Text | Integer)) -> (Text | Integer | Nothing) -> (Text | Integer | Nothing) -> Boolean -> Problem_Behavior -> Table ! Missing_Input_Columns | Non_Unique_Key | Unmatched_Rows_In_Lookup
@@ -2395,7 +2399,8 @@ type Table
         cols = self.columns
         Table.new [["Column", cols.map .name], ["Items Count", cols.map .count], ["Value Type", cols.map .value_type]]
 
-    ## GROUP Standard.Base.Calculations
+    ## ALIAS pivot, unpivot
+       GROUP Standard.Base.Calculations
        ICON dataframe_map_row
        Returns a new table with a chosen subset of columns left unchanged and
        the other columns pivoted to rows with a single name field and a single
@@ -2443,7 +2448,7 @@ type Table
             A  | Country   | France
             B  | Name      | Another
             B  | Country   | Germany
-    @key_columns Widget_Helpers.make_column_name_vector_selector
+    @key_columns Widget_Helpers.make_column_name_multi_selector
     transpose : Vector (Integer | Text | Regex) | Text | Integer | Regex -> Text -> Text -> Boolean -> Problem_Behavior -> Table ! No_Output_Columns | Missing_Input_Columns | Duplicate_Output_Column_Names
     transpose self (key_columns = []) (attribute_column_name="Name") (value_column_name="Value") (error_on_missing_columns=True) (on_problems = Report_Warning) =
         columns_helper = self.columns_helper
@@ -2467,7 +2472,8 @@ type Table
 
         problem_builder.attach_problems_after on_problems result
 
-    ## GROUP Standard.Base.Calculations
+    ## ALIAS pivot, unpivot
+       GROUP Standard.Base.Calculations
        ICON dataframe_map_column
        Returns a new table using a chosen field as the column header and then
        aggregating the rows within each value as specified. Optionally, a set of
@@ -2518,7 +2524,7 @@ type Table
             Id | Name    | Country
            ----|---------|---------
             A  | Example | France
-    @group_by Widget_Helpers.make_column_name_vector_selector
+    @group_by Widget_Helpers.make_column_name_multi_selector
     @names Widget_Helpers.make_column_name_selector
     @values Widget_Helpers.make_aggregate_column_selector
     cross_tab : Vector (Integer | Text | Regex | Aggregate_Column) | Text | Integer | Regex -> (Text | Integer) -> Aggregate_Column | Vector Aggregate_Column -> Problem_Behavior -> Table ! Missing_Input_Columns | Invalid_Aggregate_Column | Floating_Point_Equality | Invalid_Aggregation | Unquoted_Delimiter | Additional_Warnings | Invalid_Column_Names
@@ -2782,7 +2788,7 @@ type Table
          Fill missing values in two columns with the value 20.5.
 
              fill_nothing = table.fill_nothing ["col0", "col1"] 20.5
-    @columns Widget_Helpers.make_column_name_vector_selector
+    @columns (Widget_Helpers.make_column_name_multi_selector add_regex=True)
     @default (self -> Widget_Helpers.make_fill_default_value_selector column_source=self add_text=True add_number=True add_boolean=True)
     fill_nothing : Vector (Integer | Text | Regex) | Text | Integer | Regex -> Column | Column_Ref | Expression | Previous_Value | Any -> Table
     fill_nothing self (columns : Vector | Text | Integer | Regex) default =
@@ -2810,7 +2816,7 @@ type Table
          Fill empty values in two columns with the value "hello".
 
              fill_empty = table.fill_empty ["col0", "col1"] "hello"
-    @columns Widget_Helpers.make_column_name_vector_selector
+    @columns (Widget_Helpers.make_column_name_multi_selector add_regex=True)
     @default (self -> Widget_Helpers.make_fill_default_value_selector column_source=self add_text=True)
     fill_empty : Vector (Integer | Text | Regex) | Text | Integer | Regex -> Column | Column_Ref | Expression | Previous_Value | Any -> Table
     fill_empty self (columns : Vector | Text | Integer | Regex) default =
@@ -2850,7 +2856,7 @@ type Table
          Replace texts in quotes with parentheses.
 
              table.text_replace ["Input"] '"(.*?)"'.to_regex '($1)'
-    @columns Widget_Helpers.make_column_name_vector_selector
+    @columns (Widget_Helpers.make_column_name_multi_selector use_regex=True)
     @term (Widget_Helpers.make_column_ref_by_name_selector add_regex=True add_text=True)
     @new_text (Widget_Helpers.make_column_ref_by_name_selector add_text=True)
     text_replace : Vector (Integer | Text | Regex) | Text | Integer | Regex -> Text | Column | Column_Ref | Expression | Regex -> Text | Column | Column_Ref | Expression -> Case_Sensitivity -> Boolean -> Column
@@ -2894,7 +2900,7 @@ type Table
            existing column is renamed to avoid the clash.
          - If grouping on floating point numbers, a `Floating_Point_Equality`
            problem is reported.
-    @group_by Widget_Helpers.make_column_name_vector_selector
+    @group_by Widget_Helpers.make_column_name_multi_selector
     @order_by Widget_Helpers.make_order_by_selector
     @of Widget_Helpers.make_column_name_selector
     running : Statistic -> (Text | Integer) -> Text -> Vector (Text | Integer | Regex) | Text | Integer | Regex -> Vector (Text | Sort_Column) | Text -> Problem_Behavior -> Table
