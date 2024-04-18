@@ -124,56 +124,8 @@ const selfArgumentExternalId = computed<Opt<ExternalId>>(() => {
 const visualizationConfig = computed<Opt<NodeVisualizationConfiguration>>(() => {
   // Even if we inherit dynamic config in props.input.dynamicConfig, we should also read it for
   // the current call and then merge them.
-  function collectArgumentNamesAndUuids() {
-    const arr: Array<{
-      name: string | null
-      code: string | undefined
-      uuid: ExternalId | undefined
-    }> = []
-    function process(f: Ast.Ast, n?: String) {
-      arr.push({
-        name: n ? n.toString() : null,
-        code: f.code(),
-        uuid: f.externalId,
-      })
-    }
 
-    let args = ArgumentApplication.FromInterpretedWithInfo(interpreted.value)
-    if (args instanceof ArgumentApplication) {
-      for (let n of args.iterApplications()) {
-        let a = n.argument
-        if (a instanceof ArgumentPlaceholder) {
-          // pass thru
-        } else {
-          process(a.ast, a.argInfo?.name)
-        }
-      }
-    } else {
-      process(args)
-    }
-    arr.reverse()
-
-    const m: Record<string, ExternalId> = {}
-    let index = 0
-    for (let e of arr) {
-      if (e.uuid) {
-        m['' + index] = e.uuid
-      }
-      let n: string | undefined = methodCallInfo.value?.suggestion.arguments[index + 1]?.name
-      if (n && e.uuid) {
-        m[n] = e.uuid
-      }
-      index++
-    }
-    for (let e of arr) {
-      if (e.name && e.uuid) {
-        m[e.name] = e.uuid
-      }
-    }
-    return m
-  }
-
-  let m = collectArgumentNamesAndUuids()
+  let m = ArgumentApplication.collectArgumentNamesAndUuids(interpreted.value, methodCallInfo.value)
 
   const expressionId = selfArgumentExternalId.value
   const astId = props.input.value.id

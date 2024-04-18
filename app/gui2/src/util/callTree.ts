@@ -8,6 +8,7 @@ import type { SuggestionEntry, SuggestionEntryArgument } from '@/stores/suggesti
 import { Ast } from '@/util/ast'
 import { findLastIndex, tryGetIndex } from '@/util/data/array'
 import { assert } from './assert'
+import type { ExternalId } from 'shared/yjsModel'
 
 export const enum ApplicationKind {
   Prefix,
@@ -396,6 +397,58 @@ export class ArgumentApplication {
       value: this.appTree,
       [ArgumentApplicationKey]: this,
     }
+  }
+
+  static collectArgumentNamesAndUuids(
+    value: InterpretedCall,
+    mci: MethodCallInfo | undefined,
+  ): Record<string, ExternalId> {
+    const arr: Array<{
+      name: string | null
+      code: string | undefined
+      uuid: ExternalId | undefined
+    }> = []
+    function process(f: Ast.Ast, n?: String) {
+      arr.push({
+        name: n ? n.toString() : null,
+        code: f.code(),
+        uuid: f.externalId,
+      })
+    }
+
+    const args = ArgumentApplication.FromInterpretedWithInfo(value)
+    if (args instanceof ArgumentApplication) {
+      for (const n of args.iterApplications()) {
+        const a = n.argument
+        if (a instanceof ArgumentPlaceholder) {
+          // pass thru
+        } else {
+          process(a.ast, a.argInfo?.name)
+        }
+      }
+    } else {
+      process(args)
+    }
+    arr.reverse()
+
+    const m: Record<string, ExternalId> = {}
+    let index = 0
+    for (const e of arr) {
+      if (e.uuid) {
+        m['' + index] = e.uuid
+      }
+      const n: string | undefined = mci?.suggestion.arguments[index + 1]?.name
+      if (n && e.uuid) {
+        m[n] = e.uuid
+      }
+      index++
+    }
+    for (const e of arr) {
+      if (e.name && e.uuid) {
+        m[e.name] = e.uuid
+      }
+    }
+    return m
   }
 }
 
