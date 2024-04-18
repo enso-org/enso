@@ -213,14 +213,11 @@ read_data_link_as_stream (file : File_Like) (open_options : Vector) (f : Input_S
     data_link_with_input_stream.with_input_stream open_options f
 
 ## PRIVATE
-write_data_link (file : File_Like) format (on_problems : Problem_Behavior) =
-    _ = [file, format, on_problems]
-    Unimplemented.throw "Writing data links is not yet supported."
-
-## PRIVATE
-write_data_link_as_stream (file : File_Like) (open_options : Vector) (f : Input_Stream -> Any) =
-    _ = [file, open_options, f]
-    Unimplemented.throw "Writing data links is not yet supported."
+write_data_link_as_stream (file : File_Like) (open_options : Vector) (f : Output_Stream -> Any) =
+    json = Data_Link_Format.read_config file
+    data_link_instance = interpret_json_as_data_link json
+    data_link_with_output_stream = Data_Link_With_Output_Stream.find data_link_instance
+    data_link_with_output_stream.with_output_stream open_options f
 
 ## PRIVATE
 save_data_link_to_file data_link_instance (target_file : Writable_File) =
