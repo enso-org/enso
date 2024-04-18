@@ -193,21 +193,26 @@ public final class AtomConstructor implements EnsoObject {
         MethodRootNode.buildConstructor(
             language, localScope, definitionScope, instantiateBlock, section, this);
     RootCallTarget callTarget = rootNode.getCallTarget();
-    var funcSchema =
-        FunctionSchema.newBuilder().annotations(annotations).argumentDefinitions(args).build();
-    return new Function(callTarget, null, funcSchema);
+    var schemaBldr =
+        FunctionSchema.newBuilder().annotations(annotations).argumentDefinitions(args);
+    if (isProjectPrivate) {
+      schemaBldr.projectPrivate();
+    }
+    return new Function(callTarget, null, schemaBldr.build());
   }
 
   private Function generateQualifiedAccessor(EnsoLanguage lang) {
     var node = new QualifiedAccessorNode(lang, this);
     var callTarget = node.getCallTarget();
-    var funcSchema =
+    var schemaBldr =
         FunctionSchema.newBuilder()
             .argumentDefinitions(
                 new ArgumentDefinition(
-                    0, "self", null, null, ArgumentDefinition.ExecutionMode.EXECUTE))
-            .build();
-    var function = new Function(callTarget, null, funcSchema);
+                    0, "self", null, null, ArgumentDefinition.ExecutionMode.EXECUTE));
+    if (isProjectPrivate) {
+      schemaBldr.projectPrivate();
+    }
+    var function = new Function(callTarget, null, schemaBldr.build());
     definitionScope.registerMethod(type.getEigentype(), this.name, function);
     return function;
   }
