@@ -170,7 +170,7 @@ resolve_aggregate table problem_builder aggregate_column:Aggregate_Column =
 
     resolve_order_by selector = case selector of
         Nothing -> Nothing
-        _ ->
+        _ -> if selector == [] then Nothing else
             columns_for_ordering = Table_Helpers.prepare_order_by table_columns selector problem_builder
             sort_columns = columns_for_ordering.map c->
                 Internal_Order_By_Column_Reference.Value c.column c.associated_selector.direction

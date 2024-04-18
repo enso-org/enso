@@ -2693,6 +2693,11 @@ Column.from (that:Vector) (name:Text="Vector") = Column.from_vector name that
 Vector.from (that:Column) = that.to_vector
 
 ## PRIVATE
+   Conversion method to a Table to a Vector.
+Vector.from (that:Table) = if that.column_count == 1 then that.at 0 . to_vector else
+    Error.throw (Illegal_Argument.Error "Cannot convert a table with more than one column to a vector, use `at` to choose a column.")
+
+## PRIVATE
    Conversion method to a Column from a Vector.
 Column.from (that:Range) (name:Text="Range") = Column.from_vector name that.to_vector
 
