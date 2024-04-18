@@ -132,7 +132,7 @@ type Data_Link_With_Input_Stream
     ## PRIVATE
        Creates a `Data_Link_With_Input_Stream` from a data link instance, if
        that data link supports streaming. If it does not, an error is thrown.
-    find data_link_instance (~if_not_supported = (Error.throw (Illegal_Argument.Error "The "+(data_link_name data_link_instance)+" cannot be opened as a stream."))) -> Data_Link_With_Input_Stream ! Illegal_Argument =
+    find data_link_instance (if_not_supported = (Error.throw (Illegal_Argument.Error "The "+(data_link_name data_link_instance)+" cannot be opened as a stream."))) -> Data_Link_With_Input_Stream ! Illegal_Argument =
         handle_no_conversion _ =
             if_not_supported
         Panic.catch No_Such_Conversion (Data_Link_With_Input_Stream.from data_link_instance) handle_no_conversion
@@ -155,7 +155,7 @@ type Data_Link_With_Output_Stream
     ## PRIVATE
        Creates a `Data_Link_With_Output_Stream` from a data link instance, if
        that data link supports streaming. If it does not, an error is thrown.
-    find data_link_instance (~if_not_supported = (Error.throw (Illegal_Argument.Error "The "+(data_link_name data_link_instance)+" does not support writing raw data to it."))) -> Data_Link_With_Output_Stream ! Illegal_Argument =
+    find data_link_instance (if_not_supported = (Error.throw (Illegal_Argument.Error "The "+(data_link_name data_link_instance)+" does not support writing raw data to it."))) -> Data_Link_With_Output_Stream ! Illegal_Argument =
         handle_no_conversion _ =
             if_not_supported
         Panic.catch No_Such_Conversion (Data_Link_With_Output_Stream.from data_link_instance) handle_no_conversion
