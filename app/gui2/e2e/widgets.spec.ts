@@ -440,3 +440,35 @@ test('Managing aggregates in `aggregate` node', async ({ page }) => {
   //   '"',
   // ])
 })
+
+// Test that autoscoped constructors provide argument placeholders.
+// This test can be removed when `aggregate` inserts autoscoped constructors by default,
+// so this behavior will be tested in regular `aggregate` tests.
+test('Autoscoped constructors', async ({ page }) => {
+  await actions.goToGraph(page)
+  await mockMethodCallInfo(page, 'autoscoped', {
+    methodPointer: {
+      module: 'Standard.Table.Table',
+      definedOnType: 'Standard.Table.Table.Table',
+      name: 'aggregate',
+    },
+    notAppliedArguments: [2, 3],
+  })
+  await mockMethodCallInfo(page, { binding: 'autoscoped', expr: '..Group_By' }, {
+    methodPointer: {
+      module: 'Standard.Table.Aggregate_Column',
+      definedOnType: 'Standard.Table.Aggregate_Column.Aggregate_Column',
+      name: 'Group_By'
+    },
+    notAppliedArguments: [0, 1]
+  })
+  const node = locate.graphNodeByBinding(page, 'autoscoped')
+  const topLevelArgs = node.locator('.WidgetTopLevelArgument')
+  // Wait for hidden arguments to appear after selecting the node.
+  await node.click()
+  await expect(topLevelArgs).toHaveCount(3)
+
+  const groupBy = node.locator('.item').nth(0)
+  await expect(groupBy).toBeVisible()
+  await expect(groupBy.locator('.WidgetArgumentName')).toContainText(['column', 'new_name'])
+})

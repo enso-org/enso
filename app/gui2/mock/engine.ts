@@ -69,6 +69,7 @@ main =
     filtered = data.filter
     aggregated = data.aggregate
     selected = data.select_columns
+    autoscoped = data.aggregate [..Group_By]
 `
 
 export function getMainFile() {
