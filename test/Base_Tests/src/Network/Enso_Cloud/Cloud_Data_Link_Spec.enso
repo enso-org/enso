@@ -44,13 +44,34 @@ add_specs suite_builder setup:Cloud_Tests_Setup = setup.with_prepared_environmen
                 Data_Link_Format.read_raw_config temp_file
 
         group_builder.specify "should be able to read a local datalink to an Enso File" <|
-            datalink = replace_org_name_in_data_link (enso_project.data / "datalinks" / "example-enso-file.datalink")
+            datalink = transform_datalink (enso_project.data / "datalinks" / "example-enso-file.datalink") content->
+                content.replace "PLACEHOLDER_ORG_NAME" Enso_User.current.organization_name
             datalink.read . should_equal "Hello Another!"
 
         group_builder.specify "should be able to read a datalink in the Cloud to Enso File" <|
             # TODO currently this link is created manually, later we should be generating it as part of the test
             datalink = Enso_File.new "enso://"+Enso_User.current.organization_name+"/TestDataLink-EnsoFile"
             datalink.read . should_equal "Hello Another!"
+
+        group_builder.specify "should be able to write Text to a data link pointing to a Cloud file" <|
+            directory_name = "data-link-test"+(Date_Time.now.format "yyyy-MM-dd_HHmmss.fV" . replace "/" "|")
+            dir = (Enso_File.root / directory_name).create_directory
+            dir.should_succeed
+            Panic.with_finalizer (dir.delete_if_exists recursive=True) <|
+                datalink = transform_datalink (enso_project.data / "datalinks" / "writable-enso-file.datalink") content->
+                    content . replace "PLACEHOLDER_ORG_NAME" Enso_User.current.organization_name
+                            . replace "PLACEHOLDER_DIRECTORY_NAME" directory_name
+
+                r1 = datalink.read
+                r1.should_fail_with File_Error
+                r1.catch.should_be_a File_Error.Not_Found
+
+                my_content = Random.uuid
+                my_content.write datalink . should_equal datalink
+
+                datalink.read . should_equal my_content
+
+
 
 
 main filter=Nothing =
@@ -60,10 +81,9 @@ main filter=Nothing =
     suite.run_with_filter filter
 
 
-## Reads the datalink as plain text and replaces the placeholder organization name.
-replace_org_name_in_data_link base_file =
+## Reads the datalink as plain text and applies the transformation.
+transform_datalink base_file transform =
     content = Data_Link_Format.read_raw_config base_file
-    org_name = Enso_User.current.organization_name
-    new_content = content.replace "PLACEHOLDER_ORG_NAME" org_name
+    new_content = transform content
     temp_file = File.create_temporary_file prefix=base_file.name suffix=base_file.extension
     Data_Link_Format.write_raw_config temp_file new_content replace_existing=True . if_not_error temp_file

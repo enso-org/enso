@@ -56,6 +56,12 @@ add_specs suite_builder =
             r.should_be_a Text
             r.trim.should_equal '{"hello": "world"}'
 
+        group_builder.specify "does not allow to write to a web datalink" <|
+            f = replace_url_in_data_link (data_link_root / "example-http.datalink")
+            r = "MY CONTENT".write f
+            r.should_fail_with Illegal_State
+            r.catch.to_display_text . should_contain "Writing to a web resource Data Link is not possible."
+
         group_builder.specify "should be able to follow a datalink from HTTP in Data.read" <| Test.with_retries <|
             r1 = Data.read base_url_with_slash+"dynamic.datalink" JSON_Format
             r1.should_equal ('{"hello": "world"}'.parse_json)
