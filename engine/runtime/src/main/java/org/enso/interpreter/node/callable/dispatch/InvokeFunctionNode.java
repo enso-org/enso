@@ -12,6 +12,7 @@ import com.oracle.truffle.api.source.SourceSection;
 import java.util.UUID;
 import org.enso.interpreter.Constants;
 import org.enso.interpreter.node.BaseNode;
+import org.enso.interpreter.node.EnsoRootNode;
 import org.enso.interpreter.node.callable.CaptureCallerInfoNode;
 import org.enso.interpreter.node.callable.FunctionCallInstrumentationNode;
 import org.enso.interpreter.node.callable.InvokeCallableNode;
@@ -22,6 +23,8 @@ import org.enso.interpreter.runtime.callable.CallerInfo;
 import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.callable.function.FunctionSchema;
+import org.enso.interpreter.runtime.error.PanicException;
+import org.enso.interpreter.runtime.scope.ModuleScope;
 import org.enso.interpreter.runtime.state.State;
 
 /**
@@ -103,6 +106,11 @@ public abstract class InvokeFunctionNode extends BaseNode {
               "build(argumentMapping, getDefaultsExecutionMode(), getArgumentsExecutionMode(),"
                   + " getTailStatus())")
           CurryNode curryNode) {
+    if (cachedSchema.isProjectPrivate() && !isInSameProject(function)) {
+      var err = EnsoContext.get(this).getBuiltins().error().makePrivateAccessError(function);
+      throw new PanicException(err, this);
+    }
+
     ArgumentSorterNode.MappedArguments mappedArguments =
         mappingNode.execute(callerFrame, function, state, arguments);
     CallerInfo callerInfo = null;
@@ -143,6 +151,11 @@ public abstract class InvokeFunctionNode extends BaseNode {
       Object[] arguments,
       @Cached IndirectArgumentSorterNode mappingNode,
       @Cached IndirectCurryNode curryNode) {
+    if (function.getSchema().isProjectPrivate() && !isInSameProject(function)) {
+      var err = EnsoContext.get(this).getBuiltins().error().makePrivateAccessError(function);
+      throw new PanicException(err, this);
+    }
+
     CallArgumentInfo.ArgumentMapping argumentMapping =
         CallArgumentInfo.ArgumentMappingBuilder.generate(function.getSchema(), getSchema());
 
@@ -223,5 +236,27 @@ public abstract class InvokeFunctionNode extends BaseNode {
   /** Returns expression ID of this node. */
   public UUID getId() {
     return functionCallInstrumentationNode.getId();
+  }
+
+  /**
+   * Returns true if the given function is in the same project as this node.
+   */
+  private boolean isInSameProject(Function function) {
+    ModuleScope thisModScope = null;
+    if (getRootNode() instanceof EnsoRootNode thisRootNode) {
+      thisModScope = thisRootNode.getModuleScope();
+    }
+    ModuleScope funcModScope = null;
+    if (function.getCallTarget() instanceof EnsoRootNode funcRootNode) {
+      funcModScope = funcRootNode.getModuleScope();
+    }
+    if (thisModScope != null && funcModScope != null) {
+      var thisPkg = thisModScope.getModule().getPackage();
+      var funcPkg = funcModScope.getModule().getPackage();
+      if (thisPkg != null && funcPkg != null) {
+        return thisPkg.name().equals(funcPkg.name());
+      }
+    }
+    return false;
   }
 }
