@@ -24,6 +24,7 @@ import org.enso.interpreter.node.expression.builtin.error.NoSuchMethod;
 import org.enso.interpreter.node.expression.builtin.error.NotInvokable;
 import org.enso.interpreter.node.expression.builtin.error.NumberParseError;
 import org.enso.interpreter.node.expression.builtin.error.Panic;
+import org.enso.interpreter.node.expression.builtin.error.PrivateAccess;
 import org.enso.interpreter.node.expression.builtin.error.SyntaxError;
 import org.enso.interpreter.node.expression.builtin.error.TypeError;
 import org.enso.interpreter.node.expression.builtin.error.Unimplemented;
@@ -58,6 +59,7 @@ public final class Error {
   private final UnsupportedArgumentTypes unsupportedArgumentsError;
   private final ModuleDoesNotExist moduleDoesNotExistError;
   private final NotInvokable notInvokable;
+  private final PrivateAccess privateAccessError;
   private final InvalidConversionTarget invalidConversionTarget;
   private final NoSuchField noSuchField;
   private final NumberParseError numberParseError;
@@ -96,6 +98,7 @@ public final class Error {
     unsupportedArgumentsError = builtins.getBuiltinType(UnsupportedArgumentTypes.class);
     moduleDoesNotExistError = builtins.getBuiltinType(ModuleDoesNotExist.class);
     notInvokable = builtins.getBuiltinType(NotInvokable.class);
+    privateAccessError = builtins.getBuiltinType(PrivateAccess.class);
     invalidConversionTarget = builtins.getBuiltinType(InvalidConversionTarget.class);
     noSuchField = builtins.getBuiltinType(NoSuchField.class);
     numberParseError = builtins.getBuiltinType(NumberParseError.class);
@@ -310,6 +313,10 @@ public final class Error {
     return notInvokable.newInstance(target);
   }
 
+  public Atom makePrivateAccessError(Object target) {
+    return privateAccessError.newInstance(target);
+  }
+
   public ForbiddenOperation getForbiddenOperation() {
     return forbiddenOperation;
   }
@@ -324,7 +331,7 @@ public final class Error {
 
   /**
    * @param index the position at which the original error occured
-   * @param inner_error the original error
+   * @param innerError the original error
    * @return an error indicating the index of the error
    */
   public Atom makeMapError(long index, Object innerError) {
