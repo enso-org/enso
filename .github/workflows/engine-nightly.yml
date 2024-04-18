@@ -18,11 +18,6 @@ jobs:
     runs-on:
       - ubuntu-latest
     steps:
-      - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
-        name: Installing wasm-pack
-        uses: jetli/wasm-pack-action@v0.4.0
-        with:
-          version: v0.10.2
       - name: Expose Artifact API and context information.
         uses: actions/github-script@v7
         with:
@@ -63,11 +58,6 @@ jobs:
       - macos-latest
       - ARM64
     steps:
-      - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
-        name: Installing wasm-pack
-        uses: jetli/wasm-pack-action@v0.4.0
-        with:
-          version: v0.10.2
       - name: Expose Artifact API and context information.
         uses: actions/github-script@v7
         with:
@@ -107,11 +97,6 @@ jobs:
     runs-on:
       - macos-latest
     steps:
-      - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
-        name: Installing wasm-pack
-        uses: jetli/wasm-pack-action@v0.4.0
-        with:
-          version: v0.10.2
       - name: Expose Artifact API and context information.
         uses: actions/github-script@v7
         with:
@@ -151,11 +136,6 @@ jobs:
     runs-on:
       - windows-latest
     steps:
-      - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
-        name: Installing wasm-pack
-        uses: jetli/wasm-pack-action@v0.4.0
-        with:
-          version: v0.10.2
       - name: Expose Artifact API and context information.
         uses: actions/github-script@v7
         with:
@@ -195,11 +175,6 @@ jobs:
     runs-on:
       - ubuntu-latest
     steps:
-      - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
-        name: Installing wasm-pack
-        uses: jetli/wasm-pack-action@v0.4.0
-        with:
-          version: v0.10.2
       - name: Expose Artifact API and context information.
         uses: actions/github-script@v7
         with:
@@ -239,11 +214,6 @@ jobs:
     runs-on:
       - ubuntu-latest
     steps:
-      - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
-        name: Installing wasm-pack
-        uses: jetli/wasm-pack-action@v0.4.0
-        with:
-          version: v0.10.2
       - name: Expose Artifact API and context information.
         uses: actions/github-script@v7
         with:
@@ -295,11 +265,6 @@ jobs:
       - macos-latest
       - ARM64
     steps:
-      - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
-        name: Installing wasm-pack
-        uses: jetli/wasm-pack-action@v0.4.0
-        with:
-          version: v0.10.2
       - name: Expose Artifact API and context information.
         uses: actions/github-script@v7
         with:
@@ -350,11 +315,6 @@ jobs:
     runs-on:
       - macos-latest
     steps:
-      - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
-        name: Installing wasm-pack
-        uses: jetli/wasm-pack-action@v0.4.0
-        with:
-          version: v0.10.2
       - name: Expose Artifact API and context information.
         uses: actions/github-script@v7
         with:
@@ -405,11 +365,6 @@ jobs:
     runs-on:
       - windows-latest
     steps:
-      - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
-        name: Installing wasm-pack
-        uses: jetli/wasm-pack-action@v0.4.0
-        with:
-          version: v0.10.2
       - name: Expose Artifact API and context information.
         uses: actions/github-script@v7
         with:
@@ -460,11 +415,6 @@ jobs:
     runs-on:
       - ubuntu-latest
     steps:
-      - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
-        name: Installing wasm-pack
-        uses: jetli/wasm-pack-action@v0.4.0
-        with:
-          version: v0.10.2
       - name: Expose Artifact API and context information.
         uses: actions/github-script@v7
         with:
@@ -515,11 +465,6 @@ jobs:
     runs-on:
       - ubuntu-latest
     steps:
-      - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
-        name: Installing wasm-pack
-        uses: jetli/wasm-pack-action@v0.4.0
-        with:
-          version: v0.10.2
       - name: Expose Artifact API and context information.
         uses: actions/github-script@v7
         with:
@@ -574,11 +519,6 @@ jobs:
       - macos-latest
       - ARM64
     steps:
-      - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
-        name: Installing wasm-pack
-        uses: jetli/wasm-pack-action@v0.4.0
-        with:
-          version: v0.10.2
       - name: Expose Artifact API and context information.
         uses: actions/github-script@v7
         with:
@@ -632,11 +572,6 @@ jobs:
     runs-on:
       - macos-latest
     steps:
-      - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
-        name: Installing wasm-pack
-        uses: jetli/wasm-pack-action@v0.4.0
-        with:
-          version: v0.10.2
       - name: Expose Artifact API and context information.
         uses: actions/github-script@v7
         with:
@@ -690,11 +625,6 @@ jobs:
     runs-on:
       - windows-latest
     steps:
-      - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
-        name: Installing wasm-pack
-        uses: jetli/wasm-pack-action@v0.4.0
-        with:
-          version: v0.10.2
       - name: Expose Artifact API and context information.
         uses: actions/github-script@v7
         with:
@@ -748,11 +678,6 @@ jobs:
     runs-on:
       - ubuntu-latest
     steps:
-      - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
-        name: Installing wasm-pack
-        uses: jetli/wasm-pack-action@v0.4.0
-        with:
-          version: v0.10.2
       - name: Expose Artifact API and context information.
         uses: actions/github-script@v7
         with:
