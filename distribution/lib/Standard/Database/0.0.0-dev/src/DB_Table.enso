@@ -1622,7 +1622,7 @@ type DB_Table
              #    1 | 20 | b | f
              #    2 | 30 | c | g
              #    3 | 40 | d | h
-    @columns (Widget_Helpers.make_column_name_multi_selector use_regex=True)
+    @columns (Widget_Helpers.make_column_name_multi_selector add_regex=True)
     @from_column Widget.Text_Input
     @to_column Widget.Text_Input
     replace : (DB_Table | Map) -> (Text | Integer | Vector (Text | Integer)) -> (Text | Integer | Nothing) -> (Text | Integer | Nothing) -> Boolean -> Problem_Behavior -> DB_Table ! Missing_Input_Columns | Non_Unique_Key | Unmatched_Rows_In_Lookup
@@ -2845,7 +2845,7 @@ type DB_Table
          Replace texts in quotes with parentheses.
 
              table.text_replace ["Input"] '"(.*?)"'.to_regex '($1)'
-    @columns (Widget_Helpers.make_column_name_multi_selector use_regex=True)
+    @columns (Widget_Helpers.make_column_name_multi_selector add_regex=True)
     @term (Widget_Helpers.make_column_ref_by_name_selector add_regex=True add_text=True)
     @new_text (Widget_Helpers.make_column_ref_by_name_selector add_text=True)
     text_replace : Vector (Integer | Text | Regex) | Text | Integer | Regex -> Text | DB_Column | Column_Ref | Expression | Regex -> Text | DB_Column | Column_Ref | Expression -> Case_Sensitivity -> Boolean -> DB_Column
