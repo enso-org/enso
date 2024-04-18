@@ -11,6 +11,22 @@ import Standard.Test.Test_Environment
 
 import project.Network.Enso_Cloud.Cloud_Tests_Setup.Cloud_Tests_Setup
 
+type Temporary_Directory
+    Value ~get
+
+    make -> Temporary_Directory = Temporary_Directory.Value <|
+        name = "test-run-Enso_File-"+(Date_Time.now.format "yyyy-MM-dd_HHmmss.fV" . replace "/" "|")
+        Panic.rethrow <| (Enso_File.root / name).create_directory\
+
+    cleanup self = self.get.delete_if_exists recursive=True
+
+    datalink_to self filename:Text =
+        target = self.get / filename
+        config = JS_Object.from_pairs [["type", "Enso_File"], ["libraryName", "Standard.Base"], ["path", target.path]]
+        local_tmp_file = File.create_temporary_file prefix="test-datalink" suffix=".datalink"
+        Data_Link_Format.write_raw_config local_tmp_file config
+
+
 add_specs suite_builder setup:Cloud_Tests_Setup = setup.with_prepared_environment <|
     suite_builder.group "DataLinks in Enso Cloud" pending=setup.real_cloud_pending group_builder->
         group_builder.specify "should be able to access an example HTTP data-link" <|
@@ -43,6 +59,10 @@ add_specs suite_builder setup:Cloud_Tests_Setup = setup.with_prepared_environmen
             Test.expect_panic Illegal_Argument <|
                 Data_Link_Format.read_raw_config temp_file
 
+    suite_builder.group "DataLinks to Enso Cloud" pending=setup.real_cloud_pending group_builder->
+        test_root = Temporary_Directory.make
+        group_builder.teardown test_root.cleanup
+
         group_builder.specify "should be able to read a local datalink to an Enso File" <|
             datalink = transform_datalink (enso_project.data / "datalinks" / "example-enso-file.datalink") content->
                 content.replace "PLACEHOLDER_ORG_NAME" Enso_User.current.organization_name
@@ -54,25 +74,47 @@ add_specs suite_builder setup:Cloud_Tests_Setup = setup.with_prepared_environmen
             datalink.read . should_equal "Hello Another!"
 
         group_builder.specify "should be able to write Text to a data link pointing to a Cloud file" <|
-            directory_name = "data-link-test"+(Date_Time.now.format "yyyy-MM-dd_HHmmss.fV" . replace "/" "|")
-            dir = (Enso_File.root / directory_name).create_directory
-            dir.should_succeed
-            Panic.with_finalizer (dir.delete_if_exists recursive=True) <|
-                datalink = transform_datalink (enso_project.data / "datalinks" / "writable-enso-file.datalink") content->
-                    content . replace "PLACEHOLDER_ORG_NAME" Enso_User.current.organization_name
-                            . replace "PLACEHOLDER_DIRECTORY_NAME" directory_name
+            datalink = test_root.datalink_to "my-file1.txt"
 
-                r1 = datalink.read
-                r1.should_fail_with File_Error
-                r1.catch.should_be_a File_Error.Not_Found
+            r1 = datalink.read
+            r1.should_fail_with File_Error
+            r1.catch.should_be_a File_Error.Not_Found
 
-                my_content = Random.uuid
-                my_content.write datalink . should_equal datalink
+            my_content = Random.uuid
+            my_content.write datalink . should_equal datalink
 
-                datalink.read . should_equal my_content
+            datalink.read . should_equal my_content
 
+        group_builder.specify "should be able to write raw bytes to a data link in Cloud" <|
+            datalink = test_root.datalink_to "my-file2.txt"
+            datalink.read.should_fail_with File_Error
 
+            my_content = Random.uuid
+            r = datalink.with_output_stream stream->
+                stream.write_bytes my_content.utf_8
+                42
+            r.should_equal 42
 
+            datalink.read.should_equal my_content
+
+        group_builder.specify "deleting a data link will _not_ remove the file in the Cloud" <|
+            datalink = test_root.datalink_to "my-file3.txt"
+            file = test_root.get / "my-file3.txt"
+
+            my_content = Random.uuid
+            my_content.write file . should_equal file
+            # Datalink points to the same file:
+            datalink.read . should_equal my_content
+
+            datalink.delete . should_succeed
+
+            r = datalink.read
+            r.should_fail_with File_Error
+            r.catch.should_be_a File_Error.Not_Found
+
+            # But the file still exists
+            file.read . should_equal my_content
+            file.delete
 
 main filter=Nothing =
     setup = Cloud_Tests_Setup.prepare
