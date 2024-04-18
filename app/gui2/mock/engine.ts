@@ -1,3 +1,4 @@
+import { Pattern } from '@/util/ast/match'
 import type { MockYdocProviderImpl } from '@/util/crdt'
 import * as random from 'lib0/random'
 import * as Ast from 'shared/ast'
@@ -108,7 +109,7 @@ const scatterplotJson = (params: string[]) =>
     ],
   })
 
-const mockVizData: Record<string, Uint8Array | ((params: string[]) => Uint8Array)> = {
+const mockVizPreprocessors: Record<string, Uint8Array | ((params: string[]) => Uint8Array)> = {
   // JSON
   'Standard.Visualization.Preprocessor.default_preprocessor': scatterplotJson,
   'Standard.Visualization.Scatter_Plot.process_to_json_text': scatterplotJson,
@@ -323,7 +324,6 @@ const mockVizData: Record<string, Uint8Array | ((params: string[]) => Uint8Array
         return encodeJSON([])
     }
   },
-  'Standard.Visualization.AI.build_ai_prompt': () => encodeJSON('Could you __$$GOAL$$__, please?'),
 
   // The following visualizations do not have unique transformation methods, and as such are only kept
   // for posterity.
@@ -356,9 +356,9 @@ function createId(id: Uuid) {
   return (builder: Builder) => EnsoUUID.createEnsoUUID(builder, low, high)
 }
 
-function sendVizData(id: Uuid, config: VisualizationConfiguration) {
+function sendVizData(id: Uuid, config: VisualizationConfiguration, expressionId?: Uuid) {
   const vizDataHandler =
-    mockVizData[
+    mockVizPreprocessors[
       typeof config.expression === 'string' ?
         `${config.visualizationModule}.${config.expression}`
       : `${config.expression.definedOnType}.${config.expression.name}`
@@ -368,12 +368,22 @@ function sendVizData(id: Uuid, config: VisualizationConfiguration) {
     vizDataHandler instanceof Uint8Array ? vizDataHandler : (
       vizDataHandler(config.positionalArgumentsExpressions ?? [])
     )
+  const exprId = expressionId ?? visualizationExprIds.get(id)
+  sendVizUpdate(id, config.executionContextId, exprId, vizData)
+}
+
+function sendVizUpdate(
+  id: Uuid,
+  executionCtxId: Uuid,
+  exprId: Uuid | undefined,
+  vizData: Uint8Array,
+) {
+  if (!sendData) return
   const builder = new Builder()
-  const exprId = visualizationExprIds.get(id)
   const visualizationContextOffset = VisualizationContext.createVisualizationContext(
     builder,
     createId(id),
-    createId(config.executionContextId),
+    createId(executionCtxId),
     exprId ? createId(exprId) : null,
   )
   const dataOffset = VisualizationUpdate.createDataVector(builder, vizData)
@@ -449,16 +459,27 @@ export const mockLSHandler: MockTransportData = async (method, data, transport) 
         expressionId: ExpressionId
         expression: string
       }
-      const { func, args } = Ast.analyzeAppLike(Ast.parse(data_.expression))
-      if (!(func instanceof Ast.PropertyAccess && func.lhs)) return
-      const visualizationConfig: VisualizationConfiguration = {
-        executionContextId: data_.executionContextId,
-        visualizationModule: func.lhs.code(),
-        expression: func.rhs.code(),
-        positionalArgumentsExpressions: args.map((ast) => ast.code()),
+      const aiPromptPat = Pattern.parse('Standard.Visualization.AI.build_ai_prompt __ . to_json')
+      const exprAst = Ast.parse(data_.expression)
+      if (aiPromptPat.test(exprAst)) {
+        sendVizUpdate(
+          data_.visualizationId,
+          data_.executionContextId,
+          data_.expressionId,
+          encodeJSON('Could you __$$GOAL$$__, please?'),
+        )
+      } else {
+        // Check if there's existing preprocessor mock which matches our expression
+        const { func, args } = Ast.analyzeAppLike(exprAst)
+        if (!(func instanceof Ast.PropertyAccess && func.lhs)) return
+        const visualizationConfig: VisualizationConfiguration = {
+          executionContextId: data_.executionContextId,
+          visualizationModule: func.lhs.code(),
+          expression: func.rhs.code(),
+          positionalArgumentsExpressions: args.map((ast) => ast.code()),
+        }
+        sendVizData(data_.visualizationId, visualizationConfig, data_.expressionId)
       }
-      visualizationExprIds.set(data_.visualizationId, data_.expressionId)
-      sendVizData(data_.visualizationId, visualizationConfig)
       return
     }
     case 'search/getSuggestionsDatabase':
@@ -510,8 +531,7 @@ export const mockLSHandler: MockTransportData = async (method, data, transport) 
     }
     case 'ai/completion': {
       const { prompt } = data
-      console.log(prompt)
-      const match = /^"Could you (.*), please\?"$/.exec(prompt)
+      const match = /^Could you (.*), please\?$/.exec(prompt)
       if (!match) {
         return { code: 'How rude!' }
       } else if (match[1] === 'convert to table') {
