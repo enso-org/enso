@@ -191,12 +191,16 @@ class Runner(
         )
       val shouldInvokeViaModulePath = engine.graalRuntimeVersion.isUnchained
 
+      val componentPath = engine.componentDirPath.toAbsolutePath.normalize
+      val langHomeOption = Seq(
+        s"-Dorg.graalvm.language.enso.home=$componentPath"
+      )
       var jvmArguments =
-        manifestOptions ++ environmentOptions ++ commandLineOptions
+        manifestOptions ++ environmentOptions ++ commandLineOptions ++ langHomeOption
       if (shouldInvokeViaModulePath) {
         jvmArguments = jvmArguments :++ Seq(
           "--module-path",
-          engine.componentDirPath.toAbsolutePath.normalize.toString,
+          componentPath.toString,
           "-m",
           "org.enso.runtime/org.enso.EngineRunnerBootLoader"
         )
