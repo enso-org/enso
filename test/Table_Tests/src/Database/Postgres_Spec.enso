@@ -916,12 +916,19 @@ add_data_link_specs suite_builder =
 
             r2 = data_link_file.with_input_stream [File_Access.Read] .read_all_bytes
             r2.should_fail_with Illegal_Argument
+            r2.catch.to_display_text . should_contain "The Postgres Data Link cannot be opened as a stream"
 
             # But we can read the raw data link if we ask for it:
             r3 = data_link_file.with_input_stream [File_Access.Read, Data_Link_Access.No_Follow] .read_all_bytes
             r3.should_be_a Vector
 
-        group_builder.specify "will fail with a clear message if trying to download a Database datalink" pending=Http_Test_Setup.pending_has_url <|
+        group_builder.specify "does not allow to write 'byte' data to a database data link" <|
+            data_link_file = transform_file (enso_project.data / "datalinks" / "postgres-db.datalink")
+            r = "foobar".write data_link_file
+            r.should_fail_with Illegal_Argument
+            r.catch.to_display_text . should_contain "The Postgres Data Link does not support writing raw data to it."
+
+        group_builder.specify "will fail with a clear message if trying to download a Database data link" pending=Http_Test_Setup.pending_has_url <|
             url = Http_Test_Setup.base_url_with_slash+"testfiles/some-postgres.datalink"
             target_file = enso_project.data / "transient" / "some-postgres-target"
             target_file.delete_if_exists
