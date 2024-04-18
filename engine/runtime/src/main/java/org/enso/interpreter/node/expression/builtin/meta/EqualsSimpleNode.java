@@ -192,7 +192,6 @@ public abstract class EqualsSimpleNode extends Node {
   }
 
   @Specialization(guards = "isBigInteger(iop, self)")
-  @TruffleBoundary
   boolean equalsBigIntDouble(
       Object self,
       double other,
@@ -203,9 +202,7 @@ public abstract class EqualsSimpleNode extends Node {
     if (Double.isInfinite(other)) {
       return false;
     }
-    var otherDecimal = new BigDecimal(other);
-    var selfDecimal = new BigDecimal(asBigInteger(iop, self));
-    return selfDecimal.equals(otherDecimal);
+    return equalsDoubleBigInteger(other, asBigInteger(iop, self));
   }
 
   @Specialization(guards = "isBigInteger(iop, self)")
