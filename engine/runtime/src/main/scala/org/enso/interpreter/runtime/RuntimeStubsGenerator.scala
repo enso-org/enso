@@ -56,7 +56,8 @@ class RuntimeStubsGenerator(builtins: Builtins) {
           }
         val rtp = scope.registerType(createdType)
         tp.members.foreach { cons =>
-          val constructor = new AtomConstructor(cons.name, scope, rtp)
+          val constructor =
+            new AtomConstructor(cons.name, scope, rtp, false, cons.isProjectPrivate)
           rtp.registerConstructor(constructor)
         }
       }

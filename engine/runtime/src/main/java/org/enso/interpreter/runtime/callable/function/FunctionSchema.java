@@ -42,6 +42,7 @@ public final class FunctionSchema {
   private final boolean hasOversaturatedArguments;
   private final CallerFrameAccess callerFrameAccess;
   private final boolean isFullyApplied;
+  private final boolean isProjectPrivate;
 
   public static Builder newBuilder() {
     return new Builder();
@@ -64,12 +65,14 @@ public final class FunctionSchema {
       ArgumentDefinition[] argumentInfos,
       boolean[] hasPreApplied,
       CallArgumentInfo[] oversaturatedArguments,
-      Annotation[] annotations) {
+      Annotation[] annotations,
+      boolean isProjectPrivate) {
     this.argumentInfos = argumentInfos;
     this.oversaturatedArguments = oversaturatedArguments;
     this.hasPreApplied = hasPreApplied;
     this.callerFrameAccess = callerFrameAccess;
     this.annotations = annotations;
+    this.isProjectPrivate = isProjectPrivate;
     boolean hasAnyPreApplied = false;
     for (boolean b : hasPreApplied) {
       if (b) {
@@ -112,6 +115,10 @@ public final class FunctionSchema {
    */
   public boolean hasOversaturatedArgs() {
     return this.hasOversaturatedArguments;
+  }
+
+  public boolean isProjectPrivate() {
+    return isProjectPrivate;
   }
 
   /**
@@ -237,7 +244,8 @@ public final class FunctionSchema {
 
     /** Set the function to be project private. */
     public Builder projectPrivate() {
-      throw new UnsupportedOperationException("unimplemented");
+      this.isProjectPrivate = true;
+      return this;
     }
 
     /**
