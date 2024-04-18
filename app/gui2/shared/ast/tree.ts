@@ -759,16 +759,15 @@ export class AutoscopedIdentifier extends Ast {
     super(module, fields)
   }
 
-  static tryParse(source: string, module?: MutableModule): Owned<MutableAutoscopedIdentifier> | undefined {
+  static tryParse(
+    source: string,
+    module?: MutableModule,
+  ): Owned<MutableAutoscopedIdentifier> | undefined {
     const parsed = parse(source, module)
     if (parsed instanceof MutableAutoscopedIdentifier) return parsed
   }
 
-  static concrete(
-    module: MutableModule,
-    operator: NodeChild<Token>,
-    identifier: NodeChild<Token>,
-  ) {
+  static concrete(module: MutableModule, operator: NodeChild<Token>, identifier: NodeChild<Token>) {
     const base = module.baseObject('AutoscopedIdentifier')
     const id_ = base.get('id')
     const fields = composeFieldData(base, {

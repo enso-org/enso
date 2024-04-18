@@ -631,7 +631,8 @@ export const useGraphStore = defineStore('graph', () => {
     }
 
     if (exprId == null) {
-      const locatorStr = typeof locator === 'string' ? locator : `${locator.binding}/${locator.expr}`
+      const locatorStr =
+        typeof locator === 'string' ? locator : `${locator.binding}/${locator.expr}`
       bail(`Cannot find expression located by ${locatorStr}`)
     }
 

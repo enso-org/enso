@@ -454,14 +454,18 @@ test('Autoscoped constructors', async ({ page }) => {
     },
     notAppliedArguments: [2, 3],
   })
-  await mockMethodCallInfo(page, { binding: 'autoscoped', expr: '..Group_By' }, {
-    methodPointer: {
-      module: 'Standard.Table.Aggregate_Column',
-      definedOnType: 'Standard.Table.Aggregate_Column.Aggregate_Column',
-      name: 'Group_By'
+  await mockMethodCallInfo(
+    page,
+    { binding: 'autoscoped', expr: '..Group_By' },
+    {
+      methodPointer: {
+        module: 'Standard.Table.Aggregate_Column',
+        definedOnType: 'Standard.Table.Aggregate_Column.Aggregate_Column',
+        name: 'Group_By',
+      },
+      notAppliedArguments: [0, 1],
     },
-    notAppliedArguments: [0, 1]
-  })
+  )
   const node = locate.graphNodeByBinding(page, 'autoscoped')
   const topLevelArgs = node.locator('.WidgetTopLevelArgument')
   // Wait for hidden arguments to appear after selecting the node.
