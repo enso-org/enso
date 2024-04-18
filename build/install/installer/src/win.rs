@@ -62,6 +62,11 @@ pub fn install_with_updates(
         };
     }
 
+    let lock = enso_install::lock()?;
+    let _guard = lock
+        .try_lock()
+        .context("Failed to acquire the installation lock. Is another installer running?")?;
+
     stage_at!(0.0, "Removing old installation files (if present).");
     ide_ci::fs::reset_dir(install_location)?;
 

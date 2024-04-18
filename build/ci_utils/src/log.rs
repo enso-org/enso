@@ -46,6 +46,7 @@ where S: Subscriber + for<'a> LookupSpan<'a> + Debug + Send + Sync + 'static {
     let progress_bar_writer = IndicatifWriter::new();
     tracing_subscriber::fmt::layer()
         .without_time()
+        .with_ansi(false)
         .with_span_events(FmtSpan::NEW | FmtSpan::CLOSE)
         .with_writer(progress_bar_writer)
         .with_filter(filter)
