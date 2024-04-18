@@ -24,8 +24,7 @@ jobs:
   enso-build-ci-gen-promote-release-job-linux-x86_64:
     name: Promote release (linux, x86_64)
     runs-on:
-      - self-hosted
-      - Linux
+      - ubuntu-latest
     steps:
       - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
         name: Installing wasm-pack

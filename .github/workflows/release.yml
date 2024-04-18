@@ -19,8 +19,7 @@ jobs:
   enso-build-ci-gen-draft-release-linux-x86_64:
     name: Create a release draft.
     runs-on:
-      - self-hosted
-      - Linux
+      - ubuntu-latest
     steps:
       - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
         name: Installing wasm-pack
@@ -53,8 +52,7 @@ jobs:
       - enso-build-ci-gen-draft-release-linux-x86_64
       - enso-build-ci-gen-job-upload-backend-linux-x86_64
     runs-on:
-      - self-hosted
-      - Linux
+      - ubuntu-latest
     steps:
       - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
         name: Installing wasm-pack
@@ -105,8 +103,7 @@ jobs:
     needs:
       - enso-build-ci-gen-draft-release-linux-x86_64
     runs-on:
-      - self-hosted
-      - Linux
+      - ubuntu-latest
     steps:
       - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
         name: Installing wasm-pack
@@ -153,8 +150,7 @@ jobs:
     needs:
       - enso-build-ci-gen-draft-release-linux-x86_64
     runs-on:
-      - self-hosted
-      - macOS
+      - macos-latest
       - ARM64
     steps:
       - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
@@ -249,8 +245,7 @@ jobs:
     needs:
       - enso-build-ci-gen-draft-release-linux-x86_64
     runs-on:
-      - self-hosted
-      - Windows
+      - windows-latest
     steps:
       - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
         name: Installing wasm-pack
@@ -302,8 +297,7 @@ jobs:
       - enso-build-ci-gen-upload-ide-macos-x86_64
       - enso-build-ci-gen-upload-ide-windows-x86_64
     runs-on:
-      - self-hosted
-      - Linux
+      - ubuntu-latest
     steps:
       - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
         name: Installing wasm-pack
@@ -354,8 +348,7 @@ jobs:
       - enso-build-ci-gen-draft-release-linux-x86_64
       - enso-build-ci-gen-job-upload-backend-linux-x86_64
     runs-on:
-      - self-hosted
-      - Linux
+      - ubuntu-latest
     steps:
       - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
         name: Installing wasm-pack
@@ -415,8 +408,7 @@ jobs:
       - enso-build-ci-gen-draft-release-linux-x86_64
       - enso-build-ci-gen-job-upload-backend-macos-aarch64
     runs-on:
-      - self-hosted
-      - macOS
+      - macos-latest
       - ARM64
     steps:
       - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
@@ -563,8 +555,7 @@ jobs:
       - enso-build-ci-gen-draft-release-linux-x86_64
       - enso-build-ci-gen-job-upload-backend-windows-x86_64
     runs-on:
-      - self-hosted
-      - Windows
+      - windows-latest
     steps:
       - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
         name: Installing wasm-pack

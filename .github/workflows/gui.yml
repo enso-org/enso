@@ -18,8 +18,7 @@ jobs:
   enso-build-ci-gen-job-build-backend-linux-x86_64:
     name: Build Backend (linux, x86_64)
     runs-on:
-      - self-hosted
-      - Linux
+      - ubuntu-latest
     steps:
       - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
         name: Installing wasm-pack
@@ -103,8 +102,7 @@ jobs:
   enso-build-ci-gen-job-build-backend-windows-x86_64:
     name: Build Backend (windows, x86_64)
     runs-on:
-      - self-hosted
-      - Windows
+      - windows-latest
     steps:
       - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
         name: Installing wasm-pack
@@ -158,8 +156,7 @@ jobs:
   enso-build-ci-gen-job-new-gui-build-linux-x86_64:
     name: GUI build (linux, x86_64)
     runs-on:
-      - self-hosted
-      - Linux
+      - ubuntu-latest
     steps:
       - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
         name: Installing wasm-pack
@@ -267,8 +264,7 @@ jobs:
   enso-build-ci-gen-job-new-gui-build-windows-x86_64:
     name: GUI build (windows, x86_64)
     runs-on:
-      - self-hosted
-      - Windows
+      - windows-latest
     steps:
       - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
         name: Installing wasm-pack
@@ -324,8 +320,7 @@ jobs:
     needs:
       - enso-build-ci-gen-job-build-backend-linux-x86_64
     runs-on:
-      - self-hosted
-      - Linux
+      - ubuntu-latest
     steps:
       - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
         name: Installing wasm-pack
@@ -450,8 +445,7 @@ jobs:
     needs:
       - enso-build-ci-gen-job-build-backend-windows-x86_64
     runs-on:
-      - self-hosted
-      - Windows
+      - windows-latest
     steps:
       - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
         name: Installing wasm-pack

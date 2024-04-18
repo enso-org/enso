@@ -30,8 +30,7 @@ jobs:
   enso-build-ci-gen-job-gui-test-linux-x86_64:
     name: GUI tests (linux, x86_64)
     runs-on:
-      - self-hosted
-      - Linux
+      - ubuntu-latest
     steps:
       - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
         name: Installing wasm-pack
@@ -73,8 +72,7 @@ jobs:
   enso-build-ci-gen-job-lint-linux-x86_64:
     name: Lint (linux, x86_64)
     runs-on:
-      - self-hosted
-      - Linux
+      - ubuntu-latest
     steps:
       - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
         name: Installing wasm-pack
@@ -116,8 +114,7 @@ jobs:
   enso-build-ci-gen-job-native-test-linux-x86_64:
     name: Native Rust tests (linux, x86_64)
     runs-on:
-      - self-hosted
-      - Linux
+      - ubuntu-latest
     steps:
       - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
         name: Installing wasm-pack
@@ -159,8 +156,7 @@ jobs:
   enso-build-ci-gen-job-wasm-test-linux-x86_64:
     name: WASM tests (linux, x86_64)
     runs-on:
-      - self-hosted
-      - Linux
+      - ubuntu-latest
     steps:
       - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
         name: Installing wasm-pack

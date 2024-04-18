@@ -16,8 +16,7 @@ jobs:
   enso-build-ci-gen-job-ci-check-backend-graal-vm-ce-linux-x86_64:
     name: Engine (GraalVM CE) (linux, x86_64)
     runs-on:
-      - self-hosted
-      - Linux
+      - ubuntu-latest
     steps:
       - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
         name: Installing wasm-pack
@@ -61,8 +60,7 @@ jobs:
   enso-build-ci-gen-job-ci-check-backend-graal-vm-ce-macos-aarch64:
     name: Engine (GraalVM CE) (macos, aarch64)
     runs-on:
-      - self-hosted
-      - macOS
+      - macos-latest
       - ARM64
     steps:
       - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
@@ -151,8 +149,7 @@ jobs:
   enso-build-ci-gen-job-ci-check-backend-graal-vm-ce-windows-x86_64:
     name: Engine (GraalVM CE) (windows, x86_64)
     runs-on:
-      - self-hosted
-      - Windows
+      - windows-latest
     steps:
       - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
         name: Installing wasm-pack
@@ -196,8 +193,7 @@ jobs:
   enso-build-ci-gen-job-ci-check-backend-oracle-graal-vm-linux-x86_64:
     name: Engine (Oracle GraalVM) (linux, x86_64)
     runs-on:
-      - self-hosted
-      - Linux
+      - ubuntu-latest
     steps:
       - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
         name: Installing wasm-pack
@@ -241,8 +237,7 @@ jobs:
   enso-build-ci-gen-job-jvm-tests-graal-vm-ce-linux-x86_64:
     name: JVM Tests (GraalVM CE) (linux, x86_64)
     runs-on:
-      - self-hosted
-      - Linux
+      - ubuntu-latest
     steps:
       - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
         name: Installing wasm-pack
@@ -297,8 +292,7 @@ jobs:
   enso-build-ci-gen-job-jvm-tests-graal-vm-ce-macos-aarch64:
     name: JVM Tests (GraalVM CE) (macos, aarch64)
     runs-on:
-      - self-hosted
-      - macOS
+      - macos-latest
       - ARM64
     steps:
       - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
@@ -409,8 +403,7 @@ jobs:
   enso-build-ci-gen-job-jvm-tests-graal-vm-ce-windows-x86_64:
     name: JVM Tests (GraalVM CE) (windows, x86_64)
     runs-on:
-      - self-hosted
-      - Windows
+      - windows-latest
     steps:
       - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
         name: Installing wasm-pack
@@ -465,8 +458,7 @@ jobs:
   enso-build-ci-gen-job-jvm-tests-oracle-graal-vm-linux-x86_64:
     name: JVM Tests (Oracle GraalVM) (linux, x86_64)
     runs-on:
-      - self-hosted
-      - Linux
+      - ubuntu-latest
     steps:
       - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
         name: Installing wasm-pack
@@ -521,8 +513,7 @@ jobs:
   enso-build-ci-gen-job-standard-library-tests-graal-vm-ce-linux-x86_64:
     name: Standard Library Tests (GraalVM CE) (linux, x86_64)
     runs-on:
-      - self-hosted
-      - Linux
+      - ubuntu-latest
     steps:
       - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
         name: Installing wasm-pack
@@ -580,8 +571,7 @@ jobs:
   enso-build-ci-gen-job-standard-library-tests-graal-vm-ce-macos-aarch64:
     name: Standard Library Tests (GraalVM CE) (macos, aarch64)
     runs-on:
-      - self-hosted
-      - macOS
+      - macos-latest
       - ARM64
     steps:
       - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
@@ -698,8 +688,7 @@ jobs:
   enso-build-ci-gen-job-standard-library-tests-graal-vm-ce-windows-x86_64:
     name: Standard Library Tests (GraalVM CE) (windows, x86_64)
     runs-on:
-      - self-hosted
-      - Windows
+      - windows-latest
     steps:
       - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
         name: Installing wasm-pack
@@ -757,8 +746,7 @@ jobs:
   enso-build-ci-gen-job-standard-library-tests-oracle-graal-vm-linux-x86_64:
     name: Standard Library Tests (Oracle GraalVM) (linux, x86_64)
     runs-on:
-      - self-hosted
-      - Linux
+      - ubuntu-latest
     steps:
       - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
         name: Installing wasm-pack

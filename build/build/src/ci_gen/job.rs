@@ -94,9 +94,9 @@ impl RunsOn for (OS, Arch) {
     fn runs_on(&self) -> Vec<RunnerLabel> {
         match self {
             (OS::MacOS, Arch::X86_64) => runs_on(OS::MacOS, RunnerType::GitHubHosted),
-            (os, Arch::X86_64) => runs_on(*os, RunnerType::SelfHosted),
+            (os, Arch::X86_64) => runs_on(*os, RunnerType::GitHubHosted),
             (OS::MacOS, Arch::AArch64) => {
-                let mut ret = runs_on(OS::MacOS, RunnerType::SelfHosted);
+                let mut ret = runs_on(OS::MacOS, RunnerType::GitHubHosted);
                 ret.push(RunnerLabel::Arm64);
                 ret
             }

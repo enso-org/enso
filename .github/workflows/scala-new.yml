@@ -30,8 +30,7 @@ jobs:
   enso-build-ci-gen-job-ci-check-backend-graal-vm-ce-linux-x86_64:
     name: Engine (GraalVM CE) (linux, x86_64)
     runs-on:
-      - self-hosted
-      - Linux
+      - ubuntu-latest
     steps:
       - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
         name: Installing wasm-pack
@@ -119,8 +118,7 @@ jobs:
   enso-build-ci-gen-job-ci-check-backend-graal-vm-ce-windows-x86_64:
     name: Engine (GraalVM CE) (windows, x86_64)
     runs-on:
-      - self-hosted
-      - Windows
+      - windows-latest
     steps:
       - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
         name: Installing wasm-pack
@@ -164,8 +162,7 @@ jobs:
   enso-build-ci-gen-job-jvm-tests-graal-vm-ce-linux-x86_64:
     name: JVM Tests (GraalVM CE) (linux, x86_64)
     runs-on:
-      - self-hosted
-      - Linux
+      - ubuntu-latest
     steps:
       - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
         name: Installing wasm-pack
@@ -275,8 +272,7 @@ jobs:
   enso-build-ci-gen-job-jvm-tests-graal-vm-ce-windows-x86_64:
     name: JVM Tests (GraalVM CE) (windows, x86_64)
     runs-on:
-      - self-hosted
-      - Windows
+      - windows-latest
     steps:
       - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
         name: Installing wasm-pack
@@ -331,8 +327,7 @@ jobs:
   enso-build-ci-gen-job-standard-library-tests-graal-vm-ce-linux-x86_64:
     name: Standard Library Tests (GraalVM CE) (linux, x86_64)
     runs-on:
-      - self-hosted
-      - Linux
+      - ubuntu-latest
     steps:
       - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
         name: Installing wasm-pack
@@ -448,8 +443,7 @@ jobs:
   enso-build-ci-gen-job-standard-library-tests-graal-vm-ce-windows-x86_64:
     name: Standard Library Tests (GraalVM CE) (windows, x86_64)
     runs-on:
-      - self-hosted
-      - Windows
+      - windows-latest
     steps:
       - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
         name: Installing wasm-pack
@@ -507,8 +501,7 @@ jobs:
   enso-build-ci-gen-job-verify-license-packages-linux-x86_64:
     name: Verify License Packages (linux, x86_64)
     runs-on:
-      - self-hosted
-      - Linux
+      - ubuntu-latest
     steps:
       - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
         name: Installing wasm-pack
