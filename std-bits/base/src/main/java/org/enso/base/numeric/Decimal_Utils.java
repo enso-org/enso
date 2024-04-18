@@ -100,4 +100,16 @@ public class Decimal_Utils {
     // calculations.
     return bd.setScale(decimalPlaces, roundingMode).stripTrailingZeros();
   }
+
+  public static BigInteger floor(BigDecimal bd) {
+    return bd.setScale(0, RoundingMode.FLOOR).toBigInteger();
+  }
+
+  public static BigInteger ceil(BigDecimal bd) {
+    return bd.setScale(0, RoundingMode.CEILING).toBigInteger();
+  }
+
+  public static BigInteger truncate(BigDecimal bd) {
+    return bd.setScale(0, RoundingMode.DOWN).toBigInteger();
+  }
 }
