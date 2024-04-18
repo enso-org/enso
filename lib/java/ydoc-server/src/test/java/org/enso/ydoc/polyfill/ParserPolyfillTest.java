@@ -74,7 +74,7 @@ public class ParserPolyfillTest {
 
     var result = CompletableFuture.supplyAsync(() -> context.eval("js", code), executor).get();
 
-    Assert.assertEquals("1764801540", result.asString());
+    Assert.assertEquals("6930bc04", result.asString());
   }
 
   @Test
