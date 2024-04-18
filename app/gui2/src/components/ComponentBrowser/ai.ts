@@ -30,7 +30,7 @@ export function useAI(
           async () => {
             const prompt = await project.executeExpression(
               contextId,
-              `Standard.Visualization.AI.build_ai_prompt ${sourceIdentifier}`,
+              `Standard.Visualization.AI.build_ai_prompt ${sourceIdentifier} . to_json`,
             )
             if (!prompt) return Err('No data from AI visualization')
             return prompt
