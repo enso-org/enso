@@ -34,6 +34,7 @@ public final class Type implements EnsoObject {
   private final Type supertype;
   private final Type eigentype;
   private final Map<String, AtomConstructor> constructors;
+  private boolean hasProjectPrivateConstructors;
 
   private boolean gettersGenerated;
 
@@ -68,13 +69,15 @@ public final class Type implements EnsoObject {
 
   private void generateQualifiedAccessor() {
     var node = new ConstantNode(null, this);
-    var funcSchema =
+    var schemaBldr =
         FunctionSchema.newBuilder()
             .argumentDefinitions(
                 new ArgumentDefinition(
-                    0, "this", null, null, ArgumentDefinition.ExecutionMode.EXECUTE))
-            .build();
-    var function = new Function(node.getCallTarget(), null, funcSchema);
+                    0, "this", null, null, ArgumentDefinition.ExecutionMode.EXECUTE));
+    if (hasProjectPrivateConstructors) {
+      schemaBldr.projectPrivate();
+    }
+    var function = new Function(node.getCallTarget(), null, schemaBldr.build());
     definitionScope.registerMethod(definitionScope.getAssociatedType(), this.name, function);
   }
 
@@ -152,16 +155,18 @@ public final class Type implements EnsoObject {
     var roots = AtomConstructor.collectFieldAccessors(language, this);
     roots.forEach(
         (name, node) -> {
-          var funcSchema =
-              FunctionSchema.newBuilder()
-                  .argumentDefinitions(
-                      new ArgumentDefinition(
-                          0,
-                          Constants.Names.SELF_ARGUMENT,
-                          null,
-                          null,
-                          ArgumentDefinition.ExecutionMode.EXECUTE))
-                  .build();
+          var schemaBldr = FunctionSchema.newBuilder()
+              .argumentDefinitions(
+                  new ArgumentDefinition(
+                      0,
+                      Constants.Names.SELF_ARGUMENT,
+                      null,
+                      null,
+                      ArgumentDefinition.ExecutionMode.EXECUTE));
+          if (hasProjectPrivateConstructors) {
+            schemaBldr.projectPrivate();
+          }
+          var funcSchema = schemaBldr.build();
           var f = new Function(node.getCallTarget(), null, funcSchema);
           definitionScope.registerMethod(this, name, f);
         });
@@ -310,6 +315,12 @@ public final class Type implements EnsoObject {
 
   public void registerConstructor(AtomConstructor constructor) {
     constructors.put(constructor.getName(), constructor);
+    if (constructor.isProjectPrivate()) {
+      hasProjectPrivateConstructors = true;
+    }
+    if (hasProjectPrivateConstructors) {
+      assert areAllConstuctorsPrivate() : "Either all constructors are public, or all constructors are project-private";
+    }
     gettersGenerated = false;
   }
 
@@ -320,5 +331,11 @@ public final class Type implements EnsoObject {
   private boolean isNothing(Node lib) {
     var b = EnsoContext.get(lib).getBuiltins();
     return this == b.nothing();
+  }
+
+  private boolean areAllConstuctorsPrivate() {
+    return constructors.values()
+        .stream()
+        .allMatch(AtomConstructor::isProjectPrivate);
   }
 }
