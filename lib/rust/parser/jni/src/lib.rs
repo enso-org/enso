@@ -23,6 +23,7 @@ use jni::JNIEnv;
 // ======================
 
 static DIRECT_ALLOCATED: &str = "Internal Error: ByteBuffer must be direct-allocated.";
+static FAILED_SERIALIZE_AST: &str = "Failed to serialize AST to binary format.";
 
 /// Parse the input. Returns a serialized representation of the parse tree. The caller is
 /// responsible for freeing the memory associated with the returned buffer.
@@ -35,7 +36,7 @@ static DIRECT_ALLOCATED: &str = "Internal Error: ByteBuffer must be direct-alloc
 /// a call to `freeState`.
 #[allow(unsafe_code)]
 #[no_mangle]
-pub extern "system" fn Java_org_enso_syntax2_Parser_parseInput(
+pub extern "system" fn Java_org_enso_syntax2_Parser_parseTree(
     env: JNIEnv,
     _class: JClass,
     state: u64,
@@ -69,6 +70,38 @@ pub extern "system" fn Java_org_enso_syntax2_Parser_parseInput(
         }
     };
     state.metadata = meta;
+    let result = env.new_direct_byte_buffer(&mut state.output);
+    result.unwrap().into_inner()
+}
+
+/// Parse the input. Returns a serialize format compatible with a lazy deserialization strategy. The
+/// caller is responsible for freeing the memory associated with the returned buffer.
+///
+/// # Safety
+///
+/// The state MUST be a value returned by `allocState` that has not been passed to `freeState`.
+/// The input buffer contents MUST be valid UTF-8.
+/// The contents of the returned buffer MUST not be accessed after another call to `parseInput`, or
+/// a call to `freeState`.
+#[allow(unsafe_code)]
+#[no_mangle]
+pub extern "system" fn Java_org_enso_syntax2_Parser_parseTreeLazy(
+    env: JNIEnv,
+    _class: JClass,
+    state: u64,
+    input: JByteBuffer,
+) -> jobject {
+    let state = unsafe { &mut *(state as usize as *mut State) };
+    let input = env.get_direct_buffer_address(input).expect(&DIRECT_ALLOCATED);
+    let input = if cfg!(debug_assertions) {
+        std::str::from_utf8(input).unwrap()
+    } else {
+        unsafe { std::str::from_utf8_unchecked(input) }
+    };
+
+    let tree = enso_parser::Parser::new().run(input);
+    state.output = enso_parser::format::serialize(&tree).expect(&FAILED_SERIALIZE_AST);
+
     let result = env.new_direct_byte_buffer(&mut state.output);
     result.unwrap().into_inner()
 }

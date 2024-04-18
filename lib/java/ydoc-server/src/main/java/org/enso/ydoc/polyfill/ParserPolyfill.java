@@ -46,13 +46,13 @@ public final class ParserPolyfill implements AutoCloseable, ProxyExecutable, Pol
       case PARSE_TREE -> {
         var input = arguments[1].asString();
 
-        yield parser.parseInput(input);
+        yield parser.parseInputLazy(input);
       }
 
       case XX_HASH_128 -> {
         var input = arguments[1].asString();
 
-        yield Integer.toString(input.hashCode());
+        yield Integer.toHexString(input.hashCode());
       }
 
       case IS_IDENT_OR_OPERATOR -> {

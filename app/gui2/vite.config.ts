@@ -16,7 +16,8 @@ const localServerPort = 8080
 const projectManagerUrl = 'ws://127.0.0.1:30535'
 
 const IS_CLOUD_BUILD = process.env.CLOUD_BUILD === 'true'
-const IS_POLYGLOT_YDOC_SERVER = process.env.POLYGLOT_YDOC_SERVER === 'true'
+const IS_POLYGLOT_YDOC_SERVER_DEBUG = process.env.POLYGLOT_YDOC_SERVER_DEBUG === 'true'
+const IS_POLYGLOT_YDOC_SERVER = process.env.POLYGLOT_YDOC_SERVER === 'true' || IS_POLYGLOT_YDOC_SERVER_DEBUG
 
 await readEnvironmentFromFile()
 
@@ -112,7 +113,12 @@ function gatewayServer(): Plugin {
           ),
         )
         const runYdocServer = () => {
-          ydocServer = spawn('java', ['-jar', ydocServerJar])
+          let args = []
+          if (IS_POLYGLOT_YDOC_SERVER_DEBUG) {
+            args.push('-DinspectPort=34567')
+          }
+          args.push('-jar', ydocServerJar)
+          ydocServer = spawn('java', args)
           ydocServer.stdout.on('data', (data) => {
             console.log(`ydoc: ${data}`)
           })

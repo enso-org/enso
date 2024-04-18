@@ -62,7 +62,9 @@ public final class Parser implements AutoCloseable {
 
   private static native void freeState(long state);
 
-  private static native ByteBuffer parseInput(long state, ByteBuffer input);
+  private static native ByteBuffer parseTree(long state, ByteBuffer input);
+
+  private static native ByteBuffer parseTreeLazy(long state, ByteBuffer input);
 
   private static native long isIdentOrOperator(ByteBuffer input);
 
@@ -87,11 +89,18 @@ public final class Parser implements AutoCloseable {
     return isIdentOrOperator(inputBuf);
   }
 
+  public ByteBuffer parseInputLazy(CharSequence input) {
+    byte[] inputBytes = input.toString().getBytes(StandardCharsets.UTF_8);
+    ByteBuffer inputBuf = ByteBuffer.allocateDirect(inputBytes.length);
+    inputBuf.put(inputBytes);
+    return parseTreeLazy(state, inputBuf);
+  }
+
   public ByteBuffer parseInput(CharSequence input) {
     byte[] inputBytes = input.toString().getBytes(StandardCharsets.UTF_8);
     ByteBuffer inputBuf = ByteBuffer.allocateDirect(inputBytes.length);
     inputBuf.put(inputBytes);
-    return parseInput(state, inputBuf);
+    return parseTree(state, inputBuf);
   }
 
   public Tree parse(CharSequence input) {
