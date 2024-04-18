@@ -68,13 +68,13 @@ public final class Type implements EnsoObject {
 
   private void generateQualifiedAccessor() {
     var node = new ConstantNode(null, this);
-    var function =
-        new Function(
-            node.getCallTarget(),
-            null,
-            new FunctionSchema(
+    var funcSchema =
+        FunctionSchema.newBuilder()
+            .argumentDefinitions(
                 new ArgumentDefinition(
-                    0, "this", null, null, ArgumentDefinition.ExecutionMode.EXECUTE)));
+                    0, "this", null, null, ArgumentDefinition.ExecutionMode.EXECUTE))
+            .build();
+    var function = new Function(node.getCallTarget(), null, funcSchema);
     definitionScope.registerMethod(definitionScope.getAssociatedType(), this.name, function);
   }
 
@@ -152,17 +152,17 @@ public final class Type implements EnsoObject {
     var roots = AtomConstructor.collectFieldAccessors(language, this);
     roots.forEach(
         (name, node) -> {
-          var f =
-              new Function(
-                  node.getCallTarget(),
-                  null,
-                  new FunctionSchema(
+          var funcSchema =
+              FunctionSchema.newBuilder()
+                  .argumentDefinitions(
                       new ArgumentDefinition(
                           0,
                           Constants.Names.SELF_ARGUMENT,
                           null,
                           null,
-                          ArgumentDefinition.ExecutionMode.EXECUTE)));
+                          ArgumentDefinition.ExecutionMode.EXECUTE))
+                  .build();
+          var f = new Function(node.getCallTarget(), null, funcSchema);
           definitionScope.registerMethod(this, name, f);
         });
   }
