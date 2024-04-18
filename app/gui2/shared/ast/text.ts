@@ -29,8 +29,15 @@ function escapeAsCharCodes(str: string): string {
 }
 
 const fixedEscapes = escapeSequences.map(([_, raw]) => escapeAsCharCodes(raw))
-
-const escapeRegex = new RegExp(`${[...fixedEscapes, '\\p{Surrogate}'].join('|')}`, 'gu')
+const escapeRegex = new RegExp(
+  [
+    ...fixedEscapes,
+    // Unpaired-surrogate codepoints are not technically valid in Unicode, but they are allowed in Javascript strings.
+    // Enso source files must be strictly UTF-8 conformant.
+    '\\p{Surrogate}',
+  ].join('|'),
+  'gu',
+)
 
 const escapeMapping = Object.fromEntries(
   escapeSequences.map(([escape, raw]) => [raw, `\\${escape}`]),
