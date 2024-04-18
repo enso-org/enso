@@ -3,9 +3,9 @@ import {
   nodesFromClipboardContent,
   nodesToClipboardData,
 } from '@/components/GraphEditor/clipboard'
+import { type Node } from '@/stores/graph'
 import { Ast } from '@/util/ast'
 import { initializePrefixes, nodeFromAst } from '@/util/ast/node'
-import { Vec2 } from '@/util/data/vec2'
 import { Blob } from 'node:buffer'
 import { initializeFFI } from 'shared/ast/ffi'
 import { assertDefined } from 'shared/util/assert'
@@ -59,23 +59,24 @@ class MockClipboardItem {
   }
 }
 
-const testNodeInputs: { code: string; vis?: VisualizationMetadata; colorOverride?: string }[] = [
+const testNodeInputs: {
+  code: string
+  visualization?: VisualizationMetadata
+  colorOverride?: string
+}[] = [
   { code: '2 + 2' },
   { code: 'foo = bar' },
   { code: '## Documentation\n2 + 2', colorOverride: 'mauve' },
   { code: '## Documentation\nfoo = 2 + 2' },
 ]
-const testNodes = testNodeInputs.map(({ code, vis, colorOverride }) => {
-  const node = nodeFromAst(Ast.Ast.parse(code))
+const testNodes = testNodeInputs.map(({ code, visualization, colorOverride }) => {
+  const root = Ast.Ast.parse(code)
+  root.setNodeMetadata({ visualization, colorOverride })
+  const node = nodeFromAst(root)
   assertDefined(node)
-  return {
-    ...node,
-    vis: vis ?? null,
-    colorOverride: colorOverride ?? null,
-    // Not copied; included for type completeness:
-    zIndex: 0,
-    position: Vec2.Zero,
-  }
+  // `nodesToClipboardData` only needs the `NodeDataFromAst` fields of `Node`, because it reads the metadata directly
+  // from the AST.
+  return node as Node
 })
 test.each([...testNodes.map((node) => [node]), testNodes])(
   'Copy and paste nodes',
@@ -87,10 +88,10 @@ test.each([...testNodes.map((node) => [node]), testNodes])(
     )
     const pastedNodes = await nodesFromClipboardContent(clipboardItems)
     sourceNodes.forEach((sourceNode, i) => {
-      expect(pastedNodes[i]?.documentation).toEqual(sourceNode.documentation)
-      expect(pastedNodes[i]?.expression).toEqual(sourceNode.innerExpr.code())
-      expect(pastedNodes[i]?.colorOverride ?? null).toEqual(sourceNode.colorOverride)
-      expect(pastedNodes[i]?.visualization ?? null).toEqual(sourceNode.vis)
+      expect(pastedNodes[i]?.documentation).toBe(sourceNode.documentation)
+      expect(pastedNodes[i]?.expression).toBe(sourceNode.innerExpr.code())
+      expect(pastedNodes[i]?.metadata?.colorOverride).toBe(sourceNode.colorOverride)
+      expect(pastedNodes[i]?.metadata?.visualization).toBe(sourceNode.vis)
     })
   },
 )

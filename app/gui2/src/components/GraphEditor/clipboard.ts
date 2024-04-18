@@ -5,7 +5,7 @@ import { useGraphStore } from '@/stores/graph'
 import { Ast } from '@/util/ast'
 import { Pattern } from '@/util/ast/match'
 import { Vec2 } from '@/util/data/vec2'
-import type { VisualizationMetadata } from 'shared/yjsModel'
+import type { NodeMetadataFields } from 'shared/ast'
 import { computed } from 'vue'
 
 // MIME type in *vendor tree*; see https://www.rfc-editor.org/rfc/rfc6838#section-3.2
@@ -22,16 +22,14 @@ interface ClipboardData {
 interface CopiedNode {
   expression: string
   documentation?: string | undefined
-  visualization?: VisualizationMetadata | undefined
-  colorOverride?: string | undefined
+  metadata?: NodeMetadataFields
 }
 
 function nodeStructuredData(node: Node): CopiedNode {
   return {
     expression: node.innerExpr.code(),
     documentation: node.documentation,
-    visualization: node.vis ?? undefined,
-    colorOverride: node.colorOverride ?? undefined,
+    metadata: node.rootExpr.serializeMetadata(),
   }
 }
 
@@ -118,7 +116,7 @@ export function nodesToClipboardData(
 }
 
 function getClipboard() {
-  return (window.navigator['mockClipboard'] as any) ?? window.navigator.clipboard
+  return (window.navigator as any).mockClipboard ?? window.navigator.clipboard
 }
 
 export function useGraphEditorClipboard(
@@ -150,11 +148,11 @@ export function useGraphEditorClipboard(
       return
     }
     for (const copiedNode of clipboardData) {
-      const { expression, documentation, visualization, colorOverride } = copiedNode
+      const { expression, documentation, metadata } = copiedNode
       graphStore.createNode(
         (clipboardData.length === 1 ? graphNavigator.sceneMousePos : null) ?? Vec2.Zero,
         expression,
-        { visualization, colorOverride },
+        metadata,
         undefined,
         documentation,
       )

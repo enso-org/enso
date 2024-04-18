@@ -54,6 +54,9 @@ export interface NodeMetadataFields {
   visualization?: VisualizationMetadata | undefined
   colorOverride?: string | undefined
 }
+function isNodeMetadataField(property: string) {
+  return ['position', 'visualization', 'colorOverride'].includes(property)
+}
 export type NodeMetadata = FixedMapView<NodeMetadataFields>
 export type MutableNodeMetadata = FixedMap<NodeMetadataFields>
 export function asNodeMetadata(map: Map<string, unknown>): NodeMetadata {
@@ -94,6 +97,11 @@ export abstract class Ast {
   get nodeMetadata(): NodeMetadata {
     const metadata = this.fields.get('metadata')
     return metadata as FixedMapView<NodeMetadataFields>
+  }
+
+  /** Returns a JSON-compatible object containing all metadata properties. */
+  serializeMetadata(): MetadataFields & NodeMetadataFields {
+    return this.fields.get('metadata').toJSON() as any
   }
 
   typeName(): string {
@@ -200,8 +208,14 @@ export abstract class MutableAst extends Ast {
 
   setNodeMetadata(nodeMeta: NodeMetadataFields) {
     const metadata = this.fields.get('metadata') as unknown as Map<string, unknown>
-    for (const [key, value] of Object.entries(nodeMeta))
-      if (value !== undefined) metadata.set(key, value)
+    for (const [key, value] of Object.entries(nodeMeta)) {
+      if (!isNodeMetadataField(key)) continue
+      if (value === undefined) {
+        metadata.delete(key)
+      } else {
+        metadata.set(key, value)
+      }
+    }
   }
 
   /** Modify the parent of this node to refer to a new object instead. Return the object, which now has no parent. */
@@ -2413,6 +2427,7 @@ export interface FixedMapView<Fields> {
   entries(): IterableIterator<readonly [string, unknown]>
   clone(): FixedMap<Fields>
   has(key: string): boolean
+  toJSON(): object
 }
 
 export interface FixedMap<Fields> extends FixedMapView<Fields> {
