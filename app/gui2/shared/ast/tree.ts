@@ -769,7 +769,6 @@ export class AutoscopedIdentifier extends Ast {
 
   static concrete(module: MutableModule, operator: NodeChild<Token>, identifier: NodeChild<Token>) {
     const base = module.baseObject('AutoscopedIdentifier')
-    const id_ = base.get('id')
     const fields = composeFieldData(base, {
       operator,
       identifier,
