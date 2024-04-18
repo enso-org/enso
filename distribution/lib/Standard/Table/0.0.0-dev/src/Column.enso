@@ -1525,7 +1525,7 @@ type Column
     minute self = Value_Type.expect_has_time self <|
         apply_unary_operation self DatePartOperation.MINUTE_INSTANCE
 
-    ## GROUP Standard.Base.Selections
+    ## GROUP Standard.Base.DateTime
        ICON date_and_time
        Gets the second as an integer (0-60) from the time stored in the column.
 
