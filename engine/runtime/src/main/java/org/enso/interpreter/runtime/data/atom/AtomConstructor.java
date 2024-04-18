@@ -315,7 +315,7 @@ public final class AtomConstructor implements EnsoObject {
   }
 
   /**
-   * Creates field accessors for all fields in given constructors.
+   * Creates field accessors for all fields in all constructors from the given type.
    *
    * @param language the language instance to create getters for
    * @param type type to create accessors for

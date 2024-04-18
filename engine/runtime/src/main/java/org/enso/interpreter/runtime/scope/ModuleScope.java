@@ -103,7 +103,7 @@ public final class ModuleScope implements EnsoObject {
   }
 
   /**
-   * Returns a map of methods defined in this module for a given constructor.
+   * Returns a map of methods defined in this module for a given type.
    *
    * @param type the type for which method map is requested
    * @return a map containing all the defined methods by name
