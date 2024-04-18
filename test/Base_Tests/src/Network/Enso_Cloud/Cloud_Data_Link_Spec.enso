@@ -4,6 +4,7 @@ import Standard.Base.Enso_Cloud.Errors.Missing_Data_Link_Library
 import Standard.Base.Errors.Common.Not_Found
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Errors.Illegal_State.Illegal_State
+import Standard.Base.Errors.Unimplemented.Unimplemented
 import Standard.Base.Enso_Cloud.Enso_File.Enso_Asset_Type
 
 from Standard.Test import all
@@ -24,7 +25,7 @@ type Temporary_Directory
         target = self.get / filename
         config = JS_Object.from_pairs [["type", "Enso_File"], ["libraryName", "Standard.Base"], ["path", target.path]]
         local_tmp_file = File.create_temporary_file prefix="test-datalink" suffix=".datalink"
-        Data_Link_Format.write_raw_config local_tmp_file config
+        Data_Link_Format.write_config local_tmp_file config
 
 
 add_specs suite_builder setup:Cloud_Tests_Setup = setup.with_prepared_environment <|
@@ -85,6 +86,11 @@ add_specs suite_builder setup:Cloud_Tests_Setup = setup.with_prepared_environmen
 
             datalink.read . should_equal my_content
 
+        group_builder.specify "currently does not support appending to a datalink" <|
+            datalink = test_root.datalink_to "my-file2.txt"
+            Test.expect_panic Unimplemented <|
+                "foobar".write datalink on_existing_file=Existing_File_Behavior.Append
+
         group_builder.specify "should be able to write raw bytes to a data link in Cloud" <|
             datalink = test_root.datalink_to "my-file2.txt"
             datalink.read.should_fail_with File_Error
@@ -97,7 +103,7 @@ add_specs suite_builder setup:Cloud_Tests_Setup = setup.with_prepared_environmen
 
             datalink.read.should_equal my_content
 
-        group_builder.specify "deleting a data link will _not_ remove the file in the Cloud" <|
+        group_builder.specify "deleting a data link will not remove the file in the Cloud" <|
             datalink = test_root.datalink_to "my-file3.txt"
             file = test_root.get / "my-file3.txt"
 

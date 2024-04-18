@@ -561,6 +561,19 @@ add_specs suite_builder =
                 r.column_names . should_equal ["Column 1", "Column 2"]
                 r.rows.at 0 . to_vector . should_equal ["Hello", "WORLD!"]
 
+        group_builder.specify "should be able to write data to an S3 data link" <| with_default_credentials <|
+            s3_link = my_writable_dir / "my-simple-write.datalink"
+            Problems.assume_no_problems <| Data_Link_Format.write_config s3_link <|
+                JS_Object.from_pairs <|
+                    [["type", "S3"]]
+                        + [["libraryName", "Standard.AWS"]]
+                        + [["uri", (my_writable_dir / "linked-sheet.xlsx").path]]
+                        + [["auth", JS_Object.from_pairs [["type", "aws_auth"], ["subType", "default"]]]]
+
+            table = Table.new [["X", [1, 2, 3]], ["Y", ["a", "b", "c"]]]
+            table.write s3_link . should_equal s3_link
+            s3_link.read . should_equal table
+
 main filter=Nothing =
     suite = Test.build suite_builder->
         add_specs suite_builder
