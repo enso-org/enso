@@ -39,7 +39,7 @@ onMounted(() => setTimeout(() => rootNode.value?.querySelector('button')?.focus(
   <div
     ref="rootNode"
     class="VisualizationSelector"
-    @focusout="$event.relatedTarget == null && (console.log('FOCUSOUT', new Error()), emit('hide'))"
+    @focusout="$event.relatedTarget == null && emit('hide')"
     @pointerdown.stop
     @pointerup.stop
     @click.stop

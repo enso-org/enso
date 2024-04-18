@@ -2,6 +2,7 @@ import * as json from 'lib0/json'
 import * as map from 'lib0/map'
 import { ObservableV2 } from 'lib0/observable'
 import * as random from 'lib0/random'
+import { assertNever } from 'shared/util/assert'
 import * as Y from 'yjs'
 import * as Ast from '../shared/ast'
 import { astCount } from '../shared/ast'
@@ -404,8 +405,7 @@ class ModulePersistence extends ObservableV2<{ removed: () => void }> {
             return Ok()
           }
           default: {
-            this.state satisfies never
-            return Ok()
+            assertNever(this.state)
           }
         }
       },
@@ -638,8 +638,7 @@ class ModulePersistence extends ObservableV2<{ removed: () => void }> {
         return
       }
       default: {
-        this.state satisfies never
-        return
+        assertNever(this.state)
       }
     }
   }
@@ -712,8 +711,7 @@ class ModulePersistence extends ObservableV2<{ removed: () => void }> {
             })
           }
           default: {
-            this.state satisfies never
-            return Ok()
+            assertNever(this.state)
           }
         }
       },

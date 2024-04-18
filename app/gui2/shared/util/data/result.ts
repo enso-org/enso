@@ -7,7 +7,7 @@ export type Result<T = undefined, E = unknown> =
   | { ok: true; value: T }
   | { ok: false; error: ResultError<E> }
 
-export function Ok(): Result<void, never>
+export function Ok(): Result<undefined, never>
 export function Ok<T>(data: T): Result<T, never>
 export function Ok<T>(data?: T): Result<T | undefined, never> {
   return { ok: true, value: data }
