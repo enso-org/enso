@@ -76,6 +76,21 @@ type S3_File
             content_length = translate_file_errors self <| S3.raw_head self.s3_path.bucket self.s3_path.key self.credentials . contentLength
             if content_length.is_nothing then Error.throw (S3_Error.Error "ContentLength header is missing." self.uri) else content_length
 
+    ## ICON folder_add
+       GROUP Output
+       Creates the directory represented by this file if it did not exist.
+
+       It also creates parent directories if they did not exist.
+
+       ? S3 Handling of Directories
+
+         S3 does not have a native concept of directories.
+         TODO: Add more information about how S3 handles directories.
+         https://github.com/enso-org/enso/issues/9704
+    create_directory : File
+    create_directory self =
+        Unimplemented.throw "Creating S3 folders is currently not implemented."
+
     ## PRIVATE
        ADVANCED
        Creates a new output stream for this file and runs the specified action
@@ -182,17 +197,37 @@ type S3_File
 
     ## ICON data_output
        Deletes the object.
-    delete : Nothing
-    delete self = if self.is_directory then Error.throw (S3_Error.Error "Deleting S3 folders is currently not implemented." self.uri) else
+
+       Arguments:
+       - recursive: If the target is a non-empty directory, it will only be
+         removed if this is set to `True`. Defaults to `False`, meaning that the
+         operation will fail if the directory is not empty. This option has no
+         effect for files or data links.
+    delete : Boolean -> Nothing
+    delete self (recursive : Boolean = False) =
         if self.exists.not then Error.throw (File_Error.Not_Found self) else
-            self.delete_if_exists
+            self.delete_if_exists recursive
 
     ## ICON data_output
        Deletes the file if it had existed.
-    delete_if_exists : Nothing
-    delete_if_exists self = if self.is_directory then Error.throw (S3_Error.Error "Deleting S3 folders is currently not implemented." self.uri) else
+
+       Arguments:
+       - recursive: If the target is a non-empty directory, it will only be
+         removed if this is set to `True`. Defaults to `False`, meaning that the
+         operation will fail if the directory is not empty. This option has no
+         effect for files or data links.
+    delete_if_exists : Boolean -> Nothing
+    delete_if_exists self (recursive : Boolean = False) =
         Context.Output.if_enabled disabled_message="Deleting an S3_File is forbidden as the Output context is disabled." panic=False <|
-            translate_file_errors self <| S3.delete_object self.s3_path.bucket self.s3_path.key self.credentials . if_not_error Nothing
+            case self.is_directory of
+                True ->
+                    # This is a temporary simplified implementation to ensure cleaning up after tests
+                    # TODO improve recursive deletion for S3 folders: https://github.com/enso-org/enso/issues/9704
+                    children = self.list
+                    if children.is_empty.not && recursive.not then Error.throw (File_Error.Directory_Not_Empty self) else
+                        r = children.map child-> child.delete_if_exists recursive
+                        r.if_not_error self
+                False -> translate_file_errors self <| S3.delete_object self.s3_path.bucket self.s3_path.key self.credentials . if_not_error Nothing
 
     ## ICON data_output
        Copies the file to the specified destination.

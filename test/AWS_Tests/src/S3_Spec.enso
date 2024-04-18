@@ -313,6 +313,7 @@ add_specs suite_builder =
 
     suite_builder.group "S3_File writing" pending=api_pending group_builder->
         assert my_writable_dir.is_directory
+        group_builder.teardown (my_writable_dir.delete_if_exists recursive=True)
 
         group_builder.specify "should be able to write and delete a new file" <|
             new_file = my_writable_dir / "new_file1.txt"
