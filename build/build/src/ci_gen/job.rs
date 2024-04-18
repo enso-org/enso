@@ -308,7 +308,13 @@ pub struct WasmTest;
 
 impl JobArchetype for WasmTest {
     fn job(&self, target: Target) -> Job {
-        plain_job(target, "WASM tests", "wasm test --no-native")
+        RunStepsBuilder::new("wasm test --no-native")
+            .customize(|step|{
+                // Add `npm install`, as it sets up the wasm-pack tool.
+                let npm_install = npm_install_step();
+                vec![npm_install, step]
+            })
+            .build_job("WASM tests", target)
     }
 }
 
@@ -394,8 +400,7 @@ pub fn expose_os_specific_signing_secret(os: OS, step: Step) -> Step {
 /// The sequence of steps that bumps the version of the Electron-Builder to
 /// [`ELECTRON_BUILDER_MACOS_VERSION`].
 pub fn bump_electron_builder() -> Vec<Step> {
-    let npm_install =
-        Step { name: Some("NPM install".into()), run: Some("npm install".into()), ..default() };
+    let npm_install = npm_install_step();
     let uninstall_old = Step {
         name: Some("Uninstall old Electron Builder".into()),
         run: Some("npm uninstall --save --workspace enso electron-builder".into()),
@@ -407,6 +412,10 @@ pub fn bump_electron_builder() -> Vec<Step> {
     let install_new =
         Step { name: Some("Install new Electron Builder".into()), run: Some(command), ..default() };
     vec![npm_install, uninstall_old, install_new]
+}
+
+pub fn npm_install_step() -> Step {
+    Step { name: Some("NPM install".into()), run: Some("npm install".into()), ..default() }
 }
 
 /// Prepares the packaging steps for the given OS.

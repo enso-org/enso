@@ -15,6 +15,7 @@ use ide_ci::actions::workflow::definition::is_non_windows_runner;
 use ide_ci::actions::workflow::definition::is_windows_runner;
 use ide_ci::actions::workflow::definition::run;
 use ide_ci::actions::workflow::definition::setup_artifact_api;
+use ide_ci::actions::workflow::definition::setup_git_long_paths;
 use ide_ci::actions::workflow::definition::shell;
 use ide_ci::actions::workflow::definition::wrap_expression;
 use ide_ci::actions::workflow::definition::Branches;
@@ -329,7 +330,7 @@ pub fn runs_on(os: OS, runner_type: RunnerType) -> Vec<RunnerLabel> {
 
 /// Initial CI job steps: check out the source code and set up the environment.
 pub fn setup_script_steps() -> Vec<Step> {
-    let mut ret = vec![setup_artifact_api()];
+    let mut ret = vec![setup_git_long_paths(), setup_artifact_api()];
     ret.extend(checkout_repo_step());
     // We run `./run --help` so:
     // * The build-script is build in a separate step. This allows us to monitor its build-time and

@@ -18,6 +18,9 @@ jobs:
     runs-on:
       - ubuntu-latest
     steps:
+      - if: runner.os == 'Windows' && (startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent'))
+        name: Enable long paths in git
+        run: git config --global core.longpaths true
       - name: Expose Artifact API and context information.
         uses: actions/github-script@v7
         with:
@@ -58,6 +61,9 @@ jobs:
       - macos-latest
       - ARM64
     steps:
+      - if: runner.os == 'Windows' && (startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent'))
+        name: Enable long paths in git
+        run: git config --global core.longpaths true
       - name: Expose Artifact API and context information.
         uses: actions/github-script@v7
         with:
@@ -97,6 +103,9 @@ jobs:
     runs-on:
       - macos-latest
     steps:
+      - if: runner.os == 'Windows' && (startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent'))
+        name: Enable long paths in git
+        run: git config --global core.longpaths true
       - name: Expose Artifact API and context information.
         uses: actions/github-script@v7
         with:
@@ -136,6 +145,9 @@ jobs:
     runs-on:
       - windows-latest
     steps:
+      - if: runner.os == 'Windows' && (startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent'))
+        name: Enable long paths in git
+        run: git config --global core.longpaths true
       - name: Expose Artifact API and context information.
         uses: actions/github-script@v7
         with:
@@ -175,6 +187,9 @@ jobs:
     runs-on:
       - ubuntu-latest
     steps:
+      - if: runner.os == 'Windows' && (startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent'))
+        name: Enable long paths in git
+        run: git config --global core.longpaths true
       - name: Expose Artifact API and context information.
         uses: actions/github-script@v7
         with:
@@ -214,6 +229,9 @@ jobs:
     runs-on:
       - ubuntu-latest
     steps:
+      - if: runner.os == 'Windows' && (startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent'))
+        name: Enable long paths in git
+        run: git config --global core.longpaths true
       - name: Expose Artifact API and context information.
         uses: actions/github-script@v7
         with:
@@ -265,6 +283,9 @@ jobs:
       - macos-latest
       - ARM64
     steps:
+      - if: runner.os == 'Windows' && (startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent'))
+        name: Enable long paths in git
+        run: git config --global core.longpaths true
       - name: Expose Artifact API and context information.
         uses: actions/github-script@v7
         with:
@@ -315,6 +336,9 @@ jobs:
     runs-on:
       - macos-latest
     steps:
+      - if: runner.os == 'Windows' && (startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent'))
+        name: Enable long paths in git
+        run: git config --global core.longpaths true
       - name: Expose Artifact API and context information.
         uses: actions/github-script@v7
         with:
@@ -365,6 +389,9 @@ jobs:
     runs-on:
       - windows-latest
     steps:
+      - if: runner.os == 'Windows' && (startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent'))
+        name: Enable long paths in git
+        run: git config --global core.longpaths true
       - name: Expose Artifact API and context information.
         uses: actions/github-script@v7
         with:
@@ -415,6 +442,9 @@ jobs:
     runs-on:
       - ubuntu-latest
     steps:
+      - if: runner.os == 'Windows' && (startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent'))
+        name: Enable long paths in git
+        run: git config --global core.longpaths true
       - name: Expose Artifact API and context information.
         uses: actions/github-script@v7
         with:
@@ -465,6 +495,9 @@ jobs:
     runs-on:
       - ubuntu-latest
     steps:
+      - if: runner.os == 'Windows' && (startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent'))
+        name: Enable long paths in git
+        run: git config --global core.longpaths true
       - name: Expose Artifact API and context information.
         uses: actions/github-script@v7
         with:
@@ -519,6 +552,9 @@ jobs:
       - macos-latest
       - ARM64
     steps:
+      - if: runner.os == 'Windows' && (startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent'))
+        name: Enable long paths in git
+        run: git config --global core.longpaths true
       - name: Expose Artifact API and context information.
         uses: actions/github-script@v7
         with:
@@ -572,6 +608,9 @@ jobs:
     runs-on:
       - macos-latest
     steps:
+      - if: runner.os == 'Windows' && (startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent'))
+        name: Enable long paths in git
+        run: git config --global core.longpaths true
       - name: Expose Artifact API and context information.
         uses: actions/github-script@v7
         with:
@@ -625,6 +664,9 @@ jobs:
     runs-on:
       - windows-latest
     steps:
+      - if: runner.os == 'Windows' && (startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent'))
+        name: Enable long paths in git
+        run: git config --global core.longpaths true
       - name: Expose Artifact API and context information.
         uses: actions/github-script@v7
         with:
@@ -678,6 +720,9 @@ jobs:
     runs-on:
       - ubuntu-latest
     steps:
+      - if: runner.os == 'Windows' && (startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent'))
+        name: Enable long paths in git
+        run: git config --global core.longpaths true
       - name: Expose Artifact API and context information.
         uses: actions/github-script@v7
         with:

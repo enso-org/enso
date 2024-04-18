@@ -32,6 +32,9 @@ jobs:
     runs-on:
       - ubuntu-latest
     steps:
+      - if: runner.os == 'Windows' && (startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent'))
+        name: Enable long paths in git
+        run: git config --global core.longpaths true
       - name: Expose Artifact API and context information.
         uses: actions/github-script@v7
         with:
@@ -69,6 +72,9 @@ jobs:
     runs-on:
       - ubuntu-latest
     steps:
+      - if: runner.os == 'Windows' && (startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent'))
+        name: Enable long paths in git
+        run: git config --global core.longpaths true
       - name: Expose Artifact API and context information.
         uses: actions/github-script@v7
         with:
@@ -106,6 +112,9 @@ jobs:
     runs-on:
       - ubuntu-latest
     steps:
+      - if: runner.os == 'Windows' && (startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent'))
+        name: Enable long paths in git
+        run: git config --global core.longpaths true
       - name: Expose Artifact API and context information.
         uses: actions/github-script@v7
         with:
@@ -143,6 +152,9 @@ jobs:
     runs-on:
       - ubuntu-latest
     steps:
+      - if: runner.os == 'Windows' && (startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent'))
+        name: Enable long paths in git
+        run: git config --global core.longpaths true
       - name: Expose Artifact API and context information.
         uses: actions/github-script@v7
         with:
@@ -161,6 +173,8 @@ jobs:
         run: ./run git-clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: NPM install
+        run: npm install
       - run: ./run wasm test --no-native
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

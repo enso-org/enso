@@ -69,7 +69,7 @@ pub fn get_input_expression(name: impl Into<String>) -> String {
 
 /// GH Actions expression piece that evaluates to `true` if run on a GitHub-hosted runner.
 pub fn is_github_hosted() -> String {
-    "startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')".into()
+    "(startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent'))".into()
 }
 
 /// Step that executes a given [GitHub Script](https://github.com/actions/github-script).
@@ -91,6 +91,18 @@ pub fn setup_artifact_api() -> Step {
     console.log(context)
     "#;
     github_script_step("Expose Artifact API and context information.", script)
+}
+
+/// Enable git long paths in the runner (GH-hosted Windows only).
+pub fn setup_git_long_paths() -> Step {
+    let script = "git config --global core.longpaths true";
+    let condition = format!("{} && {}", is_windows_runner(), is_github_hosted());
+    Step {
+        name: Some("Enable long paths in git".into()),
+        run: Some(script.into()),
+        r#if: Some(condition),
+        ..default()
+    }
 }
 
 /// An expression piece that evaluates to `true` if the current runner runs on Windows.
