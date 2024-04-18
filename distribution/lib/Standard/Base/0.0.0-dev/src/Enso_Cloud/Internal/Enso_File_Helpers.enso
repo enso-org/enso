@@ -1,0 +1,77 @@
+private
+
+import project.Data.Json.JS_Object
+import project.Enso_Cloud.Enso_File.Enso_Asset_Type
+import project.Enso_Cloud.Enso_File.Enso_File
+import project.Enso_Cloud.Errors.Enso_Cloud_Error
+import project.Enso_Cloud.Internal.Existing_Enso_Asset.Existing_Enso_Asset
+import project.Enso_Cloud.Internal.Existing_Enso_Asset.Asset_Cache
+import project.Enso_Cloud.Internal.Utils
+import project.Error.Error
+import project.Errors.File_Error.File_Error
+import project.Errors.Illegal_Argument.Illegal_Argument
+import project.Errors.Illegal_State.Illegal_State
+import project.Network.HTTP.HTTP_Method.HTTP_Method
+import project.Network.HTTP.Request_Error
+import project.Network.URI.URI
+import project.Nothing.Nothing
+import project.System.File.File
+from project.Data.Boolean import Boolean, False, True
+
+## PRIVATE
+upload_file (local_file : File) (destination : Enso_File) (replace_existing : Boolean) -> Enso_File =
+    result = perform_upload destination replace_existing [local_file, destination]
+    result.catch Enso_Cloud_Error error->
+        is_source_file_not_found = case error of
+            Enso_Cloud_Error.Connection_Error cause -> case cause of
+                request_error : Request_Error -> request_error.error_type == 'java.io.FileNotFoundException'
+                _ -> False
+            _ -> False
+        if is_source_file_not_found then Error.throw (File_Error.Not_Found local_file) else result
+
+## PRIVATE
+   `generate_request_body_and_result` should return a pair,
+   where the first element is the request body and the second element is the result to be returned.
+   It is executed lazily, only after all pre-conditions are successfully met.
+perform_upload (destination : Enso_File) (allow_existing : Boolean) (~generate_request_body_and_result) =
+    parent_directory = destination.parent
+    if parent_directory.is_nothing then Error.throw (Illegal_Argument.Error "The root directory cannot be a destination for upload. The destination must be a path to a file.") else
+        parent_directory_asset = Existing_Enso_Asset.get_asset_reference_for parent_directory
+        # If the parent directory does not exist, we fail.
+        parent_directory_asset.if_not_error <|
+            existing_asset = Existing_Enso_Asset.get_asset_reference_for destination
+                . catch File_Error _->Nothing
+            if existing_asset.is_nothing.not && allow_existing.not then Error.throw (File_Error.Already_Exists destination) else
+                if existing_asset.is_nothing.not && existing_asset.asset_type != Enso_Asset_Type.File then Error.throw (Illegal_Argument.Error "The destination must be a path to a file, not "+existing_asset.asset_type.to_text+".") else
+                    existing_asset_id = existing_asset.if_not_nothing <| existing_asset.id
+                    file_name = destination.name
+                    base_uri = URI.from Utils.files_api
+                        . add_query_argument "parent_directory_id" parent_directory_asset.id
+                        . add_query_argument "file_name" file_name
+                    full_uri = case existing_asset_id of
+                        Nothing -> base_uri
+                        _ -> base_uri . add_query_argument "file_id" existing_asset_id
+                    pair = generate_request_body_and_result
+                    Asset_Cache.invalidate destination
+                    response = Utils.http_request HTTP_Method.Post full_uri pair.first
+                    response.if_not_error <|
+                        Asset_Cache.update destination (Existing_Enso_Asset.from_json response)
+                        pair.second
+
+## PRIVATE
+   Creates a directory at the given path, also creating parent directories if needed.
+create_directory_with_parents (target : Enso_File) -> Existing_Enso_Asset =
+    parent_file = target.parent
+    parent_asset = Existing_Enso_Asset.get_asset_reference_for parent_file . catch File_Error error-> case error of
+        File_Error.Not_Found _ ->
+            if parent_file.enso_path.is_root then Error.throw (Illegal_State.Error "Unexpected error: when creating directory "+target.path+", reached the root directory and the backend reported that it does not exist - which should not happen. Please report this error.") else
+                create_directory_with_parents parent_file
+        _ -> error
+    if parent_asset.is_directory.not then Error.throw (File_Error.Not_A_Directory parent_file) else
+        body = JS_Object.from_pairs [["title", target.name], ["parentId", parent_asset.id]]
+        Asset_Cache.invalidate target
+        response = Utils.http_request_as_json HTTP_Method.Post Utils.directory_api body
+        created_asset = Existing_Enso_Asset.from_json response
+        created_asset.if_not_error <|
+            Asset_Cache.update target created_asset
+            created_asset
