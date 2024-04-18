@@ -19,12 +19,12 @@ import {
   getMethodCallInfoRecursively,
   interpretCall,
 } from '@/util/callTree'
+import { fail } from 'assert'
 import { initializeFFI } from 'shared/ast/ffi'
 import type { ExpressionUpdatePayload, MethodCall } from 'shared/languageServerTypes'
+import { assertEqual, assertNotEqual } from 'shared/util/assert'
 import { assert, expect, test } from 'vitest'
 import type { AstId } from '../abstract'
-import { assertEqual, assertNotEqual } from 'shared/util/assert'
-import { fail } from 'assert'
 
 await initializeFFI()
 
@@ -231,7 +231,7 @@ test.each([
 )
 
 interface ArgsTestCase extends TestCase {
-  expectedSameIds: Array<[string,string]>
+  expectedSameIds: Array<[string, string]>
 }
 
 test.each([
@@ -257,7 +257,10 @@ test.each([
     subapplicationIndex: 2,
     notAppliedArguments: [0, 1],
     expectedNotAppliedArguments: [],
-    expectedSameIds: [['0', 'as'], ['1', null]],
+    expectedSameIds: [
+      ['0', 'as'],
+      ['1', null],
+    ],
   },
   {
     description: '2 args, info on inner subapplication.',
@@ -265,7 +268,10 @@ test.each([
     subapplicationIndex: 1,
     notAppliedArguments: [1],
     expectedNotAppliedArguments: [],
-    expectedSameIds: [['0', 'as'], ['1', null]],
+    expectedSameIds: [
+      ['0', 'as'],
+      ['1', null],
+    ],
   },
   {
     description: '2 args, notAppliedArguments are incorrectly empty.',
@@ -273,7 +279,10 @@ test.each([
     subapplicationIndex: 2,
     notAppliedArguments: [],
     expectedNotAppliedArguments: [],
-    expectedSameIds: [['0', 'as'], ['1', null]],
+    expectedSameIds: [
+      ['0', 'as'],
+      ['1', null],
+    ],
   },
   {
     description: '1 arg, notAppliedArguments unsorted.',
@@ -281,7 +290,10 @@ test.each([
     subapplicationIndex: 1,
     notAppliedArguments: [1, 0],
     expectedNotAppliedArguments: [1],
-    expectedSameIds: [['0', 'as'], ['1', null]],
+    expectedSameIds: [
+      ['0', 'as'],
+      ['1', null],
+    ],
   },
   {
     description: '1 named arg.',
@@ -297,7 +309,10 @@ test.each([
     subapplicationIndex: 2,
     notAppliedArguments: [0, 1],
     expectedNotAppliedArguments: [],
-    expectedSameIds: [['0', 'as'], ['1', 'column']],
+    expectedSameIds: [
+      ['0', 'as'],
+      ['1', 'column'],
+    ],
   },
   {
     description: '1 wrongly named arg.',
@@ -305,7 +320,10 @@ test.each([
     subapplicationIndex: 1,
     notAppliedArguments: [0, 1],
     expectedNotAppliedArguments: [0, 1],
-    expectedSameIds: [['0', 'as'], ['0', 'bla']],
+    expectedSameIds: [
+      ['0', 'as'],
+      ['0', 'bla'],
+    ],
   },
   {
     description: '1 named & 1 unnamed args.',
@@ -313,7 +331,10 @@ test.each([
     subapplicationIndex: 2,
     notAppliedArguments: [0, 1],
     expectedNotAppliedArguments: [],
-    expectedSameIds: [['0', 'as'], ['1', null]],
+    expectedSameIds: [
+      ['0', 'as'],
+      ['1', null],
+    ],
   },
   {
     description: '1 unnamed & 1 named args.',
@@ -321,13 +342,15 @@ test.each([
     subapplicationIndex: 2,
     notAppliedArguments: [0, 1],
     expectedNotAppliedArguments: [],
-    expectedSameIds: [['1', 'as'], ['0', null]],
+    expectedSameIds: [
+      ['1', 'as'],
+      ['0', null],
+    ],
   },
 ] as ArgsTestCase[])(
   'Computing IDs of arguments: $description',
   ({ code, subapplicationIndex, notAppliedArguments, expectedSameIds }: ArgsTestCase) => {
-    const { db, expectedMethodCall, setExpressionInfo } =
-      prepareMocksForGetMethodCallTest()
+    const { db, expectedMethodCall, setExpressionInfo } = prepareMocksForGetMethodCallTest()
     const ast = Ast.parse(code)
     const subApplication = nthSubapplication(ast, subapplicationIndex)
     assert(subApplication)
