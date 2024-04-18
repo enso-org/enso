@@ -7,8 +7,8 @@ import type { GraphDb, MethodCallInfo } from '@/stores/graph/graphDatabase'
 import type { SuggestionEntry, SuggestionEntryArgument } from '@/stores/suggestionDatabase/entry'
 import { Ast } from '@/util/ast'
 import { findLastIndex, tryGetIndex } from '@/util/data/array'
-import { assert } from './assert'
 import type { ExternalId } from 'shared/yjsModel'
+import { assert } from './assert'
 
 export const enum ApplicationKind {
   Prefix,
