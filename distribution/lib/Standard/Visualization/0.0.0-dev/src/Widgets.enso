@@ -19,7 +19,8 @@ get_widget_json value call_name argument_names uuids="{}" =
     read_annotation argument =
         annotation = Warning.clear <| Meta.get_annotation value call_name argument
         return_target err = err.payload.target
-        Panic.catch Not_Invokable (annotation value cache=cache) handler=return_target
+        Panic.catch Not_Invokable handler=return_target
+            annotation value cache=cache
 
     annotations = argument_names.map (arg -> [arg, read_annotation arg])
     annotations.to_json
