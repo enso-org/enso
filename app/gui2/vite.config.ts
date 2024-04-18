@@ -17,7 +17,8 @@ const projectManagerUrl = 'ws://127.0.0.1:30535'
 
 const IS_CLOUD_BUILD = process.env.CLOUD_BUILD === 'true'
 const IS_POLYGLOT_YDOC_SERVER_DEBUG = process.env.POLYGLOT_YDOC_SERVER_DEBUG === 'true'
-const IS_POLYGLOT_YDOC_SERVER = process.env.POLYGLOT_YDOC_SERVER === 'true' || IS_POLYGLOT_YDOC_SERVER_DEBUG
+const IS_POLYGLOT_YDOC_SERVER =
+  process.env.POLYGLOT_YDOC_SERVER === 'true' || IS_POLYGLOT_YDOC_SERVER_DEBUG
 
 await readEnvironmentFromFile()
 
@@ -98,7 +99,7 @@ export default defineConfig({
   },
 })
 
-let ydocServer: ChildProcessWithoutNullStreams | null;
+let ydocServer: ChildProcessWithoutNullStreams | null
 function gatewayServer(): Plugin {
   return {
     name: 'gateway-server',
@@ -141,10 +142,10 @@ function gatewayServer(): Plugin {
       }
     },
     buildEnd() {
-      if (ydocServer == null) return;
+      if (ydocServer == null) return
 
       ydocServer.kill(9)
-    }
+    },
   }
 }
 
