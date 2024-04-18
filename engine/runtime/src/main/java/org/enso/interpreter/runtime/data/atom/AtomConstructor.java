@@ -107,7 +107,7 @@ public final class AtomConstructor implements EnsoObject {
   /**
    * Is the constructor initialized or not.
    *
-   * @return {@code true} if {@link initializeFields} method has already been called
+   * @return {@code true} if {@link #initializeFields} method has already been called
    */
   public boolean isInitialized() {
     return constructorFunction != null;
@@ -350,7 +350,7 @@ public final class AtomConstructor implements EnsoObject {
     } else {
       var cons = constructors.toArray(AtomConstructor[]::new)[0];
       for (var field : cons.getFields()) {
-        var node = new GetFieldNode(language, field.getPosition(), type, field.getName());
+        var node = new GetFieldNode(language, field.getPosition(), type, field.getName(), cons.getDefinitionScope());
         roots.put(field.getName(), node);
       }
     }

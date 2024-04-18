@@ -4,12 +4,15 @@ import com.oracle.truffle.api.TruffleLanguage;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.NodeInfo;
 import com.oracle.truffle.api.nodes.RootNode;
+import org.enso.compiler.context.LocalScope;
 import org.enso.interpreter.EnsoLanguage;
+import org.enso.interpreter.node.EnsoRootNode;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.data.Type;
+import org.enso.interpreter.runtime.scope.ModuleScope;
 
 @NodeInfo(shortName = "get_field", description = "A base for auto-generated Atom getters.")
-final class GetFieldNode extends RootNode {
+final class GetFieldNode extends EnsoRootNode {
   private final int index;
   private final String name;
   private final Type type;
@@ -22,8 +25,8 @@ final class GetFieldNode extends RootNode {
    * @param language the current language instance.
    * @param index the index this node should use for field lookup.
    */
-  GetFieldNode(TruffleLanguage<?> language, int index, Type type, String name) {
-    super(language);
+  GetFieldNode(EnsoLanguage language, int index, Type type, String name, ModuleScope moduleScope) {
+    super(language, LocalScope.root(), moduleScope, name, null);
     this.index = index;
     this.type = type;
     this.name = name;
@@ -64,6 +67,6 @@ final class GetFieldNode extends RootNode {
 
   @Override
   protected GetFieldNode cloneUninitialized() {
-    return new GetFieldNode(getLanguage(EnsoLanguage.class), index, type, name);
+    return new GetFieldNode(getLanguage(EnsoLanguage.class), index, type, name, getModuleScope());
   }
 }
