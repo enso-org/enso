@@ -183,8 +183,11 @@ class Runner(
       val commandLineOptions        = jvmSettings.jvmOptions.map(translateJVMOption)
       val shouldInvokeViaModulePath = engine.graalRuntimeVersion.isUnchained
 
+      val langHomeOption = Seq(
+        s"-Dorg.graalvm.language.enso.home=${engine.componentDirPath.toAbsolutePath.normalize.toString}"
+      )
       var jvmArguments =
-        manifestOptions ++ environmentOptions ++ commandLineOptions
+        manifestOptions ++ environmentOptions ++ commandLineOptions ++ langHomeOption
       if (shouldInvokeViaModulePath) {
         jvmArguments = jvmArguments :++ Seq(
           "--module-path",
