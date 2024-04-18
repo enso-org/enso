@@ -642,7 +642,8 @@ type DB_Table
            table_at = self.at column
            self.filter table_at filter on_problems
 
-    ## ALIAS filter rows
+    ## PRIVATE
+       ALIAS filter rows
        GROUP Standard.Base.Selections
        ICON preparation
 
