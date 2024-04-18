@@ -1,9 +1,7 @@
 package org.enso.interpreter.runtime.data.atom;
 
-import com.oracle.truffle.api.TruffleLanguage;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.NodeInfo;
-import com.oracle.truffle.api.nodes.RootNode;
 import org.enso.compiler.context.LocalScope;
 import org.enso.interpreter.EnsoLanguage;
 import org.enso.interpreter.node.EnsoRootNode;

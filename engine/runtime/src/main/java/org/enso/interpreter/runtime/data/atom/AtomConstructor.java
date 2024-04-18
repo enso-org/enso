@@ -205,7 +205,7 @@ public final class AtomConstructor implements EnsoObject {
   }
 
   private Function generateQualifiedAccessor(EnsoLanguage lang) {
-    var node = new QualifiedAccessorNode(lang, this);
+    var node = new QualifiedAccessorNode(lang, this, getDefinitionScope());
     var callTarget = node.getCallTarget();
     var schemaBldr =
         FunctionSchema.newBuilder()
@@ -350,7 +350,9 @@ public final class AtomConstructor implements EnsoObject {
     } else {
       var cons = constructors.toArray(AtomConstructor[]::new)[0];
       for (var field : cons.getFields()) {
-        var node = new GetFieldNode(language, field.getPosition(), type, field.getName(), cons.getDefinitionScope());
+        var node =
+            new GetFieldNode(
+                language, field.getPosition(), type, field.getName(), cons.getDefinitionScope());
         roots.put(field.getName(), node);
       }
     }
