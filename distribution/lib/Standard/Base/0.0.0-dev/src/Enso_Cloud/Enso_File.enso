@@ -43,6 +43,7 @@ from project.Data.Text.Extensions import all
 from project.Enso_Cloud.Public_Utils import get_required_field
 from project.Enso_Cloud.Internal.Enso_File_Helpers import all
 from project.System.File_Format import Auto_Detect, Bytes, File_Format, Plain_Text_Format
+from project.System.File import find_extension_from_name
 from project.System.File.Generic.File_Write_Strategy import generic_copy
 
 type Enso_File
