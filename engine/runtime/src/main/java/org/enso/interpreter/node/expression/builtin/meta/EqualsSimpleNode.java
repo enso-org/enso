@@ -12,6 +12,7 @@ import com.oracle.truffle.api.interop.TruffleObject;
 import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.nodes.Node;
+import java.math.BigDecimal;
 import java.math.BigInteger;
 import org.enso.interpreter.node.expression.builtin.number.utils.BigIntegerOps;
 import org.enso.interpreter.runtime.EnsoContext;
@@ -153,21 +154,32 @@ public abstract class EqualsSimpleNode extends Node {
   boolean equalsDoubleInterop(
       double self,
       Object other,
-      @Shared("interop") @CachedLibrary(limit = "10") InteropLibrary interop) {
+      @Shared("interop") @CachedLibrary(limit = "10") InteropLibrary iop) {
     try {
-      if (interop.fitsInDouble(other)) {
-        return self == interop.asDouble(other);
+      if (iop.fitsInDouble(other)) {
+        return self == iop.asDouble(other);
       }
-      var otherBig = interop.asBigInteger(other);
-      return self == asDouble(otherBig);
+      if (iop.fitsInBigInteger(other)) {
+        if (Double.isNaN(self)) {
+          return false;
+        }
+        if (Double.isInfinite(self)) {
+          return false;
+        }
+        return equalsDoubleBigInteger(self, asBigInteger(iop, other));
+      } else {
+        return false;
+      }
     } catch (UnsupportedMessageException ex) {
       return false;
     }
   }
 
   @TruffleBoundary
-  private static double asDouble(BigInteger big) {
-    return big.doubleValue();
+  private static boolean equalsDoubleBigInteger(double self, BigInteger big) {
+    var selfDecimal = new BigDecimal(self);
+    var otherDecimal = new BigDecimal(big);
+    return selfDecimal.equals(otherDecimal);
   }
 
   @Specialization(guards = {"isBigInteger(iop, self)", "isBigInteger(iop, other)"})
@@ -185,7 +197,15 @@ public abstract class EqualsSimpleNode extends Node {
       Object self,
       double other,
       @Shared("interop") @CachedLibrary(limit = "10") InteropLibrary iop) {
-    return asBigInteger(iop, self).doubleValue() == other;
+    if (Double.isNaN(other)) {
+      return false;
+    }
+    if (Double.isInfinite(other)) {
+      return false;
+    }
+    var otherDecimal = new BigDecimal(other);
+    var selfDecimal = new BigDecimal(asBigInteger(iop, self));
+    return selfDecimal.equals(otherDecimal);
   }
 
   @Specialization(guards = "isBigInteger(iop, self)")
