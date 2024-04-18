@@ -91,11 +91,13 @@ type Vector a
              Vector.collect (List.Cons 1 <| List.Cons 2 <| List.Nil) .x .xs stop_at=(_==List.Nil)
     collect : Any -> (Any -> Any) -> (Any -> Any) -> Integer | Nothing -> (Any -> Boolean) -> Vector Any
     collect seq element:(Any -> Any) next:(Any -> Any) limit:(Integer | Nothing)=Nothing stop_at:(Any -> Boolean)=(_==Nothing) =
-        b = Vector.new_builder (if limit.is_nothing then 10 else limit)
-        iterate item remaining = if remaining == 0 || (stop_at item) then b.to_vector else
-            b.append <| element item
-            @Tail_Call iterate (next item) (if remaining.is_nothing then Nothing else remaining-1)
-        iterate seq limit
+        Vector.build initial_capacity=(if limit.is_nothing then 10 else limit) builder->
+            iterate item remaining =
+                done = remaining == 0 || (stop_at item)
+                if done.not then
+                    builder.append <| element item
+                    @Tail_Call iterate (next item) (if remaining.is_nothing then Nothing else remaining-1)
+            iterate seq limit
 
     ## PRIVATE
        ADVANCED
@@ -145,14 +147,15 @@ type Vector a
 
     ## PRIVATE
        ADVANCED
+       DEPRECATED
        Creates a new vector builder instance.
 
-       A vector builder is a mutable data structure, that allows for gathering
+       A vector `Builder` is a mutable data structure, that allows for gathering
        a number of elements and then converting them into a vector. This is
        particularly useful when the number of elements is not known upfront.
 
-       A vector allows to store an arbitrary number of elements in linear memory. It
-       is the recommended data structure for most applications.
+       A vector allows to store an arbitrary number of elements in linear
+       memory. It is the recommended data structure for most applications.
 
        Arguments:
        - capacity: Initial capacity of the Vector.Builder
@@ -170,6 +173,51 @@ type Vector a
                   builder.to_vector
     new_builder : Integer -> Builder
     new_builder (capacity=10) = Builder.new capacity
+
+    ## PRIVATE
+       ADVANCED
+       Creates a new `Vector` by passing a `Builder` to the provided function.
+
+       A vector `Builder` is a mutable data structure, that allows for gathering
+       a number of elements and then converting them into a vector. This is
+       particularly useful when the number of elements is not known upfront.
+
+       `.build` creates a new `Builder`, passes it to the provided function,
+       which can add elements using the `Builder`'s `.append` method. When the
+       function is done, `.build` then closes the `Builder and returns the
+       resulting `Vector`.
+
+       The provided function should call `.append` to add new elements to the
+       `Builder`. The return value of the provided function is not used, unless
+       it is a dataflow error, in which case the `Vector` is not built, and the
+       dataflow error is propagted instead.
+
+       A vector allows to store an arbitrary number of elements in linear
+       memory. It is the recommended data structure for most applications.
+
+       Arguments:
+       - function: a function taking a `Builder` and using it to add elements.
+       - initial_capacity: Initial capacity of the Vector.Builder; this is for
+         pre-allocation and does not affect the size of the resulting `Vector`.
+
+       ! Error Conditions
+
+         - If the provided function throws a dataflow error, the `Vector` is not
+           built, and the error is propagted instead.
+
+       > Example
+         Construct a vector using a builder that contains the items 1 to 5.
+
+             Vector.build builder->
+                 builder.append 1
+                 builder.append 2
+                 builder.append 3
+             # => [1, 2, 3]
+    build : (Builder -> Any) -> Integer -> Vector
+    build (function : Builder -> Any) (initial_capacity : Integer = 10) -> Vector =
+        builder = Builder.new initial_capacity
+        result = function builder
+        result.if_not_error builder.to_vector
 
     ## PRIVATE
        ADVANCED
@@ -1207,8 +1255,15 @@ type Builder
        Appends a new element into this builder and returns it, propagating any
        errors that the provided element could have contained.
 
+       Returns the builder, unless `item` is a dataflow error, in which case the
+       error is propagated.
+
        Arguments:
        - item: The item to append to the vector builder.
+
+       ! Error Conditions
+
+         - If `item` is a dataflow error, the error is propagated.
 
        > Example
          Append two items.
