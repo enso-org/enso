@@ -8,7 +8,8 @@ import project.Errors.Problem_Behavior.Problem_Behavior
 import project.Nothing.Nothing
 import project.System.File_Format.Auto_Detect
 import project.System.Input_Stream.Input_Stream
-from project.Enso_Cloud.Data_Link import Data_Link_With_Input_Stream, parse_format
+import project.System.Output_Stream.Output_Stream
+from project.Enso_Cloud.Data_Link import Data_Link_With_Input_Stream, Data_Link_With_Output_Stream, parse_format
 from project.Enso_Cloud.Public_Utils import get_optional_field, get_required_field
 
 
@@ -36,5 +37,12 @@ type Enso_File_Data_Link
     with_input_stream self (open_options : Vector) (action : Input_Stream -> Any) -> Any =
         self.as_file.with_input_stream open_options action
 
+    ## PRIVATE
+    with_output_stream self (open_options : Vector) (action : Output_Stream -> Any) -> Any =
+        self.as_file.with_output_stream open_options action
+
 ## PRIVATE
 Data_Link_With_Input_Stream.from (that:Enso_File_Data_Link) = Data_Link_With_Input_Stream.Value that
+
+## PRIVATE
+Data_Link_With_Output_Stream.from (that:Enso_File_Data_Link) = Data_Link_With_Output_Stream.Value that
