@@ -85,10 +85,11 @@ make_column_name_vector_selector table display=Display.Always =
 
 ## PRIVATE
    Make a multiple column-name selector that allows each value to be selected at most once.
-make_column_name_multi_selector : Table -> Display -> Widget
-make_column_name_multi_selector table display=Display.Always =
+make_column_name_multi_selector : Table -> Display -> Boolean -> Widget
+make_column_name_multi_selector table display:Display=Display.Always add_regex:Boolean=False =
     names = table.column_names.map n-> Option n n.pretty
-    Multiple_Choice values=names display=display
+    regex = if add_regex then [Option "<Regular Expression>" "(regex '')"] else []
+    Multiple_Choice values=regex+names display=display
 
 ## PRIVATE
    Make a column reference by name selector.
