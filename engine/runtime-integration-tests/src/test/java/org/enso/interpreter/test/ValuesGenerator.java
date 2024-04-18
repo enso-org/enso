@@ -371,8 +371,10 @@ public final class ValuesGenerator {
       collect.add(v(null, "", "6.7").type());
       collect.add(v(null, "", "9223372036854776000").type());
       collect.add(v(null, "", "9223372036854775999").type());
+      collect.add(v(null, "", "9223372036854775808").type());
       collect.add(v(null, "", "9223372036854776000.0").type());
       collect.add(v(null, "", "9223372036854775999.0").type());
+      collect.add(v(null, "", "9223372036854775808.0").type());
       collect.add(v(null, "import Standard.Base.Data.Numbers", "40321 * 43202").type());
       collect.add(
           v(
