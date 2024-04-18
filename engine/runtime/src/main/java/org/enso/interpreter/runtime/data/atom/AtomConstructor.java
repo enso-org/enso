@@ -92,7 +92,11 @@ public final class AtomConstructor implements EnsoObject {
    * @param isProjectPrivate if true, this constructor is project-private.
    */
   public AtomConstructor(
-      String name, ModuleScope definitionScope, Type type, boolean builtin, boolean isProjectPrivate) {
+      String name,
+      ModuleScope definitionScope,
+      Type type,
+      boolean builtin,
+      boolean isProjectPrivate) {
     this.name = name;
     this.definitionScope = definitionScope;
     this.type = type;
@@ -193,8 +197,7 @@ public final class AtomConstructor implements EnsoObject {
         MethodRootNode.buildConstructor(
             language, localScope, definitionScope, instantiateBlock, section, this);
     RootCallTarget callTarget = rootNode.getCallTarget();
-    var schemaBldr =
-        FunctionSchema.newBuilder().annotations(annotations).argumentDefinitions(args);
+    var schemaBldr = FunctionSchema.newBuilder().annotations(annotations).argumentDefinitions(args);
     if (isProjectPrivate) {
       schemaBldr.projectPrivate();
     }

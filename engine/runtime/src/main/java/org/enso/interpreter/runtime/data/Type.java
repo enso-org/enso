@@ -155,14 +155,15 @@ public final class Type implements EnsoObject {
     var roots = AtomConstructor.collectFieldAccessors(language, this);
     roots.forEach(
         (name, node) -> {
-          var schemaBldr = FunctionSchema.newBuilder()
-              .argumentDefinitions(
-                  new ArgumentDefinition(
-                      0,
-                      Constants.Names.SELF_ARGUMENT,
-                      null,
-                      null,
-                      ArgumentDefinition.ExecutionMode.EXECUTE));
+          var schemaBldr =
+              FunctionSchema.newBuilder()
+                  .argumentDefinitions(
+                      new ArgumentDefinition(
+                          0,
+                          Constants.Names.SELF_ARGUMENT,
+                          null,
+                          null,
+                          ArgumentDefinition.ExecutionMode.EXECUTE));
           if (hasProjectPrivateConstructors) {
             schemaBldr.projectPrivate();
           }
@@ -319,7 +320,8 @@ public final class Type implements EnsoObject {
       hasProjectPrivateConstructors = true;
     }
     if (hasProjectPrivateConstructors) {
-      assert areAllConstuctorsPrivate() : "Either all constructors are public, or all constructors are project-private";
+      assert areAllConstuctorsPrivate()
+          : "Either all constructors are public, or all constructors are project-private";
     }
     gettersGenerated = false;
   }
@@ -334,8 +336,6 @@ public final class Type implements EnsoObject {
   }
 
   private boolean areAllConstuctorsPrivate() {
-    return constructors.values()
-        .stream()
-        .allMatch(AtomConstructor::isProjectPrivate);
+    return constructors.values().stream().allMatch(AtomConstructor::isProjectPrivate);
   }
 }

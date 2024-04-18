@@ -238,9 +238,7 @@ public abstract class InvokeFunctionNode extends BaseNode {
     return functionCallInstrumentationNode.getId();
   }
 
-  /**
-   * Returns true if the given function is in the same project as this node.
-   */
+  /** Returns true if the given function is in the same project as this node. */
   private boolean isInSameProject(Function function) {
     ModuleScope thisModScope = null;
     if (getRootNode() instanceof EnsoRootNode thisRootNode) {
