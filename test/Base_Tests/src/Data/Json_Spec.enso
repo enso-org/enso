@@ -61,6 +61,7 @@ add_specs suite_builder =
                 JS_Object.from_pairs [["foo", "bar"], ["baz", ["foo", "x", False]], ["y", y_v]]
 
         group_builder.specify "should report meaningful parsing errors" <|
+            "".should_fail_parsing_with "Empty string is not valid JSON."
             "foo".should_fail_parsing_with "Unrecognized token 'foo': was expecting (JSON String, Number, Array, Object or token 'null', 'true' or 'false') at position [line: 1, column: 4]"
             "[,]".should_fail_parsing_with "Unexpected character (',' (code 44)): expected a valid value (JSON String, Number, Array, Object or token 'null', 'true' or 'false') at position [line: 1, column: 3]"
             "{,}".should_fail_parsing_with "Unexpected character (',' (code 44)): was expecting double-quote to start field name at position [line: 1, column: 3]"
