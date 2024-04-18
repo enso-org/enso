@@ -454,7 +454,7 @@ final class SuggestionBuilder[A: IndexedSource](
             } else {
               TypeArg.Sum(
                 Some(tp.qualifiedName),
-                Seq(TypeArg.Value(tp.qualifiedName))
+                Seq(TypeArg.TypeDef(tp.qualifiedName))
               )
             }
 
@@ -652,18 +652,29 @@ final class SuggestionBuilder[A: IndexedSource](
     targ: TypeArg,
     hasTypeAscription: Boolean
   ): Option[Seq[String]] = {
-    def mkUnqualified(name: QualifiedName): String =
-      name.item
-    def mkQualified(name: QualifiedName): String =
-      name.toString
-    def mkAutoScopeCall(name: String): String =
-      s"..$name"
-    def go(arg: TypeArg, useAutoScope: Boolean): Seq[String] = arg match {
+    def mkUnqualified(name: QualifiedName): Identifier =
+      Identifier.Unqualified(name.item)
+    def mkQualified(name: QualifiedName): Identifier =
+      Identifier.Qualified(name)
+    def mkAutoScopeCall(identifier: Identifier): String =
+      identifier match {
+        case Identifier.Qualified(name)   => name.toString
+        case Identifier.Unqualified(name) => s"..$name"
+      }
+    def mkCall(identifier: Identifier): String =
+      identifier match {
+        case Identifier.Qualified(name)   => name.toString
+        case Identifier.Unqualified(name) => name
+      }
+
+    def go(arg: TypeArg, useAutoScope: Boolean): Seq[Identifier] = arg match {
       case TypeArg.Sum(_, List()) => Seq()
       case TypeArg.Sum(_, variants) =>
         variants.flatMap(go(_, useAutoScope))
       case TypeArg.Value(n) =>
         Seq(if (useAutoScope) mkUnqualified(n) else mkQualified(n))
+      case TypeArg.TypeDef(n) =>
+        Seq(mkQualified(n))
       case _ => Seq()
     }
 
@@ -674,7 +685,7 @@ final class SuggestionBuilder[A: IndexedSource](
           hasTypeAscription && tagItems.distinct.length == tagItems.length
         val tagValues =
           if (canUseAutoScope) tagItems.map(mkAutoScopeCall)
-          else go(s, useAutoScope = false)
+          else go(s, useAutoScope = false).map(mkCall)
         Option.unless(tagValues.isEmpty)(tagValues)
       case _ => None
 
@@ -689,7 +700,8 @@ final class SuggestionBuilder[A: IndexedSource](
   private def buildTypeArgumentName(targ: TypeArg): String = {
     def go(targ: TypeArg, level: Int): String =
       targ match {
-        case TypeArg.Value(name) => name.toString
+        case TypeArg.Value(name)   => name.toString
+        case TypeArg.TypeDef(name) => name.toString
         case TypeArg.Function(args, ret) =>
           val types    = args :+ ret
           val typeList = types.map(go(_, level + 1))
@@ -847,6 +859,12 @@ object SuggestionBuilder {
       */
     case class Value(name: QualifiedName) extends TypeArg
 
+    /** Type definition without constructors, like `type A`.
+      *
+      * @param name the name of the type
+      */
+    case class TypeDef(name: QualifiedName) extends TypeArg
+
     /** Function type, like `A -> A`.
       *
       * @param arguments the list of types defining the function
@@ -881,6 +899,11 @@ object SuggestionBuilder {
     case object Defined extends MethodType
   }
 
+  sealed private trait Identifier
+  private object Identifier {
+    case class Qualified(name: QualifiedName) extends Identifier
+    case class Unqualified(name: String)      extends Identifier
+  }
   val Any: String = "Standard.Base.Any.Any"
 
   private val InternalSuffix = "_internal"
