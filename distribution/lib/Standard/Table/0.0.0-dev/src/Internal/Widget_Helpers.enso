@@ -27,7 +27,7 @@ make_aggregate_column_selector table display=Display.Always =
     count = Option "Count" fqn+".Count"
 
     ## Currently can't support nested vector editors so using single picker
-    col_list_selector = make_column_name_vector_selector table display=Display.Always
+    col_list_selector = make_column_name_multi_selector table display=Display.Always
     count_distinct = Option "Count Distinct" fqn+".Count_Distinct" [["columns", col_list_selector]]
 
     ## Currently can't support nested vector editors so using single order by picker
@@ -174,7 +174,7 @@ make_join_condition_selector table display=Display.Always =
 make_order_by_selector : Table -> Display -> Boolean -> Widget
 make_order_by_selector table display=Display.Always name_only:Boolean=False =
     fqn = Meta.get_qualified_type_name Sort_Column
-    values = if name_only then table.column_names.map n-> Option n "("+fqn+".name "+n.pretty+")" else
+    values = if name_only then table.column_names.map n-> Option n "(Sort_Column.Name "+n.pretty+")" else
         name = Option "Name" fqn+".Name" [["name", make_column_name_selector table display=Display.Always]]
         index = Option "Index" fqn+".Index" [["index", Numeric_Input display=Display.Always minimum=0 maximum=table.column_count-1]]
         [name, index]

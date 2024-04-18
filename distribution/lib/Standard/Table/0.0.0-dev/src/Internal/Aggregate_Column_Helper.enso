@@ -191,7 +191,7 @@ resolve_aggregate table problem_builder aggregate_column:Aggregate_Column =
     result = case aggregate_column of
         Group_By c as -> Group_By (resolve c) as
         Count as -> Count as
-        Count_Distinct c as ignore_nothing ->
+        Count_Distinct c as ignore_nothing -> if c == [] then Count as else
             new_c = resolve_selector_to_vector c
             Count_Distinct new_c as ignore_nothing
         Count_Not_Nothing c as -> Count_Not_Nothing (resolve c) as
