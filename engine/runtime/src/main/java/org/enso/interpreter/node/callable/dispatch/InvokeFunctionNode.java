@@ -13,6 +13,7 @@ import java.util.UUID;
 import org.enso.interpreter.Constants;
 import org.enso.interpreter.node.BaseNode;
 import org.enso.interpreter.node.EnsoRootNode;
+import org.enso.interpreter.node.MethodRootNode;
 import org.enso.interpreter.node.callable.CaptureCallerInfoNode;
 import org.enso.interpreter.node.callable.FunctionCallInstrumentationNode;
 import org.enso.interpreter.node.callable.InvokeCallableNode;
@@ -23,6 +24,7 @@ import org.enso.interpreter.runtime.callable.CallerInfo;
 import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.callable.function.FunctionSchema;
+import org.enso.interpreter.runtime.data.atom.AtomConstructor;
 import org.enso.interpreter.runtime.error.PanicException;
 import org.enso.interpreter.runtime.scope.ModuleScope;
 import org.enso.interpreter.runtime.state.State;
@@ -244,10 +246,7 @@ public abstract class InvokeFunctionNode extends BaseNode {
     if (getRootNode() instanceof EnsoRootNode thisRootNode) {
       thisModScope = thisRootNode.getModuleScope();
     }
-    ModuleScope funcModScope = null;
-    if (function.getCallTarget() instanceof EnsoRootNode funcRootNode) {
-      funcModScope = funcRootNode.getModuleScope();
-    }
+    ModuleScope funcModScope = getModuleScopeForFunction(function);
     if (thisModScope != null && funcModScope != null) {
       var thisPkg = thisModScope.getModule().getPackage();
       var funcPkg = funcModScope.getModule().getPackage();
@@ -256,5 +255,20 @@ public abstract class InvokeFunctionNode extends BaseNode {
       }
     }
     return false;
+  }
+
+  private ModuleScope getModuleScopeForFunction(Function function) {
+    var cons = AtomConstructor.accessorFor(function);
+    if (cons != null) {
+      return cons.getDefinitionScope();
+    }
+    cons = MethodRootNode.constructorFor(function);
+    if (cons != null) {
+      return cons.getDefinitionScope();
+    }
+    if (function.getCallTarget().getRootNode() instanceof EnsoRootNode ensoRootNode) {
+      return ensoRootNode.getModuleScope();
+    }
+    return null;
   }
 }
