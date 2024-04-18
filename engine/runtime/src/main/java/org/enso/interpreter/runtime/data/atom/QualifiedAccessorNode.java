@@ -1,15 +1,17 @@
 package org.enso.interpreter.runtime.data.atom;
 
-import com.oracle.truffle.api.TruffleLanguage;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.NodeInfo;
-import com.oracle.truffle.api.nodes.RootNode;
+import org.enso.compiler.context.LocalScope;
+import org.enso.interpreter.EnsoLanguage;
+import org.enso.interpreter.node.EnsoRootNode;
 import org.enso.interpreter.runtime.EnsoContext;
+import org.enso.interpreter.runtime.scope.ModuleScope;
 
 @NodeInfo(
     shortName = "get_cons",
     description = "A base for auto-generated module-level atom constructor getters.")
-final class QualifiedAccessorNode extends RootNode {
+final class QualifiedAccessorNode extends EnsoRootNode {
   private final AtomConstructor atomConstructor;
 
   /**
@@ -18,8 +20,9 @@ final class QualifiedAccessorNode extends RootNode {
    * @param language the current language instance.
    * @param atomConstructor the constructor to return.
    */
-  QualifiedAccessorNode(TruffleLanguage<?> language, AtomConstructor atomConstructor) {
-    super(language);
+  QualifiedAccessorNode(
+      EnsoLanguage language, AtomConstructor atomConstructor, ModuleScope moduleScope) {
+    super(language, LocalScope.root(), moduleScope, atomConstructor.getQualifiedName().toString(), null);
     this.atomConstructor = atomConstructor;
   }
 
