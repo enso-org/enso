@@ -87,7 +87,7 @@ export class ExecutionContext extends ObservableV2<ExecutionContextNotification>
   private queue: AsyncQueue<ExecutionContextState>
   private syncScheduled = false
   private clearScheduled = false
-  desiredStack: StackItem[] = reactive([])
+  private _desiredStack: StackItem[] = reactive([])
   private visualizationConfigs: Map<Uuid, NodeVisualizationConfiguration> = new Map()
 
   constructor(
@@ -144,7 +144,16 @@ export class ExecutionContext extends ObservableV2<ExecutionContextNotification>
   }
 
   private pushItem(item: StackItem) {
-    this.desiredStack.push(item)
+    this._desiredStack.push(item)
+    this.sync()
+  }
+
+  get desiredStack() {
+    return this._desiredStack
+  }
+
+  set desiredStack(stack: StackItem[]) {
+    this._desiredStack = stack
     this.sync()
   }
 
@@ -153,11 +162,11 @@ export class ExecutionContext extends ObservableV2<ExecutionContextNotification>
   }
 
   pop() {
-    if (this.desiredStack.length === 1) {
+    if (this._desiredStack.length === 1) {
       console.debug('Cannot pop last item from execution context stack')
       return
     }
-    this.desiredStack.pop()
+    this._desiredStack.pop()
     this.sync()
   }
 
@@ -185,11 +194,11 @@ export class ExecutionContext extends ObservableV2<ExecutionContextNotification>
   }
 
   getStackBottom(): StackItem {
-    return this.desiredStack[0]!
+    return this._desiredStack[0]!
   }
 
   getStackTop(): StackItem {
-    return this.desiredStack[this.desiredStack.length - 1]!
+    return this._desiredStack[this._desiredStack.length - 1]!
   }
 
   setExecutionEnvironment(mode: ExecutionEnvironment) {
@@ -260,10 +269,10 @@ export class ExecutionContext extends ObservableV2<ExecutionContextNotification>
         if (state.status !== 'created')
           return Err('Cannot sync stack when execution context is not created')
         const firstDifferent =
-          findIndexOpt(this.desiredStack, (item, index) => {
+          findIndexOpt(this._desiredStack, (item, index) => {
             const stateStack = state.stack[index]
             return stateStack == null || !stackItemsEqual(item, stateStack)
-          }) ?? this.desiredStack.length
+          }) ?? this._desiredStack.length
         for (let i = state.stack.length; i > firstDifferent; --i) {
           const popResult = await this.withBackoff(
             () => this.lsRpc.popExecutionContextItem(this.id),
@@ -272,8 +281,8 @@ export class ExecutionContext extends ObservableV2<ExecutionContextNotification>
           if (popResult.ok) state.stack.pop()
           else return popResult
         }
-        for (let i = state.stack.length; i < this.desiredStack.length; ++i) {
-          const newItem = this.desiredStack[i]!
+        for (let i = state.stack.length; i < this._desiredStack.length; ++i) {
+          const newItem = this._desiredStack[i]!
           const pushResult = await this.withBackoff(
             () => this.lsRpc.pushExecutionContextItem(this.id, newItem),
             'Failed to push execution stack frame',
