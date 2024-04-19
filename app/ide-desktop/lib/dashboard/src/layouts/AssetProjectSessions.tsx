@@ -14,6 +14,13 @@ import type * as backendModule from '#/services/Backend'
 
 import type AssetTreeNode from '#/utilities/AssetTreeNode'
 
+// =================
+// === Constants ===
+// =================
+
+/** The size (both width and height) of the loading spinner. */
+const SPINNER_SIZE = 32
+
 // ============================
 // === AssetProjectSessions ===
 // ============================
@@ -35,9 +42,12 @@ export default function AssetProjectSessions(props: AssetProjectSessionsProps) {
   )
 
   return (
-    <div className="pointer-events-auto flex flex-1 shrink-0 flex-col items-center overflow-y-auto overflow-x-hidden">
+    <div className="pointer-events-auto flex flex-col items-center overflow-y-auto overflow-x-hidden">
       {projectSessions == null ? (
-        <StatelessSpinner state={statelessSpinnerModule.SpinnerState.loadingFast} />
+        <StatelessSpinner
+          state={statelessSpinnerModule.SpinnerState.loadingFast}
+          size={SPINNER_SIZE}
+        />
       ) : (
         projectSessions.map(session => (
           <AssetProjectSession

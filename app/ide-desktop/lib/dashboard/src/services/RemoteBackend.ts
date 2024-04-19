@@ -628,11 +628,11 @@ export default class RemoteBackend extends Backend {
     projectId: backendModule.ProjectId,
     projectSessionId: backendModule.ProjectSessionId,
     title: string
-  ): Promise<any> {
+  ): Promise<string[]> {
     const path = remoteBackendPaths.getProjectLogsPath(projectId)
-    const response = await this.post<any>(path, { projectSessionId })
+    const response = await this.post<string[]>(path, { projectSessionId })
     if (!responseIsSuccessful(response)) {
-      return await this.throw(response, 'listProjectSessionsBackendError', title)
+      return await this.throw(response, 'getProjectLogsBackendError', title)
     } else {
       return await response.json()
     }

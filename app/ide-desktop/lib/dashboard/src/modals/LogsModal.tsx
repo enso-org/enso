@@ -33,12 +33,15 @@ export default function LogsModal(props: LogsModalProps) {
     <Modal centered className="bg-dim">
       <div
         tabIndex={-1}
-        className="before:bg-frame-selected pointer-events-auto relative flex h-4/5 w-4/5 flex-col gap-2 rounded-2xl p-4 before:absolute before:inset-0 before:h-full before:w-full before:rounded-2xl before:backdrop-blur-3xl"
+        className="pointer-events-auto relative flex h-4/5 w-4/5 flex-col gap-4 overflow-auto rounded-default p-4 before:absolute before:inset before:h-full before:w-full before:rounded-default before:bg-selected-frame before:backdrop-blur-3xl"
+        onClick={() => {
+          event?.stopPropagation()
+        }}
       >
-        <aria.Heading level={2} className="relative text-sm font-bold">
+        <aria.Heading level={2} className="relative text-lg font-bold">
           {getText('logs')}
         </aria.Heading>
-        <pre className="relative overflow-auto">
+        <pre className="relative overflow-auto whitespace-pre-wrap">
           <code>{logs}</code>
         </pre>
       </div>

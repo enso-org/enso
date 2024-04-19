@@ -1216,7 +1216,7 @@ export default abstract class Backend {
     projectId: ProjectId,
     projectSessionId: ProjectSessionId,
     title: string
-  ): Promise<any>
+  ): Promise<string[]>
   /** Set a project to an open state. */
   abstract openProject(
     projectId: ProjectId,
