@@ -1,0 +1,4 @@
+packages:
+  - app/ide-desktop
+  - app/ide-desktop/lib/*
+  - app/gui2

@@ -1,7 +1,8 @@
 {
   "devDependencies": {
     "npm-run-all": "^4.1.5",
-    "prettier": "^3.0.0"
+    "prettier": "^3.0.0",
+    "vitest": "^1.3.1"
   },
   "dependencies": {
     "chromedriver": "^106.0.1",
@@ -19,10 +20,18 @@
   "workspaces": [
     "app/ide-desktop",
     "app/ide-desktop/lib/*",
-    "lib/js/runner",
     "app/gui2"
   ],
   "overrides": {
     "tslib": "$tslib"
-  }
+  },
+  "pnpm": {
+    "overrides": {
+      "@types/react": "^18.0.27"
+    },
+    "updateConfig": {
+      "ignoreDependencies": ["@aws-amplify/auth", "react-native-url-polyfill"]
+    }
+  },
+  "packageManager": "pnpm@8.15.7+sha256.50783dd0fa303852de2dd1557cd4b9f07cb5b018154a6e76d0f40635d6cee019"
 }

@@ -37,7 +37,7 @@
     "@electron/notarize": "2.1.0",
     "electron": "25.7.0",
     "electron-builder": "^22.14.13",
-    "enso-common": "^1.0.0",
+    "enso-common": "workspace:*",
     "esbuild": "^0.19.3",
     "fast-glob": "^3.2.12",
     "lightningcss": "^1.24.0",

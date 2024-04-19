@@ -42,6 +42,7 @@ export default defineConfig({
     entries: fileURLToPath(new URL('./index.html', import.meta.url)),
   },
   server: {
+    watch: {},
     headers: {
       'Cross-Origin-Embedder-Policy': 'require-corp',
       'Cross-Origin-Opener-Policy': 'same-origin',

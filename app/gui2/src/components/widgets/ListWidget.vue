@@ -6,8 +6,7 @@ import { useAppClass } from '@/providers/appClass'
 import { Range } from '@/util/data/range'
 import { Vec2 } from '@/util/data/vec2'
 import { uuidv4 } from 'lib0/random'
-import { nextTick } from 'process'
-import { computed, ref, shallowReactive, watchEffect, watchPostEffect } from 'vue'
+import { computed, nextTick, ref, shallowReactive, watchEffect, watchPostEffect } from 'vue'
 </script>
 
 <script setup lang="ts" generic="T">

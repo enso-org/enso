@@ -66,7 +66,7 @@ const WrappedToastContainer = createReactWrapper(ToastContainer, toastProps)
     responsiveDisabled
     autoPropsDisabled
   >
-    <WrappedToastContainer />t
+    <WrappedToastContainer />
     <MockProjectStoreWrapper v-model="text">
       <Suspense><GraphEditor /></Suspense>
     </MockProjectStoreWrapper>
