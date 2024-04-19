@@ -44,6 +44,12 @@ type File_Write_Strategy
        It will most likely fail at `with_output_stream` if the output context is
        not enabled. It may be used if the caller has custom handling for dry run
        and calls this method within `Context.Output.with_enabled`.
+
+       ? Return Value
+
+         By convention, the `write` operations return the file that has been
+         written to. The `Writable_File` wrappers may replace the return value
+         with a proxy file, when writing e.g. to a data link.
     write self file (existing_file_behavior : Existing_File_Behavior) (action : Output_Stream -> Any) =
         case existing_file_behavior of
             Existing_File_Behavior.Overwrite -> self.write_overwriting file action
@@ -57,6 +63,12 @@ type File_Write_Strategy
 
        The `action` is called with the effective file (original destination file
        or its dry run counterpart) and an output stream to that file.
+
+       ? Return Value
+
+         By convention, the `write` operations return the file that has been
+         written to. The `Writable_File` wrappers may replace the return value
+         with a proxy file, when writing e.g. to a data link.
     write_handling_dry_run self file (existing_file_behavior : Existing_File_Behavior) (action : Any -> Output_Stream -> Any) =
         if Context.Output.is_enabled then self.write file existing_file_behavior (action file) else
             effective_behavior = dry_run_behavior file existing_file_behavior
