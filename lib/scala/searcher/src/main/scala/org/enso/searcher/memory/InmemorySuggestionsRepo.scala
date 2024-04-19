@@ -181,10 +181,7 @@ class InmemorySuggestionsRepo(implicit ec: ExecutionContext)
     db.synchronized {
       val result = actions.map {
         case act @ SuggestionsDatabaseAction.Clean(module) =>
-          val suggestions = db.filter {
-            case (_, mod: Suggestion.Module) if module == mod.module => true
-            case _                                                   => false
-          }
+          val suggestions = db.filter(_._2.module == module)
           suggestions.foreach { case (id, _) =>
             db.remove(id)
           }
