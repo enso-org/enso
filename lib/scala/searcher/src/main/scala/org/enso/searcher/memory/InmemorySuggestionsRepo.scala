@@ -185,7 +185,6 @@ class InmemorySuggestionsRepo(implicit ec: ExecutionContext)
           suggestions.foreach { case (id, _) =>
             db.remove(id)
           }
-          condVersionIncrement(suggestions.nonEmpty)
           QueryResult(
             suggestions.map(_._1),
             act.asInstanceOf[SuggestionsDatabaseAction]
