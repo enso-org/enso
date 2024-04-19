@@ -78,6 +78,10 @@ Methods on types (or on modules) can be specified private. To check whether a
 private method is accessed only from within the same project, a runtime check
 must be performed, as this cannot be checked during the compilation.
 
+### Polyglot access
+No polyglot foreign code can access private entities. For all the foreign code,
+private entities are not visible.
+
 ## Example
 
 Lib/src/Pub_Type.enso:
