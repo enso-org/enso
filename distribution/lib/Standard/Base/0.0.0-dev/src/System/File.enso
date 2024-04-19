@@ -659,7 +659,7 @@ type File
                  file.write_text "hello"
                  file.delete
     delete : Boolean -> Nothing ! File_Error
-    delete self (recursive : Boolean = False) =
+    delete self (recursive : Boolean = False) -> Nothing =
         Context.Output.if_enabled disabled_message="File deleting is forbidden as the Output context is disabled." panic=False <|
             File_Error.handle_java_exceptions self (self.delete_builtin recursive)
 
@@ -670,12 +670,13 @@ type File
        - destination: the destination to move the file to.
        - replace_existing: specifies if the operation should proceed if the
          destination file already exists. Defaults to `False`.
-    copy_to : Writable_File -> Boolean -> Nothing ! File_Error
+    copy_to : Writable_File -> Boolean -> File ! File_Error
     copy_to self (destination : Writable_File) (replace_existing : Boolean = False) =
         Context.Output.if_enabled disabled_message="File copying is forbidden as the Output context is disabled." panic=False <|
-            case destination.file of
+            r = case destination.file of
                 _ : File -> local_file_copy self destination.file replace_existing
                 _ -> destination.copy_from_local self replace_existing
+            r.if_not_error destination.file_for_return
 
     ## ICON data_output
        Moves the file to the specified destination.
@@ -684,15 +685,16 @@ type File
        - destination: the destination to move the file to.
        - replace_existing: specifies if the operation should proceed if the
          destination file already exists. Defaults to `False`.
-    move_to : Writable_File -> Boolean -> Nothing ! File_Error
+    move_to : Writable_File -> Boolean -> File ! File_Error
     move_to self (destination : Writable_File) (replace_existing : Boolean = False) =
         Context.Output.if_enabled disabled_message="File moving is forbidden as the Output context is disabled." panic=False <|
-            case destination.file of
+            r = case destination.file of
                 _ : File -> local_file_move self destination.file replace_existing
                 _ ->
                     r = destination.copy_from_local self replace_existing
                     r.if_not_error <|
                         self.delete . if_not_error r
+            r.if_not_error destination.file_for_return
 
     ## ICON data_output
        Deletes the file if it exists on disk.
@@ -884,15 +886,13 @@ Writable_File.from (that : File) = if Data_Link.is_data_link that then Data_Link
     Writable_File.Value that.absolute.normalize Local_File_Write_Strategy.instance
 
 ## PRIVATE
-local_file_copy : File -> File -> Boolean -> Nothing ! File_Error
-local_file_copy source destination replace_existing =
+local_file_copy (source : File) (destination : File) (replace_existing : Boolean) -> Nothing =
     File_Error.handle_java_exceptions source <|
         copy_options = if replace_existing then [StandardCopyOption.REPLACE_EXISTING] else []
         source.copy_builtin destination copy_options
 
 ## PRIVATE
-local_file_move : File -> File -> Boolean -> Nothing ! File_Error
-local_file_move source destination replace_existing =
+local_file_move (source : File) (destination : File) (replace_existing : Boolean) -> Nothing =
     File_Error.handle_java_exceptions source <|
         copy_options = if replace_existing then [StandardCopyOption.REPLACE_EXISTING] else []
         source.move_builtin destination copy_options

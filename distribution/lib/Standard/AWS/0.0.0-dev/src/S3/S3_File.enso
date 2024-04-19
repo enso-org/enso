@@ -245,8 +245,9 @@ type S3_File
                     s3_destination : S3_File ->
                         if replace_existing.not && s3_destination.exists then Error.throw (File_Error.Already_Exists destination) else
                             destination_path = s3_destination.s3_path
-                            translate_file_errors self <| S3.copy_object self.s3_path.bucket self.s3_path.key destination_path.bucket destination_path.key self.credentials . if_not_error <| s3_destination
-                    _ -> generic_copy self destination.file replace_existing
+                            translate_file_errors self <| S3.copy_object self.s3_path.bucket self.s3_path.key destination_path.bucket destination_path.key self.credentials
+                                . if_not_error destination.file_for_return
+                    _ -> generic_copy self destination replace_existing
 
     ## ICON data_output
        Moves the file to the specified destination.

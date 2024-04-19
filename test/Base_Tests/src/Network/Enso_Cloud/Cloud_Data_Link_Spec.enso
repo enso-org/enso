@@ -103,8 +103,12 @@ add_specs suite_builder setup:Cloud_Tests_Setup = setup.with_prepared_environmen
                 stream.write_bytes my_content.utf_8
                 42
             r.should_equal 42
-
             datalink.read.should_equal my_content
+
+            r2 = [1, 2, 3].write_bytes datalink
+            # `Vector.write_bytes` should return the datalink file:
+            r2.should_equal datalink
+            datalink.read_bytes . should_equal [1, 2, 3]
 
         group_builder.specify "deleting a data link will not remove the file in the Cloud" <|
             datalink = test_root.datalink_to "my-file3.txt"

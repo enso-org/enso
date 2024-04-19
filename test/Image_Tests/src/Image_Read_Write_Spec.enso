@@ -8,6 +8,7 @@ import Standard.Image.Image_File_Format.Image_File_Format
 
 from Standard.Test import all
 
+import enso_dev.Base_Tests.Network.Enso_Cloud.Cloud_Tests_Setup.Cloud_Tests_Setup
 
 polyglot java import java.lang.System as Java_System
 
@@ -104,8 +105,12 @@ add_specs suite_builder =
 
             out.delete_if_exists
 
+    cloud_setup = Cloud_Tests_Setup.prepare
+    suite_builder.group_builder "Data Links to Images" pending=cloud_setup.real_cloud_pending group_builder->
+        group_builder.specify "should be able to write image data to a data link and read it back" <|
+            Error.throw "TODO!"
+
 main filter=Nothing =
     suite = Test.build suite_builder->
         add_specs suite_builder
     suite.run_with_filter filter
-

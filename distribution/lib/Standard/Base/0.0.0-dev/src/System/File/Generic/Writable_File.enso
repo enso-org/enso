@@ -27,7 +27,15 @@ from project.Data.Boolean import Boolean, False, True
      because it is used by some logic as an early exit condition.
 type Writable_File
     ## PRIVATE
-    Value file (write_strategy : File_Write_Strategy)
+       Arguments:
+       - file: the underlying file that can be written to.
+       - write_strategy: the strategy defining how to write to the file.
+       - file_for_return: the file instance that will be returned by write
+         operations. This is usually the same as `file`, but when writing
+         through a proxy (e.g. data link), the `file` will resolve to a target
+         file, but we want the operations to still return the original proxy
+         object, hence a distinction is needed.
+    Value file (write_strategy : File_Write_Strategy) file_for_return=file
 
     ## PRIVATE
     exists self -> Boolean = self.file.exists
@@ -44,7 +52,10 @@ type Writable_File
         self.write_strategy.write_handling_dry_run self.file existing_file_behavior action
 
     ## PRIVATE
-    is_local self -> Boolean = self.file.is_a File
+    is_local self -> Boolean =
+        ## Note: if we ever get data links (or other proxies) pointing to local files; such a proxy with a local file
+          target should probably not be considered local, because that may come with too many assumptions.
+        self.file.is_a File
 
     ## PRIVATE
        This helper method may be used if the logic for writing the file requires a local filesystem file
@@ -74,6 +85,10 @@ type Writable_File
 
     ## PRIVATE
     to_display_text self -> Text = self.file.to_display_text
+
+    ## PRIVATE
+    with_overridden_return self file_for_return =
+        Writable_File.from self.file self.write_strategy file_for_return
 
 ## PRIVATE
 Writable_File.from (that : Text) = Writable_File.from (File.new that)

@@ -110,7 +110,7 @@ type Input_Stream
     write_to_file self (file : Writable_File) =
         result = file.with_output_stream [File_Access.Create, File_Access.Truncate_Existing, File_Access.Write] output_stream->
             output_stream.write_stream self
-        result.if_not_error file.file
+        result.if_not_error file.file_for_return
 
 ## PRIVATE
    Utility method for closing primitive Java streams. Provided to avoid

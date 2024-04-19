@@ -561,25 +561,29 @@ add_specs suite_builder =
                 r.column_names . should_equal ["Column 1", "Column 2"]
                 r.rows.at 0 . to_vector . should_equal ["Hello", "WORLD!"]
 
-        group_builder.specify "should be able to write data to an S3 data link" <| with_default_credentials <|
-            linked_sheet = my_writable_dir / "linked-sheet.xlsx"
+        test_write_table_to_datalink extension = group_builder.specify "should be able to write a Table to an S3 data link ("+extension+")" <| with_default_credentials <|
+            link_target = my_writable_dir / ("linked-sheet."+extension)
             s3_link = my_writable_dir / "my-simple-write.datalink"
             Problems.assume_no_problems <| Data_Link_Format.write_config s3_link <|
                 JS_Object.from_pairs <|
                     [["type", "S3"]]
                         + [["libraryName", "Standard.AWS"]]
-                        + [["uri", linked_sheet.path]]
+                        + [["uri", link_target.path]]
                         + [["auth", JS_Object.from_pairs [["type", "aws_auth"], ["subType", "default"]]]]
 
             table = Table.new [["X", [1, 2, 3]], ["Y", ["a", "b", "c"]]]
+            # The write operation should return the data link file, not the target linked file:
             table.write s3_link . should_equal s3_link
             s3_link.read . should_equal table
 
             # Deleting the datalink should not delete the linked file:
             s3_link.delete . should_equal Nothing
             s3_link.exists . should_be_false
-            linked_sheet.exists . should_be_true
+            link_target.exists . should_be_true
 
+        test_write_table_to_datalink "xlsx"
+        test_write_table_to_datalink "csv"
+        test_write_table_to_datalink "json"
 
 main filter=Nothing =
     suite = Test.build suite_builder->

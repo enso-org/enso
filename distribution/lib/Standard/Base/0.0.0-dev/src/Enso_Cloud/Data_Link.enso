@@ -243,7 +243,12 @@ write_data_link_as_stream (file : File_Like) (open_options : Vector) (f : Output
 interpret_data_link_as_writable_file (file : File_Like) -> Writable_File =
     json = Data_Link_Format.read_config file
     data_link_instance = interpret_json_as_data_link json
+    ## We override the return value to return the original datalink, not the target.
+       Ideally, we'd do this inside of the `as_writable_file` implementation,
+       but there the data link does not know its 'origin', so it is impossible
+       to override it there.
     Writable_Data_Link.find data_link_instance . as_writable_file
+        . with_overridden_return file.file
 
 ## PRIVATE
 save_data_link_to_file data_link_instance (target_file : Writable_File) =
