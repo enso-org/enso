@@ -314,13 +314,24 @@ type Private_Access
        project.
 
        Arguments:
-       - target: The target method call that is project-private and thus cannot be called.
-    Error target
+       - this_project_name: Optional name of the current (caller) project.
+       - target_project_name: Optional name of the project of callee.
+       - target_method_name: The name of the target method call that is project-private and thus cannot be called.
+    Error (this_project_name : (Text | Nothing)) (target_project_name : (Text | Nothing)) (target_method_name : Text)
 
     ## PRIVATE
        Convert the Private_Access error to a human-readable format.
     to_display_text : Text
-    to_display_text self = "Private access error: The method target" + self.target.to_display_text + " cannot be accessed. It is project-private."
+    to_display_text self =
+        this_proj = if self.this_project_name.is_nothing then "unknown project" else "project '"+self.this_project_name+"'"
+        target_proj = if self.target_project_name.is_nothing then "unknown project" else "project '"+self.target_project_name+"'"
+        "Private access error: The project-private method '"
+            + self.target_method_name
+            + "' in "
+            + target_proj
+            + " cannot be accessed from "
+            + this_proj
+            + "."
 
 @Builtin_Type
 type Unsupported_Argument_Types

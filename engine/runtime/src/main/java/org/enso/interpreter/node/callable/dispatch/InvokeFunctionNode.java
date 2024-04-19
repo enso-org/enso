@@ -91,6 +91,14 @@ public abstract class InvokeFunctionNode extends BaseNode {
     return EnsoContext.get(this);
   }
 
+  private PanicException makePrivateAccessPanic(Function targetFunction) {
+    var thisProjName = getThisProjectName();
+    var targetProjName = getFunctionProjectName(targetFunction);
+    var funcName =  targetFunction.getName();
+    var err = EnsoContext.get(this).getBuiltins().error().makePrivateAccessError(thisProjName, targetProjName, funcName);
+    return new PanicException(err, this);
+  }
+
   @Specialization(
       guards = {"!getContext().isInlineCachingDisabled()", "function.getSchema() == cachedSchema"},
       limit = Constants.CacheSizes.ARGUMENT_SORTER_NODE)
@@ -109,8 +117,7 @@ public abstract class InvokeFunctionNode extends BaseNode {
                   + " getTailStatus())")
           CurryNode curryNode) {
     if (cachedSchema.isProjectPrivate() && !isInSameProject(function)) {
-      var err = EnsoContext.get(this).getBuiltins().error().makePrivateAccessError(function);
-      throw new PanicException(err, this);
+      throw makePrivateAccessPanic(function);
     }
 
     ArgumentSorterNode.MappedArguments mappedArguments =
@@ -154,8 +161,7 @@ public abstract class InvokeFunctionNode extends BaseNode {
       @Cached IndirectArgumentSorterNode mappingNode,
       @Cached IndirectCurryNode curryNode) {
     if (function.getSchema().isProjectPrivate() && !isInSameProject(function)) {
-      var err = EnsoContext.get(this).getBuiltins().error().makePrivateAccessError(function);
-      throw new PanicException(err, this);
+      throw makePrivateAccessPanic(function);
     }
 
     CallArgumentInfo.ArgumentMapping argumentMapping =
@@ -242,19 +248,37 @@ public abstract class InvokeFunctionNode extends BaseNode {
 
   /** Returns true if the given function is in the same project as this node. */
   private boolean isInSameProject(Function function) {
-    ModuleScope thisModScope = null;
-    if (getRootNode() instanceof EnsoRootNode thisRootNode) {
-      thisModScope = thisRootNode.getModuleScope();
+    var thisProjName = getThisProjectName();
+    var funcProjName = getFunctionProjectName(function);
+    if (thisProjName != null && funcProjName != null) {
+      return thisProjName.equals(funcProjName);
+    } else {
+      return false;
     }
-    ModuleScope funcModScope = getModuleScopeForFunction(function);
-    if (thisModScope != null && funcModScope != null) {
-      var thisPkg = thisModScope.getModule().getPackage();
-      var funcPkg = funcModScope.getModule().getPackage();
-      if (thisPkg != null && funcPkg != null) {
-        return thisPkg.name().equals(funcPkg.name());
+  }
+
+  private String getThisProjectName() {
+    if (getRootNode() instanceof EnsoRootNode thisRootNode) {
+      var modScope = thisRootNode.getModuleScope();
+      if (modScope != null) {
+        var pkg = modScope.getModule().getPackage();
+        if (pkg != null) {
+          return pkg.name();
+        }
       }
     }
-    return false;
+    return null;
+  }
+
+  private String getFunctionProjectName(Function function) {
+    var modScope = getModuleScopeForFunction(function);
+    if (modScope != null) {
+      var pkg = modScope.getModule().getPackage();
+      if (pkg != null) {
+        return pkg.name();
+      }
+    }
+    return null;
   }
 
   private ModuleScope getModuleScopeForFunction(Function function) {

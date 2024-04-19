@@ -33,6 +33,7 @@ import org.enso.interpreter.node.expression.builtin.error.UnsupportedArgumentTyp
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.callable.UnresolvedConversion;
 import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
+import org.enso.interpreter.runtime.data.EnsoObject;
 import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.data.atom.Atom;
 import org.enso.interpreter.runtime.data.text.Text;
@@ -313,8 +314,16 @@ public final class Error {
     return notInvokable.newInstance(target);
   }
 
-  public Atom makePrivateAccessError(Object target) {
-    return privateAccessError.newInstance(target);
+  /**
+   * @param thisProjectName Current project name. May be null.
+   * @param targetProjectName Target method project name. May be null.
+   * @param targetMethodName Name of the method that is project-private and cannot be accessed.
+   */
+  public Atom makePrivateAccessError(String thisProjectName, String targetProjectName, String targetMethodName) {
+    assert targetMethodName != null;
+    EnsoObject thisProjName = thisProjectName != null ? Text.create(thisProjectName) : context.getNothing();
+    EnsoObject targetProjName = targetProjectName != null ? Text.create(targetProjectName) : context.getNothing();
+    return privateAccessError.newInstance(thisProjName, targetProjName, Text.create(targetMethodName));
   }
 
   public ForbiddenOperation getForbiddenOperation() {

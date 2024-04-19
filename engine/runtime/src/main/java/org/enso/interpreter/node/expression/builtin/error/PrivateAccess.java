@@ -14,6 +14,6 @@ public class PrivateAccess extends UniquelyConstructibleBuiltin {
 
   @Override
   protected List<String> getConstructorParamNames() {
-    return List.of("target");
+    return List.of("this_project_name", "target_project_name", "target_method_name");
   }
 }
