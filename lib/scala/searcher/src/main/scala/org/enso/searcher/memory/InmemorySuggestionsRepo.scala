@@ -3,6 +3,10 @@ package org.enso.searcher.memory
 import org.enso.polyglot.Suggestion
 import org.enso.polyglot.Suggestion.ExternalID
 import org.enso.polyglot.runtime.Runtime.Api
+import org.enso.polyglot.runtime.Runtime.Api.{
+  SuggestionAction,
+  SuggestionsDatabaseAction
+}
 import org.enso.searcher.data.QueryResult
 import org.enso.searcher.sql.SuggestionRowUniqueIndex
 import org.enso.searcher.{SuggestionEntry, SuggestionsRepo}
@@ -20,7 +24,9 @@ class InmemorySuggestionsRepo(implicit ec: ExecutionContext)
   override def init: Future[Unit] = {
     Future {
       if (db == null) {
-        db = new mutable.HashMap()
+        db      = new mutable.HashMap()
+        version = 0
+        index   = 1
       }
     }
   }
@@ -65,6 +71,7 @@ class InmemorySuggestionsRepo(implicit ec: ExecutionContext)
       val i = index
       index += 1
       db.put(i, suggestion)
+      condVersionIncrement(true)
       Some(i)
     }
   }
@@ -101,16 +108,6 @@ class InmemorySuggestionsRepo(implicit ec: ExecutionContext)
     } else {
       throw new RuntimeException("Duplicates detected: " + duplicates)
     }
-    db.synchronized {
-      val result = suggestions.map(s => {
-        val i = index
-        index += 1
-        db.put(i, s)
-        i
-      })
-      version += 1
-      (version, result)
-    }
   }
 
   /** Apply suggestion updates.
@@ -122,7 +119,54 @@ class InmemorySuggestionsRepo(implicit ec: ExecutionContext)
     tree: Seq[Api.SuggestionUpdate]
   ): Future[Seq[QueryResult[Api.SuggestionUpdate]]] = Future {
     db.synchronized {
-      ???
+      val result = tree.map(update =>
+        update.action match {
+          case SuggestionAction.Add() =>
+            // TODO: find duplicates
+            val i = index
+            index += 1
+            db.put(i, update.suggestion)
+            condVersionIncrement(true)
+            QueryResult(Seq(i), update)
+          case SuggestionAction.Modify(
+                externalId,
+                arguments,
+                returnType,
+                documentation,
+                scope,
+                reexport
+              ) =>
+            if (
+              externalId.nonEmpty || arguments.nonEmpty || returnType.nonEmpty || documentation.nonEmpty || scope.nonEmpty || reexport.nonEmpty
+            ) {
+              val suggestionInDb = db.find(_._2 == update.suggestion)
+              suggestionInDb match {
+                case None =>
+                  QueryResult(Seq(), update)
+                case Some((suggestionIdx, suggestionInDb)) =>
+                  val updatedSuggestion = suggestionInDb.update(
+                    externalId,
+                    returnType,
+                    documentation,
+                    scope
+                  )
+                  db.put(suggestionIdx, updatedSuggestion)
+                  condVersionIncrement(true)
+                  QueryResult(Seq(suggestionIdx), update)
+              }
+            } else {
+              QueryResult(Seq(), update)
+            }
+          case SuggestionAction.Remove() =>
+            val sugestionKey = db.find(_._2 == update.suggestion).map(_._1)
+            sugestionKey.foreach { key =>
+              db.remove(key)
+              condVersionIncrement(true)
+            }
+            QueryResult(sugestionKey.toSeq, update)
+        }
+      )
+      result
     }
   }
 
@@ -133,7 +177,26 @@ class InmemorySuggestionsRepo(implicit ec: ExecutionContext)
     */
   override def applyActions(
     actions: Seq[Api.SuggestionsDatabaseAction]
-  ): Future[Seq[QueryResult[Api.SuggestionsDatabaseAction]]] = ???
+  ): Future[Seq[QueryResult[Api.SuggestionsDatabaseAction]]] = Future {
+    db.synchronized {
+      val result = actions.map {
+        case act @ SuggestionsDatabaseAction.Clean(module) =>
+          val suggestions = db.filter {
+            case (_, mod: Suggestion.Module) if module == mod.module => true
+            case _                                                   => false
+          }
+          suggestions.foreach { case (id, _) =>
+            db.remove(id)
+          }
+          condVersionIncrement(suggestions.nonEmpty)
+          QueryResult(
+            suggestions.map(_._1),
+            act.asInstanceOf[SuggestionsDatabaseAction]
+          )
+      }
+      result
+    }
+  }
 
   /** Get the suggestions related to the export updates.
     *
@@ -142,14 +205,39 @@ class InmemorySuggestionsRepo(implicit ec: ExecutionContext)
     */
   override def getExportedSymbols(
     actions: Seq[Api.ExportsUpdate]
-  ): Future[Seq[QueryResult[Api.ExportsUpdate]]] = ???
+  ): Future[Seq[QueryResult[Api.ExportsUpdate]]] = Future {
+    db.synchronized {
+      actions.map { action =>
+        val result = action.exports.symbols.toSeq.flatMap { symbol =>
+          db.collectFirst {
+            case (id, suggestion)
+                if suggestion.module == symbol.module &&
+                suggestion.name == symbol.name && Suggestion.Kind(
+                  suggestion
+                ) == symbol.kind =>
+              id
+          }
+        }
+        QueryResult(result, action)
+      }
+    }
+  }
 
   /** Remove the suggestion.
     *
     * @param suggestion the suggestion to remove
     * @return the id of removed suggestion
     */
-  override def remove(suggestion: Suggestion): Future[Option[Long]] = ???
+  override def remove(suggestion: Suggestion): Future[Option[Long]] = Future {
+    db.synchronized {
+      val suggestionKey = db.find(_._2 == suggestion).map(_._1)
+      suggestionKey.foreach { id =>
+        db.remove(id)
+        condVersionIncrement(true)
+      }
+      suggestionKey
+    }
+  }
 
   /** Remove suggestions by module names.
     *
@@ -157,7 +245,21 @@ class InmemorySuggestionsRepo(implicit ec: ExecutionContext)
     * @return the current database version and a list of removed suggestion ids
     */
   override def removeModules(modules: Seq[String]): Future[(Long, Seq[Long])] =
-    ???
+    Future {
+      db.synchronized {
+        val suggestions = db.filter {
+          case (_, mod: Suggestion.Module) if modules.contains(mod.module) =>
+            true
+          case _ => false
+        }
+        suggestions.foreach { case (id, _) =>
+          db.remove(id)
+
+        }
+        condVersionIncrement(suggestions.nonEmpty)
+        (version, suggestions.map(_._1).toSeq)
+      }
+    }
 
   /** Update the suggestion.
     *
@@ -173,7 +275,18 @@ class InmemorySuggestionsRepo(implicit ec: ExecutionContext)
     returnType: Option[String],
     documentation: Option[Option[String]],
     scope: Option[Suggestion.Scope]
-  ): Future[(Long, Option[Long])] = ???
+  ): Future[(Long, Option[Long])] = Future {
+    db.synchronized {
+      val suggestionEntry = db.find(_._2 == suggestion)
+      suggestionEntry.foreach { case (idx, oldSuggestion) =>
+        val updated =
+          oldSuggestion.update(externalId, returnType, documentation, scope)
+        db.put(idx, updated)
+      }
+      condVersionIncrement(suggestionEntry.nonEmpty)
+      (version, suggestionEntry.map(_._1))
+    }
+  }
 
   /** Update a list of suggestions by external id.
     *

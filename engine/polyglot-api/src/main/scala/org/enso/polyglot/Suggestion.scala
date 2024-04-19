@@ -57,6 +57,13 @@ sealed trait Suggestion extends ToLogString {
   def withReexports(reexports: Set[String]): Suggestion
 
   def withReturnType(returnType: String): Suggestion
+
+  def update(
+    optExternalId: Option[Option[Suggestion.ExternalID]],
+    optReturnType: Option[String],
+    optDocumentation: Option[Option[String]],
+    optScope: Option[Suggestion.Scope]
+  ): Suggestion
 }
 
 object Suggestion {
@@ -257,6 +264,17 @@ object Suggestion {
       s"Module(module=$module,name=$name,documentation=" +
       (if (shouldMask) documentation.map(_ => STUB) else documentation) +
       s",reexports=$reexports)"
+
+    override def update(
+      optExternalId: Option[Option[ExternalID]],
+      optReturnType: Option[String],
+      optDocumentation: Option[Option[String]],
+      optScope: Option[Scope]
+    ): Suggestion = {
+      optDocumentation
+        .map(documentation => this.copy(documentation = documentation))
+        .getOrElse(this)
+    }
   }
 
   /** A type definition.
@@ -301,6 +319,24 @@ object Suggestion {
 
     override def withReturnType(returnType: String): Suggestion =
       copy(returnType = returnType)
+
+    override def update(
+      optExternalId: Option[Option[ExternalID]],
+      optReturnType: Option[String],
+      optDocumentation: Option[Option[String]],
+      optScope: Option[Scope]
+    ): Suggestion = {
+      val v1 = optExternalId
+        .map(externalID => this.copy(externalId = externalID))
+        .getOrElse(this)
+      val v2 = optReturnType
+        .map(returnType => v1.copy(returnType = returnType))
+        .getOrElse(v1)
+      optDocumentation
+        .map(documentation => v2.copy(documentation = documentation))
+        .getOrElse(v2)
+    }
+
   }
 
   /** A value constructor.
@@ -344,6 +380,23 @@ object Suggestion {
 
     override def withReturnType(returnType: String): Suggestion =
       copy(returnType = returnType)
+
+    override def update(
+      optExternalId: Option[Option[ExternalID]],
+      optReturnType: Option[String],
+      optDocumentation: Option[Option[String]],
+      optScope: Option[Scope]
+    ): Suggestion = {
+      val v1 = optExternalId
+        .map(externalID => this.copy(externalId = externalID))
+        .getOrElse(this)
+      val v2 = optReturnType
+        .map(returnType => v1.copy(returnType = returnType))
+        .getOrElse(v1)
+      optDocumentation
+        .map(documentation => v2.copy(documentation = documentation))
+        .getOrElse(v2)
+    }
   }
 
   /** Base trait for method suggestions. */
@@ -419,6 +472,23 @@ object Suggestion {
 
     override def withReturnType(returnType: String): Suggestion =
       copy(returnType = returnType)
+
+    override def update(
+      optExternalId: Option[Option[ExternalID]],
+      optReturnType: Option[String],
+      optDocumentation: Option[Option[String]],
+      optScope: Option[Scope]
+    ): Suggestion = {
+      val v1 = optExternalId
+        .map(externalID => this.copy(externalId = externalID))
+        .getOrElse(this)
+      val v2 = optReturnType
+        .map(returnType => v1.copy(returnType = returnType))
+        .getOrElse(v1)
+      optDocumentation
+        .map(documentation => v2.copy(documentation = documentation))
+        .getOrElse(v2)
+    }
   }
 
   /** A function defined on a type or a module.
@@ -467,6 +537,23 @@ object Suggestion {
       s"documentation=" + (if (shouldMask) documentation.map(_ => STUB)
                            else documentation) +
       s",reexports=$reexports)"
+
+    override def update(
+      optExternalId: Option[Option[ExternalID]],
+      optReturnType: Option[String],
+      optDocumentation: Option[Option[String]],
+      optScope: Option[Scope]
+    ): Suggestion = {
+      val v1 = optExternalId
+        .map(externalID => this.copy(externalId = externalID))
+        .getOrElse(this)
+      val v2 = optReturnType
+        .map(returnType => v1.copy(returnType = returnType))
+        .getOrElse(v1)
+      optDocumentation
+        .map(documentation => v2.copy(documentation = documentation))
+        .getOrElse(v2)
+    }
   }
 
   /** A conversion function.
@@ -519,6 +606,23 @@ object Suggestion {
       s"documentation=" + (if (shouldMask) documentation.map(_ => STUB)
                            else documentation) +
       s",reexports=$reexports)"
+
+    override def update(
+      optExternalId: Option[Option[ExternalID]],
+      optReturnType: Option[String],
+      optDocumentation: Option[Option[String]],
+      optScope: Option[Scope]
+    ): Suggestion = {
+      val v1 = optExternalId
+        .map(externalID => this.copy(externalId = externalID))
+        .getOrElse(this)
+      val v2 = optReturnType
+        .map(returnType => v1.copy(returnType = returnType))
+        .getOrElse(v1)
+      optDocumentation
+        .map(documentation => v2.copy(documentation = documentation))
+        .getOrElse(v2)
+    }
   }
 
   /** A local function definition.
@@ -560,6 +664,24 @@ object Suggestion {
       s"scope=$scope," +
       s"documentation=$documentation" +
       ")"
+
+    override def update(
+      optExternalId: Option[Option[ExternalID]],
+      optReturnType: Option[String],
+      optDocumentation: Option[Option[String]],
+      optScope: Option[Scope]
+    ): Suggestion = {
+      val v1 = optExternalId
+        .map(externalID => this.copy(externalId = externalID))
+        .getOrElse(this)
+      val v2 = optReturnType
+        .map(returnType => v1.copy(returnType = returnType))
+        .getOrElse(v1)
+      val v3 = optDocumentation
+        .map(documentation => v2.copy(documentation = documentation))
+        .getOrElse(v2)
+      optScope.map(scope => v3.copy(scope = scope)).getOrElse(v3)
+    }
   }
 
   /** A local value.
@@ -597,5 +719,23 @@ object Suggestion {
       s"scope=$scope," +
       s"documentation=$documentation" +
       s")"
+
+    override def update(
+      optExternalId: Option[Option[ExternalID]],
+      optReturnType: Option[String],
+      optDocumentation: Option[Option[String]],
+      optScope: Option[Scope]
+    ): Suggestion = {
+      val v1 = optExternalId
+        .map(externalID => this.copy(externalId = externalID))
+        .getOrElse(this)
+      val v2 = optReturnType
+        .map(returnType => v1.copy(returnType = returnType))
+        .getOrElse(v1)
+      val v3 = optDocumentation
+        .map(documentation => v2.copy(documentation = documentation))
+        .getOrElse(v2)
+      optScope.map(scope => v3.copy(scope = scope)).getOrElse(v3)
+    }
   }
 }

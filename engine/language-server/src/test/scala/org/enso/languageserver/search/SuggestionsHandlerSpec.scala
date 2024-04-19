@@ -17,8 +17,8 @@ import org.enso.logger.ReportLogsOnFailure
 import org.enso.polyglot.data.{Tree, TypeGraph}
 import org.enso.polyglot.runtime.Runtime.Api
 import org.enso.polyglot.{ExportedSymbol, ModuleExports, Suggestion}
-import org.enso.searcher.sql.{SqlDatabase, SqlSuggestionsRepo}
 import org.enso.searcher.SuggestionsRepo
+import org.enso.searcher.memory.InmemorySuggestionsRepo
 import org.enso.testkit.RetrySpec
 import org.scalatest.BeforeAndAfterAll
 import org.scalatest.matchers.should.Matchers
@@ -333,7 +333,7 @@ class SuggestionsHandlerSpec
           DeliverToJsonController(
             clientId,
             SearchProtocol.SuggestionsDatabaseUpdateNotification(
-              (updates1.size + updates2.size).toLong - 1,
+              (updates1.size + updates2.size).toLong,
               updates2
             )
           )
@@ -743,7 +743,7 @@ class SuggestionsHandlerSpec
         expectMsg(SearchProtocol.InvalidateSuggestionsDatabaseResult)
     }
 
-/*    "search entries by empty search query" taggedAs Retry in withDb {
+    /*    "search entries by empty search query" taggedAs Retry in withDb {
       (config, repo, _, _, handler) =>
         val (_, inserted) =
           Await.result(repo.insertAll(Suggestions.all), Timeout)
@@ -1019,8 +1019,9 @@ class SuggestionsHandlerSpec
         testContentRoot.toFile
       )
     )
-    val sqlDatabase     = SqlDatabase(config.directories.suggestionsDatabaseFile)
-    val suggestionsRepo = new SqlSuggestionsRepo(sqlDatabase)
+    //val sqlDatabase     = SqlDatabase(config.directories.suggestionsDatabaseFile)
+    val suggestionsRepo =
+      new InmemorySuggestionsRepo() //new SqlSuggestionsRepo(sqlDatabase)
 
     val suggestionsInit = suggestionsRepo.init
     suggestionsInit.onComplete {
@@ -1055,11 +1056,12 @@ class SuggestionsHandlerSpec
         testContentRoot.toFile
       )
     )
-    val router      = TestProbe("session-router")
-    val connector   = TestProbe("runtime-connector")
-    val sqlDatabase = SqlDatabase.inmem("testdb")
-    sqlDatabase.open()
-    val suggestionsRepo = new SqlSuggestionsRepo(sqlDatabase)
+    val router    = TestProbe("session-router")
+    val connector = TestProbe("runtime-connector")
+    //val sqlDatabase = SqlDatabase.inmem("testdb")
+    //sqlDatabase.open()
+    val suggestionsRepo =
+      new InmemorySuggestionsRepo() //new SqlSuggestionsRepo(sqlDatabase)
     val handler = newInitializedSuggestionsHandler(
       config,
       router,
@@ -1070,7 +1072,7 @@ class SuggestionsHandlerSpec
     try test(config, suggestionsRepo, router, connector, handler)
     finally {
       system.stop(handler)
-      sqlDatabase.close()
+      //sqlDatabase.close()
     }
   }
 
