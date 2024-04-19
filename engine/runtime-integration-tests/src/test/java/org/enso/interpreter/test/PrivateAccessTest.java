@@ -24,65 +24,13 @@ public class PrivateAccessTest extends TestBase {
   }
 
   @Test
-  public void privateConstructorCannotBeAccessedFromDifferentProject() {
-    try {
-      var res = evalTestProject(defaultContextBuilder(), "Test_Private_Access_2");
-      fail("Should throw PolyglotException");
-    } catch (PolyglotException e) {
-      // TODO: check the exception message
-      System.out.println("PolyglotException: " + e);
-    }
-  }
-
-  /**
-   * Tests that the private ctor can be accessed from the same project via a public getter method.
-   */
-  @Test
-  public void privateCtorCanBeAccessedFromSameProject() {
-    var res = evalTestProject(defaultContextBuilder(), "Test_Private_Access_3");
-    assertThat(res.isNumber(), is(true));
-    assertThat(res.asInt(), is(42));
-  }
-
-  /** Tests that the private field `f1` cannot be accessed from a different project. */
-  @Test
-  public void privateGetterCannotBeAccessedFromDifferentProject1() {
-    try {
-      var res = evalTestProject(defaultContextBuilder(), "Test_Private_Access_4");
-      fail("Should throw PolyglotException");
-    } catch (PolyglotException e) {
-      // TODO: check the exception message
-      System.out.println("PolyglotException: " + e);
-    }
-  }
-
-  /** Tests that the private field `f2` cannot be accessed from a different project. */
-  @Test
-  public void privateGetterCannotBeAccessedFromDifferentProject2() {
-    try {
-      var res = evalTestProject(defaultContextBuilder(), "Test_Private_Access_5");
-      fail("Should throw PolyglotException");
-    } catch (PolyglotException e) {
-      // TODO: check the exception message
-      System.out.println("PolyglotException: " + e);
-    }
-  }
-
-  /**
-   * Tests that the private constructor can be passed to a different project as a lambda method, and
-   * ca be called there, in the different project.
-   */
-  @Test
-  public void privateCtorCanBeCalledAsCallback() {
-    var res = evalTestProject(defaultContextBuilder(), "Test_Private_Access_6");
-    assertThat(res.isNumber(), is(true));
-    assertThat(res.asInt(), is(42));
-  }
-
-  @Test
-  public void privateFieldCanBeAccessedViaPublicWrapper() {
-    var res = evalTestProject(defaultContextBuilder(), "Test_Private_Access_7");
-    assertThat(res.isNumber(), is(true));
-    assertThat(res.asInt(), is(42));
+  public void privateConstructorIsNotExposedToPolyglot() {
+    var src = """
+        type My_Type
+            private Cons data
+        main = My_Type.Cons 42
+        """;
+    var obj = TestBase.evalModule(ctx, src);
+    assertThat(obj.isNumber(), is(false));
   }
 }

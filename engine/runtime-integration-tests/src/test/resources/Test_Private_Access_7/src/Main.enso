@@ -1,7 +1,0 @@
-from local.Test_Private_Access_1 import My_Type
-
-main =
-    obj = My_Type.create 42
-    # field_accessor_fn accesses the private field inside the Test_Private_Access_1 project.
-    # This is valid.
-    My_Type.field_accessor_fn obj

@@ -1,0 +1,72 @@
+
+from Standard.Base import all
+import Standard.Base.Errors.Common.Private_Access
+from Standard.Test import all
+from enso_dev.Helpers import Priv_Type
+
+polyglot java import org.enso.base_test_helpers.CallbackHelper
+
+
+add_specs spec_builder =
+    spec_builder.group "Private constructors" group_builder->
+        group_builder.specify "cannot directly call private constructor" <|
+            expect_access_error <| Priv_Type.Cons 42
+
+        group_builder.specify "can get reference to private constructor, but cannot call it" <|
+            cons_fn data = Priv_Type.Cons data
+            expect_access_error <| cons_fn 42
+
+        group_builder.specify "can call private constructor via public factory method" <|
+            obj = Priv_Type.create 42
+            obj.is_nothing . should_be_false
+
+        group_builder.specify "cannot get private field" <|
+            obj = Priv_Type.create 42
+            expect_access_error <| obj.data
+
+        group_builder.specify "can get private field via public accessor" <|
+            obj = Priv_Type.create 42
+            obj.get_data . should_equal 42
+
+        group_builder.specify "cannot get private field from JS" <|
+            obj = Priv_Type.create 42
+            expect_access_error <| js_access_field obj
+
+        group_builder.specify "cannot call private constructor from JS" pending="TODO" <|
+            cons_fn data = Priv_Type.Cons data
+            expect_access_error <| js_create_obj cons_fn
+
+        group_builder.specify "can call private constructor via public factory method from JS" <|
+            create_fn x = Priv_Type.create x
+            obj = js_create_obj create_fn
+            obj.is_nothing . should_be_false
+
+        group_builder.specify "can get private field via public accessor from JS" <|
+            obj = Priv_Type.create 42
+            js_access_field_via_getter obj . should_equal 42
+
+        group_builder.specify "cannot call private constructor from Java" <|
+            cons_fn data = Priv_Type.Cons data
+            expect_access_error <| CallbackHelper.runCallbackInt cons_fn 42
+
+
+## Expect Private access error panic is thrown from the given action
+expect_access_error ~action =
+    p = Panic.catch Private_Access handler=(.payload) <| action
+    Meta.type_of p . should_be_a Private_Access
+
+
+foreign js js_access_field obj = """
+    return obj.data;
+
+foreign js js_access_field_via_getter obj = """
+    return obj.get_data();
+
+foreign js js_create_obj cons_fn = """
+    return cons_fn(42);
+
+
+main filter=Nothing =
+    suite = Test.build suite_builder->
+        add_specs suite_builder
+    suite.run_with_filter filter

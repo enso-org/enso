@@ -1,7 +1,0 @@
-from local.Test_Private_Access_1 import My_Type
-
-main =
-    # Access the constructor via a public method is fine
-    x = My_Type.create 42
-    # Access to a private getter for a private field is not fine
-    x.f1
