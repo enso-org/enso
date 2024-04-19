@@ -4,6 +4,7 @@ import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.System.Input_Stream.Input_Stream
 
 import project.Excel.Excel_Range.Excel_Range
+import project.Headers.Headers
 import project.Internal.Excel_Section.Excel_Section
 import project.Internal.Java_Problems
 import project.Table.Table
@@ -18,12 +19,12 @@ polyglot java import org.enso.table.excel.ExcelHeaders
 polyglot java import org.enso.table.read.ExcelReader
 
 ## PRIVATE
-   Convert Boolean|Infer to the correct HeaderBehavior
-make_java_headers : (Boolean | Infer) -> Any
-make_java_headers headers = case headers of
-        True -> ExcelHeaders.HeaderBehavior.USE_FIRST_ROW_AS_HEADERS
-        Infer -> ExcelHeaders.HeaderBehavior.INFER
-        False -> ExcelHeaders.HeaderBehavior.EXCEL_COLUMN_NAMES
+   Convert Headers to the correct HeaderBehavior
+make_java_headers : Headers -> Any
+make_java_headers headers:Headers = case headers of
+        Headers.Has_Headers -> ExcelHeaders.HeaderBehavior.USE_FIRST_ROW_AS_HEADERS
+        Headers.Detect_Headers -> ExcelHeaders.HeaderBehavior.INFER
+        Headers.No_Headers -> ExcelHeaders.HeaderBehavior.EXCEL_COLUMN_NAMES
 
 ## PRIVATE
    Handle and map the Java errors when reading an Excel file

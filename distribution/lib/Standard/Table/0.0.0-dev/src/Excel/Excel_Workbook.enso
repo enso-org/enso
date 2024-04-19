@@ -3,18 +3,21 @@ import Standard.Base.Errors.File_Error.File_Error
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Errors.Illegal_State.Illegal_State
 import Standard.Base.Metadata.Display
+import Standard.Base.Metadata.Widget
 import Standard.Base.Runtime.Managed_Resource.Managed_Resource
 import Standard.Base.Runtime.Ref.Ref
 import Standard.Base.System.File.Advanced.Temporary_File.Temporary_File
 import Standard.Base.System.Input_Stream.Input_Stream
 from Standard.Base.Data.Filter_Condition import sql_like_to_regex
 from Standard.Base.Metadata.Choice import Option
-from Standard.Base.Metadata.Widget import Single_Choice
+from Standard.Base.Metadata.Widget import Single_Choice, Multiple_Choice
 
 import project.Excel.Excel_Range.Excel_Range
+import project.Headers.Headers
 import project.Internal.Excel_Reader
 import project.Internal.Excel_Section.Excel_Section
 import project.Internal.Java_Problems
+import project.Match_Columns.Match_Columns
 import project.Table.Table
 
 polyglot java import java.io.File as Java_File
@@ -180,10 +183,11 @@ type Excel_Workbook
        Arguments:
        - query: sheet name, range name or address to read from the workbook.
        - alias: optionally specify a friendly alias for the query (unused).
-       - headers: whether to use the first row as headers (default is `Infer`).
+       - headers: whether to use the first row as headers (default is
+         `Detect_Headers`).
     @query (self-> Single_Choice display=Display.Always values=(self.tables.at "Name" . to_vector . map t-> Option t t.pretty))
-    query : Text -> Text -> Boolean | Infer -> Table
-    query self (query : Text) (alias : Text = "") (headers : Boolean | Infer = Infer) =
+    query : Text -> Text -> Headers -> Table
+    query self (query : Text) (alias : Text = "") (headers : Headers = Headers.Detect_Headers) =
         _ = [alias]
         self.read query headers=headers
 
@@ -194,12 +198,13 @@ type Excel_Workbook
 
        Arguments:
        - query: sheet name, range name or address to read from the workbook.
-       - headers: whether to use the first row as headers (default is `Infer`).
+       - headers: whether to use the first row as headers (default is
+         `Detect_Headers`).
        - limit: the maximum number of rows to read.
          If set to `Nothing`, all rows will be returned.
     @query (self-> Single_Choice display=Display.Always values=(self.tables.at "Name" . to_vector . map t-> Option t t.pretty))
-    read : Text | Excel_Range -> Boolean | Infer -> Integer | Nothing -> Table
-    read self (query : Text | Excel_Range) (headers : Boolean | Infer = Infer) (limit : Integer | Nothing = Nothing) =
+    read : Text | Excel_Range -> Headers -> Integer | Nothing -> Table
+    read self (query : Text | Excel_Range) (headers : Headers = Headers.Detect_Headers) (limit : Integer | Nothing = Nothing) =
         java_headers = Excel_Reader.make_java_headers headers
         java_table = Java_Problems.with_problem_aggregator Problem_Behavior.Report_Warning java_problem_aggregator->
             self.with_java_workbook java_workbook-> case query of
@@ -244,10 +249,11 @@ type Excel_Workbook
 
        Arguments:
        - name: the name of the worksheet to read.
-       - headers: whether to use the first row as headers (default is `Infer`).
+       - headers: whether to use the first row as headers (default is
+         `Detect_Headers`).
     @name (self-> Single_Choice display=Display.Always values=(self.sheet_names.map t-> Option t t.pretty))
-    sheet : Text | Integer -> Boolean | Infer -> Table
-    sheet self name:(Text | Integer) headers:(Boolean | Infer)=Infer =
+    sheet : Text | Integer -> Headers -> Table
+    sheet self name:(Text | Integer) headers:Headers=Headers.Detect_Headers =
         self.read_section (Excel_Section.Worksheet name headers 0 Nothing)
 
     ## PRIVATE
@@ -296,5 +302,27 @@ type Excel_Workbook
             resource -> resource.with connection->
                 connection.withWorkbook f
 
+    ## Reads one or more sheets into a Table.
+    @sheet_names (s-> build_sheet_selector s)
+    read_many : Vector Text -> Headers -> Return_As -> Table
+    read_many self sheet_names:Vector=self.sheet_names (headers : Headers = Headers.Detect_Headers) (return:Return_As=Return_As.Merged_Table) =
+        tables = sheet_names.map t-> self.read t headers
+        case return of
+            Return_As.Table_Of_Tables -> Table.new [["SheetName", sheet_names], ["Table", tables]]
+            Return_As.Merged_Table match ->
+                with_names = tables.zip sheet_names tbl->name-> tbl.set name "SheetName" . reorder_columns ["SheetName"]
+                Table.from_union with_names match keep_unmatched_columns=True
+
 ## PRIVATE
 close_connection c = c.close
+
+## PRIVATE
+build_sheet_selector : Excel_Workbook -> Display -> Widget
+build_sheet_selector workbook:Excel_Workbook display:Display=Display.Always =
+    names = workbook.sheet_names.map n-> Option n n.pretty
+    Multiple_Choice display=display values=names
+
+type Return_As
+    Table_Of_Tables
+
+    Merged_Table match:Match_Columns=Match_Columns.By_Name

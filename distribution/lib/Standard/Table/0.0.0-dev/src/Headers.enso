@@ -1,0 +1,19 @@
+from Standard.Base import all
+
+type Headers
+    ## Attempt to detect if the data has headers or not.
+    Detect_Headers
+
+    ## The first row of the data is the column names.
+    Has_Headers
+
+    ## Treat the first row of data as a normal row.
+    No_Headers
+
+## PRIVATE
+Headers.from (that:Infer) =
+    _ = that
+    Headers.Detect_Headers
+
+## PRIVATE
+Headers.from (that:Boolean) = if that then Headers.Has_Headers else Headers.No_Headers
