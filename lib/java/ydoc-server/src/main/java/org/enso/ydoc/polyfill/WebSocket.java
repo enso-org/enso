@@ -159,11 +159,13 @@ final class WebSocket implements ProxyExecutable, Polyfill {
 
       case WEB_SOCKET_SEND_BINARY -> {
         var connection = arguments[1].as(WebSocketConnection.class);
-        var data = arguments[2].as(ByteSequence.class);
+        var byteSequence = arguments[2].as(ByteSequence.class);
+        var byteOffset = arguments[3].asInt();
+        var byteLength = arguments[4].asInt();
 
-        var bufferData = BufferData.create(data.toByteArray());
+        var byteArray = byteSequence.subSequence(byteOffset, byteOffset + byteLength).toByteArray();
 
-        yield connection.getSession().send(bufferData, true);
+        yield connection.getSession().send(BufferData.create(byteArray), true);
       }
 
       case WEB_SOCKET_TERMINATE -> {
@@ -193,16 +195,24 @@ final class WebSocket implements ProxyExecutable, Polyfill {
 
       case WEB_SOCKET_PING -> {
         var connection = arguments[1].as(WebSocketConnection.class);
-        var data = arguments[2].as(ByteSequence.class);
+        var byteSequence = arguments[2].as(ByteSequence.class);
+        var byteOffset = arguments[3].asInt();
+        var byteLength = arguments[4].asInt();
 
-        yield connection.getSession().ping(BufferData.create(data.toByteArray()));
+        var byteArray = byteSequence.subSequence(byteOffset, byteOffset + byteLength).toByteArray();
+
+        yield connection.getSession().ping(BufferData.create(byteArray));
       }
 
       case WEB_SOCKET_PONG -> {
         var connection = arguments[1].as(WebSocketConnection.class);
-        var data = arguments[2].as(ByteSequence.class);
+        var byteSequence = arguments[2].as(ByteSequence.class);
+        var byteOffset = arguments[3].asInt();
+        var byteLength = arguments[4].asInt();
 
-        yield connection.getSession().pong(BufferData.create(data.toByteArray()));
+        var byteArray = byteSequence.subSequence(byteOffset, byteOffset + byteLength).toByteArray();
+
+        yield connection.getSession().pong(BufferData.create(byteArray));
       }
 
       default -> throw new IllegalStateException(command);

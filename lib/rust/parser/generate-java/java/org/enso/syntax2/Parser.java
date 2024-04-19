@@ -96,15 +96,11 @@ public final class Parser implements AutoCloseable {
     return parseTreeLazy(state, inputBuf);
   }
 
-  public ByteBuffer parseInput(CharSequence input) {
+  public Tree parse(CharSequence input) {
     byte[] inputBytes = input.toString().getBytes(StandardCharsets.UTF_8);
     ByteBuffer inputBuf = ByteBuffer.allocateDirect(inputBytes.length);
     inputBuf.put(inputBytes);
-    return parseTree(state, inputBuf);
-  }
-
-  public Tree parse(CharSequence input) {
-    var serializedTree = parseInput(input);
+    var serializedTree = parseTree(state, inputBuf);
     var base = getLastInputBase(state);
     var metadata = getMetadata(state);
     serializedTree.order(ByteOrder.LITTLE_ENDIAN);
