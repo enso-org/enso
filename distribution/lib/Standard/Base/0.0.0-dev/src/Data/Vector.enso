@@ -29,6 +29,7 @@ from project.Data.Filter_Condition import unify_condition_or_predicate, unify_co
 from project.Data.Index_Sub_Range import Index_Sub_Range
 from project.Data.Ordering import all
 from project.Data.Range.Extensions import all
+from project.Runtime import assert
 
 polyglot java import java.lang.IndexOutOfBoundsException
 
@@ -187,7 +188,7 @@ type Vector a
 
        `.build` creates a new `Builder`, passes it to the provided function,
        which can add elements using the `Builder`'s `.append` method. When the
-       function is done, `.build` then closes the `Builder and returns the
+       function is done, `.build` then closes the `Builder` and returns the
        resulting `Vector`.
 
        The provided function should call `.append` to add new elements to the
@@ -199,8 +200,8 @@ type Vector a
        memory. It is the recommended data structure for most applications.
 
        Arguments:
-       - function: a function taking a `Builder` and using it to add elements.
-       - initial_capacity: Initial capacity of the Vector.Builder; this is for
+       - function: a function taking a `Builder` and adding elements to it.
+       - initial_capacity: Initial capacity of the `Builder`; this is for
          pre-allocation and does not affect the size of the resulting `Vector`.
 
        ! Error Conditions
@@ -218,9 +219,66 @@ type Vector a
              # => [1, 2, 3]
     build : (Builder -> Any) -> Integer -> Vector
     build (function : Builder -> Any) (initial_capacity : Integer = 10) -> Vector =
-        builder = Builder.new initial_capacity
-        result = function builder
-        result.if_not_error builder.to_vector
+        builders = Vector.build_multiple 1 function initial_capacity
+        assert (builders.length == 1)
+        results = function (builders.at 0)
+        results.if_not_error <|
+            assert (results.length == 1)
+            result.at 0 . to_vector
+
+    ## PRIVATE
+       ADVANCED
+       Creates new `Vector`s by passing an array of `Builder`s to the provided
+       function.
+
+       A vector `Builder` is a mutable data structure, that allows for gathering
+       a number of elements and then converting them into a vector. This is
+       particularly useful when the number of elements is not known upfront.
+
+       `.build_multiple` creates an array of new `Builder`s, passes it to the
+       provided function, which can add elements to the individual `Builder`s
+       using their `.append` methods. When the function is done,
+       `.build_multiple` then closes the `Builder`s and returns an array of the
+       resulting `Vector`s.
+
+       The provided function should call `.append` to add new elements to the
+       `Builder`s. The return value of the provided function is not used, unless
+       it is a dataflow error, in which case the `Vector`s are not built, and
+       the dataflow error is propagted instead.
+
+       A vector allows to store an arbitrary number of elements in linear
+       memory. It is the recommended data structure for most applications.
+
+       Arguments:
+       - function: a function taking an array of `Builder`s and adding elements
+         to them.
+       - initial_capacity: Initial capacity of the `Builder`s; this is for
+         pre-allocation and does not affect the size of the resulting `Vector`s.
+
+       ! Error Conditions
+
+         - If the provided function throws a dataflow error, the `Vector`s are
+         not built, and the error is propagted instead.
+
+       > Example
+         Construct two vectors using builders that contains the items 1 to 6.
+
+             Vector.build_multiple 2 builders->
+                 builder0 = builders.at 0
+                 builder0.append 0
+                 builder0.append 1
+                 builder0.append 2
+                 builder1 = builders.at 10
+                 builder1.append 3
+                 builder1.append 4
+                 builder1.append 5
+             # => [[0, 1, 2], [3, 4, 5]]
+    build_multiple : Integer -> (Builder -> Any) -> Integer -> Vector
+    build_multiple (count : Integer) (function : Builder -> Any) (initial_capacity : Integer = 10) -> Vector =
+        if count < 0 then Error.throw (Illegal_Argument.Error "count must be non-negative: "+count.to_text) else
+            builders = Range.new 0 count+1 . map (_-> Builder.new initial_capacity)
+            result = function builders
+            result.if_not_error (builder.map .to_vector)
 
     ## PRIVATE
        ADVANCED
