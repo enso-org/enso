@@ -276,18 +276,29 @@ public final class Type implements EnsoObject {
   @ExportMessage
   @CompilerDirectives.TruffleBoundary
   EnsoObject getMembers(boolean includeInternal) {
-    return ArrayLikeHelpers.wrapStrings(constructors.keySet().toArray(String[]::new));
+    if (hasProjectPrivateConstructors) {
+      return ArrayLikeHelpers.empty();
+    } else {
+      return ArrayLikeHelpers.wrapStrings(constructors.keySet().toArray(String[]::new));
+    }
   }
 
   @ExportMessage
   @CompilerDirectives.TruffleBoundary
   boolean isMemberReadable(String member) {
-    return constructors.containsKey(member);
+    if (hasProjectPrivateConstructors) {
+      return false;
+    } else {
+      return constructors.containsKey(member);
+    }
   }
 
   @ExportMessage
   @CompilerDirectives.TruffleBoundary
   Object readMember(String member) throws UnknownIdentifierException {
+    if (hasProjectPrivateConstructors) {
+      throw UnknownIdentifierException.create(member);
+    }
     var result = constructors.get(member);
     if (result == null) {
       throw UnknownIdentifierException.create(member);

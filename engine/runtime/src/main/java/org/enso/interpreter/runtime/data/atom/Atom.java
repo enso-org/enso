@@ -137,6 +137,9 @@ public abstract class Atom implements EnsoObject {
   @ExportMessage
   @CompilerDirectives.TruffleBoundary
   EnsoObject getMembers(boolean includeInternal) {
+    if (constructor.isProjectPrivate()) {
+      return ArrayLikeHelpers.empty();
+    }
     Set<String> members =
         constructor.getDefinitionScope().getMethodNamesForType(constructor.getType());
     Set<String> allMembers = new HashSet<>();
@@ -155,6 +158,9 @@ public abstract class Atom implements EnsoObject {
   @ExportMessage
   @CompilerDirectives.TruffleBoundary
   final boolean isMemberInvocable(String member) {
+    if (constructor.isProjectPrivate()) {
+      return false;
+    }
     Set<String> members =
         constructor.getDefinitionScope().getMethodNamesForType(constructor.getType());
     if (members != null && members.contains(member)) {
@@ -168,6 +174,9 @@ public abstract class Atom implements EnsoObject {
   @ExportMessage
   @ExplodeLoop
   final boolean isMemberReadable(String member) {
+    if (constructor.isProjectPrivate()) {
+      return false;
+    }
     for (int i = 0; i < constructor.getArity(); i++) {
       if (member.equals(constructor.getFields()[i].getName())) {
         return true;
@@ -180,6 +189,9 @@ public abstract class Atom implements EnsoObject {
   @ExplodeLoop
   final Object readMember(String member, @CachedLibrary(limit = "3") StructsLibrary structs)
       throws UnknownIdentifierException {
+    if (constructor.isProjectPrivate()) {
+      throw UnknownIdentifierException.create(member);
+    }
     for (int i = 0; i < constructor.getArity(); i++) {
       if (member.equals(constructor.getFields()[i].getName())) {
         return structs.getField(this, i);
