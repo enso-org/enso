@@ -5,7 +5,15 @@ import org.enso.compiler.context.{InlineContext, ModuleContext}
 import org.enso.compiler.core.ir.Expression
 import org.enso.compiler.core.ir.Module
 import org.enso.compiler.pass.IRPass
-import org.enso.compiler.pass.analyse.{AliasAnalysis, AmbiguousImportsAnalysis, BindingAnalysis, ExportSymbolAnalysis, ImportSymbolAnalysis, PrivateConstructorAnalysis, PrivateModuleAnalysis}
+import org.enso.compiler.pass.analyse.{
+  AliasAnalysis,
+  AmbiguousImportsAnalysis,
+  BindingAnalysis,
+  ExportSymbolAnalysis,
+  ImportSymbolAnalysis,
+  PrivateConstructorAnalysis,
+  PrivateModuleAnalysis
+}
 import org.enso.compiler.pass.desugar._
 import org.enso.compiler.pass.lint.{ModuleNameConflicts, ShadowedPatternFields}
 import org.enso.compiler.pass.optimise.UnreachableMatchBranches

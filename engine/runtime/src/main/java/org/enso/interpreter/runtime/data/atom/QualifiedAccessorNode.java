@@ -22,7 +22,12 @@ final class QualifiedAccessorNode extends EnsoRootNode {
    */
   QualifiedAccessorNode(
       EnsoLanguage language, AtomConstructor atomConstructor, ModuleScope moduleScope) {
-    super(language, LocalScope.root(), moduleScope, atomConstructor.getQualifiedName().toString(), null);
+    super(
+        language,
+        LocalScope.root(),
+        moduleScope,
+        atomConstructor.getQualifiedName().toString(),
+        null);
     this.atomConstructor = atomConstructor;
   }
 
