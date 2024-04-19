@@ -495,8 +495,8 @@ type File
     is_directory : Boolean
     is_directory self = @Builtin_Method "File.is_directory"
 
-    ## ICON folder_add
-       GROUP Output
+    ## GROUP Output
+       ICON folder_add
        Creates the directory represented by this file if it did not exist.
 
        It also creates parent directories if they did not exist.

@@ -76,8 +76,8 @@ type S3_File
             content_length = translate_file_errors self <| S3.raw_head self.s3_path.bucket self.s3_path.key self.credentials . contentLength
             if content_length.is_nothing then Error.throw (S3_Error.Error "ContentLength header is missing." self.uri) else content_length
 
-    ## ICON folder_add
-       GROUP Output
+    ## GROUP Output
+       ICON folder_add
        Creates the directory represented by this file if it did not exist.
 
        It also creates parent directories if they did not exist.
