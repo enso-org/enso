@@ -35,11 +35,14 @@ final class Encoding implements ProxyExecutable, Polyfill {
     return switch (command) {
       case TEXT_DECODER_DECODE -> {
         var encoding = arguments[1].asString();
-        var data = arguments[2].as(ByteSequence.class);
+        var byteSequence = arguments[2].as(ByteSequence.class);
+        var byteOffset = arguments[3].asInt();
+        var byteLength = arguments[4].asInt();
 
         var charset = encoding == null ? StandardCharsets.UTF_8 : Charset.forName(encoding);
+        var byteArray = byteSequence.subSequence(byteOffset, byteOffset + byteLength).toByteArray();
 
-        yield charset.decode(ByteBuffer.wrap(data.toByteArray())).toString();
+        yield charset.decode(ByteBuffer.wrap(byteArray)).toString();
       }
 
       default -> throw new IllegalStateException(command);
