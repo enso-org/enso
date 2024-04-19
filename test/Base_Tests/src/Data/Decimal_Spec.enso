@@ -763,6 +763,107 @@ add_specs suite_builder =
             Decimal.new "1234.5678E-50" . round 53 . should_equal (Decimal.new "1234.568E-50")
             Decimal.new "2.5" . round use_bankers=True . should_equal 2
 
+    suite_builder.group "floor, ceil, truncate" group_builder->
+        group_builder.specify "should calculate floor correctly" <|
+            Decimal.new "0" . floor . should_equal 0
+            Decimal.new "1" . floor . should_equal 1
+            Decimal.new "1.3" . floor . should_equal 1
+            Decimal.new "1.5" . floor . should_equal 1
+            Decimal.new "1.7" . floor . should_equal 1
+            Decimal.new "-1" . floor . should_equal -1
+            Decimal.new "-1.3" . floor . should_equal -2
+            Decimal.new "-1.5" . floor . should_equal -2
+            Decimal.new "-1.7" . floor . should_equal -2
+
+            Decimal.new "11.3" . floor . should_equal 11
+            Decimal.new "111.3" . floor . should_equal 111
+            Decimal.new "2111.3" . floor . should_equal 2111
+            Decimal.new "11.34" . floor . should_equal 11
+            Decimal.new "111.34" . floor . should_equal 111
+            Decimal.new "2111.34" . floor . should_equal 2111
+
+            (Decimal.new "1E100" + Decimal.new "3") . floor . should_equal (Decimal.new "1E100" + Decimal.new "3")
+            (Decimal.new "1E100" + Decimal.new "3.3") . floor . should_equal (Decimal.new "1E100" + Decimal.new "3")
+            (Decimal.new "1E100" + Decimal.new "3.5") . floor . should_equal (Decimal.new "1E100" + Decimal.new "3")
+            (Decimal.new "1E100" + Decimal.new "3.7") . floor . should_equal (Decimal.new "1E100" + Decimal.new "3")
+            (Decimal.new "-1E100" + Decimal.new "-3") . floor . should_equal (Decimal.new "-1E100" + Decimal.new "-3")
+            (Decimal.new "-1E100" + Decimal.new "-3.3") . floor . should_equal (Decimal.new "-1E100" + Decimal.new "-4")
+            (Decimal.new "-1E100" + Decimal.new "-3.5") . floor . should_equal (Decimal.new "-1E100" + Decimal.new "-4")
+            (Decimal.new "-1E100" + Decimal.new "-3.7") . floor . should_equal (Decimal.new "-1E100" + Decimal.new "-4")
+
+        group_builder.specify "should calculate ceil correctly" <|
+            Decimal.new "0" . ceil . should_equal 0
+            Decimal.new "1" . ceil . should_equal 1
+            Decimal.new "1.3" . ceil . should_equal 2
+            Decimal.new "1.5" . ceil . should_equal 2
+            Decimal.new "1.7" . ceil . should_equal 2
+            Decimal.new "-1" . ceil . should_equal -1
+            Decimal.new "-1.3" . ceil . should_equal -1
+            Decimal.new "-1.5" . ceil . should_equal -1
+            Decimal.new "-1.7" . ceil . should_equal -1
+
+            Decimal.new "11.3" . ceil . should_equal 12
+            Decimal.new "111.3" . ceil . should_equal 112
+            Decimal.new "2111.3" . ceil . should_equal 2112
+            Decimal.new "11.34" . ceil . should_equal 12
+            Decimal.new "111.34" . ceil . should_equal 112
+            Decimal.new "2111.34" . ceil . should_equal 2112
+
+            (Decimal.new "1E100" + Decimal.new "3") . ceil . should_equal (Decimal.new "1E100" + Decimal.new "3")
+            (Decimal.new "1E100" + Decimal.new "3.3") . ceil . should_equal (Decimal.new "1E100" + Decimal.new "4")
+            (Decimal.new "1E100" + Decimal.new "3.5") . ceil . should_equal (Decimal.new "1E100" + Decimal.new "4")
+            (Decimal.new "1E100" + Decimal.new "3.7") . ceil . should_equal (Decimal.new "1E100" + Decimal.new "4")
+            (Decimal.new "-1E100" + Decimal.new "-3") . ceil . should_equal (Decimal.new "-1E100" + Decimal.new "-3")
+            (Decimal.new "-1E100" + Decimal.new "-3.3") . ceil . should_equal (Decimal.new "-1E100" + Decimal.new "-3")
+            (Decimal.new "-1E100" + Decimal.new "-3.5") . ceil . should_equal (Decimal.new "-1E100" + Decimal.new "-3")
+            (Decimal.new "-1E100" + Decimal.new "-3.7") . ceil . should_equal (Decimal.new "-1E100" + Decimal.new "-3")
+
+        group_builder.specify "should calculate truncate correctly" <|
+            Decimal.new "0" . truncate . should_equal 0
+            Decimal.new "1" . truncate . should_equal 1
+            Decimal.new "1.3" . truncate . should_equal 1
+            Decimal.new "1.5" . truncate . should_equal 1
+            Decimal.new "1.7" . truncate . should_equal 1
+            Decimal.new "-1" . truncate . should_equal -1
+            Decimal.new "-1.3" . truncate . should_equal -1
+            Decimal.new "-1.5" . truncate . should_equal -1
+            Decimal.new "-1.7" . truncate . should_equal -1
+
+            Decimal.new "11.3" . truncate . should_equal 11
+            Decimal.new "111.3" . truncate . should_equal 111
+            Decimal.new "2111.3" . truncate . should_equal 2111
+            Decimal.new "11.34" . truncate . should_equal 11
+            Decimal.new "111.34" . truncate . should_equal 111
+            Decimal.new "2111.34" . truncate . should_equal 2111
+
+            (Decimal.new "1E100" + Decimal.new "3") . truncate . should_equal (Decimal.new "1E100" + Decimal.new "3")
+            (Decimal.new "1E100" + Decimal.new "3.3") . truncate . should_equal (Decimal.new "1E100" + Decimal.new "3")
+            (Decimal.new "1E100" + Decimal.new "3.5") . truncate . should_equal (Decimal.new "1E100" + Decimal.new "3")
+            (Decimal.new "1E100" + Decimal.new "3.7") . truncate . should_equal (Decimal.new "1E100" + Decimal.new "3")
+            (Decimal.new "-1E100" + Decimal.new "-3") . truncate . should_equal (Decimal.new "-1E100" + Decimal.new "-3")
+            (Decimal.new "-1E100" + Decimal.new "-3.3") . truncate . should_equal (Decimal.new "-1E100" + Decimal.new "-3")
+            (Decimal.new "-1E100" + Decimal.new "-3.5") . truncate . should_equal (Decimal.new "-1E100" + Decimal.new "-3")
+            (Decimal.new "-1E100" + Decimal.new "-3.7") . truncate . should_equal (Decimal.new "-1E100" + Decimal.new "-3")
+
+            small = Decimal.new "1.1"
+            big = Decimal.new "1E120" + small
+            small.ceil . should_be_a Integer
+            big.ceil . should_be_a Integer
+            small.floor . should_be_a Integer
+            big.floor . should_be_a Integer
+            small.truncate . should_be_a Integer
+            big.truncate . should_be_a Integer
+
+        group_builder.specify "examples" <|
+            Decimal.new "12.34" . floor . should_equal (Decimal.new "12")
+            Decimal.new "-12.34" . floor . should_equal (Decimal.new "-13")
+
+            Decimal.new "12.34" . ceil . should_equal (Decimal.new "13")
+            Decimal.new "-12.34" . ceil . should_equal (Decimal.new "-12")
+
+            Decimal.new "12.34" . truncate . should_equal (Decimal.new "12")
+            Decimal.new "-12.34" . truncate . should_equal (Decimal.new "-12")
+
     suite_builder.group "min/max" group_builder->
         group_builder.specify "should calculate min and max correctly" <|
             Decimal.new "12" . min (Decimal.new "13") . should_equal (Decimal.new "12")
@@ -841,6 +942,14 @@ add_specs suite_builder =
 
             Math.min (Decimal.new "12E70") (Decimal.new "13E70") . should_equal (Decimal.new "12E70")
             Math.max (Decimal.new "12E70") (Decimal.new "13E70") . should_equal (Decimal.new "13E70")
+
+    suite_builder.group "BigDecimal internal representation methods" group_builder->
+        group_builder.specify "internal accessors should work correctly" <|
+            d = Decimal.new "123.456"
+            d.precision . should_equal 6
+            d.scale . should_equal 3
+            d.unscaled_value . should_equal 123456
+            d.internal_representation . should_equal [123456, 6, 3]
 
 main =
     suite = Test.build suite_builder->

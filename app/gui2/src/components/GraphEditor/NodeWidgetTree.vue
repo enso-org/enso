@@ -8,6 +8,7 @@ import { WidgetEditHandler } from '@/providers/widgetRegistry/editHandler'
 import { provideWidgetTree } from '@/providers/widgetTree'
 import { useGraphStore, type NodeId } from '@/stores/graph'
 import { Ast } from '@/util/ast'
+import type { Vec2 } from '@/util/data/vec2'
 import type { Icon } from '@/util/iconName'
 import { computed, ref, toRef, watch } from 'vue'
 
@@ -15,6 +16,7 @@ const props = defineProps<{
   ast: Ast.Ast
   nodeId: NodeId
   nodeElement: HTMLElement | undefined
+  nodeSize: Vec2
   icon: Icon
   connectedSelfArgumentId: Ast.AstId | undefined
   potentialSelfArgumentId: Ast.AstId | undefined
@@ -84,6 +86,7 @@ provideWidgetTree(
   toRef(props, 'ast'),
   toRef(props, 'nodeId'),
   toRef(props, 'nodeElement'),
+  toRef(props, 'nodeSize'),
   toRef(props, 'icon'),
   toRef(props, 'connectedSelfArgumentId'),
   toRef(props, 'potentialSelfArgumentId'),
@@ -91,9 +94,7 @@ provideWidgetTree(
   toRef(props, 'extended'),
   layoutTransitions.active,
   currentEdit,
-  () => {
-    emit('openFullMenu')
-  },
+  () => emit('openFullMenu'),
 )
 </script>
 <script lang="ts">

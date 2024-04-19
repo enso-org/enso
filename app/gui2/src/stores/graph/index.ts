@@ -91,7 +91,7 @@ export const useGraphStore = defineStore('graph', () => {
   })
   function visibleArea(nodeId: NodeId): Rect | undefined {
     if (!db.nodeIdToNode.has(nodeId)) return
-    return nodeRects.get(nodeId) ?? vizRects.get(nodeId)
+    return vizRects.get(nodeId) ?? nodeRects.get(nodeId)
   }
 
   const db = new GraphDb(
@@ -253,8 +253,9 @@ export const useGraphStore = defineStore('graph', () => {
     nodeOptions: {
       position: Vec2
       expression: string
-      metadata?: NodeMetadataFields
+      metadata?: NodeMetadataFields | undefined
       withImports?: RequiredImport[] | undefined
+      documentation?: string | undefined
     }[],
   ): NodeId[] {
     const method = syncModule.value ? methodAstInModule(syncModule.value) : undefined
@@ -268,14 +269,15 @@ export const useGraphStore = defineStore('graph', () => {
       for (const options of nodeOptions) {
         const ident = generateUniqueIdent()
         const metadata = { ...options.metadata, position: options.position.xy() }
-        const { assignment, id } = newAssignmentNode(
+        const { rootExpression, id } = newAssignmentNode(
           edit,
           ident,
           options.expression,
           metadata,
           options.withImports ?? [],
+          options.documentation,
         )
-        bodyBlock.push(assignment)
+        bodyBlock.push(rootExpression)
         created.push(id)
         nodeRects.set(id, new Rect(options.position, Vec2.Zero))
       }
@@ -289,6 +291,7 @@ export const useGraphStore = defineStore('graph', () => {
     expression: string,
     metadata: NodeMetadataFields,
     withImports: RequiredImport[],
+    documentation: string | undefined,
   ) {
     const conflicts = addMissingImports(edit, withImports) ?? []
     const rhs = Ast.parse(expression, edit)
@@ -300,7 +303,9 @@ export const useGraphStore = defineStore('graph', () => {
       // substituteQualifiedName(edit, assignment, conflict.pattern, conflict.fullyQualified)
     }
     const id = asNodeId(rhs.id)
-    return { assignment, id }
+    const rootExpression =
+      documentation != null ? Ast.Documented.new(documentation, assignment) : assignment
+    return { rootExpression, id }
   }
 
   function createNode(
@@ -308,8 +313,9 @@ export const useGraphStore = defineStore('graph', () => {
     expression: string,
     metadata: NodeMetadataFields = {},
     withImports: RequiredImport[] | undefined = undefined,
+    documentation?: string | undefined,
   ): Opt<NodeId> {
-    return createNodes([{ position, expression, metadata, withImports }])[0]
+    return createNodes([{ position, expression, metadata, withImports, documentation }])[0]
   }
 
   /* Try adding imports. Does nothing if conflict is detected, and returns `DectedConflict` in such case. */
@@ -365,6 +371,8 @@ export const useGraphStore = defineStore('graph', () => {
         for (const id of ids) {
           const node = db.nodeIdToNode.get(id)
           if (!node) continue
+          const usages = db.getNodeUsages(id)
+          for (const usage of usages) updatePortValue(edit, usage, undefined)
           const outerExpr = edit.getVersion(node.outerExpr)
           if (outerExpr) Ast.deleteFromParentBlock(outerExpr)
           nodeRects.delete(id)

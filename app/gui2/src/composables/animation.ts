@@ -51,14 +51,18 @@ export function useRaf(
     }
   }
 
-  watch(active, (isActive, previous) => {
-    if (isActive === previous) return
-    if (isActive) {
-      mountRaf()
-    } else {
-      unmountRaf()
-    }
-  })
+  watch(
+    active,
+    (isActive, previous) => {
+      if (isActive === previous) return
+      if (isActive) {
+        mountRaf()
+      } else {
+        unmountRaf()
+      }
+    },
+    { immediate: true },
+  )
   onScopeDispose(unmountRaf)
 }
 

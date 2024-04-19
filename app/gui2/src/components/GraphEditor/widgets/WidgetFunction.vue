@@ -13,16 +13,19 @@ import {
   functionCallConfiguration,
 } from '@/providers/widgetRegistry/configuration'
 import { useGraphStore } from '@/stores/graph'
-import { useProjectStore, type NodeVisualizationConfiguration } from '@/stores/project'
+import { useProjectStore } from '@/stores/project'
+import { type NodeVisualizationConfiguration } from '@/stores/project/executionContext'
 import { entryQn } from '@/stores/suggestionDatabase/entry'
 import { assert, assertUnreachable } from '@/util/assert'
 import { Ast } from '@/util/ast'
+import type { AstId } from '@/util/ast/abstract'
 import {
   ArgumentApplication,
   ArgumentApplicationKey,
   ArgumentAst,
   ArgumentPlaceholder,
   getAccessOprSubject,
+  getMethodCallInfoRecursively,
   interpretCall,
 } from '@/util/callTree'
 import { partitionPoint } from '@/util/data/array'
@@ -37,12 +40,20 @@ const project = useProjectStore()
 
 provideFunctionInfo(
   proxyRefs({
-    callId: computed(() => props.input.value.id),
+    prefixCalls: computed(() => {
+      const ids = new Set<AstId>([props.input.value.id])
+      let ast: any = props.input.value
+      while (ast instanceof Ast.App) {
+        ids.add(ast.function.id)
+        ast = ast.function
+      }
+      return ids
+    }),
   }),
 )
 
 const methodCallInfo = computed(() => {
-  return graph.db.getMethodCallInfo(props.input.value.id)
+  return getMethodCallInfoRecursively(props.input.value, graph.db)
 })
 
 const interpreted = computed(() => {
@@ -306,18 +317,12 @@ export const widgetDefinition = defineWidget(
       // application with no arguments applied yet, but the application target is also an infix call.
       // In that case, the reentrant call method info must be ignored to not create an infinite loop,
       // and to resolve the infix call as its own application.
-      if (prevFunctionState?.callId === ast.id) return Score.Mismatch
+      // We only render the function widget on the application chain’s top-level.
+      if (prevFunctionState?.prefixCalls.has(ast.id)) return Score.Mismatch
 
       if (ast instanceof Ast.App || ast instanceof Ast.OprApp) return Score.Perfect
 
-      const info = db.getMethodCallInfo(ast.id)
-      if (
-        prevFunctionState != null &&
-        info?.partiallyApplied === true &&
-        ast instanceof Ast.Ident
-      ) {
-        return Score.Mismatch
-      }
+      const info = getMethodCallInfoRecursively(ast, db)
       return info != null ? Score.Perfect : Score.Mismatch
     },
   },
