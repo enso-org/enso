@@ -83,7 +83,9 @@ add_specs suite_builder setup:Cloud_Tests_Setup = setup.with_prepared_environmen
             r1.catch.should_be_a File_Error.Not_Found
 
             my_content = Random.uuid
-            my_content.write datalink . should_equal datalink
+            r = my_content.write datalink
+            # The write operation should return back the datalink file
+            r.should_equal datalink
 
             datalink.read . should_equal my_content
 
