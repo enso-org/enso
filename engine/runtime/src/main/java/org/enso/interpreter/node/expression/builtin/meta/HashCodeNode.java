@@ -131,7 +131,9 @@ public abstract class HashCodeNode extends Node {
   @TruffleBoundary
   private static long bigDoubleHash(double d) {
     try {
-      return BigDecimal.valueOf(d).toBigIntegerExact().hashCode();
+      var dec = new BigDecimal(d);
+      var bigInt = dec.toBigIntegerExact();
+      return bigInt.hashCode();
     } catch (ArithmeticException e) {
       throw EnsoContext.get(null).raiseAssertionPanic(null, null, e);
     }
@@ -140,7 +142,11 @@ public abstract class HashCodeNode extends Node {
   @Specialization
   @TruffleBoundary
   long hashCodeForBigInteger(EnsoBigInteger bigInteger) {
-    return bigInteger.getValue().hashCode();
+    var value = bigInteger.getValue();
+    if (BigIntegerOps.fitsInLong(value)) {
+      return hashCodeForLong(value.longValueExact());
+    }
+    return value.hashCode();
   }
 
   @Specialization(guards = {"interop.fitsInLong(v) || interop.fitsInBigInteger(v)"})
