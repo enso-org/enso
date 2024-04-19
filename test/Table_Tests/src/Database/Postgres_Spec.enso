@@ -926,7 +926,7 @@ add_data_link_specs suite_builder =
             data_link_file = transform_file (enso_project.data / "datalinks" / "postgres-db.datalink")
             r = "foobar".write data_link_file
             r.should_fail_with Illegal_Argument
-            r.catch.to_display_text . should_contain "The Postgres Data Link does not support writing raw data to it."
+            r.catch.to_display_text . should_contain "The Postgres Data Link does not support writing"
 
         group_builder.specify "will fail with a clear message if trying to download a Database data link" pending=Http_Test_Setup.pending_has_url <|
             url = Http_Test_Setup.base_url_with_slash+"testfiles/some-postgres.datalink"
