@@ -21,7 +21,6 @@ final class EpbContext {
   private final boolean isInner;
   private final TruffleLanguage.Env env;
   private @CompilationFinal TruffleContext innerContext;
-  private final ReentrantLock lock = new ReentrantLock();
   private final TruffleLogger log;
 
   /**
