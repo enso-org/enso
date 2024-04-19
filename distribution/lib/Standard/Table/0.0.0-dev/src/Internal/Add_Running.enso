@@ -33,12 +33,12 @@ add_running table (statistic:Statistic=Statistic.Count) (of:Text|Integer=0) (as:
                     ordering = Table_Helpers.resolve_order_by table.columns order_by problem_builder
                     source_java_column = of_col.java_column
                     grouping_java_columns = grouping_columns.map .java_column
-                    ordering_columns = ordering.map c->
+                    ordering_java_columns = ordering.map c->
                         c.column.java_column
                     directions = ordering.map c->
                         c.associated_selector.direction.to_sign
 
                     Java_Problems.with_problem_aggregator on_problems java_problem_aggregator->
-                        new_storage = AddRunning.create_running statistic.to_java source_java_column grouping_java_columns ordering_columns directions java_problem_aggregator
+                        new_storage = AddRunning.create_running statistic.to_java source_java_column grouping_java_columns ordering_java_columns directions java_problem_aggregator
                         new_column = Column.from_storage new_name new_storage
                         table.set new_column new_name set_mode=Set_Mode.Add
