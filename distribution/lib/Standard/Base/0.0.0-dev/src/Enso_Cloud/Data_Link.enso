@@ -55,7 +55,7 @@ type Data_Link_Format
          before writing the config we try to parse it to ensure that it
          represents a valid data-link. In some cases (e.g. testing), we may want
          to skip that.
-    write_config (file : Writable_File) (config : JS_Object) (replace_existing : Boolean = False) (skip_validation : Boolean = False) =
+    write_config file (config : JS_Object) (replace_existing : Boolean = False) (skip_validation : Boolean = False) =
         checked = if skip_validation.not then Data_Link_Format.validate_config config
         checked.if_not_error <|
             Data_Link_Format.write_raw_config file config.to_json replace_existing
@@ -86,16 +86,16 @@ type Data_Link_Format
        - replace_existing: A flag specifying if the operation should replace an
          existing file. By default, the operation will fail if the file already
          exists.
-    write_raw_config (file : Writable_File) (raw_content : Text) (replace_existing : Boolean = False) =
+    write_raw_config file (raw_content : Text) (replace_existing : Boolean = False) =
         if is_data_link file . not then
-            Panic.throw (Illegal_Argument.Error "Data_Link_Format should only be used for writing config to Data Links, but "+file.file.to_display_text+" is not a Data Link.")
+            Panic.throw (Illegal_Argument.Error "Data_Link_Format should only be used for writing config to Data Links, but "+file.to_display_text+" is not a Data Link.")
         exist_options = if replace_existing then [File_Access.Create, File_Access.Truncate_Existing] else [File_Access.Create_New]
         options = exist_options + [File_Access.Write, Data_Link_Access.No_Follow]
 
         bytes = raw_content.bytes data_link_encoding on_problems=Problem_Behavior.Report_Error
         r = bytes.if_not_error <| file.with_output_stream options output_stream->
             output_stream.write_bytes bytes
-        r.if_not_error file.file
+        r.if_not_error file
 
     ## PRIVATE
        Checks if the config represents a valid data-link.
