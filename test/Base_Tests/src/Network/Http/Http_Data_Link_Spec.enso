@@ -59,8 +59,8 @@ add_specs suite_builder =
         group_builder.specify "does not allow to write to a web datalink" <|
             f = replace_url_in_data_link (data_link_root / "example-http.datalink")
             r = "MY CONTENT".write f
-            r.should_fail_with Illegal_State
-            r.catch.to_display_text . should_contain "Writing to a web resource Data Link is not possible."
+            r.should_fail_with Illegal_Argument
+            r.catch.to_display_text . should_contain "The HTTP Fetch Data Link does not support writing"
 
         group_builder.specify "should be able to follow a datalink from HTTP in Data.read" <| Test.with_retries <|
             r1 = Data.read base_url_with_slash+"dynamic.datalink" JSON_Format
