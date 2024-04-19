@@ -145,6 +145,7 @@ function componentLocator<T extends string>(className: SanitizeClassName<T>) {
 export const graphEditor = componentLocator('GraphEditor')
 // @ts-expect-error
 export const anyVisualization = componentLocator('GraphVisualization > *')
+export const loadingVisualization = componentLocator('LoadingVisualization')
 export const circularMenu = componentLocator('CircularMenu')
 export const addNewNodeButton = componentLocator('PlusButton')
 export const componentBrowser = componentLocator('ComponentBrowser')

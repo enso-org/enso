@@ -941,7 +941,7 @@ class SuggestionBuilderTest extends AnyWordSpecLike with Matchers {
                   false,
                   false,
                   None,
-                  Some(Seq("..A", "..B", "..Auto"))
+                  Some(Seq("..A", "..B", "Unnamed.Test.Auto"))
                 )
               ),
               selfType      = "Unnamed.Test",
@@ -1033,7 +1033,7 @@ class SuggestionBuilderTest extends AnyWordSpecLike with Matchers {
                   false,
                   false,
                   None,
-                  Some(Seq("..A", "..B", "..Auto"))
+                  Some(Seq("..A", "..B", "Unnamed.Test.Auto"))
                 )
               ),
               selfType      = "Unnamed.Test",

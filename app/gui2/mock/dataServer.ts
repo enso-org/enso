@@ -27,9 +27,9 @@ import {
   type AnyOutboundPayload,
   type Offset,
   type Table,
-} from '../binaryProtocol'
-import { LanguageServerErrorCode } from '../languageServerTypes'
-import { uuidToBits } from '../uuid'
+} from 'shared/binaryProtocol'
+import { LanguageServerErrorCode } from 'shared/languageServerTypes'
+import { uuidToBits } from 'shared/uuid'
 
 const sha3 = createSHA3(224)
 
