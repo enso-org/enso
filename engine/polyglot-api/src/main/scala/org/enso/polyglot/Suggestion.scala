@@ -45,6 +45,7 @@ import scala.collection.immutable.ListSet
     )
   )
 )
+@SerialVersionUID(9650L)
 sealed trait Suggestion extends ToLogString {
 
   def externalId:    Option[Suggestion.ExternalID]
@@ -54,6 +55,8 @@ sealed trait Suggestion extends ToLogString {
   def documentation: Option[String]
 
   def withReexports(reexports: Set[String]): Suggestion
+
+  def withReturnType(returnType: String): Suggestion
 }
 
 object Suggestion {
@@ -246,6 +249,9 @@ object Suggestion {
     override def withReexports(reexports: Set[String]): Suggestion =
       copy(reexports = reexports)
 
+    override def withReturnType(returnType: String): Suggestion =
+      copy(module = returnType)
+
     /** @inheritdoc */
     override def toLogString(shouldMask: Boolean): String =
       s"Module(module=$module,name=$name,documentation=" +
@@ -292,6 +298,9 @@ object Suggestion {
       s",documentation=" + (if (shouldMask) documentation.map(_ => STUB)
                             else documentation) +
       s",reexports=$reexports)"
+
+    override def withReturnType(returnType: String): Suggestion =
+      copy(returnType = returnType)
   }
 
   /** A value constructor.
@@ -332,6 +341,9 @@ object Suggestion {
       s",documentation=" + (if (shouldMask) documentation.map(_ => STUB)
                             else documentation) +
       s",reexports=$reexports)"
+
+    override def withReturnType(returnType: String): Suggestion =
+      copy(returnType = returnType)
   }
 
   /** Base trait for method suggestions. */
@@ -404,6 +416,9 @@ object Suggestion {
       s"documentation=" + (if (shouldMask) documentation.map(_ => STUB)
                            else documentation) +
       s",reexports=$reexports)"
+
+    override def withReturnType(returnType: String): Suggestion =
+      copy(returnType = returnType)
   }
 
   /** A function defined on a type or a module.
@@ -436,6 +451,9 @@ object Suggestion {
     /** @inheritdoc */
     override def withReexports(reexports: Set[String]): Suggestion =
       copy(reexports = reexports)
+
+    override def withReturnType(returnType: String): Suggestion =
+      copy(returnType = returnType)
 
     /** @inheritdoc */
     override def toLogString(shouldMask: Boolean): String =
@@ -488,6 +506,9 @@ object Suggestion {
     override def withReexports(reexports: Set[String]): Suggestion =
       copy(reexports = reexports)
 
+    override def withReturnType(returnType: String): Suggestion =
+      copy(returnType = returnType)
+
     /** @inheritdoc */
     override def toLogString(shouldMask: Boolean): String =
       "Conversion(" +
@@ -525,6 +546,9 @@ object Suggestion {
     override def withReexports(reexports: Set[String]): Suggestion =
       this
 
+    override def withReturnType(returnType: String): Suggestion =
+      copy(returnType = returnType)
+
     /** @inheritdoc */
     override def toLogString(shouldMask: Boolean): String =
       "Function(" +
@@ -559,6 +583,9 @@ object Suggestion {
     /** @inheritdoc */
     override def withReexports(reexports: Set[String]): Suggestion =
       this
+
+    override def withReturnType(returnType: String): Suggestion =
+      copy(returnType = returnType)
 
     /** @inheritdoc */
     override def toLogString(shouldMask: Boolean): String =

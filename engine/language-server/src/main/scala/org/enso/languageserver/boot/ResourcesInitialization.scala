@@ -14,7 +14,8 @@ import org.enso.languageserver.boot.resource.{
 }
 import org.enso.languageserver.data.ProjectDirectoriesConfig
 import org.enso.languageserver.effect
-import org.enso.searcher.sql.{SqlDatabase, SqlSuggestionsRepo}
+import org.enso.searcher.SuggestionsRepo
+import org.enso.searcher.sql.{SqlDatabase}
 import org.graalvm.polyglot.Context
 
 import scala.concurrent.ExecutionContextExecutor
@@ -40,7 +41,7 @@ object ResourcesInitialization {
     directoriesConfig: ProjectDirectoriesConfig,
     protocolFactory: ProtocolFactory,
     sqlDatabase: SqlDatabase,
-    suggestionsRepo: SqlSuggestionsRepo,
+    suggestionsRepo: SuggestionsRepo[scala.concurrent.Future],
     truffleContext: Context,
     runtime: effect.Runtime
   )(implicit ec: ExecutionContextExecutor): InitializationComponent = {

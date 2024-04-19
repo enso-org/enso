@@ -10,8 +10,8 @@ import org.apache.commons.io.FileUtils;
 import org.enso.languageserver.data.ProjectDirectoriesConfig;
 import org.enso.languageserver.event.InitializedEvent;
 import org.enso.logger.masking.MaskedPath;
+import org.enso.searcher.SuggestionsRepo;
 import org.enso.searcher.sql.SqlDatabase;
-import org.enso.searcher.sql.SqlSuggestionsRepo;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import scala.jdk.javaapi.FutureConverters;
@@ -27,7 +27,7 @@ public class RepoInitialization implements InitializationComponent {
   private final ProjectDirectoriesConfig projectDirectoriesConfig;
   private final EventStream eventStream;
   private final SqlDatabase sqlDatabase;
-  private final SqlSuggestionsRepo sqlSuggestionsRepo;
+  private final SuggestionsRepo<scala.concurrent.Future> suggestionsRepo;
 
   private final Logger logger = LoggerFactory.getLogger(this.getClass());
 
@@ -42,19 +42,19 @@ public class RepoInitialization implements InitializationComponent {
    * @param projectDirectoriesConfig configuration of language server directories
    * @param eventStream the events stream
    * @param sqlDatabase the sql database
-   * @param sqlSuggestionsRepo the suggestions repo
+   * @param suggestionsRepo the suggestions repo
    */
   public RepoInitialization(
       Executor executor,
       ProjectDirectoriesConfig projectDirectoriesConfig,
       EventStream eventStream,
       SqlDatabase sqlDatabase,
-      SqlSuggestionsRepo sqlSuggestionsRepo) {
+      SuggestionsRepo<scala.concurrent.Future> suggestionsRepo) {
     this.executor = executor;
     this.projectDirectoriesConfig = projectDirectoriesConfig;
     this.eventStream = eventStream;
     this.sqlDatabase = sqlDatabase;
-    this.sqlSuggestionsRepo = sqlSuggestionsRepo;
+    this.suggestionsRepo = suggestionsRepo;
   }
 
   @Override
@@ -191,6 +191,6 @@ public class RepoInitialization implements InitializationComponent {
   }
 
   private CompletionStage<Void> doInitSuggestionsRepo() {
-    return FutureConverters.asJava(sqlSuggestionsRepo.init()).thenAcceptAsync(res -> {}, executor);
+    return FutureConverters.asJava(suggestionsRepo.init()).thenAcceptAsync(res -> {}, executor);
   }
 }
