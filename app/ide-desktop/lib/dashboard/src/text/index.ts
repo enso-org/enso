@@ -67,6 +67,7 @@ interface PlaceholderOverrides {
   readonly copyAssetBackendError: [string, string]
   readonly createProjectBackendError: [string]
   readonly closeProjectBackendError: [string]
+  readonly listProjectSessionsBackendError: [string]
   readonly getProjectDetailsBackendError: [string]
   readonly openProjectBackendError: [string]
   readonly openProjectMissingCredentialsBackendError: [string]

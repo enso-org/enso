@@ -3,14 +3,14 @@ import Duplicate from 'enso-assets/duplicate.svg'
 
 import * as textProvider from '#/providers/TextProvider'
 
+import * as assetDiffView from '#/layouts/AssetDiffView'
+
 import * as ariaComponents from '#/components/AriaComponents'
 
 import type Backend from '#/services/Backend'
 import * as backendService from '#/services/Backend'
 
 import * as dateTime from '#/utilities/dateTime'
-
-import * as assetDiffView from './AssetDiffView'
 
 // ====================
 // === AssetVersion ===

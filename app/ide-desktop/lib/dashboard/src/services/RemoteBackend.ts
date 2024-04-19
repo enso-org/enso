@@ -580,6 +580,21 @@ export default class RemoteBackend extends Backend {
     }
   }
 
+  /** List project sessions for a specific project.
+   * @throws An error if a non-successful status code (not 200-299) was received. */
+  override async listProjectSessions(
+    projectId: backendModule.ProjectId,
+    title: string
+  ): Promise<backendModule.ProjectSession[]> {
+    const path = remoteBackendPaths.listProjectSessionsPath(projectId)
+    const response = await this.get<backendModule.ProjectSession[]>(path)
+    if (!responseIsSuccessful(response)) {
+      return await this.throw(response, 'listProjectSessionsBackendError', title)
+    } else {
+      return await response.json()
+    }
+  }
+
   /** Return details for a project.
    * @throws An error if a non-successful status code (not 200-299) was received. */
   override async getProjectDetails(
@@ -604,6 +619,22 @@ export default class RemoteBackend extends Backend {
         binaryAddress:
           project.address != null ? backendModule.Address(`${project.address}binary`) : null,
       }
+    }
+  }
+
+  /** Return project logs.
+   * @throws An error if a non-successful status code (not 200-299) was received. */
+  override async getProjectLogs(
+    projectId: backendModule.ProjectId,
+    projectSessionId: backendModule.ProjectSessionId,
+    title: string
+  ): Promise<any> {
+    const path = remoteBackendPaths.getProjectLogsPath(projectId)
+    const response = await this.post<any>(path, { projectSessionId })
+    if (!responseIsSuccessful(response)) {
+      return await this.throw(response, 'listProjectSessionsBackendError', title)
+    } else {
+      return await response.json()
     }
   }
 

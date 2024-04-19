@@ -1,11 +1,18 @@
+;
 /** @file Type definitions common between all backends. */
-import type * as React from 'react'
+import type * as React from 'react';
 
-import * as array from '#/utilities/array'
-import * as dateTime from '#/utilities/dateTime'
-import * as newtype from '#/utilities/newtype'
-import * as permissions from '#/utilities/permissions'
-import * as uniqueString from '#/utilities/uniqueString'
+
+
+import * as array from '#/utilities/array';
+import * as dateTime from '#/utilities/dateTime';
+import * as newtype from '#/utilities/newtype';
+import * as permissions from '#/utilities/permissions';
+import * as uniqueString from '#/utilities/uniqueString';
+
+
+
+
 
 // ================
 // === Newtypes ===
@@ -46,6 +53,10 @@ export const FileId = newtype.newtypeConstructor<FileId>()
 /** Unique identifier for a secret environment variable. */
 export type SecretId = newtype.Newtype<string, 'SecretId'>
 export const SecretId = newtype.newtypeConstructor<SecretId>()
+
+/** Unique identifier for a project session. */
+export type ProjectSessionId = newtype.Newtype<string, 'ProjectSessionId'>
+export const ProjectSessionId = newtype.newtypeConstructor<ProjectSessionId>()
 
 /** Unique identifier for a Data Link. */
 export type ConnectorId = newtype.Newtype<string, 'ConnectorId'>
@@ -259,6 +270,15 @@ export interface ProjectStartupInfo {
   readonly setProjectAsset?: React.Dispatch<React.SetStateAction<ProjectAsset>>
   readonly backendType: BackendType
   readonly accessToken: string | null
+}
+
+/** A specific session of a project being opened and used. */
+export interface ProjectSession {
+  readonly projectId: ProjectId
+  readonly projectSessionId: ProjectSessionId
+  readonly createdAt: dateTime.Rfc3339DateTime
+  readonly closedAt?: dateTime.Rfc3339DateTime
+  readonly userEmail: EmailAddress
 }
 
 /** Metadata describing the location of an uploaded file. */
@@ -1183,12 +1203,20 @@ export default abstract class Backend {
   abstract createProject(body: CreateProjectRequestBody): Promise<CreatedProject>
   /** Close a project. */
   abstract closeProject(projectId: ProjectId, title: string): Promise<void>
+  /** Return a list of sessions for the current project. */
+  abstract listProjectSessions(projectId: ProjectId, title: string): Promise<ProjectSession[]>
   /** Return project details. */
   abstract getProjectDetails(
     projectId: ProjectId,
     directoryId: DirectoryId | null,
     title: string
   ): Promise<Project>
+  /** Return project logs. */
+  abstract getProjectLogs(
+    projectId: ProjectId,
+    projectSessionId: ProjectSessionId,
+    title: string
+  ): Promise<any>
   /** Set a project to an open state. */
   abstract openProject(
     projectId: ProjectId,

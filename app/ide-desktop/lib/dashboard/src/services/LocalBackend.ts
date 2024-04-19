@@ -603,6 +603,16 @@ export default class LocalBackend extends Backend {
   }
 
   /** Invalid operation. */
+  override listProjectSessions() {
+    return this.invalidOperation()
+  }
+
+  /** Invalid operation. */
+  override getProjectLogs() {
+    return this.invalidOperation()
+  }
+
+  /** Invalid operation. */
   override getFileContent() {
     return this.invalidOperation()
   }

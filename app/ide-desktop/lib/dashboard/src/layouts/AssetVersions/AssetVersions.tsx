@@ -6,7 +6,7 @@ import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 import * as backendProvider from '#/providers/BackendProvider'
 import * as textProvider from '#/providers/TextProvider'
 
-import AssetVersion from '#/layouts/AssetVersion'
+import AssetVersion from '#/layouts/AssetVersions/AssetVersion'
 import * as useAssetVersions from '#/layouts/AssetVersions/useAssetVersions'
 
 import Spinner from '#/components/Spinner'

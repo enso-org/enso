@@ -6,6 +6,7 @@ import * as textProvider from '#/providers/TextProvider'
 
 import type * as assetEvent from '#/events/assetEvent'
 
+import AssetProjectSessions from '#/layouts/AssetProjectSessions'
 import AssetProperties from '#/layouts/AssetProperties'
 import AssetVersions from '#/layouts/AssetVersions/AssetVersions'
 import type Category from '#/layouts/CategorySwitcher/Category'
@@ -27,6 +28,7 @@ import LocalStorage from '#/utilities/LocalStorage'
 enum AssetPanelTab {
   properties = 'properties',
   versions = 'versions',
+  projectSessions = 'projectSessions',
 }
 
 // ============================
@@ -87,6 +89,11 @@ export default function AssetPanel(props: AssetPanelProps) {
       savedTab === AssetPanelTab.versions
     ) {
       return AssetPanelTab.properties
+    } else if (
+      item?.item.type !== backend.AssetType.project &&
+      savedTab === AssetPanelTab.projectSessions
+    ) {
+      return AssetPanelTab.properties
     } else {
       return savedTab
     }
@@ -133,6 +140,22 @@ export default function AssetPanel(props: AssetPanelProps) {
               {getText('versions')}
             </UnstyledButton>
           )}
+        {item != null && item.item.type === backend.AssetType.project && (
+          <UnstyledButton
+            className={`button pointer-events-auto select-none bg-frame px-button-x leading-cozy transition-colors hover:bg-selected-frame ${
+              tab !== AssetPanelTab.projectSessions ? '' : 'bg-selected-frame active'
+            }`}
+            onPress={() => {
+              setTab(oldTab =>
+                oldTab === AssetPanelTab.projectSessions
+                  ? AssetPanelTab.properties
+                  : AssetPanelTab.projectSessions
+              )
+            }}
+          >
+            {getText('projectSessions')}
+          </UnstyledButton>
+        )}
         {/* Spacing. The top right asset and user bars overlap this area. */}
         <div className="grow" />
       </div>
@@ -154,6 +177,9 @@ export default function AssetPanel(props: AssetPanelProps) {
             />
           )}
           {tab === AssetPanelTab.versions && <AssetVersions item={item} />}
+          {tab === AssetPanelTab.projectSessions && item.type === backend.AssetType.project && (
+            <AssetProjectSessions item={item} />
+          )}
         </>
       )}
     </div>
