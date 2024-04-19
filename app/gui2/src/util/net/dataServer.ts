@@ -1,6 +1,5 @@
 import { ObservableV2 } from 'lib0/observable'
 import * as random from 'lib0/random'
-import type { Path as LSPath } from 'shared/languageServerTypes'
 import {
   Builder,
   ByteBuffer,
@@ -28,11 +27,12 @@ import {
   type AnyInboundPayload,
   type Offset,
   type Table,
-} from './binaryProtocol'
-import type { AbortScope } from './util/net'
-import { uuidFromBits, uuidToBits } from './uuid'
-import type { WebsocketClient } from './websocket'
-import type { Uuid } from './yjsModel'
+} from 'shared/binaryProtocol'
+import type { Path as LSPath } from 'shared/languageServerTypes'
+import { Err, Ok, type Result } from 'shared/util/data/result'
+import { exponentialBackoff, type AbortScope } from 'shared/util/net'
+import { uuidFromBits, uuidToBits } from 'shared/uuid'
+import type { Uuid } from 'shared/yjsModel'
 
 const PAYLOAD_CONSTRUCTOR = {
   [OutboundPayload.NONE]: None,
@@ -53,27 +53,20 @@ export type DataServerEvents = {
 }
 
 export class DataServer extends ObservableV2<DataServerEvents> {
-  initialized = false
-  ready: Promise<void>
-  clientId!: string
+  initialized: Promise<Result<void, Error>>
+  private initializationScheduled = false
   resolveCallbacks = new Map<string, (data: any) => void>()
 
   /** `websocket.binaryType` should be `ArrayBuffer`. */
   constructor(
-    public websocket: WebsocketClient,
+    public clientId: string,
+    public websocket: WebSocket,
     abort: AbortScope,
   ) {
     super()
     abort.handleDispose(this)
-    if (websocket.connected) {
-      this.ready = Promise.resolve()
-    } else {
-      this.ready = new Promise((resolve, reject) => {
-        websocket.on('connect', () => resolve())
-        websocket.on('disconnect', reject)
-      })
-    }
-    websocket.on('message', (rawPayload) => {
+
+    websocket.addEventListener('message', ({ data: rawPayload }) => {
       if (!(rawPayload instanceof ArrayBuffer)) {
         console.warn('Data Server: Data type was invalid:', rawPayload)
         // Ignore all non-binary messages. If the messages are `Blob`s instead, this is a
@@ -98,25 +91,57 @@ export class DataServer extends ObservableV2<DataServerEvents> {
         this.emit(`${payloadType}`, [payload, uuid])
       }
     })
+    websocket.addEventListener('error', (error) =>
+      console.error('Language Server Binary socket error:', error),
+    )
+    websocket.addEventListener('close', () => {
+      this.scheduleInitializationAfterConnect()
+    })
+
+    this.initialized = this.initialize()
   }
 
   dispose() {
+    this.websocket.close()
     this.resolveCallbacks.clear()
   }
 
-  async initialize(clientId: Uuid) {
-    if (!this.initialized) {
-      this.clientId = clientId
-      await this.ready
-      await this.initSession()
-    }
+  private scheduleInitializationAfterConnect() {
+    if (this.initializationScheduled) return this.initialized
+    this.initializationScheduled = true
+    this.initialized = new Promise((resolve) => {
+      const cb = () => {
+        this.websocket.removeEventListener('open', cb)
+        this.initializationScheduled = false
+        resolve(this.initialize())
+      }
+      this.websocket.addEventListener('open', cb)
+    })
+    return this.initialized
   }
 
-  protected send<T = void>(
+  private initialize() {
+    return exponentialBackoff(() => this.initSession().then(responseAsResult), {
+      onBeforeRetry: (error, _, delay) => {
+        console.warn(
+          `Failed to initialize language server binary connection, retrying after ${delay}ms...\n`,
+          error,
+        )
+      },
+    }).then((result) => {
+      if (!result.ok) {
+        result.error.log('Error initializing Language Server Binary Protocol')
+        return result
+      } else return Ok()
+    })
+  }
+
+  protected async send<T = void>(
     builder: Builder,
     payloadType: InboundPayload,
     payloadOffset: Offset<AnyInboundPayload>,
-  ): Promise<T> {
+    waitForInit: boolean = true,
+  ): Promise<T | Error> {
     const messageUuid = random.uuidv4()
     const rootTable = InboundMessage.createInboundMessage(
       builder,
@@ -125,10 +150,16 @@ export class DataServer extends ObservableV2<DataServerEvents> {
       payloadType,
       payloadOffset,
     )
-    const promise = new Promise<T>((resolve) => {
+    if (waitForInit) {
+      const initResult = await this.initialized
+      if (!initResult.ok) {
+        return initResult.error.payload
+      }
+    }
+    this.websocket.send(builder.finish(rootTable).toArrayBuffer())
+    const promise = new Promise<T | Error>((resolve) => {
       this.resolveCallbacks.set(messageUuid, resolve)
     })
-    this.websocket.send(builder.finish(rootTable).toArrayBuffer())
     return promise
   }
 
@@ -143,7 +174,7 @@ export class DataServer extends ObservableV2<DataServerEvents> {
       builder,
       this.createUUID(this.clientId),
     )
-    return this.send(builder, InboundPayload.INIT_SESSION_CMD, commandOffset)
+    return this.send(builder, InboundPayload.INIT_SESSION_CMD, commandOffset, false)
   }
 
   async writeFile(
@@ -212,4 +243,9 @@ export class DataServer extends ObservableV2<DataServerEvents> {
     const command = ChecksumBytesCommand.createChecksumBytesCommand(builder, segmentOffset)
     return await this.send(builder, InboundPayload.WRITE_BYTES_CMD, command)
   }
+}
+
+function responseAsResult<T>(resp: T | Error): Result<T, Error> {
+  if (resp instanceof Error) return Err(resp)
+  else return Ok(resp)
 }
