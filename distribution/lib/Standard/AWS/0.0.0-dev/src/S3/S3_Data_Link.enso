@@ -2,9 +2,10 @@ private
 
 from Standard.Base import all
 import Standard.Base.Errors.Illegal_State.Illegal_State
+import Standard.Base.System.File.Generic.Writable_File.Writable_File
 import Standard.Base.System.Input_Stream.Input_Stream
 import Standard.Base.System.Output_Stream.Output_Stream
-from Standard.Base.Enso_Cloud.Data_Link import Data_Link_With_Input_Stream, Data_Link_With_Output_Stream, parse_format
+from Standard.Base.Enso_Cloud.Data_Link import Data_Link_With_Input_Stream, Data_Link_With_Output_Stream, Writable_Data_Link, parse_format
 from Standard.Base.Enso_Cloud.Public_Utils import get_optional_field, get_required_field
 
 import project.AWS_Credential.AWS_Credential
@@ -43,8 +44,14 @@ type S3_Data_Link
     with_output_stream self (open_options : Vector) (action : Output_Stream -> Any) -> Any =
         self.as_file.with_output_stream open_options action
 
+    ## PRIVATE
+    as_writable_file self -> Writable_File = Writable_File.from self.as_file
+
 ## PRIVATE
 Data_Link_With_Input_Stream.from (that:S3_Data_Link) = Data_Link_With_Input_Stream.Value that
 
 ## PRIVATE
 Data_Link_With_Output_Stream.from (that:S3_Data_Link) = Data_Link_With_Output_Stream.Value that
+
+## PRIVATE
+Writable_Data_Link.from (that:S3_Data_Link) = Writable_Data_Link.Value that

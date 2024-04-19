@@ -145,8 +145,6 @@ type Data_Link_With_Output_Stream
     ## PRIVATE
     Value underlying
 
-    # TODO do we need a `write` method here? possibly it could allow some optimizations, but let's try 1st iteration without it
-
     ## PRIVATE
        Opens the data pointed at by the data link as a raw stream.
     with_output_stream self (open_options : Vector) (action : Output_Stream -> Any) -> Any =
@@ -159,6 +157,28 @@ type Data_Link_With_Output_Stream
         handle_no_conversion _ =
             if_not_supported
         Panic.catch No_Such_Conversion (Data_Link_With_Output_Stream.from data_link_instance) handle_no_conversion
+
+## PRIVATE
+   A type class representing a data link that can be written using the
+   `Writable_File` API. It provides a higher level API for writing files than
+   just `Data_Link_With_Output_Stream`, most links will likely implement both,
+   although it is not required.
+type Writable_Data_Link
+    ## PRIVATE
+    Value underlying
+
+    ## PRIVATE
+       Returns the `Writable_File` instance for the target of the data link.
+    as_writable_file self -> Writable_File = self.underlying.as_writable_file
+
+    ## PRIVATE
+       Creates a `Writable_Data_Link` from a data link instance, if that data
+       link supports writing. If it does not, an error is thrown.
+    find data_link_instance (if_not_supported = (Error.throw (Illegal_Argument.Error "The "+(data_link_name data_link_instance)+" does not support writing."))) -> Writable_Data_Link ! Illegal_Argument =
+        handle_no_conversion _ =
+            if_not_supported
+        Panic.catch No_Such_Conversion (Writable_Data_Link.from data_link_instance) handle_no_conversion
+
 
 ## PRIVATE
    All data-link config files should be saved with UTF-8 encoding.
@@ -218,6 +238,12 @@ write_data_link_as_stream (file : File_Like) (open_options : Vector) (f : Output
     data_link_instance = interpret_json_as_data_link json
     data_link_with_output_stream = Data_Link_With_Output_Stream.find data_link_instance
     data_link_with_output_stream.with_output_stream open_options f
+
+## PRIVATE
+interpret_data_link_as_writable_file (file : File_Like) -> Writable_File =
+    json = Data_Link_Format.read_config file
+    data_link_instance = interpret_json_as_data_link json
+    Writable_Data_Link.find data_link_instance . as_writable_file
 
 ## PRIVATE
 save_data_link_to_file data_link_instance (target_file : Writable_File) =

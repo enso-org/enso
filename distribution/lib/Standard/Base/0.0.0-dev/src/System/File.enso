@@ -880,7 +880,7 @@ file_as_java (file : File) = Java_File.new file.absolute.normalize.path
 File_Like.from (that : File) = File_Like.Value that
 
 ## PRIVATE
-Writable_File.from (that : File) =
+Writable_File.from (that : File) = if Data_Link.is_data_link that then Data_Link.interpret_data_link_as_writable_file that else
     Writable_File.Value that.absolute.normalize Local_File_Write_Strategy.instance
 
 ## PRIVATE

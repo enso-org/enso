@@ -399,7 +399,7 @@ File_Format_Metadata.from (that : S3_File) = File_Format_Metadata.Value that.uri
 File_Like.from (that : S3_File) = File_Like.Value that
 
 ## PRIVATE
-Writable_File.from (that : S3_File) =
+Writable_File.from (that : S3_File) = if Data_Link.is_data_link that then Data_Link.interpret_data_link_as_writable_file that else
     Writable_File.Value that S3_File_Write_Strategy.instance
 
 ## PRIVATE

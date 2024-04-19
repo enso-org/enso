@@ -41,8 +41,14 @@ type Enso_File_Data_Link
     with_output_stream self (open_options : Vector) (action : Output_Stream -> Any) -> Any =
         self.as_file.with_output_stream open_options action
 
+    ## PRIVATE
+    as_writable_file self -> Writable_File = Writable_File.from self.as_file
+
 ## PRIVATE
 Data_Link_With_Input_Stream.from (that:Enso_File_Data_Link) = Data_Link_With_Input_Stream.Value that
 
 ## PRIVATE
 Data_Link_With_Output_Stream.from (that:Enso_File_Data_Link) = Data_Link_With_Output_Stream.Value that
+
+## PRIVATE
+Writable_Data_Link.from (that:Enso_File_Data_Link) = Writable_Data_Link.Value that
