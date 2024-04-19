@@ -9,10 +9,10 @@ import project.Data.Vector.Vector
 import project.Enso_Cloud.Data_Link
 import project.Enso_Cloud.Enso_User.Enso_User
 import project.Enso_Cloud.Errors.Enso_Cloud_Error
-import project.Enso_Cloud.Internal.Enso_Path.Enso_Path
 import project.Enso_Cloud.Internal.Enso_File_Write_Strategy
-import project.Enso_Cloud.Internal.Existing_Enso_Asset.Existing_Enso_Asset
+import project.Enso_Cloud.Internal.Enso_Path.Enso_Path
 import project.Enso_Cloud.Internal.Existing_Enso_Asset.Asset_Cache
+import project.Enso_Cloud.Internal.Existing_Enso_Asset.Existing_Enso_Asset
 import project.Enso_Cloud.Internal.Utils
 import project.Error.Error
 import project.Errors.Common.Not_Found
@@ -43,8 +43,8 @@ from project.Data.Text.Extensions import all
 from project.Enso_Cloud.Public_Utils import get_required_field
 from project.Enso_Cloud.Internal.Enso_File_Helpers import all
 from project.System.File_Format import Auto_Detect, Bytes, File_Format, Plain_Text_Format
-from project.System.File.Generic.File_Write_Strategy import generic_copy
 from project.System.File import find_extension_from_name
+from project.System.File.Generic.File_Write_Strategy import generic_copy
 
 type Enso_File
     ## ICON data_input
