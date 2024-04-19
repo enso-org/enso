@@ -22,7 +22,7 @@ add_running : Statistic -> (Text | Integer) -> Text -> Vector (Text | Integer | 
 add_running table (statistic:Statistic=Statistic.Count) (of:Text|Integer=0) (as:Text='') (group_by:(Vector | Text | Integer | Regex)=[]) (order_by:(Vector | Text)=[]) (on_problems:Problem_Behavior=Problem_Behavior.Report_Warning) =
     check_running_support [statistic] <|
         of_col = table.at of
-        new_name = if as == '' then 'Running ' + statistic.to_text + ' of ' + of_col.name else as   
+        new_name = if as.is_empty then 'Running ' + statistic.to_text + ' of ' + of_col.name else as   
         case statistic of
             Statistic.Count ->
                 Add_Row_Number.add_row_number table new_name 1 1 group_by order_by on_problems

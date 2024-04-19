@@ -23,7 +23,7 @@ polyglot java import java.lang.NullPointerException
 polyglot java import org.enso.base.CompareException
 polyglot java import org.enso.base.statistics.CorrelationStatistics
 polyglot java import org.enso.base.statistics.Rank
-polyglot java import org.enso.base.statistics.Statistic as java_Statistic
+polyglot java import org.enso.base.statistics.Statistic as Java_Statistic
 
 ## Specifies how to handle ranking of equal values.
 type Rank_Method
@@ -140,19 +140,19 @@ type Statistic
 
     ## PRIVATE
     to_java self = case self of
-        Statistic.Count -> java_Statistic.Count
-        Statistic.Minimum -> java_Statistic.Minimum
-        Statistic.Maximum -> java_Statistic.Maximum
-        Statistic.Sum -> java_Statistic.Sum
-        Statistic.Mean -> java_Statistic.Mean
-        Statistic.Variance _ -> java_Statistic.Variance
-        Statistic.Standard_Deviation _ -> java_Statistic.StandardDeviation
-        Statistic.Skew _ -> java_Statistic.Skew
-        Statistic.Kurtosis -> java_Statistic.Kurtosis
-        Statistic.Covariance _ -> java_Statistic.Covariance
-        Statistic.Pearson _ -> java_Statistic.Pearson
-        Statistic.Spearman _ -> java_Statistic.Spearman
-        Statistic.R_Squared _ -> java_Statistic.R_Squared
+        Statistic.Count -> Java_Statistic.Count
+        Statistic.Minimum -> Java_Statistic.Minimum
+        Statistic.Maximum -> Java_Statistic.Maximum
+        Statistic.Sum -> Java_Statistic.Sum
+        Statistic.Mean -> Java_Statistic.Mean
+        Statistic.Variance _ -> Java_Statistic.Variance
+        Statistic.Standard_Deviation _ -> Java_Statistic.StandardDeviation
+        Statistic.Skew _ -> Java_Statistic.Skew
+        Statistic.Kurtosis -> Java_Statistic.Kurtosis
+        Statistic.Covariance _ -> Java_Statistic.Covariance
+        Statistic.Pearson _ -> Java_Statistic.Pearson
+        Statistic.Spearman _ -> Java_Statistic.Spearman
+        Statistic.R_Squared _ -> Java_Statistic.R_Squared
 
     ## PRIVATE
        Compute a single statistic on a vector like object.
