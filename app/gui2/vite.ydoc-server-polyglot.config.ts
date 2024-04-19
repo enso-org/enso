@@ -23,7 +23,6 @@ export default defineConfig({
     alias: {
       shared: fileURLToPath(new URL('./shared', import.meta.url)),
       '@': fileURLToPath(new URL('./src', import.meta.url)),
-      //ws: fileURLToPath(new URL('../../node_modules/ws/index.js', import.meta.url)),
     },
   },
   define: {
@@ -41,14 +40,9 @@ export default defineConfig({
     minify: false, // For debugging
     emptyOutDir: true,
     outDir: '../../lib/java/ydoc-server/target/classes/dist',
-    /*lib: {
-      name: 'ydocServer',
-      entry: fileURLToPath(new URL('ydoc-server/server.ts', import.meta.url)),
-      fileName: () => 'ydocServer.js',
-    },*/
     rollupOptions: {
       input: {
-        ydocServer: fileURLToPath(new URL('ydoc-server/server.ts', import.meta.url)),
+        ydocServer: fileURLToPath(new URL('ydoc-server/indexPolyglot.ts', import.meta.url)),
       },
       output: {
         entryFileNames: `assets/[name].js`,
@@ -62,17 +56,17 @@ export default defineConfig({
  */
 function useJavaFfi(): Plugin {
   const ffiJava = fileURLToPath(new URL('./shared/ast/ffiJava.ts', import.meta.url))
-  const ffiWasm = fileURLToPath(new URL('./shared/ast/ffiWasm.ts', import.meta.url))
+  const ffiBackup = fileURLToPath(new URL('./shared/ast/ffiBackup.ts', import.meta.url))
   const ffi = fileURLToPath(new URL('./shared/ast/ffi.ts', import.meta.url))
 
   return {
     name: 'use-java-ffi',
     options: () => {
-      fs.renameSync(ffi, ffiWasm)
+      fs.renameSync(ffi, ffiBackup)
       fs.copyFileSync(ffiJava, ffi)
     },
     buildEnd: () => {
-      fs.renameSync(ffiWasm, ffi)
+      fs.renameSync(ffiBackup, ffi)
     },
   }
 }
