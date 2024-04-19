@@ -84,11 +84,11 @@ type S3_File
 
        ? S3 Handling of Directories
 
-         S3 does not have a native concept of directories.
-         TODO: Add more information about how S3 handles directories.
-         https://github.com/enso-org/enso/issues/9704
+       S3 does not have a native concept of directories.
     create_directory : File
     create_directory self =
+        ## TODO Add more information about how S3 handles directories.
+           https://github.com/enso-org/enso/issues/9704
         Unimplemented.throw "Creating S3 folders is currently not implemented."
 
     ## PRIVATE
