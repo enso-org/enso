@@ -10,8 +10,7 @@ import org.apache.commons.io.FileUtils;
 import org.enso.languageserver.data.ProjectDirectoriesConfig;
 import org.enso.languageserver.event.InitializedEvent;
 import org.enso.logger.masking.MaskedPath;
-import org.enso.searcher.SuggestionsRepo;
-import org.enso.searcher.sql.SqlDatabase;
+import org.enso.searcher.memory.InmemorySuggestionsRepo;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import scala.jdk.javaapi.FutureConverters;
@@ -26,8 +25,7 @@ public class RepoInitialization implements InitializationComponent {
 
   private final ProjectDirectoriesConfig projectDirectoriesConfig;
   private final EventStream eventStream;
-  private final SqlDatabase sqlDatabase;
-  private final SuggestionsRepo<scala.concurrent.Future> suggestionsRepo;
+  private final InmemorySuggestionsRepo suggestionsRepo;
 
   private final Logger logger = LoggerFactory.getLogger(this.getClass());
 
@@ -41,19 +39,17 @@ public class RepoInitialization implements InitializationComponent {
    * @param executor the executor that runs the initialization
    * @param projectDirectoriesConfig configuration of language server directories
    * @param eventStream the events stream
-   * @param sqlDatabase the sql database
    * @param suggestionsRepo the suggestions repo
    */
   public RepoInitialization(
       Executor executor,
       ProjectDirectoriesConfig projectDirectoriesConfig,
       EventStream eventStream,
-      SqlDatabase sqlDatabase,
-      SuggestionsRepo<scala.concurrent.Future> suggestionsRepo) {
+      InmemorySuggestionsRepo
+          suggestionsRepo) { // Java won't allow Future type constructor in SuggestionsRepo[Future]
     this.executor = executor;
     this.projectDirectoriesConfig = projectDirectoriesConfig;
     this.eventStream = eventStream;
-    this.sqlDatabase = sqlDatabase;
     this.suggestionsRepo = suggestionsRepo;
   }
 
@@ -64,8 +60,7 @@ public class RepoInitialization implements InitializationComponent {
 
   @Override
   public CompletableFuture<Void> init() {
-    return initSqlDatabase()
-        .thenComposeAsync(v -> initSuggestionsRepo(), executor)
+    return initSuggestionsRepo()
         .whenCompleteAsync(
             (res, err) -> {
               if (err == null && res != null) {
@@ -76,33 +71,9 @@ public class RepoInitialization implements InitializationComponent {
             executor);
   }
 
-  private CompletableFuture<Void> initSqlDatabase() {
-    return CompletableFuture.runAsync(
-            () -> {
-              try {
-                lock.acquire();
-              } catch (InterruptedException e) {
-                throw new RuntimeException(e);
-              }
-              if (!isInitialized) {
-                logger.info("Initializing sql database [{}]...", sqlDatabase);
-                sqlDatabase.open();
-                logger.info("Initialized sql database [{}].", sqlDatabase);
-              }
-            },
-            executor)
-        .whenCompleteAsync(
-            (res, err) -> {
-              if (err != null) {
-                logger.error("Failed to initialize sql database [{}].", sqlDatabase, err);
-              }
-            },
-            executor);
-  }
-
   private CompletableFuture<Void> initSuggestionsRepo() {
     return CompletableFuture.runAsync(
-            () -> logger.info("Initializing suggestions repo [{}]...", sqlDatabase), executor)
+            () -> logger.info("Initializing suggestions repo [{}]...", suggestionsRepo), executor)
         .thenComposeAsync(
             v -> {
               if (!isInitialized)
@@ -112,11 +83,12 @@ public class RepoInitialization implements InitializationComponent {
             },
             executor)
         .thenRunAsync(
-            () -> logger.info("Initialized Suggestions repo [{}].", sqlDatabase), executor)
+            () -> logger.info("Initialized Suggestions repo [{}].", suggestionsRepo), executor)
         .whenCompleteAsync(
             (res, err) -> {
               if (err != null) {
-                logger.error("Failed to initialize SQL suggestions repo [{}].", sqlDatabase, err);
+                logger.error(
+                    "Failed to initialize SQL suggestions repo [{}].", suggestionsRepo, err);
               } else {
                 eventStream.publish(InitializedEvent.SuggestionsRepoInitialized$.MODULE$);
               }
@@ -127,12 +99,9 @@ public class RepoInitialization implements InitializationComponent {
     return CompletableFuture.runAsync(
             () ->
                 logger.warn(
-                    "Failed to initialize the suggestions database [{}].", sqlDatabase, error),
+                    "Failed to initialize the suggestions database [{}].", suggestionsRepo, error),
             executor)
-        .thenRunAsync(sqlDatabase::close, executor)
-        .thenComposeAsync(v -> clearDatabaseFile(0), executor)
-        .thenRunAsync(sqlDatabase::open, executor)
-        .thenRunAsync(() -> logger.info("Retrying database initialization."), executor)
+        .thenRunAsync(() -> logger.info("Retrying suggestions repo initialization."), executor)
         .thenComposeAsync(v -> doInitSuggestionsRepo(), executor);
   }
 
