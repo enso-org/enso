@@ -19,12 +19,12 @@ import project.Table.Table
 
 ## PRIVATE
    Resolve the xls_format setting to a boolean.
-should_treat_as_xls_format : (Boolean|Infer) -> File -> Boolean ! Illegal_Argument
-should_treat_as_xls_format xls_format file =
+should_treat_as_xls_format : (Boolean|Infer) -> File_Format_Metadata -> Boolean ! Illegal_Argument
+should_treat_as_xls_format xls_format file:File_Format_Metadata =
     if xls_format != Infer then xls_format else
         inferred_xls_format = xls_format_from_metadata file
         inferred_xls_format.if_nothing <|
-            Error.throw (Illegal_Argument.Error ("File not recognized as Excel file (" + file.name + ")"))
+            Error.throw (Illegal_Argument.Error ("File extension not recognized as Excel (" + file.name + "). Specify xls_format explicitly."))
 
 ## Read the file to a `Table` from an Excel file
 type Excel_Format
