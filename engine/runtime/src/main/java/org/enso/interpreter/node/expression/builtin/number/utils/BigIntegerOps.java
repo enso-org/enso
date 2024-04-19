@@ -235,7 +235,12 @@ public class BigIntegerOps {
   }
 
   public static boolean fitsInLong(double decimal) {
-    return decimal <= Long.MAX_VALUE && decimal >= Long.MIN_VALUE;
+    var nulaMinus = Double.doubleToRawLongBits(-0d);
+    if (nulaMinus == Double.doubleToRawLongBits(decimal)) {
+      return false;
+    }
+    var converted = (long) decimal;
+    return converted != Long.MAX_VALUE && converted == decimal;
   }
 
   public static boolean fitsInInt(long number) {
