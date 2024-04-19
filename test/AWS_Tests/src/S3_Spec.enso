@@ -562,17 +562,24 @@ add_specs suite_builder =
                 r.rows.at 0 . to_vector . should_equal ["Hello", "WORLD!"]
 
         group_builder.specify "should be able to write data to an S3 data link" <| with_default_credentials <|
+            linked_sheet = my_writable_dir / "linked-sheet.xlsx"
             s3_link = my_writable_dir / "my-simple-write.datalink"
             Problems.assume_no_problems <| Data_Link_Format.write_config s3_link <|
                 JS_Object.from_pairs <|
                     [["type", "S3"]]
                         + [["libraryName", "Standard.AWS"]]
-                        + [["uri", (my_writable_dir / "linked-sheet.xlsx").path]]
+                        + [["uri", linked_sheet.path]]
                         + [["auth", JS_Object.from_pairs [["type", "aws_auth"], ["subType", "default"]]]]
 
             table = Table.new [["X", [1, 2, 3]], ["Y", ["a", "b", "c"]]]
             table.write s3_link . should_equal s3_link
             s3_link.read . should_equal table
+
+            # Deleting the datalink should not delete the linked file:
+            s3_link.delete . should_equal Nothing
+            s3_link.exists . should_be_false
+            linked_sheet.exists . should_be_true
+
 
 main filter=Nothing =
     suite = Test.build suite_builder->
