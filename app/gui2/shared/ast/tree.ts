@@ -10,6 +10,7 @@ import type {
   RawNodeChild,
   SpanMap,
   SyncTokenId,
+  TypeOrConstructorIdentifier,
 } from '.'
 import {
   MutableModule,
@@ -776,30 +777,32 @@ export class AutoscopedIdentifier extends Ast {
     return asOwned(new MutableAutoscopedIdentifier(module, fields))
   }
 
-  static new(module: MutableModule, operator: Token, identifier: Token) {
-    return this.concrete(module, unspaced(operator), unspaced(identifier))
+  static new(
+    identifier: TypeOrConstructorIdentifier,
+    module?: MutableModule,
+  ): Owned<MutableAutoscopedIdentifier> {
+    const module_ = module || MutableModule.Transient()
+    const operator = Token.new('..')
+    const ident = Token.new(identifier, RawAst.Token.Type.Ident)
+    return this.concrete(module_, unspaced(operator), unspaced(ident))
   }
 
   *concreteChildren(_verbatim?: boolean): IterableIterator<RawNodeChild> {
     const { operator, identifier } = getAll(this.fields)
     yield operator
-    if (identifier) yield identifier
+    yield identifier
   }
 }
 export class MutableAutoscopedIdentifier extends AutoscopedIdentifier implements MutableAst {
   declare readonly module: MutableModule
   declare readonly fields: FixedMap<AstFields & AutoscopedIdentifierFields>
 
-  setOperator(value: Token) {
-    this.fields.set('operator', unspaced(value))
-  }
-  setIdentifier(value: Token) {
-    this.fields.set('identifier', unspaced(value))
+  setIdentifier(value: TypeOrConstructorIdentifier) {
+    const token = Token.new(value, RawAst.Token.Type.Ident)
+    this.fields.set('identifier', unspaced(token))
   }
 }
-export interface MutableAutoscopedIdentifier extends AutoscopedIdentifier, MutableAst {
-  get identifier(): MutableAst | undefined
-}
+export interface MutableAutoscopedIdentifier extends AutoscopedIdentifier, MutableAst {}
 applyMixins(MutableAutoscopedIdentifier, [MutableAst])
 
 interface NegationAppFields {
@@ -2455,7 +2458,7 @@ export function materialize(module: Module, fields: FixedMapView<AstFields>): As
     case 'UnaryOprApp':
       return new UnaryOprApp(module, fields_)
     case 'AutoscopedIdentifier':
-      return new MutableAutoscopedIdentifier(module, fields_)
+      return new AutoscopedIdentifier(module, fields_)
     case 'Vector':
       return new Vector(module, fields_)
     case 'Wildcard':
