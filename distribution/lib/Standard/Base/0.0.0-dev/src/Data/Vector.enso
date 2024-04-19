@@ -1254,6 +1254,10 @@ type Builder
 
        Arguments:
        - java_builder: The accumulator for the new vector.
+       - panic_on_dataflow_error: If True, attempting to add an uncaught
+         dataflow exception will result in an immediate panic. This value is
+         intended to be False for `Vector.new_builder`-style usage, and True for
+         `Vector.build`-style usage.
 
        A vector builder is a mutable data structure, that allows to gather a
        number of elements and then convert them to a vector. This is
@@ -1266,6 +1270,14 @@ type Builder
          "close" at the end to get your newly-created `Vector`.
        - `Vector.build`: takes a function which uses the `Builder`, and
          automatically "closes" and returns the newly-created `Vector`.
+
+       ! Error Conditions
+
+         - If `panic_on_dataflow_error` is True, any attempt to add a value or
+           values that are uncaught dataflow errors will result in an immediate
+           panic containing the dataflow error. This applies to `.append` and
+           `.append_vector_range`. In the case of `.append_vector_range `, only
+           the first dataflow error found is included in the panic.
 
        > Example
              Construct a vector using a builder that contains the items 1 to 5,
@@ -1297,7 +1309,7 @@ type Builder
          and get wrong error propagation. Instead we may want to have a `Ref`
          inside of the Builder. Any error detected during `append` could set
          that `Ref` and then `to_vector` could propagate that error.
-    Value java_builder
+    Value java_builder (panic_on_dataflow_error : Boolean)
 
     ## PRIVATE
        Creates a new builder.
@@ -1309,8 +1321,8 @@ type Builder
          Make a new builder
 
              Vector.new_builder
-    new : Integer -> Builder
-    new (capacity=10) = Builder.Value (Array_Like_Helpers.new_vector_builder capacity)
+    new : Integer -> Boolean -> Builder
+    new (capacity : Integer = 10) (panic_on_dataflow_error : Boolean = False) = Builder.Value (Array_Like_Helpers.new_vector_builder capacity) panic_on_dataflow_error
 
     ## GROUP Logical
        ICON metadata
@@ -1340,9 +1352,16 @@ type Builder
        Arguments:
        - item: The item to append to the vector builder.
 
-       ! Error Conditions
+       ? Appending Dataflow Errors
+ 
+         If `panic_on_dataflow_error` is true, and the value to be appended is
+         an uncaught dataflow error, a `Builder_Dataflow_Error` panic is thrown,
+         with the first error found.  The error is not added to the builder. See
+         the documentation for the `panic_on_dataflow_error` field for more
+         info.
 
-         - If `item` is a dataflow error, the error is propagated.
+         If `panic_on_dataflow_error` is false, and the value to be appended is
+         an uncaught dataflow error, it is propagated.
 
        > Example
          Append two items.
@@ -1350,10 +1369,15 @@ type Builder
              builder = Vector.new_builder
              builder . append 10 . append 20
     append : Any ! Error -> Builder ! Error
-    append self item = case item of
-        _ ->
-            self.unsafe_append item
-            self
+    append self item =
+        case item.is_error of
+            True ->
+                case self.panic_on_dataflow_error of
+                    True -> Panic.throw (Builder_Dataflow_Error.Error item.catch)
+                    False -> item
+            False ->
+                self.unsafe_append item
+                self
 
     ## ICON join
        Appends a part of a given vector to this builder
@@ -1364,6 +1388,19 @@ type Builder
        - end: The end index (the first index after the last element to be
          appended) of the range to be appended.
 
+       ? Appending Dataflow Errors
+         
+         If `panic_on_dataflow_error` is true, then if any of the values to be
+         appended are an uncaught dataflow error, a `Builder_Dataflow_Error`
+         panic is thrown, with the first error found.  No values are added to
+         the builder. See the documentation for the `panic_on_dataflow_error`
+         field for more info.
+
+         If `panic_on_dataflow_error` is false, then if any of the values to be
+         appended are an uncaught dataflow error, the error is *not* propagated.
+         All of the values, including dataflow errors, are added to the builder.
+         To be fixed in https://github.com/enso-org/enso/issues/9760.
+
        > Example
          Append a part of the vector.
 
@@ -1372,11 +1409,22 @@ type Builder
     append_vector_range : Vector Any ! Error -> Integer -> Integer -> Builder ! Error
     append_vector_range self vector (start : Integer = 0) end=vector.length =
         subrange = vector.slice start end
-        ## This workaround is needed because
-           `self.java_builder.addAll subrange.to_array` fails with
-           `Unsupported argument types: [Array]`.
-        append_result = self.java_builder.appendTo subrange
-        append_result.if_not_error self
+        case self.panic_on_dataflow_error of
+            True ->
+                first_dataflow_error = subrange.find (x-> x.is_error) if_missing=Nothing
+                if_no_errors =
+                    append_result = self.java_builder.appendTo subrange
+                    assert (append_result.is_error.not)
+                    self
+                if first_dataflow_error.is_error.not then if_no_errors else
+                    assert first_dataflow_error.is_error
+                    Panic.throw (Builder_Dataflow_Error.Error first_dataflow_error.catch)
+            False ->
+                ## This workaround is needed because
+                   `self.java_builder.addAll subrange.to_array` fails with
+                   `Unsupported argument types: [Array]`.
+                append_result = self.java_builder.appendTo subrange
+                append_result.if_not_error self
 
     ## PRIVATE
        Appends a new element into this builder.
@@ -1388,6 +1436,10 @@ type Builder
          ignored. To avoid this, prefer to use the `append` operation and
          consume the returned builder which will contain any dataflow errors if
          they need to be propagated.
+
+       ? Appending Dataflow Errors
+         `unsafe_append` does not check if the appended value is a dataflow
+         error; that is done by `.append`.
 
        Arguments:
        - item: The item to append to the vector builder.
@@ -1489,6 +1541,12 @@ type Map_Error
     ## PRIVATE
     to_display_text : Text
     to_display_text self = "Error at index " + self.index.to_text + ": " + self.inner_error.to_display_text
+
+## This panic is thrown by a `Builder` when its `panic_on_dataflow_error` is
+   True, and caught by `Vector.build_multiple`. It is not meant to ever reach
+   users.
+type Builder_Dataflow_Error
+    Error (dataflow_error : Any)
 
 ## PRIVATE
    Indicates that a method should not wrap thrown errors in `Map_Error`.

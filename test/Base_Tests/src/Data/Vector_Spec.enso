@@ -1,6 +1,8 @@
 from Standard.Base import all
 from Standard.Base.Data.Array_Proxy import Array_Proxy
 import Standard.Base.Errors.Empty_Error.Empty_Error
+import Standard.Base.Data.Vector.Builder
+import Standard.Base.Data.Vector.Builder_Dataflow_Error
 import Standard.Base.Data.Vector.Map_Error
 import Standard.Base.Data.Vector.No_Wrap
 import Standard.Base.Errors.Common.Additional_Warnings
@@ -1053,6 +1055,41 @@ add_specs suite_builder =
                 builder.append 2
                 Error.throw (Illegal_Argument.Error "asdf")
             v . should_fail_with (Illegal_Argument.Error "asdf")
+
+        group_builder.specify "Builder should propagate the error when a dataflow error is added with `.append`, if `panic_on_dataflow_error` is False" <|
+            builder = Vector.new_builder
+            err = Error.throw (Illegal_Argument.Error "error")
+            builder.append 1
+            builder.append err . should_fail_with  err
+            builder.to_vector . should_equal [1]
+
+        group_builder.specify "Builder should not propagate the error when a dataflow error is added with `.append_vector_range `, if `panic_on_dataflow_error` is False" <|
+            builder = Vector.new_builder
+            values = [1, Error.throw (Illegal_Argument.Error "error"), 3]
+            builder.append_vector_range values . should_equal builder
+            builder.to_vector . should_equal values
+
+        group_builder.specify "Builder should panic when a dataflow error is added with `.append`, if `panic_on_dataflow_error` is True" <|
+            ## This test uses a raw Builder directly, since the
+               `Vector.new_builder` and `Vector.build` APIs do not provide
+               direct access to this panic.
+
+            builder = Builder.new panic_on_dataflow_error=True
+            Test.expect_panic Builder_Dataflow_Error <|
+                builder.append 1
+                builder.append (Error.throw (Illegal_Argument.Error "error"))
+            builder.to_vector . should_equal [1]
+
+        group_builder.specify "Builder should panic when a dataflow error is added with `.append_vector_range`, if `panic_on_dataflow_error` is True" <|
+            ## This test uses a raw Builder directly, since the
+               `Vector.new_builder` and `Vector.build` APIs do not provide
+               direct access to this panic.
+
+            builder = Builder.new panic_on_dataflow_error=True
+            values = [1, Error.throw (Illegal_Argument.Error "error"), 3]
+            Test.expect_panic Builder_Dataflow_Error <|
+                builder.append_vector_range values
+            builder.to_vector . should_equal []
 
         group_builder.specify "example (single)" <|
             vec = Vector.build initial_capacity=5 builder->
