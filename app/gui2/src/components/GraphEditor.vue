@@ -147,10 +147,10 @@ const graphBindingsHandler = graphBindings.handler({
     projectStore.module?.undoManager.redo()
   },
   startProfiling() {
-    projectStore.lsRpcConnection.then((ls) => ls.profilingStart(true))
+    projectStore.lsRpcConnection.profilingStart(true)
   },
   stopProfiling() {
-    projectStore.lsRpcConnection.then((ls) => ls.profilingStop())
+    projectStore.lsRpcConnection.profilingStop()
   },
   openComponentBrowser() {
     if (keyboardBusy()) return false
@@ -288,7 +288,7 @@ const codeEditorHandler = codeEditorBindings.handler({
 
 /** Handle record-once button presses. */
 function onRecordOnceButtonPress() {
-  projectStore.lsRpcConnection.then(async () => {
+  projectStore.lsRpcConnection.initialized.then(async () => {
     const modeValue = projectStore.executionMode
     if (modeValue == undefined) {
       return
@@ -449,29 +449,29 @@ async function handleFileDrop(event: DragEvent) {
 
   if (!event.dataTransfer?.items) return
   ;[...event.dataTransfer.items].forEach(async (item, index) => {
-    try {
-      if (item.kind === 'file') {
-        const file = item.getAsFile()
-        if (!file) return
-        const clientPos = new Vec2(event.clientX, event.clientY)
-        const offset = new Vec2(0, index * -MULTIPLE_FILES_GAP)
-        const pos = graphNavigator.clientToScenePos(clientPos).add(offset)
-        const uploader = await Uploader.Create(
-          projectStore.lsRpcConnection,
-          projectStore.dataConnection,
-          projectStore.contentRoots,
-          projectStore.awareness,
-          file,
-          pos,
-          projectStore.isOnLocalBackend,
-          event.shiftKey,
-          projectStore.executionContext.getStackTop(),
-        )
-        const uploadResult = await uploader.upload()
-        graphStore.createNode(pos, uploadedExpression(uploadResult))
+    if (item.kind === 'file') {
+      const file = item.getAsFile()
+      if (!file) return
+      const clientPos = new Vec2(event.clientX, event.clientY)
+      const offset = new Vec2(0, index * -MULTIPLE_FILES_GAP)
+      const pos = graphNavigator.clientToScenePos(clientPos).add(offset)
+      const uploader = await Uploader.Create(
+        projectStore.lsRpcConnection,
+        projectStore.dataConnection,
+        projectStore.contentRoots,
+        projectStore.awareness,
+        file,
+        pos,
+        projectStore.isOnLocalBackend,
+        event.shiftKey,
+        projectStore.executionContext.getStackTop(),
+      )
+      const uploadResult = await uploader.upload()
+      if (uploadResult.ok) {
+        graphStore.createNode(pos, uploadedExpression(uploadResult.value))
+      } else {
+        uploadResult.error.log(`Uploading file failed`)
       }
-    } catch (err) {
-      console.error(`Uploading file failed. ${err}`)
     }
   })
 }

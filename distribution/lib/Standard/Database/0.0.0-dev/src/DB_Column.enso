@@ -1496,8 +1496,8 @@ type DB_Column
     minute self = Value_Type.expect_has_time self <|
         self.make_unary_op "minute"
 
-    ## GROUP Standard.Base.Selections
-       ICON select_row
+    ## GROUP Standard.Base.DateTime
+       ICON date_and_time
        Gets the second as an integer (0-60) from the time stored in the column.
 
        Applies only to columns that hold the `Time_Of_Day` or `Date_Time` types.

@@ -955,6 +955,14 @@ add_specs suite_builder =
             12 . to_decimal . should_equal (Decimal.new "12")
             12.3 . to_decimal . should_equal (Decimal.new "12.3")
 
+    suite_builder.group "BigDecimal internal representation methods" group_builder->
+        group_builder.specify "internal accessors should work correctly" <|
+            d = Decimal.new "123.456"
+            d.precision . should_equal 6
+            d.scale . should_equal 3
+            d.unscaled_value . should_equal 123456
+            d.internal_representation . should_equal [123456, 6, 3]
+
 main =
     suite = Test.build suite_builder->
         add_specs suite_builder

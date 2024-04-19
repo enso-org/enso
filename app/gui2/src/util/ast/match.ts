@@ -39,6 +39,11 @@ export class Pattern {
     return matches
   }
 
+  /** Check if the given expression matches the pattern */
+  test(target: Ast.Ast): boolean {
+    return this.match(target) != null
+  }
+
   /** Create a new concrete example of the pattern, with the placeholders replaced with the given subtrees. */
   instantiate(edit: MutableModule, subtrees: Ast.Owned[]): Ast.Owned {
     const template = edit.copy(this.template)

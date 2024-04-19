@@ -1,4 +1,4 @@
-import type { ExecutionContext } from '@/stores/project'
+import type { ExecutionContext } from '@/stores/project/executionContext'
 import { ReactiveDb, ReactiveIndex } from '@/util/database/reactiveDb'
 import type {
   ExpressionId,

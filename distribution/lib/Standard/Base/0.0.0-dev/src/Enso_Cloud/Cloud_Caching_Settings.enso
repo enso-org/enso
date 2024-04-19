@@ -5,8 +5,8 @@ import project.Nothing.Nothing
 polyglot java import org.enso.base.enso_cloud.CacheSettings
 
 ## PRIVATE
-   UNSTABLE
    ADVANCED
+   UNSTABLE
    Sets for how long is Enso Cloud file information cached without checking for
    external updates.
 
