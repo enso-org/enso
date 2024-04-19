@@ -583,8 +583,10 @@ add_specs suite_builder =
 
         test_write_table_to_datalink "xlsx" got_workbook->
             got_workbook.read "EnsoSheet" . should_equal table
-        test_write_table_to_datalink "csv" got_table-> got_table.should_equal table
-        test_write_table_to_datalink "json" got_table-> got_table.should_equal table
+        test_write_table_to_datalink "csv" got_table->
+            got_table.should_equal table
+        test_write_table_to_datalink "json" got_json->
+            Table.from got_json . should_equal table
 
 main filter=Nothing =
     suite = Test.build suite_builder->
