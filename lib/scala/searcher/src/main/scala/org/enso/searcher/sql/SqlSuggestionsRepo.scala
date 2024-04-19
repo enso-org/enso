@@ -10,7 +10,6 @@ import slick.relational.RelationalProfile
 
 import java.util.UUID
 
-import scala.collection.immutable.HashMap
 import scala.collection.mutable
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.{Failure, Success}
@@ -31,17 +30,6 @@ final class SqlSuggestionsRepo(val db: SqlDatabase)(implicit
   /** @inheritdoc */
   override def getAll: Future[(Long, Seq[SuggestionEntry])] =
     db.run(getAllQuery)
-
-  /** @inheritdoc */
-  override def search(
-    module: Option[String],
-    selfType: Seq[String],
-    returnType: Option[String],
-    kinds: Option[Seq[Suggestion.Kind]],
-    position: Option[Suggestion.Position],
-    isStatic: Option[Boolean]
-  ): Future[(Long, Seq[Long])] =
-    db.run(searchQuery(module, selfType, returnType, kinds, position, isStatic))
 
   /** @inheritdoc */
   override def select(id: Long): Future[Option[Suggestion]] =
@@ -115,25 +103,6 @@ final class SqlSuggestionsRepo(val db: SqlDatabase)(implicit
   def close(): Unit =
     db.close()
 
-  /** Get the database schema version.
-    *
-    * @return the schema version of the database
-    */
-  def getSchemaVersion: Future[Long] =
-    db.run(currentSchemaVersionQuery)
-
-  /** Set the database schema version.
-    *
-    * @param version the database schema version
-    * @return the schema version of the database
-    */
-  def setSchemaVersion(version: Long): Future[Long] =
-    db.run(setSchemaVersionQuery(version))
-
-  /** Remove the database schema version. */
-  def clearSchemaVersion: Future[Unit] =
-    db.run(clearSchemaVersionQuery)
-
   def insertBatchJava(suggestions: Array[Suggestion]): Future[Int] =
     db.run(insertBatchJavaQuery(suggestions).transactionally)
 
@@ -185,63 +154,6 @@ final class SqlSuggestionsRepo(val db: SqlDatabase)(implicit
       rows    <- Suggestions.result
       version <- currentVersionQuery
     } yield (version, rows.map(toSuggestionEntry))
-  }
-
-  /** The query to search suggestion by various parameters.
-    *
-    * @param module the module name search parameter
-    * @param selfType the selfType search parameter, ordered by specificity
-    *                 with the most specific type first
-    * @param returnType the returnType search parameter
-    * @param kinds the list suggestion kinds to search
-    * @param position the absolute position in the text
-    * @param isStatic the static attiribute
-    * @return the list of suggestion ids, ranked by specificity (as for
-    *         `selfType`)
-    */
-  private def searchQuery(
-    module: Option[String],
-    selfType: Seq[String],
-    returnType: Option[String],
-    kinds: Option[Seq[Suggestion.Kind]],
-    position: Option[Suggestion.Position],
-    isStatic: Option[Boolean]
-  ): DBIO[(Long, Seq[Long])] = {
-    val typeSorterMap: HashMap[String, Int] = HashMap(selfType.zipWithIndex: _*)
-    val searchAction =
-      if (
-        module.isEmpty &&
-        selfType.isEmpty &&
-        returnType.isEmpty &&
-        kinds.isEmpty &&
-        position.isEmpty &&
-        isStatic.isEmpty
-      ) {
-        DBIO.successful(Seq())
-      } else {
-        val query =
-          searchQueryBuilder(
-            module,
-            selfType,
-            returnType,
-            kinds,
-            position,
-            isStatic
-          )
-            .map(r => (r.id, r.selfType))
-        query.result
-      }
-    val query = for {
-      resultsWithTypes <- searchAction
-      // This implementation should be revisited if it ever becomes a
-      // performance bottleneck. It may be possible to encode the same logic in
-      // the database query itself.
-      results = resultsWithTypes
-        .sortBy { case (_, ty) => typeSorterMap.getOrElse(ty, -1) }
-        .map(_._1)
-      version <- currentVersionQuery
-    } yield (version, results)
-    query
   }
 
   /** The query to select the suggestion by id.
@@ -614,12 +526,6 @@ final class SqlSuggestionsRepo(val db: SqlDatabase)(implicit
     query
   }
 
-  /** The query to delete the schema version. */
-  private def clearSchemaVersionQuery: DBIO[Unit] =
-    for {
-      _ <- SchemaVersion.delete
-    } yield ()
-
   /** The query to insert suggestions in a batch.
     *
     * @param suggestions the list of suggestions to insert
@@ -683,57 +589,6 @@ final class SqlSuggestionsRepo(val db: SqlDatabase)(implicit
     } yield {
       rows.map(row => SuggestionEntry(row.id.get, toSuggestion(row)))
     }
-
-  /** Create a search query by the provided parameters.
-    *
-    * Even if the module is specified, the response includes all available
-    * global symbols (atoms and method).
-    *
-    * @param module the module name search parameter
-    * @param selfTypes the selfType search parameter
-    * @param returnType the returnType search parameter
-    * @param kinds the list suggestion kinds to search
-    * @param position the absolute position in the text
-    * @param isStatic the static attribute
-    * @return the search query
-    */
-  private def searchQueryBuilder(
-    module: Option[String],
-    selfTypes: Seq[String],
-    returnType: Option[String],
-    kinds: Option[Seq[Suggestion.Kind]],
-    position: Option[Suggestion.Position],
-    isStatic: Option[Boolean]
-  ): Query[SuggestionsTable, SuggestionRow, Seq] = {
-    Suggestions
-      .filterOpt(module) { case (row, value) =>
-        row.scopeStartLine === ScopeColumn.EMPTY || row.module === value
-      }
-      .filterIf(selfTypes.isEmpty) { row =>
-        row.kind =!= SuggestionKind.GETTER
-      }
-      .filterIf(selfTypes.nonEmpty) { row =>
-        row.selfType.inSet(selfTypes) &&
-        (row.kind =!= SuggestionKind.CONSTRUCTOR)
-      }
-      .filterOpt(returnType) { case (row, value) =>
-        row.returnType === value
-      }
-      .filterOpt(kinds) { case (row, value) =>
-        row.kind inSet value.map(SuggestionKind(_))
-      }
-      .filterOpt(position) { case (row, value) =>
-        (row.scopeStartLine === ScopeColumn.EMPTY) ||
-        (
-          row.scopeStartLine <= value.line &&
-          row.scopeEndLine >= value.line
-        )
-      }
-      .filterOpt(isStatic) { case (row, value) =>
-        (row.kind === SuggestionKind.METHOD && row.isStatic === value) ||
-        (row.kind =!= SuggestionKind.METHOD)
-      }
-  }
 
   /** Convert the suggestion to a row in the suggestions table. */
   private def toSuggestionRow(suggestion: Suggestion): SuggestionRow =

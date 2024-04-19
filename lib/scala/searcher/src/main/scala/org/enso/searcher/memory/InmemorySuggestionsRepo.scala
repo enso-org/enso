@@ -4,6 +4,7 @@ import org.enso.polyglot.Suggestion
 import org.enso.polyglot.Suggestion.ExternalID
 import org.enso.polyglot.runtime.Runtime.Api
 import org.enso.searcher.data.QueryResult
+import org.enso.searcher.sql.SuggestionRowUniqueIndex
 import org.enso.searcher.{SuggestionEntry, SuggestionsRepo}
 
 import scala.collection.mutable
@@ -43,29 +44,6 @@ class InmemorySuggestionsRepo(implicit ec: ExecutionContext)
     }
   }
 
-  /** Search suggestion by various parameters.
-    *
-    * @param module     the module name search parameter
-    * @param selfType   the self types to search for, ordered by specificity with
-    *                   the most specific type first
-    * @param returnType the returnType search parameter
-    * @param kinds      the list suggestion kinds to search
-    * @param position   the absolute position in the text
-    * @param isStatic   the static attribute
-    * @return the current database version and the list of found suggestion ids,
-    *         ranked by specificity
-    */
-  override def search(
-    module: Option[String],
-    selfType: Seq[String],
-    returnType: Option[String],
-    kinds: Option[Seq[Suggestion.Kind]],
-    position: Option[Suggestion.Position],
-    isStatic: Option[Boolean]
-  ): Future[(Long, Seq[Long])] = {
-    ???
-  }
-
   /** Select the suggestion by id.
     *
     * @param id the id of a suggestion
@@ -99,6 +77,30 @@ class InmemorySuggestionsRepo(implicit ec: ExecutionContext)
   override def insertAll(
     suggestions: Seq[Suggestion]
   ): Future[(Long, Seq[Long])] = Future {
+    val duplicatesBuilder = Vector.newBuilder[(Suggestion, Suggestion)]
+    val suggestionsMap: mutable.Map[SuggestionRowUniqueIndex, Suggestion] =
+      mutable.LinkedHashMap()
+    suggestions.foreach { suggestion =>
+      val idx = SuggestionRowUniqueIndex(suggestion)
+      suggestionsMap.put(idx, suggestion).foreach { duplicate =>
+        duplicatesBuilder.addOne((duplicate, suggestion))
+      }
+    }
+    val duplicates = duplicatesBuilder.result()
+    if (duplicates.isEmpty) {
+      db.synchronized {
+        val result = suggestions.map(s => {
+          val i = index
+          index += 1
+          db.put(i, s)
+          i
+        })
+        version += 1
+        (version, result)
+      }
+    } else {
+      throw new RuntimeException("Duplicates detected: " + duplicates)
+    }
     db.synchronized {
       val result = suggestions.map(s => {
         val i = index

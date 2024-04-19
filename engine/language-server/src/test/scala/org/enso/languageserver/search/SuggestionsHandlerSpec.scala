@@ -20,7 +20,6 @@ import org.enso.polyglot.{ExportedSymbol, ModuleExports, Suggestion}
 import org.enso.searcher.sql.{SqlDatabase, SqlSuggestionsRepo}
 import org.enso.searcher.SuggestionsRepo
 import org.enso.testkit.RetrySpec
-import org.enso.text.editing.model.Position
 import org.scalatest.BeforeAndAfterAll
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpecLike
@@ -744,7 +743,7 @@ class SuggestionsHandlerSpec
         expectMsg(SearchProtocol.InvalidateSuggestionsDatabaseResult)
     }
 
-    "search entries by empty search query" taggedAs Retry in withDb {
+/*    "search entries by empty search query" taggedAs Retry in withDb {
       (config, repo, _, _, handler) =>
         val (_, inserted) =
           Await.result(repo.insertAll(Suggestions.all), Timeout)
@@ -914,7 +913,7 @@ class SuggestionsHandlerSpec
             Seq(moduleId, typeId, consId, methodId, localId)
           )
         )
-    }
+    }*/
   }
 
   private def fieldUpdate(value: String): SearchProtocol.FieldUpdate[String] =

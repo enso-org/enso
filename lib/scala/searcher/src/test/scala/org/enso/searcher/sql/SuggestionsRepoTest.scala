@@ -57,19 +57,6 @@ class SuggestionsRepoTest
       Await.result(repo.init, Timeout)
     }
 
-    "check the schema version when init" taggedAs Retry in withRepo { repo =>
-      val wrongSchemaVersion = Long.MinValue
-      val action =
-        for {
-          version <- repo.setSchemaVersion(wrongSchemaVersion)
-          _       <- repo.init
-        } yield version
-
-      val thrown =
-        the[InvalidSchemaVersion] thrownBy Await.result(action, Timeout)
-      thrown.version shouldEqual wrongSchemaVersion
-    }
-
     "insert all suggestions" taggedAs Retry in withRepo { repo =>
       val action =
         for {
@@ -709,7 +696,7 @@ class SuggestionsRepoTest
       )
     }
 
-    "search suggestion by empty query" taggedAs Retry in withRepo { repo =>
+    /*"search suggestion by empty query" taggedAs Retry in withRepo { repo =>
       val action = for {
         _   <- repo.insert(suggestion.module)
         _   <- repo.insert(suggestion.tpe)
@@ -1302,6 +1289,8 @@ class SuggestionsRepoTest
       val res = Await.result(action, Timeout)
       res.isEmpty shouldEqual true
     }
+
+     */
   }
 
   object suggestion {
