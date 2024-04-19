@@ -29,7 +29,7 @@ public abstract class EnsoRootNode extends RootNode {
    *
    * @param language the language instance in which this will execute
    * @param localScope a reference to the construct local scope
-   * @param moduleScope a reference to the construct module scope
+   * @param moduleScope a reference to the construct module scope. May be {@code null}.
    * @param name the name of the construct
    * @param sourceSection a reference to the source code being executed. May be {@code null}.
    */
@@ -42,7 +42,6 @@ public abstract class EnsoRootNode extends RootNode {
     super(language, buildFrameDescriptor(localScope));
     Objects.requireNonNull(language);
     Objects.requireNonNull(localScope);
-    Objects.requireNonNull(moduleScope);
     this.name = name;
     this.localScope = localScope;
     this.moduleScope = moduleScope;
