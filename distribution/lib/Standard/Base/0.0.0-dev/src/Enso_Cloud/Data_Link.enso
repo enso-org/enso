@@ -248,7 +248,7 @@ interpret_data_link_as_writable_file (file : File_Like) -> Writable_File =
        but there the data link does not know its 'origin', so it is impossible
        to override it there.
     Writable_Data_Link.find data_link_instance . as_writable_file
-        . with_overridden_return file.file
+        . with_overridden_return file.underlying
 
 ## PRIVATE
 save_data_link_to_file data_link_instance (target_file : Writable_File) =
