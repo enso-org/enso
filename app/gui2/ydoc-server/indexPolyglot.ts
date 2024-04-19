@@ -1,3 +1,7 @@
+/**
+ * @file An entry point for polyglot Yjs gateway server.
+ */
+
 import { docName } from './auth'
 import { setupGatewayClient } from './ydoc'
 

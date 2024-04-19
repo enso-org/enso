@@ -1,3 +1,11 @@
+/**
+ * @file This file is used as ffi {@link module:ffi} interface for building the polyglot ydoc server.
+ * All the exported methods are provided by the ydoc server implementation.
+ * The interface should be kept in sync with Rust ffi inteface {@link module:ffi}.
+ *
+ * @module ffiJava
+ */
+
 import type { IDataType } from 'hash-wasm/dist/lib/util'
 
 declare global {

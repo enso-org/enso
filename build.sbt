@@ -1146,7 +1146,7 @@ lazy val `ydoc-server` = project
       .dependsOn(
         Def.task {
           import scala.sys.process._
-          "npm --workspace=enso-gui2 run build-ydoc-server" ! streams.value.log
+          "npm --workspace=enso-gui2 run build-ydoc-server-polyglot" ! streams.value.log
         }
       )
       .evaluated,
