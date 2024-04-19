@@ -653,6 +653,7 @@
 - [Added `Decimal.floor`, `.ceil`, and `.trunc`.][9694]
 - [Added `recursive` option to `File.delete`.][9719]
 - [Added `Vector.build`.][9725]
+- [Added `Table.running` method][9577]
 
 [debug-shortcuts]:
   https://github.com/enso-org/enso/blob/develop/app/gui/docs/product/shortcuts.md#debug
@@ -956,6 +957,7 @@
 [9694]: https://github.com/enso-org/enso/pull/9694
 [9719]: https://github.com/enso-org/enso/pull/9719
 [9725]: https://github.com/enso-org/enso/pull/9725
+[9577]: https://github.com/enso-org/enso/pull/9577
 
 #### Enso Compiler
 

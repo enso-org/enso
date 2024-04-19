@@ -23,6 +23,7 @@ polyglot java import java.lang.NullPointerException
 polyglot java import org.enso.base.CompareException
 polyglot java import org.enso.base.statistics.CorrelationStatistics
 polyglot java import org.enso.base.statistics.Rank
+polyglot java import org.enso.base.statistics.Statistic as java_Statistic
 
 ## Specifies how to handle ranking of equal values.
 type Rank_Method
@@ -138,6 +139,22 @@ type Statistic
         _ -> Nothing
 
     ## PRIVATE
+    to_java self = case self of
+        Statistic.Count -> java_Statistic.Count
+        Statistic.Minimum -> java_Statistic.Minimum
+        Statistic.Maximum -> java_Statistic.Maximum
+        Statistic.Sum -> java_Statistic.Sum
+        Statistic.Mean -> java_Statistic.Mean
+        Statistic.Variance _ -> java_Statistic.Variance
+        Statistic.Standard_Deviation _ -> java_Statistic.StandardDeviation
+        Statistic.Skew _ -> java_Statistic.Skew
+        Statistic.Kurtosis -> java_Statistic.Kurtosis
+        Statistic.Covariance _ -> java_Statistic.Covariance
+        Statistic.Pearson _ -> java_Statistic.Pearson
+        Statistic.Spearman _ -> java_Statistic.Spearman
+        Statistic.R_Squared _ -> java_Statistic.R_Squared
+
+    ## PRIVATE
        Compute a single statistic on a vector like object.
 
        Arguments:
@@ -191,14 +208,7 @@ type Statistic
        - statistics: Set of statistics to calculate.
     running_bulk : Vector -> Vector Statistic -> Vector Any
     running_bulk data statistics=[Statistic.Count, Statistic.Sum] =
-        is_unsupported s = case s of
-            Statistic.Covariance _ -> True
-            Statistic.Pearson _ -> True
-            Statistic.Spearman _ -> True
-            Statistic.R_Squared _ -> True
-            _ -> False
-
-        if statistics.any is_unsupported then Error.throw (Illegal_Argument.Error ("Unsupported Statistics ( " + (statistics.filter is_unsupported . to_text) ") for running calculations.")) else
+        check_running_support statistics <|
             moment_order = statistics.map on_problems=No_Wrap .order
             has_min_max = statistics.any (s-> s == Statistic.Minimum || s == Statistic.Maximum)
             max_moment_order = moment_order.filter (v-> v != Nothing) . fold 0 .max
@@ -269,6 +279,21 @@ type Statistic
     rank_data : Vector -> Rank_Method -> Vector
     rank_data input method=Rank_Method.Average =
         method.compute input
+
+## PRIVATE
+   Check if the statistics are supported for running calculations.
+check_running_support : Vector Statistic -> Any -> Any
+check_running_support statistics ~action =
+    is_unsupported s = case s of
+        Statistic.Covariance _ -> True
+        Statistic.Pearson _ -> True
+        Statistic.Spearman _ -> True
+        Statistic.R_Squared _ -> True
+        _ -> False
+
+    if statistics.any is_unsupported then Error.throw (Illegal_Argument.Error ("Unsupported Statistics ( " + (statistics.filter is_unsupported . to_text) + ") for running calculations.")) else
+        action
+
 
 ## PRIVATE
 wrap_java_call : Any -> Any
