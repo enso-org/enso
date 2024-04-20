@@ -65,79 +65,9 @@ public class SuggestionsRepoBenchmark {
     return (int) Await.result(repo.insertBatchJava(stubs), TIMEOUT);
   }
 
+  @SuppressWarnings("unchecked")
   static <T> scala.Option<T> none() {
     return (scala.Option<T>) scala.None$.MODULE$;
-  }
-
-  @Benchmark
-  public Object searchBaseline() throws TimeoutException, InterruptedException {
-    return Await.result(
-        repo.search(
-            none(),
-            CollectionConverters.ListHasAsScala(new ArrayList<String>()).asScala().toSeq(),
-            none(),
-            none(),
-            none(),
-            none()),
-        TIMEOUT);
-  }
-
-  @Benchmark
-  public Object searchByReturnType() throws TimeoutException, InterruptedException {
-    return Await.result(
-        repo.search(
-            none(),
-            CollectionConverters.ListHasAsScala(new ArrayList<String>()).asScala().toSeq(),
-            scala.Some.apply("MyType"),
-            none(),
-            none(),
-            none()),
-        TIMEOUT);
-  }
-
-  @Benchmark
-  public Object searchBySelfType() throws TimeoutException, InterruptedException {
-    var selfTypes = new ArrayList<String>();
-    selfTypes.add("MyType");
-    return Await.result(
-        repo.search(
-            none(),
-            CollectionConverters.ListHasAsScala(selfTypes).asScala().toSeq(),
-            none(),
-            none(),
-            none(),
-            none()),
-        TIMEOUT);
-  }
-
-  @Benchmark
-  public Object searchBySelfReturnTypes() throws TimeoutException, InterruptedException {
-    var selfTypes = new ArrayList<String>();
-    selfTypes.add("SelfType");
-    return Await.result(
-        repo.search(
-            none(),
-            CollectionConverters.ListHasAsScala(selfTypes).asScala().toSeq(),
-            scala.Some.apply("ReturnType"),
-            none(),
-            none(),
-            none()),
-        TIMEOUT);
-  }
-
-  @Benchmark
-  public Object searchByAll() throws TimeoutException, InterruptedException {
-    var selfTypes = new ArrayList<String>();
-    selfTypes.add("SelfType");
-    return Await.result(
-        repo.search(
-            none(),
-            CollectionConverters.ListHasAsScala(selfTypes).asScala().toSeq(),
-            scala.Some.apply("ReturnType"),
-            scala.Some.apply(kinds),
-            none(),
-            scala.Some.apply(false)),
-        TIMEOUT);
   }
 
   @Benchmark
