@@ -1,20 +1,26 @@
 package org.enso.compiler.pass.analyse.types;
 
-import static org.enso.compiler.pass.analyse.types.CommonTypeHelpers.getInferredType;
+import static org.enso.compiler.MetadataInteropHelpers.getMetadata;
+import static org.enso.compiler.MetadataInteropHelpers.getMetadataOrNull;
 
 import java.util.List;
 import org.enso.compiler.context.NameResolutionAlgorithm;
+import org.enso.compiler.core.CompilerError;
 import org.enso.compiler.core.IR;
 import org.enso.compiler.core.ir.CallArgument;
 import org.enso.compiler.core.ir.Expression;
 import org.enso.compiler.core.ir.Function;
 import org.enso.compiler.core.ir.Literal;
 import org.enso.compiler.core.ir.Name;
+import org.enso.compiler.core.ir.Pattern;
 import org.enso.compiler.core.ir.expression.Application;
 import org.enso.compiler.core.ir.expression.Case;
 import org.enso.compiler.data.BindingsMap;
+import org.enso.compiler.pass.analyse.AliasAnalysis$;
 import org.enso.compiler.pass.analyse.alias.Graph;
 import org.enso.compiler.pass.analyse.alias.Info;
+import org.enso.compiler.pass.resolve.TypeSignatures;
+import org.enso.compiler.pass.resolve.TypeSignatures$;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import scala.Option;
@@ -22,13 +28,6 @@ import scala.jdk.javaapi.CollectionConverters$;
 
 /**
  * A helper class providing the logic of propagating types through the IR.
- *
- * <p>It implements a single step of the propagation - it looks at a given IR element, and based on
- * types of its _immediate_ children (if they are available), infers a type for the current element.
- *
- * <p>Traversing the whole IR tree, in the right order, as well as managing the registered bindings,
- * is managed by the {@link TypeInference} pass. This class is only responsible for the raw logic of
- * propagating types.
  *
  * <p>Currently, this propagation is completely bottom-up, meaning that we first assign types to
  * leaves in the tree and then propagate them up. This will not work for cases like recursion. That
@@ -90,43 +89,70 @@ abstract class TypePropagation {
    */
   TypeRepresentation tryInferringType(
       Expression expression, LocalBindingsTyping localBindingsTyping) {
-    return switch (expression) {
-      case Name.Literal l -> processName(l, localBindingsTyping);
-      case Application.Force f -> getInferredType(f.target());
-      case Application.Prefix p -> {
-        var functionType = getInferredType(p.function());
-        if (functionType == null) {
-          yield null;
-        } else {
-          yield processApplication(functionType, p.arguments(), p);
-        }
-      }
-      case Expression.Binding b -> getInferredType(b.expression());
-      case Expression.Block b -> getInferredType(b.returnValue());
-      case Function.Lambda f -> typeResolver.buildLambdaType(f);
-      case Literal l -> processLiteral(l);
-      case Application.Sequence sequence -> builtinTypes.VECTOR;
-      case Case.Expr caseExpr -> {
-        List<TypeRepresentation> innerTypes =
-            CollectionConverters$.MODULE$.asJava(caseExpr.branches()).stream()
-                .map(
-                    branch -> {
-                      var innerType = getInferredType(branch.expression());
-                      if (innerType != null) {
-                        return innerType;
-                      } else {
-                        return TypeRepresentation.UNKNOWN;
-                      }
-                    })
-                .toList();
-        yield TypeRepresentation.buildSimplifiedSumType(innerTypes);
-      }
-      default -> {
-        logger.trace(
-            "type propagation: UNKNOWN branch: {}", expression.getClass().getCanonicalName());
-        yield null;
-      }
-    };
+    TypeRepresentation inferredType =
+        switch (expression) {
+          case Name.Literal l -> processName(l, localBindingsTyping);
+          case Application.Force f -> tryInferringType(f.target(), localBindingsTyping);
+          case Application.Prefix p -> {
+            var functionType = tryInferringType(p.function(), localBindingsTyping);
+            if (functionType == null) {
+              yield null;
+            } else {
+              yield processApplication(functionType, p.arguments(), p, localBindingsTyping);
+            }
+          }
+          case Expression.Binding b -> {
+            var bindingType = tryInferringType(b.expression(), localBindingsTyping);
+            if (bindingType != null) {
+              registerBinding(b, bindingType, localBindingsTyping);
+              TypeInference.setInferredType(b, bindingType);
+            }
+            yield bindingType;
+          }
+          case Expression.Block b -> {
+            // Even though we discard the result, we run the type inference on each expression to
+            // ensure any bindings inside of it get registered:
+            b.expressions().foreach((expr) -> tryInferringType(expr, localBindingsTyping));
+            yield tryInferringType(b.returnValue(), localBindingsTyping);
+          }
+          case Function.Lambda f -> processLambda(f, localBindingsTyping);
+          case Literal l -> processLiteral(l);
+          case Application.Sequence sequence -> builtinTypes.VECTOR;
+          case Case.Expr caseExpr -> processCaseExpression(caseExpr, localBindingsTyping);
+          default -> {
+            logger.trace(
+                "type propagation: UNKNOWN branch: {}", expression.getClass().getCanonicalName());
+            yield null;
+          }
+        };
+
+    TypeRepresentation ascribedType = findTypeAscription(expression);
+    checkInferredAndAscribedTypeCompatibility(expression, inferredType, ascribedType);
+
+    // We now override the inferred type on the expression, preferring the ascribed type if it is
+    // present.
+    return ascribedType != null ? ascribedType : inferredType;
+  }
+
+  private TypeRepresentation processCaseExpression(
+      Case.Expr caseExpr, LocalBindingsTyping localBindingsTyping) {
+    List<TypeRepresentation> innerTypes =
+        CollectionConverters$.MODULE$.asJava(caseExpr.branches()).stream()
+            .map(
+                branch -> {
+                  // Fork the bindings map for each branch, as in the future type equality
+                  // constraints may add constraints on bindings outside of the switch that should
+                  // be local to the branch only. We will also need to be careful about unification
+                  // here.
+                  var myBranchLocalBindingsTyping = localBindingsTyping.fork();
+                  registerPattern(branch.pattern(), myBranchLocalBindingsTyping);
+
+                  var innerType =
+                      tryInferringType(branch.expression(), myBranchLocalBindingsTyping);
+                  return innerType != null ? innerType : TypeRepresentation.UNKNOWN;
+                })
+            .toList();
+    return TypeRepresentation.buildSimplifiedSumType(innerTypes);
   }
 
   private TypeRepresentation processName(
@@ -147,11 +173,68 @@ abstract class TypePropagation {
     };
   }
 
+  /**
+   * Tries to infer the type of a lambda, based on available type information of its parts.
+   *
+   * <p>The return type is inferred based on the body, and expected argument types are based on type
+   * ascriptions of these arguments (currently no upwards propagation of constraints yet). Even if
+   * the types are not known, we may fall back to a default unknown type, but we may at least infer
+   * the minimum arity of the function.
+   */
+  private TypeRepresentation processLambda(
+      Function.Lambda lambda, LocalBindingsTyping localBindingsTyping) {
+    boolean hasAnyDefaults =
+        lambda.arguments().find((arg) -> arg.defaultValue().isDefined()).isDefined();
+    if (hasAnyDefaults) {
+      // Inferring function types with default arguments is not supported yet.
+      // TODO we will need to mark defaults in the TypeRepresentation to know when they may be
+      // FORCEd
+      return null;
+    }
+
+    scala.collection.immutable.List<TypeRepresentation> argTypesScala =
+        lambda
+            .arguments()
+            .filter((arg) -> !(arg.name() instanceof Name.Self))
+            .map(
+                (arg) -> {
+                  if (arg.ascribedType().isDefined()) {
+                    Expression typeExpression = arg.ascribedType().get();
+                    var resolvedTyp = typeResolver.resolveTypeExpression(typeExpression);
+                    if (resolvedTyp != null) {
+                      // We register the type of the argument in the local bindings map, so that it
+                      // can be used by expressions that refer to this argument.
+                      // No need to fork it, because there is just one code path.
+                      registerBinding(arg, resolvedTyp, localBindingsTyping);
+                      return resolvedTyp;
+                    }
+                  }
+
+                  return TypeRepresentation.UNKNOWN;
+                });
+
+    TypeRepresentation returnType = tryInferringType(lambda.body(), localBindingsTyping);
+
+    if (returnType == null && argTypesScala.isEmpty()) {
+      // If the return type is unknown and we have no arguments, we do not infer anything useful -
+      // so we withdraw.
+      return null;
+    }
+
+    if (returnType == null) {
+      returnType = TypeRepresentation.UNKNOWN;
+    }
+
+    return TypeRepresentation.buildFunction(
+        CollectionConverters$.MODULE$.asJava(argTypesScala), returnType);
+  }
+
   @SuppressWarnings("unchecked")
   private TypeRepresentation processApplication(
       TypeRepresentation functionType,
       scala.collection.immutable.List<CallArgument> arguments,
-      Application.Prefix relatedIR) {
+      Application.Prefix relatedIR,
+      LocalBindingsTyping localBindingsTyping) {
     if (arguments.isEmpty()) {
       logger.debug(
           "processApplication: {} - unexpected - no arguments in a function application",
@@ -160,7 +243,8 @@ abstract class TypePropagation {
     }
 
     var firstArgument = arguments.head();
-    var firstResult = processSingleApplication(functionType, firstArgument, relatedIR);
+    var firstResult =
+        processSingleApplication(functionType, firstArgument, relatedIR, localBindingsTyping);
     if (firstResult == null) {
       return null;
     }
@@ -169,12 +253,18 @@ abstract class TypePropagation {
       return firstResult;
     } else {
       return processApplication(
-          firstResult, (scala.collection.immutable.List<CallArgument>) arguments.tail(), relatedIR);
+          firstResult,
+          (scala.collection.immutable.List<CallArgument>) arguments.tail(),
+          relatedIR,
+          localBindingsTyping);
     }
   }
 
   private TypeRepresentation processSingleApplication(
-      TypeRepresentation functionType, CallArgument argument, Application.Prefix relatedIR) {
+      TypeRepresentation functionType,
+      CallArgument argument,
+      Application.Prefix relatedIR,
+      LocalBindingsTyping localBindingsTyping) {
     if (argument.name().isDefined()) {
       // TODO named arguments are not yet supported
       return null;
@@ -182,7 +272,7 @@ abstract class TypePropagation {
 
     switch (functionType) {
       case TypeRepresentation.ArrowType arrowType -> {
-        var argumentType = getInferredType(argument.value());
+        var argumentType = tryInferringType(argument.value(), localBindingsTyping);
         if (argumentType != null) {
           checkTypeCompatibility(argument, arrowType.argType(), argumentType);
         }
@@ -190,7 +280,8 @@ abstract class TypePropagation {
       }
 
       case TypeRepresentation.UnresolvedSymbol unresolvedSymbol -> {
-        return processUnresolvedSymbolApplication(unresolvedSymbol, argument.value());
+        return processUnresolvedSymbolApplication(
+            unresolvedSymbol, argument.value(), localBindingsTyping);
       }
 
       default -> {
@@ -211,8 +302,10 @@ abstract class TypePropagation {
   }
 
   private TypeRepresentation processUnresolvedSymbolApplication(
-      TypeRepresentation.UnresolvedSymbol function, Expression argument) {
-    var argumentType = getInferredType(argument);
+      TypeRepresentation.UnresolvedSymbol function,
+      Expression argument,
+      LocalBindingsTyping localBindingsTyping) {
+    var argumentType = tryInferringType(argument, localBindingsTyping);
     if (argumentType == null) {
       return null;
     }
@@ -295,5 +388,71 @@ abstract class TypePropagation {
     }
 
     private record LinkInfo(Graph graph, Graph.Link link) {}
+  }
+
+  /**
+   * Registers the type associated with the bound value in the local bindings map, so that it can
+   * later be used by expressions that refer to this binding.
+   */
+  private void registerBinding(
+      IR binding, TypeRepresentation type, LocalBindingsTyping localBindingsTyping) {
+    var metadata = getMetadata(binding, AliasAnalysis$.MODULE$, Info.Occurrence.class);
+    var occurrence = metadata.graph().getOccurrence(metadata.id());
+    if (occurrence.isEmpty()) {
+      logger.warn(
+          "registerBinding {}: missing occurrence in graph for {}", binding.showCode(), metadata);
+      return;
+    }
+
+    if (occurrence.get() instanceof org.enso.compiler.pass.analyse.alias.Graph$Occurrence$Def def) {
+      localBindingsTyping.registerBindingType(metadata.graph(), def.id(), type);
+    } else {
+      throw new CompilerError(
+          "Alias analysis occurrence has unexpected type: "
+              + occurrence.get().getClass().getCanonicalName());
+    }
+  }
+
+  /**
+   * Registers the type associated with a value bound withing a pattern match in the local bindings
+   * map.
+   */
+  private void registerPattern(Pattern pattern, LocalBindingsTyping localBindingsTyping) {
+    switch (pattern) {
+      case Pattern.Type typePattern -> {
+        var type = typeResolver.resolveTypeExpression(typePattern.tpe());
+        registerBinding(typePattern.name(), type, localBindingsTyping);
+      }
+      case Pattern.Constructor constructorPattern -> {
+        for (var innerPattern : CollectionConverters$.MODULE$.asJava(constructorPattern.fields())) {
+          registerPattern(innerPattern, localBindingsTyping);
+        }
+      }
+      default -> {}
+    }
+  }
+
+  private TypeRepresentation findTypeAscription(Expression ir) {
+    TypeSignatures.Signature ascribedSignature =
+        getMetadataOrNull(ir, TypeSignatures$.MODULE$, TypeSignatures.Signature.class);
+    if (ascribedSignature != null) {
+      return typeResolver.resolveTypeExpression(ascribedSignature.signature());
+    } else {
+      return null;
+    }
+  }
+
+  private void checkInferredAndAscribedTypeCompatibility(
+      Expression ir, TypeRepresentation inferredType, TypeRepresentation ascribedType) {
+    if (ascribedType != null && inferredType != null) {
+      if (!inferredType.equals(ascribedType)) {
+        logger.trace(
+            "type ascription: {} - overwriting inferred type {}", ir.showCode(), inferredType);
+      }
+
+      // If the inferred type implies the ascription will fail at runtime, we can report a warning
+      // here.
+      checkTypeCompatibility(ir, ascribedType, inferredType);
+    }
   }
 }

@@ -127,8 +127,8 @@ public class TypeInferenceTest extends CompilerTest {
     var f2 = findStaticMethod(module, "f2");
     var f3 = findStaticMethod(module, "f3");
 
-    assertAtomType(myType, findAssignment(f1, "y1").expression());
-    assertNoInferredType(findAssignment(f2, "y2").expression());
+    assertAtomType(myType, findAssignment(f1, "y1"));
+    assertNoInferredType(findAssignment(f2, "y2"));
 
     assertEquals("(My_Type -> My_Type)", getInferredType(f1).toString());
     // f2 gets argument as Any, because the doc-signature is not checked
@@ -158,7 +158,7 @@ public class TypeInferenceTest extends CompilerTest {
     Method f = findStaticMethod(module, "f");
 
     String myType = "ascribedExpressions.My_Type";
-    assertAtomType(myType, findAssignment(f.body(), "y").expression());
+    assertAtomType(myType, findAssignment(f.body(), "y"));
   }
 
   @Test
@@ -184,7 +184,7 @@ public class TypeInferenceTest extends CompilerTest {
     Module module = compile(src);
     Method f = findStaticMethod(module, "f");
 
-    var y1Type = getInferredType(findAssignment(f.body(), "y1").expression());
+    var y1Type = getInferredType(findAssignment(f.body(), "y1"));
     if (y1Type instanceof TypeRepresentation.SumType sumType) {
       var gotSet =
           new HashSet<>(sumType.types().stream().map(TypeRepresentation::toString).toList());
@@ -193,7 +193,7 @@ public class TypeInferenceTest extends CompilerTest {
       fail("y1 should be a sum type, but got " + y1Type);
     }
 
-    var y2Type = getInferredType(findAssignment(f.body(), "y2").expression());
+    var y2Type = getInferredType(findAssignment(f.body(), "y2"));
     if (y2Type instanceof TypeRepresentation.IntersectionType intersectionType) {
       var gotSet =
           new HashSet<>(
@@ -234,10 +234,8 @@ public class TypeInferenceTest extends CompilerTest {
     // unfortunately.
     TypeRepresentation primitiveFunctionType =
         new TypeRepresentation.ArrowType(TypeRepresentation.ANY, TypeRepresentation.ANY);
-    assertEquals(
-        primitiveFunctionType, getInferredType(findAssignment(f.body(), "f1").expression()));
-    assertEquals(
-        primitiveFunctionType, getInferredType(findAssignment(f.body(), "f2").expression()));
+    assertEquals(primitiveFunctionType, getInferredType(findAssignment(f.body(), "f1")));
+    assertEquals(primitiveFunctionType, getInferredType(findAssignment(f.body(), "f2")));
   }
 
   @Test
@@ -261,10 +259,10 @@ public class TypeInferenceTest extends CompilerTest {
     Module module = compile(src);
     Method f = findStaticMethod(module, "f");
 
-    assertAtomType("Standard.Base.Data.Numbers.Integer", findAssignment(f, "x").expression());
-    assertAtomType("Standard.Base.Data.Text.Text", findAssignment(f, "y").expression());
-    assertAtomType("Standard.Base.Data.Numbers.Float", findAssignment(f, "z").expression());
-    assertAtomType("Standard.Base.Data.Vector.Vector", findAssignment(f, "w").expression());
+    assertAtomType("Standard.Base.Data.Numbers.Integer", findAssignment(f, "x"));
+    assertAtomType("Standard.Base.Data.Text.Text", findAssignment(f, "y"));
+    assertAtomType("Standard.Base.Data.Numbers.Float", findAssignment(f, "z"));
+    assertAtomType("Standard.Base.Data.Vector.Vector", findAssignment(f, "w"));
   }
 
   @Test
@@ -291,7 +289,7 @@ public class TypeInferenceTest extends CompilerTest {
 
     var myType = "bindingsFlow.My_Type";
 
-    assertAtomType(myType, findAssignment(foo, "w").expression());
+    assertAtomType(myType, findAssignment(foo, "w"));
   }
 
   @Test
@@ -318,10 +316,10 @@ public class TypeInferenceTest extends CompilerTest {
     var myType = "checkedArgumentTypes.My_Type";
 
     // Type from argument
-    assertAtomType(myType, findAssignment(foo, "y1").expression());
+    assertAtomType(myType, findAssignment(foo, "y1"));
 
     // No type
-    assertNoInferredType(findAssignment(foo, "y2").expression());
+    assertNoInferredType(findAssignment(foo, "y2"));
   }
 
   @Test
@@ -347,11 +345,11 @@ public class TypeInferenceTest extends CompilerTest {
     var module = compile(src);
     var foo = findStaticMethod(module, "foo");
 
-    var f1Type = getInferredType(findAssignment(foo, "f1").expression());
+    var f1Type = getInferredType(findAssignment(foo, "f1"));
     assertEquals("(My_Type -> (My_Type -> My_Type))", f1Type.toString());
 
     // and result of application is typed as the return type:
-    assertAtomType("innerFunctionType.My_Type", findAssignment(foo, "y").expression());
+    assertAtomType("innerFunctionType.My_Type", findAssignment(foo, "y"));
   }
 
   @Test
@@ -376,7 +374,7 @@ public class TypeInferenceTest extends CompilerTest {
     var foo = findStaticMethod(module, "foo");
 
     var myType = "zeroArgConstructor.My_Type";
-    assertAtomType(myType, findAssignment(foo, "x").expression());
+    assertAtomType(myType, findAssignment(foo, "x"));
   }
 
   @Test
@@ -400,7 +398,7 @@ public class TypeInferenceTest extends CompilerTest {
     var foo = findStaticMethod(module, "foo");
 
     var myType = "multiArgConstructor.My_Type";
-    assertAtomType(myType, findAssignment(foo, "x").expression());
+    assertAtomType(myType, findAssignment(foo, "x"));
   }
 
   @Test
@@ -436,25 +434,22 @@ public class TypeInferenceTest extends CompilerTest {
     // arguments were defaulted.
     // Before that is working, we just ensure we did not infer any 'unexpected' type for the
     // results.
-    // assertAtomType(myType, findAssignment(foo, "x1").expression());
-    assertNoInferredType(findAssignment(foo, "x1").expression());
+    // assertAtomType(myType, findAssignment(foo, "x1"));
+    assertNoInferredType(findAssignment(foo, "x1"));
 
-    // assertAtomType(myType, findAssignment(foo, "x2").expression());
-    assertNoInferredType(findAssignment(foo, "x2").expression());
+    // assertAtomType(myType, findAssignment(foo, "x2"));
+    assertNoInferredType(findAssignment(foo, "x2"));
 
-    // assertAtomType(myType, findAssignment(foo, "x3").expression());
-    assertNoInferredType(findAssignment(foo, "x3").expression());
+    // assertAtomType(myType, findAssignment(foo, "x3"));
+    assertNoInferredType(findAssignment(foo, "x3"));
 
-    assertNotEquals(
-        Optional.of(myType), getInferredTypeOption(findAssignment(foo, "x4").expression()));
-    assertNotEquals(
-        Optional.of(myType), getInferredTypeOption(findAssignment(foo, "x5").expression()));
+    assertNotEquals(Optional.of(myType), getInferredTypeOption(findAssignment(foo, "x4")));
+    assertNotEquals(Optional.of(myType), getInferredTypeOption(findAssignment(foo, "x5")));
 
-    // assertAtomType(myType, findAssignment(foo, "x6").expression());
-    assertNoInferredType(findAssignment(foo, "x6").expression());
+    // assertAtomType(myType, findAssignment(foo, "x6"));
+    assertNoInferredType(findAssignment(foo, "x6"));
 
-    assertNotEquals(
-        Optional.of(myType), getInferredTypeOption(findAssignment(foo, "x7").expression()));
+    assertNotEquals(Optional.of(myType), getInferredTypeOption(findAssignment(foo, "x7")));
   }
 
   @Ignore("TODO: ifte")
@@ -475,7 +470,7 @@ public class TypeInferenceTest extends CompilerTest {
 
     var module = compile(src);
     var f = findStaticMethod(module, "f");
-    assertAtomType("Standard.Base.Data.Numbers.Integer", findAssignment(f, "y").expression());
+    assertAtomType("Standard.Base.Data.Numbers.Integer", findAssignment(f, "y"));
   }
 
   @Test
@@ -501,7 +496,7 @@ public class TypeInferenceTest extends CompilerTest {
     var module = compile(src);
     var myType = "commonCase.My_Type";
     var f = findStaticMethod(module, "f");
-    assertAtomType(myType, findAssignment(f, "y").expression());
+    assertAtomType(myType, findAssignment(f, "y"));
   }
 
   @Test
@@ -526,7 +521,7 @@ public class TypeInferenceTest extends CompilerTest {
     var module = compile(src);
     var myType = "inferBoundsFromCaseAlias.My_Type";
     var f = findStaticMethod(module, "f");
-    assertAtomType(myType, findAssignment(f, "y").expression());
+    assertAtomType(myType, findAssignment(f, "y"));
   }
 
   /**
@@ -557,7 +552,7 @@ public class TypeInferenceTest extends CompilerTest {
     var module = compile(src);
     var myType = "inferEqualityBoundsFromCase.My_Type";
     var f = findStaticMethod(module, "f");
-    assertAtomType(myType, findAssignment(f, "y").expression());
+    assertAtomType(myType, findAssignment(f, "y"));
   }
 
   @Ignore("TODO")
@@ -580,7 +575,7 @@ public class TypeInferenceTest extends CompilerTest {
 
     var module = compile(src);
     var f = findStaticMethod(module, "f");
-    assertSumType(findAssignment(f, "y").expression(), "Integer", "Text");
+    assertSumType(findAssignment(f, "y"), "Integer", "Text");
   }
 
   @Ignore("TODO")
@@ -610,7 +605,7 @@ public class TypeInferenceTest extends CompilerTest {
     var module = compile(src);
     var myType = "inferEqualityBoundsFromCaseEdgeCase.My_Type";
     var f = findStaticMethod(module, "f");
-    assertAtomType(myType, findAssignment(f, "y").expression());
+    assertAtomType(myType, findAssignment(f, "y"));
   }
 
   @Test
@@ -636,7 +631,7 @@ public class TypeInferenceTest extends CompilerTest {
 
     var module = compile(src);
     var f = findStaticMethod(module, "f");
-    assertSumType(findAssignment(f, "y").expression(), "My_Type", "Other_Type");
+    assertSumType(findAssignment(f, "y"), "My_Type", "Other_Type");
   }
 
   @Ignore
@@ -657,7 +652,7 @@ public class TypeInferenceTest extends CompilerTest {
 
     var module = compile(src);
     var f = findStaticMethod(module, "f");
-    assertSumType(findAssignment(f, "y").expression(), "Text", "Integer");
+    assertSumType(findAssignment(f, "y"), "Text", "Integer");
   }
 
   @Ignore
@@ -678,7 +673,7 @@ public class TypeInferenceTest extends CompilerTest {
 
     var module = compile(src);
     var f = findStaticMethod(module, "f");
-    assertSumType(findAssignment(f, "y").expression(), "Text", "Nothing");
+    assertSumType(findAssignment(f, "y"), "Text", "Nothing");
   }
 
   @Test
@@ -711,16 +706,14 @@ public class TypeInferenceTest extends CompilerTest {
     var myType = "typeInferenceWorksInsideMemberMethods.My_Type";
 
     var staticMethod = findMemberMethod(module, "My_Type", "static_method");
-    assertAtomType(myType, findAssignment(staticMethod, "y").expression());
-    assertAtomType(myType, findAssignment(staticMethod, "z").expression());
-    assertAtomType(
-        "Standard.Base.Data.Numbers.Integer", findAssignment(staticMethod, "w").expression());
+    assertAtomType(myType, findAssignment(staticMethod, "y"));
+    assertAtomType(myType, findAssignment(staticMethod, "z"));
+    assertAtomType("Standard.Base.Data.Numbers.Integer", findAssignment(staticMethod, "w"));
 
     var memberMethod = findMemberMethod(module, "My_Type", "member_method");
-    assertAtomType(myType, findAssignment(memberMethod, "y").expression());
-    assertAtomType(myType, findAssignment(memberMethod, "z").expression());
-    assertAtomType(
-        "Standard.Base.Data.Numbers.Integer", findAssignment(memberMethod, "w").expression());
+    assertAtomType(myType, findAssignment(memberMethod, "y"));
+    assertAtomType(myType, findAssignment(memberMethod, "z"));
+    assertAtomType("Standard.Base.Data.Numbers.Integer", findAssignment(memberMethod, "w"));
   }
 
   @Ignore("TODO")
@@ -745,7 +738,7 @@ public class TypeInferenceTest extends CompilerTest {
     var module = compile(src);
     var f = findMemberMethod(module, "My_Type", "member_method");
     var myType = "typeInferenceOfSelf.My_Type";
-    assertAtomType(myType, findAssignment(f, "y").expression());
+    assertAtomType(myType, findAssignment(f, "y"));
   }
 
   @Test
@@ -1043,12 +1036,11 @@ public class TypeInferenceTest extends CompilerTest {
 
     var myType = "globalMethodTypes.My_Type";
 
-    assertAtomType("Standard.Base.Data.Numbers.Integer", findAssignment(foo, "x1").expression());
-    assertAtomType(myType, findAssignment(foo, "x2").expression());
-    assertAtomType(myType, findAssignment(foo, "x3").expression());
-    assertEquals(
-        "My_Type -> My_Type", getInferredType(findAssignment(foo, "x4").expression()).toString());
-    assertAtomType(myType, findAssignment(foo, "x5").expression());
+    assertAtomType("Standard.Base.Data.Numbers.Integer", findAssignment(foo, "x1"));
+    assertAtomType(myType, findAssignment(foo, "x2"));
+    assertAtomType(myType, findAssignment(foo, "x3"));
+    assertEquals("My_Type -> My_Type", getInferredType(findAssignment(foo, "x4")).toString());
+    assertAtomType(myType, findAssignment(foo, "x5"));
   }
 
   private List<Diagnostic> getImmediateDiagnostics(IR ir) {

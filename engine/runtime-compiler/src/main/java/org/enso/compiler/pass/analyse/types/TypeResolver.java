@@ -1,11 +1,9 @@
 package org.enso.compiler.pass.analyse.types;
 
 import static org.enso.compiler.MetadataInteropHelpers.getMetadataOrNull;
-import static org.enso.compiler.pass.analyse.types.CommonTypeHelpers.getInferredType;
 
 import java.util.List;
 import org.enso.compiler.core.ir.Expression;
-import org.enso.compiler.core.ir.Function;
 import org.enso.compiler.core.ir.Name;
 import org.enso.compiler.core.ir.Type;
 import org.enso.compiler.core.ir.expression.Application;
@@ -130,51 +128,6 @@ public class TypeResolver {
 
   TypeRepresentation resolvedTypeAsAtomType(BindingsMap.ResolvedType resolvedType) {
     return resolvedTypeAsTypeObject(resolvedType).instanceType();
-  }
-
-  /**
-   * Builds the type of a lambda, based on available type information of its parts.
-   *
-   * <p>The return type is inferred based on the body, and expected argument types are based on type
-   * ascriptions of these arguments (currently no upwards propagation of constraints yet). Even if
-   * the types are not known, we may fall back to a default unknown type, but we may at least infer
-   * the minimum arity of the function.
-   */
-  TypeRepresentation buildLambdaType(Function.Lambda f) {
-    boolean hasAnyDefaults =
-        f.arguments().find((arg) -> arg.defaultValue().isDefined()).isDefined();
-    if (hasAnyDefaults) {
-      // Inferring function types with default arguments is not supported yet.
-      // TODO we will need to mark defaults in the TypeRepresentation to know when they may be
-      // FORCEd
-      return null;
-    }
-
-    scala.collection.immutable.List<TypeRepresentation> argTypesScala =
-        f.arguments()
-            .filter((arg) -> !(arg.name() instanceof Name.Self))
-            .map(
-                (arg) -> {
-                  if (arg.ascribedType().isDefined()) {
-                    Expression t = arg.ascribedType().get();
-                    return resolveTypeExpression(t);
-                  } else {
-                    return TypeRepresentation.UNKNOWN;
-                  }
-                });
-
-    TypeRepresentation inferredReturnType = getInferredType(f.body());
-
-    if (inferredReturnType == null && argTypesScala.isEmpty()) {
-      // If the return type is unknown and we have no arguments, we do not infer anything useful -
-      // so we withdraw.
-      return null;
-    }
-
-    TypeRepresentation returnType =
-        inferredReturnType == null ? TypeRepresentation.UNKNOWN : inferredReturnType;
-
-    return TypeRepresentation.buildFunction(CollectionConverters.asJava(argTypesScala), returnType);
   }
 
   TypeRepresentation buildAtomConstructorType(

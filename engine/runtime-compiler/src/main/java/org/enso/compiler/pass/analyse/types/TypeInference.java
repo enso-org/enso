@@ -1,42 +1,28 @@
 package org.enso.compiler.pass.analyse.types;
 
-import static org.enso.compiler.MetadataInteropHelpers.getMetadata;
-import static org.enso.compiler.MetadataInteropHelpers.getMetadataOrNull;
-import static org.enso.compiler.pass.analyse.types.CommonTypeHelpers.getInferredType;
-
 import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
 import org.enso.compiler.context.InlineContext;
 import org.enso.compiler.context.ModuleContext;
-import org.enso.compiler.core.CompilerError;
 import org.enso.compiler.core.IR;
 import org.enso.compiler.core.ir.Expression;
-import org.enso.compiler.core.ir.Function;
 import org.enso.compiler.core.ir.Module;
-import org.enso.compiler.core.ir.Pattern;
 import org.enso.compiler.core.ir.Warning;
-import org.enso.compiler.core.ir.expression.Case;
 import org.enso.compiler.core.ir.module.scope.Definition;
 import org.enso.compiler.core.ir.module.scope.definition.Method;
-import org.enso.compiler.data.BindingsMap;
 import org.enso.compiler.pass.IRPass;
-import org.enso.compiler.pass.analyse.AliasAnalysis$;
 import org.enso.compiler.pass.analyse.BindingAnalysis$;
-import org.enso.compiler.pass.analyse.alias.Info;
 import org.enso.compiler.pass.resolve.FullyQualifiedNames$;
 import org.enso.compiler.pass.resolve.GlobalNames$;
 import org.enso.compiler.pass.resolve.Patterns$;
 import org.enso.compiler.pass.resolve.TypeNames$;
-import org.enso.compiler.pass.resolve.TypeSignatures;
 import org.enso.compiler.pass.resolve.TypeSignatures$;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import scala.Option;
 import scala.collection.immutable.Seq;
 import scala.collection.immutable.Seq$;
 import scala.jdk.javaapi.CollectionConverters;
-import scala.jdk.javaapi.CollectionConverters$;
 
 /**
  * The compiler pass implementing the proof of concept of type inference.
@@ -139,201 +125,43 @@ public final class TypeInference implements IRPass {
 
   @Override
   public Module runModule(Module ir, ModuleContext moduleContext) {
-    var mappedBindings =
-        ir.bindings()
-            .map(
-                (def) ->
-                    switch (def) {
-                      case Method.Explicit b -> {
-                        var mapped =
-                            def.mapExpressions(
-                                (expression) ->
-                                    analyzeExpression(expression, LocalBindingsTyping.create()));
+    ir.bindings()
+        .map(
+            (def) ->
+                switch (def) {
+                  case Method.Explicit b -> {
+                    TypeRepresentation methodBodyType =
+                        typePropagation.tryInferringType(b.body(), LocalBindingsTyping.create());
 
-                        var methodBodyType = getInferredType(b.body());
-                        if (methodBodyType != null) {
-                          setInferredType(b, methodBodyType);
-                        }
+                    if (methodBodyType != null) {
+                      setInferredType(b, methodBodyType);
+                    }
 
-                        yield mapped;
-                      }
-                      case Definition.Type typ -> typ;
-                      default -> {
-                        logger.trace("UNEXPECTED definition {}", def.getClass().getCanonicalName());
-                        yield def;
-                      }
-                    });
+                    yield b;
+                  }
+                  case Definition.Type typ -> typ;
+                  default -> {
+                    logger.trace("UNEXPECTED definition {}", def.getClass().getCanonicalName());
+                    yield def;
+                  }
+                });
 
-    return ir.copy(
-        ir.imports(),
-        ir.exports(),
-        mappedBindings,
-        ir.location(),
-        ir.passData(),
-        ir.diagnostics(),
-        ir.id());
+    return ir;
   }
 
   @Override
   public Expression runExpression(Expression ir, InlineContext inlineContext) {
-    return analyzeExpression(ir, LocalBindingsTyping.create());
-  }
-
-  private Expression analyzeExpression(Expression ir, LocalBindingsTyping localBindingsTyping) {
-    // We first run the inner expressions, as most basic inference is propagating types in a
-    // bottom-up manner.
-    Expression mappedIr =
-        switch (ir) {
-          case Function.Lambda lambda -> analyzeLambdaFunction(lambda, localBindingsTyping);
-          case Case.Expr caseExpr -> analyzeCaseExpression(caseExpr, localBindingsTyping);
-            // For all other cases, we just delegate to `mapExpressions` which runs the function on
-            // every immediate sub-expression.
-          default -> ir.mapExpressions(
-              (expression) -> analyzeExpression(expression, localBindingsTyping));
-        };
-
     TypeRepresentation inferredType =
-        typePropagation.tryInferringType(mappedIr, localBindingsTyping);
-    TypeRepresentation ascribedType = findTypeAscription(mappedIr);
-    checkInferredAndAscribedTypeCompatibility(mappedIr, inferredType, ascribedType);
-
-    // We now set the inferred type on the expression, preferring the ascribed type if it is
-    // present.
-    var effectiveType = ascribedType != null ? ascribedType : inferredType;
-    if (effectiveType != null) {
-      setInferredType(mappedIr, effectiveType);
-
-      // If the expression is a binding, we register the inferred type in the local bindings typing,
-      // so that any further expressions that refer to this binding, can rely on the inferred type.
-      if (mappedIr instanceof Expression.Binding b) {
-        registerBinding(b, effectiveType, localBindingsTyping);
-      }
+        typePropagation.tryInferringType(ir, LocalBindingsTyping.create());
+    if (inferredType != null) {
+      setInferredType(ir, inferredType);
     }
 
-    return mappedIr;
+    return ir;
   }
 
-  private Expression analyzeLambdaFunction(
-      Function.Lambda lambda, LocalBindingsTyping localBindingsTyping) {
-    for (var arg : CollectionConverters$.MODULE$.asJava(lambda.arguments())) {
-      if (arg.ascribedType().isDefined()) {
-        var type = typeResolver.resolveTypeExpression(arg.ascribedType().get());
-        registerBinding(arg, type, localBindingsTyping);
-      }
-    }
-    var newBody = analyzeExpression(lambda.body(), localBindingsTyping);
-    return lambda.copy(
-        lambda.arguments(),
-        newBody,
-        lambda.location(),
-        lambda.canBeTCO(),
-        lambda.passData(),
-        lambda.diagnostics(),
-        lambda.id());
-  }
-
-  private Expression analyzeCaseExpression(
-      Case.Expr caseExpr, LocalBindingsTyping localBindingsTyping) {
-    var newScrutinee = analyzeExpression(caseExpr.scrutinee(), localBindingsTyping);
-    List<Case.Branch> newBranches =
-        CollectionConverters$.MODULE$.asJava(caseExpr.branches()).stream()
-            .map(
-                (branch) -> {
-                  // TODO once we will be implementing type equality constraints*, we will need to
-                  // copy localBindingsTyping here, to ensure independent typing of branches
-                  //  (*) (case x of _ : Integer -> e) ==> x : Integer within e
-                  var myBranchLocalBindingsTyping = localBindingsTyping;
-                  registerPattern(branch.pattern(), myBranchLocalBindingsTyping);
-                  var newExpression =
-                      analyzeExpression(branch.expression(), myBranchLocalBindingsTyping);
-                  return branch.copy(
-                      branch.pattern(),
-                      newExpression,
-                      branch.terminalBranch(),
-                      branch.location(),
-                      branch.passData(),
-                      branch.diagnostics(),
-                      branch.id());
-                })
-            .toList();
-    return caseExpr.copy(
-        newScrutinee,
-        CollectionConverters$.MODULE$.asScala(newBranches).toSeq(),
-        caseExpr.isNested(),
-        caseExpr.location(),
-        caseExpr.passData(),
-        caseExpr.diagnostics(),
-        caseExpr.id());
-  }
-
-  private TypeRepresentation findTypeAscription(Expression ir) {
-    TypeSignatures.Signature ascribedSignature =
-        getMetadataOrNull(ir, TypeSignatures$.MODULE$, TypeSignatures.Signature.class);
-    if (ascribedSignature != null) {
-      return typeResolver.resolveTypeExpression(ascribedSignature.signature());
-    } else {
-      return null;
-    }
-  }
-
-  private void checkInferredAndAscribedTypeCompatibility(
-      Expression ir, TypeRepresentation inferredType, TypeRepresentation ascribedType) {
-    if (ascribedType != null && inferredType != null) {
-      if (!inferredType.equals(ascribedType)) {
-        logger.trace(
-            "type ascription: {} - overwriting inferred type {}", ir.showCode(), inferredType);
-      }
-
-      // If the inferred type implies the ascription will fail at runtime, we can report a warning
-      // here.
-      typePropagation.checkTypeCompatibility(ir, ascribedType, inferredType);
-    }
-  }
-
-  /**
-   * Registers the type associated with the bound value in the local bindings map, so that it can
-   * later be used by expressions that refer to this binding.
-   */
-  private void registerBinding(
-      IR binding, TypeRepresentation type, LocalBindingsTyping localBindingsTyping) {
-    var metadata = getMetadata(binding, AliasAnalysis$.MODULE$, Info.Occurrence.class);
-    var occurrence = metadata.graph().getOccurrence(metadata.id());
-    if (occurrence.isEmpty()) {
-      logger.warn(
-          "registerBinding {}: missing occurrence in graph for {}", binding.showCode(), metadata);
-      return;
-    }
-
-    if (occurrence.get() instanceof org.enso.compiler.pass.analyse.alias.Graph$Occurrence$Def def) {
-      localBindingsTyping.registerBindingType(metadata.graph(), def.id(), type);
-    } else {
-      throw new CompilerError(
-          "Alias analysis occurrence has unexpected type: "
-              + occurrence.get().getClass().getCanonicalName());
-    }
-  }
-
-  /**
-   * Registers the type associated with a value bound withing a pattern match in the local bindings
-   * map.
-   */
-  private void registerPattern(Pattern pattern, LocalBindingsTyping localBindingsTyping) {
-    switch (pattern) {
-      case Pattern.Type typePattern -> {
-        var type = typeResolver.resolveTypeExpression(typePattern.tpe());
-        registerBinding(typePattern.name(), type, localBindingsTyping);
-      }
-      case Pattern.Constructor constructorPattern -> {
-        for (var innerPattern : CollectionConverters$.MODULE$.asJava(constructorPattern.fields())) {
-          registerPattern(innerPattern, localBindingsTyping);
-        }
-      }
-      default -> {}
-    }
-  }
-
-  private void setInferredType(IR ir, TypeRepresentation type) {
+  static void setInferredType(IR ir, TypeRepresentation type) {
     Objects.requireNonNull(type, "type must not be null");
-    ir.passData().update(this, new InferredType(type));
+    ir.passData().update(INSTANCE, new InferredType(type));
   }
 }

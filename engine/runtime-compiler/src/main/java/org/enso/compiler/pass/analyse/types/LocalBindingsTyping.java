@@ -30,4 +30,14 @@ class LocalBindingsTyping {
       throw new IllegalStateException("Duplicate binding " + id + " in graph " + graph);
     }
   }
+
+  LocalBindingsTyping fork() {
+    var fork = new LocalBindingsTyping();
+    map.forEach(
+        (graph, bindings) -> {
+          var forkBindings = new HashMap<>(bindings);
+          fork.map.put(graph, forkBindings);
+        });
+    return fork;
+  }
 }
