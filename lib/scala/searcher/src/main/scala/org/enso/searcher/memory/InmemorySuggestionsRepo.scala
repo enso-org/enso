@@ -71,7 +71,7 @@ class InmemorySuggestionsRepo(implicit ec: ExecutionContext)
       val i = index
       index += 1
       db.put(i, suggestion)
-      condVersionIncrement(true)
+      versionIncrement()
       Some(i)
     }
   }
@@ -102,7 +102,7 @@ class InmemorySuggestionsRepo(implicit ec: ExecutionContext)
           db.put(i, s)
           i
         })
-        version += 1
+        versionIncrement()
         (version, result)
       }
     } else {
@@ -126,7 +126,7 @@ class InmemorySuggestionsRepo(implicit ec: ExecutionContext)
             val i = index
             index += 1
             db.put(i, update.suggestion)
-            condVersionIncrement(true)
+            versionIncrement()
             QueryResult(Seq(i), update)
           case SuggestionAction.Modify(
                 externalId,
@@ -150,8 +150,10 @@ class InmemorySuggestionsRepo(implicit ec: ExecutionContext)
                     documentation,
                     scope
                   )
+                  if (updatedSuggestion != suggestionInDb) {
+                    versionIncrement()
+                  }
                   db.put(suggestionIdx, updatedSuggestion)
-                  condVersionIncrement(true)
                   QueryResult(Seq(suggestionIdx), update)
               }
             } else {
@@ -161,7 +163,7 @@ class InmemorySuggestionsRepo(implicit ec: ExecutionContext)
             val sugestionKey = db.find(_._2 == update.suggestion).map(_._1)
             sugestionKey.foreach { key =>
               db.remove(key)
-              condVersionIncrement(true)
+              versionIncrement()
             }
             QueryResult(sugestionKey.toSeq, update)
         }
@@ -229,7 +231,7 @@ class InmemorySuggestionsRepo(implicit ec: ExecutionContext)
       val suggestionKey = db.find(_._2 == suggestion).map(_._1)
       suggestionKey.foreach { id =>
         db.remove(id)
-        condVersionIncrement(true)
+        versionIncrement()
       }
       suggestionKey
     }
@@ -307,8 +309,14 @@ class InmemorySuggestionsRepo(implicit ec: ExecutionContext)
     }
   }
 
+  private def versionIncrement(): Unit = {
+    version += 1
+  }
+
   private def condVersionIncrement(cond: => Boolean): Unit = {
-    if (cond) version += 1
+    if (cond) {
+      version += 1
+    }
   }
 
   private def externalIDMatches(

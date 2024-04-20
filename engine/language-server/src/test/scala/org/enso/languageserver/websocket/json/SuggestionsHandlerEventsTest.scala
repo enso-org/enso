@@ -528,7 +528,7 @@ class SuggestionsHandlerEventsTest
                 }
               }
             ],
-            "currentVersion" : 9
+            "currentVersion" : 8
           }
         }
         """)
@@ -582,7 +582,7 @@ class SuggestionsHandlerEventsTest
                   }
                 }
               ],
-              "currentVersion" : 9
+              "currentVersion" : 8
             }
           }
         """)
@@ -629,7 +629,7 @@ class SuggestionsHandlerEventsTest
                 "id" : 6
               }
             ],
-            "currentVersion" : 9
+            "currentVersion" : 8
           }
         }
         """)
