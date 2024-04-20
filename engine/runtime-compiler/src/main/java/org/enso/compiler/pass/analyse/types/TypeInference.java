@@ -139,17 +139,6 @@ public final class TypeInference implements IRPass {
 
   @Override
   public Module runModule(Module ir, ModuleContext moduleContext) {
-    var ctx =
-        new InlineContext(
-            moduleContext,
-            moduleContext.compilerConfig(),
-            Option.empty(),
-            Option.empty(),
-            moduleContext.freshNameSupply(),
-            moduleContext.passConfiguration(),
-            moduleContext.pkgRepo());
-
-    BindingsMap bindingsMap = getMetadata(ir, BindingAnalysis$.MODULE$, BindingsMap.class);
     var mappedBindings =
         ir.bindings()
             .map(
