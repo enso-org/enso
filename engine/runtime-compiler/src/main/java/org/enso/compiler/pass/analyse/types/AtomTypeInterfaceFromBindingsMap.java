@@ -12,7 +12,8 @@ record AtomTypeInterfaceFromBindingsMap(BindingsMap.Type type) implements AtomTy
 
   @Override
   public List<? extends Constructor> constructors() {
-    return new ProxyList<>(CollectionConverters$.MODULE$.asJava(type.members()), ConstructorFromBindingsMap::new);
+    return new ProxyList<>(
+        CollectionConverters$.MODULE$.asJava(type.members()), ConstructorFromBindingsMap::new);
   }
 
   static class ConstructorFromBindingsMap implements Constructor {
@@ -31,7 +32,9 @@ record AtomTypeInterfaceFromBindingsMap(BindingsMap.Type type) implements AtomTy
 
     @Override
     public List<? extends Argument> arguments() {
-      return new ProxyList<>(CollectionConverters$.MODULE$.asJava(constructor.arguments()), ArgumentFromBindingsMap::new);
+      return new ProxyList<>(
+          CollectionConverters$.MODULE$.asJava(constructor.arguments()),
+          ArgumentFromBindingsMap::new);
     }
   }
 

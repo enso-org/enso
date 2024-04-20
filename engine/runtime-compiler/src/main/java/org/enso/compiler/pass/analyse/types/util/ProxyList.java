@@ -4,9 +4,11 @@ import java.util.AbstractList;
 import java.util.List;
 import java.util.function.Function;
 
-/** A list that wraps elements of another list with a function.
- * <p>
- * It assumes that the function is cheap to compute, so it is actually computed on each access. It is meant to be used by lightweight adapter wrappers.
+/**
+ * A list that wraps elements of another list with a function.
+ *
+ * <p>It assumes that the function is cheap to compute, so it is actually computed on each access.
+ * It is meant to be used by lightweight adapter wrappers.
  */
 public final class ProxyList<Source, Target> extends AbstractList<Target> {
   private final Function<Source, Target> cheapWrapper;
