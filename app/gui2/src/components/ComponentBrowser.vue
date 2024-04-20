@@ -345,6 +345,7 @@ const visualizationSelections = reactive(new Map<SuggestionId | null, Visualizat
 const previewedVisualizationId = computed(() => {
   return visualizationSelections.get(previewed.value.suggestionId ?? null)
 })
+
 function setVisualization(visualization: VisualizationIdentifier) {
   visualizationSelections.set(previewed.value.suggestionId ?? null, visualization)
 }

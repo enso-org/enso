@@ -315,7 +315,11 @@ export const widgetDefinition = defineWidget(
       : props.input.dynamicConfig?.kind === 'Single_Choice' ? Score.Perfect
       : props.input.dynamicConfig?.kind === 'Multiple_Choice' ? Score.Perfect
       : isHandledByCheckboxWidget(props.input[ArgumentInfoKey]?.info) ? Score.Mismatch
-      : props.input[ArgumentInfoKey]?.info?.tagValues != null ? Score.Perfect
+        // TODO[ao] here, instead of checking for existing dynamic config, we should rather return
+        // Score.Good. But this does not work with WidgetArgument which would then take precedence
+        // over selection (and we want to have name always under it)
+      : props.input[ArgumentInfoKey]?.info?.tagValues != null && props.input.dynamicConfig == null ?
+        Score.Perfect
       : Score.Mismatch,
   },
   import.meta.hot,

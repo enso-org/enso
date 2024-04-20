@@ -497,28 +497,6 @@ pub struct DocComment<'s> {
     pub newlines: Vec<token::Newline<'s>>,
 }
 
-impl<'s> DocComment<'s> {
-    /// Return the contents of the comment, with leading whitespace, the `##` token, and following
-    /// empty lines removed; newlines will be normalized.
-    pub fn content(&self) -> String {
-        let mut buf = String::new();
-        for element in &self.elements {
-            match element {
-                TextElement::Section { text } => buf.push_str(&text.code.repr),
-                TextElement::Newline { .. } => buf.push('\n'),
-                TextElement::Escape { token } if let Some(c) = token.value => {
-                    buf.push(c);
-                }
-                // Invalid escape character, ignore it.
-                TextElement::Escape { .. } => (),
-                // Unreachable.
-                TextElement::Splice { .. } => continue,
-            }
-        }
-        buf
-    }
-}
-
 impl<'s> span::Builder<'s> for DocComment<'s> {
     fn add_to_span(&mut self, span: Span<'s>) -> Span<'s> {
         span.add(&mut self.open).add(&mut self.elements).add(&mut self.newlines)
