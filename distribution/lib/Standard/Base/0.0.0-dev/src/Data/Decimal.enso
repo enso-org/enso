@@ -12,7 +12,7 @@ import project.Warning.Warning
 from project.Data.Boolean import Boolean, False, True
 from project.Data.Numbers import Float, Integer, Number, Number_Parse_Error
 from project.Data.Numeric.Internal.Decimal_Internal import Decimal_Comparator
-from project.Data.Ordering import Comparable, Ordering
+from project.Data.Ordering import Comparable, Ordering, Default_Comparator
 from project.Errors.Common import Arithmetic_Error, Loss_Of_Numeric_Precision, Out_Of_Range, Unsupported_Argument_Types
 from project.Widget_Helpers import make_number_format_selector
 
@@ -1060,7 +1060,7 @@ Decimal.from (that : Text) = Decimal.from_string that
 
 ## PRIVATE
 Decimal.from (that : Number) =
-    h = Standard.Base.Data.Ordering.Default_Comparator.hash that
+    h = Default_Comparator.hash that
     c = Decimal.new that
     Decimal.Value c.big_decimal h
 
