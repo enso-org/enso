@@ -295,12 +295,10 @@ class InmemorySuggestionsRepo(implicit ec: ExecutionContext)
     expressions: Seq[(ExternalID, String)]
   ): Future[(Long, Seq[Option[Long]])] = Future {
     db.synchronized {
-      // TODO: consider adding an index for `externalID`
       val result = expressions.map { case (externalID, expr) =>
         db.find(e => externalIDMatches(e._2.externalId, externalID)).map {
-          case (idx, s) =>
-            val v = s.withReturnType(expr)
-            db.put(idx, v)
+          case (idx, suggestion) =>
+            db.put(idx, suggestion.withReturnType(expr))
             idx
         }
       }
