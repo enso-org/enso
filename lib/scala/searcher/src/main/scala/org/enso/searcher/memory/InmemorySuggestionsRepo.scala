@@ -68,11 +68,16 @@ class InmemorySuggestionsRepo(implicit ec: ExecutionContext)
     */
   override def insert(suggestion: Suggestion): Future[Option[Long]] = Future {
     db.synchronized {
-      val i = index
-      index += 1
-      db.put(i, suggestion)
-      versionIncrement()
-      Some(i)
+      val isDuplicate = db.exists(_._2 == suggestion)
+      if (!isDuplicate) {
+        val i = index
+        index += 1
+        db.put(i, suggestion)
+        versionIncrement()
+        Some(i)
+      } else {
+        None
+      }
     }
   }
 
@@ -246,7 +251,8 @@ class InmemorySuggestionsRepo(implicit ec: ExecutionContext)
     Future {
       db.synchronized {
         val suggestions = db.filter {
-          case (_, mod: Suggestion.Module) if modules.contains(mod.module) =>
+          case (_, suggestion: Suggestion)
+              if modules.contains(suggestion.module) =>
             true
           case _ => false
         }
@@ -276,12 +282,17 @@ class InmemorySuggestionsRepo(implicit ec: ExecutionContext)
   ): Future[(Long, Option[Long])] = Future {
     db.synchronized {
       val suggestionEntry = db.find(_._2 == suggestion)
-      suggestionEntry.foreach { case (idx, oldSuggestion) =>
+      val result = suggestionEntry.flatMap { case (idx, oldSuggestion) =>
         val updated =
           oldSuggestion.update(externalId, returnType, documentation, scope)
-        db.put(idx, updated)
+        if (updated != oldSuggestion) {
+          db.put(idx, updated)
+          Some(idx)
+        } else {
+          None
+        }
       }
-      condVersionIncrement(suggestionEntry.nonEmpty)
+      condVersionIncrement(result.nonEmpty)
       (version, suggestionEntry.map(_._1))
     }
   }
