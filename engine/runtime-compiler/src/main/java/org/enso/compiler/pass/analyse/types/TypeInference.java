@@ -1,12 +1,11 @@
 package org.enso.compiler.pass.analyse.types;
 
 import static org.enso.compiler.MetadataInteropHelpers.getMetadata;
-import static org.enso.compiler.MetadataInteropHelpers.getOptionalMetadata;
+import static org.enso.compiler.MetadataInteropHelpers.getMetadataOrNull;
 import static org.enso.compiler.pass.analyse.types.CommonTypeHelpers.getInferredType;
 
 import java.util.List;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.UUID;
 import org.enso.compiler.context.InlineContext;
 import org.enso.compiler.context.ModuleContext;
@@ -279,11 +278,10 @@ public final class TypeInference implements IRPass {
   }
 
   private TypeRepresentation findTypeAscription(Expression ir) {
-    Optional<TypeSignatures.Signature> ascribedSignature =
-        getOptionalMetadata(ir, TypeSignatures$.MODULE$, TypeSignatures.Signature.class);
-    if (ascribedSignature.isPresent()) {
-      TypeSignatures.Signature s = ascribedSignature.get();
-      return typeResolver.resolveTypeExpression(s.signature());
+    TypeSignatures.Signature ascribedSignature =
+        getMetadataOrNull(ir, TypeSignatures$.MODULE$, TypeSignatures.Signature.class);
+    if (ascribedSignature != null) {
+      return typeResolver.resolveTypeExpression(ascribedSignature.signature());
     } else {
       return null;
     }

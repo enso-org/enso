@@ -1,10 +1,9 @@
 package org.enso.compiler.pass.analyse.types;
 
-import static org.enso.compiler.MetadataInteropHelpers.getOptionalMetadata;
+import static org.enso.compiler.MetadataInteropHelpers.getMetadataOrNull;
 import static org.enso.compiler.pass.analyse.types.CommonTypeHelpers.getInferredType;
 
 import java.util.List;
-import java.util.Optional;
 import org.enso.compiler.core.ir.Expression;
 import org.enso.compiler.core.ir.Function;
 import org.enso.compiler.core.ir.Name;
@@ -30,17 +29,17 @@ public class TypeResolver {
   TypeRepresentation resolveTypeExpression(Expression type) {
     return switch (type) {
       case Name.Literal name -> {
-        Optional<BindingsMap.Resolution> resolutionOptional =
-            getOptionalMetadata(name, TypeNames$.MODULE$, BindingsMap.Resolution.class);
+        BindingsMap.Resolution resolutionOrNull =
+            getMetadataOrNull(name, TypeNames$.MODULE$, BindingsMap.Resolution.class);
 
-        if (resolutionOptional.isEmpty()) {
+        if (resolutionOrNull == null) {
           // As fallback, try getting from the Patterns pass.
-          resolutionOptional =
-              getOptionalMetadata(name, Patterns$.MODULE$, BindingsMap.Resolution.class);
+          resolutionOrNull =
+              getMetadataOrNull(name, Patterns$.MODULE$, BindingsMap.Resolution.class);
         }
 
-        if (resolutionOptional.isPresent()) {
-          BindingsMap.ResolvedName target = resolutionOptional.get().target();
+        if (resolutionOrNull != null) {
+          BindingsMap.ResolvedName target = resolutionOrNull.target();
           yield switch (target) {
             case BindingsMap.ResolvedType resolvedType -> resolvedTypeAsAtomType(resolvedType);
             case BindingsMap.ResolvedPolyglotSymbol polyglotSymbol -> {

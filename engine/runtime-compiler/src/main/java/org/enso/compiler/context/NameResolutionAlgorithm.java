@@ -1,6 +1,5 @@
 package org.enso.compiler.context;
 
-import java.util.Optional;
 import org.enso.compiler.MetadataInteropHelpers;
 import org.enso.compiler.core.ConstantsNames;
 import org.enso.compiler.core.ir.Name;
@@ -38,11 +37,11 @@ public abstract class NameResolutionAlgorithm<ResultType, LocalNameLinkType> {
       return resolveLocalName(maybeLocalLink.get());
     }
 
-    Optional<BindingsMap.Resolution> global =
-        MetadataInteropHelpers.getOptionalMetadata(
+    BindingsMap.Resolution global =
+        MetadataInteropHelpers.getMetadataOrNull(
             name, GlobalNames$.MODULE$, BindingsMap.Resolution.class);
-    if (global.isPresent()) {
-      BindingsMap.ResolvedName resolution = global.get().target();
+    if (global != null) {
+      BindingsMap.ResolvedName resolution = global.target();
       return resolveGlobalName(resolution);
     }
 
