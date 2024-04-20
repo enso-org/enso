@@ -8,7 +8,7 @@ import java.util.function.Function;
  * <p>
  * It assumes that the function is cheap to compute, so it is actually computed on each access. It is meant to be used by lightweight adapter wrappers.
  */
-public class ProxyList<Source, Target> extends AbstractList<Target> {
+public final class ProxyList<Source, Target> extends AbstractList<Target> {
   private final Function<Source, Target> cheapWrapper;
   private final List<Source> source;
 
