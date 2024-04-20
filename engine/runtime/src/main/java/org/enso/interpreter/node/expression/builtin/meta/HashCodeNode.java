@@ -31,7 +31,6 @@ import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.node.callable.InvokeCallableNode.ArgumentsExecutionMode;
 import org.enso.interpreter.node.callable.InvokeCallableNode.DefaultsExecutionMode;
 import org.enso.interpreter.node.callable.dispatch.InvokeFunctionNode;
-import org.enso.interpreter.node.expression.builtin.number.utils.BigIntegerOps;
 import org.enso.interpreter.node.expression.builtin.ordering.CustomComparatorNode;
 import org.enso.interpreter.node.expression.builtin.ordering.CustomComparatorNodeGen;
 import org.enso.interpreter.node.expression.builtin.ordering.HashCallbackNode;
@@ -89,39 +88,20 @@ public abstract class HashCodeNode extends Node {
 
   public abstract long execute(@AcceptsError Object object);
 
-  /** Specializations for primitive values * */
   @Specialization
-  long hashCodeForShort(short s) {
-    return s;
-  }
-
-  @Specialization
-  long hashCodeForByte(byte b) {
-    return b;
-  }
-
-  @Specialization
-  long hashCodeForLong(long l) {
+  long hashCodeForLong(
+      long l, @Shared("interop") @CachedLibrary(limit = "10") InteropLibrary interop) {
     // By casting long to double, we lose some precision on purpose
-    return hashCodeForDouble((double) l);
+    return hashCodeForDouble((double) l, interop);
   }
 
   @Specialization
-  long hashCodeForInt(int i) {
-    return hashCodeForLong(i);
-  }
-
-  @Specialization
-  long hashCodeForFloat(float f) {
-    return Float.hashCode(f);
-  }
-
-  @Specialization
-  long hashCodeForDouble(double d) {
+  long hashCodeForDouble(
+      double d, @Shared("interop") @CachedLibrary(limit = "10") InteropLibrary interop) {
     if (Double.isNaN(d)) {
       // NaN is Incomparable, just return a "random" constant
       return 456879;
-    } else if (d % 1.0 != 0 || BigIntegerOps.fitsInLong(d)) {
+    } else if (d % 1.0 != 0 || interop.fitsInLong(d)) {
       return Double.hashCode(d);
     } else {
       return bigDoubleHash(d);
@@ -141,12 +121,15 @@ public abstract class HashCodeNode extends Node {
 
   @Specialization
   @TruffleBoundary
-  long hashCodeForBigInteger(EnsoBigInteger bigInteger) {
+  long hashCodeForBigInteger(
+      EnsoBigInteger bigInteger,
+      @Shared("interop") @CachedLibrary(limit = "10") InteropLibrary interop) {
     var value = bigInteger.getValue();
-    if (BigIntegerOps.fitsInLong(value)) {
-      return hashCodeForLong(value.longValueExact());
+    if (interop.fitsInLong(value)) {
+      return hashCodeForLong(value.longValueExact(), interop);
+    } else {
+      return value.hashCode();
     }
-    return value.hashCode();
   }
 
   @Specialization(guards = {"interop.fitsInLong(v) || interop.fitsInBigInteger(v)"})
@@ -155,7 +138,7 @@ public abstract class HashCodeNode extends Node {
       Object v, @Shared("interop") @CachedLibrary(limit = "10") InteropLibrary interop) {
     try {
       if (interop.fitsInLong(v)) {
-        return hashCodeForLong(interop.asLong(v));
+        return hashCodeForLong(interop.asLong(v), interop);
       } else {
         return interop.asBigInteger(v).hashCode();
       }

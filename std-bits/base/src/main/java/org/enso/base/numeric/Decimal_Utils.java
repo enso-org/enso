@@ -52,7 +52,7 @@ public class Decimal_Utils {
     }
   }
 
-  public static BigDecimal fromFloat(Double d) {
+  public static BigDecimal fromFloat(double d) {
     // According to the BigInteger Javadocs, valueOf is preferred because "the
     // value returned is equal to that resulting from constructing a BigDecimal
     // from the result of using Double.toString(double)."
