@@ -460,7 +460,7 @@ val scalaCompiler = Seq(
   "org.scala-lang" % "scala-reflect"  % scalacVersion,
   "org.scala-lang" % "scala-compiler" % scalacVersion
 )
-val scalaCollectionCompatVersion = "2.12.0"
+val scalaCollectionCompatVersion = "2.8.1"
 
 // === std-lib ================================================================
 
