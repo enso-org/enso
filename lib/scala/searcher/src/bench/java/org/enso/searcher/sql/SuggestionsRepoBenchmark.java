@@ -1,6 +1,7 @@
 package org.enso.searcher.sql;
 
 import org.enso.polyglot.Suggestion;
+import org.enso.searcher.memory.InmemorySuggestionsRepo;
 import org.openjdk.jmh.annotations.*;
 import org.openjdk.jmh.runner.Runner;
 import org.openjdk.jmh.runner.RunnerException;
@@ -10,11 +11,12 @@ import scala.collection.immutable.Seq;
 import scala.concurrent.Await;
 import scala.concurrent.ExecutionContext;
 import scala.concurrent.duration.Duration;
-import scala.jdk.CollectionConverters;
+import scala.jdk.javaapi.CollectionConverters;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
@@ -35,13 +37,11 @@ public class SuggestionsRepoBenchmark {
   final Seq<Suggestion.Kind> kinds = SuggestionRandom.nextKinds();
   final Seq<scala.Tuple2<UUID, String>> updateInput = SuggestionRandom.nextUpdateAllInput();
 
-  SqlSuggestionsRepo repo;
+  InmemorySuggestionsRepo repo;
 
   @Setup
   public void setup() throws TimeoutException, InterruptedException {
-    var sqlDatabase = SqlDatabase.apply(dbfile.toFile(), none());
-    sqlDatabase.open();
-    repo = new SqlSuggestionsRepo(sqlDatabase, ExecutionContext.global());
+    repo = new InmemorySuggestionsRepo(ExecutionContext.global());
     if (Files.notExists(dbfile)) {
       System.out.println("initializing " + dbfile + " ...");
       Await.ready(repo.init(), TIMEOUT);
@@ -62,7 +62,9 @@ public class SuggestionsRepoBenchmark {
   int insertBatch(int size) throws TimeoutException, InterruptedException {
     Suggestion[] stubs =
         Stream.generate(SuggestionRandom::nextSuggestion).limit(size).toArray(Suggestion[]::new);
-    return (int) Await.result(repo.insertBatchJava(stubs), TIMEOUT);
+    var scalaList = CollectionConverters.asScala(List.of(stubs));
+    var result = Await.result(repo.insertAll(scalaList.toSeq()), TIMEOUT);
+    return result._2.size();
   }
 
   @SuppressWarnings("unchecked")
