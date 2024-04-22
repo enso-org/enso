@@ -59,29 +59,29 @@ public class AddRunning {
 
   private abstract static class RunningIteratorBase implements RunningIterator {
 
-    protected Double current;
-    private boolean isFirst = true;
+    protected double current;
+    private boolean isInitialized = false;
 
     @Override
     public Double next(Double value) {
-      if (isFirst) {
-        isFirst = false;
-        initialize(value);
-      } else if (value == null || current == null) {
-        current = null;
-      } else {
-        increment(value);
+      if (value != null) {
+        if (!isInitialized) {
+          isInitialized = true;
+          initialize(value);
+        } else {
+          increment(value);
+        }
       }
-      return getCurrent();
+      return !isInitialized ? null : getCurrent();
     }
 
-    public void initialize(Double value) {
+    public void initialize(double value) {
       current = value;
     }
 
-    public abstract void increment(Double value);
+    public abstract void increment(double value);
 
-    public Double getCurrent() {
+    public double getCurrent() {
       return current;
     }
   }
@@ -89,7 +89,7 @@ public class AddRunning {
   private static class RunningSumIterator extends RunningIteratorBase {
 
     @Override
-    public void increment(Double value) {
+    public void increment(double value) {
       current += value;
     }
   }
@@ -99,27 +99,27 @@ public class AddRunning {
     private int currentCount;
 
     @Override
-    public void increment(Double value) {
+    public void increment(double value) {
       current += value;
       currentCount++;
     }
 
     @Override
-    public void initialize(Double value) {
-      super.initialize(value);
+    public void initialize(double value) {
+      current = value;
       currentCount = 1;
     }
 
     @Override
-    public Double getCurrent() {
-      return current == null ? null : current / currentCount;
+    public double getCurrent() {
+      return current / currentCount;
     }
   }
 
   private static class RunningMinIterator extends RunningIteratorBase {
 
     @Override
-    public void increment(Double value) {
+    public void increment(double value) {
       current = Math.min(current, value);
     }
   }
@@ -127,7 +127,7 @@ public class AddRunning {
   private static class RunningMaxIterator extends RunningIteratorBase {
 
     @Override
-    public void increment(Double value) {
+    public void increment(double value) {
       current = Math.max(current, value);
     }
   }

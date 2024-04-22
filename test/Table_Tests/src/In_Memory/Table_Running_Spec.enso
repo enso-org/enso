@@ -217,52 +217,64 @@ add_specs suite_builder =
             # 4 | SG0456 | E         | 73.77        | 5
             expected_table = table.zip expected_column
             result.should_equal expected_table
-        group_builder.specify "Running sum works with nothing values" <|
+        group_builder.specify "Running sum works ignores nothing values" <|
             result = table.running Statistic.Sum "Ticket Price"
-            expected_column = Column.from_vector "Running Sum of Ticket Price" [100.5, 676.49, Nothing, Nothing, Nothing]
+            expected_column = Column.from_vector "Running Sum of Ticket Price" [100.5, 676.49, 676.49, 676.49, 750.26]
             #   | Flight | Passenger | Ticket Price | Running Sum of Ticket Price
             #---+--------+-----------+--------------+-------------------------
             # 0 | BA0123 | A         | 100.5        | 100.5
-            # 1 | BA0123 | B         | 575.99       | 575.99
-            # 2 | SG0456 | A         | Nothing      | Nothing
-            # 3 | BA0123 | C         | Nothing      | Nothing
-            # 4 | SG0456 | E         | 73.77        | Nothing
+            # 1 | BA0123 | B         | 575.99       | 676.49
+            # 2 | SG0456 | A         | Nothing      | 676.49
+            # 3 | BA0123 | C         | Nothing      | 676.49
+            # 4 | SG0456 | E         | 73.77        | 649.76
             expected_table = table.zip expected_column
             result.should_equal expected_table
-        group_builder.specify "Running min works with nothing values and grouping" <|
+        group_builder.specify "Running min ignores nothing values and works with grouping" <|
             result = table.running Statistic.Minimum "Ticket Price" "Running" ["Flight"]
-            expected_column = Column.from_vector "Running" [100.5, 100.5, Nothing, Nothing, Nothing]
+            expected_column = Column.from_vector "Running" [100.5, 100.5, Nothing, 100.5, 73.77]
             #   | Flight | Passenger | Ticket Price | Running
             #---+--------+-----------+--------------+-------------------------
             # 0 | BA0123 | A         | 100.5        | 100.5
             # 1 | BA0123 | B         | 575.99       | 100.5
             # 2 | SG0456 | A         | Nothing      | Nothing
-            # 3 | BA0123 | C         | Nothing      | Nothing
-            # 4 | SG0456 | E         | 73.77        | Nothing
+            # 3 | BA0123 | C         | Nothing      | 100.5
+            # 4 | SG0456 | E         | 73.77        | 73.77
             expected_table = table.zip expected_column
             result.should_equal expected_table
-        group_builder.specify "Running max works with nothing values and grouping" <|
+        group_builder.specify "Running max ignores nothing values and works with grouping" <|
             result = table.running Statistic.Maximum "Ticket Price" "Running" ["Flight"]
-            expected_column = Column.from_vector "Running" [100.5, 575.99, Nothing, Nothing, Nothing]
+            expected_column = Column.from_vector "Running" [100.5, 575.99, Nothing, 575.99, 73.77]
             #   | Flight | Passenger | Ticket Price | Running
             #---+--------+-----------+--------------+-------------------------
             # 0 | BA0123 | A         | 100.5        | 100.5
             # 1 | BA0123 | B         | 575.99       | 575.99
             # 2 | SG0456 | A         | Nothing      | Nothing
-            # 3 | BA0123 | C         | Nothing      | Nothing
-            # 4 | SG0456 | E         | 73.77        | Nothing
+            # 3 | BA0123 | C         | Nothing      | 575.99
+            # 4 | SG0456 | E         | 73.77        | 73.77
             expected_table = table.zip expected_column
             result.should_equal expected_table
-        group_builder.specify "Running mean works with nothing values" <|
+        group_builder.specify "Running mean ignores nothing values" <|
             result = table.running Statistic.Mean "Ticket Price" "Running"
-            expected_column = Column.from_vector "Running" [100.5, 338.245, Nothing, Nothing, Nothing]
+            expected_column = Column.from_vector "Running" [100.5, 338.245, 338.245, 338.245, 250.08666666666667]
+            #   | Flight | Passenger | Ticket Price | Running
+            #---+--------+-----------+--------------+-------------------------
+            # 0 | BA0123 | A         | 100.5        | 100.5
+            # 1 | BA0123 | B         | 575.99       | 338.245
+            # 2 | SG0456 | A         | Nothing      | 338.245
+            # 3 | BA0123 | C         | Nothing      | 338.245
+            # 4 | SG0456 | E         | 73.77        | 250.08666666666667
+            expected_table = table.zip expected_column
+            result.should_equal expected_table
+        group_builder.specify "Running mean ignores nothing values and works when first value is Nothing" <|
+            result = table.running Statistic.Mean "Ticket Price" "Running" ["Flight"]
+            expected_column = Column.from_vector "Running" [100.5, 338.245, Nothing, 338.245, 73.77]
             #   | Flight | Passenger | Ticket Price | Running
             #---+--------+-----------+--------------+-------------------------
             # 0 | BA0123 | A         | 100.5        | 100.5
             # 1 | BA0123 | B         | 575.99       | 338.245
             # 2 | SG0456 | A         | Nothing      | Nothing
-            # 3 | BA0123 | C         | Nothing      | Nothing
-            # 4 | SG0456 | E         | 73.77        | Nothing
+            # 3 | BA0123 | C         | Nothing      | 338.245
+            # 4 | SG0456 | E         | 73.77        | 73.77
             expected_table = table.zip expected_column
             result.should_equal expected_table
     suite_builder.group "different types" group_builder->
