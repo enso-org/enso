@@ -48,4 +48,24 @@ public class RuntimeCacheTest {
     cache.removeType(key);
     assertNull(cache.putType(key, obj));
   }
+
+  @Test
+  public void cacheExpressions() {
+    var cache = new RuntimeCache();
+    var key = UUID.randomUUID();
+    var exprKey = UUID.randomUUID();
+    var obj = new Object();
+
+    cache.setWeights(Map.of(key, 1.0));
+
+    assertFalse("Not inserted, as the value isn't in the map yet", cache.offer(exprKey, obj));
+    assertNull("No UUID for exprKey", cache.apply(exprKey.toString()));
+
+    assertTrue("key is inserted, as it has associated weight", cache.offer(key, obj));
+
+    assertFalse(
+        "obj is already associated with key, will be associated with exprKey",
+        cache.offer(exprKey, obj));
+    assertEquals("obj inserted", obj, cache.apply(exprKey.toString()));
+  }
 }
