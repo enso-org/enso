@@ -158,7 +158,6 @@ transport formats, please look [here](./protocol-architecture).
   - [`search/getSuggestionsDatabaseVersion`](#searchgetsuggestionsdatabaseversion)
   - [`search/suggestionsDatabaseUpdate`](#searchsuggestionsdatabaseupdate)
   - [`search/suggestionsOrderDatabaseUpdate`](#searchsuggestionsorderdatabaseupdate)
-  - [`search/completion`](#searchcompletion)
 - [Input/Output Operations](#inputoutput-operations)
   - [`io/redirectStandardOutput`](#ioredirectstandardoutput)
   - [`io/suppressStandardOutput`](#iosuppressstandardoutput)

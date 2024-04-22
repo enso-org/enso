@@ -29,6 +29,7 @@ import { assert, assertDefined, assertEqual, bail } from '../util/assert'
 import type { Result } from '../util/data/result'
 import { Err, Ok } from '../util/data/result'
 import type { SourceRangeEdit } from '../util/data/text'
+import { allKeys } from '../util/types'
 import type { ExternalId, VisualizationMetadata } from '../yjsModel'
 import { visMetadataEquals } from '../yjsModel'
 import * as RawAst from './generated/ast'
@@ -55,6 +56,11 @@ export interface NodeMetadataFields {
   visualization?: VisualizationMetadata | undefined
   colorOverride?: string | undefined
 }
+const nodeMetadataKeys = allKeys<NodeMetadataFields>({
+  position: null,
+  visualization: null,
+  colorOverride: null,
+})
 export type NodeMetadata = FixedMapView<NodeMetadataFields>
 export type MutableNodeMetadata = FixedMap<NodeMetadataFields>
 export function asNodeMetadata(map: Map<string, unknown>): NodeMetadata {
@@ -68,9 +74,6 @@ interface RawAstFields {
   metadata: FixedMap<MetadataFields>
 }
 export interface AstFields extends RawAstFields, LegalFieldContent {}
-function allKeys<T>(keys: Record<keyof T, any>): (keyof T)[] {
-  return Object.keys(keys) as any
-}
 const astFieldKeys = allKeys<RawAstFields>({
   id: null,
   type: null,
@@ -95,6 +98,11 @@ export abstract class Ast {
   get nodeMetadata(): NodeMetadata {
     const metadata = this.fields.get('metadata')
     return metadata as FixedMapView<NodeMetadataFields>
+  }
+
+  /** Returns a JSON-compatible object containing all metadata properties. */
+  serializeMetadata(): MetadataFields & NodeMetadataFields {
+    return this.fields.get('metadata').toJSON() as any
   }
 
   typeName(): string {
@@ -201,8 +209,14 @@ export abstract class MutableAst extends Ast {
 
   setNodeMetadata(nodeMeta: NodeMetadataFields) {
     const metadata = this.fields.get('metadata') as unknown as Map<string, unknown>
-    for (const [key, value] of Object.entries(nodeMeta))
-      if (value !== undefined) metadata.set(key, value)
+    for (const [key, value] of Object.entries(nodeMeta)) {
+      if (!nodeMetadataKeys.has(key)) continue
+      if (value === undefined) {
+        metadata.delete(key)
+      } else {
+        metadata.set(key, value)
+      }
+    }
   }
 
   /** Modify the parent of this node to refer to a new object instead. Return the object, which now has no parent. */
@@ -373,7 +387,7 @@ interface FieldObject<T extends TreeRefs> {
 function* fieldDataEntries<Fields>(map: FixedMapView<Fields>) {
   for (const entry of map.entries()) {
     // All fields that are not from `AstFields` are `FieldData`.
-    if (!astFieldKeys.includes(entry[0] as any)) yield entry as [string, DeepReadonly<FieldData>]
+    if (!astFieldKeys.has(entry[0])) yield entry as [string, DeepReadonly<FieldData>]
   }
 }
 
@@ -2473,6 +2487,7 @@ export interface FixedMapView<Fields> {
   entries(): IterableIterator<readonly [string, unknown]>
   clone(): FixedMap<Fields>
   has(key: string): boolean
+  toJSON(): object
 }
 
 export interface FixedMap<Fields> extends FixedMapView<Fields> {

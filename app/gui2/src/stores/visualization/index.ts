@@ -24,7 +24,6 @@ import type { VisualizationModule } from '@/stores/visualization/runtimeTypes'
 import type { Opt } from '@/util/data/opt'
 import { isUrlString } from '@/util/data/urlString'
 import { isIconName } from '@/util/iconName'
-import { rpcWithRetries } from '@/util/net'
 import { defineStore } from 'pinia'
 import { ErrorCode, LsRpcError, RemoteRpcError } from 'shared/languageServer'
 import type { Event as LSEvent, VisualizationConfiguration } from 'shared/languageServerTypes'
@@ -214,21 +213,20 @@ export const useVisualizationStore = defineStore('visualization', () => {
       console.error('Could not load custom visualizations: Project directory not found.')
       return
     }
-    try {
-      await ls.watchFiles(projectRoot, [customVisualizationsDirectory], onFileEvent, rpcWithRetries)
-        .promise
-    } catch (error) {
+    const watching = await ls.watchFiles(projectRoot, [customVisualizationsDirectory], onFileEvent)
+      .promise
+    if (!watching.ok) {
       if (
-        error instanceof LsRpcError &&
-        error.cause instanceof RemoteRpcError &&
-        error.cause.code === ErrorCode.FILE_NOT_FOUND
+        watching.error.payload instanceof LsRpcError &&
+        watching.error.payload.cause instanceof RemoteRpcError &&
+        watching.error.payload.cause.code === ErrorCode.FILE_NOT_FOUND
       ) {
         console.info(
           "'visualizations/' folder not found in project directory. " +
             "If you have custom visualizations, please put them under 'visualizations/'.",
         )
       } else {
-        throw error
+        watching.error.log('Could not load custom visualizations')
       }
     }
   })

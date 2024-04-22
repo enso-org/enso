@@ -1,13 +1,13 @@
 import { test, type Page } from '@playwright/test'
-import os from 'os'
 import * as actions from './actions'
 import { expect } from './customExpect'
 import { mockCollapsedFunctionInfo } from './expressionUpdates'
+import { CONTROL_KEY } from './keyboard'
 import * as locate from './locate'
 
 const MAIN_FILE_NODES = 11
 
-const COLLAPSE_SHORTCUT = os.platform() === 'darwin' ? 'Meta+G' : 'Control+G'
+const COLLAPSE_SHORTCUT = `${CONTROL_KEY}+G`
 
 test('Entering nodes', async ({ page }) => {
   await actions.goToGraph(page)
