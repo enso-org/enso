@@ -91,8 +91,6 @@ type Pub_Type
   Constructor field
   private priv_method self = ...
   pub_method self = self.field.to_text
-
-private type Priv_Type
 ```
 
 Lib/src/Methods.enso:
@@ -108,8 +106,6 @@ Lib/src/Internal/Helpers.enso:
 # Mark the whole module as private
 private
 
-# OK to import private types in the same project
-import project.Pub_Type.Priv_Type
 ```
 
 Lib/src/Main.enso:
@@ -117,17 +113,14 @@ Lib/src/Main.enso:
 ```
 import project.Pub_Type.Pub_Type
 export project.Pub_Type.Pub_Type
-
-import project.Pub_Type.Priv_Type # OK - we can import private types in the same project.
-export project.Pub_Type.Priv_Type # Failes at compile time - re-exporting private types is forbidden.
 ```
 
 tmp.enso:
 
 ```
 from Lib import Pub_Type
-import Lib.Pub_Type.Priv_Type # Fails during compilation
 import Lib.Methods
+import Lib.Internal.Helpers # Fails during compilation - cannot import private module
 
 main =
   # This constructor is not private, we can use it here.
@@ -136,8 +129,6 @@ main =
   obj.priv_method # Runtime failure - priv_method is private
   Pub_Type.priv_method self=obj # Runtime failure
   obj.pub_method # OK
-
-  Lib.Pub_Type.Priv_Type # Fails at runtime - accessing private types via FQN is forbidden
 
   Methods.pub_stat_method 1 2 # OK
   Methods.priv_stat_method # Fails at runtime
