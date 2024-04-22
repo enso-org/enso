@@ -149,7 +149,7 @@ object Syntax {
 
   case object InconsistentConstructorVisibility extends Reason {
     override def explanation: String =
-      "All the constructors of a type must be either public or private"
+      "All constructors of a type must be either public or private"
   }
 
   case object InvalidUnderscore extends Reason {
