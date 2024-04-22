@@ -51,7 +51,7 @@ import org.enso.logger.JulHandler
 import org.enso.logger.akka.AkkaConverter
 import org.enso.polyglot.{HostAccessFactory, RuntimeOptions, RuntimeServerInfo}
 import org.enso.profiling.events.NoopEventsMonitor
-import org.enso.searcher.sql.{SqlDatabase, SqlSuggestionsRepo}
+import org.enso.searcher.memory.InMemorySuggestionsRepo
 import org.enso.text.{ContentBasedVersioning, Sha3_224VersionCalculator}
 import org.graalvm.polyglot.Engine
 import org.graalvm.polyglot.Context
@@ -63,7 +63,6 @@ import java.io.{File, PrintStream}
 import java.net.URI
 import java.nio.charset.StandardCharsets
 import java.time.Clock
-
 import scala.concurrent.duration._
 
 /** A main module containing all components of the server.
@@ -136,9 +135,10 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: Level) {
     Sha3_224VersionCalculator
   log.trace("Created Version Calculator [{}].", versionCalculator)
 
-  val sqlDatabase = SqlDatabase.inmem("memdb")
-
-  val suggestionsRepo = new SqlSuggestionsRepo(sqlDatabase)(system.dispatcher)
+  val suggestionsRepo =
+    new InMemorySuggestionsRepo()(
+      system.dispatcher
+    );
   log.trace("Created SQL suggestions repo: [{}].", suggestionsRepo)
 
   val idlenessMonitor =
@@ -427,7 +427,6 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: Level) {
       system.eventStream,
       directoriesConfig,
       jsonRpcProtocolFactory,
-      sqlDatabase,
       suggestionsRepo,
       context,
       zioRuntime

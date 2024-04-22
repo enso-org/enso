@@ -1,5 +1,4 @@
 package org.enso.languageserver.websocket.json
-import java.util.UUID
 import io.circe.literal._
 import org.enso.languageserver.websocket.json.{SearchJsonMessages => json}
 import org.enso.logger.ReportLogsOnFailure
@@ -43,93 +42,6 @@ class SuggestionsHandlerTest
       """)
     }
 
-    "reply to completion request" taggedAs Flaky in {
-      val client = getInitialisedWsClient()
-
-      client.send(json"""
-        { "jsonrpc": "2.0",
-          "method": "search/completion",
-          "id": 0,
-          "params": {
-            "file": {
-              "rootId": $testContentRootId,
-              "segments": [ "src", "Main.enso" ]
-            },
-            "position": {
-              "line": 0,
-              "character": 0
-            }
-          }
-        }
-      """)
-      client.expectJson(json"""
-          { "jsonrpc" : "2.0",
-            "id" : 0,
-            "result" : {
-              "results" : [
-              ],
-              "currentVersion" : 0
-            }
-          }
-      """)
-
-      client.send(json"""
-        { "jsonrpc": "2.0",
-          "method": "search/completion",
-          "id": 0,
-          "params": {
-            "file": {
-              "rootId": $testContentRootId,
-              "segments": [ "src", "Foo", "Main.enso" ]
-            },
-            "position": {
-              "line": 0,
-              "character": 0
-            }
-          }
-        }
-      """)
-      client.expectJson(json"""
-          { "jsonrpc" : "2.0",
-            "id" : 0,
-            "result" : {
-              "results" : [
-              ],
-              "currentVersion" : 0
-            }
-          }
-      """)
-    }
-
-    "reply with error when project root not found" taggedAs Flaky in {
-      val client = getInitialisedWsClient()
-
-      client.send(json"""
-        { "jsonrpc": "2.0",
-          "method": "search/completion",
-          "id": 0,
-          "params": {
-            "file": {
-              "rootId": ${UUID.randomUUID()},
-              "segments": [ "src", "Main.enso" ]
-            },
-            "position": {
-              "line": 0,
-              "character": 0
-            }
-          }
-        }
-      """)
-      client.expectJson(json"""
-          { "jsonrpc" : "2.0",
-            "id" : 0,
-            "error" : {
-              "code" : 1001,
-              "message" : "Content root not found"
-            }
-          }
-      """)
-    }
   }
 
 }

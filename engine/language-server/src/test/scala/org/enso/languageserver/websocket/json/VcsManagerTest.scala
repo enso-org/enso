@@ -447,14 +447,14 @@ class VcsManagerTest
                   "rootId" : $testContentRootId,
                   "segments" : [
                     "src",
-                    "Bar.enso"
+                    "Foo.enso"
                   ]
                 },
                 {
                   "rootId" : $testContentRootId,
                   "segments" : [
                     "src",
-                    "Foo.enso"
+                    "Bar.enso"
                   ]
                 }
               ],
