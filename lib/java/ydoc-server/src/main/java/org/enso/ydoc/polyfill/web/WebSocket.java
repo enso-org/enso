@@ -29,7 +29,7 @@ import org.graalvm.polyglot.proxy.ProxyExecutable;
 final class WebSocket implements ProxyExecutable, Polyfill {
 
   private static final String NEW_WEB_SOCKET = "new-web-socket";
-  private static final String NEW_WEB_SOCKET_CONECTION = "new-web-socket-connection";
+  private static final String NEW_WEB_SOCKET_CONNECTION = "new-web-socket-connection";
   private static final String WEB_SOCKET_SEND_TEXT = "web-socket-send-text";
   private static final String WEB_SOCKET_SEND_BINARY = "web-socket-send-binary";
   private static final String WEB_SOCKET_CLOSE = "web-socket-close";
@@ -100,7 +100,7 @@ final class WebSocket implements ProxyExecutable, Polyfill {
         yield connection;
       }
 
-      case NEW_WEB_SOCKET_CONECTION -> {
+      case NEW_WEB_SOCKET_CONNECTION -> {
         var handleOpen = arguments[1];
         var handleClose = arguments[2];
         var handleError = arguments[3];
