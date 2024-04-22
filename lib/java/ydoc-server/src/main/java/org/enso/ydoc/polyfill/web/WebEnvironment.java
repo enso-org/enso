@@ -1,7 +1,9 @@
 package org.enso.ydoc.polyfill.web;
 
 import java.util.concurrent.ExecutorService;
+import java.util.function.Function;
 import org.graalvm.polyglot.Context;
+import org.graalvm.polyglot.HostAccess;
 
 /** Web polyfill environment. */
 public final class WebEnvironment {
@@ -22,7 +24,7 @@ public final class WebEnvironment {
     var crypto = new Crypto();
     crypto.initialize(ctx);
 
-    var encoding = new TextDecoder();
+    var encoding = new Util();
     encoding.initialize(ctx);
 
     var abortController = new AbortController();
@@ -30,5 +32,18 @@ public final class WebEnvironment {
 
     var webSocketPolyfill = new WebSocket(executor);
     webSocketPolyfill.initialize(ctx);
+  }
+
+  public static Context.Builder createContext() {
+    return createContext(Function.identity());
+  }
+
+  public static Context.Builder createContext(
+      Function<HostAccess.Builder, HostAccess.Builder> hostAccessFunction) {
+    var defaultHostAccess =
+        HostAccess.newBuilder(HostAccess.EXPLICIT).allowArrayAccess(true).allowBufferAccess(true);
+    var hostAccess = hostAccessFunction.apply(defaultHostAccess).build();
+
+    return Context.newBuilder("js").allowHostAccess(hostAccess).allowExperimentalOptions(true);
   }
 }

@@ -4,24 +4,25 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import org.graalvm.polyglot.Context;
+import org.graalvm.polyglot.io.ByteSequence;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
-public class TextDecoderTest {
+public class UtilTest {
 
   private Context context;
   private ExecutorService executor;
 
-  public TextDecoderTest() {}
+  public UtilTest() {}
 
   @Before
   public void setup() throws Exception {
     executor = Executors.newSingleThreadExecutor();
-    var encoding = new TextDecoder();
+    var encoding = new Util();
 
-    var b = Context.newBuilder("js").allowExperimentalOptions(true);
+    var b = WebEnvironment.createContext();
 
     var chromePort = Integer.getInteger("inspectPort", -1);
     if (chromePort > 0) {
@@ -100,5 +101,34 @@ public class TextDecoderTest {
     var result = CompletableFuture.supplyAsync(() -> context.eval("js", code), executor).get();
 
     Assert.assertEquals("World", result.as(String.class));
+  }
+
+  @Test
+  public void textEncoderEncode() throws Exception {
+    var code =
+        """
+        let encoder = new TextEncoder();
+        let arr = encoder.encode("Hello");
+        arr.buffer;
+        """;
+
+    var result = CompletableFuture.supplyAsync(() -> context.eval("js", code), executor).get();
+
+    Assert.assertArrayEquals(
+        new byte[] {72, 101, 108, 108, 111}, result.as(ByteSequence.class).toByteArray());
+  }
+
+  @Test
+  public void textEncoderEncodeEmpty() throws Exception {
+    var code =
+        """
+        let encoder = new TextEncoder();
+        let arr = encoder.encode();
+        arr.buffer;
+        """;
+
+    var result = CompletableFuture.supplyAsync(() -> context.eval("js", code), executor).get();
+
+    Assert.assertArrayEquals(new byte[0], result.as(ByteSequence.class).toByteArray());
   }
 }

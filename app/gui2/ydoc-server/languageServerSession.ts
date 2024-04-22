@@ -40,7 +40,7 @@ import { WSSharedDoc } from './ydoc'
 const SOURCE_DIR = 'src'
 const EXTENSION = '.enso'
 
-const DEBUG_LOG_SYNC = false
+const DEBUG_LOG_SYNC = true
 
 export class LanguageServerSession {
   clientId: Uuid

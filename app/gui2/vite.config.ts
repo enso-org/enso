@@ -128,9 +128,7 @@ function gatewayServer(): Plugin {
         if (!existsSync(ydocServerJar)) {
           const cwd = fileURLToPath(new URL('../..', import.meta.url))
           const sbt = spawn('sbt', ['ydoc-server/assembly'], { cwd })
-          sbt.stdout.on('data', (data) => {
-            console.log(`sbt: ${data}`)
-          })
+          sbt.stdout.on('data', (data) => console.log(`sbt: ${data}`))
           sbt.on('exit', runYdocServer)
         } else {
           runYdocServer()
