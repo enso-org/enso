@@ -135,6 +135,7 @@ export const useProjectStore = defineStore('project', () => {
     // For now, let's assume that the websocket server is running on the same host as the web server.
     // Eventually, we can make this configurable, or even runtime variable.
     const socketUrl = new URL('http://localhost:1234')
+    //const socketUrl = new URL(location.origin)
     socketUrl.protocol = location.protocol.replace(/^http/, 'ws')
     socketUrl.pathname = '/project'
     yDocsProvider = attachProvider(
