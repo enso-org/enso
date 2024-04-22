@@ -427,17 +427,21 @@ export class ArgumentApplication {
         }
       }
     } else {
-      process(args)
+      // ignore: process(args)
     }
     arr.reverse()
 
     const m: Record<string, ExternalId> = {}
-    let index = 0
+    let index = 'self' === mci?.suggestion.arguments[0]?.name ? 1 : 0
     for (const e of arr) {
+      const notApplied = mci?.methodCall.notAppliedArguments ?? []
+      while (notApplied.indexOf(index) != -1) {
+        index++
+      }
       if (e.uuid) {
         m['' + index] = e.uuid
       }
-      const n: string | undefined = mci?.suggestion.arguments[index + 1]?.name
+      const n: string | undefined = mci?.suggestion.arguments[index]?.name
       if (n && e.uuid) {
         m[n] = e.uuid
       }

@@ -241,7 +241,7 @@ test.each([
     subapplicationIndex: 0,
     notAppliedArguments: [0, 1],
     expectedNotAppliedArguments: [0, 1],
-    expectedSameIds: [['0', 'as']],
+    expectedSameIds: [['0', undefined]],
   },
   {
     description: '1 arg, info on most inner subapplication.',
@@ -249,7 +249,7 @@ test.each([
     subapplicationIndex: 1,
     notAppliedArguments: [0, 1],
     expectedNotAppliedArguments: [1],
-    expectedSameIds: [['0', 'as']],
+    expectedSameIds: [['0', 'column']],
   },
   {
     description: '2 args, info on most inner subapplication.',
@@ -258,8 +258,8 @@ test.each([
     notAppliedArguments: [0, 1],
     expectedNotAppliedArguments: [],
     expectedSameIds: [
-      ['0', 'as'],
-      ['1', null],
+      ['0', 'column'],
+      ['1', 'as'],
     ],
   },
   {
@@ -269,8 +269,8 @@ test.each([
     notAppliedArguments: [1],
     expectedNotAppliedArguments: [],
     expectedSameIds: [
-      ['0', 'as'],
-      ['1', null],
+      ['0', 'column'],
+      ['1', 'as'],
     ],
   },
   {
@@ -280,8 +280,8 @@ test.each([
     notAppliedArguments: [],
     expectedNotAppliedArguments: [],
     expectedSameIds: [
-      ['0', 'as'],
-      ['1', null],
+      ['0', 'column'],
+      ['1', 'as'],
     ],
   },
   {
@@ -291,7 +291,7 @@ test.each([
     notAppliedArguments: [1, 0],
     expectedNotAppliedArguments: [1],
     expectedSameIds: [
-      ['0', 'as'],
+      ['0', 'column'],
       ['1', null],
     ],
   },
@@ -301,7 +301,10 @@ test.each([
     subapplicationIndex: 1,
     notAppliedArguments: [0, 1],
     expectedNotAppliedArguments: [0],
-    expectedSameIds: [['0', 'as']],
+    expectedSameIds: [
+      ['1', 'as'],
+      ['column', null],
+    ],
   },
   {
     description: '2 named args.',
@@ -320,10 +323,7 @@ test.each([
     subapplicationIndex: 1,
     notAppliedArguments: [0, 1],
     expectedNotAppliedArguments: [0, 1],
-    expectedSameIds: [
-      ['0', 'as'],
-      ['0', 'bla'],
-    ],
+    expectedSameIds: [['2', 'bla']],
   },
   {
     description: '1 named & 1 unnamed args.',
@@ -331,10 +331,7 @@ test.each([
     subapplicationIndex: 2,
     notAppliedArguments: [0, 1],
     expectedNotAppliedArguments: [],
-    expectedSameIds: [
-      ['0', 'as'],
-      ['1', null],
-    ],
+    expectedSameIds: [['0', 'as']],
   },
   {
     description: '1 unnamed & 1 named args.',
@@ -344,7 +341,7 @@ test.each([
     expectedNotAppliedArguments: [],
     expectedSameIds: [
       ['1', 'as'],
-      ['0', null],
+      ['0', 'column'],
     ],
   },
 ] as ArgsTestCase[])(
@@ -366,10 +363,12 @@ test.each([
     const interpreted = interpretCall(ast, true)
     const res = ArgumentApplication.collectArgumentNamesAndUuids(interpreted, info)
 
-    console.log(res)
     if (expectedSameIds) {
       for (const p of expectedSameIds) {
-        if (p[1] == null) {
+        if (p[1] === undefined) {
+          const id = res[p[0]]
+          assertEqual(undefined, id, `No ${[0]} ID found`)
+        } else if (p[1] === null) {
           const id = res[p[0]]
           assertNotEqual(null, id, `One ${id} ID found`)
           for (const name in res) {
