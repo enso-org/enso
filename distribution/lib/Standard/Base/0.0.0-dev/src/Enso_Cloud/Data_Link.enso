@@ -33,16 +33,17 @@ from project.Enso_Cloud.Public_Utils import get_required_field
 polyglot java import org.enso.base.enso_cloud.DataLinkSPI
 polyglot java import org.enso.base.file_format.FileFormatSPI
 
-## PRIVATE
-   A file format for reading data links.
+## Helper methods allowing to manipulate the raw configuration of data links.
 type Data_Link_Format
     ## PRIVATE
+       ADVANCED
        Reads the raw configuration data of a data-link.
     read_config (file : File_Like) -> JS_Object =
         text = Data_Link_Format.read_raw_config file
         text.parse_json
 
     ## PRIVATE
+       ADVANCED
        Writes a data-link configuration to a file.
 
        Arguments:
@@ -55,7 +56,7 @@ type Data_Link_Format
          before writing the config we try to parse it to ensure that it
          represents a valid data-link. In some cases (e.g. testing), we may want
          to skip that.
-    write_config file (config : JS_Object) (replace_existing : Boolean = False) (skip_validation : Boolean = False) =
+    write_config (file : File_Like) (config : JS_Object) (replace_existing : Boolean = False) (skip_validation : Boolean = False) =
         checked = if skip_validation.not then Data_Link_Format.validate_config config
         checked.if_not_error <|
             Data_Link_Format.write_raw_config file config.to_json replace_existing
@@ -86,16 +87,16 @@ type Data_Link_Format
        - replace_existing: A flag specifying if the operation should replace an
          existing file. By default, the operation will fail if the file already
          exists.
-    write_raw_config file (raw_content : Text) (replace_existing : Boolean = False) =
-        if is_data_link file . not then
+    write_raw_config (file : File_Like) (raw_content : Text) (replace_existing : Boolean = False) =
+        if is_data_link file.underlying . not then
             Panic.throw (Illegal_Argument.Error "Data_Link_Format should only be used for writing config to Data Links, but "+file.to_display_text+" is not a Data Link.")
         exist_options = if replace_existing then [File_Access.Create, File_Access.Truncate_Existing] else [File_Access.Create_New]
         options = exist_options + [File_Access.Write, Data_Link_Access.No_Follow]
 
         bytes = raw_content.bytes data_link_encoding on_problems=Problem_Behavior.Report_Error
-        r = bytes.if_not_error <| file.with_output_stream options output_stream->
+        r = bytes.if_not_error <| file.underlying.with_output_stream options output_stream->
             output_stream.write_bytes bytes
-        r.if_not_error file
+        r.if_not_error file.underlying
 
     ## PRIVATE
        Checks if the config represents a valid data-link.
@@ -106,15 +107,39 @@ type Data_Link_Format
     validate_config (config : JS_Object) -> Nothing ! Missing_Data_Link_Library | Illegal_State =
         interpret_json_as_data_link config . if_not_error Nothing
 
-## PRIVATE
-   An interface for a data link description.
-type Data_Link
-    ## PRIVATE
-       Reads a data link and interprets it using the provided format.
-       If the format is `Auto_Detect` (default), a default format provided by the data link is used, if available.
-    read self (format = Auto_Detect) (on_problems : Problem_Behavior = Problem_Behavior.Report_Error) -> Any =
-        _ = [format, on_problems]
-        Unimplemented.throw "This is an interface only."
+    ## ADVANCED
+       Copies the data-link configuration from one place to another.
+
+       The operation does not follow the data links, but copies the
+       configuration between the provided files.
+
+       Arguments:
+       - source: The file to copy the configuration from.
+       - target: The file to copy the configuration to.
+       - replace_existing: A flag specifying if the operation should replace an
+         existing file. By default, the operation will fail if the file already
+         exists.
+    copy (source : File_Like) (target : File_Like) (replace_existing : Boolean = False) -> Any ! File_Error =
+        raw_config = Data_Link_Format.read_raw_config source
+        Data_Link_Format.write_raw_config target raw_config replace_existing
+
+
+    ## ADVANCED
+       Moves the data-link configuration from one place to another.
+
+       The operation does not follow the data links, but copies the
+       configuration between the provided files.
+
+       Arguments:
+       - source: The file to move the configuration from. It will be deleted.
+       - target: The file to move the configuration to.
+       - replace_existing: A flag specifying if the operation should replace an
+         existing file. By default, the operation will fail if the file already
+         exists.
+    move (source : File_Like) (target : File_Like) (replace_existing : Boolean = False) -> Any ! File_Error =
+        Data_Link_Format.copy source target replace_existing
+            . if_not_error <|
+                source.underlying.delete . if_not_error target.underlying
 
 ## PRIVATE
    A type class representing a data link that can be opened as an input stream.
