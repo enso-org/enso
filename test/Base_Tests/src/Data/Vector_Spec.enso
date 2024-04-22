@@ -1091,6 +1091,26 @@ add_specs suite_builder =
                 builder.append_vector_range values
             builder.to_vector . should_equal []
 
+        group_builder.specify "Builder should propagate an uncaught error if it is appended with .append" <|
+            v = Vector.build builder->
+                builder.append 1
+                builder.append (Error.throw (Illegal_Argument.Error "asdf"))
+                builder.append 3
+            v . should_fail_with (Illegal_Argument.Error "asdf")
+
+        group_builder.specify "Builder should propagate an uncaught error if it is appended with .append_vector_range" <|
+            v = Vector.build builder->
+                builder.append 1
+                builder.append_vector_range [1, Error.throw (Illegal_Argument.Error "asdf")]
+                builder.append 3
+            v . should_fail_with (Illegal_Argument.Error "asdf")
+
+        group_builder.specify "Builder should only convert Builder_Dataflow_Error panics to dataflow errors, and let other panics through" <|
+            Test.expect_panic_with matcher=Illegal_Argument <|
+                Vector.build builder->
+                    builder.append 1
+                    Panic.throw (Illegal_Argument.Error "error")
+
         group_builder.specify "example (single)" <|
             vec = Vector.build initial_capacity=5 builder->
                 do_build start stop =

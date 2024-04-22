@@ -219,13 +219,13 @@ type Vector a
              # => [1, 2, 3]
     build : (Builder -> Any) -> Integer -> Vector
     build (function : Builder -> Any) (initial_capacity : Integer = 10) -> Vector =
-        results = Vector.build_multiple 1 initial_capacity=initial_capacity builders->
+        # Delegate to .build_multiple
+        results_multiple = Vector.build_multiple 1 initial_capacity=initial_capacity builders->
             assert (builders.length == 1)
-            result = function (builders.at 0)
-            result.if_not_error [result]
-        results.if_not_error <|
-            assert (results.length == 1)
-            results.at 0
+            function (builders.at 0)
+        results_multiple.if_not_error <|
+            assert (results_multiple.length == 1)
+            results_multiple.at 0
 
     ## PRIVATE
        ADVANCED
@@ -277,9 +277,10 @@ type Vector a
     build_multiple : Integer -> (Builder -> Any) -> Integer -> Vector Vector
     build_multiple (count : Integer) (function : Builder -> Any) (initial_capacity : Integer = 10) -> Vector Vector =
         if count < 0 then Error.throw (Illegal_Argument.Error "count must be non-negative: "+count.to_text) else
-            builders = Range.new 0 count . map (_-> Builder.new initial_capacity)
-            result = function builders
-            result.if_not_error (builders.map .to_vector)
+            builders = Range.new 0 count . map (_-> Builder.new initial_capacity panic_on_dataflow_error=True)
+            propagate_dataflow_error cp = Error.throw (cp.payload.dataflow_error)
+            Panic.catch Builder_Dataflow_Error handler=propagate_dataflow_error <|
+                function builders . if_not_error (builders.map .to_vector)
 
     ## PRIVATE
        ADVANCED
