@@ -123,9 +123,10 @@ public final class Type implements EnsoObject {
 
   /**
    * Returns true iff this type is project-private. A type is project-private iff all its
-   * constructors are project-private.
-   * Note that during the compilation, it is ensured by the {@link org.enso.compiler.pass.analyse.PrivateConstructorAnalysis}
-   * compiler pass that all the constructors are either public or project-private.
+   * constructors are project-private. Note that during the compilation, it is ensured by the {@link
+   * org.enso.compiler.pass.analyse.PrivateConstructorAnalysis} compiler pass that all the
+   * constructors are either public or project-private.
+   *
    * @return true iff this type is project-private.
    */
   public boolean isProjectPrivate() {
@@ -338,6 +339,7 @@ public final class Type implements EnsoObject {
 
   /**
    * Registers a constructor in this type.
+   *
    * @param constructor The constructor to register in this type.
    * @param isProjectPrivate If the constructor is project-private.
    */
@@ -346,8 +348,8 @@ public final class Type implements EnsoObject {
     if (isProjectPrivate) {
       this.isProjectPrivate = true;
     } else {
-      assert !this.isProjectPrivate :
-          "Trying to register a public constructor in a type where a project-private constructor"
+      assert !this.isProjectPrivate
+          : "Trying to register a public constructor in a type where a project-private constructor"
               + " has already been registered before. During compilation, it should be ensured that"
               + " all constructors are either public or project-private.";
     }
@@ -362,5 +364,4 @@ public final class Type implements EnsoObject {
     var b = EnsoContext.get(lib).getBuiltins();
     return this == b.nothing();
   }
-
 }

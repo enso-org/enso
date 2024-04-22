@@ -95,7 +95,10 @@ public abstract class InvokeFunctionNode extends BaseNode {
 
   private PanicException makePrivateAccessPanic(Function targetFunction) {
     var thisProjName = getThisProject() != null ? getThisProject().name() : null;
-    var targetProjName = getFunctionProject(targetFunction) != null ? getFunctionProject(targetFunction).name() : null;
+    var targetProjName =
+        getFunctionProject(targetFunction) != null
+            ? getFunctionProject(targetFunction).name()
+            : null;
     var funcName = targetFunction.getName();
     var err =
         EnsoContext.get(this)
