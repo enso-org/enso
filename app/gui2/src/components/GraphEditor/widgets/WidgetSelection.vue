@@ -197,6 +197,7 @@ const innerWidgetInput = computed<WidgetInput>(() => {
     : props.input.dynamicConfig
   return {
     ...props.input,
+    [SelectionArrowKey]: true,
     editHandler: dropDownInteraction,
     dynamicConfig,
   }
@@ -334,9 +335,11 @@ export interface CustomDropdownItem {
 }
 
 export const CustomDropdownItemsKey: unique symbol = Symbol('CustomDropdownItems')
+export const SelectionArrowKey: unique symbol = Symbol('SelectionArrow')
 declare module '@/providers/widgetRegistry' {
   export interface WidgetInput {
     [CustomDropdownItemsKey]?: readonly CustomDropdownItem[]
+    [SelectionArrowKey]?: boolean
   }
 }
 </script>
@@ -354,7 +357,6 @@ declare module '@/providers/widgetRegistry' {
     @pointerout="isHovered = false"
   >
     <NodeWidget :input="innerWidgetInput" />
-    <SvgIcon v-if="isHovered" name="arrow_right_head_only" class="arrow" />
     <Teleport v-if="tree.nodeElement" :to="tree.nodeElement">
       <SizeTransition height :duration="100">
         <DropdownWidget
