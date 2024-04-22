@@ -1,4 +1,4 @@
-package org.enso.ydoc.polyfill.nodejs;
+package org.enso.ydoc.polyfill.web;
 
 import java.util.Arrays;
 import java.util.UUID;

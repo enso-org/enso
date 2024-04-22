@@ -1,10 +1,10 @@
-package org.enso.ydoc.polyfill.nodejs;
+package org.enso.ydoc.polyfill.web;
 
 import java.util.concurrent.ExecutorService;
 import org.graalvm.polyglot.Context;
 
-/** Node.js polyfill environment. */
-public final class NodeJs {
+/** Web polyfill environment. */
+public final class WebEnvironment {
 
   public static void initialize(Context ctx, ExecutorService executor) {
     var performance = new Performance();
@@ -22,7 +22,7 @@ public final class NodeJs {
     var crypto = new Crypto();
     crypto.initialize(ctx);
 
-    var encoding = new Encoding();
+    var encoding = new TextDecoder();
     encoding.initialize(ctx);
 
     var abortController = new AbortController();

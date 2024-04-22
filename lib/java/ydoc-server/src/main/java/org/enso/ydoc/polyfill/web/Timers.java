@@ -1,4 +1,4 @@
-package org.enso.ydoc.polyfill.nodejs;
+package org.enso.ydoc.polyfill.web;
 
 import java.util.Arrays;
 import java.util.concurrent.ExecutorService;
@@ -12,6 +12,7 @@ import org.graalvm.polyglot.Source;
 import org.graalvm.polyglot.Value;
 import org.graalvm.polyglot.proxy.ProxyExecutable;
 
+/** Implements the <a href="https://nodejs.org/api/timers.html">Timers</a> Node.js API. */
 final class Timers implements ProxyExecutable, Polyfill {
 
   private static final String SET_INTERVAL = "set-interval";

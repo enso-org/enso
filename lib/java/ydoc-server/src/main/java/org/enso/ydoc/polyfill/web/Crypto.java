@@ -1,4 +1,4 @@
-package org.enso.ydoc.polyfill.nodejs;
+package org.enso.ydoc.polyfill.web;
 
 import java.util.Arrays;
 import java.util.UUID;
@@ -8,6 +8,7 @@ import org.graalvm.polyglot.Source;
 import org.graalvm.polyglot.Value;
 import org.graalvm.polyglot.proxy.ProxyExecutable;
 
+/** Implements the <a href="https://nodejs.org/api/crypto.html">Crypto</a> Node.js interface. */
 final class Crypto implements ProxyExecutable, Polyfill {
 
   private static final String RANDOM_UUID = "random-uuid";

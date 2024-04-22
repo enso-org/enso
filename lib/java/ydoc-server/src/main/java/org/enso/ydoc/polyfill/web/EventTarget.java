@@ -1,4 +1,4 @@
-package org.enso.ydoc.polyfill.nodejs;
+package org.enso.ydoc.polyfill.web;
 
 import java.util.Arrays;
 import java.util.HashMap;
@@ -12,6 +12,11 @@ import org.graalvm.polyglot.Source;
 import org.graalvm.polyglot.Value;
 import org.graalvm.polyglot.proxy.ProxyExecutable;
 
+/**
+ * Implements the <a
+ * href="https://developer.mozilla.org/en-US/docs/Web/API/EventTarget">EventTarget</a> Web
+ * interface.
+ */
 final class EventTarget implements ProxyExecutable, Polyfill {
 
   private static final String NEW_EVENT_TARGET = "new-event-target";

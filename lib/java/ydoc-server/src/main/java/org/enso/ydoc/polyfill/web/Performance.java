@@ -1,4 +1,4 @@
-package org.enso.ydoc.polyfill.nodejs;
+package org.enso.ydoc.polyfill.web;
 
 import java.util.Arrays;
 import org.enso.ydoc.Polyfill;
@@ -7,6 +7,10 @@ import org.graalvm.polyglot.Source;
 import org.graalvm.polyglot.Value;
 import org.graalvm.polyglot.proxy.ProxyExecutable;
 
+/**
+ * Implements the <a href="https://nodejs.org/api/perf_hooks.html">Performance measurement</a>
+ * Node.js API.
+ */
 final class Performance implements ProxyExecutable, Polyfill {
 
   private static final String NOW = "now";
