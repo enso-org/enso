@@ -1,4 +1,4 @@
-package org.enso.ydoc.polyfill;
+package org.enso.ydoc.polyfill.nodejs;
 
 import io.helidon.common.uri.UriQuery;
 import io.helidon.http.HttpPrologue;
@@ -6,7 +6,7 @@ import org.graalvm.polyglot.HostAccess;
 
 /**
  * The {@link URL} class implements the <a
- * href="https://nodejs.org/docs/latest-v20.x/api/url.html">Node.js URL</a> interface and can be
+ * href="https://nodejs.org/docs/latest-v20.x/api/url.html">URL</a> Node.js interface and can be
  * used directly for interop with JS.
  */
 public final class URL {

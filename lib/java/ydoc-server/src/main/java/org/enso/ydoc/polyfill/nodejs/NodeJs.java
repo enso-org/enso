@@ -1,9 +1,10 @@
-package org.enso.ydoc.polyfill;
+package org.enso.ydoc.polyfill.nodejs;
 
 import java.util.concurrent.ExecutorService;
 import org.graalvm.polyglot.Context;
 
-public final class Platform {
+/** Node.js polyfill environment. */
+public final class NodeJs {
 
   public static void initialize(Context ctx, ExecutorService executor) {
     var performance = new Performance();

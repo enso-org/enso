@@ -1,4 +1,4 @@
-package org.enso.ydoc.polyfill;
+package org.enso.ydoc.polyfill.nodejs;
 
 import io.helidon.common.buffers.BufferData;
 import io.helidon.webserver.WebServer;
@@ -61,7 +61,7 @@ public class WebSocketTest {
         CompletableFuture.supplyAsync(
                 () -> {
                   var ctx = b.build();
-                  Platform.initialize(ctx, executor);
+                  NodeJs.initialize(ctx, executor);
                   return ctx;
                 },
                 executor)

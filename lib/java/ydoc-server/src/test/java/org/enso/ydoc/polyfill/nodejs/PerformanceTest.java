@@ -1,4 +1,4 @@
-package org.enso.ydoc.polyfill;
+package org.enso.ydoc.polyfill.nodejs;
 
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
