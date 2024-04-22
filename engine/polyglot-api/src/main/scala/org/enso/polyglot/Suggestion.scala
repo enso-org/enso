@@ -45,6 +45,7 @@ import scala.collection.immutable.ListSet
     )
   )
 )
+@SerialVersionUID(9650L)
 sealed trait Suggestion extends ToLogString {
 
   def externalId:    Option[Suggestion.ExternalID]
@@ -54,6 +55,23 @@ sealed trait Suggestion extends ToLogString {
   def documentation: Option[String]
 
   def withReexports(reexports: Set[String]): Suggestion
+
+  def withReturnType(returnType: String): Suggestion
+
+  /** Creates a copy of this suggestion with the optional fields changed, if applicable.
+    *
+    * @param optExternalId externalID to modify, if non-empty
+    * @param optReturnType return type to modify, if non-empty and applicable
+    * @param optDocumentation documentation to modify, if non-empty
+    * @param optScope scope to modify, if non-empty and applicable
+    * @return a copy of this suggestion with modified fields, if applicable, unchanged suggestion otherwise
+    */
+  def update(
+    optExternalId: Option[Option[Suggestion.ExternalID]],
+    optReturnType: Option[String],
+    optDocumentation: Option[Option[String]],
+    optScope: Option[Suggestion.Scope]
+  ): Suggestion
 }
 
 object Suggestion {
@@ -242,15 +260,29 @@ object Suggestion {
     override def returnType: String =
       module
 
-    /** @inheritdoc */
     override def withReexports(reexports: Set[String]): Suggestion =
       copy(reexports = reexports)
+
+    override def withReturnType(returnType: String): Suggestion =
+      copy(module = returnType)
+
+    override def update(
+      optExternalId: Option[Option[ExternalID]],
+      optReturnType: Option[String],
+      optDocumentation: Option[Option[String]],
+      optScope: Option[Scope]
+    ): Suggestion = {
+      optDocumentation
+        .map(documentation => this.copy(documentation = documentation))
+        .getOrElse(this)
+    }
 
     /** @inheritdoc */
     override def toLogString(shouldMask: Boolean): String =
       s"Module(module=$module,name=$name,documentation=" +
       (if (shouldMask) documentation.map(_ => STUB) else documentation) +
       s",reexports=$reexports)"
+
   }
 
   /** A type definition.
@@ -276,9 +308,28 @@ object Suggestion {
   ) extends Suggestion
       with ToLogString {
 
-    /** @inheritdoc */
     override def withReexports(reexports: Set[String]): Suggestion =
       copy(reexports = reexports)
+
+    override def withReturnType(returnType: String): Suggestion =
+      copy(returnType = returnType)
+
+    override def update(
+      optExternalId: Option[Option[ExternalID]],
+      optReturnType: Option[String],
+      optDocumentation: Option[Option[String]],
+      optScope: Option[Scope]
+    ): Suggestion = {
+      val v1 = optExternalId
+        .map(externalID => this.copy(externalId = externalID))
+        .getOrElse(this)
+      val v2 = optReturnType
+        .map(returnType => v1.copy(returnType = returnType))
+        .getOrElse(v1)
+      optDocumentation
+        .map(documentation => v2.copy(documentation = documentation))
+        .getOrElse(v2)
+    }
 
     /** @inheritdoc */
     override def toLogString(shouldMask: Boolean): String =
@@ -317,9 +368,28 @@ object Suggestion {
   ) extends Suggestion
       with ToLogString {
 
-    /** @inheritdoc */
     override def withReexports(reexports: Set[String]): Suggestion =
       copy(reexports = reexports)
+
+    override def withReturnType(returnType: String): Suggestion =
+      copy(returnType = returnType)
+
+    override def update(
+      optExternalId: Option[Option[ExternalID]],
+      optReturnType: Option[String],
+      optDocumentation: Option[Option[String]],
+      optScope: Option[Scope]
+    ): Suggestion = {
+      val v1 = optExternalId
+        .map(externalID => this.copy(externalId = externalID))
+        .getOrElse(this)
+      val v2 = optReturnType
+        .map(returnType => v1.copy(returnType = returnType))
+        .getOrElse(v1)
+      optDocumentation
+        .map(documentation => v2.copy(documentation = documentation))
+        .getOrElse(v2)
+    }
 
     /** @inheritdoc */
     override def toLogString(shouldMask: Boolean): String =
@@ -389,9 +459,28 @@ object Suggestion {
     @JsonIgnore
     override def isStatic: Boolean = false
 
-    /** @inheritdoc */
     override def withReexports(reexports: Set[String]): Suggestion =
       copy(reexports = reexports)
+
+    override def withReturnType(returnType: String): Suggestion =
+      copy(returnType = returnType)
+
+    override def update(
+      optExternalId: Option[Option[ExternalID]],
+      optReturnType: Option[String],
+      optDocumentation: Option[Option[String]],
+      optScope: Option[Scope]
+    ): Suggestion = {
+      val v1 = optExternalId
+        .map(externalID => this.copy(externalId = externalID))
+        .getOrElse(this)
+      val v2 = optReturnType
+        .map(returnType => v1.copy(returnType = returnType))
+        .getOrElse(v1)
+      optDocumentation
+        .map(documentation => v2.copy(documentation = documentation))
+        .getOrElse(v2)
+    }
 
     /** @inheritdoc */
     override def toLogString(shouldMask: Boolean): String =
@@ -433,9 +522,28 @@ object Suggestion {
   ) extends Method
       with ToLogString {
 
-    /** @inheritdoc */
     override def withReexports(reexports: Set[String]): Suggestion =
       copy(reexports = reexports)
+
+    override def withReturnType(returnType: String): Suggestion =
+      copy(returnType = returnType)
+
+    override def update(
+      optExternalId: Option[Option[ExternalID]],
+      optReturnType: Option[String],
+      optDocumentation: Option[Option[String]],
+      optScope: Option[Scope]
+    ): Suggestion = {
+      val v1 = optExternalId
+        .map(externalID => this.copy(externalId = externalID))
+        .getOrElse(this)
+      val v2 = optReturnType
+        .map(returnType => v1.copy(returnType = returnType))
+        .getOrElse(v1)
+      optDocumentation
+        .map(documentation => v2.copy(documentation = documentation))
+        .getOrElse(v2)
+    }
 
     /** @inheritdoc */
     override def toLogString(shouldMask: Boolean): String =
@@ -484,9 +592,28 @@ object Suggestion {
     override def name: String =
       Kind.Conversion.From
 
-    /** @inheritdoc */
     override def withReexports(reexports: Set[String]): Suggestion =
       copy(reexports = reexports)
+
+    override def withReturnType(returnType: String): Suggestion =
+      copy(returnType = returnType)
+
+    override def update(
+      optExternalId: Option[Option[ExternalID]],
+      optReturnType: Option[String],
+      optDocumentation: Option[Option[String]],
+      optScope: Option[Scope]
+    ): Suggestion = {
+      val v1 = optExternalId
+        .map(externalID => this.copy(externalId = externalID))
+        .getOrElse(this)
+      val v2 = optReturnType
+        .map(returnType => v1.copy(returnType = returnType))
+        .getOrElse(v1)
+      optDocumentation
+        .map(documentation => v2.copy(documentation = documentation))
+        .getOrElse(v2)
+    }
 
     /** @inheritdoc */
     override def toLogString(shouldMask: Boolean): String =
@@ -521,9 +648,29 @@ object Suggestion {
   ) extends Suggestion
       with ToLogString {
 
-    /** @inheritdoc */
     override def withReexports(reexports: Set[String]): Suggestion =
       this
+
+    override def withReturnType(returnType: String): Suggestion =
+      copy(returnType = returnType)
+
+    override def update(
+      optExternalId: Option[Option[ExternalID]],
+      optReturnType: Option[String],
+      optDocumentation: Option[Option[String]],
+      optScope: Option[Scope]
+    ): Suggestion = {
+      val v1 = optExternalId
+        .map(externalID => this.copy(externalId = externalID))
+        .getOrElse(this)
+      val v2 = optReturnType
+        .map(returnType => v1.copy(returnType = returnType))
+        .getOrElse(v1)
+      val v3 = optDocumentation
+        .map(documentation => v2.copy(documentation = documentation))
+        .getOrElse(v2)
+      optScope.map(scope => v3.copy(scope = scope)).getOrElse(v3)
+    }
 
     /** @inheritdoc */
     override def toLogString(shouldMask: Boolean): String =
@@ -556,9 +703,29 @@ object Suggestion {
     documentation: Option[String]
   ) extends Suggestion {
 
-    /** @inheritdoc */
     override def withReexports(reexports: Set[String]): Suggestion =
       this
+
+    override def withReturnType(returnType: String): Suggestion =
+      copy(returnType = returnType)
+
+    override def update(
+      optExternalId: Option[Option[ExternalID]],
+      optReturnType: Option[String],
+      optDocumentation: Option[Option[String]],
+      optScope: Option[Scope]
+    ): Suggestion = {
+      val v1 = optExternalId
+        .map(externalID => this.copy(externalId = externalID))
+        .getOrElse(this)
+      val v2 = optReturnType
+        .map(returnType => v1.copy(returnType = returnType))
+        .getOrElse(v1)
+      val v3 = optDocumentation
+        .map(documentation => v2.copy(documentation = documentation))
+        .getOrElse(v2)
+      optScope.map(scope => v3.copy(scope = scope)).getOrElse(v3)
+    }
 
     /** @inheritdoc */
     override def toLogString(shouldMask: Boolean): String =

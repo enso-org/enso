@@ -97,6 +97,13 @@ type Spec_Write_Data
         Panic.rethrow f.delete_if_exists
         f
 
+type Complex
+    Value re:Float im:Float
+
+type Complex_With_To_String
+    Value re:Float im:Float
+    to_text self = self.re.to_text + " + " + self.im.to_text + "i"
+
 spec_write suite_builder suffix test_sheet_name =
     suite_builder.group ("Write " + suffix + " Files") group_builder->
         data = Spec_Write_Data.setup suffix
@@ -596,6 +603,26 @@ spec_write suite_builder suffix test_sheet_name =
             t2.at "A" . to_vector . should_equal ["A", "B", "😊", "D"]
             encodings.delete
 
+        group_builder.specify "should allow to writing custom types" <|
+            custom_types = enso_project.data / "transient" / "custom_types."+suffix
+            custom_types.delete_if_exists . should_succeed
+
+            t1 = Table.new [["A", [Complex.Value 19 89, Complex.Value -1 -42]], ["B", [1, 2]]]
+            t1.write custom_types (Excel_Format.Sheet "Another") . should_succeed
+            t2 = custom_types.read (Excel_Format.Sheet "Another")
+            t2.at "A" . to_vector . should_equal ["(Complex.Value 19.0 89.0)", "(Complex.Value -1.0 -42.0)"]
+            custom_types.delete
+
+        group_builder.specify "should allow to writing custom types that have defined to_string" <|
+            custom_types2 = enso_project.data / "transient" / "custom_types2."+suffix
+            custom_types2.delete_if_exists . should_succeed
+
+            t1 = Table.new [["A", [Complex_With_To_String.Value 19 89, Complex_With_To_String.Value -1 -42]], ["B", [1, 2]]]
+            t1.write custom_types2 (Excel_Format.Sheet "Another") . should_succeed
+            t2 = custom_types2.read (Excel_Format.Sheet "Another")
+            t2.at "A" . to_vector . should_equal ["19.0 + 89.0i", "-1.0 + -42.0i"]
+            custom_types2.delete
+
         group_builder.specify "should be able to overwrite a pre-existing empty file" <|
             empty = enso_project.data / "transient" / "empty."+suffix
             [Existing_File_Behavior.Backup, Existing_File_Behavior.Overwrite, Existing_File_Behavior.Append].each behavior-> Test.with_clue behavior.to_text+": " <|
@@ -610,6 +637,7 @@ spec_write suite_builder suffix test_sheet_name =
 
                 t2 = empty.read (Excel_Format.Sheet "EnsoSheet")
                 t2.should_equal t1
+                empty.delete
 
 
 check_range excel_range sheet_name tlbr_vector single_cell=False =
@@ -873,6 +901,7 @@ add_specs suite_builder =
 
         group_builder.specify "should handle wrong xls_format gracefully" <|
             xlsx_sheet_copy = enso_project.data / "transient" / "TestSheetCopy.xlsx"
+            xlsx_sheet_copy.delete_if_exists . should_succeed
             xlsx_sheet.copy_to xlsx_sheet_copy
 
             # At first, it fails with File_Error
@@ -893,6 +922,7 @@ add_specs suite_builder =
             r2 = xls_sheet.read (Excel_Format.Range "Sheet1!A:C" xls_format=False)
             r2.should_fail_with File_Error
             r2.catch.should_be_a File_Error.Corrupted_Format
+            xlsx_sheet_copy.delete
 
         group_builder.specify "should handle malformed XLS files gracefully" <|
             bad_file = enso_project.data / "transient" / "malformed.xls"
