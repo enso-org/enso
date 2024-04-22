@@ -69,7 +69,7 @@ public abstract class Builtin {
       for (int i = 0; i < constructors.length; i++) {
         var cons = conses.get(i).build(language, scope, type);
         constructors[i] = cons;
-        type.registerConstructor(cons);
+        type.registerConstructor(cons, false);
       }
     }
     type.generateGetters(language);

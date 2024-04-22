@@ -137,7 +137,7 @@ public abstract class Atom implements EnsoObject {
   @ExportMessage
   @CompilerDirectives.TruffleBoundary
   EnsoObject getMembers(boolean includeInternal) {
-    if (constructor.isProjectPrivate()) {
+    if (constructor.getType().isProjectPrivate()) {
       return ArrayLikeHelpers.empty();
     }
     Set<String> members =
@@ -158,7 +158,7 @@ public abstract class Atom implements EnsoObject {
   @ExportMessage
   @CompilerDirectives.TruffleBoundary
   final boolean isMemberInvocable(String member) {
-    if (constructor.isProjectPrivate()) {
+    if (constructor.getType().isProjectPrivate()) {
       return false;
     }
     Set<String> members =
@@ -174,7 +174,7 @@ public abstract class Atom implements EnsoObject {
   @ExportMessage
   @ExplodeLoop
   final boolean isMemberReadable(String member) {
-    if (constructor.isProjectPrivate()) {
+    if (constructor.getType().isProjectPrivate()) {
       return false;
     }
     for (int i = 0; i < constructor.getArity(); i++) {
@@ -189,7 +189,7 @@ public abstract class Atom implements EnsoObject {
   @ExplodeLoop
   final Object readMember(String member, @CachedLibrary(limit = "3") StructsLibrary structs)
       throws UnknownIdentifierException {
-    if (constructor.isProjectPrivate()) {
+    if (constructor.getType().isProjectPrivate()) {
       throw UnknownIdentifierException.create(member);
     }
     for (int i = 0; i < constructor.getArity(); i++) {

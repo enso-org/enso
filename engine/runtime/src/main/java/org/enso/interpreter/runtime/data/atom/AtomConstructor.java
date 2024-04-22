@@ -45,7 +45,6 @@ public final class AtomConstructor implements EnsoObject {
   private final String name;
   private final ModuleScope definitionScope;
   private final boolean builtin;
-  private final boolean isProjectPrivate;
   private @CompilerDirectives.CompilationFinal Atom cachedInstance;
   private @CompilerDirectives.CompilationFinal Function constructorFunction;
   private @CompilerDirectives.CompilationFinal Function accessor;
@@ -65,7 +64,7 @@ public final class AtomConstructor implements EnsoObject {
    * @param type associated type
    */
   public AtomConstructor(String name, ModuleScope definitionScope, Type type) {
-    this(name, definitionScope, type, false, false);
+    this(name, definitionScope, type, false);
   }
 
   /**
@@ -78,30 +77,10 @@ public final class AtomConstructor implements EnsoObject {
    * @param builtin if true, the constructor refers to a builtin type (annotated with @BuiltinType
    */
   public AtomConstructor(String name, ModuleScope definitionScope, Type type, boolean builtin) {
-    this(name, definitionScope, type, builtin, false);
-  }
-
-  /**
-   * Creates a new Atom constructor for a given name. The constructor is not valid until {@link
-   * AtomConstructor#initializeFields} is called.
-   *
-   * @param name the name of the Atom constructor
-   * @param definitionScope the scope in which this constructor was defined
-   * @param type associated type
-   * @param builtin if true, the constructor refers to a builtin type (annotated with @BuiltinType
-   * @param isProjectPrivate if true, this constructor is project-private.
-   */
-  public AtomConstructor(
-      String name,
-      ModuleScope definitionScope,
-      Type type,
-      boolean builtin,
-      boolean isProjectPrivate) {
     this.name = name;
     this.definitionScope = definitionScope;
     this.type = type;
     this.builtin = builtin;
-    this.isProjectPrivate = isProjectPrivate;
   }
 
   /**
@@ -115,10 +94,6 @@ public final class AtomConstructor implements EnsoObject {
 
   boolean isBuiltin() {
     return builtin;
-  }
-
-  public boolean isProjectPrivate() {
-    return isProjectPrivate;
   }
 
   /**
@@ -198,7 +173,7 @@ public final class AtomConstructor implements EnsoObject {
             language, localScope, definitionScope, instantiateBlock, section, this);
     RootCallTarget callTarget = rootNode.getCallTarget();
     var schemaBldr = FunctionSchema.newBuilder().annotations(annotations).argumentDefinitions(args);
-    if (isProjectPrivate) {
+    if (type.isProjectPrivate()) {
       schemaBldr.projectPrivate();
     }
     return new Function(callTarget, null, schemaBldr.build());
@@ -212,7 +187,7 @@ public final class AtomConstructor implements EnsoObject {
             .argumentDefinitions(
                 new ArgumentDefinition(
                     0, "self", null, null, ArgumentDefinition.ExecutionMode.EXECUTE));
-    if (isProjectPrivate) {
+    if (type.isProjectPrivate()) {
       schemaBldr.projectPrivate();
     }
     var function = new Function(callTarget, null, schemaBldr.build());

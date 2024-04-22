@@ -34,7 +34,7 @@ public final class Type implements EnsoObject {
   private final Type supertype;
   private final Type eigentype;
   private final Map<String, AtomConstructor> constructors;
-  private boolean hasProjectPrivateConstructors;
+  private boolean isProjectPrivate;
 
   private boolean gettersGenerated;
 
@@ -74,7 +74,7 @@ public final class Type implements EnsoObject {
             .argumentDefinitions(
                 new ArgumentDefinition(
                     0, "this", null, null, ArgumentDefinition.ExecutionMode.EXECUTE));
-    if (hasProjectPrivateConstructors) {
+    if (isProjectPrivate) {
       schemaBldr.projectPrivate();
     }
     var function = new Function(node.getCallTarget(), null, schemaBldr.build());
@@ -121,6 +121,17 @@ public final class Type implements EnsoObject {
     return builtin;
   }
 
+  /**
+   * Returns true iff this type is project-private. A type is project-private iff all its
+   * constructors are project-private.
+   * Note that during the compilation, it is ensured by the {@link org.enso.compiler.pass.analyse.PrivateConstructorAnalysis}
+   * compiler pass that all the constructors are either public or project-private.
+   * @return true iff this type is project-private.
+   */
+  public boolean isProjectPrivate() {
+    return isProjectPrivate;
+  }
+
   private Type getSupertype() {
     if (supertype == null) {
       if (builtin) {
@@ -164,7 +175,7 @@ public final class Type implements EnsoObject {
                           null,
                           null,
                           ArgumentDefinition.ExecutionMode.EXECUTE));
-          if (hasProjectPrivateConstructors) {
+          if (isProjectPrivate) {
             schemaBldr.projectPrivate();
           }
           var funcSchema = schemaBldr.build();
@@ -276,7 +287,7 @@ public final class Type implements EnsoObject {
   @ExportMessage
   @CompilerDirectives.TruffleBoundary
   EnsoObject getMembers(boolean includeInternal) {
-    if (hasProjectPrivateConstructors) {
+    if (isProjectPrivate) {
       return ArrayLikeHelpers.empty();
     } else {
       return ArrayLikeHelpers.wrapStrings(constructors.keySet().toArray(String[]::new));
@@ -286,7 +297,7 @@ public final class Type implements EnsoObject {
   @ExportMessage
   @CompilerDirectives.TruffleBoundary
   boolean isMemberReadable(String member) {
-    if (hasProjectPrivateConstructors) {
+    if (isProjectPrivate) {
       return false;
     } else {
       return constructors.containsKey(member);
@@ -296,7 +307,7 @@ public final class Type implements EnsoObject {
   @ExportMessage
   @CompilerDirectives.TruffleBoundary
   Object readMember(String member) throws UnknownIdentifierException {
-    if (hasProjectPrivateConstructors) {
+    if (isProjectPrivate) {
       throw UnknownIdentifierException.create(member);
     }
     var result = constructors.get(member);
@@ -325,14 +336,20 @@ public final class Type implements EnsoObject {
     return eigentype == this;
   }
 
-  public void registerConstructor(AtomConstructor constructor) {
+  /**
+   * Registers a constructor in this type.
+   * @param constructor The constructor to register in this type.
+   * @param isProjectPrivate If the constructor is project-private.
+   */
+  public void registerConstructor(AtomConstructor constructor, boolean isProjectPrivate) {
     constructors.put(constructor.getName(), constructor);
-    if (constructor.isProjectPrivate()) {
-      hasProjectPrivateConstructors = true;
-    }
-    if (hasProjectPrivateConstructors) {
-      assert areAllConstuctorsPrivate()
-          : "Either all constructors are public, or all constructors are project-private";
+    if (isProjectPrivate) {
+      this.isProjectPrivate = true;
+    } else {
+      assert !this.isProjectPrivate :
+          "Trying to register a public constructor in a type where a project-private constructor"
+              + " has already been registered before. During compilation, it should be ensured that"
+              + " all constructors are either public or project-private.";
     }
     gettersGenerated = false;
   }
@@ -346,7 +363,4 @@ public final class Type implements EnsoObject {
     return this == b.nothing();
   }
 
-  private boolean areAllConstuctorsPrivate() {
-    return constructors.values().stream().allMatch(AtomConstructor::isProjectPrivate);
-  }
 }

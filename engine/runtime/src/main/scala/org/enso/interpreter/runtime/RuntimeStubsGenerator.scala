@@ -61,10 +61,9 @@ class RuntimeStubsGenerator(builtins: Builtins) {
               cons.name,
               scope,
               rtp,
-              false,
-              cons.isProjectPrivate
+              false
             )
-          rtp.registerConstructor(constructor)
+          rtp.registerConstructor(constructor, cons.isProjectPrivate)
         }
       }
     }
