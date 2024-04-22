@@ -156,11 +156,6 @@ The license file can be found at `licenses/APACHE2.0`.
 Copyright notices related to this dependency can be found in the directory `com.typesafe.scala-logging.scala-logging_2.13-3.9.4`.
 
 
-'slick_2.13', licensed under the Two-clause BSD-style license, is distributed with the engine.
-The license information can be found along with the copyright notices.
-Copyright notices related to this dependency can be found in the directory `com.typesafe.slick.slick_2.13-3.4.1`.
-
-
 'ssl-config-core_2.13', licensed under the Apache-2.0, is distributed with the engine.
 The license file can be found at `licenses/APACHE2.0`.
 Copyright notices related to this dependency can be found in the directory `com.typesafe.ssl-config-core_2.13-0.4.3`.
@@ -421,9 +416,9 @@ The license file can be found at `licenses/APACHE2.0`.
 Copyright notices related to this dependency can be found in the directory `org.netbeans.api.org-openide-util-lookup-RELEASE180`.
 
 
-'reactive-streams', licensed under the MIT-0, is distributed with the engine.
-The license file can be found at `licenses/MIT-0`.
-Copyright notices related to this dependency can be found in the directory `org.reactivestreams.reactive-streams-1.0.4`.
+'reactive-streams', licensed under the CC0, is distributed with the engine.
+The license file can be found at `licenses/CC0`.
+Copyright notices related to this dependency can be found in the directory `org.reactivestreams.reactive-streams-1.0.3`.
 
 
 'scala-collection-compat_2.13', licensed under the Apache-2.0, is distributed with the engine.
@@ -469,11 +464,6 @@ Copyright notices related to this dependency can be found in the directory `org.
 'jawn-parser_2.13', licensed under the MIT, is distributed with the engine.
 The license information can be found along with the copyright notices.
 Copyright notices related to this dependency can be found in the directory `org.typelevel.jawn-parser_2.13-1.4.0`.
-
-
-'sqlite-jdbc', licensed under the The Apache Software License, Version 2.0, is distributed with the engine.
-The license information can be found along with the copyright notices.
-Copyright notices related to this dependency can be found in the directory `org.xerial.sqlite-jdbc-3.42.0.0`.
 
 
 'snakeyaml', licensed under the Apache License, Version 2.0, is distributed with the engine.
