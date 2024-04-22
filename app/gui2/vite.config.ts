@@ -26,6 +26,8 @@ const entrypoint = process.env.E2E === 'true' ? './src/e2e-entrypoint.ts' : './s
 
 // https://vitejs.dev/config/
 export default defineConfig({
+  logLevel: 'info',
+  clearScreen: false,
   root: fileURLToPath(new URL('.', import.meta.url)),
   cacheDir: fileURLToPath(new URL('../../node_modules/.cache/vite', import.meta.url)),
   publicDir: fileURLToPath(new URL('./public', import.meta.url)),
@@ -120,12 +122,8 @@ function gatewayServer(): Plugin {
           }
           args.push('-jar', ydocServerJar)
           ydocServer = spawn('java', args)
-          ydocServer.stdout.on('data', (data) => {
-            console.log(`ydoc: ${data}`)
-          })
-          ydocServer.stderr.on('data', (data) => {
-            console.log(`ydoc: ${data}`)
-          })
+          ydocServer.stdout.on('data', (data) => console.log(`ydoc: ${data}`))
+          ydocServer.stderr.on('data', (data) => console.log(`ydoc: ${data}`))
         }
         if (!existsSync(ydocServerJar)) {
           const cwd = fileURLToPath(new URL('../..', import.meta.url))
