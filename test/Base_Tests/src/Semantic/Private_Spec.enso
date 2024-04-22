@@ -58,6 +58,11 @@ add_specs spec_builder =
             cons_fn data = Priv_Type.Cons data
             Test.expect_panic Private_Access <| CallbackHelper.runCallbackInt cons_fn 42
 
+        group_builder.specify "cannot call private constructor from a lambda method" <|
+            Test.expect_panic Private_Access <|
+                Priv_Type.in_ctx <|
+                    Priv_Type.Cons 42
+
 
 foreign js js_access_field obj = """
     return obj.data;

@@ -9,3 +9,7 @@ type Priv_Type
     ## Public accessor for the private `data` field
     get_data self = self.data
 
+    in_ctx ~action =
+        result = action
+        result
+
