@@ -1,4 +1,4 @@
-package org.enso.ydoc.polyfill;
+package org.enso.ydoc.polyfill.nodejs;
 
 import io.helidon.common.buffers.BufferData;
 import io.helidon.http.Headers;

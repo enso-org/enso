@@ -1,4 +1,4 @@
-package org.enso.ydoc.polyfill;
+package org.enso.ydoc.polyfill.nodejs;
 
 import java.util.Arrays;
 import java.util.UUID;
@@ -8,21 +8,19 @@ import org.graalvm.polyglot.Source;
 import org.graalvm.polyglot.Value;
 import org.graalvm.polyglot.proxy.ProxyExecutable;
 
-final class AbortController implements ProxyExecutable, Polyfill {
+final class Crypto implements ProxyExecutable, Polyfill {
 
   private static final String RANDOM_UUID = "random-uuid";
 
-  private static final String ABORT_CONTROLLER_JS = "abort-controller.js";
+  private static final String CRYPTO_JS = "crypto.js";
 
-  AbortController() {}
+  Crypto() {}
 
   @Override
   public void initialize(Context ctx) {
-    Source abortControllerJs =
-        Source.newBuilder("js", AbortController.class.getResource(ABORT_CONTROLLER_JS))
-            .buildLiteral();
+    Source cryptoJs = Source.newBuilder("js", Crypto.class.getResource(CRYPTO_JS)).buildLiteral();
 
-    ctx.eval(abortControllerJs).execute(this);
+    ctx.eval(cryptoJs).execute(this);
   }
 
   @Override

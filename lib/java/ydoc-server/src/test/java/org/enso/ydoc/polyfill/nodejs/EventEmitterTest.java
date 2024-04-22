@@ -1,4 +1,4 @@
-package org.enso.ydoc.polyfill;
+package org.enso.ydoc.polyfill.nodejs;
 
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
@@ -10,17 +10,19 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
-public class EventTargetTest {
+public class EventEmitterTest {
 
   private Context context;
   private ExecutorService executor;
 
-  public EventTargetTest() {}
+  public EventEmitterTest() {}
 
   @Before
   public void setup() throws Exception {
     executor = Executors.newSingleThreadExecutor();
     var eventTarget = new EventTarget(executor);
+    var eventEmitter = new EventEmitter();
+
     var hostAccess = HostAccess.newBuilder(HostAccess.EXPLICIT).allowArrayAccess(true).build();
     var b = Context.newBuilder("js").allowHostAccess(hostAccess);
 
@@ -34,6 +36,7 @@ public class EventTargetTest {
                 () -> {
                   var ctx = b.build();
                   eventTarget.initialize(ctx);
+                  eventEmitter.initialize(ctx);
                   return ctx;
                 },
                 executor)
@@ -47,29 +50,29 @@ public class EventTargetTest {
   }
 
   @Test
-  public void dispatchEvent() throws Exception {
+  public void emit() throws Exception {
     var code =
         """
         var count = 0;
-        var et = new EventTarget();
-        et.addEventListener('inc', () => count += 1);
-        et.dispatchEvent({type: 'inc'});
+        var ee = new EventEmitter();
+        ee.on('inc', (a, b) => count += 10*a + b);
+        ee.emit('inc', 4, 2);
         count;
         """;
 
     var result = CompletableFuture.supplyAsync(() -> context.eval("js", code), executor).get();
 
-    Assert.assertEquals(1, result.asInt());
+    Assert.assertEquals(42, result.asInt());
   }
 
   @Test
-  public void getEventListeners() throws Exception {
+  public void listeners() throws Exception {
     var code =
         """
         var count = 0;
-        var et = new EventTarget();
-        et.addEventListener('inc', () => count += 1);
-        et.getEventListeners('inc');
+        var ee = new EventEmitter();
+        ee.on('inc', (a, b) => count += 10*a + b);
+        ee.listeners('inc')
         """;
 
     var result = CompletableFuture.supplyAsync(() -> context.eval("js", code), executor).get();
