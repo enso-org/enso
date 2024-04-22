@@ -179,6 +179,7 @@ public class ExcelWriter {
       excelRange = new ExcelRange(name == null ? rangeNameOrAddress : name.getRefersToFormula());
     } catch (IllegalArgumentException e) {
       throw new InvalidLocationException(
+          rangeNameOrAddress,
           "Invalid range name or address '" + rangeNameOrAddress + "'.");
     }
     writeTableToRange(workbook, excelRange, existingDataMode, skipRows, table, rowLimit, headers);
@@ -200,7 +201,7 @@ public class ExcelWriter {
           ColumnCountMismatchException {
     int sheetIndex = workbook.getSheetIndex(range.getSheetName());
     if (sheetIndex == -1) {
-      throw new InvalidLocationException("Unknown sheet '" + range.getSheetName() + "'.");
+      throw new InvalidLocationException(range.getSheetName(), "Unknown sheet '" + range.getSheetName() + "'.");
     }
     ExcelSheet sheet = new ExcelSheet(workbook, sheetIndex);
 
