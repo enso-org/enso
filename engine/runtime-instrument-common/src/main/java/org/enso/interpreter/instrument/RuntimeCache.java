@@ -16,6 +16,7 @@ public final class RuntimeCache implements java.util.function.Function<String, O
 
   private final Map<UUID, Reference<Object>> cache = new HashMap<>();
   private final Map<Object, UUID> valuesToKeys = new WeakHashMap<>();
+  private final Map<UUID, Reference<Object>> expressions = new HashMap<>();
   private final Map<UUID, String> types = new HashMap<>();
   private final Map<UUID, ExecutionService.FunctionCallInfo> calls = new HashMap<>();
   private Map<UUID, Double> weights = new HashMap<>();
@@ -29,10 +30,11 @@ public final class RuntimeCache implements java.util.function.Function<String, O
    */
   @CompilerDirectives.TruffleBoundary
   public boolean offer(UUID key, Object value) {
-    Double weight = weights.get(key);
+    var weight = weights.get(key);
     if (weight != null && weight > 0) {
       var ref = new SoftReference<>(value);
       cache.put(key, ref);
+      expressions.put(key, ref);
       valuesToKeys.put(value, key);
       return true;
     } else {
@@ -40,12 +42,12 @@ public final class RuntimeCache implements java.util.function.Function<String, O
       var otherValue = cache.get(otherId);
       if (otherValue != null && otherValue.get() == value) {
         // if the value is already cached for another UUID, cache it
-        // for this UUID as well
+        // for this expression UUID as well
         var ref = new WeakReference<>(value);
-        cache.put(key, ref);
+        expressions.put(key, ref);
       }
+      return false;
     }
-    return false;
   }
 
   /** Get the value from the cache. */
@@ -58,7 +60,7 @@ public final class RuntimeCache implements java.util.function.Function<String, O
   @Override
   public Object apply(String uuid) {
     var key = UUID.fromString(uuid);
-    var ref = cache.get(key);
+    var ref = expressions.get(key);
     var res = ref != null ? ref.get() : null;
     return res;
   }
