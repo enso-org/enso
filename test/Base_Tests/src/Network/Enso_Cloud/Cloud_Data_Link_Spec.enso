@@ -1,5 +1,5 @@
 from Standard.Base import all
-import Standard.Base.Enso_Cloud.Data_Link.Data_Link_Format
+import Standard.Base.Enso_Cloud.Data_Link.Data_Link
 import Standard.Base.Enso_Cloud.Errors.Missing_Data_Link_Library
 import Standard.Base.Errors.Common.Not_Found
 import Standard.Base.Errors.File_Error.File_Error
@@ -26,7 +26,7 @@ type Temporary_Directory
         target = self.get / filename
         config = JS_Object.from_pairs [["type", "Enso_File"], ["libraryName", "Standard.Base"], ["path", target.path]]
         local_tmp_file = File.create_temporary_file prefix="test-datalink" suffix=".datalink"
-        Data_Link_Format.write_config local_tmp_file config replace_existing=True
+         Data_Link.write_config local_tmp_file config replace_existing=True
 
 
 add_specs suite_builder setup:Cloud_Tests_Setup = setup.with_prepared_environment <|
@@ -54,12 +54,12 @@ add_specs suite_builder setup:Cloud_Tests_Setup = setup.with_prepared_environmen
             r.should_fail_with Missing_Data_Link_Library
             r.catch.to_display_text . should_contain "The data link for S3 is provided by the library Standard.AWS which is not loaded."
 
-        group_builder.specify "does not allow to use Data_Link_Format to read/write regular files" <|
+        group_builder.specify "does not allow to use  Data_Link to read/write regular files" <|
             temp_file = File.create_temporary_file "not-a-datalink" ".txt"
             Test.expect_panic Illegal_Argument <|
-                Data_Link_Format.write_raw_config temp_file "{}"
+                 Data_Link.write_raw_config temp_file "{}"
             Test.expect_panic Illegal_Argument <|
-                Data_Link_Format.read_raw_config temp_file
+                 Data_Link.read_raw_config temp_file
 
     suite_builder.group "DataLinks to Enso Cloud" pending=setup.real_cloud_pending group_builder->
         test_root = Temporary_Directory.make
@@ -146,7 +146,7 @@ main filter=Nothing =
 
 ## Reads the datalink as plain text and applies the transformation.
 transform_datalink base_file transform =
-    content = Data_Link_Format.read_raw_config base_file
+    content =  Data_Link.read_raw_config base_file
     new_content = transform content
     temp_file = File.create_temporary_file prefix=base_file.name suffix=base_file.extension
-    Data_Link_Format.write_raw_config temp_file new_content replace_existing=True . if_not_error temp_file
+     Data_Link.write_raw_config temp_file new_content replace_existing=True . if_not_error temp_file

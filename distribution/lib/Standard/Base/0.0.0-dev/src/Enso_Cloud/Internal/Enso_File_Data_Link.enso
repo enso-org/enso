@@ -10,7 +10,8 @@ import project.System.File.Generic.Writable_File.Writable_File
 import project.System.File_Format.Auto_Detect
 import project.System.Input_Stream.Input_Stream
 import project.System.Output_Stream.Output_Stream
-from project.Enso_Cloud.Data_Link import Data_Link_With_Input_Stream, Data_Link_With_Output_Stream, Writable_Data_Link, parse_format
+from project.Enso_Cloud.Data_Link_Capabilities import Data_Link_With_Input_Stream, Data_Link_With_Output_Stream, Writable_Data_Link
+from project.Enso_Cloud.Data_Link_Helpers import parse_format
 from project.Enso_Cloud.Public_Utils import get_optional_field, get_required_field
 
 

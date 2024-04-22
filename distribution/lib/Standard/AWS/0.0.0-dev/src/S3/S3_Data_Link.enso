@@ -5,7 +5,8 @@ import Standard.Base.Errors.Illegal_State.Illegal_State
 import Standard.Base.System.File.Generic.Writable_File.Writable_File
 import Standard.Base.System.Input_Stream.Input_Stream
 import Standard.Base.System.Output_Stream.Output_Stream
-from Standard.Base.Enso_Cloud.Data_Link import Data_Link_With_Input_Stream, Data_Link_With_Output_Stream, Writable_Data_Link, parse_format
+from Standard.Base.Enso_Cloud.Data_Link_Capabilities import Data_Link_With_Input_Stream, Data_Link_With_Output_Stream, Writable_Data_Link
+from Standard.Base.Enso_Cloud.Data_Link_Helpers import parse_format
 from Standard.Base.Enso_Cloud.Public_Utils import get_optional_field, get_required_field
 
 import project.AWS_Credential.AWS_Credential
