@@ -30,7 +30,7 @@ type Data_Link
        ADVANCED
        Reads the raw configuration data of a data-link.
     read_config (file : File_Like) -> JS_Object =
-        text =  Data_Link.read_raw_config file
+        text = Data_Link.read_raw_config file
         text.parse_json
 
     ## PRIVATE
@@ -48,9 +48,9 @@ type Data_Link
          represents a valid data-link. In some cases (e.g. testing), we may want
          to skip that.
     write_config (file : File_Like) (config : JS_Object) (replace_existing : Boolean = False) (skip_validation : Boolean = False) =
-        checked = if skip_validation.not then  Data_Link.validate_config config
+        checked = if skip_validation.not then Data_Link.validate_config config
         checked.if_not_error <|
-             Data_Link.write_raw_config file config.to_json replace_existing
+            Data_Link.write_raw_config file config.to_json replace_existing
 
     ## PRIVATE
        ADVANCED
@@ -75,8 +75,8 @@ type Data_Link
          existing file. By default, the operation will fail if the file already
          exists.
     copy (source : File_Like) (target : File_Like) (replace_existing : Boolean = False) -> Any ! File_Error =
-        raw_config =  Data_Link.read_raw_config source
-         Data_Link.write_raw_config target raw_config replace_existing
+        raw_config = Data_Link.read_raw_config source
+        Data_Link.write_raw_config target raw_config replace_existing
 
 
     ## ADVANCED
@@ -92,7 +92,7 @@ type Data_Link
          existing file. By default, the operation will fail if the file already
          exists.
     move (source : File_Like) (target : File_Like) (replace_existing : Boolean = False) -> Any ! File_Error =
-         Data_Link.copy source target replace_existing . if_not_error <|
+        Data_Link.copy source target replace_existing . if_not_error <|
              source.underlying.delete . if_not_error target.underlying
 
     ## PRIVATE

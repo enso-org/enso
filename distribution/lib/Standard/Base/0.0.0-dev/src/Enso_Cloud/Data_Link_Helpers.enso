@@ -60,27 +60,27 @@ interpret_json_as_data_link json =
 
 ## PRIVATE
 read_data_link (file : File_Like) format (on_problems : Problem_Behavior) =
-    json =  Data_Link.read_config file
+    json = Data_Link.read_config file
     data_link_instance = interpret_json_as_data_link json
     data_link_instance.read format on_problems
 
 ## PRIVATE
 read_data_link_as_stream (file : File_Like) (open_options : Vector) (f : Input_Stream -> Any) =
-    json =  Data_Link.read_config file
+    json = Data_Link.read_config file
     data_link_instance = interpret_json_as_data_link json
     data_link_with_input_stream = Data_Link_With_Input_Stream.find data_link_instance
     data_link_with_input_stream.with_input_stream open_options f
 
 ## PRIVATE
 write_data_link_as_stream (file : File_Like) (open_options : Vector) (f : Output_Stream -> Any) =
-    json =  Data_Link.read_config file
+    json = Data_Link.read_config file
     data_link_instance = interpret_json_as_data_link json
     data_link_with_output_stream = Data_Link_With_Output_Stream.find data_link_instance
     data_link_with_output_stream.with_output_stream open_options f
 
 ## PRIVATE
 interpret_data_link_as_writable_file (file : File_Like) -> Writable_File =
-    json =  Data_Link.read_config file
+    json = Data_Link.read_config file
     data_link_instance = interpret_json_as_data_link json
     ## We override the return value to return the original datalink, not the target.
        Ideally, we'd do this inside of the `as_writable_file` implementation,

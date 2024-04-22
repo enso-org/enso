@@ -868,7 +868,7 @@ add_data_link_specs suite_builder =
 
     # This transforms the datalink file, replacing prepared constants with actual values.
     transform_file base_file =
-        content =  Data_Link.read_raw_config base_file
+        content = Data_Link.read_raw_config base_file
         new_content = content
             . replace "HOSTNAME" connection_details.host
             . replace "12345" connection_details.port.to_text
@@ -876,7 +876,7 @@ add_data_link_specs suite_builder =
             . replace "USERNAME" connection_details.credentials.username
             . replace "PASSWORD" connection_details.credentials.password
         temp_file = File.create_temporary_file base_file.name base_file.extension
-         Data_Link.write_raw_config temp_file new_content replace_existing=True . if_not_error temp_file
+        Data_Link.write_raw_config temp_file new_content replace_existing=True . if_not_error temp_file
 
     suite_builder.group "[PostgreSQL] DataLink" pending=pending group_builder->
         group_builder.specify "should be able to open a datalink setting up a connection to the database" <|

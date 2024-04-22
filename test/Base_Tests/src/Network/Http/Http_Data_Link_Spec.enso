@@ -117,7 +117,7 @@ add_specs suite_builder =
    URL of the server. It then writes the new contents to a temporary file and
    returns it.
 replace_url_in_data_link base_file =
-    content =  Data_Link.read_raw_config base_file
+    content = Data_Link.read_raw_config base_file
     new_content = content.replace "http://http-test-helper.local/" base_url_with_slash
     temp_file = File.create_temporary_file prefix=base_file.name suffix=base_file.extension
-     Data_Link.write_raw_config temp_file new_content replace_existing=True . if_not_error temp_file
+    Data_Link.write_raw_config temp_file new_content replace_existing=True . if_not_error temp_file
