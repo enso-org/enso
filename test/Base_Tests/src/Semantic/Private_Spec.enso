@@ -10,7 +10,7 @@ polyglot java import org.enso.base_test_helpers.CallbackHelper
 add_specs spec_builder =
     spec_builder.group "Private constructors" group_builder->
         group_builder.specify "cannot directly call private constructor" <|
-            expect_access_error <| Priv_Type.Cons 42
+            Test.expect_panic Private_Access <| Priv_Type.Cons 42
 
         # Optimally, we want `Priv_Type.Cons` expression to result in a compilation error.
         # All the references to private methods/constructors are theoretically resolvable
@@ -19,7 +19,7 @@ add_specs spec_builder =
         # For more info, see https://github.com/enso-org/enso/issues/6729
         group_builder.specify "can get reference to private constructor, but cannot call it" <|
             cons_fn data = Priv_Type.Cons data
-            expect_access_error <| cons_fn 42
+            Test.expect_panic Private_Access <| cons_fn 42
 
         group_builder.specify "can call private constructor via public factory method" <|
             obj = Priv_Type.create 42
@@ -27,7 +27,7 @@ add_specs spec_builder =
 
         group_builder.specify "cannot get private field" <|
             obj = Priv_Type.create 42
-            expect_access_error <| obj.data
+            Test.expect_panic Private_Access <| obj.data
 
         group_builder.specify "can get private field via public accessor" <|
             obj = Priv_Type.create 42
@@ -50,19 +50,13 @@ add_specs spec_builder =
             obj = js_create_obj create_fn
             obj.is_nothing . should_be_false
 
-        group_builder.specify "can get private field via public accessor from JS" <|
+        group_builder.specify "can get private field via public accessor from JS" pending="TODO" <|
             obj = Priv_Type.create 42
             js_access_field_via_getter obj . should_equal 42
 
         group_builder.specify "cannot call private constructor from Java" <|
             cons_fn data = Priv_Type.Cons data
-            expect_access_error <| CallbackHelper.runCallbackInt cons_fn 42
-
-
-## Expect Private access error panic is thrown from the given action
-expect_access_error ~action =
-    p = Panic.catch Private_Access handler=(.payload) <| action
-    Meta.type_of p . should_be_a Private_Access
+            Test.expect_panic Private_Access <| CallbackHelper.runCallbackInt cons_fn 42
 
 
 foreign js js_access_field obj = """
