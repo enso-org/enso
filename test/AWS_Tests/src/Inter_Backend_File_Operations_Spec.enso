@@ -186,16 +186,18 @@ add_specs suite_builder =
             source_link_provider = source_backend.make_temp_file "src.datalink"
             regular_source_file_provider = source_backend.make_temp_file "src.txt"
             destination_link_provider = destination_backend.make_temp_file "dest.datalink"
-            destination_file_provider = destination_backend.make_temp_file "dest.txt"
+            regular_destination_file_provider = destination_backend.make_temp_file "dest.txt"
             group_builder.teardown <|
                 source_link_provider.cleanup
                 destination_link_provider.cleanup
+                regular_source_file_provider.cleanup
+                regular_destination_file_provider.cleanup
 
             group_builder.specify "does not allow copying/moving datalinks using copy_to/move_to and reports a helpful error message" <|
                 source_link = source_link_provider.get
                 destination_link = destination_link_provider.get
                 source_file = regular_source_file_provider.get
-                destination_file = destination_link_provider.get
+                destination_file = regular_destination_file_provider.get
 
                 test_mixed source destination method =
                     r = method source destination
@@ -220,10 +222,17 @@ add_specs suite_builder =
                 destination_link = destination_link_provider.get
 
                 destination_link.delete_if_exists
+                source_link.delete_if_exists
+                r_not_exists = Data_Link.copy source_link destination_link replace_existing=False
+                r_not_exists.should_fail_with File_Error
+                r_not_exists.catch.should_be_a File_Error.Not_Found
+
                 Data_Link.write_raw_config source_link sample_data_link_content replace_existing=False . should_succeed
 
                 Data_Link.copy source_link destination_link replace_existing=False . should_succeed
-                Data_Link.copy source_link destination_link replace_existing=False . should_fail_with File_Error
+                r_already_exists = Data_Link.copy source_link destination_link replace_existing=False
+                r_already_exists.should_fail_with File_Error
+                r_already_exists.catch.should_be_a File_Error.Already_Exists
                 Data_Link.copy source_link destination_link replace_existing=True . should_succeed
 
                 # Now the destination is _also_ a datalink, pointing to the same target as source, so reading it yields the target data:
@@ -232,17 +241,23 @@ add_specs suite_builder =
                 source_link.exists . should_be_true
 
                 # But if we read it raw, we can see that it is still a datalink, not just a copy of the data:
-                Data_Link.read_raw_config destination_file . should_equal sample_data_link_content
+                Data_Link.read_raw_config destination_link . should_equal sample_data_link_content
 
             group_builder.specify "should be able to move a datalink using Data_Link.move" <| with_default_credentials <|
                 source_link = source_link_provider.get
                 destination_link = destination_link_provider.get
 
                 destination_link.delete_if_exists
+                source_link.delete_if_exists
+                r_not_exists = Data_Link.move source_link destination_link replace_existing=False
+                r_not_exists.should_fail_with File_Error
+                r_not_exists.catch.should_be_a File_Error.Not_Found
                 Data_Link.write_raw_config source_link sample_data_link_content replace_existing=True . should_succeed
 
                 Data_Link.move source_link destination_link replace_existing=False . should_succeed
-                Data_Link.move source_link destination_link replace_existing=False . should_fail_with File_Error
+                r_already_exists = Data_Link.move source_link destination_link replace_existing=False
+                r_already_exists.should_fail_with File_Error
+                r_already_exists.catch.should_be_a File_Error.Already_Exists
                 Data_Link.move source_link destination_link replace_existing=True . should_succeed
 
                 # The source has been removed:
