@@ -129,6 +129,14 @@ add_specs suite_builder setup:Cloud_Tests_Setup = setup.with_prepared_environmen
             file.read . should_equal my_content
             file.delete
 
+        group_builder.specify "will report a clear error when failing to write to a datalink because it does not exist" <|
+            datalink = test_root.get / "non-existing.datalink"
+            datalink.exists . should_be_false
+
+            r = "foobar".write datalink
+            r.should_fail_with File_Error
+            r.catch.should_be_a File_Error.Not_Found
+
 main filter=Nothing =
     setup = Cloud_Tests_Setup.prepare
     suite = Test.build suite_builder->
