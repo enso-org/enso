@@ -234,11 +234,11 @@ public final class FunctionSchema {
 
   public static final class Builder {
     private boolean isProjectPrivate = false;
-    private Annotation[] annotations = new Annotation[] {};
-    private ArgumentDefinition[] argDefs = new ArgumentDefinition[] {};
-    private CallArgumentInfo[] callArgInfos = new CallArgumentInfo[] {};
+    private Annotation[] annotations = new Annotation[0];
+    private ArgumentDefinition[] argDefs = new ArgumentDefinition[0];
+    private CallArgumentInfo[] callArgInfos = new CallArgumentInfo[0];
     private CallerFrameAccess callerFrameAccess = CallerFrameAccess.NONE;
-    private boolean[] hasPreapplied = new boolean[] {};
+    private boolean[] hasPreapplied = new boolean[0];
 
     private Builder() {}
 
