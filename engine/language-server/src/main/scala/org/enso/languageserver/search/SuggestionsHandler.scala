@@ -374,8 +374,18 @@ final class SuggestionsHandler(
       )
 
     case Completion(path, pos, selfType, returnType, tags, isStatic) =>
-      val selfTypes = selfType.toList.flatMap(ty => ty :: graph.getParents(ty))
-      getModuleName(projectName, path)
+      val allSelfTypes =
+        selfType.toList.flatMap(ty => ty :: graph.getParents(ty))
+      val isJavaClass =
+        try {
+          val found = Class.forName(allSelfTypes.head)
+          logger.info("Found java class: " + found)
+          true
+        } catch {
+          case _: Throwable => false
+        }
+      val selfTypes = if (isJavaClass) List(allSelfTypes.head) else allSelfTypes
+      def computeRes() = getModuleName(projectName, path)
         .flatMap { either =>
           either.fold(
             Future.successful,
@@ -392,7 +402,118 @@ final class SuggestionsHandler(
                 .map(CompletionResult.tupled)
           )
         }
-        .pipeTo(sender())
+      val replyTo = sender()
+      val checkForFirstTimeJava = computeRes().andThen(v => {
+        logger.debug("resolved to {}", v)
+        if (
+          v.isSuccess && v.get
+            .asInstanceOf[CompletionResult]
+            .results
+            .isEmpty && isJavaClass
+        ) {
+          val c = Class.forName(allSelfTypes.head)
+          logger.info(
+            "Empty result for {} Java class isn't enough, recomputing",
+            c.getName()
+          )
+          val newSuggestions = new java.util.ArrayList[Suggestion]
+          val typ = new Suggestion.Type(
+            None,
+            "Java",
+            c.getName(),
+            Nil,
+            "",
+            None,
+            None,
+            None
+          )
+          newSuggestions.add(typ)
+          val names = new java.util.HashSet[String]
+          c.getMethods()
+            .foreach(m => {
+              val isNewName = names.add(m.getName())
+              if (
+                isNewName && (m.getModifiers & java.lang.reflect.Modifier.STATIC) == 0 && m
+                  .getDeclaringClass() != classOf[java.lang.Object]
+              ) {
+                var cnt = 0;
+                val args = m
+                  .getParameterTypes()
+                  .map(p => {
+                    cnt = cnt + 1
+                    new Suggestion.Argument(
+                      "arg" + cnt,
+                      p.getName(),
+                      false,
+                      false,
+                      None,
+                      None
+                    )
+                  })
+                  .toIndexedSeq;
+                val method = new Suggestion.DefinedMethod(
+                  None,
+                  "Java",
+                  m.getName(),
+                  args,
+                  c.getName,
+                  m.getReturnType().getName(),
+                  false,
+                  None,
+                  Nil
+                )
+                newSuggestions.add(method)
+              }
+            })
+          logger.debug("Computed new replacement: {}", newSuggestions)
+          applyLoadedSuggestions(
+            newSuggestions.toArray(new Array[Suggestion](0)).toVector
+          ).andThen {
+            case Success(notification) =>
+              logger.debug("database updated with: {}", notification)
+              logger.info(
+                "database updated with {} entries",
+                notification.updates.size
+              )
+              if (notification.updates.nonEmpty) {
+                clients.foreach { clientId =>
+                  sessionRouter ! DeliverToJsonController(
+                    clientId,
+                    notification
+                  )
+                }
+              }
+            // self ! SuggestionsHandler.SuggestionLoadingCompleted
+            case Failure(ex) =>
+              logger.error(
+                "database update failed.",
+                ex
+              )
+            // self ! SuggestionsHandler.SuggestionLoadingCompleted
+          }.onComplete { _ =>
+            val newRes = computeRes()
+            logger.debug("Computing results again: " + newRes)
+            newRes.pipeTo(replyTo)
+          }
+          null
+        } else {
+          logger.debug("Piping result: " + v)
+          v
+        }
+      })
+      checkForFirstTimeJava.onComplete { v =>
+        if (
+          v.isInstanceOf[Success[_]] && v
+            .asInstanceOf[Success[CompletionResult]]
+            .value
+            .asInstanceOf[CompletionResult]
+            .results
+            .nonEmpty
+        ) {
+          checkForFirstTimeJava.pipeTo(replyTo)
+        }
+      }
+
       if (state.shouldStartBackgroundProcessing) {
         runtimeConnector ! Api.Request(Api.StartBackgroundProcessing())
         context.become(

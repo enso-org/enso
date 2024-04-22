@@ -1,6 +1,8 @@
 package org.enso.interpreter.service;
 
 import com.oracle.truffle.api.CompilerDirectives;
+import com.oracle.truffle.api.interop.InteropLibrary;
+import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
@@ -202,7 +204,7 @@ final class ExecutionCallbacks implements IdExecutionService.Callbacks {
   }
 
   private String typeOf(Object value) {
-    String resultType;
+    String resultType = null;
     if (value instanceof UnresolvedSymbol) {
       resultType = Constants.UNRESOLVED_SYMBOL;
     } else {
@@ -211,7 +213,14 @@ final class ExecutionCallbacks implements IdExecutionService.Callbacks {
       if (typeResult instanceof Type t) {
         resultType = t.getQualifiedName().toString();
       } else {
-        resultType = null;
+        var iop = InteropLibrary.getUncached();
+        if (value != null && iop.hasMetaObject(value)) {
+          try {
+            var meta = iop.getMetaObject(value);
+            resultType = iop.asString(iop.getMetaQualifiedName(meta));
+          } catch (UnsupportedMessageException ex) {
+          }
+        }
       }
     }
     return resultType;
