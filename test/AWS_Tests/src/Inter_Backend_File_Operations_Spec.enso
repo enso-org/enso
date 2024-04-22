@@ -183,73 +183,73 @@ add_specs suite_builder =
            so `api_pending` is always checked and the test will not be run without S3 config present.
         pending = any_pending [source_backend, destination_backend] . if_nothing api_pending
         suite_builder.group "("+source_backend.name+" -> "+destination_backend.name+") Data Link copying/moving" pending=pending group_builder->
-            source_file_provider = source_backend.make_temp_file "src.datalink"
-            destination_file_provider = destination_backend.make_temp_file "dest.datalink"
+            source_link_provider = source_backend.make_temp_file "src.datalink"
+            regular_source_file_provider = source_backend.make_temp_file "src.txt"
+            destination_link_provider = destination_backend.make_temp_file "dest.datalink"
+            destination_file_provider = destination_backend.make_temp_file "dest.txt"
             group_builder.teardown <|
-                source_file_provider.cleanup
-                destination_file_provider.cleanup
+                source_link_provider.cleanup
+                destination_link_provider.cleanup
 
-            group_builder.specify "should be able to copy a datalink file to a regular file" <| with_default_credentials <|
-                source_file = source_file_provider.get
-                destination_file = destination_file_provider.get
+            group_builder.specify "does not allow copying/moving datalinks using copy_to/move_to and reports a helpful error message" <|
+                source_link = source_link_provider.get
+                destination_link = destination_link_provider.get
+                source_file = regular_source_file_provider.get
+                destination_file = destination_link_provider.get
 
-                regular_destination_file = destination_file.parent / destination_file.name+".txt"
-                regular_destination_file.delete_if_exists
-                Data_Link.write_raw_config source_file sample_data_link_content replace_existing=True . should_succeed
+                test_mixed source destination method =
+                    r = method source destination
+                    r.should_fail_with Illegal_Argument
+                    r.catch.to_display_text . should_contain "please `.read` the datalink first and then use an appropriate method to write it to the destination"
 
-                source_file.copy_to regular_destination_file . should_succeed
-                Panic.with_finalizer regular_destination_file.delete_if_exists <|
-                    # The raw datalink config is copied, so reading back the .txt file yields us the configuration:
-                    regular_destination_file.read . should_contain '"libraryName": "Standard.AWS"'
+                test_mixed source_link destination_file .copy_to
+                test_mixed source_link destination_file .move_to
+                test_mixed source_file destination_link .copy_to
+                test_mixed source_file destination_link .move_to
 
-            group_builder.specify "should be able to copy a datalink file to another datalink" <| with_default_credentials <|
-                source_file = source_file_provider.get
-                destination_file = destination_file_provider.get
+                r_copy = source_link.copy_to destination_link
+                r_copy.should_fail_with Illegal_Argument
+                r_copy.catch.to_display_text . should_contain "please use `Data_Link.copy`"
 
-                destination_file.delete_if_exists
-                Data_Link.write_raw_config source_file sample_data_link_content replace_existing=True . should_succeed
+                r_move = source_link.move_to destination_link
+                r_move.should_fail_with Illegal_Argument
+                r_move.catch.to_display_text . should_contain "please use `Data_Link.move`"
 
-                source_file.copy_to destination_file replace_existing=True . should_succeed
+            group_builder.specify "should be able to copy a datalink file elsewhere using Data_Link.copy" <| with_default_credentials <|
+                source_link = source_link_provider.get
+                destination_link = destination_link_provider.get
+
+                destination_link.delete_if_exists
+                Data_Link.write_raw_config source_link sample_data_link_content replace_existing=False . should_succeed
+
+                Data_Link.copy source_link destination_link replace_existing=False . should_succeed
+                Data_Link.copy source_link destination_link replace_existing=False . should_fail_with File_Error
+                Data_Link.copy source_link destination_link replace_existing=True . should_succeed
+
                 # Now the destination is _also_ a datalink, pointing to the same target as source, so reading it yields the target data:
-                destination_file.read . should_equal "Hello WORLD!"
+                destination_link.read . should_equal "Hello WORLD!"
+                # The source file is not affected:
+                source_link.exists . should_be_true
 
                 # But if we read it raw, we can see that it is still a datalink, not just a copy of the data:
                 Data_Link.read_raw_config destination_file . should_equal sample_data_link_content
 
-            group_builder.specify "should be able to move a datalink" <| with_default_credentials <|
-                source_file = source_file_provider.get
-                destination_file = destination_file_provider.get
+            group_builder.specify "should be able to move a datalink using Data_Link.move" <| with_default_credentials <|
+                source_link = source_link_provider.get
+                destination_link = destination_link_provider.get
 
-                destination_file.delete_if_exists
-                Data_Link.write_raw_config source_file sample_data_link_content replace_existing=True . should_succeed
+                destination_link.delete_if_exists
+                Data_Link.write_raw_config source_link sample_data_link_content replace_existing=True . should_succeed
 
-                source_file.move_to destination_file . should_succeed
-                source_file.exists . should_be_false
+                Data_Link.move source_link destination_link replace_existing=False . should_succeed
+                Data_Link.move source_link destination_link replace_existing=False . should_fail_with File_Error
+                Data_Link.move source_link destination_link replace_existing=True . should_succeed
 
-                destination_file.read . should_equal "Hello WORLD!"
-                Data_Link.read_raw_config destination_file . should_equal sample_data_link_content
+                # The source has been removed:
+                source_link.exists . should_be_false
 
-            group_builder.specify "should be able to move a regular file to become a datalink" <| with_default_credentials <|
-                source_file = source_file_provider.get
-                destination_file = destination_file_provider.get
-                destination_file.delete_if_exists
-
-                regular_source_file = source_file.parent / source_file.name+".txt"
-                sample_data_link_content.write regular_source_file on_existing_file=Existing_File_Behavior.Overwrite . should_succeed
-                Panic.with_finalizer regular_source_file.delete_if_exists <|
-                    # The source file is not a datalink - it is a raw text file, so reading it gives us back the raw config
-                    regular_source_file.read . should_equal sample_data_link_content
-                    # Reading it raw will even fail:
-                    Test.expect_panic Illegal_Argument <|
-                        Data_Link.read_raw_config regular_source_file
-
-                    regular_source_file.move_to destination_file . should_succeed
-                    regular_source_file.exists . should_be_false
-
-                    # However, the destination file _is_ a datalink, so it is read as target data:
-                    destination_file.read . should_equal "Hello WORLD!"
-                    # Unless we read it raw:
-                    Data_Link.read_raw_config destination_file . should_equal sample_data_link_content
+                destination_link.read . should_equal "Hello WORLD!"
+                Data_Link.read_raw_config destination_link . should_equal sample_data_link_content
 
 main filter=Nothing =
     suite = Test.build suite_builder->
