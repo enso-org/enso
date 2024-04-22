@@ -1177,7 +1177,8 @@ lazy val `ydoc-server` = project
           "io.helidon.webclient"     % "helidon-webclient-websocket" % helidonVersion,
           "io.helidon.webserver"     % "helidon-webserver"           % helidonVersion,
           "io.helidon.webserver"     % "helidon-webserver-websocket" % helidonVersion,
-          "io.helidon.websocket"     % "helidon-websocket"           % helidonVersion
+          "io.helidon.websocket"     % "helidon-websocket"           % helidonVersion,
+          "org.slf4j"                % "slf4j-api"                   % slf4jVersion
         ),
         streams.value.log,
         shouldContainAll = true
@@ -1188,6 +1189,7 @@ lazy val `ydoc-server` = project
       "org.graalvm.polyglot" % "polyglot"                    % graalMavenPackagesVersion,
       "org.graalvm.polyglot" % "inspect"                     % graalMavenPackagesVersion % "runtime",
       "org.graalvm.polyglot" % "js"                          % graalMavenPackagesVersion % "runtime",
+      "org.slf4j"            % "slf4j-api"                   % slf4jVersion,
       "io.helidon.webclient" % "helidon-webclient-websocket" % helidonVersion,
       "io.helidon.webserver" % "helidon-webserver-websocket" % helidonVersion,
       "junit"                % "junit"                       % junitVersion              % Test,
@@ -1195,6 +1197,7 @@ lazy val `ydoc-server` = project
     )
   )
   .dependsOn(`syntax-rust-definition`)
+  .dependsOn(`logging-service-logback`)
 
 lazy val `persistance` = (project in file("lib/java/persistance"))
   .settings(

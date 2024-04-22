@@ -20,7 +20,7 @@ public class EventTargetTest {
   @Before
   public void setup() throws Exception {
     executor = Executors.newSingleThreadExecutor();
-    var eventTarget = new EventTarget(executor);
+    var eventTarget = new EventTarget();
     var hostAccess = HostAccess.newBuilder(HostAccess.EXPLICIT).allowArrayAccess(true).build();
     var b = Context.newBuilder("js").allowHostAccess(hostAccess);
 

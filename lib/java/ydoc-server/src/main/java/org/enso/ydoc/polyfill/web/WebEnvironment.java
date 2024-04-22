@@ -8,11 +8,16 @@ import org.graalvm.polyglot.HostAccess;
 /** Web polyfill environment. */
 public final class WebEnvironment {
 
+  public static final HostAccess.Builder defaultHostAccess =
+      HostAccess.newBuilder(HostAccess.EXPLICIT).allowArrayAccess(true).allowBufferAccess(true);
+
+  private WebEnvironment() {}
+
   public static void initialize(Context ctx, ExecutorService executor) {
     var performance = new Performance();
     performance.initialize(ctx);
 
-    var eventTarget = new EventTarget(executor);
+    var eventTarget = new EventTarget();
     eventTarget.initialize(ctx);
 
     var eventEmitter = new EventEmitter();
@@ -40,8 +45,6 @@ public final class WebEnvironment {
 
   public static Context.Builder createContext(
       Function<HostAccess.Builder, HostAccess.Builder> hostAccessFunction) {
-    var defaultHostAccess =
-        HostAccess.newBuilder(HostAccess.EXPLICIT).allowArrayAccess(true).allowBufferAccess(true);
     var hostAccess = hostAccessFunction.apply(defaultHostAccess).build();
 
     return Context.newBuilder("js").allowHostAccess(hostAccess).allowExperimentalOptions(true);
