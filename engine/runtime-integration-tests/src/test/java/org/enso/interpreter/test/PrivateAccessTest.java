@@ -18,25 +18,20 @@ import org.junit.rules.TemporaryFolder;
 public class PrivateAccessTest extends TestBase {
   @Rule public TemporaryFolder tempFolder = new TemporaryFolder();
 
-  /**
-   * Private constructor defined in a type inside unknown module that has no project cannot be
-   * called at all, as it is impossible to determine the project name. Unknown modules are engine
-   * internal constructs that should not use private econstructors at all.
-   */
   @Test
-  public void privateConstructorCannotBeCalledInUnknownProject() {
+  public void privateConstructorCanBeCalledInUnknownProject() {
     var src =
         """
         type My_Type
             private Cons data
-        main = My_Type.Cons 42
+        main =
+            obj = My_Type.Cons 42
+            obj.data
         """;
     try (var ctx = createDefaultContext()) {
-      // TestBase.eval module creates a temporary source - an unknown module without a project.
-      TestBase.evalModule(ctx, src);
-      fail("Should throw a Private_Access panic exception");
-    } catch (PolyglotException e) {
-      assertThat(e.getMessage(), containsString("Private_Access"));
+      var res = TestBase.evalModule(ctx, src);
+      assertThat(res.isNumber(), is(true));
+      assertThat(res.asInt(), is(42));
     }
   }
 
