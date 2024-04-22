@@ -54,7 +54,7 @@ public final class ModuleScope implements EnsoObject {
     this.imports = new HashSet<>();
     this.exports = new HashSet<>();
     this.module = module;
-    this.associatedType = Type.createSingleton(module.getName().item(), this, null, false);
+    this.associatedType = Type.createSingleton(module.getName().item(), this, null, false, false);
   }
 
   public ModuleScope(
