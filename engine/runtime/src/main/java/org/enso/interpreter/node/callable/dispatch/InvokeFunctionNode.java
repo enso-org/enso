@@ -1,5 +1,6 @@
 package org.enso.interpreter.node.callable.dispatch;
 
+import com.oracle.truffle.api.TruffleFile;
 import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.dsl.ImportStatic;
 import com.oracle.truffle.api.dsl.NeverDefault;
@@ -28,6 +29,7 @@ import org.enso.interpreter.runtime.data.atom.AtomConstructor;
 import org.enso.interpreter.runtime.error.PanicException;
 import org.enso.interpreter.runtime.scope.ModuleScope;
 import org.enso.interpreter.runtime.state.State;
+import org.enso.pkg.Package;
 
 /**
  * This class represents the protocol for remapping the arguments provided at a call site into the
@@ -92,8 +94,8 @@ public abstract class InvokeFunctionNode extends BaseNode {
   }
 
   private PanicException makePrivateAccessPanic(Function targetFunction) {
-    var thisProjName = getThisProjectName();
-    var targetProjName = getFunctionProjectName(targetFunction);
+    var thisProjName = getThisProject() != null ? getThisProject().name() : null;
+    var targetProjName = getFunctionProject(targetFunction) != null ? getFunctionProject(targetFunction).name() : null;
     var funcName = targetFunction.getName();
     var err =
         EnsoContext.get(this)
@@ -252,35 +254,25 @@ public abstract class InvokeFunctionNode extends BaseNode {
 
   /** Returns true if the given function is in the same project as this node. */
   private boolean isInSameProject(Function function) {
-    var thisProjName = getThisProjectName();
-    var funcProjName = getFunctionProjectName(function);
-    if (thisProjName != null && funcProjName != null) {
-      return thisProjName.equals(funcProjName);
-    } else {
-      return false;
-    }
+    var thisProj = getThisProject();
+    var funcProj = getFunctionProject(function);
+    return thisProj == funcProj;
   }
 
-  private String getThisProjectName() {
+  private Package<TruffleFile> getThisProject() {
     if (getRootNode() instanceof EnsoRootNode thisRootNode) {
       var modScope = thisRootNode.getModuleScope();
       if (modScope != null) {
-        var pkg = modScope.getModule().getPackage();
-        if (pkg != null) {
-          return pkg.name();
-        }
+        return modScope.getModule().getPackage();
       }
     }
     return null;
   }
 
-  private String getFunctionProjectName(Function function) {
+  private Package<TruffleFile> getFunctionProject(Function function) {
     var modScope = getModuleScopeForFunction(function);
     if (modScope != null) {
-      var pkg = modScope.getModule().getPackage();
-      if (pkg != null) {
-        return pkg.name();
-      }
+      return modScope.getModule().getPackage();
     }
     return null;
   }
