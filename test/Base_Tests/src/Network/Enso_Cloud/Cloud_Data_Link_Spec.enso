@@ -26,7 +26,7 @@ type Temporary_Directory
         target = self.get / filename
         config = JS_Object.from_pairs [["type", "Enso_File"], ["libraryName", "Standard.Base"], ["path", target.path]]
         local_tmp_file = File.create_temporary_file prefix="test-datalink" suffix=".datalink"
-         Data_Link.write_config local_tmp_file config replace_existing=True
+        Data_Link.write_config local_tmp_file config replace_existing=True
 
 
 add_specs suite_builder setup:Cloud_Tests_Setup = setup.with_prepared_environment <|
@@ -149,4 +149,4 @@ transform_datalink base_file transform =
     content =  Data_Link.read_raw_config base_file
     new_content = transform content
     temp_file = File.create_temporary_file prefix=base_file.name suffix=base_file.extension
-     Data_Link.write_raw_config temp_file new_content replace_existing=True . if_not_error temp_file
+    Data_Link.write_raw_config temp_file new_content replace_existing=True . if_not_error temp_file

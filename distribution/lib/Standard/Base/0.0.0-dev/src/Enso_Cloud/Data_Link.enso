@@ -4,6 +4,7 @@ import project.Data.Text.Text
 import project.Data.Vector.Vector
 import project.Enso_Cloud.Errors.Missing_Data_Link_Library
 import project.Error.Error
+import project.Errors.File_Error.File_Error
 import project.Errors.Illegal_Argument.Illegal_Argument
 import project.Errors.Illegal_State.Illegal_State
 import project.Errors.Problem_Behavior.Problem_Behavior
@@ -91,9 +92,8 @@ type Data_Link
          existing file. By default, the operation will fail if the file already
          exists.
     move (source : File_Like) (target : File_Like) (replace_existing : Boolean = False) -> Any ! File_Error =
-         Data_Link.copy source target replace_existing
-            . if_not_error <|
-                source.underlying.delete . if_not_error target.underlying
+         Data_Link.copy source target replace_existing . if_not_error <|
+             source.underlying.delete . if_not_error target.underlying
 
     ## PRIVATE
          Reads the raw configuration data of a data-link, as plain text.
@@ -103,7 +103,7 @@ type Data_Link
          Arguments:
          - file: The file to read the configuration from.
     read_raw_config (file : File_Like) -> Text =
-        if is_data_link file . not then
+        if Data_Link.is_data_link file . not then
             Panic.throw (Illegal_Argument.Error " Data_Link should only be used for reading config of Data Links, but "+file.to_display_text+" is not a Data Link.")
         options = [File_Access.Read, Data_Link_Access.No_Follow]
         bytes = file.underlying.with_input_stream options input_stream->
@@ -122,7 +122,7 @@ type Data_Link
          existing file. By default, the operation will fail if the file already
          exists.
     write_raw_config (file : File_Like) (raw_content : Text) (replace_existing : Boolean = False) =
-        if is_data_link file.underlying . not then
+        if Data_Link.is_data_link file.underlying . not then
             Panic.throw (Illegal_Argument.Error " Data_Link should only be used for writing config to Data Links, but "+file.to_display_text+" is not a Data Link.")
         exist_options = if replace_existing then [File_Access.Create, File_Access.Truncate_Existing] else [File_Access.Create_New]
         options = exist_options + [File_Access.Write, Data_Link_Access.No_Follow]
