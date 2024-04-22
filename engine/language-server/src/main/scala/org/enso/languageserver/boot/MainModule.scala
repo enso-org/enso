@@ -51,7 +51,7 @@ import org.enso.logger.JulHandler
 import org.enso.logger.akka.AkkaConverter
 import org.enso.polyglot.{HostAccessFactory, RuntimeOptions, RuntimeServerInfo}
 import org.enso.profiling.events.NoopEventsMonitor
-import org.enso.searcher.memory.InmemorySuggestionsRepo
+import org.enso.searcher.memory.InMemorySuggestionsRepo
 import org.enso.text.{ContentBasedVersioning, Sha3_224VersionCalculator}
 import org.graalvm.polyglot.Engine
 import org.graalvm.polyglot.Context
@@ -136,7 +136,7 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: Level) {
   log.trace("Created Version Calculator [{}].", versionCalculator)
 
   val suggestionsRepo =
-    new InmemorySuggestionsRepo()(
+    new InMemorySuggestionsRepo()(
       system.dispatcher
     );
   log.trace("Created SQL suggestions repo: [{}].", suggestionsRepo)

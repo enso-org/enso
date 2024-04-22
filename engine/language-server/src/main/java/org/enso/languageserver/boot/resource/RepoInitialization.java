@@ -10,7 +10,7 @@ import org.apache.commons.io.FileUtils;
 import org.enso.languageserver.data.ProjectDirectoriesConfig;
 import org.enso.languageserver.event.InitializedEvent;
 import org.enso.logger.masking.MaskedPath;
-import org.enso.searcher.memory.InmemorySuggestionsRepo;
+import org.enso.searcher.memory.InMemorySuggestionsRepo;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import scala.jdk.javaapi.FutureConverters;
@@ -25,7 +25,7 @@ public class RepoInitialization implements InitializationComponent {
 
   private final ProjectDirectoriesConfig projectDirectoriesConfig;
   private final EventStream eventStream;
-  private final InmemorySuggestionsRepo suggestionsRepo;
+  private final InMemorySuggestionsRepo suggestionsRepo;
 
   private final Logger logger = LoggerFactory.getLogger(this.getClass());
 
@@ -45,7 +45,7 @@ public class RepoInitialization implements InitializationComponent {
       Executor executor,
       ProjectDirectoriesConfig projectDirectoriesConfig,
       EventStream eventStream,
-      InmemorySuggestionsRepo
+      InMemorySuggestionsRepo
           suggestionsRepo) { // Java won't allow Future type constructor in SuggestionsRepo[Future]
     this.executor = executor;
     this.projectDirectoriesConfig = projectDirectoriesConfig;

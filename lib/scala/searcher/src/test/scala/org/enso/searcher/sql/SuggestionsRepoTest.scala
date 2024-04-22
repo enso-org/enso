@@ -4,7 +4,7 @@ import org.enso.polyglot.{ExportedSymbol, ModuleExports, Suggestion}
 import org.enso.polyglot.runtime.Runtime.Api
 import org.enso.searcher.SuggestionEntry
 import org.enso.searcher.data.QueryResult
-import org.enso.searcher.memory.InmemorySuggestionsRepo
+import org.enso.searcher.memory.InMemorySuggestionsRepo
 import org.enso.searcher.sql.equality.SuggestionsEquality
 import org.enso.testkit.RetrySpec
 import org.scalactic.TripleEqualsSupport
@@ -37,8 +37,8 @@ class SuggestionsRepoTest
     tmp
   }
 
-  def withRepo(test: InmemorySuggestionsRepo => Any): Any = {
-    val repo = new InmemorySuggestionsRepo()
+  def withRepo(test: InMemorySuggestionsRepo => Any): Any = {
+    val repo = new InMemorySuggestionsRepo()
     Await.ready(repo.init, Timeout)
     try test(repo)
     finally {

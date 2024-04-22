@@ -1,7 +1,7 @@
 package org.enso.searcher.sql;
 
 import org.enso.polyglot.Suggestion;
-import org.enso.searcher.memory.InmemorySuggestionsRepo;
+import org.enso.searcher.memory.InMemorySuggestionsRepo;
 import org.openjdk.jmh.annotations.*;
 import org.openjdk.jmh.runner.Runner;
 import org.openjdk.jmh.runner.RunnerException;
@@ -15,7 +15,6 @@ import scala.jdk.javaapi.CollectionConverters;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
@@ -37,11 +36,11 @@ public class SuggestionsRepoBenchmark {
   final Seq<Suggestion.Kind> kinds = SuggestionRandom.nextKinds();
   final Seq<scala.Tuple2<UUID, String>> updateInput = SuggestionRandom.nextUpdateAllInput();
 
-  InmemorySuggestionsRepo repo;
+  InMemorySuggestionsRepo repo;
 
   @Setup
   public void setup() throws TimeoutException, InterruptedException {
-    repo = new InmemorySuggestionsRepo(ExecutionContext.global());
+    repo = new InMemorySuggestionsRepo(ExecutionContext.global());
     if (Files.notExists(dbfile)) {
       System.out.println("initializing " + dbfile + " ...");
       Await.ready(repo.init(), TIMEOUT);

@@ -14,7 +14,7 @@ import org.enso.searcher.{SuggestionEntry, SuggestionsRepo}
 import scala.collection.mutable
 import scala.concurrent.{ExecutionContext, Future}
 
-class InmemorySuggestionsRepo(implicit ec: ExecutionContext)
+class InMemorySuggestionsRepo(implicit ec: ExecutionContext)
     extends SuggestionsRepo[Future] {
   private[this] var db: mutable.Map[Long, Suggestion] = null
   @volatile private[this] var version: Long           = 0

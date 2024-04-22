@@ -8,7 +8,7 @@ import org.enso.languageserver.data._
 import org.enso.languageserver.event.InitializedEvent
 import org.enso.languageserver.filemanager.{ContentRoot, ContentRootWithFile}
 import org.enso.logger.ReportLogsOnFailure
-import org.enso.searcher.memory.InmemorySuggestionsRepo
+import org.enso.searcher.memory.InMemorySuggestionsRepo
 import org.enso.testkit.{FlakySpec, ToScalaFutureConversions}
 import org.scalatest.BeforeAndAfterAll
 import org.scalatest.matchers.should.Matchers
@@ -80,68 +80,6 @@ class RepoInitializationSpec
         expectMsg(InitializedEvent.SuggestionsRepoInitialized)
     }
 
-    /*"recreate corrupted suggestion database file" taggedAs Flaky in withConfig {
-      config =>
-        // initialize
-        withRepos(config) { (sqlDatabase, suggestionsRepo) =>
-          val component =
-            new RepoInitialization(
-              system.dispatcher,
-              config.directories,
-              system.eventStream,
-              sqlDatabase,
-              suggestionsRepo
-            )
-
-          val init =
-            for {
-              _       <- component.init()
-              version <- suggestionsRepo.getSchemaVersion
-            } yield version
-
-          val version1 = Await.result(init, Timeout)
-          version1 shouldEqual SchemaVersion.CurrentVersion
-        }
-
-        // corrupt
-        val bytes: Array[Byte] = Array(1, 2, 3)
-        Files.delete(config.directories.suggestionsDatabaseFile.toPath)
-        Files.write(
-          config.directories.suggestionsDatabaseFile.toPath,
-          bytes,
-          StandardOpenOption.CREATE
-        )
-        withRepos(config) { (sqlDatabase, suggestionsRepo) =>
-          sqlDatabase.open()
-          an[SQLiteException] should be thrownBy Await.result(
-            suggestionsRepo.getSchemaVersion,
-            Timeout
-          )
-        }
-
-        // re-initialize
-        withRepos(config) { (sqlDatabase, suggestionsRepo) =>
-          val component =
-            new RepoInitialization(
-              system.dispatcher,
-              config.directories,
-              system.eventStream,
-              sqlDatabase,
-              suggestionsRepo
-            )
-
-          val action =
-            for {
-              _       <- component.init()
-              version <- suggestionsRepo.getSchemaVersion
-            } yield version
-
-          val version2 = Await.result(action, Timeout)
-          version2 shouldEqual SchemaVersion.CurrentVersion
-          expectMsg(InitializedEvent.SuggestionsRepoInitialized)
-        }
-    }*/
-
   }
 
   def newConfig(root: ContentRootWithFile): Config = {
@@ -173,15 +111,15 @@ class RepoInitializationSpec
 
   def withRepos(
     @unused config: Config
-  )(test: InmemorySuggestionsRepo => Any): Unit = {
-    val suggestionsRepo = new InmemorySuggestionsRepo()
+  )(test: InMemorySuggestionsRepo => Any): Unit = {
+    val suggestionsRepo = new InMemorySuggestionsRepo()
     test(suggestionsRepo)
   }
 
   def withDb(
     test: (
       Config,
-      InmemorySuggestionsRepo
+      InMemorySuggestionsRepo
     ) => Any
   ): Unit = {
     withConfig { config =>

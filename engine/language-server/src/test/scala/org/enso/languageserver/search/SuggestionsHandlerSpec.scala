@@ -18,7 +18,7 @@ import org.enso.polyglot.data.{Tree, TypeGraph}
 import org.enso.polyglot.runtime.Runtime.Api
 import org.enso.polyglot.{ExportedSymbol, ModuleExports, Suggestion}
 import org.enso.searcher.SuggestionsRepo
-import org.enso.searcher.memory.InmemorySuggestionsRepo
+import org.enso.searcher.memory.InMemorySuggestionsRepo
 import org.enso.testkit.RetrySpec
 import org.scalatest.BeforeAndAfterAll
 import org.scalatest.matchers.should.Matchers
@@ -1019,9 +1019,8 @@ class SuggestionsHandlerSpec
         testContentRoot.toFile
       )
     )
-    //val sqlDatabase     = SqlDatabase(config.directories.suggestionsDatabaseFile)
     val suggestionsRepo =
-      new InmemorySuggestionsRepo() //new SqlSuggestionsRepo(sqlDatabase)
+      new InMemorySuggestionsRepo()
 
     val suggestionsInit = suggestionsRepo.init
     suggestionsInit.onComplete {
@@ -1058,10 +1057,8 @@ class SuggestionsHandlerSpec
     )
     val router    = TestProbe("session-router")
     val connector = TestProbe("runtime-connector")
-    //val sqlDatabase = SqlDatabase.inmem("testdb")
-    //sqlDatabase.open()
     val suggestionsRepo =
-      new InmemorySuggestionsRepo() //new SqlSuggestionsRepo(sqlDatabase)
+      new InMemorySuggestionsRepo()
     val handler = newInitializedSuggestionsHandler(
       config,
       router,
@@ -1072,7 +1069,6 @@ class SuggestionsHandlerSpec
     try test(config, suggestionsRepo, router, connector, handler)
     finally {
       system.stop(handler)
-      //sqlDatabase.close()
     }
   }
 
