@@ -12,6 +12,11 @@ add_specs spec_builder =
         group_builder.specify "cannot directly call private constructor" <|
             expect_access_error <| Priv_Type.Cons 42
 
+        # Optimally, we want `Priv_Type.Cons` expression to result in a compilation error.
+        # All the references to private methods/constructors are theoretically resolvable
+        # at compilation time. However, the current state of the static compiler does not
+        # allow us to do that easily.
+        # For more info, see https://github.com/enso-org/enso/issues/6729
         group_builder.specify "can get reference to private constructor, but cannot call it" <|
             cons_fn data = Priv_Type.Cons data
             expect_access_error <| cons_fn 42
