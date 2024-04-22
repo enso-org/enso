@@ -126,7 +126,11 @@ add_specs suite_builder =
 
             err = Error.throw "Error Value"
             1.is_a Error . should_be_false
+            IO.println "ENABLE_LOG"
+            Standard.Base.Runtime.Debug.eval "ENABLE_LOG"
             err.is_a Error . should_be_true
+            IO.println "DISABLE_LOG"
+            Standard.Base.Runtime.Debug.eval "DISABLE_LOG"
             err.is_a Text . should_be_false
             Meta.is_a err Error . should_be_true
             Meta.is_a err Text . should_be_false

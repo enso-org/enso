@@ -25,6 +25,7 @@ import org.graalvm.collections.Pair;
 @ExportLibrary(InteropLibrary.class)
 @ExportLibrary(TypesLibrary.class)
 public final class UnresolvedSymbol implements EnsoObject {
+  public static boolean logEnabled = false;
   private final String name;
   private final ModuleScope scope;
 
@@ -68,14 +69,25 @@ public final class UnresolvedSymbol implements EnsoObject {
    */
   public Pair<Function, Type> resolveFor(Node node, Type type) {
     if (type != null) {
+      var nodeName = node.getRootNode() == null ? "null" : node.getRootNode().getName();
+      log("Resolving for: symbol=%s, node=%s, type=%s".formatted(name, nodeName, type.getQualifiedName().toString()));
       for (var current : type.allTypes(EnsoContext.get(node))) {
+        log("Current type = " + current.getQualifiedName().toString());
         Function candidate = scope.lookupMethodDefinition(current, name);
         if (candidate != null) {
+          log("Resolved to " + candidate);
           return Pair.create(candidate, current);
         }
       }
     }
+    log("Unresolved (returning null)");
     return null;
+  }
+
+  private static void log(String message) {
+    if (logEnabled) {
+      System.out.println("[UnresolvedSymbol]: " + message);
+    }
   }
 
   @Override
