@@ -55,6 +55,12 @@ public class PrivateAccessTest extends TestBase {
       var mainMethod = mainMod.getMethod(assocType, "main").get();
       var res = mainMethod.execute();
       assertThat(res.hasMember("data"), is(false));
+      try {
+        res.getMember("data");
+        fail("Expected exception in getMember('data')");
+      } catch (UnsupportedOperationException e) {
+        // nop - expected
+      }
     }
   }
 

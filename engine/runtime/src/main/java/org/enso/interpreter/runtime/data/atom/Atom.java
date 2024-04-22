@@ -131,14 +131,18 @@ public abstract class Atom implements EnsoObject {
 
   @ExportMessage
   boolean hasMembers() {
-    return true;
+    if (constructor.getType().isProjectPrivate()) {
+      return false;
+    } else {
+      return true;
+    }
   }
 
   @ExportMessage
   @CompilerDirectives.TruffleBoundary
-  EnsoObject getMembers(boolean includeInternal) {
+  EnsoObject getMembers(boolean includeInternal) throws UnsupportedMessageException {
     if (constructor.getType().isProjectPrivate()) {
-      return ArrayLikeHelpers.empty();
+      throw UnsupportedMessageException.create();
     }
     Set<String> members =
         constructor.getDefinitionScope().getMethodNamesForType(constructor.getType());
@@ -188,9 +192,9 @@ public abstract class Atom implements EnsoObject {
   @ExportMessage
   @ExplodeLoop
   final Object readMember(String member, @CachedLibrary(limit = "3") StructsLibrary structs)
-      throws UnknownIdentifierException {
+      throws UnknownIdentifierException, UnsupportedMessageException {
     if (constructor.getType().isProjectPrivate()) {
-      throw UnknownIdentifierException.create(member);
+      throw UnsupportedMessageException.create();
     }
     for (int i = 0; i < constructor.getArity(); i++) {
       if (member.equals(constructor.getFields()[i].getName())) {
