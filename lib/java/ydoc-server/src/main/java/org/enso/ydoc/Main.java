@@ -3,7 +3,7 @@ package org.enso.ydoc;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executors;
 import org.enso.ydoc.polyfill.ParserPolyfill;
-import org.enso.ydoc.polyfill.nodejs.NodeJs;
+import org.enso.ydoc.polyfill.web.WebEnvironment;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.HostAccess;
 import org.graalvm.polyglot.Source;
@@ -41,7 +41,7 @@ public class Main {
       CompletableFuture.supplyAsync(b::build, executor)
           .thenAcceptAsync(
               ctx -> {
-                NodeJs.initialize(ctx, executor);
+                WebEnvironment.initialize(ctx, executor);
                 parser.initialize(ctx);
 
                 ctx.eval(ydocJs);

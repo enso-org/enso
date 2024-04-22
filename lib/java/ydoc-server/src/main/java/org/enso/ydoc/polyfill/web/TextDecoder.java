@@ -1,4 +1,4 @@
-package org.enso.ydoc.polyfill.nodejs;
+package org.enso.ydoc.polyfill.web;
 
 import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
@@ -11,20 +11,24 @@ import org.graalvm.polyglot.Value;
 import org.graalvm.polyglot.io.ByteSequence;
 import org.graalvm.polyglot.proxy.ProxyExecutable;
 
-final class Encoding implements ProxyExecutable, Polyfill {
+/**
+ * Implements the <a href="https://nodejs.org/api/util.html#class-utiltextdecoder">TextDecoder</a>
+ * Node.js interface.
+ */
+final class TextDecoder implements ProxyExecutable, Polyfill {
 
   private static final String TEXT_DECODER_DECODE = "text-decoder-decode";
 
-  private static final String ENCODING_JS = "encoding.js";
+  private static final String TEXT_DECODER_JS = "text-decoder.js";
 
-  Encoding() {}
+  TextDecoder() {}
 
   @Override
   public void initialize(Context ctx) {
-    Source encodingJs =
-        Source.newBuilder("js", Encoding.class.getResource(ENCODING_JS)).buildLiteral();
+    Source textDecoderJs =
+        Source.newBuilder("js", TextDecoder.class.getResource(TEXT_DECODER_JS)).buildLiteral();
 
-    ctx.eval(encodingJs).execute(this);
+    ctx.eval(textDecoderJs).execute(this);
   }
 
   @Override

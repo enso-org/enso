@@ -1,12 +1,11 @@
-package org.enso.ydoc.polyfill.nodejs;
+package org.enso.ydoc.polyfill.web;
 
 import io.helidon.common.uri.UriQuery;
 import io.helidon.http.HttpPrologue;
 import org.graalvm.polyglot.HostAccess;
 
 /**
- * The {@link URL} class implements the <a
- * href="https://nodejs.org/docs/latest-v20.x/api/url.html">URL</a> Node.js interface and can be
+ * Implements the <a href="https://nodejs.org/api/url.html">URL</a> Node.js interface and can be
  * used directly for interop with JS.
  */
 public final class URL {
@@ -30,7 +29,11 @@ public final class URL {
     return prologue.toString();
   }
 
-  /** Implements Node.js URLSearchParams interface. */
+  /**
+   * Implements the <a
+   * href="https://nodejs.org/api/url.html#class-urlsearchparams">URLSearchParams</a> Node.js
+   * interface.
+   */
   public static final class URLSearchParams {
 
     private final UriQuery uriQuery;

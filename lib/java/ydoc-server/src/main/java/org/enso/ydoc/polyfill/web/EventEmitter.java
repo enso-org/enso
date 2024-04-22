@@ -1,4 +1,4 @@
-package org.enso.ydoc.polyfill.nodejs;
+package org.enso.ydoc.polyfill.web;
 
 import java.util.Arrays;
 import java.util.HashMap;
@@ -11,6 +11,10 @@ import org.graalvm.polyglot.Source;
 import org.graalvm.polyglot.Value;
 import org.graalvm.polyglot.proxy.ProxyExecutable;
 
+/**
+ * Implements the <a href="https://nodejs.org/api/events.html#class-eventemitter">EventEmitter</a>
+ * Node.js interface.
+ */
 final class EventEmitter implements ProxyExecutable, Polyfill {
 
   private static final String NEW_EVENT_STORE = "new-event-store";

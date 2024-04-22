@@ -1,4 +1,4 @@
-package org.enso.ydoc.polyfill.nodejs;
+package org.enso.ydoc.polyfill.web;
 
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
@@ -9,17 +9,17 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
-public class EncodingTest {
+public class TextDecoderTest {
 
   private Context context;
   private ExecutorService executor;
 
-  public EncodingTest() {}
+  public TextDecoderTest() {}
 
   @Before
   public void setup() throws Exception {
     executor = Executors.newSingleThreadExecutor();
-    var encoding = new Encoding();
+    var encoding = new TextDecoder();
 
     var b = Context.newBuilder("js").allowExperimentalOptions(true);
 

@@ -1,4 +1,4 @@
-package org.enso.ydoc.polyfill.nodejs;
+package org.enso.ydoc.polyfill.web;
 
 import io.helidon.common.buffers.BufferData;
 import io.helidon.http.Headers;
@@ -22,6 +22,10 @@ import org.graalvm.polyglot.Value;
 import org.graalvm.polyglot.io.ByteSequence;
 import org.graalvm.polyglot.proxy.ProxyExecutable;
 
+/**
+ * Implements the WebSocket and WebSocketServer interfaces of the <a
+ * href="https://www.npmjs.com/package/ws">ws</a> NPM package.
+ */
 final class WebSocket implements ProxyExecutable, Polyfill {
 
   private static final String NEW_WEB_SOCKET = "new-web-socket";
