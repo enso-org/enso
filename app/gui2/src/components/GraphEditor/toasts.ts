@@ -8,7 +8,6 @@ export function useGraphEditorToasts() {
   const toastStartup = useToast.info({ autoClose: false })
   const toastConnectionLost = useToast.error({ autoClose: false })
   const toastLspError = useToast.error()
-  const toastConnectionError = useToast.error()
   const toastExecutionFailed = useToast.error()
 
   toastStartup.show('Initializing the project. This can take up to one minute.')
@@ -18,12 +17,10 @@ export function useGraphEditorToasts() {
     toastConnectionLost.show('Lost connection to Language Server.'),
   )
 
-  projectStore.lsRpcConnection.then(
-    (ls) => ls.client.onError((e) => toastLspError.show(`Language server error: ${e}`)),
-    (e) => toastConnectionError.show(`Connection to language server failed: ${JSON.stringify(e)}`),
-  )
-
-  projectStore.executionContext.on('executionComplete', () => toastExecutionFailed.dismiss())
+  projectStore.lsRpcConnection.client.onError((e) =>
+    toastLspError.show(`Language server error: ${e}`),
+  ),
+    projectStore.executionContext.on('executionComplete', () => toastExecutionFailed.dismiss())
   projectStore.executionContext.on('executionFailed', (e) =>
     toastExecutionFailed.show(`Execution Failed: ${JSON.stringify(e)}`),
   )

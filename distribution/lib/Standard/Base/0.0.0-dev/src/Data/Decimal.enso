@@ -17,8 +17,8 @@ from project.Errors.Common import Arithmetic_Error, Loss_Of_Numeric_Precision, O
 from project.Widget_Helpers import make_number_format_selector
 
 polyglot java import java.lang.ArithmeticException
-polyglot java import java.lang.NumberFormatException
 polyglot java import java.lang.Integer as Java_Integer
+polyglot java import java.lang.NumberFormatException
 polyglot java import java.math.BigDecimal
 polyglot java import java.text.DecimalFormat
 polyglot java import java.text.DecimalFormatSymbols
@@ -552,7 +552,7 @@ type Decimal
 
              remainder = Decimal.new -5 . remainder 3
              # => -2
-    remainder : Decimal -> Decimal -> Decimal
+    remainder : Decimal -> Decimal
     remainder self (that : Decimal) =
         handle_java_exception <|
             Decimal.Value (self.big_decimal.remainder that.big_decimal)
@@ -584,7 +584,7 @@ type Decimal
 
              remainder = Decimal.new -5 % 3
              # => -2
-    % : Decimal -> Decimal -> Decimal
+    % : Decimal -> Decimal
     % self (that : Decimal) = self.remainder that
 
     ## GROUP Math
@@ -945,7 +945,7 @@ type Decimal
         formatter.format self.big_decimal
 
     ## ALIAS from text
-       GROUP Conversions
+       GROUP conversions
        ICON convert
 
        Parses a string into a `Decimal`, returning a `Number_Parse_Error` if the
@@ -1050,13 +1050,16 @@ handle_unsupported_argument_types ~action =
         Error.throw (Arithmetic_Error.Error "Exponent out of range 0..999999999 (inclusive)")
 
 ## PRIVATE
-
 Comparable.from (_ : Decimal) = Decimal_Comparator
 
+## PRIVATE
 Comparable.from (_ : Number) = Decimal_Comparator
 
+## PRIVATE
 Decimal.from (that : Text) = Decimal.from_string that
 
+## PRIVATE
 Decimal.from (that : Number) = Decimal.new that
 
+## PRIVATE
 Float.from (that : Decimal) = that.to_float

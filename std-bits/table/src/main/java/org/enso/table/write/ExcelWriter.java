@@ -33,13 +33,13 @@ import org.enso.table.util.NameDeduplicator;
 public class ExcelWriter {
   private static final double SECONDS_IN_A_DAY = 86400.0;
 
-  private static Function<Object, Boolean> ensoToTextCallback;
+  private static Function<Object, String> ensoToTextCallback;
 
-  public static Function<Object, Boolean> getEnsoToTextCallback() {
+  public static Function<Object, String> getEnsoToTextCallback() {
     return ensoToTextCallback;
   }
 
-  public static void setEnsoToTextCallbackIfUnset(Function<Object, Boolean> callback) {
+  public static void setEnsoToTextCallbackIfUnset(Function<Object, String> callback) {
     if (ensoToTextCallback == null) {
       ensoToTextCallback = callback;
     }
