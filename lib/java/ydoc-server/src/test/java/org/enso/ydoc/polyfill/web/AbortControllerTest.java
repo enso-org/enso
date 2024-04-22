@@ -19,7 +19,7 @@ public class AbortControllerTest {
   @Before
   public void setup() throws Exception {
     executor = Executors.newSingleThreadExecutor();
-    var eventTarget = new EventTarget(executor);
+    var eventTarget = new EventTarget();
     var abortController = new AbortController();
     var b = Context.newBuilder("js");
 

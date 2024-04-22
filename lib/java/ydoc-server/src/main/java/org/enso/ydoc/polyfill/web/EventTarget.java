@@ -5,7 +5,6 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.ExecutorService;
 import org.enso.ydoc.Polyfill;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Source;
@@ -14,7 +13,7 @@ import org.graalvm.polyglot.proxy.ProxyExecutable;
 
 /**
  * Implements the <a
- * href="https://developer.mozilla.org/en-US/docs/Web/API/EventTarget">EventTarget</a> Web
+ * href="https://nodejs.org/api/events.html#class-eventtarget">EventTarget</a> Node.js
  * interface.
  */
 final class EventTarget implements ProxyExecutable, Polyfill {
@@ -27,11 +26,7 @@ final class EventTarget implements ProxyExecutable, Polyfill {
 
   private static final String EVENT_TARGET_JS = "event-target.js";
 
-  private final ExecutorService executor;
-
-  EventTarget(ExecutorService executor) {
-    this.executor = executor;
-  }
+  EventTarget() {}
 
   @Override
   public void initialize(Context ctx) {
@@ -47,7 +42,7 @@ final class EventTarget implements ProxyExecutable, Polyfill {
     System.err.println(command + " " + Arrays.toString(arguments));
 
     return switch (command) {
-      case NEW_EVENT_TARGET -> new EventStore(executor, new HashMap<>());
+      case NEW_EVENT_TARGET -> new EventStore(new HashMap<>());
 
       case GET_EVENT_LISTENERS -> {
         var store = arguments[1].as(EventStore.class);
@@ -89,11 +84,9 @@ final class EventTarget implements ProxyExecutable, Polyfill {
 
   private static final class EventStore {
 
-    private final ExecutorService executor;
     private final Map<String, Set<Value>> listeners;
 
-    EventStore(ExecutorService executor, Map<String, Set<Value>> listeners) {
-      this.executor = executor;
+    EventStore(Map<String, Set<Value>> listeners) {
       this.listeners = listeners;
     }
 

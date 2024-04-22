@@ -20,7 +20,7 @@ public class EventEmitterTest {
   @Before
   public void setup() throws Exception {
     executor = Executors.newSingleThreadExecutor();
-    var eventTarget = new EventTarget(executor);
+    var eventTarget = new EventTarget();
     var eventEmitter = new EventEmitter();
 
     var hostAccess = HostAccess.newBuilder(HostAccess.EXPLICIT).allowArrayAccess(true).build();
