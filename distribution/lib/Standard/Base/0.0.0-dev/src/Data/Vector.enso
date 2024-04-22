@@ -1255,7 +1255,7 @@ type Builder
        Arguments:
        - java_builder: The accumulator for the new vector.
        - panic_on_dataflow_error: If True, attempting to add an uncaught
-         dataflow exception will result in an immediate panic. This value is
+         dataflow exception will result in an immediate panic. This argument is
          intended to be False for `Vector.new_builder`-style usage, and True for
          `Vector.build`-style usage.
 
@@ -1263,11 +1263,11 @@ type Builder
        number of elements and then convert them to a vector. This is
        particularly useful when the number of elements is not known upfront.
 
-       There are two common ways to create and use a `Builder`:
-       `Vector.new_builder` and `Vector.build`. `.build` is the preferred
-       approach.
+       There are two ways to create and use a `Builder`: `Vector.new_builder`
+       and `Vector.build`. `.build` is the preferred approach.
        - `Vector.new_builder`: creates a new `Builder`, which you have to
-         "close" at the end to get your newly-created `Vector`.
+         "close" with `.to_vector` at the end to get your newly-created
+         `Vector`.
        - `Vector.build`: takes a function which uses the `Builder`, and
          automatically "closes" and returns the newly-created `Vector`.
 
@@ -1275,9 +1275,10 @@ type Builder
 
          - If `panic_on_dataflow_error` is True, any attempt to add a value or
            values that are uncaught dataflow errors will result in an immediate
-           panic containing the dataflow error. This applies to `.append` and
-           `.append_vector_range`. In the case of `.append_vector_range `, only
-           the first dataflow error found is included in the panic.
+           `Builder_Dataflow_Error` panic containing the dataflow error. This
+           applies to `.append` and `.append_vector_range`. In the case of
+           `.append_vector_range `, only the first dataflow error found is
+           included in the panic.
 
        > Example
              Construct a vector using a builder that contains the items 1 to 5,
@@ -1346,8 +1347,11 @@ type Builder
        Appends a new element into this builder and returns it, propagating any
        errors that the provided element could have contained.
 
-       Returns the builder, unless `item` is a dataflow error, in which case the
-       error is propagated.
+       Returns the builder, unless `item` is a dataflow error. Dataflow errors
+       are handled as follows:
+       - If `panic_on_dataflow_error` is false, the error is propagated.
+       - If `panic_on_dataflow_error` is true, a `Builder_Dataflow_Error` panic
+         is thrown.
 
        Arguments:
        - item: The item to append to the vector builder.
@@ -1380,7 +1384,7 @@ type Builder
                 self
 
     ## ICON join
-       Appends a part of a given vector to this builder
+       Appends a part of a given vector to this builder.
 
        Arguments:
        - vector: The vector from which the elements are sourced.
