@@ -832,6 +832,10 @@ add_specs suite_builder =
             table_4 = xlsx_sheet.read . sheet "Sheet1"
             check_table table_4
 
+        group_builder.specify "should error if you read by an invalid sheet name" <|
+            xlsx_sheet.read (Excel_Format.Sheet "NoSuchSheet") . should_fail_with Invalid_Location
+            xlsx_sheet.read . read "NoSuchSheet" . should_fail_with Invalid_Location
+
         group_builder.specify "should let you read XLS by sheet index" <|
             table = xls_sheet.read (Excel_Format.Sheet 1)
             check_table table
