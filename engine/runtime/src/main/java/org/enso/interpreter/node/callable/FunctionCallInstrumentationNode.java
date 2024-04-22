@@ -20,6 +20,7 @@ import java.util.UUID;
 import org.enso.interpreter.node.ClosureRootNode;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.data.EnsoObject;
+import org.enso.interpreter.runtime.state.State;
 import org.enso.interpreter.runtime.tag.AvoidIdInstrumentationTag;
 import org.enso.interpreter.runtime.tag.IdentifiedTag;
 
@@ -57,7 +58,7 @@ public class FunctionCallInstrumentationNode extends Node implements Instrumenta
   @ExportLibrary(InteropLibrary.class)
   public static final class FunctionCall implements EnsoObject {
     private final Function function;
-    private final Object state;
+    private final State state;
     private final @CompilerDirectives.CompilationFinal(dimensions = 1) Object[] arguments;
 
     /**
@@ -67,7 +68,7 @@ public class FunctionCallInstrumentationNode extends Node implements Instrumenta
      * @param state the monadic state to pass to the function.
      * @param arguments the arguments passed to the function.
      */
-    public FunctionCall(Function function, Object state, Object[] arguments) {
+    public FunctionCall(Function function, State state, Object[] arguments) {
       this.function = function;
       this.state = state;
       this.arguments = arguments;
@@ -145,7 +146,7 @@ public class FunctionCallInstrumentationNode extends Node implements Instrumenta
    * @param arguments the arguments passed to the function.
    * @return an instance of {@link FunctionCall} containing the function, state and arguments.
    */
-  public Object execute(VirtualFrame frame, Function function, Object state, Object[] arguments) {
+  public Object execute(VirtualFrame frame, Function function, State state, Object[] arguments) {
     return new FunctionCall(function, state, arguments);
   }
 
