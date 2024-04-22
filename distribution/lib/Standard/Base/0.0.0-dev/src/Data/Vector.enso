@@ -191,10 +191,10 @@ type Vector a
        function is done, `.build` then closes the `Builder` and returns the
        resulting `Vector`.
 
-       The provided function should call `.append` to add new elements to the
-       `Builder`. The return value of the provided function is not used, unless
-       it is a dataflow error, in which case the `Vector` is not built, and the
-       dataflow error is propagted instead.
+       The provided function should call `.append` or `.append_vector_range` to
+       add new elements to the `Builder`. The return value of the provided
+       function is not used, unless it is a dataflow error, in which case the
+       `Vector` is not built, and the dataflow error is propagted instead.
 
        A vector allows to store an arbitrary number of elements in linear
        memory. It is the recommended data structure for most applications.
@@ -242,10 +242,10 @@ type Vector a
        `.build_multiple` then closes the `Builder`s and returns an array of the
        resulting `Vector`s.
 
-       The provided function should call `.append` to add new elements to the
-       `Builder`s. The return value of the provided function is not used, unless
-       it is a dataflow error, in which case the `Vector`s are not built, and
-       the dataflow error is propagted instead.
+       The provided function should call `.append` or `.append_vector_range` to
+       add new elements to the `Builder`s. The return value of the provided
+       function is not used, unless it is a dataflow error, in which case the
+       `Vector`s are not built, and the dataflow error is propagted instead.
 
        A vector allows to store an arbitrary number of elements in linear
        memory. It is the recommended data structure for most applications.
@@ -1281,6 +1281,16 @@ type Builder
            `.append_vector_range `, only the first dataflow error found is
            included in the panic.
 
+         If `panic_on_dataflow_error` is false, and an uncaught dataflow error
+         is appended with `append`, the dataflow error is propagated, and it is
+         not added to the builder.
+
+         If `panic_on_dataflow_error` is false, and one or more uncaught
+         dataflow errors are appended with `append_vector_range`, the errors are
+         *not* propagated.  All of the values, including dataflow errors, are
+         added to the builder.  To be fixed in
+         https://github.com/enso-org/enso/issues/9760.
+
        > Example
              Construct a vector using a builder that contains the items 1 to 5,
              using `.new_builder`.
@@ -1365,8 +1375,9 @@ type Builder
          the documentation for the `panic_on_dataflow_error` field for more
          info.
 
-         If `panic_on_dataflow_error` is false, and the value to be appended is
-         an uncaught dataflow error, it is propagated.
+         If `panic_on_dataflow_error` is false, and an uncaught dataflow error
+         is appended with `append`, the dataflow error is propagated, and it is
+         not added to the builder.
 
        > Example
          Append two items.
@@ -1394,17 +1405,18 @@ type Builder
          appended) of the range to be appended.
 
        ? Appending Dataflow Errors
-         
+
          If `panic_on_dataflow_error` is true, then if any of the values to be
          appended are an uncaught dataflow error, a `Builder_Dataflow_Error`
          panic is thrown, with the first error found.  No values are added to
          the builder. See the documentation for the `panic_on_dataflow_error`
          field for more info.
 
-         If `panic_on_dataflow_error` is false, then if any of the values to be
-         appended are an uncaught dataflow error, the error is *not* propagated.
-         All of the values, including dataflow errors, are added to the builder.
-         To be fixed in https://github.com/enso-org/enso/issues/9760.
+         If `panic_on_dataflow_error` is false, and one or more uncaught
+         dataflow errors are appended with `append_vector_range`, the errors are
+         *not* propagated.  All of the values, including dataflow errors, are
+         added to the builder.  To be fixed in
+         https://github.com/enso-org/enso/issues/9760.
 
        > Example
          Append a part of the vector.
@@ -1444,7 +1456,7 @@ type Builder
 
        ? Appending Dataflow Errors
          `unsafe_append` does not check if the appended value is a dataflow
-         error; that is done by `.append`.
+         error; that is done by `.append` and `append_vector_range`.
 
        Arguments:
        - item: The item to append to the vector builder.
