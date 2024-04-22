@@ -175,7 +175,7 @@ final class TreeToIr {
           }
           if (expr instanceof Private priv) {
             if (priv.getBody() != null) {
-              var error = translateSyntaxError(priv, new Syntax.UnsupportedSyntax("Unsupported private entity"));
+              var error = translateSyntaxError(priv, new Syntax.UnsupportedSyntax("The `private` keyword is currently not supported for entities other than constructors."));
               diag = join(error, diag);
             }
             if (isPrivate) {
