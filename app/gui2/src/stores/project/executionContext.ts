@@ -54,6 +54,7 @@ type ExecutionContextState =
       status: 'created'
       visualizations: Map<Uuid, NodeVisualizationConfiguration>
       stack: StackItem[]
+      environment?: ExecutionEnvironment
     } // | { status: 'broken'} TODO[ao] think about it
 
 type EntryPoint = Omit<ExplicitCall, 'type'>
@@ -89,6 +90,7 @@ export class ExecutionContext extends ObservableV2<ExecutionContextNotification>
   private clearScheduled = false
   private _desiredStack: StackItem[] = reactive([])
   private visualizationConfigs: Map<Uuid, NodeVisualizationConfiguration> = new Map()
+  private _executionEnvironment: ExecutionEnvironment = 'Design'
 
   constructor(
     private lsRpc: LanguageServer,
@@ -201,11 +203,13 @@ export class ExecutionContext extends ObservableV2<ExecutionContextNotification>
     return this._desiredStack[this._desiredStack.length - 1]!
   }
 
-  setExecutionEnvironment(mode: ExecutionEnvironment) {
-    this.queue.pushTask(async (state) => {
-      await this.lsRpc.setExecutionEnvironment(this.id, mode)
-      return state
-    })
+  get executionEnvironment() {
+    return this._executionEnvironment
+  }
+
+  set executionEnvironment(env: ExecutionEnvironment) {
+    this._executionEnvironment = env
+    this.sync()
   }
 
   dispose() {
@@ -262,6 +266,17 @@ export class ExecutionContext extends ObservableV2<ExecutionContextNotification>
           newState = { status: 'created', visualizations: new Map(), stack: [] }
           return Ok()
         }, 'Failed to create execution context')
+      }
+
+      const syncEnvironment = async () => {
+        const state = newState
+        if (state.status !== 'created')
+          return Err('Cannot sync execution environment when context is not created')
+        if (state.environment === this._executionEnvironment) return Ok()
+        const result = await this.lsRpc.setExecutionEnvironment(this.id, this._executionEnvironment)
+        if (!result.ok) return result
+        state.environment = this._executionEnvironment
+        return Ok()
       }
 
       const syncStack = async () => {
@@ -377,6 +392,8 @@ export class ExecutionContext extends ObservableV2<ExecutionContextNotification>
       if (!createResult.ok) return newState
       const syncStackResult = await syncStack()
       if (!syncStackResult.ok) return newState
+      const syncEnvResult = await syncEnvironment()
+      if (!syncEnvResult.ok) return newState
       this.emit('newVisualizationConfiguration', [new Set(this.visualizationConfigs.keys())])
       await syncVisualizations()
       this.emit('visualizationsConfigured', [
