@@ -1117,6 +1117,7 @@
 - [Check type of `self` when calling a method using the static syntax][8867]
 - [Autoscoped constructors][9190]
 - [Allow Oracle GraalVM JDK][9322]
+- [`Table.join` can access its `right` argument][9410]
 
 [3227]: https://github.com/enso-org/enso/pull/3227
 [3248]: https://github.com/enso-org/enso/pull/3248
@@ -1277,6 +1278,7 @@
 [8867]: https://github.com/enso-org/enso/pull/8867
 [9190]: https://github.com/enso-org/enso/pull/9190
 [9322]: https://github.com/enso-org/enso/pull/9322
+[9410]: https://github.com/enso-org/enso/pull/9410
 
 # Enso 2.0.0-alpha.18 (2021-10-12)
 
