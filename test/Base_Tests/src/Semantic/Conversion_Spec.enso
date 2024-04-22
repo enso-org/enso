@@ -507,6 +507,11 @@ add_specs suite_builder =
 
             foo_vec vec . should_equal [3, 4, 5]
 
+        group_builder.specify "Autoscope Nothing" <|
+            accept (n:Nothing) = n
+
+            accept ..Nothing . is_nothing . should_be_true
+
     suite_builder.group "Polyglot Argument" group_builder->
         f1 (x : DateTimeFormatter) = x.to_text
         f2 (x : Text | DateTimeFormatter) = case x of
