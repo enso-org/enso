@@ -115,7 +115,7 @@ public class FunctionCallInstrumentationNode extends Node implements Instrumenta
     /**
      * @return the state passed to the function in this call.
      */
-    public Object getState() {
+    public State getState() {
       return state;
     }
 
