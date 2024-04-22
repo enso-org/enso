@@ -1358,7 +1358,7 @@ type Builder
        - item: The item to append to the vector builder.
 
        ? Appending Dataflow Errors
- 
+
          If `panic_on_dataflow_error` is true, and the value to be appended is
          an uncaught dataflow error, a `Builder_Dataflow_Error` panic is thrown,
          with the first error found.  The error is not added to the builder. See

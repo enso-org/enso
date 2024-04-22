@@ -287,11 +287,12 @@ type Date_Range
     partition : (Filter_Condition | (Date -> Boolean)) -> Pair (Vector Date) (Vector Date)
     partition self condition =
         predicate = unify_condition_or_predicate condition
-        Vector.build_multiple 2 builders->
-        self.map elem->
-            case predicate elem of
-                True -> builders.at 0 . append elem
-                False -> builders.at 1 . append elem
+        vecs = Vector.build_multiple 2 builders->
+            self.map elem->
+                case predicate elem of
+                    True -> builders.at 0 . append elem
+                    False -> builders.at 1 . append elem
+        Pair.new (vecs.at 0) (vecs.at 1)
 
     ## PRIVATE
        ADVANCED

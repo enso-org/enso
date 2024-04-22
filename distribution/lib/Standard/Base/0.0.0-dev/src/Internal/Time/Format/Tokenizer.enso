@@ -49,10 +49,10 @@ type Tokenizer
     Instance (original_text : Text) (chars : Vector Text) (tokens_builder : Vector_Builder Format_Token) (optional_nesting : Ref Integer)
 
     ## PRIVATE
-    new : Text -> Tokenizer
-    new text =
+    new : Vector_Builder -> Text -> Tokenizer
+    new builder text =
         # Nothing is appended at the and as a guard to avoid checking for length.
-        Tokenizer.Instance text text.characters+[Nothing] Vector.new_builder (Ref.new 0)
+        Tokenizer.Instance text text.characters+[Nothing] builder (Ref.new 0)
 
     ## PRIVATE
     finalize_token self current_token = case current_token of
@@ -157,6 +157,6 @@ type Tokenizer
     ## PRIVATE
     tokenize : Text -> Vector Format_Token
     tokenize text = Panic.recover Date_Time_Format_Parse_Error <|
-        tokenizer = Tokenizer.new text
-        tokenizer.parse_normal 0 Nothing
-        tokenizer.tokens_builder.to_vector
+        Vector.build builder->
+            tokenizer = Tokenizer.new builder text
+            tokenizer.parse_normal 0 Nothing

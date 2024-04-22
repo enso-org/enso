@@ -306,18 +306,20 @@ join vector separator prefix suffix =
 
 partition vector condition =
     predicate = unify_condition_or_predicate condition
-    Vector.build_multiple 2 builders->
+    vecs = Vector.build_multiple 2 builders->
         vector.map elem->
             case predicate elem of
                 True -> builders.at 0 . append elem
                 False -> builders.at 1 . append elem
+    Pair.new (vecs.at 0) (vecs.at 1)
 
 partition_with_index vector predicate =
-    Vector.build_multiple 2 builders->
+    vecs = Vector.build_multiple 2 builders->
         vector.map_with_index ix-> elem->
             case predicate ix elem of
                 True -> builders.at 0 . append elem
                 False -> builders.at 1 . append elem
+    Pair.new (vecs.at 0) (vecs.at 1)
 
 filter vector filter =
     predicate = unify_condition_or_predicate filter
