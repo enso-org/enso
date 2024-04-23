@@ -124,3 +124,19 @@ parse_format (json : Any) -> Any ! Illegal_State = case json of
    Returns a human readable name of the data link type, based on its type.
 data_link_name data_link_instance =
     Meta.type_of data_link_instance . to_display_text . replace "_" " "
+
+## PRIVATE
+disallow_links_in_copy source target ~action =
+    is_source_data_link = Data_Link.is_data_link source
+    is_target_data_link = Data_Link.is_data_link target
+    if is_source_data_link && is_target_data_link then Error.throw (Illegal_Argument.Error "The `copy_to` operation cannot be used with data links. If you want to copy links, please use `Data_Link.copy`. If you want to copy the contents, first `.read` the data link and then write the data to the destination file using the appropriate method.") else
+        if is_source_data_link || is_target_data_link then Error.throw (Illegal_Argument.Error "The `copy_to` operation cannot be used with data links. Please first `.read` the data link and then write the data to the destination file using the appropriate method.") else
+            action
+
+## PRIVATE
+disallow_links_in_move source target ~action =
+    is_source_data_link = Data_Link.is_data_link source
+    is_target_data_link = Data_Link.is_data_link target
+    if is_source_data_link && is_target_data_link then Error.throw (Illegal_Argument.Error "The `move_to` operation cannot be used with data links. If you want to move the link, please use `Data_Link.move`.") else
+        if is_source_data_link || is_target_data_link then Error.throw (Illegal_Argument.Error "The `move_to` operation cannot be used with data links. Please first `.read` the data link and then write the data to the destination file using the appropriate method.") else
+            action
