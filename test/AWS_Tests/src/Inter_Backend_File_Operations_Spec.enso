@@ -202,7 +202,7 @@ add_specs suite_builder =
                 test_mixed source destination method =
                     r = method source destination
                     r.should_fail_with Illegal_Argument
-                    r.catch.to_display_text . should_contain "please `.read` the datalink first and then use an appropriate method to write it to the destination"
+                    r.catch.to_display_text . should_contain "Please `.read` the data link and then write the data to the destination using the appropriate method."
 
                 test_mixed source_link destination_file .copy_to
                 test_mixed source_link destination_file .move_to
@@ -211,11 +211,11 @@ add_specs suite_builder =
 
                 r_copy = source_link.copy_to destination_link
                 r_copy.should_fail_with Illegal_Argument
-                r_copy.catch.to_display_text . should_contain "please use `Data_Link.copy`"
+                r_copy.catch.to_display_text . should_contain "use `Data_Link.copy`"
 
                 r_move = source_link.move_to destination_link
                 r_move.should_fail_with Illegal_Argument
-                r_move.catch.to_display_text . should_contain "please use `Data_Link.move`"
+                r_move.catch.to_display_text . should_contain "use `Data_Link.move`"
 
             group_builder.specify "should be able to copy a datalink file elsewhere using Data_Link.copy" <| with_default_credentials <|
                 source_link = source_link_provider.get
