@@ -131,7 +131,7 @@ public abstract class Atom implements EnsoObject {
 
   @ExportMessage
   boolean hasMembers() {
-    return !constructor.getType().isProjectPrivate());
+    return !constructor.getType().isProjectPrivate();
   }
 
   @ExportMessage
