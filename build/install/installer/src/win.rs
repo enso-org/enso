@@ -1,7 +1,12 @@
 use ide_ci::prelude::*;
 
+use crate::Payload;
+
+use flate2::read::GzDecoder;
 
 
+
+/// Register file extensions and their associations in the Windows registry.
 pub fn register_file_associations(
     file_associations: &[(
         enso_install::win::prog_id::FileType,
@@ -48,37 +53,70 @@ pub fn register_uninstaller(
     Ok(())
 }
 
+/// Install Enso.
+///
+/// The archive payload is binary data of the tar.gz archive that contains the Enso app.
 pub fn install_with_updates(
     install_location: &Path,
-    archive_payload: &[u8],
+    payload: Payload,
     config: &Config,
     sender: &std::sync::mpsc::Sender<crate::InstallerUpdate>,
 ) -> Result {
     macro_rules! stage_at {
-        ($progress:literal, $($arg:tt)*) => {
+        ($progress:tt, $($arg:tt)*) => {
             let _ = sender.send(crate::InstallerUpdate::Stage(format!($($arg)*)));
             let _ = sender.send(crate::InstallerUpdate::Progress($progress));
             info!($($arg)*);
         };
     }
 
-    let lock = enso_install::lock()?;
-    let _guard = lock
-        .try_lock()
-        .context("Failed to acquire the installation lock. Is another installer running?")?;
+    let _guard = enso_install::locked_lock()?;
 
-    stage_at!(0.0, "Removing old installation files (if present).");
+    let enso_install_config::payload::Metadata { total_files, total_bytes } = *payload.metadata;
+
+    //
+    // let lock = enso_install::lock()?;
+    // let _guard = lock
+    //     .try_lock()
+    //     .context("Failed to acquire the installation lock. Is another installer running?")?;
+    stage_at!(0.00, "Checking disk space.");
+    // TODO? A potential improvement would be to take account for previous installation size when
+    //       performing the in-place update. Then the needed space would be the difference between
+    //       the new and the old installation size.
+    if let Some(msg) = check_disk_space(install_location, total_bytes)? {
+        let _ = sender.send(crate::InstallerUpdate::Finished(Err(anyhow::anyhow!(msg.clone()))));
+        bail!(msg);
+    }
+
+    stage_at!(0.03, "Removing old installation files (if present).");
     ide_ci::fs::reset_dir(install_location)?;
 
-    let to_our_path = |path_in_archive: &Path| -> Option<PathBuf> {
-        Some(install_location.join(path_in_archive))
-    };
     let executable_location = install_location.join(&config.executable_filename);
 
     // Extract the files.
-    let decoder = flate2::read::GzDecoder::new(archive_payload);
+    let decoder = GzDecoder::new(payload.data);
     let archive = tar::Archive::new(decoder);
-    stage_at!(0.05, "Extracting files.");
+    let extraction_progress_start = 0.06;
+    stage_at!(extraction_progress_start, "Extracting files.");
+    let extraction_progress_step = 0.70;
+
+    let mut files_extracted = 0;
+    let mut bytes_extracted = 0;
+
+    let mut bytes_being_extracted = 0;
+    let to_our_path = |entry: &tar::Entry<GzDecoder<&[u8]>>| -> Option<PathBuf> {
+        // If we receive a new file, update the counters.
+        files_extracted += 1;
+        bytes_extracted += bytes_being_extracted;
+        bytes_being_extracted = entry.header().size().unwrap_or(0);
+
+        let files_ratio = files_extracted as f64 / total_files as f64;
+        let bytes_ratio = bytes_extracted as f64 / total_bytes as f64;
+        let progress = extraction_progress_start
+            + extraction_progress_step * (files_ratio + bytes_ratio) / 2.0;
+        let _ = sender.send(crate::InstallerUpdate::Progress(progress));
+        Some(install_location.join(entry.path().ok()?))
+    };
     ide_ci::archive::tar::extract_files_sync(archive, to_our_path)?;
 
     stage_at!(0.75, "Registering file types.");
@@ -106,78 +144,27 @@ pub fn install_with_updates(
 
 
     stage_at!(1.0, "Installation complete.");
-    sender.send(crate::InstallerUpdate::Finished(Ok(())));
+    let _ = sender.send(crate::InstallerUpdate::Finished(Ok(())));
     Ok(())
 }
 
 pub fn spawn_installer_thread(
     install_location: impl AsRef<Path>,
-    archive_payload: &'static [u8],
+    payload: Payload,
     config: Config,
 ) -> (std::thread::JoinHandle<Result>, std::sync::mpsc::Receiver<crate::InstallerUpdate>) {
     let install_location = install_location.as_ref().to_path_buf();
     let (sender, receiver) = std::sync::mpsc::channel();
     let handle = std::thread::spawn(move || {
-        let result = install_with_updates(&install_location, archive_payload, &config, &sender);
+        let result = install_with_updates(&install_location, payload, &config, &sender);
         if let Err(err) = result {
             let msg = format!("Installation failed: {err:?}.");
-            sender.send(crate::InstallerUpdate::Finished(Result::Err(err)));
+            let _ = sender.send(crate::InstallerUpdate::Finished(Result::Err(err)));
             bail!(msg);
         }
         Ok(())
     });
     (handle, receiver)
-}
-
-/// Install Enso.
-///
-/// The archive payload is binary data of the tar.gz archive that contains the Enso app.
-pub fn install(
-    install_location: impl AsRef<Path>,
-    archive_payload: &[u8],
-    config: &Config,
-) -> Result {
-    let install_location = install_location.as_ref();
-    info!("Removing old installation files (if present).");
-    ide_ci::fs::reset_dir(install_location)?;
-
-    let to_our_path = |path_in_archive: &Path| -> Option<PathBuf> {
-        Some(install_location.join(path_in_archive))
-    };
-    let executable_location = install_location.join(&config.executable_filename);
-
-    // Extract the files.
-    let decoder = flate2::read::GzDecoder::new(archive_payload);
-    let archive = tar::Archive::new(decoder);
-    info!("Extracting files.");
-    ide_ci::archive::tar::extract_files_sync(archive, to_our_path)?;
-
-    info!("Registering file types.");
-    register_file_associations(&config.file_associations)?;
-
-    for protocol in &config.url_protocols {
-        info!("Registering URL protocol '{protocol}'.");
-        register_url_protocol(&executable_location, protocol)?;
-    }
-
-    info!("Registering the application path.");
-    let app_paths_info = enso_install::win::app_paths::AppPathInfo::new(&executable_location);
-    app_paths_info.write_to_registry()?;
-
-    info!("Registering the uninstaller.");
-    register_uninstaller(config, install_location, &install_location.join("enso-uninstaller.exe"))?;
-
-    info!("Creating Start Menu entry.");
-    enso_install::win::shortcut::Location::Menu
-        .create_shortcut(&config.shortcut_name, &executable_location)?;
-
-    info!("Creating Desktop shortcut.");
-    enso_install::win::shortcut::Location::Desktop
-        .create_shortcut(&config.shortcut_name, &executable_location)?;
-
-
-    info!("Installation complete.");
-    Ok(())
 }
 
 /// All the configuration and constants needed to build the installer.
@@ -259,4 +246,59 @@ pub fn fill_config() -> Result<Config> {
         url_protocols,
         file_associations,
     })
+}
+
+/// Check if there is enough disk space to install the application.
+///
+/// If the space is insufficient, returns an error message. If the space is sufficient, returns
+/// `None`. If the necessary information cannot be obtained, returns an error.
+///
+/// Note that usually it is better to ignore the error than to fail the installation process. Not
+/// knowing that the disk space is sufficient is not meaning that it is insufficient.
+/// For example, we might be targetting a network path for which we cannot obtain the disk space.
+pub fn check_disk_space(
+    installation_directory: &Path,
+    bytes_required: u64,
+) -> Result<Option<String>> {
+    use sysinfo::Disks;
+    let disks = Disks::new_with_refreshed_list();
+    // This should yield an absolute path, prefixed with the drive label.
+    let path = installation_directory.canonicalize()?;
+    // We need to remove the verbatim prefix to match the disk list.
+    let path = path.without_verbatim_prefix();
+    let disk = disks
+        .into_iter()
+        .find(|disk| path.starts_with(disk.mount_point()))
+        .context("No disk information found for the installation directory.")?;
+
+    let required_space = byte_unit::Byte::from_u64(bytes_required);
+    let free_space = byte_unit::Byte::from_u64(disk.available_space());
+
+    if free_space < required_space {
+        let msg = format!(
+            "Not enough disk space on {} to install. Required: {:.2}, available: {:.2}.",
+            disk.mount_point().display(),
+            required_space.get_appropriate_unit(byte_unit::UnitType::Binary),
+            free_space.get_appropriate_unit(byte_unit::UnitType::Binary)
+        );
+        return Ok(Some(msg));
+    }
+    Ok(None)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use sysinfo::Disks;
+
+    #[test]
+    #[ignore]
+    /// Test to manually check the generated disk space message.
+    fn check_disk_space_test() -> Result {
+        let disks = Disks::new_with_refreshed_list();
+        let my_path = ide_ci::env::current_dir()?;
+        let r = check_disk_space(&my_path, 10000_000_000_000)?;
+        dbg!(r);
+        Ok(())
+    }
 }

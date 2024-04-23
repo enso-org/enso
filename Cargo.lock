@@ -1539,6 +1539,7 @@ dependencies = [
  "ide-ci",
  "serde",
  "serde_json",
+ "tempfile",
 ]
 
 [[package]]
@@ -1546,6 +1547,7 @@ name = "enso-installer"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "byte-unit",
  "chrono",
  "embed-resource",
  "enso-build-base",
@@ -1555,6 +1557,8 @@ dependencies = [
  "ide-ci",
  "native-windows-derive",
  "native-windows-gui",
+ "serde_json",
+ "sysinfo",
  "tar",
  "tokio",
  "tracing",
@@ -2370,6 +2374,7 @@ dependencies = [
  "anyhow",
  "async-compression",
  "async-trait",
+ "base64 0.21.0",
  "bincode",
  "byte-unit",
  "bytes",

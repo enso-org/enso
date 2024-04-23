@@ -8,18 +8,18 @@ use std::fs::File;
 
 
 /// Synchronous version of [`extract_files`].
-#[context("Failed to extract files from the archive.")]
+// #[context("Failed to extract files from the archive.")]
 pub fn extract_files_sync<R: Read>(
     mut archive: tar::Archive<R>,
-    mut filter: impl FnMut(&Path) -> Option<PathBuf>,
+    mut filter: impl FnMut(&tar::Entry<R>) -> Option<PathBuf>,
 ) -> Result {
     let entries = archive.entries()?;
     for entry in entries {
         let mut entry = entry?;
-        let path_in_archive = entry.path()?;
-        if let Some(output_path) = filter(&path_in_archive) {
+        let path_in_archive = entry.path()?.to_path_buf();
+        if let Some(output_path) = filter(&entry) {
             let entry_type = entry.header().entry_type();
-            let make_message = |prefix, path: Cow<Path>| {
+            let make_message = |prefix, path: &Path| {
                 format!(
                     "{} {:?} entry: {} => {}",
                     prefix,
@@ -29,14 +29,44 @@ pub fn extract_files_sync<R: Read>(
                 )
             };
 
-            trace!("{}", make_message("Extracting", path_in_archive));
-            entry.unpack(&output_path).with_context(|| {
-                make_message("Failed to extract", entry.path().unwrap_or_default())
-            })?;
+            trace!("{}", make_message("Extracting", &path_in_archive));
+            entry
+                .unpack(&output_path)
+                .with_context(|| make_message("Failed to extract", &path_in_archive))?;
         }
     }
     Ok(())
 }
+
+// /// Synchronous version of [`extract_files`].
+// // #[context("Failed to extract files from the archive.")]
+// pub fn extract_files_sync_inner<R: Read>(
+//     mut archive: tar::Archive<R>,
+//     mut filter: impl FnMut(&tar::Entry<R>) -> Option<Cow<Path>>,
+// ) -> Result {
+//     let entries = archive.entries()?;
+//     for entry in entries {
+//         let mut entry = entry?;
+//         if let Some(output_path) = filter(&entry) {
+//             let entry_type = entry.header().entry_type();
+//             let make_message = |prefix, path: Cow<Path>| {
+//                 format!(
+//                     "{} {:?} entry: {} => {}",
+//                     prefix,
+//                     entry_type,
+//                     path.display(),
+//                     output_path.display()
+//                 )
+//             };
+//
+//             trace!("{}", make_message("Extracting", entry.path()?));
+//             entry.unpack(&output_path).with_context(|| {
+//                 make_message("Failed to extract", entry.path().unwrap_or_default())
+//             })?;
+//         }
+//     }
+//     Ok(())
+// }
 
 // ===============
 // === Archive ===
@@ -67,7 +97,10 @@ impl Archive {
     }
 
     /// Synchronous version of [`extract_files`].
-    pub fn extract_files_sync(self, filter: impl FnMut(&Path) -> Option<PathBuf>) -> Result {
+    pub fn extract_files_sync(
+        self,
+        filter: impl FnMut(&tar::Entry<GzDecoder<File>>) -> Option<PathBuf>,
+    ) -> Result {
         extract_files_sync(self.file, filter).with_context(|| {
             format!("Failed to extract files from archive {}", self.path.display())
         })
@@ -106,7 +139,8 @@ impl Archive {
 }
 
 impl ExtractFiles for Archive {
-    async fn extract_files(self, filter: impl FnMut(&Path) -> Option<PathBuf>) -> Result {
+    async fn extract_files(self, mut filter: impl FnMut(&Path) -> Option<PathBuf>) -> Result {
+        let filter = move |entry: &tar::Entry<GzDecoder<File>>| filter(entry.path().ok()?.as_ref());
         let job = move || self.extract_files_sync(filter);
         tokio::task::block_in_place(job)
     }

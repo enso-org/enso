@@ -78,12 +78,6 @@ pub fn known_folder(folder_id: windows::core::GUID) -> Result<PathBuf> {
     panic!("Not supported on non-Windows platforms.")
 }
 
-// /// Query WinAPI for the path of a known folder.
-// #[cfg(not(windows))]
-// pub fn known_folder(folder_id: windows::core::GUID) -> Result<PathBuf> {
-//     panic!("Not supported on non-Windows platforms.")
-// }
-
 /// Notify shell that file associations or registered protocol have changed.
 ///
 /// This is needed to make the changes visible without restarting the system. See:

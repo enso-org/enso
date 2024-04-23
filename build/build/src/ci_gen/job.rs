@@ -386,6 +386,10 @@ pub fn expose_os_specific_signing_secret(os: OS, step: Step) -> Step {
                 &crate::ide::web::env::APPLETEAMID,
             )
             .with_env(crate::ide::web::env::CSC_IDENTITY_AUTO_DISCOVERY, "true")
+            // `CSC_FOR_PULL_REQUEST` can potentially expose sensitive information to third-party,
+            // see the comment in the definition of `CSC_FOR_PULL_REQUEST` for more information.
+            //
+            // In our case, we are safe here, as any PRs from forks do not get the secrets exposed.
             .with_env(crate::ide::web::env::CSC_FOR_PULL_REQUEST, "true"),
         _ => step,
     }

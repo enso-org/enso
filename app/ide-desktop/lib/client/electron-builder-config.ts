@@ -286,7 +286,9 @@ export function createElectronBuilderConfig(passedArgs: Arguments) {
     }
 }
 
-/** Write the configuration to a JSON file for debugging purposes.
+/** Write the configuration to a JSON file.
+ *
+ * On Windows it is necessary to provide configuration to our installer. On other platforms, this may be useful for debugging.
  *
  * The configuration will be extended with additional information needed by the `enso-installer`.
  */

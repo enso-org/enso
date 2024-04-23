@@ -1,10 +1,5 @@
 // === Features ===
 #![feature(imported_main)]
-// === Standard Linter Configuration ===
-#![deny(non_ascii_idents)]
-#![warn(unsafe_code)]
-#![allow(clippy::bool_to_int_with_if)]
-#![allow(clippy::let_and_return)]
 
 use enso_install::prelude::*;
 
@@ -15,6 +10,8 @@ use enso_install::prelude::*;
 
 #[cfg(windows)]
 pub mod win;
+
+
 
 #[cfg(windows)]
 #[tokio::main]

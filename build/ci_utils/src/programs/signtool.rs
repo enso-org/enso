@@ -11,6 +11,7 @@ pub enum HashAlgorithm {
     SHA256,
 }
 
+/// Compatible with format expected by the `signtool` utility CLI.
 impl AsRef<str> for HashAlgorithm {
     fn as_ref(&self) -> &str {
         match self {
@@ -48,6 +49,8 @@ impl Program for SignTool {
 }
 
 /// Heuristically locate the Windows SDK.
+///
+/// The `signtool` utility is part of the Windows SDK, so we need to locate it to use it.
 pub fn locate_windows_sdk() -> Result<PathBuf> {
     let program_files = crate::env::known::win::PROGRAMFILES_X86.get()?;
     let sdk_dir = program_files.join_iter(["Windows Kits", "10"]);
@@ -64,8 +67,8 @@ pub fn locate_windows_sdk() -> Result<PathBuf> {
 /// Sign the given executable with the given certificate.
 ///
 /// The hash algorithm used for signing is SHA-256, as SHA-1 is deprecated and not trusted.
-/// The only reason not use SHA-26 would be to target OS versions older than Windows XP SP3, which
-/// is not supported anyway.
+/// The only reason not use SHA-256 would be to target OS versions older than Windows XP SP3, which
+/// are not supported anyway.
 pub async fn sign(
     exe: impl AsRef<Path>,
     cert: impl AsRef<Path>,

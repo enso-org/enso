@@ -12,6 +12,7 @@ use crate::env::accessor::PathLike;
 // ==============
 
 pub mod cargo;
+pub mod electron_builder;
 
 
 

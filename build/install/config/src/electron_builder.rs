@@ -8,6 +8,9 @@ use serde::Serialize;
 
 
 /// A subset of the configuration options available in the `electron-builder` configuration.
+///
+/// Note that some fields should not be included here (like code signing options) as this
+/// configuration might end up being compiled into and shipped with the application installer.
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Config {

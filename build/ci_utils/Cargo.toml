@@ -65,6 +65,7 @@ uuid = { version = "1.1.0", features = ["v4", "serde"] }
 walkdir = "2.3.2"
 which = "5.0.0"
 zip = { version = "0.6.2", default-features = false, features = ["deflate"] }
+base64 = "0.21.0"
 
 ## `winreg` is only used on Windows, as it doesn't compile on other platforms.
 #[target.'cfg(windows)'.dependencies]

@@ -1,10 +1,5 @@
 // === Features ===
 #![feature(lazy_cell)]
-// === Standard Linter Configuration ===
-#![deny(non_ascii_idents)]
-#![warn(unsafe_code)]
-#![allow(clippy::bool_to_int_with_if)]
-#![allow(clippy::let_and_return)]
 
 
 
@@ -20,14 +15,17 @@ pub mod prelude {
 }
 
 use enso_install_config::electron_builder;
+use enso_install_config::ENSO_BUILD_ELECTRON_BUILDER_CONFIG;
 use enso_install_config::ENSO_INSTALL_ARCHIVE_PATH;
+use enso_install_config::ENSO_INSTALL_ELECTRON_BUILDER_CONFIG;
 use enso_install_config::INSTALLER_PAYLOAD_ID;
 use prelude::*;
 
 #[cfg(windows)]
 pub mod win;
 
-/// Get compiled-in `electron builder`-based configuration.
+
+/// Access compiled-in `electron builder`-based configuration.
 ///
 /// # Panics
 ///
@@ -38,10 +36,10 @@ pub fn sanitized_electron_builder_config() -> &'static electron_builder::Config 
         let config_path = env!("ENSO_INSTALL_ELECTRON_BUILDER_CONFIG");
         let data = include_str!(env!("ENSO_INSTALL_ELECTRON_BUILDER_CONFIG"));
         if config_path.is_empty() {
-            panic!("The path to the electron-builder config is empty. The installer was built without `ENSO_INSTALL_ELECTRON_BUILDER_CONFIG` environment variable set.");
+            panic!("The path to the electron-builder config is empty. The installer was built without `{ENSO_INSTALL_ELECTRON_BUILDER_CONFIG}` environment variable set.");
         }
         if data.is_empty() {
-            panic!("The electron-builder config is empty. Probably the installer was built without `ENSO_BUILD_ELECTRON_BUILDER_CONFIG` environment variable set.");
+            panic!("The electron-builder config is empty. Probably the installer was built without `{ENSO_BUILD_ELECTRON_BUILDER_CONFIG}` environment variable set.");
         }
         serde_json::from_str(data).expect("Failed to parse the electron-builder config.")
     });
@@ -82,4 +80,9 @@ pub fn lock() -> Result<named_lock::NamedLock> {
     let lock = named_lock::NamedLock::create(name)
         .with_context(|| format!("Failed to create a named file lock for '{name}'."))?;
     Ok(lock)
+}
+
+/// Acquire the named file lock and return the guard.
+pub fn locked_lock() -> Result<named_lock::NamedLockGuard> {
+    lock()?.lock().with_context(|| "Failed to acquire the named file lock. Is there another instance of the installer or uninstaller running?")
 }

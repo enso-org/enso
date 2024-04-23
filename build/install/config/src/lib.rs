@@ -1,8 +1,5 @@
-// === Standard Linter Configuration ===
-#![deny(non_ascii_idents)]
-#![warn(unsafe_code)]
-#![allow(clippy::bool_to_int_with_if)]
-#![allow(clippy::let_and_return)]
+//! Small crate with configuration definitions that can be shared both by the build script and
+//! the installer/uninstaller.
 
 
 
@@ -10,18 +7,21 @@ pub mod prelude {
     pub use ide_ci::prelude::*;
 }
 
+pub mod bundler;
 pub mod electron_builder;
+pub mod payload;
+
+use prelude::*;
 
 use ide_ci::define_env_var;
 use ide_ci::env::accessor::PathBufVariable;
 use ide_ci::env::known::cargo::build::OUT_DIR;
-use prelude::*;
-
-/// The filename stem of the uninstaller executable — and the crate name.
-pub const UNINSTALLER_NAME: &str = "enso-uninstaller";
 
 /// The filename stem of the installer executable — and the crate name.
 pub const INSTALLER_NAME: &str = "enso-installer";
+
+/// The filename stem of the uninstaller executable — and the crate name.
+pub const UNINSTALLER_NAME: &str = "enso-uninstaller";
 
 define_env_var! {
     /// Path to the JSON file containing the Electron Builder configuration.
@@ -43,23 +43,21 @@ define_env_var! {
     /// enso-build to the enso-installer's `build.rs`, which embeds it into the installer's binary.
     ENSO_INSTALL_ARCHIVE_PATH, PathBuf;
 
-    /// Path the icon file (`.ico`) to be used as the installer's and uninstaller's icon.
-    ENSO_INSTALL_ICON, PathBuf;
-}
-
-/// Build-time script (build.rs) that retrieves path to the electron-builder configuration file.
-///
-/// This is meant for `build.rs` scripts invoked by the enso-build script.
-pub fn electron_builder_config_path_from_env() -> Result<PathBuf> {
-    let config_path = ENSO_BUILD_ELECTRON_BUILDER_CONFIG.get()?;
-    println!("cargo:rerun-if-changed={}", config_path.display());
-    Ok(config_path)
+    /// The path to the JSON file containing the metadata of the Enso IDE payload.
+    ///
+    /// The metadata is modeled by the [`crate::payload::Metadata`] struct.
+    ENSO_INSTALL_METADATA_PATH, PathBuf;
 }
 
 /// Build-time script (build.rs) that retrieves the electron-builder configuration from the
-/// file designated by the [`ENSO_INSTALL_ELECTRON_BUILDER_CONFIG`] environment variable.
+/// file designated by the [`ENSO_BUILD_ELECTRON_BUILDER_CONFIG`] environment variable.
+///
+/// This function is intended to be used by the installer/uninstaller's `build.rs`.
 pub fn electron_builder_config_from_env() -> Result<electron_builder::Config> {
-    ide_ci::fs::read_json(electron_builder_config_path_from_env()?)
+    let config_path = ENSO_BUILD_ELECTRON_BUILDER_CONFIG.get()?;
+    println!("cargo:rerun-if-env-changed={ENSO_BUILD_ELECTRON_BUILDER_CONFIG}");
+    println!("cargo:rerun-if-changed={}", config_path.display());
+    ide_ci::fs::read_json(config_path)
 }
 
 /// Location where the sanitized electron-builder configuration is placed.
@@ -135,6 +133,8 @@ impl Display for ResourceType {
 
 
 /// Embeds a resource from a file.
+///
+/// This function is intended to be used by the installer/uninstaller's `build.rs`.
 pub fn embed_resource_from_file(
     resource_id: &str,
     resource_type: ResourceType,
@@ -142,7 +142,6 @@ pub fn embed_resource_from_file(
 ) -> Result {
     let rc_file = OUT_DIR.get().unwrap().join(resource_id).with_extension("rc");
     println!("cargo:rerun-if-changed={}", rc_file.display());
-    // println!("cargo:rerun-if-changed={OUT_DIR}");
     // We need to either replace backslashes with forward slashes or escape them, as RC file is
     // kinda-compiled. The former is easier.
     let sanitized_path = resource_path.to_str().unwrap().replace('\\', "/");
@@ -158,7 +157,6 @@ pub fn embed_resource_from_file(
 ///
 /// It should be preferred over [`embed_resource_from_file`] as it will ensure that the build script
 /// is rerun when the environment variable changes.
-///
 ///
 /// This function is intended to be used by the installer/uninstaller's `build.rs`.
 pub fn embed_resource_from_env(

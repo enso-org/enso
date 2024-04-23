@@ -5,18 +5,14 @@ use crate::prelude::*;
 use crate::paths::generated;
 use crate::project::gui::BuildInfo;
 use crate::project::IsArtifact;
-
 use crate::version::ENSO_VERSION;
+
 use anyhow::Context;
-use enso_install_config::INSTALLER_NAME;
-use enso_install_config::UNINSTALLER_NAME;
+use ide_ci::env::known::electron_builder::WindowsSigningCredentials;
 use ide_ci::io::download_all;
 use ide_ci::program::command::FallibleManipulator;
-use ide_ci::programs::cargo;
 use ide_ci::programs::node::NpmCommand;
-use ide_ci::programs::Cargo;
 use ide_ci::programs::Npm;
-use std::io::Write;
 use std::process::Stdio;
 use tempfile::TempDir;
 
@@ -62,51 +58,8 @@ pub mod env {
     }
 
     // === Electron Builder ===
-    // Variables introduced by the Electron Builder itself.
-    // See: https://www.electron.build/code-signing
+    pub use ide_ci::env::known::electron_builder::*;
 
-    define_env_var! {
-        /// The HTTPS link (or base64-encoded data, or file:// link, or local path) to certificate
-        /// (*.p12 or *.pfx file). Shorthand ~/ is supported (home directory).
-        WIN_CSC_LINK, String;
-
-        /// The password to decrypt the certificate given in WIN_CSC_LINK.
-        WIN_CSC_KEY_PASSWORD, String;
-
-        /// The HTTPS link (or base64-encoded data, or file:// link, or local path) to certificate
-        /// (*.p12 or *.pfx file). Shorthand ~/ is supported (home directory).
-        CSC_LINK, String;
-
-        /// The password to decrypt the certificate given in CSC_LINK.
-        CSC_KEY_PASSWORD, String;
-
-        /// The username of apple developer account.
-        APPLEID, String;
-
-        /// The app-specific password (not Apple ID password). See:
-        /// https://support.apple.com/HT204397
-        APPLEIDPASS, String;
-
-        /// Apple Team ID.
-        APPLETEAMID, String;
-
-        /// `true` or `false`. Defaults to `true` — on a macOS development machine valid and
-        /// appropriate identity from your keychain will be automatically used.
-        CSC_IDENTITY_AUTO_DISCOVERY, bool;
-
-        /// Path to the python2 executable, used by electron-builder on macOS to package DMG.
-        PYTHON_PATH, PathBuf;
-
-        /// Note that enabling CSC_FOR_PULL_REQUEST can pose serious security risks. Refer to the
-        /// [CircleCI documentation](https://circleci.com/docs/1.0/fork-pr-builds/) for more
-        /// information. If the project settings contain SSH keys, sensitive environment variables,
-        /// or AWS credentials, and untrusted forks can submit pull requests to your repository, it
-        /// is not recommended to enable this option.
-        ///
-        /// In our case we are careful to not expose any sensitive information to third-party forks,
-        /// so we can safely enable this option.
-        CSC_FOR_PULL_REQUEST, bool;
-    }
 
     // Cloud environment configuration
     define_env_var! {
@@ -311,7 +264,6 @@ impl IdeDesktop {
         target: Option<String>,
     ) -> Result {
         let output_path = output_path.as_ref();
-        let build_windows_enso_install = TARGET_OS == OS::Windows;
         let electron_config = output_path.join("electron-builder.json");
         if TARGET_OS == OS::MacOS && env::CSC_KEY_PASSWORD.is_set() {
             // This means that we will be doing code signing on MacOS. This requires JDK environment
@@ -378,175 +330,30 @@ impl IdeDesktop {
             .run_ok()
             .await?;
 
-        if build_windows_enso_install {
-            Cargo
-                .cmd()?
-                .set_env(enso_install_config::ENSO_BUILD_ELECTRON_BUILDER_CONFIG, &electron_config)?
-                .current_dir(&self.repo_root)
-                .apply(&cargo::Command::Build)
-                .try_applying(&icons)?
-                .arg("--release")
-                .arg("--package")
-                .arg("enso-uninstaller")
-                .arg("-Z")
-                .arg("unstable-options")
-                .arg("--out-dir")
-                .arg(output_path)
-                .run_ok()
-                .await?;
-
-            let code_signing_certificate =
-                WindowsSigningCredentials::new_from_env().await.inspect_err(|e| {
+        // On Windows we build our own installer.
+        if TARGET_OS == OS::Windows {
+            let code_signing_certificate = WindowsSigningCredentials::new_from_env()
+                .await
+                .inspect_err(|e| {
                     warn!("Failed to create code signing certificate from the environment: {e:?}");
-                });
+                })
+                .ok();
 
-            let uninstaller_source = output_path.join(UNINSTALLER_NAME).with_executable_extension();
-            if let Ok(certificate) = code_signing_certificate.as_ref() {
-                certificate.sign(&uninstaller_source).await?;
-            }
-
-            let unpacked_dir = output_path.join("win-unpacked");
-            ide_ci::fs::tokio::copy_to(&uninstaller_source, &unpacked_dir).await?;
-
-            let archive_path = output_path.join("enso-win.tar.gz");
-            ide_ci::archive::compress_directory_contents(&archive_path, &unpacked_dir).await?;
-            Cargo
-                .cmd()?
-                .current_dir(&self.repo_root)
-                .apply(&cargo::Command::Build)
-                .try_applying(&icons)?
-                .set_env(enso_install_config::ENSO_INSTALL_ARCHIVE_PATH, &archive_path)?
-                .set_env(enso_install_config::ENSO_BUILD_ELECTRON_BUILDER_CONFIG, &electron_config)?
-                .arg("--release")
-                .arg("--package")
-                .arg("enso-installer")
-                .arg("-Z")
-                .arg("unstable-options")
-                .arg("--out-dir")
-                .arg(output_path)
-                .run_ok()
-                .await?;
-            let installer_path = output_path.join(INSTALLER_NAME).with_executable_extension();
             let installer_desired_filename = format!("enso-win-{}.exe", ENSO_VERSION.get()?);
             let installer_desired_path = output_path.join(&installer_desired_filename);
-            ide_ci::fs::tokio::remove_file_if_exists(&installer_desired_path).await?;
-            ide_ci::fs::tokio::rename(&installer_path, &installer_desired_path).await?;
-            if let Ok(certificate) = code_signing_certificate.as_ref() {
-                certificate.sign(&installer_desired_path).await?;
-            }
-            // let artifact_name = format!("enso-win-{}.exe", ENSO_VERSION.get()?);
-            // if ide_ci::actions::workflow::is_in_env() {
-            //     ide_ci::actions::artifacts::upload_single_file(&installer_desired_path,
-            // artifact_name)         .await?;
-            // }
+
+            let config = enso_install_config::bundler::Config {
+                electron_builder_config:  electron_config,
+                unpacked_electron_bundle: output_path.join("win-unpacked"),
+                repo_root:                self.repo_root.to_path_buf(),
+                output_file:              installer_desired_path,
+                intermediate_dir:         output_path.to_path_buf(),
+                certificate:              code_signing_certificate,
+            };
+            enso_install_config::bundler::bundle(config).await?;
         }
 
         Ok(())
-    }
-}
-
-/// CSC (Code Signing Certificate) link.
-#[derive(Clone, Debug)]
-pub enum CscLink {
-    /// Local path to the certificate file.
-    FilePath(PathBuf),
-    /// HTTPS link to the certificate file.
-    Url(Url),
-    /// The certificate file contents.
-    Data(Vec<u8>),
-}
-
-impl std::str::FromStr for CscLink {
-    type Err = anyhow::Error;
-
-    #[context("Failed to parse CSC link from '{csc_link}'.")]
-    fn from_str(csc_link: &str) -> Result<Self> {
-        let csc_link = csc_link.trim();
-        if let Some(file_path) = csc_link.strip_prefix("file://") {
-            Ok(Self::FilePath(file_path.into()))
-        } else if let Some(url) = csc_link.strip_prefix("https://") {
-            Ok(Self::Url(url.parse()?))
-        } else if csc_link.len() > 2048 {
-            let contents =
-                base64::decode(csc_link).context("Failed to decode base64-encoded CSC link.")?;
-            Ok(Self::Data(contents))
-        } else {
-            Ok(Self::FilePath(csc_link.into()))
-        }
-    }
-}
-
-impl CscLink {
-    /// Create a new certificate file from the environment variable.
-    pub fn new_from_env() -> Result<Self> {
-        let csc_link = env::WIN_CSC_LINK.get().or_else(|_| env::CSC_LINK.get())?;
-        Self::from_str(&csc_link)
-    }
-}
-
-/// CSC certificate file to be used for signing the Windows build.
-#[derive(Debug)]
-pub enum CodeSigningCertificate {
-    /// Local certificate file.
-    FilePath(PathBuf),
-    /// Temporarily created certificate file.
-    TempFile(tempfile::TempPath),
-}
-
-impl AsRef<Path> for CodeSigningCertificate {
-    fn as_ref(&self) -> &Path {
-        match self {
-            Self::FilePath(path) => path.as_ref(),
-            Self::TempFile(path) => path.as_ref(),
-        }
-    }
-}
-
-impl CodeSigningCertificate {
-    /// Create a new certificate file from the given link.
-    pub async fn new(link: CscLink) -> Result<Self> {
-        let ret = match link {
-            CscLink::FilePath(path) => Self::FilePath(path),
-            CscLink::Url(url) => {
-                let temp_file = tempfile::NamedTempFile::new()?.into_temp_path();
-                ide_ci::io::web::download_file(url, &temp_file).await?;
-                Self::TempFile(temp_file)
-            }
-            CscLink::Data(contents) => {
-                let temp_file = tempfile::NamedTempFile::new()?;
-                temp_file.as_file().write_all(&contents)?;
-                // temp_file.write_all(&contents)?;
-                Self::TempFile(temp_file.into_temp_path())
-            }
-        };
-        Ok(ret)
-    }
-
-    /// Create a new certificate file from the environment variable.
-    pub async fn new_from_env() -> Result<Self> {
-        let csc_link = CscLink::new_from_env()?;
-        Self::new(csc_link).await
-    }
-}
-
-/// Data needed to sign the binaries on Windows.
-#[derive(Debug)]
-pub struct WindowsSigningCredentials {
-    pub certificate: CodeSigningCertificate,
-    pub password:    String,
-}
-
-impl WindowsSigningCredentials {
-    /// Create a new certificate file from the environment variable.
-    pub async fn new_from_env() -> Result<Self> {
-        let certificate = CodeSigningCertificate::new_from_env().await?;
-        let password = env::WIN_CSC_KEY_PASSWORD.get().or_else(|_| env::CSC_KEY_PASSWORD.get())?;
-        Ok(Self { certificate, password })
-    }
-
-    /// Sign the given binary.
-    pub async fn sign(&self, exe: impl AsRef<Path>) -> Result {
-        ide_ci::programs::signtool::sign(exe, self.certificate.as_ref(), &self.password).await
     }
 }
 
