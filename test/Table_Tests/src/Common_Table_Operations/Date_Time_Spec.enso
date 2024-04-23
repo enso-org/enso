@@ -187,7 +187,10 @@ add_specs suite_builder setup =
                 False ->
                     a.date_part Time_Period.Nanosecond . should_fail_with Unsupported_Database_Operation
 
-            [a.date_part Date_Period.Quarter, a.date_part Date_Period.Week, a.date_part Time_Period.Second, a.date_part Time_Period.Millisecond, a.date_part Time_Period.Microsecond, a.date_part Time_Period.Nanosecond].each c->
+            testCases = [a.date_part Date_Period.Quarter, a.date_part Date_Period.Week, a.date_part Time_Period.Second, a.date_part Time_Period.Millisecond, a.date_part Time_Period.Microsecond]
+            if setup.test_selection.supports_nanoseconds_in_time then
+                testCases = testCases + (a.date_part Time_Period.Nanosecond)
+            testCases.each c->
                 Test.with_clue "The column "+c.name+" value type ("+c.value_type.to_display_text+") should be an integer: " <|
                     c.value_type.is_integer.should_be_true
 
