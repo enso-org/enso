@@ -408,9 +408,9 @@ export class ArgumentApplication {
       code: string | undefined
       uuid: ExternalId | undefined
     }> = []
-    function process(f: Ast.Ast, n?: String) {
+    function process(f: Ast.Ast, name?: String) {
       arr.push({
-        name: n ? n.toString() : null,
+        name: name ? name.toString() : null,
         code: f.code(),
         uuid: f.externalId,
       })
