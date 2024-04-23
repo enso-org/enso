@@ -45,34 +45,36 @@ export function Result(props: ResultProps) {
   return (
     <section
       className={tw.twMerge(
-        'flex flex-col items-center justify-center gap-3 px-6 py-4 text-center',
+        'flex flex-col items-center justify-center px-6 py-4 text-center',
         className
       )}
     >
       {statusIcon != null ? (
-        <SvgMask
-          src={statusIcon.icon}
-          className={tw.twJoin('h-16 w-16 flex-none', statusIcon.colorClassName)}
-        />
+        <div className="mb-4 flex rounded-full bg-green bg-opacity-25 p-1 text-green">
+          <SvgMask
+            src={statusIcon.icon}
+            className={tw.twJoin('h-16 w-16 flex-none', statusIcon.colorClassName)}
+          />
+        </div>
       ) : (
         status
       )}
       {typeof title === 'string' ? (
-        <aria.Heading level={2} className="text-2xl">
+        <aria.Heading level={2} className="text-3xl">
           {title}
         </aria.Heading>
       ) : (
         title
       )}
       {typeof subtitle === 'string' ? (
-        <aria.Text elementType="p" className="text-lg">
+        <aria.Text elementType="p" className="mt-2 text-xl">
           {subtitle}
         </aria.Text>
       ) : (
         subtitle
       )}
 
-      <div className="mt-4">{children}</div>
+      <div className="mt-6">{children}</div>
     </section>
   )
 }

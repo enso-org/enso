@@ -87,6 +87,8 @@ interface PlaceholderOverrides {
   readonly createCheckoutSessionBackendError: [string]
   readonly getCheckoutSessionBackendError: [string]
   readonly getDefaultVersionBackendError: [string]
+
+  readonly subscribeSuccessSubtitle: [string]
 }
 
 /** An tuple of `string` for placeholders for each {@link TextId}. */

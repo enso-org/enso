@@ -305,6 +305,7 @@
   "localBackendSearchPlaceholder": "Type to search for projects.",
   "canOnlyEmptyTrashWhenInTrash": "Can only empty trash when in Trash",
   "upgradeTo": "Upgrade to $0",
+  "choosePlan": "Choose a plan",
   "localAssetsDoNotHaveVersions": "Local assets do not have versions",
   "noVersionsFound": "No versions found",
   "latestIndicator": "(Latest)",
@@ -388,8 +389,23 @@
   "settingsPageTooltip": "Go to settings",
 
   "soloPlanName": "Solo",
+  "soloPlanSubtitle": "For individuals",
+  "soloPlanPricing": "$60 per user / month",
+  "soloPlanFeatures": "10GB Cloud Storage; 1 User; Data Links; Version Control for files and workflows; Enso Copilot",
   "teamPlanName": "Team",
-  "enterprisePlanName": "Enterprise",
+  "teamPlanSubtitle": "For small teams",
+  "teamPlanPricing": "$150 per user / month",
+  "teamPlanFeatures": "100GB Cloud Storage; Up to 10 users sharing; Data Links; Version Control for files and workflows; Enso Copilot; Multiple Lifecycle Environments",
+  "enterprisePlanName": "Organization",
+  "enterprisePlanSubtitle": "For large organizations",
+  "enterprisePlanPricing": "Contact Sales",
+  "enterprisePlanFeatures": "1000+GB Cloud Storage; Unlimited users sharing; Data Links; Version Control for files and workflows; Enso Copilot; Multiple Lifecycle Environments; Data access and modification logs; Priority Support; Fine-grained files and workflows permissions; Federated Log On",
+  "subscribe": "Subscribe",
+  "learnMore": "Learn More",
+  "subscribeTitle": "Enso Pricing",
+  "subscribeSuccessSubmit": "Go to Dashboard",
+  "subscribeSuccessTitle": "Success",
+  "subscribeSuccessSubtitle": "We received your payment and now you on $0 plan",
 
   "metaModifier": "Meta",
   "shiftModifier": "Shift",
@@ -518,5 +534,11 @@
 
   "tryAgain": "Try again",
   "arbitraryErrorTitle": "An error occurred",
-  "arbitraryErrorSubtitle": "Please try again or contact the administrators."
+  "arbitraryErrorSubtitle": "Please try again or contact the administrators.",
+
+  "subscribeSubmit": "Subscribe",
+  "BankCardLabel": "Bank Card",
+  "contactSales": "Contact Sales",
+  "contactSalesDescription": "Contact our sales team to learn more about our Enterprise plan.",
+  "ContactSalesButtonLabel": "Contact Us"
 }

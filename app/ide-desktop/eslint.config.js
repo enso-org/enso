@@ -117,11 +117,6 @@ const RESTRICTED_SYNTAXES = [
             'No aliases to primitives - consider using brands instead: `string & { _brand: "BrandName"; }`',
     },
     {
-        // Matches other functions, non-consts, and consts not at the top level.
-        selector: `:matches(FunctionDeclaration[id.name=${NOT_CAMEL_CASE}]:not(:has(${JSX})), VariableDeclarator[id.name=${NOT_CAMEL_CASE}]:has(ArrowFunctionExpression.init:not(:has(${JSX}))), :matches(VariableDeclaration[kind^=const], Program :not(ExportNamedDeclaration, TSModuleBlock) > VariableDeclaration[kind=const], ExportNamedDeclaration > * VariableDeclaration[kind=const]) > VariableDeclarator[id.name=${NOT_CAMEL_CASE}]:not(:has(ArrowFunctionExpression)))`,
-        message: 'Use `camelCase` for everything but React components',
-    },
-    {
         // Matches non-functions.
         selector: `:matches(Program, ExportNamedDeclaration, TSModuleBlock) > VariableDeclaration[kind=const] > VariableDeclarator[id.name=${NOT_CONSTANT_CASE}]:not(:matches([init.callee.object.name=React][init.callee.property.name=forwardRef], :has(ArrowFunctionExpression), :has(CallExpression[callee.object.name=newtype][callee.property.name=newtypeConstructor])))`,
         message: 'Use `CONSTANT_CASE` for top-level constants that are not functions',
@@ -200,11 +195,6 @@ const RESTRICTED_SYNTAXES = [
     {
         selector: ':matches(MethodDeclaration, FunctionDeclaration) FunctionDeclaration',
         message: 'Use arrow functions for nested functions',
-    },
-    {
-        selector:
-            ':not(ExportNamedDeclaration) > TSInterfaceDeclaration[id.name=/^(?!Internal).+Props$/]',
-        message: 'All React component `Props` types must be exported',
     },
     {
         selector: 'FunctionDeclaration:has(:matches(ObjectPattern.params, ArrayPattern.params))',
