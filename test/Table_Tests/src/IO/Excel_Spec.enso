@@ -75,23 +75,21 @@ spec_fmt suite_builder header file read_method sheet_count=5 =
 
         group_builder.specify "should let you read all sheets into a single table" <|
             wb = read_method file
-            table = wb.read_many
-            table.row_count . should_equal 25
-            table.column_names . should_equal ["Sheet Name", "Name", "Quantity", "Price", "A", "B", "C", "D", "E", "Student Name", "Enrolment Date", "Item", "Price 1"]
-            warnings = Problems.get_attached_warnings table
-            warnings.should_contain_the_same_elements_as [Duplicate_Output_Column_Names.Error ["Price"], Empty_Sheet.Error]
-
-            wb.read_many on_problems=..Report_Error . should_fail_with Empty_Sheet.Error
+            action = wb.read_many on_problems=_
+            tester table =
+                table.row_count . should_equal 25
+                table.column_names . should_equal ["Sheet Name", "Name", "Quantity", "Price", "A", "B", "C", "D", "E", "Student Name", "Enrolment Date", "Item", "Price 1"]
+            problems = [Empty_Sheet.Error, Duplicate_Output_Column_Names.Error ["Price"]]
+            Problems.test_problem_handling action problems tester
 
         group_builder.specify "should let you read all sheets into a table of tables" <|
             wb = read_method file
-            table = wb.read_many return=..Table_Of_Tables
-            table.row_count . should_equal 5
-            table.column_names . should_equal ["Sheet Name", "Table"]
-            warnings = Problems.get_attached_warnings table
-            warnings.should_contain_the_same_elements_as [Duplicate_Output_Column_Names.Error ["Price"], Empty_Sheet.Error]
-
-            wb.read_many return=..Table_Of_Tables on_problems=..Report_Error . should_fail_with Empty_Sheet.Error
+            action = wb.read_many return=..Table_Of_Tables on_problems=_
+            tester table =
+                table.row_count . should_equal 5
+                table.column_names . should_equal ["Sheet Name", "Table"]
+            problems = [Empty_Sheet.Error, Duplicate_Output_Column_Names.Error ["Price"]]
+            Problems.test_problem_handling action problems tester
 
         group_builder.specify "should let you read some sheets from xlsx" <|
             wb = read_method file

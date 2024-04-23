@@ -205,10 +205,10 @@ type Excel_Workbook
        - limit: the maximum number of rows to read.
          If set to `Nothing`, all rows will be returned.
     @query (self-> Single_Choice display=Display.Always values=(self.tables.at "Name" . to_vector . map t-> Option t t.pretty))
-    read : Text | Excel_Range -> Headers -> Integer | Nothing -> Table
-    read self (query : Text | Excel_Range) (headers : Headers = Headers.Detect_Headers) (limit : Integer | Nothing = Nothing) =
+    read : Text | Excel_Range -> Headers -> Integer | Nothing -> Problem_Behavior -> Table
+    read self (query : Text | Excel_Range) (headers : Headers = Headers.Detect_Headers) (limit : Integer | Nothing = Nothing) (on_problems:Problem_Behavior=..Report_Warning) =
         java_headers = Excel_Reader.make_java_headers headers
-        java_table = Java_Problems.with_problem_aggregator Problem_Behavior.Report_Warning java_problem_aggregator->
+        java_table = Java_Problems.with_problem_aggregator on_problems java_problem_aggregator->
             self.with_java_workbook java_workbook-> case query of
                 _ : Excel_Range -> ExcelReader.readRange java_workbook query.java_range java_headers 0 limit java_problem_aggregator
                 _ : Text -> ExcelReader.readRangeByName java_workbook query java_headers 0 limit java_problem_aggregator
@@ -322,7 +322,7 @@ type Excel_Workbook
     read_many : Vector Text -> Headers -> Return_As -> Problem_Behavior -> Table
     read_many self sheet_names:Vector=self.sheet_names (headers:Headers=..Detect_Headers) (return:Return_As=..Merged_Table) (on_problems:Problem_Behavior=..Report_Warning) =
         if sheet_names.is_empty then Error.throw (Illegal_Argument.Error "No sheets selected.") else
-            tables = sheet_names.map on_problems=on_problems address-> self.read address headers
+            tables = sheet_names.map on_problems=on_problems address-> self.read address headers on_problems=on_problems
             case return of
                 Return_As.Table_Of_Tables -> Table.new [["Sheet Name", sheet_names], ["Table", tables]]
                 Return_As.Merged_Table match ->
