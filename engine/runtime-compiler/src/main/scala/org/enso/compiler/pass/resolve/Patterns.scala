@@ -120,24 +120,9 @@ object Patterns extends IRPass {
                   )
                   r.setLocation(consPat.location)
                 case Right(value: BindingsMap.ResolvedConstructor) =>
-                  val curProject  = bindings.currentModule.getName.path.take(2)
-                  val consProject = value.qualifiedName.path.take(2)
-                  if (
-                    value.cons.isProjectPrivate && curProject != consProject
-                  ) {
-                    val err = errors.Resolution(
-                      consPat.constructor,
-                      errors.Resolution.PrivateConstructor(
-                        callerProject = curProject.mkString("."),
-                        calleeProject = consProject.mkString(".")
-                      )
-                    )
-                    err.setLocation(consPat.location)
-                  } else {
-                    consName.updateMetadata(
-                      new MetadataPair(this, BindingsMap.Resolution(value))
-                    )
-                  }
+                  consName.updateMetadata(
+                    new MetadataPair(this, BindingsMap.Resolution(value))
+                  )
                 case Right(value: BindingsMap.ResolvedModule) =>
                   consName.updateMetadata(
                     new MetadataPair(this, BindingsMap.Resolution(value))
