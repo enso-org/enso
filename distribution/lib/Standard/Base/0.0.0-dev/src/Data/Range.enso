@@ -249,8 +249,7 @@ type Range
             end_condition = if self.step > 0 then (>=) else (<=)
             go current =
                 if end_condition current self.end then Nothing else
-                    result = function current
-                    if result.is_error then Error.throw result else
+                    function current . if_not_error <|
                         @Tail_Call go current+self.step
             go self.start
 

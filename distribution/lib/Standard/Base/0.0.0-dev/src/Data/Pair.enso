@@ -265,10 +265,8 @@ type Pair
              Pair.new 1 2 . each IO.println
     each : (Any -> Any) -> Nothing
     each self f =
-        result = f self.first
-        if result.is_error then Error.throw result else
-          result = f self.second
-          if result.is_error then Error.throw result else
+        f self.first . if_not_error <|
+          f self.second . if_not_error <|
             Nothing
 
     ## PRIVATE

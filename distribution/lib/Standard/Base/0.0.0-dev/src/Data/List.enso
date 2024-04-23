@@ -366,11 +366,9 @@ type List
         go list = case list of
             Nil -> Nothing
             Cons h t ->
-                result = f h
-                if result.is_error then Error.throw result else
+                f h . if_not_error <|
                     @Tail_Call go t
         go self
-        Nothing
 
     ## GROUP Selections
        ICON order
