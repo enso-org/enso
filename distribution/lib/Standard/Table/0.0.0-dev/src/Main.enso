@@ -11,7 +11,6 @@ export project.Delimited.Quote_Style.Quote_Style
 export project.Excel.Excel_Format.Excel_Format
 export project.Excel.Excel_Range.Excel_Range
 export project.Excel.Excel_Workbook.Excel_Workbook
-export project.Excel.Excel_Workbook.Return_As
 export project.Headers.Headers
 export project.Join_Condition.Join_Condition
 export project.Join_Kind.Join_Kind

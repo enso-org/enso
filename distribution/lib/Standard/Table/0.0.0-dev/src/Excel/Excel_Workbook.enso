@@ -337,7 +337,10 @@ build_sheet_selector workbook:Excel_Workbook display:Display=Display.Always =
     names = workbook.sheet_names.map n-> Option n n.pretty
     Multiple_Choice display=display values=names
 
+## How to merge sheets into a single table.
 type Return_As
+    ## Each sheet is returned as a row.
     Table_Of_Tables
 
+    ## All sheets are merged into a single table. A union operation is performed.
     Merged_Table match:Match_Columns=Match_Columns.By_Name
