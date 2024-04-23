@@ -238,7 +238,7 @@ type Range
        ADVANCED
        Applies a function for each element in the range.
 
-       This method does not return the results, so is only useful for performing
+       This method does not return the results, so it is only useful for performing
        computations with side-effects.
 
        If the function returns a dataflow error, the error is converted to a

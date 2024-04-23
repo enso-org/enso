@@ -77,7 +77,7 @@ Text.reverse self =
    Arguments:
    - function: The operation to apply to each character in the text.
 
-   This method does not return the results, so is only useful for performing
+   This method does not return the results, so it is only useful for performing
    computations with side-effects.
 
    If the function returns a dataflow error, the error is converted to a
