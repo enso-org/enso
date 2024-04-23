@@ -309,23 +309,24 @@ type Excel_Workbook
        Reads one or more sheets into a Table.
 
        Arguments:
-       - sheet_names: the names of the sheets to read. Defaults to all sheets.
-         An invalid `sheet_name` will be reported as a problem.
+       - sheet_names: the names of sheets, ranges or addresses to read.
+         Defaults to all sheets. An invalid `sheet_name` will be reported as a
+         problem.
        - headers: whether to use the first row as headers (default is
          `Detect_Headers`) for each sheet.
        - return: how to return the tables. Defaults to `Merged_Table` meaning
          the tables are merged into a single table.
        - on_problems: how to handle problems during reading. Defaults to
          `Report_Warning`.
-    @sheet_names (s-> build_sheet_selector s)
+    @sheet_names build_sheet_selector
     read_many : Vector Text -> Headers -> Return_As -> Problem_Behavior -> Table
     read_many self sheet_names:Vector=self.sheet_names (headers:Headers=..Detect_Headers) (return:Return_As=..Merged_Table) (on_problems:Problem_Behavior=..Report_Warning) =
         if sheet_names.is_empty then Error.throw (Illegal_Argument.Error "No sheets selected.") else
             tables = sheet_names.map on_problems=on_problems address-> self.read address headers
             case return of
-                Return_As.Table_Of_Tables -> Table.new [["SheetName", sheet_names], ["Table", tables]]
+                Return_As.Table_Of_Tables -> Table.new [["Sheet Name", sheet_names], ["Table", tables]]
                 Return_As.Merged_Table match ->
-                    with_names = tables.zip sheet_names tbl->name-> if tbl == Nothing then Nothing else tbl.set name "SheetName" . reorder_columns ["SheetName"]
+                    with_names = tables.zip sheet_names tbl->name-> if tbl == Nothing then Nothing else tbl.set name "Sheet Name" . reorder_columns ["Sheet Name"]
                     Table.from_union (with_names.filter Filter_Condition.Not_Nothing) match keep_unmatched_columns=True
 
 ## PRIVATE

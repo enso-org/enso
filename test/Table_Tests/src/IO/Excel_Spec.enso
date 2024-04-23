@@ -79,7 +79,7 @@ spec_fmt suite_builder header file read_method sheet_count=5 =
             ## Read all the sheets merged into one table
             single_table = wb.read_many
             single_table.row_count . should_equal 25
-            single_table.column_names . should_equal ["SheetName", "Name", "Quantity", "Price", "A", "B", "C", "D", "E", "Student Name", "Enrolment Date", "Item", "Price 1"]
+            single_table.column_names . should_equal ["Sheet Name", "Name", "Quantity", "Price", "A", "B", "C", "D", "E", "Student Name", "Enrolment Date", "Item", "Price 1"]
             warnings = Warning.get_all single_table . map _.value
             warnings.length . should_equal 2
             warnings.should_contain Empty_Sheet.Error
@@ -87,7 +87,7 @@ spec_fmt suite_builder header file read_method sheet_count=5 =
             ## Read all the sheets as tables.
             table_of_tables = wb.read_many return=..Table_Of_Tables
             table_of_tables.row_count . should_equal 5
-            table_of_tables.column_names . should_equal ["SheetName", "Table"]
+            table_of_tables.column_names . should_equal ["Sheet Name", "Table"]
             table_of_tables.at "SheetName" . to_vector . should_equal ["Simple", "Strange Dimensions", "Dates", "Empty", "Duplicate Columns"]
             Warning.get_all table_of_tables . map _.value . length . should_equal 2
 
