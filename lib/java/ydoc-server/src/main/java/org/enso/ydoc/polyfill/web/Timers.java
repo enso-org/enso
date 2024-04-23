@@ -1,19 +1,23 @@
 package org.enso.ydoc.polyfill.web;
 
-import java.util.Arrays;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import org.enso.ydoc.Polyfill;
+import org.enso.ydoc.polyfill.Arguments;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Source;
 import org.graalvm.polyglot.Value;
 import org.graalvm.polyglot.proxy.ProxyExecutable;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /** Implements the <a href="https://nodejs.org/api/timers.html">Timers</a> Node.js API. */
 final class Timers implements ProxyExecutable, Polyfill {
+
+  private static final Logger log = LoggerFactory.getLogger(Timers.class);
 
   private static final String SET_INTERVAL = "set-interval";
   private static final String CLEAR_INTERVAL = "clear-interval";
@@ -66,7 +70,8 @@ final class Timers implements ProxyExecutable, Polyfill {
   @Override
   public Object execute(Value... arguments) {
     String command = arguments[0].asString();
-    System.err.println(command + " " + Arrays.toString(arguments));
+
+    log.debug(Arguments.toString(arguments));
 
     return switch (command) {
       case SET_INTERVAL -> {

@@ -6,16 +6,21 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import org.enso.ydoc.Polyfill;
+import org.enso.ydoc.polyfill.Arguments;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Source;
 import org.graalvm.polyglot.Value;
 import org.graalvm.polyglot.proxy.ProxyExecutable;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Implements the <a href="https://nodejs.org/api/events.html#class-eventemitter">EventEmitter</a>
  * Node.js interface.
  */
 final class EventEmitter implements ProxyExecutable, Polyfill {
+
+  private static final Logger log = LoggerFactory.getLogger(EventEmitter.class);
 
   private static final String NEW_EVENT_STORE = "new-event-store";
   private static final String GET_LISTENERS = "get-listeners";
@@ -38,7 +43,8 @@ final class EventEmitter implements ProxyExecutable, Polyfill {
   @Override
   public Object execute(Value... arguments) {
     var command = arguments[0].asString();
-    System.err.println(command + " " + Arrays.toString(arguments));
+
+    log.debug(Arguments.toString(arguments));
 
     return switch (command) {
       case NEW_EVENT_STORE -> new Store(new HashMap<>());
@@ -124,16 +130,12 @@ final class EventEmitter implements ProxyExecutable, Polyfill {
                 try {
                   listener.executeVoid(args);
                 } catch (Exception e) {
-                  System.err.println(
-                      "Error emitting event of "
-                          + type
-                          + " ["
-                          + Arrays.toString(args)
-                          + "] on "
-                          + listener
-                          + " "
-                          + e);
-                  e.printStackTrace(System.err);
+                  log.error(
+                      "Error emitting event of {} [{}] on {}",
+                      type,
+                      Arrays.toString(args),
+                      listener,
+                      e);
                 }
               });
     }

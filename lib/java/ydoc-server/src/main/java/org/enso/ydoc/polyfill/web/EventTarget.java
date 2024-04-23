@@ -1,22 +1,25 @@
 package org.enso.ydoc.polyfill.web;
 
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+
 import org.enso.ydoc.Polyfill;
+import org.enso.ydoc.polyfill.Arguments;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Source;
 import org.graalvm.polyglot.Value;
 import org.graalvm.polyglot.proxy.ProxyExecutable;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
- * Implements the <a
- * href="https://nodejs.org/api/events.html#class-eventtarget">EventTarget</a> Node.js
- * interface.
+ * Implements the <a href="https://nodejs.org/api/events.html#class-eventtarget">EventTarget</a>
+ * Node.js interface.
  */
 final class EventTarget implements ProxyExecutable, Polyfill {
+
+  private static final Logger log = LoggerFactory.getLogger(EventTarget.class);
 
   private static final String NEW_EVENT_TARGET = "new-event-target";
   private static final String GET_EVENT_LISTENERS = "get-event-listeners";
@@ -39,10 +42,11 @@ final class EventTarget implements ProxyExecutable, Polyfill {
   @Override
   public Object execute(Value... arguments) {
     var command = arguments[0].asString();
-    System.err.println(command + " " + Arrays.toString(arguments));
+
+    log.debug(Arguments.toString(arguments));
 
     return switch (command) {
-      case NEW_EVENT_TARGET -> new EventStore(new HashMap<>());
+      case NEW_EVENT_TARGET -> new EventStore(new ConcurrentHashMap<>());
 
       case GET_EVENT_LISTENERS -> {
         var store = arguments[1].as(EventStore.class);
@@ -91,14 +95,14 @@ final class EventTarget implements ProxyExecutable, Polyfill {
     }
 
     public Value[] getEventListeners(String type) {
-      return listeners.getOrDefault(type, new HashSet<>()).toArray(new Value[0]);
+      return listeners.getOrDefault(type, Set.of()).toArray(new Value[0]);
     }
 
     public void addEventListener(String type, Value listener) {
       listeners.compute(
           type,
           (k, v) -> {
-            var set = v == null ? new HashSet<Value>() : v;
+            Set<Value> set = v == null ? ConcurrentHashMap.newKeySet() : v;
             set.add(listener);
             return set;
           });
@@ -118,17 +122,26 @@ final class EventTarget implements ProxyExecutable, Polyfill {
     }
 
     public void dispatchEvent(String type, Value event) {
-      listeners
-          .getOrDefault(type, Set.of())
-          .forEach(
-              listener -> {
-                try {
-                  listener.executeVoid(event);
-                } catch (Exception e) {
-                  System.err.println(
-                      "Error dispatching event [" + type + "] " + listener + " " + event + " " + e);
-                }
-              });
+      var eventListeners = listeners.getOrDefault(type, Set.of());
+
+      var listenersIterator = eventListeners.iterator();
+      while (listenersIterator.hasNext()) {
+        var listener = listenersIterator.next();
+
+        try {
+          listener.executeVoid(event);
+        } catch (Exception e) {
+          log.error("Error dispatching event of {} [{}] on {}", type, event, listener, e);
+        }
+      }
+
+//      for (Value listener : eventListeners) {
+//        try {
+//          listener.executeVoid(event);
+//        } catch (Exception e) {
+//          log.error("Error dispatching event of {} [{}] on {}", type, event, listener, e);
+//        }
+//      }
     }
   }
 }

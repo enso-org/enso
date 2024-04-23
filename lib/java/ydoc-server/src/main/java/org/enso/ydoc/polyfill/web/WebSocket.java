@@ -186,11 +186,11 @@ final class WebSocket implements ProxyExecutable, Polyfill {
       case WEB_SOCKET_CLOSE -> {
         var connection = arguments[1].as(WebSocketConnection.class);
         var code = arguments[2].asInt();
-        var reasonArgument = arguments[3];
+        var reasonArgument = arguments[3].asString();
 
         var session = connection.getSession();
         if (session != null) {
-          var reason = reasonArgument == null ? "Close" : reasonArgument.asString();
+          var reason = reasonArgument == null ? "Close" : reasonArgument;
           session.close(code, reason);
         }
 
@@ -281,7 +281,7 @@ final class WebSocket implements ProxyExecutable, Polyfill {
 
     @Override
     public void onPing(WsSession session, BufferData buffer) {
-      System.err.println("WebSocketListener.onPing " + buffer);
+      // System.err.println("WebSocketListener.onPing " + buffer);
 
       var bytes = ByteSequence.create(buffer.readBytes());
       executor.execute(() -> handlePing.executeVoid(bytes));
@@ -289,7 +289,7 @@ final class WebSocket implements ProxyExecutable, Polyfill {
 
     @Override
     public void onPong(WsSession session, BufferData buffer) {
-      System.err.println("WebSocketListener.onPong " + buffer);
+      // System.err.println("WebSocketListener.onPong " + buffer);
 
       var bytes = ByteSequence.create(buffer.readBytes());
       executor.execute(() -> handlePong.executeVoid(bytes));
