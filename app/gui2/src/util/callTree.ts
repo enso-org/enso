@@ -431,7 +431,7 @@ export class ArgumentApplication {
     }
     arr.reverse()
 
-    const m: Record<string, ExternalId> = {}
+    const argsExternalIds: Record<string, ExternalId> = {}
     let index = 'self' === mci?.suggestion.arguments[0]?.name ? 1 : 0
     for (const e of arr) {
       const notApplied = mci?.methodCall.notAppliedArguments ?? []
@@ -439,20 +439,20 @@ export class ArgumentApplication {
         index++
       }
       if (e.uuid) {
-        m['' + index] = e.uuid
+        argsExternalIds['' + index] = e.uuid
       }
       const n: string | undefined = mci?.suggestion.arguments[index]?.name
       if (n && e.uuid) {
-        m[n] = e.uuid
+        argsExternalIds[n] = e.uuid
       }
       index++
     }
     for (const e of arr) {
       if (e.name && e.uuid) {
-        m[e.name] = e.uuid
+        argsExternalIds[e.name] = e.uuid
       }
     }
-    return m
+    return argsExternalIds
   }
 }
 
