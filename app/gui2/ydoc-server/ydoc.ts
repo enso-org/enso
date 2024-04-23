@@ -10,17 +10,13 @@ import * as Y from 'yjs'
 import * as decoding from 'lib0/decoding'
 import * as encoding from 'lib0/encoding'
 import { ObservableV2 } from 'lib0/observable'
-import { WebSocket } from 'ws'
+import WebSocket from 'isomorphic-ws'
 import { LanguageServerSession } from './languageServerSession'
 
 const pingTimeout = 30000
 
 const messageSync = 0
 const messageAwareness = 1
-
-// Workaround 'ws' dependency
-const CONNECTING = 0
-const OPEN = 1
 
 interface AwarenessUpdate {
   added: number[]
@@ -169,7 +165,7 @@ class YjsConnection extends ObservableV2<{ close(): void }> {
   }
 
   send(message: Uint8Array) {
-    if (this.ws.readyState !== CONNECTING && this.ws.readyState !== OPEN) {
+    if (this.ws.readyState !== WebSocket.CONNECTING && this.ws.readyState !== WebSocket.OPEN) {
       this.close()
     }
     try {
