@@ -18,6 +18,15 @@ export async function goToGraph(page: Page) {
   await expectNodePositionsInitialized(page, 64)
 }
 
+export async function showAllNodes(page: Page) {
+  const extendedMenu = page.locator('.ExtendedMenu')
+  await expect(extendedMenu).toBeVisible()
+  await extendedMenu.click()
+  const showAll = page.locator('.showAllIcon')
+  await expect(showAll).toBeVisible()
+  await showAll.click()
+}
+
 export async function expectNodePositionsInitialized(page: Page, yPos: number) {
   // Wait until edges are initialized and displayed correctly.
   await expect(page.getByTestId('broken-edge')).toHaveCount(0)

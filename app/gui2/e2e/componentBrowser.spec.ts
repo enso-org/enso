@@ -60,6 +60,7 @@ test('Different ways of opening Component Browser', async ({ page }) => {
 
 test('Opening Component Browser with small plus buttons', async ({ page }) => {
   await actions.goToGraph(page)
+  await actions.showAllNodes(page)
 
   // Small (+) button shown when node is hovered
   await page.keyboard.press('Escape')

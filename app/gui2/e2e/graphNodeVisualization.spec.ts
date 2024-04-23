@@ -7,6 +7,7 @@ import * as locate from './locate'
 
 test('node can open and load visualization', async ({ page }) => {
   await actions.goToGraph(page)
+  await actions.showAllNodes(page)
   const node = locate.graphNode(page).last()
   await node.click({ position: { x: 8, y: 8 } })
   await expect(locate.circularMenu(page)).toExist()

@@ -69,6 +69,7 @@ test('Widget in plain AST', async ({ page }) => {
 
 test('Multi-selection widget', async ({ page }) => {
   await actions.goToGraph(page)
+  await actions.showAllNodes(page)
   await mockMethodCallInfo(page, 'selected', {
     methodPointer: {
       module: 'Standard.Table.Table',
