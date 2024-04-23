@@ -191,6 +191,14 @@ object Resolution {
       s"Variable `${originalName.name}` is not defined"
   }
 
+  case class PrivateConstructor(
+    callerProject: String,
+    calleeProject: String
+  ) extends Reason {
+    override def explain(originalName: Name): String =
+      s"Project-private constructor '${originalName.name}' in project '$calleeProject' cannot be used from project '$callerProject'"
+  }
+
   /** An error coming from name resolver.
     *
     * @param err the original error.

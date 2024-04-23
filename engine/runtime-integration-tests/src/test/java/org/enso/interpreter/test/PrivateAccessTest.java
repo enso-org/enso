@@ -1,14 +1,18 @@
 package org.enso.interpreter.test;
 
+import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.core.AllOf.allOf;
 import static org.junit.Assert.fail;
 
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import org.enso.polyglot.PolyglotContext;
 import org.enso.polyglot.RuntimeOptions;
+import org.graalvm.polyglot.PolyglotException;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -78,6 +82,49 @@ public class PrivateAccessTest extends TestBase {
       var mainMod = polyCtx.evalModule(mainSrcPath.toFile());
       var myType = mainMod.getType("My_Type");
       assertThat(myType.hasMember("Cons"), is(false));
+    }
+  }
+
+  /** Tests that pattern matching on private constructors fails in compilation. */
+  @Test
+  public void cannotPatternOnMatchPrivateConstructor() throws IOException {
+    var libSrc =
+        """
+        type My_Type
+            private Cons data
+            create x = My_Type.Cons x
+        """;
+    createProject("Lib", libSrc);
+    var projSrc =
+        """
+        from local.Lib import My_Type
+        main =
+            obj = My_Type.create 42
+            case obj of
+                My_Type.Cons x -> x
+        """;
+    var projDir = createProject("Proj", projSrc);
+    var out = new ByteArrayOutputStream();
+    try (var ctx =
+        defaultContextBuilder()
+            .option(RuntimeOptions.PROJECT_ROOT, projDir.toAbsolutePath().toString())
+            .option(RuntimeOptions.STRICT_ERRORS, "true")
+            .option(RuntimeOptions.DISABLE_IR_CACHES, "true")
+            .out(out)
+            .err(out)
+            .build()) {
+      var polyCtx = new PolyglotContext(ctx);
+      try {
+        polyCtx.getTopScope().compile(true);
+        fail("Expected compiler error");
+      } catch (PolyglotException e) {
+        assertThat(
+            out.toString(),
+            allOf(
+                containsString("error:"),
+                containsString("Project-private constructor"),
+                containsString("cannot be used from")));
+      }
     }
   }
 
