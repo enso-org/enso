@@ -73,6 +73,41 @@ spec_fmt suite_builder header file read_method sheet_count=5 =
             t_3.at 'B' . to_vector . should_equal [Nothing, 30]
             t_3.at 'C' . to_vector . should_equal [43.2, 54]
 
+        group_builder.specify "should let you read all sheets from xlsx" <|
+            wb = read_method file
+
+            ## Read all the sheets as single rows.
+            single_table = wb.read_many
+            single_table.row_count . should_equal 25
+            single_table.column_names . should_equal ["SheetName", "Name", "Quantity", "Price", "A", "B", "C", "D", "E", "Student Name", "Enrolment Date", "Item", "Price 1"]
+            warnings = Warning.get_all single_table . map _.value
+            warnings.length . should_equal 2
+            warnings.should_contain Empty_Sheet.Error
+
+            ## Read all the sheets as tables.
+            table_of_tables = wb.read_many return=..Table_Of_Tables
+            table_of_tables.row_count . should_equal 5
+            table_of_tables.column_names . should_equal ["SheetName", "Table"]
+            table_of_tables.at "SheetName" . to_vector . should_equal ["Simple", "Strange Dimensions", "Dates", "Empty", "Duplicate Columns"]
+            Warning.get_all table_of_tables . map _.value . length . should_equal 2
+
+        group_builder.specify "should let you read some sheets from xlsx" <|
+            wb = read_method file
+            single_table = wb.read_many ["Simple", "Dates"]
+            single_table.row_count . should_equal 12
+            single_table.column_names . should_equal ["SheetName", "Name", "Quantity", "Price", "Student Name", "Enrolment Date"]
+            single_table.has_warnings.should_be_false
+
+        group_builder.specify "should let you read some sheets with a bad name from xlsx" <|
+            wb = read_method file
+            single_table = wb.read_many ["Simple", "Dates", "Not A Sheet"]
+            single_table.row_count . should_equal 12
+            single_table.column_names . should_equal ["SheetName", "Name", "Quantity", "Price", "Student Name", "Enrolment Date"]
+            single_table.has_warnings.should_be_true
+            warnings = Warning.get_all single_table . map _.value
+            warnings.length . should_equal 1
+            warnings.first.should_be_a Invalid_Location.Error
+
 type Spec_Write_Data
     Value ~data counter suffix
 
@@ -90,10 +125,10 @@ type Spec_Write_Data
     teardown self =
         enso_project.data/"transient" . list "out*" . each .delete
 
-    create_out self =
+    create_out self suffix=self.suffix =
         i = self.counter.get + 1
         self.counter.put i
-        f = enso_project.data / "transient" / ("out" + i.to_text + "." + self.suffix)
+        f = enso_project.data / "transient" / ("out" + i.to_text + "." + suffix)
         Panic.rethrow f.delete_if_exists
         f
 
@@ -340,6 +375,11 @@ spec_write suite_builder suffix test_sheet_name =
             extra_another.write out (Excel_Format.Range "Another!A1:D6") on_existing_file=Existing_File_Behavior.Append on_problems=Report_Error . should_succeed
             written = out.read (Excel_Format.Sheet "Another") . select_columns [0, 1, 2]
             written.should_equal expected
+
+        group_builder.specify 'should error gracefully if an unknown extension' <|
+            out = data.create_out suffix="notxls"
+            data.table.write out format=Excel_Format.Workbook on_problems=Report_Error . should_fail_with Illegal_Argument
+            data.table.write out format=Excel_Format.Sheet on_problems=Report_Error . should_fail_with Illegal_Argument
 
         group_builder.specify 'should be able to write to a new dry run file' <|
             out = data.create_out
