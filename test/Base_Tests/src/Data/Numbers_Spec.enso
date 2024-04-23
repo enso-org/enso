@@ -56,7 +56,7 @@ add_specs suite_builder =
     almost_max_long = 9223372036854775806
     almost_max_long_times_three = 27670116110564327418
     almost_max_long_times_three_plus_1 = 27670116110564327419
-    almost_max_long_times_three_decimal = 27670116110564327418.8
+    almost_max_long_times_three_float = 27670116110564327418.8
     hundred_factorial = 93326215443944152681699238856266700490715968264381621468592963895217599993229915608941463976156518286253697920827223758251185210916864000000000000000000000000
     very_negative = -99223372036854775808
 
@@ -235,7 +235,7 @@ add_specs suite_builder =
             number = Integer.parse txt
             number . should_equal hundred_factorial
 
-        group_builder.specify "should fail on too huge decimal" <|
+        group_builder.specify "should fail on too huge Float" <|
             txt = hundred_factorial.to_text + ".345"
             number = Integer.parse txt
             number . should_fail_with Number_Parse_Error
@@ -299,10 +299,10 @@ add_specs suite_builder =
             Float.parse "000000,0001" l . should_equal 0.0001
             Float.parse "aaaa" l . should_fail_with Number_Parse_Error
 
-        group_builder.specify "decimal should parse hundred factorial well" <|
+        group_builder.specify "Float should parse hundred factorial well" <|
             txt = hundred_factorial.to_text + ".345"
-            decimal = Float.parse txt
-            is_huge = decimal > (hundred_factorial / 5)
+            float = Float.parse txt
+            is_huge = float > (hundred_factorial / 5)
             is_huge . should_equal True
 
     suite_builder.group "Numbers" group_builder->
@@ -534,13 +534,13 @@ add_specs suite_builder =
         group_builder.specify "should allow calculating the floor value" <|
             1.2314.floor . should_equal 1
             1.floor . should_equal 1
-            almost_max_long_times_three_decimal.floor.to_float . should_equal almost_max_long_times_three.to_float
+            almost_max_long_times_three_float.floor.to_float . should_equal almost_max_long_times_three.to_float
             almost_max_long_times_three.floor . should_equal almost_max_long_times_three
 
         group_builder.specify "should allow calculating the ceil value" <|
             1.2314.ceil . should_equal 2
             1.ceil . should_equal 1
-            almost_max_long_times_three_decimal.ceil.to_float . should_equal almost_max_long_times_three_plus_1.to_float
+            almost_max_long_times_three_float.ceil.to_float . should_equal almost_max_long_times_three_plus_1.to_float
             almost_max_long_times_three_plus_1.ceil . should_equal almost_max_long_times_three_plus_1
 
         group_builder.specify "should expose a NaN value" <|
