@@ -3,7 +3,7 @@
  * All the exported methods are provided by the ydoc server implementation.
  * The interface should be kept in sync with Rust ffi inteface {@link module:ffi}.
  *
- * @module ffiJava
+ * @module ffiPolyglot
  */
 
 import type { IDataType } from 'hash-wasm/dist/lib/util'

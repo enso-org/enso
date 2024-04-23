@@ -1,5 +1,5 @@
 /**
- * @file Provides the Rust ffi interface. The interface should be kept in sync with Java ffi inteface {@link module:ffiJava}.
+ * @file Provides the Rust ffi interface. The interface should be kept in sync with polyglot ffi inteface {@link module:ffiPolyglot}.
  *
  * @module ffi
  */
