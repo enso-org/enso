@@ -45,7 +45,7 @@
     "sharp": "^0.31.2",
     "to-ico": "^1.1.5",
     "tsx": "^4.7.1",
-    "vite": "^5.1.4"
+    "vite": "^5.2.10"
   },
   "optionalDependencies": {
     "@esbuild/darwin-x64": "^0.17.15",

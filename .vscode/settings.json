@@ -23,5 +23,6 @@
   ],
   "files.watcherExclude": {
     "**/target": true
-  }
+  },
+  "vitest.workspaceConfig": "vitest.workspace.ts"
 }

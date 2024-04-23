@@ -1,0 +1,25 @@
+# all node modules
+node_modules
+app/gui2/node_modules
+app/ide-desktop/node_modules
+app/ide-desktop/lib/assets/node_modules
+app/ide-desktop/lib/client/node_modules
+app/ide-desktop/lib/common/node_modules
+app/ide-desktop/lib/content-config/node_modules
+app/ide-desktop/lib/dashboard/node_modules
+app/ide-desktop/lib/esbuild-plugin-copy-directories/node_modules
+app/ide-desktop/lib/icons/node_modules
+app/ide-desktop/lib/project-manager-shim/node_modules
+app/ide-desktop/lib/ts-plugin-namespace-auto-import/node_modules
+
+#
+.bloop
+bazel-enso
+bazel-out
+bazel-testlogs
+build-cache
+.idea
+.vscode
+.dist
+target
+build

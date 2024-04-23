@@ -2,9 +2,7 @@
   "name": "enso-project-manager-shim",
   "version": "1.0.0",
   "type": "module",
-  "exports": {
-    ".": "./src/projectManagerShimMiddleware.ts"
-  },
+  "main": "index.ts",
   "dependencies": {
     "yaml": "^2.4.1"
   }

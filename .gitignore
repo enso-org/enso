@@ -116,12 +116,16 @@ bench-report*.xml
 project/metals.sbt
 /build.json
 /app/ide-desktop/lib/client/electron-builder-config.json
-
+*.config.ts.timestamp-*
 
 #################
 ## Build Cache ##
 #################
 
+bazel-bin/
+bazel-enso/
+bazel-out/
+bazel-testlogs/
 build-cache/
 
 ##################

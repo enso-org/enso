@@ -24,9 +24,6 @@ importers:
       prettier:
         specifier: ^3.0.0
         version: 3.2.5
-      vitest:
-        specifier: ^1.3.1
-        version: 1.5.0
 
   app/gui2:
     dependencies:
@@ -168,7 +165,7 @@ importers:
         version: 8.57.0
       '@histoire/plugin-vue':
         specifier: ^0.17.12
-        version: 0.17.17(histoire@0.17.17)(vite@5.2.9)(vue@3.4.23)
+        version: 0.17.17(histoire@0.17.17)(vite@5.2.10)(vue@3.4.23)
       '@open-rpc/server-js':
         specifier: ^1.9.4
         version: 1.9.4
@@ -216,10 +213,10 @@ importers:
         version: 8.5.10
       '@vitejs/plugin-react':
         specifier: ^4.0.4
-        version: 4.2.1(vite@5.2.9)
+        version: 4.2.1(vite@5.2.10)
       '@vitejs/plugin-vue':
         specifier: ^5.0.4
-        version: 5.0.4(vite@5.2.9)(vue@3.4.23)
+        version: 5.0.4(vite@5.2.10)(vue@3.4.23)
       '@vitest/coverage-v8':
         specifier: ^1.3.1
         version: 1.5.0(vitest@1.5.0)
@@ -270,10 +267,13 @@ importers:
         version: 4.11.0
       histoire:
         specifier: ^0.17.2
-        version: 0.17.17(@types/node@20.12.7)(vite@5.2.9)
+        version: 0.17.17(@types/node@20.12.7)(lightningcss@1.24.1)(vite@5.2.10)
       jsdom:
         specifier: ^22.1.0
         version: 22.1.0
+      lightningcss:
+        specifier: 1.24.1
+        version: 1.24.1
       playwright:
         specifier: ^1.39.0
         version: 1.43.1
@@ -305,14 +305,14 @@ importers:
         specifier: ^1.4.3
         version: 1.4.3
       vite:
-        specifier: ^5.1.4
-        version: 5.2.9(@types/node@20.12.7)
+        specifier: ^5.2.10
+        version: 5.2.10(@types/node@20.12.7)(lightningcss@1.24.1)
       vite-plugin-inspect:
         specifier: ^0.7.38
-        version: 0.7.42(vite@5.2.9)
+        version: 0.7.42(vite@5.2.10)
       vitest:
         specifier: ^1.3.1
-        version: 1.5.0(@types/node@20.12.7)(jsdom@22.1.0)
+        version: 1.5.0(@types/node@20.12.7)(jsdom@22.1.0)(lightningcss@1.24.1)
       vue-react-wrapper:
         specifier: ^0.3.1
         version: 0.3.1(vue@3.4.23)
@@ -442,8 +442,8 @@ importers:
         specifier: ^4.7.1
         version: 4.7.2
       vite:
-        specifier: ^5.1.4
-        version: 5.2.9(lightningcss@1.24.1)
+        specifier: ^5.2.10
+        version: 5.2.10(@types/node@20.12.7)(lightningcss@1.24.1)
 
   app/ide-desktop/lib/common: {}
 
@@ -551,10 +551,10 @@ importers:
         version: 4.2.1(prettier@3.2.5)
       '@modyfi/vite-plugin-yaml':
         specifier: ^1.0.4
-        version: 1.1.0(vite@5.2.9)
+        version: 1.1.0(vite@5.2.10)
       '@playwright/experimental-ct-react':
         specifier: ^1.40.0
-        version: 1.43.1(@types/node@20.12.7)(vite@5.2.9)
+        version: 1.43.1(@types/node@20.12.7)(vite@5.2.10)
       '@playwright/test':
         specifier: ^1.40.0
         version: 1.43.1
@@ -581,7 +581,7 @@ importers:
         version: 6.21.0(eslint@8.57.0)(typescript@5.2.2)
       '@vitejs/plugin-react':
         specifier: ^4.2.1
-        version: 4.2.1(vite@5.2.9)
+        version: 4.2.1(vite@5.2.10)
       chalk:
         specifier: ^5.3.0
         version: 5.3.0
@@ -637,11 +637,11 @@ importers:
         specifier: ~5.2.2
         version: 5.2.2
       vite:
-        specifier: ^5.1.4
-        version: 5.2.9(@types/node@20.12.7)
+        specifier: ^5.2.10
+        version: 5.2.10(@types/node@20.12.7)(lightningcss@1.24.1)
       vitest:
         specifier: ^1.3.1
-        version: 1.5.0(@types/node@20.12.7)(jsdom@22.1.0)
+        version: 1.5.0(@types/node@20.12.7)(jsdom@22.1.0)(lightningcss@1.24.1)
 
   app/ide-desktop/lib/esbuild-plugin-copy-directories:
     devDependencies:
@@ -3346,7 +3346,7 @@ packages:
       vitest: '>=0.28.1'
     dependencies:
       fast-check: 3.17.1
-      vitest: 1.5.0(@types/node@20.12.7)(jsdom@22.1.0)
+      vitest: 1.5.0(@types/node@20.12.7)(jsdom@22.1.0)(lightningcss@1.24.1)
 
   /@fastify/busboy@2.1.1:
     resolution: {integrity: sha512-vBZP4NlzfOlerQTnba4aqZoMhE/a9HY7HRqoOPaETQcSQuWEIyZMHGfVu6w9wGtGK5fED5qRs2DteVCjOH60sA==}
@@ -3462,11 +3462,11 @@ packages:
       '@hapi/hoek': 9.3.0
     dev: false
 
-  /@histoire/app@0.17.17(vite@5.2.9):
+  /@histoire/app@0.17.17(vite@5.2.10):
     resolution: {integrity: sha512-2i1V38o08V+eaR0d3L0/EA6AYG14xyQBJbyYv0Hz3r4sH3Elj1FoJiwolbCfTDmkOnSgwWTc7+JoCqkLIbxfhA==}
     dependencies:
-      '@histoire/controls': 0.17.17(vite@5.2.9)
-      '@histoire/shared': 0.17.17(vite@5.2.9)
+      '@histoire/controls': 0.17.17(vite@5.2.10)
+      '@histoire/shared': 0.17.17(vite@5.2.10)
       '@histoire/vendors': 0.17.17
       '@types/flexsearch': 0.7.6
       flexsearch: 0.7.21
@@ -3475,7 +3475,7 @@ packages:
       - vite
     dev: true
 
-  /@histoire/controls@0.17.17(vite@5.2.9):
+  /@histoire/controls@0.17.17(vite@5.2.10):
     resolution: {integrity: sha512-W22HZ/X078IZmE09XEKj4Fq7LxQPP/w/aMYAzm94V2NIGhI0fkiSaBDvyTUl7NYrGT66Wq5+9Po1IWPMllk3cQ==}
     dependencies:
       '@codemirror/commands': 6.4.0
@@ -3485,24 +3485,24 @@ packages:
       '@codemirror/state': 6.4.1
       '@codemirror/theme-one-dark': 6.1.2
       '@codemirror/view': 6.26.3
-      '@histoire/shared': 0.17.17(vite@5.2.9)
+      '@histoire/shared': 0.17.17(vite@5.2.10)
       '@histoire/vendors': 0.17.17
     transitivePeerDependencies:
       - vite
     dev: true
 
-  /@histoire/plugin-vue@0.17.17(histoire@0.17.17)(vite@5.2.9)(vue@3.4.23):
+  /@histoire/plugin-vue@0.17.17(histoire@0.17.17)(vite@5.2.10)(vue@3.4.23):
     resolution: {integrity: sha512-O5h/Ww6IT2CygVVT4onN27IZt11Z2qE8XeHeXJCEese3dxnnVWRhjMpsaWAU5XqgfjKNAiALJk86b49/6NQaRg==}
     peerDependencies:
       histoire: ^0.17.17
       vue: ^3.2.47
     dependencies:
-      '@histoire/controls': 0.17.17(vite@5.2.9)
-      '@histoire/shared': 0.17.17(vite@5.2.9)
+      '@histoire/controls': 0.17.17(vite@5.2.10)
+      '@histoire/shared': 0.17.17(vite@5.2.10)
       '@histoire/vendors': 0.17.17
       change-case: 4.1.2
       globby: 13.2.2
-      histoire: 0.17.17(@types/node@20.12.7)(vite@5.2.9)
+      histoire: 0.17.17(@types/node@20.12.7)(lightningcss@1.24.1)(vite@5.2.10)
       launch-editor: 2.6.1
       pathe: 1.1.2
       vue: 3.4.23(typescript@5.2.2)
@@ -3510,7 +3510,7 @@ packages:
       - vite
     dev: true
 
-  /@histoire/shared@0.17.17(vite@5.2.9):
+  /@histoire/shared@0.17.17(vite@5.2.10):
     resolution: {integrity: sha512-ueGtURysonT0MujCObPCR57+mgZluMEXCrbc2FBgKAD/DoAt38tNwSGsmLldk2O6nTr7lr6ClbVSgWrLwgY6Xw==}
     peerDependencies:
       vite: ^2.9.0 || ^3.0.0 || ^4.0.0 || ^5.0.0
@@ -3521,7 +3521,7 @@ packages:
       chokidar: 3.6.0
       pathe: 1.1.2
       picocolors: 1.0.0
-      vite: 5.2.9(@types/node@20.12.7)
+      vite: 5.2.10(@types/node@20.12.7)(lightningcss@1.24.1)
     dev: true
 
   /@histoire/vendors@0.17.17:
@@ -3772,7 +3772,7 @@ packages:
       - supports-color
     dev: true
 
-  /@modyfi/vite-plugin-yaml@1.1.0(vite@5.2.9):
+  /@modyfi/vite-plugin-yaml@1.1.0(vite@5.2.10):
     resolution: {integrity: sha512-L26xfzkSo1yamODCAtk/ipVlL6OEw2bcJ92zunyHu8zxi7+meV0zefA9xscRMDCsMY8xL3C3wi3DhMiPxcbxbw==}
     peerDependencies:
       vite: ^3.2.7 || ^4.0.5 || ^5.0.5
@@ -3780,7 +3780,7 @@ packages:
       '@rollup/pluginutils': 5.1.0
       js-yaml: 4.1.0
       tosource: 2.0.0-alpha.3
-      vite: 5.2.9(@types/node@20.12.7)
+      vite: 5.2.10(@types/node@20.12.7)(lightningcss@1.24.1)
     transitivePeerDependencies:
       - rollup
     dev: true
@@ -3916,7 +3916,7 @@ packages:
     dependencies:
       playwright: 1.43.1
       playwright-core: 1.43.1
-      vite: 5.2.9(@types/node@20.12.7)
+      vite: 5.2.10(@types/node@20.12.7)(lightningcss@1.24.1)
     transitivePeerDependencies:
       - '@types/node'
       - less
@@ -3927,13 +3927,13 @@ packages:
       - terser
     dev: true
 
-  /@playwright/experimental-ct-react@1.43.1(@types/node@20.12.7)(vite@5.2.9):
+  /@playwright/experimental-ct-react@1.43.1(@types/node@20.12.7)(vite@5.2.10):
     resolution: {integrity: sha512-DZ09HBBa0iLxINHjlFbn/qZdpcSAgCFLSRvLDfrCFapT7umvPWg0T/ngleiEpuleSm0ZQpDKiE6GQF4TtqxRNA==}
     engines: {node: '>=16'}
     hasBin: true
     dependencies:
       '@playwright/experimental-ct-core': 1.43.1(@types/node@20.12.7)
-      '@vitejs/plugin-react': 4.2.1(vite@5.2.9)
+      '@vitejs/plugin-react': 4.2.1(vite@5.2.10)
     transitivePeerDependencies:
       - '@types/node'
       - less
@@ -6644,7 +6644,7 @@ packages:
   /@ungap/structured-clone@1.2.0:
     resolution: {integrity: sha512-zuVdFrMJiuCDQUMCzQaD6KL28MjnqqN8XnAqiEq9PNm/hCPTSGfrXCOfwj1ow4LFb/tNymJPwsNbVePc1xFqrQ==}
 
-  /@vitejs/plugin-react@4.2.1(vite@5.2.9):
+  /@vitejs/plugin-react@4.2.1(vite@5.2.10):
     resolution: {integrity: sha512-oojO9IDc4nCUUi8qIR11KoQm0XFFLIwsRBwHRR4d/88IWghn1y6ckz/bJ8GHDCsYEJee8mDzqtJxh15/cisJNQ==}
     engines: {node: ^14.18.0 || >=16.0.0}
     peerDependencies:
@@ -6655,19 +6655,19 @@ packages:
       '@babel/plugin-transform-react-jsx-source': 7.24.1(@babel/core@7.24.4)
       '@types/babel__core': 7.20.5
       react-refresh: 0.14.0
-      vite: 5.2.9(@types/node@20.12.7)
+      vite: 5.2.10(@types/node@20.12.7)(lightningcss@1.24.1)
     transitivePeerDependencies:
       - supports-color
     dev: true
 
-  /@vitejs/plugin-vue@5.0.4(vite@5.2.9)(vue@3.4.23):
+  /@vitejs/plugin-vue@5.0.4(vite@5.2.10)(vue@3.4.23):
     resolution: {integrity: sha512-WS3hevEszI6CEVEx28F8RjTX97k3KsrcY6kvTg7+Whm5y3oYvcqzVeGCU3hxSAn4uY2CLCkeokkGKpoctccilQ==}
     engines: {node: ^18.0.0 || >=20.0.0}
     peerDependencies:
       vite: ^5.0.0
       vue: ^3.2.25
     dependencies:
-      vite: 5.2.9(@types/node@20.12.7)
+      vite: 5.2.10(@types/node@20.12.7)(lightningcss@1.24.1)
       vue: 3.4.23(typescript@5.2.2)
     dev: true
 
@@ -6689,7 +6689,7 @@ packages:
       std-env: 3.7.0
       strip-literal: 2.1.0
       test-exclude: 6.0.0
-      vitest: 1.5.0(@types/node@20.12.7)(jsdom@22.1.0)
+      vitest: 1.5.0(@types/node@20.12.7)(jsdom@22.1.0)(lightningcss@1.24.1)
     transitivePeerDependencies:
       - supports-color
     dev: true
@@ -8838,7 +8838,6 @@ packages:
     resolution: {integrity: sha512-pGjwhsmsp4kL2RTz08wcOlGN83otlqHeD/Z5T8GXZB+/YcpQ/dgo+lbU8ZsGxV0HIvqqxo9l7mqYwyYMD9bKDg==}
     engines: {node: '>=0.10'}
     hasBin: true
-    dev: true
 
   /detect-libc@2.0.3:
     resolution: {integrity: sha512-bwy0MGW55bG41VqxxypOsdSdGqLwXPI/focwgTYCFMbdUiBAxLg9CFzG08sz2aqzknwiX7Hkl0bQENjg8iLByw==}
@@ -9131,6 +9130,7 @@ packages:
 
   /emoji-regex@8.0.0:
     resolution: {integrity: sha512-MSjYzcWNOA0ewAHpz0MxpYFvwg6yjy1NG3xteoqz644VCo/RPgnr1/GGt+ic3iJTzQ8Eu3TdM14SawnVUmGE6A==}
+    requiresBuild: true
 
   /emoji-regex@9.2.2:
     resolution: {integrity: sha512-L18DaJsXSUk2+42pv8mLs5jJT2hqFkFE4j21wOmgbUqsZ2hL72NsUU785g9RXgo3s0ZNgVl42TiHp3ZtOv/Vyg==}
@@ -10437,16 +10437,16 @@ packages:
       source-map: 0.7.4
     dev: false
 
-  /histoire@0.17.17(@types/node@20.12.7)(vite@5.2.9):
+  /histoire@0.17.17(@types/node@20.12.7)(lightningcss@1.24.1)(vite@5.2.10):
     resolution: {integrity: sha512-DAwY4sgIoP7NGE5ldaws2d3RWz4OOQcwhS8elRMiA2euqzLvDU2IXm+ZjeDDFVtGkvmQNQyfZBDKLCLHfRkSUg==}
     hasBin: true
     peerDependencies:
       vite: ^2.9.0 || ^3.0.0 || ^4.0.0 || ^5.0.0
     dependencies:
       '@akryum/tinypool': 0.3.1
-      '@histoire/app': 0.17.17(vite@5.2.9)
-      '@histoire/controls': 0.17.17(vite@5.2.9)
-      '@histoire/shared': 0.17.17(vite@5.2.9)
+      '@histoire/app': 0.17.17(vite@5.2.10)
+      '@histoire/controls': 0.17.17(vite@5.2.10)
+      '@histoire/shared': 0.17.17(vite@5.2.10)
       '@histoire/vendors': 0.17.17
       '@types/flexsearch': 0.7.6
       '@types/markdown-it': 12.2.3
@@ -10473,8 +10473,8 @@ packages:
       sade: 1.8.1
       shiki-es: 0.2.0
       sirv: 2.0.4
-      vite: 5.2.9(@types/node@20.12.7)
-      vite-node: 0.34.7(@types/node@20.12.7)
+      vite: 5.2.10(@types/node@20.12.7)(lightningcss@1.24.1)
+      vite-node: 0.34.7(@types/node@20.12.7)(lightningcss@1.24.1)
     transitivePeerDependencies:
       - '@types/node'
       - bufferutil
@@ -10855,6 +10855,7 @@ packages:
   /is-fullwidth-code-point@3.0.0:
     resolution: {integrity: sha512-zymm5+u+sCsSWyD9qNaejV3DFvhCKclKdizYaJUuHA83RLjb7nSuGnddCHGv0hk+KY7BMAlsWeK4Ueg6EV6XQg==}
     engines: {node: '>=8'}
+    requiresBuild: true
 
   /is-function@1.0.2:
     resolution: {integrity: sha512-lw7DUp0aWXYg+CBCN+JKkcE0Q2RayZnSvnZBlwgxHBQhqt5pZNVy4Ri7H9GmmXkdu7LUthszM+Tor1u/2iBcpQ==}
@@ -11736,7 +11737,6 @@ packages:
     cpu: [arm64]
     os: [darwin]
     requiresBuild: true
-    dev: true
     optional: true
 
   /lightningcss-darwin-x64@1.24.1:
@@ -11745,7 +11745,6 @@ packages:
     cpu: [x64]
     os: [darwin]
     requiresBuild: true
-    dev: true
     optional: true
 
   /lightningcss-freebsd-x64@1.24.1:
@@ -11754,7 +11753,6 @@ packages:
     cpu: [x64]
     os: [freebsd]
     requiresBuild: true
-    dev: true
     optional: true
 
   /lightningcss-linux-arm-gnueabihf@1.24.1:
@@ -11763,7 +11761,6 @@ packages:
     cpu: [arm]
     os: [linux]
     requiresBuild: true
-    dev: true
     optional: true
 
   /lightningcss-linux-arm64-gnu@1.24.1:
@@ -11772,7 +11769,6 @@ packages:
     cpu: [arm64]
     os: [linux]
     requiresBuild: true
-    dev: true
     optional: true
 
   /lightningcss-linux-arm64-musl@1.24.1:
@@ -11781,7 +11777,6 @@ packages:
     cpu: [arm64]
     os: [linux]
     requiresBuild: true
-    dev: true
     optional: true
 
   /lightningcss-linux-x64-gnu@1.24.1:
@@ -11790,7 +11785,6 @@ packages:
     cpu: [x64]
     os: [linux]
     requiresBuild: true
-    dev: true
     optional: true
 
   /lightningcss-linux-x64-musl@1.24.1:
@@ -11799,7 +11793,6 @@ packages:
     cpu: [x64]
     os: [linux]
     requiresBuild: true
-    dev: true
     optional: true
 
   /lightningcss-win32-x64-msvc@1.24.1:
@@ -11808,7 +11801,6 @@ packages:
     cpu: [x64]
     os: [win32]
     requiresBuild: true
-    dev: true
     optional: true
 
   /lightningcss@1.24.1:
@@ -11826,7 +11818,6 @@ packages:
       lightningcss-linux-x64-gnu: 1.24.1
       lightningcss-linux-x64-musl: 1.24.1
       lightningcss-win32-x64-msvc: 1.24.1
-    dev: true
 
   /lilconfig@2.1.0:
     resolution: {integrity: sha512-utWOt/GHzuUxnLKxB6dk81RoOeoNeHgbrXiuGk4yyF5qlRz+iIVWu56E2fqGHFrXz0QNUhLB/8nKqvRH66JKGQ==}
@@ -15582,7 +15573,7 @@ packages:
       vue: 3.4.23(typescript@5.2.2)
     dev: false
 
-  /vite-node@0.34.7(@types/node@20.12.7):
+  /vite-node@0.34.7(@types/node@20.12.7)(lightningcss@1.24.1):
     resolution: {integrity: sha512-0Yzb96QzHmqIKIs/x2q/sqG750V/EF6yDkS2p1WjJc1W2bgRSuQjf5vB9HY8h2nVb5j4pO5paS5Npcv3s69YUg==}
     engines: {node: '>=v14.18.0'}
     hasBin: true
@@ -15592,7 +15583,7 @@ packages:
       mlly: 1.6.1
       pathe: 1.1.2
       picocolors: 1.0.0
-      vite: 5.2.9(@types/node@20.12.7)
+      vite: 5.2.10(@types/node@20.12.7)(lightningcss@1.24.1)
     transitivePeerDependencies:
       - '@types/node'
       - less
@@ -15604,7 +15595,7 @@ packages:
       - terser
     dev: true
 
-  /vite-node@1.5.0:
+  /vite-node@1.5.0(@types/node@20.12.7)(lightningcss@1.24.1):
     resolution: {integrity: sha512-tV8h6gMj6vPzVCa7l+VGq9lwoJjW8Y79vst8QZZGiuRAfijU+EEWuc0kFpmndQrWhMMhet1jdSF+40KSZUqIIw==}
     engines: {node: ^18.0.0 || >=20.0.0}
     hasBin: true
@@ -15613,28 +15604,7 @@ packages:
       debug: 4.3.4
       pathe: 1.1.2
       picocolors: 1.0.0
-      vite: 5.2.9
-    transitivePeerDependencies:
-      - '@types/node'
-      - less
-      - lightningcss
-      - sass
-      - stylus
-      - sugarss
-      - supports-color
-      - terser
-    dev: true
-
-  /vite-node@1.5.0(@types/node@20.12.7):
-    resolution: {integrity: sha512-tV8h6gMj6vPzVCa7l+VGq9lwoJjW8Y79vst8QZZGiuRAfijU+EEWuc0kFpmndQrWhMMhet1jdSF+40KSZUqIIw==}
-    engines: {node: ^18.0.0 || >=20.0.0}
-    hasBin: true
-    dependencies:
-      cac: 6.7.14
-      debug: 4.3.4
-      pathe: 1.1.2
-      picocolors: 1.0.0
-      vite: 5.2.9(@types/node@20.12.7)
+      vite: 5.2.10(@types/node@20.12.7)(lightningcss@1.24.1)
     transitivePeerDependencies:
       - '@types/node'
       - less
@@ -15645,7 +15615,7 @@ packages:
       - supports-color
       - terser
 
-  /vite-plugin-inspect@0.7.42(vite@5.2.9):
+  /vite-plugin-inspect@0.7.42(vite@5.2.10):
     resolution: {integrity: sha512-JCyX86wr3siQc+p9Kd0t8VkFHAJag0RaQVIpdFGSv5FEaePEVB6+V/RGtz2dQkkGSXQzRWrPs4cU3dRKg32bXw==}
     engines: {node: '>=14'}
     peerDependencies:
@@ -15663,49 +15633,14 @@ packages:
       open: 9.1.0
       picocolors: 1.0.0
       sirv: 2.0.4
-      vite: 5.2.9(@types/node@20.12.7)
+      vite: 5.2.10(@types/node@20.12.7)(lightningcss@1.24.1)
     transitivePeerDependencies:
       - rollup
       - supports-color
     dev: true
 
-  /vite@5.2.9:
-    resolution: {integrity: sha512-uOQWfuZBlc6Y3W/DTuQ1Sr+oIXWvqljLvS881SVmAj00d5RdgShLcuXWxseWPd4HXwiYBFW/vXHfKFeqj9uQnw==}
-    engines: {node: ^18.0.0 || >=20.0.0}
-    hasBin: true
-    peerDependencies:
-      '@types/node': ^18.0.0 || >=20.0.0
-      less: '*'
-      lightningcss: ^1.21.0
-      sass: '*'
-      stylus: '*'
-      sugarss: '*'
-      terser: ^5.4.0
-    peerDependenciesMeta:
-      '@types/node':
-        optional: true
-      less:
-        optional: true
-      lightningcss:
-        optional: true
-      sass:
-        optional: true
-      stylus:
-        optional: true
-      sugarss:
-        optional: true
-      terser:
-        optional: true
-    dependencies:
-      esbuild: 0.20.2
-      postcss: 8.4.38
-      rollup: 4.14.3
-    optionalDependencies:
-      fsevents: 2.3.3
-    dev: true
-
-  /vite@5.2.9(@types/node@20.12.7):
-    resolution: {integrity: sha512-uOQWfuZBlc6Y3W/DTuQ1Sr+oIXWvqljLvS881SVmAj00d5RdgShLcuXWxseWPd4HXwiYBFW/vXHfKFeqj9uQnw==}
+  /vite@5.2.10(@types/node@20.12.7)(lightningcss@1.24.1):
+    resolution: {integrity: sha512-PAzgUZbP7msvQvqdSD+ErD5qGnSFiGOoWmV5yAKUEI0kdhjbH6nMWVyZQC/hSc4aXwc0oJ9aEdIiF9Oje0JFCw==}
     engines: {node: ^18.0.0 || >=20.0.0}
     hasBin: true
     peerDependencies:
@@ -15734,103 +15669,13 @@ packages:
     dependencies:
       '@types/node': 20.12.7
       esbuild: 0.20.2
-      postcss: 8.4.38
-      rollup: 4.14.3
-    optionalDependencies:
-      fsevents: 2.3.3
-
-  /vite@5.2.9(lightningcss@1.24.1):
-    resolution: {integrity: sha512-uOQWfuZBlc6Y3W/DTuQ1Sr+oIXWvqljLvS881SVmAj00d5RdgShLcuXWxseWPd4HXwiYBFW/vXHfKFeqj9uQnw==}
-    engines: {node: ^18.0.0 || >=20.0.0}
-    hasBin: true
-    peerDependencies:
-      '@types/node': ^18.0.0 || >=20.0.0
-      less: '*'
-      lightningcss: ^1.21.0
-      sass: '*'
-      stylus: '*'
-      sugarss: '*'
-      terser: ^5.4.0
-    peerDependenciesMeta:
-      '@types/node':
-        optional: true
-      less:
-        optional: true
-      lightningcss:
-        optional: true
-      sass:
-        optional: true
-      stylus:
-        optional: true
-      sugarss:
-        optional: true
-      terser:
-        optional: true
-    dependencies:
-      esbuild: 0.20.2
       lightningcss: 1.24.1
       postcss: 8.4.38
       rollup: 4.14.3
     optionalDependencies:
       fsevents: 2.3.3
-    dev: true
 
-  /vitest@1.5.0:
-    resolution: {integrity: sha512-d8UKgR0m2kjdxDWX6911uwxout6GHS0XaGH1cksSIVVG8kRlE7G7aBw7myKQCvDI5dT4j7ZMa+l706BIORMDLw==}
-    engines: {node: ^18.0.0 || >=20.0.0}
-    hasBin: true
-    peerDependencies:
-      '@edge-runtime/vm': '*'
-      '@types/node': ^18.0.0 || >=20.0.0
-      '@vitest/browser': 1.5.0
-      '@vitest/ui': 1.5.0
-      happy-dom: '*'
-      jsdom: '*'
-    peerDependenciesMeta:
-      '@edge-runtime/vm':
-        optional: true
-      '@types/node':
-        optional: true
-      '@vitest/browser':
-        optional: true
-      '@vitest/ui':
-        optional: true
-      happy-dom:
-        optional: true
-      jsdom:
-        optional: true
-    dependencies:
-      '@vitest/expect': 1.5.0
-      '@vitest/runner': 1.5.0
-      '@vitest/snapshot': 1.5.0
-      '@vitest/spy': 1.5.0
-      '@vitest/utils': 1.5.0
-      acorn-walk: 8.3.2
-      chai: 4.4.1
-      debug: 4.3.4
-      execa: 8.0.1
-      local-pkg: 0.5.0
-      magic-string: 0.30.10
-      pathe: 1.1.2
-      picocolors: 1.0.0
-      std-env: 3.7.0
-      strip-literal: 2.1.0
-      tinybench: 2.7.0
-      tinypool: 0.8.4
-      vite: 5.2.9
-      vite-node: 1.5.0
-      why-is-node-running: 2.2.2
-    transitivePeerDependencies:
-      - less
-      - lightningcss
-      - sass
-      - stylus
-      - sugarss
-      - supports-color
-      - terser
-    dev: true
-
-  /vitest@1.5.0(@types/node@20.12.7)(jsdom@22.1.0):
+  /vitest@1.5.0(@types/node@20.12.7)(jsdom@22.1.0)(lightningcss@1.24.1):
     resolution: {integrity: sha512-d8UKgR0m2kjdxDWX6911uwxout6GHS0XaGH1cksSIVVG8kRlE7G7aBw7myKQCvDI5dT4j7ZMa+l706BIORMDLw==}
     engines: {node: ^18.0.0 || >=20.0.0}
     hasBin: true
@@ -15874,8 +15719,8 @@ packages:
       strip-literal: 2.1.0
       tinybench: 2.7.0
       tinypool: 0.8.4
-      vite: 5.2.9(@types/node@20.12.7)
-      vite-node: 1.5.0(@types/node@20.12.7)
+      vite: 5.2.10(@types/node@20.12.7)(lightningcss@1.24.1)
+      vite-node: 1.5.0(@types/node@20.12.7)(lightningcss@1.24.1)
       why-is-node-running: 2.2.2
     transitivePeerDependencies:
       - less

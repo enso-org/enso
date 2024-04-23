@@ -1,0 +1,21 @@
+load("@aspect_rules_ts//ts:defs.bzl", "ts_config", "ts_project")
+load("@npm//:defs.bzl", "npm_link_all_packages")
+npm_link_all_packages(name = "node_modules")
+
+ts_config(
+    name = "tsconfig",
+    src = "tsconfig.json",
+    visibility = [":__subpackages__"],
+)
+
+ts_project(
+    name = "index",
+    srcs = glob(["src/*.ts"]),
+    declaration = True,
+    transpiler = "tsc",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//app/ide-desktop:tsconfig",
+        ":node_modules/yaml",
+    ],
+)
