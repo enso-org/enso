@@ -876,6 +876,7 @@ add_specs suite_builder =
             filtered4.sort.should_equal (resolve ["subdirectory/nested/b.txt"])
 
         add_create_and_delete_directory_specs group_builder (enso_project.data / "transient")
+        add_copy_edge_cases_specs group_builder (enso_project.data / "transient")
 
 # `parent_dir` is lazy on purpose to avoid creating a temporary directory in setup phase
 add_create_and_delete_directory_specs group_builder ~parent_dir =
@@ -959,6 +960,42 @@ add_create_and_delete_directory_specs group_builder ~parent_dir =
         r.catch.should_be_a File_Error.Not_Found
 
         dir.delete_if_exists . should_equal Nothing
+
+add_copy_edge_cases_specs group_builder ~parent_dir =
+    group_builder.specify "should allow copy/move edge case with source=target" <|
+        file = parent_dir / "src-target-in-one.txt"
+        file.exists.should_be_false
+
+        # Source is not found
+        r_copy_not_found = file.copy_to file
+        r_copy_not_found.should_fail_with File_Error
+        r_copy_not_found.catch.should_be_a File_Error.Not_Found
+
+        r_move_not_found = file.move_to file
+        r_move_not_found.should_fail_with File_Error
+        r_move_not_found.catch.should_be_a File_Error.Not_Found
+
+        "Foo".write file on_existing_file=Existing_File_Behavior.Overwrite
+
+        # Destination exists, so replace_existing=False will consistently fail
+        r_copy_already_exists = file.copy_to file replace_existing=False
+        r_copy_already_exists.should_fail_with File_Error
+        r_copy_already_exists.catch.should_be_a File_Error.Already_Exists
+
+        r_move_already_exists = file.move_to file replace_existing=False
+        r_move_already_exists.should_fail_with File_Error
+        r_move_already_exists.catch.should_be_a File_Error.Already_Exists
+
+        # Copying the file to itself with replace_existing=True should succeed and just not change anything.
+        r_copy = file.copy_to file replace_existing=True
+        r_copy.should_equal file
+        r_copy.read . should_equal "Foo"
+
+        # Moving the file to itself with replace_existing=True should succeed and just not change anything.
+        r_move = file.move_to file replace_existing=True
+        r_move.should_equal file
+        file.exists . should_be_true
+        file.read . should_equal "Foo"
 
 main filter=Nothing =
     suite = Test.build suite_builder->
