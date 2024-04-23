@@ -4,7 +4,6 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import org.graalvm.polyglot.Context;
-import org.graalvm.polyglot.HostAccess;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -22,19 +21,12 @@ public class EventEmitterTest {
     executor = Executors.newSingleThreadExecutor();
     var eventTarget = new EventTarget();
     var eventEmitter = new EventEmitter();
-
-    var hostAccess = HostAccess.newBuilder(HostAccess.EXPLICIT).allowArrayAccess(true).build();
-    var b = Context.newBuilder("js").allowHostAccess(hostAccess);
-
-    var chromePort = Integer.getInteger("inspectPort", -1);
-    if (chromePort > 0) {
-      b.option("inspect", ":" + chromePort);
-    }
+    var contextBuilder = WebEnvironment.createContext();
 
     context =
         CompletableFuture.supplyAsync(
                 () -> {
-                  var ctx = b.build();
+                  var ctx = contextBuilder.build();
                   eventTarget.initialize(ctx);
                   eventEmitter.initialize(ctx);
                   return ctx;

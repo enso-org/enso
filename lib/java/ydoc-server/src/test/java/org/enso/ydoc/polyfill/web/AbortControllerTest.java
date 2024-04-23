@@ -21,17 +21,12 @@ public class AbortControllerTest {
     executor = Executors.newSingleThreadExecutor();
     var eventTarget = new EventTarget();
     var abortController = new AbortController();
-    var b = Context.newBuilder("js");
-
-    var chromePort = Integer.getInteger("inspectPort", -1);
-    if (chromePort > 0) {
-      b.option("inspect", ":" + chromePort);
-    }
+    var contextBuilder = WebEnvironment.createContext();
 
     context =
         CompletableFuture.supplyAsync(
                 () -> {
-                  var ctx = b.build();
+                  var ctx = contextBuilder.build();
                   eventTarget.initialize(ctx);
                   abortController.initialize(ctx);
                   return ctx;

@@ -8,7 +8,6 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.atomic.AtomicReferenceArray;
 import org.graalvm.polyglot.Context;
-import org.graalvm.polyglot.HostAccess;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -26,24 +25,17 @@ public class WebSocketServerTest {
     executor = Executors.newSingleThreadExecutor();
 
     var hostAccess =
-        HostAccess.newBuilder(HostAccess.EXPLICIT)
+        WebEnvironment.defaultHostAccess
             .allowAccess(
                 AtomicReferenceArray.class.getDeclaredMethod("set", int.class, Object.class))
             .allowAccess(Semaphore.class.getDeclaredMethod("release"))
-            .allowArrayAccess(true)
-            .allowBufferAccess(true)
             .build();
-    var b = Context.newBuilder("js").allowHostAccess(hostAccess).allowExperimentalOptions(true);
-
-    var chromePort = Integer.getInteger("inspectPort", -1);
-    if (chromePort > 0) {
-      b.option("inspect", ":" + chromePort);
-    }
+    var contextBuilder = WebEnvironment.createContext(hostAccess);
 
     context =
         CompletableFuture.supplyAsync(
                 () -> {
-                  var ctx = b.build();
+                  var ctx = contextBuilder.build();
                   WebEnvironment.initialize(ctx, executor);
                   return ctx;
                 },

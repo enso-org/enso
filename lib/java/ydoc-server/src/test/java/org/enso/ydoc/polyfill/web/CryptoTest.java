@@ -22,17 +22,12 @@ public class CryptoTest {
   public void setup() throws Exception {
     executor = Executors.newSingleThreadExecutor();
     var crypto = new Crypto();
-    var b = Context.newBuilder("js");
-
-    var chromePort = Integer.getInteger("inspectPort", -1);
-    if (chromePort > 0) {
-      b.option("inspect", ":" + chromePort);
-    }
+    var contextBuilder = WebEnvironment.createContext();
 
     context =
         CompletableFuture.supplyAsync(
                 () -> {
-                  var ctx = b.build();
+                  var ctx = contextBuilder.build();
                   crypto.initialize(ctx);
                   return ctx;
                 },

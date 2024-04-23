@@ -21,18 +21,12 @@ public class UtilTest {
   public void setup() throws Exception {
     executor = Executors.newSingleThreadExecutor();
     var encoding = new Util();
-
-    var b = WebEnvironment.createContext();
-
-    var chromePort = Integer.getInteger("inspectPort", -1);
-    if (chromePort > 0) {
-      b.option("inspect", ":" + chromePort);
-    }
+    var contextBuilder = WebEnvironment.createContext();
 
     context =
         CompletableFuture.supplyAsync(
                 () -> {
-                  var ctx = b.build();
+                  var ctx = contextBuilder.build();
                   encoding.initialize(ctx);
                   return ctx;
                 },

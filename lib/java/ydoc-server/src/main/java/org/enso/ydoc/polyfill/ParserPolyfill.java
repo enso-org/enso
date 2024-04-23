@@ -1,14 +1,17 @@
 package org.enso.ydoc.polyfill;
 
-import java.util.Arrays;
 import org.enso.syntax2.Parser;
 import org.enso.ydoc.Polyfill;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Source;
 import org.graalvm.polyglot.Value;
 import org.graalvm.polyglot.proxy.ProxyExecutable;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public final class ParserPolyfill implements AutoCloseable, ProxyExecutable, Polyfill {
+
+  private static final Logger log = LoggerFactory.getLogger(ParserPolyfill.class);
 
   private static final String PARSE_TREE = "parse-tree";
   private static final String XX_HASH_128 = "xx-hash-128";
@@ -22,9 +25,9 @@ public final class ParserPolyfill implements AutoCloseable, ProxyExecutable, Pol
     Parser p;
     try {
       p = Parser.create();
-    } catch (LinkageError err) {
-      err.printStackTrace();
-      throw err;
+    } catch (LinkageError e) {
+      log.error("Failed to create parser", e);
+      throw e;
     }
     this.parser = p;
   }
@@ -40,7 +43,8 @@ public final class ParserPolyfill implements AutoCloseable, ProxyExecutable, Pol
   @Override
   public Object execute(Value... arguments) {
     var command = arguments[0].asString();
-    System.err.println(command + " " + Arrays.toString(arguments));
+
+    log.debug(Arguments.toString(arguments));
 
     return switch (command) {
       case PARSE_TREE -> {

@@ -124,24 +124,13 @@ final class EventTarget implements ProxyExecutable, Polyfill {
     public void dispatchEvent(String type, Value event) {
       var eventListeners = listeners.getOrDefault(type, Set.of());
 
-      var listenersIterator = eventListeners.iterator();
-      while (listenersIterator.hasNext()) {
-        var listener = listenersIterator.next();
-
+      for (Value listener : eventListeners) {
         try {
           listener.executeVoid(event);
         } catch (Exception e) {
           log.error("Error dispatching event of {} [{}] on {}", type, event, listener, e);
         }
       }
-
-//      for (Value listener : eventListeners) {
-//        try {
-//          listener.executeVoid(event);
-//        } catch (Exception e) {
-//          log.error("Error dispatching event of {} [{}] on {}", type, event, listener, e);
-//        }
-//      }
     }
   }
 }

@@ -1,10 +1,10 @@
 package org.enso.ydoc.polyfill.web;
 
 import java.util.Arrays;
-import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+
 import org.enso.ydoc.Polyfill;
 import org.enso.ydoc.polyfill.Arguments;
 import org.graalvm.polyglot.Context;
@@ -47,7 +47,7 @@ final class EventEmitter implements ProxyExecutable, Polyfill {
     log.debug(Arguments.toString(arguments));
 
     return switch (command) {
-      case NEW_EVENT_STORE -> new Store(new HashMap<>());
+      case NEW_EVENT_STORE -> new Store(new ConcurrentHashMap<>());
 
       case GET_LISTENERS -> {
         var store = arguments[1].as(Store.class);
@@ -96,14 +96,14 @@ final class EventEmitter implements ProxyExecutable, Polyfill {
     }
 
     public Value[] getListeners(String type) {
-      return listeners.getOrDefault(type, new HashSet<>()).toArray(new Value[0]);
+      return listeners.getOrDefault(type, Set.of()).toArray(new Value[0]);
     }
 
     public void addListener(String type, Value listener) {
       listeners.compute(
           type,
           (k, v) -> {
-            var set = v == null ? new HashSet<Value>() : v;
+            Set<Value> set = v == null ? ConcurrentHashMap.newKeySet() : v;
             set.add(listener);
             return set;
           });

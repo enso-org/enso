@@ -16,17 +16,22 @@ import java.util.Optional;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import org.enso.ydoc.Polyfill;
+import org.enso.ydoc.polyfill.Arguments;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Source;
 import org.graalvm.polyglot.Value;
 import org.graalvm.polyglot.io.ByteSequence;
 import org.graalvm.polyglot.proxy.ProxyExecutable;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Implements the WebSocket and WebSocketServer interfaces of the <a
  * href="https://www.npmjs.com/package/ws">ws</a> NPM package.
  */
 final class WebSocket implements ProxyExecutable, Polyfill {
+
+  private static final Logger log = LoggerFactory.getLogger(WebSocket.class);
 
   private static final String NEW_WEB_SOCKET = "new-web-socket";
   private static final String NEW_WEB_SOCKET_CONNECTION = "new-web-socket-connection";
@@ -58,7 +63,8 @@ final class WebSocket implements ProxyExecutable, Polyfill {
   @Override
   public Object execute(Value... arguments) {
     var command = arguments[0].asString();
-    System.err.println(command + " " + Arrays.toString(arguments));
+
+    log.debug(Arguments.toString(arguments));
 
     return switch (command) {
       case NEW_WEB_SOCKET -> {
@@ -138,7 +144,7 @@ final class WebSocket implements ProxyExecutable, Polyfill {
                       try {
                         connection = connectionFuture.get();
                       } catch (InterruptedException | ExecutionException e) {
-                        System.err.println("WebSocketServer connection error: " + e);
+                        log.error("Connection error", e);
                         throw new RuntimeException(e);
                       }
 
@@ -265,7 +271,7 @@ final class WebSocket implements ProxyExecutable, Polyfill {
      */
     @Override
     public void onMessage(WsSession session, BufferData buffer, boolean last) {
-      System.err.println("WebSocketListener.onMessageBinary\n" + buffer.debugDataHex(true));
+      log.debug("onMessage\n{}", buffer.debugDataHex(true));
 
       // Passing byte sequence to JS requires `HostAccess.allowBufferAccess()`
       var bytes = ByteSequence.create(buffer.readBytes());
@@ -274,14 +280,14 @@ final class WebSocket implements ProxyExecutable, Polyfill {
 
     @Override
     public void onMessage(WsSession session, String text, boolean last) {
-      System.err.println("WebSocketListener.onMessage " + text);
+      log.debug("onMessage [{}]", text);
 
       executor.execute(() -> handleMessage.executeVoid(text));
     }
 
     @Override
     public void onPing(WsSession session, BufferData buffer) {
-      // System.err.println("WebSocketListener.onPing " + buffer);
+      log.debug("onPing [{}]", buffer);
 
       var bytes = ByteSequence.create(buffer.readBytes());
       executor.execute(() -> handlePing.executeVoid(bytes));
@@ -289,7 +295,7 @@ final class WebSocket implements ProxyExecutable, Polyfill {
 
     @Override
     public void onPong(WsSession session, BufferData buffer) {
-      // System.err.println("WebSocketListener.onPong " + buffer);
+      log.debug("onPong [{}]", buffer);
 
       var bytes = ByteSequence.create(buffer.readBytes());
       executor.execute(() -> handlePong.executeVoid(bytes));
@@ -297,7 +303,7 @@ final class WebSocket implements ProxyExecutable, Polyfill {
 
     @Override
     public void onOpen(WsSession session) {
-      System.err.println("WebSocketListener.onOpen");
+      log.debug("onOpen");
 
       this.session = session;
 
@@ -306,7 +312,7 @@ final class WebSocket implements ProxyExecutable, Polyfill {
 
     @Override
     public void onClose(WsSession session, int status, String reason) {
-      System.err.println("WebSocketListener.onClose " + status + " " + reason);
+      log.debug("onClose [{}] [{}]", status, reason);
 
       executor.execute(() -> handleClose.executeVoid(status, reason));
       this.session = null;
@@ -314,14 +320,14 @@ final class WebSocket implements ProxyExecutable, Polyfill {
 
     @Override
     public void onError(WsSession session, Throwable t) {
-      System.err.println("WebSocketListener.onError " + t);
+      log.error("onError ", t);
 
       executor.execute(() -> handleError.executeVoid(t.getMessage()));
     }
 
     @Override
     public Optional<Headers> onHttpUpgrade(HttpPrologue prologue, Headers headers) {
-      System.err.println("WebSocketListener.onHttpUpgrade " + prologue);
+      log.debug("onHttpUpgrade [{}]", prologue);
 
       var url = new URL(prologue);
       executor.execute(() -> handleUpgrade.executeVoid(url));
