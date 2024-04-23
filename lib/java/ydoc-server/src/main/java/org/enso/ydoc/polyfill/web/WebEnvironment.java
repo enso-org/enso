@@ -1,7 +1,6 @@
 package org.enso.ydoc.polyfill.web;
 
 import java.util.concurrent.ExecutorService;
-import java.util.function.Function;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.HostAccess;
 
@@ -40,13 +39,16 @@ public final class WebEnvironment {
   }
 
   public static Context.Builder createContext() {
-    return createContext(Function.identity());
+    return createContext(defaultHostAccess.build());
   }
 
-  public static Context.Builder createContext(
-      Function<HostAccess.Builder, HostAccess.Builder> hostAccessFunction) {
-    var hostAccess = hostAccessFunction.apply(defaultHostAccess).build();
+  public static Context.Builder createContext(HostAccess hostAccess) {
+    var contextBuilder = Context.newBuilder("js").allowHostAccess(hostAccess).allowExperimentalOptions(true);
 
-    return Context.newBuilder("js").allowHostAccess(hostAccess).allowExperimentalOptions(true);
+    var inspectPort = Integer.getInteger("inspectPort", -1);
+    if (inspectPort > 0) {
+      contextBuilder.option("inspect", ":" + inspectPort);
+    }
+    return contextBuilder;
   }
 }
