@@ -364,8 +364,8 @@ type Enso_File
        - destination: the destination to move the file to.
        - replace_existing: specifies if the operation should proceed if the
          destination file already exists. Defaults to `False`.
-    copy_to : Writable_File -> Boolean -> Any ! File_Error
-    copy_to self (destination : Writable_File) (replace_existing : Boolean = False) =
+    copy_to : File_Like -> Boolean -> Any ! File_Error
+    copy_to self (destination : File_Like) (replace_existing : Boolean = False) = Data_Link_Helpers.disallow_links_in_copy self destination <|
         generic_copy self destination replace_existing
 
     ## ICON data_output
@@ -375,11 +375,12 @@ type Enso_File
        - destination: the destination to move the file to.
        - replace_existing: specifies if the operation should proceed if the
          destination file already exists. Defaults to `False`.
-    move_to : Writable_File -> Boolean -> Nothing ! File_Error
-    move_to self (destination : Writable_File) (replace_existing : Boolean = False) =
+    move_to : File_Like -> Boolean -> Nothing ! File_Error
+    move_to self (destination : File_Like) (replace_existing : Boolean = False) = Data_Link_Helpers.disallow_links_in_move self destination <|
         # TODO we could have a fast path if Cloud will support renaming files
-        generic_copy self destination replace_existing . if_not_error <|
-            self.delete . if_not_error <| destination.file_for_return
+        r = self.copy_to destination replace_existing
+        r.if_not_error <|
+            self.delete . if_not_error r
 
     ## GROUP Operators
        ICON folder

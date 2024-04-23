@@ -676,11 +676,11 @@ type File
         Context.Output.if_enabled disabled_message="File copying is forbidden as the Output context is disabled." panic=False <|
             ## We defer the `Writable_File` conversion after the 'disallow links' check,
                because the conversion would already start resolving the data link too soon.
-            writable_destination = Writable_File.from destination
-            r = case writable_destination.file of
-                _ : File -> local_file_copy self writable_destination.file replace_existing
-                _ -> writable_destination.copy_from_local self replace_existing
-            r.if_not_error writable_destination.file_for_return
+            destination_writable = Writable_File.from destination
+            r = case destination_writable.file of
+                _ : File -> local_file_copy self destination_writable.file replace_existing
+                _ -> destination_writable.copy_from_local self replace_existing
+            r.if_not_error destination_writable.file_for_return
 
     ## ICON data_output
        Moves the file to the specified destination.
@@ -694,14 +694,14 @@ type File
         Context.Output.if_enabled disabled_message="File moving is forbidden as the Output context is disabled." panic=False <|
             ## We defer the `Writable_File` conversion after the 'disallow links' check,
                because the conversion would already start resolving the data link too soon.
-            writable_destination = Writable_File.from destination
-            r = case writable_destination.file of
-                _ : File -> local_file_move self writable_destination.file replace_existing
+            destination_writable = Writable_File.from destination
+            r = case destination_writable.file of
+                _ : File -> local_file_move self destination_writable.file replace_existing
                 _ ->
-                    r = writable_destination.copy_from_local self replace_existing
+                    r = destination_writable.copy_from_local self replace_existing
                     r.if_not_error <|
                         self.delete . if_not_error r
-            r.if_not_error writable_destination.file_for_return
+            r.if_not_error destination_writable.file_for_return
 
     ## ICON data_output
        Deletes the file if it exists on disk.
