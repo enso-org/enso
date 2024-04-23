@@ -219,8 +219,8 @@ type Vector a
     build : (Builder -> Any) -> Integer -> Vector
     build (function : Builder -> Any) (initial_capacity : Integer = 10) -> Vector =
         builder = Builder.new initial_capacity
-        result = function builder
-        result.if_not_error builder.to_vector
+        case function builder of
+            _ -> builder.if_not_error builder.to_vector
 
     ## PRIVATE
        ADVANCED
