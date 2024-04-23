@@ -8,6 +8,7 @@ import project.Errors.Common.Index_Out_Of_Bounds
 import project.Errors.Common.Not_Found
 import project.Function.Function
 import project.Nothing.Nothing
+import project.Panic.Panic
 from project.Data.Text.Extensions import all
 
 ## A pair of elements.
@@ -256,6 +257,9 @@ type Pair
        Unlike `map`, this method does not return the individual results,
        therefore it is only useful for side-effecting computations.
 
+       If the function returns a dataflow error, the error is converted to a
+       panic and thrown immediately stopping further processing.
+
        Arguments:
        - function: A function to apply to each element of the pair.
 
@@ -265,9 +269,9 @@ type Pair
              Pair.new 1 2 . each IO.println
     each : (Any -> Any) -> Nothing
     each self f =
-        f self.first . if_not_error <|
-          f self.second . if_not_error <|
-            Nothing
+        Panic.rethrow (f self.first)
+        Panic.rethrow (f self.second)
+        Nothing
 
     ## PRIVATE
        Convert to a display representation of this Pair.

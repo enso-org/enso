@@ -764,6 +764,9 @@ type Vector a
        Unlike `map`, this method does not return the individual results,
        therefore it is only useful for side-effecting computations.
 
+       If the function returns a dataflow error, the error is converted to a
+       panic and thrown immediately stopping further processing.
+
        Arguments:
        - function: A function to apply to each element of the vector.
 

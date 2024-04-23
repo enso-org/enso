@@ -299,6 +299,12 @@ type Date_Range
        ADVANCED
        Applies a function for each element in the range.
 
+       This method does not return the results, so is only useful for performing
+       computations with side-effects.
+
+       If the function returns a dataflow error, the error is converted to a
+       panic and thrown immediately stopping further processing.
+
        Arguments:
        - function: The function to apply to each integer in the range.
 

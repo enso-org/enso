@@ -225,10 +225,10 @@ add_specs suite_builder = suite_builder.group "List" group_builder->
             State.get Number
         sum.should_equal 6
     
-    group_builder.specify "should allow errors to bubble up out of a .each" <|
+    group_builder.specify "dataflow errors in .each should become panics" <|
         do_write x =
             Error.throw "Failed to write "+x.to_text
-        l.each do_write . should_fail_with ("Failed to write 1")
+        Test.expect_panic_with (l.each do_write) Text
 
     group_builder.specify "should allow reversing with .reverse" <|
         l.reverse.first.should_equal 3
