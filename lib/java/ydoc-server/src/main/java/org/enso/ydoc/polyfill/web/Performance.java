@@ -17,7 +17,6 @@ final class Performance implements ProxyExecutable, Polyfill {
 
   private static final Logger log = LoggerFactory.getLogger(Performance.class);
 
-
   private static final String NOW = "now";
 
   private static final String PERFORMANCE_JS = "performance.js";

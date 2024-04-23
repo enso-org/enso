@@ -3,7 +3,6 @@ package org.enso.ydoc.polyfill.web;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
-
 import org.enso.ydoc.Polyfill;
 import org.enso.ydoc.polyfill.Arguments;
 import org.graalvm.polyglot.Context;

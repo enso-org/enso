@@ -43,7 +43,8 @@ public final class WebEnvironment {
   }
 
   public static Context.Builder createContext(HostAccess hostAccess) {
-    var contextBuilder = Context.newBuilder("js").allowHostAccess(hostAccess).allowExperimentalOptions(true);
+    var contextBuilder =
+        Context.newBuilder("js").allowHostAccess(hostAccess).allowExperimentalOptions(true);
 
     var inspectPort = Integer.getInteger("inspectPort", -1);
     if (inspectPort > 0) {
