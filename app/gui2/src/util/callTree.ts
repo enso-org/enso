@@ -403,18 +403,10 @@ export class ArgumentApplication {
     value: InterpretedCall,
     mci: MethodCallInfo | undefined,
   ): Record<string, ExternalId> {
-    const arr: Array<{
+    const namesAndExternalIds: Array<{
       name: string | null
-      code: string | undefined
       uuid: ExternalId | undefined
     }> = []
-    function process(f: Ast.Ast, name?: String) {
-      arr.push({
-        name: name ? name.toString() : null,
-        code: f.code(),
-        uuid: f.externalId,
-      })
-    }
 
     const args = ArgumentApplication.FromInterpretedWithInfo(value)
     if (args instanceof ArgumentApplication) {
@@ -423,33 +415,36 @@ export class ArgumentApplication {
         if (a instanceof ArgumentPlaceholder) {
           // pass thru
         } else {
-          process(a.ast, a.argInfo?.name)
+          namesAndExternalIds.push({
+            name: a.argInfo?.name.toString() ?? null,
+            uuid: a.ast.externalId,
+          })
         }
       }
     } else {
-      // ignore: process(args)
+      // don't process
     }
-    arr.reverse()
+    namesAndExternalIds.reverse()
 
     const argsExternalIds: Record<string, ExternalId> = {}
     let index = 'self' === mci?.suggestion.arguments[0]?.name ? 1 : 0
-    for (const e of arr) {
+    for (const nameAndExtenalId of namesAndExternalIds) {
       const notApplied = mci?.methodCall.notAppliedArguments ?? []
       while (notApplied.indexOf(index) != -1) {
         index++
       }
-      if (e.uuid) {
-        argsExternalIds['' + index] = e.uuid
+      if (nameAndExtenalId.uuid) {
+        argsExternalIds['' + index] = nameAndExtenalId.uuid
       }
-      const n: string | undefined = mci?.suggestion.arguments[index]?.name
-      if (n && e.uuid) {
-        argsExternalIds[n] = e.uuid
+      const suggestedName: string | undefined = mci?.suggestion.arguments[index]?.name
+      if (suggestedName && nameAndExtenalId.uuid) {
+        argsExternalIds[suggestedName] = nameAndExtenalId.uuid
       }
       index++
     }
-    for (const e of arr) {
-      if (e.name && e.uuid) {
-        argsExternalIds[e.name] = e.uuid
+    for (const nameAndExternalId of namesAndExternalIds) {
+      if (nameAndExternalId.name && nameAndExternalId.uuid) {
+        argsExternalIds[nameAndExternalId.name] = nameAndExternalId.uuid
       }
     }
     return argsExternalIds
