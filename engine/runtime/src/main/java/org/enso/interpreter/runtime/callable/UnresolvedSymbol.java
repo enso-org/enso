@@ -86,6 +86,7 @@ public final class UnresolvedSymbol implements EnsoObject {
     return null;
   }
 
+  @TruffleBoundary
   private static void log(String message) {
     if (logEnabled) {
       System.out.println("[UnresolvedSymbol]: " + message);
