@@ -439,6 +439,13 @@ add_specs suite_builder =
             foo = v:Foo
             Foo.Value 10 . should_equal foo
 
+        group_builder.specify "..False can be autoscoped" <|
+
+            bool b:Boolean = b
+
+            f = bool ..False
+            f.not . should_be_true
+
         group_builder.specify "Autoscope to two different values" <|
 
             v = ..Value 10
