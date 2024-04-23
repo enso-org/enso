@@ -252,9 +252,11 @@ add_specs suite_builder =
                 r_not_exists = Data_Link.move source_link destination_link replace_existing=False
                 r_not_exists.should_fail_with File_Error
                 r_not_exists.catch.should_be_a File_Error.Not_Found
-                Data_Link.write_raw_config source_link sample_data_link_content replace_existing=True . should_succeed
 
+                Data_Link.write_raw_config source_link sample_data_link_content replace_existing=True . should_succeed
                 Data_Link.move source_link destination_link replace_existing=False . should_succeed
+
+                Data_Link.write_raw_config source_link sample_data_link_content replace_existing=True . should_succeed
                 r_already_exists = Data_Link.move source_link destination_link replace_existing=False
                 r_already_exists.should_fail_with File_Error
                 r_already_exists.catch.should_be_a File_Error.Already_Exists
