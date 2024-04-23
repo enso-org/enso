@@ -73,40 +73,42 @@ spec_fmt suite_builder header file read_method sheet_count=5 =
             t_3.at 'B' . to_vector . should_equal [Nothing, 30]
             t_3.at 'C' . to_vector . should_equal [43.2, 54]
 
-        group_builder.specify "should let you read all sheets from xlsx" <|
+        group_builder.specify "should let you read all sheets into a single table" <|
             wb = read_method file
+            table = wb.read_many
+            table.row_count . should_equal 25
+            table.column_names . should_equal ["Sheet Name", "Name", "Quantity", "Price", "A", "B", "C", "D", "E", "Student Name", "Enrolment Date", "Item", "Price 1"]
+            warnings = Problems.get_attached_warnings table
+            warnings.should_contain_the_same_elements_as [Duplicate_Output_Column_Names.Error ["Price"], Empty_Sheet.Error]
 
-            ## Read all the sheets merged into one table
-            single_table = wb.read_many
-            single_table.row_count . should_equal 25
-            single_table.column_names . should_equal ["Sheet Name", "Name", "Quantity", "Price", "A", "B", "C", "D", "E", "Student Name", "Enrolment Date", "Item", "Price 1"]
-            warnings = Warning.get_all single_table . map _.value
-            warnings.length . should_equal 2
-            warnings.should_contain Empty_Sheet.Error
+            wb.read_many on_problems=..Report_Error . should_fail_with Empty_Sheet.Error
 
-            ## Read all the sheets as tables.
-            table_of_tables = wb.read_many return=..Table_Of_Tables
-            table_of_tables.row_count . should_equal 5
-            table_of_tables.column_names . should_equal ["Sheet Name", "Table"]
-            table_of_tables.at "SheetName" . to_vector . should_equal ["Simple", "Strange Dimensions", "Dates", "Empty", "Duplicate Columns"]
-            Warning.get_all table_of_tables . map _.value . length . should_equal 2
+        group_builder.specify "should let you read all sheets into a table of tables" <|
+            wb = read_method file
+            table = wb.read_many return=..Table_Of_Tables
+            table.row_count . should_equal 5
+            table.column_names . should_equal ["Sheet Name", "Table"]
+            warnings = Problems.get_attached_warnings table
+            warnings.should_contain_the_same_elements_as [Duplicate_Output_Column_Names.Error ["Price"], Empty_Sheet.Error]
+
+            wb.read_many return=..Table_Of_Tables on_problems=..Report_Error . should_fail_with Empty_Sheet.Error
 
         group_builder.specify "should let you read some sheets from xlsx" <|
             wb = read_method file
             single_table = wb.read_many ["Simple", "Dates"]
             single_table.row_count . should_equal 12
-            single_table.column_names . should_equal ["SheetName", "Name", "Quantity", "Price", "Student Name", "Enrolment Date"]
-            single_table.has_warnings.should_be_false
+            single_table.column_names . should_equal ["Sheet Name", "Name", "Quantity", "Price", "Student Name", "Enrolment Date"]
+            Problems.assume_no_problems single_table
 
         group_builder.specify "should let you read some sheets with a bad name from xlsx" <|
             wb = read_method file
             single_table = wb.read_many ["Simple", "Dates", "Not A Sheet"]
             single_table.row_count . should_equal 12
-            single_table.column_names . should_equal ["SheetName", "Name", "Quantity", "Price", "Student Name", "Enrolment Date"]
+            single_table.column_names . should_equal ["Sheet Name", "Name", "Quantity", "Price", "Student Name", "Enrolment Date"]
             single_table.has_warnings.should_be_true
             warning = Problems.expect_only_warning Invalid_Location single_table
             warning.location . should_equal "Not A Sheet"
-            warning.to_display_text . should_contain "Unknown sheet or range name or invalid address: Not A Sheet"
+            warning.to_display_text . should_contain "Unknown sheet or range name or invalid address: 'Not A Sheet'."
 
 type Spec_Write_Data
     Value ~data counter suffix

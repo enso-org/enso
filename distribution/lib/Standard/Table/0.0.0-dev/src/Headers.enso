@@ -1,5 +1,8 @@
 from Standard.Base import all
 
+## Determines how the first row of the data should be treated.
+   If `Detect_Headers` is used, the system will attempt to determine if the
+   first row of the data is a header row or not.
 type Headers
     ## Attempt to detect if the data has headers or not.
     Detect_Headers

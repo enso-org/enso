@@ -189,6 +189,6 @@ Delimited_Format.from (that : JS_Object) =
     unsupported_fields = ["value_formatter", "line_endings", "comment_character"]
     case unsupported_fields.find that.contains_key if_missing=Nothing of
         Nothing ->
-            Delimited_Format.Delimited delimiter=delimiter encoding=encoding headers=(Headers.from headers) skip_rows=skip_rows row_limit=row_limit quote_style=quote_style keep_invalid_rows=keep_invalid_rows
+            Delimited_Format.Delimited delimiter=delimiter encoding=encoding headers=headers skip_rows=skip_rows row_limit=row_limit quote_style=quote_style keep_invalid_rows=keep_invalid_rows
         field ->
             Error.throw (Illegal_Argument.Error ("The field `" ++ field ++ "` is currently not supported when deserializing the Delimited format from JSON."))
