@@ -76,7 +76,7 @@ spec_fmt suite_builder header file read_method sheet_count=5 =
         group_builder.specify "should let you read all sheets from xlsx" <|
             wb = read_method file
 
-            ## Read all the sheets as single rows.
+            ## Read all the sheets merged into one table
             single_table = wb.read_many
             single_table.row_count . should_equal 25
             single_table.column_names . should_equal ["SheetName", "Name", "Quantity", "Price", "A", "B", "C", "D", "E", "Student Name", "Enrolment Date", "Item", "Price 1"]
@@ -104,9 +104,9 @@ spec_fmt suite_builder header file read_method sheet_count=5 =
             single_table.row_count . should_equal 12
             single_table.column_names . should_equal ["SheetName", "Name", "Quantity", "Price", "Student Name", "Enrolment Date"]
             single_table.has_warnings.should_be_true
-            warnings = Warning.get_all single_table . map _.value
-            warnings.length . should_equal 1
-            warnings.first.should_be_a Invalid_Location.Error
+            warning = Problems.expect_only_warning Invalid_Location single_table
+            warning.location . should_equal "Not A Sheet"
+            warning.to_display_text . should_contain "Unknown sheet or range name or invalid address: Not A Sheet"
 
 type Spec_Write_Data
     Value ~data counter suffix

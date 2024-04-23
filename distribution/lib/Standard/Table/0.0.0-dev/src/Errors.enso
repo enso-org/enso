@@ -280,7 +280,7 @@ type Empty_File_Error
     to_display_text : Text
     to_display_text self =
         _ = self
-        "The file is empty so cannot be loaded."
+        "The file is empty so it cannot be loaded."
 
     ## PRIVATE
     handle_java_exception =

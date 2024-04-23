@@ -321,7 +321,7 @@ type Excel_Workbook
     read_many : Vector Text -> Headers -> Return_As -> Problem_Behavior -> Table
     read_many self sheet_names:Vector=self.sheet_names (headers:Headers=..Detect_Headers) (return:Return_As=..Merged_Table) (on_problems:Problem_Behavior=..Report_Warning) =
         if sheet_names.is_empty then Error.throw (Illegal_Argument.Error "No sheets selected.") else
-            tables = sheet_names.map on_problems=on_problems t-> self.read t headers
+            tables = sheet_names.map on_problems=on_problems address-> self.read address headers
             case return of
                 Return_As.Table_Of_Tables -> Table.new [["SheetName", sheet_names], ["Table", tables]]
                 Return_As.Merged_Table match ->
@@ -332,8 +332,7 @@ type Excel_Workbook
 close_connection c = c.close
 
 ## PRIVATE
-build_sheet_selector : Excel_Workbook -> Display -> Widget
-build_sheet_selector workbook:Excel_Workbook display:Display=Display.Always =
+build_sheet_selector workbook:Excel_Workbook display:Display=Display.Always -> Widget =
     names = workbook.sheet_names.map n-> Option n n.pretty
     Multiple_Choice display=display values=names
 
