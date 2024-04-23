@@ -4,6 +4,7 @@ import SizeTransition from '@/components/SizeTransition.vue'
 import SvgIcon from '@/components/SvgIcon.vue'
 import DropdownWidget, { type DropdownEntry } from '@/components/widgets/DropdownWidget.vue'
 import { unrefElement } from '@/composables/events'
+import type { PortId } from '@/providers/portInfo'
 import { defineWidget, Score, WidgetInput, widgetProps } from '@/providers/widgetRegistry'
 import {
   multipleChoiceConfiguration,
@@ -195,9 +196,11 @@ const innerWidgetInput = computed<WidgetInput>(() => {
     : props.input.dynamicConfig?.kind === 'Multiple_Choice' ?
       multipleChoiceConfiguration(props.input.dynamicConfig)
     : props.input.dynamicConfig
+  const arrowDisplayedOn = props.input.value instanceof Ast.PropertyAccess ? props.input.value.rhs.id : props.input.portId
+  console.log('inner', WidgetInput.valueRepr(props.input), arrowDisplayedOn)
   return {
     ...props.input,
-    [SelectionArrowKey]: true,
+    [SelectionArrowKey]: arrowDisplayedOn,
     editHandler: dropDownInteraction,
     dynamicConfig,
   }
@@ -339,7 +342,7 @@ export const SelectionArrowKey: unique symbol = Symbol('SelectionArrow')
 declare module '@/providers/widgetRegistry' {
   export interface WidgetInput {
     [CustomDropdownItemsKey]?: readonly CustomDropdownItem[]
-    [SelectionArrowKey]?: boolean
+    [SelectionArrowKey]?: PortId
   }
 }
 </script>

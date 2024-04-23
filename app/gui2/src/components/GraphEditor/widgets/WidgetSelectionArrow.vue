@@ -13,8 +13,10 @@ export const widgetDefinition = defineWidget(
   WidgetInput.isAstOrPlaceholder,
   {
     priority: 51,
-    score: (props) =>
-      props.input[SelectionArrowKey] === true ? Score.Perfect : Score.Mismatch
+    score: (props) => {
+      console.log('score', WidgetInput.valueRepr(props.input), props.input[SelectionArrowKey])
+      return props.input[SelectionArrowKey] === props.input.portId ? Score.Perfect : Score.Mismatch
+    }
   },
   import.meta.hot,
 )
@@ -32,7 +34,7 @@ export const widgetDefinition = defineWidget(
   position: absolute;
   pointer-events: none;
   bottom: -7px;
-  left: 50%;
+  left: 75%;
   transform: translateX(-50%) rotate(90deg) scale(0.7);
   opacity: 0.5;
   /* Prevent the parent from receiving a pointerout event if the mouse is over the arrow, which causes flickering. */
