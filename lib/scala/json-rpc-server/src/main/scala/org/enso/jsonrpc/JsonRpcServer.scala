@@ -108,6 +108,7 @@ class JsonRpcServer(
     config.secureConfig
 
   // TODO[DB]: Workaround for helidon-io/helidon#8647
+  // Fixed in helidon 4.0.8
   private def handleWebSocketMessages1(
     handler: Flow[Message, Message, Any]
   ): Route =
