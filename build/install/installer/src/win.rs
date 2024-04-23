@@ -62,6 +62,10 @@ pub fn install_with_updates(
     config: &Config,
     sender: &std::sync::mpsc::Sender<crate::InstallerUpdate>,
 ) -> Result {
+    let send = |update| {
+        info!("{:?}", update);
+        let _ = sender.send(update);
+    };
     macro_rules! stage_at {
         ($progress:tt, $($arg:tt)*) => {
             let _ = sender.send(crate::InstallerUpdate::Stage(format!($($arg)*)));
@@ -70,22 +74,26 @@ pub fn install_with_updates(
         };
     }
 
+    // Only one installer / uninstaller can run at a time.
     let _guard = enso_install::locked_lock()?;
 
     let enso_install_config::payload::Metadata { total_files, total_bytes } = *payload.metadata;
-
-    //
-    // let lock = enso_install::lock()?;
-    // let _guard = lock
-    //     .try_lock()
     //     .context("Failed to acquire the installation lock. Is another installer running?")?;
     stage_at!(0.00, "Checking disk space.");
     // TODO? A potential improvement would be to take account for previous installation size when
     //       performing the in-place update. Then the needed space would be the difference between
     //       the new and the old installation size.
-    if let Some(msg) = check_disk_space(install_location, total_bytes)? {
-        let _ = sender.send(crate::InstallerUpdate::Finished(Err(anyhow::anyhow!(msg.clone()))));
-        bail!(msg);
+    match check_disk_space(install_location, total_bytes) {
+        Ok(Some(msg)) => {
+            let _ =
+                sender.send(crate::InstallerUpdate::Finished(Err(anyhow::anyhow!(msg.clone()))));
+            bail!(msg);
+        }
+        Ok(None) => {} // Ok, enough space.
+        Err(err) => {
+            // We don't know, so let's just log the warning and try to carry on.
+            warn!("Failed to check disk space: {err:?}");
+        }
     }
 
     stage_at!(0.03, "Removing old installation files (if present).");
@@ -263,8 +271,14 @@ pub fn check_disk_space(
     use sysinfo::Disks;
     let disks = Disks::new_with_refreshed_list();
     // This should yield an absolute path, prefixed with the drive label.
-    let path = installation_directory.canonicalize()?;
-    // We need to remove the verbatim prefix to match the disk list.
+    let path = installation_directory
+        .canonicalize()
+        // We use absolutize as a fallback, because canonicalize fails for non-existent paths. We
+        // attempt to use canonicalize first, because it resolves symlinks.
+        .or_else(|_| installation_directory.absolutize().map(PathBuf::from))?;
+
+    // We need to remove the verbatim prefix (that canonicalize likes to add) in order to match the
+    // disk list mount points format.
     let path = path.without_verbatim_prefix();
     let disk = disks
         .into_iter()

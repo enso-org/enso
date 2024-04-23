@@ -36,7 +36,7 @@ mime = "0.3.16"
 multimap = { workspace = true }
 new_mime_guess = "4.0.0"
 octocrab = { workspace = true }
-path-absolutize = "3.0.11"
+path-absolutize = { workspace = true }
 pathdiff = "0.2.1"
 path-slash = "0.2.1"
 platforms = { workspace = true }

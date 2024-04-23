@@ -1,5 +1,5 @@
-// #![windows_subsystem = "windows"]
-/*!
+#![windows_subsystem = "windows"]
+/*!ĀĀ
 A very simple application that shows your name in a message box.
 Unlike `basic_d`, this example uses layout to position the controls in the window
  */
@@ -16,6 +16,7 @@ use nwg::stretch::geometry::Size;
 use nwg::stretch::style::Dimension;
 use nwg::stretch::style::FlexDirection;
 
+use enso_install::win::local_app_data;
 use ide_ci::log::file_log_layer;
 use ide_ci::log::stderr_log_layer;
 use ide_ci::log::GlobalFilteringLayer;
@@ -158,9 +159,8 @@ mod ui {
                 }
             };
 
-            let event_handler_handle =
-                nwg::full_bind_event_handler(ui.window.handle, handle_events);
-            *ui.default_handler.borrow_mut() = Some(event_handler_handle);
+            let event_handler = nwg::full_bind_event_handler(&ui.window.handle, handle_events);
+            *ui.default_handler.borrow_mut() = Some(event_handler);
 
             nwg::FlexboxLayout::builder()
                 .parent(&ui.window)
@@ -228,6 +228,21 @@ pub fn setup_logging() -> Result<PathBuf> {
     Ok(log_file)
 }
 
+/// Get the default installation directory.
+pub fn get_install_dir(pretty_name: &str) -> Result<PathBuf> {
+    let programs_dir = enso_install::win::user_program_files()
+        .or_else(|e| {
+            warn!("Failed to get the user's program files directory: {e:?}");
+            // The Windows might refuse to provide the user's program files directory in some cases,
+            // like brand-new user accounts that don't have the directory created yet.
+            // Thus, we fall back to the default location, as documented in:
+            // https://learn.microsoft.com/en-us/windows/win32/shell/knownfolderid
+            Result::Ok(local_app_data()?.join("Programs"))
+        })
+        .context("Failed to get the user's program files directory")?;
+    Ok(programs_dir.join(pretty_name))
+}
+
 fn main() -> Result {
     let logfile = setup_logging()?;
     info!("Logging to: {}", logfile.display());
@@ -252,7 +267,7 @@ fn main() -> Result {
 
     app.window.set_text(&format!("{} installer", &config.pretty_name));
 
-    let install_dir = enso_install::win::user_program_files()?.join(&config.pretty_name);
+    let install_dir = get_install_dir(&config.pretty_name)?;
     let (handle, receiver) =
         enso_installer::win::spawn_installer_thread(&install_dir, payload, config.clone());
     *app.installer_state.borrow_mut() = Some(receiver);

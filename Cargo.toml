@@ -105,6 +105,7 @@ nix = { version = "0.27.1" }
 octocrab = { git = "https://github.com/enso-org/octocrab", default-features = false, features = [
     "rustls",
 ] }
+path-absolutize = "3.1.1"
 platforms = { version = "3.2.0", features = ["serde"] }
 portpicker = { version = "0.1.1" }
 regex = { version = "1.6.0" }

@@ -56,9 +56,22 @@ pub fn start_menu_programs() -> Result<PathBuf> {
 /// The directory intended for the installation of user-specific non-roaming applications.
 ///
 /// E.g. `C:\Users\username\AppData\Local\Programs`.
+///
+/// # Errors
+/// This function will return an error if the directory does not exist. This happens on brand new
+/// Windows installations or new user profiles.
 pub fn user_program_files() -> Result<PathBuf> {
     known_folder(Shell::FOLDERID_UserProgramFiles)
         .context("Failed to get the local user's Program Files directory path.")
+}
+
+/// The local application data directory.
+///
+/// By default, this is `%LOCALAPPDATA%`, being same as `%USERPROFILE%\AppData\Local`.
+/// For example, `C:\Users\username\AppData\Local`.
+pub fn local_app_data() -> Result<PathBuf> {
+    known_folder(Shell::FOLDERID_LocalAppData)
+        .context("Failed to get the local user's Local AppData directory path.")
 }
 
 /// Query WinAPI for the path of a known folder.
