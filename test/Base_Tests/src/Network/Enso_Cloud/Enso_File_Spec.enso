@@ -284,6 +284,7 @@ add_specs suite_builder setup:Cloud_Tests_Setup = suite_builder.group "Enso Clou
         nested_file.is_writable . should_be_a Boolean
 
     Local_File_Spec.add_create_and_delete_directory_specs group_builder test_root.get
+    Local_File_Spec.add_copy_edge_cases_specs group_builder test_root.get
 
 main filter=Nothing =
     setup = Cloud_Tests_Setup.prepare
