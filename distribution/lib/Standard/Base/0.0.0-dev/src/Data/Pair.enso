@@ -265,9 +265,11 @@ type Pair
              Pair.new 1 2 . each IO.println
     each : (Any -> Any) -> Nothing
     each self f =
-        f self.first
-        f self.second
-        Nothing
+        result = f self.first
+        if result.is_error then Error.throw result else
+          result = f self.second
+          if result.is_error then Error.throw result else
+            Nothing
 
     ## PRIVATE
        Convert to a display representation of this Pair.

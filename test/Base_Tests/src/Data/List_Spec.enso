@@ -224,6 +224,11 @@ add_specs suite_builder = suite_builder.group "List" group_builder->
                 State.put Number s+el
             State.get Number
         sum.should_equal 6
+    
+    group_builder.specify "should allow errors to bubble up out of a .each" <|
+        do_write x =
+            Error.throw "Failed to write "+x.to_text
+        l.each do_write . should_fail_with ("Failed to write 1")
 
     group_builder.specify "should allow reversing with .reverse" <|
         l.reverse.first.should_equal 3

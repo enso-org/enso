@@ -100,6 +100,11 @@ type_spec suite_builder name ctor = suite_builder.group name group_builder->
         ctor 10 20 . each vec_mut.append
         vec_mut.to_vector . should_equal [10, 20]
 
+    group_builder.specify "should allow errors to bubble up out of a .each" <|
+        do_write x =
+            Error.throw "Failed to write "+x.to_text
+        ctor 10 20 . each do_write . should_fail_with ("Failed to write 10")
+
 add_specs suite_builder =
     suite_builder.group "Pair " group_builder->
         group_builder.specify "should be created by new" <|
