@@ -4,8 +4,6 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executors;
 import org.enso.ydoc.polyfill.ParserPolyfill;
 import org.enso.ydoc.polyfill.web.WebEnvironment;
-import org.graalvm.polyglot.Context;
-import org.graalvm.polyglot.HostAccess;
 import org.graalvm.polyglot.Source;
 import org.graalvm.polyglot.io.IOAccess;
 
@@ -17,28 +15,13 @@ public class Main {
 
   public static void main(String[] args) throws Exception {
     var ydoc = Main.class.getResource(YDOC_SERVER_PATH);
-
-    HostAccess hostAccess =
-        HostAccess.newBuilder(HostAccess.EXPLICIT)
-            .allowArrayAccess(true)
-            .allowBufferAccess(true)
-            .build();
-
-    var b =
-        Context.newBuilder("js")
-            .allowIO(IOAccess.ALL)
-            .allowHostAccess(hostAccess)
-            .allowExperimentalOptions(true);
-    var chromePort = Integer.getInteger("inspectPort", -1);
-    if (chromePort > 0) {
-      b.option("inspect", ":" + chromePort);
-    }
+    var contextBuilder = WebEnvironment.createContext().allowIO(IOAccess.ALL);
 
     try (var executor = Executors.newSingleThreadExecutor();
         var parser = new ParserPolyfill()) {
       var ydocJs = Source.newBuilder("js", ydoc).mimeType("application/javascript+module").build();
 
-      CompletableFuture.supplyAsync(b::build, executor)
+      CompletableFuture.supplyAsync(contextBuilder::build, executor)
           .thenAcceptAsync(
               ctx -> {
                 WebEnvironment.initialize(ctx, executor);

@@ -30,7 +30,7 @@ import {
 } from './util/net'
 import type { Uuid } from './yjsModel'
 
-const DEBUG_LOG_RPC = true
+const DEBUG_LOG_RPC = false
 const RPC_TIMEOUT_MS = 15000
 
 export enum ErrorCode {
