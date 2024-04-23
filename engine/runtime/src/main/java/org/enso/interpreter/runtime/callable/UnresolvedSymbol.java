@@ -70,7 +70,9 @@ public final class UnresolvedSymbol implements EnsoObject {
   public Pair<Function, Type> resolveFor(Node node, Type type) {
     if (type != null) {
       var nodeName = node.getRootNode() == null ? "null" : node.getRootNode().getName();
-      log("Resolving for: symbol=%s, node=%s, type=%s".formatted(name, nodeName, type.getQualifiedName().toString()));
+      log(
+          "Resolving for: symbol=%s, node=%s, type=%s"
+              .formatted(name, nodeName, type.getQualifiedName().toString()));
       for (var current : type.allTypes(EnsoContext.get(node))) {
         log("Current type = " + current.getQualifiedName().toString());
         Function candidate = scope.lookupMethodDefinition(current, name);
