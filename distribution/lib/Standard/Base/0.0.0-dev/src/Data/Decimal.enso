@@ -86,7 +86,7 @@ polyglot java import org.enso.base.numeric.Decimal_Utils
    an explicit precision using a `Math_Context`.
 type Decimal
     ## PRIVATE
-    Value (big_decimal : BigDecimal) (hash = Nothing : Integer | Nothing)
+    Value (big_decimal : BigDecimal)
 
     ## ICON number_input
        Construct a `Decimal` from a string or integer.
@@ -1059,10 +1059,10 @@ Comparable.from (_ : Number) = Decimal_Comparator
 Decimal.from (that : Text) = Decimal.from_string that
 
 ## PRIVATE
-Decimal.from (that : Number) =
-    h = Default_Comparator.hash that
-    c = Decimal.new that
-    Decimal.Value c.big_decimal h
+Decimal.from (that : Integer) = Decimal.new that
+Decimal.from (that : Float) =
+    d = Decimal_Utils.fromFloatExact that
+    Decimal.Value d
 
 ## PRIVATE
 Float.from (that : Decimal) = that.to_float

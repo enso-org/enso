@@ -367,13 +367,23 @@ add_specs suite_builder =
     suite_builder.group "edge cases" group_builder->
         group_builder.specify "can support values outside the double range" <|
             d = Decimal.new Float.max_value
+            (d == Float.max_value) . should_be_false
+            ((d * d) == Float.max_value) . should_be_false
+            ((-(d * d)) == -Float.max_value) . should_be_false
+            Comparable.hash_builtin (d * d) . should_equal 2146435072
+            Comparable.hash_builtin -(d * d) . should_equal -1048576
+            Comparable.hash_builtin ((d * d) + 0.1) . should_equal 2146435072
+            Comparable.hash_builtin ((-(d * d)) + 0.1) . should_equal -1048576
+
+        group_builder.specify "from conversion supports values outside the double range" <|
+            d = Float.max_value.to Decimal
             (d == Float.max_value) . should_be_true
             ((d * d) == Float.max_value) . should_be_false
             ((-(d * d)) == -Float.max_value) . should_be_false
-            Comparable.hash_builtin (d * d) . should_equal -1851772048
-            Comparable.hash_builtin -(d * d) . should_equal 1851772048
-            Comparable.hash_builtin ((d * d) + 0.1) . should_equal -1176480326
-            Comparable.hash_builtin ((-(d * d)) + 0.1) . should_equal -534461530
+            Comparable.hash_builtin (d * d) . should_equal 2146435072
+            Comparable.hash_builtin -(d * d) . should_equal -1048576
+            Comparable.hash_builtin ((d * d) + 0.1) . should_equal 2146435072
+            Comparable.hash_builtin ((-(d * d)) + 0.1) . should_equal -1048576
 
     suite_builder.group "arithmetic" group_builder->
         group_builder.specify "should allow arithmetic with Decimals, without Math_Context" <|

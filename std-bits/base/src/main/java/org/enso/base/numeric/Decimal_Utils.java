@@ -59,6 +59,10 @@ public class Decimal_Utils {
     return BigDecimal.valueOf(d);
   }
 
+  public static BigDecimal fromFloatExact(double d) {
+    return new BigDecimal(d);
+  }
+
   public static ConversionResult fromFloat(Double d, MathContext mc) {
     // We do not check for precision loss here because we always attach a
     // warning when converting from float.
@@ -71,26 +75,7 @@ public class Decimal_Utils {
   }
 
   public static int hashCodeOf(BigDecimal bd) {
-    boolean isFractional = bd.remainder(BigDecimal.ONE).compareTo(BigDecimal.ZERO) != 0;
-    boolean fitsInLong = fitsInLong(bd);
-    if (isFractional || fitsInLong) {
-      double d = bd.doubleValue();
-      var fitsInDouble = Double.isFinite(d);
-      if (fitsInDouble) {
-        return Double.hashCode(d);
-      } else {
-        // Infinite values here just means finite values outside the double
-        // range. In this path, the values must be fractional, and so cannot
-        // coincide with a value of any other type (including BigInteger), so we
-        // can hash it however we want.
-        assert isFractional;
-        return bd.hashCode();
-      }
-    } else {
-      // Will not throw ArithmeticException since the value has a 0 fractional part.
-      assert !isFractional;
-      return bd.toBigIntegerExact().hashCode();
-    }
+    return Double.hashCode(bd.doubleValue());
   }
 
   public static BigDecimal round(BigDecimal bd, int decimalPlaces, boolean useBankers) {

@@ -22,7 +22,6 @@ import com.oracle.truffle.api.nodes.ExplodeLoop;
 import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.profiles.ConditionProfile;
 import com.oracle.truffle.api.profiles.LoopConditionProfile;
-import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.time.ZonedDateTime;
 import java.util.Arrays;
@@ -89,34 +88,14 @@ public abstract class HashCodeNode extends Node {
   public abstract long execute(@AcceptsError Object object);
 
   @Specialization
-  long hashCodeForLong(
-      long l, @Shared("interop") @CachedLibrary(limit = "10") InteropLibrary interop) {
+  long hashCodeForLong(long l) {
     // By casting long to double, we lose some precision on purpose
-    return hashCodeForDouble((double) l, interop);
+    return hashCodeForDouble((double) l);
   }
 
   @Specialization
-  long hashCodeForDouble(
-      double d, @Shared("interop") @CachedLibrary(limit = "10") InteropLibrary interop) {
-    if (Double.isNaN(d)) {
-      // NaN is Incomparable, just return a "random" constant
-      return 456879;
-    } else if (d % 1.0 != 0 || interop.fitsInLong(d)) {
-      return Double.hashCode(d);
-    } else {
-      return bigDoubleHash(d);
-    }
-  }
-
-  @TruffleBoundary
-  private static long bigDoubleHash(double d) {
-    try {
-      var dec = new BigDecimal(d);
-      var bigInt = dec.toBigIntegerExact();
-      return bigInt.hashCode();
-    } catch (ArithmeticException e) {
-      throw EnsoContext.get(null).raiseAssertionPanic(null, null, e);
-    }
+  long hashCodeForDouble(double d) {
+    return Double.hashCode(d);
   }
 
   @Specialization
@@ -124,24 +103,15 @@ public abstract class HashCodeNode extends Node {
   long hashCodeForBigInteger(
       EnsoBigInteger bigInteger,
       @Shared("interop") @CachedLibrary(limit = "10") InteropLibrary interop) {
-    var value = bigInteger.getValue();
-    if (interop.fitsInLong(value)) {
-      return hashCodeForLong(value.longValueExact(), interop);
-    } else {
-      return value.hashCode();
-    }
+    return hashCodeForDouble(bigInteger.getValue().doubleValue());
   }
 
-  @Specialization(guards = {"interop.fitsInLong(v) || interop.fitsInBigInteger(v)"})
+  @Specialization(guards = {"interop.fitsInBigInteger(v)"})
   @TruffleBoundary
   long hashCodeForBigInteger(
       Object v, @Shared("interop") @CachedLibrary(limit = "10") InteropLibrary interop) {
     try {
-      if (interop.fitsInLong(v)) {
-        return hashCodeForLong(interop.asLong(v), interop);
-      } else {
-        return interop.asBigInteger(v).hashCode();
-      }
+      return hashCodeForDouble(interop.asBigInteger(v).doubleValue());
     } catch (UnsupportedMessageException ex) {
       throw EnsoContext.get(this).raiseAssertionPanic(this, "Expecting BigInteger", ex);
     }
