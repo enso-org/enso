@@ -650,9 +650,11 @@
 - [Added `Decimal.min` and `.max`.][9663]
 - [Added `Decimal.round`.][9672]
 - [Implemented write support for Enso Cloud files.][9686]
+- [Added `Integer.to_decimal` and `Float.to_decimal`.][9716]
 - [Added `Decimal.floor`, `.ceil`, and `.trunc`.][9694]
 - [Added `recursive` option to `File.delete`.][9719]
 - [Added `Vector.build`.][9725]
+- [Added `Table.running` method][9577]
 - [Added ability to write to Data Links.][9750]
 
 [debug-shortcuts]:
@@ -955,8 +957,10 @@
 [9672]: https://github.com/enso-org/enso/pull/9672
 [9686]: https://github.com/enso-org/enso/pull/9686
 [9694]: https://github.com/enso-org/enso/pull/9694
+[9716]: https://github.com/enso-org/enso/pull/9716
 [9719]: https://github.com/enso-org/enso/pull/9719
 [9725]: https://github.com/enso-org/enso/pull/9725
+[9577]: https://github.com/enso-org/enso/pull/9577
 [9750]: https://github.com/enso-org/enso/pull/9750
 
 #### Enso Compiler

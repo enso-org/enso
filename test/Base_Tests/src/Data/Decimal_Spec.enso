@@ -943,6 +943,18 @@ add_specs suite_builder =
             Math.min (Decimal.new "12E70") (Decimal.new "13E70") . should_equal (Decimal.new "12E70")
             Math.max (Decimal.new "12E70") (Decimal.new "13E70") . should_equal (Decimal.new "13E70")
 
+    suite_builder.group "Integer/Float .to_decimal" group_builder->
+        group_builder.specify ".to_decimal should convert to Decimal" <|
+            12 . to_decimal . should_be_a Decimal
+            12.3 . to_decimal . should_be_a Decimal
+
+        group_builder.specify "Float.to_decimal should attach a warning" <|
+            Problems.expect_warning Loss_Of_Numeric_Precision (12.3 . to_decimal)
+
+        group_builder.specify "examples" <|
+            12 . to_decimal . should_equal (Decimal.new "12")
+            12.3 . to_decimal . should_equal (Decimal.new "12.3")
+
     suite_builder.group "BigDecimal internal representation methods" group_builder->
         group_builder.specify "internal accessors should work correctly" <|
             d = Decimal.new "123.456"
