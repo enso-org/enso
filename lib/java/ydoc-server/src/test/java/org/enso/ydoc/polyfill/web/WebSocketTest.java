@@ -11,6 +11,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.concurrent.atomic.AtomicReferenceArray;
 import org.graalvm.polyglot.Context;
 import org.junit.After;
 import org.junit.Assert;
@@ -45,6 +46,8 @@ public class WebSocketTest {
         WebEnvironment.defaultHostAccess
             .allowAccess(AtomicBoolean.class.getDeclaredMethod("set", boolean.class))
             .allowAccess(AtomicReference.class.getDeclaredMethod("set", Object.class))
+            .allowAccess(
+                AtomicReferenceArray.class.getDeclaredMethod("set", int.class, Object.class))
             .allowAccess(Semaphore.class.getDeclaredMethod("release"))
             .build();
     var contextBuilder = WebEnvironment.createContext(hostAccess);
@@ -90,6 +93,42 @@ public class WebSocketTest {
     lock.acquire();
 
     Assert.assertTrue(res.get());
+  }
+
+  @Test
+  public void dispatchClonedEvent() throws Exception {
+    var lock = new Semaphore(0);
+    var res = new AtomicReferenceArray<>(new Object[2]);
+
+    var code =
+        """
+        var count = 0;
+        var cloneEvent = (e) => new e.constructor(e.type, e);
+        var ws = new WebSocket('ws://localhost:22334');
+        var cb = (event) => {
+          res.set(count, event.data);
+          count += 1;
+          if (count == 2) {
+            ws.removeEventListener('message', cb);
+          }
+          ws.dispatchEvent(cloneEvent(event));
+          lock.release();
+        }
+        ws.addEventListener('open', () => {
+          ws.send('hello');
+        });
+        ws.addEventListener('message', cb);
+        """;
+
+    context.getBindings("js").putMember("lock", lock);
+    context.getBindings("js").putMember("res", res);
+
+    CompletableFuture.supplyAsync(() -> context.eval("js", code), executor).get();
+
+    lock.acquire(2);
+
+    Assert.assertEquals("hello", res.get(0));
+    Assert.assertEquals("hello", res.get(1));
   }
 
   @Test
