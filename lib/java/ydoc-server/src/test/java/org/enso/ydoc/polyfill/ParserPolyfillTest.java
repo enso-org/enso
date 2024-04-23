@@ -3,7 +3,6 @@ package org.enso.ydoc.polyfill;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-
 import org.enso.ydoc.polyfill.web.WebEnvironment;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.io.ByteSequence;
