@@ -671,13 +671,16 @@ type File
        - destination: the destination to move the file to.
        - replace_existing: specifies if the operation should proceed if the
          destination file already exists. Defaults to `False`.
-    copy_to : Writable_File -> Boolean -> File ! File_Error
-    copy_to self (destination : Writable_File) (replace_existing : Boolean = False) = Data_Link_Helpers.disallow_links_in_copy self destination <|
+    copy_to : File_Like -> Boolean -> File ! File_Error
+    copy_to self (destination : File_Like) (replace_existing : Boolean = False) = Data_Link_Helpers.disallow_links_in_copy self destination <|
         Context.Output.if_enabled disabled_message="File copying is forbidden as the Output context is disabled." panic=False <|
-            r = case destination.file of
-                _ : File -> local_file_copy self destination.file replace_existing
-                _ -> destination.copy_from_local self replace_existing
-            r.if_not_error destination.file_for_return
+            ## We defer the `Writable_File` conversion after the 'disallow links' check,
+               because the conversion would already start resolving the data link too soon.
+            writable_destination = Writable_File.from destination
+            r = case writable_destination.file of
+                _ : File -> local_file_copy self writable_destination.file replace_existing
+                _ -> writable_destination.copy_from_local self replace_existing
+            r.if_not_error writable_destination.file_for_return
 
     ## ICON data_output
        Moves the file to the specified destination.
@@ -686,16 +689,19 @@ type File
        - destination: the destination to move the file to.
        - replace_existing: specifies if the operation should proceed if the
          destination file already exists. Defaults to `False`.
-    move_to : Writable_File -> Boolean -> File ! File_Error
-    move_to self (destination : Writable_File) (replace_existing : Boolean = False) = Data_Link_Helpers.disallow_links_in_move self destination <|
+    move_to : File_Like -> Boolean -> File ! File_Error
+    move_to self (destination : File_Like) (replace_existing : Boolean = False) = Data_Link_Helpers.disallow_links_in_move self destination <|
         Context.Output.if_enabled disabled_message="File moving is forbidden as the Output context is disabled." panic=False <|
-            r = case destination.file of
-                _ : File -> local_file_move self destination.file replace_existing
+            ## We defer the `Writable_File` conversion after the 'disallow links' check,
+               because the conversion would already start resolving the data link too soon.
+            writable_destination = Writable_File.from destination
+            r = case writable_destination.file of
+                _ : File -> local_file_move self writable_destination.file replace_existing
                 _ ->
-                    r = destination.copy_from_local self replace_existing
+                    r = writable_destination.copy_from_local self replace_existing
                     r.if_not_error <|
                         self.delete . if_not_error r
-            r.if_not_error destination.file_for_return
+            r.if_not_error writable_destination.file_for_return
 
     ## ICON data_output
        Deletes the file if it exists on disk.
