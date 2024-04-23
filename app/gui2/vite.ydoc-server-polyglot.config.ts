@@ -18,7 +18,7 @@ export default defineConfig({
   cacheDir: fileURLToPath(new URL('../../node_modules/.cache/vite', import.meta.url)),
   publicDir: fileURLToPath(new URL('./public', import.meta.url)),
   envDir: fileURLToPath(new URL('.', import.meta.url)),
-  plugins: [useJavaFfi()],
+  plugins: [usePolyglotFfi()],
   resolve: {
     alias: {
       shared: fileURLToPath(new URL('./shared', import.meta.url)),
@@ -52,18 +52,18 @@ export default defineConfig({
 })
 
 /**
- * Use `ffiJava` module as `ffi` interface during the build.
+ * Use `ffiPolyglot` module as `ffi` interface during the build.
  */
-function useJavaFfi(): Plugin {
-  const ffiJava = fileURLToPath(new URL('./shared/ast/ffiJava.ts', import.meta.url))
+function usePolyglotFfi(): Plugin {
+  const ffiPolyglot = fileURLToPath(new URL('./shared/ast/ffiPolyglot.ts', import.meta.url))
   const ffiBackup = fileURLToPath(new URL('./shared/ast/ffiBackup.ts', import.meta.url))
   const ffi = fileURLToPath(new URL('./shared/ast/ffi.ts', import.meta.url))
 
   return {
-    name: 'use-java-ffi',
+    name: 'use-polyglot-ffi',
     options: () => {
       fs.renameSync(ffi, ffiBackup)
-      fs.copyFileSync(ffiJava, ffi)
+      fs.copyFileSync(ffiPolyglot, ffi)
     },
     buildEnd: () => {
       fs.renameSync(ffiBackup, ffi)
