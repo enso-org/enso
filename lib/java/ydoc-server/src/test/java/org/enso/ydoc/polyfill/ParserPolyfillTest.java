@@ -3,8 +3,9 @@ package org.enso.ydoc.polyfill;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+
+import org.enso.ydoc.polyfill.web.WebEnvironment;
 import org.graalvm.polyglot.Context;
-import org.graalvm.polyglot.HostAccess;
 import org.graalvm.polyglot.io.ByteSequence;
 import org.junit.After;
 import org.junit.Assert;
@@ -23,23 +24,12 @@ public class ParserPolyfillTest {
   public void setup() throws Exception {
     executor = Executors.newSingleThreadExecutor();
     parser = new ParserPolyfill();
-
-    var hostAccess =
-        HostAccess.newBuilder(HostAccess.EXPLICIT)
-            .allowArrayAccess(true)
-            .allowBufferAccess(true)
-            .build();
-    var b = Context.newBuilder("js").allowHostAccess(hostAccess).allowExperimentalOptions(true);
-
-    var chromePort = Integer.getInteger("inspectPort", -1);
-    if (chromePort > 0) {
-      b.option("inspect", ":" + chromePort);
-    }
+    var contextBuilder = WebEnvironment.createContext();
 
     context =
         CompletableFuture.supplyAsync(
                 () -> {
-                  var ctx = b.build();
+                  var ctx = contextBuilder.build();
                   parser.initialize(ctx);
                   return ctx;
                 },

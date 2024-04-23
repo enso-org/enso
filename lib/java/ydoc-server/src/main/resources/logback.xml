@@ -11,8 +11,6 @@
     </encoder>
   </appender>
 
-<!--  <logger name="org.enso.ydoc.polyfill.web.EventTarget" level="debug"/>-->
-
   <root level="error">
     <appender-ref ref="STDOUT"/>
   </root>
