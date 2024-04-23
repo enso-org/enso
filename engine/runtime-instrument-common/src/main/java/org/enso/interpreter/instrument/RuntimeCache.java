@@ -34,7 +34,7 @@ public final class RuntimeCache implements java.util.function.Function<String, O
     if (weight != null && weight > 0) {
       var ref = new SoftReference<>(value);
       cache.put(key, ref);
-      expressions.put(key, ref);
+      expressions.put(key, new WeakReference<>(value));
       valuesToKeys.put(value, key);
       return true;
     } else {
