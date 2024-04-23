@@ -601,7 +601,7 @@ const groupColors = computed(() => {
       @zoomOut="graphNavigator.stepZoom(-1)"
       @toggleCodeEditor="toggleCodeEditor"
       @collapseNodes="collapseNodes"
-      @changeNodesColor="toggleColorPicker"
+      @toggleColorPicker="toggleColorPicker"
     />
     <PlusButton @pointerdown.stop @click.stop="addNodeAuto()" @pointerup.stop />
     <Transition>
