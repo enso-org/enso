@@ -67,9 +67,11 @@ import ResetPassword from '#/pages/authentication/ResetPassword'
 import RestoreAccount from '#/pages/authentication/RestoreAccount'
 import SetUsername from '#/pages/authentication/SetUsername'
 import Dashboard from '#/pages/dashboard/Dashboard'
-import Subscribe from '#/pages/subscribe/Subscribe'
+import { Subscribe } from '#/pages/subscribe/Subscribe'
+import { SubscribeSuccess } from '#/pages/subscribe/SubscribeSuccess'
 
 import * as errorBoundary from '#/components/ErrorBoundary'
+import * as loader from '#/components/Loader'
 import * as rootComponent from '#/components/Root'
 
 import type Backend from '#/services/Backend'
@@ -387,8 +389,18 @@ function AppRouter(props: AppRouterProps) {
               path={appUtils.SUBSCRIBE_PATH}
               element={
                 <errorBoundary.ErrorBoundary>
-                  <React.Suspense fallback={<div>Loading...</div>}>
+                  <React.Suspense fallback={<loader.Loader />}>
                     <Subscribe />
+                  </React.Suspense>
+                </errorBoundary.ErrorBoundary>
+              }
+            />
+            <router.Route
+              path={appUtils.SUBSCRIBE_SUCCESS_PATH}
+              element={
+                <errorBoundary.ErrorBoundary>
+                  <React.Suspense fallback={<loader.Loader />}>
+                    <SubscribeSuccess />
                   </React.Suspense>
                 </errorBoundary.ErrorBoundary>
               }
@@ -415,6 +427,9 @@ function AppRouter(props: AppRouterProps) {
             <router.Route path={appUtils.RESTORE_USER_PATH} element={<RestoreAccount />} />
           </router.Route>
         </router.Route>
+
+        {/* 404 page */}
+        <router.Route path="*" element={<router.Navigate to="/" replace />} />
       </React.Fragment>
     </router.Routes>
   )

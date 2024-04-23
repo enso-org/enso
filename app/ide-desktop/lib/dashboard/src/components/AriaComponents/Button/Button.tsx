@@ -20,36 +20,108 @@ export interface ButtonProps extends Readonly<aria.ButtonProps> {
   /** Falls back to `aria-label`. Pass `false` to explicitly disable the tooltip. */
   readonly tooltip?: React.ReactNode
   readonly loading?: boolean
-  readonly variant: 'cancel' | 'delete' | 'icon' | 'submit'
+  /**
+   * The variant of the button
+   */
+  readonly variant: Variant
+  /**
+   * The icon to display in the button
+   */
   readonly icon?: string
-  /** FIXME: This is not yet implemented
+  /**
+   * The size of the button
+   */
+  readonly size?: Size
+  readonly rounding?: Roundings
+  /**
+   * Button takes the full width of its container
+   */
+  readonly fullWidth?: boolean
+  /**
    * The position of the icon in the button
-   * @default 'start' */
-  readonly iconPosition?: 'end' | 'start'
+   * @default 'start'
+   */
+  readonly iconPosition?: IconPosition
 }
 
+/**
+ *
+ */
+export type Roundings = 'full' | 'large' | 'medium' | 'none' | 'small' | 'xlarge'
+
+/**
+ * The size of the button
+ */
+export type Size = 'custom' | 'hero' | 'large' | 'medium' | 'small' | 'xsmall'
+
+/**
+ * The position of the icon in the button
+ */
+export type IconPosition = 'end' | 'start'
+/**
+ * The variant of the button
+ */
+export type Variant = 'cancel' | 'custom' | 'delete' | 'icon' | 'outline' | 'primary' | 'submit'
+
 const DEFAULT_CLASSES =
-  'flex cursor-pointer rounded-sm border border-transparent transition-[opacity,outline-offset] duration-200 ease-in-out'
+  'flex whitespace-nowrap cursor-pointer border border-transparent transition-[opacity,outline-offset] duration-200 ease-in-out select-none text-center items-center justify-center'
 const FOCUS_CLASSES =
   'focus-visible:outline-offset-2 focus:outline-none focus-visible:outline focus-visible:outline-primary'
-const SUBMIT_CLASSES = 'bg-invite text-white opacity-80 hover:opacity-100'
-const CANCEL_CLASSES = 'bg-selected-frame opacity-80 hover:opacity-100'
-const DELETE_CLASSES = 'bg-delete text-white'
-const ICON_CLASSES = 'opacity-50 hover:opacity-100'
 const EXTRA_CLICK_ZONE_CLASSES = 'flex relative before:inset-[-12px] before:absolute before:z-10'
 const DISABLED_CLASSES = 'disabled:opacity-50 disabled:cursor-not-allowed'
-const SIZE_CLASSES = 'px-2 py-1'
+const LOADING_CLASSES = 'cursor-wait'
+const FULL_WIDTH_CLASSES = 'w-full'
 
-const CLASSES_FOR_VARIANT: Record<ButtonProps['variant'], string> = {
-  cancel: CANCEL_CLASSES,
-  delete: DELETE_CLASSES,
-  icon: ICON_CLASSES,
-  submit: SUBMIT_CLASSES,
+const CLASSES_FOR_SIZE: Record<Size, string> = {
+  hero: 'px-8 py-4 text-lg',
+  large: 'px-6 py-3 text-base',
+  medium: 'px-4 py-2 text-sm',
+  small: 'px-3 py-1 text-xs',
+  xsmall: 'px-2 py-1 text-xs',
+  custom: '',
+}
+
+const CLASSES_FOR_VARIANT: Record<Variant, string> = {
+  custom: '',
+  primary: 'bg-primary text-white hover:bg-primary-90',
+  cancel: 'bg-selected-frame opacity-80 hover:opacity-100',
+  delete: 'bg-delete text-white',
+  icon: 'opacity-50 hover:opacity-100',
+  submit: 'bg-invite text-white opacity-80 hover:opacity-100',
+  outline: 'border-primary text-primary font-bold hover:border-primary-90',
+}
+
+const CLASSES_FOR_ROUNDING: Record<Roundings, string> = {
+  full: 'rounded-full',
+  large: 'rounded-lg',
+  medium: 'rounded-md',
+  none: 'rounded-none',
+  small: 'rounded-sm',
+  xlarge: 'rounded-xl',
+}
+
+const ICON_POSITION: Record<IconPosition, string> = {
+  start: '',
+  end: 'flex-row-reverse',
 }
 
 /** A button allows a user to perform an action, with mouse, touch, and keyboard interactions. */
 export function Button(props: ButtonProps) {
-  const { tooltip, className, children, variant, icon, loading = false, ...ariaButtonProps } = props
+  const {
+    className,
+    children,
+    variant,
+    icon,
+    loading = false,
+    isDisabled = loading,
+    type = 'button',
+    iconPosition = 'start',
+    size = 'xsmall',
+    fullWidth = false,
+    rounding = 'large',
+    tooltip,
+    ...ariaButtonProps
+  } = props
   const focusChildProps = focusHooks.useFocusChild()
 
   const tooltipElement = tooltip === false ? null : tooltip ?? ariaButtonProps['aria-label']
@@ -58,27 +130,36 @@ export function Button(props: ButtonProps) {
     DEFAULT_CLASSES,
     DISABLED_CLASSES,
     FOCUS_CLASSES,
-    SIZE_CLASSES,
-    CLASSES_FOR_VARIANT[variant]
+    CLASSES_FOR_VARIANT[variant],
+    CLASSES_FOR_SIZE[size],
+    CLASSES_FOR_ROUNDING[rounding],
+    { [LOADING_CLASSES]: loading, [FULL_WIDTH_CLASSES]: fullWidth }
   )
 
   const childrenFactory = (): React.ReactNode => {
-    if (loading) {
-      return <Spinner state={spinnerModule.SpinnerState.loadingMedium} size={16} />
-    } else if (variant === 'icon' && icon != null) {
+    // Icon only button
+    if (variant === 'icon' && icon != null) {
       return (
-        <div className={EXTRA_CLICK_ZONE_CLASSES}>
-          <SvgMask src={icon} />
-        </div>
+        <aria.Text className={EXTRA_CLICK_ZONE_CLASSES}>
+          <SvgMask src={icon} className="flex-none" />
+        </aria.Text>
       )
     } else {
-      return <>{children}</>
+      // Default button
+      return (
+        <aria.Text className={clsx('flex items-center gap-2', ICON_POSITION[iconPosition])}>
+          {icon != null && <SvgMask src={icon} className="flex-none" />}
+          <>{children}</>
+        </aria.Text>
+      )
     }
   }
 
   const button = (
     <aria.Button
       {...aria.mergeProps<aria.ButtonProps>()(ariaButtonProps, focusChildProps, {
+        type,
+        isDisabled,
         className: values =>
           tailwindMerge.twMerge(
             classes,
@@ -86,7 +167,15 @@ export function Button(props: ButtonProps) {
           ),
       })}
     >
-      {childrenFactory()}
+      <aria.Text className="relative block">
+        <aria.Text className={clsx('block', { invisible: loading })}>{childrenFactory()}</aria.Text>
+
+        {loading && (
+          <aria.Text className="absolute inset-0 flex items-center justify-center">
+            <Spinner state={spinnerModule.SpinnerState.loadingMedium} size={16} />
+          </aria.Text>
+        )}
+      </aria.Text>
     </aria.Button>
   )
 

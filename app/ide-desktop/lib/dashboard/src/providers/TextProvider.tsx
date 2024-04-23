@@ -16,6 +16,14 @@ export interface TextContextType {
   readonly setLanguage: (newLanguage: text.Language) => void
 }
 
+/**
+ *
+ */
+export type GetText = <K extends text.TextId>(
+  key: K,
+  ...replacements: text.Replacements[K]
+) => string
+
 const TextContext = React.createContext<TextContextType>({
   language: text.Language.english,
   /** Set `this.language`. It is NOT RECOMMENDED to use the default value, as this does not trigger
@@ -45,8 +53,8 @@ export function useText() {
   const { language, setLanguage } = React.useContext(TextContext)
   const localizedText = text.TEXTS[language]
 
-  const getText = React.useCallback(
-    <K extends text.TextId>(key: K, ...replacements: text.Replacements[K]) => {
+  const getText = React.useCallback<GetText>(
+    (key, ...replacements) => {
       const template = localizedText[key]
       return replacements.length === 0
         ? template
@@ -59,5 +67,5 @@ export function useText() {
     [localizedText]
   )
 
-  return { language, setLanguage, getText }
+  return { language, setLanguage, getText } as const
 }
