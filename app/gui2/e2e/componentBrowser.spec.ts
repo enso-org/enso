@@ -60,7 +60,6 @@ test('Different ways of opening Component Browser', async ({ page }) => {
 
 test('Opening Component Browser with small plus buttons', async ({ page }) => {
   await actions.goToGraph(page)
-  await actions.showAllNodes(page)
 
   // Small (+) button shown when node is hovered
   await page.keyboard.press('Escape')
@@ -102,7 +101,7 @@ test('Graph Editor pans to Component Browser', async ({ page }) => {
   await expect(locate.graphNodeByBinding(page, 'five')).toBeInViewport()
   const outputPort = await locate.outputPortCoordinates(locate.graphNodeByBinding(page, 'final'))
   await page.mouse.click(outputPort.x, outputPort.y)
-  await page.mouse.click(100, 1550)
+  await page.mouse.click(100, 1700)
   await expect(locate.graphNodeByBinding(page, 'five')).not.toBeInViewport()
   await expectAndCancelBrowser(page, 'final.')
 })
