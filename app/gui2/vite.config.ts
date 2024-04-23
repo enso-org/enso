@@ -122,7 +122,9 @@ function gatewayServer(): Plugin {
           }
           args.push('-jar', ydocServerJar)
           ydocServer = spawn('java', args)
-          ydocServer.stdout.on('data', (data) => console.log(`ydoc: ${data}`))
+          if (IS_POLYGLOT_YDOC_SERVER_DEBUG) {
+            ydocServer.stdout.on('data', (data) => console.log(`ydoc: ${data}`))
+          }
           ydocServer.stderr.on('data', (data) => console.log(`ydoc: ${data}`))
         }
         if (!existsSync(ydocServerJar)) {
