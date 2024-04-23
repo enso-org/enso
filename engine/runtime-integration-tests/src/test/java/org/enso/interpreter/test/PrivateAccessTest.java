@@ -85,9 +85,37 @@ public class PrivateAccessTest extends TestBase {
     }
   }
 
+  @Test
+  public void canPatternMatchOnPrivateConstructorFromSameProject() throws IOException {
+    var mainSrc =
+        """
+        type My_Type
+            private Cons data
+        main =
+            obj = My_Type.Cons 42
+            case obj of
+                My_Type.Cons x -> x
+                _ -> 0
+        """;
+    var projDir = createProject("My_Project", mainSrc);
+    var mainSrcPath = projDir.resolve("src").resolve("Main.enso");
+    try (var ctx =
+        defaultContextBuilder()
+            .option(RuntimeOptions.PROJECT_ROOT, projDir.toAbsolutePath().toString())
+            .build()) {
+      var polyCtx = new PolyglotContext(ctx);
+      var mainMod = polyCtx.evalModule(mainSrcPath.toFile());
+      var assocType = mainMod.getAssociatedType();
+      var mainMethod = mainMod.getMethod(assocType, "main").get();
+      var res = mainMethod.execute();
+      assertThat(res.isNumber(), is(true));
+      assertThat(res.asInt(), is(42));
+    }
+  }
+
   /** Tests that pattern matching on private constructors fails in compilation. */
   @Test
-  public void cannotPatternOnMatchPrivateConstructor() throws IOException {
+  public void cannotPatternMatchOnPrivateConstructorFromDifferentProject() throws IOException {
     var libSrc =
         """
         type My_Type

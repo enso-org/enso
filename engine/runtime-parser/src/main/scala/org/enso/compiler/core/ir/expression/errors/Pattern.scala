@@ -113,4 +113,13 @@ object Pattern {
       s"Wrong number of fields when matching on $consName." +
       s" Expected $expected fields, but provided $actual"
   }
+
+  case class PrivateConstructor(
+    consName: String,
+    callerProject: String,
+    calleeProject: String
+  ) extends Reason {
+    override def explain: String =
+      s"Project-private constructor '$consName' in project '$calleeProject' cannot be used from project '$callerProject'"
+  }
 }
