@@ -145,23 +145,23 @@ mod ui {
             let inner = Rc::new(data);
             let ui = Ui { inner: inner.clone(), default_handler: Default::default() };
 
-            for handle in [&ui.window.handle] {
-                let evt_ui = Rc::downgrade(&inner);
-                let handle_events = move |_evt, _evt_data, _handle| {
-                    if let Some(evt_ui) = evt_ui.upgrade() {
-                        match _evt {
-                            nwg::Event::OnTimerTick =>
-                                if &_handle == &evt_ui.timer {
-                                    InstallerApp::tick(&evt_ui)
-                                },
-                            _ => {}
-                        }
+            let evt_ui = Rc::downgrade(&inner);
+            let handle_events = move |_evt, _evt_data, _handle| {
+                if let Some(evt_ui) = evt_ui.upgrade() {
+                    match _evt {
+                        nwg::Event::OnTimerTick =>
+                            if &_handle == &evt_ui.timer {
+                                InstallerApp::tick(&evt_ui)
+                            },
+                        _ => {}
                     }
-                };
+                }
+            };
 
-                let event_handler_handle = nwg::full_bind_event_handler(handle, handle_events);
-                *ui.default_handler.borrow_mut() = Some(event_handler_handle);
-            }
+            let event_handler_handle =
+                nwg::full_bind_event_handler(ui.window.handle, handle_events);
+            *ui.default_handler.borrow_mut() = Some(event_handler_handle);
+
             nwg::FlexboxLayout::builder()
                 .parent(&ui.window)
                 .flex_direction(FlexDirection::Row)
