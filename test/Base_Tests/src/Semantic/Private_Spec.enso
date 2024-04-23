@@ -6,6 +6,9 @@ from enso_dev.Helpers import Priv_Type
 
 polyglot java import org.enso.base_test_helpers.CallbackHelper
 
+type My_Priv_Type
+    private Cons data
+
 
 add_specs spec_builder =
     spec_builder.group "Private constructors" group_builder->
@@ -62,6 +65,15 @@ add_specs spec_builder =
             Test.expect_panic Private_Access <|
                 Priv_Type.in_ctx <|
                     Priv_Type.Cons 42
+
+        # Note that pattern matching on project-private constructor from a different project
+        # is a compilation error. So we can only test it for the same project.
+        group_builder.specify "can pattern match on private constructor from the same project" <|
+            obj = My_Priv_Type.Cons 42
+            res = case obj of
+                My_Priv_Type.Cons x -> x
+                _ -> 0
+            res . should_equal 42
 
 
 foreign js js_access_field obj = """
