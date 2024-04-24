@@ -636,7 +636,11 @@ export const useGraphStore = defineStore('graph', () => {
       exprId = nodeId
     }
 
-    if (exprId == null) bail(`Cannot find expression located by ${locator}`)
+    if (exprId == null) {
+      const locatorStr =
+        typeof locator === 'string' ? locator : `${locator.binding}/${locator.expr}`
+      bail(`Cannot find expression located by ${locatorStr}`)
+    }
 
     const update_: ExpressionUpdate = {
       expressionId: db.idToExternal(exprId)!,
