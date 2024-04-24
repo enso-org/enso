@@ -375,7 +375,7 @@ type Enso_File
        - destination: the destination to move the file to.
        - replace_existing: specifies if the operation should proceed if the
          destination file already exists. Defaults to `False`.
-    move_to : File_Like -> Boolean -> Nothing ! File_Error
+    move_to : File_Like -> Boolean -> Any ! File_Error
     move_to self (destination : File_Like) (replace_existing : Boolean = False) = Data_Link_Helpers.disallow_links_in_move self destination <|
         # TODO we could have a fast path if Cloud will support renaming files
         r = self.copy_to destination replace_existing
