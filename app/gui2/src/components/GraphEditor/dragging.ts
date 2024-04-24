@@ -200,3 +200,5 @@ export function useDragging() {
     },
   }
 }
+
+function useEdgeDragging() {}

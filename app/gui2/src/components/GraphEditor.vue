@@ -133,9 +133,23 @@ useEvent(window, 'keydown', (event) => {
     (!keyboardBusy() && graphBindingsHandler(event)) ||
     (!keyboardBusyExceptIn(codeEditorArea.value) && codeEditorHandler(event))
 })
-useEvent(window, 'pointerdown', (e) => interaction.handlePointerDown(e, graphNavigator), {
-  capture: true,
-})
+useEvent(
+  window,
+  'pointerdown',
+  (e) => interaction.handlePointerEvent(e, 'pointerdown', graphNavigator),
+  {
+    capture: true,
+  },
+)
+
+useEvent(
+  window,
+  'pointerup',
+  (e) => interaction.handlePointerEvent(e, 'pointerup', graphNavigator),
+  {
+    capture: true,
+  },
+)
 
 // === Keyboard/Mouse bindings ===
 
