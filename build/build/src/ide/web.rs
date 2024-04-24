@@ -339,14 +339,18 @@ impl IdeDesktop {
                 })
                 .ok();
 
-            let installer_desired_filename = format!("enso-win-{}.exe", ENSO_VERSION.get()?);
-            let installer_desired_path = output_path.join(&installer_desired_filename);
+            let ide_artifacts = crate::project::ide::Artifact::new(
+                target_os,
+                TARGET_ARCH,
+                &ENSO_VERSION.get()?,
+                &output_path,
+            );
 
             let config = enso_install_config::bundler::Config {
                 electron_builder_config:  electron_config,
                 unpacked_electron_bundle: output_path.join("win-unpacked"),
                 repo_root:                self.repo_root.to_path_buf(),
-                output_file:              installer_desired_path,
+                output_file:              ide_artifacts.image,
                 intermediate_dir:         output_path.to_path_buf(),
                 certificate:              code_signing_certificate,
             };

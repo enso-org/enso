@@ -49,10 +49,28 @@ pub struct InstallerApp {
     /// Note that despite the name, the `AnimationTimer` is recommended to be used as a total
     /// replacement for the `Timer`.
     pub timer:           nwg::AnimationTimer,
+    /// The non-UI state of the installer application.
+    ///
+    /// Facilitates communication between the "installer backend" thread and the UI thread.
     pub installer_state: std::cell::RefCell<Option<std::sync::mpsc::Receiver<InstallerUpdate>>>,
 }
 
 impl InstallerApp {
+    fn dispatch_event(
+        &self,
+        event: nwg::Event,
+        _evt_data: nwg::EventData,
+        handle: nwg::ControlHandle,
+    ) {
+        match event {
+            nwg::Event::OnTimerTick =>
+                if &handle == &self.timer {
+                    self.tick();
+                },
+            _ => {}
+        }
+    }
+
     fn tick(&self) {
         let installer_state = self.installer_state.borrow();
         if let Some(receiver) = installer_state.deref() {
@@ -147,15 +165,9 @@ mod ui {
             let ui = Ui { inner: inner.clone(), default_handler: Default::default() };
 
             let evt_ui = Rc::downgrade(&inner);
-            let handle_events = move |_evt, _evt_data, _handle| {
+            let handle_events = move |evt, evt_data, handle| {
                 if let Some(evt_ui) = evt_ui.upgrade() {
-                    match _evt {
-                        nwg::Event::OnTimerTick =>
-                            if &_handle == &evt_ui.timer {
-                                InstallerApp::tick(&evt_ui)
-                            },
-                        _ => {}
-                    }
+                    evt_ui.dispatch_event(evt, evt_data, handle);
                 }
             };
 
@@ -244,10 +256,20 @@ pub fn get_install_dir(pretty_name: &str) -> Result<PathBuf> {
 }
 
 fn main() -> Result {
-    let logfile = setup_logging()?;
-    info!("Logging to: {}", logfile.display());
-
     let config = enso_installer::win::fill_config()?;
+
+    let dialog_title = format!("{} installer", &config.pretty_name);
+    let logfile = match setup_logging() {
+        Ok(logfile) => {
+            info!("Logging to: {}", logfile.display());
+            logfile
+        }
+        Err(err) => {
+            // Special case of error dialog message: there is no log yet, so we cannot point user to
+            // it. There is no window yet, so the dialog cannot be modal.
+            nwg::fatal_message(&dialog_title, &format!("Failed to create a log file: {err:?}"));
+        }
+    };
     let payload = enso_installer::Payload {
         data:     enso_install::get_package_payload()?,
         metadata: enso_installer::access_payload_metadata(),
@@ -265,11 +287,11 @@ fn main() -> Result {
 
     let app = InstallerApp::build_ui(app).expect("Failed to build UI");
 
-    app.window.set_text(&format!("{} installer", &config.pretty_name));
+    app.window.set_text(&dialog_title);
 
     let install_dir = get_install_dir(&config.pretty_name)?;
     let (handle, receiver) =
-        enso_installer::win::spawn_installer_thread(&install_dir, payload, config.clone());
+        enso_installer::win::spawn_installer_thread(&install_dir, payload, config.clone())?;
     *app.installer_state.borrow_mut() = Some(receiver);
 
     let installed_app = install_dir.join(&config.executable_filename);

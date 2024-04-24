@@ -53,6 +53,13 @@ pub fn register_uninstaller(
     Ok(())
 }
 
+// pub struct InstallerJob {
+//     pub install_location: &Path,
+//     pub payload: Payload,
+//     pub config: &Config,
+//     pub sender: &std::sync::mpsc::Sender<crate::InstallerUpdate>,
+// }
+
 /// Install Enso.
 ///
 /// The archive payload is binary data of the tar.gz archive that contains the Enso app.
@@ -63,14 +70,13 @@ pub fn install_with_updates(
     sender: &std::sync::mpsc::Sender<crate::InstallerUpdate>,
 ) -> Result {
     let send = |update| {
-        info!("{:?}", update);
+        info!("Sending update: {update:?}");
         let _ = sender.send(update);
     };
     macro_rules! stage_at {
         ($progress:tt, $($arg:tt)*) => {
-            let _ = sender.send(crate::InstallerUpdate::Stage(format!($($arg)*)));
-            let _ = sender.send(crate::InstallerUpdate::Progress($progress));
-            info!($($arg)*);
+            send(crate::InstallerUpdate::Stage(format!($($arg)*)));
+            send(crate::InstallerUpdate::Progress($progress));
         };
     }
 
@@ -85,8 +91,7 @@ pub fn install_with_updates(
     //       the new and the old installation size.
     match check_disk_space(install_location, total_bytes) {
         Ok(Some(msg)) => {
-            let _ =
-                sender.send(crate::InstallerUpdate::Finished(Err(anyhow::anyhow!(msg.clone()))));
+            send(crate::InstallerUpdate::Finished(Err(anyhow::anyhow!(msg.clone()))));
             bail!(msg);
         }
         Ok(None) => {} // Ok, enough space.
@@ -122,7 +127,7 @@ pub fn install_with_updates(
         let bytes_ratio = bytes_extracted as f64 / total_bytes as f64;
         let progress = extraction_progress_start
             + extraction_progress_step * (files_ratio + bytes_ratio) / 2.0;
-        let _ = sender.send(crate::InstallerUpdate::Progress(progress));
+        send(crate::InstallerUpdate::Progress(progress));
         Some(install_location.join(entry.path().ok()?))
     };
     ide_ci::archive::tar::extract_files_sync(archive, to_our_path)?;
@@ -152,7 +157,7 @@ pub fn install_with_updates(
 
 
     stage_at!(1.0, "Installation complete.");
-    let _ = sender.send(crate::InstallerUpdate::Finished(Ok(())));
+    send(crate::InstallerUpdate::Finished(Ok(())));
     Ok(())
 }
 
@@ -160,19 +165,22 @@ pub fn spawn_installer_thread(
     install_location: impl AsRef<Path>,
     payload: Payload,
     config: Config,
-) -> (std::thread::JoinHandle<Result>, std::sync::mpsc::Receiver<crate::InstallerUpdate>) {
+) -> Result<(std::thread::JoinHandle<Result>, std::sync::mpsc::Receiver<crate::InstallerUpdate>)> {
     let install_location = install_location.as_ref().to_path_buf();
     let (sender, receiver) = std::sync::mpsc::channel();
-    let handle = std::thread::spawn(move || {
-        let result = install_with_updates(&install_location, payload, &config, &sender);
-        if let Err(err) = result {
-            let msg = format!("Installation failed: {err:?}.");
-            let _ = sender.send(crate::InstallerUpdate::Finished(Result::Err(err)));
-            bail!(msg);
-        }
-        Ok(())
-    });
-    (handle, receiver)
+    let handle = std::thread::Builder::new()
+        .name("Installer Logic".into())
+        .spawn(move || {
+            let result = install_with_updates(&install_location, payload, &config, &sender);
+            if let Err(err) = result {
+                let msg = format!("Installation failed: {err:?}.");
+                let _ = sender.send(crate::InstallerUpdate::Finished(Result::Err(err)));
+                bail!(msg);
+            }
+            Ok(())
+        })
+        .context("Failed to spawn the installer logic thread.")?;
+    Ok((handle, receiver))
 }
 
 /// All the configuration and constants needed to build the installer.

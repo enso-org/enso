@@ -56,6 +56,7 @@ pub fn file_log_layer<S>(file: std::fs::File) -> impl Layer<S> + Debug
 where S: Subscriber + for<'a> LookupSpan<'a> + Debug + Send + Sync + 'static {
     tracing_subscriber::fmt::layer()
         .with_span_events(FmtSpan::NEW | FmtSpan::CLOSE)
+        .with_thread_names(true)
         .with_writer(file)
 }
 
