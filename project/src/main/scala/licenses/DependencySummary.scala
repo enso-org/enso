@@ -103,7 +103,11 @@ case class ReviewedDependency(
       case LicenseReview.NotReviewed => 1
       case _                         => 0
     }
-    unreviewedFiles + unreviewedCopyrights + unreviewedLicenses
+
+    // If there's no info at all, that will also be a problem - add +1 problem to bring such dependencies higher up.
+    val missingInfo = if (files.isEmpty && copyrights.isEmpty) 1 else 0
+
+    unreviewedFiles + unreviewedCopyrights + unreviewedLicenses + missingInfo
   }
 }
 
