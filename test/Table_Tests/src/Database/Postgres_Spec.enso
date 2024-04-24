@@ -402,7 +402,7 @@ postgres_specific_spec suite_builder create_connection_fn db_name setup =
             t2.at "Y" . value_type . scale . should_equal Nothing
             t2.at "X" . to_vector . should_equal [10, x]
             # Only works by approximation:
-            t2.at "Y" . to_vector . should_equal [20, x+10]
+            t2.at "Y" . to_vector . should_equal [20, x+10 . to_float]
             t2.at "Y" . cast Value_Type.Char . to_vector . should_equal ["20", (x+10).to_text]
 
             m2 = t2.remove_warnings.read
@@ -410,7 +410,7 @@ postgres_specific_spec suite_builder create_connection_fn db_name setup =
             # As noted above - once operations are performed, the scale=0 may be lost and the column will be approximated as a float.
             m2.at "Y" . value_type . should_equal Value_Type.Float
             m2.at "X" . to_vector . should_equal [10, x]
-            m2.at "Y" . to_vector . should_equal [20, x+10]
+            m2.at "Y" . to_vector . should_equal [20, x+10 . to_float]
             w2 = Problems.expect_only_warning Inexact_Type_Coercion m2
             w2.requested_type . should_equal (Value_Type.Decimal precision=Nothing scale=Nothing)
             w2.actual_type . should_equal Value_Type.Float
