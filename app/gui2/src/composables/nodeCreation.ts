@@ -17,14 +17,17 @@ import { mustExtend } from 'shared/util/types'
 
 export type NodeCreation = ReturnType<typeof useNodeCreation>
 
-type GraphIndependentPlacement = ['fixed', Vec2] | 'mouse' | ['mouseEvent', Vec2]
-type GraphAwarePlacement = 'viewport' | ['source', NodeId]
+type GraphIndependentPlacement =
+  | { type: 'fixed'; position: Vec2 }
+  | { type: 'mouse' }
+  | { type: 'mouseEvent'; position: Vec2 }
+type GraphAwarePlacement = { type: 'viewport' } | { type: 'source'; node: NodeId }
 export type PlacementStrategy = GraphIndependentPlacement | GraphAwarePlacement
 
 function isIndependent(
   strategy: GraphIndependentPlacement | GraphAwarePlacement,
 ): strategy is GraphIndependentPlacement {
-  if (strategy === 'viewport' || (Array.isArray(strategy) && strategy[0] === 'source')) {
+  if (strategy.type === 'viewport' || strategy.type === 'source') {
     mustExtend<GraphAwarePlacement, typeof strategy>()
     return false
   } else {
@@ -49,14 +52,14 @@ export function useNodeCreation(
 
   function placeNode(placement: PlacementStrategy, place: (nodes?: Iterable<Rect>) => Vec2): Vec2 {
     return (
-      placement === 'viewport' ? place()
-      : placement === 'mouse' ?
+      placement.type === 'viewport' ? place()
+      : placement.type === 'mouse' ?
         graphNavigator.sceneMousePos ?
           mouseDictatedPlacement(graphNavigator.sceneMousePos)
         : place()
-      : placement[0] === 'mouseEvent' ? mouseDictatedPlacement(placement[1])
-      : placement[0] === 'source' ? place(filterDefined([graphStore.visibleArea(placement[1])]))
-      : placement[0] === 'fixed' ? placement[1]
+      : placement.type === 'mouseEvent' ? mouseDictatedPlacement(placement.position)
+      : placement.type === 'source' ? place(filterDefined([graphStore.visibleArea(placement.node)]))
+      : placement.type === 'fixed' ? placement.position
       : assertNever(placement)
     )
   }

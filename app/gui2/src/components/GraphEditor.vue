@@ -73,8 +73,7 @@ function selectionBounds() {
     const rect = graphStore.visibleArea(id)
     if (rect) bounds = Rect.Bounding(bounds, rect)
   }
-  if (bounds.isFinite())
-    return bounds
+  if (bounds.isFinite()) return bounds
 }
 
 function zoomToSelected() {
@@ -84,7 +83,8 @@ function zoomToSelected() {
 
 function panToSelected() {
   const bounds = selectionBounds()
-  if (bounds) graphNavigator.panTo([new Vec2(bounds.left, bounds.top), new Vec2(bounds.right, bounds.bottom)])
+  if (bounds)
+    graphNavigator.panTo([new Vec2(bounds.left, bounds.top), new Vec2(bounds.right, bounds.bottom)])
 }
 
 // == Breadcrumbs ==
@@ -169,7 +169,7 @@ const graphBindingsHandler = graphBindings.handler({
   openComponentBrowser() {
     if (keyboardBusy()) return false
     if (graphNavigator.sceneMousePos != null && !componentBrowserVisible.value) {
-      createWithComponentBrowser(fromSelection() ?? { placement: 'mouse' })
+      createWithComponentBrowser(fromSelection() ?? { placement: { type: 'mouse' } })
     }
   },
   deleteSelected() {
@@ -316,7 +316,7 @@ function commitComponentBrowser(content: string, requiredImports: RequiredImport
   } else if (content != '') {
     // We finish creating a new node.
     createNode(
-      ['fixed', componentBrowserNodePosition.value],
+      { type: 'fixed', position: componentBrowserNodePosition.value },
       content,
       undefined,
       undefined,
@@ -350,14 +350,14 @@ interface NewNodeOptions {
  * or the current viewport, otherwise.
  */
 function addNodeAuto() {
-  createWithComponentBrowser(fromSelection() ?? { placement: 'viewport' })
+  createWithComponentBrowser(fromSelection() ?? { placement: { type: 'viewport' } })
 }
 
 function fromSelection(): NewNodeOptions | undefined {
   if (graphStore.editedNodeInfo != null) return undefined
   const firstSelectedNode = set.first(nodeSelection.selected)
   return {
-    placement: ['source', firstSelectedNode],
+    placement: { type: 'source', node: firstSelectedNode },
     sourcePort: graphStore.db.getNodeFirstOutputPort(firstSelectedNode),
   }
 }
@@ -377,11 +377,12 @@ function createNodesFromSource(sourceNode: NodeId, options: NodeCreationOptions[
   const [toCommit, toEdit] = partition(options, (opts) => opts.commit)
   createNodes(
     toCommit.map((options: NodeCreationOptions) => ({
-      placement: ['source', sourceNode],
+      placement: { type: 'source', node: sourceNode },
       expression: options.content!.instantiateCopied([sourcePortAst]).code(),
     })),
   )
-  if (toEdit.length) createWithComponentBrowser({ placement: ['source', sourceNode], sourcePort })
+  if (toEdit.length)
+    createWithComponentBrowser({ placement: { type: 'source', node: sourceNode }, sourcePort })
 }
 
 function handleNodeOutputPortDoubleClick(id: AstId) {
@@ -390,11 +391,11 @@ function handleNodeOutputPortDoubleClick(id: AstId) {
     console.error('Impossible happened: Double click on port not belonging to any node: ', id)
     return
   }
-  createWithComponentBrowser({ placement: ['source', srcNode], sourcePort: id })
+  createWithComponentBrowser({ placement: { type: 'source', node: srcNode }, sourcePort: id })
 }
 
 function handleEdgeDrop(source: AstId, position: Vec2) {
-  createWithComponentBrowser({ placement: ['fixed', position], sourcePort: source })
+  createWithComponentBrowser({ placement: { type: 'fixed', position }, sourcePort: source })
 }
 
 // === Node Collapsing ===

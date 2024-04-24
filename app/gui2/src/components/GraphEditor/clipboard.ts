@@ -148,7 +148,7 @@ export function useGraphEditorClipboard(
     }
     createNodes(
       clipboardData.map(({ expression, documentation, metadata }) => ({
-        placement: 'mouse',
+        placement: { type: 'mouse' },
         expression,
         metadata,
         documentation,
