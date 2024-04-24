@@ -27,3 +27,53 @@ rules_ts_ext = use_extension(
 rules_ts_ext.deps()
 
 use_repo(rules_ts_ext, "npm_typescript")
+
+## JVM
+bazel_dep(name = "rules_java", version = "7.5.0")
+bazel_dep(name = "rules_graalvm", version = "0.11.1") ## upgrade to 0.11.2 once available in bazel central
+
+gvm = use_extension("@rules_graalvm//:extensions.bzl", "graalvm")
+
+gvm.graalvm(
+    name = "graalvm",
+    version = "23.1.0",  # gvm sdk version format like `24.x.x` also supported
+    distribution = "ce",  # `oracle`, `ce`, or `community`
+    java_version = "21",  # `17`, `20`, `21`, or `22` as supported by the version provided
+)
+use_repo(gvm, "graalvm")
+register_toolchains("@graalvm//:jvm")
+register_toolchains("@graalvm//:sdk")
+register_toolchains("@graalvm//:toolchain")
+
+bazel_dep(name = "rules_jvm_external", version = "6.0")
+
+scalaLoggingVersion = "3.9.4"
+scalatestVersion = "3.3.0-SNAP4"
+catsVersion = "2.9.0"
+
+maven = use_extension("@rules_jvm_external//:extensions.bzl", "maven")
+## After updating a list of artifacts run
+## > bazel run @unpinned_maven//:pin
+maven.install(
+    artifacts = [
+      "com.typesafe.scala-logging:scala-logging_2.13:3.9.4",
+      "org.scalatest:scalatest_2.13:3.3.0-SNAP4",
+      "org.typelevel:cats-core_2.13:2.9.0",
+      "io.circe:circe-core_2.13:0.14.5",
+      "io.circe:circe-generic_2.13:0.14.5",
+      "io.circe:circe-parser_2.13:0.14.5"
+    ],
+    fail_if_repin_required = True,
+    lock_file = "//:maven_install.json",
+    repositories = [
+        "https://maven.google.com",
+        "https://repo.maven.apache.org/maven2",
+        "https://repo1.maven.org/maven2",
+        "https://jitpack.io",
+    ],
+)
+use_repo(
+    maven,
+    "maven",
+    "unpinned_maven",
+)
