@@ -240,6 +240,7 @@ export default function AuthProvider(props: AuthProviderProps) {
     [userSession?.type]
   )
   const gtagEventRef = React.useRef(gtagEvent)
+  gtagEventRef.current = gtagEvent
 
   React.useEffect(() => {
     const params = {

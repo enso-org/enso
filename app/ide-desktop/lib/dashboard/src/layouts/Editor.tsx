@@ -1,8 +1,11 @@
 /** @file The container that launches the IDE. */
 import * as React from 'react'
 
+import * as detect from 'enso-common/src/detect'
+
 import * as appUtils from '#/appUtils'
 
+import * as gtagHooks from '#/hooks/gtagHooks'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
 import * as backendModule from '#/services/Backend'
@@ -39,6 +42,9 @@ export interface EditorProps {
 export default function Editor(props: EditorProps) {
   const { hidden, supportsLocalBackend, projectStartupInfo, appRunner } = props
   const toastAndLog = toastAndLogHooks.useToastAndLog()
+  const gtagEvent = gtagHooks.useGtagEvent()
+  const gtagEventRef = React.useRef(gtagEvent)
+  gtagEventRef.current = gtagEvent
   const [initialized, setInitialized] = React.useState(supportsLocalBackend)
 
   React.useEffect(() => {
@@ -47,6 +53,27 @@ export default function Editor(props: EditorProps) {
       ideElement.style.display = hidden ? 'none' : ''
     }
   }, [hidden])
+
+  React.useEffect(() => {
+    if (hidden) {
+      return
+    } else {
+      const params = {
+        platform: detect.platform(),
+        architecture: detect.architecture(),
+      }
+      const gtagEventCurrent = gtagEventRef.current
+      gtagEventCurrent('open_workflow', params)
+      const onBeforeUnload = () => {
+        gtagEventCurrent('close_workflow', params)
+      }
+      window.addEventListener('beforeunload', onBeforeUnload)
+      return () => {
+        window.removeEventListener('beforeunload', onBeforeUnload)
+        gtagEventCurrent('close_workflow', params)
+      }
+    }
+  }, [projectStartupInfo, hidden])
 
   let hasEffectRun = false
 
