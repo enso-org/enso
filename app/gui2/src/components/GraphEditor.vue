@@ -469,14 +469,7 @@ async function handleFileDrop(event: DragEvent) {
       )
       const uploadResult = await uploader.upload()
       if (uploadResult.ok) {
-        graphStore.createNodes([
-          {
-            expression: uploadedExpression(uploadResult.value),
-            metadata: { position: pos.xy() },
-            withImports: [],
-            documentation: undefined,
-          },
-        ])
+        createNode({ type: 'mouseEvent', position: pos }, uploadedExpression(uploadResult.value))
       } else {
         uploadResult.error.log(`Uploading file failed`)
       }

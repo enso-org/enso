@@ -248,62 +248,9 @@ export const useGraphStore = defineStore('graph', () => {
     unconnectedEdge.value = undefined
   }
 
-  function createNodes(
-    nodeOptions: {
-      expression: string
-      metadata: NodeMetadataFields & { position: { x: number; y: number } }
-      withImports: RequiredImport[]
-      documentation: string | undefined
-    }[],
-  ): NodeId[] {
-    const method = syncModule.value ? methodAstInModule(syncModule.value) : undefined
-    if (!method) {
-      console.error(`BUG: Cannot add node: No current function.`)
-      return []
-    }
-    const created = new Array<NodeId>()
-    edit((edit) => {
-      const bodyBlock = edit.getVersion(method).bodyAsBlock()
-      for (const options of nodeOptions) {
-        const ident = generateUniqueIdent()
-        const { rootExpression, id } = newAssignmentNode(
-          edit,
-          ident,
-          options.expression,
-          options.metadata,
-          options.withImports,
-          options.documentation,
-        )
-        bodyBlock.push(rootExpression)
-        created.push(id)
-        nodeRects.set(id, new Rect(Vec2.FromXY(options.metadata.position), Vec2.Zero))
-      }
-    })
-    return created
-  }
-
-  function newAssignmentNode(
-    edit: MutableModule,
-    ident: Ast.Identifier,
-    expression: string,
-    metadata: NodeMetadataFields,
-    withImports: RequiredImport[],
-    documentation: string | undefined,
-  ) {
-    const conflicts = addMissingImports(edit, withImports) ?? []
-    const rhs = Ast.parse(expression, edit)
-    rhs.setNodeMetadata(metadata)
-    const assignment = Ast.Assignment.new(edit, ident, rhs)
-    for (const _conflict of conflicts) {
-      // TODO: Substitution does not work, because we interpret imports wrongly. To be fixed in
-      // https://github.com/enso-org/enso/issues/9356
-      // substituteQualifiedName(edit, assignment, conflict.pattern, conflict.fullyQualified)
-    }
-    const id = asNodeId(rhs.id)
-    const rootExpression =
-      documentation != null ? Ast.Documented.new(documentation, assignment) : assignment
-    return { rootExpression, id }
-  }
+  const method = computed(() =>
+    syncModule.value ? methodAstInModule(syncModule.value) : undefined,
+  )
 
   /* Try adding imports. Does nothing if conflict is detected, and returns `DectedConflict` in such case. */
   function addMissingImports(
@@ -714,12 +661,13 @@ export const useGraphStore = defineStore('graph', () => {
     visibleArea,
     unregisterNodeRect,
     methodAst,
+    generateUniqueIdent,
     createEdgeFromOutput,
     disconnectSource,
     disconnectTarget,
     clearUnconnected,
     moduleRoot,
-    createNodes,
+    method,
     deleteNodes,
     ensureCorrectNodeOrder,
     batchEdits,
