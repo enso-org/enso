@@ -128,11 +128,15 @@ app.post('/rename-package/:report', function (req, res) {
         const toPath = path.join(settingsRoot, report, to)
 
         if (!fs.existsSync(fromPath)) {
-            throw 'The source directory '+fromPath+' does not exist...'
+            throw 'The source directory ' + fromPath + ' does not exist...'
         }
 
         if (fs.existsSync(toPath)) {
-            throw 'The target directory '+toPath+' already exists. Please merge the directories manually using your preferred file explorer.'
+            throw (
+                'The target directory ' +
+                toPath +
+                ' already exists. Please merge the directories manually using your preferred file explorer.'
+            )
         }
 
         fs.renameSync(fromPath, toPath)

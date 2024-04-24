@@ -54,7 +54,7 @@ $(function () {
     initializeFileButtons()
     initializeCopyrightButtons()
     initializePackageRenameButtons()
-    
+
     setStatus('Initialized')
 })
 
@@ -139,7 +139,6 @@ function initializeFileButtons() {
             $(this).html('<button disabled>This file was added manually</button>')
         }
     })
-
 }
 
 function initializePackageRenameButtons() {
@@ -147,24 +146,32 @@ function initializePackageRenameButtons() {
         const entry = $(this)
         var button = '<button class="auto-rename">Auto-Rename</button>'
         entry.append(button)
-        entry
-            .children('.auto-rename')
-            .on('click', function (ev) {
-                const button = $(this)
-                button.prop('disabled', true)
-                var data = {
-                    from: element.data('from'),
-                    to: element.data('to'),
-                }
-                setStatus('Renaming '+data['from']+' to '+data['to']+'...')
-                $.post('/modify/' + reportName, data, function (response) {
-                    const message = "Package renamed to "+data['to']+". To see the changes, regenerate the report."
-                    entry.html(message)
-                    setStatus(message)
-                }).fail(function (err) {
-                    setStatus('Failed to rename package '+data['from']+' to '+data['to']+': ' + JSON.stringify(err), 'red')
-                })
+        entry.children('.auto-rename').on('click', function (ev) {
+            const button = $(this)
+            button.prop('disabled', true)
+            var data = {
+                from: element.data('from'),
+                to: element.data('to'),
+            }
+            setStatus('Renaming ' + data['from'] + ' to ' + data['to'] + '...')
+            $.post('/modify/' + reportName, data, function (response) {
+                const message =
+                    'Package renamed to ' +
+                    data['to'] +
+                    '. To see the changes, regenerate the report.'
+                entry.html(message)
+                setStatus(message)
+            }).fail(function (err) {
+                setStatus(
+                    'Failed to rename package ' +
+                        data['from'] +
+                        ' to ' +
+                        data['to'] +
+                        ': ' +
+                        JSON.stringify(err),
+                    'red'
+                )
             })
-    });
+        })
+    })
 }
-
