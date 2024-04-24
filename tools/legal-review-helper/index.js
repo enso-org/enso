@@ -117,6 +117,32 @@ app.post('/modify/:report', function (req, res) {
     }
 })
 
+// Handles the request to rename a package directory.
+app.post('/rename-package/:report', function (req, res) {
+    const report = req.params['report']
+    const from = req.body['from']
+    const to = req.body['to']
+
+    try {
+        const fromPath = path.join(settingsRoot, report, from)
+        const toPath = path.join(settingsRoot, report, to)
+
+        if (!fs.existsSync(fromPath)) {
+            throw 'The source directory '+fromPath+' does not exist...'
+        }
+
+        if (fs.existsSync(toPath)) {
+            throw 'The target directory '+toPath+' already exists. Please merge the directories manually using your preferred file explorer.'
+        }
+
+        fs.renameSync(fromPath, toPath)
+        res.send('OK')
+    } catch (error) {
+        console.error(error)
+        res.status(500).send(error)
+    }
+})
+
 /*
  * Listens on a random free port, opens a browser with the home page and waits
  * for a newline to terminate.
