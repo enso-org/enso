@@ -120,7 +120,7 @@ type Spec_Write_Data
         clothes = enso_project.data/'clothes.csv' . read
         sub_clothes = clothes.select_columns [0, 1]
         counter = Ref.new 0
-        prefix = "out_" + (Random.integer 1 10000).to_text
+        prefix = "out_" + (Random.integer 1 10000).to_text + "_"
         Spec_Write_Data.Value [table, clothes, sub_clothes] counter suffix prefix
 
     teardown self =
@@ -197,8 +197,10 @@ spec_write suite_builder suffix test_sheet_name =
             read_1 . should_equal data.table
             read_2 = out.read (Excel_Format.Sheet "Sheet2")
             read_2 . should_equal data.clothes
-            read_3 = out.read.sheet_names
+            written = out.read
+            read_3 = written.sheet_names
             read_3 . should_equal ["Sheet2", "Sheet1"]
+            written.close
 
         group_builder.specify 'should write a table to specific single cell location of an existing sheet' <|
             out = data.create_out
