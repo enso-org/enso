@@ -54,8 +54,12 @@ object Report {
         writer.writeSubHeading(
           f"There are ${errors.size} fatal-errors found in the review."
         )
-        writer.writeList(errors.map { problem => () =>
-          writer.writeText(problem.message, Style.Red)
+        writer.writeList(errors.map { error => () =>
+          writer.writeParagraph(
+            error.message,
+            error.metadata,
+            styles = Seq(Style.Red)
+          )
         })
       } else {
         writer.writeParagraph(

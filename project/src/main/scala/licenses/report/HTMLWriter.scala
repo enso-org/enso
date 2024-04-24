@@ -149,7 +149,21 @@ class HTMLWriter(bufferedWriter: BufferedWriter) {
   /** Writes a paragraph of styled text.
     */
   def writeParagraph(text: String, styles: Style*): Unit =
-    writer.println(s"""<p style="${styles.mkString(";")}">$text</p>""")
+    writeParagraph(text, Map.empty[String, String], styles)
+
+  /** Writes a paragraph with additional attributes. */
+  def writeParagraph(
+    text: String,
+    attributes: Map[String, String],
+    styles: Seq[Style] = Seq.empty
+  ): Unit = {
+    val attributeString =
+      if (attributes.isEmpty) ""
+      else attributes.map(e => s""" ${e._1}="${e._2}"""").mkString("")
+    val styleString =
+      if (styles.isEmpty) "" else s""" style="${styles.mkString(";")}""""
+    writer.println(s"""<p$attributeString$styleString">$text</p>""")
+  }
 
   /** Writes plain (but potentially styled) text.
     */

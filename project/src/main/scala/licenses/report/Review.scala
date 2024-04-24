@@ -104,19 +104,24 @@ case class Review(root: File, dependencySummary: DependencySummary) {
     val unexpectedConfigurations =
       foundConfigurations.filter(p => !expectedFileNames.contains(p.getName))
     val diagnostics = unexpectedConfigurations.map { p =>
-      val packageName = p.getName
+      val packageNameFromConfig = p.getName
       val matchingPackages = knownPackages.filter(other =>
-        packageName.startsWith(other.packageNameWithoutVersion + "-")
+        packageNameFromConfig.startsWith(other.packageNameWithoutVersion + "-")
       )
-      val matchingPackage: Option[DependencyInformation] =
+      val maybeMatchingPackage: Option[DependencyInformation] =
         if (matchingPackages.length == 1) Some(matchingPackages.head) else None
 
       val commonMessagePrefix =
         s"Found legal review configuration for package ${p.getName}, but no such dependency has been found."
-      matchingPackage match {
-        case Some(pkg) =>
+      maybeMatchingPackage match {
+        case Some(matchingPackage) =>
           Diagnostic.Error(
-            commonMessagePrefix + s" Perhaps the version was changed to `${pkg.packageName}`?"
+            commonMessagePrefix + s" Perhaps the version was changed to `${matchingPackage.packageName}`?",
+            metadata = Map(
+              "class"     -> "rename-dependency-config",
+              "data-from" -> packageNameFromConfig,
+              "data-to"   -> matchingPackage.packageName
+            )
           )
         case None =>
           Diagnostic.Error(
