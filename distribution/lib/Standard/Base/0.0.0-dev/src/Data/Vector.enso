@@ -219,6 +219,9 @@ type Vector a
     build : (Builder -> Any) -> Integer -> Vector
     build (function : Builder -> Any) (initial_capacity : Integer = 10) -> Vector =
         builder = Builder.new initial_capacity
+        ## TODO: This extra `case` is necessary to propagate warnings attached to
+           values that are added to the builder. Will be fixed in
+           https://github.com/enso-org/enso/issues/9733.
         case function builder of
             _ -> builder.if_not_error builder.to_vector
 
