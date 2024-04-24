@@ -140,7 +140,7 @@ function gatewayServer(): Plugin {
     buildEnd() {
       if (ydocServer == null) return
 
-      ydocServer.kill(9)
+      ydocServer.kill('SIGTERM')
     },
   }
 }

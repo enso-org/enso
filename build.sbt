@@ -1200,7 +1200,10 @@ lazy val `ydoc-server` = project
         shouldContainAll = true
       )
     },
-    modulePath += (`syntax-rust-definition` / Compile / productDirectories).value.head,
+    modulePath ++= Seq(
+      (`syntax-rust-definition` / Compile / productDirectories).value.head,
+      (`profiling-utils` / Compile / productDirectories).value.head
+    ),
     libraryDependencies ++= Seq(
       "org.graalvm.polyglot" % "polyglot"                    % graalMavenPackagesVersion,
       "org.graalvm.polyglot" % "inspect"                     % graalMavenPackagesVersion % "runtime",
@@ -1214,6 +1217,7 @@ lazy val `ydoc-server` = project
   )
   .dependsOn(`syntax-rust-definition`)
   .dependsOn(`logging-service-logback`)
+  .dependsOn(`profiling-utils`)
 
 lazy val `persistance` = (project in file("lib/java/persistance"))
   .settings(
