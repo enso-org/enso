@@ -929,7 +929,7 @@ add_specs suite_builder =
             12 . min (Decimal.new "13") . should_equal (Decimal.new "12")
 
             Decimal.new "12.1" . min 12.3 . should_equal (Decimal.new "12.1")
-            12.1 . min (Decimal.new "12.3") . should_equal (Decimal.new "12.1")
+            12.1 . min (Decimal.new "12.3") . should_equal (Decimal.from 12.1)
 
             Decimal.new "0" . min (Decimal.new "-1") . should_equal (Decimal.new "-1")
             0 . min (Decimal.new "-1") . should_equal (Decimal.new "-1")
