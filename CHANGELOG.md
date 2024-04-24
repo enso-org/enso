@@ -650,9 +650,13 @@
 - [Added `Decimal.min` and `.max`.][9663]
 - [Added `Decimal.round`.][9672]
 - [Implemented write support for Enso Cloud files.][9686]
+- [Added `Integer.to_decimal` and `Float.to_decimal`.][9716]
 - [Added `Decimal.floor`, `.ceil`, and `.trunc`.][9694]
 - [Added `recursive` option to `File.delete`.][9719]
 - [Added `Vector.build`.][9725]
+- [Added `Table.running` method][9577]
+- [Added `Excel_Workbook.read_many` allowing reading more than one sheet at a
+  time.][9759]
 
 [debug-shortcuts]:
   https://github.com/enso-org/enso/blob/develop/app/gui/docs/product/shortcuts.md#debug
@@ -954,8 +958,11 @@
 [9672]: https://github.com/enso-org/enso/pull/9672
 [9686]: https://github.com/enso-org/enso/pull/9686
 [9694]: https://github.com/enso-org/enso/pull/9694
+[9716]: https://github.com/enso-org/enso/pull/9716
 [9719]: https://github.com/enso-org/enso/pull/9719
 [9725]: https://github.com/enso-org/enso/pull/9725
+[9759]: https://github.com/enso-org/enso/pull/9759
+[9577]: https://github.com/enso-org/enso/pull/9577
 
 #### Enso Compiler
 
@@ -1117,6 +1124,7 @@
 - [Check type of `self` when calling a method using the static syntax][8867]
 - [Autoscoped constructors][9190]
 - [Allow Oracle GraalVM JDK][9322]
+- [`Table.join` can access its `right` argument][9410]
 
 [3227]: https://github.com/enso-org/enso/pull/3227
 [3248]: https://github.com/enso-org/enso/pull/3248
@@ -1277,6 +1285,7 @@
 [8867]: https://github.com/enso-org/enso/pull/8867
 [9190]: https://github.com/enso-org/enso/pull/9190
 [9322]: https://github.com/enso-org/enso/pull/9322
+[9410]: https://github.com/enso-org/enso/pull/9410
 
 # Enso 2.0.0-alpha.18 (2021-10-12)
 

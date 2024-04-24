@@ -12,7 +12,7 @@ test('Existence of edges between nodes', async ({ page }) => {
 
   await expect(await edgesFromNodeWithBinding(page, 'aggregated')).toHaveCount(0)
   await expect(await edgesFromNodeWithBinding(page, 'filtered')).toHaveCount(0)
-  await expect(await edgesFromNodeWithBinding(page, 'data')).toHaveCount(3 * EDGE_PARTS)
+  await expect(await edgesFromNodeWithBinding(page, 'data')).toHaveCount(4 * EDGE_PARTS)
   await expect(await edgesFromNodeWithBinding(page, 'list')).toHaveCount(0)
   await expect(await edgesFromNodeWithBinding(page, 'final')).toHaveCount(0)
   await expect(await edgesFromNodeWithBinding(page, 'selected')).toHaveCount(0)

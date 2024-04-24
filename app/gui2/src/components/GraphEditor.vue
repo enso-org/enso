@@ -3,6 +3,7 @@ import { codeEditorBindings, graphBindings, interactionBindings } from '@/bindin
 import CodeEditor from '@/components/CodeEditor.vue'
 import ColorPicker from '@/components/ColorPicker.vue'
 import ComponentBrowser from '@/components/ComponentBrowser.vue'
+import { type Usage } from '@/components/ComponentBrowser/input'
 import {
   DEFAULT_NODE_SIZE,
   mouseDictatedPlacement,
@@ -10,6 +11,7 @@ import {
 } from '@/components/ComponentBrowser/placement'
 import GraphEdges from '@/components/GraphEditor/GraphEdges.vue'
 import GraphNodes from '@/components/GraphEditor/GraphNodes.vue'
+import { useGraphEditorClipboard } from '@/components/GraphEditor/clipboard'
 import { performCollapse, prepareCollapsedInfo } from '@/components/GraphEditor/collapsing'
 import type { NodeCreationOptions } from '@/components/GraphEditor/nodeCreation'
 import { useGraphEditorToasts } from '@/components/GraphEditor/toasts'
@@ -42,8 +44,6 @@ import { Vec2 } from '@/util/data/vec2'
 import { encoding, set } from 'lib0'
 import { encodeMethodPointer } from 'shared/languageServerTypes'
 import { computed, onMounted, ref, shallowRef, toRef, watch } from 'vue'
-import { type Usage } from './ComponentBrowser/input'
-import { useGraphEditorClipboard } from './GraphEditor/clipboard'
 
 const keyboard = provideKeyboard()
 const graphStore = useGraphStore()
@@ -87,7 +87,7 @@ const stackNavigator = useStackNavigator()
 
 // === Toasts ===
 
-useGraphEditorToasts()
+const toasts = useGraphEditorToasts()
 
 // === Selection ===
 
@@ -111,7 +111,7 @@ watch(
 
 // === Clipboard Copy/Paste ===
 
-const { copyNodeContent, readNodeFromClipboard } = useGraphEditorClipboard(
+const { copySelectionToClipboard, createNodesFromClipboard } = useGraphEditorClipboard(
   nodeSelection,
   graphNavigator,
 )
@@ -198,49 +198,15 @@ const graphBindingsHandler = graphBindings.handler({
   },
   copyNode() {
     if (keyboardBusy()) return false
-    copyNodeContent()
+    copySelectionToClipboard()
   },
   pasteNode() {
     if (keyboardBusy()) return false
-    readNodeFromClipboard()
+    createNodesFromClipboard()
   },
   collapse() {
     if (keyboardBusy()) return false
-    const selected = new Set(nodeSelection.selected)
-    if (selected.size == 0) return
-    try {
-      const info = prepareCollapsedInfo(selected, graphStore.db)
-      const currentMethod = projectStore.executionContext.getStackTop()
-      const currentMethodName = graphStore.db.stackItemToMethodName(currentMethod)
-      if (currentMethodName == null) {
-        bail(`Cannot get the method name for the current execution stack item. ${currentMethod}`)
-      }
-      const topLevel = graphStore.topLevel
-      if (!topLevel) {
-        bail('BUG: no top level, collapsing not possible.')
-      }
-      const selectedNodeRects = filterDefined(Array.from(selected, graphStore.visibleArea))
-      graphStore.edit((edit) => {
-        const { refactoredNodeId, collapsedNodeIds, outputNodeId } = performCollapse(
-          info,
-          edit.getVersion(topLevel),
-          graphStore.db,
-          currentMethodName,
-        )
-        const { position } = collapsedNodePlacement(selectedNodeRects)
-        edit.get(refactoredNodeId).mutableNodeMetadata().set('position', position.xy())
-        if (outputNodeId != null) {
-          const collapsedNodeRects = filterDefined(
-            Array.from(collapsedNodeIds, graphStore.visibleArea),
-          )
-          const { place } = usePlacement(collapsedNodeRects, graphNavigator.viewport)
-          const { position } = place(collapsedNodeRects)
-          edit.get(outputNodeId).mutableNodeMetadata().set('position', position.xy())
-        }
-      })
-    } catch (err) {
-      console.log('Error while collapsing, this is not normal.', err)
-    }
+    collapseNodes()
   },
   enterNode() {
     if (keyboardBusy()) return false
@@ -441,6 +407,50 @@ function handleEdgeDrop(source: AstId, position: Vec2) {
   createWithComponentBrowser({ placement: ['fixed', position], sourcePort: source })
 }
 
+// === Node Collapsing ===
+
+function collapseNodes() {
+  const selected = nodeSelection.selected
+  if (selected.size == 0) return
+  try {
+    const info = prepareCollapsedInfo(selected, graphStore.db)
+    if (!info.ok) {
+      toasts.userActionFailed.show(`Unable to group nodes: ${info.error.payload}.`)
+      return
+    }
+    const currentMethod = projectStore.executionContext.getStackTop()
+    const currentMethodName = graphStore.db.stackItemToMethodName(currentMethod)
+    if (currentMethodName == null) {
+      bail(`Cannot get the method name for the current execution stack item. ${currentMethod}`)
+    }
+    const topLevel = graphStore.topLevel
+    if (!topLevel) {
+      bail('BUG: no top level, collapsing not possible.')
+    }
+    const selectedNodeRects = filterDefined(Array.from(selected, graphStore.visibleArea))
+    graphStore.edit((edit) => {
+      const { refactoredNodeId, collapsedNodeIds, outputNodeId } = performCollapse(
+        info.value,
+        edit.getVersion(topLevel),
+        graphStore.db,
+        currentMethodName,
+      )
+      const { position } = collapsedNodePlacement(selectedNodeRects)
+      edit.get(refactoredNodeId).mutableNodeMetadata().set('position', position.xy())
+      if (outputNodeId != null) {
+        const collapsedNodeRects = filterDefined(
+          Array.from(collapsedNodeIds, graphStore.visibleArea),
+        )
+        const { place } = usePlacement(collapsedNodeRects, graphNavigator.viewport)
+        const { position } = place(collapsedNodeRects)
+        edit.get(outputNodeId).mutableNodeMetadata().set('position', position.xy())
+      }
+    })
+  } catch (err) {
+    console.log('Error while collapsing, this is not normal.', err)
+  }
+}
+
 // === Drag and drop ===
 
 async function handleFileDrop(event: DragEvent) {
@@ -581,6 +591,7 @@ const groupColors = computed(() => {
       :allowNavigationLeft="stackNavigator.allowNavigationLeft.value"
       :allowNavigationRight="stackNavigator.allowNavigationRight.value"
       :zoomLevel="100.0 * graphNavigator.targetScale"
+      :componentsSelected="nodeSelection.selected.size"
       @breadcrumbClick="stackNavigator.handleBreadcrumbClick"
       @back="stackNavigator.exitNode"
       @forward="stackNavigator.enterNextNodeFromHistory"
@@ -589,6 +600,8 @@ const groupColors = computed(() => {
       @zoomIn="graphNavigator.stepZoom(+1)"
       @zoomOut="graphNavigator.stepZoom(-1)"
       @toggleCodeEditor="toggleCodeEditor"
+      @collapseNodes="collapseNodes"
+      @toggleColorPicker="toggleColorPicker"
     />
     <PlusButton @pointerdown.stop @click.stop="addNodeAuto()" @pointerup.stop />
     <Transition>
