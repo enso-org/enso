@@ -5,7 +5,7 @@ import { mockCollapsedFunctionInfo } from './expressionUpdates'
 import { CONTROL_KEY } from './keyboard'
 import * as locate from './locate'
 
-const MAIN_FILE_NODES = 11
+const MAIN_FILE_NODES = 12
 
 const COLLAPSE_SHORTCUT = `${CONTROL_KEY}+G`
 
@@ -120,6 +120,7 @@ async function expectInsideMain(page: Page) {
   await expect(locate.graphNodeByBinding(page, 'data')).toExist()
   await expect(locate.graphNodeByBinding(page, 'aggregated')).toExist()
   await expect(locate.graphNodeByBinding(page, 'filtered')).toExist()
+  await expect(locate.graphNodeByBinding(page, 'autoscoped')).toExist()
 }
 
 async function expectInsideFunc1(page: Page) {
