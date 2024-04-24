@@ -13,6 +13,7 @@ use ide_ci::io::download_all;
 use ide_ci::program::command::FallibleManipulator;
 use ide_ci::programs::node::NpmCommand;
 use ide_ci::programs::Npm;
+use sha2::Digest;
 use std::process::Stdio;
 use tempfile::TempDir;
 
@@ -350,13 +351,19 @@ impl IdeDesktop {
                 electron_builder_config:  electron_config,
                 unpacked_electron_bundle: output_path.join("win-unpacked"),
                 repo_root:                self.repo_root.to_path_buf(),
-                output_file:              ide_artifacts.image,
+                output_file:              ide_artifacts.image.clone(),
                 intermediate_dir:         output_path.to_path_buf(),
                 certificate:              code_signing_certificate,
             };
             enso_install_config::bundler::bundle(config).await?;
-        }
 
+            // Generate SHA256 checksum.
+            let mut hasher = sha2::Sha256::new();
+            let mut file = ide_ci::fs::open(&ide_artifacts.image)?;
+            std::io::copy(&mut file, &mut hasher)?;
+            let hash = hasher.finalize();
+            ide_ci::fs::write(&ide_artifacts.image_checksum, format!("{:x}", hash))?;
+        }
         Ok(())
     }
 }
