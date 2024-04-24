@@ -48,7 +48,7 @@ export default defineConfig({
   use: {
     headless: !DEBUG,
     trace: 'retain-on-failure',
-    viewport: { width: 1920, height: 1600 },
+    viewport: { width: 1920, height: 1750 },
     ...(DEBUG ?
       {}
     : {

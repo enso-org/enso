@@ -31,6 +31,7 @@ import project.Errors.Problem_Behavior.Problem_Behavior
 import project.Errors.Time_Error.Time_Error
 import project.Meta
 import project.Nothing.Nothing
+import project.Panic.Panic
 from project.Data.Boolean import Boolean, False, True
 from project.Data.Json import Invalid_JSON, JS_Object, Json
 from project.Data.Numbers import Float, Integer, Number, Number_Parse_Error
@@ -76,6 +77,12 @@ Text.reverse self =
    Arguments:
    - function: The operation to apply to each character in the text.
 
+   This method does not return the results, so it is only useful for performing
+   computations with side-effects.
+
+   If the function returns a dataflow error, the error is converted to a
+   panic and thrown immediately stopping further processing.
+
    ! What is a Character?
      A character is defined as an Extended Grapheme Cluster, see Unicode
      Standard Annex 29. This is the smallest unit that still has semantic
@@ -91,7 +98,7 @@ Text.each self function =
     iterator.setText self
 
     iterate prev nxt = if nxt == -1 then Nothing else
-        function (Text_Utils.substring self prev nxt)
+        Panic.rethrow (function (Text_Utils.substring self prev nxt))
         @Tail_Call iterate nxt iterator.next
     iterate iterator.first iterator.next
 

@@ -17,6 +17,7 @@ const conf = [
       'templates',
       '.histoire',
       'playwright-report',
+      'test-results',
     ],
   },
   ...compat.extends('plugin:vue/vue3-recommended'),
