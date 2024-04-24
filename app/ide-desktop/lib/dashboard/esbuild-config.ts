@@ -19,7 +19,9 @@ import postcss from 'postcss'
 import tailwindcss from 'tailwindcss'
 import tailwindcssNesting from 'tailwindcss/nesting/index.js'
 
-import * as utils from '../../utils'
+import * as appConfig from 'enso-common/src/appConfig'
+import * as buildUtils from 'enso-common/src/buildUtils'
+
 import * as tailwindConfig from './tailwind.config'
 
 // =================
@@ -28,6 +30,12 @@ import * as tailwindConfig from './tailwind.config'
 
 const THIS_PATH = path.resolve(path.dirname(url.fileURLToPath(import.meta.url)))
 
+// ====================
+// === Global setup ===
+// ====================
+
+await appConfig.readEnvironmentFromFile()
+
 // =============================
 // === Environment variables ===
 // =============================
@@ -35,15 +43,13 @@ const THIS_PATH = path.resolve(path.dirname(url.fileURLToPath(import.meta.url)))
 /** Mandatory build options. */
 export interface Arguments {
   /** Path where bundled files are output. */
-  outputPath: string
-  /** `true` if in development mode (live-reload), `false` if in production mode. */
-  devMode: boolean
+  readonly outputPath: string
 }
 
 /** Get arguments from the environment. */
 export function argumentsFromEnv(): Arguments {
-  const outputPath = path.resolve(utils.requireEnv('ENSO_BUILD_GUI'), 'assets')
-  return { outputPath, devMode: false }
+  const outputPath = path.resolve(buildUtils.requireEnv('ENSO_BUILD_GUI'), 'assets')
+  return { outputPath }
 }
 
 // =======================
@@ -85,7 +91,7 @@ export function esbuildPluginGenerateTailwind(): esbuild.Plugin {
 
 /** Generate the bundler options. */
 export function bundlerOptions(args: Arguments) {
-  const { outputPath, devMode } = args
+  const { outputPath } = args
   // This is required to prevent TypeScript from narrowing `true` to `boolean`.
   // eslint-disable-next-line no-restricted-syntax
   const trueBoolean = true as boolean
@@ -121,24 +127,9 @@ export function bundlerOptions(args: Arguments) {
     alias: {
       '#': './src',
     },
-    define: {
-      // We are defining constants, so it should be `CONSTANT_CASE`.
-      /* eslint-disable @typescript-eslint/naming-convention */
-      /** Whether the application is being run locally. This enables a service worker that
-       * properly serves `/index.html` to client-side routes like `/login`. */
-      'process.env.NODE_ENV': JSON.stringify(devMode ? 'development' : 'production'),
-      /** Overrides the redirect URL for OAuth logins in the production environment.
-       * This is needed for logins to work correctly under `./run gui watch`. */
-      REDIRECT_OVERRIDE: 'undefined',
-      CLOUD_ENV:
-        process.env.ENSO_CLOUD_ENV != null
-          ? JSON.stringify(process.env.ENSO_CLOUD_ENV)
-          : 'undefined',
-      /* eslint-enable @typescript-eslint/naming-convention */
-    },
+    define: appConfig.getDefines(),
     pure: ['assert'],
     sourcemap: true,
-    minify: !devMode,
     metafile: trueBoolean,
     format: 'esm',
     platform: 'browser',

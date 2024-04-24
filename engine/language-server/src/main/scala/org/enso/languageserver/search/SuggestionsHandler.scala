@@ -34,7 +34,6 @@ import org.enso.polyglot.data.TypeGraph
 import org.enso.polyglot.runtime.Runtime.Api
 import org.enso.searcher.data.QueryResult
 import org.enso.searcher.SuggestionsRepo
-import org.enso.text.editing.model.Position
 
 import scala.collection.mutable
 import scala.concurrent.Future
@@ -92,8 +91,6 @@ final class SuggestionsHandler(
   import context.dispatcher
   import SuggestionsHandler._
 
-  private val timeout = config.executionContext.requestTimeout
-
   override def preStart(): Unit = {
     logger.info(
       "Starting suggestions handler from [{}, {}].",
@@ -110,6 +107,8 @@ final class SuggestionsHandler(
     )
     context.system.eventStream
       .subscribe(self, classOf[Api.LibraryLoaded])
+    context.system.eventStream
+      .subscribe(self, classOf[Api.BackgroundJobsStartedNotification])
     context.system.eventStream.subscribe(self, classOf[FileDeletedEvent])
     context.system.eventStream
       .subscribe(self, InitializedEvent.SuggestionsRepoInitialized.getClass)
@@ -186,19 +185,36 @@ final class SuggestionsHandler(
 
     case msg: Api.SuggestionsDatabaseSuggestionsLoadedNotification
         if state.isSuggestionLoadingRunning =>
-      state.suggestionLoadingQueue.enqueue(msg)
+      logger.trace(
+        "SuggestionsDatabaseSuggestionsLoadedNotification [shouldStartBackgroundProcessing={}].",
+        state.shouldStartBackgroundProcessing
+      )
+      if (state.shouldStartBackgroundProcessing) {
+        state.suggestionLoadingQueue.clear()
+      } else {
+        state.suggestionLoadingQueue.enqueue(msg)
+      }
 
     case msg: Api.SuggestionsDatabaseSuggestionsLoadedNotification =>
       logger.debug(
-        "Starting loading suggestions for library [{}].",
+        "Starting loading suggestions for library [{0}].",
         msg.libraryName
+      )
+      context.become(
+        initialized(
+          projectName,
+          graph,
+          clients,
+          state.suggestionLoadingRunning()
+        )
       )
       applyLoadedSuggestions(msg.suggestions)
         .onComplete {
           case Success(notification) =>
             logger.debug(
-              "Complete loading suggestions for library [{}].",
-              msg.libraryName
+              "Complete loading suggestions for library [{0}]. Has updates: {1}",
+              msg.libraryName,
+              notification.updates.nonEmpty
             )
             if (notification.updates.nonEmpty) {
               clients.foreach { clientId =>
@@ -208,20 +224,12 @@ final class SuggestionsHandler(
             self ! SuggestionsHandler.SuggestionLoadingCompleted
           case Failure(ex) =>
             logger.error(
-              "Error applying suggestion updates for loaded library [{}].",
+              "Error applying suggestion updates for loaded library [{0}].",
               msg.libraryName,
               ex
             )
             self ! SuggestionsHandler.SuggestionLoadingCompleted
         }
-      context.become(
-        initialized(
-          projectName,
-          graph,
-          clients,
-          state.suggestionLoadingRunning()
-        )
-      )
 
     case msg: Api.SuggestionsDatabaseModuleUpdateNotification
         if state.isSuggestionUpdatesRunning =>
@@ -304,33 +312,8 @@ final class SuggestionsHandler(
         )
       )
 
-    case GetSuggestionsDatabaseVersion =>
-      suggestionsRepo.currentVersion
-        .map(GetSuggestionsDatabaseVersionResult)
-        .pipeTo(sender())
-
-    case GetSuggestionsDatabase =>
-      val responseAction = for {
-        _       <- suggestionsRepo.clean
-        version <- suggestionsRepo.currentVersion
-      } yield GetSuggestionsDatabaseResult(version, Seq())
-
-      responseAction.pipeTo(sender())
-
-      val handlerAction = for {
-        _ <- responseAction
-      } yield SearchProtocol.InvalidateModulesIndex
-
-      val handler = context.system.actorOf(
-        InvalidateModulesIndexHandler.props(
-          RuntimeFailureMapper(contentRootManager),
-          timeout,
-          runtimeConnector
-        )
-      )
-
-      handlerAction.pipeTo(handler)
-
+    case Api.BackgroundJobsStartedNotification() =>
+      self ! SuggestionLoadingCompleted
       context.become(
         initialized(
           projectName,
@@ -340,37 +323,55 @@ final class SuggestionsHandler(
         )
       )
 
-    case Completion(path, pos, selfType, returnType, tags, isStatic) =>
-      val selfTypes = selfType.toList.flatMap(ty => ty :: graph.getParents(ty))
-      getModuleName(projectName, path)
-        .flatMap { either =>
-          either.fold(
-            Future.successful,
-            module =>
-              suggestionsRepo
-                .search(
-                  Some(module),
-                  selfTypes,
-                  returnType,
-                  tags.map(_.map(SuggestionKind.toSuggestion)),
-                  Some(toPosition(pos)),
-                  isStatic
-                )
-                .map(CompletionResult.tupled)
-          )
-        }
+    case GetSuggestionsDatabaseVersion =>
+      suggestionsRepo.currentVersion
+        .map(GetSuggestionsDatabaseVersionResult)
         .pipeTo(sender())
-      if (state.shouldStartBackgroundProcessing) {
-        runtimeConnector ! Api.Request(Api.StartBackgroundProcessing())
+
+    case ClearSuggestionsDatabase =>
+      if (state.isSuggestionLoadingRunning) stash()
+      else {
         context.become(
           initialized(
             projectName,
             graph,
             clients,
-            state.backgroundProcessingStarted()
+            state.suggestionLoadingRunning()
           )
         )
+        for {
+          _ <- suggestionsRepo.clean
+        } yield {
+          logger.trace(
+            "ClearSuggestionsDatabase [{}].",
+            state.suggestionLoadingQueue
+          )
+          state.suggestionLoadingQueue.clear()
+          runtimeConnector ! Api.Request(Api.StartBackgroundProcessing())
+        }
       }
+
+    case GetSuggestionsDatabase =>
+      val handler = context.system.actorOf(
+        InvalidateModulesIndexHandler.props(
+          RuntimeFailureMapper(contentRootManager),
+          runtimeConnector,
+          self
+        )
+      )
+
+      handler ! SearchProtocol.InvalidateModulesIndex
+
+      sender() ! GetSuggestionsDatabaseResult(0, Seq())
+
+      context.become(
+        initialized(
+          projectName,
+          graph,
+          clients,
+          state.backgroundProcessingStopped()
+        )
+      )
 
     case FileDeletedEvent(path) =>
       getModuleName(projectName, path)
@@ -418,8 +419,8 @@ final class SuggestionsHandler(
       val handler = context.system.actorOf(
         InvalidateModulesIndexHandler.props(
           runtimeFailureMapper,
-          timeout,
-          runtimeConnector
+          runtimeConnector,
+          self
         )
       )
       action.pipeTo(handler)(sender())
@@ -450,6 +451,7 @@ final class SuggestionsHandler(
       )
 
     case SuggestionLoadingCompleted =>
+      unstashAll()
       if (state.suggestionLoadingQueue.nonEmpty) {
         self ! state.suggestionLoadingQueue.dequeue()
       }
@@ -512,7 +514,7 @@ final class SuggestionsHandler(
     for {
       actionResults <- suggestionsRepo.applyActions(msg.actions)
       treeResults   <- suggestionsRepo.applyTree(msg.updates.toVector)
-      exportResults <- suggestionsRepo.applyExports(msg.exports)
+      exportResults <- suggestionsRepo.getExportedSymbols(msg.exports)
       version       <- suggestionsRepo.currentVersion
     } yield {
       val actionUpdates = actionResults.flatMap {
@@ -649,13 +651,6 @@ final class SuggestionsHandler(
       } yield module
     }
 
-  /** Convert the internal position representation to the API position.
-    *
-    * @param pos the internal position
-    * @return the API position
-    */
-  private def toPosition(pos: Position): Suggestion.Position =
-    Suggestion.Position(pos.line, pos.character)
 }
 
 object SuggestionsHandler {

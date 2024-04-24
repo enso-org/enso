@@ -1,47 +1,63 @@
-import { nonDictatedPlacement } from '@/components/ComponentBrowser/placement'
+import { usePlacement } from '@/components/ComponentBrowser/placement'
 import type { PortId } from '@/providers/portInfo'
 import type { WidgetUpdate } from '@/providers/widgetRegistry'
-import { asNodeId, GraphDb, type NodeId } from '@/stores/graph/graphDatabase'
+import { GraphDb, asNodeId, type NodeId } from '@/stores/graph/graphDatabase'
 import {
   addImports,
+  detectImportConflicts,
   filterOutRedundantImports,
   readImports,
+  type DetectedConflict,
+  type Import,
   type RequiredImport,
 } from '@/stores/graph/imports'
 import { useProjectStore } from '@/stores/project'
 import { useSuggestionDbStore } from '@/stores/suggestionDatabase'
 import { assert, bail } from '@/util/assert'
-import { Ast, RawAst } from '@/util/ast'
-import {
-  isIdentifier,
-  MutableModule,
-  ReactiveModule,
-  type AstId,
-  type Module,
+import { Ast } from '@/util/ast'
+import type {
+  AstId,
+  Module,
+  ModuleUpdate,
+  NodeMetadata,
+  NodeMetadataFields,
 } from '@/util/ast/abstract'
-import { useObserveYjs } from '@/util/crdt'
+import { MutableModule, isIdentifier } from '@/util/ast/abstract'
+import { RawAst, visitRecursive } from '@/util/ast/raw'
 import { partition } from '@/util/data/array'
 import type { Opt } from '@/util/data/opt'
 import { Rect } from '@/util/data/rect'
 import { Vec2 } from '@/util/data/vec2'
 import { map, set } from 'lib0'
+import { iteratorFilter } from 'lib0/iterator'
 import { defineStore } from 'pinia'
+import { SourceDocument } from 'shared/ast/sourceDocument'
 import type { ExpressionUpdate, StackItem } from 'shared/languageServerTypes'
-import {
-  IdMap,
-  visMetadataEquals,
-  type ExternalId,
-  type NodeMetadata,
-  type SourceRange,
-  type VisualizationIdentifier,
-  type VisualizationMetadata,
+import { reachable } from 'shared/util/data/graph'
+import type {
+  LocalUserActionOrigin,
+  Origin,
+  SourceRangeKey,
+  VisualizationMetadata,
 } from 'shared/yjsModel'
-import { computed, markRaw, reactive, ref, toRef, watch, type Ref, type ShallowRef } from 'vue'
-import * as Y from 'yjs'
+import { defaultLocalOrigin, sourceRangeKey, visMetadataEquals } from 'shared/yjsModel'
+import {
+  computed,
+  markRaw,
+  reactive,
+  ref,
+  shallowReactive,
+  toRef,
+  watch,
+  type ShallowRef,
+} from 'vue'
 
-export { type Node, type NodeId } from '@/stores/graph/graphDatabase'
-
-const DEBUG = false
+export type {
+  Node,
+  NodeDataFromAst,
+  NodeDataFromMetadata,
+  NodeId,
+} from '@/stores/graph/graphDatabase'
 
 export interface NodeEditInfo {
   id: NodeId
@@ -53,7 +69,9 @@ export class PortViewInstance {
     public rect: ShallowRef<Rect | undefined>,
     public nodeId: NodeId,
     public onUpdate: (update: WidgetUpdate) => void,
-  ) {}
+  ) {
+    markRaw(this)
+  }
 }
 
 export const useGraphStore = defineStore('graph', () => {
@@ -62,126 +80,119 @@ export const useGraphStore = defineStore('graph', () => {
 
   proj.setObservedFileName('Main.enso')
 
-  const data = computed(() => proj.module?.doc.data)
-  const metadata = computed(() => proj.module?.doc.metadata)
+  const syncModule = computed(() => proj.module && new MutableModule(proj.module.doc.ydoc))
 
-  const moduleCode = ref(proj.module?.doc.getCode())
-  // We need casting here, as type changes in Ref when class has private fields.
-  // see https://github.com/vuejs/core/issues/2557
-  const idMap = ref(proj.module?.doc.getIdMap()) as Ref<IdMap | undefined>
-  const syncModule = MutableModule.Transient()
-  const astModule = new ReactiveModule(syncModule)
-  const moduleRoot = computed(() => astModule.root()?.id)
-  let moduleDirty = false
   const nodeRects = reactive(new Map<NodeId, Rect>())
   const vizRects = reactive(new Map<NodeId, Rect>())
-
-  const topLevel = computed(() => {
-    // The top level of the module is always a block.
-    const root = moduleRoot.value
-    const topLevel = root != null ? astModule.get(root) : null
-    if (topLevel != null && !(topLevel instanceof Ast.BodyBlock)) {
-      return null
-    } else {
-      return topLevel
-    }
+  // The currently visible nodes' areas (including visualization).
+  const visibleNodeAreas = computed(() => {
+    const existing = iteratorFilter(nodeRects.entries(), ([id]) => db.nodeIdToNode.has(id))
+    return Array.from(existing, ([id, rect]) => vizRects.get(id) ?? rect)
   })
-
-  // Initialize text and idmap once module is loaded (data != null)
-  watch(data, () => {
-    if (!moduleCode.value) {
-      moduleCode.value = proj.module?.doc.getCode()
-      idMap.value = proj.module?.doc.getIdMap()
-    }
-  })
+  function visibleArea(nodeId: NodeId): Rect | undefined {
+    if (!db.nodeIdToNode.has(nodeId)) return
+    return vizRects.get(nodeId) ?? nodeRects.get(nodeId)
+  }
 
   const db = new GraphDb(
     suggestionDb.entries,
     toRef(suggestionDb, 'groups'),
     proj.computedValueRegistry,
   )
-  const portInstances = reactive(new Map<PortId, Set<PortViewInstance>>())
+  const portInstances = shallowReactive(new Map<PortId, Set<PortViewInstance>>())
   const editedNodeInfo = ref<NodeEditInfo>()
   const methodAst = ref<Ast.Function>()
-  const currentNodeIds = ref(new Set<NodeId>())
 
   const unconnectedEdge = ref<UnconnectedEdge>()
 
-  useObserveYjs(data, (event) => {
-    moduleDirty = false
-    if (!event.changes.keys.size) return
-    const code = proj.module?.doc.getCode()
-    if (code) moduleCode.value = code
-    const ids = proj.module?.doc.getIdMap()
-    if (ids) idMap.value = ids
-  })
+  const moduleSource = reactive(SourceDocument.Empty())
+  const moduleRoot = ref<Ast.Ast>()
+  const topLevel = ref<Ast.BodyBlock>()
 
-  let prevCode: string | undefined = undefined
-  const moduleData: {
-    getSpan?: (id: Ast.AstId) => SourceRange | undefined
-    toRaw?: Map<Ast.AstId, RawAst.Tree.Tree>
-  } = {}
-  watch([moduleCode, idMap], ([code, ids]) => {
-    if (!code || !ids) return
-    if (DEBUG && code === prevCode) console.info(`moduleData: Code is unchanged.`)
-    const edit = syncModule.edit()
-    const {
-      root,
-      idMap: parsedIds,
-      getSpan,
-      toRaw,
-      idMapUpdates,
-    } = Ast.parseExtended(code, ids, edit)
-    Y.applyUpdateV2(syncModule.ydoc, Y.encodeStateAsUpdateV2(root.module.ydoc))
-    db.updateExternalIds(root)
-    moduleData.toRaw = toRaw
-    moduleData.getSpan = getSpan
-    prevCode = code
-    proj.module!.transact(() => {
-      if (idMapUpdates) proj.module!.doc.setIdMap(parsedIds)
-      updateState()
+  let disconnectSyncModule: undefined | (() => void)
+  watch(syncModule, (syncModule) => {
+    if (!syncModule) return
+    let moduleChanged = true
+    disconnectSyncModule?.()
+    const handle = syncModule.observe((update) => {
+      moduleSource.applyUpdate(syncModule, update)
+      handleModuleUpdate(syncModule, moduleChanged, update)
+      moduleChanged = false
     })
+    disconnectSyncModule = () => {
+      syncModule.unobserve(handle)
+      moduleSource.clear()
+    }
   })
 
-  function updateState() {
-    if (!moduleData.toRaw || !moduleData.getSpan) return
+  let toRaw = new Map<SourceRangeKey, RawAst.Tree.Function>()
+  function handleModuleUpdate(module: Module, moduleChanged: boolean, update: ModuleUpdate) {
+    const root = module.root()
+    if (!root) return
+    if (moduleRoot.value != root) {
+      moduleRoot.value = root
+    }
+    if (root instanceof Ast.BodyBlock && topLevel.value != root) {
+      topLevel.value = root
+    }
+    // We can cast maps of unknown metadata fields to `NodeMetadata` because all `NodeMetadata` fields are optional.
+    const nodeMetadataUpdates = update.metadataUpdated as any as {
+      id: AstId
+      changes: NodeMetadata
+    }[]
+    const dirtyNodeSet = new Set(
+      (function* () {
+        yield* update.nodesUpdated
+        yield* update.nodesAdded
+      })(),
+    )
+    if (moduleChanged || dirtyNodeSet.size !== 0 || update.nodesDeleted.size !== 0) {
+      db.updateExternalIds(root)
+      toRaw = new Map()
+      visitRecursive(Ast.parseEnso(moduleSource.text), (node) => {
+        if (node.type === RawAst.Tree.Type.Function) {
+          const start = node.whitespaceStartInCodeParsed + node.whitespaceLengthInCodeParsed
+          const end = start + node.childrenLengthInCodeParsed
+          toRaw.set(sourceRangeKey([start, end]), node)
+          return false
+        }
+        return true
+      })
+      updateState(dirtyNodeSet)
+    }
+    if (nodeMetadataUpdates.length !== 0) {
+      for (const { id, changes } of nodeMetadataUpdates) db.updateMetadata(id, changes)
+    }
+  }
+
+  function updateState(dirtyNodes?: Set<AstId>) {
     const module = proj.module
     if (!module) return
-    const meta = module.doc.metadata
-    const textContentLocal = moduleCode.value
+    const textContentLocal = moduleSource.text
     if (!textContentLocal) return
-    methodAst.value = methodAstInModule(astModule)
+    if (!syncModule.value) return
+    methodAst.value = methodAstInModule(syncModule.value)
     if (methodAst.value) {
-      const rawFunc = moduleData.toRaw.get(methodAst.value.id)
-      assert(rawFunc?.type === RawAst.Tree.Type.Function)
-      currentNodeIds.value = db.readFunctionAst(
+      const methodSpan = moduleSource.getSpan(methodAst.value.id)
+      assert(methodSpan != null)
+      const rawFunc = toRaw.get(sourceRangeKey(methodSpan))
+      assert(rawFunc != null)
+      db.readFunctionAst(
         methodAst.value,
         rawFunc,
         textContentLocal,
-        (id) => meta.get(id),
-        moduleData.getSpan,
+        (id) => moduleSource.getSpan(id),
+        dirtyNodes ?? new Set(),
       )
     }
   }
 
   function methodAstInModule(mod: Module) {
     const topLevel = mod.root()
+    if (!topLevel) return
     assert(topLevel instanceof Ast.BodyBlock)
     return getExecutedMethodAst(topLevel, proj.executionContext.getStackTop(), db)
   }
-
-  useObserveYjs(metadata, (event) => {
-    const meta = event.target
-    for (const [key, op] of event.changes.keys) {
-      if (op.action === 'update' || op.action === 'add') {
-        const externalId = key as ExternalId
-        const data = meta.get(externalId)
-        const id = db.idFromExternal(externalId)
-        const node = id && db.nodeIdToNode.get(asNodeId(id))
-        if (data && node) db.assignUpdatedMetadata(node, data)
-      }
-    }
-  })
 
   function generateUniqueIdent() {
     for (;;) {
@@ -208,91 +219,195 @@ export const useGraphStore = defineStore('graph', () => {
     return edges
   })
 
+  const connectedEdges = computed(() => {
+    return edges.value.filter<ConnectedEdge>(isConnected)
+  })
+
   function createEdgeFromOutput(source: Ast.AstId) {
-    unconnectedEdge.value = { source }
+    unconnectedEdge.value = { source, target: undefined }
   }
 
   function disconnectSource(edge: Edge) {
     if (!edge.target) return
-    unconnectedEdge.value = { target: edge.target, disconnectedEdgeTarget: edge.target }
+    unconnectedEdge.value = {
+      source: undefined,
+      target: edge.target,
+      disconnectedEdgeTarget: edge.target,
+    }
   }
 
   function disconnectTarget(edge: Edge) {
     if (!edge.source || !edge.target) return
-    unconnectedEdge.value = { source: edge.source, disconnectedEdgeTarget: edge.target }
+    unconnectedEdge.value = {
+      source: edge.source,
+      target: undefined,
+      disconnectedEdgeTarget: edge.target,
+    }
   }
 
   function clearUnconnected() {
     unconnectedEdge.value = undefined
   }
 
+  function createNodes(
+    nodeOptions: {
+      position: Vec2
+      expression: string
+      metadata?: NodeMetadataFields | undefined
+      withImports?: RequiredImport[] | undefined
+      documentation?: string | undefined
+    }[],
+  ): NodeId[] {
+    const method = syncModule.value ? methodAstInModule(syncModule.value) : undefined
+    if (!method) {
+      console.error(`BUG: Cannot add node: No current function.`)
+      return []
+    }
+    const created = new Array<NodeId>()
+    edit((edit) => {
+      const bodyBlock = edit.getVersion(method).bodyAsBlock()
+      for (const options of nodeOptions) {
+        const ident = generateUniqueIdent()
+        const metadata = { ...options.metadata, position: options.position.xy() }
+        const { rootExpression, id } = newAssignmentNode(
+          edit,
+          ident,
+          options.expression,
+          metadata,
+          options.withImports ?? [],
+          options.documentation,
+        )
+        bodyBlock.push(rootExpression)
+        created.push(id)
+        nodeRects.set(id, new Rect(options.position, Vec2.Zero))
+      }
+    })
+    return created
+  }
+
+  function newAssignmentNode(
+    edit: MutableModule,
+    ident: Ast.Identifier,
+    expression: string,
+    metadata: NodeMetadataFields,
+    withImports: RequiredImport[],
+    documentation: string | undefined,
+  ) {
+    const conflicts = addMissingImports(edit, withImports) ?? []
+    const rhs = Ast.parse(expression, edit)
+    rhs.setNodeMetadata(metadata)
+    const assignment = Ast.Assignment.new(edit, ident, rhs)
+    for (const _conflict of conflicts) {
+      // TODO: Substitution does not work, because we interpret imports wrongly. To be fixed in
+      // https://github.com/enso-org/enso/issues/9356
+      // substituteQualifiedName(edit, assignment, conflict.pattern, conflict.fullyQualified)
+    }
+    const id = asNodeId(rhs.id)
+    const rootExpression =
+      documentation != null ? Ast.Documented.new(documentation, assignment) : assignment
+    return { rootExpression, id }
+  }
+
   function createNode(
     position: Vec2,
     expression: string,
-    metadata: NodeMetadata | undefined = undefined,
+    metadata: NodeMetadataFields = {},
     withImports: RequiredImport[] | undefined = undefined,
+    documentation?: string | undefined,
   ): Opt<NodeId> {
-    const mod = proj.module
-    if (!mod) return
-    const meta = metadata ?? {
-      x: position.x,
-      y: -position.y,
-      vis: null,
-    }
-    meta.x = position.x
-    meta.y = -position.y
-    const ident = generateUniqueIdent()
-    const edit = astModule.edit()
-    if (withImports) addMissingImports(edit, withImports)
-    const currentFunc = 'main'
-    const method = Ast.findModuleMethod(topLevel.value!, currentFunc)
-    if (!method) {
-      console.error(`BUG: Cannot add node: No current function.`)
-      return
-    }
-    const functionBlock = edit.getVersion(method).bodyAsBlock()
-    const rhs = Ast.parse(expression, edit)
-    const assignment = Ast.Assignment.new(edit, ident, rhs)
-    functionBlock.push(assignment)
-    commitEdit(edit, new Map([[rhs.id, meta]]))
+    return createNodes([{ position, expression, metadata, withImports, documentation }])[0]
   }
 
-  function addMissingImports(edit: MutableModule, newImports: RequiredImport[]) {
-    if (!newImports.length) return
-    const topLevel = edit.get(moduleRoot.value)
+  /* Try adding imports. Does nothing if conflict is detected, and returns `DectedConflict` in such case. */
+  function addMissingImports(
+    edit: MutableModule,
+    newImports: RequiredImport[],
+  ): DetectedConflict[] | undefined {
+    const topLevel = edit.getVersion(moduleRoot.value!)
     if (!(topLevel instanceof Ast.MutableBodyBlock)) {
       console.error(`BUG: Cannot add required imports: No BodyBlock module root.`)
       return
     }
     const existingImports = readImports(topLevel)
-    const importsToAdd = filterOutRedundantImports(existingImports, newImports)
+
+    const conflicts = []
+    const nonConflictingImports = []
+    for (const newImport of newImports) {
+      const conflictInfo = detectImportConflicts(suggestionDb.entries, existingImports, newImport)
+      if (conflictInfo?.detected) {
+        conflicts.push(conflictInfo)
+      } else {
+        nonConflictingImports.push(newImport)
+      }
+    }
+    addMissingImportsDisregardConflicts(edit, nonConflictingImports, existingImports)
+
+    if (conflicts.length > 0) return conflicts
+  }
+
+  /* Adds imports, ignores any possible conflicts.
+   * `existingImports` are optional and will be used instead of `readImports(topLevel)` if provided. */
+  function addMissingImportsDisregardConflicts(
+    edit: MutableModule,
+    imports: RequiredImport[],
+    existingImports?: Import[] | undefined,
+  ) {
+    if (!imports.length) return
+    const topLevel = edit.getVersion(moduleRoot.value!)
+    if (!(topLevel instanceof Ast.MutableBodyBlock)) {
+      console.error(`BUG: Cannot add required imports: No BodyBlock module root.`)
+      return
+    }
+    const existingImports_ = existingImports ?? readImports(topLevel)
+
+    const importsToAdd = filterOutRedundantImports(existingImports_, imports)
     if (!importsToAdd.length) return
     addImports(edit.getVersion(topLevel), importsToAdd)
   }
 
   function deleteNodes(ids: NodeId[]) {
-    const edit = astModule.edit()
-    for (const id of ids) {
-      const node = db.nodeIdToNode.get(id)
-      if (!node) return
-      proj.module?.doc.metadata.delete(node.rootSpan.externalId)
-      const outerExpr = edit.get(node.outerExprId)
-      if (outerExpr) Ast.deleteFromParentBlock(outerExpr)
-      nodeRects.delete(id)
-    }
-    commitEdit(edit)
+    edit(
+      (edit) => {
+        for (const id of ids) {
+          const node = db.nodeIdToNode.get(id)
+          if (!node) continue
+          const usages = db.getNodeUsages(id)
+          for (const usage of usages) updatePortValue(edit, usage, undefined)
+          const outerExpr = edit.getVersion(node.outerExpr)
+          if (outerExpr) Ast.deleteFromParentBlock(outerExpr)
+          nodeRects.delete(id)
+        }
+      },
+      true,
+      true,
+    )
   }
 
-  function setNodeContent(id: NodeId, content: string) {
+  function setNodeContent(id: NodeId, content: string, withImports?: RequiredImport[] | undefined) {
     const node = db.nodeIdToNode.get(id)
     if (!node) return
-    const edit = astModule.edit()
-    edit.getVersion(node.rootSpan).replaceValue(Ast.parse(content, edit))
-    commitEdit(edit)
+    edit((edit) => {
+      const editExpr = edit.getVersion(node.innerExpr)
+      editExpr.syncToCode(content)
+      if (withImports) {
+        const conflicts = addMissingImports(edit, withImports)
+        if (conflicts == null) return
+        const wholeAssignment = editExpr.mutableParent()
+        if (wholeAssignment == null) {
+          console.error('Cannot find parent of the node expression. Conflict resolution failed.')
+          return
+        }
+        for (const _conflict of conflicts) {
+          // TODO: Substitution does not work, because we interpret imports wrongly. To be fixed in
+          // https://github.com/enso-org/enso/issues/9356
+          // substituteQualifiedName(edit, wholeAssignment, conflict.pattern, conflict.fullyQualified)
+        }
+      }
+    })
   }
 
   function transact(fn: () => void) {
-    return proj.module?.transact(fn)
+    syncModule.value!.transact(fn)
   }
 
   function stopCapturingUndo() {
@@ -300,76 +415,79 @@ export const useGraphStore = defineStore('graph', () => {
   }
 
   function setNodePosition(nodeId: NodeId, position: Vec2) {
-    const externalId = db.idToExternal(nodeId)
-    if (!externalId) {
-      if (DEBUG) console.warn(`setNodePosition: Node not found.`)
-      return
+    const nodeAst = syncModule.value?.tryGet(nodeId)
+    if (!nodeAst) return
+    const oldPos = nodeAst.nodeMetadata.get('position')
+    if (oldPos?.x !== position.x || oldPos?.y !== position.y) {
+      editNodeMetadata(nodeAst, (metadata) =>
+        metadata.set('position', { x: position.x, y: position.y }),
+      )
     }
-    proj.module?.updateNodeMetadata(externalId, { x: position.x, y: -position.y })
   }
 
-  function normalizeVisMetadata(
-    id: Opt<VisualizationIdentifier>,
-    visible: boolean | undefined,
-  ): VisualizationMetadata | null {
-    const vis: VisualizationMetadata = { identifier: id ?? null, visible: visible ?? false }
-    if (visMetadataEquals(vis, { identifier: null, visible: false })) return null
-    else return vis
-  }
-
-  function setNodeVisualizationId(nodeId: NodeId, vis: Opt<VisualizationIdentifier>) {
-    const node = db.nodeIdToNode.get(nodeId)
-    if (!node) return
-    const externalId = db.idToExternal(nodeId)
-    if (!externalId) {
-      if (DEBUG) console.warn(`setNodeVisualizationId: Node not found.`)
-      return
-    }
-    proj.module?.updateNodeMetadata(externalId, {
-      vis: normalizeVisMetadata(vis, node.vis?.visible),
+  function overrideNodeColor(nodeId: NodeId, color: string) {
+    const nodeAst = syncModule.value?.tryGet(nodeId)
+    if (!nodeAst) return
+    editNodeMetadata(nodeAst, (metadata) => {
+      metadata.set('colorOverride', color)
     })
   }
 
-  function setNodeVisualizationVisible(nodeId: NodeId, visible: boolean) {
-    const node = db.nodeIdToNode.get(nodeId)
-    if (!node) return
-    const externalId = db.idToExternal(nodeId)
-    if (!externalId) {
-      if (DEBUG) console.warn(`setNodeVisualizationId: Node not found.`)
-      return
+  function normalizeVisMetadata(
+    partial: Partial<VisualizationMetadata>,
+  ): VisualizationMetadata | undefined {
+    const empty: VisualizationMetadata = {
+      identifier: null,
+      visible: false,
+      fullscreen: false,
+      width: null,
     }
-    proj.module?.updateNodeMetadata(externalId, {
-      vis: normalizeVisMetadata(node.vis?.identifier, visible),
+    const vis: VisualizationMetadata = { ...empty, ...partial }
+    if (visMetadataEquals(vis, empty)) return undefined
+    else return vis
+  }
+
+  function setNodeVisualization(nodeId: NodeId, vis: Partial<VisualizationMetadata>) {
+    const nodeAst = syncModule.value?.tryGet(nodeId)
+    if (!nodeAst) return
+    editNodeMetadata(nodeAst, (metadata) => {
+      const data: Partial<VisualizationMetadata> = {
+        identifier: vis.identifier ?? metadata.get('visualization')?.identifier ?? null,
+        visible: vis.visible ?? metadata.get('visualization')?.visible ?? false,
+        fullscreen: vis.fullscreen ?? metadata.get('visualization')?.fullscreen ?? false,
+        width: vis.width ?? metadata.get('visualization')?.width ?? null,
+      }
+      metadata.set('visualization', normalizeVisMetadata(data))
     })
   }
 
   function updateNodeRect(nodeId: NodeId, rect: Rect) {
-    const externalId = db.idToExternal(nodeId)
-    if (!externalId) {
-      if (DEBUG) console.warn(`updateNodeRect: Node not found.`)
-      return
-    }
-    if (rect.pos.equals(Vec2.Zero) && !metadata.value?.has(externalId)) {
-      const { position } = nonDictatedPlacement(rect.size, {
-        nodeRects: [...nodeRects.entries()]
-          .filter(([id]) => db.nodeIdToNode.get(id))
-          .map(([id, rect]) => vizRects.get(id) ?? rect),
-        // The rest of the properties should not matter.
-        selectedNodeRects: [],
-        screenBounds: Rect.Zero,
-        mousePosition: Vec2.Zero,
-      })
-      const node = db.nodeIdToNode.get(nodeId)
-      metadata.value?.set(externalId, {
-        x: position.x,
-        y: -position.y,
-        vis: node?.vis ?? null,
-      })
-      nodeRects.set(nodeId, new Rect(position, rect.size))
-    } else {
-      nodeRects.set(nodeId, rect)
+    nodeRects.set(nodeId, rect)
+    if (rect.pos.equals(Vec2.Zero)) {
+      nodesToPlace.push(nodeId)
     }
   }
+
+  const nodesToPlace = reactive<NodeId[]>([])
+  const { place: placeNode } = usePlacement(visibleNodeAreas, Rect.Zero)
+
+  watch(nodesToPlace, (nodeIds) => {
+    if (nodeIds.length === 0) return
+    const nodesToProcess = [...nodeIds]
+    nodesToPlace.length = 0
+    batchEdits(() => {
+      for (const nodeId of nodesToProcess) {
+        const nodeAst = syncModule.value?.get(nodeId)
+        const rect = nodeRects.get(nodeId)
+        if (!rect || !nodeAst || nodeAst.nodeMetadata.get('position') != null) continue
+        const { position } = placeNode([], rect.size)
+        editNodeMetadata(nodeAst, (metadata) =>
+          metadata.set('position', { x: position.x, y: position.y }),
+        )
+        nodeRects.set(nodeId, new Rect(position, rect.size))
+      }
+    }, 'local:autoLayout')
+  })
 
   function updateVizRect(id: NodeId, rect: Rect | undefined) {
     if (rect) vizRects.set(id, rect)
@@ -417,8 +535,12 @@ export const useGraphStore = defineStore('graph', () => {
     return getPortPrimaryInstance(id)?.rect.value
   }
 
+  function isPortEnabled(id: PortId): boolean {
+    return getPortRelativeRect(id) != null
+  }
+
   function getPortNodeId(id: PortId): NodeId | undefined {
-    return getPortPrimaryInstance(id)?.nodeId ?? db.getExpressionNodeId(id as string as Ast.AstId)
+    return db.getExpressionNodeId(id as string as Ast.AstId) ?? getPortPrimaryInstance(id)?.nodeId
   }
 
   /**
@@ -435,33 +557,64 @@ export const useGraphStore = defineStore('graph', () => {
     return true
   }
 
-  function commitEdit(edit: MutableModule, metadataUpdates?: Map<AstId, Partial<NodeMetadata>>) {
+  function startEdit(): MutableModule {
+    return syncModule.value!.edit()
+  }
+
+  /** Apply the given `edit` to the state.
+   *
+   *  @param skipTreeRepair - If the edit is known not to require any parenthesis insertion, this may be set to `true`
+   *  for better performance.
+   */
+  function commitEdit(
+    edit: MutableModule,
+    skipTreeRepair?: boolean,
+    origin: LocalUserActionOrigin = defaultLocalOrigin,
+  ) {
     const root = edit.root()
-    if (!root) {
-      console.error(`BUG: Cannot commit edit: No module root.`)
+    if (!(root instanceof Ast.BodyBlock)) {
+      console.error(`BUG: Cannot commit edit: No module root block.`)
       return
     }
-    const printed = Ast.print(root)
-    const module_ = proj.module
-    if (!module_) return
-    if (moduleDirty) {
-      console.warn(
-        `An edit has been committed before a previous edit has been observed. The new edit will supersede the previous edit.`,
-      )
-    }
-    moduleDirty = true
-    module_.transact(() => {
-      const idMap = Ast.spanMapToIdMap(printed.info)
-      module_.doc.setIdMap(idMap)
-      module_.doc.setCode(printed.code)
-      if (DEBUG) console.info(`commitEdit`, idMap, printed.code)
-      if (metadataUpdates) {
-        for (const [id, meta] of metadataUpdates) {
-          module_.updateNodeMetadata(edit.checkedGet(id).externalId, meta)
-        }
-      }
-    })
+    if (!skipTreeRepair) Ast.repair(root, edit)
+    syncModule.value!.applyEdit(edit, origin)
   }
+
+  /** Edit the AST module.
+   *
+   *  Optimization options: These are safe to use for metadata-only edits; otherwise, they require extreme caution.
+   *
+   *  @param skipTreeRepair - If the edit is certain not to produce incorrect or non-canonical syntax, this may be set
+   *  to `true` for better performance.
+   *  @param direct - Apply all changes directly to the synchronized module; they will be committed even if the callback
+   *  exits by throwing an exception.
+   */
+  function edit<T>(f: (edit: MutableModule) => T, skipTreeRepair?: boolean, direct?: boolean): T {
+    const edit = direct ? syncModule.value : syncModule.value?.edit()
+    assert(edit != null)
+    let result
+    edit.transact(() => {
+      result = f(edit)
+      if (!skipTreeRepair) {
+        const root = edit.root()
+        assert(root instanceof Ast.BodyBlock)
+        Ast.repair(root, edit)
+      }
+      if (!direct) syncModule.value!.applyEdit(edit)
+    })
+    return result!
+  }
+
+  function batchEdits(f: () => void, origin: Origin = defaultLocalOrigin) {
+    assert(syncModule.value != null)
+    syncModule.value.transact(f, origin)
+  }
+
+  function editNodeMetadata(ast: Ast.Ast, f: (metadata: Ast.MutableNodeMetadata) => void) {
+    edit((edit) => f(edit.getVersion(ast).mutableNodeMetadata()), true, true)
+  }
+
+  const viewModule = computed(() => syncModule.value!)
 
   function mockExpressionUpdate(
     locator: string | { binding: string; expr: string },
@@ -474,7 +627,7 @@ export const useGraphStore = defineStore('graph', () => {
     let exprId: AstId | undefined
     if (expr) {
       const node = db.nodeIdToNode.get(nodeId)
-      node?.rootSpan.visitRecursive((ast) => {
+      node?.innerExpr.visitRecursive((ast) => {
         if (ast instanceof Ast.Ast && ast.code() == expr) {
           exprId = ast.id
         }
@@ -496,12 +649,6 @@ export const useGraphStore = defineStore('graph', () => {
     proj.computedValueRegistry.processUpdates([update_])
   }
 
-  function editScope(scope: (edit: MutableModule) => Map<AstId, Partial<NodeMetadata>> | void) {
-    const edit = astModule.edit()
-    const metadataUpdates = scope(edit)
-    commitEdit(edit, metadataUpdates ?? undefined)
-  }
-
   /**
    * Reorders nodes so the `targetNodeId` node is placed after `sourceNodeId`. Does nothing if the
    * relative order is already correct.
@@ -510,8 +657,8 @@ export const useGraphStore = defineStore('graph', () => {
    * are also moved after it, keeping their relative order.
    */
   function ensureCorrectNodeOrder(edit: MutableModule, sourceNodeId: NodeId, targetNodeId: NodeId) {
-    const sourceExpr = db.nodeIdToNode.get(sourceNodeId)?.outerExprId
-    const targetExpr = db.nodeIdToNode.get(targetNodeId)?.outerExprId
+    const sourceExpr = db.nodeIdToNode.get(sourceNodeId)?.outerExpr.id
+    const targetExpr = db.nodeIdToNode.get(targetNodeId)?.outerExpr.id
     const body = edit.getVersion(methodAstInModule(edit)!).bodyAsBlock()
     assert(sourceExpr != null)
     assert(targetExpr != null)
@@ -524,9 +671,11 @@ export const useGraphStore = defineStore('graph', () => {
     // If source is placed after its new target, the nodes needs to be reordered.
     if (sourceIdx > targetIdx) {
       // Find all transitive dependencies of the moved target node.
-      const deps = db.dependantNodes(targetNodeId)
+      const deps = reachable([targetNodeId], (node) => db.nodeDependents.lookup(node))
 
-      const dependantLines = new Set(Array.from(deps, (id) => db.nodeIdToNode.get(id)?.outerExprId))
+      const dependantLines = new Set(
+        Array.from(deps, (id) => db.nodeIdToNode.get(id)?.outerExpr.id),
+      )
       // Include the new target itself in the set of lines that must be placed after source node.
       dependantLines.add(targetExpr)
 
@@ -555,6 +704,10 @@ export const useGraphStore = defineStore('graph', () => {
     }
   }
 
+  function isConnectedTarget(portId: PortId): boolean {
+    return db.connections.reverseLookup(portId as AstId).size > 0
+  }
+
   return {
     transact,
     db: markRaw(db),
@@ -562,25 +715,28 @@ export const useGraphStore = defineStore('graph', () => {
     editedNodeInfo,
     unconnectedEdge,
     edges,
-    currentNodeIds,
-    moduleCode,
+    connectedEdges,
+    moduleSource,
     nodeRects,
     vizRects,
+    visibleNodeAreas,
+    visibleArea,
     unregisterNodeRect,
     methodAst,
-    astModule,
     createEdgeFromOutput,
     disconnectSource,
     disconnectTarget,
     clearUnconnected,
     moduleRoot,
+    createNodes,
     createNode,
     deleteNodes,
     ensureCorrectNodeOrder,
+    batchEdits,
+    overrideNodeColor,
     setNodeContent,
     setNodePosition,
-    setNodeVisualizationId,
-    setNodeVisualizationVisible,
+    setNodeVisualization,
     stopCapturingUndo,
     topLevel,
     updateNodeRect,
@@ -589,12 +745,22 @@ export const useGraphStore = defineStore('graph', () => {
     removePortInstance,
     getPortRelativeRect,
     getPortNodeId,
+    isPortEnabled,
     updatePortValue,
     setEditedNode,
     updateState,
+    startEdit,
     commitEdit,
-    editScope,
+    edit,
+    viewModule,
     addMissingImports,
+    addMissingImportsDisregardConflicts,
+    isConnectedTarget,
+    currentMethodPointer() {
+      const currentMethod = proj.executionContext.getStackTop()
+      if (currentMethod.type === 'ExplicitCall') return currentMethod.methodPointer
+      return db.getExpressionInfo(currentMethod.expressionId)?.methodCall?.methodPointer
+    },
   }
 })
 
@@ -605,14 +771,21 @@ function randomIdent() {
 }
 
 /** An edge, which may be connected or unconnected. */
-export type Edge = {
+export interface Edge {
   source: AstId | undefined
   target: PortId | undefined
 }
 
-export type UnconnectedEdge = {
-  source?: AstId
-  target?: PortId
+export interface ConnectedEdge extends Edge {
+  source: AstId
+  target: PortId
+}
+
+export function isConnected(edge: Edge): edge is ConnectedEdge {
+  return edge.source != null && edge.target != null
+}
+
+interface UnconnectedEdge extends Edge {
   /** If this edge represents an in-progress edit of a connected edge, it is identified by its target expression. */
   disconnectedEdgeTarget?: PortId
 }

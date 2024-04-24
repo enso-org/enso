@@ -1,0 +1,50 @@
+from Standard.Base import all
+import Standard.Base.Metadata.Display
+import Standard.Base.Metadata.Widget
+from Standard.Base.Metadata.Choice import Option
+
+polyglot java import org.enso.aws.DefaultRegionProvider
+polyglot java import software.amazon.awssdk.regions.Region as Java_Region
+
+## AWS Region
+type AWS_Region
+    ## The default AWS region is inferred based on the following settings:
+       1. If `AWS_REGION` environment variable is set, it is used as the default.
+       2. If the `~/.aws` configuration specifies a region, it is used.
+       3. If running in the Enso Cloud or on any EC2 instance, the region is inferred from the instance metadata.
+       4. If the region cannot be inferred in any way, `eu-west-1` is used as a fallback.
+    Default
+
+    ## Resolves default region in the same manner as `Default`,
+       but in step (2), it uses the specified profile instead of a default one.
+    Default_With_Profile (profile_name : Text)
+
+    ## AWS Region specified by its id.
+    Region (id : Text)
+
+    ## PRIVATE
+    all_region_ids -> Vector Text =
+        Java_Region.regions.map .id
+
+    ## PRIVATE
+    default_widget (display : Display = Display.When_Modified) -> Widget =
+        options = [Option "Default" ("..Default")] + AWS_Region.all_region_ids.map id->
+            code = "(..Region "+id.pretty+")"
+            Option id code
+        Widget.Single_Choice values=options display=display
+
+    ## PRIVATE
+    resolve_id self -> Text = case self of
+        AWS_Region.Region id -> id
+        AWS_Region.Default ->
+            DefaultRegionProvider.new Nothing fallback_region . getRegion . id
+        AWS_Region.Default_With_Profile profile_name ->
+            DefaultRegionProvider.new profile_name fallback_region . getRegion . id
+
+    ## PRIVATE
+    as_java self -> Java_Region =
+        Java_Region.of self.resolve_id
+
+## PRIVATE
+   The fallback region used if all other methods cannot determine the default region.
+fallback_region = Java_Region.EU_WEST_1

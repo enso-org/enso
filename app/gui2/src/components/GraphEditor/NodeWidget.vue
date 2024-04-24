@@ -1,17 +1,15 @@
 <script setup lang="ts">
-import {
-  injectWidgetRegistry,
-  type WidgetInput,
-  type WidgetUpdate,
-} from '@/providers/widgetRegistry'
+import type { WidgetModule } from '@/providers/widgetRegistry'
+import { injectWidgetRegistry, WidgetInput, type WidgetUpdate } from '@/providers/widgetRegistry'
 import { injectWidgetTree } from '@/providers/widgetTree'
 import {
   injectWidgetUsageInfo,
   provideWidgetUsageInfo,
   usageKeyForInput,
 } from '@/providers/widgetUsageInfo'
+import { useGraphStore } from '@/stores/graph'
 import { Ast } from '@/util/ast'
-import { computed, proxyRefs } from 'vue'
+import { computed, getCurrentInstance, proxyRefs, shallowRef, watchEffect, withCtx } from 'vue'
 
 const props = defineProps<{
   input: WidgetInput
@@ -30,6 +28,7 @@ defineOptions({
 
 type UpdateHandler = (update: WidgetUpdate) => boolean
 
+const graph = useGraphStore()
 const registry = injectWidgetRegistry()
 const tree = injectWidgetTree()
 const parentUsageInfo = injectWidgetUsageInfo(true)
@@ -41,16 +40,17 @@ const sameInputParentWidgets = computed(() =>
 )
 const nesting = computed(() => (parentUsageInfo?.nesting ?? 0) + (props.nest === true ? 1 : 0))
 
-const selectedWidget = computed(() => {
-  return registry.select(
+const selectedWidget = shallowRef<WidgetModule<WidgetInput> | undefined>()
+const updateSelection = withCtx(() => {
+  selectedWidget.value = registry.select(
     {
       input: props.input,
       nesting: nesting.value,
     },
     sameInputParentWidgets.value,
   )
-})
-
+}, getCurrentInstance())
+watchEffect(() => updateSelection())
 const updateHandler = computed(() => {
   const nextHandler =
     parentUsageInfo?.updateHandler ?? (() => console.log('Missing update handler'))
@@ -85,8 +85,9 @@ provideWidgetUsageInfo(
 
 const spanStart = computed(() => {
   if (!(props.input instanceof Ast.Ast)) return undefined
-  if (props.input.span == null) return undefined
-  return props.input.span[0] - tree.nodeSpanStart
+  const span = graph.moduleSource.getSpan(props.input.id)
+  if (span == null) return undefined
+  return span[0] - tree.nodeSpanStart
 })
 </script>
 

@@ -4,23 +4,22 @@ import { useRaf } from '@/composables/animation'
 import { useResizeObserver } from '@/composables/events'
 import { injectGraphNavigator } from '@/providers/graphNavigator'
 import { injectGraphSelection } from '@/providers/graphSelection'
+import { injectKeyboard } from '@/providers/keyboard'
 import { injectPortInfo, providePortInfo, type PortId } from '@/providers/portInfo'
 import { Score, WidgetInput, defineWidget, widgetProps } from '@/providers/widgetRegistry'
 import { injectWidgetTree } from '@/providers/widgetTree'
 import { PortViewInstance, useGraphStore } from '@/stores/graph'
 import { assert } from '@/util/assert'
 import { Ast } from '@/util/ast'
-import type { AstId, TokenId } from '@/util/ast/abstract'
 import { ArgumentInfoKey } from '@/util/callTree'
 import { Rect } from '@/util/data/rect'
-import { asNot } from '@/util/data/types.ts'
 import { cachedGetter } from '@/util/reactivity'
 import { uuidv4 } from 'lib0/random'
 import { isUuid } from 'shared/yjsModel'
 import {
   computed,
-  markRaw,
   nextTick,
+  onMounted,
   onUpdated,
   proxyRefs,
   shallowRef,
@@ -39,16 +38,34 @@ const selection = injectGraphSelection(true)
 
 const isHovered = computed(() => selection?.hoveredPort === props.input.portId)
 
-const hasConnection = computed(
-  () => graph.db.connections.reverseLookup(portId.value as AstId).size > 0,
-)
+const hasConnection = computed(() => graph.isConnectedTarget(portId.value))
 const isCurrentEdgeHoverTarget = computed(
   () => isHovered.value && graph.unconnectedEdge != null && selection?.hoveredPort === portId.value,
 )
-const connected = computed(() => hasConnection.value || isCurrentEdgeHoverTarget.value)
+const isCurrentDisconectedEdgeTarget = computed(
+  () =>
+    graph.unconnectedEdge?.disconnectedEdgeTarget === portId.value &&
+    graph.unconnectedEdge?.target !== portId.value,
+)
+const isSelfArgument = computed(
+  () =>
+    props.input.value instanceof Ast.Ast && props.input.value.id === tree.connectedSelfArgumentId,
+)
+const isPotentialSelfArgument = computed(
+  () =>
+    props.input.value instanceof Ast.Ast && props.input.value.id === tree.potentialSelfArgumentId,
+)
+const connected = computed(
+  () => (!isSelfArgument.value && hasConnection.value) || isCurrentEdgeHoverTarget.value,
+)
+const isTarget = computed(
+  () =>
+    (hasConnection.value && !isCurrentDisconectedEdgeTarget.value) ||
+    isCurrentEdgeHoverTarget.value,
+)
 
 const rootNode = shallowRef<HTMLElement>()
-const nodeSize = useResizeObserver(rootNode, false)
+const nodeSize = useResizeObserver(rootNode)
 
 // Compute the scene-space bounding rectangle of the expression's widget. Those bounds are later
 // used for edge positioning. Querying and updating those bounds is relatively expensive, so we only
@@ -64,7 +81,7 @@ const randomUuid = uuidv4() as PortId
 // effects depending on the port ID value will not be re-triggered unnecessarily.
 const portId = cachedGetter<PortId>(() => {
   assert(!isUuid(props.input.portId))
-  return asNot<TokenId>(props.input.portId)
+  return props.input.portId
 })
 
 const innerWidget = computed(() => {
@@ -73,70 +90,101 @@ const innerWidget = computed(() => {
 
 providePortInfo(proxyRefs({ portId, connected: hasConnection }))
 
-watch(nodeSize, updateRect)
-onUpdated(() => nextTick(updateRect))
-useRaf(toRef(tree, 'hasActiveAnimations'), updateRect)
-
 const randSlice = randomUuid.slice(0, 4)
 
 watchEffect(
   (onCleanup) => {
     const id = portId.value
-    const instance = markRaw(new PortViewInstance(portRect, tree.nodeId, props.onUpdate))
+    const instance = new PortViewInstance(portRect, tree.nodeId, props.onUpdate)
     graph.addPortInstance(id, instance)
     onCleanup(() => graph.removePortInstance(id, instance))
   },
   { flush: 'post' },
 )
 
-function updateRect() {
-  let domNode = rootNode.value
-  const rootDomNode = domNode?.closest('.node')
-  if (domNode == null || rootDomNode == null) return
+const keyboard = injectKeyboard()
 
+const enabled = computed(() => {
+  const input = props.input.value
+  const isConditional = input instanceof Ast.Ast && tree.conditionalPorts.has(input.id)
+  return !isConditional || keyboard.mod
+})
+
+/**
+ * NOTE: Reactive dependencies of this function are enforced externally in a `watch` below. This is
+ * necessary, since we don't want to introduce very noisy dependencies through `clientToSceneRect`
+ * call. Since this function calls `getBoundingClientRect`, it can't automatically track all its
+ * dependencies anyway and external refresh mechanisms are required.
+ */
+function updateRect() {
+  const oldRect = portRect.value
+  const newRect = relativePortSceneRect()
+  if (
+    oldRect !== newRect &&
+    (oldRect == null || newRect == null || !oldRect.equalsApproximately(newRect, 0.01))
+  ) {
+    portRect.value = newRect
+  }
+}
+
+function relativePortSceneRect(): Rect | undefined {
+  const domNode = rootNode.value
+  const rootDomNode = tree.nodeElement
+  if (domNode == null || rootDomNode == null) return
+  if (!enabled.value) return
   const exprClientRect = Rect.FromDomRect(domNode.getBoundingClientRect())
   const nodeClientRect = Rect.FromDomRect(rootDomNode.getBoundingClientRect())
   const exprSceneRect = navigator.clientToSceneRect(exprClientRect)
   const exprNodeRect = navigator.clientToSceneRect(nodeClientRect)
-  const localRect = exprSceneRect.offsetBy(exprNodeRect.pos.inverse())
-  if (portRect.value != null && localRect.equals(portRect.value)) return
-  portRect.value = localRect
+  return exprSceneRect.offsetBy(exprNodeRect.pos.inverse())
 }
+
+watch(
+  () => [nodeSize.value, rootNode.value, tree.nodeElement, tree.nodeSize, enabled.value],
+  updateRect,
+)
+onUpdated(() => nextTick(updateRect))
+onMounted(() => nextTick(updateRect))
+useRaf(toRef(tree, 'hasActiveAnimations'), updateRect)
 </script>
 
 <script lang="ts">
-export const widgetDefinition = defineWidget(WidgetInput.isAstOrPlaceholder, {
-  priority: 0,
-  score: (props, _db) => {
-    const portInfo = injectPortInfo(true)
-    const value = props.input.value
-    if (portInfo != null && value instanceof Ast.Ast && portInfo.portId === value.id) {
+export const widgetDefinition = defineWidget(
+  WidgetInput.isAstOrPlaceholder,
+  {
+    priority: 0,
+    score: (props, _db) => {
+      const portInfo = injectPortInfo(true)
+      const value = props.input.value
+      if (portInfo != null && value instanceof Ast.Ast && portInfo.portId === value.id) {
+        return Score.Mismatch
+      }
+
+      if (
+        props.input.forcePort ||
+        WidgetInput.isPlaceholder(props.input) ||
+        props.input[ArgumentInfoKey] != undefined
+      )
+        return Score.Perfect
+
+      if (
+        props.input.value instanceof Ast.Invalid ||
+        props.input.value instanceof Ast.BodyBlock ||
+        props.input.value instanceof Ast.Group ||
+        props.input.value instanceof Ast.NumericLiteral ||
+        props.input.value instanceof Ast.OprApp ||
+        props.input.value instanceof Ast.PropertyAccess ||
+        props.input.value instanceof Ast.UnaryOprApp ||
+        props.input.value instanceof Ast.Wildcard ||
+        props.input.value instanceof Ast.TextLiteral
+      )
+        return Score.Perfect
+
       return Score.Mismatch
-    }
-
-    if (
-      props.input.forcePort ||
-      WidgetInput.isPlaceholder(props.input) ||
-      props.input[ArgumentInfoKey] != undefined
-    )
-      return Score.Perfect
-
-    if (
-      props.input.value instanceof Ast.Invalid ||
-      props.input.value instanceof Ast.BodyBlock ||
-      props.input.value instanceof Ast.Group ||
-      props.input.value instanceof Ast.NumericLiteral ||
-      props.input.value instanceof Ast.OprApp ||
-      props.input.value instanceof Ast.PropertyAccess ||
-      props.input.value instanceof Ast.UnaryOprApp ||
-      props.input.value instanceof Ast.Wildcard ||
-      props.input.value instanceof Ast.TextLiteral
-    )
-      return Score.Perfect
-
-    return Score.Mismatch
+    },
   },
-})
+  import.meta.hot,
+)
 </script>
 
 <template>
@@ -144,7 +192,11 @@ export const widgetDefinition = defineWidget(WidgetInput.isAstOrPlaceholder, {
     ref="rootNode"
     class="WidgetPort"
     :class="{
+      enabled,
       connected,
+      isTarget,
+      isSelfArgument,
+      isPotentialSelfArgument,
       'r-24': connected,
       newToConnect: !hasConnection && isCurrentEdgeHoverTarget,
       primary: props.nesting < 2,
@@ -212,5 +264,21 @@ export const widgetDefinition = defineWidget(WidgetInput.isAstOrPlaceholder, {
     left: 0px;
     right: 0px;
   }
+}
+
+.WidgetPort.isTarget:not(.isPotentialSelfArgument):after {
+  content: '';
+  position: absolute;
+  top: -4px;
+  left: 50%;
+  width: 4px;
+  height: 5px;
+  transform: translate(-50%, 0);
+  background-color: var(--node-color-port);
+  z-index: -1;
+}
+
+.isSelfArgument {
+  margin-right: 2px;
 }
 </style>

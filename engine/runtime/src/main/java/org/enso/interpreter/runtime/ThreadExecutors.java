@@ -1,35 +1,60 @@
 package org.enso.interpreter.runtime;
 
+import java.util.Collections;
 import java.util.Map;
 import java.util.WeakHashMap;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.*;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
 
 final class ThreadExecutors {
   private final EnsoContext context;
-  private final Map<ExecutorService, String> pools = new WeakHashMap<>();
+  private final Map<ExecutorService, String> pools =
+      Collections.synchronizedMap(new WeakHashMap<>());
+  private final Map<Thread, String> threads = Collections.synchronizedMap(new WeakHashMap<>());
 
   ThreadExecutors(EnsoContext context) {
     this.context = context;
   }
 
-  final ExecutorService newCachedThreadPool(String name, boolean systemThread) {
-    var s = Executors.newCachedThreadPool(new Factory(name, systemThread));
+  ExecutorService newCachedThreadPool(
+      String name, boolean systemThread, int min, int max, int maxQueueSize) {
+    var s =
+        new ThreadPoolExecutor(
+            min,
+            max,
+            60L,
+            TimeUnit.SECONDS,
+            new LinkedBlockingQueue<>(maxQueueSize),
+            new Factory(name, systemThread));
     pools.put(s, name);
     return s;
   }
 
-  final ExecutorService newFixedThreadPool(int cnt, String name, boolean systemThread) {
+  ExecutorService newFixedThreadPool(int cnt, String name, boolean systemThread) {
     var s = Executors.newFixedThreadPool(cnt, new Factory(name, systemThread));
     pools.put(s, name);
     return s;
   }
 
   public void shutdown() {
+    synchronized (pools) {
+      shutdownPools();
+    }
+    synchronized (threads) {
+      for (var t : threads.keySet()) {
+        try {
+          t.join();
+        } catch (InterruptedException ex) {
+          context.getLogger().log(Level.WARNING, "Cannot shutdown {0} thread", t.getName());
+        }
+      }
+    }
+  }
+
+  private void shutdownPools() {
+    assert Thread.holdsLock(pools);
     var it = pools.entrySet().iterator();
     while (it.hasNext()) {
       var next = it.next();
@@ -61,6 +86,7 @@ final class ThreadExecutors {
     public Thread newThread(Runnable r) {
       var thread = context.createThread(system, r);
       thread.setName(prefix + "-" + counter.incrementAndGet());
+      threads.put(thread, thread.getName());
       return thread;
     }
   }

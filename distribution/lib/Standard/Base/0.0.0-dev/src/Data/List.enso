@@ -8,9 +8,11 @@ import project.Data.Vector.Vector
 import project.Error.Error
 import project.Errors.Common.Index_Out_Of_Bounds
 import project.Errors.Common.Not_Found
+import project.Errors.Empty_Error.Empty_Error
 import project.Function.Function
 import project.Meta
 import project.Nothing.Nothing
+import project.Panic.Panic
 from project.Data.Boolean import Boolean, False, True
 from project.Data.Filter_Condition import unify_condition_or_predicate, unify_condition_predicate_or_element
 from project.Data.List.List import Cons, Nil
@@ -39,6 +41,7 @@ type List
     Cons x xs
 
     ## GROUP Metadata
+       ICON metadata
        Computes the number of elements in the list.
 
        ! Computational Complexity
@@ -55,6 +58,7 @@ type List
     length self = self.fold 0 (acc -> _ -> acc + 1)
 
     ## GROUP Selections
+       ICON select_row
        Gets an element from the list at a specified index (0-based).
 
        ! Computational Complexity
@@ -130,7 +134,8 @@ type List
         res = go init self
         res
 
-    ## Combines all the elements of a non-empty list using a binary operation.
+    ## ICON preparation
+       Combines all the elements of a non-empty list using a binary operation.
        If the list is empty, it returns `if_empty`.
 
        Arguments:
@@ -144,11 +149,12 @@ type List
 
              example_fold = Examples.list.reduce (+)
     reduce : (Any -> Any -> Any) -> Any -> Any
-    reduce self function ~if_empty=(Error.throw Empty_Error.Error) = case self of
+    reduce self function ~if_empty=(Error.throw (Empty_Error.Error List)) = case self of
         Nil -> if_empty
         Cons x xs -> xs.fold x function
 
     ## GROUP Logical
+       ICON preparation
        Checks whether any element of the list matches the given condition.
 
        Arguments:
@@ -179,6 +185,7 @@ type List
         res
 
     ## GROUP Logical
+       ICON preparation
        Checks whether a condition holds for all elements in this list.
 
        Arguments:
@@ -204,6 +211,7 @@ type List
         self . any (predicate >> .not) . not
 
     ## GROUP Logical
+       ICON preparation
        Checks whether this list contains a given value as an element.
 
        Arguments:
@@ -219,6 +227,7 @@ type List
     contains self elem = self.any (== elem)
 
     ## GROUP Logical
+       ICON metadata
        Checks if this list is empty.
 
        > Example
@@ -233,6 +242,7 @@ type List
         Cons _ _ -> False
 
     ## GROUP Logical
+       ICON metadata
        Checks if the list is not empty.
 
        > Example
@@ -245,6 +255,7 @@ type List
     not_empty self = self.is_empty.not
 
     ## GROUP Selections
+       ICON preparation
        Selects all elements of this list which satisfy a condition.
 
        Arguments:
@@ -278,6 +289,7 @@ type List
                 res.value
 
     ## GROUP Selections
+       ICON preparation
        Partitions the list into lists of elements which satisfy a given
        condition and ones that do not.
 
@@ -304,7 +316,8 @@ type List
                 True  -> Pair.new (Cons elem acc.first) acc.second
                 False -> Pair.new acc.first (Cons elem acc.second)
 
-    ## Applies a function to each element of the list, returning the list of
+    ## ICON dataframe_map_column
+       Applies a function to each element of the list, returning the list of
        results.
 
        Arguments:
@@ -343,6 +356,9 @@ type List
        Unlike `map`, this method does not return the individual results,
        therefore it is only useful for side-effecting computations.
 
+       If the function returns a dataflow error, the error is converted to a
+       panic and thrown immediately stopping further processing.
+
        > Example
          Print each of the list elements to the standard output.
 
@@ -354,12 +370,12 @@ type List
         go list = case list of
             Nil -> Nothing
             Cons h t ->
-                f h
+                Panic.rethrow (f h)
                 @Tail_Call go t
         go self
-        Nothing
 
     ## GROUP Selections
+       ICON order
        Reverses the list, returning a list with the same elements, but in the
        opposite order.
 
@@ -373,6 +389,7 @@ type List
     reverse self = self.fold Nil (l -> el -> Cons el l)
 
     ## GROUP Selections
+       ICON select_row
        Creates a new list with the first `count` elements at the start of `self`
        removed.
 
@@ -391,6 +408,7 @@ type List
         Cons _ b -> b.drop_start count-1
 
     ## GROUP Selections
+       ICON select_row
        Creates a new list consisting of the first `count` elements at the start
        of `self`.
 
@@ -418,6 +436,7 @@ type List
             res.value
 
     ## GROUP Selections
+       ICON select_row
        Get all elements from the list except the last.
 
        > Example
@@ -445,6 +464,7 @@ type List
                 res.value
 
     ## GROUP Selections
+       ICON select_row
        Get the last element of the list.
 
        > Example
@@ -459,6 +479,7 @@ type List
         a -> a
 
     ## GROUP Selections
+       ICON select_row
        Get the first element from the list.
 
        > Example
@@ -473,6 +494,7 @@ type List
         Cons a _ -> a
 
     ## GROUP Selections
+       ICON select_row
        Get the second element from the list.
 
        > Example
@@ -501,6 +523,7 @@ type List
     head self = self.first
 
     ## GROUP Selections
+       ICON select_row
        Get all elements from the list except the first.
 
        > Example
@@ -515,6 +538,7 @@ type List
         Cons _ b -> b
 
     ## GROUP Conversions
+       ICON convert
        Convert this list to a vector with the same elements.
     to_vector : Vector
     to_vector self =
@@ -532,6 +556,7 @@ type List
         go self "" ""
 
     ## GROUP Selections
+       ICON find
        Returns the first element of the list that satisfies the condition or
        if no elements of the list satisfy the predicate, returns `if_missing`.
 
@@ -549,7 +574,7 @@ type List
 
              example_first = Examples.list.find (> 2)
     find : (Filter_Condition | (Any -> Boolean)) -> Integer -> Any -> Any
-    find self condition start=0 ~if_missing=(Error.throw Not_Found) =
+    find self condition (start : Integer = 0) ~if_missing=(Error.throw Not_Found) =
         predicate = unify_condition_or_predicate condition
         case start.signum of
             -1 ->
@@ -563,6 +588,7 @@ type List
                 loop start_node
 
     ## GROUP Values
+       ICON find
        Returns the index of the element in the list.
        Returns Nothing if the element is not found.
 
@@ -577,7 +603,7 @@ type List
 
              [1, 2, 3, 4, 5].find (> 3)
     index_of : (Any | Filter_Condition | (Any -> Boolean)) -> Integer -> Integer | Nothing
-    index_of self condition start=0 = case start.signum of
+    index_of self condition (start : Integer = 0) = case start.signum of
         -1 ->
             node_and_index = find_node_from_end self start
             found = node_and_index.first.index_of condition 0
@@ -591,6 +617,7 @@ type List
             loop start_node start
 
     ## GROUP Values
+       ICON find
        Returns the last index of the element in the list.
        Returns Nothing if the element is not found.
 
@@ -605,7 +632,7 @@ type List
 
              [1, 2, 3, 4, 5].find (> 3)
     last_index_of : (Any | Filter_Condition | (Any -> Boolean)) -> Integer -> Integer | Nothing
-    last_index_of self condition start=-1 = case self of
+    last_index_of self condition (start : Integer = -1) = case self of
         Nil -> if start == -1 || start == 0 then Nothing else Error.throw (Index_Out_Of_Bounds.Error start 0)
         Cons _ _ ->
             length = self.length
@@ -618,17 +645,6 @@ type List
                         new_match = if predicate x then idx else last_match
                         @Tail_Call loop xs idx+1 new_match
                 loop self 0 Nothing
-
-## An error representing that the list is empty.
-type Empty_Error
-    ## PRIVATE
-    Error
-
-    ## PRIVATE
-
-       Pretty prints the empty error.
-    to_display_text : Text
-    to_display_text self = "The List is empty."
 
 ## PRIVATE
    Given a positive index and a list, returns the node.

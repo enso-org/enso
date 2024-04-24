@@ -8,17 +8,22 @@ import project.Data.Text.Text
 import project.Data.Text.Text_Sub_Range.Text_Sub_Range
 import project.Data.Vector.Vector
 import project.Error.Error
+import project.Errors.File_Error.File_Error
 import project.Network.HTTP.Header.Header
 import project.Network.HTTP.HTTP_Status_Code.HTTP_Status_Code
 import project.Network.HTTP.Response_Body.Response_Body
-import project.Network.HTTP.Response_Body.Unsupported_Content_Type
+import project.Network.HTTP.Response_Body.Throw_Unsupported_Error
 import project.Network.URI.URI
 import project.Nothing.Nothing
+import project.System.File.Existing_File_Behavior.Existing_File_Behavior
+import project.System.File.File
+import project.System.File.Generic.Writable_File.Writable_File
 import project.System.File_Format.Auto_Detect
 import project.System.File_Format.File_Format
 import project.System.File_Format.Infer
 import project.System.File_Format_Metadata.File_Format_Metadata
 from project.Data.Text.Extensions import all
+from project.Metadata import Display, Widget
 from project.Network.HTTP.Response_Body import decode_format_selector
 
 type Response
@@ -40,6 +45,7 @@ type Response
         Response.Value self.internal_http_response self.body.materialize
 
     ## GROUP Metadata
+       ICON metadata
        Get the uri for the response.
     uri : URI
     uri self =
@@ -76,11 +82,13 @@ type Response
             values = p.second
             values.map v-> Header.new key v
 
-    ## Get the response content type.
+    ## ICON metadata
+       Get the response content type.
     content_type : Text | Nothing
     content_type self = self.get_header "Content-Type"
 
     ## GROUP Metadata
+       ICON metadata
        Get the response content length in bytes.
        This method uses the `Content-Length` header, and does not read the body.
        If the header is not present will return Nothing.
@@ -89,7 +97,8 @@ type Response
         length_text = self.get_header "Content-Length"
         length_text.if_not_nothing <| Integer.parse length_text
 
-    ## Get the response body.
+    ## ICON data_input
+       Get the response body.
 
        > Example
          Getting the body from a response.
@@ -103,7 +112,8 @@ type Response
         metadata = resolve_file_metadata_for_response self
         Response_Body.new self.internal_http_response.body metadata self.uri
 
-    ## Get the response status code.
+    ## ICON metadata
+       Get the response status code.
 
        > Example
          Getting the code from a response.
@@ -117,16 +127,19 @@ type Response
 
     ## ALIAS parse
        GROUP Conversions
+       ICON data_input
        Uses the format to decode the body.
        If using `Auto_Detect`, the content-type will be used to determine the
-       format.
+       format. If the format cannot be detected automatically, `if_unsupported`
+       is returned.
     @format decode_format_selector
     decode : File_Format -> Any -> Any
-    decode self format=Auto_Detect ~if_unsupported=(Error.throw (Unsupported_Content_Type.Error self.content_type)) =
+    decode self format=Auto_Detect ~if_unsupported=Throw_Unsupported_Error =
         self.body.decode format if_unsupported
 
     ## ALIAS parse as text
        GROUP Conversions
+       ICON data_input
        Decodes the body to a Text value.
 
        Arguments:
@@ -134,12 +147,13 @@ type Response
          inferred from response headers. If that fails, UTF-8 is used as the
          fallback.
     @encoding Encoding.default_widget
-    decode_as_text : Encoding|Infer -> Text
+    decode_as_text : Encoding | Infer -> Text
     decode_as_text self (encoding : Encoding | Infer = Infer) =
         self.body.decode_as_text encoding
 
     ## ALIAS parse as json, parse json
        GROUP Conversions
+       ICON data_input
        Decodes the body as JSON.
 
        Arguments:
@@ -152,11 +166,34 @@ type Response
 
              import Standard.Examples
 
-             example_to_text = Examples.get_geo_data.decode_as_json
+             example_to_text = Data.fetch Examples.geo_data_url . decode_as_json
     @encoding Encoding.default_widget
-    decode_as_json : Encoding|Infer -> JS_Object | Boolean | Number | Nothing | Text | Vector
+    decode_as_json : Encoding | Infer -> JS_Object | Boolean | Number | Nothing | Text | Vector
     decode_as_json self (encoding : Encoding | Infer = Infer) =
         self.body.decode_as_json encoding
+
+    ## ALIAS to_file
+       GROUP Output
+       ICON data_download
+       Write response body to a File.
+
+       Arguments:
+       - file: The file to write the body to.
+       - on_existing_file: Specifies how to proceed if the file already exists.
+
+       > Examples
+         Write the contents of the request body to a scratch file on disk. The
+         file will be created if it does not exist, and will be overwritten if
+         it does.
+
+             import Standard.Examples
+
+             example_write =
+                Data.fetch Examples.geo_data_url . write Examples.scratch_file
+    @path (Widget.Text_Input display=Display.Always)
+    write : Writable_File -> Existing_File_Behavior -> File
+    write self file:Writable_File on_existing_file=Existing_File_Behavior.Backup =
+        self.body.write file on_existing_file
 
     ## PRIVATE
        Convert to a JavaScript Object representing this Response.

@@ -1,7 +1,7 @@
 from Standard.Base import all
 
-from Standard.Test import Test, Test_Suite
-import Standard.Test.Extensions
+from Standard.Test import all
+
 
 polyglot java import java.lang.System as Java_System
 polyglot java import java.io.File as Java_File
@@ -80,8 +80,8 @@ rewrite_main_file dir =
     code . write main on_existing_file=Existing_File_Behavior.Overwrite
 
 
-spec = Test.group "Python Examples" <|
-    Test.specify "Create Enso Project with numpy" pending=pending <|
+add_specs suite_builder = suite_builder.group "Python Examples" group_builder->
+    group_builder.specify "Create Enso Project with numpy" pending=pending <|
         IO.println "==== Generating Enso Project ===="
         prj = create_new_enso_project
         IO.println "Project ready at "+prj.path
@@ -107,4 +107,8 @@ spec = Test.group "Python Examples" <|
         res.stdout.should_contain "array(["
         res.stdout.should_contain "])"
 
-main = Test_Suite.run_main spec
+main filter=Nothing =
+    suite = Test.build suite_builder->
+        add_specs suite_builder
+    suite.run_with_filter filter
+

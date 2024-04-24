@@ -10,7 +10,7 @@ import NumericInputWidget from '@/components/widgets/NumericInputWidget.vue'
 
 const checkboxState = ref(false)
 
-// === Slider props ===
+// === Numeric props ===
 
 const state = ref(0)
 const min = ref(0)
@@ -19,6 +19,10 @@ const withLimits = ref(true)
 const sliderLimits = computed(() => {
   return withLimits.value ? { min: min.value, max: max.value } : undefined
 })
+
+// === Text props ===
+
+const text = ref('')
 
 // === Dropdown props ===
 
@@ -45,6 +49,11 @@ const values = ref(['address', 'age', 'id', 'language', 'location', 'workplace']
         <HstCheckbox v-model="withLimits" title="With limits" />
         <HstNumber v-model="min" title="min" />
         <HstNumber v-model="max" title="max" />
+      </template>
+    </Variant>
+    <Variant title="text" :meta="{ customBackground: backgroundColor }">
+      <template #controls>
+        <HstText v-model="text" title="v-model" />
       </template>
     </Variant>
     <Variant title="dropdown">

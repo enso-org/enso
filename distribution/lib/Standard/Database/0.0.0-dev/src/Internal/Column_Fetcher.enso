@@ -1,16 +1,12 @@
 from Standard.Base import all
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
-import Standard.Table.Data.Column.Column as Materialized_Column
-import Standard.Table.Data.Type.Value_Type.Bits
-import Standard.Table.Data.Type.Value_Type.Value_Type
 import Standard.Table.Internal.Java_Exports
+from Standard.Table import Bits, Column, Value_Type
 
 from project.Errors import Unsupported_Database_Operation
 
 polyglot java import java.sql.ResultSet
-polyglot java import java.time.LocalTime as Java_Local_Time
-
 polyglot java import org.enso.database.JDBCUtils
 polyglot java import org.enso.table.problems.ProblemAggregator
 
@@ -45,7 +41,7 @@ type Column_Fetcher_Builder
          explicitly declared as non-nullable.
        - make_column: A function that creates a column from the underlying
          builder. It takes the desired column name as argument.
-    Value (append : Any -> Nothing) (make_column : Text -> Materialized_Column)
+    Value (append : Any -> Nothing) (make_column : Text -> Column)
 
 ## PRIVATE
 boolean_fetcher : Column_Fetcher
@@ -130,10 +126,16 @@ fallback_fetcher =
     Column_Fetcher.Value fetch_value make_builder
 
 ## PRIVATE
+date_fetcher =
+    fetch_value rs i = JDBCUtils.getLocalDate rs i
+    make_builder initial_size _ =
+        java_builder = Java_Exports.make_date_builder initial_size
+        make_builder_from_java_object_builder java_builder
+    Column_Fetcher.Value fetch_value make_builder
+
+## PRIVATE
 time_fetcher =
-    fetch_value rs i =
-        time = rs.getObject i Java_Local_Time.class
-        if rs.wasNull then Nothing else time
+    fetch_value rs i = JDBCUtils.getLocalTime rs i
     make_builder initial_size _ =
         java_builder = Java_Exports.make_time_of_day_builder initial_size
         make_builder_from_java_object_builder java_builder
@@ -172,6 +174,7 @@ default_fetcher_for_value_type value_type =
         Value_Type.Char _ _ -> text_fetcher value_type
         Value_Type.Boolean -> boolean_fetcher
         Value_Type.Time -> time_fetcher
+        Value_Type.Date -> date_fetcher
         # We currently don't distinguish timestamps without a timezone on the Enso value side.
         Value_Type.Date_Time has_timezone ->
             if has_timezone then date_time_fetcher else local_date_time_fetcher
@@ -188,7 +191,7 @@ default_fetcher_for_value_type value_type =
 ## PRIVATE
 seal_java_builder java_builder column_name =
     storage = java_builder.seal
-    Materialized_Column.from_storage column_name storage
+    Column.from_storage column_name storage
 
 ## PRIVATE
 make_builder_from_java_object_builder java_builder =

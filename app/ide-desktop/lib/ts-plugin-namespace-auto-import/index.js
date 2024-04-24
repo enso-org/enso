@@ -79,6 +79,19 @@ module.exports = function init() {
                             )
                         }
                     }
+                } else if (action.description.startsWith('Update import from ')) {
+                    const moduleName =
+                        action.description.match(/(['"])(?:.*[/])?(?<moduleName>.*)\1/)?.groups
+                            ?.moduleName ?? ''
+                    const replacement = `, * as ${normalizeModuleName(moduleName)}`
+                    for (const change of action.changes) {
+                        for (const textChange of change.textChanges) {
+                            textChange.newText = textChange.newText.replace(
+                                /^, {.*}$/m,
+                                replacement
+                            )
+                        }
+                    }
                     // "Change 'foo' to 'module.foo'"
                 } else if (/^Change '(.*)' to '.*[.]\1'$/.test(action.description)) {
                     for (const change of action.changes) {

@@ -10,12 +10,11 @@ import org.enso.table.data.index.OrderedMultiValueKey;
 import org.enso.table.data.table.join.JoinKind;
 import org.enso.table.data.table.join.JoinResult;
 import org.enso.table.data.table.join.JoinStrategy;
-import org.enso.table.data.table.join.PluggableJoinStrategy;
 import org.enso.table.data.table.join.conditions.Between;
 import org.enso.table.problems.ProblemAggregator;
 import org.graalvm.polyglot.Context;
 
-public class SortJoin implements JoinStrategy, PluggableJoinStrategy {
+public class SortJoin implements JoinStrategy {
 
   public SortJoin(List<Between> conditions, JoinKind joinKind) {
     JoinStrategy.ensureConditionsNotEmpty(conditions);
@@ -83,7 +82,6 @@ public class SortJoin implements JoinStrategy, PluggableJoinStrategy {
     return resultBuilder.buildAndInvalidate();
   }
 
-  @Override
   public void joinSubsets(
       List<Integer> leftGroup,
       List<Integer> rightGroup,
@@ -184,7 +182,6 @@ public class SortJoin implements JoinStrategy, PluggableJoinStrategy {
     // Note: we cannot just use `compareTo`, because we are now not checking that the key is between
     // the bounds in lexicographic order.
     // Instead, we are checking if the key is between the bounds for all dimensions.
-
     int n = key.getNumberOfColumns();
     for (int i = 0; i < n; i++) {
       var keyValue = key.get(i);

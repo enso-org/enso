@@ -3,12 +3,12 @@ from Standard.Base import all
 from Standard.Table import Sort_Column
 from Standard.Table.Errors import all
 
-from Standard.Test_New import all
+from Standard.Test import all
 
 
 from project.Common_Table_Operations.Util import run_default_backend
 
-main = run_default_backend add_specs
+main filter=Nothing = run_default_backend add_specs filter
 
 type Data
     Value ~connection

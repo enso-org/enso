@@ -2,7 +2,7 @@
 import * as fc from '@fast-check/vitest'
 import * as v from 'vitest'
 
-import * as setModule from '../set'
+import * as setModule from '#/utilities/set'
 
 // =============
 // === Tests ===

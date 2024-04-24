@@ -1,6 +1,11 @@
+private
+
 from Standard.Base import all
 import Standard.Base.Runtime.Context
+from Standard.Base.Runtime import assert
 
+import project.Internal.Stack_Trace_Helpers
+import project.Spec_Result.Spec_Result
 import project.Suite_Config.Suite_Config
 import project.Test.Test
 import project.Test_Result.Test_Result
@@ -26,35 +31,96 @@ wrap_junit_testsuites config builder ~action =
 
     result
 
-## PRIVATE
-use_ansi_colors : Boolean
-use_ansi_colors = Environment.get "ENSO_TEST_ANSI_COLORS" . is_nothing . not
 
-## PRIVATE
-failure_message : Text
-failure_message =
-    fail = 'FAILED'
-    if use_ansi_colors then '\u001b[31;1m'+fail+'\u001b[0m' else fail
+red text =
+    '\u001b[31;1m' + text + '\u001b[0m'
 
-## PRIVATE
-   Prints a report on the tests to standard output.
-print_report : Test -> Suite_Config -> (StringBuilder|Nothing) -> Nothing
-print_report spec config builder =
-    total_time = spec.behaviors.fold Duration.zero acc-> behavior->
-        acc + behavior.time_taken
+green text =
+    '\u001b[32;1m' + text + '\u001b[0m'
+
+highlighted text =
+    '\u001b[1;1m' + text + '\u001b[0m'
+
+maybe_red_text (text : Text) (config : Suite_Config) =
+    if config.use_ansi_colors then (red text) else text
+
+maybe_green_text (text : Text) (config : Suite_Config) =
+    if config.use_ansi_colors then (green text) else text
+
+maybe_highlighted_text (text : Text) (config : Suite_Config) =
+    if config.use_ansi_colors then (highlighted text) else text
+
+## Print result for a single Spec run
+print_single_result : Test_Result -> Suite_Config -> Nothing
+print_single_result (test_result : Test_Result) (config : Suite_Config) =
+    times_suffix =
+        times = test_result.time_taken.total_milliseconds.to_text + "ms"
+        "[" + times + "]"
+
+    decorate_stack_trace = case config.use_ansi_colors && config.caller_project_root.is_nothing.not of
+        True -> Stack_Trace_Helpers.decorate_stack_trace_text config.caller_project_root (maybe_highlighted_text _ config)
+        False -> (x->x)
+
+    case test_result.spec_result of
+        Spec_Result.Success ->
+            if config.print_only_failures.not then
+                txt = "    - " + test_result.spec_name + " " + times_suffix
+                IO.println (maybe_green_text txt config)
+        Spec_Result.Failure msg details ->
+            txt = "    - [FAILED] " + test_result.spec_name + " " + times_suffix
+            IO.println (maybe_red_text txt config)
+            IO.println ("        Reason: " + msg)
+            if details.is_nothing.not then
+                IO.println (decorate_stack_trace details)
+        Spec_Result.Pending reason ->
+            if config.print_only_failures.not then
+                IO.println ("    - [PENDING] " + test_result.spec_name)
+                IO.println ("        Reason: " + reason)
+
+
+## Prints all the results, optionally writing them to a jUnit XML output.
+
+   Arguments:
+   - test_results: Vector of `Test_Result`. Can be empty. Can contain results from multiple
+                   groups.
+   - builder: StringBuilder or Nothing. If StringBuilder, then a jUnit XML format is appended to
+              that StringBuilder.
+print_report : Vector Test_Result -> Suite_Config -> (StringBuilder | Nothing) -> Nothing
+print_report (test_results : Vector Test_Result) (config : Suite_Config) (builder : (StringBuilder | Nothing)) =
+    distinct_group_names = test_results.map (_.group_name) . distinct
+    results_per_group = distinct_group_names.fold Map.empty acc-> group_name->
+        group_results = test_results.filter res->
+            res.group_name == group_name
+        assert (group_results.length > 0)
+        acc.insert group_name group_results
+    results_per_group.each_with_key group_name-> group_results->
+        print_group_report group_name group_results config builder
+
+
+## Prints report for test_results from a single group.
+
+   Arguments:
+   - test_results: Test test_results from a single group
+print_group_report : Text -> Vector Test_Result -> Suite_Config -> (StringBuilder|Nothing) -> Nothing
+print_group_report group_name test_results config builder =
+    distinct_groups = test_results.distinct (res-> res.group_name)
+    assert (distinct_groups.length == 1)
+    total_time = test_results.fold Duration.zero acc-> res->
+        acc + res.time_taken
     if config.should_output_junit then
-        builder.append ('    <testsuite name="' + (escape_xml spec.name) + '" timestamp="' + (Date_Time.now.format "yyyy-MM-dd'T'HH:mm:ss") + '"')
-        builder.append (' tests="' + spec.behaviors.length.to_text + '"')
-        builder.append (' disabled="' + spec.behaviors.filter _.is_pending . length . to_text + '"')
-        builder.append (' errors="' + spec.behaviors.filter _.is_fail . length . to_text + '"')
+        assert builder.is_nothing.not "Builder must be specified when JUnit output is enabled"
+        builder.append ('    <testsuite name="' + (escape_xml group_name) + '" timestamp="' + (Date_Time.now.format "yyyy-MM-dd'T'HH:mm:ss") + '"')
+        builder.append (' tests="' + test_results.length.to_text + '"')
+        builder.append (' disabled="' + test_results.filter _.is_pending . length . to_text + '"')
+        builder.append (' errors="' + test_results.filter _.is_fail . length . to_text + '"')
         builder.append (' time="' + total_time.total_seconds.to_text + '"')
         builder.append ('>\n')
 
-        spec.behaviors.reverse.each behavior->
-            builder.append ('        <testcase name="' + (escape_xml behavior.name) + '" time="' + ((behavior.time_taken.total_milliseconds / 1000.0).to_text) + '">')
-            case behavior.result of
-                Test_Result.Success -> Nothing
-                Test_Result.Failure msg details ->
+        test_results.each result->
+            builder.append ('        <testcase name="' + (escape_xml result.spec_name) + '" time="' + ((result.time_taken.total_milliseconds / 1000.0).to_text) + '">')
+            case result.spec_result of
+                Spec_Result.Success -> Nothing
+                Spec_Result.Failure msg details ->
                     escaped_message = escape_xml msg . replace '\n' '&#10;'
                     builder.append ('\n            <failure message="' + escaped_message + '">\n')
                     # We always print the message again as content - otherwise the GitHub action may fail to parse it.
@@ -64,46 +130,27 @@ print_report spec config builder =
                         builder.append '\n\n'
                         builder.append (escape_xml details)
                     builder.append '\n            </failure>\n'
-                Test_Result.Pending msg -> builder.append ('\n            <skipped message="' + (escape_xml msg) + '"/>\n        ')
+                Spec_Result.Pending msg -> builder.append ('\n            <skipped message="' + (escape_xml msg) + '"/>\n        ')
             builder.append '        </testcase>\n'
         builder.append '    </testsuite>\n'
 
-    should_print_behavior = config.print_only_failures.not || spec.behaviors.any (b -> b.result.is_fail)
+    should_print_behavior = config.print_only_failures.not || test_results.any (r -> r.is_fail)
     if should_print_behavior then
-        spec_description =
-            counts = spec.tests_succeeded.to_text + "/" + spec.tests_executed.to_text
+        tests_succeeded = test_results.fold 0 acc-> res->
+            if res.is_success then acc + 1 else acc
+        tests_failed = test_results.fold 0 acc-> res->
+            if res.is_fail then acc + 1 else acc
+        some_test_failed = tests_failed > 0
+        tests_executed = tests_succeeded + tests_failed
+        group_description =
+            counts = tests_succeeded.to_text + "/" + tests_executed.to_text
             times = total_time.total_milliseconds.to_text + "ms"
-            "[" + counts + ", " + times + "]"
-        IO.println (spec.name + ":  " + spec_description)
-        spec.behaviors.reverse.each behavior->
-            make_behavior_description behavior =
-                times = behavior.time_taken.total_milliseconds.to_text + "ms"
-                "[" + times + "]"
-            case behavior.result of
-                Test_Result.Success ->
-                    if config.print_only_failures.not then
-                        IO.println ("    - " + behavior.name + " " + make_behavior_description behavior)
-                Test_Result.Failure msg details ->
-                    IO.println ("    - ["+failure_message+"] " + behavior.name + " " + make_behavior_description behavior)
-                    IO.println ("        Reason: " + msg)
-                    if details.is_nothing.not then
-                        IO.println details
-                Test_Result.Pending reason ->
-                    if config.print_only_failures.not then
-                        IO.println ("    - [PENDING] " + behavior.name)
-                        IO.println ("        Reason: " + reason)
-
-## PRIVATE
-   Record JUnit PENDING group.
-report_pending_group : Text -> Text -> Suite_Config -> (StringBuilder|Nothing) -> Nothing
-report_pending_group name reason config builder =
-    if config.should_output_junit then
-        builder.append ('    <testsuite name="' + (escape_xml name) + '" timestamp="' + (Date_Time.now.format "yyyy-MM-dd'T'HH:mm:ss") + '" time="0">\n')
-        builder.append ('        <testcase name="' + (escape_xml name) + '"><skipped message="' + (escape_xml reason) + '" /></testcase>\n')
-        builder.append '    </testsuite>\n'
-
-    IO.println ("[PENDING] " + name)
-    IO.println ("    Reason: " + reason)
+            group_name + ": " + "[" + counts + ", " + times + "]"
+        IO.println <| case some_test_failed of
+            True -> maybe_red_text ("[FAILED] " + group_description) config
+            False -> maybe_green_text group_description config
+        test_results.each result->
+            print_single_result result config
 
 ## PRIVATE
    Escape Text for XML

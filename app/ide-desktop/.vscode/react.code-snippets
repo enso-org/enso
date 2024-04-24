@@ -2,18 +2,31 @@
   "React Component": {
     "prefix": ["$c", "component"],
     "body": [
-      "/** Props for a {@link $1}. */",
+      "/** @file $2 */",
+      "import * as React from 'react'",
+      "",
+      "// ====${1/./=/g}====",
+      "// === $1 ===",
+      "// ====${1/./=/g}====",
+      "",
+      "/** Props for a {@link ${1:$TM_FILENAME_BASE}}. */",
       "export interface $1Props {",
+      "  $3",
       "}",
       "",
       "/** $2 */",
       "export default function $1(props: $1Props) {",
-      "    return <div>$3</div>",
+      "  const { ${3/(.+?):.+/$1, /g} } = props",
+      "  return <>$4</>",
       "}"
     ]
   },
   "useState": {
     "prefix": ["$s", "usestate"],
     "body": ["const [$1, set${1/(.*)/${1:/pascalcase}/}] = React.useState($2)"]
+  },
+  "section": {
+    "prefix": ["$S", "section"],
+    "body": ["// ====${1/./=/g}====", "// === $1 ===", "// ====${1/./=/g}===="]
   }
 }

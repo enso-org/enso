@@ -6,7 +6,11 @@ import java.io.OutputStream;
 import java.nio.Buffer;
 import java.nio.ByteBuffer;
 import java.nio.CharBuffer;
-import java.nio.charset.*;
+import java.nio.charset.Charset;
+import java.nio.charset.CharsetDecoder;
+import java.nio.charset.CharsetEncoder;
+import java.nio.charset.CoderResult;
+import java.nio.charset.CodingErrorAction;
 import java.util.Arrays;
 import java.util.function.BiConsumer;
 import java.util.function.Function;
@@ -99,7 +103,7 @@ public class Encoding_Utils {
    * @return the resulting string
    */
   public static ResultWithWarnings<String> from_bytes(byte[] bytes, Charset charset) {
-    if (bytes.length == 0) {
+    if (bytes == null || bytes.length == 0) {
       return new ResultWithWarnings<>("");
     }
 

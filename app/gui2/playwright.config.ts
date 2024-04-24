@@ -37,42 +37,43 @@ export default defineConfig({
   globalSetup: './e2e/setup.ts',
   testDir: './e2e',
   forbidOnly: !!process.env.CI,
-  retries: process.env.CI ? 2 : 0,
+  repeatEach: process.env.CI ? 3 : 1,
   ...(process.env.CI ? { workers: 1 } : {}),
-  reporter: 'line',
+  timeout: 60000,
   expect: {
     timeout: 5000,
     toHaveScreenshot: { threshold: 0 },
   },
+  reporter: 'html',
   use: {
     headless: !DEBUG,
-    trace: 'on-first-retry',
-    viewport: { width: 1920, height: 1200 },
-    ...(DEBUG
-      ? {}
-      : {
-          launchOptions: {
-            ignoreDefaultArgs: ['--headless'],
-            args: [
-              // Much closer to headful Chromium than classic headless.
-              '--headless=new',
-              // Required for `backdrop-filter: blur` to work.
-              '--use-angle=swiftshader',
-              // FIXME: `--disable-gpu` disables `backdrop-filter: blur`, which is not handled by
-              // the software (CPU) compositor. This SHOULD be fixed eventually, but this flag
-              // MUST stay as CI does not have a GPU.
-              '--disable-gpu',
-              // Fully disable GPU process.
-              '--disable-software-rasterizer',
-              // Disable text subpixel antialiasing.
-              '--font-render-hinting=none',
-              '--disable-skia-runtime-opts',
-              '--disable-system-font-check',
-              '--disable-font-subpixel-positioning',
-              '--disable-lcd-text',
-            ],
-          },
-        }),
+    trace: 'retain-on-failure',
+    viewport: { width: 1920, height: 1600 },
+    ...(DEBUG ?
+      {}
+    : {
+        launchOptions: {
+          ignoreDefaultArgs: ['--headless'],
+          args: [
+            // Much closer to headful Chromium than classic headless.
+            '--headless=new',
+            // Required for `backdrop-filter: blur` to work.
+            '--use-angle=swiftshader',
+            // FIXME: `--disable-gpu` disables `backdrop-filter: blur`, which is not handled by
+            // the software (CPU) compositor. This SHOULD be fixed eventually, but this flag
+            // MUST stay as CI does not have a GPU.
+            '--disable-gpu',
+            // Fully disable GPU process.
+            '--disable-software-rasterizer',
+            // Disable text subpixel antialiasing.
+            '--font-render-hinting=none',
+            '--disable-skia-runtime-opts',
+            '--disable-system-font-check',
+            '--disable-font-subpixel-positioning',
+            '--disable-lcd-text',
+          ],
+        },
+      }),
   },
   // projects: [
   // {
@@ -110,7 +111,10 @@ export default defineConfig({
     env: {
       E2E: 'true',
     },
-    command: `npx vite build && npx vite preview --port ${PORT} --strictPort`,
+    command:
+      process.env.CI || process.env.PROD ?
+        `npx vite build && npx vite preview --port ${PORT} --strictPort`
+      : `npx vite dev --port ${PORT}`,
     // Build from scratch apparently can take a while on CI machines.
     timeout: 120 * 1000,
     port: PORT,

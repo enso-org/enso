@@ -3,7 +3,7 @@ package org.enso.launcher.components
 import java.nio.file.{Files, Path}
 import java.net.URI
 import java.util.UUID
-import nl.gn0s1s.bump.SemVer
+import org.enso.semver.SemVer
 import org.enso.distribution.FileSystem.PathSyntax
 import org.enso.editions.updater.EditionManager
 import org.enso.runtimeversionmanager.config.GlobalRunnerConfigurationManager
@@ -21,7 +21,7 @@ import scala.concurrent.Future
   * [[LauncherRunner]] in a single suite.
   */
 class LauncherRunnerSpec extends RuntimeVersionManagerTest with FlakySpec {
-  private val defaultEngineVersion = SemVer(0, 0, 0, Some("default"))
+  private val defaultEngineVersion = SemVer.of(0, 0, 0, "default")
 
   private val fakeUri = URI.create("ws://test:1234/")
 
@@ -62,7 +62,7 @@ class LauncherRunnerSpec extends RuntimeVersionManagerTest with FlakySpec {
         makeFakeRunner(extraEnv = Map("ENSO_JVM_OPTS" -> envOptions))
 
       val runSettings = RunSettings(
-        SemVer(0, 0, 0),
+        SemVer.of(0, 0, 0),
         Seq("arg1", "--flag2"),
         connectLoggerIfAvailable = true
       )
@@ -92,7 +92,11 @@ class LauncherRunnerSpec extends RuntimeVersionManagerTest with FlakySpec {
 
       runner.withCommand(
         runSettings,
-        JVMSettings(useSystemJVM = true, jvmOptions = jvmOptions)
+        JVMSettings(
+          useSystemJVM = true,
+          jvmOptions   = jvmOptions,
+          extraOptions = Seq()
+        )
       ) { systemCommand =>
         systemCommand.command.head shouldEqual "java"
         checkCommandLine(systemCommand)
@@ -100,7 +104,11 @@ class LauncherRunnerSpec extends RuntimeVersionManagerTest with FlakySpec {
 
       runner.withCommand(
         runSettings,
-        JVMSettings(useSystemJVM = false, jvmOptions = jvmOptions)
+        JVMSettings(
+          useSystemJVM = false,
+          jvmOptions   = jvmOptions,
+          extraOptions = Seq()
+        )
       ) { managedCommand =>
         managedCommand.command.head should include("java")
         val javaHome =
@@ -170,7 +178,7 @@ class LauncherRunnerSpec extends RuntimeVersionManagerTest with FlakySpec {
     "warn when creating a project using a nightly version" taggedAs Flaky in {
       val runner         = makeFakeRunner()
       val projectPath    = getTestDirectory / "project2"
-      val nightlyVersion = SemVer(0, 0, 0, Some("SNAPSHOT.2000-01-01"))
+      val nightlyVersion = SemVer.of(0, 0, 0, "SNAPSHOT.2000-01-01")
       val (_, logs) = TestLogger.gather[Any, Runner](
         classOf[Runner], {
           runner
@@ -217,7 +225,7 @@ class LauncherRunnerSpec extends RuntimeVersionManagerTest with FlakySpec {
     "run repl in project context" in {
       val runnerOutside = makeFakeRunner()
 
-      val version = SemVer(0, 0, 0, Some("repl-test"))
+      val version = SemVer.of(0, 0, 0, "repl-test")
       version should not equal defaultEngineVersion // sanity check
 
       val projectPath    = getTestDirectory / "project"
@@ -253,7 +261,7 @@ class LauncherRunnerSpec extends RuntimeVersionManagerTest with FlakySpec {
       insideProject.runnerArguments.mkString(" ") should
       (include(s"--in-project $normalizedPath") and include("--repl"))
 
-      val overridden = SemVer(0, 0, 0, Some("overridden"))
+      val overridden = SemVer.of(0, 0, 0, "overridden")
       val overriddenRun = runnerInside
         .repl(
           projectPath         = Some(projectPath),
@@ -272,7 +280,7 @@ class LauncherRunnerSpec extends RuntimeVersionManagerTest with FlakySpec {
     "run language server" in {
       val runner = makeFakeRunner()
 
-      val version     = SemVer(0, 0, 0, Some("language-server-test"))
+      val version     = SemVer.of(0, 0, 0, "language-server-test")
       val projectPath = getTestDirectory / "project"
       newProject("test", projectPath, version)
 
@@ -305,7 +313,7 @@ class LauncherRunnerSpec extends RuntimeVersionManagerTest with FlakySpec {
       commandLine should include(s"--path $normalizedPath")
       runSettings.runnerArguments.lastOption.value shouldEqual "additional"
 
-      val overridden = SemVer(0, 0, 0, Some("overridden"))
+      val overridden = SemVer.of(0, 0, 0, "overridden")
       runner
         .languageServer(
           options,
@@ -322,7 +330,7 @@ class LauncherRunnerSpec extends RuntimeVersionManagerTest with FlakySpec {
     "run a project" in {
       val runnerOutside = makeFakeRunner()
 
-      val version        = SemVer(0, 0, 0, Some("run-test"))
+      val version        = SemVer.of(0, 0, 0, "run-test")
       val projectPath    = getTestDirectory / "project"
       val normalizedPath = projectPath.toAbsolutePath.normalize.toString
       newProject("test", projectPath, version)
@@ -356,7 +364,7 @@ class LauncherRunnerSpec extends RuntimeVersionManagerTest with FlakySpec {
       insideProject.runnerArguments.mkString(" ") should
       include(s"--run $normalizedPath")
 
-      val overridden = SemVer(0, 0, 0, Some("overridden"))
+      val overridden = SemVer.of(0, 0, 0, "overridden")
       val overriddenRun = runnerInside
         .run(
           path                = Some(projectPath),
@@ -386,7 +394,7 @@ class LauncherRunnerSpec extends RuntimeVersionManagerTest with FlakySpec {
     }
 
     "run a script outside of a project even if cwd is inside project" in {
-      val version     = SemVer(0, 0, 0, Some("run-test"))
+      val version     = SemVer.of(0, 0, 0, "run-test")
       val projectPath = getTestDirectory / "project"
       val runnerInside =
         makeFakeRunner(cwdOverride = Some(projectPath))
@@ -415,7 +423,7 @@ class LauncherRunnerSpec extends RuntimeVersionManagerTest with FlakySpec {
     }
 
     "run a script inside of a project" in {
-      val version               = SemVer(0, 0, 0, Some("run-test"))
+      val version               = SemVer.of(0, 0, 0, "run-test")
       val projectPath           = getTestDirectory / "project"
       val normalizedProjectPath = projectPath.toAbsolutePath.normalize.toString
       val runnerOutside         = makeFakeRunner()
@@ -454,7 +462,7 @@ class LauncherRunnerSpec extends RuntimeVersionManagerTest with FlakySpec {
     }
 
     "get project version inside of project" in {
-      val version      = SemVer(0, 0, 0, Some("version-test"))
+      val version      = SemVer.of(0, 0, 0, "version-test")
       val projectPath  = getTestDirectory / "project"
       val name         = "Testname"
       val runnerInside = makeFakeRunner(cwdOverride = Some(projectPath))

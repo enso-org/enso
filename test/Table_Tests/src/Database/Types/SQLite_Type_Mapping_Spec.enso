@@ -1,17 +1,16 @@
 from Standard.Base import all
 
-import Standard.Table.Data.Type.Value_Type.Bits
-from Standard.Table import Aggregate_Column, Value_Type, Table
+from Standard.Table import Aggregate_Column, Value_Type, Table, Bits
 from Standard.Table.Errors import Invalid_Value_Type, Inexact_Type_Coercion
 
-import Standard.Database.Data.Dialect
+import Standard.Database.Dialect
 import Standard.Database.Extensions.Upload_Database_Table
 import Standard.Database.Extensions.Upload_In_Memory_Table
 import Standard.Database.Internal.SQLite.SQLite_Type_Mapping
 from Standard.Database import Database, SQLite, In_Memory, SQL_Query
 from Standard.Database.Errors import Unsupported_Database_Operation
 
-from Standard.Test_New import all
+from Standard.Test import all
 
 import project.Database.Helpers.Name_Generator
 
@@ -88,7 +87,7 @@ add_specs suite_builder =
             t.evaluate_expression 'is_empty([b])' . value_type . should_equal Value_Type.Boolean
             t.evaluate_expression 'is_nothing([a])' . value_type . should_equal Value_Type.Boolean
 
-            t2 = t.aggregate [Aggregate_Column.Group_By "b", Aggregate_Column.Sum "a", Aggregate_Column.Maximum "a", Aggregate_Column.Minimum "d", Aggregate_Column.Count_Not_Nothing "c", Aggregate_Column.Concatenate "b", Aggregate_Column.Count]
+            t2 = t.aggregate ["b"] [Aggregate_Column.Sum "a", Aggregate_Column.Maximum "a", Aggregate_Column.Minimum "d", Aggregate_Column.Count_Not_Nothing "c", Aggregate_Column.Concatenate "b", Aggregate_Column.Count]
             t2.at "b" . value_type . should_equal Value_Type.Char
             t2.at "Sum a" . value_type . should_equal Value_Type.Integer
             t2.at "Maximum a" . value_type . should_equal Value_Type.Integer

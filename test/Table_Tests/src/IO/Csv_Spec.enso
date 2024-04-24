@@ -2,7 +2,7 @@ from Standard.Base import all
 
 from Standard.Table import all
 
-from Standard.Test_New import all
+from Standard.Test import all
 
 from project.Util import all
 
@@ -23,7 +23,7 @@ add_specs suite_builder =
 
         group_builder.specify "should create a table from a textual CSV" <|
             file_contents = (enso_project.data / "simple_empty.csv") . read_text
-            table = Table.from file_contents (format = Delimited ",")
+            table = Table.from file_contents (format = Delimited_Format.Delimited ",")
             table.should_equal data.expected_table
 
     suite_builder.group "File.read (Delimited)" group_builder->
@@ -51,13 +51,13 @@ add_specs suite_builder =
             csv = """
                 name,x,y,x,y
                 foo,10,20,30,20
-            t = Table.from csv (format = Delimited ",")
+            t = Table.from csv (format = Delimited_Format.Delimited ",")
             t.columns.map .name . should_equal ['name', 'x', 'y', 'x 1', 'y 1']
 
     suite_builder.group 'Writing' group_builder->
         group_builder.specify 'should properly serialize simple tables' <|
             varied_column = (enso_project.data / "varied_column.csv") . read
-            res = Text.from varied_column format=(Delimited ",")
+            res = Text.from varied_column format=(Delimited_Format.Delimited ",")
             exp = normalize_lines <| '''
                 Column 1,Column 2,Column 3,Column 4,Column 5,Column 6
                 2005-02-25,2005-02-25,1,1,1.0,1
@@ -81,7 +81,7 @@ add_specs suite_builder =
                 "This;Name;;Is""""Strange";20
                 Marcin,,;"hello;world"
 
-            res = Text.from t format=(Delimited ";")
+            res = Text.from t format=(Delimited_Format.Delimited ";")
             res.should_equal expected
 
         group_builder.specify 'should allow forced quoting of records' <|
@@ -95,7 +95,7 @@ add_specs suite_builder =
                 "This;Name;;Is""""Strange",20
                 "Marcin,,","hello;world"
 
-            res = Text.from t format=(Delimited "," . with_quotes always_quote=True)
+            res = Text.from t format=(Delimited_Format.Delimited "," . with_quotes always_quote=True)
             res.should_equal expected
 
 
@@ -130,7 +130,7 @@ add_specs suite_builder =
             t2 = out.read
             t2.should_equal t
 
-            t3 = out.read (Delimited ',' . with_comments)
+            t3 = out.read (Delimited_Format.Delimited ',' . with_comments)
             t3.should_equal t
 
             out.delete_if_exists
@@ -145,8 +145,8 @@ add_specs suite_builder =
 
             out2.delete_if_exists
 
-main =
+main filter=Nothing =
     suite = Test.build suite_builder->
         add_specs suite_builder
-    suite.run_with_filter
+    suite.run_with_filter filter
 

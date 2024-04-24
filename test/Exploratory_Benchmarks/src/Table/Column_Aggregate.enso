@@ -14,7 +14,7 @@ type Boxed_Total_Aggregate
     Instance text_column
 
     current_aggregate_implementation self =
-        self.text_column.to_table.aggregate [Aggregate_Column.Longest 0] . at 0 . at 0
+        self.text_column.to_table.aggregate [] [Aggregate_Column.Longest 0] . at 0 . at 0
 
     java_loop self =
         SimpleStorageAggregateHelpers.longestText self.text_column.java_column.getStorage
@@ -46,7 +46,7 @@ type Primitive_Total_Aggregate
     Instance int_column
 
     current_aggregate_implementation self =
-        self.int_column.to_table.aggregate [Aggregate_Column.Sum 0] . at 0 . at 0
+        self.int_column.to_table.aggregate [] [Aggregate_Column.Sum 0] . at 0 . at 0
 
     java_loop self =
         long_storage = self.int_column.java_column.getStorage
@@ -62,7 +62,7 @@ type Primitive_Total_Aggregate
         n = self.int_column.length
         storage = self.int_column.java_column.getStorage
         (0.up_to n).fold 0 acc-> ix->
-            if storage.isNa ix then acc else
+            if storage.isNothing ix then acc else
                 acc + storage.getItem ix
 
     verify_correctness self =

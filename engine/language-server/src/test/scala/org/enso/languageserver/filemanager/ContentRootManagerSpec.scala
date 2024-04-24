@@ -16,7 +16,7 @@ import org.scalatest.concurrent.Futures
 import org.scalatest.concurrent.ScalaFutures.convertScalaFuture
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpecLike
-import org.scalatest.{Inside, OptionValues}
+import org.scalatest.{BeforeAndAfterAll, Inside, OptionValues}
 
 import java.io.File
 import java.nio.file.{Path => JPath}
@@ -32,10 +32,16 @@ class ContentRootManagerSpec
     with EitherValue
     with OptionValues
     with WithTemporaryDirectory
+    with BeforeAndAfterAll
     with ReportLogsOnFailure {
 
   var rootManager: ContentRootManagerWrapper = _
   var rootActor: ActorRef                    = _
+
+  override def afterAll(): Unit = {
+    TestKit.shutdownActorSystem(system, verifySystemShutdown = true)
+    super.afterAll()
+  }
 
   override def beforeEach(): Unit = {
     super.beforeEach()

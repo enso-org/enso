@@ -127,37 +127,6 @@ object JPMSUtils {
     truffleRelatedArtifacts
   }
 
-  /** There may be multiple module-info.class files comming from different
-    * dependencies. We care only about the one from the `runtime` project.
-    * The following merge strategy ensures that all other module-info.class
-    * files are discarded from the resulting uber Jar.
-    *
-    * @param projName Project name for which the module-info.class is retained.
-    */
-  def removeAllModuleInfoExcept(
-    projName: String
-  ): MergeStrategy = {
-    CustomMergeStrategy(
-      strategyName =
-        s"Discard all module-info except for module-info from project $projName",
-      notifyIfGTE = 1
-    ) { conflictingDeps: Vector[Dependency] =>
-      val runtimeModuleInfoOpt = conflictingDeps.collectFirst {
-        case project @ Project(name, _, _, stream) if name == projName =>
-          project
-      }
-      runtimeModuleInfoOpt match {
-        case Some(runtimeModuleInfo) =>
-          Right(
-            Vector(
-              JarEntry(runtimeModuleInfo.target, runtimeModuleInfo.stream)
-            )
-          )
-        case None => Right(Vector())
-      }
-    }
-  }
-
   /** Compiles a single `module-info.java` source file with the default java compiler (
     * the one that is defined for the project). Before the module-info is compiled, all the
     * class files from `scopeFilter` are copied into the `target` directory of the current project.

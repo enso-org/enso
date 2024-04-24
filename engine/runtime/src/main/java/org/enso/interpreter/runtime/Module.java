@@ -13,6 +13,7 @@ import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
 import com.oracle.truffle.api.source.Source;
 import com.oracle.truffle.api.source.SourceSection;
+
 import java.io.File;
 import java.io.IOException;
 import java.util.Collections;
@@ -22,6 +23,7 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.WeakHashMap;
 import java.util.logging.Level;
+
 import org.enso.common.CompilationStage;
 import org.enso.common.LanguageInfo;
 import org.enso.common.MethodNames;
@@ -30,6 +32,7 @@ import org.enso.compiler.context.LocalScope;
 import org.enso.compiler.context.SimpleUpdate;
 import org.enso.compiler.core.IR;
 import org.enso.compiler.core.ir.Expression;
+import org.enso.interpreter.caches.Cache;
 import org.enso.interpreter.caches.ModuleCache;
 import org.enso.interpreter.node.callable.dispatch.CallOptimiserNode;
 import org.enso.interpreter.node.callable.dispatch.LoopingCallOptimiserNode;
@@ -45,6 +48,7 @@ import org.enso.interpreter.runtime.scope.ModuleScope;
 import org.enso.interpreter.runtime.type.Types;
 import org.enso.pkg.Package;
 import org.enso.pkg.QualifiedName;
+import org.enso.polyglot.CompilationStage;
 import org.enso.text.buffer.Rope;
 
 /** Represents a source module with a known location. */
@@ -56,11 +60,10 @@ public final class Module implements EnsoObject {
   private final Map<Source, Module> allSources = new WeakHashMap<>();
   private final Package<TruffleFile> pkg;
   private CompilationStage compilationStage = CompilationStage.INITIAL;
-  private boolean isIndexed = false;
   private org.enso.compiler.core.ir.Module ir;
   private Map<UUID, IR> uuidsMap;
   private QualifiedName name;
-  private final ModuleCache cache;
+  private final Cache<ModuleCache.CachedModule, ModuleCache.Metadata> cache;
   private boolean wasLoadedFromCache;
   private final boolean synthetic;
 
@@ -86,7 +89,7 @@ public final class Module implements EnsoObject {
     this.sources = ModuleSources.NONE.newWith(sourceFile);
     this.pkg = pkg;
     this.name = name;
-    this.cache = new ModuleCache(this);
+    this.cache = ModuleCache.create(this);
     this.wasLoadedFromCache = false;
     this.synthetic = false;
   }
@@ -103,7 +106,7 @@ public final class Module implements EnsoObject {
     this.sources = ModuleSources.NONE.newWith(Rope.apply(literalSource));
     this.pkg = pkg;
     this.name = name;
-    this.cache = new ModuleCache(this);
+    this.cache = ModuleCache.create(this);
     this.wasLoadedFromCache = false;
     this.patchedValues = new PatchedModuleValues(this);
     this.synthetic = false;
@@ -121,7 +124,7 @@ public final class Module implements EnsoObject {
     this.sources = ModuleSources.NONE.newWith(literalSource);
     this.pkg = pkg;
     this.name = name;
-    this.cache = new ModuleCache(this);
+    this.cache = ModuleCache.create(this);
     this.wasLoadedFromCache = false;
     this.patchedValues = new PatchedModuleValues(this);
     this.synthetic = false;
@@ -142,7 +145,7 @@ public final class Module implements EnsoObject {
     this.scope = new ModuleScope(this);
     this.pkg = pkg;
     this.compilationStage = synthetic ? CompilationStage.INITIAL : CompilationStage.AFTER_CODEGEN;
-    this.cache = new ModuleCache(this);
+    this.cache = ModuleCache.create(this);
     this.wasLoadedFromCache = false;
     this.synthetic = synthetic;
   }
@@ -494,18 +497,6 @@ public final class Module implements EnsoObject {
   }
 
   /**
-   * @return the indexed flag.
-   */
-  public boolean isIndexed() {
-    return isIndexed;
-  }
-
-  /** Set the indexed flag. */
-  public void setIndexed(boolean indexed) {
-    isIndexed = indexed;
-  }
-
-  /**
    * @return the source file of this module.
    */
   public TruffleFile getSourceFile() {
@@ -522,7 +513,7 @@ public final class Module implements EnsoObject {
   /**
    * @return the cache for this module
    */
-  public ModuleCache getCache() {
+  public Cache<ModuleCache.CachedModule, ModuleCache.Metadata> getCache() {
     return cache;
   }
 

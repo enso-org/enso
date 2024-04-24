@@ -3,7 +3,7 @@ import { useGraphStore } from '@/stores/graph'
 import { useProjectStore } from '@/stores/project'
 import type { AstId } from '@/util/ast/abstract.ts'
 import { qnLastSegment, tryQualifiedName } from '@/util/qualifiedName'
-import type { StackItem } from 'shared/languageServerTypes.ts'
+import { methodPointerEquals, type StackItem } from 'shared/languageServerTypes'
 import { computed, onMounted, ref } from 'vue'
 
 export function useStackNavigator() {
@@ -15,7 +15,7 @@ export function useStackNavigator() {
   const breadcrumbLabels = computed(() => {
     const activeStackLength = projectStore.executionContext.desiredStack.length
     return breadcrumbs.value.map((item, index) => {
-      const label = stackItemToLabel(item)
+      const label = stackItemToLabel(item, index === 0)
       const isActive = index < activeStackLength
       return { label, active: isActive } satisfies BreadcrumbItem
     })
@@ -29,8 +29,17 @@ export function useStackNavigator() {
     return projectStore.executionContext.desiredStack.length < breadcrumbs.value.length
   })
 
-  function stackItemToLabel(item: StackItem): string {
-    return graphStore.db.stackItemToMethodName(item) ?? 'unknown'
+  function isProjectEntryPoint(item: StackItem) {
+    return (
+      item.type === 'ExplicitCall' &&
+      methodPointerEquals(item.methodPointer, projectStore.entryPoint)
+    )
+  }
+
+  function stackItemToLabel(item: StackItem, isStackRoot: boolean): string {
+    if (isStackRoot && isProjectEntryPoint(item)) return projectStore.displayName
+    const methodName = graphStore.db.stackItemToMethodName(item)
+    return methodName ?? 'unknown'
   }
 
   function handleBreadcrumbClick(index: number) {
@@ -55,8 +64,12 @@ export function useStackNavigator() {
   }
 
   function enterNode(id: AstId) {
-    const node = graphStore.astModule.get(id)!
-    const expressionInfo = graphStore.db.getExpressionInfo(id)
+    const externalId = graphStore.db.idToExternal(id)
+    if (externalId == null) {
+      console.debug("Cannot enter node that hasn't been committed yet.")
+      return
+    }
+    const expressionInfo = graphStore.db.getExpressionInfo(externalId)
     if (expressionInfo == null || expressionInfo.methodCall == null) {
       console.debug('Cannot enter node that has no method call.')
       return
@@ -71,7 +84,7 @@ export function useStackNavigator() {
       console.debug('Cannot enter node that is not defined on current module.')
       return
     }
-    projectStore.executionContext.push(node.externalId)
+    projectStore.executionContext.push(externalId)
     graphStore.updateState()
     breadcrumbs.value = projectStore.executionContext.desiredStack.slice()
   }

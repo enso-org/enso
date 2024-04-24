@@ -12,6 +12,7 @@ from project.Function import const
 @Builtin_Type
 type Nothing
     ## GROUP Logical
+       ICON metadata
        Checks if the type is an instance of `Nothing`.
 
        > Example
@@ -22,6 +23,7 @@ type Nothing
     is_nothing self = True
 
     ## GROUP Logical
+       ICON operators
        If this is Nothing then returns `function`.
 
        > Example
@@ -31,7 +33,9 @@ type Nothing
     if_nothing : Any -> Any
     if_nothing self ~function = function
 
-    ## If `self` is Nothing then returns Nothing, otherwise returns the result
+    ## GROUP Logical
+       ICON operators
+       If `self` is Nothing then returns Nothing, otherwise returns the result
        of running the provided `action`.
 
        > Example

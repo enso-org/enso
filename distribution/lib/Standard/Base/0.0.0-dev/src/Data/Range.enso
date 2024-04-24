@@ -1,4 +1,5 @@
 import project.Any.Any
+import project.Data.Array_Proxy.Array_Proxy
 import project.Data.Filter_Condition.Filter_Condition
 import project.Data.Numbers.Integer
 import project.Data.Pair.Pair
@@ -6,10 +7,12 @@ import project.Data.Text.Text
 import project.Data.Vector.Vector
 import project.Error.Error
 import project.Errors.Common.Index_Out_Of_Bounds
+import project.Errors.Empty_Error.Empty_Error
 import project.Errors.Illegal_Argument.Illegal_Argument
 import project.Errors.Illegal_State.Illegal_State
 import project.Function.Function
 import project.Nothing.Nothing
+import project.Panic.Panic
 from project.Data.Boolean import Boolean, False, True
 from project.Data.Filter_Condition import unify_condition_or_predicate
 
@@ -37,7 +40,8 @@ type Range
          non-zero. Defaults to 1.
     Between (start : Integer) (end : Integer) (step : Integer = 1)
 
-    ## GROUP Metadata
+    ## GROUP Calculations
+       ICON array_new
        Creates a copy of this range with a changed step.
 
        > Example
@@ -56,6 +60,7 @@ type Range
                 Range.Between self.start self.end self.step.signum*new_step
 
     ## GROUP Selections
+       ICON select_row
        Returns the first element that is included within the range.
 
        It will raise `Index_Out_Of_Bounds` if the range is empty.
@@ -63,6 +68,7 @@ type Range
     first self = if self.is_empty then Error.throw (Index_Out_Of_Bounds.Error 0 0) else self.start
 
     ## GROUP Selections
+       ICON select_row
        Returns the second element that is included within the range.
 
        It will raise `Index_Out_Of_Bounds` if the range has less than two elements.
@@ -70,6 +76,7 @@ type Range
     second self = if self.length < 2 then Error.throw (Index_Out_Of_Bounds.Error 1 self.length) else self.start + self.step
 
     ## GROUP Selections
+       ICON select_row
        Returns the last element that is included within the range.
 
        It will raise `Index_Out_Of_Bounds` if the range is empty.
@@ -78,6 +85,7 @@ type Range
         self.start + self.step*(self.length - 1)
 
     ## GROUP Metadata
+       ICON metadata
        Get the number of elements in the range.
 
        > Example
@@ -95,6 +103,7 @@ type Range
         if exact_fit then steps else steps+1
 
     ## GROUP Selections
+       ICON select_row
        Gets an element from the Range at a specified index (0-based).
 
        Arguments:
@@ -131,6 +140,7 @@ type Range
             if_missing
 
     ## GROUP Logical
+       ICON metadata
        Checks if this range is empty.
 
        > Example
@@ -143,6 +153,7 @@ type Range
             throw_zero_step_error
 
     ## GROUP Logical
+       ICON metadata
        Checks if this range is not empty.
 
        > Example
@@ -152,7 +163,8 @@ type Range
     not_empty : Boolean
     not_empty self = self.is_empty.not
 
-    ## Applies a function to each element in the range, producing a vector of
+    ## ICON dataframe_map_column
+       Applies a function to each element in the range, producing a vector of
        results.
 
        Arguments:
@@ -168,6 +180,7 @@ type Range
         Vector.new self.length (i -> function (self.start + i*self.step))
 
     ## GROUP Selections
+       ICON preparation
        Returns a vector of all elements of this range which satisfy a condition.
 
        Arguments:
@@ -183,14 +196,14 @@ type Range
              (0.up_to 7).filter (Filter_Condition.Greater than=3)
     @filter range_default_filter_condition_widget
     filter : (Filter_Condition | (Integer -> Boolean)) -> Vector Integer
-    filter self filter = case filter of
-        _ : Filter_Condition -> self.filter filter.to_predicate
-        predicate : Function ->
-            builder = self.fold Vector.new_builder builder-> elem->
-                if predicate elem then builder.append elem else builder
-            builder.to_vector
+    filter self filter =
+        predicate = unify_condition_or_predicate filter
+        builder = self.fold Vector.new_builder builder-> elem->
+            if predicate elem then builder.append elem else builder
+        builder.to_vector
 
     ## GROUP Selections
+       ICON preparation
        Partitions the range into `Vector`s of elements which satisfy a given
        condition and ones that do not.
 
@@ -225,6 +238,12 @@ type Range
        ADVANCED
        Applies a function for each element in the range.
 
+       This method does not return the results, so it is only useful for performing
+       computations with side-effects.
+
+       If the function returns a dataflow error, the error is converted to a
+       panic and thrown immediately stopping further processing.
+
        Arguments:
        - function: The function to apply to each integer in the range.
 
@@ -237,7 +256,7 @@ type Range
             end_condition = if self.step > 0 then (>=) else (<=)
             go current =
                 if end_condition current self.end then Nothing else
-                    function current
+                    Panic.rethrow (function current)
                     @Tail_Call go current+self.step
             go self.start
 
@@ -310,7 +329,8 @@ type Range
                     @Tail_Call go new_acc current+self.step
             go init self.start
 
-    ## Combines all the elements of the range, by iteratively applying the
+    ## ICON dataframe_map_column
+       Combines all the elements of the range, by iteratively applying the
        passed function with the next element of the range. After each step the
        value is stored resulting in a new Vector of the same size as self.
 
@@ -331,6 +351,7 @@ type Range
         built.to_vector
 
     ## GROUP Logical
+       ICON preparation
        Checks whether a condition is satisfied for all numbers in this range.
 
        Arguments:
@@ -353,6 +374,7 @@ type Range
         self.any (predicate >> .not) . not
 
     ## GROUP Logical
+       ICON preparation
        Checks whether a condition is satisfied for any number in this range.
 
        Arguments:
@@ -373,6 +395,7 @@ type Range
     any self condition = self.find condition . is_nothing . not
 
     ## GROUP Selections
+       ICON find
        Gets the first element of this range that satisfies a condition.
        If no element satisfies the condition, returns `if_missing`.
 
@@ -394,13 +417,14 @@ type Range
              1.up_to 100 . find (Filter_Condition.Greater than=10)
     @condition range_default_filter_condition_widget
     find : (Filter_Condition | (Integer -> Boolean)) -> Integer -> Any -> Any
-    find self condition start=0 ~if_missing=Nothing =
+    find self condition (start : Integer = 0) ~if_missing=Nothing =
         predicate = unify_condition_or_predicate condition
         check_start_valid start self used_start->
             result = find_internal self used_start predicate
             if result.is_nothing then if_missing else result.first
 
     ## GROUP Logical
+       ICON preparation
        Checks if the range contains the specified value.
 
        > Example
@@ -421,6 +445,7 @@ type Range
         _ -> Error.throw (Illegal_Argument.Error "`Range.contains` only accepts Integers.")
 
     ## GROUP Values
+       ICON find
        Returns the index of an element in the range.
        Returns Nothing if the element is not found.
 
@@ -438,7 +463,7 @@ type Range
              0.up_to 100 . with_step 5 . index_of (>10) == 3
     @condition range_default_filter_condition_widget
     index_of : (Integer | Filter_Condition | (Integer -> Boolean)) -> Integer -> Integer | Nothing
-    index_of self condition start=0 =
+    index_of self condition (start : Integer = 0) =
         check_start_valid start self used_start->
             case condition of
                 element : Integer -> get_index self used_start self.length-1 element
@@ -450,6 +475,7 @@ type Range
                 _ -> Error.throw (Illegal_Argument.Error "`Range.index_of` only accepts Integer, Filter_Condition or a predicate.")
 
     ## GROUP Values
+       ICON find
        Returns the last index of an element in the range.
        Returns Nothing if the element is not found.
 
@@ -465,7 +491,7 @@ type Range
              Pair.new 2 2 . last_index_of 2 == 1
     @condition range_default_filter_condition_widget
     last_index_of : (Integer | Filter_Condition | (Integer -> Boolean)) -> Integer -> Integer | Nothing
-    last_index_of self condition start=-1 =
+    last_index_of self condition (start : Integer = -1) =
         if self.is_empty && (start==-1 || start==0) then Nothing else
             check_start_valid start self include_end=False used_start->
                 case condition of
@@ -482,6 +508,7 @@ type Range
                     _ -> Error.throw (Illegal_Argument.Error "`Range.last_index_of` only accepts Integer, Filter_Condition or a predicate.")
 
     ## GROUP Selections
+       ICON order
        Reverses the range, returning a range with the same elements, but in
        the opposite order.
 
@@ -495,6 +522,7 @@ type Range
             Range.Between self.last (self.first-self.step) (-self.step)
 
     ## GROUP Conversions
+       ICON convert
        Converts the range to a vector containing the numbers in the range.
 
        > Example
@@ -502,9 +530,13 @@ type Range
 
              1.up_to 6 . to_vector
     to_vector : Vector Integer
-    to_vector self = self.map x->x
+    to_vector self =
+        proxy = Array_Proxy.new self.length self.at
+        Vector.from_polyglot_array proxy
 
-    ## Combines all the elements of a non-empty range using a binary operation.
+
+    ## ICON preparation
+       Combines all the elements of a non-empty range using a binary operation.
        If the range is empty, returns `if_empty`.
 
        Arguments:
@@ -516,7 +548,7 @@ type Range
 
              0.up_to 10 . reduce (+)
     reduce : (Integer -> Integer -> Integer) -> Any -> Any
-    reduce self function ~if_empty=(Error.throw Empty_Error) =
+    reduce self function ~if_empty=(Error.throw (Empty_Error.Error Range)) =
         len = self.length
         case len of
             0 -> if_empty
@@ -568,14 +600,6 @@ get_index range min max value =
         index = (diff / range.step).floor
         if index < min || index > max then Nothing else
             index
-
-## An error representing that the list is empty.
-type Empty_Error
-    ## PRIVATE
-
-       Pretty prints the empty error.
-    to_display_text : Text
-    to_display_text self = "The Range is empty."
 
 ## PRIVATE
 range_default_filter_condition_widget =

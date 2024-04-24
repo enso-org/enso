@@ -97,32 +97,32 @@ export function isOnElectron() {
     return /electron/i.test(navigator.userAgent)
 }
 
-/** Return whether the current browser is Microsoft Edge. */
+/** Whether the current browser is Microsoft Edge. */
 export function isOnEdge() {
     return /edg/i.test(navigator.userAgent)
 }
 
-/** Return whether the current browser is Opera. */
+/** Whether the current browser is Opera. */
 export function isOnOpera() {
     return /opr/i.test(navigator.userAgent)
 }
 
-/** Return whether the current browser is Google Chrome. */
+/** Whether the current browser is Google Chrome. */
 export function isOnChrome() {
     return /chrome/i.test(navigator.userAgent)
 }
 
-/** Return whether the current browser is Mozilla Firefox. */
+/** Whether the current browser is Mozilla Firefox. */
 export function isOnFirefox() {
     return /firefox/i.test(navigator.userAgent)
 }
 
-/** Return whether the current browser is Safari. */
+/** Whether the current browser is Safari. */
 export function isOnSafari() {
     return /safari/i.test(navigator.userAgent)
 }
 
-/** Return whether the current browser is not a recognized browser. */
+/** Whether the current browser is not a recognized browser. */
 export function isOnUnknownBrowser() {
     return browser() === Browser.unknown
 }

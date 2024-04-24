@@ -5,7 +5,10 @@ import akka.pattern.pipe
 import com.typesafe.scalalogging.LazyLogging
 import org.enso.jsonrpc.Errors.ServiceError
 import org.enso.jsonrpc._
-import org.enso.projectmanager.control.effect.Exec
+import org.enso.projectmanager.control.core.CovariantFlatMap
+import org.enso.projectmanager.control.core.syntax._
+import org.enso.projectmanager.control.effect.{Exec, Sync}
+import org.enso.projectmanager.infrastructure.file.Files
 import org.enso.projectmanager.protocol.ProjectManagementApi.ProjectRename
 import org.enso.projectmanager.requesthandler.ProjectServiceFailureMapper.mapFailure
 import org.enso.projectmanager.service.{
@@ -21,7 +24,7 @@ import scala.concurrent.duration.FiniteDuration
   * @param service a project service
   * @param requestTimeout a request timeout
   */
-class ProjectRenameHandler[F[+_, +_]: Exec](
+class ProjectRenameHandler[F[+_, +_]: Exec: CovariantFlatMap: Sync](
   service: ProjectServiceApi[F],
   requestTimeout: FiniteDuration
 ) extends Actor
@@ -34,9 +37,16 @@ class ProjectRenameHandler[F[+_, +_]: Exec](
 
   private def requestStage: Receive = {
     case Request(ProjectRename, id, params: ProjectRename.Params) =>
-      Exec[F]
-        .exec(service.renameProject(params.projectId, params.name))
-        .pipeTo(self)
+      val action = for {
+        projectsDirectory <-
+          Sync[F].effect(params.projectsDirectory.map(Files.getAbsoluteFile))
+        _ <- service.renameProject(
+          params.projectId,
+          params.name,
+          projectsDirectory
+        )
+      } yield ()
+      Exec[F].exec(action).pipeTo(self)
       val cancellable =
         context.system.scheduler
           .scheduleOnce(requestTimeout, self, RequestTimeout)
@@ -81,7 +91,7 @@ object ProjectRenameHandler {
     * @param requestTimeout a request timeout
     * @return a configuration object
     */
-  def props[F[+_, +_]: Exec](
+  def props[F[+_, +_]: Exec: CovariantFlatMap: Sync](
     service: ProjectServiceApi[F],
     requestTimeout: FiniteDuration
   ): Props =

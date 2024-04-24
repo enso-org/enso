@@ -4,15 +4,15 @@ from Standard.Table import Column
 from Standard.Table.Internal.Java_Exports import make_inferred_builder
 import Standard.Table.Internal.Java_Problems
 
-from Standard.Test_New import all
+from Standard.Test import all
 
 type My
     Data x y
 
-main =
+main filter=Nothing =
     suite = Test.build suite_builder->
         add_specs suite_builder
-    suite.run_with_filter
+    suite.run_with_filter filter
 
 add_specs suite_builder = suite_builder.group "[In-Memory] Storage Builders" group_builder->
     group_builder.specify "should correctly incrementally build a table in presence of lots of null values" <|

@@ -1,7 +1,10 @@
 import { Ast } from '@/util/ast'
 import { Pattern } from '@/util/ast/match'
+import { initializeFFI } from 'shared/ast/ffi'
 import { expect, test } from 'vitest'
 import { MutableModule } from '../abstract'
+
+await initializeFFI()
 
 test.each([
   { target: 'a.b', pattern: '__', extracted: ['a.b'] },
@@ -88,12 +91,12 @@ test.each([
     `'${target}' has CST ${extracted != null ? '' : 'not '}matching '${pattern}'`,
   ).toBe(extracted != null)
   expect(
-    patternAst.match(targetAst)?.map((match) => module.get(match)?.code()),
-    extracted != null
-      ? `'${target}' matches '${pattern}' with '__'s corresponding to ${JSON.stringify(extracted)
-          .slice(1, -1)
-          .replace(/"/g, "'")}`
-      : `'${target}' does not match '${pattern}'`,
+    patternAst.match(targetAst)?.map((match) => module.tryGet(match)?.code()),
+    extracted != null ?
+      `'${target}' matches '${pattern}' with '__'s corresponding to ${JSON.stringify(extracted)
+        .slice(1, -1)
+        .replace(/"/g, "'")}`
+    : `'${target}' does not match '${pattern}'`,
   ).toStrictEqual(extracted)
 })
 

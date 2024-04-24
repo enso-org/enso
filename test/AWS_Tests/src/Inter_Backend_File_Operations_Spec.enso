@@ -1,0 +1,257 @@
+## This test file checks operations on files that are happening between various backends.
+
+   Because it relies not only on Standard.Base but also the S3 backend provided
+   by Standard.AWS, it is currently placed in `AWS_Tests`.
+   Once we start supporting more backends, we should consider creating
+   a separate test project for these integrations (e.g. `Integrator_Tests`).
+
+from Standard.Base import all
+import Standard.Base.Enso_Cloud.Data_Link.Data_Link_Format
+import Standard.Base.Errors.Common.Not_Found
+import Standard.Base.Errors.File_Error.File_Error
+import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
+
+from Standard.AWS import S3_File
+
+from Standard.Test import all
+
+import enso_dev.Base_Tests.Network.Enso_Cloud.Cloud_Tests_Setup.Cloud_Tests_Setup
+
+from project.S3_Spec import api_pending, writable_root, with_default_credentials
+
+type Temporary_Local_File
+    Value ~get
+
+    make name = Temporary_Local_File.Value <|
+        File.create_temporary_file "local" name
+
+    cleanup self =
+        Panic.rethrow <| self.get.delete_if_exists recursive=True
+
+type Temporary_S3_File
+    # Does not have to be lazy, because merely allocating the path does not create anything
+    Value get
+
+    make location name = Temporary_S3_File.Value <|
+        location / ("s3-"+name)
+
+    cleanup self =
+        Panic.rethrow <| self.get.delete_if_exists recursive=True
+
+type Temporary_Enso_Cloud_File
+    Value ~get
+
+    make tmp_dir_name name = Temporary_Enso_Cloud_File.Value <|
+        location = Enso_File.root / tmp_dir_name
+        Panic.rethrow <| location.create_directory
+        location / ("cloud-"+name)
+
+    cleanup self =
+        parent = self.get.parent
+        Panic.rethrow <| self.get.delete_if_exists recursive=True
+        Panic.rethrow <|
+            needs_delete = parent.list.is_empty . catch File_Error _->False
+            if needs_delete then parent.delete_if_exists
+
+type Backend
+    Ready name:Text make_temp_file
+    Pending name:Text reason:Text
+
+    is_pending self = case self of
+        Backend.Pending _ _ -> True
+        _ -> False
+
+## Returns the first pending reason from the given vector of values, or Nothing if all values are available.
+any_pending (backends : Vector Backend) -> Text|Nothing =
+    backends.find .is_pending . reason . catch Not_Found _->Nothing
+
+prepare_available_backends s3_root tmp_dir_name =
+    builder = Vector.new_builder
+
+    # Local
+    builder.append (Backend.Ready "Local" Temporary_Local_File.make)
+
+    # Cloud
+    cloud_setup = Cloud_Tests_Setup.prepare
+    builder.append <| Panic.rethrow <| case cloud_setup.real_cloud_pending of
+        Nothing -> Backend.Ready "Enso Cloud" (Temporary_Enso_Cloud_File.make tmp_dir_name)
+        reason -> Backend.Pending "Enso Cloud" reason
+
+    # S3
+    builder.append <| Panic.rethrow <| case api_pending of
+        Nothing -> Backend.Ready "S3" (Temporary_S3_File.make s3_root)
+        reason -> Backend.Pending "S3" reason
+
+    builder.to_vector
+
+add_specs suite_builder =
+    tmp_dir_name = "inter-backend-test-run-"+(Date_Time.now.format "yyyy-MM-dd_HHmmss.fV" . replace "/" "|")+"/"
+    my_writable_s3_dir = writable_root / tmp_dir_name
+
+    backends = prepare_available_backends my_writable_s3_dir tmp_dir_name
+    ## TODO: as the number of backends grows, we probably don't want to test every combination anymore.
+       Still, every backend should have at least X->Local, Local->X, X->X (within itself) and one test with another remote backend (e.g. X->S3).
+    backends.each source_backend-> backends.each destination_backend->
+        suite_builder.group "("+source_backend.name+" -> "+destination_backend.name+") copying/moving" pending=(any_pending [source_backend, destination_backend]) group_builder->
+            source_file_provider = source_backend.make_temp_file "src.txt"
+            destination_file_provider = destination_backend.make_temp_file "dest.txt"
+            group_builder.teardown <|
+                source_file_provider.cleanup
+                destination_file_provider.cleanup
+
+            group_builder.specify "should be able to copy files" <|
+                source_file = source_file_provider.get
+                destination_file = destination_file_provider.get
+
+                "Hello".write source_file on_existing_file=Existing_File_Behavior.Overwrite . should_succeed
+                destination_file.delete_if_exists
+
+                source_file.copy_to destination_file . should_succeed
+                destination_file.read . should_equal "Hello"
+                source_file.exists . should_be_true
+
+            group_builder.specify "should be able to move files" <|
+                source_file = source_file_provider.get
+                destination_file = destination_file_provider.get
+
+                "Hello".write source_file on_existing_file=Existing_File_Behavior.Overwrite . should_succeed
+                destination_file.delete_if_exists
+
+                source_file.move_to destination_file . should_succeed
+                destination_file.read . should_equal "Hello"
+                source_file.exists . should_be_false
+
+            group_builder.specify "should fail if the source file does not exist" <|
+                source_file = source_file_provider.get
+                destination_file = destination_file_provider.get
+
+                source_file.delete_if_exists
+                destination_file.delete_if_exists
+
+                r = source_file.copy_to destination_file
+                r.should_fail_with File_Error
+                r.catch.should_be_a File_Error.Not_Found
+
+                r2 = source_file.move_to destination_file
+                r2.should_fail_with File_Error
+                r2.catch.should_be_a File_Error.Not_Found
+
+                destination_file.exists . should_be_false
+
+            group_builder.specify "should fail to copy/move a file if it exists and replace_existing=False" <|
+                source_file = source_file_provider.get
+                destination_file = destination_file_provider.get
+
+                "Hello".write source_file on_existing_file=Existing_File_Behavior.Overwrite . should_succeed
+                "World".write destination_file on_existing_file=Existing_File_Behavior.Overwrite . should_succeed
+
+                r = source_file.copy_to destination_file
+                r.should_fail_with File_Error
+                r.catch.should_be_a File_Error.Already_Exists
+
+                r2 = source_file.move_to destination_file
+                r2.should_fail_with File_Error
+                r2.catch.should_be_a File_Error.Already_Exists
+
+                destination_file.read . should_equal "World"
+
+            group_builder.specify "should overwrite existing destination in copy/move if replace_existing=True" <|
+                source_file = source_file_provider.get
+                destination_file = destination_file_provider.get
+
+                "Hello".write source_file on_existing_file=Existing_File_Behavior.Overwrite . should_succeed
+                "World".write destination_file on_existing_file=Existing_File_Behavior.Overwrite . should_succeed
+
+                source_file.copy_to destination_file replace_existing=True . should_succeed
+                destination_file.read . should_equal "Hello"
+                source_file.exists . should_be_true
+
+                "FooBar".write source_file on_existing_file=Existing_File_Behavior.Overwrite . should_succeed
+                source_file.move_to destination_file replace_existing=True . should_succeed
+                destination_file.read . should_equal "FooBar"
+                source_file.exists . should_be_false
+
+    sample_data_link_content = Data_Link_Format.read_raw_config (enso_project.data / "simple.datalink")
+    # TODO Enso_File datalink once Enso_File & cloud datalink write is supported
+    datalink_backends = backends.filter b-> b.name != "Enso Cloud"
+    ## This introduces a lot of combinations for testing the datalink copy/move logic, but unfortunately it is needed,
+       because various combinations of backends may rely on different logic (different operations happen under the hood
+       if a file is moved locally vs if it is moved from a local filesystem to S3 or vice versa), and all that different
+       logic may be prone to mis-handling datalinks - so we need to test all paths to ensure coverage.
+    datalink_backends.each source_backend-> datalink_backends.each destination_backend->
+        ## All Data Link tests depend on S3 - even if the backends do not use S3, the datalink itself targets S3,
+           so `api_pending` is always checked and the test will not be run without S3 config present.
+        pending = any_pending [source_backend, destination_backend] . if_nothing api_pending
+        suite_builder.group "("+source_backend.name+" -> "+destination_backend.name+") Data Link copying/moving" pending=pending group_builder->
+            source_file_provider = source_backend.make_temp_file "src.datalink"
+            destination_file_provider = destination_backend.make_temp_file "dest.datalink"
+            group_builder.teardown <|
+                source_file_provider.cleanup
+                destination_file_provider.cleanup
+
+            group_builder.specify "should be able to copy a datalink file to a regular file" <| with_default_credentials <|
+                source_file = source_file_provider.get
+                destination_file = destination_file_provider.get
+
+                regular_destination_file = destination_file.parent / destination_file.name+".txt"
+                regular_destination_file.delete_if_exists
+                Data_Link_Format.write_raw_config source_file sample_data_link_content replace_existing=True . should_succeed
+
+                source_file.copy_to regular_destination_file . should_succeed
+                Panic.with_finalizer regular_destination_file.delete_if_exists <|
+                    # The raw datalink config is copied, so reading back the .txt file yields us the configuration:
+                    regular_destination_file.read . should_contain '"libraryName": "Standard.AWS"'
+
+            group_builder.specify "should be able to copy a datalink file to another datalink" <| with_default_credentials <|
+                source_file = source_file_provider.get
+                destination_file = destination_file_provider.get
+
+                destination_file.delete_if_exists
+                Data_Link_Format.write_raw_config source_file sample_data_link_content replace_existing=True . should_succeed
+
+                source_file.copy_to destination_file replace_existing=True . should_succeed
+                # Now the destination is _also_ a datalink, pointing to the same target as source, so reading it yields the target data:
+                destination_file.read . should_equal "Hello WORLD!"
+
+                # But if we read it raw, we can see that it is still a datalink, not just a copy of the data:
+                Data_Link_Format.read_raw_config destination_file . should_equal sample_data_link_content
+
+            group_builder.specify "should be able to move a datalink" <| with_default_credentials <|
+                source_file = source_file_provider.get
+                destination_file = destination_file_provider.get
+
+                destination_file.delete_if_exists
+                Data_Link_Format.write_raw_config source_file sample_data_link_content replace_existing=True . should_succeed
+
+                source_file.move_to destination_file . should_succeed
+                source_file.exists . should_be_false
+
+                destination_file.read . should_equal "Hello WORLD!"
+                Data_Link_Format.read_raw_config destination_file . should_equal sample_data_link_content
+
+            group_builder.specify "should be able to move a regular file to become a datalink" <| with_default_credentials <|
+                source_file = source_file_provider.get
+                destination_file = destination_file_provider.get
+                destination_file.delete_if_exists
+
+                regular_source_file = source_file.parent / source_file.name+".txt"
+                sample_data_link_content.write regular_source_file on_existing_file=Existing_File_Behavior.Overwrite . should_succeed
+                Panic.with_finalizer regular_source_file.delete_if_exists <|
+                    # The source file is not a datalink - it is a raw text file, so reading it gives us back the raw config
+                    regular_source_file.read . should_equal sample_data_link_content
+                    # Reading it raw will even fail:
+                    Test.expect_panic Illegal_Argument <|
+                        Data_Link_Format.read_raw_config regular_source_file
+
+                    regular_source_file.move_to destination_file . should_succeed
+                    regular_source_file.exists . should_be_false
+
+                    # However, the destination file _is_ a datalink, so it is read as target data:
+                    destination_file.read . should_equal "Hello WORLD!"
+                    # Unless we read it raw:
+                    Data_Link_Format.read_raw_config destination_file . should_equal sample_data_link_content
+
+main filter=Nothing =
+    suite = Test.build suite_builder->
+        add_specs suite_builder
+    suite.run_with_filter filter

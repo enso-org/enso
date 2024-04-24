@@ -1,9 +1,0 @@
-[package]
-name = "build-scripts"
-version = "0.1.0"
-authors = ["Enso Team <contact@enso.org>"]
-edition = "2021"
-
-[dependencies]
-glob = "0.3.0"
-toml = "0.5.5"

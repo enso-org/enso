@@ -1,16 +1,17 @@
 from Standard.Base import all
 import Standard.Base.Errors.File_Error.File_Error
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
+import Standard.Base.System.File.Generic.Writable_File.Writable_File
 import Standard.Base.System.Output_Stream.Output_Stream
 
-import project.Data.Data_Formatter.Data_Formatter
-import project.Data.Match_Columns.Match_Columns
-import project.Data.Table.Table
+import project.Data_Formatter.Data_Formatter
 import project.Delimited.Delimited_Format.Delimited_Format
 import project.Delimited.Quote_Style.Quote_Style
 import project.Internal.Delimited_Reader
 import project.Internal.Delimited_Reader.Detected_Headers
 import project.Internal.Java_Problems
+import project.Match_Columns.Match_Columns
+import project.Table.Table
 from project.Errors import Column_Count_Mismatch, Column_Name_Mismatch
 
 polyglot java import java.io.IOException
@@ -34,13 +35,13 @@ polyglot java import org.enso.table.write.WriteQuoteBehavior
      operation. By default, a warning is issued, but the operation proceeds.
      If set to `Report_Error`, the operation fails with a dataflow error.
      If set to `Ignore`, the operation proceeds without errors or warnings.
-write_file : Table -> Delimited_Format -> File -> Existing_File_Behavior -> Match_Columns -> Problem_Behavior -> Any
-write_file table format file on_existing_file match_columns on_problems =
+write_file : Table -> Delimited_Format -> Writable_File -> Existing_File_Behavior -> Match_Columns -> Problem_Behavior -> Any
+write_file table format (file : Writable_File) on_existing_file match_columns on_problems =
     case on_existing_file of
         Existing_File_Behavior.Append ->
             append_to_file table format file match_columns on_problems
         _ ->
-            on_existing_file.write_handling_dry_run file effective_file-> stream->
+            file.write_handling_dry_run on_existing_file effective_file-> stream->
                 r = write_to_stream table format stream on_problems related_file=effective_file
                 r.if_not_error effective_file
 
@@ -49,8 +50,17 @@ write_file table format file on_existing_file match_columns on_problems =
    against the ones already in the file.
 
    If the file does not exist or is empty, it acts like a regular overwrite.
-append_to_file : Table -> Delimited_Format -> File -> Match_Columns -> Problem_Behavior -> Any
-append_to_file table format file match_columns on_problems =
+append_to_file : Table -> Delimited_Format -> Writable_File -> Match_Columns -> Problem_Behavior -> Any
+append_to_file table format (file : Writable_File) match_columns on_problems =
+    if file.is_local then append_to_local_file table format file.file match_columns on_problems else
+        ## TODO in the future, if we have remote backends that _do support_ proper append, we could avoid downloading
+           the full file here - we only need to read the first few first and last bytes (to infer the headers and newline at EOF).
+           Future implementation could take that into account and use the more efficient approach.
+        file.write_requiring_local_file Existing_File_Behavior.Append local_temp_file->
+            append_to_local_file table format local_temp_file match_columns on_problems . if_not_error file.file
+
+## PRIVATE
+append_to_local_file table format (file : File) match_columns on_problems =
     Column_Name_Mismatch.handle_java_exception <| Column_Count_Mismatch.handle_java_exception <| Panic.recover Illegal_Argument <|
         inferring_format = format.with_line_endings Infer
         metadata = Delimited_Reader.detect_metadata file inferring_format
@@ -86,7 +96,7 @@ append_to_file table format file match_columns on_problems =
             False -> format.without_headers
         needs_leading_newline =
             metadata.has_any_content && metadata.ends_with_newline.not
-        Existing_File_Behavior.Append.write_handling_dry_run file effective_file->  stream->
+        (file : Writable_File).write_handling_dry_run Existing_File_Behavior.Append effective_file-> stream->
             r = write_to_stream reordered_table amended_format stream on_problems related_file=effective_file separator_override=effective_line_separator needs_leading_newline=needs_leading_newline
             r.if_not_error effective_file
 

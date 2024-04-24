@@ -3,9 +3,9 @@ import project.Data.Locale.Locale
 import project.Data.Numbers.Integer
 import project.Data.Ordering.Ordering
 import project.Data.Text.Normalization.Normalization
-import project.Error.Error
 import project.Errors.Common.Type_Error
 import project.Meta
+import project.Panic.Panic
 from project.Data.Boolean import Boolean, False, True
 
 polyglot java import org.enso.base.Text_Utils
@@ -22,6 +22,7 @@ polyglot java import org.enso.base.Text_Utils
 type Text
     ## ALIAS count
        GROUP Metadata
+       ICON metadata
        Computes the number of characters in the text.
 
        ! What is a Character?
@@ -38,6 +39,7 @@ type Text
 
     ## ALIAS concatenate
        GROUP Operators
+       ICON text
        Concatenates the text that to the right side of this.
 
        Arguments:
@@ -51,6 +53,7 @@ type Text
     + self that = @Builtin_Method "Text.+"
 
     ## GROUP Logical
+       ICON operators
        Checks whether `self` is equal to `that`, ignoring the case of the texts.
 
        Arguments:
@@ -89,7 +92,8 @@ type Text
     to_case_insensitive_key self (locale : Locale = Locale.default) =
         Text_Utils.case_insensitive_key self locale.java_locale
 
-    ## Compare two texts to discover their ordering.
+    ## ICON text
+       Compare two texts to discover their ordering.
 
        Arguments:
        - that: The text to order `self` with respect to.
@@ -101,11 +105,12 @@ type Text
     @locale Locale.default_widget
     compare_to_ignore_case : Text -> Locale -> Ordering
     compare_to_ignore_case self that locale=Locale.default =
-        if that.is_nothing then Error.throw (Type_Error.Error Text that "that") else
+        if that.is_nothing then Panic.throw (Type_Error.Error Text that "Expected `that` to be a Text, but got {got}") else
             comparison_result = Text_Utils.compare_normalized_ignoring_case self that locale.java_locale
             Ordering.from_sign comparison_result
 
     ## GROUP Logical
+       ICON metadata
        Check if `self` is empty.
 
        ! What is Empty?
@@ -119,6 +124,7 @@ type Text
     is_empty self = self == ""
 
     ## GROUP Logical
+       ICON metadata
        Check if `self` is not empty.
 
        ! What is Not Empty?
@@ -137,6 +143,7 @@ type Text
     to_text self = self
 
     ## ADVANCED
+       ICON metadata
        Checks where this Text is in FCD normalized form.
 
        > Example
@@ -147,6 +154,7 @@ type Text
     is_normalized self = @Builtin_Method "Text.is_normalized"
 
     ## ALIAS normalise
+       ICON convert
 
        Perform Unicode normalization on the string, using the specified method.
 

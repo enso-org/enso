@@ -1,8 +1,10 @@
 from Standard.Base import all
 
-from Standard.Test_New import all
+from Standard.Test import all
 
+import project.IO.Cloud_Spec
 import project.IO.Csv_Spec
+import project.IO.Data_Link_Formats_Spec
 import project.IO.Delimited_Read_Spec
 import project.IO.Delimited_Write_Spec
 import project.IO.Excel_Spec
@@ -11,15 +13,17 @@ import project.IO.Formats_Spec
 import project.IO.Json_Spec
 
 add_specs suite_builder =
+    Cloud_Spec.add_specs suite_builder
     Csv_Spec.add_specs suite_builder
     Delimited_Read_Spec.add_specs suite_builder
     Delimited_Write_Spec.add_specs suite_builder
     Excel_Spec.add_specs suite_builder
     Formats_Spec.add_specs suite_builder
+    Data_Link_Formats_Spec.add_specs suite_builder
     Fetch_Spec.add_specs suite_builder
     Json_Spec.add_specs suite_builder
 
-main =
+main filter=Nothing =
     suite = Test.build suite_builder->
         add_specs suite_builder
-    suite.run_with_filter
+    suite.run_with_filter filter

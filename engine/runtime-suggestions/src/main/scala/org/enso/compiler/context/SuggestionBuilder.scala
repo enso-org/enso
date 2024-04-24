@@ -1,7 +1,6 @@
 package org.enso.compiler.context
 
 import org.enso.compiler.Compiler
-import org.enso.compiler.context.CompilerContext
 import org.enso.compiler.core.Implicits.AsMetadata
 import org.enso.compiler.core.{ExternalID, IR}
 import org.enso.compiler.core.ir.expression.{Application, Operator}
@@ -10,7 +9,6 @@ import org.enso.compiler.core.ir.{
   Expression,
   Function,
   IdentifiedLocation,
-  Literal,
   Location,
   Name,
   Type
@@ -456,7 +454,7 @@ final class SuggestionBuilder[A: IndexedSource](
             } else {
               TypeArg.Sum(
                 Some(tp.qualifiedName),
-                Seq(TypeArg.Value(tp.qualifiedName))
+                Seq(TypeArg.TypeDef(tp.qualifiedName))
               )
             }
 
@@ -575,7 +573,7 @@ final class SuggestionBuilder[A: IndexedSource](
                 reprType     = selfType.toString,
                 isSuspended  = suspended,
                 hasDefault   = defaultValue.isDefined,
-                defaultValue = defaultValue.flatMap(buildDefaultValue)
+                defaultValue = defaultValue.map(buildDefaultValue)
               )
               go(vtail, targs, acc :+ thisArg)
             }
@@ -640,26 +638,54 @@ final class SuggestionBuilder[A: IndexedSource](
       reprType     = buildTypeArgumentName(targ),
       isSuspended  = varg.suspended,
       hasDefault   = varg.defaultValue.isDefined,
-      defaultValue = varg.defaultValue.flatMap(buildDefaultValue),
-      tagValues    = buildTagValues(targ)
+      defaultValue = varg.defaultValue.map(buildDefaultValue),
+      tagValues    = buildTagValues(targ, varg.ascribedType.nonEmpty)
     )
 
   /** Build tag values of type argument.
     *
     * @param targ the type argument
+    * @param hasTypeAscription if the type ascription was used in type definition
     * @return the list of tag values
     */
-  private def buildTagValues(targ: TypeArg): Option[Seq[String]] = {
-    def go(arg: TypeArg): Seq[String] = arg match {
-      case TypeArg.Sum(_, List())   => Seq()
-      case TypeArg.Sum(_, variants) => variants.flatMap(go)
-      case TypeArg.Value(n)         => Seq(n.toString)
-      case _                        => Seq()
+  private def buildTagValues(
+    targ: TypeArg,
+    hasTypeAscription: Boolean
+  ): Option[Seq[String]] = {
+    def mkUnqualified(name: QualifiedName): Identifier =
+      Identifier.Unqualified(name.item)
+    def mkQualified(name: QualifiedName): Identifier =
+      Identifier.Qualified(name)
+    def mkAutoScopeCall(identifier: Identifier): String =
+      identifier match {
+        case Identifier.Qualified(name)   => name.toString
+        case Identifier.Unqualified(name) => s"..$name"
+      }
+    def mkCall(identifier: Identifier): String =
+      identifier match {
+        case Identifier.Qualified(name)   => name.toString
+        case Identifier.Unqualified(name) => name
+      }
+
+    def go(arg: TypeArg, useAutoScope: Boolean): Seq[Identifier] = arg match {
+      case TypeArg.Sum(_, List()) => Seq()
+      case TypeArg.Sum(_, variants) =>
+        variants.flatMap(go(_, useAutoScope))
+      case TypeArg.Value(n) =>
+        Seq(if (useAutoScope) mkUnqualified(n) else mkQualified(n))
+      case TypeArg.TypeDef(n) =>
+        Seq(mkQualified(n))
+      case _ => Seq()
     }
 
     targ match {
       case s: TypeArg.Sum =>
-        val tagValues = go(s)
+        val tagItems = go(s, hasTypeAscription)
+        val canUseAutoScope =
+          hasTypeAscription && tagItems.distinct.length == tagItems.length
+        val tagValues =
+          if (canUseAutoScope) tagItems.map(mkAutoScopeCall)
+          else go(s, useAutoScope = false).map(mkCall)
         Option.unless(tagValues.isEmpty)(tagValues)
       case _ => None
 
@@ -674,7 +700,8 @@ final class SuggestionBuilder[A: IndexedSource](
   private def buildTypeArgumentName(targ: TypeArg): String = {
     def go(targ: TypeArg, level: Int): String =
       targ match {
-        case TypeArg.Value(name) => name.toString
+        case TypeArg.Value(name)   => name.toString
+        case TypeArg.TypeDef(name) => name.toString
         case TypeArg.Function(args, ret) =>
           val types    = args :+ ret
           val typeList = types.map(go(_, level + 1))
@@ -703,7 +730,7 @@ final class SuggestionBuilder[A: IndexedSource](
     * @return the suggestion argument
     */
   private def buildArgument(arg: DefinitionArgument): Suggestion.Argument = {
-    buildTypeSignatureFromMetadata(arg.name.getMetadata(TypeSignatures)) match {
+    buildTypeSignatureFromMetadata(arg.getMetadata(TypeSignatures)) match {
       case Vector(targ) =>
         buildTypedArgument(arg, targ)
       case _ =>
@@ -712,7 +739,7 @@ final class SuggestionBuilder[A: IndexedSource](
           reprType     = Any,
           isSuspended  = arg.suspended,
           hasDefault   = arg.defaultValue.isDefined,
-          defaultValue = arg.defaultValue.flatMap(buildDefaultValue)
+          defaultValue = arg.defaultValue.map(buildDefaultValue)
         )
     }
   }
@@ -730,13 +757,11 @@ final class SuggestionBuilder[A: IndexedSource](
     * @param expr the argument expression
     * @return the argument default value
     */
-  private def buildDefaultValue(expr: IR): Option[String] =
+  private def buildDefaultValue(expr: IR): String =
     expr match {
-      case Literal.Number(_, value, _, _, _) => Some(value)
-      case Literal.Text(text, _, _, _)       => Some(text)
       case Application.Prefix(name, path, _, _, _, _) =>
-        Some(path.map(_.value.showCode()).mkString(".") + "." + name.showCode())
-      case other => Some(other.showCode())
+        path.map(_.value.showCode()).mkString(".") + "." + name.showCode()
+      case other => other.showCode()
     }
 
   /** Build scope from the location. */
@@ -834,6 +859,12 @@ object SuggestionBuilder {
       */
     case class Value(name: QualifiedName) extends TypeArg
 
+    /** Type definition without constructors, like `type A`.
+      *
+      * @param name the name of the type
+      */
+    case class TypeDef(name: QualifiedName) extends TypeArg
+
     /** Function type, like `A -> A`.
       *
       * @param arguments the list of types defining the function
@@ -868,6 +899,11 @@ object SuggestionBuilder {
     case object Defined extends MethodType
   }
 
+  sealed private trait Identifier
+  private object Identifier {
+    case class Qualified(name: QualifiedName) extends Identifier
+    case class Unqualified(name: String)      extends Identifier
+  }
   val Any: String = "Standard.Base.Any.Any"
 
   private val InternalSuffix = "_internal"

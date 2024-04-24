@@ -40,7 +40,7 @@ public class ArrowFixedSizeArrayFactory implements TruffleObject {
         Object[] args,
         @Cached.Shared("interop") @CachedLibrary(limit = "1") InteropLibrary iop)
         throws UnsupportedMessageException {
-      return new ArrowFixedArrayDate(arraySize(args, iop), ArrowFixedArrayDate.DateUnit.Day);
+      return new ArrowFixedSizeArrayBuilder(arraySize(args, iop), receiver.logicalLayout);
     }
 
     @Specialization(guards = "receiver.getLayout() == Date64")
@@ -49,8 +49,7 @@ public class ArrowFixedSizeArrayFactory implements TruffleObject {
         Object[] args,
         @Cached.Shared("interop") @CachedLibrary(limit = "1") InteropLibrary iop)
         throws UnsupportedMessageException {
-      return new ArrowFixedArrayDate(
-          arraySize(args, iop), ArrowFixedArrayDate.DateUnit.Millisecond);
+      return new ArrowFixedSizeArrayBuilder(arraySize(args, iop), receiver.logicalLayout);
     }
 
     @Specialization(guards = "receiver.getLayout() == Int8")
@@ -59,7 +58,7 @@ public class ArrowFixedSizeArrayFactory implements TruffleObject {
         Object[] args,
         @Cached.Shared("interop") @CachedLibrary(limit = "1") InteropLibrary iop)
         throws UnsupportedMessageException {
-      return new ArrowFixedArrayInt(arraySize(args, iop), ArrowFixedArrayInt.IntUnit.Byte1);
+      return new ArrowFixedSizeArrayBuilder(arraySize(args, iop), receiver.logicalLayout);
     }
 
     @Specialization(guards = "receiver.getLayout() == Int16")
@@ -68,7 +67,7 @@ public class ArrowFixedSizeArrayFactory implements TruffleObject {
         Object[] args,
         @Cached.Shared("interop") @CachedLibrary(limit = "1") InteropLibrary iop)
         throws UnsupportedMessageException {
-      return new ArrowFixedArrayInt(arraySize(args, iop), ArrowFixedArrayInt.IntUnit.Byte2);
+      return new ArrowFixedSizeArrayBuilder(arraySize(args, iop), receiver.logicalLayout);
     }
 
     @Specialization(guards = "receiver.getLayout() == Int32")
@@ -77,7 +76,7 @@ public class ArrowFixedSizeArrayFactory implements TruffleObject {
         Object[] args,
         @Cached.Shared("interop") @CachedLibrary(limit = "1") InteropLibrary iop)
         throws UnsupportedMessageException {
-      return new ArrowFixedArrayInt(arraySize(args, iop), ArrowFixedArrayInt.IntUnit.Byte4);
+      return new ArrowFixedSizeArrayBuilder(arraySize(args, iop), receiver.logicalLayout);
     }
 
     @Specialization(guards = "receiver.getLayout() == Int64")
@@ -86,7 +85,7 @@ public class ArrowFixedSizeArrayFactory implements TruffleObject {
         Object[] args,
         @Cached.Shared("interop") @CachedLibrary(limit = "1") InteropLibrary iop)
         throws UnsupportedMessageException {
-      return new ArrowFixedArrayInt(arraySize(args, iop), ArrowFixedArrayInt.IntUnit.Byte8);
+      return new ArrowFixedSizeArrayBuilder(arraySize(args, iop), receiver.logicalLayout);
     }
 
     @CompilerDirectives.TruffleBoundary
@@ -104,7 +103,7 @@ public class ArrowFixedSizeArrayFactory implements TruffleObject {
     }
 
     @CompilerDirectives.TruffleBoundary
-    private static String unknownLayoutMessage(LogicalLayout layout) {
+    private static String unknownLayoutMessage(SizeInBytes layout) {
       return "unknown layout: " + layout.toString();
     }
   }

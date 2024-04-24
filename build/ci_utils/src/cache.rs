@@ -1,7 +1,7 @@
 use crate::prelude::*;
 
 use anyhow::Context;
-use serde::de::DeserializeOwned;
+use enso_build_base::extensions::future::TryFutureExt;
 use sha2::Digest;
 use std::hash::Hasher;
 
@@ -105,8 +105,8 @@ pub fn digest<S: Storable>(storable: &S) -> Result<String> {
     let key_serialized = bincode::serialize(&key)?;
 
     let mut digest = sha2::Sha224::default();
-    sha2::Digest::update(&mut digest, [VERSION]);
-    sha2::Digest::update(&mut digest, key_serialized);
+    Digest::update(&mut digest, [VERSION]);
+    Digest::update(&mut digest, key_serialized);
     std::any::TypeId::of::<S::Key>().hash(&mut HashToDigest(&mut digest));
     std::any::TypeId::of::<S>().hash(&mut HashToDigest(&mut digest));
     let digest = digest.finalize();
@@ -163,6 +163,7 @@ impl Cache {
                     let metadata = storable
                         .generate(this, entry_dir.clone())
                         .instrument(info_span!("Generating value to fill the cache."))
+                        .context("Failed to generate the cache entry.")
                         .await?;
                     let info = EntryIndexExtended::<S>::new(metadata, key);
                     entry_meta.write_as_json(&info)?;
@@ -184,7 +185,6 @@ impl Cache {
 mod tests {
     use super::*;
     use crate::cache::download::DownloadFile;
-    use crate::log::setup_logging;
 
     #[tokio::test]
     #[ignore]

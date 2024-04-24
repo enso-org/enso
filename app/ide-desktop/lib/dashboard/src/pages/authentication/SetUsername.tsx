@@ -7,9 +7,14 @@ import AtIcon from 'enso-assets/at.svg'
 
 import * as authProvider from '#/providers/AuthProvider'
 import * as backendProvider from '#/providers/BackendProvider'
+import * as textProvider from '#/providers/TextProvider'
+
+import AuthenticationPage from '#/pages/authentication/AuthenticationPage'
 
 import Input from '#/components/Input'
 import SubmitButton from '#/components/SubmitButton'
+
+import * as eventModule from '#/utilities/event'
 
 // ===================
 // === SetUsername ===
@@ -20,33 +25,35 @@ export default function SetUsername() {
   const { setUsername: authSetUsername } = authProvider.useAuth()
   const { email } = authProvider.usePartialUserSession()
   const { backend } = backendProvider.useBackend()
+  const { getText } = textProvider.useText()
 
   const [username, setUsername] = React.useState('')
 
   return (
-    <div className="flex flex-col gap-6 text-primary text-sm items-center justify-center min-h-screen">
-      <form
-        data-testid="set-username-panel"
-        className="flex flex-col gap-6 bg-frame-selected rounded-4xl shadow-md p-8 w-full max-w-md"
-        onSubmit={async event => {
-          event.preventDefault()
-          await authSetUsername(backend, username, email)
-        }}
-      >
-        <div className="font-medium self-center text-xl">Set your username</div>
-        <Input
-          id="username"
-          type="text"
-          name="username"
-          autoComplete="off"
-          label={null}
-          icon={AtIcon}
-          placeholder="Enter your username"
-          value={username}
-          setValue={setUsername}
-        />
-        <SubmitButton text="Set username" icon={ArrowRightIcon} />
-      </form>
-    </div>
+    <AuthenticationPage
+      data-testid="set-username-panel"
+      title={getText('setYourUsername')}
+      onSubmit={async event => {
+        event.preventDefault()
+        await authSetUsername(backend, username, email)
+      }}
+    >
+      <Input
+        autoFocus
+        id="username"
+        type="text"
+        name="username"
+        autoComplete="off"
+        icon={AtIcon}
+        placeholder={getText('usernamePlaceholder')}
+        value={username}
+        setValue={setUsername}
+      />
+      <SubmitButton
+        text={getText('setUsername')}
+        icon={ArrowRightIcon}
+        onPress={eventModule.submitForm}
+      />
+    </AuthenticationPage>
   )
 }

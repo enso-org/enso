@@ -9,6 +9,7 @@ import project.Runtime.Managed_Resource.Managed_Resource
 import project.System.File.Advanced.Temporary_File.Temporary_File
 import project.System.File.File
 import project.System.File.File_Access.File_Access
+import project.System.File.Generic.Writable_File.Writable_File
 
 polyglot java import java.io.InputStream as Java_Input_Stream
 polyglot java import org.enso.base.encoding.ReportingStreamDecoder
@@ -106,13 +107,10 @@ type Input_Stream
 
     ## PRIVATE
        Reads the contents of this stream into a given file.
-    write_to_file : File -> File
-    write_to_file self file =
-        result = self.with_java_stream java_input_stream->
-            file.with_output_stream [File_Access.Create, File_Access.Truncate_Existing, File_Access.Write] output_stream->
-                output_stream.with_java_stream java_output_stream->
-                    java_input_stream.transferTo java_output_stream
-        result.if_not_error file
+    write_to_file self (file : Writable_File) =
+        result = file.with_output_stream [File_Access.Create, File_Access.Truncate_Existing, File_Access.Write] output_stream->
+            output_stream.write_stream self
+        result.if_not_error file.file
 
 ## PRIVATE
    Utility method for closing primitive Java streams. Provided to avoid

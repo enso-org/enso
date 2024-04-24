@@ -23,7 +23,7 @@ const emit = defineEmits<{ selected: [index: number] }>()
       <NavBreadcrumb
         :text="breadcrumb.label"
         :active="breadcrumb.active"
-        @pointerdown="emit('selected', index)"
+        @click.stop="emit('selected', index)"
       />
     </template>
   </div>

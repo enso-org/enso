@@ -14,7 +14,8 @@ const HEXADECIMAL = 16
 
 /** Props for a {@link Twemoji}. */
 export interface TwemojiProps {
-  emoji: string
+  readonly emoji: string
+  readonly size: number
 }
 
 // Only accepts strings that are two code points - for example, emojis.
@@ -27,9 +28,9 @@ type MustBeLength2String<T extends string> = T extends `${string}${string}${infe
   : 'Error: string must have a length of 2'
 
 /** Props for a {@link Twemoji}, but with extra validation. */
-interface InternalValidTwemojiProps<T extends string> {
-  emoji: MustBeLength2String<T>
-  size: number
+interface InternalValidTwemojiProps<T extends string> extends TwemojiProps {
+  readonly emoji: MustBeLength2String<T>
+  readonly size: number
 }
 
 /** Serves a Twemoji image from the JSDelivr CDN. */

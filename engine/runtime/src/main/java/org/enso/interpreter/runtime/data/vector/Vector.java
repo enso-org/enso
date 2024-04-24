@@ -1,6 +1,7 @@
 package org.enso.interpreter.runtime.data.vector;
 
 import com.oracle.truffle.api.CompilerDirectives;
+import com.oracle.truffle.api.dsl.Bind;
 import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.InvalidArrayIndexException;
@@ -39,15 +40,11 @@ abstract class Vector implements EnsoObject {
   }
 
   @ExportMessage
-  long getArraySize() {
-    throw CompilerDirectives.shouldNotReachHere();
-  }
+  abstract long getArraySize() throws UnsupportedMessageException;
 
   @ExportMessage
-  Object readArrayElement(long index)
-      throws UnsupportedMessageException, InvalidArrayIndexException {
-    throw CompilerDirectives.shouldNotReachHere();
-  }
+  abstract Object readArrayElement(long index)
+      throws UnsupportedMessageException, InvalidArrayIndexException;
 
   @ExportMessage
   final void writeArrayElement(long index, Object value) throws UnsupportedMessageException {
@@ -77,8 +74,8 @@ abstract class Vector implements EnsoObject {
   }
 
   @ExportMessage
-  Type getMetaObject(@CachedLibrary("this") InteropLibrary thisLib) {
-    return EnsoContext.get(thisLib).getBuiltins().vector();
+  Type getMetaObject(@Bind("$node") Node node) {
+    return EnsoContext.get(node).getBuiltins().vector();
   }
 
   @ExportMessage
@@ -96,8 +93,8 @@ abstract class Vector implements EnsoObject {
   }
 
   @ExportMessage
-  Type getType(@CachedLibrary("this") TypesLibrary thisLib, @Cached("1") int ignore) {
-    return EnsoContext.get(thisLib).getBuiltins().vector();
+  Type getType(@Bind("$node") Node node) {
+    return EnsoContext.get(node).getBuiltins().vector();
   }
 
   //
@@ -209,6 +206,19 @@ abstract class Vector implements EnsoObject {
         @Cached.Shared(value = "interop") @CachedLibrary(limit = "3") InteropLibrary interop)
         throws UnsupportedMessageException {
       return interop.getArraySize(storage);
+    }
+
+    @ExportMessage.Ignore
+    @Override
+    Object readArrayElement(long index)
+        throws UnsupportedMessageException, InvalidArrayIndexException {
+      throw new AbstractMethodError();
+    }
+
+    @ExportMessage.Ignore
+    @Override
+    long getArraySize() throws UnsupportedMessageException {
+      throw new AbstractMethodError();
     }
 
     /**

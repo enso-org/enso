@@ -9,7 +9,7 @@ import {
 } from '@/components/ComponentBrowser/component'
 import { Filtering } from '@/components/ComponentBrowser/filtering'
 import {
-  makeCon,
+  makeConstructor,
   makeMethod,
   makeModule,
   makeModuleMethod,
@@ -23,9 +23,9 @@ test.each([
   [makeModuleMethod('Standard.Base.Data.read'), 'Data.read'],
   [makeStaticMethod('Standard.Base.Data.Vector.new'), 'Vector.new'],
   [makeMethod('Standard.Base.Data.Vector.get'), 'get'],
-  [makeCon('Standard.Table.Data.Join_Kind.Join_Kind.LeftInner'), 'Join_Kind.LeftInner'],
-  [makeModule('Standard.Table.Data.Join_Kind'), 'Join_Kind'],
-  [makeModule('Standard.Table.Data'), 'Data', 'Standard.Table.Data'],
+  [makeConstructor('Standard.Table.Join_Kind.Join_Kind.Inner'), 'Join_Kind.Inner'],
+  [makeModule('Standard.Table.Excel.Excel_Range'), 'Excel_Range'],
+  [makeModule('Standard.Table.Conversions'), 'Conversions', 'Standard.Table.Conversions'],
   [makeModuleMethod('local.Project.main'), 'Project.main'],
 ])("$name Component's label is valid", (suggestion, expected, mainExpected?) => {
   const mainView = new Filtering({})
@@ -89,20 +89,10 @@ test('Suggestions are ordered properly', () => {
 
 test('Matched ranges are correct', () => {
   function replaceMatches(component: Component) {
-    if (!component.matchedRanges || component.matchedAlias) return component.label
+    if (!component.matchedRanges) return component.label
     const parts: string[] = []
     for (const range of allRanges(component.matchedRanges, component.label.length)) {
       const text = component.label.slice(range.start, range.end)
-      parts.push(range.isMatch ? `<${text}>` : text)
-    }
-    return parts.join('')
-  }
-
-  function replaceAliasMatches(component: Component) {
-    if (!component.matchedRanges || !component.matchedAlias) return
-    const parts: string[] = []
-    for (const range of allRanges(component.matchedRanges, component.matchedAlias.length)) {
-      const text = component.matchedAlias.slice(range.start, range.end)
       parts.push(range.isMatch ? `<${text}>` : text)
     }
     return parts.join('')
@@ -117,34 +107,29 @@ test('Matched ranges are correct', () => {
     {
       name: 'bar',
       aliases: ['foo_bar', 'foo'],
-      highlighted: 'Project.bar',
-      highlightedAlias: '<foo><_bar>',
+      highlighted: '<foo><_bar> (Project.bar)',
     }, // exact alias match
     {
       name: 'bar',
       aliases: ['foo', 'foo_xyz_barabc'],
-      highlighted: 'Project.bar',
-      highlightedAlias: '<foo>_xyz<_bar>abc',
+      highlighted: '<foo>_xyz<_bar>abc (Project.bar)',
     }, // alias first word exact match
     {
       name: 'bar',
       aliases: ['foo', 'fooabc_barabc'],
-      highlighted: 'Project.bar',
-      highlightedAlias: '<foo>abc<_bar>abc',
+      highlighted: '<foo>abc<_bar>abc (Project.bar)',
     }, // alias first word match
     { name: 'xyz_foo_abc_bar_xyz', highlighted: 'Project.xyz_<foo>_abc<_bar>_xyz' }, // exact word match
     { name: 'xyz_fooabc_abc_barabc_xyz', highlighted: 'Project.xyz_<foo>abc_abc<_bar>abc_xyz' }, // non-exact word match
     {
       name: 'bar',
       aliases: ['xyz_foo_abc_bar_xyz'],
-      highlighted: 'Project.bar',
-      highlightedAlias: 'xyz_<foo>_abc<_bar>_xyz',
+      highlighted: 'xyz_<foo>_abc<_bar>_xyz (Project.bar)',
     }, // alias word exact match
     {
       name: 'bar',
       aliases: ['xyz_fooabc_abc_barabc_xyz'],
-      highlighted: 'Project.bar',
-      highlightedAlias: 'xyz_<foo>abc_abc<_bar>abc_xyz',
+      highlighted: 'xyz_<foo>abc_abc<_bar>abc_xyz (Project.bar)',
     }, // alias word start match
   ]
   const entries = Array.from(matchedSorted, ({ name, aliases }, id) => {
@@ -159,9 +144,5 @@ test('Matched ranges are correct', () => {
       replaceMatches(makeComponent(entries[i]!, filtering)),
       `replaceMatches(${JSON.stringify(matchedSorted[i])})`,
     ).toEqual(matchedSorted[i]!.highlighted)
-    expect(
-      replaceAliasMatches(makeComponent(entries[i]!, filtering)),
-      `replaceAliasMatches(${JSON.stringify(matchedSorted[i])})`,
-    ).toEqual(matchedSorted[i]!.highlightedAlias)
   }
 })

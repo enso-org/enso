@@ -1,103 +1,37 @@
-import { Err, Ok, ResultError, rejectionToResult, type Result } from '@/util/data/result'
-import { WebSocketTransport } from '@open-rpc/client-js'
 import type {
   IJSONRPCNotificationResponse,
   JSONRPCRequestData,
 } from '@open-rpc/client-js/build/Request'
 import { Transport } from '@open-rpc/client-js/build/transports/Transport'
-import type { ArgumentsType } from '@vueuse/core'
-import { wait } from 'lib0/promise'
-import { LsRpcError } from 'shared/languageServer'
+import { type ArgumentsType } from '@vueuse/core'
+import { WebSocket as ReconnectingWebSocket } from 'partysocket'
+import { type WebSocketEventMap } from 'partysocket/ws'
 import type { Notifications } from 'shared/languageServerTypes'
-import { WebsocketClient } from 'shared/websocket'
+import { AbortScope, type ReconnectingTransportWithWebsocketEvents } from 'shared/util/net'
+import ReconnectingWebSocketTransport from 'shared/util/net/ReconnectingWSTransport'
+import { onScopeDispose } from 'vue'
 
-export interface BackoffOptions<E> {
-  maxRetries?: number
-  retryDelay?: number
-  retryDelayMultiplier?: number
-  retryDelayMax?: number
-  /**
-   * Called when the promise return an error result, and the next retry is about to be attempted.
-   * When this function returns `false`, the backoff is immediately aborted. When this function is
-   * not provided, the backoff will always continue until the maximum number of retries is reached.
-   */
-  onBeforeRetry?: (error: ResultError<E>, retryCount: number, delay: number) => boolean | void
-}
+export { AbortScope } from 'shared/util/net'
 
-const defaultBackoffOptions: Required<BackoffOptions<any>> = {
-  maxRetries: 3,
-  retryDelay: 1000,
-  retryDelayMultiplier: 2,
-  retryDelayMax: 10000,
-  onBeforeRetry: () => {},
-}
-
-/**
- * Retry a failing promise function with exponential backoff.
- */
-export async function exponentialBackoff<T, E>(
-  f: () => Promise<Result<T, E>>,
-  backoffOptions?: BackoffOptions<E>,
-): Promise<Result<T, E>> {
-  const options = { ...defaultBackoffOptions, ...backoffOptions }
-  for (
-    let retries = 0, delay = options.retryDelay;
-    ;
-    retries += 1, delay = Math.min(options.retryDelayMax, delay * options.retryDelayMultiplier)
-  ) {
-    const result = await f()
-    if (
-      result.ok ||
-      retries >= options.maxRetries ||
-      options.onBeforeRetry(result.error, retries, delay) === false
-    ) {
-      return result
-    }
-    await wait(delay)
-  }
-}
-
-export const lsRequestResult = rejectionToResult(LsRpcError)
-
-/**
- * Retry a failing Language Server RPC call with exponential backoff. The provided async function is
- * called on each retry.
- */
-export async function rpcWithRetries<T>(
-  f: () => Promise<T>,
-  backoffOptions?: BackoffOptions<LsRpcError>,
-): Promise<T> {
-  const result = await exponentialBackoff(() => lsRequestResult(f()), backoffOptions)
-  if (result.ok) return result.value
-  else {
-    console.error('Too many failed retries.')
-    throw result.error
-  }
-}
-
-type QueueTask<State> = (state: State) => Promise<State>
-
-export function createRpcTransport(url: string): Transport {
+export function createRpcTransport(url: string): ReconnectingTransportWithWebsocketEvents {
   if (url.startsWith('mock://')) {
     const mockName = url.slice('mock://'.length)
     return new MockTransport(mockName)
   } else {
-    return new WebSocketTransport(url)
+    const transport = new ReconnectingWebSocketTransport(url)
+    return transport
   }
 }
 
-export function createWebsocketClient(
-  url: string,
-  options?: { binaryType?: 'arraybuffer' | 'blob' | null; sendPings?: boolean },
-): WebsocketClient {
+export function createDataWebsocket(url: string, binaryType: 'arraybuffer' | 'blob'): WebSocket {
   if (url.startsWith('mock://')) {
-    const mockWs = new MockWebSocketClient(url)
-    if (options?.binaryType) mockWs.binaryType = options.binaryType
+    const mockWs = new MockWebSocket(url, url.slice('mock://'.length))
+    mockWs.binaryType = binaryType
     return mockWs
   } else {
-    const client = new WebsocketClient(url, options)
-    client.connect()
-    return client
+    const websocket = new ReconnectingWebSocket(url)
+    websocket.binaryType = binaryType
+    return websocket as WebSocket
   }
 }
 
@@ -107,6 +41,7 @@ export interface MockTransportData<Methods extends string = string> {
 
 export class MockTransport extends Transport {
   static mocks: Map<string, MockTransportData> = new Map()
+  private openEventListeners = new Set<(event: WebSocketEventMap['open']) => void>()
   constructor(public name: string) {
     super()
   }
@@ -115,8 +50,10 @@ export class MockTransport extends Transport {
     MockTransport.mocks.set(name, data as any)
   }
   connect(): Promise<any> {
+    for (const listener of this.openEventListeners) listener(new Event('open'))
     return Promise.resolve()
   }
+  reconnect() {}
   close(): void {}
   sendData(data: JSONRPCRequestData, timeout?: number | null): Promise<any> {
     if (Array.isArray(data)) return Promise.all(data.map((d) => this.sendData(d.request, timeout)))
@@ -131,6 +68,15 @@ export class MockTransport extends Transport {
       method,
       params,
     } as IJSONRPCNotificationResponse)
+  }
+
+  on<K extends keyof WebSocketEventMap>(type: K, cb: (event: WebSocketEventMap[K]) => void): void {
+    if (type === 'open')
+      this.openEventListeners.add(cb as (event: WebSocketEventMap['open']) => void)
+  }
+  off<K extends keyof WebSocketEventMap>(type: K, cb: (event: WebSocketEventMap[K]) => void): void {
+    if (type === 'open')
+      this.openEventListeners.delete(cb as (event: WebSocketEventMap['open']) => void)
   }
 }
 
@@ -184,12 +130,7 @@ export class MockWebSocket extends EventTarget implements WebSocket {
   }
 }
 
-export class MockWebSocketClient extends WebsocketClient {
-  constructor(url: string) {
-    super(url)
-    super.connect(new MockWebSocket(url, url.slice('mock://'.length)))
-  }
-}
+type QueueTask<State> = (state: State) => Promise<State>
 
 /**
  * A serializing queue of asynchronous tasks transforming a state. Each task is a function that
@@ -245,119 +186,9 @@ export class AsyncQueue<State> {
   }
 }
 
-if (import.meta.vitest) {
-  const { describe, test, expect, beforeEach, afterEach, vi } = import.meta.vitest
-
-  beforeEach(() => {
-    vi.useFakeTimers()
-  })
-  afterEach(() => {
-    vi.useRealTimers()
-  })
-
-  describe('AsyncQueue', () => {
-    test('sets initial state', async () => {
-      const queue = new AsyncQueue(Promise.resolve(1))
-      expect(await queue.waitForCompletion()).toBe(1)
-    })
-
-    test('runs tasks in sequence', async () => {
-      const queue = new AsyncQueue(Promise.resolve(1))
-      queue.pushTask(async (state) => {
-        expect(state).toBe(1)
-        await wait(100)
-        return 2
-      })
-      queue.pushTask(async (state) => {
-        expect(state).toBe(2)
-        return 3
-      })
-      vi.runAllTimersAsync()
-      expect(await queue.waitForCompletion()).toBe(3)
-    })
-
-    test('clear removes all not yet started tasks', async () => {
-      const queue = new AsyncQueue(Promise.resolve(1))
-      queue.pushTask(async (state) => {
-        expect(state).toBe(1)
-        await wait(100)
-        return 2
-      })
-      queue.pushTask(async (state) => {
-        expect(state).toBe(2)
-        return 3
-      })
-      queue.clear()
-      queue.pushTask(async (state) => {
-        expect(state).toBe(2)
-        return 5
-      })
-      vi.runAllTimersAsync()
-      expect(await queue.waitForCompletion()).toBe(5)
-    })
-  })
-
-  describe('exponentialBackoff', () => {
-    test('runs successful task once', async () => {
-      const task = vi.fn(async () => Ok(1))
-      const result = await exponentialBackoff(task)
-      expect(result).toEqual({ ok: true, value: 1 })
-      expect(task).toHaveBeenCalledTimes(1)
-    })
-
-    test('retry failing task up to a limit', async () => {
-      const task = vi.fn(async () => Err(1))
-      const promise = exponentialBackoff(task, { maxRetries: 4 })
-      vi.runAllTimersAsync()
-      const result = await promise
-      expect(result).toEqual({ ok: false, error: new ResultError(1) })
-      expect(task).toHaveBeenCalledTimes(5)
-    })
-
-    test('wait before retrying', async () => {
-      const task = vi.fn(async () => Err(null))
-      exponentialBackoff(task, {
-        maxRetries: 10,
-        retryDelay: 100,
-        retryDelayMultiplier: 3,
-        retryDelayMax: 1000,
-      })
-      expect(task).toHaveBeenCalledTimes(1)
-      await vi.advanceTimersByTimeAsync(100)
-      expect(task).toHaveBeenCalledTimes(2)
-      await vi.advanceTimersByTimeAsync(300)
-      expect(task).toHaveBeenCalledTimes(3)
-      await vi.advanceTimersByTimeAsync(900)
-      expect(task).toHaveBeenCalledTimes(4)
-      await vi.advanceTimersByTimeAsync(5000)
-      expect(task).toHaveBeenCalledTimes(9)
-    })
-
-    test('retry task until success', async () => {
-      const task = vi.fn()
-      task.mockReturnValueOnce(Promise.resolve(Err(3)))
-      task.mockReturnValueOnce(Promise.resolve(Err(2)))
-      task.mockReturnValueOnce(Promise.resolve(Ok(1)))
-      const promise = exponentialBackoff(task)
-      vi.runAllTimersAsync()
-      const result = await promise
-      expect(result).toEqual({ ok: true, value: 1 })
-      expect(task).toHaveBeenCalledTimes(3)
-    })
-
-    test('call retry callback', async () => {
-      const task = vi.fn()
-      task.mockReturnValueOnce(Promise.resolve(Err(3)))
-      task.mockReturnValueOnce(Promise.resolve(Err(2)))
-      task.mockReturnValueOnce(Promise.resolve(Ok(1)))
-      const onBeforeRetry = vi.fn()
-
-      const promise = exponentialBackoff(task, { onBeforeRetry })
-      vi.runAllTimersAsync()
-      await promise
-      expect(onBeforeRetry).toHaveBeenCalledTimes(2)
-      expect(onBeforeRetry).toHaveBeenNthCalledWith(1, new ResultError(3), 0, 1000)
-      expect(onBeforeRetry).toHaveBeenNthCalledWith(2, new ResultError(2), 1, 2000)
-    })
-  })
+/** Create an abort signal that is signalled when containing Vue scope is disposed. */
+export function useAbortScope(): AbortScope {
+  const scope = new AbortScope()
+  onScopeDispose(() => scope.dispose('Vue scope disposed.'))
+  return scope
 }

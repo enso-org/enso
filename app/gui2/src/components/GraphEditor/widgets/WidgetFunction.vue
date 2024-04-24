@@ -13,15 +13,19 @@ import {
   functionCallConfiguration,
 } from '@/providers/widgetRegistry/configuration'
 import { useGraphStore } from '@/stores/graph'
-import { useProjectStore, type NodeVisualizationConfiguration } from '@/stores/project'
+import { useProjectStore } from '@/stores/project'
+import { type NodeVisualizationConfiguration } from '@/stores/project/executionContext'
+import { entryQn } from '@/stores/suggestionDatabase/entry'
 import { assert, assertUnreachable } from '@/util/assert'
 import { Ast } from '@/util/ast'
+import type { AstId } from '@/util/ast/abstract'
 import {
   ArgumentApplication,
   ArgumentApplicationKey,
   ArgumentAst,
   ArgumentPlaceholder,
   getAccessOprSubject,
+  getMethodCallInfoRecursively,
   interpretCall,
 } from '@/util/callTree'
 import { partitionPoint } from '@/util/data/array'
@@ -36,12 +40,20 @@ const project = useProjectStore()
 
 provideFunctionInfo(
   proxyRefs({
-    callId: computed(() => props.input.value.id),
+    prefixCalls: computed(() => {
+      const ids = new Set<AstId>([props.input.value.id])
+      let ast: any = props.input.value
+      while (ast instanceof Ast.App) {
+        ids.add(ast.function.id)
+        ast = ast.function
+      }
+      return ids
+    }),
   }),
 )
 
 const methodCallInfo = computed(() => {
-  return graph.db.getMethodCallInfo(props.input.value.id)
+  return getMethodCallInfoRecursively(props.input.value, graph.db)
 })
 
 const interpreted = computed(() => {
@@ -77,10 +89,12 @@ const application = computed(() => {
     widgetCfg: widgetConfiguration.value,
     subjectAsSelf: selfArgumentPreapplied.value,
     notAppliedArguments:
-      noArgsCall != null &&
-      (!subjectTypeMatchesMethod.value || noArgsCall.notAppliedArguments.length > 0)
-        ? noArgsCall.notAppliedArguments
-        : undefined,
+      (
+        noArgsCall != null &&
+        (!subjectTypeMatchesMethod.value || noArgsCall.notAppliedArguments.length > 0)
+      ) ?
+        noArgsCall.notAppliedArguments
+      : undefined,
   })
 })
 
@@ -92,12 +106,6 @@ const innerInput = computed(() => {
   }
 })
 
-const escapeString = (str: string): string => {
-  const escaped = str.replaceAll(/([\\'])/g, '\\$1')
-  return `'${escaped}'`
-}
-const makeArgsList = (args: string[]) => '[' + args.map(escapeString).join(', ') + ']'
-
 const selfArgumentExternalId = computed<Opt<ExternalId>>(() => {
   const analyzed = interpretCall(props.input.value, true)
   if (analyzed.kind === 'infix') {
@@ -106,22 +114,24 @@ const selfArgumentExternalId = computed<Opt<ExternalId>>(() => {
     const knownArguments = methodCallInfo.value?.suggestion?.arguments
     const hasSelfArgument = knownArguments?.[0]?.name === 'self'
     const selfArgument =
-      hasSelfArgument && !selfArgumentPreapplied.value
-        ? analyzed.args.find((a) => a.argName === 'self' || a.argName == null)?.argument
-        : getAccessOprSubject(analyzed.func) ?? analyzed.args[0]?.argument
+      hasSelfArgument && !selfArgumentPreapplied.value ?
+        analyzed.args.find((a) => a.argName === 'self' || a.argName == null)?.argument
+      : getAccessOprSubject(analyzed.func) ?? analyzed.args[0]?.argument
 
     return selfArgument?.externalId
   }
 })
 
 const visualizationConfig = computed<Opt<NodeVisualizationConfiguration>>(() => {
-  // If we inherit dynamic config, there is no point in attaching visualization.
-  if (props.input.dynamicConfig) return null
+  // Even if we inherit dynamic config in props.input.dynamicConfig, we should also read it for
+  // the current call and then merge them.
+
+  let m = ArgumentApplication.collectArgumentNamesAndUuids(interpreted.value, methodCallInfo.value)
 
   const expressionId = selfArgumentExternalId.value
   const astId = props.input.value.id
   if (astId == null || expressionId == null) return null
-  const info = graph.db.getMethodCallInfo(astId)
+  const info = methodCallInfo.value
   if (!info) return null
   const args = info.suggestion.annotations
   if (args.length === 0) return null
@@ -134,25 +144,39 @@ const visualizationConfig = computed<Opt<NodeVisualizationConfiguration>>(() => 
       definedOnType: 'Standard.Visualization.Widgets',
       name: 'get_widget_json',
     },
-    positionalArgumentsExpressions: [`.${name}`, makeArgsList(args)],
+    positionalArgumentsExpressions: [
+      `.${name}`,
+      Ast.Vector.build(args, Ast.TextLiteral.new).code(),
+      Ast.TextLiteral.new(JSON.stringify(m)).code(),
+    ],
   }
+})
+
+const inheritedConfig = computed(() => {
+  if (props.input.dynamicConfig?.kind === 'FunctionCall') return props.input.dynamicConfig
+  if (props.input.dynamicConfig?.kind === 'OneOfFunctionCalls' && methodCallInfo.value != null) {
+    const cfg = props.input.dynamicConfig
+    const info = methodCallInfo.value
+    const name = entryQn(info?.suggestion)
+    return cfg.possibleFunctions.get(name)
+  }
+  return undefined
 })
 
 const visualizationData = project.useVisualizationData(visualizationConfig)
 const widgetConfiguration = computed(() => {
-  if (props.input.dynamicConfig?.kind === 'FunctionCall') return props.input.dynamicConfig
   const data = visualizationData.value
   if (data?.ok) {
     const parseResult = argsWidgetConfigurationSchema.safeParse(data.value)
     if (parseResult.success) {
-      return functionCallConfiguration(parseResult.data)
+      return functionCallConfiguration(parseResult.data, inheritedConfig.value)
     } else {
       console.error('Unable to parse widget configuration.', data, parseResult.error)
     }
   } else if (data != null && !data.ok) {
     data.error.log('Cannot load dynamic configuration')
   }
-  return undefined
+  return inheritedConfig.value
 })
 
 /**
@@ -162,10 +186,8 @@ const widgetConfiguration = computed(() => {
 function handleArgUpdate(update: WidgetUpdate): boolean {
   const app = application.value
   if (update.portUpdate && app instanceof ArgumentApplication) {
-    const {
-      edit,
-      portUpdate: { value, origin },
-    } = update
+    const { value, origin } = update.portUpdate
+    const edit = update.edit ?? graph.startEdit()
     // Find the updated argument by matching origin port/expression with the appropriate argument.
     // We are interested only in updates at the top level of the argument AST. Updates from nested
     // widgets do not need to be processed at the function application level.
@@ -183,9 +205,9 @@ function handleArgUpdate(update: WidgetUpdate): boolean {
         newArg = Ast.parse(value, edit)
       }
       const name =
-        argApp.argument.insertAsNamed && isIdentifier(argApp.argument.argInfo.name)
-          ? argApp.argument.argInfo.name
-          : undefined
+        argApp.argument.insertAsNamed && isIdentifier(argApp.argument.argInfo.name) ?
+          argApp.argument.argInfo.name
+        : undefined
       edit
         .getVersion(argApp.appTree)
         .updateValue((oldAppTree) => Ast.App.new(edit, oldAppTree, name, newArg))
@@ -284,30 +306,32 @@ function handleArgUpdate(update: WidgetUpdate): boolean {
 }
 </script>
 <script lang="ts">
-export const widgetDefinition = defineWidget(WidgetInput.isFunctionCall, {
-  priority: 200,
-  score: (props, db) => {
-    // If ArgumentApplicationKey is stored, we already are handled by some WidgetFunction.
-    if (props.input[ArgumentApplicationKey]) return Score.Mismatch
-    const ast = props.input.value
-    if (ast.id == null) return Score.Mismatch
-    const prevFunctionState = injectFunctionInfo(true)
+export const widgetDefinition = defineWidget(
+  WidgetInput.isFunctionCall,
+  {
+    priority: 200,
+    score: (props, db) => {
+      // If ArgumentApplicationKey is stored, we already are handled by some WidgetFunction.
+      if (props.input[ArgumentApplicationKey]) return Score.Mismatch
+      const ast = props.input.value
+      if (ast.id == null) return Score.Mismatch
+      const prevFunctionState = injectFunctionInfo(true)
 
-    // It is possible to try to render the same function application twice, e.g. when detected an
-    // application with no arguments applied yet, but the application target is also an infix call.
-    // In that case, the reentrant call method info must be ignored to not create an infinite loop,
-    // and to resolve the infix call as its own application.
-    if (prevFunctionState?.callId === ast.id) return Score.Mismatch
+      // It is possible to try to render the same function application twice, e.g. when detected an
+      // application with no arguments applied yet, but the application target is also an infix call.
+      // In that case, the reentrant call method info must be ignored to not create an infinite loop,
+      // and to resolve the infix call as its own application.
+      // We only render the function widget on the application chain’s top-level.
+      if (prevFunctionState?.prefixCalls.has(ast.id)) return Score.Mismatch
 
-    if (ast instanceof Ast.App || ast instanceof Ast.OprApp) return Score.Perfect
+      if (ast instanceof Ast.App || ast instanceof Ast.OprApp) return Score.Perfect
 
-    const info = db.getMethodCallInfo(ast.id)
-    if (prevFunctionState != null && info?.partiallyApplied === true && ast instanceof Ast.Ident) {
-      return Score.Mismatch
-    }
-    return info != null ? Score.Perfect : Score.Mismatch
+      const info = getMethodCallInfoRecursively(ast, db)
+      return info != null ? Score.Perfect : Score.Mismatch
+    },
   },
-})
+  import.meta.hot,
+)
 </script>
 
 <template>

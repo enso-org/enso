@@ -1,0 +1,2 @@
+export project.F1
+from project.F1 export foo

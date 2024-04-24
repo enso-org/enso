@@ -1,8 +1,14 @@
 import { asNodeId, GraphDb } from '@/stores/graph/graphDatabase'
 import { Ast, RawAst } from '@/util/ast'
+import { initializePrefixes } from '@/util/ast/node'
 import assert from 'assert'
+import type { AstId } from 'shared/ast'
+import { initializeFFI } from 'shared/ast/ffi'
 import { IdMap, type ExternalId } from 'shared/yjsModel'
 import { expect, test } from 'vitest'
+
+await initializeFFI()
+initializePrefixes()
 
 /**
  * Create a predictable fake UUID which contains given number in decimal at the end.
@@ -41,10 +47,12 @@ test('Reading graph from definition', () => {
   assert(func instanceof Ast.Function)
   const rawFunc = toRaw.get(func.id)
   assert(rawFunc?.type === RawAst.Tree.Type.Function)
-  db.readFunctionAst(func, rawFunc, code, (_) => ({ x: 0.0, y: 0.0, vis: null }), getSpan)
+  db.readFunctionAst(func, rawFunc, code, getSpan, new Set())
 
-  const idFromExternal = new Map()
-  ast.visitRecursiveAst((ast) => idFromExternal.set(ast.externalId, ast.id))
+  const idFromExternal = new Map<ExternalId, AstId>()
+  ast.visitRecursiveAst((ast) => {
+    idFromExternal.set(ast.externalId, ast.id)
+  })
   const id = (x: number) => idFromExternal.get(eid(x))!
 
   expect(Array.from(db.nodeIdToNode.keys())).toEqual([id(4), id(8), id(12)])
@@ -71,7 +79,7 @@ test('Reading graph from definition', () => {
   expect(Array.from(db.connections.lookup(id(3)))).toEqual([id(9)])
   // expect(db.getOutputPortIdentifier(id(2))).toBe('a')
   expect(db.getOutputPortIdentifier(id(3))).toBe('node1')
-  expect(Array.from(db.dependantNodes(asNodeId(id(4))))).toEqual([id(8), id(12)])
-  expect(Array.from(db.dependantNodes(asNodeId(id(8))))).toEqual([id(12)])
-  expect(Array.from(db.dependantNodes(asNodeId(id(12))))).toEqual([])
+  expect(Array.from(db.nodeDependents.lookup(asNodeId(id(4))))).toEqual([id(8)])
+  expect(Array.from(db.nodeDependents.lookup(asNodeId(id(8))))).toEqual([id(12)])
+  expect(Array.from(db.nodeDependents.lookup(asNodeId(id(12))))).toEqual([])
 })

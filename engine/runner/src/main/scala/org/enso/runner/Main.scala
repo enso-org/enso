@@ -401,6 +401,11 @@ object Main {
       )
       .build()
 
+    val disablePrivateCheckOption = CliOption.builder
+      .longOpt(DISABLE_PRIVATE_CHECK_OPTION)
+      .desc("Disables private module checking at runtime. Useful for tests.")
+      .build()
+
     val options = new Options
     options
       .addOption(help)
@@ -446,6 +451,7 @@ object Main {
       .addOption(skipGraalVMUpdater)
       .addOption(executionEnvironmentOption)
       .addOption(warningsLimitOption)
+      .addOption(disablePrivateCheckOption)
 
     options
   }

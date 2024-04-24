@@ -21,6 +21,7 @@ from project.Function import const
 @Builtin_Type
 type Any
     ## GROUP Conversions
+       ICON convert
        Generic conversion of an arbitrary Enso value to requested type.
        Delegates to appropriate `.from` conversion method, if it exists.
        If such method doesn't exist, `No_Such_Conversion` panic is raised.
@@ -65,6 +66,7 @@ type Any
     to self target_type = target_type.from self ...
 
     ## GROUP Conversions
+       ICON text
        Generic conversion of an arbitrary Enso value to a corresponding textual
        representation.
 
@@ -98,6 +100,7 @@ type Any
 
     ## ALIAS equals
        GROUP Operators
+       ICON operators
        Checks if `self` is equal to `that`.
 
        Arguments:
@@ -146,6 +149,7 @@ type Any
 
     ## ALIAS not equals
        GROUP Operators
+       ICON operators
        Checks if `self` is not equal to `that`.
 
        Arguments:
@@ -169,6 +173,7 @@ type Any
 
     ## ALIAS greater than
        GROUP Operators
+       ICON operators
        Checks if `self` is greater than `that`.
 
        Arguments:
@@ -197,6 +202,7 @@ type Any
 
     ## ALIAS greater than or equal
        GROUP Operators
+       ICON operators
        Checks if `self` is greater than or equal to `that`.
 
        Arguments:
@@ -227,6 +233,7 @@ type Any
 
     ## ALIAS less than
        GROUP Operators
+       ICON operators
        Checks if `self` is less than `that`.
 
        Arguments:
@@ -255,6 +262,7 @@ type Any
 
     ## ALIAS less than or equal
        GROUP Operators
+       ICON operators
        Checks if `self` is less than or equal to `that`.
 
        Arguments:
@@ -286,6 +294,7 @@ type Any
                 _ -> False
 
     ## GROUP Logical
+       ICON metadata
        Checks if the type is an instance of `Nothing`.
 
        Nothing in Enso is used as a universal value to indicate the lack of presence
@@ -299,6 +308,7 @@ type Any
     is_nothing self = False
 
     ## GROUP Logical
+       ICON operators
        If `self` is Nothing then returns `other`.
 
        > Example
@@ -309,7 +319,9 @@ type Any
     if_nothing self ~other =
         const self other
 
-    ## If `self` is Nothing then returns Nothing, otherwise returns the result
+    ## GROUP Logical
+       ICON operators
+       If `self` is Nothing then returns Nothing, otherwise returns the result
        of running the provided `action`.
 
        > Example
@@ -362,7 +374,8 @@ type Any
     catch_primitive : (Error -> Any) -> Any
     catch_primitive self handler = @Builtin_Method "Any.catch_primitive"
 
-    ## Transforms an error.
+    ## ICON dataframe_map_column
+       Transforms an error.
 
        Arguments:
        - f: The function used to transform the error.
@@ -416,7 +429,8 @@ type Any
     if_not_error : Any -> Any
     if_not_error self ~other = other
 
-    ## Applies the provided function to `self` unless `self` is `Nothing`, which is
+    ## ICON dataframe_map_column
+       Applies the provided function to `self` unless `self` is `Nothing`, which is
        returned unchanged.
 
        Arguments:
@@ -456,6 +470,7 @@ type Any
     |> self ~function = function self
 
     ## GROUP Errors
+       ICON metadata
        Checks if any warnings (either all or of a specified type) are attached to the value.
 
        Arguments:

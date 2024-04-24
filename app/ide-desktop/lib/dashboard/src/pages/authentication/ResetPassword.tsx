@@ -3,30 +3,29 @@
 import * as React from 'react'
 
 import * as router from 'react-router-dom'
-import * as toastify from 'react-toastify'
 
 import ArrowRightIcon from 'enso-assets/arrow_right.svg'
 import GoBackIcon from 'enso-assets/go_back.svg'
 import LockIcon from 'enso-assets/lock.svg'
 
 import * as appUtils from '#/appUtils'
-import * as navigateHooks from '#/hooks/navigateHooks'
-import * as authProvider from '#/providers/AuthProvider'
-import * as string from '#/utilities/string'
-import * as validation from '#/utilities/validation'
 
+import * as navigateHooks from '#/hooks/navigateHooks'
+import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
+
+import * as authProvider from '#/providers/AuthProvider'
+import * as textProvider from '#/providers/TextProvider'
+
+import AuthenticationPage from '#/pages/authentication/AuthenticationPage'
+
+import * as aria from '#/components/aria'
 import Input from '#/components/Input'
 import Link from '#/components/Link'
 import SubmitButton from '#/components/SubmitButton'
 
-// =================
-// === Constants ===
-// =================
-
-const RESET_PASSWORD_QUERY_PARAMS = {
-  email: 'email',
-  verificationCode: 'verification_code',
-} as const
+import * as eventModule from '#/utilities/event'
+import * as string from '#/utilities/string'
+import * as validation from '#/utilities/validation'
 
 // =====================
 // === ResetPassword ===
@@ -35,27 +34,31 @@ const RESET_PASSWORD_QUERY_PARAMS = {
 /** A form for users to reset their password. */
 export default function ResetPassword() {
   const { resetPassword } = authProvider.useAuth()
-  const { search } = router.useLocation()
+  const { getText } = textProvider.useText()
+  const location = router.useLocation()
   const navigate = navigateHooks.useNavigate()
+  const toastAndLog = toastAndLogHooks.useToastAndLog()
 
-  const { verificationCode, email } = parseUrlSearchParams(search)
+  const query = new URLSearchParams(location.search)
+  const email = query.get('email')
+  const verificationCode = query.get('verification_code')
 
   const [newPassword, setNewPassword] = React.useState('')
   const [newPasswordConfirm, setNewPasswordConfirm] = React.useState('')
 
   React.useEffect(() => {
     if (email == null) {
-      toastify.toast.error('Could not reset password: missing email address')
+      toastAndLog('missingEmailError')
       navigate(appUtils.LOGIN_PATH)
     } else if (verificationCode == null) {
-      toastify.toast.error('Could not reset password: missing verification code')
+      toastAndLog('missingVerificationCodeError')
       navigate(appUtils.LOGIN_PATH)
     }
-  }, [email, navigate, verificationCode])
+  }, [email, navigate, verificationCode, getText, /* should never change */ toastAndLog])
 
-  const onSubmit = () => {
+  const doSubmit = () => {
     if (newPassword !== newPasswordConfirm) {
-      toastify.toast.error('Passwords do not match')
+      toastAndLog('passwordMismatchError')
       return Promise.resolve()
     } else {
       // These should never be nullish, as the effect should immediately navigate away.
@@ -64,72 +67,64 @@ export default function ResetPassword() {
   }
 
   return (
-    <div className="flex flex-col gap-6 text-primary text-sm items-center justify-center min-h-screen">
-      <form
-        className="flex flex-col gap-6 bg-frame-selected rounded-4xl shadow-md p-8 w-full max-w-md"
-        onSubmit={async event => {
-          event.preventDefault()
-          await onSubmit()
-        }}
-      >
-        <div className="font-medium self-center text-xl">Reset your password</div>
-        <input
-          required
-          readOnly
-          hidden
-          type="email"
-          autoComplete="email"
-          placeholder="Enter your email"
-          value={email ?? ''}
-        />
-        <input
-          required
-          readOnly
-          hidden
-          type="text"
-          autoComplete="one-time-code"
-          placeholder="Enter the confirmation code"
-          value={verificationCode ?? ''}
-        />
-        <Input
-          required
-          validate
-          allowShowingPassword
-          type="password"
-          autoComplete="new-password"
-          label="New password"
-          icon={LockIcon}
-          placeholder="Enter your new password"
-          pattern={validation.PASSWORD_PATTERN}
-          error={validation.PASSWORD_ERROR}
-          value={newPassword}
-          setValue={setNewPassword}
-        />
-        <Input
-          required
-          validate
-          allowShowingPassword
-          type="password"
-          autoComplete="new-password"
-          label="Confirm new password"
-          icon={LockIcon}
-          placeholder="Confirm your new password"
-          pattern={string.regexEscape(newPassword)}
-          error={validation.CONFIRM_PASSWORD_ERROR}
-          value={newPasswordConfirm}
-          setValue={setNewPasswordConfirm}
-        />
-        <SubmitButton text="Reset" icon={ArrowRightIcon} />
-      </form>
-      <Link to={appUtils.LOGIN_PATH} icon={GoBackIcon} text="Go back to login" />
-    </div>
+    <AuthenticationPage
+      title={getText('resetYourPassword')}
+      footer={<Link to={appUtils.LOGIN_PATH} icon={GoBackIcon} text={getText('goBackToLogin')} />}
+      onSubmit={async event => {
+        event.preventDefault()
+        await doSubmit()
+      }}
+    >
+      <aria.Input
+        required
+        readOnly
+        hidden
+        type="email"
+        autoComplete="email"
+        placeholder={getText('emailPlaceholder')}
+        value={email ?? ''}
+      />
+      <aria.Input
+        required
+        readOnly
+        hidden
+        type="text"
+        autoComplete="one-time-code"
+        placeholder={getText('confirmationCodePlaceholder')}
+        value={verificationCode ?? ''}
+      />
+      <Input
+        autoFocus
+        required
+        validate
+        allowShowingPassword
+        type="password"
+        autoComplete="new-password"
+        icon={LockIcon}
+        placeholder={getText('newPasswordPlaceholder')}
+        pattern={validation.PASSWORD_PATTERN}
+        error={getText('passwordValidationError')}
+        value={newPassword}
+        setValue={setNewPassword}
+      />
+      <Input
+        required
+        validate
+        allowShowingPassword
+        type="password"
+        autoComplete="new-password"
+        icon={LockIcon}
+        placeholder={getText('confirmNewPasswordPlaceholder')}
+        pattern={string.regexEscape(newPassword)}
+        error={getText('passwordMismatchError')}
+        value={newPasswordConfirm}
+        setValue={setNewPasswordConfirm}
+      />
+      <SubmitButton
+        text={getText('reset')}
+        icon={ArrowRightIcon}
+        onPress={eventModule.submitForm}
+      />
+    </AuthenticationPage>
   )
-}
-
-/** Return an object containing the query parameters, with keys renamed to `camelCase`. */
-function parseUrlSearchParams(search: string) {
-  const query = new URLSearchParams(search)
-  const verificationCode = query.get(RESET_PASSWORD_QUERY_PARAMS.verificationCode)
-  const email = query.get(RESET_PASSWORD_QUERY_PARAMS.email)
-  return { verificationCode, email }
 }

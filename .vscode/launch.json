@@ -2,6 +2,11 @@
   "version": "0.2.0",
   "configurations": [
     {
+      "type": "java+",
+      "request": "launch",
+      "name": "Launch Enso File"
+    },
+    {
       "name": "Listen to 5005",
       "type": "java+",
       "request": "attach",
@@ -14,6 +19,14 @@
       "type": "node",
       "debugServer": 4711,
       "request": "attach"
+    },
+    {
+      "type": "node-terminal",
+      "name": "Run Script: dev",
+      "request": "launch",
+      "command": "npm run dev",
+      // "env": {"NODE_OPTIONS": "--inspect"},
+      "cwd": "${workspaceFolder}/app/gui2"
     }
   ]
 }

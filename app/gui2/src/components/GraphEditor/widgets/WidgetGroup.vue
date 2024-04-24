@@ -15,17 +15,40 @@ const child = computed(() => {
     }
   else return undefined
 })
+
+// There is no need to display parenthesis for top-level groups.
+const displayParenthesis = computed(() => props.nesting >= 2)
 </script>
 
 <script lang="ts">
 import { Ast } from '@/util/ast'
 
-export const widgetDefinition = defineWidget(WidgetInput.astMatcher(Ast.Group), {
-  priority: 999,
-  score: Score.Perfect,
-})
+export const widgetDefinition = defineWidget(
+  WidgetInput.astMatcher(Ast.Group),
+  {
+    priority: 999,
+    score: Score.Perfect,
+  },
+  import.meta.hot,
+)
 </script>
 
 <template>
-  <NodeWidget v-if="child" :input="child" />
+  <div class="WidgetGroup">
+    <span v-if="displayParenthesis" class="token">(</span>
+    <NodeWidget v-if="child" :input="child" />
+    <span v-if="displayParenthesis" class="token">)</span>
+  </div>
 </template>
+
+<style scoped>
+.WidgetGroup {
+  display: flex;
+  align-items: center;
+}
+
+.token {
+  color: rgb(255 255 255 / 0.33);
+  user-select: none;
+}
+</style>

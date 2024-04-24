@@ -6,13 +6,13 @@ import Standard.Base.Errors.Time_Error.Time_Error
 from Standard.Table import Column, Table
 from Standard.Table.Errors import No_Input_Columns_Selected, Missing_Input_Columns
 
-from Standard.Test_New import all
+from Standard.Test import all
 
 from project.Util import all
 
 type Data
     Value ~table
-    
+
     setup =
         column0 = Column.from_vector "dates" [Date.new 2020 12 21, Date.new 2023 4 25]
         column1 = Column.from_vector "datetimes" [Date_Time.new 2020 01 10 3 4 5 zone=Time_Zone.utc, Date_Time.new 2020 08 08 5 6 7 zone=Time_Zone.utc]
@@ -253,8 +253,8 @@ add_specs suite_builder =
         group_builder.specify "No columns selected" <|
             data.table.format [] . should_fail_with No_Input_Columns_Selected
 
-main =
+main filter=Nothing =
     suite = Test.build suite_builder->
         add_specs suite_builder
-    suite.run_with_filter group_filter="Errors"
+    suite.run_with_filter filter
 

@@ -60,7 +60,7 @@ export function implement(schema: Schema.Schema): string {
           ),
         ),
       ),
-      tsf.createStringLiteral('@/util/parserSupport', true),
+      tsf.createStringLiteral('../parserSupport', true),
       undefined,
     ),
   )

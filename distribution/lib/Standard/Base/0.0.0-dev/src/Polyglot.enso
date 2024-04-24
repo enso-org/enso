@@ -28,6 +28,7 @@ type Polyglot
        Reads the element in a given polyglot array object.
 
        Arguments:
+       - array: The array on which to perform the operation.
        - index: The index to get the element from.
     read_array_element : Any -> Integer -> Any
     read_array_element array index = @Builtin_Method "Polyglot.read_array_element"

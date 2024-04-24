@@ -1,6 +1,7 @@
 package org.enso.interpreter.runtime.callable;
 
 import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
+import com.oracle.truffle.api.dsl.Bind;
 import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.dsl.ImportStatic;
 import com.oracle.truffle.api.dsl.Specialization;
@@ -16,11 +17,13 @@ import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.data.EnsoObject;
 import org.enso.interpreter.runtime.data.Type;
+import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
 import org.enso.interpreter.runtime.scope.ModuleScope;
 import org.graalvm.collections.Pair;
 
 /** Simple runtime value representing a yet-unresolved by-name symbol. */
 @ExportLibrary(InteropLibrary.class)
+@ExportLibrary(TypesLibrary.class)
 public final class UnresolvedSymbol implements EnsoObject {
   private final String name;
   private final ModuleScope scope;
@@ -121,5 +124,16 @@ public final class UnresolvedSymbol implements EnsoObject {
       return interopMethodCallNode.execute(
           symbol, EnsoContext.get(thisLib).emptyState(), arguments);
     }
+  }
+
+  @ExportMessage
+  boolean hasType() {
+    return true;
+  }
+
+  @ExportMessage
+  Type getType(@Bind("$node") Node node) {
+    var ctx = EnsoContext.get(node);
+    return ctx.getBuiltins().function();
   }
 }

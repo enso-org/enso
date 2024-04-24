@@ -5,7 +5,7 @@
     <artifactId>enso4igv</artifactId>
     <packaging>nbm</packaging>
     <name>Enso Language Support for NetBeans &amp; Ideal Graph Visualizer</name>
-    <version>1.21-SNAPSHOT</version>
+    <version>1.33-SNAPSHOT</version>
     <build>
         <plugins>
             <plugin>
@@ -72,6 +72,7 @@
                     <target>1.8</target>
                     <compilerArgs>
                         <arg>-Xlint:deprecation</arg>
+                        <arg>-XDignore.symbol.file</arg>
                     </compilerArgs>
                 </configuration>
             </plugin>
@@ -126,6 +127,11 @@
         <dependency>
             <groupId>org.netbeans.api</groupId>
             <artifactId>org-openide-util</artifactId>
+            <version>${netbeans.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.netbeans.api</groupId>
+            <artifactId>org-openide-modules</artifactId>
             <version>${netbeans.version}</version>
         </dependency>
         <dependency>
@@ -225,10 +231,35 @@
             <scope>test</scope>
             <type>jar</type>
         </dependency>
+        <dependency>
+            <groupId>org.netbeans.modules</groupId>
+            <artifactId>org-netbeans-modules-lexer-nbbridge</artifactId>
+            <version>${netbeans.version}</version>
+            <scope>test</scope>
+            <type>jar</type>
+        </dependency>
+        <dependency>
+            <groupId>org.netbeans.api</groupId>
+            <artifactId>org-netbeans-modules-extexecution-base</artifactId>
+            <version>${netbeans.version}</version>
+            <type>jar</type>
+        </dependency>
+        <dependency>
+            <groupId>org.netbeans.api</groupId>
+            <artifactId>org-netbeans-modules-extexecution</artifactId>
+            <version>${netbeans.version}</version>
+            <type>jar</type>
+        </dependency>
+        <dependency>
+            <groupId>org.netbeans.api</groupId>
+            <artifactId>org-openide-io</artifactId>
+            <version>${netbeans.version}</version>
+            <type>jar</type>
+        </dependency>
     </dependencies>
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <netbeans.version>RELEASE113</netbeans.version>
+        <netbeans.version>RELEASE140</netbeans.version>
         <netbeans.compile.on.save>none</netbeans.compile.on.save>
     </properties>
     <profiles>

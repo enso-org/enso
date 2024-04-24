@@ -1,14 +1,14 @@
 <script lang="ts">
 import SvgIcon from '@/components/SvgIcon.vue'
 import { useEvent } from '@/composables/events'
-import { getTextWidth } from '@/util/measurement'
+import { getTextWidthBySizeAndFamily } from '@/util/measurement'
 import { defineKeybinds } from '@/util/shortcuts'
 import { VisualizationContainer, useVisualizationConfig } from '@/util/visualizationBuiltins'
 import { computed, ref, watch, watchEffect, watchPostEffect } from 'vue'
 
 export const name = 'Histogram'
 export const inputType =
-  'Standard.Table.Data.Table.Table | Standard.Base.Data.Vector.Vector | Standard.Image.Data.Histogram.Histogram'
+  'Standard.Table.Table.Table | Standard.Base.Data.Vector.Vector | Standard.Image.Histogram.Histogram'
 export const defaultPreprocessor = [
   'Standard.Visualization.Histogram',
   'process_to_json_text',
@@ -248,22 +248,28 @@ const margin = computed(() => ({
 }))
 const width = ref(Math.max(config.width ?? 0, config.nodeSize.x))
 watchPostEffect(() => {
-  width.value = config.fullscreen
-    ? containerNode.value?.parentElement?.clientWidth ?? 0
+  width.value =
+    config.fullscreen ?
+      containerNode.value?.parentElement?.clientWidth ?? 0
     : Math.max(config.width ?? 0, config.nodeSize.x)
 })
 const height = ref(config.height ?? (config.nodeSize.x * 3) / 4)
 watchPostEffect(() => {
-  height.value = config.fullscreen
-    ? containerNode.value?.parentElement?.clientHeight ?? 0
+  height.value =
+    config.fullscreen ?
+      containerNode.value?.parentElement?.clientHeight ?? 0
     : config.height ?? (config.nodeSize.x * 3) / 4
 })
 const boxWidth = computed(() => Math.max(0, width.value - margin.value.left - margin.value.right))
 const boxHeight = computed(() => Math.max(0, height.value - margin.value.top - margin.value.bottom))
 const xLabelTop = computed(() => boxHeight.value + margin.value.bottom - AXIS_LABEL_HEIGHT / 2)
-const xLabelLeft = computed(() => boxWidth.value / 2 + getTextWidth(axis.value.x?.label) / 2)
+const xLabelLeft = computed(
+  () => boxWidth.value / 2 + getTextWidthBySizeAndFamily(axis.value.x?.label) / 2,
+)
 const yLabelTop = computed(() => -margin.value.left + AXIS_LABEL_HEIGHT)
-const yLabelLeft = computed(() => -boxHeight.value / 2 + getTextWidth(axis.value.y?.label) / 2)
+const yLabelLeft = computed(
+  () => -boxHeight.value / 2 + getTextWidthBySizeAndFamily(axis.value.y?.label) / 2,
+)
 
 let startX = 0
 let startY = 0
@@ -305,7 +311,9 @@ const zoom = computed(() =>
       const medDelta = 0.05
       const maxDelta = 1
       const wheelSpeedMultiplier =
-        event.deltaMode === 1 ? medDelta : event.deltaMode ? maxDelta : minDelta
+        event.deltaMode === 1 ? medDelta
+        : event.deltaMode ? maxDelta
+        : minDelta
       return -event.deltaY * wheelSpeedMultiplier
     })
     .scaleExtent(ZOOM_EXTENT)

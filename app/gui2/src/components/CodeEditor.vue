@@ -1,8 +1,8 @@
 <script setup lang="ts">
-import type { Diagnostic, Highlighter } from '@/components/CodeEditor/codemirror'
+import type { ChangeSet, Diagnostic, Highlighter } from '@/components/CodeEditor/codemirror'
+import SvgIcon from '@/components/SvgIcon.vue'
 import { usePointer } from '@/composables/events'
 import { useGraphStore, type NodeId } from '@/stores/graph'
-import { asNodeId } from '@/stores/graph/graphDatabase'
 import { useProjectStore } from '@/stores/project'
 import { useSuggestionDbStore } from '@/stores/suggestionDatabase'
 import { useAutoBlur } from '@/util/autoBlur'
@@ -10,11 +10,17 @@ import { chain } from '@/util/data/iterable'
 import { unwrap } from '@/util/data/result'
 import { qnJoin, tryQualifiedName } from '@/util/qualifiedName'
 import { useLocalStorage } from '@vueuse/core'
-import { rangeEncloses } from 'shared/yjsModel'
-import { computed, onMounted, ref, watch, watchEffect } from 'vue'
+import { createDebouncer } from 'lib0/eventloop'
+import { MutableModule } from 'shared/ast'
+import { textChangeToEdits, type SourceRangeEdit } from 'shared/util/data/text'
+import { rangeEncloses, type Origin } from 'shared/yjsModel'
+import { computed, onMounted, onUnmounted, ref, shallowRef, watch, watchEffect } from 'vue'
 
 // Use dynamic imports to aid code splitting. The codemirror dependency is quite large.
 const {
+  Annotation,
+  StateEffect,
+  StateField,
   bracketMatching,
   foldGutter,
   lintGutter,
@@ -30,7 +36,10 @@ const {
   forceLinting,
   lsDiagnosticsToCMDiagnostics,
   hoverTooltip,
+  textEditToChangeSpec,
 } = await import('@/components/CodeEditor/codemirror')
+
+const emit = defineEmits<{ close: [] }>()
 
 const projectStore = useProjectStore()
 const graphStore = useGraphStore()
@@ -38,34 +47,41 @@ const suggestionDbStore = useSuggestionDbStore()
 const rootElement = ref<HTMLElement>()
 useAutoBlur(rootElement)
 
-const executionContextDiagnostics = computed(() =>
-  projectStore.module && graphStore.moduleCode
-    ? lsDiagnosticsToCMDiagnostics(graphStore.moduleCode, projectStore.diagnostics)
-    : [],
-)
+const executionContextDiagnostics = shallowRef<Diagnostic[]>([])
+
+// Effect that can be applied to the document to invalidate the linter state.
+const diagnosticsUpdated = StateEffect.define()
+// State value that is perturbed by any `diagnosticsUpdated` effect.
+const diagnosticsVersion = StateField.define({
+  create: (_state) => 0,
+  update: (value, transaction) => {
+    for (const effect of transaction.effects) {
+      if (effect.is(diagnosticsUpdated)) value += 1
+    }
+    return value
+  },
+})
 
 const expressionUpdatesDiagnostics = computed(() => {
-  const nodeMap = graphStore.db.nodeIdToNode
   const updates = projectStore.computedValueRegistry.db
   const panics = updates.type.reverseLookup('Panic')
   const errors = updates.type.reverseLookup('DataflowError')
   const diagnostics: Diagnostic[] = []
-  for (const id of chain(panics, errors)) {
-    const update = updates.get(id)
+  for (const externalId of chain(panics, errors)) {
+    const update = updates.get(externalId)
     if (!update) continue
-    const externalId = graphStore.db.idFromExternal(id)
-    if (!externalId) continue
-    const node = nodeMap.get(asNodeId(externalId))
-    if (!node) continue
-    if (!node.rootSpan.span) continue
-    const [from, to] = node.rootSpan.span
+    const astId = graphStore.db.idFromExternal(externalId)
+    if (!astId) continue
+    const span = graphStore.moduleSource.getSpan(astId)
+    if (!span) continue
+    const [from, to] = span
     switch (update.payload.type) {
       case 'Panic': {
         diagnostics.push({ from, to, message: update.payload.message, severity: 'error' })
         break
       }
       case 'DataflowError': {
-        const error = projectStore.dataflowErrors.lookup(id)
+        const error = projectStore.dataflowErrors.lookup(externalId)
         if (error?.value?.message) {
           diagnostics.push({ from, to, message: error.value.message, severity: 'error' })
         }
@@ -79,21 +95,16 @@ const expressionUpdatesDiagnostics = computed(() => {
 // == CodeMirror editor setup  ==
 
 const editorView = new EditorView()
+const viewInitialized = ref(false)
 watchEffect(() => {
   const module = projectStore.module
   if (!module) return
-  /*
-  const yText = module.doc.contents
-  const undoManager = module.undoManager
-  const awareness = projectStore.awareness.internal
-  extensions: [yCollab(yText, awareness, { undoManager }), ...]
-   */
-  if (!graphStore.moduleCode) return
   editorView.setState(
     EditorState.create({
-      doc: graphStore.moduleCode,
       extensions: [
         minimalSetup,
+        updateListener(),
+        diagnosticsVersion,
         syntaxHighlighting(defaultHighlightStyle as Highlighter),
         bracketMatching(),
         foldGutter(),
@@ -105,7 +116,8 @@ watchEffect(() => {
           const astSpan = ast.span()
           let foundNode: NodeId | undefined
           for (const [id, node] of graphStore.db.nodeIdToNode.entries()) {
-            if (node.rootSpan.span && rangeEncloses(node.rootSpan.span, astSpan)) {
+            const rootSpan = graphStore.moduleSource.getSpan(node.rootExpr.id)
+            if (rootSpan && rangeEncloses(rootSpan, astSpan)) {
               foundNode = id
               break
             }
@@ -155,13 +167,133 @@ watchEffect(() => {
           return { dom }
         }),
         enso(),
-        linter(() => [...executionContextDiagnostics.value, ...expressionUpdatesDiagnostics.value]),
+        linter(
+          () => [...executionContextDiagnostics.value, ...expressionUpdatesDiagnostics.value],
+          {
+            needsRefresh(update) {
+              return (
+                update.state.field(diagnosticsVersion) !==
+                update.startState.field(diagnosticsVersion)
+              )
+            },
+          },
+        ),
       ],
     }),
   )
+  viewInitialized.value = true
 })
 
-watch([executionContextDiagnostics, expressionUpdatesDiagnostics], () => forceLinting(editorView))
+function changeSetToTextEdits(changes: ChangeSet) {
+  const textEdits = new Array<SourceRangeEdit>()
+  changes.iterChanges((from, to, _fromB, _toB, insert) =>
+    textEdits.push({ range: [from, to], insert: insert.toString() }),
+  )
+  return textEdits
+}
+
+let pendingChanges: ChangeSet | undefined
+let currentModule: MutableModule | undefined
+/** Set the editor contents the current module state, discarding any pending editor-initiated changes. */
+function resetView() {
+  console.info(`Resetting the editor to the module code.`)
+  pendingChanges = undefined
+  currentModule = undefined
+  const viewText = editorView.state.doc.toString()
+  const code = graphStore.moduleSource.text
+  editorView.dispatch({
+    changes: textChangeToEdits(viewText, code).map(textEditToChangeSpec),
+    annotations: synchronizedModule.of(graphStore.startEdit()),
+  })
+}
+
+/** Apply any pending changes to the currently-synchronized module, clearing the set of pending changes. */
+function commitPendingChanges() {
+  if (!pendingChanges || !currentModule) return
+  try {
+    currentModule.applyTextEdits(changeSetToTextEdits(pendingChanges), graphStore.viewModule)
+    graphStore.commitEdit(currentModule, undefined, 'local:userAction:CodeEditor')
+  } catch (error) {
+    console.error(`Code Editor failed to modify module`, error)
+    resetView()
+  }
+  pendingChanges = undefined
+}
+
+function updateListener() {
+  const debouncer = createDebouncer(0)
+  return EditorView.updateListener.of((update) => {
+    for (const transaction of update.transactions) {
+      const newModule = transaction.annotation(synchronizedModule)
+      if (newModule) {
+        // Flush the pipeline of edits that were based on the old module.
+        commitPendingChanges()
+        currentModule = newModule
+      } else if (transaction.docChanged && currentModule) {
+        pendingChanges =
+          pendingChanges ? pendingChanges.compose(transaction.changes) : transaction.changes
+        // Defer the update until after pending events have been processed, so that if changes are arriving faster than
+        // we would be able to apply them individually we coalesce them to keep up.
+        debouncer(commitPendingChanges)
+      }
+    }
+  })
+}
+
+let needResync = false
+// Indicates a change updating the text to correspond to the given module state.
+const synchronizedModule = Annotation.define<MutableModule>()
+watch(
+  viewInitialized,
+  (ready) => {
+    if (ready) graphStore.moduleSource.observe(observeSourceChange)
+  },
+  { immediate: true },
+)
+onUnmounted(() => graphStore.moduleSource.unobserve(observeSourceChange))
+
+function observeSourceChange(textEdits: SourceRangeEdit[], origin: Origin | undefined) {
+  // If we received an update from outside the Code Editor while the editor contained uncommitted changes, we cannot
+  // proceed incrementally; we wait for the changes to be merged as Y.Js AST updates, and then set the view to the
+  // resulting code.
+  if (needResync) {
+    if (!pendingChanges) {
+      resetView()
+      needResync = false
+    }
+    return
+  }
+  // When we aren't in the `needResync` state, we can ignore updates that originated in the Code Editor.
+  if (origin === 'local:userAction:CodeEditor') return
+  if (pendingChanges) {
+    console.info(`Deferring update (editor dirty).`)
+    needResync = true
+    return
+  }
+
+  // If none of the above exit-conditions were reached, the transaction is applicable to our current state.
+  editorView.dispatch({
+    changes: textEdits.map(textEditToChangeSpec),
+    annotations: synchronizedModule.of(graphStore.startEdit()),
+  })
+}
+
+// The LS protocol doesn't identify what version of the file updates are in reference to. When diagnostics are received
+// from the LS, we map them to the text assuming that they are applicable to the current version of the module. This
+// will be correct if there is no one else editing, and we aren't editing faster than the LS can send updates. Typing
+// too quickly can result in incorrect ranges, but at idle it should correct itself when we receive new diagnostics.
+watch([viewInitialized, () => projectStore.diagnostics], ([ready, diagnostics]) => {
+  if (!ready) return
+  executionContextDiagnostics.value =
+    graphStore.moduleSource.text ?
+      lsDiagnosticsToCMDiagnostics(graphStore.moduleSource.text, diagnostics)
+    : []
+})
+
+watch([executionContextDiagnostics, expressionUpdatesDiagnostics], () => {
+  editorView.dispatch({ effects: diagnosticsUpdated.of(null) })
+  forceLinting(editorView)
+})
 
 onMounted(() => {
   editorView.focus()
@@ -204,6 +336,8 @@ const editorStyle = computed(() => {
     @keydown.delete.stop
     @wheel.stop.passive
     @pointerdown.stop
+    @pointerup.stop
+    @click.stop
     @contextmenu.stop
   >
     <div class="resize-handle" v-on="resize.events" @dblclick="resetSize">
@@ -216,6 +350,7 @@ const editorStyle = computed(() => {
         <circle cx="14" cy="14" r="1.5" />
       </svg>
     </div>
+    <SvgIcon name="close" class="closeButton button" @click="emit('close')" />
   </div>
 </template>
 
@@ -272,7 +407,19 @@ const editorStyle = computed(() => {
   }
 }
 
-.CodeEditor :is(.cm-editor) {
+.closeButton {
+  position: absolute;
+  top: 4px;
+  left: 6px;
+  color: red;
+  opacity: 0.3;
+
+  &:hover {
+    opacity: 0.6;
+  }
+}
+
+.CodeEditor :deep(.cm-editor) {
   position: relative;
   color: white;
   width: 100%;
@@ -289,11 +436,11 @@ const editorStyle = computed(() => {
   transition: outline 0.1s ease-in-out;
 }
 
-.CodeEditor :is(.cm-focused) {
+.CodeEditor :deep(.cm-focused) {
   outline: 1px solid rgba(0, 0, 0, 0.5);
 }
 
-.CodeEditor :is(.cm-tooltip-hover) {
+.CodeEditor :deep(.cm-tooltip-hover) {
   padding: 4px;
   border-radius: 4px;
   border: 1px solid rgba(0, 0, 0, 0.4);
@@ -307,7 +454,7 @@ const editorStyle = computed(() => {
   }
 }
 
-.CodeEditor :is(.cm-gutters) {
+.CodeEditor :deep(.cm-gutters) {
   border-radius: 3px 0 0 3px;
 }
 </style>

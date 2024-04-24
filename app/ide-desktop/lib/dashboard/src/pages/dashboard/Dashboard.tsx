@@ -2,40 +2,110 @@
  * interactive components. */
 import * as React from 'react'
 
+import * as detect from 'enso-common/src/detect'
+
+import * as eventHooks from '#/hooks/eventHooks'
+import * as searchParamsState from '#/hooks/searchParamsStateHooks'
+
+import * as authProvider from '#/providers/AuthProvider'
+import * as backendProvider from '#/providers/BackendProvider'
+import * as inputBindingsProvider from '#/providers/InputBindingsProvider'
+import * as localStorageProvider from '#/providers/LocalStorageProvider'
+import * as loggerProvider from '#/providers/LoggerProvider'
+import * as modalProvider from '#/providers/ModalProvider'
+import * as textProvider from '#/providers/TextProvider'
+
 import type * as assetEvent from '#/events/assetEvent'
 import AssetEventType from '#/events/AssetEventType'
 import type * as assetListEvent from '#/events/assetListEvent'
 import AssetListEventType from '#/events/AssetListEventType'
-import * as eventHooks from '#/hooks/eventHooks'
-import type * as assetSearchBar from '#/layouts/dashboard/AssetSearchBar'
-import type * as assetSettingsPanel from '#/layouts/dashboard/AssetSettingsPanel'
-import AssetSettingsPanel from '#/layouts/dashboard/AssetSettingsPanel'
-import Category from '#/layouts/dashboard/CategorySwitcher/Category'
-import Chat, * as chat from '#/layouts/dashboard/Chat'
-import ChatPlaceholder from '#/layouts/dashboard/ChatPlaceholder'
-import Drive from '#/layouts/dashboard/Drive'
-import Editor from '#/layouts/dashboard/Editor'
-import Home from '#/layouts/dashboard/Home'
-import * as pageSwitcher from '#/layouts/dashboard/PageSwitcher'
-import Settings from '#/layouts/dashboard/Settings'
-import TopBar from '#/layouts/dashboard/TopBar'
-import * as authProvider from '#/providers/AuthProvider'
-import * as backendProvider from '#/providers/BackendProvider'
-import * as localStorageProvider from '#/providers/LocalStorageProvider'
-import * as loggerProvider from '#/providers/LoggerProvider'
-import * as modalProvider from '#/providers/ModalProvider'
-import * as shortcutsProvider from '#/providers/ShortcutsProvider'
-import * as backendModule from '#/services/backend'
-import * as localBackendModule from '#/services/localBackend'
-import * as remoteBackendModule from '#/services/remoteBackend'
-import * as assetQuery from '#/utilities/assetQuery'
-import * as http from '#/utilities/http'
-import * as localStorageModule from '#/utilities/localStorage'
-import * as object from '#/utilities/object'
-import * as shortcutsModule from '#/utilities/shortcuts'
+
+import type * as assetPanel from '#/layouts/AssetPanel'
+import AssetPanel from '#/layouts/AssetPanel'
+import type * as assetSearchBar from '#/layouts/AssetSearchBar'
+import Category from '#/layouts/CategorySwitcher/Category'
+import Chat from '#/layouts/Chat'
+import ChatPlaceholder from '#/layouts/ChatPlaceholder'
+import Drive from '#/layouts/Drive'
+import Editor from '#/layouts/Editor'
+import Home from '#/layouts/Home'
+import * as pageSwitcher from '#/layouts/PageSwitcher'
+import Settings from '#/layouts/Settings'
+import TopBar from '#/layouts/TopBar'
 
 import TheModal from '#/components/dashboard/TheModal'
+import Portal from '#/components/Portal'
 import type * as spinner from '#/components/Spinner'
+
+import * as backendModule from '#/services/Backend'
+import LocalBackend, * as localBackendModule from '#/services/LocalBackend'
+import type * as projectManager from '#/services/ProjectManager'
+import RemoteBackend, * as remoteBackendModule from '#/services/RemoteBackend'
+
+import * as array from '#/utilities/array'
+import AssetQuery from '#/utilities/AssetQuery'
+import HttpClient from '#/utilities/HttpClient'
+import LocalStorage from '#/utilities/LocalStorage'
+import * as object from '#/utilities/object'
+import * as sanitizedEventTargets from '#/utilities/sanitizedEventTargets'
+
+// ============================
+// === Global configuration ===
+// ============================
+
+declare module '#/utilities/LocalStorage' {
+  /** */
+  interface LocalStorageData {
+    readonly driveCategory: Category
+    readonly isAssetPanelVisible: boolean
+    readonly page: pageSwitcher.Page
+    readonly projectStartupInfo: backendModule.ProjectStartupInfo
+  }
+}
+
+LocalStorage.registerKey('isAssetPanelVisible', {
+  tryParse: value => (value === true ? value : null),
+})
+
+const PAGES = Object.values(pageSwitcher.Page)
+LocalStorage.registerKey('page', {
+  tryParse: value => (array.includes(PAGES, value) ? value : null),
+})
+
+const CATEGORIES = Object.values(Category)
+LocalStorage.registerKey('driveCategory', {
+  tryParse: value => (array.includes(CATEGORIES, value) ? value : null),
+})
+
+const BACKEND_TYPES = Object.values(backendModule.BackendType)
+LocalStorage.registerKey('projectStartupInfo', {
+  isUserSpecific: true,
+  tryParse: value => {
+    if (typeof value !== 'object' || value == null) {
+      return null
+    } else if (
+      !('accessToken' in value) ||
+      (typeof value.accessToken !== 'string' && value.accessToken != null)
+    ) {
+      return null
+    } else if (!('backendType' in value) || !array.includes(BACKEND_TYPES, value.backendType)) {
+      return null
+    } else if (!('project' in value) || !('projectAsset' in value)) {
+      return null
+    } else {
+      return {
+        // These type assertions are UNSAFE, however correctly type-checking these
+        // would be very complicated.
+        // eslint-disable-next-line no-restricted-syntax
+        project: value.project as backendModule.Project,
+        // eslint-disable-next-line no-restricted-syntax
+        projectAsset: value.projectAsset as backendModule.ProjectAsset,
+        backendType: value.backendType,
+        accessToken: value.accessToken ?? null,
+      }
+    }
+  },
+})
 
 // =================
 // === Dashboard ===
@@ -44,16 +114,17 @@ import type * as spinner from '#/components/Spinner'
 /** Props for {@link Dashboard}s that are common to all platforms. */
 export interface DashboardProps {
   /** Whether the application may have the local backend running. */
-  supportsLocalBackend: boolean
-  appRunner: AppRunner
-  initialProjectName: string | null
-  projectManagerUrl: string | null
+  readonly supportsLocalBackend: boolean
+  readonly appRunner: AppRunner
+  readonly initialProjectName: string | null
+  readonly projectManagerUrl: string | null
+  readonly projectManagerRootDirectory: projectManager.Path | null
 }
 
 /** The component that contains the entire UI. */
 export default function Dashboard(props: DashboardProps) {
-  const { supportsLocalBackend, appRunner, initialProjectName: rawInitialProjectName } = props
-  const { projectManagerUrl } = props
+  const { supportsLocalBackend, appRunner, initialProjectName } = props
+  const { projectManagerUrl, projectManagerRootDirectory } = props
   const logger = loggerProvider.useLogger()
   const session = authProvider.useNonPartialUserSession()
   const { backend } = backendProvider.useBackend()
@@ -61,15 +132,20 @@ export default function Dashboard(props: DashboardProps) {
   const { modalRef } = modalProvider.useModalRef()
   const { updateModal, unsetModal } = modalProvider.useSetModal()
   const { localStorage } = localStorageProvider.useLocalStorage()
-  const { shortcuts } = shortcutsProvider.useShortcuts()
+  const { getText } = textProvider.useText()
+  const inputBindings = inputBindingsProvider.useInputBindings()
   const [initialized, setInitialized] = React.useState(false)
   const [isHelpChatOpen, setIsHelpChatOpen] = React.useState(false)
-  const [isHelpChatVisible, setIsHelpChatVisible] = React.useState(false)
-  const [page, setPage] = React.useState(
-    () => localStorage.get(localStorageModule.LocalStorageKey.page) ?? pageSwitcher.Page.drive
+
+  // These pages MUST be ROUTER PAGES.
+  const [page, setPage] = searchParamsState.useSearchParamsState(
+    'page',
+    () => localStorage.get('page') ?? pageSwitcher.Page.drive,
+    (value: unknown): value is pageSwitcher.Page =>
+      array.includes(Object.values(pageSwitcher.Page), value)
   )
   const [queuedAssetEvents, setQueuedAssetEvents] = React.useState<assetEvent.AssetEvent[]>([])
-  const [query, setQuery] = React.useState(() => assetQuery.AssetQuery.fromString(''))
+  const [query, setQuery] = React.useState(() => AssetQuery.fromString(''))
   const [labels, setLabels] = React.useState<backendModule.Label[]>([])
   const [suggestions, setSuggestions] = React.useState<assetSearchBar.Suggestion[]>([])
   const [projectStartupInfo, setProjectStartupInfo] =
@@ -79,48 +155,49 @@ export default function Dashboard(props: DashboardProps) {
   const [assetListEvents, dispatchAssetListEvent] =
     eventHooks.useEvent<assetListEvent.AssetListEvent>()
   const [assetEvents, dispatchAssetEvent] = eventHooks.useEvent<assetEvent.AssetEvent>()
-  const [assetSettingsPanelProps, setAssetSettingsPanelProps] =
-    React.useState<assetSettingsPanel.AssetSettingsPanelRequiredProps | null>(null)
-  const [isAssetSettingsPanelVisible, setIsAssetSettingsPanelVisible] = React.useState(
-    () => localStorage.get(localStorageModule.LocalStorageKey.isAssetSettingsPanelVisible) ?? false
+  const [assetPanelProps, setAssetPanelProps] =
+    React.useState<assetPanel.AssetPanelRequiredProps | null>(null)
+  const [isAssetPanelEnabled, setIsAssetPanelEnabled] = React.useState(
+    () => localStorage.get('isAssetPanelVisible') ?? false
   )
-  const [initialProjectName, setInitialProjectName] = React.useState(rawInitialProjectName)
+  const [isAssetPanelTemporarilyVisible, setIsAssetPanelTemporarilyVisible] = React.useState(false)
+  const [category, setCategory] = searchParamsState.useSearchParamsState(
+    'driveCategory',
+    () => localStorage.get('driveCategory') ?? Category.home,
+    (value): value is Category => array.includes(Object.values(Category), value)
+  )
+
+  const isCloud = backend.type === backendModule.BackendType.remote
   const rootDirectoryId = React.useMemo(
-    () => session.organization?.rootDirectoryId ?? backendModule.DirectoryId(''),
-    [session.organization]
+    () => session.user?.rootDirectoryId ?? backendModule.DirectoryId(''),
+    [session.user]
   )
+  const isAssetPanelVisible =
+    page === pageSwitcher.Page.drive && (isAssetPanelEnabled || isAssetPanelTemporarilyVisible)
 
   React.useEffect(() => {
     setInitialized(true)
   }, [])
 
   React.useEffect(() => {
-    unsetModal()
-    // FIXME [sb]: https://github.com/enso-org/cloud-v2/issues/777
-    // Workarounds for GUI1 should be removed when they are no longer necessary.
-    document.body.style.cursor = page === pageSwitcher.Page.editor ? 'none' : 'auto'
-  }, [page, /* should never change */ unsetModal])
-
-  React.useEffect(() => {
     if (query.query !== '') {
       setPage(pageSwitcher.Page.drive)
     }
-  }, [query])
+  }, [query, setPage])
 
   React.useEffect(() => {
     let currentBackend = backend
     if (
       supportsLocalBackend &&
-      localStorage.get(localStorageModule.LocalStorageKey.backendType) ===
-        backendModule.BackendType.local
+      projectManagerUrl != null &&
+      projectManagerRootDirectory != null &&
+      localStorage.get('backendType') === backendModule.BackendType.local
     ) {
-      currentBackend = new localBackendModule.LocalBackend(projectManagerUrl)
+      currentBackend = new LocalBackend(projectManagerUrl, projectManagerRootDirectory)
       setBackend(currentBackend)
     }
-    const savedProjectStartupInfo = localStorage.get(
-      localStorageModule.LocalStorageKey.projectStartupInfo
-    )
-    if (rawInitialProjectName != null) {
+    const savedProjectStartupInfo = localStorage.get('projectStartupInfo')
+    if (initialProjectName != null) {
       if (page === pageSwitcher.Page.editor) {
         setPage(pageSwitcher.Page.drive)
       }
@@ -129,7 +206,7 @@ export default function Dashboard(props: DashboardProps) {
         if (session.accessToken != null) {
           if (
             currentBackend.type === backendModule.BackendType.remote &&
-            savedProjectStartupInfo.projectAsset.parentId === session.organization.rootDirectoryId
+            savedProjectStartupInfo.projectAsset.parentId === session.user.rootDirectoryId
           ) {
             // `projectStartupInfo` is still `null`, so the `editor` page will be empty.
             setPage(pageSwitcher.Page.drive)
@@ -143,55 +220,63 @@ export default function Dashboard(props: DashboardProps) {
             ])
           } else {
             setPage(pageSwitcher.Page.drive)
-            const httpClient = new http.Client(
+            const httpClient = new HttpClient(
               new Headers([['Authorization', `Bearer ${session.accessToken}`]])
             )
-            const remoteBackend = new remoteBackendModule.RemoteBackend(httpClient, logger)
+            const remoteBackend = new RemoteBackend(httpClient, logger, getText)
             void (async () => {
               const abortController = new AbortController()
               setOpenProjectAbortController(abortController)
-              const oldProject = await backend.getProjectDetails(
-                savedProjectStartupInfo.projectAsset.id,
-                savedProjectStartupInfo.projectAsset.title
-              )
-              if (backendModule.DOES_PROJECT_STATE_INDICATE_VM_EXISTS[oldProject.state.type]) {
-                await remoteBackendModule.waitUntilProjectIsReady(
-                  remoteBackend,
-                  savedProjectStartupInfo.projectAsset,
-                  abortController
+              try {
+                const oldProject = await backend.getProjectDetails(
+                  savedProjectStartupInfo.projectAsset.id,
+                  savedProjectStartupInfo.projectAsset.parentId,
+                  savedProjectStartupInfo.projectAsset.title
                 )
-                if (!abortController.signal.aborted) {
-                  const project = await remoteBackend.getProjectDetails(
-                    savedProjectStartupInfo.projectAsset.id,
-                    savedProjectStartupInfo.projectAsset.title
+                if (backendModule.IS_OPENING_OR_OPENED[oldProject.state.type]) {
+                  const project = await remoteBackendModule.waitUntilProjectIsReady(
+                    remoteBackend,
+                    savedProjectStartupInfo.projectAsset,
+                    abortController
                   )
-                  setProjectStartupInfo(object.merge(savedProjectStartupInfo, { project }))
-                  if (page === pageSwitcher.Page.editor) {
-                    setPage(page)
+                  if (!abortController.signal.aborted) {
+                    setProjectStartupInfo(object.merge(savedProjectStartupInfo, { project }))
+                    if (page === pageSwitcher.Page.editor) {
+                      setPage(page)
+                    }
                   }
                 }
+              } catch {
+                setProjectStartupInfo(null)
               }
             })()
           }
         }
-      } else {
-        if (currentBackend.type === backendModule.BackendType.local) {
-          setInitialProjectName(savedProjectStartupInfo.projectAsset.id)
-        } else {
-          const localBackend = new localBackendModule.LocalBackend(projectManagerUrl)
-          void (async () => {
-            await localBackend.openProject(
-              savedProjectStartupInfo.projectAsset.id,
-              null,
-              savedProjectStartupInfo.projectAsset.title
-            )
-            const project = await localBackend.getProjectDetails(
-              savedProjectStartupInfo.projectAsset.id,
-              savedProjectStartupInfo.projectAsset.title
-            )
-            setProjectStartupInfo(object.merge(savedProjectStartupInfo, { project }))
-          })()
-        }
+      } else if (projectManagerUrl != null && projectManagerRootDirectory != null) {
+        const localBackend =
+          currentBackend instanceof LocalBackend
+            ? currentBackend
+            : new LocalBackend(projectManagerUrl, projectManagerRootDirectory)
+        void (async () => {
+          await localBackend.openProject(
+            savedProjectStartupInfo.projectAsset.id,
+            {
+              executeAsync: false,
+              cognitoCredentials: null,
+              parentId: savedProjectStartupInfo.projectAsset.parentId,
+            },
+            savedProjectStartupInfo.projectAsset.title
+          )
+          const project = await localBackend.getProjectDetails(
+            savedProjectStartupInfo.projectAsset.id,
+            savedProjectStartupInfo.projectAsset.parentId,
+            savedProjectStartupInfo.projectAsset.title
+          )
+          setProjectStartupInfo(object.merge(savedProjectStartupInfo, { project }))
+          if (page === pageSwitcher.Page.editor) {
+            setPage(page)
+          }
+        })()
       }
     }
     // This MUST only run when the component is mounted.
@@ -215,9 +300,9 @@ export default function Dashboard(props: DashboardProps) {
   React.useEffect(() => {
     if (initialized) {
       if (projectStartupInfo != null) {
-        localStorage.set(localStorageModule.LocalStorageKey.projectStartupInfo, projectStartupInfo)
+        localStorage.set('projectStartupInfo', projectStartupInfo)
       } else {
-        localStorage.delete(localStorageModule.LocalStorageKey.projectStartupInfo)
+        localStorage.delete('projectStartupInfo')
       }
     }
     // `initialized` is NOT a dependency.
@@ -225,15 +310,12 @@ export default function Dashboard(props: DashboardProps) {
   }, [projectStartupInfo, /* should never change */ localStorage])
 
   React.useEffect(() => {
-    localStorage.set(
-      localStorageModule.LocalStorageKey.isAssetSettingsPanelVisible,
-      isAssetSettingsPanelVisible
-    )
-  }, [isAssetSettingsPanelVisible, /* should never change */ localStorage])
+    localStorage.set('isAssetPanelVisible', isAssetPanelEnabled)
+  }, [isAssetPanelEnabled, /* should never change */ localStorage])
 
   React.useEffect(() => {
     if (page !== pageSwitcher.Page.settings) {
-      localStorage.set(localStorageModule.LocalStorageKey.page, page)
+      localStorage.set('page', page)
     }
   }, [page, /* should never change */ localStorage])
 
@@ -249,69 +331,65 @@ export default function Dashboard(props: DashboardProps) {
     }
   }, [/* should never change */ unsetModal])
 
-  React.useEffect(() => {
-    // The types come from a third-party API and cannot be changed.
-    // eslint-disable-next-line no-restricted-syntax
-    let handle: number | undefined
-    if (isHelpChatOpen) {
-      setIsHelpChatVisible(true)
-    } else {
-      handle = window.setTimeout(() => {
-        setIsHelpChatVisible(false)
-      }, chat.ANIMATION_DURATION_MS)
-    }
-    return () => {
-      clearTimeout(handle)
-    }
-  }, [isHelpChatOpen])
+  React.useEffect(
+    () =>
+      inputBindings.attach(sanitizedEventTargets.document.body, 'keydown', {
+        closeModal: () => {
+          updateModal(oldModal => {
+            if (oldModal == null) {
+              queueMicrotask(() => {
+                setPage(oldPage => {
+                  if (oldPage !== pageSwitcher.Page.settings) {
+                    return oldPage
+                  } else {
+                    return localStorage.get('page') ?? pageSwitcher.Page.drive
+                  }
+                })
+              })
+              return oldModal
+            } else {
+              return null
+            }
+          })
+          if (modalRef.current == null) {
+            // eslint-disable-next-line no-restricted-syntax
+            return false
+          }
+        },
+      }),
+    [inputBindings, modalRef, localStorage, updateModal, setPage]
+  )
 
   React.useEffect(() => {
-    return shortcuts.registerKeyboardHandlers({
-      [shortcutsModule.KeyboardAction.closeModal]: () => {
-        updateModal(oldModal => {
-          if (oldModal == null) {
-            queueMicrotask(() => {
-              setPage(oldPage => {
-                if (oldPage !== pageSwitcher.Page.settings) {
-                  return oldPage
-                } else {
-                  return (
-                    localStorage.get(localStorageModule.LocalStorageKey.page) ??
-                    pageSwitcher.Page.drive
-                  )
-                }
-              })
-            })
-            return oldModal
-          } else {
-            return null
-          }
-        })
-        if (modalRef.current == null) {
-          // eslint-disable-next-line no-restricted-syntax
-          return false
-        }
-      },
-    })
-  }, [
-    shortcuts,
-    /* should never change */ modalRef,
-    /* should never change */ localStorage,
-    /* should never change */ updateModal,
-  ])
+    if (detect.isOnElectron()) {
+      // We want to handle the back and forward buttons in electron the same way as in the browser.
+      // eslint-disable-next-line no-restricted-syntax
+      return inputBindings.attach(sanitizedEventTargets.document.body, 'keydown', {
+        goBack: () => {
+          window.navigationApi.goBack()
+        },
+        goForward: () => {
+          window.navigationApi.goForward()
+        },
+      })
+    }
+  }, [inputBindings])
 
   const setBackendType = React.useCallback(
     (newBackendType: backendModule.BackendType) => {
       if (newBackendType !== backend.type) {
         switch (newBackendType) {
-          case backendModule.BackendType.local:
-            setBackend(new localBackendModule.LocalBackend(projectManagerUrl))
+          case backendModule.BackendType.local: {
+            if (projectManagerUrl != null && projectManagerRootDirectory != null) {
+              setBackend(new LocalBackend(projectManagerUrl, projectManagerRootDirectory))
+            }
             break
+          }
           case backendModule.BackendType.remote: {
-            const client = new http.Client([
+            const client = new HttpClient([
               ['Authorization', `Bearer ${session.accessToken ?? ''}`],
             ])
-            setBackend(new remoteBackendModule.RemoteBackend(client, logger))
+            setBackend(new RemoteBackend(client, logger, getText))
             break
           }
         }
@@ -321,7 +399,9 @@ export default function Dashboard(props: DashboardProps) {
       backend.type,
       session.accessToken,
       logger,
+      getText,
       /* should never change */ projectManagerUrl,
+      /* should never change */ projectManagerRootDirectory,
       /* should never change */ setBackend,
     ]
   )
@@ -332,19 +412,29 @@ export default function Dashboard(props: DashboardProps) {
       templateName: string | null = null,
       onSpinnerStateChange: ((state: spinner.SpinnerState) => void) | null = null
     ) => {
+      const parentId =
+        backend.type === backendModule.BackendType.remote
+          ? rootDirectoryId
+          : localBackendModule.newDirectoryId(projectManagerRootDirectory ?? backendModule.Path(''))
       dispatchAssetListEvent({
         type: AssetListEventType.newProject,
-        parentKey: rootDirectoryId,
-        parentId: rootDirectoryId,
-        templateId: templateId,
-        templateName: templateName,
+        parentKey: parentId,
+        parentId,
+        templateId,
+        datalinkId: null,
+        preferredName: templateName,
         onSpinnerStateChange: onSpinnerStateChange,
       })
     },
-    [rootDirectoryId, /* should never change */ dispatchAssetListEvent]
+    [
+      backend.type,
+      rootDirectoryId,
+      projectManagerRootDirectory,
+      /* should never change */ dispatchAssetListEvent,
+    ]
   )
 
-  const openEditor = React.useCallback(
+  const doOpenEditor = React.useCallback(
     async (
       newProject: backendModule.ProjectAsset,
       setProjectAsset: React.Dispatch<React.SetStateAction<backendModule.ProjectAsset>>,
@@ -355,7 +445,11 @@ export default function Dashboard(props: DashboardProps) {
       }
       if (projectStartupInfo?.project.projectId !== newProject.id) {
         setProjectStartupInfo({
-          project: await backend.getProjectDetails(newProject.id, newProject.title),
+          project: await backend.getProjectDetails(
+            newProject.id,
+            newProject.parentId,
+            newProject.title
+          ),
           projectAsset: newProject,
           setProjectAsset: setProjectAsset,
           backendType: backend.type,
@@ -363,10 +457,10 @@ export default function Dashboard(props: DashboardProps) {
         })
       }
     },
-    [backend, projectStartupInfo?.project.projectId, session.accessToken]
+    [backend, projectStartupInfo?.project.projectId, session.accessToken, setPage]
   )
 
-  const closeEditor = React.useCallback((closingProject: backendModule.ProjectAsset) => {
+  const doCloseEditor = React.useCallback((closingProject: backendModule.ProjectAsset) => {
     setProjectStartupInfo(oldInfo =>
       oldInfo?.projectAsset.id === closingProject.id ? null : oldInfo
     )
@@ -374,10 +468,8 @@ export default function Dashboard(props: DashboardProps) {
 
   const doRemoveSelf = React.useCallback(() => {
     if (projectStartupInfo?.projectAsset != null) {
-      dispatchAssetListEvent({
-        type: AssetListEventType.removeSelf,
-        id: projectStartupInfo.projectAsset.id,
-      })
+      const id = projectStartupInfo.projectAsset.id
+      dispatchAssetListEvent({ type: AssetListEventType.removeSelf, id })
       setProjectStartupInfo(null)
     }
   }, [projectStartupInfo?.projectAsset, /* should never change */ dispatchAssetListEvent])
@@ -387,17 +479,19 @@ export default function Dashboard(props: DashboardProps) {
       setPage(pageSwitcher.Page.drive)
     }
     setProjectStartupInfo(null)
-  }, [page])
+  }, [page, setPage])
 
   return (
     <>
       <div
-        className={`flex text-primary text-xs ${
-          page === pageSwitcher.Page.editor ? 'cursor-none pointer-events-none' : ''
+        className={`flex text-xs text-primary ${
+          page === pageSwitcher.Page.editor ? 'pointer-events-none cursor-none' : ''
         }`}
       >
         <div
-          className="flex flex-col grow container-size gap-2 overflow-hidden relative select-none h-screen pb-2"
+          className={`relative flex h-screen grow select-none flex-col container-size ${
+            page === pageSwitcher.Page.home ? 'pb-home-page-b' : 'gap-top-level'
+          }`}
           onContextMenu={event => {
             event.preventDefault()
             unsetModal()
@@ -405,6 +499,7 @@ export default function Dashboard(props: DashboardProps) {
         >
           <TopBar
             supportsLocalBackend={supportsLocalBackend}
+            isCloud={isCloud}
             projectAsset={projectStartupInfo?.projectAsset ?? null}
             setProjectAsset={projectStartupInfo?.setProjectAsset ?? null}
             page={page}
@@ -417,22 +512,19 @@ export default function Dashboard(props: DashboardProps) {
             setQuery={setQuery}
             labels={labels}
             suggestions={suggestions}
-            canToggleSettingsPanel={assetSettingsPanelProps != null}
-            isSettingsPanelVisible={isAssetSettingsPanelVisible && assetSettingsPanelProps != null}
-            setIsSettingsPanelVisible={setIsAssetSettingsPanelVisible}
+            isAssetPanelVisible={isAssetPanelVisible}
+            isAssetPanelEnabled={isAssetPanelEnabled}
+            setIsAssetPanelEnabled={setIsAssetPanelEnabled}
             doRemoveSelf={doRemoveSelf}
-            onSignOut={() => {
-              if (page === pageSwitcher.Page.editor) {
-                setPage(pageSwitcher.Page.drive)
-              }
-              setProjectStartupInfo(null)
-            }}
+            onSignOut={onSignOut}
           />
           <Home hidden={page !== pageSwitcher.Page.home} createProject={doCreateProject} />
           <Drive
+            category={category}
+            setCategory={setCategory}
             supportsLocalBackend={supportsLocalBackend}
             hidden={page !== pageSwitcher.Page.drive}
-            page={page}
+            hideRows={page !== pageSwitcher.Page.drive && page !== pageSwitcher.Page.home}
             initialProjectName={initialProjectName}
             query={query}
             setQuery={setQuery}
@@ -445,10 +537,11 @@ export default function Dashboard(props: DashboardProps) {
             dispatchAssetListEvent={dispatchAssetListEvent}
             assetEvents={assetEvents}
             dispatchAssetEvent={dispatchAssetEvent}
-            setAssetSettingsPanelProps={setAssetSettingsPanelProps}
+            setAssetPanelProps={setAssetPanelProps}
+            setIsAssetPanelTemporarilyVisible={setIsAssetPanelTemporarilyVisible}
             doCreateProject={doCreateProject}
-            doOpenEditor={openEditor}
-            doCloseEditor={closeEditor}
+            doOpenEditor={doOpenEditor}
+            doCloseEditor={doCloseEditor}
           />
           <Editor
             hidden={page !== pageSwitcher.Page.editor}
@@ -458,17 +551,16 @@ export default function Dashboard(props: DashboardProps) {
           />
           {page === pageSwitcher.Page.settings && <Settings />}
           {/* `session.accessToken` MUST be present in order for the `Chat` component to work. */}
-          {isHelpChatVisible && session.accessToken != null ? (
+          {session.accessToken != null && process.env.ENSO_CLOUD_CHAT_URL != null ? (
             <Chat
-              page={page}
               isOpen={isHelpChatOpen}
               doClose={() => {
                 setIsHelpChatOpen(false)
               }}
+              endpoint={process.env.ENSO_CLOUD_CHAT_URL}
             />
           ) : (
             <ChatPlaceholder
-              page={page}
               isOpen={isHelpChatOpen}
               doClose={() => {
                 setIsHelpChatOpen(false)
@@ -477,33 +569,29 @@ export default function Dashboard(props: DashboardProps) {
           )}
         </div>
         <div
-          className={`flex flex-col duration-500 transition-min-width ease-in-out overflow-hidden ${
-            isAssetSettingsPanelVisible && assetSettingsPanelProps != null ? 'min-w-120' : 'min-w-0'
+          className={`flex flex-col overflow-hidden transition-min-width duration-side-panel ease-in-out ${
+            isAssetPanelVisible ? 'min-w-side-panel' : 'invisible min-w'
           }`}
         >
-          {assetSettingsPanelProps && (
-            <AssetSettingsPanel
-              supportsLocalBackend={supportsLocalBackend}
-              key={assetSettingsPanelProps.item.item.id}
-              {...assetSettingsPanelProps}
-              page={page}
-              setPage={setPage}
+          {isAssetPanelVisible && (
+            <AssetPanel
+              key={assetPanelProps?.item?.item.id}
+              item={assetPanelProps?.item ?? null}
+              setItem={assetPanelProps?.setItem ?? null}
+              setQuery={setQuery}
               category={Category.home}
-              isHelpChatOpen={isHelpChatOpen}
-              setIsHelpChatOpen={setIsHelpChatOpen}
-              setIsSettingsPanelVisible={setIsAssetSettingsPanelVisible}
+              labels={labels}
               dispatchAssetEvent={dispatchAssetEvent}
-              projectAsset={projectStartupInfo?.projectAsset ?? null}
-              setProjectAsset={projectStartupInfo?.setProjectAsset ?? null}
-              doRemoveSelf={doRemoveSelf}
-              onSignOut={onSignOut}
+              isReadonly={category === Category.trash}
             />
           )}
         </div>
       </div>
-      <div className="text-xs text-primary select-none">
-        <TheModal />
-      </div>
+      <Portal>
+        <div className="select-none text-xs text-primary">
+          <TheModal />
+        </div>
+      </Portal>
     </>
   )
 }

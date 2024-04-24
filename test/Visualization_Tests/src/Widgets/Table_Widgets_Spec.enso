@@ -8,22 +8,59 @@ from Standard.Table import Table
 
 import Standard.Visualization.Widgets
 
-from Standard.Test import Test, Test_Suite
-import Standard.Test.Extensions
+from Standard.Test import all
 
-spec =
-    Test.group "Widgets for In-Memory with column name sets" <|
+
+add_specs suite_builder =
+    suite_builder.group "Widgets for In-Memory with column name sets" group_builder->
         mock_table = Table.from_rows ["A", "B C", 'D "E"', "F.G/H\I"] []
 
-        Test.specify "works for `get` and `at`" <|
+        group_builder.specify "works for `get` and `at`" <|
             choices = mock_table.column_names . map n-> Choice.Option n n.pretty
             expect = [["selector", Widget.Single_Choice choices Nothing Display.Always]] . to_json
             Widgets.get_widget_json mock_table .get ["selector"] . should_equal expect
             Widgets.get_widget_json mock_table .at ["selector"] . should_equal expect
 
-        Test.specify "works for `filter`" <|
-            choices = mock_table.column_names . map n-> Choice.Option n n.pretty
+        group_builder.specify "works for `filter`" <|
+            choices = [Choice.Option "<Expression>" "(expr '[A]')"] + mock_table.column_names . map n-> Choice.Option n n.pretty
             expect = [["column", Widget.Single_Choice choices Nothing Display.Always]] . to_json
             Widgets.get_widget_json mock_table .filter ["column"] . should_equal expect
 
-main = Test_Suite.run_main spec
+        group_builder.specify "works for `join` with `right` table" <|
+            abc = ["A", "B", "C"]
+            uvw = ["U", "V", "W", "A"]
+            self_mock_table = Table.from_rows abc []
+            right_mock_table = Table.from_rows uvw []
+
+            mock_cache name = case name of
+                "right" -> right_mock_table
+                _ -> Nothing
+
+            res = Standard.Table.Internal.Widget_Helpers.make_join_condition_selector self_mock_table cache=mock_cache
+            arr = case res of
+                Widget.Vector_Editor item _ _ _ -> item.values
+                _ -> Test.fail "Expecting Vector_Editor"
+
+            arr.length . should_equal 3
+
+            labels = arr.map e->
+                Meta.type_of e . should_equal Choice
+
+                e.parameters.map e->
+                    options = e.second.values . map .label
+                    case e.first of
+                        "left" -> options . should_equal abc
+                        "right" -> options . should_equal uvw
+                        "right_lower" -> options . should_equal uvw
+                        "right_upper" -> options . should_equal uvw
+                        _ -> Test.fail "Unexpected options "+options.to_text+" for "+e.first
+
+                e.label
+
+            labels . should_equal ['Equals', 'Equals (Ignore Case)', 'Between']
+
+main filter=Nothing =
+    suite = Test.build suite_builder->
+        add_specs suite_builder
+    suite.run_with_filter filter
+

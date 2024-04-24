@@ -2,16 +2,17 @@
 import HelpScreen from '@/components/HelpScreen.vue'
 import { provideAppClassSet } from '@/providers/appClass'
 import { provideGuiConfig } from '@/providers/guiConfig'
+import { useProjectStore } from '@/stores/project'
 import { useSuggestionDbStore } from '@/stores/suggestionDatabase'
+import { registerAutoBlurHandler } from '@/util/autoBlur'
 import { configValue, type ApplicationConfig, type ApplicationConfigValue } from '@/util/config'
 import ProjectView from '@/views/ProjectView.vue'
-import { computed, onMounted, toRaw } from 'vue'
-import { isDevMode } from './util/detect'
+import { isDevMode } from 'shared/util/detect'
+import { computed, onMounted, onUnmounted, toRaw } from 'vue'
 
 const props = defineProps<{
   config: ApplicationConfig
   accessToken: string | null
-  metadata: object
   unrecognizedOptions: string[]
 }>()
 
@@ -19,12 +20,17 @@ const classSet = provideAppClassSet()
 
 provideGuiConfig(computed((): ApplicationConfigValue => configValue(props.config)))
 
+registerAutoBlurHandler()
+
 // Initialize suggestion db immediately, so it will be ready when user needs it.
 onMounted(() => {
   const suggestionDb = useSuggestionDbStore()
   if (isDevMode) {
     ;(window as any).suggestionDb = toRaw(suggestionDb.entries)
   }
+})
+onUnmounted(() => {
+  useProjectStore().disposeYDocsProvider()
 })
 </script>
 

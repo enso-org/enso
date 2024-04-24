@@ -10,6 +10,8 @@
     "shared/**/*.vue",
     "public/**/*",
     "public/**/*.vue",
+    "mock/**/*",
+    "mock/**/*.vue",
     "stories/**/*",
     "stories/**/*.json",
     "stories/**/*.vue"
@@ -22,6 +24,7 @@
     "outDir": "../../node_modules/.cache/tsc",
     "baseUrl": ".",
     "noEmit": true,
+    "strict": true,
     "allowImportingTsExtensions": true,
     "noUncheckedIndexedAccess": true,
     "exactOptionalPropertyTypes": true,

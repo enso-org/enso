@@ -6,7 +6,7 @@ import Standard.Table.Internal.Unique_Name_Strategy.Unique_Name_Strategy
 
 import Standard.Database.Internal.Common.Encoding_Limited_Naming_Properties.Encoding_Limited_Naming_Properties
 
-from Standard.Test_New import all
+from Standard.Test import all
 
 add_specs suite_builder =
     no_limit = Unlimited_Naming_Properties.Instance
@@ -235,7 +235,7 @@ add_specs suite_builder =
             r3 = Unique_Name_Strategy.new no_limit . combine_with_prefix first third "P_"
             r3 . should_equal ["P_B 3", "P_A", "P_B", "X", "P_B 1", "P_B 2"]
 
-main =
+main filter=Nothing =
     suite = Test.build suite_builder->
         add_specs suite_builder
-    suite.run_with_filter
+    suite.run_with_filter filter

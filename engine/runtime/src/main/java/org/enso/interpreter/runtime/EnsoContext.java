@@ -222,7 +222,7 @@ public final class EnsoContext {
 
   private static final Assumption checkNodes =
       Truffle.getRuntime().createAssumption("context check");
-  private static final Set<Node> reportedNulllRootNodes = new HashSet<>();
+  private static final Set<Node> reportedNullRootNodes = new HashSet<>();
   private static long checkUntil = Long.MAX_VALUE;
 
   @TruffleBoundary
@@ -230,9 +230,9 @@ public final class EnsoContext {
     if (System.currentTimeMillis() > checkUntil) {
       checkNodes.invalidate();
     }
-    if (reportedNulllRootNodes.add(n)) {
+    if (reportedNullRootNodes.add(n)) {
       var ex =
-          new Exception(
+          new AssertionError(
               """
         no root node for {n}
         with section: {s}
@@ -243,6 +243,11 @@ public final class EnsoContext {
                   .replace("{r}", "" + n.getRootNode()));
       ex.printStackTrace();
       checkUntil = System.currentTimeMillis() + 10000;
+      var assertsOn = false;
+      assert assertsOn = true;
+      if (assertsOn) {
+        throw ex;
+      }
     }
   }
 
@@ -485,6 +490,26 @@ public final class EnsoContext {
   }
 
   /**
+   * Returns true if the output is a terminal that supports ANSI colors. {@see
+   * https://github.com/termstandard/colors/} {@see https://no-color.org/}
+   */
+  public boolean isColorTerminalOutput() {
+    var envVars = environment.getEnvironment();
+    if (envVars.get("NO_COLOR") != null) {
+      return false;
+    }
+    if (envVars.get("COLORTERM") != null) {
+      return true;
+    }
+    if (envVars.get("TERM") != null) {
+      var termEnv = envVars.get("TERM").toLowerCase();
+      return Arrays.stream(termEnv.split("-"))
+          .anyMatch(str -> str.equals("color") || str.equals("256color"));
+    }
+    return false;
+  }
+
+  /**
    * Tries to lookup a Java class (host symbol in Truffle terminology) by its fully qualified name.
    * This method also tries to lookup inner classes. More specifically, if the provided name
    * resolves to an inner class, then the import of the outer class is resolved, and the inner class
@@ -698,11 +723,15 @@ public final class EnsoContext {
 
   /**
    * @param name human-readable name of the pool
+   * @param min minimal number of threads kept-alive in the pool
+   * @param max maximal number of available threads
+   * @param maxQueueSize maximal number of pending tasks
    * @param systemThreads use system threads or polyglot threads
    * @return new execution service for this context
    */
-  public ExecutorService newCachedThreadPool(String name, boolean systemThreads) {
-    return threadExecutors.newCachedThreadPool(name, systemThreads);
+  public ExecutorService newCachedThreadPool(
+      String name, int min, int max, int maxQueueSize, boolean systemThreads) {
+    return threadExecutors.newCachedThreadPool(name, systemThreads, min, max, maxQueueSize);
   }
 
   /**

@@ -6,15 +6,11 @@ import org.enso.base.polyglot.Polyglot_Utils;
 import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.builder.InferredBuilder;
 import org.enso.table.data.column.builder.MixedBuilder;
-import org.enso.table.data.column.storage.BoolStorage;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.type.StorageType;
-import org.enso.table.data.index.DefaultIndex;
-import org.enso.table.data.index.Index;
 import org.enso.table.data.mask.OrderMask;
 import org.enso.table.data.mask.SliceRange;
 import org.enso.table.error.InvalidColumnNameException;
-import org.enso.table.error.UnexpectedColumnTypeException;
 import org.enso.table.problems.ProblemAggregator;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Value;
@@ -88,32 +84,12 @@ public class Column {
   /**
    * Return a new column, containing only the items marked true in the mask.
    *
-   * @param mask the mask to use
-   * @param cardinality the number of true values in mask
+   * @param filterMask the mask to use
+   * @param newLength the number of true values in mask
    * @return a new column, masked with the given mask
    */
-  public Column mask(BitSet mask, int cardinality) {
-    return new Column(name, storage.mask(mask, cardinality));
-  }
-
-  /**
-   * Returns a column resulting from selecting only the rows corresponding to true entries in the
-   * provided column.
-   *
-   * @param maskCol the masking column
-   * @return the result of masking this column with the provided column
-   */
-  public Column mask(Column maskCol) {
-    if (!(maskCol.getStorage() instanceof BoolStorage boolStorage)) {
-      throw new UnexpectedColumnTypeException("Boolean");
-    }
-
-    var mask = BoolStorage.toMask(boolStorage);
-    var localStorageMask = new BitSet();
-    localStorageMask.set(0, getStorage().size());
-    mask.and(localStorageMask);
-    int cardinality = mask.cardinality();
-    return mask(mask, cardinality);
+  public Column applyFilter(BitSet filterMask, int newLength) {
+    return new Column(name, storage.applyFilter(filterMask, newLength));
   }
 
   /**
@@ -184,7 +160,7 @@ public class Column {
    * Creates a new column with given name and an element to repeat.
    *
    * @param name the name to use
-   * @param items the item repeated in the column
+   * @param item the item repeated in the column
    * @return a column with given name and items
    */
   public static Column fromRepeatedItem(
@@ -211,13 +187,6 @@ public class Column {
     }
 
     return new Column(name, builder.seal());
-  }
-
-  /**
-   * @return the index of this column
-   */
-  public Index getIndex() {
-    return new DefaultIndex(getSize());
   }
 
   /**

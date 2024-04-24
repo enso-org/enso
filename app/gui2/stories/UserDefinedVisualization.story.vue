@@ -3,7 +3,7 @@ import GraphVisualization from '@/components/GraphEditor/GraphVisualization.vue'
 import { Vec2 } from '@/util/data/vec2'
 import type { VisualizationIdentifier } from 'shared/yjsModel'
 import { computed, ref } from 'vue'
-import MockFSWrapper from './MockFSWrapper.vue'
+import MockFSWrapper from '../mock/MockFSWrapper.vue'
 import HstCode from './histoire/HstCode.vue'
 import HstDirectory from './histoire/HstDirectory.vue'
 
@@ -44,6 +44,7 @@ const props = defineProps<{ data: unknown }>()
 }
 \x3c/style>`)
 
+const width = ref(0)
 const data = ref<any>({
   axis: {
     x: { label: 'x-axis label', scale: 'linear' },
@@ -81,10 +82,13 @@ const mockFsWrapperProps = computed(() => ({
       <MockFSWrapper v-bind="mockFsWrapperProps">
         <GraphVisualization
           :currentType="currentType"
-          :data="data"
+          :dataSource="{ type: 'raw', data }"
+          :width="width"
           :scale="1"
           :nodePosition="nodePosition"
           :nodeSize="nodeSize"
+          :isFocused="true"
+          :isFullscreen="false"
           :isCircularMenuVisible="isCircularMenuVisible"
           @setVisualizationId="$event.module.kind === 'CurrentProject' && (type = $event.name)"
         />

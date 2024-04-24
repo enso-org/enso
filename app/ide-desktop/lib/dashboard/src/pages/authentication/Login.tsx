@@ -10,21 +10,20 @@ import CreateAccountIcon from 'enso-assets/create_account.svg'
 import LockIcon from 'enso-assets/lock.svg'
 
 import * as appUtils from '#/appUtils'
+
 import * as authProvider from '#/providers/AuthProvider'
-import * as validation from '#/utilities/validation'
+import * as textProvider from '#/providers/TextProvider'
+
+import AuthenticationPage from '#/pages/authentication/AuthenticationPage'
 
 import FontAwesomeIcon from '#/components/FontAwesomeIcon'
 import Input from '#/components/Input'
 import Link from '#/components/Link'
 import SubmitButton from '#/components/SubmitButton'
+import TextLink from '#/components/TextLink'
+import UnstyledButton from '#/components/UnstyledButton'
 
-// =================
-// === Constants ===
-// =================
-
-const LOGIN_QUERY_PARAMS = {
-  email: 'email',
-} as const
+import * as eventModule from '#/utilities/event'
 
 // =============
 // === Login ===
@@ -32,125 +31,115 @@ const LOGIN_QUERY_PARAMS = {
 
 /** Props for a {@link Login}. */
 export interface LoginProps {
-  supportsLocalBackend: boolean
+  readonly supportsLocalBackend: boolean
 }
 
 /** A form for users to log in. */
 export default function Login(props: LoginProps) {
   const { supportsLocalBackend } = props
-  const { search } = router.useLocation()
+  const location = router.useLocation()
   const { signInWithGoogle, signInWithGitHub, signInWithPassword } = authProvider.useAuth()
+  const { getText } = textProvider.useText()
 
-  const initialEmail = parseUrlSearchParams(search)
+  const query = new URLSearchParams(location.search)
+  const initialEmail = query.get('email')
 
   const [email, setEmail] = React.useState(initialEmail ?? '')
   const [password, setPassword] = React.useState('')
   const [isSubmitting, setIsSubmitting] = React.useState(false)
   const shouldReportValidityRef = React.useRef(true)
+  const formRef = React.useRef<HTMLFormElement>(null)
 
   return (
-    <div className="flex flex-col gap-6 text-primary text-sm items-center justify-center min-h-screen">
-      <div className="flex flex-col gap-6 bg-frame-selected rounded-4xl shadow-md p-8 w-full max-w-md">
-        <div className="font-medium self-center text-xl">Login to your account</div>
-        <div className="flex flex-col gap-6">
-          <button
-            onMouseDown={() => {
-              shouldReportValidityRef.current = false
-            }}
-            onClick={async event => {
-              event.preventDefault()
-              await signInWithGoogle()
-            }}
-            className="relative rounded-full bg-cloud/10 hover:bg-cloud/20 focus:bg-cloud/20 transition-all duration-300 py-2"
-          >
-            <FontAwesomeIcon icon={fontawesomeIcons.faGoogle} />
-            Sign up or login with Google
-          </button>
-          <button
-            onMouseDown={() => {
-              shouldReportValidityRef.current = false
-            }}
-            onClick={async event => {
-              event.preventDefault()
-              await signInWithGitHub()
-            }}
-            className="relative rounded-full bg-cloud/10 hover:bg-cloud/20 focus:bg-cloud/20 transition-all duration-300 py-2"
-          >
-            <FontAwesomeIcon icon={fontawesomeIcons.faGithub} />
-            Sign up or login with GitHub
-          </button>
-        </div>
-        <div className="flex items-center gap-2">
-          <div className="grow border-t border-primary/30 h-0" />
-          <span className="text-xs self-center text-primary/60">or login with email</span>
-          <div className="grow border-t border-primary/30 h-0" />
-        </div>
-        <form
-          className="flex flex-col gap-6"
-          onSubmit={async event => {
-            event.preventDefault()
-            setIsSubmitting(true)
-            await signInWithPassword(email, password)
-            shouldReportValidityRef.current = true
-            setIsSubmitting(false)
-          }}
-        >
-          <Input
-            required
-            validate
-            type="email"
-            autoComplete="email"
-            label="Email"
-            icon={AtIcon}
-            placeholder="Enter your email"
-            value={email}
-            setValue={setEmail}
-            shouldReportValidityRef={shouldReportValidityRef}
+    <AuthenticationPage
+      isNotForm
+      title={getText('loginToYourAccount')}
+      footer={
+        <>
+          <Link
+            to={appUtils.REGISTRATION_PATH}
+            icon={CreateAccountIcon}
+            text={getText('dontHaveAnAccount')}
           />
+          {supportsLocalBackend && (
+            <Link
+              to={appUtils.ENTER_OFFLINE_MODE_PATH}
+              icon={ArrowRightIcon}
+              text={getText('continueWithoutCreatingAnAccount')}
+            />
+          )}
+        </>
+      }
+    >
+      <div className="flex flex-col gap-auth">
+        <UnstyledButton
+          onPress={() => {
+            shouldReportValidityRef.current = false
+            void signInWithGoogle()
+          }}
+          className="relative rounded-full bg-primary/5 py-auth-input-y transition-all duration-auth hover:bg-primary/10 focus:bg-primary/10"
+        >
+          <FontAwesomeIcon icon={fontawesomeIcons.faGoogle} />
+          {getText('signUpOrLoginWithGoogle')}
+        </UnstyledButton>
+        <UnstyledButton
+          onPress={() => {
+            shouldReportValidityRef.current = false
+            void signInWithGitHub()
+          }}
+          className="relative rounded-full bg-primary/5 py-auth-input-y transition-all duration-auth hover:bg-primary/10 focus:bg-primary/10"
+        >
+          <FontAwesomeIcon icon={fontawesomeIcons.faGithub} />
+          {getText('signUpOrLoginWithGitHub')}
+        </UnstyledButton>
+      </div>
+      <div />
+      <form
+        ref={formRef}
+        className="flex flex-col gap-auth"
+        onSubmit={async event => {
+          event.preventDefault()
+          setIsSubmitting(true)
+          await signInWithPassword(email, password)
+          shouldReportValidityRef.current = true
+          setIsSubmitting(false)
+        }}
+      >
+        <Input
+          autoFocus
+          required
+          validate
+          type="email"
+          autoComplete="email"
+          icon={AtIcon}
+          placeholder={getText('emailPlaceholder')}
+          value={email}
+          setValue={setEmail}
+          shouldReportValidityRef={shouldReportValidityRef}
+        />
+        <div className="flex flex-col">
           <Input
             required
             validate
             allowShowingPassword
             type="password"
             autoComplete="current-password"
-            label="Password"
             icon={LockIcon}
-            placeholder="Enter your password"
-            error={validation.PASSWORD_ERROR}
+            placeholder={getText('passwordPlaceholder')}
+            error={getText('passwordValidationError')}
             value={password}
             setValue={setPassword}
             shouldReportValidityRef={shouldReportValidityRef}
-            footer={
-              <router.Link
-                to={appUtils.FORGOT_PASSWORD_PATH}
-                className="text-xs text-blue-500 hover:text-blue-700 focus:text-blue-700 transition-all duration-300 text-end"
-              >
-                Forgot Your Password?
-              </router.Link>
-            }
           />
-          <SubmitButton disabled={isSubmitting} text="Login" icon={ArrowRightIcon} />
-        </form>
-      </div>
-      <Link
-        to={appUtils.REGISTRATION_PATH}
-        icon={CreateAccountIcon}
-        text="Don't have an account?"
-      />
-      {supportsLocalBackend && (
-        <Link
-          to={appUtils.ENTER_OFFLINE_MODE_PATH}
+          <TextLink to={appUtils.FORGOT_PASSWORD_PATH} text={getText('forgotYourPassword')} />
+        </div>
+        <SubmitButton
+          isDisabled={isSubmitting}
+          text={getText('login')}
           icon={ArrowRightIcon}
-          text="Continue without creating an account"
+          onPress={eventModule.submitForm}
         />
-      )}
-    </div>
+      </form>
+    </AuthenticationPage>
   )
-}
-
-/** Return an object containing the query parameters, with keys renamed to `camelCase`. */
-function parseUrlSearchParams(search: string) {
-  const query = new URLSearchParams(search)
-  const email = query.get(LOGIN_QUERY_PARAMS.email)
-  return email
 }

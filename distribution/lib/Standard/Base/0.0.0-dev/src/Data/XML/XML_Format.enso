@@ -1,13 +1,17 @@
 import project.Any.Any
 import project.Data.Text.Text
+import project.Data.Vector.Vector
 import project.Data.XML.XML_Document
 import project.Errors.Problem_Behavior.Problem_Behavior
+import project.Meta
 import project.Network.URI.URI
 import project.Nothing.Nothing
 import project.System.File.File
+import project.System.File.Generic.Writable_File.Writable_File
 import project.System.File_Format_Metadata.File_Format_Metadata
 import project.System.Input_Stream.Input_Stream
 from project.Data.Text.Extensions import all
+from project.Metadata.Choice import Option
 
 ## A `File_Format` for reading and writing XML files.
 type XML_Format
@@ -29,10 +33,15 @@ type XML_Format
 
     ## PRIVATE
        If this File_Format should be used for writing to that file, return a configured instance.
-    for_file_write : File -> XML_Format | Nothing
-    for_file_write file:File =
+    for_file_write : Writable_File -> XML_Format | Nothing
+    for_file_write file:Writable_File =
         _ = [file]
         Nothing
+
+
+    ## PRIVATE
+    get_dropdown_options : Vector Option
+    get_dropdown_options = [Option "XML" (Meta.get_qualified_type_name XML_Format)]
 
     ## PRIVATE
        Implements the `File.read` for this `File_Format`

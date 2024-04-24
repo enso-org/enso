@@ -1,0 +1,39 @@
+import project.Any.Any
+import project.Data.Text.Text
+import project.Meta
+import project.Nothing.Nothing
+
+polyglot java import java.util.logging.Logger
+
+## PRIVATE
+   Log a message.
+   This function needs to be enabled by importing `Standard.Base.Logging` using
+   `from Standard.Base.Logging import all`.
+Any.log_message : Text -> Log_Level -> Any
+Any.log_message self ~message:Text level:Log_Level=Log_Level.Info =
+    type_name = Meta.get_qualified_type_name self
+    logger = Logger.getLogger type_name
+    case level of
+        Log_Level.Finest -> logger.finest message
+        Log_Level.Fine -> logger.fine message
+        Log_Level.Info -> logger.info message
+        Log_Level.Warning -> logger.warning message
+        Log_Level.Severe -> logger.severe message
+    self
+
+## PRIVATE
+type Log_Level
+    ## Finest (Trace) level log message.
+    Finest
+
+    ##  Fine (Debug) level log message.
+    Fine
+
+    ## Info level log message.
+    Info
+
+    ## Warning level log message.
+    Warning
+
+    ## Severe level log message.
+    Severe

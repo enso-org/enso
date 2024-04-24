@@ -2,7 +2,6 @@ import project.Any.Any
 import project.Data.Array.Array
 import project.Data.Filter_Condition.Filter_Condition
 import project.Data.List.List
-import project.Data.Map.Map
 import project.Data.Numbers.Integer
 import project.Data.Pair.Pair
 import project.Data.Range.Range
@@ -14,6 +13,7 @@ import project.Errors.Common.Index_Out_Of_Bounds
 import project.Errors.Common.No_Such_Method
 import project.Errors.Common.Not_Found
 import project.Errors.Common.Type_Error
+import project.Errors.Empty_Error.Empty_Error
 import project.Errors.Illegal_Argument.Illegal_Argument
 import project.Errors.Problem_Behavior.Problem_Behavior
 import project.Errors.Wrapped_Error.Wrapped_Error
@@ -26,7 +26,7 @@ import project.Panic.Panic
 import project.Random.Random
 from project.Data.Boolean import Boolean, False, True
 from project.Data.Filter_Condition import unify_condition_or_predicate, unify_condition_predicate_or_element
-from project.Data.Index_Sub_Range import drop_helper, Index_Sub_Range, take_helper
+from project.Data.Index_Sub_Range import Index_Sub_Range
 from project.Data.Ordering import all
 from project.Data.Range.Extensions import all
 
@@ -91,11 +91,13 @@ type Vector a
              Vector.collect (List.Cons 1 <| List.Cons 2 <| List.Nil) .x .xs stop_at=(_==List.Nil)
     collect : Any -> (Any -> Any) -> (Any -> Any) -> Integer | Nothing -> (Any -> Boolean) -> Vector Any
     collect seq element:(Any -> Any) next:(Any -> Any) limit:(Integer | Nothing)=Nothing stop_at:(Any -> Boolean)=(_==Nothing) =
-        b = Vector.new_builder (if limit.is_nothing then 10 else limit)
-        iterate item remaining = if remaining == 0 || (stop_at item) then b.to_vector else
-            b.append <| element item
-            @Tail_Call iterate (next item) (if remaining.is_nothing then Nothing else remaining-1)
-        iterate seq limit
+        Vector.build initial_capacity=(if limit.is_nothing then 10 else limit) builder->
+            iterate item remaining =
+                done = remaining == 0 || (stop_at item)
+                if done.not then
+                    builder.append <| element item
+                    @Tail_Call iterate (next item) (if remaining.is_nothing then Nothing else remaining-1)
+            iterate seq limit
 
     ## PRIVATE
        ADVANCED
@@ -124,6 +126,7 @@ type Vector a
 
     ## ALIAS repeat
        GROUP Constants
+       ICON data_input
        Creates a new vector of the given length, filling the elements with
        the provided constant.
 
@@ -144,14 +147,15 @@ type Vector a
 
     ## PRIVATE
        ADVANCED
+       DEPRECATED
        Creates a new vector builder instance.
 
-       A vector builder is a mutable data structure, that allows for gathering
+       A vector `Builder` is a mutable data structure, that allows for gathering
        a number of elements and then converting them into a vector. This is
        particularly useful when the number of elements is not known upfront.
 
-       A vector allows to store an arbitrary number of elements in linear memory. It
-       is the recommended data structure for most applications.
+       A vector allows to store an arbitrary number of elements in linear
+       memory. It is the recommended data structure for most applications.
 
        Arguments:
        - capacity: Initial capacity of the Vector.Builder
@@ -169,6 +173,51 @@ type Vector a
                   builder.to_vector
     new_builder : Integer -> Builder
     new_builder (capacity=10) = Builder.new capacity
+
+    ## PRIVATE
+       ADVANCED
+       Creates a new `Vector` by passing a `Builder` to the provided function.
+
+       A vector `Builder` is a mutable data structure, that allows for gathering
+       a number of elements and then converting them into a vector. This is
+       particularly useful when the number of elements is not known upfront.
+
+       `.build` creates a new `Builder`, passes it to the provided function,
+       which can add elements using the `Builder`'s `.append` method. When the
+       function is done, `.build` then closes the `Builder and returns the
+       resulting `Vector`.
+
+       The provided function should call `.append` to add new elements to the
+       `Builder`. The return value of the provided function is not used, unless
+       it is a dataflow error, in which case the `Vector` is not built, and the
+       dataflow error is propagted instead.
+
+       A vector allows to store an arbitrary number of elements in linear
+       memory. It is the recommended data structure for most applications.
+
+       Arguments:
+       - function: a function taking a `Builder` and using it to add elements.
+       - initial_capacity: Initial capacity of the Vector.Builder; this is for
+         pre-allocation and does not affect the size of the resulting `Vector`.
+
+       ! Error Conditions
+
+         - If the provided function throws a dataflow error, the `Vector` is not
+           built, and the error is propagted instead.
+
+       > Example
+         Construct a vector using a builder that contains the items 1 to 5.
+
+             Vector.build builder->
+                 builder.append 1
+                 builder.append 2
+                 builder.append 3
+             # => [1, 2, 3]
+    build : (Builder -> Any) -> Integer -> Vector
+    build (function : Builder -> Any) (initial_capacity : Integer = 10) -> Vector =
+        builder = Builder.new initial_capacity
+        result = function builder
+        result.if_not_error builder.to_vector
 
     ## PRIVATE
        ADVANCED
@@ -191,6 +240,7 @@ type Vector a
     to_array self = Array_Like_Helpers.vector_to_array self
 
     ## GROUP Metadata
+       ICON metadata
        Returns the number of elements stored in this vector.
 
        > Example
@@ -232,9 +282,7 @@ type Vector a
        - if_missing: The value to return if the index is out of bounds.
     get : Integer -> Any -> Any
     get self index ~if_missing=Nothing =
-        len = self.length
-        if index < -len || index >= len then if_missing else
-            self.at index
+        Array_Like_Helpers.get self index if_missing
 
     ## ICON dataframe_map_column
        Combines all the elements of the vector, by iteratively applying the
@@ -255,8 +303,7 @@ type Vector a
              [0, 1, 2] . fold 0 (+)
     fold : Any -> (Any -> Any -> Any) -> Any
     fold self init function =
-        f = acc -> ix -> function acc (self.at ix)
-        0.up_to self.length . fold init f
+        Array_Like_Helpers.fold self init function
 
     ## ICON dataframe_map_column
        Combines all the elements of the vector, by iteratively applying the
@@ -273,10 +320,10 @@ type Vector a
              [0, 1, 2] . fold_with_index 0 (s->i->e->s+i+e)
     fold_with_index : Any -> (Any -> Integer -> Any -> Any) -> Any
     fold_with_index self init function =
-        f = acc -> ix -> function acc ix (self.at ix)
-        0.up_to self.length . fold init f
+        Array_Like_Helpers.fold_with_index self init function
 
-    ## Combines all the elements of the vector, by iteratively applying the
+    ## ICON dataframe_map_column
+       Combines all the elements of the vector, by iteratively applying the
        passed function with the next element of the vector. After each step the
        value is stored resulting in a new vector of the same size as self.
 
@@ -290,11 +337,7 @@ type Vector a
             [1, 2, 3].running_fold 0 (+)
     running_fold : Any -> (Any -> Any -> Any) -> Vector Any
     running_fold self init function =
-        wrapped builder value =
-            current = if builder.length == 0 then init else builder.last
-            builder.append (function current value)
-        built = self.fold (Vector.new_builder self.length) wrapped
-        built.to_vector
+        Array_Like_Helpers.running_fold self init function
 
     ## ICON dataframe_map_column
        Combines all the elements of a non-empty vector using a binary operation.
@@ -309,18 +352,11 @@ type Vector a
 
              [0, 1, 2] . reduce (+)
     reduce : (Any -> Any -> Any) -> Any -> Any
-    reduce self function ~if_empty=(Error.throw Empty_Error) =
-        len = self.length
-        case len of
-            0 -> if_empty
-            1 -> self.at 0
-            _ ->
-                fold_function current idx =
-                    if idx == len then current else
-                        @Tail_Call fold_function (function current (self.at idx)) (idx + 1)
-                fold_function (self.at 0) 1
+    reduce self function ~if_empty=(Error.throw (Empty_Error.Error Vector)) =
+        Array_Like_Helpers.reduce self function if_empty
 
     ## GROUP Selections
+       ICON find
        Returns the first element of the vector that satisfies the condition or
        `if_missing` if no elements of the vector satisfy it.
 
@@ -336,14 +372,11 @@ type Vector a
 
              [1, 2, 3, 4, 5].find (> 3)
     find : (Filter_Condition | (Any -> Boolean)) -> Integer -> Any -> Any
-    find self condition start=0 ~if_missing=(Error.throw Not_Found) =
-        predicate = unify_condition_or_predicate condition
-        self_len = self.length
-        check_start_valid start self_len used_start->
-            found = used_start.up_to self_len . find (idx -> (predicate (self.at idx)))
-            if found.is_nothing then if_missing else self.at found
+    find self condition (start : Integer = 0) ~if_missing=(Error.throw Not_Found) =
+        Array_Like_Helpers.find self condition start if_missing
 
     ## GROUP Values
+       ICON find
        Returns the index of an element in the vector.
        Returns Nothing if the element is not found.
 
@@ -363,13 +396,11 @@ type Vector a
 
              ["ab", "abab", "aba", "bbb"].index_of (s-> s == s.reverse) == 2
     index_of : (Any | Filter_Condition | (Any -> Boolean)) -> Integer -> Integer | Nothing
-    index_of self condition start=0 =
-        self_len = self.length
-        check_start_valid start self_len used_start->
-            predicate = unify_condition_predicate_or_element condition
-            used_start.up_to self.length . find if_missing=Nothing (i-> predicate (self.at i))
+    index_of self condition (start : Integer = 0) =
+        Array_Like_Helpers.index_of self condition start
 
     ## GROUP Values
+       ICON find
        Returns the last index of an element in the vector.
        Returns `Nothing` if the element is not found.
 
@@ -389,14 +420,11 @@ type Vector a
 
              ["ab", "abab", "aba", "bbb"].last_index_of (s-> s == s.reverse) == 3
     last_index_of : (Any | Filter_Condition | (Any -> Boolean)) -> Integer -> Integer | Nothing
-    last_index_of self condition start=-1 =
-        self_len = self.length
-        if self_len == 0 && (start==0 || start==-1) then Nothing else
-            check_start_valid start self_len used_start->
-                predicate = unify_condition_predicate_or_element condition
-                used_start.down_to -1 . find if_missing=Nothing (i-> predicate (self.at i))
+    last_index_of self condition (start : Integer = -1) =
+        Array_Like_Helpers.last_index_of self condition start
 
     ## GROUP Logical
+       ICON preparation
        Checks whether a predicate holds for at least one element of self vector.
 
        Arguments:
@@ -414,10 +442,10 @@ type Vector a
              [1, 2, 3, 4, 5].any (x-> x%2 == 0)
     any : (Filter_Condition | (Any -> Boolean)) -> Boolean
     any self condition =
-        predicate = unify_condition_or_predicate condition
-        0.up_to self.length . any (idx -> (predicate (self.at idx)))
+        Array_Like_Helpers.any self condition
 
     ## GROUP Logical
+       ICON preparation
        Checks whether a condition holds for all elements in this vector.
 
        Arguments:
@@ -435,10 +463,10 @@ type Vector a
              [-1, 1, 5, 8].all (x-> x%2 == 0)
     all : (Filter_Condition | (Any -> Boolean)) -> Boolean
     all self condition =
-        predicate = unify_condition_or_predicate condition
-        self.any (predicate >> .not) . not
+        Array_Like_Helpers.all self condition
 
     ## GROUP Logical
+       ICON preparation
        Checks whether this vector contains a given value as an element.
 
        Arguments:
@@ -452,6 +480,7 @@ type Vector a
     contains self elem = self.any (== elem)
 
     ## GROUP Logical
+       ICON metadata
        Checks if this vector is empty.
 
        > Example
@@ -462,6 +491,7 @@ type Vector a
     is_empty self = self.length == 0
 
     ## GROUP Logical
+       ICON metadata
        Checks if this vector is not empty.
 
        > Example
@@ -488,10 +518,7 @@ type Vector a
              [1, 2, 3, 4, 5].filter (Filter_Condition.Greater than=3)
     filter : (Filter_Condition | (Any -> Boolean)) -> Vector Any
     filter self filter =
-        predicate = unify_condition_or_predicate filter
-        builder = self.fold Vector.new_builder builder-> elem->
-            if predicate elem then builder.append elem else builder
-        builder.to_vector
+        Array_Like_Helpers.filter self filter
 
     ## GROUP Selections
        ICON preparation
@@ -508,12 +535,10 @@ type Vector a
              [0, 10, 2, 2].filter (==) == [0, 2]
     filter_with_index : (Integer -> Any -> Boolean) -> Vector Any
     filter_with_index self predicate =
-        builder = self.fold_with_index Vector.new_builder builder-> ix-> elem->
-            if predicate ix elem then builder.append elem else builder
-        builder.to_vector
+        Array_Like_Helpers.filter_with_index self predicate
 
     ## GROUP Selections
-       ICON preparation
+       ICON split_text
        Partitions the vector into `Vector`s of elements which satisfy a given
        condition and ones that do not.
 
@@ -539,16 +564,10 @@ type Vector a
              [1, 2, 3, 4, 5].partition (x -> x % 2 == 0) == (Pair [2, 4] [1, 3, 5])
     partition : (Filter_Condition | (Any -> Boolean)) -> Pair (Vector Any) (Vector Any)
     partition self condition =
-        predicate = unify_condition_or_predicate condition
-        pair = self.fold (Pair.new Vector.new_builder Vector.new_builder) acc-> elem->
-            case predicate elem of
-                True ->
-                    Pair.new (acc.first.append elem) acc.second
-                False ->
-                    Pair.new acc.first (acc.second.append elem)
-        pair.map .to_vector
+        Array_Like_Helpers.partition self condition
 
-    ## Partitions the vector into `Vector`s of elements which satisfy a given
+    ## ICON preparation
+       Partitions the vector into `Vector`s of elements which satisfy a given
        predicate and ones that do not.
 
        Returns a `Pair` whose `first` element is the `Vector` of elements
@@ -568,11 +587,43 @@ type Vector a
              ["a", "b", "c", "d"].partition_with_index (ix -> _ -> ix % 2 == 0) == (Pair ["a", "c"] ["b", "d"])
     partition_with_index : (Integer -> Any -> Boolean) -> Pair (Vector Any) (Vector Any)
     partition_with_index self predicate =
-        pair = self.fold_with_index (Pair.new Vector.new_builder Vector.new_builder) acc-> ix-> elem->
-            case predicate ix elem of
-                True -> Pair.new (acc.first.append elem) acc.second
-                False -> Pair.new acc.first (acc.second.append elem)
-        pair.map .to_vector
+        Array_Like_Helpers.partition_with_index self predicate
+
+    ## GROUP Selections
+       ICON dataframe_map_row
+       Swaps the rows and columns of a matrix represented by a vector of vectors.
+
+       ! Error Conditions
+
+         - If the rows (subvectors) do not all have the same length, an
+         `Illegal_Argument` error is raised.
+
+       > Example
+         Transpose a vector of vectors.
+
+             matrix = [[0, 1, 2], [3, 4, 5], [6, 7, 8]]
+             # +---+---+---+
+             # | 0 | 1 | 2 |
+             # +---+---+---+
+             # | 3 | 4 | 5 |
+             # +---+---+---+
+             # | 6 | 7 | 8 |
+             # +---+---+---+
+
+             transposed = [[0, 3, 6], [1, 4, 7], [2, 5, 8]]
+             # +---+---+---+
+             # | 0 | 3 | 6 |
+             # +---+---+---+
+             # | 1 | 4 | 7 |
+             # +---+---+---+
+             # | 2 | 5 | 8 |
+             # +---+---+---+
+
+             matrix.transposed == transposed
+             # => True
+    transpose : Vector (Vector Any) ! Illegal_Argument
+    transpose self =
+        Array_Like_Helpers.transpose self
 
     ## ICON dataframe_map_column
        Applies a function to each element of the vector, returning the `Vector` of
@@ -611,9 +662,10 @@ type Vector a
              [1, 2, 3] . map +1
     map : (Any -> Any) -> Problem_Behavior | No_Wrap -> Vector Any
     map self function on_problems=Problem_Behavior.Report_Error =
-        Array_Like_Helpers.vector_from_function self.length (function << self.at) on_problems
+        Array_Like_Helpers.map self function on_problems
 
-    ## Applies a function to each element of the vector, returning the `Vector`
+    ## ICON dataframes_union
+       Applies a function to each element of the vector, returning the `Vector`
        that contains all results concatenated.
 
        Arguments:
@@ -649,9 +701,10 @@ type Vector a
             [0, 1, 2] . flat_map (n -> Vector.fill n n)
     flat_map : (Any -> Vector Any) -> Problem_Behavior | No_Wrap -> Vector Any
     flat_map self function on_problems=Problem_Behavior.Report_Error =
-        self.map function on_problems . flatten
+        Array_Like_Helpers.flat_map self function on_problems
 
     ## GROUP Calculations
+       ICON dataframes_union
        Transforms a vector of vectors into a `Vector` of inner elements - removes
        one layer of nesting from a stack of nested vectors.
 
@@ -660,9 +713,10 @@ type Vector a
 
             [[1, 2, 3], [4, 10], [], [0], [0]] . flatten == [1, 2, 3, 4, 10, 0, 0]
     flatten : Vector Any
-    flatten self = @Builtin_Method "Vector.flatten"
+    flatten self = Array_Like_Helpers.flatten self
 
-    ## Applies a function to each element of the vector, returning the `Vector`
+    ## ICON dataframe_map_column
+       Applies a function to each element of the vector, returning the `Vector`
        of results.
 
        Arguments:
@@ -701,7 +755,7 @@ type Vector a
              [1, 2, 3].map_with_index (+)
     map_with_index : (Integer -> Any -> Any) -> Problem_Behavior | No_Wrap -> Vector Any
     map_with_index self function on_problems=Problem_Behavior.Report_Error =
-        Array_Like_Helpers.vector_from_function self.length (i-> function i (self.at i)) on_problems
+        Array_Like_Helpers.map_with_index self function on_problems
 
     ## PRIVATE
        ADVANCED
@@ -709,6 +763,9 @@ type Vector a
 
        Unlike `map`, this method does not return the individual results,
        therefore it is only useful for side-effecting computations.
+
+       If the function returns a dataflow error, the error is converted to a
+       panic and thrown immediately stopping further processing.
 
        Arguments:
        - function: A function to apply to each element of the vector.
@@ -719,8 +776,7 @@ type Vector a
              [1, 2, 3, 4, 5] . each IO.println
     each : (Any -> Any) -> Nothing
     each self f =
-        0.up_to self.length . each ix->
-            f (self.at ix)
+        Array_Like_Helpers.each self f
 
     ## PRIVATE
        ADVANCED
@@ -741,10 +797,10 @@ type Vector a
              [1, 2, 3, 4, 5] . each_with_index (ix->elem-> IO.println Pair ix elem)
     each_with_index : (Integer -> Any -> Any) -> Nothing
     each_with_index self f =
-        0.up_to self.length . each ix->
-            f ix (self.at ix)
+        Array_Like_Helpers.each_with_index self f
 
     ## GROUP Selections
+       ICON order
        Reverses the vector, returning a `Vector` with the same elements, but in
        the opposite order.
 
@@ -753,7 +809,8 @@ type Vector a
 
              [1, 2].reverse
     reverse : Vector Any
-    reverse self = Vector.new self.length (i -> self.at (self.length - (1 + i)))
+    reverse self =
+        Array_Like_Helpers.reverse self
 
     ## PRIVATE
        Generates a human-readable text representation of the vector.
@@ -780,17 +837,12 @@ type Vector a
 
              (0.up_to 100).to_vector.short_display_text max_entries=2 == "[0, 1 and 98 more elements]"
     short_display_text : Integer -> Text
-    short_display_text self max_entries=10 =
-        if max_entries < 1 then Error.throw <| Illegal_Argument.Error "The `max_entries` parameter must be positive." else
-            prefix = self.take (Index_Sub_Range.First max_entries)
-            if prefix.length == self.length then self.to_text else
-                remaining_count = self.length - prefix.length
-                remaining_text = if remaining_count == 1 then "and 1 more element" else
-                    "and " + remaining_count.to_text + " more elements"
-                prefix.map .to_text . join ", " "[" " "+remaining_text+"]"
+    short_display_text self (max_entries : Integer = 10) =
+        Array_Like_Helpers.short_display_text self max_entries
 
     ## ALIAS append, concatenate, union
        GROUP Operators
+       ICON dataframes_union
        Concatenates two vectors, resulting in a new `Vector`, containing all the
        elements of `self`, followed by all the elements of `that`.
 
@@ -802,11 +854,11 @@ type Vector a
 
              [1] + [2]
     + : Vector Any | Array -> Vector Any
-    + self that:(Vector | Array) = case that of
-        _ : Vector -> Vector.insert_builtin self self.length that
-        _ : Array -> self + Vector.from_polyglot_array that
+    + self that:(Vector | Array) =
+        Array_Like_Helpers.plus self that
 
     ## GROUP Calculations
+       ICON row_add
        Inserts the given item into the vector at the given index.
 
        Arguments:
@@ -824,17 +876,10 @@ type Vector a
             ['a', 'b', 'c'].insert item='X' == ['a', 'b', 'c', 'X']
     insert : Integer -> Any -> Vector ! Index_Out_Of_Bounds
     insert self at=self.length item=Nothing =
-        self_len = self.length
-        used_index = if at < 0 then self_len + at else at
-        if used_index < 0 || used_index > self_len then Error.throw (Index_Out_Of_Bounds.Error at self_len+1) else
-            if used_index == self_len then self + [item] else
-                if used_index == 0 then [item] + self else
-                    Vector.insert_builtin self used_index [item]
-
-    ## PRIVATE
-    insert_builtin vec at values = @Builtin_Method("Vector.insert_builtin")
+        Array_Like_Helpers.insert self at item
 
     ## GROUP Selections
+       ICON table_clean
        Removes the item at the given index from the vector.
 
        Arguments:
@@ -843,15 +888,10 @@ type Vector a
          end.
     remove : Integer -> Vector
     remove self at=-1 =
-        self_len = self.length
-        used_index = if at < 0 then self_len + at else at
-        if used_index >= self_len || used_index < 0 then Error.throw (Index_Out_Of_Bounds.Error at self_len) else
-            Vector.remove_builtin self used_index
-
-    ## PRIVATE
-    remove_builtin vec at = @Builtin_Method "Vector.remove_builtin"
+        Array_Like_Helpers.remove self at
 
     ## GROUP Calculations
+       ICON join
        When `self` is a vector of text values, concatenates all the values by
        interspersing them with `separator`.
 
@@ -865,10 +905,8 @@ type Vector a
 
              ["foo", "bar", "baz"].join ", "
     join : Text -> Text -> Text -> Text
-    join self separator="" prefix="" suffix="" =
-        if self.is_empty then prefix+suffix else
-            if self.length == 1 then prefix + self.at 0 + suffix else
-                prefix + self.at 0 + (1.up_to self.length . fold "" acc-> i-> acc + separator + self.at i) + suffix
+    join self separator:Text="" prefix:Text="" suffix:Text="" =
+        Array_Like_Helpers.join self separator prefix suffix
 
     ## PRIVATE
        Creates a new vector with the skipping elements until `start` and then
@@ -883,9 +921,9 @@ type Vector a
 
              [1, 2, 3, 4, 5, 6, 7, 8].slice 2 5 == [3, 4, 5]
     slice : Integer -> Integer -> Vector Any
-    slice self start end = @Builtin_Method "Vector.slice"
+    slice self start end = Array_Like_Helpers.slice self start end
 
-    ## ALIAS first, last, sample, slice
+    ## ALIAS first, head, last, limit, sample, slice, tail, top
        GROUP Selections
        ICON select_row
        Creates a new `Vector` with only the specified range of elements from the
@@ -898,16 +936,8 @@ type Vector a
          If a `Range`, the selection is specified by two indices, from and to.
     @range Index_Sub_Range.default_widget
     take : (Index_Sub_Range | Range | Integer) -> Vector Any
-    take self range=(Index_Sub_Range.First 1) = case range of
-        ## We are using a specialized implementation for `take Sample`, because
-           the default implementation (which needs to be generic for any
-           collection) generates a random set of indices and then selects these
-           indices, but we can sample the vector directly.
-        Index_Sub_Range.Sample count seed ->
-            rng = Random.new_generator seed
-            rng.items self count
-        _ ->
-            take_helper self.length (self.at _) self.slice (slice_ranges self) range
+    take self range=(Index_Sub_Range.First 1) =
+        Array_Like_Helpers.take self range
 
     ## ALIAS skip
        GROUP Selections
@@ -922,7 +952,7 @@ type Vector a
     @range Index_Sub_Range.default_widget
     drop : (Index_Sub_Range | Range | Integer) -> Vector Any
     drop self range=(Index_Sub_Range.First 1) =
-        drop_helper self.length (self.at _) self.slice (slice_ranges self) range
+        Array_Like_Helpers.drop self range
 
     ## ALIAS combine, join by row position, merge
        GROUP Calculations
@@ -977,6 +1007,7 @@ type Vector a
         Array_Like_Helpers.vector_from_function len (i-> function (self.at i) (that.at i)) on_problems
 
     ## GROUP Calculations
+       ICON dataframes_union
        Extend `self` vector to the length of `n` appending elements `elem` to
        the end.
 
@@ -998,8 +1029,7 @@ type Vector a
              [1, 2, 3, 4, 5].pad 5 0 == [1, 2, 3, 4, 5]
     pad : Integer -> Any -> Vector Any
     pad self n elem =
-        if self.length >= n then self else
-            self + (Vector.fill n-self.length elem)
+        Array_Like_Helpers.pad self n elem
 
     ## GROUP Selections
        ICON select_row
@@ -1041,6 +1071,7 @@ type Vector a
 
     ## ALIAS order_by
        GROUP Calculations
+       ICON order
        Sort the vector.
 
        Arguments:
@@ -1116,13 +1147,10 @@ type Vector a
              [My_Type.Value 'hello', 1].sort == [1, My_Type.Value 'hello']
     sort : Sort_Direction -> (Any -> Any)|Nothing -> (Any -> Any -> (Ordering|Nothing))|Nothing -> Problem_Behavior -> Vector Any ! Incomparable_Values
     sort self (order = Sort_Direction.Ascending) on=Nothing by=Nothing on_incomparable=Problem_Behavior.Ignore =
-        comps = case on == Nothing of
-            True -> self.map it-> Comparable.from it
-            False -> self.map it-> Comparable.from (on it)
-        compare_funcs = comps.map (it-> it.compare)
-        self.sort_builtin order.to_sign comps compare_funcs by on on_incomparable.to_number
+        Array_Like_Helpers.sort self order on by on_incomparable
 
-    ## GROUP Selections
+    ## ALIAS deduplicate, unique
+       GROUP Selections
        ICON preparation
        Keeps only unique elements within the vector, removing any duplicates.
 
@@ -1147,23 +1175,17 @@ type Vector a
              [Pair 1 "a", Pair 2 "b", Pair 1 "c"] . distinct (on = _.first) == [Pair 1 "a", Pair 2 "b"]
     distinct : (Any -> Any) -> Vector Any
     distinct self (on = x->x) =
-        builder = Vector.new_builder
-        result = self.fold Map.empty existing->
-            item->
-                key = on item
-                if (existing.get key False) then existing else
-                    builder.append item
-                    existing.insert key True
-        if result.is_error then result else builder.to_vector
+        Array_Like_Helpers.distinct self on
 
-    ## Returns the vector as a `Vector`.
+    ## ICON convert
+       Returns the vector as a `Vector`.
     to_vector : Vector
     to_vector self = self
 
-    ## Converts the vector to a list with the same elements.
+    ## ICON convert
+       Converts the vector to a list with the same elements.
     to_list : List
-    to_list self =
-        self.reverse.fold List.Nil acc-> elem-> List.Cons elem acc
+    to_list self = Array_Like_Helpers.to_list self
 
 ## PRIVATE
 type Builder
@@ -1215,25 +1237,36 @@ type Builder
     new (capacity=10) = Builder.Value (Array_Like_Helpers.new_vector_builder capacity)
 
     ## GROUP Logical
+       ICON metadata
        Checks if this builder is empty.
     is_empty : Boolean
     is_empty self = self.java_builder.isEmpty
 
     ## GROUP Logical
+       ICON metadata
        Checks if this builder is not empty.
     not_empty : Boolean
     not_empty self = self.is_empty.not
 
     ## GROUP Metadata
+       ICON metadata
        Gets the current length of the builder.
     length : Integer
     length self = self.java_builder.getSize
 
-    ## Appends a new element into this builder and returns it, propagating any
+    ## ICON join
+       Appends a new element into this builder and returns it, propagating any
        errors that the provided element could have contained.
+
+       Returns the builder, unless `item` is a dataflow error, in which case the
+       error is propagated.
 
        Arguments:
        - item: The item to append to the vector builder.
+
+       ! Error Conditions
+
+         - If `item` is a dataflow error, the error is propagated.
 
        > Example
          Append two items.
@@ -1246,7 +1279,8 @@ type Builder
             self.unsafe_append item
             self
 
-    ## Appends a part of a given vector to this builder
+    ## ICON join
+       Appends a part of a given vector to this builder
 
        Arguments:
        - vector: The vector from which the elements are sourced.
@@ -1260,7 +1294,7 @@ type Builder
              builder = Vector.new_builder
              builder . append_vector_range [20, 30, 40, 50] 1 3 . to_vector == [30, 40]
     append_vector_range : Vector Any ! Error -> Integer -> Integer -> Builder ! Error
-    append_vector_range self vector start=0 end=vector.length =
+    append_vector_range self vector (start : Integer = 0) end=vector.length =
         subrange = vector.slice start end
         ## This workaround is needed because
            `self.java_builder.addAll subrange.to_array` fails with
@@ -1290,6 +1324,7 @@ type Builder
     unsafe_append self item = self.java_builder.add item
 
     ## GROUP Selections
+       ICON select_row
        Gets an element from the vector builder at a specified index (0-based).
 
        Arguments:
@@ -1303,6 +1338,7 @@ type Builder
             Error.throw (Index_Out_Of_Bounds.Error index self.length)
 
     ## GROUP Selections
+       ICON select_row
        Get the first element from the vector, or an `Index_Out_Of_Bounds` if the vector
        is empty.
 
@@ -1314,6 +1350,7 @@ type Builder
     first self = self.at 0
 
     ## GROUP Selections
+       ICON select_row
        Get the last element of the vector, or an `Index_Out_Of_Bounds` if the vector is
        empty.
 
@@ -1325,6 +1362,7 @@ type Builder
     last self = self.at -1
 
     ## GROUP Logical
+       ICON preparation
        Checks whether a predicate holds for at least one element of this builder.
 
        Arguments:
@@ -1337,6 +1375,7 @@ type Builder
         0.up_to self.length . any (idx -> (predicate (self.java_builder.get idx)))
 
     ## GROUP Conversions
+       ICON convert
        Converts this builder to a vector containing all the appended elements.
 
        > Example
@@ -1381,50 +1420,3 @@ type No_Wrap
 
 ## PRIVATE
 Wrapped_Error.from (that : Map_Error) = Wrapped_Error.Value that that.inner_error
-
-## PRIVATE
-   An error that indicates that the vector is empty.
-type Empty_Error
-    ## PRIVATE
-       Pretty prints the empty error.
-    to_display_text : Text
-    to_display_text self = "The vector is empty."
-
-## PRIVATE
-   Creates a new vector where for each range, a corresponding section of the
-   source vector is added to the result.
-
-   Assumes that the ranges have been already bounds-checked (for example by
-   passing them through `resolve_ranges`).
-slice_ranges vector ranges =
-    if ranges.length == 0 then [] else
-        if ranges.length != 1 then slice_many_ranges vector ranges else
-            case ranges.first of
-                _ : Integer -> [vector.at ranges.first]
-                Range.Between start end step -> case step == 1 of
-                    True -> vector.slice start end
-                    False -> slice_many_ranges vector ranges
-
-## PRIVATE
-   See `slice_ranges`.
-slice_many_ranges vector ranges =
-    new_length = ranges.fold 0 acc-> descriptor-> case descriptor of
-        _ : Integer -> acc+1
-        _ : Range -> acc+descriptor.length
-    builder = Vector.new_builder new_length
-    ranges.each descriptor-> case descriptor of
-        _ : Integer ->
-            builder.append (vector.at descriptor)
-        Range.Between start end step -> case step == 1 of
-            True ->
-                builder.append_vector_range vector start end
-            False ->
-                descriptor.each ix->
-                    builder.append (vector.at ix)
-    builder.to_vector
-
-## PRIVATE
-check_start_valid start length function =
-    used_start = if start < 0 then start + length else start
-    if used_start < 0 || used_start > length then Error.throw (Index_Out_Of_Bounds.Error start length+1) else
-        function used_start

@@ -38,6 +38,18 @@ type S3_Bucket_Not_Found
     to_display_text : Text
     to_display_text self = "Bucket '" + self.bucket + "' not found."
 
+## An error when a S3 key is not found within a bucket.
+
+   It is a low-level error used by the raw methods.
+   `S3_File` will translate this error to a `File_Error.Not_Found`.
+type S3_Key_Not_Found
+    ## PRIVATE
+    Error bucket:Text key:Text
+
+    ## PRIVATE
+    to_display_text : Text
+    to_display_text self = "Key '" + self.key + "' not found in '" + self.bucket + "'."
+
 ## A warning that more records are available
 type More_Records_Available
     ## PRIVATE

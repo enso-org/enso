@@ -4,8 +4,8 @@ from Standard.Table import Table
 
 import Standard.Visualization.Helpers
 
-from Standard.Test import Test, Test_Suite
-import Standard.Test.Extensions
+from Standard.Test import all
+
 
 from project.Helpers import all
 
@@ -14,9 +14,9 @@ polyglot java import java.util.LinkedHashSet
 type My_Type
     Value foo
 
-spec =
-    Test.group "Table.lookup_ignore_case" <|
-        Test.specify "ignores case and takes first matching" <|
+add_specs suite_builder =
+    suite_builder.group "Table.lookup_ignore_case" group_builder->
+        group_builder.specify "ignores case and takes first matching" <|
             header = ['A', 'a' , 'ω' , 'Ω']
             row_1  = [11 , 10  , 12  , 13]
             row_2  = [21 , 20  , 22  , 23]
@@ -28,9 +28,9 @@ spec =
             table.lookup_ignore_case 'b' . is_error . should_equal True
             table.lookup_ignore_case 'B' . is_error . should_equal True
 
-    Test.group "Table.rows" <|
+    suite_builder.group "Table.rows" group_builder->
         table = Table.new [["X", [1, 2, 3, 4]], ["Y", [5, 6, 7, 8]], ["Z", ["A", "B", "C", "D"]]]
-        Test.specify "should visualize nicely" <|
+        group_builder.specify "should visualize nicely" <|
             Json.parse (table.rows . to_default_visualization_data) . should_equal <|
                 Json.parse '[[1,5,"A"],[2,6,"B"],[3,7,"C"],[4,8,"D"]]'
 
@@ -38,7 +38,7 @@ spec =
             t2 = Table.new [["X", 0.up_to 200 . to_vector]]
             t2.rows.to_default_visualization_data . should_equal (0.up_to 100 . map (x -> [x])).to_default_visualization_data
 
-    Test.group "Vector and Arrays" <|
+    suite_builder.group "Vector and Arrays" group_builder->
         ## Returns an array with the same contents as the given vector, surely backed by
            a Java array.
         make_java_array vector =
@@ -47,31 +47,31 @@ spec =
                 builder.add x
             builder.toArray
 
-        Test.specify "should be able to be efficiently visualise a Vector" <|
+        group_builder.specify "should be able to be efficiently visualise a Vector" <|
             vec = Vector.fill 1000 0
             text = vec.to_default_visualization_data
             json = Json.parse text
             json.should_equal <| Vector.fill 100 0
 
-        Test.specify "should be able to visualize an Enso Array" <|
+        group_builder.specify "should be able to visualize an Enso Array" <|
             arr = Vector.fill 1000 0 . to_array
             text = arr.to_default_visualization_data
             json = Json.parse text
             json.should_equal <| Vector.fill 100 0
 
-        Test.specify "should be able to visualize a Polyglot Array" pending="`to_default_visualization_data` does not work for polyglot arrays" <|
+        group_builder.specify "should be able to visualize a Polyglot Array" pending="`to_default_visualization_data` does not work for polyglot arrays" <|
             arr = make_java_array (Vector.fill 1000 0)
             text = arr.to_default_visualization_data
             json = Json.parse text
             json.should_equal <| Vector.fill 100 0
 
-    Test.group "Dataflow Error Visualization" <|
-        Test.specify "should be able to be shown in the default visualization" <|
+    suite_builder.group "Dataflow Error Visualization" group_builder->
+        group_builder.specify "should be able to be shown in the default visualization" <|
             json = (Error.throw <| My_Type.Value "aaa").to_default_visualization_data
             Json.parse json . should_equal <|
                 JS_Object.from_pairs [["type", "My_Type"], ["constructor", "Value"], ["foo", "aaa"]]
 
-        Test.specify "should be able to be shown in the default vector visualization" <|
+        group_builder.specify "should be able to be shown in the default vector visualization" <|
             vec = [My_Type.Value "bar", Error.throw (My_Type.Value 42)]
             visualization_text = vec.to_default_visualization_data
 
@@ -91,4 +91,8 @@ spec =
                     ]
                 Json.parse expected_json
 
-main = Test_Suite.run_main spec
+main filter=Nothing =
+    suite = Test.build suite_builder->
+        add_specs suite_builder
+    suite.run_with_filter filter
+

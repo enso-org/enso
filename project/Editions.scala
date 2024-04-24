@@ -10,7 +10,6 @@ object Editions {
   val standardLibraries: Seq[String] = Seq(
     "Standard.Base",
     "Standard.Test",
-    "Standard.Test_New",
     "Standard.Table",
     "Standard.Database",
     "Standard.AWS",
@@ -18,7 +17,9 @@ object Editions {
     "Standard.Geo",
     "Standard.Visualization",
     "Standard.Examples",
-    "Standard.Searcher"
+    "Standard.Searcher",
+    "Standard.Google_Api",
+    "Standard.Snowflake"
   )
 
   case class ContribLibrary(name: String, version: String)

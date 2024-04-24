@@ -6,31 +6,46 @@ import Standard.Base.Errors.File_Error.File_Error
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Errors.Illegal_State.Illegal_State
 import Standard.Base.Runtime.Context
+import Standard.Base.System.File.Generic.Writable_File.Writable_File
 
 polyglot java import org.enso.base_test_helpers.FileSystemHelper
 
-from Standard.Test import Test, Test_Suite, Problems
-import Standard.Test.Extensions
+from Standard.Test import all
+
+## We rely on a less strict equality for `File` as it is fine if a relative file gets resolved to absolute.
+File.should_equal self other frames_to_skip=0 =
+    loc = Meta.get_source_location 1+frames_to_skip
+    are_same = case other of
+        _ : File -> self.absolute.normalize.path == other.absolute.normalize.path
+        _ -> False
+    if are_same then self else
+        Test.fail "Expected "+self.to_text+" to be equal to "+other.to_text+" (at "+loc+")."
+
 
 set_writable file writable =
     path = file.absolute.path
     FileSystemHelper.setWritable path writable
 
-spec =
+add_specs suite_builder =
     sample_file = enso_project.data / "sample.txt"
     windows_file = enso_project.data / "windows.txt"
     non_existent_file = File.new "does_not_exist.txt"
 
-    Test.group "File Operations" <|
-        Test.specify "should allow creating a new file" <|
+    suite_builder.group "File Operations" group_builder->
+        group_builder.specify "should get name of the root" <|
+            root = File.new "/"
+            root.name . is_nothing . should_be_false
+            root.path . is_nothing . should_be_false
+
+        group_builder.specify "should allow creating a new file" <|
             path = sample_file.path
             File.new path
 
-        Test.specify "should have `new` be a no-op on a file" <|
+        group_builder.specify "should have `new` be a no-op on a file" <|
             file = File.new sample_file
             file . should_equal sample_file
 
-        Test.specify "should allow joining sections" <|
+        group_builder.specify "should allow joining sections" <|
             f_1 = File.new "foo/bar"
             (File.new "foo" / "bar") . normalize . should_equal f_1
             File.new "foo" . join "bar" . should_equal f_1
@@ -39,11 +54,11 @@ spec =
             File.new "foo" . join "a" . join "b" . join "c" . join "d" . join "e" . should_equal f_2
             File.new "foo" . join ["a", "b", "c", "d", "e"] . should_equal f_2
 
-        Test.specify "should check if file exists" <|
+        group_builder.specify "should check if file exists" <|
             non_existent_file.exists.should_be_false
             sample_file.exists.should_be_true
 
-        Test.specify "should get file size" <|
+        group_builder.specify "should get file size" <|
             file_size = sample_file.size
             ## Allows for having line endings replaced.
             valid_size = file_size==403 || file_size==406
@@ -57,35 +72,35 @@ spec =
             folder.should_fail_with File_Error
             folder.catch.should_be_a File_Error.IO_Error
 
-        Test.specify "should get file name" <|
+        group_builder.specify "should get file name" <|
             sample_file.name.should_equal "sample.txt"
 
-        Test.specify "should get file extension" <|
+        group_builder.specify "should get file extension" <|
             sample_file.extension.should_equal ".txt"
             (File.new "this.is.a.silly.name.txt").extension.should_equal ".txt"
             (File.new "no_extension").extension.should_equal ""
             (File.new "file.").extension.should_equal ""
 
-        Test.specify "should convert a file to absolute" <|
+        group_builder.specify "should convert a file to absolute" <|
             abs = File.new "foo.txt" . absolute
             through_cwd = (File.current_directory / "foo.txt")
             abs.should_equal through_cwd
 
-        Test.specify "should normalize file" <|
+        group_builder.specify "should normalize file" <|
             f_1 = File.new "foo"
             File.new "bar/../baz/../foo" . normalize . should_equal f_1
             (File.new "bar" / ".." / "baz" / ".." / "foo") . normalize . should_equal f_1
             File.new "bar" . join ["..", "baz", "..", "foo"] . should_equal f_1
 
-        Test.specify "should handle `==` on files" <|
+        group_builder.specify "should handle `==` on files" <|
             (File.new "foo").should_equal (File.new "foo")
             (File.new "bar").should_not_equal (File.new "foo")
 
-        Test.specify "should allow checking in parent path with `starts_with`" <|
+        group_builder.specify "should allow checking in parent path with `starts_with`" <|
             (File.new "foo/bar").starts_with (File.new "foo") . should_be_true
             (File.new "foo/bar").starts_with (File.new "f") . should_be_false
 
-        Test.specify "should allow creating a directory" <|
+        group_builder.specify "should allow creating a directory" <|
             f = enso_project.data / "good_dir"
             f.delete_if_exists
             f.exists.should_be_false
@@ -94,6 +109,7 @@ spec =
             f.exists.should_be_true
             f.is_directory.should_be_true
 
+            # It will create all needed parent directories in the path.
             g = f / "bar" / "baz"
             g.exists.should_be_false
 
@@ -102,9 +118,9 @@ spec =
 
             g.delete_if_exists
             g.parent.delete_if_exists
-            f.delete_if_exists
+            f.delete_if_exists recursive=True
 
-        Test.specify "should only allow creating a directory if Output is enabled" <|
+        group_builder.specify "should only allow creating a directory if Output is enabled" <|
             f = enso_project.data / "bad_dir"
             f.delete_if_exists
             f.exists.should_be_false
@@ -113,7 +129,7 @@ spec =
                 f.create_directory . should_fail_with Forbidden_Operation
                 f.exists.should_be_false
 
-        Test.specify "should allow reading a file byte by byte" <|
+        group_builder.specify "should allow reading a file byte by byte" <|
             f = enso_project.data / "short.txt"
             f.delete_if_exists
             f.exists.should_be_false
@@ -126,7 +142,7 @@ spec =
             f.delete
             f.exists.should_be_false
 
-        Test.specify "should only allow with_output_stream if Output is enabled" <|
+        group_builder.specify "should only allow with_output_stream if Output is enabled" <|
             f = enso_project.data / "short.txt"
             f.delete_if_exists
 
@@ -145,19 +161,7 @@ spec =
 
             f.delete_if_exists
 
-        Test.specify "should only allow deleting a file if Output is enabled" <|
-            f = enso_project.data / "short.txt"
-            f.delete_if_exists
-            "Cup".write f on_existing_file=Existing_File_Behavior.Overwrite
-
-            Context.Output.with_disabled <|
-                f.delete . should_fail_with Forbidden_Operation
-                f.exists.should_be_true
-
-            f.delete.should_succeed
-            f.exists.should_be_false
-
-        Test.specify "should only allow copying a file if Output is enabled" <|
+        group_builder.specify "should only allow copying a file if Output is enabled" <|
             f = enso_project.data / "short.txt"
             f.delete_if_exists
             "Cup".write f on_existing_file=Existing_File_Behavior.Overwrite
@@ -189,7 +193,7 @@ spec =
             f.delete_if_exists
             g.delete_if_exists
 
-        Test.specify "should only allow moving a file if Output is enabled" <|
+        group_builder.specify "should only allow moving a file if Output is enabled" <|
             f = enso_project.data / "short.txt"
             f.delete_if_exists
             "Cup".write f on_existing_file=Existing_File_Behavior.Overwrite
@@ -223,14 +227,14 @@ spec =
             f.delete_if_exists
             g.delete_if_exists
 
-        Test.specify "should handle exceptions when deleting a missing file" <|
+        group_builder.specify "should handle exceptions when deleting a missing file" <|
             file = File.new "does_not_exist.txt"
             result = file.delete
             result.should_fail_with File_Error
             result.catch.should_be_a File_Error.Not_Found
 
         if Platform.is_unix then
-            Test.specify "should allow to check file permissions" <|
+            group_builder.specify "should allow to check file permissions" <|
                 f = enso_project.data / "transient" / "permissions.txt"
                 f.delete_if_exists
                 "foobar".write f
@@ -247,7 +251,7 @@ spec =
 
                 f.delete
 
-            Test.specify "should gracefully handle permission errors" <|
+            group_builder.specify "should gracefully handle permission errors" <|
                 f = enso_project.data / "transient" / "permissions2.txt"
                 f.delete_if_exists
                 "foobar".write f
@@ -259,23 +263,23 @@ spec =
                 r1 = f.read
                 r1.should_fail_with File_Error
                 r1.catch.should_be_a File_Error.Access_Denied
-                r1.catch.file . should_equal f
+                r1.catch.file.path . should_equal f.path
                 r1.catch.to_display_text.should_contain "Insufficient permissions"
 
                 Process.run "chmod" ["0744", f.absolute.path] . exit_code . should_equal Exit_Code.Success
                 f.delete
 
-    Test.group "read_bytes" <|
-        Test.specify "should allow reading a file to byte vector" <|
+    suite_builder.group "read_bytes" group_builder->
+        group_builder.specify "should allow reading a file to byte vector" <|
             contents = sample_file.read_bytes
             contents.take (First 6) . should_equal [67, 117, 112, 99, 97, 107]
 
-        Test.specify "should allow reading a file to byte vector via path" <|
+        group_builder.specify "should allow reading a file to byte vector via path" <|
             full_path = sample_file . path
             contents = File.new full_path . read_bytes
             contents.take (First 6) . should_equal [67, 117, 112, 99, 97, 107]
 
-        Test.specify "should allow to read last n bytes from a file" <|
+        group_builder.specify "should allow to read last n bytes from a file" <|
             file = enso_project.data / "transient" / "bytes.txt"
             data = [1, 0, 0, 1, 2, 100, 20]
             Context.Output.with_enabled <|
@@ -287,14 +291,14 @@ spec =
                 file.read_last_bytes 1000 . should_equal data
                 file.delete
 
-        Test.specify "should handle exceptions when reading a non-existent file" <|
+        group_builder.specify "should handle exceptions when reading a non-existent file" <|
             file = File.new "does_not_exist.txt"
             file.read_bytes . should_fail_with File_Error
             file.read_bytes.catch.should_be_a File_Error.Not_Found
             non_existent_file.read_bytes . should_fail_with File_Error
             non_existent_file.read_bytes.catch.should_be_a File_Error.Not_Found
 
-        Test.specify "should open and read the file in one shot" <|
+        group_builder.specify "should open and read the file in one shot" <|
             path_name = sample_file.path
             contents = File.new path_name . read_bytes
             contents.take (First 6) . should_equal [67, 117, 112, 99, 97, 107]
@@ -302,25 +306,64 @@ spec =
             contents_2 = File.new file . read_bytes
             contents_2.take (First 6) . should_equal [67, 117, 112, 99, 97, 107]
 
-        Test.specify "no parent of dot implies nothing" <|
-            no_parent = (File.new '.').parent
-            no_parent.is_nothing . should_be_true
+        group_builder.specify "should allow going above the first part of a relative directory by resolving it to absolute" <|
+            parent_file = (File.new '.').parent
+            parent_file.should_be_a File
+            parent_file.should_equal (File.new '.' . absolute . normalize . parent)
 
-    Test.group "read_text" <|
-        Test.specify "should allow reading a UTF-8 file" <|
+        group_builder.specify "will not resolve a relative directory to absolute in `parent` if not necessary" <|
+            f = File.new "foo/bar"
+            f.parent . should_equal (File.new "foo")
+
+        group_builder.specify "will return Nothing for a root path that has no parent" <|
+            root = File.new "/" . absolute . normalize
+            root.parent . should_equal Nothing
+
+        group_builder.specify "will normalize the path when resolving parent to correctly handle . and .." <|
+            (File.new "a/b/c/././.").parent . should_equal (File.new "a/b")
+            (File.new "a/b/c/d/e/f/../../..").parent . should_equal (File.new "a/b")
+            (File.new "a").parent . should_equal (File.new "." . normalize)
+
+            (File.new "..").parent . should_equal (File.new "." . parent . parent)
+            (File.new "./././.").parent . should_equal (File.new "." . parent)
+
+            # This may not be necessary but it simplifies the logic a lot:
+            (File.new "a/b/../././c/d").parent . should_equal (File.new "a/c")
+
+        group_builder.specify "correctly handles .. in the path when resolving parent (1)" <|
+            (File.new "../..").parent . should_not_equal (File.new "..")
+
+        up3 = Panic.catch Any (File.new "." . parent . parent . parent) (_->Nothing)
+        group_builder.specify "correctly handles .. in the path when resolving parent (2)" pending=(if up3.is_nothing then "The current directory does not have enough nesting to run this test (it needs to go up from CWD 3 times).") <|
+            (File.new "../..").parent . should_equal up3
+
+        group_builder.specify "should resolve .. when normalizing" <|
+            (File.new "a/b/c/../../d").normalize . should_equal (File.new "a/d")
+            (File.new "..").normalize . should_equal (File.new "." . parent)
+
+        group_builder.specify "should return the real file name, not just the last path segment" <|
+            (File.new "a/b/c/").name . should_equal "c"
+            (File.new "a/b/c/././.").name . should_equal "c"
+            (File.new "a/b/c/./../..").name . should_equal "a"
+
+            (File.new ".").name . should_equal (File.new "." . absolute . normalize . name)
+            (File.new "..").name . should_equal (File.new "." . parent . absolute . normalize . name)
+
+    suite_builder.group "read_text" group_builder->
+        group_builder.specify "should allow reading a UTF-8 file" <|
             contents = sample_file.read_text
             contents.should_start_with "Cupcake ipsum dolor sit amet."
 
-        Test.specify "should allow reading a UTF-8 file via path" <|
+        group_builder.specify "should allow reading a UTF-8 file via path" <|
             full_path = sample_file . path
             contents = Data.read_text full_path
             contents.should_start_with "Cupcake ipsum dolor sit amet."
 
-        Test.specify "should allow reading a Windows file via path" <|
+        group_builder.specify "should allow reading a Windows file via path" <|
             contents = windows_file.read_text Encoding.windows_1252
             contents.should_equal "Hello World! $¢¤¥"
 
-        Test.specify "should raise warnings when reading invalid characters" <|
+        group_builder.specify "should raise warnings when reading invalid characters" <|
             action = windows_file.read_text Encoding.ascii on_problems=_
             tester result = result.should_equal 'Hello World! $\uFFFD\uFFFD\uFFFD'
             problems = [Encoding_Error.Error "Encoding issues at 14, 15, 16."]
@@ -330,7 +373,7 @@ spec =
             Problems.expect_only_warning Encoding_Error <|
                 windows_file.read_text Encoding.ascii
 
-        Test.specify "should handle exceptions when reading a non-existent file" <|
+        group_builder.specify "should handle exceptions when reading a non-existent file" <|
             file = File.new "does_not_exist.txt"
             r1 = Data.read_text "does_not_exist.txt"
             r1.should_fail_with File_Error
@@ -342,7 +385,7 @@ spec =
             r3.should_fail_with File_Error
             r3.catch.should_be_a File_Error.Not_Found
 
-        Test.specify "should open and read the file in one shot" <|
+        group_builder.specify "should open and read the file in one shot" <|
             path_name = sample_file.path
             contents = Data.read_text path_name
             contents.should_start_with "Cupcake ipsum dolor sit amet."
@@ -350,12 +393,12 @@ spec =
             contents_2 = Data.read_text file
             contents_2.should_start_with "Cupcake ipsum dolor sit amet."
 
-    Test.group "write operations" <|
+    suite_builder.group "write operations" group_builder->
         data = [32, 127, -128, 0]
         data_2 = [10, 15, 20, 30]
 
         transient = enso_project.data / "transient"
-        Test.specify "should allow to writing bytes to a new file and return that file's descriptor on success" <|
+        group_builder.specify "should allow to writing bytes to a new file and return that file's descriptor on success" <|
             f = transient / "new_file.dat"
             f.delete_if_exists
             f.exists.should_be_false
@@ -366,7 +409,7 @@ spec =
             f.read_bytes.should_equal data
             f.delete_if_exists
 
-        Test.specify "should backup a file when overwriting with new bytes" <|
+        group_builder.specify "should backup a file when overwriting with new bytes" <|
             f = transient / "work.txt"
             f.delete_if_exists
             f_bak = transient / "work.txt.bak"
@@ -379,7 +422,7 @@ spec =
             f.delete_if_exists
             f_bak.delete_if_exists
 
-        Test.specify "should allow overwriting a file with new bytes" <|
+        group_builder.specify "should allow overwriting a file with new bytes" <|
             f = transient / "work.txt"
             f.delete_if_exists
             f_bak = transient / "work.txt.bak"
@@ -393,7 +436,7 @@ spec =
             f_bak.exists.should_be_false
             f.delete_if_exists
 
-        Test.specify "should allow appending bytes to a new file" <|
+        group_builder.specify "should allow appending bytes to a new file" <|
             f = transient / "new_file.dat"
             f.delete_if_exists
             f.exists.should_be_false
@@ -404,14 +447,21 @@ spec =
             f.read_bytes.should_equal (data + data_2)
             f.delete_if_exists
 
-        Test.specify "should fail with Illegal_Argument when trying to write invalid byte vector" <|
+        group_builder.specify "should fail with Illegal_Argument when trying to write invalid byte vector" <|
             f = transient / "work.txt"
             f.delete_if_exists
             f.exists.should_be_false
             [0, 1, 256].write_bytes f . should_fail_with Illegal_Argument
             [0, 1, Nothing].write_bytes f . should_fail_with Illegal_Argument
 
-        Test.specify "should not change the file when trying to write an invalid byte vector" <|
+        group_builder.specify "should not write if Output is disabled" <|
+            f = transient / "write_bytes_disabled.txt"
+            f.delete_if_exists
+            Context.Output.with_disabled <|
+                [1,2,3].write_bytes f . should_fail_with Forbidden_Operation
+                f.exists.should_be_false
+
+        group_builder.specify "should not change the file when trying to write an invalid byte vector" <|
             f = transient / "work.txt"
             f.delete_if_exists
             f_bak = transient / "work.txt.bak"
@@ -426,7 +476,7 @@ spec =
             f.read_bytes.should_equal data
             f.delete_if_exists
 
-        Test.specify "should allow writing text to a new file and return this file's descriptor on success" <|
+        group_builder.specify "should allow writing text to a new file and return this file's descriptor on success" <|
             f = transient / "work.txt"
             f.delete_if_exists
             f.exists.should_be_false
@@ -438,7 +488,7 @@ spec =
             f.delete
             f.exists.should_be_false
 
-        Test.specify "should perform a dry run writing text to a new file if Context.Output is disabled" <|
+        group_builder.specify "should perform a dry run writing text to a new file if Context.Output is disabled" <|
             f = transient / "work.txt"
             f.delete_if_exists
             f.exists.should_be_false
@@ -452,7 +502,7 @@ spec =
 
             r.delete_if_exists
 
-        Test.specify "should allow appending text to a file" <|
+        group_builder.specify "should allow appending text to a file" <|
             f = transient / "work.txt"
             f.delete_if_exists
             "line 1!".write f on_existing_file=Existing_File_Behavior.Append on_problems=Report_Error . should_succeed . should_equal f
@@ -461,7 +511,7 @@ spec =
             f.delete
             f.exists.should_be_false
 
-        Test.specify "should perform a dry run appending text to a file if Context.Output is disabled" <|
+        group_builder.specify "should perform a dry run appending text to a file if Context.Output is disabled" <|
             f = transient / "work.txt"
             f.delete_if_exists
             "line 1!".write f on_existing_file=Existing_File_Behavior.Append on_problems=Report_Error . should_succeed . should_equal f
@@ -475,7 +525,7 @@ spec =
 
                 Context.Output.with_enabled <| r.delete_if_exists
 
-        Test.specify "if Context.Output is disabled, will always start from the file given - so the effects of previous dry run are not visible" <|
+        group_builder.specify "if Context.Output is disabled, will always start from the file given - so the effects of previous dry run are not visible" <|
             f = transient / "dry_append.txt"
             f.delete_if_exists
 
@@ -498,7 +548,7 @@ spec =
 
                 Context.Output.with_enabled r.delete_if_exists
 
-        Test.specify "if Context.Output is disabled, will append to the dry run file if the dry run file descriptor is passed as the write target" <|
+        group_builder.specify "if Context.Output is disabled, will append to the dry run file if the dry run file descriptor is passed as the write target" <|
             f = transient / "dry_append.txt"
             f.delete_if_exists
 
@@ -521,7 +571,7 @@ spec =
 
                 Context.Output.with_enabled dry_run_file.delete_if_exists
 
-        Test.specify "should allow to overwrite files" <|
+        group_builder.specify "should allow to overwrite files" <|
             f = transient / "work.txt"
             f.delete_if_exists
             f.exists.should_be_false
@@ -533,7 +583,7 @@ spec =
             f.delete
             f.exists.should_be_false
 
-        Test.specify "should not overwrite original file if Context.Output is disabled" <|
+        group_builder.specify "should not overwrite original file if Context.Output is disabled" <|
             f = transient / "work.txt"
             f.delete_if_exists
             f.exists.should_be_false
@@ -549,7 +599,7 @@ spec =
             f.read_text.should_equal "line 1!"
             f.delete_if_exists
 
-        Test.specify "should fail if a file already exists, depending on the settings" <|
+        group_builder.specify "should fail if a file already exists, depending on the settings" <|
             f = transient / "work.txt"
             f.delete_if_exists
             f.exists.should_be_false
@@ -571,7 +621,7 @@ spec =
             f.delete
             f.exists.should_be_false
 
-        Test.specify "should create a backup when writing a file" <|
+        group_builder.specify "should create a backup when writing a file" <|
             f = transient / "work.txt"
             f.delete_if_exists
             f.exists.should_be_false
@@ -602,7 +652,7 @@ spec =
                 n.read_text . should_equal "new content"
             [f, bak, n0, n1, n2, n4].each .delete
 
-        Test.specify "should not create a backup when writing a dry run file with Context.Output disabled" <|
+        group_builder.specify "should not create a backup when writing a dry run file with Context.Output disabled" <|
             f = transient / "work.txt"
             f.delete_if_exists
             f.exists.should_be_false
@@ -627,7 +677,7 @@ spec =
             bak.delete_if_exists
             r.delete_if_exists
 
-        Test.specify "should correctly handle failure of the write operation when working with the backup" <|
+        group_builder.specify "should correctly handle failure of the write operation when working with the backup" <|
             f = transient / "work.txt"
             "OLD".write f on_existing_file=Existing_File_Behavior.Overwrite
             bak_file = transient / "work.txt.bak"
@@ -635,7 +685,7 @@ spec =
             [bak_file, new_file].each .delete_if_exists
 
             result = Panic.catch Illegal_State handler=(caught_panic-> caught_panic.payload.message) <|
-                Existing_File_Behavior.Backup.write f output_stream->
+                (f : Writable_File).write Existing_File_Behavior.Backup output_stream->
                     output_stream.write_bytes "foo".utf_8
                     Panic.throw (Illegal_State.Error "baz")
                     output_stream.write_bytes "bar".utf_8
@@ -649,7 +699,7 @@ spec =
             f.delete
 
             result2 = Panic.catch Illegal_State handler=(caught_panic-> caught_panic.payload.message) <|
-                Existing_File_Behavior.Backup.write f output_stream->
+                (f : Writable_File).write Existing_File_Behavior.Backup output_stream->
                     output_stream.write_bytes "foo".utf_8
                     Panic.throw (Illegal_State.Error "baz")
                     output_stream.write_bytes "bar".utf_8
@@ -665,7 +715,7 @@ spec =
             f.delete
 
             "OLD".write f on_existing_file=Existing_File_Behavior.Overwrite
-            result3 = Existing_File_Behavior.Backup.write f output_stream->
+            result3 = (f : Writable_File).write Existing_File_Behavior.Backup output_stream->
                 output_stream.write_bytes "foo".utf_8
                 Error.throw (Illegal_State.Error "HMM...")
             result3.should_fail_with Illegal_State
@@ -677,7 +727,7 @@ spec =
                 Test.fail "The temporary file should have been cleaned up."
             f.delete
 
-            result4 = Existing_File_Behavior.Backup.write f output_stream->
+            result4 = (f : Writable_File).write Existing_File_Behavior.Backup output_stream->
                 output_stream.write_bytes "foo".utf_8
                 Error.throw (Illegal_State.Error "HMM...")
             result4.should_fail_with Illegal_State
@@ -691,7 +741,7 @@ spec =
                 Test.fail "The temporary file should have been cleaned up."
             f.delete
 
-        Test.specify "should respect file access permissions and fail with an error if denied, in all modes" <|
+        group_builder.specify "should respect file access permissions and fail with an error if denied, in all modes" <|
             f = transient / "permissions3.txt"
             if f.exists then set_writable f True
             f.delete_if_exists
@@ -722,7 +772,7 @@ spec =
             set_writable f True
             f.delete
 
-        Test.specify "should fail if the parent directory does not exist" <|
+        group_builder.specify "should fail if the parent directory does not exist" <|
             parent = transient / "nonexistent"
             parent.exists.should_be_false
 
@@ -731,13 +781,13 @@ spec =
             r1.should_fail_with File_Error
             r1.catch.should_be_a File_Error.Not_Found
             # The write fails because the _parent_ directory did not exist.
-            r1.catch.file . should_equal parent
+            r1.catch.file.path . should_equal parent.path
 
             r2 = [65, 67].write_bytes f
             r2.should_fail_with File_Error
             r2.catch.should_be_a File_Error.Not_Found
 
-        Test.specify "Should handle parent-less file paths" <|
+        group_builder.specify "Should handle parent-less file paths" <|
             transient = enso_project.data / "transient"
             f1 = transient / "./test1.txt"
             f2_filename = "parentlesstest" + Date_Time.now.to_unix_epoch_milliseconds.to_text + ".txt"
@@ -763,7 +813,7 @@ spec =
                 f1.read_text . should_equal txt2
                 f2.read_text . should_equal txt2
 
-        Test.specify "should warn about not-encodable characters according to the problem behaviour" <|
+        group_builder.specify "should warn about not-encodable characters according to the problem behaviour" <|
             f = transient / "encoding-errors.txt"
 
             encoding = Encoding.ascii
@@ -786,27 +836,24 @@ spec =
             f.read . should_equal "Initial Content"
             f.delete
 
-    Test.group "folder operations" <|
-        resolve files =
-            base = enso_project.data
-            files.map str->
-                (base / str) . to_text
-
-        Test.specify "should check if file is a directory" <|
+    suite_builder.group "folder operations" group_builder->
+        group_builder.specify "should check if file is a directory" <|
             sample_file.is_directory.should_be_false
             enso_project.root.is_directory.should_be_true
 
-        Test.specify "should list files in a directory" <|
-            immediate = enso_project.data.list . map .to_text
-            immediate.sort.should_equal (resolve ["books.json", "helloworld.txt", "sample-json.weird-extension", "sample-malformed.json", "sample.json", "sample.png", "sample.txt", "sample.xxx", "transient", "tree", "windows.log", "windows.txt", 'xml'])
+        group_builder.specify "should list files in a directory" <|
+            root = enso_project.data / "tree"
+            immediate = root.list.map .to_text . sort
+            expected = [root / "sample.csv", root / "sample.txt", root / "subdirectory"].map .to_text . sort
+            immediate.should_equal expected
 
-            filtered1 = enso_project.data.list name_filter="s[a-cw]mple.{t?t,md}" . map .to_text
-            filtered1.should_equal (resolve ["sample.txt"])
+            filtered1 = root.list name_filter="s[a-cw]mple.{t?t,md}"
+            filtered1.should_equal [root / "sample.txt"]
 
-            filtered2 = Data.list_directory enso_project.data name_filter="*re*" . map .to_text
-            filtered2.should_equal (resolve ["tree"])
+            filtered2 = Data.list_directory root name_filter="*di*"
+            filtered2.should_equal [root / "subdirectory"]
 
-        Test.specify "should list files in a directory recursively" <|
+        group_builder.specify "should list files in a directory recursively" <|
             root = enso_project.data / "tree"
             resolve files = files.map str-> (root / str) . to_text
 
@@ -828,4 +875,92 @@ spec =
             filtered4 = root.list name_filter="nested/*.txt" recursive=True . map .to_text
             filtered4.sort.should_equal (resolve ["subdirectory/nested/b.txt"])
 
-main = Test_Suite.run_main spec
+        add_create_and_delete_directory_specs group_builder (enso_project.data / "transient")
+
+# `parent_dir` is lazy on purpose to avoid creating a temporary directory in setup phase
+add_create_and_delete_directory_specs group_builder ~parent_dir =
+    group_builder.specify "should only allow deleting a file if Output is enabled" <|
+        f = parent_dir / "short.txt"
+        f.delete_if_exists
+        "Cup".write f on_existing_file=Existing_File_Behavior.Overwrite
+
+        Context.Output.with_disabled <|
+            f.delete . should_fail_with Forbidden_Operation
+            f.exists.should_be_true
+
+        f.delete.should_succeed
+        f.exists.should_be_false
+
+    group_builder.specify "will only allow to delete a non-empty directory if recursive=True" <|
+        dir = (parent_dir / "non_empty") . create_directory
+        inner_file = dir / "short.txt"
+        "Cup".write inner_file on_existing_file=Existing_File_Behavior.Overwrite
+
+        # By default recursive=False, so delete will fail:
+        r = dir.delete
+        r.should_fail_with File_Error
+        r.catch.should_be_a File_Error.Directory_Not_Empty
+        r.catch.to_display_text . should_contain "non_empty"
+        r.catch.to_display_text . should_contain "is not empty"
+
+        # Delete if exists works the same way
+        dir.delete_if_exists . should_fail_with File_Error
+
+        dir.exists . should_be_true
+        inner_file.exists . should_be_true
+
+        dir.delete recursive=True . should_succeed
+        dir.exists.should_be_false
+        inner_file.exists.should_be_false
+        dir.delete_if_exists . should_succeed
+
+    group_builder.specify "`create_directory` will create any parent directories, and succeed if the directory already exists" <|
+        first_dir = parent_dir / "subdir1"
+        subdir = first_dir / "subdir2" / "subdir3"
+        subdir.exists . should_be_false
+        subdir.parent.exists . should_be_false
+
+        subdir.create_directory . should_equal subdir
+        subdir.exists . should_be_true
+        subdir.parent.exists . should_be_true
+
+        # Creating an existing directory does not fail:
+        subdir.create_directory . should_equal subdir
+
+        first_dir.delete recursive=True . should_succeed
+        subdir.exists.should_be_false
+
+    group_builder.specify "`create_directory` will fail if the parent is a file" <|
+        f = parent_dir / "file.txt"
+        "Cup".write f on_existing_file=Existing_File_Behavior.Overwrite
+        Panic.with_finalizer f.delete_if_exists <|
+            dir = f / "subdir"
+            dir.exists . should_be_false
+            r = dir.create_directory
+            r.should_fail_with File_Error
+            r.catch.should_be_a File_Error.Not_A_Directory
+            r.catch.to_display_text . should_contain "is not a directory"
+            dir.exists . should_be_false
+
+            subsubdir = f / "subdir" / "subsubdir" / "subsubsubdir"
+            subsubdir.exists . should_be_false
+            r2 = subsubdir.create_directory
+            r2.should_fail_with File_Error
+            r2.catch.should_be_a File_Error.Not_A_Directory
+            # The path should point to the file `f` which is a file and not a directory, not the subdir
+            r2.catch.file.path . should_end_with "file.txt"
+
+    group_builder.specify "`delete` will fail if the directory does not exist, but `delete_if_exists` will not" <|
+        dir = parent_dir / "non_existent"
+        dir.exists . should_be_false
+
+        r = dir.delete
+        r.should_fail_with File_Error
+        r.catch.should_be_a File_Error.Not_Found
+
+        dir.delete_if_exists . should_equal Nothing
+
+main filter=Nothing =
+    suite = Test.build suite_builder->
+        add_specs suite_builder
+    suite.run_with_filter filter

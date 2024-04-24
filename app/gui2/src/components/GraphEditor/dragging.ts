@@ -162,7 +162,7 @@ export function useDragging() {
     createSnapGrid() {
       const nonDraggedRects = computed(() => {
         const nonDraggedNodes = iteratorFilter(
-          graphStore.currentNodeIds.values(),
+          graphStore.db.nodeIdToNode.keys(),
           (id) => !this.draggedNodes.has(id),
         )
         return Array.from(nonDraggedNodes, (id) => graphStore.nodeRects.get(id)!)
@@ -171,17 +171,19 @@ export function useDragging() {
     }
 
     updateNodesPosition() {
-      for (const [id, dragged] of this.draggedNodes) {
-        const node = graphStore.db.nodeIdToNode.get(id)
-        if (node == null) continue
-        // If node was moved in other way than current dragging, we want to stop dragging it.
-        if (node.position.distanceSquared(dragged.currentPos) > 1.0) {
-          this.draggedNodes.delete(id)
-        } else {
-          dragged.currentPos = dragged.initialPos.add(snappedOffset.value)
-          graphStore.setNodePosition(id, dragged.currentPos)
+      graphStore.batchEdits(() => {
+        for (const [id, dragged] of this.draggedNodes) {
+          const node = graphStore.db.nodeIdToNode.get(id)
+          if (node == null) continue
+          // If node was moved in other way than current dragging, we want to stop dragging it.
+          if (node.position.distanceSquared(dragged.currentPos) > 1.0) {
+            this.draggedNodes.delete(id)
+          } else {
+            dragged.currentPos = dragged.initialPos.add(snappedOffset.value)
+            graphStore.setNodePosition(id, dragged.currentPos)
+          }
         }
-      }
+      })
     }
   }
 

@@ -83,6 +83,10 @@ public abstract class HashCodeNode extends Node {
     return HashCodeNodeGen.create();
   }
 
+  static HashCodeNode getUncached() {
+    return HashCodeNodeGen.getUncached();
+  }
+
   public abstract long execute(@AcceptsError Object object);
 
   /** Specializations for primitive values * */
@@ -139,12 +143,16 @@ public abstract class HashCodeNode extends Node {
     return bigInteger.getValue().hashCode();
   }
 
-  @Specialization(guards = {"!interop.fitsInLong(v)", "interop.fitsInBigInteger(v)"})
+  @Specialization(guards = {"interop.fitsInLong(v) || interop.fitsInBigInteger(v)"})
   @TruffleBoundary
   long hashCodeForBigInteger(
       Object v, @Shared("interop") @CachedLibrary(limit = "10") InteropLibrary interop) {
     try {
-      return interop.asBigInteger(v).hashCode();
+      if (interop.fitsInLong(v)) {
+        return hashCodeForLong(interop.asLong(v));
+      } else {
+        return interop.asBigInteger(v).hashCode();
+      }
     } catch (UnsupportedMessageException ex) {
       throw EnsoContext.get(this).raiseAssertionPanic(this, "Expecting BigInteger", ex);
     }
@@ -612,7 +620,15 @@ public abstract class HashCodeNode extends Node {
     return 0;
   }
 
-  @Specialization(guards = "isJavaObject(hostObject)")
+  @Specialization(
+      guards = {
+        "isJavaObject(hostObject)",
+        "!interop.hasMembers(hostObject)",
+        "!interop.hasArrayElements(hostObject)",
+        "!interop.isTime(hostObject)",
+        "!interop.isDate(hostObject)",
+        "!interop.isTimeZone(hostObject)"
+      })
   long hashCodeForHostObject(
       Object hostObject, @Shared("interop") @CachedLibrary(limit = "10") InteropLibrary interop) {
     try {

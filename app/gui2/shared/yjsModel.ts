@@ -21,6 +21,8 @@ export interface VisualizationIdentifier {
 export interface VisualizationMetadata {
   identifier: VisualizationIdentifier | null
   visible: boolean
+  fullscreen: boolean
+  width: number | null
 }
 
 export function visMetadataEquals(
@@ -29,7 +31,12 @@ export function visMetadataEquals(
 ) {
   return (
     (!a && !b) ||
-    (a && b && a.visible === b.visible && visIdentifierEquals(a.identifier, b.identifier))
+    (a &&
+      b &&
+      a.visible === b.visible &&
+      a.fullscreen == b.fullscreen &&
+      a.width == b.width &&
+      visIdentifierEquals(a.identifier, b.identifier))
   )
 }
 
@@ -96,39 +103,12 @@ export class DistributedProject {
   }
 }
 
-export interface NodeMetadata {
-  x: number
-  y: number
-  vis: VisualizationMetadata | null
-}
-
 export class ModuleDoc {
   ydoc: Y.Doc
-  metadata: Y.Map<NodeMetadata>
-  data: Y.Map<any>
+  nodes: Y.Map<any>
   constructor(ydoc: Y.Doc) {
     this.ydoc = ydoc
-    this.metadata = ydoc.getMap('metadata')
-    this.data = ydoc.getMap('data')
-  }
-
-  setIdMap(map: IdMap) {
-    const oldMap = new IdMap(this.data.get('idmap') ?? [])
-    if (oldMap.isEqual(map)) return
-    this.data.set('idmap', map.entries())
-  }
-
-  getIdMap(): IdMap {
-    const map = this.data.get('idmap')
-    return new IdMap(map ?? [])
-  }
-
-  setCode(code: string) {
-    this.data.set('code', code)
-  }
-
-  getCode(): string {
-    return this.data.get('code') ?? ''
+    this.nodes = ydoc.getMap('nodes')
   }
 }
 
@@ -144,29 +124,27 @@ export class DistributedModule {
 
   constructor(ydoc: Y.Doc) {
     this.doc = new ModuleDoc(ydoc)
-    this.undoManager = new Y.UndoManager([this.doc.data, this.doc.metadata])
-  }
-
-  transact<T>(fn: () => T): T {
-    return this.doc.ydoc.transact(fn, 'local')
-  }
-
-  updateNodeMetadata(id: ExternalId, meta: Partial<NodeMetadata>): void {
-    const existing = this.doc.metadata.get(id) ?? { x: 0, y: 0, vis: null }
-    this.transact(() => this.doc.metadata.set(id, { ...existing, ...meta }))
-  }
-
-  getNodeMetadata(id: ExternalId): NodeMetadata | null {
-    return this.doc.metadata.get(id) ?? null
-  }
-
-  getIdMap(): IdMap {
-    return new IdMap(this.doc.data.get('idmap') ?? [])
+    this.undoManager = new Y.UndoManager([this.doc.nodes])
   }
 
   dispose(): void {
     this.doc.ydoc.destroy()
   }
+}
+
+export const localUserActionOrigins = ['local:userAction', 'local:userAction:CodeEditor'] as const
+export type LocalUserActionOrigin = (typeof localUserActionOrigins)[number]
+export type Origin = LocalUserActionOrigin | 'remote' | 'local:autoLayout'
+/** Locally-originated changes not otherwise specified. */
+export const defaultLocalOrigin: LocalUserActionOrigin = 'local:userAction'
+export function isLocalUserActionOrigin(origin: string): origin is LocalUserActionOrigin {
+  const localOriginNames: readonly string[] = localUserActionOrigins
+  return localOriginNames.includes(origin)
+}
+export function tryAsOrigin(origin: string): Origin | undefined {
+  if (isLocalUserActionOrigin(origin)) return origin
+  if (origin === 'local:autoLayout') return origin
+  if (origin === 'remote') return origin
 }
 
 export type SourceRange = readonly [start: number, end: number]
@@ -268,6 +246,14 @@ export function isUuid(x: unknown): x is Uuid {
 
 export function rangeEquals(a: SourceRange, b: SourceRange): boolean {
   return a[0] == b[0] && a[1] == b[1]
+}
+
+export function rangeIncludes(a: SourceRange, b: number): boolean {
+  return a[0] <= b && a[1] >= b
+}
+
+export function rangeLength(a: SourceRange): number {
+  return a[1] - a[0]
 }
 
 export function rangeEncloses(a: SourceRange, b: SourceRange): boolean {

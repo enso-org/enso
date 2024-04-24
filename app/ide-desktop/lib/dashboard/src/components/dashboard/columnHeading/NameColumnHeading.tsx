@@ -3,43 +3,52 @@ import * as React from 'react'
 
 import SortAscendingIcon from 'enso-assets/sort_ascending.svg'
 
-import * as sorting from '#/utilities/sorting'
+import * as textProvider from '#/providers/TextProvider'
 
+import * as aria from '#/components/aria'
 import type * as column from '#/components/dashboard/column'
 import * as columnUtils from '#/components/dashboard/column/columnUtils'
+import UnstyledButton from '#/components/UnstyledButton'
+
+import * as sorting from '#/utilities/sorting'
 
 /** A heading for the "Name" column. */
 export default function NameColumnHeading(props: column.AssetColumnHeadingProps): JSX.Element {
   const { state } = props
-  const { sortColumn, setSortColumn, sortDirection, setSortDirection } = state
-  const [isHovered, setIsHovered] = React.useState(false)
-  const isSortActive = sortColumn === columnUtils.Column.name && sortDirection != null
+  const { sortInfo, setSortInfo } = state
+  const { getText } = textProvider.useText()
+  const isSortActive = sortInfo?.field === columnUtils.Column.name
+  const isDescending = sortInfo?.direction === sorting.SortDirection.descending
+
   return (
-    <div
-      className="flex items-center cursor-pointer gap-2 pt-1 pb-1.5"
-      onMouseEnter={() => {
-        setIsHovered(true)
-      }}
-      onMouseLeave={() => {
-        setIsHovered(false)
-      }}
-      onClick={event => {
-        event.stopPropagation()
-        if (sortColumn === columnUtils.Column.name) {
-          setSortDirection(sorting.NEXT_SORT_DIRECTION[sortDirection ?? 'null'])
+    <UnstyledButton
+      aria-label={
+        !isSortActive
+          ? getText('sortByName')
+          : isDescending
+            ? getText('stopSortingByName')
+            : getText('sortByNameDescending')
+      }
+      className="group flex h-drive-table-heading w-full items-center gap-icon-with-text px-name-column-x"
+      onPress={() => {
+        const nextDirection = isSortActive
+          ? sorting.nextSortDirection(sortInfo.direction)
+          : sorting.SortDirection.ascending
+        if (nextDirection == null) {
+          setSortInfo(null)
         } else {
-          setSortColumn(columnUtils.Column.name)
-          setSortDirection(sorting.SortDirection.ascending)
+          setSortInfo({ field: columnUtils.Column.name, direction: nextDirection })
         }
       }}
     >
-      <span className="leading-144.5 h-6 py-0.5">
-        {columnUtils.COLUMN_NAME[columnUtils.Column.name]}
-      </span>
+      <aria.Text className="text-header">{getText('nameColumnName')}</aria.Text>
       <img
-        src={isSortActive ? columnUtils.SORT_ICON[sortDirection] : SortAscendingIcon}
-        className={isSortActive ? '' : isHovered ? 'opacity-50' : 'opacity-0'}
+        alt={isDescending ? getText('sortDescending') : getText('sortAscending')}
+        src={SortAscendingIcon}
+        className={`transition-all duration-arrow ${
+          isSortActive ? 'selectable active' : 'transparent group-hover:selectable'
+        } ${isDescending ? 'rotate-180' : ''}`}
       />
-    </div>
+    </UnstyledButton>
   )
 }

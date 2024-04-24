@@ -31,7 +31,7 @@ pub async fn download(url: impl IntoUrl) -> Result<impl Stream<Item = reqwest::R
 
 pub async fn download_to_dir(url: impl IntoUrl, dir: impl AsRef<Path>) -> Result<PathBuf> {
     let url = url.into_url()?;
-    let response = web::client::get(&default(), url.clone()).await?;
+    let response = client::get(&default(), url.clone()).await?;
     let filename = filename_from_response(&response)
         .map(ToOwned::to_owned)
         .or_else(|_| filename_from_url(&url))
@@ -74,15 +74,33 @@ pub async fn download_and_extract(
     client::download_and_extract(&default(), url, output_dir).await
 }
 
-// pub async fn stream_to_file<E: Into<Box<dyn std::error::Error + Send + Sync>>>(
-//     stream: impl Stream<Item = std::result::Result<Bytes, E>> + Unpin,
-//     output_path: impl AsRef<Path>,
-// ) -> Result {
-//     let mut reader = tokio_util::io::StreamReader::new(stream.map_err(std::io::Error::other));
-//     let mut output = crate::fs::tokio::create(output_path).await?;
-//     tokio::io::copy(&mut reader, &mut output).await?;
-//     Ok(())
-// }
+/// Retry a given action until it succeeds or the maximum number of attempts is reached.
+pub async fn retry<Fn, Fut, Ret>(mut action: Fn) -> Result<Ret>
+where
+    Fn: FnMut() -> Fut,
+    Fut: Future<Output = Result<Ret>>, {
+    let growth_factor = 1.5;
+    let mut attempts = 5;
+    let mut delay = std::time::Duration::from_millis(500);
+    let max_delay = std::time::Duration::from_secs(10);
+
+    loop {
+        match action().await {
+            Ok(result) => return Ok(result),
+            Err(err) => {
+                let warning = format!("Failed to execute action: {err:?}");
+                crate::actions::workflow::warn(&warning);
+                warn!("{warning}");
+                if attempts == 0 {
+                    return Err(err);
+                }
+                attempts -= 1;
+                tokio::time::sleep(delay).await;
+                delay = delay.mul_f32(growth_factor).min(max_delay);
+            }
+        }
+    }
+}
 
 
 #[cfg(test)]

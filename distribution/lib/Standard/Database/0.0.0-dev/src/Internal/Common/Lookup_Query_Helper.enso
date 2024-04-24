@@ -7,7 +7,7 @@ import Standard.Table.Internal.Lookup_Helpers.Lookup_Column
 from Standard.Table import Join_Kind, Value_Type
 from Standard.Table.Errors import all
 
-import project.Data.Table.Table
+import project.DB_Table.DB_Table
 import project.Internal.IR.Context.Context
 import project.Internal.IR.From_Spec.From_Spec
 import project.Internal.IR.Internal_Column.Internal_Column
@@ -19,7 +19,7 @@ from project.Internal.Upload_Table import check_for_null_keys
 ## PRIVATE
    Implementation of `lookup_and_replace` for Database backend.
    See `Table.lookup_and_replace` for more details.
-build_lookup_query : Table -> Table -> (Vector (Integer | Text | Regex) | Text | Integer | Regex) -> Boolean -> Boolean -> Problem_Behavior -> Table ! Missing_Input_Columns | Non_Unique_Key | Unmatched_Rows_In_Lookup
+build_lookup_query : DB_Table -> DB_Table -> (Vector (Integer | Text | Regex) | Text | Integer | Regex) -> Boolean -> Boolean -> Problem_Behavior -> DB_Table ! Missing_Input_Columns | Non_Unique_Key | Unmatched_Rows_In_Lookup
 build_lookup_query base_table lookup_table key_columns add_new_columns allow_unmatched_rows on_problems =
     lookup_columns = Lookup_Helpers.prepare_columns_for_lookup base_table lookup_table key_columns add_new_columns allow_unmatched_rows on_problems
     lookup_columns.if_not_error <| check_initial_invariants base_table lookup_table lookup_columns allow_unmatched_rows <|
@@ -57,12 +57,12 @@ build_lookup_query base_table lookup_table key_columns add_new_columns allow_unm
         new_ctx_with_invariant_check = new_ctx.add_where_filters [make_invariant_check subquery_setup.lookup_counter allow_unmatched_rows]
 
         precheck_for_duplicate_matches lookup_columns subquery_setup base_table.connection new_ctx <|
-            Table.Value subquery_setup.new_table_name base_table.connection new_columns new_ctx_with_invariant_check
+            DB_Table.Value subquery_setup.new_table_name base_table.connection new_columns new_ctx_with_invariant_check
 
 ## PRIVATE
    Checks if they key contains NULL values or if there would be unmatched rows
    (if `allow_unmatched_rows` is `False`), and reports any errors.
-check_initial_invariants : Table -> Table -> Vector Lookup_Column -> Boolean -> Any -> Any
+check_initial_invariants : DB_Table -> DB_Table -> Vector Lookup_Column -> Boolean -> Any -> Any
 check_initial_invariants base_table lookup_table lookup_columns allow_unmatched_rows ~continuation =
     key_column_names = lookup_columns.flat_map c-> case c of
         Lookup_Column.Key_Column base_column lookup_column ->
@@ -192,7 +192,7 @@ precheck_for_duplicate_matches lookup_columns subquery_setup connection new_ctx 
     key_columns_for_duplicate_check = (_.flatten) <| lookup_columns.map_with_index ix-> c-> case c of
         Lookup_Column.Key_Column _ _ -> [subquery_setup.get_self_column ix]
         _ -> []
-    table_for_duplicate_check = Table.Value subquery_setup.new_table_name connection [subquery_setup.lookup_counter]+key_columns_for_duplicate_check new_ctx
+    table_for_duplicate_check = DB_Table.Value subquery_setup.new_table_name connection [subquery_setup.lookup_counter]+key_columns_for_duplicate_check new_ctx
     duplicate_lookup_matches = table_for_duplicate_check.filter 0 (Filter_Condition.Greater than=1) . read max_rows=1 warn_if_more_rows=False
     case duplicate_lookup_matches.row_count > 0 of
         True ->

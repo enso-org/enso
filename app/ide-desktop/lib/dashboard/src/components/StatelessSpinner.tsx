@@ -26,5 +26,5 @@ export default function StatelessSpinner(props: StatelessSpinnerProps) {
     })
   }, [/* should never change */ rawState])
 
-  return <Spinner size={size} state={state} />
+  return <Spinner state={state} {...(size != null ? { size } : {})} />
 }

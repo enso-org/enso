@@ -1,14 +1,17 @@
 package org.enso.interpreter.runtime.data.hash;
 
 import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
+import com.oracle.truffle.api.dsl.Bind;
 import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.dsl.Cached.Shared;
+import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.UnknownKeyException;
 import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
+import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.profiles.ConditionProfile;
 import org.enso.interpreter.dsl.Builtin;
 import org.enso.interpreter.node.expression.builtin.meta.EqualsNode;
@@ -55,11 +58,11 @@ public final class EnsoHashMap implements EnsoObject {
   }
 
   EnsoHashMapBuilder getMapBuilder(
-      boolean readOnly, HashCodeNode hashCodeNode, EqualsNode equalsNode) {
+      VirtualFrame frame, boolean readOnly, HashCodeNode hashCodeNode, EqualsNode equalsNode) {
     if (readOnly) {
       return mapBuilder;
     } else {
-      return mapBuilder.asModifiable(generation, hashCodeNode, equalsNode);
+      return mapBuilder.asModifiable(frame, generation, hashCodeNode, equalsNode);
     }
   }
 
@@ -104,7 +107,7 @@ public final class EnsoHashMap implements EnsoObject {
       Object key,
       @Shared("hash") @Cached HashCodeNode hashCodeNode,
       @Shared("equals") @Cached EqualsNode equalsNode) {
-    var entry = mapBuilder.get(key, generation, hashCodeNode, equalsNode);
+    var entry = mapBuilder.get(null, key, generation, hashCodeNode, equalsNode);
     return entry != null;
   }
 
@@ -122,7 +125,7 @@ public final class EnsoHashMap implements EnsoObject {
       @Shared("hash") @Cached HashCodeNode hashCodeNode,
       @Shared("equals") @Cached EqualsNode equalsNode)
       throws UnknownKeyException {
-    StorageEntry entry = mapBuilder.get(key, generation, hashCodeNode, equalsNode);
+    StorageEntry entry = mapBuilder.get(null, key, generation, hashCodeNode, equalsNode);
     if (entry != null) {
       return entry.value();
     } else {
@@ -146,8 +149,8 @@ public final class EnsoHashMap implements EnsoObject {
   }
 
   @ExportMessage(library = TypesLibrary.class)
-  Type getType(@CachedLibrary("this") TypesLibrary thisLib, @Cached("1") int ignore) {
-    return EnsoContext.get(thisLib).getBuiltins().map();
+  Type getType(@Bind("$node") Node node) {
+    return EnsoContext.get(node).getBuiltins().map();
   }
 
   @ExportMessage
@@ -156,8 +159,8 @@ public final class EnsoHashMap implements EnsoObject {
   }
 
   @ExportMessage
-  Type getMetaObject(@CachedLibrary("this") InteropLibrary thisLib) {
-    return EnsoContext.get(thisLib).getBuiltins().map();
+  Type getMetaObject(@Bind("$node") Node node) {
+    return EnsoContext.get(node).getBuiltins().map();
   }
 
   @ExportMessage

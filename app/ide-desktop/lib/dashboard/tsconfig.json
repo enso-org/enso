@@ -1,11 +1,22 @@
 {
   "extends": "../../tsconfig.json",
-  "include": ["../types", ".", "../../utils.ts", ".prettierrc.cjs"],
+  "include": [
+    "src",
+    "e2e",
+    "../types",
+    "./src/**/*.json",
+    "../../utils.ts",
+    ".prettierrc.cjs",
+    "*.js",
+    "*.ts"
+  ],
+  "exclude": ["./dist"],
   "compilerOptions": {
     "composite": true,
     "noEmit": false,
     "outDir": "../../../../node_modules/.cache/tsc",
     "paths": { "#/*": ["./src/*"] },
+
     "plugins": [
       {
         "name": "ts-plugin-namespace-auto-import"

@@ -1,17 +1,16 @@
 from Standard.Base import all
 
 from Standard.Table import Value_Type, Column_Ref, Previous_Value, Blank_Selector
-from Standard.Table.Data.Aggregate_Column.Aggregate_Column import Count_Distinct
 from Standard.Table.Errors import all
 
 from Standard.Database.Errors import Unsupported_Database_Operation
 
-from Standard.Test_New import all
+from Standard.Test import all
 
 
 from project.Common_Table_Operations.Util import run_default_backend
 
-main = run_default_backend add_specs
+main filter=Nothing = run_default_backend add_specs filter
 
 type Data
     Value ~data
@@ -75,7 +74,7 @@ add_specs suite_builder setup =
             ## TODO currently our builder does not allow all-null tables, so we
                create one with a 0 and remove it by filter. See #6159.
             t0 = table_builder [["X", [0, Nothing, Nothing, Nothing]]]
-            t1 = t0.filter "X" (Filter_Condition.Is_Nothing)
+            t1 = t0.filter "X" Filter_Condition.Is_Nothing
             t1.row_count . should_equal 3
             t1.at "X" . to_vector . should_equal [Nothing, Nothing, Nothing]
 
@@ -171,7 +170,7 @@ add_specs suite_builder setup =
 
         group_builder.specify "select_blank_columns and remove_blank_columns should deal with edge cases" <|
             t = table_builder [["X", [1, 2, 3, 4]]]
-            no_rows = t.filter "X" (Filter_Condition.Equal to=0)
+            no_rows = t.filter "X" Filter_Condition.Is_Nothing
             no_rows.row_count . should_equal 0
             no_rows.at "X" . to_vector . should_equal []
 

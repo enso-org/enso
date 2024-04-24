@@ -9,9 +9,8 @@ import ModifiedColumnHeading from '#/components/dashboard/columnHeading/Modified
 import NameColumnHeading from '#/components/dashboard/columnHeading/NameColumnHeading'
 import SharedWithColumnHeading from '#/components/dashboard/columnHeading/SharedWithColumnHeading'
 
-export const COLUMN_HEADING: Record<
-  columnUtils.Column,
-  (props: column.AssetColumnHeadingProps) => JSX.Element
+export const COLUMN_HEADING: Readonly<
+  Record<columnUtils.Column, (props: column.AssetColumnHeadingProps) => JSX.Element>
 > = {
   [columnUtils.Column.name]: NameColumnHeading,
   [columnUtils.Column.modified]: ModifiedColumnHeading,

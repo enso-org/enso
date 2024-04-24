@@ -6,8 +6,8 @@
 
 /** Configuration options for `esbuild-plugin-copy-directories`. */
 export interface Options {
-    directoryFilter?: RegExp
-    log?: ((message: string) => void) | null
+    readonly directoryFilter?: RegExp
+    readonly log?: ((message: string) => void) | null
 }
 
 // ====================================

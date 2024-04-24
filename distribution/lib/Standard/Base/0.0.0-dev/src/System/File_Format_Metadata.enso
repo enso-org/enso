@@ -27,7 +27,7 @@ type File_Format_Metadata
        - extension: the extension of the file.
        - read_first_bytes: a function that reads the first bytes of the file.
        - content_type: the content type of the file.
-    Value path:Text|Nothing name:Text|Nothing (extension:Text|Nothing = Nothing) (read_first_bytes:(Integer -> Nothing | Vector Integer)=(_->Nothing)) (content_type:Text|Nothing = Nothing)
+    Value (path:Text|Nothing = Nothing) (name:Text|Nothing = Nothing) (extension:Text|Nothing = Nothing) (read_first_bytes:(Integer -> Nothing | Vector Integer)=(_->Nothing)) (content_type:Text|Nothing = Nothing)
 
     ## PRIVATE
        An instance that contains no information at all.
@@ -51,6 +51,21 @@ type File_Format_Metadata
         self.name.if_not_nothing <|
             guessed = find_extension_from_name self.name
             if guessed == "" then Nothing else guessed
+
+    ## PRIVATE
+    to_display_text self -> Text =
+        entries = Vector.new_builder
+        self.path.if_not_nothing <|
+            entries.append "path="+self.path
+        self.name.if_not_nothing <|
+            entries.append "name="+self.name
+        self.extension.if_not_nothing <|
+            entries.append "extension="+self.extension
+        self.content_type.if_not_nothing <|
+            entries.append "content_type="+self.content_type
+
+        description = if entries.is_empty then "No information" else entries.to_vector.join ", "
+        "(File_Format_Metadata: "+description+")"
 
 ## PRIVATE
 File_Format_Metadata.from (that:File) = File_Format_Metadata.Value that.path that.name that.extension that.read_first_bytes

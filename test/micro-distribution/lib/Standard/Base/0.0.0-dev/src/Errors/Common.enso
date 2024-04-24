@@ -1,7 +1,9 @@
 import project.Any.Any
+import project.Data.Text.Text
 import project.Error.Error
 import project.Meta
 
+polyglot java import java.util.regex.Pattern as Java_Pattern
 
 @Builtin_Type
 type Syntax_Error
@@ -23,7 +25,14 @@ type Type_Error
         tpe = Meta.type_of self.actual
         if tpe.is_error then self.actual.to_display_text else tpe.to_display_text
 
-    to_display_text self = "Type error: expected "+self.comment+" to be "+self.expected.to_display_text+", but got "+self.type_of_actual+"."
+    to_display_text self =
+        got = case self.type_of_actual of
+            text : Text -> text
+            _           -> "<ERR>"
+        exp = self.expected.to_display_text
+        msg_1 =  replace_regex self.comment "\{exp\}" exp
+        msg = replace_regex msg_1 "\{got\}" got
+        "Type error: "+msg+"."
 
 @Builtin_Type
 type Not_Invokable
@@ -73,6 +82,11 @@ type Arity_Error
 
 @Builtin_Type
 type Forbidden_Operation
-    Error operation
+    Error message
 
-    to_display_text self = "Forbidden operation: "+self.operation+"."
+    to_display_text self = "Forbidden operation: "+self.message
+
+## PRIVATE
+   A helper that replaces complicated `Text.replace` from main distribution, used for simple error message formatting.
+replace_regex (text : Text) (regex : Text) (replacement : Text) -> Text =
+    Java_Pattern.compile regex . matcher text . replaceAll replacement

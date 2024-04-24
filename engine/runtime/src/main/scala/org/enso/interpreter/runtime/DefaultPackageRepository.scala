@@ -2,7 +2,7 @@ package org.enso.interpreter.runtime
 
 import org.enso.compiler.PackageRepository
 import org.enso.compiler.context.CompilerContext
-import org.enso.compiler.data.BindingsMap
+import org.enso.compiler.core.ir.{Module => IRModule}
 import com.oracle.truffle.api.TruffleFile
 import com.typesafe.scalalogging.Logger
 import org.apache.commons.lang3.StringUtils
@@ -574,7 +574,7 @@ private class DefaultPackageRepository(
     libraryName: LibraryName,
     moduleName: QualifiedName,
     context: CompilerContext
-  ): Option[BindingsMap] = {
+  ): Option[IRModule] = {
     val cache = ensurePackageIsLoaded(libraryName).toOption.flatMap { _ =>
       if (!loadedLibraryBindings.contains(libraryName)) {
         loadedPackages.get(libraryName).flatten.foreach(loadDependencies(_))
@@ -582,14 +582,13 @@ private class DefaultPackageRepository(
         /* TBD: this has to be called somehow
         context
           .asInstanceOf[TruffleCompilerContext]
-          .getSerializationManager()
           .deserializeLibraryBindings(libraryName)
          */
         loadedLibraryBindings.addOne((libraryName, cachedBindingOption))
       }
       loadedLibraryBindings.get(libraryName)
     }
-    cache.flatMap(_.flatMap(_.bindings.findForModule(moduleName)))
+    cache.flatMap(_.map(_.bindings.findForModule(moduleName)))
   }
 
   private def loadDependencies(pkg: Package[TruffleFile]): Unit = {

@@ -220,7 +220,7 @@ object Literal {
     /** @inheritdoc */
     override def toString: String =
       s"""
-         |Literal.String(
+         |Literal.Text(
          |text = $text,
          |location = $location,
          |passData = ${this.showPassData},

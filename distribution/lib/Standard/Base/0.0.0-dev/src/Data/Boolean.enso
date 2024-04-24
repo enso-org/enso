@@ -1,6 +1,5 @@
 import project.Any.Any
 import project.Nothing.Nothing
-from project.Data.Boolean.Boolean import False, True
 
 from project.Data.Boolean.Boolean export False, True
 
@@ -18,6 +17,7 @@ type Boolean
 
     ## ALIAS and
        GROUP Logical
+       ICON operators
        Computes the logical and (conjunction) of two booleans.
 
        Arguments:
@@ -36,6 +36,7 @@ type Boolean
 
     ## ALIAS or
        GROUP Logical
+       ICON operators
        Computes the logical or (disjunction) of two booleans.
 
        Arguments:
@@ -53,6 +54,7 @@ type Boolean
     || self ~that = @Builtin_Method "Boolean.||"
 
     ## GROUP Logical
+       ICON operators
        Computes the logical negation of this.
 
        > Example
@@ -63,6 +65,7 @@ type Boolean
     not self = @Builtin_Method "Boolean.not"
 
     ## GROUP Logical
+       ICON operators
        The if-then-else control flow operator that executes one of two branches
        based on a conditional.
 
@@ -81,6 +84,7 @@ type Boolean
     if_then_else self ~on_true ~on_false = @Builtin_Method "Boolean.if_then_else"
 
     ## GROUP Logical
+       ICON operators
        The if-then control flow operator that executes a branch if the condition
        is true, and otherwise returns Nothing.
 

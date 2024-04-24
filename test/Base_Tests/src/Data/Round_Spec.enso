@@ -2,7 +2,7 @@ from Standard.Base import all
 import Standard.Base.Errors.Common.Type_Error
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
-from Standard.Test_New import all
+from Standard.Test import all
 
 polyglot java import java.math.BigInteger
 
@@ -177,10 +177,6 @@ add_specs group_builder round_fun =
         round_fun -1.2222222222235 12 use_bankers=True . should_equal -1.222222222224
         round_fun -1.22222222222235 13 use_bankers=True . should_equal -1.2222222222224
         round_fun -1.222222222222235 14 use_bankers=True . should_equal -1.22222222222224
-
-    group_builder.specify "Decimal places out of range" <|
-        round_fun 3.1 16 . should_fail_with Illegal_Argument
-        round_fun 3.1 -16 . should_fail_with Illegal_Argument
 
     group_builder.specify "Floating point imperfect representation counter-examples" <|
         round_fun 1.225 2 use_bankers=True . should_equal 1.22 # Actual result 1.23

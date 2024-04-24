@@ -278,7 +278,9 @@ object DistributionPackage {
     pb.command(all)
     if (args.contains("--debug")) {
       all.remove("--debug")
-      pb.environment().put("JAVA_OPTS", WithDebugCommand.DEBUG_OPTION)
+      pb.environment().put("JAVA_OPTS", "-ea " + WithDebugCommand.DEBUG_OPTION)
+    } else {
+      pb.environment().put("JAVA_OPTS", "-ea")
     }
     pb.inheritIO()
     val p        = pb.start()

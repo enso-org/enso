@@ -5,7 +5,8 @@ import org.enso.table.data.table.join.between.SortJoin;
 import org.enso.table.data.table.join.conditions.Between;
 import org.enso.table.data.table.join.conditions.HashableCondition;
 import org.enso.table.data.table.join.conditions.JoinCondition;
-import org.enso.table.data.table.join.hashing.HashJoin;
+import org.enso.table.data.table.join.hashing.CompoundHashJoin;
+import org.enso.table.data.table.join.hashing.SimpleHashJoin;
 import org.enso.table.problems.ProblemAggregator;
 
 /** A strategy used for performing a join of two tables. */
@@ -31,12 +32,9 @@ public interface JoinStrategy {
       assert !betweenConditions.isEmpty();
       return new SortJoin(betweenConditions, joinKind);
     } else if (betweenConditions.isEmpty()) {
-      return new HashJoin(
-          hashableConditions,
-          joinKind.wantsCommon ? new MatchAllStrategy() : new NoOpStrategy(),
-          joinKind);
+      return new SimpleHashJoin(hashableConditions, joinKind);
     } else {
-      return new HashJoin(hashableConditions, new SortJoin(betweenConditions, joinKind), joinKind);
+      return new CompoundHashJoin(hashableConditions, betweenConditions, joinKind);
     }
   }
 

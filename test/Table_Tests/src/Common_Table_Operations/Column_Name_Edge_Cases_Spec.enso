@@ -6,7 +6,7 @@ from Standard.Table.Errors import Clashing_Column_Name, Duplicate_Output_Column_
 
 from Standard.Database.Errors import Unsupported_Database_Operation
 
-from Standard.Test_New import all
+from Standard.Test import all
 
 
 from project.Common_Table_Operations.Util import run_default_backend
@@ -38,7 +38,7 @@ add_specs suite_builder setup =
         group_builder.specify "case insensitive name collisions - set" <|
             t1 = table_builder [["X", [1]]]
             Problems.assume_no_problems (t1.at "X" . rename "x")
-            t2 = t1.set "[X] + 100" "x"
+            t2 = t1.set (expr "[X] + 100") "x"
             case is_case_sensitive of
                 False ->
                     t2.should_fail_with Clashing_Column_Name
@@ -89,7 +89,7 @@ add_specs suite_builder setup =
 
         group_builder.specify "case insensitive name collisions - aggregate" <|
             t1 = table_builder [["X", [2, 1, 3, 2]]]
-            t2 = t1.aggregate [Aggregate_Column.Maximum "X" "A", Aggregate_Column.Minimum "X" "a"]
+            t2 = t1.aggregate columns=[Aggregate_Column.Maximum "X" "A", Aggregate_Column.Minimum "X" "a"]
 
             case is_case_sensitive of
                 True ->
@@ -136,7 +136,7 @@ add_specs suite_builder setup =
 
         group_builder.specify "case insensitive name collisions - cross_tab" <|
             t0 = table_builder [["X", ["a", "A", "b"]], ["Y", [4, 5, 6]]]
-            t1 = t0.cross_tab group_by=[] name_column="X" values=[Aggregate_Column.First "Y"] . sort_columns
+            t1 = t0.cross_tab group_by=[] names="X" values=[Aggregate_Column.First "Y"] . sort_columns
             case setup.is_database of
                 # TODO remove this check once implemented
                 True -> t1.should_fail_with Unsupported_Database_Operation

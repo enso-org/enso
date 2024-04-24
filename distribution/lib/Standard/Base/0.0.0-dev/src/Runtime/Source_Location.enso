@@ -2,7 +2,6 @@ import project.Data.Numbers.Integer
 import project.Data.Text.Text
 import project.Nothing.Nothing
 import project.System.File.File
-
 from project.Data.Boolean import Boolean, False, True
 
 ## PRIVATE
@@ -51,12 +50,13 @@ type Source_Location
         if self.file.is_nothing then "? Unknown ?:" + indices else
             cwd = File.current_directory
             file = self.file.absolute
-            formatted_file = case file.is_child_of cwd of
+            formatted_file = case file.is_descendant_of cwd of
                 True -> cwd.relativize file . path
                 _ -> file.path
             formatted_file + ":" + indices
 
-    ## Return the source file corresponding to this location.
+    ## ICON metadata
+       Return the source file corresponding to this location.
     file : File | Nothing
     file self =
         source = self.prim_location.getSource

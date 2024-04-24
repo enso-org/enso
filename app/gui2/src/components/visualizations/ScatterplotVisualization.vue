@@ -2,13 +2,15 @@
 import SvgIcon from '@/components/SvgIcon.vue'
 import { useEvent } from '@/composables/events'
 import { useVisualizationConfig } from '@/providers/visualizationConfig'
-import { getTextWidth } from '@/util/measurement'
+import { Ast } from '@/util/ast'
+import { tryNumberToEnso } from '@/util/ast/abstract'
+import { getTextWidthBySizeAndFamily } from '@/util/measurement'
 import { VisualizationContainer, defineKeybinds } from '@/util/visualizationBuiltins'
 import { computed, ref, watch, watchEffect, watchPostEffect } from 'vue'
 
 export const name = 'Scatter Plot'
 export const icon = 'points'
-export const inputType = 'Standard.Table.Data.Table.Table | Standard.Base.Data.Vector.Vector'
+export const inputType = 'Standard.Table.Table.Table | Standard.Base.Data.Vector.Vector'
 const DEFAULT_LIMIT = 1024
 export const defaultPreprocessor = [
   'Standard.Visualization.Scatter_Plot',
@@ -135,9 +137,8 @@ const SCALE_TO_D3_SCALE: Record<ScaleType, () => d3.ScaleContinuousNumeric<numbe
 
 const data = computed<Data>(() => {
   let rawData = props.data
-  const unfilteredData = Array.isArray(rawData)
-    ? rawData.map((y, index) => ({ x: index, y }))
-    : rawData.data ?? []
+  const unfilteredData =
+    Array.isArray(rawData) ? rawData.map((y, index) => ({ x: index, y })) : rawData.data ?? []
   const data: Point[] = unfilteredData.filter(
     (point) =>
       typeof point.x === 'number' &&
@@ -203,15 +204,15 @@ const margin = computed(() => {
   }
 })
 const width = computed(() =>
-  config.fullscreen
-    ? containerNode.value?.parentElement?.clientWidth ?? 0
-    : Math.max(config.width ?? 0, config.nodeSize.x),
+  config.fullscreen ?
+    containerNode.value?.parentElement?.clientWidth ?? 0
+  : Math.max(config.width ?? 0, config.nodeSize.x),
 )
 
 const height = computed(() =>
-  config.fullscreen
-    ? containerNode.value?.parentElement?.clientHeight ?? 0
-    : config.height ?? (config.nodeSize.x * 3) / 4,
+  config.fullscreen ?
+    containerNode.value?.parentElement?.clientHeight ?? 0
+  : config.height ?? (config.nodeSize.x * 3) / 4,
 )
 
 const boxWidth = computed(() => Math.max(0, width.value - margin.value.left - margin.value.right))
@@ -222,20 +223,24 @@ const xLabelLeft = computed(
   () =>
     margin.value.left +
     boxWidth.value / 2 -
-    getTextWidth(data.value.axis.x.label, LABEL_FONT_STYLE) / 2,
+    getTextWidthBySizeAndFamily(data.value.axis.x.label, LABEL_FONT_STYLE) / 2,
 )
 const xLabelTop = computed(() => boxHeight.value + margin.value.top + 20)
 const yLabelLeft = computed(
-  () => -boxHeight.value / 2 + getTextWidth(data.value.axis.y.label, LABEL_FONT_STYLE) / 2,
+  () =>
+    -boxHeight.value / 2 +
+    getTextWidthBySizeAndFamily(data.value.axis.y.label, LABEL_FONT_STYLE) / 2,
 )
 const yLabelTop = computed(() => -margin.value.left + 15)
 
 watchEffect(() => {
+  const boundsExpression =
+    bounds.value != null ? Ast.Vector.tryBuild(bounds.value, tryNumberToEnso) : undefined
   emit(
     'update:preprocessor',
     'Standard.Visualization.Scatter_Plot',
     'process_to_json_text',
-    bounds.value == null ? 'Nothing' : '[' + bounds.value.join(',') + ']',
+    boundsExpression?.code() ?? 'Nothing',
     limit.value.toString(),
   )
 })
@@ -289,7 +294,9 @@ const zoom = computed(() =>
       const medDelta = 0.05
       const maxDelta = 1
       const wheelSpeedMultiplier =
-        event.deltaMode === 1 ? medDelta : event.deltaMode ? maxDelta : minDelta
+        event.deltaMode === 1 ? medDelta
+        : event.deltaMode ? maxDelta
+        : minDelta
       return -event.deltaY * wheelSpeedMultiplier
     })
     .scaleExtent(ZOOM_EXTENT)
@@ -533,10 +540,10 @@ useEvent(document, 'keydown', bindings.handler({ zoomToSelected: () => zoomToSel
   <VisualizationContainer :belowToolbar="true">
     <template #toolbar>
       <button class="image-button active">
-        <SvgIcon name="show_all" alt="Fit all" @pointerdown="zoomToSelected(false)" />
+        <SvgIcon name="show_all" alt="Fit all" @click.stop="zoomToSelected(false)" />
       </button>
       <button class="image-button" :class="{ active: brushExtent != null }">
-        <SvgIcon name="find" alt="Zoom to selected" @pointerdown="zoomToSelected" />
+        <SvgIcon name="find" alt="Zoom to selected" @click.stop="zoomToSelected" />
       </button>
     </template>
     <div ref="containerNode" class="ScatterplotVisualization" @pointerdown.stop>

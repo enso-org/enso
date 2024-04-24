@@ -1,0 +1,40 @@
+from Standard.Base import all
+from Standard.Test import all
+
+import project.Helpers.Table_Aggregate_Auto_Constructor
+
+add_specs suite_builder =
+    suite_builder.group "Autoconstructor Instrumentation" group_builder->
+        group_builder.specify "compare ..Count and Aggregate_Column.Count" <|
+            lines_builder = Vector.new_builder
+
+            pair = Table_Aggregate_Auto_Constructor.perform lines_builder.append
+
+            lines = lines_builder.to_vector
+            text = lines.join '\n'
+
+            text . should_equal """
+                enter  c6fe8aaf-e963-4f63-a990-d15d230bc9ab
+                enter  c6fe8aaf-e963-4f63-a990-d15d230bc9ab
+                enter  c6fe8aaf-e963-4f63-a990-d15d230bc9ab
+                callfn c6fe8aaf-e963-4f63-a990-d15d230bc9ab fn: (Count '') args: [Nothing]
+                result c6fe8aaf-e963-4f63-a990-d15d230bc9ab result: (Count '') type: Aggregate_Column
+                enter  00e33517-6d19-4f5a-84c5-126f59a93b67
+                enter  788f7b33-54ae-4452-85ff-4b7b5688b598
+                result 788f7b33-54ae-4452-85ff-4b7b5688b598 result: Aggregate_Column type: Aggregate_Column.type
+                enter  d1844837-30e7-46b7-bde3-72f7afec52cf
+                result d1844837-30e7-46b7-bde3-72f7afec52cf result: UnresolvedSymbol<Count> type: Function
+                enter  00e33517-6d19-4f5a-84c5-126f59a93b67
+                callfn 00e33517-6d19-4f5a-84c5-126f59a93b67 fn: null self=_ args: [Aggregate_Column]
+                result 00e33517-6d19-4f5a-84c5-126f59a93b67 result: (Count '') type: Aggregate_Column
+
+            pair.first.column_names . should_equal pair.second.column_names
+            pair.first.column_names.map n->
+                first_vector = pair.first.at n . to_vector
+                second_vector = pair.second.at n . to_vector
+                first_vector . should_equal second_vector
+
+main filter=Nothing =
+    suite = Test.build suite_builder->
+        add_specs suite_builder
+    suite.run_with_filter filter

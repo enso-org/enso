@@ -6,11 +6,11 @@ from Standard.Table.Errors import Inexact_Type_Coercion, Invalid_Value_Type
 
 from Standard.Database.Errors import Unsupported_Database_Operation
 
-from Standard.Test_New import all
+from Standard.Test import all
 
 from project.Common_Table_Operations.Util import all
 
-main = run_default_backend add_specs
+main filter=Nothing = run_default_backend add_specs filter
 
 type Data
     Value ~data
@@ -159,7 +159,10 @@ add_specs suite_builder setup =
                 False ->
                     a.date_part Time_Period.Nanosecond . should_fail_with Unsupported_Database_Operation
 
-            [a.date_part Time_Period.Second, a.date_part Time_Period.Millisecond, a.date_part Time_Period.Microsecond, a.date_part Time_Period.Nanosecond].each c->
+            testCases = [a.date_part Time_Period.Second, a.date_part Time_Period.Millisecond, a.date_part Time_Period.Microsecond]
+            if setup.test_selection.supports_nanoseconds_in_time then
+                testCases = testCases + (a.date_part Time_Period.Nanosecond)
+            testCases.each c->
                 Test.with_clue "The column "+c.name+" value type ("+c.value_type.to_display_text+") should be an integer: " <|
                     c.value_type.is_integer.should_be_true
 
@@ -184,7 +187,10 @@ add_specs suite_builder setup =
                 False ->
                     a.date_part Time_Period.Nanosecond . should_fail_with Unsupported_Database_Operation
 
-            [a.date_part Date_Period.Quarter, a.date_part Date_Period.Week, a.date_part Time_Period.Second, a.date_part Time_Period.Millisecond, a.date_part Time_Period.Microsecond, a.date_part Time_Period.Nanosecond].each c->
+            testCases = [a.date_part Date_Period.Quarter, a.date_part Date_Period.Week, a.date_part Time_Period.Second, a.date_part Time_Period.Millisecond, a.date_part Time_Period.Microsecond]
+            if setup.test_selection.supports_nanoseconds_in_time then
+                testCases = testCases + (a.date_part Time_Period.Nanosecond)
+            testCases.each c->
                 Test.with_clue "The column "+c.name+" value type ("+c.value_type.to_display_text+") should be an integer: " <|
                     c.value_type.is_integer.should_be_true
 
@@ -336,7 +342,6 @@ add_specs suite_builder setup =
             t3 = table_builder [["X", [Time_Of_Day.new 10 15 0]], ["Y", [Time_Of_Day.new 12 30 20]]]
 
             # There is no default period:
-            (t3.at "X").date_diff (t3.at "Y") . should_be_a Function
             (t3.at "X").date_diff (t3.at "Y") Date_Period.Month . should_fail_with Illegal_Argument
 
             # This will always be 0, should it be allowed?

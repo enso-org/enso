@@ -1,15 +1,19 @@
 from Standard.Base import all
+import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Network.HTTP.Response.Response
+import Standard.Base.System.File.Generic.Writable_File.Writable_File
 import Standard.Base.System.File_Format_Metadata.File_Format_Metadata
 import Standard.Base.System.Input_Stream.Input_Stream
+from Standard.Base.Metadata.Choice import Option
+from Standard.Base.System.File_Format import parse_boolean_with_infer
 from Standard.Base.Widget_Helpers import make_file_read_delimiter_selector
 
-import project.Data.Data_Formatter.Data_Formatter
-import project.Data.Match_Columns.Match_Columns
-import project.Data.Table.Table
+import project.Data_Formatter.Data_Formatter
 import project.Delimited.Quote_Style.Quote_Style
 import project.Internal.Delimited_Reader
 import project.Internal.Delimited_Writer
+import project.Match_Columns.Match_Columns
+import project.Table.Table
 
 ## Read delimited files such as CSVs into a Table.
 type Delimited_Format
@@ -77,8 +81,12 @@ type Delimited_Format
 
     ## PRIVATE
        If this File_Format should be used for writing to that file, return a configured instance.
-    for_file_write : File -> Delimited_Format | Nothing
+    for_file_write : Writable_File -> Delimited_Format | Nothing
     for_file_write file = Delimited_Format.for_read file
+
+    ## PRIVATE
+    get_dropdown_options : Vector Option
+    get_dropdown_options = [Option "Delimited" (Meta.get_qualified_type_name Delimited_Format)+".Delimited"]
 
     ## PRIVATE
        ADVANCED
@@ -108,48 +116,80 @@ type Delimited_Format
     clone self (quote_style=self.quote_style) (headers=self.headers) (value_formatter=self.value_formatter) (keep_invalid_rows=self.keep_invalid_rows) (line_endings=self.line_endings) (comment_character=self.comment_character) =
         Delimited_Format.Delimited self.delimiter self.encoding self.skip_rows self.row_limit quote_style headers value_formatter keep_invalid_rows line_endings comment_character
 
-    ## Create a clone of this with specified quoting settings.
+    ## ICON data_input
+       Create a clone of this with specified quoting settings.
     with_quotes : Text -> Text -> Boolean -> Delimited_Format
     with_quotes self quote='"' quote_escape=quote always_quote=False =
         self.clone quote_style=(Quote_Style.With_Quotes always_quote=always_quote quote=quote quote_escape=quote_escape)
 
-    ## Create a clone of this with specified quoting settings.
+    ## ICON data_input
+       Create a clone of this with specified quoting settings.
     without_quotes : Delimited_Format
     without_quotes self =
         self.clone quote_style=Quote_Style.No_Quotes
 
-    ## Create a clone of this with first row treated as header.
+    ## ICON data_input
+       Create a clone of this with first row treated as header.
     with_headers : Delimited_Format
     with_headers self = self.clone headers=True
 
-    ## Create a clone of this where the first row is treated as data, not a
+    ## ICON data_input
+       Create a clone of this where the first row is treated as data, not a
        header.
     without_headers : Delimited_Format
     without_headers self = self.clone headers=False
 
-    ## Create a clone of this with value parsing.
+    ## ICON data_input
+       Create a clone of this with value parsing.
 
        A custom `Data_Formatter` can be provided to customize parser options.
     with_parsing : Data_Formatter -> Delimited_Format
     with_parsing self (value_formatter=Data_Formatter.Value) =
         self.clone value_formatter=value_formatter
 
-    ## Create a clone of this without value parsing.
+    ## ICON data_input
+       Create a clone of this without value parsing.
     without_parsing : Delimited_Format
     without_parsing self =
         self.clone value_formatter=Nothing
 
-    ## Creates a clone of this with a changed line ending style.
-    with_line_endings : Line_Ending_Style|Infer -> Delimited_Format
-    with_line_endings self (line_endings : Line_Ending_Style | Infer)=Infer =
+    ## ICON data_input
+       Creates a clone of this with a changed line ending style.
+    with_line_endings : Line_Ending_Style | Infer -> Delimited_Format
+    with_line_endings self (line_endings : Line_Ending_Style | Infer = Infer) =
         self.clone line_endings=line_endings
 
-    ## Creates a clone of this with comment parsing enabled.
+    ## ICON data_input
+       Creates a clone of this with comment parsing enabled.
     with_comments : Text -> Delimited_Format
     with_comments self comment_character='#' =
         self.clone comment_character=comment_character
 
-    ## Creates a clone of this with comment parsing disabled.
+    ## ICON data_input
+       Creates a clone of this with comment parsing disabled.
     without_comments : Delimited_Format
     without_comments self =
         self.clone comment_character=Nothing
+
+## PRIVATE
+   Constructs a `Delimited` instance from JSON.
+Delimited_Format.from (that : JS_Object) =
+    delimiter = that.get "delimiter" if_missing=(Error.throw (Illegal_Argument.Error "The `delimiter` field is required."))
+    encoding_name = that.get "encoding"
+    encoding = encoding_name
+        . if_not_nothing (Encoding.from_name encoding_name)
+        . if_nothing Encoding.utf_8
+    headers = that.get "headers" |> parse_boolean_with_infer "headers"
+    skip_rows = that.get "skip_rows" . if_nothing 0
+    row_limit = that.get "row_limit"
+    keep_invalid_rows = that.get "keep_invalid_rows" . if_nothing True
+    quote_style = case that.get "quote_style" of
+        Nothing -> Quote_Style.With_Quotes
+        json -> Quote_Style.from json
+
+    unsupported_fields = ["value_formatter", "line_endings", "comment_character"]
+    case unsupported_fields.find that.contains_key if_missing=Nothing of
+        Nothing ->
+            Delimited_Format.Delimited delimiter=delimiter encoding=encoding headers=headers skip_rows=skip_rows row_limit=row_limit quote_style=quote_style keep_invalid_rows=keep_invalid_rows
+        field ->
+            Error.throw (Illegal_Argument.Error ("The field `" ++ field ++ "` is currently not supported when deserializing the Delimited format from JSON."))

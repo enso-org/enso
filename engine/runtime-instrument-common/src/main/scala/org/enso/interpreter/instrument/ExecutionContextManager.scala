@@ -90,6 +90,20 @@ class ExecutionContextManager {
       contexts.contains(contextId)
     }
 
+  /** Set oneshot expression for the specified context.
+    *
+    * @param contextId the identifier of the execution context
+    * @param oneshotExpression the oneshot visualization
+    */
+  def setOneshotExpression(
+    contextId: ContextId,
+    oneshotExpression: OneshotExpression
+  ): Unit =
+    synchronized {
+      val state = contexts(contextId)
+      state.visualizations.setOneshotExpression(oneshotExpression)
+    }
+
   /** Upserts a visualization for the specified context.
     *
     * @param contextId the identifier of the execution context

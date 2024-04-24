@@ -8,7 +8,7 @@ type SQLite_Details
 
        Arguments:
        - location: Location of the SQLite database to connect to.
-    SQLite (location:(In_Memory|File|Text))
+    SQLite (location:(In_Memory|File))
 
     ## PRIVATE
        Build the Connection resource.
@@ -25,7 +25,7 @@ type SQLite_Details
     jdbc_url : Text
     jdbc_url self = case self.location of
         In_Memory -> "jdbc:sqlite::memory:"
-        _ -> "jdbc:sqlite:" + ((File.new self.location).absolute.path.replace '\\' '/')
+        _ -> "jdbc:sqlite:" + (self.location.absolute.path.replace '\\' '/')
 
     ## PRIVATE
        Provides the properties for the connection.

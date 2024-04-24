@@ -1,6 +1,0 @@
-Tests:  [0/1, ???ms]
-    - [FAILED] some property [???ms]
-        Reason: HMM: PREFIX {3}: 9 did not equal 4 (at ???:13:25-44). SUFFIX [???]
-0 tests succeeded.
-1 tests failed.
-0 tests skipped.

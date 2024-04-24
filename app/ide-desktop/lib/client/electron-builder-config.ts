@@ -32,12 +32,12 @@ import BUILD_INFO from '../../../../build.json' assert { type: 'json' }
 export interface Arguments {
     // The types come from a third-party API and cannot be changed.
     // eslint-disable-next-line no-restricted-syntax
-    target?: string | undefined
-    iconsDist: string
-    guiDist: string
-    ideDist: string
-    projectManagerDist: string
-    platform: electronBuilder.Platform
+    readonly target?: string | undefined
+    readonly iconsDist: string
+    readonly guiDist: string
+    readonly ideDist: string
+    readonly projectManagerDist: string
+    readonly platform: electronBuilder.Platform
 }
 
 //======================================
@@ -115,7 +115,7 @@ export function createElectronBuilderConfig(passedArgs: Arguments): electronBuil
 
         // Note that the `artifactName` uses the "canonical" version of the product, not one that might have been
         // simplified for the MSI installer to cope.
-        artifactName: 'enso-${os}-' + BUILD_INFO.version + '.${ext}',
+        artifactName: 'enso-${os}-${arch}-' + BUILD_INFO.version + '.${ext}',
 
         /** Definitions of URL {@link electronBuilder.Protocol} schemes used by the IDE.
          *

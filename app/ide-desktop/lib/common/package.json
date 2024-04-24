@@ -2,9 +2,11 @@
   "name": "enso-common",
   "version": "1.0.0",
   "type": "module",
-  "main": "./src/index.ts",
+  "main": "./src/index.js",
   "exports": {
-    ".": "./src/index.ts",
+    ".": "./src/index.js",
+    "./src/appConfig": "./src/appConfig.js",
+    "./src/buildUtils": "./src/buildUtils.js",
     "./src/detect": "./src/detect.ts",
     "./src/gtag": "./src/gtag.ts"
   }

@@ -12,9 +12,9 @@ import * as React from 'react'
  * provided by the EnsoGL packager. */
 export interface Logger {
   /** Log a message to the console. */
-  log: (message: unknown, ...optionalParams: unknown[]) => void
+  readonly log: (message: unknown, ...optionalParams: unknown[]) => void
   /** Log an error message to the console. */
-  error: (message: unknown, ...optionalParams: unknown[]) => void
+  readonly error: (message: unknown, ...optionalParams: unknown[]) => void
 }
 
 // =====================
@@ -31,8 +31,8 @@ const LoggerContext = React.createContext<Logger>({} as Logger)
 
 /** Props for a {@link LoggerProvider}. */
 export interface LoggerProviderProps {
-  children: React.ReactNode
-  logger: Logger
+  readonly children: React.ReactNode
+  readonly logger: Logger
 }
 
 /** A React provider containing the diagnostic logger. */

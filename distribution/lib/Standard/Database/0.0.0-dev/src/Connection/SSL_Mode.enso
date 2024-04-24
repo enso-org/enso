@@ -12,8 +12,8 @@ type SSL_Mode
 
     ## Will use SSL, validating the certificate but not verifying the hostname.
        If `ca_file` is `Nothing`, the default CA certificate store will be used.
-    Verify_CA ca_file:Nothing|File|Text=Nothing
+    Verify_CA ca_file:Nothing|File=Nothing
 
     ## Will use SSL, validating the certificate and checking the hostname matches.
        If `ca_file` is `Nothing`, the default CA certificate store will be used.
-    Full_Verification ca_file:Nothing|File|Text=Nothing
+    Full_Verification ca_file:Nothing|File=Nothing

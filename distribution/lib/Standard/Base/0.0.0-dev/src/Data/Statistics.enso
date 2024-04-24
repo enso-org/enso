@@ -9,6 +9,7 @@ import project.Data.Vector.No_Wrap
 import project.Data.Vector.Vector
 import project.Error.Error
 import project.Errors.Common.Incomparable_Values
+import project.Errors.Empty_Error.Empty_Error
 import project.Errors.Illegal_Argument.Illegal_Argument
 import project.Meta
 import project.Nothing.Nothing
@@ -16,13 +17,13 @@ import project.Panic.Panic
 import project.Runtime.Ref.Ref
 from project.Data.Boolean import Boolean, False, True
 from project.Data.Range.Extensions import all
-from project.Data.Vector import Empty_Error
 from project.Errors.Common import Unsupported_Argument_Types
 
 polyglot java import java.lang.NullPointerException
 polyglot java import org.enso.base.CompareException
 polyglot java import org.enso.base.statistics.CorrelationStatistics
 polyglot java import org.enso.base.statistics.Rank
+polyglot java import org.enso.base.statistics.Statistic as Java_Statistic
 
 ## Specifies how to handle ranking of equal values.
 type Rank_Method
@@ -43,6 +44,7 @@ type Rank_Method
     Ordinal
 
     ## GROUP Statistics
+       ICON sigma
        Assigns a rank to each value of data, dealing with equal values according to the method.
 
        Arguments:
@@ -137,6 +139,22 @@ type Statistic
         _ -> Nothing
 
     ## PRIVATE
+    to_java self = case self of
+        Statistic.Count -> Java_Statistic.Count
+        Statistic.Minimum -> Java_Statistic.Minimum
+        Statistic.Maximum -> Java_Statistic.Maximum
+        Statistic.Sum -> Java_Statistic.Sum
+        Statistic.Mean -> Java_Statistic.Mean
+        Statistic.Variance _ -> Java_Statistic.Variance
+        Statistic.Standard_Deviation _ -> Java_Statistic.StandardDeviation
+        Statistic.Skew _ -> Java_Statistic.Skew
+        Statistic.Kurtosis -> Java_Statistic.Kurtosis
+        Statistic.Covariance _ -> Java_Statistic.Covariance
+        Statistic.Pearson _ -> Java_Statistic.Pearson
+        Statistic.Spearman _ -> Java_Statistic.Spearman
+        Statistic.R_Squared _ -> Java_Statistic.R_Squared
+
+    ## PRIVATE
        Compute a single statistic on a vector like object.
 
        Arguments:
@@ -190,14 +208,7 @@ type Statistic
        - statistics: Set of statistics to calculate.
     running_bulk : Vector -> Vector Statistic -> Vector Any
     running_bulk data statistics=[Statistic.Count, Statistic.Sum] =
-        is_unsupported s = case s of
-            Statistic.Covariance _ -> True
-            Statistic.Pearson _ -> True
-            Statistic.Spearman _ -> True
-            Statistic.R_Squared _ -> True
-            _ -> False
-
-        if statistics.any is_unsupported then Error.throw (Illegal_Argument.Error ("Unsupported Statistics ( " + (statistics.filter is_unsupported . to_text) ") for running calculations.")) else
+        check_running_support statistics <|
             moment_order = statistics.map on_problems=No_Wrap .order
             has_min_max = statistics.any (s-> s == Statistic.Minimum || s == Statistic.Maximum)
             max_moment_order = moment_order.filter (v-> v != Nothing) . fold 0 .max
@@ -219,7 +230,8 @@ type Statistic
 
                 output.to_vector
 
-    ## Calculate a variance-covariance matrix between the input series.
+    ## ICON math
+       Calculate a variance-covariance matrix between the input series.
 
        Arguments:
        - data: The input data sets
@@ -228,7 +240,8 @@ type Statistic
         stats_vectors = calculate_correlation_statistics_matrix data
         stats_vectors.map v->(v.map .covariance)
 
-    ## Calculate a Pearson correlation matrix between the input series.
+    ## ICON math
+       Calculate a Pearson correlation matrix between the input series.
 
        Arguments:
        - data: The input data sets
@@ -237,7 +250,8 @@ type Statistic
         stats_vectors = calculate_correlation_statistics_matrix data
         stats_vectors.map v->(v.map .pearsonCorrelation)
 
-    ## Calculate a Spearman Rank correlation matrix between the input series.
+    ## ICON math
+       Calculate a Spearman Rank correlation matrix between the input series.
 
        Arguments:
        - data: The input data sets
@@ -265,6 +279,21 @@ type Statistic
     rank_data : Vector -> Rank_Method -> Vector
     rank_data input method=Rank_Method.Average =
         method.compute input
+
+## PRIVATE
+   Check if the statistics are supported for running calculations.
+check_running_support : Vector Statistic -> Any -> Any
+check_running_support statistics ~action =
+    is_unsupported s = case s of
+        Statistic.Covariance _ -> True
+        Statistic.Pearson _ -> True
+        Statistic.Spearman _ -> True
+        Statistic.R_Squared _ -> True
+        _ -> False
+
+    if statistics.any is_unsupported then Error.throw (Illegal_Argument.Error ("Unsupported Statistics ( " + (statistics.filter is_unsupported . to_text) + ") for running calculations.")) else
+        action
+
 
 ## PRIVATE
 wrap_java_call : Any -> Any
@@ -295,6 +324,7 @@ calculate_correlation_statistics_matrix data =
     Vector.new stats_array.length i->(Vector.from_polyglot_array (stats_array.at i))
 
 ## GROUP Statistics
+   ICON sigma
    Compute a single statistic on the vector (ignoring Nothing and NaN values).
 
    Arguments:
@@ -303,7 +333,8 @@ Vector.compute : Statistic -> Any
 Vector.compute self statistic=Statistic.Count =
     self.compute_bulk [statistic] . first
 
-## Compute statistics on the vector (ignoring Nothing and NaN values).
+## ICON dataframe_map_column
+   Compute statistics on the vector (ignoring Nothing and NaN values).
 
    Arguments:
    - statistics: Set of statistics to calculate.
@@ -312,6 +343,7 @@ Vector.compute_bulk self statistics=[Statistic.Count, Statistic.Sum] =
     Statistic.compute_bulk self statistics
 
 ## GROUP Statistics
+   ICON math
    Compute a single running statistic on the vector (ignoring Nothing and NaN
    values).
 
@@ -321,7 +353,8 @@ Vector.running : Statistic -> Vector Any
 Vector.running self statistic=Statistic.Count =
     Statistic.running self statistic
 
-## Compute a set running statistics on the vector (ignoring Nothing and NaN
+## ICON math
+   Compute a set running statistics on the vector (ignoring Nothing and NaN
    values).
 
    Arguments:
@@ -331,6 +364,7 @@ Vector.running_bulk self statistics=[Statistic.Count, Statistic.Sum] =
     Statistic.running_bulk self statistics
 
 ## GROUP Statistics
+   ICON dataframe_map_column
    Assigns a rank to each value of data, dealing with equal values according to
    the method.
 
@@ -350,8 +384,8 @@ check_if_empty count ~action = if count == 0 then Number.nan else action
 empty_value statistic = case statistic of
     Statistic.Count -> 0
     Statistic.Sum -> 0
-    Statistic.Minimum -> Error.throw Empty_Error
-    Statistic.Maximum -> Error.throw Empty_Error
+    Statistic.Minimum -> Error.throw (Empty_Error.Error Vector)
+    Statistic.Maximum -> Error.throw (Empty_Error.Error Vector)
     _ -> Number.nan
 
 ## PRIVATE

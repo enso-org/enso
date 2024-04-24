@@ -609,6 +609,52 @@
   join operations.][8849]
 - [Attach a warning when Nothing is used as a value in a comparison or `is_in`
   `Filter_Condition`.][8865]
+- [Added `File_By_Line` type allowing processing a file line by line. New faster
+  JSON parser based off Jackson.][8719]
+- [Implemented `Table.replace` for the in-memory backend.][8935]
+- [Allow removing rows using a Filter_Condition.][8861]
+- [Added `Table.to_xml`.][8979]
+- [Implemented Write support for `S3_File`.][8921]
+- [Implemented `Table.replace` for the database backend.][8986]
+- [Separate `Group_By` from `columns` into new argument on `aggregate`.][9027]
+- [Allow `copy_to` and `move_to` to work between local and S3 files.][9054]
+- [Adjusted expression handling and new `Simple_Expression` type.][9128]
+- [Allow reading Data Links configured locally or in the Cloud.][9215]
+- [Allow using `enso://` paths in `Data.read` and other places.][9225]
+- [Update the XML methods and add more capabilities to document.][9233]
+- [Added `Data.download` and a few other changes.][9249]
+- [Implement Data Links to Postgres (accessing a DB connection or a table
+  directly)][9269]
+- [Added `Xml_Document.write`][9299]
+- [Added `select_by_type` and `remove_by_type` to `Table` and `DB_Table`][9334]
+- [Make File./ only accept Text][9330]
+- [Implemented Excel Data Link][9346]
+- [Added Table.running][9346]
+- [Added Google_Analytics.Read][9239]
+- [Added `Table.from_union` to allow expanding a vector of tables in one
+  step][9343]
+- [Implemented constructors, comparisons, and arithmetic for a `Decimal`
+  type.][9272]
+- [Allow `Table.replace` to take mutiple target columns.][9406]
+- [Initial Snowflake Support - ability to read and query, not a completed
+  dialect yet.][9435]
+- [Make expand_to_rows, expand_column support Rows, Tables, Column data
+  types][9533]
+- [Data Link for `Enso_File`.][9525]
+- [Added `pow`, `remainder`, and `div` to `Decimal`.][9566]
+- [Implemented `.to_integer`, `.to_float`, and `from` conversions for
+  `Decimal`][9462]
+- [Made `Integer.%` consistent across all `Integer` values.][9589]
+- [Added `Decimal.parse` and `.format`.][9637]
+- [Added `Decimal.abs`, `.negate` and `.signum`.][9641]
+- [Added `Decimal.min` and `.max`.][9663]
+- [Added `Decimal.round`.][9672]
+- [Implemented write support for Enso Cloud files.][9686]
+- [Added `Integer.to_decimal` and `Float.to_decimal`.][9716]
+- [Added `Decimal.floor`, `.ceil`, and `.trunc`.][9694]
+- [Added `recursive` option to `File.delete`.][9719]
+- [Added `Vector.build`.][9725]
+- [Added `Table.running` method][9577]
 
 [debug-shortcuts]:
   https://github.com/enso-org/enso/blob/develop/app/gui/docs/product/shortcuts.md#debug
@@ -872,9 +918,48 @@
 [8606]: https://github.com/enso-org/enso/pull/8606
 [8627]: https://github.com/enso-org/enso/pull/8627
 [8691]: https://github.com/enso-org/enso/pull/8691
+[8719]: https://github.com/enso-org/enso/pull/8719
 [8816]: https://github.com/enso-org/enso/pull/8816
 [8849]: https://github.com/enso-org/enso/pull/8849
 [8865]: https://github.com/enso-org/enso/pull/8865
+[8935]: https://github.com/enso-org/enso/pull/8935
+[8861]: https://github.com/enso-org/enso/pull/8861
+[8921]: https://github.com/enso-org/enso/pull/8921
+[8979]: https://github.com/enso-org/enso/pull/8979
+[8986]: https://github.com/enso-org/enso/pull/8986
+[9027]: https://github.com/enso-org/enso/pull/9027
+[9054]: https://github.com/enso-org/enso/pull/9054
+[9128]: https://github.com/enso-org/enso/pull/9128
+[9215]: https://github.com/enso-org/enso/pull/9215
+[9225]: https://github.com/enso-org/enso/pull/9225
+[9233]: https://github.com/enso-org/enso/pull/9233
+[9239]: https://github.com/enso-org/enso/pull/9239
+[9249]: https://github.com/enso-org/enso/pull/9249
+[9269]: https://github.com/enso-org/enso/pull/9269
+[9272]: https://github.com/enso-org/enso/pull/9272
+[9299]: https://github.com/enso-org/enso/pull/9299
+[9330]: https://github.com/enso-org/enso/pull/9330
+[9334]: https://github.com/enso-org/enso/pull/9334
+[9346]: https://github.com/enso-org/enso/pull/9346
+[9382]: https://github.com/enso-org/enso/pull/9382
+[9343]: https://github.com/enso-org/enso/pull/9343
+[9406]: https://github.com/enso-org/enso/pull/9406
+[9435]: https://github.com/enso-org/enso/pull/9435
+[9462]: https://github.com/enso-org/enso/pull/9462
+[9533]: https://github.com/enso-org/enso/pull/9533
+[9525]: https://github.com/enso-org/enso/pull/9525
+[9566]: https://github.com/enso-org/enso/pull/9566
+[9589]: https://github.com/enso-org/enso/pull/9589
+[9637]: https://github.com/enso-org/enso/pull/9637
+[9641]: https://github.com/enso-org/enso/pull/9641
+[9663]: https://github.com/enso-org/enso/pull/9663
+[9672]: https://github.com/enso-org/enso/pull/9672
+[9686]: https://github.com/enso-org/enso/pull/9686
+[9694]: https://github.com/enso-org/enso/pull/9694
+[9716]: https://github.com/enso-org/enso/pull/9716
+[9719]: https://github.com/enso-org/enso/pull/9719
+[9725]: https://github.com/enso-org/enso/pull/9725
+[9577]: https://github.com/enso-org/enso/pull/9577
 
 #### Enso Compiler
 
@@ -1031,6 +1116,12 @@
 - [DataflowError.withoutTrace doesn't store stacktrace][8608]
 - [Derive --in-project from --run source location][8775]
 - [Binary operator resolution based on that value][8779]
+- [Add run_google_report method][8907]
+- [Execute and debug individual Enso files in VSCode extension][8923]
+- [Check type of `self` when calling a method using the static syntax][8867]
+- [Autoscoped constructors][9190]
+- [Allow Oracle GraalVM JDK][9322]
+- [`Table.join` can access its `right` argument][9410]
 
 [3227]: https://github.com/enso-org/enso/pull/3227
 [3248]: https://github.com/enso-org/enso/pull/3248
@@ -1186,6 +1277,12 @@
 [8608]: https://github.com/enso-org/enso/pull/8608
 [8775]: https://github.com/enso-org/enso/pull/8775
 [8779]: https://github.com/enso-org/enso/pull/8779
+[8907]: https://github.com/enso-org/enso/pull/8907
+[8923]: https://github.com/enso-org/enso/pull/8923
+[8867]: https://github.com/enso-org/enso/pull/8867
+[9190]: https://github.com/enso-org/enso/pull/9190
+[9322]: https://github.com/enso-org/enso/pull/9322
+[9410]: https://github.com/enso-org/enso/pull/9410
 
 # Enso 2.0.0-alpha.18 (2021-10-12)
 

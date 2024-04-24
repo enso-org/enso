@@ -4,45 +4,62 @@ import * as React from 'react'
 import SortAscendingIcon from 'enso-assets/sort_ascending.svg'
 import TimeIcon from 'enso-assets/time.svg'
 
-import * as sorting from '#/utilities/sorting'
+import * as textProvider from '#/providers/TextProvider'
 
+import * as aria from '#/components/aria'
 import type * as column from '#/components/dashboard/column'
 import * as columnUtils from '#/components/dashboard/column/columnUtils'
 import SvgMask from '#/components/SvgMask'
+import UnstyledButton from '#/components/UnstyledButton'
+
+import * as sorting from '#/utilities/sorting'
 
 /** A heading for the "Modified" column. */
 export default function ModifiedColumnHeading(props: column.AssetColumnHeadingProps): JSX.Element {
   const { state } = props
-  const { sortColumn, setSortColumn, sortDirection, setSortDirection } = state
-  const [isHovered, setIsHovered] = React.useState(false)
-  const isSortActive = sortColumn === columnUtils.Column.modified && sortDirection != null
+  const { sortInfo, setSortInfo, hideColumn } = state
+  const { getText } = textProvider.useText()
+  const isSortActive = sortInfo?.field === columnUtils.Column.modified
+  const isDescending = sortInfo?.direction === sorting.SortDirection.descending
+
   return (
-    <div
-      className="flex items-center cursor-pointer gap-2"
-      onMouseEnter={() => {
-        setIsHovered(true)
-      }}
-      onMouseLeave={() => {
-        setIsHovered(false)
-      }}
-      onClick={event => {
-        event.stopPropagation()
-        if (sortColumn === columnUtils.Column.modified) {
-          setSortDirection(sorting.NEXT_SORT_DIRECTION[sortDirection ?? 'null'])
+    <UnstyledButton
+      aria-label={
+        !isSortActive
+          ? getText('sortByModificationDate')
+          : isDescending
+            ? getText('stopSortingByModificationDate')
+            : getText('sortByModificationDateDescending')
+      }
+      className="group flex h-drive-table-heading w-full cursor-pointer items-center gap-icon-with-text"
+      onPress={() => {
+        const nextDirection = isSortActive
+          ? sorting.nextSortDirection(sortInfo.direction)
+          : sorting.SortDirection.ascending
+        if (nextDirection == null) {
+          setSortInfo(null)
         } else {
-          setSortColumn(columnUtils.Column.modified)
-          setSortDirection(sorting.SortDirection.ascending)
+          setSortInfo({ field: columnUtils.Column.modified, direction: nextDirection })
         }
       }}
     >
-      <SvgMask src={TimeIcon} className="h-4 w-4" />
-      <span className="leading-144.5 h-6 py-0.5">
-        {columnUtils.COLUMN_NAME[columnUtils.Column.modified]}
-      </span>
-      <img
-        src={isSortActive ? columnUtils.SORT_ICON[sortDirection] : SortAscendingIcon}
-        className={isSortActive ? '' : isHovered ? 'opacity-50' : 'opacity-0'}
+      <SvgMask
+        src={TimeIcon}
+        className="size-icon"
+        title={getText('modifiedColumnHide')}
+        onClick={event => {
+          event.stopPropagation()
+          hideColumn(columnUtils.Column.modified)
+        }}
       />
-    </div>
+      <aria.Text className="text-header">{getText('modifiedColumnName')}</aria.Text>
+      <img
+        alt={isDescending ? getText('sortDescending') : getText('sortAscending')}
+        src={SortAscendingIcon}
+        className={`transition-all duration-arrow ${
+          isSortActive ? 'selectable active' : 'transparent group-hover:selectable'
+        } ${isDescending ? 'rotate-180' : ''}`}
+      />
+    </UnstyledButton>
   )
 }

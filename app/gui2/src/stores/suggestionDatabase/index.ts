@@ -2,7 +2,7 @@ import { useProjectStore } from '@/stores/project'
 import { entryQn, type SuggestionEntry, type SuggestionId } from '@/stores/suggestionDatabase/entry'
 import { applyUpdates, entryFromLs } from '@/stores/suggestionDatabase/lsUpdate'
 import { ReactiveDb, ReactiveIndex } from '@/util/database/reactiveDb'
-import { AsyncQueue, rpcWithRetries } from '@/util/net'
+import { AsyncQueue } from '@/util/net'
 import {
   normalizeQualifiedName,
   qnJoin,
@@ -13,6 +13,7 @@ import {
 import { defineStore } from 'pinia'
 import { LanguageServer } from 'shared/languageServer'
 import type { MethodPointer } from 'shared/languageServerTypes'
+import { exponentialBackoff } from 'shared/util/net'
 import { markRaw, ref, type Ref } from 'vue'
 
 export class SuggestionDb extends ReactiveDb<SuggestionId, SuggestionEntry> {
@@ -25,6 +26,7 @@ export class SuggestionDb extends ReactiveDb<SuggestionId, SuggestionEntry> {
     }
     return []
   })
+  conflictingNames = new ReactiveIndex(this, (id, entry) => [[entry.name, id]])
 
   getEntryByQualifiedName(name: QualifiedName): SuggestionEntry | undefined {
     const [id] = this.nameToId.lookup(name)
@@ -71,10 +73,13 @@ class Synchronizer {
     public groups: Ref<Group[]>,
   ) {
     const projectStore = useProjectStore()
-    const initState = projectStore.lsRpcConnection.then(async (lsRpc) => {
-      await rpcWithRetries(() =>
-        lsRpc.acquireCapability('search/receivesSuggestionsDatabaseUpdates', {}),
-      )
+    const lsRpc = projectStore.lsRpcConnection
+    const initState = exponentialBackoff(() =>
+      lsRpc.acquireCapability('search/receivesSuggestionsDatabaseUpdates', {}),
+    ).then((capability) => {
+      if (!capability.ok) {
+        capability.error.log('Will not receive database updates')
+      }
       this.setupUpdateHandler(lsRpc)
       this.loadGroups(lsRpc, projectStore.firstExecution)
       return Synchronizer.loadDatabase(entries, lsRpc, groups.value)
@@ -88,8 +93,14 @@ class Synchronizer {
     lsRpc: LanguageServer,
     groups: Group[],
   ): Promise<{ currentVersion: number }> {
-    const initialDb = await lsRpc.getSuggestionsDatabase()
-    for (const lsEntry of initialDb.entries) {
+    const initialDb = await exponentialBackoff(() => lsRpc.getSuggestionsDatabase())
+    if (!initialDb.ok) {
+      initialDb.error.log(
+        'Cannot load initial suggestion database. Continuing with empty suggestion database',
+      )
+      return { currentVersion: 0 }
+    }
+    for (const lsEntry of initialDb.value.entries) {
       const entry = entryFromLs(lsEntry.suggestion, groups)
       if (!entry.ok) {
         entry.error.log()
@@ -98,7 +109,7 @@ class Synchronizer {
         entries.set(lsEntry.id, entry.value)
       }
     }
-    return { currentVersion: initialDb.currentVersion }
+    return { currentVersion: initialDb.value.currentVersion }
   }
 
   private setupUpdateHandler(lsRpc: LanguageServer) {
@@ -131,8 +142,12 @@ class Synchronizer {
   private async loadGroups(lsRpc: LanguageServer, firstExecution: Promise<unknown>) {
     this.queue.pushTask(async ({ currentVersion }) => {
       await firstExecution
-      const groups = await lsRpc.getComponentGroups()
-      this.groups.value = groups.componentGroups.map(
+      const groups = await exponentialBackoff(() => lsRpc.getComponentGroups())
+      if (!groups.ok) {
+        groups.error.log('Cannot read component groups. Continuing without gruops.')
+        return { currentVersion }
+      }
+      this.groups.value = groups.value.componentGroups.map(
         (group): Group => ({
           name: group.name,
           ...(group.color ? { color: group.color } : {}),

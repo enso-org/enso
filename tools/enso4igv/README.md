@@ -22,9 +22,26 @@ following two extensions in the system:
 
 ![Installed VSCode extensions](https://user-images.githubusercontent.com/26887752/274904239-ae1ad4cc-e2ec-4c5b-bca0-c7d7189c6885.png)
 
-## Using & Debugging
+## Debugging a Single Enso File
 
-Once installation is over let's continue with choosing _File/Open Folder..._ and
+Open any `.enso` files. Click left editor gutter to place breakpoints. Then
+choose _Run/Start Debugging_. If asked, choose _debug with_ **Java+** (Enso is
+Java virtual machine friendly). A prompt appears asking for path to `bin/enso`
+binary:
+
+![Select enso executable](https://github.com/enso-org/enso/assets/26887752/4e1d0666-634d-4fb8-bf61-6dbf765311e8)
+
+Locate `bin/enso` executable in the Enso engine download. If binding from source
+code, the executable is located at root of
+[Enso repository](https://github.com/enso-org/enso/) in
+`./built-distribution/enso-engine-*/enso-*/bin/enso`. The `.enso` file gets
+executed and output is printed in the area below editor:
+
+![Executed](https://github.com/enso-org/enso/assets/26887752/2165a04f-bc0a-4b62-9ad7-e74e354e6937)
+
+## Workspace Debugging
+
+To work with all Enso code base continue with choosing _File/Open Folder..._ and
 opening root of [Enso Git Repository](http://github.com/enso-org/enso)
 (presumably already built with
 [sbt buildEngineDistribution](https://github.com/enso-org/enso/blob/develop/docs/CONTRIBUTING.md#running-enso)).
@@ -42,6 +59,17 @@ It is now possible to place breakpoints into the `Vector_Spec.enso` file. Let's
 place one on line 120:
 
 ![Breakpoint](https://github.com/enso-org/enso/assets/26887752/b6ae4725-49ef-439f-b900-3e08724e3748)
+
+To debug the `test/Base_Tests/src/Data/Vector_Spec.enso` file with the root of
+Enso repository opened in the VSCode workspace, choose preconfigured _Launch
+Enso File_ debug configuration before _Run/Start Debugging_.:
+
+![Launch Enso File in a Project](https://github.com/enso-org/enso/assets/26887752/3680aab2-bf99-41d2-ada7-491d6040f8d2)
+
+The rest of the workflow remains the same as in case of individual (without any
+project )`.enso` file case.
+
+## Attach Debugger to a Process
 
 Let's do a bit of debugging. Select _"Listen to 5005"_ debug configuration:
 

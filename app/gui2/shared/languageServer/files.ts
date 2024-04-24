@@ -1,12 +1,15 @@
-import { type LanguageServer } from 'shared/languageServer'
-import type { FileSystemObject, Path } from 'shared/languageServerTypes'
+import { type LanguageServer } from '../languageServer'
+import type { FileSystemObject, Path } from '../languageServerTypes'
+import { Err, Ok, type Result } from '../util/data/result'
 
 export async function walkFs(
   ls: LanguageServer,
   path: Path,
   cb: (type: FileSystemObject['type'], path: Path) => void,
-) {
-  for (const file of (await ls.listFiles(path)).paths) {
+): Promise<Result<void>> {
+  const files = await ls.listFiles(path)
+  if (!files.ok) return files
+  for (const file of files.value.paths) {
     const filePath: Path = {
       rootId: file.path.rootId,
       segments: [...file.path.segments, file.name],
@@ -26,8 +29,9 @@ export async function walkFs(
       }
       default: {
         const unexpected: never = file
-        throw new Error('Unexpected object: ' + JSON.stringify(unexpected))
+        return Err('Unexpected object: ' + JSON.stringify(unexpected))
       }
     }
   }
+  return Ok()
 }

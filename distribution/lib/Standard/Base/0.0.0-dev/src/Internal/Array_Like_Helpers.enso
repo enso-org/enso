@@ -2,44 +2,62 @@ private
 
 import project.Any.Any
 import project.Data.Array.Array
+import project.Data.Array_Proxy.Array_Proxy
+import project.Data.List.List
+import project.Data.Map.Map
 import project.Data.Maybe.Maybe
 import project.Data.Numbers.Integer
+import project.Data.Pair.Pair
+import project.Data.Range.Range
 import project.Data.Vector.Map_Error
 import project.Data.Vector.No_Wrap
 import project.Data.Vector.Vector
 import project.Error.Error
 import project.Errors.Common.Additional_Warnings
+import project.Errors.Common.Index_Out_Of_Bounds
+import project.Errors.Illegal_Argument.Illegal_Argument
 import project.Errors.Problem_Behavior.Problem_Behavior
 import project.Errors.Unimplemented.Unimplemented
 import project.Nothing.Nothing
+import project.Random.Random
 import project.Runtime
 import project.Runtime.Ref.Ref
 import project.Warning.Warning
 from project.Data.Boolean import Boolean, False, True
+from project.Data.Filter_Condition import unify_condition_or_predicate, unify_condition_predicate_or_element
+from project.Data.Index_Sub_Range import drop_helper, Index_Sub_Range, take_helper
+from project.Data.Ordering import Comparable
+from project.Data.Range.Extensions import all
 
-## PRIVATE
 new_array_proxy_builtin : Integer -> (Integer -> Any) -> Array
 new_array_proxy_builtin length at = @Builtin_Method "Array_Like_Helpers.new_array_proxy_builtin"
 
-## PRIVATE
 new_vector_builder : Integer -> Any
 new_vector_builder capacity = @Builtin_Method "Array_Like_Helpers.new_vector_builder"
 
-## PRIVATE
 length : (Array | Vector) -> Integer
 length array_like = @Builtin_Method "Array_Like_Helpers.length"
 
-## PRIVATE
 at : (Array | Vector) -> Integer -> Any
 at array_like index = @Builtin_Method "Array_Like_Helpers.at"
 
-## PRIVATE
 vector_to_array : (Vector | Array) -> Array
 vector_to_array array_like = @Builtin_Method "Array_Like_Helpers.vector_to_array"
 
-## PRIVATE
 vector_from_function_primitive : Integer -> (Integer -> Any) -> Vector Any
 vector_from_function_primitive length constructor = @Builtin_Method "Array_Like_Helpers.vector_from_function"
+
+flatten : (Vector | Array) -> Vector
+flatten array_like = @Builtin_Method "Array_Like_Helpers.flatten"
+
+insert_builtin : (Vector | Array) -> Integer -> (Vector | Array) -> Vector
+insert_builtin vector at items = @Builtin_Method "Array_Like_Helpers.insert_builtin"
+
+remove_builtin : (Vector | Array) -> Integer -> Vector
+remove_builtin vector at = @Builtin_Method "Array_Like_Helpers.remove_builtin"
+
+slice : (Vector | Array) -> Integer -> Integer -> Vector
+slice vector start end = @Builtin_Method "Array_Like_Helpers.slice"
 
 ## PRIVATE
    Construct a Vector by mapping a function over 0..length-1.
@@ -92,3 +110,241 @@ vector_from_function length function on_problems=Problem_Behavior.Report_Error =
    The maximum number of warnings attached to result values in
    `vector_from_function`.
 MAX_MAP_WARNINGS = 10
+
+## PRIVATE
+   Creates a new vector where for each range, a corresponding section of the
+   source vector is added to the result.
+
+   Assumes that the ranges have been already bounds-checked (for example by
+   passing them through `resolve_ranges`).
+slice_ranges vector ranges =
+    if ranges.length == 0 then [] else
+        if ranges.length != 1 then slice_many_ranges vector ranges else
+            case ranges.first of
+                _ : Integer -> [vector.at ranges.first]
+                Range.Between start end step -> case step == 1 of
+                    True -> vector.slice start end
+                    False -> slice_many_ranges vector ranges
+
+## PRIVATE
+   See `slice_ranges`.
+slice_many_ranges vector ranges =
+    new_length = ranges.fold 0 acc-> descriptor-> case descriptor of
+        _ : Integer -> acc+1
+        _ : Range -> acc+descriptor.length
+    builder = Vector.new_builder new_length
+    ranges.each descriptor-> case descriptor of
+        _ : Integer ->
+            builder.append (vector.at descriptor)
+        Range.Between start end step -> case step == 1 of
+            True ->
+                builder.append_vector_range vector start end
+            False ->
+                descriptor.each ix->
+                    builder.append (vector.at ix)
+    builder.to_vector
+
+check_start_valid start length function =
+    used_start = if start < 0 then start + length else start
+    if used_start < 0 || used_start > length then Error.throw (Index_Out_Of_Bounds.Error start length+1) else
+        function used_start
+
+sort vector order on by on_incomparable =
+    comps = case on == Nothing of
+        True -> vector.map it-> Comparable.from it
+        False -> vector.map it-> Comparable.from (on it)
+    compare_funcs = comps.map (it-> it.compare)
+    vector.sort_builtin order.to_sign comps compare_funcs by on on_incomparable.to_number
+
+distinct vector on =
+    builder = Vector.new_builder
+    result = vector.fold Map.empty existing->
+        item->
+            key = on item
+            if (existing.get key False) then existing else
+                builder.append item
+                existing.insert key True
+    if result.is_error then result else builder.to_vector
+
+take vector range = case range of
+    ## We are using a specialized implementation for `take Sample`, because
+       the default implementation (which needs to be generic for any
+       collection) generates a random set of indices and then selects these
+       indices, but we can sample the vector directly.
+    Index_Sub_Range.Sample count seed ->
+        rng = Random.new_generator seed
+        rng.items vector count
+    _ ->
+        take_helper vector.length (vector.at _) vector.slice (slice_ranges vector) range
+
+drop vector range =
+    drop_helper vector.length (vector.at _) vector.slice (slice_ranges vector) range
+
+get vector index ~if_missing =
+    len = vector.length
+    if index < -len || index >= len then if_missing else
+        vector.at index
+
+insert vector at item =
+    self_len = vector.length
+    used_index = if at < 0 then self_len + at else at
+    if used_index < 0 || used_index > self_len then Error.throw (Index_Out_Of_Bounds.Error at self_len+1) else
+        if used_index == self_len then vector + [item] else
+            if used_index == 0 then [item] + vector else
+                insert_builtin vector used_index [item]
+
+remove vector at =
+    self_len = vector.length
+    used_index = if at < 0 then self_len + at else at
+    if used_index >= self_len || used_index < 0 then Error.throw (Index_Out_Of_Bounds.Error at self_len) else
+        remove_builtin vector used_index
+
+index_of vector condition start =
+    self_len = vector.length
+    check_start_valid start self_len used_start->
+        predicate = unify_condition_predicate_or_element condition
+        used_start.up_to vector.length . find if_missing=Nothing (i-> predicate (vector.at i))
+
+last_index_of vector condition start =
+    self_len = vector.length
+    if self_len == 0 && (start==0 || start==-1) then Nothing else
+        check_start_valid start self_len used_start->
+            predicate = unify_condition_predicate_or_element condition
+            used_start.down_to -1 . find if_missing=Nothing (i-> predicate (vector.at i))
+
+any vector condition =
+    predicate = unify_condition_or_predicate condition
+    0.up_to vector.length . any (idx -> (predicate (vector.at idx)))
+
+all vector condition =
+    predicate = unify_condition_or_predicate condition
+    vector.any (predicate >> .not) . not
+
+plus vector that:(Vector | Array) = case that of
+    _ : Vector -> insert_builtin vector vector.length that
+    _ : Array -> plus vector (Vector.from_polyglot_array that)
+
+find vector condition start ~if_missing =
+    predicate = unify_condition_or_predicate condition
+    self_len = vector.length
+    check_start_valid start self_len used_start->
+        found = used_start.up_to self_len . find (idx -> (predicate (vector.at idx)))
+        if found.is_nothing then if_missing else vector.at found
+
+transpose vec_of_vecs =
+    if vec_of_vecs.is_empty then [] else
+        length = vec_of_vecs.length
+        first_subvector_length = vec_of_vecs.at 0 . length
+        check_same_length vec_of_vecs <|
+            inner i = Vector.from_polyglot_array (Array_Proxy.new length j-> ((vec_of_vecs.at j).at i))
+            proxy = Array_Proxy.new first_subvector_length inner
+            Vector.from_polyglot_array proxy
+
+map vector function on_problems =
+    vector_from_function vector.length (function << vector.at) on_problems
+
+map_with_index vector function on_problems =
+    vector_from_function vector.length (i-> function i (vector.at i)) on_problems
+
+flat_map vector function on_problems =
+    vector.map function on_problems . flatten
+
+fold vector init function =
+    f = acc -> ix -> function acc (vector.at ix)
+    0.up_to vector.length . fold init f
+
+fold_with_index vector init function =
+    f = acc -> ix -> function acc ix (vector.at ix)
+    0.up_to vector.length . fold init f
+
+reduce vector function ~if_empty =
+    len = vector.length
+    case len of
+        0 -> if_empty
+        1 -> vector.at 0
+        _ ->
+            fold_function current idx =
+                if idx == len then current else
+                    @Tail_Call fold_function (function current (vector.at idx)) (idx + 1)
+            fold_function (vector.at 0) 1
+
+running_fold vector init function =
+    wrapped builder value =
+        current = if builder.length == 0 then init else builder.last
+        builder.append (function current value)
+    built = vector.fold (Vector.new_builder vector.length) wrapped
+    built.to_vector
+
+pad vector n elem =
+    if vector.length >= n then vector else
+        vector + (Vector.fill n-vector.length elem)
+
+each vector f =
+    0.up_to vector.length . each ix->
+        f (vector.at ix)
+
+each_with_index vector f =
+    0.up_to vector.length . each ix->
+        f ix (vector.at ix)
+
+reverse vector = Vector.new vector.length (i -> vector.at (vector.length - (1 + i)))
+
+to_list vector =
+    vector.reverse.fold List.Nil acc-> elem-> List.Cons elem acc
+
+short_display_text vector max_entries =
+    if max_entries < 1 then Error.throw <| Illegal_Argument.Error "The `max_entries` parameter must be positive." else
+        prefix = vector.take (Index_Sub_Range.First max_entries)
+        if prefix.length == vector.length then vector.to_text else
+            remaining_count = vector.length - prefix.length
+            remaining_text = if remaining_count == 1 then "and 1 more element" else
+                "and " + remaining_count.to_text + " more elements"
+            prefix.map .to_text . join ", " "[" " "+remaining_text+"]"
+
+join vector separator prefix suffix =
+    if vector.is_empty then prefix+suffix else
+        if vector.length == 1 then prefix + vector.at 0 + suffix else
+            prefix + vector.at 0 + (1.up_to vector.length . fold "" acc-> i-> acc + separator + vector.at i) + suffix
+
+partition vector condition =
+    predicate = unify_condition_or_predicate condition
+    pair = vector.fold (Pair.new Vector.new_builder Vector.new_builder) acc-> elem->
+        case predicate elem of
+            True ->
+                Pair.new (acc.first.append elem) acc.second
+            False ->
+                Pair.new acc.first (acc.second.append elem)
+    pair.map .to_vector
+
+partition_with_index vector predicate =
+    pair = vector.fold_with_index (Pair.new Vector.new_builder Vector.new_builder) acc-> ix-> elem->
+        case predicate ix elem of
+            True -> Pair.new (acc.first.append elem) acc.second
+            False -> Pair.new acc.first (acc.second.append elem)
+    pair.map .to_vector
+
+filter vector filter =
+    predicate = unify_condition_or_predicate filter
+    builder = vector.fold Vector.new_builder builder-> elem->
+        if predicate elem then builder.append elem else builder
+    builder.to_vector
+
+filter_with_index vector predicate =
+    builder = vector.fold_with_index Vector.new_builder builder-> ix-> elem->
+        if predicate ix elem then builder.append elem else builder
+    builder.to_vector
+
+## PRIVATE
+   Check that all vectors have the same length and return an informative message
+   if they don't.
+
+   Compares all vectors to the first one and reports the first one that differs.
+check_same_length : Vector (Vector Any) -> Any -> Any ! Illegal_Argument
+check_same_length vecs ~action =
+    if vecs.is_empty then action else
+        num_vecs = vecs.length
+        len = vecs.at 0 . length
+        go i = if i >= num_vecs then action else
+            if vecs.at i . length == len then @Tail_Call go (i+1) else
+                Error.throw (Illegal_Argument.Error "Transpose requires that all vectors be the same length, but rows 0 and "+i.to_text+" had different lengths ("+len.to_text+" and "+(vecs.at i . length).to_text+")")
+        go 0

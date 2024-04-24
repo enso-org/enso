@@ -1,24 +1,28 @@
 <script setup lang="ts">
+import ExtendedMenu from '@/components/ExtendedMenu.vue'
 import NavBar from '@/components/NavBar.vue'
 import type { BreadcrumbItem } from '@/components/NavBreadcrumbs.vue'
-import ProjectTitle from '@/components/ProjectTitle.vue'
+import RecordControl from '@/components/RecordControl.vue'
 import { injectGuiConfig } from '@/providers/guiConfig'
 import { computed } from 'vue'
 
 const props = defineProps<{
-  title: string
   breadcrumbs: BreadcrumbItem[]
-  modes: string[]
-  mode: string
+  recordMode: boolean
   allowNavigationLeft: boolean
   allowNavigationRight: boolean
+  zoomLevel: number
 }>()
 const emit = defineEmits<{
-  execute: []
+  recordOnce: []
   back: []
   forward: []
   breadcrumbClick: [index: number]
-  'update:mode': [mode: string]
+  'update:recordMode': [enabled: boolean]
+  fitToAllClicked: []
+  zoomIn: []
+  zoomOut: []
+  toggleCodeEditor: []
 }>()
 
 const LEFT_PADDING_PX = 11
@@ -35,12 +39,10 @@ const barStyle = computed(() => {
 
 <template>
   <div class="TopBar" :style="barStyle">
-    <ProjectTitle
-      :title="props.title"
-      :modes="props.modes"
-      :mode="props.mode"
-      @update:mode="emit('update:mode', $event)"
-      @execute="emit('execute')"
+    <RecordControl
+      :recordMode="props.recordMode"
+      @update:recordMode="emit('update:recordMode', $event)"
+      @recordOnce="emit('recordOnce')"
     />
     <NavBar
       :breadcrumbs="props.breadcrumbs"
@@ -49,6 +51,13 @@ const barStyle = computed(() => {
       @back="emit('back')"
       @forward="emit('forward')"
       @breadcrumbClick="emit('breadcrumbClick', $event)"
+    />
+    <ExtendedMenu
+      :zoomLevel="props.zoomLevel"
+      @fitToAllClicked="emit('fitToAllClicked')"
+      @zoomIn="emit('zoomIn')"
+      @zoomOut="emit('zoomOut')"
+      @toggleCodeEditor="emit('toggleCodeEditor')"
     />
   </div>
 </template>
@@ -61,5 +70,6 @@ const barStyle = computed(() => {
   top: 9px;
   /* FIXME[sb]: Get correct offset from dashboard. */
   left: 9px;
+  width: 100%;
 }
 </style>

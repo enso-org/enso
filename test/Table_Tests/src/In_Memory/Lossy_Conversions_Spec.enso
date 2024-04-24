@@ -3,14 +3,14 @@ from Standard.Base import all
 from Standard.Table import all
 from Standard.Table.Errors import Loss_Of_Integer_Precision
 
-from Standard.Test_New import all
+from Standard.Test import all
 
 from project.Util import all
 
-main =
+main filter=Nothing =
     suite = Test.build suite_builder->
         add_specs suite_builder
-    suite.run_with_filter
+    suite.run_with_filter filter
 
 
 add_specs suite_builder =

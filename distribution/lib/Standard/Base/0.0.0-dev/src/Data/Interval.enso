@@ -49,6 +49,7 @@ type Interval_Type
 ## A type representing an interval over real numbers.
 type Interval
     ## GROUP DateTime
+       ICON date_and_time
        Creates an interval.
 
        Arguments:
@@ -101,6 +102,7 @@ type Interval
     Between (start : Bound) (end : Bound)
 
     ## GROUP Logical
+       ICON preparation
        Checks if the interval contains `that`.
 
        Arguments:
@@ -123,6 +125,7 @@ type Interval
                 Bound.Inclusive e -> that <= e
 
     ## GROUP Logical
+       ICON metadata
        Check if this interval is empty.
 
        > Example
@@ -141,6 +144,7 @@ type Interval
             Bound.Inclusive e -> s > e
 
     ## GROUP Logical
+       ICON metadata
        Check if this interval is not empty.
 
        > Example

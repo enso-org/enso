@@ -1,16 +1,18 @@
 package org.enso.projectmanager
 
-import java.util.UUID
 import akka.testkit.TestDuration
 import io.circe.Json
 import io.circe.syntax._
 import io.circe.literal._
-import org.enso.editions.SemVerJson._
+import org.enso.semver.SemVerJson._
 import io.circe.parser.parse
-import nl.gn0s1s.bump.SemVer
 import org.enso.projectmanager.data.{MissingComponentAction, Socket}
 import org.enso.projectmanager.protocol.ProjectManagementApi.ProjectOpen
+import org.enso.semver.SemVer
 import org.scalactic.source.Position
+
+import java.io.File
+import java.util.UUID
 
 import scala.concurrent.duration._
 
@@ -20,7 +22,8 @@ trait ProjectManagementOps { this: BaseServerSpec =>
     name: String,
     nameSuffix: Option[Int]                                = None,
     projectTemplate: Option[String]                        = None,
-    missingComponentAction: Option[MissingComponentAction] = None
+    missingComponentAction: Option[MissingComponentAction] = None,
+    projectsDirectory: Option[File]                        = None
   )(implicit client: WsTestClient, pos: Position): UUID = {
     val fields = Seq("name" -> name.asJson) ++
       missingComponentAction
@@ -28,6 +31,9 @@ trait ProjectManagementOps { this: BaseServerSpec =>
         .toSeq ++
       projectTemplate
         .map(t => "projectTemplate" -> t.asJson)
+        .toSeq ++
+      projectsDirectory
+        .map(d => "projectsDirectory" -> d.toString.asJson)
         .toSeq
 
     val params  = Json.obj(fields: _*)
@@ -41,13 +47,14 @@ trait ProjectManagementOps { this: BaseServerSpec =>
     client.send(request)
     val projectId   = getGeneratedUUID
     val projectName = nameSuffix.fold(name)(n => s"${name}_$n")
-    client.expectJson(json"""
+    client.fuzzyExpectJson(json"""
           {
             "jsonrpc":"2.0",
             "id":0,
             "result": {
               "projectId": $projectId,
-              "projectName": $projectName
+              "projectName": $projectName,
+              "projectNormalizedName": "*"
             }
           }
           """)
@@ -55,15 +62,19 @@ trait ProjectManagementOps { this: BaseServerSpec =>
   }
 
   def openProject(
-    projectId: UUID
+    projectId: UUID,
+    projectsDirectory: Option[File] = None
   )(implicit client: WsTestClient, pos: Position): Socket = {
+    val fields = Seq("projectId" -> projectId.asJson) ++
+      projectsDirectory
+        .map(d => "projectsDirectory" -> d.toString.asJson)
+        .toSeq
+    val params = Json.obj(fields: _*)
     client.send(json"""
             { "jsonrpc": "2.0",
               "method": "project/open",
               "id": 0,
-              "params": {
-                "projectId": $projectId
-              }
+              "params": $params
             }
           """)
     val Right(openReply) = parse(client.expectMessage(20.seconds.dilated))
@@ -136,15 +147,20 @@ trait ProjectManagementOps { this: BaseServerSpec =>
   }
 
   def deleteProject(
-    projectId: UUID
+    projectId: UUID,
+    projectsDirectory: Option[File] = None
   )(implicit client: WsTestClient, pos: Position): Unit = {
+    val fields = Seq("projectId" -> projectId.asJson) ++
+      projectsDirectory
+        .map(d => "projectsDirectory" -> d.toString.asJson)
+        .toSeq
+    val params = Json.obj(fields: _*)
+
     client.send(json"""
             { "jsonrpc": "2.0",
               "method": "project/delete",
               "id": 0,
-              "params": {
-                "projectId": $projectId
-              }
+              "params": $params
             }
           """)
     client.expectJson(json"""

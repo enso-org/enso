@@ -2,11 +2,15 @@
  * currently authenticated user's session. */
 import * as React from 'react'
 
-import type * as cognito from '#/authentication/cognito'
-import * as listen from '#/authentication/listen'
+import * as reactQuery from '@tanstack/react-query'
+
 import * as asyncEffectHooks from '#/hooks/asyncEffectHooks'
 import * as refreshHooks from '#/hooks/refreshHooks'
+
 import * as errorModule from '#/utilities/error'
+
+import type * as cognito from '#/authentication/cognito'
+import * as listen from '#/authentication/listen'
 
 // ======================
 // === SessionContext ===
@@ -14,17 +18,13 @@ import * as errorModule from '#/utilities/error'
 
 /** State contained in a {@link SessionContext}. */
 interface SessionContextType {
-  session: cognito.UserSession | null
+  readonly session: cognito.UserSession | null
   /** Set `initialized` to false. Must be called when logging out. */
-  deinitializeSession: () => void
-  onError: (callback: (error: Error) => void) => () => void
+  readonly deinitializeSession: () => void
+  readonly onSessionError: (callback: (error: Error) => void) => () => void
 }
 
-/** See `AuthContext` for safety details. */
-const SessionContext = React.createContext<SessionContextType>(
-  // eslint-disable-next-line no-restricted-syntax
-  {} as SessionContextType
-)
+const SessionContext = React.createContext<SessionContextType | null>(null)
 
 // =======================
 // === SessionProvider ===
@@ -32,7 +32,7 @@ const SessionContext = React.createContext<SessionContextType>(
 
 /** Props for a {@link SessionProvider}. */
 export interface SessionProviderProps {
-  /** URL that the content of the app is served at, by Electron.
+  /** The URL that the content of the app is served at, by Electron.
    *
    * This **must** be the actual page that the content is served at, otherwise the OAuth flow will
    * not work and will redirect the user to a blank page. If this is the correct URL, no redirect
@@ -43,97 +43,119 @@ export interface SessionProviderProps {
    * obtained by reading the window location at the time that authentication is instantiated. This
    * is guaranteed to be the correct location, since authentication is instantiated when the content
    * is initially served. */
-  mainPageUrl: URL
-  registerAuthEventListener: listen.ListenFunction
-  userSession: () => Promise<cognito.UserSession | null>
-  children: React.ReactNode
+  readonly mainPageUrl: URL
+  readonly registerAuthEventListener: listen.ListenFunction | null
+  readonly userSession: (() => Promise<cognito.UserSession | null>) | null
+  readonly refreshUserSession: (() => Promise<void>) | null
+  readonly children: React.ReactNode
 }
+
+const FIVE_MINUTES_MS = 300_000
+const SIX_HOURS_MS = 21_600_000
 
 /** A React provider for the session of the authenticated user. */
 export default function SessionProvider(props: SessionProviderProps) {
-  const { mainPageUrl, children, userSession, registerAuthEventListener } = props
+  const { mainPageUrl, children, userSession, registerAuthEventListener, refreshUserSession } =
+    props
   const [refresh, doRefresh] = refreshHooks.useRefresh()
-  /** Flag used to avoid rendering child components until we've fetched the user's session at least
-   * once. Avoids flash of the login screen when the user is already logged in. */
   const [initialized, setInitialized] = React.useState(false)
   const errorCallbacks = React.useRef(new Set<(error: Error) => void>())
 
   /** Returns a function to unregister the listener. */
-  const onError = React.useCallback((callback: (error: Error) => void) => {
+  const onSessionError = React.useCallback((callback: (error: Error) => void) => {
     errorCallbacks.current.add(callback)
     return () => {
       errorCallbacks.current.delete(callback)
     }
   }, [])
 
-  /** Register an async effect that will fetch the user's session whenever the `refresh` state is
-   * set. This is useful when a user has just logged in (as their cached credentials are
-   * out of date, so this will update them). */
+  // Register an async effect that will fetch the user's session whenever the `refresh` state is
+  // set. This is useful when a user has just logged in (as their cached credentials are
+  // out of date, so this will update them).
   const session = asyncEffectHooks.useAsyncEffect(
     null,
     async () => {
-      try {
-        const innerSession = await userSession()
+      if (userSession == null) {
         setInitialized(true)
-        return innerSession
-      } catch (error) {
-        if (error instanceof Error) {
-          for (const listener of errorCallbacks.current) {
-            listener(error)
+        return null
+      } else {
+        try {
+          const innerSession = await userSession()
+          setInitialized(true)
+          return innerSession
+        } catch (error) {
+          if (error instanceof Error) {
+            for (const listener of errorCallbacks.current) {
+              listener(error)
+            }
           }
+          throw error
         }
-        throw error
       }
     },
     [refresh]
   )
 
-  /** Register an effect that will listen for authentication events. When the event occurs, we
-   * will refresh or clear the user's session, forcing a re-render of the page with the new
-   * session.
-   *
-   * For example, if a user clicks the signout button, this will clear the user's session, which
-   * means we want the login screen to render (which is a child of this provider). */
-  React.useEffect(() => {
-    const listener: listen.ListenerCallback = event => {
-      switch (event) {
-        case listen.AuthEvent.signIn:
-        case listen.AuthEvent.signOut: {
-          doRefresh()
-          break
-        }
-        case listen.AuthEvent.customOAuthState:
-        case listen.AuthEvent.cognitoHostedUi: {
-          /** AWS Amplify doesn't provide a way to set the redirect URL for the OAuth flow, so
-           * we have to hack it by replacing the URL in the browser's history. This is done
-           * because otherwise the user will be redirected to a URL like `enso://auth`, which
-           * will not work.
-           *
-           * See:
-           * https://github.com/aws-amplify/amplify-js/issues/3391#issuecomment-756473970 */
-          history.replaceState({}, '', mainPageUrl)
-          doRefresh()
-          break
-        }
-        default: {
-          throw new errorModule.UnreachableCaseError(event)
-        }
-      }
-    }
+  const timeUntilRefresh = session
+    ? // If the session has not expired, we should refresh it when it is 5 minutes from expiring.
+      new Date(session.expireAt).getTime() - Date.now() - FIVE_MINUTES_MS
+    : Infinity
 
-    const cancel = registerAuthEventListener(listener)
-    /** Return the `cancel` function from the `useEffect`, which ensures that the listener is
-     * cleaned up between renders. This must be done because the `useEffect` will be called
-     * multiple times during the lifetime of the component. */
-    return cancel
-  }, [doRefresh, registerAuthEventListener, mainPageUrl])
+  reactQuery.useQuery({
+    queryKey: ['userSession'],
+    queryFn: refreshUserSession
+      ? () =>
+          refreshUserSession()
+            .then(() => {
+              doRefresh()
+            })
+            .then(() => null)
+      : reactQuery.skipToken,
+    refetchOnWindowFocus: true,
+    refetchIntervalInBackground: true,
+    refetchInterval: timeUntilRefresh < SIX_HOURS_MS ? timeUntilRefresh : SIX_HOURS_MS,
+  })
+
+  // Register an effect that will listen for authentication events. When the event occurs, we
+  // will refresh or clear the user's session, forcing a re-render of the page with the new
+  // session.
+  //
+  // For example, if a user clicks the "sign out" button, this will clear the user's session, which
+  // means the login screen (which is a child of this provider) should render.
+  React.useEffect(
+    () =>
+      registerAuthEventListener?.(event => {
+        switch (event) {
+          case listen.AuthEvent.signIn:
+          case listen.AuthEvent.signOut: {
+            doRefresh()
+            break
+          }
+          case listen.AuthEvent.customOAuthState:
+          case listen.AuthEvent.cognitoHostedUi: {
+            // AWS Amplify doesn't provide a way to set the redirect URL for the OAuth flow, so
+            // we have to hack it by replacing the URL in the browser's history. This is done
+            // because otherwise the user will be redirected to a URL like `enso://auth`, which
+            // will not work.
+            // See https://github.com/aws-amplify/amplify-js/issues/3391#issuecomment-756473970
+            history.replaceState({}, '', mainPageUrl)
+            doRefresh()
+            break
+          }
+          default: {
+            throw new errorModule.UnreachableCaseError(event)
+          }
+        }
+      }),
+    [doRefresh, registerAuthEventListener, mainPageUrl]
+  )
 
   const deinitializeSession = () => {
     setInitialized(false)
   }
 
   return (
-    <SessionContext.Provider value={{ session, deinitializeSession, onError }}>
+    <SessionContext.Provider value={{ session, deinitializeSession, onSessionError }}>
       {initialized && children}
     </SessionContext.Provider>
   )
@@ -143,7 +165,13 @@ export default function SessionProvider(props: SessionProviderProps) {
 // === useSession ===
 // ==================
 
-/** React context hook returning the session of the authenticated user. */
+/** React context hook returning the session of the authenticated user.
+ * @throws {Error} when used outside a {@link SessionProvider}. */
 export function useSession() {
-  return React.useContext(SessionContext)
+  const context = React.useContext(SessionContext)
+  if (context == null) {
+    throw new Error('`useSession` can only be used inside an `<SessionProvider />`.')
+  } else {
+    return context
+  }
 }

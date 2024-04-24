@@ -4,11 +4,10 @@ import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Database.Extensions.Upload_Database_Table
 import Standard.Database.Extensions.Upload_In_Memory_Table
 
-from Standard.Table import Sort_Column
-from Standard.Table.Data.Aggregate_Column.Aggregate_Column import Group_By, Sum
+from Standard.Table import Sort_Column, Aggregate_Column
 from Standard.Table.Errors import Missing_Input_Columns, Duplicate_Output_Column_Names, Floating_Point_Equality
 
-from Standard.Test_New import all
+from Standard.Test import all
 
 
 import project.Database.Helpers.Name_Generator
@@ -16,7 +15,7 @@ from project.Common_Table_Operations.Util import run_default_backend
 
 polyglot java import java.lang.Long as Java_Long
 
-main = run_default_backend add_specs
+main filter=Nothing = run_default_backend add_specs filter
 
 type Data
     Value ~connection
@@ -118,7 +117,7 @@ add_specs suite_builder setup =
 
         group_builder.specify "Should work correctly after aggregation" <|
             t0 = table_builder [["X", ["a", "b", "a", "c"]], ["Y", [1, 2, 4, 8]]]
-            t1 = t0.aggregate [Group_By "X", Sum "Y"]
+            t1 = t0.aggregate ["X"] [Aggregate_Column.Sum "Y"]
 
             t2 = t1.order_by "X" . add_row_number
             t2.at "X" . to_vector . should_equal ['a', 'b', 'c']

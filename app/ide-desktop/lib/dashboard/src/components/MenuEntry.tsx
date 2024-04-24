@@ -1,11 +1,65 @@
 /** @file An entry in a menu. */
 import * as React from 'react'
 
-import * as shortcutsProvider from '#/providers/ShortcutsProvider'
-import * as shortcutsModule from '#/utilities/shortcuts'
+import BlankIcon from 'enso-assets/blank.svg'
 
-import KeyboardShortcut from '#/components/dashboard/keyboardShortcut'
+import type * as text from '#/text'
+
+import type * as inputBindings from '#/configurations/inputBindings'
+
+import * as inputBindingsProvider from '#/providers/InputBindingsProvider'
+import * as textProvider from '#/providers/TextProvider'
+
+import * as aria from '#/components/aria'
+import KeyboardShortcut from '#/components/dashboard/KeyboardShortcut'
 import SvgMask from '#/components/SvgMask'
+import UnstyledButton from '#/components/UnstyledButton'
+
+import * as sanitizedEventTargets from '#/utilities/sanitizedEventTargets'
+
+// =================
+// === Constants ===
+// =================
+
+const ACTION_TO_TEXT_ID: Readonly<Record<inputBindings.DashboardBindingKey, text.TextId>> = {
+  settings: 'settingsShortcut',
+  open: 'openShortcut',
+  run: 'runShortcut',
+  close: 'closeShortcut',
+  uploadToCloud: 'uploadToCloudShortcut',
+  rename: 'renameShortcut',
+  edit: 'editShortcut',
+  editDescription: 'editDescriptionShortcut',
+  snapshot: 'snapshotShortcut',
+  delete: 'deleteShortcut',
+  undelete: 'undeleteShortcut',
+  share: 'shareShortcut',
+  label: 'labelShortcut',
+  duplicate: 'duplicateShortcut',
+  copy: 'copyShortcut',
+  cut: 'cutShortcut',
+  paste: 'pasteShortcut',
+  download: 'downloadShortcut',
+  uploadFiles: 'uploadFilesShortcut',
+  uploadProjects: 'uploadProjectsShortcut',
+  newProject: 'newProjectShortcut',
+  newFolder: 'newFolderShortcut',
+  newDataLink: 'newDataLinkShortcut',
+  newSecret: 'newSecretShortcut',
+  useInNewProject: 'useInNewProjectShortcut',
+  closeModal: 'closeModalShortcut',
+  cancelEditName: 'cancelEditNameShortcut',
+  signIn: 'signInShortcut',
+  signOut: 'signOutShortcut',
+  downloadApp: 'downloadAppShortcut',
+  cancelCut: 'cancelCutShortcut',
+  editName: 'editNameShortcut',
+  selectAdditional: 'selectAdditionalShortcut',
+  selectRange: 'selectRangeShortcut',
+  selectAdditionalRange: 'selectAdditionalRangeShortcut',
+  goBack: 'goBackShortcut',
+  goForward: 'goForwardShortcut',
+} satisfies { [Key in inputBindings.DashboardBindingKey]: `${Key}Shortcut` }
 
 // =================
 // === MenuEntry ===
@@ -13,54 +67,53 @@ import SvgMask from '#/components/SvgMask'
 
 /** Props for a {@link MenuEntry}. */
 export interface MenuEntryProps {
-  hidden?: boolean
-  action: shortcutsModule.KeyboardAction
+  readonly hidden?: boolean
+  readonly action: inputBindings.DashboardBindingKey
+  /** Overrides the text for the menu entry. */
+  readonly label?: string
   /** When true, the button is not clickable. */
-  disabled?: boolean
-  title?: string
-  paddingClassName?: string
-  doAction: () => void
+  readonly isDisabled?: boolean
+  readonly title?: string
+  readonly isContextMenuEntry?: boolean
+  readonly doAction: () => void
 }
 
 /** An item in a menu. */
 export default function MenuEntry(props: MenuEntryProps) {
-  const { hidden = false, action, disabled = false, title, paddingClassName, doAction } = props
-  const { shortcuts } = shortcutsProvider.useShortcuts()
-  const info = shortcuts.keyboardShortcutInfo[action]
+  const { hidden = false, action, label, isDisabled = false, title } = props
+  const { isContextMenuEntry = false, doAction } = props
+  const { getText } = textProvider.useText()
+  const inputBindings = inputBindingsProvider.useInputBindings()
+  const info = inputBindings.metadata[action]
   React.useEffect(() => {
-    // This is slower than registering every shortcut in the context menu at once.
-    if (!disabled) {
-      return shortcuts.registerKeyboardHandlers({
+    // This is slower (but more convenient) than registering every shortcut in the context menu
+    // at once.
+    if (isDisabled) {
+      return
+    } else {
+      return inputBindings.attach(sanitizedEventTargets.document.body, 'keydown', {
         [action]: doAction,
       })
-    } else {
-      return
     }
-  }, [disabled, shortcuts, action, doAction])
+  }, [isDisabled, inputBindings, action, doAction])
+
   return hidden ? null : (
-    <button
-      disabled={disabled}
-      title={title}
-      className={`flex items-center place-content-between h-8 disabled:bg-transparent rounded-lg text-left disabled:opacity-50 hover:bg-black/10 ${
-        paddingClassName ?? 'px-3 py-1'
-      }`}
-      onClick={event => {
-        event.stopPropagation()
-        doAction()
-      }}
+    <UnstyledButton
+      isDisabled={isDisabled}
+      className="group flex w-full rounded-menu-entry"
+      onPress={doAction}
     >
-      <div className="flex items-center gap-3">
-        <SvgMask
-          style={{
-            width: shortcutsModule.ICON_SIZE_PX,
-            height: shortcutsModule.ICON_SIZE_PX,
-          }}
-          src={info.icon}
-          className={info.colorClass}
-        />
-        {info.name}
+      <div
+        className={`flex h-row grow place-content-between items-center rounded-inherit p-menu-entry text-left selectable group-enabled:active hover:bg-hover-bg disabled:bg-transparent ${
+          isContextMenuEntry ? 'px-context-menu-entry-x' : ''
+        }`}
+      >
+        <div title={title} className="flex items-center gap-menu-entry whitespace-nowrap">
+          <SvgMask src={info.icon ?? BlankIcon} color={info.color} className="size-icon" />
+          <aria.Text slot="label">{label ?? getText(ACTION_TO_TEXT_ID[action])}</aria.Text>
+        </div>
+        <KeyboardShortcut action={action} />
       </div>
-      <KeyboardShortcut action={action} />
-    </button>
+    </UnstyledButton>
   )
 }

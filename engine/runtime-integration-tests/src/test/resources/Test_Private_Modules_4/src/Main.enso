@@ -1,0 +1,4 @@
+export project.Sub
+
+main =
+    42

@@ -184,7 +184,8 @@ public final class Error {
    */
   @CompilerDirectives.TruffleBoundary
   public Atom makeTypeError(Object expected, Object actual, String name) {
-    return typeError.newInstance(expected, actual, Text.create("`" + name + "`"));
+    return typeError.newInstance(
+        expected, actual, Text.create("Expected `" + name + "` to be {exp}, but got {got}"));
   }
 
   /**
@@ -195,8 +196,8 @@ public final class Error {
    * @param comment description of the value that was being checked
    * @return a runtime representation of the error.
    */
-  public Atom makeTypeErrorOfComment(Object expected, Object actual, String comment) {
-    return typeError.newInstance(expected, actual, Text.create(comment));
+  public Atom makeTypeErrorOfComment(Object expected, Object actual, Text comment) {
+    return typeError.newInstance(expected, actual, comment);
   }
 
   /**
