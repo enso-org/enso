@@ -13,7 +13,7 @@ import org.enso.compiler.data.BindingsMap;
 import org.enso.compiler.data.BindingsMap$ModuleReference$Concrete;
 import org.enso.compiler.data.BindingsMap.ResolvedType;
 import org.enso.editions.LibraryName;
-import org.enso.polyglot.CompilationStage;
+import org.enso.common.CompilationStage;
 
 import scala.Option;
 import scala.Tuple2;

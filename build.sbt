@@ -1603,12 +1603,7 @@ lazy val `runtime-test-instruments` =
       )
     )
 
-<<<<<<< HEAD
 lazy val runtime: Project = (project in file("engine/runtime"))
-  .configs(Benchmark)
-=======
-lazy val runtime = (project in file("engine/runtime"))
->>>>>>> origin/develop
   .enablePlugins(JPMSPlugin)
   .settings(
     frgaalJavaCompilerSetting,

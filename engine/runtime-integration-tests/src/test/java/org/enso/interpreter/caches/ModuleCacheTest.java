@@ -4,16 +4,14 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
-<<<<<<< HEAD:engine/runtime/src/test/java/org/enso/interpreter/caches/ModuleCacheTest.java
-import org.enso.common.CompilationStage;
-import org.enso.common.LanguageInfo;
-import org.enso.common.MethodNames;
-=======
 import java.nio.ByteBuffer;
->>>>>>> origin/develop:engine/runtime-integration-tests/src/test/java/org/enso/interpreter/caches/ModuleCacheTest.java
+
 import org.enso.compiler.CompilerTest;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.test.TestBase;
+import org.enso.polyglot.CompilationStage;
+import org.enso.polyglot.LanguageInfo;
+import org.enso.polyglot.MethodNames;
 import org.enso.polyglot.RuntimeOptions;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Source;
