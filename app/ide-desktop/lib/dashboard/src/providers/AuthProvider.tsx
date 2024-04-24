@@ -1,40 +1,117 @@
+;
+
 /** @file Module for authenticating users with AWS Cognito.
  *
  * Provides an `AuthProvider` component that wraps the entire application, and a `useAuth` hook that
  * can be used from any React component to access the currently logged-in user's session data. The
  * hook also provides methods for registering a user, logging in, logging out, etc. */
-import * as React from 'react'
+import * as React from 'react';
 
-import * as sentry from '@sentry/react'
-import isNetworkError from 'is-network-error'
-import * as router from 'react-router-dom'
-import * as toast from 'react-toastify'
 
-import * as detect from 'enso-common/src/detect'
-import * as gtag from 'enso-common/src/gtag'
 
-import * as appUtils from '#/appUtils'
+import * as sentry from '@sentry/react';
+import isNetworkError from 'is-network-error';
+import * as router from 'react-router-dom';
+import * as toast from 'react-toastify';
 
-import * as backendProvider from '#/providers/BackendProvider'
-import * as localStorageProvider from '#/providers/LocalStorageProvider'
-import * as loggerProvider from '#/providers/LoggerProvider'
-import * as sessionProvider from '#/providers/SessionProvider'
-import * as textProvider from '#/providers/TextProvider'
 
-import LoadingScreen from '#/pages/authentication/LoadingScreen'
 
-import * as backendModule from '#/services/Backend'
-import type Backend from '#/services/Backend'
-import LocalBackend from '#/services/LocalBackend'
-import type * as projectManager from '#/services/ProjectManager'
-import RemoteBackend from '#/services/RemoteBackend'
+import * as detect from 'enso-common/src/detect';
+import * as gtag from 'enso-common/src/gtag';
 
-import * as errorModule from '#/utilities/error'
-import HttpClient, * as httpClient from '#/utilities/HttpClient'
-import * as object from '#/utilities/object'
 
-import * as cognitoModule from '#/authentication/cognito'
-import type * as authServiceModule from '#/authentication/service'
+
+import * as appUtils from '#/appUtils';
+
+
+
+import * as backendProvider from '#/providers/BackendProvider';
+import * as localStorageProvider from '#/providers/LocalStorageProvider';
+import * as loggerProvider from '#/providers/LoggerProvider';
+import * as sessionProvider from '#/providers/SessionProvider';
+import * as textProvider from '#/providers/TextProvider';
+
+
+
+import LoadingScreen from '#/pages/authentication/LoadingScreen';
+
+
+
+import * as backendModule from '#/services/Backend';
+import type Backend from '#/services/Backend';
+import LocalBackend from '#/services/LocalBackend';
+import type * as projectManager from '#/services/ProjectManager';
+import RemoteBackend from '#/services/RemoteBackend';
+
+
+
+import * as errorModule from '#/utilities/error';
+import HttpClient, * as httpClient from '#/utilities/HttpClient';
+import * as object from '#/utilities/object';
+
+
+
+import * as cognitoModule from '#/authentication/cognito';
+import type * as authServiceModule from '#/authentication/service';
+
+
+
+
+
+;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 // =================
 // === Constants ===
@@ -243,19 +320,19 @@ export default function AuthProvider(props: AuthProviderProps) {
   gtagEventRef.current = gtagEvent
 
   React.useEffect(() => {
-    const params = {
+    gtag.gtag('set', {
       platform: detect.platform(),
       architecture: detect.architecture(),
-    }
+    })
     const gtagEventCurrent = gtagEventRef.current
-    gtagEventCurrent('open_app', params)
+    gtagEventCurrent('open_app')
     const onBeforeUnload = () => {
-      gtagEventCurrent('close_app', params)
+      gtagEventCurrent('close_app')
     }
     window.addEventListener('beforeunload', onBeforeUnload)
     return () => {
       window.removeEventListener('beforeunload', onBeforeUnload)
-      gtagEventCurrent('close_app', params)
+      gtagEventCurrent('close_app')
     }
   }, [])
 
