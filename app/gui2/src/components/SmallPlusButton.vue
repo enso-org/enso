@@ -24,12 +24,12 @@ function addNode() {
 <template>
   <div
     ref="addNodeButton"
-    class="SmallPlusButton add-node"
-    @click.stop
+    class="SmallPlusButton add-node button"
+    @click.stop="addNode"
     @pointerdown.stop
     @pointerup.stop
   >
-    <SvgIcon name="add" class="icon button" @click.stop="addNode" />
+    <SvgIcon name="add" class="icon" />
   </div>
 </template>
 
@@ -37,21 +37,15 @@ function addNode() {
 .SmallPlusButton {
   width: var(--node-height);
   height: var(--node-height);
-  &:before {
-    content: '';
-    position: absolute;
-    left: 0;
-    top: 0;
-    backdrop-filter: var(--blur-app-bg);
-    background: var(--color-app-bg);
-    border-radius: 16px;
-    width: var(--node-height);
-    height: var(--node-height);
-  }
-  &:hover:before {
+
+  backdrop-filter: var(--blur-app-bg);
+  background: var(--color-app-bg);
+  border-radius: 16px;
+
+  &:hover {
     background: rgb(230, 230, 255);
   }
-  &:active:before {
+  &:active {
     background: rgb(158, 158, 255);
   }
 }
