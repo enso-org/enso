@@ -73,6 +73,9 @@ pub fn install_with_updates(
         info!("Sending update: {update:?}");
         let _ = sender.send(update);
     };
+    let report_progress = |progress| {
+        send(crate::InstallerUpdate::Progress(progress));
+    };
     macro_rules! stage_at {
         ($progress:tt, $($arg:tt)*) => {
             send(crate::InstallerUpdate::Stage(format!($($arg)*)));
@@ -123,16 +126,18 @@ pub fn install_with_updates(
         bytes_extracted += bytes_being_extracted;
         bytes_being_extracted = entry.header().size().unwrap_or(0);
 
-        let files_ratio = files_extracted as f64 / total_files as f64;
-        let bytes_ratio = bytes_extracted as f64 / total_bytes as f64;
-        let progress = extraction_progress_start
-            + extraction_progress_step * (files_ratio + bytes_ratio) / 2.0;
-        send(crate::InstallerUpdate::Progress(progress));
+        let files_ratio = (files_extracted as f64 / total_files as f64).min(1.0);
+        let bytes_ratio = (bytes_extracted as f64 / total_bytes as f64).min(1.0);
+        let extraction_progresss = (files_ratio + bytes_ratio) / 2.0;
+        let progress = extraction_progress_start + extraction_progress_step * extraction_progresss;
+        trace!("files_extracted: {files_extracted}/{total_files}, bytes_extracted: {bytes_extracted}/{total_bytes}, extraction_progresss: {extraction_progresss}, progress: {progress}");
+        report_progress(progress);
         Some(install_location.join(entry.path().ok()?))
     };
     ide_ci::archive::tar::extract_files_sync(archive, to_our_path)?;
+    let post_extraction_progress = extraction_progress_start + extraction_progress_step;
 
-    stage_at!(0.75, "Registering file types.");
+    stage_at!(post_extraction_progress, "Registering file types.");
     register_file_associations(&config.file_associations)?;
 
     for protocol in &config.url_protocols {

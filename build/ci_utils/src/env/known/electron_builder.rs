@@ -52,6 +52,8 @@ define_env_var! {
 
 
 /// CSC (Code Signing Certificate) link.
+///
+/// This models the way Electron Builder uses to recieve the certificate file.
 #[derive(Clone, Debug)]
 pub enum CscLink {
     /// Local path to the certificate file.

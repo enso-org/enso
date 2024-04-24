@@ -104,6 +104,35 @@ pub mod env {
     }
 }
 
+/// Name of the directory with the unpacked Electron package.
+///
+/// The directory is created by the `electron-builder` utility in the output directory.
+///
+/// # Panics
+/// This function panics if the provided OS and architecture combination is not supported.
+pub fn unpacked_dir(output_path: impl AsRef<Path>, os: OS, arch: Arch) -> PathBuf {
+    let segment_name = match (os, arch) {
+        (OS::Linux, Arch::X86_64) => "linux-unpacked",
+        (OS::MacOS, Arch::AArch64) => "mac-arm64",
+        (OS::MacOS, Arch::X86_64) => "mac",
+        (OS::Windows, Arch::X86_64) => "win-unpacked",
+        _ => todo!("{os}-{arch} combination is not supported"),
+    };
+    output_path.as_ref().join(segment_name)
+}
+
+/// Computes the SHA-256 checksum of a file and writes it to a file.
+///
+/// This is a Rust equivalent of the `app/ide-desktop/lib/client/tasks/computeHashes.mjs`.
+pub fn store_sha256_checksum(file: impl AsRef<Path>, checksum_file: impl AsRef<Path>) -> Result {
+    let mut hasher = sha2::Sha256::new();
+    let mut file = ide_ci::fs::open(&file)?;
+    std::io::copy(&mut file, &mut hasher)?;
+    let hash = hasher.finalize();
+    ide_ci::fs::write(&checksum_file, format!("{hash:x}"))?;
+    Ok(())
+}
+
 #[derive(Clone, Debug)]
 pub struct IconsArtifacts(pub PathBuf);
 
@@ -153,12 +182,6 @@ impl AsRef<OsStr> for Workspaces {
             Workspaces::Enso => OsStr::new("enso"),
         }
     }
-}
-
-#[derive(Clone, Copy, Debug)]
-pub enum Command {
-    Build,
-    Watch,
 }
 
 pub fn target_os_flag(os: OS) -> Result<&'static str> {
@@ -331,7 +354,7 @@ impl IdeDesktop {
             .run_ok()
             .await?;
 
-        // On Windows we build our own installer.
+        // On Windows we build our own installer by invoking `enso_install_config::bundler::bundle`.
         if TARGET_OS == OS::Windows {
             let code_signing_certificate = WindowsSigningCredentials::new_from_env()
                 .await
@@ -349,20 +372,14 @@ impl IdeDesktop {
 
             let config = enso_install_config::bundler::Config {
                 electron_builder_config:  electron_config,
-                unpacked_electron_bundle: output_path.join("win-unpacked"),
+                unpacked_electron_bundle: unpacked_dir(&output_path, target_os, TARGET_ARCH),
                 repo_root:                self.repo_root.to_path_buf(),
                 output_file:              ide_artifacts.image.clone(),
                 intermediate_dir:         output_path.to_path_buf(),
                 certificate:              code_signing_certificate,
             };
             enso_install_config::bundler::bundle(config).await?;
-
-            // Generate SHA256 checksum.
-            let mut hasher = sha2::Sha256::new();
-            let mut file = ide_ci::fs::open(&ide_artifacts.image)?;
-            std::io::copy(&mut file, &mut hasher)?;
-            let hash = hasher.finalize();
-            ide_ci::fs::write(&ide_artifacts.image_checksum, format!("{:x}", hash))?;
+            store_sha256_checksum(&ide_artifacts.image, &ide_artifacts.image_checksum)?;
         }
         Ok(())
     }

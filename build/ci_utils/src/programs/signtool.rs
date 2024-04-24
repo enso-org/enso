@@ -1,6 +1,7 @@
 use crate::prelude::*;
 
-
+/// The RFC3161-compliant timestamp server used for signing.
+pub const TIMESTAMP_SERVER: &str = "http://timestamp.digicert.com";
 
 /// The hash algorithms that can be used for signing.
 #[derive(Clone, Copy, Debug)]
@@ -83,6 +84,8 @@ pub async fn sign(
         .arg(password.as_ref())
         .arg("/fd")
         .arg(HashAlgorithm::SHA256)
+        .arg("/tr")
+        .arg(TIMESTAMP_SERVER)
         .arg(exe.as_ref())
         .run_ok()
         .await
