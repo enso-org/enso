@@ -7,6 +7,7 @@ import type { GraphDb, MethodCallInfo } from '@/stores/graph/graphDatabase'
 import type { SuggestionEntry, SuggestionEntryArgument } from '@/stores/suggestionDatabase/entry'
 import { Ast } from '@/util/ast'
 import { findLastIndex, tryGetIndex } from '@/util/data/array'
+import type { ExternalId } from 'shared/yjsModel'
 import { assert } from './assert'
 
 export const enum ApplicationKind {
@@ -396,6 +397,57 @@ export class ArgumentApplication {
       value: this.appTree,
       [ArgumentApplicationKey]: this,
     }
+  }
+
+  static collectArgumentNamesAndUuids(
+    value: InterpretedCall,
+    mci: MethodCallInfo | undefined,
+  ): Record<string, ExternalId> {
+    const namesAndExternalIds: Array<{
+      name: string | null
+      uuid: ExternalId | undefined
+    }> = []
+
+    const args = ArgumentApplication.FromInterpretedWithInfo(value)
+    if (args instanceof ArgumentApplication) {
+      for (const n of args.iterApplications()) {
+        const a = n.argument
+        if (a instanceof ArgumentPlaceholder) {
+          // pass thru
+        } else {
+          namesAndExternalIds.push({
+            name: a.argInfo?.name.toString() ?? null,
+            uuid: a.ast.externalId,
+          })
+        }
+      }
+    } else {
+      // don't process
+    }
+    namesAndExternalIds.reverse()
+
+    const argsExternalIds: Record<string, ExternalId> = {}
+    let index = 'self' === mci?.suggestion.arguments[0]?.name ? 1 : 0
+    for (const nameAndExtenalId of namesAndExternalIds) {
+      const notApplied = mci?.methodCall.notAppliedArguments ?? []
+      while (notApplied.indexOf(index) != -1) {
+        index++
+      }
+      if (nameAndExtenalId.uuid) {
+        argsExternalIds['' + index] = nameAndExtenalId.uuid
+      }
+      const suggestedName: string | undefined = mci?.suggestion.arguments[index]?.name
+      if (suggestedName && nameAndExtenalId.uuid) {
+        argsExternalIds[suggestedName] = nameAndExtenalId.uuid
+      }
+      index++
+    }
+    for (const nameAndExternalId of namesAndExternalIds) {
+      if (nameAndExternalId.name && nameAndExternalId.uuid) {
+        argsExternalIds[nameAndExternalId.name] = nameAndExternalId.uuid
+      }
+    }
+    return argsExternalIds
   }
 }
 

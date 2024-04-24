@@ -158,13 +158,16 @@ make_join_kind_selector display=Display.Always =
 ## PRIVATE
    Make a join condition selector.
 make_join_condition_selector : Table -> Display -> Widget
-make_join_condition_selector table display=Display.Always =
-    col_names_selector = make_column_name_selector table display=Display.Always
+make_join_condition_selector table display=Display.Always cache=Nothing =
+    right = cache.if_not_nothing <| cache "right"
+    self_selector = make_column_name_selector table display=Display.Always
+    right_selector = if right.is_nothing then Text_Input else
+        make_column_name_selector right display=Display.Always
 
     fqn = Meta.get_qualified_type_name Join_Condition
-    equals = Option "Equals" fqn+".Equals" [["left", col_names_selector], ["right", Text_Input]]
-    equals_ci = Option "Equals (Ignore Case)" fqn+".Equals_Ignore_Case" [["left", col_names_selector], ["right", Text_Input]]
-    between = Option "Between" fqn+".Between" [["left", col_names_selector], ["right_lower", Text_Input], ["right_upper", Text_Input]]
+    equals = Option "Equals" fqn+".Equals" [["left", self_selector], ["right", right_selector]]
+    equals_ci = Option "Equals (Ignore Case)" fqn+".Equals_Ignore_Case" [["left", self_selector], ["right", right_selector]]
+    between = Option "Between" fqn+".Between" [["left", self_selector], ["right_lower", right_selector], ["right_upper", right_selector]]
     names=[equals, equals_ci, between]
 
     item_editor = Single_Choice display=display values=names

@@ -423,6 +423,12 @@ type_spec suite_builder name alter = suite_builder.group name group_builder->
         result = Vector.build builder->
             vec.each builder.append
         result . should_equal vec
+    
+    group_builder.specify "dataflow errors in .each should become panics" <|
+        do_write x =
+            Error.throw "Failed to write "+x.to_text
+        vec = alter [1, 2, 3, 4]
+        Test.expect_panic_with (vec.each do_write) Text
 
     group_builder.specify "should accept changed elements" <|
         vec = alter <| Vector.build builder->

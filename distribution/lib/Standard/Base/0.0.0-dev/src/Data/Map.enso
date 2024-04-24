@@ -366,8 +366,11 @@ type Map key value
        - function: The function to apply to each value in the map, taking a
          value and returning anything.
 
-       This method does not return the results, so is only useful for performing
+       This method does not return the results, so it is only useful for performing
        computations with side-effects.
+
+       If the function returns a dataflow error, the error is converted to a
+       panic and thrown immediately stopping further processing.
 
        > Example
          Printing each value in the map.
@@ -389,7 +392,7 @@ type Map key value
        - function: The function to apply to each key-value pair in the map,
          taking a key and a value and returning anything.
 
-       This method does not return the results, so is only useful for performing
+       This method does not return the results, so it is only useful for performing
        computations with side-effects.
 
        > Example
