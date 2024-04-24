@@ -223,7 +223,7 @@ type Vector a
            values that are added to the builder. Will be fixed in
            https://github.com/enso-org/enso/issues/9733.
         case function builder of
-            _ -> builder.if_not_error builder.to_vector
+            result -> result.if_not_error builder.to_vector
 
     ## PRIVATE
        ADVANCED
