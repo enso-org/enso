@@ -12,6 +12,7 @@ ide-ci = { path = "../../ci_utils" }
 serde = { workspace = true }
 serde_json = { workspace = true }
 tempfile = "3.2.0"
+walkdir = { workspace = true }
 
 [lints]
 workspace = true
