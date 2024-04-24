@@ -2,7 +2,6 @@ package org.enso.interpreter.test.instrument
 
 import org.enso.interpreter.runtime.`type`.ConstantsGen
 import org.enso.common.LanguageInfo
-import org.enso.polyglot.{RuntimeOptions, RuntimeServerInfo, Suggestion}
 import org.enso.polyglot.{
   ExportedSymbol,
   ModuleExports,

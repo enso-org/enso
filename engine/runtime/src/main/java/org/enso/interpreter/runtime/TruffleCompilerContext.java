@@ -24,7 +24,10 @@ import org.enso.compiler.Compiler;
 import org.enso.compiler.PackageRepository;
 import org.enso.compiler.Passes;
 import org.enso.compiler.context.CompilerContext;
+import org.enso.compiler.context.ExportsBuilder;
+import org.enso.compiler.context.ExportsMap;
 import org.enso.compiler.context.FreshNameSupply;
+import org.enso.compiler.context.SuggestionBuilder;
 import org.enso.compiler.core.ir.Diagnostic;
 import org.enso.compiler.core.ir.IdentifiedLocation;
 import org.enso.compiler.data.BindingsMap;
@@ -35,10 +38,15 @@ import org.enso.interpreter.caches.Cache;
 import org.enso.interpreter.caches.ImportExportCache;
 import org.enso.interpreter.caches.ImportExportCache.MapToBindings;
 import org.enso.interpreter.caches.ModuleCache;
+import org.enso.interpreter.caches.SuggestionsCache;
+import org.enso.interpreter.runtime.type.Types;
 import org.enso.interpreter.runtime.util.DiagnosticFormatter;
 import org.enso.pkg.Package;
 import org.enso.pkg.QualifiedName;
-import scala.Option;
+import org.enso.polyglot.Suggestion;
+import org.enso.polyglot.data.TypeGraph;
+import scala.collection.immutable.ListSet;
+import scala.collection.immutable.SetOps;
 
 final class TruffleCompilerContext implements CompilerContext {
 
@@ -46,14 +54,11 @@ final class TruffleCompilerContext implements CompilerContext {
   private final TruffleLogger loggerCompiler;
   private final TruffleLogger loggerSerializationManager;
   private final RuntimeStubsGenerator stubsGenerator;
-  private final Mock serializationManager;
   private final SerializationPool serializationPool;
 
   TruffleCompilerContext(EnsoContext context) {
     this.context = context;
     this.loggerCompiler = context.getLogger(Compiler.class);
-    //    this.loggerSerializationManager = context.getLogger(Mock.class);
-    this.serializationManager = null;
     this.loggerSerializationManager = context.getLogger(SerializationPool.class);
     this.serializationPool = new SerializationPool(this);
     this.stubsGenerator = new RuntimeStubsGenerator(context.getBuiltins());
@@ -170,6 +175,11 @@ final class TruffleCompilerContext implements CompilerContext {
   @Override
   public CompilationStage getCompilationStage(CompilerContext.Module module) {
     return module.getCompilationStage();
+  }
+
+  @Override
+  public TypeGraph getTypeHierarchy() {
+    return Types.getTypeHierarchy();
   }
 
   @Override
@@ -506,8 +516,8 @@ final class TruffleCompilerContext implements CompilerContext {
           new ImportExportCache.CachedBindings(
               libraryName, new ImportExportCache.MapToBindings(map), snd);
       try {
-        boolean result = true;
-        // TBD: doSerializeLibrarySuggestions(compiler, libraryName, useGlobalCacheLocations);
+        boolean result =
+            doSerializeLibrarySuggestions(compiler, libraryName, useGlobalCacheLocations);
         try {
           var cache = ImportExportCache.create(libraryName);
           var file = saveCache(cache, bindingsCache, useGlobalCacheLocations);
@@ -526,82 +536,86 @@ final class TruffleCompilerContext implements CompilerContext {
     };
   }
 
-  /*
-    private boolean doSerializeLibrarySuggestions(
-        Compiler compiler, LibraryName libraryName, boolean useGlobalCacheLocations) {
-      var exportsBuilder = new ExportsBuilder();
-      var exportsMap = new ExportsMap();
-      var suggestions = new java.util.ArrayList<Suggestion>();
+  private boolean doSerializeLibrarySuggestions(
+      Compiler compiler, LibraryName libraryName, boolean useGlobalCacheLocations)
+      throws IOException {
+    var exportsBuilder = new ExportsBuilder();
+    var exportsMap = new ExportsMap();
+    var suggestions = new java.util.ArrayList<Suggestion>();
 
-      try {
-        var libraryModules = context.getPackageRepository().getModulesForLibrary(libraryName);
-        libraryModules
-            .flatMap(
-                module -> {
-                  var sug =
-                      SuggestionBuilder.apply(module, compiler)
-                          .build(module.getName(), module.getIr())
-                          .toVector()
-                          .filter(Suggestion::isGlobal);
-                  var exports = exportsBuilder.build(module.getName(), module.getIr());
-                  exportsMap.addAll(module.getName(), exports);
-                  return sug;
-                })
-            .map(
-                suggestion -> {
-                  var reexport = exportsMap.get(suggestion).map(s -> s.toString());
-                  return suggestion.withReexport(reexport);
-                })
-            .foreach(suggestions::add);
+    try {
+      var libraryModules = context.getPackageRepository().getModulesForLibrary(libraryName);
+      libraryModules
+          .flatMap(
+              module -> {
+                var sug =
+                    SuggestionBuilder.apply(module, compiler)
+                        .build(module.getName(), module.getIr())
+                        .toVector()
+                        .filter(Suggestion::isGlobal);
+                var exports = exportsBuilder.build(module.getName(), module.getIr());
+                exportsMap.addAll(module.getName(), exports);
+                return sug;
+              })
+          .map(
+              suggestion -> {
+                scala.collection.immutable.Set<String> identity = new ListSet<>();
+                var reexports =
+                    exportsMap.get(suggestion).stream()
+                        .map(QualifiedName::toString)
+                        .reduce(identity, SetOps::incl, SetOps::union);
+                return suggestion.withReexports(reexports);
+              })
+          .foreach(suggestions::add);
 
-        var cachedSuggestions =
-            new SuggestionsCache.CachedSuggestions(
-                libraryName,
-                new SuggestionsCache.Suggestions(suggestions),
-                context
-                    .getPackageRepository()
-                    .getPackageForLibraryJava(libraryName)
-                    .map(p -> p.listSourcesJava()));
-        var cache = SuggestionsCache.create(libraryName);
-        var file = saveCache(cache, cachedSuggestions, useGlobalCacheLocations);
-        return file.isPresent();
-      } catch (Throwable e) {
-        logSerializationManager(
-            Level.SEVERE,
-            "Serialization of suggestions `" + libraryName + "` failed: " + e.getMessage() + "`",
-            e);
-        e.printStackTrace();
-        throw e;
-      }
+      var cachedSuggestions =
+          new SuggestionsCache.CachedSuggestions(
+              libraryName,
+              new SuggestionsCache.Suggestions(suggestions),
+              context
+                  .getPackageRepository()
+                  .getPackageForLibraryJava(libraryName)
+                  .map(Package::listSourcesJava));
+      var cache = SuggestionsCache.create(libraryName);
+      var file = saveCache(cache, cachedSuggestions, useGlobalCacheLocations);
+      return file != null;
+    } catch (Throwable e) {
+      logSerializationManager(
+          e instanceof IOException ? Level.WARNING : Level.SEVERE,
+          "Serialization of suggestions `" + libraryName + "` failed: " + e.getMessage() + "`",
+          e);
+      throw e;
     }
+  }
 
-    public scala.Option<List<org.enso.polyglot.Suggestion>> deserializeSuggestions(
-        LibraryName libraryName) throws InterruptedException {
-      var option = deserializeSuggestionsImpl(libraryName);
-      return option.map(s -> s.getSuggestions());
-    }
+  @Override
+  public scala.Option<List<org.enso.polyglot.Suggestion>> deserializeSuggestions(
+      LibraryName libraryName) throws InterruptedException {
+    var option = deserializeSuggestionsImpl(libraryName);
+    return option.map(s -> s.getSuggestions());
+  }
 
-    private scala.Option<SuggestionsCache.CachedSuggestions> deserializeSuggestionsImpl(
-        LibraryName libraryName) throws InterruptedException {
-      var pool = serializationPool;
-      if (pool.isWaitingForSerialization(toQualifiedName(libraryName))) {
-        pool.abort(toQualifiedName(libraryName));
-        return scala.Option.empty();
+  private scala.Option<SuggestionsCache.CachedSuggestions> deserializeSuggestionsImpl(
+      LibraryName libraryName) throws InterruptedException {
+    var pool = serializationPool;
+    if (pool.isWaitingForSerialization(toQualifiedName(libraryName))) {
+      pool.abort(toQualifiedName(libraryName));
+      return scala.Option.empty();
+    } else {
+      pool.waitWhileSerializing(toQualifiedName(libraryName));
+      var cache = SuggestionsCache.create(libraryName);
+      var loaded = loadCache(cache);
+      if (loaded.isPresent()) {
+        logSerializationManager(Level.FINE, "Restored suggestions for library [{0}].", libraryName);
+        return scala.Option.apply(loaded.get());
       } else {
-        pool.waitWhileSerializing(toQualifiedName(libraryName));
-        var cache = SuggestionsCache.create(libraryName);
-        var loaded = loadCache(cache);
-        if (loaded.isPresent()) {
-          logSerializationManager(Level.FINE, "Restored suggestions for library [{0}].", libraryName);
-          return scala.Option.apply(loaded.get());
-        } else {
-          logSerializationManager(
-              Level.FINE, "Unable to load suggestions for library [{0}].", libraryName);
-          return scala.Option.empty();
-        }
+        logSerializationManager(
+            Level.WARNING, "Unable to load suggestions for library [{0}].", libraryName);
+        return scala.Option.empty();
       }
     }
-  */
+  }
+
   scala.Option<ImportExportCache.CachedBindings> deserializeLibraryBindings(LibraryName libraryName)
       throws InterruptedException {
     var pool = serializationPool;
@@ -825,20 +839,5 @@ final class TruffleCompilerContext implements CompilerContext {
   private static QualifiedName toQualifiedName(LibraryName libraryName) {
     var namespace = cons(libraryName.namespace(), nil());
     return new QualifiedName(namespace, libraryName.name());
-  }
-
-  private static interface Mock {
-    public void shutdown(boolean waitForPendingJobCompletion);
-
-    public Object serializeModule(
-        Compiler compiler,
-        CompilerContext.Module module,
-        boolean useGlobalCacheLocations,
-        boolean b);
-
-    public Option<Boolean> deserialize(Compiler compiler, CompilerContext.Module module);
-
-    public Object serializeLibrary(
-        Compiler compiler, LibraryName libraryName, boolean useGlobalCacheLocations);
   }
 }

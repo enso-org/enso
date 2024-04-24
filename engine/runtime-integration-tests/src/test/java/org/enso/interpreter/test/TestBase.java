@@ -15,15 +15,11 @@ import java.util.Map;
 import java.util.concurrent.Callable;
 import java.util.function.Function;
 import java.util.logging.Level;
+import org.enso.common.LanguageInfo;
 import org.enso.common.MethodNames.Module;
+import org.enso.common.MethodNames.TopScope;
 import org.enso.interpreter.EnsoLanguage;
-<<<<<<< HEAD:engine/runtime/src/test/java/org/enso/interpreter/test/TestBase.java
-=======
 import org.enso.interpreter.runtime.EnsoContext;
-import org.enso.polyglot.LanguageInfo;
-import org.enso.polyglot.MethodNames.Module;
-import org.enso.polyglot.MethodNames.TopScope;
->>>>>>> origin/develop:engine/runtime-integration-tests/src/test/java/org/enso/interpreter/test/TestBase.java
 import org.enso.polyglot.RuntimeOptions;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Language;

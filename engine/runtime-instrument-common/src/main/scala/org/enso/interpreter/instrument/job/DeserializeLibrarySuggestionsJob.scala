@@ -2,11 +2,11 @@ package org.enso.interpreter.instrument.job
 
 import org.enso.editions.LibraryName
 import org.enso.interpreter.instrument.execution.RuntimeContext
-// import org.enso.polyglot.runtime.Runtime.Api
+import org.enso.polyglot.runtime.Runtime.Api
 
 import java.util.logging.Level
 
-// import scala.jdk.CollectionConverters._
+import scala.jdk.CollectionConverters._
 
 /** A job responsible for deserializing suggestions of loaded library.
   *
@@ -32,8 +32,8 @@ final class DeserializeLibrarySuggestionsJob(
       "Deserializing suggestions for library [{}].",
       libraryName
     )
-    /* TBD:
-    ctx.executionService.getContext.getCompiler.context
+    val cc = ctx.executionService.getContext.getCompiler.context
+    cc
       .deserializeSuggestions(libraryName)
       .foreach { cachedSuggestions =>
         ctx.endpoint.sendToClient(
@@ -45,7 +45,6 @@ final class DeserializeLibrarySuggestionsJob(
           )
         )
       }
-     */
   }
 
   override def toString: String =
