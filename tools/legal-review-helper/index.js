@@ -132,11 +132,16 @@ app.post('/rename-package/:report', function (req, res) {
         }
 
         if (fs.existsSync(toPath)) {
-            throw (
-                'The target directory ' +
-                toPath +
-                ' already exists. Please merge the directories manually using your preferred file explorer.'
-            )
+            const isTargetEmpty = fs.readdirSync(toPath).length == 0
+            if (!isTargetEmpty) {
+                throw (
+                    'The target directory ' +
+                    toPath +
+                    ' already exists. Please merge the directories manually using your preferred file explorer.'
+                )
+            }
+
+            fs.rmdirSync(toPath)
         }
 
         fs.renameSync(fromPath, toPath)

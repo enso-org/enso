@@ -144,7 +144,7 @@ function initializeFileButtons() {
 function initializePackageRenameButtons() {
     $('.rename-dependency-config').each(function (index) {
         const entry = $(this)
-        var button = '<button class="auto-rename">Auto-Rename</button>'
+        var button = ' <button class="auto-rename">Auto-Rename</button>'
         entry.append(button)
         entry.children('.auto-rename').on('click', function (ev) {
             const button = $(this)
