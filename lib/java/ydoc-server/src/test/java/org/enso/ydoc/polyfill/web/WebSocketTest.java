@@ -249,6 +249,7 @@ public class WebSocketTest {
       session.send(buffer, last);
     }
 
+    @Override
     public void onPing(WsSession session, BufferData buffer) {
       session.pong(buffer);
     }
