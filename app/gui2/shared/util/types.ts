@@ -4,5 +4,5 @@ export function allKeys<T>(keys: { [P in keyof T]-?: any }): ReadonlySet<string>
   return Object.freeze(new Set(Object.keys(keys)))
 }
 
-/** Static check that type `U` extends type `T`. */
-export function mustExtend<T, U extends T>() {} // eslint-disable-line @typescript-eslint/no-unused-vars
+/** Static check that type `T` extends type `U`. */
+export function mustExtend<T extends U, U>() {} // eslint-disable-line @typescript-eslint/no-unused-vars

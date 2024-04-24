@@ -30,10 +30,10 @@ function isIndependent(
   strategy: GraphIndependentPlacement | GraphAwarePlacement,
 ): strategy is GraphIndependentPlacement {
   if (strategy.type === 'viewport' || strategy.type === 'source') {
-    mustExtend<GraphAwarePlacement, typeof strategy>()
+    mustExtend<typeof strategy, GraphAwarePlacement>()
     return false
   } else {
-    mustExtend<GraphIndependentPlacement, typeof strategy>()
+    mustExtend<typeof strategy, GraphIndependentPlacement>()
     return true
   }
 }
