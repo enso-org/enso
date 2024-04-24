@@ -1,4 +1,5 @@
 {
+  "submit": "Submit",
   "createFolderError": "Could not create new folder",
   "createProjectError": "Could not create new project",
   "createDataLinkError": "Could not create new Data Link",
@@ -563,5 +564,7 @@
   "BankCardLabel": "Bank Card",
   "contactSales": "Contact Sales",
   "contactSalesDescription": "Contact our sales team to learn more about our Enterprise plan.",
-  "ContactSalesButtonLabel": "Contact Us"
+  "ContactSalesButtonLabel": "Contact Us",
+
+  "setOrgNameTitle": "Set your organization name"
 }

@@ -158,6 +158,7 @@ export interface User extends UserInfo {
   readonly profilePicture?: HttpsUrl
   readonly userGroups: UserGroupId[] | null
   readonly removeAt?: dateTime.Rfc3339DateTime | null
+  readonly tier?: Plan
 }
 
 /** A `Directory` returned by `createDirectory`. */

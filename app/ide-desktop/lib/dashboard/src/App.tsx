@@ -74,6 +74,8 @@ import * as errorBoundary from '#/components/ErrorBoundary'
 import * as loader from '#/components/Loader'
 import * as rootComponent from '#/components/Root'
 
+import { SetOrganizationNameModal } from '#/modals/SetOrganizationNameModal'
+
 import type Backend from '#/services/Backend'
 import LocalBackend from '#/services/LocalBackend'
 import * as projectManager from '#/services/ProjectManager'
@@ -368,7 +370,7 @@ function AppRouter(props: AppRouterProps) {
 
   const routes = (
     <router.Routes>
-      <React.Fragment>
+      <>
         {/* Login & registration pages are visible to unauthenticated users. */}
         <router.Route element={<authProvider.GuestLayout />}>
           <router.Route path={appUtils.REGISTRATION_PATH} element={<Registration />} />
@@ -381,30 +383,32 @@ function AppRouter(props: AppRouterProps) {
         {/* Protected pages are visible to authenticated users. */}
         <router.Route element={<authProvider.NotDeletedUserLayout />}>
           <router.Route element={<authProvider.ProtectedLayout />}>
-            <router.Route
-              path={appUtils.DASHBOARD_PATH}
-              element={shouldShowDashboard && <Dashboard {...props} />}
-            />
-            <router.Route
-              path={appUtils.SUBSCRIBE_PATH}
-              element={
-                <errorBoundary.ErrorBoundary>
-                  <React.Suspense fallback={<loader.Loader />}>
-                    <Subscribe />
-                  </React.Suspense>
-                </errorBoundary.ErrorBoundary>
-              }
-            />
-            <router.Route
-              path={appUtils.SUBSCRIBE_SUCCESS_PATH}
-              element={
-                <errorBoundary.ErrorBoundary>
-                  <React.Suspense fallback={<loader.Loader />}>
-                    <SubscribeSuccess />
-                  </React.Suspense>
-                </errorBoundary.ErrorBoundary>
-              }
-            />
+            <router.Route element={<SetOrganizationNameModal />}>
+              <router.Route
+                path={appUtils.DASHBOARD_PATH}
+                element={shouldShowDashboard && <Dashboard {...props} />}
+              />
+              <router.Route
+                path={appUtils.SUBSCRIBE_PATH}
+                element={
+                  <errorBoundary.ErrorBoundary>
+                    <React.Suspense fallback={<loader.Loader />}>
+                      <Subscribe />
+                    </React.Suspense>
+                  </errorBoundary.ErrorBoundary>
+                }
+              />
+              <router.Route
+                path={appUtils.SUBSCRIBE_SUCCESS_PATH}
+                element={
+                  <errorBoundary.ErrorBoundary>
+                    <React.Suspense fallback={<loader.Loader />}>
+                      <SubscribeSuccess />
+                    </React.Suspense>
+                  </errorBoundary.ErrorBoundary>
+                }
+              />
+            </router.Route>
           </router.Route>
         </router.Route>
 
@@ -430,7 +434,7 @@ function AppRouter(props: AppRouterProps) {
 
         {/* 404 page */}
         <router.Route path="*" element={<router.Navigate to="/" replace />} />
-      </React.Fragment>
+      </>
     </router.Routes>
   )
   let result = routes
