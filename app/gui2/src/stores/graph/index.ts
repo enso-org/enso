@@ -1,7 +1,7 @@
 import { usePlacement } from '@/components/ComponentBrowser/placement'
 import type { PortId } from '@/providers/portInfo'
 import type { WidgetUpdate } from '@/providers/widgetRegistry'
-import { GraphDb, asNodeId, type NodeId } from '@/stores/graph/graphDatabase'
+import { GraphDb, type NodeId } from '@/stores/graph/graphDatabase'
 import {
   addImports,
   detectImportConflicts,
@@ -15,13 +15,7 @@ import { useProjectStore } from '@/stores/project'
 import { useSuggestionDbStore } from '@/stores/suggestionDatabase'
 import { assert, bail } from '@/util/assert'
 import { Ast } from '@/util/ast'
-import type {
-  AstId,
-  Module,
-  ModuleUpdate,
-  NodeMetadata,
-  NodeMetadataFields,
-} from '@/util/ast/abstract'
+import type { AstId } from '@/util/ast/abstract'
 import { MutableModule, isIdentifier } from '@/util/ast/abstract'
 import { RawAst, visitRecursive } from '@/util/ast/raw'
 import { partition } from '@/util/data/array'
@@ -125,7 +119,11 @@ export const useGraphStore = defineStore('graph', () => {
   })
 
   let toRaw = new Map<SourceRangeKey, RawAst.Tree.Function>()
-  function handleModuleUpdate(module: Module, moduleChanged: boolean, update: ModuleUpdate) {
+  function handleModuleUpdate(
+    module: Ast.Module,
+    moduleChanged: boolean,
+    update: Ast.ModuleUpdate,
+  ) {
     const root = module.root()
     if (!root) return
     if (moduleRoot.value != root) {
@@ -137,7 +135,7 @@ export const useGraphStore = defineStore('graph', () => {
     // We can cast maps of unknown metadata fields to `NodeMetadata` because all `NodeMetadata` fields are optional.
     const nodeMetadataUpdates = update.metadataUpdated as any as {
       id: AstId
-      changes: NodeMetadata
+      changes: Ast.NodeMetadata
     }[]
     const dirtyNodeSet = new Set(
       (function* () {
@@ -186,7 +184,7 @@ export const useGraphStore = defineStore('graph', () => {
     }
   }
 
-  function methodAstInModule(mod: Module) {
+  function methodAstInModule(mod: Ast.Module) {
     const topLevel = mod.root()
     if (!topLevel) return
     assert(topLevel instanceof Ast.BodyBlock)

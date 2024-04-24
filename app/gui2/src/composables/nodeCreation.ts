@@ -15,6 +15,7 @@ import { Rect } from '@/util/data/rect'
 import { Vec2 } from '@/util/data/vec2'
 import { assertNever } from 'shared/util/assert'
 import { mustExtend } from 'shared/util/types'
+import { toValue, type ComputedRef, type MaybeRefOrGetter } from 'vue'
 
 export type NodeCreation = ReturnType<typeof useNodeCreation>
 
@@ -45,19 +46,24 @@ export interface NodeCreationOptions<Placement extends PlacementStrategy = Place
   requiredImports?: RequiredImport[] | undefined
 }
 
+type ToValue<T> = MaybeRefOrGetter<T> | ComputedRef<T>
+
 export function useNodeCreation(
-  graphNavigator: GraphNavigator,
+  viewport: ToValue<GraphNavigator['viewport']>,
+  sceneMousePos: ToValue<GraphNavigator['sceneMousePos']>,
   onCreated: (nodes: Set<NodeId>) => void,
 ) {
   const graphStore = useGraphStore()
 
+  function tryMouse() {
+    const pos = toValue(sceneMousePos)
+    return pos ? mouseDictatedPlacement(pos) : undefined
+  }
+
   function placeNode(placement: PlacementStrategy, place: (nodes?: Iterable<Rect>) => Vec2): Vec2 {
     return (
       placement.type === 'viewport' ? place()
-      : placement.type === 'mouse' ?
-        graphNavigator.sceneMousePos ?
-          mouseDictatedPlacement(graphNavigator.sceneMousePos)
-        : place()
+      : placement.type === 'mouse' ? tryMouse() ?? place()
       : placement.type === 'mouseEvent' ? mouseDictatedPlacement(placement.position)
       : placement.type === 'source' ? place(filterDefined([graphStore.visibleArea(placement.node)]))
       : placement.type === 'fixed' ? placement.position
@@ -71,7 +77,7 @@ export function useNodeCreation(
 
   function placeNodes(nodesOptions: Iterable<NodeCreationOptions>) {
     const rects = new Array<Rect>()
-    const { place } = usePlacement(rects, graphNavigator.viewport)
+    const { place } = usePlacement(rects, viewport)
     const [independentNodesOptions, dependentNodesOptions] = partition(nodesOptions, (options) =>
       isIndependent(options.placement),
     )

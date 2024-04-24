@@ -122,11 +122,15 @@ const { place: nodePlacement, collapse: collapsedNodePlacement } = usePlacement(
   toRef(graphNavigator, 'viewport'),
 )
 
-const { createNode, createNodes, placeNode } = provideNodeCreation(graphNavigator, (nodes) => {
-  clearFocus()
-  nodeSelection.setSelection(nodes)
-  panToSelected()
-})
+const { createNode, createNodes, placeNode } = provideNodeCreation(
+  toRef(graphNavigator, 'viewport'),
+  toRef(graphNavigator, 'sceneMousePos'),
+  (nodes) => {
+    clearFocus()
+    nodeSelection.setSelection(nodes)
+    panToSelected()
+  },
+)
 
 // === Clipboard Copy/Paste ===
 
