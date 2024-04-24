@@ -1,3 +1,13 @@
 # passes an argument `--skipLibCheck` to *every* spawn of tsc
 common --@aspect_rules_ts//ts:skipLibCheck=always
 common --@aspect_rules_ts//ts:default_to_tsc_transpiler
+
+## GraalVM toolchain
+build --extra_toolchains=@graalvm//:bootstrap_runtime_toolchain
+
+## GraalVM versions
+common --tool_java_runtime_version=graalvm_21
+common --tool_java_language_version=21
+
+common --java_runtime_version=graalvm_21
+common --java_language_version=21
