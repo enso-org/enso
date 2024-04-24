@@ -134,7 +134,11 @@ object Report {
   ): Unit = {
     // We sort the dependencies first by the amount of things that need review, then among those by artifact id
     val sorted = summary.dependencies.sortBy { dep =>
-      (-dep.problemsCount, dep.information.moduleInfo.organization, dep.information.moduleInfo.name)
+      (
+        -dep.problemsCount,
+        dep.information.moduleInfo.organization,
+        dep.information.moduleInfo.name
+      )
     }
 
     writer.writeSubHeading("Summary of all compile dependencies")
