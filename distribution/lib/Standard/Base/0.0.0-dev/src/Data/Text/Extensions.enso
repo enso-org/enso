@@ -1690,7 +1690,7 @@ Text.parse_date self format:Date_Time_Formatter=Date_Time_Formatter.iso_date =
 
          import Standard.Base.Data.Text.Extensions
 
-        example_parse = "2020-10-01T04:11:12-04:00[America/New_York]".parse_date_time
+         example_parse = "2020-10-01T04:11:12-04:00[America/New_York]".parse_date_time
 
    > Example
      Parse UTC-04:00 time with nanoseconds.
