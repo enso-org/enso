@@ -88,7 +88,24 @@ case class ReviewedDependency(
   licenseReview: LicenseReview,
   files: Seq[(AttachedFile, AttachmentStatus)],
   copyrights: Seq[(CopyrightMention, AttachmentStatus)]
-)
+) {
+
+  /** Returns the count of problems that need to be addressed, like un-reviewed licenses or files.
+    * This count may not be accurate and not include some of the problems,
+    * as we only count the immediately addressable problems.
+    * This is enough for a sorting heuristic.
+    */
+  def problemsCount: Int = {
+    val unreviewedFiles = files.count(_._2 == AttachmentStatus.NotReviewed)
+    val unreviewedCopyrights =
+      copyrights.count(_._2 == AttachmentStatus.NotReviewed)
+    val unreviewedLicenses = licenseReview match {
+      case LicenseReview.NotReviewed => 1
+      case _                         => 0
+    }
+    unreviewedFiles + unreviewedCopyrights + unreviewedLicenses
+  }
+}
 
 /** Summarizes the dependency review.
   *
