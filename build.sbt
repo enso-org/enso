@@ -102,9 +102,11 @@ val simpleLibraryServerTag = Tags.Tag("simple-library-server")
 Global / concurrentRestrictions += Tags.limit(simpleLibraryServerTag, 1)
 
 lazy val gatherLicenses =
-  taskKey[Unit]("Gathers licensing information for relevant dependencies")
+  taskKey[Unit](
+    "Gathers licensing information for relevant dependencies of all distributions"
+  )
 gatherLicenses := {
-  val _ = GatherLicenses.run.value
+  val _ = GatherLicenses.run.toTask("").value
 }
 lazy val verifyLicensePackages =
   taskKey[Unit](
@@ -165,12 +167,12 @@ GatherLicenses.licenseConfigurations := Set("compile")
 GatherLicenses.configurationRoot := file("tools/legal-review")
 
 lazy val openLegalReviewReport =
-  taskKey[Unit](
+  inputKey[Unit](
     "Gathers licensing information for relevant dependencies and opens the " +
-    "report in review mode in the browser."
+    "report in review mode in the browser. Specify names of distributions to process, separated by spaces. If no names are provided, all distributions are processed."
   )
 openLegalReviewReport := {
-  val _ = gatherLicenses.value
+  GatherLicenses.run.evaluated
   GatherLicenses.runReportServer()
 }
 
