@@ -10,6 +10,7 @@ import isNetworkError from 'is-network-error'
 import * as router from 'react-router-dom'
 import * as toast from 'react-toastify'
 
+import * as detect from 'enso-common/src/detect'
 import * as gtag from 'enso-common/src/gtag'
 
 import * as appUtils from '#/appUtils'
@@ -238,6 +239,24 @@ export default function AuthProvider(props: AuthProviderProps) {
     },
     [userSession?.type]
   )
+  const gtagEventRef = React.useRef(gtagEvent)
+
+  React.useEffect(() => {
+    const params = {
+      platform: detect.platform(),
+      architecture: detect.architecture(),
+    }
+    const gtagEventCurrent = gtagEventRef.current
+    gtagEventCurrent('open_app', params)
+    const onBeforeUnload = () => {
+      gtagEventCurrent('close_app', params)
+    }
+    window.addEventListener('beforeunload', onBeforeUnload)
+    return () => {
+      window.removeEventListener('beforeunload', onBeforeUnload)
+      gtagEventCurrent('close_app', params)
+    }
+  }, [])
 
   // This is identical to `hooks.useOnlineCheck`, however it is inline here to avoid any possible
   // circular dependency.
