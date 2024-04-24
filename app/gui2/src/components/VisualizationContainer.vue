@@ -4,7 +4,8 @@ import SvgIcon from '@/components/SvgIcon.vue'
 import VisualizationSelector from '@/components/VisualizationSelector.vue'
 import { PointerButtonMask, isTriggeredByKeyboard, usePointer } from '@/composables/events'
 import { useVisualizationConfig } from '@/providers/visualizationConfig'
-import { onMounted, ref, watchEffect } from 'vue'
+import { isQualifiedName, qnLastSegment } from '@/util/qualifiedName'
+import { computed, onMounted, ref, watchEffect } from 'vue'
 
 const props = defineProps<{
   /** If true, the visualization should be `overflow: visible` instead of `overflow: hidden`. */
@@ -55,39 +56,34 @@ function hideSelector() {
   requestAnimationFrame(() => (isSelectorVisible.value = false))
 }
 
-const resizeRight = usePointer((pos, _, type) => {
-  if (type !== 'move' || pos.delta.x === 0) {
-    return
-  }
-  const width =
-    (pos.absolute.x - (contentNode.value?.getBoundingClientRect().left ?? 0)) / config.scale
-  config.width = Math.max(width, MIN_WIDTH_PX)
-}, PointerButtonMask.Main)
+function resizeHandler(resizeX: boolean, resizeY: boolean) {
+  return usePointer((pos, _, type) => {
+    if (type !== 'move') {
+      return
+    }
+    if (resizeX && pos.delta.x !== 0) {
+      const width =
+        (pos.absolute.x - (contentNode.value?.getBoundingClientRect().left ?? 0)) / config.scale
+      config.width = Math.max(0, width)
+    }
+    if (resizeY && pos.delta.y !== 0) {
+      const height =
+        (pos.absolute.y - (contentNode.value?.getBoundingClientRect().top ?? 0)) / config.scale
+      config.height = Math.max(0, height)
+    }
+  }, PointerButtonMask.Main)
+}
 
-const resizeBottom = usePointer((pos, _, type) => {
-  if (type !== 'move' || pos.delta.y === 0) {
-    return
-  }
-  const height =
-    (pos.absolute.y - (contentNode.value?.getBoundingClientRect().top ?? 0)) / config.scale
-  config.height = Math.max(0, height)
-}, PointerButtonMask.Main)
+const resizeRight = resizeHandler(true, false)
+const resizeBottom = resizeHandler(false, true)
+const resizeBottomRight = resizeHandler(true, true)
 
-const resizeBottomRight = usePointer((pos, _, type) => {
-  if (type !== 'move') {
-    return
-  }
-  if (pos.delta.x !== 0) {
-    const width =
-      (pos.absolute.x - (contentNode.value?.getBoundingClientRect().left ?? 0)) / config.scale
-    config.width = Math.max(0, width)
-  }
-  if (pos.delta.y !== 0) {
-    const height =
-      (pos.absolute.y - (contentNode.value?.getBoundingClientRect().top ?? 0)) / config.scale
-    config.height = Math.max(0, height)
-  }
-}, PointerButtonMask.Main)
+const UNKNOWN_TYPE = 'Unknown'
+const nodeShortType = computed(() =>
+  config.nodeType != null && isQualifiedName(config.nodeType) ?
+    qnLastSegment(config.nodeType)
+  : UNKNOWN_TYPE,
+)
 </script>
 
 <template>
@@ -186,6 +182,11 @@ const resizeBottomRight = usePointer((pos, _, type) => {
         <div v-if="$slots.toolbar" class="visualization-defined-toolbars">
           <div class="toolbar"><slot name="toolbar"></slot></div>
         </div>
+        <div
+          class="after-toolbars node-type"
+          v-text="nodeShortType"
+          :title="config.nodeType ?? UNKNOWN_TYPE"
+        />
       </div>
     </div>
   </Teleport>
@@ -232,7 +233,6 @@ const resizeBottomRight = usePointer((pos, _, type) => {
 }
 
 .toolbars {
-  width: 100%;
   transition-duration: 100ms;
   transition-property: padding-left;
 }
@@ -250,11 +250,21 @@ const resizeBottomRight = usePointer((pos, _, type) => {
 }
 
 .toolbars {
+  width: 100%;
   user-select: none;
   position: absolute;
   display: flex;
   gap: 4px;
   top: calc(var(--node-height) + 4px);
+}
+
+.after-toolbars {
+  margin-left: auto;
+  margin-right: 8px;
+}
+
+.node-type {
+  font-weight: bold;
 }
 
 .VisualizationContainer.fullscreen .toolbars {
