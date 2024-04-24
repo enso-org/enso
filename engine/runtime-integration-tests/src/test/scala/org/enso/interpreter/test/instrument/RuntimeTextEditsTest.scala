@@ -1,19 +1,15 @@
 package org.enso.interpreter.test.instrument
 
 import org.enso.interpreter.runtime.`type`.ConstantsGen
-<<<<<<< HEAD:engine/runtime/src/test/scala/org/enso/interpreter/test/instrument/RuntimeTextEditsTest.scala
 import org.enso.common.LanguageInfo
 import org.enso.polyglot.{RuntimeOptions, RuntimeServerInfo, Suggestion}
-=======
 import org.enso.polyglot.{
   ExportedSymbol,
-  LanguageInfo,
   ModuleExports,
   RuntimeOptions,
   RuntimeServerInfo,
   Suggestion
 }
->>>>>>> origin/develop:engine/runtime-integration-tests/src/test/scala/org/enso/interpreter/test/instrument/RuntimeTextEditsTest.scala
 import org.enso.polyglot.data.Tree
 import org.enso.polyglot.runtime.Runtime.Api
 import org.enso.text.editing.model

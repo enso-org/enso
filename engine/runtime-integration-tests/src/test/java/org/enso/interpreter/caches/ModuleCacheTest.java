@@ -5,7 +5,6 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
 import java.nio.ByteBuffer;
-
 import org.enso.compiler.CompilerTest;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.test.TestBase;

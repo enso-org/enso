@@ -35,20 +35,6 @@ import org.enso.interpreter.caches.Cache;
 import org.enso.interpreter.caches.ImportExportCache;
 import org.enso.interpreter.caches.ImportExportCache.MapToBindings;
 import org.enso.interpreter.caches.ModuleCache;
-import org.enso.pkg.Package;
-import org.enso.pkg.QualifiedName;
-import scala.Option;
-import org.enso.interpreter.caches.SuggestionsCache;
-import org.enso.interpreter.runtime.type.Types;
-import org.enso.interpreter.runtime.util.DiagnosticFormatter;
-import org.enso.pkg.Package;
-import org.enso.pkg.QualifiedName;
-import org.enso.common.CompilationStage;
-import org.enso.common.LanguageInfo;
-import org.enso.polyglot.Suggestion;
-import org.enso.polyglot.data.TypeGraph;
-import scala.collection.immutable.ListSet;
-import scala.collection.immutable.SetOps;
 import org.enso.interpreter.runtime.util.DiagnosticFormatter;
 import org.enso.pkg.Package;
 import org.enso.pkg.QualifiedName;
@@ -840,6 +826,7 @@ final class TruffleCompilerContext implements CompilerContext {
     var namespace = cons(libraryName.namespace(), nil());
     return new QualifiedName(namespace, libraryName.name());
   }
+
   private static interface Mock {
     public void shutdown(boolean waitForPendingJobCompletion);
 

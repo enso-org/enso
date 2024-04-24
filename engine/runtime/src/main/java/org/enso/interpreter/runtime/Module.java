@@ -13,7 +13,6 @@ import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
 import com.oracle.truffle.api.source.Source;
 import com.oracle.truffle.api.source.SourceSection;
-
 import java.io.File;
 import java.io.IOException;
 import java.util.Collections;
@@ -23,7 +22,6 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.WeakHashMap;
 import java.util.logging.Level;
-
 import org.enso.common.CompilationStage;
 import org.enso.common.LanguageInfo;
 import org.enso.common.MethodNames;
@@ -48,7 +46,6 @@ import org.enso.interpreter.runtime.scope.ModuleScope;
 import org.enso.interpreter.runtime.type.Types;
 import org.enso.pkg.Package;
 import org.enso.pkg.QualifiedName;
-import org.enso.common.CompilationStage;
 import org.enso.text.buffer.Rope;
 
 /** Represents a source module with a known location. */
