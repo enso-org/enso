@@ -19,8 +19,10 @@ import {
   getMethodCallInfoRecursively,
   interpretCall,
 } from '@/util/callTree'
+import { fail } from 'assert'
 import { initializeFFI } from 'shared/ast/ffi'
 import type { ExpressionUpdatePayload, MethodCall } from 'shared/languageServerTypes'
+import { assertEqual, assertNotEqual } from 'shared/util/assert'
 import { assert, expect, test } from 'vitest'
 import type { AstId } from '../abstract'
 
@@ -225,6 +227,165 @@ test.each([
       notAppliedArguments: expectedNotAppliedArguments,
     })
     expect(info?.suggestion).toEqual(expectedSuggestion)
+  },
+)
+
+interface ArgsTestCase extends TestCase {
+  expectedSameIds: Array<[string, string]>
+}
+
+test.each([
+  {
+    description: 'Base case',
+    code: 'Aggregate_Column.Sum',
+    subapplicationIndex: 0,
+    notAppliedArguments: [0, 1],
+    expectedNotAppliedArguments: [0, 1],
+    expectedSameIds: [['0', undefined]],
+  },
+  {
+    description: '1 arg, info on most inner subapplication.',
+    code: 'Aggregate_Column.Sum x',
+    subapplicationIndex: 1,
+    notAppliedArguments: [0, 1],
+    expectedNotAppliedArguments: [1],
+    expectedSameIds: [['0', 'column']],
+  },
+  {
+    description: '2 args, info on most inner subapplication.',
+    code: 'Aggregate_Column.Sum x y',
+    subapplicationIndex: 2,
+    notAppliedArguments: [0, 1],
+    expectedNotAppliedArguments: [],
+    expectedSameIds: [
+      ['0', 'column'],
+      ['1', 'as'],
+    ],
+  },
+  {
+    description: '2 args, info on inner subapplication.',
+    code: 'Aggregate_Column.Sum x y',
+    subapplicationIndex: 1,
+    notAppliedArguments: [1],
+    expectedNotAppliedArguments: [],
+    expectedSameIds: [
+      ['0', 'column'],
+      ['1', 'as'],
+    ],
+  },
+  {
+    description: '2 args, notAppliedArguments are incorrectly empty.',
+    code: 'Aggregate_Column.Sum x y',
+    subapplicationIndex: 2,
+    notAppliedArguments: [],
+    expectedNotAppliedArguments: [],
+    expectedSameIds: [
+      ['0', 'column'],
+      ['1', 'as'],
+    ],
+  },
+  {
+    description: '1 arg, notAppliedArguments unsorted.',
+    code: 'Aggregate_Column.Sum x',
+    subapplicationIndex: 1,
+    notAppliedArguments: [1, 0],
+    expectedNotAppliedArguments: [1],
+    expectedSameIds: [
+      ['0', 'column'],
+      ['1', null],
+    ],
+  },
+  {
+    description: '1 named arg.',
+    code: 'Aggregate_Column.Sum as=x',
+    subapplicationIndex: 1,
+    notAppliedArguments: [0, 1],
+    expectedNotAppliedArguments: [0],
+    expectedSameIds: [
+      ['1', 'as'],
+      ['column', null],
+    ],
+  },
+  {
+    description: '2 named args.',
+    code: 'Aggregate_Column.Sum as=x column=y',
+    subapplicationIndex: 2,
+    notAppliedArguments: [0, 1],
+    expectedNotAppliedArguments: [],
+    expectedSameIds: [
+      ['0', 'as'],
+      ['1', 'column'],
+    ],
+  },
+  {
+    description: '1 wrongly named arg.',
+    code: 'Aggregate_Column.Sum bla=x',
+    subapplicationIndex: 1,
+    notAppliedArguments: [0, 1],
+    expectedNotAppliedArguments: [0, 1],
+    expectedSameIds: [['2', 'bla']],
+  },
+  {
+    description: '1 named & 1 unnamed args.',
+    code: 'Aggregate_Column.Sum as=x y',
+    subapplicationIndex: 2,
+    notAppliedArguments: [0, 1],
+    expectedNotAppliedArguments: [],
+    expectedSameIds: [['0', 'as']],
+  },
+  {
+    description: '1 unnamed & 1 named args.',
+    code: 'Aggregate_Column.Sum y as=x',
+    subapplicationIndex: 2,
+    notAppliedArguments: [0, 1],
+    expectedNotAppliedArguments: [],
+    expectedSameIds: [
+      ['1', 'as'],
+      ['0', 'column'],
+    ],
+  },
+] as ArgsTestCase[])(
+  'Computing IDs of arguments: $description',
+  ({ code, subapplicationIndex, notAppliedArguments, expectedSameIds }: ArgsTestCase) => {
+    const { db, expectedMethodCall, setExpressionInfo } = prepareMocksForGetMethodCallTest()
+    const ast = Ast.parse(code)
+    const subApplication = nthSubapplication(ast, subapplicationIndex)
+    assert(subApplication)
+    db.updateExternalIds(ast)
+    setExpressionInfo(subApplication.id, {
+      typename: undefined,
+      methodCall: { ...expectedMethodCall, notAppliedArguments },
+      payload: { type: 'Pending' } as ExpressionUpdatePayload,
+      profilingInfo: [],
+    })
+
+    const info = getMethodCallInfoRecursively(ast, db)
+    const interpreted = interpretCall(ast, true)
+    const res = ArgumentApplication.collectArgumentNamesAndUuids(interpreted, info)
+
+    if (expectedSameIds) {
+      for (const p of expectedSameIds) {
+        if (p[1] === undefined) {
+          const id = res[p[0]]
+          assertEqual(undefined, id, `No ${[0]} ID found`)
+        } else if (p[1] === null) {
+          const id = res[p[0]]
+          assertNotEqual(null, id, `One ${id} ID found`)
+          for (const name in res) {
+            if (name == p[0]) {
+              continue
+            }
+            assertNotEqual(id, res[name], `No other ${id} found, testing ${name}`)
+          }
+        } else {
+          const id1 = res[p[0]]
+          const id2 = res[p[1]]
+          assertEqual(id1, id2, `Checking ${p[0]} and ${p[1]}`)
+        }
+      }
+    } else {
+      fail('Undefined expectedSameIds')
+    }
   },
 )
 

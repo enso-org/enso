@@ -70,6 +70,7 @@ main =
     data = Data.read
     filtered = data.filter
     aggregated = data.aggregate
+    autoscoped = data.aggregate [..Group_By]
     selected = data.select_columns
 `
 

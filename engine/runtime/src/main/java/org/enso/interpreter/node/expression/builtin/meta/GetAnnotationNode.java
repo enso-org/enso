@@ -62,9 +62,7 @@ public abstract class GetAnnotationNode extends BaseNode {
         String parameterName = expectStringNode.execute(parameter);
         Annotation annotation = methodFunction.getSchema().getAnnotation(parameterName);
         if (annotation != null) {
-          Function thunk =
-              Function.thunk(annotation.getExpression().getCallTarget(), frame.materialize());
-          return thunkExecutorNode.executeThunk(frame, thunk, state, getTailStatus());
+          return executeAnnotation(annotation, frame, thunkExecutorNode, state, getTailStatus());
         }
       }
       if (target instanceof Type type) {
@@ -75,15 +73,25 @@ public abstract class GetAnnotationNode extends BaseNode {
           String parameterName = expectStringNode.execute(parameter);
           Annotation annotation = constructorFunction.getSchema().getAnnotation(parameterName);
           if (annotation != null) {
-            Function thunk =
-                Function.thunk(annotation.getExpression().getCallTarget(), frame.materialize());
-            return thunkExecutorNode.executeThunk(frame, thunk, state, getTailStatus());
+            return executeAnnotation(annotation, frame, thunkExecutorNode, state, getTailStatus());
           }
         }
       }
     }
 
     return EnsoContext.get(this).getNothing();
+  }
+
+  private static Object executeAnnotation(
+      Annotation annotation,
+      VirtualFrame frame,
+      ThunkExecutorNode thunkExecutorNode,
+      State state,
+      TailStatus tail) {
+    var target = annotation.getExpression().getCallTarget();
+    var thunk = Function.thunk(target, frame.materialize());
+    var result = thunkExecutorNode.executeThunk(frame, thunk, state, tail);
+    return result;
   }
 
   static GetAnnotationNode build() {
