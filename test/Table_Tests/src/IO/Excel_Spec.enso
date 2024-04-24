@@ -124,7 +124,8 @@ type Spec_Write_Data
         Spec_Write_Data.Value [table, clothes, sub_clothes] counter suffix prefix
 
     teardown self =
-        enso_project.data/"transient" . list (self.prefix+"*") . each .delete
+        enso_project.data/"transient" . list (self.prefix+"*") . each f->
+            f.delete . catch Any error-> IO.println "[CLEANUP] Failed to delete "+f.to_text+": "+error.to_display_text
 
     create_out self suffix=self.suffix =
         i = self.counter.get + 1
