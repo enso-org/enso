@@ -37,8 +37,8 @@ case class DependencyInformation(
   /** Normalized name of the package that uniquely identifies the dependency.
     */
   def packageName: String =
-    Review.normalizeName(
-      moduleInfo.organization + "." + moduleInfo.name + "-" +
-      moduleInfo.version
-    )
+    packageNameWithoutVersion + "-" + Review.normalizeName(moduleInfo.version)
+
+  def packageNameWithoutVersion: String =
+    Review.normalizeName(moduleInfo.organization + "." + moduleInfo.name)
 }

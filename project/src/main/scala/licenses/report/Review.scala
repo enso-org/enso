@@ -2,9 +2,8 @@ package src.main.scala.licenses.report
 
 import java.nio.file.{InvalidPathException, Path}
 import java.time.LocalDate
-
-import sbt._
-import src.main.scala.licenses._
+import sbt.*
+import src.main.scala.licenses.*
 
 import scala.util.control.NonFatal
 
@@ -82,8 +81,8 @@ case class Review(root: File, dependencySummary: DependencySummary) {
       files   = findAdditionalFiles(root / Paths.filesAdd)
       summary = ReviewedSummary(reviews, header, files)
       _ <- ReviewedSummary.warnAboutMissingReviews(summary)
-      existingPackages = dependencySummary.dependencies.map(_._1.packageName)
-      _ <- warnAboutMissingDependencies(existingPackages)
+      expectedPackages = dependencySummary.dependencies.map(_._1)
+      _ <- warnAboutMissingDependencies(expectedPackages)
     } yield summary
 
   /** Returns a list of warnings for dependencies whose configuration has been
@@ -93,19 +92,38 @@ case class Review(root: File, dependencySummary: DependencySummary) {
     * update.
     */
   private def warnAboutMissingDependencies(
-    existingPackageNames: Seq[String]
+    knownPackages: Seq[DependencyInformation]
   ): WithDiagnostics[Unit] = {
     val foundConfigurations = listFiles(root).filter(_.isDirectory)
     val expectedFileNames =
-      existingPackageNames ++ Seq(Paths.filesAdd, Paths.reviewedLicenses)
+      knownPackages.map(_.packageName) ++ Seq(
+        Paths.filesAdd,
+        Paths.reviewedLicenses
+      )
+
     val unexpectedConfigurations =
       foundConfigurations.filter(p => !expectedFileNames.contains(p.getName))
-    val diagnostics = unexpectedConfigurations.map(p =>
-      Diagnostic.Error(
-        s"Found legal review configuration for package ${p.getName}, " +
-        s"but no such dependency has been found. Perhaps it has been removed or renamed (version change)?"
+    val diagnostics = unexpectedConfigurations.map { p =>
+      val packageName = p.getName
+      val matchingPackages = knownPackages.filter(other =>
+        packageName.startsWith(other.packageNameWithoutVersion + "-")
       )
-    )
+      val matchingPackage: Option[DependencyInformation] =
+        if (matchingPackages.length == 1) Some(matchingPackages.head) else None
+
+      val commonMessagePrefix =
+        s"Found legal review configuration for package ${p.getName}, but no such dependency has been found."
+      matchingPackage match {
+        case Some(pkg) =>
+          Diagnostic.Error(
+            commonMessagePrefix + s" Perhaps the version was changed to `${pkg.packageName}`?"
+          )
+        case None =>
+          Diagnostic.Error(
+            commonMessagePrefix + " Perhaps it has been removed or renamed (version change)?"
+          )
+      }
+    }
     WithDiagnostics.justDiagnostics(diagnostics)
   }
 
