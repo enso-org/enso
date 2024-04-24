@@ -125,6 +125,9 @@ const selfArgumentExternalId = computed<Opt<ExternalId>>(() => {
 const visualizationConfig = computed<Opt<NodeVisualizationConfiguration>>(() => {
   // Even if we inherit dynamic config in props.input.dynamicConfig, we should also read it for
   // the current call and then merge them.
+
+  let m = ArgumentApplication.collectArgumentNamesAndUuids(interpreted.value, methodCallInfo.value)
+
   const expressionId = selfArgumentExternalId.value
   const astId = props.input.value.id
   if (astId == null || expressionId == null) return null
@@ -144,6 +147,7 @@ const visualizationConfig = computed<Opt<NodeVisualizationConfiguration>>(() => 
     positionalArgumentsExpressions: [
       `.${name}`,
       Ast.Vector.build(args, Ast.TextLiteral.new).code(),
+      Ast.TextLiteral.new(JSON.stringify(m)).code(),
     ],
   }
 })
