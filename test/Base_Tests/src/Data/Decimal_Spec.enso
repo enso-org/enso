@@ -744,7 +744,10 @@ add_specs suite_builder =
             Decimal.new "0" . signum . should_equal 0
 
     suite_builder.group "rounding" group_builder->
-        do_round n dp=0 use_bankers=False = Decimal.new n . round dp use_bankers
+        do_round n dp=0 use_bankers=False =
+            d = Decimal.new n . round dp use_bankers
+            d.to_float
+
         Round_Spec.add_specs group_builder do_round
 
         group_builder.specify "Large values" <|
