@@ -5,6 +5,7 @@
  */
 import * as React from 'react'
 
+import clsx from 'clsx'
 import * as tailwindMerge from 'tailwind-merge'
 
 import Dismiss from 'enso-assets/dismiss.svg'
@@ -43,7 +44,11 @@ export function Dialog(props: types.DialogProps) {
     type = 'modal',
     isDismissible = true,
     isKeyboardDismissDisabled = false,
+    hideCloseButton = false,
     className,
+    isOpen = false,
+    defaultOpen = false,
+    onOpenChange = () => {},
     ...ariaDialogProps
   } = props
 
@@ -55,6 +60,9 @@ export function Dialog(props: types.DialogProps) {
       isDismissable={isDismissible}
       isKeyboardDismissDisabled={isKeyboardDismissDisabled}
       UNSTABLE_portalContainer={root.current}
+      isOpen={isOpen}
+      onOpenChange={onOpenChange}
+      defaultOpen={defaultOpen}
     >
       <aria.Dialog
         className={tailwindMerge.twMerge(DIALOG_CLASSES, [DIALOG_CLASSES_BY_TYPE[type]], className)}
@@ -64,13 +72,17 @@ export function Dialog(props: types.DialogProps) {
           <>
             {typeof title === 'string' && (
               <aria.Header className="center sticky flex flex-none items-center border-b px-3.5 py-2.5 text-primary shadow">
-                <aria.Heading level={2} className="text-l my-0 font-semibold leading-6">
+                <aria.Heading
+                  slot="title"
+                  level={2}
+                  className="text-l my-0 font-semibold leading-6"
+                >
                   {title}
                 </aria.Heading>
 
                 <ariaComponents.Button
                   variant="icon"
-                  className="my-auto ml-auto mr-[-4px]"
+                  className={clsx('my-auto ml-auto mr-[-4px]', { hidden: hideCloseButton })}
                   size="custom"
                   onPress={opts.close}
                   icon={Dismiss}
