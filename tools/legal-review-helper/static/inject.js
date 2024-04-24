@@ -78,8 +78,8 @@ function initializeCopyrightButtons() {
         if (status == 'NotReviewed') {
             var buttons =
                 '<button class="ignore">Ignore</button>' +
-                '<button class="keep">Keep</button>' +
-                '<button class="keepctx">Keep as context</button>'
+                '<button class="keep">Keep single line</button>' +
+                '<button class="keepctx">Keep with context</button>'
             $(this).html(buttons)
             $(this)
                 .children('.ignore')
@@ -150,16 +150,17 @@ function initializePackageRenameButtons() {
             const button = $(this)
             button.prop('disabled', true)
             var data = {
-                from: element.data('from'),
-                to: element.data('to'),
+                from: entry.data('from'),
+                to: entry.data('to'),
             }
             setStatus('Renaming ' + data['from'] + ' to ' + data['to'] + '...')
-            $.post('/modify/' + reportName, data, function (response) {
+            $.post('/rename-package/' + reportName, data, function (response) {
                 const message =
                     'Package renamed to ' +
                     data['to'] +
                     '. To see the changes, regenerate the report.'
                 entry.html(message)
+                entry.css('color', 'gray')
                 setStatus(message)
             }).fail(function (err) {
                 setStatus(
