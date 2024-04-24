@@ -63,9 +63,8 @@ useNavigatorStorage(graphNavigator, (enc) => {
   if (methodPtr != null) encodeMethodPointer(enc, methodPtr)
 })
 
-function zoomToSelected() {
+function selectionBounds() {
   if (!viewportNode.value) return
-
   const allNodes = graphStore.db.nodeIdToNode
   const validSelected = [...nodeSelection.selected].filter((id) => allNodes.has(id))
   const nodesToCenter = validSelected.length === 0 ? allNodes.keys() : validSelected
@@ -75,7 +74,17 @@ function zoomToSelected() {
     if (rect) bounds = Rect.Bounding(bounds, rect)
   }
   if (bounds.isFinite())
-    graphNavigator.panAndZoomTo(bounds, 0.1, Math.max(1, graphNavigator.targetScale))
+    return bounds
+}
+
+function zoomToSelected() {
+  const bounds = selectionBounds()
+  if (bounds) graphNavigator.panAndZoomTo(bounds, 0.1, Math.max(1, graphNavigator.targetScale))
+}
+
+function panToSelected() {
+  const bounds = selectionBounds()
+  if (bounds) graphNavigator.panTo([new Vec2(bounds.left, bounds.top), new Vec2(bounds.right, bounds.bottom)])
 }
 
 // == Breadcrumbs ==
@@ -116,7 +125,7 @@ const { place: nodePlacement, collapse: collapsedNodePlacement } = usePlacement(
 const { createNode, createNodes, placeNode } = provideNodeCreation(graphNavigator, (nodes) => {
   clearFocus()
   nodeSelection.setSelection(nodes)
-  zoomToSelected()
+  panToSelected()
 })
 
 // === Clipboard Copy/Paste ===
