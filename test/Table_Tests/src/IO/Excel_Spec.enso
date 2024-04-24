@@ -109,7 +109,7 @@ spec_fmt suite_builder header file read_method sheet_count=5 =
             warning.to_display_text . should_contain "Unknown sheet or range name or invalid address: 'Not A Sheet'."
 
 type Spec_Write_Data
-    Value ~data counter suffix
+    Value ~data counter suffix prefix
 
     table self = self.data.at 0
     clothes self = self.data.at 1
@@ -120,15 +120,16 @@ type Spec_Write_Data
         clothes = enso_project.data/'clothes.csv' . read
         sub_clothes = clothes.select_columns [0, 1]
         counter = Ref.new 0
-        Spec_Write_Data.Value [table, clothes, sub_clothes] counter suffix
+        prefix = "out_" + (Random.integer 1 10000).to_text
+        Spec_Write_Data.Value [table, clothes, sub_clothes] counter suffix prefix
 
     teardown self =
-        enso_project.data/"transient" . list "out*" . each .delete
+        enso_project.data/"transient" . list (self.prefix+"*") . each .delete
 
     create_out self suffix=self.suffix =
         i = self.counter.get + 1
         self.counter.put i
-        f = enso_project.data / "transient" / ("out" + i.to_text + "." + suffix)
+        f = enso_project.data / "transient" / (self.prefix + i.to_text + "." + suffix)
         Panic.rethrow f.delete_if_exists
         f
 
