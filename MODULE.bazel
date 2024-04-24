@@ -53,6 +53,9 @@ cats_version = "2.9.0"
 circe_version = "0.14.5"
 circe_libs = ["circe-core", "circe-generic", "circe-parser"]
 circe = ["io.circe:%s_2.13:%s" % (x, circe_version) for x in circe_libs]
+commons_text_version = "1.10.0"
+http_components_version = "4.4.1"
+jackson_version = "2.15.2"
 
 maven = use_extension("@rules_jvm_external//:extensions.bzl", "maven")
 ## After updating a list of artifacts run
@@ -62,6 +65,9 @@ maven.install(
       "com.typesafe.scala-logging:scala-logging_2.13:%s" % scala_logging_version,
       "org.scalatest:scalatest_2.13:%s" % scalatest_version,
       "org.typelevel:cats-core_2.13:%s" % cats_version,
+      "org.apache.commons:commons-text:%s" % commons_text_version,
+      "org.apache.httpcomponents:httpclient:%s" % http_components_version,
+      "com.fasterxml.jackson.core:jackson-databind:%s" % jackson_version
     ] + circe,
     fail_if_repin_required = True,
     lock_file = "//:maven_install.json",
