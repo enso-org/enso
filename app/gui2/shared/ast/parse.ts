@@ -39,6 +39,7 @@ import {
   App,
   Assignment,
   Ast,
+  AutoscopedIdentifier,
   BodyBlock,
   Documented,
   Function,
@@ -201,6 +202,12 @@ class Abstractor {
         } else {
           node = UnaryOprApp.concrete(this.module, opr, arg)
         }
+        break
+      }
+      case RawAst.Tree.Type.AutoscopedIdentifier: {
+        const opr = this.abstractToken(tree.opr)
+        const ident = this.abstractToken(tree.ident)
+        node = AutoscopedIdentifier.concrete(this.module, opr, ident)
         break
       }
       case RawAst.Tree.Type.OprApp: {

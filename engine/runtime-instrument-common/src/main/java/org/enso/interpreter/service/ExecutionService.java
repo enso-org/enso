@@ -13,6 +13,7 @@ import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import com.oracle.truffle.api.interop.UnsupportedTypeException;
 import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.nodes.RootNode;
+import com.oracle.truffle.api.object.DynamicObjectLibrary;
 import com.oracle.truffle.api.source.SourceSection;
 import java.io.File;
 import java.io.IOException;
@@ -129,7 +130,7 @@ public final class ExecutionService {
     }
     Object[] arguments = MAIN_METHOD.equals(methodName) ? new Object[] {} : new Object[] {type};
     return new FunctionCallInstrumentationNode.FunctionCall(
-        function, State.create(EnsoContext.get(null)), arguments);
+        function, State.create(context), arguments);
   }
 
   public void initializeLanguageServerConnection(Endpoint endpoint) {
@@ -193,6 +194,10 @@ public final class ExecutionService {
         idExecutionInstrument.map(
             service ->
                 service.bind(module, call.getFunction().getCallTarget(), callbacks, this.timer));
+
+    DynamicObjectLibrary.getUncached()
+        .put(call.getState().getContainer(), IdExecutionService.class, cache);
+
     Object p = context.getThreadManager().enter();
     try {
       execute.getCallTarget().call(call);
@@ -305,7 +310,9 @@ public final class ExecutionService {
   /**
    * Calls a function with the given argument and attaching an execution instrument.
    *
+   * @param visualizationHolder visualization to compute
    * @param cache the runtime cache
+   * @param executionCache cache with values provided by main execution
    * @param module the module providing scope for the function
    * @param function the function object
    * @param arguments the sequence of arguments applied to the function
@@ -314,6 +321,7 @@ public final class ExecutionService {
   public Object callFunctionWithInstrument(
       VisualizationHolder visualizationHolder,
       RuntimeCache cache,
+      RuntimeCache executionCache,
       Module module,
       Object function,
       Object... arguments) {
@@ -343,13 +351,28 @@ public final class ExecutionService {
     Optional<EventBinding<ExecutionEventNodeFactory>> eventNodeFactory =
         idExecutionInstrument.map(
             service -> service.bind(module, entryCallTarget, callbacks, this.timer));
+    var ret = new Object[1];
     Object p = context.getThreadManager().enter();
     try {
-      return call.getCallTarget().call(function, arguments);
+      State state;
+      if (function instanceof FunctionCallInstrumentationNode.FunctionCall fnCall) {
+        state = fnCall.getState();
+      } else {
+        var fn = (Function) function;
+        state = State.create(context);
+        function = new FunctionCallInstrumentationNode.FunctionCall(fn, state, new Object[0]);
+      }
+      if (executionCache != null) {
+        DynamicObjectLibrary.getUncached()
+            .put(state.getContainer(), IdExecutionService.class, executionCache);
+      }
+
+      ret[0] = call.getCallTarget().call(function, arguments);
     } finally {
       context.getThreadManager().leave(p);
       eventNodeFactory.ifPresent(EventBinding::dispose);
     }
+    return ret[0];
   }
 
   /**

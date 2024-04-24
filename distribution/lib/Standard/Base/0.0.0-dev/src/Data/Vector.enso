@@ -280,7 +280,11 @@ type Vector a
             builders = Range.new 0 count . map (_-> Builder.new initial_capacity panic_on_dataflow_error=True)
             propagate_dataflow_error cp = Error.throw (cp.payload.dataflow_error)
             Panic.catch Builder_Dataflow_Error handler=propagate_dataflow_error <|
-                function builders . if_not_error (builders.map .to_vector)
+                ## TODO: This extra `case` is necessary to propagate warnings attached to
+                   values that are added to the builder. Will be fixed in
+                   https://github.com/enso-org/enso/issues/9733.
+                case function builders of
+                    result -> result.if_not_error (builders.map .to_vector)
 
     ## PRIVATE
        ADVANCED
@@ -826,6 +830,9 @@ type Vector a
 
        Unlike `map`, this method does not return the individual results,
        therefore it is only useful for side-effecting computations.
+
+       If the function returns a dataflow error, the error is converted to a
+       panic and thrown immediately stopping further processing.
 
        Arguments:
        - function: A function to apply to each element of the vector.

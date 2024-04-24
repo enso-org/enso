@@ -323,11 +323,19 @@ partition_with_index vector predicate =
 
 filter vector filter =
     predicate = unify_condition_or_predicate filter
+    ## TODO: Correct propagation of warnings attached to vector elements
+       requires that this method return the list of `Builder`s that are returned
+       by `builder.append`.  Will be fixed in
+       https://github.com/enso-org/enso/issues/9733.
     Vector.build builder->
         vector.map elem->
             if predicate elem then builder.append elem
 
 filter_with_index vector predicate =
+    ## TODO: Correct propagation of warnings attached to vector elements
+       requires that this method return the list of `Builder`s that are returned
+       by `builder.append`.  Will be fixed in
+       https://github.com/enso-org/enso/issues/9733.
     Vector.build builder->
         vector.map_with_index ix-> elem->
             if predicate ix elem then builder.append elem

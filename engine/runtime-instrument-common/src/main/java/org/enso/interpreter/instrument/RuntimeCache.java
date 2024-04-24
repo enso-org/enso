@@ -1,17 +1,22 @@
 package org.enso.interpreter.instrument;
 
 import com.oracle.truffle.api.CompilerDirectives;
+import java.lang.ref.Reference;
 import java.lang.ref.SoftReference;
+import java.lang.ref.WeakReference;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.WeakHashMap;
 import org.enso.interpreter.service.ExecutionService;
 
 /** A storage for computed values. */
-public final class RuntimeCache {
+public final class RuntimeCache implements java.util.function.Function<String, Object> {
 
-  private final Map<UUID, SoftReference<Object>> cache = new HashMap<>();
+  private final Map<UUID, Reference<Object>> cache = new HashMap<>();
+  private final Map<Object, UUID> valuesToKeys = new WeakHashMap<>();
+  private final Map<UUID, Reference<Object>> expressions = new HashMap<>();
   private final Map<UUID, String> types = new HashMap<>();
   private final Map<UUID, ExecutionService.FunctionCallInfo> calls = new HashMap<>();
   private Map<UUID, Double> weights = new HashMap<>();
@@ -25,23 +30,44 @@ public final class RuntimeCache {
    */
   @CompilerDirectives.TruffleBoundary
   public boolean offer(UUID key, Object value) {
-    Double weight = weights.get(key);
+    var weight = weights.get(key);
     if (weight != null && weight > 0) {
-      cache.put(key, new SoftReference<>(value));
+      var ref = new SoftReference<>(value);
+      cache.put(key, ref);
+      expressions.put(key, new WeakReference<>(value));
+      valuesToKeys.put(value, key);
       return true;
+    } else {
+      var otherId = valuesToKeys.get(value);
+      var otherValue = cache.get(otherId);
+      if (otherValue != null && otherValue.get() == value) {
+        // if the value is already cached for another UUID, cache it
+        // for this expression UUID as well
+        var ref = new WeakReference<>(value);
+        expressions.put(key, ref);
+      }
+      return false;
     }
-    return false;
   }
 
   /** Get the value from the cache. */
   public Object get(UUID key) {
-    SoftReference<Object> ref = cache.get(key);
-    return ref != null ? ref.get() : null;
+    var ref = cache.get(key);
+    var res = ref != null ? ref.get() : null;
+    return res;
+  }
+
+  @Override
+  public Object apply(String uuid) {
+    var key = UUID.fromString(uuid);
+    var ref = expressions.get(key);
+    var res = ref != null ? ref.get() : null;
+    return res;
   }
 
   /** Remove the value from the cache. */
   public Object remove(UUID key) {
-    SoftReference<Object> ref = cache.remove(key);
+    var ref = cache.remove(key);
     return ref == null ? null : ref.get();
   }
 

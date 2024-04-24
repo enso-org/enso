@@ -241,6 +241,13 @@ public final class UnresolvedConstructor implements EnsoObject {
         UnresolvedConstructor unresolved,
         State state,
         DirectCallNode callNode) {
+      var builtins = EnsoContext.get(callNode).getBuiltins();
+      if (c == builtins.bool().getTrue()) {
+        return true;
+      }
+      if (c == builtins.bool().getFalse()) {
+        return false;
+      }
       var fn = c.getConstructorFunction();
       var args = new Object[prototype.descs.length + 1];
       System.arraycopy(unresolved.args, 0, args, 1, prototype.descs.length);

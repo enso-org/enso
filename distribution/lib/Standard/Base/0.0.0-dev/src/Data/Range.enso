@@ -12,6 +12,7 @@ import project.Errors.Illegal_Argument.Illegal_Argument
 import project.Errors.Illegal_State.Illegal_State
 import project.Function.Function
 import project.Nothing.Nothing
+import project.Panic.Panic
 from project.Data.Boolean import Boolean, False, True
 from project.Data.Filter_Condition import unify_condition_or_predicate
 
@@ -236,6 +237,12 @@ type Range
        ADVANCED
        Applies a function for each element in the range.
 
+       This method does not return the results, so it is only useful for performing
+       computations with side-effects.
+
+       If the function returns a dataflow error, the error is converted to a
+       panic and thrown immediately stopping further processing.
+
        Arguments:
        - function: The function to apply to each integer in the range.
 
@@ -248,7 +255,7 @@ type Range
             end_condition = if self.step > 0 then (>=) else (<=)
             go current =
                 if end_condition current self.end then Nothing else
-                    function current
+                    Panic.rethrow (function current)
                     @Tail_Call go current+self.step
             go self.start
 
