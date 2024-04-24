@@ -10,6 +10,7 @@ import type {
   RawNodeChild,
   SpanMap,
   SyncTokenId,
+  TypeOrConstructorIdentifier,
 } from '.'
 import {
   MutableModule,
@@ -762,6 +763,61 @@ export interface MutableUnaryOprApp extends UnaryOprApp, MutableAst {
   get argument(): MutableAst | undefined
 }
 applyMixins(MutableUnaryOprApp, [MutableAst])
+
+interface AutoscopedIdentifierFields {
+  operator: NodeChild<SyncTokenId>
+  identifier: NodeChild<SyncTokenId>
+}
+export class AutoscopedIdentifier extends Ast {
+  declare fields: FixedMapView<AstFields & AutoscopedIdentifierFields>
+  constructor(module: Module, fields: FixedMapView<AstFields & AutoscopedIdentifierFields>) {
+    super(module, fields)
+  }
+
+  static tryParse(
+    source: string,
+    module?: MutableModule,
+  ): Owned<MutableAutoscopedIdentifier> | undefined {
+    const parsed = parse(source, module)
+    if (parsed instanceof MutableAutoscopedIdentifier) return parsed
+  }
+
+  static concrete(module: MutableModule, operator: NodeChild<Token>, identifier: NodeChild<Token>) {
+    const base = module.baseObject('AutoscopedIdentifier')
+    const fields = composeFieldData(base, {
+      operator,
+      identifier,
+    })
+    return asOwned(new MutableAutoscopedIdentifier(module, fields))
+  }
+
+  static new(
+    identifier: TypeOrConstructorIdentifier,
+    module?: MutableModule,
+  ): Owned<MutableAutoscopedIdentifier> {
+    const module_ = module || MutableModule.Transient()
+    const operator = Token.new('..')
+    const ident = Token.new(identifier, RawAst.Token.Type.Ident)
+    return this.concrete(module_, unspaced(operator), unspaced(ident))
+  }
+
+  *concreteChildren(_verbatim?: boolean): IterableIterator<RawNodeChild> {
+    const { operator, identifier } = getAll(this.fields)
+    yield operator
+    yield identifier
+  }
+}
+export class MutableAutoscopedIdentifier extends AutoscopedIdentifier implements MutableAst {
+  declare readonly module: MutableModule
+  declare readonly fields: FixedMap<AstFields & AutoscopedIdentifierFields>
+
+  setIdentifier(value: TypeOrConstructorIdentifier) {
+    const token = Token.new(value, RawAst.Token.Type.Ident)
+    this.fields.set('identifier', unspaced(token))
+  }
+}
+export interface MutableAutoscopedIdentifier extends AutoscopedIdentifier, MutableAst {}
+applyMixins(MutableAutoscopedIdentifier, [MutableAst])
 
 interface NegationAppFields {
   operator: NodeChild<SyncTokenId>
@@ -2369,6 +2425,8 @@ export function materializeMutable(module: MutableModule, fields: FixedMap<AstFi
       return new MutableTextLiteral(module, fieldsForType)
     case 'UnaryOprApp':
       return new MutableUnaryOprApp(module, fieldsForType)
+    case 'AutoscopedIdentifier':
+      return new MutableAutoscopedIdentifier(module, fieldsForType)
     case 'Vector':
       return new MutableVector(module, fieldsForType)
     case 'Wildcard':
@@ -2413,6 +2471,8 @@ export function materialize(module: Module, fields: FixedMapView<AstFields>): As
       return new TextLiteral(module, fields_)
     case 'UnaryOprApp':
       return new UnaryOprApp(module, fields_)
+    case 'AutoscopedIdentifier':
+      return new AutoscopedIdentifier(module, fields_)
     case 'Vector':
       return new Vector(module, fields_)
     case 'Wildcard':

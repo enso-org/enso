@@ -14,7 +14,7 @@ import org.enso.languageserver.boot.resource.{
 }
 import org.enso.languageserver.data.ProjectDirectoriesConfig
 import org.enso.languageserver.effect
-import org.enso.searcher.sql.{SqlDatabase, SqlSuggestionsRepo}
+import org.enso.searcher.memory.InMemorySuggestionsRepo
 import org.graalvm.polyglot.Context
 
 import scala.concurrent.ExecutionContextExecutor
@@ -30,7 +30,6 @@ object ResourcesInitialization {
     * @param directoriesConfig configuration of directories that should be created
     * @param protocolFactory the JSON-RPC protocol factory
     * @param suggestionsRepo the suggestions repo
-    * @param sqlDatabase the sql database
     * @param truffleContext the runtime context
     * @param runtime the runtime to run effects
     * @return the initialization component
@@ -39,8 +38,7 @@ object ResourcesInitialization {
     eventStream: EventStream,
     directoriesConfig: ProjectDirectoriesConfig,
     protocolFactory: ProtocolFactory,
-    sqlDatabase: SqlDatabase,
-    suggestionsRepo: SqlSuggestionsRepo,
+    suggestionsRepo: InMemorySuggestionsRepo,
     truffleContext: Context,
     runtime: effect.Runtime
   )(implicit ec: ExecutionContextExecutor): InitializationComponent = {
@@ -54,7 +52,6 @@ object ResourcesInitialization {
           ec,
           directoriesConfig,
           eventStream,
-          sqlDatabase,
           suggestionsRepo
         ),
         new TruffleContextInitialization(ec, truffleContext, eventStream)

@@ -217,7 +217,7 @@ public final class UnresolvedConstructor implements EnsoObject {
         @Cached("buildApplication(prototype)") DirectCallNode callNode,
         @Cached("expectedType.getConstructors().get(prototype.getName())") AtomConstructor c) {
       if (c == null) {
-        return null;
+        return checkSingleton(expectedType, unresolved);
       } else {
         return invokeConstructor(c, prototype, unresolved, state, callNode);
       }
@@ -229,7 +229,7 @@ public final class UnresolvedConstructor implements EnsoObject {
         MaterializedFrame frame, State state, Type expectedType, UnresolvedConstructor unresolved) {
       var c = expectedType.getConstructors().get(unresolved.getName());
       if (c == null) {
-        return null;
+        return checkSingleton(expectedType, unresolved);
       }
       var callNode = buildApplication(unresolved);
       return invokeConstructor(c, unresolved.asPrototype(), unresolved, state, callNode);
@@ -241,6 +241,13 @@ public final class UnresolvedConstructor implements EnsoObject {
         UnresolvedConstructor unresolved,
         State state,
         DirectCallNode callNode) {
+      var builtins = EnsoContext.get(callNode).getBuiltins();
+      if (c == builtins.bool().getTrue()) {
+        return true;
+      }
+      if (c == builtins.bool().getFalse()) {
+        return false;
+      }
       var fn = c.getConstructorFunction();
       var args = new Object[prototype.descs.length + 1];
       System.arraycopy(unresolved.args, 0, args, 1, prototype.descs.length);
@@ -248,6 +255,19 @@ public final class UnresolvedConstructor implements EnsoObject {
       var helper = Function.ArgumentsHelper.buildArguments(fn, null, state, args);
       var r = callNode.call(helper);
       return r;
+    }
+
+    private static Object checkSingleton(Type c, UnresolvedConstructor unresolved) {
+      if (!c.isEigenType()) {
+        return null;
+      } else {
+        return equalTypeAndConstructorName(c, unresolved) ? c : null;
+      }
+    }
+
+    @CompilerDirectives.TruffleBoundary
+    private static boolean equalTypeAndConstructorName(Type c, UnresolvedConstructor unresolved) {
+      return c.getName().equals(unresolved.getName());
     }
   }
 

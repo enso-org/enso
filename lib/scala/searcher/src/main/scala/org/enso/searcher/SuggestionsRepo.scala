@@ -23,27 +23,6 @@ trait SuggestionsRepo[F[_]] {
     */
   def getAll: F[(Long, Seq[SuggestionEntry])]
 
-  /** Search suggestion by various parameters.
-    *
-    * @param module the module name search parameter
-    * @param selfType the self types to search for, ordered by specificity with
-    *                 the most specific type first
-    * @param returnType the returnType search parameter
-    * @param kinds the list suggestion kinds to search
-    * @param position the absolute position in the text
-    * @param isStatic the static attribute
-    * @return the current database version and the list of found suggestion ids,
-    *         ranked by specificity
-    */
-  def search(
-    module: Option[String],
-    selfType: Seq[String],
-    returnType: Option[String],
-    kinds: Option[Seq[Suggestion.Kind]],
-    position: Option[Suggestion.Position],
-    isStatic: Option[Boolean]
-  ): F[(Long, Seq[Long])]
-
   /** Select the suggestion by id.
     *
     * @param id the id of a suggestion
