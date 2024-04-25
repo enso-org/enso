@@ -97,13 +97,10 @@ public interface CompilerContext extends CompilerStub {
 
   CompilationStage getCompilationStage(Module module);
 
-  org.enso.polyglot.data.TypeGraph getTypeHierarchy();
-
   Future<Boolean> serializeLibrary(
       Compiler compiler, LibraryName libraryName, boolean useGlobalCacheLocations);
 
-  scala.Option<List<org.enso.polyglot.Suggestion>> deserializeSuggestions(LibraryName libraryName)
-      throws InterruptedException;
+  scala.Option<Object> deserializeSuggestions(LibraryName libraryName) throws InterruptedException;
 
   Future<Boolean> serializeModule(
       Compiler compiler, Module module, boolean useGlobalCacheLocations, boolean usePool);
@@ -128,6 +125,8 @@ public interface CompilerContext extends CompilerStub {
 
   public abstract static class Module {
     public abstract Source getSource() throws IOException;
+
+    public abstract CharSequence getCharacters() throws IOException;
 
     public abstract String getPath();
 

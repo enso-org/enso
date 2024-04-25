@@ -784,14 +784,16 @@ object SuggestionBuilder {
   /** Creates the suggestion builder for a module.
     *
     * @param module the module to index
+    * @param typeGraph the type hierarchy
     * @param compiler the compiler instance
     * @return the suggestions builder for the module
     */
   def apply(
     module: CompilerContext.Module,
+    typeGraph: TypeGraph,
     compiler: Compiler
   ): SuggestionBuilder[CharSequence] =
-    SuggestionBuilder(module.getSource.getCharacters, compiler)
+    SuggestionBuilder(module.getCharacters, typeGraph, compiler)
 
   /** Create the suggestion builder.
     *
@@ -806,22 +808,6 @@ object SuggestionBuilder {
     compiler: Compiler
   ): SuggestionBuilder[A] =
     new SuggestionBuilder[A](source, typeGraph, compiler)
-
-  /** Create the suggestion builder.
-    *
-    * @param source the text source
-    * @param compiler the compiler instance
-    * @tparam A the type of the text source
-    */
-  def apply[A: IndexedSource](
-    source: A,
-    compiler: Compiler
-  ): SuggestionBuilder[A] =
-    new SuggestionBuilder[A](
-      source,
-      compiler.context.getTypeHierarchy(),
-      compiler
-    )
 
   /** A single level of an `IR`.
     *

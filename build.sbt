@@ -679,12 +679,11 @@ lazy val pkg = (project in file("lib/scala/pkg"))
     Compile / run / mainClass := Some("org.enso.pkg.Main"),
     frgaalJavaCompilerSetting,
     version := "0.1",
-    libraryDependencies ++= circe ++ Seq(
-      "org.graalvm.truffle" % "truffle-api"      % graalMavenPackagesVersion,
-      "org.scalatest"      %% "scalatest"        % scalatestVersion % Test,
-      "io.circe"           %% "circe-yaml"       % circeYamlVersion,
-      "org.apache.commons"  % "commons-compress" % commonsCompressVersion,
-      "commons-io"          % "commons-io"       % commonsIoVersion
+    libraryDependencies ++= Seq(
+      "org.graalvm.truffle" % "truffle-api"      % graalMavenPackagesVersion % "provided",
+      "io.circe"           %% "circe-yaml"       % circeYamlVersion          % "provided",
+      "org.scalatest"      %% "scalatest"        % scalatestVersion          % Test,
+      "org.apache.commons"  % "commons-compress" % commonsCompressVersion
     )
   )
   .dependsOn(editions)
@@ -1956,7 +1955,27 @@ lazy val `runtime-compiler` =
   (project in file("engine/runtime-compiler"))
     .settings(
       frgaalJavaCompilerSetting,
-      instrumentationSettings,
+      (Test / fork) := true,
+      libraryDependencies ++= Seq(
+        "com.chuusai"        %% "shapeless"               % shapelessVersion,
+        "org.graalvm.truffle" % "truffle-api"             % graalMavenPackagesVersion,
+        "junit"               % "junit"                   % junitVersion       % Test,
+        "com.github.sbt"      % "junit-interface"         % junitIfVersion     % Test,
+        "org.scalatest"      %% "scalatest"               % scalatestVersion   % Test,
+        "org.netbeans.api"    % "org-openide-util-lookup" % netbeansApiVersion % "provided"
+      )
+    )
+    .dependsOn(`runtime-parser`)
+    .dependsOn(pkg)
+    .dependsOn(`engine-common`)
+    .dependsOn(editions)
+    .dependsOn(`persistance-dsl` % "provided")
+
+lazy val `runtime-suggestions` =
+  (project in file("engine/runtime-suggestions"))
+    .settings(
+      frgaalJavaCompilerSetting,
+      (Test / fork) := true,
       libraryDependencies ++= Seq(
         "junit"            % "junit"                   % junitVersion       % Test,
         "com.github.sbt"   % "junit-interface"         % junitIfVersion     % Test,
@@ -1964,11 +1983,8 @@ lazy val `runtime-compiler` =
         "org.netbeans.api" % "org-openide-util-lookup" % netbeansApiVersion % "provided"
       )
     )
-    .dependsOn(`runtime-parser`)
-    .dependsOn(pkg)
+    .dependsOn(`runtime-compiler`)
     .dependsOn(`polyglot-api`)
-    .dependsOn(editions)
-    .dependsOn(`persistance-dsl` % "provided")
 
 lazy val `runtime-instrument-common` =
   (project in file("engine/runtime-instrument-common"))
@@ -2493,9 +2509,8 @@ lazy val editions = project
   .settings(
     frgaalJavaCompilerSetting,
     libraryDependencies ++= Seq(
-      "com.typesafe.scala-logging" %% "scala-logging" % scalaLoggingVersion,
-      "io.circe"                   %% "circe-yaml"    % circeYamlVersion,
-      "org.scalatest"              %% "scalatest"     % scalatestVersion % Test
+      "io.circe"      %% "circe-yaml" % circeYamlVersion % "provided",
+      "org.scalatest" %% "scalatest"  % scalatestVersion % Test
     )
   )
   .settings(
@@ -2523,11 +2538,10 @@ lazy val semver = project
   .settings(
     frgaalJavaCompilerSetting,
     libraryDependencies ++= Seq(
-      "com.typesafe.scala-logging" %% "scala-logging"   % scalaLoggingVersion,
-      "io.circe"                   %% "circe-yaml"      % circeYamlVersion,
-      "org.scalatest"              %% "scalatest"       % scalatestVersion % Test,
-      "junit"                       % "junit"           % junitVersion     % Test,
-      "com.github.sbt"              % "junit-interface" % junitIfVersion   % Test
+      "io.circe"      %% "circe-yaml"      % circeYamlVersion % "provided",
+      "org.scalatest" %% "scalatest"       % scalatestVersion % Test,
+      "junit"          % "junit"           % junitVersion     % Test,
+      "com.github.sbt" % "junit-interface" % junitIfVersion   % Test
     )
   )
   .settings(
