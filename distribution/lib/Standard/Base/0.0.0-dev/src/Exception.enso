@@ -15,8 +15,8 @@ type Exception
             if error.is_a exception_type . not then Panic.throw cp.payload else
                 handler error
 
-    throw : Error -> Panic
-    throw (error : Error) -> Panic =
+    throw : Any -> Panic
+    throw error -> Panic =
         Panic.throw (Uncaught_Exception.Error error)
 
 ## PRIVATE
