@@ -666,12 +666,12 @@ type XML_Element
        Convert to a JavaScript Object representing this XML_Element.
     to_js_object : JS_Object ! XML_Error
     to_js_object self =
-        builder = Vector.new_builder 4
-        builder.append ["type", "XML_Element"]
-        builder.append ["tag", self.name]
-        builder.append ["attributes", self.attributes.to_js_object]
-        builder.append ["children", self.children_cache.to_js_object]
-        JS_Object.from_pairs builder.to_vector
+        vec = Vector.build initial_capacity=4 builder->
+            builder.append ["type", "XML_Element"]
+            builder.append ["tag", self.name]
+            builder.append ["attributes", self.attributes.to_js_object]
+            builder.append ["children", self.children_cache.to_js_object]
+        JS_Object.from_pairs vec
 
     ## PRIVATE
 
