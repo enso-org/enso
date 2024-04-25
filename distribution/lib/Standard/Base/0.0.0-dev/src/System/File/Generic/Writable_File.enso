@@ -41,6 +41,9 @@ type Writable_File
     exists self -> Boolean = self.file.exists
 
     ## PRIVATE
+    name self -> Text = self.file.name
+
+    ## PRIVATE
     copy_to self destination replace_existing = self.file.copy_to destination replace_existing |> self.replace_resulting_file
 
     ## PRIVATE

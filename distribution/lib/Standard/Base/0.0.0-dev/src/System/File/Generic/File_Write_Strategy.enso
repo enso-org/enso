@@ -94,7 +94,7 @@ default_raise_error file action =
 ## PRIVATE
 generic_remote_write_with_local_file (file : Writable_File) existing_file_behavior action =
     Context.Output.if_enabled disabled_message="Writing to remote file backends is not allowed in dry-run mode." panic=False <|
-        temp_file = File.create_temporary_file prefix="remote-write-"
+        temp_file = File.create_temporary_file prefix="remote-write-" suffix=file.name
         Panic.with_finalizer temp_file.delete <|
             tmp_synchronized = case file.exists of
                 ## Copy the file to a local temporary file.

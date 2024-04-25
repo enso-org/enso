@@ -12,21 +12,8 @@ from Standard.Test import all
 import Standard.Test.Test_Environment
 
 import project.Network.Enso_Cloud.Cloud_Tests_Setup.Cloud_Tests_Setup
-
-type Temporary_Directory
-    Value ~get
-
-    make -> Temporary_Directory = Temporary_Directory.Value <|
-        name = "test-run-Enso_File-"+(Date_Time.now.format "yyyy-MM-dd_HHmmss.fV" . replace "/" "|")
-        Panic.rethrow <| (Enso_File.root / name).create_directory
-
-    cleanup self = self.get.delete_if_exists recursive=True
-
-    datalink_to self filename:Text =
-        target = self.get / filename
-        config = JS_Object.from_pairs [["type", "Enso_File"], ["libraryName", "Standard.Base"], ["path", target.path]]
-        local_tmp_file = File.create_temporary_file prefix="test-datalink" suffix=".datalink"
-        Data_Link.write_config local_tmp_file config replace_existing=True
+import project.Network.Enso_Cloud.Cloud_Tests_Setup.Temporary_Directory
+from project.Network.Enso_Cloud.Cloud_Tests_Setup import create_local_datalink_to
 
 
 add_specs suite_builder setup:Cloud_Tests_Setup = setup.with_prepared_environment <|
@@ -62,7 +49,7 @@ add_specs suite_builder setup:Cloud_Tests_Setup = setup.with_prepared_environmen
                 Data_Link.read_raw_config temp_file
 
     suite_builder.group "DataLinks to Enso Cloud" pending=setup.real_cloud_pending group_builder->
-        test_root = Temporary_Directory.make
+        test_root = Temporary_Directory.make "DataLinks"
         group_builder.teardown test_root.cleanup
 
         group_builder.specify "should be able to read a local datalink to an Enso File" <|
@@ -76,7 +63,7 @@ add_specs suite_builder setup:Cloud_Tests_Setup = setup.with_prepared_environmen
             datalink.read . should_equal "Hello Another!"
 
         group_builder.specify "should be able to write Text to a data link pointing to a Cloud file" <|
-            datalink = test_root.datalink_to "my-file1.txt"
+            datalink = create_local_datalink_to (test_root.get / "my-file1.txt")
 
             r1 = datalink.read
             r1.should_fail_with File_Error
@@ -90,12 +77,12 @@ add_specs suite_builder setup:Cloud_Tests_Setup = setup.with_prepared_environmen
             datalink.read . should_equal my_content
 
         group_builder.specify "currently does not support appending to a datalink" <|
-            datalink = test_root.datalink_to "my-file2.txt"
+            datalink = create_local_datalink_to (test_root.get / "my-file2.txt")
             Test.expect_panic Unimplemented <|
                 "foobar".write datalink on_existing_file=Existing_File_Behavior.Append
 
         group_builder.specify "should be able to write raw bytes to a data link in Cloud" <|
-            datalink = test_root.datalink_to "my-file2.txt"
+            datalink = create_local_datalink_to (test_root.get / "my-file2.txt")
             datalink.read.should_fail_with File_Error
 
             my_content = Random.uuid
@@ -111,8 +98,8 @@ add_specs suite_builder setup:Cloud_Tests_Setup = setup.with_prepared_environmen
             datalink.read_bytes . should_equal [1, 2, 3]
 
         group_builder.specify "deleting a data link will not remove the file in the Cloud" <|
-            datalink = test_root.datalink_to "my-file3.txt"
             file = test_root.get / "my-file3.txt"
+            datalink = create_local_datalink_to file
 
             my_content = Random.uuid
             my_content.write file . should_equal file

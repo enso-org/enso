@@ -9,6 +9,8 @@ import Standard.Image.Image_File_Format.Image_File_Format
 from Standard.Test import all
 
 import enso_dev.Base_Tests.Network.Enso_Cloud.Cloud_Tests_Setup.Cloud_Tests_Setup
+import enso_dev.Base_Tests.Network.Enso_Cloud.Cloud_Tests_Setup.Temporary_Directory
+from enso_dev.Base_Tests.Network.Enso_Cloud.Cloud_Tests_Setup import create_local_datalink_to
 
 polyglot java import java.lang.System as Java_System
 
@@ -62,11 +64,11 @@ add_specs suite_builder =
             Image.read rgba_file Read_Flag.Grayscale . write out_file
         group_builder.specify "should write a PNG file with compression" <|
             out_file = enso_project.root / "out.png"
-            Image.read rgba_file . write out_file (Write_Flag.PNG_Compression 3) . should_equal Nothing
+            Image.read rgba_file . write out_file (Write_Flag.PNG_Compression 3) . should_equal out_file
         group_builder.specify "should write a JPEG file with compression" <|
             out_file = enso_project.root / "out.jpeg"
             flags = [Write_Flag.JPEG_Quality 75, Write_Flag.JPEG_Optimize, Write_Flag.JPEG_Progressive]
-            Image.read rgba_file . write out_file flags . should_equal Nothing
+            Image.read rgba_file . write out_file flags . should_equal out_file
 
     suite_builder.group "Image File_Format" group_builder->
         group_builder.specify "should recognise image files" <|
@@ -107,8 +109,16 @@ add_specs suite_builder =
 
     cloud_setup = Cloud_Tests_Setup.prepare
     suite_builder.group "Data Links to Images" pending=cloud_setup.real_cloud_pending group_builder->
+        subdirectory_for_tests = Temporary_Directory.make "Image"
         group_builder.specify "should be able to write image data to a data link and read it back" <|
-            Error.throw "TODO!"
+            datalink = create_local_datalink_to (subdirectory_for_tests.get / "image.png")
+            local_image = Image.read rgba_file
+
+            # Write image data to datalink
+            local_image.write datalink . should_equal datalink
+
+            # And read it back
+            datalink.read . should_be_a Image
 
 main filter=Nothing =
     suite = Test.build suite_builder->
