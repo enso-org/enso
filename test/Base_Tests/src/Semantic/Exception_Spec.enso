@@ -29,6 +29,20 @@ add_specs suite_builder = suite_builder.group "Exception" group_builder->
             Exception.qthrow (My_Error.Error "err")
             _ = a + b
             Test.fail "should not reach here"
+        err.is_error . should_be_true
+        err.catch . should_be_a My_Error
+
+    group_builder.specify "should be able to explicitly re-throw as a dataflow error" <|
+        handler e =
+            _ = [e]  # Do something with the error first
+            Error.throw e
+        err = Exception.qcatch My_Error handler=handler <|
+            a = 10
+            b = a + a
+            Exception.qthrow (My_Error.Error "err")
+            _ = a + b
+            Test.fail "should not reach here"
+        err.is_error . should_be_true
         err.catch . should_be_a My_Error
 
     group_builder.specify "can handle multiple exceptions" <|
