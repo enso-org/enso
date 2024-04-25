@@ -1,4 +1,4 @@
-package org.enso.compiler.context
+package org.enso.compiler.suggestions
 
 import org.enso.compiler.core.Implicits.AsMetadata
 import org.enso.compiler.core.IR

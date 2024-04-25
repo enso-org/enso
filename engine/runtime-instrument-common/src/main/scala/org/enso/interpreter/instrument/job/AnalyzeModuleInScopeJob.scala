@@ -1,7 +1,7 @@
 package org.enso.interpreter.instrument.job
 
-import org.enso.compiler.context.ExportsBuilder
 import org.enso.compiler.suggestions.{
+  ExportsBuilder,
   ModuleExportsDiff,
   SuggestionBuilder,
   SuggestionDiff
