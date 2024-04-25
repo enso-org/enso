@@ -137,7 +137,7 @@ const wasAutomaticallyAutosized = ref(false)
 const numberFormat = new Intl.NumberFormat(undefined, {
   style: 'decimal',
   maximumFractionDigits: 12,
-  useGrouping: 'min2'
+  useGrouping: 'min2' as any
 })
 
 function setRowLimit(newRowLimit: number) {
