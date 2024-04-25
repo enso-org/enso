@@ -1118,7 +1118,7 @@ add_specs suite_builder =
                     Panic.throw (Illegal_Argument.Error "error")
 
         group_builder.specify ".build_multiple count must be non-negative" <|
-            Vector.build_multiple -2 (x->Nothing) . should_fail_with Illegal_Argument
+            Vector.build_multiple -2 (_->Nothing) . should_fail_with Illegal_Argument
 
         group_builder.specify "example (single)" <|
             vec = Vector.build initial_capacity=5 builder->
