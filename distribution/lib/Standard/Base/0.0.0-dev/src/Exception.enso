@@ -7,16 +7,16 @@ from project.Runtime import assert
 
 ## PRIVATE
 type Exception
-    catch : Any -> (Any -> Any) -> Any -> Any
-    catch exception_type (handler : Any -> Any = (x->x)) ~action =
+    qcatch : Any -> (Any -> Any) -> Any -> Any
+    qcatch exception_type (handler : Any -> Any = (x->x)) ~action =
         Panic.catch Uncaught_Exception action cp->
             assert (cp.payload == Uncaught_Exception)
             error = cp.payload.error
             if error.is_a exception_type . not then Panic.throw cp.payload else
                 handler error
 
-    throw : Any -> Panic
-    throw error -> Panic =
+    qthrow : Any -> Panic
+    qthrow error -> Panic =
         Panic.throw (Uncaught_Exception.Error error)
 
 ## PRIVATE
