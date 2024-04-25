@@ -7,6 +7,7 @@ import Standard.Base.System.Output_Stream.Output_Stream
 import project.Data_Formatter.Data_Formatter
 import project.Delimited.Delimited_Format.Delimited_Format
 import project.Delimited.Quote_Style.Quote_Style
+import project.Headers.Headers
 import project.Internal.Delimited_Reader
 import project.Internal.Delimited_Reader.Detected_Headers
 import project.Internal.Java_Problems
@@ -172,10 +173,10 @@ write_to_writer table format java_writer separator_override=Nothing needs_leadin
         writer.write table.java_table
 
 ## PRIVATE
-should_write_headers headers = case headers of
-    True -> True
-    Infer -> True
-    False -> False
+should_write_headers headers:Headers = case headers of
+    Headers.Has_Headers -> True
+    Headers.Detect_Headers -> True
+    Headers.No_Headers -> False
 
 ## PRIVATE
    The default line separator used for newly written delimited files, if no

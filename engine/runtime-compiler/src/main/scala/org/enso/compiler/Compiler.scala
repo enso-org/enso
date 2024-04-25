@@ -36,8 +36,8 @@ import org.enso.compiler.phase.{
 }
 import org.enso.editions.LibraryName
 import org.enso.pkg.QualifiedName
-import org.enso.polyglot.LanguageInfo
-import org.enso.polyglot.CompilationStage
+import org.enso.common.LanguageInfo
+import org.enso.common.CompilationStage
 import org.enso.syntax2.Tree
 
 import java.io.{PrintStream, StringReader}

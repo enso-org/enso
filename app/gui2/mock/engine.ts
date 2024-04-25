@@ -496,6 +496,7 @@ export const mockLSHandler: MockTransportData = async (method, data, transport) 
     case 'executionContext/push':
     case 'executionContext/pop':
     case 'executionContext/recompute':
+    case 'executionContext/setExecutionEnvironment':
     case 'capability/acquire':
       return {}
     case 'file/list': {

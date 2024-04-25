@@ -40,10 +40,10 @@ import project.System.Output_Stream.Output_Stream
 from project.Data.Boolean import Boolean, False, True
 from project.Data.Index_Sub_Range.Index_Sub_Range import Last
 from project.Data.Text.Extensions import all
-from project.Enso_Cloud.Public_Utils import get_required_field
 from project.Enso_Cloud.Internal.Enso_File_Helpers import all
-from project.System.File_Format import Auto_Detect, Bytes, File_Format, Plain_Text_Format
+from project.Enso_Cloud.Public_Utils import get_required_field
 from project.System.File import find_extension_from_name
+from project.System.File_Format import Auto_Detect, Bytes, File_Format, Plain_Text_Format
 from project.System.File.Generic.File_Write_Strategy import generic_copy
 
 type Enso_File
@@ -310,8 +310,8 @@ type Enso_File
             Asset_Cache.update file asset
             file
 
-    ## ICON folder_add
-       GROUP Output
+    ## GROUP Output
+       ICON folder_add
        Creates the directory represented by this file if it did not exist.
 
        It also creates parent directories if they did not exist.

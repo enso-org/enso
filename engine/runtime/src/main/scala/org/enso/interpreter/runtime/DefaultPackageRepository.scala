@@ -22,7 +22,7 @@ import org.enso.pkg.{
   SourceFile
 }
 import org.enso.text.buffer.Rope
-import org.enso.polyglot.CompilationStage
+import org.enso.common.CompilationStage
 
 import java.nio.file.Path
 import scala.collection.immutable.ListSet
@@ -578,9 +578,12 @@ private class DefaultPackageRepository(
     val cache = ensurePackageIsLoaded(libraryName).toOption.flatMap { _ =>
       if (!loadedLibraryBindings.contains(libraryName)) {
         loadedPackages.get(libraryName).flatten.foreach(loadDependencies(_))
-        val cachedBindingOption = context
+        val cachedBindingOption = None
+        /* TBD: this has to be called somehow
+        context
           .asInstanceOf[TruffleCompilerContext]
           .deserializeLibraryBindings(libraryName)
+         */
         loadedLibraryBindings.addOne((libraryName, cachedBindingOption))
       }
       loadedLibraryBindings.get(libraryName)

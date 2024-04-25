@@ -8,7 +8,7 @@ const ACCEPT_SUGGESTION_SHORTCUT = `${CONTROL_KEY}+Enter`
 
 async function deselectAllNodes(page: Page) {
   await page.keyboard.press('Escape')
-  await expect(page.locator('.GraphNode.selected')).toHaveCount(0)
+  await expect(locate.selectedNodes(page)).toHaveCount(0)
 }
 
 async function expectAndCancelBrowser(page: Page, expectedInput: string) {

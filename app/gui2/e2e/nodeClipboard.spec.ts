@@ -36,7 +36,8 @@ test('Copy node with comment', async ({ page }) => {
   // Copy and paste it.
   await page.keyboard.press(`${CONTROL_KEY}+C`)
   await page.keyboard.press(`${CONTROL_KEY}+V`)
-  await expect(nodeToCopy).toBeSelected()
+  await expect(nodeToCopy).not.toBeSelected()
+  await expect(locate.selectedNodes(page)).toHaveCount(1)
 
   // Node and comment have been copied.
   await expect(locate.graphNode(page)).toHaveCount(originalNodes + 1)
@@ -61,8 +62,9 @@ test('Copy multiple nodes', async ({ page }) => {
   // Copy and paste.
   await page.keyboard.press(`${CONTROL_KEY}+C`)
   await page.keyboard.press(`${CONTROL_KEY}+V`)
-  await expect(node1).toBeSelected()
-  await expect(node2).toBeSelected()
+  await expect(node1).not.toBeSelected()
+  await expect(node2).not.toBeSelected()
+  await expect(locate.selectedNodes(page)).toHaveCount(2)
 
   // Nodes and comment have been copied.
   await expect(locate.graphNode(page)).toHaveCount(originalNodes + 2)

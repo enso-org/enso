@@ -12,7 +12,10 @@ import org.enso.pkg.{
   Package,
   PackageManager
 }
-import org.enso.polyglot._
+import org.enso.common.LanguageInfo
+import org.enso.common.MethodNames
+import org.enso.polyglot.RuntimeOptions
+import org.enso.polyglot.RuntimeServerInfo
 import org.enso.polyglot.runtime.Runtime.Api
 import org.enso.testkit.OsSpec
 import org.graalvm.polyglot.Context

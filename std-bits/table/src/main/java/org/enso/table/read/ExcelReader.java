@@ -111,7 +111,7 @@ public class ExcelReader {
         workbook -> {
           int sheetIndex = workbook.getSheetIndex(sheetName);
           if (sheetIndex == -1) {
-            throw new InvalidLocationException("Unknown sheet '" + sheetName + "'.");
+            throw new InvalidLocationException(sheetName, "Unknown sheet '" + sheetName + "'.");
           }
 
           return readTable(
@@ -153,7 +153,8 @@ public class ExcelReader {
           int sheetCount = workbook.getNumberOfSheets();
           if (index < 1 || index > sheetCount) {
             throw new InvalidLocationException(
-                "Sheet index is not in valid range (1 to " + sheetCount + " inclusive).");
+                Integer.toString(index),
+                "Sheet " + index + " is out of range (1 to " + sheetCount + " inclusive).");
           }
 
           return readTable(
@@ -236,7 +237,8 @@ public class ExcelReader {
       excelRange = new ExcelRange(name == null ? rangeNameOrAddress : name.getRefersToFormula());
     } catch (IllegalArgumentException e) {
       throw new InvalidLocationException(
-          "Invalid range name or address '" + rangeNameOrAddress + "'.");
+          rangeNameOrAddress,
+          "Unknown sheet or range name or invalid address: '" + rangeNameOrAddress + "'.");
     }
 
     return readRange(workbook, excelRange, headers, skip_rows, row_limit, problemAggregator);
@@ -287,7 +289,8 @@ public class ExcelReader {
       throws InvalidLocationException {
     int sheetIndex = workbook.getSheetIndex(excelRange.getSheetName());
     if (sheetIndex == -1) {
-      throw new InvalidLocationException("Unknown sheet '" + excelRange.getSheetName() + "'.");
+      throw new InvalidLocationException(
+          excelRange.getSheetName(), "Unknown sheet '" + excelRange.getSheetName() + "'.");
     }
 
     return readTable(
