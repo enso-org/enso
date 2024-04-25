@@ -47,29 +47,27 @@ register_toolchains("@graalvm//:toolchain")
 
 bazel_dep(name = "rules_jvm_external", version = "6.0")
 
-scalaLoggingVersion = "3.9.4"
-scalatestVersion = "3.3.0-SNAP4"
-catsVersion = "2.9.0"
+scala_logging_version = "3.9.4"
+scalatest_version = "3.3.0-SNAP4"
+cats_version = "2.9.0"
+circe_version = "0.14.5"
+circe_libs = ["circe-core", "circe-generic", "circe-parser"]
+circe = ["io.circe:%s_2.13:%s" % (x, circe_version) for x in circe_libs]
 
 maven = use_extension("@rules_jvm_external//:extensions.bzl", "maven")
 ## After updating a list of artifacts run
 ## > bazel run @unpinned_maven//:pin
 maven.install(
     artifacts = [
-      "com.typesafe.scala-logging:scala-logging_2.13:3.9.4",
-      "org.scalatest:scalatest_2.13:3.3.0-SNAP4",
-      "org.typelevel:cats-core_2.13:2.9.0",
-      "io.circe:circe-core_2.13:0.14.5",
-      "io.circe:circe-generic_2.13:0.14.5",
-      "io.circe:circe-parser_2.13:0.14.5"
-    ],
+      "com.typesafe.scala-logging:scala-logging_2.13:%s" % scala_logging_version,
+      "org.scalatest:scalatest_2.13:%s" % scalatest_version,
+      "org.typelevel:cats-core_2.13:%s" % cats_version,
+    ] + circe,
     fail_if_repin_required = True,
     lock_file = "//:maven_install.json",
     repositories = [
-        "https://maven.google.com",
         "https://repo.maven.apache.org/maven2",
         "https://repo1.maven.org/maven2",
-        "https://jitpack.io",
     ],
 )
 use_repo(

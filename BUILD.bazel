@@ -1,2 +1,19 @@
 load("@npm//:defs.bzl", "npm_link_all_packages")
 npm_link_all_packages(name = "node_modules")
+
+## Discover dependencies via
+## > bazel build <target> --extra_toolchains=//:plus_one_strict_deps_filter
+load("@io_bazel_rules_scala//scala:scala_toolchain.bzl", "scala_toolchain")
+toolchain(
+    name = "plus_one_strict_deps_filter",
+    toolchain = ":plus_one_strict_deps_filter_a_impl",
+    toolchain_type = "@io_bazel_rules_scala//scala:toolchain_type",
+    visibility = ["//visibility:public"],
+)
+scala_toolchain(
+    name = "plus_one_strict_deps_filter_a_impl",
+    dependency_mode = "plus-one",
+    dependency_tracking_method = "ast",
+    strict_deps_mode = "error",
+    visibility = ["//visibility:public"],
+)
