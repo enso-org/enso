@@ -196,7 +196,7 @@ export const Button = React.forwardRef(function Button(
   const button = (
     <Tag
       // @ts-expect-error eventhough typescript is complaining about the type of ariaProps, it is actually correct
-      {...aria.mergeProps()(ariaProps, focusChildProps, goodDefaults, {
+      {...aria.mergeProps()(goodDefaults, ariaProps, focusChildProps, {
         ref,
         isDisabled,
       })}
