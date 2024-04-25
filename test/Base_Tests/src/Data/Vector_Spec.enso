@@ -1055,7 +1055,7 @@ add_specs suite_builder =
                 builder.append 1
             v3 . should_equal [1]
 
-        group_builder.specify "Should propagate dataflow errors" <|
+        group_builder.specify "Should propagate uncaught dataflow errors returned from build callback" <|
             v = Vector.build builder->
                 builder.append 1
                 builder.append 2
@@ -1066,7 +1066,7 @@ add_specs suite_builder =
             builder = Vector.new_builder
             err = Error.throw (Illegal_Argument.Error "error")
             builder.append 1
-            builder.append err . should_fail_with  err
+            builder.append err . should_fail_with err
             builder.to_vector . should_equal [1]
 
         group_builder.specify "Builder should not propagate the error when a dataflow error is added with `.append_vector_range `, if `panic_on_dataflow_error` is False" <|
@@ -1097,7 +1097,7 @@ add_specs suite_builder =
                 builder.append_vector_range values
             builder.to_vector . should_equal []
 
-        group_builder.specify "Builder should propagate an uncaught error if it is appended with .append" <|
+        group_builder.specify "Builder should propagate an uncaught dataflow error if it is appended with .append" <|
             v = Vector.build builder->
                 builder.append 1
                 builder.append (Error.throw (Illegal_Argument.Error "asdf"))
@@ -1110,6 +1110,24 @@ add_specs suite_builder =
                 builder.append_vector_range [1, Error.throw (Illegal_Argument.Error "asdf")]
                 builder.append 3
             v . should_fail_with (Illegal_Argument.Error "asdf")
+
+        group_builder.specify "Builder should propagate warnings attached to an item added to the builder with .append" <|
+            v = Vector.build builder->
+                ww = Warning.attach (My_Error.Error "err") 2
+                builder.append 1
+                builder.append ww
+                builder.append 3
+            v . should_equal [1, 2, 3]
+            Warning.get_all v . should_equal [My_Error.Error "err"]
+
+        group_builder.specify "Builder should propagate warnings attached to an item added to the builder with .append" <|
+            v = Vector.build builder->
+                ww = Warning.attach (My_Error.Error "err") 21
+                builder.append 1
+                builder.append_vector_range [20, ww, 22]
+                builder.append 3
+            v . should_equal [1, [20, 21, 22], 3]
+            Warning.get_all v . should_equal [My_Error.Error "err"]
 
         group_builder.specify "Builder should only convert Builder_Dataflow_Error panics to dataflow errors, and let other panics through" <|
             Test.expect_panic_with matcher=Illegal_Argument <|
