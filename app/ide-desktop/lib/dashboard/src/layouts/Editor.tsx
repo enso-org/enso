@@ -1,7 +1,6 @@
 /** @file The container that launches the IDE. */
 import * as React from 'react'
 
-import * as detect from 'enso-common/src/detect'
 import * as load from 'enso-common/src/load'
 
 import * as appUtils from '#/appUtils'
