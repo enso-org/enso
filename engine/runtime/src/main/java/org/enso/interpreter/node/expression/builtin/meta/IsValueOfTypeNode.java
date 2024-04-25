@@ -10,6 +10,7 @@ import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.nodes.ExplodeLoop;
 import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.nodes.NodeInfo;
+import com.oracle.truffle.api.profiles.BranchProfile;
 import com.oracle.truffle.api.profiles.CountingConditionProfile;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
@@ -51,14 +52,15 @@ public abstract class IsValueOfTypeNode extends Node {
       Object expectedType,
       TypeOfNode typeOfNode,
       IsSameObjectNode isSameObject,
-      CountingConditionProfile isSameObjectProfile) {
+      CountingConditionProfile isSameObjectProfile,
+      BranchProfile recursiveBranchProfile) {
     Object tpeOfPayload = typeOfNode.execute(payload);
     if (isSameObjectProfile.profile(isSameObject.execute(expectedType, tpeOfPayload))) {
       return true;
     } else if (TypesGen.isType(tpeOfPayload)) {
       Type tpe = TypesGen.asType(tpeOfPayload);
       var ctx = EnsoContext.get(typeOfNode);
-      for (var superTpe : tpe.allTypes(ctx)) {
+      for (var superTpe : tpe.allTypes(ctx, recursiveBranchProfile)) {
         boolean testSuperTpe = isSameObject.execute(expectedType, superTpe);
         if (testSuperTpe) {
           return true;
@@ -72,6 +74,7 @@ public abstract class IsValueOfTypeNode extends Node {
     private @Child IsSameObjectNode isSameObject = IsSameObjectNode.build();
     private @Child TypeOfNode typeOfNode = TypeOfNode.create();
     private final CountingConditionProfile profile = CountingConditionProfile.create();
+    private final BranchProfile recursiveBranchProfile = BranchProfile.create();
 
     abstract boolean execute(Object expectedType, Object payload);
 
@@ -107,7 +110,7 @@ public abstract class IsValueOfTypeNode extends Node {
     @ExplodeLoop
     private boolean checkParentTypes(Type actual, Type expected) {
       var ctx = EnsoContext.get(this);
-      for (var tpe : actual.allTypes(ctx)) {
+      for (var tpe : actual.allTypes(ctx, recursiveBranchProfile)) {
         if (tpe == expected) {
           return true;
         }
@@ -120,7 +123,8 @@ public abstract class IsValueOfTypeNode extends Node {
         Type expectedType,
         Object payload,
         @Shared("types") @CachedLibrary(limit = "3") TypesLibrary types) {
-      return typeAndCheck(payload, expectedType, typeOfNode, isSameObject, profile);
+      return typeAndCheck(
+          payload, expectedType, typeOfNode, isSameObject, profile, recursiveBranchProfile);
     }
 
     @Specialization(
@@ -154,6 +158,7 @@ public abstract class IsValueOfTypeNode extends Node {
     private @Child IsSameObjectNode isSameObject = IsSameObjectNode.build();
     private @Child TypeOfNode typeOfNode = TypeOfNode.create();
     private final CountingConditionProfile profile = CountingConditionProfile.create();
+    private final BranchProfile recursionBranchProfile = BranchProfile.create();
 
     abstract boolean execute(Object expectedType, Object payload);
 
@@ -177,7 +182,8 @@ public abstract class IsValueOfTypeNode extends Node {
 
     @Fallback
     public boolean doOther(Object expectedType, Object payload) {
-      return typeAndCheck(payload, expectedType, typeOfNode, isSameObject, profile);
+      return typeAndCheck(
+          payload, expectedType, typeOfNode, isSameObject, profile, recursionBranchProfile);
     }
   }
 }

@@ -10,6 +10,7 @@ import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
 import com.oracle.truffle.api.nodes.Node;
+import com.oracle.truffle.api.profiles.BranchProfile;
 import org.enso.interpreter.Constants;
 import org.enso.interpreter.node.callable.InteropConversionCallNode;
 import org.enso.interpreter.runtime.EnsoContext;
@@ -51,11 +52,13 @@ public final class UnresolvedConversion implements EnsoObject {
    * @param ctx execution context
    * @param into the target type to convert {@code from} to
    * @param from original type
+   * @param recursionBranchProfile
    * @return the resolved function definition, or null if not found
    */
-  public Function resolveFor(EnsoContext ctx, Type into, Type from) {
+  public Function resolveFor(
+      EnsoContext ctx, Type into, Type from, BranchProfile recursionBranchProfile) {
     if (from != null) {
-      for (var current : from.allTypes(ctx)) {
+      for (var current : from.allTypes(ctx, recursionBranchProfile)) {
         Function candidate = scope.lookupConversionDefinition(current, into);
         if (candidate != null) {
           return candidate;

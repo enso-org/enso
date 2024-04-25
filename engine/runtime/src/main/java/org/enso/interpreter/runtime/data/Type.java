@@ -9,6 +9,7 @@ import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
 import com.oracle.truffle.api.nodes.Node;
+import com.oracle.truffle.api.profiles.BranchProfile;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
@@ -129,21 +130,24 @@ public final class Type implements EnsoObject {
     return supertype;
   }
 
-  public final Type[] allTypes(EnsoContext ctx) {
+  public final Type[] allTypes(EnsoContext ctx, BranchProfile recursiveBranchProfile) {
     if (supertype == null) {
       if (builtin) {
         return new Type[] {this};
       }
       return new Type[] {this, ctx.getBuiltins().any()};
-    }
-    if (supertype == ctx.getBuiltins().any()) {
+    } else if (supertype == ctx.getBuiltins().any()) {
       return new Type[] {this, ctx.getBuiltins().any()};
+    } else {
+      // transferToInterpreter is needed here because `supertype.allTypes(ctx)` may cause
+      // PermanentBailoutException "Too deep inlining because of recursion" compilation error.
+      recursiveBranchProfile.enter();
+      var superTypes = supertype.allTypes(ctx, recursiveBranchProfile);
+      var allTypes = new Type[superTypes.length + 1];
+      System.arraycopy(superTypes, 0, allTypes, 1, superTypes.length);
+      allTypes[0] = this;
+      return allTypes;
     }
-    var superTypes = supertype.allTypes(ctx);
-    var allTypes = new Type[superTypes.length + 1];
-    System.arraycopy(superTypes, 0, allTypes, 1, superTypes.length);
-    allTypes[0] = this;
-    return allTypes;
   }
 
   public void generateGetters(EnsoLanguage language) {
