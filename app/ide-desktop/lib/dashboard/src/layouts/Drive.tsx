@@ -1,8 +1,6 @@
 /** @file The directory header bar and directory item listing. */
 import * as React from 'react'
 
-import * as router from 'react-router-dom'
-
 import * as appUtils from '#/appUtils'
 
 import * as eventCallback from '#/hooks/eventCallbackHooks'
@@ -28,6 +26,7 @@ import DriveBar from '#/layouts/DriveBar'
 import Labels from '#/layouts/Labels'
 
 import * as aria from '#/components/aria'
+import * as ariaComponents from '#/components/AriaComponents'
 import type * as spinner from '#/components/Spinner'
 import UnstyledButton from '#/components/UnstyledButton'
 
@@ -328,29 +327,36 @@ export default function Drive(props: DriveProps) {
     case DriveStatus.notEnabled: {
       return (
         <div className={`grid grow place-items-center ${hidden ? 'hidden' : ''}`}>
-          <div className="flex flex-col gap-status-page text-center text-base">
+          <div className="flex flex-col items-center gap-status-page text-center text-base">
             {getText('upgradeToUseCloud')}
-            <router.Link
-              className="button self-center bg-help text-white"
-              to={appUtils.SUBSCRIBE_PATH}
-            >
-              {getText('upgrade')}
-            </router.Link>
-            {!supportsLocalBackend && (
-              <UnstyledButton
-                className="button self-center bg-help text-white"
-                onPress={async () => {
-                  const downloadUrl = await github.getDownloadUrl()
-                  if (downloadUrl == null) {
-                    toastAndLog('noAppDownloadError')
-                  } else {
-                    download.download(downloadUrl)
-                  }
-                }}
+            <div className="flex gap-3">
+              <ariaComponents.Button
+                variant="submit"
+                rounding="full"
+                size="medium"
+                href={appUtils.SUBSCRIBE_PATH}
               >
-                {getText('downloadFreeEdition')}
-              </UnstyledButton>
-            )}
+                {getText('upgrade')}
+              </ariaComponents.Button>
+
+              {!supportsLocalBackend && (
+                <ariaComponents.Button
+                  variant="outline"
+                  size="medium"
+                  rounding="full"
+                  onPress={async () => {
+                    const downloadUrl = await github.getDownloadUrl()
+                    if (downloadUrl == null) {
+                      toastAndLog('noAppDownloadError')
+                    } else {
+                      download.download(downloadUrl)
+                    }
+                  }}
+                >
+                  {getText('downloadFreeEdition')}
+                </ariaComponents.Button>
+              )}
+            </div>
           </div>
         </div>
       )
