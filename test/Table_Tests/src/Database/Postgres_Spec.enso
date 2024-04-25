@@ -402,7 +402,7 @@ postgres_specific_spec suite_builder create_connection_fn db_name setup =
             t2.at "Y" . value_type . scale . should_equal Nothing
             t2.at "X" . to_vector . should_equal [10, x]
             # Only works by approximation:
-            t2.at "Y" . to_vector . should_equal [20, x+10]
+            t2.at "Y" . to_vector . should_equal [20, x+10 . to_float]
             t2.at "Y" . cast Value_Type.Char . to_vector . should_equal ["20", (x+10).to_text]
 
             m2 = t2.remove_warnings.read
@@ -410,7 +410,7 @@ postgres_specific_spec suite_builder create_connection_fn db_name setup =
             # As noted above - once operations are performed, the scale=0 may be lost and the column will be approximated as a float.
             m2.at "Y" . value_type . should_equal Value_Type.Float
             m2.at "X" . to_vector . should_equal [10, x]
-            m2.at "Y" . to_vector . should_equal [20, x+10]
+            m2.at "Y" . to_vector . should_equal [20, x+10 . to_float]
             w2 = Problems.expect_only_warning Inexact_Type_Coercion m2
             w2.requested_type . should_equal (Value_Type.Decimal precision=Nothing scale=Nothing)
             w2.actual_type . should_equal Value_Type.Float
@@ -425,7 +425,7 @@ postgres_specific_spec suite_builder create_connection_fn db_name setup =
             t3 . at "X" . value_type . precision . should_equal Nothing
             t3 . at "X" . value_type . scale . should_equal Nothing
             # Works but only relying on imprecise float equality:
-            t3 . at "X" . to_vector . should_equal [super_large]
+            t3 . at "X" . to_vector . should_equal [super_large . to_float]
             w3 = Problems.expect_only_warning Inexact_Type_Coercion t3
             w3.requested_type . should_equal (Value_Type.Decimal precision=Nothing scale=0)
             w3.actual_type . should_equal (Value_Type.Decimal precision=Nothing scale=Nothing)
@@ -433,7 +433,7 @@ postgres_specific_spec suite_builder create_connection_fn db_name setup =
             m4 = t3.remove_warnings.read
             # Because we no longer have a set scale, we cannot get a BigInteger column back - we'd need BigDecimal, but that is not fully supported yet in Enso - so we get the closest approximation - the imprecise Float.
             m4 . at "X" . value_type . should_equal Value_Type.Float
-            m4 . at "X" . to_vector . should_equal [super_large]
+            m4 . at "X" . to_vector . should_equal [super_large . to_float]
             w4 = Problems.expect_only_warning Inexact_Type_Coercion m4
             w4.requested_type . should_equal (Value_Type.Decimal precision=Nothing scale=Nothing)
             w4.actual_type . should_equal Value_Type.Float
