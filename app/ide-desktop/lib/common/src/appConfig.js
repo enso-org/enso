@@ -3,12 +3,6 @@ import * as fs from 'node:fs/promises'
 import * as path from 'node:path'
 import * as url from 'node:url'
 
-// =================
-// === Constants ===
-// =================
-
-const ENSO_CLOUD_GOOGLE_ANALYTICS_TAG = 'G-CLTBJ37MDM'
-
 // ===============================
 // === readEnvironmentFromFile ===
 // ===============================
@@ -41,10 +35,6 @@ export async function readEnvironmentFromFile() {
         }
         const variables = Object.fromEntries(entries)
         Object.assign(process.env, variables)
-        if (!('' in process.env)) {
-            // @ts-expect-error This is the only place where this environment variable is set.
-            process.env.ENSO_CLOUD_GOOGLE_ANALYTICS_TAG = ENSO_CLOUD_GOOGLE_ANALYTICS_TAG
-        }
     } catch (error) {
         if (isProduction) {
             console.warn('Could not load `.env` file; disabling cloud backend.')
