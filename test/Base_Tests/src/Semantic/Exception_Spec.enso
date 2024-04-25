@@ -51,7 +51,7 @@ add_specs suite_builder = suite_builder.group "Exception" group_builder->
     group_builder.specify "other panics pass through unharmed" <|
         Test.expect_panic_with matcher=Illegal_Argument <|
             Exception.qcatch My_Error handler=(x->x) <|
-                Panic.qthrow (Illegal_Argument.Error "err")
+                Panic.throw (Illegal_Argument.Error "err")
                 Test.fail "should not reach here"
             Test.fail "should not reach here"
 

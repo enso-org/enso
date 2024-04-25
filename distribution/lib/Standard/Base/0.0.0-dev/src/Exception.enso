@@ -1,6 +1,7 @@
 import project.Any.Any
 import project.Data.Text.Text
 import project.Error.Error
+import project.Meta
 import project.Panic.Panic
 from project.Data.Boolean import Boolean, False, True
 from project.Runtime import assert
@@ -10,7 +11,7 @@ type Exception
     qcatch : Any -> (Any -> Any) -> Any -> Any
     qcatch exception_type (handler : Any -> Any = (x->x)) ~action =
         Panic.catch Uncaught_Exception action cp->
-            assert (cp.payload == Uncaught_Exception)
+            assert (cp.payload . is_a Uncaught_Exception)
             error = cp.payload.error
             if error.is_a exception_type . not then Panic.throw cp.payload else
                 handler error
