@@ -17,6 +17,7 @@ import project.Errors.Empty_Error.Empty_Error
 import project.Errors.Illegal_Argument.Illegal_Argument
 import project.Errors.Problem_Behavior.Problem_Behavior
 import project.Errors.Wrapped_Error.Wrapped_Error
+import project.Exception.Exception
 import project.Function.Function
 import project.Internal.Array_Like_Helpers
 import project.Math
@@ -277,9 +278,10 @@ type Vector a
     build_multiple : Integer -> (Builder -> Any) -> Integer -> Vector Vector
     build_multiple (count : Integer) (function : Builder -> Any) (initial_capacity : Integer = 10) -> Vector Vector =
         if count < 0 then Error.throw (Illegal_Argument.Error "count must be non-negative: "+count.to_text) else
-            builders = Range.new 0 count . map (_-> Builder.new initial_capacity panic_on_dataflow_error=True)
-            propagate_dataflow_error cp = Error.throw (cp.payload.dataflow_error)
-            Panic.catch Builder_Dataflow_Error handler=propagate_dataflow_error <|
+            builders = Range.new 0 count . map (_-> Build_Style_Builder.new initial_capacity)
+            handler builder_dataflow_error =
+                Error.throw builder_dataflow_error.dataflow_error
+            Exception.qcatch Builder_Dataflow_Error handler=handler <|
                 ## TODO: This extra `case` is necessary to propagate warnings attached to
                    values that are added to the builder. Will be fixed in
                    https://github.com/enso-org/enso/issues/9733.
@@ -1539,6 +1541,89 @@ type Builder
                 bldr.append 10
                 bldr.append 100
                 bldr.to_vector
+    to_vector : Vector Any
+    to_vector self =
+        ## This creates a fresh copy of the builders storage, so any future
+           changes to the builder will not affect the returned vector.
+        Vector.from_polyglot_array self.java_builder.toArray
+
+## PRIVATE
+type Build_Style_Builder
+    ## PRIVATE
+
+       A builder type for Enso vectors.
+
+       `Build_Style_Builder` is for use with `Vector.build`, rather than the
+       deprecated `Vector.new_builder`.
+
+       Arguments:
+       - java_builder: The accumulator for the new vector.
+
+       A vector builder is a mutable data structure, that allows to gather a
+       number of elements and then convert them to a vector. This is
+       particularly useful when the number of elements is not known upfront.
+
+       ! Error Conditions
+
+         - If an uncaught dataflow error is added to the builder, an internal
+           panic is thrown, aborting the builder callback that added the error
+           to the builder. This internal panic is caught by `Vector.build`,
+           which then propagates the dataflow error. The vector is not built.
+
+         - If a dataflow error is thrown from the builder callback, it is
+           propagated by `Vector.build`. The vector is not built.
+
+         - If a value with an attached warning is added to the builder, the
+         vector is built, and the value keeps the attached warning.
+
+       > Example
+             Construct a vector using a builder that contains the items 1 to 5.
+
+             Vector.build initial_capacity=5 builder->
+                 do_build start stop =
+                     builder.append start
+                     if start >= stop then Nothing else
+                         @Tail_Call do_build start+1 stop
+                 do_build 1 5
+             # => [1, 2, 3, 4, 5]
+    Value java_builder
+
+    ## PRIVATE
+       Creates a new builder.
+
+       Arguments:
+       - capacity: Initial capacity of the Vector.Builder
+
+       > Example
+         Make a new builder
+
+             Vector.new_builder
+    new : Integer -> Build_Style_Builder 
+    new (capacity : Integer = 10) -> Build_Style_Builder = Build_Style_Builder.Value (Array_Like_Helpers.new_vector_builder capacity)
+
+    append : Any ! Error -> Nothing
+    append self (item : Any ! Error) -> Nothing =
+        case item.is_error of
+            True -> Exception.qthrow (Builder_Dataflow_Error.Error (item.catch))
+            False ->
+                self.unsafe_append item
+                Nothing
+
+    append_vector_range : Vector Any ! Error -> Integer -> Integer -> Builder ! Error
+    append_vector_range self vector (start : Integer = 0) end=vector.length =
+        subrange = vector.slice start end
+        first_dataflow_error = subrange.find (x-> x.is_error) if_missing=Nothing
+        if_no_errors =
+            append_result = self.java_builder.appendTo subrange
+            assert (append_result.is_error.not)
+            Nothing
+        if first_dataflow_error.is_error.not then if_no_errors else
+            assert first_dataflow_error.is_error
+            Exception.qthrow (Builder_Dataflow_Error.Error (first_dataflow_error.catch))
+
+    unsafe_append : Any -> Nothing
+    unsafe_append self item = self.java_builder.add item
+
     to_vector : Vector Any
     to_vector self =
         ## This creates a fresh copy of the builders storage, so any future
