@@ -134,15 +134,15 @@ function initializeFileButtons() {
                 .children('.keep')
                 .on('click', makeHandler(this, data, 'files-keep', 'add'))
         } else if (status != 'Added') {
-            $(this).html('<button>Undo review</button>')
+            $(this).html('<button class="undo-review">Undo review</button>')
             $(this)
-                .children('button')
+                .children('.undo-review')
                 .on('click', makeHandler(this, data, filesMap[status], 'remove'))
         } else {
             $(this).html('<button disabled>This file was added manually</button>')
         }
 
-        // TODO button to set as license
+        addLicenseOverrideButton($(this), package, filename)
     })
 }
 
@@ -222,7 +222,37 @@ function initializeLicenseReviewButton() {
 }
 
 function initializeCustomCopyrightButton() {
-    $('.add-custom-copyright-notice').each(function (index) {})
+    $('.add-custom-copyright-notice').each(function (index) {
+        resetCustomCopyrightButton($(this))
+    })
+}
+
+function resetCustomCopyrightButton(injectionLocation) {
+    const button =
+        ' <button class="add-custom-notice" style="font-size: 10pt;" title="Add custom notice">+</button>'
+    injectionLocation.html(button)
+    injectionLocation.children('.add-custom-notice').on('click', function (ev) {
+        // Replace the button with a text area
+        const code =
+            "Custom notice content:<br><textarea class='custom-notice-content'></textarea><br><button class='submit-custom-notice'>Submit</button>"
+        injectionLocation.html(code)
+
+        injectionLocation.children('.submit-custom-notice').on('click', function (ev) {
+            const notice = injectionLocation.children('.custom-notice-content').val()
+            const data = {
+                notice: notice,
+                package: injectionLocation.data('package'),
+            }
+            setStatus('Adding custom notice...')
+            $.post('/add-custom-notice/' + reportName, data, function (response) {
+                injectionLocation.css('color', 'gray')
+                setStatus('Custom notice added. Regenerate the report to see the changes.')
+                resetCustomCopyrightButton(injectionLocation)
+            }).fail(function (err) {
+                setStatus('Failed to add custom notice: ' + JSON.stringify(err), 'red')
+            })
+        })
+    })
 }
 
 function initializeUnexpectedEntryButton() {
@@ -239,5 +269,31 @@ function initializeUnexpectedEntryButton() {
         $(this)
             .children('button')
             .on('click', makeHandler(this, data, fileName, 'remove'))
+    })
+}
+
+function addLicenseOverrideButton(entry, package, filename) {
+    const button =
+        ' <button class="license-override" style="font-size: 7pt">Set as custom-license</button>'
+    entry.append(button)
+    entry.children('.license-override').on('click', function (ev) {
+        const button = $(this)
+        button.prop('disabled', true)
+        const data = {
+            package: package,
+            file: filename,
+        }
+        setStatus('Overriding license for ' + package + '...')
+        $.post('/override-license/' + reportName, data, function (response) {
+            const message = 'License overridden. Regenerate the report to see the changes.'
+            entry.html(message)
+            entry.css('color', 'gray')
+            setStatus(message)
+        }).fail(function (err) {
+            setStatus(
+                'Failed to override license for ' + package + ': ' + JSON.stringify(err),
+                'red'
+            )
+        })
     })
 }
