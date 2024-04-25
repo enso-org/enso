@@ -267,7 +267,7 @@ function onRecordOnceButtonPress() {
 watch(
   () => projectStore.executionMode,
   (modeValue) => {
-    projectStore.executionContext.setExecutionEnvironment(modeValue === 'live' ? 'Live' : 'Design')
+    projectStore.executionContext.executionEnvironment = modeValue === 'live' ? 'Live' : 'Design'
   },
 )
 
