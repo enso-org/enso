@@ -86,6 +86,8 @@ pub async fn sign(
         .arg(HashAlgorithm::SHA256)
         .arg("/tr")
         .arg(TIMESTAMP_SERVER)
+        .arg("/td")
+        .arg(HashAlgorithm::SHA256)
         .arg(exe.as_ref())
         .run_ok()
         .await
