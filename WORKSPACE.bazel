@@ -28,7 +28,7 @@ http_archive(
 
 load("@io_bazel_rules_scala//:scala_config.bzl", "scala_config")
 
-scala_config(scala_version = "2.13.12") ## TODO: impossible to match 2.13.11
+scala_config(scala_version = "2.13.12") ## Version has to match the version available in `rules_scala`
 
 
 load("@io_bazel_rules_scala//scala:scala.bzl", "rules_scala_setup", "rules_scala_toolchain_deps_repositories")

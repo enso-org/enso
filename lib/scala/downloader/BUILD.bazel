@@ -1,4 +1,4 @@
-load("@io_bazel_rules_scala//scala:scala.bzl", "scala_library")
+load("@io_bazel_rules_scala//scala:scala.bzl", "scala_library", "scala_test")
 
 java_library(
     name = "downloader",
@@ -6,21 +6,67 @@ java_library(
     deps = [
         "//tools/http-test-helper",
         "//lib/scala/cli",
-        ":downloader-scala",
+        ":downloader_scala",
         "@maven//:org_slf4j_slf4j_api",
         "@maven//:org_scala_lang_scala_library"
-    ]
+    ],
+    visibility = ["//visibility:public"],
 )
 
 scala_library(
-    name = "downloader-scala",
-    srcs = glob(["src/main/scala/**/*.{java,scala}"]),
+    name = "downloader_scala",
+    srcs = glob(["src/main/scala/**/*.scala", "src/main/java/**/*.java"]),
     deps = [
         "//tools/http-test-helper",
         "//lib/scala/cli",
+        "@maven//:org_slf4j_slf4j_api",
         "@maven//:com_typesafe_scala_logging_scala_logging_2_13",
         "@maven//:commons_io_commons_io",
         "@maven//:org_apache_commons_commons_compress",
         ##"@maven//:org_scala_lang_scala_library"
-    ]
+    ],
+    visibility = ["//visibility:public"],
+)
+
+java_test(
+    name = "tests",
+    srcs = glob(["src/test/java/**/*.java"]),
+    test_class = "org.enso.downloader.http.HttpDownloaderTest",
+    deps = [
+        ":downloader_scala",
+        ":downloader",
+        "//lib/scala/cli",
+        "//lib/scala/testkit",
+        "//tools/http-test-helper",
+        "@maven//:org_typelevel_cats_core_2_13",
+        "@maven//:org_typelevel_cats_kernel_2_13",
+        "@maven//:org_scalatest_scalatest_compatible",
+        "@maven//:org_scalatest_scalatest_core_2_13",
+        "@maven//:org_scalatest_scalatest_wordspec_2_13",
+        "@maven//:org_scalactic_scalactic_2_13",
+        "@maven//:org_scala_lang_scala_library",
+        "@maven//:org_hamcrest_hamcrest_all",
+        "@maven//:com_fasterxml_jackson_core_jackson_databind",
+        "@maven//:com_fasterxml_jackson_core_jackson_core",
+    ],
+)
+
+
+scala_test(
+    name = "tests_scala",
+    srcs = glob(["src/test/scala/**/*.scala"]),
+    deps = [
+        ":downloader_scala",
+        ":downloader",
+        "//lib/scala/cli",
+        "//tools/http-test-helper",
+        "@maven//:org_typelevel_cats_core_2_13",
+        "@maven//:org_typelevel_cats_kernel_2_13",
+        "@maven//:org_scalatest_scalatest_compatible",
+        "@maven//:org_scalatest_scalatest_core_2_13",
+        "@maven//:org_scalatest_scalatest_wordspec_2_13",
+        "@maven//:org_scalactic_scalactic_2_13",
+        "@maven//:org_scala_lang_scala_library",
+    ],
+    tags = ["unit"]
 )

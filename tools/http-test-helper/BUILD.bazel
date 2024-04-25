@@ -1,7 +1,8 @@
-java_library(
+java_binary(
     name = "http-test-helper",
     srcs = glob(["src/main/java/**/*.java"]),
-    #main_class = "org.enso.shttp.HTTPTestHelperServer",
+    javacopts = ["-Xlint:all"],
+    main_class = "org.enso.shttp.HTTPTestHelperServer",
     deps = [
         "@maven//:org_apache_commons_commons_text",
         "@maven//:org_apache_httpcomponents_httpclient",
