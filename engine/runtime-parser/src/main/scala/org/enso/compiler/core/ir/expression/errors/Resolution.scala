@@ -191,17 +191,16 @@ object Resolution {
       s"Variable `${originalName.name}` is not defined"
   }
 
-  /**
-   * An error when a project-private constructor is used from a different project.
-   * @param callerProject Name of the project of caller.
-   * @param calleeProject Name of the project of callee.
-   */
-  case class PrivateConstructor(
+  /** An error when a project-private entity (module, type, method) is used from a different project.
+    * @param callerProject Name of the project of caller.
+    * @param calleeProject Name of the project of callee.
+    */
+  case class PrivateEntity(
     callerProject: String,
     calleeProject: String
   ) extends Reason {
     override def explain(originalName: Name): String =
-      s"Project-private constructor '${originalName.name}' in project '$calleeProject' cannot be used from project '$callerProject'"
+      s"Project-private entity '${originalName.name}' in project '$calleeProject' cannot be used from project '$callerProject'"
   }
 
   /** An error coming from name resolver.

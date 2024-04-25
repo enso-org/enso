@@ -90,7 +90,10 @@ class Passes(
       DemandAnalysis,
       AliasAnalysis,
       TailCall,
-      Patterns,
+      Patterns
+    ) ++ (if (config.privateCheckEnabled) {
+            List(PrivateSymbolsAnalysis.INSTANCE)
+          } else List()) ++ List(
       AliasAnalysis,
       DataflowAnalysis,
       CachePreferenceAnalysis,
