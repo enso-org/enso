@@ -270,4 +270,9 @@ object Style {
   case object Black extends Style {
     override def toString: String = "color:black"
   }
+
+  /** Allows to override the display to be inline. */
+  case object DisplayInline extends Style {
+    override def toString: String = "display:inline"
+  }
 }

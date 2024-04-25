@@ -58,7 +58,7 @@ object Report {
           writer.writeParagraph(
             error.message,
             error.metadata,
-            styles = Seq(Style.Red)
+            styles = Seq(Style.Red, Style.DisplayInline)
           )
         })
       } else {
