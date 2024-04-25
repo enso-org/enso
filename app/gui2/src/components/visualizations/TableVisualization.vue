@@ -137,7 +137,7 @@ const wasAutomaticallyAutosized = ref(false)
 const numberFormat = new Intl.NumberFormat(undefined, {
   style: 'decimal',
   maximumFractionDigits: 12,
-  useGrouping: 'min2' as any
+  useGrouping: 'min2' as any,
 })
 
 function setRowLimit(newRowLimit: number) {
@@ -168,8 +168,7 @@ function cellRenderer(params: ICellRendererParams) {
   if (params.value === null) return '<span style="color:grey; font-style: italic;">Nothing</span>'
   else if (params.value === undefined) return ''
   else if (params.value === '') return '<span style="color:grey; font-style: italic;">Empty</span>'
-  else if (typeof params.value === 'number')
-    return numberFormat.format(params.value)
+  else if (typeof params.value === 'number') return numberFormat.format(params.value)
   else if (Array.isArray(params.value)) {
     const content = params.value
     if (isMatrix({ json: content })) {
@@ -179,19 +178,15 @@ function cellRenderer(params: ICellRendererParams) {
     } else {
       return `[Vector ${content.length} items]`
     }
-  }
-  else if (typeof params.value === 'object') {
+  } else if (typeof params.value === 'object') {
     const valueType = params.value?.type
-    if (valueType === 'BigInt')
-      return numberFormat.format(BigInt(params.value?.value))
+    if (valueType === 'BigInt') return numberFormat.format(BigInt(params.value?.value))
     else if (valueType === 'Float')
       return `<span style="color:grey; font-style: italic;">${params.value?.value ?? 'Unknown'}</span>`
     else if ('_display_text_' in params.value && params.value['_display_text_'])
       return String(params.value['_display_text_'])
-    else
-      return `{ ${valueType} Object }`
-  }
-  else return escapeHTML(params.value.toString())
+    else return `{ ${valueType} Object }`
+  } else return escapeHTML(params.value.toString())
 }
 
 function addRowIndex(data: object[]): object[] {
