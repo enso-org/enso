@@ -98,9 +98,5 @@
     "@esbuild/darwin-x64": "^0.17.15",
     "@esbuild/linux-x64": "^0.17.15",
     "@esbuild/windows-x64": "^0.17.15"
-  },
-  "overrides": {
-    "@aws-amplify/auth": "../_IGNORED_",
-    "react-native-url-polyfill": "../_IGNORED_"
   }
 }

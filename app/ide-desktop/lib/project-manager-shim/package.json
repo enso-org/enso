@@ -4,6 +4,11 @@
   "type": "module",
   "main": "index.ts",
   "dependencies": {
+    "@types/node": "^20.11.21",
+    "@types/tar": "^6.1.4",
+    "enso-common": "workspace:*",
+    "tar": "^6.2.0",
+    "typescript": "^5.4.5",
     "yaml": "^2.4.1"
   }
 }

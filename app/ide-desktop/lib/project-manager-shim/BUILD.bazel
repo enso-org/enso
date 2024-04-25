@@ -1,5 +1,7 @@
+load("@aspect_rules_js//npm:defs.bzl", "npm_package")
 load("@aspect_rules_ts//ts:defs.bzl", "ts_config", "ts_project")
-load("@npm//:defs.bzl", "npm_link_all_packages")
+load("@npm//:defs.bzl", "npm_link_all_packages", "npm_link_targets")
+load("@aspect_rules_js//js:defs.bzl", "js_library")
 npm_link_all_packages(name = "node_modules")
 
 ts_config(
@@ -9,13 +11,26 @@ ts_config(
 )
 
 ts_project(
-    name = "index",
+    name = "ts_proj",
+    tsconfig = "//app/ide-desktop/lib/project-manager-shim:tsconfig",
     srcs = glob(["src/*.ts"]),
     declaration = True,
-    transpiler = "tsc",
     visibility = ["//visibility:public"],
-    deps = [
-        "//app/ide-desktop:tsconfig",
-        ":node_modules/yaml",
-    ],
+    resolve_json_module = True,
+    composite = True,
+    source_map = True,
+    deps = ["//app/ide-desktop:tsconfig"] + npm_link_targets(),
+)
+
+js_library(
+    name = "lib",
+    srcs = glob(["src/*.js", "src/*.d.ts"]) + ["package.json"],
+    visibility = ["//visibility:public"],
+)
+
+npm_package(
+    name = "package",
+    srcs = [":lib"],
+    include_runfiles = False,
+    visibility = ["//visibility:public"],
 )

@@ -11,8 +11,8 @@ SRCS = [
     "vite.config.ts",
     "tsconfig.app.json",
     "tsconfig.json",
-    "//app/ide-desktop/lib/project-manager-shim:index"
-] + glob(["{src,shared,public,ydoc-server}/*"])
+    "//app/ide-desktop/lib/project-manager-shim:package"
+] + glob(["src/**", "shared/**", "public/**", "ydoc-server/**", "rust-ffi/pkg/**"])
 
 # BUILD_DEPS = []
 

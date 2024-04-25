@@ -1,0 +1,16 @@
+load("@aspect_rules_js//npm:defs.bzl", "npm_package")
+load("@npm//:defs.bzl", "npm_link_all_packages")
+load("@aspect_rules_js//js:defs.bzl", "js_library")
+npm_link_all_packages(name = "node_modules")
+
+js_library(
+    name = "lib",
+    srcs = glob(["src/*.js", "src/*.d.ts"]) + ["package.json"],
+)
+
+npm_package(
+    name = "package",
+    srcs = [":lib"],
+    include_runfiles = False,
+    visibility = ["//visibility:public"],
+)

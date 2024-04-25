@@ -21,15 +21,30 @@
     "app/ide-desktop/lib/*",
     "app/gui2"
   ],
-  "overrides": {
-    "tslib": "$tslib"
-  },
   "pnpm": {
     "overrides": {
-      "@types/react": "^18.0.27"
+      "tslib": "$tslib",
+      "@types/react": "^18.0.27",
+      "react-native": "./_IGNORED_",
+      "react-native-url-polyfill": "./_IGNORED_",
+      "react-native-get-random-values": "./_IGNORED_"
     },
-    "updateConfig": {
-      "ignoreDependencies": ["@aws-amplify/auth", "react-native-url-polyfill"]
+    "packageExtensions": {
+      "@aws-amplify/auth": {
+        "dependencies": {
+          "@aws-crypto/sha256-js": "*"
+        }
+      },
+      "ag-grid-enterprise": {
+        "dependencies": {
+          "ag-grid-community": "*"
+        }
+      },
+      "@open-rpc/client-js": {
+        "dependencies": {
+          "events": "^3.3.0"
+        }
+      }
     }
   },
   "packageManager": "pnpm@8.15.7+sha256.50783dd0fa303852de2dd1557cd4b9f07cb5b018154a6e76d0f40635d6cee019"

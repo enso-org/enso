@@ -130,6 +130,7 @@ export class Server {
                         const rustFFIWasm = bundledFiles.find(name =>
                             /rust_ffi_bg-.*\.wasm/.test(name)
                         )
+                        console.log('rustFFIWasm', rustFFIWasm)
                         if (httpServer && rustFFIWasm != null) {
                             await ydocServer.createGatewayServer(
                                 httpServer,
