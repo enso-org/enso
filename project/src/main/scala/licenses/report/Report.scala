@@ -186,6 +186,10 @@ object Report {
                     s"Not reviewed, filename: <pre>$name</pre>",
                     Style.Red
                   )
+                  writer.writeInjectionHandler(
+                    "license-not-reviewed",
+                    "name" -> name
+                  )
                 case LicenseReview.Default(path, allowAdditional) =>
                   val additional =
                     if (allowAdditional) " and additional included files."
@@ -235,7 +239,7 @@ object Report {
                         .map(origin => s" (Found at $origin)")
                         .getOrElse("")
                       writer.writeCollapsible(
-                        s"${file.fileName} (${renderStatus(status)})$origin " +
+                        s"${file.path} (${renderStatus(status)})$origin " +
                         s"${renderSimilarity(defaultLicense, file, status)}",
                         injection +
                         writer.escape(file.content)
@@ -295,6 +299,11 @@ object Report {
                   }, // Bullets are not needed because jQuery CSS will handle this better
                   addBullets = false
                 )
+
+              writer.writeInjectionHandler(
+                "add-custom-copyright-notice",
+                "package" -> dep.information.packageName
+              )
             }
       }
     )

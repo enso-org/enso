@@ -5,6 +5,8 @@ import java.time.LocalDate
 import sbt.*
 import src.main.scala.licenses.*
 
+import java.nio.charset.StandardCharsets
+import java.util.Base64
 import scala.util.control.NonFatal
 
 /** Reads settings from the `root` to add review statuses to discovered
@@ -144,7 +146,8 @@ case class Review(root: File, dependencySummary: DependencySummary) {
       if (f.isDirectory)
         AttachedFile(
           PortablePath(f.toPath.toAbsolutePath),
-          Review.directoryMark
+          Review.directoryMark,
+          origin = Some(dir.toPath.toString)
         )
       else
         AttachedFile.read(f.toPath, Some(dir.toPath))
@@ -372,14 +375,22 @@ case class Review(root: File, dependencySummary: DependencySummary) {
     expectedLines: Seq[String],
     packageRoot: File
   ): WithDiagnostics[Seq[String]] = {
-    val lines           = readLines(packageRoot / fileName)
+    val path            = packageRoot / fileName
+    val lines           = readLines(path)
     val unexpectedLines = lines.filter(l => !expectedLines.contains(l))
     val warnings = unexpectedLines.map(l =>
       Diagnostic.Error(
         s"File $fileName in ${packageRoot.getName} contains entry `$l`, but no " +
         s"such entry has been detected. Perhaps it has disappeared after an " +
         s"update? Please remove it from the file and make sure that the report " +
-        s"contains all necessary elements after this change."
+        s"contains all necessary elements after this change.",
+        metadata = Map(
+          "class"     -> "unexpected-entry-in-file",
+          "data-path" -> path.getAbsolutePath,
+          "data-content" -> Base64.getEncoder.encodeToString(
+            l.getBytes(StandardCharsets.UTF_8)
+          )
+        )
       )
     )
     WithDiagnostics(lines, warnings)

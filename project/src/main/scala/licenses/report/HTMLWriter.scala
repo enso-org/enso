@@ -188,7 +188,7 @@ class HTMLWriter(bufferedWriter: BufferedWriter) {
                       |</div></div>""".stripMargin)
   }
 
-  /** Writes an empty element that can be overridden by an injected script.
+  /** Creates an empty element that can be overridden by an injected script.
     *
     * Parameters names and values need to be properly escaped to fit for HTML.
     */
@@ -203,6 +203,14 @@ class HTMLWriter(bufferedWriter: BufferedWriter) {
       .mkString(" ")
     s"""<span class="$className" $mappedParams></span>
        |""".stripMargin
+  }
+
+  /** Writes an empty element that can be overridden by an injected script. */
+  def writeInjectionHandler(
+    className: String,
+    params: (String, String)*
+  ): Unit = {
+    writer.println(makeInjectionHandler(className, params: _*))
   }
 
   /** Escapes a string that may contain HTML markup to not be rendered but

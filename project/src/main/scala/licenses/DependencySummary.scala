@@ -211,7 +211,11 @@ object ReviewedSummary {
                       s"If this custom license should override the default one, " +
                       s"create a `custom-license` config file. " +
                       s"If both files are expected to be included, " +
-                      s"create an empty `default-and-custom-license` file."
+                      s"create an empty `default-and-custom-license` file.",
+                      metadata = Map(
+                        "class"     -> "default-and-custom-license-clash",
+                        "data-path" -> includedLicense.path.toString
+                      )
                     )
                   )
                 }
