@@ -21,7 +21,6 @@ import org.enso.compiler.context.InlineContext;
 import org.enso.compiler.context.LocalScope;
 import org.enso.compiler.context.ModuleContext;
 import org.enso.compiler.data.CompilerConfig;
-import org.enso.compiler.exception.CompilationAbortedException;
 import org.enso.compiler.exception.UnhandledEntity;
 import org.enso.distribution.DistributionManager;
 import org.enso.distribution.Environment;

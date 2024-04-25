@@ -25,7 +25,6 @@ import org.enso.compiler.core.ir.module.scope.Import
 import org.enso.compiler.core.ir.module.scope.imports
 import org.enso.compiler.core.EnsoParser
 import org.enso.compiler.data.CompilerConfig
-import org.enso.compiler.exception.CompilationAbortedException
 import org.enso.compiler.pass.PassManager
 import org.enso.compiler.pass.analyse._
 import org.enso.compiler.phase.{
@@ -866,7 +865,7 @@ class Compiler(
       .diagnostics
     val hasErrors = reportDiagnostics(errors, null)
     if (hasErrors && inlineContext.compilerConfig.isStrictErrors) {
-      throw new CompilationAbortedException
+      throw context.throwAbortedException()
     }
   }
 
@@ -894,7 +893,7 @@ class Compiler(
       context.getErr.println(
         s"Aborting due to ${count} errors and ${warnCount} warnings."
       )
-      throw new CompilationAbortedException
+      throw context.throwAbortedException()
     }
   }
 
@@ -942,7 +941,7 @@ class Compiler(
     }
 
     if (config.isStrictErrors) {
-      throw new CompilationAbortedException
+      throw context.throwAbortedException()
     } else {
       throw exception
     }
@@ -953,7 +952,7 @@ class Compiler(
     printDiagnostic(exception.getMessage)
 
     if (config.isStrictErrors) {
-      throw new CompilationAbortedException
+      throw context.throwAbortedException()
     } else {
       throw exception
     }

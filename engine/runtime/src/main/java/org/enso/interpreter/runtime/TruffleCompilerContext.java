@@ -34,6 +34,7 @@ import org.enso.compiler.suggestions.ExportsBuilder;
 import org.enso.compiler.suggestions.ExportsMap;
 import org.enso.compiler.suggestions.SuggestionBuilder;
 import org.enso.editions.LibraryName;
+import org.enso.interpreter.CompilationAbortedException;
 import org.enso.interpreter.caches.Cache;
 import org.enso.interpreter.caches.ImportExportCache;
 import org.enso.interpreter.caches.ImportExportCache.MapToBindings;
@@ -643,6 +644,11 @@ final class TruffleCompilerContext implements CompilerContext {
     } catch (InterruptedException ex) {
       logSerializationManager(Level.WARNING, ex.getMessage(), ex);
     }
+  }
+
+  @Override
+  public RuntimeException throwAbortedException() {
+    throw new CompilationAbortedException();
   }
 
   private final class ModuleUpdater implements Updater, AutoCloseable {

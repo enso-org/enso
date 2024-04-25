@@ -1,4 +1,4 @@
-package org.enso.compiler.exception;
+package org.enso.interpreter;
 
 import com.oracle.truffle.api.exception.AbstractTruffleException;
 import com.oracle.truffle.api.interop.ExceptionType;

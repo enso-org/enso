@@ -109,6 +109,8 @@ public interface CompilerContext extends CompilerStub {
 
   void shutdown(boolean waitForPendingJobCompletion);
 
+  RuntimeException throwAbortedException();
+
   public static interface Updater {
     void bindingsMap(BindingsMap map);
 
