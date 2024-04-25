@@ -655,6 +655,8 @@
 - [Added `recursive` option to `File.delete`.][9719]
 - [Added `Vector.build`.][9725]
 - [Added `Table.running` method][9577]
+- [Added `Excel_Workbook.read_many` allowing reading more than one sheet at a
+  time.][9759]
 - [Added ability to write to Data Links.][9750]
 
 [debug-shortcuts]:
@@ -960,6 +962,7 @@
 [9716]: https://github.com/enso-org/enso/pull/9716
 [9719]: https://github.com/enso-org/enso/pull/9719
 [9725]: https://github.com/enso-org/enso/pull/9725
+[9759]: https://github.com/enso-org/enso/pull/9759
 [9577]: https://github.com/enso-org/enso/pull/9577
 [9750]: https://github.com/enso-org/enso/pull/9750
 

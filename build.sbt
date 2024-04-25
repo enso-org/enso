@@ -1228,6 +1228,21 @@ val testLogProviderOptions = Seq(
   "-Dconfig.resource=application-test.conf"
 )
 
+lazy val `engine-common` = project
+  .in(file("engine/common"))
+  .settings(
+    frgaalJavaCompilerSetting,
+    Test / fork := true,
+    commands += WithDebugCommand.withDebug,
+    Test / envVars ++= distributionEnvironmentOverrides,
+    Test / javaOptions ++= Seq(
+    ),
+    libraryDependencies ++= Seq(
+      "org.graalvm.polyglot" % "polyglot" % graalMavenPackagesVersion % "provided"
+    )
+  )
+  .dependsOn(testkit % Test)
+
 lazy val `polyglot-api` = project
   .in(file("engine/polyglot-api"))
   .settings(
@@ -1255,6 +1270,7 @@ lazy val `polyglot-api` = project
     GenerateFlatbuffers.flatcVersion := flatbuffersVersion,
     Compile / sourceGenerators += GenerateFlatbuffers.task
   )
+  .dependsOn(`engine-common`)
   .dependsOn(pkg)
   .dependsOn(`text-buffer`)
   .dependsOn(`logging-utils`)

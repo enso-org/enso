@@ -12,7 +12,7 @@ import project.Warning.Warning
 from project.Data.Boolean import Boolean, False, True
 from project.Data.Numbers import Float, Integer, Number, Number_Parse_Error
 from project.Data.Numeric.Internal.Decimal_Internal import Decimal_Comparator
-from project.Data.Ordering import Comparable, Ordering
+from project.Data.Ordering import Comparable, Ordering, Default_Comparator
 from project.Errors.Common import Arithmetic_Error, Loss_Of_Numeric_Precision, Out_Of_Range, Unsupported_Argument_Types
 from project.Widget_Helpers import make_number_format_selector
 
@@ -1059,7 +1059,12 @@ Comparable.from (_ : Number) = Decimal_Comparator
 Decimal.from (that : Text) = Decimal.from_string that
 
 ## PRIVATE
-Decimal.from (that : Number) = Decimal.new that
+Decimal.from (that : Integer) = Decimal.new that
+Decimal.from (that : Float) =
+    is_exceptional = that.is_nan || that.is_infinite
+    if is_exceptional then Error.throw (Illegal_Argument.Error "Cannot convert "+that.to_text+" to a Decimal") else
+        handle_java_exception <| attach_loss_of_numeric_precision that <|
+            Decimal.Value <| Decimal_Utils.fromFloatExact that
 
 ## PRIVATE
 Float.from (that : Decimal) = that.to_float

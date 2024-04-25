@@ -304,6 +304,10 @@ Number.should_equal self that epsilon=0 frames_to_skip=0 =
             msg = self.to_text + " did not equal " + that.to_text + " (at " + loc + ")."
             Test.fail msg
 
+Decimal.should_equal : Number -> Float-> Float -> Integer -> Spec_Result
+Decimal.should_equal self that epsilon=0 frames_to_skip=0 =
+    self.to_float . should_equal that.to_float epsilon frames_to_skip+1
+
 ## Asserts that `self` value is not an error.
 
    It returns the original value, so that it can be inspected further.

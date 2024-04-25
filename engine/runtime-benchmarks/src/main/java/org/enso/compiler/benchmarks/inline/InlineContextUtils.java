@@ -3,11 +3,11 @@ package org.enso.compiler.benchmarks.inline;
 import java.io.IOException;
 import java.util.HashSet;
 import java.util.Set;
+import org.enso.common.LanguageInfo;
+import org.enso.common.MethodNames;
 import org.enso.compiler.benchmarks.CodeGenerator;
 import org.enso.compiler.benchmarks.Utils;
 import org.enso.interpreter.runtime.data.Type;
-import org.enso.polyglot.LanguageInfo;
-import org.enso.polyglot.MethodNames;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Source;
 
