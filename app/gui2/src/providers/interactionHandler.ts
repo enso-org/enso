@@ -53,16 +53,6 @@ export class InteractionHandler {
     return hasCurrent
   }
 
-  handlePointerDown(event: PointerEvent, graphNavigator: GraphNavigator): boolean {
-    if (!this.currentInteraction?.pointerdown) return false
-    const handled = this.currentInteraction.pointerdown(event, graphNavigator) !== false
-    if (handled) {
-      event.stopImmediatePropagation()
-      event.preventDefault()
-    }
-    return handled
-  }
-
   handlePointerEvent<HandlerName extends keyof Interaction>(
     event: PointerEvent,
     handlerName: Interaction[HandlerName] extends InteractionEventHandler | undefined ? HandlerName
@@ -72,7 +62,7 @@ export class InteractionHandler {
     if (!this.currentInteraction) return false
     const handler = this.currentInteraction[handlerName]
     if (!handler) return false
-    const handled = handler(event, graphNavigator) !== false
+    const handled = handler.bind(this.currentInteraction)(event, graphNavigator) !== false
     if (handled) {
       event.stopImmediatePropagation()
       event.preventDefault()
