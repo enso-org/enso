@@ -1,4 +1,11 @@
 /** @file Google Analytics tag. */
+import * as load from './load'
+
+if (process.env.ENSO_CLOUD_GOOGLE_ANALYTICS_TAG != null) {
+    void load.loadScript(
+        `https://www.googletagmanager.com/gtag/js?id=${process.env.ENSO_CLOUD_GOOGLE_ANALYTICS_TAG}`
+    )
+}
 
 // @ts-expect-error This is explicitly not given types as it is a mistake to acess this
 // anywhere else.

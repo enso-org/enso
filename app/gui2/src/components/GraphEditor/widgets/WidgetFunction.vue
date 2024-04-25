@@ -13,7 +13,8 @@ import {
   functionCallConfiguration,
 } from '@/providers/widgetRegistry/configuration'
 import { useGraphStore } from '@/stores/graph'
-import { useProjectStore, type NodeVisualizationConfiguration } from '@/stores/project'
+import { useProjectStore } from '@/stores/project'
+import { type NodeVisualizationConfiguration } from '@/stores/project/executionContext'
 import { entryQn } from '@/stores/suggestionDatabase/entry'
 import { assert, assertUnreachable } from '@/util/assert'
 import { Ast } from '@/util/ast'
@@ -124,6 +125,9 @@ const selfArgumentExternalId = computed<Opt<ExternalId>>(() => {
 const visualizationConfig = computed<Opt<NodeVisualizationConfiguration>>(() => {
   // Even if we inherit dynamic config in props.input.dynamicConfig, we should also read it for
   // the current call and then merge them.
+
+  let m = ArgumentApplication.collectArgumentNamesAndUuids(interpreted.value, methodCallInfo.value)
+
   const expressionId = selfArgumentExternalId.value
   const astId = props.input.value.id
   if (astId == null || expressionId == null) return null
@@ -143,6 +147,7 @@ const visualizationConfig = computed<Opt<NodeVisualizationConfiguration>>(() => 
     positionalArgumentsExpressions: [
       `.${name}`,
       Ast.Vector.build(args, Ast.TextLiteral.new).code(),
+      Ast.TextLiteral.new(JSON.stringify(m)).code(),
     ],
   }
 })

@@ -439,6 +439,13 @@ add_specs suite_builder =
             foo = v:Foo
             Foo.Value 10 . should_equal foo
 
+        group_builder.specify "..False can be autoscoped" <|
+
+            bool b:Boolean = b
+
+            f = bool ..False
+            f.not . should_be_true
+
         group_builder.specify "Autoscope to two different values" <|
 
             v = ..Value 10
@@ -506,6 +513,11 @@ add_specs suite_builder =
             vec = [..Value 3, ..Value 4, ..Value 5]
 
             foo_vec vec . should_equal [3, 4, 5]
+
+        group_builder.specify "Autoscope Nothing" <|
+            accept (n:Nothing) = n
+
+            accept ..Nothing . is_nothing . should_be_true
 
     suite_builder.group "Polyglot Argument" group_builder->
         f1 (x : DateTimeFormatter) = x.to_text

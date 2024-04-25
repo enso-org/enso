@@ -1,6 +1,7 @@
 package org.enso.polyglot
 
 import org.graalvm.polyglot.Value
+import org.enso.common.MethodNames
 
 /** Represents an Enso function.
   *

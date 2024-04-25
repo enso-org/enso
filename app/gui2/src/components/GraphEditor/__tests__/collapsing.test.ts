@@ -169,7 +169,7 @@ test.each(testCases)('Collapsing nodes, $description', (testCase) => {
   const selectedNodesCode = testCase.initialNodes.slice(range.start, range.end)
   const selectedNodes = new Set(selectedNodesCode.map((code) => nodeCodeToId.get(code)!))
 
-  const { extracted, refactored } = prepareCollapsedInfo(selectedNodes, graphDb)
+  const { extracted, refactored } = unwrap(prepareCollapsedInfo(selectedNodes, graphDb))
   const expectedInputs = expectedExtracted.inputs.map((s) => unwrap(tryIdentifier(s)))
   const expectedOutput = unwrap(tryIdentifier(expectedExtracted.output))
   const expectedIds = expectedExtracted.nodes.map((code) => nodeCodeToId.get(code)!)
@@ -200,7 +200,9 @@ main =
   const graphDb = GraphDb.Mock()
   setupGraphDb(initialCode, graphDb)
   const nodes = Array.from(graphDb.nodeIdToNode.keys())
-  const { extracted, refactored } = prepareCollapsedInfo(new Set(nodes.slice(1, 2)), graphDb)
+  const { extracted, refactored } = unwrap(
+    prepareCollapsedInfo(new Set(nodes.slice(1, 2)), graphDb),
+  )
   expect(extracted.ids).toEqual(new Set(nodes.slice(1, 2)))
   expect(extracted.inputs).toEqual(['input', 'four'])
   expect(extracted.output).toEqual({

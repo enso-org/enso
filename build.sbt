@@ -460,6 +460,7 @@ val scalaCompiler = Seq(
   "org.scala-lang" % "scala-reflect"  % scalacVersion,
   "org.scala-lang" % "scala-compiler" % scalacVersion
 )
+val scalaCollectionCompatVersion = "2.8.1"
 
 // === std-lib ================================================================
 
@@ -503,7 +504,6 @@ val scalameterVersion       = "0.19"
 val scalatestVersion        = "3.3.0-SNAP4"
 val shapelessVersion        = "2.3.10"
 val slf4jVersion            = JPMSUtils.slf4jVersion
-val slickVersion            = "3.4.1"
 val sqliteVersion           = "3.42.0.0"
 val tikaVersion             = "2.4.1"
 val typesafeConfigVersion   = "1.4.2"
@@ -1104,9 +1104,7 @@ lazy val searcher = project
   .settings(
     frgaalJavaCompilerSetting,
     libraryDependencies ++= jmh ++ Seq(
-      "com.typesafe.slick" %% "slick"       % slickVersion,
-      "org.xerial"          % "sqlite-jdbc" % sqliteVersion,
-      "org.scalatest"      %% "scalatest"   % scalatestVersion % Test
+      "org.scalatest" %% "scalatest" % scalatestVersion % Test
     ) ++ logbackTest
   )
   .configs(Benchmark)
@@ -1230,6 +1228,21 @@ val testLogProviderOptions = Seq(
   "-Dconfig.resource=application-test.conf"
 )
 
+lazy val `engine-common` = project
+  .in(file("engine/common"))
+  .settings(
+    frgaalJavaCompilerSetting,
+    Test / fork := true,
+    commands += WithDebugCommand.withDebug,
+    Test / envVars ++= distributionEnvironmentOverrides,
+    Test / javaOptions ++= Seq(
+    ),
+    libraryDependencies ++= Seq(
+      "org.graalvm.polyglot" % "polyglot" % graalMavenPackagesVersion % "provided"
+    )
+  )
+  .dependsOn(testkit % Test)
+
 lazy val `polyglot-api` = project
   .in(file("engine/polyglot-api"))
   .settings(
@@ -1257,6 +1270,7 @@ lazy val `polyglot-api` = project
     GenerateFlatbuffers.flatcVersion := flatbuffersVersion,
     Compile / sourceGenerators += GenerateFlatbuffers.task
   )
+  .dependsOn(`engine-common`)
   .dependsOn(pkg)
   .dependsOn(`text-buffer`)
   .dependsOn(`logging-utils`)
@@ -2169,14 +2183,15 @@ lazy val `engine-runner` = project
     commands += WithDebugCommand.withDebug,
     inConfig(Compile)(truffleRunOptionsSettings),
     libraryDependencies ++= Seq(
-      "org.graalvm.sdk"     % "polyglot-tck"    % graalMavenPackagesVersion % Provided,
-      "org.graalvm.truffle" % "truffle-api"     % graalMavenPackagesVersion % Provided,
-      "commons-cli"         % "commons-cli"     % commonsCliVersion,
-      "com.monovore"       %% "decline"         % declineVersion,
-      "org.jline"           % "jline"           % jlineVersion,
-      "org.typelevel"      %% "cats-core"       % catsVersion,
-      "junit"               % "junit"           % junitVersion              % Test,
-      "com.github.sbt"      % "junit-interface" % junitIfVersion            % Test
+      "org.graalvm.sdk"         % "polyglot-tck"            % graalMavenPackagesVersion % Provided,
+      "org.graalvm.truffle"     % "truffle-api"             % graalMavenPackagesVersion % Provided,
+      "commons-cli"             % "commons-cli"             % commonsCliVersion,
+      "com.monovore"           %% "decline"                 % declineVersion,
+      "org.jline"               % "jline"                   % jlineVersion,
+      "org.typelevel"          %% "cats-core"               % catsVersion,
+      "junit"                   % "junit"                   % junitVersion              % Test,
+      "com.github.sbt"          % "junit-interface"         % junitIfVersion            % Test,
+      "org.scala-lang.modules" %% "scala-collection-compat" % scalaCollectionCompatVersion
     ),
     run / connectInput := true
   )

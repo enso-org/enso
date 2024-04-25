@@ -301,8 +301,8 @@ add_specs suite_builder =
 
             values.map pr->
                 v = pr.at 0
-                d = Decimal.new v
-                expected = pr.at 1
+                d = Decimal.new v . to_float
+                expected = pr.at 1 . to_float
 
                 d . should_equal expected
                 expected . should_equal d
@@ -367,13 +367,23 @@ add_specs suite_builder =
     suite_builder.group "edge cases" group_builder->
         group_builder.specify "can support values outside the double range" <|
             d = Decimal.new Float.max_value
+            (d == Float.max_value) . should_be_false
+            ((d * d) == Float.max_value) . should_be_false
+            ((-(d * d)) == -Float.max_value) . should_be_false
+            Comparable.hash_builtin (d * d) . should_equal 2146435072
+            Comparable.hash_builtin -(d * d) . should_equal -1048576
+            Comparable.hash_builtin ((d * d) + 0.1) . should_equal 2146435072
+            Comparable.hash_builtin ((-(d * d)) + 0.1) . should_equal -1048576
+
+        group_builder.specify "from conversion supports values outside the double range" <|
+            d = Float.max_value.to Decimal
             (d == Float.max_value) . should_be_true
             ((d * d) == Float.max_value) . should_be_false
             ((-(d * d)) == -Float.max_value) . should_be_false
-            Comparable.hash_builtin (d * d) . should_equal -1851772048
-            Comparable.hash_builtin -(d * d) . should_equal 1851772048
-            Comparable.hash_builtin ((d * d) + 0.1) . should_equal -1176480326
-            Comparable.hash_builtin ((-(d * d)) + 0.1) . should_equal -534461530
+            Comparable.hash_builtin (d * d) . should_equal 2146435072
+            Comparable.hash_builtin -(d * d) . should_equal -1048576
+            Comparable.hash_builtin ((d * d) + 0.1) . should_equal 2146435072
+            Comparable.hash_builtin ((-(d * d)) + 0.1) . should_equal -1048576
 
     suite_builder.group "arithmetic" group_builder->
         group_builder.specify "should allow arithmetic with Decimals, without Math_Context" <|
@@ -577,12 +587,12 @@ add_specs suite_builder =
             f.should_be_a Float
             f.should_equal 56.34
 
-        group_builder.specify "Decimal.to_float should compare correctly with the original Decimal" <|
+        group_builder.specify "Decimal.to_float cannot compare correctly with the original Decimal" <|
             huge_a = Decimal.new "3.4E300"
             huge_a_float = Float.from huge_a
 
-            (huge_a_float == huge_a) . should_be_true
-            (huge_a == huge_a_float) . should_be_true
+            (huge_a_float == huge_a) . should_be_false
+            (huge_a == huge_a_float) . should_be_false
 
         group_builder.specify "Decimal.to_integer should compare correctly with the original Decimal" <|
             huge_a = Decimal.new "3.4E320"
@@ -604,14 +614,15 @@ add_specs suite_builder =
             cases = []
                 + [[5, 3, 2], [5.0, 3.0, 2.0], [3.5, 2, 1.5], [10.5, 1.0, 0.5], [3, 1, 0], [3.0, 1.0, 0]]
                 + [[-5, 3, -2], [-5.0, 3.0, -2.0], [-3.5, 2, -1.5], [-10.5, 1.0, -0.5], [-3, 1, 0], [-3.0, 1.0, 0]]
-                + [[2.7, 0.5, 0.2], [2.7, 0.4, 0.3], [-2.7, 0.5, -0.2], [-2.7, 0.4, -0.3]]
+                + [[2.7, 0.5, 0.2], [2.7, 0.4, 0.3, 0.001], [-2.7, 0.5, -0.2], [-2.7, 0.4, -0.3, 0.001]]
                 + [["9223372036854775807", 10, 7], ["9223372036854775808", 10, 8], ["922337203685477580000000000008", 10, 8]]
                 + [["-9223372036854775808", 10, -8], ["-9223372036854775809", 10, -9], ["-922337203685477580000000000008", 10, -8]]
-            cases.map c->
+            cases.map c-> Test.with_clue ("["+c.to_text+"] ") <|
                 base = c.at 0
                 modulus = c.at 1
                 residue = c.at 2
-                (Decimal.new base % modulus) . should_equal residue
+                epsilon = if c.length > 3 then c.at 3 else 0.0
+                (Decimal.new base % modulus) . should_equal epsilon=epsilon residue
                 (Decimal.new base % Decimal.new modulus) . should_equal residue
 
         group_builder.specify "should define remainder (example)" <|
@@ -734,7 +745,10 @@ add_specs suite_builder =
             Decimal.new "0" . signum . should_equal 0
 
     suite_builder.group "rounding" group_builder->
-        do_round n dp=0 use_bankers=False = Decimal.new n . round dp use_bankers
+        do_round n dp=0 use_bankers=False =
+            d = Decimal.new n . round dp use_bankers
+            d.to_float
+
         Round_Spec.add_specs group_builder do_round
 
         group_builder.specify "Large values" <|
@@ -916,7 +930,7 @@ add_specs suite_builder =
             12 . min (Decimal.new "13") . should_equal (Decimal.new "12")
 
             Decimal.new "12.1" . min 12.3 . should_equal (Decimal.new "12.1")
-            12.1 . min (Decimal.new "12.3") . should_equal (Decimal.new "12.1")
+            12.1 . min (Decimal.new "12.3") . should_equal (Decimal.from 12.1)
 
             Decimal.new "0" . min (Decimal.new "-1") . should_equal (Decimal.new "-1")
             0 . min (Decimal.new "-1") . should_equal (Decimal.new "-1")
@@ -942,6 +956,26 @@ add_specs suite_builder =
 
             Math.min (Decimal.new "12E70") (Decimal.new "13E70") . should_equal (Decimal.new "12E70")
             Math.max (Decimal.new "12E70") (Decimal.new "13E70") . should_equal (Decimal.new "13E70")
+
+    suite_builder.group "Integer/Float .to_decimal" group_builder->
+        group_builder.specify ".to_decimal should convert to Decimal" <|
+            12 . to_decimal . should_be_a Decimal
+            12.3 . to_decimal . should_be_a Decimal
+
+        group_builder.specify "Float.to_decimal should attach a warning" <|
+            Problems.expect_warning Loss_Of_Numeric_Precision (12.3 . to_decimal)
+
+        group_builder.specify "examples" <|
+            12 . to_decimal . should_equal (Decimal.new "12")
+            12.3 . to_decimal . should_equal (Decimal.new "12.3")
+
+    suite_builder.group "BigDecimal internal representation methods" group_builder->
+        group_builder.specify "internal accessors should work correctly" <|
+            d = Decimal.new "123.456"
+            d.precision . should_equal 6
+            d.scale . should_equal 3
+            d.unscaled_value . should_equal 123456
+            d.internal_representation . should_equal [123456, 6, 3]
 
 main =
     suite = Test.build suite_builder->

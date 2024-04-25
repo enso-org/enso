@@ -8,7 +8,6 @@ import org.enso.languageserver.filemanager.{FileSystemFailure, Path}
 import org.enso.pkg.QualifiedName
 import org.enso.polyglot.Suggestion
 import org.enso.searcher.SuggestionEntry
-import org.enso.text.editing.model.Position
 
 object SearchProtocol {
 
@@ -537,31 +536,6 @@ object SearchProtocol {
     * @param version current version of the suggestions database
     */
   case class GetSuggestionsDatabaseVersionResult(version: Long)
-
-  /** The completion request.
-    *
-    * @param file the edited file
-    * @param position the cursor position
-    * @param selfType filter entries matching the self type
-    * @param returnType filter entries matching the return type
-    * @param tags filter entries by suggestion type
-    * @param isStatic filter entries by `static` field
-    */
-  case class Completion(
-    file: Path,
-    position: Position,
-    selfType: Option[String],
-    returnType: Option[String],
-    tags: Option[Seq[SuggestionKind]],
-    isStatic: Option[Boolean]
-  )
-
-  /** The reply to the [[Completion]] request.
-    *
-    * @param currentVersion current version of the suggestions database
-    * @param results the list of suggestion ids matched the search query
-    */
-  case class CompletionResult(currentVersion: Long, results: Seq[SuggestionId])
 
   /** Base trait for export statements. */
   sealed trait Export {
