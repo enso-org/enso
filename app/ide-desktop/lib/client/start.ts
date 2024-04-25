@@ -3,14 +3,13 @@
 import * as childProcess from 'node:child_process'
 import * as fs from 'node:fs/promises'
 import * as path from 'node:path'
-import * as mkcert from 'mkcert'
 
 import * as esbuild from 'esbuild'
 
 import * as esbuildConfig from './esbuild-config'
 import * as paths from './paths'
 
-// =================
+// =================app/gui2/vite.config.ts
 // === Constants ===
 // =================
 
