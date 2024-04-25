@@ -1,4 +1,4 @@
-package org.enso.compiler.context;
+package org.enso.compiler.suggestions;
 
 import org.enso.compiler.core.ir.Literal;
 import org.enso.text.editing.model.TextEdit;

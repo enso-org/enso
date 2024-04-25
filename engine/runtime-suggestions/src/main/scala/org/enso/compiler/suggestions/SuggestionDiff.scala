@@ -1,4 +1,4 @@
-package org.enso.compiler.context
+package org.enso.compiler.suggestions
 
 import org.enso.polyglot.Suggestion
 import org.enso.polyglot.data.{These, Tree}

@@ -1,14 +1,16 @@
-package org.enso.compiler.context;
+package org.enso.compiler.suggestions;
 
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.SortedSet;
 import java.util.TreeSet;
+
 import org.enso.pkg.QualifiedName;
 import org.enso.polyglot.ExportedSymbol;
 import org.enso.polyglot.ModuleExports;
 import org.enso.polyglot.Suggestion;
+
 import scala.runtime.BoxedUnit;
 
 public final class ExportsMap {
