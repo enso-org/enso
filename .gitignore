@@ -122,11 +122,11 @@ project/metals.sbt
 ## Build Cache ##
 #################
 
-bazel-bin/
-bazel-enso/
-bazel-out/
-bazel-testlogs/
-build-cache/
+bazel-bin
+bazel-enso
+bazel-out
+bazel-testlogs
+build-cache
 
 ##################
 ## Native Image ##
