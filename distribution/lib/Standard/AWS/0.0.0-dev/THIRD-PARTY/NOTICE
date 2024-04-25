@@ -58,52 +58,52 @@ Copyright notices related to this dependency can be found in the directory `comm
 
 'netty-buffer', licensed under the Apache License, Version 2.0, is distributed with the AWS.
 The license file can be found at `licenses/APACHE2.0`.
-Copyright notices related to this dependency can be found in the directory `io.netty.netty-buffer-4.1.86.Final`.
+Copyright notices related to this dependency can be found in the directory `io.netty.netty-buffer-4.1.108.Final`.
 
 
 'netty-codec', licensed under the Apache License, Version 2.0, is distributed with the AWS.
 The license file can be found at `licenses/APACHE2.0`.
-Copyright notices related to this dependency can be found in the directory `io.netty.netty-codec-4.1.86.Final`.
+Copyright notices related to this dependency can be found in the directory `io.netty.netty-codec-4.1.108.Final`.
 
 
 'netty-codec-http', licensed under the Apache License, Version 2.0, is distributed with the AWS.
 The license file can be found at `licenses/APACHE2.0`.
-Copyright notices related to this dependency can be found in the directory `io.netty.netty-codec-http-4.1.86.Final`.
+Copyright notices related to this dependency can be found in the directory `io.netty.netty-codec-http-4.1.108.Final`.
 
 
 'netty-codec-http2', licensed under the Apache License, Version 2.0, is distributed with the AWS.
 The license file can be found at `licenses/APACHE2.0`.
-Copyright notices related to this dependency can be found in the directory `io.netty.netty-codec-http2-4.1.86.Final`.
+Copyright notices related to this dependency can be found in the directory `io.netty.netty-codec-http2-4.1.108.Final`.
 
 
 'netty-common', licensed under the Apache License, Version 2.0, is distributed with the AWS.
 The license file can be found at `licenses/APACHE2.0`.
-Copyright notices related to this dependency can be found in the directory `io.netty.netty-common-4.1.86.Final`.
+Copyright notices related to this dependency can be found in the directory `io.netty.netty-common-4.1.108.Final`.
 
 
 'netty-handler', licensed under the Apache License, Version 2.0, is distributed with the AWS.
 The license file can be found at `licenses/APACHE2.0`.
-Copyright notices related to this dependency can be found in the directory `io.netty.netty-handler-4.1.86.Final`.
+Copyright notices related to this dependency can be found in the directory `io.netty.netty-handler-4.1.108.Final`.
 
 
 'netty-resolver', licensed under the Apache License, Version 2.0, is distributed with the AWS.
 The license file can be found at `licenses/APACHE2.0`.
-Copyright notices related to this dependency can be found in the directory `io.netty.netty-resolver-4.1.86.Final`.
+Copyright notices related to this dependency can be found in the directory `io.netty.netty-resolver-4.1.108.Final`.
 
 
 'netty-transport', licensed under the Apache License, Version 2.0, is distributed with the AWS.
 The license file can be found at `licenses/APACHE2.0`.
-Copyright notices related to this dependency can be found in the directory `io.netty.netty-transport-4.1.86.Final`.
+Copyright notices related to this dependency can be found in the directory `io.netty.netty-transport-4.1.108.Final`.
 
 
 'netty-transport-classes-epoll', licensed under the Apache License, Version 2.0, is distributed with the AWS.
 The license file can be found at `licenses/APACHE2.0`.
-Copyright notices related to this dependency can be found in the directory `io.netty.netty-transport-classes-epoll-4.1.86.Final`.
+Copyright notices related to this dependency can be found in the directory `io.netty.netty-transport-classes-epoll-4.1.108.Final`.
 
 
 'netty-transport-native-unix-common', licensed under the Apache License, Version 2.0, is distributed with the AWS.
 The license file can be found at `licenses/APACHE2.0`.
-Copyright notices related to this dependency can be found in the directory `io.netty.netty-transport-native-unix-common-4.1.86.Final`.
+Copyright notices related to this dependency can be found in the directory `io.netty.netty-transport-native-unix-common-4.1.108.Final`.
 
 
 'joda-time', licensed under the Apache 2, is distributed with the AWS.
@@ -121,9 +121,7 @@ The license file can be found at `licenses/APACHE2.0`.
 Copyright notices related to this dependency can be found in the directory `org.apache.httpcomponents.httpcore-4.4.13`.
 
 
-'reactive-streams', licensed under the CC0, is distributed with the AWS.
-The license file can be found at `licenses/CC0`.
-Copyright notices related to this dependency can be found in the directory `org.reactivestreams.reactive-streams-1.0.3`.
+'reactive-streams', licensed under the MIT-0, is distributed with the AWS.
 
 
 'slf4j-api', licensed under the MIT License, is distributed with the AWS.
@@ -133,102 +131,142 @@ Copyright notices related to this dependency can be found in the directory `org.
 
 'annotations', licensed under the Apache License, Version 2.0, is distributed with the AWS.
 The license information can be found along with the copyright notices.
-Copyright notices related to this dependency can be found in the directory `software.amazon.awssdk.annotations-2.20.78`.
+Copyright notices related to this dependency can be found in the directory `software.amazon.awssdk.annotations-2.25.36`.
 
 
 'apache-client', licensed under the Apache License, Version 2.0, is distributed with the AWS.
 The license information can be found along with the copyright notices.
-Copyright notices related to this dependency can be found in the directory `software.amazon.awssdk.apache-client-2.20.78`.
+Copyright notices related to this dependency can be found in the directory `software.amazon.awssdk.apache-client-2.25.36`.
 
 
 'arns', licensed under the Apache License, Version 2.0, is distributed with the AWS.
 The license information can be found along with the copyright notices.
-Copyright notices related to this dependency can be found in the directory `software.amazon.awssdk.arns-2.20.78`.
+Copyright notices related to this dependency can be found in the directory `software.amazon.awssdk.arns-2.25.36`.
 
 
 'auth', licensed under the Apache License, Version 2.0, is distributed with the AWS.
 The license information can be found along with the copyright notices.
-Copyright notices related to this dependency can be found in the directory `software.amazon.awssdk.auth-2.20.78`.
+Copyright notices related to this dependency can be found in the directory `software.amazon.awssdk.auth-2.25.36`.
 
 
 'aws-core', licensed under the Apache License, Version 2.0, is distributed with the AWS.
 The license information can be found along with the copyright notices.
-Copyright notices related to this dependency can be found in the directory `software.amazon.awssdk.aws-core-2.20.78`.
+Copyright notices related to this dependency can be found in the directory `software.amazon.awssdk.aws-core-2.25.36`.
+
+
+'aws-json-protocol', licensed under the Apache License, Version 2.0, is distributed with the AWS.
+The license file can be found at `licenses/APACHE2.0`.
 
 
 'aws-query-protocol', licensed under the Apache License, Version 2.0, is distributed with the AWS.
 The license information can be found along with the copyright notices.
-Copyright notices related to this dependency can be found in the directory `software.amazon.awssdk.aws-query-protocol-2.20.78`.
+Copyright notices related to this dependency can be found in the directory `software.amazon.awssdk.aws-query-protocol-2.25.36`.
 
 
 'aws-xml-protocol', licensed under the Apache License, Version 2.0, is distributed with the AWS.
 The license information can be found along with the copyright notices.
-Copyright notices related to this dependency can be found in the directory `software.amazon.awssdk.aws-xml-protocol-2.20.78`.
+Copyright notices related to this dependency can be found in the directory `software.amazon.awssdk.aws-xml-protocol-2.25.36`.
+
+
+'bom', licensed under the Apache License, Version 2.0, is distributed with the AWS.
+The license file can be found at `licenses/APACHE2.0`.
+
+
+'checksums', licensed under the Apache License, Version 2.0, is distributed with the AWS.
+The license file can be found at `licenses/APACHE2.0`.
+
+
+'checksums-spi', licensed under the Apache License, Version 2.0, is distributed with the AWS.
+The license file can be found at `licenses/APACHE2.0`.
 
 
 'crt-core', licensed under the Apache License, Version 2.0, is distributed with the AWS.
 The license information can be found along with the copyright notices.
-Copyright notices related to this dependency can be found in the directory `software.amazon.awssdk.crt-core-2.20.78`.
+Copyright notices related to this dependency can be found in the directory `software.amazon.awssdk.crt-core-2.25.36`.
 
 
 'endpoints-spi', licensed under the Apache License, Version 2.0, is distributed with the AWS.
 The license information can be found along with the copyright notices.
-Copyright notices related to this dependency can be found in the directory `software.amazon.awssdk.endpoints-spi-2.20.78`.
+Copyright notices related to this dependency can be found in the directory `software.amazon.awssdk.endpoints-spi-2.25.36`.
+
+
+'http-auth', licensed under the Apache License, Version 2.0, is distributed with the AWS.
+The license file can be found at `licenses/APACHE2.0`.
+
+
+'http-auth-aws', licensed under the Apache License, Version 2.0, is distributed with the AWS.
+The license file can be found at `licenses/APACHE2.0`.
+
+
+'http-auth-spi', licensed under the Apache License, Version 2.0, is distributed with the AWS.
+The license file can be found at `licenses/APACHE2.0`.
 
 
 'http-client-spi', licensed under the Apache License, Version 2.0, is distributed with the AWS.
 The license information can be found along with the copyright notices.
-Copyright notices related to this dependency can be found in the directory `software.amazon.awssdk.http-client-spi-2.20.78`.
+Copyright notices related to this dependency can be found in the directory `software.amazon.awssdk.http-client-spi-2.25.36`.
+
+
+'identity-spi', licensed under the Apache License, Version 2.0, is distributed with the AWS.
+The license file can be found at `licenses/APACHE2.0`.
 
 
 'json-utils', licensed under the Apache License, Version 2.0, is distributed with the AWS.
 The license information can be found along with the copyright notices.
-Copyright notices related to this dependency can be found in the directory `software.amazon.awssdk.json-utils-2.20.78`.
+Copyright notices related to this dependency can be found in the directory `software.amazon.awssdk.json-utils-2.25.36`.
 
 
 'metrics-spi', licensed under the Apache License, Version 2.0, is distributed with the AWS.
 The license information can be found along with the copyright notices.
-Copyright notices related to this dependency can be found in the directory `software.amazon.awssdk.metrics-spi-2.20.78`.
+Copyright notices related to this dependency can be found in the directory `software.amazon.awssdk.metrics-spi-2.25.36`.
 
 
 'netty-nio-client', licensed under the Apache License, Version 2.0, is distributed with the AWS.
 The license information can be found along with the copyright notices.
-Copyright notices related to this dependency can be found in the directory `software.amazon.awssdk.netty-nio-client-2.20.78`.
+Copyright notices related to this dependency can be found in the directory `software.amazon.awssdk.netty-nio-client-2.25.36`.
 
 
 'profiles', licensed under the Apache License, Version 2.0, is distributed with the AWS.
 The license information can be found along with the copyright notices.
-Copyright notices related to this dependency can be found in the directory `software.amazon.awssdk.profiles-2.20.78`.
+Copyright notices related to this dependency can be found in the directory `software.amazon.awssdk.profiles-2.25.36`.
 
 
 'protocol-core', licensed under the Apache License, Version 2.0, is distributed with the AWS.
 The license information can be found along with the copyright notices.
-Copyright notices related to this dependency can be found in the directory `software.amazon.awssdk.protocol-core-2.20.78`.
+Copyright notices related to this dependency can be found in the directory `software.amazon.awssdk.protocol-core-2.25.36`.
 
 
 'regions', licensed under the Apache License, Version 2.0, is distributed with the AWS.
 The license information can be found along with the copyright notices.
-Copyright notices related to this dependency can be found in the directory `software.amazon.awssdk.regions-2.20.78`.
+Copyright notices related to this dependency can be found in the directory `software.amazon.awssdk.regions-2.25.36`.
 
 
 's3', licensed under the Apache License, Version 2.0, is distributed with the AWS.
 The license information can be found along with the copyright notices.
-Copyright notices related to this dependency can be found in the directory `software.amazon.awssdk.s3-2.20.78`.
+Copyright notices related to this dependency can be found in the directory `software.amazon.awssdk.s3-2.25.36`.
 
 
 'sdk-core', licensed under the Apache License, Version 2.0, is distributed with the AWS.
 The license information can be found along with the copyright notices.
-Copyright notices related to this dependency can be found in the directory `software.amazon.awssdk.sdk-core-2.20.78`.
+Copyright notices related to this dependency can be found in the directory `software.amazon.awssdk.sdk-core-2.25.36`.
+
+
+'sso', licensed under the Apache License, Version 2.0, is distributed with the AWS.
+The license file can be found at `licenses/APACHE2.0`.
+
+
+'ssooidc', licensed under the Apache License, Version 2.0, is distributed with the AWS.
+The license file can be found at `licenses/APACHE2.0`.
 
 
 'third-party-jackson-core', licensed under the Apache License, Version 2.0, is distributed with the AWS.
 The license information can be found along with the copyright notices.
-Copyright notices related to this dependency can be found in the directory `software.amazon.awssdk.third-party-jackson-core-2.20.78`.
+Copyright notices related to this dependency can be found in the directory `software.amazon.awssdk.third-party-jackson-core-2.25.36`.
 
 
 'utils', licensed under the Apache License, Version 2.0, is distributed with the AWS.
 The license information can be found along with the copyright notices.
-Copyright notices related to this dependency can be found in the directory `software.amazon.awssdk.utils-2.20.78`.
+Copyright notices related to this dependency can be found in the directory `software.amazon.awssdk.utils-2.25.36`.
 
 
 'eventstream', licensed under the Apache License, Version 2.0, is distributed with the AWS.
