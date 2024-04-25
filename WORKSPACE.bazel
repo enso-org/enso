@@ -42,10 +42,16 @@ rules_scala_toolchain_deps_repositories(fetch_sources = True)
 
 load("@io_bazel_rules_scala//scala:toolchains.bzl", "scala_register_toolchains")
 
-scala_register_toolchains()
 
 load("@io_bazel_rules_scala//testing:scalatest.bzl", "scalatest_repositories", "scalatest_toolchain")
 
 scalatest_repositories()
 
 scalatest_toolchain()
+
+## Note that the default toolchain, enabled via
+## > scala_register_toolchains()
+## will not work due to a bug with SecurityManager
+## https://github.com/bazelbuild/rules_scala/issues/1521
+## Workaround is to use our own scala toolchain with custom options.
+register_toolchains("//toolchains:enso_toolchain")

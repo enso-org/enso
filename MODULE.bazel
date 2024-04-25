@@ -42,7 +42,7 @@ gvm.graalvm(
 )
 use_repo(gvm, "graalvm")
 register_toolchains("@graalvm//:jvm")
-register_toolchains("@graalvm//:sdk")
+register_toolchains("@graalvm//:sdk") ## Native-image
 register_toolchains("@graalvm//:toolchain")
 
 bazel_dep(name = "rules_jvm_external", version = "6.0")
@@ -56,6 +56,8 @@ circe = ["io.circe:%s_2.13:%s" % (x, circe_version) for x in circe_libs]
 commons_text_version = "1.10.0"
 http_components_version = "4.4.1"
 jackson_version = "2.15.2"
+commons_io_version = "2.12.0"
+commons_compress_version = "1.23.0"
 
 maven = use_extension("@rules_jvm_external//:extensions.bzl", "maven")
 ## After updating a list of artifacts run
@@ -67,7 +69,9 @@ maven.install(
       "org.typelevel:cats-core_2.13:%s" % cats_version,
       "org.apache.commons:commons-text:%s" % commons_text_version,
       "org.apache.httpcomponents:httpclient:%s" % http_components_version,
-      "com.fasterxml.jackson.core:jackson-databind:%s" % jackson_version
+      "com.fasterxml.jackson.core:jackson-databind:%s" % jackson_version,
+      "commons-io:commons-io:%s" % commons_io_version,
+      "org.apache.commons:commons-compress:%s" % commons_compress_version,
     ] + circe,
     fail_if_repin_required = True,
     lock_file = "//:maven_install.json",

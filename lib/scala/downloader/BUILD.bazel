@@ -1,0 +1,26 @@
+load("@io_bazel_rules_scala//scala:scala.bzl", "scala_library")
+
+java_library(
+    name = "downloader",
+    srcs = glob(["src/main/java/**/*.java"]),
+    deps = [
+        "//tools/http-test-helper",
+        "//lib/scala/cli",
+        ":downloader-scala",
+        "@maven//:org_slf4j_slf4j_api",
+        "@maven//:org_scala_lang_scala_library"
+    ]
+)
+
+scala_library(
+    name = "downloader-scala",
+    srcs = glob(["src/main/scala/**/*.{java,scala}"]),
+    deps = [
+        "//tools/http-test-helper",
+        "//lib/scala/cli",
+        "@maven//:com_typesafe_scala_logging_scala_logging_2_13",
+        "@maven//:commons_io_commons_io",
+        "@maven//:org_apache_commons_commons_compress",
+        ##"@maven//:org_scala_lang_scala_library"
+    ]
+)
