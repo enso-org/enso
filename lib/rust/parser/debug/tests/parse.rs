@@ -1377,6 +1377,8 @@ fn private_keyword() {
     test("private", block![(Private())]);
     expect_invalid_node("private func");
 
+    expect_invalid_node("private ConstructorOutsideType");
+
     #[rustfmt::skip]
     let code = [
         "type My_Type",
