@@ -1,4 +1,4 @@
-package org.enso.polyglot;
+package org.enso.common;
 
 /** Defines a stage of compilation of the module. */
 public enum CompilationStage {

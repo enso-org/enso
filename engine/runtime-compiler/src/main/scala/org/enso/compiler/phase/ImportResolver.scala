@@ -7,7 +7,7 @@ import org.enso.compiler.core.ir.{DiagnosticStorage, MetadataStorage}
 import org.enso.compiler.core.ir.module.scope.{Export, Import}
 import org.enso.compiler.data.BindingsMap
 import org.enso.compiler.pass.analyse.BindingAnalysis
-import org.enso.polyglot.CompilationStage
+import org.enso.common.CompilationStage
 
 import scala.collection.mutable
 import java.io.IOException
