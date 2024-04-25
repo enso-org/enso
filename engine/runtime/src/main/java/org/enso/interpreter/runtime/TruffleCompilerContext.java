@@ -177,8 +177,7 @@ final class TruffleCompilerContext implements CompilerContext {
     return module.getCompilationStage();
   }
 
-  @Override
-  public TypeGraph getTypeHierarchy() {
+  final TypeGraph getTypeHierarchy() {
     return Types.getTypeHierarchy();
   }
 
@@ -549,7 +548,7 @@ final class TruffleCompilerContext implements CompilerContext {
           .flatMap(
               module -> {
                 var sug =
-                    SuggestionBuilder.apply(module, compiler)
+                    SuggestionBuilder.apply(module, getTypeHierarchy(), compiler)
                         .build(module.getName(), module.getIr())
                         .toVector()
                         .filter(Suggestion::isGlobal);
@@ -589,8 +588,8 @@ final class TruffleCompilerContext implements CompilerContext {
   }
 
   @Override
-  public scala.Option<List<org.enso.polyglot.Suggestion>> deserializeSuggestions(
-      LibraryName libraryName) throws InterruptedException {
+  public scala.Option<Object> deserializeSuggestions(LibraryName libraryName)
+      throws InterruptedException {
     var option = deserializeSuggestionsImpl(libraryName);
     return option.map(s -> s.getSuggestions());
   }
@@ -727,6 +726,11 @@ final class TruffleCompilerContext implements CompilerContext {
     @Override
     public Source getSource() throws IOException {
       return module.getSource();
+    }
+
+    @Override
+    public CharSequence getCharacters() throws IOException {
+      return module.getSource().getCharacters();
     }
 
     @Override

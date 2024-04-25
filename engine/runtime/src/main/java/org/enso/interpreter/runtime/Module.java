@@ -47,6 +47,7 @@ import org.enso.interpreter.runtime.scope.ModuleScope;
 import org.enso.interpreter.runtime.type.Types;
 import org.enso.pkg.Package;
 import org.enso.pkg.QualifiedName;
+import org.enso.polyglot.data.TypeGraph;
 import org.enso.text.buffer.Rope;
 
 /** Represents a source module with a known location. */
@@ -536,6 +537,15 @@ public final class Module implements EnsoObject {
    */
   public final CompilerContext.Module asCompilerModule() {
     return new TruffleCompilerContext.Module(this);
+  }
+
+  /**
+   * Locates associated type hierarchy for given context.
+   *
+   * @return type hierarchy or {@code null} when it is not found
+   */
+  public static TypeGraph findTypeHierarchy(CompilerContext context) {
+    return context instanceof TruffleCompilerContext tcc ? tcc.getTypeHierarchy() : null;
   }
 
   /**

@@ -70,11 +70,12 @@ object AnalyzeModuleJob {
     if (state.isIndexed) {
       ctx.executionService.getLogger
         .log(Level.FINEST, "Analyzing indexed module {0}", moduleName)
+      val types = Module.findTypeHierarchy(compiler.context)
       val prevSuggestions =
-        SuggestionBuilder(changeset.source, compiler)
+        SuggestionBuilder(changeset.source, types, compiler)
           .build(moduleName, changeset.ir)
       val newSuggestions =
-        SuggestionBuilder(module.asCompilerModule(), compiler)
+        SuggestionBuilder(module.asCompilerModule(), types, compiler)
           .build(moduleName, newIr)
       val diff = SuggestionDiff
         .compute(prevSuggestions, newSuggestions)
@@ -100,8 +101,9 @@ object AnalyzeModuleJob {
     } else {
       ctx.executionService.getLogger
         .log(Level.FINEST, s"Analyzing not-indexed module {0}", module.getName)
+      val types = Module.findTypeHierarchy(compiler.context)
       val newSuggestions =
-        SuggestionBuilder(module.asCompilerModule(), compiler)
+        SuggestionBuilder(module.asCompilerModule(), types, compiler)
           .build(moduleName, state.ir)
       val prevExports = ModuleExports(moduleName.toString, Set())
       val newExports  = exportsBuilder.build(moduleName, state.ir)
