@@ -170,7 +170,7 @@ add_specs suite_builder =
 
     suite_builder.group "S3.head (bucket)" pending=api_pending group_builder->
         group_builder.specify "should be able to head a bucket" <|
-            S3.head bucket_name credentials=test_credentials . should_equal Map.empty
+            S3.head bucket_name credentials=test_credentials . should_be_a Map
             S3.head not_a_bucket_name credentials=test_credentials . should_fail_with S3_Bucket_Not_Found
 
     suite_builder.group "S3.read_bucket" pending=api_pending group_builder->

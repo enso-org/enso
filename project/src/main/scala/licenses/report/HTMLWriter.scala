@@ -149,7 +149,21 @@ class HTMLWriter(bufferedWriter: BufferedWriter) {
   /** Writes a paragraph of styled text.
     */
   def writeParagraph(text: String, styles: Style*): Unit =
-    writer.println(s"""<p style="${styles.mkString(";")}">$text</p>""")
+    writeParagraph(text, Map.empty[String, String], styles)
+
+  /** Writes a paragraph with additional attributes. */
+  def writeParagraph(
+    text: String,
+    attributes: Map[String, String],
+    styles: Seq[Style] = Seq.empty
+  ): Unit = {
+    val attributeString =
+      if (attributes.isEmpty) ""
+      else attributes.map(e => s""" ${e._1}="${e._2}"""").mkString("")
+    val styleString =
+      if (styles.isEmpty) "" else s""" style="${styles.mkString(";")}""""
+    writer.println(s"""<p$attributeString$styleString">$text</p>""")
+  }
 
   /** Writes plain (but potentially styled) text.
     */
@@ -174,7 +188,7 @@ class HTMLWriter(bufferedWriter: BufferedWriter) {
                       |</div></div>""".stripMargin)
   }
 
-  /** Writes an empty element that can be overridden by an injected script.
+  /** Creates an empty element that can be overridden by an injected script.
     *
     * Parameters names and values need to be properly escaped to fit for HTML.
     */
@@ -189,6 +203,14 @@ class HTMLWriter(bufferedWriter: BufferedWriter) {
       .mkString(" ")
     s"""<span class="$className" $mappedParams></span>
        |""".stripMargin
+  }
+
+  /** Writes an empty element that can be overridden by an injected script. */
+  def writeInjectionHandler(
+    className: String,
+    params: (String, String)*
+  ): Unit = {
+    writer.println(makeInjectionHandler(className, params: _*))
   }
 
   /** Escapes a string that may contain HTML markup to not be rendered but
@@ -247,5 +269,10 @@ object Style {
     */
   case object Black extends Style {
     override def toString: String = "color:black"
+  }
+
+  /** Allows to override the display to be inline. */
+  case object DisplayInline extends Style {
+    override def toString: String = "display:inline"
   }
 }
