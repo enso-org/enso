@@ -28,7 +28,8 @@
     "opener": "^1.5.2",
     "string-length": "^5.0.1",
     "tar": "^6.1.13",
-    "yargs": "17.6.2"
+    "yargs": "17.6.2",
+    "mkcert": "3.2.0"
   },
   "comments": {
     "electron-builder": "Cannot be updated to a newer version because of a NSIS installer issue: https://github.com/enso-org/enso/issues/5169"

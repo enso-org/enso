@@ -46,9 +46,8 @@ export function Dialog(props: types.DialogProps) {
     isKeyboardDismissDisabled = false,
     hideCloseButton = false,
     className,
-    isOpen = false,
-    defaultOpen = false,
     onOpenChange = () => {},
+    modalProps,
     ...ariaDialogProps
   } = props
 
@@ -60,9 +59,8 @@ export function Dialog(props: types.DialogProps) {
       isDismissable={isDismissible}
       isKeyboardDismissDisabled={isKeyboardDismissDisabled}
       UNSTABLE_portalContainer={root.current}
-      isOpen={isOpen}
       onOpenChange={onOpenChange}
-      defaultOpen={defaultOpen}
+      {...modalProps}
     >
       <aria.Dialog
         className={tailwindMerge.twMerge(DIALOG_CLASSES, [DIALOG_CLASSES_BY_TYPE[type]], className)}

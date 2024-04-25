@@ -14,8 +14,7 @@ export interface DialogProps extends aria.DialogProps {
   readonly hideCloseButton?: boolean
   readonly onOpenChange?: (isOpen: boolean) => void
   readonly isKeyboardDismissDisabled?: boolean
-  readonly isOpen?: boolean
-  readonly defaultOpen?: boolean
+  readonly modalProps?: Pick<aria.ModalOverlayProps, 'className' | 'defaultOpen' | 'isOpen'>
 }
 
 /** The props for the DialogTrigger component. */

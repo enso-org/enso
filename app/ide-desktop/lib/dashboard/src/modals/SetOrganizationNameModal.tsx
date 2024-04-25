@@ -18,6 +18,8 @@ import * as ariaComponents from '#/components/AriaComponents'
 
 import * as backendModule from '#/services/Backend'
 
+const PLANS_TO_SPECIFY_ORG_NAME = [backendModule.Plan.team, backendModule.Plan.enterprise]
+
 /**
  * Modal for setting the organization name.
  * Shows up when the user is on the team plan and the organization name is the default.
@@ -28,13 +30,21 @@ export function SetOrganizationNameModal() {
   const { backend } = backendProvider.useBackend()
   const { session } = authProvider.useAuth()
 
-  const userId = (session && 'user' in session && session.user?.userId) ?? null
-  const userPlan = (session && 'user' in session && session.user?.tier) ?? null
+  const userId = session && 'user' in session && session.user?.userId ? session.user.userId : null
+  const userPlan =
+    session && 'user' in session && session.user?.tier != null ? session.user.tier : null
 
   const queryClient = reactQuery.useQueryClient()
   const { data } = reactQuery.useSuspenseQuery({
     queryKey: ['organization', userId],
-    queryFn: () => backend.getOrganization(),
+    queryFn: () => {
+      if (backend.type === backendModule.BackendType.remote) {
+        return backend.getOrganization().catch(() => null)
+      } else {
+        return null
+      }
+    },
+    staleTime: Infinity,
   })
 
   const submit = reactQuery.useMutation({
@@ -49,7 +59,9 @@ export function SetOrganizationNameModal() {
   })
 
   const shouldShowModal =
-    userPlan === backendModule.Plan.team && data?.name?.toString() === 'Test123'
+    userPlan != null &&
+    PLANS_TO_SPECIFY_ORG_NAME.includes(userPlan) &&
+    data?.name?.toString() === ''
 
   return (
     <>
@@ -58,7 +70,7 @@ export function SetOrganizationNameModal() {
         isDismissible={false}
         isKeyboardDismissDisabled
         hideCloseButton
-        isOpen={shouldShowModal}
+        modalProps={{ isOpen: shouldShowModal }}
       >
         <aria.Form
           onSubmit={e => {
@@ -110,6 +122,7 @@ export function SetOrganizationNameModal() {
           </ariaComponents.Button>
         </aria.Form>
       </ariaComponents.Dialog>
+
       <router.Outlet context={session} />
     </>
   )

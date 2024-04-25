@@ -6,6 +6,7 @@ import * as http from 'node:http'
 import * as os from 'node:os'
 import * as path from 'node:path'
 import * as stream from 'node:stream'
+import * as mkcert from 'mkcert'
 
 import * as mime from 'mime-types'
 import * as portfinder from 'portfinder'
@@ -107,10 +108,28 @@ export class Server {
 
     /** Start the server. */
     run(): Promise<void> {
-        return new Promise((resolve, reject) => {
+        return new Promise(async (resolve, reject) => {
+            const defaultValidity = 365
+            const ca = await mkcert.createCA({
+                organization: 'Hello CA',
+                countryCode: 'NP',
+                state: 'Bagmati',
+                locality: 'Kathmandu',
+                validity: defaultValidity,
+            })
+            const cert = await mkcert.createCert({
+                ca: { key: ca.key, cert: ca.cert },
+                domains: ['127.0.0.1', 'localhost'],
+                validity: defaultValidity,
+            })
+
             createServer(
                 {
-                    http: this.config.port,
+                    https: {
+                        key: cert.key,
+                        cert: cert.cert,
+                        port: this.config.port,
+                    },
                     handler: this.process.bind(this),
                 },
                 (err, { http: httpServer }) => {
