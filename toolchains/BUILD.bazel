@@ -9,9 +9,9 @@ scala_toolchain(
         "-Djava.security.manager=allow",
     ],
     ## Allows for easier discovery of missing dependencies
-    ##dependency_mode = "plus-one",
-    ##dependency_tracking_method = "ast",
-    ##strict_deps_mode = "error",
+    ## dependency_mode = "plus-one",
+    ## dependency_tracking_method = "ast",
+    ## strict_deps_mode = "error",
     visibility = ["//visibility:public"]
 )
 

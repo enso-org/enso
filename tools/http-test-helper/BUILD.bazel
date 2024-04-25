@@ -9,5 +9,5 @@ java_library(
         "@maven//:com_fasterxml_jackson_core_jackson_databind",
         "@maven//:com_fasterxml_jackson_core_jackson_core"
     ],
-    visibility = ["//visibility:public"],
+    visibility = ["//lib:__subpackages__"],
 )

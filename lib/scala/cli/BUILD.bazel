@@ -1,4 +1,4 @@
-load("@io_bazel_rules_scala//scala:scala.bzl", "scala_library")
+load("@io_bazel_rules_scala//scala:scala.bzl", "scala_library", "scala_test")
 
 scala_library(
     name = "cli",
@@ -12,4 +12,20 @@ scala_library(
         "@maven//:org_slf4j_slf4j_api",
         ##"@maven//:org_scala_lang_scala_library",
     ],
+)
+
+scala_test(
+    name = "tests",
+    srcs = glob(["src/test/scala/**/*.scala"]),
+    deps = [
+        ":cli",
+        "@maven//:org_typelevel_cats_core_2_13",
+        "@maven//:org_typelevel_cats_kernel_2_13",
+        "@maven//:org_scalatest_scalatest_compatible",
+        "@maven//:org_scalatest_scalatest_core_2_13",
+        "@maven//:org_scalatest_scalatest_wordspec_2_13",
+        "@maven//:org_scalactic_scalactic_2_13",
+        "@maven//:org_scala_lang_scala_library",
+    ],
+    tags = ["unit"]
 )
