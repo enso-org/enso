@@ -22,6 +22,15 @@ add_specs suite_builder = suite_builder.group "Exception" group_builder->
             _ = a + b
             Test.fail "should not reach here"
 
+    group_builder.specify "should be able to catch an exception with the default handler" <|
+        err = Exception.qcatch My_Error <|
+            a = 10
+            b = a + a
+            Exception.qthrow (My_Error.Error "err")
+            _ = a + b
+            Test.fail "should not reach here"
+        err.catch . should_be_a My_Error
+
     group_builder.specify "can handle multiple exceptions" <|
         my_error_handler e =
             e . should_be_a My_Error
