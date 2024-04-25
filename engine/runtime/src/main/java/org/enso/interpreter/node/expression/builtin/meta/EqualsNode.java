@@ -9,7 +9,6 @@ import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.interop.ArityException;
 import com.oracle.truffle.api.nodes.Node;
-import com.oracle.truffle.api.profiles.BranchProfile;
 import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.node.EnsoRootNode;
 import org.enso.interpreter.node.callable.InteropConversionCallNode;
@@ -148,21 +147,16 @@ public final class EqualsNode extends Node {
     /**
      * @return {@code null} if no conversion found
      */
-    Boolean findConversions(
-        Type selfType,
-        Type thatType,
-        Object self,
-        Object that,
-        BranchProfile recursionBranchProfile) {
+    Boolean findConversions(Type selfType, Type thatType, Object self, Object that) {
       if (selfType == null || thatType == null) {
         return null;
       }
       var ctx = EnsoContext.get(this);
 
-      if (findConversionImpl(ctx, selfType, thatType, self, that, recursionBranchProfile)) {
+      if (findConversionImpl(ctx, selfType, thatType, self, that)) {
         return false;
       } else {
-        if (findConversionImpl(ctx, thatType, selfType, that, self, recursionBranchProfile)) {
+        if (findConversionImpl(ctx, thatType, selfType, that, self)) {
           return true;
         } else {
           return null;
@@ -171,24 +165,15 @@ public final class EqualsNode extends Node {
     }
 
     private static boolean findConversionImpl(
-        EnsoContext ctx,
-        Type selfType,
-        Type thatType,
-        Object self,
-        Object that,
-        BranchProfile recursionBranchProfile) {
+        EnsoContext ctx, Type selfType, Type thatType, Object self, Object that) {
       var selfScope = selfType.getDefinitionScope();
       var comparableType = ctx.getBuiltins().comparable().getType();
 
       var fromSelfType =
-          UnresolvedConversion.build(selfScope)
-              .resolveFor(ctx, comparableType, selfType, recursionBranchProfile);
+          UnresolvedConversion.build(selfScope).resolveFor(ctx, comparableType, selfType);
       var fromThatType =
-          UnresolvedConversion.build(selfScope)
-              .resolveFor(ctx, comparableType, thatType, recursionBranchProfile);
-      var betweenBoth =
-          UnresolvedConversion.build(selfScope)
-              .resolveFor(ctx, selfType, thatType, recursionBranchProfile);
+          UnresolvedConversion.build(selfScope).resolveFor(ctx, comparableType, thatType);
+      var betweenBoth = UnresolvedConversion.build(selfScope).resolveFor(ctx, selfType, thatType);
 
       if (isDefinedIn(selfScope, fromSelfType)
           && isDefinedIn(selfScope, fromThatType)
@@ -217,9 +202,7 @@ public final class EqualsNode extends Node {
             Type selfType,
         @Cached(value = "findType(typeOfNode, that)", uncached = "findTypeUncached(that)")
             Type thatType,
-        @Shared @Cached BranchProfile recursionBranchProfile,
-        @Cached("findConversions(selfType, thatType, self, that, recursionBranchProfile)")
-            Boolean convert,
+        @Cached("findConversions(selfType, thatType, self, that)") Boolean convert,
         @Shared("convert") @Cached InteropConversionCallNode convertNode,
         @Shared("invoke") @Cached(allowUncached = true) EqualsSimpleNode equalityNode) {
       if (convert == null) {
@@ -239,11 +222,10 @@ public final class EqualsNode extends Node {
         Object that,
         @Shared("typeOf") @Cached TypeOfNode typeOfNode,
         @Shared("convert") @Cached InteropConversionCallNode convertNode,
-        @Shared("invoke") @Cached(allowUncached = true) EqualsSimpleNode equalityNode,
-        @Shared @Cached BranchProfile recursionBranchProfile) {
+        @Shared("invoke") @Cached(allowUncached = true) EqualsSimpleNode equalityNode) {
       var selfType = findType(typeOfNode, self);
       var thatType = findType(typeOfNode, that);
-      var conv = findConversions(selfType, thatType, self, that, recursionBranchProfile);
+      var conv = findConversions(selfType, thatType, self, that);
       if (conv != null) {
         var result =
             conv

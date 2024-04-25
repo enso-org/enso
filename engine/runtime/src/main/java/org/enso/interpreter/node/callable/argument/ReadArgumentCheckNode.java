@@ -15,7 +15,6 @@ import com.oracle.truffle.api.nodes.InvalidAssumptionException;
 import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.nodes.NodeUtil;
 import com.oracle.truffle.api.nodes.RootNode;
-import com.oracle.truffle.api.profiles.BranchProfile;
 import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -253,7 +252,6 @@ public abstract class ReadArgumentCheckNode extends Node {
     @Child IsValueOfTypeNode checkType;
     @CompilerDirectives.CompilationFinal private String expectedTypeMessage;
     @CompilerDirectives.CompilationFinal private LazyCheckRootNode lazyCheck;
-    private final BranchProfile recursionBranchProfile = BranchProfile.create();
 
     TypeCheckNode(String name, Type expectedType) {
       super(name);
@@ -340,7 +338,7 @@ public abstract class ReadArgumentCheckNode extends Node {
 
       if (getRootNode() instanceof EnsoRootNode root) {
         var convert = UnresolvedConversion.build(root.getModuleScope());
-        var conv = convert.resolveFor(ctx, expectedType, from, recursionBranchProfile);
+        var conv = convert.resolveFor(ctx, expectedType, from);
         if (conv != null) {
           return Pair.create(conv, expectedType);
         }

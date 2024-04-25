@@ -11,7 +11,6 @@ import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
 import com.oracle.truffle.api.nodes.Node;
-import com.oracle.truffle.api.profiles.BranchProfile;
 import org.enso.interpreter.Constants;
 import org.enso.interpreter.node.callable.InteropMethodCallNode;
 import org.enso.interpreter.runtime.EnsoContext;
@@ -75,7 +74,7 @@ public final class UnresolvedSymbol implements EnsoObject {
       log(
           "Resolving for: symbol=%s, node=%s, type=%s"
               .formatted(name, nodeName, type.getQualifiedName().toString()));
-      for (var current : type.allTypes(EnsoContext.get(node), BranchProfile.getUncached())) {
+      for (var current : type.allTypes(EnsoContext.get(node))) {
         log("Current type = " + current.getQualifiedName().toString());
         Function candidate = scope.lookupMethodDefinition(current, name);
         if (candidate != null) {
