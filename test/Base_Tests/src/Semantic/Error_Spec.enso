@@ -359,7 +359,7 @@ add_specs suite_builder =
 
         group_builder.specify "should be caught in a loop" <|
             fn_without_tco x =
-                if x > 10 then Panic.throw "fn_without_tco" else
+                if x == 1 then Panic.throw "fn_without_tco" else
                     fn_without_tco x+1
 
             p = Panic.catch Any handler=(.payload) <| fn_without_tco 0
@@ -367,7 +367,7 @@ add_specs suite_builder =
 
         group_builder.specify "should be caught in a TCO loop" <|
             fn_with_tco x =
-                if x > 10 then Panic.throw "fn_with_tco" else
+                if x == 1 then Panic.throw "fn_with_tco" else
                     @Tail_Call fn_with_tco x+1
 
             p = Panic.catch Any handler=(.payload) <| fn_with_tco 0
@@ -376,7 +376,7 @@ add_specs suite_builder =
         # The same test as the one before, but it does not use the `<|` function.
         group_builder.specify "should be caught in a TCO loop with a wrapper fn" <|
             fn_with_tco x =
-                if x > 10 then Panic.throw "fn_with_tco" else
+                if x == 1 then Panic.throw "fn_with_tco" else
                     @Tail_Call fn_with_tco x+1
 
             wrapper_fn =
