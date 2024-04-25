@@ -9,7 +9,7 @@ from project.Runtime import assert
 ## PRIVATE
 type Exception
     qcatch : Any -> (Any -> Any) -> Any -> Any
-    qcatch exception_type (handler : Any -> Any = (x->x)) ~action =
+    qcatch exception_type ~action (handler : Any -> Any = (x->x)) =
         Panic.catch Uncaught_Exception action cp->
             assert (cp.payload . is_a Uncaught_Exception)
             error = cp.payload.error
