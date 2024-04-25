@@ -384,8 +384,8 @@ case class Review(root: File, dependencySummary: DependencySummary) {
         s"update? Please remove it from the file and make sure that the report " +
         s"contains all necessary elements after this change.",
         metadata = Map(
-          "class"     -> "unexpected-entry-in-file",
-          "data-package" -> packageRoot.getName,
+          "class"         -> "unexpected-entry-in-file",
+          "data-package"  -> packageRoot.getName,
           "data-filename" -> fileName,
           "data-content" -> Base64.getEncoder.encodeToString(
             l.getBytes(StandardCharsets.UTF_8)

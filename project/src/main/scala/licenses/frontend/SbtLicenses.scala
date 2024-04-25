@@ -72,10 +72,10 @@ object SbtLicenses {
             val fileName = src.getFileName.toString
             // Checking only the major version is a heuristic
             // Ignoring the version used to include too much: `http-auth` would also match sources of other package: `http-auth-spi`
-            // However, exact version matches are too strict 
-            // (possibly because Maven resolves the versions based on the full dependency tree, possibly replacing the dependency?), 
+            // However, exact version matches are too strict
+            // (possibly because Maven resolves the versions based on the full dependency tree, possibly replacing the dependency?),
             // and resulted in missing sources. Major version match is a compromise between these two.
-            val majorVersion = dep.module.version.takeWhile(_ != '.')
+            val majorVersion   = dep.module.version.takeWhile(_ != '.')
             val expectedPrefix = dep.module.name + "-" + majorVersion
             fileName.stripSuffix(sourceSuffix).startsWith(expectedPrefix)
           }
