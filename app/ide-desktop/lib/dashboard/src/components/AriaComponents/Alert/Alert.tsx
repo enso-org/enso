@@ -53,15 +53,15 @@ export const Alert = React.forwardRef(
 
 const VARIANT_CLASSES: Record<AlertVariant, string> = {
   custom: '',
-  error: 'bg-red-300 border-red-500 text-red-800',
-  info: 'bg-blue-300 border-blue-500 text-blue-800',
-  success: 'bg-green-300 border-green-500 text-green-800',
-  warning: 'bg-yellow-300 border-yellow-500 text-yellow-800',
+  error: 'bg-red-200 border-red-800 text-red-800',
+  info: 'bg-blue-200 border-blue-800 text-blue-800',
+  success: 'bg-green-200 border-green-800 text-green-800',
+  warning: 'bg-yellow-200 border-yellow-800 text-yellow-800',
 }
 
 const SIZE_CLASSES: Record<AlertSize, string> = {
   custom: '',
-  small: 'p-1 text-xs',
-  medium: 'p-2 text-sm',
-  large: 'p-4 text-lg',
+  small: 'p-1.5 text-xs',
+  medium: 'p-2.5 text-sm',
+  large: 'p-4.5 text-lg',
 }
