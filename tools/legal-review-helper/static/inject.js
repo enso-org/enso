@@ -189,40 +189,14 @@ function initializeLicenseReviewButton() {
         const button = ' <button class="mark-reviewed">Mark license as reviewed</button>'
         entry.append(button)
         entry.children('.mark-reviewed').on('click', function (ev) {
-            const confirmed = confirm(
-                'PLEASE verify that the license ' +
-                    licenseName +
-                    " is compatible with the project's way of distribution and license. Click OK if the license has passed the verification, otherwise please Cancel."
-            )
-            if (confirmed) {
-                setStatus('Marking license ' + licenseName + ' as reviewed...')
-                const data = {
-                    name: licenseName,
-                }
-                $.post('/mark-license-reviewed/' + reportName, data, function (response) {
-                    const message =
-                        'License ' +
-                        licenseName +
-                        ' marked as reviewed. Regenerate the report to see the changes.'
-                    entry.html(message)
-                    entry.css('color', 'gray')
-                    setStatus(message)
-                }).fail(function (err) {
-                    setStatus(
-                        'Failed to mark license ' +
-                            licenseName +
-                            ' as reviewed: ' +
-                            JSON.stringify(err),
-                        'red'
-                    )
-                })
-            }
+            setStatus('Not implemented yet.', 'red')
         })
     })
 }
 
 function initializeCustomCopyrightButton() {
     $('.add-custom-copyright-notice').each(function (index) {
+        $(this).css('display', 'block')
         resetCustomCopyrightButton($(this))
     })
 }
@@ -239,18 +213,27 @@ function resetCustomCopyrightButton(injectionLocation) {
 
         injectionLocation.children('.submit-custom-notice').on('click', function (ev) {
             const notice = injectionLocation.children('.custom-notice-content').val()
-            const data = {
-                notice: notice,
-                package: injectionLocation.data('package'),
+            try {
+                // TODO support UTF-8 characters?
+                const encoded = btoa(notice)
+                const data = {
+                    package: injectionLocation.data('package'),
+                    action: 'add',
+                    file: 'copyright-add',
+                    line: encoded,
+                }
+                setStatus('Adding custom notice...')
+                $.post('/modify/' + reportName, data, function (response) {
+                    injectionLocation.css('color', 'gray')
+                    setStatus('Custom notice added. Regenerate the report to see the changes.')
+                    // TODO add note to parent as well to make it clearer
+                    resetCustomCopyrightButton(injectionLocation)
+                }).fail(function (err) {
+                    setStatus('Failed to add custom notice: ' + JSON.stringify(err), 'red')
+                })
+            } catch (e) {
+                setStatus('Failed to encode custom notice: ' + e, 'red')
             }
-            setStatus('Adding custom notice...')
-            $.post('/add-custom-notice/' + reportName, data, function (response) {
-                injectionLocation.css('color', 'gray')
-                setStatus('Custom notice added. Regenerate the report to see the changes.')
-                resetCustomCopyrightButton(injectionLocation)
-            }).fail(function (err) {
-                setStatus('Failed to add custom notice: ' + JSON.stringify(err), 'red')
-            })
         })
     })
 }
@@ -264,8 +247,8 @@ function initializeUnexpectedEntryButton() {
             encoded_line: encodedContent,
             package: package,
         }
-        const button = ' <button>Remove entry</button>'
-        $(this).append(button)
+        const button = '<button>Remove entry</button> '
+        $(this).prepend(button)
         $(this)
             .children('button')
             .on('click', makeHandler(this, data, fileName, 'remove'))
@@ -274,7 +257,7 @@ function initializeUnexpectedEntryButton() {
 
 function addLicenseOverrideButton(entry, package, filename) {
     const button =
-        ' <button class="license-override" style="font-size: 7pt">Set as custom-license</button>'
+        ' <button class="license-override" style="font-size: 7pt" title="Sets this file as the MAIN license to use for this dependency, instead of the default inferred license text.">Set as custom-license</button>'
     entry.append(button)
     entry.children('.license-override').on('click', function (ev) {
         const button = $(this)
@@ -284,9 +267,9 @@ function addLicenseOverrideButton(entry, package, filename) {
             file: filename,
         }
         setStatus('Overriding license for ' + package + '...')
-        $.post('/override-license/' + reportName, data, function (response) {
+        $.post('/override-custom-license/' + reportName, data, function (response) {
             const message = 'License overridden. Regenerate the report to see the changes.'
-            entry.html(message)
+            entry.append(message)
             entry.css('color', 'gray')
             setStatus(message)
         }).fail(function (err) {

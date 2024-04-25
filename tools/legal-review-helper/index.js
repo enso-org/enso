@@ -152,6 +152,30 @@ app.post('/rename-package/:report', function (req, res) {
     }
 })
 
+app.post('/override-custom-license/:report', function (req, res) {
+    const report = req.params['report']
+    const package = req.body['package']
+    const file = req.body['file']
+
+    try {
+        const dir = path.join(settingsRoot, report, package)
+
+        const defaultAndCustom = path.join(dir, 'default-and-custom-license')
+        if (fs.existsSync(defaultAndCustom)) {
+            fs.unlinkSync(defaultAndCustom)
+        }
+
+        const fileName = file.split('/').pop()
+
+        const custom = path.join(dir, 'custom-license')
+        fs.writeFileSync(custom, fileName + '\n')
+        res.send('OK')
+    } catch (error) {
+        console.error(error)
+        res.status(500).send(error)
+    }
+})
+
 /*
  * Listens on a random free port, opens a browser with the home page and waits
  * for a newline to terminate.
