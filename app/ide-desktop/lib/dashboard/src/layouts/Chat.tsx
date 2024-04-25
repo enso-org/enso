@@ -399,16 +399,7 @@ export default function Chat(props: ChatProps) {
     if (!isOpen) {
       return
     } else {
-      const gtagEventCurrent = gtagEventRef.current
-      gtagEventCurrent('cloud_open_chat')
-      const onBeforeUnload = () => {
-        gtagEventCurrent('cloud_close_chat')
-      }
-      window.addEventListener('beforeunload', onBeforeUnload)
-      return () => {
-        window.removeEventListener('beforeunload', onBeforeUnload)
-        gtagEventCurrent('cloud_close_chat')
-      }
+      return gtagHooks.gtagOpenCloseCallback(gtagEventRef, 'cloud_open_chat', 'cloud_close_chat')
     }
   }, [isOpen])
 
