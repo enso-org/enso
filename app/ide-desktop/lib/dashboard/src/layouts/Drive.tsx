@@ -1,6 +1,8 @@
 /** @file The directory header bar and directory item listing. */
 import * as React from 'react'
 
+import * as router from 'react-router-dom'
+
 import * as appUtils from '#/appUtils'
 
 import * as eventCallback from '#/hooks/eventCallbackHooks'
@@ -328,9 +330,12 @@ export default function Drive(props: DriveProps) {
         <div className={`grid grow place-items-center ${hidden ? 'hidden' : ''}`}>
           <div className="flex flex-col gap-status-page text-center text-base">
             {getText('upgradeToUseCloud')}
-            <a className="button self-center bg-help text-white" href="https://enso.org/pricing">
+            <router.Link
+              className="button self-center bg-help text-white"
+              to={appUtils.SUBSCRIBE_PATH}
+            >
               {getText('upgrade')}
-            </a>
+            </router.Link>
             {!supportsLocalBackend && (
               <UnstyledButton
                 className="button self-center bg-help text-white"

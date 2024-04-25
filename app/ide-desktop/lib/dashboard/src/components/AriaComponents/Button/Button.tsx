@@ -16,7 +16,28 @@ import SvgMask from '#/components/SvgMask'
 // ==============
 
 /** Props for a {@link Button}. */
-export interface ButtonProps extends Readonly<aria.ButtonProps> {
+export type ButtonProps =
+  | (aria.ButtonProps & BaseButtonProps & PropsWithoutHref)
+  | (aria.LinkProps & BaseButtonProps & PropsWithHref)
+
+/**
+ * Props for a button with an href.
+ */
+interface PropsWithHref {
+  readonly href: string
+}
+
+/**
+ * Props for a button without an href.
+ */
+interface PropsWithoutHref {
+  readonly href?: never
+}
+
+/**
+ * Base props for a button.
+ */
+export interface BaseButtonProps {
   /** Falls back to `aria-label`. Pass `false` to explicitly disable the tooltip. */
   readonly tooltip?: React.ReactNode
   readonly loading?: boolean
@@ -61,10 +82,18 @@ export type IconPosition = 'end' | 'start'
 /**
  * The variant of the button
  */
-export type Variant = 'cancel' | 'custom' | 'delete' | 'icon' | 'outline' | 'primary' | 'submit'
+export type Variant =
+  | 'cancel'
+  | 'custom'
+  | 'delete'
+  | 'icon'
+  | 'link'
+  | 'outline'
+  | 'primary'
+  | 'submit'
 
 const DEFAULT_CLASSES =
-  'flex whitespace-nowrap cursor-pointer border border-transparent transition-[opacity,outline-offset] duration-200 ease-in-out select-none text-center items-center justify-center'
+  'flex whitespace-nowrap cursor-pointer border border-transparent transition-[opacity,outline-offset] duration-150 ease-in-out select-none text-center items-center justify-center'
 const FOCUS_CLASSES =
   'focus-visible:outline-offset-2 focus:outline-none focus-visible:outline focus-visible:outline-primary'
 const EXTRA_CLICK_ZONE_CLASSES = 'flex relative before:inset-[-12px] before:absolute before:z-10'
@@ -83,6 +112,7 @@ const CLASSES_FOR_SIZE: Record<Size, string> = {
 
 const CLASSES_FOR_VARIANT: Record<Variant, string> = {
   custom: '',
+  link: 'inline-flex px-0 py-0 rounded-sm text-primary hover:text-primary-90 hover:underline',
   primary: 'bg-primary text-white hover:bg-primary-90',
   cancel: 'bg-selected-frame opacity-80 hover:opacity-100',
   delete: 'bg-delete text-white',
@@ -106,7 +136,10 @@ const ICON_POSITION: Record<IconPosition, string> = {
 }
 
 /** A button allows a user to perform an action, with mouse, touch, and keyboard interactions. */
-export function Button(props: ButtonProps) {
+export const Button = React.forwardRef(function Button(
+  props: ButtonProps,
+  ref: React.ForwardedRef<HTMLButtonElement>
+) {
   const {
     className,
     children,
@@ -114,15 +147,20 @@ export function Button(props: ButtonProps) {
     icon,
     loading = false,
     isDisabled = loading,
-    type = 'button',
     iconPosition = 'start',
     size = 'xsmall',
     fullWidth = false,
     rounding = 'large',
     tooltip,
-    ...ariaButtonProps
+    ...ariaProps
   } = props
   const focusChildProps = focusHooks.useFocusChild()
+
+  const isLink = ariaProps.href != null
+
+  const Tag = isLink ? aria.Link : aria.Button
+
+  const goodDefaults = isLink ? { rel: 'noopener noreferrer' } : { type: 'button' }
 
   const tooltipElement = tooltip === false ? null : tooltip ?? ariaButtonProps['aria-label']
 
@@ -130,9 +168,9 @@ export function Button(props: ButtonProps) {
     DEFAULT_CLASSES,
     DISABLED_CLASSES,
     FOCUS_CLASSES,
-    CLASSES_FOR_VARIANT[variant],
     CLASSES_FOR_SIZE[size],
     CLASSES_FOR_ROUNDING[rounding],
+    CLASSES_FOR_VARIANT[variant],
     { [LOADING_CLASSES]: loading, [FULL_WIDTH_CLASSES]: fullWidth }
   )
 
@@ -156,16 +194,21 @@ export function Button(props: ButtonProps) {
   }
 
   const button = (
-    <aria.Button
-      {...aria.mergeProps<aria.ButtonProps>()(ariaButtonProps, focusChildProps, {
-        type,
+    <Tag
+      // @ts-expect-error eventhough typescript is complaining about the type of ariaProps, it is actually correct
+      {...aria.mergeProps()(ariaProps, focusChildProps, goodDefaults, {
+        ref,
         isDisabled,
-        className: values =>
-          tailwindMerge.twMerge(
-            classes,
-            typeof className === 'function' ? className(values) : className
-          ),
       })}
+      // @ts-expect-error eventhough typescript is complaining about the type of className, it is actually correct
+      className={states =>
+        tailwindMerge.twMerge(
+          classes,
+          // this is safe, because the type of states has correct types outside
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+          typeof className === 'function' ? className(states) : className
+        )
+      }
     >
       <aria.Text className="relative block">
         <aria.Text className={clsx('block', { invisible: loading })}>{childrenFactory()}</aria.Text>
@@ -176,7 +219,7 @@ export function Button(props: ButtonProps) {
           </aria.Text>
         )}
       </aria.Text>
-    </aria.Button>
+    </Tag>
   )
 
   return tooltipElement == null ? (
@@ -187,4 +230,4 @@ export function Button(props: ButtonProps) {
       <ariaComponents.Tooltip>{tooltipElement}</ariaComponents.Tooltip>
     </ariaComponents.TooltipTrigger>
   )
-}
+})

@@ -141,8 +141,14 @@ declare module 'create-servers' {
 
     /** Configuration options for `create-servers`. */
     interface CreateServersOptions {
-        readonly http: number
+        readonly http?: number
         readonly handler: http.RequestListener
+        // eslint-disable-next-line no-restricted-syntax
+        readonly https?: {
+            readonly port: number
+            readonly key: string
+            readonly cert: string
+        }
     }
 
     /** An error passed to a callback when a HTTP request fails. */

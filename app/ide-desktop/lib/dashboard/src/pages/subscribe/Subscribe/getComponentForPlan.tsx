@@ -69,14 +69,9 @@ const COMPONENT_PER_PLAN: Record<backendModule.Plan, ComponentForPlan> = {
       const { getText } = textProvider.useText()
 
       return (
-        <a
-          href="https://enso.org/pricing"
-          target="_blank"
-          referrerPolicy="no-referrer"
-          className="underline"
-        >
+        <ariaComponents.Button variant="link" href="https://enso.org/pricing" target="_blank">
           {getText('learnMore')}
-        </a>
+        </ariaComponents.Button>
       )
     },
     pricing: 'soloPlanPricing',
@@ -105,14 +100,9 @@ const COMPONENT_PER_PLAN: Record<backendModule.Plan, ComponentForPlan> = {
       const { getText } = textProvider.useText()
 
       return (
-        <a
-          href="https://enso.org/pricing"
-          target="_blank"
-          referrerPolicy="no-referrer"
-          className="underline"
-        >
+        <ariaComponents.Button variant="link" href="https://enso.org/pricing" target="_blank">
           {getText('learnMore')}
-        </a>
+        </ariaComponents.Button>
       )
     },
     pricing: 'teamPlanPricing',
@@ -141,14 +131,9 @@ const COMPONENT_PER_PLAN: Record<backendModule.Plan, ComponentForPlan> = {
       const { getText } = textProvider.useText()
 
       return (
-        <a
-          href="https://enso.org/pricing"
-          target="_blank"
-          referrerPolicy="no-referrer"
-          className="underline"
-        >
+        <ariaComponents.Button variant="link" href="https://enso.org/pricing" target="_blank">
           {getText('learnMore')}
-        </a>
+        </ariaComponents.Button>
       )
     },
     pricing: 'enterprisePlanPricing',
@@ -158,7 +143,14 @@ const COMPONENT_PER_PLAN: Record<backendModule.Plan, ComponentForPlan> = {
     submitButton: () => {
       const { getText } = textProvider.useText()
       return (
-        <ariaComponents.Button variant="primary" fullWidth size="medium" rounding="full">
+        <ariaComponents.Button
+          fullWidth
+          variant="primary"
+          size="medium"
+          rounding="full"
+          target="_blank"
+          href="mailto:contact@enso.org?subject=Upgrading%20to%20Organization%20Plan"
+        >
           {getText('contactSales')}
         </ariaComponents.Button>
       )

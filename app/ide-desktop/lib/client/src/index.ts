@@ -64,6 +64,18 @@ class App {
             this.setProjectToOpenOnStartup(id)
         })
 
+        electron.app.commandLine.appendSwitch('allow-insecure-localhost', 'true')
+        electron.app.commandLine.appendSwitch('ignore-certificate-errors', 'true')
+        electron.app.on(
+            'certificate-error',
+            (event, webContents, url, error, certificate, callback) => {
+                // Prevent having error
+                event.preventDefault()
+                // and continue
+                callback(true)
+            }
+        )
+
         const { windowSize, chromeOptions, fileToOpen, urlToOpen } = this.processArguments()
         this.handleItemOpening(fileToOpen, urlToOpen)
         if (this.args.options.version.value) {
@@ -437,7 +449,7 @@ class App {
                     searchParams[option.qualifiedName()] = option.value.toString()
                 }
             }
-            const address = new URL('http://localhost')
+            const address = new URL('https://localhost')
             address.port = this.serverPort().toString()
             address.search = new URLSearchParams(searchParams).toString()
             logger.log(`Loading the window address '${address.toString()}'.`)

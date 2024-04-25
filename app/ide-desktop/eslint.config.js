@@ -303,7 +303,6 @@ export default [
             ],
             'no-constant-condition': ['error', { checkLoops: false }],
             'no-restricted-syntax': ['error', ...RESTRICTED_SYNTAXES],
-            'prefer-arrow-callback': 'error',
             'prefer-const': 'error',
             // Not relevant because TypeScript checks types.
             'react/prop-types': 'off',
