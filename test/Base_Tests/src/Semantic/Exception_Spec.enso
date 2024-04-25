@@ -30,7 +30,7 @@ add_specs suite_builder = suite_builder.group "Exception" group_builder->
             _ = a + b
             Test.fail "should not reach here"
         err.is_error . should_be_true
-        err.catch . should_be_a My_Error
+        err . should_be_a My_Error
 
     group_builder.specify "should be able to explicitly re-throw as a dataflow error" <|
         handler e =
@@ -43,7 +43,7 @@ add_specs suite_builder = suite_builder.group "Exception" group_builder->
             _ = a + b
             Test.fail "should not reach here"
         err.is_error . should_be_true
-        err.catch . should_be_a My_Error
+        err . should_be_a My_Error
 
     group_builder.specify "can handle multiple exceptions" <|
         my_error_handler e =
