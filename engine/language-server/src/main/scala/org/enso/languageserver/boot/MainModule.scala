@@ -49,7 +49,8 @@ import org.enso.logger.Converter
 import org.enso.logger.masking.Masking
 import org.enso.logger.JulHandler
 import org.enso.logger.akka.AkkaConverter
-import org.enso.polyglot.{HostAccessFactory, RuntimeOptions, RuntimeServerInfo}
+import org.enso.common.HostAccessFactory
+import org.enso.polyglot.{RuntimeOptions, RuntimeServerInfo}
 import org.enso.profiling.events.NoopEventsMonitor
 import org.enso.searcher.memory.InMemorySuggestionsRepo
 import org.enso.text.{ContentBasedVersioning, Sha3_224VersionCalculator}

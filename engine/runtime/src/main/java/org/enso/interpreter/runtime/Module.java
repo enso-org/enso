@@ -23,6 +23,9 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.WeakHashMap;
 import java.util.logging.Level;
+import org.enso.common.CompilationStage;
+import org.enso.common.LanguageInfo;
+import org.enso.common.MethodNames;
 import org.enso.compiler.context.CompilerContext;
 import org.enso.compiler.context.LocalScope;
 import org.enso.compiler.context.SimpleUpdate;
@@ -44,9 +47,6 @@ import org.enso.interpreter.runtime.scope.ModuleScope;
 import org.enso.interpreter.runtime.type.Types;
 import org.enso.pkg.Package;
 import org.enso.pkg.QualifiedName;
-import org.enso.polyglot.CompilationStage;
-import org.enso.polyglot.LanguageInfo;
-import org.enso.polyglot.MethodNames;
 import org.enso.text.buffer.Rope;
 
 /** Represents a source module with a known location. */

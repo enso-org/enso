@@ -28,7 +28,7 @@ class ModuleManagementTest
       )
     val executionContext = new PolyglotContext(
       Context
-        .newBuilder(LanguageInfo.ID)
+        .newBuilder(org.enso.common.LanguageInfo.ID)
         .allowExperimentalOptions(true)
         .allowAllAccess(true)
         .option(RuntimeOptions.PROJECT_ROOT, pkg.root.getAbsolutePath)
