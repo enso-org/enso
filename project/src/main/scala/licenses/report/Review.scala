@@ -375,8 +375,7 @@ case class Review(root: File, dependencySummary: DependencySummary) {
     expectedLines: Seq[String],
     packageRoot: File
   ): WithDiagnostics[Seq[String]] = {
-    val path            = packageRoot / fileName
-    val lines           = readLines(path)
+    val lines           = readLines(packageRoot / fileName)
     val unexpectedLines = lines.filter(l => !expectedLines.contains(l))
     val warnings = unexpectedLines.map(l =>
       Diagnostic.Error(
@@ -386,7 +385,8 @@ case class Review(root: File, dependencySummary: DependencySummary) {
         s"contains all necessary elements after this change.",
         metadata = Map(
           "class"     -> "unexpected-entry-in-file",
-          "data-path" -> path.getAbsolutePath,
+          "data-package" -> packageRoot.getName,
+          "data-filename" -> fileName,
           "data-content" -> Base64.getEncoder.encodeToString(
             l.getBytes(StandardCharsets.UTF_8)
           )
