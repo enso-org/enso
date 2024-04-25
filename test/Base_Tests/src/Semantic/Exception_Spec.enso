@@ -1,0 +1,61 @@
+from Standard.Base import all
+
+import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
+from Standard.Base.Exception import Uncaught_Exception
+
+from Standard.Test import all
+
+type My_Error
+    Error a
+
+type My_Other_Error
+    Error a
+
+add_specs suite_builder = suite_builder.group "Exception" group_builder->
+    group_builder.specify "should be able to catch an exception" <|
+        handler e =
+            e . should_be_a My_Error
+        Exception.catch My_Error handler=handler <|
+            a = 10
+            b = a + a
+            Exception.throw (My_Error.Error "err")
+            _ = a + b
+            Test.fail "should not reach here"
+
+    group_builder.specify "can handle multiple exceptions" <|
+        my_error_handler e =
+            e . should_be_a My_Error
+
+        my_other_error_handler e =
+            e . should_be_a My_Other_Error
+
+        Exception.catch My_Error handler=my_error_handler <|
+            Exception.catch My_Other_Error handler=my_other_error_handler <|
+                a = 1
+                _ = [a]
+                Exception.throw (My_Error.Error "err")
+                Test.fail "should not reach here"
+
+        Exception.catch My_Error handler=my_error_handler <|
+            Exception.catch My_Other_Error handler=my_other_error_handler <|
+                a = 1
+                _ = [a]
+                Exception.throw (My_Other_Error.Error "err")
+                Test.fail "should not reach here"
+
+    group_builder.specify "an uncaught exception should result in a Uncaught_Exception panic" <|
+        Test.expect_panic_with matcher=Uncaught_Exception <|
+            Exception.throw (My_Error.Error "err")
+            Test.fail "should not reach here"
+
+    group_builder.specify "other panics pass through unharmed" <|
+        Test.expect_panic_with matcher=Illegal_Argument <|
+            Exception.catch My_Error handler=(x->x) <|
+                Panic.throw (Illegal_Argument.Error "err")
+                Test.fail "should not reach here"
+            Test.fail "should not reach here"
+
+main filter=Nothing =
+    suite = Test.build suite_builder->
+        add_specs suite_builder
+    suite.run_with_filter filter

@@ -59,6 +59,7 @@ export project.Enso_Cloud.Enso_User.Enso_User
 export project.Error.Error
 export project.Errors
 export project.Errors.Problem_Behavior.Problem_Behavior
+export project.Exception.Exception
 export project.IO
 export project.Math
 export project.Meta

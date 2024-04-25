@@ -1,0 +1,34 @@
+import project.Any.Any
+import project.Data.Text.Text
+import project.Error.Error
+import project.Panic.Panic
+from project.Data.Boolean import Boolean, False, True
+from project.Runtime import assert
+
+## PRIVATE
+type Exception
+    catch : Any -> (Any -> Any) -> Any -> Any
+    catch exception_type (handler : Any -> Any = (x->x)) ~action =
+        Panic.catch Uncaught_Exception action cp->
+            assert (cp.payload == Uncaught_Exception)
+            error = cp.payload.error
+            if error.is_a exception_type . not then Panic.throw cp.payload else
+                handler error
+
+    throw : Error -> Panic
+    throw (error : Error) -> Panic =
+        Panic.throw (Uncaught_Exception.Error error)
+
+## PRIVATE
+   An `Uncaught_Exception` is actually a wrapper around a regular `Error`. It is
+   wrapped in an `Uncaught_Exception` and thrown via `Panic.throw`. This should
+   all happen inside an `Exception.catch` block; the `catch` removes the
+   `Uncaught_Exception` wrapper and propagates the `Error` via normal `Error`
+   propagation.
+type Uncaught_Exception
+    Error error
+
+    ## PRIVATE
+       Convert the Uncaught_Exception error to a human-readable format.
+    to_display_text : Text
+    to_display_text self = "Uncaught Exception: "+self.error.to_text
