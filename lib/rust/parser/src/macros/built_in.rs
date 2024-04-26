@@ -337,6 +337,20 @@ fn type_def_body<'s>(
 
 fn to_body_statement(mut line_expression: syntax::Tree<'_>) -> syntax::Tree<'_> {
     use syntax::tree::*;
+    let mut declared_private = false;
+    if let Tree { variant: box Variant::Invalid(Invalid{ ast, ..}), ..} = &mut line_expression {
+        match &ast.variant {
+            box Variant::Private(Private { body, ..}, ..) if body.is_some() => {
+                let body_unwrapped = body.clone().unwrap();
+                let new_span = body_unwrapped.span;
+                line_expression.span = new_span;
+                line_expression.variant = body_unwrapped.variant;
+                declared_private = true;
+            }
+            _ => {}
+        }
+    }
+
     if let Tree { variant: box Variant::Documented(Documented { expression, .. }), .. } =
         &mut line_expression
     {
@@ -399,7 +413,13 @@ fn to_body_statement(mut line_expression: syntax::Tree<'_>) -> syntax::Tree<'_> 
             *default = Some(ArgumentDefault { equals, expression });
         }
         let block = default();
-        return Tree::constructor_definition(constructor, arguments, block);
+        let cons_def = Tree::constructor_definition(constructor, arguments, block);
+        if declared_private {
+            let priv_token = syntax::token::private(constructor.left_offset, Code::from_str_without_location("private"));
+            return Tree::private(priv_token, Some(cons_def));
+        } else {
+            return cons_def;
+        }
     }
     crate::expression_to_statement(line_expression)
 }
@@ -727,14 +747,8 @@ fn private_keyword<'s>(
     let body_opt = precedence.resolve(segment.result.tokens());
     match body_opt {
         Some(body) => {
-            let body_ = body.clone();
-            let new_body = to_body_statement(body_);
-            match new_body.variant {
-                box syntax::tree::Variant::ConstructorDefinition(_) =>
-                    syntax::Tree::private(keyword, Some(new_body)),
-                _ => syntax::Tree::private(keyword, Some(body))
-                    .with_error("Unsupported private body."),
-            }
+            syntax::Tree::private(keyword, Some(body))
+                .with_error("The 'private' keyword cannot be applied to any expression outside of a type definition")
         }
         None => {
             // Just a private keyword without a body. This is valid as the first statement in the
