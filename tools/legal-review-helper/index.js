@@ -176,6 +176,30 @@ app.post('/override-custom-license/:report', function (req, res) {
     }
 })
 
+app.post('/revert-to-default-license/:report', function (req, res) {
+    const report = req.params['report']
+    const package = req.body['package']
+    // TODO
+})
+
+app.post('/use-both-custom-and-default-license/:report', function (req, res) {
+    const report = req.params['report']
+    const package = req.body['package']
+    // TODO
+})
+
+app.get("/get-known-license-texts", function (req, res) {
+    const knownLicenses = fs.readdirSync(path.join(settingsRoot, 'license-texts'))
+    res.send(JSON.stringify(knownLicenses))
+})
+
+app.post("/mark-license-as-reviewed/:report", function (req, res) {
+    const report = req.params['report']
+    const licenseName = req.body['licenseName']
+    const licenseTextPath = req.body['licenseTextPath']
+    // TODO
+})
+
 /*
  * Listens on a random free port, opens a browser with the home page and waits
  * for a newline to terminate.
