@@ -11,7 +11,7 @@ import src.main.scala.licenses.{
   PortablePath
 }
 
-import scala.sys.process.*
+import scala.sys.process._
 import scala.util.control.NonFatal
 
 /** Tries to find copyright mentions in the GitHub project homepage and any

@@ -2,8 +2,8 @@ package src.main.scala.licenses.report
 
 import java.nio.file.{InvalidPathException, Path}
 import java.time.LocalDate
-import sbt.*
-import src.main.scala.licenses.*
+import sbt._
+import src.main.scala.licenses._
 
 import java.nio.charset.StandardCharsets
 import java.util.Base64
