@@ -27,24 +27,38 @@ from project.Data.Boolean import Boolean, False, True
      because it is used by some logic as an early exit condition.
 type Writable_File
     ## PRIVATE
-    Value file (write_strategy : File_Write_Strategy)
+       Arguments:
+       - file: the underlying file that can be written to.
+       - write_strategy: the strategy defining how to write to the file.
+       - file_for_return: the file instance that will be returned by write
+         operations. This is usually the same as `file`, but when writing
+         through a proxy (e.g. data link), the `file` will resolve to a target
+         file, but we want the operations to still return the original proxy
+         object, hence a distinction is needed.
+    Value file (write_strategy : File_Write_Strategy) file_for_return=file
 
     ## PRIVATE
     exists self -> Boolean = self.file.exists
 
     ## PRIVATE
-    copy_to self destination replace_existing = self.file.copy_to destination replace_existing
+    name self -> Text = self.file.name
+
+    ## PRIVATE
+    copy_to self destination replace_existing = self.file.copy_to destination replace_existing |> self.replace_resulting_file
 
     ## PRIVATE
     write self (existing_file_behavior : Existing_File_Behavior) (action : Output_Stream -> Any) -> Any =
-        self.write_strategy.write self.file existing_file_behavior action
+        self.write_strategy.write self.file existing_file_behavior action |> self.replace_resulting_file
 
     ## PRIVATE
     write_handling_dry_run self (existing_file_behavior : Existing_File_Behavior) (action : Any -> Output_Stream -> Any) -> Any =
-        self.write_strategy.write_handling_dry_run self.file existing_file_behavior action
+        self.write_strategy.write_handling_dry_run self.file existing_file_behavior action |> self.replace_resulting_file
 
     ## PRIVATE
-    is_local self -> Boolean = self.file.is_a File
+    is_local self -> Boolean =
+        ## Note: if we ever get data links (or other proxies) pointing to local files; such a proxy with a local file
+          target should probably not be considered local, because that may come with too many assumptions.
+        self.file.is_a File
 
     ## PRIVATE
        This helper method may be used if the logic for writing the file requires a local filesystem file
@@ -52,18 +66,29 @@ type Writable_File
        It downloads a remote file to a local temporary location, runs the action
        and then uploads the resulting file back to the remote backend.
     write_requiring_local_file self (existing_file_behavior : Existing_File_Behavior) (action : File -> Any) -> Any =
-        self.write_strategy.write_with_local_file self.file existing_file_behavior action
+        self.write_strategy.write_with_local_file self.file existing_file_behavior action |> self.replace_resulting_file
 
     ## PRIVATE
        Writes a local file to this `Writable_File` destination.
        This is used by `File.copy_to` and `File.move_to` to possibly implement
        the upload more efficiently (avoiding duplicated temporary files).
     copy_from_local self (source : File) (replace_existing : Boolean) =
-        self.write_strategy.copy_from_local source self.file replace_existing
+        self.write_strategy.copy_from_local source self.file replace_existing |> self.replace_resulting_file
 
     ## PRIVATE
     with_output_stream self (open_options : Vector) action =
         self.file.with_output_stream open_options action
+
+    ## PRIVATE
+       Checks the returned file, and if `self.file` is to be returned it is
+       replaced with `self.file_for_return`.
+
+       This ensures correct behaviour in case of proxies (e.g. data links). If
+       the original file is supposed to be returned, it is replaced with the
+       proxy. If another file is returned (e.g. due to dry-run), then it is
+       returned without changes.
+    replace_resulting_file self file_to_be_returned =
+        if file_to_be_returned == self.file then self.file_for_return else file_to_be_returned
 
     ## PRIVATE
     to_text self -> Text =
@@ -74,6 +99,10 @@ type Writable_File
 
     ## PRIVATE
     to_display_text self -> Text = self.file.to_display_text
+
+    ## PRIVATE
+    with_overridden_return self file_for_return =
+        Writable_File.Value self.file self.write_strategy file_for_return
 
 ## PRIVATE
 Writable_File.from (that : Text) = Writable_File.from (File.new that)
@@ -86,3 +115,6 @@ File_Format_Metadata.from (that : Writable_File) = File_Format_Metadata.from tha
 ## PRIVATE
    If a conversion to `File_Like` is needed, we delegate to the underlying file.
 File_Like.from (that : Writable_File) = File_Like.from that.file
+
+## PRIVATE
+Writable_File.from (that : File_Like) = Writable_File.from that.underlying

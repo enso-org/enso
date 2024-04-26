@@ -128,6 +128,9 @@ export function graphNodeByBinding(page: Locator | Page, binding: string): Node 
 export function graphNodeIcon(node: Node) {
   return node.locator('.nodeCategoryIcon')
 }
+export function selectedNodes(page: Page | Locator): Node {
+  return page.locator('.GraphNode.selected') as Node
+}
 
 // === Data locators ===
 
@@ -145,6 +148,7 @@ function componentLocator<T extends string>(className: SanitizeClassName<T>) {
 export const graphEditor = componentLocator('GraphEditor')
 // @ts-expect-error
 export const anyVisualization = componentLocator('GraphVisualization > *')
+export const loadingVisualization = componentLocator('LoadingVisualization')
 export const circularMenu = componentLocator('CircularMenu')
 export const addNewNodeButton = componentLocator('PlusButton')
 export const componentBrowser = componentLocator('ComponentBrowser')

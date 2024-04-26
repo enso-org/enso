@@ -8,6 +8,7 @@ import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.interop.ArityException;
 import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.UnknownIdentifierException;
+import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import com.oracle.truffle.api.interop.UnsupportedTypeException;
 import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
@@ -22,6 +23,9 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.WeakHashMap;
 import java.util.logging.Level;
+import org.enso.common.CompilationStage;
+import org.enso.common.LanguageInfo;
+import org.enso.common.MethodNames;
 import org.enso.compiler.context.CompilerContext;
 import org.enso.compiler.context.LocalScope;
 import org.enso.compiler.context.SimpleUpdate;
@@ -43,9 +47,6 @@ import org.enso.interpreter.runtime.scope.ModuleScope;
 import org.enso.interpreter.runtime.type.Types;
 import org.enso.pkg.Package;
 import org.enso.pkg.QualifiedName;
-import org.enso.polyglot.CompilationStage;
-import org.enso.polyglot.LanguageInfo;
-import org.enso.polyglot.MethodNames;
 import org.enso.text.buffer.Rope;
 
 /** Represents a source module with a known location. */
@@ -567,8 +568,12 @@ public final class Module implements EnsoObject {
     }
 
     private static Type getType(ModuleScope scope, Object[] args)
-        throws ArityException, UnsupportedTypeException {
-      String name = Types.extractArguments(args, String.class);
+        throws ArityException, UnsupportedTypeException, UnsupportedMessageException {
+      var iop = InteropLibrary.getUncached();
+      if (!iop.isString(args[0])) {
+        throw UnsupportedTypeException.create(args, "First argument must be a string");
+      }
+      String name = iop.asString(args[0]);
       return scope.getTypes().get(name);
     }
 
@@ -586,15 +591,23 @@ public final class Module implements EnsoObject {
     }
 
     private static Module setSource(Module module, Object[] args, EnsoContext context)
-        throws ArityException, UnsupportedTypeException {
-      String source = Types.extractArguments(args, String.class);
+        throws ArityException, UnsupportedTypeException, UnsupportedMessageException {
+      var iop = InteropLibrary.getUncached();
+      if (!iop.isString(args[0])) {
+        throw UnsupportedTypeException.create(args, "First argument must be a string");
+      }
+      String source = iop.asString(args[0]);
       module.setLiteralSource(source);
       return module;
     }
 
     private static Module setSourceFile(Module module, Object[] args, EnsoContext context)
-        throws ArityException, UnsupportedTypeException {
-      String file = Types.extractArguments(args, String.class);
+        throws ArityException, UnsupportedTypeException, UnsupportedMessageException {
+      var iop = InteropLibrary.getUncached();
+      if (!iop.isString(args[0])) {
+        throw UnsupportedTypeException.create(args, "First argument must be a string");
+      }
+      String file = iop.asString(args[0]);
       module.setSourceFile(context.getTruffleFile(new File(file)));
       return module;
     }
@@ -606,8 +619,15 @@ public final class Module implements EnsoObject {
 
     private static Object evalExpression(
         ModuleScope scope, Object[] args, EnsoContext context, CallOptimiserNode callOptimiserNode)
-        throws ArityException, UnsupportedTypeException {
-      String expr = Types.extractArguments(args, String.class);
+        throws ArityException, UnsupportedTypeException, UnsupportedMessageException {
+      if (args.length != 1) {
+        throw ArityException.create(1, 1, args.length);
+      }
+      var iop = InteropLibrary.getUncached();
+      if (!iop.isString(args[0])) {
+        throw UnsupportedTypeException.create(args, "First argument must be a string");
+      }
+      String expr = iop.asString(args[0]);
       Builtins builtins = context.getBuiltins();
       BuiltinFunction eval =
           builtins
@@ -641,7 +661,10 @@ public final class Module implements EnsoObject {
         String member,
         Object[] arguments,
         @Cached LoopingCallOptimiserNode callOptimiserNode)
-        throws UnknownIdentifierException, ArityException, UnsupportedTypeException {
+        throws UnknownIdentifierException,
+            ArityException,
+            UnsupportedTypeException,
+            UnsupportedMessageException {
       EnsoContext context = EnsoContext.get(null);
       ModuleScope scope;
       switch (member) {

@@ -3,7 +3,8 @@ private
 import project.Data.Text.Case_Sensitivity.Case_Sensitivity
 import project.Data.Text.Text
 import project.Data.Vector.Vector
-import project.Enso_Cloud.Data_Link
+import project.Enso_Cloud.Data_Link.Data_Link
+import project.Enso_Cloud.Data_Link_Helpers
 import project.Errors.Deprecated.Deprecated
 import project.Errors.Problem_Behavior.Problem_Behavior
 import project.Metadata.Display
@@ -37,7 +38,7 @@ decode_http_response_following_data_links response format =
     if format == Raw_Response then response.with_materialized_body else
         case Data_Link.is_data_link response.body.metadata of
             True ->
-                data_link = Data_Link.interpret_json_as_data_link response.decode_as_json
+                data_link = Data_Link_Helpers.interpret_json_as_data_link response.decode_as_json
                 data_link.read format Problem_Behavior.Report_Error
             False ->
                 response.decode format=format if_unsupported=response.with_materialized_body
