@@ -8,16 +8,16 @@ from project.Runtime import assert
 
 ## PRIVATE
 type Exception
-    qcatch : Any -> (Any -> Any) -> Any -> Any
-    qcatch exception_type ~action (handler : Any -> Any = Exception.default_handler) =
+    catch_exception : Any -> (Any -> Any) -> Any -> Any
+    catch_exception exception_type ~action (handler : Any -> Any = Exception.default_handler) =
         Panic.catch Uncaught_Exception action cp->
             assert (cp.payload . is_a Uncaught_Exception)
             error = cp.payload.error
             if error.is_a exception_type . not then Panic.throw cp.payload else
                 handler error
 
-    qthrow : Any -> Panic
-    qthrow error -> Panic =
+    throw_exception : Any -> Panic
+    throw_exception error -> Panic =
         ## TODO: Should preserve the stack trace here and re-attach it in the
            default catch callback, which propagates it as a dataflow error.
         Panic.throw (Uncaught_Exception.Error error)

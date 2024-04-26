@@ -283,7 +283,7 @@ type Vector a
             builders = Range.new 0 count . map (_-> Build_Style_Builder.new initial_capacity)
             handler builder_dataflow_error =
                 Error.throw builder_dataflow_error.dataflow_error
-            Exception.qcatch Builder_Dataflow_Error handler=handler <|
+            Exception.catch_exception Builder_Dataflow_Error handler=handler <|
                 ## TODO: This extra `case` is necessary to propagate warnings attached to
                    values that are added to the builder. Will be fixed in
                    https://github.com/enso-org/enso/issues/9733.
@@ -1626,7 +1626,7 @@ type Build_Style_Builder
     append : Any ! Error -> Nothing ! Error
     append self (item : Any ! Error) -> Nothing ! Error =
         case item.is_error of
-            True -> Exception.qthrow (Builder_Dataflow_Error.Error (item.catch))
+            True -> Exception.throw_exception (Builder_Dataflow_Error.Error (item.catch))
             False ->
                 self.unsafe_append item
                 self.add_warnings item
@@ -1672,7 +1672,7 @@ type Build_Style_Builder
             Nothing
         if first_dataflow_error.is_error.not then if_no_errors else
             assert first_dataflow_error.is_error
-            Exception.qthrow (Builder_Dataflow_Error.Error (first_dataflow_error.catch))
+            Exception.throw_exception (Builder_Dataflow_Error.Error (first_dataflow_error.catch))
 
     ## PRIVATE
        Save attached warnings in `warnings`.

@@ -15,18 +15,18 @@ add_specs suite_builder = suite_builder.group "Exception" group_builder->
     group_builder.specify "should be able to catch an exception" <|
         handler e =
             e . should_be_a My_Error
-        Exception.qcatch My_Error handler=handler <|
+        Exception.catch_exception My_Error handler=handler <|
             a = 10
             b = a + a
-            Exception.qthrow (My_Error.Error "err")
+            Exception.throw_exception (My_Error.Error "err")
             _ = a + b
             Test.fail "should not reach here"
 
     group_builder.specify "should be able to catch an exception with the default handler" <|
-        err = Exception.qcatch My_Error <|
+        err = Exception.catch_exception My_Error <|
             a = 10
             b = a + a
-            Exception.qthrow (My_Error.Error "err")
+            Exception.throw_exception (My_Error.Error "err")
             _ = a + b
             Test.fail "should not reach here"
         err.is_error . should_be_true
@@ -36,10 +36,10 @@ add_specs suite_builder = suite_builder.group "Exception" group_builder->
         handler e =
             _ = [e]  # Do something with the error first
             Error.throw e
-        err = Exception.qcatch My_Error handler=handler <|
+        err = Exception.catch_exception My_Error handler=handler <|
             a = 10
             b = a + a
-            Exception.qthrow (My_Error.Error "err")
+            Exception.throw_exception (My_Error.Error "err")
             _ = a + b
             Test.fail "should not reach here"
         err.is_error . should_be_true
@@ -52,28 +52,28 @@ add_specs suite_builder = suite_builder.group "Exception" group_builder->
         my_other_error_handler e =
             e . should_be_a My_Other_Error
 
-        Exception.qcatch My_Error handler=my_error_handler <|
-            Exception.qcatch My_Other_Error handler=my_other_error_handler <|
+        Exception.catch_exception My_Error handler=my_error_handler <|
+            Exception.catch_exception My_Other_Error handler=my_other_error_handler <|
                 a = 1
                 _ = [a]
-                Exception.qthrow (My_Error.Error "err")
+                Exception.throw_exception (My_Error.Error "err")
                 Test.fail "should not reach here"
 
-        Exception.qcatch My_Error handler=my_error_handler <|
-            Exception.qcatch My_Other_Error handler=my_other_error_handler <|
+        Exception.catch_exception My_Error handler=my_error_handler <|
+            Exception.catch_exception My_Other_Error handler=my_other_error_handler <|
                 a = 1
                 _ = [a]
-                Exception.qthrow (My_Other_Error.Error "err")
+                Exception.throw_exception (My_Other_Error.Error "err")
                 Test.fail "should not reach here"
 
     group_builder.specify "an uncaught exception should result in a Uncaught_Exception panic" <|
         Test.expect_panic_with matcher=Uncaught_Exception <|
-            Exception.qthrow (My_Error.Error "err")
+            Exception.throw_exception (My_Error.Error "err")
             Test.fail "should not reach here"
 
     group_builder.specify "other panics pass through unharmed" <|
         Test.expect_panic_with matcher=Illegal_Argument <|
-            Exception.qcatch My_Error handler=(x->x) <|
+            Exception.catch_exception My_Error handler=(x->x) <|
                 Panic.throw (Illegal_Argument.Error "err")
                 Test.fail "should not reach here"
             Test.fail "should not reach here"
