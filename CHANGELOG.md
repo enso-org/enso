@@ -657,6 +657,7 @@
 - [Added `Table.running` method][9577]
 - [Added `Excel_Workbook.read_many` allowing reading more than one sheet at a
   time.][9759]
+- [Added ability to write to Data Links.][9750]
 
 [debug-shortcuts]:
   https://github.com/enso-org/enso/blob/develop/app/gui/docs/product/shortcuts.md#debug
@@ -963,6 +964,7 @@
 [9725]: https://github.com/enso-org/enso/pull/9725
 [9759]: https://github.com/enso-org/enso/pull/9759
 [9577]: https://github.com/enso-org/enso/pull/9577
+[9750]: https://github.com/enso-org/enso/pull/9750
 
 #### Enso Compiler
 

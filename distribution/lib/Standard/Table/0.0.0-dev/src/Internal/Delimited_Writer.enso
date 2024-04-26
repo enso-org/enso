@@ -58,7 +58,7 @@ append_to_file table format (file : Writable_File) match_columns on_problems =
            the full file here - we only need to read the first few first and last bytes (to infer the headers and newline at EOF).
            Future implementation could take that into account and use the more efficient approach.
         file.write_requiring_local_file Existing_File_Behavior.Append local_temp_file->
-            append_to_local_file table format local_temp_file match_columns on_problems . if_not_error file.file
+            append_to_local_file table format local_temp_file match_columns on_problems . if_not_error file.file_for_return
 
 ## PRIVATE
 append_to_local_file table format (file : File) match_columns on_problems =

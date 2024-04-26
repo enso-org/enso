@@ -1,3 +1,4 @@
+import project.Any.Any
 import project.Error.Error
 import project.Errors.File_Error.File_Error
 import project.Panic.Panic
@@ -7,6 +8,7 @@ import project.System.File.Existing_File_Behavior.Existing_File_Behavior
 import project.System.File.File
 import project.System.File.File_Access.File_Access
 import project.System.File.Generic.Writable_File.Writable_File
+import project.System.Output_Stream.Output_Stream
 from project.Data.Boolean import Boolean, False, True
 
 ## PRIVATE
@@ -44,7 +46,13 @@ type File_Write_Strategy
        It will most likely fail at `with_output_stream` if the output context is
        not enabled. It may be used if the caller has custom handling for dry run
        and calls this method within `Context.Output.with_enabled`.
-    write self file (existing_file_behavior : Existing_File_Behavior) action =
+
+       ? Return Value
+
+         By convention, the `write` operations return the file that has been
+         written to. The `Writable_File` wrappers may replace the return value
+         with a proxy file, when writing e.g. to a data link.
+    write self file (existing_file_behavior : Existing_File_Behavior) (action : Output_Stream -> Any) =
         case existing_file_behavior of
             Existing_File_Behavior.Overwrite -> self.write_overwriting file action
             Existing_File_Behavior.Backup -> self.write_backing_up file action
@@ -57,7 +65,13 @@ type File_Write_Strategy
 
        The `action` is called with the effective file (original destination file
        or its dry run counterpart) and an output stream to that file.
-    write_handling_dry_run self file (existing_file_behavior : Existing_File_Behavior) action =
+
+       ? Return Value
+
+         By convention, the `write` operations return the file that has been
+         written to. The `Writable_File` wrappers may replace the return value
+         with a proxy file, when writing e.g. to a data link.
+    write_handling_dry_run self file (existing_file_behavior : Existing_File_Behavior) (action : Any -> Output_Stream -> Any) =
         if Context.Output.is_enabled then self.write file existing_file_behavior (action file) else
             effective_behavior = dry_run_behavior file existing_file_behavior
             effective_file = self.create_dry_run_file file effective_behavior.copy_original
@@ -80,7 +94,7 @@ default_raise_error file action =
 ## PRIVATE
 generic_remote_write_with_local_file (file : Writable_File) existing_file_behavior action =
     Context.Output.if_enabled disabled_message="Writing to remote file backends is not allowed in dry-run mode." panic=False <|
-        temp_file = File.create_temporary_file prefix="remote-write-"
+        temp_file = File.create_temporary_file prefix="remote-write-" suffix=file.name
         Panic.with_finalizer temp_file.delete <|
             tmp_synchronized = case file.exists of
                 ## Copy the file to a local temporary file.
@@ -137,9 +151,9 @@ dry_run_behavior file behavior:Existing_File_Behavior -> Dry_Run_File_Settings =
 ## PRIVATE
    Generic `copy` implementation between two backends.
    The files only need to support `with_input_stream` and `with_output_stream`.
-generic_copy source destination replace_existing =
+generic_copy source (destination : Writable_File) replace_existing =
     source.with_input_stream [File_Access.Read, Data_Link_Access.No_Follow] input_stream->
         replace_options = if replace_existing then [File_Access.Create, File_Access.Truncate_Existing] else [File_Access.Create_New]
         options = [File_Access.Write, Data_Link_Access.No_Follow] + replace_options
         destination.with_output_stream options output_stream->
-            output_stream.write_stream input_stream . if_not_error destination
+            output_stream.write_stream input_stream . if_not_error destination.file_for_return

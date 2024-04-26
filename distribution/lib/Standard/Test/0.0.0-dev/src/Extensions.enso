@@ -53,7 +53,7 @@ Error.should_fail_with self matcher frames_to_skip=0 unwrap_errors=True =
     if caught == matcher || caught.is_a matcher then Nothing else
         loc = Meta.get_source_location 2+frames_to_skip
         matcher_text = matcher . to_text
-        Test.fail ("Expected error "+matcher_text+", but error " + caught.to_text + " has been returned (at " + loc + ").")
+        Test.fail ("Expected error "+matcher_text+", but error " + caught.to_text + " has been returned (at " + loc + ").") details='The error had the following stack trace:\n'+self.get_stack_trace_text
 
 ## Asserts that `self` value is equal to the expected value.
 

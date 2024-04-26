@@ -1,5 +1,5 @@
 from Standard.Base import all
-import Standard.Base.Enso_Cloud.Data_Link.Data_Link_Format
+import Standard.Base.Enso_Cloud.Data_Link.Data_Link
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Errors.Illegal_State.Illegal_State
 import Standard.Base.Runtime.Ref.Ref
@@ -868,7 +868,7 @@ add_data_link_specs suite_builder =
 
     # This transforms the datalink file, replacing prepared constants with actual values.
     transform_file base_file =
-        content = Data_Link_Format.read_raw_config base_file
+        content = Data_Link.read_raw_config base_file
         new_content = content
             . replace "HOSTNAME" connection_details.host
             . replace "12345" connection_details.port.to_text
@@ -876,7 +876,7 @@ add_data_link_specs suite_builder =
             . replace "USERNAME" connection_details.credentials.username
             . replace "PASSWORD" connection_details.credentials.password
         temp_file = File.create_temporary_file base_file.name base_file.extension
-        Data_Link_Format.write_raw_config temp_file new_content replace_existing=True . if_not_error temp_file
+        Data_Link.write_raw_config temp_file new_content replace_existing=True . if_not_error temp_file
 
     suite_builder.group "[PostgreSQL] DataLink" pending=pending group_builder->
         group_builder.specify "should be able to open a datalink setting up a connection to the database" <|
@@ -916,12 +916,19 @@ add_data_link_specs suite_builder =
 
             r2 = data_link_file.with_input_stream [File_Access.Read] .read_all_bytes
             r2.should_fail_with Illegal_Argument
+            r2.catch.to_display_text . should_contain "The Postgres Data Link cannot be opened as a stream"
 
             # But we can read the raw data link if we ask for it:
             r3 = data_link_file.with_input_stream [File_Access.Read, Data_Link_Access.No_Follow] .read_all_bytes
             r3.should_be_a Vector
 
-        group_builder.specify "will fail with a clear message if trying to download a Database datalink" pending=Http_Test_Setup.pending_has_url <|
+        group_builder.specify "does not allow to write 'byte' data to a database data link" <|
+            data_link_file = transform_file (enso_project.data / "datalinks" / "postgres-db.datalink")
+            r = "foobar".write data_link_file
+            r.should_fail_with Illegal_Argument
+            r.catch.to_display_text . should_contain "The Postgres Data Link does not support writing"
+
+        group_builder.specify "will fail with a clear message if trying to download a Database data link" pending=Http_Test_Setup.pending_has_url <|
             url = Http_Test_Setup.base_url_with_slash+"testfiles/some-postgres.datalink"
             target_file = enso_project.data / "transient" / "some-postgres-target"
             target_file.delete_if_exists
