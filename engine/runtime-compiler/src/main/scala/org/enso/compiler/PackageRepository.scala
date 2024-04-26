@@ -1,16 +1,15 @@
 package org.enso.compiler
 
-import com.oracle.truffle.api.TruffleFile
 import org.enso.editions.LibraryName
 import org.enso.compiler.context.CompilerContext
 import org.enso.compiler.core.ir.{Module => IRModule}
 import org.enso.pkg.{ComponentGroups, Package, QualifiedName}
 
 import scala.collection.immutable.ListSet
-import scala.jdk.OptionConverters.RichOption
 
 /** Manages loaded packages and modules. */
 trait PackageRepository {
+  type TFile
 
   /** Initialize the package repository.
     *
@@ -34,10 +33,7 @@ trait PackageRepository {
   def isPackageLoaded(libraryName: LibraryName): Boolean
 
   /** Get a sequence of currently loaded packages. */
-  def getLoadedPackages: Seq[Package[TruffleFile]]
-
-  /** Get a sequence of currently loaded packages. */
-  def getLoadedPackagesJava: java.lang.Iterable[Package[TruffleFile]]
+  def getLoadedPackages: Seq[Package[TFile]]
 
   /** Get a sequence of currently loaded modules. */
   def getLoadedModules: Seq[CompilerContext.Module]
@@ -65,12 +61,12 @@ trait PackageRepository {
   /** Register the main project package. */
   def registerMainProjectPackage(
     libraryName: LibraryName,
-    pkg: Package[TruffleFile]
+    pkg: Package[TFile]
   ): Unit
 
   /** @return the main project package, if it exists
     */
-  def getMainProjectPackage: Option[Package[TruffleFile]]
+  def getMainProjectPackage: Option[Package[TFile]]
 
   /** Register a single module, outside of any packages or part of an already
     * loaded package, that has been created manually during runtime.
@@ -95,13 +91,7 @@ trait PackageRepository {
   def isNamespaceRegistered(namespace: String): Boolean
 
   /** Returns a package directory corresponding to the requested library */
-  def getPackageForLibrary(lib: LibraryName): Option[Package[TruffleFile]]
-
-  /** Returns a package directory corresponding to the requested library */
-  def getPackageForLibraryJava(
-    libraryName: LibraryName
-  ): java.util.Optional[Package[TruffleFile]] =
-    getPackageForLibrary(libraryName).toJava
+  def getPackageForLibrary(lib: LibraryName): Option[Package[TFile]]
 
   /** Returns all loaded modules of the requested library */
   def getModulesForLibrary(
