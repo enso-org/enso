@@ -283,6 +283,9 @@ type Vector a
             builders = Range.new 0 count . map (_-> Build_Style_Builder.new initial_capacity)
             handler builder_dataflow_error =
                 Error.throw builder_dataflow_error.dataflow_error
+            ## The `catch_exception` handles dataflow errors that are *added* to
+               the builder in the builder callback, while the `if_not_error`
+               handles dataflow errors *propagated from* the builder callback.
             Exception.catch_exception Builder_Dataflow_Error handler=handler <|
                 function builders . if_not_error (builders.map .to_vector)
 
