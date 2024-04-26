@@ -1062,7 +1062,6 @@ add_specs suite_builder =
                 Error.throw (Illegal_Argument.Error "asdf")
             v . should_fail_with (Illegal_Argument.Error "asdf")
 
-<<<<<<< HEAD
         group_builder.specify "Builder should propagate the error when a dataflow error is added with `.append`, if `panic_on_dataflow_error` is False" <|
             builder = Vector.new_builder
             err = Error.throw (Illegal_Argument.Error "error")
@@ -1140,9 +1139,6 @@ add_specs suite_builder =
             Vector.build_multiple -2 (_->Nothing) . should_fail_with Illegal_Argument
 
         group_builder.specify "example (single)" <|
-=======
-        group_builder.specify "example" <|
->>>>>>> develop
             vec = Vector.build initial_capacity=5 builder->
                 do_build start stop =
                     builder.append start
@@ -1151,7 +1147,6 @@ add_specs suite_builder =
                 do_build 1 5
             vec . should_equal [1, 2, 3, 4, 5]
 
-<<<<<<< HEAD
         group_builder.specify "example (multiple)" <|
              vec = Vector.build_multiple 2 builders->
                  builder0 = builders.at 0
@@ -1164,8 +1159,6 @@ add_specs suite_builder =
                  builder1.append 5
              vec . should_equal [[0, 1, 2], [3, 4, 5]]
 
-=======
->>>>>>> develop
     suite_builder.group "Vector/Array equality" group_builder->
         v1 = [1, 2, 3]
         a1 = v1.to_array
