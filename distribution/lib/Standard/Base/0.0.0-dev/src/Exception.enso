@@ -8,7 +8,8 @@ from project.Runtime import assert
 
 ## PRIVATE
    `Exception` is not a type of error; rather, it is a way to throw an `Error`
-   in imperative-style code and ensure that it is handled.
+   in imperative-style code and ensure that it is always handled or propagated
+   to the top level.
 
    `throw_exception` works by wrapping the error in an `Uncaught_Exception` and
    raising it with `Panic.throw`. This should occur inside a `catch_exception`
