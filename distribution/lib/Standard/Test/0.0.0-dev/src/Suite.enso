@@ -83,24 +83,25 @@ type Suite
         junit_sb_builder = if config.should_output_junit then StringBuilder.new else Nothing
         Test_Reporter.wrap_junit_testsuites config junit_sb_builder <|
             matching_specs.each_with_key group-> specs->
-                if group.is_pending.not then
-                    results = Helpers.run_specs_from_group specs group
-                    Test_Reporter.print_report results config junit_sb_builder
-                    all_results_bldr.append_vector_range results
+                case group.is_pending of
+                    False ->
+                        results = Helpers.run_specs_from_group specs group
+                        Test_Reporter.print_report results config junit_sb_builder
+                        all_results_bldr.append_vector_range results
+                    True ->
+                        Test_Reporter.print_pending_group group config junit_sb_builder
+
         all_results = all_results_bldr.to_vector
         succ_tests = all_results.filter (r-> r.is_success) . length
         failed_tests = all_results.filter (r-> r.is_fail) . length
         skipped_tests = all_results.filter (r-> r.is_pending) . length
+        pending_groups = matching_specs.keys.filter (group-> group.is_pending) . length
         case should_exit of
             True ->
                 IO.println <| succ_tests.to_text + " tests succeeded."
                 IO.println <| failed_tests.to_text + " tests failed."
                 IO.println <| skipped_tests.to_text + " tests skipped."
-                pending_groups = matching_specs.keys.filter (group-> group.is_pending)
-                pending_groups_details = case pending_groups.is_empty of
-                    True -> "."
-                    False -> ": " + (pending_groups.map (it-> it.name) . to_text)
-                IO.println <| pending_groups.length.to_text + " groups skipped" + pending_groups_details
+                IO.println <| pending_groups.to_text + " groups skipped."
                 exit_code = if failed_tests > 0 then 1 else 0
                 System.exit exit_code
             False ->

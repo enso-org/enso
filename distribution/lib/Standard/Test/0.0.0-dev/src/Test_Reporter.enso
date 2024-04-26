@@ -4,6 +4,7 @@ from Standard.Base import all
 import Standard.Base.Runtime.Context
 from Standard.Base.Runtime import assert
 
+import project.Group.Group
 import project.Internal.Stack_Trace_Helpers
 import project.Spec_Result.Spec_Result
 import project.Suite_Config.Suite_Config
@@ -41,6 +42,9 @@ green text =
 highlighted text =
     '\u001b[1;1m' + text + '\u001b[0m'
 
+grey text =
+    '\u001b[90m' + text + '\u001b[0m'
+
 maybe_red_text (text : Text) (config : Suite_Config) =
     if config.use_ansi_colors then (red text) else text
 
@@ -49,6 +53,9 @@ maybe_green_text (text : Text) (config : Suite_Config) =
 
 maybe_highlighted_text (text : Text) (config : Suite_Config) =
     if config.use_ansi_colors then (highlighted text) else text
+
+maybe_grey_text (text : Text) (config : Suite_Config) =
+    if config.use_ansi_colors then (grey text) else text
 
 ## Print result for a single Spec run
 print_single_result : Test_Result -> Suite_Config -> Nothing
@@ -74,7 +81,7 @@ print_single_result (test_result : Test_Result) (config : Suite_Config) =
                 IO.println (decorate_stack_trace details)
         Spec_Result.Pending reason ->
             if config.print_only_failures.not then
-                IO.println ("    - [PENDING] " + test_result.spec_name)
+                IO.println (maybe_grey_text ("    - [PENDING] " + test_result.spec_name) config)
                 IO.println ("        Reason: " + reason)
 
 
@@ -96,6 +103,20 @@ print_report (test_results : Vector Test_Result) (config : Suite_Config) (builde
     results_per_group.each_with_key group_name-> group_results->
         print_group_report group_name group_results config builder
 
+## Prints a pending group, optionally writing it to a jUnit XML output.
+print_pending_group : Group -> Vector -> Suite_Config -> (StringBuilder | Nothing) -> Nothing
+print_pending_group group config builder =
+    assert group.pending.is_nothing.not "Group in print_pending_group should be pending"
+    if config.should_output_junit then
+        assert builder.is_nothing.not "Builder must be specified when JUnit output is enabled"
+        builder.append ('    <testsuite name="' + (escape_xml group.name) + '" timestamp="' + (Date_Time.now.format "yyyy-MM-dd'T'HH:mm:ss") + '"')
+        builder.append (' tests="0" disabled="1" errors="0" time="0.0">\n')
+        builder.append ('        <testcase name="PENDING" time="0.0">\n')
+        builder.append ('            <skipped message="Reason: '+(escape_xml group.pending)+'"/>\n')
+        builder.append ('        </testcase>\n')
+        builder.append '    </testsuite>\n'
+    IO.println <| maybe_grey_text ("[PENDING] " + group.name) config
+    IO.println ("    Reason: " + group.pending)
 
 ## Prints report for test_results from a single group.
 
