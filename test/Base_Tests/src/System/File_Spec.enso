@@ -964,7 +964,7 @@ add_create_and_delete_directory_specs group_builder ~parent_dir =
 add_copy_edge_cases_specs group_builder ~parent_dir =
     group_builder.specify "should allow copy/move edge case with source=target" <|
         file = parent_dir / "src-target-in-one.txt"
-        file.exists.should_be_false
+        file.delete_if_exists
 
         # Source is not found
         r_copy_not_found = file.copy_to file
@@ -977,25 +977,17 @@ add_copy_edge_cases_specs group_builder ~parent_dir =
 
         "Foo".write file on_existing_file=Existing_File_Behavior.Overwrite
 
-        # Destination exists, so replace_existing=False will consistently fail
-        r_copy_already_exists = file.copy_to file replace_existing=False
-        r_copy_already_exists.should_fail_with File_Error
-        r_copy_already_exists.catch.should_be_a File_Error.Already_Exists
+        [False, True].map replace_existing-> Test.with_clue "(replace_existing="+replace_existing.to_text+") " <|
+            # Copying the file to itself should succeed and just not change anything.
+            r_copy = file.copy_to file replace_existing=replace_existing
+            r_copy.should_equal file
+            r_copy.read . should_equal "Foo"
 
-        r_move_already_exists = file.move_to file replace_existing=False
-        r_move_already_exists.should_fail_with File_Error
-        r_move_already_exists.catch.should_be_a File_Error.Already_Exists
-
-        # Copying the file to itself with replace_existing=True should succeed and just not change anything.
-        r_copy = file.copy_to file replace_existing=True
-        r_copy.should_equal file
-        r_copy.read . should_equal "Foo"
-
-        # Moving the file to itself with replace_existing=True should succeed and just not change anything.
-        r_move = file.move_to file replace_existing=True
-        r_move.should_equal file
-        file.exists . should_be_true
-        file.read . should_equal "Foo"
+            # Moving the file to itself should succeed and just not change anything.
+            r_move = file.move_to file replace_existing=replace_existing
+            r_move.should_equal file
+            file.exists . should_be_true
+            file.read . should_equal "Foo"
 
 main filter=Nothing =
     suite = Test.build suite_builder->
