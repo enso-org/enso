@@ -25,7 +25,7 @@ import java.util.function.Consumer;
 import java.util.logging.Level;
 import org.enso.common.LanguageInfo;
 import org.enso.common.MethodNames;
-import org.enso.compiler.context.SimpleUpdate;
+import org.enso.compiler.suggestions.SimpleUpdate;
 import org.enso.interpreter.instrument.Endpoint;
 import org.enso.interpreter.instrument.MethodCallsCache;
 import org.enso.interpreter.instrument.NotificationHandler;
