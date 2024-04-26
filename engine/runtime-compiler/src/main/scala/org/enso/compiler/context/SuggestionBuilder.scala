@@ -658,8 +658,10 @@ final class SuggestionBuilder[A: IndexedSource](
       Identifier.Qualified(name)
     def mkAutoScopeCall(identifier: Identifier): String =
       identifier match {
-        case Identifier.Qualified(name)   => name.toString
-        case Identifier.Unqualified(name) => s"..$name"
+        case Identifier.Qualified(name)      => name.toString
+        case Identifier.Unqualified("True")  => "True"
+        case Identifier.Unqualified("False") => "False"
+        case Identifier.Unqualified(name)    => s"..$name"
       }
     def mkCall(identifier: Identifier): String =
       identifier match {

@@ -1,3 +1,5 @@
+package org.enso.compiler.test.context
+
 import org.enso.compiler.context.SuggestionBuilder
 import org.enso.compiler.core.ir.Module
 import org.enso.interpreter.runtime
@@ -955,6 +957,85 @@ class SuggestionBuilderTest extends AnyWordSpecLike with Matchers {
       )
     }
 
+    "build autoscope tagValues for Boolean" in {
+
+      val code =
+        """from Standard.Base import all
+          |
+          |type Value
+          |    A
+          |    B
+          |
+          |foo (a : Value | Boolean) = a
+          |""".stripMargin
+      val module = code.preprocessModule
+
+      build(code, module) shouldEqual Tree.Root(
+        Vector(
+          ModuleNode,
+          Tree.Node(
+            Suggestion.Type(
+              externalId    = None,
+              module        = "Unnamed.Test",
+              name          = "Value",
+              params        = Seq(),
+              returnType    = "Unnamed.Test.Value",
+              parentType    = Some(SuggestionBuilder.Any),
+              documentation = None
+            ),
+            Vector()
+          ),
+          Tree.Node(
+            Suggestion.Constructor(
+              externalId    = None,
+              module        = "Unnamed.Test",
+              name          = "A",
+              arguments     = Seq(),
+              returnType    = "Unnamed.Test.Value",
+              documentation = None,
+              annotations   = Seq()
+            ),
+            Vector()
+          ),
+          Tree.Node(
+            Suggestion.Constructor(
+              externalId    = None,
+              module        = "Unnamed.Test",
+              name          = "B",
+              arguments     = Seq(),
+              returnType    = "Unnamed.Test.Value",
+              documentation = None,
+              annotations   = Seq()
+            ),
+            Vector()
+          ),
+          Tree.Node(
+            Suggestion.DefinedMethod(
+              externalId = None,
+              module     = "Unnamed.Test",
+              name       = "foo",
+              arguments = Seq(
+                Suggestion.Argument(
+                  "a",
+                  "Unnamed.Test.Value | Standard.Base.Data.Boolean.Boolean",
+                  false,
+                  false,
+                  None,
+                  Some(Seq("..A", "..B", "True", "False"))
+                )
+              ),
+              selfType      = "Unnamed.Test",
+              returnType    = SuggestionBuilder.Any,
+              isStatic      = true,
+              documentation = None,
+              annotations   = Seq()
+            ),
+            Vector()
+          )
+        )
+      )
+    }
+
     "build argument tag values from ascribed type and type signature" in {
 
       val code =
@@ -1536,8 +1617,8 @@ class SuggestionBuilderTest extends AnyWordSpecLike with Matchers {
                     Some("Boolean.True"),
                     Some(
                       List(
-                        "..True",
-                        "..False"
+                        "True",
+                        "False"
                       )
                     )
                   )
