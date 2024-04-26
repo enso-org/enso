@@ -77,6 +77,14 @@ type Suite
                         False ->
                             [[group, matched_specs]]
 
+        # If ANSI colors are enabled, we assume an interactive terminal and will print progress
+        progress_reporter = case config.use_ansi_colors of
+            True ->
+                matching_spec_count = matching_specs.map (p-> p.second.length) . fold 0 (+)
+                Test_Reporter.Command_Line_Progress_Reporter.make matching_spec_count
+            False ->
+                Test_Reporter.Ignore_Progress_Reporter
+
         all_results_bldr = Vector.new_builder
         junit_sb_builder = if config.should_output_junit then StringBuilder.new else Nothing
         Test_Reporter.wrap_junit_testsuites config junit_sb_builder <|
@@ -85,7 +93,7 @@ type Suite
                 specs = p.second
                 case group.is_pending of
                     False ->
-                        results = Helpers.run_specs_from_group specs group
+                        results = Helpers.run_specs_from_group specs group progress_reporter
                         Test_Reporter.print_report results config junit_sb_builder
                         all_results_bldr.append_vector_range results
                     True ->

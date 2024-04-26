@@ -2,6 +2,7 @@ private
 
 from Standard.Base import all
 import Standard.Base.Runtime.Context
+import Standard.Base.Runtime.Ref.Ref
 from Standard.Base.Runtime import assert
 
 import project.Group.Group
@@ -12,6 +13,7 @@ import project.Test.Test
 import project.Test_Result.Test_Result
 
 polyglot java import java.lang.StringBuilder
+polyglot java import java.lang.System as Java_System
 
 ## PRIVATE
    Write the JUnit XML header.
@@ -178,3 +180,54 @@ escape_xml : Text -> Boolean -> Text
 escape_xml input inside_attribute=False =
     escaped = input.replace '&' '&amp;' . replace '"' '&quot;' . replace "'" '&apos;' . replace '<' '&lt;' . replace '>' '&gt;'
     if inside_attribute then escaped.replace '\n' '&#10;' else escaped
+
+## PRIVATE
+progress_width = 70
+
+## PRIVATE
+print_progress current_progress total_count status_text =
+    total_count_as_text = total_count.to_text
+    counter_width = total_count_as_text.length
+    current_progress_as_text = current_progress.to_text.pad counter_width at=Location.Start
+    line = " ("+ current_progress_as_text + " / " + total_count_as_text + ") " + status_text
+    truncated_line = if line.length <= progress_width then line else
+        line.take (progress_width - 3) + '...'
+
+    Java_System.out.print '\r'
+    Java_System.out.print (' ' * progress_width)
+    Java_System.out.print '\r'
+    Java_System.out.print truncated_line
+    Java_System.out.print '\r'
+
+## PRIVATE
+clear_progress =
+    Java_System.out.print '\r'
+    Java_System.out.print (' ' * progress_width)
+    Java_System.out.print '\r'
+
+## PRIVATE
+type Ignore_Progress_Reporter
+    ## PRIVATE
+    report_progress self (status_text : Text) (increment : Integer = 1) =
+        _ = [increment, status_text]
+        Nothing
+
+    ## PRIVATE
+    clear = Nothing
+
+## PRIVATE
+type Command_Line_Progress_Reporter
+    ## PRIVATE
+    Value current_progress total_count
+
+    ## PRIVATE
+    make total_expected =
+        Command_Line_Progress_Reporter.Value (Ref.new 0) total_expected
+
+    ## PRIVATE
+    report_progress self (status_text : Text) (increment : Integer = 1) =
+        self.current_progress.modify (+increment)
+        print_progress self.current_progress.get self.total_count status_text
+
+    ## PRIVATE
+    clear self = clear_progress
