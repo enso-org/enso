@@ -260,7 +260,7 @@ class Compiler(
             Level.SEVERE,
             "Contents of module {0}: {0}",
             m.getPath,
-            m.getSource.getCharacters.toString
+            m.getCharacters.toString
           )
       }
     )

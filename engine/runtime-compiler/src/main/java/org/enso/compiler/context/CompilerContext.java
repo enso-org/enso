@@ -1,7 +1,6 @@
 package org.enso.compiler.context;
 
 import com.oracle.truffle.api.TruffleFile;
-import com.oracle.truffle.api.source.Source;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.util.List;
@@ -126,8 +125,6 @@ public interface CompilerContext extends CompilerStub {
   }
 
   public abstract static class Module {
-    public abstract Source getSource() throws IOException;
-
     public abstract CharSequence getCharacters() throws IOException;
 
     public abstract String getPath();

@@ -139,7 +139,7 @@ final class TruffleCompilerContext implements CompilerContext {
   public void truffleRunCodegen(CompilerContext.Module module, CompilerConfig config)
       throws IOException {
     var m = org.enso.interpreter.runtime.Module.fromCompilerModule(module);
-    new IrToTruffle(context, module.getSource(), m.getScope(), config).run(module.getIr());
+    new IrToTruffle(context, m.getSource(), m.getScope(), config).run(module.getIr());
   }
 
   // module related
@@ -150,7 +150,7 @@ final class TruffleCompilerContext implements CompilerContext {
 
   @Override
   public CharSequence getCharacters(CompilerContext.Module module) throws IOException {
-    return module.getSource().getCharacters();
+    return module.getCharacters();
   }
 
   @Override
@@ -251,7 +251,7 @@ final class TruffleCompilerContext implements CompilerContext {
    * size of the module.
    */
   private static boolean isLocationInsideModule(
-      CompilerContext.Module module, IdentifiedLocation location) {
+      org.enso.interpreter.runtime.Module module, IdentifiedLocation location) {
     try {
       return location.end() <= module.getSource().getLength();
     } catch (IOException e) {
@@ -263,12 +263,13 @@ final class TruffleCompilerContext implements CompilerContext {
   public String formatDiagnostic(
       CompilerContext.Module module, Diagnostic diagnostic, boolean isOutputRedirected) {
     DiagnosticFormatter diagnosticFormatter;
+    var m = org.enso.interpreter.runtime.Module.fromCompilerModule(module);
     if (module != null && diagnostic.location().isDefined()) {
       var location = diagnostic.location().get();
-      if (isLocationInsideModule(module, location)) {
+      if (isLocationInsideModule(m, location)) {
         Source source;
         try {
-          source = module.getSource();
+          source = m.getSource();
         } catch (IOException e) {
           throw new AssertionError(e);
         }
@@ -334,7 +335,8 @@ final class TruffleCompilerContext implements CompilerContext {
     var duplicatedIr = compiler.updateMetadata(ir, dupl);
     Source src;
     try {
-      src = module.getSource();
+      var m = org.enso.interpreter.runtime.Module.fromCompilerModule(module);
+      src = m.getSource();
     } catch (IOException ex) {
       logSerializationManager(Level.WARNING, "Cannot get source for " + module.getName(), ex);
       return CompletableFuture.failedFuture(ex);
@@ -727,11 +729,6 @@ final class TruffleCompilerContext implements CompilerContext {
 
     public Module(org.enso.interpreter.runtime.Module module) {
       this.module = module;
-    }
-
-    @Override
-    public Source getSource() throws IOException {
-      return module.getSource();
     }
 
     @Override
