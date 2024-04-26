@@ -231,3 +231,8 @@ type Command_Line_Progress_Reporter
 
     ## PRIVATE
     clear self = clear_progress
+
+## PRIVATE
+   Checks if the current process is running in an interactive terminal session.
+is_terminal_interactive -> Boolean =
+    Java_System.console != Nothing

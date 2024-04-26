@@ -77,8 +77,7 @@ type Suite
                         False ->
                             [[group, matched_specs]]
 
-        # If ANSI colors are enabled, we assume an interactive terminal and will print progress
-        progress_reporter = case config.use_ansi_colors of
+        progress_reporter = case Test_Reporter.is_terminal_interactive of
             True ->
                 matching_spec_count = matching_specs.map (p-> p.second.length) . fold 0 (+)
                 Test_Reporter.Command_Line_Progress_Reporter.make matching_spec_count
