@@ -46,7 +46,7 @@ export default function AssetProjectSession(props: AssetProjectSessionProps) {
             setModal(
               <LogsModal
                 logs={backend
-                  .getProjectLogs(project.id, projectSession.projectSessionId, project.title)
+                  .getProjectSessionLogs(projectSession.projectSessionId, project.title)
                   .then(logs => logs.join('\n'))}
               />
             )

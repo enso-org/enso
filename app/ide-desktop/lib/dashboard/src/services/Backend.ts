@@ -1204,9 +1204,8 @@ export default abstract class Backend {
     directoryId: DirectoryId | null,
     title: string
   ): Promise<Project>
-  /** Return project logs. */
-  abstract getProjectLogs(
-    projectId: ProjectId,
+  /** Return Language Server logs for a project session. */
+  abstract getProjectSessionLogs(
     projectSessionId: ProjectSessionId,
     title: string
   ): Promise<string[]>
