@@ -1,5 +1,7 @@
 package org.enso.interpreter.runtime
 
+import scala.jdk.OptionConverters.RichOption
+
 import org.enso.compiler.PackageRepository
 import org.enso.compiler.context.CompilerContext
 import org.enso.compiler.core.ir.{Module => IRModule}
@@ -52,6 +54,7 @@ private class DefaultPackageRepository(
   builtins: Builtins,
   notificationHandler: NotificationHandler
 ) extends PackageRepository {
+  type TFile = TruffleFile
 
   private val logger = Logger[DefaultPackageRepository]
 
@@ -176,9 +179,16 @@ private class DefaultPackageRepository(
   }
 
   /** @inheritdoc */
-  override def getMainProjectPackage: Option[Package[TruffleFile]] = {
+  override def getMainProjectPackage
+    : Option[Package[com.oracle.truffle.api.TruffleFile]] = {
     projectPackage
   }
+
+  /** Returns a package directory corresponding to the requested library */
+  def getPackageForLibraryJava(
+    libraryName: LibraryName
+  ): java.util.Optional[Package[TruffleFile]] =
+    getPackageForLibrary(libraryName).toJava
 
   private def registerPackageInternal(
     libraryName: LibraryName,
@@ -447,7 +457,7 @@ private class DefaultPackageRepository(
   override def getLoadedPackages: Seq[Package[TruffleFile]] =
     loadedPackages.values.toSeq.flatten
 
-  override def getLoadedPackagesJava: java.lang.Iterable[Package[TruffleFile]] =
+  def getLoadedPackagesJava: java.lang.Iterable[Package[TruffleFile]] =
     loadedPackages.flatMap(_._2).asJava
 
   /** @inheritdoc */
@@ -638,7 +648,7 @@ private object DefaultPackageRepository {
     context: EnsoContext,
     builtins: Builtins,
     notificationHandler: NotificationHandler
-  ): PackageRepository = {
+  ): DefaultPackageRepository = {
     val rawEdition = editionOverride
       .map(v => Editions.Raw.Edition(parent = Some(v)))
       .orElse(

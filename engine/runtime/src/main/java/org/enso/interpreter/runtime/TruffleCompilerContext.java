@@ -18,10 +18,10 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Future;
 import java.util.function.Consumer;
 import java.util.logging.Level;
+import java.util.logging.Logger;
 import org.enso.common.CompilationStage;
 import org.enso.common.LanguageInfo;
 import org.enso.compiler.Compiler;
-import org.enso.compiler.PackageRepository;
 import org.enso.compiler.Passes;
 import org.enso.compiler.context.CompilerContext;
 import org.enso.compiler.context.FreshNameSupply;
@@ -50,6 +50,7 @@ import scala.collection.immutable.ListSet;
 import scala.collection.immutable.SetOps;
 
 final class TruffleCompilerContext implements CompilerContext {
+  private static final Logger LOG = Logger.getLogger(TruffleCompilerContext.class.getName());
 
   private final EnsoContext context;
   private final TruffleLogger loggerCompiler;
@@ -86,7 +87,7 @@ final class TruffleCompilerContext implements CompilerContext {
   }
 
   @Override
-  public PackageRepository getPackageRepository() {
+  public DefaultPackageRepository getPackageRepository() {
     return context.getPackageRepository();
   }
 
@@ -161,6 +162,13 @@ final class TruffleCompilerContext implements CompilerContext {
   @Override
   public boolean isInteractive(CompilerContext.Module module) {
     return ((Module) module).unsafeModule().isInteractive();
+  }
+
+  @Override
+  public boolean isModuleInRootPackage(CompilerContext.Module module) {
+    var file = ((Module) module).getSourceFile();
+    var pkg = getPackageOf(getPackageRepository(), file);
+    return pkg.isPresent() && pkg.get() == getPackageRepository().getMainProjectPackage().get();
   }
 
   @Override
@@ -775,8 +783,7 @@ final class TruffleCompilerContext implements CompilerContext {
       return bindings;
     }
 
-    @Override
-    public TruffleFile getSourceFile() {
+    final TruffleFile getSourceFile() {
       return module.getSourceFile();
     }
 
@@ -846,5 +853,29 @@ final class TruffleCompilerContext implements CompilerContext {
   private static QualifiedName toQualifiedName(LibraryName libraryName) {
     var namespace = cons(libraryName.namespace(), nil());
     return new QualifiedName(namespace, libraryName.name());
+  }
+
+  /**
+   * Finds the package the provided module belongs to.
+   *
+   * @param packageRepository repository to work on
+   * @param file the module to find the package of
+   * @return {@code module}'s package, if exists
+   */
+  static Optional<Package<TruffleFile>> getPackageOf(
+      DefaultPackageRepository packageRepository, TruffleFile file) {
+    try {
+      if (file != null) {
+        file = file.getCanonicalFile();
+        for (var pkg : packageRepository.getLoadedPackagesJava()) {
+          if (file.startsWith(pkg.root().getCanonicalFile())) {
+            return Optional.of(pkg);
+          }
+        }
+      }
+    } catch (IOException e) {
+      LOG.log(Level.WARNING, null, e);
+    }
+    return Optional.empty();
   }
 }

@@ -1963,7 +1963,6 @@ lazy val `runtime-compiler` =
       (Test / fork) := true,
       libraryDependencies ++= Seq(
         "com.chuusai"        %% "shapeless"               % shapelessVersion,
-        "org.graalvm.truffle" % "truffle-api"             % graalMavenPackagesVersion,
         "junit"               % "junit"                   % junitVersion       % Test,
         "com.github.sbt"      % "junit-interface"         % junitIfVersion     % Test,
         "org.scalatest"      %% "scalatest"               % scalatestVersion   % Test,
