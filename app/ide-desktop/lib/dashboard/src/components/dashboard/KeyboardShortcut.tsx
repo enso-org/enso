@@ -70,6 +70,9 @@ const MODIFIER_JSX: Readonly<
       </aria.Text>
     ),
   },
+  [detect.Platform.iPhoneOS]: {},
+  [detect.Platform.android]: {},
+  [detect.Platform.windowsPhone]: {},
   /* eslint-enable @typescript-eslint/naming-convention */
 }
 

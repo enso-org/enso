@@ -17,7 +17,7 @@ import org.slf4j.LoggerFactory;
  * the classes that are loaded via this class loader are first searched inside those archives. If
  * not found, delegates to parent class loaders.
  */
-public class HostClassLoader extends URLClassLoader {
+final class HostClassLoader extends URLClassLoader {
 
   private final Map<String, Class<?>> loadedClasses = new ConcurrentHashMap<>();
   private static final Logger logger = LoggerFactory.getLogger(HostClassLoader.class);

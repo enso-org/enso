@@ -1525,8 +1525,8 @@ type Column
     minute self = Value_Type.expect_has_time self <|
         apply_unary_operation self DatePartOperation.MINUTE_INSTANCE
 
-    ## GROUP Standard.Base.Selections
-       ICON select_row
+    ## GROUP Standard.Base.DateTime
+       ICON date_and_time
        Gets the second as an integer (0-60) from the time stored in the column.
 
        Applies only to columns that hold the `Time_Of_Day` or `Date_Time` types.
@@ -2691,6 +2691,11 @@ Column.from (that:Vector) (name:Text="Vector") = Column.from_vector name that
 ## PRIVATE
    Conversion method to a Column to a Vector.
 Vector.from (that:Column) = that.to_vector
+
+## PRIVATE
+   Conversion method to a Table to a Vector.
+Vector.from (that:Table) = if that.column_count == 1 then that.at 0 . to_vector else
+    Error.throw (Illegal_Argument.Error "Cannot convert a table with more than one column to a vector, use `at` to choose a column.")
 
 ## PRIVATE
    Conversion method to a Column from a Vector.

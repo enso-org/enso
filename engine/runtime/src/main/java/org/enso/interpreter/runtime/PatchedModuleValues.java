@@ -6,8 +6,8 @@ import com.oracle.truffle.api.source.SourceSection;
 import java.io.IOException;
 import java.util.*;
 import java.util.function.Predicate;
-import org.enso.compiler.context.SimpleUpdate;
 import org.enso.compiler.core.ir.Expression;
+import org.enso.compiler.suggestions.SimpleUpdate;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.tag.Patchable;
 

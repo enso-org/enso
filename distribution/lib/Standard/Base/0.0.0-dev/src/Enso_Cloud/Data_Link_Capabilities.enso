@@ -1,0 +1,78 @@
+import project.Any.Any
+import project.Data.Json.JS_Object
+import project.Data.Text.Text
+import project.Data.Vector.Vector
+import project.Error.Error
+import project.Errors.Common.No_Such_Conversion
+import project.Errors.Illegal_Argument.Illegal_Argument
+import project.Panic.Panic
+import project.System.File.Generic.Writable_File.Writable_File
+import project.System.Input_Stream.Input_Stream
+import project.System.Output_Stream.Output_Stream
+from project.Enso_Cloud.Data_Link_Helpers import data_link_name
+
+## PRIVATE
+   A type class representing a data link that can be opened as an input stream.
+
+   It requires the underlying data link to provide a `with_input_stream` method.
+type Data_Link_With_Input_Stream
+    ## PRIVATE
+    Value underlying
+
+    ## PRIVATE
+       Opens the data pointed at by the data link as a raw stream.
+    with_input_stream self (open_options : Vector) (action : Input_Stream -> Any) -> Any =
+        self.underlying.with_input_stream open_options action
+
+    ## PRIVATE
+       Creates a `Data_Link_With_Input_Stream` from a data link instance, if
+       that data link supports streaming. If it does not, an error is thrown.
+    find data_link_instance (if_not_supported = (Error.throw (Illegal_Argument.Error "The "+(data_link_name data_link_instance)+" cannot be opened as a stream."))) -> Data_Link_With_Input_Stream ! Illegal_Argument =
+        handle_no_conversion _ = if_not_supported
+        # `if_not_error` as workaround for https://github.com/enso-org/enso/issues/9669
+        data_link_instance . if_not_error <|
+            Panic.catch No_Such_Conversion (Data_Link_With_Input_Stream.from data_link_instance) handle_no_conversion
+
+## PRIVATE
+   A type class representing a data link that can be opened as an output stream.
+
+   It requires the underlying data link to provide a `with_output_stream` method.
+type Data_Link_With_Output_Stream
+    ## PRIVATE
+    Value underlying
+
+    ## PRIVATE
+       Opens the data pointed at by the data link as a raw stream.
+    with_output_stream self (open_options : Vector) (action : Output_Stream -> Any) -> Any =
+        self.underlying.with_output_stream open_options action
+
+    ## PRIVATE
+       Creates a `Data_Link_With_Output_Stream` from a data link instance, if
+       that data link supports streaming. If it does not, an error is thrown.
+    find data_link_instance (if_not_supported = (Error.throw (Illegal_Argument.Error "The "+(data_link_name data_link_instance)+" does not support writing raw data to it."))) -> Data_Link_With_Output_Stream ! Illegal_Argument =
+        handle_no_conversion _ = if_not_supported
+        # `if_not_error` as workaround for https://github.com/enso-org/enso/issues/9669
+        data_link_instance . if_not_error <|
+            Panic.catch No_Such_Conversion (Data_Link_With_Output_Stream.from data_link_instance) handle_no_conversion
+
+## PRIVATE
+   A type class representing a data link that can be written using the
+   `Writable_File` API. It provides a higher level API for writing files than
+   just `Data_Link_With_Output_Stream`, most links will likely implement both,
+   although it is not required.
+type Writable_Data_Link
+    ## PRIVATE
+    Value underlying
+
+    ## PRIVATE
+       Returns the `Writable_File` instance for the target of the data link.
+    as_writable_file self -> Writable_File = self.underlying.as_writable_file
+
+    ## PRIVATE
+       Creates a `Writable_Data_Link` from a data link instance, if that data
+       link supports writing. If it does not, an error is thrown.
+    find data_link_instance (if_not_supported = (Error.throw (Illegal_Argument.Error "The "+(data_link_name data_link_instance)+" does not support writing."))) -> Writable_Data_Link ! Illegal_Argument =
+        handle_no_conversion _ = if_not_supported
+        # `if_not_error` as workaround for https://github.com/enso-org/enso/issues/9669
+        data_link_instance . if_not_error <|
+            Panic.catch No_Such_Conversion (Writable_Data_Link.from data_link_instance) handle_no_conversion

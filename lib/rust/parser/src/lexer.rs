@@ -10,6 +10,7 @@ use crate::syntax::*;
 
 use crate::source::code::Length;
 use crate::source::code::Location;
+use crate::syntax::token::Codepoint;
 
 use std::str;
 
@@ -1210,7 +1211,7 @@ impl<'s> Lexer<'s> {
             let token = self.make_token(
                 backslash_start,
                 sequence_end.clone(),
-                token::Variant::text_escape(value.and_then(char::from_u32)),
+                token::Variant::text_escape(value.map(Codepoint::from_u32).unwrap_or_default()),
             );
             self.output.push(token);
             sequence_end
@@ -1236,7 +1237,7 @@ impl<'s> Lexer<'s> {
             let token = self.make_token(
                 backslash_start,
                 escape_end.clone(),
-                token::Variant::text_escape(value),
+                token::Variant::text_escape(value.map(Codepoint::from_char).unwrap_or_default()),
             );
             self.output.push(token);
             escape_end
@@ -1904,6 +1905,43 @@ mod tests {
         lex_and_validate_spans(r#"'String with \' escape'"#);
         lex_and_validate_spans("'String with `splice`.'");
         lex_and_validate_spans(&["## a", "", "   b"].join("\n"));
+    }
+
+    fn text_escape_(code: &str, codepoint: Option<u32>) -> Token {
+        let codepoint = match codepoint {
+            Some(value) => {
+                let codepoint = Codepoint::from_u32(value);
+                assert!(!codepoint.is_none());
+                codepoint
+            }
+            None => Codepoint::none(),
+        };
+        text_escape(test_code(""), test_code(code), codepoint).into()
+    }
+
+    #[test]
+    fn test_text_escapes() {
+        // Valid Unicode codepoints.
+        test_lexer("'\\0\\u0\\u{10}\\u{10FFFF}'", vec![
+            text_start(test_code(""), test_code("'")).into(),
+            text_escape_("\\0", Some(0)),
+            text_escape_("\\u0", Some(0)),
+            text_escape_("\\u{10}", Some(0x10)),
+            text_escape_("\\u{10FFFF}", Some(0x10_FFFF)),
+            text_end(test_code(""), test_code("'")).into(),
+        ]);
+        // Invalid Unicode, but allowed in Enso strings.
+        test_lexer("'\\uD800'", vec![
+            text_start(test_code(""), test_code("'")).into(),
+            text_escape_("\\uD800", Some(0xD800)),
+            text_end(test_code(""), test_code("'")).into(),
+        ]);
+        // Invalid and disallowed.
+        test_lexer("'\\u{110000}'", vec![
+            text_start(test_code(""), test_code("'")).into(),
+            text_escape_("\\u{110000}", None),
+            text_end(test_code(""), test_code("'")).into(),
+        ]);
     }
 
     #[test]

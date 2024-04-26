@@ -1,6 +1,7 @@
 from Standard.Base import all
-import Standard.Base.Enso_Cloud.Data_Link.Data_Link_Format
+import Standard.Base.Enso_Cloud.Data_Link.Data_Link
 import Standard.Base.Errors.File_Error.File_Error
+import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Errors.Illegal_State.Illegal_State
 import Standard.Base.Network.HTTP.Response.Response
 
@@ -56,6 +57,12 @@ add_specs suite_builder =
             r.should_be_a Text
             r.trim.should_equal '{"hello": "world"}'
 
+        group_builder.specify "does not allow to write to a web datalink" <|
+            f = replace_url_in_data_link (data_link_root / "example-http.datalink")
+            r = "MY CONTENT".write f
+            r.should_fail_with Illegal_Argument
+            r.catch.to_display_text . should_contain "The HTTP Fetch Data Link does not support writing"
+
         group_builder.specify "should be able to follow a datalink from HTTP in Data.read" <| Test.with_retries <|
             r1 = Data.read base_url_with_slash+"dynamic.datalink" JSON_Format
             r1.should_equal ('{"hello": "world"}'.parse_json)
@@ -110,7 +117,7 @@ add_specs suite_builder =
    URL of the server. It then writes the new contents to a temporary file and
    returns it.
 replace_url_in_data_link base_file =
-    content = Data_Link_Format.read_raw_config base_file
+    content = Data_Link.read_raw_config base_file
     new_content = content.replace "http://http-test-helper.local/" base_url_with_slash
     temp_file = File.create_temporary_file prefix=base_file.name suffix=base_file.extension
-    Data_Link_Format.write_raw_config temp_file new_content replace_existing=True . if_not_error temp_file
+    Data_Link.write_raw_config temp_file new_content replace_existing=True . if_not_error temp_file

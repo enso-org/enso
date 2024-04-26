@@ -1,6 +1,9 @@
 from Standard.Base import all
+import Standard.Base.Enso_Cloud.Data_Link.Data_Link
 import Standard.Base.Errors.Illegal_State.Illegal_State
+import Standard.Base.Runtime.Context
 
+from Standard.Test import Problems
 import Standard.Test.Test_Environment
 
 
@@ -11,23 +14,24 @@ polyglot java import org.enso.base.enso_cloud.CloudAPI
 
 type Cloud_Tests_Setup
     Mock api_url:URI credentials_location:File
-    Cloud api_url:URI credentials_location:File
+    Cloud
     None
 
-    with_prepared_environment self ~action =
-        Cloud_Tests_Setup.reset
-        Panic.with_finalizer Cloud_Tests_Setup.reset <|
-            if self == Cloud_Tests_Setup.None then action else
+    with_prepared_environment self ~action = case self of
+        Cloud_Tests_Setup.Mock _ _ ->
+            Cloud_Tests_Setup.reset
+            Panic.with_finalizer Cloud_Tests_Setup.reset <|
                 Test_Environment.unsafe_with_environment_override "ENSO_CLOUD_API_URI" self.api_url.to_text <|
                     Test_Environment.unsafe_with_environment_override "ENSO_CLOUD_CREDENTIALS_FILE" self.credentials_location.absolute.normalize.path <|
                         action
+        _ -> action
 
     pending self = case self of
         Cloud_Tests_Setup.None -> "Cloud tests run only if ENSO_RUN_REAL_CLOUD_TEST or ENSO_HTTP_TEST_HTTPBIN_URL environment variable is defined."
         _ -> Nothing
 
     real_cloud_pending self = case self of
-        Cloud_Tests_Setup.Cloud _ _ -> Nothing
+        Cloud_Tests_Setup.Cloud -> Nothing
         _ -> "These cloud tests only run if ENSO_RUN_REAL_CLOUD_TEST is defined, as they require a proper cloud environment for testing, not just a minimal mock."
 
     httpbin_pending self =
@@ -72,17 +76,16 @@ type Cloud_Tests_Setup
     reset = CloudAPI.flushCloudCaches
 
     ## Detects the setup based on environment settings.
+       If `ENSO_RUN_REAL_CLOUD_TEST` is defined, the tests will try running
+       against the real cloud, relying on the default cloud configuration (which
+       can be overridden using environment variables).
+       Otherwise, if `ENSO_HTTP_TEST_HTTPBIN_URL` is defined, the tests are run
+       against a mock implementation,
     prepare : Cloud_Tests_Setup
     prepare =
         real_cloud = Environment.get "ENSO_RUN_REAL_CLOUD_TEST" . is_nothing . not
         case real_cloud of
-            True ->
-                api_url = Environment.get "ENSO_CLOUD_API_URI" . if_nothing <|
-                    Panic.throw (Illegal_State.Error "If ENSO_RUN_REAL_CLOUD_TEST is defined, ENSO_CLOUD_API_URI must be defined as well.")
-                credentials_location = Environment.get "ENSO_CLOUD_CREDENTIALS_FILE" . if_nothing <|
-                    Panic.throw (Illegal_State.Error "If ENSO_RUN_REAL_CLOUD_TEST is defined, ENSO_CLOUD_CREDENTIALS_FILE must be defined as well.")
-
-                Cloud_Tests_Setup.Cloud (URI.from api_url) (File.new credentials_location)
+            True -> Cloud_Tests_Setup.Cloud
             False -> Cloud_Tests_Setup.prepare_mock_setup
 
     ## Runs the action inside of an environment set up with the Cloud Mock
@@ -98,6 +101,8 @@ type Cloud_Tests_Setup
         setup = Cloud_Tests_Setup.prepare_mock_setup custom_credentials
         setup.with_prepared_environment action
 
+    ## Prepares a setup that will always call into the local cloud mock.
+       This is useful for scenarios like testing credential logic.
     prepare_mock_setup (custom_credentials : Mock_Credentials | Nothing = Nothing) -> Cloud_Tests_Setup =
         base_url = Environment.get "ENSO_HTTP_TEST_HTTPBIN_URL"
         if base_url.is_nothing then Cloud_Tests_Setup.None else
@@ -105,8 +110,11 @@ type Cloud_Tests_Setup
             enso_cloud_url = with_slash + "enso-cloud-mock/"
 
             credentials_payload = (custom_credentials.if_nothing (Mock_Credentials.default with_slash)).to_json
-            tmp_cred_file = File.create_temporary_file "enso-test-credentials" ".json"
-            credentials_payload.write tmp_cred_file
+            # We need to override the Context in case the tests were running in disabled context mode
+            tmp_cred_file = Context.Output.with_enabled <|
+                tmp_cred_file = File.create_temporary_file "enso-test-credentials" ".json"
+                credentials_payload.write tmp_cred_file
+            Problems.assume_no_problems <| tmp_cred_file
 
             Cloud_Tests_Setup.Mock (URI.from enso_cloud_url) tmp_cred_file
 
@@ -157,3 +165,18 @@ type Mock_Credentials
     about_to_expire self -> Mock_Credentials =
         new_expire_at = Date_Time.now + (Duration.new minutes=1)
         Mock_Credentials.Value self.access_token new_expire_at self.refresh_token self.refresh_url self.client_id
+
+type Temporary_Directory
+    Value ~get
+
+    make (name : Text) (with_initializer : (Enso_File -> Any) = (_->Nothing)) -> Temporary_Directory = Temporary_Directory.Value <|
+        directory_name = "test-run-"+name+"-"+(Date_Time.now.format "yyyy-MM-dd_HHmmss.fV" . replace "/" "|")
+        test_root = (Enso_File.root / directory_name).create_directory
+        with_initializer test_root . if_not_error test_root
+
+    cleanup self = self.get.delete_if_exists recursive=True
+
+create_local_datalink_to enso_file:Enso_File =
+    config = JS_Object.from_pairs [["type", "Enso_File"], ["libraryName", "Standard.Base"], ["path", enso_file.path]]
+    local_tmp_file = File.create_temporary_file prefix="test-datalink" suffix=".datalink"
+    Data_Link.write_config local_tmp_file config replace_existing=True

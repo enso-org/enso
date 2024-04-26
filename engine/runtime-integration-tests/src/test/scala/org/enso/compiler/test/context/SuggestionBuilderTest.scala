@@ -1,12 +1,11 @@
-package org.enso.compiler.test.context
-
-import org.enso.compiler.context.SuggestionBuilder
+import org.enso.compiler.suggestions.SuggestionBuilder
 import org.enso.compiler.core.ir.Module
 import org.enso.interpreter.runtime
 import org.enso.interpreter.runtime.EnsoContext
 import org.enso.interpreter.test.InterpreterContext
 import org.enso.pkg.QualifiedName
-import org.enso.polyglot.{LanguageInfo, MethodNames, Suggestion}
+import org.enso.common.{LanguageInfo, MethodNames}
+import org.enso.polyglot.Suggestion
 import org.enso.polyglot.data.Tree
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpecLike
@@ -941,7 +940,7 @@ class SuggestionBuilderTest extends AnyWordSpecLike with Matchers {
                   false,
                   false,
                   None,
-                  Some(Seq("..A", "..B", "..Auto"))
+                  Some(Seq("..A", "..B", "Unnamed.Test.Auto"))
                 )
               ),
               selfType      = "Unnamed.Test",
@@ -1033,7 +1032,7 @@ class SuggestionBuilderTest extends AnyWordSpecLike with Matchers {
                   false,
                   false,
                   None,
-                  Some(Seq("..A", "..B", "..Auto"))
+                  Some(Seq("..A", "..B", "Unnamed.Test.Auto"))
                 )
               ),
               selfType      = "Unnamed.Test",
@@ -3723,6 +3722,10 @@ class SuggestionBuilderTest extends AnyWordSpecLike with Matchers {
     source: String,
     ir: Module,
     module: QualifiedName = Module
-  ): Tree.Root[Suggestion] =
-    SuggestionBuilder(source, langCtx.getCompiler).build(module, ir)
+  ): Tree.Root[Suggestion] = {
+    val compiler = langCtx.getCompiler
+    val types =
+      org.enso.interpreter.runtime.Module.findTypeHierarchy(compiler.context)
+    SuggestionBuilder(source, types, compiler).build(module, ir)
+  }
 }

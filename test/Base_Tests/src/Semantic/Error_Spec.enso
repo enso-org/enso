@@ -163,6 +163,10 @@ add_specs suite_builder =
             (rethrown_panic.stack_trace.length > 0).should_be_true
             (rethrown_panic.stack_trace.map .name) . should_equal (caught_panic.stack_trace.map .name)
 
+        group_builder.specify "panic.rethrow" <|
+            result = (Error.throw 42)
+            Test.expect_panic_with (Panic.rethrow result) Integer
+
         group_builder.specify "should allow the pattern for handling selected exceptions" <|
             perform_operation ~action =
                 Panic.catch Any action caught_panic->

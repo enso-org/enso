@@ -12,13 +12,13 @@ import project.Warning.Warning
 from project.Data.Boolean import Boolean, False, True
 from project.Data.Numbers import Float, Integer, Number, Number_Parse_Error
 from project.Data.Numeric.Internal.Decimal_Internal import Decimal_Comparator
-from project.Data.Ordering import Comparable, Ordering
+from project.Data.Ordering import Comparable, Ordering, Default_Comparator
 from project.Errors.Common import Arithmetic_Error, Loss_Of_Numeric_Precision, Out_Of_Range, Unsupported_Argument_Types
 from project.Widget_Helpers import make_number_format_selector
 
 polyglot java import java.lang.ArithmeticException
-polyglot java import java.lang.NumberFormatException
 polyglot java import java.lang.Integer as Java_Integer
+polyglot java import java.lang.NumberFormatException
 polyglot java import java.math.BigDecimal
 polyglot java import java.text.DecimalFormat
 polyglot java import java.text.DecimalFormatSymbols
@@ -552,7 +552,7 @@ type Decimal
 
              remainder = Decimal.new -5 . remainder 3
              # => -2
-    remainder : Decimal -> Decimal -> Decimal
+    remainder : Decimal -> Decimal
     remainder self (that : Decimal) =
         handle_java_exception <|
             Decimal.Value (self.big_decimal.remainder that.big_decimal)
@@ -584,7 +584,7 @@ type Decimal
 
              remainder = Decimal.new -5 % 3
              # => -2
-    % : Decimal -> Decimal -> Decimal
+    % : Decimal -> Decimal
     % self (that : Decimal) = self.remainder that
 
     ## GROUP Math
@@ -850,6 +850,63 @@ type Decimal
             message = "round decimal_places must be between "+Java_Integer.MIN_VALUE.to_text+" and "+Java_Integer.MAX_VALUE.to_text+" (inclusive), but was "+decimal_places.to_text
             Error.throw (Out_Of_Range.Error decimal_places message)
 
+    ## GROUP Rounding
+       ICON math
+       Computes the nearest integer equal to or above this number.
+
+       > Example
+         Compute the ceiling of 12.34.
+
+             Decimal.new "12.34" . ceiling
+             # => Decimal.new "13"
+
+       > Example
+         Compute the ceiling of -12.34.
+
+             Decimal.new "-12.34" . ceiling
+             # => Decimal.new "-12"
+    ceil : Integer
+    ceil self -> Integer = Decimal_Utils.ceil self.big_decimal
+
+    ## GROUP Rounding
+       ICON math
+       Computes the nearest integer equal to or below this number.
+
+       > Example
+         Compute the floor of 12.34.
+
+             Decimal.new "12.34" . floor
+             # => Decimal.new "12"
+
+       > Example
+         Compute the floor of -12.34.
+
+             Decimal.new "-12.34" . floor
+             # => Decimal.new "13"
+    floor : Integer
+    floor self -> Integer = Decimal_Utils.floor self.big_decimal
+
+    ## ALIAS int
+       GROUP Rounding
+       ICON math
+
+       Truncate a number to an integer to by dropping the fractional part. This
+       is equivalent to "round-toward-zero".
+
+       > Example
+         Compute the truncation of 12.34
+
+             Decimal.new "12.34" . truncate
+             # => Decimal.new "12"
+
+       > Example
+         Compute the truncation of -12.34
+
+             Decimal.new "-12.34" . truncate
+             # => Decimal.new "-12"
+    truncate : Integer
+    truncate self -> Integer = Decimal_Utils.truncate self.big_decimal
+
     ## GROUP Conversions
        ICON convert
        Converts a `Decimal` to a string, using the Java `DecimalFormat` formatter.
@@ -888,7 +945,7 @@ type Decimal
         formatter.format self.big_decimal
 
     ## ALIAS from text
-       GROUP Conversions
+       GROUP conversions
        ICON convert
 
        Parses a string into a `Decimal`, returning a `Number_Parse_Error` if the
@@ -993,13 +1050,21 @@ handle_unsupported_argument_types ~action =
         Error.throw (Arithmetic_Error.Error "Exponent out of range 0..999999999 (inclusive)")
 
 ## PRIVATE
-
 Comparable.from (_ : Decimal) = Decimal_Comparator
 
+## PRIVATE
 Comparable.from (_ : Number) = Decimal_Comparator
 
+## PRIVATE
 Decimal.from (that : Text) = Decimal.from_string that
 
-Decimal.from (that : Number) = Decimal.new that
+## PRIVATE
+Decimal.from (that : Integer) = Decimal.new that
+Decimal.from (that : Float) =
+    is_exceptional = that.is_nan || that.is_infinite
+    if is_exceptional then Error.throw (Illegal_Argument.Error "Cannot convert "+that.to_text+" to a Decimal") else
+        handle_java_exception <| attach_loss_of_numeric_precision that <|
+            Decimal.Value <| Decimal_Utils.fromFloatExact that
 
+## PRIVATE
 Float.from (that : Decimal) = that.to_float
