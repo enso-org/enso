@@ -15,12 +15,12 @@ import java.io.ByteArrayOutputStream;
 import java.io.PrintStream;
 import java.util.List;
 import java.util.Objects;
+import org.enso.common.LanguageInfo;
 import org.enso.compiler.Compiler;
 import org.enso.compiler.context.InlineContext;
 import org.enso.compiler.context.LocalScope;
 import org.enso.compiler.context.ModuleContext;
 import org.enso.compiler.data.CompilerConfig;
-import org.enso.compiler.exception.CompilationAbortedException;
 import org.enso.compiler.exception.UnhandledEntity;
 import org.enso.distribution.DistributionManager;
 import org.enso.distribution.Environment;
@@ -43,7 +43,6 @@ import org.enso.interpreter.runtime.tag.Patchable;
 import org.enso.interpreter.util.FileDetector;
 import org.enso.lockmanager.client.ConnectedLockManager;
 import org.enso.logger.masking.MaskingFactory;
-import org.enso.polyglot.LanguageInfo;
 import org.enso.polyglot.RuntimeOptions;
 import org.enso.syntax2.Line;
 import org.enso.syntax2.Tree;
@@ -216,7 +215,7 @@ public final class EnsoLanguage extends TruffleLanguage<EnsoContext> {
   protected ExecutableNode parse(InlineParsingRequest request) throws InlineParsingException {
     if (request.getLocation().getRootNode() instanceof EnsoRootNode ensoRootNode) {
       var context = EnsoContext.get(request.getLocation());
-      Tree inlineExpr = context.getCompiler().parseInline(request.getSource());
+      Tree inlineExpr = context.getCompiler().parseInline(request.getSource().getCharacters());
       var undesirableExprTypes =
           List.of(Tree.Assignment.class, Tree.Import.class, Tree.Export.class);
       if (astContainsExprTypes(inlineExpr, undesirableExprTypes)) {
@@ -262,7 +261,7 @@ public final class EnsoLanguage extends TruffleLanguage<EnsoContext> {
           var newInlineContext = optionTupple.get()._1();
           var ir = optionTupple.get()._2();
           var sco = newInlineContext.localScope().getOrElse(LocalScope::root);
-          var mod = newInlineContext.module$access$0().module$access$0();
+          var mod = newInlineContext.getModule();
           var m = org.enso.interpreter.runtime.Module.fromCompilerModule(mod);
           var toTruffle =
               new IrToTruffle(

@@ -8,6 +8,7 @@
     "./src/appConfig": "./src/appConfig.js",
     "./src/buildUtils": "./src/buildUtils.js",
     "./src/detect": "./src/detect.ts",
-    "./src/gtag": "./src/gtag.ts"
+    "./src/gtag": "./src/gtag.ts",
+    "./src/load": "./src/load.ts"
   }
 }

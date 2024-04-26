@@ -569,8 +569,6 @@ class JsonConnectionController(
       AICompletion -> ai.AICompletionHandler.props(
         languageServerConfig.aiCompletionConfig
       ),
-      Completion -> search.CompletionHandler
-        .props(requestTimeout, suggestionsHandler),
       ExecuteExpression -> ExecuteExpressionHandler
         .props(rpcSession.clientId, requestTimeout, contextRegistry),
       AttachVisualization -> AttachVisualizationHandler

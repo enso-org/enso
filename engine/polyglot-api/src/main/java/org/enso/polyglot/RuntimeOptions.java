@@ -2,7 +2,11 @@ package org.enso.polyglot;
 
 import com.oracle.truffle.api.Option;
 import java.util.Arrays;
-import org.graalvm.options.*;
+import org.enso.common.LanguageInfo;
+import org.graalvm.options.OptionCategory;
+import org.graalvm.options.OptionDescriptor;
+import org.graalvm.options.OptionDescriptors;
+import org.graalvm.options.OptionKey;
 
 /** Class representing runtime options supported by the Enso engine. */
 public class RuntimeOptions {

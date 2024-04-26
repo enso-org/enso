@@ -106,7 +106,8 @@ public final class ImportExportCache
         .getPackageForLibraryJava(libraryName)
         .map(
             pkg -> {
-              var bindingsCacheRoot = pkg.getBindingsCacheRootForPackage(Info.ensoVersion());
+              TruffleFile bindingsCacheRoot =
+                  pkg.getBindingsCacheRootForPackage(Info.ensoVersion());
               var localCacheRoot = bindingsCacheRoot.resolve(libraryName.namespace());
               var distribution = context.getDistributionManager();
               var pathSegments =

@@ -128,6 +128,9 @@ export function graphNodeByBinding(page: Locator | Page, binding: string): Node 
 export function graphNodeIcon(node: Node) {
   return node.locator('.nodeCategoryIcon')
 }
+export function selectedNodes(page: Page | Locator): Node {
+  return page.locator('.GraphNode.selected') as Node
+}
 
 // === Data locators ===
 

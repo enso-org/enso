@@ -58,7 +58,7 @@ import org.enso.runtimeversionmanager.test.{
   FakeEnvironment,
   TestableThreadSafeFileLockManager
 }
-import org.enso.searcher.sql.{SqlDatabase, SqlSuggestionsRepo}
+import org.enso.searcher.memory.InMemorySuggestionsRepo
 import org.enso.testkit.{EitherValue, WithTemporaryDirectory}
 import org.enso.text.Sha3_224VersionCalculator
 import org.scalactic.source
@@ -162,8 +162,7 @@ abstract class BaseServerTest
   val zioRuntime   = new ExecutionContextRuntime(testExecutor)
 
   val zioExec         = ZioExec(zioRuntime)
-  val sqlDatabase     = SqlDatabase(config.directories.suggestionsDatabaseFile)
-  val suggestionsRepo = new SqlSuggestionsRepo(sqlDatabase)(system.dispatcher)
+  val suggestionsRepo = new InMemorySuggestionsRepo()(system.dispatcher)
 
   private def initializationComponent =
     new SequentialResourcesInitialization(
@@ -178,7 +177,6 @@ abstract class BaseServerTest
         initThreadPool,
         config.directories,
         system.eventStream,
-        sqlDatabase,
         suggestionsRepo
       )
     )

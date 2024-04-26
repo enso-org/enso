@@ -257,9 +257,9 @@ type Date_Range
     filter : (Filter_Condition | (Date -> Boolean)) -> Vector Date
     filter self filter =
         predicate = unify_condition_or_predicate filter
-        builder = self.fold Vector.new_builder builder-> elem->
-            if predicate elem then builder.append elem else builder
-        builder.to_vector
+        Vector.build builder->
+            self.map elem->
+                if predicate elem then builder.append elem else builder
 
     ## GROUP Selections
        ICON preparation
@@ -298,6 +298,12 @@ type Date_Range
     ## PRIVATE
        ADVANCED
        Applies a function for each element in the range.
+
+       This method does not return the results, so it is only useful for performing
+       computations with side-effects.
+
+       If the function returns a dataflow error, the error is converted to a
+       panic and thrown immediately stopping further processing.
 
        Arguments:
        - function: The function to apply to each integer in the range.

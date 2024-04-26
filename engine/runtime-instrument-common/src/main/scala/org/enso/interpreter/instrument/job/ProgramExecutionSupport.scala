@@ -28,7 +28,7 @@ import org.enso.interpreter.service.ExecutionService.{
   FunctionPointer
 }
 import org.enso.interpreter.service.error._
-import org.enso.polyglot.LanguageInfo
+import org.enso.common.LanguageInfo
 import org.enso.polyglot.debugger.ExecutedVisualization
 import org.enso.polyglot.runtime.Runtime.Api
 import org.enso.polyglot.runtime.Runtime.Api.{ContextId, ExecutionResult}
@@ -71,7 +71,12 @@ object ProgramExecutionSupport {
       if (callStack.isEmpty) {
         logger.log(Level.FINEST, s"ON_CACHED_VALUE ${value.getExpressionId}")
         sendExpressionUpdate(contextId, executionFrame.syncState, value)
-        sendVisualizationUpdates(contextId, executionFrame.syncState, value)
+        sendVisualizationUpdates(
+          contextId,
+          executionFrame.cache,
+          executionFrame.syncState,
+          value
+        )
       }
     }
 
@@ -79,7 +84,12 @@ object ProgramExecutionSupport {
       if (callStack.isEmpty) {
         logger.log(Level.FINEST, s"ON_COMPUTED ${value.getExpressionId}")
         sendExpressionUpdate(contextId, executionFrame.syncState, value)
-        sendVisualizationUpdates(contextId, executionFrame.syncState, value)
+        sendVisualizationUpdates(
+          contextId,
+          executionFrame.cache,
+          executionFrame.syncState,
+          value
+        )
       }
     }
 
@@ -486,6 +496,7 @@ object ProgramExecutionSupport {
     */
   private def sendVisualizationUpdates(
     contextId: ContextId,
+    runtimeCache: RuntimeCache,
     syncState: UpdatesSynchronizationState,
     value: ExpressionValue
   )(implicit ctx: RuntimeContext): Unit = {
@@ -498,6 +509,7 @@ object ProgramExecutionSupport {
       visualizations.foreach { visualization =>
         executeAndSendVisualizationUpdate(
           contextId,
+          runtimeCache,
           syncState,
           visualization,
           value.getExpressionId,
@@ -509,6 +521,7 @@ object ProgramExecutionSupport {
 
   private def executeVisualization(
     contextId: ContextId,
+    runtimeCache: RuntimeCache,
     visualization: Visualization,
     expressionId: UUID,
     expressionValue: AnyRef
@@ -529,6 +542,7 @@ object ProgramExecutionSupport {
         ctx.executionService.callFunctionWithInstrument(
           ctx.contextManager.getVisualizationHolder(contextId),
           visualization.cache,
+          runtimeCache,
           visualization.module,
           visualization.callback,
           expressionValue +: visualization.arguments: _*
@@ -622,6 +636,7 @@ object ProgramExecutionSupport {
     */
   def executeAndSendVisualizationUpdate(
     contextId: ContextId,
+    runtimeCache: RuntimeCache,
     syncState: UpdatesSynchronizationState,
     visualization: Visualization,
     expressionId: UUID,
@@ -630,6 +645,7 @@ object ProgramExecutionSupport {
     val visualizationResult =
       executeVisualization(
         contextId,
+        runtimeCache,
         visualization,
         expressionId,
         expressionValue

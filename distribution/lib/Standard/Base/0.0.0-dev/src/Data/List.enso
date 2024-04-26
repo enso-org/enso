@@ -12,6 +12,7 @@ import project.Errors.Empty_Error.Empty_Error
 import project.Function.Function
 import project.Meta
 import project.Nothing.Nothing
+import project.Panic.Panic
 from project.Data.Boolean import Boolean, False, True
 from project.Data.Filter_Condition import unify_condition_or_predicate, unify_condition_predicate_or_element
 from project.Data.List.List import Cons, Nil
@@ -355,6 +356,9 @@ type List
        Unlike `map`, this method does not return the individual results,
        therefore it is only useful for side-effecting computations.
 
+       If the function returns a dataflow error, the error is converted to a
+       panic and thrown immediately stopping further processing.
+
        > Example
          Print each of the list elements to the standard output.
 
@@ -366,10 +370,9 @@ type List
         go list = case list of
             Nil -> Nothing
             Cons h t ->
-                f h
+                Panic.rethrow (f h)
                 @Tail_Call go t
         go self
-        Nothing
 
     ## GROUP Selections
        ICON order
@@ -539,9 +542,9 @@ type List
        Convert this list to a vector with the same elements.
     to_vector : Vector
     to_vector self =
-        builder = self.fold (Vector.new_builder self.length) builder-> elem->
-            builder.append elem
-        builder.to_vector
+        Vector.build initial_capacity=self.length builder->
+            self.map elem->
+                builder.append elem
 
     ## PRIVATE
        Generates a human-readable text representation of the list.
