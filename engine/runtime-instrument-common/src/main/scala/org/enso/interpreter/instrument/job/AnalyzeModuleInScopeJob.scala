@@ -1,6 +1,6 @@
 package org.enso.interpreter.instrument.job
 
-import org.enso.compiler.context.{
+import org.enso.compiler.suggestions.{
   ExportsBuilder,
   ModuleExportsDiff,
   SuggestionBuilder,
@@ -49,10 +49,13 @@ final class AnalyzeModuleInScopeJob(
       ctx.executionService.getLogger
         .log(Level.FINEST, s"Analyzing module in scope {0}", module.getName)
       val moduleName = module.getName
+      val compiler   = ctx.executionService.getContext.getCompiler
+      val types      = Module.findTypeHierarchy(compiler.context)
       val newSuggestions =
         SuggestionBuilder(
           module.asCompilerModule(),
-          ctx.executionService.getContext.getCompiler
+          types,
+          compiler
         )
           .build(moduleName, state.ir)
           .filter(Suggestion.isGlobal)

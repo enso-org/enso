@@ -43,7 +43,7 @@ object BuiltinsIrBuilder {
       compilerConfig  = CompilerConfig(warningsEnabled = false)
     )
     val initialIr = Using(new EnsoParser) { compiler =>
-      compiler.compile(module.getSource.getCharacters)
+      compiler.compile(module.getCharacters)
     }.get
     val irAfterModDiscovery = passManager.runPassesOnModule(
       initialIr,
