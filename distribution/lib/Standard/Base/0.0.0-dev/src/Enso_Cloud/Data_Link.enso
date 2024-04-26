@@ -11,6 +11,7 @@ import project.Errors.Problem_Behavior.Problem_Behavior
 import project.Nothing.Nothing
 import project.Panic.Panic
 import project.System.File.Data_Link_Access.Data_Link_Access
+import project.System.File.File
 import project.System.File.File_Access.File_Access
 import project.System.File.Generic.File_Like.File_Like
 import project.System.File.Generic.Writable_File.Writable_File
@@ -92,8 +93,13 @@ type Data_Link
          existing file. By default, the operation will fail if the file already
          exists.
     move (source : File_Like) (target : File_Like) (replace_existing : Boolean = False) -> Any ! File_Error =
-        Data_Link.copy source target replace_existing . if_not_error <|
-             source.underlying.delete . if_not_error target.underlying
+        is_same_file = case source.underlying of
+            f : File ->
+                target.underlying.is_a File && f.absolute.normalize.path == target.underlying.absolute.normalize.path
+            _ -> source.underlying == target.underlying
+        if is_same_file then Error.throw (Illegal_Argument.Error "Source and target files are the same.") else
+            Data_Link.copy source target replace_existing . if_not_error <|
+                 source.underlying.delete . if_not_error target.underlying
 
     ## PRIVATE
          Reads the raw configuration data of a data-link, as plain text.
