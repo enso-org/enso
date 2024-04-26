@@ -1,7 +1,7 @@
 import project.Data.Numbers.Integer
 import project.Data.Text.Text
 import project.Data.Time.Errors.Date_Time_Format_Parse_Error
-import project.Data.Vector.Builder as Vector_Builder
+import project.Data.Vector.Build_Style_Builder as Vector_Builder
 import project.Data.Vector.Vector
 import project.Error.Error
 import project.Errors.Illegal_State.Illegal_State

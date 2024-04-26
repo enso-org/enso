@@ -1624,6 +1624,50 @@ type Build_Style_Builder
     unsafe_append : Any -> Nothing
     unsafe_append self item = self.java_builder.add item
 
+    ## GROUP Selections
+       ICON select_row
+       Gets an element from the vector builder at a specified index (0-based).
+
+       Arguments:
+       - index: The location in the vector to get the element from. The index is
+         also allowed be negative, then the elements are indexed from the back
+         of the vector, i.e. -1 will correspond to the last element.
+    at : Integer -> Any ! Index_Out_Of_Bounds
+    at self index =
+        actual_index = if index < 0 then self.length + index else index
+        Panic.catch IndexOutOfBoundsException (self.java_builder.get actual_index) _->
+            Error.throw (Index_Out_Of_Bounds.Error index self.length)
+
+    ## GROUP Selections
+       ICON select_row
+       Get the first element from the vector, or an `Index_Out_Of_Bounds` if the vector
+       is empty.
+
+       > Example
+         The following code returns 1.
+
+             [1, 2, 3, 4].first
+    first : Vector ! Index_Out_Of_Bounds
+    first self = self.at 0
+
+    ## GROUP Selections
+       ICON select_row
+       Get the last element of the vector, or an `Index_Out_Of_Bounds` if the vector is
+       empty.
+
+       > Example
+         The following code returns 4.
+
+             [1, 2, 3, 4].last
+    last : Vector ! Index_Out_Of_Bounds
+    last self = self.at -1
+
+    ## GROUP Metadata
+       ICON metadata
+       Gets the current length of the builder.
+    length : Integer
+    length self = self.java_builder.getSize
+
     to_vector : Vector Any
     to_vector self =
         ## This creates a fresh copy of the builders storage, so any future
