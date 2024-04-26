@@ -542,9 +542,9 @@ type List
        Convert this list to a vector with the same elements.
     to_vector : Vector
     to_vector self =
-        builder = self.fold (Vector.new_builder self.length) builder-> elem->
-            builder.append elem
-        builder.to_vector
+        Vector.build initial_capacity=self.length builder->
+            self.map elem->
+                builder.append elem
 
     ## PRIVATE
        Generates a human-readable text representation of the list.

@@ -102,9 +102,11 @@ val simpleLibraryServerTag = Tags.Tag("simple-library-server")
 Global / concurrentRestrictions += Tags.limit(simpleLibraryServerTag, 1)
 
 lazy val gatherLicenses =
-  taskKey[Unit]("Gathers licensing information for relevant dependencies")
+  taskKey[Unit](
+    "Gathers licensing information for relevant dependencies of all distributions"
+  )
 gatherLicenses := {
-  val _ = GatherLicenses.run.value
+  val _ = GatherLicenses.run.toTask("").value
 }
 lazy val verifyLicensePackages =
   taskKey[Unit](
@@ -165,12 +167,12 @@ GatherLicenses.licenseConfigurations := Set("compile")
 GatherLicenses.configurationRoot := file("tools/legal-review")
 
 lazy val openLegalReviewReport =
-  taskKey[Unit](
+  inputKey[Unit](
     "Gathers licensing information for relevant dependencies and opens the " +
-    "report in review mode in the browser."
+    "report in review mode in the browser. Specify names of distributions to process, separated by spaces. If no names are provided, all distributions are processed."
   )
 openLegalReviewReport := {
-  val _ = gatherLicenses.value
+  GatherLicenses.run.evaluated
   GatherLicenses.runReportServer()
 }
 
@@ -467,7 +469,7 @@ val scalaCollectionCompatVersion = "2.8.1"
 
 val antlrVersion            = "4.13.0"
 val awsJavaSdkV1Version     = "1.12.480"
-val awsJavaSdkV2Version     = "2.20.78"
+val awsJavaSdkV2Version     = "2.25.36"
 val icuVersion              = "73.1"
 val poiOoxmlVersion         = "5.2.3"
 val redshiftVersion         = "2.1.0.15"
@@ -3000,7 +3002,10 @@ lazy val `std-aws` = project
       "com.amazonaws"          % "aws-java-sdk-redshift"   % awsJavaSdkV1Version,
       "com.amazonaws"          % "aws-java-sdk-sts"        % awsJavaSdkV1Version,
       "software.amazon.awssdk" % "auth"                    % awsJavaSdkV2Version,
-      "software.amazon.awssdk" % "s3"                      % awsJavaSdkV2Version
+      "software.amazon.awssdk" % "bom"                     % awsJavaSdkV2Version,
+      "software.amazon.awssdk" % "s3"                      % awsJavaSdkV2Version,
+      "software.amazon.awssdk" % "sso"                     % awsJavaSdkV2Version,
+      "software.amazon.awssdk" % "ssooidc"                 % awsJavaSdkV2Version
     ),
     Compile / packageBin := Def.task {
       val result = (Compile / packageBin).value

@@ -145,6 +145,7 @@ pub fn expose_cloud_vars(step: Step) -> Step {
         .with_variable_exposed(ENSO_CLOUD_COGNITO_USER_POOL_WEB_CLIENT_ID)
         .with_variable_exposed(ENSO_CLOUD_COGNITO_DOMAIN)
         .with_variable_exposed(ENSO_CLOUD_COGNITO_REGION)
+        .with_variable_exposed(ENSO_CLOUD_GOOGLE_ANALYTICS_TAG)
 }
 
 /// Expose variables for the GUI build.

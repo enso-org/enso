@@ -6,7 +6,8 @@ import project.Data.Text.Text
 import project.Data.Time.Date_Time.Date_Time
 import project.Data.Time.Date_Time_Formatter.Date_Time_Formatter
 import project.Data.Vector.Vector
-import project.Enso_Cloud.Data_Link
+import project.Enso_Cloud.Data_Link.Data_Link
+import project.Enso_Cloud.Data_Link_Helpers
 import project.Enso_Cloud.Enso_User.Enso_User
 import project.Enso_Cloud.Errors.Enso_Cloud_Error
 import project.Enso_Cloud.Internal.Enso_File_Write_Strategy
@@ -186,7 +187,7 @@ type Enso_File
     with_output_stream self (open_options : Vector) action =
         Context.Output.if_enabled disabled_message="Writing to an Enso_File is forbidden as the Output context is disabled." panic=False <|
             open_as_data_link = (open_options.contains Data_Link_Access.No_Follow . not) && (Data_Link.is_data_link self)
-            if open_as_data_link then Data_Link.write_data_link_as_stream self open_options action else
+            if open_as_data_link then Data_Link_Helpers.write_data_link_as_stream self open_options action else
                 if open_options.contains File_Access.Append then Unimplemented.throw "Enso_File currently does not support appending to a file. Instead you may read it, modify and then write the new contents." else
                     File_Access.ensure_only_allowed_options "with_output_stream" [File_Access.Write, File_Access.Create_New, File_Access.Truncate_Existing, File_Access.Create, Data_Link_Access.No_Follow] open_options <|
                         allow_existing = open_options.contains File_Access.Create_New . not
@@ -212,7 +213,7 @@ type Enso_File
     with_input_stream : Vector File_Access -> (Input_Stream -> Any ! File_Error) -> Any ! File_Error | Illegal_Argument
     with_input_stream self (open_options : Vector) action =
         open_as_data_link = (open_options.contains Data_Link_Access.No_Follow . not) && (Data_Link.is_data_link self)
-        if open_as_data_link then Data_Link.read_data_link_as_stream self open_options action else
+        if open_as_data_link then Data_Link_Helpers.read_data_link_as_stream self open_options action else
             File_Access.ensure_only_allowed_options "with_input_stream" [File_Access.Read, Data_Link_Access.No_Follow] open_options <|
                 asset = Existing_Enso_Asset.get_asset_reference_for self
                 uri = case asset.asset_type of
@@ -249,7 +250,7 @@ type Enso_File
             Enso_Asset_Type.Secret -> Error.throw (Illegal_Argument.Error "Secrets cannot be read directly.")
             Enso_Asset_Type.Data_Link ->
                 json = Utils.http_request_as_json HTTP_Method.Get asset.internal_uri
-                datalink = Data_Link.interpret_json_as_data_link json
+                datalink = Data_Link_Helpers.interpret_json_as_data_link json
                 datalink.read format on_problems
             Enso_Asset_Type.Directory -> if format == Auto_Detect then self.list else Error.throw (Illegal_Argument.Error "Directories can only be read using the Auto_Detect format.")
             Enso_Asset_Type.File -> File_Format.handle_format_missing_arguments format <|
@@ -363,9 +364,9 @@ type Enso_File
        - destination: the destination to move the file to.
        - replace_existing: specifies if the operation should proceed if the
          destination file already exists. Defaults to `False`.
-    copy_to : Writable_File -> Boolean -> Any ! File_Error
-    copy_to self (destination : Writable_File) (replace_existing : Boolean = False) =
-        generic_copy self destination.file replace_existing
+    copy_to : File_Like -> Boolean -> Any ! File_Error
+    copy_to self (destination : File_Like) (replace_existing : Boolean = False) = Data_Link_Helpers.disallow_links_in_copy self destination <|
+        generic_copy self destination replace_existing
 
     ## ICON data_output
        Moves the file to the specified destination.
@@ -374,11 +375,12 @@ type Enso_File
        - destination: the destination to move the file to.
        - replace_existing: specifies if the operation should proceed if the
          destination file already exists. Defaults to `False`.
-    move_to : Writable_File -> Boolean -> Nothing ! File_Error
-    move_to self (destination : Writable_File) (replace_existing : Boolean = False) =
+    move_to : File_Like -> Boolean -> Nothing ! File_Error
+    move_to self (destination : File_Like) (replace_existing : Boolean = False) = Data_Link_Helpers.disallow_links_in_move self destination <|
         # TODO we could have a fast path if Cloud will support renaming files
-        generic_copy self destination.file replace_existing . if_not_error <|
-            self.delete . if_not_error <| destination.file
+        r = self.copy_to destination replace_existing
+        r.if_not_error <|
+            self.delete . if_not_error r
 
     ## GROUP Operators
        ICON folder
@@ -441,5 +443,5 @@ File_Format_Metadata.from (that:Enso_File) =
 File_Like.from (that : Enso_File) = File_Like.Value that
 
 ## PRIVATE
-Writable_File.from (that : Enso_File) =
+Writable_File.from (that : Enso_File) = if Data_Link.is_data_link that then Data_Link_Helpers.interpret_data_link_as_writable_file that else
     Writable_File.Value that Enso_File_Write_Strategy.instance
