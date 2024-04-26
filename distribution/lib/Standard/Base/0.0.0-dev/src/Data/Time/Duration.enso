@@ -103,7 +103,7 @@ type Duration
 
              example_duration = Duration.new hours=2
     new : Integer -> Integer -> Integer -> Integer -> Integer -> Duration
-    new hours=0 minutes=0 seconds=0 milliseconds=0 nanoseconds=0 =
+    new (hours : Integer = 0) (minutes : Integer = 0) (seconds : Integer = 0) (milliseconds : Integer = 0) (nanoseconds : Integer = 0) =
         new_builtin hours minutes seconds milliseconds nanoseconds
 
     ## ICON date_and_time
@@ -280,15 +280,15 @@ type Duration
              example_to_json = (Duration.new seconds=10).to_js_object
     to_js_object : JS_Object
     to_js_object self =
-        b = Vector.new_builder 7
-        b.append ["type", "Duration"]
-        b.append ["constructor", "new"]
-        if self.hours==0 . not then b.append ["hours", self.hours]
-        if self.minutes==0 . not then b.append ["minutes", self.minutes]
-        if self.seconds==0 . not then b.append ["seconds", self.seconds]
-        if self.milliseconds==0 . not then b.append ["milliseconds", self.milliseconds]
-        if self.nanoseconds==0 . not then b.append ["nanoseconds", self.nanoseconds]
-        JS_Object.from_pairs b.to_vector
+        v = Vector.build initial_capacity=7 builder->
+            builder.append ["type", "Duration"]
+            builder.append ["constructor", "new"]
+            if self.hours==0 . not then builder.append ["hours", self.hours]
+            if self.minutes==0 . not then builder.append ["minutes", self.minutes]
+            if self.seconds==0 . not then builder.append ["seconds", self.seconds]
+            if self.milliseconds==0 . not then builder.append ["milliseconds", self.milliseconds]
+            if self.nanoseconds==0 . not then builder.append ["nanoseconds", self.nanoseconds]
+        JS_Object.from_pairs v
 
     ## PRIVATE
        Convert Duration to a friendly string.

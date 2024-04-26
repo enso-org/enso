@@ -57,6 +57,7 @@ type Period
         Period.Value (Java_Period.between start_date_inclusive end_date_exclusive)
 
     ## GROUP DateTime
+       ICON date_and_time
        Create a new Period from years, months and days.
 
        Arguments:
@@ -82,6 +83,7 @@ type Period
     Value (internal_period : Java_Period)
 
     ## GROUP DateTime
+       ICON date_and_time
        Get the portion of the period expressed in years.
     years : Integer
     years self = self.internal_period.getYears
@@ -93,6 +95,7 @@ type Period
     months self = self.internal_period.getMonths
 
     ## GROUP DateTime
+       ICON date_and_time
        Get the portion of the period coming from months and years as months
        (every year is translated to 12 months).
     total_months : Integer
@@ -167,6 +170,7 @@ type Period
             Period.Value (self.internal_period.multipliedBy factor)
 
     ## GROUP Operators
+       ICON operators
        Negate all amounts in the period.
 
        This is useful when a period used for going forward in time needs to be
@@ -197,13 +201,13 @@ type Period
              example_to_json = (Period.new months=10).to_js_object
     to_js_object : JS_Object
     to_js_object self =
-        b = Vector.new_builder 7
-        b.append ["type", "Period"]
-        b.append ["constructor", "new"]
-        if self.years==0 . not then b.append ["years", self.years]
-        if self.months==0 . not then b.append ["months", self.months]
-        if self.days==0 . not then b.append ["days", self.days]
-        JS_Object.from_pairs b.to_vector
+        v = Vector.build initial_capacity=7 builder->
+            builder.append ["type", "Period"]
+            builder.append ["constructor", "new"]
+            if self.years==0 . not then builder.append ["years", self.years]
+            if self.months==0 . not then builder.append ["months", self.months]
+            if self.days==0 . not then builder.append ["days", self.days]
+        JS_Object.from_pairs v
 
 ## PRIVATE
 catch_java_exceptions operation ~action =

@@ -7,9 +7,9 @@ import Standard.Base.Runtime.Context
 import Standard.Base.Runtime.Managed_Resource.Managed_Resource
 import Standard.Base.Runtime.Ref.Ref
 
-from Standard.Table import Table, Match_Columns, Excel_Format, Excel_Range, Data_Formatter, Delimited, Excel_Workbook
+from Standard.Table import Table, Match_Columns, Excel_Format, Excel_Range, Data_Formatter, Delimited_Format, Excel_Workbook
 
-from Standard.Table.Errors import Invalid_Column_Names, Duplicate_Output_Column_Names, Invalid_Location, Range_Exceeded, Existing_Data, Column_Count_Mismatch, Column_Name_Mismatch, Empty_Sheet_Error
+from Standard.Table.Errors import Invalid_Column_Names, Duplicate_Output_Column_Names, Invalid_Location, Range_Exceeded, Existing_Data, Column_Count_Mismatch, Column_Name_Mismatch, Empty_Sheet
 
 from Standard.Test import all
 
@@ -49,7 +49,7 @@ spec_fmt suite_builder header file read_method sheet_count=5 =
 
         group_builder.specify "should give an informative error when reading an empty table" <|
             t = read_method file (Excel_Format.Sheet "Empty")
-            t.should_fail_with Empty_Sheet_Error
+            t.should_fail_with Empty_Sheet
 
         group_builder.specify "should gracefully handle duplicate column names and formulas" <|
             t = read_method file (Excel_Format.Sheet "Duplicate Columns")
@@ -73,8 +73,43 @@ spec_fmt suite_builder header file read_method sheet_count=5 =
             t_3.at 'B' . to_vector . should_equal [Nothing, 30]
             t_3.at 'C' . to_vector . should_equal [43.2, 54]
 
+        group_builder.specify "should let you read all sheets into a single table" <|
+            wb = read_method file
+            action = wb.read_many on_problems=_
+            tester table =
+                table.row_count . should_equal 25
+                table.column_names . should_equal ["Sheet Name", "Name", "Quantity", "Price", "A", "B", "C", "D", "E", "Student Name", "Enrolment Date", "Item", "Price 1"]
+            problems = [Empty_Sheet.Error, Duplicate_Output_Column_Names.Error ["Price"]]
+            Problems.test_problem_handling action problems tester
+
+        group_builder.specify "should let you read all sheets into a table of tables" <|
+            wb = read_method file
+            action = wb.read_many return=..Table_Of_Tables on_problems=_
+            tester table =
+                table.row_count . should_equal 5
+                table.column_names . should_equal ["Sheet Name", "Table"]
+            problems = [Empty_Sheet.Error, Duplicate_Output_Column_Names.Error ["Price"]]
+            Problems.test_problem_handling action problems tester
+
+        group_builder.specify "should let you read some sheets from xlsx" <|
+            wb = read_method file
+            single_table = wb.read_many ["Simple", "Dates"]
+            single_table.row_count . should_equal 12
+            single_table.column_names . should_equal ["Sheet Name", "Name", "Quantity", "Price", "Student Name", "Enrolment Date"]
+            Problems.assume_no_problems single_table
+
+        group_builder.specify "should let you read some sheets with a bad name from xlsx" <|
+            wb = read_method file
+            single_table = wb.read_many ["Simple", "Dates", "Not A Sheet"]
+            single_table.row_count . should_equal 12
+            single_table.column_names . should_equal ["Sheet Name", "Name", "Quantity", "Price", "Student Name", "Enrolment Date"]
+            single_table.has_warnings.should_be_true
+            warning = Problems.expect_only_warning Invalid_Location single_table
+            warning.location . should_equal "Not A Sheet"
+            warning.to_display_text . should_contain "Unknown sheet or range name or invalid address: 'Not A Sheet'."
+
 type Spec_Write_Data
-    Value ~data counter suffix
+    Value ~data counter suffix prefix
 
     table self = self.data.at 0
     clothes self = self.data.at 1
@@ -85,17 +120,26 @@ type Spec_Write_Data
         clothes = enso_project.data/'clothes.csv' . read
         sub_clothes = clothes.select_columns [0, 1]
         counter = Ref.new 0
-        Spec_Write_Data.Value [table, clothes, sub_clothes] counter suffix
+        prefix = "out_" + (Random.integer 1 10000).to_text + "_"
+        Spec_Write_Data.Value [table, clothes, sub_clothes] counter suffix prefix
 
     teardown self =
-        enso_project.data/"transient" . list "out*" . each .delete
+        enso_project.data/"transient" . list (self.prefix+"*") . each f->
+            f.delete . catch Any error-> IO.println "[CLEANUP] Failed to delete "+f.to_text+": "+error.to_display_text
 
-    create_out self =
+    create_out self suffix=self.suffix =
         i = self.counter.get + 1
         self.counter.put i
-        f = enso_project.data / "transient" / ("out" + i.to_text + "." + self.suffix)
+        f = enso_project.data / "transient" / (self.prefix + i.to_text + "." + suffix)
         Panic.rethrow f.delete_if_exists
         f
+
+type Complex
+    Value re:Float im:Float
+
+type Complex_With_To_String
+    Value re:Float im:Float
+    to_text self = self.re.to_text + " + " + self.im.to_text + "i"
 
 spec_write suite_builder suffix test_sheet_name =
     suite_builder.group ("Write " + suffix + " Files") group_builder->
@@ -154,8 +198,10 @@ spec_write suite_builder suffix test_sheet_name =
             read_1 . should_equal data.table
             read_2 = out.read (Excel_Format.Sheet "Sheet2")
             read_2 . should_equal data.clothes
-            read_3 = out.read.sheet_names
+            written = out.read
+            read_3 = written.sheet_names
             read_3 . should_equal ["Sheet2", "Sheet1"]
+            written.close
 
         group_builder.specify 'should write a table to specific single cell location of an existing sheet' <|
             out = data.create_out
@@ -333,6 +379,11 @@ spec_write suite_builder suffix test_sheet_name =
             extra_another.write out (Excel_Format.Range "Another!A1:D6") on_existing_file=Existing_File_Behavior.Append on_problems=Report_Error . should_succeed
             written = out.read (Excel_Format.Sheet "Another") . select_columns [0, 1, 2]
             written.should_equal expected
+
+        group_builder.specify 'should error gracefully if an unknown extension' <|
+            out = data.create_out suffix="notxls"
+            data.table.write out format=Excel_Format.Workbook on_problems=Report_Error . should_fail_with Illegal_Argument
+            data.table.write out format=Excel_Format.Sheet on_problems=Report_Error . should_fail_with Illegal_Argument
 
         group_builder.specify 'should be able to write to a new dry run file' <|
             out = data.create_out
@@ -596,6 +647,26 @@ spec_write suite_builder suffix test_sheet_name =
             t2.at "A" . to_vector . should_equal ["A", "B", "😊", "D"]
             encodings.delete
 
+        group_builder.specify "should allow to writing custom types" <|
+            custom_types = enso_project.data / "transient" / "custom_types."+suffix
+            custom_types.delete_if_exists . should_succeed
+
+            t1 = Table.new [["A", [Complex.Value 19 89, Complex.Value -1 -42]], ["B", [1, 2]]]
+            t1.write custom_types (Excel_Format.Sheet "Another") . should_succeed
+            t2 = custom_types.read (Excel_Format.Sheet "Another")
+            t2.at "A" . to_vector . should_equal ["(Complex.Value 19.0 89.0)", "(Complex.Value -1.0 -42.0)"]
+            custom_types.delete
+
+        group_builder.specify "should allow to writing custom types that have defined to_string" <|
+            custom_types2 = enso_project.data / "transient" / "custom_types2."+suffix
+            custom_types2.delete_if_exists . should_succeed
+
+            t1 = Table.new [["A", [Complex_With_To_String.Value 19 89, Complex_With_To_String.Value -1 -42]], ["B", [1, 2]]]
+            t1.write custom_types2 (Excel_Format.Sheet "Another") . should_succeed
+            t2 = custom_types2.read (Excel_Format.Sheet "Another")
+            t2.at "A" . to_vector . should_equal ["19.0 + 89.0i", "-1.0 + -42.0i"]
+            custom_types2.delete
+
         group_builder.specify "should be able to overwrite a pre-existing empty file" <|
             empty = enso_project.data / "transient" / "empty."+suffix
             [Existing_File_Behavior.Backup, Existing_File_Behavior.Overwrite, Existing_File_Behavior.Append].each behavior-> Test.with_clue behavior.to_text+": " <|
@@ -610,6 +681,7 @@ spec_write suite_builder suffix test_sheet_name =
 
                 t2 = empty.read (Excel_Format.Sheet "EnsoSheet")
                 t2.should_equal t1
+                empty.delete
 
 
 check_range excel_range sheet_name tlbr_vector single_cell=False =
@@ -801,6 +873,13 @@ add_specs suite_builder =
             table_3 = xlsx_sheet.read . read "Sheet1"
             check_table table_3
 
+            table_4 = xlsx_sheet.read . sheet "Sheet1"
+            check_table table_4
+
+        group_builder.specify "should error if you read by an invalid sheet name" <|
+            xlsx_sheet.read (Excel_Format.Sheet "NoSuchSheet") . should_fail_with Invalid_Location
+            xlsx_sheet.read . read "NoSuchSheet" . should_fail_with Invalid_Location
+
         group_builder.specify "should let you read XLS by sheet index" <|
             table = xls_sheet.read (Excel_Format.Sheet 1)
             check_table table
@@ -808,6 +887,9 @@ add_specs suite_builder =
             table_2 = xls_sheet.read (Excel_Format.Sheet 1 skip_rows=(table.row_count - col_a.length))
             table_2.row_count . should_equal col_a.length
             check_table table_2
+
+            table_4 = xlsx_sheet.read . sheet 1
+            check_table table_4
 
         group_builder.specify "should let you read XLS by sheet name" <|
             table = xls_sheet.read (Excel_Format.Sheet "Sheet1")
@@ -854,6 +936,11 @@ add_specs suite_builder =
             table_4.row_count . should_equal 6
 
     suite_builder.group "Problems" group_builder->
+        group_builder.specify "should report a user-friendly error message when format is missing a required argument" <|
+            r = xlsx_sheet.read (Excel_Format.Range)
+            r.should_fail_with Illegal_Argument
+            r.catch.to_display_text . should_contain "Perhaps the format is missing some required arguments?"
+
         group_builder.specify "should handle non-existing file gracefully" <|
             bad_file = enso_project.data / "DoesNotExists.xlsx"
             result = bad_file.read (Excel_Format.Range "Sheet1!A:C")
@@ -862,6 +949,7 @@ add_specs suite_builder =
 
         group_builder.specify "should handle wrong xls_format gracefully" <|
             xlsx_sheet_copy = enso_project.data / "transient" / "TestSheetCopy.xlsx"
+            xlsx_sheet_copy.delete_if_exists . should_succeed
             xlsx_sheet.copy_to xlsx_sheet_copy
 
             # At first, it fails with File_Error
@@ -882,6 +970,7 @@ add_specs suite_builder =
             r2 = xls_sheet.read (Excel_Format.Range "Sheet1!A:C" xls_format=False)
             r2.should_fail_with File_Error
             r2.catch.should_be_a File_Error.Corrupted_Format
+            xlsx_sheet_copy.delete
 
         group_builder.specify "should handle malformed XLS files gracefully" <|
             bad_file = enso_project.data / "transient" / "malformed.xls"

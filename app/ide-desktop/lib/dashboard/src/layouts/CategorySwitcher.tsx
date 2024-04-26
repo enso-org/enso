@@ -5,17 +5,64 @@ import Home2Icon from 'enso-assets/home2.svg'
 import RecentIcon from 'enso-assets/recent.svg'
 import Trash2Icon from 'enso-assets/trash2.svg'
 
+import type * as text from '#/text'
+
 import * as localStorageProvider from '#/providers/LocalStorageProvider'
 import * as modalProvider from '#/providers/ModalProvider'
+import * as textProvider from '#/providers/TextProvider'
 
 import type * as assetEvent from '#/events/assetEvent'
 import AssetEventType from '#/events/AssetEventType'
 
 import Category from '#/layouts/CategorySwitcher/Category'
 
+import * as aria from '#/components/aria'
+import FocusArea from '#/components/styled/FocusArea'
 import SvgMask from '#/components/SvgMask'
+import UnstyledButton from '#/components/UnstyledButton'
 
-import * as drag from '#/utilities/drag'
+import type * as backend from '#/services/Backend'
+
+// =============
+// === Types ===
+// =============
+
+/** Metadata for a category. */
+interface CategoryMetadata {
+  readonly category: Category
+  readonly icon: string
+  readonly textId: Extract<text.TextId, `${Category}Category`>
+  readonly buttonTextId: Extract<text.TextId, `${Category}CategoryButtonLabel`>
+  readonly dropZoneTextId: Extract<text.TextId, `${Category}CategoryDropZoneLabel`>
+}
+
+// =================
+// === Constants ===
+// =================
+
+const CATEGORY_DATA: CategoryMetadata[] = [
+  {
+    category: Category.recent,
+    icon: RecentIcon,
+    textId: 'recentCategory',
+    buttonTextId: 'recentCategoryButtonLabel',
+    dropZoneTextId: 'recentCategoryDropZoneLabel',
+  },
+  {
+    category: Category.home,
+    icon: Home2Icon,
+    textId: 'homeCategory',
+    buttonTextId: 'homeCategoryButtonLabel',
+    dropZoneTextId: 'homeCategoryDropZoneLabel',
+  },
+  {
+    category: Category.trash,
+    icon: Trash2Icon,
+    textId: 'trashCategory',
+    buttonTextId: 'trashCategoryButtonLabel',
+    dropZoneTextId: 'trashCategoryDropZoneLabel',
+  },
+]
 
 // ============================
 // === CategorySwitcherItem ===
@@ -23,65 +70,60 @@ import * as drag from '#/utilities/drag'
 
 /** Props for a {@link CategorySwitcherItem}. */
 interface InternalCategorySwitcherItemProps {
-  /** When true, the button is not faded out even when not hovered. */
-  readonly active?: boolean
-  /** When true, the button is not clickable. */
-  readonly disabled?: boolean
-  readonly image: string
-  readonly name: string
-  readonly iconClassName?: string
-  readonly onClick: () => void
-  readonly onDragOver: (event: React.DragEvent) => void
-  readonly onDrop: (event: React.DragEvent) => void
+  readonly id: string
+  readonly data: CategoryMetadata
+  readonly isCurrent: boolean
+  readonly onPress: (event: aria.PressEvent) => void
+  readonly acceptedDragTypes: string[]
+  readonly onDrop: (event: aria.DropEvent) => void
 }
 
 /** An entry in a {@link CategorySwitcher}. */
 function CategorySwitcherItem(props: InternalCategorySwitcherItemProps) {
-  const { active = false, disabled = false, image, name, iconClassName, onClick } = props
-  const { onDragOver, onDrop } = props
+  const { data, isCurrent, onPress, acceptedDragTypes, onDrop } = props
+  const { category, icon, textId, buttonTextId, dropZoneTextId } = data
+  const { getText } = textProvider.useText()
+
   return (
-    <button
-      disabled={disabled}
-      title={`Go To ${name}`}
-      className={`group flex items-center rounded-full gap-2 h-8 px-2 hover:bg-frame-selected transition-colors ${
-        active ? 'bg-frame-selected' : 'text-not-selected'
-      } ${disabled ? '' : 'hover:text-primary hover:bg-frame-selected hover:opacity-100'} ${
-        !active && disabled ? 'cursor-not-allowed' : ''
-      }`}
-      onClick={onClick}
-      // Required because `dragover` does not fire on `mouseenter`.
-      onDragEnter={onDragOver}
-      onDragOver={onDragOver}
+    <aria.DropZone
+      aria-label={getText(dropZoneTextId)}
+      getDropOperation={types =>
+        acceptedDragTypes.some(type => types.has(type)) ? 'move' : 'cancel'
+      }
+      className="group relative flex items-center rounded-full drop-target-after"
       onDrop={onDrop}
     >
-      <SvgMask
-        src={image}
-        className={`group-hover:text-icon-selected ${
-          active ? 'text-icon-selected' : 'text-icon-not-selected'
-        } ${iconClassName ?? ''}`}
-      />
-      <span>{name}</span>
-    </button>
+      <UnstyledButton
+        aria-label={getText(buttonTextId)}
+        className={`rounded-inherit ${isCurrent ? 'focus-default' : ''}`}
+        onPress={onPress}
+      >
+        <div
+          className={`selectable ${
+            isCurrent ? 'disabled bg-selected-frame active' : ''
+          } group flex h-row items-center gap-icon-with-text rounded-inherit px-button-x hover:bg-selected-frame`}
+        >
+          <SvgMask
+            src={icon}
+            className={
+              // This explicit class is a special-case due to the unusual shape of the "Recent" icon.
+              // eslint-disable-next-line no-restricted-syntax
+              category === Category.recent ? '-ml-0.5' : ''
+            }
+          />
+          <aria.Text slot="description">{getText(textId)}</aria.Text>
+        </div>
+      </UnstyledButton>
+      <div className="absolute left-full ml-2 hidden group-focus-visible:block">
+        {getText('drop')}
+      </div>
+    </aria.DropZone>
   )
 }
 
 // ========================
 // === CategorySwitcher ===
 // ========================
-
-const CATEGORIES: Category[] = [Category.recent, Category.home, Category.trash]
-
-const CATEGORY_ICONS: Readonly<Record<Category, string>> = {
-  [Category.recent]: RecentIcon,
-  [Category.home]: Home2Icon,
-  [Category.trash]: Trash2Icon,
-}
-
-const CATEGORY_CLASS_NAMES: Readonly<Record<Category, string>> = {
-  [Category.recent]: '-ml-0.5',
-  [Category.home]: '',
-  [Category.trash]: '',
-}
 
 /** Props for a {@link CategorySwitcher}. */
 export interface CategorySwitcherProps {
@@ -95,55 +137,76 @@ export default function CategorySwitcher(props: CategorySwitcherProps) {
   const { category, setCategory, dispatchAssetEvent } = props
   const { unsetModal } = modalProvider.useSetModal()
   const { localStorage } = localStorageProvider.useLocalStorage()
+  const { getText } = textProvider.useText()
 
   React.useEffect(() => {
     localStorage.set('driveCategory', category)
   }, [category, /* should never change */ localStorage])
 
   return (
-    <div className="flex flex-col items-start w-30">
-      <div className="pl-2 pb-1.5">
-        <span className="inline-block font-bold text-sm leading-144.5 h-6 py-0.5">Category</span>
-      </div>
-      {CATEGORIES.map(currentCategory => (
-        <CategorySwitcherItem
-          key={currentCategory}
-          active={category === currentCategory}
-          disabled={category === currentCategory}
-          image={CATEGORY_ICONS[currentCategory]}
-          name={currentCategory}
-          iconClassName={CATEGORY_CLASS_NAMES[currentCategory]}
-          onClick={() => {
-            setCategory(currentCategory)
-          }}
-          onDragOver={event => {
-            if (
-              (category === Category.trash && currentCategory === Category.home) ||
-              (category !== Category.trash && currentCategory === Category.trash)
-            ) {
-              event.preventDefault()
-            }
-          }}
-          onDrop={event => {
-            if (
-              (category === Category.trash && currentCategory === Category.home) ||
-              (category !== Category.trash && currentCategory === Category.trash)
-            ) {
-              event.preventDefault()
-              event.stopPropagation()
-              unsetModal()
-              const payload = drag.ASSET_ROWS.lookup(event)
-              if (payload != null) {
-                dispatchAssetEvent({
-                  type:
-                    category === Category.trash ? AssetEventType.restore : AssetEventType.delete,
-                  ids: new Set(payload.map(item => item.key)),
-                })
-              }
-            }
-          }}
-        />
-      ))}
-    </div>
+    <FocusArea direction="vertical">
+      {innerProps => (
+        <div className="flex w-full flex-col" {...innerProps}>
+          <aria.Header
+            id="header"
+            className="text-header mb-sidebar-section-heading-b px-sidebar-section-heading-x text-sm font-bold"
+          >
+            {getText('category')}
+          </aria.Header>
+          <div
+            aria-label={getText('categorySwitcherMenuLabel')}
+            role="grid"
+            className="flex flex-col items-start"
+          >
+            {CATEGORY_DATA.map(data => (
+              <CategorySwitcherItem
+                key={data.category}
+                id={data.category}
+                data={data}
+                isCurrent={category === data.category}
+                onPress={() => {
+                  setCategory(data.category)
+                }}
+                acceptedDragTypes={
+                  (category === Category.trash && data.category === Category.home) ||
+                  (category !== Category.trash && data.category === Category.trash)
+                    ? ['application/vnd.enso.assets+json']
+                    : []
+                }
+                onDrop={event => {
+                  unsetModal()
+                  void Promise.all(
+                    event.items.flatMap(async item => {
+                      if (item.kind === 'text') {
+                        const text = await item.getText('application/vnd.enso.assets+json')
+                        const payload: unknown = JSON.parse(text)
+                        return Array.isArray(payload)
+                          ? payload.flatMap(key =>
+                              // This is SAFE, assuming only this app creates payloads with
+                              // the specific mimetype above.
+                              // eslint-disable-next-line no-restricted-syntax
+                              typeof key === 'string' ? [key as backend.AssetId] : []
+                            )
+                          : []
+                      } else {
+                        return []
+                      }
+                    })
+                  ).then(keys => {
+                    dispatchAssetEvent({
+                      type:
+                        category === Category.trash
+                          ? AssetEventType.restore
+                          : AssetEventType.delete,
+                      ids: new Set(keys.flat(1)),
+                    })
+                  })
+                }}
+              />
+            ))}
+          </div>
+        </div>
+      )}
+    </FocusArea>
   )
 }

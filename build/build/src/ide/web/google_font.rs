@@ -187,7 +187,7 @@ mod tests {
     async fn new_download() -> Result {
         setup_logging()?;
         let path = r"C:\temp\google_fonts2";
-        let octocrab = ide_ci::github::setup_octocrab().await?;
+        let octocrab = github::setup_octocrab().await?;
         let cache = Cache::new_default().await?;
         let aaa = install(&cache, &octocrab, "mplus1", path).await?;
         dbg!(aaa);

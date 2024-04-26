@@ -21,7 +21,7 @@ import * as eventModule from '#/utilities/event'
 import * as fileIcon from '#/utilities/fileIcon'
 import * as indent from '#/utilities/indent'
 import * as object from '#/utilities/object'
-import Visibility from '#/utilities/visibility'
+import Visibility from '#/utilities/Visibility'
 
 // ================
 // === FileName ===
@@ -34,17 +34,23 @@ export interface FileNameColumnProps extends column.AssetColumnProps {}
  * @throws {Error} when the asset is not a {@link backendModule.FileAsset}.
  * This should never happen. */
 export default function FileNameColumn(props: FileNameColumnProps) {
-  const { item, setItem, selected, state, rowState, setRowState } = props
+  const { item, setItem, selected, state, rowState, setRowState, isEditable } = props
   const { nodeMap, assetEvents, dispatchAssetListEvent } = state
   const toastAndLog = toastAndLogHooks.useToastAndLog()
   const { backend } = backendProvider.useBackend()
   const inputBindings = inputBindingsProvider.useInputBindings()
-  const asset = item.item
-  if (asset.type !== backendModule.AssetType.file) {
+  if (item.type !== backendModule.AssetType.file) {
     // eslint-disable-next-line no-restricted-syntax
     throw new Error('`FileNameColumn` can only display files.')
   }
+  const asset = item.item
   const setAsset = setAssetHooks.useSetAsset(asset, setItem)
+
+  const setIsEditing = (isEditingName: boolean) => {
+    if (isEditable) {
+      setRowState(object.merger({ isEditingName }))
+    }
+  }
 
   // TODO[sb]: Wait for backend implementation. `editable` should also be re-enabled, and the
   // context menu entry should be re-added.
@@ -53,75 +59,79 @@ export default function FileNameColumn(props: FileNameColumnProps) {
     return await Promise.resolve(null)
   }
 
-  eventHooks.useEventHandler(assetEvents, async event => {
-    switch (event.type) {
-      case AssetEventType.newProject:
-      case AssetEventType.newFolder:
-      case AssetEventType.newDataLink:
-      case AssetEventType.newSecret:
-      case AssetEventType.openProject:
-      case AssetEventType.closeProject:
-      case AssetEventType.copy:
-      case AssetEventType.cut:
-      case AssetEventType.cancelCut:
-      case AssetEventType.move:
-      case AssetEventType.delete:
-      case AssetEventType.deleteForever:
-      case AssetEventType.restore:
-      case AssetEventType.download:
-      case AssetEventType.downloadSelected:
-      case AssetEventType.removeSelf:
-      case AssetEventType.temporarilyAddLabels:
-      case AssetEventType.temporarilyRemoveLabels:
-      case AssetEventType.addLabels:
-      case AssetEventType.removeLabels:
-      case AssetEventType.deleteLabel: {
-        // Ignored. These events should all be unrelated to projects.
-        // `delete`, `deleteForever`, `restoreMultiple`, `download`, and `downloadSelected`
-        // are handled by `AssetRow`.
-        break
-      }
-      case AssetEventType.updateFiles:
-      case AssetEventType.uploadFiles: {
-        const file = event.files.get(item.item.id)
-        if (file != null) {
-          const fileId = event.type !== AssetEventType.updateFiles ? null : asset.id
-          rowState.setVisibility(Visibility.faded)
-          try {
-            const createdFile = await backend.uploadFile(
-              { fileId, fileName: asset.title, parentDirectoryId: asset.parentId },
-              file
-            )
-            rowState.setVisibility(Visibility.visible)
-            setAsset(object.merge(asset, { id: createdFile.id }))
-          } catch (error) {
-            switch (event.type) {
-              case AssetEventType.uploadFiles: {
-                dispatchAssetListEvent({ type: AssetListEventType.delete, key: item.key })
-                toastAndLog(null, error)
-                break
-              }
-              case AssetEventType.updateFiles: {
-                toastAndLog(null, error)
-                break
+  eventHooks.useEventHandler(
+    assetEvents,
+    async event => {
+      switch (event.type) {
+        case AssetEventType.newProject:
+        case AssetEventType.newFolder:
+        case AssetEventType.newDataLink:
+        case AssetEventType.newSecret:
+        case AssetEventType.openProject:
+        case AssetEventType.closeProject:
+        case AssetEventType.copy:
+        case AssetEventType.cut:
+        case AssetEventType.cancelCut:
+        case AssetEventType.move:
+        case AssetEventType.delete:
+        case AssetEventType.deleteForever:
+        case AssetEventType.restore:
+        case AssetEventType.download:
+        case AssetEventType.downloadSelected:
+        case AssetEventType.removeSelf:
+        case AssetEventType.temporarilyAddLabels:
+        case AssetEventType.temporarilyRemoveLabels:
+        case AssetEventType.addLabels:
+        case AssetEventType.removeLabels:
+        case AssetEventType.deleteLabel: {
+          // Ignored. These events should all be unrelated to projects.
+          // `delete`, `deleteForever`, `restoreMultiple`, `download`, and `downloadSelected`
+          // are handled by `AssetRow`.
+          break
+        }
+        case AssetEventType.updateFiles:
+        case AssetEventType.uploadFiles: {
+          const file = event.files.get(item.item.id)
+          if (file != null) {
+            const fileId = event.type !== AssetEventType.updateFiles ? null : asset.id
+            rowState.setVisibility(Visibility.faded)
+            try {
+              const createdFile = await backend.uploadFile(
+                { fileId, fileName: asset.title, parentDirectoryId: asset.parentId },
+                file
+              )
+              rowState.setVisibility(Visibility.visible)
+              setAsset(object.merge(asset, { id: createdFile.id }))
+            } catch (error) {
+              switch (event.type) {
+                case AssetEventType.uploadFiles: {
+                  dispatchAssetListEvent({ type: AssetListEventType.delete, key: item.key })
+                  toastAndLog(null, error)
+                  break
+                }
+                case AssetEventType.updateFiles: {
+                  toastAndLog(null, error)
+                  break
+                }
               }
             }
           }
+          break
         }
-        break
       }
-    }
-  })
+    },
+    { isDisabled: !isEditable }
+  )
 
   const handleClick = inputBindings.handler({
     editName: () => {
-      setRowState(object.merger({ isEditingName: true }))
+      setIsEditing(true)
     },
   })
 
   return (
     <div
-      className={`flex text-left items-center align-middle whitespace-nowrap rounded-l-full gap-1 px-1.5 py-1 min-w-max ${indent.indentClass(
+      className={`flex h-full min-w-max items-center gap-name-column-icon whitespace-nowrap rounded-l-full px-name-column-x py-name-column-y ${indent.indentClass(
         item.depth
       )}`}
       onKeyDown={event => {
@@ -133,16 +143,17 @@ export default function FileNameColumn(props: FileNameColumnProps) {
         if (handleClick(event)) {
           // Already handled.
         } else if (eventModule.isSingleClick(event) && selected) {
-          setRowState(object.merger({ isEditingName: true }))
+          setIsEditing(true)
         }
       }}
     >
-      <SvgMask src={fileIcon.fileIcon()} className="m-1" />
+      <SvgMask src={fileIcon.fileIcon()} className="m-name-column-icon size-icon" />
       <EditableSpan
         data-testid="asset-row-name"
         editable={false}
-        className="bg-transparent grow leading-170 h-6 py-px"
+        className="text grow bg-transparent"
         checkSubmittable={newTitle =>
+          newTitle !== item.item.title &&
           (nodeMap.current.get(item.directoryKey)?.children ?? []).every(
             child =>
               // All siblings,
@@ -154,7 +165,7 @@ export default function FileNameColumn(props: FileNameColumnProps) {
           )
         }
         onSubmit={async newTitle => {
-          setRowState(object.merger({ isEditingName: false }))
+          setIsEditing(false)
           if (newTitle !== asset.title) {
             const oldTitle = asset.title
             setAsset(object.merger({ title: newTitle }))
@@ -166,7 +177,7 @@ export default function FileNameColumn(props: FileNameColumnProps) {
           }
         }}
         onCancel={() => {
-          setRowState(object.merger({ isEditingName: false }))
+          setIsEditing(false)
         }}
       >
         {asset.title}

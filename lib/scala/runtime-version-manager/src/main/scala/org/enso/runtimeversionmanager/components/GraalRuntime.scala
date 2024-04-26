@@ -31,9 +31,19 @@ case class GraalRuntime(version: GraalVMVersion, path: Path) {
   def javaHome: Path =
     OS.operatingSystem match {
       case OS.Linux   => path
-      case OS.MacOS   => path / "Contents" / "Home"
+      case OS.MacOS   => findMacOSJavaPath()
       case OS.Windows => path
     }
+
+  /** The bin/ directory may or may not be inside Contents/Home, so check both
+    * possibilities.
+    */
+  def findMacOSJavaPath(): Path = {
+    val contentsHomePath = path / "Contents" / "Home"
+    if (Files.exists(contentsHomePath))
+      contentsHomePath
+    else path
+  }
 
   /** The path to the `java` executable associated with this runtime. */
   def javaExecutable: Path = {

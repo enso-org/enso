@@ -26,7 +26,7 @@ const editingEdge: Interaction = {
   cancel() {
     graph.clearUnconnected()
   },
-  click(_e: PointerEvent, graphNavigator: GraphNavigator): boolean {
+  pointerdown(_e: PointerEvent, graphNavigator: GraphNavigator): boolean {
     if (graph.unconnectedEdge == null) return false
     let source: AstId | undefined
     let sourceNode: NodeId | undefined
@@ -122,6 +122,7 @@ function createEdge(source: AstId, target: PortId) {
   position: absolute;
   top: 0;
   left: 0;
+  pointer-events: none;
 }
 
 .overlay.behindNodes {
@@ -130,9 +131,5 @@ function createEdge(source: AstId, target: PortId) {
 
 .overlay.aboveNodes {
   z-index: 20;
-}
-
-.nonInteractive {
-  pointer-events: none;
 }
 </style>

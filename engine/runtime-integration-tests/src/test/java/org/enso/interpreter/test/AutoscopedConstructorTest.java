@@ -1,11 +1,12 @@
 package org.enso.interpreter.test;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import java.io.ByteArrayOutputStream;
-import org.enso.polyglot.MethodNames;
+import org.enso.common.MethodNames;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.PolyglotException;
 import org.junit.AfterClass;
@@ -196,6 +197,48 @@ public class AutoscopedConstructorTest extends TestBase {
       assertEquals("[8, 2, 7, 4]", c31.execute(8, 7).toString());
     } catch (PolyglotException e) {
       fail(e.getMessage() + " for \n" + out.toString());
+    }
+  }
+
+  @Test
+  public void tooManyConstructors() {
+    final var count = 25;
+    var sb = new StringBuilder();
+    sb.append("type Too\n");
+    for (var i = 0; i < count; i++) {
+      sb.append("    C").append(i);
+      for (var j = 0; j < i; j++) {
+        sb.append(" x").append(j);
+      }
+      sb.append("\n");
+    }
+    sb.append("    materialize v:Too = v\n");
+
+    sb.append("create n =\n");
+    sb.append("    v = case n of\n");
+    for (var i = 0; i < count; i++) {
+      sb.append("        ").append(i).append(" -> ..C").append(i);
+      for (var j = 0; j < i; j++) {
+        sb.append(" ").append(j % 10);
+      }
+      sb.append("\n");
+    }
+    sb.append("    Too.materialize v\n");
+
+    try {
+      var create =
+          ctx.eval("enso", sb.toString())
+              .invokeMember(MethodNames.Module.EVAL_EXPRESSION, "create");
+      assertTrue("Can evaluate", create.canExecute());
+      for (var i = 1; i < count; i++) {
+        var r = create.execute(i);
+        var meta = r.getMetaObject();
+        assertNotNull("At " + i + " meta object for " + r + " found", meta);
+        var n = meta.getMetaSimpleName();
+        assertEquals("At " + i + " got result " + r, "Too", n);
+      }
+    } catch (RuntimeException | Error err) {
+      throw new AssertionError(sb.toString(), err);
     }
   }
 

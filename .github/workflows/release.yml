@@ -23,12 +23,6 @@ jobs:
       - Linux
     steps:
       - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
-        name: Setup conda (GH runners only)
-        uses: s-weigand/setup-conda@v1.2.1
-        with:
-          update-conda: false
-          conda-channels: anaconda, conda-forge
-      - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
         name: Installing wasm-pack
         uses: jetli/wasm-pack-action@v0.4.0
         with:
@@ -43,7 +37,7 @@ jobs:
           clean: false
           submodules: recursive
       - name: Build Script Setup
-        run: ./run --help
+        run: ./run --help || (git clean -ffdx && ./run --help)
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - id: prepare
@@ -53,20 +47,15 @@ jobs:
     outputs:
       ENSO_RELEASE_ID: ${{ steps.prepare.outputs.ENSO_RELEASE_ID }}
       ENSO_VERSION: ${{ steps.prepare.outputs.ENSO_VERSION }}
-  enso-build-ci-gen-job-upload-backend-linux-x86_64:
-    name: Upload Backend (linux, x86_64)
+  enso-build-ci-gen-job-deploy-runtime-linux-x86_64:
+    name: Upload Runtime to ECR (linux, x86_64)
     needs:
       - enso-build-ci-gen-draft-release-linux-x86_64
+      - enso-build-ci-gen-job-upload-backend-linux-x86_64
     runs-on:
       - self-hosted
       - Linux
     steps:
-      - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
-        name: Setup conda (GH runners only)
-        uses: s-weigand/setup-conda@v1.2.1
-        with:
-          update-conda: false
-          conda-channels: anaconda, conda-forge
       - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
         name: Installing wasm-pack
         uses: jetli/wasm-pack-action@v0.4.0
@@ -82,7 +71,59 @@ jobs:
           clean: false
           submodules: recursive
       - name: Build Script Setup
-        run: ./run --help
+        run: ./run --help || (git clean -ffdx && ./run --help)
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - if: "(contains(github.event.pull_request.labels.*.name, 'CI: Clean build required') || inputs.clean_build_required)"
+        name: Clean before
+        run: ./run git-clean
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - run: ./run release deploy-runtime
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.ECR_PUSH_RUNTIME_ACCESS_KEY_ID }}
+          AWS_DEFAULT_REGION: eu-west-1
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.ECR_PUSH_RUNTIME_SECRET_ACCESS_KEY }}
+          ENSO_BUILD_ECR_REPOSITORY: runtime
+          GITHUB_TOKEN: ${{ secrets.CI_PRIVATE_TOKEN }}
+      - if: failure() && runner.os == 'Windows'
+        name: List files if failed (Windows)
+        run: Get-ChildItem -Force -Recurse
+      - if: failure() && runner.os != 'Windows'
+        name: List files if failed (non-Windows)
+        run: ls -lAR
+      - if: "(always()) && (contains(github.event.pull_request.labels.*.name, 'CI: Clean build required') || inputs.clean_build_required)"
+        name: Clean after
+        run: ./run git-clean
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    env:
+      ENSO_RELEASE_ID: ${{ needs.enso-build-ci-gen-draft-release-linux-x86_64.outputs.ENSO_RELEASE_ID }}
+      ENSO_VERSION: ${{ needs.enso-build-ci-gen-draft-release-linux-x86_64.outputs.ENSO_VERSION }}
+  enso-build-ci-gen-job-upload-backend-linux-x86_64:
+    name: Upload Backend (linux, x86_64)
+    needs:
+      - enso-build-ci-gen-draft-release-linux-x86_64
+    runs-on:
+      - self-hosted
+      - Linux
+    steps:
+      - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
+        name: Installing wasm-pack
+        uses: jetli/wasm-pack-action@v0.4.0
+        with:
+          version: v0.10.2
+      - name: Expose Artifact API and context information.
+        uses: actions/github-script@v7
+        with:
+          script: "\n    core.exportVariable(\"ACTIONS_RUNTIME_TOKEN\", process.env[\"ACTIONS_RUNTIME_TOKEN\"])\n    core.exportVariable(\"ACTIONS_RUNTIME_URL\", process.env[\"ACTIONS_RUNTIME_URL\"])\n    core.exportVariable(\"GITHUB_RETENTION_DAYS\", process.env[\"GITHUB_RETENTION_DAYS\"])\n    console.log(context)\n    "
+      - name: Checking out the repository
+        uses: actions/checkout@v4
+        with:
+          clean: false
+          submodules: recursive
+      - name: Build Script Setup
+        run: ./run --help || (git clean -ffdx && ./run --help)
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - if: (always())
@@ -117,12 +158,6 @@ jobs:
       - ARM64
     steps:
       - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
-        name: Setup conda (GH runners only)
-        uses: s-weigand/setup-conda@v1.2.1
-        with:
-          update-conda: false
-          conda-channels: anaconda, conda-forge
-      - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
         name: Installing wasm-pack
         uses: jetli/wasm-pack-action@v0.4.0
         with:
@@ -137,7 +172,7 @@ jobs:
           clean: false
           submodules: recursive
       - name: Build Script Setup
-        run: ./run --help
+        run: ./run --help || (git clean -ffdx && ./run --help)
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - if: (always())
@@ -170,12 +205,6 @@ jobs:
       - macos-latest
     steps:
       - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
-        name: Setup conda (GH runners only)
-        uses: s-weigand/setup-conda@v1.2.1
-        with:
-          update-conda: false
-          conda-channels: anaconda, conda-forge
-      - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
         name: Installing wasm-pack
         uses: jetli/wasm-pack-action@v0.4.0
         with:
@@ -190,7 +219,7 @@ jobs:
           clean: false
           submodules: recursive
       - name: Build Script Setup
-        run: ./run --help
+        run: ./run --help || (git clean -ffdx && ./run --help)
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - if: (always())
@@ -224,12 +253,6 @@ jobs:
       - Windows
     steps:
       - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
-        name: Setup conda (GH runners only)
-        uses: s-weigand/setup-conda@v1.2.1
-        with:
-          update-conda: false
-          conda-channels: anaconda, conda-forge
-      - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
         name: Installing wasm-pack
         uses: jetli/wasm-pack-action@v0.4.0
         with:
@@ -244,7 +267,7 @@ jobs:
           clean: false
           submodules: recursive
       - name: Build Script Setup
-        run: ./run --help
+        run: ./run --help || (git clean -ffdx && ./run --help)
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - if: (always())
@@ -273,20 +296,15 @@ jobs:
     name: Publish release (linux, x86_64)
     needs:
       - enso-build-ci-gen-draft-release-linux-x86_64
-      - enso-build-ci-gen-upload-ide2-linux-x86_64
-      - enso-build-ci-gen-upload-ide2-macos-aarch64
-      - enso-build-ci-gen-upload-ide2-macos-x86_64
-      - enso-build-ci-gen-upload-ide2-windows-x86_64
+      - enso-build-ci-gen-job-deploy-runtime-linux-x86_64
+      - enso-build-ci-gen-upload-ide-linux-x86_64
+      - enso-build-ci-gen-upload-ide-macos-aarch64
+      - enso-build-ci-gen-upload-ide-macos-x86_64
+      - enso-build-ci-gen-upload-ide-windows-x86_64
     runs-on:
       - self-hosted
       - Linux
     steps:
-      - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
-        name: Setup conda (GH runners only)
-        uses: s-weigand/setup-conda@v1.2.1
-        with:
-          update-conda: false
-          conda-channels: anaconda, conda-forge
       - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
         name: Installing wasm-pack
         uses: jetli/wasm-pack-action@v0.4.0
@@ -302,7 +320,7 @@ jobs:
           clean: false
           submodules: recursive
       - name: Build Script Setup
-        run: ./run --help
+        run: ./run --help || (git clean -ffdx && ./run --help)
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - if: "(contains(github.event.pull_request.labels.*.name, 'CI: Clean build required') || inputs.clean_build_required)"
@@ -330,8 +348,8 @@ jobs:
       AWS_SECRET_ACCESS_KEY: ${{ secrets.ARTEFACT_S3_SECRET_ACCESS_KEY }}
       ENSO_RELEASE_ID: ${{ needs.enso-build-ci-gen-draft-release-linux-x86_64.outputs.ENSO_RELEASE_ID }}
       ENSO_VERSION: ${{ needs.enso-build-ci-gen-draft-release-linux-x86_64.outputs.ENSO_VERSION }}
-  enso-build-ci-gen-upload-ide2-linux-x86_64:
-    name: Build New IDE (linux, x86_64)
+  enso-build-ci-gen-upload-ide-linux-x86_64:
+    name: Build IDE (linux, x86_64)
     needs:
       - enso-build-ci-gen-draft-release-linux-x86_64
       - enso-build-ci-gen-job-upload-backend-linux-x86_64
@@ -339,12 +357,6 @@ jobs:
       - self-hosted
       - Linux
     steps:
-      - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
-        name: Setup conda (GH runners only)
-        uses: s-weigand/setup-conda@v1.2.1
-        with:
-          update-conda: false
-          conda-channels: anaconda, conda-forge
       - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
         name: Installing wasm-pack
         uses: jetli/wasm-pack-action@v0.4.0
@@ -360,7 +372,7 @@ jobs:
           clean: false
           submodules: recursive
       - name: Build Script Setup
-        run: ./run --help
+        run: ./run --help || (git clean -ffdx && ./run --help)
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - if: (always())
@@ -368,7 +380,7 @@ jobs:
         run: ./run git-clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - run: ./run ide2 upload --backend-source release --backend-release ${{env.ENSO_RELEASE_ID}}
+      - run: ./run ide upload --backend-source release --backend-release ${{env.ENSO_RELEASE_ID}}
         env:
           ENSO_CLOUD_API_URL: ${{ vars.ENSO_CLOUD_API_URL }}
           ENSO_CLOUD_CHAT_URL: ${{ vars.ENSO_CLOUD_CHAT_URL }}
@@ -377,10 +389,13 @@ jobs:
           ENSO_CLOUD_COGNITO_USER_POOL_ID: ${{ vars.ENSO_CLOUD_COGNITO_USER_POOL_ID }}
           ENSO_CLOUD_COGNITO_USER_POOL_WEB_CLIENT_ID: ${{ vars.ENSO_CLOUD_COGNITO_USER_POOL_WEB_CLIENT_ID }}
           ENSO_CLOUD_ENVIRONMENT: ${{ vars.ENSO_CLOUD_ENVIRONMENT }}
+          ENSO_CLOUD_GOOGLE_ANALYTICS_TAG: ${{ vars.ENSO_CLOUD_GOOGLE_ANALYTICS_TAG }}
           ENSO_CLOUD_REDIRECT: ${{ vars.ENSO_CLOUD_REDIRECT }}
           ENSO_CLOUD_SENTRY_DSN: ${{ vars.ENSO_CLOUD_SENTRY_DSN }}
           ENSO_CLOUD_STRIPE_KEY: ${{ vars.ENSO_CLOUD_STRIPE_KEY }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VITE_ENSO_AG_GRID_LICENSE_KEY: ${{ vars.ENSO_AG_GRID_LICENSE_KEY }}
+          VITE_ENSO_MAPBOX_API_TOKEN: ${{ vars.ENSO_MAPBOX_API_TOKEN }}
       - if: failure() && runner.os == 'Windows'
         name: List files if failed (Windows)
         run: Get-ChildItem -Force -Recurse
@@ -395,8 +410,8 @@ jobs:
     env:
       ENSO_RELEASE_ID: ${{ needs.enso-build-ci-gen-draft-release-linux-x86_64.outputs.ENSO_RELEASE_ID }}
       ENSO_VERSION: ${{ needs.enso-build-ci-gen-draft-release-linux-x86_64.outputs.ENSO_VERSION }}
-  enso-build-ci-gen-upload-ide2-macos-aarch64:
-    name: Build New IDE (macos, aarch64)
+  enso-build-ci-gen-upload-ide-macos-aarch64:
+    name: Build IDE (macos, aarch64)
     needs:
       - enso-build-ci-gen-draft-release-linux-x86_64
       - enso-build-ci-gen-job-upload-backend-macos-aarch64
@@ -406,12 +421,6 @@ jobs:
       - ARM64
     steps:
       - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
-        name: Setup conda (GH runners only)
-        uses: s-weigand/setup-conda@v1.2.1
-        with:
-          update-conda: false
-          conda-channels: anaconda, conda-forge
-      - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
         name: Installing wasm-pack
         uses: jetli/wasm-pack-action@v0.4.0
         with:
@@ -426,7 +435,7 @@ jobs:
           clean: false
           submodules: recursive
       - name: Build Script Setup
-        run: ./run --help
+        run: ./run --help || (git clean -ffdx && ./run --help)
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - if: (always())
@@ -440,7 +449,7 @@ jobs:
         run: npm uninstall --save --workspace enso electron-builder
       - name: Install new Electron Builder
         run: npm install --save-dev --workspace enso electron-builder@24.6.4
-      - run: ./run ide2 upload --backend-source release --backend-release ${{env.ENSO_RELEASE_ID}}
+      - run: ./run ide upload --backend-source release --backend-release ${{env.ENSO_RELEASE_ID}}
         env:
           APPLEID: ${{ secrets.APPLE_NOTARIZATION_USERNAME }}
           APPLEIDPASS: ${{ secrets.APPLE_NOTARIZATION_PASSWORD }}
@@ -456,10 +465,13 @@ jobs:
           ENSO_CLOUD_COGNITO_USER_POOL_ID: ${{ vars.ENSO_CLOUD_COGNITO_USER_POOL_ID }}
           ENSO_CLOUD_COGNITO_USER_POOL_WEB_CLIENT_ID: ${{ vars.ENSO_CLOUD_COGNITO_USER_POOL_WEB_CLIENT_ID }}
           ENSO_CLOUD_ENVIRONMENT: ${{ vars.ENSO_CLOUD_ENVIRONMENT }}
+          ENSO_CLOUD_GOOGLE_ANALYTICS_TAG: ${{ vars.ENSO_CLOUD_GOOGLE_ANALYTICS_TAG }}
           ENSO_CLOUD_REDIRECT: ${{ vars.ENSO_CLOUD_REDIRECT }}
           ENSO_CLOUD_SENTRY_DSN: ${{ vars.ENSO_CLOUD_SENTRY_DSN }}
           ENSO_CLOUD_STRIPE_KEY: ${{ vars.ENSO_CLOUD_STRIPE_KEY }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VITE_ENSO_AG_GRID_LICENSE_KEY: ${{ vars.ENSO_AG_GRID_LICENSE_KEY }}
+          VITE_ENSO_MAPBOX_API_TOKEN: ${{ vars.ENSO_MAPBOX_API_TOKEN }}
       - if: failure() && runner.os == 'Windows'
         name: List files if failed (Windows)
         run: Get-ChildItem -Force -Recurse
@@ -474,8 +486,8 @@ jobs:
     env:
       ENSO_RELEASE_ID: ${{ needs.enso-build-ci-gen-draft-release-linux-x86_64.outputs.ENSO_RELEASE_ID }}
       ENSO_VERSION: ${{ needs.enso-build-ci-gen-draft-release-linux-x86_64.outputs.ENSO_VERSION }}
-  enso-build-ci-gen-upload-ide2-macos-x86_64:
-    name: Build New IDE (macos, x86_64)
+  enso-build-ci-gen-upload-ide-macos-x86_64:
+    name: Build IDE (macos, x86_64)
     needs:
       - enso-build-ci-gen-draft-release-linux-x86_64
       - enso-build-ci-gen-job-upload-backend-macos-x86_64
@@ -483,12 +495,6 @@ jobs:
       - macos-latest
     steps:
       - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
-        name: Setup conda (GH runners only)
-        uses: s-weigand/setup-conda@v1.2.1
-        with:
-          update-conda: false
-          conda-channels: anaconda, conda-forge
-      - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
         name: Installing wasm-pack
         uses: jetli/wasm-pack-action@v0.4.0
         with:
@@ -503,7 +509,7 @@ jobs:
           clean: false
           submodules: recursive
       - name: Build Script Setup
-        run: ./run --help
+        run: ./run --help || (git clean -ffdx && ./run --help)
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - if: (always())
@@ -517,7 +523,7 @@ jobs:
         run: npm uninstall --save --workspace enso electron-builder
       - name: Install new Electron Builder
         run: npm install --save-dev --workspace enso electron-builder@24.6.4
-      - run: ./run ide2 upload --backend-source release --backend-release ${{env.ENSO_RELEASE_ID}}
+      - run: ./run ide upload --backend-source release --backend-release ${{env.ENSO_RELEASE_ID}}
         env:
           APPLEID: ${{ secrets.APPLE_NOTARIZATION_USERNAME }}
           APPLEIDPASS: ${{ secrets.APPLE_NOTARIZATION_PASSWORD }}
@@ -533,10 +539,13 @@ jobs:
           ENSO_CLOUD_COGNITO_USER_POOL_ID: ${{ vars.ENSO_CLOUD_COGNITO_USER_POOL_ID }}
           ENSO_CLOUD_COGNITO_USER_POOL_WEB_CLIENT_ID: ${{ vars.ENSO_CLOUD_COGNITO_USER_POOL_WEB_CLIENT_ID }}
           ENSO_CLOUD_ENVIRONMENT: ${{ vars.ENSO_CLOUD_ENVIRONMENT }}
+          ENSO_CLOUD_GOOGLE_ANALYTICS_TAG: ${{ vars.ENSO_CLOUD_GOOGLE_ANALYTICS_TAG }}
           ENSO_CLOUD_REDIRECT: ${{ vars.ENSO_CLOUD_REDIRECT }}
           ENSO_CLOUD_SENTRY_DSN: ${{ vars.ENSO_CLOUD_SENTRY_DSN }}
           ENSO_CLOUD_STRIPE_KEY: ${{ vars.ENSO_CLOUD_STRIPE_KEY }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VITE_ENSO_AG_GRID_LICENSE_KEY: ${{ vars.ENSO_AG_GRID_LICENSE_KEY }}
+          VITE_ENSO_MAPBOX_API_TOKEN: ${{ vars.ENSO_MAPBOX_API_TOKEN }}
       - if: failure() && runner.os == 'Windows'
         name: List files if failed (Windows)
         run: Get-ChildItem -Force -Recurse
@@ -551,8 +560,8 @@ jobs:
     env:
       ENSO_RELEASE_ID: ${{ needs.enso-build-ci-gen-draft-release-linux-x86_64.outputs.ENSO_RELEASE_ID }}
       ENSO_VERSION: ${{ needs.enso-build-ci-gen-draft-release-linux-x86_64.outputs.ENSO_VERSION }}
-  enso-build-ci-gen-upload-ide2-windows-x86_64:
-    name: Build New IDE (windows, x86_64)
+  enso-build-ci-gen-upload-ide-windows-x86_64:
+    name: Build IDE (windows, x86_64)
     needs:
       - enso-build-ci-gen-draft-release-linux-x86_64
       - enso-build-ci-gen-job-upload-backend-windows-x86_64
@@ -561,12 +570,6 @@ jobs:
       - Windows
     steps:
       - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
-        name: Setup conda (GH runners only)
-        uses: s-weigand/setup-conda@v1.2.1
-        with:
-          update-conda: false
-          conda-channels: anaconda, conda-forge
-      - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
         name: Installing wasm-pack
         uses: jetli/wasm-pack-action@v0.4.0
         with:
@@ -581,7 +584,7 @@ jobs:
           clean: false
           submodules: recursive
       - name: Build Script Setup
-        run: ./run --help
+        run: ./run --help || (git clean -ffdx && ./run --help)
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - if: (always())
@@ -589,7 +592,7 @@ jobs:
         run: ./run git-clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - run: ./run ide2 upload --backend-source release --backend-release ${{env.ENSO_RELEASE_ID}}
+      - run: ./run ide upload --backend-source release --backend-release ${{env.ENSO_RELEASE_ID}}
         env:
           ENSO_CLOUD_API_URL: ${{ vars.ENSO_CLOUD_API_URL }}
           ENSO_CLOUD_CHAT_URL: ${{ vars.ENSO_CLOUD_CHAT_URL }}
@@ -598,10 +601,13 @@ jobs:
           ENSO_CLOUD_COGNITO_USER_POOL_ID: ${{ vars.ENSO_CLOUD_COGNITO_USER_POOL_ID }}
           ENSO_CLOUD_COGNITO_USER_POOL_WEB_CLIENT_ID: ${{ vars.ENSO_CLOUD_COGNITO_USER_POOL_WEB_CLIENT_ID }}
           ENSO_CLOUD_ENVIRONMENT: ${{ vars.ENSO_CLOUD_ENVIRONMENT }}
+          ENSO_CLOUD_GOOGLE_ANALYTICS_TAG: ${{ vars.ENSO_CLOUD_GOOGLE_ANALYTICS_TAG }}
           ENSO_CLOUD_REDIRECT: ${{ vars.ENSO_CLOUD_REDIRECT }}
           ENSO_CLOUD_SENTRY_DSN: ${{ vars.ENSO_CLOUD_SENTRY_DSN }}
           ENSO_CLOUD_STRIPE_KEY: ${{ vars.ENSO_CLOUD_STRIPE_KEY }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VITE_ENSO_AG_GRID_LICENSE_KEY: ${{ vars.ENSO_AG_GRID_LICENSE_KEY }}
+          VITE_ENSO_MAPBOX_API_TOKEN: ${{ vars.ENSO_MAPBOX_API_TOKEN }}
           WIN_CSC_KEY_PASSWORD: ${{ secrets.MICROSOFT_CODE_SIGNING_CERT_PASSWORD }}
           WIN_CSC_LINK: ${{ secrets.MICROSOFT_CODE_SIGNING_CERT }}
       - if: failure() && runner.os == 'Windows'

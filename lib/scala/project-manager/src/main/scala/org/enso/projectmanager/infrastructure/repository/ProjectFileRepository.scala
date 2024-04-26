@@ -223,7 +223,7 @@ class ProjectFileRepository[
       .flatMap {
         case Some(project) =>
           fileSystem
-            .removeDir(project.path)
+            .remove(project.path)
             .mapError(th => StorageFailure(th.toString))
         case None =>
           ErrorChannel[F].fail(ProjectNotFoundInIndex)

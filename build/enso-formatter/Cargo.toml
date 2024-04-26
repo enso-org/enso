@@ -8,3 +8,6 @@ edition = "2021"
 regex = { workspace = true }
 ide-ci = { path = "../ci_utils" }
 tokio = { workspace = true }
+
+[lints]
+workspace = true

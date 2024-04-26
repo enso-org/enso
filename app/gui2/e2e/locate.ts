@@ -1,4 +1,5 @@
-import { type Locator, type Page } from '@playwright/test'
+import { expect, type Locator, type Page } from '@playwright/test'
+import assert from 'assert'
 import cssEscape from 'css.escape'
 
 // ==============
@@ -122,12 +123,13 @@ export function graphNode(page: Page | Locator): Node {
   return page.locator('.GraphNode') as Node
 }
 export function graphNodeByBinding(page: Locator | Page, binding: string): Node {
-  return graphNode(page).filter({
-    has: page.locator('.binding').and(page.getByText(binding)),
-  }) as Node
+  return graphNode(page).filter({ has: page.locator('.binding', { hasText: binding }) }) as Node
 }
 export function graphNodeIcon(node: Node) {
-  return node.locator('.icon')
+  return node.locator('.nodeCategoryIcon')
+}
+export function selectedNodes(page: Page | Locator): Node {
+  return page.locator('.GraphNode.selected') as Node
 }
 
 // === Data locators ===
@@ -146,10 +148,12 @@ function componentLocator<T extends string>(className: SanitizeClassName<T>) {
 export const graphEditor = componentLocator('GraphEditor')
 // @ts-expect-error
 export const anyVisualization = componentLocator('GraphVisualization > *')
+export const loadingVisualization = componentLocator('LoadingVisualization')
 export const circularMenu = componentLocator('CircularMenu')
 export const addNewNodeButton = componentLocator('PlusButton')
 export const componentBrowser = componentLocator('ComponentBrowser')
 export const nodeOutputPort = componentLocator('outputPortHoverArea')
+export const smallPlusButton = componentLocator('SmallPlusButton')
 
 export function componentBrowserEntry(
   page: Locator | Page,
@@ -197,4 +201,18 @@ export async function edgesToNodeWithBinding(page: Page, binding: string) {
   const node = graphNodeByBinding(page, binding).first()
   const nodeId = await node.getAttribute('data-node-id')
   return page.locator(`[data-target-node-id="${nodeId}"]`)
+}
+
+// === Output ports ===
+
+/** Returns a location that can be clicked to activate an output port.
+ *  Using a `Locator` would be better, but `position` option of `click` doesn't work.
+ */
+export async function outputPortCoordinates(node: Locator) {
+  const outputPortArea = await node.locator('.outputPortHoverArea').boundingBox()
+  expect(outputPortArea).not.toBeNull()
+  assert(outputPortArea)
+  const centerX = outputPortArea.x + outputPortArea.width / 2
+  const bottom = outputPortArea.y + outputPortArea.height
+  return { x: centerX, y: bottom - 2.0 }
 }

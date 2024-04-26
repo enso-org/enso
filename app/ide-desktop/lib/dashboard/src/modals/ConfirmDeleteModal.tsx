@@ -4,8 +4,12 @@ import * as React from 'react'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
 import * as modalProvider from '#/providers/ModalProvider'
+import * as textProvider from '#/providers/TextProvider'
 
+import * as aria from '#/components/aria'
 import Modal from '#/components/Modal'
+import ButtonRow from '#/components/styled/ButtonRow'
+import UnstyledButton from '#/components/UnstyledButton'
 
 // ==========================
 // === ConfirmDeleteModal ===
@@ -23,10 +27,11 @@ export interface ConfirmDeleteModalProps {
 /** A modal for confirming the deletion of an asset. */
 export default function ConfirmDeleteModal(props: ConfirmDeleteModalProps) {
   const { actionText, actionButtonLabel = 'Delete', doDelete } = props
-  const toastAndLog = toastAndLogHooks.useToastAndLog()
+  const { getText } = textProvider.useText()
   const { unsetModal } = modalProvider.useSetModal()
+  const toastAndLog = toastAndLogHooks.useToastAndLog()
 
-  const onSubmit = () => {
+  const doSubmit = () => {
     unsetModal()
     try {
       doDelete()
@@ -43,36 +48,28 @@ export default function ConfirmDeleteModal(props: ConfirmDeleteModalProps) {
           element?.focus()
         }}
         tabIndex={-1}
-        className="relative flex flex-col gap-2 rounded-2xl w-96 px-4 p-2 pointer-events-auto before:absolute before:inset-0 before:rounded-2xl before:bg-frame-selected before:backdrop-blur-3xl before:w-full before:h-full"
-        onKeyDown={event => {
-          if (event.key !== 'Escape') {
-            event.stopPropagation()
-          }
-        }}
+        className="pointer-events-auto relative flex w-confirm-delete-modal flex-col gap-modal rounded-default p-modal-wide py-modal before:absolute before:inset before:h-full before:w-full before:rounded-default before:bg-selected-frame before:backdrop-blur-default"
         onClick={event => {
           event.stopPropagation()
         }}
         onSubmit={event => {
           event.preventDefault()
-          onSubmit()
+          doSubmit()
         }}
       >
-        <div className="relative">Are you sure you want to {actionText}?</div>
-        <div className="relative flex gap-2">
-          <button
-            type="submit"
-            className="hover:cursor-pointer inline-block text-white bg-delete rounded-full px-4 py-1"
-          >
+        <aria.Text className="relative">{getText('confirmPrompt', actionText)}</aria.Text>
+        <ButtonRow>
+          <UnstyledButton className="button bg-delete text-white active" onPress={doSubmit}>
             {actionButtonLabel}
-          </button>
-          <button
-            type="button"
-            className="hover:cursor-pointer inline-block bg-frame-selected rounded-full px-4 py-1"
-            onClick={unsetModal}
+          </UnstyledButton>
+          <UnstyledButton
+            autoFocus
+            className="button bg-selected-frame active"
+            onPress={unsetModal}
           >
-            Cancel
-          </button>
-        </div>
+            {getText('cancel')}
+          </UnstyledButton>
+        </ButtonRow>
       </form>
     </Modal>
   )

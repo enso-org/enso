@@ -7,7 +7,7 @@ import org.scalatest.matchers.should.Matchers
 import java.nio.file.Paths
 
 class ApiTest extends AnyFlatSpec with Matchers {
-  import LanguageInfo._
+  import org.enso.common.LanguageInfo._
   val executionContext = new PolyglotContext(
     Context
       .newBuilder(ID)

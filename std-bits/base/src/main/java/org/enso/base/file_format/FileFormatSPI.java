@@ -22,7 +22,7 @@ public abstract class FileFormatSPI {
 
     var providers =
         loader.stream()
-            .filter(provider -> subType.equals(provider.get().getDataLinkFormatName()))
+            .filter(provider -> subType.equalsIgnoreCase(provider.get().getDataLinkFormatName()))
             .toList();
     if (providers.isEmpty()) {
       return null;

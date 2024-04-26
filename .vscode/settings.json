@@ -23,5 +23,7 @@
   ],
   "files.watcherExclude": {
     "**/target": true
-  }
+  },
+  "metals.inlayHints.implicitArguments.enable": true,
+  "metals.inlayHints.implicitConversions.enable": true
 }

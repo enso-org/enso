@@ -10,6 +10,8 @@ import project.Data.Text.Text
 import project.Data.Text.Text_Sub_Range.Text_Sub_Range
 import project.Data.Time.Date_Time.Date_Time
 import project.Data.Vector.Vector
+import project.Enso_Cloud.Data_Link.Data_Link
+import project.Enso_Cloud.Data_Link_Helpers
 import project.Error.Error
 import project.Errors.Common.Dry_Run_Operation
 import project.Errors.Common.Type_Error
@@ -23,6 +25,7 @@ import project.Nothing.Nothing
 import project.Panic.Panic
 import project.Runtime.Context
 import project.Runtime.Managed_Resource.Managed_Resource
+import project.System.File.Data_Link_Access.Data_Link_Access
 import project.System.File.File_Access.File_Access
 import project.System.File.File_Permissions.File_Permissions
 import project.System.File.Generic.File_Like.File_Like
@@ -71,7 +74,7 @@ type File
              import Standard.Examples
 
              example_new = File.new Examples.csv_path
-    new : (Text | File) -> Any
+    new : (Text | File) -> Any ! Illegal_Argument
     new path = case path of
         _ : Text -> if path.contains "://" . not then get_file path else
             protocol = path.split "://" . first
@@ -82,7 +85,7 @@ type File
         _ ->
             ## Check to see if a valid "File" type.
             if (file_types.any file_type-> path.is_a file_type) then path else
-                Error.throw (Type_Error.Error File path "path")
+                Error.throw (Illegal_Argument.Error "The provided path is neither a Text, nor any recognized File-like type.")
 
 
     ## ICON folder_add
@@ -184,15 +187,17 @@ type File
 
             ## Re-wrap the File Not Found error to return the parent directory
                instead of the file itself, as that is the issue if not present.
-               Until #5792 fixes catching `File_Error.Not_Found` specifically,
-               so instead we catch all `File_Error`s and match the needed one.
             wrapped = stream.catch File_Error error-> case error of
                 File_Error.Not_Found file_path -> Error.throw (File_Error.Not_Found file_path.parent)
                 _ -> stream
             Output_Stream.new wrapped (File_Error.handle_java_exceptions self)
 
         Context.Output.if_enabled disabled_message="File writing is forbidden as the Output context is disabled." panic=False <|
-            Managed_Resource.bracket (new_output_stream self open_options) (_.close) action
+            open_as_data_link = (open_options.contains Data_Link_Access.No_Follow . not) && (Data_Link.is_data_link self)
+            if open_as_data_link then Data_Link_Helpers.write_data_link_as_stream self open_options action else
+                # We ignore the Data_Link_Access options at this stage:
+                just_file_options = open_options.filter opt-> opt.is_a File_Access
+                Managed_Resource.bracket (new_output_stream self just_file_options) (_.close) action
 
     ## PRIVATE
        Creates a new output stream for this file. Recommended to use
@@ -241,13 +246,18 @@ type File
                  file.with_input_stream [File_Access.Create, File_Access.Read] action
     with_input_stream : Vector File_Access -> (Input_Stream -> Any ! File_Error) -> Any ! File_Error
     with_input_stream self (open_options : Vector) action =
+        new_input_stream : File -> Vector File_Access -> Output_Stream ! File_Error
+        new_input_stream file open_options =
+            opts = open_options . map (_.to_java)
+            stream = File_Error.handle_java_exceptions file (file.input_stream_builtin opts)
+            Input_Stream.new stream (File_Error.handle_java_exceptions self)
+
         if self.is_directory then Error.throw (File_Error.IO_Error self "File '"+self.path+"' is a directory") else
-            new_input_stream : File -> Vector File_Access -> Output_Stream ! File_Error
-            new_input_stream file open_options =
-                opts = open_options . map (_.to_java)
-                stream = File_Error.handle_java_exceptions file (file.input_stream_builtin opts)
-                Input_Stream.new stream (File_Error.handle_java_exceptions self)
-            Managed_Resource.bracket (new_input_stream self open_options) (_.close) action
+            open_as_data_link = (open_options.contains Data_Link_Access.No_Follow . not) && (Data_Link.is_data_link self)
+            if open_as_data_link then Data_Link_Helpers.read_data_link_as_stream self open_options action else
+                # We ignore the Data_Link_Access options at this stage:
+                just_file_options = open_options.filter opt-> opt.is_a File_Access
+                Managed_Resource.bracket (new_input_stream self just_file_options) (_.close) action
 
     ## ALIAS load, open
        GROUP Input
@@ -284,7 +294,9 @@ type File
     read : File_Format -> Problem_Behavior -> Any ! File_Error
     read self format=Auto_Detect (on_problems=Problem_Behavior.Report_Warning) =
         if self.exists.not then Error.throw (File_Error.Not_Found self) else
-            format.read self on_problems
+            if Data_Link.is_data_link self then Data_Link_Helpers.read_data_link self format on_problems else
+                File_Format.handle_format_missing_arguments format <|
+                    format.read self on_problems
 
     ## ALIAS load bytes, open bytes
        ICON data_input
@@ -339,8 +351,8 @@ type File
 
              example_append = Examples.data_dir / "scratch_file"
     @subpath get_child_widget
-    / : (Text | File) -> File
-    / self subpath = self.resolve subpath
+    / : Text -> File
+    / self (subpath : Text) = self.resolve subpath
 
     ## GROUP Calculations
        ICON folder
@@ -371,7 +383,7 @@ type File
     ## PRIVATE
        Internal method to join two path segments together.
     resolve : Text -> File
-    resolve self subpath = @Builtin_Method "File.resolve"
+    resolve self (subpath : Text) = @Builtin_Method "File.resolve"
 
     ## PRIVATE
        Convert the file descriptor to a JS_Object.
@@ -484,7 +496,8 @@ type File
     is_directory : Boolean
     is_directory self = @Builtin_Method "File.is_directory"
 
-    ## ICON folder_add
+    ## GROUP Output
+       ICON folder_add
        Creates the directory represented by this file if it did not exist.
 
        It also creates parent directories if they did not exist.
@@ -496,11 +509,10 @@ type File
 
              example_is_directory =
                 (Examples.data_dir / "my_directory") . create_directory
-    create_directory : Nothing
+    create_directory : File ! File_Error
     create_directory self =
         Context.Output.if_enabled disabled_message="Directory creation is forbidden as the Output context is disabled." panic=False <|
-            self.create_directory_builtin
-
+            File_Error.handle_java_exceptions self self.create_directory_builtin . if_not_error self
 
     ## PRIVATE
        Creates the directory represented by this file if it did not exist.
@@ -538,6 +550,10 @@ type File
     ## GROUP Metadata
        ICON metadata
        Resolves the parent filesystem node of this file.
+
+       The root directory has no parent, so this method will return `Nothing`.
+       If the file is a relative path, the parent will be resolved relative to
+       the current working directory.
 
        > Example
          Get the parent file of a file.
@@ -586,11 +602,7 @@ type File
              Examples.csv.extension == ".csv"
     extension : Text
     extension self =
-        name = self.name
-        last_dot = name.locate "." mode=Matching_Mode.Last
-        if last_dot.is_nothing then "" else
-            extension = name.drop (Index_Sub_Range.First last_dot.start)
-            if extension == "." then "" else extension
+        find_extension_from_name self.name
 
     ## ICON metadata
        Converts this file to an equivalent file represented with an absolute
@@ -632,8 +644,11 @@ type File
     ## ICON data_output
        Deletes the file.
 
-       If the file is a directory, it must be empty, otherwise a `Panic` will
-       be thrown.
+       Arguments:
+       - recursive: If the target is a non-empty directory, it will only be
+         removed if this is set to `True`. Defaults to `False`, meaning that the
+         operation will fail if the directory is not empty. This option has no
+         effect for files, data links or symlinks.
 
        > Example
          Create a file and then delete it.
@@ -644,10 +659,10 @@ type File
                  file = Examples.data_dir / "my_file"
                  file.write_text "hello"
                  file.delete
-    delete : Nothing ! File_Error
-    delete self =
+    delete : Boolean -> Nothing ! File_Error
+    delete self (recursive : Boolean = False) -> Nothing =
         Context.Output.if_enabled disabled_message="File deleting is forbidden as the Output context is disabled." panic=False <|
-            File_Error.handle_java_exceptions self self.delete_builtin
+            File_Error.handle_java_exceptions self (self.delete_builtin recursive)
 
     ## ICON data_output
        Copies the file to the specified destination.
@@ -656,12 +671,16 @@ type File
        - destination: the destination to move the file to.
        - replace_existing: specifies if the operation should proceed if the
          destination file already exists. Defaults to `False`.
-    copy_to : Writable_File -> Boolean -> Nothing ! File_Error
-    copy_to self (destination : Writable_File) (replace_existing : Boolean = False) =
+    copy_to : File_Like -> Boolean -> File ! File_Error
+    copy_to self (destination : File_Like) (replace_existing : Boolean = False) = Data_Link_Helpers.disallow_links_in_copy self destination <|
         Context.Output.if_enabled disabled_message="File copying is forbidden as the Output context is disabled." panic=False <|
-            case destination.file of
-                _ : File -> local_file_copy self destination.file replace_existing
-                _ -> destination.copy_from_local self replace_existing
+            ## We defer the `Writable_File` conversion after the 'disallow links' check,
+               because the conversion would already start resolving the data link too soon.
+            destination_writable = Writable_File.from destination
+            r = case destination_writable.file of
+                _ : File -> local_file_copy self destination_writable.file replace_existing
+                _ -> destination_writable.copy_from_local self replace_existing
+            r.if_not_error destination_writable.file_for_return
 
     ## ICON data_output
        Moves the file to the specified destination.
@@ -670,21 +689,28 @@ type File
        - destination: the destination to move the file to.
        - replace_existing: specifies if the operation should proceed if the
          destination file already exists. Defaults to `False`.
-    move_to : Writable_File -> Boolean -> Nothing ! File_Error
-    move_to self (destination : Writable_File) (replace_existing : Boolean = False) =
+    move_to : File_Like -> Boolean -> File ! File_Error
+    move_to self (destination : File_Like) (replace_existing : Boolean = False) = Data_Link_Helpers.disallow_links_in_move self destination <|
         Context.Output.if_enabled disabled_message="File moving is forbidden as the Output context is disabled." panic=False <|
-            case destination.file of
-                _ : File -> local_file_move self destination.file replace_existing
+            ## We defer the `Writable_File` conversion after the 'disallow links' check,
+               because the conversion would already start resolving the data link too soon.
+            destination_writable = Writable_File.from destination
+            r = case destination_writable.file of
+                _ : File -> local_file_move self destination_writable.file replace_existing
                 _ ->
-                    r = destination.copy_from_local self replace_existing
+                    r = destination_writable.copy_from_local self replace_existing
                     r.if_not_error <|
                         self.delete . if_not_error r
+            r.if_not_error destination_writable.file_for_return
 
     ## ICON data_output
        Deletes the file if it exists on disk.
 
-       If the file is a directory, it must be empty, otherwise a `Panic` will
-       be thrown.
+       Arguments:
+       - recursive: If the target is a non-empty directory, it will only be
+         removed if this is set to `True`. Defaults to `False`, meaning that the
+         operation will fail if the directory is not empty. This option has no
+         effect for files, data links or symlinks.
 
        > Example
          Delete a file if it exists on disk.
@@ -692,8 +718,8 @@ type File
              import Standard.Examples
 
              example_del_if_exists = Examples.scratch_file.delete_if_exists
-    delete_if_exists : Nothing ! File_Error
-    delete_if_exists self = if self.exists then self.delete else Nothing
+    delete_if_exists : Boolean -> Nothing ! File_Error
+    delete_if_exists self (recursive : Boolean = False) = if self.exists then self.delete recursive else Nothing
 
     ## PRIVATE
        Reads first `n` bytes from the file (or less if the file is too small)
@@ -763,9 +789,7 @@ type File
                  Examples.data_dir.list name_filter="**.{txt,md}" recursive=True
     list : Text -> Boolean -> Vector File
     list self name_filter:Text="" recursive:Boolean=False =
-        all_files = case recursive of
-            True -> list_descendants self
-            False -> self.list_immediate_children
+        all_files = if recursive then list_descendants self else self.list_immediate_children
         case name_filter of
             "" -> all_files
             _ ->
@@ -811,16 +835,15 @@ type File
    itself is returned.
 list_descendants : File -> Vector File
 list_descendants file =
-    builder = Vector.new_builder
-    go file =
-        builder.append file
-        case file.is_directory of
-            True ->
-                children = file.list_immediate_children
-                children.each go
-            False -> Nothing
-    go file
-    builder.to_vector
+    Vector.build builder->
+        go file =
+            builder.append file
+            case file.is_directory of
+                True ->
+                    children = file.list_immediate_children
+                    children.each go
+                False -> Nothing
+        go file
 
 ## PRIVATE
 
@@ -865,19 +888,17 @@ file_as_java (file : File) = Java_File.new file.absolute.normalize.path
 File_Like.from (that : File) = File_Like.Value that
 
 ## PRIVATE
-Writable_File.from (that : File) =
+Writable_File.from (that : File) = if Data_Link.is_data_link that then Data_Link_Helpers.interpret_data_link_as_writable_file that else
     Writable_File.Value that.absolute.normalize Local_File_Write_Strategy.instance
 
 ## PRIVATE
-local_file_copy : File -> File -> Boolean -> Nothing ! File_Error
-local_file_copy source destination replace_existing =
+local_file_copy (source : File) (destination : File) (replace_existing : Boolean) -> Nothing =
     File_Error.handle_java_exceptions source <|
         copy_options = if replace_existing then [StandardCopyOption.REPLACE_EXISTING] else []
         source.copy_builtin destination copy_options
 
 ## PRIVATE
-local_file_move : File -> File -> Boolean -> Nothing ! File_Error
-local_file_move source destination replace_existing =
+local_file_move (source : File) (destination : File) (replace_existing : Boolean) -> Nothing =
     File_Error.handle_java_exceptions source <|
         copy_options = if replace_existing then [StandardCopyOption.REPLACE_EXISTING] else []
         source.move_builtin destination copy_options

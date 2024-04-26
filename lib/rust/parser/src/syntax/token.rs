@@ -96,8 +96,6 @@
 use crate::prelude::*;
 use crate::source::*;
 
-use enso_shapely_macros::tagged_enum;
-
 
 
 // =============
@@ -259,7 +257,7 @@ macro_rules! with_token_definition { ($f:ident ($($args:tt)*)) => { $f! { $($arg
         Wildcard {
             pub lift_level: u32
         },
-        AutoScope,
+        SuspendedDefaultArguments,
         Ident {
             pub is_free:               bool,
             pub lift_level:            u32,
@@ -284,10 +282,7 @@ macro_rules! with_token_definition { ($f:ident ($($args:tt)*)) => { $f! { $($arg
         TextEnd,
         TextSection,
         TextEscape {
-            #[serde(serialize_with = "crate::serialization::serialize_optional_char")]
-            #[serde(deserialize_with = "crate::serialization::deserialize_optional_char")]
-            #[reflect(as = "char")]
-            pub value: Option<char>,
+            pub value: Codepoint,
         },
         TextInitialNewline,
         TextNewline,
@@ -340,6 +335,7 @@ pub struct OperatorProperties {
     is_arrow:                  bool,
     is_sequence:               bool,
     is_suspension:             bool,
+    is_autoscope:              bool,
     is_annotation:             bool,
     is_dot:                    bool,
     is_special:                bool,
@@ -427,6 +423,11 @@ impl OperatorProperties {
         Self { is_suspension: true, ..self }
     }
 
+    /// Return a copy of this operator, modified to be flagged as the autoscope operator.
+    pub fn as_autoscope(self) -> Self {
+        Self { is_autoscope: true, ..self }
+    }
+
     /// Return a copy of this operator, modified to be flagged as the dot operator.
     pub fn as_dot(self) -> Self {
         Self { is_dot: true, ..self }
@@ -490,6 +491,11 @@ impl OperatorProperties {
     /// Return whether this operator is the execution-suspension operator.
     pub fn is_suspension(&self) -> bool {
         self.is_suspension
+    }
+
+    /// Return whether this operator is the autoscope operator.
+    pub fn is_autoscope(&self) -> bool {
+        self.is_autoscope
     }
 
     /// Return whether this operator is the annotation operator.
@@ -585,6 +591,67 @@ pub enum Base {
 }
 
 
+// === Text literals ===
+
+/// Represents any of:
+/// - A valid Unicode codepoint (i.e. a `char`).
+/// - A value that does not constitute a legal codepoint according to the Unicode standard, but is
+///   allowed in Enso strings and can be included in Enso text as an escape sequence. This includes
+///   unpaired surrogates.
+/// - A value representing the absence of a valid Unicode codepoint; this is included in the
+///   `Codepoint` type rather than using `Option<Codepoint>` in order to simplify defining efficient
+///   serialization for optional codepoints.
+#[derive(Clone, Copy, PartialEq, Eq, Serialize, Reflect, Deserialize, Debug)]
+#[reflect(transparent)]
+pub struct Codepoint(#[reflect(as = "char")] u32);
+
+impl Default for Codepoint {
+    fn default() -> Self {
+        Codepoint::none()
+    }
+}
+
+impl Codepoint {
+    /// Cast a `char` to a `Codepoint`; this is a widening conversion and will never result in
+    /// `Codepoint::none`.
+    pub const fn from_char(value: char) -> Self {
+        Codepoint(value as u32)
+    }
+
+    fn is_allowed_invalid_codepoint(value: u32) -> bool {
+        let unpaired_surrogates = 0xD800..=0xDFFF;
+        unpaired_surrogates.contains(&value)
+    }
+
+    /// Create either a valid `Codepoint` or `Codepoint::none` from the given value.
+    pub fn from_u32(value: u32) -> Self {
+        if let Some(c) = char::from_u32(value) {
+            Self::from_char(c)
+        } else if Self::is_allowed_invalid_codepoint(value) {
+            Codepoint(value)
+        } else {
+            Codepoint::none()
+        }
+    }
+
+    /// Return the representation of an unspecified or out-of-range codepoint.
+    pub const fn none() -> Self {
+        Codepoint(0xFFFF_FFFF)
+    }
+
+    /// Return true if this value is `Codepoint::none`.
+    pub const fn is_none(self) -> bool {
+        self.0 == Self::none().0
+    }
+
+    /// Return the value as a `char`, if it is a valid unicode Codepoint (and not
+    /// `Codepoint::none` or an unpaired surrogate).
+    pub const fn to_char(self) -> Option<char> {
+        char::from_u32(self.0)
+    }
+}
+
+
 // === Macro-based implementation ===
 
 macro_rules! generate_token_aliases {
@@ -610,15 +677,6 @@ macro_rules! generate_token_aliases {
                 $($($field : $field_ty),*)?
             ) -> $variant<'s> {
                 Token(left_offset, code, variant::$variant($($($field),*)?))
-            }
-
-            /// Constructor.
-            pub fn [<$variant:snake:lower _>]<'s> (
-                left_offset: impl Into<Offset<'s>>,
-                code: Code<'s>,
-                $($($field : $field_ty),*)?
-            ) -> Token<'s> {
-                Token(left_offset, code, variant::$variant($($($field),*)?)).into()
             }
 
             impl<'s> From<Token<'s, variant::$variant>> for Token<'s, Variant> {

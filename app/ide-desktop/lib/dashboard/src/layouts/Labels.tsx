@@ -5,9 +5,13 @@ import PlusIcon from 'enso-assets/plus.svg'
 import Trash2Icon from 'enso-assets/trash2.svg'
 
 import * as modalProvider from '#/providers/ModalProvider'
+import * as textProvider from '#/providers/TextProvider'
 
+import * as aria from '#/components/aria'
 import Label from '#/components/dashboard/Label'
 import * as labelUtils from '#/components/dashboard/Label/labelUtils'
+import FocusArea from '#/components/styled/FocusArea'
+import FocusRing from '#/components/styled/FocusRing'
 import SvgMask from '#/components/SvgMask'
 
 import ConfirmDeleteModal from '#/modals/ConfirmDeleteModal'
@@ -17,9 +21,9 @@ import NewLabelModal from '#/modals/NewLabelModal'
 import type * as backend from '#/services/Backend'
 
 import * as array from '#/utilities/array'
-import * as assetQuery from '#/utilities/AssetQuery'
 import type AssetQuery from '#/utilities/AssetQuery'
 import * as drag from '#/utilities/drag'
+import * as string from '#/utilities/string'
 
 // ==============
 // === Labels ===
@@ -27,6 +31,7 @@ import * as drag from '#/utilities/drag'
 
 /** Props for a {@link Labels}. */
 export interface LabelsProps {
+  readonly draggable: boolean
   readonly labels: backend.Label[]
   readonly query: AssetQuery
   readonly setQuery: React.Dispatch<React.SetStateAction<AssetQuery>>
@@ -38,106 +43,137 @@ export interface LabelsProps {
 
 /** A list of selectable labels. */
 export default function Labels(props: LabelsProps) {
-  const { labels, query, setQuery, doCreateLabel, doDeleteLabel, newLabelNames } = props
-  const { deletedLabelNames } = props
+  const {
+    labels,
+    query,
+    setQuery,
+    doCreateLabel,
+    doDeleteLabel,
+    newLabelNames,
+    draggable = true,
+    deletedLabelNames,
+  } = props
   const currentLabels = query.labels
   const currentNegativeLabels = query.negativeLabels
   const { setModal } = modalProvider.useSetModal()
+  const { getText } = textProvider.useText()
+  const displayLabels = React.useMemo(
+    () =>
+      labels
+        .filter(label => !deletedLabelNames.has(label.value))
+        .sort((a, b) => string.compareCaseInsensitive(a.value, b.value)),
+    [deletedLabelNames, labels]
+  )
 
   return (
-    <div data-testid="labels" className="flex flex-col items-start w-30">
-      <div className="pl-2 pb-1.5">
-        <span className="inline-block font-bold text-sm leading-144.5 h-6 py-0.5">Labels</span>
-      </div>
-      <ul data-testid="labels-list" className="flex flex-col items-start gap-1">
-        {labels
-          .filter(label => !deletedLabelNames.has(label.value))
-          .sort((a, b) => (a.value > b.value ? 1 : a.value < b.value ? -1 : 0))
-          .map(label => {
-            const negated = currentNegativeLabels.some(term =>
-              array.shallowEqual(term, [label.value])
-            )
-            return (
-              <li key={label.id} className="group flex items-center gap-1">
-                <Label
-                  draggable
-                  color={label.color}
-                  active={
-                    negated || currentLabels.some(term => array.shallowEqual(term, [label.value]))
-                  }
-                  negated={negated}
-                  disabled={newLabelNames.has(label.value)}
-                  onClick={event => {
-                    setQuery(oldQuery =>
-                      assetQuery.toggleLabel(oldQuery, label.value, event.shiftKey)
-                    )
-                  }}
-                  onDragStart={event => {
-                    drag.setDragImageToBlank(event)
-                    const payload: drag.LabelsDragPayload = new Set([label.value])
-                    drag.LABELS.bind(event, payload)
-                    setModal(
-                      <DragModal
-                        event={event}
-                        doCleanup={() => {
-                          drag.LABELS.unbind(payload)
-                        }}
-                      >
-                        <Label active color={label.color} onClick={() => {}}>
-                          {label.value}
-                        </Label>
-                      </DragModal>
-                    )
-                  }}
-                >
-                  {label.value}
-                </Label>
-                {!newLabelNames.has(label.value) && (
-                  <button
-                    className="flex"
-                    onClick={event => {
-                      event.stopPropagation()
+    <FocusArea direction="vertical">
+      {innerProps => (
+        <div
+          data-testid="labels"
+          className="gap-sidebar-section-heading flex w-full flex-col items-start"
+          {...innerProps}
+        >
+          <div className="text-header px-sidebar-section-heading-x text-sm font-bold">
+            {getText('labels')}
+          </div>
+          <div
+            data-testid="labels-list"
+            aria-label={getText('labelsListLabel')}
+            className="flex flex-col items-start gap-labels"
+          >
+            {displayLabels.map(label => {
+              const negated = currentNegativeLabels.some(term =>
+                array.shallowEqual(term, [label.value])
+              )
+              return (
+                <div key={label.id} className="group relative flex items-center gap-label-icons">
+                  <Label
+                    draggable={draggable}
+                    color={label.color}
+                    active={
+                      negated || currentLabels.some(term => array.shallowEqual(term, [label.value]))
+                    }
+                    negated={negated}
+                    isDisabled={newLabelNames.has(label.value)}
+                    onPress={event => {
+                      setQuery(oldQuery =>
+                        oldQuery.withToggled(
+                          'labels',
+                          'negativeLabels',
+                          label.value,
+                          event.shiftKey
+                        )
+                      )
+                    }}
+                    onDragStart={event => {
+                      drag.setDragImageToBlank(event)
+                      const payload: drag.LabelsDragPayload = new Set([label.value])
+                      drag.LABELS.bind(event, payload)
                       setModal(
-                        <ConfirmDeleteModal
-                          actionText={`delete the label '${label.value}'`}
-                          doDelete={() => {
-                            doDeleteLabel(label.id, label.value)
+                        <DragModal
+                          event={event}
+                          doCleanup={() => {
+                            drag.LABELS.unbind(payload)
                           }}
-                        />
+                        >
+                          <Label active color={label.color} onPress={() => {}}>
+                            {label.value}
+                          </Label>
+                        </DragModal>
                       )
                     }}
                   >
-                    <SvgMask
-                      src={Trash2Icon}
-                      alt="Delete"
-                      className="opacity-0 group-hover:opacity-100 text-delete w-4 h-4"
-                    />
-                  </button>
-                )}
-              </li>
-            )
-          })}
-        <li>
-          <Label
-            active
-            color={labelUtils.DEFAULT_LABEL_COLOR}
-            className="bg-frame text-not-selected"
-            onClick={event => {
-              event.stopPropagation()
-              setModal(
-                <NewLabelModal
-                  labels={labels}
-                  eventTarget={event.currentTarget}
-                  doCreate={doCreateLabel}
-                />
+                    {label.value}
+                  </Label>
+                  {!newLabelNames.has(label.value) && (
+                    <FocusRing placement="after">
+                      <aria.Button
+                        className="relative flex after:absolute after:inset-button-focus-ring-inset after:rounded-button-focus-ring"
+                        onPress={() => {
+                          setModal(
+                            <ConfirmDeleteModal
+                              actionText={getText('deleteLabelActionText', label.value)}
+                              doDelete={() => {
+                                doDeleteLabel(label.id, label.value)
+                              }}
+                            />
+                          )
+                        }}
+                      >
+                        <SvgMask
+                          src={Trash2Icon}
+                          alt={getText('delete')}
+                          className="size-icon text-delete transition-all transparent group-has-[[data-focus-visible]]:active group-hover:active"
+                        />
+                      </aria.Button>
+                    </FocusRing>
+                  )}
+                </div>
               )
-            }}
-          >
-            <img src={PlusIcon} className="w-1.5 h-1.5" />
-            <span className="leading-144.5 h-6 py-0.5">new label</span>
-          </Label>
-        </li>
-      </ul>
-    </div>
+            })}
+            <Label
+              color={labelUtils.DEFAULT_LABEL_COLOR}
+              className="bg-selected-frame"
+              onPress={event => {
+                if (event.target instanceof HTMLElement) {
+                  setModal(
+                    <NewLabelModal
+                      labels={labels}
+                      eventTarget={event.target}
+                      doCreate={doCreateLabel}
+                    />
+                  )
+                }
+              }}
+            >
+              {/* This is a non-standard-sized icon. */}
+              {/* eslint-disable-next-line no-restricted-syntax */}
+              <img src={PlusIcon} className="mr-[6px] size-[6px]" />
+              <aria.Text className="text-header">{getText('newLabelButtonLabel')}</aria.Text>
+            </Label>
+          </div>
+        </div>
+      )}
+    </FocusArea>
   )
 }

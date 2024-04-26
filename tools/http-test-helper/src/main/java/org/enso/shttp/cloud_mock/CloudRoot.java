@@ -3,19 +3,43 @@ package org.enso.shttp.cloud_mock;
 import com.sun.net.httpserver.HttpExchange;
 import java.io.IOException;
 import java.net.URI;
-import java.nio.charset.StandardCharsets;
+import org.enso.shttp.HttpMethod;
 import org.enso.shttp.auth.HandlerWithTokenAuth;
 
 public class CloudRoot extends HandlerWithTokenAuth {
   public final String prefix = "/enso-cloud-mock/";
 
-  @Override
-  protected String getSecretToken() {
-    return "TEST-ENSO-TOKEN-caffee";
+  private final ExpiredTokensCounter expiredTokensCounter;
+  private final AssetStore assetStore = new AssetStore();
+  private final CloudHandler[] handlers =
+      new CloudHandler[] {
+        new UsersHandler(),
+        new SecretsHandler(assetStore),
+        new HiddenSecretsHandler(assetStore),
+        new AssetsHandler(assetStore),
+        new PathResolver(assetStore),
+        new DirectoriesHandler(assetStore)
+      };
+
+  public CloudRoot(ExpiredTokensCounter expiredTokensCounter) {
+    this.expiredTokensCounter = expiredTokensCounter;
   }
 
-  private final CloudHandler[] handlers =
-      new CloudHandler[] {new UsersHandler(), new SecretsHandler()};
+  @Override
+  protected boolean isTokenAllowed(String token) {
+    return token.equals("TEST-ENSO-TOKEN-caffee") || token.startsWith("TEST-RENEWED-");
+  }
+
+  @Override
+  protected int getInvalidTokenStatus(String token) {
+    boolean isValidButExpired = token.equals("TEST-EXPIRED-TOKEN-beef");
+    if (isValidButExpired) {
+      expiredTokensCounter.registerExpiredTokenFailure();
+      return 403;
+    }
+
+    return 401;
+  }
 
   @Override
   protected void handleAuthorized(HttpExchange exchange) throws IOException {
@@ -57,7 +81,12 @@ public class CloudRoot extends HandlerWithTokenAuth {
 
       @Override
       public String decodeBodyAsText() throws IOException {
-        return new String(exchange.getRequestBody().readAllBytes(), StandardCharsets.UTF_8);
+        return CloudRoot.this.decodeBodyAsText(exchange);
+      }
+
+      @Override
+      public HttpMethod getMethod() throws IllegalArgumentException {
+        return HttpMethod.valueOf(exchange.getRequestMethod());
       }
     };
   }

@@ -1,23 +1,45 @@
-import { assert, bail } from '@/util/assert'
+import { assert } from '@/util/assert'
 import { Rect } from '@/util/data/rect'
 import { Vec2 } from '@/util/data/vec2'
 import theme from '@/util/theme.json'
+import type { ComputedRef, MaybeRefOrGetter } from 'vue'
+import { toValue } from 'vue'
 
-export interface Environment {
+// Assumed size of a newly created node. This is used to place the component browser and when creating a node before
+// other recently-created nodes have rendered and computed their real sizes.
+export const DEFAULT_NODE_SIZE = new Vec2(300, 32)
+
+const orDefaultSize = (rect: Rect) =>
+  rect.width !== 0 ? rect : new Rect(rect.pos, DEFAULT_NODE_SIZE)
+
+type ToValue<T> = MaybeRefOrGetter<T> | ComputedRef<T>
+
+export function usePlacement(nodeRects: ToValue<Iterable<Rect>>, screenBounds: ToValue<Rect>) {
+  const gap = themeGap()
+  const environment = (selectedNodeRects: Iterable<Rect>) => ({
+    selectedNodeRects: Array.from(selectedNodeRects, orDefaultSize),
+    screenBounds: toValue(screenBounds),
+    nodeRects: Array.from(toValue(nodeRects), orDefaultSize),
+  })
+  return {
+    place: (selectedNodeRects: Iterable<Rect> = [], nodeSize: Vec2 = DEFAULT_NODE_SIZE): Vec2 =>
+      previousNodeDictatedPlacement(nodeSize, environment(selectedNodeRects), gap),
+    collapse: (selectedNodeRects: Iterable<Rect>, nodeSize: Vec2 = DEFAULT_NODE_SIZE): Vec2 =>
+      collapsedNodePlacement(nodeSize, environment(selectedNodeRects), gap),
+  }
+}
+
+interface NonDictatedEnvironment {
   screenBounds: Rect
-  selectedNodeRects: Iterable<Rect>
   nodeRects: Iterable<Rect>
-  mousePosition: Vec2
 }
 
-export interface PlacementOptions {
-  horizontalGap?: number
-  verticalGap?: number
+export interface Environment extends NonDictatedEnvironment {
+  selectedNodeRects: Iterable<Rect>
 }
 
-export interface Placement {
-  position: Vec2
-  pan?: Vec2
+function themeGap(): Vec2 {
+  return new Vec2(theme.node.horizontal_gap, theme.node.vertical_gap)
 }
 
 /** The new node should appear at the center of the screen if there is enough space for the new node.
@@ -33,25 +55,11 @@ export interface Placement {
  * [Documentation](https://github.com/enso-org/design/blob/main/epics/component-browser/design.md#placement-of-newly-opened-component-browser) */
 export function nonDictatedPlacement(
   nodeSize: Vec2,
-  { screenBounds, nodeRects }: Environment,
-  { verticalGap = theme.node.vertical_gap }: PlacementOptions = {},
-): Placement {
+  { screenBounds, nodeRects }: NonDictatedEnvironment,
+  gap: Vec2 = themeGap(),
+): Vec2 {
   const initialPosition = screenBounds.center().sub(new Vec2(nodeSize.y / 2, nodeSize.y / 2))
-  const initialRect = new Rect(initialPosition, nodeSize)
-  let top = initialPosition.y
-  const height = nodeSize.y
-  const bottom = () => top + height
-  const nodeRectsSorted = Array.from(nodeRects).sort((a, b) => a.top - b.top)
-  for (const rect of nodeRectsSorted) {
-    if (initialRect.intersectsX(rect) && rect.bottom + verticalGap > top) {
-      if (rect.top - bottom() < verticalGap) {
-        top = rect.bottom + verticalGap
-      }
-    }
-  }
-  const finalPosition = new Vec2(initialPosition.x, top)
-  if (new Rect(finalPosition, nodeSize).within(screenBounds)) return { position: finalPosition }
-  else return { position: finalPosition, pan: finalPosition.sub(initialPosition) }
+  return seekVertical(new Rect(initialPosition, nodeSize), nodeRects, gap)
 }
 
 /** The new node should be left aligned to the first selected node (order of selection matters).
@@ -78,39 +86,20 @@ export function nonDictatedPlacement(
 export function previousNodeDictatedPlacement(
   nodeSize: Vec2,
   { screenBounds, selectedNodeRects, nodeRects }: Environment,
-  {
-    horizontalGap = theme.node.horizontal_gap,
-    verticalGap = theme.node.vertical_gap,
-  }: PlacementOptions = {},
-): Placement {
+  gap: Vec2 = themeGap(),
+): Vec2 {
   let initialLeft: number | undefined
   let top = -Infinity
   for (const rect of selectedNodeRects) {
     initialLeft ??= rect.left
-    const newTop = rect.bottom + verticalGap
+    const newTop = rect.bottom + gap.y
     if (newTop > top) top = newTop
   }
-  if (initialLeft == null)
-    bail('There are no selected nodes, so placement cannot be dictated by the previous node.')
-  let left = initialLeft
-  const width = nodeSize.x
-  const right = () => left + width
-  const initialPosition = new Vec2(left, top)
-  const initialRect = new Rect(initialPosition, nodeSize)
-  const sortedNodeRects = Array.from(nodeRects).sort((a, b) => a.left - b.left)
-  for (const rect of sortedNodeRects) {
-    if (initialRect.intersectsY(rect) && rect.right + horizontalGap > left) {
-      if (rect.left - right() < horizontalGap) {
-        left = rect.right + horizontalGap
-      }
-    }
+  if (initialLeft == null) {
+    return nonDictatedPlacement(nodeSize, { screenBounds, nodeRects }, gap)
   }
-  const finalPosition = new Vec2(left, top)
-  if (new Rect(finalPosition, nodeSize).within(screenBounds)) return { position: finalPosition }
-  else {
-    const screenCenter = screenBounds.center().sub(new Vec2(nodeSize.y / 2, nodeSize.y / 2))
-    return { position: finalPosition, pan: finalPosition.sub(screenCenter) }
-  }
+  const initialPosition = new Vec2(initialLeft, top)
+  return seekHorizontal(new Rect(initialPosition, nodeSize), nodeRects, gap)
 }
 
 /** The new node should appear exactly below the mouse.
@@ -121,12 +110,11 @@ export function previousNodeDictatedPlacement(
  *
  * [Documentation](https://github.com/enso-org/design/blob/main/epics/component-browser/design.md#placement-of-newly-opened-component-browser) */
 export function mouseDictatedPlacement(
-  nodeSize: Vec2,
-  { mousePosition }: Environment,
-  _opts?: PlacementOptions,
-): Placement {
+  mousePosition: Vec2,
+  nodeSize: Vec2 = DEFAULT_NODE_SIZE,
+): Vec2 {
   const nodeRadius = nodeSize.y / 2
-  return { position: mousePosition.add(new Vec2(nodeRadius, nodeRadius)) }
+  return mousePosition.add(new Vec2(nodeRadius, nodeRadius))
 }
 
 /** The new node should appear at the average Y-position of selected nodes and with the X-position of the leftmost node.
@@ -143,45 +131,51 @@ export function mouseDictatedPlacement(
  */
 export function collapsedNodePlacement(
   nodeSize: Vec2,
-  { screenBounds, selectedNodeRects, nodeRects }: Environment,
-  { verticalGap = theme.node.vertical_gap }: PlacementOptions = {},
-): Placement {
+  { selectedNodeRects, nodeRects }: Environment,
+  gap = themeGap(),
+): Vec2 {
   let leftMostX
   let y = 0
   let selectedNodeRectsCount = 0
+  const selectedRectKeys = new Set<string>()
   for (const rect of selectedNodeRects) {
     leftMostX = leftMostX == null ? rect.pos.x : Math.min(leftMostX, rect.pos.x)
     y += rect.pos.y
     selectedNodeRectsCount++
+    selectedRectKeys.add(rect.key())
   }
   assert(
     selectedNodeRectsCount > 0 && leftMostX != null,
     'averagePositionPlacement works only if at least one node is selected.',
   )
   const initialPosition = new Vec2(leftMostX, y / selectedNodeRectsCount)
-  const nonSelectedNodeRects = []
-  outer: for (const rect of nodeRects) {
-    for (const sel of selectedNodeRects) {
-      if (sel.equals(rect)) {
-        continue outer
-      }
-    }
-    nonSelectedNodeRects.push(rect)
-  }
-  let top = initialPosition.y
-  const initialRect = new Rect(initialPosition, nodeSize)
-  const nodeRectsSorted = Array.from(nonSelectedNodeRects).sort((a, b) => a.top - b.top)
+  const nonSelectedNodeRects = [...nodeRects].filter((rect) => !selectedRectKeys.has(rect.key()))
+  return seekVertical(new Rect(initialPosition, nodeSize), nonSelectedNodeRects, gap)
+}
+
+/** Given a preferred location for a node, adjust the top as much as necessary for it not to collide with any of the
+ *  provided `otherRects`. */
+export function seekVertical(preferredRect: Rect, otherRects: Iterable<Rect>, gap = themeGap()) {
+  const initialRect = orDefaultSize(preferredRect)
+  const nodeRectsSorted = Array.from(otherRects, orDefaultSize).sort((a, b) => a.top - b.top)
+  const bottom = () => top + initialRect.height
+  let top = initialRect.top
   for (const rect of nodeRectsSorted) {
-    if (initialRect.intersectsX(rect) && rect.bottom + verticalGap > top) {
-      if (rect.top - (top + nodeSize.y) < verticalGap) {
-        top = rect.bottom + verticalGap
+    if (initialRect.intersectsX(rect) && rect.bottom + gap.y > top) {
+      if (rect.top - bottom() < gap.y) {
+        top = rect.bottom + gap.y
       }
     }
   }
-  const finalPosition = new Vec2(initialPosition.x, top)
-  if (new Rect(finalPosition, nodeSize).within(screenBounds)) {
-    return { position: finalPosition }
-  } else {
-    return { position: finalPosition, pan: finalPosition.sub(initialPosition) }
-  }
+  return new Vec2(initialRect.left, top)
+}
+
+/** Given a preferred location for a node, adjust the left edge as much as necessary for it not to collide with any of
+ *  the provided `otherRects`. */
+export function seekHorizontal(initialRect: Rect, otherRects: Iterable<Rect>, gap = themeGap()) {
+  return seekVertical(
+    orDefaultSize(initialRect).reflectXY(),
+    Array.from(otherRects, (rect) => orDefaultSize(rect).reflectXY()),
+    gap.reflectXY(),
+  ).reflectXY()
 }

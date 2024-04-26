@@ -1,16 +1,14 @@
 import { test, type Page } from '@playwright/test'
-import assert from 'assert'
-import os from 'os'
 import * as actions from './actions'
 import { expect } from './customExpect'
+import { CONTROL_KEY } from './keyboard'
 import * as locate from './locate'
 
-const CONTROL_KEY = os.platform() === 'darwin' ? 'Meta' : 'Control'
 const ACCEPT_SUGGESTION_SHORTCUT = `${CONTROL_KEY}+Enter`
 
 async function deselectAllNodes(page: Page) {
   await page.keyboard.press('Escape')
-  await expect(page.locator('.GraphNode.selected')).toHaveCount(0)
+  await expect(locate.selectedNodes(page)).toHaveCount(0)
 }
 
 async function expectAndCancelBrowser(page: Page, expectedInput: string) {
@@ -47,24 +45,38 @@ test('Different ways of opening Component Browser', async ({ page }) => {
   await locate.graphEditor(page).press('Enter')
   await expectAndCancelBrowser(page, 'final.')
   // Dragging out an edge
-  // `click` method of locator could be simpler, but `position` option doesn't work.
-  const outputPortArea = await locate
-    .graphNodeByBinding(page, 'final')
-    .locator('.outputPortHoverArea')
-    .boundingBox()
-  assert(outputPortArea)
-  const outputPortX = outputPortArea.x + outputPortArea.width / 2.0
-  const outputPortY = outputPortArea.y + outputPortArea.height - 2.0
-  await page.mouse.click(outputPortX, outputPortY)
+  const outputPort = await locate.outputPortCoordinates(locate.graphNodeByBinding(page, 'final'))
+  await page.mouse.click(outputPort.x, outputPort.y)
   await page.mouse.click(100, 500)
   await expectAndCancelBrowser(page, 'final.')
   // Double-clicking port
   // TODO[ao] Without timeout, even the first click would be treated as double due to previous
   // event. Probably we need a better way to simulate double clicks.
   await page.waitForTimeout(600)
-  await page.mouse.click(outputPortX, outputPortY)
-  await page.mouse.click(outputPortX, outputPortY)
+  await page.mouse.click(outputPort.x, outputPort.y)
+  await page.mouse.click(outputPort.x, outputPort.y)
   await expectAndCancelBrowser(page, 'final.')
+})
+
+test('Opening Component Browser with small plus buttons', async ({ page }) => {
+  await actions.goToGraph(page)
+
+  // Small (+) button shown when node is hovered
+  await page.keyboard.press('Escape')
+  await page.mouse.move(100, 80)
+  await expect(locate.smallPlusButton(page)).not.toBeVisible()
+  await locate.graphNodeIcon(locate.graphNodeByBinding(page, 'selected')).hover()
+  await expect(locate.smallPlusButton(page)).toBeVisible()
+  await locate.smallPlusButton(page).click()
+  await expectAndCancelBrowser(page, 'selected.')
+
+  // Small (+) button shown when node is sole selection
+  await page.keyboard.press('Escape')
+  await expect(locate.smallPlusButton(page)).not.toBeVisible()
+  await locate.graphNodeByBinding(page, 'selected').click()
+  await expect(locate.smallPlusButton(page)).toBeVisible()
+  await locate.smallPlusButton(page).click()
+  await expectAndCancelBrowser(page, 'selected.')
 })
 
 test('Graph Editor pans to Component Browser', async ({ page }) => {
@@ -87,15 +99,9 @@ test('Graph Editor pans to Component Browser', async ({ page }) => {
   await page.mouse.move(100, 80)
   await page.mouse.up({ button: 'middle' })
   await expect(locate.graphNodeByBinding(page, 'five')).toBeInViewport()
-  const outputPortArea = await locate
-    .graphNodeByBinding(page, 'final')
-    .locator('.outputPortHoverArea')
-    .boundingBox()
-  assert(outputPortArea)
-  const outputPortX = outputPortArea.x + outputPortArea.width / 2.0
-  const outputPortY = outputPortArea.y + outputPortArea.height - 2.0
-  await page.mouse.click(outputPortX, outputPortY)
-  await page.mouse.click(100, 1550)
+  const outputPort = await locate.outputPortCoordinates(locate.graphNodeByBinding(page, 'final'))
+  await page.mouse.click(outputPort.x, outputPort.y)
+  await page.mouse.click(100, 1700)
   await expect(locate.graphNodeByBinding(page, 'five')).not.toBeInViewport()
   await expectAndCancelBrowser(page, 'final.')
 })
@@ -247,6 +253,7 @@ test('Visualization preview: user visualization selection', async ({ page }) => 
   await input.fill('4')
   await expect(input).toHaveValue('4')
   await expect(locate.jsonVisualization(page)).toExist()
+  await expect(locate.jsonVisualization(page)).toContainText('"visualizedExpr": "4"')
   await locate.showVisualizationSelectorButton(page).click()
   await page.getByRole('button', { name: 'Table' }).click()
   // The table visualization is not currently working with `executeExpression` (#9194), but we can test that the JSON
@@ -255,4 +262,56 @@ test('Visualization preview: user visualization selection', async ({ page }) => 
   await page.keyboard.press('Escape')
   await expect(locate.componentBrowser(page)).not.toBeVisible()
   await expect(locate.graphNode(page)).toHaveCount(nodeCount)
+})
+
+test('Component browser handling of overridden record-mode', async ({ page }) => {
+  await actions.goToGraph(page)
+  const node = locate.graphNodeByBinding(page, 'data')
+  const ADDED_PATH = '"/home/enso/Input.txt"'
+  const recordModeToggle = node.getByTestId('overrideRecordingButton')
+  const recordModeIndicator = node.getByTestId('recordingOverriddenButton')
+
+  // Enable record mode for the node.
+  await locate.graphNodeIcon(node).hover()
+  await expect(recordModeToggle).not.toHaveClass(/recording-overridden/)
+  await recordModeToggle.click()
+  // TODO[ao]: The simple move near top-left corner not always works i.e. not always
+  //  `pointerleave` event is emitted. Investigated in https://github.com/enso-org/enso/issues/9478
+  //  once fixed, remember to change the second `await page.mouse.move(700, 1200, { steps: 20 })`
+  //  line below.
+  await page.mouse.move(700, 1200, { steps: 20 })
+  await expect(recordModeIndicator).toBeVisible()
+  await locate.graphNodeIcon(node).hover()
+  await expect(recordModeToggle).toHaveClass(/recording-overridden/)
+  // Ensure editing in the component browser doesn't display the override expression.
+  await locate.graphNodeIcon(node).click({ modifiers: [CONTROL_KEY] })
+  await expect(locate.componentBrowser(page)).toBeVisible()
+  const input = locate.componentBrowserInput(page).locator('input')
+  await expect(input).toHaveValue('Data.read')
+  // Ensure committing an edit doesn't change the override state.
+  await page.keyboard.press('End')
+  await input.pressSequentially(` ${ADDED_PATH}`)
+  await page.keyboard.press('Enter')
+  await expect(locate.componentBrowser(page)).not.toBeVisible()
+  // See TODO above.
+  await page.mouse.move(700, 1200, { steps: 20 })
+  await expect(recordModeIndicator).toBeVisible()
+  // Ensure after editing the node, editing still doesn't display the override expression.
+  await locate.graphNodeIcon(node).click({ modifiers: [CONTROL_KEY] })
+  await expect(locate.componentBrowser(page)).toBeVisible()
+  await expect(input).toHaveValue(`Data.read ${ADDED_PATH}`)
+})
+
+test('AI prompt', async ({ page }) => {
+  await actions.goToGraph(page)
+
+  const node = locate.graphNodeByBinding(page, 'data')
+  await node.click()
+  await expect(node).toBeSelected()
+  await locate.graphEditor(page).press('Enter')
+  await expect(locate.componentBrowser(page)).toBeVisible()
+
+  await page.keyboard.insertText('AI:convert to table')
+  await page.keyboard.press('Enter')
+  await expect(locate.componentBrowserInput(page).locator('input')).toHaveValue('data.to_table')
 })

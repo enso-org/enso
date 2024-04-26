@@ -1,17 +1,12 @@
 from Standard.Base import all
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
-import Standard.Table.Data.Column.Column
-import Standard.Table.Data.Type.Value_Type.Bits
-import Standard.Table.Data.Type.Value_Type.Value_Type
 import Standard.Table.Internal.Java_Exports
+from Standard.Table import Bits, Column, Value_Type
 
 from project.Errors import Unsupported_Database_Operation
 
 polyglot java import java.sql.ResultSet
-polyglot java import java.time.LocalDate as Java_Local_Date
-polyglot java import java.time.LocalTime as Java_Local_Time
-
 polyglot java import org.enso.database.JDBCUtils
 polyglot java import org.enso.table.problems.ProblemAggregator
 
@@ -132,9 +127,7 @@ fallback_fetcher =
 
 ## PRIVATE
 date_fetcher =
-    fetch_value rs i =
-        time = rs.getObject i Java_Local_Date.class
-        if rs.wasNull then Nothing else time
+    fetch_value rs i = JDBCUtils.getLocalDate rs i
     make_builder initial_size _ =
         java_builder = Java_Exports.make_date_builder initial_size
         make_builder_from_java_object_builder java_builder
@@ -142,9 +135,7 @@ date_fetcher =
 
 ## PRIVATE
 time_fetcher =
-    fetch_value rs i =
-        time = rs.getObject i Java_Local_Time.class
-        if rs.wasNull then Nothing else time
+    fetch_value rs i = JDBCUtils.getLocalTime rs i
     make_builder initial_size _ =
         java_builder = Java_Exports.make_time_of_day_builder initial_size
         make_builder_from_java_object_builder java_builder

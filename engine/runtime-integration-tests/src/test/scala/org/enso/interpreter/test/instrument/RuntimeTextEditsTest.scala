@@ -1,8 +1,10 @@
 package org.enso.interpreter.test.instrument
 
 import org.enso.interpreter.runtime.`type`.ConstantsGen
+import org.enso.common.LanguageInfo
 import org.enso.polyglot.{
-  LanguageInfo,
+  ExportedSymbol,
+  ModuleExports,
   RuntimeOptions,
   RuntimeServerInfo,
   Suggestion
@@ -20,6 +22,8 @@ import java.io.{ByteArrayOutputStream, File}
 import java.nio.file.{Files, Paths}
 import java.util.UUID
 import java.util.logging.Level
+
+import scala.collection.immutable.ListSet
 
 @scala.annotation.nowarn("msg=multiarg infix syntax")
 class RuntimeTextEditsTest
@@ -160,7 +164,15 @@ class RuntimeTextEditsTest
         Api.SuggestionsDatabaseModuleUpdateNotification(
           module  = moduleName,
           actions = Vector(Api.SuggestionsDatabaseAction.Clean(moduleName)),
-          exports = Vector(),
+          exports = Vector(
+            Api.ExportsUpdate(
+              ModuleExports(
+                moduleName,
+                ListSet(ExportedSymbol.Method(moduleName, "main"))
+              ),
+              Api.ExportsAction.Add()
+            )
+          ),
           updates = Tree.Root(
             Vector(
               Tree.Node(
@@ -180,7 +192,7 @@ class RuntimeTextEditsTest
                     moduleName,
                     "main",
                     List(),
-                    "Enso_Test.Test.Main",
+                    moduleName,
                     ConstantsGen.ANY,
                     true,
                     None,

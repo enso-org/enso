@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import NodeWidget from '@/components/GraphEditor/NodeWidget.vue'
+import SizeTransition from '@/components/SizeTransition.vue'
 import { WidgetInput, defineWidget, widgetProps } from '@/providers/widgetRegistry'
 import { injectWidgetTree } from '@/providers/widgetTree'
 import { Ast } from '@/util/ast'
@@ -36,9 +37,13 @@ const operatorStyle = computed(() => {
 </script>
 
 <script lang="ts">
-export const widgetDefinition = defineWidget(ArgumentApplicationKey, {
-  priority: -20,
-})
+export const widgetDefinition = defineWidget(
+  ArgumentApplicationKey,
+  {
+    priority: -20,
+  },
+  import.meta.hot,
+)
 </script>
 
 <template>
@@ -47,17 +52,15 @@ export const widgetDefinition = defineWidget(ArgumentApplicationKey, {
     <div v-if="application.infixOperator" class="infixOp" :style="operatorStyle">
       <NodeWidget :input="WidgetInput.FromAst(application.infixOperator)" />
     </div>
-    <div
-      v-if="tree.extended || !application.argument.hideByDefault"
-      class="argument"
-      :class="{ animateWhenShown: application.argument.hideByDefault }"
-    >
-      <NodeWidget :input="application.argument.toWidgetInput()" nest />
-    </div>
+    <SizeTransition width leftGap>
+      <div v-if="tree.extended || !application.argument.hideByDefault" class="argument">
+        <NodeWidget :input="application.argument.toWidgetInput()" nest />
+      </div>
+    </SizeTransition>
   </span>
 </template>
 
-<style>
+<style scoped>
 .WidgetApplication {
   display: flex;
   align-items: center;
@@ -88,17 +91,5 @@ export const widgetDefinition = defineWidget(ArgumentApplicationKey, {
   display: flex;
   flex-direction: row;
   place-items: center;
-}
-
-.animateWhenShown {
-  animation: show 4800ms 100ms cubic-bezier(0.38, 0.97, 0.56, 0.76) forwards;
-  max-width: 0;
-  overflow-x: clip;
-}
-
-@keyframes show {
-  100% {
-    max-width: 2000px;
-  }
 }
 </style>

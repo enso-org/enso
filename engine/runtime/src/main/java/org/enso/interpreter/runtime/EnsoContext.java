@@ -37,9 +37,8 @@ import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Consumer;
 import java.util.logging.Level;
+import org.enso.common.LanguageInfo;
 import org.enso.compiler.Compiler;
-import org.enso.compiler.PackageRepository;
-import org.enso.compiler.PackageRepositoryUtils;
 import org.enso.compiler.data.CompilerConfig;
 import org.enso.distribution.DistributionManager;
 import org.enso.distribution.locking.LockManager;
@@ -60,7 +59,6 @@ import org.enso.librarymanager.resolved.LibraryRoot;
 import org.enso.pkg.Package;
 import org.enso.pkg.PackageManager;
 import org.enso.pkg.QualifiedName;
-import org.enso.polyglot.LanguageInfo;
 import org.enso.polyglot.RuntimeOptions;
 import org.enso.polyglot.debugger.IdExecutionService;
 import org.graalvm.options.OptionKey;
@@ -85,7 +83,7 @@ public final class EnsoContext {
   private final PrintStream err;
   private final InputStream in;
   private final BufferedReader inReader;
-  private @CompilationFinal PackageRepository packageRepository;
+  private @CompilationFinal DefaultPackageRepository packageRepository;
   private @CompilationFinal TopLevelScope topScope;
   private final ThreadManager threadManager;
   private final ThreadExecutors threadExecutors;
@@ -222,7 +220,7 @@ public final class EnsoContext {
 
   private static final Assumption checkNodes =
       Truffle.getRuntime().createAssumption("context check");
-  private static final Set<Node> reportedNulllRootNodes = new HashSet<>();
+  private static final Set<Node> reportedNullRootNodes = new HashSet<>();
   private static long checkUntil = Long.MAX_VALUE;
 
   @TruffleBoundary
@@ -230,9 +228,9 @@ public final class EnsoContext {
     if (System.currentTimeMillis() > checkUntil) {
       checkNodes.invalidate();
     }
-    if (reportedNulllRootNodes.add(n)) {
+    if (reportedNullRootNodes.add(n)) {
       var ex =
-          new Exception(
+          new AssertionError(
               """
         no root node for {n}
         with section: {s}
@@ -243,6 +241,11 @@ public final class EnsoContext {
                   .replace("{r}", "" + n.getRootNode()));
       ex.printStackTrace();
       checkUntil = System.currentTimeMillis() + 10000;
+      var assertsOn = false;
+      assert assertsOn = true;
+      if (assertsOn) {
+        throw ex;
+      }
     }
   }
 
@@ -360,7 +363,11 @@ public final class EnsoContext {
    * @return a qualified name of the module corresponding to the file, if exists.
    */
   public Optional<QualifiedName> getModuleNameForFile(TruffleFile file) {
-    return PackageRepositoryUtils.getModuleNameForFile(packageRepository, file);
+    return scala.jdk.javaapi.CollectionConverters.asJava(packageRepository.getLoadedPackages())
+        .stream()
+        .filter(pkg -> file.startsWith(pkg.sourceDir()))
+        .map(pkg -> pkg.moduleNameForFile(file))
+        .findFirst();
   }
 
   /**
@@ -598,7 +605,7 @@ public final class EnsoContext {
    * @return {@code module}'s package, if exists
    */
   public Optional<Package<TruffleFile>> getPackageOf(TruffleFile file) {
-    return PackageRepositoryUtils.getPackageOf(packageRepository, file);
+    return TruffleCompilerContext.getPackageOf(packageRepository, file);
   }
 
   /**
@@ -718,11 +725,15 @@ public final class EnsoContext {
 
   /**
    * @param name human-readable name of the pool
+   * @param min minimal number of threads kept-alive in the pool
+   * @param max maximal number of available threads
+   * @param maxQueueSize maximal number of pending tasks
    * @param systemThreads use system threads or polyglot threads
    * @return new execution service for this context
    */
-  public ExecutorService newCachedThreadPool(String name, boolean systemThreads) {
-    return threadExecutors.newCachedThreadPool(name, systemThreads);
+  public ExecutorService newCachedThreadPool(
+      String name, int min, int max, int maxQueueSize, boolean systemThreads) {
+    return threadExecutors.newCachedThreadPool(name, systemThreads, min, max, maxQueueSize);
   }
 
   /**
@@ -794,7 +805,7 @@ public final class EnsoContext {
   /**
    * @return the package repository
    */
-  public PackageRepository getPackageRepository() {
+  public DefaultPackageRepository getPackageRepository() {
     return packageRepository;
   }
 

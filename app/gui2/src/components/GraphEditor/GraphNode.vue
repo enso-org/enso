@@ -2,9 +2,18 @@
 import { nodeEditBindings } from '@/bindings'
 import CircularMenu from '@/components/CircularMenu.vue'
 import GraphNodeComment from '@/components/GraphEditor/GraphNodeComment.vue'
-import GraphNodeError from '@/components/GraphEditor/GraphNodeMessage.vue'
+import GraphNodeMessage, {
+  colorForMessageType,
+  iconForMessageType,
+  type MessageType,
+} from '@/components/GraphEditor/GraphNodeMessage.vue'
+import GraphNodeSelection from '@/components/GraphEditor/GraphNodeSelection.vue'
 import GraphVisualization from '@/components/GraphEditor/GraphVisualization.vue'
-import NodeWidgetTree from '@/components/GraphEditor/NodeWidgetTree.vue'
+import NodeWidgetTree, {
+  GRAB_HANDLE_X_MARGIN,
+  ICON_WIDTH,
+} from '@/components/GraphEditor/NodeWidgetTree.vue'
+import type { NodeCreationOptions } from '@/components/GraphEditor/nodeCreation'
 import SvgIcon from '@/components/SvgIcon.vue'
 import { useApproach } from '@/composables/animation'
 import { useDoubleClick } from '@/composables/doubleClick'
@@ -22,15 +31,22 @@ import { Rect } from '@/util/data/rect'
 import { Vec2 } from '@/util/data/vec2'
 import { displayedIconOf } from '@/util/getIconName'
 import { setIfUndefined } from 'lib0/map'
-import type { VisualizationIdentifier } from 'shared/yjsModel'
-import { computed, onUnmounted, ref, watch, watchEffect } from 'vue'
+import type { ExternalId, VisualizationIdentifier } from 'shared/yjsModel'
+import type { EffectScope } from 'vue'
+import { computed, effectScope, onScopeDispose, onUnmounted, ref, watch, watchEffect } from 'vue'
 
 const MAXIMUM_CLICK_LENGTH_MS = 300
 const MAXIMUM_CLICK_DISTANCE_SQ = 50
+const CONTENT_PADDING = 4
+const CONTENT_PADDING_RIGHT = 8
+const CONTENT_PADDING_PX = `${CONTENT_PADDING}px`
+const CONTENT_PADDING_RIGHT_PX = `${CONTENT_PADDING_RIGHT}px`
+const MENU_CLOSE_TIMEOUT_MS = 300
 
 const props = defineProps<{
   node: Node
   edited: boolean
+  graphNodeSelections: HTMLElement | undefined
 }>()
 
 const emit = defineEmits<{
@@ -41,7 +57,8 @@ const emit = defineEmits<{
   outputPortClick: [portId: AstId]
   outputPortDoubleClick: [portId: AstId]
   doubleClick: []
-  addNode: [pos: Vec2 | undefined]
+  createNodes: [options: NodeCreationOptions[]]
+  toggleColorPicker: []
   'update:edited': [cursorPosition: number]
   'update:rect': [rect: Rect]
   'update:visualizationId': [id: Opt<VisualizationIdentifier>]
@@ -76,38 +93,118 @@ const rootNode = ref<HTMLElement>()
 const contentNode = ref<HTMLElement>()
 const nodeSize = useResizeObserver(rootNode)
 
-const error = computed(() => {
+function inputExternalIds() {
+  const externalIds = new Array<ExternalId>()
+  for (const inputId of graph.db.nodeDependents.reverseLookup(nodeId.value)) {
+    const externalId = graph.db.idToExternal(inputId)
+    if (externalId) {
+      externalIds.push(externalId)
+    }
+  }
+  return externalIds
+}
+
+function getPanic(id: ExternalId) {
+  const info = projectStore.computedValueRegistry.db.get(id)
+  return info?.payload.type === 'Panic' ? info.payload.message : undefined
+}
+
+function getDataflowError(id: ExternalId) {
+  return projectStore.dataflowErrors.lookup(id)?.value?.message
+}
+
+interface Message {
+  type: MessageType
+  text: string
+  alwaysShow: boolean
+}
+const availableMessage = computed<Message | undefined>(() => {
   const externalId = graph.db.idToExternal(nodeId.value)
-  if (!externalId) return
+  if (!externalId) return undefined
   const info = projectStore.computedValueRegistry.db.get(externalId)
   switch (info?.payload.type) {
     case 'Panic': {
-      return info.payload.message
+      const text = info.payload.message
+      const alwaysShow = !inputExternalIds().some((id) => getPanic(id) === text)
+      return { type: 'panic', text, alwaysShow } satisfies Message
     }
     case 'DataflowError': {
-      return projectStore.dataflowErrors.lookup(externalId)?.value?.message.split(' (at')[0]
+      const rawText = getDataflowError(externalId)
+      const text = rawText?.split(' (at')[0]
+      if (!text) return undefined
+      const alwaysShow = !inputExternalIds().some((id) => getDataflowError(id) === rawText)
+      return { type: 'error', text, alwaysShow } satisfies Message
+    }
+    case 'Value': {
+      const warning = info.payload.warnings?.value
+      if (!warning) return undefined
+      return {
+        type: 'warning',
+        text: 'Warning: ' + warning,
+        alwaysShow: false,
+      } satisfies Message
     }
     default:
       return undefined
   }
 })
 
-const warning = computed(() => {
-  const externalId = graph.db.idToExternal(nodeId.value)
-  if (!externalId) return
-  const info = projectStore.computedValueRegistry.db.get(externalId)
-  const warning = info?.payload.type === 'Value' ? info.payload.warnings?.value : undefined
-  if (!warning) return
-  return 'Warning: ' + warning!
-})
-
-const isSelected = computed(() => nodeSelection?.isSelected(nodeId.value) ?? false)
-const isOnlyOneSelected = computed(
-  () => isSelected.value && nodeSelection?.selected.size === 1 && !nodeSelection.isChanging,
+const visibleMessage = computed(
+  () =>
+    (availableMessage.value?.alwaysShow || nodeHovered.value || selected.value) &&
+    availableMessage.value,
 )
 
-const menuVisible = isOnlyOneSelected
+const nodeHovered = ref(false)
+
+const selected = computed(() => nodeSelection?.isSelected(nodeId.value) ?? false)
+const selectionVisible = ref(false)
+
+const isOnlyOneSelected = computed(
+  () => selected.value && nodeSelection?.selected.size === 1 && !nodeSelection.isChanging,
+)
+
+const menuVisible = computed(() => menuEnabledByHover.value || isOnlyOneSelected.value)
 const menuFull = ref(false)
+const menuHovered = ref(false)
+
+function eventScenePos(event: MouseEvent) {
+  const clientPos = event && new Vec2(event.clientX, event.clientY)
+  return clientPos && navigator?.clientToScenePos(clientPos)
+}
+
+const nodeHoverPos = ref<Vec2>()
+const selectionHoverPos = ref<Vec2>()
+function updateNodeHover(event: PointerEvent | undefined) {
+  nodeHoverPos.value = event && eventScenePos(event)
+}
+function updateSelectionHover(event: PointerEvent | undefined) {
+  selectionHoverPos.value = event && eventScenePos(event)
+}
+
+let menuCloseTimeout = ref<ReturnType<typeof setTimeout>>()
+const menuEnabledByHover = ref(false)
+watchEffect(() => {
+  if (menuCloseTimeout.value != null) {
+    clearTimeout(menuCloseTimeout.value)
+    menuCloseTimeout.value = undefined
+  }
+  const inZone = (pos: Vec2 | undefined) =>
+    pos != null &&
+    pos.sub(props.node.position).x < CONTENT_PADDING + ICON_WIDTH + GRAB_HANDLE_X_MARGIN * 2
+  const hovered =
+    menuHovered.value ||
+    inZone(nodeHoverPos.value) ||
+    (menuEnabledByHover.value && inZone(selectionHoverPos.value))
+  if (hovered) {
+    menuEnabledByHover.value = true
+  } else if (!hovered && menuEnabledByHover.value) {
+    menuCloseTimeout.value = setTimeout(() => {
+      menuEnabledByHover.value =
+        menuHovered.value || inZone(nodeHoverPos.value) || inZone(selectionHoverPos.value)
+    }, MENU_CLOSE_TIMEOUT_MS)
+  }
+})
 
 watch(menuVisible, (visible) => {
   if (!visible) menuFull.value = false
@@ -294,27 +391,38 @@ const outputPorts = computed((): PortData[] => {
 })
 
 const outputHovered = ref<AstId>()
-const hoverAnimations = new Map<AstId, ReturnType<typeof useApproach>>()
+const hoverAnimations = new Map<AstId, [ReturnType<typeof useApproach>, EffectScope]>()
 watchEffect(() => {
   const ports = outputPortsSet.value
-  for (const key of hoverAnimations.keys()) if (!ports.has(key)) hoverAnimations.delete(key)
+  for (const key of hoverAnimations.keys())
+    if (!ports.has(key)) {
+      hoverAnimations.get(key)?.[1].stop()
+      hoverAnimations.delete(key)
+    }
   for (const port of outputPortsSet.value) {
-    setIfUndefined(hoverAnimations, port, () =>
-      useApproach(
-        () => (outputHovered.value === port || graph.unconnectedEdge?.target === port ? 1 : 0),
-        50,
-        0.01,
-      ),
-    )
+    setIfUndefined(hoverAnimations, port, () => {
+      // Because `useApproach` uses `onScopeDispose` and we are calling it dynamically (i.e. not at
+      // the setup top-level), we need to create a detached scope for each invocation.
+      const scope = effectScope(true)
+      const approach = scope.run(() =>
+        useApproach(
+          () => (outputHovered.value === port || graph.unconnectedEdge?.target === port ? 1 : 0),
+          50,
+          0.01,
+        ),
+      )!
+      return [approach, scope]
+    })
   }
 })
 
-const nodeHovered = ref(false)
+// Clean up dynamically created detached scopes.
+onScopeDispose(() => hoverAnimations.forEach(([_, scope]) => scope.stop()))
 
 function portGroupStyle(port: PortData) {
   const [start, end] = port.clipRange
   return {
-    '--hover-animation': hoverAnimations.get(port.portId)?.value ?? 0,
+    '--hover-animation': hoverAnimations.get(port.portId)?.[0].value ?? 0,
     '--port-clip-start': start,
     '--port-clip-end': end,
   }
@@ -326,7 +434,7 @@ const documentation = computed<string | undefined>({
   get: () => props.node.documentation ?? (editingComment.value ? '' : undefined),
   set: (text) => {
     graph.edit((edit) => {
-      const outerExpr = edit.get(props.node.outerExprId)
+      const outerExpr = edit.getVersion(props.node.outerExpr)
       if (text) {
         if (outerExpr instanceof Ast.MutableDocumented) {
           outerExpr.setDocumentationText(text)
@@ -349,25 +457,40 @@ const documentation = computed<string | undefined>({
       transform,
       minWidth: isVisualizationVisible ? `${visualizationWidth}px` : undefined,
       '--node-group-color': color,
+      ...(node.zIndex ? { 'z-index': node.zIndex } : {}),
     }"
     :class="{
       edited: props.edited,
-      dragging: dragPointer.dragging,
-      selected: nodeSelection?.isSelected(nodeId),
+      selected,
+      selectionVisible,
       visualizationVisible: isVisualizationVisible,
       ['executionState-' + executionState]: true,
     }"
     :data-node-id="nodeId"
-    @pointerenter="nodeHovered = true"
-    @pointerleave="nodeHovered = false"
+    @pointerenter="(nodeHovered = true), updateNodeHover($event)"
+    @pointerleave="(nodeHovered = false), updateNodeHover(undefined)"
+    @pointermove="updateNodeHover"
   >
-    <div class="selection" v-on="dragPointer.events"></div>
-    <div class="binding" @pointerdown.stop>
-      {{ node.pattern?.code() ?? '' }}
-    </div>
+    <Teleport :to="graphNodeSelections">
+      <GraphNodeSelection
+        v-if="navigator"
+        :nodePosition="props.node.position"
+        :nodeSize="nodeSize"
+        :selected
+        :nodeId
+        :color
+        @visible="selectionVisible = $event"
+        @pointerenter="updateSelectionHover"
+        @pointermove="updateSelectionHover"
+        @pointerleave="updateSelectionHover(undefined)"
+        v-on="dragPointer.events"
+      />
+    </Teleport>
+    <div class="binding" @pointerdown.stop v-text="node.pattern?.code()" />
     <button
       v-if="!menuVisible && isRecordingOverridden"
       class="overrideRecordButton"
+      data-testid="recordingOverriddenButton"
       @click="isRecordingOverridden = false"
     >
       <SvgIcon name="record" />
@@ -384,7 +507,10 @@ const documentation = computed<string | undefined>({
       @startEditingComment="editingComment = true"
       @openFullMenu="openFullMenu"
       @delete="emit('delete')"
-      @addNode="emit('addNode', $event)"
+      @createNodes="emit('createNodes', $event)"
+      @pointerenter="menuHovered = true"
+      @pointerleave="menuHovered = false"
+      @toggleColorPicker="emit('toggleColorPicker')"
     />
     <GraphVisualization
       v-if="isVisualizationVisible"
@@ -403,7 +529,7 @@ const documentation = computed<string | undefined>({
       @update:visible="emit('update:visualizationVisible', $event)"
       @update:fullscreen="emit('update:visualizationFullscreen', $event)"
       @update:width="emit('update:visualizationWidth', $event)"
-      @addNode="emit('addNode', $event)"
+      @createNodes="emit('createNodes', $event)"
     />
     <Suspense>
       <GraphNodeComment
@@ -424,24 +550,29 @@ const documentation = computed<string | undefined>({
       <NodeWidgetTree
         :ast="props.node.innerExpr"
         :nodeId="nodeId"
+        :nodeElement="rootNode"
+        :nodeSize="nodeSize"
         :icon="icon"
         :connectedSelfArgumentId="connectedSelfArgumentId"
         :potentialSelfArgumentId="potentialSelfArgumentId"
+        :conditionalPorts="props.node.conditionalPorts"
         :extended="isOnlyOneSelected"
         @openFullMenu="openFullMenu"
       />
     </div>
     <div class="statuses">
-      <SvgIcon v-if="warning" name="warning" />
+      <SvgIcon
+        v-if="availableMessage && !visibleMessage"
+        :name="iconForMessageType[availableMessage.type]"
+        :style="{ color: colorForMessageType[availableMessage.type] }"
+      />
     </div>
-    <GraphNodeError v-if="error" class="afterNode" :message="error" type="error" />
-    <GraphNodeError
-      v-if="warning && (nodeHovered || isSelected)"
-      class="afterNode warning"
+    <GraphNodeMessage
+      v-if="visibleMessage"
+      class="afterNode"
       :class="{ messageWithMenu: menuVisible }"
-      :message="warning"
-      icon="warning"
-      type="warning"
+      :message="visibleMessage.text"
+      :type="visibleMessage.type"
     />
     <svg class="bgPaths" :style="bgStyleVariables">
       <rect class="bgFill" />
@@ -544,7 +675,6 @@ const documentation = computed<string | undefined>({
 
 .GraphNode {
   --node-height: 32px;
-  --node-border-radius: 16px;
 
   --node-color-primary: color-mix(
     in oklab,
@@ -584,52 +714,17 @@ const documentation = computed<string | undefined>({
   flex-direction: row;
   align-items: center;
   white-space: nowrap;
-  padding: 4px;
-  padding-right: 8px;
+  padding: v-bind('CONTENT_PADDING_PX');
+  padding-right: v-bind('CONTENT_PADDING_RIGHT_PX');
   z-index: 2;
   transition: outline 0.2s ease;
   outline: 0px solid transparent;
 }
 
-.GraphNode .selection {
-  position: absolute;
-  inset: calc(0px - var(--selected-node-border-width));
-  --node-current-selection-width: 0px;
-
-  &:before {
-    content: '';
-    opacity: 0;
-    position: absolute;
-    border-radius: var(--node-border-radius);
-    display: block;
-    inset: var(--selected-node-border-width);
-    box-shadow: 0 0 0 var(--node-current-selection-width) var(--node-color-primary);
-
-    transition:
-      box-shadow 0.2s ease-in-out,
-      opacity 0.2s ease-in-out;
-  }
-}
-
-.GraphNode:is(:hover, .selected) .selection:before,
-.GraphNode .selection:hover:before {
-  --node-current-selection-width: var(--selected-node-border-width);
-}
-
-.GraphNode .selection:hover:before {
-  opacity: 0.15;
-}
-.GraphNode.selected .selection:before {
-  opacity: 0.2;
-}
-
-.GraphNode.selected .selection:hover:before {
-  opacity: 0.3;
-}
-
 .binding {
   font-family: var(--font-code);
   user-select: none;
+  pointer-events: none;
   margin-right: 10px;
   color: black;
   position: absolute;
@@ -641,8 +736,7 @@ const documentation = computed<string | undefined>({
   white-space: nowrap;
 }
 
-.GraphNode .selection:hover + .binding,
-.GraphNode.selected .binding {
+.selectionVisible .binding {
   opacity: 1;
 }
 
@@ -673,10 +767,6 @@ const documentation = computed<string | undefined>({
   margin-top: 4px;
 }
 
-.messageWarning {
-  margin-top: 8px;
-}
-
 .messageWithMenu {
   left: 40px;
 }
@@ -691,12 +781,10 @@ const documentation = computed<string | undefined>({
   top: 0;
   right: 100%;
   margin-right: 8px;
-  color: var(--color-warning);
   transition: opacity 0.2s ease-in-out;
 }
 
-.GraphNode:is(:hover, .selected) .statuses,
-.GraphNode:has(.selection:hover) .statuses {
+.GraphNode.selectionVisible .statuses {
   opacity: 0;
 }
 

@@ -1,9 +1,9 @@
 import { asNodeId, GraphDb, type NodeId } from '@/stores/graph/graphDatabase'
 import { assert, assertDefined } from '@/util/assert'
 import { Ast } from '@/util/ast'
-import { isIdentifier, moduleMethodNames, type Identifier } from '@/util/ast/abstract'
+import { autospaced, isIdentifier, moduleMethodNames, type Identifier } from '@/util/ast/abstract'
 import { nodeFromAst } from '@/util/ast/node'
-import { unwrap } from '@/util/data/result'
+import { Err, Ok, unwrap, type Result } from '@/util/data/result'
 import {
   isIdentifierOrOperatorIdentifier,
   tryIdentifier,
@@ -54,35 +54,43 @@ interface RefactoredInfo {
 /** Prepare the information necessary for collapsing nodes.
  * @throws errors in case of failures, but it should not happen in normal execution.
  */
-export function prepareCollapsedInfo(selected: Set<NodeId>, graphDb: GraphDb): CollapsedInfo {
+export function prepareCollapsedInfo(
+  selected: Set<NodeId>,
+  graphDb: GraphDb,
+): Result<CollapsedInfo> {
   if (selected.size == 0) throw new Error('Collapsing requires at least a single selected node.')
   // Leaves are the nodes that have no outgoing connection.
-  const leaves = new Set([...selected])
-  const inputs: Identifier[] = []
+  const leaves = new Set(selected)
+  const inputSet: Set<Identifier> = new Set()
   let output: Output | null = null
   for (const [targetExprId, sourceExprIds] of graphDb.allConnections.allReverse()) {
-    const target = graphDb.getExpressionNodeId(targetExprId)
-    if (target == null) continue
+    const targetNode = graphDb.getExpressionNodeId(targetExprId)
+    if (targetNode == null) continue
     for (const sourceExprId of sourceExprIds) {
-      const source = graphDb.getPatternExpressionNodeId(sourceExprId)
-      const startsInside = source != null && selected.has(source)
-      const endsInside = selected.has(target)
+      const sourceNode = graphDb.getPatternExpressionNodeId(sourceExprId)
+      // Sometimes the connection source is in expression, not pattern; for example, when its
+      // lambda.
+      const nodeWithSource = sourceNode ?? graphDb.getExpressionNodeId(sourceExprId)
+      // If source is not in pattern nor expression of any node, it's a function argument.
+      const startsInside = nodeWithSource != null && selected.has(nodeWithSource)
+      const endsInside = selected.has(targetNode)
       const stringIdentifier = graphDb.getOutputPortIdentifier(sourceExprId)
       if (stringIdentifier == null)
-        throw new Error(`Source node (${source}) has no output identifier.`)
+        throw new Error(`Connection starting from (${sourceExprId}) has no identifier.`)
       const identifier = unwrap(tryIdentifier(stringIdentifier))
-      if (source != null) {
-        leaves.delete(source)
+      if (sourceNode != null) {
+        leaves.delete(sourceNode)
       }
       if (!startsInside && endsInside) {
-        inputs.push(identifier)
+        inputSet.add(identifier)
       } else if (startsInside && !endsInside) {
+        assert(sourceNode != null) // No lambda argument set inside node should be visible outside.
         if (output == null) {
-          output = { node: source, identifier }
+          output = { node: sourceNode, identifier }
         } else if (output.identifier == identifier) {
           // Ignore duplicate usage of the same identifier.
         } else {
-          throw new Error(
+          return Err(
             `More than one output from collapsed function: ${identifier} and ${output.identifier}. Collapsing is not supported.`,
           )
         }
@@ -93,8 +101,7 @@ export function prepareCollapsedInfo(selected: Set<NodeId>, graphDb: GraphDb): C
   // the extracted function. In such we will return value from arbitrarily chosen leaf.
   if (output == null) {
     const arbitraryLeaf = set.first(leaves)
-    if (arbitraryLeaf == null)
-      throw new Error('Cannot select the output node, no leaf nodes found.')
+    if (arbitraryLeaf == null) throw Error('Cannot select the output node, no leaf nodes found.')
     const outputNode = graphDb.nodeIdToNode.get(arbitraryLeaf)
     if (outputNode == null) throw new Error(`The node with id ${arbitraryLeaf} not found.`)
     const identifier = unwrap(tryIdentifier(outputNode.pattern?.code() || ''))
@@ -103,8 +110,8 @@ export function prepareCollapsedInfo(selected: Set<NodeId>, graphDb: GraphDb): C
 
   const pattern = graphDb.nodeIdToNode.get(output.node)?.pattern?.code() ?? ''
   assert(isIdentifier(pattern))
-
-  return {
+  const inputs = Array.from(inputSet)
+  return Ok({
     extracted: {
       ids: selected,
       output,
@@ -115,7 +122,7 @@ export function prepareCollapsedInfo(selected: Set<NodeId>, graphDb: GraphDb): C
       pattern,
       arguments: inputs,
     },
-  }
+  })
 }
 
 /** Generate a safe method name for a collapsed function using `baseName` as a prefix. */
@@ -167,9 +174,9 @@ export function performCollapse(
   const posToInsert = findInsertionPos(topLevel, currentMethodName)
   const collapsedName = findSafeMethodName(topLevel, COLLAPSED_FUNCTION_NAME)
   const astIdsToExtract = new Set(
-    [...info.extracted.ids].map((nodeId) => db.nodeIdToNode.get(nodeId)?.outerExprId),
+    [...info.extracted.ids].map((nodeId) => db.nodeIdToNode.get(nodeId)?.outerExpr.id),
   )
-  const astIdToReplace = db.nodeIdToNode.get(info.refactored.id)?.outerExprId
+  const astIdToReplace = db.nodeIdToNode.get(info.refactored.id)?.outerExpr.id
   const { ast: refactoredAst, nodeId: refactoredNodeId } = collapsedCallAst(
     info,
     collapsedName,
@@ -185,7 +192,7 @@ export function performCollapse(
       if (astIdsToExtract.has(ast.id)) {
         collapsed.push(ast)
         if (ast.id === astIdToReplace) {
-          refactored.push({ expression: { node: refactoredAst } })
+          refactored.push({ expression: autospaced(refactoredAst) })
         }
       } else {
         refactored.push(line)

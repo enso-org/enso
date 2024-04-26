@@ -34,9 +34,9 @@ export interface TopBarProps {
   readonly setQuery: React.Dispatch<React.SetStateAction<AssetQuery>>
   readonly labels: backendModule.Label[]
   readonly suggestions: assetSearchBar.Suggestion[]
-  readonly canToggleAssetPanel: boolean
   readonly isAssetPanelVisible: boolean
-  readonly setIsAssetPanelVisible: React.Dispatch<React.SetStateAction<boolean>>
+  readonly isAssetPanelEnabled: boolean
+  readonly setIsAssetPanelEnabled: React.Dispatch<React.SetStateAction<boolean>>
   readonly doRemoveSelf: () => void
   readonly onSignOut: () => void
 }
@@ -46,15 +46,14 @@ export interface TopBarProps {
 export default function TopBar(props: TopBarProps) {
   const { supportsLocalBackend, isCloud, page, setPage, projectAsset, setProjectAsset } = props
   const { isEditorDisabled, setBackendType, isHelpChatOpen, setIsHelpChatOpen } = props
-  const { query, setQuery, labels, suggestions, canToggleAssetPanel } = props
-  const { isAssetPanelVisible, setIsAssetPanelVisible, doRemoveSelf, onSignOut } = props
+  const { query, setQuery, labels, suggestions, isAssetPanelEnabled } = props
+  const { isAssetPanelVisible, setIsAssetPanelEnabled, doRemoveSelf, onSignOut } = props
   const supportsCloudBackend = process.env.ENSO_CLOUD_API_URL != null
+  const shouldMakeSpaceForExtendedEditorMenu = page === pageSwitcher.Page.editor
 
   return (
     <div
-      className={`relative flex ml-4.75 mr-2.25 h-8 gap-6 z-3 ${
-        page !== pageSwitcher.Page.home ? 'mt-2.25' : 'my-2.25'
-      }`}
+      className={`relative z-1 m-top-bar flex h-row gap-top-bar ${page === pageSwitcher.Page.home ? 'mb-top-bar' : 'mb'}`}
     >
       <PageSwitcher page={page} setPage={setPage} isEditorDisabled={isEditorDisabled} />
       {supportsLocalBackend && supportsCloudBackend && page !== pageSwitcher.Page.editor && (
@@ -63,7 +62,7 @@ export default function TopBar(props: TopBarProps) {
       {page === pageSwitcher.Page.editor ? (
         <div className="flex-1" />
       ) : (
-        <div className="flex-1 flex flex-wrap justify-around">
+        <div className="flex flex-1 flex-wrap justify-around">
           <AssetSearchBar
             isCloud={isCloud}
             query={query}
@@ -73,15 +72,20 @@ export default function TopBar(props: TopBarProps) {
           />
         </div>
       )}
-      {!isAssetPanelVisible && (
-        <div className="flex gap-2">
-          <AssetInfoBar
-            canToggleAssetPanel={canToggleAssetPanel}
-            isAssetPanelVisible={isAssetPanelVisible}
-            setIsAssetPanelVisible={setIsAssetPanelVisible}
-          />
+      <div
+        className={`grid transition-all duration-side-panel ${isAssetPanelVisible ? 'grid-cols-0fr' : 'grid-cols-1fr'}`}
+      >
+        <div className="invisible flex gap-top-bar-right overflow-hidden pointer-events-none-recursive">
+          {page === pageSwitcher.Page.drive && (
+            <AssetInfoBar
+              invisible
+              isAssetPanelEnabled={isAssetPanelEnabled}
+              setIsAssetPanelEnabled={setIsAssetPanelEnabled}
+            />
+          )}
           {supportsCloudBackend && (
             <UserBar
+              invisible
               supportsLocalBackend={supportsLocalBackend}
               page={page}
               setPage={setPage}
@@ -94,7 +98,30 @@ export default function TopBar(props: TopBarProps) {
             />
           )}
         </div>
-      )}
+      </div>
+      <div
+        className={`fixed top z-1 m-top-bar text-xs text-primary transition-all duration-side-panel ${shouldMakeSpaceForExtendedEditorMenu ? 'mr-extended-editor-menu' : ''} ${isAssetPanelVisible ? '-right-asset-panel-w' : 'right'}`}
+      >
+        <div className="flex gap-top-bar-right">
+          {page === pageSwitcher.Page.drive && (
+            <AssetInfoBar
+              isAssetPanelEnabled={isAssetPanelEnabled}
+              setIsAssetPanelEnabled={setIsAssetPanelEnabled}
+            />
+          )}
+          <UserBar
+            supportsLocalBackend={supportsLocalBackend}
+            page={page}
+            setPage={setPage}
+            isHelpChatOpen={isHelpChatOpen}
+            setIsHelpChatOpen={setIsHelpChatOpen}
+            projectAsset={projectAsset}
+            setProjectAsset={setProjectAsset}
+            doRemoveSelf={doRemoveSelf}
+            onSignOut={onSignOut}
+          />
+        </div>
+      </div>
     </div>
   )
 }

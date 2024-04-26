@@ -11,7 +11,7 @@ test.prop({
   x: fc.nat(),
   y: fc.nat(),
 })('offsetToInclude', ({ rectX, rectY, width, height, x, y }) => {
-  const rect = new Rect(new Vec2(rectX, rectY), new Vec2(width, height))
+  const rect = Rect.XYWH(rectX, rectY, width, height)
   const point = new Vec2(x, y)
   const offsetRect = rect.offsetToInclude(point)
   expect(

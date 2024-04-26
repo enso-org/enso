@@ -1,10 +1,11 @@
 import { createXXHash128 } from 'hash-wasm'
+import type { IDataType } from 'hash-wasm/dist/lib/util'
 import init, { is_ident_or_operator, parse, parse_doc_to_json } from '../../rust-ffi/pkg/rust_ffi'
 import { assertDefined } from '../util/assert'
 import { isNode } from '../util/detect'
 
 let xxHasher128: Awaited<ReturnType<typeof createXXHash128>> | undefined
-export function xxHash128(input: string) {
+export function xxHash128(input: IDataType) {
   assertDefined(xxHasher128, 'Module should have been loaded with `initializeFFI`.')
   xxHasher128.init()
   xxHasher128.update(input)
@@ -14,7 +15,10 @@ export function xxHash128(input: string) {
 export async function initializeFFI(path?: string | undefined) {
   if (isNode) {
     const fs = await import('node:fs/promises')
-    const buffer = fs.readFile(path ?? './rust-ffi/pkg/rust_ffi_bg.wasm')
+    const { fileURLToPath, URL: nodeURL } = await import('node:url')
+    const buffer = fs.readFile(
+      path ?? fileURLToPath(new nodeURL('../../rust-ffi/pkg/rust_ffi_bg.wasm', import.meta.url)),
+    )
     await init(buffer)
   } else {
     await init()

@@ -23,7 +23,7 @@ import project.System.Input_Stream.Input_Stream
 from project.Data.Boolean import Boolean, False, True
 from project.Data.Range.Extensions import all
 from project.Data.Text.Extensions import all
-from project.Metadata import make_single_choice, Widget
+from project.Metadata import Display, make_single_choice, Widget
 
 polyglot java import java.io.StringReader
 polyglot java import java.lang.Exception as JException
@@ -125,6 +125,7 @@ type XML_Document
             XML_Element.new java_element
 
     ## GROUP Metadata
+       ICON metadata
        Gets the tag of the root XML element of the document.
 
        > Example
@@ -136,6 +137,7 @@ type XML_Document
     name self = self.root_element.name
 
     ## GROUP Selections
+       ICON parse3
        Gets a child element of an XML document.
 
        Arguments:
@@ -162,6 +164,7 @@ type XML_Document
         _ : Text -> if key == self.root_element.name then self.root_element else if_missing
 
     ## GROUP Selections
+       ICON parse3
        Gets a child or attribute of an XML document.
 
        Arguments:
@@ -190,7 +193,8 @@ type XML_Document
             _ : Text -> Error.throw (No_Such_Key.Error self key)
         self.get key if_missing
 
-    ## Gets the raw XML of the document.
+    ## ICON metadata
+       Gets the raw XML of the document.
 
        > Example
          Get the outer XML of the document.
@@ -202,7 +206,8 @@ type XML_Document
         XML_Error.handle_java_exceptions <|
             XML_Utils.outerXML self.java_document False
 
-    ## Gets the raw XML of the document.
+    ## ICON metadata
+       Gets the raw XML of the document.
 
        > Example
          Get the inner XML of the document.
@@ -250,14 +255,14 @@ type XML_Document
            be automatically deleted on exit of the Enso process.
 
            This allows for building the workflow without affecting the real files.
+    @path (Widget.Text_Input display=Display.Always)
     @encoding Encoding.default_widget
     write : Writable_File -> Encoding -> Existing_File_Behavior -> Boolean -> Problem_Behavior -> File
     write self path:Writable_File (encoding : Encoding = Encoding.utf_8) (on_existing_file : Existing_File_Behavior = Existing_File_Behavior.Backup) (include_xml_declaration : Boolean = Boolean.True) (on_problems : Problem_Behavior = Problem_Behavior.Report_Warning) =
-        declaration = if include_xml_declaration then '<?xml version=\"1.0\" encoding=\"' + encoding.character_set + '\"?>\n' else ""
-        XML_Error.handle_java_exceptions <|
-            (declaration + XML_Utils.outerXML self.java_document True).write path encoding on_existing_file on_problems
+        write_impl self.java_document path encoding on_existing_file include_xml_declaration on_problems
 
     ## GROUP Selections
+       ICON array_new
        Gets the child elements of an XML document.
 
        > Example
@@ -267,6 +272,7 @@ type XML_Document
     children self = [self.root_element]
 
     ## GROUP Metadata
+       ICON metadata
        Gets the number children of an XML document.
 
        `child_count` only counts child elements and child text nodes that are
@@ -282,11 +288,13 @@ type XML_Document
     child_count self = 1
 
     ## GROUP Metadata
+       ICON text
        Gets the unique set of child names of an XML document.
     child_names : Vector Text ! XML_Error
     child_names self = [self.root_element.name]
 
     ## GROUP Selections
+       ICON parse3
        Get an attribute of an XML document.
 
        Arguments:
@@ -303,17 +311,20 @@ type XML_Document
     attribute_names self = []
 
     ## GROUP Selections
+       ICON array_new
        Gets a map containing of the attributes of an XML document.
     attributes : Map Text Text ! XML_Error
     attributes self = Map.empty
 
     ## GROUP Selections
+       ICON metadata
        Gets the text (non-markup) contents of the element and its descendants,
        if any.
     text : Text ! XML_Error
     text self = self.root_element.text
 
-    ## Get elements denoted by the given XPath key.
+    ## ICON parse3
+       Get elements denoted by the given XPath key.
 
        Arguments:
        - key: The XPath string to use to search for elements.
@@ -330,7 +341,8 @@ type XML_Document
             xpath = XPathFactory.newInstance.newXPath
             only_wanted_nodes (xpath.evaluate key self.java_document XPathConstants.NODESET)
 
-    ## Gets child elements matching a given tag name.
+    ## ICON parse3
+       Gets child elements matching a given tag name.
 
        Arguments:
        - tag_name: The tag name to search for.
@@ -339,7 +351,8 @@ type XML_Document
     get_children_by_tag_name self tag_name:Text =
         if tag_name=="*" || tag_name==self.root_element.name then [self.root_element] else []
 
-    ## Gets descendant elements matching a given tag name.
+    ## ICON parse3
+       Gets descendant elements matching a given tag name.
        This searches through all descendants of the node, not just immediate children.
 
        Arguments:
@@ -406,7 +419,7 @@ type XML_Element
             self.children.find (c-> c.name == key) . if_nothing if_missing
 
     ## GROUP Selections
-       ICON select_row
+       ICON parse3
        Gets a child or attribute of an XML element.
 
        Arguments:
@@ -465,6 +478,7 @@ type XML_Element
     child_count self = self.children_cache.length
 
     ## GROUP Metadata
+       ICON text
        Gets the unique set of child names of an XML element.
     child_names : Vector Text ! XML_Error
     child_names self =
@@ -557,6 +571,48 @@ type XML_Element
         XML_Error.handle_java_exceptions <|
             XML_Utils.innerXML self.java_element
 
+    ## GROUP Output
+       ICON data_output
+       Writes (or appends) the xml to the specified file using the supplied
+       encoding. The behavior specified in the `existing_file` parameter will be
+       used if the file exists.
+
+       Appending will probably not work as expected for XML documents, as it will
+       append after the root element, which is not valid XML.
+
+       Arguments:
+       - path: The path to the target file.
+       - encoding: The encoding to use when writing the file.
+       - on_existing_file: Specifies how to proceed if the file already exists.
+       - include_xml_declaration: Specifies whether to include the XML declaration
+         in the output. (e.g. `<?xml version="1.0" encoding="UTF-8"?>`)
+       - on_problems: Specifies how to handle any encountered problems.
+
+       If a character cannot be converted to a byte, an `Encoding_Error` is raised.
+       If `on_problems` is set to `Report_Warning` or `Ignore`, it is replaced with
+       a substitute (either '�' (if Unicode) or '?' depending on the encoding).
+       Otherwise, the process is aborted.
+       If the path to the parent location cannot be found or the filename is
+       invalid, a `File_Error.Not_Found` is raised.
+       If another error occurs, such as access denied, an `File_Error.IO_Error` is
+       raised.
+       Otherwise, the file is created with the encoded xlm written to it.
+
+       The method returns a `File` object for the written file.
+
+       ? Dry Run
+
+           If writing to Output context is not enabled (such as in "Design" mode),
+           then this function will write to a temporary file. This temporary file will
+           be automatically deleted on exit of the Enso process.
+
+           This allows for building the workflow without affecting the real files.
+    @path (Widget.Text_Input display=Display.Always)
+    @encoding Encoding.default_widget
+    write : Writable_File -> Encoding -> Existing_File_Behavior -> Boolean -> Problem_Behavior -> File
+    write self path:Writable_File (encoding : Encoding = Encoding.utf_8) (on_existing_file : Existing_File_Behavior = Existing_File_Behavior.Backup) (include_xml_declaration : Boolean = Boolean.True) (on_problems : Problem_Behavior = Problem_Behavior.Report_Warning) =
+        write_impl self.java_element path encoding on_existing_file include_xml_declaration on_problems
+
     ## ICON parse3
        Get elements denoted by the given XPath key.
 
@@ -575,7 +631,8 @@ type XML_Element
             xpath = XPathFactory.newInstance.newXPath
             only_wanted_nodes (xpath.evaluate key self.java_element XPathConstants.NODESET)
 
-    ## Gets child elements matching a given tag name.
+    ## ICON parse3
+       Gets child elements matching a given tag name.
 
        Arguments:
        - tag_name: The tag name to search for.
@@ -609,12 +666,12 @@ type XML_Element
        Convert to a JavaScript Object representing this XML_Element.
     to_js_object : JS_Object ! XML_Error
     to_js_object self =
-        builder = Vector.new_builder 4
-        builder.append ["type", "XML_Element"]
-        builder.append ["tag", self.name]
-        builder.append ["attributes", self.attributes.to_js_object]
-        builder.append ["children", self.children_cache.to_js_object]
-        JS_Object.from_pairs builder.to_vector
+        vec = Vector.build initial_capacity=4 builder->
+            builder.append ["type", "XML_Element"]
+            builder.append ["tag", self.name]
+            builder.append ["attributes", self.attributes.to_js_object]
+            builder.append ["children", self.children_cache.to_js_object]
+        JS_Object.from_pairs vec
 
     ## PRIVATE
 
@@ -700,3 +757,10 @@ child_selector node:(XML_Element | XML_Document) =
         _ : XML_Element -> node.attribute_names.map (n->"@"+n)
         _ -> []
     make_single_choice attributes+node.child_names
+
+## PRIVATE
+   write an XML document or element to a file.
+write_impl node:Node path:Writable_File (encoding : Encoding = Encoding.utf_8) (on_existing_file : Existing_File_Behavior = Existing_File_Behavior.Backup) (include_xml_declaration : Boolean = Boolean.True) (on_problems : Problem_Behavior = Problem_Behavior.Report_Warning) =
+    declaration = if include_xml_declaration then '<?xml version=\"1.0\" encoding=\"' + encoding.character_set + '\"?>\n' else ""
+    XML_Error.handle_java_exceptions <|
+        (declaration + XML_Utils.outerXML node True).write path encoding on_existing_file on_problems

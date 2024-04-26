@@ -1,6 +1,7 @@
 package org.enso.interpreter.runtime.error;
 
 import com.oracle.truffle.api.CompilerDirectives;
+import com.oracle.truffle.api.dsl.Bind;
 import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.dsl.NeverDefault;
 import com.oracle.truffle.api.exception.AbstractTruffleException;
@@ -20,6 +21,7 @@ import org.enso.interpreter.node.expression.builtin.text.util.TypeToDisplayTextN
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
 import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo;
+import org.enso.interpreter.runtime.data.EnsoObject;
 import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.data.text.Text;
 import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
@@ -28,7 +30,7 @@ import org.enso.interpreter.runtime.state.State;
 /** An exception type for user thrown panic exceptions. */
 @ExportLibrary(value = InteropLibrary.class, delegateTo = "payload")
 @ExportLibrary(TypesLibrary.class)
-public final class PanicException extends AbstractTruffleException {
+public final class PanicException extends AbstractTruffleException implements EnsoObject {
   final Object payload;
   private String cacheMessage;
 
@@ -143,13 +145,13 @@ public final class PanicException extends AbstractTruffleException {
   }
 
   @ExportMessage
-  Type getType(@CachedLibrary("this") TypesLibrary thisLib, @Cached("1") int ignore) {
-    return EnsoContext.get(thisLib).getBuiltins().panic();
+  Type getType(@Bind("$node") Node node) {
+    return EnsoContext.get(node).getBuiltins().panic();
   }
 
   @ExportMessage
-  Type getMetaObject(@CachedLibrary("this") InteropLibrary thisLib) {
-    return EnsoContext.get(thisLib).getBuiltins().panic();
+  Type getMetaObject(@Bind("$node") Node node) {
+    return EnsoContext.get(node).getBuiltins().panic();
   }
 
   @ExportMessage

@@ -1,7 +1,7 @@
 package org.enso.projectmanager.boot
 
 import org.apache.commons.cli
-import org.enso.polyglot.LanguageInfo
+import org.enso.common.LanguageInfo
 
 import scala.util.Try
 
@@ -19,9 +19,10 @@ object Cli {
 
   val FILESYSTEM_LIST             = "filesystem-list"
   val FILESYSTEM_CREATE_DIRECTORY = "filesystem-create-directory"
-  val FILESYSTEM_DELETE_DIRECTORY = "filesystem-delete-directory"
+  val FILESYSTEM_DELETE           = "filesystem-delete"
   val FILESYSTEM_MOVE_FROM        = "filesystem-move-from"
   val FILESYSTEM_MOVE_TO          = "filesystem-move-to"
+  val FILESYSTEM_WRITE_PATH       = "filesystem-write-path"
 
   object option {
 
@@ -105,12 +106,12 @@ object Cli {
       .desc("Create directory.")
       .build()
 
-    val filesystemDeleteDirectory: cli.Option = cli.Option.builder
+    val filesystemDelete: cli.Option = cli.Option.builder
       .hasArg(true)
       .numberOfArgs(1)
       .argName("path")
-      .longOpt(FILESYSTEM_DELETE_DIRECTORY)
-      .desc("Delete directory.")
+      .longOpt(FILESYSTEM_DELETE)
+      .desc("Delete file or directory recursively.")
       .build()
 
     val filesystemMoveFrom: cli.Option = cli.Option.builder
@@ -128,6 +129,14 @@ object Cli {
       .longOpt(FILESYSTEM_MOVE_TO)
       .desc("Move directory. Destination.")
       .build()
+
+    val filesystemWritePath: cli.Option = cli.Option.builder
+      .hasArg(true)
+      .numberOfArgs(1)
+      .argName("path")
+      .longOpt(FILESYSTEM_WRITE_PATH)
+      .desc("Write data from stdin to the provided file")
+      .build()
   }
 
   val options: cli.Options =
@@ -143,9 +152,10 @@ object Cli {
       .addOption(option.projectList)
       .addOption(option.filesystemList)
       .addOption(option.filesystemCreateDirectory)
-      .addOption(option.filesystemDeleteDirectory)
+      .addOption(option.filesystemDelete)
       .addOption(option.filesystemMoveFrom)
       .addOption(option.filesystemMoveTo)
+      .addOption(option.filesystemWritePath)
 
   /** Parse the command line options. */
   def parse(args: Array[String]): Either[String, cli.CommandLine] = {

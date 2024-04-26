@@ -1,6 +1,6 @@
 package org.enso.projectmanager.service.filesystem
 
-import java.io.File
+import java.io.{File, InputStream}
 
 trait FileSystemServiceApi[F[+_, +_]] {
 
@@ -17,11 +17,11 @@ trait FileSystemServiceApi[F[+_, +_]] {
     */
   def createDirectory(path: File): F[FileSystemServiceFailure, Unit]
 
-  /** Deletes a directory with its contents.
+  /** Deletes a file or a directory with its contents.
     *
-    * @param path the directory to delete
+    * @param path the file or directory to delete
     */
-  def deleteDirectory(path: File): F[FileSystemServiceFailure, Unit]
+  def delete(path: File): F[FileSystemServiceFailure, Unit]
 
   /** Moves a file or directory recursively.
     *
@@ -29,4 +29,11 @@ trait FileSystemServiceApi[F[+_, +_]] {
     * @param to the destination path
     */
   def move(from: File, to: File): F[FileSystemServiceFailure, Unit]
+
+  /** Writes a file
+    *
+    * @param path the file path to write
+    * @param bytes the file contents
+    */
+  def write(path: File, in: InputStream): F[FileSystemServiceFailure, Unit]
 }

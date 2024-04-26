@@ -1,10 +1,59 @@
+import project.Any.Any
 import project.Data.Json.JS_Object
+import project.Data.Text.Text
 import project.Enso_Cloud.Errors.Enso_Cloud_Error
 import project.Error.Error
+import project.Meta
+import project.Nothing.Nothing
+from project.Data.Boolean import Boolean, False, True
 
 ## PRIVATE
-   A helper that extracts a field from a response and handles unexpected
-   response structure.
-get_required_field key js_object = case js_object of
-    _ : JS_Object -> js_object.get key if_missing=(Error.throw (Enso_Cloud_Error.Invalid_Response_Payload "Missing required field `"+key+"` in "+js_object.to_display_text+"."))
-    _ -> Error.throw (Enso_Cloud_Error.Invalid_Response_Payload "Expected a JSON object, but got "+js_object.to_display_text+".")
+   A helper that extracts a required field from a response and handles
+   unexpected response structure.
+
+   Arguments:
+   - key: The key of the field to extract.
+   - js_object: The JSON object to extract the field from.
+   - show_value: Whether to include the value of the field in the error message.
+     It is usually better to include it, but in cases like handling of access
+     tokens, it may be better to just include the type of the field.
+   - expected_type: The type that the field is expected to be.
+get_required_field (key : Text) js_object (show_value : Boolean = True) (expected_type = Any) = case js_object of
+    _ : JS_Object ->
+        handle_missing =
+            suffix = if show_value then " in "+js_object.to_display_text else ""
+            Error.throw (Enso_Cloud_Error.Invalid_Response_Payload "Missing required field `"+key+"`"+suffix+".")
+        result = js_object.get key if_missing=handle_missing
+        result.if_not_error <| if result.is_a expected_type then result else
+            representation = if show_value then result.to_display_text else Meta.type_of result . to_display_text
+            Error.throw (Enso_Cloud_Error.Invalid_Response_Payload "Expected field `"+key+"` to be of type "+expected_type.to_display_text+", but got "+representation+".")
+    _ ->
+        representation = if show_value then js_object.to_display_text else Meta.type_of js_object . to_display_text
+        Error.throw (Enso_Cloud_Error.Invalid_Response_Payload "Expected a JSON object, but got "+representation+".")
+
+## PRIVATE
+   A helper that extracts an optional field from a response and handles
+   unexpected response structure.
+
+   This method treats the field missing or being set to `null` as the same.
+
+   Arguments:
+   - key: The key of the field to extract.
+   - js_object: The JSON object to extract the field from.
+   - if_missing: The value to return if the field is missing or `null`.
+   - show_value: Whether to include the value of the field in the error message.
+     It is usually better to include it, but in cases like handling of access
+     tokens, it may be better to just include the type of the field.
+   - expected_type: The type that the field is expected to be.
+     The type of `if_missing` is not checked against `expected_type`.
+get_optional_field (key : Text) js_object (~if_missing = Nothing) (show_value : Boolean = True) (expected_type = Any) = case js_object of
+    _ : JS_Object ->
+        result = js_object.get key if_missing=Nothing
+        case result of
+            Nothing -> if_missing
+            _ -> if result.is_a expected_type then result else
+                representation = if show_value then result.to_display_text else Meta.type_of result . to_display_text
+                Error.throw (Enso_Cloud_Error.Invalid_Response_Payload "Expected field `"+key+"` to be of type "+expected_type.to_display_text+", but got "+representation+".")
+    _ ->
+        representation = if show_value then js_object.to_display_text else Meta.type_of js_object . to_display_text
+        Error.throw (Enso_Cloud_Error.Invalid_Response_Payload "Expected a JSON object, but got "+representation+".")

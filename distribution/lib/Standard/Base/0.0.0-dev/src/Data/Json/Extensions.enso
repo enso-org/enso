@@ -12,6 +12,7 @@ import project.Data.Text.Text
 import project.Data.Text.Text_Sub_Range.Text_Sub_Range
 import project.Data.Vector.Vector
 import project.Error.Error
+import project.Errors.Deprecated.Deprecated
 import project.Meta
 import project.Nothing.Nothing
 import project.Warning.Warning
@@ -20,6 +21,7 @@ from project.Data.Range.Extensions import all
 from project.Data.Text.Extensions import all
 
 ## GROUP Conversions
+   ICON convert
    Converts the given value to a JSON serialized value.
 Any.to_json : Text
 Any.to_json self = Json.stringify self
@@ -35,9 +37,10 @@ Error.to_json self = self.to_js_object.to_text
    For arrays or vectors, the elements are converted recursively.
    For atoms and maps, the object is converted to a JS_Object.
 Text.to_js_object : JS_Object | Text
-Text.to_js_object self = case self of
-    Text -> JS_Object.from_pairs [["type", "Text"]]
-    _ -> self
+Text.to_js_object self =
+    case self of
+        Text -> JS_Object.from_pairs [["type", "Text"]]
+        _ -> self
 
 ## PRIVATE
    Converts the given value to a JSON serializable object.
@@ -82,7 +85,7 @@ Nothing.to_js_object self = self
 Array.to_js_object : Vector
 Array.to_js_object self =
     stripped = Warning.clear self
-    proxy = Array_Proxy.new stripped.length i-> stripped.at i . to_js_object
+    proxy = Array_Proxy.new stripped.length i-> stripped.at i .to_js_object
     Vector.from_polyglot_array proxy
 
 ## PRIVATE
@@ -113,11 +116,11 @@ Any.to_js_object self =
                 fs = m.fields
                 field_names = cons.fields
 
-                builder = Vector.new_builder field_names.length+2
-                builder.append type_pair
-                builder.append ["constructor", cons.name]
-                0.up_to field_names.length . map i-> builder.append [field_names.at i, fs.at i . to_js_object]
-                JS_Object.from_pairs builder.to_vector
+                pairs = Vector.build initial_capacity=field_names.length+2 builder->
+                    builder.append type_pair
+                    builder.append ["constructor", cons.name]
+                    0.up_to field_names.length . map i-> builder.append [field_names.at i, fs.at i . to_js_object]
+                JS_Object.from_pairs pairs
         _ : Meta.Constructor ->
             type_name = Meta.get_qualified_type_name self . split '.' . at -2
             JS_Object.from_pairs [["type", type_name], ["constructor", m.name]]
@@ -141,13 +144,13 @@ Error.to_js_object self =
    Custom serialization for Locale, serializes the language, country and variant.
 Locale.to_js_object : JS_Object
 Locale.to_js_object self =
-    b = Vector.new_builder 5
-    b.append ["type", "Locale"]
-    b.append ["constructor", "new"]
-    b.append ["language", self.language]
-    b.append ["country", self.country]
-    b.append ["variant", self.variant]
-    JS_Object.from_pairs b.to_vector
+    pairs = Vector.build initial_capacity=5 b->
+        b.append ["type", "Locale"]
+        b.append ["constructor", "new"]
+        b.append ["language", self.language]
+        b.append ["country", self.country]
+        b.append ["variant", self.variant]
+    JS_Object.from_pairs pairs
 
 ## PRIVATE
    Converts the given value to a JSON serializable object.
@@ -158,3 +161,10 @@ Map.to_js_object : JS_Object
 Map.to_js_object self =
     map_vector = self.to_vector
     map_vector.map p-> [p.first.to_js_object, p.second.to_js_object]
+
+## ICON convert
+   Extension for Text to allow use.
+Text.parse_fast_json : Nothing | Boolean | Number | Text | Vector | JS_Object
+Text.parse_fast_json self =
+    warning = Deprecated.Warning "Standard.Base.Data.Text.Text" "parse_fast_json" "Deprecated: The `parse_json` method uses a faster implementation now by default"
+    Warning.attach warning self.parse_json

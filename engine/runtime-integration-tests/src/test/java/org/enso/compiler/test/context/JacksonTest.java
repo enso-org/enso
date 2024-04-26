@@ -7,6 +7,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.module.scala.DefaultScalaModule;
 import java.util.List;
+import org.enso.interpreter.util.ScalaConversions;
 import org.enso.polyglot.Suggestion;
 import org.junit.Test;
 import scala.Option;
@@ -15,7 +16,8 @@ public class JacksonTest {
 
   @Test
   public void testSerdeOfSuggestion() throws Exception {
-    Object shape = new Suggestion.Module("SampleModule", Option.apply("doc"), Option.empty());
+    Object shape =
+        new Suggestion.Module("SampleModule", Option.apply("doc"), ScalaConversions.set());
     final ObjectMapper m = new ObjectMapper().registerModule(new DefaultScalaModule());
     String result = m.writerWithDefaultPrettyPrinter().writeValueAsString(shape);
 
@@ -29,7 +31,7 @@ public class JacksonTest {
   public void testArraySerdeOfSuggestion() throws Exception {
     Object shape =
         new Suggestion[] {
-          new Suggestion.Module("SampleModule", Option.apply("doc"), Option.empty())
+          new Suggestion.Module("SampleModule", Option.apply("doc"), ScalaConversions.set())
         };
     final ObjectMapper m = new ObjectMapper().registerModule(new DefaultScalaModule());
     String result = m.writerWithDefaultPrettyPrinter().writeValueAsString(shape);
@@ -50,7 +52,9 @@ public class JacksonTest {
     Object shape =
         new SuggestionCache(
             11,
-            List.of(new Suggestion.Module("SampleModule", Option.apply("doc"), Option.empty())));
+            List.of(
+                new Suggestion.Module(
+                    "SampleModule", Option.apply("doc"), ScalaConversions.set())));
     final ObjectMapper m = new ObjectMapper().registerModule(new DefaultScalaModule());
     String result = m.writerWithDefaultPrettyPrinter().writeValueAsString(shape);
 

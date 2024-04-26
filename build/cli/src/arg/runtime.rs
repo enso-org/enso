@@ -12,6 +12,7 @@ use enso_build::project::runtime::Runtime;
 source_args_hlp!(Runtime, "runtime", BuildInput);
 
 #[derive(Args, Clone, Copy, Debug, PartialEq, Eq)]
+#[group(skip)]
 pub struct BuildInput {}
 
 #[derive(Subcommand, Clone, Debug, PartialEq)]

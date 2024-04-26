@@ -3,15 +3,15 @@ import Standard.Base.Data.Vector.No_Wrap
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 from Standard.Base.Runtime import assert
 
-import project.Data.Aggregate_Column.Aggregate_Column
-import project.Data.Column.Column
-import project.Data.Sort_Column.Sort_Column
-import project.Data.Table.Table
-import project.Data.Type.Value_Type.Value_Type
+import project.Aggregate_Column.Aggregate_Column
+import project.Column.Column
 import project.Internal.Column_Naming_Helper.Column_Naming_Helper
 import project.Internal.Problem_Builder.Problem_Builder
 import project.Internal.Table_Helpers
-from project.Data.Aggregate_Column.Aggregate_Column import all
+import project.Sort_Column.Sort_Column
+import project.Table.Table
+import project.Value_Type.Value_Type
+from project.Aggregate_Column.Aggregate_Column import all
 from project.Errors import Duplicate_Output_Column_Names, Invalid_Aggregation, Invalid_Column_Names, No_Output_Columns
 
 polyglot java import org.enso.table.aggregations.Aggregator
@@ -154,7 +154,7 @@ all_same_column aggregates =
    If some columns cannot be resolved, `Nothing` is returned. Any issues are
    reported to the `Problem_Builder`.
 resolve_aggregate : Table -> Problem_Builder -> Aggregate_Column -> Aggregate_Column | Nothing
-resolve_aggregate table problem_builder aggregate_column =
+resolve_aggregate table problem_builder aggregate_column:Aggregate_Column =
     table_columns = table.columns
     columns_helper = table.columns_helper
 
@@ -170,7 +170,7 @@ resolve_aggregate table problem_builder aggregate_column =
 
     resolve_order_by selector = case selector of
         Nothing -> Nothing
-        _ ->
+        _ -> if selector == [] then Nothing else
             columns_for_ordering = Table_Helpers.prepare_order_by table_columns selector problem_builder
             sort_columns = columns_for_ordering.map c->
                 Internal_Order_By_Column_Reference.Value c.column c.associated_selector.direction
@@ -191,7 +191,7 @@ resolve_aggregate table problem_builder aggregate_column =
     result = case aggregate_column of
         Group_By c as -> Group_By (resolve c) as
         Count as -> Count as
-        Count_Distinct c as ignore_nothing ->
+        Count_Distinct c as ignore_nothing -> if c == [] then Count as else
             new_c = resolve_selector_to_vector c
             Count_Distinct new_c as ignore_nothing
         Count_Not_Nothing c as -> Count_Not_Nothing (resolve c) as

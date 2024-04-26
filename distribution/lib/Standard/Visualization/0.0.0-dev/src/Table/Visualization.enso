@@ -1,16 +1,15 @@
 from Standard.Base import all
 import Standard.Base.Data.Vector.Builder
 
-import Standard.Table.Data.Column.Column
-import Standard.Table.Data.Row.Row
-import Standard.Table.Data.Table.Table
+import Standard.Table.Row.Row
+from Standard.Table import Column, Table
 
 import Standard.Database.DB_Column.DB_Column
 import Standard.Database.DB_Table.DB_Table
 
 import project.Helpers
 
-# TODO add an initial offset to fully support lazy visualizations
+## TODO add an initial offset to fully support lazy visualizations
 
 ## PRIVATE
 
@@ -46,6 +45,8 @@ prepare_visualization y max_rows=1000 =
             pairs = [['_display_text_', '[Function '+x.to_text+']']]
             value = JS_Object.from_pairs pairs
             JS_Object.from_pairs [["json", value]]
+        _ : Number ->
+            JS_Object.from_pairs [["json", make_json_for_value x]]
         _ ->
             js_value = x.to_js_object
             value = if js_value.is_a JS_Object . not then js_value else
@@ -168,7 +169,7 @@ make_json_for_value val level=0 = case val of
     Nothing -> Nothing
     _ : Text -> val
     _ : Number ->
-        js_version = val.to_js_object
+        js_version = if val.is_finite then val.to_js_object else JS_Object.from_pairs [["type", "Float"], ["value", val.to_text]]
         if js_version.is_a JS_Object . not then js_version else
             pairs = [['_display_text_', val.to_display_text]] + js_version.field_names.map f-> [f, js_version.get f]
             JS_Object.from_pairs pairs

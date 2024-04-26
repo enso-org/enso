@@ -2,23 +2,23 @@
 import * as React from 'react'
 
 import * as reactDom from 'react-dom'
-import * as toastify from 'react-toastify'
 
 import CloseLargeIcon from 'enso-assets/close_large.svg'
 import DefaultUserIcon from 'enso-assets/default_user.svg'
-import TriangleDownIcon from 'enso-assets/triangle_down.svg'
+import FolderArrowIcon from 'enso-assets/folder_arrow.svg'
 import * as chat from 'enso-chat/chat'
-import * as detect from 'enso-common/src/detect'
 
 import * as gtagHooks from '#/hooks/gtagHooks'
+import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
 import * as authProvider from '#/providers/AuthProvider'
 import * as loggerProvider from '#/providers/LoggerProvider'
+import * as textProvider from '#/providers/TextProvider'
 
-import * as pageSwitcher from '#/layouts/PageSwitcher'
-
+import * as aria from '#/components/aria'
 import SvgMask from '#/components/SvgMask'
 import Twemoji from '#/components/Twemoji'
+import UnstyledButton from '#/components/UnstyledButton'
 
 import * as dateTime from '#/utilities/dateTime'
 import * as newtype from '#/utilities/newtype'
@@ -110,23 +110,23 @@ function ReactionBar(props: ReactionBarProps) {
   const { selectedReactions, doReact, doRemoveReaction, className } = props
 
   return (
-    <div className={`inline-block bg-white rounded-full m-1 ${className ?? ''}`}>
+    <div className={`m-chat-reaction-bar inline-block rounded-full bg-frame ${className ?? ''}`}>
       {REACTION_EMOJIS.map(emoji => (
-        <button
+        <UnstyledButton
           key={emoji}
-          onClick={() => {
+          onPress={() => {
             if (selectedReactions.has(emoji)) {
               doRemoveReaction(emoji)
             } else {
               doReact(emoji)
             }
           }}
-          className={`rounded-full hover:bg-gray-200 m-1 p-1 ${
-            selectedReactions.has(emoji) ? '' : 'opacity-70 grayscale hover:grayscale-0'
+          className={`m-chat-reaction rounded-full p-chat-reaction selectable hover:bg-hover-bg hover:grayscale-0 ${
+            selectedReactions.has(emoji) ? 'active' : 'grayscale'
           }`}
         >
           <Twemoji key={emoji} emoji={emoji} size={REACTION_BUTTON_SIZE} />
-        </button>
+        </UnstyledButton>
       ))}
     </div>
   )
@@ -177,7 +177,7 @@ function ChatMessage(props: ChatMessageProps) {
   const [isHovered, setIsHovered] = React.useState(false)
   return (
     <div
-      className="mx-4 my-2"
+      className="mx-chat-message-x my-chat-message-y"
       onMouseEnter={() => {
         setIsHovered(true)
       }}
@@ -189,11 +189,11 @@ function ChatMessage(props: ChatMessageProps) {
         <img
           crossOrigin="anonymous"
           src={message.avatar ?? DefaultUserIcon}
-          className="rounded-full h-8 w-8 my-1"
+          className="my-chat-profile-picture-y size-chat-profile-picture rounded-full"
         />
-        <div className="mx-2 leading-5">
+        <div className="mx-chat-message-info-x leading-cozy">
           <div className="font-bold">{message.name}</div>
-          <div className="text-opacity-50 text-primary">
+          <div className="text-primary text-opacity-unimportant">
             {dateTime.formatDateTimeChatFriendly(new Date(message.timestamp))}
           </div>
         </div>
@@ -210,7 +210,7 @@ function ChatMessage(props: ChatMessageProps) {
         />
       )}
       {message.isStaffMessage && !shouldShowReactionBar && isHovered && (
-        <div className="relative h-0 py-1 -my-1">
+        <div className="relative -my-chat-reaction-bar-py h py-chat-reaction-bar-y">
           <ReactionBar
             doReact={doReact}
             doRemoveReaction={doRemoveReaction}
@@ -243,7 +243,6 @@ interface InternalChatHeaderProps {
 function ChatHeader(props: InternalChatHeaderProps) {
   const { threads, setThreads, threadId, threadTitle, setThreadTitle } = props
   const { switchThread, sendMessage, doClose } = props
-  const gtagEvent = gtagHooks.useGtagEvent()
   const [isThreadListVisible, setIsThreadListVisible] = React.useState(false)
   // These will never be `null` as their values are set immediately.
   // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
@@ -258,36 +257,32 @@ function ChatHeader(props: InternalChatHeaderProps) {
       setIsThreadListVisible(false)
     }
     document.addEventListener('click', onClick)
-    gtagEvent('cloud_open_chat')
     return () => {
       document.removeEventListener('click', onClick)
-      gtagEvent('cloud_close_chat')
     }
-  }, [gtagEvent])
-
-  const toggleThreadListVisibility = React.useCallback((event: React.SyntheticEvent) => {
-    event.stopPropagation()
-    setIsThreadListVisible(visible => !visible)
   }, [])
 
   return (
     <>
-      <div className="flex text-sm font-semibold mx-4 mt-2">
-        <button className="flex grow items-center" onClick={toggleThreadListVisibility}>
+      <div className="mx-chat-header-x mt-chat-header-t flex text-sm font-semibold">
+        <UnstyledButton
+          className="flex grow items-center gap-icon-with-text"
+          onPress={() => {
+            setIsThreadListVisible(visible => !visible)
+          }}
+        >
           <SvgMask
-            className={`transition-transform duration-300 shrink-0 ${
-              isThreadListVisible ? '-rotate-180' : ''
+            className={`shrink-0 transition-transform duration-arrow ${
+              isThreadListVisible ? '-rotate-90' : 'rotate-90'
             }`}
-            src={TriangleDownIcon}
+            src={FolderArrowIcon}
           />
-          {/* Spacing. */}
-          <div className="w-2" />
           <div className="grow">
-            <input
+            <aria.Input
               type="text"
               ref={titleInputRef}
               defaultValue={threadTitle}
-              className="bg-transparent w-full leading-6"
+              className="w-full bg-transparent leading-chat-thread-title"
               onClick={event => {
                 event.stopPropagation()
               }}
@@ -321,24 +316,24 @@ function ChatHeader(props: InternalChatHeaderProps) {
               }}
             />
           </div>
-        </button>
-        <button className="mx-1" onClick={doClose}>
+        </UnstyledButton>
+        <UnstyledButton className="mx-close-icon" onPress={doClose}>
           <img src={CloseLargeIcon} />
-        </button>
+        </UnstyledButton>
       </div>
       <div className="relative text-sm font-semibold">
         <div
-          className={`grid absolute shadow-soft clip-path-bottom-shadow bg-frame backdrop-blur-3xl overflow-hidden transition-grid-template-rows w-full z-1 ${
+          className={`absolute z-1 grid w-full overflow-hidden bg-frame shadow-soft backdrop-blur-default transition-grid-template-rows clip-path-bottom-shadow ${
             isThreadListVisible ? 'grid-rows-1fr' : 'grid-rows-0fr'
           }`}
         >
-          <div className="min-h-0 max-h-70 overflow-y-auto">
+          <div className="max-h-chat-thread-list min-h overflow-y-auto">
             {threads.map(thread => (
               <div
                 key={thread.id}
-                className={`flex p-1 ${
+                className={`flex p-chat-thread-button ${
                   thread.id === threadId
-                    ? 'cursor-default bg-frame-selected'
+                    ? 'cursor-default bg-selected-frame'
                     : 'cursor-pointer hover:bg-frame'
                 }`}
                 onClick={event => {
@@ -349,7 +344,7 @@ function ChatHeader(props: InternalChatHeaderProps) {
                   }
                 }}
               >
-                <div className="w-8 text-center">
+                <div className="w-chat-indicator text-center">
                   {/* {thread.hasUnreadMessages ? '(!) ' : ''} */}
                 </div>
                 <div>{thread.title}</div>
@@ -368,7 +363,6 @@ function ChatHeader(props: InternalChatHeaderProps) {
 
 /** Props for a {@link Chat}. */
 export interface ChatProps {
-  readonly page: pageSwitcher.Page
   /** This should only be false when the panel is closing. */
   readonly isOpen: boolean
   readonly doClose: () => void
@@ -377,9 +371,37 @@ export interface ChatProps {
 
 /** Chat sidebar. */
 export default function Chat(props: ChatProps) {
-  const { page, isOpen, doClose, endpoint } = props
+  const { isOpen, doClose, endpoint } = props
   const { accessToken: rawAccessToken } = authProvider.useNonPartialUserSession()
+  const { getText } = textProvider.useText()
   const logger = loggerProvider.useLogger()
+  const toastAndLog = toastAndLogHooks.useToastAndLog()
+  const { isFocusVisible } = aria.useFocusVisible()
+  const { focusWithinProps } = aria.useFocusWithin({
+    onFocusWithin: event => {
+      if (
+        isFocusVisible &&
+        !isOpen &&
+        (event.relatedTarget instanceof HTMLElement || event.relatedTarget instanceof SVGElement)
+      ) {
+        const relatedTarget = event.relatedTarget
+        setTimeout(() => {
+          relatedTarget.focus()
+        })
+      }
+    },
+  })
+  const gtagEvent = gtagHooks.useGtagEvent()
+  const gtagEventRef = React.useRef(gtagEvent)
+  gtagEventRef.current = gtagEvent
+
+  React.useEffect(() => {
+    if (!isOpen) {
+      return
+    } else {
+      return gtagHooks.gtagOpenCloseCallback(gtagEventRef, 'cloud_open_chat', 'cloud_close_chat')
+    }
+  }, [isOpen])
 
   /** This is SAFE, because this component is only rendered when `accessToken` is present.
    * See `dashboard.tsx` for its sole usage. */
@@ -580,9 +602,7 @@ export default function Chat(props: ChatProps) {
     (newThreadId: chat.ThreadId) => {
       const threadData = threads.find(thread => thread.id === newThreadId)
       if (threadData == null) {
-        const message = `Unknown thread id '${newThreadId}'.`
-        toastify.toast.error(message)
-        logger.error(message)
+        toastAndLog('unknownThreadIdError', null, newThreadId)
       } else {
         sendMessage({
           type: chat.ChatMessageDataType.switchThread,
@@ -590,12 +610,11 @@ export default function Chat(props: ChatProps) {
         })
       }
     },
-    [threads, /* should never change */ sendMessage, /* should never change */ logger]
+    [threads, toastAndLog, /* should never change */ sendMessage]
   )
 
   const sendCurrentMessage = React.useCallback(
-    (event: React.SyntheticEvent, createNewThread?: boolean) => {
-      event.preventDefault()
+    (createNewThread?: boolean) => {
       const element = messageInputRef.current
       if (element != null) {
         const content = element.value
@@ -609,7 +628,7 @@ export default function Chat(props: ChatProps) {
             id: MessageId(String(Number(new Date()))),
             isStaffMessage: false,
             avatar: null,
-            name: 'Me',
+            name: getText('me'),
             content,
             reactions: [],
             timestamp: Number(new Date()),
@@ -646,6 +665,7 @@ export default function Chat(props: ChatProps) {
       threadId,
       threadTitle,
       shouldIgnoreMessageLimit,
+      getText,
       /* should never change */ sendMessage,
     ]
   )
@@ -663,9 +683,8 @@ export default function Chat(props: ChatProps) {
 
     return reactDom.createPortal(
       <div
-        className={`text-xs text-primary flex flex-col fixed top-0 right-0 backdrop-blur-3xl h-screen shadow-soft w-83.5 py-1 z-3 transition-transform ${
-          detect.isGUI1() && page === pageSwitcher.Page.editor ? 'bg-ide-bg' : ''
-        } ${isOpen ? '' : 'translate-x-full'}`}
+        className={`fixed right top z-1 flex h-screen w-chat flex-col py-chat-y text-xs text-primary shadow-soft backdrop-blur-default transition-transform ${isOpen ? '' : 'translate-x-full'}`}
+        {...focusWithinProps}
       >
         <ChatHeader
           threads={threads}
@@ -744,13 +763,18 @@ export default function Chat(props: ChatProps) {
             />
           ))}
         </div>
-        <form className="rounded-2xl bg-frame p-1 mx-2 my-1" onSubmit={sendCurrentMessage}>
+        <form
+          className="mx-chat-form-x my-chat-form-y rounded-default bg-frame p-chat-form"
+          onSubmit={() => {
+            sendCurrentMessage()
+          }}
+        >
           <textarea
             ref={messageInputRef}
             rows={1}
             required
-            placeholder="Type your message ..."
-            className="w-full rounded-lg bg-transparent resize-none p-1"
+            placeholder={getText('chatInputPlaceholder')}
+            className="w-full resize-none rounded-chat-input bg-transparent p-chat-input"
             onKeyDown={event => {
               switch (event.key) {
                 case 'Enter': {
@@ -775,39 +799,38 @@ export default function Chat(props: ChatProps) {
               }
             }}
           />
-          <div className="flex">
-            <button
-              type="button"
-              disabled={!isReplyEnabled}
-              className={`text-xxs text-white rounded-full grow text-left px-1.5 py-1 ${
+          <div className="flex gap-chat-buttons">
+            <UnstyledButton
+              isDisabled={!isReplyEnabled}
+              className={`text-xxs grow rounded-full px-chat-button-x py-chat-button-y text-left text-white ${
                 isReplyEnabled ? 'bg-gray-400' : 'bg-gray-300'
               }`}
-              onClick={event => {
-                sendCurrentMessage(event, true)
+              onPress={() => {
+                sendCurrentMessage(true)
               }}
             >
-              New question? Click to start a new thread!
-            </button>
-            {/* Spacing. */}
-            <div className="w-0.5" />
-            <button
-              type="submit"
-              disabled={!isReplyEnabled}
-              className={`text-white bg-blue-600/90 rounded-full px-1.5 py-1 ${
-                isReplyEnabled ? '' : 'opacity-50'
-              }`}
+              {getText('clickForNewQuestion')}
+            </UnstyledButton>
+            <UnstyledButton
+              isDisabled={!isReplyEnabled}
+              className="rounded-full bg-blue-600/90 px-chat-button-x py-chat-button-y text-white selectable enabled:active"
+              onPress={() => {
+                sendCurrentMessage()
+              }}
             >
-              Reply!
-            </button>
+              {getText('replyExclamation')}
+            </UnstyledButton>
           </div>
         </form>
         {!isPaidUser && (
-          <button
-            className="leading-5 rounded-2xl bg-call-to-action/90 text-center text-white p-2 mx-2 my-1"
-            onClick={upgradeToPro}
+          <UnstyledButton
+            // This UI element does not appear anywhere else.
+            // eslint-disable-next-line no-restricted-syntax
+            className="mx-2 my-1 rounded-default bg-call-to-action/90 p-2 text-center leading-cozy text-white"
+            onPress={upgradeToPro}
           >
-            Click here to upgrade to Enso Pro and get access to high-priority, live support!
-          </button>
+            {getText('upgradeToProNag')}
+          </UnstyledButton>
         )}
       </div>,
       container

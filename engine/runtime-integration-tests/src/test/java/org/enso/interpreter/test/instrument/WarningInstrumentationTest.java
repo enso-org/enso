@@ -69,14 +69,14 @@ public class WarningInstrumentationTest {
   public void instrumentValueWithWarnings() throws Exception {
     var metadata = new Metadata("");
 
-    var idOp1 = metadata.addItem(151, 34, null);
-    var idOp2 = metadata.addItem(202, 31, null);
-    var idOp3 = metadata.addItem(250, 13, null);
+    var idOp1 = metadata.addItem(140, 34, null);
+    var idOp2 = metadata.addItem(191, 31, null);
+    var idOp3 = metadata.addItem(239, 13, null);
     var rawCode =
         """
                 from Standard.Base import all
                 from Standard.Base.Warning import Warning
-                from Standard.Table.Data.Table import Table
+                from Standard.Table import Table
 
                 run column_name =
                     operator1 = Table.new [[column_name, [1,2,3]]]

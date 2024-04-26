@@ -23,8 +23,37 @@ export class Rect {
     return new Rect(center.addScaled(size, -0.5), size)
   }
 
-  static FromDomRect(domRect: DOMRect): Rect {
-    return new Rect(new Vec2(domRect.x, domRect.y), new Vec2(domRect.width, domRect.height))
+  static FromDomRect(
+    domRect: Readonly<{ x: number; y: number; width: number; height: number }>,
+  ): Rect {
+    return new Rect(Vec2.FromXY(domRect), Vec2.FromSize(domRect))
+  }
+
+  static Bounding(...rects: Rect[]): Rect {
+    let left = NaN
+    let top = NaN
+    let right = NaN
+    let bottom = NaN
+    for (const rect of rects) {
+      if (!(rect.left >= left)) left = rect.left
+      if (!(rect.top >= top)) top = rect.top
+      if (!(rect.right <= right)) right = rect.right
+      if (!(rect.bottom <= bottom)) bottom = rect.bottom
+    }
+    return this.FromBounds(left, top, right, bottom)
+  }
+
+  static Equal(a: Rect, b: Rect): boolean
+  static Equal(a: Rect | null, b: Rect | null): boolean
+  static Equal(a: Rect | undefined, b: Rect | undefined): boolean
+  static Equal(a: Rect | null | undefined, b: Rect | null | undefined): boolean {
+    if (!a && !b) return true
+    if (!a || !b) return false
+    return a.equals(b)
+  }
+
+  isFinite(): boolean {
+    return this.pos.isFinite() && this.size.isFinite()
   }
 
   offsetBy(offset: Vec2): Rect {
@@ -57,6 +86,13 @@ export class Rect {
 
   equals(other: Rect): boolean {
     return this.pos.equals(other.pos) && this.size.equals(other.size)
+  }
+
+  equalsApproximately(other: Rect, epsilon: number): boolean {
+    return (
+      this.pos.equalsApproximately(other.pos, epsilon) &&
+      this.size.equalsApproximately(other.size, epsilon)
+    )
   }
 
   within(other: Rect): boolean {
@@ -112,6 +148,27 @@ export class Rect {
       : undefined
     if (newX == null && newY == null) return
     return new Rect(new Vec2(newX ?? this.pos.x, newY ?? this.pos.y), this.size)
+  }
+
+  /** Returns a value that will compare equal for any two rects `a` and `b` if `a.equals(b)`, and
+   *  `a.isFinite() && b.isFinite()`. The result of comparing keys from two `Rect`s that don't satisfy `isFinite` are
+   *  unspecified, but a key returned from a non-finite `Rect` will never compare equal to a key return from any finite
+   *  Rect.
+   *  ---------------------------------------------------
+   *  | KEYS EQUAL      | a is finite | a is not finite |
+   *  ---------------------------------------------------
+   *  | b is finite     | a.equals(b) | false           |
+   *  | b is not finite | false       | unspecified     |
+   *  ---------------------------------------------------
+   */
+  key(): string {
+    return [this.top, this.bottom, this.left, this.right].join(':')
+  }
+
+  /** Return a `Rect` equal to this `Rect` reflected over the line `y=x`, i.e. with the x and y axes of all coordinates
+   *  swapped. */
+  reflectXY() {
+    return new Rect(this.pos.reflectXY(), this.size.reflectXY())
   }
 }
 

@@ -2,10 +2,11 @@ package src.main.scala.licenses.report
 
 import java.nio.file.{InvalidPathException, Path}
 import java.time.LocalDate
+import sbt.*
+import src.main.scala.licenses.*
 
-import sbt._
-import src.main.scala.licenses._
-
+import java.nio.charset.StandardCharsets
+import java.util.Base64
 import scala.util.control.NonFatal
 
 /** Reads settings from the `root` to add review statuses to discovered
@@ -82,8 +83,8 @@ case class Review(root: File, dependencySummary: DependencySummary) {
       files   = findAdditionalFiles(root / Paths.filesAdd)
       summary = ReviewedSummary(reviews, header, files)
       _ <- ReviewedSummary.warnAboutMissingReviews(summary)
-      existingPackages = dependencySummary.dependencies.map(_._1.packageName)
-      _ <- warnAboutMissingDependencies(existingPackages)
+      expectedPackages = dependencySummary.dependencies.map(_._1)
+      _ <- warnAboutMissingDependencies(expectedPackages)
     } yield summary
 
   /** Returns a list of warnings for dependencies whose configuration has been
@@ -93,19 +94,43 @@ case class Review(root: File, dependencySummary: DependencySummary) {
     * update.
     */
   private def warnAboutMissingDependencies(
-    existingPackageNames: Seq[String]
+    knownPackages: Seq[DependencyInformation]
   ): WithDiagnostics[Unit] = {
     val foundConfigurations = listFiles(root).filter(_.isDirectory)
     val expectedFileNames =
-      existingPackageNames ++ Seq(Paths.filesAdd, Paths.reviewedLicenses)
+      knownPackages.map(_.packageName) ++ Seq(
+        Paths.filesAdd,
+        Paths.reviewedLicenses
+      )
+
     val unexpectedConfigurations =
       foundConfigurations.filter(p => !expectedFileNames.contains(p.getName))
-    val diagnostics = unexpectedConfigurations.map(p =>
-      Diagnostic.Error(
-        s"Found legal review configuration for package ${p.getName}, " +
-        s"but no such dependency has been found. Perhaps it has been removed or renamed (version change)?"
+    val diagnostics = unexpectedConfigurations.map { p =>
+      val packageNameFromConfig = p.getName
+      val matchingPackages = knownPackages.filter(other =>
+        packageNameFromConfig.startsWith(other.packageNameWithoutVersion + "-")
       )
-    )
+      val maybeMatchingPackage: Option[DependencyInformation] =
+        if (matchingPackages.length == 1) Some(matchingPackages.head) else None
+
+      val commonMessagePrefix =
+        s"Found legal review configuration for package ${p.getName}, but no such dependency has been found."
+      maybeMatchingPackage match {
+        case Some(matchingPackage) =>
+          Diagnostic.Error(
+            commonMessagePrefix + s" Perhaps the version was changed to `${matchingPackage.packageName}`?",
+            metadata = Map(
+              "class"     -> "rename-dependency-config",
+              "data-from" -> packageNameFromConfig,
+              "data-to"   -> matchingPackage.packageName
+            )
+          )
+        case None =>
+          Diagnostic.Error(
+            commonMessagePrefix + " Perhaps it has been removed or renamed (version change)?"
+          )
+      }
+    }
     WithDiagnostics.justDiagnostics(diagnostics)
   }
 
@@ -121,7 +146,8 @@ case class Review(root: File, dependencySummary: DependencySummary) {
       if (f.isDirectory)
         AttachedFile(
           PortablePath(f.toPath.toAbsolutePath),
-          Review.directoryMark
+          Review.directoryMark,
+          origin = Some(dir.toPath.toString)
         )
       else
         AttachedFile.read(f.toPath, Some(dir.toPath))
@@ -271,7 +297,11 @@ case class Review(root: File, dependencySummary: DependencySummary) {
         val directory   = root / Paths.reviewedLicenses
         val fileName    = Review.normalizeName(info.license.name)
         var settingPath = directory / fileName
-        directory.listFiles.filter(_.getName.equalsIgnoreCase(fileName)) match {
+        val reviewedLicenseFiles =
+          Option(directory.listFiles).getOrElse(Array())
+        reviewedLicenseFiles.filter(
+          _.getName.equalsIgnoreCase(fileName)
+        ) match {
           case Array(settingPath) =>
             readFile(settingPath)
               .map { content =>
@@ -352,7 +382,15 @@ case class Review(root: File, dependencySummary: DependencySummary) {
         s"File $fileName in ${packageRoot.getName} contains entry `$l`, but no " +
         s"such entry has been detected. Perhaps it has disappeared after an " +
         s"update? Please remove it from the file and make sure that the report " +
-        s"contains all necessary elements after this change."
+        s"contains all necessary elements after this change.",
+        metadata = Map(
+          "class"         -> "unexpected-entry-in-file",
+          "data-package"  -> packageRoot.getName,
+          "data-filename" -> fileName,
+          "data-content" -> Base64.getEncoder.encodeToString(
+            l.getBytes(StandardCharsets.UTF_8)
+          )
+        )
       )
     )
     WithDiagnostics(lines, warnings)

@@ -16,7 +16,8 @@ import org.enso.languageserver.boot.{
 import org.enso.libraryupload.LibraryUploader.UploadFailedError
 import org.slf4j.event.Level
 import org.enso.pkg.{Contact, PackageManager, Template}
-import org.enso.polyglot.{HostEnsoUtils, LanguageInfo, Module, PolyglotContext}
+import org.enso.common.{HostEnsoUtils, LanguageInfo}
+import org.enso.polyglot.{Module, PolyglotContext}
 import org.enso.profiling.sampler.{NoopSampler, OutputStreamSampler}
 import org.enso.version.VersionDescription
 import org.graalvm.polyglot.PolyglotException
@@ -400,6 +401,11 @@ object Main {
       )
       .build()
 
+    val disablePrivateCheckOption = CliOption.builder
+      .longOpt(DISABLE_PRIVATE_CHECK_OPTION)
+      .desc("Disables private module checking at runtime. Useful for tests.")
+      .build()
+
     val options = new Options
     options
       .addOption(help)
@@ -445,6 +451,7 @@ object Main {
       .addOption(skipGraalVMUpdater)
       .addOption(executionEnvironmentOption)
       .addOption(warningsLimitOption)
+      .addOption(disablePrivateCheckOption)
 
     options
   }

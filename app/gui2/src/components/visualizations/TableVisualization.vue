@@ -1,8 +1,16 @@
 <script lang="ts">
+import { useAutoBlur } from '@/util/autoBlur'
+import { VisualizationContainer } from '@/util/visualizationBuiltins'
+import '@ag-grid-community/styles/ag-grid.css'
+import '@ag-grid-community/styles/ag-theme-alpine.css'
+import type { ColumnResizedEvent, ICellRendererParams } from 'ag-grid-community'
+import type { ColDef, GridOptions, HeaderValueGetterParams } from 'ag-grid-enterprise'
+import { computed, onMounted, onUnmounted, reactive, ref, watchEffect, type Ref } from 'vue'
+
 export const name = 'Table'
 export const icon = 'table'
 export const inputType =
-  'Standard.Table.Data.Table.Table | Standard.Table.Data.Column.Column | Standard.Table.Data.Row.Row |Standard.Base.Data.Vector.Vector | Standard.Base.Data.Array.Array | Standard.Base.Data.Map.Map | Any'
+  'Standard.Table.Table.Table | Standard.Table.Column.Column | Standard.Table.Row.Row | Standard.Base.Data.Vector.Vector | Standard.Base.Data.Array.Array | Standard.Base.Data.Map.Map | Any'
 export const defaultPreprocessor = [
   'Standard.Visualization.Table.Visualization',
   'prepare_visualization',
@@ -65,17 +73,14 @@ declare module 'ag-grid-enterprise' {
     field: string
   }
 }
+
+if (typeof import.meta.env.VITE_ENSO_AG_GRID_LICENSE_KEY !== 'string') {
+  console.warn('The AG_GRID_LICENSE_KEY is not defined.')
+}
 </script>
 
 <script setup lang="ts">
-import { useAutoBlur } from '@/util/autoBlur'
-import { VisualizationContainer } from '@/util/visualizationBuiltins'
-import '@ag-grid-community/styles/ag-grid.css'
-import '@ag-grid-community/styles/ag-theme-alpine.css'
-import { Grid, type ColumnResizedEvent, type ICellRendererParams } from 'ag-grid-community'
-import type { ColDef, GridOptions, HeaderValueGetterParams } from 'ag-grid-enterprise'
-import { computed, onMounted, onUnmounted, reactive, ref, watchEffect, type Ref } from 'vue'
-const { LicenseManager } = await import('ag-grid-enterprise')
+const { LicenseManager, Grid } = await import('ag-grid-enterprise')
 
 const props = defineProps<{ data: Data }>()
 const emit = defineEmits<{
@@ -129,6 +134,12 @@ const selectableRowLimits = computed(() => {
 })
 const wasAutomaticallyAutosized = ref(false)
 
+const numberFormat = new Intl.NumberFormat(undefined, {
+  style: 'decimal',
+  maximumFractionDigits: 12,
+  useGrouping: 'min2' as any,
+})
+
 function setRowLimit(newRowLimit: number) {
   if (newRowLimit !== rowLimit.value) {
     rowLimit.value = newRowLimit
@@ -153,12 +164,29 @@ function escapeHTML(str: string) {
 }
 
 function cellRenderer(params: ICellRendererParams) {
+  // Convert's the value into a display string.
   if (params.value === null) return '<span style="color:grey; font-style: italic;">Nothing</span>'
   else if (params.value === undefined) return ''
   else if (params.value === '') return '<span style="color:grey; font-style: italic;">Empty</span>'
-  else if (typeof params.value === 'number')
-    return params.value.toLocaleString(undefined, { maximumFractionDigits: 12 })
-  else return escapeHTML(params.value.toString())
+  else if (typeof params.value === 'number') return numberFormat.format(params.value)
+  else if (Array.isArray(params.value)) {
+    const content = params.value
+    if (isMatrix({ json: content })) {
+      return `[Vector ${content.length} rows x ${content[0].length} cols]`
+    } else if (isObjectMatrix({ json: content })) {
+      return `[Table ${content.length} rows x ${Object.keys(content[0]).length} cols]`
+    } else {
+      return `[Vector ${content.length} items]`
+    }
+  } else if (typeof params.value === 'object') {
+    const valueType = params.value?.type
+    if (valueType === 'BigInt') return numberFormat.format(BigInt(params.value?.value))
+    else if (valueType === 'Float')
+      return `<span style="color:grey; font-style: italic;">${params.value?.value ?? 'Unknown'}</span>`
+    else if ('_display_text_' in params.value && params.value['_display_text_'])
+      return String(params.value['_display_text_'])
+    else return `{ ${valueType} Object }`
+  } else return escapeHTML(params.value.toString())
 }
 
 function addRowIndex(data: object[]): object[] {
@@ -212,30 +240,22 @@ function indexField(): ColDef {
 
 /** Return a human-readable representation of an object. */
 function toRender(content: unknown) {
-  if (Array.isArray(content)) {
-    if (isMatrix({ json: content })) {
-      return `[Vector ${content.length} rows x ${content[0].length} cols]`
-    } else if (isObjectMatrix({ json: content })) {
-      return `[Table ${content.length} rows x ${Object.keys(content[0]).length} cols]`
-    } else {
-      return `[Vector ${content.length} items]`
-    }
-  }
-
-  if (typeof content === 'object' && content != null) {
-    const type = 'type' in content ? content.type : undefined
-    if ('_display_text_' in content && content['_display_text_']) {
-      return String(content['_display_text_'])
-    } else {
-      return `{ ${type} Object }`
-    }
-  }
-
   return content
 }
 
 watchEffect(() => {
-  const data_ = props.data
+  // If the user switches from one visualization type to another, we can receive the raw object.
+  const data_ =
+    typeof props.data === 'object' ?
+      props.data
+    : {
+        type: typeof props.data,
+        json: props.data,
+        // eslint-disable-next-line camelcase
+        all_rows_count: 1,
+        data: undefined,
+        indices: undefined,
+      }
   const options = agGridOptions.value
   if (options.api == null) {
     return
@@ -287,7 +307,7 @@ watchEffect(() => {
   } else if (Array.isArray(data_.json)) {
     columnDefs = [indexField(), toField('Value')]
     rowData = data_.json.map((row, i) => ({ [INDEX_FIELD_NAME]: i, Value: toRender(row) }))
-    isTruncated.value = data_.all_rows_count !== data_.json.length
+    isTruncated.value = data_.all_rows_count ? data_.all_rows_count !== data_.json.length : false
   } else if (data_.json !== undefined) {
     columnDefs = [toField('Value')]
     rowData = [{ Value: toRender(data_.json) }]
@@ -370,12 +390,27 @@ function lockColumnSize(e: ColumnResizedEvent) {
 
 onMounted(() => {
   setRowLimit(1000)
-  if ('AG_GRID_LICENSE_KEY' in window && typeof window.AG_GRID_LICENSE_KEY === 'string') {
-    LicenseManager.setLicenseKey(window.AG_GRID_LICENSE_KEY)
-  } else {
-    console.warn('The AG_GRID_LICENSE_KEY is not defined.')
-    new Grid(tableNode.value!, agGridOptions.value)
+  const agGridLicenseKey = import.meta.env.VITE_ENSO_AG_GRID_LICENSE_KEY
+  if (typeof agGridLicenseKey === 'string') {
+    LicenseManager.setLicenseKey(agGridLicenseKey)
+  } else if (import.meta.env.DEV) {
+    // Hide annoying license validation errors in dev mode when the license is not defined. The
+    // missing define warning is still displayed to not forget about it, but it isn't as obnoxious.
+    const origValidateLicense = LicenseManager.prototype.validateLicense
+    LicenseManager.prototype.validateLicense = function (this) {
+      if (!('licenseManager' in this))
+        Object.defineProperty(this, 'licenseManager', {
+          configurable: true,
+          set(value: any) {
+            Object.getPrototypeOf(value).validateLicense = () => {}
+            delete this.licenseManager
+            this.licenseManager = value
+          },
+        })
+      origValidateLicense.call(this)
+    }
   }
+  new Grid(tableNode.value!, agGridOptions.value)
   updateColumnWidths()
 })
 

@@ -420,27 +420,31 @@ type_spec suite_builder name alter = suite_builder.group name group_builder->
 
     group_builder.specify "should allow applying a function to each element" <|
         vec = alter [1, 2, 3, 4]
-        vec_mut = Vector.new_builder
-        vec.each vec_mut.append
-        vec_mut.to_vector . should_equal vec
+        result = Vector.build builder->
+            vec.each builder.append
+        result . should_equal vec
+    
+    group_builder.specify "dataflow errors in .each should become panics" <|
+        do_write x =
+            Error.throw "Failed to write "+x.to_text
+        vec = alter [1, 2, 3, 4]
+        Test.expect_panic_with (vec.each do_write) Text
 
     group_builder.specify "should accept changed elements" <|
-        vec_mut = Vector.new_builder
-        vec_mut.append 1
-        vec_mut.append 1.1
-        vec_mut.append Nothing
+        vec = alter <| Vector.build builder->
+            builder.append 1
+            builder.append 1.1
+            builder.append Nothing
 
-        vec = alter vec_mut.to_vector
         vec.length . should_equal 3
         vec.at 0 . should_equal 1
         vec.at 1 . should_equal 1.1
         vec.at 2 . should_equal Nothing
 
     group_builder.specify "should accept Nothing" <|
-        vec_mut = Vector.new_builder
-        vec_mut.append Nothing
+        vec = alter <| Vector.build builder->
+            builder.append Nothing
 
-        vec = alter vec_mut.to_vector
         vec.length . should_equal 1
         vec.at 0 . should_equal Nothing
 
@@ -676,8 +680,8 @@ type_spec suite_builder name alter = suite_builder.group name group_builder->
                 v.take (Sample 3) . should_not_equal (v.take (Sample 3))
 
     group_builder.specify "take/drop should gracefully handle missing constructor arguments" <|
-        [].take "FOO" . should_fail_with Type_Error
-        [].drop "FOO" . should_fail_with Type_Error
+        Test.expect_panic Type_Error <| [].take "FOO"
+        Test.expect_panic Type_Error <| [].drop "FOO"
 
         r1 = [].take (Index_Sub_Range.While)
         r1.should_fail_with Illegal_Argument
@@ -778,21 +782,19 @@ type_spec suite_builder name alter = suite_builder.group name group_builder->
 
     group_builder.specify "should correctly propagate state through each" <|
         v = State.run Number 77 <|
-            b = Vector.new_builder
-            (alter ["A", "B"]).each x->
-                b.append x
-                b.append (State.get Number).to_text
-            b.to_vector
+            Vector.build builder->
+                (alter ["A", "B"]).each x->
+                    builder.append x
+                    builder.append (State.get Number).to_text
 
         v.should_equal ['A', '77', 'B', '77']
 
     group_builder.specify "should correctly propagate state through map" <|
         v = State.run Number 55 <|
-            b = Vector.new_builder
-            (alter ["X", "Y"]).map x->
-                b.append x
-                b.append (State.get Number).to_text
-            b.to_vector
+            Vector.build builder->
+                (alter ["X", "Y"]).map x->
+                    builder.append x
+                    builder.append (State.get Number).to_text
 
         v.should_equal ['X', '55', 'Y', '55']
 
@@ -1033,6 +1035,39 @@ add_specs suite_builder =
             l = List.Cons 1 <| List.Cons 2 <| List.Cons 3 <| List.Nil
             v = Vector.collect l .x .xs limit=30 stop_at=(_==List.Nil)
             v . should_equal [1, 2, 3]
+
+    suite_builder.group "Vector.build" group_builder->
+        group_builder.specify "Should be able to build a vector" <|
+            v = Vector.build builder->
+                builder.append 1
+                builder.append 2
+                builder.append Nothing
+                builder.append 3
+            v . should_equal [1, 2, Nothing, 3]
+
+            v2 = Vector.build builder->
+                _ = builder  # Do nothing
+            v2 . should_equal []
+
+            v3 = Vector.build initial_capacity=20 builder->
+                builder.append 1
+            v3 . should_equal [1]
+
+        group_builder.specify "Should propagate dataflow errors" <|
+            v = Vector.build builder->
+                builder.append 1
+                builder.append 2
+                Error.throw (Illegal_Argument.Error "asdf")
+            v . should_fail_with (Illegal_Argument.Error "asdf")
+
+        group_builder.specify "example" <|
+            vec = Vector.build initial_capacity=5 builder->
+                do_build start stop =
+                    builder.append start
+                    if start >= stop then Nothing else
+                        @Tail_Call do_build start+1 stop
+                do_build 1 5
+            vec . should_equal [1, 2, 3, 4, 5]
 
     suite_builder.group "Vector/Array equality" group_builder->
         v1 = [1, 2, 3]

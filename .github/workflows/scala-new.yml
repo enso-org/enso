@@ -27,18 +27,12 @@ jobs:
           access_token: ${{ github.token }}
     permissions:
       actions: write
-  enso-build-ci-gen-job-ci-check-backend-linux-x86_64:
-    name: Engine (linux, x86_64)
+  enso-build-ci-gen-job-ci-check-backend-graal-vm-ce-linux-x86_64:
+    name: Engine (GraalVM CE) (linux, x86_64)
     runs-on:
       - self-hosted
       - Linux
     steps:
-      - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
-        name: Setup conda (GH runners only)
-        uses: s-weigand/setup-conda@v1.2.1
-        with:
-          update-conda: false
-          conda-channels: anaconda, conda-forge
       - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
         name: Installing wasm-pack
         uses: jetli/wasm-pack-action@v0.4.0
@@ -54,7 +48,7 @@ jobs:
           clean: false
           submodules: recursive
       - name: Build Script Setup
-        run: ./run --help
+        run: ./run --help || (git clean -ffdx && ./run --help)
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - if: "(contains(github.event.pull_request.labels.*.name, 'CI: Clean build required') || inputs.clean_build_required)"
@@ -76,17 +70,13 @@ jobs:
         run: ./run git-clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-  enso-build-ci-gen-job-ci-check-backend-macos-x86_64:
-    name: Engine (macos, x86_64)
+    env:
+      GRAAL_EDITION: GraalVM CE
+  enso-build-ci-gen-job-ci-check-backend-graal-vm-ce-macos-x86_64:
+    name: Engine (GraalVM CE) (macos, x86_64)
     runs-on:
       - macos-latest
     steps:
-      - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
-        name: Setup conda (GH runners only)
-        uses: s-weigand/setup-conda@v1.2.1
-        with:
-          update-conda: false
-          conda-channels: anaconda, conda-forge
       - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
         name: Installing wasm-pack
         uses: jetli/wasm-pack-action@v0.4.0
@@ -102,7 +92,7 @@ jobs:
           clean: false
           submodules: recursive
       - name: Build Script Setup
-        run: ./run --help
+        run: ./run --help || (git clean -ffdx && ./run --help)
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - if: "(contains(github.event.pull_request.labels.*.name, 'CI: Clean build required') || inputs.clean_build_required)"
@@ -124,18 +114,14 @@ jobs:
         run: ./run git-clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-  enso-build-ci-gen-job-ci-check-backend-windows-x86_64:
-    name: Engine (windows, x86_64)
+    env:
+      GRAAL_EDITION: GraalVM CE
+  enso-build-ci-gen-job-ci-check-backend-graal-vm-ce-windows-x86_64:
+    name: Engine (GraalVM CE) (windows, x86_64)
     runs-on:
       - self-hosted
       - Windows
     steps:
-      - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
-        name: Setup conda (GH runners only)
-        uses: s-weigand/setup-conda@v1.2.1
-        with:
-          update-conda: false
-          conda-channels: anaconda, conda-forge
       - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
         name: Installing wasm-pack
         uses: jetli/wasm-pack-action@v0.4.0
@@ -151,7 +137,7 @@ jobs:
           clean: false
           submodules: recursive
       - name: Build Script Setup
-        run: ./run --help
+        run: ./run --help || (git clean -ffdx && ./run --help)
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - if: "(contains(github.event.pull_request.labels.*.name, 'CI: Clean build required') || inputs.clean_build_required)"
@@ -173,19 +159,15 @@ jobs:
         run: ./run git-clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-  enso-build-ci-gen-job-scala-tests-linux-x86_64:
-    name: Scala Tests (linux, x86_64)
+    env:
+      GRAAL_EDITION: GraalVM CE
+  enso-build-ci-gen-job-jvm-tests-graal-vm-ce-linux-x86_64:
+    name: JVM Tests (GraalVM CE) (linux, x86_64)
     runs-on:
       - self-hosted
       - Linux
     steps:
       - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
-        name: Setup conda (GH runners only)
-        uses: s-weigand/setup-conda@v1.2.1
-        with:
-          update-conda: false
-          conda-channels: anaconda, conda-forge
-      - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
         name: Installing wasm-pack
         uses: jetli/wasm-pack-action@v0.4.0
         with:
@@ -200,7 +182,7 @@ jobs:
           clean: false
           submodules: recursive
       - name: Build Script Setup
-        run: ./run --help
+        run: ./run --help || (git clean -ffdx && ./run --help)
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - if: "(contains(github.event.pull_request.labels.*.name, 'CI: Clean build required') || inputs.clean_build_required)"
@@ -208,7 +190,7 @@ jobs:
         run: ./run git-clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - run: ./run backend test scala
+      - run: ./run backend test jvm
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - if: success() || failure()
@@ -216,7 +198,7 @@ jobs:
         uses: dorny/test-reporter@v1
         with:
           max-annotations: 50
-          name: Engine Tests Report (linux, x86_64)
+          name: Engine Tests Report (GraalVM CE, linux, x86_64)
           path: ${{ env.ENSO_TEST_JUNIT_DIR }}/*.xml
           path-replace-backslashes: true
           reporter: java-junit
@@ -231,20 +213,16 @@ jobs:
         run: ./run git-clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    env:
+      GRAAL_EDITION: GraalVM CE
     permissions:
       checks: write
-  enso-build-ci-gen-job-scala-tests-macos-x86_64:
-    name: Scala Tests (macos, x86_64)
+  enso-build-ci-gen-job-jvm-tests-graal-vm-ce-macos-x86_64:
+    name: JVM Tests (GraalVM CE) (macos, x86_64)
     runs-on:
       - macos-latest
     steps:
       - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
-        name: Setup conda (GH runners only)
-        uses: s-weigand/setup-conda@v1.2.1
-        with:
-          update-conda: false
-          conda-channels: anaconda, conda-forge
-      - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
         name: Installing wasm-pack
         uses: jetli/wasm-pack-action@v0.4.0
         with:
@@ -259,7 +237,7 @@ jobs:
           clean: false
           submodules: recursive
       - name: Build Script Setup
-        run: ./run --help
+        run: ./run --help || (git clean -ffdx && ./run --help)
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - if: "(contains(github.event.pull_request.labels.*.name, 'CI: Clean build required') || inputs.clean_build_required)"
@@ -267,7 +245,7 @@ jobs:
         run: ./run git-clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - run: ./run backend test scala
+      - run: ./run backend test jvm
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - if: success() || failure()
@@ -275,7 +253,7 @@ jobs:
         uses: dorny/test-reporter@v1
         with:
           max-annotations: 50
-          name: Engine Tests Report (macos, x86_64)
+          name: Engine Tests Report (GraalVM CE, macos, x86_64)
           path: ${{ env.ENSO_TEST_JUNIT_DIR }}/*.xml
           path-replace-backslashes: true
           reporter: java-junit
@@ -290,21 +268,17 @@ jobs:
         run: ./run git-clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    env:
+      GRAAL_EDITION: GraalVM CE
     permissions:
       checks: write
-  enso-build-ci-gen-job-scala-tests-windows-x86_64:
-    name: Scala Tests (windows, x86_64)
+  enso-build-ci-gen-job-jvm-tests-graal-vm-ce-windows-x86_64:
+    name: JVM Tests (GraalVM CE) (windows, x86_64)
     runs-on:
       - self-hosted
       - Windows
     steps:
       - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
-        name: Setup conda (GH runners only)
-        uses: s-weigand/setup-conda@v1.2.1
-        with:
-          update-conda: false
-          conda-channels: anaconda, conda-forge
-      - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
         name: Installing wasm-pack
         uses: jetli/wasm-pack-action@v0.4.0
         with:
@@ -319,7 +293,7 @@ jobs:
           clean: false
           submodules: recursive
       - name: Build Script Setup
-        run: ./run --help
+        run: ./run --help || (git clean -ffdx && ./run --help)
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - if: "(contains(github.event.pull_request.labels.*.name, 'CI: Clean build required') || inputs.clean_build_required)"
@@ -327,7 +301,7 @@ jobs:
         run: ./run git-clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - run: ./run backend test scala
+      - run: ./run backend test jvm
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - if: success() || failure()
@@ -335,7 +309,7 @@ jobs:
         uses: dorny/test-reporter@v1
         with:
           max-annotations: 50
-          name: Engine Tests Report (windows, x86_64)
+          name: Engine Tests Report (GraalVM CE, windows, x86_64)
           path: ${{ env.ENSO_TEST_JUNIT_DIR }}/*.xml
           path-replace-backslashes: true
           reporter: java-junit
@@ -350,21 +324,17 @@ jobs:
         run: ./run git-clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    env:
+      GRAAL_EDITION: GraalVM CE
     permissions:
       checks: write
-  enso-build-ci-gen-job-standard-library-tests-linux-x86_64:
-    name: Standard Library Tests (linux, x86_64)
+  enso-build-ci-gen-job-standard-library-tests-graal-vm-ce-linux-x86_64:
+    name: Standard Library Tests (GraalVM CE) (linux, x86_64)
     runs-on:
       - self-hosted
       - Linux
     steps:
       - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
-        name: Setup conda (GH runners only)
-        uses: s-weigand/setup-conda@v1.2.1
-        with:
-          update-conda: false
-          conda-channels: anaconda, conda-forge
-      - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
         name: Installing wasm-pack
         uses: jetli/wasm-pack-action@v0.4.0
         with:
@@ -379,7 +349,7 @@ jobs:
           clean: false
           submodules: recursive
       - name: Build Script Setup
-        run: ./run --help
+        run: ./run --help || (git clean -ffdx && ./run --help)
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - if: "(contains(github.event.pull_request.labels.*.name, 'CI: Clean build required') || inputs.clean_build_required)"
@@ -389,16 +359,16 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - run: ./run backend test standard-library
         env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.ENSO_LIB_S3_AWS_ACCESS_KEY_ID }}
-          AWS_REGION: ${{ secrets.ENSO_LIB_S3_AWS_REGION }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.ENSO_LIB_S3_AWS_SECRET_ACCESS_KEY }}
+          ENSO_LIB_S3_AWS_ACCESS_KEY_ID: ${{ secrets.ENSO_LIB_S3_AWS_ACCESS_KEY_ID }}
+          ENSO_LIB_S3_AWS_REGION: ${{ secrets.ENSO_LIB_S3_AWS_REGION }}
+          ENSO_LIB_S3_AWS_SECRET_ACCESS_KEY: ${{ secrets.ENSO_LIB_S3_AWS_SECRET_ACCESS_KEY }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - if: success() || failure()
         name: Standard Library Test Reporter
         uses: dorny/test-reporter@v1
         with:
           max-annotations: 50
-          name: Standard Library Tests Report (linux, x86_64)
+          name: Standard Library Tests Report (GraalVM CE, linux, x86_64)
           path: ${{ env.ENSO_TEST_JUNIT_DIR }}/*/*.xml
           path-replace-backslashes: true
           reporter: java-junit
@@ -413,20 +383,16 @@ jobs:
         run: ./run git-clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    env:
+      GRAAL_EDITION: GraalVM CE
     permissions:
       checks: write
-  enso-build-ci-gen-job-standard-library-tests-macos-x86_64:
-    name: Standard Library Tests (macos, x86_64)
+  enso-build-ci-gen-job-standard-library-tests-graal-vm-ce-macos-x86_64:
+    name: Standard Library Tests (GraalVM CE) (macos, x86_64)
     runs-on:
       - macos-latest
     steps:
       - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
-        name: Setup conda (GH runners only)
-        uses: s-weigand/setup-conda@v1.2.1
-        with:
-          update-conda: false
-          conda-channels: anaconda, conda-forge
-      - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
         name: Installing wasm-pack
         uses: jetli/wasm-pack-action@v0.4.0
         with:
@@ -441,7 +407,7 @@ jobs:
           clean: false
           submodules: recursive
       - name: Build Script Setup
-        run: ./run --help
+        run: ./run --help || (git clean -ffdx && ./run --help)
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - if: "(contains(github.event.pull_request.labels.*.name, 'CI: Clean build required') || inputs.clean_build_required)"
@@ -451,16 +417,16 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - run: ./run backend test standard-library
         env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.ENSO_LIB_S3_AWS_ACCESS_KEY_ID }}
-          AWS_REGION: ${{ secrets.ENSO_LIB_S3_AWS_REGION }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.ENSO_LIB_S3_AWS_SECRET_ACCESS_KEY }}
+          ENSO_LIB_S3_AWS_ACCESS_KEY_ID: ${{ secrets.ENSO_LIB_S3_AWS_ACCESS_KEY_ID }}
+          ENSO_LIB_S3_AWS_REGION: ${{ secrets.ENSO_LIB_S3_AWS_REGION }}
+          ENSO_LIB_S3_AWS_SECRET_ACCESS_KEY: ${{ secrets.ENSO_LIB_S3_AWS_SECRET_ACCESS_KEY }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - if: success() || failure()
         name: Standard Library Test Reporter
         uses: dorny/test-reporter@v1
         with:
           max-annotations: 50
-          name: Standard Library Tests Report (macos, x86_64)
+          name: Standard Library Tests Report (GraalVM CE, macos, x86_64)
           path: ${{ env.ENSO_TEST_JUNIT_DIR }}/*/*.xml
           path-replace-backslashes: true
           reporter: java-junit
@@ -475,21 +441,17 @@ jobs:
         run: ./run git-clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    env:
+      GRAAL_EDITION: GraalVM CE
     permissions:
       checks: write
-  enso-build-ci-gen-job-standard-library-tests-windows-x86_64:
-    name: Standard Library Tests (windows, x86_64)
+  enso-build-ci-gen-job-standard-library-tests-graal-vm-ce-windows-x86_64:
+    name: Standard Library Tests (GraalVM CE) (windows, x86_64)
     runs-on:
       - self-hosted
       - Windows
     steps:
       - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
-        name: Setup conda (GH runners only)
-        uses: s-weigand/setup-conda@v1.2.1
-        with:
-          update-conda: false
-          conda-channels: anaconda, conda-forge
-      - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
         name: Installing wasm-pack
         uses: jetli/wasm-pack-action@v0.4.0
         with:
@@ -504,7 +466,7 @@ jobs:
           clean: false
           submodules: recursive
       - name: Build Script Setup
-        run: ./run --help
+        run: ./run --help || (git clean -ffdx && ./run --help)
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - if: "(contains(github.event.pull_request.labels.*.name, 'CI: Clean build required') || inputs.clean_build_required)"
@@ -514,16 +476,16 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - run: ./run backend test standard-library
         env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.ENSO_LIB_S3_AWS_ACCESS_KEY_ID }}
-          AWS_REGION: ${{ secrets.ENSO_LIB_S3_AWS_REGION }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.ENSO_LIB_S3_AWS_SECRET_ACCESS_KEY }}
+          ENSO_LIB_S3_AWS_ACCESS_KEY_ID: ${{ secrets.ENSO_LIB_S3_AWS_ACCESS_KEY_ID }}
+          ENSO_LIB_S3_AWS_REGION: ${{ secrets.ENSO_LIB_S3_AWS_REGION }}
+          ENSO_LIB_S3_AWS_SECRET_ACCESS_KEY: ${{ secrets.ENSO_LIB_S3_AWS_SECRET_ACCESS_KEY }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - if: success() || failure()
         name: Standard Library Test Reporter
         uses: dorny/test-reporter@v1
         with:
           max-annotations: 50
-          name: Standard Library Tests Report (windows, x86_64)
+          name: Standard Library Tests Report (GraalVM CE, windows, x86_64)
           path: ${{ env.ENSO_TEST_JUNIT_DIR }}/*/*.xml
           path-replace-backslashes: true
           reporter: java-junit
@@ -538,6 +500,8 @@ jobs:
         run: ./run git-clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    env:
+      GRAAL_EDITION: GraalVM CE
     permissions:
       checks: write
   enso-build-ci-gen-job-verify-license-packages-linux-x86_64:
@@ -547,12 +511,6 @@ jobs:
       - Linux
     steps:
       - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
-        name: Setup conda (GH runners only)
-        uses: s-weigand/setup-conda@v1.2.1
-        with:
-          update-conda: false
-          conda-channels: anaconda, conda-forge
-      - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
         name: Installing wasm-pack
         uses: jetli/wasm-pack-action@v0.4.0
         with:
@@ -567,7 +525,7 @@ jobs:
           clean: false
           submodules: recursive
       - name: Build Script Setup
-        run: ./run --help
+        run: ./run --help || (git clean -ffdx && ./run --help)
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - if: "(contains(github.event.pull_request.labels.*.name, 'CI: Clean build required') || inputs.clean_build_required)"

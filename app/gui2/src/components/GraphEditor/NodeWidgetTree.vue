@@ -2,19 +2,26 @@
 import NodeWidget from '@/components/GraphEditor/NodeWidget.vue'
 import SvgIcon from '@/components/SvgIcon.vue'
 import { useTransitioning } from '@/composables/animation'
+import { injectGraphSelection } from '@/providers/graphSelection'
 import { WidgetInput, type WidgetUpdate } from '@/providers/widgetRegistry'
+import { WidgetEditHandler } from '@/providers/widgetRegistry/editHandler'
 import { provideWidgetTree } from '@/providers/widgetTree'
 import { useGraphStore, type NodeId } from '@/stores/graph'
 import { Ast } from '@/util/ast'
+import type { Vec2 } from '@/util/data/vec2'
 import type { Icon } from '@/util/iconName'
-import { computed, toRef } from 'vue'
+import { computed, ref, toRef, watch } from 'vue'
 
 const props = defineProps<{
   ast: Ast.Ast
   nodeId: NodeId
+  nodeElement: HTMLElement | undefined
+  nodeSize: Vec2
   icon: Icon
   connectedSelfArgumentId: Ast.AstId | undefined
   potentialSelfArgumentId: Ast.AstId | undefined
+  /** Ports that are not targetable by default; see {@link NodeDataFromAst}. */
+  conditionalPorts: Set<Ast.AstId>
   extended: boolean
 }>()
 const emit = defineEmits<{
@@ -28,6 +35,7 @@ const rootPort = computed(() => {
   }
   return input
 })
+const selection = injectGraphSelection()
 
 const observedLayoutTransitions = new Set([
   'margin-left',
@@ -42,7 +50,12 @@ const observedLayoutTransitions = new Set([
   'height',
 ])
 
+function selectNode() {
+  selection.setSelection(new Set([props.nodeId]))
+}
+
 function handleWidgetUpdates(update: WidgetUpdate) {
+  selectNode()
   const edit = update.edit ?? graph.startEdit()
   if (update.portUpdate) {
     const { value, origin } = update.portUpdate
@@ -65,19 +78,29 @@ function handleWidgetUpdates(update: WidgetUpdate) {
   return true
 }
 
+const currentEdit = ref<WidgetEditHandler>()
+watch(currentEdit, (edit) => edit && selectNode())
+
 const layoutTransitions = useTransitioning(observedLayoutTransitions)
 provideWidgetTree(
   toRef(props, 'ast'),
   toRef(props, 'nodeId'),
+  toRef(props, 'nodeElement'),
+  toRef(props, 'nodeSize'),
   toRef(props, 'icon'),
   toRef(props, 'connectedSelfArgumentId'),
   toRef(props, 'potentialSelfArgumentId'),
+  toRef(props, 'conditionalPorts'),
   toRef(props, 'extended'),
   layoutTransitions.active,
-  () => {
-    emit('openFullMenu')
-  },
+  currentEdit,
+  () => emit('openFullMenu'),
 )
+</script>
+<script lang="ts">
+export const GRAB_HANDLE_X_MARGIN = 4
+const GRAB_HANDLE_X_MARGIN_PX = `${GRAB_HANDLE_X_MARGIN}px`
+export const ICON_WIDTH = 16
 </script>
 
 <template>
@@ -85,7 +108,7 @@ provideWidgetTree(
     <!-- Display an icon for the node if no widget in the tree provides one. -->
     <SvgIcon
       v-if="!props.connectedSelfArgumentId"
-      class="icon grab-handle"
+      class="icon grab-handle nodeCategoryIcon"
       :name="props.icon"
       @click.right.stop.prevent="emit('openFullMenu')"
     />
@@ -121,6 +144,6 @@ provideWidgetTree(
 
 .grab-handle {
   color: white;
-  margin: 0 4px;
+  margin: 0 v-bind('GRAB_HANDLE_X_MARGIN_PX');
 }
 </style>

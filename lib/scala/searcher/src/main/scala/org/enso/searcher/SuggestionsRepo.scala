@@ -23,27 +23,6 @@ trait SuggestionsRepo[F[_]] {
     */
   def getAll: F[(Long, Seq[SuggestionEntry])]
 
-  /** Search suggestion by various parameters.
-    *
-    * @param module the module name search parameter
-    * @param selfType the self types to search for, ordered by specificity with
-    *                 the most specific type first
-    * @param returnType the returnType search parameter
-    * @param kinds the list suggestion kinds to search
-    * @param position the absolute position in the text
-    * @param isStatic the static attribute
-    * @return the current database version and the list of found suggestion ids,
-    *         ranked by specificity
-    */
-  def search(
-    module: Option[String],
-    selfType: Seq[String],
-    returnType: Option[String],
-    kinds: Option[Seq[Suggestion.Kind]],
-    position: Option[Suggestion.Position],
-    isStatic: Option[Boolean]
-  ): F[(Long, Seq[Long])]
-
   /** Select the suggestion by id.
     *
     * @param id the id of a suggestion
@@ -83,13 +62,13 @@ trait SuggestionsRepo[F[_]] {
     actions: Seq[SuggestionsDatabaseAction]
   ): F[Seq[QueryResult[SuggestionsDatabaseAction]]]
 
-  /** Apply the sequence of export updates on the database.
+  /** Get the suggestions related to the export updates.
     *
-    * @param updates the list of export updates
-    * @return the result of applying the updates
+    * @param actions the list of updates
+    * @return the suggestions ids associated with the export updates
     */
-  def applyExports(
-    updates: Seq[ExportsUpdate]
+  def getExportedSymbols(
+    actions: Seq[ExportsUpdate]
   ): F[Seq[QueryResult[ExportsUpdate]]]
 
   /** Remove the suggestion.
@@ -119,8 +98,7 @@ trait SuggestionsRepo[F[_]] {
     externalId: Option[Option[Suggestion.ExternalID]],
     returnType: Option[String],
     documentation: Option[Option[String]],
-    scope: Option[Suggestion.Scope],
-    reexport: Option[Option[String]]
+    scope: Option[Suggestion.Scope]
   ): F[(Long, Option[Long])]
 
   /** Update a list of suggestions by external id.

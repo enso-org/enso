@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import GraphNode from '@/components/GraphEditor/GraphNode.vue'
+import { useKeyboard } from '@/composables/keyboard'
 import { useNavigator } from '@/composables/navigator'
 import { provideGraphSelection } from '@/providers/graphSelection'
 import type { Node } from '@/stores/graph'
@@ -7,8 +8,8 @@ import { Ast } from '@/util/ast'
 import { Rect } from '@/util/data/rect'
 import { Vec2 } from '@/util/data/vec2'
 import { logEvent } from 'histoire/client'
+import { type SourceRange } from 'shared/yjsModel'
 import { computed, reactive, ref, watchEffect } from 'vue'
-import { type SourceRange } from '../shared/yjsModel'
 import { createSetupComponent } from './histoire/utils'
 
 const nodeBinding = ref('binding')
@@ -34,7 +35,9 @@ const pattern = computed(() => Ast.parse(nodeBinding.value))
 
 const node = computed((): Node => {
   return {
-    outerExprId: '' as any,
+    outerExpr: '' as any,
+    colorOverride: null,
+    zIndex: 1,
     pattern: pattern.value,
     position: position.value,
     prefixes: { enableRecording: undefined },
@@ -43,6 +46,7 @@ const node = computed((): Node => {
     primarySubject: undefined,
     vis: undefined,
     documentation: undefined,
+    conditionalPorts: new Set(),
   }
 })
 
@@ -56,9 +60,11 @@ watchEffect((onCleanup) => {
   })
 })
 
-const navigator = useNavigator(ref())
+const keyboard = useKeyboard()
+const navigator = useNavigator(ref(), keyboard)
+const allPortsEnabled = () => true
 const SetupStory = createSetupComponent((app) => {
-  const selection = provideGraphSelection._mock([navigator, mockRects], app)
+  const selection = provideGraphSelection._mock([navigator, mockRects, allPortsEnabled], app)
   watchEffect(() => {
     if (selected.value) {
       selection.selectAll()

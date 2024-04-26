@@ -8,7 +8,7 @@ import com.google.common.collect.Streams;
 import java.util.Arrays;
 import java.util.Random;
 import java.util.stream.Stream;
-import org.enso.polyglot.MethodNames;
+import org.enso.common.MethodNames;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.PolyglotException;
 import org.graalvm.polyglot.Value;

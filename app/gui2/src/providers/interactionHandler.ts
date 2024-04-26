@@ -11,6 +11,10 @@ const { provideFn, injectFn } = createContextStore(
 export class InteractionHandler {
   private currentInteraction: Interaction | undefined = undefined
 
+  isActive(interaction: Interaction | undefined): interaction is Interaction {
+    return interaction != null && interaction === this.currentInteraction
+  }
+
   /** Automatically activate specified interaction any time a specified condition becomes true. */
   setWhen(active: WatchSource<boolean>, interaction: Interaction) {
     watch(active, (active) => {
@@ -23,20 +27,24 @@ export class InteractionHandler {
   }
 
   setCurrent(interaction: Interaction | undefined) {
-    if (interaction !== this.currentInteraction) {
+    if (!this.isActive(interaction)) {
       this.currentInteraction?.cancel?.()
       this.currentInteraction = interaction
     }
   }
 
+  getCurrent(): Interaction | undefined {
+    return this.currentInteraction
+  }
+
   /** Unset the current interaction, if it is the specified instance. */
   end(interaction: Interaction) {
-    if (this.currentInteraction === interaction) this.currentInteraction = undefined
+    if (this.isActive(interaction)) this.currentInteraction = undefined
   }
 
   /** Cancel the current interaction, if it is the specified instance. */
   cancel(interaction: Interaction) {
-    if (this.currentInteraction === interaction) this.setCurrent(undefined)
+    if (this.isActive(interaction)) this.setCurrent(undefined)
   }
 
   handleCancel(): boolean {
@@ -45,9 +53,9 @@ export class InteractionHandler {
     return hasCurrent
   }
 
-  handleClick(event: PointerEvent, graphNavigator: GraphNavigator): boolean {
-    if (!this.currentInteraction?.click) return false
-    const handled = this.currentInteraction.click(event, graphNavigator) !== false
+  handlePointerDown(event: PointerEvent, graphNavigator: GraphNavigator): boolean {
+    if (!this.currentInteraction?.pointerdown) return false
+    const handled = this.currentInteraction.pointerdown(event, graphNavigator) !== false
     if (handled) {
       event.stopImmediatePropagation()
       event.preventDefault()
@@ -57,7 +65,7 @@ export class InteractionHandler {
 }
 
 export interface Interaction {
-  cancel?(): void
+  cancel(): void
   /** Uses a `capture` event handler to allow an interaction to respond to clicks over any element. */
-  click?(event: PointerEvent, navigator: GraphNavigator): boolean | void
+  pointerdown?(event: PointerEvent, navigator: GraphNavigator): boolean | void
 }

@@ -28,6 +28,7 @@ import { debouncedGetter } from '@/util/reactivity'
 import type { SuggestionId } from 'shared/languageServerTypes/suggestions'
 import type { VisualizationIdentifier } from 'shared/yjsModel'
 import { computed, onMounted, reactive, ref, watch, type Ref } from 'vue'
+import LoadingSpinner from './LoadingSpinner.vue'
 
 const ITEM_SIZE = 32
 const TOP_BAR_HEIGHT = 32
@@ -66,9 +67,10 @@ const cbOpen: Interaction = {
   cancel: () => {
     emit('canceled')
   },
-  click: (e: PointerEvent) => {
-    if (targetIsOutside(e, cbRoot)) {
-      if (input.anyChange.value) {
+  pointerdown: (e: PointerEvent) => {
+    if (targetIsOutside(e, cbRoot.value)) {
+      // In AI prompt mode likely the input is not a valid mode.
+      if (input.anyChange.value && input.context.value.type !== 'aiPrompt') {
         acceptInput()
       } else {
         interaction.cancel(cbOpen)
@@ -143,6 +145,8 @@ const cbRoot = ref<HTMLElement>()
 const inputField = ref<HTMLInputElement>()
 const input = useComponentBrowserInput()
 const filterFlags = ref({ showUnstable: false, showLocal: false })
+
+const isAIPromptMode = computed(() => input.context.value.type === 'aiPrompt')
 
 const currentFiltering = computed(() => {
   const currentModule = projectStore.modulePath
@@ -324,6 +328,7 @@ const previewedSuggestionReturnType = computed(() => {
 })
 
 const previewDataSource = computed<VisualizationDataSource | undefined>(() => {
+  if (isAIPromptMode.value) return
   if (!previewed.value.expression.trim()) return
   if (!graphStore.methodAst) return
   const body = graphStore.methodAst.body
@@ -340,6 +345,7 @@ const visualizationSelections = reactive(new Map<SuggestionId | null, Visualizat
 const previewedVisualizationId = computed(() => {
   return visualizationSelections.get(previewed.value.suggestionId ?? null)
 })
+
 function setVisualization(visualization: VisualizationIdentifier) {
   visualizationSelections.set(previewed.value.suggestionId ?? null, visualization)
 }
@@ -400,7 +406,8 @@ function acceptSuggestion(component: Opt<Component> = null) {
   const providedSuggestion =
     component != null ? suggestionDbStore.entries.get(component.suggestionId) : null
   const suggestion = providedSuggestion ?? selectedSuggestion.value
-  const shouldFinish = suggestion != null && suggestion.kind !== SuggestionKind.Module
+  const shouldFinish =
+    component == null || (suggestion != null && suggestion.kind !== SuggestionKind.Module)
   if (shouldFinish) acceptInput()
 }
 
@@ -413,14 +420,20 @@ function acceptInput() {
 
 const handler = componentBrowserBindings.handler({
   applySuggestion() {
+    if (input.context.value.type === 'aiPrompt') return false
     applySuggestion()
   },
   acceptSuggestion() {
-    applySuggestion()
-    acceptInput()
+    if (input.context.value.type === 'aiPrompt') return false
+    acceptSuggestion()
   },
   acceptInput() {
+    if (input.context.value.type === 'aiPrompt') return false
     acceptInput()
+  },
+  acceptAIPrompt() {
+    if (input.context.value.type !== 'aiPrompt') return false
+    input.applyAIPrompt()
   },
   moveUp() {
     if (selected.value != null && selected.value < components.value.length - 1) {
@@ -465,7 +478,7 @@ const handler = componentBrowserBindings.handler({
             <ToggleIcon v-model="docsVisible" icon="right_side_panel" class="first-on-right" />
           </div>
         </div>
-        <div class="components-content">
+        <div v-if="!isAIPromptMode" class="components-content">
           <div
             ref="scroller"
             class="list"
@@ -532,9 +545,10 @@ const handler = componentBrowserBindings.handler({
             </div>
           </div>
         </div>
+        <LoadingSpinner v-if="isAIPromptMode && input.processingAIPrompt" />
       </div>
       <div class="panel docs" :class="{ hidden: !docsVisible }">
-        <DocumentationPanel v-model:selectedEntry="docEntry" />
+        <DocumentationPanel v-model:selectedEntry="docEntry" :aiMode="isAIPromptMode" />
       </div>
     </div>
     <div class="bottom-panel">

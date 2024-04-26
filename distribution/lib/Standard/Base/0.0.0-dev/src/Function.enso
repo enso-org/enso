@@ -11,6 +11,7 @@ type Function
 
     ## ADVANCED
        GROUP Operators
+       ICON operators
        Applies the function `self` to the provided argument.
 
        Arguments:
@@ -32,6 +33,7 @@ type Function
 
     ## ADVANCED
        GROUP Operators
+       ICON operators
        Composes two functions together, for `f << g` creating the function
        composition `f ∘ g` (equivalent to `x -> f (g x)`).
 
@@ -47,6 +49,7 @@ type Function
 
     ## ADVANCED
        GROUP Operators
+       ICON operators
        Composes two functions together in the forward direction, for `f >> g`
        creating the function composition `g ∘ f` (equivalent to `x -> g (f (x))`).
 

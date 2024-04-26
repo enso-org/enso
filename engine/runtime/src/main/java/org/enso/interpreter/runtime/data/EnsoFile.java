@@ -3,19 +3,24 @@ package org.enso.interpreter.runtime.data;
 import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
 import com.oracle.truffle.api.TruffleFile;
-import com.oracle.truffle.api.dsl.Cached;
+import com.oracle.truffle.api.dsl.Bind;
 import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.InvalidArrayIndexException;
 import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
+import com.oracle.truffle.api.nodes.Node;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.ByteBuffer;
 import java.nio.channels.SeekableByteChannel;
 import java.nio.file.CopyOption;
+import java.nio.file.FileSystemException;
+import java.nio.file.LinkOption;
+import java.nio.file.NoSuchFileException;
+import java.nio.file.NotDirectoryException;
 import java.nio.file.OpenOption;
 import java.nio.file.StandardOpenOption;
 import java.nio.file.attribute.PosixFilePermission;
@@ -25,6 +30,7 @@ import java.util.Set;
 import java.util.function.IntFunction;
 import org.enso.interpreter.dsl.Builtin;
 import org.enso.interpreter.runtime.EnsoContext;
+import org.enso.interpreter.runtime.data.text.Text;
 import org.enso.interpreter.runtime.data.vector.ArrayLikeHelpers;
 import org.enso.interpreter.runtime.error.PanicException;
 import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
@@ -123,12 +129,6 @@ public final class EnsoFile implements EnsoObject {
     return new EnsoFile(this.truffleFile.resolve(subPath));
   }
 
-  @Builtin.Method(name = "resolve")
-  @Builtin.Specialize
-  public EnsoFile resolve(EnsoFile subPath) {
-    return new EnsoFile(this.truffleFile.resolve(subPath.truffleFile.getPath()));
-  }
-
   @Builtin.Method
   public boolean exists() {
     return truffleFile.exists();
@@ -136,7 +136,6 @@ public final class EnsoFile implements EnsoObject {
 
   @Builtin.Method(name = "creation_time_builtin")
   @Builtin.WrapException(from = IOException.class)
-  @Builtin.ReturningGuestObject
   @CompilerDirectives.TruffleBoundary
   public EnsoDateTime getCreationTime() throws IOException {
     return new EnsoDateTime(
@@ -145,7 +144,6 @@ public final class EnsoFile implements EnsoObject {
 
   @Builtin.Method(name = "last_modified_time_builtin")
   @Builtin.WrapException(from = IOException.class)
-  @Builtin.ReturningGuestObject
   @CompilerDirectives.TruffleBoundary
   public EnsoDateTime getLastModifiedTime() throws IOException {
     return new EnsoDateTime(
@@ -162,8 +160,16 @@ public final class EnsoFile implements EnsoObject {
 
   @Builtin.Method(name = "parent")
   @CompilerDirectives.TruffleBoundary
-  public Object getParent() {
-    var parentOrNull = this.truffleFile.getParent();
+  public EnsoObject getParent() {
+    // Normalization is needed to correctly handle paths containing `..` and `.`.
+    var parentOrNull = this.normalize().truffleFile.getParent();
+
+    // If the path has no parent because it is relative and there are no more segments, try again
+    // after making it absolute:
+    if (parentOrNull == null && !this.truffleFile.isAbsolute()) {
+      parentOrNull = this.truffleFile.getAbsoluteFile().normalize().getParent();
+    }
+
     if (parentOrNull != null) {
       return new EnsoFile(parentOrNull);
     } else {
@@ -180,8 +186,8 @@ public final class EnsoFile implements EnsoObject {
 
   @Builtin.Method(name = "path")
   @CompilerDirectives.TruffleBoundary
-  public String getPath() {
-    return this.truffleFile.getPath();
+  public Text getPath() {
+    return Text.create(this.truffleFile.getPath());
   }
 
   @Builtin.Method
@@ -197,12 +203,80 @@ public final class EnsoFile implements EnsoObject {
   }
 
   @Builtin.Method(name = "create_directory_builtin")
+  @Builtin.WrapException(from = IOException.class)
   @CompilerDirectives.TruffleBoundary
-  public void createDirectories() {
+  public void createDirectories() throws IOException {
     try {
       this.truffleFile.createDirectories();
-    } catch (IOException e) {
-      e.printStackTrace();
+    } catch (NoSuchFileException e) {
+      throw replaceCreateDirectoriesNoSuchFileException(e);
+    } catch (FileSystemException e) {
+      throw replaceCreateDirectoriesGenericException(e);
+    }
+  }
+
+  /**
+   * This method detects if a more correct exception can be thrown instead of unrelated {@link
+   * NoSuchFileException}.
+   *
+   * <p>On Windows `createDirectories` wrongly throws a {@link NoSuchFileException} instead of
+   * {@link NotDirectoryException}, if a file on the parents path is not a directory.
+   */
+  private static FileSystemException replaceCreateDirectoriesNoSuchFileException(
+      NoSuchFileException noSuchFileException) {
+    var path = noSuchFileException.getFile();
+    if (path == null) {
+      return noSuchFileException;
+    }
+
+    var parent = fromString(EnsoContext.get(null), path).truffleFile.getParent();
+    // Unknown parent, so the heuristic cannot be applied - return the original.
+    if (parent == null) {
+      return noSuchFileException;
+    }
+
+    // On Windows, when creating a directory tree `foo/my-file.txt/a/b/c`, the operation fails with
+    // `NoSuchFileException` with path `foo/my-file.txt/a`. So the heuristic checks the path's
+    // parent `foo/my-file.txt` if it exists but is not a directory that means we encountered this
+    // edge case and the exception should be replaced.
+    if (parent.exists() && !parent.isDirectory()) {
+      return new NotDirectoryException(parent.getPath());
+    } else {
+      return noSuchFileException;
+    }
+  }
+
+  /**
+   * This method detects if a more specific exception can be thrown instead of generic {@link
+   * FileSystemException}.
+   *
+   * <p>Apparently, on Linux `createDirectories` throws a generic {@link FileSystemException}
+   * instead of the more fitting {@link NotDirectoryException}.
+   */
+  private static FileSystemException replaceCreateDirectoriesGenericException(
+      FileSystemException genericException) {
+    if (genericException.getReason().equals("Not a directory")) {
+      var path = genericException.getFile();
+      if (path == null) {
+        return genericException;
+      }
+
+      // On Linux, when creating a directory tree `foo/my-file.txt/a/b/c`, the operation fails with
+      // `FileSystemException` with the full path (`foo/my-file.txt/a/b/c`). So we need to traverse
+      // this path to find the actually problematic part.
+      var file = fromString(EnsoContext.get(null), path).truffleFile;
+      // We try to find the first file that exists on the path.
+      while (file != null && !file.exists()) {
+        file = file.getParent();
+      }
+
+      if (file != null && !file.isDirectory()) {
+        return new NotDirectoryException(file.getPath());
+      } else {
+        return genericException;
+      }
+    } else {
+      return genericException;
     }
   }
 
@@ -234,9 +308,9 @@ public final class EnsoFile implements EnsoObject {
 
   @Builtin.Method(name = "name")
   @CompilerDirectives.TruffleBoundary
-  public String getName() {
-    var name = this.truffleFile.getName();
-    return name == null ? "/" : name;
+  public Text getName() {
+    var name = this.normalize().truffleFile.getName();
+    return Text.create(name == null ? "/" : name);
   }
 
   @Builtin.Method(name = "size_builtin")
@@ -262,14 +336,33 @@ public final class EnsoFile implements EnsoObject {
   @Builtin.Method
   @CompilerDirectives.TruffleBoundary
   public EnsoFile normalize() {
-    return new EnsoFile(truffleFile.normalize());
+    TruffleFile simplyNormalized = truffleFile.normalize();
+    String name = simplyNormalized.getName();
+    boolean needsAbsolute = name != null && (name.equals("..") || name.equals("."));
+    if (needsAbsolute) {
+      simplyNormalized = simplyNormalized.getAbsoluteFile().normalize();
+    }
+    return new EnsoFile(simplyNormalized);
   }
 
   @Builtin.Method(name = "delete_builtin")
   @Builtin.WrapException(from = IOException.class)
   @CompilerDirectives.TruffleBoundary
-  public void delete() throws IOException {
-    truffleFile.delete();
+  public void delete(boolean recursive) throws IOException {
+    if (recursive && truffleFile.isDirectory(LinkOption.NOFOLLOW_LINKS)) {
+      deleteRecursively(truffleFile);
+    } else {
+      truffleFile.delete();
+    }
+  }
+
+  private void deleteRecursively(TruffleFile file) throws IOException {
+    if (file.isDirectory(LinkOption.NOFOLLOW_LINKS)) {
+      for (TruffleFile child : file.list()) {
+        deleteRecursively(child);
+      }
+    }
+    file.delete();
   }
 
   @Builtin.Method(name = "copy_builtin", description = "Copy this file to a target destination")
@@ -353,7 +446,7 @@ public final class EnsoFile implements EnsoObject {
   }
 
   @ExportMessage
-  Type getType(@CachedLibrary("this") TypesLibrary thisLib, @Cached("1") int ignore) {
-    return EnsoContext.get(thisLib).getBuiltins().file();
+  Type getType(@Bind("$node") Node node) {
+    return EnsoContext.get(node).getBuiltins().file();
   }
 }

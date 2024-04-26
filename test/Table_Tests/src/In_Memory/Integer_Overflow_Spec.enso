@@ -1,6 +1,5 @@
 from Standard.Base import all
 
-import Standard.Table.Data.Type.Value_Type.Bits
 from Standard.Table import all
 from Standard.Table.Errors import Arithmetic_Overflow, Conversion_Failure, Invalid_Value_Type, No_Common_Type, Loss_Of_Integer_Precision
 
@@ -262,7 +261,7 @@ add_specs suite_builder =
             Problems.assume_no_problems c2
             c2.value_type . should_equal Value_Type.Float
             # This will be an inexact equality, based on float rounding.
-            c2.to_vector . should_equal [x, 1.5]
+            c2.to_vector . map .to_float . should_equal [x . to_float, 1.5]
 
             c3 = Column.from_vector "X" [2^70, 1]
             Problems.assume_no_problems c3
@@ -347,8 +346,8 @@ add_specs suite_builder =
             (x * y) . to_vector . should_equal [10^30, 2^71, Nothing, 3 * 4]
             (x % y) . to_vector . should_equal [0, 0, Nothing, 3]
             (x % z) . to_vector . should_equal [1.0, 1.5, Nothing, 3.0]
-            (x / y) . to_vector . should_equal [10^30, 2^69, Nothing, 0.75]
-            (x ^ y) . to_vector . should_equal [10^30, 2^140, Nothing, 3^4]
+            (x / y) . to_vector . should_equal [10^30 . to_float, 2^69 . to_float, Nothing, 0.75]
+            (x ^ y) . to_vector . should_equal [10^30 . to_float, 2^140 . to_float, Nothing, 3^4]
             (x == y) . to_vector . should_equal [False, False, Nothing, False]
             (x < y) . to_vector . should_equal [False, False, Nothing, True]
             (x >= y) . to_vector . should_equal [True, True, Nothing, False]
@@ -358,7 +357,7 @@ add_specs suite_builder =
             (x.min y) . to_vector . should_equal [1, 2, 3, 3]
             (x.max y) . to_vector . should_equal [10^30, 2^70, 3, 4]
             (x.min z) . to_vector . should_equal [1.5, 2.5, 3.5, 3]
-            (x.max [y, z]) . to_vector . should_equal [10^30, 2^70, 3.5, 4.5]
+            (x.max [y, z]) . to_vector . should_equal [10^30 . to_float, 2^70 . to_float, 3.5, 4.5]
 
             (y * x) . to_vector . should_equal [10^30, 2^71, Nothing, 3 * 4]
             (y % x) . to_vector . should_equal [1, 2, Nothing, 1]
@@ -373,22 +372,22 @@ add_specs suite_builder =
             (y.min x) . to_vector . should_equal [1, 2, 3, 3]
             (y.max x) . to_vector . should_equal [10^30, 2^70, 3, 4]
             (z.min x) . to_vector . should_equal [1.5, 2.5, 3.5, 3]
-            (z.max x) . to_vector . should_equal [10^30, 2^70, 3.5, 4.5]
+            (z.max x) . to_vector . should_equal [10^30 . to_float, 2^70 . to_float, 3.5, 4.5]
 
             x.fill_nothing y . to_vector . should_equal [10^30, 2^70, 3, 3]
-            x.fill_nothing z . to_vector . should_equal [10^30, 2^70, 3.5, 3]
+            x.fill_nothing z . to_vector . should_equal [10^30 . to_float, 2^70 . to_float, 3.5, 3]
             y.fill_nothing x . to_vector . should_equal [1, 2, 3, 4]
             y2 = (y < 2).iif Nothing y
             y2.to_vector . should_equal [Nothing, 2, 3, 4]
             y2.fill_nothing x . to_vector . should_equal [10^30, 2, 3, 4]
-            ((z < 2).iif Nothing z).fill_nothing x . to_vector . should_equal [10^30, 2.5, 3.5, 4.5]
+            ((z < 2).iif Nothing z).fill_nothing x . to_vector . should_equal [10^30 . to_float, 2.5, 3.5, 4.5]
 
             r3 = x.fill_nothing 1.5
             r3.value_type . should_equal Value_Type.Float
             # 2^70 is not exactly representable as a Float.
             (2^70 + 0.0).truncate . should_not_equal (2^70)
             Problems.expect_only_warning Loss_Of_Integer_Precision r3
-            r3.to_vector . should_equal [10^30, 2^70, 1.5, 3]
+            r3.to_vector . should_equal [10^30 . to_float, 2^70 . to_float, 1.5, 3]
 
             r4 = x.fill_nothing 23
             r4.value_type . should_be_a (Value_Type.Decimal ...)

@@ -1,6 +1,5 @@
 import project.Any.Any
 import project.Nothing.Nothing
-from project.Data.Boolean.Boolean import False, True
 
 from project.Data.Boolean.Boolean export False, True
 
@@ -66,6 +65,7 @@ type Boolean
     not self = @Builtin_Method "Boolean.not"
 
     ## GROUP Logical
+       ICON operators
        The if-then-else control flow operator that executes one of two branches
        based on a conditional.
 
@@ -84,6 +84,7 @@ type Boolean
     if_then_else self ~on_true ~on_false = @Builtin_Method "Boolean.if_then_else"
 
     ## GROUP Logical
+       ICON operators
        The if-then control flow operator that executes a branch if the condition
        is true, and otherwise returns Nothing.
 

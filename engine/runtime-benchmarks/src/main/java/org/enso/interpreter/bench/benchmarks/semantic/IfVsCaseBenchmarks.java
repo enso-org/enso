@@ -7,7 +7,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.TimeUnit;
-import org.enso.polyglot.MethodNames.Module;
+import org.enso.common.MethodNames.Module;
+import org.enso.compiler.benchmarks.Utils;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Value;
 import org.openjdk.jmh.annotations.Benchmark;
@@ -25,8 +26,8 @@ import org.openjdk.jmh.infra.BenchmarkParams;
 
 @BenchmarkMode(Mode.AverageTime)
 @Fork(1)
-@Warmup(iterations = 5, time = 1)
-@Measurement(iterations = 3, time = 3)
+@Warmup(iterations = 5)
+@Measurement(iterations = 3)
 @OutputTimeUnit(TimeUnit.MILLISECONDS)
 @State(Scope.Benchmark)
 public class IfVsCaseBenchmarks {
@@ -43,7 +44,7 @@ public class IfVsCaseBenchmarks {
   @Setup
   public void initializeBench(BenchmarkParams params) throws IOException {
     OutputStream out = new ByteArrayOutputStream();
-    ctx = SrcUtil.newContextBuilder().out(out).err(out).build();
+    ctx = Utils.createDefaultContextBuilder().out(out).err(out).build();
 
     var code =
         """

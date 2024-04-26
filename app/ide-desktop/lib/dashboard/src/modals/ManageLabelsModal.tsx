@@ -3,16 +3,22 @@ import * as React from 'react'
 
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
-import * as authProvider from '#/providers/AuthProvider'
 import * as backendProvider from '#/providers/BackendProvider'
 import * as modalProvider from '#/providers/ModalProvider'
+import * as textProvider from '#/providers/TextProvider'
 
+import * as aria from '#/components/aria'
 import ColorPicker from '#/components/ColorPicker'
 import Label from '#/components/dashboard/Label'
 import Modal from '#/components/Modal'
+import FocusArea from '#/components/styled/FocusArea'
+import FocusRing from '#/components/styled/FocusRing'
+import Input from '#/components/styled/Input'
+import UnstyledButton from '#/components/UnstyledButton'
 
 import * as backendModule from '#/services/Backend'
 
+import * as eventModule from '#/utilities/event'
 import * as object from '#/utilities/object'
 import * as string from '#/utilities/string'
 
@@ -39,9 +45,9 @@ export default function ManageLabelsModal<
   Asset extends backendModule.AnyAsset = backendModule.AnyAsset,
 >(props: ManageLabelsModalProps<Asset>) {
   const { item, setItem, allLabels, doCreateLabel, eventTarget } = props
-  const { user } = authProvider.useNonPartialUserSession()
   const { backend } = backendProvider.useBackend()
   const { unsetModal } = modalProvider.useSetModal()
+  const { getText } = textProvider.useText()
   const toastAndLog = toastAndLogHooks.useToastAndLog()
   const [labels, setLabelsRaw] = React.useState(item.labels ?? [])
   const [query, setQuery] = React.useState('')
@@ -77,150 +83,145 @@ export default function ManageLabelsModal<
     [/* should never change */ setItem]
   )
 
-  if (backend.type === backendModule.BackendType.local || user == null) {
-    // This should never happen - the local backend does not have the "labels" column,
-    // and `organization` is absent only when offline - in which case the user should only
-    // be able to access the local backend.
-    // This MUST be an error, otherwise the hooks below are considered as conditionally called.
-    throw new Error('Cannot add labels to assets on the local backend.')
-  } else {
-    const doToggleLabel = React.useCallback(
-      async (name: backendModule.LabelName) => {
-        const newLabels = labelNames.has(name)
-          ? labels.filter(label => label !== name)
-          : [...labels, name]
-        setLabels(newLabels)
-        try {
-          await backend.associateTag(item.id, newLabels, item.title)
-        } catch (error) {
-          toastAndLog(null, error)
-          setLabels(labels)
-        }
-      },
-      [
-        labelNames,
-        labels,
-        item.id,
-        item.title,
-        backend,
-        /* should never change */ setLabels,
-        /* should never change */ toastAndLog,
-      ]
-    )
+  const doToggleLabel = async (name: backendModule.LabelName) => {
+    const newLabels = labelNames.has(name)
+      ? labels.filter(label => label !== name)
+      : [...labels, name]
+    setLabels(newLabels)
+    try {
+      await backend.associateTag(item.id, newLabels, item.title)
+    } catch (error) {
+      toastAndLog(null, error)
+      setLabels(labels)
+    }
+  }
 
-    return (
-      <Modal
-        centered={eventTarget == null}
-        className="absolute overflow-hidden bg-dim w-full h-full top-0 left-0 z-1"
+  const doSubmit = async () => {
+    unsetModal()
+    setLabels(oldLabels => [...oldLabels, backendModule.LabelName(query)])
+    try {
+      await doCreateLabel(query, color ?? leastUsedColor)
+      setLabels(newLabels => {
+        void backend.associateTag(item.id, newLabels, item.title)
+        return newLabels
+      })
+    } catch (error) {
+      toastAndLog(null, error)
+      setLabels(oldLabels => oldLabels.filter(oldLabel => oldLabel !== query))
+    }
+  }
+
+  return (
+    <Modal
+      centered={eventTarget == null}
+      className="absolute left top z-1 size-full overflow-hidden bg-dim"
+    >
+      <div
+        tabIndex={-1}
+        style={
+          position != null
+            ? {
+                left: position.left + window.scrollX,
+                top: position.top + window.scrollY,
+              }
+            : {}
+        }
+        className="sticky w-manage-labels-modal"
+        onClick={mouseEvent => {
+          mouseEvent.stopPropagation()
+        }}
+        onContextMenu={mouseEvent => {
+          mouseEvent.stopPropagation()
+          mouseEvent.preventDefault()
+        }}
       >
-        <div
-          tabIndex={-1}
-          style={
-            position != null
-              ? {
-                  left: position.left + window.scrollX,
-                  top: position.top + window.scrollY,
-                }
-              : {}
-          }
-          className="sticky w-60"
-          onClick={mouseEvent => {
-            mouseEvent.stopPropagation()
-          }}
-          onContextMenu={mouseEvent => {
-            mouseEvent.stopPropagation()
-            mouseEvent.preventDefault()
-          }}
-          onKeyDown={event => {
-            if (event.key !== 'Escape') {
-              event.stopPropagation()
-            }
+        <div className="absolute h-full w-full rounded-default bg-selected-frame backdrop-blur-default" />
+        <form
+          className="relative flex flex-col gap-modal rounded-default p-modal"
+          onSubmit={event => {
+            event.preventDefault()
+            void doSubmit()
           }}
         >
-          <div className="absolute bg-frame-selected backdrop-blur-3xl rounded-2xl h-full w-full" />
-          <form
-            className="relative flex flex-col rounded-2xl gap-2 p-2"
-            onSubmit={async event => {
-              event.preventDefault()
-              setLabels(oldLabels => [...oldLabels, backendModule.LabelName(query)])
-              unsetModal()
-              try {
-                await doCreateLabel(query, color ?? leastUsedColor)
-                setLabels(newLabels => {
-                  void backend.associateTag(item.id, newLabels, item.title)
-                  return newLabels
-                })
-              } catch (error) {
-                toastAndLog(null, error)
-                setLabels(oldLabels => oldLabels.filter(oldLabel => oldLabel !== query))
-              }
-            }}
+          <aria.Heading
+            level={2}
+            className="flex h-row items-center gap-modal-tabs px-modal-tab-bar-x"
           >
-            <div>
-              <h2 className="text-sm font-bold">Labels</h2>
-              {/* Space reserved for other tabs. */}
-            </div>
-            <div
-              className={`flex items-center grow rounded-full border border-black/10 gap-2 px-1 ${
-                // eslint-disable-next-line @typescript-eslint/no-magic-numbers
-                canSelectColor && color != null && color.lightness <= 50
-                  ? 'text-tag-text placeholder-tag-text'
-                  : 'text-primary'
-              }`}
-              style={
-                !canSelectColor || color == null
-                  ? {}
-                  : {
-                      backgroundColor: backendModule.lChColorToCssColor(color),
-                    }
-              }
-            >
-              <input
-                autoFocus
-                type="text"
-                placeholder="Type labels to search"
-                className="grow bg-transparent leading-170 h-6 px-1 py-px"
-                onChange={event => {
-                  setQuery(event.currentTarget.value)
-                }}
-              />
-            </div>
-            <button
-              type="submit"
-              disabled={!canCreateNewLabel}
-              className="text-tag-text bg-invite rounded-full px-2 py-1 disabled:opacity-30"
-            >
-              <div className="h-6 py-0.5">Create</div>
-            </button>
-            {canSelectColor && (
-              <div className="flex flex-col items-center">
-                <div className="grow flex items-center gap-1">
-                  <ColorPicker setColor={setColor} />
+            <aria.Text className="text text-sm font-bold">{getText('labels')}</aria.Text>
+          </aria.Heading>
+          {
+            <FocusArea direction="horizontal">
+              {innerProps => (
+                <div className="flex gap-input-with-button" {...innerProps}>
+                  <FocusRing within>
+                    <div
+                      className={`flex grow items-center rounded-full border border-primary/10 px-input-x ${
+                        // eslint-disable-next-line @typescript-eslint/no-magic-numbers
+                        canSelectColor && color != null && color.lightness <= 50
+                          ? 'text-tag-text placeholder-tag-text'
+                          : 'text-primary'
+                      }`}
+                      style={
+                        !canSelectColor || color == null
+                          ? {}
+                          : {
+                              backgroundColor: backendModule.lChColorToCssColor(color),
+                            }
+                      }
+                    >
+                      <Input
+                        autoFocus
+                        type="text"
+                        size={1}
+                        placeholder={getText('labelSearchPlaceholder')}
+                        className="text grow bg-transparent"
+                        onChange={event => {
+                          setQuery(event.currentTarget.value)
+                        }}
+                      />
+                    </div>
+                  </FocusRing>
+                  <UnstyledButton
+                    isDisabled={!canCreateNewLabel}
+                    className="button bg-invite px-button-x text-tag-text enabled:active"
+                    onPress={eventModule.submitForm}
+                  >
+                    <aria.Text className="h-text py-modal-invite-button-text-y">
+                      {getText('create')}
+                    </aria.Text>
+                  </UnstyledButton>
                 </div>
+              )}
+            </FocusArea>
+          }
+          {canSelectColor && (
+            <div className="mx-auto">
+              <ColorPicker setColor={setColor} />
+            </div>
+          )}
+          <FocusArea direction="vertical">
+            {innerProps => (
+              <div className="max-h-manage-labels-list overflow-auto" {...innerProps}>
+                {Array.from(allLabels.values())
+                  .filter(label => regex.test(label.value))
+                  .map(label => (
+                    <div key={label.id} className="flex h-row items-center">
+                      <Label
+                        active={labels.includes(label.value)}
+                        color={label.color}
+                        onPress={() => {
+                          void doToggleLabel(label.value)
+                        }}
+                      >
+                        {label.value}
+                      </Label>
+                    </div>
+                  ))}
               </div>
             )}
-            <div className="overflow-auto pl-1 pr-12 max-h-80">
-              {Array.from(allLabels.values())
-                .filter(label => regex.test(label.value))
-                .map(label => (
-                  <div key={label.id} className="flex items-center h-8">
-                    <Label
-                      active={labels.includes(label.value)}
-                      color={label.color}
-                      onClick={async event => {
-                        event.preventDefault()
-                        event.stopPropagation()
-                        await doToggleLabel(label.value)
-                      }}
-                    >
-                      {label.value}
-                    </Label>
-                  </div>
-                ))}
-            </div>
-          </form>
-        </div>
-      </Modal>
-    )
-  }
+          </FocusArea>
+        </form>
+      </div>
+    </Modal>
+  )
 }
