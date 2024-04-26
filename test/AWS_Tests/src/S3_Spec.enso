@@ -521,6 +521,8 @@ add_specs suite_builder =
             r.should_fail_with File_Error
             r.catch.should_be_a File_Error.Not_Found
 
+        Local_File_Spec.add_copy_edge_cases_specs group_builder my_writable_dir
+
     suite_builder.group "DataLinks to S3_File" pending=api_pending group_builder->
         group_builder.specify "should be able to read a data link of an S3 File" <| with_default_credentials <|
             # It reads the datalink description and then reads the actual S3 file contents:
@@ -587,8 +589,6 @@ add_specs suite_builder =
             got_table.should_equal table
         test_write_table_to_datalink "json" got_json->
             Table.from got_json . should_equal table
-
-        Local_File_Spec.add_copy_edge_cases_specs group_builder my_writable_dir
 
 main filter=Nothing =
     suite = Test.build suite_builder->

@@ -380,7 +380,9 @@ type Enso_File
         # TODO we could have a fast path if Cloud will support renaming files
         r = self.copy_to destination replace_existing
         r.if_not_error <|
-            self.delete . if_not_error r
+            # If source and destination are the same, we do not want to delete the file
+            if destination.underlying == self then r else
+                self.delete . if_not_error r
 
     ## GROUP Operators
        ICON folder
