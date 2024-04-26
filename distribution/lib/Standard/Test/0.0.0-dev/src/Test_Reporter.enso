@@ -109,10 +109,10 @@ print_pending_group group config builder =
     assert group.pending.is_nothing.not "Group in print_pending_group should be pending"
     if config.should_output_junit then
         assert builder.is_nothing.not "Builder must be specified when JUnit output is enabled"
-        builder.append ('    <testsuite name="' + (escape_xml group.name) + '" timestamp="' + (Date_Time.now.format "yyyy-MM-dd'T'HH:mm:ss") + '"')
+        builder.append ('    <testsuite name="' + (escape_xml group.name inside_attribute=True) + '" timestamp="' + (Date_Time.now.format "yyyy-MM-dd'T'HH:mm:ss") + '"')
         builder.append (' tests="0" disabled="1" errors="0" time="0.0">\n')
         builder.append ('        <testcase name="PENDING" time="0.0">\n')
-        builder.append ('            <skipped message="Reason: '+(escape_xml group.pending)+'"/>\n')
+        builder.append ('            <skipped message="Reason: '+(escape_xml group.pending inside_attribute=True)+'"/>\n')
         builder.append ('        </testcase>\n')
         builder.append '    </testsuite>\n'
     IO.println <| maybe_grey_text ("[PENDING] " + group.name) config
@@ -130,7 +130,7 @@ print_group_report group_name test_results config builder =
         acc + res.time_taken
     if config.should_output_junit then
         assert builder.is_nothing.not "Builder must be specified when JUnit output is enabled"
-        builder.append ('    <testsuite name="' + (escape_xml group_name) + '" timestamp="' + (Date_Time.now.format "yyyy-MM-dd'T'HH:mm:ss") + '"')
+        builder.append ('    <testsuite name="' + (escape_xml group_name inside_attribute=True) + '" timestamp="' + (Date_Time.now.format "yyyy-MM-dd'T'HH:mm:ss") + '"')
         builder.append (' tests="' + test_results.length.to_text + '"')
         builder.append (' disabled="' + test_results.filter _.is_pending . length . to_text + '"')
         builder.append (' errors="' + test_results.filter _.is_fail . length . to_text + '"')
@@ -138,12 +138,11 @@ print_group_report group_name test_results config builder =
         builder.append ('>\n')
 
         test_results.each result->
-            builder.append ('        <testcase name="' + (escape_xml result.spec_name) + '" time="' + ((result.time_taken.total_milliseconds / 1000.0).to_text) + '">')
+            builder.append ('        <testcase name="' + (escape_xml result.spec_name inside_attribute=True) + '" time="' + ((result.time_taken.total_milliseconds / 1000.0).to_text) + '">')
             case result.spec_result of
                 Spec_Result.Success -> Nothing
                 Spec_Result.Failure msg details ->
-                    escaped_message = escape_xml msg . replace '\n' '&#10;'
-                    builder.append ('\n            <failure message="' + escaped_message + '">\n')
+                    builder.append ('\n            <failure message="' + (escape_xml msg inside_attribute=True) + '">\n')
                     # We always print the message again as content - otherwise the GitHub action may fail to parse it.
                     builder.append (escape_xml msg)
                     if details.is_nothing.not then
@@ -151,7 +150,7 @@ print_group_report group_name test_results config builder =
                         builder.append '\n\n'
                         builder.append (escape_xml details)
                     builder.append '\n            </failure>\n'
-                Spec_Result.Pending msg -> builder.append ('\n            <skipped message="' + (escape_xml msg) + '"/>\n        ')
+                Spec_Result.Pending msg -> builder.append ('\n            <skipped message="' + (escape_xml msg inside_attribute=True) + '"/>\n        ')
             builder.append '        </testcase>\n'
         builder.append '    </testsuite>\n'
 
@@ -175,6 +174,7 @@ print_group_report group_name test_results config builder =
 
 ## PRIVATE
    Escape Text for XML
-escape_xml : Text -> Text
-escape_xml input =
-    input.replace '&' '&amp;' . replace '"' '&quot;' . replace "'" '&apos;' . replace '<' '&lt;' . replace '>' '&gt;'
+escape_xml : Text -> Boolean -> Text
+escape_xml input inside_attribute=False =
+    escaped = input.replace '&' '&amp;' . replace '"' '&quot;' . replace "'" '&apos;' . replace '<' '&lt;' . replace '>' '&gt;'
+    if inside_attribute then escaped.replace '\n' '&#10;' else escaped
