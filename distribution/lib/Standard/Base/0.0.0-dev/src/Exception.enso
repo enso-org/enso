@@ -12,7 +12,7 @@ from project.Runtime import assert
    to the top level.
 
    `throw_exception` works by wrapping the error in an `Uncaught_Exception` and
-   raising it with `Panic.throw`. This should occur inside a `catch_exception`
+   throwing it with `Panic.throw`. This should occur inside a `catch_exception`
    block, which catches the `Panic` and rethrows the wrapped error as a dataflow
    error.
 
@@ -37,13 +37,14 @@ from project.Runtime import assert
 type Exception
     ## PRIVATE
 
-       Catch a dataflow error wrapped in a `Panic` and rethrow it as an `Error`.
+       Catch a dataflow error wrapped as an `Uncaught_Exception` panic, and
+       rethrow it as an `Error`, or handle it with a custom handler.
 
-       `catch_exception` specifies the type of `Error` to catch; other throw
-       `Errors` will be ignored, possibly to be caught by a different
+       `catch_exception` specifies the type of `Error` to catch; other types of
+       `Errors` will be ignored, possibly to be caught by an outer
        `catch_exception` block.
 
-       The default error handler rethrows the `Error`.
+       The default error handler rethrows the error as a dataflow error.
 
        ! Error Conditions
 
@@ -70,7 +71,8 @@ type Exception
     throw_exception : Any -> Panic
     throw_exception error -> Panic =
         ## TODO: Should preserve the stack trace here and re-attach it in the
-           default catch callback, which propagates it as a dataflow error.
+           default catch_exception callback, which propagates it as a dataflow
+           error.
         Panic.throw (Uncaught_Exception.Error error)
 
     ## PRIVATE
@@ -82,8 +84,8 @@ type Exception
    An `Uncaught_Exception` is actually a wrapper around a regular `Error`. The
    `Error` is wrapped in an `Uncaught_Exception` and thrown via `Panic.throw`.
    This should all happen inside an `Exception.catch_exception` block; the
-   `catch` removes the `Uncaught_Exception` wrapper and propagates the `Error`
-   via normal `Error` propagation.
+   `catch_exception` removes the `Uncaught_Exception` wrapper and propagates the
+   `Error` via normal `Error` propagation.
 type Uncaught_Exception
     Error error
 

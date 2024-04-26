@@ -1109,7 +1109,8 @@ add_specs suite_builder =
             vec2 = Vector.build builder->
                 builder.append 1
                 builder.append 2
-            vec2 . should_equal [1, 2]
+                builder.append 3
+            vec2 . should_equal [1, 2, 3]
 
         group_builder.specify "example (vector)" <|
             vec = Vector.build builder->

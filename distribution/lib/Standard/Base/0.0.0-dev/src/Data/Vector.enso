@@ -190,9 +190,9 @@ type Vector a
        particularly useful when the number of elements is not known upfront.
 
        `.build` creates a new `Builder`, passes it to the provided function,
-       which can add elements using the `Builder`'s `.append` method. When the
-       function is done, `.build` then closes the `Builder` and returns the
-       resulting `Vector`.
+       which can add elements using the `Builder`'s `.append` and
+       `.append_vector_range` methods. When the function is done, `.build` then
+       closes the `Builder` and returns the resulting `Vector`.
 
        The provided function should call `.append` or `.append_vector_range` to
        add new elements to the `Builder`. The return value of the provided
@@ -223,17 +223,12 @@ type Vector a
     build : (Builder -> Any) -> Integer -> Vector
     build (function : Builder -> Any) (initial_capacity : Integer = 10) -> Vector =
         # Delegate to .build_multiple
-        results_multiple = Vector.build_multiple 1 initial_capacity=initial_capacity builders->
-            assert (builders.length == 1)
-            function (builders.at 0)
-        results_multiple.if_not_error <|
-            assert (results_multiple.length == 1)
-            results_multiple.at 0
+        Vector.build_multiple 1 initial_capacity=initial_capacity (builders-> function (builders.at 0)) . if_not_error (results_multiple.at 0)
 
     ## PRIVATE
        ADVANCED
-       Creates new `Vector`s by passing an array of `Builder`s to the provided
-       function.
+       Creates multiple new `Vector`s by passing an array of `Builder`s to the
+       provided function.
 
        A vector `Builder` is a mutable data structure, that allows for gathering
        a number of elements and then converting them into a vector. This is
@@ -241,9 +236,9 @@ type Vector a
 
        `.build_multiple` creates an array of new `Builder`s, passes it to the
        provided function, which can add elements to the individual `Builder`s
-       using their `.append` methods. When the function is done,
-       `.build_multiple` then closes the `Builder`s and returns an array of the
-       resulting `Vector`s.
+       using their `.append` and `.append_vector_range` methods. When the
+       function is done, `.build_multiple` then closes the `Builder`s and
+       returns an array of the resulting `Vector`s.
 
        The provided function should call `.append` or `.append_vector_range` to
        add new elements to the `Builder`s. The return value of the provided
@@ -1330,7 +1325,7 @@ type Builder
          Make a new builder
 
              Vector.new_builder
-    new : Integer -> Boolean -> Builder
+    new : Integer -> Builder
     new (capacity : Integer = 10) = Builder.Value (Array_Like_Helpers.new_vector_builder capacity)
 
     ## GROUP Logical
@@ -1509,6 +1504,8 @@ type Build_Style_Builder
 
        Arguments:
        - java_builder: The accumulator for the new vector.
+       - warnings: a `Ref` containing `Warning`s that were attached to values
+         added to the builder.
 
        A vector builder is a mutable data structure, that allows to gather a
        number of elements and then convert them to a vector. This is
@@ -1516,27 +1513,27 @@ type Build_Style_Builder
 
        ! Error Conditions
 
-         - If an uncaught dataflow error is added to the builder, an internal
-           panic is thrown, aborting the builder callback that added the error
-           to the builder. This internal panic is caught by `Vector.build`,
-           which then propagates the dataflow error. The vector is not built.
+         - If  an uncaught dataflow error is appended with `append` or
+           `append_vector_range`, an internal panic is thrown, aborting the
+           builder callback that attempted to add the error to the builder. This
+           internal panic is caught by `Vector.build`, which then propagates the
+           dataflow error. The vector is not built.
 
          - If a dataflow error is thrown from the builder callback, it is
            propagated by `Vector.build`. The vector is not built.
 
          - If a value with an attached warning is added to the builder, the
-         vector is built, and the value keeps the attached warning.
+           vector is built, and the resulting `Vector` keeps the attached
+           warning.
 
        > Example
-             Construct a vector using a builder that contains the items 1 to 5.
+         Append three items.
 
-             Vector.build initial_capacity=5 builder->
-                 do_build start stop =
-                     builder.append start
-                     if start >= stop then Nothing else
-                         @Tail_Call do_build start+1 stop
-                 do_build 1 5
-             # => [1, 2, 3, 4, 5]
+             Vector.build builder->
+                 builder.append 1
+                 builder.append 2
+                 builder.append 3
+             # => [1, 2, 3]
     Value java_builder (warnings : Ref)
 
     ## PRIVATE
@@ -1566,12 +1563,13 @@ type Build_Style_Builder
          to the builder.
 
        > Example
-         Append two items.
+         Append three items.
 
              Vector.build builder->
                  builder.append 1
                  builder.append 2
-             # => [1, 2]
+                 builder.append 3
+             # => [1, 2, 3]
     append : Any ! Error -> Nothing ! Error
     append self (item : Any ! Error) -> Nothing ! Error =
         case item.is_error of
@@ -1583,7 +1581,7 @@ type Build_Style_Builder
 
     ## ICON join
        Appends a part of a given vector to this builder, propagating any errors
-       that the provided element could have contained.
+       that the provided elements could have contained.
 
        Arguments:
        - vector: The vector from which the elements are sourced.
@@ -1624,7 +1622,7 @@ type Build_Style_Builder
             Exception.throw_exception (Builder_Dataflow_Error.Error (first_dataflow_error.catch))
 
     ## PRIVATE
-       Save attached warnings in `warnings`.
+       Save any attached warnings in self.warnings.
     add_warnings : Any -> Nothing
     add_warnings self x -> Nothing =
         warnings = Warning.get_all x
@@ -1632,6 +1630,25 @@ type Build_Style_Builder
             self.warnings.put (self.warnings.get + (warnings.map .value))
             Nothing
 
+    ## PRIVATE
+       Appends a new element into this builder.
+
+       ? Propagating Dataflow Errors
+
+         Since this is an imperative operation which returns Nothing, if the
+         item to be appended contained a dataflow error, the operation will fail
+         and unless its result is inspected, the error can very easily be
+         ignored. To avoid this, prefer to use the `append` operation which will
+         ensure that dataflow errors are propagated, and not added to the
+         `Builder`.`
+
+       Arguments:
+       - item: The item to append to the vector builder.
+
+       > Example
+         Append an item to a vector builder.
+
+             Vector.new_builder.unsafe_append 10
     unsafe_append : Any -> Nothing
     unsafe_append self item = self.java_builder.add item
 
@@ -1683,6 +1700,7 @@ type Build_Style_Builder
     to_vector self =
         ## This creates a fresh copy of the builders storage, so any future
            changes to the builder will not affect the returned vector.
+
            This also reattaches any warnings that were attached to the added
            values. It attaches them to the whole array, not the individual
            values.
@@ -1710,7 +1728,7 @@ type Map_Error
     to_display_text : Text
     to_display_text self = "Error at index " + self.index.to_text + ": " + self.inner_error.to_display_text
 
-## PRIVIATE
+## PRIVATE
    An error wrapper used to catch and re-throw dataflow errors added to a
    `Build_Style_Builder`.
 type Builder_Dataflow_Error
