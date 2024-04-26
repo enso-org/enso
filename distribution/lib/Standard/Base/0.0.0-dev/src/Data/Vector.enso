@@ -284,11 +284,7 @@ type Vector a
             handler builder_dataflow_error =
                 Error.throw builder_dataflow_error.dataflow_error
             Exception.catch_exception Builder_Dataflow_Error handler=handler <|
-                ## TODO: This extra `case` is necessary to propagate warnings attached to
-                   values that are added to the builder. Will be fixed in
-                   https://github.com/enso-org/enso/issues/9733.
-                case function builders of
-                    result -> result.if_not_error (builders.map .to_vector)
+                function builders . if_not_error (builders.map .to_vector)
 
     ## PRIVATE
        ADVANCED
