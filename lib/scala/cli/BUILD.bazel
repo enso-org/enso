@@ -1,4 +1,5 @@
 load("@io_bazel_rules_scala//scala:scala.bzl", "scala_library", "scala_test")
+load("@vaticle_bazel_distribution//maven:rules.bzl", "assemble_maven")
 
 scala_library(
     name = "cli",
@@ -12,6 +13,10 @@ scala_library(
         "@maven//:org_slf4j_slf4j_api",
         ##"@maven//:org_scala_lang_scala_library",
     ],
+    tags = [
+        "maven_coordinates=org.enso:cli:{pom_version}",
+    ],
+
 )
 
 scala_test(
@@ -28,4 +33,13 @@ scala_test(
         "@maven//:org_scala_lang_scala_library",
     ],
     tags = ["unit"]
+)
+
+assemble_maven(
+    name = "assemble_maven",
+    target = ":cli",
+    project_name = "Enso CLI",
+    project_url = "https://enso.org",
+    project_description = "Project description STUB",
+    workspace_refs = "@enso_org_enso_workspace_refs//:refs.json",
 )
