@@ -2,11 +2,9 @@ package org.enso.compiler;
 
 import static org.junit.Assert.fail;
 
-import org.junit.Ignore;
 import org.junit.Test;
 
 public final class CompilerDependenciesTest {
-  @Ignore
   @Test
   public void noTruffleDependency() {
     assertNoClass("com.oracle.truffle.api.nodes.Node");

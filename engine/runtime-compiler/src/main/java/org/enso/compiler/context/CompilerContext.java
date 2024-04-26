@@ -1,6 +1,5 @@
 package org.enso.compiler.context;
 
-import com.oracle.truffle.api.TruffleFile;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.util.List;
@@ -90,6 +89,8 @@ public interface CompilerContext extends CompilerStub {
 
   boolean isInteractive(Module module);
 
+  boolean isModuleInRootPackage(Module module);
+
   boolean wasLoadedFromCache(Module module);
 
   org.enso.compiler.core.ir.Module getIr(Module module);
@@ -129,13 +130,11 @@ public interface CompilerContext extends CompilerStub {
 
     public abstract String getPath();
 
-    public abstract Package<TruffleFile> getPackage();
+    public abstract Package<? extends Object> getPackage();
 
     public abstract QualifiedName getName();
 
     public abstract BindingsMap getBindingsMap();
-
-    public abstract TruffleFile getSourceFile();
 
     public abstract List<QualifiedName> getDirectModulesRefs();
 

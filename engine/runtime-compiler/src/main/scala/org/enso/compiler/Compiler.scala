@@ -46,7 +46,6 @@ import java.util.concurrent.{
   TimeUnit
 }
 import java.util.logging.Level
-import scala.jdk.OptionConverters._
 
 /** This class encapsulates the static transformation processes that take place
   * on source code, including parsing, desugaring, type-checking, static
@@ -403,7 +402,11 @@ class Compiler(
           }
         )
 
-        if (shouldCompileDependencies || isModuleInRootPackage(module)) {
+        if (
+          shouldCompileDependencies || (!context.isInteractive(
+            module
+          ) && context.isModuleInRootPackage(module))
+        ) {
           val shouldStoreCache =
             generateCode &&
             irCachingEnabled && !context.wasLoadedFromCache(module)
@@ -433,15 +436,6 @@ class Compiler(
     }
 
     requiredModules
-  }
-
-  private def isModuleInRootPackage(module: Module): Boolean = {
-    if (!context.isInteractive(module)) {
-      val pkg = PackageRepositoryUtils
-        .getPackageOf(getPackageRepository, module.getSourceFile)
-        .toScala
-      pkg.contains(getPackageRepository.getMainProjectPackage.get)
-    } else false
   }
 
   private def runImportsAndExportsResolution(
