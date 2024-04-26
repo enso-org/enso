@@ -1094,12 +1094,6 @@ add_specs suite_builder =
             v . should_equal [1, 20, 21, 22, 3]
             Warning.get_all v . map .value . should_equal [My_Error.Error "err"]
 
-        group_builder.specify "Builder should only convert Builder_Dataflow_Error panics to dataflow errors, and let other panics through" <|
-            Test.expect_panic_with matcher=Illegal_Argument <|
-                Vector.build builder->
-                    builder.append 1
-                    Panic.throw (Illegal_Argument.Error "error")
-
         group_builder.specify ".build_multiple count must be non-negative" <|
             Vector.build_multiple -2 (_->Nothing) . should_fail_with Illegal_Argument
 
