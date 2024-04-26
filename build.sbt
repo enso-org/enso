@@ -1962,11 +1962,11 @@ lazy val `runtime-compiler` =
       frgaalJavaCompilerSetting,
       (Test / fork) := true,
       libraryDependencies ++= Seq(
-        "com.chuusai"        %% "shapeless"               % shapelessVersion,
-        "junit"               % "junit"                   % junitVersion       % Test,
-        "com.github.sbt"      % "junit-interface"         % junitIfVersion     % Test,
-        "org.scalatest"      %% "scalatest"               % scalatestVersion   % Test,
-        "org.netbeans.api"    % "org-openide-util-lookup" % netbeansApiVersion % "provided"
+        "com.chuusai"     %% "shapeless"               % shapelessVersion,
+        "junit"            % "junit"                   % junitVersion       % Test,
+        "com.github.sbt"   % "junit-interface"         % junitIfVersion     % Test,
+        "org.scalatest"   %% "scalatest"               % scalatestVersion   % Test,
+        "org.netbeans.api" % "org-openide-util-lookup" % netbeansApiVersion % "provided"
       )
     )
     .dependsOn(`runtime-parser`)
