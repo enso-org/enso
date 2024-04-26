@@ -1014,6 +1014,9 @@ pub enum RunnerLabel {
     Windows,
     #[serde(rename = "engine")]
     Engine,
+    /// macos-13 is the last x64 version of the GitHub-hosted macOS runner.
+    #[serde(rename = "macos-13")]
+    MacOS13,
     #[serde(rename = "macos-latest")]
     MacOSLatest,
     #[serde(rename = "ubuntu-latest")]

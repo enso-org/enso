@@ -66,6 +66,7 @@ impl RunsOn for RunnerLabel {
             RunnerLabel::MacOS => Some("MacOS".to_string()),
             RunnerLabel::Linux => Some("Linux".to_string()),
             RunnerLabel::Windows => Some("Windows".to_string()),
+            RunnerLabel::MacOS13 => Some("MacOS13".to_string()),
             RunnerLabel::MacOSLatest => Some("MacOSLatest".to_string()),
             RunnerLabel::LinuxLatest => Some("LinuxLatest".to_string()),
             RunnerLabel::WindowsLatest => Some("WindowsLatest".to_string()),
@@ -93,13 +94,9 @@ impl RunsOn for OS {
 impl RunsOn for (OS, Arch) {
     fn runs_on(&self) -> Vec<RunnerLabel> {
         match self {
-            (OS::MacOS, Arch::X86_64) => runs_on(OS::MacOS, RunnerType::GitHubHosted),
+            (OS::MacOS, Arch::X86_64) => vec![RunnerLabel::MacOS13],
             (os, Arch::X86_64) => runs_on(*os, RunnerType::SelfHosted),
-            (OS::MacOS, Arch::AArch64) => {
-                let mut ret = runs_on(OS::MacOS, RunnerType::SelfHosted);
-                ret.push(RunnerLabel::Arm64);
-                ret
-            }
+            (OS::MacOS, Arch::AArch64) => vec![RunnerLabel::MacOSLatest],
             _ => panic!("Unsupported OS/arch combination: {self:?}"),
         }
     }
