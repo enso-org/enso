@@ -2608,7 +2608,10 @@ lazy val `edition-updater` = project
 lazy val `edition-uploader` = project
   .in(file("lib/scala/edition-uploader"))
   .settings(
-    frgaalJavaCompilerSetting
+    frgaalJavaCompilerSetting,
+    libraryDependencies ++= Seq(
+      "io.circe" %% "circe-yaml" % circeYamlVersion % "provided"
+    )
   )
   .dependsOn(editions)
   .dependsOn(`version-output`)
