@@ -25,6 +25,8 @@ import project.Meta
 import project.Nothing.Nothing
 import project.Panic.Panic
 import project.Random.Random
+import project.Runtime.Ref.Ref
+import project.Warning.Warning
 from project.Data.Boolean import Boolean, False, True
 from project.Data.Filter_Condition import unify_condition_or_predicate, unify_condition_predicate_or_element
 from project.Data.Index_Sub_Range import Index_Sub_Range
@@ -1586,7 +1588,7 @@ type Build_Style_Builder
                          @Tail_Call do_build start+1 stop
                  do_build 1 5
              # => [1, 2, 3, 4, 5]
-    Value java_builder
+    Value java_builder (warnings : Ref)
 
     ## PRIVATE
        Creates a new builder.
@@ -1599,7 +1601,7 @@ type Build_Style_Builder
 
              Vector.new_builder
     new : Integer -> Build_Style_Builder 
-    new (capacity : Integer = 10) -> Build_Style_Builder = Build_Style_Builder.Value (Array_Like_Helpers.new_vector_builder capacity)
+    new (capacity : Integer = 10) -> Build_Style_Builder = Build_Style_Builder.Value (Array_Like_Helpers.new_vector_builder capacity) (Ref.new [])
 
     append : Any ! Error -> Nothing
     append self (item : Any ! Error) -> Nothing =
@@ -1607,6 +1609,7 @@ type Build_Style_Builder
             True -> Exception.qthrow (Builder_Dataflow_Error.Error (item.catch))
             False ->
                 self.unsafe_append item
+                self.add_warnings item
                 Nothing
 
     append_vector_range : Vector Any ! Error -> Integer -> Integer -> Builder ! Error
@@ -1616,10 +1619,20 @@ type Build_Style_Builder
         if_no_errors =
             append_result = self.java_builder.appendTo subrange
             assert (append_result.is_error.not)
+            self.add_warnings subrange
             Nothing
         if first_dataflow_error.is_error.not then if_no_errors else
             assert first_dataflow_error.is_error
             Exception.qthrow (Builder_Dataflow_Error.Error (first_dataflow_error.catch))
+
+    ## PRIVATE
+       Save attached warnings in `warnings`.
+    add_warnings : Any -> Nothing
+    add_warnings self x -> Nothing =
+        warnings = Warning.get_all x
+        if warnings.is_empty then Nothing else
+            self.warnings.put (self.warnings.get + (warnings.map .value))
+            Nothing
 
     unsafe_append : Any -> Nothing
     unsafe_append self item = self.java_builder.add item
@@ -1672,7 +1685,11 @@ type Build_Style_Builder
     to_vector self =
         ## This creates a fresh copy of the builders storage, so any future
            changes to the builder will not affect the returned vector.
-        Vector.from_polyglot_array self.java_builder.toArray
+           This also reattaches any warnings that were attached to the added
+           values. It attaches them to the whole array, not the individual
+           values.
+        Warning.attach_multiple self.warnings.get <|
+            Vector.from_polyglot_array self.java_builder.toArray
 
 ## PRIVATE
    Describes an error attached to a value within a `Vector`. The `index` field

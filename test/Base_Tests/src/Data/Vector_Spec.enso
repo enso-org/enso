@@ -1118,7 +1118,7 @@ add_specs suite_builder =
                 builder.append ww
                 builder.append 3
             v . should_equal [1, 2, 3]
-            Warning.get_all v . should_equal [My_Error.Error "err"]
+            Warning.get_all v . map .value . should_equal [My_Error.Error "err"]
 
         group_builder.specify "Builder should propagate warnings attached to an item added to the builder with .append" <|
             v = Vector.build builder->
@@ -1126,8 +1126,8 @@ add_specs suite_builder =
                 builder.append 1
                 builder.append_vector_range [20, ww, 22]
                 builder.append 3
-            v . should_equal [1, [20, 21, 22], 3]
-            Warning.get_all (v.at 1 . at 1) . should_equal [My_Error.Error "err"]
+            v . should_equal [1, 20, 21, 22, 3]
+            Warning.get_all v . map .value . should_equal [My_Error.Error "err"]
 
         group_builder.specify "Builder should only convert Builder_Dataflow_Error panics to dataflow errors, and let other panics through" <|
             Test.expect_panic_with matcher=Illegal_Argument <|
