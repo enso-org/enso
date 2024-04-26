@@ -7,7 +7,12 @@ import com.typesafe.scalalogging.LazyLogging
 import org.enso.cli.task.ProgressUnit
 import org.enso.cli.task.notifications.TaskNotificationApi
 import org.enso.jsonrpc._
-import org.enso.languageserver.ai.AICompletion
+import org.enso.languageserver.ai.AiApi.{
+  AiCompletion,
+  AiCompletion2,
+  AiCompletionProgress
+}
+import org.enso.languageserver.ai.AiProtocol
 import org.enso.languageserver.boot.resource.{
   InitializationComponent,
   InitializationComponentInitialized
@@ -472,6 +477,12 @@ class JsonConnectionController(
         translateProgressNotification(payload)
       webActor ! translated
 
+    case AiProtocol.AiCompletionProgressNotification(code, reason) =>
+      webActor ! Notification(
+        AiCompletionProgress,
+        AiCompletionProgress.Params(code, reason)
+      )
+
     case req @ Request(method, _, _) if requestHandlers.contains(method) =>
       refreshIdleTime(method)
       val handler = context.actorOf(
@@ -566,8 +577,12 @@ class JsonConnectionController(
         .props(requestTimeout, suggestionsHandler),
       InvalidateSuggestionsDatabase -> search.InvalidateSuggestionsDatabaseHandler
         .props(requestTimeout, suggestionsHandler),
-      AICompletion -> ai.AICompletionHandler.props(
+      AiCompletion -> ai.AICompletionHandler.props(
         languageServerConfig.aiCompletionConfig
+      ),
+      AiCompletion2 -> ai.AICompletion2Handler.props(
+        languageServerConfig.aiCompletionConfig,
+        runtimeConnector
       ),
       ExecuteExpression -> ExecuteExpressionHandler
         .props(rpcSession.clientId, requestTimeout, contextRegistry),

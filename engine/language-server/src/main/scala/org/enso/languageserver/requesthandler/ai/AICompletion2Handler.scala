@@ -1,0 +1,318 @@
+package org.enso.languageserver.requesthandler.ai
+
+import akka.actor.{Actor, ActorRef, Props}
+import akka.http.scaladsl.Http
+import akka.http.scaladsl.model._
+import akka.http.scaladsl.model.headers.OAuth2BearerToken
+import akka.pattern.PipeToSupport
+import akka.stream.Materializer
+import akka.util.ByteString
+import com.typesafe.scalalogging.LazyLogging
+import io.circe.Json
+import io.circe.syntax._
+import io.circe.generic.auto._
+import org.enso.jsonrpc._
+import org.enso.languageserver.ai.AiApi.AiCompletion2
+import org.enso.languageserver.ai.AiProtocol.{AiCompletionResult, AiEvalRequest}
+import org.enso.languageserver.ai.{AiApi, AiProtocol}
+import org.enso.languageserver.data.AICompletionConfig
+import org.enso.languageserver.requesthandler.UnsupportedHandler
+import org.enso.languageserver.util.UnhandledLogging
+import org.enso.polyglot.runtime.Runtime.Api
+
+import java.nio.charset.StandardCharsets
+import java.util.UUID
+
+import scala.concurrent.ExecutionContext
+import scala.concurrent.duration.FiniteDuration
+
+class AICompletion2Handler(cfg: AICompletionConfig, runtime: ActorRef)
+    extends Actor
+    with LazyLogging
+    with UnhandledLogging
+    with PipeToSupport {
+
+  import AICompletion2Handler._
+
+  override def preStart(): Unit = {
+    super.preStart()
+
+    context.system.eventStream.subscribe(self, classOf[Api.VisualizationUpdate])
+  }
+
+  override def receive: Receive = requestStage
+
+  private val http                        = Http(context.system)
+  implicit val ec: ExecutionContext       = context.dispatcher
+  implicit val materializer: Materializer = Materializer(context)
+
+  private def requestStage: Receive = {
+    case Request(
+          AiCompletion2,
+          id,
+          AiCompletion2.Params(contextId, expressionId, prompt, systemPrompt)
+        ) =>
+      val messages = Vector(
+        AiProtocol.CompletionsMessage(
+          "system",
+          systemPrompt.getOrElse(SYSTEM_PROMPT)
+        ),
+        AiProtocol.CompletionsMessage("user", prompt)
+      )
+      sendHttpRequest(messages)
+
+      context.become(
+        awaitingCompletionResponse(
+          id,
+          sender(),
+          contextId,
+          expressionId,
+          messages
+        )
+      )
+  }
+
+  private def evalRequestStage(
+    id: Id,
+    replyTo: ActorRef,
+    contextId: Api.ContextId,
+    expressionId: Api.ExpressionId,
+    messages: Vector[AiProtocol.CompletionsMessage]
+  ): Receive = { case req @ AiEvalRequest(reason, code) =>
+    val visualizationId = UUID.randomUUID()
+
+    runtime ! Api.ExecuteExpression(
+      contextId,
+      visualizationId,
+      expressionId,
+      code
+    )
+
+    replyTo ! AiProtocol.AiCompletionProgressNotification(code, reason)
+
+    context.become(
+      evalResponseStage(
+        id,
+        replyTo,
+        contextId,
+        expressionId,
+        visualizationId,
+        req,
+        messages
+      )
+    )
+  }
+
+  private def evalResponseStage(
+    id: Id,
+    replyTo: ActorRef,
+    contextId: Api.ContextId,
+    expressionId: Api.ExpressionId,
+    visualizationId: Api.VisualizationId,
+    request: AiEvalRequest,
+    messages: Vector[AiProtocol.CompletionsMessage]
+  ): Receive = {
+    case Api.VisualizationUpdate(ctx, data)
+        if ctx.visualizationId == visualizationId =>
+      val visualizationResult = new String(data, StandardCharsets.UTF_8)
+      val message = AiProtocol.CompletionsMessage(
+        "user",
+        s"EVALUATED:\n${request.code}\n\nOUTPUT:\n$visualizationResult"
+      )
+      val newMessages = messages :+ message
+
+      sendHttpRequest(newMessages)
+
+      context.become(
+        awaitingCompletionResponse(
+          id,
+          replyTo,
+          contextId,
+          expressionId,
+          newMessages
+        )
+      )
+  }
+
+  private def awaitingCompletionResponse(
+    id: Id,
+    replyTo: ActorRef,
+    contextId: Api.ContextId,
+    expressionId: Api.ExpressionId,
+    messages: Vector[AiProtocol.CompletionsMessage]
+  ): Receive = {
+    case HttpResponse(StatusCodes.OK, data) =>
+      val responseUtf8String = data.utf8String
+
+      parse(responseUtf8String) match {
+        case Some(response) =>
+          getResponseKind(response) match {
+            case Some("final") =>
+              getFinalResult(response).fold {
+                val payload = Json.obj(
+                  ("reason", "Failed to parse final result".asJson),
+                  ("response", responseUtf8String.asJson)
+                )
+                replyTo ! ResponseError(Some(id), AiApi.AiError(Some(payload)))
+              }(success => replyTo ! ResponseResult(AiCompletion2, id, success))
+
+            case Some("eval") =>
+              getEvalResult(response).fold {
+                val payload = Json.obj(
+                  ("reason", "Failed to parse eval result".asJson),
+                  ("response", responseUtf8String.asJson)
+                )
+                replyTo ! ResponseError(Some(id), AiApi.AiError(Some(payload)))
+              } { evalRequest =>
+                self ! evalRequest
+                context.become(
+                  evalRequestStage(
+                    id,
+                    replyTo,
+                    contextId,
+                    expressionId,
+                    messages
+                  )
+                )
+              }
+
+            case Some("fail") =>
+              getFailResult(response).fold {
+                val payload = Json.obj(
+                  ("reason", "Failed to parse fail result".asJson),
+                  ("response", responseUtf8String.asJson)
+                )
+                replyTo ! ResponseError(Some(id), AiApi.AiError(Some(payload)))
+              }(fail => replyTo ! ResponseResult(AiCompletion2, id, fail))
+
+            case _ =>
+              val payload = Json.obj(
+                ("reason", "Unknown `kind` key".asJson),
+                ("response", responseUtf8String.asJson)
+              )
+              replyTo ! ResponseError(Some(id), AiApi.AiError(Some(payload)))
+          }
+
+        case None =>
+          val payload = Json.obj(
+            ("reason", "Failed to parse AI response as JSON".asJson),
+            ("response", data.utf8String.asJson)
+          )
+          replyTo ! ResponseError(Some(id), AiApi.AiError(Some(payload)))
+      }
+
+    case HttpResponse(status, data) =>
+      replyTo ! ResponseError(
+        Some(id),
+        Errors.UnknownError(status.intValue(), data.utf8String, None)
+      )
+  }
+
+  private def sendHttpRequest(
+    messages: Vector[AiProtocol.CompletionsMessage]
+  ): Unit = {
+    val body = Json.obj(
+      ("model", MODEL.asJson),
+      ("response_format", Json.obj(("type", "json_object".asJson))),
+      ("messages", Json.arr(messages.map(_.asJson): _*))
+    )
+
+    val req =
+      HttpRequest(
+        uri    = API_OPENAI_URI,
+        method = HttpMethods.POST,
+        headers = Seq(
+          headers.Authorization(OAuth2BearerToken(cfg.apiKey))
+        ),
+        entity = HttpEntity(ContentTypes.`application/json`, body.noSpaces)
+      )
+
+    http
+      .singleRequest(req)
+      .flatMap(response => {
+        response.entity
+          .toStrict(FiniteDuration(10, "s"))
+          .map(e => {
+            HttpResponse(response.status, e.data)
+          })
+      })
+      .pipeTo(self)
+  }
+}
+
+object AICompletion2Handler {
+
+  private val MODEL          = "gpt-4-turbo-preview"
+  private val API_OPENAI_URI = "https://api.openai.com/v1/chat/completions"
+  private val SYSTEM_PROMPT =
+    """You are a data analyst. You use Python3. Installed libraries: ['pandas'].
+      |Your task is to output JSON object with fields:
+      |- 'kind': 'final'
+      |- 'fn': String, Python function returning what user wants. Always write as generic code as possible that will work even if the input data (e.g. file content) changes. Do not assume any input data exists if not provided with it explicitly. Use your knowledge about the world if the provided data is missing.
+      |- 'fnCall': String, Python code that calls the generated function.
+      |- 'resultPreview': Code in Python. When evaluated, prints to stdout a preview of the result, e.g. 'print("Number 5")'. Make it as generic as possible. It should work even if the input data changes. The string written to stdout should be one-line, as short as possible, and as informative as possible, e.g. 'Table with 50 rows and columns "c1", "c2", and "c3"'. It can assume that the 'fnCall' result is in scope.
+      |- 'queryParts': Array of user query divided into either non-editable text, or widgets. The idea is that users can click widgets to change them to other values. Every part should be one of the JSON objects:
+      |  * Fields:
+      |    a. 'kind': 'text'
+      |    b. 'text': Part of the user query that should not be widget. In particular, numbers shoul not be widgets.
+      |  * Fields:
+      |    a. 'kind': 'dropdown'
+      |    b. 'values': list of possible values. For example, if the query contains name of a column in a data set, provide all other column names, like ['columnName1', 'columnName2']. If the query contains a common comparator like 'less than', provide other comparators like ['greater than', 'equal to']. The same applies to other comparators like 'most popular'.
+      |
+      |If in order to provide the answer you need to investigate what is inside the data, you can run code and be asked again the same question with provided stdout by outputing JSON object with fields:
+      |- 'kind': 'eval'
+      |- 'code': Python code required to investigate data. The code should write to stdout as little as possible, as the data can be huge. You can only use data you are already provided with, no more data can be provided and you can't ask for more data.
+      |- 'reason': Reason why you were not able to provide final code.
+      |Always prefer outputting the final code. Use kind "eval" only if you can't output object with kind "final".
+      |
+      |If you can't provide the answer, because the current data and your knowledge about the world is not enoguh, output JSON object with fields:
+      |- 'kind': 'fail'
+      |- 'reason': Reason why you were not able to provide the answer. As short as possible. Do not mention Python nor code, this is information for non-tech users.
+      |""".stripMargin
+
+  private case class HttpResponse(status: StatusCode, data: ByteString)
+
+  def props(cfg: Option[AICompletionConfig], runtime: ActorRef): Props =
+    cfg
+      .map(conf => Props(new AICompletion2Handler(conf, runtime)))
+      .getOrElse(Props(new UnsupportedHandler(AiCompletion2)))
+
+  private def parse(str: String): Option[Json] = {
+    io.circe.parser.parse(str).toOption
+  }
+
+  private def getFinalResult(
+    response: Json
+  ): Option[AiCompletionResult] =
+    for {
+      obj          <- response.asObject
+      fn           <- obj("fn")
+      fnString     <- fn.asString
+      fnCall       <- obj("fnCall")
+      fnCallString <- fnCall.asString
+    } yield AiCompletionResult.Success(fnString, fnCallString)
+
+  private def getEvalResult(response: Json): Option[AiEvalRequest] =
+    for {
+      obj          <- response.asObject
+      reason       <- obj("reason")
+      reasonString <- reason.asString
+      code         <- obj("code")
+      codeString   <- code.asString
+    } yield AiEvalRequest(reasonString, codeString)
+
+  private def getFailResult(response: Json): Option[AiCompletionResult] =
+    for {
+      obj          <- response.asObject
+      reason       <- obj("reason")
+      reasonString <- reason.asString
+    } yield AiCompletionResult.Failure(reasonString)
+
+  private def getResponseKind(response: Json): Option[String] =
+    for {
+      obj       <- response.asObject
+      key       <- obj("kind")
+      keyString <- key.asString
+    } yield keyString
+
+}
