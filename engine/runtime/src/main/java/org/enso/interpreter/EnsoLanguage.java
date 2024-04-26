@@ -215,7 +215,7 @@ public final class EnsoLanguage extends TruffleLanguage<EnsoContext> {
   protected ExecutableNode parse(InlineParsingRequest request) throws InlineParsingException {
     if (request.getLocation().getRootNode() instanceof EnsoRootNode ensoRootNode) {
       var context = EnsoContext.get(request.getLocation());
-      Tree inlineExpr = context.getCompiler().parseInline(request.getSource());
+      Tree inlineExpr = context.getCompiler().parseInline(request.getSource().getCharacters());
       var undesirableExprTypes =
           List.of(Tree.Assignment.class, Tree.Import.class, Tree.Export.class);
       if (astContainsExprTypes(inlineExpr, undesirableExprTypes)) {
@@ -261,7 +261,7 @@ public final class EnsoLanguage extends TruffleLanguage<EnsoContext> {
           var newInlineContext = optionTupple.get()._1();
           var ir = optionTupple.get()._2();
           var sco = newInlineContext.localScope().getOrElse(LocalScope::root);
-          var mod = newInlineContext.module$access$0().module$access$0();
+          var mod = newInlineContext.getModule();
           var m = org.enso.interpreter.runtime.Module.fromCompilerModule(mod);
           var toTruffle =
               new IrToTruffle(

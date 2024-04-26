@@ -17,7 +17,7 @@ import org.enso.compiler.data.BindingsMap.ModuleReference
   * @param pkgRepo the compiler's package repository
   */
 case class ModuleContext(
-  private val module: CompilerContext.Module,
+  module: CompilerContext.Module,
   compilerConfig: CompilerConfig,
   freshNameSupply: Option[FreshNameSupply]     = None,
   passConfiguration: Option[PassConfiguration] = None,
