@@ -9,7 +9,7 @@ from project.Runtime import assert
 ## PRIVATE
 type Exception
     qcatch : Any -> (Any -> Any) -> Any -> Any
-    qcatch exception_type ~action (handler : Any -> Any = Error.throw) =
+    qcatch exception_type ~action (handler : Any -> Any = Exception.default_handler) =
         Panic.catch Uncaught_Exception action cp->
             assert (cp.payload . is_a Uncaught_Exception)
             error = cp.payload.error
@@ -18,7 +18,12 @@ type Exception
 
     qthrow : Any -> Panic
     qthrow error -> Panic =
+        ## TODO: Should preserve the stack trace here and re-attach it in the
+           default catch callback, which propagates it as a dataflow error.
         Panic.throw (Uncaught_Exception.Error error)
+
+    default_handler : Any -> Any
+    default_handler = Error.throw
 
 ## PRIVATE
    An `Uncaught_Exception` is actually a wrapper around a regular `Error`. It is
