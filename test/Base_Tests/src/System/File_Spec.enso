@@ -227,6 +227,8 @@ add_specs suite_builder =
             f.delete_if_exists
             g.delete_if_exists
 
+        add_copy_edge_cases_specs group_builder (enso_project.data / "transient")
+
         group_builder.specify "should handle exceptions when deleting a missing file" <|
             file = File.new "does_not_exist.txt"
             result = file.delete
@@ -306,6 +308,7 @@ add_specs suite_builder =
             contents_2 = File.new file . read_bytes
             contents_2.take (First 6) . should_equal [67, 117, 112, 99, 97, 107]
 
+    suite_builder.group "Path Operations" group_builder->
         group_builder.specify "should allow going above the first part of a relative directory by resolving it to absolute" <|
             parent_file = (File.new '.').parent
             parent_file.should_be_a File
@@ -876,7 +879,6 @@ add_specs suite_builder =
             filtered4.sort.should_equal (resolve ["subdirectory/nested/b.txt"])
 
         add_create_and_delete_directory_specs group_builder (enso_project.data / "transient")
-        add_copy_edge_cases_specs group_builder (enso_project.data / "transient")
 
 # `parent_dir` is lazy on purpose to avoid creating a temporary directory in setup phase
 add_create_and_delete_directory_specs group_builder ~parent_dir =
