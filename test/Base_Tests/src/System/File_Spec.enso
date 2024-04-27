@@ -966,12 +966,15 @@ add_copy_edge_cases_specs group_builder ~parent_dir =
         file = parent_dir / "src-target-in-one.txt"
         file.delete_if_exists
 
+        # Same file but through a different path
+        same_file = File.new (parent_dir.path + "/foo/../src-target-in-one.txt")
+
         # Source is not found
-        r_copy_not_found = file.copy_to file
+        r_copy_not_found = same_file.copy_to file
         r_copy_not_found.should_fail_with File_Error
         r_copy_not_found.catch.should_be_a File_Error.Not_Found
 
-        r_move_not_found = file.move_to file
+        r_move_not_found = same_file.move_to file
         r_move_not_found.should_fail_with File_Error
         r_move_not_found.catch.should_be_a File_Error.Not_Found
 
@@ -979,12 +982,12 @@ add_copy_edge_cases_specs group_builder ~parent_dir =
 
         [False, True].map replace_existing-> Test.with_clue "(replace_existing="+replace_existing.to_text+") " <|
             # Copying the file to itself should succeed and just not change anything.
-            r_copy = file.copy_to file replace_existing=replace_existing
+            r_copy = same_file.copy_to file replace_existing=replace_existing
             r_copy.should_equal file
             r_copy.read . should_equal "Foo"
 
             # Moving the file to itself should succeed and just not change anything.
-            r_move = file.move_to file replace_existing=replace_existing
+            r_move = same_file.move_to file replace_existing=replace_existing
             r_move.should_equal file
             file.exists . should_be_true
             file.read . should_equal "Foo"
