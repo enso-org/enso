@@ -521,7 +521,7 @@ add_specs suite_builder =
             r.should_fail_with File_Error
             r.catch.should_be_a File_Error.Not_Found
 
-        Local_File_Spec.add_copy_edge_cases_specs group_builder my_writable_dir
+        Local_File_Spec.add_copy_edge_cases_specs group_builder my_writable_dir file_from_path=(S3_File.new _ test_credentials)
 
     suite_builder.group "DataLinks to S3_File" pending=api_pending group_builder->
         group_builder.specify "should be able to read a data link of an S3 File" <| with_default_credentials <|
