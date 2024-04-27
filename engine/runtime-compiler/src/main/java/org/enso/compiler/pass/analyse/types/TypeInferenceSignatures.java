@@ -63,6 +63,11 @@ public class TypeInferenceSignatures implements IRPass {
   }
 
   @Override
+  public String toString() {
+    return "TypeInferenceSignatures";
+  }
+
+  @Override
   public Seq<IRPass> precursorPasses() {
     List<IRPass> passes =
         List.of(
@@ -98,7 +103,7 @@ public class TypeInferenceSignatures implements IRPass {
                       // TODO maybe different metadata class?
                       // TODO use this in TypeInferencePropagation if its own metadata is not yet
                       // available
-                      ir.passData().update(INSTANCE, new InferredType(resolvedType));
+                      b.passData().update(INSTANCE, new InferredType(resolvedType));
                     }
                     yield b;
                   }

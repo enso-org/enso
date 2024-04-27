@@ -34,9 +34,7 @@ public class TypesFromSignaturesTest extends CompilerTest {
             .buildLiteral();
 
     var module = compile(src);
-
     var f1 = findStaticMethod(module, "f");
-
     assertInferredType(f1, "(A -> (B -> C))");
   }
 

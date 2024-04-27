@@ -105,6 +105,11 @@ public final class TypeInferencePropagation implements IRPass {
   }
 
   @Override
+  public String toString() {
+    return "TypeInferencePropagation";
+  }
+
+  @Override
   public Seq<IRPass> precursorPasses() {
     List<IRPass> passes =
         List.of(
