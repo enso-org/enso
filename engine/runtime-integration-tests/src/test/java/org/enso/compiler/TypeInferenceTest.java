@@ -36,7 +36,7 @@ import scala.collection.immutable.Seq;
 import scala.collection.immutable.Seq$;
 import scala.jdk.javaapi.CollectionConverters;
 
-public class TypeInferenceTest extends ParserTest {
+public class TypeInferenceTest extends CompilerTest {
   @Ignore("TODO resolving global methods")
   @Test
   public void zeroAryCheck() throws Exception {
@@ -1043,55 +1043,6 @@ public class TypeInferenceTest extends ParserTest {
     assertAtomType(myType, findAssignment(foo, "x5"));
   }
 
-  private List<Diagnostic> getImmediateDiagnostics(IR ir) {
-    return CollectionConverters.asJava(ir.diagnostics().toList());
-  }
-
-  private List<Diagnostic> getDescendantsDiagnostics(IR ir) {
-    return CollectionConverters.asJava(
-        ir.preorder().flatMap((node) -> node.diagnostics().toList()));
-  }
-
-  private Method findStaticMethod(Module module, String name) {
-    var option =
-        module
-            .bindings()
-            .find(
-                (def) ->
-                    (def instanceof Method binding)
-                        && binding.methodReference().typePointer().isEmpty()
-                        && binding.methodReference().methodName().name().equals(name));
-
-    assertTrue("The method " + name + " should exist within the IR.", option.isDefined());
-    return (Method) option.get();
-  }
-
-  private Method findMemberMethod(Module module, String typeName, String name) {
-    var option =
-        module
-            .bindings()
-            .find(
-                (def) ->
-                    (def instanceof Method binding)
-                        && binding.methodReference().typePointer().isDefined()
-                        && binding.methodReference().typePointer().get().name().equals(typeName)
-                        && binding.methodReference().methodName().name().equals(name));
-
-    assertTrue("The method " + name + " should exist within the IR.", option.isDefined());
-    return (Method) option.get();
-  }
-
-  private Expression.Binding findAssignment(IR ir, String name) {
-    var option =
-        ir.preorder()
-            .find(
-                (node) ->
-                    (node instanceof Expression.Binding binding)
-                        && binding.name().name().equals(name));
-    assertTrue("The binding `" + name + " = ...` should exist within the IR.", option.isDefined());
-    return (Expression.Binding) option.get();
-  }
-
   private TypeRepresentation getInferredType(IR ir) {
     var option = getInferredTypeOption(ir);
     assertTrue(
@@ -1138,48 +1089,5 @@ public class TypeInferenceTest extends ParserTest {
     } else {
       fail("Expected " + ir.showCode() + " to have a SumType, but got " + type);
     }
-  }
-
-  /**
-   * Note that this `compile` method will not run import resolution. For now we just have tests that
-   * do not need it, and tests that do need it are placed in {@link
-   * org.enso.interpreter.test.TypeInferenceConsistencyTest} which spawns the whole interpreter.
-   *
-   * <p>If we want to run the imports resolution here, we need to create an instance of {@link
-   * Compiler}, like in {@link org.enso.compiler.test.semantic.TypeSignaturesTest}, but that relies
-   * on spawning a Graal context anyway. If possible I think it's good to skip that so that these
-   * tests can be kept simple - and the more complex ones can be done in the other suite.
-   */
-  private Module compile(Source src) {
-    if (src.getCharacters().toString().contains("import")) {
-      throw new IllegalArgumentException("This method will not work correctly with imports.");
-    }
-
-    Module rawModule = parse(src.getCharacters());
-
-    var compilerConfig =
-        new CompilerConfig(false, true, true, true, false, true, false, Option.empty());
-    var passes = new Passes(compilerConfig);
-    @SuppressWarnings("unchecked")
-    var passConfig =
-        new PassConfiguration((Seq<PassConfiguration.ConfigPair<?>>) Seq$.MODULE$.empty());
-    PassManager passManager = new PassManager(passes.passOrdering(), passConfig);
-    var compilerRunner =
-        new CompilerRunner() {
-          @Override
-          public CompilerConfig defaultConfig() {
-            return compilerConfig;
-          }
-
-          @Override
-          public void org$enso$compiler$test$CompilerRunner$_setter_$defaultConfig_$eq(
-              CompilerConfig x$1) {}
-        };
-    var moduleName = QualifiedName.simpleName(src.getName().replace(".enso", ""));
-    ModuleContext moduleContext =
-        compilerRunner.buildModuleContext(
-            moduleName, Option.apply(new FreshNameSupply()), Option.empty(), compilerConfig, false);
-    Module processedModule = passManager.runPassesOnModule(rawModule, moduleContext);
-    return processedModule;
   }
 }
