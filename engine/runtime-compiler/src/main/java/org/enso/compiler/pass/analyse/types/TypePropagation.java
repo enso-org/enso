@@ -106,7 +106,7 @@ abstract class TypePropagation {
             var bindingType = tryInferringType(b.expression(), localBindingsTyping);
             if (bindingType != null) {
               registerBinding(b, bindingType, localBindingsTyping);
-              TypeInference.setInferredType(b, bindingType);
+              TypeInferencePropagation.setInferredType(b, bindingType);
             }
             yield bindingType;
           }

@@ -66,9 +66,9 @@ import scala.jdk.javaapi.CollectionConverters;
  *
  * @see TypePropagation for more details on the type propagation mechanism
  */
-public final class TypeInference implements IRPass {
-  public static final TypeInference INSTANCE = new TypeInference();
-  private static final Logger logger = LoggerFactory.getLogger(TypeInference.class);
+public final class TypeInferencePropagation implements IRPass {
+  public static final TypeInferencePropagation INSTANCE = new TypeInferencePropagation();
+  private static final Logger logger = LoggerFactory.getLogger(TypeInferencePropagation.class);
   private final BuiltinTypes builtinTypes = new BuiltinTypes();
   private final TypeResolver typeResolver = new TypeResolver();
   private final TypeCompatibility checker = new TypeCompatibility(builtinTypes);

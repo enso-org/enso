@@ -6,7 +6,8 @@ import scala.Option;
 
 class CommonTypeHelpers {
   static TypeRepresentation getInferredType(Expression expression) {
-    Option<ProcessingPass.Metadata> r = expression.passData().get(TypeInference.INSTANCE);
+    Option<ProcessingPass.Metadata> r =
+        expression.passData().get(TypeInferencePropagation.INSTANCE);
     if (r.isDefined()) {
       InferredType metadata = (InferredType) r.get();
       return metadata.type();

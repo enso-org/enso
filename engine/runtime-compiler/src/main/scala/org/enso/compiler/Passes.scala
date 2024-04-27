@@ -4,7 +4,7 @@ import org.enso.compiler.data.CompilerConfig
 import org.enso.compiler.dump.IRDumperPass
 import org.enso.compiler.pass.PassConfiguration._
 import org.enso.compiler.pass.analyse._
-import org.enso.compiler.pass.analyse.types.TypeInference
+import org.enso.compiler.pass.analyse.types.TypeInferencePropagation
 import org.enso.compiler.pass.desugar._
 import org.enso.compiler.pass.lint.{
   ModuleNameConflicts,
@@ -105,7 +105,7 @@ class Passes(config: CompilerConfig) {
             List(UnusedBindings, NoSelfInStatic)
           }) ++ (if (config.staticTypeInferenceEnabled) {
                    List(
-                     TypeInference.INSTANCE
+                     TypeInferencePropagation.INSTANCE
                    )
                  } else Nil)
   )

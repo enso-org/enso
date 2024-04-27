@@ -24,7 +24,7 @@ import org.enso.compiler.data.CompilerConfig;
 import org.enso.compiler.pass.PassConfiguration;
 import org.enso.compiler.pass.PassManager;
 import org.enso.compiler.pass.analyse.types.InferredType;
-import org.enso.compiler.pass.analyse.types.TypeInference;
+import org.enso.compiler.pass.analyse.types.TypeInferencePropagation;
 import org.enso.compiler.pass.analyse.types.TypeRepresentation;
 import org.enso.compiler.test.CompilerRunner;
 import org.enso.pkg.QualifiedName;
@@ -1101,7 +1101,7 @@ public class TypeInferenceTest extends CompilerTest {
   }
 
   private Optional<TypeRepresentation> getInferredTypeOption(IR ir) {
-    Option<ProcessingPass.Metadata> metadata = ir.passData().get(TypeInference.INSTANCE);
+    Option<ProcessingPass.Metadata> metadata = ir.passData().get(TypeInferencePropagation.INSTANCE);
     if (metadata.isEmpty()) {
       return Optional.empty();
     } else {
@@ -1111,7 +1111,7 @@ public class TypeInferenceTest extends CompilerTest {
   }
 
   private void assertNoInferredType(IR ir) {
-    Option<ProcessingPass.Metadata> metadata = ir.passData().get(TypeInference.INSTANCE);
+    Option<ProcessingPass.Metadata> metadata = ir.passData().get(TypeInferencePropagation.INSTANCE);
     assertTrue(
         "Expecting "
             + ir.showCode()
