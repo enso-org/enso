@@ -11,7 +11,7 @@ import org.enso.compiler.core.ir.module.scope.definition.Method;
 import org.junit.Test;
 import scala.collection.immutable.List;
 
-public class ErrorCompilerTest extends CompilerTest {
+public class ErrorParserTest extends ParserTest {
 
   @Test
   public void unfinishedLiteral1() throws Exception {

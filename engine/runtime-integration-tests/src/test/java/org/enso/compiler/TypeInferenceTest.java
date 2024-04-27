@@ -36,7 +36,7 @@ import scala.collection.immutable.Seq;
 import scala.collection.immutable.Seq$;
 import scala.jdk.javaapi.CollectionConverters;
 
-public class TypeInferenceTest extends CompilerTest {
+public class TypeInferenceTest extends ParserTest {
   @Ignore("TODO resolving global methods")
   @Test
   public void zeroAryCheck() throws Exception {

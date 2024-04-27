@@ -107,7 +107,7 @@ public class SerdeCompilerTest {
 
       ctx.leave();
     }
-    CompilerTest.assertIR("Serialized and deserialized IR for " + projectName, old, now);
+    ParserTest.assertIR("Serialized and deserialized IR for " + projectName, old, now);
   }
 
   private Context ensoContextForPackage(String name, File pkgFile, boolean disableIrCaching)

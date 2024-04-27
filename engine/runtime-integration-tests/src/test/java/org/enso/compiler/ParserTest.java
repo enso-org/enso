@@ -14,22 +14,22 @@ import org.enso.compiler.core.ir.Module;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 
-public abstract class CompilerTest {
+public abstract class ParserTest {
 
-  protected static EnsoParser ensoCompiler;
+  protected static EnsoParser ensoParser;
 
   @BeforeClass
   public static void initEnsoParser() {
-    ensoCompiler = new EnsoParser();
+    ensoParser = new EnsoParser();
   }
 
   @AfterClass
   public static void closeEnsoParser() throws Exception {
-    ensoCompiler.close();
+    ensoParser.close();
   }
 
   protected static Module parse(CharSequence code) {
-    Module ir = ensoCompiler.compile(code);
+    Module ir = ensoParser.compile(code);
     assertNotNull("IR was generated", ir);
     return ir;
   }
