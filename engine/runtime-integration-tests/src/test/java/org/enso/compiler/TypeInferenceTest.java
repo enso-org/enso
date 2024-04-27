@@ -10,31 +10,19 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
-import org.enso.compiler.context.FreshNameSupply;
-import org.enso.compiler.context.ModuleContext;
 import org.enso.compiler.core.IR;
-import org.enso.compiler.core.ir.Diagnostic;
-import org.enso.compiler.core.ir.Expression;
 import org.enso.compiler.core.ir.Module;
 import org.enso.compiler.core.ir.ProcessingPass;
 import org.enso.compiler.core.ir.Warning;
 import org.enso.compiler.core.ir.expression.Application;
 import org.enso.compiler.core.ir.module.scope.definition.Method;
-import org.enso.compiler.data.CompilerConfig;
-import org.enso.compiler.pass.PassConfiguration;
-import org.enso.compiler.pass.PassManager;
 import org.enso.compiler.pass.analyse.types.InferredType;
 import org.enso.compiler.pass.analyse.types.TypeInferencePropagation;
 import org.enso.compiler.pass.analyse.types.TypeRepresentation;
-import org.enso.compiler.test.CompilerRunner;
-import org.enso.pkg.QualifiedName;
 import org.graalvm.polyglot.Source;
 import org.junit.Ignore;
 import org.junit.Test;
 import scala.Option;
-import scala.collection.immutable.Seq;
-import scala.collection.immutable.Seq$;
-import scala.jdk.javaapi.CollectionConverters;
 
 public class TypeInferenceTest extends CompilerTest {
   @Ignore("TODO resolving global methods")

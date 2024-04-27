@@ -1,5 +1,8 @@
 package org.enso.compiler;
 
+import static org.junit.Assert.assertTrue;
+
+import java.util.List;
 import org.enso.compiler.context.FreshNameSupply;
 import org.enso.compiler.context.ModuleContext;
 import org.enso.compiler.core.IR;
@@ -17,10 +20,6 @@ import scala.Option;
 import scala.collection.immutable.Seq;
 import scala.collection.immutable.Seq$;
 import scala.jdk.javaapi.CollectionConverters;
-
-import java.util.List;
-
-import static org.junit.Assert.assertTrue;
 
 public abstract class CompilerTest extends ParserTest {
   /**

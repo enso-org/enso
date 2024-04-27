@@ -4,25 +4,12 @@ import org.enso.compiler.data.CompilerConfig
 import org.enso.compiler.dump.IRDumperPass
 import org.enso.compiler.pass.PassConfiguration._
 import org.enso.compiler.pass.analyse._
-import org.enso.compiler.pass.analyse.types.TypeInferencePropagation
+import org.enso.compiler.pass.analyse.types.{TypeInferencePropagation, TypeInferenceSignatures}
 import org.enso.compiler.pass.desugar._
-import org.enso.compiler.pass.lint.{
-  ModuleNameConflicts,
-  NoSelfInStatic,
-  ShadowedPatternFields,
-  UnusedBindings
-}
-import org.enso.compiler.pass.optimise.{
-  LambdaConsolidate,
-  UnreachableMatchBranches
-}
+import org.enso.compiler.pass.lint.{ModuleNameConflicts, NoSelfInStatic, ShadowedPatternFields, UnusedBindings}
+import org.enso.compiler.pass.optimise.{LambdaConsolidate, UnreachableMatchBranches}
 import org.enso.compiler.pass.resolve._
-import org.enso.compiler.pass.{
-  IRPass,
-  PassConfiguration,
-  PassGroup,
-  PassManager
-}
+import org.enso.compiler.pass.{IRPass, PassConfiguration, PassGroup, PassManager}
 
 class Passes(config: CompilerConfig) {
 
@@ -105,9 +92,10 @@ class Passes(config: CompilerConfig) {
             List(UnusedBindings, NoSelfInStatic)
           }) ++ (if (config.staticTypeInferenceEnabled) {
                    List(
-                     TypeInferencePropagation.INSTANCE
-                   )
-                 } else Nil)
+                     TypeInferenceSignatures.INSTANCE,
+              TypeInferencePropagation.INSTANCE
+            )
+          } else Nil)
   )
 
   /** A list of the compiler phases, in the order they should be run.

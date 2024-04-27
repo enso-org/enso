@@ -1,5 +1,7 @@
 package org.enso.compiler.pass.analyse.types;
 
+import java.util.List;
+import java.util.UUID;
 import org.enso.compiler.context.InlineContext;
 import org.enso.compiler.context.ModuleContext;
 import org.enso.compiler.core.ir.Expression;
@@ -21,9 +23,6 @@ import scala.collection.immutable.Seq;
 import scala.collection.immutable.Seq$;
 import scala.jdk.javaapi.CollectionConverters;
 import scala.jdk.javaapi.CollectionConverters$;
-
-import java.util.List;
-import java.util.UUID;
 
 /**
  * A precursor pass that prepares the IR for type inference, run before the main propagation logic
@@ -77,6 +76,7 @@ public class TypeInferenceSignatures implements IRPass {
   }
 
   @Override
+  @SuppressWarnings("unchecked")
   public Seq<IRPass> invalidatedPasses() {
     return (Seq<IRPass>) Seq$.MODULE$.empty();
   }
@@ -90,9 +90,14 @@ public class TypeInferenceSignatures implements IRPass {
                   case Method.Explicit b -> {
                     TypeRepresentation resolvedType = resolveTopLevelTypeSignature(b.body());
                     if (resolvedType != null) {
-                      System.out.println("Resolved "+b.methodReference().showCode()+" to type "+resolvedType);
+                      System.out.println(
+                          "Resolved "
+                              + b.methodReference().showCode()
+                              + " to type "
+                              + resolvedType);
                       // TODO maybe different metadata class?
-                      // TODO use this in TypeInferencePropagation if its own metadata is not yet available
+                      // TODO use this in TypeInferencePropagation if its own metadata is not yet
+                      // available
                       ir.passData().update(INSTANCE, new InferredType(resolvedType));
                     }
                     yield b;
@@ -114,7 +119,7 @@ public class TypeInferenceSignatures implements IRPass {
 
   private TypeRepresentation resolveTopLevelTypeSignature(Expression expression) {
     return switch (expression) {
-      // Combine argument types with ascribed type (if available) for a function type signature
+        // Combine argument types with ascribed type (if available) for a function type signature
       case Function.Lambda lambda -> {
         boolean hasAnyDefaults =
             lambda.arguments().find((arg) -> arg.defaultValue().isDefined()).isDefined();
@@ -141,11 +146,20 @@ public class TypeInferenceSignatures implements IRPass {
                     });
 
         TypeRepresentation ascribedReturnType = typeResolver.findTypeAscription(lambda.body());
-        TypeRepresentation returnType = ascribedReturnType != null ? ascribedReturnType : TypeRepresentation.UNKNOWN;
-        yield TypeRepresentation.buildFunction(CollectionConverters$.MODULE$.asJava(argTypesScala), returnType);
+
+        if (ascribedReturnType == null && argTypesScala.isEmpty()) {
+          // If we did not infer return type NOR arity, we know nothing useful about this function, so we withdraw.
+          yield null;
+        }
+
+        TypeRepresentation returnType =
+            ascribedReturnType != null ? ascribedReturnType : TypeRepresentation.UNKNOWN;
+        yield TypeRepresentation.buildFunction(
+            CollectionConverters$.MODULE$.asJava(argTypesScala), returnType);
       }
 
-      // Otherwise, we encountered a 0-argument method, so its type is just its return type (if its known).
+        // Otherwise, we encountered a 0-argument method, so its type is just its return type (if
+        // its known).
       default -> typeResolver.findTypeAscription(expression);
     };
   }

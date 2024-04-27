@@ -1,7 +1,6 @@
 package org.enso.compiler.pass.analyse.types;
 
 import static org.enso.compiler.MetadataInteropHelpers.getMetadata;
-import static org.enso.compiler.MetadataInteropHelpers.getMetadataOrNull;
 
 import java.util.List;
 import org.enso.compiler.context.NameResolutionAlgorithm;
@@ -20,8 +19,6 @@ import org.enso.compiler.pass.analyse.AliasAnalysis$;
 import org.enso.compiler.pass.analyse.alias.AliasMetadata;
 import org.enso.compiler.pass.analyse.alias.graph.Graph;
 import org.enso.compiler.pass.analyse.alias.graph.GraphOccurrence;
-import org.enso.compiler.pass.resolve.TypeSignatures;
-import org.enso.compiler.pass.resolve.TypeSignatures$;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import scala.Option;
