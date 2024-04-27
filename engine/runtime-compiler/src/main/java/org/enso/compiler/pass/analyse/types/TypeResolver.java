@@ -12,6 +12,8 @@ import org.enso.compiler.core.ir.type.Set;
 import org.enso.compiler.data.BindingsMap;
 import org.enso.compiler.pass.resolve.Patterns$;
 import org.enso.compiler.pass.resolve.TypeNames$;
+import org.enso.compiler.pass.resolve.TypeSignatures;
+import org.enso.compiler.pass.resolve.TypeSignatures$;
 import org.enso.persist.Persistance;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -153,5 +155,15 @@ public class TypeResolver {
 
   private TypeRepresentation resolveTypeExpression(Persistance.Reference<Expression> ref) {
     return resolveTypeExpression(ref.get(Expression.class));
+  }
+
+  TypeRepresentation findTypeAscription(Expression ir) {
+    TypeSignatures.Signature ascribedSignature =
+        getMetadataOrNull(ir, TypeSignatures$.MODULE$, TypeSignatures.Signature.class);
+    if (ascribedSignature != null) {
+      return resolveTypeExpression(ascribedSignature.signature());
+    } else {
+      return null;
+    }
   }
 }

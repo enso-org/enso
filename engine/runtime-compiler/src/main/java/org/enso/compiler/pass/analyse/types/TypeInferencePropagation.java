@@ -113,7 +113,8 @@ public final class TypeInferencePropagation implements IRPass {
             FullyQualifiedNames$.MODULE$,
             TypeNames$.MODULE$,
             Patterns$.MODULE$,
-            TypeSignatures$.MODULE$);
+            TypeSignatures$.MODULE$,
+            TypeInferenceSignatures.INSTANCE);
     return CollectionConverters.asScala(passes).toList();
   }
 
@@ -126,7 +127,7 @@ public final class TypeInferencePropagation implements IRPass {
   @Override
   public Module runModule(Module ir, ModuleContext moduleContext) {
     ir.bindings()
-        .map(
+        .foreach(
             (def) ->
                 switch (def) {
                   case Method.Explicit b -> {
@@ -145,7 +146,6 @@ public final class TypeInferencePropagation implements IRPass {
                     yield def;
                   }
                 });
-
     return ir;
   }
 
