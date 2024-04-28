@@ -603,20 +603,34 @@ val generateRustParserLib =
     (`syntax-rust-definition` / generateRustParserLib).inputFileChanges.hasChanges
   ) {
     val os = System.getProperty("os.name")
+    val target = os.toLowerCase() match {
+      case DistributionPackage.OS.Linux.name =>
+        Some("x86_64-unknown-linux-musl")
+      case _ =>
+        None
+    }
+    target.foreach { t =>
+      Cargo.rustUp(t, log)
+    }
     val baseArguments = Seq(
       "build",
       "-p",
       "enso-parser-jni",
       "-Z",
-      "unstable-options",
-      "--out-dir",
-      (`syntax-rust-definition` / rustParserTargetDirectory).value.toString
-    )
+      "unstable-options"
+    ) ++ target.map(t => Seq("--target", t)).getOrElse(Seq()) ++
+      Seq(
+        "--out-dir",
+        (`syntax-rust-definition` / rustParserTargetDirectory).value.toString
+      )
     val adjustedArguments = baseArguments ++
       (if (BuildInfo.isReleaseMode)
          Seq("--release")
        else Seq())
-    Cargo.run(adjustedArguments, log)
+    val envVars = target
+      .map(_ => Seq(("RUSTFLAGS", "-C target-feature=-crt-static")))
+      .getOrElse(Seq())
+    Cargo.run(adjustedArguments, log, envVars)
   }
   FileTreeView.default.list(Seq(libGlob)).map(_._1.toFile)
 }
