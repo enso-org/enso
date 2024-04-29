@@ -11,13 +11,13 @@ polyglot java import org.enso.base_test_helpers.FileSystemHelper
 Table.should_equal : Any -> Integer -> Any
 Table.should_equal self expected frames_to_skip=0 =
     loc = Meta.get_source_location 1+frames_to_skip
-    Panic.catch Test_Failure_Error.Error (table_should_equal_impl self expected loc) error->
+    Panic.catch Test_Failure_Error (table_should_equal_impl self expected loc) error->
         Test.fail error.payload.message 
 
 Column.should_equal : Any -> Integer -> Any
 Column.should_equal self expected frames_to_skip=0 =
     loc = Meta.get_source_location 1+frames_to_skip
-    Panic.catch Test_Failure_Error.Error (column_should_equal_impl self expected loc) error->
+    Panic.catch Test_Failure_Error (column_should_equal_impl self expected loc) error->
         Test.fail error.payload.message
 
 DB_Table.should_equal : DB_Table -> Integer -> Any
@@ -50,7 +50,7 @@ table_should_equal_impl actual expected loc =
         _ : Table ->
             if actual.columns.length != expected.columns.length then
                 Panic.throw (Test_Failure_Error.Error 'Tables differ at '+loc+'.\nActual:\n'+actual.display+'\nExpected:\n'+expected.display+'\nExpected '+expected.columns.length.to_text+" columns, but got "+actual.columns.length.to_text+'.')
-            Panic.catch Test_Failure_Error.Error (actual.columns.zip expected.columns a-> e->(column_should_equal_impl a e)) error->
+            Panic.catch Test_Failure_Error (actual.columns.zip expected.columns a-> e->(column_should_equal_impl a e)) error->
                 msg = 'Tables differ at '+loc+'.\nActual:\n'+actual.display+'\nExpected:\n'+expected.display+'\n'+error.payload.message
                 Panic.throw (Test_Failure_Error.Error msg)
         _ -> Panic.throw (Test_Failure_Error.Error "Got a Table, but expected a "+expected.to_display_text+(display_loc loc)+'.')
