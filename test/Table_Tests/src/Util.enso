@@ -20,6 +20,18 @@ Column.should_equal self expected frames_to_skip=0 =
     Panic.catch Any (self.should_equal_impl expected loc) error->
         Test.fail error.payload
 
+DB_Table.should_equal : DB_Table -> Integer -> Any
+DB_Table.should_equal self expected frames_to_skip=0 =
+    t0 = self.read
+    t1 = expected.read
+    t0 . should_equal t1 frames_to_skip
+
+DB_Column.should_equal : DB_Column -> Integer -> Any
+DB_Column.should_equal self expected frames_to_skip=0 =
+    t0 = self.read
+    t1 = expected.read
+    t0 . should_equal t1 frames_to_skip
+
 ## PRIVATE
 Table.should_equal_impl self expected loc =
     case expected of
@@ -30,6 +42,7 @@ Table.should_equal_impl self expected loc =
                 msg = 'Tables differ at '+loc+'.\nActual:\n'+self.display+'\nExpected:\n'+expected.display+'\n'+error.payload
                 Panic.throw msg
         _ -> Panic.throw "Got a Table, but expected a "+expected.to_display_text+(display_loc loc)+'.'
+
 ## PRIVATE
 Column.should_equal_impl self expected loc='' =
     case expected of
@@ -46,7 +59,7 @@ Column.should_equal_impl self expected loc='' =
                         self.report_fail expected loc
         _ -> Panic.throw "Got a Column, but expected a "+expected.to_display_text+(display_loc loc)+'.'
 
-
+## PRIVATE
 Column.report_fail self expected loc =
     indexed = self.zip (0.up_to self.length) a-> i-> Pair.new a i
     indexed.zip expected a-> e->
@@ -54,21 +67,10 @@ Column.report_fail self expected loc =
             if (a.first.is_a Number && e.is_a Number && a.first.is_nan && e.is_nan).not then
                 Panic.throw "Column: "+self.name+" differs at row "+a.second.to_text+'.\n\t  Actual  : '+a.first.to_text+'\n\t  Expected: '+e.to_text+'\n\t'+(display_loc loc)+'.'
 
+## PRIVATE
 display_loc loc:Text =
     if loc.is_empty then '' else
         ' (at '+loc+')'
-
-DB_Table.should_equal : DB_Table -> Integer -> Any
-DB_Table.should_equal self expected frames_to_skip=0 =
-    t0 = self.read
-    t1 = expected.read
-    t0 . should_equal t1 frames_to_skip
-
-DB_Column.should_equal : DB_Column -> Integer -> Any
-DB_Column.should_equal self expected frames_to_skip=0 =
-    t0 = self.read
-    t1 = expected.read
-    t0 . should_equal t1 frames_to_skip
 
 normalize_lines string line_separator=Line_Ending_Style.Unix.to_text newline_at_end=True =
     case newline_at_end of
