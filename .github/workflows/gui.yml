@@ -22,12 +22,6 @@ jobs:
       - Linux
     steps:
       - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
-        name: Setup conda (GH runners only)
-        uses: s-weigand/setup-conda@v1.2.1
-        with:
-          update-conda: false
-          conda-channels: anaconda, conda-forge
-      - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
         name: Installing wasm-pack
         uses: jetli/wasm-pack-action@v0.4.0
         with:
@@ -67,14 +61,8 @@ jobs:
   enso-build-ci-gen-job-build-backend-macos-x86_64:
     name: Build Backend (macos, x86_64)
     runs-on:
-      - macos-latest
+      - macos-12
     steps:
-      - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
-        name: Setup conda (GH runners only)
-        uses: s-weigand/setup-conda@v1.2.1
-        with:
-          update-conda: false
-          conda-channels: anaconda, conda-forge
       - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
         name: Installing wasm-pack
         uses: jetli/wasm-pack-action@v0.4.0
@@ -118,12 +106,6 @@ jobs:
       - self-hosted
       - Windows
     steps:
-      - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
-        name: Setup conda (GH runners only)
-        uses: s-weigand/setup-conda@v1.2.1
-        with:
-          update-conda: false
-          conda-channels: anaconda, conda-forge
       - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
         name: Installing wasm-pack
         uses: jetli/wasm-pack-action@v0.4.0
@@ -180,12 +162,6 @@ jobs:
       - Linux
     steps:
       - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
-        name: Setup conda (GH runners only)
-        uses: s-weigand/setup-conda@v1.2.1
-        with:
-          update-conda: false
-          conda-channels: anaconda, conda-forge
-      - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
         name: Installing wasm-pack
         uses: jetli/wasm-pack-action@v0.4.0
         with:
@@ -217,6 +193,7 @@ jobs:
           ENSO_CLOUD_COGNITO_USER_POOL_ID: ${{ vars.ENSO_CLOUD_COGNITO_USER_POOL_ID }}
           ENSO_CLOUD_COGNITO_USER_POOL_WEB_CLIENT_ID: ${{ vars.ENSO_CLOUD_COGNITO_USER_POOL_WEB_CLIENT_ID }}
           ENSO_CLOUD_ENVIRONMENT: ${{ vars.ENSO_CLOUD_ENVIRONMENT }}
+          ENSO_CLOUD_GOOGLE_ANALYTICS_TAG: ${{ vars.ENSO_CLOUD_GOOGLE_ANALYTICS_TAG }}
           ENSO_CLOUD_REDIRECT: ${{ vars.ENSO_CLOUD_REDIRECT }}
           ENSO_CLOUD_SENTRY_DSN: ${{ vars.ENSO_CLOUD_SENTRY_DSN }}
           ENSO_CLOUD_STRIPE_KEY: ${{ vars.ENSO_CLOUD_STRIPE_KEY }}
@@ -237,14 +214,8 @@ jobs:
   enso-build-ci-gen-job-new-gui-build-macos-x86_64:
     name: GUI build (macos, x86_64)
     runs-on:
-      - macos-latest
+      - macos-12
     steps:
-      - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
-        name: Setup conda (GH runners only)
-        uses: s-weigand/setup-conda@v1.2.1
-        with:
-          update-conda: false
-          conda-channels: anaconda, conda-forge
       - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
         name: Installing wasm-pack
         uses: jetli/wasm-pack-action@v0.4.0
@@ -277,6 +248,7 @@ jobs:
           ENSO_CLOUD_COGNITO_USER_POOL_ID: ${{ vars.ENSO_CLOUD_COGNITO_USER_POOL_ID }}
           ENSO_CLOUD_COGNITO_USER_POOL_WEB_CLIENT_ID: ${{ vars.ENSO_CLOUD_COGNITO_USER_POOL_WEB_CLIENT_ID }}
           ENSO_CLOUD_ENVIRONMENT: ${{ vars.ENSO_CLOUD_ENVIRONMENT }}
+          ENSO_CLOUD_GOOGLE_ANALYTICS_TAG: ${{ vars.ENSO_CLOUD_GOOGLE_ANALYTICS_TAG }}
           ENSO_CLOUD_REDIRECT: ${{ vars.ENSO_CLOUD_REDIRECT }}
           ENSO_CLOUD_SENTRY_DSN: ${{ vars.ENSO_CLOUD_SENTRY_DSN }}
           ENSO_CLOUD_STRIPE_KEY: ${{ vars.ENSO_CLOUD_STRIPE_KEY }}
@@ -301,12 +273,6 @@ jobs:
       - Windows
     steps:
       - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
-        name: Setup conda (GH runners only)
-        uses: s-weigand/setup-conda@v1.2.1
-        with:
-          update-conda: false
-          conda-channels: anaconda, conda-forge
-      - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
         name: Installing wasm-pack
         uses: jetli/wasm-pack-action@v0.4.0
         with:
@@ -338,6 +304,7 @@ jobs:
           ENSO_CLOUD_COGNITO_USER_POOL_ID: ${{ vars.ENSO_CLOUD_COGNITO_USER_POOL_ID }}
           ENSO_CLOUD_COGNITO_USER_POOL_WEB_CLIENT_ID: ${{ vars.ENSO_CLOUD_COGNITO_USER_POOL_WEB_CLIENT_ID }}
           ENSO_CLOUD_ENVIRONMENT: ${{ vars.ENSO_CLOUD_ENVIRONMENT }}
+          ENSO_CLOUD_GOOGLE_ANALYTICS_TAG: ${{ vars.ENSO_CLOUD_GOOGLE_ANALYTICS_TAG }}
           ENSO_CLOUD_REDIRECT: ${{ vars.ENSO_CLOUD_REDIRECT }}
           ENSO_CLOUD_SENTRY_DSN: ${{ vars.ENSO_CLOUD_SENTRY_DSN }}
           ENSO_CLOUD_STRIPE_KEY: ${{ vars.ENSO_CLOUD_STRIPE_KEY }}
@@ -363,12 +330,6 @@ jobs:
       - self-hosted
       - Linux
     steps:
-      - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
-        name: Setup conda (GH runners only)
-        uses: s-weigand/setup-conda@v1.2.1
-        with:
-          update-conda: false
-          conda-channels: anaconda, conda-forge
       - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
         name: Installing wasm-pack
         uses: jetli/wasm-pack-action@v0.4.0
@@ -401,6 +362,7 @@ jobs:
           ENSO_CLOUD_COGNITO_USER_POOL_ID: ${{ vars.ENSO_CLOUD_COGNITO_USER_POOL_ID }}
           ENSO_CLOUD_COGNITO_USER_POOL_WEB_CLIENT_ID: ${{ vars.ENSO_CLOUD_COGNITO_USER_POOL_WEB_CLIENT_ID }}
           ENSO_CLOUD_ENVIRONMENT: ${{ vars.ENSO_CLOUD_ENVIRONMENT }}
+          ENSO_CLOUD_GOOGLE_ANALYTICS_TAG: ${{ vars.ENSO_CLOUD_GOOGLE_ANALYTICS_TAG }}
           ENSO_CLOUD_REDIRECT: ${{ vars.ENSO_CLOUD_REDIRECT }}
           ENSO_CLOUD_SENTRY_DSN: ${{ vars.ENSO_CLOUD_SENTRY_DSN }}
           ENSO_CLOUD_STRIPE_KEY: ${{ vars.ENSO_CLOUD_STRIPE_KEY }}
@@ -423,14 +385,8 @@ jobs:
     needs:
       - enso-build-ci-gen-job-build-backend-macos-x86_64
     runs-on:
-      - macos-latest
+      - macos-12
     steps:
-      - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
-        name: Setup conda (GH runners only)
-        uses: s-weigand/setup-conda@v1.2.1
-        with:
-          update-conda: false
-          conda-channels: anaconda, conda-forge
       - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
         name: Installing wasm-pack
         uses: jetli/wasm-pack-action@v0.4.0
@@ -476,6 +432,7 @@ jobs:
           ENSO_CLOUD_COGNITO_USER_POOL_ID: ${{ vars.ENSO_CLOUD_COGNITO_USER_POOL_ID }}
           ENSO_CLOUD_COGNITO_USER_POOL_WEB_CLIENT_ID: ${{ vars.ENSO_CLOUD_COGNITO_USER_POOL_WEB_CLIENT_ID }}
           ENSO_CLOUD_ENVIRONMENT: ${{ vars.ENSO_CLOUD_ENVIRONMENT }}
+          ENSO_CLOUD_GOOGLE_ANALYTICS_TAG: ${{ vars.ENSO_CLOUD_GOOGLE_ANALYTICS_TAG }}
           ENSO_CLOUD_REDIRECT: ${{ vars.ENSO_CLOUD_REDIRECT }}
           ENSO_CLOUD_SENTRY_DSN: ${{ vars.ENSO_CLOUD_SENTRY_DSN }}
           ENSO_CLOUD_STRIPE_KEY: ${{ vars.ENSO_CLOUD_STRIPE_KEY }}
@@ -501,12 +458,6 @@ jobs:
       - self-hosted
       - Windows
     steps:
-      - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
-        name: Setup conda (GH runners only)
-        uses: s-weigand/setup-conda@v1.2.1
-        with:
-          update-conda: false
-          conda-channels: anaconda, conda-forge
       - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
         name: Installing wasm-pack
         uses: jetli/wasm-pack-action@v0.4.0
@@ -539,6 +490,7 @@ jobs:
           ENSO_CLOUD_COGNITO_USER_POOL_ID: ${{ vars.ENSO_CLOUD_COGNITO_USER_POOL_ID }}
           ENSO_CLOUD_COGNITO_USER_POOL_WEB_CLIENT_ID: ${{ vars.ENSO_CLOUD_COGNITO_USER_POOL_WEB_CLIENT_ID }}
           ENSO_CLOUD_ENVIRONMENT: ${{ vars.ENSO_CLOUD_ENVIRONMENT }}
+          ENSO_CLOUD_GOOGLE_ANALYTICS_TAG: ${{ vars.ENSO_CLOUD_GOOGLE_ANALYTICS_TAG }}
           ENSO_CLOUD_REDIRECT: ${{ vars.ENSO_CLOUD_REDIRECT }}
           ENSO_CLOUD_SENTRY_DSN: ${{ vars.ENSO_CLOUD_SENTRY_DSN }}
           ENSO_CLOUD_STRIPE_KEY: ${{ vars.ENSO_CLOUD_STRIPE_KEY }}

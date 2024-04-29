@@ -31,6 +31,7 @@ import project.Errors.Problem_Behavior.Problem_Behavior
 import project.Errors.Time_Error.Time_Error
 import project.Meta
 import project.Nothing.Nothing
+import project.Panic.Panic
 from project.Data.Boolean import Boolean, False, True
 from project.Data.Json import Invalid_JSON, JS_Object, Json
 from project.Data.Numbers import Float, Integer, Number, Number_Parse_Error
@@ -76,6 +77,12 @@ Text.reverse self =
    Arguments:
    - function: The operation to apply to each character in the text.
 
+   This method does not return the results, so it is only useful for performing
+   computations with side-effects.
+
+   If the function returns a dataflow error, the error is converted to a
+   panic and thrown immediately stopping further processing.
+
    ! What is a Character?
      A character is defined as an Extended Grapheme Cluster, see Unicode
      Standard Annex 29. This is the smallest unit that still has semantic
@@ -91,7 +98,7 @@ Text.each self function =
     iterator.setText self
 
     iterate prev nxt = if nxt == -1 then Nothing else
-        function (Text_Utils.substring self prev nxt)
+        Panic.rethrow (function (Text_Utils.substring self prev nxt))
         @Tail_Call iterate nxt iterator.next
     iterate iterator.first iterator.next
 
@@ -220,9 +227,8 @@ Text.last self = self.at -1
          "건반(Korean)".characters
 Text.characters : Vector Text
 Text.characters self =
-    bldr = Vector.new_builder
-    self.each bldr.append
-    bldr.to_vector
+    Vector.build builder->
+        self.each builder.append
 
 ## GROUP Selections
    ICON find
@@ -554,21 +560,19 @@ Text.words : Boolean -> Vector Text
 Text.words self keep_whitespace=False =
     iterator = BreakIterator.getWordInstance
     iterator.setText self
-    bldr = Vector.new_builder
-    fst = iterator.first
-    nxt = iterator.next
+    Vector.build builder->
+        fst = iterator.first
+        nxt = iterator.next
 
-    build prev nxt = if nxt == -1 then Nothing else
-        word = Text_Utils.substring self prev nxt
-        word_not_whitespace = (Text_Utils.is_all_whitespace word).not
-        if word_not_whitespace || keep_whitespace then bldr.append word
+        build prev nxt = if nxt == -1 then Nothing else
+            word = Text_Utils.substring self prev nxt
+            word_not_whitespace = (Text_Utils.is_all_whitespace word).not
+            if word_not_whitespace || keep_whitespace then builder.append word
 
-        next_nxt = iterator.next
-        @Tail_Call build nxt next_nxt
+            next_nxt = iterator.next
+            @Tail_Call build nxt next_nxt
 
-    build fst nxt
-
-    bldr.to_vector
+        build fst nxt
 
 ## ALIAS get lines
    GROUP Text

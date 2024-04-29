@@ -150,8 +150,7 @@ export default class LocalBackend extends Backend {
                 type:
                   this.projectManager.projects.get(entry.metadata.id)?.state ??
                   backend.ProjectState.closed,
-                // eslint-disable-next-line @typescript-eslint/naming-convention
-                volume_id: '',
+                volumeId: '',
                 path: entry.path,
               },
               labels: [],
@@ -187,8 +186,7 @@ export default class LocalBackend extends Backend {
       packageName: project.name,
       state: {
         type: backend.ProjectState.closed,
-        // eslint-disable-next-line @typescript-eslint/naming-convention
-        volume_id: '',
+        volumeId: '',
       },
       jsonAddress: null,
       binaryAddress: null,
@@ -219,8 +217,7 @@ export default class LocalBackend extends Backend {
       packageName: project.projectName,
       state: {
         type: backend.ProjectState.closed,
-        // eslint-disable-next-line @typescript-eslint/naming-convention
-        volume_id: '',
+        volumeId: '',
         path,
       },
     }
@@ -284,8 +281,7 @@ export default class LocalBackend extends Backend {
           projectId,
           state: {
             type: this.projectManager.projects.get(id)?.state ?? backend.ProjectState.closed,
-            // eslint-disable-next-line @typescript-eslint/naming-convention
-            volume_id: '',
+            volumeId: '',
           },
         }
       }
@@ -308,8 +304,7 @@ export default class LocalBackend extends Backend {
         projectId,
         state: {
           type: backend.ProjectState.opened,
-          // eslint-disable-next-line @typescript-eslint/naming-convention
-          volume_id: '',
+          volumeId: '',
         },
       }
     }
@@ -473,6 +468,11 @@ export default class LocalBackend extends Backend {
 
   /** Invalid operation. */
   override updateUser() {
+    return this.invalidOperation()
+  }
+
+  /** Invalid operation. */
+  override restoreUser() {
     return this.invalidOperation()
   }
 

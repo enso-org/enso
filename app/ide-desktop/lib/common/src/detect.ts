@@ -17,15 +17,27 @@ export enum Platform {
     windows = 'Windows',
     macOS = 'macOS',
     linux = 'Linux',
+    windowsPhone = 'Windows Phone',
+    iPhoneOS = 'iPhone OS',
+    android = 'Android',
 }
 
-/** Return the platform the app is currently running on.
+/** The platform the app is currently running on.
  * This is used to determine whether `metaKey` or `ctrlKey` is used in shortcuts. */
-export function platform(): Platform {
-    if (isOnWindows()) {
+export function platform() {
+    if (isOnWindowsPhone()) {
+        // MUST be before Android and Windows.
+        return Platform.windowsPhone
+    } else if (isOnWindows()) {
         return Platform.windows
+    } else if (isOnIPhoneOS()) {
+        // MUST be before macOS.
+        return Platform.iPhoneOS
     } else if (isOnMacOS()) {
         return Platform.macOS
+    } else if (isOnAndroid()) {
+        // MUST be before Linux.
+        return Platform.android
     } else if (isOnLinux()) {
         return Platform.linux
     } else {
@@ -33,22 +45,37 @@ export function platform(): Platform {
     }
 }
 
-/** Return whether the device is running Windows. */
+/** Whether the device is running Windows. */
 export function isOnWindows() {
     return /windows/i.test(navigator.userAgent)
 }
 
-/** Return whether the device is running macOS. */
+/** Whether the device is running macOS. */
 export function isOnMacOS() {
     return /mac os/i.test(navigator.userAgent)
 }
 
-/** Return whether the device is running Linux. */
+/** Whether the device is running Linux. */
 export function isOnLinux() {
     return /linux/i.test(navigator.userAgent)
 }
 
-/** Return whether the device is running an unknown OS. */
+/** Whether the device is running Windows Phone. */
+export function isOnWindowsPhone() {
+    return /windows phone/i.test(navigator.userAgent)
+}
+
+/** Whether the device is running iPhone OS. */
+export function isOnIPhoneOS() {
+    return /iPhone/i.test(navigator.userAgent)
+}
+
+/** Whether the device is running Android. */
+export function isOnAndroid() {
+    return /android/i.test(navigator.userAgent)
+}
+
+/** Whether the device is running an unknown OS. */
 export function isOnUnknownOS() {
     return platform() === Platform.unknown
 }
@@ -125,4 +152,74 @@ export function isOnSafari() {
 /** Whether the current browser is not a recognized browser. */
 export function isOnUnknownBrowser() {
     return browser() === Browser.unknown
+}
+
+// ====================
+// === Architecture ===
+// ====================
+
+let detectedArchitecture: string | null = null
+// Only implemented by Chromium.
+// @ts-expect-error This API exists, but no typings exist for it yet.
+// eslint-disable-next-line @typescript-eslint/no-unsafe-call
+navigator.userAgentData
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+    ?.getHighEntropyValues(['architecture'])
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+    .then((values: unknown) => {
+        if (
+            typeof values === 'object' &&
+            values != null &&
+            'architecture' in values &&
+            typeof values.architecture === 'string'
+        ) {
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+            detectedArchitecture = String(values.architecture)
+        }
+    })
+
+/** Possible processor architectures. */
+export enum Architecture {
+    intel64 = 'x86_64',
+    arm64 = 'arm64',
+}
+
+/** The processor architecture of the current system. */
+export function architecture() {
+    if (detectedArchitecture != null) {
+        switch (detectedArchitecture) {
+            case 'arm': {
+                return Architecture.arm64
+            }
+            default: {
+                return Architecture.intel64
+            }
+        }
+    }
+    switch (platform()) {
+        case Platform.windows:
+        case Platform.linux:
+        case Platform.unknown: {
+            return Architecture.intel64
+        }
+        case Platform.macOS:
+        case Platform.iPhoneOS:
+        case Platform.android:
+        case Platform.windowsPhone: {
+            // Assume the macOS device is on a M-series CPU.
+            // This is highly unreliable, but operates under the assumption that all
+            // new macOS devices will be ARM64.
+            return Architecture.arm64
+        }
+    }
+}
+
+/** Whether the device has an Intel 64-bit CPU. */
+export function isIntel64() {
+    return architecture() === Architecture.intel64
+}
+
+/** Whether the device has an ARM 64-bit CPU. */
+export function isArm64() {
+    return architecture() === Architecture.arm64
 }

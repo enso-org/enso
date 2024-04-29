@@ -6,7 +6,10 @@ import type { Opt } from '@/util/data/opt'
 export type NonEmptyArray<T> = [T, ...T[]]
 
 /** An equivalent of `Array.prototype.findIndex` method, but returns null instead of -1. */
-export function findIndexOpt<T>(arr: T[], pred: (elem: T) => boolean): number | null {
+export function findIndexOpt<T>(
+  arr: T[],
+  pred: (elem: T, index: number) => boolean,
+): number | null {
   const index = arr.findIndex(pred)
   return index >= 0 ? index : null
 }
@@ -67,12 +70,12 @@ export function findLastIndex<T>(array: T[], pred: (elem: T) => boolean): number
 }
 
 /**
- * Split array into two arrays based on predicate.
+ * Split iterable into two arrays based on predicate.
  *
  * The predicate passed to `partition` can return true, or false. `partition` returns a pair, all of
  * the elements for which it returned true, and all of the elements for which it returned false.
  */
-export function partition<T>(array: T[], pred: (elem: T) => boolean): [T[], T[]] {
+export function partition<T>(array: Iterable<T>, pred: (elem: T) => boolean): [T[], T[]] {
   const truthy: T[] = []
   const falsy: T[] = []
 

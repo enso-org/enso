@@ -39,7 +39,8 @@ import Portal from '#/components/Portal'
 import type * as spinner from '#/components/Spinner'
 
 import * as backendModule from '#/services/Backend'
-import LocalBackend from '#/services/LocalBackend'
+import LocalBackend, * as localBackendModule from '#/services/LocalBackend'
+import type * as projectManager from '#/services/ProjectManager'
 import RemoteBackend, * as remoteBackendModule from '#/services/RemoteBackend'
 
 import * as array from '#/utilities/array'
@@ -56,6 +57,7 @@ import * as sanitizedEventTargets from '#/utilities/sanitizedEventTargets'
 declare module '#/utilities/LocalStorage' {
   /** */
   interface LocalStorageData {
+    readonly driveCategory: Category
     readonly isAssetPanelVisible: boolean
     readonly page: pageSwitcher.Page
     readonly projectStartupInfo: backendModule.ProjectStartupInfo
@@ -69,6 +71,11 @@ LocalStorage.registerKey('isAssetPanelVisible', {
 const PAGES = Object.values(pageSwitcher.Page)
 LocalStorage.registerKey('page', {
   tryParse: value => (array.includes(PAGES, value) ? value : null),
+})
+
+const CATEGORIES = Object.values(Category)
+LocalStorage.registerKey('driveCategory', {
+  tryParse: value => (array.includes(CATEGORIES, value) ? value : null),
 })
 
 const BACKEND_TYPES = Object.values(backendModule.BackendType)
@@ -111,11 +118,12 @@ export interface DashboardProps {
   readonly supportsLocalBackend: boolean
   readonly appRunner: AppRunner
   readonly initialProjectName: string | null
+  readonly projectManagerRootDirectory: projectManager.Path | null
 }
 
 /** The component that contains the entire UI. */
 export default function Dashboard(props: DashboardProps) {
-  const { supportsLocalBackend, appRunner, initialProjectName } = props
+  const { supportsLocalBackend, appRunner, initialProjectName, projectManagerRootDirectory } = props
   const logger = loggerProvider.useLogger()
   const session = authProvider.useNonPartialUserSession()
   const { backend } = backendProvider.useBackend()
@@ -153,6 +161,12 @@ export default function Dashboard(props: DashboardProps) {
     () => localStorage.get('isAssetPanelVisible') ?? false
   )
   const [isAssetPanelTemporarilyVisible, setIsAssetPanelTemporarilyVisible] = React.useState(false)
+  const [category, setCategory] = searchParamsState.useSearchParamsState(
+    'driveCategory',
+    () => localStorage.get('driveCategory') ?? Category.home,
+    (value): value is Category => array.includes(Object.values(Category), value)
+  )
+
   const isCloud = backend.type === backendModule.BackendType.remote
   const rootDirectoryId = React.useMemo(
     () => session.user?.rootDirectoryId ?? backendModule.DirectoryId(''),
@@ -394,16 +408,26 @@ export default function Dashboard(props: DashboardProps) {
       templateName: string | null = null,
       onSpinnerStateChange: ((state: spinner.SpinnerState) => void) | null = null
     ) => {
+      const parentId =
+        backend.type === backendModule.BackendType.remote
+          ? rootDirectoryId
+          : localBackendModule.newDirectoryId(projectManagerRootDirectory ?? backendModule.Path(''))
       dispatchAssetListEvent({
         type: AssetListEventType.newProject,
-        parentKey: rootDirectoryId,
-        parentId: rootDirectoryId,
-        templateId: templateId,
-        templateName: templateName,
+        parentKey: parentId,
+        parentId,
+        templateId,
+        datalinkId: null,
+        preferredName: templateName,
         onSpinnerStateChange: onSpinnerStateChange,
       })
     },
-    [rootDirectoryId, /* should never change */ dispatchAssetListEvent]
+    [
+      backend.type,
+      rootDirectoryId,
+      projectManagerRootDirectory,
+      /* should never change */ dispatchAssetListEvent,
+    ]
   )
 
   const doOpenEditor = React.useCallback(
@@ -492,6 +516,8 @@ export default function Dashboard(props: DashboardProps) {
           />
           <Home hidden={page !== pageSwitcher.Page.home} createProject={doCreateProject} />
           <Drive
+            category={category}
+            setCategory={setCategory}
             supportsLocalBackend={supportsLocalBackend}
             hidden={page !== pageSwitcher.Page.drive}
             hideRows={page !== pageSwitcher.Page.drive && page !== pageSwitcher.Page.home}
@@ -552,6 +578,7 @@ export default function Dashboard(props: DashboardProps) {
               category={Category.home}
               labels={labels}
               dispatchAssetEvent={dispatchAssetEvent}
+              isReadonly={category === Category.trash}
             />
           )}
         </div>

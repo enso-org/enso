@@ -7,6 +7,8 @@ import * as React from 'react'
 
 import * as reactRouterDom from 'react-router-dom'
 
+import * as appUtils from '#/appUtils'
+
 import * as eventCallback from '#/hooks/eventCallbackHooks'
 import * as lazyMemo from '#/hooks/useLazyMemoHooks'
 
@@ -32,22 +34,31 @@ export function useSearchParamsState<T = unknown>(
 ): SearchParamsStateReturnType<T> {
   const [searchParams, setSearchParams] = reactRouterDom.useSearchParams()
 
+  const prefixedKey = `${appUtils.SEARCH_PARAMS_PREFIX}${key}`
+
   const lazyDefaultValueInitializer = lazyMemo.useLazyMemoHooks(defaultValue, [])
   const predicateEventCallback = eventCallback.useEventCallback(predicate)
 
   const clear = eventCallback.useEventCallback((replace: boolean = false) => {
-    searchParams.delete(key)
+    searchParams.delete(prefixedKey)
     setSearchParams(searchParams, { replace })
   })
 
+  const unprefixedValue = searchParams.get(key)
+  if (unprefixedValue != null) {
+    searchParams.set(prefixedKey, unprefixedValue)
+    searchParams.delete(key)
+    setSearchParams(searchParams)
+  }
+
   const rawValue = React.useMemo<T>(() => {
-    const maybeValue = searchParams.get(key)
+    const maybeValue = searchParams.get(prefixedKey)
     const defaultValueFrom = lazyDefaultValueInitializer()
 
     return maybeValue != null
       ? safeJsonParse.safeJsonParse(maybeValue, defaultValueFrom, (unknown): unknown is T => true)
       : defaultValueFrom
-  }, [key, lazyDefaultValueInitializer, searchParams])
+  }, [prefixedKey, lazyDefaultValueInitializer, searchParams])
 
   const isValueValid = predicateEventCallback(rawValue)
 
@@ -71,7 +82,7 @@ export function useSearchParamsState<T = unknown>(
     if (nextValue === lazyDefaultValueInitializer()) {
       clear()
     } else {
-      searchParams.set(key, JSON.stringify(nextValue))
+      searchParams.set(prefixedKey, JSON.stringify(nextValue))
       setSearchParams(searchParams)
     }
   })

@@ -2,6 +2,8 @@
  * currently authenticated user's session. */
 import * as React from 'react'
 
+import * as reactQuery from '@tanstack/react-query'
+
 import * as asyncEffectHooks from '#/hooks/asyncEffectHooks'
 import * as refreshHooks from '#/hooks/refreshHooks'
 
@@ -44,12 +46,17 @@ export interface SessionProviderProps {
   readonly mainPageUrl: URL
   readonly registerAuthEventListener: listen.ListenFunction | null
   readonly userSession: (() => Promise<cognito.UserSession | null>) | null
+  readonly refreshUserSession: (() => Promise<void>) | null
   readonly children: React.ReactNode
 }
 
+const FIVE_MINUTES_MS = 300_000
+const SIX_HOURS_MS = 21_600_000
+
 /** A React provider for the session of the authenticated user. */
 export default function SessionProvider(props: SessionProviderProps) {
-  const { mainPageUrl, children, userSession, registerAuthEventListener } = props
+  const { mainPageUrl, children, userSession, registerAuthEventListener, refreshUserSession } =
+    props
   const [refresh, doRefresh] = refreshHooks.useRefresh()
   const [initialized, setInitialized] = React.useState(false)
   const errorCallbacks = React.useRef(new Set<(error: Error) => void>())
@@ -88,6 +95,26 @@ export default function SessionProvider(props: SessionProviderProps) {
     },
     [refresh]
   )
+
+  const timeUntilRefresh = session
+    ? // If the session has not expired, we should refresh it when it is 5 minutes from expiring.
+      new Date(session.expireAt).getTime() - Date.now() - FIVE_MINUTES_MS
+    : Infinity
+
+  reactQuery.useQuery({
+    queryKey: ['userSession'],
+    queryFn: refreshUserSession
+      ? () =>
+          refreshUserSession()
+            .then(() => {
+              doRefresh()
+            })
+            .then(() => null)
+      : reactQuery.skipToken,
+    refetchOnWindowFocus: true,
+    refetchIntervalInBackground: true,
+    refetchInterval: timeUntilRefresh < SIX_HOURS_MS ? timeUntilRefresh : SIX_HOURS_MS,
+  })
 
   // Register an effect that will listen for authentication events. When the event occurs, we
   // will refresh or clear the user's session, forcing a re-render of the page with the new

@@ -26,7 +26,7 @@ import UnstyledButton from '#/components/UnstyledButton'
 import * as backendModule from '#/services/Backend'
 
 import type AssetQuery from '#/utilities/AssetQuery'
-import type AssetTreeNode from '#/utilities/AssetTreeNode'
+import type * as assetTreeNode from '#/utilities/AssetTreeNode'
 import * as object from '#/utilities/object'
 import * as permissions from '#/utilities/permissions'
 
@@ -36,17 +36,25 @@ import * as permissions from '#/utilities/permissions'
 
 /** Props for an {@link AssetPropertiesProps}. */
 export interface AssetPropertiesProps {
-  readonly item: AssetTreeNode
-  readonly setItem: React.Dispatch<React.SetStateAction<AssetTreeNode>>
+  readonly item: assetTreeNode.AnyAssetTreeNode
+  readonly setItem: React.Dispatch<React.SetStateAction<assetTreeNode.AnyAssetTreeNode>>
   readonly category: Category
   readonly labels: backendModule.Label[]
   readonly setQuery: React.Dispatch<React.SetStateAction<AssetQuery>>
   readonly dispatchAssetEvent: (event: assetEvent.AssetEvent) => void
+  readonly isReadonly?: boolean
 }
 
 /** Display and modify the properties of an asset. */
 export default function AssetProperties(props: AssetPropertiesProps) {
-  const { item: itemRaw, setItem: setItemRaw, category, labels, setQuery } = props
+  const {
+    item: itemRaw,
+    setItem: setItemRaw,
+    category,
+    labels,
+    setQuery,
+    isReadonly = false,
+  } = props
   const { dispatchAssetEvent } = props
 
   const { user } = authProvider.useNonPartialUserSession()
@@ -67,7 +75,7 @@ export default function AssetProperties(props: AssetPropertiesProps) {
     [dataLinkValue]
   )
   const setItem = React.useCallback(
-    (valueOrUpdater: React.SetStateAction<AssetTreeNode>) => {
+    (valueOrUpdater: React.SetStateAction<assetTreeNode.AnyAssetTreeNode>) => {
       setItemInner(valueOrUpdater)
       setItemRaw(valueOrUpdater)
     },
@@ -130,7 +138,7 @@ export default function AssetProperties(props: AssetPropertiesProps) {
           className="flex h-side-panel-heading items-center gap-side-panel-section py-side-panel-heading-y text-lg leading-snug"
         >
           {getText('description')}
-          {ownsThisAsset && !isEditingDescription && (
+          {!isReadonly && ownsThisAsset && !isEditingDescription && (
             <Button
               image={PenIcon}
               onPress={() => {
@@ -204,6 +212,7 @@ export default function AssetProperties(props: AssetPropertiesProps) {
               </td>
               <td className="w-full p">
                 <SharedWithColumn
+                  isReadonly={isReadonly}
                   item={item}
                   setItem={setItem}
                   state={{ category, dispatchAssetEvent, setQuery }}

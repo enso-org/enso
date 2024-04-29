@@ -10,15 +10,17 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.logging.Level;
+import org.enso.common.LanguageInfo;
+import org.enso.common.MethodNames;
 import org.enso.interpreter.runtime.EnsoContext;
-import org.enso.polyglot.LanguageInfo;
-import org.enso.polyglot.MethodNames;
 import org.enso.polyglot.RuntimeOptions;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Value;
 import org.graalvm.polyglot.io.IOAccess;
 
-public class Utils {
+public final class Utils {
+  private Utils() {}
+
   public static Context.Builder createDefaultContextBuilder() {
     return Context.newBuilder()
         .allowExperimentalOptions(true)
@@ -28,6 +30,10 @@ public class Utils {
         .option(RuntimeOptions.LOG_LEVEL, Level.WARNING.getName())
         .option(RuntimeOptions.DISABLE_IR_CACHES, "true")
         .option(RuntimeOptions.STRICT_ERRORS, "true")
+        .option("engine.CompilationFailureAction", "Print")
+        // MultiTier = false does not affect the peak performance, and the graphs generated from
+        // that are easier to inspect in IGV.
+        .option("engine.MultiTier", "false")
         .logHandler(System.err)
         .allowIO(IOAccess.ALL)
         .allowAllAccess(true);

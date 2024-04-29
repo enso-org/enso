@@ -67,7 +67,7 @@ const cbOpen: Interaction = {
   cancel: () => {
     emit('canceled')
   },
-  click: (e: PointerEvent) => {
+  pointerdown: (e: PointerEvent) => {
     if (targetIsOutside(e, cbRoot.value)) {
       // In AI prompt mode likely the input is not a valid mode.
       if (input.anyChange.value && input.context.value.type !== 'aiPrompt') {
@@ -345,6 +345,7 @@ const visualizationSelections = reactive(new Map<SuggestionId | null, Visualizat
 const previewedVisualizationId = computed(() => {
   return visualizationSelections.get(previewed.value.suggestionId ?? null)
 })
+
 function setVisualization(visualization: VisualizationIdentifier) {
   visualizationSelections.set(previewed.value.suggestionId ?? null, visualization)
 }

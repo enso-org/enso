@@ -72,25 +72,6 @@ pub fn is_github_hosted() -> String {
     "startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')".into()
 }
 
-/// Step that sets up `conda` on GitHub-hosted runners.
-///
-/// We set up `conda` on GitHub-hosted runners because we need it to install `flatbuffers` in
-/// required version. Our self-hosted runners have `flatc` already installed, so we don't need
-/// `conda` there.
-pub fn setup_conda() -> Step {
-    // use crate::actions::workflow::definition::step::CondaChannel;
-    Step {
-        name: Some("Setup conda (GH runners only)".into()),
-        uses: Some("s-weigand/setup-conda@v1.2.1".into()),
-        r#if: Some(is_github_hosted()),
-        with: Some(step::Argument::SetupConda {
-            update_conda:   Some(false),
-            conda_channels: Some("anaconda, conda-forge".into()),
-        }),
-        ..default()
-    }
-}
-
 pub fn setup_wasm_pack_step() -> Step {
     Step {
         name: Some("Installing wasm-pack".into()),
@@ -1008,13 +989,6 @@ pub mod step {
             submodules: Option<CheckoutArgumentSubmodules>,
         },
         #[serde(rename_all = "kebab-case")]
-        SetupConda {
-            #[serde(skip_serializing_if = "Option::is_none")]
-            update_conda:   Option<bool>,
-            #[serde(skip_serializing_if = "Option::is_none")]
-            conda_channels: Option<String>, // conda_channels: Vec<CondaChannel>
-        },
-        #[serde(rename_all = "kebab-case")]
         GitHubScript {
             script: String,
         },
@@ -1040,6 +1014,11 @@ pub enum RunnerLabel {
     Windows,
     #[serde(rename = "engine")]
     Engine,
+    #[serde(rename = "macos-12")]
+    MacOS12,
+    /// macos-13 is the last x64 version of the GitHub-hosted macOS runner.
+    #[serde(rename = "macos-13")]
+    MacOS13,
     #[serde(rename = "macos-latest")]
     MacOSLatest,
     #[serde(rename = "ubuntu-latest")]

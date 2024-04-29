@@ -12,6 +12,8 @@
 use enso_doc_parser::*;
 use enso_parser::prelude::*;
 
+use enso_parser::syntax::tree::DocComment;
+use enso_parser::syntax::tree::TextElement;
 
 
 // ====================================
@@ -48,7 +50,7 @@ fn extract_docs(_filename: &str, mut code: &str) -> Vec<String> {
     }
     let ast = enso_parser::Parser::new().run(code);
     let docs = RefCell::new(vec![]);
-    ast.map(|tree| match &*tree.variant {
+    ast.visit_trees(|tree| match &*tree.variant {
         enso_parser::syntax::tree::Variant::Documented(doc) => {
             docs.borrow_mut().push(doc.documentation.clone());
         }
@@ -59,7 +61,37 @@ fn extract_docs(_filename: &str, mut code: &str) -> Vec<String> {
         }
         _ => {}
     });
-    docs.take().into_iter().map(|node| node.content()).collect()
+    docs.take().iter().map(content).collect()
+}
+
+/// Return the contents of the comment, with leading whitespace, the `##` token, and following
+/// empty lines removed; newlines will be normalized.
+pub fn content(node: &DocComment) -> String {
+    let mut buf = String::new();
+    for element in &node.elements {
+        match element {
+            TextElement::Section { text } => buf.push_str(&text.code.repr),
+            TextElement::Newline { .. } => buf.push('\n'),
+            TextElement::Escape {
+                token:
+                    token @ enso_parser::syntax::token::TextEscape {
+                        variant: enso_parser::syntax::token::variant::TextEscape { value },
+                        ..
+                    },
+            } => {
+                if let Some(c) = value.to_char() {
+                    buf.push(c);
+                } else {
+                    // Invalid escape character, or unpaired surrogate that can't be represented in
+                    // a Rust string.
+                    buf.push_str(**token.code)
+                }
+            }
+            // Unreachable.
+            TextElement::Splice { .. } => continue,
+        }
+    }
+    buf
 }
 
 /// Lex the given documentation, and return the sequence of tokens.

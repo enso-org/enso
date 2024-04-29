@@ -176,12 +176,12 @@ final class ArraySlice implements EnsoObject {
   }
 
   @ExportMessage
-  boolean hasType(@Shared("ignore") @Cached("1") int ignore) {
+  boolean hasType() {
     return true;
   }
 
   @ExportMessage
-  Type getType(@Bind("$node") Node node, @Shared("ignore") @Cached("1") int ignore) {
+  Type getType(@Bind("$node") Node node) {
     var ctx = EnsoContext.get(node);
     return ctx.getBuiltins().array();
   }

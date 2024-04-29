@@ -1,16 +1,20 @@
 from Standard.Base import all
-import Standard.Base.Enso_Cloud.Data_Link.Data_Link_Format
+import Standard.Base.Enso_Cloud.Data_Link.Data_Link
 import Standard.Base.Enso_Cloud.Errors.Missing_Data_Link_Library
 import Standard.Base.Errors.Common.Not_Found
+import Standard.Base.Errors.File_Error.File_Error
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Errors.Illegal_State.Illegal_State
+import Standard.Base.Errors.Unimplemented.Unimplemented
 import Standard.Base.Enso_Cloud.Enso_File.Enso_Asset_Type
 
 from Standard.Test import all
 import Standard.Test.Test_Environment
 
 import project.Network.Enso_Cloud.Cloud_Tests_Setup.Cloud_Tests_Setup
-from enso_dev.Base_Tests.Network.Enso_Cloud.Cloud_Tests_Setup import with_retries
+import project.Network.Enso_Cloud.Cloud_Tests_Setup.Temporary_Directory
+from project.Network.Enso_Cloud.Cloud_Tests_Setup import create_local_datalink_to
+
 
 add_specs suite_builder setup:Cloud_Tests_Setup = setup.with_prepared_environment <|
     suite_builder.group "DataLinks in Enso Cloud" pending=setup.real_cloud_pending group_builder->
@@ -37,22 +41,88 @@ add_specs suite_builder setup:Cloud_Tests_Setup = setup.with_prepared_environmen
             r.should_fail_with Missing_Data_Link_Library
             r.catch.to_display_text . should_contain "The data link for S3 is provided by the library Standard.AWS which is not loaded."
 
-        group_builder.specify "does not allow to use Data_Link_Format to read/write regular files" <|
+        group_builder.specify "does not allow to use  Data_Link to read/write regular files" <|
             temp_file = File.create_temporary_file "not-a-datalink" ".txt"
             Test.expect_panic Illegal_Argument <|
-                Data_Link_Format.write_raw_config temp_file "{}"
+                Data_Link.write_raw_config temp_file "{}"
             Test.expect_panic Illegal_Argument <|
-                Data_Link_Format.read_raw_config temp_file
+                Data_Link.read_raw_config temp_file
+
+    suite_builder.group "DataLinks to Enso Cloud" pending=setup.real_cloud_pending group_builder->
+        test_root = Temporary_Directory.make "DataLinks"
+        group_builder.teardown test_root.cleanup
 
         group_builder.specify "should be able to read a local datalink to an Enso File" <|
-            datalink = replace_org_name_in_data_link (enso_project.data / "datalinks" / "example-enso-file.datalink")
+            datalink = transform_datalink (enso_project.data / "datalinks" / "example-enso-file.datalink") content->
+                content.replace "PLACEHOLDER_ORG_NAME" Enso_User.current.organization_name
             datalink.read . should_equal "Hello Another!"
 
         group_builder.specify "should be able to read a datalink in the Cloud to Enso File" <|
             # TODO currently this link is created manually, later we should be generating it as part of the test
-            datalink = Enso_File.new "enso://"+Enso_User.current.name+"/TestDataLink-EnsoFile"
+            datalink = Enso_File.new "enso://"+Enso_User.current.organization_name+"/TestDataLink-EnsoFile"
             datalink.read . should_equal "Hello Another!"
 
+        group_builder.specify "should be able to write Text to a data link pointing to a Cloud file" <|
+            datalink = create_local_datalink_to (test_root.get / "my-file1.txt")
+
+            r1 = datalink.read
+            r1.should_fail_with File_Error
+            r1.catch.should_be_a File_Error.Not_Found
+
+            my_content = Random.uuid
+            r = my_content.write datalink
+            # The write operation should return back the datalink file
+            r.should_equal datalink
+
+            datalink.read . should_equal my_content
+
+        group_builder.specify "currently does not support appending to a datalink" <|
+            datalink = create_local_datalink_to (test_root.get / "my-file2.txt")
+            Test.expect_panic Unimplemented <|
+                "foobar".write datalink on_existing_file=Existing_File_Behavior.Append
+
+        group_builder.specify "should be able to write raw bytes to a data link in Cloud" <|
+            datalink = create_local_datalink_to (test_root.get / "my-file2.txt")
+            datalink.read.should_fail_with File_Error
+
+            my_content = Random.uuid
+            r = datalink.with_output_stream [File_Access.Write] stream->
+                stream.write_bytes my_content.utf_8
+                42
+            r.should_equal 42
+            datalink.read.should_equal my_content
+
+            r2 = [1, 2, 3].write_bytes datalink
+            # `Vector.write_bytes` should return the datalink file:
+            r2.should_equal datalink
+            datalink.read_bytes . should_equal [1, 2, 3]
+
+        group_builder.specify "deleting a data link will not remove the file in the Cloud" <|
+            file = test_root.get / "my-file3.txt"
+            datalink = create_local_datalink_to file
+
+            my_content = Random.uuid
+            my_content.write file . should_equal file
+            # Datalink points to the same file:
+            datalink.read . should_equal my_content
+
+            datalink.delete . should_succeed
+
+            r = datalink.read
+            r.should_fail_with File_Error
+            r.catch.should_be_a File_Error.Not_Found
+
+            # But the file still exists
+            file.read . should_equal my_content
+            file.delete
+
+        group_builder.specify "will report a clear error when failing to write to a datalink because it does not exist" <|
+            datalink = test_root.get / "non-existing.datalink"
+            datalink.exists . should_be_false
+
+            r = "foobar".write datalink
+            r.should_fail_with File_Error
+            r.catch.should_be_a File_Error.Not_Found
 
 main filter=Nothing =
     setup = Cloud_Tests_Setup.prepare
@@ -61,10 +131,9 @@ main filter=Nothing =
     suite.run_with_filter filter
 
 
-## Reads the datalink as plain text and replaces the placeholder organization name.
-replace_org_name_in_data_link base_file =
-    content = Data_Link_Format.read_raw_config base_file
-    org_name = Enso_User.current.name
-    new_content = content.replace "PLACEHOLDER_ORG_NAME" org_name
+## Reads the datalink as plain text and applies the transformation.
+transform_datalink base_file transform =
+    content = Data_Link.read_raw_config base_file
+    new_content = transform content
     temp_file = File.create_temporary_file prefix=base_file.name suffix=base_file.extension
-    Data_Link_Format.write_raw_config temp_file new_content replace_existing=True . if_not_error temp_file
+    Data_Link.write_raw_config temp_file new_content replace_existing=True . if_not_error temp_file

@@ -2,6 +2,7 @@ from Standard.Base import all
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.System.File.Generic.Writable_File.Writable_File
 import Standard.Base.System.File_Format_Metadata.File_Format_Metadata
+import Standard.Base.System.Input_Stream.Input_Stream
 from Standard.Base.Metadata.Choice import Option
 
 import project.Image.Image
@@ -37,3 +38,13 @@ type Image_File_Format
     read self file on_problems =
         _ = [on_problems]
         Image.read file
+
+    ## PRIVATE
+       Implements decoding the format from a stream.
+    read_stream : Input_Stream -> File_Format_Metadata -> Any
+    read_stream self stream:Input_Stream (metadata : File_Format_Metadata = File_Format_Metadata.no_information) =
+        extension = metadata.guess_extension . if_nothing (Error.throw (Illegal_Argument.Error "Could not determine the image file format."))
+        tmp_file = File.create_temporary_file "image-" extension
+        Panic.with_finalizer tmp_file.delete <|
+            stream.write_to_file tmp_file
+            Image.read tmp_file

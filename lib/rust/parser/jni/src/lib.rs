@@ -52,7 +52,7 @@ pub extern "system" fn Java_org_enso_syntax2_Parser_parseInput(
     if let Some((meta_, code_)) = enso_parser::metadata::parse(input) {
         match meta_ {
             Ok(meta_) => meta = Some(meta_),
-            Err(e) => error!("Ignoring invalid metadata: {e}."),
+            Err(e) => eprintln!("Ignoring invalid metadata: {e}."),
         }
         code = code_;
     }
