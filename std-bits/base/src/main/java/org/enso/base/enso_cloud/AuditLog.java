@@ -6,22 +6,33 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Future;
+import java.util.concurrent.SynchronousQueue;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 import java.util.logging.Logger;
 
 public class AuditLog {
   private static final Logger logger = Logger.getLogger(AuditLog.class.getName());
   public static AuditLog INSTANCE = new AuditLog();
   private final HttpClient httpClient = HttpClient.newBuilder().followRedirects(HttpClient.Redirect.ALWAYS).build();
+  private final ExecutorService executorService;
 
   private AuditLog() {
+    // A thread pool that creates at most one thread, only when it is needed, and shuts it down after 60 seconds of inactivity.
+    executorService = new ThreadPoolExecutor(0, 1, 60L, TimeUnit.SECONDS, new SynchronousQueue<>());
   }
 
   public void logSync(LogMessage message) {
     sendLogRequest(message.payload, 3);
   }
 
-  public void logAsync(LogMessage message) {
-    // TODO
+  public Future<Void> logAsync(LogMessage message) {
+    return executorService.submit(() -> {
+      logSync(message);
+      return null;
+    });
   }
 
   private void sendLogRequest(String payload, int retryCount) throws RequestFailureException {
@@ -45,7 +56,7 @@ public class AuditLog {
       }
     } catch (RequestFailureException e) {
       if (retryCount < 0) {
-        logger.severe("Unable to send log message: " + e.getMessage());
+        logger.severe("Failed to send log message after retrying: " + e.getMessage());
         throw e;
       } else {
         logger.warning("Exception when sending a log message: " + e.getMessage() + ". Retrying...");
