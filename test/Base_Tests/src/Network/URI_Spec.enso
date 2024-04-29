@@ -7,7 +7,6 @@ import Standard.Base.Network.HTTP.Request.Request
 from Standard.Test import all
 
 import project.Network.Enso_Cloud.Cloud_Tests_Setup.Cloud_Tests_Setup
-from project.Network.Enso_Cloud.Cloud_Tests_Setup import with_retries
 
 add_specs suite_builder =
     ## To run this test locally:
@@ -312,7 +311,7 @@ add_specs suite_builder =
                         uri.to_text . should_equal (cloud_setup.httpbin_secure_uri.to_text + "get?arg1=__SECRET__&arg2=plain+value&arg3=__SECRET__")
                         uri.raw_query . should_fail_with Enso_Secret_Error
 
-                        with_retries <|
+                        Test.with_retries <|
                             response = cloud_setup.httpbin_secure_client.request (Request.get uri)
                             decode_query_params response.decode_as_json . should_equal [["arg1", "My Very Secret Value"], ["arg2", "plain value"], ["arg3", s2]]
 

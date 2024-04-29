@@ -12,6 +12,7 @@ import project.Errors.Illegal_Argument.Illegal_Argument
 import project.Errors.Illegal_State.Illegal_State
 import project.Function.Function
 import project.Nothing.Nothing
+import project.Panic.Panic
 from project.Data.Boolean import Boolean, False, True
 from project.Data.Filter_Condition import unify_condition_or_predicate
 
@@ -197,9 +198,9 @@ type Range
     filter : (Filter_Condition | (Integer -> Boolean)) -> Vector Integer
     filter self filter =
         predicate = unify_condition_or_predicate filter
-        builder = self.fold Vector.new_builder builder-> elem->
-            if predicate elem then builder.append elem else builder
-        builder.to_vector
+        Vector.build builder->
+            self.map elem->
+                if predicate elem then builder.append elem
 
     ## GROUP Selections
        ICON preparation
@@ -237,6 +238,12 @@ type Range
        ADVANCED
        Applies a function for each element in the range.
 
+       This method does not return the results, so it is only useful for performing
+       computations with side-effects.
+
+       If the function returns a dataflow error, the error is converted to a
+       panic and thrown immediately stopping further processing.
+
        Arguments:
        - function: The function to apply to each integer in the range.
 
@@ -249,7 +256,7 @@ type Range
             end_condition = if self.step > 0 then (>=) else (<=)
             go current =
                 if end_condition current self.end then Nothing else
-                    function current
+                    Panic.rethrow (function current)
                     @Tail_Call go current+self.step
             go self.start
 
@@ -337,11 +344,11 @@ type Range
             (0.up_to 4).running_fold 0 (+)
     running_fold : Any -> (Any -> Any -> Any) -> Vector Any
     running_fold self init function =
-        wrapped builder value =
-            current = if builder.length == 0 then init else builder.last
-            builder.append (function current value)
-        built = self.fold (Vector.new_builder self.length) wrapped
-        built.to_vector
+        Vector.build builder->
+            process value =
+                current = if builder.length == 0 then init else builder.last
+                builder.append (function current value)
+            self.map process
 
     ## GROUP Logical
        ICON preparation

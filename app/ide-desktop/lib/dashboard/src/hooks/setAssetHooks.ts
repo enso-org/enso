@@ -4,7 +4,8 @@ import * as React from 'react'
 
 import type * as backend from '#/services/Backend'
 
-import type AssetTreeNode from '#/utilities/AssetTreeNode'
+import type * as assetTreeNode from '#/utilities/AssetTreeNode'
+import AssetTreeNode from '#/utilities/AssetTreeNode'
 
 // ===================
 // === useSetAsset ===
@@ -17,7 +18,7 @@ import type AssetTreeNode from '#/utilities/AssetTreeNode'
  * has been done. */
 export function useSetAsset<T extends backend.AnyAsset>(
   _value: T,
-  setNode: React.Dispatch<React.SetStateAction<AssetTreeNode>>
+  setNode: React.Dispatch<React.SetStateAction<assetTreeNode.AnyAssetTreeNode>>
 ) {
   return React.useCallback(
     (valueOrUpdater: React.SetStateAction<T>) => {

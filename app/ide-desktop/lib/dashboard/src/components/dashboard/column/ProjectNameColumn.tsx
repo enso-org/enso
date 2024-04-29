@@ -37,17 +37,17 @@ export interface ProjectNameColumnProps extends column.AssetColumnProps {}
  * @throws {Error} when the asset is not a {@link backendModule.ProjectAsset}.
  * This should never happen. */
 export default function ProjectNameColumn(props: ProjectNameColumnProps) {
-  const { item, setItem, selected, rowState, setRowState, state } = props
+  const { item, setItem, selected, rowState, setRowState, state, isEditable } = props
   const { isCloud, selectedKeys, assetEvents, nodeMap } = state
   const { dispatchAssetEvent, doOpenManually, doOpenEditor, doCloseEditor } = state
   const toastAndLog = toastAndLogHooks.useToastAndLog()
   const { user } = authProvider.useNonPartialUserSession()
   const inputBindings = inputBindingsProvider.useInputBindings()
-  const smartAsset = item.item
-  if (smartAsset.type !== backendModule.AssetType.project) {
+  if (item.type !== backendModule.AssetType.project) {
     // eslint-disable-next-line no-restricted-syntax
     throw new Error('`ProjectNameColumn` can only display projects.')
   }
+  const smartAsset = item.item
   const smartAssetWithProjectState = React.useMemo(() => {
     // This is a workaround for a temporary bad state in the backend causing the
     // `projectState` key to be absent.
@@ -57,8 +57,7 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
     } else {
       return smartAsset.withValue(
         object.merge(smartAsset.value, {
-          // eslint-disable-next-line @typescript-eslint/naming-convention
-          projectState: { type: backendModule.ProjectState.closed, volume_id: '' },
+          projectState: { type: backendModule.ProjectState.closed, volumeId: '' },
         })
       )
     }
@@ -78,10 +77,16 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
     !isCloud ||
     (ownPermission != null && permissions.PERMISSION_ACTION_CAN_EXECUTE[ownPermission.permission])
   const isOtherUserUsingProject =
-    isCloud && projectState.opened_by != null && projectState.opened_by !== user?.value.email
+    isCloud && projectState.openedBy != null && projectState.openedBy !== user?.value.email
+
+  const setIsEditing = (isEditingName: boolean) => {
+    if (isEditable) {
+      setRowState(object.merger({ isEditingName }))
+    }
+  }
 
   const doRename = async (newTitle: string) => {
-    setRowState(object.merger({ isEditingName: false }))
+    setIsEditing(false)
     if (string.isWhitespaceOnly(newTitle)) {
       // Do nothing.
     } else if (newTitle !== asset.title) {
@@ -149,7 +154,7 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
       })
     },
     editName: () => {
-      setRowState(object.merger({ isEditingName: true }))
+      setIsEditing(true)
     },
   })
 
@@ -174,7 +179,7 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
           selected &&
           selectedKeys.current.size === 1
         ) {
-          setRowState(object.merger({ isEditingName: true }))
+          setIsEditing(true)
         }
       }}
     >
@@ -220,7 +225,7 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
         }
         onSubmit={doRename}
         onCancel={() => {
-          setRowState(object.merger({ isEditingName: false }))
+          setIsEditing(false)
         }}
       >
         {asset.title}

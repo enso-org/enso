@@ -105,7 +105,7 @@ export default function OrganizationSettingsSection(props: OrganizationSettingsS
     if (oldLocation !== location) {
       try {
         setOrganizationInfo(object.merger({ address: location }))
-        const newOrganization = await organization?.update({ location })
+        const newOrganization = await organization?.update({ address: location })
         if (newOrganization != null) {
           setOrganizationInfo(newOrganization)
         }
@@ -122,8 +122,9 @@ export default function OrganizationSettingsSection(props: OrganizationSettingsS
 
   return (
     <SettingsSection title={getText('organization')}>
-      <div className="flex flex-col">
+      <div key={JSON.stringify(organization)} className="flex flex-col">
         <aria.TextField
+          key={organization?.value?.name ?? 'organization name'}
           defaultValue={organization?.value?.name ?? ''}
           className="flex h-row gap-settings-entry"
         >
@@ -138,6 +139,7 @@ export default function OrganizationSettingsSection(props: OrganizationSettingsS
           />
         </aria.TextField>
         <aria.TextField
+          key={organization?.value?.email ?? 'organization email'}
           defaultValue={organization?.value?.email ?? ''}
           className="flex h-row gap-settings-entry"
         >
@@ -163,6 +165,7 @@ export default function OrganizationSettingsSection(props: OrganizationSettingsS
           />
         </aria.TextField>
         <aria.TextField
+          key={organization?.value?.website ?? 'organization website'}
           defaultValue={organization?.value?.website ?? ''}
           className="flex h-row gap-settings-entry"
         >
@@ -177,6 +180,7 @@ export default function OrganizationSettingsSection(props: OrganizationSettingsS
           />
         </aria.TextField>
         <aria.TextField
+          key={organization?.value?.address ?? 'organization address'}
           defaultValue={organization?.value?.address ?? ''}
           className="flex h-row gap-settings-entry"
         >

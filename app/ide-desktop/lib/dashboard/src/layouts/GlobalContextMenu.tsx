@@ -25,7 +25,7 @@ export interface GlobalContextMenuProps {
   readonly directoryKey: backendModule.DirectoryId | null
   readonly directory: backendModule.SmartDirectory | null
   readonly dispatchAssetListEvent: (event: assetListEventModule.AssetListEvent) => void
-  readonly doPaste: (newParentKey: backendModule.AssetId) => void
+  readonly doPaste: (newParentKey: backendModule.DirectoryId) => void
 }
 
 /** A context menu available everywhere in the directory. */
@@ -99,7 +99,8 @@ export default function GlobalContextMenu(props: GlobalContextMenuProps) {
             parentKey: directoryKey ?? rootDirectory.value.id,
             parent: directory ?? rootDirectory,
             templateId: null,
-            templateName: null,
+            datalinkId: null,
+            preferredName: null,
             onSpinnerStateChange: null,
           })
         }}

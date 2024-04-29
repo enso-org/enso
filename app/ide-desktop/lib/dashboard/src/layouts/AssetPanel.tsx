@@ -16,7 +16,7 @@ import * as backend from '#/services/Backend'
 
 import * as array from '#/utilities/array'
 import type AssetQuery from '#/utilities/AssetQuery'
-import type AssetTreeNode from '#/utilities/AssetTreeNode'
+import type * as assetTreeNode from '#/utilities/AssetTreeNode'
 import LocalStorage from '#/utilities/LocalStorage'
 
 // =====================
@@ -51,13 +51,14 @@ LocalStorage.registerKey('assetPanelTab', {
 
 /** The subset of {@link AssetPanelProps} that are required to be supplied by the row. */
 export interface AssetPanelRequiredProps {
-  readonly item: AssetTreeNode | null
-  readonly setItem: React.Dispatch<React.SetStateAction<AssetTreeNode>> | null
+  readonly item: assetTreeNode.AnyAssetTreeNode | null
+  readonly setItem: React.Dispatch<React.SetStateAction<assetTreeNode.AnyAssetTreeNode>> | null
 }
 
 /** Props for an {@link AssetPanel}. */
 export interface AssetPanelProps extends AssetPanelRequiredProps {
   readonly isCloud: boolean
+  readonly isReadonly?: boolean
   readonly setQuery: React.Dispatch<React.SetStateAction<AssetQuery>>
   readonly category: Category
   readonly labels: backend.Label[]
@@ -66,7 +67,9 @@ export interface AssetPanelProps extends AssetPanelRequiredProps {
 
 /** A panel containing the description and settings for an asset. */
 export default function AssetPanel(props: AssetPanelProps) {
-  const { isCloud, item, setItem, setQuery, category, labels, dispatchAssetEvent } = props
+  const { isCloud, isReadonly = false, item, setItem, setQuery, category, labels } = props
+  const { dispatchAssetEvent } = props
+
   const { getText } = textProvider.useText()
   const { localStorage } = localStorageProvider.useLocalStorage()
   const [initialized, setInitialized] = React.useState(false)
@@ -136,6 +139,7 @@ export default function AssetPanel(props: AssetPanelProps) {
         <>
           {tab === AssetPanelTab.properties && (
             <AssetProperties
+              isReadonly={isReadonly}
               item={item}
               setItem={setItem}
               category={category}

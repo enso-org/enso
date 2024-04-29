@@ -206,6 +206,13 @@ export class Cognito implements original.Cognito {
   private customState() {
     return null
   }
+
+  /**
+   * Refresh the current user's session.
+   */
+  async refreshUserSession() {
+    return Promise.resolve(results.Ok(null))
+  }
 }
 /* eslint-enable jsdoc/require-jsdoc */
 

@@ -131,6 +131,7 @@ export interface User extends UserInfo {
    * `usersMe` will not work. */
   readonly isEnabled: boolean
   readonly rootDirectoryId: DirectoryId
+  readonly removeAt?: dateTime.Rfc3339DateTime | null
 }
 
 /** Possible states that a project can be in. */
@@ -153,19 +154,17 @@ export enum ProjectState {
 /** Wrapper around a project state value. */
 export interface ProjectStateType {
   readonly type: ProjectState
-  /* eslint-disable @typescript-eslint/naming-convention */
-  readonly volume_id: string
-  readonly instance_id?: string
-  readonly execute_async?: boolean
+  readonly volumeId: string
+  readonly instanceId?: string
+  readonly executeAsync?: boolean
   readonly address?: string
-  readonly security_group_id?: string
-  readonly ec2_id?: string
-  readonly ec2_public_ip_address?: string
-  readonly current_session_id?: string
-  readonly opened_by?: EmailAddress
+  readonly securityGroupId?: string
+  readonly ec2Id?: string
+  readonly ec2PublicIpAddress?: string
+  readonly currentSessionId?: string
+  readonly openedBy?: EmailAddress
   /** Only present on the Local backend. */
   readonly path?: Path
-  /* eslint-enable @typescript-eslint/naming-convention */
 }
 
 export const IS_OPENING: Readonly<Record<ProjectState, boolean>> = {
@@ -272,6 +271,7 @@ export interface SecretAndInfo {
 export interface SecretInfo {
   readonly name: string
   readonly id: SecretId
+  readonly path: string
 }
 
 /** A Data Link. */
@@ -763,7 +763,7 @@ export interface UpdateOrganizationRequestBody {
   name?: string
   email?: EmailAddress
   website?: HttpsUrl
-  location?: string
+  address?: string
 }
 
 /** HTTP request body for the "create permission" endpoint. */
@@ -963,6 +963,8 @@ export interface SmartUser extends SmartObject<User> {
   readonly update: (body: UpdateUserRequestBody) => Promise<void>
   /** Delete the current user. */
   readonly delete: () => Promise<void>
+  /** Restore the current user. */
+  readonly restore: () => Promise<void>
   /** Upload a new profile picture for the current user. */
   readonly uploadPicture: (params: UploadPictureRequestParams, file: Blob) => Promise<User>
   /** Get the root directory for this user. */
@@ -1038,9 +1040,21 @@ export interface SmartDirectory extends SmartAsset<DirectoryAsset> {
     permissions: UserPermission[]
   ) => SmartDirectory
   /** Create a {@link SmartProject} that is to be uploaded on the backend via `.materialize()` */
-  readonly createPlaceholderProject: (
+  readonly createPlaceholderProjectFromFile: (
     title: string,
-    fileOrTemplateName: globalThis.File | string | null,
+    file: globalThis.File,
+    permissions: UserPermission[]
+  ) => SmartProject
+  /** Create a {@link SmartProject} that is to be uploaded on the backend via `.materialize()` */
+  readonly createPlaceholderProjectFromTemplateName: (
+    title: string,
+    templateName: string | null,
+    permissions: UserPermission[]
+  ) => SmartProject
+  /** Create a {@link SmartProject} that is to be uploaded on the backend via `.materialize()` */
+  readonly createPlaceholderProjectFromDataLinkId: (
+    title: string,
+    datalinkId: ConnectorId,
     permissions: UserPermission[]
   ) => SmartProject
   /** Create a {@link SmartFile} that is to be uploaded on the backend via `.materialize()` */

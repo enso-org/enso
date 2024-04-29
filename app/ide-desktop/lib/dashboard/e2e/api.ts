@@ -111,8 +111,7 @@ export async function mockApi({ page }: MockParams) {
         id: backend.ProjectId('project-' + uniqueString.uniqueString()),
         projectState: {
           type: backend.ProjectState.opened,
-          // eslint-disable-next-line @typescript-eslint/naming-convention
-          volume_id: '',
+          volumeId: '',
         },
         title,
         modifiedAt: dateTime.toRfc3339(new Date()),
@@ -331,23 +330,23 @@ export async function mockApi({ page }: MockParams) {
         const projectId = request.url().match(/[/]projects[/](.+?)[/]copy/)?.[1] ?? ''
         await route.fulfill({
           json: {
-            /* eslint-disable @typescript-eslint/naming-convention */
             organizationId: defaultOrganizationId,
             projectId: backend.ProjectId(projectId),
             name: 'example project name',
             state: {
               type: backend.ProjectState.opened,
-              volume_id: '',
-              opened_by: defaultEmail,
+              volumeId: '',
+              openedBy: defaultEmail,
             },
             packageName: 'Project_root',
+            // eslint-disable-next-line @typescript-eslint/naming-convention
             ide_version: null,
+            // eslint-disable-next-line @typescript-eslint/naming-convention
             engine_version: {
               value: '2023.2.1-nightly.2023.9.29',
               lifecycle: backend.VersionLifecycle.development,
             },
             address: backend.Address('ws://example.com/'),
-            /* eslint-enable @typescript-eslint/naming-convention */
           },
         })
       }
@@ -668,8 +667,18 @@ export async function mockApi({ page }: MockParams) {
           const parentId =
             body.parentDirectoryId ??
             backend.DirectoryId(`directory-backend${uniqueString.uniqueString()}`)
-          // eslint-disable-next-line @typescript-eslint/naming-convention
-          const projectState = { type: backend.ProjectState.opened, volume_id: '' }
+          const projectState: backend.ProjectStateType = {
+            type: backend.ProjectState.opened,
+            volumeId: '',
+          }
+          backend.DirectoryId(`directory-${uniqueString.uniqueString()}`)
+          const json = {
+            name: title,
+            organizationId: defaultOrganizationId,
+            packageName: 'Project_root',
+            projectId: id,
+            state: projectState,
+          }
           addProject(title, {
             description: null,
             id,
@@ -689,15 +698,7 @@ export async function mockApi({ page }: MockParams) {
             ],
             projectState,
           })
-          await route.fulfill({
-            json: {
-              name: title,
-              organizationId: defaultOrganizationId,
-              packageName: 'Project_root',
-              projectId: id,
-              state: projectState,
-            },
-          })
+          await route.fulfill({ json })
         } else {
           await route.fallback()
         }

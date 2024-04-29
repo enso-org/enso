@@ -32,38 +32,49 @@ export interface DirectoryNameColumnProps extends column.AssetColumnProps {}
  * @throws {Error} when the asset is not a {@link backendModule.DirectoryAsset}.
  * This should never happen. */
 export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
-  const { item, setItem, selected, state, rowState, setRowState } = props
+  const { item, setItem, selected, state, rowState, setRowState, isEditable } = props
   const { isCloud, selectedKeys, nodeMap, doToggleDirectoryExpansion } = state
   const toastAndLog = toastAndLogHooks.useToastAndLog()
   const { getText } = textProvider.useText()
   const inputBindings = inputBindingsProvider.useInputBindings()
-  const smartAsset = item.item
-  if (smartAsset.type !== backendModule.AssetType.directory) {
+  if (item.type !== backendModule.AssetType.directory) {
     // eslint-disable-next-line no-restricted-syntax
     throw new Error('`DirectoryNameColumn` can only display folders.')
   }
+  const smartAsset = item.item
   const asset = smartAsset.value
   const setAsset = setAssetHooks.useSetAsset(asset, setItem)
 
+  const setIsEditing = (isEditingName: boolean) => {
+    if (isEditable) {
+      setRowState(object.merger({ isEditingName }))
+    }
+  }
+
   const doRename = async (newTitle: string) => {
-    setRowState(object.merger({ isEditingName: false }))
-    if (string.isWhitespaceOnly(newTitle)) {
-      // Do nothing.
-    } else if (isCloud && newTitle !== asset.title) {
-      const oldTitle = asset.title
-      setAsset(object.merger({ title: newTitle }))
-      try {
-        await smartAsset.update({ title: newTitle })
-      } catch (error) {
-        toastAndLog('renameFolderError', error)
-        setAsset(object.merger({ title: oldTitle }))
+    if (!isEditable) {
+      return
+    } else {
+      setRowState(object.merger({ isEditingName: false }))
+      if (string.isWhitespaceOnly(newTitle)) {
+        // Do nothing.
+      } else if (isCloud && newTitle !== asset.title) {
+        const oldTitle = asset.title
+        setAsset(object.merger({ title: newTitle }))
+        try {
+          await smartAsset.update({ title: newTitle })
+        } catch (error) {
+          toastAndLog('renameFolderError', error)
+          setAsset(object.merger({ title: oldTitle }))
+        }
       }
+      return
     }
   }
 
   const handleClick = inputBindings.handler({
     editName: () => {
-      setRowState(object.merger({ isEditingName: true }))
+      setIsEditing(true)
     },
   })
 
@@ -86,7 +97,7 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
           selectedKeys.current.size === 1
         ) {
           event.stopPropagation()
-          setRowState(object.merger({ isEditingName: true }))
+          setIsEditing(true)
         }
       }}
     >
@@ -122,7 +133,7 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
         }
         onSubmit={doRename}
         onCancel={() => {
-          setRowState(object.merger({ isEditingName: false }))
+          setIsEditing(false)
         }}
       >
         {asset.title}

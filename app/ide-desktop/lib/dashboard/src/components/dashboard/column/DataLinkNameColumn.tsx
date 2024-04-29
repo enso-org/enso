@@ -27,16 +27,22 @@ export interface DataLinkNameColumnProps extends column.AssetColumnProps {}
  * @throws {Error} when the asset is not a {@link backendModule.DataLinkAsset}.
  * This should never happen. */
 export default function DataLinkNameColumn(props: DataLinkNameColumnProps) {
-  const { item, setItem, selected, state, rowState, setRowState } = props
+  const { item, setItem, selected, state, rowState, setRowState, isEditable } = props
   const { setIsAssetPanelTemporarilyVisible } = state
   const inputBindings = inputBindingsProvider.useInputBindings()
-  const smartAsset = item.item
-  if (smartAsset.type !== backendModule.AssetType.dataLink) {
+  if (item.type !== backendModule.AssetType.dataLink) {
     // eslint-disable-next-line no-restricted-syntax
     throw new Error('`DataLinkNameColumn` can only display Data Links.')
   }
+  const smartAsset = item.item
   const asset = smartAsset.value
   const setAsset = setAssetHooks.useSetAsset(asset, setItem)
+
+  const setIsEditing = (isEditingName: boolean) => {
+    if (isEditable) {
+      setRowState(object.merger({ isEditingName }))
+    }
+  }
 
   // TODO[sb]: Wait for backend implementation. `editable` should also be re-enabled, and the
   // context menu entry should be re-added.
@@ -47,7 +53,7 @@ export default function DataLinkNameColumn(props: DataLinkNameColumnProps) {
 
   const handleClick = inputBindings.handler({
     editName: () => {
-      setRowState(object.merger({ isEditingName: true }))
+      setIsEditing(true)
     },
   })
 
@@ -65,7 +71,7 @@ export default function DataLinkNameColumn(props: DataLinkNameColumnProps) {
         if (handleClick(event)) {
           // Already handled.
         } else if (eventModule.isSingleClick(event) && selected) {
-          setRowState(object.merger({ isEditingName: true }))
+          setIsEditing(true)
         } else if (eventModule.isDoubleClick(event)) {
           event.stopPropagation()
           setIsAssetPanelTemporarilyVisible(true)
@@ -76,7 +82,8 @@ export default function DataLinkNameColumn(props: DataLinkNameColumnProps) {
       <EditableSpan
         editable={false}
         onSubmit={async newTitle => {
-          setRowState(object.merger({ isEditingName: false }))
+          setIsEditing(false)
+
           if (newTitle !== asset.title) {
             const oldTitle = asset.title
             setAsset(object.merger({ title: newTitle }))
@@ -88,7 +95,7 @@ export default function DataLinkNameColumn(props: DataLinkNameColumnProps) {
           }
         }}
         onCancel={() => {
-          setRowState(object.merger({ isEditingName: false }))
+          setIsEditing(false)
         }}
         className="text grow bg-transparent"
       >

@@ -92,7 +92,11 @@ class LauncherRunnerSpec extends RuntimeVersionManagerTest with FlakySpec {
 
       runner.withCommand(
         runSettings,
-        JVMSettings(useSystemJVM = true, jvmOptions = jvmOptions)
+        JVMSettings(
+          useSystemJVM = true,
+          jvmOptions   = jvmOptions,
+          extraOptions = Seq()
+        )
       ) { systemCommand =>
         systemCommand.command.head shouldEqual "java"
         checkCommandLine(systemCommand)
@@ -100,7 +104,11 @@ class LauncherRunnerSpec extends RuntimeVersionManagerTest with FlakySpec {
 
       runner.withCommand(
         runSettings,
-        JVMSettings(useSystemJVM = false, jvmOptions = jvmOptions)
+        JVMSettings(
+          useSystemJVM = false,
+          jvmOptions   = jvmOptions,
+          extraOptions = Seq()
+        )
       ) { managedCommand =>
         managedCommand.command.head should include("java")
         val javaHome =

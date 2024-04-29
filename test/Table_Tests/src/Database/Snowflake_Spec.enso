@@ -26,7 +26,6 @@ from project.Database.Types.Postgres_Type_Mapping_Spec import default_text
 from project.Database.Postgres_Spec import Basic_Test_Data, Postgres_Tables_Data
 
 import enso_dev.Base_Tests.Network.Enso_Cloud.Cloud_Tests_Setup.Cloud_Tests_Setup
-from enso_dev.Base_Tests.Network.Enso_Cloud.Cloud_Tests_Setup import with_retries
 
 ## Still a WIP cannot be completed until the dialect is implemented properly
    for Snowflake.
@@ -620,7 +619,7 @@ add_table_specs suite_builder =
                     cloud_setup.with_prepared_environment <|
                         with_secret "my_postgres_username" db_user username_secret-> with_secret "my_postgres_password" db_password password_secret->
                             my_secret_name = "Enso Test: My Secret App NAME " + (Random.uuid.take 5)
-                            with_secret "my_postgres_app_name" my_secret_name app_name_secret-> with_retries <|
+                            with_secret "my_postgres_app_name" my_secret_name app_name_secret-> Test.with_retries <|
                                 details = Postgres db_host db_port db_name credentials=(Credentials.Username_And_Password username_secret password_secret)
                                 # We set the ApplicationName option, so that we can see that secrets can be used in custom properties.
                                 options = Connection_Options.Value [["ApplicationName", app_name_secret]]

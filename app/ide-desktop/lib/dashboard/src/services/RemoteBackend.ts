@@ -33,9 +33,9 @@ const CHECK_STATUS_INTERVAL_MS = 5000
 /** The number of milliseconds in one day. */
 const ONE_DAY_MS = 86_400_000
 
-// =============
-// === Types ===
-// =============
+// ==========================
+// === RemoteBackendError ===
+// ==========================
 
 /** The format of all errors returned by the backend. */
 interface RemoteBackendError {
@@ -43,6 +43,19 @@ interface RemoteBackendError {
   readonly code: string
   readonly message: string
   readonly param: string
+}
+
+// ======================
+// === CreatedProject ===
+// ======================
+
+/** A project returned by the endpoints. */
+interface CreatedProject {
+  readonly organizationId: string
+  readonly projectId: backend.ProjectId
+  readonly name: string
+  readonly state: backend.ProjectStateType
+  readonly packageName: string
 }
 
 // ============================
@@ -280,6 +293,18 @@ class SmartUser extends SmartObject<backend.User> implements backend.SmartUser {
     const response = await this.client.delete(remoteBackendPaths.DELETE_USER_PATH)
     if (!responseIsSuccessful(response)) {
       return this.throw(response, 'deleteUserBackendError')
+    } else {
+      return
+    }
+  }
+
+  /** Restore a user that has been soft-deleted. */
+  async restore(): Promise<void> {
+    const response = await this.client.put(remoteBackendPaths.UPDATE_CURRENT_USER_PATH, {
+      clearRemoveAt: true,
+    })
+    if (!responseIsSuccessful(response)) {
+      return await this.throw(response, 'restoreUserBackendError')
     } else {
       return
     }
@@ -667,9 +692,37 @@ class SmartDirectory extends SmartAsset<backend.DirectoryAsset> implements backe
   }
 
   /** Create a {@link SmartProject} that is to be uploaded on the backend via `.materialize()` */
-  createPlaceholderProject(
+  createPlaceholderProjectFromTemplateName(
     title: string,
-    fileOrTemplateName: File | string | null,
+    templateName: string | null,
+    permissions: backend.UserPermission[]
+  ): backend.SmartProject {
+    return this.createPlaceholderProjectFromTemplateNameOrDataLinkId(
+      title,
+      templateName,
+      null,
+      permissions
+    )
+  }
+
+  /** Create a {@link SmartProject} that is to be uploaded on the backend via `.materialize()` */
+  createPlaceholderProjectFromDataLinkId(
+    title: string,
+    dataLinkId: backend.ConnectorId,
+    permissions: backend.UserPermission[]
+  ): backend.SmartProject {
+    return this.createPlaceholderProjectFromTemplateNameOrDataLinkId(
+      title,
+      null,
+      dataLinkId,
+      permissions
+    )
+  }
+
+  /** Create a {@link SmartProject} that is to be uploaded on the backend via `.materialize()` */
+  createPlaceholderProjectFromFile(
+    title: string,
+    file: File,
     permissions: backend.UserPermission[]
   ): backend.SmartProject {
     const result = new SmartProject(this.client, this.logger, this.getText, {
@@ -677,11 +730,7 @@ class SmartDirectory extends SmartAsset<backend.DirectoryAsset> implements backe
       title,
       parentId: this.value.id,
       permissions,
-      projectState: {
-        type: backend.ProjectState.placeholder,
-        // eslint-disable-next-line @typescript-eslint/naming-convention
-        volume_id: '',
-      },
+      projectState: { type: backend.ProjectState.placeholder, volumeId: '' },
     })
     /** A project returned by the endpoints. */
     interface CreatedProject {
@@ -691,63 +740,35 @@ class SmartDirectory extends SmartAsset<backend.DirectoryAsset> implements backe
       readonly state: backend.ProjectStateType
       readonly packageName: string
     }
-    if (fileOrTemplateName instanceof File) {
-      result.materialize = overwriteMaterialize(result, async () => {
-        /** HTTP response body for this endpoint. */
-        interface ResponseBody {
-          readonly path: string
-          readonly id: backend.FileId
-          readonly project: CreatedProject | null
-        }
-        const paramsString = new URLSearchParams({
-          // eslint-disable-next-line @typescript-eslint/naming-convention
-          file_name: title,
-          // eslint-disable-next-line @typescript-eslint/naming-convention
-          parent_directory_id: this.value.id,
-        }).toString()
-        const path = `${remoteBackendPaths.UPLOAD_FILE_PATH}?${paramsString}`
-        const response = await this.client.postBinary<ResponseBody>(path, fileOrTemplateName)
-        if (!responseIsSuccessful(response)) {
-          return this.throw(response, 'uploadFileWithNameBackendError', title)
+    result.materialize = overwriteMaterialize(result, async () => {
+      /** HTTP response body for this endpoint. */
+      interface ResponseBody {
+        readonly path: string
+        readonly id: backend.FileId
+        readonly project: CreatedProject | null
+      }
+      const paramsString = new URLSearchParams({
+        // eslint-disable-next-line @typescript-eslint/naming-convention
+        file_name: title,
+        // eslint-disable-next-line @typescript-eslint/naming-convention
+        parent_directory_id: this.value.id,
+      }).toString()
+      const path = `${remoteBackendPaths.UPLOAD_FILE_PATH}?${paramsString}`
+      const response = await this.client.postBinary<ResponseBody>(path, file)
+      if (!responseIsSuccessful(response)) {
+        return this.throw(response, 'uploadFileWithNameBackendError', title)
+      } else {
+        const responseBody = await response.json()
+        if (responseBody.project == null) {
+          return this.throw(response, 'badCreateProjectResponseBackendError', title)
         } else {
-          const responseBody = await response.json()
-          if (responseBody.project == null) {
-            return this.throw(response, 'badCreateProjectResponseBackendError', title)
-          } else {
-            const { projectId, name, state } = responseBody.project
-            return result.withValue(
-              object.merge(result.value, { id: projectId, title: name, projectState: state })
-            )
-          }
-        }
-      })
-    } else {
-      result.materialize = overwriteMaterialize(result, async () => {
-        /** HTTP request body for this endpoint. */
-        interface Body {
-          readonly projectName: string
-          readonly projectTemplateName: string | null
-          readonly parentDirectoryId: backend.DirectoryId | null
-        }
-        /** HTTP response body for this endpoint. */
-        interface ResponseBody extends CreatedProject {}
-        const path = remoteBackendPaths.CREATE_PROJECT_PATH
-        const body: Body = {
-          projectName: title,
-          projectTemplateName: fileOrTemplateName,
-          parentDirectoryId: this.value.id,
-        }
-        const response = await this.client.post<ResponseBody>(path, body)
-        if (!responseIsSuccessful(response)) {
-          return this.throw(response, 'createProjectBackendError', body.projectName)
-        } else {
-          const { projectId, name, state } = await response.json()
+          const { projectId, name, state } = responseBody.project
           return result.withValue(
             object.merge(result.value, { id: projectId, title: name, projectState: state })
           )
         }
-      })
-    }
+      }
+    })
     return result
   }
 
@@ -852,6 +873,50 @@ class SmartDirectory extends SmartAsset<backend.DirectoryAsset> implements backe
       } else {
         const id = await response.json()
         return result.withValue(object.merge(result.value, { id }))
+      }
+    })
+    return result
+  }
+
+  /** Create a {@link SmartProject} that is to be uploaded on the backend via `.materialize()` */
+  private createPlaceholderProjectFromTemplateNameOrDataLinkId(
+    title: string,
+    templateName: string | null,
+    dataLinkId: backend.ConnectorId | null,
+    permissions: backend.UserPermission[]
+  ): backend.SmartProject {
+    const result = new SmartProject(this.client, this.logger, this.getText, {
+      ...placeholderAssetFields(backend.AssetType.project, backend.ProjectId),
+      title,
+      parentId: this.value.id,
+      permissions,
+      projectState: { type: backend.ProjectState.placeholder, volumeId: '' },
+    })
+    result.materialize = overwriteMaterialize(result, async () => {
+      /** HTTP request body for this endpoint. */
+      interface Body {
+        readonly projectName: string
+        readonly projectTemplateName: string | null
+        readonly parentDirectoryId: backend.DirectoryId | null
+        readonly dataLinkId: backend.ConnectorId | null
+      }
+      /** HTTP response body for this endpoint. */
+      interface ResponseBody extends CreatedProject {}
+      const path = remoteBackendPaths.CREATE_PROJECT_PATH
+      const body: Body = {
+        projectName: title,
+        projectTemplateName: templateName,
+        parentDirectoryId: this.value.id,
+        dataLinkId,
+      }
+      const response = await this.client.post<ResponseBody>(path, body)
+      if (!responseIsSuccessful(response)) {
+        return this.throw(response, 'createProjectBackendError', body.projectName)
+      } else {
+        const { projectId, name, state } = await response.json()
+        return result.withValue(
+          object.merge(result.value, { id: projectId, title: name, projectState: state })
+        )
       }
     })
     return result

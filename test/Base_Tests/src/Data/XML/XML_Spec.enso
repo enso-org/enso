@@ -254,7 +254,7 @@ add_specs suite_builder =
             doc = Data.read data.test_file
             doc.root_element.name . should_equal "class"
 
-        group_builder.specify "Can read from an endpoint" <|
+        group_builder.specify "Can read from an endpoint" <| Test.with_retries <|
             doc = Data.fetch "https://enso-data-samples.s3.us-west-1.amazonaws.com/sample.xml"
             doc.root_element.name . should_equal "class"
             doc.root_element.at 1 . name . should_equal "teacher"
@@ -295,4 +295,3 @@ main filter=Nothing =
     suite = Test.build suite_builder->
         add_specs suite_builder
     suite.run_with_filter filter
-

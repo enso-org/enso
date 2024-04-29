@@ -34,7 +34,6 @@ import org.enso.polyglot.data.TypeGraph
 import org.enso.polyglot.runtime.Runtime.Api
 import org.enso.searcher.data.QueryResult
 import org.enso.searcher.SuggestionsRepo
-import org.enso.text.editing.model.Position
 
 import scala.collection.mutable
 import scala.concurrent.Future
@@ -91,8 +90,6 @@ final class SuggestionsHandler(
 
   import context.dispatcher
   import SuggestionsHandler._
-
-  private val timeout = config.executionContext.requestTimeout
 
   override def preStart(): Unit = {
     logger.info(
@@ -200,7 +197,7 @@ final class SuggestionsHandler(
 
     case msg: Api.SuggestionsDatabaseSuggestionsLoadedNotification =>
       logger.debug(
-        "Starting loading suggestions for library [{}].",
+        "Starting loading suggestions for library [{0}].",
         msg.libraryName
       )
       context.become(
@@ -215,8 +212,9 @@ final class SuggestionsHandler(
         .onComplete {
           case Success(notification) =>
             logger.debug(
-              "Complete loading suggestions for library [{}].",
-              msg.libraryName
+              "Complete loading suggestions for library [{0}]. Has updates: {1}",
+              msg.libraryName,
+              notification.updates.nonEmpty
             )
             if (notification.updates.nonEmpty) {
               clients.foreach { clientId =>
@@ -226,7 +224,7 @@ final class SuggestionsHandler(
             self ! SuggestionsHandler.SuggestionLoadingCompleted
           case Failure(ex) =>
             logger.error(
-              "Error applying suggestion updates for loaded library [{}].",
+              "Error applying suggestion updates for loaded library [{0}].",
               msg.libraryName,
               ex
             )
@@ -357,7 +355,6 @@ final class SuggestionsHandler(
       val handler = context.system.actorOf(
         InvalidateModulesIndexHandler.props(
           RuntimeFailureMapper(contentRootManager),
-          timeout,
           runtimeConnector,
           self
         )
@@ -375,38 +372,6 @@ final class SuggestionsHandler(
           state.backgroundProcessingStopped()
         )
       )
-
-    case Completion(path, pos, selfType, returnType, tags, isStatic) =>
-      val selfTypes = selfType.toList.flatMap(ty => ty :: graph.getParents(ty))
-      getModuleName(projectName, path)
-        .flatMap { either =>
-          either.fold(
-            Future.successful,
-            module =>
-              suggestionsRepo
-                .search(
-                  Some(module),
-                  selfTypes,
-                  returnType,
-                  tags.map(_.map(SuggestionKind.toSuggestion)),
-                  Some(toPosition(pos)),
-                  isStatic
-                )
-                .map(CompletionResult.tupled)
-          )
-        }
-        .pipeTo(sender())
-      if (state.shouldStartBackgroundProcessing) {
-        runtimeConnector ! Api.Request(Api.StartBackgroundProcessing())
-        context.become(
-          initialized(
-            projectName,
-            graph,
-            clients,
-            state.backgroundProcessingStarted()
-          )
-        )
-      }
 
     case FileDeletedEvent(path) =>
       getModuleName(projectName, path)
@@ -454,7 +419,6 @@ final class SuggestionsHandler(
       val handler = context.system.actorOf(
         InvalidateModulesIndexHandler.props(
           runtimeFailureMapper,
-          timeout,
           runtimeConnector,
           self
         )
@@ -687,13 +651,6 @@ final class SuggestionsHandler(
       } yield module
     }
 
-  /** Convert the internal position representation to the API position.
-    *
-    * @param pos the internal position
-    * @return the API position
-    */
-  private def toPosition(pos: Position): Suggestion.Position =
-    Suggestion.Position(pos.line, pos.character)
 }
 
 object SuggestionsHandler {

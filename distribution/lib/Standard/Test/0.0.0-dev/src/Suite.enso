@@ -58,49 +58,57 @@ type Suite
          If false, return boolean from the method indicating whether some tests failed.
 
        Returns: Boolean if `should_exit` is False, otherwise exits the process.
-    run_with_filter self (filter : (Text | Nothing) = Nothing) should_exit=True -> (Boolean | Nothing) =
+    run_with_filter self (filter : (Text | Nothing) = Nothing) (should_exit : Boolean = True) -> (Boolean | Nothing) =
         config = Suite_Config.from_environment
 
-        # Map of groups to vector of specs that match the filter
-        matching_specs = self.groups.fold Map.empty map-> group->
+        # List of pairs of groups and their specs that match the filter
+        matching_specs = self.groups.flat_map group->
             group_matches = name_matches group.name filter
             case group_matches of
                 True ->
                     # Include all the specs from the group
-                    map.insert group group.specs
+                    [[group, group.specs]]
                 False ->
                     # Try to include only some specs from the group
                     matched_specs = group.specs.filter spec->
                         name_matches spec.name filter
                     case matched_specs.is_empty of
-                        True -> map
+                        True -> []
                         False ->
-                            assert (map.contains_key group . not)
-                            map.insert group matched_specs
+                            [[group, matched_specs]]
 
+        progress_reporter = case Test_Reporter.is_terminal_interactive of
+            True ->
+                matching_spec_count = matching_specs.map (p-> p.second.length) . fold 0 (+)
+                Test_Reporter.Command_Line_Progress_Reporter.make matching_spec_count
+            False ->
+                Test_Reporter.Ignore_Progress_Reporter
 
         all_results_bldr = Vector.new_builder
         junit_sb_builder = if config.should_output_junit then StringBuilder.new else Nothing
         Test_Reporter.wrap_junit_testsuites config junit_sb_builder <|
-            matching_specs.each_with_key group-> specs->
-                if group.is_pending.not then
-                    results = Helpers.run_specs_from_group specs group
-                    Test_Reporter.print_report results config junit_sb_builder
-                    all_results_bldr.append_vector_range results
+            matching_specs.each p->
+                group = p.first
+                specs = p.second
+                case group.is_pending of
+                    False ->
+                        results = Helpers.run_specs_from_group specs group progress_reporter
+                        Test_Reporter.print_report results config junit_sb_builder
+                        all_results_bldr.append_vector_range results
+                    True ->
+                        Test_Reporter.print_pending_group group config junit_sb_builder
+
         all_results = all_results_bldr.to_vector
         succ_tests = all_results.filter (r-> r.is_success) . length
         failed_tests = all_results.filter (r-> r.is_fail) . length
         skipped_tests = all_results.filter (r-> r.is_pending) . length
+        pending_groups = matching_specs.filter (p-> p.first.is_pending) . length
         case should_exit of
             True ->
                 IO.println <| succ_tests.to_text + " tests succeeded."
                 IO.println <| failed_tests.to_text + " tests failed."
                 IO.println <| skipped_tests.to_text + " tests skipped."
-                pending_groups = matching_specs.keys.filter (group-> group.is_pending)
-                pending_groups_details = case pending_groups.is_empty of
-                    True -> "."
-                    False -> ": " + (pending_groups.map (it-> it.name) . to_text)
-                IO.println <| pending_groups.length.to_text + " groups skipped" + pending_groups_details
+                IO.println <| pending_groups.to_text + " groups skipped."
                 exit_code = if failed_tests > 0 then 1 else 0
                 System.exit exit_code
             False ->

@@ -105,11 +105,12 @@ type Image
                 _ -> [flags]
             int_flags = MatOfInt.new (write_flags.flat_map x-> [x.to_integer, x.value])
             write_to_local_file file:File =
+                IO.println "Writing the image to a file: "+file.path
                 Panic.catch JException (Java_Codecs.write file.path self.opencv_mat int_flags) _->
                      Error.throw (File_Error.IO_Error path.file 'Failed to write to the file')
-            if path.is_local then write_to_local_file path.file else
+            r = if path.is_local then write_to_local_file path.file else
                 path.write_requiring_local_file Existing_File_Behavior.Overwrite write_to_local_file
-
+            r.if_not_error path.file_for_return
 
     ## PRIVATE
 

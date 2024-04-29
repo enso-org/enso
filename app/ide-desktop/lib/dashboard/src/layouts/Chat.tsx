@@ -20,6 +20,7 @@ import UnstyledButton from '#/components/UnstyledButton'
 
 import * as newtype from '#/utilities/newtype'
 import * as object from '#/utilities/object'
+import * as gtagHooks from '#/hooks/gtagHooks'
 
 // ================
 // === Newtypes ===
@@ -97,6 +98,17 @@ export default function Chat(props: ChatProps) {
       }
     },
   })
+  const gtagEvent = gtagHooks.useGtagEvent()
+  const gtagEventRef = React.useRef(gtagEvent)
+  gtagEventRef.current = gtagEvent
+
+  React.useEffect(() => {
+    if (!isOpen) {
+      return
+    } else {
+      return gtagHooks.gtagOpenCloseCallback(gtagEventRef, 'cloud_open_chat', 'cloud_close_chat')
+    }
+  }, [isOpen])
 
   /** This is SAFE, because this component is only rendered when `accessToken` is present.
    * See `dashboard.tsx` for its sole usage. */

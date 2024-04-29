@@ -3,6 +3,7 @@ import ExtendedMenu from '@/components/ExtendedMenu.vue'
 import NavBar from '@/components/NavBar.vue'
 import type { BreadcrumbItem } from '@/components/NavBreadcrumbs.vue'
 import RecordControl from '@/components/RecordControl.vue'
+import SelectionMenu from '@/components/SelectionMenu.vue'
 import { injectGuiConfig } from '@/providers/guiConfig'
 import { computed } from 'vue'
 
@@ -12,6 +13,7 @@ const props = defineProps<{
   allowNavigationLeft: boolean
   allowNavigationRight: boolean
   zoomLevel: number
+  componentsSelected: number
 }>()
 const emit = defineEmits<{
   recordOnce: []
@@ -23,6 +25,8 @@ const emit = defineEmits<{
   zoomIn: []
   zoomOut: []
   toggleCodeEditor: []
+  collapseNodes: []
+  toggleColorPicker: []
 }>()
 
 const LEFT_PADDING_PX = 11
@@ -52,6 +56,14 @@ const barStyle = computed(() => {
       @forward="emit('forward')"
       @breadcrumbClick="emit('breadcrumbClick', $event)"
     />
+    <Transition name="selection-menu">
+      <SelectionMenu
+        v-if="componentsSelected > 1"
+        :selectedComponents="componentsSelected"
+        @collapseNodes="emit('collapseNodes')"
+        @toggleColorPicker="emit('toggleColorPicker')"
+      />
+    </Transition>
     <ExtendedMenu
       :zoomLevel="props.zoomLevel"
       @fitToAllClicked="emit('fitToAllClicked')"
@@ -71,5 +83,15 @@ const barStyle = computed(() => {
   /* FIXME[sb]: Get correct offset from dashboard. */
   left: 9px;
   width: 100%;
+}
+
+.selection-menu-enter-active,
+.selection-menu-leave-active {
+  transition: opacity 0.25s ease;
+}
+
+.selection-menu-enter-from,
+.selection-menu-leave-to {
+  opacity: 0;
 }
 </style>

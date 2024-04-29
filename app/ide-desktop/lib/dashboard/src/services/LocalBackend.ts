@@ -15,25 +15,6 @@ import * as fileInfo from '#/utilities/fileInfo'
 import * as object from '#/utilities/object'
 import * as uniqueString from '#/utilities/uniqueString'
 
-// ====================
-// === ProjectState ===
-// ====================
-
-/** A project that is currently opening. */
-interface OpenInProgressProjectState {
-  readonly state: backend.ProjectState.openInProgress
-}
-
-/** A project that is currently opened. */
-interface OpenedProjectState {
-  readonly state: backend.ProjectState.opened
-  readonly data: projectManager.OpenProject
-}
-
-/** Possible states and associated metadata of a project.
- * The "closed" state is omitted as it is the default state. */
-type ProjectState = OpenedProjectState | OpenInProgressProjectState
-
 // =============================
 // === ipWithSocketToAddress ===
 // =============================
@@ -205,6 +186,11 @@ class SmartUser extends SmartObject<backend.User> implements backend.SmartUser {
   }
 
   /** Invalid operation. */
+  restore() {
+    return this.invalidOperation()
+  }
+
+  /** Invalid operation. */
   uploadPicture() {
     return this.invalidOperation()
   }
@@ -318,7 +304,6 @@ class SmartAsset<T extends backend.AnyAsset = backend.AnyAsset>
         return
       }
       case backend.AssetType.project: {
-        LocalBackend.projects.delete(typeAndId.id)
         try {
           await this.projectManager.deleteProject({
             projectId: typeAndId.id,
@@ -404,10 +389,9 @@ class SmartDirectory extends SmartAsset<backend.DirectoryAsset> implements backe
               permissions: [],
               projectState: {
                 type:
-                  LocalBackend.projects.get(entry.metadata.id)?.state ??
+                  this.projectManager.projects.get(entry.metadata.id)?.state ??
                   backend.ProjectState.closed,
-                // eslint-disable-next-line @typescript-eslint/naming-convention
-                volume_id: '',
+                volumeId: '',
                 path: entry.path,
               },
               labels: [],
@@ -494,9 +478,9 @@ class SmartDirectory extends SmartAsset<backend.DirectoryAsset> implements backe
   }
 
   /** Create a {@link SmartProject} that is to be uploaded on the backend via `.materialize()` */
-  createPlaceholderProject(
+  createPlaceholderProjectFromFile(
     title: string,
-    fileOrTemplateName: File | string | null,
+    file: File,
     permissions: backend.UserPermission[]
   ): backend.SmartProject {
     const result = new SmartProject(this.projectManager, {
@@ -506,77 +490,80 @@ class SmartDirectory extends SmartAsset<backend.DirectoryAsset> implements backe
       modifiedAt: dateTime.toRfc3339(new Date()),
       parentId: this.value.id,
       permissions,
-      projectState: {
-        type: backend.ProjectState.placeholder,
-        // eslint-disable-next-line @typescript-eslint/naming-convention
-        volume_id: '',
-      },
+      projectState: { type: backend.ProjectState.placeholder, volumeId: '' },
       labels: [],
       description: null,
     })
-    if (fileOrTemplateName instanceof File) {
-      const directory = extractTypeAndId(this.value.id).id
-      result.materialize = overwriteMaterialize(result, async () => {
-        let id: string
-        if (
-          'backendApi' in window &&
-          // This non-standard property is defined in Electron.
-          'path' in fileOrTemplateName &&
-          typeof fileOrTemplateName.path === 'string'
-        ) {
-          id = await window.backendApi.importProjectFromPath(
-            fileOrTemplateName.path,
-            directory,
-            title
-          )
-        } else {
-          const searchParams = new URLSearchParams({ directory, name: title }).toString()
-          // Ideally this would use `fileOrTemplateName.stream()`, to minimize RAM
-          // requirements. for uploading large projects. Unfortunately,
-          // this requires HTTP/2, which is HTTPS-only, so it will not
-          // work on `http://localhost`.
-          const body =
-            window.location.protocol === 'https:'
-              ? fileOrTemplateName.stream()
-              : await fileOrTemplateName.arrayBuffer()
-          // FIXME: fix leading path
-          const path = `./api/upload-project?${searchParams}`
-          const response = await fetch(path, { method: 'POST', body })
-          id = await response.text()
-        }
-        return result.withValue(
-          object.merge(result.value, {
-            id: newProjectId(projectManager.UUID(id)),
-            projectState: {
-              type: backend.ProjectState.closed,
-              // eslint-disable-next-line @typescript-eslint/naming-convention
-              volume_id: '',
-              path: projectManager.joinPath(directory, title),
-            },
-          })
-        )
-      })
-    } else {
-      result.materialize = overwriteMaterialize(result, async () => {
-        const project = await this.projectManager.createProject({
-          name: projectManager.ProjectName(title),
-          ...(fileOrTemplateName != null ? { projectTemplate: fileOrTemplateName } : {}),
-          missingComponentAction: projectManager.MissingComponentAction.install,
+    const directory = extractTypeAndId(this.value.id).id
+    result.materialize = overwriteMaterialize(result, async () => {
+      let id: string
+      if (
+        'backendApi' in window &&
+        // This non-standard property is defined in Electron.
+        'path' in file &&
+        typeof file.path === 'string'
+      ) {
+        id = await window.backendApi.importProjectFromPath(file.path, directory, title)
+      } else {
+        const searchParams = new URLSearchParams({ directory, name: title }).toString()
+        // Ideally this would use `fileOrTemplateName.stream()`, to minimize RAM
+        // requirements. for uploading large projects. Unfortunately,
+        // this requires HTTP/2, which is HTTPS-only, so it will not
+        // work on `http://localhost`.
+        const body =
+          window.location.protocol === 'https:' ? file.stream() : await file.arrayBuffer()
+        const path = `./api/upload-project?${searchParams}`
+        const response = await fetch(path, { method: 'POST', body })
+        id = await response.text()
+      }
+      const path = projectManager.joinPath(directory, title)
+      return result.withValue(
+        object.merge(result.value, {
+          id: newProjectId(projectManager.UUID(id)),
+          projectState: { type: backend.ProjectState.closed, volumeId: '', path },
         })
-        const path = extractTypeAndId(this.value.id).id
-        return result.withValue(
-          object.merge(result.value, {
-            id: newProjectId(project.projectId),
-            projectState: {
-              type: backend.ProjectState.closed,
-              // eslint-disable-next-line @typescript-eslint/naming-convention
-              volume_id: '',
-              path: projectManager.joinPath(path, title),
-            },
-          })
-        )
+      )
+    })
+    return result
+  }
+
+  /** Invalid operation. */
+  createPlaceholderProjectFromDataLinkId() {
+    return this.invalidOperation()
+  }
+
+  /** Create a {@link SmartProject} that is to be uploaded on the backend via `.materialize()` */
+  createPlaceholderProjectFromTemplateName(
+    title: string,
+    templateName: string | null,
+    permissions: backend.UserPermission[]
+  ): backend.SmartProject {
+    const result = new SmartProject(this.projectManager, {
+      type: backend.AssetType.project,
+      id: backend.ProjectId(`${backend.AssetType.project}-${uniqueString.uniqueString()}`),
+      title,
+      modifiedAt: dateTime.toRfc3339(new Date()),
+      parentId: this.value.id,
+      permissions,
+      projectState: { type: backend.ProjectState.placeholder, volumeId: '' },
+      labels: [],
+      description: null,
+    })
+    result.materialize = overwriteMaterialize(result, async () => {
+      const project = await this.projectManager.createProject({
+        name: projectManager.ProjectName(title),
+        ...(templateName != null ? { projectTemplate: templateName } : {}),
+        missingComponentAction: projectManager.MissingComponentAction.install,
       })
-    }
+      const directoryPath = extractTypeAndId(this.value.id).id
+      const path = projectManager.joinPath(directoryPath, title)
+      return result.withValue(
+        object.merge(result.value, {
+          id: newProjectId(project.projectId),
+          projectState: { type: backend.ProjectState.closed, volumeId: '', path },
+        })
+      )
+    })
     return result
   }
 
@@ -622,31 +609,26 @@ class SmartProject extends SmartAsset<backend.ProjectAsset> implements backend.S
   /** Set a project to an open state. */
   async open(): Promise<void> {
     const { id } = extractTypeAndId(this.value.id)
-    if (!LocalBackend.projects.has(id)) {
-      try {
-        LocalBackend.projects.set(id, { state: backend.ProjectState.openInProgress })
-        const data = await this.projectManager.openProject({
-          projectId: id,
-          missingComponentAction: projectManager.MissingComponentAction.install,
-        })
-        LocalBackend.projects.set(id, { state: backend.ProjectState.opened, data })
-        return
-      } catch (error) {
-        throw new Error(
-          `Could not open project '${this.value.title}': ${
-            errorModule.getMessageOrToString(error) ?? 'unknown error'
-          }.`
-        )
-      }
+    try {
+      await this.projectManager.openProject({
+        projectId: id,
+        missingComponentAction: projectManager.MissingComponentAction.install,
+      })
+      return
+    } catch (error) {
+      throw new Error(
+        `Could not open project '${this.value.title}': ${
+          errorModule.getMessageOrToString(error) ?? 'unknown error'
+        }.`
+      )
     }
   }
 
   /** Return project details. */
   async getDetails(): Promise<backend.Project> {
     const { id } = extractTypeAndId(this.value.id)
-    const state = LocalBackend.projects.get(id)
-    const cachedProject = state?.state === backend.ProjectState.opened ? state.data : null
-    if (cachedProject == null) {
+    const state = this.projectManager.projects.get(id)
+    if (state == null) {
       const directoryId = extractTypeAndId(this.value.parentId).id
       const entries = await this.projectManager.listDirectory(directoryId)
       const project = entries
@@ -674,13 +656,13 @@ class SmartProject extends SmartAsset<backend.ProjectAsset> implements backend.S
           packageName: project.name,
           projectId: this.value.id,
           state: {
-            type: LocalBackend.projects.get(id)?.state ?? backend.ProjectState.closed,
-            // eslint-disable-next-line @typescript-eslint/naming-convention
-            volume_id: '',
+            type: this.projectManager.projects.get(id)?.state ?? backend.ProjectState.closed,
+            volumeId: '',
           },
         }
       }
     } else {
+      const cachedProject = await state.data
       return {
         name: cachedProject.projectName,
         engineVersion: {
@@ -698,8 +680,7 @@ class SmartProject extends SmartAsset<backend.ProjectAsset> implements backend.S
         projectId: this.value.id,
         state: {
           type: backend.ProjectState.opened,
-          // eslint-disable-next-line @typescript-eslint/naming-convention
-          volume_id: '',
+          volumeId: '',
         },
       }
     }
@@ -751,7 +732,6 @@ class SmartProject extends SmartAsset<backend.ProjectAsset> implements backend.S
   /** Close a project. */
   async close(): Promise<void> {
     const { id } = extractTypeAndId(this.value.id)
-    LocalBackend.projects.delete(id)
     try {
       await this.projectManager.closeProject({ projectId: id })
       return
@@ -785,19 +765,33 @@ class SmartFile extends SmartAsset<backend.FileAsset> implements backend.SmartFi
 /** Class for sending requests to the Project Manager API endpoints.
  * This is used instead of the cloud backend API when managing local projects from the dashboard. */
 export default class LocalBackend extends Backend {
-  static projects = new Map<projectManager.UUID, ProjectState>()
   readonly type = backend.BackendType.local
   private readonly projectManager: ProjectManager
 
   /** Create a {@link LocalBackend}. */
-  constructor(projectManagerUrl: string | null) {
+  constructor(projectManagerUrl: string, projectManagerRootDirectory: projectManager.Path) {
     super()
-    this.projectManager = ProjectManager.default(projectManagerUrl)
+    this.projectManager = new ProjectManager(projectManagerUrl, projectManagerRootDirectory)
     if (detect.IS_DEV_MODE) {
       // @ts-expect-error This exists only for debugging purposes. It does not have types
       // because it MUST NOT be used in this codebase.
       window.localBackend = this
     }
+  }
+
+  /** Return details for the current user. */
+  override self(): Promise<SmartUser> {
+    return Promise.resolve(
+      new SmartUser(this.projectManager, {
+        email: backend.EmailAddress(''),
+        userId: backend.UserId('user-local'),
+        organizationId: backend.OrganizationId('organization-local'),
+        isEnabled: false,
+        rootDirectoryId: newDirectoryId(this.projectManager.rootDirectory),
+        name: 'Local User',
+        profilePicture: null,
+      })
+    )
   }
 
   /** Get the project identified by the given project ID.
@@ -825,20 +819,17 @@ export default class LocalBackend extends Backend {
     title: string | null
   ): Promise<void> {
     const { id } = extractTypeAndId(projectId)
-    if (!LocalBackend.projects.has(id)) {
-      LocalBackend.projects.set(id, { state: backend.ProjectState.openInProgress })
+    if (!this.projectManager.projects.has(id)) {
       try {
-        const data = await this.projectManager.openProject({
+        await this.projectManager.openProject({
           projectId: id,
           missingComponentAction: projectManager.MissingComponentAction.install,
           ...(body?.parentId != null
             ? { projectsDirectory: extractTypeAndId(body.parentId).id }
             : {}),
         })
-        LocalBackend.projects.set(id, { state: backend.ProjectState.opened, data })
         return
       } catch (error) {
-        LocalBackend.projects.delete(id)
         throw new Error(
           `Could not open project ${title != null ? `'${title}'` : `with ID '${projectId}'`}: ${
             errorModule.getMessageOrToString(error) ?? 'unknown error'
@@ -860,21 +851,6 @@ export default class LocalBackend extends Backend {
   /** Invalid operation. */
   override createUser() {
     return this.invalidOperation()
-  }
-
-  /** Return details for the current user. */
-  override self(): Promise<SmartUser> {
-    return Promise.resolve(
-      new SmartUser(this.projectManager, {
-        email: backend.EmailAddress(''),
-        userId: backend.UserId('user-local'),
-        organizationId: backend.OrganizationId('organization-local'),
-        isEnabled: false,
-        rootDirectoryId: newDirectoryId(ProjectManager.rootDirectory),
-        name: 'Local User',
-        profilePicture: null,
-      })
-    )
   }
 
   /** Invalid operation. */

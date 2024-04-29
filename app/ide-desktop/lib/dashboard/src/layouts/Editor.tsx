@@ -1,11 +1,14 @@
 /** @file The container that launches the IDE. */
 import * as React from 'react'
 
+import * as load from 'enso-common/src/load'
+
+import * as appUtils from '#/appUtils'
+
+import * as gtagHooks from '#/hooks/gtagHooks'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
 import * as backendModule from '#/services/Backend'
-
-import * as load from '#/utilities/load'
 
 // =================
 // === Constants ===
@@ -37,6 +40,9 @@ export interface EditorProps {
 export default function Editor(props: EditorProps) {
   const { hidden, supportsLocalBackend, projectStartupInfo, appRunner } = props
   const toastAndLog = toastAndLogHooks.useToastAndLog()
+  const gtagEvent = gtagHooks.useGtagEvent()
+  const gtagEventRef = React.useRef(gtagEvent)
+  gtagEventRef.current = gtagEvent
   const [initialized, setInitialized] = React.useState(supportsLocalBackend)
 
   React.useEffect(() => {
@@ -45,6 +51,14 @@ export default function Editor(props: EditorProps) {
       ideElement.style.display = hidden ? 'none' : ''
     }
   }, [hidden])
+
+  React.useEffect(() => {
+    if (hidden) {
+      return
+    } else {
+      return gtagHooks.gtagOpenCloseCallback(gtagEventRef, 'open_workflow', 'close_workflow')
+    }
+  }, [projectStartupInfo, hidden])
 
   let hasEffectRun = false
 
@@ -104,12 +118,7 @@ export default function Editor(props: EditorProps) {
                     wasmUrl: `${assetsRoot}pkg-opt.wasm`,
                     jsUrl: `${assetsRoot}pkg${JS_EXTENSION[backendType]}`,
                   },
-                  engine: {
-                    ...engineConfig,
-                    ...(details.engineVersion != null
-                      ? { preferredVersion: details.engineVersion.value }
-                      : {}),
-                  },
+                  engine: engineConfig,
                   startup: {
                     project: details.packageName,
                     displayedProjectName: details.name,
@@ -119,7 +128,10 @@ export default function Editor(props: EditorProps) {
                   },
                 },
                 accessToken,
-                { projectId: details.projectId }
+                {
+                  projectId: projectStartupInfo.projectAsset.value.id,
+                  ignoreParamsRegex: new RegExp(`^${appUtils.SEARCH_PARAMS_PREFIX}(.+)$`),
+                }
               )
             } catch (error) {
               toastAndLog('openEditorError', error)

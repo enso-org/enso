@@ -142,6 +142,8 @@ declare global {
             // @ts-expect-error The index signature is intentional to disallow unknown env vars.
             readonly ENSO_CLOUD_COGNITO_REGION?: string
             // @ts-expect-error The index signature is intentional to disallow unknown env vars.
+            readonly ENSO_CLOUD_GOOGLE_ANALYTICS_TAG?: string
+            // @ts-expect-error The index signature is intentional to disallow unknown env vars.
             readonly ENSO_SUPPORTS_VIBRANCY?: string
 
             // === Electron watch script variables ===
@@ -150,13 +152,14 @@ declare global {
             readonly ELECTRON_DEV_MODE?: string
             // @ts-expect-error The index signature is intentional to disallow unknown env vars.
             readonly GUI_CONFIG_PATH?: string
+            // @ts-expect-error The index signature is intentional to disallow unknown env vars.
+            readonly NODE_MODULES_PATH?: string
             /* eslint-enable @typescript-eslint/naming-convention */
         }
     }
 
     // These are used in other files (because they're globals)
     /* eslint-disable @typescript-eslint/naming-convention */
-    const BUNDLED_ENGINE_VERSION: string
     const BUILD_INFO: buildJson.BuildInfo
     const PROJECT_MANAGER_IN_BUNDLE_PATH: string
     const IS_VITE: boolean

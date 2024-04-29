@@ -1,12 +1,11 @@
-package org.enso.compiler.test.context
-
-import org.enso.compiler.context.SuggestionBuilder
+import org.enso.compiler.suggestions.SuggestionBuilder
 import org.enso.compiler.core.ir.Module
 import org.enso.interpreter.runtime
 import org.enso.interpreter.runtime.EnsoContext
 import org.enso.interpreter.test.InterpreterContext
 import org.enso.pkg.QualifiedName
-import org.enso.polyglot.{LanguageInfo, MethodNames, Suggestion}
+import org.enso.common.{LanguageInfo, MethodNames}
+import org.enso.polyglot.Suggestion
 import org.enso.polyglot.data.Tree
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpecLike
@@ -774,7 +773,7 @@ class SuggestionBuilderTest extends AnyWordSpecLike with Matchers {
           |
           |type Auto
           |
-          |foo : Text | Boolean | Value | Auto -> Any
+          |foo : Text | Boolean | Value | Auto -> Value
           |foo a = a
           |""".stripMargin
       val module = code.preprocessModule
@@ -854,7 +853,314 @@ class SuggestionBuilderTest extends AnyWordSpecLike with Matchers {
                 )
               ),
               selfType      = "Unnamed.Test",
-              returnType    = "Any",
+              returnType    = "Unnamed.Test.Value",
+              isStatic      = true,
+              documentation = None,
+              annotations   = Seq()
+            ),
+            Vector()
+          )
+        )
+      )
+    }
+
+    "build argument tag values from ascribed type" in {
+
+      val code =
+        """type Value
+          |    A
+          |    B
+          |
+          |type Auto
+          |
+          |foo (a : Value | Auto) = a
+          |""".stripMargin
+      val module = code.preprocessModule
+
+      build(code, module) shouldEqual Tree.Root(
+        Vector(
+          ModuleNode,
+          Tree.Node(
+            Suggestion.Type(
+              externalId    = None,
+              module        = "Unnamed.Test",
+              name          = "Value",
+              params        = Seq(),
+              returnType    = "Unnamed.Test.Value",
+              parentType    = Some(SuggestionBuilder.Any),
+              documentation = None
+            ),
+            Vector()
+          ),
+          Tree.Node(
+            Suggestion.Constructor(
+              externalId    = None,
+              module        = "Unnamed.Test",
+              name          = "A",
+              arguments     = Seq(),
+              returnType    = "Unnamed.Test.Value",
+              documentation = None,
+              annotations   = Seq()
+            ),
+            Vector()
+          ),
+          Tree.Node(
+            Suggestion.Constructor(
+              externalId    = None,
+              module        = "Unnamed.Test",
+              name          = "B",
+              arguments     = Seq(),
+              returnType    = "Unnamed.Test.Value",
+              documentation = None,
+              annotations   = Seq()
+            ),
+            Vector()
+          ),
+          Tree.Node(
+            Suggestion.Type(
+              externalId    = None,
+              module        = "Unnamed.Test",
+              name          = "Auto",
+              params        = Seq(),
+              returnType    = "Unnamed.Test.Auto",
+              parentType    = Some(SuggestionBuilder.Any),
+              documentation = None
+            ),
+            Vector()
+          ),
+          Tree.Node(
+            Suggestion.DefinedMethod(
+              externalId = None,
+              module     = "Unnamed.Test",
+              name       = "foo",
+              arguments = Seq(
+                Suggestion.Argument(
+                  "a",
+                  "Unnamed.Test.Value | Unnamed.Test.Auto",
+                  false,
+                  false,
+                  None,
+                  Some(Seq("..A", "..B", "Unnamed.Test.Auto"))
+                )
+              ),
+              selfType      = "Unnamed.Test",
+              returnType    = SuggestionBuilder.Any,
+              isStatic      = true,
+              documentation = None,
+              annotations   = Seq()
+            ),
+            Vector()
+          )
+        )
+      )
+    }
+
+    "build argument tag values from ascribed type and type signature" in {
+
+      val code =
+        """type Value
+          |    A
+          |    B
+          |
+          |type Auto
+          |
+          |foo : Value | Auto -> Value | Auto
+          |foo (a : Value | Auto) = a
+          |""".stripMargin
+      val module = code.preprocessModule
+
+      build(code, module) shouldEqual Tree.Root(
+        Vector(
+          ModuleNode,
+          Tree.Node(
+            Suggestion.Type(
+              externalId    = None,
+              module        = "Unnamed.Test",
+              name          = "Value",
+              params        = Seq(),
+              returnType    = "Unnamed.Test.Value",
+              parentType    = Some(SuggestionBuilder.Any),
+              documentation = None
+            ),
+            Vector()
+          ),
+          Tree.Node(
+            Suggestion.Constructor(
+              externalId    = None,
+              module        = "Unnamed.Test",
+              name          = "A",
+              arguments     = Seq(),
+              returnType    = "Unnamed.Test.Value",
+              documentation = None,
+              annotations   = Seq()
+            ),
+            Vector()
+          ),
+          Tree.Node(
+            Suggestion.Constructor(
+              externalId    = None,
+              module        = "Unnamed.Test",
+              name          = "B",
+              arguments     = Seq(),
+              returnType    = "Unnamed.Test.Value",
+              documentation = None,
+              annotations   = Seq()
+            ),
+            Vector()
+          ),
+          Tree.Node(
+            Suggestion.Type(
+              externalId    = None,
+              module        = "Unnamed.Test",
+              name          = "Auto",
+              params        = Seq(),
+              returnType    = "Unnamed.Test.Auto",
+              parentType    = Some(SuggestionBuilder.Any),
+              documentation = None
+            ),
+            Vector()
+          ),
+          Tree.Node(
+            Suggestion.DefinedMethod(
+              externalId = None,
+              module     = "Unnamed.Test",
+              name       = "foo",
+              arguments = Seq(
+                Suggestion.Argument(
+                  "a",
+                  "Unnamed.Test.Value | Unnamed.Test.Auto",
+                  false,
+                  false,
+                  None,
+                  Some(Seq("..A", "..B", "Unnamed.Test.Auto"))
+                )
+              ),
+              selfType      = "Unnamed.Test",
+              returnType    = "Unnamed.Test.Value | Unnamed.Test.Auto",
+              isStatic      = true,
+              documentation = None,
+              annotations   = Seq()
+            ),
+            Vector()
+          )
+        )
+      )
+    }
+
+    "build argument tag values checking if autoscoped constructors are distinct" in {
+
+      val code =
+        """type T
+          |    A
+          |    B
+          |
+          |type K
+          |    B
+          |    C
+          |
+          |foo (a : T | K) = a
+          |""".stripMargin
+      val module = code.preprocessModule
+
+      build(code, module) shouldEqual Tree.Root(
+        Vector(
+          ModuleNode,
+          Tree.Node(
+            Suggestion.Type(
+              externalId    = None,
+              module        = "Unnamed.Test",
+              name          = "T",
+              params        = Seq(),
+              returnType    = "Unnamed.Test.T",
+              parentType    = Some(SuggestionBuilder.Any),
+              documentation = None
+            ),
+            Vector()
+          ),
+          Tree.Node(
+            Suggestion.Constructor(
+              externalId    = None,
+              module        = "Unnamed.Test",
+              name          = "A",
+              arguments     = Seq(),
+              returnType    = "Unnamed.Test.T",
+              documentation = None,
+              annotations   = Seq()
+            ),
+            Vector()
+          ),
+          Tree.Node(
+            Suggestion.Constructor(
+              externalId    = None,
+              module        = "Unnamed.Test",
+              name          = "B",
+              arguments     = Seq(),
+              returnType    = "Unnamed.Test.T",
+              documentation = None,
+              annotations   = Seq()
+            ),
+            Vector()
+          ),
+          Tree.Node(
+            Suggestion.Type(
+              externalId    = None,
+              module        = "Unnamed.Test",
+              name          = "K",
+              params        = Seq(),
+              returnType    = "Unnamed.Test.K",
+              parentType    = Some(SuggestionBuilder.Any),
+              documentation = None
+            ),
+            Vector()
+          ),
+          Tree.Node(
+            Suggestion.Constructor(
+              externalId    = None,
+              module        = "Unnamed.Test",
+              name          = "B",
+              arguments     = Seq(),
+              returnType    = "Unnamed.Test.K",
+              documentation = None,
+              annotations   = Seq()
+            ),
+            Vector()
+          ),
+          Tree.Node(
+            Suggestion.Constructor(
+              externalId    = None,
+              module        = "Unnamed.Test",
+              name          = "C",
+              arguments     = Seq(),
+              returnType    = "Unnamed.Test.K",
+              documentation = None,
+              annotations   = Seq()
+            ),
+            Vector()
+          ),
+          Tree.Node(
+            Suggestion.DefinedMethod(
+              externalId = None,
+              module     = "Unnamed.Test",
+              name       = "foo",
+              arguments = Seq(
+                Suggestion.Argument(
+                  "a",
+                  "Unnamed.Test.T | Unnamed.Test.K",
+                  false,
+                  false,
+                  None,
+                  Some(
+                    Seq(
+                      "Unnamed.Test.T.A",
+                      "Unnamed.Test.T.B",
+                      "Unnamed.Test.K.B",
+                      "Unnamed.Test.K.C"
+                    )
+                  )
+                )
+              ),
+              selfType      = "Unnamed.Test",
+              returnType    = SuggestionBuilder.Any,
               isStatic      = true,
               documentation = None,
               annotations   = Seq()
@@ -1230,8 +1536,8 @@ class SuggestionBuilderTest extends AnyWordSpecLike with Matchers {
                     Some("Boolean.True"),
                     Some(
                       List(
-                        "Standard.Base.Data.Boolean.Boolean.True",
-                        "Standard.Base.Data.Boolean.Boolean.False"
+                        "..True",
+                        "..False"
                       )
                     )
                   )
@@ -2333,7 +2639,7 @@ class SuggestionBuilderTest extends AnyWordSpecLike with Matchers {
                   false,
                   false,
                   None,
-                  Some(Seq("Unnamed.Test.S.X", "Unnamed.Test.S.Y"))
+                  Some(Seq("..X", "..Y"))
                 )
               ),
               returnType    = "Unnamed.Test.T",
@@ -3416,6 +3722,10 @@ class SuggestionBuilderTest extends AnyWordSpecLike with Matchers {
     source: String,
     ir: Module,
     module: QualifiedName = Module
-  ): Tree.Root[Suggestion] =
-    SuggestionBuilder(source, langCtx.getCompiler).build(module, ir)
+  ): Tree.Root[Suggestion] = {
+    val compiler = langCtx.getCompiler
+    val types =
+      org.enso.interpreter.runtime.Module.findTypeHierarchy(compiler.context)
+    SuggestionBuilder(source, types, compiler).build(module, ir)
+  }
 }

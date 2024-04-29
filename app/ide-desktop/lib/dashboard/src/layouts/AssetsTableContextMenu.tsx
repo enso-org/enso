@@ -21,7 +21,7 @@ import ConfirmDeleteModal from '#/modals/ConfirmDeleteModal'
 
 import * as backendModule from '#/services/Backend'
 
-import type AssetTreeNode from '#/utilities/AssetTreeNode'
+import type * as assetTreeNode from '#/utilities/AssetTreeNode'
 import * as permissions from '#/utilities/permissions'
 import * as uniqueString from '#/utilities/uniqueString'
 
@@ -37,13 +37,15 @@ export interface AssetsTableContextMenuProps {
   readonly hasPasteData: boolean
   readonly selectedKeys: ReadonlySet<backendModule.AssetId>
   readonly clearSelectedKeys: () => void
-  readonly nodeMapRef: React.MutableRefObject<ReadonlyMap<backendModule.AssetId, AssetTreeNode>>
+  readonly nodeMapRef: React.MutableRefObject<
+    ReadonlyMap<backendModule.AssetId, assetTreeNode.AnyAssetTreeNode>
+  >
   readonly event: Pick<React.MouseEvent<Element, MouseEvent>, 'pageX' | 'pageY'>
   readonly dispatchAssetEvent: (event: assetEvent.AssetEvent) => void
   readonly dispatchAssetListEvent: (event: assetListEvent.AssetListEvent) => void
   readonly doCopy: () => void
   readonly doCut: () => void
-  readonly doPaste: (newParentKey: backendModule.AssetId) => void
+  readonly doPaste: (newParentKey: backendModule.DirectoryId) => void
 }
 
 /** A context menu for an `AssetsTable`, when no row is selected, or multiple rows
@@ -185,7 +187,7 @@ export default function AssetsTableContextMenu(props: AssetsTableContextMenuProp
                     selectedKeys.size === 1 && firstKey != null
                       ? nodeMapRef.current.get(firstKey)
                       : null
-                  if (selectedNode?.item.type === backendModule.AssetType.directory) {
+                  if (selectedNode?.type === backendModule.AssetType.directory) {
                     doPaste(selectedNode.key)
                   } else if (rootDirectory != null) {
                     doPaste(rootDirectory.value.id)

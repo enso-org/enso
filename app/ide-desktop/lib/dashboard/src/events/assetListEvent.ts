@@ -62,7 +62,8 @@ interface AssetListNewProjectEvent extends AssetListBaseEvent<AssetListEventType
   readonly parentKey: backend.DirectoryId
   readonly parent: backend.SmartDirectory
   readonly templateId: string | null
-  readonly templateName: string | null
+  readonly datalinkId: backend.ConnectorId | null
+  readonly preferredName: string | null
   readonly onSpinnerStateChange: ((state: spinner.SpinnerState) => void) | null
 }
 
@@ -93,7 +94,7 @@ interface AssetListNewSecretEvent extends AssetListBaseEvent<AssetListEventType.
 interface AssetListInsertAssetsEvent extends AssetListBaseEvent<AssetListEventType.insertAssets> {
   readonly parentKey: backend.DirectoryId
   readonly parent: backend.SmartDirectory
-  readonly assets: backend.AnySmartAsset[]
+  readonly assets: readonly backend.AnySmartAsset[]
 }
 
 /** A signal to close (collapse) a folder. */
@@ -104,15 +105,15 @@ interface AssetListCloseFolderEvent extends AssetListBaseEvent<AssetListEventTyp
 
 /** A signal that files should be copied. */
 interface AssetListCopyEvent extends AssetListBaseEvent<AssetListEventType.copy> {
-  readonly newParentKey: backend.AssetId
+  readonly newParentKey: backend.DirectoryId
   readonly newParent: backend.SmartDirectory
-  readonly items: backend.AnySmartAsset[]
+  readonly items: readonly backend.AnySmartAsset[]
 }
 
 /** A signal that a file has been moved. */
 interface AssetListMoveEvent extends AssetListBaseEvent<AssetListEventType.move> {
   readonly key: backend.AssetId
-  readonly newParentKey: backend.AssetId
+  readonly newParentKey: backend.DirectoryId
   readonly newParent: backend.SmartDirectory
   readonly item: backend.AnySmartAsset
 }

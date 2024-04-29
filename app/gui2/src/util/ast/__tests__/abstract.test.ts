@@ -867,16 +867,26 @@ test.each([
   ['\\x20', ' ', ' '],
   ['\\b', '\b'],
   ['abcdef_123', 'abcdef_123'],
-  ['\\t\\r\\n\\v\\"\\\'\\`', '\t\r\n\v"\'`'],
-  ['\\u00B6\\u{20}\\U\\u{D8\\xBFF}', '\xB6 \0\xD8\xBFF}', '\xB6 \\0\xD8\xBFF}'],
+  ["\\t\\r\\n\\v\\'\\`", "\t\r\n\v'`", "\\t\\r\\n\\v\\'\\`"],
+  // Escaping a double quote is allowed, but not necessary.
+  ['\\"', '"', '"'],
+  // Undefined/malformed escape sequences are left unevaluated, and properly escaped when normalized.
+  ['\\q\\u', '\\q\\u', '\\\\q\\\\u'],
+  ['\\u00B6\\u{20}\\U\\u{D8\\xBFF}', '\xB6 \\U\xD8\xBFF}', '\xB6 \\\\U\xD8\xBFF}'],
   ['\\`foo\\` \\`bar\\` \\`baz\\`', '`foo` `bar` `baz`'],
+  // Enso source code must be valid UTF-8 (per the specification), so Unicode unpaired surrogates must be escaped.
+  ['\\uDEAD', '\uDEAD', '\\u{dead}'],
 ])(
   'Applying and escaping text literal interpolation',
-  (escapedText: string, rawText: string, roundtrip?: string) => {
+  (escapedText: string, rawText: string, normalizedEscapedText?: string) => {
+    if (normalizedEscapedText != null) {
+      // If `normalizedEscapedText` is provided, it must be a representation of the same raw value as `escapedText`.
+      const rawTextFromNormalizedInput = unescapeTextLiteral(normalizedEscapedText)
+      expect(rawTextFromNormalizedInput).toBe(rawText)
+    }
     const actualApplied = unescapeTextLiteral(escapedText)
     const actualEscaped = escapeTextLiteral(rawText)
-
-    expect(actualEscaped).toBe(roundtrip ?? escapedText)
+    expect(actualEscaped).toBe(normalizedEscapedText ?? escapedText)
     expect(actualApplied).toBe(rawText)
   },
 )

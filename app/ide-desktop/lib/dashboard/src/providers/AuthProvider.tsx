@@ -10,9 +10,12 @@ import isNetworkError from 'is-network-error'
 import * as router from 'react-router-dom'
 import * as toast from 'react-toastify'
 
+import * as detect from 'enso-common/src/detect'
 import * as gtag from 'enso-common/src/gtag'
 
 import * as appUtils from '#/appUtils'
+
+import * as gtagHooks from '#/hooks/gtagHooks'
 
 import * as localStorageProvider from '#/providers/LocalStorageProvider'
 import * as loggerProvider from '#/providers/LoggerProvider'
@@ -120,11 +123,24 @@ interface AuthContextType {
   readonly changePassword: (oldPassword: string, newPassword: string) => Promise<boolean>
   readonly resetPassword: (email: string, code: string, password: string) => Promise<boolean>
   readonly signOut: () => Promise<boolean>
+  readonly restoreUser: (backend: Backend) => Promise<boolean>
   /** Session containing the currently authenticated user's authentication information.
    *
    * If the user has not signed in, the session will be `null`. */
   readonly session: UserSession | null
   readonly setUser: React.Dispatch<React.SetStateAction<backendModule.User>>
+  /**
+   * Return `true` if the user is marked for deletion.
+   */
+  readonly isUserMarkedForDeletion: () => boolean
+  /**
+   * Return `true` if the user is deleted completely.
+   */
+  readonly isUserDeleted: () => boolean
+  /**
+   * Return `true` if the user is soft deleted.
+   */
+  readonly isUserSoftDeleted: () => boolean
 }
 
 const AuthContext = React.createContext<AuthContextType | null>(null)
@@ -184,7 +200,7 @@ export default function AuthProvider(props: AuthProviderProps) {
     setInitialized(true)
     sentry.setUser(null)
     setUserSession(OFFLINE_USER_SESSION)
-    if (supportsLocalBackend) {
+    if (supportsLocalBackend && projectManagerUrl != null) {
       setBackendWithoutSavingType(new LocalBackend(projectManagerUrl))
     } else {
       // Provide dummy headers to avoid errors. This `Backend` will never be called as
@@ -222,6 +238,16 @@ export default function AuthProvider(props: AuthProviderProps) {
     },
     [userSession?.type]
   )
+  const gtagEventRef = React.useRef(gtagEvent)
+  gtagEventRef.current = gtagEvent
+
+  React.useEffect(() => {
+    gtag.gtag('set', {
+      platform: detect.platform(),
+      architecture: detect.architecture(),
+    })
+    return gtagHooks.gtagOpenCloseCallback(gtagEventRef, 'open_app', 'close_app')
+  }, [])
 
   // This is identical to `hooks.useOnlineCheck`, however it is inline here to avoid any possible
   // circular dependency.
@@ -511,6 +537,25 @@ export default function AuthProvider(props: AuthProviderProps) {
     }
   }
 
+  const restoreUser = async (currentBackend: Backend) => {
+    if (cognito == null) {
+      return false
+    } else {
+      if (currentBackend.type === backendModule.BackendType.local) {
+        toastError(getText('restoreUserLocalBackendError'))
+        return false
+      } else {
+        const self = await currentBackend.self()
+        await self?.restore()
+        setUser(object.merger({ removeAt: null }))
+        toastSuccess(getText('restoreUserSuccess'))
+        navigate(appUtils.DASHBOARD_PATH)
+
+        return true
+      }
+    }
+  }
+
   const forgotPassword = async (email: string) => {
     if (cognito == null) {
       return false
@@ -582,11 +627,38 @@ export default function AuthProvider(props: AuthProviderProps) {
     }
   }
 
+  const isUserMarkedForDeletion = () =>
+    !!(userSession && 'user' in userSession && userSession.user?.value.removeAt)
+
+  const isUserDeleted = () => {
+    if (userSession && 'user' in userSession && userSession.user?.value.removeAt) {
+      const removeAtDate = new Date(userSession.user.value.removeAt)
+      const now = new Date()
+      return removeAtDate <= now
+    } else {
+      return false
+    }
+  }
+
+  const isUserSoftDeleted = () => {
+    if (userSession && 'user' in userSession && userSession.user?.value.removeAt) {
+      const removeAtDate = new Date(userSession.user.value.removeAt)
+      const now = new Date()
+      return removeAtDate > now
+    } else {
+      return false
+    }
+  }
+
   const value = {
     goOffline: goOffline,
     signUp: withLoadingToast(signUp),
     confirmSignUp: withLoadingToast(confirmSignUp),
     setUsername,
+    isUserMarkedForDeletion,
+    isUserDeleted,
+    isUserSoftDeleted,
+    restoreUser,
     signInWithGoogle: () => {
       if (cognito == null) {
         return Promise.resolve(false)
@@ -735,6 +807,46 @@ export function GuestLayout() {
     }
   } else {
     return <router.Outlet />
+  }
+}
+
+/**
+ * A React Router layout route containing routes only accessible by users that are not deleted.
+ */
+export function NotDeletedUserLayout() {
+  const { session, isUserMarkedForDeletion } = useAuth()
+  const shouldPreventNavigation = getShouldPreventNavigation()
+
+  if (shouldPreventNavigation) {
+    return <router.Outlet context={session} />
+  } else {
+    if (isUserMarkedForDeletion()) {
+      return <router.Navigate to={appUtils.RESTORE_USER_PATH} />
+    } else {
+      return <router.Outlet context={session} />
+    }
+  }
+}
+
+/**
+ * A React Router layout route containing routes only accessible by users that are deleted softly
+ */
+export function SoftDeletedUserLayout() {
+  const { session, isUserMarkedForDeletion, isUserDeleted, isUserSoftDeleted } = useAuth()
+  const shouldPreventNavigation = getShouldPreventNavigation()
+
+  if (shouldPreventNavigation) {
+    return <router.Outlet context={session} />
+  } else if (isUserMarkedForDeletion()) {
+    const isSoftDeleted = isUserSoftDeleted()
+    const isDeleted = isUserDeleted()
+    if (isSoftDeleted) {
+      return <router.Outlet context={session} />
+    } else if (isDeleted) {
+      return <router.Navigate to={appUtils.LOGIN_PATH} />
+    } else {
+      return <router.Navigate to={appUtils.DASHBOARD_PATH} />
+    }
   }
 }
 

@@ -201,13 +201,13 @@ type Period
              example_to_json = (Period.new months=10).to_js_object
     to_js_object : JS_Object
     to_js_object self =
-        b = Vector.new_builder 7
-        b.append ["type", "Period"]
-        b.append ["constructor", "new"]
-        if self.years==0 . not then b.append ["years", self.years]
-        if self.months==0 . not then b.append ["months", self.months]
-        if self.days==0 . not then b.append ["days", self.days]
-        JS_Object.from_pairs b.to_vector
+        v = Vector.build initial_capacity=7 builder->
+            builder.append ["type", "Period"]
+            builder.append ["constructor", "new"]
+            if self.years==0 . not then builder.append ["years", self.years]
+            if self.months==0 . not then builder.append ["months", self.months]
+            if self.days==0 . not then builder.append ["days", self.days]
+        JS_Object.from_pairs v
 
 ## PRIVATE
 catch_java_exceptions operation ~action =

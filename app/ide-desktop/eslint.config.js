@@ -147,7 +147,7 @@ const RESTRICTED_SYNTAXES = [
         selector: `:matches(\
             TSUndefinedKeyword,\
             Identifier[name=undefined],\
-            UnaryExpression[operator=void]:not(:has(CallExpression.argument)), BinaryExpression[operator=/^===?$/]:has(UnaryExpression.left[operator=typeof]):has(Literal.right[value=undefined])\
+            UnaryExpression[operator=void]:not(:has(CallExpression)), BinaryExpression[operator=/^===?$/]:has(UnaryExpression.left[operator=typeof]):has(Literal.right[value=undefined])\
         )`,
         message: 'Use `null` instead of `undefined`, `void 0`, or `typeof x === "undefined"`',
     },

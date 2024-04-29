@@ -32,17 +32,23 @@ export interface FileNameColumnProps extends column.AssetColumnProps {}
  * @throws {Error} when the asset is not a {@link backendModule.FileAsset}.
  * This should never happen. */
 export default function FileNameColumn(props: FileNameColumnProps) {
-  const { item, setItem, selected, state, rowState, setRowState } = props
+  const { item, setItem, selected, state, rowState, setRowState, isEditable } = props
   const { nodeMap, assetEvents } = state
   const toastAndLog = toastAndLogHooks.useToastAndLog()
   const inputBindings = inputBindingsProvider.useInputBindings()
-  const smartAsset = item.item
-  if (smartAsset.type !== backendModule.AssetType.file) {
+  if (item.type !== backendModule.AssetType.file) {
     // eslint-disable-next-line no-restricted-syntax
     throw new Error('`FileNameColumn` can only display files.')
   }
+  const smartAsset = item.item
   const asset = smartAsset.value
   const setAsset = setAssetHooks.useSetAsset(asset, setItem)
+
+  const setIsEditing = (isEditingName: boolean) => {
+    if (isEditable) {
+      setRowState(object.merger({ isEditingName }))
+    }
+  }
 
   // TODO[sb]: Wait for backend implementation. `editable` should also be re-enabled, and the
   // context menu entry should be re-added.
@@ -51,32 +57,37 @@ export default function FileNameColumn(props: FileNameColumnProps) {
     return await Promise.resolve(null)
   }
 
-  eventHooks.useEventHandler(assetEvents, async event => {
-    switch (event.type) {
-      case AssetEventType.updateFiles: {
-        const file = event.files.get(item.item.value.id)
-        if (file != null) {
-          rowState.setVisibility(Visibility.faded)
-          try {
-            const createdFile = await smartAsset.update({ file })
-            rowState.setVisibility(Visibility.visible)
-            setAsset(createdFile.value)
-          } catch (error) {
-            toastAndLog(null, error)
+  eventHooks.useEventHandler(
+    assetEvents,
+    async event => {
+      switch (event.type) {
+        case AssetEventType.updateFiles: {
+          const file = event.files.get(item.item.value.id)
+          if (file != null) {
+            rowState.setVisibility(Visibility.faded)
+            try {
+              const createdFile = await smartAsset.update({ file })
+              rowState.setVisibility(Visibility.visible)
+              setAsset(createdFile.value)
+            } catch (error) {
+              toastAndLog(null, error)
+              break
+            }
             break
           }
+          break
         }
-        break
+        default: {
+          break
+        }
       }
-      default: {
-        break
-      }
-    }
-  })
+    },
+    { isDisabled: !isEditable }
+  )
 
   const handleClick = inputBindings.handler({
     editName: () => {
-      setRowState(object.merger({ isEditingName: true }))
+      setIsEditing(true)
     },
   })
 
@@ -94,7 +105,7 @@ export default function FileNameColumn(props: FileNameColumnProps) {
         if (handleClick(event)) {
           // Already handled.
         } else if (eventModule.isSingleClick(event) && selected) {
-          setRowState(object.merger({ isEditingName: true }))
+          setIsEditing(true)
         }
       }}
     >
@@ -116,7 +127,7 @@ export default function FileNameColumn(props: FileNameColumnProps) {
           )
         }
         onSubmit={async newTitle => {
-          setRowState(object.merger({ isEditingName: false }))
+          setIsEditing(false)
           if (newTitle !== asset.title) {
             const oldTitle = asset.title
             setAsset(object.merger({ title: newTitle }))
@@ -128,7 +139,7 @@ export default function FileNameColumn(props: FileNameColumnProps) {
           }
         }}
         onCancel={() => {
-          setRowState(object.merger({ isEditingName: false }))
+          setIsEditing(false)
         }}
       >
         {asset.title}

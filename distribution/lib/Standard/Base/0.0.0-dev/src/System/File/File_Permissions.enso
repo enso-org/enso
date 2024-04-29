@@ -24,26 +24,25 @@ type File_Permissions
        Converts the Enso atom to its Java enum counterpart.
     to_java : Vector PosixFilePermission
     to_java self =
-        result = Vector.new_builder
-        if self.owner.contains Permission.Read then
-            result.append PosixFilePermission.OWNER_READ
-        if self.owner.contains Permission.Write then
-            result.append PosixFilePermission.OWNER_WRITE
-        if self.owner.contains Permission.Execute then
-            result.append PosixFilePermission.OWNER_EXECUTE
-        if self.group.contains Permission.Read then
-            result.append PosixFilePermission.GROUP_READ
-        if self.group.contains Permission.Write then
-            result.append PosixFilePermission.GROUP_WRITE
-        if self.group.contains Permission.Execute then
-            result.append PosixFilePermission.GROUP_EXECUTE
-        if self.others.contains Permission.Read then
-            result.append PosixFilePermission.OTHERS_READ
-        if self.others.contains Permission.Write then
-            result.append PosixFilePermission.OTHERS_WRITE
-        if self.others.contains Permission.Execute then
-            result.append PosixFilePermission.OTHERS_EXECUTE
-        result.to_vector
+        Vector.new_builder result->
+            if self.owner.contains Permission.Read then
+                result.append PosixFilePermission.OWNER_READ
+            if self.owner.contains Permission.Write then
+                result.append PosixFilePermission.OWNER_WRITE
+            if self.owner.contains Permission.Execute then
+                result.append PosixFilePermission.OWNER_EXECUTE
+            if self.group.contains Permission.Read then
+                result.append PosixFilePermission.GROUP_READ
+            if self.group.contains Permission.Write then
+                result.append PosixFilePermission.GROUP_WRITE
+            if self.group.contains Permission.Execute then
+                result.append PosixFilePermission.GROUP_EXECUTE
+            if self.others.contains Permission.Read then
+                result.append PosixFilePermission.OTHERS_READ
+            if self.others.contains Permission.Write then
+                result.append PosixFilePermission.OTHERS_WRITE
+            if self.others.contains Permission.Execute then
+                result.append PosixFilePermission.OTHERS_EXECUTE
 
     ## GROUP Metadata
        ICON metadata

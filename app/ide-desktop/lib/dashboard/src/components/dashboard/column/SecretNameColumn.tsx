@@ -31,20 +31,26 @@ export interface SecretNameColumnProps extends column.AssetColumnProps {}
  * @throws {Error} when the asset is not a {@link backendModule.SecretAsset}.
  * This should never happen. */
 export default function SecretNameColumn(props: SecretNameColumnProps) {
-  const { item, selected, rowState, setRowState } = props
+  const { item, selected, rowState, setRowState, isEditable } = props
   const toastAndLog = toastAndLogHooks.useToastAndLog()
   const { setModal } = modalProvider.useSetModal()
   const inputBindings = inputBindingsProvider.useInputBindings()
-  const smartAsset = item.item
-  if (smartAsset.type !== backendModule.AssetType.secret) {
+  if (item.type !== backendModule.AssetType.secret) {
     // eslint-disable-next-line no-restricted-syntax
     throw new Error('`SecretNameColumn` can only display secrets.')
   }
+  const smartAsset = item.item
   const asset = smartAsset.value
+
+  const setIsEditing = (isEditingName: boolean) => {
+    if (isEditable) {
+      setRowState(object.merger({ isEditingName }))
+    }
+  }
 
   const handleClick = inputBindings.handler({
     editName: () => {
-      setRowState(object.merger({ isEditingName: true }))
+      setIsEditing(true)
     },
   })
 
@@ -62,8 +68,8 @@ export default function SecretNameColumn(props: SecretNameColumnProps) {
         if (handleClick(event)) {
           // Already handled.
         } else if (eventModule.isSingleClick(event) && selected) {
-          setRowState(object.merger({ isEditingName: true }))
-        } else if (eventModule.isDoubleClick(event)) {
+          setIsEditing(true)
+        } else if (eventModule.isDoubleClick(event) && isEditable) {
           event.stopPropagation()
           setModal(
             <UpsertSecretModal

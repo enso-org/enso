@@ -5,8 +5,6 @@ import CloseLargeIcon from 'enso-assets/close_large.svg'
 import FolderArrowIcon from 'enso-assets/folder_arrow.svg'
 import * as chat from 'enso-chat/chat'
 
-import * as gtagHooks from '#/hooks/gtagHooks'
-
 import * as aria from '#/components/aria'
 import SvgMask from '#/components/SvgMask'
 import UnstyledButton from '#/components/UnstyledButton'
@@ -33,7 +31,6 @@ export interface ChatHeaderProps {
 export default function ChatHeader(props: ChatHeaderProps) {
   const { threads, setThreads, threadId, threadTitle, setThreadTitle } = props
   const { switchThread, sendMessage, doClose } = props
-  const gtagEvent = gtagHooks.useGtagEvent()
   const [isThreadListVisible, setIsThreadListVisible] = React.useState(false)
   // These will never be `null` as their values are set immediately.
   // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
@@ -48,12 +45,10 @@ export default function ChatHeader(props: ChatHeaderProps) {
       setIsThreadListVisible(false)
     }
     document.addEventListener('click', onClick)
-    gtagEvent('cloud_open_chat')
     return () => {
       document.removeEventListener('click', onClick)
-      gtagEvent('cloud_close_chat')
     }
-  }, [gtagEvent])
+  }, [])
 
   return (
     <>

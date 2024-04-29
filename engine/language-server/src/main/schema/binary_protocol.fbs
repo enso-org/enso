@@ -13,10 +13,10 @@ union InboundPayload {
 // An envelope for inbound requests and commands.
 table InboundMessage {
   // A unique id of the message sent to the server.
-  messageId: EnsoUUID (required);
+  message_id: EnsoUUID (required);
 
   // An optional correlation id used to correlate a response with a request.
-  correlationId: EnsoUUID;
+  correlation_id: EnsoUUID;
 
   // A message payload that carries requests sent by a client.
   payload: InboundPayload (required);
@@ -36,10 +36,10 @@ union OutboundPayload {
 // An envelope for outbound responses.
 table OutboundMessage {
   // A unique id of the message sent from the server.
-  messageId: EnsoUUID (required);
+  message_id: EnsoUUID (required);
 
   // An optional correlation id used to correlate a response with a request.
-  correlationId: EnsoUUID;
+  correlation_id: EnsoUUID;
 
   // A message payload that carries responses and notifications sent by a server
   payload: OutboundPayload (required);
@@ -49,10 +49,10 @@ table OutboundMessage {
 // A binary representation of universally unique identifiers.
 struct EnsoUUID {
   // The most significant bits of the UUID.
-  leastSigBits:uint64;
+  least_sig_bits:uint64;
 
   // The most significant bits of the UUID.
-  mostSigBits:uint64;
+  most_sig_bits:uint64;
 
 }
 
@@ -79,7 +79,7 @@ table Error {
 // The error payload for a read out of bounds error.
 table ReadOutOfBoundsError {
   // The actual length of the file in which the read was out of bounds.
-  fileLength : ulong;
+  file_length : ulong;
 }
 
 // Indicates an operation has succeeded.
@@ -97,20 +97,20 @@ root_type InitSessionCommand;
 // A visualization context identifying a concrete visualization.
 table VisualizationContext {
   // A visualization identifier.
-  visualizationId: EnsoUUID (required);
+  visualization_id: EnsoUUID (required);
 
   // A context identifier.
-  contextId: EnsoUUID (required);
+  context_id: EnsoUUID (required);
 
   // An expression identifier.
-  expressionId: EnsoUUID (required);
+  expression_id: EnsoUUID (required);
 
 }
 
 // An event signaling visualization update.
 table VisualizationUpdate {
   // A visualization context identifying a concrete visualization.
-  visualizationContext: VisualizationContext (required);
+  visualization_context: VisualizationContext (required);
 
   // A visualization data.
   data: [ubyte] (required);
@@ -120,7 +120,7 @@ table VisualizationUpdate {
 // A representation of a path relative to a specified content root.
 table Path {
   //a content root id that the path is relative to
-  rootId: EnsoUUID;
+  root_id: EnsoUUID;
 
   //path segments
   segments: [string];
@@ -157,10 +157,10 @@ table WriteBytesCommand {
   path : Path (required);
 
   // The byte offset in the file to write from.
-  byteOffset : ulong;
+  byte_offset : ulong;
 
   // Whether existing content should be overwritten.
-  overwriteExisting : bool;
+  overwrite_existing : bool;
 
   // The file contents.
   bytes : [ubyte] (required);
@@ -213,7 +213,7 @@ table FileSegment {
   path : Path (required);
 
   // The byte offset in the file to read from.
-  byteOffset : ulong;
+  byte_offset : ulong;
 
   // The number of bytes to read.
   length : ulong;

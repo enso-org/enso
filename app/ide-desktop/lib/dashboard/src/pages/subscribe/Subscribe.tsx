@@ -6,6 +6,8 @@ import type * as stripeTypes from '@stripe/stripe-js'
 import * as stripe from '@stripe/stripe-js/pure'
 import * as toast from 'react-toastify'
 
+import * as load from 'enso-common/src/load'
+
 import * as appUtils from '#/appUtils'
 import type * as text from '#/text'
 
@@ -20,7 +22,6 @@ import UnstyledButton from '#/components/UnstyledButton'
 import * as backendModule from '#/services/Backend'
 import type Backend from '#/services/Backend'
 
-import * as load from '#/utilities/load'
 import * as string from '#/utilities/string'
 
 // =================
