@@ -1,0 +1,15 @@
+import project.Data.Json.JS_Object
+import project.Data.Text.Text
+import project.Data.Time.Date_Time.Date_Time
+import project.Data.Vector.Vector
+
+## PRIVATE
+   Returns log events available in the current account.
+   This method is only used for testing and should not be used in production.
+get_audit_log_events -> Vector Audit_Log_Event =
+    "TODO"
+
+## PRIVATE
+type Audit_Log_Event
+    ## PRIVATE
+    Value organization_id:Text user_email:Text timestamp:Date_Time payload:JS_Object
