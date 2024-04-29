@@ -1388,6 +1388,13 @@ fn private_keyword() {
 
     #[rustfmt::skip]
     let code = [
+        "type My_Type",
+        "    private"
+    ];
+    expect_invalid_node(&code.join("\n"));
+
+    #[rustfmt::skip]
+    let code = [
         "pub_method x y = x + y",
         "private priv_method x y = x + y"
     ];

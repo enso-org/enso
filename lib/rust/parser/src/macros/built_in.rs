@@ -337,20 +337,35 @@ fn type_def_body<'s>(
 
 fn to_body_statement(mut line_expression: syntax::Tree<'_>) -> syntax::Tree<'_> {
     use syntax::tree::*;
-    let mut declared_private = false;
-    if let Tree { variant: box Variant::Invalid(Invalid{ ast, ..}), ..} = &mut line_expression {
-        match &ast.variant {
-            box Variant::Private(Private { body, ..}, ..) if body.is_some() => {
-                let body_unwrapped = body.clone().unwrap();
-                let new_span = body_unwrapped.span;
-                line_expression.span = new_span;
-                line_expression.variant = body_unwrapped.variant;
-                declared_private = true;
-            }
-            _ => {}
-        }
-    }
 
+    // Unwrap `Private` tree from any `Invalid` added in expression context; it will be revalidated
+    // in the new context.
+    if let Tree {
+        variant:
+            box Variant::Invalid(Invalid {
+                ast: mut inner @ Tree { variant: box Variant::Private(_), .. },
+                ..
+            }),
+        span,
+    } = line_expression
+    {
+        inner.span = span;
+        return to_body_statement(inner);
+    }
+    // Recurse into body of `Private` keyword; validate usage of the keyword in type-body context.
+    if let Tree { variant: box Variant::Private(ref mut private), .. } = &mut line_expression {
+        let body_statement = private.body.take().map(to_body_statement);
+        let error = match body_statement.as_ref().map(|tree| &*tree.variant) {
+            Some(Variant::ConstructorDefinition(_)) => None,
+            None => Some("Expected declaration after `private` keyword in type definition."),
+            _ => Some("The `private` keyword inside a type definition may only be applied to a constructor definition."),
+        };
+        private.body = body_statement;
+        return match error {
+            Some(error) => line_expression.with_error(error),
+            None => line_expression,
+        };
+    }
     if let Tree { variant: box Variant::Documented(Documented { expression, .. }), .. } =
         &mut line_expression
     {
@@ -413,13 +428,7 @@ fn to_body_statement(mut line_expression: syntax::Tree<'_>) -> syntax::Tree<'_> 
             *default = Some(ArgumentDefault { equals, expression });
         }
         let block = default();
-        let cons_def = Tree::constructor_definition(constructor, arguments, block);
-        if declared_private {
-            let priv_token = syntax::token::private(constructor.left_offset, Code::from_str_without_location("private"));
-            return Tree::private(priv_token, Some(cons_def));
-        } else {
-            return cons_def;
-        }
+        return Tree::constructor_definition(constructor, arguments, block);
     }
     crate::expression_to_statement(line_expression)
 }
