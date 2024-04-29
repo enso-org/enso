@@ -448,15 +448,6 @@ export default function AssetRow(props: AssetRowProps) {
         case AssetEventType.closeProject: {
           break
         }
-        case AssetEventType.delete:
-        case AssetEventType.deleteLabel: {
-          console.log()
-          break
-        }
-        case AssetEventType.deleteForever: {
-          // This event only makes sense in the `Trash` category.
-          break
-        }
         case AssetEventType.restore: {
           if (event.ids.has(item.key)) {
             await doRestore()
@@ -485,6 +476,18 @@ export default function AssetRow(props: AssetRowProps) {
         case AssetEventType.cancelCut: {
           if (event.ids.has(item.key)) {
             setInsertionVisibility(Visibility.visible)
+          }
+          break
+        }
+        case AssetEventType.delete: {
+          if (event.ids.has(item.key)) {
+            await doDelete(false)
+          }
+          break
+        }
+        case AssetEventType.deleteForever: {
+          if (event.ids.has(item.key)) {
+            await doDelete(true)
           }
           break
         }
@@ -645,6 +648,23 @@ export default function AssetRow(props: AssetRowProps) {
               toastAndLog(null, error)
             }
           }
+          break
+        }
+        case AssetEventType.deleteLabel: {
+          setAsset(oldAsset => {
+            // The IIFE is required to prevent TypeScript from narrowing this value.
+            let found = (() => false)()
+            const labels =
+              oldAsset.labels?.filter(label => {
+                if (label === event.labelName) {
+                  found = true
+                  return false
+                } else {
+                  return true
+                }
+              }) ?? null
+            return found ? object.merge(oldAsset, { labels }) : oldAsset
+          })
           break
         }
       }
