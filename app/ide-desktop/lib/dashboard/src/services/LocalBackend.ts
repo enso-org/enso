@@ -242,6 +242,31 @@ class SmartAsset<T extends backend.AnyAsset = backend.AnyAsset>
     return this.value.type
   }
 
+  /** Whether this is a {@link backend.SmartDirectory}. */
+  isDirectory(): this is backend.SmartDirectory {
+    return this.type === backend.AssetType.directory
+  }
+
+  /** Whether this is a {@link backend.SmartProject}. */
+  isProject(): this is backend.SmartProject {
+    return this.type === backend.AssetType.project
+  }
+
+  /** Whether this is a {@link backend.SmartFile}. */
+  isFile(): this is backend.SmartFile {
+    return this.type === backend.AssetType.file
+  }
+
+  /** Whether this is a {@link backend.SmartDataLink}. */
+  isDataLink(): this is backend.SmartDataLink {
+    return this.type === backend.AssetType.dataLink
+  }
+
+  /** Whether this is a {@link backend.SmartSecret}. */
+  isSecret(): this is backend.SmartSecret {
+    return this.type === backend.AssetType.secret
+  }
+
   /** If this is a placeholder asset, return its non-placeholder equivalent after creating it on
    * the backend. Otherwise, return `this`. */
   materialize(): Promise<this> | this {

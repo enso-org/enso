@@ -525,12 +525,11 @@ export default class AssetQuery {
       // eslint-disable-next-line no-restricted-syntax
       return false
     }
-    const assetType =
-      node.item.type === backendModule.AssetType.directory
-        ? 'folder'
-        : node.item.type === backendModule.AssetType.dataLink
-          ? 'datalink'
-          : String(node.item.type)
+    const assetType = node.item.isDirectory()
+      ? 'folder'
+      : node.item.isDataLink()
+        ? 'datalink'
+        : String(node.item.type)
     const assetExtension =
       node.item.type !== backendModule.AssetType.file
         ? null

@@ -75,8 +75,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
   const canEditThisAsset =
     managesThisAsset || self?.permission === permissions.PermissionAction.edit
   const isRunningProject =
-    asset.type === backendModule.AssetType.project &&
-    backendModule.IS_OPENING_OR_OPENED[asset.projectState.type]
+    smartAsset.isProject() && backendModule.IS_OPENING_OR_OPENED[smartAsset.value.projectState.type]
   const canExecute =
     !isCloud ||
     (self?.permission != null && permissions.PERMISSION_ACTION_CAN_EXECUTE[self.permission])
@@ -122,7 +121,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
   ) : (
     <ContextMenus hidden={hidden} key={asset.id} event={event}>
       <ContextMenu aria-label={getText('assetContextMenuLabel')} hidden={hidden}>
-        {asset.type === backendModule.AssetType.dataLink && (
+        {smartAsset.isDataLink() && (
           <ContextMenuEntry
             hidden={hidden}
             action="useInNewProject"
@@ -133,32 +132,29 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
                 parent: item.directory,
                 parentKey: item.directoryKey,
                 templateId: null,
-                datalinkId: asset.id,
+                datalinkId: smartAsset.value.id,
                 preferredName: asset.title,
                 onSpinnerStateChange: null,
               })
             }}
           />
         )}
-        {asset.type === backendModule.AssetType.project &&
-          canExecute &&
-          !isRunningProject &&
-          !isOtherUserUsingProject && (
-            <ContextMenuEntry
-              hidden={hidden}
-              action="open"
-              doAction={() => {
-                unsetModal()
-                dispatchAssetEvent({
-                  type: AssetEventType.openProject,
-                  id: asset.id,
-                  shouldAutomaticallySwitchPage: true,
-                  runInBackground: false,
-                })
-              }}
-            />
-          )}
-        {asset.type === backendModule.AssetType.project && isCloud && (
+        {smartAsset.isProject() && canExecute && !isRunningProject && !isOtherUserUsingProject && (
+          <ContextMenuEntry
+            hidden={hidden}
+            action="open"
+            doAction={() => {
+              unsetModal()
+              dispatchAssetEvent({
+                type: AssetEventType.openProject,
+                id: smartAsset.value.id,
+                shouldAutomaticallySwitchPage: true,
+                runInBackground: false,
+              })
+            }}
+          />
+        )}
+        {smartAsset.isProject() && isCloud && (
           <ContextMenuEntry
             hidden={hidden}
             action="run"
@@ -166,30 +162,24 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
               unsetModal()
               dispatchAssetEvent({
                 type: AssetEventType.openProject,
-                id: asset.id,
+                id: smartAsset.value.id,
                 shouldAutomaticallySwitchPage: false,
                 runInBackground: true,
               })
             }}
           />
         )}
-        {asset.type === backendModule.AssetType.project &&
-          canExecute &&
-          isRunningProject &&
-          !isOtherUserUsingProject && (
-            <ContextMenuEntry
-              hidden={hidden}
-              action="close"
-              doAction={() => {
-                unsetModal()
-                dispatchAssetEvent({
-                  type: AssetEventType.closeProject,
-                  id: asset.id,
-                })
-              }}
-            />
-          )}
-        {asset.type === backendModule.AssetType.project && !isCloud && (
+        {smartAsset.isProject() && canExecute && isRunningProject && !isOtherUserUsingProject && (
+          <ContextMenuEntry
+            hidden={hidden}
+            action="close"
+            doAction={() => {
+              unsetModal()
+              dispatchAssetEvent({ type: AssetEventType.closeProject, id: smartAsset.value.id })
+            }}
+          />
+        )}
+        {smartAsset.isProject() && !isCloud && (
           <ContextMenuEntry
             hidden={hidden}
             action="uploadToCloud"
@@ -243,7 +233,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
             }}
           />
         )}
-        {smartAsset.type === backendModule.AssetType.secret && canEditThisAsset && (
+        {smartAsset.isSecret() && canEditThisAsset && (
           <ContextMenuEntry
             hidden={hidden}
             action="edit"
@@ -382,10 +372,8 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
             hidden={hidden}
             action="paste"
             doAction={() => {
-              const [directoryKey, directory] =
-                item.type === backendModule.AssetType.directory
-                  ? [item.key, item.item]
-                  : [item.directoryKey, item.directory]
+              const directoryKey =
+                item.type === backendModule.AssetType.directory ? item.key : item.directoryKey
               doPaste(directoryKey)
             }}
           />
@@ -397,15 +385,9 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
           isCloud={isCloud}
           hasPasteData={hasPasteData}
           directoryKey={
-            // This is SAFE, as both branches are guaranteed to be `DirectoryId`s
-            // eslint-disable-next-line no-restricted-syntax
-            (asset.type === backendModule.AssetType.directory
-              ? item.key
-              : item.directoryKey) as backendModule.DirectoryId
+            item.type === backendModule.AssetType.directory ? item.key : item.directoryKey
           }
-          directory={
-            smartAsset.type === backendModule.AssetType.directory ? smartAsset : item.directory
-          }
+          directory={smartAsset.isDirectory() ? smartAsset : item.directory}
           dispatchAssetListEvent={dispatchAssetListEvent}
           doPaste={doPaste}
         />

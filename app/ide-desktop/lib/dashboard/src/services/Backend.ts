@@ -998,6 +998,16 @@ export interface SmartOrganization extends SmartObject<OrganizationInfo | null> 
 export interface SmartAsset<T extends AnyAsset = AnyAsset> extends SmartObject<T> {
   /** This is required to exist so that {@link AnySmartAsset} is a discriminated union. */
   readonly type: T['type']
+  /** Whether this is a {@link SmartDirectory}. */
+  readonly isDirectory: () => this is SmartDirectory
+  /** Whether this is a {@link SmartProject}. */
+  readonly isProject: () => this is SmartProject
+  /** Whether this is a {@link SmartFile}. */
+  readonly isFile: () => this is SmartFile
+  /** Whether this is a {@link SmartDataLink}. */
+  readonly isDataLink: () => this is SmartDataLink
+  /** Whether this is a {@link SmartSecret}. */
+  readonly isSecret: () => this is SmartSecret
   /** If this is a placeholder asset, return its non-placeholder equivalent after creating it on
    * the backend. Otherwise, return `this`, as a non-{@link Promise}.
    *

@@ -248,7 +248,7 @@ export default function DuplicateAssetsModal(props: DuplicateAssetsModalProps) {
                     }
                   }}
                 >
-                  {firstConflict.new.type === backendModule.AssetType.file
+                  {firstConflict.new.isFile()
                     ? getText('renameNewFile')
                     : getText('renameNewProject')}
                 </UnstyledButton>
@@ -290,10 +290,10 @@ export default function DuplicateAssetsModal(props: DuplicateAssetsModalProps) {
             }}
           >
             {count === 1
-              ? firstConflict?.new.type === backendModule.AssetType.file
+              ? firstConflict?.new.isFile()
                 ? getText('renameNewFile')
                 : getText('renameNewProject')
-              : firstConflict?.new.type === backendModule.AssetType.file
+              : firstConflict?.new.isFile()
                 ? getText('renameNewFiles')
                 : getText('renameNewProjects')}
           </UnstyledButton>

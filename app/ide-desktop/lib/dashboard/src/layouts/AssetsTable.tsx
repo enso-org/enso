@@ -418,8 +418,7 @@ export default function AssetsTable(props: AssetsTableProps) {
         if (node != null) {
           if (commonDirectoryKey == null) {
             commonDirectoryKey = node.directoryKey
-            otherCandidateDirectoryKey =
-              node.item.type === backendModule.AssetType.directory ? node.key : null
+            otherCandidateDirectoryKey = node.item.isDirectory() ? node.key : null
           } else if (node.key === commonDirectoryKey || node.directoryKey === commonDirectoryKey) {
             otherCandidateDirectoryKey = null
           } else if (
@@ -505,7 +504,7 @@ export default function AssetsTable(props: AssetsTableProps) {
         case 'extension':
         case '-extension': {
           const extensions = allVisibleNodes()
-            .filter(node => node.item.value.type === backendModule.AssetType.file)
+            .filter(node => node.item.isFile())
             .map(node => fileInfo.fileExtension(node.item.value.title))
           setSuggestions(
             Array.from(
@@ -693,7 +692,7 @@ export default function AssetsTable(props: AssetsTableProps) {
           newSelectedKeys.size !== 0 &&
             Array.from(newSelectedKeys).every(key => {
               const node = nodeMapRef.current.get(key)
-              return node?.item.type === backendModule.AssetType.project
+              return node?.item.isProject()
             })
         )
       } else {
@@ -701,11 +700,7 @@ export default function AssetsTable(props: AssetsTableProps) {
           newSelectedKeys.size !== 0 &&
             Array.from(newSelectedKeys).every(key => {
               const node = nodeMapRef.current.get(key)
-              return (
-                node?.item.type === backendModule.AssetType.project ||
-                node?.item.type === backendModule.AssetType.file ||
-                node?.item.type === backendModule.AssetType.dataLink
-              )
+              return node?.item.isProject() || node?.item.isFile() || node?.item.isDataLink()
             })
         )
       }

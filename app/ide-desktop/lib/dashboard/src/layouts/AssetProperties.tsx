@@ -91,7 +91,7 @@ export default function AssetProperties(props: AssetPropertiesProps) {
     ownsThisAsset ||
     self?.permission === permissions.PermissionAction.admin ||
     self?.permission === permissions.PermissionAction.edit
-  const isDataLink = item.item.type === backendModule.AssetType.dataLink
+  const isDataLink = item.item.isDataLink()
   const isDataLinkDisabled = dataLinkValue === editedDataLinkValue || !isDataLinkSubmittable
 
   React.useEffect(() => {
@@ -100,7 +100,7 @@ export default function AssetProperties(props: AssetPropertiesProps) {
 
   React.useEffect(() => {
     void (async () => {
-      if (item.item.type === backendModule.AssetType.dataLink) {
+      if (item.item.isDataLink()) {
         const value = await item.item.getValue()
         setDataLinkValue(value)
         setEditedDataLinkValue(value)
@@ -263,7 +263,7 @@ export default function AssetProperties(props: AssetPropertiesProps) {
                     className="button bg-invite text-white enabled:active"
                     onPress={() => {
                       void (async () => {
-                        if (item.item.type === backendModule.AssetType.dataLink) {
+                        if (item.item.isDataLink()) {
                           const oldDataLinkValue = dataLinkValue
                           try {
                             setDataLinkValue(editedDataLinkValue)

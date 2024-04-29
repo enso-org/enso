@@ -352,7 +352,7 @@ export default function AssetRow(props: AssetRowProps) {
   const doDelete = React.useCallback(
     async (forever = false) => {
       setInsertionVisibility(Visibility.hidden)
-      if (smartAsset.type === backendModule.AssetType.directory) {
+      if (smartAsset.isDirectory()) {
         dispatchAssetListEvent({
           type: AssetListEventType.closeFolder,
           folder: smartAsset,
@@ -363,7 +363,7 @@ export default function AssetRow(props: AssetRowProps) {
       }
       try {
         dispatchAssetListEvent({ type: AssetListEventType.willDelete, key: item.key })
-        if (smartAsset.type === backendModule.AssetType.project && !isCloud) {
+        if (smartAsset.isProject() && !isCloud) {
           if (
             smartAsset.value.projectState.type !== backendModule.ProjectState.placeholder &&
             smartAsset.value.projectState.type !== backendModule.ProjectState.closed
@@ -448,10 +448,13 @@ export default function AssetRow(props: AssetRowProps) {
         case AssetEventType.closeProject: {
           break
         }
-        case AssetEventType.copy: {
-          if (event.ids.has(item.key)) {
-            await doCopyOnBackend(event.newParent.value.id)
-          }
+        case AssetEventType.delete:
+        case AssetEventType.deleteLabel: {
+          console.log()
+          break
+        }
+        case AssetEventType.deleteForever: {
+          // This event only makes sense in the `Trash` category.
           break
         }
         case AssetEventType.restore: {
@@ -535,11 +538,16 @@ export default function AssetRow(props: AssetRowProps) {
                   } catch (error) {
                     toastAndLog('downloadDataLinkError', error, asset.title)
                   }
+                  break
+                }
+                default: {
+                  // These assets cannot be downloaded.
+                  break
                 }
               }
             } else {
-              if (asset.type === backendModule.AssetType.project) {
-                const uuid = localBackend.extractTypeAndId(asset.id).id
+              if (smartAsset.isProject()) {
+                const uuid = localBackend.extractTypeAndId(smartAsset.value.id).id
                 download.download(
                   `./api/project-manager/projects/${uuid}/enso-project`,
                   `${asset.title}.enso-project`
@@ -554,21 +562,7 @@ export default function AssetRow(props: AssetRowProps) {
           if (event.id === asset.id && user != null && user.value.isEnabled) {
             setInsertionVisibility(Visibility.hidden)
             try {
-              await item.item.setPermissions({ action: null, actorsIds: [user.value.userId] })
-              dispatchAssetListEvent({ type: AssetListEventType.delete, key: item.key })
-            } catch (error) {
-              setInsertionVisibility(Visibility.visible)
-              toastAndLog(null, error)
-            }
-          }
-          break
-        }
-        case AssetEventType.removeSelf: {
-          // This is not triggered from the asset list, so it uses `item.id` instead of `key`.
-          if (event.id === asset.id && user != null && user.value.isEnabled) {
-            setInsertionVisibility(Visibility.hidden)
-            try {
-              await smartAsset.setPermissions({ actorsIds: [user.value.userId], action: null })
+              await smartAsset.setPermissions({ action: null, actorsIds: [user.value.userId] })
               dispatchAssetListEvent({ type: AssetListEventType.delete, key: item.key })
             } catch (error) {
               setInsertionVisibility(Visibility.visible)
@@ -651,6 +645,7 @@ export default function AssetRow(props: AssetRowProps) {
               toastAndLog(null, error)
             }
           }
+          break
         }
       }
     }
@@ -667,20 +662,14 @@ export default function AssetRow(props: AssetRowProps) {
 
   const onDragOver = (event: React.DragEvent<HTMLTableRowElement>) => {
     props.onDragOver(event)
-    const directoryId =
-      item.item.type === backendModule.AssetType.directory
-        ? item.item.value.id
-        : item.directory.value.id
+    const directoryId = item.item.isDirectory() ? item.item.value.id : item.directory.value.id
     const payload = drag.ASSET_ROWS.lookup(event)
     if (
       (payload != null && payload.every(innerItem => innerItem.asset.parentId !== directoryId)) ||
       event.dataTransfer.types.includes('Files')
     ) {
       event.preventDefault()
-      if (
-        item.item.type === backendModule.AssetType.directory &&
-        state.category !== Category.trash
-      ) {
+      if (item.item.isDirectory() && state.category !== Category.trash) {
         setIsDraggedOver(true)
       }
     }
@@ -842,10 +831,7 @@ export default function AssetRow(props: AssetRowProps) {
                       doToggleDirectoryExpansion(directory, directoryKey, true)
                       dispatchAssetListEvent({
                         type: AssetListEventType.uploadFiles,
-                        // This is SAFE, as it is guarded by the condition above:
-                        // `item.item.type === backendModule.AssetType.directory`
-                        // eslint-disable-next-line no-restricted-syntax
-                        parentKey: directoryKey as backendModule.DirectoryId,
+                        parentKey: directoryKey,
                         parent: directory,
                         files: Array.from(event.dataTransfer.files),
                       })
