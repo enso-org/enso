@@ -1,5 +1,6 @@
 package org.enso.interpreter.node.callable.dispatch;
 
+import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
 import com.oracle.truffle.api.TruffleFile;
 import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.dsl.ImportStatic;
@@ -93,6 +94,7 @@ public abstract class InvokeFunctionNode extends BaseNode {
     return EnsoContext.get(this);
   }
 
+  @TruffleBoundary
   private PanicException makePrivateAccessPanic(Function targetFunction) {
     var thisProjName = getThisProject() != null ? getThisProject().name() : null;
     var targetProjName =
