@@ -582,6 +582,7 @@ export default function Dashboard(props: DashboardProps) {
               category={Category.home}
               labels={labels}
               dispatchAssetEvent={dispatchAssetEvent}
+              dispatchAssetListEvent={dispatchAssetListEvent}
               isReadonly={category === Category.trash}
             />
           )}

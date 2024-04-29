@@ -51,6 +51,10 @@ export const SecretId = newtype.newtypeConstructor<SecretId>()
 export type ConnectorId = newtype.Newtype<string, 'ConnectorId'>
 export const ConnectorId = newtype.newtypeConstructor<ConnectorId>()
 
+/** Unique identifier for a version of an S3 object. */
+export type S3ObjectVersionId = newtype.Newtype<string, 'S3ObjectVersionId'>
+export const S3ObjectVersionId = newtype.newtypeConstructor<S3ObjectVersionId>()
+
 /** Unique identifier for an arbitrary asset. */
 export type AssetId = IdType[keyof IdType]
 
@@ -832,12 +836,11 @@ export const assetIsFile = assetIsType(AssetType.file)
 
 /** Metadata describing a specific version of an asset. */
 export interface S3ObjectVersion {
-  versionId: string
+  versionId: S3ObjectVersionId
   lastModified: dateTime.Rfc3339DateTime
   isLatest: boolean
-  /**
-   * The field points to an archive containing the all the project files object in the S3 bucket,
-   */
+  /** The field points to an archive containing the all the project files object
+   * in the S3 bucket, */
   key: string
 }
 
@@ -1183,6 +1186,18 @@ export default abstract class Backend {
   abstract createProject(body: CreateProjectRequestBody): Promise<CreatedProject>
   /** Close a project. */
   abstract closeProject(projectId: ProjectId, title: string): Promise<void>
+  /** Restore a project from a different version. */
+  abstract restoreProject(
+    projectId: ProjectId,
+    versionId: S3ObjectVersionId,
+    title: string
+  ): Promise<void>
+  /** Duplicate a specific version of a project. */
+  abstract duplicateProject(
+    projectId: ProjectId,
+    versionId: S3ObjectVersionId,
+    title: string
+  ): Promise<void>
   /** Return project details. */
   abstract getProjectDetails(
     projectId: ProjectId,

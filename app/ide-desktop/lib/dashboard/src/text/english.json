@@ -513,5 +513,8 @@
   "assetsTableContextMenuLabel": "Drive context menu",
   "assetContextMenuLabel": "Asset context menu",
   "labelContextMenuLabel": "Label context menu",
-  "settingsSidebarLabel": "Settings sidebar"
+  "settingsSidebarLabel": "Settings sidebar",
+
+  "restoreThisVersion": "Restore this version",
+  "duplicateThisVersion": "Duplicate this version"
 }

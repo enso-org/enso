@@ -6,6 +6,8 @@ import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 import * as backendProvider from '#/providers/BackendProvider'
 import * as textProvider from '#/providers/TextProvider'
 
+import type * as assetListEvent from '#/events/assetListEvent'
+
 import AssetVersion from '#/layouts/AssetVersion'
 import * as useAssetVersions from '#/layouts/AssetVersions/useAssetVersions'
 
@@ -23,11 +25,12 @@ import type AssetTreeNode from '#/utilities/AssetTreeNode'
 /** Props for a {@link AssetVersions}. */
 export interface AssetVersionsProps {
   readonly item: AssetTreeNode
+  readonly dispatchAssetListEvent: (event: assetListEvent.AssetListEvent) => void
 }
 
 /** A list of previous versions of an asset. */
 export default function AssetVersions(props: AssetVersionsProps) {
-  const { item } = props
+  const { item, dispatchAssetListEvent } = props
   const { backend } = backendProvider.useBackend()
   const { getText } = textProvider.useText()
   const toastAndLog = toastAndLogHooks.useToastAndLog()
@@ -66,9 +69,10 @@ export default function AssetVersions(props: AssetVersionsProps) {
               key={version.versionId}
               number={versions.length - i}
               version={version}
-              item={item.item}
+              item={item}
               backend={backend}
               latestVersion={latestVersion}
+              dispatchAssetListEvent={dispatchAssetListEvent}
             />
           ))
         }

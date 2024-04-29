@@ -31,6 +31,7 @@ interface AssetListEvents {
   readonly newSecret: AssetListNewSecretEvent
   readonly newDataLink: AssetListNewDataLinkEvent
   readonly insertAssets: AssetListInsertAssetsEvent
+  readonly duplicateProject: AssetListDuplicateProjectEvent
   readonly closeFolder: AssetListCloseFolderEvent
   readonly copy: AssetListCopyEvent
   readonly move: AssetListMoveEvent
@@ -95,6 +96,15 @@ interface AssetListInsertAssetsEvent extends AssetListBaseEvent<AssetListEventTy
   readonly parentKey: backend.DirectoryId
   readonly parentId: backend.DirectoryId
   readonly assets: backend.AnyAsset[]
+}
+
+/** A signal to duplicate a project. */
+interface AssetListDuplicateProjectEvent
+  extends AssetListBaseEvent<AssetListEventType.duplicateProject> {
+  readonly parentKey: backend.DirectoryId
+  readonly parentId: backend.DirectoryId
+  readonly originalId: backend.ProjectId
+  readonly versionId: backend.S3ObjectVersionId
 }
 
 /** A signal to close (collapse) a folder. */

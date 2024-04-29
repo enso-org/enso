@@ -8,6 +8,7 @@ enum AssetListEventType {
   newDataLink = 'new-data-link',
   newSecret = 'new-secret',
   insertAssets = 'insert-assets',
+  duplicateProject = 'duplicate-project',
   closeFolder = 'close-folder',
   copy = 'copy',
   move = 'move',
