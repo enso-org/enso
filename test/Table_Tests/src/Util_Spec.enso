@@ -18,7 +18,7 @@ add_specs suite_builder =
             expected_column = Column.from_vector "Col" ["Quis", "custodiet", "ipsos", "custodes?"]
             actual_column = Column.from_vector "Col" ["Quis", "custodiet", "ipsos"]
             res = Panic.recover Any (actual_column.should_equal_impl expected_column "LOCATION_PATH")
-            res.catch.should_equal "Expected column length 4, but got 3 (at LOCATION_PATH). "
+            res.catch.should_equal "Expected column length 4, but got 3 (at LOCATION_PATH)."
         group_builder.specify "Two Columns with different content Are Not Equal" <|
             expected_column = Column.from_vector "Col" ["Quis", "custodiet", "ipsos", "custodes?"]
             actual_column = Column.from_vector "Col" ["Who", "guards", "the", "guards?"]
@@ -34,6 +34,11 @@ add_specs suite_builder =
             actual_column = Column.from_vector "Col" [1, 2, 3, 4]
             res = Panic.recover Any (actual_column.should_equal_impl expected_column "LOCATION_PATH")
             res.catch.should_equal "Expected column type (Char Nothing True), but got (Integer 64 bits) (at LOCATION_PATH)."
+        group_builder.specify "Comparing a Column to non column" <|
+            expected_column = 42
+            actual_column = Column.from_vector "Col" [1, 2, 3, 4]
+            res = Panic.recover Any (actual_column.should_equal_impl expected_column "LOCATION_PATH")
+            res.catch.should_equal "Got a Column, but expected a 42 (at LOCATION_PATH)."
         group_builder.specify "Two Columns Containg NaNs Are Equal" <|
             # This is somewhat of a special case, as NaN != NaN but for the purposes of testing we consider them equal
             expected_column = Column.from_vector "Col" [1.0, 2.0, Number.nan]
