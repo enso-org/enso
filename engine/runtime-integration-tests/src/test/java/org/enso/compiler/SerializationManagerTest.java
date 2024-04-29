@@ -78,6 +78,7 @@ public class SerializationManagerTest {
   }
 
   @Test
+  @SuppressWarnings("unchecked")
   public void serializeLibrarySuggestions()
       throws ExecutionException, InterruptedException, TimeoutException {
     LibraryName standardBaseLibrary = new LibraryName("Standard", "Base");
@@ -94,7 +95,8 @@ public class SerializationManagerTest {
     Assert.assertEquals(Boolean.TRUE, result);
 
     var cachedSuggestions =
-        ensoContext.getCompiler().context().deserializeSuggestions(standardBaseLibrary).get();
+        (java.util.List<Suggestion>)
+            ensoContext.getCompiler().context().deserializeSuggestions(standardBaseLibrary).get();
 
     Supplier<Stream<Suggestion.Constructor>> cachedConstructorSuggestions =
         () ->
