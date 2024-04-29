@@ -1,6 +1,7 @@
 package org.enso.interpreter.runtime.data.atom;
 
 import com.oracle.truffle.api.CompilerDirectives;
+import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
 import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.dsl.Idempotent;
 import com.oracle.truffle.api.dsl.Specialization;
@@ -286,6 +287,7 @@ public abstract class Atom implements EnsoObject {
     }
 
     @Idempotent
+    @TruffleBoundary
     protected static boolean isProjectPrivate(AtomConstructor cons, String member) {
       Function method = cons.getDefinitionScope().getMethodForType(cons.getType(), member);
       if (method != null) {
