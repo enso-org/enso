@@ -1962,7 +1962,7 @@ lazy val `runtime-compiler` =
       frgaalJavaCompilerSetting,
       (Test / fork) := true,
       libraryDependencies ++= Seq(
-        "com.chuusai"     %% "shapeless"               % shapelessVersion,
+        "com.chuusai"     %% "shapeless"               % shapelessVersion   % "provided",
         "junit"            % "junit"                   % junitVersion       % Test,
         "com.github.sbt"   % "junit-interface"         % junitIfVersion     % Test,
         "org.scalatest"   %% "scalatest"               % scalatestVersion   % Test,
