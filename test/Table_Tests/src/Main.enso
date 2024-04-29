@@ -7,6 +7,7 @@ import project.Formatting
 import project.Helpers
 import project.In_Memory
 import project.IO
+import project.Util_Spec
 
 main filter=Nothing =
     suite = Test.build suite_builder->
