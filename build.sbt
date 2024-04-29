@@ -102,9 +102,11 @@ val simpleLibraryServerTag = Tags.Tag("simple-library-server")
 Global / concurrentRestrictions += Tags.limit(simpleLibraryServerTag, 1)
 
 lazy val gatherLicenses =
-  taskKey[Unit]("Gathers licensing information for relevant dependencies")
+  taskKey[Unit](
+    "Gathers licensing information for relevant dependencies of all distributions"
+  )
 gatherLicenses := {
-  val _ = GatherLicenses.run.value
+  val _ = GatherLicenses.run.toTask("").value
 }
 lazy val verifyLicensePackages =
   taskKey[Unit](
@@ -165,12 +167,12 @@ GatherLicenses.licenseConfigurations := Set("compile")
 GatherLicenses.configurationRoot := file("tools/legal-review")
 
 lazy val openLegalReviewReport =
-  taskKey[Unit](
+  inputKey[Unit](
     "Gathers licensing information for relevant dependencies and opens the " +
-    "report in review mode in the browser."
+    "report in review mode in the browser. Specify names of distributions to process, separated by spaces. If no names are provided, all distributions are processed."
   )
 openLegalReviewReport := {
-  val _ = gatherLicenses.value
+  GatherLicenses.run.evaluated
   GatherLicenses.runReportServer()
 }
 
@@ -305,6 +307,7 @@ lazy val enso = (project in file("."))
     `runtime-benchmarks`,
     `runtime-parser`,
     `runtime-compiler`,
+    `runtime-suggestions`,
     `runtime-language-epb`,
     `runtime-language-arrow`,
     `runtime-instrument-common`,
@@ -466,7 +469,7 @@ val scalaCollectionCompatVersion = "2.8.1"
 
 val antlrVersion            = "4.13.0"
 val awsJavaSdkV1Version     = "1.12.480"
-val awsJavaSdkV2Version     = "2.20.78"
+val awsJavaSdkV2Version     = "2.25.36"
 val icuVersion              = "73.1"
 val poiOoxmlVersion         = "5.2.3"
 val redshiftVersion         = "2.1.0.15"
@@ -679,12 +682,11 @@ lazy val pkg = (project in file("lib/scala/pkg"))
     Compile / run / mainClass := Some("org.enso.pkg.Main"),
     frgaalJavaCompilerSetting,
     version := "0.1",
-    libraryDependencies ++= circe ++ Seq(
-      "org.graalvm.truffle" % "truffle-api"      % graalMavenPackagesVersion,
-      "org.scalatest"      %% "scalatest"        % scalatestVersion % Test,
-      "io.circe"           %% "circe-yaml"       % circeYamlVersion,
-      "org.apache.commons"  % "commons-compress" % commonsCompressVersion,
-      "commons-io"          % "commons-io"       % commonsIoVersion
+    libraryDependencies ++= Seq(
+      "org.graalvm.truffle" % "truffle-api"      % graalMavenPackagesVersion % "provided",
+      "io.circe"           %% "circe-yaml"       % circeYamlVersion          % "provided",
+      "org.scalatest"      %% "scalatest"        % scalatestVersion          % Test,
+      "org.apache.commons"  % "commons-compress" % commonsCompressVersion
     )
   )
   .dependsOn(editions)
@@ -1294,6 +1296,7 @@ lazy val `language-server` = (project in file("engine/language-server"))
       "com.typesafe.akka"          %% "akka-http-testkit"    % akkaHTTPVersion           % Test,
       "org.scalatest"              %% "scalatest"            % scalatestVersion          % Test,
       "org.scalacheck"             %% "scalacheck"           % scalacheckVersion         % Test,
+      "org.graalvm.truffle"         % "truffle-api"          % graalMavenPackagesVersion % "provided",
       "org.graalvm.sdk"             % "polyglot-tck"         % graalMavenPackagesVersion % "provided",
       "org.eclipse.jgit"            % "org.eclipse.jgit"     % jgitVersion,
       "org.bouncycastle"            % "bcutil-jdk18on"       % "1.76"                    % Test,
@@ -1679,6 +1682,7 @@ lazy val runtime = (project in file("engine/runtime"))
   .dependsOn(`polyglot-api`)
   .dependsOn(`text-buffer`)
   .dependsOn(`runtime-compiler`)
+  .dependsOn(`runtime-suggestions`)
   .dependsOn(`connected-lock-manager`)
   .dependsOn(testkit % Test)
 
@@ -1956,8 +1960,9 @@ lazy val `runtime-compiler` =
   (project in file("engine/runtime-compiler"))
     .settings(
       frgaalJavaCompilerSetting,
-      instrumentationSettings,
+      (Test / fork) := true,
       libraryDependencies ++= Seq(
+        "com.chuusai"     %% "shapeless"               % shapelessVersion,
         "junit"            % "junit"                   % junitVersion       % Test,
         "com.github.sbt"   % "junit-interface"         % junitIfVersion     % Test,
         "org.scalatest"   %% "scalatest"               % scalatestVersion   % Test,
@@ -1966,9 +1971,24 @@ lazy val `runtime-compiler` =
     )
     .dependsOn(`runtime-parser`)
     .dependsOn(pkg)
-    .dependsOn(`polyglot-api`)
+    .dependsOn(`engine-common`)
     .dependsOn(editions)
     .dependsOn(`persistance-dsl` % "provided")
+
+lazy val `runtime-suggestions` =
+  (project in file("engine/runtime-suggestions"))
+    .settings(
+      frgaalJavaCompilerSetting,
+      (Test / fork) := true,
+      libraryDependencies ++= Seq(
+        "junit"            % "junit"                   % junitVersion       % Test,
+        "com.github.sbt"   % "junit-interface"         % junitIfVersion     % Test,
+        "org.scalatest"   %% "scalatest"               % scalatestVersion   % Test,
+        "org.netbeans.api" % "org-openide-util-lookup" % netbeansApiVersion % "provided"
+      )
+    )
+    .dependsOn(`runtime-compiler`)
+    .dependsOn(`polyglot-api`)
 
 lazy val `runtime-instrument-common` =
   (project in file("engine/runtime-instrument-common"))
@@ -2183,8 +2203,8 @@ lazy val `engine-runner` = project
     commands += WithDebugCommand.withDebug,
     inConfig(Compile)(truffleRunOptionsSettings),
     libraryDependencies ++= Seq(
+      "org.graalvm.polyglot"    % "polyglot"                % graalMavenPackagesVersion,
       "org.graalvm.sdk"         % "polyglot-tck"            % graalMavenPackagesVersion % Provided,
-      "org.graalvm.truffle"     % "truffle-api"             % graalMavenPackagesVersion % Provided,
       "commons-cli"             % "commons-cli"             % commonsCliVersion,
       "com.monovore"           %% "decline"                 % declineVersion,
       "org.jline"               % "jline"                   % jlineVersion,
@@ -2493,9 +2513,8 @@ lazy val editions = project
   .settings(
     frgaalJavaCompilerSetting,
     libraryDependencies ++= Seq(
-      "com.typesafe.scala-logging" %% "scala-logging" % scalaLoggingVersion,
-      "io.circe"                   %% "circe-yaml"    % circeYamlVersion,
-      "org.scalatest"              %% "scalatest"     % scalatestVersion % Test
+      "io.circe"      %% "circe-yaml" % circeYamlVersion % "provided",
+      "org.scalatest" %% "scalatest"  % scalatestVersion % Test
     )
   )
   .settings(
@@ -2523,11 +2542,10 @@ lazy val semver = project
   .settings(
     frgaalJavaCompilerSetting,
     libraryDependencies ++= Seq(
-      "com.typesafe.scala-logging" %% "scala-logging"   % scalaLoggingVersion,
-      "io.circe"                   %% "circe-yaml"      % circeYamlVersion,
-      "org.scalatest"              %% "scalatest"       % scalatestVersion % Test,
-      "junit"                       % "junit"           % junitVersion     % Test,
-      "com.github.sbt"              % "junit-interface" % junitIfVersion   % Test
+      "io.circe"      %% "circe-yaml"      % circeYamlVersion % "provided",
+      "org.scalatest" %% "scalatest"       % scalatestVersion % Test,
+      "junit"          % "junit"           % junitVersion     % Test,
+      "com.github.sbt" % "junit-interface" % junitIfVersion   % Test
     )
   )
   .settings(
@@ -2589,7 +2607,10 @@ lazy val `edition-updater` = project
 lazy val `edition-uploader` = project
   .in(file("lib/scala/edition-uploader"))
   .settings(
-    frgaalJavaCompilerSetting
+    frgaalJavaCompilerSetting,
+    libraryDependencies ++= Seq(
+      "io.circe" %% "circe-yaml" % circeYamlVersion % "provided"
+    )
   )
   .dependsOn(editions)
   .dependsOn(`version-output`)
@@ -2983,7 +3004,10 @@ lazy val `std-aws` = project
       "com.amazonaws"          % "aws-java-sdk-redshift"   % awsJavaSdkV1Version,
       "com.amazonaws"          % "aws-java-sdk-sts"        % awsJavaSdkV1Version,
       "software.amazon.awssdk" % "auth"                    % awsJavaSdkV2Version,
-      "software.amazon.awssdk" % "s3"                      % awsJavaSdkV2Version
+      "software.amazon.awssdk" % "bom"                     % awsJavaSdkV2Version,
+      "software.amazon.awssdk" % "s3"                      % awsJavaSdkV2Version,
+      "software.amazon.awssdk" % "sso"                     % awsJavaSdkV2Version,
+      "software.amazon.awssdk" % "ssooidc"                 % awsJavaSdkV2Version
     ),
     Compile / packageBin := Def.task {
       val result = (Compile / packageBin).value

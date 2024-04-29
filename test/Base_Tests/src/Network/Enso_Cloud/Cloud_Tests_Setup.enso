@@ -1,4 +1,5 @@
 from Standard.Base import all
+import Standard.Base.Enso_Cloud.Data_Link.Data_Link
 import Standard.Base.Errors.Illegal_State.Illegal_State
 import Standard.Base.Runtime.Context
 
@@ -164,3 +165,18 @@ type Mock_Credentials
     about_to_expire self -> Mock_Credentials =
         new_expire_at = Date_Time.now + (Duration.new minutes=1)
         Mock_Credentials.Value self.access_token new_expire_at self.refresh_token self.refresh_url self.client_id
+
+type Temporary_Directory
+    Value ~get
+
+    make (name : Text) (with_initializer : (Enso_File -> Any) = (_->Nothing)) -> Temporary_Directory = Temporary_Directory.Value <|
+        directory_name = "test-run-"+name+"-"+(Date_Time.now.format "yyyy-MM-dd_HHmmss.fV" . replace "/" "|")
+        test_root = (Enso_File.root / directory_name).create_directory
+        with_initializer test_root . if_not_error test_root
+
+    cleanup self = self.get.delete_if_exists recursive=True
+
+create_local_datalink_to enso_file:Enso_File =
+    config = JS_Object.from_pairs [["type", "Enso_File"], ["libraryName", "Standard.Base"], ["path", enso_file.path]]
+    local_tmp_file = File.create_temporary_file prefix="test-datalink" suffix=".datalink"
+    Data_Link.write_config local_tmp_file config replace_existing=True

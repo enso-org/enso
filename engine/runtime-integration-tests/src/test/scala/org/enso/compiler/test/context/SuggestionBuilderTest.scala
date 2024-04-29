@@ -1,4 +1,4 @@
-import org.enso.compiler.context.SuggestionBuilder
+import org.enso.compiler.suggestions.SuggestionBuilder
 import org.enso.compiler.core.ir.Module
 import org.enso.interpreter.runtime
 import org.enso.interpreter.runtime.EnsoContext
@@ -3722,6 +3722,10 @@ class SuggestionBuilderTest extends AnyWordSpecLike with Matchers {
     source: String,
     ir: Module,
     module: QualifiedName = Module
-  ): Tree.Root[Suggestion] =
-    SuggestionBuilder(source, langCtx.getCompiler).build(module, ir)
+  ): Tree.Root[Suggestion] = {
+    val compiler = langCtx.getCompiler
+    val types =
+      org.enso.interpreter.runtime.Module.findTypeHierarchy(compiler.context)
+    SuggestionBuilder(source, types, compiler).build(module, ir)
+  }
 }

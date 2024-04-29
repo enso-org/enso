@@ -61,7 +61,7 @@ write_file (file : Writable_File) (table : Table) (on_existing_file : Existing_F
                 effective_file_behavior = case on_existing_file of
                     Existing_File_Behavior.Backup -> Existing_File_Behavior.Overwrite
                     _ -> on_existing_file
-                write_local_file local_temp_file table effective_file_behavior section match_columns xls_format . if_not_error <| file.file
+                write_local_file local_temp_file table effective_file_behavior section match_columns xls_format . if_not_error <| file.file_for_return
 
 ## PRIVATE
 write_local_file (file:File) table on_existing_file section match_columns xls_format =

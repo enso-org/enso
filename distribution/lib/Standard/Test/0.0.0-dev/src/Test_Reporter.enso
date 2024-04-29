@@ -2,8 +2,10 @@ private
 
 from Standard.Base import all
 import Standard.Base.Runtime.Context
+import Standard.Base.Runtime.Ref.Ref
 from Standard.Base.Runtime import assert
 
+import project.Group.Group
 import project.Internal.Stack_Trace_Helpers
 import project.Spec_Result.Spec_Result
 import project.Suite_Config.Suite_Config
@@ -11,6 +13,7 @@ import project.Test.Test
 import project.Test_Result.Test_Result
 
 polyglot java import java.lang.StringBuilder
+polyglot java import java.lang.System as Java_System
 
 ## PRIVATE
    Write the JUnit XML header.
@@ -41,6 +44,9 @@ green text =
 highlighted text =
     '\u001b[1;1m' + text + '\u001b[0m'
 
+grey text =
+    '\u001b[90m' + text + '\u001b[0m'
+
 maybe_red_text (text : Text) (config : Suite_Config) =
     if config.use_ansi_colors then (red text) else text
 
@@ -49,6 +55,9 @@ maybe_green_text (text : Text) (config : Suite_Config) =
 
 maybe_highlighted_text (text : Text) (config : Suite_Config) =
     if config.use_ansi_colors then (highlighted text) else text
+
+maybe_grey_text (text : Text) (config : Suite_Config) =
+    if config.use_ansi_colors then (grey text) else text
 
 ## Print result for a single Spec run
 print_single_result : Test_Result -> Suite_Config -> Nothing
@@ -74,7 +83,7 @@ print_single_result (test_result : Test_Result) (config : Suite_Config) =
                 IO.println (decorate_stack_trace details)
         Spec_Result.Pending reason ->
             if config.print_only_failures.not then
-                IO.println ("    - [PENDING] " + test_result.spec_name)
+                IO.println (maybe_grey_text ("    - [PENDING] " + test_result.spec_name) config)
                 IO.println ("        Reason: " + reason)
 
 
@@ -96,6 +105,20 @@ print_report (test_results : Vector Test_Result) (config : Suite_Config) (builde
     results_per_group.each_with_key group_name-> group_results->
         print_group_report group_name group_results config builder
 
+## Prints a pending group, optionally writing it to a jUnit XML output.
+print_pending_group : Group -> Vector -> Suite_Config -> (StringBuilder | Nothing) -> Nothing
+print_pending_group group config builder =
+    assert group.pending.is_nothing.not "Group in print_pending_group should be pending"
+    if config.should_output_junit then
+        assert builder.is_nothing.not "Builder must be specified when JUnit output is enabled"
+        builder.append ('    <testsuite name="' + (escape_xml group.name inside_attribute=True) + '" timestamp="' + (Date_Time.now.format "yyyy-MM-dd'T'HH:mm:ss") + '"')
+        builder.append (' tests="0" disabled="1" errors="0" time="0.0">\n')
+        builder.append ('        <testcase name="PENDING" time="0.0">\n')
+        builder.append ('            <skipped message="Reason: '+(escape_xml group.pending inside_attribute=True)+'"/>\n')
+        builder.append ('        </testcase>\n')
+        builder.append '    </testsuite>\n'
+    IO.println <| maybe_grey_text ("[PENDING] " + group.name) config
+    IO.println ("    Reason: " + group.pending)
 
 ## Prints report for test_results from a single group.
 
@@ -109,7 +132,7 @@ print_group_report group_name test_results config builder =
         acc + res.time_taken
     if config.should_output_junit then
         assert builder.is_nothing.not "Builder must be specified when JUnit output is enabled"
-        builder.append ('    <testsuite name="' + (escape_xml group_name) + '" timestamp="' + (Date_Time.now.format "yyyy-MM-dd'T'HH:mm:ss") + '"')
+        builder.append ('    <testsuite name="' + (escape_xml group_name inside_attribute=True) + '" timestamp="' + (Date_Time.now.format "yyyy-MM-dd'T'HH:mm:ss") + '"')
         builder.append (' tests="' + test_results.length.to_text + '"')
         builder.append (' disabled="' + test_results.filter _.is_pending . length . to_text + '"')
         builder.append (' errors="' + test_results.filter _.is_fail . length . to_text + '"')
@@ -117,12 +140,11 @@ print_group_report group_name test_results config builder =
         builder.append ('>\n')
 
         test_results.each result->
-            builder.append ('        <testcase name="' + (escape_xml result.spec_name) + '" time="' + ((result.time_taken.total_milliseconds / 1000.0).to_text) + '">')
+            builder.append ('        <testcase name="' + (escape_xml result.spec_name inside_attribute=True) + '" time="' + ((result.time_taken.total_milliseconds / 1000.0).to_text) + '">')
             case result.spec_result of
                 Spec_Result.Success -> Nothing
                 Spec_Result.Failure msg details ->
-                    escaped_message = escape_xml msg . replace '\n' '&#10;'
-                    builder.append ('\n            <failure message="' + escaped_message + '">\n')
+                    builder.append ('\n            <failure message="' + (escape_xml msg inside_attribute=True) + '">\n')
                     # We always print the message again as content - otherwise the GitHub action may fail to parse it.
                     builder.append (escape_xml msg)
                     if details.is_nothing.not then
@@ -130,7 +152,7 @@ print_group_report group_name test_results config builder =
                         builder.append '\n\n'
                         builder.append (escape_xml details)
                     builder.append '\n            </failure>\n'
-                Spec_Result.Pending msg -> builder.append ('\n            <skipped message="' + (escape_xml msg) + '"/>\n        ')
+                Spec_Result.Pending msg -> builder.append ('\n            <skipped message="' + (escape_xml msg inside_attribute=True) + '"/>\n        ')
             builder.append '        </testcase>\n'
         builder.append '    </testsuite>\n'
 
@@ -154,6 +176,63 @@ print_group_report group_name test_results config builder =
 
 ## PRIVATE
    Escape Text for XML
-escape_xml : Text -> Text
-escape_xml input =
-    input.replace '&' '&amp;' . replace '"' '&quot;' . replace "'" '&apos;' . replace '<' '&lt;' . replace '>' '&gt;'
+escape_xml : Text -> Boolean -> Text
+escape_xml input inside_attribute=False =
+    escaped = input.replace '&' '&amp;' . replace '"' '&quot;' . replace "'" '&apos;' . replace '<' '&lt;' . replace '>' '&gt;'
+    if inside_attribute then escaped.replace '\n' '&#10;' else escaped
+
+## PRIVATE
+progress_width = 70
+
+## PRIVATE
+print_progress current_progress total_count status_text =
+    total_count_as_text = total_count.to_text
+    counter_width = total_count_as_text.length
+    current_progress_as_text = current_progress.to_text.pad counter_width at=Location.Start
+    line = " ("+ current_progress_as_text + " / " + total_count_as_text + ") " + status_text
+    truncated_line = if line.length <= progress_width then line else
+        line.take (progress_width - 3) + '...'
+
+    Java_System.out.print '\r'
+    Java_System.out.print (' ' * progress_width)
+    Java_System.out.print '\r'
+    Java_System.out.print truncated_line
+    Java_System.out.print '\r'
+
+## PRIVATE
+clear_progress =
+    Java_System.out.print '\r'
+    Java_System.out.print (' ' * progress_width)
+    Java_System.out.print '\r'
+
+## PRIVATE
+type Ignore_Progress_Reporter
+    ## PRIVATE
+    report_progress self (status_text : Text) (increment : Integer = 1) =
+        _ = [increment, status_text]
+        Nothing
+
+    ## PRIVATE
+    clear = Nothing
+
+## PRIVATE
+type Command_Line_Progress_Reporter
+    ## PRIVATE
+    Value current_progress total_count
+
+    ## PRIVATE
+    make total_expected =
+        Command_Line_Progress_Reporter.Value (Ref.new 0) total_expected
+
+    ## PRIVATE
+    report_progress self (status_text : Text) (increment : Integer = 1) =
+        self.current_progress.modify (+increment)
+        print_progress self.current_progress.get self.total_count status_text
+
+    ## PRIVATE
+    clear self = clear_progress
+
+## PRIVATE
+   Checks if the current process is running in an interactive terminal session.
+is_terminal_interactive -> Boolean =
+    Java_System.console != Nothing
