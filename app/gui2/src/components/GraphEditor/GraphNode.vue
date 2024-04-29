@@ -54,8 +54,8 @@ const emit = defineEmits<{
   draggingCommited: []
   delete: []
   replaceSelection: []
-  outputPortClick: [portId: AstId]
-  outputPortDoubleClick: [portId: AstId]
+  outputPortClick: [event: PointerEvent, portId: AstId]
+  outputPortDoubleClick: [event: PointerEvent, portId: AstId]
   doubleClick: []
   createNodes: [options: NodeCreationOptions[]]
   toggleColorPicker: []
@@ -362,8 +362,8 @@ function getRelatedSpanOffset(domNode: globalThis.Node, domOffset: number): numb
 }
 
 const handlePortClick = useDoubleClick(
-  (portId: AstId) => emit('outputPortClick', portId),
-  (portId: AstId) => emit('outputPortDoubleClick', portId),
+  (event: PointerEvent, portId: AstId) => emit('outputPortClick', event, portId),
+  (event: PointerEvent, portId: AstId) => emit('outputPortDoubleClick', event, portId),
 ).handleClick
 
 const handleNodeClick = useDoubleClick(
@@ -585,7 +585,7 @@ const documentation = computed<string | undefined>({
               class="outputPortHoverArea"
               @pointerenter="outputHovered = port.portId"
               @pointerleave="outputHovered = undefined"
-              @pointerdown.stop.prevent="handlePortClick(port.portId)"
+              @pointerdown.stop.prevent="handlePortClick($event, port.portId)"
             />
             <rect class="outputPort" />
           </g>
