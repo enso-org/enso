@@ -99,7 +99,7 @@ pub fn installation_file_lock() -> Result<named_lock::NamedLock> {
 
 /// Acquire the named file lock and return the guard.
 pub fn locked_installation_lock() -> Result<named_lock::NamedLockGuard> {
-    installation_file_lock()?.lock().with_context(|| "Failed to acquire the named file lock. Is there another instance of the installer or uninstaller running?")
+    installation_file_lock()?.try_lock().with_context(|| "Failed to acquire the named file lock. Is there another instance of the installer or uninstaller running?")
 }
 
 /// Check if the application is already running.

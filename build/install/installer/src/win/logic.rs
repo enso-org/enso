@@ -1,4 +1,5 @@
 use crate::prelude::*;
+use enso_install_config::UNINSTALLER_NAME;
 use flate2::read::GzDecoder;
 
 use crate::win::config::Config;
@@ -39,6 +40,7 @@ pub fn register_uninstaller(
     config: &Config,
     install_directory: &Path,
     uninstaller_path: &Path,
+    installation_size_bytes: u64,
 ) -> Result {
     let mut uninstall_info = enso_install::win::uninstall::UninstallInfo::new(
         &config.pretty_name,
@@ -50,6 +52,7 @@ pub fn register_uninstaller(
     uninstall_info.display_icon = Some(uninstaller_path.display().to_string());
     uninstall_info.display_version = Some(config.version.to_string());
     uninstall_info.write_to_registry(&config.uninstall_key)?;
+    uninstall_info.estimated_size_kib = Some((installation_size_bytes / 1024) as u32);
     Ok(())
 }
 
@@ -122,7 +125,7 @@ pub fn install_with_updates(
     let archive = tar::Archive::new(decoder);
 
     let extraction_progress_start = 0.06;
-    let extraction_progress_step = 0.70;
+    let extraction_progress_step = 0.82;
     let mut files_extracted = 0;
     let mut bytes_extracted = 0;
 
@@ -142,29 +145,40 @@ pub fn install_with_updates(
         report_progress(progress);
         Some(install_location.join(entry.path().ok()?))
     };
+
     ide_ci::archive::tar::extract_files_sync(archive, to_our_path)?;
+    // As we've been incrementing this values when extracting the next file, we need to cover the
+    // last file.
+    bytes_extracted += bytes_being_extracted;
+
+
     let post_extraction_progress = extraction_progress_start + extraction_progress_step;
 
     stage_at!(post_extraction_progress, "Registering file types.");
     register_file_associations(&config.file_associations)?;
 
     for protocol in &config.url_protocols {
-        stage_at!(0.79, "Registering URL protocol '{protocol}'.");
+        stage_at!(0.90, "Registering URL protocol '{protocol}'.");
         register_url_protocol(&executable_location, protocol)?;
     }
 
-    stage_at!(0.83, "Registering the application path.");
+    stage_at!(0.92, "Registering the application path.");
     let app_paths_info = enso_install::win::app_paths::AppPathInfo::new(&executable_location);
     app_paths_info.write_to_registry()?;
 
-    stage_at!(0.87, "Registering the uninstaller.");
-    register_uninstaller(config, install_location, &install_location.join("enso-uninstaller.exe"))?;
+    stage_at!(0.94, "Registering the uninstaller.");
+    register_uninstaller(
+        config,
+        install_location,
+        &install_location.join(UNINSTALLER_NAME.with_executable_extension()),
+        bytes_extracted,
+    )?;
 
-    stage_at!(0.91, "Creating Start Menu entry.");
+    stage_at!(0.96, "Creating Start Menu entry.");
     enso_install::win::shortcut::Location::Menu
         .create_shortcut(&config.shortcut_name, &executable_location)?;
 
-    stage_at!(94.0, "Creating Desktop shortcut.");
+    stage_at!(0.98, "Creating Desktop shortcut.");
     enso_install::win::shortcut::Location::Desktop
         .create_shortcut(&config.shortcut_name, &executable_location)?;
 

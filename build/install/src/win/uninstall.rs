@@ -40,24 +40,24 @@ pub struct UninstallInfo {
     /// The date the application was installed.
     pub install_date: Option<String>,
 
-    /// The size of the application in kilobytes.
-    pub estimated_size: Option<u32>,
+    /// The size of the application in kibibytes.
+    pub estimated_size_kib: Option<u32>,
 }
 
 impl UninstallInfo {
     pub fn new(display_name: impl Into<String>, uninstall_string: impl Into<String>) -> Self {
         Self {
-            display_name:     display_name.into(),
-            uninstall_string: uninstall_string.into(),
-            display_icon:     None,
-            display_version:  None,
-            publisher:        None,
-            url_info_about:   None,
-            url_update_info:  None,
-            help_link:        None,
-            install_location: None,
-            install_date:     None,
-            estimated_size:   None,
+            display_name:       display_name.into(),
+            uninstall_string:   uninstall_string.into(),
+            display_icon:       None,
+            display_version:    None,
+            publisher:          None,
+            url_info_about:     None,
+            url_update_info:    None,
+            help_link:          None,
+            install_location:   None,
+            install_date:       None,
+            estimated_size_kib: None,
         }
     }
 
@@ -96,7 +96,7 @@ impl UninstallInfo {
         if let Some(install_date) = &self.install_date {
             app_uninstall_key.set_value("InstallDate", install_date)?;
         }
-        if let Some(estimated_size) = self.estimated_size {
+        if let Some(estimated_size) = self.estimated_size_kib {
             app_uninstall_key.set_value("EstimatedSize", &estimated_size.to_string())?;
         }
 

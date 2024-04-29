@@ -1728,6 +1728,7 @@ dependencies = [
  "enso-install",
  "enso-install-config",
  "ide-ci",
+ "native-windows-gui",
  "self-replace",
  "tokio",
 ]

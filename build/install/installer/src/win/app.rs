@@ -193,6 +193,7 @@ impl InstallerApp {
                         let err =
                             anyhow!("The installer backend thread has unexpectedly disconnected.");
                         self.fail_installation(err);
+                        break;
                     }
                 }
             }

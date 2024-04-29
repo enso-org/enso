@@ -1,12 +1,8 @@
 use enso_install::prelude::*;
 
+use enso_install::is_already_running;
 use enso_install::locked_installation_lock;
 use enso_install::sanitized_electron_builder_config;
-
-
-
-pub const FAILED_TO_ACQUIRE_LOCK: &str =
-    "Failed to acquire file lock. Is another instance of the installer or uninstaller running?";
 
 
 /// The parent directory of this (uninstaller) executable.
@@ -45,14 +41,50 @@ fn handle_error<T>(errors: &mut Vec<anyhow::Error>, result: Result<T>) -> Option
     }
 }
 
+fn show_dialog_and_panic(error: &anyhow::Error) -> ! {
+    error!("Encountered an error: {error:?}.");
+    native_windows_gui::fatal_message(
+        "Uninstallation failed",
+        &format!("Encountered an error: {error}", error = error),
+    );
+}
+
 pub async fn main() -> Result {
     let dialog_title = format!("{} installer", sanitized_electron_builder_config().product_name);
-    enso_install::win::ui::setup_logging_or_fatal(env!("CARGO_PKG_NAME"), &dialog_title);
+    let logfile =
+        enso_install::win::ui::setup_logging_or_fatal(env!("CARGO_PKG_NAME"), &dialog_title);
+
+    // Show a yes-no modal dialog.
+    let message =
+        format!("Do you want to uninstall {}?", sanitized_electron_builder_config().product_name);
+
+    let params = native_windows_gui::MessageParams {
+        title:   &dialog_title,
+        content: &message,
+        buttons: native_windows_gui::MessageButtons::YesNo,
+        icons:   native_windows_gui::MessageIcons::Question,
+    };
+    match native_windows_gui::message(&params) {
+        native_windows_gui::MessageChoice::Yes => (),
+        native_windows_gui::MessageChoice::No => {
+            info!("User chose not to uninstall.");
+            return Ok(());
+        }
+        _ => bail!("Unexpected message box result."),
+    }
+
 
     let mut errors = vec![];
-    let _guard = locked_installation_lock()?;
+    let _guard = match locked_installation_lock() {
+        Ok(guard) => guard,
+        Err(error) => show_dialog_and_panic(&error),
+    };
 
     let install_dir = parent_directory().unwrap();
+
+    if let Ok(Some(message)) = is_already_running(&install_dir) {
+        show_dialog_and_panic(&anyhow!("{message}"));
+    }
 
     // Make sure that Enso.exe is in the same directory as this uninstaller. This is to prevent
     // situation where just the uninstaller binary is placed by accident elsewhere and ends up
@@ -63,7 +95,7 @@ pub async fn main() -> Result {
 
     ensure!(
         expected_executable.exists(),
-        "{} not found in the presumed install directory: {}",
+        "{} not found in the presumed install directory {}",
         executable_filename.display(),
         install_dir.display()
     );
@@ -101,12 +133,24 @@ pub async fn main() -> Result {
 
     if !errors.is_empty() {
         error!("Encountered {} errors.", errors.len());
-        for error in errors {
-            error!(" *** {error:?}");
+        for error in &errors {
+            error!(" * {error:?}");
         }
-        error!("Uninstallation failed. Some files or registry entries may have been left behind.");
+
+        let errors_summary = errors.iter().map(|e| format!("{e}")).join("\n *");
+        let plain_message = format!(
+            "Encountered errors during uninstallation. Some files or \
+        registry entries may have been left behind. Please see the log file for details. The file \
+        explorer will be opened at the log file location.\n\nErrors:\n{errors_summary}"
+        );
+        native_windows_gui::error_message("Uninstallation failed", &plain_message);
+        let _ = ide_ci::programs::explorer::show_selected(&logfile);
         bail!("Uninstallation failed.");
     } else {
+        native_windows_gui::simple_message(
+            "Uninstallation successful",
+            "Enso has been successfully uninstalled.",
+        );
         Ok(())
     }
 }
