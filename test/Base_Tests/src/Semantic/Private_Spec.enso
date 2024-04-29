@@ -43,17 +43,12 @@ add_specs spec_builder =
             ret = js_access_field obj
             ret.is_nothing . should_be_true
 
-        group_builder.specify "cannot call private constructor from JS" pending="TODO" <|
-            cons_fn data = Priv_Type.Cons data
-            ret = js_create_obj cons_fn
-            ret.is_nothing . should_be_true
-
         group_builder.specify "can call private constructor via public factory method from JS" <|
             create_fn x = Priv_Type.create x
             obj = js_create_obj create_fn
             obj.is_nothing . should_be_false
 
-        group_builder.specify "can get private field via public accessor from JS" pending="TODO" <|
+        group_builder.specify "can get private field via public accessor from JS" <|
             obj = Priv_Type.create 42
             js_access_field_via_getter obj . should_equal 42
 

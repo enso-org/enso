@@ -328,13 +328,29 @@ public final class ModuleScope implements EnsoObject {
   /**
    * Returns the names of methods for the given type.
    *
-   * @param tpe the type in the scope
-   * @return names of methods
+   * @param tpe the type in the scope. If null, treated as {@code noType}.
+   * @return names of methods or null
    */
   public Set<String> getMethodNamesForType(Type tpe) {
     Type tpeKey = tpe == null ? noTypeKey : tpe;
     var allTpeMethods = methods.get(tpeKey);
     return allTpeMethods == null ? null : allTpeMethods.keySet();
+  }
+
+  /**
+   * Returns a set of all the functions for a type, or null.
+   *
+   * @param tpe the type in the scope. If null, treated as {@code noType}.
+   * @return set of methods or null.
+   */
+  public Set<Function> getMethodsForType(Type tpe) {
+    Type tpeKey = tpe == null ? noTypeKey : tpe;
+    var allTpeMethods = methods.get(tpeKey);
+    if (allTpeMethods != null) {
+      return allTpeMethods.values().stream().map(Supplier::get).collect(Collectors.toSet());
+    } else {
+      return null;
+    }
   }
 
   /**
