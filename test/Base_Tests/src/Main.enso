@@ -7,7 +7,6 @@ import project.Semantic.Case_Spec
 import project.Semantic.Conversion_Spec
 import project.Semantic.Deep_Export.Spec as Deep_Export_Spec
 import project.Semantic.Error_Spec
-import project.Semantic.Exception_Spec
 import project.Semantic.Import_Loop.Spec as Import_Loop_Spec
 import project.Semantic.Meta_Spec
 import project.Semantic.Instrumentor_Spec
@@ -173,6 +172,5 @@ main filter=Nothing =
         Random_Spec.add_specs suite_builder
         XML_Spec.add_specs suite_builder
         Decimal_Spec.add_specs suite_builder
-        Exception_Spec.add_specs suite_builder
 
     suite.run_with_filter filter

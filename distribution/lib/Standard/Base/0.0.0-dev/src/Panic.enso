@@ -196,8 +196,8 @@ type Panic
 
        Arguments:
        - value: value to return if not an error, or rethrow as a Panic.
-    throw_wrapped_if_error : Any -> Any
-    throw_wrapped_if_error value =
+    rethrow_wrapped_if_error : Any -> Any
+    rethrow_wrapped_if_error value =
         if value.is_error then Panic.throw (Wrapped_Dataflow_Error.Error value.catch) else value
 
     ## PRIVATE
@@ -207,11 +207,11 @@ type Panic
        Arguments:
        - action: The code to execute that potentially raised a Wrapped_Dataflow_Error.
     handle_wrapped_dataflow_error  : Any -> Any -> ((Any -> Any) | Nothing) -> Any
-    handle_wrapped_dataflow_error ~action exception_type=Any (handler : ((Any -> Any) | Nothing) = Nothing) =
+    handle_wrapped_dataflow_error ~action error_type=Any (handler : ((Any -> Any) | Nothing) = Nothing) =
         handler_resolved = handler.if_nothing Error.throw
         Panic.catch Wrapped_Dataflow_Error action caught_panic->
             error = caught_panic.payload.payload
-            if error.is_a exception_type . not then Panic.throw caught_panic.payload else
+            if error.is_a error_type . not then Panic.throw caught_panic.payload else
                 handler_resolved error
 
 ## PRIVATE

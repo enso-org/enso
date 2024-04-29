@@ -17,7 +17,6 @@ import project.Errors.Empty_Error.Empty_Error
 import project.Errors.Illegal_Argument.Illegal_Argument
 import project.Errors.Problem_Behavior.Problem_Behavior
 import project.Errors.Wrapped_Error.Wrapped_Error
-import project.Exception.Exception
 import project.Function.Function
 import project.Internal.Array_Like_Helpers
 import project.Math
@@ -1571,7 +1570,7 @@ type Build_Style_Builder
              # => [1, 2, 3]
     append : Any ! Error -> Nothing ! Error
     append self (item : Any ! Error) -> Nothing ! Error =
-        Panic.throw_wrapped_if_error <|
+        Panic.rethrow_wrapped_if_error <|
             item.if_not_error <|
                 self.unsafe_append item
                 self.add_warnings item
@@ -1589,9 +1588,9 @@ type Build_Style_Builder
 
        ? Appending Dataflow Errors
 
-         If any of the values to be appended are an uncaught dataflow error, a
-         `Builder_Dataflow_Error` exception is thrown, with the first error
-         found.  No values are added to the builder.
+         If any of the values to be appended are uncaught dataflow errors, the
+         first one is thrown by the containing invocation of Vector.build`. No
+         values are added to the builder.
 
        > Example
          Append a vector.
@@ -1610,7 +1609,7 @@ type Build_Style_Builder
     append_vector_range self vector (start : Integer = 0) end=vector.length -> Nothing ! Error =
         subrange = vector.slice start end
         first_dataflow_error = subrange.find (x-> x.is_error) if_missing=Nothing
-        Panic.throw_wrapped_if_error <|
+        Panic.rethrow_wrapped_if_error <|
             first_dataflow_error.if_not_error <|
                 append_result = self.java_builder.appendTo subrange
                 assert (append_result.is_error.not)
