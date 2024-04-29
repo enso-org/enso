@@ -1,7 +1,7 @@
 import project.Data.Numbers.Integer
 import project.Data.Text.Text
 import project.Data.Time.Errors.Date_Time_Format_Parse_Error
-import project.Data.Vector.Build_Style_Builder as Vector_Builder
+import project.Data.Vector.Build_Style_Builder
 import project.Data.Vector.Vector
 import project.Error.Error
 import project.Errors.Illegal_State.Illegal_State
@@ -46,10 +46,10 @@ type Tokenizer
        recursion of variables defined inside of a method is not supported in
        Enso. So to achieve the mutual recursion, we instead define these as
        member methods.
-    Instance (original_text : Text) (chars : Vector Text) (tokens_builder : Vector_Builder Format_Token) (optional_nesting : Ref Integer)
+    Instance (original_text : Text) (chars : Vector Text) (tokens_builder : Build_Style_Builder Format_Token) (optional_nesting : Ref Integer)
 
     ## PRIVATE
-    new : Vector_Builder -> Text -> Tokenizer
+    new : Build_Style_Builder  -> Text -> Tokenizer
     new builder text =
         # Nothing is appended at the and as a guard to avoid checking for length.
         Tokenizer.Instance text text.characters+[Nothing] builder (Ref.new 0)
