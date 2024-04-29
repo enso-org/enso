@@ -5,6 +5,7 @@ import * as reactDom from 'react-dom'
 
 import * as chat from 'enso-chat/chat'
 
+import * as gtagHooks from '#/hooks/gtagHooks'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
 import * as authProvider from '#/providers/AuthProvider'
@@ -20,7 +21,6 @@ import UnstyledButton from '#/components/UnstyledButton'
 
 import * as newtype from '#/utilities/newtype'
 import * as object from '#/utilities/object'
-import * as gtagHooks from '#/hooks/gtagHooks'
 
 // ================
 // === Newtypes ===

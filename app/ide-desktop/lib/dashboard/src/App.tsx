@@ -178,7 +178,7 @@ export default function App(props: AppProps) {
     }
   }, [supportsLocalBackend])
 
-  // Both `BackendProvider` and `InputBindingsProvider` depend on `LocalStorageProvider`.
+  // `InputBindingsProvider` depends on `LocalStorageProvider`.
   // Note that the `Router` must be the parent of the `AuthProvider`, because the `AuthProvider`
   // will redirect the user between the login/register pages and the dashboard.
   return error != null ? (
@@ -439,6 +439,7 @@ function AppRouter(props: AppRouterProps) {
       authService={authService}
       onAuthenticated={onAuthenticated}
       projectManagerUrl={projectManagerUrl}
+      projectManagerRootDirectory={projectManagerRootDirectory}
     >
       {result}
     </AuthProvider>

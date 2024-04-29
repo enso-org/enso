@@ -27,6 +27,7 @@ import LoadingScreen from '#/pages/authentication/LoadingScreen'
 import * as backendModule from '#/services/Backend'
 import type Backend from '#/services/Backend'
 import LocalBackend from '#/services/LocalBackend'
+import type * as projectManager from '#/services/ProjectManager'
 import RemoteBackend from '#/services/RemoteBackend'
 
 import HttpClient, * as httpClient from '#/utilities/HttpClient'
@@ -123,7 +124,7 @@ interface AuthContextType {
   readonly changePassword: (oldPassword: string, newPassword: string) => Promise<boolean>
   readonly resetPassword: (email: string, code: string, password: string) => Promise<boolean>
   readonly signOut: () => Promise<boolean>
-  readonly restoreUser: (backend: Backend) => Promise<boolean>
+  readonly restoreUser: () => Promise<boolean>
   /** Session containing the currently authenticated user's authentication information.
    *
    * If the user has not signed in, the session will be `null`. */
@@ -160,12 +161,14 @@ export interface AuthProviderProps {
   readonly onAuthenticated: (accessToken: string | null) => void
   readonly children: React.ReactNode
   readonly projectManagerUrl: string | null
+  readonly projectManagerRootDirectory: projectManager.Path | null
 }
 
 /** A React provider for the Cognito API. */
 export default function AuthProvider(props: AuthProviderProps) {
   const { shouldStartInOfflineMode, supportsLocalBackend, authService, onAuthenticated } = props
   const { backend, setBackendWithoutSavingType, children, projectManagerUrl } = props
+  const { projectManagerRootDirectory } = props
   const logger = loggerProvider.useLogger()
   const { cognito } = authService ?? {}
   const { session, deinitializeSession, onSessionError } = sessionProvider.useSession()
@@ -200,8 +203,8 @@ export default function AuthProvider(props: AuthProviderProps) {
     setInitialized(true)
     sentry.setUser(null)
     setUserSession(OFFLINE_USER_SESSION)
-    if (supportsLocalBackend && projectManagerUrl != null) {
-      setBackendWithoutSavingType(new LocalBackend(projectManagerUrl))
+    if (supportsLocalBackend && projectManagerUrl != null && projectManagerRootDirectory != null) {
+      setBackendWithoutSavingType(new LocalBackend(projectManagerUrl, projectManagerRootDirectory))
     } else {
       // Provide dummy headers to avoid errors. This `Backend` will never be called as
       // the entire UI will be disabled.
@@ -211,6 +214,7 @@ export default function AuthProvider(props: AuthProviderProps) {
   }, [
     getText,
     /* should never change */ projectManagerUrl,
+    /* should never change */ projectManagerRootDirectory,
     /* should never change */ supportsLocalBackend,
     /* should never change */ logger,
     /* should never change */ setBackendWithoutSavingType,
@@ -537,15 +541,15 @@ export default function AuthProvider(props: AuthProviderProps) {
     }
   }
 
-  const restoreUser = async (currentBackend: Backend) => {
+  const restoreUser = async () => {
     if (cognito == null) {
       return false
     } else {
-      if (currentBackend.type === backendModule.BackendType.local) {
+      if (backend.type === backendModule.BackendType.local) {
         toastError(getText('restoreUserLocalBackendError'))
         return false
       } else {
-        const self = await currentBackend.self()
+        const self = await backend.self()
         await self?.restore()
         setUser(object.merger({ removeAt: null }))
         toastSuccess(getText('restoreUserSuccess'))
