@@ -188,7 +188,7 @@ transport formats, please look [here](./protocol-architecture).
   - [`profiling/start`](#profilingstart)
   - [`profiling/stop`](#profilingstop)
 - [AI Operations](#ai-operations)
-  - [`ai/completion`](#aicompletion)
+  - [`ai/completion_v2`](#aicompletionv2)
   - [`ai/completionProgress`](#aicompletionprogres)
 - [Errors](#errors-75)
   - [`Error`](#error)
@@ -5183,10 +5183,7 @@ None
 
 ## AI Operations
 
-### `ai/completion`
-
-TODO: technilcally we already have an `ai/completion` request. Either rename the
-old completion request or make this one v2.
+### `ai/completion_v2`
 
 Sent from the client to the server to ask the AI model the code suggestion.
 
