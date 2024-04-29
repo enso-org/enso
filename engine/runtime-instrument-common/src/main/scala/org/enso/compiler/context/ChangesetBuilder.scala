@@ -14,6 +14,7 @@ import org.enso.compiler.core.Implicits.AsMetadata
 import org.enso.compiler.core.ir.Literal
 import org.enso.compiler.core.ir.Location
 import org.enso.compiler.core.ir.Name
+import org.enso.compiler.suggestions.SimpleUpdate
 import org.enso.compiler.core.ir.module.scope.definition
 import org.enso.compiler.pass.analyse.DataflowAnalysis
 import org.enso.interpreter.instrument.execution.model.PendingEdit

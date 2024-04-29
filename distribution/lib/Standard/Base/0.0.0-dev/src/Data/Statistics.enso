@@ -214,21 +214,19 @@ type Statistic
             max_moment_order = moment_order.filter (v-> v != Nothing) . fold 0 .max
 
             Panic.handle_wrapped_dataflow_error <|
-                output = Vector.new_builder data.length
+                Vector.build initial_capacity=data.length builder->
 
-                counter = Accumulator.new has_min_max max_moment_order
-                data.fold counter current->value->
-                    result = compute_fold current value
+                    counter = Accumulator.new has_min_max max_moment_order
+                    data.fold counter current->value->
+                        result = compute_fold current value
 
-                    row = Panic.throw_wrapped_if_error <| statistics.map on_problems=No_Wrap s-> case s of
-                        Statistic.Maximum -> if result.count == 0 then Nothing else result.maximum
-                        Statistic.Minimum -> if result.count == 0 then Nothing else result.minimum
-                        _ -> result.compute s
-                    output.append row
+                        row = Panic.throw_wrapped_if_error <| statistics.map on_problems=No_Wrap s-> case s of
+                            Statistic.Maximum -> if result.count == 0 then Nothing else result.maximum
+                            Statistic.Minimum -> if result.count == 0 then Nothing else result.minimum
+                            _ -> result.compute s
+                        builder.append row
 
-                    result
-
-                output.to_vector
+                        result
 
     ## ICON math
        Calculate a variance-covariance matrix between the input series.
@@ -258,17 +256,14 @@ type Statistic
     spearman_correlation : Vector Vector -> Vector Vector
     spearman_correlation data =
         Panic.handle_wrapped_dataflow_error <|
-            output = Vector.new_builder data.length
-
-            0.up_to data.length . each i->
-                output.append <|
-                    Vector.new data.length j->
-                        if j == i then 1 else
-                            if j < i then (output.at j . at i) else
-                                Panic.throw_wrapped_if_error <|
-                                    calculate_spearman_rank (data.at i) (data.at j)
-
-            output.to_vector
+            Vector.build initial_capacity=data.length builder->
+                0.up_to data.length . each i->
+                    builder.append <|
+                        Vector.new data.length j->
+                            if j == i then 1 else
+                                if j < i then (builder.at j . at i) else
+                                    Panic.throw_wrapped_if_error <|
+                                        calculate_spearman_rank (data.at i) (data.at j)
 
     ## PRIVATE
        Assigns a rank to each value of data, dealing with equal values according to the method.

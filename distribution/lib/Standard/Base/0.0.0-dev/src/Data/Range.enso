@@ -198,9 +198,9 @@ type Range
     filter : (Filter_Condition | (Integer -> Boolean)) -> Vector Integer
     filter self filter =
         predicate = unify_condition_or_predicate filter
-        builder = self.fold Vector.new_builder builder-> elem->
-            if predicate elem then builder.append elem else builder
-        builder.to_vector
+        Vector.build builder->
+            self.map elem->
+                if predicate elem then builder.append elem
 
     ## GROUP Selections
        ICON preparation
@@ -344,11 +344,11 @@ type Range
             (0.up_to 4).running_fold 0 (+)
     running_fold : Any -> (Any -> Any -> Any) -> Vector Any
     running_fold self init function =
-        wrapped builder value =
-            current = if builder.length == 0 then init else builder.last
-            builder.append (function current value)
-        built = self.fold (Vector.new_builder self.length) wrapped
-        built.to_vector
+        Vector.build builder->
+            process value =
+                current = if builder.length == 0 then init else builder.last
+                builder.append (function current value)
+            self.map process
 
     ## GROUP Logical
        ICON preparation
