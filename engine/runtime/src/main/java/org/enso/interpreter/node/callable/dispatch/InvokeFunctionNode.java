@@ -96,11 +96,14 @@ public abstract class InvokeFunctionNode extends BaseNode {
 
   @TruffleBoundary
   private PanicException makePrivateAccessPanic(Function targetFunction) {
-    var thisProjName = getThisProject() != null ? getThisProject().name() : null;
-    var targetProjName =
-        getFunctionProject(targetFunction) != null
-            ? getFunctionProject(targetFunction).name()
-            : null;
+    String thisProjName = null;
+    if (getThisProject() != null) {
+      thisProjName = getThisProject().libraryName().qualifiedName();
+    }
+    String targetProjName = null;
+    if (getFunctionProject(targetFunction) != null) {
+      targetProjName = getFunctionProject(targetFunction).libraryName().qualifiedName();
+    }
     var funcName = targetFunction.getName();
     var err =
         EnsoContext.get(this)

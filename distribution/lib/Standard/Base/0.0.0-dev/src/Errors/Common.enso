@@ -314,8 +314,8 @@ type Private_Access
        project.
 
        Arguments:
-       - this_project_name: Optional name of the current (caller) project.
-       - target_project_name: Optional name of the project of callee.
+       - this_project_name: Optional qualified name of the current (caller) project.
+       - target_project_name: Optional qualified name name of the project of callee.
        - target_method_name: The name of the target method call that is project-private and thus cannot be called.
     Error (this_project_name : (Text | Nothing)) (target_project_name : (Text | Nothing)) (target_method_name : Text)
 
