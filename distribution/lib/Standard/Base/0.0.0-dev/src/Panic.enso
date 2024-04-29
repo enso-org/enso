@@ -197,7 +197,7 @@ type Panic
        Arguments:
        - value: value to return if not an error, or rethrow as a Panic.
     throw_wrapped_if_error : Any -> Any
-    throw_wrapped_if_error value =
+    throw_wrapped_if_error ~:want:value =
         if value.is_error then Panic.throw (Wrapped_Dataflow_Error.Error value.catch) else value
 
     ## PRIVATE
