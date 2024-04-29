@@ -40,7 +40,6 @@ import type * as spinner from '#/components/Spinner'
 
 import * as backendModule from '#/services/Backend'
 import LocalBackend, * as localBackendModule from '#/services/LocalBackend'
-import type * as projectManager from '#/services/ProjectManager'
 import RemoteBackend, * as remoteBackendModule from '#/services/RemoteBackend'
 
 import * as array from '#/utilities/array'
@@ -118,12 +117,11 @@ export interface DashboardProps {
   readonly supportsLocalBackend: boolean
   readonly appRunner: AppRunner
   readonly initialProjectName: string | null
-  readonly projectManagerRootDirectory: projectManager.Path | null
 }
 
 /** The component that contains the entire UI. */
 export default function Dashboard(props: DashboardProps) {
-  const { supportsLocalBackend, appRunner, initialProjectName, projectManagerRootDirectory } = props
+  const { supportsLocalBackend, appRunner, initialProjectName } = props
   const logger = loggerProvider.useLogger()
   const session = authProvider.useNonPartialUserSession()
   const { backend } = backendProvider.useBackend()
@@ -411,7 +409,9 @@ export default function Dashboard(props: DashboardProps) {
       const parentId =
         backend.type === backendModule.BackendType.remote
           ? rootDirectoryId
-          : localBackendModule.newDirectoryId(projectManagerRootDirectory ?? backendModule.Path(''))
+          : localBackendModule.newDirectoryId(
+              projectManager?.rootDirectory ?? backendModule.Path('')
+            )
       dispatchAssetListEvent({
         type: AssetListEventType.newProject,
         parentKey: parentId,
@@ -425,7 +425,7 @@ export default function Dashboard(props: DashboardProps) {
     [
       backend.type,
       rootDirectoryId,
-      projectManagerRootDirectory,
+      projectManager,
       /* should never change */ dispatchAssetListEvent,
     ]
   )

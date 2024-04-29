@@ -140,6 +140,7 @@ export interface AppProps {
   readonly initialProjectName: string | null
   readonly onAuthenticated: (accessToken: string | null) => void
   readonly projectManagerUrl: string | null
+  readonly projectManager: string | null
   readonly appRunner: AppRunner
 }
 
