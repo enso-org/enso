@@ -56,7 +56,7 @@ Column.report_fail self expected loc =
     indexed.zip expected a-> e->
         if a.first != e then
             if (a.first.is_a Number && e.is_a Number && a.first.is_nan && e.is_nan).not then
-                Panic.throw "Column: "+self.name+" differs at row "+a.second.to_text+". Actual: "+a.first.to_text+" Expected: "+e.to_text+' (at '+loc+').'
+                Panic.throw "Column: "+self.name+" differs at row "+a.second.to_text+'.\n\t  Actual  : '+a.first.to_text+'\n\t  Expected: '+e.to_text+'\n\t(at '+loc+').'
 
 DB_Table.should_equal : DB_Table -> Integer -> Any
 DB_Table.should_equal self expected frames_to_skip=0 =
