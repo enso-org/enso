@@ -87,6 +87,7 @@ type Exception
    `catch_exception` removes the `Uncaught_Exception` wrapper and propagates the
    `Error` via normal `Error` propagation.
 type Uncaught_Exception
+    ## PRIVATE
     Error error
 
     ## PRIVATE
