@@ -1,0 +1,48 @@
+from Standard.Base import all
+from Standard.Table import Column, Table
+from project.Util import all
+from Standard.Test import all
+
+add_specs suite_builder =
+    suite_builder.group "Column should_equal" group_builder->
+        group_builder.specify "Two Columns Are Equal" <|
+            expected_column = Column.from_vector "Col" ["Quis", "custodiet", "ipsos", "custodes?"]
+            actual_column = Column.from_vector "Col" ["Quis", "custodiet", "ipsos", "custodes?"]
+            actual_column.should_equal expected_column
+        group_builder.specify "Two Columns With Different Name are Not Equal" <|
+            expected_column = Column.from_vector "Col1" ["Quis", "custodiet", "ipsos", "custodes?"]
+            actual_column = Column.from_vector "Col2" ["Quis", "custodiet", "ipsos", "custodes?"]
+            res = Panic.recover Any (actual_column.should_equal_impl expected_column "LOCATION_PATH")
+            res.catch.should_equal "Expected column name Col1, but got Col2 (at LOCATION_PATH)."
+        group_builder.specify "Two Columns With Different Lengths are Not Equal" <|
+            expected_column = Column.from_vector "Col" ["Quis", "custodiet", "ipsos", "custodes?"]
+            actual_column = Column.from_vector "Col" ["Quis", "custodiet", "ipsos"]
+            res = Panic.recover Any (actual_column.should_equal_impl expected_column "LOCATION_PATH")
+            res.catch.should_equal "Expected column length 4, but got 3 (at LOCATION_PATH). "
+        group_builder.specify "Two Columns with different content Are Not Equal" <|
+            expected_column = Column.from_vector "Col" ["Quis", "custodiet", "ipsos", "custodes?"]
+            actual_column = Column.from_vector "Col" ["Who", "guards", "the", "guards?"]
+            res = Panic.recover Any (actual_column.should_equal_impl expected_column "LOCATION_PATH")
+            res.catch.should_equal "Column: Col differs at row 0. Actual: Who Expected: Quis (at LOCATION_PATH)."
+        group_builder.specify "Two Columns Are Not Equal in Row 3" <|
+            expected_column = Column.from_vector "My Column" ["Quis", "custodiet", "ipsos", "custodes?"]
+            actual_column = Column.from_vector "My Column" ["Quis", "custodiet", "ipsos", "guards?"]
+            res = Panic.recover Any (actual_column.should_equal_impl expected_column "LOCATION_PATH")
+            res.catch.should_equal "Column: My Column differs at row 3. Actual: guards? Expected: custodes? (at LOCATION_PATH)."
+        group_builder.specify "Two Columns with different types Are Not Equal" <|
+            expected_column = Column.from_vector "Col" ["1", "2", "3", "4"]
+            actual_column = Column.from_vector "Col" [1, 2, 3, 4]
+            res = Panic.recover Any (actual_column.should_equal_impl expected_column "LOCATION_PATH")
+            res.catch.should_equal "Expected column type (Char Nothing True), but got (Integer 64 bits) (at LOCATION_PATH)."
+        group_builder.specify "Two Columns Containg NaNs Are Equal" <|
+            # This is somewhat of a special case, as NaN != NaN but for the purposes of testing we consider them equal
+            expected_column = Column.from_vector "Col" [1.0, 2.0, Number.nan]
+            actual_column = Column.from_vector "Col" [1.0, 2.0, Number.nan]
+            actual_column.should_equal expected_column
+
+
+
+main filter=Nothing =
+    suite = Test.build suite_builder->
+        add_specs suite_builder
+    suite.run_with_filter filter

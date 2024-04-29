@@ -26,14 +26,32 @@ Table.should_equal self expected frames_to_skip=0 =
 Column.should_equal : Any -> Integer -> Any
 Column.should_equal self expected frames_to_skip=0 =
     loc = Meta.get_source_location 1+frames_to_skip
+    Panic.catch Any (self.should_equal_impl expected loc) error->
+        Test.fail error.payload
+
+## PRIVATE
+Column.should_equal_impl self expected loc =
     case expected of
         _ : Column ->
             if self.name != expected.name then
-                Test.fail "Expected column name "+expected.name+", but got "+self.name+" (at "+loc+")."
+                Panic.throw "Expected column name "+expected.name+", but got "+self.name+" (at "+loc+")."
             if self.length != expected.length then
-                Test.fail "Expected column length "+expected.length.to_text+", but got "+self.length.to_text+" (at "+loc+")."
-            self.to_vector.should_equal expected.to_vector 2+frames_to_skip
-        _ -> Test.fail "Got a Column, but expected a "+expected.to_display_text+' (at '+loc+').'
+                Panic.throw "Expected column length "+expected.length.to_text+", but got "+self.length.to_text+" (at "+loc+")."
+            if self.value_type != expected.value_type then
+                Panic.throw "Expected column type "+expected.value_type.to_text+", but got "+self.value_type.to_text+" (at "+loc+")."
+            self.zip expected a-> e->
+                if a != e then
+                    if (a.is_a Number && e.is_a Number && a.is_nan && e.is_nan).not then
+                        self.report_fail expected loc
+        _ -> Panic.throw "Got a Column, but expected a "+expected.to_display_text+' (at '+loc+').'
+
+
+Column.report_fail self expected loc =
+    indexed = self.zip (0.up_to self.length) a-> i-> Pair.new a i
+    indexed.zip expected a-> e->
+        if a.first != e then
+            if (a.first.is_a Number && e.is_a Number && a.first.is_nan && e.is_nan).not then
+                Panic.throw "Column: "+self.name+" differs at row "+a.second.to_text+". Actual: "+a.first.to_text+" Expected: "+e.to_text+' (at '+loc+').'
 
 DB_Table.should_equal : DB_Table -> Integer -> Any
 DB_Table.should_equal self expected frames_to_skip=0 =

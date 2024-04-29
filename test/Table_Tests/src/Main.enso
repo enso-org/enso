@@ -15,5 +15,6 @@ main filter=Nothing =
         Formatting.Main.add_specs suite_builder
         Database.Main.add_specs suite_builder
         Helpers.Main.add_specs suite_builder
+        Util_Spec.add_specs suite_builder
 
     suite.run_with_filter filter
