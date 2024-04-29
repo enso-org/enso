@@ -1572,7 +1572,7 @@ type Build_Style_Builder
     append : Any ! Error -> Nothing ! Error
     append self (item : Any ! Error) -> Nothing ! Error =
         Panic.throw_wrapped_if_error <|
-            item.if_not_error
+            item.if_not_error <|
                 self.unsafe_append item
                 self.add_warnings item
                 Nothing

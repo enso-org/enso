@@ -2,7 +2,6 @@ from Standard.Base import all
 from Standard.Base.Data.Array_Proxy import Array_Proxy
 import Standard.Base.Errors.Empty_Error.Empty_Error
 import Standard.Base.Data.Vector.Builder
-import Standard.Base.Data.Vector.Builder_Dataflow_Error
 import Standard.Base.Data.Vector.Map_Error
 import Standard.Base.Data.Vector.No_Wrap
 import Standard.Base.Errors.Common.Additional_Warnings
