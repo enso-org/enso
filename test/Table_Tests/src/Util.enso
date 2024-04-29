@@ -24,8 +24,10 @@ Column.should_equal self expected frames_to_skip=0 =
 Table.should_equal_impl self expected loc =
     case expected of
         _ : Table ->
+            if self.columns.length != expected.columns.length then
+                Panic.throw 'Tables differ at '+loc+'.\nActual:\n'+self.display+'\nExpected:\n'+expected.display+'\nExpected '+expected.columns.length.to_text+" columns, but got "+self.columns.length.to_text+'.'
             Panic.catch Any (self.columns.zip expected.columns a-> e->(a.should_equal_impl e)) error->
-                msg = 'Tables differ at '+loc+'.\nActual:\n' + self.display + '\nExpected:\n' + expected.display + '\n' + error.payload
+                msg = 'Tables differ at '+loc+'.\nActual:\n'+self.display+'\nExpected:\n'+expected.display+'\n'+error.payload
                 Panic.throw msg
         _ -> Panic.throw "Got a Table, but expected a "+expected.to_display_text+(display_loc loc)+'.'
 ## PRIVATE

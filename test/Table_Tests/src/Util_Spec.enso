@@ -49,11 +49,26 @@ add_specs suite_builder =
             expected_table = Table.new [Column.from_vector "Col1" ["Quis", "custodiet", "ipsos", "custodes?"], Column.from_vector "Col2" ["Who", "guards", "the", "guards?"]]
             actual_table = Table.new [Column.from_vector "Col1" ["Quis", "custodiet", "ipsos", "custodes?"], Column.from_vector "Col2" ["Who", "guards", "the", "guards?"]]
             actual_table.should_equal expected_table
+        group_builder.specify "Tables different number of columns" <|
+            expected_table = Table.new [Column.from_vector "Col1" ["Quis", "custodiet", "ipsos", "custodes?"]]
+            actual_table = Table.new [Column.from_vector "Col1" ["Quis", "custodiet", "ipsos", "custodes?"], Column.from_vector "Col2" ["Who", "guards", "the", "guards?"]]
+            res = Panic.recover Any (actual_table.should_equal_impl expected_table "LOCATION_PATH")
+            res.catch.should_end_with "Expected 1 columns, but got 2."
+        group_builder.specify "Tables different number of columns2" <|
+            expected_table = Table.new [Column.from_vector "Col1" ["Quis", "custodiet", "ipsos", "custodes?"], Column.from_vector "Col2" ["Who", "guards", "the", "guards?"]]
+            actual_table = Table.new [Column.from_vector "Col1" ["Quis", "custodiet", "ipsos", "custodes?"]]
+            res = Panic.recover Any (actual_table.should_equal_impl expected_table "LOCATION_PATH")
+            res.catch.should_end_with "Expected 2 columns, but got 1."
         group_builder.specify "Tables With Mismatched Column names" <|
             expected_table = Table.new [Column.from_vector "Col1" ["Quis", "custodiet", "ipsos", "custodes?"], Column.from_vector "Col2" ["Who", "guards", "the", "guards?"]]
             actual_table = Table.new [Column.from_vector "Col" ["Quis", "custodiet", "ipsos", "custodes?"], Column.from_vector "Col2" ["Who", "guards", "the", "guards?"]]
             res = Panic.recover Any (actual_table.should_equal_impl expected_table "LOCATION_PATH")
             res.catch.should_end_with "Expected column name Col1, but got Col."
+        group_builder.specify "Comparing a Table to non Table" <|
+            expected_table = 42
+            actual_table = Table.new [Column.from_vector "Col1" ["Quis", "custodiet", "ipsos", "custodes?"]]
+            res = Panic.recover Any (actual_table.should_equal_impl expected_table "LOCATION_PATH")
+            res.catch.should_equal "Got a Table, but expected a 42 (at LOCATION_PATH)."
 
 main filter=Nothing =
     suite = Test.build suite_builder->
