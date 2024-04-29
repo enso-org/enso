@@ -1,5 +1,6 @@
 use enso_install::prelude::*;
 
+use enso_install::locked_installation_lock;
 use enso_install::sanitized_electron_builder_config;
 
 
@@ -45,11 +46,11 @@ fn handle_error<T>(errors: &mut Vec<anyhow::Error>, result: Result<T>) -> Option
 }
 
 pub async fn main() -> Result {
-    let mut errors = vec![];
+    let dialog_title = format!("{} installer", sanitized_electron_builder_config().product_name);
+    enso_install::win::ui::setup_logging_or_fatal(env!("CARGO_PKG_NAME"), &dialog_title);
 
-    handle_error(&mut errors, setup_logging());
-    let lock = enso_install::lock().context(FAILED_TO_ACQUIRE_LOCK)?;
-    let _guard = lock.lock().context(FAILED_TO_ACQUIRE_LOCK)?;
+    let mut errors = vec![];
+    let _guard = locked_installation_lock()?;
 
     let install_dir = parent_directory().unwrap();
 

@@ -4,13 +4,15 @@
 #![allow(unsafe_code)]
 
 use crate::prelude::*;
-use winreg::enums::*;
 
+use enso_install_config::ENSO_INSTALL_ARCHIVE_PATH;
+use enso_install_config::INSTALLER_PAYLOAD_ID;
 use std::ffi::c_void;
 #[cfg(windows)]
 use std::os::windows::ffi::OsStringExt;
 use windows::core::PCWSTR;
 use windows::Win32::UI::Shell;
+use winreg::enums::*;
 
 
 // ==============
@@ -22,8 +24,8 @@ pub mod prog_id;
 pub mod registry;
 pub mod resource;
 pub mod shortcut;
+pub mod ui;
 pub mod uninstall;
-
 
 
 /// Open the `HKEY_CURRENT_USER\Software\Classes` key for reading and writing.
@@ -181,4 +183,9 @@ impl PlainOpenCommand {
         let command_key = registry::create_subkey(key, r"shell\open\command")?.0;
         registry::set_value(&command_key, "", self)
     }
+}
+
+/// Get the binary payload of the installer that was compiled into the executable.
+pub fn get_installer_payload() -> Result<&'static [u8]> {
+    resource::get_binary(INSTALLER_PAYLOAD_ID).with_context(|| format!("Failed to get the installer payload. Was {ENSO_INSTALL_ARCHIVE_PATH} defined during the build?"))
 }

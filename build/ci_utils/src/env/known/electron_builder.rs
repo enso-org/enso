@@ -141,7 +141,9 @@ impl CodeSigningCertificate {
 /// Data needed to sign the binaries on Windows.
 #[derive(Debug)]
 pub struct WindowsSigningCredentials {
+    /// Code signing certificate file.
     pub certificate: CodeSigningCertificate,
+    /// Password to the certificate.
     pub password:    String,
 }
 

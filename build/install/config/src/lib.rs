@@ -1,7 +1,10 @@
-//! Small crate with configuration definitions that can be shared both by the build script and
-//! the installer/uninstaller.
-
-
+//! A crate that provides utilities for building the Enso installer. It is used by:
+//! * the build script (`./run`) - for [creating the installer bundle](bundler::bundle) (and
+//!   providing the necessary resources);
+//! * the installer's and uninstaller's `build.rs` build scripts - for embedding the necessary
+//!   resources;
+//! * the installer's and uninstaller's runtime code - for accessing the configuration. Note that
+//!   resource access in not part of this crate, as it is Windows-specific.
 
 pub mod prelude {
     pub use ide_ci::prelude::*;
@@ -105,9 +108,7 @@ pub fn sanitize_and_expose_electron_builder_config() -> Result<electron_builder:
 /// The payload is a `tar.gz` archive containing the Enso IDE.
 pub const INSTALLER_PAYLOAD_ID: &str = "INSTALLER_PAYLOAD";
 
-/// A constant that holds the identifier for the Enso icon.
-///
-/// This identifier is used to reference the icon in the installer payload.
+/// Identifier for the Enso icon resource.
 pub const ENSO_ICON_ID: &str = "ENSO_ICON_ID";
 
 
@@ -132,7 +133,7 @@ impl Display for ResourceType {
 }
 
 
-/// Embeds a resource from a file.
+/// Embeds a file as a resource into the binary.
 ///
 /// This function is intended to be used by the installer/uninstaller's `build.rs`.
 pub fn embed_resource_from_file(
@@ -155,8 +156,9 @@ pub fn embed_resource_from_file(
 
 /// Embeds a resource using a path from an environment variable.
 ///
-/// It should be preferred over [`embed_resource_from_file`] as it will ensure that the build script
-/// is rerun when the environment variable changes.
+/// It should be preferred over [`embed_resource_from_file`] when the path to the resource is stored
+/// in an environment variable. The function will automatically rerun the build script if the
+/// environment variable changes.
 ///
 /// This function is intended to be used by the installer/uninstaller's `build.rs`.
 pub fn embed_resource_from_env(

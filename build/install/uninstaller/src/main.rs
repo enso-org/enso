@@ -21,8 +21,8 @@ pub async fn main() -> Result {
 
 
 #[cfg(not(windows))]
-fn main() {
-    panic!("Not supported on non-Windows platforms.")
+fn main() -> Result {
+    bail!("This uninstaller is only supported on Windows.")
 }
 
 

@@ -1,3 +1,7 @@
+//! Utilities for building the Windows installer/uninstaller for the Enso application.
+//!
+//! See the [`bundle`] function as the main entry point.
+
 use crate::prelude::*;
 
 use crate::INSTALLER_NAME;
@@ -8,7 +12,7 @@ use ide_ci::programs::cargo;
 use ide_ci::programs::Cargo;
 
 
-
+/// Input necessary to generate a Windows installer from unpacked Electron application bundle.
 #[derive(Debug)]
 pub struct Config {
     /// File to the JSON file containing the Electron Builder configuration.
@@ -29,6 +33,7 @@ pub struct Config {
     pub certificate:              Option<WindowsSigningCredentials>,
 }
 
+/// Builds a package using Cargo and optionally signs it with a certificate.
 pub async fn build_package(
     crate_name: &str,
     output_file: &Path,
@@ -57,6 +62,11 @@ pub async fn build_package(
     Ok(())
 }
 
+/// Package the Enso unpacked Electron application bundle (electron-builder's output) into an
+/// installer.
+///
+/// First, the uninstaller is built and signed. Then, the payload is prepared and the installer is
+/// built and signed.
 pub async fn bundle(config: Config) -> Result {
     let Config {
         electron_builder_config,

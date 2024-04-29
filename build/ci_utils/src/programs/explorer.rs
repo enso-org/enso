@@ -17,6 +17,8 @@ impl Program for Explorer {
 
 
 /// Open the parent folder of the given path in Windows File Explorer and select the given path.
+// Windows only, due to platform-specific `raw_arg` usage.
+#[cfg(windows)]
 pub fn show_selected(path: impl AsRef<Path>) -> Result {
     let argument = format!(r#"/select,"{}""#, path.as_ref().display());
     // We use `raw_arg` to avoid escaping the path. The usual quoting rules don't work here.

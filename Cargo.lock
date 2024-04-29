@@ -1521,12 +1521,15 @@ dependencies = [
  "indicatif",
  "mslnk",
  "named-lock",
+ "native-windows-gui",
  "self-replace",
  "serde_json",
  "strum",
+ "sysinfo",
  "tar",
  "tokio",
  "tracing",
+ "tracing-subscriber",
  "windows 0.53.0",
  "winreg 0.52.0",
 ]
@@ -1557,7 +1560,6 @@ dependencies = [
  "enso-install-config",
  "flate2",
  "ide-ci",
- "native-windows-derive",
  "native-windows-gui",
  "serde_json",
  "sysinfo",
@@ -2835,18 +2837,6 @@ dependencies = [
  "security-framework",
  "security-framework-sys",
  "tempfile",
-]
-
-[[package]]
-name = "native-windows-derive"
-version = "1.0.5"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "76134ae81020d89d154f619fd2495a2cecad204276b1dc21174b55e4d0975edd"
-dependencies = [
- "proc-macro-crate",
- "proc-macro2",
- "quote",
- "syn 1.0.107",
 ]
 
 [[package]]
