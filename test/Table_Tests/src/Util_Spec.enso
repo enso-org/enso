@@ -48,7 +48,12 @@ add_specs suite_builder =
         group_builder.specify "Two Tables Are Equal" <|
             expected_table = Table.new [Column.from_vector "Col1" ["Quis", "custodiet", "ipsos", "custodes?"], Column.from_vector "Col2" ["Who", "guards", "the", "guards?"]]
             actual_table = Table.new [Column.from_vector "Col1" ["Quis", "custodiet", "ipsos", "custodes?"], Column.from_vector "Col2" ["Who", "guards", "the", "guards?"]]
-            actual_table.should_equal expected_table
+            actual_table.should_equal expected_table    
+        group_builder.specify "Two Tables With Different Values" <|
+            expected_table = Table.new [Column.from_vector "Col1" ["Quis", "custodiet", "ipsos", "custodes?"], Column.from_vector "Col2" ["Who", "guards", "the", "guards?"]]
+            actual_table = Table.new [Column.from_vector "Col1" ["Quis", "custodiet", "ipsos", "custodes?"], Column.from_vector "Col2" ["Who", "guards", "teh", "guards?"]]
+            res = Panic.recover Any (actual_table.should_equal_impl expected_table "LOCATION_PATH")
+            res.catch.should_end_with 'Column: Col2 differs at row 2.\n\t  Actual  : teh\n\t  Expected: the\n\t.'
         group_builder.specify "Tables different number of columns" <|
             expected_table = Table.new [Column.from_vector "Col1" ["Quis", "custodiet", "ipsos", "custodes?"]]
             actual_table = Table.new [Column.from_vector "Col1" ["Quis", "custodiet", "ipsos", "custodes?"], Column.from_vector "Col2" ["Who", "guards", "the", "guards?"]]
