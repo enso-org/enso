@@ -23,12 +23,12 @@ add_specs suite_builder =
             expected_column = Column.from_vector "Col" ["Quis", "custodiet", "ipsos", "custodes?"]
             actual_column = Column.from_vector "Col" ["Who", "guards", "the", "guards?"]
             res = Panic.recover Any (actual_column.should_equal_impl expected_column "LOCATION_PATH")
-            res.catch.should_equal 'Column: Col differs at row 0.\n\t  Actual  : Who\n\t  Expected: Quis\n\t(at LOCATION_PATH).'
+            res.catch.should_equal 'Column: Col differs at row 0.\n\t  Actual  : Who\n\t  Expected: Quis\n\t (at LOCATION_PATH).'
         group_builder.specify "Two Columns Are Not Equal in Row 3" <|
             expected_column = Column.from_vector "My Column" ["Quis", "custodiet", "ipsos", "custodes?"]
             actual_column = Column.from_vector "My Column" ["Quis", "custodiet", "ipsos", "guards?"]
             res = Panic.recover Any (actual_column.should_equal_impl expected_column "LOCATION_PATH")
-            res.catch.should_equal 'Column: My Column differs at row 3.\n\t  Actual  : guards?\n\t  Expected: custodes?\n\t(at LOCATION_PATH).'
+            res.catch.should_equal 'Column: My Column differs at row 3.\n\t  Actual  : guards?\n\t  Expected: custodes?\n\t (at LOCATION_PATH).'
         group_builder.specify "Two Columns with different types Are Not Equal" <|
             expected_column = Column.from_vector "Col" ["1", "2", "3", "4"]
             actual_column = Column.from_vector "Col" [1, 2, 3, 4]
@@ -44,6 +44,16 @@ add_specs suite_builder =
             expected_column = Column.from_vector "Col" [1.0, 2.0, Number.nan]
             actual_column = Column.from_vector "Col" [1.0, 2.0, Number.nan]
             actual_column.should_equal expected_column
+    suite_builder.group "Table should_equal" group_builder->
+        group_builder.specify "Two Tables Are Equal" <|
+            expected_table = Table.new [Column.from_vector "Col1" ["Quis", "custodiet", "ipsos", "custodes?"], Column.from_vector "Col2" ["Who", "guards", "the", "guards?"]]
+            actual_table = Table.new [Column.from_vector "Col1" ["Quis", "custodiet", "ipsos", "custodes?"], Column.from_vector "Col2" ["Who", "guards", "the", "guards?"]]
+            actual_table.should_equal expected_table
+        group_builder.specify "Tables With Mismatched Column names" <|
+            expected_table = Table.new [Column.from_vector "Col1" ["Quis", "custodiet", "ipsos", "custodes?"], Column.from_vector "Col2" ["Who", "guards", "the", "guards?"]]
+            actual_table = Table.new [Column.from_vector "Col" ["Quis", "custodiet", "ipsos", "custodes?"], Column.from_vector "Col2" ["Who", "guards", "the", "guards?"]]
+            res = Panic.recover Any (actual_table.should_equal_impl expected_table "LOCATION_PATH")
+            res.catch.should_end_with "Expected column name Col1, but got Col."
 
 main filter=Nothing =
     suite = Test.build suite_builder->
