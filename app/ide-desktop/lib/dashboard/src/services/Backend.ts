@@ -1197,7 +1197,7 @@ export default abstract class Backend {
     projectId: ProjectId,
     versionId: S3ObjectVersionId,
     title: string
-  ): Promise<void>
+  ): Promise<CreatedProject>
   /** Return project details. */
   abstract getProjectDetails(
     projectId: ProjectId,

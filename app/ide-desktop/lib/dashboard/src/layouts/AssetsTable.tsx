@@ -1696,6 +1696,32 @@ export default function AssetsTable(props: AssetsTableProps) {
         insertArbitraryAssets(event.assets, event.parentKey, event.parentId)
         break
       }
+      case AssetListEventType.duplicateProject: {
+        const placeholderItem: backendModule.ProjectAsset = {
+          type: backendModule.AssetType.project,
+          id: backendModule.SecretId(uniqueString.uniqueString()),
+          title: event.name,
+          modifiedAt: dateTime.toRfc3339(new Date()),
+          parentId: event.parentId,
+          permissions: permissions.tryGetSingletonOwnerPermission(user),
+          projectState: {
+            type: backendModule.ProjectState.placeholder,
+            volumeId: '',
+            ...(user != null ? { openedBy: user.email } : {}),
+            ...(path != null ? { path } : {}),
+          },
+          labels: [],
+          description: null,
+        }
+        // duplicateProject
+        insertAssets([placeholderItem], event.parentKey, event.parentId)
+        dispatchAssetEvent({
+          type: AssetEventType.newSecret,
+          placeholderId: placeholderItem.id,
+          value: event.value,
+        })
+        break
+      }
       case AssetListEventType.willDelete: {
         if (selectedKeysRef.current.has(event.key)) {
           const newSelectedKeys = new Set(selectedKeysRef.current)

@@ -66,6 +66,8 @@ interface PlaceholderOverrides {
   readonly undoDeleteAssetBackendError: [string]
   readonly copyAssetBackendError: [string, string]
   readonly createProjectBackendError: [string]
+  readonly restoreProjectBackendError: [string]
+  readonly duplicateProjectBackendError: [string]
   readonly closeProjectBackendError: [string]
   readonly getProjectDetailsBackendError: [string]
   readonly openProjectBackendError: [string]

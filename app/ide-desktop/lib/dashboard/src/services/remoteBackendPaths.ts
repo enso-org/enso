@@ -97,6 +97,14 @@ export function closeProjectPath(projectId: backend.ProjectId) {
 export function getProjectDetailsPath(projectId: backend.ProjectId) {
   return `projects/${projectId}`
 }
+/** Relative HTTP path to the "duplicate project" endpoint of the Cloud backend API. */
+export function duplicateProjectPath(projectId: backend.ProjectId) {
+  return `projects/${projectId}/versions/clone`
+}
+/** Relative HTTP path to the "restore project" endpoint of the Cloud backend API. */
+export function restoreProjectPath(projectId: backend.ProjectId) {
+  return `projects/${projectId}/versions/restore`
+}
 /** Relative HTTP path to the "open project" endpoint of the Cloud backend API. */
 export function openProjectPath(projectId: backend.ProjectId) {
   return `projects/${projectId}/open`
