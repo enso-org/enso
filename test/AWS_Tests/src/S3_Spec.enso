@@ -1,6 +1,6 @@
 from Standard.Base import all
 from Standard.Base.Runtime import assert
-import Standard.Base.Enso_Cloud.Data_Link.Data_Link_Format
+import Standard.Base.Enso_Cloud.Data_Link.Data_Link
 import Standard.Base.Errors.Common.Forbidden_Operation
 import Standard.Base.Errors.File_Error.File_Error
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
@@ -33,7 +33,7 @@ test_credentials -> AWS_Credential ! Illegal_State =
 with_default_credentials ~action =
     AWS_Credential.with_default_override test_credentials action
 
-api_pending = if test_credentials.is_nothing then "No Access Key found." else Nothing
+api_pending = if test_credentials.is_error then test_credentials.catch.message else Nothing
 
 bucket_name = "enso-data-samples"
 writable_bucket_name = "enso-ci-s3-test-stage"
@@ -54,10 +54,10 @@ delete_afterwards file ~action =
    actual one. It then writes the new contents to a temporary file and returns
    it.
 replace_username_in_data_link base_file =
-    content = Data_Link_Format.read_raw_config base_file
+    content = Data_Link.read_raw_config base_file
     new_content = content.replace "USERNAME" Enso_User.current.organization_name
     temp_file = File.create_temporary_file prefix=base_file.name suffix=base_file.extension
-    Data_Link_Format.write_raw_config temp_file new_content replace_existing=True . if_not_error temp_file
+    Data_Link.write_raw_config temp_file new_content replace_existing=True . if_not_error temp_file
 
 ## To run these tests you need to set the following environment variables:
    - ENSO_LIB_S3_AWS_ACCESS_KEY_ID
@@ -170,7 +170,7 @@ add_specs suite_builder =
 
     suite_builder.group "S3.head (bucket)" pending=api_pending group_builder->
         group_builder.specify "should be able to head a bucket" <|
-            S3.head bucket_name credentials=test_credentials . should_equal Map.empty
+            S3.head bucket_name credentials=test_credentials . should_be_a Map
             S3.head not_a_bucket_name credentials=test_credentials . should_fail_with S3_Bucket_Not_Found
 
     suite_builder.group "S3.read_bucket" pending=api_pending group_builder->
@@ -313,6 +313,7 @@ add_specs suite_builder =
 
     suite_builder.group "S3_File writing" pending=api_pending group_builder->
         assert my_writable_dir.is_directory
+        group_builder.teardown (my_writable_dir.delete_if_exists recursive=True)
 
         group_builder.specify "should be able to write and delete a new file" <|
             new_file = my_writable_dir / "new_file1.txt"
@@ -545,20 +546,47 @@ add_specs suite_builder =
 
         group_builder.specify "should be able to read a data link stored on S3" <| with_default_credentials <|
             s3_link = my_writable_dir / "my-simple.datalink"
-            raw_content = Data_Link_Format.read_raw_config (enso_project.data / "simple.datalink")
-            Data_Link_Format.write_raw_config s3_link raw_content replace_existing=True . should_succeed
+            raw_content = Data_Link.read_raw_config (enso_project.data / "simple.datalink")
+            Data_Link.write_raw_config s3_link raw_content replace_existing=True . should_succeed
             Panic.with_finalizer s3_link.delete <|
                 s3_link.read . should_equal "Hello WORLD!"
 
         group_builder.specify "should be able to read an S3 data link overriding the format" <| with_default_credentials <|
             s3_link = my_writable_dir / "my-simple.datalink"
-            raw_content = Data_Link_Format.read_raw_config (enso_project.data / "simple.datalink")
-            Data_Link_Format.write_raw_config s3_link raw_content replace_existing=True . should_succeed
+            raw_content = Data_Link.read_raw_config (enso_project.data / "simple.datalink")
+            Data_Link.write_raw_config s3_link raw_content replace_existing=True . should_succeed
             Panic.with_finalizer s3_link.delete <|
                 r = s3_link.read (Delimited_Format.Delimited " " headers=False)
                 r.should_be_a Table
                 r.column_names . should_equal ["Column 1", "Column 2"]
                 r.rows.at 0 . to_vector . should_equal ["Hello", "WORLD!"]
+
+        table = Table.new [["X", [1, 2, 3]], ["Y", ["a", "b", "c"]]]
+        test_write_table_to_datalink extension check_read_back = group_builder.specify "should be able to write a Table to an S3 data link ("+extension+")" <| with_default_credentials <|
+            link_target = my_writable_dir / ("linked-sheet."+extension)
+            s3_link = my_writable_dir / "my-simple-write-"+extension+".datalink"
+            Problems.assume_no_problems <| Data_Link.write_config s3_link <|
+                JS_Object.from_pairs <|
+                    [["type", "S3"]]
+                        + [["libraryName", "Standard.AWS"]]
+                        + [["uri", link_target.path]]
+                        + [["auth", JS_Object.from_pairs [["type", "aws_auth"], ["subType", "default"]]]]
+
+            # The write operation should return the data link file, not the target linked file:
+            table.write s3_link . should_equal s3_link
+            check_read_back s3_link.read
+
+            # Deleting the datalink should not delete the linked file:
+            s3_link.delete . should_equal Nothing
+            s3_link.exists . should_be_false
+            link_target.exists . should_be_true
+
+        test_write_table_to_datalink "xlsx" got_workbook->
+            got_workbook.read "EnsoSheet" . should_equal table
+        test_write_table_to_datalink "csv" got_table->
+            got_table.should_equal table
+        test_write_table_to_datalink "json" got_json->
+            Table.from got_json . should_equal table
 
 main filter=Nothing =
     suite = Test.build suite_builder->

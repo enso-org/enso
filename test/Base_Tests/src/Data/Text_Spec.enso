@@ -896,6 +896,11 @@ add_specs suite_builder =
             'a'.each builder2.append
             builder2.to_vector . should_equal ['a']
 
+        group_builder.specify "dataflow errors in .each should become panics" <|
+            do_write x =
+                Error.throw "Failed to write "+x.to_text
+            Test.expect_panic_with ("abc".each do_write) Text
+
         group_builder.specify "should check for contains using Unicode normalization" <|
             "Hello".contains "ell" . should_be_true
             "Hello".contains "eLl" . should_be_false

@@ -27,11 +27,11 @@ make_aggregate_column_selector table display=Display.Always =
     count = Option "Count" fqn+".Count"
 
     ## Currently can't support nested vector editors so using single picker
-    ## col_list_selector = make_column_name_vector_selector table display=Display.Always
-    count_distinct = Option "Count Distinct" fqn+".Count_Distinct" [["columns", col_names_selector]]
+    col_list_selector = make_column_name_multi_selector table display=Display.Always
+    count_distinct = Option "Count Distinct" fqn+".Count_Distinct" [["columns", col_list_selector]]
 
     ## Currently can't support nested vector editors so using single order by picker
-    order_by_selector = make_order_by_selector table . item_editor
+    order_by_selector = make_order_by_selector table Display.When_Modified name_only=True
     first = Option "First" fqn+".First" [column_widget, ["order_by" , order_by_selector]]
     last = Option "Last" fqn+".Last" [column_widget, ["order_by" , order_by_selector]]
 
@@ -85,10 +85,11 @@ make_column_name_vector_selector table display=Display.Always =
 
 ## PRIVATE
    Make a multiple column-name selector that allows each value to be selected at most once.
-make_column_name_multi_selector : Table -> Display -> Widget
-make_column_name_multi_selector table display=Display.Always =
+make_column_name_multi_selector : Table -> Display -> Boolean -> Widget
+make_column_name_multi_selector table display:Display=Display.Always add_regex:Boolean=False =
     names = table.column_names.map n-> Option n n.pretty
-    Multiple_Choice values=names display=display
+    regex = if add_regex then [Option "<Regular Expression>" "(regex '')"] else []
+    Multiple_Choice values=regex+names display=display
 
 ## PRIVATE
    Make a column reference by name selector.
@@ -157,13 +158,16 @@ make_join_kind_selector display=Display.Always =
 ## PRIVATE
    Make a join condition selector.
 make_join_condition_selector : Table -> Display -> Widget
-make_join_condition_selector table display=Display.Always =
-    col_names_selector = make_column_name_selector table display=Display.Always
+make_join_condition_selector table display=Display.Always cache=Nothing =
+    right = cache.if_not_nothing <| cache "right"
+    self_selector = make_column_name_selector table display=Display.Always
+    right_selector = if right.is_nothing then Text_Input else
+        make_column_name_selector right display=Display.Always
 
     fqn = Meta.get_qualified_type_name Join_Condition
-    equals = Option "Equals" fqn+".Equals" [["left", col_names_selector], ["right", Text_Input]]
-    equals_ci = Option "Equals (Ignore Case)" fqn+".Equals_Ignore_Case" [["left", col_names_selector], ["right", Text_Input]]
-    between = Option "Between" fqn+".Between" [["left", col_names_selector], ["right_lower", Text_Input], ["right_upper", Text_Input]]
+    equals = Option "Equals" fqn+".Equals" [["left", self_selector], ["right", right_selector]]
+    equals_ci = Option "Equals (Ignore Case)" fqn+".Equals_Ignore_Case" [["left", self_selector], ["right", right_selector]]
+    between = Option "Between" fqn+".Between" [["left", self_selector], ["right_lower", right_selector], ["right_upper", right_selector]]
     names=[equals, equals_ci, between]
 
     item_editor = Single_Choice display=display values=names
@@ -171,13 +175,15 @@ make_join_condition_selector table display=Display.Always =
 
 ## PRIVATE
    Make a column name selector.
-make_order_by_selector : Table -> Display -> Widget
-make_order_by_selector table display=Display.Always =
+make_order_by_selector : Table -> Display -> Boolean -> Widget
+make_order_by_selector table display=Display.Always name_only:Boolean=False =
     fqn = Meta.get_qualified_type_name Sort_Column
-    name = Option "Name" fqn+".Name" [["name", make_column_name_selector table display=Display.Always]]
-    index = Option "Index" fqn+".Index" [["index", Numeric_Input display=Display.Always minimum=0 maximum=table.column_count-1]]
+    values = if name_only then table.column_names.map n-> Option n "(Sort_Column.Name "+n.pretty+")" else
+        name = Option "Name" fqn+".Name" [["name", make_column_name_selector table display=Display.Always]]
+        index = Option "Index" fqn+".Index" [["index", Numeric_Input display=Display.Always minimum=0 maximum=table.column_count-1]]
+        [name, index]
 
-    item_editor = Single_Choice display=Display.Always values=[name, index]
+    item_editor = Single_Choice display=Display.Always values=values
     Vector_Editor item_editor=item_editor item_default="(Sort_Column.Name "+table.column_names.first.pretty+")" display=display
 
 ## PRIVATE

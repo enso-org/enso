@@ -17,7 +17,8 @@ class ProjectCreateHandleMissingRuntimeSpec
     ) {
       override def defaultJVMSettings: JVMSettings = JVMSettings(
         javaCommandOverride = None,
-        jvmOptions          = Seq()
+        jvmOptions          = Seq(),
+        extraOptions        = Seq()
       )
     }
 

@@ -1,8 +1,9 @@
 private
 
 from Standard.Base import all
-from Standard.Table import Table, Delimited_Format
-from Standard.Base.Runtime.Managed_Resource import Managed_Resource
+import Standard.Base.Runtime.Managed_Resource.Managed_Resource
+
+from Standard.Table import Delimited_Format, Table
 
 import project.Google_Credential.Google_Credential
 from project.Internal.Google_Credential_Internal import all

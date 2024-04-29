@@ -45,8 +45,10 @@ type Snowflake_Details
        Provides the properties for the connection.
     jdbc_properties : Vector (Pair Text Text)
     jdbc_properties self =
-        ## Avoid the Arrow dependency (https://community.snowflake.com/s/article/SAP-BW-Java-lang-NoClassDefFoundError-for-Apache-arrow)
-        no_arrow = [Pair.new 'jdbc_query_result_format' 'json']
+        ## If Arrow dependency is to be avoided (https://community.snowflake.com/s/article/SAP-BW-Java-lang-NoClassDefFoundError-for-Apache-arrow)
+        ## [Pair.new 'jdbc_query_result_format' 'json']
+        ## should be prepended to properties. That would make it fallback to plain `json`.
+
         account = [Pair.new 'account' self.account]
         credentials = [Pair.new 'user' self.credentials.username, Pair.new 'password' self.credentials.password]
         database = [Pair.new 'db' self.database]
@@ -55,4 +57,4 @@ type Snowflake_Details
 
         ## Control the format of TIMESTAMP and TIME fields
         formats = [Pair.new "TIME_OUTPUT_FORMAT" "HH24:MI:SS.FF9", Pair.new "TIMESTAMP_OUTPUT_FORMAT" "YYYY-MM-DD HH24:MI:SS.FF9 TZHTZM", Pair.new "TIMESTAMP_NTZ_OUTPUT_FORMAT" "YYYY-MM-DD HH24:MI:SS.FF9", Pair.new "TIMESTAMP_LTZ_OUTPUT_FORMAT" "YYYY-MM-DD HH24:MI:SS.FF9"]
-        no_arrow + account + credentials + database + schema + warehouse + formats
+        account + credentials + database + schema + warehouse + formats

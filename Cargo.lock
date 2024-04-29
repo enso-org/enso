@@ -1469,24 +1469,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "enso-logging"
-version = "0.3.1"
-dependencies = [
- "enso-logging-macros",
- "web-sys",
-]
-
-[[package]]
-name = "enso-logging-macros"
-version = "0.1.0"
-dependencies = [
- "Inflector",
- "proc-macro2",
- "quote",
- "syn 2.0.53",
-]
-
-[[package]]
 name = "enso-macro-utils"
 version = "0.2.0"
 dependencies = [
@@ -1610,7 +1592,6 @@ dependencies = [
  "boolinator",
  "derivative",
  "derive_more",
- "enso-logging",
  "enso-macros",
  "enso-reflect",
  "enso-zst",

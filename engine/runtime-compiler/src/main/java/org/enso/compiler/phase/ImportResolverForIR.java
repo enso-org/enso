@@ -3,6 +3,7 @@ package org.enso.compiler.phase;
 import java.io.IOException;
 import java.util.Objects;
 
+import org.enso.common.CompilationStage;
 import org.enso.compiler.Compiler;
 import org.enso.compiler.context.CompilerContext;
 import org.enso.compiler.core.ir.Module;
@@ -13,7 +14,6 @@ import org.enso.compiler.data.BindingsMap;
 import org.enso.compiler.data.BindingsMap$ModuleReference$Concrete;
 import org.enso.compiler.data.BindingsMap.ResolvedType;
 import org.enso.editions.LibraryName;
-import org.enso.polyglot.CompilationStage;
 
 import scala.Option;
 import scala.Tuple2;

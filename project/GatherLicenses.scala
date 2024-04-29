@@ -1,6 +1,6 @@
-import sbt.Keys._
-import sbt._
-import complete.DefaultParsers._
+import sbt.Keys.*
+import sbt.*
+import complete.DefaultParsers.*
 import org.apache.ivy.core.resolve.IvyNode
 import src.main.scala.licenses.backend.{
   CombinedBackend,
@@ -9,11 +9,15 @@ import src.main.scala.licenses.backend.{
   GithubHeuristic
 }
 import src.main.scala.licenses.frontend.SbtLicenses
-import src.main.scala.licenses.report._
-import src.main.scala.licenses.{DependencySummary, DistributionDescription}
+import src.main.scala.licenses.report.*
+import src.main.scala.licenses.{
+  DependencySummary,
+  DistributionDescription,
+  ReviewedSummary
+}
 
-import scala.collection.JavaConverters._
-import scala.sys.process._
+import scala.collection.JavaConverters.*
+import scala.sys.process.*
 
 /** The task and configuration for automatically gathering license information.
   */
@@ -27,9 +31,10 @@ object GatherLicenses {
   private val stateFileName = "report-state"
 
   /** The task that performs the whole license gathering process. */
-  lazy val run = Def.task {
-    val log        = state.value.log
-    val targetRoot = target.value
+  def run = Def.inputTask {
+    val names: Seq[String] = spaceDelimited("<arg>").parsed
+    val log                = state.value.log
+    val targetRoot         = target.value
     log.info(
       "Gathering license files and copyright notices. " +
       "This task may take a long time."
@@ -37,7 +42,28 @@ object GatherLicenses {
 
     val configRoot = configurationRoot.value
 
-    val reports = distributions.value.map { distribution =>
+    val namesToProcess: Set[String] = names.toSet
+    val knownDistributions          = distributions.value
+    val distributionsToProcess =
+      if (names.isEmpty) knownDistributions
+      else
+        knownDistributions.filter(distribution =>
+          namesToProcess.contains(distribution.artifactName)
+        )
+
+    val unrecognizedDistributions =
+      namesToProcess -- distributionsToProcess.map(_.artifactName).toSet
+    if (unrecognizedDistributions.nonEmpty) {
+      val message =
+        s"Unrecognized distribution names: $unrecognizedDistributions."
+      log.error(message)
+      throw new IllegalArgumentException(message)
+    }
+    log.info(
+      s"Found following distributions to process: ${distributionsToProcess.map(_.artifactName)}"
+    )
+
+    val reports = distributionsToProcess.map { distribution =>
       log.info(s"Processing the ${distribution.artifactName} distribution")
       val projectNames = distribution.sbtComponents.map(_.name)
       log.info(

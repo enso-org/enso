@@ -3,13 +3,11 @@ import { codeEditorBindings, graphBindings, interactionBindings } from '@/bindin
 import CodeEditor from '@/components/CodeEditor.vue'
 import ColorPicker from '@/components/ColorPicker.vue'
 import ComponentBrowser from '@/components/ComponentBrowser.vue'
-import {
-  DEFAULT_NODE_SIZE,
-  mouseDictatedPlacement,
-  usePlacement,
-} from '@/components/ComponentBrowser/placement'
+import { type Usage } from '@/components/ComponentBrowser/input'
+import { usePlacement } from '@/components/ComponentBrowser/placement'
 import GraphEdges from '@/components/GraphEditor/GraphEdges.vue'
 import GraphNodes from '@/components/GraphEditor/GraphNodes.vue'
+import { useGraphEditorClipboard } from '@/components/GraphEditor/clipboard'
 import { performCollapse, prepareCollapsedInfo } from '@/components/GraphEditor/collapsing'
 import type { NodeCreationOptions } from '@/components/GraphEditor/nodeCreation'
 import { useGraphEditorToasts } from '@/components/GraphEditor/toasts'
@@ -21,8 +19,10 @@ import TopBar from '@/components/TopBar.vue'
 import { useDoubleClick } from '@/composables/doubleClick'
 import { keyboardBusy, keyboardBusyExceptIn, useEvent } from '@/composables/events'
 import { useNavigatorStorage } from '@/composables/navigatorStorage'
+import type { PlacementStrategy } from '@/composables/nodeCreation'
 import { useStackNavigator } from '@/composables/stackNavigator'
 import { provideGraphNavigator } from '@/providers/graphNavigator'
+import { provideNodeCreation } from '@/providers/graphNodeCreation'
 import { provideGraphSelection } from '@/providers/graphSelection'
 import { provideInteractionHandler } from '@/providers/interactionHandler'
 import { provideKeyboard } from '@/providers/keyboard'
@@ -31,9 +31,8 @@ import { useGraphStore, type NodeId } from '@/stores/graph'
 import type { RequiredImport } from '@/stores/graph/imports'
 import { useProjectStore } from '@/stores/project'
 import { groupColorVar, useSuggestionDbStore } from '@/stores/suggestionDatabase'
-import { assertNever, bail } from '@/util/assert'
+import { bail } from '@/util/assert'
 import type { AstId } from '@/util/ast/abstract'
-import type { Pattern } from '@/util/ast/match'
 import { colorFromString } from '@/util/colors'
 import { partition } from '@/util/data/array'
 import { filterDefined } from '@/util/data/iterable'
@@ -41,9 +40,7 @@ import { Rect } from '@/util/data/rect'
 import { Vec2 } from '@/util/data/vec2'
 import { encoding, set } from 'lib0'
 import { encodeMethodPointer } from 'shared/languageServerTypes'
-import { computed, onMounted, ref, toRef, watch } from 'vue'
-import { type Usage } from './ComponentBrowser/input'
-import { useGraphEditorClipboard } from './GraphEditor/clipboard'
+import { computed, onMounted, ref, shallowRef, toRef, watch } from 'vue'
 
 const keyboard = provideKeyboard()
 const graphStore = useGraphStore()
@@ -66,9 +63,8 @@ useNavigatorStorage(graphNavigator, (enc) => {
   if (methodPtr != null) encodeMethodPointer(enc, methodPtr)
 })
 
-function zoomToSelected() {
+function selectionBounds() {
   if (!viewportNode.value) return
-
   const allNodes = graphStore.db.nodeIdToNode
   const validSelected = [...nodeSelection.selected].filter((id) => allNodes.has(id))
   const nodesToCenter = validSelected.length === 0 ? allNodes.keys() : validSelected
@@ -77,8 +73,18 @@ function zoomToSelected() {
     const rect = graphStore.visibleArea(id)
     if (rect) bounds = Rect.Bounding(bounds, rect)
   }
-  if (bounds.isFinite())
-    graphNavigator.panAndZoomTo(bounds, 0.1, Math.max(1, graphNavigator.targetScale))
+  if (bounds.isFinite()) return bounds
+}
+
+function zoomToSelected() {
+  const bounds = selectionBounds()
+  if (bounds) graphNavigator.panAndZoomTo(bounds, 0.1, Math.max(1, graphNavigator.targetScale))
+}
+
+function panToSelected() {
+  const bounds = selectionBounds()
+  if (bounds)
+    graphNavigator.panTo([new Vec2(bounds.left, bounds.top), new Vec2(bounds.right, bounds.bottom)])
 }
 
 // == Breadcrumbs ==
@@ -87,10 +93,11 @@ const stackNavigator = useStackNavigator()
 
 // === Toasts ===
 
-useGraphEditorToasts()
+const toasts = useGraphEditorToasts()
 
 // === Selection ===
 
+const graphNodeSelections = shallowRef<HTMLElement>()
 const nodeSelection = provideGraphSelection(
   graphNavigator,
   graphStore.nodeRects,
@@ -108,11 +115,28 @@ watch(
   () => nodeSelection.deselectAll(),
 )
 
+// === Node creation ===
+
+const { place: nodePlacement, collapse: collapsedNodePlacement } = usePlacement(
+  toRef(graphStore, 'visibleNodeAreas'),
+  toRef(graphNavigator, 'viewport'),
+)
+
+const { createNode, createNodes, placeNode } = provideNodeCreation(
+  toRef(graphNavigator, 'viewport'),
+  toRef(graphNavigator, 'sceneMousePos'),
+  (nodes) => {
+    clearFocus()
+    nodeSelection.setSelection(nodes)
+    panToSelected()
+  },
+)
+
 // === Clipboard Copy/Paste ===
 
-const { copyNodeContent, readNodeFromClipboard } = useGraphEditorClipboard(
+const { copySelectionToClipboard, createNodesFromClipboard } = useGraphEditorClipboard(
   nodeSelection,
-  graphNavigator,
+  createNodes,
 )
 
 // === Interactions ===
@@ -122,17 +146,12 @@ const interactionBindingsHandler = interactionBindings.handler({
   cancel: () => interaction.handleCancel(),
 })
 
-const { place: nodePlacement, collapse: collapsedNodePlacement } = usePlacement(
-  toRef(graphStore, 'visibleNodeAreas'),
-  toRef(graphNavigator, 'viewport'),
-)
-
 useEvent(window, 'keydown', (event) => {
   interactionBindingsHandler(event) ||
     (!keyboardBusy() && graphBindingsHandler(event)) ||
     (!keyboardBusyExceptIn(codeEditorArea.value) && codeEditorHandler(event))
 })
-useEvent(window, 'pointerdown', (e) => interaction.handleClick(e, graphNavigator), {
+useEvent(window, 'pointerdown', (e) => interaction.handlePointerDown(e, graphNavigator), {
   capture: true,
 })
 
@@ -146,22 +165,15 @@ const graphBindingsHandler = graphBindings.handler({
     projectStore.module?.undoManager.redo()
   },
   startProfiling() {
-    projectStore.lsRpcConnection.then((ls) => ls.profilingStart(true))
+    projectStore.lsRpcConnection.profilingStart(true)
   },
   stopProfiling() {
-    projectStore.lsRpcConnection.then((ls) => ls.profilingStop())
+    projectStore.lsRpcConnection.profilingStop()
   },
   openComponentBrowser() {
     if (keyboardBusy()) return false
     if (graphNavigator.sceneMousePos != null && !componentBrowserVisible.value) {
-      createWithComponentBrowser(
-        fromSelection() ?? {
-          placement: [
-            'fixed',
-            mouseDictatedPlacement(DEFAULT_NODE_SIZE, graphNavigator.sceneMousePos).position,
-          ],
-        },
-      )
+      createWithComponentBrowser(fromSelection() ?? { placement: { type: 'mouse' } })
     }
   },
   deleteSelected() {
@@ -197,49 +209,15 @@ const graphBindingsHandler = graphBindings.handler({
   },
   copyNode() {
     if (keyboardBusy()) return false
-    copyNodeContent()
+    copySelectionToClipboard()
   },
   pasteNode() {
     if (keyboardBusy()) return false
-    readNodeFromClipboard()
+    createNodesFromClipboard()
   },
   collapse() {
     if (keyboardBusy()) return false
-    const selected = new Set(nodeSelection.selected)
-    if (selected.size == 0) return
-    try {
-      const info = prepareCollapsedInfo(selected, graphStore.db)
-      const currentMethod = projectStore.executionContext.getStackTop()
-      const currentMethodName = graphStore.db.stackItemToMethodName(currentMethod)
-      if (currentMethodName == null) {
-        bail(`Cannot get the method name for the current execution stack item. ${currentMethod}`)
-      }
-      const topLevel = graphStore.topLevel
-      if (!topLevel) {
-        bail('BUG: no top level, collapsing not possible.')
-      }
-      const selectedNodeRects = filterDefined(Array.from(selected, graphStore.visibleArea))
-      graphStore.edit((edit) => {
-        const { refactoredNodeId, collapsedNodeIds, outputNodeId } = performCollapse(
-          info,
-          edit.getVersion(topLevel),
-          graphStore.db,
-          currentMethodName,
-        )
-        const { position } = collapsedNodePlacement(selectedNodeRects)
-        edit.get(refactoredNodeId).mutableNodeMetadata().set('position', position.xy())
-        if (outputNodeId != null) {
-          const collapsedNodeRects = filterDefined(
-            Array.from(collapsedNodeIds, graphStore.visibleArea),
-          )
-          const { place } = usePlacement(collapsedNodeRects, graphNavigator.viewport)
-          const { position } = place(collapsedNodeRects)
-          edit.get(outputNodeId).mutableNodeMetadata().set('position', position.xy())
-        }
-      })
-    } catch (err) {
-      console.log('Error while collapsing, this is not normal.', err)
-    }
+    collapseNodes()
   },
   enterNode() {
     if (keyboardBusy()) return false
@@ -287,7 +265,7 @@ const codeEditorHandler = codeEditorBindings.handler({
 
 /** Handle record-once button presses. */
 function onRecordOnceButtonPress() {
-  projectStore.lsRpcConnection.then(async () => {
+  projectStore.lsRpcConnection.initialized.then(async () => {
     const modeValue = projectStore.executionMode
     if (modeValue == undefined) {
       return
@@ -300,7 +278,7 @@ function onRecordOnceButtonPress() {
 watch(
   () => projectStore.executionMode,
   (modeValue) => {
-    projectStore.executionContext.setExecutionEnvironment(modeValue === 'live' ? 'Live' : 'Design')
+    projectStore.executionContext.executionEnvironment = modeValue === 'live' ? 'Live' : 'Design'
   },
 )
 
@@ -331,26 +309,23 @@ function editWithComponentBrowser(node: NodeId, cursorPos: number) {
 function createWithComponentBrowser(options: NewNodeOptions) {
   openComponentBrowser(
     { type: 'newNode', sourcePort: options.sourcePort },
-    placeNode(options.placement),
+    placeNode(options.placement, nodePlacement),
   )
 }
 
 function commitComponentBrowser(content: string, requiredImports: RequiredImport[]) {
-  if (content != null) {
-    if (graphStore.editedNodeInfo) {
-      // We finish editing a node.
-      graphStore.setNodeContent(graphStore.editedNodeInfo.id, content, requiredImports)
-    } else if (content != '') {
-      // We finish creating a new node.
-      const metadata = undefined
-      const createdNode = graphStore.createNode(
-        componentBrowserNodePosition.value,
-        content,
-        metadata,
-        requiredImports,
-      )
-      if (createdNode) nodeSelection.setSelection(new Set([createdNode]))
-    }
+  if (graphStore.editedNodeInfo) {
+    // We finish editing a node.
+    graphStore.setNodeContent(graphStore.editedNodeInfo.id, content, requiredImports)
+  } else if (content != '') {
+    // We finish creating a new node.
+    createNode(
+      { type: 'fixed', position: componentBrowserNodePosition.value },
+      content,
+      undefined,
+      undefined,
+      requiredImports,
+    )
   }
   hideComponentBrowser()
 }
@@ -370,61 +345,48 @@ watch(
 // === Node Creation ===
 
 interface NewNodeOptions {
-  placement: PlacementType
+  placement: PlacementStrategy
   sourcePort?: AstId | undefined
 }
-type PlacementType = 'viewport' | ['source', NodeId] | ['fixed', Vec2]
-
-const placeNode = (placement: PlacementType): Vec2 =>
-  placement === 'viewport' ? nodePlacement().position
-  : placement[0] === 'source' ?
-    nodePlacement(filterDefined([graphStore.visibleArea(placement[1])])).position
-  : placement[0] === 'fixed' ? placement[1]
-  : assertNever(placement)
 
 /**
  * Start creating a node, basing its inputs and position on the current selection, if any;
  * or the current viewport, otherwise.
  */
 function addNodeAuto() {
-  createWithComponentBrowser(fromSelection() ?? { placement: 'viewport' })
+  createWithComponentBrowser(fromSelection() ?? { placement: { type: 'viewport' } })
 }
 
 function fromSelection(): NewNodeOptions | undefined {
   if (graphStore.editedNodeInfo != null) return undefined
   const firstSelectedNode = set.first(nodeSelection.selected)
   return {
-    placement: ['source', firstSelectedNode],
+    placement: { type: 'source', node: firstSelectedNode },
     sourcePort: graphStore.db.getNodeFirstOutputPort(firstSelectedNode),
   }
 }
 
-function createNode(placement: PlacementType, sourcePort: AstId, pattern: Pattern) {
-  const position = placeNode(placement)
-  const content = pattern.instantiateCopied([graphStore.viewModule.get(sourcePort)]).code()
-  return graphStore.createNode(position, content, undefined, []) ?? undefined
-}
-
-function createNodesFromSource(sourceNode: NodeId, options: NodeCreationOptions[]) {
-  const sourcePort = graphStore.db.getNodeFirstOutputPort(sourceNode)
-  const [toCommit, toEdit] = partition(options, (opts) => opts.commit)
-  const [withPos, withoutPos] = partition(toCommit, (opts) => !!opts.position)
+function clearFocus() {
   if (
     document.activeElement instanceof HTMLElement ||
     document.activeElement instanceof SVGElement
   ) {
     document.activeElement.blur()
   }
-  const placementForOptions = (options: NodeCreationOptions): PlacementType =>
-    options.position ? ['fixed', options.position] : ['source', sourceNode]
-  const createWithoutEditing = (options: NodeCreationOptions) =>
-    createNode(placementForOptions(options), sourcePort, options.content!)
-  const created = new Set<NodeId>(
-    filterDefined([...withPos.map(createWithoutEditing), ...withoutPos.map(createWithoutEditing)]),
+}
+
+function createNodesFromSource(sourceNode: NodeId, options: NodeCreationOptions[]) {
+  const sourcePort = graphStore.db.getNodeFirstOutputPort(sourceNode)
+  const sourcePortAst = graphStore.viewModule.get(sourcePort)
+  const [toCommit, toEdit] = partition(options, (opts) => opts.commit)
+  createNodes(
+    toCommit.map((options: NodeCreationOptions) => ({
+      placement: { type: 'source', node: sourceNode },
+      expression: options.content!.instantiateCopied([sourcePortAst]).code(),
+    })),
   )
-  if (created.size) nodeSelection.setSelection(created)
-  for (const options of toEdit)
-    createWithComponentBrowser({ placement: placementForOptions(options), sourcePort })
+  if (toEdit.length)
+    createWithComponentBrowser({ placement: { type: 'source', node: sourceNode }, sourcePort })
 }
 
 function handleNodeOutputPortDoubleClick(id: AstId) {
@@ -433,11 +395,55 @@ function handleNodeOutputPortDoubleClick(id: AstId) {
     console.error('Impossible happened: Double click on port not belonging to any node: ', id)
     return
   }
-  createWithComponentBrowser({ placement: ['source', srcNode], sourcePort: id })
+  createWithComponentBrowser({ placement: { type: 'source', node: srcNode }, sourcePort: id })
 }
 
 function handleEdgeDrop(source: AstId, position: Vec2) {
-  createWithComponentBrowser({ placement: ['fixed', position], sourcePort: source })
+  createWithComponentBrowser({ placement: { type: 'fixed', position }, sourcePort: source })
+}
+
+// === Node Collapsing ===
+
+function collapseNodes() {
+  const selected = nodeSelection.selected
+  if (selected.size == 0) return
+  try {
+    const info = prepareCollapsedInfo(selected, graphStore.db)
+    if (!info.ok) {
+      toasts.userActionFailed.show(`Unable to group nodes: ${info.error.payload}.`)
+      return
+    }
+    const currentMethod = projectStore.executionContext.getStackTop()
+    const currentMethodName = graphStore.db.stackItemToMethodName(currentMethod)
+    if (currentMethodName == null) {
+      bail(`Cannot get the method name for the current execution stack item. ${currentMethod}`)
+    }
+    const topLevel = graphStore.topLevel
+    if (!topLevel) {
+      bail('BUG: no top level, collapsing not possible.')
+    }
+    const selectedNodeRects = filterDefined(Array.from(selected, graphStore.visibleArea))
+    graphStore.edit((edit) => {
+      const { refactoredNodeId, collapsedNodeIds, outputNodeId } = performCollapse(
+        info.value,
+        edit.getVersion(topLevel),
+        graphStore.db,
+        currentMethodName,
+      )
+      const position = collapsedNodePlacement(selectedNodeRects)
+      edit.get(refactoredNodeId).mutableNodeMetadata().set('position', position.xy())
+      if (outputNodeId != null) {
+        const collapsedNodeRects = filterDefined(
+          Array.from(collapsedNodeIds, graphStore.visibleArea),
+        )
+        const { place } = usePlacement(collapsedNodeRects, graphNavigator.viewport)
+        const position = place(collapsedNodeRects)
+        edit.get(outputNodeId).mutableNodeMetadata().set('position', position.xy())
+      }
+    })
+  } catch (err) {
+    console.log('Error while collapsing, this is not normal.', err)
+  }
 }
 
 // === Drag and drop ===
@@ -448,29 +454,29 @@ async function handleFileDrop(event: DragEvent) {
 
   if (!event.dataTransfer?.items) return
   ;[...event.dataTransfer.items].forEach(async (item, index) => {
-    try {
-      if (item.kind === 'file') {
-        const file = item.getAsFile()
-        if (!file) return
-        const clientPos = new Vec2(event.clientX, event.clientY)
-        const offset = new Vec2(0, index * -MULTIPLE_FILES_GAP)
-        const pos = graphNavigator.clientToScenePos(clientPos).add(offset)
-        const uploader = await Uploader.Create(
-          projectStore.lsRpcConnection,
-          projectStore.dataConnection,
-          projectStore.contentRoots,
-          projectStore.awareness,
-          file,
-          pos,
-          projectStore.isOnLocalBackend,
-          event.shiftKey,
-          projectStore.executionContext.getStackTop(),
-        )
-        const uploadResult = await uploader.upload()
-        graphStore.createNode(pos, uploadedExpression(uploadResult))
+    if (item.kind === 'file') {
+      const file = item.getAsFile()
+      if (!file) return
+      const clientPos = new Vec2(event.clientX, event.clientY)
+      const offset = new Vec2(0, index * -MULTIPLE_FILES_GAP)
+      const pos = graphNavigator.clientToScenePos(clientPos).add(offset)
+      const uploader = await Uploader.Create(
+        projectStore.lsRpcConnection,
+        projectStore.dataConnection,
+        projectStore.contentRoots,
+        projectStore.awareness,
+        file,
+        pos,
+        projectStore.isOnLocalBackend,
+        event.shiftKey,
+        projectStore.executionContext.getStackTop(),
+      )
+      const uploadResult = await uploader.upload()
+      if (uploadResult.ok) {
+        createNode({ type: 'mouseEvent', position: pos }, uploadedExpression(uploadResult.value))
+      } else {
+        uploadResult.error.log(`Uploading file failed`)
       }
-    } catch (err) {
-      console.error(`Uploading file failed. ${err}`)
     }
   })
 }
@@ -543,6 +549,7 @@ const groupColors = computed(() => {
   >
     <div class="layer" :style="{ transform: graphNavigator.transform }">
       <GraphNodes
+        :graphNodeSelections="graphNodeSelections"
         @nodeOutputPortDoubleClick="handleNodeOutputPortDoubleClick"
         @nodeDoubleClick="(id) => stackNavigator.enterNode(id)"
         @createNodes="createNodesFromSource"
@@ -558,7 +565,7 @@ const groupColors = computed(() => {
       />
     </div>
     <div
-      id="graphNodeSelections"
+      ref="graphNodeSelections"
       class="layer"
       :style="{ transform: graphNavigator.transform, 'z-index': -1 }"
     />
@@ -579,6 +586,7 @@ const groupColors = computed(() => {
       :allowNavigationLeft="stackNavigator.allowNavigationLeft.value"
       :allowNavigationRight="stackNavigator.allowNavigationRight.value"
       :zoomLevel="100.0 * graphNavigator.targetScale"
+      :componentsSelected="nodeSelection.selected.size"
       @breadcrumbClick="stackNavigator.handleBreadcrumbClick"
       @back="stackNavigator.exitNode"
       @forward="stackNavigator.enterNextNodeFromHistory"
@@ -587,6 +595,8 @@ const groupColors = computed(() => {
       @zoomIn="graphNavigator.stepZoom(+1)"
       @zoomOut="graphNavigator.stepZoom(-1)"
       @toggleCodeEditor="toggleCodeEditor"
+      @collapseNodes="collapseNodes"
+      @toggleColorPicker="toggleColorPicker"
     />
     <PlusButton @pointerdown.stop @click.stop="addNodeAuto()" @pointerup.stop />
     <Transition>

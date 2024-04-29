@@ -38,7 +38,7 @@ import Portal from '#/components/Portal'
 import type * as spinner from '#/components/Spinner'
 
 import * as backendModule from '#/services/Backend'
-import LocalBackend from '#/services/LocalBackend'
+import LocalBackend, * as localBackendModule from '#/services/LocalBackend'
 import type * as projectManager from '#/services/ProjectManager'
 import RemoteBackend, * as remoteBackendModule from '#/services/RemoteBackend'
 
@@ -412,16 +412,26 @@ export default function Dashboard(props: DashboardProps) {
       templateName: string | null = null,
       onSpinnerStateChange: ((state: spinner.SpinnerState) => void) | null = null
     ) => {
+      const parentId =
+        backend.type === backendModule.BackendType.remote
+          ? rootDirectoryId
+          : localBackendModule.newDirectoryId(projectManagerRootDirectory ?? backendModule.Path(''))
       dispatchAssetListEvent({
         type: AssetListEventType.newProject,
-        parentKey: rootDirectoryId,
-        parentId: rootDirectoryId,
-        templateId: templateId,
-        templateName: templateName,
+        parentKey: parentId,
+        parentId,
+        templateId,
+        datalinkId: null,
+        preferredName: templateName,
         onSpinnerStateChange: onSpinnerStateChange,
       })
     },
-    [rootDirectoryId, /* should never change */ dispatchAssetListEvent]
+    [
+      backend.type,
+      rootDirectoryId,
+      projectManagerRootDirectory,
+      /* should never change */ dispatchAssetListEvent,
+    ]
   )
 
   const doOpenEditor = React.useCallback(

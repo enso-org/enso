@@ -1,11 +1,12 @@
 package org.enso.interpreter.instrument.job
 
-import org.enso.compiler.context.{
+import org.enso.compiler.suggestions.{
   ExportsBuilder,
   ModuleExportsDiff,
   SuggestionBuilder,
   SuggestionDiff
 }
+import org.enso.interpreter.instrument.execution.ModuleIndexing.IndexState
 import org.enso.interpreter.instrument.execution.RuntimeContext
 import org.enso.interpreter.runtime.Module
 import org.enso.polyglot.data.Tree
@@ -15,7 +16,7 @@ import org.enso.polyglot.{ModuleExports, Suggestion}
 import java.util.logging.Level
 
 final class AnalyzeModuleInScopeJob(
-  modules: Iterable[Module]
+  modules: Iterable[(Module, IndexState, Boolean)]
 ) extends BackgroundJob[Unit](AnalyzeModuleInScopeJob.Priority) {
 
   private val exportsBuilder = new ExportsBuilder
@@ -27,7 +28,7 @@ final class AnalyzeModuleInScopeJob(
     // disable the suggestion updates and reduce the number of messages that
     // runtime sends.
     if (ctx.executionService.getContext.isProjectSuggestionsEnabled) {
-      modules.foreach(analyzeModuleInScope)
+      modules.foreach((analyzeModuleInScope _).tupled)
       ctx.endpoint.sendToClient(
         Api.Response(Api.AnalyzeModuleInScopeJobFinished())
       )
@@ -37,22 +38,29 @@ final class AnalyzeModuleInScopeJob(
   override def toString: String =
     s"AnalyzeModuleInScopeJob($modules)"
 
-  private def analyzeModuleInScope(module: Module)(implicit
+  private def analyzeModuleInScope(
+    module: Module,
+    state: IndexState,
+    hasSource: Boolean
+  )(implicit
     ctx: RuntimeContext
   ): Unit = {
-    if (!module.isIndexed && module.getSource != null) {
+    if (!state.isIndexed && hasSource) {
       ctx.executionService.getLogger
-        .log(Level.FINEST, s"Analyzing module in scope ${module.getName}")
+        .log(Level.FINEST, s"Analyzing module in scope {0}", module.getName)
       val moduleName = module.getName
+      val compiler   = ctx.executionService.getContext.getCompiler
+      val types      = Module.findTypeHierarchy(compiler.context)
       val newSuggestions =
         SuggestionBuilder(
           module.asCompilerModule(),
-          ctx.executionService.getContext.getCompiler
+          types,
+          compiler
         )
-          .build(moduleName, module.getIr)
+          .build(moduleName, state.ir)
           .filter(Suggestion.isGlobal)
       val prevExports = ModuleExports(moduleName.toString, Set())
-      val newExports  = exportsBuilder.build(module.getName, module.getIr)
+      val newExports  = exportsBuilder.build(module.getName, state.ir)
       val notification = Api.SuggestionsDatabaseModuleUpdateNotification(
         module = moduleName.toString,
         actions =
@@ -60,8 +68,16 @@ final class AnalyzeModuleInScopeJob(
         exports = ModuleExportsDiff.compute(prevExports, newExports),
         updates = SuggestionDiff.compute(Tree.empty, newSuggestions)
       )
-      sendModuleUpdate(notification)
-      module.setIndexed(true)
+      if (ctx.state.suggestions.markAsIndexed(module, state)) {
+        sendModuleUpdate(notification)
+      } else {
+        ctx.executionService.getLogger
+          .log(
+            Level.FINEST,
+            s"Calculated index for module in scope {0} is not up-to-date. Discarding",
+            module.getName
+          )
+      }
     }
   }
 
@@ -89,7 +105,9 @@ object AnalyzeModuleInScopeJob {
     * @param modules the list of modules to analyze
     * @return the [[AnalyzeModuleInScopeJob]]
     */
-  def apply(modules: Iterable[Module]): AnalyzeModuleInScopeJob =
+  def apply(
+    modules: Iterable[(Module, IndexState, Boolean)]
+  ): AnalyzeModuleInScopeJob =
     new AnalyzeModuleInScopeJob(modules)
 
   private val Priority = 11

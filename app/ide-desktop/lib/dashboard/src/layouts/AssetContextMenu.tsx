@@ -52,7 +52,7 @@ export interface AssetContextMenuProps {
   readonly doCut: () => void
   readonly doTriggerDescriptionEdit: () => void
   readonly doPaste: (
-    newParentKey: backendModule.AssetId,
+    newParentKey: backendModule.DirectoryId,
     newParentId: backendModule.DirectoryId
   ) => void
 }
@@ -98,8 +98,8 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
   const isOtherUserUsingProject =
     backend.type !== backendModule.BackendType.local &&
     backendModule.assetIsProject(asset) &&
-    asset.projectState.opened_by != null &&
-    asset.projectState.opened_by !== user?.email
+    asset.projectState.openedBy != null &&
+    asset.projectState.openedBy !== user?.email
   const setAsset = setAssetHooks.useSetAsset(asset, setItem)
 
   return category === Category.trash ? (
@@ -137,6 +137,24 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
   ) : (
     <ContextMenus hidden={hidden} key={asset.id} event={event}>
       <ContextMenu aria-label={getText('assetContextMenuLabel')} hidden={hidden}>
+        {asset.type === backendModule.AssetType.dataLink && (
+          <ContextMenuEntry
+            hidden={hidden}
+            action="useInNewProject"
+            doAction={() => {
+              unsetModal()
+              dispatchAssetListEvent({
+                type: AssetListEventType.newProject,
+                parentId: item.directoryId,
+                parentKey: item.directoryKey,
+                templateId: null,
+                datalinkId: asset.id,
+                preferredName: asset.title,
+                onSpinnerStateChange: null,
+              })
+            }}
+          />
+        )}
         {asset.type === backendModule.AssetType.project &&
           canExecute &&
           !isRunningProject &&
@@ -383,7 +401,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
             action="paste"
             doAction={() => {
               const [directoryKey, directoryId] =
-                item.item.type === backendModule.AssetType.directory
+                item.type === backendModule.AssetType.directory
                   ? [item.key, item.item.id]
                   : [item.directoryKey, item.directoryId]
               doPaste(directoryKey, directoryId)

@@ -7,13 +7,17 @@ from Standard.Base.Errors.Common import Loss_Of_Numeric_Precision, Out_Of_Range
 
 from Standard.Test import all
 
+import project.Data.Round_Spec
+
+polyglot java import java.lang.Integer as Java_Integer
+
 Decimal.should_have_rep self rep = self.internal_representation . should_equal rep
 
 add_specs suite_builder =
     suite_builder.group "construction" group_builder->
         group_builder.specify "should be able to construct a Decimal from a string" <|
             Decimal.new "123.45" . should_have_rep [12345, 5, 2]
-            Decimal.parse "123.45" . should_have_rep [12345, 5, 2]
+            Decimal.from_string "123.45" . should_have_rep [12345, 5, 2]
 
         group_builder.specify "should throw Number_Parse_Error on a badly-formatted string" <|
             Decimal.new "ee" . should_fail_with Number_Parse_Error
@@ -31,7 +35,7 @@ add_specs suite_builder =
 
         group_builder.specify "should be able to construct a Decimal from a long string" <|
             Decimal.new "495782984723948723947239938732974241.2345" . should_have_rep [4957829847239487239472399387329742412345, 40, 4]
-            Decimal.parse "495782984723948723947239938732974241.2345" . should_have_rep [4957829847239487239472399387329742412345, 40, 4]
+            Decimal.from_string "495782984723948723947239938732974241.2345" . should_have_rep [4957829847239487239472399387329742412345, 40, 4]
 
         group_builder.specify "should be able to construct a Decimal from a small integer" <|
             Decimal.new 1234500 . should_have_rep [1234500, 7, 0]
@@ -112,7 +116,7 @@ add_specs suite_builder =
 
         group_builder.specify "should be convertible via .from" <|
             Decimal.from "123.45" . should_equal (Decimal.new "123.45")
-            Decimal.from "123.45" . should_equal (Decimal.parse "123.45")
+            Decimal.from "123.45" . should_equal (Decimal.from_string "123.45")
             Decimal.from 123.45 . should_equal (Decimal.new 123.45)
             Decimal.from 123.45 . should_equal (Decimal.from_float 123.45)
             Decimal.from 12345 . should_equal (Decimal.new 12345)
@@ -297,8 +301,8 @@ add_specs suite_builder =
 
             values.map pr->
                 v = pr.at 0
-                d = Decimal.new v
-                expected = pr.at 1
+                d = Decimal.new v . to_float
+                expected = pr.at 1 . to_float
 
                 d . should_equal expected
                 expected . should_equal d
@@ -312,6 +316,15 @@ add_specs suite_builder =
                     greater = if v > 10000 then v*2 else if v < -10000 then v/2 else v+1
                     (v > lesser) . should_be_true
                     (v < greater) . should_be_true
+
+                    (v == lesser) . should_be_false
+                    (lesser == v) . should_be_false
+                    (v != lesser) . should_be_true
+                    (lesser != v) . should_be_true
+                    (v == greater) . should_be_false
+                    (greater == v) . should_be_false
+                    (v != greater) . should_be_true
+                    (greater != v) . should_be_true
 
                     (d <= v) . should_be_true
                     (d >= v) . should_be_true
@@ -343,16 +356,34 @@ add_specs suite_builder =
                         (lesser > d) . should_be_false
                         (lesser >= d) . should_be_false
 
+        group_builder.specify "should not implicitly convert Decimal to Integer in comparison" <|
+            (Decimal.new "12.5" == 12) . should_be_false
+            (12 == Decimal.new "12.5") . should_be_false
+            large_int = 9223372036854775807000
+            large_fraction = Decimal.new "9223372036854775807000.3"
+            (large_fraction == large_int) . should_be_false
+            (large_int == large_fraction ) . should_be_false
+
     suite_builder.group "edge cases" group_builder->
         group_builder.specify "can support values outside the double range" <|
             d = Decimal.new Float.max_value
+            (d == Float.max_value) . should_be_false
+            ((d * d) == Float.max_value) . should_be_false
+            ((-(d * d)) == -Float.max_value) . should_be_false
+            Comparable.hash_builtin (d * d) . should_equal 2146435072
+            Comparable.hash_builtin -(d * d) . should_equal -1048576
+            Comparable.hash_builtin ((d * d) + 0.1) . should_equal 2146435072
+            Comparable.hash_builtin ((-(d * d)) + 0.1) . should_equal -1048576
+
+        group_builder.specify "from conversion supports values outside the double range" <|
+            d = Float.max_value.to Decimal
             (d == Float.max_value) . should_be_true
             ((d * d) == Float.max_value) . should_be_false
             ((-(d * d)) == -Float.max_value) . should_be_false
-            Comparable.hash_builtin (d * d) . should_equal -1851772048
-            Comparable.hash_builtin -(d * d) . should_equal 1851772048
-            Comparable.hash_builtin ((d * d) + 0.1) . should_equal -1176480326
-            Comparable.hash_builtin ((-(d * d)) + 0.1) . should_equal -534461530
+            Comparable.hash_builtin (d * d) . should_equal 2146435072
+            Comparable.hash_builtin -(d * d) . should_equal -1048576
+            Comparable.hash_builtin ((d * d) + 0.1) . should_equal 2146435072
+            Comparable.hash_builtin ((-(d * d)) + 0.1) . should_equal -1048576
 
     suite_builder.group "arithmetic" group_builder->
         group_builder.specify "should allow arithmetic with Decimals, without Math_Context" <|
@@ -551,42 +582,47 @@ add_specs suite_builder =
         group_builder.specify "attaches a warning to the result of .to_float when it results in a loss of precision" <|
             Problems.expect_only_warning Loss_Of_Numeric_Precision (Decimal.new "0.1" . to_float)
 
-        group_builder.specify "should convert correctly to Integer and Float using implicit conversions" <|
-            i = Integer.from (Decimal.new "5634")
-            i.should_be_a Integer
-            i.should_equal 5634
-
+        group_builder.specify "should convert correctly to Float using implicit conversions" <|
             f = Float.from (Decimal.new "56.34")
             f.should_be_a Float
             f.should_equal 56.34
 
-        group_builder.specify "Decimal.to_float should compare correctly with the original Decimal" <|
+        group_builder.specify "Decimal.to_float cannot compare correctly with the original Decimal" <|
             huge_a = Decimal.new "3.4E300"
             huge_a_float = Float.from huge_a
 
-            (huge_a_float == huge_a) . should_be_true
-            (huge_a == huge_a_float) . should_be_true
+            (huge_a_float == huge_a) . should_be_false
+            (huge_a == huge_a_float) . should_be_false
 
         group_builder.specify "Decimal.to_integer should compare correctly with the original Decimal" <|
             huge_a = Decimal.new "3.4E320"
-            huge_a_int = Integer.from huge_a
+            huge_a_int = huge_a.to_integer
 
             (huge_a_int == huge_a) . should_be_true
             (huge_a == huge_a_int) . should_be_true
+
+        group_builder.specify "should attach a warning on loss of precision in integer conversion" <|
+            Problems.expect_only_warning Loss_Of_Numeric_Precision (Decimal.new "125.2" . to_integer)
+            Problems.not_expect_warning Loss_Of_Numeric_Precision (Decimal.new "125" . to_integer)
+            huge_int = Decimal.new "125E90"
+            huge_fraction = Decimal.new "125E90" + Decimal.new "0.2"
+            Problems.expect_only_warning Loss_Of_Numeric_Precision (huge_fraction . to_integer)
+            Problems.not_expect_warning Loss_Of_Numeric_Precision (huge_int . to_integer)
 
     suite_builder.group "remainder" group_builder->
         group_builder.specify "should define remainder" <|
             cases = []
                 + [[5, 3, 2], [5.0, 3.0, 2.0], [3.5, 2, 1.5], [10.5, 1.0, 0.5], [3, 1, 0], [3.0, 1.0, 0]]
                 + [[-5, 3, -2], [-5.0, 3.0, -2.0], [-3.5, 2, -1.5], [-10.5, 1.0, -0.5], [-3, 1, 0], [-3.0, 1.0, 0]]
-                + [[2.7, 0.5, 0.2], [2.7, 0.4, 0.3], [-2.7, 0.5, -0.2], [-2.7, 0.4, -0.3]]
+                + [[2.7, 0.5, 0.2], [2.7, 0.4, 0.3, 0.001], [-2.7, 0.5, -0.2], [-2.7, 0.4, -0.3, 0.001]]
                 + [["9223372036854775807", 10, 7], ["9223372036854775808", 10, 8], ["922337203685477580000000000008", 10, 8]]
                 + [["-9223372036854775808", 10, -8], ["-9223372036854775809", 10, -9], ["-922337203685477580000000000008", 10, -8]]
-            cases.map c->
+            cases.map c-> Test.with_clue ("["+c.to_text+"] ") <|
                 base = c.at 0
                 modulus = c.at 1
                 residue = c.at 2
-                (Decimal.new base % modulus) . should_equal residue
+                epsilon = if c.length > 3 then c.at 3 else 0.0
+                (Decimal.new base % modulus) . should_equal epsilon=epsilon residue
                 (Decimal.new base % Decimal.new modulus) . should_equal residue
 
         group_builder.specify "should define remainder (example)" <|
@@ -643,6 +679,51 @@ add_specs suite_builder =
             Decimal.new "10" . pow -1 . should_fail_with Arithmetic_Error
             Decimal.new "10" . pow 99999999999 . should_fail_with Arithmetic_Error
 
+    suite_builder.group "text conversion" group_builder->
+        group_builder.specify "should convert to text correctly" <|
+            Decimal.new "34.56" . to_text . should_equal "34.56"
+            Decimal.new "34.56" . to_display_text . should_equal "34.56"
+            Decimal.new "123E80" . to_text . should_equal "1.23E+82"
+            Decimal.new "123E80" . to_display_text . should_equal "1.23E+82"
+            Decimal.new "0.00016E-20" . to_text . should_equal "1.6E-24"
+            Decimal.new "0.00016E-20" . to_display_text . should_equal "1.6E-24"
+
+            Decimal.new "-34.56" . to_text . should_equal "-34.56"
+            Decimal.new "-34.56" . to_display_text . should_equal "-34.56"
+            Decimal.new "-123E80" . to_text . should_equal "-1.23E+82"
+            Decimal.new "-123E80" . to_display_text . should_equal "-1.23E+82"
+            Decimal.new "-0.00016E-20" . to_text . should_equal "-1.6E-24"
+            Decimal.new "-0.00016E-20" . to_display_text . should_equal "-1.6E-24"
+
+        group_builder.specify "should convert to text without scientific notation correctly" <|
+            Decimal.new "34.56" . to_text_without_scientific_notation . should_equal "34.56"
+            Decimal.new "123E80" . to_text_without_scientific_notation . should_equal "12300000000000000000000000000000000000000000000000000000000000000000000000000000000"
+            Decimal.new "0.00016E-20" . to_text_without_scientific_notation . should_equal "0.0000000000000000000000016"
+
+            Decimal.new "-34.56" . to_text_without_scientific_notation . should_equal "-34.56"
+            Decimal.new "-123E80" . to_text_without_scientific_notation . should_equal "-12300000000000000000000000000000000000000000000000000000000000000000000000000000000"
+            Decimal.new "-0.00016E-20" . to_text_without_scientific_notation . should_equal "-0.0000000000000000000000016"
+
+        group_builder.specify "should format correctly" <|
+            d = Decimal.new "123456789.87654"
+
+            d.format . should_equal "123,456,789.87654"
+            d.format locale=Locale.italy . should_equal "123.456.789,87654"
+            d.format format="#,###.##" . should_equal "123,456,789.88"
+            d.format format="#,###.##" locale=Locale.italy . should_equal "123.456.789,88"
+            d.format format="#,##.##" . should_equal "1,23,45,67,89.88"
+            d.format format="#,##.##" locale=Locale.italy . should_equal "1.23.45.67.89,88"
+
+        group_builder.specify "should parse correctly" <|
+            Decimal.parse "123456789.87654" . should_equal 123456789.87654
+            Decimal.parse "123,456,789.87654" locale=Locale.default . should_equal 123456789.87654
+            Decimal.parse "123,456,789.87654" locale=Locale.us . should_equal 123456789.87654
+            Decimal.parse "123.456.789,87654" locale=Locale.italy . should_equal 123456789.87654
+            Decimal.parse "123,456,789.87654" locale=Locale.italy . should_equal 123.456
+            Decimal.parse "123.456.789,87654" locale=Locale.us . should_equal 123.456
+
+            Decimal.parse "123,456,789.87654" . should_fail_with Number_Parse_Error
+
     suite_builder.group "signs" group_builder->
         group_builder.specify "should calculate abs correctly" <|
             Decimal.new "12.345" . abs . should_equal 12.345
@@ -662,6 +743,239 @@ add_specs suite_builder =
             Decimal.new "12.345E97" . signum . should_equal 1
             Decimal.new "-12.345E97" . signum . should_equal -1
             Decimal.new "0" . signum . should_equal 0
+
+    suite_builder.group "rounding" group_builder->
+        do_round n dp=0 use_bankers=False =
+            d = Decimal.new n . round dp use_bankers
+            d.to_float
+
+        Round_Spec.add_specs group_builder do_round
+
+        group_builder.specify "Large values" <|
+            Decimal.new "1234.5678E-50" . round 53 . should_equal (Decimal.new "1234.568E-50")
+            Decimal.new "1234.5678E-50" . round 52 . should_equal (Decimal.new "1234.57E-50")
+            Decimal.new "1234.5678E-100" . round 101 . should_equal (Decimal.new "1234.6E-100")
+            Decimal.new "1234.5678E-100" . round 103 . should_equal (Decimal.new "1234.568E-100")
+
+            Decimal.new "-1234.5678E-50" . round 53 . should_equal (Decimal.new "-1234.568E-50")
+            Decimal.new "-1234.5678E-50" . round 52 . should_equal (Decimal.new "-1234.57E-50")
+            Decimal.new "-1234.5678E-100" . round 101 . should_equal (Decimal.new "-1234.6E-100")
+            Decimal.new "-1234.5678E-100" . round 103 . should_equal (Decimal.new "-1234.568E-100")
+
+        group_builder.specify "Strips trailing zeros" <|
+            Decimal.new "1234.5678" . round 5 . internal_representation . should_equal [12345678, 8, 4]
+
+        group_builder.specify "Decimal places out of range" <|
+            too_big_positive = Java_Integer.MAX_VALUE + 1
+            too_big_negative = Java_Integer.MIN_VALUE - 1
+            Decimal.new "3.1" . round too_big_positive . should_fail_with (Out_Of_Range.Error too_big_positive "round decimal_places must be between "+Java_Integer.MIN_VALUE.to_text+" and "+Java_Integer.MAX_VALUE.to_text+" (inclusive), but was "+too_big_positive.to_text)
+            Decimal.new "3.1" . round too_big_negative . should_fail_with (Out_Of_Range.Error too_big_negative "round decimal_places must be between "+Java_Integer.MIN_VALUE.to_text+" and "+Java_Integer.MAX_VALUE.to_text+" (inclusive), but was "+too_big_negative.to_text)
+
+        group_builder.specify "Examples" <|
+            Decimal.new "3.3" . round . should_equal (Decimal.new "3")
+            Decimal.new "3.1415" . round 2 . should_equal (Decimal.new "3.14")
+            Decimal.new "1234.5678E-50" . round 53 . should_equal (Decimal.new "1234.568E-50")
+            Decimal.new "2.5" . round use_bankers=True . should_equal 2
+
+    suite_builder.group "floor, ceil, truncate" group_builder->
+        group_builder.specify "should calculate floor correctly" <|
+            Decimal.new "0" . floor . should_equal 0
+            Decimal.new "1" . floor . should_equal 1
+            Decimal.new "1.3" . floor . should_equal 1
+            Decimal.new "1.5" . floor . should_equal 1
+            Decimal.new "1.7" . floor . should_equal 1
+            Decimal.new "-1" . floor . should_equal -1
+            Decimal.new "-1.3" . floor . should_equal -2
+            Decimal.new "-1.5" . floor . should_equal -2
+            Decimal.new "-1.7" . floor . should_equal -2
+
+            Decimal.new "11.3" . floor . should_equal 11
+            Decimal.new "111.3" . floor . should_equal 111
+            Decimal.new "2111.3" . floor . should_equal 2111
+            Decimal.new "11.34" . floor . should_equal 11
+            Decimal.new "111.34" . floor . should_equal 111
+            Decimal.new "2111.34" . floor . should_equal 2111
+
+            (Decimal.new "1E100" + Decimal.new "3") . floor . should_equal (Decimal.new "1E100" + Decimal.new "3")
+            (Decimal.new "1E100" + Decimal.new "3.3") . floor . should_equal (Decimal.new "1E100" + Decimal.new "3")
+            (Decimal.new "1E100" + Decimal.new "3.5") . floor . should_equal (Decimal.new "1E100" + Decimal.new "3")
+            (Decimal.new "1E100" + Decimal.new "3.7") . floor . should_equal (Decimal.new "1E100" + Decimal.new "3")
+            (Decimal.new "-1E100" + Decimal.new "-3") . floor . should_equal (Decimal.new "-1E100" + Decimal.new "-3")
+            (Decimal.new "-1E100" + Decimal.new "-3.3") . floor . should_equal (Decimal.new "-1E100" + Decimal.new "-4")
+            (Decimal.new "-1E100" + Decimal.new "-3.5") . floor . should_equal (Decimal.new "-1E100" + Decimal.new "-4")
+            (Decimal.new "-1E100" + Decimal.new "-3.7") . floor . should_equal (Decimal.new "-1E100" + Decimal.new "-4")
+
+        group_builder.specify "should calculate ceil correctly" <|
+            Decimal.new "0" . ceil . should_equal 0
+            Decimal.new "1" . ceil . should_equal 1
+            Decimal.new "1.3" . ceil . should_equal 2
+            Decimal.new "1.5" . ceil . should_equal 2
+            Decimal.new "1.7" . ceil . should_equal 2
+            Decimal.new "-1" . ceil . should_equal -1
+            Decimal.new "-1.3" . ceil . should_equal -1
+            Decimal.new "-1.5" . ceil . should_equal -1
+            Decimal.new "-1.7" . ceil . should_equal -1
+
+            Decimal.new "11.3" . ceil . should_equal 12
+            Decimal.new "111.3" . ceil . should_equal 112
+            Decimal.new "2111.3" . ceil . should_equal 2112
+            Decimal.new "11.34" . ceil . should_equal 12
+            Decimal.new "111.34" . ceil . should_equal 112
+            Decimal.new "2111.34" . ceil . should_equal 2112
+
+            (Decimal.new "1E100" + Decimal.new "3") . ceil . should_equal (Decimal.new "1E100" + Decimal.new "3")
+            (Decimal.new "1E100" + Decimal.new "3.3") . ceil . should_equal (Decimal.new "1E100" + Decimal.new "4")
+            (Decimal.new "1E100" + Decimal.new "3.5") . ceil . should_equal (Decimal.new "1E100" + Decimal.new "4")
+            (Decimal.new "1E100" + Decimal.new "3.7") . ceil . should_equal (Decimal.new "1E100" + Decimal.new "4")
+            (Decimal.new "-1E100" + Decimal.new "-3") . ceil . should_equal (Decimal.new "-1E100" + Decimal.new "-3")
+            (Decimal.new "-1E100" + Decimal.new "-3.3") . ceil . should_equal (Decimal.new "-1E100" + Decimal.new "-3")
+            (Decimal.new "-1E100" + Decimal.new "-3.5") . ceil . should_equal (Decimal.new "-1E100" + Decimal.new "-3")
+            (Decimal.new "-1E100" + Decimal.new "-3.7") . ceil . should_equal (Decimal.new "-1E100" + Decimal.new "-3")
+
+        group_builder.specify "should calculate truncate correctly" <|
+            Decimal.new "0" . truncate . should_equal 0
+            Decimal.new "1" . truncate . should_equal 1
+            Decimal.new "1.3" . truncate . should_equal 1
+            Decimal.new "1.5" . truncate . should_equal 1
+            Decimal.new "1.7" . truncate . should_equal 1
+            Decimal.new "-1" . truncate . should_equal -1
+            Decimal.new "-1.3" . truncate . should_equal -1
+            Decimal.new "-1.5" . truncate . should_equal -1
+            Decimal.new "-1.7" . truncate . should_equal -1
+
+            Decimal.new "11.3" . truncate . should_equal 11
+            Decimal.new "111.3" . truncate . should_equal 111
+            Decimal.new "2111.3" . truncate . should_equal 2111
+            Decimal.new "11.34" . truncate . should_equal 11
+            Decimal.new "111.34" . truncate . should_equal 111
+            Decimal.new "2111.34" . truncate . should_equal 2111
+
+            (Decimal.new "1E100" + Decimal.new "3") . truncate . should_equal (Decimal.new "1E100" + Decimal.new "3")
+            (Decimal.new "1E100" + Decimal.new "3.3") . truncate . should_equal (Decimal.new "1E100" + Decimal.new "3")
+            (Decimal.new "1E100" + Decimal.new "3.5") . truncate . should_equal (Decimal.new "1E100" + Decimal.new "3")
+            (Decimal.new "1E100" + Decimal.new "3.7") . truncate . should_equal (Decimal.new "1E100" + Decimal.new "3")
+            (Decimal.new "-1E100" + Decimal.new "-3") . truncate . should_equal (Decimal.new "-1E100" + Decimal.new "-3")
+            (Decimal.new "-1E100" + Decimal.new "-3.3") . truncate . should_equal (Decimal.new "-1E100" + Decimal.new "-3")
+            (Decimal.new "-1E100" + Decimal.new "-3.5") . truncate . should_equal (Decimal.new "-1E100" + Decimal.new "-3")
+            (Decimal.new "-1E100" + Decimal.new "-3.7") . truncate . should_equal (Decimal.new "-1E100" + Decimal.new "-3")
+
+            small = Decimal.new "1.1"
+            big = Decimal.new "1E120" + small
+            small.ceil . should_be_a Integer
+            big.ceil . should_be_a Integer
+            small.floor . should_be_a Integer
+            big.floor . should_be_a Integer
+            small.truncate . should_be_a Integer
+            big.truncate . should_be_a Integer
+
+        group_builder.specify "examples" <|
+            Decimal.new "12.34" . floor . should_equal (Decimal.new "12")
+            Decimal.new "-12.34" . floor . should_equal (Decimal.new "-13")
+
+            Decimal.new "12.34" . ceil . should_equal (Decimal.new "13")
+            Decimal.new "-12.34" . ceil . should_equal (Decimal.new "-12")
+
+            Decimal.new "12.34" . truncate . should_equal (Decimal.new "12")
+            Decimal.new "-12.34" . truncate . should_equal (Decimal.new "-12")
+
+    suite_builder.group "min/max" group_builder->
+        group_builder.specify "should calculate min and max correctly" <|
+            Decimal.new "12" . min (Decimal.new "13") . should_equal (Decimal.new "12")
+            Decimal.new "12" . min (Decimal.new "11") . should_equal (Decimal.new "11")
+            Decimal.new "-12" . min (Decimal.new "-13") . should_equal (Decimal.new "-13")
+            Decimal.new "-12" . min (Decimal.new "-11") . should_equal (Decimal.new "-12")
+
+            Decimal.new "12.1" . min (Decimal.new "12.3") . should_equal (Decimal.new "12.1")
+            Decimal.new "12.2" . min (Decimal.new "11.7") . should_equal (Decimal.new "11.7")
+            Decimal.new "-12.1" . min (Decimal.new "-12.3") . should_equal (Decimal.new "-12.3")
+            Decimal.new "-12.2" . min (Decimal.new "-11.7") . should_equal (Decimal.new "-12.2")
+
+            Decimal.new "0" . min (Decimal.new "-1") . should_equal (Decimal.new "-1")
+            Decimal.new "0" . min (Decimal.new "1") . should_equal (Decimal.new "0")
+            Decimal.new "-1" . min (Decimal.new "0") . should_equal (Decimal.new "-1")
+            Decimal.new "1" . min (Decimal.new "0") . should_equal (Decimal.new "0")
+
+            Decimal.new "12E73" . min (Decimal.new "13E60") . should_equal (Decimal.new "13E60")
+            Decimal.new "12E73" . min (Decimal.new "13E80") . should_equal (Decimal.new "12E73")
+            Decimal.new "-12E73" . min (Decimal.new "-13E60") . should_equal (Decimal.new "-12E73")
+            Decimal.new "-12E73" . min (Decimal.new "-13E80") . should_equal (Decimal.new "-13E80")
+
+            Decimal.new "12" . max (Decimal.new "13") . should_equal (Decimal.new "13")
+            Decimal.new "12" . max (Decimal.new "11") . should_equal (Decimal.new "12")
+            Decimal.new "-12" . max (Decimal.new "-13") . should_equal (Decimal.new "-12")
+            Decimal.new "-12" . max (Decimal.new "-11") . should_equal (Decimal.new "-11")
+
+            Decimal.new "12.1" . max (Decimal.new "12.3") . should_equal (Decimal.new "12.3")
+            Decimal.new "12.2" . max (Decimal.new "11.7") . should_equal (Decimal.new "12.2")
+            Decimal.new "-12.1" . max (Decimal.new "-12.3") . should_equal (Decimal.new "-12.1")
+            Decimal.new "-12.2" . max (Decimal.new "-11.7") . should_equal (Decimal.new "-11.7")
+
+            Decimal.new "0" . max (Decimal.new "-1") . should_equal (Decimal.new "0")
+            Decimal.new "0" . max (Decimal.new "1") . should_equal (Decimal.new "1")
+            Decimal.new "-1" . max (Decimal.new "0") . should_equal (Decimal.new "0")
+            Decimal.new "1" . max (Decimal.new "0") . should_equal (Decimal.new "1")
+
+            Decimal.new "12E73" . max (Decimal.new "13E60") . should_equal (Decimal.new "12E73")
+            Decimal.new "12E73" . max (Decimal.new "13E80") . should_equal (Decimal.new "13E80")
+            Decimal.new "-12E73" . max (Decimal.new "-13E60") . should_equal (Decimal.new "-13E60")
+            Decimal.new "-12E73" . max (Decimal.new "-13E80") . should_equal (Decimal.new "-12E73")
+
+            Decimal.new "12" . min (Decimal.new "12.3") . should_equal (Decimal.new "12")
+            Decimal.new "12.2" . min (Decimal.new "11") . should_equal (Decimal.new "11")
+            Decimal.new "-12" . min (Decimal.new "-12.3") . should_equal (Decimal.new "-12.3")
+            Decimal.new "-12.2" . min (Decimal.new "-11") . should_equal (Decimal.new "-12.2")
+
+        group_builder.specify "should calculate min and max correctly, with mixed Decimal and Int/Float" <|
+            Decimal.new "12" . min 13 . should_equal (Decimal.new "12")
+            12 . min (Decimal.new "13") . should_equal (Decimal.new "12")
+
+            Decimal.new "12.1" . min 12.3 . should_equal (Decimal.new "12.1")
+            12.1 . min (Decimal.new "12.3") . should_equal (Decimal.from 12.1)
+
+            Decimal.new "0" . min (Decimal.new "-1") . should_equal (Decimal.new "-1")
+            0 . min (Decimal.new "-1") . should_equal (Decimal.new "-1")
+
+            Decimal.new "12" . max 13 . should_equal (Decimal.new "13")
+            12 . max (Decimal.new "13") . should_equal (Decimal.new "13")
+
+            Decimal.new "12.1" . max 12.3 . should_equal (Decimal.new "12.3")
+            12.1 . max (Decimal.new "12.3") . should_equal (Decimal.new "12.3")
+
+            Decimal.new "0" . max -1 . should_equal (Decimal.new "0")
+            0 . max (Decimal.new "-1") . should_equal (Decimal.new "0")
+
+            Decimal.new "12" . min 12.3 . should_equal (Decimal.new "12")
+            12 . min (Decimal.new "12.3") . should_equal (Decimal.new "12")
+
+            Decimal.new "12" . max 12.3 . should_equal (Decimal.new "12.3")
+            12 . max (Decimal.new "12.3") . should_equal (Decimal.new "12.3")
+
+        group_builder.specify "should calculate min and max correctly, with Math.min/max" <|
+            Math.min (Decimal.new "12") (Decimal.new "13") . should_equal (Decimal.new "12")
+            Math.max (Decimal.new "12") (Decimal.new "13") . should_equal (Decimal.new "13")
+
+            Math.min (Decimal.new "12E70") (Decimal.new "13E70") . should_equal (Decimal.new "12E70")
+            Math.max (Decimal.new "12E70") (Decimal.new "13E70") . should_equal (Decimal.new "13E70")
+
+    suite_builder.group "Integer/Float .to_decimal" group_builder->
+        group_builder.specify ".to_decimal should convert to Decimal" <|
+            12 . to_decimal . should_be_a Decimal
+            12.3 . to_decimal . should_be_a Decimal
+
+        group_builder.specify "Float.to_decimal should attach a warning" <|
+            Problems.expect_warning Loss_Of_Numeric_Precision (12.3 . to_decimal)
+
+        group_builder.specify "examples" <|
+            12 . to_decimal . should_equal (Decimal.new "12")
+            12.3 . to_decimal . should_equal (Decimal.new "12.3")
+
+    suite_builder.group "BigDecimal internal representation methods" group_builder->
+        group_builder.specify "internal accessors should work correctly" <|
+            d = Decimal.new "123.456"
+            d.precision . should_equal 6
+            d.scale . should_equal 3
+            d.unscaled_value . should_equal 123456
+            d.internal_representation . should_equal [123456, 6, 3]
 
 main =
     suite = Test.build suite_builder->

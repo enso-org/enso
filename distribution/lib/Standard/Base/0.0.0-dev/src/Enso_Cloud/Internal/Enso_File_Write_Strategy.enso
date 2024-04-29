@@ -1,0 +1,35 @@
+private
+
+import project.Error.Error
+import project.Errors.Common.Forbidden_Operation
+import project.Errors.Unimplemented.Unimplemented
+import project.System.File.Existing_File_Behavior.Existing_File_Behavior
+import project.System.File.File
+from project.Data.Boolean import Boolean, False, True
+from project.Enso_Cloud.Enso_File import Enso_File
+from project.Enso_Cloud.Internal.Enso_File_Helpers import upload_file
+from project.System.File.Generic.File_Write_Strategy import default_append, default_overwrite, default_raise_error, File_Write_Strategy, generic_remote_write_with_local_file
+
+## PRIVATE
+   In the Enso_File, we use the Overwrite strategy for Backup.
+   That is because, the Cloud keeps versions of the file by itself,
+   so there is no need to duplicate its work on our own - just overwriting the
+   file still ensures we have a backup.
+instance =
+    File_Write_Strategy.Value default_overwrite default_append default_raise_error write_backing_up=default_overwrite create_dry_run_file remote_write_with_local_file copy_from_local
+
+
+## PRIVATE
+create_dry_run_file file copy_original =
+    _ = [file, copy_original]
+    Error.throw (Forbidden_Operation.Error "Currently dry-run is not supported for Enso_File, so writing to an Enso_File is forbidden if the Output context is disabled.")
+
+
+## PRIVATE
+remote_write_with_local_file file existing_file_behavior action =
+    if existing_file_behavior == Existing_File_Behavior.Append then Unimplemented.throw "Enso Cloud does not yet support appending to a file. Instead you may read it, modify and then write the new contents." else
+        generic_remote_write_with_local_file file existing_file_behavior action
+
+## PRIVATE
+copy_from_local (source : File) (destination : Enso_File) (replace_existing : Boolean) =
+    upload_file source destination replace_existing

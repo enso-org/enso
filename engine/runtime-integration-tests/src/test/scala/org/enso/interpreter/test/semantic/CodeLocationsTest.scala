@@ -6,7 +6,7 @@ import org.enso.interpreter.node.controlflow.caseexpr.CaseNode
 import org.enso.interpreter.node.expression.literal.LiteralNode
 import org.enso.interpreter.node.scope.{AssignmentNode, ReadLocalVariableNode}
 import org.enso.interpreter.test.{InterpreterContext, InterpreterTest}
-import org.enso.polyglot.MethodNames
+import org.enso.common.MethodNames
 
 class CodeLocationsTest extends InterpreterTest {
 
