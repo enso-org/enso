@@ -388,6 +388,7 @@ function AppRouter(props: AppRouterProps) {
                 path={appUtils.DASHBOARD_PATH}
                 element={shouldShowDashboard && <Dashboard {...props} />}
               />
+
               <router.Route
                 path={appUtils.SUBSCRIBE_PATH}
                 element={
@@ -398,17 +399,18 @@ function AppRouter(props: AppRouterProps) {
                   </errorBoundary.ErrorBoundary>
                 }
               />
-              <router.Route
-                path={appUtils.SUBSCRIBE_SUCCESS_PATH}
-                element={
-                  <errorBoundary.ErrorBoundary>
-                    <React.Suspense fallback={<loader.Loader />}>
-                      <SubscribeSuccess />
-                    </React.Suspense>
-                  </errorBoundary.ErrorBoundary>
-                }
-              />
             </router.Route>
+
+            <router.Route
+              path={appUtils.SUBSCRIBE_SUCCESS_PATH}
+              element={
+                <errorBoundary.ErrorBoundary>
+                  <React.Suspense fallback={<loader.Loader />}>
+                    <SubscribeSuccess />
+                  </React.Suspense>
+                </errorBoundary.ErrorBoundary>
+              }
+            />
           </router.Route>
         </router.Route>
 

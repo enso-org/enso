@@ -26,7 +26,6 @@ import DriveBar from '#/layouts/DriveBar'
 import Labels from '#/layouts/Labels'
 
 import * as aria from '#/components/aria'
-import * as ariaComponents from '#/components/AriaComponents'
 import type * as spinner from '#/components/Spinner'
 import UnstyledButton from '#/components/UnstyledButton'
 
@@ -35,8 +34,6 @@ import * as projectManager from '#/services/ProjectManager'
 
 import type AssetQuery from '#/utilities/AssetQuery'
 import type AssetTreeNode from '#/utilities/AssetTreeNode'
-import * as download from '#/utilities/download'
-import * as github from '#/utilities/github'
 import * as uniqueString from '#/utilities/uniqueString'
 
 // ===================
@@ -95,7 +92,7 @@ export interface DriveProps {
 
 /** Contains directory path and directory contents (projects, folders, secrets and files). */
 export default function Drive(props: DriveProps) {
-  const { supportsLocalBackend, hidden, hideRows, initialProjectName, queuedAssetEvents } = props
+  const { hidden, hideRows, initialProjectName, queuedAssetEvents } = props
   const { query, setQuery, labels, setLabels, setSuggestions, projectStartupInfo } = props
   const { assetListEvents, dispatchAssetListEvent, assetEvents, dispatchAssetEvent } = props
   const { setAssetPanelProps, doOpenEditor, doCloseEditor } = props
@@ -324,43 +321,7 @@ export default function Drive(props: DriveProps) {
         </div>
       )
     }
-    case DriveStatus.notEnabled: {
-      return (
-        <div className={`grid grow place-items-center ${hidden ? 'hidden' : ''}`}>
-          <div className="flex flex-col items-center gap-status-page text-center text-base">
-            {getText('upgradeToUseCloud')}
-            <div className="flex gap-3">
-              <ariaComponents.Button
-                variant="submit"
-                rounding="full"
-                size="medium"
-                href={appUtils.SUBSCRIBE_PATH}
-              >
-                {getText('upgrade')}
-              </ariaComponents.Button>
-
-              {!supportsLocalBackend && (
-                <ariaComponents.Button
-                  variant="outline"
-                  size="medium"
-                  rounding="full"
-                  onPress={async () => {
-                    const downloadUrl = await github.getDownloadUrl()
-                    if (downloadUrl == null) {
-                      toastAndLog('noAppDownloadError')
-                    } else {
-                      download.download(downloadUrl)
-                    }
-                  }}
-                >
-                  {getText('downloadFreeEdition')}
-                </ariaComponents.Button>
-              )}
-            </div>
-          </div>
-        </div>
-      )
-    }
+    case DriveStatus.notEnabled:
     case DriveStatus.ok: {
       return (
         <div

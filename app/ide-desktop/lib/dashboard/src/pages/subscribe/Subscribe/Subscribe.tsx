@@ -9,7 +9,6 @@ import * as router from 'react-router-dom'
 import * as appUtils from '#/appUtils'
 
 import * as navigateHooks from '#/hooks/navigateHooks'
-import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
 import * as backendProvider from '#/providers/BackendProvider'
 import * as textProvider from '#/providers/TextProvider'
@@ -42,7 +41,6 @@ export function Subscribe() {
 
   const [searchParams] = router.useSearchParams()
   const { backend } = backendProvider.useBackend()
-  const toastAndLog = toastAndLogHooks.useToastAndLog()
 
   const plan = searchParams.get('plan')
 
@@ -80,11 +78,13 @@ export function Subscribe() {
     },
     onSuccess: (data, userSelectedPlan) => {
       if (data.status === 'complete') {
-        navigate({ pathname: appUtils.SUBSCRIBE_SUCCESS_PATH, search: userSelectedPlan })
+        navigate({ pathname: appUtils.SUBSCRIBE_SUCCESS_PATH, search: `plan=${userSelectedPlan}` })
+        return
+      } else {
+        throw new Error(
+          'Session not complete, please contact the support team or try with another payment method.'
+        )
       }
-    },
-    onError: error => {
-      toastAndLog('asyncHookError', error)
     },
   })
 

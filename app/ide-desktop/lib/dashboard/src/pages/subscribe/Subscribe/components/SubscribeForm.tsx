@@ -40,6 +40,7 @@ export function SubscribeForm(props: SubscribeFormProps) {
         throw new Error('Unexpected error')
       } else {
         return stripe.createPaymentMethod({ type: 'card', card: cardElement }).then(result => {
+          console.log('Payment method:', result)
           if (result.error) {
             throw new Error(result.error.message)
           } else {
@@ -50,6 +51,7 @@ export function SubscribeForm(props: SubscribeFormProps) {
     },
     onSuccess: async paymentMethod => {
       await onSubmit(paymentMethod.paymentMethod)
+      console.log('onSuccess -> Payment method:', paymentMethod)
       cardElement?.clear()
     },
   })

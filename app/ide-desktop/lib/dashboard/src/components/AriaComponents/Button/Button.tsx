@@ -73,7 +73,7 @@ export type Roundings = 'full' | 'large' | 'medium' | 'none' | 'small' | 'xlarge
 /**
  * The size of the button
  */
-export type Size = 'custom' | 'hero' | 'large' | 'medium' | 'small' | 'xsmall'
+export type Size = 'custom' | 'hero' | 'large' | 'medium' | 'small' | 'xsmall' | 'xxsmall'
 
 /**
  * The position of the icon in the button
@@ -91,12 +91,13 @@ export type Variant =
   | 'outline'
   | 'primary'
   | 'submit'
+  | 'tertiary'
 
 const DEFAULT_CLASSES =
   'flex whitespace-nowrap cursor-pointer border border-transparent transition-[opacity,outline-offset] duration-150 ease-in-out select-none text-center items-center justify-center'
 const FOCUS_CLASSES =
   'focus-visible:outline-offset-2 focus:outline-none focus-visible:outline focus-visible:outline-primary'
-const EXTRA_CLICK_ZONE_CLASSES = 'flex relative before:inset-[-12px] before:absolute before:z-10'
+const EXTRA_CLICK_ZONE_CLASSES = 'flex relative after:inset-[-12px] after:absolute'
 const DISABLED_CLASSES = 'disabled:opacity-50 disabled:cursor-not-allowed'
 const LOADING_CLASSES = 'cursor-wait'
 const FULL_WIDTH_CLASSES = 'w-full'
@@ -107,6 +108,7 @@ const CLASSES_FOR_SIZE: Record<Size, string> = {
   medium: 'px-4 py-2 text-sm',
   small: 'px-3 py-1 text-xs',
   xsmall: 'px-2 py-1 text-xs',
+  xxsmall: 'px-1.5 py-0.5 text-xs',
   custom: '',
 }
 
@@ -114,6 +116,7 @@ const CLASSES_FOR_VARIANT: Record<Variant, string> = {
   custom: '',
   link: 'inline-flex px-0 py-0 rounded-sm text-primary hover:text-primary-90 hover:underline',
   primary: 'bg-primary text-white hover:bg-primary-90',
+  tertiary: 'bg-share text-white hover:bg-share-90',
   cancel: 'bg-selected-frame opacity-80 hover:opacity-100',
   delete: 'bg-delete text-white',
   icon: 'opacity-50 hover:opacity-100',
