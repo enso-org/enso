@@ -11,14 +11,14 @@ polyglot java import org.enso.base_test_helpers.FileSystemHelper
 Table.should_equal : Any -> Integer -> Any
 Table.should_equal self expected frames_to_skip=0 =
     loc = Meta.get_source_location 1+frames_to_skip
-    Panic.catch Any (self.should_equal_impl expected loc) error->
-        Test.fail error.payload 
+    Panic.catch Test_Failure_Error.Error (table_should_equal_impl self expected loc) error->
+        Test.fail error.payload.message 
 
 Column.should_equal : Any -> Integer -> Any
 Column.should_equal self expected frames_to_skip=0 =
     loc = Meta.get_source_location 1+frames_to_skip
-    Panic.catch Any (self.should_equal_impl expected loc) error->
-        Test.fail error.payload
+    Panic.catch Test_Failure_Error.Error (column_should_equal_impl self expected loc) error->
+        Test.fail error.payload.message
 
 DB_Table.should_equal : DB_Table -> Integer -> Any
 DB_Table.should_equal self expected frames_to_skip=0 =
@@ -32,40 +32,54 @@ DB_Column.should_equal self expected frames_to_skip=0 =
     t1 = expected.read
     t0 . should_equal t1 frames_to_skip
 
+type Test_Failure_Error
+    ## PRIVATE
+       The runtime representation of a test failure.
+
+       Arguments:
+       - message: A description of the test failure.
+    Error message
+
+    ## PRIVATE
+    to_display_text : Text
+    to_display_text self = "Test failure error: "+self.message
+
 ## PRIVATE
-Table.should_equal_impl self expected loc =
+table_should_equal_impl actual expected loc =
     case expected of
         _ : Table ->
-            if self.columns.length != expected.columns.length then
-                Panic.throw 'Tables differ at '+loc+'.\nActual:\n'+self.display+'\nExpected:\n'+expected.display+'\nExpected '+expected.columns.length.to_text+" columns, but got "+self.columns.length.to_text+'.'
-            Panic.catch Any (self.columns.zip expected.columns a-> e->(a.should_equal_impl e)) error->
-                msg = 'Tables differ at '+loc+'.\nActual:\n'+self.display+'\nExpected:\n'+expected.display+'\n'+error.payload
-                Panic.throw msg
-        _ -> Panic.throw "Got a Table, but expected a "+expected.to_display_text+(display_loc loc)+'.'
+            if actual.columns.length != expected.columns.length then
+                Panic.throw (Test_Failure_Error.Error 'Tables differ at '+loc+'.\nActual:\n'+actual.display+'\nExpected:\n'+expected.display+'\nExpected '+expected.columns.length.to_text+" columns, but got "+actual.columns.length.to_text+'.')
+            Panic.catch Test_Failure_Error.Error (actual.columns.zip expected.columns a-> e->(column_should_equal_impl a e)) error->
+                msg = 'Tables differ at '+loc+'.\nActual:\n'+actual.display+'\nExpected:\n'+expected.display+'\n'+error.payload.message
+                Panic.throw (Test_Failure_Error.Error msg)
+        _ -> Panic.throw (Test_Failure_Error.Error "Got a Table, but expected a "+expected.to_display_text+(display_loc loc)+'.')
 
 ## PRIVATE
-Column.should_equal_impl self expected loc='' =
+column_should_equal_impl actual expected loc='' =
     case expected of
         _ : Column ->
-            if self.name != expected.name then
-                Panic.throw "Expected column name "+expected.name+", but got "+self.name+(display_loc loc)+'.'
-            if self.length != expected.length then
-                Panic.throw "Expected column length "+expected.length.to_text+", but got "+self.length.to_text+(display_loc loc)+'.'
-            if self.value_type != expected.value_type then
-                Panic.throw "Expected column type "+expected.value_type.to_text+", but got "+self.value_type.to_text+(display_loc loc)+'.'
-            self.zip expected a-> e->
-                if a != e then
-                    if (a.is_a Number && e.is_a Number && a.is_nan && e.is_nan).not then
-                        self.report_fail expected loc
-        _ -> Panic.throw "Got a Column, but expected a "+expected.to_display_text+(display_loc loc)+'.'
+            if actual.name != expected.name then
+                Panic.throw (Test_Failure_Error.Error "Expected column name "+expected.name+", but got "+actual.name+(display_loc loc)+'.')
+            if actual.length != expected.length then
+                Panic.throw (Test_Failure_Error.Error "Expected column length "+expected.length.to_text+", but got "+actual.length.to_text+(display_loc loc)+'.')
+            if actual.value_type != expected.value_type then
+                Panic.throw (Test_Failure_Error.Error "Expected column type "+expected.value_type.to_text+", but got "+actual.value_type.to_text+(display_loc loc)+'.')
+            actual.zip expected a-> e->
+                if values_equal a e then
+                    report_fail actual expected loc
+        _ -> Panic.throw (Test_Failure_Error.Error "Got a Column, but expected a "+expected.to_display_text+(display_loc loc)+'.')
 
 ## PRIVATE
-Column.report_fail self expected loc =
-    indexed = self.zip (0.up_to self.length) a-> i-> Pair.new a i
+values_equal a e =
+    a != e && (a.is_a Number && e.is_a Number && a.is_nan && e.is_nan).not
+
+## PRIVATE
+report_fail actual expected loc =
+    indexed = actual.zip (0.up_to actual.length) a-> i-> Pair.new a i
     indexed.zip expected a-> e->
-        if a.first != e then
-            if (a.first.is_a Number && e.is_a Number && a.first.is_nan && e.is_nan).not then
-                Panic.throw "Column: "+self.name+" differs at row "+a.second.to_text+'.\n\t  Actual  : '+a.first.to_text+'\n\t  Expected: '+e.to_text+'\n\t'+(display_loc loc)+'.'
+        if values_equal a.first e then
+            Panic.throw (Test_Failure_Error.Error "Column: "+actual.name+" differs at row "+a.second.to_text+'.\n\t  Actual  : '+a.first.to_text+'\n\t  Expected: '+e.to_text+'\n\t'+(display_loc loc)+'.')
 
 ## PRIVATE
 display_loc loc:Text =
