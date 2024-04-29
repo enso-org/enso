@@ -3,6 +3,7 @@ import project.Data.Array.Array
 import project.Data.Vector.Vector
 import project.Error.Error
 import project.Meta
+import project.Nothing.Nothing
 import project.Runtime
 from project.Data.Boolean import Boolean, False, True
 
@@ -205,10 +206,13 @@ type Panic
 
        Arguments:
        - action: The code to execute that potentially raised a Wrapped_Dataflow_Error.
-    handle_wrapped_dataflow_error : Any -> Any
-    handle_wrapped_dataflow_error ~action =
+    handle_wrapped_dataflow_error  : Any -> Any -> ((Any -> Any) | Nothing) -> Any
+    handle_wrapped_dataflow_error ~action exception_type=Any (handler : ((Any -> Any) | Nothing) = Nothing) =
+        handler_resolved = handler.if_nothing Error.throw
         Panic.catch Wrapped_Dataflow_Error action caught_panic->
-            Error.throw caught_panic.payload.payload
+            error = caught_panic.payload.payload
+            if error.is_a exception_type . not then Panic.throw caught_panic.payload else
+                handler_resolved error
 
 ## PRIVATE
 @Builtin_Type

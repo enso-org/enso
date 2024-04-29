@@ -277,12 +277,10 @@ type Vector a
     build_multiple (count : Integer) (function : Builder -> Any) (initial_capacity : Integer = 10) -> Vector Vector =
         if count < 0 then Error.throw (Illegal_Argument.Error "count must be non-negative: "+count.to_text) else
             builders = Range.new 0 count . map (_-> Build_Style_Builder.new initial_capacity)
-            handler builder_dataflow_error =
-                Error.throw builder_dataflow_error.dataflow_error
             ## The `catch_exception` handles dataflow errors that are *added* to
                the builder in the builder callback, while the `if_not_error`
                handles dataflow errors *propagated from* the builder callback.
-            Exception.catch_exception exception_type=Builder_Dataflow_Error handler=handler <|
+            Panic.handle_wrapped_dataflow_error <|
                 function builders . if_not_error (builders.map .to_vector)
 
     ## PRIVATE
@@ -1573,9 +1571,8 @@ type Build_Style_Builder
              # => [1, 2, 3]
     append : Any ! Error -> Nothing ! Error
     append self (item : Any ! Error) -> Nothing ! Error =
-        case item.is_error of
-            True -> Exception.throw_exception (Builder_Dataflow_Error.Error (item.catch))
-            False ->
+        Panic.throw_wrapped_if_error <|
+            item.if_not_error
                 self.unsafe_append item
                 self.add_warnings item
                 Nothing
@@ -1613,14 +1610,12 @@ type Build_Style_Builder
     append_vector_range self vector (start : Integer = 0) end=vector.length -> Nothing ! Error =
         subrange = vector.slice start end
         first_dataflow_error = subrange.find (x-> x.is_error) if_missing=Nothing
-        if_no_errors =
-            append_result = self.java_builder.appendTo subrange
-            assert (append_result.is_error.not)
-            self.add_warnings subrange
-            Nothing
-        if first_dataflow_error.is_error.not then if_no_errors else
-            assert first_dataflow_error.is_error
-            Exception.throw_exception (Builder_Dataflow_Error.Error (first_dataflow_error.catch))
+        Panic.throw_wrapped_if_error <|
+            first_dataflow_error.if_not_error <|
+                append_result = self.java_builder.appendTo subrange
+                assert (append_result.is_error.not)
+                self.add_warnings subrange
+                Nothing
 
     ## PRIVATE
        Save any attached warnings in self.warnings.
@@ -1728,12 +1723,6 @@ type Map_Error
     ## PRIVATE
     to_display_text : Text
     to_display_text self = "Error at index " + self.index.to_text + ": " + self.inner_error.to_display_text
-
-## PRIVATE
-   An error wrapper used to catch and re-throw dataflow errors added to a
-   `Build_Style_Builder`.
-type Builder_Dataflow_Error
-    Error (dataflow_error : Any)
 
 ## PRIVATE
    Indicates that a method should not wrap thrown errors in `Map_Error`.
