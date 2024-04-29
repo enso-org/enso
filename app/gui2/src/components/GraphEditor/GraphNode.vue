@@ -161,7 +161,9 @@ const selected = computed(() => nodeSelection?.isSelected(nodeId.value) ?? false
 const selectionVisible = ref(false)
 
 const isOnlyOneSelected = computed(
-  () => selected.value && nodeSelection?.selected.size === 1 && !nodeSelection.isChanging,
+  () =>
+    nodeSelection?.committedSelection.size === 1 &&
+    nodeSelection?.committedSelection.has(nodeId.value),
 )
 
 const menuVisible = computed(() => menuEnabledByHover.value || isOnlyOneSelected.value)
