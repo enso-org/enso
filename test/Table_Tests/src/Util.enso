@@ -11,6 +11,17 @@ polyglot java import org.enso.base_test_helpers.FileSystemHelper
 Table.should_equal : Any -> Integer -> Any
 Table.should_equal self expected frames_to_skip=0 =
     loc = Meta.get_source_location 1+frames_to_skip
+    Panic.catch Any (self.should_equal_impl expected loc) error->
+        Test.fail error.payload 
+
+Column.should_equal : Any -> Integer -> Any
+Column.should_equal self expected frames_to_skip=0 =
+    loc = Meta.get_source_location 1+frames_to_skip
+    Panic.catch Any (self.should_equal_impl expected loc) error->
+        Test.fail error.payload
+
+## PRIVATE
+Table.should_equal_impl self expected loc =
     case expected of
         _ : Table ->
             tables_equal t0 t1 =
@@ -20,14 +31,8 @@ Table.should_equal self expected frames_to_skip=0 =
             equal = tables_equal self expected
             if equal.not then
                 msg = 'Tables differ at '+loc+'.\nActual:\n' + self.display + '\nExpected:\n' + expected.display
-                Test.fail msg
-        _ -> Test.fail "Got a Table, but expected a "+expected.to_display_text+' (at '+loc+').'
-
-Column.should_equal : Any -> Integer -> Any
-Column.should_equal self expected frames_to_skip=0 =
-    loc = Meta.get_source_location 1+frames_to_skip
-    Panic.catch Any (self.should_equal_impl expected loc) error->
-        Test.fail error.payload
+                Panic.throw msg
+        _ -> Panic.throw "Got a Table, but expected a "+expected.to_display_text+' (at '+loc+').'
 
 ## PRIVATE
 Column.should_equal_impl self expected loc =
