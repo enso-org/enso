@@ -44,6 +44,14 @@ foreign js throw_js_str = """
 foreign js throw_js_arr = """
     throw [1,2,3];
 
+fn_with_tco x =
+    if x == 1 then Panic.throw "fn_with_tco" else
+        @Tail_Call fn_with_tco x+1
+
+global_wrapper_fn =
+    fn_with_tco 0
+
+
 add_specs suite_builder =
     suite_builder.group "No Method Errors" group_builder->
         group_builder.specify "should be recoverable" <|
@@ -387,6 +395,12 @@ add_specs suite_builder =
                 fn_with_tco 0
 
             p = Panic.catch Any handler=(.payload) wrapper_fn
+            p . should_equal "fn_with_tco"
+
+        # The same test as the above one, but calls a global wrapper_fn that is declared
+        # in top scope.
+        group_builder.specify "should be caught in a TCO loop with a global wrapper fn" <|
+            p = Panic.catch Any handler=(.payload) global_wrapper_fn
             p . should_equal "fn_with_tco"
 
 
