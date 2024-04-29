@@ -18,6 +18,8 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Future;
 import java.util.function.Consumer;
 import java.util.logging.Level;
+import org.enso.common.CompilationStage;
+import org.enso.common.LanguageInfo;
 import org.enso.compiler.Compiler;
 import org.enso.compiler.PackageRepository;
 import org.enso.compiler.Passes;
@@ -41,8 +43,6 @@ import org.enso.interpreter.runtime.type.Types;
 import org.enso.interpreter.runtime.util.DiagnosticFormatter;
 import org.enso.pkg.Package;
 import org.enso.pkg.QualifiedName;
-import org.enso.polyglot.CompilationStage;
-import org.enso.polyglot.LanguageInfo;
 import org.enso.polyglot.Suggestion;
 import org.enso.polyglot.data.TypeGraph;
 import scala.collection.immutable.ListSet;
@@ -588,6 +588,7 @@ final class TruffleCompilerContext implements CompilerContext {
     }
   }
 
+  @Override
   public scala.Option<List<org.enso.polyglot.Suggestion>> deserializeSuggestions(
       LibraryName libraryName) throws InterruptedException {
     var option = deserializeSuggestionsImpl(libraryName);

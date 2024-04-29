@@ -1,4 +1,4 @@
-package org.enso.polyglot;
+package org.enso.common;
 
 /** Container for polyglot method names */
 public class MethodNames {

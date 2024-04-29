@@ -5,7 +5,7 @@ import java.util.List;
 import org.enso.benchmarks.BenchGroup;
 import org.enso.benchmarks.BenchSuite;
 import org.enso.benchmarks.ModuleBenchSuite;
-import org.enso.polyglot.MethodNames.Module;
+import org.enso.common.MethodNames.Module;
 import org.graalvm.polyglot.Value;
 
 /** Collect benchmark specifications from Enso source files. */

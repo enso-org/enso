@@ -32,7 +32,8 @@ final class DeserializeLibrarySuggestionsJob(
       "Deserializing suggestions for library [{}].",
       libraryName
     )
-    ctx.executionService.getContext.getCompiler.context
+    val cc = ctx.executionService.getContext.getCompiler.context
+    cc
       .deserializeSuggestions(libraryName)
       .foreach { cachedSuggestions =>
         ctx.endpoint.sendToClient(
