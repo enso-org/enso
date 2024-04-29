@@ -1,7 +1,5 @@
 use crate::prelude::*;
 
-use crate::program::command::MyCommand;
-
 use location::Location;
 
 
@@ -182,8 +180,6 @@ pub trait ProgramExt: Program {
 
 impl<T> ProgramExt for T where T: Program {}
 
-
-///
 
 #[derive(Clone, Debug)]
 pub struct Unknown(pub String);

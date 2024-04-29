@@ -2,6 +2,7 @@ package org.enso.interpreter.bench.benchmarks.semantic;
 
 import java.io.IOException;
 import java.util.concurrent.TimeUnit;
+import org.enso.compiler.benchmarks.Utils;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Value;
 import org.openjdk.jmh.annotations.Benchmark;
@@ -201,7 +202,7 @@ public class AtomBenchmarks {
 
   @Setup
   public void initializeBenchmarks(BenchmarkParams params) throws IOException {
-    this.context = SrcUtil.newContextBuilder().build();
+    this.context = Utils.createDefaultContextBuilder().build();
 
     var millionElemListMethod = mainMethod(context, "millionElementList", MILLION_ELEMENT_LIST);
     this.millionElementsList = millionElemListMethod.execute();

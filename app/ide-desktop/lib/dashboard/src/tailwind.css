@@ -1,7 +1,7 @@
 @import url("https://fonts.googleapis.com/css2?family=M+PLUS+1:wght@400;500;600;700&display=swap");
 @import "react-toastify/dist/ReactToastify.css";
 
-/* Scoped to `.enso-dashboard .enso-chat` in tailwind config. */
+/* Scoped to `.enso-dashboard, .enso-chat` in tailwind config. */
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -30,6 +30,9 @@
   --icons-padding-x: 0.5rem;
   --icon-size: 1rem;
   --project-icon-size: 1.5rem;
+  /* The horizontal padding of the large text indicating that a feature is not enabled in the user's
+   * current plan. */
+  --missing-functionality-text-padding-x: 1rem;
   /* The horizontal gap between each icon in a list of buttons. */
   --buttons-gap: 0.5rem;
   /* The horizontal gap between each icon in a list of icons. */
@@ -58,6 +61,8 @@
   --cozy-line-height: 170%;
   --default-backdrop-blur: 64px;
   --default-corner-radius: 1rem;
+  --button-focus-ring-corner-radius: 0.5rem;
+  --button-focus-ring-inset: -0.25rem;
   --profile-picture-large-size: 8rem;
   --profile-picture-caption-width: 16rem;
   --profile-picture-caption-padding-y: 0.25rem;
@@ -90,7 +95,7 @@
   --context-menu-macos-half-width: calc(var(--context-menu-macos-width) / 2);
   --context-menu-macos-width: 14.375rem;
   --context-menu-entry-padding-x: 0.75rem;
-  --context-menu-separator-padding-y: 0.125rem;
+  --separator-margin-y: 0.125rem;
   /* The vertical gap between entries in a Data Link input. */
   --json-schema-gap: 0.25rem;
   --json-schema-text-input-width: 10rem;
@@ -148,6 +153,9 @@
   --date-input-gap: 0.5rem;
   /* The gap between the month display and the calendar of the date picker. */
   --date-input-calendar-gap: 0.5rem;
+  --auth-link-padding-x: 0.5rem;
+  --auth-link-padding-y: 0.25rem;
+  --text-link-padding-x: 0.25rem;
 
   /********\
   |* Chat *|
@@ -431,7 +439,7 @@
   /* Only used for the settings sidebar, not the drive sidebar. */
   --sidebar-section-heading-padding-y: 0.125rem;
   /* The vertical gap between the section heading and its content. */
-  --sidebar-section-heading-gap: 0.375rem;
+  --sidebar-section-heading-margin-b: 0.375rem;
 }
 
 body {
@@ -483,6 +491,11 @@ body::before {
   font-feature-settings: normal;
 }
 
+.enso-dashboard kbd,
+.enso-chat kbd {
+  font-family: "M PLUS 1";
+}
+
 .enso-dashboard :focus,
 .enso-chat :focus {
   outline: none;
@@ -508,9 +521,34 @@ body::before {
 
 ::-webkit-scrollbar-thumb {
   border-radius: 8px;
-  background-color: rgba(0, 0, 0, 0.1);
+  background-color: rgb(0 0 0 / 10%);
 }
 
 ::-webkit-scrollbar-corner {
-  background: rgba(0, 0, 0, 0);
+  background: rgb(0 0 0 / 0%);
+}
+
+body[data-debug] :where(.focus-child:not(:disabled):not([data-disabled])) {
+  outline: 2px solid rgb(255 0 255 / 30%);
+  outline-offset: -1px;
+}
+
+body[data-debug] :focus {
+  outline: 2px solid rgb(0 0 255 / 60%);
+  outline-offset: -1px;
+}
+
+body[data-debug] :focus-visible {
+  outline: 2px solid rgb(0 128 0 / 60%);
+  outline-offset: -1px;
+}
+
+body[data-debug] [data-focus-area] {
+  outline: 2px solid rgb(255 0 0 / 60%);
+  outline-offset: -1px;
+}
+
+body[data-debug] [data-navigator2d-neighbor] {
+  outline: 2px solid rgb(0 255 255 / 60%);
+  outline-offset: -1px;
 }

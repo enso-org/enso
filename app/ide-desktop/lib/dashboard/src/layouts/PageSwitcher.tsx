@@ -5,7 +5,12 @@ import DriveIcon from 'enso-assets/drive.svg'
 import HomeIcon from 'enso-assets/home.svg'
 import NetworkIcon from 'enso-assets/network.svg'
 
-import Button from '#/components/Button'
+import type * as text from '#/text'
+
+import * as textProvider from '#/providers/TextProvider'
+
+import Button from '#/components/styled/Button'
+import FocusArea from '#/components/styled/FocusArea'
 
 // ====================
 // === PageSwitcher ===
@@ -20,24 +25,30 @@ export enum Page {
 }
 
 /** Error text for each page. */
-const ERRORS: Readonly<Record<Page, string | null>> = {
+const ERRORS = {
   [Page.home]: null,
   [Page.drive]: null,
-  [Page.editor]: 'No project is currently open.',
+  [Page.editor]: 'noProjectIsCurrentlyOpen',
   [Page.settings]: null,
-}
+} as const satisfies Record<Page, text.TextId | null>
 
-/** Data describing how to display a button for a pageg. */
+/** Data describing how to display a button for a page. */
 interface PageUIData {
   readonly page: Page
   readonly icon: string
-  readonly alt: string
+  readonly altId: Extract<text.TextId, `${Page}PageAltText`>
+  readonly tooltipId: Extract<text.TextId, `${Page}PageTooltip`>
 }
 
 const PAGE_DATA: PageUIData[] = [
-  { page: Page.home, icon: HomeIcon, alt: 'Go to home page' },
-  { page: Page.drive, icon: DriveIcon, alt: 'Go to drive page' },
-  { page: Page.editor, icon: NetworkIcon, alt: 'Go to editor page' },
+  { page: Page.home, icon: HomeIcon, altId: 'homePageAltText', tooltipId: 'homePageTooltip' },
+  { page: Page.drive, icon: DriveIcon, altId: 'drivePageAltText', tooltipId: 'drivePageTooltip' },
+  {
+    page: Page.editor,
+    icon: NetworkIcon,
+    altId: 'editorPageAltText',
+    tooltipId: 'editorPageTooltip',
+  },
 ]
 
 /** Props for a {@link PageSwitcher}. */
@@ -50,29 +61,50 @@ export interface PageSwitcherProps {
 /** Switcher to choose the currently visible full-screen page. */
 export default function PageSwitcher(props: PageSwitcherProps) {
   const { page, setPage, isEditorDisabled } = props
+  const { getText } = textProvider.useText()
+  const selectedChildIndexRef = React.useRef(0)
+  const lastChildIndexRef = React.useRef(0)
+
+  React.useEffect(() => {
+    selectedChildIndexRef.current = PAGE_DATA.findIndex(data => data.page === page)
+  }, [page])
+
+  React.useEffect(() => {
+    if (isEditorDisabled) {
+      lastChildIndexRef.current = PAGE_DATA.length - 2
+    } else {
+      lastChildIndexRef.current = PAGE_DATA.length - 1
+    }
+  }, [isEditorDisabled])
+
   return (
-    <div
-      className={`pointer-events-auto flex shrink-0 cursor-default items-center gap-pages rounded-full px-page-switcher-x ${
-        page === Page.editor ? 'bg-frame backdrop-blur-default' : ''
-      }`}
-    >
-      {PAGE_DATA.map(pageData => {
-        const isDisabled =
-          pageData.page === page || (pageData.page === Page.editor && isEditorDisabled)
-        return (
-          <Button
-            key={pageData.page}
-            alt={pageData.alt}
-            image={pageData.icon}
-            active={page === pageData.page}
-            disabled={isDisabled}
-            error={ERRORS[pageData.page]}
-            onClick={() => {
-              setPage(pageData.page)
-            }}
-          />
-        )
-      })}
-    </div>
+    <FocusArea direction="horizontal">
+      {innerProps => (
+        <div
+          className={`pointer-events-auto flex shrink-0 cursor-default items-center gap-pages rounded-full px-page-switcher-x ${
+            page === Page.editor ? 'bg-frame backdrop-blur-default' : ''
+          }`}
+          {...innerProps}
+        >
+          {PAGE_DATA.map(pageData => {
+            return (
+              <Button
+                key={pageData.page}
+                aria-label={getText(pageData.tooltipId)}
+                alt={getText(pageData.altId)}
+                image={pageData.icon}
+                active={page === pageData.page}
+                softDisabled={page === pageData.page}
+                isDisabled={pageData.page === Page.editor && isEditorDisabled}
+                error={ERRORS[pageData.page]}
+                onPress={() => {
+                  setPage(pageData.page)
+                }}
+              />
+            )
+          })}
+        </div>
+      )}
+    </FocusArea>
   )
 }

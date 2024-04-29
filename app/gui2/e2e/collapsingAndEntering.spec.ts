@@ -1,11 +1,13 @@
 import { test, type Page } from '@playwright/test'
-import os from 'os'
 import * as actions from './actions'
 import { expect } from './customExpect'
 import { mockCollapsedFunctionInfo } from './expressionUpdates'
+import { CONTROL_KEY } from './keyboard'
 import * as locate from './locate'
 
-const COLLAPSE_SHORTCUT = os.platform() === 'darwin' ? 'Meta+G' : 'Control+G'
+const MAIN_FILE_NODES = 12
+
+const COLLAPSE_SHORTCUT = `${CONTROL_KEY}+G`
 
 test('Entering nodes', async ({ page }) => {
   await actions.goToGraph(page)
@@ -77,7 +79,7 @@ test('Collapsing nodes', async ({ page }) => {
     .locator('.icon')
     .click({ modifiers: ['Shift'] })
 
-  await page.keyboard.press(COLLAPSE_SHORTCUT)
+  await page.getByAltText('Group components').click()
   await expect(locate.graphNode(page)).toHaveCount(initialNodesCount - 2)
   const collapsedNode = locate.graphNodeByBinding(page, 'prod')
   await expect(collapsedNode.locator('.WidgetToken')).toHaveText(['Main', '.', 'collapsed', 'five'])
@@ -108,7 +110,7 @@ test('Collapsing nodes', async ({ page }) => {
 
 async function expectInsideMain(page: Page) {
   await actions.expectNodePositionsInitialized(page, 64)
-  await expect(locate.graphNode(page)).toHaveCount(10)
+  await expect(locate.graphNode(page)).toHaveCount(MAIN_FILE_NODES)
   await expect(locate.graphNodeByBinding(page, 'five')).toExist()
   await expect(locate.graphNodeByBinding(page, 'ten')).toExist()
   await expect(locate.graphNodeByBinding(page, 'sum')).toExist()
@@ -118,6 +120,7 @@ async function expectInsideMain(page: Page) {
   await expect(locate.graphNodeByBinding(page, 'data')).toExist()
   await expect(locate.graphNodeByBinding(page, 'aggregated')).toExist()
   await expect(locate.graphNodeByBinding(page, 'filtered')).toExist()
+  await expect(locate.graphNodeByBinding(page, 'autoscoped')).toExist()
 }
 
 async function expectInsideFunc1(page: Page) {

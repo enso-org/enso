@@ -5,18 +5,14 @@ import Standard.Base.Errors.Illegal_State.Illegal_State
 import Standard.Base.Internal.Rounding_Helpers
 from Standard.Base.Widget_Helpers import make_format_chooser, make_regex_text_widget
 
-import Standard.Table.Data.Column.Column
-import Standard.Table.Data.Constants.Previous_Value
-import Standard.Table.Data.Table.Table
-import Standard.Table.Data.Type.Enso_Types
-import Standard.Table.Data.Type.Value_Type_Helpers
 import Standard.Table.Internal.Column_Naming_Helper.Column_Naming_Helper
 import Standard.Table.Internal.Date_Time_Helpers
 import Standard.Table.Internal.Java_Problems
 import Standard.Table.Internal.Problem_Builder.Problem_Builder
+import Standard.Table.Internal.Value_Type_Helpers
 import Standard.Table.Internal.Widget_Helpers
-from Standard.Table import Auto, Data_Formatter, Sort_Column, Value_Type
-from Standard.Table.Data.Column import default_date_period
+from Standard.Table import Auto, Column, Data_Formatter, Previous_Value, Sort_Column, Table, Value_Type
+from Standard.Table.Column import default_date_period
 from Standard.Table.Errors import Conversion_Failure, Floating_Point_Equality, Inexact_Type_Coercion, Invalid_Value_Type
 from Standard.Table.Internal.Cast_Helpers import check_cast_compatibility
 
@@ -1187,7 +1183,7 @@ type DB_Column
     sort self order=Sort_Direction.Ascending =
         self.to_table.order_by [Sort_Column.Index 0 order] . at 0
 
-    ## ALIAS first, last, sample, slice
+    ## ALIAS first, head, last, limit, sample, slice, tail, top
        GROUP Standard.Base.Selections
        ICON select_row
        Creates a new Column with the specified range of rows from the input
@@ -1500,8 +1496,8 @@ type DB_Column
     minute self = Value_Type.expect_has_time self <|
         self.make_unary_op "minute"
 
-    ## GROUP Standard.Base.Selections
-       ICON select_row
+    ## GROUP Standard.Base.DateTime
+       ICON date_and_time
        Gets the second as an integer (0-60) from the time stored in the column.
 
        Applies only to columns that hold the `Time_Of_Day` or `Date_Time` types.

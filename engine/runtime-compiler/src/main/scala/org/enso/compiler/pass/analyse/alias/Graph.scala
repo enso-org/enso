@@ -5,14 +5,17 @@ import org.enso.syntax.text.Debug
 import org.enso.compiler.pass.analyse.alias.Graph.{Occurrence, Scope}
 
 import java.util.UUID
+import scala.collection.immutable.HashMap
 import scala.collection.mutable
 import scala.reflect.ClassTag
 
 /** A graph containing aliasing information for a given root scope in Enso. */
 sealed class Graph extends Serializable {
-  var rootScope: Graph.Scope = new Graph.Scope()
-  var links: Set[Graph.Link] = Set()
-  var nextIdCounter          = 0
+  var rootScope: Graph.Scope                              = new Graph.Scope()
+  private var links: Set[Graph.Link]                      = Set()
+  private var sourceLinks: Map[Graph.Id, Set[Graph.Link]] = new HashMap()
+  private var targetLinks: Map[Graph.Id, Set[Graph.Link]] = new HashMap()
+  var nextIdCounter                                       = 0
 
   private var globalSymbols: Map[Graph.Symbol, Occurrence.Global] =
     Map()
@@ -24,10 +27,21 @@ sealed class Graph extends Serializable {
     val copy = new Graph
     copy.rootScope     = this.rootScope.deepCopy(scope_mapping)
     copy.links         = this.links
+    copy.sourceLinks   = this.sourceLinks
+    copy.targetLinks   = this.targetLinks
     copy.globalSymbols = this.globalSymbols
     copy.nextIdCounter = this.nextIdCounter
     copy
   }
+
+  def initLinks(links: Set[Graph.Link]): Unit = {
+    sourceLinks = new HashMap()
+    targetLinks = new HashMap()
+    links.foreach(addSourceTargetLink)
+    this.links = links
+  }
+
+  def getLinks(): Set[Graph.Link] = links
 
   /** Registers a requested global symbol in the aliasing scope.
     *
@@ -46,6 +60,8 @@ sealed class Graph extends Serializable {
   def copy: Graph = {
     val graph = new Graph
     graph.links         = links
+    graph.sourceLinks   = sourceLinks
+    graph.targetLinks   = targetLinks
     graph.rootScope     = rootScope.deepCopy(mutable.Map())
     graph.nextIdCounter = nextIdCounter
 
@@ -85,8 +101,18 @@ sealed class Graph extends Serializable {
   ): Option[Graph.Link] = {
     scopeFor(occurrence.id).flatMap(_.resolveUsage(occurrence).map { link =>
       links += link
+      addSourceTargetLink(link)
       link
     })
+  }
+
+  private def addSourceTargetLink(link: Graph.Link): Unit = {
+    sourceLinks = sourceLinks.updatedWith(link.source)(v =>
+      v.map(s => s + link).orElse(Some(Set(link)))
+    )
+    targetLinks = targetLinks.updatedWith(link.target)(v =>
+      v.map(s => s + link).orElse(Some(Set(link)))
+    )
   }
 
   /** Resolves any links for the given usage of a symbol, assuming the symbol
@@ -129,7 +155,10 @@ sealed class Graph extends Serializable {
     * @return a list of links in which `id` occurs
     */
   def linksFor(id: Graph.Id): Set[Graph.Link] = {
-    links.filter(l => l.source == id || l.target == id)
+    sourceLinks.getOrElse(id, Set.empty[Graph.Link]) ++ targetLinks.getOrElse(
+      id,
+      Set()
+    )
   }
 
   /** Finds all links in the graph where `symbol` appears in the role
@@ -243,11 +272,11 @@ sealed class Graph extends Serializable {
     def getShadowedIds(
       scope: Graph.Scope
     ): Set[Graph.Occurrence] = {
-      scope.occurrences.collect {
+      scope.occurrences.values.collect {
         case d: Occurrence.Def if d.symbol == definition.symbol    => d
         case g: Occurrence.Global if g.symbol == definition.symbol => g
       } ++ scope.parent.map(getShadowedIds).getOrElse(Set())
-    }
+    }.toSet
 
     definition match {
       case d: Occurrence.Def =>
@@ -314,13 +343,13 @@ object Graph {
   /** A representation of a local scope in Enso.
     *
     * @param childScopes all scopes that are _direct_ children of `this`
-    * @param occurrences all symbol occurrences in `this` scope
+    * @param occurrences all symbol occurrences in `this` scope indexed by the identifier of the name
     * @param allDefinitions all definitions in this scope, including synthetic ones.
     *                       Note that there may not be a link for all these definitions.
     */
   sealed class Scope(
     var childScopes: List[Scope]             = List(),
-    var occurrences: Set[Occurrence]         = Set(),
+    var occurrences: Map[Id, Occurrence]     = HashMap(),
     var allDefinitions: List[Occurrence.Def] = List()
   ) extends Serializable {
 
@@ -408,7 +437,13 @@ object Graph {
       * @param occurrence the occurrence to add
       */
     def add(occurrence: Occurrence): Unit = {
-      occurrences += occurrence
+      if (occurrences.contains(occurrence.id)) {
+        throw new CompilerError(
+          s"Multiple occurrences found for ID ${occurrence.id}."
+        )
+      } else {
+        occurrences += ((occurrence.id, occurrence))
+      }
     }
 
     /** Adds a definition, including a definition with synthetic name, without
@@ -427,7 +462,7 @@ object Graph {
       * @return the occurrence for `id`, if it exists
       */
     def getOccurrence(id: Graph.Id): Option[Occurrence] = {
-      occurrences.find(o => o.id == id)
+      occurrences.get(id)
     }
 
     /** Finds any occurrences for the provided symbol in the current scope, if
@@ -440,9 +475,9 @@ object Graph {
     def getOccurrences[T <: Occurrence: ClassTag](
       symbol: Graph.Symbol
     ): Set[Occurrence] = {
-      occurrences.collect {
+      occurrences.values.collect {
         case o: T if o.symbol == symbol => o
-      }
+      }.toSet
     }
 
     /** Unsafely gets the occurrence for the provided ID in the current scope.
@@ -467,7 +502,9 @@ object Graph {
     def hasSymbolOccurrenceAs[T <: Occurrence: ClassTag](
       symbol: Graph.Symbol
     ): Boolean = {
-      occurrences.collect { case x: T if x.symbol == symbol => x }.nonEmpty
+      occurrences.values.collectFirst {
+        case x: T if x.symbol == symbol => x
+      }.nonEmpty
     }
 
     /** Resolves usages of symbols into links where possible, creating an edge
@@ -482,7 +519,7 @@ object Graph {
       occurrence: Graph.Occurrence.Use,
       parentCounter: Int = 0
     ): Option[Graph.Link] = {
-      val definition = occurrences.find {
+      val definition = occurrences.values.find {
         case Graph.Occurrence.Def(_, name, _, _, _) =>
           name == occurrence.symbol
         case _ => false
@@ -501,7 +538,7 @@ object Graph {
       * @return a string representation of `this`
       */
     override def toString: String =
-      s"Scope(occurrences = $occurrences, childScopes = $childScopes)"
+      s"Scope(occurrences = ${occurrences.values}, childScopes = $childScopes)"
 
     /** Counts the number of scopes in this scope.
       *
@@ -526,9 +563,7 @@ object Graph {
       * @return the scope where `id` occurs
       */
     def scopeFor(id: Graph.Id): Option[Scope] = {
-      val possibleCandidates = occurrences.filter(o => o.id == id)
-
-      if (possibleCandidates.isEmpty) {
+      if (!occurrences.contains(id)) {
         if (childScopes.isEmpty) {
           None
         } else {
@@ -555,10 +590,8 @@ object Graph {
             Some(childCandidate)
           }
         }
-      } else if (possibleCandidates.size == 1) {
-        Some(this)
       } else {
-        throw new CompilerError(s"Multiple occurrences found for ID $id.")
+        Some(this)
       }
     }
 
@@ -600,7 +633,7 @@ object Graph {
       * @return the set of symbols
       */
     def symbols: Set[Graph.Symbol] = {
-      val symbolsInThis        = occurrences.map(_.symbol)
+      val symbolsInThis        = occurrences.values.map(_.symbol).toSet
       val symbolsInChildScopes = childScopes.flatMap(_.symbols)
 
       symbolsInThis ++ symbolsInChildScopes
@@ -645,6 +678,17 @@ object Graph {
         .foldLeft(false)(_ || _)
 
       isDirectChildOf || isChildOfChildren
+    }
+
+    private def removeScopeFromParent(scope: Scope): Unit = {
+      childScopes = childScopes.filter(_ != scope)
+    }
+
+    /** Disassociates this Scope from its parent.
+      */
+    def removeScopeFromParent(): Unit = {
+      assert(this.parent.nonEmpty)
+      this.parent.foreach(_.removeScopeFromParent(this))
     }
   }
 

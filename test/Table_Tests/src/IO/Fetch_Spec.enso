@@ -21,12 +21,12 @@ main filter=Nothing =
 
 add_specs suite_builder =
     suite_builder.group "fetching files using HTTP" pending=pending_has_url group_builder->
-        group_builder.specify "fetching json" <|
+        group_builder.specify "fetching json" <| Test.with_retries <|
             r = Data.fetch base_url_with_slash+"testfiles/table.json"
             expected_table  = Table.from_rows ["A", "B"] [[1, "x"], [3, "y"]]
             r.to Table . should_equal expected_table
 
-        group_builder.specify "fetching csv" <|
+        group_builder.specify "fetching csv" <| Test.with_retries <|
             url = base_url_with_slash+"testfiles/table.csv"
             r = Data.fetch url
             expected_table  = Table.from_rows ["A", "B"] [[1, "x"], [3, "y"]]
@@ -38,7 +38,7 @@ add_specs suite_builder =
             r2.should_be_a Table
             r2.should_equal expected_table
 
-        group_builder.specify "fetching xls" <|
+        group_builder.specify "fetching xls" <| Test.with_retries <|
             url = base_url_with_slash+"testfiles/table.xls"
             r = Data.fetch url
             expected_table  = Table.from_rows ["A", "B"] [[1, "x"], [3, "y"]]
@@ -47,11 +47,11 @@ add_specs suite_builder =
             r.sheet_names . should_equal ["MyTestSheet"]
             r.read "MyTestSheet" . should_equal expected_table
 
-            r2 = Data.fetch url try_auto_parse_response=False . decode (Excel_Format.Sheet "MyTestSheet")
+            r2 = Data.fetch url format=Raw_Response . decode (Excel_Format.Sheet "MyTestSheet")
             r2.should_be_a Table
             r2.should_equal expected_table
 
-        group_builder.specify "fetching xlsx" <|
+        group_builder.specify "fetching xlsx" <| Test.with_retries <|
             url = base_url_with_slash+"testfiles/table.xlsx"
             r = Data.fetch url
             expected_table  = Table.from_rows ["A", "B"] [[1, "x"], [3, "y"]]
@@ -60,15 +60,15 @@ add_specs suite_builder =
             r.sheet_names . should_equal ["MyTestSheet"]
             r.read "MyTestSheet" . should_equal expected_table
 
-            r2 = Data.fetch url try_auto_parse_response=False . decode (Excel_Format.Sheet "MyTestSheet")
+            r2 = Data.fetch url format=Raw_Response . decode (Excel_Format.Sheet "MyTestSheet")
             r2.should_be_a Table
             r2.should_equal expected_table
 
-            r3 = url.to_uri.fetch try_auto_parse_response=False . decode (Excel_Format.Sheet "MyTestSheet")
+            r3 = url.to_uri.fetch format=Raw_Response . decode (Excel_Format.Sheet "MyTestSheet")
             r3.should_be_a Table
             r3.should_equal expected_table
 
-        group_builder.specify "format detection based on Content-Type and Content-Disposition" <|
+        group_builder.specify "format detection based on Content-Type and Content-Disposition" <| Test.with_retries <|
             content = 'A,B\n1,x\n3,y'
             uri = URI.from (base_url_with_slash+"test_headers")
                 . add_query_argument "base64_response_data" (Base_64.encode_text content)

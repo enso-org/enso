@@ -302,19 +302,16 @@ impl<'s> Resolver<'s> {
         if self.macros.len() > self.macro_scope_start() {
             let current_macro = self.macros.last_mut().unwrap();
             if let Some(subsegments) = current_macro.possible_next_segments.get(repr) {
-                trace!("Entering next segment of the current macro.");
                 let mut new_match_tree =
                     Self::move_to_next_segment(&mut current_macro.matched_macro_def, subsegments);
                 mem::swap(&mut new_match_tree, &mut current_macro.possible_next_segments);
                 return Step::StartSegment(token);
             } else if let Some(popped) = self.pop_macro_stack_if_reserved(repr) {
-                trace!("Next token reserved by parent macro. Resolving current macro.");
                 self.resolve(popped);
                 return Step::MacroStackPop(token.into());
             }
         }
         if let Some(segments) = root_macro_map.get(repr, context) {
-            trace!("Starting a new nested macro resolution.");
             let mut matched_macro_def = default();
             let segments_start = self.segments.len();
             let new_macro = PartiallyMatchedMacro {
@@ -328,7 +325,6 @@ impl<'s> Resolver<'s> {
             self.macros.push(new_macro);
             Step::StartSegment(token)
         } else {
-            trace!("Consuming token as current segment body.");
             Step::NormalToken(token.into())
         }
     }
@@ -349,7 +345,7 @@ impl<'s> Resolver<'s> {
     fn resolve_match(&mut self, macro_def: &macros::Definition, segments_start: usize) {
         let mut def_segments = macro_def.segments.to_vec().into_iter().rev();
         let segments = self.segments.drain(segments_start..).rev();
-        let segments: NonEmptyVec<_> = segments.collect_vec().try_into().unwrap();
+        let segments: NonEmptyVec<_> = segments.collect::<Vec<_>>().try_into().unwrap();
         let mut pattern_matched_segments = segments.mapped(|segment| {
             let count_must_match =
                 "Internal error. Macro definition and match segments count mismatch.";
@@ -357,7 +353,7 @@ impl<'s> Resolver<'s> {
             let items = self.items.drain(segment.items_start..).collect();
             (segment.header, def.pattern.resolve(items))
         });
-        pattern_matched_segments[..].reverse();
+        pattern_matched_segments.reverse();
         let unused_items_of_last_segment = match &mut pattern_matched_segments.last_mut().1 {
             Err(rest) => mem::take(rest),
             Ok(segment) => mem::take(&mut segment.rest),

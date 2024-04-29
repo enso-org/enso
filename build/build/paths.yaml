@@ -5,15 +5,17 @@
 <repo_root>/:
   .github/:
     workflows/:
-      engine-benchmark.yml:
-      std-libs-benchmark.yml:
       changelog.yml:
+      engine-benchmark.yml:
+      gui-tests.yml:
       gui.yml:
+      engine-nightly.yml:
       nightly.yml:
       promote.yml:
       release.yml:
       scala-new.yml:
       shader-tools.yml:
+      std-libs-benchmark.yml:
   app/:
     gui/:
     gui2/: # The new, Vue-based GUI.

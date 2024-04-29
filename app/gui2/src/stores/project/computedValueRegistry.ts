@@ -1,4 +1,4 @@
-import type { ExecutionContext } from '@/stores/project'
+import type { ExecutionContext } from '@/stores/project/executionContext'
 import { ReactiveDb, ReactiveIndex } from '@/util/database/reactiveDb'
 import type {
   ExpressionId,
@@ -53,7 +53,7 @@ export class ComputedValueRegistry {
     return this.db.get(exprId)
   }
 
-  destroy() {
+  dispose() {
     this.executionContext?.off('expressionUpdates', this._updateHandler)
   }
 }

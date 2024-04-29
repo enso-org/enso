@@ -37,6 +37,8 @@ import * as detect from 'enso-common/src/detect'
 
 import type * as loggerProvider from '#/providers/LoggerProvider'
 
+import * as dateTime from '#/utilities/dateTime'
+
 import * as service from '#/authentication/service'
 
 // =================
@@ -48,6 +50,8 @@ import * as service from '#/authentication/service'
  * This provider alone requires a string because it is not a standard provider, and thus has no
  * constant defined in the AWS Amplify library. */
 const GITHUB_PROVIDER = 'Github'
+/** One second, in milliseconds. */
+const SEC_MS = 1_000
 
 // ================
 // === UserInfo ===
@@ -269,6 +273,27 @@ export class Cognito {
     return result.mapErr(intoAmplifyErrorOrThrow).mapErr(intoSignInWithPasswordErrorOrThrow)
   }
 
+  /**
+   * Refresh the current user session.
+   */
+  async refreshUserSession() {
+    const result = await results.Result.wrapAsync(async () => {
+      const currentUser = await currentAuthenticatedUser()
+      const refreshToken = (await amplify.Auth.currentSession()).getRefreshToken()
+
+      await new Promise((resolve, reject) => {
+        currentUser.unwrap().refreshSession(refreshToken, (error, session) => {
+          if (error instanceof Error) {
+            reject(error)
+          } else {
+            resolve(session)
+          }
+        })
+      })
+    })
+    return result.mapErr(intoCurrentSessionErrorType)
+  }
+
   /** Sign out the current user. */
   async signOut() {
     // FIXME [NP]: https://github.com/enso-org/cloud-v2/issues/341
@@ -376,7 +401,7 @@ export interface UserSession {
   /** URL to refresh the access token. */
   readonly refreshUrl: string
   /** Time when the access token will expire, date and time in ISO 8601 format (UTC timezone). */
-  readonly expireAt: string
+  readonly expireAt: dateTime.Rfc3339DateTime
   /** Cognito app integration client id.. */
   readonly clientId: string
 }
@@ -393,11 +418,7 @@ function parseUserSession(session: cognito.CognitoUserSession, clientId: string)
   } else {
     const expirationTimestamp = session.getAccessToken().getExpiration()
 
-    const expireAt = (() => {
-      const date = new Date(0)
-      date.setUTCSeconds(expirationTimestamp)
-      return date.toISOString()
-    })()
+    const expireAt = dateTime.toRfc3339(new Date(expirationTimestamp * SEC_MS))
 
     return {
       email,

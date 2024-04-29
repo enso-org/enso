@@ -2,18 +2,18 @@ from Standard.Base import all
 import Standard.Base.Metadata.Display
 import Standard.Base.Metadata.Widget
 from Standard.Base.Metadata.Choice import Option
-from Standard.Base.Metadata.Widget import Numeric_Input, Single_Choice, Text_Input, Vector_Editor
+from Standard.Base.Metadata.Widget import Multiple_Choice, Numeric_Input, Single_Choice, Text_Input, Vector_Editor
 from Standard.Base.System.File_Format import format_types
 from Standard.Base.Widget_Helpers import make_format_chooser
 
-import project.Data.Aggregate_Column.Aggregate_Column
-import project.Data.Join_Condition.Join_Condition
-import project.Data.Join_Kind.Join_Kind
-import project.Data.Sort_Column.Sort_Column
-import project.Data.Table.Table
-import project.Data.Type.Value_Type.Auto
-import project.Data.Type.Value_Type.Value_Type
+import project.Aggregate_Column.Aggregate_Column
 import project.Internal.Parse_Values_Helper
+import project.Join_Condition.Join_Condition
+import project.Join_Kind.Join_Kind
+import project.Sort_Column.Sort_Column
+import project.Table.Table
+import project.Value_Type.Auto
+import project.Value_Type.Value_Type
 from project.Extensions.Table_Conversions import all
 
 ## PRIVATE
@@ -27,11 +27,11 @@ make_aggregate_column_selector table display=Display.Always =
     count = Option "Count" fqn+".Count"
 
     ## Currently can't support nested vector editors so using single picker
-    ## col_list_selector = make_column_name_vector_selector table display=Display.Always
-    count_distinct = Option "Count Distinct" fqn+".Count_Distinct" [["columns", col_names_selector]]
+    col_list_selector = make_column_name_multi_selector table display=Display.Always
+    count_distinct = Option "Count Distinct" fqn+".Count_Distinct" [["columns", col_list_selector]]
 
     ## Currently can't support nested vector editors so using single order by picker
-    order_by_selector = make_order_by_selector table . item_editor
+    order_by_selector = make_order_by_selector table Display.When_Modified name_only=True
     first = Option "First" fqn+".First" [column_widget, ["order_by" , order_by_selector]]
     last = Option "Last" fqn+".Last" [column_widget, ["order_by" , order_by_selector]]
 
@@ -82,6 +82,14 @@ make_column_name_vector_selector : Table -> Display -> Widget
 make_column_name_vector_selector table display=Display.Always =
     item_editor = make_column_name_selector table display=Display.Always
     Vector_Editor item_editor=item_editor item_default=item_editor.values.first.value display=display
+
+## PRIVATE
+   Make a multiple column-name selector that allows each value to be selected at most once.
+make_column_name_multi_selector : Table -> Display -> Boolean -> Widget
+make_column_name_multi_selector table display:Display=Display.Always add_regex:Boolean=False =
+    names = table.column_names.map n-> Option n n.pretty
+    regex = if add_regex then [Option "<Regular Expression>" "(regex '')"] else []
+    Multiple_Choice values=regex+names display=display
 
 ## PRIVATE
    Make a column reference by name selector.
@@ -150,13 +158,16 @@ make_join_kind_selector display=Display.Always =
 ## PRIVATE
    Make a join condition selector.
 make_join_condition_selector : Table -> Display -> Widget
-make_join_condition_selector table display=Display.Always =
-    col_names_selector = make_column_name_selector table display=Display.Always
+make_join_condition_selector table display=Display.Always cache=Nothing =
+    right = cache.if_not_nothing <| cache "right"
+    self_selector = make_column_name_selector table display=Display.Always
+    right_selector = if right.is_nothing then Text_Input else
+        make_column_name_selector right display=Display.Always
 
     fqn = Meta.get_qualified_type_name Join_Condition
-    equals = Option "Equals" fqn+".Equals" [["left", col_names_selector], ["right", Text_Input]]
-    equals_ci = Option "Equals (Ignore Case)" fqn+".Equals_Ignore_Case" [["left", col_names_selector], ["right", Text_Input]]
-    between = Option "Between" fqn+".Between" [["left", col_names_selector], ["right_lower", Text_Input], ["right_upper", Text_Input]]
+    equals = Option "Equals" fqn+".Equals" [["left", self_selector], ["right", right_selector]]
+    equals_ci = Option "Equals (Ignore Case)" fqn+".Equals_Ignore_Case" [["left", self_selector], ["right", right_selector]]
+    between = Option "Between" fqn+".Between" [["left", self_selector], ["right_lower", right_selector], ["right_upper", right_selector]]
     names=[equals, equals_ci, between]
 
     item_editor = Single_Choice display=display values=names
@@ -164,13 +175,15 @@ make_join_condition_selector table display=Display.Always =
 
 ## PRIVATE
    Make a column name selector.
-make_order_by_selector : Table -> Display -> Widget
-make_order_by_selector table display=Display.Always =
+make_order_by_selector : Table -> Display -> Boolean -> Widget
+make_order_by_selector table display=Display.Always name_only:Boolean=False =
     fqn = Meta.get_qualified_type_name Sort_Column
-    name = Option "Name" fqn+".Name" [["name", make_column_name_selector table display=Display.Always]]
-    index = Option "Index" fqn+".Index" [["index", Numeric_Input display=Display.Always minimum=0 maximum=table.column_count-1]]
+    values = if name_only then table.column_names.map n-> Option n "(Sort_Column.Name "+n.pretty+")" else
+        name = Option "Name" fqn+".Name" [["name", make_column_name_selector table display=Display.Always]]
+        index = Option "Index" fqn+".Index" [["index", Numeric_Input display=Display.Always minimum=0 maximum=table.column_count-1]]
+        [name, index]
 
-    item_editor = Single_Choice display=Display.Always values=[name, index]
+    item_editor = Single_Choice display=Display.Always values=values
     Vector_Editor item_editor=item_editor item_default="(Sort_Column.Name "+table.column_names.first.pretty+")" display=display
 
 ## PRIVATE
@@ -206,8 +219,7 @@ write_table_selector =
     can_write type = if type == JSON_Format then True else
         Meta.meta type . methods . contains "write_table"
     all_types = [Auto_Detect] + (format_types.filter can_write)
-    make_name type_obj = type_obj.to_text.replace "_Format" "" . replace "_" " "
-    Single_Choice display=Display.Always values=(all_types.map n->(Option (make_name n) (File_Format.constructor_code n)))
+    Single_Choice display=Display.Always values=(all_types.flat_map .get_dropdown_options)
 
 ## PRIVATE
    Make format selector based off value type

@@ -4,6 +4,7 @@
 /// <reference types="vite/client" />
 
 // This file is being imported for its types.
+// prettier-ignore
 // eslint-disable-next-line no-restricted-syntax, @typescript-eslint/consistent-type-imports
 import * as buildJson from './../../build.json' assert { type: 'json' }
 
@@ -29,7 +30,11 @@ interface Enso {
  * Electron context. It contains non-authentication-related functionality. */
 interface BackendApi {
     /** Return the ID of the new project. */
-    readonly importProjectFromPath: (openedPath: string) => Promise<string>
+    readonly importProjectFromPath: (
+        openedPath: string,
+        directory: string | null,
+        name: string
+    ) => Promise<string>
 }
 
 // ==========================
@@ -55,6 +60,19 @@ interface AuthenticationApi {
     readonly saveAccessToken: (accessToken: SaveAccessTokenPayload | null) => void
 }
 
+// ======================
+// === Navigation API ===
+// ======================
+
+/** `window.navigationApi` is a context bridge to the main process, when we're running in an
+ * Electron context. It contains navigation-related functionality. */
+interface NavigationApi {
+    /** Go back in the navigation history. */
+    readonly goBack: () => void
+    /** Go forward in the navigation history. */
+    readonly goForward: () => void
+}
+
 // =====================================
 // === Global namespace augmentation ===
 // =====================================
@@ -67,6 +85,7 @@ declare global {
         readonly enso?: AppRunner & Enso
         readonly backendApi?: BackendApi
         readonly authenticationApi: AuthenticationApi
+        readonly navigationApi: NavigationApi
     }
 
     namespace NodeJS {
@@ -121,14 +140,24 @@ declare global {
             // @ts-expect-error The index signature is intentional to disallow unknown env vars.
             readonly ENSO_CLOUD_COGNITO_REGION?: string
             // @ts-expect-error The index signature is intentional to disallow unknown env vars.
+            readonly ENSO_CLOUD_GOOGLE_ANALYTICS_TAG?: string
+            // @ts-expect-error The index signature is intentional to disallow unknown env vars.
             readonly ENSO_SUPPORTS_VIBRANCY?: string
+
+            // === Electron watch script variables ===
+
+            // @ts-expect-error The index signature is intentional to disallow unknown env vars.
+            readonly ELECTRON_DEV_MODE?: string
+            // @ts-expect-error The index signature is intentional to disallow unknown env vars.
+            readonly GUI_CONFIG_PATH?: string
+            // @ts-expect-error The index signature is intentional to disallow unknown env vars.
+            readonly NODE_MODULES_PATH?: string
             /* eslint-enable @typescript-eslint/naming-convention */
         }
     }
 
     // These are used in other files (because they're globals)
     /* eslint-disable @typescript-eslint/naming-convention */
-    const BUNDLED_ENGINE_VERSION: string
     const BUILD_INFO: buildJson.BuildInfo
     const PROJECT_MANAGER_IN_BUNDLE_PATH: string
     const IS_VITE: boolean

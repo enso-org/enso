@@ -4,7 +4,8 @@
  * `lib/rust/parser/src/lexer.rs`, search for `fn text_escape`.
  */
 
-import { assertUnreachable } from '../util/assert'
+import { assertDefined } from '../util/assert'
+import { TextLiteral } from './tree'
 
 const escapeSequences = [
   ['0', '\0'],
@@ -17,7 +18,6 @@ const escapeSequences = [
   ['v', '\x0B'],
   ['e', '\x1B'],
   ['\\', '\\'],
-  ['"', '"'],
   ["'", "'"],
   ['`', '`'],
 ] as const
@@ -28,52 +28,41 @@ function escapeAsCharCodes(str: string): string {
   return out
 }
 
+const fixedEscapes = escapeSequences.map(([_, raw]) => escapeAsCharCodes(raw))
 const escapeRegex = new RegExp(
-  `${escapeSequences.map(([_, raw]) => escapeAsCharCodes(raw)).join('|')}`,
-  'gu',
-)
-
-const unescapeRegex = new RegExp(
-  '\\\\(?:' +
-    `${escapeSequences.map(([escape]) => escapeAsCharCodes(escape)).join('|')}` +
-    '|x[0-9a-fA-F]{0,2}' +
-    '|u\\{[0-9a-fA-F]{0,4}\\}?' + // Lexer allows trailing } to be missing.
-    '|u[0-9a-fA-F]{0,4}' +
-    '|U[0-9a-fA-F]{0,8}' +
-    ')',
+  [
+    ...fixedEscapes,
+    // Unpaired-surrogate codepoints are not technically valid in Unicode, but they are allowed in Javascript strings.
+    // Enso source files must be strictly UTF-8 conformant.
+    '\\p{Surrogate}',
+  ].join('|'),
   'gu',
 )
 
 const escapeMapping = Object.fromEntries(
   escapeSequences.map(([escape, raw]) => [raw, `\\${escape}`]),
 )
-const unescapeMapping = Object.fromEntries(
-  escapeSequences.map(([escape, raw]) => [`\\${escape}`, raw]),
-)
+
+function escapeChar(char: string) {
+  const fixedEscape = escapeMapping[char]
+  if (fixedEscape != null) return fixedEscape
+  return escapeAsCharCodes(char)
+}
 
 /**
  * Escape a string so it can be safely spliced into an interpolated (`''`) Enso string.
  * Note: Escape sequences are NOT interpreted in raw (`""`) string literals.
  * */
 export function escapeTextLiteral(rawString: string) {
-  return rawString.replace(escapeRegex, (match) => escapeMapping[match] ?? assertUnreachable())
+  return rawString.replace(escapeRegex, escapeChar)
 }
 
 /**
- * Interpret all escaped characters from an interpolated (`''`) Enso string.
+ * Interpret all escaped characters from an interpolated (`''`) Enso string, provided without open/close delimiters.
  * Note: Escape sequences are NOT interpreted in raw (`""`) string literals.
  */
 export function unescapeTextLiteral(escapedString: string) {
-  return escapedString.replace(unescapeRegex, (match) => {
-    let cut = 2
-    switch (match[1]) {
-      case 'u':
-        if (match[2] === '{') cut = 3 // fallthrough
-      case 'U':
-      case 'x':
-        return String.fromCharCode(parseInt(match.substring(cut), 16))
-      default:
-        return unescapeMapping[match] ?? assertUnreachable()
-    }
-  })
+  const ast = TextLiteral.tryParse("'" + escapedString + "'")
+  assertDefined(ast)
+  return ast.rawTextContent
 }

@@ -1,11 +1,14 @@
 /** @file The container that launches the IDE. */
 import * as React from 'react'
 
+import * as load from 'enso-common/src/load'
+
+import * as appUtils from '#/appUtils'
+
+import * as gtagHooks from '#/hooks/gtagHooks'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
 import * as backendModule from '#/services/Backend'
-
-import * as load from '#/utilities/load'
 
 // =================
 // === Constants ===
@@ -37,6 +40,9 @@ export interface EditorProps {
 export default function Editor(props: EditorProps) {
   const { hidden, supportsLocalBackend, projectStartupInfo, appRunner } = props
   const toastAndLog = toastAndLogHooks.useToastAndLog()
+  const gtagEvent = gtagHooks.useGtagEvent()
+  const gtagEventRef = React.useRef(gtagEvent)
+  gtagEventRef.current = gtagEvent
   const [initialized, setInitialized] = React.useState(supportsLocalBackend)
 
   React.useEffect(() => {
@@ -45,6 +51,14 @@ export default function Editor(props: EditorProps) {
       ideElement.style.display = hidden ? 'none' : ''
     }
   }, [hidden])
+
+  React.useEffect(() => {
+    if (hidden) {
+      return
+    } else {
+      return gtagHooks.gtagOpenCloseCallback(gtagEventRef, 'open_workflow', 'close_workflow')
+    }
+  }, [projectStartupInfo, hidden])
 
   let hasEffectRun = false
 
@@ -64,15 +78,15 @@ export default function Editor(props: EditorProps) {
         const jsonAddress = project.jsonAddress
         const binaryAddress = project.binaryAddress
         if (jsonAddress == null) {
-          toastAndLog("Could not get the address of the project's JSON endpoint")
+          toastAndLog('noJSONEndpointError')
         } else if (binaryAddress == null) {
-          toastAndLog("Could not get the address of the project's binary endpoint")
+          toastAndLog('noBinaryEndpointError')
         } else {
           let assetsRoot: string
           switch (backendType) {
             case backendModule.BackendType.remote: {
               if (project.ideVersion == null) {
-                toastAndLog('Could not get the IDE version of the project')
+                toastAndLog('noIdeVersionError')
                 // This is too deeply nested to easily return from
                 // eslint-disable-next-line no-restricted-syntax
                 return
@@ -104,12 +118,7 @@ export default function Editor(props: EditorProps) {
                     wasmUrl: `${assetsRoot}pkg-opt.wasm`,
                     jsUrl: `${assetsRoot}pkg${JS_EXTENSION[backendType]}`,
                   },
-                  engine: {
-                    ...engineConfig,
-                    ...(project.engineVersion != null
-                      ? { preferredVersion: project.engineVersion.value }
-                      : {}),
-                  },
+                  engine: engineConfig,
                   startup: {
                     project: project.packageName,
                     displayedProjectName: project.name,
@@ -119,10 +128,13 @@ export default function Editor(props: EditorProps) {
                   },
                 },
                 accessToken,
-                { projectId: project.projectId }
+                {
+                  projectId: project.projectId,
+                  ignoreParamsRegex: new RegExp(`^${appUtils.SEARCH_PARAMS_PREFIX}(.+)$`),
+                }
               )
             } catch (error) {
-              toastAndLog('Could not open editor', error)
+              toastAndLog('openEditorError', error)
             }
             if (backendType === backendModule.BackendType.remote) {
               // Restore original URL so that initialization works correctly on refresh.
@@ -151,11 +163,7 @@ export default function Editor(props: EditorProps) {
     } else {
       return
     }
-  }, [
-    projectStartupInfo,
-    /* should never change */ appRunner,
-    /* should never change */ toastAndLog,
-  ])
+  }, [projectStartupInfo, toastAndLog, /* should never change */ appRunner])
 
   return <></>
 }

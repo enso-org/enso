@@ -2,6 +2,7 @@ from Standard.Base import all
 import Standard.Base.Errors.File_Error.File_Error
 import Standard.Base.Runtime.Context
 import Standard.Base.System.File.Generic.Writable_File.Writable_File
+from Standard.Base.Metadata import Display, Widget
 
 import project.Histogram.Histogram
 import project.Matrix.Matrix
@@ -81,7 +82,7 @@ type Image
        Write an image to a file.
 
        Arguments:
-       - location: The location to write the image to.
+       - path: The location to write the image to.
        - flags: A vector of flags that control how the image is written.
 
        > Example
@@ -95,19 +96,21 @@ type Image
        > Example
          Write the image with applying several flags.
              image.write path image [Write_Flag.JPEG_Quality 40, Write_Flag.JPEG_Progressive]
+    @path (Widget.Text_Input display=Display.Always)
     write : Writable_File  -> (Write_Flag | Vector) -> Nothing ! File_Error
-    write self location:Writable_File flags=[] =
+    write self path:Writable_File flags=[] =
         Context.Output.if_enabled disabled_message="Writing the image to a file is forbidden as the Output context is disabled." panic=False <|
             write_flags = case flags of
                 _ : Vector -> flags
                 _ -> [flags]
             int_flags = MatOfInt.new (write_flags.flat_map x-> [x.to_integer, x.value])
             write_to_local_file file:File =
+                IO.println "Writing the image to a file: "+file.path
                 Panic.catch JException (Java_Codecs.write file.path self.opencv_mat int_flags) _->
-                     Error.throw (File_Error.IO_Error location.file 'Failed to write to the file')
-            if location.is_local then write_to_local_file location.file else
-                location.write_requiring_local_file Existing_File_Behavior.Overwrite write_to_local_file
-
+                     Error.throw (File_Error.IO_Error path.file 'Failed to write to the file')
+            r = if path.is_local then write_to_local_file path.file else
+                path.write_requiring_local_file Existing_File_Behavior.Overwrite write_to_local_file
+            r.if_not_error path.file_for_return
 
     ## PRIVATE
 

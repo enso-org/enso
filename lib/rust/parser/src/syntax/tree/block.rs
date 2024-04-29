@@ -2,9 +2,6 @@
 
 use crate::syntax::tree::*;
 
-use crate::syntax::item::Item;
-use crate::syntax::token;
-
 
 
 // =============
@@ -12,7 +9,8 @@ use crate::syntax::token;
 // =============
 
 /// A line of code.
-#[derive(Debug, Clone, PartialEq, Eq, Visitor, Reflect, Serialize, Deserialize)]
+#[cfg_attr(feature = "debug", derive(Visitor))]
+#[derive(Debug, Clone, PartialEq, Eq, Reflect, Serialize, Deserialize)]
 pub struct Line<'s> {
     /// Token ending the previous line, if any.
     pub newline:    token::Newline<'s>,
@@ -199,7 +197,8 @@ impl<'s> From<Prefix<'s>> for Tree<'s> {
 // ======================
 
 /// The content of a line in an operator block.
-#[derive(Debug, Clone, PartialEq, Eq, Visitor, Reflect, Serialize, Deserialize)]
+#[cfg_attr(feature = "debug", derive(Visitor))]
+#[derive(Debug, Clone, PartialEq, Eq, Reflect, Serialize, Deserialize)]
 pub struct OperatorBlockExpression<'s> {
     /// The operator at the beginning of the line.
     pub operator:   OperatorOrError<'s>,
@@ -212,17 +211,19 @@ fn to_operator_block_expression<'s>(
     items: Vec<Item<'s>>,
     precedence: &mut operator::Precedence<'s>,
 ) -> Result<OperatorBlockExpression<'s>, Tree<'s>> {
-    if let Some(b) = items.get(1) && b.left_visible_offset().width_in_spaces != 0
+    if let Some(b) = items.get(1)
+        && b.left_visible_offset().width_in_spaces != 0
         && let Some(Item::Token(a)) = items.first()
-        && let token::Variant::Operator(op) = &a.variant {
-            let operator = Ok(Token(a.left_offset.clone(), a.code.clone(), *op));
-            let mut items = items.into_iter();
-            items.next();
-            let expression = precedence.resolve(items).unwrap();
-            Ok(OperatorBlockExpression { operator, expression })
-        } else {
-            Err(precedence.resolve(items).unwrap())
-        }
+        && let token::Variant::Operator(op) = &a.variant
+    {
+        let operator = Ok(Token(a.left_offset.clone(), a.code.clone(), *op));
+        let mut items = items.into_iter();
+        items.next();
+        let expression = precedence.resolve(items).unwrap();
+        Ok(OperatorBlockExpression { operator, expression })
+    } else {
+        Err(precedence.resolve(items).unwrap())
+    }
 }
 
 impl<'s> span::Builder<'s> for OperatorBlockExpression<'s> {
@@ -235,7 +236,8 @@ impl<'s> span::Builder<'s> for OperatorBlockExpression<'s> {
 // === Operator block lines ====
 
 /// A line in an operator block.
-#[derive(Debug, Clone, PartialEq, Eq, Visitor, Reflect, Serialize, Deserialize)]
+#[cfg_attr(feature = "debug", derive(Visitor))]
+#[derive(Debug, Clone, PartialEq, Eq, Reflect, Serialize, Deserialize)]
 pub struct OperatorLine<'s> {
     /// Token ending the previous line, if any.
     pub newline:    token::Newline<'s>,
@@ -317,14 +319,14 @@ impl<'s> Builder<'s> {
             Ok(expression) => {
                 let expression = Some(expression);
                 let mut operator_lines = Vec::with_capacity(empty_lines.size_hint().0 + new_lines);
-                operator_lines.extend(empty_lines.map(block::OperatorLine::from));
+                operator_lines.extend(empty_lines.map(OperatorLine::from));
                 operator_lines.push(OperatorLine { newline, expression });
                 Self::Operator { operator_lines, body_lines: default() }
             }
             Err(expression) => {
                 let expression = Some(expression);
                 let mut body_lines = Vec::with_capacity(empty_lines.size_hint().0 + new_lines);
-                body_lines.extend(empty_lines.map(block::Line::from));
+                body_lines.extend(empty_lines.map(Line::from));
                 body_lines.push(Line { newline, expression });
                 Self::NonOperator { body_lines }
             }

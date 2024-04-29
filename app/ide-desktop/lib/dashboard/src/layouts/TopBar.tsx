@@ -1,8 +1,6 @@
 /** @file The top-bar of dashboard. */
 import * as React from 'react'
 
-import * as reactDom from 'react-dom'
-
 import type * as assetSearchBar from '#/layouts/AssetSearchBar'
 import AssetSearchBar from '#/layouts/AssetSearchBar'
 import BackendSwitcher from '#/layouts/BackendSwitcher'
@@ -50,12 +48,13 @@ export default function TopBar(props: TopBarProps) {
   const { isEditorDisabled, setBackendType, isHelpChatOpen, setIsHelpChatOpen } = props
   const { query, setQuery, labels, suggestions, isAssetPanelEnabled } = props
   const { isAssetPanelVisible, setIsAssetPanelEnabled, doRemoveSelf, onSignOut } = props
-  const [root] = React.useState(() => document.getElementById('enso-dashboard'))
   const supportsCloudBackend = process.env.ENSO_CLOUD_API_URL != null
   const shouldMakeSpaceForExtendedEditorMenu = page === pageSwitcher.Page.editor
 
   return (
-    <div className="relative z-1 m-top-bar mb flex h-row gap-top-bar">
+    <div
+      className={`relative z-1 m-top-bar flex h-row gap-top-bar ${page === pageSwitcher.Page.home ? 'mb-top-bar' : 'mb'}`}
+    >
       <PageSwitcher page={page} setPage={setPage} isEditorDisabled={isEditorDisabled} />
       {supportsLocalBackend && supportsCloudBackend && page !== pageSwitcher.Page.editor && (
         <BackendSwitcher setBackendType={setBackendType} />
@@ -79,12 +78,14 @@ export default function TopBar(props: TopBarProps) {
         <div className="invisible flex gap-top-bar-right overflow-hidden pointer-events-none-recursive">
           {page === pageSwitcher.Page.drive && (
             <AssetInfoBar
+              invisible
               isAssetPanelEnabled={isAssetPanelEnabled}
               setIsAssetPanelEnabled={setIsAssetPanelEnabled}
             />
           )}
           {supportsCloudBackend && (
             <UserBar
+              invisible
               supportsLocalBackend={supportsLocalBackend}
               page={page}
               setPage={setPage}
@@ -98,33 +99,29 @@ export default function TopBar(props: TopBarProps) {
           )}
         </div>
       </div>
-      {root &&
-        reactDom.createPortal(
-          <div
-            className={`fixed right top z-1 m-top-bar text-xs text-primary ${shouldMakeSpaceForExtendedEditorMenu ? 'mr-extended-editor-menu' : ''}`}
-          >
-            <div className="flex gap-top-bar-right">
-              {page === pageSwitcher.Page.drive && (
-                <AssetInfoBar
-                  isAssetPanelEnabled={isAssetPanelEnabled}
-                  setIsAssetPanelEnabled={setIsAssetPanelEnabled}
-                />
-              )}
-              <UserBar
-                supportsLocalBackend={supportsLocalBackend}
-                page={page}
-                setPage={setPage}
-                isHelpChatOpen={isHelpChatOpen}
-                setIsHelpChatOpen={setIsHelpChatOpen}
-                projectAsset={projectAsset}
-                setProjectAsset={setProjectAsset}
-                doRemoveSelf={doRemoveSelf}
-                onSignOut={onSignOut}
-              />
-            </div>
-          </div>,
-          root
-        )}
+      <div
+        className={`fixed top z-1 m-top-bar text-xs text-primary transition-all duration-side-panel ${shouldMakeSpaceForExtendedEditorMenu ? 'mr-extended-editor-menu' : ''} ${isAssetPanelVisible ? '-right-asset-panel-w' : 'right'}`}
+      >
+        <div className="flex gap-top-bar-right">
+          {page === pageSwitcher.Page.drive && (
+            <AssetInfoBar
+              isAssetPanelEnabled={isAssetPanelEnabled}
+              setIsAssetPanelEnabled={setIsAssetPanelEnabled}
+            />
+          )}
+          <UserBar
+            supportsLocalBackend={supportsLocalBackend}
+            page={page}
+            setPage={setPage}
+            isHelpChatOpen={isHelpChatOpen}
+            setIsHelpChatOpen={setIsHelpChatOpen}
+            projectAsset={projectAsset}
+            setProjectAsset={setProjectAsset}
+            doRemoveSelf={doRemoveSelf}
+            onSignOut={onSignOut}
+          />
+        </div>
+      </div>
     </div>
   )
 }

@@ -6,8 +6,8 @@ use crate::syntax::*;
 
 use crate::span_builder;
 
+#[cfg(feature = "debug")]
 use enso_parser_syntax_tree_visitor::Visitor;
-use enso_shapely_macros::tagged_enum;
 
 
 // ==============
@@ -62,7 +62,8 @@ impl<'s> Default for Tree<'s> {
 macro_rules! with_ast_definition { ($f:ident ($($args:tt)*)) => { $f! { $($args)*
     /// [`Tree`] variants definition. See its docs to learn more.
     #[tagged_enum]
-    #[derive(Clone, Eq, PartialEq, Visitor, Serialize, Reflect, Deserialize)]
+    #[cfg_attr(feature = "debug", derive(Visitor))]
+    #[derive(Clone, Eq, PartialEq, Serialize, Reflect, Deserialize)]
     #[allow(clippy::large_enum_variant)] // Inefficient. Will be fixed in #182878443.
     #[tagged_enum(apply_attributes_to = "variants")]
     #[reflect(inline)]
@@ -384,7 +385,8 @@ with_ast_definition!(generate_ast_definition());
 // === Invalid ===
 
 /// Error of parsing attached to an [`Tree`] node.
-#[derive(Clone, Debug, Eq, PartialEq, Visitor, Serialize, Reflect, Deserialize)]
+#[cfg_attr(feature = "debug", derive(Visitor))]
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Reflect, Deserialize)]
 #[allow(missing_docs)]
 #[reflect(transparent)]
 #[serde(from = "crate::serialization::Error")]
@@ -418,7 +420,8 @@ impl<'s> span::Builder<'s> for Error {
 // === Argument blocks ===
 
 /// An argument specification on its own line.
-#[derive(Clone, Debug, Eq, PartialEq, Visitor, Serialize, Reflect, Deserialize)]
+#[cfg_attr(feature = "debug", derive(Visitor))]
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Reflect, Deserialize)]
 pub struct ArgumentDefinitionLine<'s> {
     /// The token beginning the line.
     pub newline:  token::Newline<'s>,
@@ -436,7 +439,8 @@ impl<'s> span::Builder<'s> for ArgumentDefinitionLine<'s> {
 // === Text literals ===
 
 /// A component of a text literal, within the quotation marks.
-#[derive(Clone, Debug, Eq, PartialEq, Visitor, Serialize, Reflect, Deserialize)]
+#[cfg_attr(feature = "debug", derive(Visitor))]
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Reflect, Deserialize)]
 pub enum TextElement<'s> {
     /// The text content of the literal. If it is multiline, the offset information may contain
     /// part of the content, after trimming appropriately.
@@ -482,7 +486,8 @@ impl<'s> span::Builder<'s> for TextElement<'s> {
 // === Documentation ===
 
 /// A documentation comment.
-#[derive(Debug, Clone, Eq, PartialEq, Visitor, Serialize, Reflect, Deserialize)]
+#[cfg_attr(feature = "debug", derive(Visitor))]
+#[derive(Debug, Clone, Eq, PartialEq, Serialize, Reflect, Deserialize)]
 pub struct DocComment<'s> {
     /// The comment-initiating token.
     pub open:     token::TextStart<'s>,
@@ -490,28 +495,6 @@ pub struct DocComment<'s> {
     pub elements: Vec<TextElement<'s>>,
     /// Empty lines between the comment and the item.
     pub newlines: Vec<token::Newline<'s>>,
-}
-
-impl<'s> DocComment<'s> {
-    /// Return the contents of the comment, with leading whitespace, the `##` token, and following
-    /// empty lines removed; newlines will be normalized.
-    pub fn content(&self) -> String {
-        let mut buf = String::new();
-        for element in &self.elements {
-            match element {
-                TextElement::Section { text } => buf.push_str(&text.code.repr),
-                TextElement::Newline { .. } => buf.push('\n'),
-                TextElement::Escape { token } if let Some(c) = token.value => {
-                    buf.push(c);
-                }
-                // Invalid escape character, ignore it.
-                TextElement::Escape { .. } => (),
-                // Unreachable.
-                TextElement::Splice { .. } => continue,
-            }
-        }
-        buf
-    }
 }
 
 impl<'s> span::Builder<'s> for DocComment<'s> {
@@ -523,7 +506,8 @@ impl<'s> span::Builder<'s> for DocComment<'s> {
 
 // === Number literals ===
 
-#[derive(Clone, Debug, Eq, PartialEq, Visitor, Serialize, Reflect, Deserialize)]
+#[cfg_attr(feature = "debug", derive(Visitor))]
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Reflect, Deserialize)]
 #[allow(missing_docs)]
 pub struct FractionalDigits<'s> {
     /// The dot operator.
@@ -542,7 +526,8 @@ impl<'s> span::Builder<'s> for FractionalDigits<'s> {
 // === Functions ===
 
 /// A function argument definition.
-#[derive(Clone, Debug, Eq, PartialEq, Visitor, Serialize, Reflect, Deserialize)]
+#[cfg_attr(feature = "debug", derive(Visitor))]
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Reflect, Deserialize)]
 pub struct ArgumentDefinition<'s> {
     /// Opening parenthesis (outer).
     pub open:       Option<token::OpenSymbol<'s>>,
@@ -577,7 +562,8 @@ impl<'s> span::Builder<'s> for ArgumentDefinition<'s> {
 }
 
 /// A default value specification in a function argument definition.
-#[derive(Clone, Debug, Eq, PartialEq, Visitor, Serialize, Reflect, Deserialize)]
+#[cfg_attr(feature = "debug", derive(Visitor))]
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Reflect, Deserialize)]
 pub struct ArgumentDefault<'s> {
     /// The `=` token.
     pub equals:     token::Operator<'s>,
@@ -592,7 +578,8 @@ impl<'s> span::Builder<'s> for ArgumentDefault<'s> {
 }
 
 /// A type ascribed to an argument definition.
-#[derive(Clone, Debug, Eq, PartialEq, Visitor, Serialize, Reflect, Deserialize)]
+#[cfg_attr(feature = "debug", derive(Visitor))]
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Reflect, Deserialize)]
 pub struct ArgumentType<'s> {
     /// The `:` token.
     pub operator: token::Operator<'s>,
@@ -608,7 +595,8 @@ impl<'s> span::Builder<'s> for ArgumentType<'s> {
 }
 
 /// A function return type specification.
-#[derive(Clone, Debug, Eq, PartialEq, Visitor, Serialize, Reflect, Deserialize)]
+#[cfg_attr(feature = "debug", derive(Visitor))]
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Reflect, Deserialize)]
 pub struct ReturnSpecification<'s> {
     /// The `->` operator.
     pub arrow:  token::Operator<'s>,
@@ -627,7 +615,8 @@ impl<'s> span::Builder<'s> for ReturnSpecification<'s> {
 // === CaseOf ===
 
 /// A line that may contain a case-expression in a case-of expression.
-#[derive(Clone, Debug, Default, Eq, PartialEq, Visitor, Serialize, Reflect, Deserialize)]
+#[cfg_attr(feature = "debug", derive(Visitor))]
+#[derive(Clone, Debug, Default, Eq, PartialEq, Serialize, Reflect, Deserialize)]
 pub struct CaseLine<'s> {
     /// The token beginning the line. This will always be present, unless the first case-expression
     /// is on the same line as the initial case-of.
@@ -654,7 +643,8 @@ impl<'s> span::Builder<'s> for CaseLine<'s> {
 }
 
 /// A case-expression in a case-of expression.
-#[derive(Clone, Debug, Default, Eq, PartialEq, Visitor, Serialize, Reflect, Deserialize)]
+#[cfg_attr(feature = "debug", derive(Visitor))]
+#[derive(Clone, Debug, Default, Eq, PartialEq, Serialize, Reflect, Deserialize)]
 pub struct Case<'s> {
     /// Documentation, if present.
     pub documentation: Option<DocComment<'s>>,
@@ -693,7 +683,8 @@ impl<'s> span::Builder<'s> for Case<'s> {
 pub type OperatorOrError<'s> = Result<token::Operator<'s>, MultipleOperatorError<'s>>;
 
 /// Error indicating multiple operators found next to each other, like `a + * b`.
-#[derive(Clone, Debug, Eq, PartialEq, Visitor, Serialize, Reflect, Deserialize)]
+#[cfg_attr(feature = "debug", derive(Visitor))]
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Reflect, Deserialize)]
 #[allow(missing_docs)]
 pub struct MultipleOperatorError<'s> {
     pub operators: NonEmptyVec<token::Operator<'s>>,
@@ -732,7 +723,8 @@ impl<'s> NonEmptyOperatorSequence<'s> for OperatorOrError<'s> {
 // === MultiSegmentApp ===
 
 /// A segment of [`MultiSegmentApp`], like `if cond` in the `if cond then ok else fail` expression.
-#[derive(Clone, Debug, Eq, PartialEq, Visitor, Serialize, Reflect, Deserialize)]
+#[cfg_attr(feature = "debug", derive(Visitor))]
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Reflect, Deserialize)]
 #[allow(missing_docs)]
 pub struct MultiSegmentAppSegment<'s> {
     pub header: Token<'s>,
@@ -749,7 +741,8 @@ impl<'s> span::Builder<'s> for MultiSegmentAppSegment<'s> {
 // === Array and Tuple ===
 
 /// A node following an operator.
-#[derive(Clone, Debug, Eq, PartialEq, Visitor, Serialize, Reflect, Deserialize)]
+#[cfg_attr(feature = "debug", derive(Visitor))]
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Reflect, Deserialize)]
 pub struct OperatorDelimitedTree<'s> {
     /// The delimiting operator.
     pub operator: token::Operator<'s>,
@@ -785,14 +778,17 @@ pub fn apply<'s>(mut func: Tree<'s>, mut arg: Tree<'s>) -> Tree<'s> {
             func_.expression = maybe_apply(mem::take(&mut func_.expression), arg).into();
             func
         }
-        (Variant::OprApp(OprApp { lhs: Some(_), opr: Ok(_), rhs: rhs @ None }),
-                Variant::ArgumentBlockApplication(ArgumentBlockApplication { lhs: None, arguments })) => {
+        (
+            Variant::OprApp(OprApp { lhs: Some(_), opr: Ok(_), rhs: rhs @ None }),
+            Variant::ArgumentBlockApplication(ArgumentBlockApplication { lhs: None, arguments }),
+        ) => {
             func.span.code_length += arg.span.length_including_whitespace();
             *rhs = block::body_from_lines(mem::take(arguments)).into();
             func
         }
         (_, Variant::ArgumentBlockApplication(block)) if block.lhs.is_none() => {
-            let code = func.span.code_length + arg.span.left_offset.code.length() + arg.span.code_length;
+            let code =
+                func.span.code_length + arg.span.left_offset.code.length() + arg.span.code_length;
             arg.span.code_length = code;
             let func_left_offset = func.span.left_offset.take_as_prefix();
             let arg_left_offset = mem::replace(&mut arg.span.left_offset, func_left_offset);
@@ -803,7 +799,8 @@ pub fn apply<'s>(mut func: Tree<'s>, mut arg: Tree<'s>) -> Tree<'s> {
             arg
         }
         (_, Variant::OperatorBlockApplication(block)) if block.lhs.is_none() => {
-            let code = func.span.code_length + arg.span.left_offset.code.length() + arg.span.code_length;
+            let code =
+                func.span.code_length + arg.span.left_offset.code.length() + arg.span.code_length;
             arg.span.code_length = code;
             let func_left_offset = func.span.left_offset.take_as_prefix();
             let arg_left_offset = mem::replace(&mut arg.span.left_offset, func_left_offset);
@@ -814,22 +811,26 @@ pub fn apply<'s>(mut func: Tree<'s>, mut arg: Tree<'s>) -> Tree<'s> {
             arg
         }
         (_, Variant::OprApp(OprApp { lhs: Some(lhs), opr: Ok(opr), rhs: Some(rhs) }))
-        if opr.properties.is_assignment() && let Variant::Ident(lhs) = &*lhs.variant => {
+            if opr.properties.is_assignment()
+                && let Variant::Ident(lhs) = &*lhs.variant =>
+        {
             let mut lhs = lhs.token.clone();
             lhs.left_offset += arg.span.left_offset;
             Tree::named_app(func, None, lhs, opr.clone(), rhs.clone(), None)
         }
         (_, Variant::Group(Group { open: Some(open), body: Some(body), close: Some(close) }))
-        if let box Variant::OprApp(OprApp { lhs: Some(lhs), opr: Ok(opr), rhs: Some(rhs) })
-            = &body.variant
-        && opr.properties.is_assignment() && let Variant::Ident(lhs) = &*lhs.variant => {
+            if let box Variant::OprApp(OprApp { lhs: Some(lhs), opr: Ok(opr), rhs: Some(rhs) }) =
+                &body.variant
+                && opr.properties.is_assignment()
+                && let Variant::Ident(lhs) = &*lhs.variant =>
+        {
             let mut open = open.clone();
             open.left_offset += arg.span.left_offset;
             let open = Some(open);
             let close = Some(close.clone());
             Tree::named_app(func, open, lhs.token.clone(), opr.clone(), rhs.clone(), close)
         }
-        _ => Tree::app(func, arg)
+        _ => Tree::app(func, arg),
     }
 }
 
@@ -879,12 +880,15 @@ pub fn apply_operator<'s>(
         _ => Err(MultipleOperatorError { operators: NonEmptyVec::try_from(opr).unwrap() }),
     };
     if let Ok(opr_) = &opr
-            && opr_.properties.is_token_joiner()
-            && let Some(lhs_) = lhs.as_mut()
-            && let Some(rhs_) = rhs.as_mut() {
+        && opr_.properties.is_token_joiner()
+        && let Some(lhs_) = lhs.as_mut()
+        && let Some(rhs_) = rhs.as_mut()
+    {
         return match (&mut *lhs_.variant, &mut *rhs_.variant) {
-            (Variant::Number(func_ @ Number { base: _, integer: None, fractional_digits: None }),
-                Variant::Number(Number { base: None, integer, fractional_digits })) => {
+            (
+                Variant::Number(func_ @ Number { base: _, integer: None, fractional_digits: None }),
+                Variant::Number(Number { base: None, integer, fractional_digits }),
+            ) => {
                 func_.integer = mem::take(integer);
                 func_.fractional_digits = mem::take(fractional_digits);
                 lhs_.span.code_length += rhs_.span.code_length;
@@ -893,14 +897,18 @@ pub fn apply_operator<'s>(
             _ => {
                 debug_assert!(false, "Unexpected use of token-joiner operator!");
                 apply(lhs.take().unwrap(), rhs.take().unwrap())
-            },
-        }
+            }
+        };
     }
-    if let Ok(opr_) = &opr && opr_.properties.is_special() {
+    if let Ok(opr_) = &opr
+        && opr_.properties.is_special()
+    {
         let tree = Tree::opr_app(lhs, opr, rhs);
         return tree.with_error("Invalid use of special operator.");
     }
-    if let Ok(opr_) = &opr && opr_.properties.is_type_annotation() {
+    if let Ok(opr_) = &opr
+        && opr_.properties.is_type_annotation()
+    {
         return match (lhs, rhs) {
             (Some(lhs), Some(rhs)) => Tree::type_annotated(lhs, opr.unwrap(), rhs),
             (lhs, rhs) => {
@@ -909,17 +917,26 @@ pub fn apply_operator<'s>(
             }
         };
     }
-    if let Ok(opr_) = &opr && !opr_.properties.can_form_section() && lhs.is_none() && rhs.is_none() {
+    if let Ok(opr_) = &opr
+        && !opr_.properties.can_form_section()
+        && lhs.is_none()
+        && rhs.is_none()
+    {
         let error = format!("Operator `{opr:?}` must be applied to two operands.");
         let invalid = Tree::opr_app(lhs, opr, rhs);
         return invalid.with_error(error);
     }
-    if let Ok(opr) = &opr && opr.properties.is_decimal()
+    if let Ok(opr) = &opr
+        && opr.properties.is_decimal()
         && let Some(lhs) = lhs.as_mut()
         && let box Variant::Number(lhs_) = &mut lhs.variant
         && lhs_.fractional_digits.is_none()
         && let Some(rhs) = rhs.as_mut()
-        && let box Variant::Number(Number { base: None, integer: Some(digits), fractional_digits: None }) = &mut rhs.variant
+        && let box Variant::Number(Number {
+            base: None,
+            integer: Some(digits),
+            fractional_digits: None,
+        }) = &mut rhs.variant
     {
         let dot = opr.clone();
         let digits = digits.clone();
@@ -947,13 +964,16 @@ pub fn apply_operator<'s>(
 /// For most inputs this will simply construct a `UnaryOprApp`; however, some operators are special.
 pub fn apply_unary_operator<'s>(opr: token::Operator<'s>, rhs: Option<Tree<'s>>) -> Tree<'s> {
     if opr.properties.is_annotation()
-            && let Some(Tree { variant: box Variant::Ident(Ident { token }), .. }) = rhs {
+        && let Some(Tree { variant: box Variant::Ident(Ident { token }), .. }) = rhs
+    {
         return match token.is_type {
             true => Tree::annotated_builtin(opr, token, vec![], None),
             false => Tree::annotated(opr, token, None, vec![], None),
         };
     }
-    if opr.properties.is_autoscope() && let Some(rhs) = rhs {
+    if opr.properties.is_autoscope()
+        && let Some(rhs) = rhs
+    {
         return if let box Variant::Ident(Ident { mut token }) = rhs.variant {
             let applied_to_type = token.variant.is_type;
             token.left_offset = rhs.span.left_offset;
@@ -961,12 +981,14 @@ pub fn apply_unary_operator<'s>(opr: token::Operator<'s>, rhs: Option<Tree<'s>>)
             return if applied_to_type {
                 autoscope_application
             } else {
-                autoscope_application
-                    .with_error("The auto-scope operator may only be applied to a capitalized identifier.")
-            }
+                autoscope_application.with_error(
+                    "The auto-scope operator may only be applied to a capitalized identifier.",
+                )
+            };
         } else {
-            Tree::unary_opr_app(opr, Some(rhs)).with_error("The auto-scope operator (..) may only be applied to an identifier.")
-        }
+            Tree::unary_opr_app(opr, Some(rhs))
+                .with_error("The auto-scope operator (..) may only be applied to an identifier.")
+        };
     }
     if !opr.properties.can_form_section() && rhs.is_none() {
         let error = format!("Operator `{opr:?}` must be applied to an operand.");
@@ -1049,16 +1071,13 @@ impl<'s> From<token::Ident<'s>> for Tree<'s> {
 /// as AST nodes ([`TreeVisitor`]), span information ([`SpanVisitor`]), and AST nodes or tokens
 /// altogether ([`ItemVisitor`]). A visitor is a struct that is modified when traversing the target
 /// elements. Visitors are also capable of tracking when they entered or exited a nested
-/// [`Tree`] structure, and they can control how deep the traversal should be performed. To learn
-/// more, see the [`RefCollectorVisitor`] implementation, which traverses [`Tree`] and collects
-/// references to all [`Tree`] nodes in a vector.
+/// [`Tree`] structure, and they can control how deep the traversal should be performed.
 ///
 /// # Visitable traits
 /// This macro also defines visitable traits, such as [`TreeVisitable`] or [`SpanVisitable`], which
-/// provide [`Tree`] elements with such functions as [`visit`], [`visit_mut`], [`visit_span`], or
-/// [`visit_span_mut`]. These functions let you run visitors. However, as defining a visitor is
-/// relatively complex, a set of traversal functions are provided, such as [`map`], [`map_mut`],
-/// [`map_span`], or [`map_span_mut`].
+/// provide [`Tree`] elements with such functions as [`visit`] or [`visit_span`]. These functions
+/// let you run visitors. However, as defining a visitor is relatively complex, a traversal function
+/// [`map`] is provided.
 ///
 /// # Generalization of the implementation
 /// The current implementation bases on a few non-generic traits. One might define a way better
@@ -1073,107 +1092,44 @@ impl<'s> From<token::Ident<'s>> for Tree<'s> {
 /// could move to it as soon as this error gets resolved:
 /// https://github.com/rust-lang/rust/issues/96634.
 #[allow(missing_docs)]
-pub trait Visitor {
-    fn before_visiting_children(&mut self) {}
-    fn after_visiting_children(&mut self) {}
-}
-
-/// The visitor trait allowing for [`Tree`] nodes traversal.
-#[allow(missing_docs)]
-pub trait TreeVisitor<'s, 'a>: Visitor {
-    fn visit(&mut self, ast: &'a Tree<'s>) -> bool;
-}
-
-/// The visitor trait allowing for [`Tree`] nodes mutable traversal.
-#[allow(missing_docs)]
-pub trait TreeVisitorMut<'s>: Visitor {
-    fn visit_mut(&mut self, ast: &mut Tree<'s>) -> bool;
-}
-
-/// The visitor trait allowing for [`Span`] traversal.
-#[allow(missing_docs)]
-pub trait SpanVisitor<'s, 'a>: Visitor {
-    fn visit(&mut self, ast: span::Ref<'s, 'a>) -> bool;
-}
-
-/// The visitor trait allowing for [`Span`] mutable traversal.
-#[allow(missing_docs)]
-pub trait SpanVisitorMut<'s>: Visitor {
-    fn visit_mut(&mut self, ast: span::RefMut<'s, '_>) -> bool;
-}
+#[cfg(feature = "debug")]
+pub trait Visitor {}
 
 /// The visitor trait allowing for [`Item`] traversal.
 #[allow(missing_docs)]
+#[cfg(feature = "debug")]
 pub trait ItemVisitor<'s, 'a>: Visitor {
     fn visit_item(&mut self, ast: item::Ref<'s, 'a>) -> bool;
 }
 
 macro_rules! define_visitor {
-    ($name:ident, $visit:ident) => {
-        define_visitor_no_mut! {$name, $visit}
-        define_visitor_mut! {$name, $visit}
-    };
-}
-
-macro_rules! define_visitor_no_mut {
-    ($name:ident, $visit:ident) => {
-        paste! {
-            define_visitor_internal! {
-                $name,
-                $visit,
-                [[<$name Visitor>]<'s, 'a>],
-                [<$name Visitable>],
-            }
-        }
-    };
-}
-
-macro_rules! define_visitor_mut {
-    ($name:ident, $visit:ident) => {
-        paste! {
-            define_visitor_internal! {
-                [_mut mut]
-                $name,
-                [<$visit _mut>],
-                [[<$name VisitorMut>]<'s>],
-                [<$name VisitableMut>],
-            }
-        }
-    };
-}
-
-macro_rules! define_visitor_internal {
     (
-        $([$pfx_mod:ident $mod:ident])?
         $name:ident,
         $visit:ident,
-        [$($visitor:tt)*],
-        $visitable:ident,
-    ) => { paste! {
+        $visitor:ident,
+        $visitable:ident
+    ) => {
         /// The visitable trait. See documentation of [`define_visitor`] to learn more.
+        #[cfg(feature = "debug")]
         #[allow(missing_docs)]
         pub trait $visitable<'s, 'a> {
-            fn $visit<V: $($visitor)*>(&'a $($mod)? self, _visitor: &mut V) {}
+            fn $visit<V: $visitor<'s, 'a>>(&'a self, _visitor: &mut V) {}
         }
 
-        impl<'s, 'a, T: $visitable<'s, 'a>> $visitable<'s, 'a> for Box<T> {
-            fn $visit<V: $($visitor)*>(&'a $($mod)? self, visitor: &mut V) {
-                $visitable::$visit(& $($mod)? **self, visitor)
-            }
-        }
-
+        #[cfg(feature = "debug")]
         impl<'s, 'a, T: $visitable<'s, 'a>> $visitable<'s, 'a> for Option<T> {
-            fn $visit<V: $($visitor)*>(&'a $($mod)? self, visitor: &mut V) {
+            fn $visit<V: $visitor<'s, 'a>>(&'a self, visitor: &mut V) {
                 if let Some(elem) = self {
                     $visitable::$visit(elem, visitor)
                 }
             }
         }
 
+        #[cfg(feature = "debug")]
         impl<'s, 'a, T: $visitable<'s, 'a>, E: $visitable<'s, 'a>> $visitable<'s, 'a>
             for Result<T, E>
         {
-            fn $visit<V: $($visitor)*>(&'a $($mod)? self, visitor: &mut V) {
+            fn $visit<V: $visitor<'s, 'a>>(&'a self, visitor: &mut V) {
                 match self {
                     Ok(elem) => $visitable::$visit(elem, visitor),
                     Err(elem) => $visitable::$visit(elem, visitor),
@@ -1181,53 +1137,30 @@ macro_rules! define_visitor_internal {
             }
         }
 
+        #[cfg(feature = "debug")]
         impl<'s, 'a, T: $visitable<'s, 'a>> $visitable<'s, 'a> for Vec<T> {
-            fn $visit<V: $($visitor)*>(&'a $($mod)? self, visitor: &mut V) {
-                self.[<iter $($pfx_mod)?>]().map(|t| $visitable::$visit(t, visitor)).for_each(drop);
+            fn $visit<V: $visitor<'s, 'a>>(&'a self, visitor: &mut V) {
+                self.iter().map(|t| $visitable::$visit(t, visitor)).for_each(drop);
             }
         }
 
+        #[cfg(feature = "debug")]
         impl<'s, 'a, T: $visitable<'s, 'a>> $visitable<'s, 'a> for NonEmptyVec<T> {
-            fn $visit<V: $($visitor)*>(&'a $($mod)? self, visitor: &mut V) {
-                self.[<iter $($pfx_mod)?>]().map(|t| $visitable::$visit(t, visitor)).for_each(drop);
+            fn $visit<V: $visitor<'s, 'a>>(&'a self, visitor: &mut V) {
+                self.iter().map(|t| $visitable::$visit(t, visitor)).for_each(drop);
             }
         }
-
-        impl<'s, 'a> $visitable<'s, 'a> for &str {}
-        impl<'s, 'a> $visitable<'s, 'a> for str {}
-    }};
-}
-
-macro_rules! define_visitor_for_tokens {
-    (
-        $(#$kind_meta:tt)*
-        pub enum $kind:ident {
-            $(
-              $(#$variant_meta:tt)*
-              $variant:ident $({$($args:tt)*})?
-            ),* $(,)?
-        }
-    ) => {
-        impl<'s, 'a> TreeVisitable<'s, 'a> for token::$kind {}
-        impl<'s, 'a> TreeVisitableMut<'s, 'a> for token::$kind {}
     };
 }
 
-define_visitor!(Tree, visit);
-define_visitor!(Span, visit_span);
-define_visitor_no_mut!(Item, visit_item);
-
-crate::with_token_definition!(define_visitor_for_tokens());
+define_visitor!(Item, visit_item, ItemVisitor, ItemVisitable);
 
 
 // === Trait Implementations for Simple Leaf Types ===
 
 macro_rules! spanless_leaf_impls {
-    ($ty:ident) => {
-        impl<'s, 'a> TreeVisitable<'s, 'a> for $ty {}
-        impl<'s, 'a> TreeVisitableMut<'s, 'a> for $ty {}
-        impl<'a, 's> SpanVisitable<'s, 'a> for $ty {}
-        impl<'a, 's> SpanVisitableMut<'s, 'a> for $ty {}
+    ($ty:ty) => {
+        #[cfg(feature = "debug")]
         impl<'a, 's> ItemVisitable<'s, 'a> for $ty {}
         impl<'s> span::Builder<'s> for $ty {
             fn add_to_span(&mut self, span: Span<'s>) -> Span<'s> {
@@ -1240,71 +1173,13 @@ macro_rules! spanless_leaf_impls {
 spanless_leaf_impls!(u32);
 spanless_leaf_impls!(bool);
 spanless_leaf_impls!(VisibleOffset);
+spanless_leaf_impls!(Cow<'static, str>);
 
-
-// === TreeVisitable special cases ===
-
-impl<'s, 'a> TreeVisitable<'s, 'a> for Tree<'s> {
-    fn visit<V: TreeVisitor<'s, 'a>>(&'a self, visitor: &mut V) {
-        if visitor.visit(self) {
-            self.variant.visit(visitor)
-        }
-    }
-}
-
-impl<'s, 'a> TreeVisitableMut<'s, 'a> for Tree<'s> {
-    fn visit_mut<V: TreeVisitorMut<'s>>(&'a mut self, visitor: &mut V) {
-        if visitor.visit_mut(self) {
-            self.variant.visit_mut(visitor)
-        }
-    }
-}
-
-impl<'s, 'a, T> TreeVisitable<'s, 'a> for Token<'s, T> {}
-impl<'s, 'a, T> TreeVisitableMut<'s, 'a> for Token<'s, T> {}
-
-
-// === SpanVisitable special cases ===
-
-impl<'s, 'a> SpanVisitable<'s, 'a> for Tree<'s> {
-    fn visit_span<V: SpanVisitor<'s, 'a>>(&'a self, visitor: &mut V) {
-        if visitor.visit(span::Ref {
-            left_offset: &self.span.left_offset,
-            code_length: self.span.code_length,
-        }) {
-            self.variant.visit_span(visitor)
-        }
-    }
-}
-
-impl<'s, 'a> SpanVisitableMut<'s, 'a> for Tree<'s> {
-    fn visit_span_mut<V: SpanVisitorMut<'s>>(&'a mut self, visitor: &mut V) {
-        if visitor.visit_mut(span::RefMut {
-            left_offset: &mut self.span.left_offset,
-            code_length: self.span.code_length,
-        }) {
-            self.variant.visit_span_mut(visitor)
-        }
-    }
-}
-
-impl<'a, 's, T> SpanVisitable<'s, 'a> for Token<'s, T> {
-    fn visit_span<V: SpanVisitor<'s, 'a>>(&'a self, visitor: &mut V) {
-        let code_length = self.code.length();
-        visitor.visit(span::Ref { left_offset: &self.left_offset, code_length });
-    }
-}
-
-impl<'a, 's, T> SpanVisitableMut<'s, 'a> for Token<'s, T> {
-    fn visit_span_mut<V: SpanVisitorMut<'s>>(&'a mut self, visitor: &mut V) {
-        let code_length = self.code.length();
-        visitor.visit_mut(span::RefMut { left_offset: &mut self.left_offset, code_length });
-    }
-}
 
 
 // === ItemVisitable special cases ===
 
+#[cfg(feature = "debug")]
 impl<'s, 'a> ItemVisitable<'s, 'a> for Tree<'s> {
     fn visit_item<V: ItemVisitor<'s, 'a>>(&'a self, visitor: &mut V) {
         if visitor.visit_item(item::Ref::Tree(self)) {
@@ -1313,36 +1188,12 @@ impl<'s, 'a> ItemVisitable<'s, 'a> for Tree<'s> {
     }
 }
 
+#[cfg(feature = "debug")]
 impl<'s: 'a, 'a, T: 'a> ItemVisitable<'s, 'a> for Token<'s, T>
 where &'a Token<'s, T>: Into<token::Ref<'s, 'a>>
 {
     fn visit_item<V: ItemVisitor<'s, 'a>>(&'a self, visitor: &mut V) {
         visitor.visit_item(item::Ref::Token(self.into()));
-    }
-}
-
-
-// === String ===
-
-impl<'s, 'a> TreeVisitable<'s, 'a> for String {}
-impl<'s, 'a> TreeVisitableMut<'s, 'a> for String {}
-impl<'a, 's> SpanVisitable<'s, 'a> for String {}
-impl<'a, 's> SpanVisitableMut<'s, 'a> for String {}
-impl<'a, 's> ItemVisitable<'s, 'a> for String {}
-impl<'s> span::Builder<'s> for String {
-    fn add_to_span(&mut self, span: Span<'s>) -> Span<'s> {
-        span
-    }
-}
-
-impl<'s, 'a> TreeVisitable<'s, 'a> for Cow<'static, str> {}
-impl<'s, 'a> TreeVisitableMut<'s, 'a> for Cow<'static, str> {}
-impl<'a, 's> SpanVisitable<'s, 'a> for Cow<'static, str> {}
-impl<'a, 's> SpanVisitableMut<'s, 'a> for Cow<'static, str> {}
-impl<'a, 's> ItemVisitable<'s, 'a> for Cow<'static, str> {}
-impl<'s> span::Builder<'s> for Cow<'static, str> {
-    fn add_to_span(&mut self, span: Span<'s>) -> Span<'s> {
-        span
     }
 }
 
@@ -1353,13 +1204,16 @@ impl<'s> span::Builder<'s> for Cow<'static, str> {
 // ==========================
 
 /// A visitor collecting code representation of AST nodes.
+#[cfg(feature = "debug")]
 #[derive(Debug, Default)]
 #[allow(missing_docs)]
 struct CodePrinterVisitor {
     pub code: String,
 }
 
+#[cfg(feature = "debug")]
 impl Visitor for CodePrinterVisitor {}
+#[cfg(feature = "debug")]
 impl<'s, 'a> ItemVisitor<'s, 'a> for CodePrinterVisitor {
     fn visit_item(&mut self, item: item::Ref<'s, 'a>) -> bool {
         match item {
@@ -1373,6 +1227,7 @@ impl<'s, 'a> ItemVisitor<'s, 'a> for CodePrinterVisitor {
     }
 }
 
+#[cfg(feature = "debug")]
 impl<'s> Tree<'s> {
     /// Code generator of this AST.
     pub fn code(&self) -> String {
@@ -1391,77 +1246,11 @@ impl<'s> Tree<'s> {
 
 
 
-// ===========================
-// === RefCollectorVisitor ===
-// ===========================
-
-/// A visitor collecting references to all [`Tree`] nodes.
-#[derive(Debug, Default)]
-#[allow(missing_docs)]
-struct RefCollectorVisitor<'s, 'a> {
-    pub vec: Vec<&'a Tree<'s>>,
-}
-
-impl<'s, 'a> Visitor for RefCollectorVisitor<'s, 'a> {}
-impl<'s, 'a> TreeVisitor<'s, 'a> for RefCollectorVisitor<'s, 'a> {
-    fn visit(&mut self, ast: &'a Tree<'s>) -> bool {
-        self.vec.push(ast);
-        true
-    }
-}
-
-impl<'s> Tree<'s> {
-    /// Collect references to all [`Tree`] nodes and return them in a vector.
-    pub fn collect_vec_ref(&self) -> Vec<&Tree<'s>> {
-        let mut visitor = RefCollectorVisitor::default();
-        self.visit(&mut visitor);
-        visitor.vec
-    }
-}
-
-
-
-// =================
-// === FnVisitor ===
-// =================
-
-/// A visitor allowing running a function on every [`Tree`] node.
-#[derive(Debug, Default)]
-#[allow(missing_docs)]
-pub struct FnVisitor<F>(pub F);
-
-impl<F> Visitor for FnVisitor<F> {}
-impl<'s: 'a, 'a, T, F: Fn(&'a Tree<'s>) -> T> TreeVisitor<'s, 'a> for FnVisitor<F> {
-    fn visit(&mut self, ast: &'a Tree<'s>) -> bool {
-        (self.0)(ast);
-        true
-    }
-}
-
-impl<'s, T, F: Fn(&mut Tree<'s>) -> T> TreeVisitorMut<'s> for FnVisitor<F> {
-    fn visit_mut(&mut self, ast: &mut Tree<'s>) -> bool {
-        (self.0)(ast);
-        true
-    }
-}
-
-impl<'s> Tree<'s> {
-    /// Map the provided function over each [`Tree`] node. The function results will be discarded.
-    pub fn map<T>(&self, f: impl Fn(&Tree<'s>) -> T) {
-        let mut visitor = FnVisitor(f);
-        self.visit(&mut visitor);
-    }
-
-    /// Map the provided function over each [`Tree`] node. The function results will be discarded.
-    pub fn map_mut<T>(&mut self, f: impl Fn(&mut Tree<'s>) -> T) {
-        let mut visitor = FnVisitor(f);
-        self.visit_mut(&mut visitor);
-    }
-}
-
-
+// =====================
 // === ItemFnVisitor ===
+// =====================
 
+#[cfg(feature = "debug")]
 impl<'s> Tree<'s> {
     /// Apply the provided function to each [`Token`] or [`Tree`] that is a child of the node.
     pub fn visit_items<F>(&self, f: F)
@@ -1480,39 +1269,24 @@ impl<'s> Tree<'s> {
         }
         self.variant.visit_item(&mut ItemFnVisitor { f });
     }
-}
 
-
-
-// =================
-// === Traversal ===
-// =================
-
-impl<'s> Tree<'s> {
-    /// Return an iterator over the operands of the given left-associative operator, in reverse
-    /// order.
-    pub fn left_assoc_rev<'t, 'o>(&'t self, operator: &'o str) -> LeftAssocRev<'o, 't, 's> {
-        let tree = Some(self);
-        LeftAssocRev { operator, tree }
-    }
-}
-
-/// Iterator over the operands of a particular left-associative operator, in reverse order.
-#[derive(Debug)]
-pub struct LeftAssocRev<'o, 't, 's> {
-    operator: &'o str,
-    tree:     Option<&'t Tree<'s>>,
-}
-
-impl<'o, 't, 's> Iterator for LeftAssocRev<'o, 't, 's> {
-    type Item = &'t Tree<'s>;
-    fn next(&mut self) -> Option<Self::Item> {
-        if let box Variant::OprApp(OprApp { lhs, opr: Ok(opr), rhs }) = &self.tree?.variant
-            && opr.code == self.operator {
-            self.tree = lhs.into();
-            rhs.into()
-        } else {
-            self.tree.take()
+    /// Apply the provided function recursively to each [`Tree`] that is a descendant of the node.
+    pub fn visit_trees<F>(&self, f: F)
+    where F: for<'a> FnMut(&'a Tree<'s>) {
+        struct ItemFnVisitor<F> {
+            f: F,
         }
+        impl<F> Visitor for ItemFnVisitor<F> {}
+        impl<'a, 's: 'a, F> ItemVisitor<'s, 'a> for ItemFnVisitor<F>
+        where F: FnMut(&'a Tree<'s>)
+        {
+            fn visit_item(&mut self, item: item::Ref<'s, 'a>) -> bool {
+                if let item::Ref::Tree(tree) = item {
+                    (self.f)(tree);
+                }
+                true
+            }
+        }
+        self.variant.visit_item(&mut ItemFnVisitor { f });
     }
 }

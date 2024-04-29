@@ -4,11 +4,12 @@ import Standard.Base.Errors.File_Error.File_Error
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.System.Input_Stream.Input_Stream
 
-import project.Data.Data_Formatter.Data_Formatter
-import project.Data.Table.Table
+import project.Data_Formatter.Data_Formatter
 import project.Delimited.Delimited_Format.Delimited_Format
 import project.Delimited.Quote_Style.Quote_Style
+import project.Headers.Headers
 import project.Internal.Java_Problems
+import project.Table.Table
 from project.Errors import Empty_File_Error, Mismatched_Quote, Parser_Error
 
 polyglot java import com.univocity.parsers.common.TextParsingException
@@ -100,9 +101,9 @@ read_from_reader format java_reader on_problems max_columns=4096 =
 ## PRIVATE
 prepare_reader format max_columns on_problems java_problem_aggregator newline_override=Nothing =
     java_headers = case format.headers of
-        True -> DelimitedReader.HeaderBehavior.USE_FIRST_ROW_AS_HEADERS
-        Infer -> DelimitedReader.HeaderBehavior.INFER
-        False -> DelimitedReader.HeaderBehavior.GENERATE_HEADERS
+        Headers.Has_Headers -> DelimitedReader.HeaderBehavior.USE_FIRST_ROW_AS_HEADERS
+        Headers.Detect_Headers -> DelimitedReader.HeaderBehavior.INFER
+        Headers.No_Headers -> DelimitedReader.HeaderBehavior.GENERATE_HEADERS
     row_limit = case format.row_limit of
         Nothing -> -1
         _ : Integer -> format.row_limit
@@ -118,7 +119,7 @@ prepare_reader format max_columns on_problems java_problem_aggregator newline_ov
     value_parser = if format.value_formatter.is_nothing then base_parser else
         wrapped = format.value_formatter.wrap_base_parser base_parser
         TypeInferringParser.new format.value_formatter.get_specific_type_parsers wrapped
-    cell_type_guesser = if format.headers != Infer then Nothing else
+    cell_type_guesser = if format.headers != Headers.Detect_Headers then Nothing else
         formatter = format.value_formatter.if_nothing Data_Formatter.Value
         TypeInferringParser.new formatter.get_specific_type_parsers IdentityParser.new
     newline = newline_override.if_nothing <| case format.line_endings of

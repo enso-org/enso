@@ -9,12 +9,15 @@ homepage = "https://github.com/enso-org/enso"
 repository = "https://github.com/enso-org/enso"
 license-file = "../../LICENSE"
 
+[features]
+debug = ["dep:enso-parser-syntax-tree-visitor"]
+
 [dependencies]
 enso-prelude = { path = "../prelude" }
 enso-reflect = { path = "../reflect" }
 enso-data-structures = { path = "../data-structures" }
-enso-shapely-macros = { path = "../shapely/macros" }
-enso-parser-syntax-tree-visitor = { path = "src/syntax/tree/visitor" }
+enso-parser-syntax-tree-visitor = { path = "src/syntax/tree/visitor", optional = true }
+paste = { version = "1.0" }
 serde = { workspace = true }
 serde_json = { workspace = true }
 uuid = { version = "1.1", features = ["serde"] }
@@ -28,3 +31,6 @@ rand_distr = "0.4.3"
 
 [target.'cfg(target_arch = "wasm32")'.dev-dependencies]
 wasm-bindgen-test = { workspace = true }
+
+[lints]
+workspace = true

@@ -125,7 +125,7 @@ type Map key value
     size self = @Builtin_Method "Map.size"
 
     ## GROUP Calculations
-       ICON add_row
+       ICON row_add
        Inserts a key-value mapping into this map, overriding any existing
        instance of `key` with the new `value`.
 
@@ -152,7 +152,7 @@ type Map key value
     insert self key value = @Builtin_Method "Map.insert"
 
     ## GROUP Selections
-       ICON select_column
+       ICON table_clean
        Removes an entry specified by the given key from this map, and
        returns a new map without this entry. Throw `No_Such_Key.Error`
        if `key` is not present.
@@ -291,7 +291,8 @@ type Map key value
         trans_function = k -> v -> [function k, v]
         self.transform trans_function
 
-    ## Transforms the map's keys and values to create a new map.
+    ## ICON dataframe_map_column
+       Transforms the map's keys and values to create a new map.
 
        Arguments:
        - function: The function used to transform the map, taking a key and a
@@ -365,8 +366,11 @@ type Map key value
        - function: The function to apply to each value in the map, taking a
          value and returning anything.
 
-       This method does not return the results, so is only useful for performing
+       This method does not return the results, so it is only useful for performing
        computations with side-effects.
+
+       If the function returns a dataflow error, the error is converted to a
+       panic and thrown immediately stopping further processing.
 
        > Example
          Printing each value in the map.
@@ -388,7 +392,7 @@ type Map key value
        - function: The function to apply to each key-value pair in the map,
          taking a key and a value and returning anything.
 
-       This method does not return the results, so is only useful for performing
+       This method does not return the results, so it is only useful for performing
        computations with side-effects.
 
        > Example

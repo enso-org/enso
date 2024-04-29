@@ -159,16 +159,15 @@ sort_and_merge_ranges ranges =
     sorted = ranges.filter (range-> range.is_empty.not) . sort on=(_.start)
     if sorted.is_empty then [] else
         current_ref = Ref.new sorted.first
-        builder = Vector.new_builder
-        sorted.drop 1 . each range->
-            current = current_ref.get
-            case range.start <= current.end of
-                True -> current_ref.put (current.start.up_to (current.end.max range.end))
-                False ->
-                    builder.append current
-                    current_ref.put range
-        builder.append current_ref.get
-        builder.to_vector
+        Vector.build builder->
+            sorted.drop 1 . each range->
+                current = current_ref.get
+                case range.start <= current.end of
+                    True -> current_ref.put (current.start.up_to (current.end.max range.end))
+                    False ->
+                        builder.append current
+                        current_ref.put range
+            builder.append current_ref.get
 
 ## PRIVATE
    A helper that implements taking from an arbitrary collection using a set of

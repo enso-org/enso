@@ -12,7 +12,7 @@ import org.enso.projectmanager.control.effect.syntax._
 import org.enso.projectmanager.infrastructure.repository.ProjectRepositoryFactory
 import org.enso.projectmanager.service.ProjectService
 
-import java.io.File
+import java.io.{File, InputStream}
 import java.nio.file.Files
 import java.nio.file.attribute.BasicFileAttributes
 
@@ -55,6 +55,17 @@ class FileSystemService[F[+_, +_]: Applicative: CovariantFlatMap: ErrorChannel](
     fileSystem
       .move(from, to)
       .mapError(_ => FileSystemServiceFailure.FileSystem("Failed to move path"))
+
+  /** @inheritdoc */
+  override def write(
+    path: File,
+    contents: InputStream
+  ): F[FileSystemServiceFailure, Unit] =
+    fileSystem
+      .writeFile(path, contents)
+      .mapError(_ =>
+        FileSystemServiceFailure.FileSystem("Failed to write path")
+      )
 
   private def toFileSystemEntry(
     path: File

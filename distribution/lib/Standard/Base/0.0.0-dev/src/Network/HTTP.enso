@@ -86,6 +86,7 @@ type HTTP
     Value timeout follow_redirects proxy version custom_ssl_context
 
     ## ADVANCED
+       ICON data_download
        Sends a request using the HTTP client.
        The response body will contain a raw Input_Stream which can be read once.
        Please note, this must be closed after use (either directly or via the

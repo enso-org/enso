@@ -158,7 +158,6 @@ transport formats, please look [here](./protocol-architecture).
   - [`search/getSuggestionsDatabaseVersion`](#searchgetsuggestionsdatabaseversion)
   - [`search/suggestionsDatabaseUpdate`](#searchsuggestionsdatabaseupdate)
   - [`search/suggestionsOrderDatabaseUpdate`](#searchsuggestionsorderdatabaseupdate)
-  - [`search/completion`](#searchcompletion)
 - [Input/Output Operations](#inputoutput-operations)
   - [`io/redirectStandardOutput`](#ioredirectstandardoutput)
   - [`io/suppressStandardOutput`](#iosuppressstandardoutput)
@@ -500,8 +499,14 @@ interface Module {
   /** The documentation string. */
   documentation?: string;
 
-  /** The fully qualified module name re-exporting this module. */
+  /** The fully qualified module name re-exporting this module.
+   *
+   * @deprecated use reexports field instead
+   */
   reexport?: string;
+
+  /** The list of fully qualified module names re-exporting this module. */
+  reexports: string[];
 }
 
 interface Type {
@@ -520,8 +525,14 @@ interface Type {
   /** Qualified name of the parent type. */
   parentType?: string;
 
-  /** The fully qualified module name re-exporting this type. */
+  /** The fully qualified module name re-exporting this type.
+   *
+   * @deprecated use reexports field instead
+   */
   reexport?: string;
+
+  /** The list of fully qualified module names re-exporting this type. */
+  reexports: string[];
 
   /** The documentation string. */
   documentation?: string;
@@ -543,8 +554,14 @@ interface Constructor {
   /** The type of the constructor. */
   returnType: string;
 
-  /** The fully qualified module name re-exporting this constructor. */
+  /** The fully qualified module name re-exporting this constructor.
+   *
+   * @deprecated use reexports field instead
+   */
   reexport?: string;
+
+  /** The list of fully qualified module names re-exporting this constructor. */
+  reexports: string[];
 
   /** The documentation string. */
   documentation?: string;
@@ -575,8 +592,14 @@ interface Method {
   /** The flag indicating whether this method is static or instance. */
   isStatic: boolean;
 
-  /** The fully qualified module name re-exporting this method. */
+  /** The fully qualified module name re-exporting this method.
+   *
+   * @deprecated use reexports field instead
+   */
   reexport?: string;
+
+  /** The list of fully qualified module names re-exporting this method. */
+  reexports: string[];
 
   /** The documentation string. */
   documentation?: string;

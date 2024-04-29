@@ -50,8 +50,9 @@ type Auto_Detect
     ## PRIVATE
        Implements the `File.read` for this `File_Format`
     read : File -> Problem_Behavior -> Any ! File_Error
-    read self file on_problems = if file.is_directory then file.list else
-        reader = Auto_Detect.get_reading_format file
+    read self file on_problems:Problem_Behavior = if file.is_directory then file.list else
+        metadata = File_Format_Metadata.from file
+        reader = Auto_Detect.get_reading_format metadata
         if reader == Nothing then Error.throw (File_Error.Unsupported_Type file) else
             reader.read file on_problems
 
@@ -71,6 +72,10 @@ type Auto_Detect
     get_writing_format : File -> Any | Nothing
     get_writing_format file =
         get_format f-> f.for_file_write file
+
+    ## PRIVATE
+    get_dropdown_options : Vector Option
+    get_dropdown_options = [Option "Auto Detect" (Meta.get_qualified_type_name Auto_Detect)]
 
 ## Interface for all file formats.
 type File_Format
@@ -94,8 +99,7 @@ type File_Format
     ## PRIVATE
     default_widget : Widget
     default_widget =
-        options = [Option "Auto Detect" "Auto_Detect"] +
-            format_types.flat_map .get_dropdown_options
+        options = ([Auto_Detect]+format_types).flat_map .get_dropdown_options
         Single_Choice display=Display.Always values=options
 
     ## PRIVATE

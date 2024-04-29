@@ -77,6 +77,7 @@ export interface IdentifierToken extends Token {
 
 declare const qualifiedNameBrand: unique symbol
 declare const identifierBrand: unique symbol
+declare const typeOrConsIdentifierBrand: unique symbol
 declare const operatorBrand: unique symbol
 
 /** A string representing a valid qualified name of our language.
@@ -88,6 +89,9 @@ export type QualifiedName = string & { [qualifiedNameBrand]: never }
 
 /** A string representing a lexical identifier. */
 export type Identifier = string & { [identifierBrand]: never; [qualifiedNameBrand]: never }
+
+/** A specific subtype of capitalized identifier, used for type and constructor names. */
+export type TypeOrConstructorIdentifier = Identifier & { [typeOrConsIdentifierBrand]: never }
 
 /** A string representing a lexical operator. */
 export type Operator = string & { [operatorBrand]: never; [qualifiedNameBrand]: never }
@@ -119,6 +123,15 @@ export function isIdentifierOrOperatorIdentifier(
 /** Returns true if `code` is lexically an identifier. */
 export function isIdentifier(code: string): code is Identifier {
   return is_ident_or_operator(code) === 1
+}
+
+export function isTypeOrConsIdentifier(code: string): code is TypeOrConstructorIdentifier {
+  const isUppercase = (s: string) => s.toUpperCase() === s && s.toLowerCase() !== s
+  return isIdentifier(code) && code.length > 0 && isUppercase(code[0]!)
+}
+
+export function identifier(code: string): Identifier | undefined {
+  if (isIdentifier(code)) return code
 }
 
 /** Returns true if `code` is lexically an operator. */

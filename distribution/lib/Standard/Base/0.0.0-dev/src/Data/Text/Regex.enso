@@ -63,6 +63,7 @@ type Regex
     Value (case_insensitive : Boolean) (internal_regex_object : Any)
 
     ## GROUP Metadata
+       ICON metadata
        Gets the original pattern used to create this `Regex`.
     pattern : Text
     pattern self = self.internal_regex_object.pattern
@@ -119,17 +120,17 @@ type Regex
     match_all self (input : Text) =
         pattern_is_empty = self.pattern == ''
         if pattern_is_empty then Error.throw (Illegal_Argument.Error "Cannot run match_all with an empty pattern") else
-            builder = Vector.new_builder
-            it = Match_Iterator.new self input
-            go it = case it.next of
-                Match_Iterator_Value.Next _ match next_it ->
-                    builder.append match
-                    @Tail_Call go next_it
-                Match_Iterator_Value.Last _ -> Nothing
-            go it
-            builder.to_vector
+            Vector.build builder->
+                it = Match_Iterator.new self input
+                go it = case it.next of
+                    Match_Iterator_Value.Next _ match next_it ->
+                        builder.append match
+                        @Tail_Call go next_it
+                    Match_Iterator_Value.Last _ -> Nothing
+                go it
 
     ## GROUP Selections
+       ICON find
        Tries to match the provided `input` against the pattern `self`.
 
        Returns a `Text` containing the matched text, or `Nothing` if the match
@@ -142,6 +143,7 @@ type Regex
        match_to_group_maybe <| self.match input
 
     ## GROUP Selections
+       ICON find
        Tries to match the provided `input` against the pattern `self`.
 
        Returns a `Vector Text`, each containing the matched text.
@@ -154,6 +156,7 @@ type Regex
        self.match_all input . map match_to_group_maybe
 
     ## GROUP Conversions
+       ICON split_text
        Splits the `input` text based on the pattern described by `self`.
 
        Arguments:
@@ -185,19 +188,19 @@ type Regex
              texts . should_equal ["abcdefghij"]
     split : Text -> Boolean -> Vector Text | Type_Error
     split self (input : Text) (only_first : Boolean = False) =
-        builder = Vector.new_builder
-        it = Match_Iterator.new self input
-        go next = case next of
-            Match_Iterator_Value.Next filler _ next_it ->
-                builder.append filler.text
-                next = if only_first then next_it.early_exit else next_it.next
-                @Tail_Call go next
-            Match_Iterator_Value.Last filler ->
-                builder.append filler.text
-        go it.next
-        builder.to_vector
+        Vector.build builder->
+            it = Match_Iterator.new self input
+            go next = case next of
+                Match_Iterator_Value.Next filler _ next_it ->
+                    builder.append filler.text
+                    next = if only_first then next_it.early_exit else next_it.next
+                    @Tail_Call go next
+                Match_Iterator_Value.Last filler ->
+                    builder.append filler.text
+            go it.next
 
     ## GROUP Conversions
+       ICON split_text
        Takes an input string and returns all the matches as a `Vector Text`.
        If the pattern contains marked groups, the values are concatenated
        together; otherwise the whole match is returned. Non-participating
@@ -367,6 +370,7 @@ type Regex
     group_count self = self.internal_regex_object.groupCount
 
     ## GROUP Metadata
+       ICON metadata
        Return a vector of all named group names.
     named_groups : Vector Text
     named_groups self =
@@ -482,7 +486,8 @@ type Regex_Syntax_Error
     to_display_text : Text
     to_display_text self = "Regex Syntax Error:" + self.message
 
-## Shorthand to create a regular expression from a Text value.
+## ICON text
+   Shorthand to create a regular expression from a Text value.
 
    If an empty regex is used, throws an Illegal_Argument error.
 

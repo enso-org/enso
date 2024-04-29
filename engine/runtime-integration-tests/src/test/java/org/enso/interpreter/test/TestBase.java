@@ -15,8 +15,11 @@ import java.util.Map;
 import java.util.concurrent.Callable;
 import java.util.function.Function;
 import java.util.logging.Level;
+import org.enso.common.LanguageInfo;
+import org.enso.common.MethodNames.Module;
+import org.enso.common.MethodNames.TopScope;
 import org.enso.interpreter.EnsoLanguage;
-import org.enso.polyglot.MethodNames.Module;
+import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.polyglot.RuntimeOptions;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Language;
@@ -52,6 +55,12 @@ public abstract class TestBase {
         .option(
             RuntimeOptions.LANGUAGE_HOME_OVERRIDE,
             Paths.get("../../distribution/component").toFile().getAbsolutePath());
+  }
+
+  protected static EnsoContext leakContext(Context ctx) {
+    return ctx.getBindings(LanguageInfo.ID)
+        .invokeMember(TopScope.LEAK_CONTEXT)
+        .as(EnsoContext.class);
   }
 
   /**

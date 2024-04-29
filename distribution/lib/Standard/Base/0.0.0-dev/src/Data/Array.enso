@@ -149,7 +149,7 @@ type Array
     sort self (order = Sort_Direction.Ascending) on=Nothing by=Nothing on_incomparable=Problem_Behavior.Ignore =
         Array_Like_Helpers.sort self order on by on_incomparable
 
-    ## ALIAS first, last, sample, slice
+    ## ALIAS first, head, last, limit, sample, slice, tail, top
        GROUP Selections
        ICON select_row
        Creates a new `Vector` with only the specified range of elements from the
@@ -181,7 +181,7 @@ type Array
         Array_Like_Helpers.drop self range
 
     ## GROUP Calculations
-       ICON add_row
+       ICON row_add
        Inserts the given item into the array at the given index.
 
        Arguments:
@@ -202,7 +202,7 @@ type Array
         Array_Like_Helpers.insert self at item
 
     ## GROUP Selections
-       ICON select_column
+       ICON table_clean
        Removes the item at the given index from the array.
 
        Arguments:
@@ -380,7 +380,8 @@ type Array
     map self function on_problems=Problem_Behavior.Report_Error =
         Array_Like_Helpers.map self function on_problems
 
-    ## Applies a function to each element of the array, returning the `Vector`
+    ## ICON dataframes_union
+       Applies a function to each element of the array, returning the `Vector`
        that contains all results concatenated.
 
        Arguments:
@@ -586,6 +587,7 @@ type Array
         Array_Like_Helpers.partition_with_index self predicate
 
     ## GROUP Selections
+       ICON dataframe_map_row
        Swaps the rows and columns of a matrix represented by an array of arrays.
 
        ! Error Conditions
@@ -911,6 +913,9 @@ type Array
 
        Unlike `map`, this method does not return the individual results,
        therefore it is only useful for side-effecting computations.
+
+       If the function returns a dataflow error, the error is converted to a
+       panic and thrown immediately stopping further processing.
 
        Arguments:
        - function: A function to apply to each element of the array.

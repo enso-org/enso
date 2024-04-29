@@ -37,8 +37,20 @@ export class Vec2 {
     return this.x === other.x && this.y === other.y
   }
 
+  equalsApproximately(other: Vec2, epsilon: number): boolean {
+    return Math.abs(this.x - other.x) < epsilon && Math.abs(this.y - other.y) < epsilon
+  }
+
   isZero(): boolean {
     return this.x === 0 && this.y === 0
+  }
+
+  isFinite(): boolean {
+    return Number.isFinite(this.x) && Number.isFinite(this.y)
+  }
+
+  finiteOrZero(): Vec2 {
+    return new Vec2(Number.isFinite(this.x) ? this.x : 0, Number.isFinite(this.y) ? this.y : 0)
   }
 
   scale(scalar: number): Vec2 {
@@ -57,6 +69,11 @@ export class Vec2 {
 
   reciprocal(): Vec2 {
     return new Vec2(1 / this.x, 1 / this.y)
+  }
+
+  /** Return a `Vec2` equal to this `Vec2` reflected over the line `y=x`, i.e. with the x and y axes swapped. */
+  reflectXY() {
+    return new Vec2(this.y, this.x)
   }
 
   add(other: Vec2): Vec2 {
@@ -105,6 +122,10 @@ export class Vec2 {
 
   setAxis(axis: 'x' | 'y', value: number) {
     return new Vec2(axis === 'x' ? value : this.x, axis === 'y' ? value : this.y)
+  }
+
+  xy(): { x: number; y: number } {
+    return { x: this.x, y: this.y }
   }
 }
 

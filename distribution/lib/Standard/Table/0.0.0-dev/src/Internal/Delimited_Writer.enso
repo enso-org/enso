@@ -4,14 +4,15 @@ import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.System.File.Generic.Writable_File.Writable_File
 import Standard.Base.System.Output_Stream.Output_Stream
 
-import project.Data.Data_Formatter.Data_Formatter
-import project.Data.Match_Columns.Match_Columns
-import project.Data.Table.Table
+import project.Data_Formatter.Data_Formatter
 import project.Delimited.Delimited_Format.Delimited_Format
 import project.Delimited.Quote_Style.Quote_Style
+import project.Headers.Headers
 import project.Internal.Delimited_Reader
 import project.Internal.Delimited_Reader.Detected_Headers
 import project.Internal.Java_Problems
+import project.Match_Columns.Match_Columns
+import project.Table.Table
 from project.Errors import Column_Count_Mismatch, Column_Name_Mismatch
 
 polyglot java import java.io.IOException
@@ -57,7 +58,7 @@ append_to_file table format (file : Writable_File) match_columns on_problems =
            the full file here - we only need to read the first few first and last bytes (to infer the headers and newline at EOF).
            Future implementation could take that into account and use the more efficient approach.
         file.write_requiring_local_file Existing_File_Behavior.Append local_temp_file->
-            append_to_local_file table format local_temp_file match_columns on_problems . if_not_error file.file
+            append_to_local_file table format local_temp_file match_columns on_problems . if_not_error file.file_for_return
 
 ## PRIVATE
 append_to_local_file table format (file : File) match_columns on_problems =
@@ -172,10 +173,10 @@ write_to_writer table format java_writer separator_override=Nothing needs_leadin
         writer.write table.java_table
 
 ## PRIVATE
-should_write_headers headers = case headers of
-    True -> True
-    Infer -> True
-    False -> False
+should_write_headers headers:Headers = case headers of
+    Headers.Has_Headers -> True
+    Headers.Detect_Headers -> True
+    Headers.No_Headers -> False
 
 ## PRIVATE
    The default line separator used for newly written delimited files, if no

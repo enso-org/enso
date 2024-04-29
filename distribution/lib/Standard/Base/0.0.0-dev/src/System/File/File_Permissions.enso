@@ -24,48 +24,52 @@ type File_Permissions
        Converts the Enso atom to its Java enum counterpart.
     to_java : Vector PosixFilePermission
     to_java self =
-        result = Vector.new_builder
-        if self.owner.contains Permission.Read then
-            result.append PosixFilePermission.OWNER_READ
-        if self.owner.contains Permission.Write then
-            result.append PosixFilePermission.OWNER_WRITE
-        if self.owner.contains Permission.Execute then
-            result.append PosixFilePermission.OWNER_EXECUTE
-        if self.group.contains Permission.Read then
-            result.append PosixFilePermission.GROUP_READ
-        if self.group.contains Permission.Write then
-            result.append PosixFilePermission.GROUP_WRITE
-        if self.group.contains Permission.Execute then
-            result.append PosixFilePermission.GROUP_EXECUTE
-        if self.others.contains Permission.Read then
-            result.append PosixFilePermission.OTHERS_READ
-        if self.others.contains Permission.Write then
-            result.append PosixFilePermission.OTHERS_WRITE
-        if self.others.contains Permission.Execute then
-            result.append PosixFilePermission.OTHERS_EXECUTE
-        result.to_vector
+        Vector.new_builder result->
+            if self.owner.contains Permission.Read then
+                result.append PosixFilePermission.OWNER_READ
+            if self.owner.contains Permission.Write then
+                result.append PosixFilePermission.OWNER_WRITE
+            if self.owner.contains Permission.Execute then
+                result.append PosixFilePermission.OWNER_EXECUTE
+            if self.group.contains Permission.Read then
+                result.append PosixFilePermission.GROUP_READ
+            if self.group.contains Permission.Write then
+                result.append PosixFilePermission.GROUP_WRITE
+            if self.group.contains Permission.Execute then
+                result.append PosixFilePermission.GROUP_EXECUTE
+            if self.others.contains Permission.Read then
+                result.append PosixFilePermission.OTHERS_READ
+            if self.others.contains Permission.Write then
+                result.append PosixFilePermission.OTHERS_WRITE
+            if self.others.contains Permission.Execute then
+                result.append PosixFilePermission.OTHERS_EXECUTE
 
     ## GROUP Metadata
+       ICON metadata
        Checks if the given file can be read by the owner.
     owner_read : Boolean
     owner_read self = self.owner.contains Permission.Read
 
     ## GROUP Metadata
+       ICON metadata
        Checks if the given file can be written by the owner.
     owner_write : Boolean
     owner_write self = self.owner.contains Permission.Write
 
     ## GROUP Metadata
+       ICON metadata
        Checks if the given file can be executed by the owner.
     owner_execute : Boolean
     owner_execute self = self.owner.contains Permission.Execute
 
     ## GROUP Metadata
+       ICON metadata
        Checks if the given file can be read by the group.
     group_read : Boolean
     group_read self = self.group.contains Permission.Read
 
     ## GROUP Metadata
+       ICON metadata
        Checks if the given file can be written by the group.
     group_write : Boolean
     group_write self = self.group.contains Permission.Write
@@ -75,16 +79,19 @@ type File_Permissions
     group_execute self = self.group.contains Permission.Execute
 
     ## GROUP Metadata
+       ICON metadata
        Checks if the given file can be read by others.
     others_read : Boolean
     others_read self = self.others.contains Permission.Read
 
     ## GROUP Metadata
+       ICON metadata
        Checks if the given file can be written by others.
     others_write : Boolean
     others_write self = self.others.contains Permission.Write
 
     ## GROUP Metadata
+       ICON metadata
        Checks if the given file can be executed by others.
     others_execute : Boolean
     others_execute self = self.others.contains Permission.Execute

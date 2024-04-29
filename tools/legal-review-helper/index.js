@@ -117,6 +117,65 @@ app.post('/modify/:report', function (req, res) {
     }
 })
 
+// Handles the request to rename a package directory.
+app.post('/rename-package/:report', function (req, res) {
+    const report = req.params['report']
+    const from = req.body['from']
+    const to = req.body['to']
+
+    try {
+        const fromPath = path.join(settingsRoot, report, from)
+        const toPath = path.join(settingsRoot, report, to)
+
+        if (!fs.existsSync(fromPath)) {
+            throw 'The source directory ' + fromPath + ' does not exist...'
+        }
+
+        if (fs.existsSync(toPath)) {
+            const isTargetEmpty = fs.readdirSync(toPath).length == 0
+            if (!isTargetEmpty) {
+                throw (
+                    'The target directory ' +
+                    toPath +
+                    ' already exists. Please merge the directories manually using your preferred file explorer.'
+                )
+            }
+
+            fs.rmdirSync(toPath)
+        }
+
+        fs.renameSync(fromPath, toPath)
+        res.send('OK')
+    } catch (error) {
+        console.error(error)
+        res.status(500).send(error)
+    }
+})
+
+app.post('/override-custom-license/:report', function (req, res) {
+    const report = req.params['report']
+    const package = req.body['package']
+    const file = req.body['file']
+
+    try {
+        const dir = path.join(settingsRoot, report, package)
+
+        const defaultAndCustom = path.join(dir, 'default-and-custom-license')
+        if (fs.existsSync(defaultAndCustom)) {
+            fs.unlinkSync(defaultAndCustom)
+        }
+
+        const fileName = file.split('/').pop()
+
+        const custom = path.join(dir, 'custom-license')
+        fs.writeFileSync(custom, fileName + '\n')
+        res.send('OK')
+    } catch (error) {
+        console.error(error)
+        res.status(500).send(error)
+    }
+})
+
 /*
  * Listens on a random free port, opens a browser with the home page and waits
  * for a newline to terminate.

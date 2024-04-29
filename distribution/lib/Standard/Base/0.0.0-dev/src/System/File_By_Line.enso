@@ -90,7 +90,8 @@ type File_By_Line
         end_at = if self.limit_lines.is_nothing then Nothing else self.limit_lines-1
         FileLineReader.readLines self.java_file self.file_end self.row_map 0 end_at self.charset self.filter_func
 
-    ## Performs an action on each line.
+    ## ICON parse3
+       Performs an action on each line.
 
        Arguments
        - function: The action to perform on each line.
@@ -99,7 +100,8 @@ type File_By_Line
         new_function _ t = function t
         self.each_with_index new_function
 
-    ## Performs an action on each line.
+    ## ICON parse3
+       Performs an action on each line.
 
        Arguments:
        - function: A function to apply that takes an index and an item.
@@ -118,10 +120,9 @@ type File_By_Line
        - action: The action to perform on each line.
     map : (Text -> Any) -> Vector Any
     map self action =
-        builder = Vector.new_builder
-        wrapped_action _ t = builder.append (action t)
-        self.each_with_index wrapped_action
-        builder.to_vector
+        Vector.build builder->
+            wrapped_action _ t = builder.append (action t)
+            self.each_with_index wrapped_action
 
     ## ICON dataframe_map_column
        Transforms each line in the file and returns the result as a vector.
@@ -130,10 +131,9 @@ type File_By_Line
        - action: The action to perform on each line.
     map_with_index : (Integer -> Text -> Any) -> Vector Any
     map_with_index self action =
-        builder = Vector.new_builder
-        wrapped_action i t = builder.append (action i t)
-        self.each_with_index wrapped_action
-        builder.to_vector
+        Vector.build builder->
+            wrapped_action i t = builder.append (action i t)
+            self.each_with_index wrapped_action
 
     ## GROUP Selections
        ICON select_row
@@ -203,6 +203,7 @@ type File_By_Line
             File_By_Line.Reader self.file self.encoding Nothing new_predicate (make_filter_map self new_filter) (index_of self self.limit_lines)
 
     ## ADVANCED
+       ICON metadata
        Exports the row_map
     row_positions : Vector Integer
     row_positions self = Vector.from_polyglot_array <|

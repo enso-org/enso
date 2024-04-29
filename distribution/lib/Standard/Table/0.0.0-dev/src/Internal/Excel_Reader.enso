@@ -1,13 +1,16 @@
+private
+
 from Standard.Base import all
 import Standard.Base.Errors.File_Error.File_Error
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.System.Input_Stream.Input_Stream
 
-import project.Data.Table.Table
 import project.Excel.Excel_Range.Excel_Range
+import project.Headers.Headers
 import project.Internal.Excel_Section.Excel_Section
 import project.Internal.Java_Problems
-from project.Errors import Duplicate_Output_Column_Names, Empty_Sheet_Error, Invalid_Column_Names, Invalid_Location
+import project.Table.Table
+from project.Errors import Duplicate_Output_Column_Names, Empty_Sheet, Invalid_Column_Names, Invalid_Location
 
 polyglot java import java.io.File as Java_File
 polyglot java import org.apache.poi.poifs.filesystem.NotOLE2FileException
@@ -18,23 +21,20 @@ polyglot java import org.enso.table.excel.ExcelHeaders
 polyglot java import org.enso.table.read.ExcelReader
 
 ## PRIVATE
-   Convert Boolean|Infer to the correct HeaderBehavior
-make_java_headers : (Boolean | Infer) -> Any
-make_java_headers headers = case headers of
-        True -> ExcelHeaders.HeaderBehavior.USE_FIRST_ROW_AS_HEADERS
-        Infer -> ExcelHeaders.HeaderBehavior.INFER
-        False -> ExcelHeaders.HeaderBehavior.EXCEL_COLUMN_NAMES
+   Convert Headers to the correct HeaderBehavior
+make_java_headers : Headers -> Any
+make_java_headers headers:Headers = case headers of
+    Headers.Has_Headers -> ExcelHeaders.HeaderBehavior.USE_FIRST_ROW_AS_HEADERS
+    Headers.Detect_Headers -> ExcelHeaders.HeaderBehavior.INFER
+    Headers.No_Headers -> ExcelHeaders.HeaderBehavior.EXCEL_COLUMN_NAMES
 
 ## PRIVATE
    Handle and map the Java errors when reading an Excel file
 handle_reader : File -> (Java_File -> (Table | Vector)) -> (Table | Vector)
 handle_reader file reader =
-    bad_argument caught_panic = Error.throw (Invalid_Location.Error caught_panic.payload.getCause)
-    handle_bad_argument = Panic.catch InvalidLocationException handler=bad_argument
-
     # TODO [RW] handle InvalidFormatException
-    File_Error.handle_java_exceptions file <| handle_bad_argument <|
-        handle_bad_format file <| Empty_Sheet_Error.handle_java_exception <|
+    File_Error.handle_java_exceptions file <| handle_invalid_location <|
+        handle_bad_format file <| Empty_Sheet.handle_java_exception <|
             java_file = Java_File.new file.path
             reader java_file
 
@@ -84,3 +84,13 @@ handle_bad_format_with_handler handler ~action =
     Panic.catch UnsupportedFileFormatException handler=handler <|
         Panic.catch NotOLE2FileException handler=handler <|
             action
+
+## PRIVATE
+   A helper that handles the Java exceptions reported when a sheet, range or
+   address is invalid.
+handle_invalid_location ~action =
+    bad_argument caught_panic =
+        java_exception = caught_panic.payload
+        Error.throw (Invalid_Location.Error java_exception.getLocation java_exception.getMessage)
+    Panic.catch InvalidLocationException handler=bad_argument <|
+        action

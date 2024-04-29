@@ -56,7 +56,9 @@ class RenameProjectCmd(
         )
 
       projectModules.foreach { module =>
-        Module.fromCompilerModule(module).setIndexed(false)
+        ctx.state.suggestions.markIndexAsDirty(
+          Module.fromCompilerModule(module)
+        )
         ctx.endpoint.sendToClient(
           Api.Response(
             Api.SuggestionsDatabaseModuleUpdateNotification(

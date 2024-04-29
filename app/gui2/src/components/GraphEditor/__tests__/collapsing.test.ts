@@ -108,6 +108,43 @@ const testCases: TestCase[] = [
       },
     },
   },
+  {
+    description: 'Handle lambda arguments https://github.com/enso-org/enso/issues/9412',
+    initialNodes: [
+      'number1 = 1',
+      'number2 = 2',
+      'lambda = number1 -> x -> number1 + number2 + x',
+      'sum = lambda 1 2',
+    ],
+    selectedNodesRange: { start: 2, end: 4 },
+    expected: {
+      extracted: {
+        inputs: ['number2'],
+        nodes: ['lambda = number1 -> x -> number1 + number2 + x', 'sum = lambda 1 2'],
+        output: 'sum',
+      },
+      refactored: {
+        replace: 'sum = lambda 1 2',
+        with: { pattern: 'sum', arguments: ['number2'] },
+      },
+    },
+  },
+  {
+    description: 'Single input used twice https://github.com/enso-org/enso/issues/9412',
+    initialNodes: ['number1 = 1', 'sum = number1 + number1'],
+    selectedNodesRange: { start: 1, end: 2 },
+    expected: {
+      extracted: {
+        inputs: ['number1'],
+        nodes: ['sum = number1 + number1'],
+        output: 'sum',
+      },
+      refactored: {
+        replace: 'sum = number1 + number1',
+        with: { pattern: 'sum', arguments: ['number1'] },
+      },
+    },
+  },
 ]
 
 test.each(testCases)('Collapsing nodes, $description', (testCase) => {
@@ -132,7 +169,7 @@ test.each(testCases)('Collapsing nodes, $description', (testCase) => {
   const selectedNodesCode = testCase.initialNodes.slice(range.start, range.end)
   const selectedNodes = new Set(selectedNodesCode.map((code) => nodeCodeToId.get(code)!))
 
-  const { extracted, refactored } = prepareCollapsedInfo(selectedNodes, graphDb)
+  const { extracted, refactored } = unwrap(prepareCollapsedInfo(selectedNodes, graphDb))
   const expectedInputs = expectedExtracted.inputs.map((s) => unwrap(tryIdentifier(s)))
   const expectedOutput = unwrap(tryIdentifier(expectedExtracted.output))
   const expectedIds = expectedExtracted.nodes.map((code) => nodeCodeToId.get(code)!)
@@ -147,4 +184,32 @@ test.each(testCases)('Collapsing nodes, $description', (testCase) => {
   expect(refactored.id).toEqual(expectedRefactoredId)
   expect(refactored.pattern).toEqual(expectedRefactored.with.pattern)
   expect(refactored.arguments).toEqual(expectedRefactored.with.arguments)
+})
+
+test('Collapsing nodes in collapsed function', () => {
+  const initialCode = `
+collapsed1 input =
+    four = 4
+    sum = input + four
+    sum
+
+main =
+    input = 14
+    sum = Main.collapsed1 input`
+
+  const graphDb = GraphDb.Mock()
+  setupGraphDb(initialCode, graphDb)
+  const nodes = Array.from(graphDb.nodeIdToNode.keys())
+  const { extracted, refactored } = unwrap(
+    prepareCollapsedInfo(new Set(nodes.slice(1, 2)), graphDb),
+  )
+  expect(extracted.ids).toEqual(new Set(nodes.slice(1, 2)))
+  expect(extracted.inputs).toEqual(['input', 'four'])
+  expect(extracted.output).toEqual({
+    node: nodes[1],
+    identifier: 'sum',
+  })
+  expect(refactored.id).toEqual(nodes[1])
+  expect(refactored.pattern).toEqual('sum')
+  expect(refactored.arguments).toEqual(['input', 'four'])
 })

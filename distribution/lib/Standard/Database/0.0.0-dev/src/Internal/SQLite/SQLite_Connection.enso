@@ -4,8 +4,7 @@ import Standard.Base.Metadata.Display
 from Standard.Base.Metadata.Choice import Option
 from Standard.Base.Metadata.Widget import Single_Choice
 
-import Standard.Table.Data.Table.Table
-import Standard.Table.Data.Type.Value_Type.Value_Type
+from Standard.Table import Table, Value_Type
 
 import project.Column_Description.Column_Description
 import project.Connection.Connection.Connection
@@ -119,7 +118,7 @@ type SQLite_Connection
          commonly used table types, ignoring internal system tables or indices.
        - all_fields: Return all the fields in the metadata table.
     @types make_table_types_selector
-    @schema make_schema_selector
+    @schema (make_schema_selector include_any=True)
     tables : Text -> Text -> Text -> Vector -> Boolean -> Table
     tables self name_like=Nothing database=self.database schema=Nothing types=self.dialect.default_table_types all_fields=False =
         self.connection.tables name_like database schema types all_fields

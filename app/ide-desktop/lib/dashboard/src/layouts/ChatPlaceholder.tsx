@@ -10,8 +10,11 @@ import * as appUtils from '#/appUtils'
 import * as navigateHooks from '#/hooks/navigateHooks'
 
 import * as loggerProvider from '#/providers/LoggerProvider'
+import * as textProvider from '#/providers/TextProvider'
 
 import * as chat from '#/layouts/Chat'
+
+import UnstyledButton from '#/components/UnstyledButton'
 
 /** Props for a {@link ChatPlaceholder}. */
 export interface ChatPlaceholderProps {
@@ -23,6 +26,7 @@ export interface ChatPlaceholderProps {
 /** A placeholder component replacing `Chat` when a user is not logged in. */
 export default function ChatPlaceholder(props: ChatPlaceholderProps) {
   const { isOpen, doClose } = props
+  const { getText } = textProvider.useText()
   const logger = loggerProvider.useLogger()
   const navigate = navigateHooks.useNavigate()
 
@@ -38,33 +42,31 @@ export default function ChatPlaceholder(props: ChatPlaceholderProps) {
       >
         <div className="mx-chat-header-x mt-chat-header-t flex text-sm font-semibold">
           <div className="grow" />
-          <button className="mx-close-icon" onClick={doClose}>
+          <UnstyledButton className="mx-close-icon" onPress={doClose}>
             <img src={CloseLargeIcon} />
-          </button>
+          </UnstyledButton>
         </div>
         <div className="grid grow place-items-center">
           <div className="flex flex-col gap-status-page text-center text-base">
-            <div>
-              Login or register to access live chat
-              <br />
-              with our support team.
+            <div className="px-missing-functionality-text-x">
+              {getText('placeholderChatPrompt')}
             </div>
-            <button
+            <UnstyledButton
               className="button self-center bg-help text-white"
-              onClick={() => {
+              onPress={() => {
                 navigate(appUtils.LOGIN_PATH)
               }}
             >
-              Login
-            </button>
-            <button
+              {getText('login')}
+            </UnstyledButton>
+            <UnstyledButton
               className="button self-center bg-help text-white"
-              onClick={() => {
+              onPress={() => {
                 navigate(appUtils.REGISTRATION_PATH)
               }}
             >
-              Register
-            </button>
+              {getText('register')}
+            </UnstyledButton>
           </div>
         </div>
       </div>,

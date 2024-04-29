@@ -8,7 +8,6 @@ import org.enso.languageserver.filemanager.{FileSystemFailure, Path}
 import org.enso.pkg.QualifiedName
 import org.enso.polyglot.Suggestion
 import org.enso.searcher.SuggestionEntry
-import org.enso.text.editing.model.Position
 
 object SearchProtocol {
 
@@ -33,6 +32,8 @@ object SearchProtocol {
     val Documentation = "documentation"
 
     val Reexport = "reexport"
+
+    val Reexports = "reexports"
   }
 
   private object CodecType {
@@ -64,7 +65,12 @@ object SearchProtocol {
       case module: Suggestion.Module =>
         Encoder[Suggestion.Module]
           .apply(module)
-          .deepMerge(Json.obj(CodecField.Type -> SuggestionType.Module.asJson))
+          .deepMerge(
+            Json.obj(
+              CodecField.Type     -> SuggestionType.Module.asJson,
+              CodecField.Reexport -> module.reexports.headOption.asJson
+            )
+          )
 
       case tpe: Suggestion.Type =>
         Encoder[Suggestion.Type]
@@ -72,7 +78,8 @@ object SearchProtocol {
           .deepMerge(
             Json.obj(
               CodecField.Type       -> SuggestionType.Type.asJson,
-              CodecField.ReturnType -> Json.Null
+              CodecField.ReturnType -> Json.Null,
+              CodecField.Reexport   -> tpe.reexports.headOption.asJson
             )
           )
           .dropNullValues
@@ -81,7 +88,10 @@ object SearchProtocol {
         Encoder[Suggestion.Constructor]
           .apply(constructor)
           .deepMerge(
-            Json.obj(CodecField.Type -> SuggestionType.Constructor.asJson)
+            Json.obj(
+              CodecField.Type     -> SuggestionType.Constructor.asJson,
+              CodecField.Reexport -> constructor.reexports.headOption.asJson
+            )
           )
           .dropNullValues
 
@@ -89,7 +99,10 @@ object SearchProtocol {
         Encoder[Suggestion.DefinedMethod]
           .apply(conversionToMethod(conversion))
           .deepMerge(
-            Json.obj(CodecField.Type -> SuggestionType.Method.asJson)
+            Json.obj(
+              CodecField.Type     -> SuggestionType.Method.asJson,
+              CodecField.Reexport -> conversion.reexports.headOption.asJson
+            )
           )
           .dropNullValues
 
@@ -97,7 +110,10 @@ object SearchProtocol {
         Encoder[Suggestion.DefinedMethod]
           .apply(getterToMethod(getter))
           .deepMerge(
-            Json.obj(CodecField.Type -> SuggestionType.Method.asJson)
+            Json.obj(
+              CodecField.Type     -> SuggestionType.Method.asJson,
+              CodecField.Reexport -> getter.reexports.headOption.asJson
+            )
           )
           .dropNullValues
 
@@ -105,7 +121,10 @@ object SearchProtocol {
         Encoder[Suggestion.DefinedMethod]
           .apply(method)
           .deepMerge(
-            Json.obj(CodecField.Type -> SuggestionType.Method.asJson)
+            Json.obj(
+              CodecField.Type     -> SuggestionType.Method.asJson,
+              CodecField.Reexport -> method.reexports.headOption.asJson
+            )
           )
           .dropNullValues
 
@@ -137,7 +156,7 @@ object SearchProtocol {
       conversion.isStatic,
       conversion.documentation,
       conversion.annotations,
-      conversion.reexport
+      conversion.reexports
     )
 
   private def getterToMethod(
@@ -153,7 +172,7 @@ object SearchProtocol {
       getter.isStatic,
       getter.documentation,
       getter.annotations,
-      getter.reexport
+      getter.reexports
     )
 
   private val suggestionTypeDecoder: Decoder[Suggestion.Type] =
@@ -171,7 +190,7 @@ object SearchProtocol {
         documentation <- cursor
           .downField(CodecField.Documentation)
           .as[Option[String]]
-        reexport <- cursor.downField(CodecField.Reexport).as[Option[String]]
+        reexports <- cursor.downField(CodecField.Reexports).as[Set[String]]
       } yield {
         val returnType =
           QualifiedName.fromString(module).createChild(name).toString
@@ -183,7 +202,7 @@ object SearchProtocol {
           returnType,
           parentType,
           documentation,
-          reexport
+          reexports
         )
       }
     }
@@ -517,31 +536,6 @@ object SearchProtocol {
     * @param version current version of the suggestions database
     */
   case class GetSuggestionsDatabaseVersionResult(version: Long)
-
-  /** The completion request.
-    *
-    * @param file the edited file
-    * @param position the cursor position
-    * @param selfType filter entries matching the self type
-    * @param returnType filter entries matching the return type
-    * @param tags filter entries by suggestion type
-    * @param isStatic filter entries by `static` field
-    */
-  case class Completion(
-    file: Path,
-    position: Position,
-    selfType: Option[String],
-    returnType: Option[String],
-    tags: Option[Seq[SuggestionKind]],
-    isStatic: Option[Boolean]
-  )
-
-  /** The reply to the [[Completion]] request.
-    *
-    * @param currentVersion current version of the suggestions database
-    * @param results the list of suggestion ids matched the search query
-    */
-  case class CompletionResult(currentVersion: Long, results: Seq[SuggestionId])
 
   /** Base trait for export statements. */
   sealed trait Export {

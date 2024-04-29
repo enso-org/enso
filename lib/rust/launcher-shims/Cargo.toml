@@ -7,3 +7,6 @@ description = "Small wrappers for the launcher executable used for testing launc
 publish = false
 
 [dependencies]
+
+[lints]
+workspace = true

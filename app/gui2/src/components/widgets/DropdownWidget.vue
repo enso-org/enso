@@ -1,4 +1,4 @@
-<script setup lang="ts">
+<script setup lang="ts" generic="Entry extends DropdownEntry">
 import SvgIcon from '@/components/SvgIcon.vue'
 import type { Icon } from '@/util/iconName'
 import { computed, ref } from 'vue'
@@ -9,34 +9,30 @@ enum SortDirection {
   descending = 'descending',
 }
 
-const props = defineProps<{ color: string; selectedValue: string | undefined; values: string[] }>()
-const emit = defineEmits<{ click: [index: number, keepOpen: boolean] }>()
+const props = defineProps<{ color: string; entries: Entry[] }>()
+const emit = defineEmits<{ clickEntry: [entry: Entry, keepOpen: boolean] }>()
 
 const sortDirection = ref<SortDirection>(SortDirection.none)
 
-const sortedValuesAndIndices = computed(() => {
-  const valuesAndIndices = props.values.map<[value: string, index: number]>((value, index) => [
-    value,
-    index,
-  ])
+function lexicalCmp(a: string, b: string) {
+  return (
+    a > b ? 1
+    : a < b ? -1
+    : 0
+  )
+}
+
+const sortedValues = computed<Entry[]>(() => {
   switch (sortDirection.value) {
     case SortDirection.ascending: {
-      return valuesAndIndices.sort((a, b) =>
-        a[0] > b[0] ? 1
-        : a[0] < b[0] ? -1
-        : 0,
-      )
+      return [...props.entries].sort((a, b) => lexicalCmp(a.value, b.value))
     }
     case SortDirection.descending: {
-      return valuesAndIndices.sort((a, b) =>
-        a[0] > b[0] ? -1
-        : a[0] < b[0] ? 1
-        : 0,
-      )
+      return [...props.entries].sort((a, b) => lexicalCmp(b.value, a.value))
     }
     case SortDirection.none:
     default: {
-      return valuesAndIndices
+      return props.entries
     }
   }
 })
@@ -57,22 +53,35 @@ const NEXT_SORT_DIRECTION: Record<SortDirection, SortDirection> = {
 const enableSortButton = ref(false)
 </script>
 
+<script lang="ts">
+export interface DropdownEntry {
+  readonly value: string
+  readonly selected: boolean
+}
+</script>
+
 <template>
-  <div class="Dropdown" @pointerdown.stop @pointerup.stop @click.stop>
-    <ul class="list scrollable" :style="{ background: color, borderColor: color }" @wheel.stop>
-      <template v-for="[value, index] in sortedValuesAndIndices" :key="value">
-        <li v-if="value === selectedValue">
-          <div class="selected-item button" @click.stop="emit('click', index, $event.altKey)">
-            <span v-text="value"></span>
+  <div
+    class="DropdownWidget"
+    :style="{ '--dropdown-bg': color }"
+    @pointerdown.stop
+    @pointerup.stop
+    @click.stop
+  >
+    <ul class="list scrollable" @wheel.stop>
+      <template v-for="entry in sortedValues" :key="entry.value">
+        <li v-if="entry.selected">
+          <div class="item selected button" @click.stop="emit('clickEntry', entry, $event.altKey)">
+            <span v-text="entry.value"></span>
           </div>
         </li>
-        <li v-else class="selectable-item button" @click.stop="emit('click', index, $event.altKey)">
-          <span v-text="value"></span>
+        <li v-else class="item button" @click.stop="emit('clickEntry', entry, $event.altKey)">
+          <span v-text="entry.value"></span>
         </li>
       </template>
     </ul>
     <div v-if="enableSortButton" class="sort button">
-      <div class="sort-background" :style="{ background: color }"></div>
+      <div class="sort-background"></div>
       <SvgIcon
         :name="ICON_LOOKUP[sortDirection]"
         @click="sortDirection = NEXT_SORT_DIRECTION[sortDirection]"
@@ -82,32 +91,51 @@ const enableSortButton = ref(false)
 </template>
 
 <style scoped>
-.Dropdown {
-  position: absolute;
-  top: 100%;
-  margin-top: 8px;
-  overflow: visible;
-}
-
-.list {
+.DropdownWidget {
   position: relative;
   user-select: none;
-  overflow: auto;
+  overflow: clip;
+  min-width: 100%;
+
+  /* When dropdown is displayed right below the last node's argument, the rounded corner needs to be
+     covered. This is done by covering extra node-sized space at the top of the dropdown. */
+  --dropdown-extend: calc(var(--node-height) - 1px);
+  margin-top: calc(0px - var(--dropdown-extend));
+  padding-top: var(--dropdown-extend);
+  background-color: var(--dropdown-bg);
   border-radius: 16px;
+
+  &:before {
+    content: '';
+    display: block;
+    position: absolute;
+    top: var(--dropdown-extend);
+    left: 4px;
+    right: 4px;
+    border-top: 1px solid rgb(0 0 0 / 0.12);
+    z-index: 1;
+  }
+}
+.list {
+  overflow: auto;
   width: min-content;
+  border-radius: 0 0 16px 16px;
+  min-width: 100%;
   max-height: 152px;
   list-style-type: none;
   color: var(--color-text-light);
+  background: var(--dropdown-bg);
   scrollbar-width: thin;
   padding: 4px 0;
-  border: 2px solid;
+  border: 2px solid var(--dropdown-bg);
+  position: relative;
 }
 
 li {
   text-align: left;
 }
 
-.selectable-item:hover {
+.item:not(.selected):hover {
   color: white;
 }
 
@@ -121,6 +149,7 @@ li {
   position: absolute;
   border-top-left-radius: var(--radius-full);
   border-bottom-left-radius: var(--radius-full);
+  background: var(--dropdown-bg);
   opacity: 0.5;
   left: 0;
   top: 0;
@@ -134,8 +163,7 @@ li {
   border-bottom-left-radius: var(--radius-full);
   top: 1px;
   right: 6px;
-  padding: 2px;
-  padding-right: 0;
+  padding: 2px 0 2px 2px;
   line-height: 0;
 }
 
@@ -143,17 +171,18 @@ li {
   position: relative;
 }
 
-.selected-item {
-  border-radius: var(--radius-full);
-  background-color: var(--color-port-connected);
+.item {
+  margin-right: 4px;
+  margin-left: 4px;
   padding-left: 8px;
   padding-right: 8px;
-  width: min-content;
-  margin-left: 8px;
-}
+  border-radius: var(--radius-full);
 
-.selectable-item {
-  margin-right: 16px;
-  padding-left: 8px;
+  &:hover {
+    background-color: color-mix(in oklab, var(--color-port-connected) 50%, transparent 50%);
+  }
+  &.selected {
+    background-color: var(--color-port-connected);
+  }
 }
 </style>

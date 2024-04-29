@@ -5,7 +5,8 @@ import LoadingErrorVisualization from '@/components/visualizations/LoadingErrorV
 import LoadingVisualization from '@/components/visualizations/LoadingVisualization.vue'
 import { focusIsIn, useEvent } from '@/composables/events'
 import { provideVisualizationConfig } from '@/providers/visualizationConfig'
-import { useProjectStore, type NodeVisualizationConfiguration } from '@/stores/project'
+import { useProjectStore } from '@/stores/project'
+import { type NodeVisualizationConfiguration } from '@/stores/project/executionContext'
 import {
   DEFAULT_VISUALIZATION_CONFIGURATION,
   DEFAULT_VISUALIZATION_IDENTIFIER,
@@ -60,7 +61,7 @@ const emit = defineEmits<{
   'update:visible': [visible: boolean]
   'update:fullscreen': [fullscreen: boolean]
   'update:width': [width: number]
-  createNode: [options: NodeCreationOptions]
+  createNodes: [options: NodeCreationOptions[]]
 }>()
 
 const visPreprocessor = ref(DEFAULT_VISUALIZATION_CONFIGURATION)
@@ -157,7 +158,7 @@ const effectiveVisualizationData = computed(() => {
   const visualizationData = nodeVisualizationData.value ?? expressionVisualizationData.value
   if (!visualizationData) return
   if (visualizationData.ok) return visualizationData.value
-  else return { name, error: new Error(visualizationData.error.payload) }
+  else return { name, error: new Error(`${visualizationData.error.payload}`) }
 })
 
 function updatePreprocessor(
@@ -294,7 +295,7 @@ provideVisualizationConfig({
   },
   hide: () => emit('update:visible', false),
   updateType: (id) => emit('update:id', id),
-  createNode: (options) => emit('createNode', options),
+  createNodes: (...options) => emit('createNodes', options),
 })
 
 const effectiveVisualization = computed(() => {

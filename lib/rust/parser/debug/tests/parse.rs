@@ -172,7 +172,7 @@ fn plain_comments() {
 #[test]
 fn doc_comments() {
     #[rustfmt::skip]
-    let lines = vec![
+    let lines = [
         "## The Identity Function",
         "",
         "   Arguments:",
@@ -189,7 +189,7 @@ fn doc_comments() {
          #(()))
          (Function (Ident id) #((() (Ident x) () ())) () "=" (Ident x)))]);
     #[rustfmt::skip]
-    let lines = vec![
+    let lines = [
         "type Foo",
         " ## Test indent handling",
         "  ",
@@ -1049,15 +1049,15 @@ fn inline_text_literals() {
     test!(r#""Non-escape: \n""#, (TextLiteral #((Section "Non-escape: \\n"))));
     test!(r#""Non-escape: \""#, (TextLiteral #((Section "Non-escape: \\"))));
     test!(r#"'String with \' escape'"#,
-        (TextLiteral #((Section "String with ") (Escape '\'') (Section " escape"))));
+        (TextLiteral #((Section "String with ") (Escape 0x27) (Section " escape"))));
     test!(r#"'\u0915\u094D\u0937\u093F'"#, (TextLiteral
-        #((Escape '\u{0915}') (Escape '\u{094D}') (Escape '\u{0937}') (Escape '\u{093F}'))));
-    test!(r#"('\n')"#, (Group (TextLiteral #((Escape '\n')))));
+        #((Escape 0x0915) (Escape 0x094D) (Escape 0x0937) (Escape 0x093F))));
+    test!(r#"('\n')"#, (Group (TextLiteral #((Escape 0x0A)))));
     test!(r#"`"#, (Invalid));
     test!(r#"(")")"#, (Group (TextLiteral #((Section ")")))));
-    test!(r#"'\x'"#, (TextLiteral #((Escape ()))));
-    test!(r#"'\u'"#, (TextLiteral #((Escape ()))));
-    test!(r#"'\U'"#, (TextLiteral #((Escape ()))));
+    test!(r#"'\x'"#, (TextLiteral #((Escape 0xFFFFFFFFu32))));
+    test!(r#"'\u'"#, (TextLiteral #((Escape 0xFFFFFFFFu32))));
+    test!(r#"'\U'"#, (TextLiteral #((Escape 0xFFFFFFFFu32))));
 }
 
 #[test]
@@ -1100,7 +1100,7 @@ x"#;
     ];
     test(code, expected);
     let code = "'''\n    \\nEscape at start\n";
-    test!(code, (TextLiteral #((Escape '\n') (Section "Escape at start"))) ());
+    test!(code, (TextLiteral #((Escape 0x0A) (Section "Escape at start"))) ());
     let code = "x =\n x = '''\n  x\nx";
     #[rustfmt::skip]
     let expected = block![
@@ -1111,9 +1111,9 @@ x"#;
     test(code, expected);
     test!("foo = bar '''\n baz",
         (Assignment (Ident foo) "=" (App (Ident bar) (TextLiteral #((Section "baz"))))));
-    test!("'''\n \\t'", (TextLiteral #((Escape '\t') (Section "'"))));
+    test!("'''\n \\t'", (TextLiteral #((Escape 0x09) (Section "'"))));
     test!("'''\n x\n \\t'",
-        (TextLiteral #((Section "x") (Newline) (Escape '\t') (Section "'"))));
+        (TextLiteral #((Section "x") (Newline) (Escape 0x09) (Section "'"))));
 }
 
 #[test]
@@ -1126,11 +1126,11 @@ fn interpolated_literals_in_inline_text() {
     test!(r#"'` SpliceWithLeadingWhitespace`'"#,
         (TextLiteral #((Splice (Ident SpliceWithLeadingWhitespace)))));
     test!(r#"'String with \n escape'"#,
-        (TextLiteral #((Section "String with ") (Escape '\n') (Section " escape"))));
-    test!(r#"'\x0Aescape'"#, (TextLiteral #((Escape '\n') (Section "escape"))));
-    test!(r#"'\u000Aescape'"#, (TextLiteral #((Escape '\n') (Section "escape"))));
-    test!(r#"'\u{0000A}escape'"#, (TextLiteral #((Escape '\n') (Section "escape"))));
-    test!(r#"'\U0000000Aescape'"#, (TextLiteral #((Escape '\n') (Section "escape"))));
+        (TextLiteral #((Section "String with ") (Escape 0x0A) (Section " escape"))));
+    test!(r#"'\x0Aescape'"#, (TextLiteral #((Escape 0x0A) (Section "escape"))));
+    test!(r#"'\u000Aescape'"#, (TextLiteral #((Escape 0x0A) (Section "escape"))));
+    test!(r#"'\u{0000A}escape'"#, (TextLiteral #((Escape 0x0A) (Section "escape"))));
+    test!(r#"'\U0000000Aescape'"#, (TextLiteral #((Escape 0x0A) (Section "escape"))));
 }
 
 #[test]
@@ -1149,7 +1149,7 @@ fn interpolated_literals_in_multiline_text() {
     let expected = block![
         (TextLiteral
          #((Section "text with a ") (Splice (Ident splice)) (Newline)
-           (Section "and some ") (Escape '\n') (Section "escapes") (Escape '\'')))];
+           (Section "and some ") (Escape 0x0A) (Section "escapes") (Escape 0x27)))];
     test(code, expected);
 }
 
@@ -1321,7 +1321,7 @@ fn private_keyword() {
 fn private_is_first_statement() {
     // Comments and empty lines are allowed before `private`.
     #[rustfmt::skip]
-    let lines = vec![
+    let lines = [
         "# Some comment",
         "# Other comment",
         "",
@@ -1330,7 +1330,7 @@ fn private_is_first_statement() {
     test(&lines.join("\n"), block![()()()(Private)]);
 
     #[rustfmt::skip]
-    let lines = vec![
+    let lines = [
         "type T",
         "",
         "private"
@@ -1702,7 +1702,7 @@ impl Errors {
         let ast = parse(code);
         expect_tree_representing_code(code, &ast);
         let errors = core::cell::Cell::new(Errors::default());
-        ast.map(|tree| match &*tree.variant {
+        ast.visit_trees(|tree| match &*tree.variant {
             enso_parser::syntax::tree::Variant::Invalid(_) => {
                 errors.update(|e| Self { invalid_node: true, ..e });
             }

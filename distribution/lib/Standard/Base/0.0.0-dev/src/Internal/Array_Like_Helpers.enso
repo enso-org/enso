@@ -132,17 +132,16 @@ slice_many_ranges vector ranges =
     new_length = ranges.fold 0 acc-> descriptor-> case descriptor of
         _ : Integer -> acc+1
         _ : Range -> acc+descriptor.length
-    builder = Vector.new_builder new_length
-    ranges.each descriptor-> case descriptor of
-        _ : Integer ->
-            builder.append (vector.at descriptor)
-        Range.Between start end step -> case step == 1 of
-            True ->
-                builder.append_vector_range vector start end
-            False ->
-                descriptor.each ix->
-                    builder.append (vector.at ix)
-    builder.to_vector
+    Vector.build initial_capacity=new_length builder->
+        ranges.each descriptor-> case descriptor of
+            _ : Integer ->
+                builder.append (vector.at descriptor)
+            Range.Between start end step -> case step == 1 of
+                True ->
+                    builder.append_vector_range vector start end
+                False ->
+                    descriptor.each ix->
+                        builder.append (vector.at ix)
 
 check_start_valid start length function =
     used_start = if start < 0 then start + length else start
@@ -269,11 +268,11 @@ reduce vector function ~if_empty =
             fold_function (vector.at 0) 1
 
 running_fold vector init function =
-    wrapped builder value =
-        current = if builder.length == 0 then init else builder.last
-        builder.append (function current value)
-    built = vector.fold (Vector.new_builder vector.length) wrapped
-    built.to_vector
+    Vector.build initial_capacity=vector.length builder->
+        wrapped value =
+            current = if builder.length == 0 then init else builder.last
+            builder.append (function current value)
+        vector.map wrapped
 
 pad vector n elem =
     if vector.length >= n then vector else
@@ -325,14 +324,22 @@ partition_with_index vector predicate =
 
 filter vector filter =
     predicate = unify_condition_or_predicate filter
-    builder = vector.fold Vector.new_builder builder-> elem->
-        if predicate elem then builder.append elem else builder
-    builder.to_vector
+    ## TODO: Correct propagation of warnings attached to vector elements
+       requires that this method return the list of `Builder`s that are returned
+       by `builder.append`.  Will be fixed in
+       https://github.com/enso-org/enso/issues/9733.
+    Vector.build builder->
+        vector.map elem->
+            if predicate elem then builder.append elem
 
 filter_with_index vector predicate =
-    builder = vector.fold_with_index Vector.new_builder builder-> ix-> elem->
-        if predicate ix elem then builder.append elem else builder
-    builder.to_vector
+    ## TODO: Correct propagation of warnings attached to vector elements
+       requires that this method return the list of `Builder`s that are returned
+       by `builder.append`.  Will be fixed in
+       https://github.com/enso-org/enso/issues/9733.
+    Vector.build builder->
+        vector.map_with_index ix-> elem->
+            if predicate ix elem then builder.append elem
 
 ## PRIVATE
    Check that all vectors have the same length and return an informative message

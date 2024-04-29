@@ -23,8 +23,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TimeZone;
-import org.enso.polyglot.MethodNames;
-import org.enso.polyglot.MethodNames.Module;
+import org.enso.common.MethodNames;
+import org.enso.common.MethodNames.Module;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.PolyglotException;
 import org.graalvm.polyglot.Value;
@@ -369,6 +369,12 @@ public final class ValuesGenerator {
     if (languages.contains(Language.ENSO)) {
       collect.add(v(null, "", "42").type());
       collect.add(v(null, "", "6.7").type());
+      collect.add(v(null, "", "9223372036854776000").type());
+      collect.add(v(null, "", "9223372036854775999").type());
+      collect.add(v(null, "", "9223372036854775808").type());
+      collect.add(v(null, "", "9223372036854776000.0").type());
+      collect.add(v(null, "", "9223372036854775999.0").type());
+      collect.add(v(null, "", "9223372036854775808.0").type());
       collect.add(v(null, "import Standard.Base.Data.Numbers", "40321 * 43202").type());
       collect.add(
           v(
@@ -392,9 +398,14 @@ public final class ValuesGenerator {
       collect.add(ctx.asValue((short) 44));
       collect.add(ctx.asValue((int) 5432));
       collect.add(ctx.asValue((long) 5435432));
+      long over52bit = 2 ^ 56 + 777;
+      collect.add(ctx.asValue(over52bit));
+      collect.add(ctx.asValue((double) over52bit));
       collect.add(ctx.asValue((float) Math.PI));
       collect.add(ctx.asValue((double) Math.E));
       collect.add(ctx.asValue(Double.NaN));
+      collect.add(ctx.asValue(BigInteger.valueOf(10)));
+      collect.add(ctx.asValue(BigInteger.valueOf(10).pow(20)));
       collect.add(ctx.asValue(BigInteger.valueOf(10).pow(40)));
       collect.add(ctx.asValue(BigInteger.valueOf(10).pow(40).doubleValue()));
       collect.add(ctx.asValue(BigInteger.valueOf(10).pow(40).doubleValue() + 1.0));

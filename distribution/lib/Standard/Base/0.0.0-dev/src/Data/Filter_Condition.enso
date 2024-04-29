@@ -142,7 +142,8 @@ type Filter_Condition
          will likely be faster than using the vector directly.
     Is_In values:Vector|Any action:Filter_Action=Filter_Action.Keep
 
-    ## Converts a `Filter_Condition` condition into a predicate taking an
+    ## ICON convert
+       Converts a `Filter_Condition` condition into a predicate taking an
        element and returning a value indicating whether the element should be
        accepted by the filter.
 
@@ -227,36 +228,36 @@ type Filter_Condition
        Creates a Single_Choice Widget for delimiters.
     default_widget : Boolean -> Boolean -> Boolean -> Boolean -> Boolean -> Widget
     default_widget include_comparable=True include_text=True include_boolean=True include_nullable=True include_numeric=True =
-        options_builder = Vector.new_builder
-        if include_comparable then
-            options_builder.append "Less"
-            options_builder.append "Equal_Or_Less"
-            options_builder.append "Equal"
-            options_builder.append "Equal_Or_Greater"
-            options_builder.append "Greater"
-            options_builder.append "Not_Equal"
-            options_builder.append "Between"
-        if include_numeric then
-            options_builder.append "Is_Nan"
-            options_builder.append "Is_Infinite"
-            options_builder.append "Is_Finite"
-        if include_boolean then
-            options_builder.append "Is_True"
-            options_builder.append "Is_False"
-        if include_nullable then
-            options_builder.append "Is_Nothing"
-            options_builder.append "Not_Nothing"
-        if include_text then
-            options_builder.append "Is_Empty"
-            options_builder.append "Not_Empty"
-            options_builder.append "Equal_Ignore_Case"
-            options_builder.append "Starts_With"
-            options_builder.append "Ends_With"
-            options_builder.append "Contains"
-            options_builder.append "Like"
-        options_builder.append "Is_In"
+        options_before = Vector.build options_builder->
+            if include_comparable then
+                options_builder.append "Less"
+                options_builder.append "Equal_Or_Less"
+                options_builder.append "Equal"
+                options_builder.append "Equal_Or_Greater"
+                options_builder.append "Greater"
+                options_builder.append "Not_Equal"
+                options_builder.append "Between"
+            if include_numeric then
+                options_builder.append "Is_Nan"
+                options_builder.append "Is_Infinite"
+                options_builder.append "Is_Finite"
+            if include_boolean then
+                options_builder.append "Is_True"
+                options_builder.append "Is_False"
+            if include_nullable then
+                options_builder.append "Is_Nothing"
+                options_builder.append "Not_Nothing"
+            if include_text then
+                options_builder.append "Is_Empty"
+                options_builder.append "Not_Empty"
+                options_builder.append "Equal_Ignore_Case"
+                options_builder.append "Starts_With"
+                options_builder.append "Ends_With"
+                options_builder.append "Contains"
+                options_builder.append "Like"
+            options_builder.append "Is_In"
 
-        options = options_builder.to_vector.map constructor_name->
+        options = options_before.map constructor_name->
             name = constructor_name.replace "_" " "
             code = "(Filter_Condition." + constructor_name + ")"
             [name, code]

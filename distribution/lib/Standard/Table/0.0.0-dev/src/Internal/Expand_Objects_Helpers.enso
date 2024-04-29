@@ -3,16 +3,16 @@ import Standard.Base.Errors.Common.Index_Out_Of_Bounds
 import Standard.Base.Errors.Common.Type_Error
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
-import project.Data.Column.Column
-import project.Data.Conversions.Convertible_To_Columns.Convertible_To_Columns
-import project.Data.Conversions.Convertible_To_Rows.Convertible_To_Rows
-import project.Data.Table.Table
+import project.Column.Column
+import project.Conversions.Convertible_To_Columns.Convertible_To_Columns
+import project.Conversions.Convertible_To_Rows.Convertible_To_Rows
 import project.Errors.No_Such_Column
-import project.Extensions.Prefix_Name.Prefix_Name
 import project.Internal.Fan_Out
 import project.Internal.Java_Exports
 import project.Internal.Java_Problems
 import project.Internal.Widget_Helpers
+import project.Prefix_Name.Prefix_Name
+import project.Table.Table
 from project.Internal.Java_Exports import make_inferred_builder
 
 ## PRIVATE
@@ -21,28 +21,29 @@ expand_column (table : Table) (column : Text | Integer) (fields : (Vector Text) 
     column_object = table.at column
     expanded = create_table_from_objects column_object.to_vector fields
 
-    output_builder = Vector.new_builder table.column_count+expanded.column_count-1
+    expanded.if_not_error <|
+        output_builder = Vector.new_builder table.column_count+expanded.column_count-1
 
-    ## Resolve names
-    resolved_prefix = case prefix of
-        Prefix_Name.None -> ""
-        Prefix_Name.Column_Name -> column_object.name+" "
-        Prefix_Name.Custom value -> value
-    default_name = case prefix of
-        Prefix_Name.None -> "Value"
-        Prefix_Name.Column_Name -> column_object.name
-        Prefix_Name.Custom value -> value
-    naming_strategy = table.column_naming_helper.create_unique_name_strategy
-    naming_strategy.mark_used (table.column_names.filter (c->c!=column_object.name))
-    new_names = naming_strategy.make_all_unique (expanded.column_names.map n-> if n=='Value' then default_name else resolved_prefix+n)
-    new_columns = new_names.zip expanded.columns (n->c-> c.rename n)
+        ## Resolve names
+        resolved_prefix = case prefix of
+            Prefix_Name.None -> ""
+            Prefix_Name.Column_Name -> column_object.name+" "
+            Prefix_Name.Custom value -> value
+        default_name = case prefix of
+            Prefix_Name.None -> "Value"
+            Prefix_Name.Column_Name -> column_object.name
+            Prefix_Name.Custom value -> value
+        naming_strategy = table.column_naming_helper.create_unique_name_strategy
+        naming_strategy.mark_used (table.column_names.filter (c->c!=column_object.name))
+        new_names = naming_strategy.make_all_unique (expanded.column_names.map n-> if n=='Value' then default_name else resolved_prefix+n)
+        new_columns = new_names.zip expanded.columns (n->c-> c.rename n)
 
-    ## Create Merged Columns
-    table.columns.each c->
-        if c.name != column_object.name then output_builder.append c else
-            output_builder.append_vector_range new_columns
+        ## Create Merged Columns
+        table.columns.each c->
+            if c.name != column_object.name then output_builder.append c else
+                output_builder.append_vector_range new_columns
 
-    Table.new output_builder.to_vector
+        Table.new output_builder.to_vector
 
 ## PRIVATE
    GROUP Standard.Base.Conversions
