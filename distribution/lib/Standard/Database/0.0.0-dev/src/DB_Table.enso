@@ -2539,24 +2539,24 @@ type DB_Table
                 materialized_table = self.connection.read_statement sql column_type_suggestions . catch SQL_Error sql_error->
                     Error.throw (self.connection.dialect.get_error_mapper.transform_custom_errors sql_error)
 
-                warnings_builder = Vector.new_builder
-                expected_types = self.columns.map .value_type
-                actual_types = materialized_table.columns.map .value_type
-                expected_types.zip actual_types expected_type-> actual_type->
-                    if expected_type == actual_type then Nothing else
-                        expected_type_kind = Meta.meta expected_type . constructor
-                        actual_type_kind = Meta.meta actual_type . constructor
-                        ## We ignore simple approximations that our in-memory backend does - things like adding default
-                           timezone (because we do not have Date_Time without timezone in-memory),
-                           or changing Float32 to Float64 are silently ignored.
-                           However, bigger changes, like a Binary type column getting coerced to Mixed - _will_ still be reported.
-                        if expected_type_kind == actual_type_kind then Nothing else
-                            warnings_builder.append (Inexact_Type_Coercion.Warning expected_type actual_type)
-                result = if max_rows.is_nothing || materialized_table.row_count <= max_rows then materialized_table else
-                    assert warn_if_more_rows "We may get more rows than we asked for _only_ if warn_if_more_rows=True"
-                    warnings_builder.append (Not_All_Rows_Downloaded.Warning max_rows)
-                    materialized_table.take max_rows
-                Problem_Behavior.Report_Warning.attach_problems_before warnings_builder.to_vector result
+                warnings =Vector.new_builder warnings_builder->
+                    expected_types = self.columns.map .value_type
+                    actual_types = materialized_table.columns.map .value_type
+                    expected_types.zip actual_types expected_type-> actual_type->
+                        if expected_type == actual_type then Nothing else
+                            expected_type_kind = Meta.meta expected_type . constructor
+                            actual_type_kind = Meta.meta actual_type . constructor
+                            ## We ignore simple approximations that our in-memory backend does - things like adding default
+                            timezone (because we do not have Date_Time without timezone in-memory),
+                            or changing Float32 to Float64 are silently ignored.
+                            However, bigger changes, like a Binary type column getting coerced to Mixed - _will_ still be reported.
+                            if expected_type_kind == actual_type_kind then Nothing else
+                                warnings_builder.append (Inexact_Type_Coercion.Warning expected_type actual_type)
+                    result = if max_rows.is_nothing || materialized_table.row_count <= max_rows then materialized_table else
+                        assert warn_if_more_rows "We may get more rows than we asked for _only_ if warn_if_more_rows=True"
+                        warnings_builder.append (Not_All_Rows_Downloaded.Warning max_rows)
+                        materialized_table.take max_rows
+                Problem_Behavior.Report_Warning.attach_problems_before warnings result
 
     ## PRIVATE
        Creates a query corresponding to this table.
