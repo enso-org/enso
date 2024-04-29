@@ -1006,7 +1006,7 @@ public final class Main {
     }
     if (line.hasOption(VERSION_OPTION)) {
       displayVersion(line.hasOption(JSON_OPTION));
-      exitSuccess();
+      throw exitSuccess();
     }
 
     if (line.hasOption(NEW_OPTION)) {
@@ -1014,9 +1014,9 @@ public final class Main {
           line.getOptionValue(NEW_OPTION),
           scala.Option.apply(line.getOptionValue(PROJECT_NAME_OPTION)),
           scala.Option.apply(line.getOptionValue(PROJECT_NORMALIZED_NAME_OPTION)),
+          scala.Option.apply(line.getOptionValue(PROJECT_TEMPLATE_OPTION)),
           scala.Option.apply(line.getOptionValue(PROJECT_AUTHOR_NAME_OPTION)),
-          scala.Option.apply(line.getOptionValue(PROJECT_AUTHOR_EMAIL_OPTION)),
-          scala.Option.apply(line.getOptionValue(PROJECT_TEMPLATE_OPTION)));
+          scala.Option.apply(line.getOptionValue(PROJECT_AUTHOR_EMAIL_OPTION)));
     }
 
     if (line.hasOption(UPLOAD_OPTION)) {
