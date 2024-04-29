@@ -464,7 +464,6 @@ add_specs suite_builder =
             Error.unwrap not_wrapped . should_equal not_wrapped
 
     suite_builder.group "Wrapped dataflow errors" group_builder->
-
         group_builder.specify "should be able to catch a particular rethrown error" <|
             must_reach = Must_Reach.new
             handler e =
@@ -550,6 +549,19 @@ add_specs suite_builder =
                     Panic.throw (Illegal_Argument.Error "err")
                     Test.fail "should not reach here"
                 Test.fail "should not reach here"
+
+        group_builder.specify "example" <|
+            handler e =
+                # IO.println 'Caught: '+e.to_text
+                _ = [e]
+
+            Panic.handle_wrapped_dataflow_error error_type=My_Error handler=handler <|
+                a = 10
+                b = a + a
+                # IO.println a
+                # IO.println b
+                Panic.rethrow_wrapped_if_error  (Error.throw (My_Error.Error 1))
+                # IO.println "Does not reach here"
 
     suite_builder.group "Empty errors" group_builder->
         group_builder.specify "should implement to_display_text for List" <|

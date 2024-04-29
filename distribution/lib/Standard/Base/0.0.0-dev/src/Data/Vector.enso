@@ -276,9 +276,6 @@ type Vector a
     build_multiple (count : Integer) (function : Builder -> Any) (initial_capacity : Integer = 10) -> Vector Vector =
         if count < 0 then Error.throw (Illegal_Argument.Error "count must be non-negative: "+count.to_text) else
             builders = Range.new 0 count . map (_-> Build_Style_Builder.new initial_capacity)
-            ## The `catch_exception` handles dataflow errors that are *added* to
-               the builder in the builder callback, while the `if_not_error`
-               handles dataflow errors *propagated from* the builder callback.
             Panic.handle_wrapped_dataflow_error <|
                 function builders . if_not_error (builders.map .to_vector)
 

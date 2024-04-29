@@ -196,16 +196,58 @@ type Panic
 
        Arguments:
        - value: value to return if not an error, or rethrow as a Panic.
+
+       > Example
+         Rethrow an error as a panic from the middle of a block, and handle it
+         with an explicilt handler.
+
+             handler e =
+                 IO.println 'Caught: '+e.to_text
+
+             Panic.handle_wrapped_dataflow_error error_type=My_Error handler=handler <|
+                 a = 10
+                 b = a + a
+                 IO.println a
+                 IO.println b
+                 Panic.rethrow_wrapped_if_error  (Error.throw (My_Error.Error 1))
+                 IO.println "Does not reach here"
+
+             # Prints:
+             # 10
+             # 20
+             # Caught: (My_Error.Error 1)
     rethrow_wrapped_if_error : Any -> Any
     rethrow_wrapped_if_error value =
         if value.is_error then Panic.throw (Wrapped_Dataflow_Error.Error value.catch) else value
 
     ## PRIVATE
        ADVANCED
-       Catch any `Wrapped_Dataflow_Error` Panic and rethrow it as a dataflow error.
+       Catch any `Wrapped_Dataflow_Error` Panic and rethrow it as a dataflow error, or pass it to a user-specified handler.
 
        Arguments:
        - action: The code to execute that potentially raised a Wrapped_Dataflow_Error.
+       - error_type: The type of error to wrap and rethrow as a panic.
+       - handler: An optional handler to receive the wrapped dataflow error.
+
+       > Example
+         Rethrow an error as a panic from the middle of a block, and handle it
+         with an explicilt handler.
+
+             handler e =
+                 IO.println 'Caught: '+e.to_text
+
+             Panic.handle_wrapped_dataflow_error error_type=My_Error handler=handler <|
+                 a = 10
+                 b = a + a
+                 IO.println a
+                 IO.println b
+                 Panic.rethrow_wrapped_if_error  (Error.throw (My_Error.Error 1))
+                 IO.println "Does not reach here"
+
+             # Prints:
+             # 10
+             # 20
+             # Caught: (My_Error.Error 1)
     handle_wrapped_dataflow_error  : Any -> Any -> ((Any -> Any) | Nothing) -> Any
     handle_wrapped_dataflow_error ~action error_type=Any (handler : ((Any -> Any) | Nothing) = Nothing) =
         handler_resolved = handler.if_nothing Error.throw
