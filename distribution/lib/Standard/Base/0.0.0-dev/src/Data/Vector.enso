@@ -1536,11 +1536,6 @@ type Build_Style_Builder
 
        Arguments:
        - capacity: Initial capacity of the Vector.Builder
-
-       > Example
-         Make a new builder
-
-             Vector.new_builder
     new : Integer -> Build_Style_Builder 
     new (capacity : Integer = 10) -> Build_Style_Builder = Build_Style_Builder.Value (Array_Like_Helpers.new_vector_builder capacity) (Ref.new [])
 
@@ -1636,11 +1631,6 @@ type Build_Style_Builder
 
        Arguments:
        - item: The item to append to the vector builder.
-
-       > Example
-         Append an item to a vector builder.
-
-             Vector.new_builder.unsafe_append 10
     unsafe_append : Any -> Nothing
     unsafe_append self item = self.java_builder.add item
 
