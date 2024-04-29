@@ -290,10 +290,10 @@ export default function DuplicateAssetsModal(props: DuplicateAssetsModalProps) {
             }}
           >
             {count === 1
-              ? firstConflict?.new.isFile()
+              ? firstConflict?.new.isFile() === true
                 ? getText('renameNewFile')
                 : getText('renameNewProject')
-              : firstConflict?.new.isFile()
+              : firstConflict?.new.isFile() === true
                 ? getText('renameNewFiles')
                 : getText('renameNewProjects')}
           </UnstyledButton>

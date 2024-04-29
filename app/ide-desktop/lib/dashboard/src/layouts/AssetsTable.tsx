@@ -700,7 +700,10 @@ export default function AssetsTable(props: AssetsTableProps) {
           newSelectedKeys.size !== 0 &&
             Array.from(newSelectedKeys).every(key => {
               const node = nodeMapRef.current.get(key)
-              return node?.item.isProject() || node?.item.isFile() || node?.item.isDataLink()
+              return (
+                node != null &&
+                (node.item.isProject() || node.item.isFile() || node.item.isDataLink())
+              )
             })
         )
       }

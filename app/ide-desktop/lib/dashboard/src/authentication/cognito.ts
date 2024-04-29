@@ -276,25 +276,31 @@ export class Cognito {
     }
   }
 
-  /**
-   * Refresh the current user session.
-   */
+  /** Refresh the current user session. */
   async refreshUserSession() {
-    const result = await results.Result.wrapAsync(async () => {
+    try {
       const currentUser = await currentAuthenticatedUser()
-      const refreshToken = (await amplify.Auth.currentSession()).getRefreshToken()
-
-      await new Promise((resolve, reject) => {
-        currentUser.unwrap().refreshSession(refreshToken, (error, session) => {
-          if (error instanceof Error) {
-            reject(error)
-          } else {
-            resolve(session)
-          }
+      if (isAmplifyError(currentUser)) {
+        return currentUser
+      } else {
+        const session = await amplify.Auth.currentSession()
+        const refreshToken = session.getRefreshToken()
+        await new Promise((resolve, reject) => {
+          currentUser.refreshSession(refreshToken, (error, newSession) => {
+            if (error instanceof Error) {
+              reject(error)
+            } else {
+              resolve(newSession)
+            }
+          })
         })
-      })
-    })
-    return result.mapErr(intoCurrentSessionErrorType)
+        return
+      }
+    } catch (error) {
+      // The `try` above actually does always return.
+      // eslint-disable-next-line no-restricted-syntax
+      return intoCurrentSessionErrorType(error)
+    }
   }
 
   /** Sign out the current user. */
@@ -611,6 +617,10 @@ export interface ForgotPasswordError extends CognitoError {
   readonly message: string
 }
 
+// ==================================
+// === tryIntoForgotPasswordError ===
+// ==================================
+
 /** Convert an {@link AmplifyError} into a {@link ForgotPasswordError} if it is a known error,
  * else re-throw the error.
  * @throws {Error} If the error is not recognized. */
@@ -655,6 +665,10 @@ export interface ForgotPasswordSubmitError extends CognitoError {
   readonly message: string
 }
 
+// ========================================
+// === tryIntoForgotPasswordSubmitError ===
+// ========================================
+
 /** Convert an {@link AmplifyError} into a {@link ForgotPasswordSubmitError}
  * if it is a known error, else re-throw the error.
  * @throws {Error} If the error is not recognized. */
@@ -668,9 +682,9 @@ export function tryIntoForgotPasswordSubmitError(error: unknown): ForgotPassword
   }
 }
 
-// ======================
-// === ChangePassword ===
-// ======================
+// ================================
+// === currentAuthenticatedUser ===
+// ================================
 
 /** A wrapper around the Amplify "current authenticated user" endpoint that converts known errors
  * to {@link AmplifyError}s. */

@@ -23,7 +23,7 @@ import StatelessSpinner, * as statelessSpinner from '#/components/StatelessSpinn
 import Button from '#/components/styled/Button'
 import UnstyledButton from '#/components/UnstyledButton'
 
-import * as backendModule from '#/services/Backend'
+import type * as backendModule from '#/services/Backend'
 
 import type AssetQuery from '#/utilities/AssetQuery'
 import type * as assetTreeNode from '#/utilities/AssetTreeNode'
