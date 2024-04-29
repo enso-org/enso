@@ -29,7 +29,8 @@ case object AiApi {
       contextId: UUID,
       expressionId: UUID,
       prompt: String,
-      systemPrompt: Option[String]
+      systemPrompt: Option[String],
+      model: Option[String]
     )
     type Result = AiProtocol.AiCompletionResult
 
@@ -46,7 +47,7 @@ case object AiApi {
 
   case object AiCompletionProgress extends Method("ai/completionProgress") {
 
-    case class Params(code: String, reason: String)
+    case class Params(code: String, reason: String, visualizationId: UUID)
 
     implicit
     val hasParams: HasParams.Aux[this.type, AiCompletionProgress.Params] =

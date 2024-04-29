@@ -477,10 +477,14 @@ class JsonConnectionController(
         translateProgressNotification(payload)
       webActor ! translated
 
-    case AiProtocol.AiCompletionProgressNotification(code, reason) =>
+    case AiProtocol.AiCompletionProgressNotification(
+          code,
+          reason,
+          visualizationId
+        ) =>
       webActor ! Notification(
         AiCompletionProgress,
-        AiCompletionProgress.Params(code, reason)
+        AiCompletionProgress.Params(code, reason, visualizationId)
       )
 
     case req @ Request(method, _, _) if requestHandlers.contains(method) =>
@@ -582,6 +586,7 @@ class JsonConnectionController(
       ),
       AiCompletion2 -> ai.AICompletion2Handler.props(
         languageServerConfig.aiCompletionConfig,
+        rpcSession,
         runtimeConnector
       ),
       ExecuteExpression -> ExecuteExpressionHandler

@@ -17,7 +17,9 @@ import org.enso.languageserver.ai.AiProtocol.{AiCompletionResult, AiEvalRequest}
 import org.enso.languageserver.ai.{AiApi, AiProtocol}
 import org.enso.languageserver.data.AICompletionConfig
 import org.enso.languageserver.requesthandler.UnsupportedHandler
+import org.enso.languageserver.session.JsonSession
 import org.enso.languageserver.util.UnhandledLogging
+import org.enso.logger.akka.ActorMessageLogging
 import org.enso.polyglot.runtime.Runtime.Api
 
 import java.nio.charset.StandardCharsets
@@ -26,9 +28,13 @@ import java.util.UUID
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration.FiniteDuration
 
-class AICompletion2Handler(cfg: AICompletionConfig, runtime: ActorRef)
-    extends Actor
+class AICompletion2Handler(
+  cfg: AICompletionConfig,
+  session: JsonSession,
+  runtime: ActorRef
+) extends Actor
     with LazyLogging
+    with ActorMessageLogging
     with UnhandledLogging
     with PipeToSupport {
 
@@ -38,6 +44,8 @@ class AICompletion2Handler(cfg: AICompletionConfig, runtime: ActorRef)
     super.preStart()
 
     context.system.eventStream.subscribe(self, classOf[Api.VisualizationUpdate])
+    context.system.eventStream
+      .subscribe(self, classOf[Api.VisualizationEvaluationFailed])
   }
 
   override def receive: Receive = requestStage
@@ -46,11 +54,17 @@ class AICompletion2Handler(cfg: AICompletionConfig, runtime: ActorRef)
   implicit val ec: ExecutionContext       = context.dispatcher
   implicit val materializer: Materializer = Materializer(context)
 
-  private def requestStage: Receive = {
+  private def requestStage: Receive = LoggingReceive.withLabel("requestStage") {
     case Request(
           AiCompletion2,
           id,
-          AiCompletion2.Params(contextId, expressionId, prompt, systemPrompt)
+          AiCompletion2.Params(
+            contextId,
+            expressionId,
+            prompt,
+            systemPrompt,
+            model
+          )
         ) =>
       val messages = Vector(
         AiProtocol.CompletionsMessage(
@@ -59,7 +73,7 @@ class AICompletion2Handler(cfg: AICompletionConfig, runtime: ActorRef)
         ),
         AiProtocol.CompletionsMessage("user", prompt)
       )
-      sendHttpRequest(messages)
+      sendHttpRequest(messages, model)
 
       context.become(
         awaitingCompletionResponse(
@@ -67,7 +81,8 @@ class AICompletion2Handler(cfg: AICompletionConfig, runtime: ActorRef)
           sender(),
           contextId,
           expressionId,
-          messages
+          messages,
+          model
         )
       )
   }
@@ -77,30 +92,39 @@ class AICompletion2Handler(cfg: AICompletionConfig, runtime: ActorRef)
     replyTo: ActorRef,
     contextId: Api.ContextId,
     expressionId: Api.ExpressionId,
-    messages: Vector[AiProtocol.CompletionsMessage]
-  ): Receive = { case req @ AiEvalRequest(reason, code) =>
-    val visualizationId = UUID.randomUUID()
+    messages: Vector[AiProtocol.CompletionsMessage],
+    model: Option[String]
+  ): Receive = LoggingReceive.withLabel("evalRequestStage") {
+    case req @ AiEvalRequest(reason, code) =>
+      val requestId       = UUID.randomUUID()
+      val visualizationId = UUID.randomUUID()
 
-    runtime ! Api.ExecuteExpression(
-      contextId,
-      visualizationId,
-      expressionId,
-      code
-    )
-
-    replyTo ! AiProtocol.AiCompletionProgressNotification(code, reason)
-
-    context.become(
-      evalResponseStage(
-        id,
-        replyTo,
+      val executeExpression = Api.ExecuteExpression(
         contextId,
-        expressionId,
         visualizationId,
-        req,
-        messages
+        expressionId,
+        code
       )
-    )
+      runtime ! Api.Request(requestId, executeExpression)
+
+      session.rpcController ! AiProtocol.AiCompletionProgressNotification(
+        code,
+        reason,
+        visualizationId
+      )
+
+      context.become(
+        evalResponseStage(
+          id,
+          replyTo,
+          contextId,
+          expressionId,
+          visualizationId,
+          req,
+          messages,
+          model
+        )
+      )
   }
 
   private def evalResponseStage(
@@ -110,8 +134,9 @@ class AICompletion2Handler(cfg: AICompletionConfig, runtime: ActorRef)
     expressionId: Api.ExpressionId,
     visualizationId: Api.VisualizationId,
     request: AiEvalRequest,
-    messages: Vector[AiProtocol.CompletionsMessage]
-  ): Receive = {
+    messages: Vector[AiProtocol.CompletionsMessage],
+    model: Option[String]
+  ): Receive = LoggingReceive.withLabel("evalResponseStage") {
     case Api.VisualizationUpdate(ctx, data)
         if ctx.visualizationId == visualizationId =>
       val visualizationResult = new String(data, StandardCharsets.UTF_8)
@@ -121,7 +146,7 @@ class AICompletion2Handler(cfg: AICompletionConfig, runtime: ActorRef)
       )
       val newMessages = messages :+ message
 
-      sendHttpRequest(newMessages)
+      sendHttpRequest(newMessages, model)
 
       context.become(
         awaitingCompletionResponse(
@@ -129,9 +154,20 @@ class AICompletion2Handler(cfg: AICompletionConfig, runtime: ActorRef)
           replyTo,
           contextId,
           expressionId,
-          newMessages
+          newMessages,
+          model
         )
       )
+
+    case Api.VisualizationEvaluationFailed(ctx, message, _)
+        if ctx.visualizationId == visualizationId =>
+      val payload = Json.obj(
+        ("reason", "Failed to execute expression".asJson),
+        ("expression", request.code.asJson),
+        ("response", message.asJson)
+      )
+      replyTo ! ResponseError(Some(id), AiApi.AiError(Some(payload)))
+
   }
 
   private def awaitingCompletionResponse(
@@ -139,10 +175,12 @@ class AICompletion2Handler(cfg: AICompletionConfig, runtime: ActorRef)
     replyTo: ActorRef,
     contextId: Api.ContextId,
     expressionId: Api.ExpressionId,
-    messages: Vector[AiProtocol.CompletionsMessage]
-  ): Receive = {
+    messages: Vector[AiProtocol.CompletionsMessage],
+    model: Option[String]
+  ): Receive = LoggingReceive.withLabel("awaitingCompletionStage") {
     case HttpResponse(StatusCodes.OK, data) =>
       val responseUtf8String = data.utf8String
+      logger.trace("AI response:\n{}", responseUtf8String)
 
       parse(responseUtf8String) match {
         case Some(response) =>
@@ -171,7 +209,8 @@ class AICompletion2Handler(cfg: AICompletionConfig, runtime: ActorRef)
                     replyTo,
                     contextId,
                     expressionId,
-                    messages
+                    messages,
+                    model
                   )
                 )
               }
@@ -209,22 +248,23 @@ class AICompletion2Handler(cfg: AICompletionConfig, runtime: ActorRef)
   }
 
   private def sendHttpRequest(
-    messages: Vector[AiProtocol.CompletionsMessage]
+    messages: Vector[AiProtocol.CompletionsMessage],
+    modelOption: Option[String]
   ): Unit = {
     val body = Json.obj(
-      ("model", MODEL.asJson),
+      ("model", modelOption.getOrElse(MODEL).asJson),
       ("response_format", Json.obj(("type", "json_object".asJson))),
       ("messages", Json.arr(messages.map(_.asJson): _*))
     )
 
+    logger.trace("AI request:\n{}", body)
+
     val req =
       HttpRequest(
-        uri    = API_OPENAI_URI,
-        method = HttpMethods.POST,
-        headers = Seq(
-          headers.Authorization(OAuth2BearerToken(cfg.apiKey))
-        ),
-        entity = HttpEntity(ContentTypes.`application/json`, body.noSpaces)
+        uri     = API_OPENAI_URI,
+        method  = HttpMethods.POST,
+        headers = Seq(headers.Authorization(OAuth2BearerToken(cfg.apiKey))),
+        entity  = HttpEntity(ContentTypes.`application/json`, body.noSpaces)
       )
 
     http
@@ -250,7 +290,7 @@ object AICompletion2Handler {
       |- 'kind': 'final'
       |- 'fn': String, Python function returning what user wants. Always write as generic code as possible that will work even if the input data (e.g. file content) changes. Do not assume any input data exists if not provided with it explicitly. Use your knowledge about the world if the provided data is missing.
       |- 'fnCall': String, Python code that calls the generated function.
-      |- 'resultPreview': Code in Python. When evaluated, prints to stdout a preview of the result, e.g. 'print("Number 5")'. Make it as generic as possible. It should work even if the input data changes. The string written to stdout should be one-line, as short as possible, and as informative as possible, e.g. 'Table with 50 rows and columns "c1", "c2", and "c3"'. It can assume that the 'fnCall' result is in scope.
+      |- 'resultPreview': Code in Python. When evaluated, prints to stdout a preview of the result, e.g. 'Visualization.AI.print("Number 5")'. Make it as generic as possible. It should work even if the input data changes. The string written to stdout should be one-line, as short as possible, and as informative as possible, e.g. 'Table with 50 rows and columns "c1", "c2", and "c3"'. It can assume that the 'fnCall' result is in scope.
       |- 'queryParts': Array of user query divided into either non-editable text, or widgets. The idea is that users can click widgets to change them to other values. Every part should be one of the JSON objects:
       |  * Fields:
       |    a. 'kind': 'text'
@@ -261,25 +301,40 @@ object AICompletion2Handler {
       |
       |If in order to provide the answer you need to investigate what is inside the data, you can run code and be asked again the same question with provided stdout by outputing JSON object with fields:
       |- 'kind': 'eval'
-      |- 'code': Python code required to investigate data. The code should write to stdout as little as possible, as the data can be huge. You can only use data you are already provided with, no more data can be provided and you can't ask for more data.
+      |- 'code': Python code required to investigate data. The code should write to stdout as little as possible. Use 'Visualization.AI.print' function for printing to stdout. You can only use data you are already provided with, no more data can be provided and you can't ask for more data.
       |- 'reason': Reason why you were not able to provide final code.
       |Always prefer outputting the final code. Use kind "eval" only if you can't output object with kind "final".
       |
-      |If you can't provide the answer, because the current data and your knowledge about the world is not enoguh, output JSON object with fields:
+      |If you can't provide the answer, because the current data and your knowledge about the world is not enough, output JSON object with fields:
       |- 'kind': 'fail'
       |- 'reason': Reason why you were not able to provide the answer. As short as possible. Do not mention Python nor code, this is information for non-tech users.
       |""".stripMargin
 
   private case class HttpResponse(status: StatusCode, data: ByteString)
 
-  def props(cfg: Option[AICompletionConfig], runtime: ActorRef): Props =
+  def props(
+    cfg: Option[AICompletionConfig],
+    session: JsonSession,
+    runtime: ActorRef
+  ): Props =
     cfg
-      .map(conf => Props(new AICompletion2Handler(conf, runtime)))
+      .map(conf => Props(new AICompletion2Handler(conf, session, runtime)))
       .getOrElse(Props(new UnsupportedHandler(AiCompletion2)))
 
-  private def parse(str: String): Option[Json] = {
-    io.circe.parser.parse(str).toOption
-  }
+  private def parse(str: String): Option[Json] =
+    for {
+      response       <- io.circe.parser.parse(str).toOption
+      responseObj    <- response.asObject
+      choices        <- responseObj("choices")
+      choicesArr     <- choices.asArray
+      firstChoice    <- choicesArr.headOption
+      firstChoiceObj <- firstChoice.asObject
+      message        <- firstChoiceObj("message")
+      messageObj     <- message.asObject
+      content        <- messageObj("content")
+      contentString  <- content.asString
+      contentJson    <- io.circe.parser.parse(contentString).toOption
+    } yield contentJson
 
   private def getFinalResult(
     response: Json

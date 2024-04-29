@@ -5199,7 +5199,19 @@ Sent from the client to the server to ask the AI model the code suggestion.
 
 ```typescript
 interface AiCompletionParameters {
+  /** The execution context id to use for executing expressions. */
+  contextId: UUID;
+  /**
+   * The expression providing the execution scope. The same as `expressionId`
+   * parameter of `executionContext/executeExpression` method.
+   */
+  expressionId: UUID;
+  /** The user prompt. */
   prompt: string;
+  /** The system prompt describing the AI role. */
+  systemPrompt?: string;
+  /** The AI model to use. */
+  model?: string;
 }
 ```
 
@@ -5247,6 +5259,11 @@ interface AiCompletionProgressNotification {
   code: string;
   /** Explanation given by the AI model why it needs an extra information. */
   reason: string;
+  /**
+   * The id of the visualization being executed. When evaluated, the
+   * visualization update will contain the result of the executed expression.
+   */
+  visualizationId: UUID;
 }
 ```
 
