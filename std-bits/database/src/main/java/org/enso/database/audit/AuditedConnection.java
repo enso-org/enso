@@ -1,4 +1,4 @@
-package org.enso.database;
+package org.enso.database.audit;
 
 import java.sql.Array;
 import java.sql.Blob;

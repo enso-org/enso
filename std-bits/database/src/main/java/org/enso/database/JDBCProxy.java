@@ -47,6 +47,7 @@ public class JDBCProxy {
       DriverManager.registerDriver(driver);
     }
 
+    // TODO make it audited
     return EnsoSecretHelper.getJDBCConnection(url, properties);
   }
 }
