@@ -6,6 +6,7 @@ import java.time.LocalTime;
 import java.time.ZonedDateTime;
 import java.util.List;
 import org.enso.base.polyglot.NumericConverter;
+import org.enso.base.polyglot.Polyglot_Utils;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.type.BigIntegerType;
 import org.enso.table.data.column.storage.type.BooleanType;
@@ -17,6 +18,7 @@ import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.data.column.storage.type.TextType;
 import org.enso.table.data.column.storage.type.TimeOfDayType;
 import org.enso.table.problems.ProblemAggregator;
+import org.graalvm.polyglot.Value;
 
 /**
  * A builder performing type inference on the appended elements, choosing the best possible storage.
@@ -61,6 +63,11 @@ public class InferredBuilder extends Builder {
 
   @Override
   public void append(Object o) {
+    if (o instanceof Value v) {
+      // ToDo: This a workaround for an issue with polyglot layer. #5590 is related.
+      o = Polyglot_Utils.convertPolyglotValue(v);
+    }
+
     if (currentBuilder == null) {
       if (o == null) {
         currentSize++;
