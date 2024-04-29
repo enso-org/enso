@@ -57,7 +57,7 @@ type Exception
        - action: The block containing the code that might throw the `Error`.
        - handler: An error handler that receives the caught dataflow error.
     catch_exception : Any -> (Any -> Any) -> Any -> Any
-    catch_exception exception_type ~action (handler : Any -> Any = Exception.default_handler) =
+    catch_exception ~action exception_type=Any (handler : Any -> Any = Exception.default_handler) =
         Panic.catch Uncaught_Exception action cp->
             assert (cp.payload . is_a Uncaught_Exception)
             error = cp.payload.error

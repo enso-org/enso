@@ -223,7 +223,8 @@ type Vector a
     build : (Builder -> Any) -> Integer -> Vector
     build (function : Builder -> Any) (initial_capacity : Integer = 10) -> Vector =
         # Delegate to .build_multiple
-        Vector.build_multiple 1 initial_capacity=initial_capacity (builders-> function (builders.at 0)) . if_not_error (results_multiple.at 0)
+        results_multiple = Vector.build_multiple 1 initial_capacity=initial_capacity (builders-> function (builders.at 0))
+        results_multiple.if_not_error (results_multiple.at 0)
 
     ## PRIVATE
        ADVANCED
@@ -281,7 +282,7 @@ type Vector a
             ## The `catch_exception` handles dataflow errors that are *added* to
                the builder in the builder callback, while the `if_not_error`
                handles dataflow errors *propagated from* the builder callback.
-            Exception.catch_exception Builder_Dataflow_Error handler=handler <|
+            Exception.catch_exception exception_type=Builder_Dataflow_Error handler=handler <|
                 function builders . if_not_error (builders.map .to_vector)
 
     ## PRIVATE
