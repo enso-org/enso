@@ -49,10 +49,10 @@ class NoGroupingNoOrderingRunning<T> extends RunningLooper<T> {
   NoGroupingNoOrderingRunning() {}
 
   @Override
-  public void loopImpl(RunningStatistic<T> factory, long numRows) {
-    var it = factory.getNewIterator();
+  public void loopImpl(RunningStatistic<T> runningStatistic, long numRows) {
+    var it = runningStatistic.getNewIterator();
     for (int i = 0; i < numRows; i++) {
-      factory.calculateNextValue(i, it);
+      runningStatistic.calculateNextValue(i, it);
     }
   }
 }
@@ -76,13 +76,13 @@ class GroupingNoOrderingRunning<T> extends RunningLooper<T> {
   }
 
   @Override
-  public void loopImpl(RunningStatistic<T> factory, long numRows) {
+  public void loopImpl(RunningStatistic<T> runningStatistic, long numRows) {
     for (int i = 0; i < numRows; i++) {
       var key = new UnorderedMultiValueKey(groupingStorages, i, textFoldingStrategy);
       key.checkAndReportFloatingEquality(
           groupingProblemAggregator, columnIx -> groupingColumns[columnIx].getName());
-      var it = groups.computeIfAbsent(key, k -> factory.getNewIterator());
-      factory.calculateNextValue(i, it);
+      var it = groups.computeIfAbsent(key, k -> runningStatistic.getNewIterator());
+      runningStatistic.calculateNextValue(i, it);
     }
   }
 }
@@ -105,11 +105,11 @@ class NoGroupingOrderingRunning<T> extends RunningLooper<T> {
   }
 
   @Override
-  public void loopImpl(RunningStatistic<T> factory, long numRows) {
-    var it = factory.getNewIterator();
+  public void loopImpl(RunningStatistic<T> runningStatistic, long numRows) {
+    var it = runningStatistic.getNewIterator();
     for (var key : keys) {
       var i = key.getRowIndex();
-      factory.calculateNextValue(i, it);
+      runningStatistic.calculateNextValue(i, it);
     }
   }
 }
@@ -140,11 +140,13 @@ class GroupingOrderingRunning<T> extends RunningLooper<T> {
   }
 
   @Override
-  public void loopImpl(RunningStatistic<T> factory, long numRows) {
-    int n = orderingColumns[0].getSize();
+  public void loopImpl(RunningStatistic<T> runningStatistic, long numRows) {
     var groupIndex =
         MultiValueIndex.makeUnorderedIndex(
-            groupingColumns, n, TextFoldingStrategy.unicodeNormalizedFold, problemAggregator);
+            groupingColumns,
+            (int) numRows,
+            TextFoldingStrategy.unicodeNormalizedFold,
+            problemAggregator);
     for (var entry : groupIndex.mapping().entrySet()) {
       List<Integer> indices = entry.getValue();
       List<OrderedMultiValueKey> orderingKeys =
@@ -153,10 +155,10 @@ class GroupingOrderingRunning<T> extends RunningLooper<T> {
                   .map(i -> new OrderedMultiValueKey(orderingStorages, i, directions))
                   .toList());
       orderingKeys.sort(null);
-      var it = factory.getNewIterator();
+      var it = runningStatistic.getNewIterator();
       for (OrderedMultiValueKey key : orderingKeys) {
         var i = key.getRowIndex();
-        factory.calculateNextValue(i, it);
+        runningStatistic.calculateNextValue(i, it);
       }
     }
   }
