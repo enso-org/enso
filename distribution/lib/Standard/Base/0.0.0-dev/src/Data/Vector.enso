@@ -24,7 +24,6 @@ import project.Meta
 import project.Nothing.Nothing
 import project.Panic.Panic
 import project.Random.Random
-import project.Runtime.Ref.Ref
 import project.Warning.Warning
 from project.Data.Boolean import Boolean, False, True
 from project.Data.Filter_Condition import unify_condition_or_predicate, unify_condition_predicate_or_element
@@ -267,7 +266,7 @@ type Vector a
                  builder0.append 0
                  builder0.append 1
                  builder0.append 2
-                 builder1 = builders.at 10
+                 builder1 = builders.at 1
                  builder1.append 3
                  builder1.append 4
                  builder1.append 5
@@ -1498,9 +1497,9 @@ type Build_Style_Builder
        deprecated `Vector.new_builder`.
 
        Arguments:
-       - java_builder: The accumulator for the new vector.
-       - warnings: a `Ref` containing `Warning`s that were attached to values
-         added to the builder.
+       - elements_java_builder: The accumulator for the new vector.
+       - warnings_java_builder: The accumulator for `Warning`s that were
+         attached to values added to the builder.
 
        A vector builder is a mutable data structure, that allows to gather a
        number of elements and then convert them to a vector. This is
@@ -1529,7 +1528,7 @@ type Build_Style_Builder
                  builder.append 2
                  builder.append 3
              # => [1, 2, 3]
-    Value java_builder (warnings : Ref)
+    private Value elements_java_builder warnings_java_builder
 
     ## PRIVATE
        Creates a new builder.
@@ -1537,7 +1536,7 @@ type Build_Style_Builder
        Arguments:
        - capacity: Initial capacity of the Vector.Builder
     new : Integer -> Build_Style_Builder 
-    new (capacity : Integer = 10) -> Build_Style_Builder = Build_Style_Builder.Value (Array_Like_Helpers.new_vector_builder capacity) (Ref.new [])
+    new (capacity : Integer = 10) -> Build_Style_Builder = Build_Style_Builder.Value (Array_Like_Helpers.new_vector_builder capacity) (Array_Like_Helpers.new_vector_builder 0)
 
     ## ICON join
        Appends a new element into this builder, propagating any
@@ -1603,19 +1602,19 @@ type Build_Style_Builder
         first_dataflow_error = subrange.find (x-> x.is_error) if_missing=Nothing
         Panic.rethrow_wrapped_if_error <|
             first_dataflow_error.if_not_error <|
-                append_result = self.java_builder.appendTo subrange
+                append_result = self.elements_java_builder.appendTo subrange
                 assert (append_result.is_error.not)
                 self.add_warnings subrange
                 Nothing
 
     ## PRIVATE
-       Save any attached warnings in self.warnings.
+       Save any attached warnings in self.warnings_java_builder.
     add_warnings : Any -> Nothing
     add_warnings self x -> Nothing =
-        warnings = Warning.get_all x
-        if warnings.is_empty then Nothing else
-            self.warnings.put (self.warnings.get + (warnings.map .value))
-            Nothing
+        warnings = Warning.get_all x . map .value
+        append_result = self.warnings_java_builder.appendTo (warnings . slice 0 warnings.length)
+        assert (append_result.is_error.not)
+        Nothing
 
     ## PRIVATE
        Appends a new element into this builder.
@@ -1632,7 +1631,7 @@ type Build_Style_Builder
        Arguments:
        - item: The item to append to the vector builder.
     unsafe_append : Any -> Nothing
-    unsafe_append self item = self.java_builder.add item
+    unsafe_append self item = self.elements_java_builder.add item
 
     ## GROUP Selections
        ICON select_row
@@ -1645,7 +1644,7 @@ type Build_Style_Builder
     at : Integer -> Any ! Index_Out_Of_Bounds
     at self index =
         actual_index = if index < 0 then self.length + index else index
-        Panic.catch IndexOutOfBoundsException (self.java_builder.get actual_index) _->
+        Panic.catch IndexOutOfBoundsException (self.elements_java_builder.get actual_index) _->
             Error.throw (Index_Out_Of_Bounds.Error index self.length)
 
     ## GROUP Selections
@@ -1676,7 +1675,7 @@ type Build_Style_Builder
        ICON metadata
        Gets the current length of the builder.
     length : Integer
-    length self = self.java_builder.getSize
+    length self = self.elements_java_builder.getSize
 
     to_vector : Vector Any
     to_vector self =
@@ -1686,8 +1685,9 @@ type Build_Style_Builder
            This also reattaches any warnings that were attached to the added
            values. It attaches them to the whole array, not the individual
            values.
-        Warning.attach_multiple self.warnings.get <|
-            Vector.from_polyglot_array self.java_builder.toArray
+        warnings_vector = Vector.from_polyglot_array self.warnings_java_builder.toArray
+        Warning.attach_multiple warnings_vector <|
+            Vector.from_polyglot_array self.elements_java_builder.toArray
 
 ## PRIVATE
    Describes an error attached to a value within a `Vector`. The `index` field

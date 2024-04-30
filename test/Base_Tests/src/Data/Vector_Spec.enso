@@ -1066,6 +1066,7 @@ add_specs suite_builder =
                 builder.append 1
                 builder.append (Error.throw (Illegal_Argument.Error "asdf"))
                 builder.append 3
+                Test.fail "should not reach here because builder is immediately interrupted on error"
             v . should_fail_with (Illegal_Argument.Error "asdf")
 
         group_builder.specify "Builder should propagate an uncaught error if it is appended with .append_vector_range" <|
@@ -1073,6 +1074,7 @@ add_specs suite_builder =
                 builder.append 1
                 builder.append_vector_range [1, Error.throw (Illegal_Argument.Error "asdf")]
                 builder.append 3
+                Test.fail "should not reach here because builder is immediately interrupted on error"
             v . should_fail_with (Illegal_Argument.Error "asdf")
 
         group_builder.specify "Builder should propagate warnings attached to an item added to the builder with .append" <|
@@ -1084,7 +1086,7 @@ add_specs suite_builder =
             v . should_equal [1, 2, 3]
             Warning.get_all v . map .value . should_equal [My_Error.Error "err"]
 
-        group_builder.specify "Builder should propagate warnings attached to an item added to the builder with .append" <|
+        group_builder.specify "Builder should propagate warnings attached to an item added to the builder with .append_vector_range" <|
             v = Vector.build builder->
                 ww = Warning.attach (My_Error.Error "err") 21
                 builder.append 1
