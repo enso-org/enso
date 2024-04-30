@@ -104,9 +104,11 @@ const nodeShortType = computed(() =>
       @pointerup.stop
       @click.stop
     >
-      <div class="resizer-right" v-on="resizeRight.stop.events"></div>
-      <div class="resizer-bottom" v-on="resizeBottom.stop.events"></div>
-      <div class="resizer-bottom-right" v-on="resizeBottomRight.stop.events"></div>
+      <div class="resizer-left" />
+      <div class="resizer-right" v-on="resizeRight.stop.events" />
+      <div class="resizer-bottom" v-on="resizeBottom.stop.events" />
+      <div class="resizer-bottom-left" />
+      <div class="resizer-bottom-right" v-on="resizeBottomRight.stop.events" />
       <SmallPlusButton
         v-if="config.isCircularMenuVisible"
         class="below-viz"
@@ -312,8 +314,10 @@ const nodeShortType = computed(() =>
 .resizer-right {
   position: absolute;
   cursor: ew-resize;
-  left: 100%;
-  width: 12px;
+  left: calc(100% - var(--visualization-resize-handle-inside));
+  width: calc(
+    var(--visualization-resize-handle-inside) + var(--visualization-resize-handle-outside)
+  );
   height: 100%;
 }
 
@@ -336,18 +340,24 @@ const nodeShortType = computed(() =>
 .resizer-bottom {
   position: absolute;
   cursor: ns-resize;
-  top: 100%;
+  top: calc(100% - var(--visualization-resize-handle-inside));
   width: 100%;
-  height: 12px;
+  height: calc(
+    var(--visualization-resize-handle-inside) + var(--visualization-resize-handle-outside)
+  );
 }
 
 .resizer-bottom-right {
   position: absolute;
   cursor: nwse-resize;
-  left: calc(100% - 8px);
-  top: calc(100% - 8px);
-  width: 16px;
-  height: 16px;
+  left: calc(100% - var(--visualization-resize-handle-inside));
+  top: calc(100% - var(--visualization-resize-handle-inside));
+  width: calc(
+    var(--visualization-resize-handle-inside) + var(--visualization-resize-handle-outside)
+  );
+  height: calc(
+    var(--visualization-resize-handle-inside) + var(--visualization-resize-handle-outside)
+  );
 }
 
 .invisible {
