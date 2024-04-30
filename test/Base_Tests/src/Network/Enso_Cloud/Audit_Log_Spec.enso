@@ -1,0 +1,19 @@
+from Standard.Base import all
+
+from Standard.Test import all
+import Standard.Test.Test_Environment
+
+import project.Network.Enso_Cloud.Cloud_Tests_Setup.Cloud_Tests_Setup
+
+
+add_specs suite_builder setup:Cloud_Tests_Setup =
+    suite_builder.group "Enso Cloud Audit Log" pending=setup.pending group_builder->
+        group_builder.specify "should be able to send a log message synchronously" <|
+
+        group_builder.specify "should be able to send a log message asynchronously" <|
+
+main filter=Nothing =
+    setup = Cloud_Tests_Setup.prepare
+    suite = Test.build suite_builder->
+        add_specs suite_builder setup
+    suite.run_with_filter filter

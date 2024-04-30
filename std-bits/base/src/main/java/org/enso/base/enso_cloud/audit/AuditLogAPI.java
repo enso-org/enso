@@ -1,4 +1,7 @@
-package org.enso.base.enso_cloud;
+package org.enso.base.enso_cloud.audit;
+
+import org.enso.base.enso_cloud.AuthenticationProvider;
+import org.enso.base.enso_cloud.CloudAPI;
 
 import java.io.IOException;
 import java.net.URI;
@@ -13,13 +16,13 @@ import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Logger;
 
-public class AuditLog {
-  private static final Logger logger = Logger.getLogger(AuditLog.class.getName());
-  public static AuditLog INSTANCE = new AuditLog();
+public class AuditLogAPI {
+  private static final Logger logger = Logger.getLogger(AuditLogAPI.class.getName());
+  public static AuditLogAPI INSTANCE = new AuditLogAPI();
   private final HttpClient httpClient = HttpClient.newBuilder().followRedirects(HttpClient.Redirect.ALWAYS).build();
   private final ExecutorService executorService;
 
-  private AuditLog() {
+  private AuditLogAPI() {
     // A thread pool that creates at most one thread, only when it is needed, and shuts it down after 60 seconds of inactivity.
     executorService = new ThreadPoolExecutor(0, 1, 60L, TimeUnit.SECONDS, new SynchronousQueue<>());
   }

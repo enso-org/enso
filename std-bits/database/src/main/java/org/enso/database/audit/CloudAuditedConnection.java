@@ -1,6 +1,6 @@
 package org.enso.database.audit;
 
-import org.enso.base.enso_cloud.AuditLog;
+import org.enso.base.enso_cloud.audit.AuditLogAPI;
 
 import java.sql.Connection;
 
@@ -12,10 +12,10 @@ public final class CloudAuditedConnection extends AuditedConnection {
   @Override
   protected void audit(String sql) {
     var message = new DatabaseLogMessage("TODO", "TODO", sql);
-    AuditLog.INSTANCE.logAsync(message);
+    AuditLogAPI.INSTANCE.logAsync(message);
   }
 
-  private static class DatabaseLogMessage implements AuditLog.LogMessage {
+  private static class DatabaseLogMessage implements AuditLogAPI.LogMessage {
 
     private final String databaseHost;
     private final String databaseName;

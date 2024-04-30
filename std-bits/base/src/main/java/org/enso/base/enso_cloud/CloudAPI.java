@@ -11,6 +11,15 @@ public final class CloudAPI {
     return uriWithSlash;
   }
 
+  /**
+   * Returns the ID of the currently opened cloud project.
+   * <p>
+   * When running locally, this returns {@code null}.
+   */
+  public static String getCloudProjectId() {
+    return Environment_Utils.get_environment_variable("ENSO_CLOUD_PROJECT_ID");
+  }
+
   public static void flushCloudCaches() {
     CloudRequestCache.clear();
     AuthenticationProvider.reset();
