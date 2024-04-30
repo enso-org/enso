@@ -7,6 +7,8 @@ import com.oracle.truffle.api.dsl.Cached.Shared;
 import com.oracle.truffle.api.dsl.ReportPolymorphism;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.nodes.NodeInfo;
+import com.oracle.truffle.api.source.Source;
+import org.enso.common.LanguageInfo;
 import org.enso.compiler.context.InlineContext;
 import org.enso.compiler.context.LocalScope;
 import org.enso.interpreter.Constants;
@@ -73,17 +75,16 @@ public abstract class EvalNode extends BaseNode {
             context.getCompilerConfig(),
             scala.Option.apply(compiler.packageRepository()));
 
-    var tuppleOption = compiler.runInline(expression, inlineContext);
+    var src = Source.newBuilder(LanguageInfo.ID, expression, "<interactive_source>").build();
+    var tuppleOption = compiler.runInline(src.getCharacters(), inlineContext);
     if (tuppleOption.isEmpty()) {
       throw new RuntimeException("Invalid code passed to `eval`: " + expression);
     }
     var newInlineContext = tuppleOption.get()._1();
     var ir = tuppleOption.get()._2();
-    var src = tuppleOption.get()._3();
 
     var sco = newInlineContext.localScope().getOrElse(LocalScope::root);
-    var mod = newInlineContext.module$access$0().module$access$0();
-
+    var mod = newInlineContext.getModule();
     var m = org.enso.interpreter.runtime.Module.fromCompilerModule(mod);
     var toTruffle = new IrToTruffle(context, src, m.getScope(), compiler.getConfig());
     var expr = toTruffle.runInline(ir, sco, "<inline_source>");

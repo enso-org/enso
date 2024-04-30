@@ -307,6 +307,7 @@ lazy val enso = (project in file("."))
     `runtime-benchmarks`,
     `runtime-parser`,
     `runtime-compiler`,
+    `runtime-suggestions`,
     `runtime-language-epb`,
     `runtime-language-arrow`,
     `runtime-instrument-common`,
@@ -602,20 +603,34 @@ val generateRustParserLib =
     (`syntax-rust-definition` / generateRustParserLib).inputFileChanges.hasChanges
   ) {
     val os = System.getProperty("os.name")
+    val target = os.toLowerCase() match {
+      case DistributionPackage.OS.Linux.name =>
+        Some("x86_64-unknown-linux-musl")
+      case _ =>
+        None
+    }
+    target.foreach { t =>
+      Cargo.rustUp(t, log)
+    }
     val baseArguments = Seq(
       "build",
       "-p",
       "enso-parser-jni",
       "-Z",
-      "unstable-options",
-      "--out-dir",
-      (`syntax-rust-definition` / rustParserTargetDirectory).value.toString
-    )
+      "unstable-options"
+    ) ++ target.map(t => Seq("--target", t)).getOrElse(Seq()) ++
+      Seq(
+        "--out-dir",
+        (`syntax-rust-definition` / rustParserTargetDirectory).value.toString
+      )
     val adjustedArguments = baseArguments ++
       (if (BuildInfo.isReleaseMode)
          Seq("--release")
        else Seq())
-    Cargo.run(adjustedArguments, log)
+    val envVars = target
+      .map(_ => Seq(("RUSTFLAGS", "-C target-feature=-crt-static")))
+      .getOrElse(Seq())
+    Cargo.run(adjustedArguments, log, envVars)
   }
   FileTreeView.default.list(Seq(libGlob)).map(_._1.toFile)
 }
@@ -681,12 +696,11 @@ lazy val pkg = (project in file("lib/scala/pkg"))
     Compile / run / mainClass := Some("org.enso.pkg.Main"),
     frgaalJavaCompilerSetting,
     version := "0.1",
-    libraryDependencies ++= circe ++ Seq(
-      "org.graalvm.truffle" % "truffle-api"      % graalMavenPackagesVersion,
-      "org.scalatest"      %% "scalatest"        % scalatestVersion % Test,
-      "io.circe"           %% "circe-yaml"       % circeYamlVersion,
-      "org.apache.commons"  % "commons-compress" % commonsCompressVersion,
-      "commons-io"          % "commons-io"       % commonsIoVersion
+    libraryDependencies ++= Seq(
+      "org.graalvm.truffle" % "truffle-api"      % graalMavenPackagesVersion % "provided",
+      "io.circe"           %% "circe-yaml"       % circeYamlVersion          % "provided",
+      "org.scalatest"      %% "scalatest"        % scalatestVersion          % Test,
+      "org.apache.commons"  % "commons-compress" % commonsCompressVersion
     )
   )
   .dependsOn(editions)
@@ -1296,6 +1310,7 @@ lazy val `language-server` = (project in file("engine/language-server"))
       "com.typesafe.akka"          %% "akka-http-testkit"    % akkaHTTPVersion           % Test,
       "org.scalatest"              %% "scalatest"            % scalatestVersion          % Test,
       "org.scalacheck"             %% "scalacheck"           % scalacheckVersion         % Test,
+      "org.graalvm.truffle"         % "truffle-api"          % graalMavenPackagesVersion % "provided",
       "org.graalvm.sdk"             % "polyglot-tck"         % graalMavenPackagesVersion % "provided",
       "org.eclipse.jgit"            % "org.eclipse.jgit"     % jgitVersion,
       "org.bouncycastle"            % "bcutil-jdk18on"       % "1.76"                    % Test,
@@ -1681,6 +1696,7 @@ lazy val runtime = (project in file("engine/runtime"))
   .dependsOn(`polyglot-api`)
   .dependsOn(`text-buffer`)
   .dependsOn(`runtime-compiler`)
+  .dependsOn(`runtime-suggestions`)
   .dependsOn(`connected-lock-manager`)
   .dependsOn(testkit % Test)
 
@@ -1958,8 +1974,9 @@ lazy val `runtime-compiler` =
   (project in file("engine/runtime-compiler"))
     .settings(
       frgaalJavaCompilerSetting,
-      instrumentationSettings,
+      (Test / fork) := true,
       libraryDependencies ++= Seq(
+        "com.chuusai"     %% "shapeless"               % shapelessVersion   % "provided",
         "junit"            % "junit"                   % junitVersion       % Test,
         "com.github.sbt"   % "junit-interface"         % junitIfVersion     % Test,
         "org.scalatest"   %% "scalatest"               % scalatestVersion   % Test,
@@ -1968,9 +1985,24 @@ lazy val `runtime-compiler` =
     )
     .dependsOn(`runtime-parser`)
     .dependsOn(pkg)
-    .dependsOn(`polyglot-api`)
+    .dependsOn(`engine-common`)
     .dependsOn(editions)
     .dependsOn(`persistance-dsl` % "provided")
+
+lazy val `runtime-suggestions` =
+  (project in file("engine/runtime-suggestions"))
+    .settings(
+      frgaalJavaCompilerSetting,
+      (Test / fork) := true,
+      libraryDependencies ++= Seq(
+        "junit"            % "junit"                   % junitVersion       % Test,
+        "com.github.sbt"   % "junit-interface"         % junitIfVersion     % Test,
+        "org.scalatest"   %% "scalatest"               % scalatestVersion   % Test,
+        "org.netbeans.api" % "org-openide-util-lookup" % netbeansApiVersion % "provided"
+      )
+    )
+    .dependsOn(`runtime-compiler`)
+    .dependsOn(`polyglot-api`)
 
 lazy val `runtime-instrument-common` =
   (project in file("engine/runtime-instrument-common"))
@@ -2185,8 +2217,8 @@ lazy val `engine-runner` = project
     commands += WithDebugCommand.withDebug,
     inConfig(Compile)(truffleRunOptionsSettings),
     libraryDependencies ++= Seq(
+      "org.graalvm.polyglot"    % "polyglot"                % graalMavenPackagesVersion,
       "org.graalvm.sdk"         % "polyglot-tck"            % graalMavenPackagesVersion % Provided,
-      "org.graalvm.truffle"     % "truffle-api"             % graalMavenPackagesVersion % Provided,
       "commons-cli"             % "commons-cli"             % commonsCliVersion,
       "com.monovore"           %% "decline"                 % declineVersion,
       "org.jline"               % "jline"                   % jlineVersion,
@@ -2495,9 +2527,8 @@ lazy val editions = project
   .settings(
     frgaalJavaCompilerSetting,
     libraryDependencies ++= Seq(
-      "com.typesafe.scala-logging" %% "scala-logging" % scalaLoggingVersion,
-      "io.circe"                   %% "circe-yaml"    % circeYamlVersion,
-      "org.scalatest"              %% "scalatest"     % scalatestVersion % Test
+      "io.circe"      %% "circe-yaml" % circeYamlVersion % "provided",
+      "org.scalatest" %% "scalatest"  % scalatestVersion % Test
     )
   )
   .settings(
@@ -2525,11 +2556,10 @@ lazy val semver = project
   .settings(
     frgaalJavaCompilerSetting,
     libraryDependencies ++= Seq(
-      "com.typesafe.scala-logging" %% "scala-logging"   % scalaLoggingVersion,
-      "io.circe"                   %% "circe-yaml"      % circeYamlVersion,
-      "org.scalatest"              %% "scalatest"       % scalatestVersion % Test,
-      "junit"                       % "junit"           % junitVersion     % Test,
-      "com.github.sbt"              % "junit-interface" % junitIfVersion   % Test
+      "io.circe"      %% "circe-yaml"      % circeYamlVersion % "provided",
+      "org.scalatest" %% "scalatest"       % scalatestVersion % Test,
+      "junit"          % "junit"           % junitVersion     % Test,
+      "com.github.sbt" % "junit-interface" % junitIfVersion   % Test
     )
   )
   .settings(
@@ -2591,7 +2621,10 @@ lazy val `edition-updater` = project
 lazy val `edition-uploader` = project
   .in(file("lib/scala/edition-uploader"))
   .settings(
-    frgaalJavaCompilerSetting
+    frgaalJavaCompilerSetting,
+    libraryDependencies ++= Seq(
+      "io.circe" %% "circe-yaml" % circeYamlVersion % "provided"
+    )
   )
   .dependsOn(editions)
   .dependsOn(`version-output`)

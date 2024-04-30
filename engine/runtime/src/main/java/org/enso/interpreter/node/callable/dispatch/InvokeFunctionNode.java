@@ -1,5 +1,7 @@
 package org.enso.interpreter.node.callable.dispatch;
 
+import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
+import com.oracle.truffle.api.TruffleFile;
 import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.dsl.ImportStatic;
 import com.oracle.truffle.api.dsl.NeverDefault;
@@ -12,6 +14,8 @@ import com.oracle.truffle.api.source.SourceSection;
 import java.util.UUID;
 import org.enso.interpreter.Constants;
 import org.enso.interpreter.node.BaseNode;
+import org.enso.interpreter.node.EnsoRootNode;
+import org.enso.interpreter.node.MethodRootNode;
 import org.enso.interpreter.node.callable.CaptureCallerInfoNode;
 import org.enso.interpreter.node.callable.FunctionCallInstrumentationNode;
 import org.enso.interpreter.node.callable.InvokeCallableNode;
@@ -22,7 +26,11 @@ import org.enso.interpreter.runtime.callable.CallerInfo;
 import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.callable.function.FunctionSchema;
+import org.enso.interpreter.runtime.data.atom.AtomConstructor;
+import org.enso.interpreter.runtime.error.PanicException;
+import org.enso.interpreter.runtime.scope.ModuleScope;
 import org.enso.interpreter.runtime.state.State;
+import org.enso.pkg.Package;
 
 /**
  * This class represents the protocol for remapping the arguments provided at a call site into the
@@ -86,6 +94,25 @@ public abstract class InvokeFunctionNode extends BaseNode {
     return EnsoContext.get(this);
   }
 
+  @TruffleBoundary
+  private PanicException makePrivateAccessPanic(Function targetFunction) {
+    String thisProjName = null;
+    if (getThisProject() != null) {
+      thisProjName = getThisProject().libraryName().qualifiedName();
+    }
+    String targetProjName = null;
+    if (getFunctionProject(targetFunction) != null) {
+      targetProjName = getFunctionProject(targetFunction).libraryName().qualifiedName();
+    }
+    var funcName = targetFunction.getName();
+    var err =
+        EnsoContext.get(this)
+            .getBuiltins()
+            .error()
+            .makePrivateAccessError(thisProjName, targetProjName, funcName);
+    return new PanicException(err, this);
+  }
+
   @Specialization(
       guards = {"!getContext().isInlineCachingDisabled()", "function.getSchema() == cachedSchema"},
       limit = Constants.CacheSizes.ARGUMENT_SORTER_NODE)
@@ -103,6 +130,10 @@ public abstract class InvokeFunctionNode extends BaseNode {
               "build(argumentMapping, getDefaultsExecutionMode(), getArgumentsExecutionMode(),"
                   + " getTailStatus())")
           CurryNode curryNode) {
+    if (cachedSchema.isProjectPrivate() && !isInSameProject(function)) {
+      throw makePrivateAccessPanic(function);
+    }
+
     ArgumentSorterNode.MappedArguments mappedArguments =
         mappingNode.execute(callerFrame, function, state, arguments);
     CallerInfo callerInfo = null;
@@ -143,6 +174,10 @@ public abstract class InvokeFunctionNode extends BaseNode {
       Object[] arguments,
       @Cached IndirectArgumentSorterNode mappingNode,
       @Cached IndirectCurryNode curryNode) {
+    if (function.getSchema().isProjectPrivate() && !isInSameProject(function)) {
+      throw makePrivateAccessPanic(function);
+    }
+
     CallArgumentInfo.ArgumentMapping argumentMapping =
         CallArgumentInfo.ArgumentMappingBuilder.generate(function.getSchema(), getSchema());
 
@@ -223,5 +258,45 @@ public abstract class InvokeFunctionNode extends BaseNode {
   /** Returns expression ID of this node. */
   public UUID getId() {
     return functionCallInstrumentationNode.getId();
+  }
+
+  /** Returns true if the given function is in the same project as this node. */
+  private boolean isInSameProject(Function function) {
+    var thisProj = getThisProject();
+    var funcProj = getFunctionProject(function);
+    return thisProj == funcProj;
+  }
+
+  private Package<TruffleFile> getThisProject() {
+    if (getRootNode() instanceof EnsoRootNode thisRootNode) {
+      var modScope = thisRootNode.getModuleScope();
+      if (modScope != null) {
+        return modScope.getModule().getPackage();
+      }
+    }
+    return null;
+  }
+
+  private Package<TruffleFile> getFunctionProject(Function function) {
+    var modScope = getModuleScopeForFunction(function);
+    if (modScope != null) {
+      return modScope.getModule().getPackage();
+    }
+    return null;
+  }
+
+  private ModuleScope getModuleScopeForFunction(Function function) {
+    var cons = AtomConstructor.accessorFor(function);
+    if (cons != null) {
+      return cons.getDefinitionScope();
+    }
+    cons = MethodRootNode.constructorFor(function);
+    if (cons != null) {
+      return cons.getDefinitionScope();
+    }
+    if (function.getCallTarget().getRootNode() instanceof EnsoRootNode ensoRootNode) {
+      return ensoRootNode.getModuleScope();
+    }
+    return null;
   }
 }

@@ -264,7 +264,6 @@ const resizeBottomRight = usePointer((pos, _, type) => {
 .below-viz {
   position: absolute;
   top: 100%;
-  width: 100%;
   margin-top: 4px;
 }
 

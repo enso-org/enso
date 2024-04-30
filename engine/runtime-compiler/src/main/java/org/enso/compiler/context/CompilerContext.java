@@ -1,7 +1,5 @@
 package org.enso.compiler.context;
 
-import com.oracle.truffle.api.TruffleFile;
-import com.oracle.truffle.api.source.Source;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.util.List;
@@ -91,19 +89,18 @@ public interface CompilerContext extends CompilerStub {
 
   boolean isInteractive(Module module);
 
+  boolean isModuleInRootPackage(Module module);
+
   boolean wasLoadedFromCache(Module module);
 
   org.enso.compiler.core.ir.Module getIr(Module module);
 
   CompilationStage getCompilationStage(Module module);
 
-  org.enso.polyglot.data.TypeGraph getTypeHierarchy();
-
   Future<Boolean> serializeLibrary(
       Compiler compiler, LibraryName libraryName, boolean useGlobalCacheLocations);
 
-  scala.Option<List<org.enso.polyglot.Suggestion>> deserializeSuggestions(LibraryName libraryName)
-      throws InterruptedException;
+  scala.Option<Object> deserializeSuggestions(LibraryName libraryName) throws InterruptedException;
 
   Future<Boolean> serializeModule(
       Compiler compiler, Module module, boolean useGlobalCacheLocations, boolean usePool);
@@ -111,6 +108,8 @@ public interface CompilerContext extends CompilerStub {
   boolean deserializeModule(Compiler compiler, Module module);
 
   void shutdown(boolean waitForPendingJobCompletion);
+
+  RuntimeException throwAbortedException();
 
   public static interface Updater {
     void bindingsMap(BindingsMap map);
@@ -127,17 +126,15 @@ public interface CompilerContext extends CompilerStub {
   }
 
   public abstract static class Module {
-    public abstract Source getSource() throws IOException;
+    public abstract CharSequence getCharacters() throws IOException;
 
     public abstract String getPath();
 
-    public abstract Package<TruffleFile> getPackage();
+    public abstract Package<? extends Object> getPackage();
 
     public abstract QualifiedName getName();
 
     public abstract BindingsMap getBindingsMap();
-
-    public abstract TruffleFile getSourceFile();
 
     public abstract List<QualifiedName> getDirectModulesRefs();
 
