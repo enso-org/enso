@@ -77,10 +77,6 @@ make_grouped_ordered_enumeration name grouping_columns ordering from step on_pro
 
     grouping_java_columns = grouping_columns.map .java_column
 
-    new_storage = case grouping_java_columns.is_empty of
-        True ->
-            AddRowNumber.create_ordered_numbering from step ordering_columns directions
-        False ->
-            Java_Problems.with_problem_aggregator on_problems java_problem_aggregator->
-                AddRowNumber.create_numbering from step grouping_java_columns ordering_columns directions java_problem_aggregator
+    new_storage = Java_Problems.with_problem_aggregator on_problems java_problem_aggregator->
+        AddRowNumber.create_numbering from step grouping_java_columns ordering_columns directions java_problem_aggregator
     Column.from_storage name new_storage
