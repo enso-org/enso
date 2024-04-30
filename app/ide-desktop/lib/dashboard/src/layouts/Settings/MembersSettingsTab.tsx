@@ -13,7 +13,6 @@ import * as textProvider from '#/providers/TextProvider'
 import MembersSettingsTabBar from '#/layouts/Settings/MembersSettingsTabBar'
 
 import * as ariaComponents from '#/components/AriaComponents'
-import SettingsPage from '#/components/styled/settings/SettingsPage'
 import SettingsSection from '#/components/styled/settings/SettingsSection'
 
 import type * as backendModule from '#/services/Backend'
@@ -62,7 +61,6 @@ export function MembersSettingsTab() {
     : null
 
   return (
-    <SettingsPage>
       <SettingsSection noFocusArea title={getText('members')} className="overflow-hidden">
         <MembersSettingsTabBar
           seatsLeft={seatsLeft}
@@ -100,36 +98,35 @@ export function MembersSettingsTab() {
               </tr>
             ))}
 
-            {invitations.map(invitation => (
-              <tr key={invitation.userEmail} className="group h-row rounded-rows-child">
-                <td className="border-x-2 border-transparent bg-clip-padding px-4 py-1 first:rounded-l-full last:rounded-r-full last:border-r-0">
-                  <span className="block text-sm">{invitation.userEmail}</span>
-                </td>
-                <td className="border-x-2 border-transparent bg-clip-padding px-cell-x first:rounded-l-full last:rounded-r-full last:border-r-0">
-                  <div className="flex flex-col">
-                    {getText('pendingInvitation')}
-                    <ariaComponents.ButtonGroup gap="small" className="mt-0.5">
-                      <ariaComponents.CopyButton
-                        size="custom"
-                        copyText={`enso://auth/registration?organization_id=${invitation.organizationId}`}
-                        aria-label={getText('copyInviteLink')}
-                        copyIcon={false}
-                      >
-                        {getText('copyInviteLink')}
-                      </ariaComponents.CopyButton>
+          {invitations.map(invitation => (
+            <tr key={invitation.userEmail} className="group h-row rounded-rows-child">
+              <td className="border-x-2 border-transparent bg-clip-padding px-4 py-1 first:rounded-l-full last:rounded-r-full last:border-r-0">
+                <span className="block text-sm">{invitation.userEmail}</span>
+              </td>
+              <td className="border-x-2 border-transparent bg-clip-padding px-cell-x first:rounded-l-full last:rounded-r-full last:border-r-0">
+                <div className="flex flex-col">
+                  {getText('pendingInvitation')}
+                  <ariaComponents.ButtonGroup gap="small" className="mt-0.5">
+                    <ariaComponents.CopyButton
+                      size="custom"
+                      copyText={`enso://auth/registration?organization_id=${invitation.organizationId}`}
+                      aria-label={getText('copyInviteLink')}
+                      copyIcon={false}
+                    >
+                      {getText('copyInviteLink')}
+                    </ariaComponents.CopyButton>
 
-                      <ResendInvitationButton invitation={invitation} backend={backend} />
+                    <ResendInvitationButton invitation={invitation} backend={backend} />
 
-                      <RemoveInvitationButton backend={backend} email={invitation.userEmail} />
-                    </ariaComponents.ButtonGroup>
-                  </div>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </SettingsSection>
-    </SettingsPage>
+                    <RemoveInvitationButton backend={backend} email={invitation.userEmail} />
+                  </ariaComponents.ButtonGroup>
+                </div>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </SettingsSection>
   )
 }
 

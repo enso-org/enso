@@ -27,6 +27,7 @@ export const SET_USERNAME_PATH = '/set-username'
 /** Path to page in which the currently active payment plan can be managed. */
 export const SUBSCRIBE_PATH = '/subscribe'
 export const SUBSCRIBE_SUCCESS_PATH = '/subscribe/success'
+
 /** A {@link RegExp} matching all paths. */
 export const ALL_PATHS_REGEX = new RegExp(
   `(?:${DASHBOARD_PATH}|${LOGIN_PATH}|${REGISTRATION_PATH}|${CONFIRM_REGISTRATION_PATH}|` +

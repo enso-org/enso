@@ -11,6 +11,7 @@ import * as textProvider from '#/providers/TextProvider'
 
 import AccountSettingsTab from '#/layouts/Settings/AccountSettingsTab'
 import ActivityLogSettingsTab from '#/layouts/Settings/ActivityLogSettingsTab'
+import BillingSettingsTab from '#/layouts/Settings/BillingSettingsTab'
 import KeyboardShortcutsSettingsTab from '#/layouts/Settings/KeyboardShortcutsSettingsTab'
 import MembersSettingsTab from '#/layouts/Settings/MembersSettingsTab'
 import OrganizationSettingsTab from '#/layouts/Settings/OrganizationSettingsTab'
@@ -80,6 +81,10 @@ export default function Settings(props: SettingsProps) {
       content = backend == null ? null : <ActivityLogSettingsTab backend={backend} />
       break
     }
+    case SettingsTab.billingAndPlans: {
+      content = <BillingSettingsTab />
+      break
+    }
     default: {
       // This case should be removed when all settings tabs are implemented.
       content = <></>
@@ -99,7 +104,13 @@ export default function Settings(props: SettingsProps) {
     <div className="mt-4 flex flex-1 flex-col gap-6 overflow-hidden px-page-x">
       <aria.Heading level={1} className="flex items-center px-heading-x">
         <aria.MenuTrigger isOpen={isSidebarPopoverOpen} onOpenChange={setIsSidebarPopoverOpen}>
-          <Button image={BurgerMenuIcon} buttonClassName="mr-3 sm:hidden" onPress={() => {}} />
+          <ariaComponents.Button
+            icon={BurgerMenuIcon}
+            className="sm:hidden"
+            variant="icon"
+            size="small"
+          />
+
           <aria.Popover UNSTABLE_portalContainer={root}>
             <SettingsSidebar
               isMenu

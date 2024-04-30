@@ -14,12 +14,20 @@ export const ALERT_STYLES = twv.tv({
     fullWidth: { true: 'w-full' },
     variant: {
       custom: '',
-      outline: 'border border-2 bg-transparent border-primary/30 text-primary',
-      neutral: 'border border-2 bg-gray-100 border-gray-800 text-primary',
-      error: 'border border-2 bg-red-100 border-danger text-primary',
-      info: 'border border-2 bg-blue-100 border-blue-800 text-blue-800',
-      success: 'border border-2 bg-green-100 border-green-800 text-green-800',
-      warning: 'border border-2 bg-yellow-100 border-yellow-800 text-yellow-800',
+      outline: 'bg-transparent border-primary/30 text-primary',
+      neutral: 'bg-gray-100 border-gray-800 text-primary',
+      error: 'bg-red-100 border-danger text-primary',
+      info: 'bg-blue-100 border-blue-800 text-blue-800',
+      success: 'bg-green-100 border-green-800 text-green-800',
+      warning: 'bg-yellow-100 border-yellow-800 text-yellow-800',
+    },
+    border: {
+      custom: '',
+      none: '',
+      small: 'border',
+      medium: 'border-2',
+      large: 'border-[3px]',
+      xlarge: 'border-4',
     },
     rounded: {
       none: 'rounded-none',
@@ -42,6 +50,7 @@ export const ALERT_STYLES = twv.tv({
     variant: 'error',
     size: 'medium',
     rounded: 'large',
+    border: 'medium',
   },
 })
 
@@ -60,7 +69,8 @@ export const Alert = React.forwardRef(function Alert(
   props: AlertProps,
   ref: React.ForwardedRef<HTMLDivElement>
 ) {
-  const { children, className, variant, size, rounded, fullWidth, ...containerProps } = props
+  const { children, className, variant, size, rounded, fullWidth, border, ...containerProps } =
+    props
 
   if (variant === 'error') {
     containerProps.tabIndex = -1
@@ -69,7 +79,7 @@ export const Alert = React.forwardRef(function Alert(
 
   return (
     <div
-      className={ALERT_STYLES({ variant, size, className, rounded, fullWidth })}
+      className={ALERT_STYLES({ variant, size, className, rounded, fullWidth, border })}
       ref={mergeRefs.mergeRefs(ref, e => {
         if (variant === 'error') {
           e?.focus()
