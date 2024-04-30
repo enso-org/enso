@@ -34,7 +34,7 @@ export // This export declaration must be broken up to satisfy the `require-jsdo
 // This is not a React component even though it contains JSX.
 // eslint-disable-next-line no-restricted-syntax
 function run(props: app.AppProps) {
-  const { logger, vibrancy, supportsDeepLinks } = props
+  const { logger, vibrancy, supportsDeepLinks, supportsLocalBackend, projectManagerUrl } = props
   logger.log('Starting authentication/dashboard UI.')
   if (
     !detect.IS_DEV_MODE &&
@@ -77,17 +77,21 @@ function run(props: app.AppProps) {
     // `supportsDeepLinks` will be incorrect when accessing the installed Electron app's pages
     // via the browser.
     const actuallySupportsDeepLinks = supportsDeepLinks && detect.isOnElectron()
-    reactDOM.createRoot(root).render(
-      <sentry.ErrorBoundary>
-        {detect.IS_DEV_MODE ? (
-          <React.StrictMode>
-            <App {...props} />
-          </React.StrictMode>
-        ) : (
-          <App {...props} supportsDeepLinks={actuallySupportsDeepLinks} />
-        )}
-      </sentry.ErrorBoundary>
+    const actualProjectManagerUrl = supportsLocalBackend ? projectManagerUrl : null
+    const app = (
+      <App
+        {...props}
+        supportsDeepLinks={actuallySupportsDeepLinks}
+        projectManagerUrl={actualProjectManagerUrl}
+      />
     )
+    reactDOM
+      .createRoot(root)
+      .render(
+        <sentry.ErrorBoundary>
+          {detect.IS_DEV_MODE ? <React.StrictMode>{app}</React.StrictMode> : app}
+        </sentry.ErrorBoundary>
+      )
   }
 }
 

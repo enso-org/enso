@@ -16,11 +16,11 @@ import * as gtag from 'enso-common/src/gtag'
 import * as appUtils from '#/appUtils'
 
 import * as gtagHooks from '#/hooks/gtagHooks'
+import * as projectManagerHooks from '#/hooks/projectManagerHooks'
 
 import * as backendProvider from '#/providers/BackendProvider'
 import * as localStorageProvider from '#/providers/LocalStorageProvider'
 import * as loggerProvider from '#/providers/LoggerProvider'
-import * as projectManagerProvider from '#/providers/ProjectManagerProvider'
 import * as sessionProvider from '#/providers/SessionProvider'
 import * as textProvider from '#/providers/TextProvider'
 
@@ -160,19 +160,20 @@ export interface AuthProviderProps {
   /** Callback to execute once the user has authenticated successfully. */
   readonly onAuthenticated: (accessToken: string | null) => void
   readonly children: React.ReactNode
+  readonly projectManagerUrl: string | null
 }
 
 /** A React provider for the Cognito API. */
 export default function AuthProvider(props: AuthProviderProps) {
   const { shouldStartInOfflineMode, supportsLocalBackend, authService, children } = props
-  const { onAuthenticated } = props
+  const { onAuthenticated, projectManagerUrl } = props
   const logger = loggerProvider.useLogger()
   const { cognito } = authService ?? {}
   const { session, deinitializeSession, onSessionError } = sessionProvider.useSession()
   const { setBackendWithoutSavingType } = backendProvider.useSetBackend()
   const { localStorage } = localStorageProvider.useLocalStorage()
   const { getText } = textProvider.useText()
-  const projectManager = projectManagerProvider.useProjectManager()
+  const projectManager = projectManagerHooks.useProjectManager(projectManagerUrl).data
   // This must not be `hooks.useNavigate` as `goOffline` would be inaccessible,
   // and the function call would error.
   // eslint-disable-next-line no-restricted-properties

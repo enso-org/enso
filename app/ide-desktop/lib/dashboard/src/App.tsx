@@ -46,6 +46,8 @@ import * as reactQueryClientModule from '#/reactQueryClient'
 
 import * as inputBindingsModule from '#/configurations/inputBindings'
 
+import * as projectManagerHooks from '#/hooks/projectManagerHooks'
+
 import AuthProvider, * as authProvider from '#/providers/AuthProvider'
 import BackendProvider from '#/providers/BackendProvider'
 import InputBindingsProvider from '#/providers/InputBindingsProvider'
@@ -54,7 +56,6 @@ import LoggerProvider from '#/providers/LoggerProvider'
 import type * as loggerProvider from '#/providers/LoggerProvider'
 import ModalProvider from '#/providers/ModalProvider'
 import * as navigator2DProvider from '#/providers/Navigator2DProvider'
-import ProjectManagerProvider, * as projectManagerProvider from '#/providers/ProjectManagerProvider'
 import SessionProvider from '#/providers/SessionProvider'
 
 import ConfirmRegistration from '#/pages/authentication/ConfirmRegistration'
@@ -74,9 +75,7 @@ import * as rootComponent from '#/components/Root'
 
 import type Backend from '#/services/Backend'
 import LocalBackend from '#/services/LocalBackend'
-import ProjectManager, * as projectManagerModule from '#/services/ProjectManager'
 
-import * as appBaseUrl from '#/utilities/appBaseUrl'
 import * as eventModule from '#/utilities/event'
 import LocalStorage from '#/utilities/LocalStorage'
 import * as object from '#/utilities/object'
@@ -149,41 +148,19 @@ export interface AppProps {
  * This component handles all the initialization and rendering of the app, and manages the app's
  * routes. It also initializes an `AuthProvider` that will be used by the rest of the app. */
 export default function App(props: AppProps) {
-  const { supportsLocalBackend, projectManagerUrl } = props
+  const { projectManagerUrl } = props
   // This is a React component even though it does not contain JSX.
   // eslint-disable-next-line no-restricted-syntax
   const Router = detect.isOnElectron() ? router.HashRouter : router.BrowserRouter
   const queryClient = React.useMemo(() => reactQueryClientModule.createReactQueryClient(), [])
-  const [error, setError] = React.useState<unknown>(null)
-  const [projectManager, setProjectManager] = React.useState<ProjectManager | null>(null)
-  const isLoading = supportsLocalBackend && projectManagerUrl != null && projectManager == null
-
-  React.useEffect(() => {
-    if (supportsLocalBackend && projectManagerUrl != null) {
-      void (async () => {
-        try {
-          const response = await fetch(`${appBaseUrl.APP_BASE_URL}/api/root-directory`)
-          const rootPath = await response.text()
-          const newProjectManager = new ProjectManager(
-            projectManagerUrl,
-            projectManagerModule.Path(rootPath)
-          )
-          setProjectManager(newProjectManager)
-        } catch (innerError) {
-          setError(innerError)
-        }
-      })()
-    }
-  }, [supportsLocalBackend, projectManagerUrl])
+  const projectManagerQuery = projectManagerHooks.useProjectManager(projectManagerUrl)
 
   // Both `BackendProvider` and `InputBindingsProvider` depend on `LocalStorageProvider`.
   // Note that the `Router` must be the parent of the `AuthProvider`, because the `AuthProvider`
   // will redirect the user between the login/register pages and the dashboard.
-  return error != null ? (
-    <ErrorScreen error={error} />
-  ) : isLoading ? (
-    <LoadingScreen />
-  ) : (
+  return projectManagerQuery.isError ? (
+    <ErrorScreen error={projectManagerQuery.error} />
+  ) : projectManagerQuery.isSuccess ? (
     <reactQuery.QueryClientProvider client={queryClient}>
       <toastify.ToastContainer
         position="top-center"
@@ -196,12 +173,12 @@ export default function App(props: AppProps) {
       />
       <Router basename={getMainPageUrl().pathname}>
         <LocalStorageProvider>
-          <ProjectManagerProvider projectManager={projectManager}>
-            <AppRouter {...props} />
-          </ProjectManagerProvider>
+          <AppRouter {...props} />
         </LocalStorageProvider>
       </Router>
     </reactQuery.QueryClientProvider>
+  ) : (
+    <LoadingScreen />
   )
 }
 
@@ -216,14 +193,14 @@ export default function App(props: AppProps) {
  * component as the component that defines the provider. */
 function AppRouter(props: AppProps) {
   const { logger, supportsLocalBackend, isAuthenticationDisabled, shouldShowDashboard } = props
-  const { onAuthenticated } = props
+  const { projectManagerUrl, onAuthenticated } = props
   // `navigateHooks.useNavigate` cannot be used here as it relies on `AuthProvider`, which has not
   // yet been initialized at this point.
   // eslint-disable-next-line no-restricted-properties
   const navigate = router.useNavigate()
   const { localStorage } = localStorageProvider.useLocalStorage()
   const navigator2D = navigator2DProvider.useNavigator2D()
-  const projectManager = projectManagerProvider.useProjectManager()
+  const projectManagerQuery = projectManagerHooks.useProjectManager(projectManagerUrl)
   if (detect.IS_DEV_MODE) {
     // @ts-expect-error This is used exclusively for debugging.
     window.navigate = navigate
@@ -311,8 +288,8 @@ function AppRouter(props: AppProps) {
     authService?.cognito.refreshUserSession.bind(authService.cognito) ?? null
   const registerAuthEventListener = authService?.registerAuthEventListener ?? null
   const initialBackend: Backend =
-    isAuthenticationDisabled && projectManager != null
-      ? new LocalBackend(projectManager)
+    isAuthenticationDisabled && projectManagerQuery.data != null
+      ? new LocalBackend(projectManagerQuery.data)
       : // This is SAFE, because the backend is always set by the authentication flow.
         // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
         null!
@@ -418,6 +395,7 @@ function AppRouter(props: AppProps) {
       supportsLocalBackend={supportsLocalBackend}
       authService={authService}
       onAuthenticated={onAuthenticated}
+      projectManagerUrl={projectManagerUrl}
     >
       {result}
     </AuthProvider>

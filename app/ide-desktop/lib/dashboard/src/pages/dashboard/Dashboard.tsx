@@ -5,6 +5,7 @@ import * as React from 'react'
 import * as detect from 'enso-common/src/detect'
 
 import * as eventHooks from '#/hooks/eventHooks'
+import * as projectManagerHooks from '#/hooks/projectManagerHooks'
 import * as searchParamsState from '#/hooks/searchParamsStateHooks'
 
 import * as authProvider from '#/providers/AuthProvider'
@@ -13,7 +14,6 @@ import * as inputBindingsProvider from '#/providers/InputBindingsProvider'
 import * as localStorageProvider from '#/providers/LocalStorageProvider'
 import * as loggerProvider from '#/providers/LoggerProvider'
 import * as modalProvider from '#/providers/ModalProvider'
-import * as projectManagerProvider from '#/providers/ProjectManagerProvider'
 import * as textProvider from '#/providers/TextProvider'
 
 import type * as assetEvent from '#/events/assetEvent'
@@ -117,11 +117,12 @@ export interface DashboardProps {
   readonly supportsLocalBackend: boolean
   readonly appRunner: AppRunner
   readonly initialProjectName: string | null
+  readonly projectManagerUrl: string | null
 }
 
 /** The component that contains the entire UI. */
 export default function Dashboard(props: DashboardProps) {
-  const { supportsLocalBackend, appRunner, initialProjectName } = props
+  const { supportsLocalBackend, appRunner, initialProjectName, projectManagerUrl } = props
   const logger = loggerProvider.useLogger()
   const session = authProvider.useNonPartialUserSession()
   const { backend } = backendProvider.useBackend()
@@ -131,7 +132,7 @@ export default function Dashboard(props: DashboardProps) {
   const { localStorage } = localStorageProvider.useLocalStorage()
   const { getText } = textProvider.useText()
   const inputBindings = inputBindingsProvider.useInputBindings()
-  const projectManager = projectManagerProvider.useProjectManager()
+  const projectManager = projectManagerHooks.useProjectManager(projectManagerUrl).data
   const [initialized, setInitialized] = React.useState(false)
   const [isHelpChatOpen, setIsHelpChatOpen] = React.useState(false)
 
