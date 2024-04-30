@@ -274,7 +274,7 @@ type Vector a
     build_multiple : Integer -> (Builder -> Any) -> Integer -> Vector Vector
     build_multiple (count : Integer) (function : Builder -> Any) (initial_capacity : Integer = 10) -> Vector Vector =
         if count < 0 then Error.throw (Illegal_Argument.Error "count must be non-negative: "+count.to_text) else
-            builders = Range.new 0 count . map (_-> Build_Style_Builder.new initial_capacity)
+            builders = Range.new 0 count . map (_-> Builder.new initial_capacity)
             Panic.handle_wrapped_dataflow_error <|
                 function builders . if_not_error (builders.map .to_vector)
 
@@ -1252,247 +1252,6 @@ type Builder
 
        A builder type for Enso vectors.
 
-       Arguments:
-       - java_builder: The accumulator for the new vector.
-
-       A vector builder is a mutable data structure, that allows to gather a
-       number of elements and then convert them to a vector. This is
-       particularly useful when the number of elements is not known upfront.
-
-       There are two ways to create and use a `Builder`: `Vector.new_builder`
-       and `Vector.build`. `.build` is the preferred approach.
-       - `Vector.new_builder`: creates a new `Builder`, which you have to
-         "close" with `.to_vector` at the end to get your newly-created
-         `Vector`.
-       - `Vector.build`: takes a function which uses the `Builder`, and
-         automatically "closes" and returns the newly-created `Vector`.
-
-       ! Error Conditions
-
-         - If  an uncaught dataflow error is appended with `append`, the
-           dataflow error is propagated, and it is not added to the builder.
-
-         - If one or more uncaught dataflow errors are appended with
-           `append_vector_range`, the errors are *not* propagated.  All of the
-           values, including dataflow errors, are added to the builder.  To be
-           fixed in https://github.com/enso-org/enso/issues/9760.
-
-       > Example
-             Construct a vector using a builder that contains the items 1 to 5,
-             using `.new_builder`.
-
-                 example_new_builder =
-                     do_build builder start stop =
-                         new_builder = builder.append start
-                         if start >= stop then new_builder else
-                             @Tail_Call do_build new_builder start+1 stop
-                     builder = do_build Vector.new_builder 1 10
-                     builder.to_vector
-
-       > Example
-             Construct a vector using a builder that contains the items 1 to 5,
-             using `.build`.
-
-             Vector.build initial_capacity=5 builder->
-                 do_build start stop =
-                     builder.append start
-                     if start >= stop then Nothing else
-                         @Tail_Call do_build start+1 stop
-                 do_build 1 5
-             # => [1, 2, 3, 4, 5]
-
-       ! TODO
-         We may want to revisit the fold pattern - it is required for correct
-         propagation of dataflow errors, but it is very easy to forget about it
-         and get wrong error propagation. Instead we may want to have a `Ref`
-         inside of the Builder. Any error detected during `append` could set
-         that `Ref` and then `to_vector` could propagate that error.
-    Value java_builder
-
-    ## PRIVATE
-       Creates a new builder.
-
-       Arguments:
-       - capacity: Initial capacity of the Vector.Builder
-
-       > Example
-         Make a new builder
-
-             Vector.new_builder
-    new : Integer -> Builder
-    new (capacity : Integer = 10) = Builder.Value (Array_Like_Helpers.new_vector_builder capacity)
-
-    ## GROUP Logical
-       ICON metadata
-       Checks if this builder is empty.
-    is_empty : Boolean
-    is_empty self = self.java_builder.isEmpty
-
-    ## GROUP Logical
-       ICON metadata
-       Checks if this builder is not empty.
-    not_empty : Boolean
-    not_empty self = self.is_empty.not
-
-    ## GROUP Metadata
-       ICON metadata
-       Gets the current length of the builder.
-    length : Integer
-    length self = self.java_builder.getSize
-
-    ## ICON join
-       Appends a new element into this builder and returns it, propagating any
-       errors that the provided element could have contained.
-
-       Returns the builder, unless `item` is a dataflow error, in which case the
-       error is propagated.
-
-       Arguments:
-       - item: The item to append to the vector builder.
-
-       ? Appending Dataflow Errors
-
-         If an uncaught dataflow error is appended with `append`, the dataflow
-         error is propagated, and it is not added to the builder.
-
-       > Example
-         Append two items.
-
-             builder = Vector.new_builder
-             builder . append 10 . append 20
-    append : Any ! Error -> Builder ! Error
-    append self item = case item of
-        _ ->
-            self.unsafe_append item
-            self
-
-    ## ICON join
-       Appends a part of a given vector to this builder.
-
-       Arguments:
-       - vector: The vector from which the elements are sourced.
-       - start: The start index of the range to append.
-       - end: The end index (the first index after the last element to be
-         appended) of the range to be appended.
-
-       ? Appending Dataflow Errors
-
-         If one or more uncaught dataflow errors are appended with
-         `append_vector_range`, the errors are *not* propagated.  All of the
-         values, including dataflow errors, are added to the builder.  To be
-         fixed in https://github.com/enso-org/enso/issues/9760.
-
-       > Example
-         Append a part of the vector.
-
-             builder = Vector.new_builder
-             builder . append_vector_range [20, 30, 40, 50] 1 3 . to_vector == [30, 40]
-    append_vector_range : Vector Any ! Error -> Integer -> Integer -> Builder ! Error
-    append_vector_range self vector (start : Integer = 0) end=vector.length =
-        subrange = vector.slice start end
-        ## This workaround is needed because
-           `self.java_builder.addAll subrange.to_array` fails with
-           `Unsupported argument types: [Array]`.
-        append_result = self.java_builder.appendTo subrange
-        append_result.if_not_error self
-
-    ## PRIVATE
-       Appends a new element into this builder.
-
-       ? Propagating Dataflow Errors
-         Since this is an imperative operation which returns Nothing, if the
-         item to be appended contained a dataflow error, the operation will fail
-         and unless its result is inspected, the error can very easily be
-         ignored. To avoid this, prefer to use the `append` operation and
-         consume the returned builder which will contain any dataflow errors if
-         they need to be propagated.
-
-       Arguments:
-       - item: The item to append to the vector builder.
-
-       > Example
-         Append an item to a vector builder.
-
-             Vector.new_builder.unsafe_append 10
-    unsafe_append : Any -> Nothing
-    unsafe_append self item = self.java_builder.add item
-
-    ## GROUP Selections
-       ICON select_row
-       Gets an element from the vector builder at a specified index (0-based).
-
-       Arguments:
-       - index: The location in the vector to get the element from. The index is
-         also allowed be negative, then the elements are indexed from the back
-         of the vector, i.e. -1 will correspond to the last element.
-    at : Integer -> Any ! Index_Out_Of_Bounds
-    at self index =
-        actual_index = if index < 0 then self.length + index else index
-        Panic.catch IndexOutOfBoundsException (self.java_builder.get actual_index) _->
-            Error.throw (Index_Out_Of_Bounds.Error index self.length)
-
-    ## GROUP Selections
-       ICON select_row
-       Get the first element from the vector, or an `Index_Out_Of_Bounds` if the vector
-       is empty.
-
-       > Example
-         The following code returns 1.
-
-             [1, 2, 3, 4].first
-    first : Vector ! Index_Out_Of_Bounds
-    first self = self.at 0
-
-    ## GROUP Selections
-       ICON select_row
-       Get the last element of the vector, or an `Index_Out_Of_Bounds` if the vector is
-       empty.
-
-       > Example
-         The following code returns 4.
-
-             [1, 2, 3, 4].last
-    last : Vector ! Index_Out_Of_Bounds
-    last self = self.at -1
-
-    ## GROUP Logical
-       ICON preparation
-       Checks whether a predicate holds for at least one element of this builder.
-
-       Arguments:
-       - condition: A `Filter_Condition` or a function that takes a vector
-         element and returns a boolean value that says whether that value
-         satisfies a condition.
-    any : (Filter_Condition | (Any -> Boolean)) -> Boolean
-    any self condition =
-        predicate = unify_condition_or_predicate condition
-        0.up_to self.length . any (idx -> (predicate (self.java_builder.get idx)))
-
-    ## GROUP Conversions
-       ICON convert
-       Converts this builder to a vector containing all the appended elements.
-
-       > Example
-         Use a builder to add elements to and then create a vector.
-
-            example_to_vector =
-                bldr = Vector.new_builder
-                bldr.append 1
-                bldr.append 10
-                bldr.append 100
-                bldr.to_vector
-    to_vector : Vector Any
-    to_vector self =
-        ## This creates a fresh copy of the builders storage, so any future
-           changes to the builder will not affect the returned vector.
-        Vector.from_polyglot_array self.java_builder.toArray
-
-## PRIVATE
-type Build_Style_Builder
-    ## PRIVATE
-
-       A builder type for Enso vectors.
-
        `Build_Style_Builder` is for use with `Vector.build`, rather than the
        deprecated `Vector.new_builder`.
 
@@ -1535,8 +1294,8 @@ type Build_Style_Builder
 
        Arguments:
        - capacity: Initial capacity of the Vector.Builder
-    new : Integer -> Build_Style_Builder 
-    new (capacity : Integer = 10) -> Build_Style_Builder = Build_Style_Builder.Value (Array_Like_Helpers.new_vector_builder capacity) (Array_Like_Helpers.new_vector_builder 0)
+    new : Integer -> Builder
+    new (capacity : Integer = 10) -> Builder = Builder.Value (Array_Like_Helpers.new_vector_builder capacity) (Array_Like_Helpers.new_vector_builder 0)
 
     ## ICON join
        Appends a new element into this builder, propagating any
@@ -1670,6 +1429,12 @@ type Build_Style_Builder
              [1, 2, 3, 4].last
     last : Vector ! Index_Out_Of_Bounds
     last self = self.at -1
+
+    ## GROUP Logical
+       ICON metadata
+       Checks if this builder is empty.
+    is_empty : Boolean
+    is_empty self = self.elements_java_builder.isEmpty
 
     ## GROUP Metadata
        ICON metadata
