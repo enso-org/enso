@@ -154,7 +154,7 @@ type Ignored_Nothing_Values
        Create a human-readable version of the error.
     to_display_text : Text
     to_display_text self =
-        "The column "+self.column+" contained Nothing values in rows " + self.rows.short_display_text + " which were ignored "
+        "The column "+self.column+" contained Nothing values in rows " + self.rows.short_display_text + " which were ignored."
 
 ## Indicates that some operation relies on equality on floating-point values,
    which is not recommended.
