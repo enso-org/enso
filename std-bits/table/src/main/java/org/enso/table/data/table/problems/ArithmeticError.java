@@ -1,6 +1,7 @@
 package org.enso.table.data.table.problems;
 
 public class ArithmeticError extends ColumnAggregatedProblem {
+
   private final String message;
 
   public ArithmeticError(String locationName, String message, Integer row) {
@@ -18,10 +19,5 @@ public class ArithmeticError extends ColumnAggregatedProblem {
     }
 
     return false;
-  }
-
-  @Override
-  public String getMessage() {
-    return message + " (at rows " + makeTruncatedRowsString() + ").";
   }
 }

@@ -19,9 +19,4 @@ public class IllegalArgumentError extends ColumnAggregatedProblem {
 
     return false;
   }
-
-  @Override
-  public String getMessage() {
-    return message + " (at rows " + makeTruncatedRowsString() + ").";
-  }
 }

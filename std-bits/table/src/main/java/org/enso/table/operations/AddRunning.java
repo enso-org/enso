@@ -26,6 +26,7 @@ public class AddRunning {
     var ret =
         new DoubleStorage(
             runningGenerator.result, sourceColumn.getSize(), runningGenerator.isNothing);
+
     return ret;
   }
 
@@ -75,13 +76,13 @@ public class AddRunning {
       return !isInitialized ? null : getCurrent();
     }
 
-    public void initialize(double value) {
+    protected void initialize(double value) {
       current = value;
     }
 
-    public abstract void increment(double value);
+    protected abstract void increment(double value);
 
-    public double getCurrent() {
+    protected double getCurrent() {
       return current;
     }
   }

@@ -1,13 +1,9 @@
 package org.enso.table.data.table.problems;
 
 public class FloatingPointGrouping extends ColumnAggregatedProblem {
+
   public FloatingPointGrouping(String columnName, int row) {
     super(columnName, row);
-  }
-
-  @Override
-  public String getMessage() {
-    return "Checking exact equality of floating-point numbers is not recommended.";
   }
 
   @Override

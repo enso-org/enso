@@ -1,13 +1,14 @@
 package org.enso.table.data.table.problems;
 
-public class UnquotedCharactersInOutput extends ColumnAggregatedProblem {
-  public UnquotedCharactersInOutput(String columnName, int row) {
-    super(columnName, row);
+public class IgnoredNothing extends ColumnAggregatedProblem {
+
+  public IgnoredNothing(String locationName, Integer row) {
+    super(locationName, row);
   }
 
   @Override
   public boolean merge(ColumnAggregatedProblem another) {
-    if (another instanceof UnquotedCharactersInOutput
+    if (another instanceof IgnoredNothing
         && this.getLocationName().equals(another.getLocationName())) {
       this.rows.addAll(another.rows);
       return true;

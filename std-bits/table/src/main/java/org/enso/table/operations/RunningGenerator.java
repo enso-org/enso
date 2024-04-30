@@ -14,24 +14,31 @@ import org.enso.table.data.index.MultiValueIndex;
 import org.enso.table.data.index.OrderedMultiValueKey;
 import org.enso.table.data.index.UnorderedMultiValueKey;
 import org.enso.table.data.table.Column;
+import org.enso.table.data.table.problems.IgnoredNothing;
 import org.enso.table.problems.ColumnAggregatedProblemAggregator;
 import org.enso.table.problems.ProblemAggregator;
 import org.enso.table.util.ConstantList;
 
 abstract class RunningGenerator {
 
-  Storage<?> sourceStorage;
+  Column sourceColumn;
   long[] result;
   BitSet isNothing;
+  ColumnAggregatedProblemAggregator columnAggregatedProblemAggregator;
 
-  RunningGenerator(Column sourceColumn) {
-    this.sourceStorage = sourceColumn.getStorage();
+  RunningGenerator(Column sourceColumn, ProblemAggregator problemAggregator) {
+    this.sourceColumn = sourceColumn;
     result = new long[sourceColumn.getSize()];
     isNothing = new BitSet();
+    columnAggregatedProblemAggregator = new ColumnAggregatedProblemAggregator(problemAggregator);
   }
 
   void calculateNextValue(int i, RunningIterator it) {
-    Object value = sourceStorage.getItemBoxed(i);
+    Object value = sourceColumn.getStorage().getItemBoxed(i);
+    if (value == null) {
+      columnAggregatedProblemAggregator.reportColumnAggregatedProblem(
+          new IgnoredNothing(sourceColumn.getName(), i));
+    }
     Double dValue = NumericConverter.tryConvertingToDouble(value);
     Double dNextValue = it.next(dValue);
     if (dNextValue == null) {
@@ -59,9 +66,11 @@ abstract class RunningGenerator {
       runningGenerator =
           new GroupingNoOrderingRunning(sourceColumn, groupingColumns, problemAggregator);
     } else if (orderingColumns.length > 0) {
-      runningGenerator = new NoGroupingOrderingRunning(sourceColumn, orderingColumns, directions);
+      runningGenerator =
+          new NoGroupingOrderingRunning(
+              sourceColumn, orderingColumns, directions, problemAggregator);
     } else {
-      runningGenerator = new NoGroupingNoOrderingRunning(sourceColumn);
+      runningGenerator = new NoGroupingNoOrderingRunning(sourceColumn, problemAggregator);
     }
     return runningGenerator;
   }
@@ -69,8 +78,8 @@ abstract class RunningGenerator {
 
 class NoGroupingNoOrderingRunning extends RunningGenerator {
 
-  NoGroupingNoOrderingRunning(Column sourceColumn) {
-    super(sourceColumn);
+  NoGroupingNoOrderingRunning(Column sourceColumn, ProblemAggregator problemAggregator) {
+    super(sourceColumn, problemAggregator);
   }
 
   @Override
@@ -92,7 +101,7 @@ class GroupingNoOrderingRunning extends RunningGenerator {
 
   public GroupingNoOrderingRunning(
       Column sourceColumn, Column[] groupingColumns, ProblemAggregator problemAggregator) {
-    super(sourceColumn);
+    super(sourceColumn, problemAggregator);
     this.groupingColumns = groupingColumns;
     groupingStorages =
         Arrays.stream(groupingColumns).map(Column::getStorage).toArray(Storage[]::new);
@@ -120,8 +129,11 @@ class NoGroupingOrderingRunning extends RunningGenerator {
   private final List<OrderedMultiValueKey> keys;
 
   public NoGroupingOrderingRunning(
-      Column sourceColumn, Column[] orderingColumns, int[] directions) {
-    super(sourceColumn);
+      Column sourceColumn,
+      Column[] orderingColumns,
+      int[] directions,
+      ProblemAggregator problemAggregator) {
+    super(sourceColumn, problemAggregator);
     int n = orderingColumns[0].getSize();
     orderingStorages =
         Arrays.stream(orderingColumns).map(Column::getStorage).toArray(Storage[]::new);
@@ -158,7 +170,7 @@ class GroupingOrderingRunning extends RunningGenerator {
       Column[] orderingColumns,
       int[] directions,
       ProblemAggregator problemAggregator) {
-    super(sourceColumn);
+    super(sourceColumn, problemAggregator);
     this.groupingColumns = groupingColumns;
     this.orderingColumns = orderingColumns;
     this.directions = directions;
