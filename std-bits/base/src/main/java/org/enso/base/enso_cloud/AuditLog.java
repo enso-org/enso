@@ -25,7 +25,7 @@ public class AuditLog {
   }
 
   public void logSync(LogMessage message) {
-    sendLogRequest(message.payload, 3);
+    sendLogRequest(message.payload(), 5);
   }
 
   public Future<Void> logAsync(LogMessage message) {
@@ -57,6 +57,7 @@ public class AuditLog {
     } catch (RequestFailureException e) {
       if (retryCount < 0) {
         logger.severe("Failed to send log message after retrying: " + e.getMessage());
+        failedLogCount++;
         throw e;
       } else {
         logger.warning("Exception when sending a log message: " + e.getMessage() + ". Retrying...");
@@ -65,12 +66,19 @@ public class AuditLog {
     }
   }
 
-  public record LogMessage(String payload) {
+  public interface LogMessage {
+    String payload();
   }
 
   public static class RequestFailureException extends RuntimeException {
     public RequestFailureException(String message, Throwable cause) {
       super(message, cause);
     }
+  }
+
+  private int failedLogCount = 0;
+
+  public int getFailedLogCount() {
+    return failedLogCount;
   }
 }

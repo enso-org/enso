@@ -20,7 +20,7 @@ import java.util.Properties;
 import java.util.concurrent.Executor;
 
 abstract class AuditedConnection implements Connection {
-  private final Connection underlying;
+  protected final Connection underlying;
 
   AuditedConnection(Connection underlying) {
     this.underlying = underlying;
