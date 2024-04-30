@@ -108,9 +108,9 @@ const resizeBottomRight = usePointer((pos, _, type) => {
       @pointerup.stop
       @click.stop
     >
-      <div class="resizer-right" v-on="resizeRight.stop.events"></div>
-      <div class="resizer-bottom" v-on="resizeBottom.stop.events"></div>
-      <div class="resizer-bottom-right" v-on="resizeBottomRight.stop.events"></div>
+      <div class="resizer-right" v-on="resizeRight.events"></div>
+      <div class="resizer-bottom" v-on="resizeBottom.events"></div>
+      <div class="resizer-bottom-right" v-on="resizeBottomRight.events"></div>
       <SmallPlusButton
         v-if="config.isCircularMenuVisible"
         class="below-viz"
