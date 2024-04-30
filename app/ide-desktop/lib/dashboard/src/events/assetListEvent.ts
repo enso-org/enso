@@ -103,7 +103,7 @@ interface AssetListDuplicateProjectEvent
   extends AssetListBaseEvent<AssetListEventType.duplicateProject> {
   readonly parentKey: backend.DirectoryId
   readonly parentId: backend.DirectoryId
-  readonly originalId: backend.ProjectId
+  readonly original: backend.ProjectAsset
   readonly versionId: backend.S3ObjectVersionId
 }
 

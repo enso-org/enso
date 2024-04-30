@@ -92,7 +92,7 @@
   "listProjectsBackendError": "Could not list projects.",
   "createProjectBackendError": "Could not create project with name '$0'",
   "restoreProjectBackendError": "Could not restore project '$0'",
-  "duplicateProjectBackendError": "Could not duplicate project '$0'",
+  "duplicateProjectBackendError": "Could not duplicate project as '$0'",
   "closeProjectBackendError": "Could not close project '$0'.",
   "getProjectDetailsBackendError": "Could not get details of project '$0'.",
   "openProjectBackendError": "Could not open project '$0'.",

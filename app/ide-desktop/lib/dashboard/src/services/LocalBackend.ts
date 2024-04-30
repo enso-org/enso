@@ -583,6 +583,16 @@ export default class LocalBackend extends Backend {
   }
 
   /** Invalid operation. */
+  override duplicateProject() {
+    return this.invalidOperation()
+  }
+
+  /** Invalid operation. */
+  override restoreProject() {
+    return this.invalidOperation()
+  }
+
+  /** Invalid operation. */
   override listAssetVersions() {
     return this.invalidOperation()
   }

@@ -15,7 +15,7 @@ import * as ariaComponents from '#/components/AriaComponents'
 import type Backend from '#/services/Backend'
 import * as backendService from '#/services/Backend'
 
-import AssetTreeNode from '#/utilities/AssetTreeNode'
+import type AssetTreeNode from '#/utilities/AssetTreeNode'
 import * as dateTime from '#/utilities/dateTime'
 
 import * as assetDiffView from './AssetDiffView'
@@ -86,7 +86,7 @@ export default function AssetVersion(props: AssetVersionProps) {
               icon={RestoreIcon}
               isDisabled={version.isLatest}
               onPress={() => {
-                backend.restoreProject(asset.id, version.versionId, asset.title)
+                void backend.restoreProject(asset.id, version.versionId, asset.title)
               }}
             />
             <ariaComponents.Tooltip>{getText('restoreThisVersion')}</ariaComponents.Tooltip>
@@ -103,7 +103,7 @@ export default function AssetVersion(props: AssetVersionProps) {
                   type: AssetListEventType.duplicateProject,
                   parentKey: item.directoryKey,
                   parentId: asset.parentId,
-                  originalId: asset.id,
+                  original: asset,
                   versionId: version.versionId,
                 })
               }}

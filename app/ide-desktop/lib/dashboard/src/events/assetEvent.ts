@@ -64,6 +64,8 @@ export interface AssetNewProjectEvent extends AssetBaseEvent<AssetEventType.newP
   readonly placeholderId: backend.ProjectId
   readonly templateId: string | null
   readonly datalinkId: backend.ConnectorId | null
+  readonly originalId: backend.ProjectId | null
+  readonly versionId: backend.S3ObjectVersionId | null
   readonly onSpinnerStateChange: ((state: spinner.SpinnerState) => void) | null
 }
 
