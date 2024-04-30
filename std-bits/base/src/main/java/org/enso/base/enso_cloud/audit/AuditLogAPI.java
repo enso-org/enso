@@ -16,7 +16,8 @@ import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Logger;
 
-public class AuditLogAPI {
+/** Gives access to the low-level log event API in the Cloud and manages asynchronously submitting the logs. */
+class AuditLogAPI {
   private static final Logger logger = Logger.getLogger(AuditLogAPI.class.getName());
   public static AuditLogAPI INSTANCE = new AuditLogAPI();
   private final HttpClient httpClient = HttpClient.newBuilder().followRedirects(HttpClient.Redirect.ALWAYS).build();
