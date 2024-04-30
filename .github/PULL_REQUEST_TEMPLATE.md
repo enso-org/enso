@@ -25,5 +25,4 @@ Please ensure that the following checklist has been satisfied before submitting 
       and
       [Rust](https://github.com/enso-org/enso/blob/develop/docs/style-guide/rust.md)
       style guides. In case you are using a language not listed above, follow the [Rust](https://github.com/enso-org/enso/blob/develop/docs/style-guide/rust.md) style guide.
-- All code has been tested:
-  - [ ] Unit tests have been written where possible.
+- [ ] Unit tests have been written where possible.
