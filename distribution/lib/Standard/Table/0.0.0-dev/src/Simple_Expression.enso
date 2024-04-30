@@ -101,7 +101,7 @@ type Simple_Expression
             builder.append (Option "format" fqn+".Format")
 
         fqn_column = Meta.get_qualified_type_name Simple_Expression
-        derived = Option "<Simple Expression>" fqn_column+".From" [["input", with_all_types], ["operation", Single_Choice builder]]
+        derived = Option "<Simple Expression>" fqn_column+".From" [["input", with_all_types], ["operation", Single_Choice options]]
 
         Single_Choice [text, number, boolean, expression, derived] display=display
 
