@@ -63,24 +63,3 @@ nth_index start step n =
 make_range_column name start step length =
     storage = LongRangeStorage.new start step length
     Column.from_storage name storage
-
-## PRIVATE
-make_grouped_enumeration name grouping_columns start step on_problems =
-    grouping_java_columns = grouping_columns.map .java_column
-    Java_Problems.with_problem_aggregator on_problems java_problem_aggregator->
-        new_storage = AddRowNumber.create_grouped_numbering start step grouping_java_columns java_problem_aggregator
-        Column.from_storage name new_storage
-
-## PRIVATE
-   If the `grouping_columns` are empty, all rows are considered to be in the same group.
-make_grouped_ordered_enumeration name grouping_columns ordering from step on_problems =
-    ordering_columns = ordering.map c->
-        c.column.java_column
-    directions = ordering.map c->
-        c.associated_selector.direction.to_sign
-
-    grouping_java_columns = grouping_columns.map .java_column
-
-    new_storage = Java_Problems.with_problem_aggregator on_problems java_problem_aggregator->
-        AddRowNumber.create_numbering from step grouping_java_columns ordering_columns directions java_problem_aggregator
-    Column.from_storage name new_storage
