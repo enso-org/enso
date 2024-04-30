@@ -35,7 +35,7 @@ mod tests {
     #[test]
     #[ignore]
     fn show_my_path() {
-        setup_logging().unwrap();
+        setup_logging().ok();
         let path = std::env::current_exe().unwrap();
         show_selected(path).unwrap();
     }

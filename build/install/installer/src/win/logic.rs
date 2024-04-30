@@ -244,7 +244,7 @@ mod tests {
     fn check_disk_space_test() -> Result {
         let my_path = ide_ci::env::current_dir()?;
         let r = check_disk_space(&my_path, 10_000_000_000_000);
-        dbg!(r);
+        let _ = dbg!(r);
         Ok(())
     }
 
@@ -252,9 +252,9 @@ mod tests {
     #[ignore]
     /// Test to manually check the running processes.
     fn is_already_running_test() -> Result {
-        setup_logging()?;
+        setup_logging().ok();
         let install_path = crate::win::get_install_dir("Enso")?;
-        let r = crate::is_already_running(&install_path)?;
+        let r = enso_install::is_already_running(&install_path)?;
         dbg!(r);
         Ok(())
     }

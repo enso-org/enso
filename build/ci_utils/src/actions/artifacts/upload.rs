@@ -286,7 +286,7 @@ mod tests {
     #[ignore]
     async fn test_upload() -> Result {
         use warp::Filter;
-        setup_logging()?;
+        setup_logging().ok();
 
         let response1 = CreateArtifactResponse {
             name: "test-artifact".to_string(),

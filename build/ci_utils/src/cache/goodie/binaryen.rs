@@ -64,7 +64,7 @@ mod tests {
     #[tokio::test]
     #[ignore]
     async fn install_wasm_opt() -> Result {
-        setup_logging()?;
+        setup_logging().ok();
         let cache = Cache::new_default().await?;
         let binaryen = Binaryen { version: 108 };
         binaryen.install_if_missing(&cache).await?;

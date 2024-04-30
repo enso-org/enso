@@ -63,6 +63,9 @@ where S: Subscriber + for<'a> LookupSpan<'a> + Debug + Send + Sync + 'static {
 /// Install global `tracing` subscriber that logs to stderr.
 ///
 /// Should be called only once, otherwise it will fail.
+///
+/// When using this function in unit tests, the result should be ignored, to allow multiple tests
+/// to be run in a single batch.
 pub fn setup_logging() -> Result {
     let registry = Registry::default().with(GlobalFilteringLayer).with(stderr_log_layer());
     tracing::subscriber::set_global_default(registry)
