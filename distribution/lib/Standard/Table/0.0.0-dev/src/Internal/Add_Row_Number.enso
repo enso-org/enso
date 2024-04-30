@@ -82,5 +82,5 @@ make_grouped_ordered_enumeration name grouping_columns ordering from step on_pro
             AddRowNumber.create_ordered_numbering from step ordering_columns directions
         False ->
             Java_Problems.with_problem_aggregator on_problems java_problem_aggregator->
-                AddRowNumber.create_grouped_ordered_numbering from step ordering_columns directions grouping_java_columns java_problem_aggregator
+                AddRowNumber.create_numbering from step grouping_java_columns ordering_columns directions java_problem_aggregator
     Column.from_storage name new_storage

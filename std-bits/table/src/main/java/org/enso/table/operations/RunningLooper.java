@@ -2,115 +2,70 @@ package org.enso.table.operations;
 
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.BitSet;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.IntStream;
-import org.enso.base.polyglot.NumericConverter;
 import org.enso.base.text.TextFoldingStrategy;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.index.MultiValueIndex;
 import org.enso.table.data.index.OrderedMultiValueKey;
 import org.enso.table.data.index.UnorderedMultiValueKey;
 import org.enso.table.data.table.Column;
-import org.enso.table.data.table.problems.IgnoredNaN;
-import org.enso.table.data.table.problems.IgnoredNothing;
 import org.enso.table.problems.ColumnAggregatedProblemAggregator;
 import org.enso.table.problems.ProblemAggregator;
 import org.enso.table.util.ConstantList;
 
-abstract class RunningGenerator {
+abstract class RunningLooper<T> {
 
-  Column sourceColumn;
-  long[] result;
-  BitSet isNothing;
-  ColumnAggregatedProblemAggregator columnAggregatedProblemAggregator;
+  // implement this method in subclasses to control the order you want to loop over the data
+  public abstract void loopImpl(RunningStatistic<T> runningStatistic, long numRows);
 
-  RunningGenerator(Column sourceColumn, ProblemAggregator problemAggregator) {
-    this.sourceColumn = sourceColumn;
-    result = new long[sourceColumn.getSize()];
-    isNothing = new BitSet();
-    columnAggregatedProblemAggregator = new ColumnAggregatedProblemAggregator(problemAggregator);
-  }
-
-  void calculateNextValue(int i, RunningIterator it) {
-    Object value = sourceColumn.getStorage().getItemBoxed(i);
-    if (value == null) {
-      columnAggregatedProblemAggregator.reportColumnAggregatedProblem(
-          new IgnoredNothing(sourceColumn.getName(), i));
-    }
-    Double dValue = NumericConverter.tryConvertingToDouble(value);
-    Double dNextValue;
-    if (dValue != null && dValue.equals(Double.NaN)) {
-      columnAggregatedProblemAggregator.reportColumnAggregatedProblem(
-          new IgnoredNaN(sourceColumn.getName(), i));
-      dNextValue = it.currentValue();
-    } else {
-      dNextValue = it.next(dValue);
-    }
-
-    if (dNextValue == null) {
-      isNothing.set(i);
-    } else {
-      result[i] = Double.doubleToRawLongBits(dNextValue);
-    }
-  }
-
-  // implement this method in subclasses to control the order you want to iterate over the data
-  public abstract void generate(RunningIteratorFactory factory);
-
-  public static RunningGenerator createGenerator(
-      Column sourceColumn,
+  public static <T> void loop(
       Column[] groupingColumns,
       Column[] orderingColumns,
       int[] directions,
-      ProblemAggregator problemAggregator) {
-    RunningGenerator runningGenerator;
+      ProblemAggregator problemAggregator,
+      RunningStatistic<T> runningStatistic,
+      long numRows) {
+    RunningLooper<T> runningLooper;
     if (groupingColumns.length > 0 && orderingColumns.length > 0) {
-      runningGenerator =
-          new GroupingOrderingRunning(
-              sourceColumn, groupingColumns, orderingColumns, directions, problemAggregator);
+      runningLooper =
+          new GroupingOrderingRunning<>(
+              groupingColumns, orderingColumns, directions, problemAggregator);
     } else if (groupingColumns.length > 0) {
-      runningGenerator =
-          new GroupingNoOrderingRunning(sourceColumn, groupingColumns, problemAggregator);
+      runningLooper = new GroupingNoOrderingRunning<>(groupingColumns, problemAggregator);
     } else if (orderingColumns.length > 0) {
-      runningGenerator =
-          new NoGroupingOrderingRunning(
-              sourceColumn, orderingColumns, directions, problemAggregator);
+      runningLooper = new NoGroupingOrderingRunning<>(orderingColumns, directions);
     } else {
-      runningGenerator = new NoGroupingNoOrderingRunning(sourceColumn, problemAggregator);
+      runningLooper = new NoGroupingNoOrderingRunning<>();
     }
-    return runningGenerator;
+    runningLooper.loopImpl(runningStatistic, numRows);
   }
 }
 
-class NoGroupingNoOrderingRunning extends RunningGenerator {
+class NoGroupingNoOrderingRunning<T> extends RunningLooper<T> {
 
-  NoGroupingNoOrderingRunning(Column sourceColumn, ProblemAggregator problemAggregator) {
-    super(sourceColumn, problemAggregator);
-  }
+  NoGroupingNoOrderingRunning() {}
 
   @Override
-  public void generate(RunningIteratorFactory factory) {
-    var it = factory.getIterator();
-    for (int i = 0; i < result.length; i++) {
-      calculateNextValue(i, it);
+  public void loopImpl(RunningStatistic<T> factory, long numRows) {
+    var it = factory.getNewIterator();
+    for (int i = 0; i < numRows; i++) {
+      factory.calculateNextValue(i, it);
     }
   }
 }
 
-class GroupingNoOrderingRunning extends RunningGenerator {
+class GroupingNoOrderingRunning<T> extends RunningLooper<T> {
 
   private final Column[] groupingColumns;
   private final Storage<?>[] groupingStorages;
   private final ColumnAggregatedProblemAggregator groupingProblemAggregator;
   private final List<TextFoldingStrategy> textFoldingStrategy;
-  private final Map<UnorderedMultiValueKey, RunningIterator> groups;
+  private final Map<UnorderedMultiValueKey, RunningIterator<T>> groups;
 
-  public GroupingNoOrderingRunning(
-      Column sourceColumn, Column[] groupingColumns, ProblemAggregator problemAggregator) {
-    super(sourceColumn, problemAggregator);
+  public GroupingNoOrderingRunning(Column[] groupingColumns, ProblemAggregator problemAggregator) {
     this.groupingColumns = groupingColumns;
     groupingStorages =
         Arrays.stream(groupingColumns).map(Column::getStorage).toArray(Storage[]::new);
@@ -121,28 +76,23 @@ class GroupingNoOrderingRunning extends RunningGenerator {
   }
 
   @Override
-  public void generate(RunningIteratorFactory factory) {
-    for (int i = 0; i < result.length; i++) {
+  public void loopImpl(RunningStatistic<T> factory, long numRows) {
+    for (int i = 0; i < numRows; i++) {
       var key = new UnorderedMultiValueKey(groupingStorages, i, textFoldingStrategy);
       key.checkAndReportFloatingEquality(
           groupingProblemAggregator, columnIx -> groupingColumns[columnIx].getName());
-      RunningIterator it = groups.computeIfAbsent(key, k -> factory.getIterator());
-      calculateNextValue(i, it);
+      var it = groups.computeIfAbsent(key, k -> factory.getNewIterator());
+      factory.calculateNextValue(i, it);
     }
   }
 }
 
-class NoGroupingOrderingRunning extends RunningGenerator {
+class NoGroupingOrderingRunning<T> extends RunningLooper<T> {
 
   private final Storage<?>[] orderingStorages;
   private final List<OrderedMultiValueKey> keys;
 
-  public NoGroupingOrderingRunning(
-      Column sourceColumn,
-      Column[] orderingColumns,
-      int[] directions,
-      ProblemAggregator problemAggregator) {
-    super(sourceColumn, problemAggregator);
+  public NoGroupingOrderingRunning(Column[] orderingColumns, int[] directions) {
     int n = orderingColumns[0].getSize();
     orderingStorages =
         Arrays.stream(orderingColumns).map(Column::getStorage).toArray(Storage[]::new);
@@ -155,16 +105,16 @@ class NoGroupingOrderingRunning extends RunningGenerator {
   }
 
   @Override
-  public void generate(RunningIteratorFactory factory) {
-    var it = factory.getIterator();
+  public void loopImpl(RunningStatistic<T> factory, long numRows) {
+    var it = factory.getNewIterator();
     for (var key : keys) {
       var i = key.getRowIndex();
-      calculateNextValue(i, it);
+      factory.calculateNextValue(i, it);
     }
   }
 }
 
-class GroupingOrderingRunning extends RunningGenerator {
+class GroupingOrderingRunning<T> extends RunningLooper<T> {
 
   private final Column[] groupingColumns;
   private final Column[] orderingColumns;
@@ -174,12 +124,10 @@ class GroupingOrderingRunning extends RunningGenerator {
   private final ProblemAggregator problemAggregator;
 
   public GroupingOrderingRunning(
-      Column sourceColumn,
       Column[] groupingColumns,
       Column[] orderingColumns,
       int[] directions,
       ProblemAggregator problemAggregator) {
-    super(sourceColumn, problemAggregator);
     this.groupingColumns = groupingColumns;
     this.orderingColumns = orderingColumns;
     this.directions = directions;
@@ -192,7 +140,7 @@ class GroupingOrderingRunning extends RunningGenerator {
   }
 
   @Override
-  public void generate(RunningIteratorFactory factory) {
+  public void loopImpl(RunningStatistic<T> factory, long numRows) {
     int n = orderingColumns[0].getSize();
     var groupIndex =
         MultiValueIndex.makeUnorderedIndex(
@@ -205,10 +153,10 @@ class GroupingOrderingRunning extends RunningGenerator {
                   .map(i -> new OrderedMultiValueKey(orderingStorages, i, directions))
                   .toList());
       orderingKeys.sort(null);
-      RunningIterator it = factory.getIterator();
+      var it = factory.getNewIterator();
       for (OrderedMultiValueKey key : orderingKeys) {
         var i = key.getRowIndex();
-        calculateNextValue(i, it);
+        factory.calculateNextValue(i, it);
       }
     }
   }
