@@ -1,8 +1,6 @@
 /** @file Displays information describing a specific version of an asset. */
 import * as React from 'react'
 
-import * as reactQuery from '@tanstack/react-query'
-
 import CompareIcon from 'enso-assets/compare.svg'
 import DuplicateIcon from 'enso-assets/duplicate.svg'
 import RestoreIcon from 'enso-assets/restore.svg'
@@ -12,7 +10,7 @@ import * as textProvider from '#/providers/TextProvider'
 import type * as assetListEvent from '#/events/assetListEvent'
 import AssetListEventType from '#/events/AssetListEventType'
 
-import type * as assetVersions from '#/layouts/AssetVersions/AssetVersions'
+import * as assetDiffView from '#/layouts/AssetDiffView'
 
 import * as ariaComponents from '#/components/AriaComponents'
 
@@ -21,9 +19,6 @@ import * as backendService from '#/services/Backend'
 
 import type AssetTreeNode from '#/utilities/AssetTreeNode'
 import * as dateTime from '#/utilities/dateTime'
-import * as uniqueString from '#/utilities/uniqueString'
-
-import * as assetDiffView from './AssetDiffView'
 
 // ====================
 // === AssetVersion ===
@@ -31,6 +26,7 @@ import * as assetDiffView from './AssetDiffView'
 
 /** Props for a {@link AssetVersion}. */
 export interface AssetVersionProps {
+  readonly placeholder?: boolean
   readonly item: AssetTreeNode
   readonly number: number
   readonly version: backendService.S3ObjectVersion
@@ -42,14 +38,16 @@ export interface AssetVersionProps {
 
 /** Displays information describing a specific version of an asset. */
 export default function AssetVersion(props: AssetVersionProps) {
-  const { number, version, item, backend, latestVersion } = props
+  const { placeholder = false, number, version, item, backend, latestVersion } = props
   const { dispatchAssetListEvent, doRestore } = props
   const { getText } = textProvider.useText()
   const asset = item.item
   const isProject = asset.type === backendService.AssetType.project
 
   return (
-    <div className="flex w-full flex-shrink-0 basis-0 select-none flex-row gap-4 rounded-2xl p-2">
+    <div
+      className={`flex w-full flex-shrink-0 basis-0 select-none flex-row gap-4 rounded-2xl p-2 ${placeholder ? 'opacity-50' : ''}`}
+    >
       <div className="flex flex-1 flex-col">
         <div>
           {getText('versionX', number)} {version.isLatest && getText('latestIndicator')}
@@ -68,7 +66,7 @@ export default function AssetVersion(props: AssetVersionProps) {
                 variant="icon"
                 aria-label={getText('compareWithLatest')}
                 icon={CompareIcon}
-                isDisabled={version.isLatest}
+                isDisabled={version.isLatest || placeholder}
               />
               <ariaComponents.Tooltip>{getText('compareWithLatest')}</ariaComponents.Tooltip>
             </ariaComponents.TooltipTrigger>
@@ -91,7 +89,7 @@ export default function AssetVersion(props: AssetVersionProps) {
               variant="icon"
               aria-label={getText('restoreThisVersion')}
               icon={RestoreIcon}
-              isDisabled={version.isLatest}
+              isDisabled={version.isLatest || placeholder}
               onPress={doRestore}
             />
             <ariaComponents.Tooltip>{getText('restoreThisVersion')}</ariaComponents.Tooltip>
@@ -103,6 +101,7 @@ export default function AssetVersion(props: AssetVersionProps) {
               variant="icon"
               aria-label={getText('duplicateThisVersion')}
               icon={DuplicateIcon}
+              isDisabled={placeholder}
               onPress={() => {
                 dispatchAssetListEvent({
                   type: AssetListEventType.duplicateProject,

@@ -27,7 +27,7 @@ import * as uniqueString from '#/utilities/uniqueString'
 // ==============================
 
 /** Variables for the "add new version" mutation. */
-export interface AddNewVersionVariables {
+interface AddNewVersionVariables {
   readonly versionId: backendService.S3ObjectVersionId
   readonly placeholderId: backendService.S3ObjectVersionId
 }
@@ -48,7 +48,9 @@ export default function AssetVersions(props: AssetVersionsProps) {
   const { backend } = backendProvider.useBackend()
   const { getText } = textProvider.useText()
   const toastAndLog = toastAndLogHooks.useToastAndLog()
-  const queryClient = reactQuery.useQueryClient()
+  const [placeholderVersions, setPlaceholderVersions] = React.useState<
+    readonly backendService.S3ObjectVersion[]
+  >([])
   const isCloud = backend.type === backendService.BackendType.remote
   const queryKey = ['assetVersions', item.item.id, item.item.title]
   const versionsQuery = useAssetVersions.useAssetVersions({
@@ -67,40 +69,29 @@ export default function AssetVersions(props: AssetVersionsProps) {
         await backend.restoreProject(item.item.id, variables.versionId, item.item.title)
       }
     },
-    onMutate: async variables => {
-      if (item.item.type === backendService.AssetType.project) {
-        await queryClient.cancelQueries({ queryKey })
-        queryClient.setQueryData<backendService.S3ObjectVersion[]>(queryKey, oldVersions => [
-          {
-            isLatest: true,
-            key: uniqueString.uniqueString(),
-            lastModified: dateTime.toRfc3339(new Date()),
-            versionId: variables.placeholderId,
-          } satisfies backendService.S3ObjectVersion,
-          ...(oldVersions?.map(version =>
-            version.isLatest ? { ...version, isLatest: false } : version
-          ) ?? []),
-        ])
-      }
+    onMutate: variables => {
+      setPlaceholderVersions(oldVersions => [
+        {
+          isLatest: false,
+          key: uniqueString.uniqueString(),
+          lastModified: dateTime.toRfc3339(new Date()),
+          versionId: variables.placeholderId,
+        },
+        ...oldVersions,
+      ])
     },
-    onSuccess: () => {
-      if (item.item.type === backendService.AssetType.project) {
-        // `backend.restoreProject` does not return the ID of the new version, so a full refetch is
-        // necessary.
-        versionsQuery.refetch()
-      }
+    onSuccess: async () => {
+      // `backend.restoreProject` does not return the ID of the new version, so a full refetch is
+      // necessary.
+      await versionsQuery.refetch()
     },
-    onError: (_error, variables) => {
-      if (item.item.type === backendService.AssetType.project) {
-        queryClient.setQueryData<backendService.S3ObjectVersion[]>(queryKey, oldVersions => {
-          const newVersions =
-            oldVersions?.filter(version => version.versionId !== variables.placeholderId) ?? []
-          const lastVersion = newVersions[newVersions.length - 1]
-          return lastVersion != null && !lastVersion.isLatest
-            ? [...newVersions.slice(0, -1), { ...lastVersion, isLatest: true }]
-            : newVersions
-        })
-      }
+    onError: (error: unknown) => {
+      toastAndLog('restoreProjectError', error, item.item.title)
+    },
+    onSettled: (_data, _error, variables) => {
+      setPlaceholderVersions(oldVersions =>
+        oldVersions.filter(version => version.versionId !== variables.placeholderId)
+      )
     },
   })
 
@@ -117,23 +108,38 @@ export default function AssetVersions(props: AssetVersionsProps) {
       ) : latestVersion == null ? (
         <div>{getText('fetchLatestVersionError')}</div>
       ) : (
-        versionsQuery.data.map((version, i) => (
-          <AssetVersion
-            key={version.versionId}
-            number={versionsQuery.data.length - i}
-            version={version}
-            item={item}
-            backend={backend}
-            latestVersion={latestVersion}
-            dispatchAssetListEvent={dispatchAssetListEvent}
-            doRestore={() => {
-              restoreMutation.mutate({
-                versionId: version.versionId,
-                placeholderId: backendService.S3ObjectVersionId(uniqueString.uniqueString()),
-              })
-            }}
-          />
-        ))
+        [
+          ...placeholderVersions.map((version, i) => (
+            <AssetVersion
+              key={version.versionId}
+              placeholder
+              number={versionsQuery.data.length + placeholderVersions.length - i}
+              version={version}
+              item={item}
+              backend={backend}
+              latestVersion={latestVersion}
+              dispatchAssetListEvent={dispatchAssetListEvent}
+              doRestore={() => {}}
+            />
+          )),
+          ...versionsQuery.data.map((version, i) => (
+            <AssetVersion
+              key={version.versionId}
+              number={versionsQuery.data.length - i}
+              version={version}
+              item={item}
+              backend={backend}
+              latestVersion={latestVersion}
+              dispatchAssetListEvent={dispatchAssetListEvent}
+              doRestore={() => {
+                restoreMutation.mutate({
+                  versionId: version.versionId,
+                  placeholderId: backendService.S3ObjectVersionId(uniqueString.uniqueString()),
+                })
+              }}
+            />
+          )),
+        ]
       )}
     </div>
   )

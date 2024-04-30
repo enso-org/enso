@@ -22,6 +22,7 @@ interface PlaceholderOverrides {
   readonly moveAssetError: [string]
   readonly findProjectError: [string]
   readonly openProjectError: [string]
+  readonly restoreProjectError: [string]
   readonly deleteAssetError: [string]
   readonly restoreAssetError: [string]
   readonly setPermissionsError: [string]

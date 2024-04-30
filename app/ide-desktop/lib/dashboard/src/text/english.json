@@ -9,6 +9,7 @@
   "updateProjectError": "Could not update project",
   "findProjectError": "Could not find project '$0'",
   "openProjectError": "Could not open project '$0'",
+  "restoreProjectError": "Could not restore project '$0'",
   "copyAssetError": "Could not copy '$0'",
   "moveAssetError": "Could not move '$0'",
   "deleteAssetError": "Could not delete '$0'",
