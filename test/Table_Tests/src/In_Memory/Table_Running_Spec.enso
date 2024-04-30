@@ -346,7 +346,7 @@ add_specs suite_builder =
             # 4 | SG0456 | E         | 73.77        | 750.26
             expected_table = table.zip expected_column
             result.should_equal expected_table
-            w = Problems.expect_warning Ignored_Nothing_Values result
+            w = Problems.expect_warning Ignored_NaN_Values result
             w.column.should_equal "Ticket Price"
             w.rows.should_equal [2, 3]
         group_builder.specify "Running sum works ignores NaN values and warnings can be hushed" <|
@@ -375,7 +375,7 @@ add_specs suite_builder =
             # 4 | SG0456 | E         | 73.77        | 73.77
             expected_table = table.zip expected_column
             result.should_equal expected_table
-            w = Problems.expect_warning Ignored_Nothing_Values result
+            w = Problems.expect_warning Ignored_NaN_Values result
             w.column.should_equal "Ticket Price"
             w.rows.should_equal [2, 3]
         group_builder.specify "Running max ignores NaN values and works with grouping and warns" <|
@@ -390,7 +390,7 @@ add_specs suite_builder =
             # 4 | SG0456 | E         | 73.77        | 73.77
             expected_table = table.zip expected_column
             result.should_equal expected_table
-            w = Problems.expect_warning Ignored_Nothing_Values result
+            w = Problems.expect_warning Ignored_NaN_Values result
             w.column.should_equal "Ticket Price"
             w.rows.should_equal [2, 3]
         group_builder.specify "Running mean ignores NaN values and warns" <|
@@ -405,7 +405,7 @@ add_specs suite_builder =
             # 4 | SG0456 | E         | 73.77        | 250.08666666666667
             expected_table = table.zip expected_column
             result.should_equal expected_table
-            w = Problems.expect_warning Ignored_Nothing_Values result
+            w = Problems.expect_warning Ignored_NaN_Values result
             w.column.should_equal "Ticket Price"
             w.rows.should_equal [2, 3]
         group_builder.specify "Running mean ignores NaN values and works when first value is NaN and warns" <|
@@ -420,7 +420,7 @@ add_specs suite_builder =
             # 4 | SG0456 | E         | 73.77        | 73.77
             expected_table = table.zip expected_column
             result.should_equal expected_table
-            w = Problems.expect_warning Ignored_Nothing_Values result
+            w = Problems.expect_warning Ignored_NaN_Values result
             w.column.should_equal "Ticket Price"
             w.rows.should_equal [2, 3]
     suite_builder.group "different types" group_builder->

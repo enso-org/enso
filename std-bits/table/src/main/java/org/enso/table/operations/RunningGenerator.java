@@ -14,6 +14,7 @@ import org.enso.table.data.index.MultiValueIndex;
 import org.enso.table.data.index.OrderedMultiValueKey;
 import org.enso.table.data.index.UnorderedMultiValueKey;
 import org.enso.table.data.table.Column;
+import org.enso.table.data.table.problems.IgnoredNaN;
 import org.enso.table.data.table.problems.IgnoredNothing;
 import org.enso.table.problems.ColumnAggregatedProblemAggregator;
 import org.enso.table.problems.ProblemAggregator;
@@ -43,7 +44,7 @@ abstract class RunningGenerator {
     Double dNextValue;
     if (dValue != null && dValue.equals(Double.NaN)) {
       columnAggregatedProblemAggregator.reportColumnAggregatedProblem(
-          new IgnoredNothing(sourceColumn.getName(), i));
+          new IgnoredNaN(sourceColumn.getName(), i));
       dNextValue = it.currentValue();
     } else {
       dNextValue = it.next(dValue);

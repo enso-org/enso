@@ -144,6 +144,18 @@ type Invalid_Aggregation
     to_display_text self =
         "The "+self.column+" could not be calculated at "+self.rows.short_display_text+": "+self.message
 
+## Indicates that NaN values were found and ignored.
+type Ignored_NaN_Values
+    ## PRIVATE
+    Warning (column:Text) (rows:(Vector Integer))
+
+    ## PRIVATE
+
+       Create a human-readable version of the error.
+    to_display_text : Text
+    to_display_text self =
+        "The column "+self.column+" contained NaN values in rows " + self.rows.short_display_text + " which were ignored."
+
 ## Indicates that Nothing values were found and ignored.
 type Ignored_Nothing_Values
     ## PRIVATE
