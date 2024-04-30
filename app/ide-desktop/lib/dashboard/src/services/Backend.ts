@@ -111,8 +111,9 @@ export function isUserGroupId(id: string): id is UserGroupId {
 
 const PLACEHOLDER_USER_GROUP_PREFIX = 'usergroup-placeholder-'
 
-/** Whether a given {@link string} is an {@link UserGroupId}. */
-export function isPlaceholderUserGroupId(id: string): id is UserGroupId {
+/** Whether a given {@link UserGroupId} represents a user group that does not yet exist on the
+ * server. */
+export function isPlaceholderUserGroupId(id: string) {
   return id.startsWith(PLACEHOLDER_USER_GROUP_PREFIX)
 }
 
