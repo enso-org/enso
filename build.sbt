@@ -705,9 +705,12 @@ lazy val `akka-native` = project
 
 lazy val `profiling-utils` = project
   .in(file("lib/scala/profiling-utils"))
+  .enablePlugins(JPMSPlugin)
   .configs(Test)
   .settings(
     frgaalJavaCompilerSetting,
+    compileOrder := CompileOrder.JavaThenScala,
+    javaModuleName := "org.enso.profiling",
     version := "0.1",
     libraryDependencies ++= Seq(
       "org.netbeans.api" % "org-netbeans-modules-sampler" % netbeansApiVersion
@@ -725,7 +728,17 @@ lazy val `profiling-utils` = project
       exclude ("org.netbeans.api", "org-netbeans-api-annotations-common"),
       "junit"          % "junit"           % junitVersion   % Test,
       "com.github.sbt" % "junit-interface" % junitIfVersion % Test
-    )
+    ),
+    modulePath := {
+      JPMSUtils.filterModulesFromUpdate(
+        update.value,
+        Seq(
+          "org.netbeans.api" % "org-netbeans-modules-sampler" % netbeansApiVersion
+        ),
+        streams.value.log,
+        shouldContainAll = true
+      )
+    }
   )
 
 lazy val `logging-utils` = project
