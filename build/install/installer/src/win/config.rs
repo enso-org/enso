@@ -2,6 +2,8 @@
 
 use crate::prelude::*;
 
+
+
 /// All the configuration and constants needed to build the installer.
 #[derive(Clone, Debug)]
 pub struct Config {

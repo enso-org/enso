@@ -48,19 +48,6 @@ impl Location {
     }
 }
 
-//
-// /// Create a Windows shortcut (`.lnk` file).
-// pub fn create_shortcut(name: &str, shortcut_path: &Path, target: &Path) -> Result {
-//     // Paths with verbatim prefix (i.e. `\\?\`) are not supported by the Windows Shell API.
-//     let target = target.without_verbatim_prefix();
-//     info!("Creating shortcut {} -> {}", shortcut_path.display(), target.display());
-//     ide_ci::fs::create_parent_dir_if_missing(shortcut_path)?;
-//     let mut link = mslnk::ShellLink::new(target)?;
-//     link.set_name(Some(name.into()));
-//     link.create_lnk(shortcut_path)?;
-//     Ok(())
-// }
-
 /// Create a Windows shortcut (`.lnk` file).
 pub fn create_shortcut_customized(
     shortcut_path: &Path,
@@ -75,30 +62,4 @@ pub fn create_shortcut_customized(
     f(&mut link);
     link.create_lnk(shortcut_path)?;
     Ok(())
-}
-
-#[cfg(test)]
-mod tests {
-    // use super::*;
-
-    // #[test]
-    // fn desktop() -> Result {
-    //     setup_logging().unwrap();
-    //     let dirs =
-    //         directories::UserDirs::new().with_context(|| "Failed to get user directories.")?;
-    //     let desktop_path =
-    //         dirs.desktop_dir().with_context(|| "Failed to get desktop directory.")?;
-    //     info!("Desktop path: {}", desktop_path.display());
-    //     Ok(())
-    // }
-
-    // #[test]
-    // fn create_shortcut_test() -> Result {
-    //     setup_logging()?;
-    //     create_shortcut(
-    //         &Path::new(r"C:\Users\mwurb\Desktop\Enso.lnk"),
-    //         &Path::new(r"C:\Users\mwurb\AppData\Local\Programs\Enso\Enso.exe"),
-    //     )?;
-    //     Ok(())
-    // }
 }

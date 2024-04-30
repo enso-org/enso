@@ -1,9 +1,11 @@
 use crate::prelude::*;
-use enso_install_config::UNINSTALLER_NAME;
-use flate2::read::GzDecoder;
 
 use crate::win::config::Config;
 use crate::Payload;
+
+use enso_install_config::UNINSTALLER_NAME;
+use flate2::read::GzDecoder;
+
 
 
 /// Register file extensions and their associations in the Windows registry.
@@ -235,15 +237,13 @@ pub fn check_disk_space(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use sysinfo::Disks;
 
     #[test]
     #[ignore]
     /// Test to manually check the generated disk space message.
     fn check_disk_space_test() -> Result {
-        let disks = Disks::new_with_refreshed_list();
         let my_path = ide_ci::env::current_dir()?;
-        let r = check_disk_space(&my_path, 10000_000_000_000);
+        let r = check_disk_space(&my_path, 10_000_000_000_000);
         dbg!(r);
         Ok(())
     }
@@ -253,8 +253,8 @@ mod tests {
     /// Test to manually check the running processes.
     fn is_already_running_test() -> Result {
         setup_logging()?;
-        let install_path = crate::get_install_dir("Enso")?;
-        let r = is_already_running(&install_path)?;
+        let install_path = crate::win::get_install_dir("Enso")?;
+        let r = crate::is_already_running(&install_path)?;
         dbg!(r);
         Ok(())
     }

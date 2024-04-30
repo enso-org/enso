@@ -4,6 +4,7 @@
 #![allow(unsafe_code)]
 
 use crate::prelude::*;
+use winreg::enums::*;
 
 use enso_install_config::ENSO_INSTALL_ARCHIVE_PATH;
 use enso_install_config::INSTALLER_PAYLOAD_ID;
@@ -12,7 +13,6 @@ use std::ffi::c_void;
 use std::os::windows::ffi::OsStringExt;
 use windows::core::PCWSTR;
 use windows::Win32::UI::Shell;
-use winreg::enums::*;
 
 
 // ==============
@@ -26,6 +26,7 @@ pub mod resource;
 pub mod shortcut;
 pub mod ui;
 pub mod uninstall;
+
 
 
 /// Open the `HKEY_CURRENT_USER\Software\Classes` key for reading and writing.

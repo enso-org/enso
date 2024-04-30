@@ -367,12 +367,12 @@ impl IdeDesktop {
                 target_os,
                 TARGET_ARCH,
                 &ENSO_VERSION.get()?,
-                &output_path,
+                output_path,
             );
 
             let config = enso_install_config::bundler::Config {
                 electron_builder_config:  electron_config,
-                unpacked_electron_bundle: unpacked_dir(&output_path, target_os, TARGET_ARCH),
+                unpacked_electron_bundle: unpacked_dir(output_path, target_os, TARGET_ARCH),
                 repo_root:                self.repo_root.to_path_buf(),
                 output_file:              ide_artifacts.image.clone(),
                 intermediate_dir:         output_path.to_path_buf(),

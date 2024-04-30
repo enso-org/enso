@@ -1,6 +1,8 @@
 use crate::prelude::*;
+
 use native_windows_gui::NativeUi;
 use std::sync::mpsc::Receiver;
+
 
 
 extern crate native_windows_gui as nwg;
@@ -54,6 +56,7 @@ impl InstallerApp {
     /// Create a new instance of the installer application.
     ///
     /// This includes setting up logging.
+    #[warn(clippy::new_ret_no_self)] // This follow the pattern advertised by the NWG crate.
     pub fn new() -> Result<ui::Ui> {
         let window_title =
             format!("{} installer", enso_install::sanitized_electron_builder_config().product_name);
@@ -70,7 +73,7 @@ impl InstallerApp {
         }();
         if let Err(err) = &result {
             ui::error_message(&dialog_title, &format!("Installer failed to start: {err:?}"));
-            let _ = ide_ci::programs::explorer::show_selected(&logfile_copy);
+            let _ = ide_ci::programs::explorer::show_selected(logfile_copy);
         }
         result
     }
@@ -101,14 +104,20 @@ impl InstallerApp {
     pub fn handle_ui_event(
         &self,
         event: nwg::Event,
-        _evt_data: nwg::EventData,
+        evt_data: nwg::EventData,
         handle: nwg::ControlHandle,
     ) {
         match event {
             nwg::Event::OnTimerTick =>
-                if &handle == &self.timer {
+                if handle == self.timer {
                     self.tick();
                 },
+            nwg::Event::OnWindowClose => {
+                // Prevent manual closing of the window. Installation should not be interrupted.
+                if let nwg::EventData::OnWindowClose(close_data) = evt_data {
+                    close_data.close(false);
+                }
+            }
             _ => {}
         }
     }
@@ -162,7 +171,7 @@ impl InstallerApp {
 
         if let Some(receiver) = installer_state.deref() {
             loop {
-                if let Some(_) = self.result.borrow().deref() {
+                if self.result.borrow().is_some() {
                     // If the installation has already finished, we don't need to do anything.
                     return;
                 }

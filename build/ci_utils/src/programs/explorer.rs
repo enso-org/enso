@@ -31,6 +31,7 @@ pub fn show_selected(path: impl AsRef<Path>) -> Result {
 mod tests {
     use super::*;
 
+    #[cfg(windows)]
     #[test]
     #[ignore]
     fn show_my_path() {

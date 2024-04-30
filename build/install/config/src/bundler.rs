@@ -12,6 +12,7 @@ use ide_ci::programs::cargo;
 use ide_ci::programs::Cargo;
 
 
+
 /// Input necessary to generate a Windows installer from unpacked Electron application bundle.
 #[derive(Debug)]
 pub struct Config {

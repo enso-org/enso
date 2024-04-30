@@ -5,6 +5,7 @@ use enso_install::locked_installation_lock;
 use enso_install::sanitized_electron_builder_config;
 
 
+
 /// The parent directory of this (uninstaller) executable.
 ///
 /// This is a good candidate for the install directory of Enso.

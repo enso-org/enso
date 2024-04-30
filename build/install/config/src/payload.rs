@@ -38,6 +38,6 @@ pub async fn prepare_payload(
     let metadata = Metadata::from_directory(unpacked_directory)?;
     ide_ci::archive::compress_directory_contents(&output_archive, &unpacked_directory).await?;
     let metadata_json = serde_json::to_string_pretty(&metadata)?;
-    ide_ci::fs::write_if_different(&output_metadata, metadata_json)?;
+    ide_ci::fs::write_if_different(output_metadata, metadata_json)?;
     Ok(())
 }

@@ -3,8 +3,9 @@
 // === Features ===
 #![feature(lazy_cell)]
 
-use enso_install::access_built_time_env;
 use enso_install::prelude::*;
+
+use enso_install::access_built_time_env;
 
 
 // ==============
@@ -15,6 +16,7 @@ use enso_install::prelude::*;
 pub mod win;
 
 pub use enso_install::prelude;
+
 
 
 #[derive(Debug)]
