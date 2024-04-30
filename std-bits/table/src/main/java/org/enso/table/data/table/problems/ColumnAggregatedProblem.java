@@ -6,7 +6,6 @@ import java.util.stream.Collectors;
 import org.enso.table.problems.Problem;
 
 public abstract class ColumnAggregatedProblem implements Problem {
-
   private final String locationName;
   protected final List<Integer> rows;
 
@@ -29,6 +28,8 @@ public abstract class ColumnAggregatedProblem implements Problem {
   }
 
   public abstract boolean merge(ColumnAggregatedProblem another);
+
+  public abstract String getMessage();
 
   protected String makeTruncatedRowsString() {
     int limit = 9;

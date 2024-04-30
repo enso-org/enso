@@ -6,6 +6,16 @@ public class UnquotedCharactersInOutput extends ColumnAggregatedProblem {
   }
 
   @Override
+  public String getMessage() {
+    return "The "
+        + getLocationName()
+        + " at rows "
+        + makeTruncatedRowsString()
+        + " contains characters that need quoting, but quoting is disabled. The generated file may"
+        + " be corrupted.";
+  }
+
+  @Override
   public boolean merge(ColumnAggregatedProblem another) {
     if (another instanceof UnquotedCharactersInOutput
         && this.getLocationName().equals(another.getLocationName())) {
