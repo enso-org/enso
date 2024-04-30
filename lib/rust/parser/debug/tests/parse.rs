@@ -257,6 +257,66 @@ fn type_constructors() {
 }
 
 #[test]
+fn type_constructor_private() {
+    #[rustfmt::skip]
+    let code = [
+        "type Foo",
+        "    private Bar"
+    ];
+    #[rustfmt::skip]
+    let expected = block![
+        (TypeDef type Foo #()
+         #((Private (ConstructorDefinition Bar #() #()))))];
+    test(&code.join("\n"), expected);
+
+    #[rustfmt::skip]
+    let code = [
+        "type Foo",
+        "    private Bar",
+        "    Foo"
+    ];
+    #[rustfmt::skip]
+    let expected = block![
+        (TypeDef type Foo #()
+         #((Private (ConstructorDefinition Bar #() #()))
+         (ConstructorDefinition Foo #() #()))
+        )
+    ];
+    test(&code.join("\n"), expected);
+
+    #[rustfmt::skip]
+    let code = [
+        "type Geo",
+        "    private Circle",
+        "        radius",
+        "        x",
+        "    Rectangle width height",
+        "    Point",
+    ];
+    #[rustfmt::skip]
+    let expected = block![
+        (TypeDef type Geo #()
+         #((Private(ConstructorDefinition
+             Circle #() #(((() (Ident radius) () ())) ((() (Ident x) () ())))))
+           (ConstructorDefinition
+             Rectangle #((() (Ident width) () ()) (() (Ident height) () ())) #())
+           (ConstructorDefinition Point #() #())))];
+    test(&code.join("\n"), expected);
+
+    #[rustfmt::skip]
+    let code = [
+        "type My_Type",
+        "    private Value a b c"
+    ];
+    let expected = block![
+        (TypeDef type My_Type #()
+          #((Private (ConstructorDefinition Value #((() (Ident a) () ()) (() (Ident b) () ()) (() (Ident c) () ())) #())))
+        )
+    ];
+    test(&code.join("\n"), expected);
+}
+
+#[test]
 fn type_methods() {
     let code = ["type Geo", "    number =", "        x", "    area self = x + x"];
     #[rustfmt::skip]
@@ -1309,10 +1369,43 @@ fn pattern_match_suspended_default_arguments() {
 }
 
 // === Private (project-private) keyword ===
+// So far, private keyword is only allowed to either have empty body, or to be followed by
+// a constructor definition.
+// Nothing else can be private yet.
 #[test]
 fn private_keyword() {
     test("private", block![(Private())]);
-    test("private func", block![(Private (Ident func))]);
+    expect_invalid_node("private func");
+
+    expect_invalid_node("private ConstructorOutsideType");
+
+    #[rustfmt::skip]
+    let code = [
+        "type My_Type",
+        "    private method self = self.x"
+    ];
+    expect_invalid_node(&code.join("\n"));
+
+    #[rustfmt::skip]
+    let code = [
+        "type My_Type",
+        "    private"
+    ];
+    expect_invalid_node(&code.join("\n"));
+
+    #[rustfmt::skip]
+    let code = [
+        "pub_method x y = x + y",
+        "private priv_method x y = x + y"
+    ];
+    expect_invalid_node(&code.join("\n"));
+
+    #[rustfmt::skip]
+    let code = [
+        "private type My_Type",
+        "    Ctor"
+    ];
+    expect_invalid_node(&code.join("\n"));
 }
 
 

@@ -220,25 +220,27 @@ export const useGraphStore = defineStore('graph', () => {
     return edges.value.filter<ConnectedEdge>(isConnected)
   })
 
-  function createEdgeFromOutput(source: Ast.AstId) {
-    unconnectedEdge.value = { source, target: undefined }
+  function createEdgeFromOutput(source: Ast.AstId, event: PointerEvent | undefined) {
+    unconnectedEdge.value = { source, target: undefined, event }
   }
 
-  function disconnectSource(edge: Edge) {
+  function disconnectSource(edge: Edge, event: PointerEvent | undefined) {
     if (!edge.target) return
     unconnectedEdge.value = {
       source: undefined,
       target: edge.target,
       disconnectedEdgeTarget: edge.target,
+      event,
     }
   }
 
-  function disconnectTarget(edge: Edge) {
+  function disconnectTarget(edge: Edge, event: PointerEvent | undefined) {
     if (!edge.source || !edge.target) return
     unconnectedEdge.value = {
       source: edge.source,
       target: undefined,
       disconnectedEdgeTarget: edge.target,
+      event,
     }
   }
 
@@ -724,6 +726,8 @@ export function isConnected(edge: Edge): edge is ConnectedEdge {
 interface UnconnectedEdge extends Edge {
   /** If this edge represents an in-progress edit of a connected edge, it is identified by its target expression. */
   disconnectedEdgeTarget?: PortId
+  /** A pointer event which caused the unconnected edge */
+  event: PointerEvent | undefined
 }
 
 function getExecutedMethodAst(

@@ -227,6 +227,8 @@ add_specs suite_builder =
             f.delete_if_exists
             g.delete_if_exists
 
+        add_copy_edge_cases_specs group_builder (enso_project.data / "transient")
+
         group_builder.specify "should handle exceptions when deleting a missing file" <|
             file = File.new "does_not_exist.txt"
             result = file.delete
@@ -306,6 +308,7 @@ add_specs suite_builder =
             contents_2 = File.new file . read_bytes
             contents_2.take (First 6) . should_equal [67, 117, 112, 99, 97, 107]
 
+    suite_builder.group "Path Operations" group_builder->
         group_builder.specify "should allow going above the first part of a relative directory by resolving it to absolute" <|
             parent_file = (File.new '.').parent
             parent_file.should_be_a File
@@ -959,6 +962,37 @@ add_create_and_delete_directory_specs group_builder ~parent_dir =
         r.catch.should_be_a File_Error.Not_Found
 
         dir.delete_if_exists . should_equal Nothing
+
+add_copy_edge_cases_specs group_builder ~parent_dir file_from_path=File.new =
+    group_builder.specify "should allow copy/move edge case with source=target" <|
+        file = parent_dir / "src-target-in-one.txt"
+        file.delete_if_exists
+
+        # Same file but through a different path
+        same_file = file_from_path (parent_dir.path + "/foo/../src-target-in-one.txt")
+
+        # Source is not found
+        r_copy_not_found = same_file.copy_to file
+        r_copy_not_found.should_fail_with File_Error
+        r_copy_not_found.catch.should_be_a File_Error.Not_Found
+
+        r_move_not_found = same_file.move_to file
+        r_move_not_found.should_fail_with File_Error
+        r_move_not_found.catch.should_be_a File_Error.Not_Found
+
+        "Foo".write file on_existing_file=Existing_File_Behavior.Overwrite
+
+        [False, True].map replace_existing-> Test.with_clue "(replace_existing="+replace_existing.to_text+") " <|
+            # Copying the file to itself should succeed and just not change anything.
+            r_copy = same_file.copy_to file replace_existing=replace_existing
+            r_copy.should_equal file
+            r_copy.read . should_equal "Foo"
+
+            # Moving the file to itself should succeed and just not change anything.
+            r_move = same_file.move_to file replace_existing=replace_existing
+            r_move.should_equal file
+            file.exists . should_be_true
+            file.read . should_equal "Foo"
 
 main filter=Nothing =
     suite = Test.build suite_builder->

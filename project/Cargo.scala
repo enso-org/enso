@@ -7,6 +7,7 @@ import scala.sys.process._
 /** A wrapper for executing the command `cargo`. */
 object Cargo {
   private val cargoCmd            = "cargo"
+  private val rustUpCmd           = "rustup"
   private var wasCargoOk: Boolean = false
 
   /** Executes the command `cargo $args`. */
@@ -38,13 +39,32 @@ object Cargo {
       try Process(cmd, None, extraEnv: _*).!
       catch {
         case _: RuntimeException =>
-          throw new RuntimeException("Cargo command failed to run.")
+          throw new RuntimeException(s"`$cargoCmd` command failed to run.")
       }
     if (exitCode != 0) {
       throw new RuntimeException(
-        s"Cargo command returned a non-zero exit code: $exitCode."
+        s"`$cargoCmd` command returned a non-zero exit code: $exitCode."
       )
     }
+  }
+
+  def rustUp(target: String, log: ManagedLogger): Unit = {
+    val cmd: Seq[String] = Seq(rustUpCmd) ++ Seq("target", "add", target)
+
+    log.info(cmd.toString())
+
+    val exitCode =
+      try Process(cmd, None).!
+      catch {
+        case _: RuntimeException =>
+          throw new RuntimeException(s"`$rustUpCmd` command failed to run.")
+      }
+    if (exitCode != 0) {
+      throw new RuntimeException(
+        s"`$rustUpCmd` command returned a non-zero exit code: $exitCode."
+      )
+    }
+
   }
 
   /** Checks that cargo is installed. Logs an error and returns false if not. */
