@@ -1,6 +1,8 @@
 /** @file Displays information describing a specific version of an asset. */
 import * as React from 'react'
 
+import * as reactQuery from '@tanstack/react-query'
+
 import CompareIcon from 'enso-assets/compare.svg'
 import DuplicateIcon from 'enso-assets/duplicate.svg'
 import RestoreIcon from 'enso-assets/restore.svg'
@@ -10,6 +12,8 @@ import * as textProvider from '#/providers/TextProvider'
 import type * as assetListEvent from '#/events/assetListEvent'
 import AssetListEventType from '#/events/AssetListEventType'
 
+import type * as assetVersions from '#/layouts/AssetVersions/AssetVersions'
+
 import * as ariaComponents from '#/components/AriaComponents'
 
 import type Backend from '#/services/Backend'
@@ -17,6 +21,7 @@ import * as backendService from '#/services/Backend'
 
 import type AssetTreeNode from '#/utilities/AssetTreeNode'
 import * as dateTime from '#/utilities/dateTime'
+import * as uniqueString from '#/utilities/uniqueString'
 
 import * as assetDiffView from './AssetDiffView'
 
@@ -32,11 +37,13 @@ export interface AssetVersionProps {
   readonly latestVersion: backendService.S3ObjectVersion
   readonly backend: Backend
   readonly dispatchAssetListEvent: (event: assetListEvent.AssetListEvent) => void
+  readonly doRestore: () => void
 }
 
 /** Displays information describing a specific version of an asset. */
 export default function AssetVersion(props: AssetVersionProps) {
-  const { number, version, item, backend, latestVersion, dispatchAssetListEvent } = props
+  const { number, version, item, backend, latestVersion } = props
+  const { dispatchAssetListEvent, doRestore } = props
   const { getText } = textProvider.useText()
   const asset = item.item
   const isProject = asset.type === backendService.AssetType.project
@@ -85,9 +92,7 @@ export default function AssetVersion(props: AssetVersionProps) {
               aria-label={getText('restoreThisVersion')}
               icon={RestoreIcon}
               isDisabled={version.isLatest}
-              onPress={() => {
-                void backend.restoreProject(asset.id, version.versionId, asset.title)
-              }}
+              onPress={doRestore}
             />
             <ariaComponents.Tooltip>{getText('restoreThisVersion')}</ariaComponents.Tooltip>
           </ariaComponents.TooltipTrigger>
