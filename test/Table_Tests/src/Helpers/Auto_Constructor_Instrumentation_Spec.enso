@@ -6,7 +6,7 @@ import project.Helpers.Table_Aggregate_Auto_Constructor
 add_specs suite_builder =
     suite_builder.group "Autoconstructor Instrumentation" group_builder->
         group_builder.specify "compare ..Count and Aggregate_Column.Count" <|
-            lines = Vector.new_builder lines_builder->
+            lines = Vector.build lines_builder->
                 pair = Table_Aggregate_Auto_Constructor.perform lines_builder.append
 
             text = lines.join '\n'
