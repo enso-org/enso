@@ -73,6 +73,9 @@ add_specs suite_builder =
             w1 = Problems.expect_only_warning Invalid_Query_String addr
             w1.query_string . should_equal 'foo=bar&baz="a&c=d"%20?'
 
+            addr2 = URI.parse 'https://httpbin.org/get?c=d d=e=f&g=h'
+            addr2.to_text . should_equal 'https://httpbin.org/get?c=d+d%3De%3Df&g=h'
+
         group_builder.specify "should return Syntax_Error when parsing invalid URI" <|
             r = URI.parse "a b c"
             r.should_fail_with Syntax_Error

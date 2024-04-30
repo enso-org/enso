@@ -88,13 +88,7 @@ public class URITransformer {
       if (i > 0) {
         sb.append("&");
       }
-      var indexOfEquals = parts[i].indexOf("=");
-      var keyValue =
-          indexOfEquals == -1
-              ? new String[] {parts[i]}
-              : new String[] {
-                parts[i].substring(0, indexOfEquals), parts[i].substring(indexOfEquals + 1)
-              };
+      var keyValue = parts[i].split("=", 2);
       sb.append(encodeForQuery(keyValue[0]));
       if (keyValue.length > 1) {
         sb.append("=");
