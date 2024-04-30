@@ -43,17 +43,29 @@ import * as Y from 'yjs'
 interface LsUrls {
   rpcUrl: string
   dataUrl: string
-  ydocUrl: string
+  ydocUrl: URL
 }
 
 function resolveLsUrl(config: GuiConfig): LsUrls {
   const engine = config.engine
   if (engine == null) throw new Error('Missing engine configuration')
   if (engine.rpcUrl != null && engine.dataUrl != null) {
+    let dataUrl = engine.dataUrl
+    let rpcUrl = engine.rpcUrl
+    let ydocUrl
+    if (engine.ydocUrl == null || engine.ydocUrl === '') {
+      ydocUrl = new URL(location.origin)
+      ydocUrl.protocol = location.protocol.replace(/^http/, 'ws')
+    } else {
+      ydocUrl = new URL(engine.rpcUrl)
+      ydocUrl.port = '1234'
+    }
+    ydocUrl.pathname = '/project'
+
     return {
-      rpcUrl: engine.rpcUrl,
-      dataUrl: engine.dataUrl,
-      ydocUrl: engine.ydocUrl,
+      rpcUrl,
+      dataUrl,
+      ydocUrl,
     }
   }
   throw new Error('Incomplete engine configuration')
@@ -134,17 +146,8 @@ export const useProjectStore = defineStore('project', () => {
 
   let yDocsProvider: ReturnType<typeof attachProvider> | undefined
   watchEffect((onCleanup) => {
-    let socketUrl
-    if (lsUrls.ydocUrl == null || lsUrls.ydocUrl === '') {
-      socketUrl = new URL(location.origin)
-      socketUrl.protocol = location.protocol.replace(/^http/, 'ws')
-    } else {
-      socketUrl = rpcUrl
-      socketUrl.port = '1234';
-    }
-    socketUrl.pathname = '/project'
     yDocsProvider = attachProvider(
-      socketUrl.href,
+      lsUrls.ydocUrl.href,
       'index',
       { ls: lsUrls.rpcUrl },
       doc,
