@@ -435,31 +435,38 @@ val commons = Seq(
 // === Helidon ================================================================
 val helidonVersion = "4.0.6"
 val helidon = Seq(
-  "io.helidon.builder"       % "helidon-builder-api"         % helidonVersion,
-  "io.helidon.common"        % "helidon-common"              % helidonVersion,
-  "io.helidon.common"        % "helidon-common-buffers"      % helidonVersion,
-  "io.helidon.common"        % "helidon-common-config"       % helidonVersion,
-  "io.helidon.common"        % "helidon-common-configurable" % helidonVersion,
-  "io.helidon.common"        % "helidon-common-context"      % helidonVersion,
-  "io.helidon.common"        % "helidon-common-mapper"       % helidonVersion,
-  "io.helidon.common"        % "helidon-common-media-type"   % helidonVersion,
-  "io.helidon.common"        % "helidon-common-parameters"   % helidonVersion,
-  "io.helidon.common"        % "helidon-common-socket"       % helidonVersion,
-  "io.helidon.common"        % "helidon-common-security"     % helidonVersion,
-  "io.helidon.common"        % "helidon-common-tls"          % helidonVersion,
-  "io.helidon.common"        % "helidon-common-uri"          % helidonVersion,
-  "io.helidon.config"        % "helidon-config"              % helidonVersion,
-  "io.helidon.inject"        % "helidon-inject-api"          % helidonVersion,
-  "io.helidon.http"          % "helidon-http"                % helidonVersion,
-  "io.helidon.http.encoding" % "helidon-http-encoding"       % helidonVersion,
-  "io.helidon.http.media"    % "helidon-http-media"          % helidonVersion,
-  "io.helidon.webclient"     % "helidon-webclient"           % helidonVersion,
-  "io.helidon.webclient"     % "helidon-webclient-api"       % helidonVersion,
-  "io.helidon.webclient"     % "helidon-webclient-http1"     % helidonVersion,
-  "io.helidon.webclient"     % "helidon-webclient-websocket" % helidonVersion,
-  "io.helidon.webserver"     % "helidon-webserver"           % helidonVersion,
-  "io.helidon.webserver"     % "helidon-webserver-websocket" % helidonVersion,
-  "io.helidon.websocket"     % "helidon-websocket"           % helidonVersion
+  "io.helidon.builder"         % "helidon-builder-api"         % helidonVersion,
+  "io.helidon.common"          % "helidon-common"              % helidonVersion,
+  "io.helidon.common"          % "helidon-common-buffers"      % helidonVersion,
+  "io.helidon.common"          % "helidon-common-config"       % helidonVersion,
+  "io.helidon.common"          % "helidon-common-configurable" % helidonVersion,
+  "io.helidon.common"          % "helidon-common-context"      % helidonVersion,
+  "io.helidon.common"          % "helidon-common-key-util"     % helidonVersion,
+  "io.helidon.common"          % "helidon-common-mapper"       % helidonVersion,
+  "io.helidon.common"          % "helidon-common-media-type"   % helidonVersion,
+  "io.helidon.common"          % "helidon-common-parameters"   % helidonVersion,
+  "io.helidon.common"          % "helidon-common-socket"       % helidonVersion,
+  "io.helidon.common"          % "helidon-common-security"     % helidonVersion,
+  "io.helidon.common"          % "helidon-common-task"         % helidonVersion,
+  "io.helidon.common"          % "helidon-common-types"        % helidonVersion,
+  "io.helidon.common"          % "helidon-common-tls"          % helidonVersion,
+  "io.helidon.common"          % "helidon-common-uri"          % helidonVersion,
+  "io.helidon.common.features" % "helidon-common-features"     % helidonVersion,
+  "io.helidon.common.features" % "helidon-common-features-api" % helidonVersion,
+  "io.helidon.config"          % "helidon-config"              % helidonVersion,
+  "io.helidon.logging"         % "helidon-logging-common"      % helidonVersion,
+  "io.helidon.inject"          % "helidon-inject-api"          % helidonVersion,
+  "io.helidon.http"            % "helidon-http"                % helidonVersion,
+  "io.helidon.http.encoding"   % "helidon-http-encoding"       % helidonVersion,
+  "io.helidon.http.media"      % "helidon-http-media"          % helidonVersion,
+  "io.helidon.webclient"       % "helidon-webclient"           % helidonVersion,
+  "io.helidon.webclient"       % "helidon-webclient-api"       % helidonVersion,
+  "io.helidon.webclient"       % "helidon-webclient-http1"     % helidonVersion,
+  "io.helidon.webclient"       % "helidon-webclient-websocket" % helidonVersion,
+  "io.helidon.webserver"       % "helidon-webserver"           % helidonVersion,
+  "io.helidon.webserver"       % "helidon-webserver-websocket" % helidonVersion,
+  "io.helidon.websocket"       % "helidon-websocket"           % helidonVersion,
+  "jakarta.inject"             % "jakarta.inject-api"          % "2.0.1"
 )
 
 // === Jackson ================================================================
@@ -716,6 +723,7 @@ lazy val `syntax-rust-definition` = project
   .enablePlugins(JPMSPlugin)
   .configs(Test)
   .settings(
+    javaModuleName := "org.enso.syntax",
     Compile / sourceGenerators += generateParserJavaSources,
     Compile / resourceGenerators += generateRustParserLib,
     Compile / javaSource := baseDirectory.value / "generate-java" / "java"
@@ -1183,6 +1191,23 @@ lazy val `ydoc-server` = project
     Compile / run / fork := true,
     Test / fork := true,
     run / connectInput := true,
+    javaModuleName := "org.enso.ydoc",
+    Compile / javaOptions := {
+      val mp      = modulePath.value ++ (`profiling-utils` / modulePath).value
+      val jar     = (Compile / exportedProductJars).value.head
+      val modName = javaModuleName.value
+      val allMp   = mp ++ Seq(jar.data.absolutePath)
+      val args = Seq(
+        "--module-path",
+        allMp.mkString(File.pathSeparator),
+        "--module",
+        modName + "/org.enso.ydoc.Main"
+      )
+      args
+    },
+    assembly := assembly
+      .dependsOn(`profiling-utils` / Compile / packageBin)
+      .value,
     assembly / assemblyMergeStrategy := {
       case PathList("META-INF", file, xs @ _*) if file.endsWith(".DSA") =>
         MergeStrategy.discard
@@ -1207,11 +1232,16 @@ lazy val `ydoc-server` = project
         streams.value.log
       )
     },
+    assembly / assemblyExcludedJars ++= {
+      val profUtilsClasses =
+        (`profiling-utils` / Compile / exportedProductJars).value
+      profUtilsClasses
+    },
     commands += WithDebugCommand.withDebug,
     modulePath := {
       JPMSUtils.filterModulesFromUpdate(
         update.value,
-        GraalVM.modules ++ helidon ++ Seq(
+        GraalVM.modules ++ GraalVM.jsPkgs ++ helidon ++ Seq(
           "org.slf4j" % "slf4j-api" % slf4jVersion
         ),
         streams.value.log,
