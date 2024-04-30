@@ -33,8 +33,11 @@ class AuditLogAPI {
   }
 
   public Future<Void> logAsync(LogMessage message) {
+    System.out.println("logAsync: " + message.payload());
     return executorService.submit(() -> {
+      System.out.println("inside of future: " + message.payload());
       logSync(message);
+      System.out.println("after sync: " + message.payload());
       return null;
     });
   }
@@ -62,6 +65,7 @@ class AuditLogAPI {
       }
     } catch (RequestFailureException e) {
       System.out.println("Failed to send log message: " + e.getMessage());
+      System.out.flush();
       if (retryCount < 0) {
         logger.severe("Failed to send log message after retrying: " + e.getMessage());
         failedLogCount++;

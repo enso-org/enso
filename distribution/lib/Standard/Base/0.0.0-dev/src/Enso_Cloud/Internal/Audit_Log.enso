@@ -2,6 +2,7 @@ import project.Data.Json.JS_Object
 import project.Data.Text.Text
 import project.Errors.Illegal_Argument.Illegal_Argument
 import project.Nothing.Nothing
+from project.Data.Boolean import Boolean, False, True
 
 polyglot java import org.enso.base.enso_cloud.audit.AuditLog
 
@@ -18,6 +19,8 @@ type Audit_Log
          Note that it should be a JS object and it should _not_ contain fields
          that are restricted. These fields are added to the metadata
          automatically.
+       - async: Whether to submit the event asynchronously.
+         Defaults to True.
 
        ? Restricted Fields
 
@@ -26,6 +29,8 @@ type Audit_Log
          - `type`
          - `local_timestamp`
          - `project_name`
-    report_event event_type:Text message:Text (metadata:JS_Object = JS_Object.from_pairs []) -> Nothing =
+    report_event event_type:Text message:Text (metadata:JS_Object = JS_Object.from_pairs []) (async : Boolean = True) -> Nothing =
         Illegal_Argument.handle_java_exception <|
-            AuditLog.logAsync event_type message metadata.object_node
+            case async of
+                True -> AuditLog.logAsync event_type message metadata.object_node
+                False -> AuditLog.logSynchronously event_type message metadata.object_node

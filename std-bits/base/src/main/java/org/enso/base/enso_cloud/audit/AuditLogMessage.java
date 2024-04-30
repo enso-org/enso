@@ -28,7 +28,8 @@ public class AuditLogMessage implements AuditLogAPI.LogMessage {
     checkNoRestrictedField(metadata, TYPE);
     checkNoRestrictedField(metadata, PROJECT_NAME);
     checkNoRestrictedField(metadata, LOCAL_TIMESTAMP);
-    this.projectId = "TODO";
+    // TODO
+    this.projectId = null;
     this.projectName = "TODO";
     this.localTimestamp = ZonedDateTime.now();
   }
