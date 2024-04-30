@@ -497,16 +497,22 @@ export default /** @satisfies {import('tailwindcss').Config} */ ({
 
           '.rounded-rows': {
             [`:where(
-            & > tbody > tr:nth-child(odd of .rounded-rows-child) > td:not(.rounded-rows-skip-level),
-            & > tbody > tr:nth-child(odd of .rounded-rows-child) > td.rounded-rows-skip-level > *
-          )`]: {
-              backgroundColor: `rgba(0 0 0 / 3%)`,
+              & > tbody > tr:nth-child(odd of .rounded-rows-child) > td:not(.rounded-rows-skip-level),
+              & > tbody > tr:nth-child(odd of .rounded-rows-child) > td.rounded-rows-skip-level > *
+            )`]: {
+              backgroundColor: `rgb(0 0 0 / 3%)`,
             },
             [`:where(
-            & > tbody > tr.rounded-rows-child.selected > td:not(.rounded-rows-skip-level),
-            & > tbody > tr.rounded-rows-child.selected > td.rounded-rows-skip-level > *
-          )`]: {
-              backgroundColor: 'rgb(255, 255, 255, 40%)',
+              & > tbody > tr.rounded-rows-child.selected > td:not(.rounded-rows-skip-level),
+              & > tbody > tr.rounded-rows-child.selected > td.rounded-rows-skip-level > *
+            )`]: {
+              backgroundColor: 'rgb(255 255 255 / 40%)',
+            },
+            [`:where(
+              & > tbody > tr.rounded-rows-child[data-drop-target] > td:not(.rounded-rows-skip-level),
+              & > tbody > tr.rounded-rows-child[data-drop-target] > td.rounded-rows-skip-level > *
+            )`]: {
+              backgroundColor: 'rgb(0 0 0 / 8%)',
             },
           },
 

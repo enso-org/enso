@@ -316,7 +316,7 @@ export default function UserGroupsSettingsTab() {
                     {(usersByGroup.get(userGroup.id) ?? []).map(otherUser => (
                       <aria.Row
                         key={otherUser.userId}
-                        id={`${userGroup.id}-${otherUser.userId}`}
+                        id={`_key-${userGroup.id}-${otherUser.userId}`}
                         className="rounded-rows-child group h-row"
                       >
                         <aria.Cell className="text border-x-2 border-transparent bg-clip-padding rounded-rows-skip-level last:border-r-0">
