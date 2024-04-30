@@ -94,6 +94,7 @@ final class SuggestionBuilder[A: IndexedSource](
                     annotations,
                     _,
                     _,
+                    _,
                     _
                   ) =>
                 buildAtomConstructor(
