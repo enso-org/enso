@@ -26,7 +26,8 @@ abstract class AuditedConnection implements Connection {
     this.underlying = underlying;
   }
 
-  protected abstract void audit(String sql);
+  abstract void auditQuery(String operationType, String sql);
+  abstract void auditTransaction(String operation);
 
   private RuntimeException unimplemented(String name) {
     throw new UnsupportedOperationException(name + " is not implemented. This is a bug in the Database library.");
@@ -34,12 +35,12 @@ abstract class AuditedConnection implements Connection {
 
   @Override
   public Statement createStatement() throws SQLException {
-    return null;
+    return new AuditedStatementImpl(underlying.createStatement());
   }
 
   @Override
   public PreparedStatement prepareStatement(String sql) throws SQLException {
-    return null;
+    return new AuditedPreparedStatementImpl(underlying.prepareStatement(sql), sql);
   }
 
   @Override
@@ -64,11 +65,13 @@ abstract class AuditedConnection implements Connection {
 
   @Override
   public void commit() throws SQLException {
+    auditTransaction("commit");
     underlying.commit();
   }
 
   @Override
   public void rollback() throws SQLException {
+    auditTransaction("rollback");
     underlying.rollback();
   }
 
@@ -84,7 +87,7 @@ abstract class AuditedConnection implements Connection {
 
   @Override
   public DatabaseMetaData getMetaData() throws SQLException {
-    throw unimplemented("getMetaData");
+    return underlying.getMetaData();
   }
 
   @Override
@@ -162,24 +165,44 @@ abstract class AuditedConnection implements Connection {
     return underlying.getHoldability();
   }
 
+  private String savePointToString(Savepoint savepoint) {
+    try {
+      return savepoint.getSavepointName();
+    } catch (SQLException e) {
+      // Do nothing
+    }
+
+    try {
+      return "Savepoint "+savepoint.getSavepointName();
+    } catch (SQLException e) {
+      return savepoint.toString();
+    }
+  }
+
   @Override
   public Savepoint setSavepoint() throws SQLException {
-    return null;
+    var savepoint = underlying.setSavepoint();
+    auditTransaction("setSavepoint "+savePointToString(savepoint));
+    return savepoint;
   }
 
   @Override
   public Savepoint setSavepoint(String name) throws SQLException {
-    return null;
+    var savepoint = underlying.setSavepoint(name);
+    auditTransaction("setSavepoint "+savePointToString(savepoint));
+    return savepoint;
   }
 
   @Override
   public void rollback(Savepoint savepoint) throws SQLException {
-
+    auditTransaction("rollback "+savePointToString(savepoint));
+    underlying.rollback(savepoint);
   }
 
   @Override
   public void releaseSavepoint(Savepoint savepoint) throws SQLException {
-
+    auditTransaction("releaseSavepoint "+savePointToString(savepoint));
+    underlying.releaseSavepoint(savepoint);
   }
 
   @Override
@@ -279,7 +302,8 @@ abstract class AuditedConnection implements Connection {
 
   @Override
   public void abort(Executor executor) throws SQLException {
-
+    auditTransaction("abort");
+    underlying.abort(executor);
   }
 
   @Override
@@ -300,5 +324,27 @@ abstract class AuditedConnection implements Connection {
   @Override
   public boolean isWrapperFor(Class<?> iface) throws SQLException {
     return underlying.isWrapperFor(iface);
+  }
+
+  private class AuditedPreparedStatementImpl extends AuditedPreparedStatement {
+    public AuditedPreparedStatementImpl(PreparedStatement underlying, String sql) {
+      super(underlying, sql);
+    }
+
+    @Override
+    protected void auditQuery(String operationType, String sql) {
+      AuditedConnection.this.auditQuery(operationType, sql);
+    }
+  }
+
+  private class AuditedStatementImpl extends AuditedStatement {
+    public AuditedStatementImpl(Statement underlying) {
+      super(underlying);
+    }
+
+    @Override
+    protected void auditQuery(String operationType, String sql) {
+      AuditedConnection.this.auditQuery(operationType, sql);
+    }
   }
 }

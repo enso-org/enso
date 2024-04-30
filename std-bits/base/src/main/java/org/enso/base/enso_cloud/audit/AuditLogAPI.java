@@ -50,15 +50,18 @@ class AuditLogAPI {
 
     try {
       try {
+        System.out.println("Sending log message: " + payload);
         HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
         if (response.statusCode() < 200 || response.statusCode() >= 300) {
           throw new RequestFailureException("Unexpected status code: " + response.statusCode() + " " + response.body(), null);
         }
+        System.out.println("Log message sent successfully: " + response.statusCode() + " " + response.body());
       } catch (IOException | InterruptedException e) {
         // Promote a checked exception to a runtime exception to simplify the code.
         throw new RequestFailureException(e.getMessage(), e);
       }
     } catch (RequestFailureException e) {
+      System.out.println("Failed to send log message: " + e.getMessage());
       if (retryCount < 0) {
         logger.severe("Failed to send log message after retrying: " + e.getMessage());
         failedLogCount++;

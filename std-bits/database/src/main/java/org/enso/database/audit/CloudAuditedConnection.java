@@ -1,36 +1,38 @@
 package org.enso.database.audit;
 
-import org.enso.base.enso_cloud.audit.AuditLogAPI;
+import com.fasterxml.jackson.databind.node.JsonNodeFactory;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+import org.enso.base.enso_cloud.audit.AuditLog;
 
 import java.sql.Connection;
+import java.sql.SQLException;
+import java.util.logging.Logger;
 
 public final class CloudAuditedConnection extends AuditedConnection {
-  CloudAuditedConnection(Connection underlying) {
+  private static final Logger logger = Logger.getLogger(CloudAuditedConnection.class.getName());
+  private final ObjectNode metadata;
+
+  CloudAuditedConnection(Connection underlying, String relatedAssetId) {
     super(underlying);
+    metadata = new ObjectNode(JsonNodeFactory.instance);
+    if (relatedAssetId != null) {
+      metadata.put("asset_id", relatedAssetId);
+    }
+    try {
+      metadata.put("connection_uri", underlying.getMetaData().getURL());
+    } catch (SQLException e) {
+      // We ignore the exception, only logging it
+      logger.warning("Failed to get connection URI for " + underlying + ": " + e.getMessage());
+    }
   }
 
   @Override
-  protected void audit(String sql) {
-    var message = new DatabaseLogMessage("TODO", "TODO", sql);
-    AuditLogAPI.INSTANCE.logAsync(message);
+  protected void auditQuery(String operationType, String sql) {
+    AuditLog.logAsync(operationType, sql, metadata);
   }
 
-  private static class DatabaseLogMessage implements AuditLogAPI.LogMessage {
-
-    private final String databaseHost;
-    private final String databaseName;
-    private final String sql;
-
-    private DatabaseLogMessage(String databaseHost, String databaseName, String sql) {
-      this.databaseHost = databaseHost;
-      this.databaseName = databaseName;
-      this.sql = sql;
-    }
-
-
-    @Override
-    public String payload() {
-      return "TODO";
-    }
+  @Override
+  protected void auditTransaction(String operation) {
+    AuditLog.logAsync("transaction", operation, metadata);
   }
 }
