@@ -612,10 +612,10 @@ public final class Main {
     var topScope = context.getTopScope();
     try {
       topScope.compile(shouldCompileDependencies);
-      exitSuccess();
+      throw exitSuccess();
     } catch (Throwable t) {
       logger.error("Unexpected internal error", t);
-      exitFail();
+      throw exitFail();
     } finally {
       context.context().close();
     }
@@ -707,7 +707,7 @@ public final class Main {
       runSingleFile(context, file, additionalArgs);
     }
     context.context().close();
-    exitSuccess();
+    throw exitSuccess();
   }
 
   /**
@@ -727,10 +727,10 @@ public final class Main {
       boolean enableIrCaches) {
     if (projectPath.isEmpty()) {
       println("Path hasn't been provided.");
-      exitFail();
+      throw exitFail();
     }
     generateDocsFrom(projectPath.get(), logLevel, logMasking, enableIrCaches);
-    exitSuccess();
+    throw exitSuccess();
   }
 
   /**
@@ -1040,11 +1040,11 @@ public final class Main {
             scala.Option.apply(line.getOptionValue(AUTH_TOKEN)),
             !line.hasOption(HIDE_PROGRESS),
             logLevel);
-        exitSuccess();
+        throw exitSuccess();
       } catch (UploadFailedError ex) {
         // We catch this error to avoid printing an unnecessary stack trace.
         // The error itself is already logged.
-        exitFail();
+        throw exitFail();
       }
     }
 
@@ -1061,9 +1061,9 @@ public final class Main {
         ProjectUploader.updateManifest(projectRoot, logLevel);
       } catch (Throwable err) {
         err.printStackTrace();
-        exitFail();
+        throw exitFail();
       }
-      exitSuccess();
+      throw exitSuccess();
     }
 
     if (line.hasOption(COMPILE_OPTION)) {
@@ -1111,7 +1111,7 @@ public final class Main {
     }
     if (line.getOptions().length == 0) {
       printHelp(options);
-      exitFail();
+      throw exitFail();
     }
   }
 
