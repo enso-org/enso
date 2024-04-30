@@ -273,7 +273,6 @@ export default function UserGroupsSettingsTab() {
                         element.colSpan = 2
                       }
                     }}
-                    className="bg-transparent"
                   >
                     <div className="flex justify-center">
                       <StatelessSpinner
@@ -288,7 +287,7 @@ export default function UserGroupsSettingsTab() {
                   <>
                     <aria.Row
                       id={userGroup.id}
-                      className={`group h-row ${backendModule.isPlaceholderUserGroupId(userGroup.id) ? 'pointer-events-none placeholder' : ''}`}
+                      className={`rounded-rows-child group h-row ${backendModule.isPlaceholderUserGroupId(userGroup.id) ? 'pointer-events-none placeholder' : ''}`}
                     >
                       <aria.Cell className="text whitespace-nowrap rounded-r-full border-x-2 border-transparent bg-clip-padding px-cell-x first:rounded-l-full last:border-r-0">
                         {userGroup.groupName}
@@ -318,7 +317,7 @@ export default function UserGroupsSettingsTab() {
                       <aria.Row
                         key={otherUser.userId}
                         id={`${userGroup.id}-${otherUser.userId}`}
-                        className="group h-row"
+                        className="rounded-rows-child group h-row"
                       >
                         <aria.Cell className="text border-x-2 border-transparent bg-clip-padding rounded-rows-skip-level last:border-r-0">
                           <div className="ml-indent-1 flex h-row min-w-max items-center whitespace-nowrap rounded-full">

@@ -722,7 +722,7 @@ export default function AssetRow(props: AssetRowProps) {
                     element.focus()
                   }
                 }}
-                className={`h-row rounded-full transition-all ease-in-out ${visibility} ${isDraggedOver || selected ? 'selected' : ''}`}
+                className={`rounded-rows-child h-row rounded-full transition-all ease-in-out ${visibility} ${isDraggedOver || selected ? 'selected' : ''}`}
                 onClick={event => {
                   unsetModal()
                   onClick(innerProps, event)
@@ -905,7 +905,7 @@ export default function AssetRow(props: AssetRowProps) {
         <tr>
           <td colSpan={columns.length} className="border-r p rounded-rows-skip-level">
             <div
-              className={`flex h-row w-container justify-center rounded-full ${indent.indentClass(
+              className={`rounded-rows-child flex h-row w-container justify-center rounded-full ${indent.indentClass(
                 item.depth
               )}`}
             >
@@ -920,7 +920,7 @@ export default function AssetRow(props: AssetRowProps) {
         <tr>
           <td colSpan={columns.length} className="border-r p rounded-rows-skip-level">
             <div
-              className={`flex h-row items-center rounded-full ${indent.indentClass(item.depth)}`}
+              className={`rounded-rows-child flex h-row items-center rounded-full ${indent.indentClass(item.depth)}`}
             >
               <img src={BlankIcon} />
               <aria.Text className="px-name-column-x placeholder">

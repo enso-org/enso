@@ -497,14 +497,14 @@ export default /** @satisfies {import('tailwindcss').Config} */ ({
 
           '.rounded-rows': {
             [`:where(
-            & > tbody > tr:nth-child(odd) > td:not(.rounded-rows-skip-level),
-            & > tbody > tr:nth-child(odd) > td.rounded-rows-skip-level > *
+            & > tbody > tr:nth-child(odd of .rounded-rows-child) > td:not(.rounded-rows-skip-level),
+            & > tbody > tr:nth-child(odd of .rounded-rows-child) > td.rounded-rows-skip-level > *
           )`]: {
               backgroundColor: `rgba(0 0 0 / 3%)`,
             },
             [`:where(
-            & > tbody > tr.selected > td:not(.rounded-rows-skip-level),
-            & > tbody > tr.selected > td.rounded-rows-skip-level > *
+            & > tbody > tr.rounded-rows-child.selected > td:not(.rounded-rows-skip-level),
+            & > tbody > tr.rounded-rows-child.selected > td.rounded-rows-skip-level > *
           )`]: {
               backgroundColor: 'rgb(255, 255, 255, 40%)',
             },
