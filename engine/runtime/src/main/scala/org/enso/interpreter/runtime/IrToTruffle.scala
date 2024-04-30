@@ -1756,13 +1756,7 @@ class IrToTruffle(
     ): RuntimeExpression = {
       resolution match {
         case tp: BindingsMap.ResolvedType =>
-          ConstantObjectNode.build(
-            asScope(
-              tp.module
-                .unsafeAsModule()
-            ).getTypes
-              .get(tp.tp.name)
-          )
+          ConstantObjectNode.build(asType(tp))
         case BindingsMap.ResolvedConstructor(definitionType, cons) =>
           val c = asType(definitionType).getConstructors
             .get(cons.name)

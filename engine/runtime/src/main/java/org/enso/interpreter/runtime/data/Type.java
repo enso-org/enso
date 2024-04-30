@@ -106,9 +106,7 @@ public final class Type implements EnsoObject {
 
   public void setShadowDefinitions(ModuleScope scope, boolean generateAccessorsInTarget) {
     if (builtin) {
-      // Ensure that synthetic methods, such as getters for fields are in the scope
-      // Some scopes won't have any methods at this point, e.g., Nil or Nothing, hence the null
-      // check.
+      // Ensure that synthetic methods, such as getters for fields are in the scope.
       CompilerAsserts.neverPartOfCompilation();
       this.definitionScope.registerAllMethodsOfTypeToScope(this, scope);
       this.definitionScope = scope;

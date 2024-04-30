@@ -242,7 +242,8 @@ final class TruffleCompilerContext implements CompilerContext {
 
   @Override
   public void runStubsGenerator(CompilerContext.Module module) {
-    stubsGenerator.run(((Module) module).unsafeModule());
+    var m = ((Module) module).unsafeModule();
+    stubsGenerator.run(m.getIr(), m.getScope());
   }
 
   @Override
@@ -723,7 +724,6 @@ final class TruffleCompilerContext implements CompilerContext {
         module.module.setLoadedFromCache(loadedFromCache);
       }
       if (resetScope) {
-        module.module.ensureScopeExists();
         module.module.getScope().reset();
       }
       if (invalidateCache) {

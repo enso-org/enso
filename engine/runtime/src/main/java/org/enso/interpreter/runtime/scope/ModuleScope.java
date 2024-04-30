@@ -28,12 +28,12 @@ import org.enso.interpreter.runtime.util.CachingSupplier;
 public final class ModuleScope implements EnsoObject {
   private final Type associatedType;
   private final Module module;
-  private Map<String, Object> polyglotSymbols;
-  private Map<String, Type> types;
-  private Map<Type, Map<String, Supplier<Function>>> methods;
-  private Map<Type, Map<Type, Function>> conversions;
-  private Set<ModuleScope> imports;
-  private Set<ModuleScope> exports;
+  private final Map<String, Object> polyglotSymbols;
+  private final Map<String, Type> types;
+  private final Map<Type, Map<String, Supplier<Function>>> methods;
+  private final Map<Type, Map<Type, Function>> conversions;
+  private final Set<ModuleScope> imports;
+  private final Set<ModuleScope> exports;
 
   private static final Type noTypeKey;
 
@@ -76,11 +76,6 @@ public final class ModuleScope implements EnsoObject {
     this.exports = exports;
   }
 
-  public Type registerType(Type type) {
-    Type current = types.putIfAbsent(type.getName(), type);
-    return current == null ? type : current;
-  }
-
   /**
    * @return the associated type of this module.
    */
@@ -102,6 +97,20 @@ public final class ModuleScope implements EnsoObject {
     return imports;
   }
 
+  private Map<String, Supplier<Function>> getMethodMapFor(Type type) {
+    Type tpeKey = type == null ? noTypeKey : type;
+    Map<String, Supplier<Function>> result = methods.get(tpeKey);
+    if (result == null) {
+      return new HashMap<>();
+    }
+    return result;
+  }
+
+  public Type registerType(Type type) {
+    Type current = types.putIfAbsent(type.getName(), type);
+    return current == null ? type : current;
+  }
+
   /**
    * Returns a map of methods defined in this module for a given type.
    *
@@ -111,15 +120,6 @@ public final class ModuleScope implements EnsoObject {
   private Map<String, Supplier<Function>> ensureMethodMapFor(Type type) {
     Type tpeKey = type == null ? noTypeKey : type;
     return methods.computeIfAbsent(tpeKey, k -> new HashMap<>());
-  }
-
-  private Map<String, Supplier<Function>> getMethodMapFor(Type type) {
-    Type tpeKey = type == null ? noTypeKey : type;
-    Map<String, Supplier<Function>> result = methods.get(tpeKey);
-    if (result == null) {
-      return new HashMap<>();
-    }
-    return result;
   }
 
   /**
@@ -161,24 +161,6 @@ public final class ModuleScope implements EnsoObject {
   }
 
   /**
-   * Returns a list of the conversion methods defined in this module for a given constructor.
-   *
-   * @param type the type for which method map is requested
-   * @return a list containing all the defined conversions in definition order
-   */
-  private Map<Type, Function> ensureConversionsFor(Type type) {
-    return conversions.computeIfAbsent(type, k -> new HashMap<>());
-  }
-
-  private Map<Type, Function> getConversionsFor(Type type) {
-    var result = conversions.get(type);
-    if (result == null) {
-      return new HashMap<>();
-    }
-    return result;
-  }
-
-  /**
    * Registers a conversion method for a given type
    *
    * @param toType type the conversion was defined to
@@ -202,6 +184,38 @@ public final class ModuleScope implements EnsoObject {
    */
   public void registerPolyglotSymbol(String name, Object sym) {
     polyglotSymbols.put(name, sym);
+  }
+
+  /**
+   * Registers all methods of a type in the provided scope.
+   *
+   * @param tpe the methods of which type should be registered
+   * @param scope target scope where methods should be registered to
+   */
+  public void registerAllMethodsOfTypeToScope(Type tpe, ModuleScope scope) {
+    Type tpeKey = tpe == null ? noTypeKey : tpe;
+    var allTypeMethods = methods.get(tpeKey);
+    if (allTypeMethods != null) {
+      allTypeMethods.forEach((name, fun) -> scope.registerMethod(tpeKey, name, fun));
+    }
+  }
+
+  /**
+   * Returns a list of the conversion methods defined in this module for a given constructor.
+   *
+   * @param type the type for which method map is requested
+   * @return a list containing all the defined conversions in definition order
+   */
+  private Map<Type, Function> ensureConversionsFor(Type type) {
+    return conversions.computeIfAbsent(type, k -> new HashMap<>());
+  }
+
+  private Map<Type, Function> getConversionsFor(Type type) {
+    var result = conversions.get(type);
+    if (result == null) {
+      return new HashMap<>();
+    }
+    return result;
   }
 
   /**
@@ -354,20 +368,6 @@ public final class ModuleScope implements EnsoObject {
   }
 
   /**
-   * Registers all methods of a type in the provided scope.
-   *
-   * @param tpe the methods of which type should be registered
-   * @param scope target scope where methods should be registered to
-   */
-  public void registerAllMethodsOfTypeToScope(Type tpe, ModuleScope scope) {
-    Type tpeKey = tpe == null ? noTypeKey : tpe;
-    var allTypeMethods = methods.get(tpeKey);
-    if (allTypeMethods != null) {
-      allTypeMethods.forEach((name, fun) -> scope.registerMethod(tpeKey, name, fun));
-    }
-  }
-
-  /**
    * @return methods for all registered types
    */
   public List<Function> getAllMethods() {
@@ -394,11 +394,11 @@ public final class ModuleScope implements EnsoObject {
   }
 
   public void reset() {
-    imports = new HashSet<>();
-    exports = new HashSet<>();
-    methods = new HashMap<>();
-    conversions = new HashMap<>();
-    polyglotSymbols = new HashMap<>();
+    imports.clear();
+    exports.clear();
+    methods.clear();
+    conversions.clear();
+    polyglotSymbols.clear();
   }
 
   /**
@@ -461,4 +461,6 @@ public final class ModuleScope implements EnsoObject {
   public String toString() {
     return "Scope" + module;
   }
+
+  class Builder {}
 }

@@ -53,18 +53,18 @@ import org.enso.text.buffer.Rope;
 /** Represents a source module with a known location. */
 @ExportLibrary(InteropLibrary.class)
 public final class Module implements EnsoObject {
-  private ModuleScope scope;
   private ModuleSources sources;
-  private PatchedModuleValues patchedValues;
-  private final Map<Source, Module> allSources = new WeakHashMap<>();
-  private final Package<TruffleFile> pkg;
-  private CompilationStage compilationStage = CompilationStage.INITIAL;
-  private org.enso.compiler.core.ir.Module ir;
-  private Map<UUID, IR> uuidsMap;
   private QualifiedName name;
+  private final ModuleScope scope;
+  private final Package<TruffleFile> pkg;
   private final Cache<ModuleCache.CachedModule, ModuleCache.Metadata> cache;
   private boolean wasLoadedFromCache;
   private final boolean synthetic;
+  private PatchedModuleValues patchedValues;
+  private final Map<Source, Module> allSources = new WeakHashMap<>();
+  private CompilationStage compilationStage = CompilationStage.INITIAL;
+  private org.enso.compiler.core.ir.Module ir;
+  private Map<UUID, IR> uuidsMap;
 
   /**
    * This list is filled in case there is a directory with the same name as this module. The
@@ -86,8 +86,9 @@ public final class Module implements EnsoObject {
    */
   public Module(QualifiedName name, Package<TruffleFile> pkg, TruffleFile sourceFile) {
     this.sources = ModuleSources.NONE.newWith(sourceFile);
-    this.pkg = pkg;
     this.name = name;
+    this.scope = new ModuleScope(this);
+    this.pkg = pkg;
     this.cache = ModuleCache.create(this);
     this.wasLoadedFromCache = false;
     this.synthetic = false;
@@ -103,8 +104,9 @@ public final class Module implements EnsoObject {
    */
   public Module(QualifiedName name, Package<TruffleFile> pkg, String literalSource) {
     this.sources = ModuleSources.NONE.newWith(Rope.apply(literalSource));
-    this.pkg = pkg;
     this.name = name;
+    this.scope = new ModuleScope(this);
+    this.pkg = pkg;
     this.cache = ModuleCache.create(this);
     this.wasLoadedFromCache = false;
     this.patchedValues = new PatchedModuleValues(this);
@@ -121,8 +123,9 @@ public final class Module implements EnsoObject {
    */
   public Module(QualifiedName name, Package<TruffleFile> pkg, Rope literalSource) {
     this.sources = ModuleSources.NONE.newWith(literalSource);
-    this.pkg = pkg;
     this.name = name;
+    this.scope = new ModuleScope(this);
+    this.pkg = pkg;
     this.cache = ModuleCache.create(this);
     this.wasLoadedFromCache = false;
     this.patchedValues = new PatchedModuleValues(this);
@@ -143,10 +146,10 @@ public final class Module implements EnsoObject {
     this.name = name;
     this.scope = new ModuleScope(this);
     this.pkg = pkg;
-    this.compilationStage = synthetic ? CompilationStage.INITIAL : CompilationStage.AFTER_CODEGEN;
     this.cache = ModuleCache.create(this);
     this.wasLoadedFromCache = false;
     this.synthetic = synthetic;
+    this.compilationStage = synthetic ? CompilationStage.INITIAL : CompilationStage.AFTER_CODEGEN;
   }
 
   /**
@@ -314,7 +317,6 @@ public final class Module implements EnsoObject {
    * @return the scope defined by this module
    */
   public ModuleScope compileScope(EnsoContext context) {
-    ensureScopeExists();
     if (!compilationStage.isAtLeast(CompilationStage.AFTER_CODEGEN)) {
       try {
         compile(context);
@@ -322,14 +324,6 @@ public final class Module implements EnsoObject {
       }
     }
     return scope;
-  }
-
-  /** Create scope if it does not exist. */
-  public void ensureScopeExists() {
-    if (scope == null) {
-      scope = new ModuleScope(this);
-      compilationStage = CompilationStage.INITIAL;
-    }
   }
 
   /**
@@ -385,7 +379,6 @@ public final class Module implements EnsoObject {
   }
 
   private void compile(EnsoContext context) throws IOException {
-    ensureScopeExists();
     Source source = getSource();
     if (source == null) return;
     scope.reset();
@@ -459,20 +452,6 @@ public final class Module implements EnsoObject {
    */
   public ModuleScope getScope() {
     return scope;
-  }
-
-  /**
-   * Returns the runtime scope of this module that filters out only the requested types. If the list
-   * of requested types is empty, returns the unchanged runtime scope.
-   *
-   * @param types a list of types to include in the scope
-   */
-  public ModuleScope getScope(List<String> types) {
-    if (types.isEmpty()) {
-      return scope;
-    } else {
-      return scope.withTypes(types);
-    }
   }
 
   /**
@@ -601,7 +580,7 @@ public final class Module implements EnsoObject {
     }
 
     private static Module setSource(Module module, Object[] args, EnsoContext context)
-        throws ArityException, UnsupportedTypeException, UnsupportedMessageException {
+        throws UnsupportedTypeException, UnsupportedMessageException {
       var iop = InteropLibrary.getUncached();
       if (!iop.isString(args[0])) {
         throw UnsupportedTypeException.create(args, "First argument must be a string");
