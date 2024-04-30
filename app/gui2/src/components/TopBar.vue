@@ -7,6 +7,7 @@ import SelectionMenu from '@/components/SelectionMenu.vue'
 import { injectGuiConfig } from '@/providers/guiConfig'
 import { computed } from 'vue'
 
+const showColorPicker = defineModel<boolean>('showColorPicker', { required: true })
 const props = defineProps<{
   breadcrumbs: BreadcrumbItem[]
   recordMode: boolean
@@ -26,7 +27,7 @@ const emit = defineEmits<{
   zoomOut: []
   toggleCodeEditor: []
   collapseNodes: []
-  toggleColorPicker: []
+  setNodeColor: [color: string]
 }>()
 
 const LEFT_PADDING_PX = 11
@@ -59,9 +60,10 @@ const barStyle = computed(() => {
     <Transition name="selection-menu">
       <SelectionMenu
         v-if="componentsSelected > 1"
+        v-model:showColorPicker="showColorPicker"
         :selectedComponents="componentsSelected"
         @collapseNodes="emit('collapseNodes')"
-        @toggleColorPicker="emit('toggleColorPicker')"
+        @setNodeColor="emit('setNodeColor', $event)"
       />
     </Transition>
     <ExtendedMenu

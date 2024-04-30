@@ -1,10 +1,34 @@
 <script setup lang="ts">
+import ColorRing from '@/components/ColorRing.vue'
 import SvgIcon from '@/components/SvgIcon.vue'
+import ToggleIcon from '@/components/ToggleIcon.vue'
+import { injectNodeColors } from '@/providers/graphNodeColors'
+import { injectGraphSelection } from '@/providers/graphSelection'
+import { computed } from 'vue'
 
-const _props = defineProps<{
+const showColorPicker = defineModel<boolean>('showColorPicker', { required: true })
+const props = defineProps<{
   selectedComponents: number
 }>()
-const emit = defineEmits<{ collapseNodes: []; toggleColorPicker: [] }>()
+const emit = defineEmits<{
+  collapseNodes: []
+  setNodeColor: [color: string]
+}>()
+
+const { getNodeColor, visibleNodeColors } = injectNodeColors()
+const selection = injectGraphSelection(true)
+const selectionColor = computed(() => {
+  if (!selection) return undefined
+  let color: string | undefined = undefined
+  for (const node of selection.selected) {
+    const nodeColor = getNodeColor(node)
+    if (nodeColor) {
+      if (color !== undefined && color !== nodeColor) return undefined
+      else color = nodeColor
+    }
+  }
+  return color
+})
 </script>
 
 <template>
@@ -19,13 +43,26 @@ const emit = defineEmits<{ collapseNodes: []; toggleColorPicker: [] }>()
       alt="Group components"
       @click.stop="emit('collapseNodes')"
     />
-    <SvgIcon
-      name="paint_palette"
-      draggable="false"
-      class="icon button"
-      alt="Change components' colors"
-      @click.stop="emit('toggleColorPicker')"
+    <ToggleIcon
+      v-model="showColorPicker"
+      :alt="`${showColorPicker ? 'Hide' : 'Show'} the component color chooser`"
+      icon="paint_palette"
+      class="toggle button"
+      :class="{
+        // Any `pointerdown` event outside the color picker will close it. Ignore clicks that occur while the color
+        // picker is open, so that it isn't toggled back open.
+        disableInput: showColorPicker,
+      }"
     />
+    <div v-if="showColorPicker" class="colorPickerContainer">
+      <ColorRing
+        :modelValue="selectionColor"
+        :matchableColors="visibleNodeColors"
+        standalone
+        @close="showColorPicker = false"
+        @update:modelValue="emit('setNodeColor', $event)"
+      />
+    </div>
   </div>
 </template>
 
@@ -42,5 +79,31 @@ const emit = defineEmits<{ collapseNodes: []; toggleColorPicker: [] }>()
   padding-right: 10px;
   padding-top: 4px;
   padding-bottom: 4px;
+}
+
+.colorPickerContainer {
+  position: absolute;
+  top: 36px;
+  left: 0;
+  width: 240px;
+  height: 240px;
+  display: flex;
+  border-radius: var(--radius-default);
+  background: var(--color-frame-bg);
+  backdrop-filter: var(--blur-app-bg);
+  place-items: center;
+  padding: 36px;
+}
+
+.toggle {
+  opacity: 0.6;
+}
+
+.toggledOn {
+  opacity: unset;
+}
+
+.disableInput {
+  pointer-events: none;
 }
 </style>

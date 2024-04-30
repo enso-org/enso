@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { codeEditorBindings, graphBindings, interactionBindings } from '@/bindings'
 import CodeEditor from '@/components/CodeEditor.vue'
-import ColorPicker from '@/components/ColorPicker.vue'
 import ComponentBrowser from '@/components/ComponentBrowser.vue'
 import { type Usage } from '@/components/ComponentBrowser/input'
 import { usePlacement } from '@/components/ComponentBrowser/placement'
@@ -22,6 +21,7 @@ import { useNavigatorStorage } from '@/composables/navigatorStorage'
 import type { PlacementStrategy } from '@/composables/nodeCreation'
 import { useStackNavigator } from '@/composables/stackNavigator'
 import { provideGraphNavigator } from '@/providers/graphNavigator'
+import { provideNodeColors } from '@/providers/graphNodeColors'
 import { provideNodeCreation } from '@/providers/graphNodeCreation'
 import { provideGraphSelection } from '@/providers/graphSelection'
 import { provideInteractionHandler } from '@/providers/interactionHandler'
@@ -245,17 +245,14 @@ const graphBindingsHandler = graphBindings.handler({
     stackNavigator.exitNode()
   },
   changeColorSelectedNodes() {
-    toggleColorPicker()
+    showColorPicker.value = true
   },
 })
 
 const { handleClick } = useDoubleClick(
   (e: MouseEvent) => {
     graphBindingsHandler(e)
-    if (document.activeElement instanceof HTMLElement) {
-      document.activeElement.blur()
-    }
-    showColorPicker.value = false
+    clearFocus()
   },
   () => {
     stackNavigator.exitNode()
@@ -497,48 +494,17 @@ async function handleFileDrop(event: DragEvent) {
 
 // === Color Picker ===
 
-/** A small offset to keep the color picker slightly away from the nodes. */
-const COLOR_PICKER_X_OFFSET_PX = -300
-const showColorPicker = ref(false)
-const colorPickerSelectedColor = ref('')
-
-function overrideSelectedNodesColor(color: string) {
-  ;[...nodeSelection.selected].map((id) => graphStore.overrideNodeColor(id, color))
-}
-
-/** Toggle displaying of the color picker. It will change colors of selected nodes. */
-function toggleColorPicker() {
-  if (nodeSelection.selected.size === 0) {
-    showColorPicker.value = false
-    return
-  }
-  showColorPicker.value = !showColorPicker.value
-  if (showColorPicker.value) {
-    const oneOfSelected = set.first(nodeSelection.selected)
-    const color = graphStore.db.getNodeColorStyle(oneOfSelected)
-    if (color.startsWith('var') && viewportNode.value != null) {
-      // Some colors are defined in CSS variables, we need to get the actual color.
-      const variableName = color.slice(4, -1)
-      colorPickerSelectedColor.value = getComputedStyle(viewportNode.value).getPropertyValue(
-        variableName,
-      )
-    } else {
-      colorPickerSelectedColor.value = color
-    }
-  }
-}
-const colorPickerPos = computed(() => {
-  const nodeRects = [...nodeSelection.selected].map(
-    (id) => graphStore.nodeRects.get(id) ?? Rect.Zero,
-  )
-  const boundingRect = Rect.Bounding(...nodeRects)
-  return new Vec2(boundingRect.left + COLOR_PICKER_X_OFFSET_PX, boundingRect.center().y)
-})
-const colorPickerStyle = computed(() =>
-  colorPickerPos.value != null ?
-    { transform: `translate(${colorPickerPos.value.x}px, ${colorPickerPos.value.y}px)` }
-  : {},
+provideNodeColors((variable) =>
+  viewportNode.value ? getComputedStyle(viewportNode.value).getPropertyValue(variable) : '',
 )
+
+const showColorPicker = ref(false)
+
+function setSelectedNodesColor(color: string) {
+  graphStore.transact(() =>
+    nodeSelection.selected.forEach((id) => graphStore.overrideNodeColor(id, color)),
+  )
+}
 
 const groupColors = computed(() => {
   const styles: { [key: string]: string } = {}
@@ -567,15 +533,7 @@ const groupColors = computed(() => {
         @nodeOutputPortDoubleClick="handleNodeOutputPortDoubleClick"
         @nodeDoubleClick="(id) => stackNavigator.enterNode(id)"
         @createNodes="createNodesFromSource"
-        @toggleColorPicker="toggleColorPicker"
-      />
-
-      <ColorPicker
-        class="colorPicker"
-        :style="colorPickerStyle"
-        :show="showColorPicker"
-        :color="colorPickerSelectedColor"
-        @update:color="overrideSelectedNodesColor"
+        @setNodeColor="setSelectedNodesColor"
       />
     </div>
     <div
@@ -596,6 +554,7 @@ const groupColors = computed(() => {
     />
     <TopBar
       v-model:recordMode="projectStore.recordMode"
+      v-model:showColorPicker="showColorPicker"
       :breadcrumbs="stackNavigator.breadcrumbLabels.value"
       :allowNavigationLeft="stackNavigator.allowNavigationLeft.value"
       :allowNavigationRight="stackNavigator.allowNavigationRight.value"
@@ -610,7 +569,7 @@ const groupColors = computed(() => {
       @zoomOut="graphNavigator.stepZoom(-1)"
       @toggleCodeEditor="toggleCodeEditor"
       @collapseNodes="collapseNodes"
-      @toggleColorPicker="toggleColorPicker"
+      @setNodeColor="setSelectedNodesColor"
     />
     <PlusButton @pointerdown.stop @click.stop="addNodeAuto()" @pointerup.stop />
     <Transition>
@@ -642,9 +601,5 @@ const groupColors = computed(() => {
   left: 0;
   width: 0;
   height: 0;
-}
-
-.colorPicker {
-  position: absolute;
 }
 </style>

@@ -9,16 +9,17 @@ import GraphNodeMessage, {
 } from '@/components/GraphEditor/GraphNodeMessage.vue'
 import GraphNodeSelection from '@/components/GraphEditor/GraphNodeSelection.vue'
 import GraphVisualization from '@/components/GraphEditor/GraphVisualization.vue'
+import type { NodeCreationOptions } from '@/components/GraphEditor/nodeCreation'
 import NodeWidgetTree, {
   GRAB_HANDLE_X_MARGIN,
   ICON_WIDTH,
 } from '@/components/GraphEditor/NodeWidgetTree.vue'
-import type { NodeCreationOptions } from '@/components/GraphEditor/nodeCreation'
 import SvgIcon from '@/components/SvgIcon.vue'
 import { useApproach } from '@/composables/animation'
 import { useDoubleClick } from '@/composables/doubleClick'
 import { usePointer, useResizeObserver } from '@/composables/events'
 import { injectGraphNavigator } from '@/providers/graphNavigator'
+import { injectNodeColors } from '@/providers/graphNodeColors'
 import { injectGraphSelection } from '@/providers/graphSelection'
 import { useGraphStore, type Node } from '@/stores/graph'
 import { asNodeId } from '@/stores/graph/graphDatabase'
@@ -58,7 +59,7 @@ const emit = defineEmits<{
   outputPortDoubleClick: [event: PointerEvent, portId: AstId]
   doubleClick: []
   createNodes: [options: NodeCreationOptions[]]
-  toggleColorPicker: []
+  setNodeColor: [color: string]
   'update:edited': [cursorPosition: number]
   'update:rect': [rect: Rect]
   'update:visualizationId': [id: Opt<VisualizationIdentifier>]
@@ -446,6 +447,8 @@ const documentation = computed<string | undefined>({
     })
   },
 })
+
+const { getNodeColor, visibleNodeColors } = injectNodeColors()
 </script>
 
 <template>
@@ -501,6 +504,8 @@ const documentation = computed<string | undefined>({
       :isRecordingEnabledGlobally="projectStore.isRecordingEnabled"
       :isVisualizationVisible="isVisualizationVisible"
       :isFullMenuVisible="menuVisible && menuFull"
+      :nodeColor="getNodeColor(nodeId)"
+      :visibleNodeColors="visibleNodeColors"
       @update:isVisualizationVisible="emit('update:visualizationVisible', $event)"
       @startEditing="startEditingNode"
       @startEditingComment="editingComment = true"
@@ -509,7 +514,7 @@ const documentation = computed<string | undefined>({
       @createNodes="emit('createNodes', $event)"
       @pointerenter="menuHovered = true"
       @pointerleave="menuHovered = false"
-      @toggleColorPicker="emit('toggleColorPicker')"
+      @update:nodeColor="emit('setNodeColor', $event)"
     />
     <GraphVisualization
       v-if="isVisualizationVisible"

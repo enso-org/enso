@@ -1,15 +1,19 @@
 <script setup lang="ts">
+import ColorRing from '@/components/ColorRing.vue'
 import type { NodeCreationOptions } from '@/components/GraphEditor/nodeCreation'
 import SmallPlusButton from '@/components/SmallPlusButton.vue'
 import SvgIcon from '@/components/SvgIcon.vue'
 import ToggleIcon from '@/components/ToggleIcon.vue'
+import { ref } from 'vue'
 
+const nodeColor = defineModel<string | undefined>('nodeColor')
 const props = defineProps<{
   isRecordingEnabledGlobally: boolean
   isRecordingOverridden: boolean
   isDocsVisible: boolean
   isVisualizationVisible: boolean
   isFullMenuVisible: boolean
+  visibleNodeColors: Set<string>
 }>()
 const emit = defineEmits<{
   'update:isRecordingOverridden': [isRecordingOverridden: boolean]
@@ -20,8 +24,9 @@ const emit = defineEmits<{
   openFullMenu: []
   delete: []
   createNodes: [options: NodeCreationOptions[]]
-  toggleColorPicker: []
 }>()
+
+const showColorPicker = ref(false)
 </script>
 
 <template>
@@ -40,7 +45,7 @@ const emit = defineEmits<{
         name="paint_palette"
         class="icon-container button slot3"
         :alt="`Choose color`"
-        @click.stop="emit('toggleColorPicker')"
+        @click.stop="showColorPicker = true"
       />
       <SvgIcon
         v-if="isFullMenuVisible"
@@ -71,6 +76,14 @@ const emit = defineEmits<{
         :modelValue="props.isRecordingOverridden"
         @update:modelValue="emit('update:isRecordingOverridden', $event)"
       />
+      <div v-if="showColorPicker" class="around-circle">
+        <ColorRing
+          v-model="nodeColor"
+          :matchableColors="visibleNodeColors"
+          :standalone="false"
+          @close="showColorPicker = false"
+        />
+      </div>
     </div>
     <SmallPlusButton
       v-if="!isVisualizationVisible"
@@ -151,6 +164,12 @@ const emit = defineEmits<{
     margin-top: -10px;
     opacity: 0.3;
   }
+}
+
+.around-circle {
+  position: absolute;
+  width: calc(114px - 10px);
+  height: calc(114px - 10px);
 }
 
 .icon-container {
