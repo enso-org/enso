@@ -35,14 +35,12 @@
  * {@link authProvider.FullUserSession}). */
 import * as React from 'react'
 
-import * as reactQuery from '@tanstack/react-query'
 import * as router from 'react-router-dom'
 import * as toastify from 'react-toastify'
 
 import * as detect from 'enso-common/src/detect'
 
 import * as appUtils from '#/appUtils'
-import * as reactQueryClientModule from '#/reactQueryClient'
 
 import * as inputBindingsModule from '#/configurations/inputBindings'
 
@@ -152,7 +150,6 @@ export default function App(props: AppProps) {
   // This is a React component even though it does not contain JSX.
   // eslint-disable-next-line no-restricted-syntax
   const Router = detect.isOnElectron() ? router.HashRouter : router.BrowserRouter
-  const queryClient = React.useMemo(() => reactQueryClientModule.createReactQueryClient(), [])
   const projectManagerQuery = projectManagerHooks.useProjectManager(projectManagerUrl)
 
   // Both `BackendProvider` and `InputBindingsProvider` depend on `LocalStorageProvider`.
@@ -161,7 +158,7 @@ export default function App(props: AppProps) {
   return projectManagerQuery.isError ? (
     <ErrorScreen error={projectManagerQuery.error} />
   ) : projectManagerQuery.isSuccess ? (
-    <reactQuery.QueryClientProvider client={queryClient}>
+    <>
       <toastify.ToastContainer
         position="top-center"
         theme="light"
@@ -176,7 +173,7 @@ export default function App(props: AppProps) {
           <AppRouter {...props} />
         </LocalStorageProvider>
       </Router>
-    </reactQuery.QueryClientProvider>
+    </>
   ) : (
     <LoadingScreen />
   )

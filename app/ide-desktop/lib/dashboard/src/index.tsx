@@ -4,6 +4,7 @@
 import * as React from 'react'
 
 import * as sentry from '@sentry/react'
+import * as reactQuery from '@tanstack/react-query'
 import * as reactDOM from 'react-dom/client'
 import * as reactRouter from 'react-router-dom'
 
@@ -11,6 +12,7 @@ import * as detect from 'enso-common/src/detect'
 
 import type * as app from '#/App'
 import App from '#/App'
+import * as reactQueryClient from '#/reactQueryClient'
 
 // =================
 // === Constants ===
@@ -78,12 +80,15 @@ function run(props: app.AppProps) {
     // via the browser.
     const actuallySupportsDeepLinks = supportsDeepLinks && detect.isOnElectron()
     const actualProjectManagerUrl = supportsLocalBackend ? projectManagerUrl : null
+    const queryClient = reactQueryClient.createReactQueryClient()
     const app = (
-      <App
-        {...props}
-        supportsDeepLinks={actuallySupportsDeepLinks}
-        projectManagerUrl={actualProjectManagerUrl}
-      />
+      <reactQuery.QueryClientProvider client={queryClient}>
+        <App
+          {...props}
+          supportsDeepLinks={actuallySupportsDeepLinks}
+          projectManagerUrl={actualProjectManagerUrl}
+        />
+      </reactQuery.QueryClientProvider>
     )
     reactDOM
       .createRoot(root)

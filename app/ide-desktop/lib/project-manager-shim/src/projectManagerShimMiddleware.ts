@@ -190,7 +190,14 @@ export default function projectManagerShimMiddleware(
                                 case '--filesystem-list': {
                                     const directoryPath = cliArguments[1]
                                     if (directoryPath != null) {
-                                        const entryNames = await fs.readdir(directoryPath)
+                                        const entryNames = await (async () => {
+                                            try {
+                                                return await fs.readdir(directoryPath)
+                                            } catch {
+                                                // Assume the directory does not exist.
+                                                return []
+                                            }
+                                        })()
                                         const entries: FileSystemEntry[] = []
                                         for (const entryName of entryNames) {
                                             const entryPath = path.join(directoryPath, entryName)
