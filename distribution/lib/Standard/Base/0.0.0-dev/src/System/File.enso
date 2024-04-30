@@ -671,7 +671,7 @@ type File
        - destination: the destination to move the file to.
        - replace_existing: specifies if the operation should proceed if the
          destination file already exists. Defaults to `False`.
-    copy_to : File_Like -> Boolean -> File ! File_Error
+    copy_to : File_Like -> Boolean -> Any ! File_Error
     copy_to self (destination : File_Like) (replace_existing : Boolean = False) = Data_Link_Helpers.disallow_links_in_copy self destination <|
         Context.Output.if_enabled disabled_message="File copying is forbidden as the Output context is disabled." panic=False <|
             ## We defer the `Writable_File` conversion after the 'disallow links' check,
@@ -689,7 +689,7 @@ type File
        - destination: the destination to move the file to.
        - replace_existing: specifies if the operation should proceed if the
          destination file already exists. Defaults to `False`.
-    move_to : File_Like -> Boolean -> File ! File_Error
+    move_to : File_Like -> Boolean -> Any ! File_Error
     move_to self (destination : File_Like) (replace_existing : Boolean = False) = Data_Link_Helpers.disallow_links_in_move self destination <|
         Context.Output.if_enabled disabled_message="File moving is forbidden as the Output context is disabled." panic=False <|
             ## We defer the `Writable_File` conversion after the 'disallow links' check,

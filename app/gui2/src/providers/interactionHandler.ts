@@ -53,9 +53,16 @@ export class InteractionHandler {
     return hasCurrent
   }
 
-  handlePointerDown(event: PointerEvent, graphNavigator: GraphNavigator): boolean {
-    if (!this.currentInteraction?.pointerdown) return false
-    const handled = this.currentInteraction.pointerdown(event, graphNavigator) !== false
+  handlePointerEvent<HandlerName extends keyof Interaction>(
+    event: PointerEvent,
+    handlerName: Interaction[HandlerName] extends InteractionEventHandler | undefined ? HandlerName
+    : never,
+    graphNavigator: GraphNavigator,
+  ): boolean {
+    if (!this.currentInteraction) return false
+    const handler = this.currentInteraction[handlerName]
+    if (!handler) return false
+    const handled = handler.bind(this.currentInteraction)(event, graphNavigator) !== false
     if (handled) {
       event.stopImmediatePropagation()
       event.preventDefault()
@@ -64,8 +71,14 @@ export class InteractionHandler {
   }
 }
 
+type InteractionEventHandler = (event: PointerEvent, navigator: GraphNavigator) => boolean | void
+
 export interface Interaction {
   cancel(): void
   /** Uses a `capture` event handler to allow an interaction to respond to clicks over any element. */
-  pointerdown?(event: PointerEvent, navigator: GraphNavigator): boolean | void
+  pointerdown?: InteractionEventHandler
+  /** Uses a `capture` event handler to allow an interaction to respond to mouse button release
+   * over any element. It is useful for interactions happening during mouse press (like dragging
+   * edges) */
+  pointerup?: InteractionEventHandler
 }

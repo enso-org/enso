@@ -16,6 +16,7 @@ import project.Semantic.Equals_Spec
 import project.Semantic.Runtime_Spec
 import project.Semantic.Self_Type_Spec
 import project.Semantic.Warnings_Spec
+import project.Semantic.Private_Spec
 
 import project.Semantic.Java_Interop_Spec
 import project.Semantic.Js_Interop_Spec
@@ -168,6 +169,7 @@ main filter=Nothing =
         Statistics_Spec.add_specs suite_builder
         Regression_Spec.add_specs suite_builder
         Warnings_Spec.add_specs suite_builder
+        Private_Spec.add_specs suite_builder
         System_Spec.add_specs suite_builder
         Random_Spec.add_specs suite_builder
         XML_Spec.add_specs suite_builder

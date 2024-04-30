@@ -30,13 +30,11 @@ import org.enso.interpreter.node.expression.builtin.meta.AtomWithAHoleNode;
 import org.enso.interpreter.node.expression.builtin.meta.IsValueOfTypeNode;
 import org.enso.interpreter.node.expression.literal.LiteralNode;
 import org.enso.interpreter.runtime.EnsoContext;
-import org.enso.interpreter.runtime.callable.Annotation;
 import org.enso.interpreter.runtime.callable.UnresolvedConstructor;
 import org.enso.interpreter.runtime.callable.UnresolvedConversion;
 import org.enso.interpreter.runtime.callable.argument.ArgumentDefinition;
 import org.enso.interpreter.runtime.callable.argument.ArgumentDefinition.ExecutionMode;
 import org.enso.interpreter.runtime.callable.argument.CallArgument;
-import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.callable.function.FunctionSchema;
 import org.enso.interpreter.runtime.data.EnsoMultiValue;
@@ -479,14 +477,11 @@ public abstract class ReadArgumentCheckNode extends Node {
     @Child private ReadArgumentCheckNode check;
 
     static final FunctionSchema SCHEMA =
-        new FunctionSchema(
-            FunctionSchema.CallerFrameAccess.NONE,
-            new ArgumentDefinition[] {
-              new ArgumentDefinition(0, "delegate", null, null, ExecutionMode.EXECUTE)
-            },
-            new boolean[] {true},
-            new CallArgumentInfo[0],
-            new Annotation[0]);
+        FunctionSchema.newBuilder()
+            .argumentDefinitions(
+                new ArgumentDefinition(0, "delegate", null, null, ExecutionMode.EXECUTE))
+            .hasPreapplied(true)
+            .build();
 
     LazyCheckRootNode(TruffleLanguage<?> language, ReadArgumentCheckNode check) {
       super(language);
