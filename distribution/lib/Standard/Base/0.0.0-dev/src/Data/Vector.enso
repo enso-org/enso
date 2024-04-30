@@ -149,8 +149,10 @@ type Vector a
 
     ## PRIVATE
        ADVANCED
-       DEPRECATED `Vector.build` is the preferred way to build `Vector`s.
+
        Creates a new vector builder instance.
+
+       `Vector.build` is the preferred way to build `Vector`s.
 
        A vector `Builder` is a mutable data structure, that allows for gathering
        a number of elements and then converting them into a vector. This is
@@ -160,7 +162,9 @@ type Vector a
        memory. It is the recommended data structure for most applications.
 
        The `Vector.build` method is preferred over `.new_builder`, since it
-       automatically closes and returns the finished `Vector`.
+       automatically closes and returns the finished `Vector`. The `new_builder`
+       approach requires the caller to call `to_vector` at the end, which can be
+       more flexible within imperative code.
 
        Arguments:
        - capacity: Initial capacity of the Vector.Builder
@@ -1251,9 +1255,6 @@ type Builder
     ## PRIVATE
 
        A builder type for Enso vectors.
-
-       `Build_Style_Builder` is for use with `Vector.build`, rather than the
-       deprecated `Vector.new_builder`.
 
        Arguments:
        - elements_java_builder: The accumulator for the new vector.
