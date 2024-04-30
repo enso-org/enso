@@ -558,6 +558,7 @@ add_specs suite_builder =
             Panic.handle_wrapped_dataflow_error error_type=My_Error handler=handler <|
                 a = 10
                 b = a + a
+                _ = b
                 # IO.println a
                 # IO.println b
                 Panic.rethrow_wrapped_if_error  (Error.throw (My_Error.Error 1))

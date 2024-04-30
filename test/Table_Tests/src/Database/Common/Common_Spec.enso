@@ -101,7 +101,7 @@ type Aggregation_Data
 
     setup create_connection_fn = Aggregation_Data.Value <|
         connection = create_connection_fn Nothing
-        vecs = Vector.build_multiple 3 builder->
+        vecs = Vector.build_multiple 3 builders->
             insert v =
                 builders.zip v .append
             insert ["foo",  0.4,     50]
@@ -121,7 +121,7 @@ type Aggregation_Data
             insert ["zzzz", 0, 0]
             insert ["zzzz", Nothing, Nothing]
         t9 = upload connection "T9" <|
-            Table.new [["name", vec.at 0], ["price", vec.at 1], ["quantity", vec.at 2]]
+            Table.new [["name", vecs.at 0], ["price", vecs.at 1], ["quantity", vecs.at 2]]
         [connection, t9]
 
     teardown self =
