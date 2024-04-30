@@ -125,6 +125,7 @@
   "getCheckoutSessionBackendError": "Could not get checkout session for session ID '$0'.",
   "getLogEventsBackendError": "Could not get audit log events",
   "getDefaultVersionBackendError": "No default $0 version found.",
+  "duplicateUserGroupError": "This user group already exists.",
 
   "directoryAssetType": "folder",
   "projectAssetType": "project",

@@ -1,6 +1,8 @@
 /** @file A modal to create a user group. */
 import * as React from 'react'
 
+import * as text from '#/text'
+
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
 import * as backendProvider from '#/providers/BackendProvider'
@@ -41,7 +43,9 @@ export default function NewUserGroupModal(props: NewUserGroupModalProps) {
     () => (userGroups == null ? null : new Set(userGroups.map(group => group.groupName))),
     [userGroups]
   )
-  const canSubmit = name !== '' && userGroupNames != null && !userGroupNames.has(name)
+  const nameError =
+    userGroupNames != null && userGroupNames.has(name) ? getText('duplicateUserGroupError') : null
+  const canSubmit = nameError == null && name !== '' && userGroupNames != null
 
   React.useEffect(() => {
     if (userGroups == null) {
@@ -84,14 +88,22 @@ export default function NewUserGroupModal(props: NewUserGroupModalProps) {
         <aria.Heading className="relative text-sm font-semibold">
           {getText('newUserGroup')}
         </aria.Heading>
-        <aria.TextField className="relative flex items-center" value={name} onChange={setName}>
-          <aria.Label className="text w-modal-label">{getText('name')}</aria.Label>
-          <aria.Input
-            autoFocus
-            size={1}
-            placeholder={getText('userGroupNamePlaceholder')}
-            className="text grow rounded-full border border-primary/10 bg-transparent px-input-x"
-          />
+        <aria.TextField
+          className="relative flex flex-col"
+          value={name}
+          onChange={setName}
+          isInvalid={nameError != null}
+        >
+          <div className="flex items-center">
+            <aria.Label className="text w-modal-label">{getText('name')}</aria.Label>
+            <aria.Input
+              autoFocus
+              size={1}
+              placeholder={getText('userGroupNamePlaceholder')}
+              className="text grow rounded-full border border-primary/10 bg-transparent px-input-x invalid:border-red-700/60"
+            />
+          </div>
+          <aria.FieldError className="text-red-700/90">{nameError}</aria.FieldError>
         </aria.TextField>
         <ButtonRow>
           <UnstyledButton
