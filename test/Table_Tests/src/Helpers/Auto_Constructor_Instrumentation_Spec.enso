@@ -6,11 +6,9 @@ import project.Helpers.Table_Aggregate_Auto_Constructor
 add_specs suite_builder =
     suite_builder.group "Autoconstructor Instrumentation" group_builder->
         group_builder.specify "compare ..Count and Aggregate_Column.Count" <|
-            lines_builder = Vector.new_builder
+            lines = Vector.new_builder lines_builder->
+                pair = Table_Aggregate_Auto_Constructor.perform lines_builder.append
 
-            pair = Table_Aggregate_Auto_Constructor.perform lines_builder.append
-
-            lines = lines_builder.to_vector
             text = lines.join '\n'
 
             text . should_equal """
