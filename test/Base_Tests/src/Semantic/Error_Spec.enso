@@ -8,7 +8,7 @@ import Standard.Base.Errors.Empty_Error.Empty_Error
 import Standard.Base.Runtime.Ref.Ref
 from Standard.Base.Panic import Wrapped_Dataflow_Error
 
-import Standard.Test.Must_Reach.Must_Reach
+import Standard.Test.Should_Reach.Should_Reach
 from Standard.Test import all
 
 polyglot java import java.lang.Long
@@ -465,18 +465,18 @@ add_specs suite_builder =
 
     suite_builder.group "Wrapped dataflow errors" group_builder->
         group_builder.specify "should be able to catch a particular rethrown error" <|
-            must_reach = Must_Reach.new
+            should_reach = Should_Reach.new
             handler e =
                 e.is_error . should_be_false
                 e . should_be_a My_Error
-                must_reach.reached
+                should_reach.reached
             Panic.handle_wrapped_dataflow_error error_type=My_Error handler=handler <|
                 a = 10
                 b = a + a
                 _ = b
                 Panic.rethrow_wrapped_if_error (Error.throw (My_Error.Error 12))
                 Test.fail "should not reach here"
-            must_reach.must_have_reached
+            should_reach.should_have_reached
 
         group_builder.specify "should be able to catch an rethrown error with the default handler" <|
             err = Panic.handle_wrapped_dataflow_error error_type=My_Error <|
@@ -510,16 +510,16 @@ add_specs suite_builder =
             err.catch . should_be_a My_Error
 
         group_builder.specify "can handle multiple rethrown error scopes" <|
-            must_reach_my_error = Must_Reach.new
-            must_reach_my_other_error = Must_Reach.new
+            should_reach_my_error = Should_Reach.new
+            should_reach_my_other_error = Should_Reach.new
 
             my_error_handler e =
                 e . should_be_a My_Error
-                must_reach_my_error.reached
+                should_reach_my_error.reached
 
             my_other_error_handler e =
                 e . should_be_a My_Other_Error
-                must_reach_my_other_error.reached
+                should_reach_my_other_error.reached
 
             Panic.handle_wrapped_dataflow_error error_type=My_Error handler=my_error_handler <|
                 Panic.handle_wrapped_dataflow_error error_type=My_Other_Error handler=my_other_error_handler <|
@@ -535,8 +535,8 @@ add_specs suite_builder =
                     Panic.rethrow_wrapped_if_error (Error.throw (My_Other_Error.Error 12))
                     Test.fail "should not reach here"
 
-            must_reach_my_error.must_have_reached
-            must_reach_my_other_error.must_have_reached
+            should_reach_my_error.should_have_reached
+            should_reach_my_other_error.should_have_reached
 
         group_builder.specify "an uncaught rethrown error should result in an uncaught Wrapped_Dataflow_Error panic" <|
             Test.expect_panic_with matcher=Wrapped_Dataflow_Error <|
@@ -562,6 +562,7 @@ add_specs suite_builder =
                 # IO.println b
                 Panic.rethrow_wrapped_if_error  (Error.throw (My_Error.Error 1))
                 # IO.println "Does not reach here"
+                Test.fail "This code path should not be reached."
 
     suite_builder.group "Empty errors" group_builder->
         group_builder.specify "should implement to_display_text for List" <|
