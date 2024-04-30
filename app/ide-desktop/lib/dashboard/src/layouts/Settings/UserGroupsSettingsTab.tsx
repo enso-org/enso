@@ -290,10 +290,10 @@ export default function UserGroupsSettingsTab() {
                       id={userGroup.id}
                       className={`group h-row ${backendModule.isPlaceholderUserGroupId(userGroup.id) ? 'pointer-events-none placeholder' : ''}`}
                     >
-                      <aria.Cell className="text rounded-r-full border-x-2 border-transparent bg-clip-padding px-cell-x first:rounded-l-full last:border-r-0">
+                      <aria.Cell className="text whitespace-nowrap rounded-r-full border-x-2 border-transparent bg-clip-padding px-cell-x first:rounded-l-full last:border-r-0">
                         {userGroup.groupName}
                       </aria.Cell>
-                      <aria.Cell className="relative bg-transparent p transparent group-hover-2:opacity-100">
+                      <aria.Cell className="group-hover-2:opacity-100 relative bg-transparent p transparent">
                         <UnstyledButton
                           onPress={() => {
                             setModal(
@@ -322,12 +322,12 @@ export default function UserGroupsSettingsTab() {
                       >
                         <aria.Cell className="text border-x-2 border-transparent bg-clip-padding rounded-rows-skip-level last:border-r-0">
                           <div className="ml-indent-1 flex h-row min-w-max items-center whitespace-nowrap rounded-full">
-                            <aria.Text className="grow px-name-column-x py-name-column-y">
+                            <aria.Text className="grow whitespace-nowrap px-name-column-x py-name-column-y">
                               {otherUser.name}
                             </aria.Text>
                           </div>
                         </aria.Cell>
-                        <aria.Cell className="relative bg-transparent p transparent group-hover-2:opacity-100">
+                        <aria.Cell className="group-hover-2:opacity-100 relative bg-transparent p transparent">
                           <UnstyledButton
                             onPress={() => {
                               setModal(
