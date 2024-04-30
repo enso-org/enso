@@ -9,9 +9,13 @@ import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.UUID;
+import java.util.concurrent.Callable;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.apache.commons.cli.CommandLine;
@@ -24,7 +28,9 @@ import org.enso.common.LanguageInfo;
 import org.enso.distribution.DistributionManager;
 import org.enso.distribution.Environment;
 import org.enso.editions.DefaultEdition;
+import org.enso.languageserver.boot.LanguageServerConfig;
 import org.enso.languageserver.boot.ProfilingConfig;
+import org.enso.languageserver.boot.StartupConfig;
 import org.enso.libraryupload.LibraryUploader.UploadFailedError;
 import org.enso.pkg.ComponentGroups;
 import org.enso.pkg.Contact;
@@ -41,8 +47,12 @@ import org.slf4j.LoggerFactory;
 import org.slf4j.event.Level;
 import scala.concurrent.ExecutionContext;
 import scala.concurrent.ExecutionContextExecutor;
+import scala.concurrent.duration.FiniteDuration;
 import scala.runtime.BoxedUnit;
+import scala.util.Either;
 import scala.util.Failure;
+import scala.util.Left$;
+import scala.util.Right$;
 import scala.util.Success;
 
 /** The main CLI entry point class. */
@@ -60,17 +70,17 @@ public final class Main {
   private static final String REPL_OPTION = "repl";
   private static final String DOCS_OPTION = "docs";
   private static final String PREINSTALL_OPTION = "preinstall-dependencies";
-  static final String PROFILING_PATH = "profiling-path";
-  static final String PROFILING_TIME = "profiling-time";
+  private static final String PROFILING_PATH = "profiling-path";
+  private static final String PROFILING_TIME = "profiling-time";
   private static final String LANGUAGE_SERVER_OPTION = "server";
-  static final String DAEMONIZE_OPTION = "daemon";
-  static final String INTERFACE_OPTION = "interface";
-  static final String RPC_PORT_OPTION = "rpc-port";
-  static final String DATA_PORT_OPTION = "data-port";
-  static final String SECURE_RPC_PORT_OPTION = "secure-rpc-port";
-  static final String SECURE_DATA_PORT_OPTION = "secure-data-port";
-  static final String ROOT_ID_OPTION = "root-id";
-  static final String ROOT_PATH_OPTION = "path";
+  private static final String DAEMONIZE_OPTION = "daemon";
+  private static final String INTERFACE_OPTION = "interface";
+  private static final String RPC_PORT_OPTION = "rpc-port";
+  private static final String DATA_PORT_OPTION = "data-port";
+  private static final String SECURE_RPC_PORT_OPTION = "secure-rpc-port";
+  private static final String SECURE_DATA_PORT_OPTION = "secure-data-port";
+  private static final String ROOT_ID_OPTION = "root-id";
+  private static final String ROOT_PATH_OPTION = "path";
   private static final String IN_PROJECT_OPTION = "in-project";
   private static final String VERSION_OPTION = "version";
   private static final String JSON_OPTION = "json";
@@ -89,7 +99,7 @@ public final class Main {
   private static final String HIDE_PROGRESS = "hide-progress";
   private static final String AUTH_TOKEN = "auth-token";
   private static final String AUTO_PARALLELISM_OPTION = "with-auto-parallelism";
-  static final String SKIP_GRAALVM_UPDATER = "skip-graalvm-updater";
+  private static final String SKIP_GRAALVM_UPDATER = "skip-graalvm-updater";
   private static final String EXECUTION_ENVIRONMENT_OPTION = "execution-environment";
   private static final String WARNINGS_LIMIT = "warnings-limit";
 
@@ -786,7 +796,7 @@ public final class Main {
     try {
       DependencyPreinstaller.preinstallDependencies(new File(s), logLevel);
       throw exitSuccess();
-    } catch (Throwable error) {
+    } catch (RuntimeException error) {
       logger.error("Dependency installation failed: " + error.getMessage(), error);
       throw exitFail();
     }
@@ -968,9 +978,9 @@ public final class Main {
     RunnerLogging.setup(connectionUri, logLevel, logMasking);
 
     if (line.hasOption(LANGUAGE_SERVER_OPTION)) {
-      MainUtil.runLanguageServer(line, logLevel);
+      runLanguageServer(line, logLevel);
     } else {
-      var config = MainUtil.parseProfilingConfig(line);
+      var config = parseProfilingConfig(line);
       if (config.isLeft()) {
         @SuppressWarnings("deprecation")
         var error = config.left().get();
@@ -1177,6 +1187,104 @@ public final class Main {
     }
   }
 
+  /**
+   * Handles `--server` CLI option
+   *
+   * @param line a CLI line
+   * @param logLevel log level to set for the engine runtime
+   */
+  @SuppressWarnings("deprecation")
+  private static void runLanguageServer(CommandLine line, Level logLevel) {
+    var maybeConfig = parseServerOptions(line);
+
+    if (maybeConfig.isLeft()) {
+      var errorMsg = maybeConfig.left().get();
+      System.err.println(errorMsg);
+      throw exitFail();
+    } else {
+      var config = maybeConfig.right().get();
+      LanguageServerApp.run(config, logLevel, line.hasOption(Main.DAEMONIZE_OPTION));
+      throw exitSuccess();
+    }
+  }
+
+  @SuppressWarnings("deprecation")
+  private static Either<String, LanguageServerConfig> parseServerOptions(CommandLine line) {
+    var rootId =
+        scala.Option.apply(line.getOptionValue(ROOT_ID_OPTION))
+            .toRight(() -> "Root id must be provided")
+            .flatMap(id -> catchNonFatal(() -> UUID.fromString(id), "Root must be UUID"));
+    var rootPath =
+        scala.Option.apply(line.getOptionValue(ROOT_PATH_OPTION))
+            .toRight(() -> "Root path must be provided");
+    var interfac =
+        scala.Option.apply(line.getOptionValue(INTERFACE_OPTION)).getOrElse(() -> "127.0.0.1");
+    var rpcPortStr =
+        scala.Option.apply(line.getOptionValue(RPC_PORT_OPTION)).getOrElse(() -> "8080");
+    var rpcPort = catchNonFatal(() -> Integer.valueOf(rpcPortStr), "Port must be integer");
+    var dataPortStr =
+        scala.Option.apply(line.getOptionValue(DATA_PORT_OPTION)).getOrElse(() -> "8081");
+    var dataPort = catchNonFatal(() -> Integer.valueOf(dataPortStr), "Port must be integer");
+    scala.Option<String> secureRpcPortStr =
+        scala.Option.apply(line.getOptionValue(SECURE_RPC_PORT_OPTION))
+            .map(x -> scala.Option.apply(x))
+            .getOrElse(() -> scala.Option.empty());
+    var secureRpcPort =
+        catchNonFatal(
+            () -> secureRpcPortStr.map(x -> (Object) Integer.valueOf(x)), "Port must be integer");
+    scala.Option<String> secureDataPortStr =
+        scala.Option.apply(line.getOptionValue(SECURE_DATA_PORT_OPTION))
+            .map(x -> scala.Option.apply(x))
+            .getOrElse(() -> scala.Option.empty());
+    var secureDataPort =
+        catchNonFatal(
+            () -> secureDataPortStr.map(x -> (Object) Integer.valueOf(x)), "Port must be integer");
+    var profilingConfig = parseProfilingConfig(line);
+    var graalVMUpdater =
+        scala.Option.apply(line.hasOption(SKIP_GRAALVM_UPDATER)).getOrElse(() -> false);
+
+    try {
+      var config =
+          new LanguageServerConfig(
+              interfac,
+              from(rpcPort),
+              from(secureRpcPort),
+              from(dataPort),
+              from(secureDataPort),
+              from(rootId),
+              from(rootPath),
+              from(profilingConfig),
+              new StartupConfig(graalVMUpdater),
+              "language-server",
+              ExecutionContext.global());
+      return Right$.MODULE$.apply(config);
+    } catch (WrongOption ex) {
+      return Left$.MODULE$.apply(ex.getMessage());
+    }
+  }
+
+  @SuppressWarnings("deprecation")
+  private static Either<String, ProfilingConfig> parseProfilingConfig(CommandLine line) {
+    var profilingPathStr = scala.Option.apply(line.getOptionValue(PROFILING_PATH));
+
+    var profilingPath =
+        catchNonFatal(() -> profilingPathStr.map(Paths::get), "Profiling path is invalid");
+    var profilingTimeStr = scala.Option.apply(line.getOptionValue(Main.PROFILING_TIME));
+    var profilingTime =
+        catchNonFatal(
+            () ->
+                profilingTimeStr.map(
+                    x -> FiniteDuration.apply(Integer.valueOf(x), TimeUnit.SECONDS)),
+            "Profiling time should be an integer");
+
+    try {
+      var value = new ProfilingConfig(from(profilingPath), from(profilingTime));
+      return Right$.MODULE$.apply(value);
+    } catch (WrongOption ex) {
+      return Left$.MODULE$.apply(ex.getMessage());
+    }
+  }
+
   @SuppressWarnings("unchecked")
   private static final <T> scala.collection.immutable.List<T> nil() {
     return (scala.collection.immutable.List<T>) scala.collection.immutable.Nil$.MODULE$;
@@ -1189,5 +1297,28 @@ public final class Main {
 
   private static void println(String msg) {
     out().println(msg);
+  }
+
+  @SuppressWarnings("deprecation")
+  private static <R> R from(Either<String, R> e) throws WrongOption {
+    if (e.isLeft()) {
+      throw new WrongOption(e.left().get());
+    }
+    return e.toOption().get();
+  }
+
+  private static <R> Either<String, R> catchNonFatal(Callable<R> action, String msg) {
+    try {
+      var value = action.call();
+      return Right$.MODULE$.apply(value);
+    } catch (Throwable t) {
+      return Left$.MODULE$.apply(msg);
+    }
+  }
+
+  private static final class WrongOption extends Exception {
+    WrongOption(String msg) {
+      super(msg);
+    }
   }
 }
