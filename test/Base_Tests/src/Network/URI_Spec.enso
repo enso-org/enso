@@ -3,6 +3,7 @@ import Standard.Base.Enso_Cloud.Enso_Secret.Enso_Secret_Error
 import Standard.Base.Errors.Common.Syntax_Error
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Network.HTTP.Request.Request
+import Standard.Base.Network.URI.Invalid_Query_String
 
 from Standard.Test import all
 
@@ -65,6 +66,12 @@ add_specs suite_builder =
             addr.raw_path.should_equal "/wiki/%D0%AF%D0%B4%D1%80%D0%BE_Linux"
             addr.raw_query.should_equal "%D0%9A%D0%BE%D0%B4"
             addr.raw_fragment.should_equal Nothing
+
+        group_builder.specify "should automatically URI encode the query string if needed with a warning" <|
+            addr = URI.parse 'https://httpbin.org/get?foo=bar&baz="a&c=d"%20?'
+            addr.to_text . should_equal "https://httpbin.org/get?foo=bar&baz=%22a&c=d%22%2520%3F"
+            w1 = Problems.expect_only_warning Invalid_Query_String addr
+            w1.query_string . should_equal 'foo=bar&baz="a&c=d"%20?'
 
         group_builder.specify "should return Syntax_Error when parsing invalid URI" <|
             r = URI.parse "a b c"
