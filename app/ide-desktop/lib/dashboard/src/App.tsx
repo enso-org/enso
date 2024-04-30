@@ -66,6 +66,7 @@ import Registration from '#/pages/authentication/Registration'
 import ResetPassword from '#/pages/authentication/ResetPassword'
 import RestoreAccount from '#/pages/authentication/RestoreAccount'
 import SetUsername from '#/pages/authentication/SetUsername'
+import * as billing from '#/pages/billing'
 import Dashboard from '#/pages/dashboard/Dashboard'
 import { Subscribe } from '#/pages/subscribe/Subscribe'
 import { SubscribeSuccess } from '#/pages/subscribe/SubscribeSuccess'
@@ -385,6 +386,16 @@ function AppRouter(props: AppRouterProps) {
               <router.Route
                 path={appUtils.DASHBOARD_PATH}
                 element={shouldShowDashboard && <Dashboard {...props} />}
+              />
+              <router.Route
+                path={appUtils.BILLING_PATH}
+                element={
+                  <errorBoundary.ErrorBoundary>
+                    <React.Suspense fallback={<loader.Loader />}>
+                      <billing.Billing />
+                    </React.Suspense>
+                  </errorBoundary.ErrorBoundary>
+                }
               />
               <router.Route
                 path={appUtils.SUBSCRIBE_PATH}

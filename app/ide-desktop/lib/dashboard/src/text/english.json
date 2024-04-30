@@ -543,5 +543,11 @@
   "contactSalesDescription": "Contact our sales team to learn more about our Enterprise plan.",
   "ContactSalesButtonLabel": "Contact Us",
 
-  "setOrgNameTitle": "Set your organization name"
+  "setOrgNameTitle": "Set your organization name",
+
+  "billingPageTitle": "Billing",
+  "billingPageBackButton": "Back to Enso dashboard",
+  "billingPageaddPaymentMethod": "Add payment method",
+  "billingPagePaymentMethod": "$0 •••• $1",
+  "billingPageExpires": "Expires $0/$1"
 }

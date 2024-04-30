@@ -41,7 +41,7 @@ export interface BaseButtonProps {
   /**
    * The variant of the button
    */
-  readonly variant: Variant
+  readonly variant?: Variant
   /**
    * The icon to display in the button
    */
@@ -90,7 +90,7 @@ export type Variant =
   | 'submit'
 
 const DEFAULT_CLASSES =
-  'flex whitespace-nowrap cursor-pointer border border-transparent transition-[opacity,outline-offset] duration-150 ease-in-out select-none text-center items-center justify-center'
+  'flex whitespace-nowrap cursor-pointer border border-transparent transition-[opacity,outline-offset] duration-150 ease-in-out select-none text-center items-center justify-center w-fit'
 const FOCUS_CLASSES =
   'focus-visible:outline-offset-2 focus:outline-none focus-visible:outline focus-visible:outline-primary'
 const EXTRA_CLICK_ZONE_CLASSES = 'flex relative before:inset-[-12px] before:absolute before:z-10'
@@ -140,7 +140,7 @@ export const Button = React.forwardRef(function Button(
   const {
     className,
     children,
-    variant,
+    variant = 'primary',
     icon,
     loading = false,
     isDisabled = loading,
@@ -169,18 +169,19 @@ export const Button = React.forwardRef(function Button(
   )
 
   const childrenFactory = (): React.ReactNode => {
+    const isIconOnly = children == null || children === '' || children === ' '
     // Icon only button
-    if (variant === 'icon' && icon != null) {
+    if (variant === 'icon' && icon != null && isIconOnly) {
       return (
         <aria.Text className={EXTRA_CLICK_ZONE_CLASSES}>
-          <SvgMask src={icon} className="flex-none" />
+          <SvgMask src={icon} className="w-[1.5em] flex-none" />
         </aria.Text>
       )
     } else {
       // Default button
       return (
-        <aria.Text className={clsx('flex items-center gap-2', ICON_POSITION[iconPosition])}>
-          {icon != null && <SvgMask src={icon} className="flex-none" />}
+        <aria.Text className={clsx('flex items-center gap-[0.3em]', ICON_POSITION[iconPosition])}>
+          {icon != null && <SvgMask src={icon} className="w-[1.2em] flex-none" />}
           <>{children}</>
         </aria.Text>
       )

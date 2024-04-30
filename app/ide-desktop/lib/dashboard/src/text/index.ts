@@ -89,6 +89,9 @@ interface PlaceholderOverrides {
   readonly getDefaultVersionBackendError: [string]
 
   readonly subscribeSuccessSubtitle: [string]
+
+  readonly billingPageExpires: [string, string]
+  readonly billingPagePaymentMethod: [string, string]
 }
 
 /** An tuple of `string` for placeholders for each {@link TextId}. */
