@@ -135,7 +135,10 @@ export default function MembersTable(props: MembersTableProps) {
           </aria.Row>
         ) : (
           member => (
-            <aria.Row id={member.userId} className="group h-row">
+            <aria.Row
+              id={member.userId}
+              className={`group h-row ${draggable ? 'cursor-grab' : ''}`}
+            >
               <aria.Cell className="text border-x-2 border-transparent bg-clip-padding px-cell-x first:rounded-l-full last:rounded-r-full last:border-r-0 group-selected:bg-selected-frame">
                 {draggable && <aria.Button slot="drag" />}
                 {member.name}
@@ -144,7 +147,7 @@ export default function MembersTable(props: MembersTableProps) {
                 {member.email}
               </aria.Cell>
               {allowDelete && (
-                <aria.Cell className="relative bg-transparent p transparent group-hover-2:opacity-100">
+                <aria.Cell className="group-hover-2:opacity-100 relative bg-transparent p transparent">
                   <UnstyledButton
                     onPress={() => {
                       void doDeleteUser(member)
