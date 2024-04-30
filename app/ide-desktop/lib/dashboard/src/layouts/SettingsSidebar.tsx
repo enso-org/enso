@@ -42,11 +42,13 @@ const SECTIONS: SettingsSectionData[] = [
         name: 'Members',
         settingsTab: SettingsTab.members,
         icon: PeopleIcon,
+        organizationOnly: true,
       },
       {
         name: 'User Groups',
         settingsTab: SettingsTab.userGroups,
         icon: PeopleSettingsIcon,
+        organizationOnly: true,
       },
     ],
   },
@@ -67,6 +69,7 @@ const SECTIONS: SettingsSectionData[] = [
         name: 'Activity log',
         settingsTab: SettingsTab.activityLog,
         icon: LogIcon,
+        organizationOnly: true,
       },
     ],
   },
@@ -81,6 +84,7 @@ interface SettingsTabLabelData {
   readonly name: string
   readonly settingsTab: SettingsTab
   readonly icon: string
+  readonly organizationOnly?: true
 }
 
 /** Metadata for rendering a settings section. */
@@ -95,13 +99,14 @@ interface SettingsSectionData {
 
 /** Props for a {@link SettingsSidebar} */
 export interface SettingsSidebarProps {
+  readonly isUserInOrganization: boolean
   readonly settingsTab: SettingsTab
   readonly setSettingsTab: React.Dispatch<React.SetStateAction<SettingsTab>>
 }
 
 /** A panel to switch between settings tabs. */
 export default function SettingsSidebar(props: SettingsSidebarProps) {
-  const { settingsTab, setSettingsTab } = props
+  const { isUserInOrganization, settingsTab, setSettingsTab } = props
   const { getText } = textProvider.useText()
 
   return (
@@ -123,6 +128,7 @@ export default function SettingsSidebar(props: SettingsSidebarProps) {
               {section.tabs.map(tab => (
                 <SidebarTabButton
                   key={tab.settingsTab}
+                  isDisabled={(tab.organizationOnly ?? false) && !isUserInOrganization}
                   id={tab.settingsTab}
                   icon={tab.icon}
                   label={tab.name}

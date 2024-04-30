@@ -36,6 +36,7 @@ export default function Settings() {
   const { type: sessionType, user } = authProvider.useNonPartialUserSession()
   const { backend } = backendProvider.useBackend()
   const { getText } = textProvider.useText()
+  const [isUserInOrganization, setIsUserInOrganization] = React.useState(true)
   const [organization, setOrganization] = React.useState<backendModule.OrganizationInfo>(() => ({
     id: user?.organizationId ?? backendModule.OrganizationId(''),
     name: null,
@@ -52,6 +53,7 @@ export default function Settings() {
         backend.type === backendModule.BackendType.remote
       ) {
         const newOrganization = await backend.getOrganization()
+        setIsUserInOrganization(newOrganization != null)
         if (newOrganization != null) {
           setOrganization(newOrganization)
         }
@@ -109,7 +111,11 @@ export default function Settings() {
         </div>
       </aria.Heading>
       <div className="flex flex-1 gap-settings overflow-hidden">
-        <SettingsSidebar settingsTab={settingsTab} setSettingsTab={setSettingsTab} />
+        <SettingsSidebar
+          isUserInOrganization={isUserInOrganization}
+          settingsTab={settingsTab}
+          setSettingsTab={setSettingsTab}
+        />
         {content}
       </div>
     </div>
