@@ -64,6 +64,7 @@ export default defineConfig({
     ...getDefines(localServerPort),
     IS_CLOUD_BUILD: JSON.stringify(IS_CLOUD_BUILD),
     PROJECT_MANAGER_URL: JSON.stringify(projectManagerUrl),
+    YDOC_SERVER_URL: IS_POLYGLOT_YDOC_SERVER ? JSON.stringify('defined') : undefined,
     RUNNING_VITEST: false,
     'import.meta.vitest': false,
     // Single hardcoded usage of `global` in aws-amplify.

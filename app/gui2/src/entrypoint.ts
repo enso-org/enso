@@ -68,6 +68,7 @@ function main() {
   const supportsVibrancy = config.window.vibrancy
   const shouldUseAuthentication = config.authentication.enabled
   const projectManagerUrl = config.engine.projectManagerUrl || PROJECT_MANAGER_URL
+  const ydocUrl = config.engine.ydocUrl === '' ? YDOC_SERVER_URL : config.engine.ydocUrl
   const initialProjectName = config.startup.project || null
 
   dashboard.run({
@@ -77,6 +78,7 @@ function main() {
     supportsLocalBackend: !IS_CLOUD_BUILD,
     supportsDeepLinks: !isDevMode && !isOnLinux(),
     projectManagerUrl,
+    ydocUrl,
     isAuthenticationDisabled: !shouldUseAuthentication,
     shouldShowDashboard: true,
     initialProjectName,

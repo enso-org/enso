@@ -43,6 +43,7 @@ import * as Y from 'yjs'
 interface LsUrls {
   rpcUrl: string
   dataUrl: string
+  ydocUrl: string
 }
 
 function resolveLsUrl(config: GuiConfig): LsUrls {
@@ -52,6 +53,7 @@ function resolveLsUrl(config: GuiConfig): LsUrls {
     return {
       rpcUrl: engine.rpcUrl,
       dataUrl: engine.dataUrl,
+      ydocUrl: engine.ydocUrl,
     }
   }
   throw new Error('Incomplete engine configuration')
@@ -132,11 +134,14 @@ export const useProjectStore = defineStore('project', () => {
 
   let yDocsProvider: ReturnType<typeof attachProvider> | undefined
   watchEffect((onCleanup) => {
-    // For now, let's assume that the websocket server is running on the same host as the web server.
-    // Eventually, we can make this configurable, or even runtime variable.
-    const socketUrl = new URL('http://localhost:1234')
-    //const socketUrl = new URL(location.origin)
-    socketUrl.protocol = location.protocol.replace(/^http/, 'ws')
+    let socketUrl
+    if (lsUrls.ydocUrl == null || lsUrls.ydocUrl === '') {
+      socketUrl = new URL(location.origin)
+      socketUrl.protocol = location.protocol.replace(/^http/, 'ws')
+    } else {
+      socketUrl = rpcUrl
+      socketUrl.port = '1234';
+    }
     socketUrl.pathname = '/project'
     yDocsProvider = attachProvider(
       socketUrl.href,
