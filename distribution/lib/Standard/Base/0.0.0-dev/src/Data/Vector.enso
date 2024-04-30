@@ -183,8 +183,7 @@ type Vector a
     new_builder : Integer -> Builder
     new_builder (capacity=10) = Builder.new capacity
 
-    ## PRIVATE
-       ADVANCED
+    ## ADVANCED
        Creates a new `Vector` by passing a `Builder` to the provided function.
 
        A vector `Builder` is a mutable data structure, that allows for gathering
