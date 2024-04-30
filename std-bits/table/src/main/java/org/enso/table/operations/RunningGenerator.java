@@ -40,7 +40,15 @@ abstract class RunningGenerator {
           new IgnoredNothing(sourceColumn.getName(), i));
     }
     Double dValue = NumericConverter.tryConvertingToDouble(value);
-    Double dNextValue = it.next(dValue);
+    Double dNextValue;
+    if (dValue != null && dValue.equals(Double.NaN)) {
+      columnAggregatedProblemAggregator.reportColumnAggregatedProblem(
+          new IgnoredNothing(sourceColumn.getName(), i));
+      dNextValue = it.currentValue();
+    } else {
+      dNextValue = it.next(dValue);
+    }
+
     if (dNextValue == null) {
       isNothing.set(i);
     } else {

@@ -73,7 +73,12 @@ public class AddRunning {
           increment(value);
         }
       }
-      return !isInitialized ? null : getCurrent();
+      return isInitialized ? getCurrent() : null;
+    }
+
+    @Override
+    public Double currentValue() {
+      return isInitialized ? getCurrent() : null;
     }
 
     protected void initialize(double value) {

@@ -228,7 +228,7 @@ add_specs suite_builder =
             # 1 | BA0123 | B         | 575.99       | 676.49
             # 2 | SG0456 | A         | Nothing      | 676.49
             # 3 | BA0123 | C         | Nothing      | 676.49
-            # 4 | SG0456 | E         | 73.77        | 649.76
+            # 4 | SG0456 | E         | 73.77        | 750.26
             expected_table = table.zip expected_column
             result.should_equal expected_table
             w = Problems.expect_warning Ignored_Nothing_Values result
@@ -243,7 +243,7 @@ add_specs suite_builder =
             # 1 | BA0123 | B         | 575.99       | 676.49
             # 2 | SG0456 | A         | Nothing      | 676.49
             # 3 | BA0123 | C         | Nothing      | 676.49
-            # 4 | SG0456 | E         | 73.77        | 649.76
+            # 4 | SG0456 | E         | 73.77        | 750.26
             expected_table = table.zip expected_column
             result.should_equal expected_table
             warnings = Problems.get_attached_warnings result
@@ -343,7 +343,7 @@ add_specs suite_builder =
             # 1 | BA0123 | B         | 575.99       | 676.49
             # 2 | SG0456 | A         | NaN          | 676.49
             # 3 | BA0123 | C         | NaN          | 676.49
-            # 4 | SG0456 | E         | 73.77        | 649.76
+            # 4 | SG0456 | E         | 73.77        | 750.26
             expected_table = table.zip expected_column
             result.should_equal expected_table
             w = Problems.expect_warning Ignored_Nothing_Values result
@@ -358,7 +358,7 @@ add_specs suite_builder =
             # 1 | BA0123 | B         | 575.99       | 676.49
             # 2 | SG0456 | A         | NaN          | 676.49
             # 3 | BA0123 | C         | NaN          | 676.49
-            # 4 | SG0456 | E         | 73.77        | 649.76
+            # 4 | SG0456 | E         | 73.77        | 750.26
             expected_table = table.zip expected_column
             result.should_equal expected_table
             warnings = Problems.get_attached_warnings result
