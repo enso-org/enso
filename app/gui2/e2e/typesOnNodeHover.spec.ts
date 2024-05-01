@@ -1,28 +1,30 @@
-import { expect, test, type Locator, type Page } from '@playwright/test'
-import assert from 'assert'
+import { test, type Locator, type Page } from '@playwright/test'
 import * as actions from './actions'
+import { expect } from './customExpect'
 import { mockExpressionUpdate } from './expressionUpdates'
 import * as locate from './locate'
 
-const DUMMY_INT_TYPE = 'Standard.Base.Data.Numbers.Integer'
-const DUMMY_STRING_TYPE = 'Standard.Base.Data.Text.Text'
-const DUMMY_FLOAT_TYPE = 'Standard.Base.Data.Numbers.Float'
-const UNKNOWN_TYPE = 'Unknown'
-async function assertTypeLabelOnNode(page: Page, node: Locator, type: string) {
-  const targetLabel = node.locator('.outputPortLabel').first()
-  await expect(targetLabel).toHaveText(type)
-  await expect(targetLabel).toHaveCSS('opacity', '0')
-
-  const outputPortArea = await node.locator('.outputPortHoverArea').boundingBox()
-  assert(outputPortArea, 'The outputPortArea of the node is null')
-  const outputPortX = outputPortArea.x + outputPortArea.width / 2.0
-  const outputPortY = outputPortArea.y + outputPortArea.height - 2.0
-  await page.mouse.move(outputPortX, outputPortY)
-  await expect(targetLabel).toBeVisible()
-  await expect(targetLabel).toHaveCSS('opacity', '1')
+const DUMMY_INT_TYPE = { full: 'Standard.Base.Data.Numbers.Integer', short: 'Integer' }
+const DUMMY_STRING_TYPE = { full: 'Standard.Base.Data.Text.Text', short: 'Text' }
+const DUMMY_FLOAT_TYPE = { full: 'Standard.Base.Data.Numbers.Float', short: 'Float' }
+const UNKNOWN_TYPE = { full: 'Unknown', short: 'Unknown' }
+async function assertTypeLabelOnNode(
+  page: Page,
+  node: Locator,
+  type: { full: string; short: string },
+) {
+  await node.hover({ position: { x: 8, y: 8 } })
+  await locate.toggleVisualizationButton(node).click()
+  const targetLabel = node.locator('.node-type').first()
+  await expect(targetLabel).toHaveText(type.short)
+  await expect(targetLabel).toHaveAttribute('title', type.full)
 }
 
-async function assertTypeLabelOnNodeByBinding(page: Page, label: string, type: string) {
+async function assertTypeLabelOnNodeByBinding(
+  page: Page,
+  label: string,
+  type: { full: string; short: string },
+) {
   const node = locate.graphNodeByBinding(page, label)
   await assertTypeLabelOnNode(page, node, type)
 }
@@ -31,10 +33,10 @@ test('shows the correct type when hovering a node', async ({ page }) => {
   await actions.goToGraph(page)
 
   // Note that the types don't have to make sense, they just have to be applied.
-  await mockExpressionUpdate(page, 'five', { type: DUMMY_INT_TYPE })
-  await mockExpressionUpdate(page, 'ten', { type: DUMMY_STRING_TYPE })
-  await mockExpressionUpdate(page, 'sum', { type: DUMMY_FLOAT_TYPE })
-  await mockExpressionUpdate(page, 'prod', { type: DUMMY_INT_TYPE })
+  await mockExpressionUpdate(page, 'five', { type: DUMMY_INT_TYPE.full })
+  await mockExpressionUpdate(page, 'ten', { type: DUMMY_STRING_TYPE.full })
+  await mockExpressionUpdate(page, 'sum', { type: DUMMY_FLOAT_TYPE.full })
+  await mockExpressionUpdate(page, 'prod', { type: DUMMY_INT_TYPE.full })
 
   await assertTypeLabelOnNodeByBinding(page, 'five', DUMMY_INT_TYPE)
   await assertTypeLabelOnNodeByBinding(page, 'ten', DUMMY_STRING_TYPE)
