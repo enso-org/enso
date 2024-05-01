@@ -73,7 +73,7 @@ export default function UserGroupUserRow(props: UserGroupUserRowProps) {
         <aria.TooltipTrigger>
           <aria.Button className="ml-indent-1 flex h-row w-[calc(100%_-_var(--indent-1-size))] cursor-default items-center whitespace-nowrap rounded-full">
             {/* NOTE: `overflow-hiden` brings back the ellipsis, but the tooltip disappears */}
-            <aria.Text className="grow text-ellipsis whitespace-nowrap px-name-column-x py-name-column-y">
+            <aria.Text className="grow text-ellipsis whitespace-nowrap px-name-column-x py-name-column-y text-left">
               {user.name}
             </aria.Text>
           </aria.Button>
