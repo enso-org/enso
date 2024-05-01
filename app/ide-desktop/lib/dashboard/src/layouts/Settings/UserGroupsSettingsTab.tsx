@@ -210,8 +210,7 @@ export default function UserGroupsSettingsTab() {
               className="flex h-row items-center rounded-full bg-frame px-new-project-button-x"
               onPress={event => {
                 const placeholderId = backendModule.newPlaceholderUserGroupId()
-                const rect = event.target.getBoundingClientRect()
-                const position = { pageX: rect.left, pageY: rect.top }
+                const position = { pageX: event.target.clientLeft, pageY: event.target.clientTop }
                 setModal(
                   <NewUserGroupModal
                     event={position}

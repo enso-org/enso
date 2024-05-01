@@ -325,6 +325,7 @@
   "deleteSelectedAssetsActionText": "delete $0 selected items",
   "deleteSelectedAssetForeverActionText": "delete '$0' forever",
   "deleteSelectedAssetsForeverActionText": "delete $0 selected items forever",
+  "deleteUserActionText": "delete the user '$0'",
   "deleteUserGroupActionText": "delete the user group '$0'",
   "removeUserFromUserGroupActionText": "remove the user '$0' from the user group '$1'",
 
@@ -530,6 +531,8 @@
   "assetsTableContextMenuLabel": "Drive context menu",
   "assetContextMenuLabel": "Asset context menu",
   "labelContextMenuLabel": "Label context menu",
+  "userContextMenuLabel": "User context menu",
   "userGroupContextMenuLabel": "User Group context menu",
+  "userGroupUserContextMenuLabel": "User Group User context menu",
   "settingsSidebarLabel": "Settings sidebar"
 }

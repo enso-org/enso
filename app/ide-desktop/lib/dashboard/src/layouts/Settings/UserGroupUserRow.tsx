@@ -72,7 +72,7 @@ export default function UserGroupUserRow(props: UserGroupUserRowProps) {
                 key={userGroup.id}
                 event={event}
               >
-                <ContextMenu aria-label={getText('userGroupContextMenuLabel')}>
+                <ContextMenu aria-label={getText('userGroupUserContextMenuLabel')}>
                   <ContextMenuEntry
                     action="delete"
                     doAction={() => {
