@@ -530,5 +530,6 @@
   "assetsTableContextMenuLabel": "Drive context menu",
   "assetContextMenuLabel": "Asset context menu",
   "labelContextMenuLabel": "Label context menu",
+  "userGroupContextMenuLabel": "User Group context menu",
   "settingsSidebarLabel": "Settings sidebar"
 }

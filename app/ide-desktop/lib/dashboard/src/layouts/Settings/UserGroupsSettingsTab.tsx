@@ -1,8 +1,6 @@
 /** @file Settings tab for viewing and editing roles for all users in the organization. */
 import * as React from 'react'
 
-import Cross2 from 'enso-assets/cross2.svg'
-
 import * as mimeTypes from '#/data/mimeTypes'
 
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
@@ -13,6 +11,8 @@ import * as modalProvider from '#/providers/ModalProvider'
 import * as textProvider from '#/providers/TextProvider'
 
 import MembersTable from '#/layouts/Settings/MembersTable'
+import UserGroupRow from '#/layouts/Settings/UserGroupRow'
+import UserGroupUserRow from '#/layouts/Settings/UserGroupUserRow'
 
 import * as aria from '#/components/aria'
 import StatelessSpinner, * as statelessSpinner from '#/components/StatelessSpinner'
@@ -20,7 +20,6 @@ import HorizontalMenuBar from '#/components/styled/HorizontalMenuBar'
 import SettingsSection from '#/components/styled/settings/SettingsSection'
 import UnstyledButton from '#/components/UnstyledButton'
 
-import ConfirmDeleteModal from '#/modals/ConfirmDeleteModal'
 import NewUserGroupModal from '#/modals/NewUserGroupModal'
 
 import * as backendModule from '#/services/Backend'
@@ -289,70 +288,14 @@ export default function UserGroupsSettingsTab() {
               ) : (
                 userGroup => (
                   <>
-                    <aria.Row
-                      id={userGroup.id}
-                      className={`group h-row rounded-rows-child ${backendModule.isPlaceholderUserGroupId(userGroup.id) ? 'pointer-events-none placeholder' : ''}`}
-                    >
-                      <aria.Cell className="text overflow-hidden text-ellipsis whitespace-nowrap rounded-r-full border-x-2 border-transparent bg-clip-padding px-cell-x first:rounded-l-full last:border-r-0">
-                        {userGroup.groupName}
-                      </aria.Cell>
-                      <aria.Cell className="relative bg-transparent p transparent group-hover-2:opacity-100">
-                        <UnstyledButton
-                          onPress={() => {
-                            setModal(
-                              <ConfirmDeleteModal
-                                actionText={getText(
-                                  'deleteUserGroupActionText',
-                                  userGroup.groupName
-                                )}
-                                doDelete={() => {
-                                  void doDeleteUserGroup(userGroup)
-                                }}
-                              />
-                            )
-                          }}
-                          className="absolute left-full size-icon -translate-y-1/2"
-                        >
-                          <img src={Cross2} className="size-icon" />
-                        </UnstyledButton>
-                      </aria.Cell>
-                    </aria.Row>
+                    <UserGroupRow userGroup={userGroup} doDeleteUserGroup={doDeleteUserGroup} />
                     {(usersByGroup.get(userGroup.id) ?? []).map(otherUser => (
-                      <aria.Row
+                      <UserGroupUserRow
                         key={otherUser.userId}
-                        id={`_key-${userGroup.id}-${otherUser.userId}`}
-                        className="group h-row rounded-rows-child"
-                      >
-                        <aria.Cell className="text border-x-2 border-transparent bg-clip-padding rounded-rows-skip-level last:border-r-0">
-                          <div className="ml-indent-1 flex h-row min-w-max items-center whitespace-nowrap rounded-full">
-                            <aria.Text className="grow overflow-hidden text-ellipsis whitespace-nowrap px-name-column-x py-name-column-y">
-                              {otherUser.name}
-                            </aria.Text>
-                          </div>
-                        </aria.Cell>
-                        <aria.Cell className="relative bg-transparent p transparent group-hover-2:opacity-100">
-                          <UnstyledButton
-                            onPress={() => {
-                              setModal(
-                                <ConfirmDeleteModal
-                                  actionText={getText(
-                                    'removeUserFromUserGroupActionText',
-                                    otherUser.name,
-                                    userGroup.groupName
-                                  )}
-                                  actionButtonLabel={getText('remove')}
-                                  doDelete={() => {
-                                    void doRemoveUserFromUserGroup(otherUser, userGroup)
-                                  }}
-                                />
-                              )
-                            }}
-                            className="absolute left-full size-icon -translate-y-1/2"
-                          >
-                            <img src={Cross2} className="size-icon" />
-                          </UnstyledButton>
-                        </aria.Cell>
-                      </aria.Row>
+                        user={otherUser}
+                        userGroup={userGroup}
+                        doRemoveUserFromUserGroup={doRemoveUserFromUserGroup}
+                      />
                     ))}
                   </>
                 )
