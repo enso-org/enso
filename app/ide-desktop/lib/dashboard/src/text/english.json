@@ -450,6 +450,7 @@
   "selectAdditionalRangeShortcut": "Select Additional Range",
   "goBackShortcut": "Go Back",
   "goForwardShortcut": "Go Forward",
+  "aboutThisAppShortcut": "About Enso",
 
   "moveToTrashShortcut": "Move To Trash",
   "moveAllToTrashShortcut": "Move All To Trash",
@@ -513,5 +514,8 @@
   "assetsTableContextMenuLabel": "Drive context menu",
   "assetContextMenuLabel": "Asset context menu",
   "labelContextMenuLabel": "Label context menu",
-  "settingsSidebarLabel": "Settings sidebar"
+  "settingsSidebarLabel": "Settings sidebar",
+
+  "appNameDesktopEdition": "Enso Desktop Edition",
+  "appNameCloudEdition": "Enso Cloud Edition"
 }

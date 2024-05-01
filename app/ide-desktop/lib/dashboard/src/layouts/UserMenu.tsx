@@ -19,6 +19,8 @@ import MenuEntry from '#/components/MenuEntry'
 import Modal from '#/components/Modal'
 import FocusArea from '#/components/styled/FocusArea'
 
+import AboutModal from '#/modals/AboutModal'
+
 import * as download from '#/utilities/download'
 import * as github from '#/utilities/github'
 
@@ -42,13 +44,22 @@ export default function UserMenu(props: UserMenuProps) {
   const navigate = navigateHooks.useNavigate()
   const { signOut } = authProvider.useAuth()
   const { user } = authProvider.useNonPartialUserSession()
-  const { unsetModal } = modalProvider.useSetModal()
+  const { setModal, unsetModal } = modalProvider.useSetModal()
   const { getText } = textProvider.useText()
   const toastAndLog = toastAndLogHooks.useToastAndLog()
 
   React.useEffect(() => {
     requestAnimationFrame(setInitialized.bind(null, true))
   }, [])
+
+  const aboutThisAppMenuEntry = (
+    <MenuEntry
+      action="aboutThisApp"
+      doAction={() => {
+        setModal(<AboutModal supportsLocalBackend={supportsLocalBackend} />)
+      }}
+    />
+  )
 
   return (
     <Modal hidden={hidden} className="absolute size-full overflow-hidden bg-dim">
@@ -105,6 +116,7 @@ export default function UserMenu(props: UserMenuProps) {
                         setPage(pageSwitcher.Page.settings)
                       }}
                     />
+                    {aboutThisAppMenuEntry}
                     <MenuEntry
                       action="signOut"
                       doAction={() => {
@@ -126,6 +138,7 @@ export default function UserMenu(props: UserMenuProps) {
               <aria.Text className="text">{getText('youAreNotLoggedIn')}</aria.Text>
             </div>
             <div className="flex flex-col">
+              {aboutThisAppMenuEntry}
               <MenuEntry
                 action="signIn"
                 doAction={() => {
