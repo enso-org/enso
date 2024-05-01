@@ -508,17 +508,17 @@ public final class Main {
   }
 
   /** Terminates the process with a failure exit code. */
-  static RuntimeException exitFail() {
-    return exit(1);
+  private RuntimeException exitFail() {
+    return doExit(1);
   }
 
   /** Terminates the process with a success exit code. */
-  static RuntimeException exitSuccess() {
-    return exit(0);
+  private RuntimeException exitSuccess() {
+    return doExit(0);
   }
 
   /** Shuts down the logging service and terminates the process. */
-  private static RuntimeException exit(int exitCode) {
+  private RuntimeException doExit(int exitCode) {
     RunnerLogging.tearDown();
     System.exit(exitCode);
     return null;
@@ -538,7 +538,7 @@ public final class Main {
    * @param authorName if set, sets the name of the author and maintainer
    * @param authorEmail if set, sets the email of the author and maintainer
    */
-  private static void createNew(
+  private void createNew(
       String path,
       scala.Option<String> nameOption,
       scala.Option<String> normalizedNameOption,
@@ -597,7 +597,7 @@ public final class Main {
    * @param logLevel the logging level
    * @param logMasking whether or not log masking is enabled
    */
-  private static void compile(
+  private void compile(
       String packagePath,
       boolean shouldCompileDependencies,
       boolean shouldUseGlobalCache,
@@ -651,7 +651,7 @@ public final class Main {
    * @param dump shall graphs be sent to the IGV
    * @param executionEnvironment optional name of the execution environment to use during execution
    */
-  private static void run(
+  private void run(
       String path,
       java.util.List<String> additionalArgs,
       scala.Option<String> projectPath,
@@ -733,7 +733,7 @@ public final class Main {
    * @param logMasking is the log masking enabled
    * @param enableIrCaches are the IR caches enabled
    */
-  private static void genDocs(
+  private void genDocs(
       scala.Option<String> projectPath,
       Level logLevel,
       boolean logMasking,
@@ -790,7 +790,7 @@ public final class Main {
    * @param projectPath path of the project
    * @param logLevel log level to set for the engine runtime
    */
-  private static void preinstallDependencies(scala.Option<String> projectPath, Level logLevel) {
+  private void preinstallDependencies(scala.Option<String> projectPath, Level logLevel) {
     if (projectPath.isEmpty()) {
       println("Dependency installation is only available for projects.");
       throw exitFail();
@@ -805,7 +805,7 @@ public final class Main {
     }
   }
 
-  private static void runPackage(
+  private void runPackage(
       PolyglotContext context,
       String mainModuleName,
       File projectPath,
@@ -815,13 +815,13 @@ public final class Main {
     runMain(mainModule, scala.Option.apply(projectPath), additionalArgs, "main");
   }
 
-  private static void runSingleFile(
+  private void runSingleFile(
       PolyglotContext context, File file, java.util.List<String> additionalArgs) {
     var mainModule = context.evalModule(file);
     runMain(mainModule, scala.Option.apply(file), additionalArgs, "main");
   }
 
-  private static void runMain(
+  private void runMain(
       Module mainModule,
       scala.Option<File> rootPkgPath,
       java.util.List<String> additionalArgs,
@@ -880,7 +880,7 @@ public final class Main {
    * @param logMasking is the log masking enabled
    * @param enableIrCaches are IR caches enabled
    */
-  private static void runRepl(
+  private void runRepl(
       scala.Option<String> projectPath,
       Level logLevel,
       boolean logMasking,
@@ -916,7 +916,7 @@ public final class Main {
    *
    * @param useJson whether the output should be JSON or human-readable.
    */
-  private static void displayVersion(boolean useJson) {
+  private void displayVersion(boolean useJson) {
     var versionDescription =
         VersionDescription.make(
             "Enso Compiler and Runtime",
@@ -928,7 +928,7 @@ public final class Main {
   }
 
   /** Parses the log level option. */
-  private static Level parseLogLevel(String levelOption) {
+  private Level parseLogLevel(String levelOption) {
     var name = levelOption.toLowerCase();
     var found =
         Stream.of(Level.values()).filter(x -> name.equals(x.name().toLowerCase())).findFirst();
@@ -945,7 +945,7 @@ public final class Main {
   }
 
   /** Parses an URI that specifies the logging service connection. */
-  private static URI parseUri(String string) {
+  private URI parseUri(String string) {
     try {
       return new URI(string);
     } catch (URISyntaxException ex) {
@@ -963,44 +963,7 @@ public final class Main {
    * @param args the command line arguments
    */
   public static void main(String[] args) throws IOException {
-    var options = buildOptions();
-    var parser = new DefaultParser();
-    CommandLine line;
-    try {
-      line = parser.parse(options, args);
-    } catch (Exception e) {
-      printHelp(options);
-      throw exitFail();
-    }
-    var logLevel =
-        scala.Option.apply(line.getOptionValue(LOG_LEVEL))
-            .map(Main::parseLogLevel)
-            .getOrElse(() -> defaultLogLevel);
-    var connectionUri = scala.Option.apply(line.getOptionValue(LOGGER_CONNECT)).map(Main::parseUri);
-    var logMasking = !line.hasOption(NO_LOG_MASKING);
-    RunnerLogging.setup(connectionUri, logLevel, logMasking);
-
-    if (line.hasOption(LANGUAGE_SERVER_OPTION)) {
-      runLanguageServer(line, logLevel);
-    } else {
-      var config = parseProfilingConfig(line);
-      if (config.isLeft()) {
-        @SuppressWarnings("deprecation")
-        var error = config.left().get();
-        err().println(error);
-        throw exitFail();
-      } else {
-        @SuppressWarnings("deprecation")
-        var conf = config.right().get();
-        withProfiling(
-            conf,
-            ExecutionContext.global(),
-            () -> {
-              runMain(options, line, logLevel, logMasking);
-              return BoxedUnit.UNIT;
-            });
-      }
-    }
+    new Main().launch(args);
   }
 
   /**
@@ -1011,7 +974,7 @@ public final class Main {
    * @param logLevel the provided log level
    * @param logMasking the flag indicating if the log masking is enabled
    */
-  private static void runMain(Options options, CommandLine line, Level logLevel, boolean logMasking)
+  private void runMain(Options options, CommandLine line, Level logLevel, boolean logMasking)
       throws IOException {
     if (line.hasOption(HELP_OPTION)) {
       printHelp(options);
@@ -1197,7 +1160,7 @@ public final class Main {
    * @param logLevel log level to set for the engine runtime
    */
   @SuppressWarnings("deprecation")
-  private static void runLanguageServer(CommandLine line, Level logLevel) {
+  private void runLanguageServer(CommandLine line, Level logLevel) {
     var maybeConfig = parseServerOptions(line);
 
     if (maybeConfig.isLeft()) {
@@ -1288,7 +1251,7 @@ public final class Main {
     }
   }
 
-  private static void printFrame(StackFrame frame, File relativeTo) {
+  private void printFrame(StackFrame frame, File relativeTo) {
     var langId = frame.isHostFrame() ? "java" : frame.getLanguage().getId();
 
     String fmtFrame;
@@ -1326,8 +1289,7 @@ public final class Main {
     println("        at <" + langId + "> " + fmtFrame);
   }
 
-  private static void printPolyglotException(
-      PolyglotException exception, scala.Option<File> relativeTo) {
+  private void printPolyglotException(PolyglotException exception, scala.Option<File> relativeTo) {
     var fullStackReversed = new LinkedList<StackFrame>();
     for (var e : exception.getPolyglotStackTrace()) {
       fullStackReversed.addFirst(e);
@@ -1365,10 +1327,6 @@ public final class Main {
     return scala.collection.immutable.$colon$colon$.MODULE$.apply(head, tail);
   }
 
-  private static void println(String msg) {
-    out().println(msg);
-  }
-
   @SuppressWarnings("deprecation")
   private static <R> R from(Either<String, R> e) throws WrongOption {
     if (e.isLeft()) {
@@ -1384,6 +1342,67 @@ public final class Main {
     } catch (Throwable t) {
       return Left$.MODULE$.apply(msg);
     }
+  }
+
+  private void println(String msg) {
+    out().println(msg);
+  }
+
+  private void launch(String[] args) {
+    var options = buildOptions();
+    var line = preprocessArguments(options, args);
+    launch(options, line);
+  }
+
+  protected CommandLine preprocessArguments(Options options, String[] args) {
+    var parser = new DefaultParser();
+    try {
+      var line = parser.parse(options, args);
+      return line;
+    } catch (Exception e) {
+      printHelp(options);
+      throw exitFail();
+    }
+  }
+
+  protected void launch(Options options, CommandLine line) {
+    var logLevel =
+        scala.Option.apply(line.getOptionValue(LOG_LEVEL))
+            .map(this::parseLogLevel)
+            .getOrElse(() -> defaultLogLevel);
+    var connectionUri = scala.Option.apply(line.getOptionValue(LOGGER_CONNECT)).map(this::parseUri);
+    var logMasking = !line.hasOption(NO_LOG_MASKING);
+    RunnerLogging.setup(connectionUri, logLevel, logMasking);
+
+    if (line.hasOption(LANGUAGE_SERVER_OPTION)) {
+      runLanguageServer(line, logLevel);
+    } else {
+      var config = parseProfilingConfig(line);
+      if (config.isLeft()) {
+        @SuppressWarnings("deprecation")
+        var error = config.left().get();
+        err().println(error);
+        throw exitFail();
+      } else {
+        @SuppressWarnings("deprecation")
+        var conf = config.right().get();
+        try {
+          withProfiling(
+              conf,
+              ExecutionContext.global(),
+              () -> {
+                runMain(options, line, logLevel, logMasking);
+                return BoxedUnit.UNIT;
+              });
+        } catch (IOException ex) {
+          throw new IllegalStateException(ex);
+        }
+      }
+    }
+  }
+
+  protected String getLanguageId() {
+    return LanguageInfo.ID;
   }
 
   private static final class WrongOption extends Exception {
