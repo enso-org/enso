@@ -78,7 +78,7 @@ export default function Editor(props: EditorProps) {
       void (async () => {
         const jsonAddress = project.jsonAddress
         const binaryAddress = project.binaryAddress
-        const ydocAddress = ydocUrl || ''
+        const ydocAddress = ydocUrl ?? ''
         if (jsonAddress == null) {
           toastAndLog('noJSONEndpointError')
         } else if (binaryAddress == null) {
