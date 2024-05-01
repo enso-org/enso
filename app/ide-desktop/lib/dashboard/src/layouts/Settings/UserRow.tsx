@@ -28,7 +28,7 @@ export interface UserRowProps {
   readonly id: string
   readonly draggable?: boolean
   readonly user: backend.User
-  readonly doDeleteUser?: (user: backend.User) => void
+  readonly doDeleteUser?: ((user: backend.User) => void) | null
 }
 
 /** A row representing a user in a table of users. */
@@ -84,7 +84,9 @@ export default function UserRow(props: UserRowProps) {
       <aria.Cell className="text whitespace-nowrap rounded-r-full border-x-2 border-transparent bg-clip-padding px-cell-x first:rounded-l-full last:border-r-0 group-selected:bg-selected-frame">
         {user.email}
       </aria.Cell>
-      {doDeleteUser != null && (
+      {doDeleteUserRaw == null ? null : doDeleteUser == null ? (
+        <></>
+      ) : (
         <aria.Cell className="relative bg-transparent p transparent group-hover-2:opacity-100">
           <UnstyledButton
             onPress={event => {

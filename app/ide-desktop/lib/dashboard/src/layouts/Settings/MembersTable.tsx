@@ -138,7 +138,7 @@ export default function MembersTable(props: MembersTableProps) {
               id={member.userId}
               draggable={draggable}
               user={member}
-              doDeleteUser={doDeleteUser}
+              doDeleteUser={!allowDelete ? null : doDeleteUser}
             />
           )
         )}
