@@ -43,7 +43,7 @@ pub extern "system" fn Java_org_enso_syntax2_Parser_parseTree(
     input: JByteBuffer,
 ) -> jobject {
     let state = unsafe { &mut *(state as usize as *mut State) };
-    let input = env.get_direct_buffer_address(input).expect(&DIRECT_ALLOCATED);
+    let input = env.get_direct_buffer_address(input).expect(DIRECT_ALLOCATED);
     let input = if cfg!(debug_assertions) {
         std::str::from_utf8(input).unwrap()
     } else {
@@ -92,7 +92,7 @@ pub extern "system" fn Java_org_enso_syntax2_Parser_parseTreeLazy(
     input: JByteBuffer,
 ) -> jobject {
     let state = unsafe { &mut *(state as usize as *mut State) };
-    let input = env.get_direct_buffer_address(input).expect(&DIRECT_ALLOCATED);
+    let input = env.get_direct_buffer_address(input).expect(DIRECT_ALLOCATED);
     let input = if cfg!(debug_assertions) {
         std::str::from_utf8(input).unwrap()
     } else {
@@ -100,7 +100,7 @@ pub extern "system" fn Java_org_enso_syntax2_Parser_parseTreeLazy(
     };
 
     let tree = enso_parser::Parser::new().run(input);
-    state.output = enso_parser::format::serialize(&tree).expect(&FAILED_SERIALIZE_AST);
+    state.output = enso_parser::format::serialize(&tree).expect(FAILED_SERIALIZE_AST);
 
     let result = env.new_direct_byte_buffer(&mut state.output);
     result.unwrap().into_inner()
@@ -114,7 +114,7 @@ pub extern "system" fn Java_org_enso_syntax2_Parser_isIdentOrOperator(
     _class: JClass,
     input: JByteBuffer,
 ) -> u64 {
-    let input = env.get_direct_buffer_address(input).expect(&DIRECT_ALLOCATED);
+    let input = env.get_direct_buffer_address(input).expect(DIRECT_ALLOCATED);
     let input = if cfg!(debug_assertions) {
         std::str::from_utf8(input).unwrap()
     } else {

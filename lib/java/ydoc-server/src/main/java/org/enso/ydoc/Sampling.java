@@ -6,7 +6,7 @@ import java.io.IOException;
 import org.enso.profiling.sampler.MethodsSampler;
 import org.enso.profiling.sampler.OutputStreamSampler;
 
-public class Sampling {
+public final class Sampling {
 
   private static final String SAMPLING_EXT = ".npss";
 
