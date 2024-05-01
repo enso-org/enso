@@ -2,7 +2,6 @@ package org.enso.interpreter.runtime.data;
 
 import com.oracle.truffle.api.CompilerAsserts;
 import com.oracle.truffle.api.CompilerDirectives;
-import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
 import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.UnknownIdentifierException;
 import com.oracle.truffle.api.interop.UnsupportedMessageException;
@@ -130,7 +129,6 @@ public final class Type implements EnsoObject {
     return supertype;
   }
 
-  @TruffleBoundary
   public final Type[] allTypes(EnsoContext ctx) {
     if (supertype == null) {
       if (builtin) {
