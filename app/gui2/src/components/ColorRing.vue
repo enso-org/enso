@@ -63,7 +63,8 @@ function ringHover(event: MouseEvent) {
   mouseSelectedAngle.value = eventAngle(event)
 }
 function ringClick(event: MouseEvent) {
-  selectedColor.value = cssColor(eventAngle(event))
+  mouseSelectedAngle.value = eventAngle(event)
+  if (triangleHue.value != null) selectedColor.value = cssColor(triangleHue.value)
   emit('close')
 }
 
@@ -129,6 +130,16 @@ const fixedRanges = computed(() => {
   return rangesForInputs([...inputHues].sort(), FIXED_RANGE_WIDTH / 2)
 })
 
+const triangleHue = computed(() => {
+  const target = triangleAngle.value
+  if (target == null) return undefined
+  for (const range of fixedRanges.value) {
+    if (target < range.start) break
+    if (target <= range.end) return range.hue
+  }
+  return target
+})
+
 // === CSS ===
 
 const cssGradient = computed(() => {
@@ -162,7 +173,7 @@ const cssTriangleAngle = computed(() =>
   triangleAngle.value != null ? `${triangleAngle.value}turn` : undefined,
 )
 const cssTriangleColor = computed(() =>
-  triangleAngle.value != null ? cssColor(triangleAngle.value) : undefined,
+  triangleHue.value != null ? cssColor(triangleHue.value) : undefined,
 )
 </script>
 
