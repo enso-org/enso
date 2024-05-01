@@ -70,7 +70,7 @@ export default function UserRow(props: UserRowProps) {
     >
       <aria.Cell
         ref={tooltipTargetRef}
-        className="text overflow-hidden text-ellipsis whitespace-nowrap border-x-2 border-transparent bg-clip-padding px-cell-x first:rounded-l-full last:rounded-r-full last:border-r-0 group-selected:bg-selected-frame"
+        className="text overflow-hidden whitespace-nowrap border-x-2 border-transparent bg-clip-padding px-cell-x first:rounded-l-full last:rounded-r-full last:border-r-0 group-selected:bg-selected-frame"
       >
         {draggable && <aria.Button slot="drag" />}
         <aria.TooltipTrigger>
