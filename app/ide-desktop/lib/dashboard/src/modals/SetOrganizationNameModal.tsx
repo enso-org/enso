@@ -32,7 +32,7 @@ export function SetOrganizationNameModal() {
 
   const userId = session && 'user' in session && session.user?.userId ? session.user.userId : null
   const userPlan =
-    session && 'user' in session && session.user?.tier != null ? session.user.tier : null
+    session && 'user' in session && session.user?.plan != null ? session.user.plan : null
 
   const queryClient = reactQuery.useQueryClient()
   const { data } = reactQuery.useSuspenseQuery({
@@ -49,13 +49,8 @@ export function SetOrganizationNameModal() {
 
   const submit = reactQuery.useMutation({
     mutationKey: ['organization', userId],
-    mutationFn: (name: string) =>
-      backend.updateOrganization({
-        name,
-      }),
-    onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ['organization', userId] })
-    },
+    mutationFn: (name: string) => backend.updateOrganization({ name }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['organization', userId] }),
   })
 
   const shouldShowModal =
