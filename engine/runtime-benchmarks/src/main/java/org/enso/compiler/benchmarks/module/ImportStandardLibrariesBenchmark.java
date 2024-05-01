@@ -64,7 +64,7 @@ public class ImportStandardLibrariesBenchmark {
           "In_Memory",
           "SQL_Query",
           "Postgres",
-          "SQLite_Details.connect",
+          "SQLite.connect",
           "Credentials.Username_And_Password",
           "Connection_Options.Connection_Options");
 
