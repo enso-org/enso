@@ -115,7 +115,7 @@ function gatewayServer(): Plugin {
           ),
         )
         const runYdocServer = () => {
-          let args = []
+          const args = []
           if (IS_POLYGLOT_YDOC_SERVER_DEBUG) {
             args.push('-DinspectPort=34567')
           }

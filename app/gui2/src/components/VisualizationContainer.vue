@@ -184,8 +184,8 @@ const nodeShortType = computed(() =>
         </div>
         <div
           class="after-toolbars node-type"
-          v-text="nodeShortType"
           :title="config.nodeType ?? UNKNOWN_TYPE"
+          v-text="nodeShortType"
         />
       </div>
     </div>

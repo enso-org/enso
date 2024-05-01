@@ -50,8 +50,8 @@ function resolveLsUrl(config: GuiConfig): LsUrls {
   const engine = config.engine
   if (engine == null) throw new Error('Missing engine configuration')
   if (engine.rpcUrl != null && engine.dataUrl != null) {
-    let dataUrl = engine.dataUrl
-    let rpcUrl = engine.rpcUrl
+    const dataUrl = engine.dataUrl
+    const rpcUrl = engine.rpcUrl
     let ydocUrl
     if (engine.ydocUrl == null || engine.ydocUrl === '') {
       ydocUrl = new URL(location.origin)

@@ -15,7 +15,7 @@ declare global {
   function xxHash128(input: IDataType): string
 }
 
-export async function initializeFFI(path?: string | undefined) {}
+export async function initializeFFI(_path?: string | undefined) {}
 
 /* eslint-disable-next-line camelcase */
 export const { is_ident_or_operator, parse_doc_to_json, parse_tree, xxHash128 } = globalThis
