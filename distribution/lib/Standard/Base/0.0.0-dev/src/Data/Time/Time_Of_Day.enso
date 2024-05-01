@@ -486,7 +486,7 @@ type Time_Of_Day
              from Standard.Base import Time_Of_Day
 
              example_format = Time_Of_Day.new 16 21 10 . format "'hour:'h"
-    @format (value-> make_time_format_selector value)
+    @format make_time_format_selector
     format : Date_Time_Formatter -> Text
     format self format:Date_Time_Formatter =
         format.format_time self

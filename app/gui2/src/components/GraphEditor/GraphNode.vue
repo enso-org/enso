@@ -373,7 +373,7 @@ const handleNodeClick = useDoubleClick(
 
 interface PortData {
   clipRange: [number, number]
-  label: string
+  label: string | undefined
   portId: AstId
 }
 
@@ -381,12 +381,9 @@ const outputPorts = computed((): PortData[] => {
   const ports = outputPortsSet.value
   const numPorts = ports.size
   return Array.from(ports, (portId, index): PortData => {
-    const labelIdent = numPorts > 1 ? graph.db.getOutputPortIdentifier(portId) + ': ' : ''
-    const labelType =
-      graph.db.getExpressionInfo(numPorts > 1 ? portId : nodeId.value)?.typename ?? 'Unknown'
     return {
       clipRange: [index / numPorts, (index + 1) / numPorts],
-      label: labelIdent + labelType,
+      label: numPorts > 1 ? graph.db.getOutputPortIdentifier(portId) : undefined,
       portId,
     }
   })
