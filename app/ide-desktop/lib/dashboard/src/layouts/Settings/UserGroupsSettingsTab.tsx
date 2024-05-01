@@ -201,7 +201,11 @@ export default function UserGroupsSettingsTab() {
   return (
     <div className="flex h min-h-full flex-1 flex-col gap-settings-section overflow-auto lg:h-auto lg:flex-row">
       <div className="flex w-settings-main-section flex-col gap-settings-subsection lg:min-w">
-        <SettingsSection noFocusArea title={getText('userGroups')} className="overflow-auto">
+        <SettingsSection
+          noFocusArea
+          title={getText('userGroups')}
+          className="overflow-y-auto overflow-x-hidden"
+        >
           <HorizontalMenuBar>
             <UnstyledButton
               className="flex h-row items-center rounded-full bg-frame px-new-project-button-x"
@@ -247,13 +251,13 @@ export default function UserGroupsSettingsTab() {
           </HorizontalMenuBar>
           <aria.Table
             aria-label={getText('userGroups')}
-            className="table-fixed self-start rounded-rows"
+            className="w-full table-fixed self-start rounded-rows"
             dragAndDropHooks={dragAndDropHooks}
           >
             <aria.TableHeader className="h-row">
               <aria.Column
                 isRowHeader
-                className="w-members-name-column border-x-2 border-transparent bg-clip-padding px-cell-x text-left text-sm font-semibold last:border-r-0"
+                className="w-full border-x-2 border-transparent bg-clip-padding px-cell-x text-left text-sm font-semibold last:border-r-0"
               >
                 {getText('userGroup')}
               </aria.Column>
@@ -287,12 +291,12 @@ export default function UserGroupsSettingsTab() {
                   <>
                     <aria.Row
                       id={userGroup.id}
-                      className={`rounded-rows-child group h-row ${backendModule.isPlaceholderUserGroupId(userGroup.id) ? 'pointer-events-none placeholder' : ''}`}
+                      className={`group h-row rounded-rows-child ${backendModule.isPlaceholderUserGroupId(userGroup.id) ? 'pointer-events-none placeholder' : ''}`}
                     >
-                      <aria.Cell className="text whitespace-nowrap rounded-r-full border-x-2 border-transparent bg-clip-padding px-cell-x first:rounded-l-full last:border-r-0">
+                      <aria.Cell className="text overflow-hidden text-ellipsis whitespace-nowrap rounded-r-full border-x-2 border-transparent bg-clip-padding px-cell-x first:rounded-l-full last:border-r-0">
                         {userGroup.groupName}
                       </aria.Cell>
-                      <aria.Cell className="group-hover-2:opacity-100 relative bg-transparent p transparent">
+                      <aria.Cell className="relative bg-transparent p transparent group-hover-2:opacity-100">
                         <UnstyledButton
                           onPress={() => {
                             setModal(
@@ -317,16 +321,16 @@ export default function UserGroupsSettingsTab() {
                       <aria.Row
                         key={otherUser.userId}
                         id={`_key-${userGroup.id}-${otherUser.userId}`}
-                        className="rounded-rows-child group h-row"
+                        className="group h-row rounded-rows-child"
                       >
                         <aria.Cell className="text border-x-2 border-transparent bg-clip-padding rounded-rows-skip-level last:border-r-0">
                           <div className="ml-indent-1 flex h-row min-w-max items-center whitespace-nowrap rounded-full">
-                            <aria.Text className="grow whitespace-nowrap px-name-column-x py-name-column-y">
+                            <aria.Text className="grow overflow-hidden text-ellipsis whitespace-nowrap px-name-column-x py-name-column-y">
                               {otherUser.name}
                             </aria.Text>
                           </div>
                         </aria.Cell>
-                        <aria.Cell className="group-hover-2:opacity-100 relative bg-transparent p transparent">
+                        <aria.Cell className="relative bg-transparent p transparent group-hover-2:opacity-100">
                           <UnstyledButton
                             onPress={() => {
                               setModal(
