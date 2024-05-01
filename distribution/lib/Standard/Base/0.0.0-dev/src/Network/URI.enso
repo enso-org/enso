@@ -4,6 +4,7 @@ import project.Data.Ordering.Comparable
 import project.Data.Ordering.Ordering
 import project.Data.Pair.Pair
 import project.Data.Text.Text
+import project.Data.Text.Extensions
 import project.Data.Vector.No_Wrap
 import project.Data.Vector.Vector
 import project.Enso_Cloud.Enso_Secret.Enso_Secret
@@ -16,12 +17,14 @@ import project.Errors.Problem_Behavior.Problem_Behavior
 import project.Meta
 import project.Nothing.Nothing
 import project.Panic.Panic
+import project.Warning.Warning
 from project.Data.Boolean.Boolean import False, True
 from project.Data.Text.Extensions import all
 from project.Enso_Cloud.Enso_Secret import as_hideable_value
 from project.Widget_Helpers import make_text_secret_selector
 
 polyglot java import java.net.URI as Java_URI
+polyglot java import java.net.URLEncoder
 polyglot java import java.net.URISyntaxException
 polyglot java import org.enso.base.enso_cloud.EnsoSecretAccessDenied
 polyglot java import org.enso.base.net.URITransformer
@@ -35,11 +38,12 @@ type URI
        ICON convert
 
        Parse a URI from text.
+       If the input text is not a valid URI, this function will separate the
+       query string and encode it. If it still cannot be parsed, it will throw
+       a `Syntax_Error`.
 
        Arguments:
        - uri: The text to parse as a URI.
-
-       Throws a Syntax_Error when the text cannot be parsed as a URI.
 
        > Example
          Parse URI text.
@@ -50,10 +54,17 @@ type URI
     parse : Text -> URI ! Syntax_Error
     parse uri:Text =
         Panic.catch URISyntaxException (URI.Value (Java_URI.new uri) []) caught_panic->
-            message = caught_panic.payload.getMessage
-            truncated = if message.is_nothing || message.length > 100 then "Invalid URI '" + uri.to_display_text + "'" else
-                "URI syntax error: " + message
-            Error.throw (Syntax_Error.Error truncated)
+            query_index = uri.index_of '?'
+            result = if query_index.is_nothing then Nothing else
+                new_uri = (uri.take query_index+1) + (URITransformer.encodeQuery (uri.drop query_index+1))
+                warning = Invalid_Query_String.Warning (uri.drop query_index+1)
+                Panic.catch URISyntaxException (Warning.attach warning URI.Value (Java_URI.new new_uri) []) _->Nothing
+
+            if result.is_nothing.not then result else
+                message = caught_panic.payload.getMessage
+                truncated = if message.is_nothing || message.length > 100 then "Invalid URI '" + uri.to_display_text + "'" else
+                    "URI syntax error: " + message
+                Error.throw (Syntax_Error.Error truncated)
 
     ## GROUP Metadata
        ICON metadata
@@ -326,3 +337,12 @@ type URI_Comparator
 
 ## PRIVATE
 Comparable.from (_:URI) = URI_Comparator
+
+## PRIVATE
+type Invalid_Query_String
+    ## PRIVATE
+    Warning (query_string:Text)
+
+    ## PRIVATE
+    to_display_text self =
+        "The query string contained invalid characters and has been URL-encoded ("+self.query_string+")."
