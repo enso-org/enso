@@ -23,6 +23,8 @@ const FILE_BROWSER_API_KEY = 'fileBrowserApi'
 
 const NAVIGATION_API_KEY = 'navigationApi'
 
+const ELECTRON_VERSIONS_KEY = 'electronVersions'
+
 // =============================
 // === importProjectFromPath ===
 // =============================
@@ -172,3 +174,8 @@ const FILE_BROWSER_API = {
         electron.ipcRenderer.invoke(ipc.Channel.openFileBrowser, kind),
 }
 electron.contextBridge.exposeInMainWorld(FILE_BROWSER_API_KEY, FILE_BROWSER_API)
+
+const ELECTRON_VERSIONS = {
+    electron: process.versions.electron,
+}
+electron.contextBridge.exposeInMainWorld(ELECTRON_VERSIONS_KEY, ELECTRON_VERSIONS)

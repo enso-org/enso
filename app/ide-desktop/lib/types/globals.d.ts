@@ -73,6 +73,15 @@ interface NavigationApi {
     readonly goForward: () => void
 }
 
+// =========================
+// === Electron Versions ===
+// =========================
+
+/** Versions of selected software bundled with Electron. */
+interface ElectronVersions {
+    readonly electron: string
+}
+
 // =====================================
 // === Global namespace augmentation ===
 // =====================================
@@ -86,6 +95,7 @@ declare global {
         readonly backendApi?: BackendApi
         readonly authenticationApi: AuthenticationApi
         readonly navigationApi: NavigationApi
+        readonly electronVersions?: ElectronVersions
     }
 
     namespace NodeJS {

@@ -26,7 +26,7 @@ export default function AboutModal(props: AboutModalProps) {
     <Modal centered className="bg-dim">
       <div
         data-testid="about-modal"
-        className="pointer-events-auto relative flex w-[28rem] flex-col gap-modal rounded-default p-modal-wide before:absolute before:inset before:h-full before:w-full before:rounded-default before:bg-selected-frame before:backdrop-blur-default"
+        className="pointer-events-auto relative flex w-[28rem] select-text flex-col gap-modal rounded-default p-modal-wide before:absolute before:inset before:h-full before:w-full before:rounded-default before:bg-selected-frame before:backdrop-blur-default"
         onClick={event => {
           event.stopPropagation()
         }}
@@ -48,6 +48,9 @@ export default function AboutModal(props: AboutModalProps) {
                 {getText('commitX', process.env.ENSO_CLOUD_DASHBOARD_COMMIT_HASH)}
                 {/* TODO: version injected at build time as environment variable */}
               </div>
+            )}
+            {window.electronVersions != null && (
+              <div>{getText('electronVersionX', window.electronVersions.electron)}</div>
             )}
           </div>
         </div>
