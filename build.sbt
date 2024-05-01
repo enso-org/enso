@@ -493,7 +493,7 @@ val diffsonVersion          = "4.4.0"
 val directoryWatcherVersion = "0.18.0"
 val flatbuffersVersion      = "24.3.25"
 val guavaVersion            = "32.0.0-jre"
-val helidonVersion          = "4.0.6"
+val helidonVersion          = "4.0.8"
 val jlineVersion            = "3.23.0"
 val jgitVersion             = "6.7.0.202309050840-r"
 val kindProjectorVersion    = "0.13.2"
@@ -726,7 +726,6 @@ lazy val `profiling-utils` = project
   .settings(
     frgaalJavaCompilerSetting,
     compileOrder := CompileOrder.JavaThenScala,
-    javaModuleName := "org.enso.profiling",
     version := "0.1",
     libraryDependencies ++= Seq(
       "org.netbeans.api" % "org-netbeans-modules-sampler" % netbeansApiVersion
