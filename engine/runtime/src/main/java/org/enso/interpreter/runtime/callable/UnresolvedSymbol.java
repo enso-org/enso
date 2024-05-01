@@ -62,7 +62,7 @@ public final class UnresolvedSymbol implements EnsoObject {
   private boolean isInProblematicState(Node node, Type type) {
     return node.getRootNode() != null
         && node.getRootNode().getName() != null
-        && node.getRootNode().getName().equals("Error.is_a<arg-0>")
+        && node.getRootNode().getName().contains("Error.is_a<arg-0>")
         && name.equals("==")
         && type.getQualifiedName().toString().equals("Standard.Base.Error.Error.type")
         && logEnabled;
@@ -86,6 +86,15 @@ public final class UnresolvedSymbol implements EnsoObject {
       log(
           "Resolving for: symbol=%s, node=%s, type=%s"
               .formatted(name, nodeName, type.getQualifiedName().toString()));
+      if (isInProblematicState(node, type)) {
+        log("Problematic state detected");
+        var allTypes = type.allTypes(EnsoContext.get(node));
+        var allTypeNames = Arrays
+            .stream(allTypes)
+            .map(tp -> tp.getQualifiedName().toString())
+            .collect(Collectors.toUnmodifiableList());
+        log("All type names = " + allTypeNames);
+      }
       for (var current : type.allTypes(EnsoContext.get(node))) {
         log("Current type = " + current.getQualifiedName().toString());
         Function candidate = scope.lookupMethodDefinition(current, name);
@@ -96,18 +105,6 @@ public final class UnresolvedSymbol implements EnsoObject {
       }
     }
     log("Unresolved (returning null)");
-    if (isInProblematicState(node, type)) {
-      log("Problematic state detected");
-      var allTypes = type.allTypes(EnsoContext.get(node));
-      var allTypeNames = Arrays
-          .stream(allTypes)
-          .map(tp -> tp.getQualifiedName().toString())
-          .collect(Collectors.toUnmodifiableList());
-      log("All type names = " + allTypeNames);
-      log("=== Truffle AST ===");
-      // Dump the entire Truffle AST
-      NodeUtil.printTree(System.out, node);
-    }
     return null;
   }
 
