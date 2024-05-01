@@ -59,7 +59,7 @@ public abstract class CatchPanicNode extends Node {
       @Cached BranchProfile otherExceptionBranchProfile,
       @CachedLibrary(limit = "3") InteropLibrary interop) {
     try {
-      return thunkExecutorNode.executeThunk(frame, action, state, BaseNode.TailStatus.TAIL_DIRECT);
+      return thunkExecutorNode.executeThunk(frame, action, state, BaseNode.TailStatus.NOT_TAIL);
     } catch (PanicException e) {
       panicBranchProfile.enter();
       Object payload = e.getPayload();
