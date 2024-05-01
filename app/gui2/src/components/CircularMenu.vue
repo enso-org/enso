@@ -76,7 +76,7 @@ const showColorPicker = ref(false)
         :modelValue="props.isRecordingOverridden"
         @update:modelValue="emit('update:isRecordingOverridden', $event)"
       />
-      <div v-if="showColorPicker" class="around-circle">
+      <div v-if="showColorPicker" class="overlay-circle">
         <ColorRing
           v-model="nodeColor"
           :matchableColors="visibleNodeColors"
@@ -98,14 +98,17 @@ const showColorPicker = ref(false)
   position: absolute;
   user-select: none;
   pointer-events: none;
+  /* This is a variable so that it can be referenced in computations,
+     but currently it can't be changed due to many hard-coded values below. */
+  --outer-diameter: 104px;
 }
 
 .circle {
   position: relative;
   left: -36px;
   top: -36px;
-  width: 114px;
-  height: 114px;
+  width: var(--outer-diameter);
+  height: var(--outer-diameter);
 
   > * {
     pointer-events: all;
@@ -166,10 +169,10 @@ const showColorPicker = ref(false)
   }
 }
 
-.around-circle {
+.overlay-circle {
   position: absolute;
-  width: calc(114px - 10px);
-  height: calc(114px - 10px);
+  width: var(--outer-diameter);
+  height: var(--outer-diameter);
 }
 
 .icon-container {
@@ -239,7 +242,7 @@ const showColorPicker = ref(false)
 
 .below-slot5 {
   position: absolute;
-  top: calc(108px - 36px);
+  top: calc(var(--outer-diameter) - 32px);
   pointer-events: all;
 }
 

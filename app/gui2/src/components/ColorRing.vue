@@ -7,6 +7,19 @@ import { Vec2 } from '@/util/data/vec2'
 import { Resumable } from 'shared/util/data/iterable'
 import { computed, onMounted, ref } from 'vue'
 
+/**
+ *  Hue picker
+ *
+ *  # Angles
+ *
+ *  All angles are measured in turns, starting from the 12-o'clock position, normalized to the range 0-1, unless
+ *  otherwise specified.
+ *  - This is the axis used by CSS gradients (adjustment is necessary when working with trigonometric functions, which
+ *    start from the positive x-axis).
+ *  - Turns allow constants to be expressed as simple numbers, and can be easily converted to the units used by external
+ *    APIs (radians for math, degrees for culori).
+ */
+
 // If the browser doesn't support OKLCH, the gradient will be specified by computing the number of points specified here
 // in OKLCH, converting to sRGB, and interpolating in HSL. This number has been found to be enough to look close to the
 // intended colors, without excessive gradient complexity (which may affect performance).
