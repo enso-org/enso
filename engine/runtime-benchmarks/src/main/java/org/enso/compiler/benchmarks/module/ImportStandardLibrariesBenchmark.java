@@ -61,7 +61,6 @@ public class ImportStandardLibrariesBenchmark {
           "Previous_Value",
           "Join_Kind.Inner",
           // From Database
-          "In_Memory",
           "SQL_Query",
           "Postgres",
           "SQLite.connect",
