@@ -134,7 +134,8 @@ export default function UserRow(props: UserRowProps) {
         <aria.Cell className="relative bg-transparent p transparent group-hover-2:opacity-100">
           <UnstyledButton
             onPress={event => {
-              const position = { pageX: event.target.clientLeft, pageY: event.target.clientTop }
+              const rect = event.target.getBoundingClientRect()
+              const position = { pageX: rect.left, pageY: rect.top }
               setModal(
                 <ConfirmDeleteModal
                   event={position}

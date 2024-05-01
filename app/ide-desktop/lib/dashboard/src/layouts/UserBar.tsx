@@ -83,7 +83,7 @@ export default function UserBar(props: UserBarProps) {
             <UnstyledButton
               className="text my-auto rounded-full bg-share px-button-x text-inversed"
               onPress={() => {
-                setModal(<InviteUsersModal eventTarget={null} />)
+                setModal(<InviteUsersModal />)
               }}
             >
               <aria.Text slot="label">{getText('invite')}</aria.Text>

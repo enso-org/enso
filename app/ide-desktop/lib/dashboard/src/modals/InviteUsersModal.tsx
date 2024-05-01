@@ -135,20 +135,19 @@ function EmailInput(props: InternalEmailInputProps) {
 
 /** Props for an {@link InviteUsersModal}. */
 export interface InviteUsersModalProps {
-  /** If this is `null`, this modal will be centered. */
-  readonly eventTarget: HTMLElement | null
+  /** If this is absent, this modal will be centered. */
+  readonly event?: Pick<React.MouseEvent, 'pageX' | 'pageY'>
 }
 
 /** A modal for inviting one or more users. */
 export default function InviteUsersModal(props: InviteUsersModalProps) {
-  const { eventTarget } = props
+  const { event: positionEvent } = props
   const { user } = authProvider.useNonPartialUserSession()
   const { backend } = backendProvider.useBackend()
   const { unsetModal } = modalProvider.useSetModal()
   const { getText } = textProvider.useText()
   const toastAndLog = toastAndLogHooks.useToastAndLog()
   const [newEmails, setNewEmails] = React.useState<string[]>([])
-  const position = React.useMemo(() => eventTarget?.getBoundingClientRect(), [eventTarget])
   const members = asyncEffectHooks.useAsyncEffect([], () => backend.listUsers(), [backend])
   const existingEmails = React.useMemo(
     () => new Set(members.map<string>(member => member.email)),
@@ -184,16 +183,12 @@ export default function InviteUsersModal(props: InviteUsersModalProps) {
 
   return (
     <Modal
-      centered={eventTarget == null}
+      centered={positionEvent == null}
       className="absolute left top size-full overflow-hidden bg-dim"
     >
       <div
         tabIndex={-1}
-        style={
-          position != null
-            ? { left: position.left + window.scrollX, top: position.top + window.scrollY }
-            : {}
-        }
+        style={positionEvent == null ? {} : { left: positionEvent.pageX, top: positionEvent.pageY }}
         className="sticky w-invite-users-modal rounded-default before:absolute before:h-full before:w-full before:rounded-default before:bg-selected-frame before:backdrop-blur-default"
         onClick={mouseEvent => {
           mouseEvent.stopPropagation()
