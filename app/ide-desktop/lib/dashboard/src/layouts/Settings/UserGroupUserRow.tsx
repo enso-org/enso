@@ -3,6 +3,8 @@ import * as React from 'react'
 
 import Cross2 from 'enso-assets/cross2.svg'
 
+import * as tooltipHooks from '#/hooks/tooltipHooks'
+
 import * as modalProvider from '#/providers/ModalProvider'
 import * as textProvider from '#/providers/TextProvider'
 
@@ -35,17 +37,7 @@ export default function UserGroupUserRow(props: UserGroupUserRowProps) {
   const { getText } = textProvider.useText()
   const cleanupRef = React.useRef(() => {})
   const nameCellCleanupRef = React.useRef(() => {})
-  const [needsTooltip, setNeedsTooltip] = React.useState(false)
-  const [resizeObserver] = React.useState(
-    () =>
-      new ResizeObserver(changes => {
-        for (const change of changes.slice(0, 1)) {
-          if (change.target instanceof HTMLElement) {
-            setNeedsTooltip(change.target.clientWidth < change.target.scrollWidth)
-          }
-        }
-      })
-  )
+  const { needsTooltip, tooltipTargetRef } = tooltipHooks.useNeedsTooltip()
 
   return (
     <aria.Row
@@ -103,18 +95,7 @@ export default function UserGroupUserRow(props: UserGroupUserRowProps) {
       }}
     >
       <aria.Cell
-        ref={cell => {
-          nameCellCleanupRef.current()
-          if (cell == null) {
-            nameCellCleanupRef.current = () => {}
-          } else {
-            setNeedsTooltip(cell.clientWidth < cell.scrollWidth)
-            resizeObserver.observe(cell)
-            nameCellCleanupRef.current = () => {
-              resizeObserver.unobserve(cell)
-            }
-          }
-        }}
+        ref={tooltipTargetRef}
         className="text border-x-2 border-transparent bg-clip-padding rounded-rows-skip-level last:border-r-0"
       >
         <aria.TooltipTrigger>
