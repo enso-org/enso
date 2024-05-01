@@ -7,6 +7,7 @@ import * as modalProvider from '#/providers/ModalProvider'
 import * as textProvider from '#/providers/TextProvider'
 
 import * as aria from '#/components/aria'
+import * as ariaComponents from '#/components/AriaComponents'
 import ContextMenu from '#/components/ContextMenu'
 import ContextMenuEntry from '#/components/ContextMenuEntry'
 import ContextMenus from '#/components/ContextMenus'
@@ -32,6 +33,18 @@ export default function UserGroupRow(props: UserGroupRowProps) {
   const { setModal } = modalProvider.useSetModal()
   const { getText } = textProvider.useText()
   const cleanupRef = React.useRef(() => {})
+  const nameCellCleanupRef = React.useRef(() => {})
+  const [needsTooltip, setNeedsTooltip] = React.useState(false)
+  const [resizeObserver] = React.useState(
+    () =>
+      new ResizeObserver(changes => {
+        for (const change of changes.slice(0, 1)) {
+          if (change.target instanceof HTMLElement) {
+            setNeedsTooltip(change.target.clientWidth < change.target.scrollWidth)
+          }
+        }
+      })
+  )
 
   return (
     <aria.Row
@@ -84,8 +97,28 @@ export default function UserGroupRow(props: UserGroupRowProps) {
         }
       }}
     >
-      <aria.Cell className="text overflow-hidden text-ellipsis whitespace-nowrap rounded-r-full border-x-2 border-transparent bg-clip-padding px-cell-x first:rounded-l-full last:border-r-0">
-        {userGroup.groupName}
+      <aria.Cell
+        ref={cell => {
+          nameCellCleanupRef.current()
+          if (cell == null) {
+            nameCellCleanupRef.current = () => {}
+          } else {
+            setNeedsTooltip(cell.clientWidth < cell.scrollWidth)
+            resizeObserver.observe(cell)
+            nameCellCleanupRef.current = () => {
+              resizeObserver.unobserve(cell)
+            }
+          }
+        }}
+        className="text rounded-r-full border-x-2 border-transparent bg-clip-padding px-cell-x first:rounded-l-full last:border-r-0"
+      >
+        <aria.TooltipTrigger>
+          {/* NOTE: `max-w-full` brings back the ellipsis, but the tooltip disappears */}
+          <aria.Button className="cursor-default overflow-hidden text-ellipsis whitespace-nowrap">
+            {userGroup.groupName}
+          </aria.Button>
+          {needsTooltip && <ariaComponents.Tooltip>{userGroup.groupName}</ariaComponents.Tooltip>}
+        </aria.TooltipTrigger>
       </aria.Cell>
       <aria.Cell className="relative bg-transparent p transparent group-hover-2:opacity-100">
         <UnstyledButton

@@ -1,103 +1,21 @@
-;
-
 /** @file A row of the user groups table representing a user. */
-import * as React from 'react';
+import * as React from 'react'
 
+import Cross2 from 'enso-assets/cross2.svg'
 
+import * as modalProvider from '#/providers/ModalProvider'
+import * as textProvider from '#/providers/TextProvider'
 
-import Cross2 from 'enso-assets/cross2.svg';
+import * as aria from '#/components/aria'
+import * as ariaComponents from '#/components/AriaComponents'
+import ContextMenu from '#/components/ContextMenu'
+import ContextMenuEntry from '#/components/ContextMenuEntry'
+import ContextMenus from '#/components/ContextMenus'
+import UnstyledButton from '#/components/UnstyledButton'
 
+import ConfirmDeleteModal from '#/modals/ConfirmDeleteModal'
 
-
-import * as modalProvider from '#/providers/ModalProvider';
-import * as textProvider from '#/providers/TextProvider';
-
-
-
-import * as aria from '#/components/aria';
-import ContextMenu from '#/components/ContextMenu';
-import ContextMenuEntry from '#/components/ContextMenuEntry';
-import ContextMenus from '#/components/ContextMenus';
-import UnstyledButton from '#/components/UnstyledButton';
-
-
-
-import ConfirmDeleteModal from '#/modals/ConfirmDeleteModal';
-
-
-
-import * as backend from '#/services/Backend';
-
-
-
-
-
-;
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-;
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+import * as backend from '#/services/Backend'
 
 // ========================
 // === UserGroupUserRow ===
@@ -119,6 +37,18 @@ export default function UserGroupUserRow(props: UserGroupUserRowProps) {
   const { setModal } = modalProvider.useSetModal()
   const { getText } = textProvider.useText()
   const cleanupRef = React.useRef(() => {})
+  const nameCellCleanupRef = React.useRef(() => {})
+  const [needsTooltip, setNeedsTooltip] = React.useState(false)
+  const [resizeObserver] = React.useState(
+    () =>
+      new ResizeObserver(changes => {
+        for (const change of changes.slice(0, 1)) {
+          if (change.target instanceof HTMLElement) {
+            setNeedsTooltip(change.target.clientWidth < change.target.scrollWidth)
+          }
+        }
+      })
+  )
 
   return (
     <aria.Row
@@ -175,12 +105,30 @@ export default function UserGroupUserRow(props: UserGroupUserRowProps) {
         }
       }}
     >
-      <aria.Cell className="text border-x-2 border-transparent bg-clip-padding rounded-rows-skip-level last:border-r-0">
-        <div className="ml-indent-1 flex h-row min-w-max items-center whitespace-nowrap rounded-full">
-          <aria.Text className="grow overflow-hidden text-ellipsis whitespace-nowrap px-name-column-x py-name-column-y">
-            {user.name}
-          </aria.Text>
-        </div>
+      <aria.Cell
+        ref={cell => {
+          nameCellCleanupRef.current()
+          if (cell == null) {
+            nameCellCleanupRef.current = () => {}
+          } else {
+            setNeedsTooltip(cell.clientWidth < cell.scrollWidth)
+            resizeObserver.observe(cell)
+            nameCellCleanupRef.current = () => {
+              resizeObserver.unobserve(cell)
+            }
+          }
+        }}
+        className="text border-x-2 border-transparent bg-clip-padding rounded-rows-skip-level last:border-r-0"
+      >
+        <aria.TooltipTrigger>
+          <aria.Button className="ml-indent-1 flex h-row w-[calc(100%_-_var(--indent-1-size))] cursor-default items-center whitespace-nowrap rounded-full">
+            {/* NOTE: `overflow-hiden` brings back the ellipsis, but the tooltip disappears */}
+            <aria.Text className="grow text-ellipsis whitespace-nowrap px-name-column-x py-name-column-y">
+              {user.name}
+            </aria.Text>
+          </aria.Button>
+          {needsTooltip && <ariaComponents.Tooltip>{user.name}</ariaComponents.Tooltip>}
+        </aria.TooltipTrigger>
       </aria.Cell>
       <aria.Cell className="relative bg-transparent p transparent group-hover-2:opacity-100">
         <UnstyledButton
