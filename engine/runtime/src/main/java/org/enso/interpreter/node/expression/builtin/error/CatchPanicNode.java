@@ -38,6 +38,7 @@ public abstract class CatchPanicNode extends Node {
             new CallArgumentInfo[] {new CallArgumentInfo()},
             InvokeCallableNode.DefaultsExecutionMode.EXECUTE,
             InvokeCallableNode.ArgumentsExecutionMode.PRE_EXECUTED);
+    // Note [Tail call]
     this.invokeCallableNode.setTailStatus(BaseNode.TailStatus.TAIL_DIRECT);
   }
 
@@ -59,6 +60,7 @@ public abstract class CatchPanicNode extends Node {
       @Cached BranchProfile otherExceptionBranchProfile,
       @CachedLibrary(limit = "3") InteropLibrary interop) {
     try {
+      // Note [Tail call]
       return thunkExecutorNode.executeThunk(frame, action, state, BaseNode.TailStatus.NOT_TAIL);
     } catch (PanicException e) {
       panicBranchProfile.enter();
@@ -93,4 +95,11 @@ public abstract class CatchPanicNode extends Node {
       }
     }
   }
+
+  /* Note [Tail call]
+   * ~~~~~~~~~~~~~~~~~~~~~~
+   * The `NOT_TAIL` in `isTail` parameter is important here. Panic.catch cannot be in
+   * the tail call position. If it is, the panic may not be caught when a tail-call-optimized
+   * thunk is evaluated (as that will effectively discard this method call from the stack).
+   */
 }
