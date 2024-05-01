@@ -2,6 +2,8 @@
 import * as fs from 'node:fs/promises'
 import * as path from 'node:path'
 import * as url from 'node:url'
+import * as childProcess from 'node:child_process'
+import * as streamConsumers from 'node:stream/consumers'
 
 // ===============================
 // === readEnvironmentFromFile ===
@@ -44,6 +46,14 @@ export async function readEnvironmentFromFile() {
         const variables = Object.fromEntries(entries)
         if (!isProduction || entries.length > 0) {
             Object.assign(process.env, variables)
+        }
+        if (process.env.ENSO_CLOUD_DASHBOARD_VERSION == null) {
+            const branchNameProcess = childProcess.exec('git rev-parse --abbrev-ref HEAD')
+            const branchName = await streamConsumers.text(branchNameProcess.stdout)
+            process.env.ENSO_CLOUD_DASHBOARD_VERSION = `dev-${branchName.trim()}`
+            const commitHashProcess = childProcess.exec('git log -1 --pretty=format:%H')
+            const commitHash = await streamConsumers.text(commitHashProcess.stdout)
+            process.env.ENSO_CLOUD_DASHBOARD_COMMIT_HASH = commitHash.trim()
         }
     } catch (error) {
         if (missingKeys.length !== 0) {
@@ -97,6 +107,12 @@ export function getDefines(serverPort = 8080) {
         ),
         'process.env.ENSO_CLOUD_COGNITO_DOMAIN': stringify(process.env.ENSO_CLOUD_COGNITO_DOMAIN),
         'process.env.ENSO_CLOUD_COGNITO_REGION': stringify(process.env.ENSO_CLOUD_COGNITO_REGION),
+        'process.env.ENSO_CLOUD_DASHBOARD_VERSION': stringify(
+            process.env.ENSO_CLOUD_DASHBOARD_VERSION
+        ),
+        'process.env.ENSO_CLOUD_DASHBOARD_COMMIT_HASH': stringify(
+            process.env.ENSO_CLOUD_DASHBOARD_COMMIT_HASH
+        ),
         /* eslint-enable @typescript-eslint/naming-convention */
     }
 }
@@ -116,6 +132,7 @@ const DUMMY_DEFINES = {
     'process.env.ENSO_CLOUD_COGNITO_USER_POOL_WEB_CLIENT_ID': '',
     'process.env.ENSO_CLOUD_COGNITO_DOMAIN': '',
     'process.env.ENSO_CLOUD_COGNITO_REGION': '',
+    'process.env.ENSO_CLOUD_DASHBOARD_VERSION': '0.0.1-testing',
     /* eslint-enable @typescript-eslint/naming-convention */
 }
 

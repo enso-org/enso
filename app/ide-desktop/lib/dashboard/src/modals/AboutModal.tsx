@@ -26,15 +26,29 @@ export default function AboutModal(props: AboutModalProps) {
     <Modal centered className="bg-dim">
       <div
         data-testid="about-modal"
-        className="pointer-events-auto relative flex w-96 flex-col gap-modal rounded-default p-modal-wide before:absolute before:inset before:h-full before:w-full before:rounded-default before:bg-selected-frame before:backdrop-blur-default"
+        className="pointer-events-auto relative flex w-[28rem] flex-col gap-modal rounded-default p-modal-wide before:absolute before:inset before:h-full before:w-full before:rounded-default before:bg-selected-frame before:backdrop-blur-default"
+        onClick={event => {
+          event.stopPropagation()
+        }}
       >
         <div className="relative flex gap-4">
           <SvgMask src={EnsoLogoIcon} className="size-16" />
-          <div className="text-base font-semibold">
-            {supportsLocalBackend
-              ? getText('appNameDesktopEdition')
-              : getText('appNameCloudEdition')}
-            {/* TODO: version injected at build time as environment variable */}
+          <div className="flex flex-col gap-1">
+            <div className="text-base font-semibold">
+              {supportsLocalBackend
+                ? getText('appNameDesktopEdition')
+                : getText('appNameCloudEdition')}
+            </div>
+            <div>
+              {getText('versionX', process.env.ENSO_CLOUD_DASHBOARD_VERSION)}
+              {/* TODO: version injected at build time as environment variable */}
+            </div>
+            {process.env.ENSO_CLOUD_DASHBOARD_COMMIT_HASH && (
+              <div>
+                {getText('commitX', process.env.ENSO_CLOUD_DASHBOARD_COMMIT_HASH)}
+                {/* TODO: version injected at build time as environment variable */}
+              </div>
+            )}
           </div>
         </div>
       </div>
