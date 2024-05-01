@@ -31,7 +31,11 @@ const showColorPicker = ref(false)
 
 <template>
   <div class="CircularMenu" @pointerdown.stop @pointerup.stop @click.stop>
-    <div class="circle" :class="`${props.isFullMenuVisible ? 'full' : 'partial'}`">
+    <div
+      v-if="!showColorPicker"
+      class="circle menu"
+      :class="`${props.isFullMenuVisible ? 'full' : 'partial'}`"
+    >
       <div v-if="!isFullMenuVisible" class="More" @pointerdown.stop="emit('openFullMenu')"></div>
       <SvgIcon
         v-if="isFullMenuVisible"
@@ -76,14 +80,13 @@ const showColorPicker = ref(false)
         :modelValue="props.isRecordingOverridden"
         @update:modelValue="emit('update:isRecordingOverridden', $event)"
       />
-      <div v-if="showColorPicker" class="overlay-circle">
-        <ColorRing
-          v-model="nodeColor"
-          :matchableColors="visibleNodeColors"
-          :standalone="false"
-          @close="showColorPicker = false"
-        />
-      </div>
+    </div>
+    <div v-if="showColorPicker" class="circle">
+      <ColorRing
+        v-model="nodeColor"
+        :matchableColors="visibleNodeColors"
+        @close="showColorPicker = false"
+      />
     </div>
     <SmallPlusButton
       v-if="!isVisualizationVisible"
@@ -101,6 +104,10 @@ const showColorPicker = ref(false)
   /* This is a variable so that it can be referenced in computations,
      but currently it can't be changed due to many hard-coded values below. */
   --outer-diameter: 104px;
+  --full-ring-path: path(
+    evenodd,
+    'M0,52 A52,52 0,1,1 104,52 A52,52 0,1,1 0, 52 z m52,20 A20,20 0,1,1 52,32 20,20 0,1,1 52,72 z'
+  );
 }
 
 .circle {
@@ -109,7 +116,9 @@ const showColorPicker = ref(false)
   top: -36px;
   width: var(--outer-diameter);
   height: var(--outer-diameter);
+}
 
+.circle.menu {
   > * {
     pointer-events: all;
   }
@@ -134,10 +143,7 @@ const showColorPicker = ref(false)
   }
   &.full {
     &:before {
-      clip-path: path(
-        evenodd,
-        'M0,52 A52,52 0,1,1 104,52 A52,52 0,1,1 0, 52 z m52,20 A20,20 0,1,1 52,32 20,20 0,1,1 52,72 z'
-      );
+      clip-path: var(--full-ring-path);
     }
   }
 }
@@ -169,10 +175,8 @@ const showColorPicker = ref(false)
   }
 }
 
-.overlay-circle {
-  position: absolute;
-  width: var(--outer-diameter);
-  height: var(--outer-diameter);
+:deep(.ColorRing .gradient) {
+  clip-path: var(--full-ring-path);
 }
 
 .icon-container {

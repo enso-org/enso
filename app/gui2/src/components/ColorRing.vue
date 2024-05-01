@@ -27,7 +27,6 @@ const NONNATIVE_OKLCH_INTERPOLATION_STEPS = 300
 
 const selectedColor = defineModel<string | undefined>()
 const props = defineProps<{
-  standalone: boolean
   matchableColors: Set<string>
 }>()
 const emit = defineEmits<{
@@ -181,7 +180,6 @@ const cssGradient = computed(() => {
   sortedClauses.push(cssColor(0))
   return `conic-gradient(${sortedClauses.join(',')})`
 })
-const cssRingFill = computed(() => (props.standalone ? 'white' : 'none'))
 const cssTriangleAngle = computed(() =>
   triangleAngle.value != null ? `${triangleAngle.value}turn` : undefined,
 )
@@ -191,48 +189,52 @@ const cssTriangleColor = computed(() =>
 </script>
 
 <template>
-  <svg ref="svgElement" class="ColorRing" viewBox="-2 -2 4 4">
-    <mask id="ringShape"><circle r="0" class="ringMask" /></mask>
-    <polygon v-if="cssTriangleAngle != null" class="triangle" points="0,-1 -0.4,-1.35 0.4,-1.35" />
-    <foreignObject width="2" height="2" x="-1" y="-1" mask="url(#ringShape)">
-      <div
-        class="gradient"
-        @pointerleave="mouseSelectedAngle = undefined"
-        @pointermove="ringHover"
-        @click.stop="ringClick"
-        @pointerdown.stop
-        @pointerup.stop
-      />
-    </foreignObject>
-  </svg>
+  <div class="ColorRing">
+    <svg v-if="cssTriangleAngle != null" class="svg" viewBox="-2 -2 4 4">
+      <polygon class="triangle" points="0,-1 -0.4,-1.35 0.4,-1.35" />
+    </svg>
+    <div
+      ref="svgElement"
+      class="gradient"
+      @pointerleave="mouseSelectedAngle = undefined"
+      @pointermove="ringHover"
+      @click.stop="ringClick"
+      @pointerdown.stop
+      @pointerup.stop
+    />
+  </div>
 </template>
 
 <style scoped>
 .ColorRing {
+  position: relative;
   pointer-events: none;
-  width: auto;
-  height: auto;
+  width: 100%;
+  height: 100%;
+}
+
+.svg {
+  position: absolute;
   margin: -50%;
 }
 
-.ringMask {
-  fill: v-bind('cssRingFill');
-  stroke: white;
-  stroke-width: 0.63;
+.gradient {
+  position: absolute;
+  inset: 0;
+  pointer-events: auto;
+  margin-top: auto;
+  background: v-bind('cssGradient');
+  cursor: crosshair;
+  border-radius: var(--radius-full);
   animation: grow 0.1s forwards;
 }
 @keyframes grow {
-  to {
-    r: 0.68;
+  from {
+    transform: scale(0);
   }
-}
-
-.gradient {
-  pointer-events: auto;
-  width: 100%;
-  height: 100%;
-  background: v-bind('cssGradient');
-  cursor: crosshair;
+  to {
+    transform: scale(1);
+  }
 }
 
 .triangle {

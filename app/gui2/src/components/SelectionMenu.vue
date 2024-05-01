@@ -7,9 +7,7 @@ import { injectGraphSelection } from '@/providers/graphSelection'
 import { computed } from 'vue'
 
 const showColorPicker = defineModel<boolean>('showColorPicker', { required: true })
-const props = defineProps<{
-  selectedComponents: number
-}>()
+const _props = defineProps<{ selectedComponents: number }>()
 const emit = defineEmits<{
   collapseNodes: []
   setNodeColor: [color: string]
@@ -58,7 +56,6 @@ const selectionColor = computed(() => {
       <ColorRing
         :modelValue="selectionColor"
         :matchableColors="visibleNodeColors"
-        standalone
         @close="showColorPicker = false"
         @update:modelValue="emit('setNodeColor', $event)"
       />
