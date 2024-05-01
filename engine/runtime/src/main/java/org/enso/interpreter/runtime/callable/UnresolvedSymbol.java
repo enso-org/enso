@@ -11,6 +11,9 @@ import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
 import com.oracle.truffle.api.nodes.Node;
+import com.oracle.truffle.api.nodes.NodeUtil;
+import java.util.Arrays;
+import java.util.stream.Collectors;
 import org.enso.interpreter.Constants;
 import org.enso.interpreter.node.callable.InteropMethodCallNode;
 import org.enso.interpreter.runtime.EnsoContext;
@@ -56,6 +59,15 @@ public final class UnresolvedSymbol implements EnsoObject {
     return scope;
   }
 
+  private boolean isInProblematicState(Node node, Type type) {
+    return node.getRootNode() != null
+        && node.getRootNode().getName() != null
+        && node.getRootNode().getName().equals("Error.is_a<arg-0>")
+        && name.equals("==")
+        && type.getQualifiedName().toString().equals("Standard.Base.Error.Error.type")
+        && logEnabled;
+  }
+
   /**
    * Resolves the symbol for a given hierarchy of constructors.
    *
@@ -84,6 +96,18 @@ public final class UnresolvedSymbol implements EnsoObject {
       }
     }
     log("Unresolved (returning null)");
+    if (isInProblematicState(node, type)) {
+      log("Problematic state detected");
+      var allTypes = type.allTypes(EnsoContext.get(node));
+      var allTypeNames = Arrays
+          .stream(allTypes)
+          .map(tp -> tp.getQualifiedName().toString())
+          .collect(Collectors.toUnmodifiableList());
+      log("All type names = " + allTypeNames);
+      log("=== Truffle AST ===");
+      // Dump the entire Truffle AST
+      NodeUtil.printTree(System.out, node);
+    }
     return null;
   }
 
