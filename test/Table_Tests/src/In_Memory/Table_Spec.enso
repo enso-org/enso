@@ -885,7 +885,7 @@ add_specs suite_builder =
             t = Table.new [["X", [1, 2, 3]]]
             Test.expect_panic Type_Error (t.join 42)
 
-            db_connection = Database.connect (SQLite In_Memory)
+            db_connection = Database.connect (SQLite.In_Memory)
             db_table = (Table.new [["Y", [4, 5, 6]]]).select_into_database_table db_connection "test"
 
             r = t.join db_table
