@@ -101,7 +101,7 @@ export default function MembersTable(props: MembersTableProps) {
       selectionBehavior="replace"
       selectedKeys={selectedKeys}
       onSelectionChange={setSelectedKeys}
-      className="table-fixed self-start rounded-rows"
+      className="w-full table-fixed self-start rounded-rows"
       {...(draggable ? { dragAndDropHooks } : {})}
     >
       <aria.TableHeader className="h-row">
@@ -137,17 +137,17 @@ export default function MembersTable(props: MembersTableProps) {
           member => (
             <aria.Row
               id={member.userId}
-              className={`rounded-rows-child group h-row ${draggable ? 'cursor-grab' : ''}`}
+              className={`group h-row rounded-rows-child ${draggable ? 'cursor-grab' : ''}`}
             >
-              <aria.Cell className="text border-x-2 border-transparent bg-clip-padding px-cell-x first:rounded-l-full last:rounded-r-full last:border-r-0 group-selected:bg-selected-frame">
+              <aria.Cell className="text overflow-hidden text-ellipsis whitespace-nowrap border-x-2 border-transparent bg-clip-padding px-cell-x first:rounded-l-full last:rounded-r-full last:border-r-0 group-selected:bg-selected-frame">
                 {draggable && <aria.Button slot="drag" />}
                 {member.name}
               </aria.Cell>
-              <aria.Cell className="text rounded-r-full border-x-2 border-transparent bg-clip-padding px-cell-x first:rounded-l-full last:border-r-0 group-selected:bg-selected-frame">
+              <aria.Cell className="text whitespace-nowrap rounded-r-full border-x-2 border-transparent bg-clip-padding px-cell-x first:rounded-l-full last:border-r-0 group-selected:bg-selected-frame">
                 {member.email}
               </aria.Cell>
               {allowDelete && (
-                <aria.Cell className="group-hover-2:opacity-100 relative bg-transparent p transparent">
+                <aria.Cell className="relative bg-transparent p transparent group-hover-2:opacity-100">
                   <UnstyledButton
                     onPress={() => {
                       void doDeleteUser(member)
