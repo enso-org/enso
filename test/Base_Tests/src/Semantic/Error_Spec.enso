@@ -44,6 +44,14 @@ foreign js throw_js_str = """
 foreign js throw_js_arr = """
     throw [1,2,3];
 
+fn_with_tco x =
+    if x == 1 then Panic.throw "fn_with_tco" else
+        @Tail_Call fn_with_tco x+1
+
+global_wrapper_fn =
+    fn_with_tco 0
+
+
 add_specs suite_builder =
     suite_builder.group "No Method Errors" group_builder->
         group_builder.specify "should be recoverable" <|
@@ -360,6 +368,41 @@ add_specs suite_builder =
                 Panic.with_finalizer do_finalize do_act
             c2 . should_equal "finalizer"
             v2.to_vector . should_equal [1, 2]
+
+        group_builder.specify "should be caught in a loop" <|
+            fn_without_tco x =
+                if x == 1 then Panic.throw "fn_without_tco" else
+                    fn_without_tco x+1
+
+            p = Panic.catch Any handler=(.payload) <| fn_without_tco 0
+            p . should_equal "fn_without_tco"
+
+        group_builder.specify "should be caught in a TCO loop" <|
+            fn_with_tco x =
+                if x == 1 then Panic.throw "fn_with_tco" else
+                    @Tail_Call fn_with_tco x+1
+
+            p = Panic.catch Any handler=(.payload) <| fn_with_tco 0
+            p . should_equal "fn_with_tco"
+
+        # The same test as the one before, but it does not use the `<|` function.
+        group_builder.specify "should be caught in a TCO loop with a wrapper fn" <|
+            fn_with_tco x =
+                if x == 1 then Panic.throw "fn_with_tco" else
+                    @Tail_Call fn_with_tco x+1
+
+            wrapper_fn =
+                fn_with_tco 0
+
+            p = Panic.catch Any handler=(.payload) wrapper_fn
+            p . should_equal "fn_with_tco"
+
+        # The same test as the above one, but calls a global wrapper_fn that is declared
+        # in top scope.
+        group_builder.specify "should be caught in a TCO loop with a global wrapper fn" <|
+            p = Panic.catch Any handler=(.payload) global_wrapper_fn
+            p . should_equal "fn_with_tco"
+
 
     suite_builder.group "Type Errors" group_builder->
         my_func x y =
