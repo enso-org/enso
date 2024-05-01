@@ -101,5 +101,8 @@ public abstract class CatchPanicNode extends Node {
    * The `NOT_TAIL` in `isTail` parameter is important here. Panic.catch cannot be in
    * the tail call position. If it is, the panic may not be caught when a tail-call-optimized
    * thunk is evaluated (as that will effectively discard this method call from the stack).
+   *
+   * This is important for the `action` parameter of `Panic.catch`. The `handler` callback can
+   * be executed as tail, as there is nothing in this class that needs to run after the `handler`.
    */
 }
