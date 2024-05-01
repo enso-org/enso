@@ -133,7 +133,14 @@ export default function MembersTable(props: MembersTableProps) {
             </aria.Cell>
           </aria.Row>
         ) : (
-          member => <UserRow draggable={draggable} user={member} doDeleteUser={doDeleteUser} />
+          member => (
+            <UserRow
+              id={member.userId}
+              draggable={draggable}
+              user={member}
+              doDeleteUser={doDeleteUser}
+            />
+          )
         )}
       </aria.TableBody>
     </aria.Table>
