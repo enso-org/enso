@@ -15,7 +15,7 @@ import UnstyledButton from '#/components/UnstyledButton'
 
 import ConfirmDeleteModal from '#/modals/ConfirmDeleteModal'
 
-import * as backend from '#/services/Backend'
+import type * as backend from '#/services/Backend'
 
 // ========================
 // === UserGroupUserRow ===
@@ -25,13 +25,10 @@ import * as backend from '#/services/Backend'
 export interface UserGroupUserRowProps {
   readonly user: backend.User
   readonly userGroup: backend.UserGroupInfo
-  readonly doRemoveUserFromUserGroup: (
-    user: backend.User,
-    userGroup: backend.UserGroupInfo
-  ) => Promise<void> | void
+  readonly doRemoveUserFromUserGroup: (user: backend.User, userGroup: backend.UserGroupInfo) => void
 }
 
-/**  A row of the user groups table representing a user. */
+/** A row of the user groups table representing a user. */
 export default function UserGroupUserRow(props: UserGroupUserRowProps) {
   const { user, userGroup, doRemoveUserFromUserGroup } = props
   const { setModal } = modalProvider.useSetModal()
@@ -62,7 +59,7 @@ export default function UserGroupUserRow(props: UserGroupUserRowProps) {
           const onContextMenu = (event: MouseEvent) => {
             event.preventDefault()
             event.stopPropagation()
-            let position = { pageX: event.pageX, pageY: event.pageY }
+            const position = { pageX: event.pageX, pageY: event.pageY }
             setModal(
               <ContextMenus
                 ref={element => {
@@ -88,7 +85,7 @@ export default function UserGroupUserRow(props: UserGroupUserRowProps) {
                             userGroup.groupName
                           )}
                           doDelete={() => {
-                            void doRemoveUserFromUserGroup(user, userGroup)
+                            doRemoveUserFromUserGroup(user, userGroup)
                           }}
                         />
                       )
@@ -142,7 +139,7 @@ export default function UserGroupUserRow(props: UserGroupUserRowProps) {
                 )}
                 actionButtonLabel={getText('remove')}
                 doDelete={() => {
-                  void doRemoveUserFromUserGroup(user, userGroup)
+                  doRemoveUserFromUserGroup(user, userGroup)
                 }}
               />
             )

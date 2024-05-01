@@ -24,7 +24,7 @@ import * as backend from '#/services/Backend'
 /** Props for a {@link UserGroupRow}. */
 export interface UserGroupRowProps {
   readonly userGroup: backend.UserGroupInfo
-  readonly doDeleteUserGroup: (userGroup: backend.UserGroupInfo) => Promise<void> | void
+  readonly doDeleteUserGroup: (userGroup: backend.UserGroupInfo) => void
 }
 
 /** A row representing a user group. */
@@ -58,7 +58,7 @@ export default function UserGroupRow(props: UserGroupRowProps) {
           const onContextMenu = (event: MouseEvent) => {
             event.preventDefault()
             event.stopPropagation()
-            let position = { pageX: event.pageX, pageY: event.pageY }
+            const position = { pageX: event.pageX, pageY: event.pageY }
             setModal(
               <ContextMenus
                 ref={element => {
@@ -80,7 +80,7 @@ export default function UserGroupRow(props: UserGroupRowProps) {
                           event={position}
                           actionText={getText('deleteUserGroupActionText', userGroup.groupName)}
                           doDelete={() => {
-                            void doDeleteUserGroup(userGroup)
+                            doDeleteUserGroup(userGroup)
                           }}
                         />
                       )
@@ -127,7 +127,7 @@ export default function UserGroupRow(props: UserGroupRowProps) {
               <ConfirmDeleteModal
                 actionText={getText('deleteUserGroupActionText', userGroup.groupName)}
                 doDelete={() => {
-                  void doDeleteUserGroup(userGroup)
+                  doDeleteUserGroup(userGroup)
                 }}
               />
             )

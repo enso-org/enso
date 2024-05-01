@@ -1,8 +1,6 @@
 /** @file A list of members in the organization. */
 import * as React from 'react'
 
-import Cross2 from 'enso-assets/cross2.svg'
-
 import * as mimeTypes from '#/data/mimeTypes'
 
 import * as asyncEffectHooks from '#/hooks/asyncEffectHooks'
@@ -11,9 +9,10 @@ import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 import * as backendProvider from '#/providers/BackendProvider'
 import * as textProvider from '#/providers/TextProvider'
 
+import UserRow from '#/layouts/Settings/UserRow'
+
 import * as aria from '#/components/aria'
 import StatelessSpinner, * as statelessSpinner from '#/components/StatelessSpinner'
-import UnstyledButton from '#/components/UnstyledButton'
 
 import * as backendModule from '#/services/Backend'
 
@@ -134,32 +133,7 @@ export default function MembersTable(props: MembersTableProps) {
             </aria.Cell>
           </aria.Row>
         ) : (
-          member => (
-            <aria.Row
-              id={member.userId}
-              className={`group h-row rounded-rows-child ${draggable ? 'cursor-grab' : ''}`}
-            >
-              <aria.Cell className="text overflow-hidden text-ellipsis whitespace-nowrap border-x-2 border-transparent bg-clip-padding px-cell-x first:rounded-l-full last:rounded-r-full last:border-r-0 group-selected:bg-selected-frame">
-                {draggable && <aria.Button slot="drag" />}
-                {member.name}
-              </aria.Cell>
-              <aria.Cell className="text whitespace-nowrap rounded-r-full border-x-2 border-transparent bg-clip-padding px-cell-x first:rounded-l-full last:border-r-0 group-selected:bg-selected-frame">
-                {member.email}
-              </aria.Cell>
-              {allowDelete && (
-                <aria.Cell className="relative bg-transparent p transparent group-hover-2:opacity-100">
-                  <UnstyledButton
-                    onPress={() => {
-                      void doDeleteUser(member)
-                    }}
-                    className="absolute left-full size-icon -translate-y-1/2"
-                  >
-                    <img src={Cross2} className="size-icon" />
-                  </UnstyledButton>
-                </aria.Cell>
-              )}
-            </aria.Row>
-          )
+          member => <UserRow draggable={draggable} user={member} doDeleteUser={doDeleteUser} />
         )}
       </aria.TableBody>
     </aria.Table>
