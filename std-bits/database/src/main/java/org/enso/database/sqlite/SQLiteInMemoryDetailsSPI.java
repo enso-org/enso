@@ -21,6 +21,6 @@ public class SQLiteInMemoryDetailsSPI extends DatabaseConnectionDetailsSPI {
 
   @Override
   protected String getUserFacingConnectionName() {
-    return "SQLite";
+    return "SQLite (In-Memory)";
   }
 }

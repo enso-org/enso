@@ -16,7 +16,7 @@ public class SQLiteConnectionDetailsSPI extends DatabaseConnectionDetailsSPI {
 
   @Override
   protected String getCodeForDefaultConstructor() {
-    return "(SQLite.From_File location=_)";
+    return "SQLite.From_File";
   }
 
   @Override

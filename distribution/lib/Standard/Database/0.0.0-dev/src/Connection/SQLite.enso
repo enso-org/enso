@@ -27,8 +27,8 @@ type SQLite
        Provides the jdbc url for the connection.
     jdbc_url : Text
     jdbc_url self = case self of
-        From_File _ -> "jdbc:sqlite:" + (self.location.absolute.path.replace '\\' '/')
-        In_Memory -> "jdbc:sqlite::memory:"
+        SQLite.From_File _ -> "jdbc:sqlite:" + (self.location.absolute.path.replace '\\' '/')
+        SQLite.In_Memory -> "jdbc:sqlite::memory:"
 
     ## PRIVATE
        Provides the properties for the connection.
