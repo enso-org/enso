@@ -42,6 +42,9 @@ public final class Type implements EnsoObject {
     this.name = name;
     this.definitionScope = definitionScope;
     this.supertype = supertype;
+    if (supertype != null) {
+      assert !supertype.getName().equals(name);
+    }
     this.builtin = builtin;
     this.eigentype = Objects.requireNonNullElse(eigentype, this);
     this.constructors = new HashMap<>();
