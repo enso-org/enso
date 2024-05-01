@@ -10,11 +10,15 @@ const envDir = defaultConfig.envDir
 const resolve = defaultConfig.resolve
 
 export default defineConfig({
-  root, cacheDir, publicDir, envDir, resolve,
+  root,
+  cacheDir,
+  publicDir,
+  envDir,
+  resolve,
   plugins: [usePolyglotFfi()],
   define: {
     ...defaultConfig.define,
-    self: 'globalThis'
+    self: 'globalThis',
   },
   build: {
     minify: false, // For debugging
