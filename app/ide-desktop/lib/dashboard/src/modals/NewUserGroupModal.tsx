@@ -1,8 +1,6 @@
 /** @file A modal to create a user group. */
 import * as React from 'react'
 
-import * as text from '#/text'
-
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
 import * as backendProvider from '#/providers/BackendProvider'
@@ -24,6 +22,7 @@ import * as eventModule from '#/utilities/event'
 
 /** Props for a {@link NewUserGroupModal}. */
 export interface NewUserGroupModalProps {
+  readonly event?: Pick<React.MouseEvent, 'pageX' | 'pageY'>
   readonly userGroups: backendModule.UserGroupInfo[] | null
   readonly onSubmit: (name: string) => void
   readonly onSuccess: (value: backendModule.UserGroupInfo) => void
@@ -33,6 +32,7 @@ export interface NewUserGroupModalProps {
 /** A modal to create a user group. */
 export default function NewUserGroupModal(props: NewUserGroupModalProps) {
   const { userGroups: userGroupsRaw, onSubmit: onSubmitRaw, onSuccess, onFailure } = props
+  const { event: positionEvent } = props
   const { backend } = backendProvider.useBackend()
   const { unsetModal } = modalProvider.useSetModal()
   const { getText } = textProvider.useText()
@@ -67,11 +67,15 @@ export default function NewUserGroupModal(props: NewUserGroupModalProps) {
   }
 
   return (
-    <Modal centered className="absolute bg-dim">
+    <Modal
+      centered={positionEvent == null}
+      className={`bg-dim ${positionEvent == null ? '' : 'absolute size-full overflow-hidden'}`}
+    >
       <form
         data-testid="new-user-group-modal"
         tabIndex={-1}
         className="pointer-events-auto relative flex w-new-label-modal flex-col gap-modal rounded-default p-modal-wide pt-modal before:absolute before:inset before:h-full before:w-full before:rounded-default before:bg-selected-frame before:backdrop-blur-default"
+        style={positionEvent == null ? {} : { left: positionEvent.pageX, top: positionEvent.pageY }}
         onKeyDown={event => {
           if (event.key !== 'Escape') {
             event.stopPropagation()

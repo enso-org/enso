@@ -45,14 +45,26 @@ export default function UserGroupRow(props: UserGroupRowProps) {
           const onContextMenu = (event: MouseEvent) => {
             event.preventDefault()
             event.stopPropagation()
+            let position = { pageX: event.pageX, pageY: event.pageY }
             setModal(
-              <ContextMenus key={userGroup.id} event={event}>
+              <ContextMenus
+                ref={element => {
+                  if (element != null) {
+                    const rect = element.getBoundingClientRect()
+                    position.pageX = rect.left
+                    position.pageY = rect.top
+                  }
+                }}
+                key={userGroup.id}
+                event={event}
+              >
                 <ContextMenu aria-label={getText('userGroupContextMenuLabel')}>
                   <ContextMenuEntry
                     action="delete"
                     doAction={() => {
                       setModal(
                         <ConfirmDeleteModal
+                          event={position}
                           actionText={getText('deleteUserGroupActionText', userGroup.groupName)}
                           doDelete={() => {
                             void doDeleteUserGroup(userGroup)

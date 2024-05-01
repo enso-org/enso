@@ -1,20 +1,103 @@
+;
+
 /** @file A row of the user groups table representing a user. */
-import * as React from 'react'
+import * as React from 'react';
 
-import Cross2 from 'enso-assets/cross2.svg'
 
-import * as modalProvider from '#/providers/ModalProvider'
-import * as textProvider from '#/providers/TextProvider'
 
-import * as aria from '#/components/aria'
-import ContextMenu from '#/components/ContextMenu'
-import ContextMenuEntry from '#/components/ContextMenuEntry'
-import ContextMenus from '#/components/ContextMenus'
-import UnstyledButton from '#/components/UnstyledButton'
+import Cross2 from 'enso-assets/cross2.svg';
 
-import ConfirmDeleteModal from '#/modals/ConfirmDeleteModal'
 
-import * as backend from '#/services/Backend'
+
+import * as modalProvider from '#/providers/ModalProvider';
+import * as textProvider from '#/providers/TextProvider';
+
+
+
+import * as aria from '#/components/aria';
+import ContextMenu from '#/components/ContextMenu';
+import ContextMenuEntry from '#/components/ContextMenuEntry';
+import ContextMenus from '#/components/ContextMenus';
+import UnstyledButton from '#/components/UnstyledButton';
+
+
+
+import ConfirmDeleteModal from '#/modals/ConfirmDeleteModal';
+
+
+
+import * as backend from '#/services/Backend';
+
+
+
+
+
+;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 // ========================
 // === UserGroupUserRow ===
@@ -49,14 +132,26 @@ export default function UserGroupUserRow(props: UserGroupUserRowProps) {
           const onContextMenu = (event: MouseEvent) => {
             event.preventDefault()
             event.stopPropagation()
+            let position = { pageX: event.pageX, pageY: event.pageY }
             setModal(
-              <ContextMenus key={userGroup.id} event={event}>
+              <ContextMenus
+                ref={element => {
+                  if (element != null) {
+                    const rect = element.getBoundingClientRect()
+                    position.pageX = rect.left
+                    position.pageY = rect.top
+                  }
+                }}
+                key={userGroup.id}
+                event={event}
+              >
                 <ContextMenu aria-label={getText('userGroupContextMenuLabel')}>
                   <ContextMenuEntry
                     action="delete"
                     doAction={() => {
                       setModal(
                         <ConfirmDeleteModal
+                          event={position}
                           actionText={getText(
                             'removeUserFromUserGroupActionText',
                             user.name,

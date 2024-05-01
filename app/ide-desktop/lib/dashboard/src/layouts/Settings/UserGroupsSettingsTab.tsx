@@ -208,10 +208,13 @@ export default function UserGroupsSettingsTab() {
           <HorizontalMenuBar>
             <UnstyledButton
               className="flex h-row items-center rounded-full bg-frame px-new-project-button-x"
-              onPress={() => {
+              onPress={event => {
                 const placeholderId = backendModule.newPlaceholderUserGroupId()
+                const rect = event.target.getBoundingClientRect()
+                const position = { pageX: rect.left, pageY: rect.top }
                 setModal(
                   <NewUserGroupModal
+                    event={position}
                     userGroups={userGroups}
                     onSubmit={name => {
                       if (user != null) {
