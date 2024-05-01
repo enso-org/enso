@@ -3,6 +3,7 @@ import * as React from 'react'
 
 import Cross2 from 'enso-assets/cross2.svg'
 
+import * as contextMenuHooks from '#/hooks/contextMenuHooks'
 import * as tooltipHooks from '#/hooks/tooltipHooks'
 
 import * as modalProvider from '#/providers/ModalProvider'
@@ -10,9 +11,7 @@ import * as textProvider from '#/providers/TextProvider'
 
 import * as aria from '#/components/aria'
 import * as ariaComponents from '#/components/AriaComponents'
-import ContextMenu from '#/components/ContextMenu'
 import ContextMenuEntry from '#/components/ContextMenuEntry'
-import ContextMenus from '#/components/ContextMenus'
 import UnstyledButton from '#/components/UnstyledButton'
 
 import ConfirmDeleteModal from '#/modals/ConfirmDeleteModal'
@@ -35,64 +34,37 @@ export default function UserGroupUserRow(props: UserGroupUserRowProps) {
   const { user, userGroup, doRemoveUserFromUserGroup } = props
   const { setModal } = modalProvider.useSetModal()
   const { getText } = textProvider.useText()
-  const cleanupRef = React.useRef(() => {})
-  const nameCellCleanupRef = React.useRef(() => {})
   const { needsTooltip, tooltipTargetRef } = tooltipHooks.useNeedsTooltip()
+  const contextMenuRef = contextMenuHooks.useContextMenuRef(
+    user.userId,
+    getText('userGroupUserContextMenuLabel'),
+    position => (
+      <ContextMenuEntry
+        action="delete"
+        doAction={() => {
+          setModal(
+            <ConfirmDeleteModal
+              event={position}
+              actionText={getText(
+                'removeUserFromUserGroupActionText',
+                user.name,
+                userGroup.groupName
+              )}
+              doDelete={() => {
+                doRemoveUserFromUserGroup(user, userGroup)
+              }}
+            />
+          )
+        }}
+      />
+    )
+  )
 
   return (
     <aria.Row
       id={`_key-${userGroup.id}-${user.userId}`}
       className="group h-row rounded-rows-child"
-      ref={row => {
-        cleanupRef.current()
-        if (row == null) {
-          cleanupRef.current = () => {}
-        } else {
-          const onContextMenu = (event: MouseEvent) => {
-            event.preventDefault()
-            event.stopPropagation()
-            const position = { pageX: event.pageX, pageY: event.pageY }
-            setModal(
-              <ContextMenus
-                ref={element => {
-                  if (element != null) {
-                    const rect = element.getBoundingClientRect()
-                    position.pageX = rect.left
-                    position.pageY = rect.top
-                  }
-                }}
-                key={userGroup.id}
-                event={event}
-              >
-                <ContextMenu aria-label={getText('userGroupUserContextMenuLabel')}>
-                  <ContextMenuEntry
-                    action="delete"
-                    doAction={() => {
-                      setModal(
-                        <ConfirmDeleteModal
-                          event={position}
-                          actionText={getText(
-                            'removeUserFromUserGroupActionText',
-                            user.name,
-                            userGroup.groupName
-                          )}
-                          doDelete={() => {
-                            doRemoveUserFromUserGroup(user, userGroup)
-                          }}
-                        />
-                      )
-                    }}
-                  />
-                </ContextMenu>
-              </ContextMenus>
-            )
-          }
-          row.addEventListener('contextmenu', onContextMenu)
-          cleanupRef.current = () => {
-            row.removeEventListener('contextmenu', onContextMenu)
-          }
-        }
-      }}
+      ref={contextMenuRef}
     >
       <aria.Cell
         ref={tooltipTargetRef}
