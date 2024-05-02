@@ -40,7 +40,8 @@ public class ExcelRow {
         if (DateUtil.isCellDateFormatted(cell) && DateUtil.isValidExcelDate(dblValue)) {
           var dateTime = DateUtil.getLocalDateTime(dblValue);
           var dateFormat = cell.getCellStyle().getDataFormatString();
-          var hasTime = dateFormat.contains("h") || dateFormat.contains("H");
+          var hasTime =
+              dateFormat.contains("h") || dateFormat.contains("H") || dateTime.getHour() != 0;
           var hasDate =
               dateFormat.contains("d")
                   || dateFormat.contains("D")
