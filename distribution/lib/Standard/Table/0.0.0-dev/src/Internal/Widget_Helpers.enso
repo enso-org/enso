@@ -157,7 +157,7 @@ make_join_kind_selector display=Display.Always =
 
 ## PRIVATE
    Make a join condition selector.
-make_join_condition_selector : Table -> Display -> Widget
+make_join_condition_selector : Table -> Display -> Any -> Widget
 make_join_condition_selector table display=Display.Always cache=Nothing =
     right = cache.if_not_nothing <| cache "right"
     self_selector = make_column_name_selector table display=Display.Always

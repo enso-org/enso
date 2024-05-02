@@ -230,7 +230,7 @@ add_specs suite_builder setup =
 
         group_builder.specify "should gracefully handle columns from different backends" <|
             t1 = table_builder [["A", [1, 2, 3]]]
-            alternative_connection = Database.connect (SQLite In_Memory)
+            alternative_connection = Database.connect (SQLite.In_Memory)
             t0 = (Table.new [["X", [3, 2, 1]]]).select_into_database_table alternative_connection "T0" temporary=True
             c0 = t0.at "X"
 

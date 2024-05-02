@@ -190,12 +190,7 @@ const graphBindingsHandler = graphBindings.handler({
       createWithComponentBrowser(fromSelection() ?? { placement: { type: 'mouse' } })
     }
   },
-  deleteSelected() {
-    graphStore.transact(() => {
-      graphStore.deleteNodes([...nodeSelection.selected])
-      nodeSelection.selected.clear()
-    })
-  },
+  deleteSelected,
   zoomToSelected() {
     zoomToSelected()
   },
@@ -261,6 +256,13 @@ const { handleClick } = useDoubleClick(
     stackNavigator.exitNode()
   },
 )
+
+function deleteSelected() {
+  graphStore.transact(() => {
+    graphStore.deleteNodes([...nodeSelection.selected])
+    nodeSelection.selected.clear()
+  })
+}
 
 // === Code Editor ===
 
@@ -611,6 +613,7 @@ const groupColors = computed(() => {
       @toggleCodeEditor="toggleCodeEditor"
       @collapseNodes="collapseNodes"
       @toggleColorPicker="toggleColorPicker"
+      @removeNodes="deleteSelected"
     />
     <PlusButton @pointerdown.stop @click.stop="addNodeAuto()" @pointerup.stop />
     <Transition>

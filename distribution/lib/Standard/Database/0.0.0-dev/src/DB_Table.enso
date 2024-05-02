@@ -2746,7 +2746,7 @@ type DB_Table
              from Standard.Database import all
 
              example_to_csv =
-                 connection = Database.connect (SQLite (File.new "db.sqlite"))
+                 connection = Database.connect (SQLite.From_File (File.new "db.sqlite"))
                  table = connection.query (SQL_Query.Table_Name "Table")
                  table.write (enso_project.data / "example_csv_output.csv")
     @path (Widget.Text_Input display=Display.Always)

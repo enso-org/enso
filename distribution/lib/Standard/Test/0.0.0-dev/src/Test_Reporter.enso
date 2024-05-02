@@ -106,7 +106,7 @@ print_report (test_results : Vector Test_Result) (config : Suite_Config) (builde
         print_group_report group_name group_results config builder
 
 ## Prints a pending group, optionally writing it to a jUnit XML output.
-print_pending_group : Group -> Vector -> Suite_Config -> (StringBuilder | Nothing) -> Nothing
+print_pending_group : Group -> Suite_Config -> (StringBuilder | Nothing) -> Nothing
 print_pending_group group config builder =
     assert group.pending.is_nothing.not "Group in print_pending_group should be pending"
     if config.should_output_junit then

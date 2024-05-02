@@ -434,7 +434,7 @@ run_union_tests group_builder setup call_union =
     group_builder.specify "should gracefully handle tables from different backends" <|
         t1 = table_builder [["A", [1, 2, 3]], ["B", ["a", "b", "c"]]]
 
-        alternative_connection = Database.connect (SQLite In_Memory)
+        alternative_connection = Database.connect (SQLite.In_Memory)
         t0 = (Table.new [["A", [1, 2, 4]], ["B", ["10", "20", "30"]]]).select_into_database_table alternative_connection "T0" temporary=True
 
         r1 = call_union [t1, t0]

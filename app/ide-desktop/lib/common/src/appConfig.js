@@ -47,7 +47,9 @@ export async function readEnvironmentFromFile() {
         if (!isProduction || entries.length > 0) {
             Object.assign(process.env, variables)
         }
+        // @ts-expect-error This is the only file where `process.env` should be written to.
         process.env.ENSO_CLOUD_DASHBOARD_VERSION ??= BUILD_INFO.version
+        // @ts-expect-error This is the only file where `process.env` should be written to.
         process.env.ENSO_CLOUD_DASHBOARD_COMMIT_HASH ??= BUILD_INFO.commit
     } catch (error) {
         if (missingKeys.length !== 0) {
@@ -101,6 +103,9 @@ export function getDefines(serverPort = 8080) {
         ),
         'process.env.ENSO_CLOUD_COGNITO_DOMAIN': stringify(process.env.ENSO_CLOUD_COGNITO_DOMAIN),
         'process.env.ENSO_CLOUD_COGNITO_REGION': stringify(process.env.ENSO_CLOUD_COGNITO_REGION),
+        'process.env.ENSO_CLOUD_GOOGLE_ANALYTICS_TAG': stringify(
+            process.env.ENSO_CLOUD_GOOGLE_ANALYTICS_TAG
+        ),
         'process.env.ENSO_CLOUD_DASHBOARD_VERSION': stringify(
             process.env.ENSO_CLOUD_DASHBOARD_VERSION
         ),
@@ -134,6 +139,7 @@ const DUMMY_DEFINES = {
 /** Load test environment variables, useful for when the Cloud backend is mocked or unnecessary. */
 export function loadTestEnvironmentVariables() {
     for (const [k, v] of Object.entries(DUMMY_DEFINES)) {
+        // @ts-expect-error This is the only file where `process.env` should be written to.
         process.env[k.replace(/^process[.]env[.]/, '')] = v
     }
 }
