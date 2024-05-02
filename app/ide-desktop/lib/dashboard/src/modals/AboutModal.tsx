@@ -3,6 +3,8 @@ import * as React from 'react'
 
 import LogoIcon from 'enso-assets/enso_logo.svg'
 
+import * as text from '#/text'
+
 import * as textProvider from '#/providers/TextProvider'
 
 import * as aria from '#/components/aria'
@@ -35,6 +37,24 @@ export default function AboutModal(props: AboutModalProps) {
   const [isCopied, setIsCopied] = React.useState(false)
   const textContainerRef = React.useRef<HTMLTableSectionElement | null>(null)
 
+  const versionsEntries = (
+    window.versionInfo != null
+      ? ([
+          ['version', window.versionInfo.version],
+          ['build', window.versionInfo.build],
+          ['electronVersion', window.versionInfo.electron],
+          ['chromeVersion', window.versionInfo.chrome],
+        ] as const)
+      : [
+          ...(process.env.ENSO_CLOUD_DASHBOARD_VERSION == null
+            ? []
+            : ([['version', process.env.ENSO_CLOUD_DASHBOARD_VERSION]] as const)),
+          ...(process.env.ENSO_CLOUD_DASHBOARD_COMMIT_HASH == null
+            ? []
+            : ([['build', process.env.ENSO_CLOUD_DASHBOARD_COMMIT_HASH]] as const)),
+        ]
+  ) satisfies readonly (readonly [text.TextId, string])[]
+
   const doCopy = () => {
     const textContainer = textContainerRef.current
     if (textContainer == null) {
@@ -45,11 +65,11 @@ export default function AboutModal(props: AboutModalProps) {
       if (firstChild != null && lastChild != null) {
         getSelection()?.setBaseAndExtent(firstChild, 0, lastChild, 2)
       }
-      const texts = Array.from(
-        textContainer.children,
-        element => `${element.children[0]?.textContent} ${element.children[1]?.textContent}`
-      )
-      void navigator.clipboard.writeText(texts.join('\n'))
+      const lines = versionsEntries.map(entry => {
+        const [textId, version] = entry
+        return `${getText(textId)} ${version}`
+      })
+      void navigator.clipboard.writeText(lines.join('\n'))
       if (!isCopied) {
         setIsCopied(true)
         setTimeout(() => {
@@ -72,45 +92,15 @@ export default function AboutModal(props: AboutModalProps) {
           </div>
           <table>
             <tbody ref={textContainerRef}>
-              {window.versionInfo != null ? (
-                <>
-                  <tr>
-                    <td className="whitespace-nowrap pr-cell-x">{getText('version')}</td>
-                    <td>{window.versionInfo.version}</td>
+              {versionsEntries.map(entry => {
+                const [textId, version] = entry
+                return (
+                  <tr key={textId}>
+                    <td className="whitespace-nowrap pr-cell-x">{getText(textId)}</td>
+                    <td>{version}</td>
                   </tr>
-                  <tr>
-                    <td className="whitespace-nowrap pr-cell-x">{getText('build')}</td>
-                    <td>{window.versionInfo.build}</td>
-                  </tr>
-                  <tr>
-                    <td className="whitespace-nowrap pr-cell-x">{getText('electronVersion')}</td>
-                    <td>{window.versionInfo.electron}</td>
-                  </tr>
-                  <tr>
-                    <td className="whitespace-nowrap pr-cell-x">{getText('chromeVersion')}</td>
-                    <td>{window.versionInfo.chrome}</td>
-                  </tr>
-                </>
-              ) : (
-                <>
-                  {process.env.ENSO_CLOUD_DASHBOARD_VERSION != null && (
-                    <tr>
-                      <td className="whitespace-nowrap pr-cell-x">{getText('version')}</td>
-                      <td>{process.env.ENSO_CLOUD_DASHBOARD_VERSION}</td>
-                    </tr>
-                  )}
-                  {process.env.ENSO_CLOUD_DASHBOARD_COMMIT_HASH != null && (
-                    <tr>
-                      <td className="whitespace-nowrap pr-cell-x">{getText('build')}</td>
-                      <td>{process.env.ENSO_CLOUD_DASHBOARD_COMMIT_HASH}</td>
-                    </tr>
-                  )}
-                </>
-              )}
-              <tr>
-                <td className="whitespace-nowrap pr-cell-x">{getText('userAgent')}</td>
-                <td>{navigator.userAgent}</td>
-              </tr>
+                )
+              })}
             </tbody>
           </table>
           <ButtonRow>
