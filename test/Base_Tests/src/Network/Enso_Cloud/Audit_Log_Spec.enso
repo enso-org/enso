@@ -13,9 +13,8 @@ add_specs suite_builder setup:Cloud_Tests_Setup =
     suite_builder.group "Enso Cloud Audit Log" pending=setup.pending group_builder->
         [False, True].each async->
             group_builder.specify "should be able to send a log message "+(if async then "(async)" else "(sync)") <|
-                before = Date_Time.now
                 random_payload = "payload-" + Random.uuid
-                Audit_Log.report_event "TestEvent" "Message" (JS_Object.from_pairs [["my_field", random_payload]]) async=async
+                Audit_Log.report_event "TestEvent" "Message" (JS_Object.from_pairs [["my_field", random_payload]]) async=async . should_succeed
                 my_event = Test.with_retries <|
                     event = Test_Utils.get_audit_log_events . find ev-> (ev.metadata.get "my_field") == random_payload
                     event.should_succeed
@@ -25,12 +24,26 @@ add_specs suite_builder setup:Cloud_Tests_Setup =
 
                 # TODO this test should be re-enabled after https://github.com/enso-org/enso/issues/9845 is fixed
                 #my_event.metadata.get "projectName" . should_equal "enso_dev.Base_Tests"
-                (my_event.timestamp > before).should_be_true
 
                 ## TODO this test should be replaced with
                    my_event.message . should_equal "Message"
                    once Cloud is updated
                 my_event.metadata.get "message" . should_equal "Message"
+
+        group_builder.specify "will include the project id in the log message, if provided by the Cloud" <|
+            example_project_id = "project-27xJM00p8jWoL2qByTo6tQfciWC"
+            Test_Environment.unsafe_with_environment_override "ENSO_CLOUD_PROJECT_ID" example_project_id <|
+                random_payload = "payload-" + Random.uuid
+                Audit_Log.report_event "TestEventInCloud" "Message⛅" (JS_Object.from_pairs [["my_field", random_payload]]) async=False . should_succeed
+                my_event = Test.with_retries <|
+                    event = Test_Utils.get_audit_log_events . find ev-> (ev.metadata.get "my_field") == random_payload
+                    event.should_succeed
+                    event
+
+                ## TODO this test should be replaced with
+                   my_event.project_id . should_equal example_project_id
+                   once Cloud is updated
+                my_event.metadata.get "projectId" . should_equal example_project_id
 
         group_builder.specify "does not allow restricted fields in metadata" <|
             Audit_Log.report_event "TestEventType" "Message" (JS_Object.from_pairs [["type", "my type override?"]]) . should_fail_with Illegal_Argument

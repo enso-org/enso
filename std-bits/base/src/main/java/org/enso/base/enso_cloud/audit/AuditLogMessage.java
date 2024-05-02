@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.node.NullNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.databind.node.TextNode;
 import org.enso.base.CurrentEnsoProject;
+import org.enso.base.enso_cloud.CloudAPI;
 
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
@@ -18,11 +19,11 @@ public class AuditLogMessage implements AuditLogAPI.LogMessage {
   private final static String RESERVED_TYPE = "type";
   private final static String OPERATION = "operation";
   private final static String PROJECT_NAME = "projectName";
+  private final static String PROJECT_ID = "projectId";
   private final static String LOCAL_TIMESTAMP = "localTimestamp";
 
   private final String projectId;
   private final String projectName;
-  private final ZonedDateTime localTimestamp;
   private final String operation;
   private final String message;
   private final ObjectNode metadata;
@@ -38,12 +39,12 @@ public class AuditLogMessage implements AuditLogAPI.LogMessage {
 
     // FIXME this is temporary
     checkNoRestrictedField(metadata, "message");
+    checkNoRestrictedField(metadata, "projectId");
 
-    // TODO
-    this.projectId = null;
+    this.projectId = CloudAPI.getCloudProjectId();
+
     var currentProject = CurrentEnsoProject.get();
     this.projectName = currentProject == null ? null : currentProject.fullName();
-    this.localTimestamp = ZonedDateTime.now();
   }
 
   private static void checkNoRestrictedField(ObjectNode metadata, String fieldName) {
@@ -63,6 +64,7 @@ public class AuditLogMessage implements AuditLogAPI.LogMessage {
 
     // FIXME this is a temporary workaround for bug in Cloud API
     copy.set("message", TextNode.valueOf(message));
+    copy.set(PROJECT_ID, projectId == null ? NullNode.getInstance() : TextNode.valueOf(projectId));
 
     return copy;
   }
