@@ -13,7 +13,9 @@ import BUILD_INFO from '../../../../../build.json' assert { type: 'json' }
  * environment variable. Reads from `.env` if the variable is `production`, blank or absent.
  * DOES NOT override existing environment variables if the variable is absent. */
 export async function readEnvironmentFromFile() {
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
     const environment = process.env.ENSO_CLOUD_ENVIRONMENT ?? null
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
     const isProduction = environment == null || environment === '' || environment === 'production'
     const fileName = isProduction ? '.env' : `.${environment}.env`
     const filePath = path.join(url.fileURLToPath(new URL('../../..', import.meta.url)), fileName)
@@ -40,6 +42,7 @@ export async function readEnvironmentFromFile() {
         if (isProduction) {
             entries = entries.filter(kv => {
                 const [k] = kv
+                // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
                 return process.env[k] == null
             })
         }
