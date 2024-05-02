@@ -121,7 +121,7 @@ pub fn is_already_running(install_dir: &Path, ignored_pids: &[Pid]) -> Result<Op
     let mut sys = sysinfo::System::new();
     sys.refresh_processes();
     for (pid, process) in sys.processes() {
-        if ignored_pids.contains(&pid) {
+        if ignored_pids.contains(pid) {
             trace!("Process {} ({}) is ignored.", process.name(), pid);
             continue;
         }

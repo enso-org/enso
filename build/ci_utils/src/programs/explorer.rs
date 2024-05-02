@@ -29,6 +29,7 @@ pub fn show_selected(path: impl AsRef<Path>) -> Result {
 
 #[cfg(test)]
 mod tests {
+    #[allow(unused_imports)]
     use super::*;
 
     #[cfg(windows)]
