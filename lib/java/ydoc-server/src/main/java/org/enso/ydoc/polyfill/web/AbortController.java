@@ -1,6 +1,5 @@
 package org.enso.ydoc.polyfill.web;
 
-import java.util.UUID;
 import org.enso.ydoc.polyfill.Arguments;
 import org.enso.ydoc.polyfill.PolyfillBase;
 import org.graalvm.polyglot.Value;
