@@ -646,7 +646,8 @@ public final class Main {
    *     ignored.
    * @param inspect shall inspect option be enabled
    * @param dump shall graphs be sent to the IGV
-   * @param executionEnvironment optional name of the execution environment to use during execution
+   * @param executionEnvironment name of the execution environment to use during execution or {@code
+   *     null}
    */
   private void run(
       String path,
@@ -659,7 +660,7 @@ public final class Main {
       boolean enableAutoParallelism,
       boolean inspect,
       boolean dump,
-      scala.Option<String> executionEnvironment,
+      String executionEnvironment,
       int warningsLimit)
       throws IOException {
     var fileAndProject = Utils.findFileAndProject(path, projectPath);
@@ -689,8 +690,7 @@ public final class Main {
             .disablePrivateCheck(disablePrivateCheck)
             .strictErrors(true)
             .enableAutoParallelism(enableAutoParallelism)
-            .executionEnvironment(
-                executionEnvironment.isDefined() ? executionEnvironment.get() : null)
+            .executionEnvironment(executionEnvironment != null ? executionEnvironment : "live")
             .warningsLimit(warningsLimit)
             .options(options)
             .build();
@@ -805,18 +805,18 @@ public final class Main {
       java.util.List<String> additionalArgs) {
     var topScope = context.getTopScope();
     var mainModule = topScope.getModule(mainModuleName);
-    runMain(mainModule, scala.Option.apply(projectPath), additionalArgs, "main");
+    runMain(mainModule, projectPath, additionalArgs, "main");
   }
 
   private void runSingleFile(
       PolyglotContext context, File file, java.util.List<String> additionalArgs) {
     var mainModule = context.evalModule(file);
-    runMain(mainModule, scala.Option.apply(file), additionalArgs, "main");
+    runMain(mainModule, file, additionalArgs, "main");
   }
 
   private void runMain(
       Module mainModule,
-      scala.Option<File> rootPkgPath,
+      File rootPkgPath,
       java.util.List<String> additionalArgs,
       String mainMethodName // = "main"
       ) {
@@ -896,7 +896,7 @@ public final class Main {
             .enableIrCaches(enableIrCaches)
             .build();
     var mainModule = context.evalModule(dummySourceToTriggerRepl, replModuleName);
-    runMain(mainModule, scala.Option.empty(), Collections.emptyList(), mainMethodName);
+    runMain(mainModule, null, Collections.emptyList(), mainMethodName);
     throw exitSuccess();
   }
 
@@ -1051,8 +1051,7 @@ public final class Main {
           line.hasOption(AUTO_PARALLELISM_OPTION),
           line.hasOption(INSPECT_OPTION),
           line.hasOption(DUMP_GRAPHS_OPTION),
-          scala.Option.apply(line.getOptionValue(EXECUTION_ENVIRONMENT_OPTION))
-              .orElse(() -> scala.Option.apply("live")),
+          line.getOptionValue(EXECUTION_ENVIRONMENT_OPTION),
           scala.Option.apply(line.getOptionValue(WARNINGS_LIMIT))
               .map(Integer::parseInt)
               .getOrElse(() -> 100));
@@ -1272,7 +1271,7 @@ public final class Main {
     println("        at <" + langId + "> " + fmtFrame);
   }
 
-  private void printPolyglotException(PolyglotException exception, scala.Option<File> relativeTo) {
+  private void printPolyglotException(PolyglotException exception, File relativeTo) {
     var fullStackReversed = new LinkedList<StackFrame>();
     for (var e : exception.getPolyglotStackTrace()) {
       fullStackReversed.addFirst(e);
@@ -1286,16 +1285,15 @@ public final class Main {
     var msg = HostEnsoUtils.findExceptionMessage(exception);
     println("Execution finished with an error: " + msg);
 
-    var r = relativeTo.getOrElse(() -> (File) null);
     if (exception.isSyntaxError()) {
       // no stack
     } else if (dropInitJava.isEmpty()) {
       for (var f : exception.getPolyglotStackTrace()) {
-        printFrame(f, r);
+        printFrame(f, relativeTo);
       }
     } else {
       for (var f : dropInitJava) {
-        printFrame(f, r);
+        printFrame(f, relativeTo);
       }
     }
   }
