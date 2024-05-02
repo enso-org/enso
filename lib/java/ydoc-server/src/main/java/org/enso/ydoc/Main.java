@@ -14,6 +14,8 @@ public class Main {
   private Main() {}
 
   public static void main(String[] args) throws Exception {
+    System.setProperty("helidon.serialFilter.pattern", "javax.management.**;java.lang.**;java.rmi.**;javax.security.auth.Subject;!*");
+
     var ydoc = Main.class.getResource(YDOC_SERVER_PATH);
     var contextBuilder = WebEnvironment.createContext().allowIO(IOAccess.ALL);
 
