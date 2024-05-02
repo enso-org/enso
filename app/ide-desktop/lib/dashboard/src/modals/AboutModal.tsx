@@ -79,6 +79,7 @@ export default function AboutModal() {
 
   return (
     <aria.DialogTrigger defaultOpen>
+      <aria.Button className="h w" />
       <ariaComponents.Dialog className="w-[30rem]">
         <div className="relative flex items-center gap-4">
           <SvgMask src={LogoIcon} className="size-16 shrink-0" />

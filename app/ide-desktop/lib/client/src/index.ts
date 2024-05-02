@@ -312,13 +312,16 @@ class App {
                         : {}),
                 }
                 const window = new electron.BrowserWindow(windowPreferences)
-                window.setMenuBarVisibility(false)
+                window.setMenuBarVisibility(true)
                 const oldMenu = electron.Menu.getApplicationMenu()
                 if (oldMenu != null) {
                     const items = oldMenu.items.map(item => {
                         if (item.role !== 'help') {
                             return item
                         } else {
+                            // `click` is a property that is intentionally removed from this
+                            // destructured object, in order to satisfy TypeScript.
+                            // eslint-disable-next-line @typescript-eslint/no-unused-vars
                             const { click, ...passthrough } = item
                             return new electron.MenuItem({
                                 ...passthrough,

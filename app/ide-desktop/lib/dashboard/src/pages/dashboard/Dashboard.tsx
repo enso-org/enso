@@ -318,18 +318,6 @@ export default function Dashboard(props: DashboardProps) {
     }
   }, [page, /* should never change */ localStorage])
 
-  React.useEffect(() => {
-    const onClick = () => {
-      if (getSelection()?.type !== 'Range') {
-        unsetModal()
-      }
-    }
-    document.addEventListener('click', onClick)
-    return () => {
-      document.removeEventListener('click', onClick)
-    }
-  }, [/* should never change */ unsetModal])
-
   React.useEffect(
     () =>
       inputBindings.attach(sanitizedEventTargets.document.body, 'keydown', {
