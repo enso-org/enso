@@ -91,7 +91,7 @@ export const args: Arguments = await yargs(process.argv.slice(2))
 // ======================================
 
 /** Based on the given arguments, creates a configuration for the Electron Builder. */
-export function createElectronBuilderConfig(passedArgs: Arguments) {
+export function createElectronBuilderConfig(passedArgs: Arguments): electronBuilder.Configuration {
     let version = BUILD_INFO.version
     if (passedArgs.target === 'msi') {
         // MSI installer imposes some restrictions on the version number. Namely, product version must have a major
