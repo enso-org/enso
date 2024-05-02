@@ -83,7 +83,7 @@ public final class Main {
   private static final String NO_IR_CACHES_OPTION = "no-ir-caches";
   private static final String NO_READ_IR_CACHES_OPTION = "no-read-ir-caches";
   private static final String DISABLE_PRIVATE_CHECK_OPTION = "disable-private-check";
-  private static final String ENABLE_STATIC_ANALYSIS_OPTION  = "enable-static-analysis";
+  private static final String ENABLE_STATIC_ANALYSIS_OPTION = "enable-static-analysis";
   private static final String COMPILE_OPTION = "compile";
   private static final String NO_COMPILE_DEPENDENCIES_OPTION = "no-compile-dependencies";
   private static final String NO_GLOBAL_CACHE_OPTION = "no-global-cache";
@@ -440,10 +440,11 @@ public final class Main {
             .longOpt(DISABLE_PRIVATE_CHECK_OPTION)
             .desc("Disables private module checking at runtime. Useful for tests.")
             .build();
-    var enableStaticAnalysisOption = cliOptionBuilder()
-        .longOpt(ENABLE_STATIC_ANALYSIS_OPTION)
-        .desc("Enable static analysis (Experimental type inference).")
-        .build();
+    var enableStaticAnalysisOption =
+        cliOptionBuilder()
+            .longOpt(ENABLE_STATIC_ANALYSIS_OPTION)
+            .desc("Enable static analysis (Experimental type inference).")
+            .build();
 
     var options = new Options();
     options
@@ -881,7 +882,11 @@ public final class Main {
    * @param enableStaticAnalysis whether or not static type checking should be enabled
    */
   private void runRepl(
-      String projectPath, Level logLevel, boolean logMasking, boolean enableIrCaches, boolean enableStaticAnalysis) {
+      String projectPath,
+      Level logLevel,
+      boolean logMasking,
+      boolean enableIrCaches,
+      boolean enableStaticAnalysis) {
     var mainMethodName = "internal_repl_entry_point___";
     var dummySourceToTriggerRepl =
         """
@@ -1051,8 +1056,7 @@ public final class Main {
           shouldUseGlobalCache,
           line.hasOption(ENABLE_STATIC_ANALYSIS_OPTION),
           logLevel,
-          logMasking
-      );
+          logMasking);
     }
 
     if (line.hasOption(RUN_OPTION)) {
@@ -1071,8 +1075,7 @@ public final class Main {
           line.getOptionValue(EXECUTION_ENVIRONMENT_OPTION),
           scala.Option.apply(line.getOptionValue(WARNINGS_LIMIT))
               .map(Integer::parseInt)
-              .getOrElse(() -> 100)
-      );
+              .getOrElse(() -> 100));
     }
     if (line.hasOption(REPL_OPTION)) {
       runRepl(
@@ -1080,8 +1083,7 @@ public final class Main {
           logLevel,
           logMasking,
           shouldEnableIrCaches(line),
-          line.hasOption(ENABLE_STATIC_ANALYSIS_OPTION)
-      );
+          line.hasOption(ENABLE_STATIC_ANALYSIS_OPTION));
     }
     if (line.hasOption(DOCS_OPTION)) {
       genDocs(
