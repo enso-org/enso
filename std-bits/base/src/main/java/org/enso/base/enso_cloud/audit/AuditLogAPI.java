@@ -11,7 +11,7 @@ import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
-import java.util.concurrent.SynchronousQueue;
+import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Logger;
@@ -25,29 +25,41 @@ class AuditLogAPI {
 
   private AuditLogAPI() {
     // A thread pool that creates at most one thread, only when it is needed, and shuts it down after 60 seconds of inactivity.
-    executorService = new ThreadPoolExecutor(0, 1, 60L, TimeUnit.SECONDS, new SynchronousQueue<>());
+    // TODO we may want to set a maximum capacity to the queue and think how we deal with situations when logs are added faster than they can be processed
+    executorService = new ThreadPoolExecutor(0, 1, 60L, TimeUnit.SECONDS, new LinkedBlockingQueue<>());
   }
 
   public void logSync(LogMessage message) {
-    sendLogRequest(message.payload(), 5);
+    var request = buildRequest(message);
+    sendLogRequest(request, 5);
   }
 
   public Future<Void> logAsync(LogMessage message) {
+    // We build the request on the main thread where the Enso Context is readily accessible - as we need to access the `Authentication_Service`.
+    var request = buildRequest(message);
     return executorService.submit(() -> {
-      logSync(message);
+      try {
+        sendLogRequest(request, 5);
+      } catch (RequestFailureException e) {
+        throw e;
+      } catch (Exception e) {
+        logger.severe("Unexpected exception when sending a log message: " + e.getMessage());
+        throw e;
+      }
       return null;
     });
   }
 
-  private void sendLogRequest(String payload, int retryCount) throws RequestFailureException {
+  private HttpRequest buildRequest(LogMessage message) {
     var apiUri = CloudAPI.getAPIRootURI() + "logs";
-    var request =
-        HttpRequest.newBuilder()
+    return HttpRequest.newBuilder()
             .uri(URI.create(apiUri))
             .header("Authorization", "Bearer " + AuthenticationProvider.getAccessToken())
-            .POST(HttpRequest.BodyPublishers.ofString(payload, StandardCharsets.UTF_8))
+            .POST(HttpRequest.BodyPublishers.ofString(message.payload(), StandardCharsets.UTF_8))
             .build();
+  }
 
+  private void sendLogRequest(HttpRequest request, int retryCount) throws RequestFailureException {
     try {
       try {
         HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
@@ -59,15 +71,13 @@ class AuditLogAPI {
         throw new RequestFailureException(e.getMessage(), e);
       }
     } catch (RequestFailureException e) {
-      System.out.println("Failed to send log message: " + e.getMessage());
-      System.out.flush();
       if (retryCount < 0) {
         logger.severe("Failed to send log message after retrying: " + e.getMessage());
         failedLogCount++;
         throw e;
       } else {
         logger.warning("Exception when sending a log message: " + e.getMessage() + ". Retrying...");
-        sendLogRequest(payload, retryCount - 1);
+        sendLogRequest(request, retryCount - 1);
       }
     }
   }

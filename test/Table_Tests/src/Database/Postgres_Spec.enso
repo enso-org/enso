@@ -20,6 +20,7 @@ from Standard.Database.Internal.Postgres.Postgres_Connection import parse_postgr
 from Standard.Test import all
 import Standard.Test.Test_Environment
 
+import project.Database.Common.Audit_Spec
 import project.Database.Common.Common_Spec
 import project.Database.Transaction_Spec
 import project.Database.Upload_Spec
@@ -878,9 +879,9 @@ add_data_link_specs suite_builder =
         temp_file = File.create_temporary_file base_file.name base_file.extension
         Data_Link.write_raw_config temp_file new_content replace_existing=True . if_not_error temp_file
 
+    data_link_file = transform_file (enso_project.data / "datalinks" / "postgres-db.datalink")
     suite_builder.group "[PostgreSQL] DataLink" pending=pending group_builder->
         group_builder.specify "should be able to open a datalink setting up a connection to the database" <|
-            data_link_file = transform_file (enso_project.data / "datalinks" / "postgres-db.datalink")
 
             data_link_connection = Data.read data_link_file
             Panic.with_finalizer data_link_connection.close <|
@@ -935,6 +936,8 @@ add_data_link_specs suite_builder =
             r = Data.download url target_file
             r.should_fail_with Illegal_Argument
             r.catch.to_display_text . should_contain "The Postgres Data Link cannot be saved to a file."
+
+    Audit_Spec.add_specs suite_builder "[PostgreSQL] " data_link_file.read
 
 
 add_specs suite_builder =

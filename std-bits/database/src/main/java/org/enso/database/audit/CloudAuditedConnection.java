@@ -39,6 +39,7 @@ public final class CloudAuditedConnection extends AuditedConnection {
 
   @Override
   protected void auditTransaction(String operation) {
-    audit("transaction", operation);
+    // As long as our logs don't guarantee ordering, reporting transaction commit/rollback is not too helpful.
+    // So we just ignore it.
   }
 }

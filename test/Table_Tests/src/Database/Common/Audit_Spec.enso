@@ -1,0 +1,34 @@
+from Standard.Base import all
+
+from Standard.Table import Table
+
+from Standard.Database import all
+
+from Standard.Test import all
+
+import enso_dev.Base_Tests.Network.Enso_Cloud.Cloud_Tests_Setup.Cloud_Tests_Setup
+
+from project.Util import all
+
+## Tests the audit capabilities of the connection.
+   It takes an already set-up audited connection (usually through a data link).
+add_specs suite_builder prefix audited_connection =
+    cloud_setup = Cloud_Tests_Setup.prepare
+    suite_builder.group prefix+" Audit Logs" pending=cloud_setup.pending group_builder->
+        group_builder.specify "should see Database operations performed on a table through the standard workflow" <|
+            table_name = "audited-table-"+Random.uuid
+            mem_table = Table.new [["X", [1, 2]], ["Y", ["my_payload", "foo"]]]
+            audited_table = mem_table.select_into_database_table audited_connection table_name temporary=True . should_succeed
+            audited_table.read . should_equal mem_table
+            audited_connection.drop_table table_name . should_succeed
+            # TODO check logs
+            # should_contain CREATE
+            # should_contain INSERT
+            # should_not_contain my_payload
+            # should_contain SELECT
+            # should_contain DROP
+
+        group_builder.specify "should see Database operations performed manually" <|
+            t = audited_connection.read "SELECT 1 AS A, 2 AS B, 3 AS C"
+            # TODO
+            t.at 0 . to_vector . should_equal [1]
