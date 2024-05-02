@@ -46,7 +46,7 @@
   --font-mono: 'DejaVu Sans Mono', /* System monspace font stack */ ui-monospace, Menlo, Monaco,
     'Cascadia Mono', 'Segoe UI Mono', 'Roboto Mono', 'Oxygen Mono', 'Ubuntu Monospace',
     'Source Code Pro', 'Fira Mono', 'Droid Sans Mono', 'Courier New', monospace;
-  --visualization-resize-handle-inside: 16px;
+  --visualization-resize-handle-inside: 3px;
   --visualization-resize-handle-outside: 3px;
 }
 
