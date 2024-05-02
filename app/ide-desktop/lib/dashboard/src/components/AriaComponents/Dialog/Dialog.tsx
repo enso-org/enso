@@ -48,6 +48,7 @@ export function Dialog(props: types.DialogProps) {
     className,
     ...ariaDialogProps
   } = props
+  const cleanupRef = React.useRef(() => {})
 
   const root = portal.useStrictPortalContext()
 
@@ -61,6 +62,20 @@ export function Dialog(props: types.DialogProps) {
       <aria.Dialog
         className={tailwindMerge.twMerge(DIALOG_CLASSES, DIALOG_CLASSES_BY_TYPE[type], className)}
         {...ariaDialogProps}
+        ref={element => {
+          cleanupRef.current()
+          if (element == null) {
+            cleanupRef.current = () => {}
+          } else {
+            const onClick = (event: Event) => {
+              event.stopPropagation()
+            }
+            element.addEventListener('click', onClick)
+            cleanupRef.current = () => {
+              element.removeEventListener('click', onClick)
+            }
+          }
+        }}
       >
         {opts => (
           <>

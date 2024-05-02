@@ -81,40 +81,42 @@ export default function AboutModal(props: AboutModalProps) {
   }
 
   return (
-    <ariaComponents.Dialog className="w-[30rem]">
-      <div className="relative flex items-center gap-4">
-        <SvgMask src={LogoIcon} className="size-16 shrink-0" />
-        <div className="flex flex-col gap-3">
-          <div className="text-base font-semibold">
-            {supportsLocalBackend
-              ? getText('appNameDesktopEdition')
-              : getText('appNameCloudEdition')}
+    <aria.DialogTrigger defaultOpen>
+      <ariaComponents.Dialog className="w-[30rem]">
+        <div className="relative flex items-center gap-4">
+          <SvgMask src={LogoIcon} className="size-16 shrink-0" />
+          <div className="flex flex-col gap-3">
+            <div className="text-base font-semibold">
+              {supportsLocalBackend
+                ? getText('appNameDesktopEdition')
+                : getText('appNameCloudEdition')}
+            </div>
+            <table>
+              <tbody ref={textContainerRef}>
+                {versionsEntries.map(entry => {
+                  const [textId, version] = entry
+                  return (
+                    <tr key={textId}>
+                      <td className="whitespace-nowrap pr-cell-x">{getText(textId)}</td>
+                      <td>{version}</td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+            <ButtonRow>
+              <UnstyledButton
+                className="button relative bg-invite text-inversed active"
+                onPress={doCopy}
+              >
+                <aria.Text className="text">
+                  {isCopied ? getText('copied') : getText('copy')}
+                </aria.Text>
+              </UnstyledButton>
+            </ButtonRow>
           </div>
-          <table>
-            <tbody ref={textContainerRef}>
-              {versionsEntries.map(entry => {
-                const [textId, version] = entry
-                return (
-                  <tr key={textId}>
-                    <td className="whitespace-nowrap pr-cell-x">{getText(textId)}</td>
-                    <td>{version}</td>
-                  </tr>
-                )
-              })}
-            </tbody>
-          </table>
-          <ButtonRow>
-            <UnstyledButton
-              className="button relative bg-invite text-inversed active"
-              onPress={doCopy}
-            >
-              <aria.Text className="text">
-                {isCopied ? getText('copied') : getText('copy')}
-              </aria.Text>
-            </UnstyledButton>
-          </ButtonRow>
         </div>
-      </div>
-    </ariaComponents.Dialog>
+      </ariaComponents.Dialog>
+    </aria.DialogTrigger>
   )
 }
