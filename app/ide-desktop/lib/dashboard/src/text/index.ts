@@ -45,7 +45,7 @@ interface PlaceholderOverrides {
   readonly userIsAlreadyInTheOrganization: [string]
   readonly youAreAlreadyAddingUser: [string]
   readonly lastModifiedOn: [string]
-  readonly versionX: [string]
+  readonly versionX: [version: number | string]
   readonly buildX: [build: string]
   readonly electronVersionX: [electronVersion: string]
   readonly chromeVersionX: [chromeVersion: string]
