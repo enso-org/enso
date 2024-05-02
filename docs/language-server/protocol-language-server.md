@@ -5236,7 +5236,10 @@ interface AiCompletionResultFailure {
 
 #### Errors
 
-TBD
+- [`AiHttpError`](#aihttperror) Signals about an error during the processing of
+  AI http respnse.
+- [`AiEvaluationError`](#aievaluationerror) Signals about an error during the
+  evaluation of expression requested by AI.
 
 ### `ai/completionProgress`
 
@@ -5847,5 +5850,36 @@ Signals that the refactoring of the given expression is not supported.
 "error" : {
   "code" : 9003,
   "message" : "Refactoring not supported for expression [<expression-id>]"
+}
+```
+
+### `AiHttpError`
+
+Signals about an error during the processing of AI http respnse.
+
+```typescript
+"error" : {
+  "code" : 10001,
+  "message" : "Failed to process HTTP response",
+  "payload" : {
+    "reason" : "<Failure reason>",
+    "request" : "<HTTP request sent>",
+    "response" : "<HTTP response received>"
+  }
+}
+```
+
+### `AiEvaluationError`
+
+Signals about an error during the evaluation of expression requested by AI.
+
+```typescript
+"error" : {
+  "code" : 10002,
+  "message" : "Failed to execute expression",
+  "payload" : {
+    "expression" : "<Evaluated expression>",
+    "error" : "<The evaluation error message>"
+  }
 }
 ```

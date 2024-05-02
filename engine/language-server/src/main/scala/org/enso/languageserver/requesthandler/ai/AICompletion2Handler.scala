@@ -1,6 +1,6 @@
 package org.enso.languageserver.requesthandler.ai
 
-import akka.actor.{Actor, ActorRef, Props}
+import akka.actor.{Actor, ActorRef, PoisonPill, Props}
 import akka.http.scaladsl.Http
 import akka.http.scaladsl.model._
 import akka.http.scaladsl.model.headers.OAuth2BearerToken
@@ -12,9 +12,12 @@ import io.circe.Json
 import io.circe.syntax._
 import io.circe.generic.auto._
 import org.enso.jsonrpc._
-import org.enso.languageserver.ai.AiApi.AiCompletion2
-import org.enso.languageserver.ai.AiProtocol.{AiCompletionResult, AiEvalRequest}
-import org.enso.languageserver.ai.{AiApi, AiProtocol}
+import org.enso.languageserver.ai.AiApi.{
+  AiCompletion2,
+  AiEvaluationError,
+  AiHttpError
+}
+import org.enso.languageserver.ai.AiProtocol
 import org.enso.languageserver.data.AICompletionConfig
 import org.enso.languageserver.requesthandler.UnsupportedHandler
 import org.enso.languageserver.session.JsonSession
@@ -73,7 +76,8 @@ class AICompletion2Handler(
         ),
         AiProtocol.CompletionsMessage("user", prompt)
       )
-      sendHttpRequest(messages, model)
+      val httpReq   = sendHttpRequest(messages, model)
+      val debugInfo = DebugInfo(httpReq)
 
       context.become(
         awaitingCompletionResponse(
@@ -82,7 +86,8 @@ class AICompletion2Handler(
           contextId,
           expressionId,
           messages,
-          model
+          model,
+          debugInfo
         )
       )
   }
@@ -95,7 +100,7 @@ class AICompletion2Handler(
     messages: Vector[AiProtocol.CompletionsMessage],
     model: Option[String]
   ): Receive = LoggingReceive.withLabel("evalRequestStage") {
-    case req @ AiEvalRequest(reason, code) =>
+    case req @ AiProtocol.AiEvalRequest(reason, code) =>
       val requestId       = UUID.randomUUID()
       val visualizationId = UUID.randomUUID()
 
@@ -133,7 +138,7 @@ class AICompletion2Handler(
     contextId: Api.ContextId,
     expressionId: Api.ExpressionId,
     visualizationId: Api.VisualizationId,
-    request: AiEvalRequest,
+    request: AiProtocol.AiEvalRequest,
     messages: Vector[AiProtocol.CompletionsMessage],
     model: Option[String]
   ): Receive = LoggingReceive.withLabel("evalResponseStage") {
@@ -146,8 +151,8 @@ class AICompletion2Handler(
       )
       val newMessages = messages :+ message
 
-      sendHttpRequest(newMessages, model)
-
+      val httpReq   = sendHttpRequest(newMessages, model)
+      val debugInfo = DebugInfo(httpReq)
       context.become(
         awaitingCompletionResponse(
           id,
@@ -155,19 +160,16 @@ class AICompletion2Handler(
           contextId,
           expressionId,
           newMessages,
-          model
+          model,
+          debugInfo
         )
       )
 
     case Api.VisualizationEvaluationFailed(ctx, message, _)
         if ctx.visualizationId == visualizationId =>
-      val payload = Json.obj(
-        ("reason", "Failed to execute expression".asJson),
-        ("expression", request.code.asJson),
-        ("response", message.asJson)
-      )
-      replyTo ! ResponseError(Some(id), AiApi.AiError(Some(payload)))
-
+      val aiError = AiEvaluationError(request.code, message)
+      replyTo ! ResponseError(Some(id), aiError)
+      stop()
   }
 
   private def awaitingCompletionResponse(
@@ -176,7 +178,8 @@ class AICompletion2Handler(
     contextId: Api.ContextId,
     expressionId: Api.ExpressionId,
     messages: Vector[AiProtocol.CompletionsMessage],
-    model: Option[String]
+    model: Option[String],
+    debugInfo: DebugInfo
   ): Receive = LoggingReceive.withLabel("awaitingCompletionStage") {
     case HttpResponse(StatusCodes.OK, data) =>
       val responseUtf8String = data.utf8String
@@ -187,20 +190,24 @@ class AICompletion2Handler(
           getResponseKind(response) match {
             case Some("final") =>
               getFinalResult(response).fold {
-                val payload = Json.obj(
-                  ("reason", "Failed to parse final result".asJson),
-                  ("response", responseUtf8String.asJson)
+                val aiError = AiHttpError(
+                  "Failed to parse final kind of AI response",
+                  debugInfo.httpReq,
+                  responseUtf8String
                 )
-                replyTo ! ResponseError(Some(id), AiApi.AiError(Some(payload)))
+                replyTo ! ResponseError(Some(id), aiError)
               }(success => replyTo ! ResponseResult(AiCompletion2, id, success))
+              stop()
 
             case Some("eval") =>
               getEvalResult(response).fold {
-                val payload = Json.obj(
-                  ("reason", "Failed to parse eval result".asJson),
-                  ("response", responseUtf8String.asJson)
+                val aiError = AiHttpError(
+                  "Failed to parse eval kind of AI response",
+                  debugInfo.httpReq,
+                  responseUtf8String
                 )
-                replyTo ! ResponseError(Some(id), AiApi.AiError(Some(payload)))
+                replyTo ! ResponseError(Some(id), aiError)
+                stop()
               } { evalRequest =>
                 self ! evalRequest
                 context.become(
@@ -217,40 +224,50 @@ class AICompletion2Handler(
 
             case Some("fail") =>
               getFailResult(response).fold {
-                val payload = Json.obj(
-                  ("reason", "Failed to parse fail result".asJson),
-                  ("response", responseUtf8String.asJson)
+                val aiError = AiHttpError(
+                  "Failed to parse fail kind of AI response",
+                  debugInfo.httpReq,
+                  responseUtf8String
                 )
-                replyTo ! ResponseError(Some(id), AiApi.AiError(Some(payload)))
+                replyTo ! ResponseError(Some(id), aiError)
               }(fail => replyTo ! ResponseResult(AiCompletion2, id, fail))
+              stop()
 
             case _ =>
-              val payload = Json.obj(
-                ("reason", "Unknown `kind` key".asJson),
-                ("response", responseUtf8String.asJson)
+              val aiError = AiHttpError(
+                "Unknown kind of AI response",
+                debugInfo.httpReq,
+                responseUtf8String
               )
-              replyTo ! ResponseError(Some(id), AiApi.AiError(Some(payload)))
+              replyTo ! ResponseError(Some(id), aiError)
+              stop()
           }
 
         case None =>
-          val payload = Json.obj(
-            ("reason", "Failed to parse AI response as JSON".asJson),
-            ("response", data.utf8String.asJson)
+          val aiError = AiHttpError(
+            "Failed to parse AI response as JSON",
+            debugInfo.httpReq,
+            data.utf8String
           )
-          replyTo ! ResponseError(Some(id), AiApi.AiError(Some(payload)))
+          replyTo ! ResponseError(Some(id), aiError)
+          stop()
       }
 
     case HttpResponse(status, data) =>
-      replyTo ! ResponseError(
-        Some(id),
-        Errors.UnknownError(status.intValue(), data.utf8String, None)
-      )
+      val aiError =
+        AiHttpError(
+          s"Unknown AI response [${status.value}]",
+          debugInfo.httpReq,
+          data.utf8String
+        )
+      replyTo ! ResponseError(Some(id), aiError)
+      stop()
   }
 
   private def sendHttpRequest(
     messages: Vector[AiProtocol.CompletionsMessage],
     modelOption: Option[String]
-  ): Unit = {
+  ): Json = {
     val body = Json.obj(
       ("model", modelOption.getOrElse(MODEL).asJson),
       ("response_format", Json.obj(("type", "json_object".asJson))),
@@ -277,6 +294,12 @@ class AICompletion2Handler(
           })
       })
       .pipeTo(self)
+
+    body
+  }
+
+  private def stop(): Unit = {
+    self ! PoisonPill
   }
 }
 
@@ -312,6 +335,10 @@ object AICompletion2Handler {
 
   private case class HttpResponse(status: StatusCode, data: ByteString)
 
+  private case class DebugInfo(
+    httpReq: Json
+  )
+
   def props(
     cfg: Option[AICompletionConfig],
     session: JsonSession,
@@ -338,30 +365,32 @@ object AICompletion2Handler {
 
   private def getFinalResult(
     response: Json
-  ): Option[AiCompletionResult] =
+  ): Option[AiProtocol.AiCompletionResult] =
     for {
       obj          <- response.asObject
       fn           <- obj("fn")
       fnString     <- fn.asString
       fnCall       <- obj("fnCall")
       fnCallString <- fnCall.asString
-    } yield AiCompletionResult.Success(fnString, fnCallString)
+    } yield AiProtocol.AiCompletionResult.Success(fnString, fnCallString)
 
-  private def getEvalResult(response: Json): Option[AiEvalRequest] =
+  private def getEvalResult(response: Json): Option[AiProtocol.AiEvalRequest] =
     for {
       obj          <- response.asObject
       reason       <- obj("reason")
       reasonString <- reason.asString
       code         <- obj("code")
       codeString   <- code.asString
-    } yield AiEvalRequest(reasonString, codeString)
+    } yield AiProtocol.AiEvalRequest(reasonString, codeString)
 
-  private def getFailResult(response: Json): Option[AiCompletionResult] =
+  private def getFailResult(
+    response: Json
+  ): Option[AiProtocol.AiCompletionResult] =
     for {
       obj          <- response.asObject
       reason       <- obj("reason")
       reasonString <- reason.asString
-    } yield AiCompletionResult.Failure(reasonString)
+    } yield AiProtocol.AiCompletionResult.Failure(reasonString)
 
   private def getResponseKind(response: Json): Option[String] =
     for {

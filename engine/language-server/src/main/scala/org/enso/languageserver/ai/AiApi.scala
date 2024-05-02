@@ -1,6 +1,7 @@
 package org.enso.languageserver.ai
 
 import io.circe.Json
+import io.circe.syntax._
 import org.enso.jsonrpc.{Error, HasParams, HasResult, Method}
 
 import java.util.UUID
@@ -56,7 +57,26 @@ case object AiApi {
       }
   }
 
-  case class AiError(override val payload: Option[Json])
-      extends Error(-32700, "Ai Response Error")
+  case class AiHttpError(reason: String, request: Json, response: String)
+      extends Error(10001, "Failed to process HTTP response") {
 
+    override val payload: Option[Json] = Some(
+      Json.obj(
+        ("reason", reason.asJson),
+        ("request", request),
+        ("response", response.asJson)
+      )
+    )
+  }
+
+  case class AiEvaluationError(expression: String, error: String)
+      extends Error(10002, "Failed to execute expression") {
+
+    override val payload: Option[Json] = Some(
+      Json.obj(
+        ("expression", expression.asJson),
+        ("error", error.asJson)
+      )
+    )
+  }
 }
