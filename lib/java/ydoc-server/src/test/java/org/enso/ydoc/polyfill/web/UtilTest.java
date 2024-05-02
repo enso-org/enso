@@ -36,7 +36,7 @@ public class UtilTest {
 
   @After
   public void tearDown() {
-    executor.close();
+    executor.shutdownNow();
     context.close();
   }
 

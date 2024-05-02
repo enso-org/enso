@@ -38,7 +38,7 @@ public class ParserPolyfillTest {
 
   @After
   public void tearDown() {
-    executor.close();
+    executor.shutdownNow();
     context.close();
     parser.close();
   }

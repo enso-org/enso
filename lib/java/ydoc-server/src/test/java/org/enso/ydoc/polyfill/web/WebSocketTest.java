@@ -66,8 +66,8 @@ public class WebSocketTest {
   @After
   public void tearDown() {
     ws.stop();
-    webServerExecutor.close();
-    executor.close();
+    webServerExecutor.shutdown();
+    executor.shutdown();
     context.close();
   }
 

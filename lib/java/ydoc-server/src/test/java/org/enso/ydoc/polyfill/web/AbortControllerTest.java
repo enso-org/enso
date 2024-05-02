@@ -37,7 +37,7 @@ public class AbortControllerTest {
 
   @After
   public void tearDown() {
-    executor.close();
+    executor.shutdownNow();
     context.close();
   }
 
