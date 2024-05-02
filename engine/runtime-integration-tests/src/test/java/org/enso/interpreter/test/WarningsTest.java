@@ -1,6 +1,7 @@
 package org.enso.interpreter.test;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import org.enso.common.LanguageInfo;
@@ -10,6 +11,7 @@ import org.enso.interpreter.runtime.error.Warning;
 import org.enso.interpreter.runtime.error.WarningsLibrary;
 import org.enso.interpreter.runtime.error.WithWarnings;
 import org.graalvm.polyglot.Context;
+import org.graalvm.polyglot.PolyglotException;
 import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.BeforeClass;
@@ -64,5 +66,39 @@ public class WarningsTest extends TestBase {
       return;
     }
     fail("One shall not be created WithWarnings without any warnings " + without);
+  }
+
+  @Test
+  public void warningIsAnException() {
+    var module =
+        ctx.eval(
+            "enso",
+            """
+    from Standard.Base import Warning
+
+    wrap msg value = Warning.attach msg value
+    """);
+    var wrap = module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "wrap");
+
+    var warning42 = wrap.execute("warn:1", 42);
+    var warningHi = wrap.execute("warn:2", "Hi");
+
+    assertTrue("value is a number", warning42.isNumber());
+    assertTrue("value is Int", warning42.fitsInInt());
+    assertEquals(42, warning42.asInt());
+
+    assertTrue("value2 is a text", warningHi.isString());
+    assertTrue("value2 not a number", warning42.isNumber());
+    assertEquals("Hi", warningHi.asString());
+
+    assertTrue("value1 with warning is also an exception", warning42.isException());
+    assertTrue("value2 with warning is also an exception", warningHi.isException());
+
+    try {
+      warning42.throwException();
+      fail("Shouldn't reach here");
+    } catch (PolyglotException ex) {
+      assertEquals("warn:1", ex.getMessage());
+    }
   }
 }

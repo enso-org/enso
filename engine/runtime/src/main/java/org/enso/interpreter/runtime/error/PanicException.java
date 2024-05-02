@@ -83,7 +83,9 @@ public final class PanicException extends AbstractTruffleException implements En
     InteropLibrary library = InteropLibrary.getUncached();
     try {
       msg = library.asString(library.getExceptionMessage(this));
+      new Exception(msg).printStackTrace();
     } catch (AssertionError | UnsupportedMessageException e) {
+      e.printStackTrace();
       msg = TypeToDisplayTextNode.getUncached().execute(payload);
     }
     cacheMessage = msg;
@@ -111,17 +113,16 @@ public final class PanicException extends AbstractTruffleException implements En
   }
 
   @NeverDefault
-  static UnresolvedSymbol toDisplayText(IndirectInvokeMethodNode payloads) {
+  static UnresolvedSymbol toText(IndirectInvokeMethodNode payloads) {
     var ctx = EnsoContext.get(payloads);
     var scope = ctx.getBuiltins().panic().getDefinitionScope();
-    return UnresolvedSymbol.build("to_display_text", scope);
+    return UnresolvedSymbol.build("to_text", scope);
   }
 
   @ExportMessage
   Object getExceptionMessage(
       @Cached IndirectInvokeMethodNode payloads,
-      @Cached(value = "toDisplayText(payloads)", allowUncached = true)
-          UnresolvedSymbol toDisplayText,
+      @Cached(value = "toText(payloads)", allowUncached = true) UnresolvedSymbol toText,
       @CachedLibrary(limit = "3") InteropLibrary strings,
       @Cached TypeToDisplayTextNode typeToDisplayTextNode) {
     var ctx = EnsoContext.get(payloads);
@@ -129,7 +130,7 @@ public final class PanicException extends AbstractTruffleException implements En
         payloads.execute(
             null,
             State.create(ctx),
-            toDisplayText,
+            toText,
             payload,
             new Object[] {payload},
             new CallArgumentInfo[] {new CallArgumentInfo("self")},

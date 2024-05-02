@@ -2,6 +2,7 @@ package org.enso.interpreter.runtime.error;
 
 import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.dsl.Cached.Shared;
+import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.TruffleObject;
 import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import com.oracle.truffle.api.library.CachedLibrary;
@@ -14,6 +15,7 @@ import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.data.ArrayRope;
 import org.enso.interpreter.runtime.data.EnsoObject;
 import org.enso.interpreter.runtime.data.Type;
+import org.enso.interpreter.runtime.data.vector.ArrayLikeHelpers;
 import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
 import org.graalvm.collections.EconomicSet;
 import org.graalvm.collections.Equivalence;
@@ -194,6 +196,19 @@ public final class WithWarnings implements EnsoObject {
   @ExportMessage
   Object send(Message message, Object[] args, @CachedLibrary(limit = "3") ReflectionLibrary lib)
       throws Exception {
+    if (InteropLibrary.class == message.getLibraryClass()) {
+      if ("isException" == message.getSimpleName()) {
+        return true;
+      }
+      if ("throwException" == message.getSimpleName()) {
+        var warn = this.getWarnings(lib, false, WarningsLibrary.getUncached());
+        if (warn.length == 1) {
+          throw new PanicException(warn[0], lib);
+        } else {
+          throw new PanicException(ArrayLikeHelpers.wrapEnsoObjects(warn), lib);
+        }
+      }
+    }
     return lib.send(value, message, args);
   }
 
@@ -250,6 +265,19 @@ public final class WithWarnings implements EnsoObject {
     return true;
   }
 
+  /*
+    @ExportMessage
+    boolean isException() {
+      return true;
+    }
+
+    @ExportMessage RuntimeException throwException(
+      @Bind("$node") Node node
+      ) throws UnsupportedMessageException {
+      var ctx = EnsoContext.get(node);
+      throw ctx.raiseAssertionPanic(node, "Throw Warning", new Exception());
+    }
+  */
   public static class WarningEquivalence extends Equivalence {
 
     @Override
