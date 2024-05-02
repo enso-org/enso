@@ -49,13 +49,14 @@ export default function AboutModal(props: AboutModalProps) {
         textContainer.children,
         element => `${element.children[0]?.textContent} ${element.children[1]?.textContent}`
       )
-      navigator.clipboard.writeText(texts.join('\n'))
+      void navigator.clipboard.writeText(texts.join('\n'))
       if (!isCopied) {
         setIsCopied(true)
         setTimeout(() => {
           setIsCopied(false)
         }, CLEAR_COPIED_STATE_TIMEOUT_MS)
       }
+      return
     }
   }
 
