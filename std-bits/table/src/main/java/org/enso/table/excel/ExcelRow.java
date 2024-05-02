@@ -1,6 +1,5 @@
 package org.enso.table.excel;
 
-import java.time.LocalDateTime;
 import java.time.ZoneId;
 import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.CellType;
@@ -40,13 +39,18 @@ public class ExcelRow {
         double dblValue = cell.getNumericCellValue();
         if (DateUtil.isCellDateFormatted(cell) && DateUtil.isValidExcelDate(dblValue)) {
           var dateTime = DateUtil.getLocalDateTime(dblValue);
-          if (dateTime.isBefore(LocalDateTime.of(1900, 1, 2, 0, 0))) {
-            // Excel stores times as if they are on the 1st January 1900.
-            // Due to the 1900 leap year bug might be 31st December 1899.
-            return dateTime.toLocalTime();
-          }
-          if (dateTime.getHour() == 0 && dateTime.getMinute() == 0 && dateTime.getSecond() == 0) {
+          var dateFormat = cell.getCellStyle().getDataFormatString();
+          var hasTime = dateFormat.contains("h") || dateFormat.contains("H");
+          var hasDate =
+              dateFormat.contains("d")
+                  || dateFormat.contains("D")
+                  || dateFormat.contains("y")
+                  || dateFormat.contains("Y");
+          if (hasDate && !hasTime) {
             return dateTime.toLocalDate();
+          }
+          if (!hasDate && hasTime) {
+            return dateTime.toLocalTime();
           }
           return dateTime.atZone(ZoneId.systemDefault());
         } else {
