@@ -41,7 +41,8 @@ public class AuditLogMessage implements AuditLogAPI.LogMessage {
 
     // TODO
     this.projectId = null;
-    this.projectName = CurrentEnsoProject.get().fullName();
+    var currentProject = CurrentEnsoProject.get();
+    this.projectName = currentProject == null ? null : currentProject.fullName();
     this.localTimestamp = ZonedDateTime.now();
   }
 
@@ -54,7 +55,12 @@ public class AuditLogMessage implements AuditLogAPI.LogMessage {
   private ObjectNode computedMetadata() {
     var copy = metadata.deepCopy();
     copy.set(OPERATION, TextNode.valueOf(operation));
-    copy.set(PROJECT_NAME, TextNode.valueOf(projectName));
+
+    // TODO the null check should no longer be needed once https://github.com/enso-org/enso/issues/9845 is fixed
+    if (projectName != null) {
+      copy.set(PROJECT_NAME, TextNode.valueOf(projectName));
+    }
+
     copy.set(LOCAL_TIMESTAMP, TextNode.valueOf(localTimestamp.format(DateTimeFormatter.ISO_DATE_TIME)));
 
     // FIXME this is a temporary workaround for bug in Cloud API

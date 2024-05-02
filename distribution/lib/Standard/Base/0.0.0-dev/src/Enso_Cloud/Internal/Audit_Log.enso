@@ -31,7 +31,6 @@ type Audit_Log
          - `localTimestamp`
          - `projectName`
     report_event event_type:Text message:Text (metadata:JS_Object = JS_Object.from_pairs []) (async : Boolean = True) -> Nothing =
-        Standard.Base.IO.println ("from Enso: " + Standard.Base.Meta.Enso_Project.enso_project.namespace+"."+Standard.Base.Meta.Enso_Project.enso_project.name)
         Illegal_Argument.handle_java_exception <|
             case async of
                 True -> AuditLog.logAsync event_type message metadata.object_node
