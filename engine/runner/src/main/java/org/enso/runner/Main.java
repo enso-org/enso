@@ -654,7 +654,7 @@ public final class Main {
   private void run(
       String path,
       java.util.List<String> additionalArgs,
-      scala.Option<String> projectPath,
+      String projectPath,
       Level logLevel,
       boolean logMasking,
       boolean enableIrCaches,
@@ -665,7 +665,7 @@ public final class Main {
       scala.Option<String> executionEnvironment,
       int warningsLimit)
       throws IOException {
-    var fileAndProject = Utils.findFileAndProject(path, projectPath.getOrElse(() -> null));
+    var fileAndProject = Utils.findFileAndProject(path, projectPath);
     if (fileAndProject == null) {
       throw exitFail();
     }
@@ -734,15 +734,12 @@ public final class Main {
    * @param enableIrCaches are the IR caches enabled
    */
   private void genDocs(
-      scala.Option<String> projectPath,
-      Level logLevel,
-      boolean logMasking,
-      boolean enableIrCaches) {
+      String projectPath, Level logLevel, boolean logMasking, boolean enableIrCaches) {
     if (projectPath.isEmpty()) {
       println("Path hasn't been provided.");
       throw exitFail();
     }
-    generateDocsFrom(projectPath.get(), logLevel, logMasking, enableIrCaches);
+    generateDocsFrom(projectPath, logLevel, logMasking, enableIrCaches);
     throw exitSuccess();
   }
 
@@ -790,14 +787,13 @@ public final class Main {
    * @param projectPath path of the project
    * @param logLevel log level to set for the engine runtime
    */
-  private void preinstallDependencies(scala.Option<String> projectPath, Level logLevel) {
-    if (projectPath.isEmpty()) {
+  private void preinstallDependencies(String projectPath, Level logLevel) {
+    if (projectPath == null) {
       println("Dependency installation is only available for projects.");
       throw exitFail();
     }
-    var s = projectPath.get();
     try {
-      DependencyPreinstaller.preinstallDependencies(new File(s), logLevel);
+      DependencyPreinstaller.preinstallDependencies(new File(projectPath), logLevel);
       throw exitSuccess();
     } catch (RuntimeException error) {
       logger.error("Dependency installation failed: " + error.getMessage(), error);
@@ -881,10 +877,7 @@ public final class Main {
    * @param enableIrCaches are IR caches enabled
    */
   private void runRepl(
-      scala.Option<String> projectPath,
-      Level logLevel,
-      boolean logMasking,
-      boolean enableIrCaches) {
+      String projectPath, Level logLevel, boolean logMasking, boolean enableIrCaches) {
     var mainMethodName = "internal_repl_entry_point___";
     var dummySourceToTriggerRepl =
         """
@@ -895,7 +888,7 @@ public final class Main {
          """
             .replace("$mainMethodName", mainMethodName);
     var replModuleName = "Internal_Repl_Module___";
-    var projectRoot = projectPath.getOrElse(() -> "");
+    var projectRoot = projectPath != null ? projectPath : "";
     var context =
         ContextFactory.create()
             .projectRoot(projectRoot)
@@ -1054,7 +1047,7 @@ public final class Main {
       run(
           line.getOptionValue(RUN_OPTION),
           Arrays.asList(line.getArgs()),
-          scala.Option.apply(line.getOptionValue(IN_PROJECT_OPTION)),
+          line.getOptionValue(IN_PROJECT_OPTION),
           logLevel,
           logMasking,
           shouldEnableIrCaches(line),
@@ -1070,20 +1063,14 @@ public final class Main {
     }
     if (line.hasOption(REPL_OPTION)) {
       runRepl(
-          scala.Option.apply(line.getOptionValue(IN_PROJECT_OPTION)),
-          logLevel,
-          logMasking,
-          shouldEnableIrCaches(line));
+          line.getOptionValue(IN_PROJECT_OPTION), logLevel, logMasking, shouldEnableIrCaches(line));
     }
     if (line.hasOption(DOCS_OPTION)) {
       genDocs(
-          scala.Option.apply(line.getOptionValue(IN_PROJECT_OPTION)),
-          logLevel,
-          logMasking,
-          shouldEnableIrCaches(line));
+          line.getOptionValue(IN_PROJECT_OPTION), logLevel, logMasking, shouldEnableIrCaches(line));
     }
     if (line.hasOption(PREINSTALL_OPTION)) {
-      preinstallDependencies(scala.Option.apply(line.getOptionValue(IN_PROJECT_OPTION)), logLevel);
+      preinstallDependencies(line.getOptionValue(IN_PROJECT_OPTION), logLevel);
     }
     if (line.getOptions().length == 0) {
       printHelp(options);
