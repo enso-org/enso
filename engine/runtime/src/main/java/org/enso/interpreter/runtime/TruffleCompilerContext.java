@@ -140,7 +140,7 @@ final class TruffleCompilerContext implements CompilerContext {
   public void truffleRunCodegen(CompilerContext.Module module, CompilerConfig config)
       throws IOException {
     var m = org.enso.interpreter.runtime.Module.fromCompilerModule(module);
-    new IrToTruffle(context, m.getSource(), m.getScope(), config).run(module.getIr());
+    new IrToTruffle(context, m.getSource(), m.getScopeBuilder(), config).run(module.getIr());
   }
 
   // module related
@@ -243,7 +243,7 @@ final class TruffleCompilerContext implements CompilerContext {
   @Override
   public void runStubsGenerator(CompilerContext.Module module) {
     var m = ((Module) module).unsafeModule();
-    stubsGenerator.run(m.getIr(), m.getScope());
+    stubsGenerator.run(m.getIr(), m.getScopeBuilder());
   }
 
   @Override
@@ -724,7 +724,7 @@ final class TruffleCompilerContext implements CompilerContext {
         module.module.setLoadedFromCache(loadedFromCache);
       }
       if (resetScope) {
-        module.module.getScope().reset();
+        module.module.resetScope();
       }
       if (invalidateCache) {
         module.module.getCache().invalidate(context);

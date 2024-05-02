@@ -49,7 +49,7 @@ public class RuntimeTestServiceImpl implements RuntimeTestService {
     if (functionCallObj instanceof FunctionCall functionCall) {
       RootNode rootNode = functionCall.getFunction().getCallTarget().getRootNode();
       if (rootNode instanceof MethodRootNode methodNode) {
-        String moduleName = methodNode.getModuleScope().getModule().getName().toString();
+        String moduleName = methodNode.getModule().getName().toString();
         String typeName = methodNode.getType().getQualifiedName().toString();
         String functionName = methodNode.getMethodName();
         return new FunctionCallInfo(moduleName, typeName, functionName);

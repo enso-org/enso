@@ -23,7 +23,10 @@ import org.enso.interpreter.runtime.scope.ModuleScope;
 @ExportLibrary(InteropLibrary.class)
 @ExportLibrary(TypesLibrary.class)
 public final class UnresolvedConversion implements EnsoObject {
+
   private final ModuleScope scope;
+  private final ModuleScope.Builder scopeBuilder;
+
 
   /**
    * Creates a new unresolved conversion.
@@ -32,13 +35,18 @@ public final class UnresolvedConversion implements EnsoObject {
    */
   private UnresolvedConversion(ModuleScope scope) {
     this.scope = scope;
+    this.scopeBuilder = null;
+  }
+  private UnresolvedConversion(ModuleScope.Builder scopeBuilder) {
+    this.scope = null;
+    this.scopeBuilder = scopeBuilder;
   }
 
   /**
    * @return the scope this symbol was used in.
    */
   public ModuleScope getScope() {
-    return scope;
+    return scopeBuilder != null ? scopeBuilder.build() : scope;
   }
 
   /**
@@ -54,6 +62,7 @@ public final class UnresolvedConversion implements EnsoObject {
    * @return the resolved function definition, or null if not found
    */
   public Function resolveFor(EnsoContext ctx, Type into, Type from) {
+    var scope = getScope();
     if (from != null) {
       for (var current : from.allTypes(ctx)) {
         Function candidate = scope.lookupConversionDefinition(current, into);
@@ -83,6 +92,10 @@ public final class UnresolvedConversion implements EnsoObject {
    */
   public static UnresolvedConversion build(ModuleScope scope) {
     return new UnresolvedConversion(scope);
+  }
+
+  public static UnresolvedConversion build(ModuleScope.Builder scopeBuilder) {
+    return new UnresolvedConversion(scopeBuilder);
   }
 
   /**

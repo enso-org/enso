@@ -19,7 +19,7 @@ class RuntimeStubsGenerator(builtins: Builtins) {
     *
     * @param module the module to generate stubs in.
     */
-  def run(ir: IR, scope: ModuleScope): Unit = {
+  def run(ir: IR, scope: ModuleScope.Builder): Unit = {
     val localBindings = ir.unsafeGetMetadata(
       BindingAnalysis,
       "Non-parsed module used in stubs generator"

@@ -171,7 +171,7 @@ public final class UnresolvedConstructor implements EnsoObject {
     static DirectCallNode buildApplication(UnresolvedConstructor prototype) {
       UUID id = null;
       SourceSection section = null;
-      ModuleScope scope = null;
+      ModuleScope.Builder scope = null;
       for (var where = prototype.where; where != null; where = where.getParent()) {
         if (where instanceof ExpressionNode withId && withId.getId() != null) {
           id = withId.getId();

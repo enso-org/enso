@@ -26,7 +26,7 @@ public class ClosureRootNode extends EnsoRootNode {
   ClosureRootNode(
       EnsoLanguage language,
       LocalScope localScope,
-      ModuleScope moduleScope,
+      ModuleScope.Builder moduleScope,
       ExpressionNode body,
       SourceSection section,
       String name,
@@ -54,7 +54,7 @@ public class ClosureRootNode extends EnsoRootNode {
   public static ClosureRootNode build(
       EnsoLanguage language,
       LocalScope localScope,
-      ModuleScope moduleScope,
+      ModuleScope.Builder moduleScope,
       ExpressionNode body,
       SourceSection section,
       String name,

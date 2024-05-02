@@ -10,6 +10,7 @@ import java.util.Objects;
 import org.enso.compiler.context.LocalScope;
 import org.enso.interpreter.EnsoLanguage;
 import org.enso.interpreter.runtime.EnsoContext;
+import org.enso.interpreter.runtime.Module;
 import org.enso.interpreter.runtime.error.DataflowError;
 import org.enso.interpreter.runtime.scope.ModuleScope;
 import org.enso.interpreter.util.ScalaConversions;
@@ -21,7 +22,7 @@ public abstract class EnsoRootNode extends RootNode {
   private final int sourceStartIndex;
   private final int sourceLength;
   private final LocalScope localScope;
-  private final ModuleScope moduleScope;
+  private final ModuleScope.Builder moduleScope;
   private final Source inlineSource;
 
   /**
@@ -36,7 +37,7 @@ public abstract class EnsoRootNode extends RootNode {
   protected EnsoRootNode(
       EnsoLanguage language,
       LocalScope localScope,
-      ModuleScope moduleScope,
+      ModuleScope.Builder moduleScope,
       String name,
       SourceSection sourceSection) {
     super(language, buildFrameDescriptor(localScope));
@@ -120,7 +121,6 @@ public abstract class EnsoRootNode extends RootNode {
           return null;
         } else {
           return rootNode
-              .getModuleScope()
               .getModule()
               .createSection(sourceStartIndex, sourceLength);
         }
@@ -145,8 +145,16 @@ public abstract class EnsoRootNode extends RootNode {
    *
    * @return the module scope for this node
    */
-  public ModuleScope getModuleScope() {
+  public ModuleScope.Builder getModuleScope() {
     return moduleScope;
+  }
+
+  public ModuleScope getMaterializedScope() {
+    return moduleScope.build();
+  }
+
+  public Module getModule() {
+    return moduleScope.getModule();
   }
 
   /**

@@ -9,6 +9,7 @@ import org.enso.interpreter.runtime.callable.UnresolvedConstructor;
 import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
 import org.enso.interpreter.runtime.error.DataflowError;
 import org.enso.interpreter.runtime.library.dispatch.TypeOfNode;
+import org.enso.interpreter.runtime.scope.ModuleScope;
 import org.enso.interpreter.test.TestBase;
 import org.enso.interpreter.test.ValuesGenerator;
 import org.graalvm.polyglot.Context;
@@ -56,7 +57,7 @@ public class TypeOfNodeTest extends TestBase {
         data.add(new Object[] {raw, n});
       }
     }
-    data.add(new Object[] {UnresolvedSymbol.build("unknown_name", null), "Function"});
+    data.add(new Object[] {UnresolvedSymbol.build("unknown_name", (ModuleScope)null), "Function"});
     data.add(new Object[] {UnresolvedConstructor.build(null, "Unknown_Name"), "Function"});
     return data.toArray(new Object[0][]);
   }

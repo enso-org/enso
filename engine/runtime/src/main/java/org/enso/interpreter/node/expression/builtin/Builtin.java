@@ -18,7 +18,7 @@ public abstract class Builtin {
       this(name, Arrays.asList(params));
     }
 
-    private AtomConstructor build(EnsoLanguage language, ModuleScope scope, Type type) {
+    private AtomConstructor build(EnsoLanguage language, ModuleScope.Builder scope, Type type) {
       var res = new AtomConstructor(name, scope, type, true);
       res.initializeFields(
           language,
@@ -50,7 +50,7 @@ public abstract class Builtin {
   }
 
   public final void initialize(
-      EnsoLanguage language, ModuleScope scope, Map<Class<? extends Builtin>, Builtin> builtins) {
+      EnsoLanguage language, ModuleScope.Builder scope, Map<Class<? extends Builtin>, Builtin> builtins) {
     if (type == null) {
       Type supertype = null;
       if (getSuperType() != null) {

@@ -43,7 +43,7 @@ import org.enso.pkg.QualifiedName;
 public final class AtomConstructor implements EnsoObject {
 
   private final String name;
-  private final ModuleScope definitionScope;
+  private final ModuleScope.Builder definitionScope;
   private final boolean builtin;
   private @CompilerDirectives.CompilationFinal Atom cachedInstance;
   private @CompilerDirectives.CompilationFinal Function constructorFunction;
@@ -63,7 +63,7 @@ public final class AtomConstructor implements EnsoObject {
    * @param definitionScope the scope in which this constructor was defined
    * @param type associated type
    */
-  public AtomConstructor(String name, ModuleScope definitionScope, Type type) {
+  public AtomConstructor(String name, ModuleScope.Builder definitionScope, Type type) {
     this(name, definitionScope, type, false);
   }
 
@@ -76,7 +76,7 @@ public final class AtomConstructor implements EnsoObject {
    * @param type associated type
    * @param builtin if true, the constructor refers to a builtin type (annotated with @BuiltinType
    */
-  public AtomConstructor(String name, ModuleScope definitionScope, Type type, boolean builtin) {
+  public AtomConstructor(String name, ModuleScope.Builder definitionScope, Type type, boolean builtin) {
     this.name = name;
     this.definitionScope = definitionScope;
     this.type = type;
@@ -220,8 +220,17 @@ public final class AtomConstructor implements EnsoObject {
    *
    * @return the scope in which this constructor was defined
    */
-  public ModuleScope getDefinitionScope() {
+  public ModuleScope.Builder getDefinitionScope() {
     return definitionScope;
+  }
+
+  /**
+   * Gets the scope in which this constructor was defined.
+   *
+   * @return the scope in which this constructor was defined
+   */
+  public ModuleScope getMaterializedDefinitionScope() {
+    return definitionScope.build();
   }
 
   /**

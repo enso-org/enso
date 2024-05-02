@@ -251,7 +251,7 @@ public abstract class HashCodeNode extends Node {
 
   @TruffleBoundary
   static Function findHashMethod(Type comparator) {
-    var fn = comparator.getDefinitionScope().getMethodForType(comparator, "hash");
+    var fn = comparator.getMaterializedDefinitionScope().getMethodForType(comparator, "hash");
     if (fn == null) {
       throw new AssertionError("No hash method for type " + comparator);
     }

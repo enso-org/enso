@@ -29,7 +29,7 @@ public class MethodRootNode extends ClosureRootNode {
   private MethodRootNode(
       EnsoLanguage language,
       LocalScope localScope,
-      ModuleScope moduleScope,
+      ModuleScope.Builder moduleScope,
       ExpressionNode body,
       SourceSection section,
       Type type,
@@ -66,7 +66,7 @@ public class MethodRootNode extends ClosureRootNode {
   public static MethodRootNode build(
       EnsoLanguage language,
       LocalScope localScope,
-      ModuleScope moduleScope,
+      ModuleScope.Builder moduleScope,
       Supplier<ExpressionNode> body,
       SourceSection section,
       Type type,
@@ -78,7 +78,7 @@ public class MethodRootNode extends ClosureRootNode {
   public static MethodRootNode build(
       EnsoLanguage language,
       LocalScope localScope,
-      ModuleScope moduleScope,
+      ModuleScope.Builder moduleScope,
       ExpressionNode body,
       SourceSection section,
       Type type,
@@ -102,7 +102,7 @@ public class MethodRootNode extends ClosureRootNode {
   public static MethodRootNode buildConstructor(
       EnsoLanguage language,
       LocalScope localScope,
-      ModuleScope moduleScope,
+      ModuleScope.Builder moduleScope,
       ExpressionNode body,
       SourceSection section,
       AtomConstructor constructor) {
@@ -127,7 +127,7 @@ public class MethodRootNode extends ClosureRootNode {
   public static MethodRootNode buildOperator(
       EnsoLanguage language,
       LocalScope localScope,
-      ModuleScope moduleScope,
+      ModuleScope.Builder moduleScope,
       Supplier<ExpressionNode> readLeft,
       Supplier<ExpressionNode> readRight,
       Supplier<ExpressionNode> body,
@@ -154,7 +154,7 @@ public class MethodRootNode extends ClosureRootNode {
    */
   @Override
   public String getQualifiedName() {
-    return getModuleScope().getModule().getName().toString()
+    return getModule().getName().toString()
         + "::"
         + type.getQualifiedName().toString()
         + "::"
@@ -232,7 +232,7 @@ public class MethodRootNode extends ClosureRootNode {
     Constructor(
         EnsoLanguage language,
         LocalScope localScope,
-        ModuleScope moduleScope,
+        ModuleScope.Builder moduleScope,
         ExpressionNode body,
         SourceSection section,
         AtomConstructor constructor) {

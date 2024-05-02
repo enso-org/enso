@@ -28,7 +28,7 @@ class InlineContextUtils {
    * Creates a main method, generates some local variables, and fills their identifiers in the given
    * set.
    *
-   * @param localVarsCnt How many local variables should be initialized in the main method
+   * @param localVarNames local variables that should be initialized in the main method
    * @return Body of the main method
    */
   static InlineSource createMainMethodWithLocalVars(Context ctx, Set<String> localVarNames)
@@ -55,7 +55,7 @@ class InlineContextUtils {
     var module = ctx.eval(src);
     var moduleAssocType = module.invokeMember(MethodNames.Module.GET_ASSOCIATED_TYPE);
     var assocTypeReceiver = (Type) Utils.unwrapReceiver(ctx, moduleAssocType);
-    var moduleScope = assocTypeReceiver.getDefinitionScope();
+    var moduleScope = assocTypeReceiver.getDefinitionScope().build();
     var compiler = ensoCtx.getCompiler();
     var inlineCtxMeta =
         new InlineContextResourceFactory(

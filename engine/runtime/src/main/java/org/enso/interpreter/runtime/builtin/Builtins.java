@@ -85,7 +85,7 @@ public final class Builtins {
 
   private final Error error;
   private final Module module;
-  private final ModuleScope scope;
+  private final ModuleScope.Builder scope;
   private final Number number;
   private final Boolean bool;
 
@@ -126,19 +126,19 @@ public final class Builtins {
   public Builtins(EnsoContext context) {
     EnsoLanguage language = context.getLanguage();
     module = Module.empty(QualifiedName.fromString(MODULE_NAME), null);
-    scope = module.compileScope(context);
+    ModuleScope.Builder scopeBuilder = module.compileScope(context);
 
-    builtins = initializeBuiltinTypes(loadedBuiltinConstructors, language, scope);
+    builtins = initializeBuiltinTypes(loadedBuiltinConstructors, language, scopeBuilder);
     builtinsByName =
         builtins.values().stream()
             .collect(
                 Collectors.toMap(
                     v -> v.getType().getName(), java.util.function.Function.identity()));
     if (TruffleOptions.AOT) {
-      builtinMethodNodes = readBuiltinMethodsMetadata(loadedBuiltinMethods, scope);
-      registerBuiltinMethods(scope, language);
+      builtinMethodNodes = readBuiltinMethodsMetadata(loadedBuiltinMethods, scopeBuilder);
+      registerBuiltinMethods(scopeBuilder, language);
     } else {
-      builtinMethodNodes = registerBuiltinMethodsLazily(scope, language);
+      builtinMethodNodes = registerBuiltinMethodsLazily(scopeBuilder, language);
     }
 
     ordering = getBuiltinType(Ordering.class);
@@ -172,6 +172,7 @@ public final class Builtins {
     system = new System(this);
     number = new Number(this);
     special = new Special(language);
+    scope = scopeBuilder;
   }
 
   private static Map<String, LoadedBuiltinMethod> loadBuiltinMethodClassesEarly(
@@ -192,7 +193,7 @@ public final class Builtins {
    * @param scope Builtins scope
    * @param language The language the resulting function nodes should be associated with
    */
-  private void registerBuiltinMethods(ModuleScope scope, EnsoLanguage language) {
+  private void registerBuiltinMethods(ModuleScope.Builder scope, EnsoLanguage language) {
     for (Builtin builtin : builtins.values()) {
       var type = builtin.getType();
       Map<String, Supplier<LoadedBuiltinMethod>> methods = builtinMethodNodes.get(type.getName());
@@ -226,7 +227,7 @@ public final class Builtins {
    * @return map from types to builtin methods
    */
   private Map<String, Map<String, Supplier<LoadedBuiltinMethod>>> registerBuiltinMethodsLazily(
-      ModuleScope scope, EnsoLanguage language) {
+      ModuleScope.Builder scope, EnsoLanguage language) {
     Map<String, Map<String, Supplier<LoadedBuiltinMethod>>> builtinMethodNodes = new HashMap<>();
     Map<String, Map<String, LoadedBuiltinMetaMethod>> builtinMetaMethods = new HashMap<>();
     loadedBuiltinMethodsMeta.forEach(
@@ -237,7 +238,7 @@ public final class Builtins {
           }
           String builtinMethodOwner = builtinName[0];
           String builtinMethodName = builtinName[1];
-          Optional.ofNullable(scope.getTypes().get(builtinMethodOwner))
+          Optional.ofNullable(scope.getType(builtinMethodOwner))
               .ifPresentOrElse(
                   constr -> {
                     Map<String, Supplier<LoadedBuiltinMethod>> atomNodes =
@@ -375,7 +376,7 @@ public final class Builtins {
 
   /** Initialize builting types in the context of the given language and module scope */
   private Map<Class<? extends Builtin>, Builtin> initializeBuiltinTypes(
-      List<Constructor<? extends Builtin>> constrs, EnsoLanguage language, ModuleScope scope) {
+      List<Constructor<? extends Builtin>> constrs, EnsoLanguage language, ModuleScope.Builder scope) {
     Map<Class<? extends Builtin>, Builtin> builtins = new HashMap<>();
 
     for (var constr : constrs) {
@@ -400,7 +401,7 @@ public final class Builtins {
    * @return A map of builtin method nodes per builtin type name
    */
   private Map<String, Map<String, Supplier<LoadedBuiltinMethod>>> readBuiltinMethodsMetadata(
-      Map<String, LoadedBuiltinMethod> classes, ModuleScope scope) {
+      Map<String, LoadedBuiltinMethod> classes, ModuleScope.Builder scope) {
 
     Map<String, Map<String, Supplier<LoadedBuiltinMethod>>> methodNodes = new HashMap<>();
     classes.forEach(
@@ -411,7 +412,7 @@ public final class Builtins {
           }
           String builtinMethodOwner = builtinName[0];
           String builtinMethodName = builtinName[1];
-          Optional.ofNullable(scope.getTypes().get(builtinMethodOwner))
+          Optional.ofNullable(scope.getType(builtinMethodOwner))
               .ifPresentOrElse(
                   constr -> {
                     Map<String, Supplier<LoadedBuiltinMethod>> atomNodes =
@@ -746,7 +747,7 @@ public final class Builtins {
    *
    * @return the builtin module scope
    */
-  public ModuleScope getScope() {
+  public ModuleScope.Builder getScope() {
     return scope;
   }
 

@@ -72,7 +72,7 @@ public abstract class EnsoProjectNode extends Node {
                         : "Should be called only from Enso code, and thus, should always have a"
                             + " root node";
                     if (callRootNode instanceof EnsoRootNode ensoRootNode) {
-                      var pkg = ensoRootNode.getModuleScope().getModule().getPackage();
+                      var pkg = ensoRootNode.getModule().getPackage();
                       // Don't return null, as that would signal to Truffle that we want to
                       // continue the iteration.
                       if (pkg != null) {

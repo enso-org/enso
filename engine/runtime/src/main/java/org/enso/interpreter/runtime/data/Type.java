@@ -27,9 +27,10 @@ import org.enso.pkg.QualifiedName;
 
 @ExportLibrary(TypesLibrary.class)
 @ExportLibrary(InteropLibrary.class)
-public final class Type implements EnsoObject {
+public final class
+Type implements EnsoObject {
   private final String name;
-  private @CompilerDirectives.CompilationFinal ModuleScope definitionScope;
+  private @CompilerDirectives.CompilationFinal ModuleScope.Builder definitionScope;
   private final boolean builtin;
   private final Type supertype;
   private final Type eigentype;
@@ -40,7 +41,7 @@ public final class Type implements EnsoObject {
 
   private Type(
       String name,
-      ModuleScope definitionScope,
+      ModuleScope.Builder definitionScope,
       Type supertype,
       Type eigentype,
       boolean builtin,
@@ -56,7 +57,7 @@ public final class Type implements EnsoObject {
 
   public static Type createSingleton(
       String name,
-      ModuleScope definitionScope,
+      ModuleScope.Builder definitionScope,
       Type supertype,
       boolean builtin,
       boolean isProjectPrivate) {
@@ -67,7 +68,7 @@ public final class Type implements EnsoObject {
 
   public static Type create(
       String name,
-      ModuleScope definitionScope,
+      ModuleScope.Builder definitionScope,
       Type supertype,
       Type any,
       boolean builtin,
@@ -104,7 +105,7 @@ public final class Type implements EnsoObject {
     }
   }
 
-  public void setShadowDefinitions(ModuleScope scope, boolean generateAccessorsInTarget) {
+  public void setShadowDefinitions(ModuleScope.Builder scope, boolean generateAccessorsInTarget) {
     if (builtin) {
       // Ensure that synthetic methods, such as getters for fields are in the scope.
       CompilerAsserts.neverPartOfCompilation();
@@ -126,8 +127,12 @@ public final class Type implements EnsoObject {
     return name;
   }
 
-  public ModuleScope getDefinitionScope() {
+  public ModuleScope.Builder getDefinitionScope() {
     return definitionScope;
+  }
+
+  public ModuleScope getMaterializedDefinitionScope() {
+    return definitionScope.build();
   }
 
   public boolean isBuiltin() {

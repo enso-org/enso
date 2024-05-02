@@ -43,6 +43,7 @@ import org.enso.interpreter.runtime.data.EnsoObject;
 import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.data.text.Text;
 import org.enso.interpreter.runtime.data.vector.ArrayLikeHelpers;
+import org.enso.interpreter.runtime.scope.DelayedModuleScope;
 import org.enso.interpreter.runtime.scope.ModuleScope;
 import org.enso.interpreter.runtime.type.Types;
 import org.enso.pkg.Package;
@@ -55,7 +56,7 @@ import org.enso.text.buffer.Rope;
 public final class Module implements EnsoObject {
   private ModuleSources sources;
   private QualifiedName name;
-  private final ModuleScope scope;
+  private final ModuleScope.Builder scopeBuilder;
   private final Package<TruffleFile> pkg;
   private final Cache<ModuleCache.CachedModule, ModuleCache.Metadata> cache;
   private boolean wasLoadedFromCache;
@@ -87,7 +88,7 @@ public final class Module implements EnsoObject {
   public Module(QualifiedName name, Package<TruffleFile> pkg, TruffleFile sourceFile) {
     this.sources = ModuleSources.NONE.newWith(sourceFile);
     this.name = name;
-    this.scope = new ModuleScope(this);
+    this.scopeBuilder = new ModuleScope.Builder(this);
     this.pkg = pkg;
     this.cache = ModuleCache.create(this);
     this.wasLoadedFromCache = false;
@@ -105,7 +106,7 @@ public final class Module implements EnsoObject {
   public Module(QualifiedName name, Package<TruffleFile> pkg, String literalSource) {
     this.sources = ModuleSources.NONE.newWith(Rope.apply(literalSource));
     this.name = name;
-    this.scope = new ModuleScope(this);
+    this.scopeBuilder = new ModuleScope.Builder(this);
     this.pkg = pkg;
     this.cache = ModuleCache.create(this);
     this.wasLoadedFromCache = false;
@@ -124,7 +125,7 @@ public final class Module implements EnsoObject {
   public Module(QualifiedName name, Package<TruffleFile> pkg, Rope literalSource) {
     this.sources = ModuleSources.NONE.newWith(literalSource);
     this.name = name;
-    this.scope = new ModuleScope(this);
+    this.scopeBuilder = new ModuleScope.Builder(this);
     this.pkg = pkg;
     this.cache = ModuleCache.create(this);
     this.wasLoadedFromCache = false;
@@ -144,7 +145,7 @@ public final class Module implements EnsoObject {
     this.sources =
         literalSource == null ? ModuleSources.NONE : ModuleSources.NONE.newWith(literalSource);
     this.name = name;
-    this.scope = new ModuleScope(this);
+    this.scopeBuilder = new ModuleScope.Builder(this);
     this.pkg = pkg;
     this.cache = ModuleCache.create(this);
     this.wasLoadedFromCache = false;
@@ -257,7 +258,7 @@ public final class Module implements EnsoObject {
    * @see PatchedModuleValues
    */
   public void setLiteralSource(Rope source, SimpleUpdate update) {
-    if (this.scope != null && update != null) {
+    if (update != null) {
       var change = update.ir();
       if (this.patchedValues == null) {
         this.patchedValues = new PatchedModuleValues(this);
@@ -316,14 +317,14 @@ public final class Module implements EnsoObject {
    * @param context context in which the parsing should take place
    * @return the scope defined by this module
    */
-  public ModuleScope compileScope(EnsoContext context) {
+  public ModuleScope.Builder compileScope(EnsoContext context) {
     if (!compilationStage.isAtLeast(CompilationStage.AFTER_CODEGEN)) {
       try {
         compile(context);
       } catch (IOException ignored) {
       }
     }
-    return scope;
+    return scopeBuilder;
   }
 
   /**
@@ -381,7 +382,7 @@ public final class Module implements EnsoObject {
   private void compile(EnsoContext context) throws IOException {
     Source source = getSource();
     if (source == null) return;
-    scope.reset();
+    scopeBuilder.reset();
     compilationStage = CompilationStage.INITIAL;
     context.getCompiler().run(asCompilerModule());
   }
@@ -451,7 +452,22 @@ public final class Module implements EnsoObject {
    * @return the runtime scope of this module.
    */
   public ModuleScope getScope() {
-    return scope;
+    //assert scopeBuilder.isBuilt();
+    return scopeBuilder.build();
+  }
+
+  public ModuleScope.Builder getScopeBuilder() {
+    //assert !scopeBuilder.isBuilt();
+    return scopeBuilder;
+  }
+
+  public DelayedModuleScope getDelayedScope() {
+    return scopeBuilder;
+  }
+
+  public void resetScope() {
+    // TODO: enable `assert scopeBuilder.isBuilt();`?
+    scopeBuilder.reset();
   }
 
   /**
@@ -556,14 +572,14 @@ public final class Module implements EnsoObject {
       }
     }
 
-    private static Type getType(ModuleScope scope, Object[] args)
+    private static Type getType(ModuleScope.Builder scope, Object[] args)
         throws ArityException, UnsupportedTypeException, UnsupportedMessageException {
       var iop = InteropLibrary.getUncached();
       if (!iop.isString(args[0])) {
         throw UnsupportedTypeException.create(args, "First argument must be a string");
       }
       String name = iop.asString(args[0]);
-      return scope.getTypes().get(name);
+      return scope.getType(name);
     }
 
     private static Module reparse(Module module, Object[] args, EnsoContext context)
@@ -607,7 +623,7 @@ public final class Module implements EnsoObject {
     }
 
     private static Object evalExpression(
-        ModuleScope scope, Object[] args, EnsoContext context, CallOptimiserNode callOptimiserNode)
+        ModuleScope.Builder scope, Object[] args, EnsoContext context, CallOptimiserNode callOptimiserNode)
         throws ArityException, UnsupportedTypeException, UnsupportedMessageException {
       if (args.length != 1) {
         throw ArityException.create(1, 1, args.length);
@@ -655,13 +671,13 @@ public final class Module implements EnsoObject {
             UnsupportedTypeException,
             UnsupportedMessageException {
       EnsoContext context = EnsoContext.get(null);
-      ModuleScope scope;
+      ModuleScope.Builder scope;
       switch (member) {
         case MethodNames.Module.GET_NAME:
           return module.getName().toString();
         case MethodNames.Module.GET_METHOD:
           scope = module.compileScope(context);
-          Function result = getMethod(scope, arguments);
+          Function result = getMethod(scope.build(), arguments);
           return result == null ? context.getBuiltins().nothing() : result;
         case MethodNames.Module.GET_TYPE:
           scope = module.compileScope(context);
@@ -678,7 +694,7 @@ public final class Module implements EnsoObject {
           return setSourceFile(module, arguments, context);
         case MethodNames.Module.GET_ASSOCIATED_TYPE:
           scope = module.compileScope(context);
-          return getAssociatedType(scope, arguments);
+          return getAssociatedType(scope.build(), arguments);
         case MethodNames.Module.EVAL_EXPRESSION:
           scope = module.compileScope(context);
           return evalExpression(scope, arguments, context, callOptimiserNode);

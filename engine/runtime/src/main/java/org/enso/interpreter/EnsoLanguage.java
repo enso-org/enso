@@ -228,7 +228,7 @@ public final class EnsoLanguage extends TruffleLanguage<EnsoContext> {
             null);
       }
 
-      var module = ensoRootNode.getModuleScope().getModule();
+      var module = ensoRootNode.getModule();
       var localScope = ensoRootNode.getLocalScope();
       var outputRedirect = new ByteArrayOutputStream();
       var redirectConfigWithStrictErrors =
@@ -265,7 +265,7 @@ public final class EnsoLanguage extends TruffleLanguage<EnsoContext> {
           var m = org.enso.interpreter.runtime.Module.fromCompilerModule(mod);
           var toTruffle =
               new IrToTruffle(
-                  context, request.getSource(), m.getScope(), redirectConfigWithStrictErrors);
+                  context, request.getSource(), m.getScopeBuilder(), redirectConfigWithStrictErrors);
           exprNode = toTruffle.runInline(ir, sco, "<inline_source>");
         } else {
           exprNode = null;

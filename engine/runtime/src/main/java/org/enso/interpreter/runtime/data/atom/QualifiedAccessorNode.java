@@ -21,7 +21,7 @@ final class QualifiedAccessorNode extends EnsoRootNode {
    * @param atomConstructor the constructor to return.
    */
   QualifiedAccessorNode(
-      EnsoLanguage language, AtomConstructor atomConstructor, ModuleScope moduleScope) {
+      EnsoLanguage language, AtomConstructor atomConstructor, ModuleScope.Builder moduleScope) {
     super(
         language,
         LocalScope.root(),

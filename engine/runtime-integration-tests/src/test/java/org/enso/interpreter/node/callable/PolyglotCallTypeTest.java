@@ -7,6 +7,7 @@ import com.oracle.truffle.api.interop.InteropLibrary;
 import java.math.BigInteger;
 import org.enso.interpreter.node.callable.resolver.HostMethodCallNode;
 import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
+import org.enso.interpreter.runtime.scope.ModuleScope;
 import org.enso.interpreter.test.TestBase;
 import org.graalvm.polyglot.Context;
 import org.junit.AfterClass;
@@ -33,7 +34,7 @@ public class PolyglotCallTypeTest extends TestBase {
   public void javaBigIntegerDispatch() {
     var big = new BigInteger("4324908174321000432143143778956741");
     var val = unwrapValue(ctx, ctx.asValue(big));
-    var sym = UnresolvedSymbol.build("+", null);
+    var sym = UnresolvedSymbol.build("+", (ModuleScope)null);
     var typ = HostMethodCallNode.getPolyglotCallType(val, sym, InteropLibrary.getUncached());
     assertEquals(HostMethodCallNode.PolyglotCallType.CONVERT_TO_BIG_INT, typ);
     assertFalse(typ.isInteropLibrary());
@@ -42,7 +43,7 @@ public class PolyglotCallTypeTest extends TestBase {
   @Test
   public void textDispatch() {
     var val = "a text";
-    var sym = UnresolvedSymbol.build("+", null);
+    var sym = UnresolvedSymbol.build("+", (ModuleScope)null);
     var typ = HostMethodCallNode.getPolyglotCallType(val, sym, InteropLibrary.getUncached());
     assertEquals(HostMethodCallNode.PolyglotCallType.CONVERT_TO_TEXT, typ);
     assertFalse(typ.isInteropLibrary());
@@ -51,7 +52,7 @@ public class PolyglotCallTypeTest extends TestBase {
   @Test
   public void longDispatch() {
     var val = 4L;
-    var sym = UnresolvedSymbol.build("+", null);
+    var sym = UnresolvedSymbol.build("+", (ModuleScope)null);
     var typ = HostMethodCallNode.getPolyglotCallType(val, sym, InteropLibrary.getUncached());
     assertEquals(HostMethodCallNode.PolyglotCallType.CONVERT_TO_BIG_INT, typ);
     assertFalse(typ.isInteropLibrary());

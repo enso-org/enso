@@ -10,7 +10,7 @@ import org.enso.interpreter.runtime.scope.ModuleScope;
 public class CallerInfo {
   private final MaterializedFrame frame;
   private final LocalScope localScope;
-  private final ModuleScope moduleScope;
+  private final ModuleScope.Builder moduleScope;
 
   /**
    * Creates a new instance of caller information
@@ -19,7 +19,7 @@ public class CallerInfo {
    * @param localScope the local scope caller uses
    * @param moduleScope the module scope caller was defined in
    */
-  public CallerInfo(MaterializedFrame frame, LocalScope localScope, ModuleScope moduleScope) {
+  public CallerInfo(MaterializedFrame frame, LocalScope localScope, ModuleScope.Builder moduleScope) {
     this.frame = frame;
     this.localScope = localScope;
     this.moduleScope = moduleScope;
@@ -48,7 +48,7 @@ public class CallerInfo {
    *
    * @return the caller's module scope.
    */
-  public ModuleScope getModuleScope() {
+  public ModuleScope.Builder getModuleScope() {
     return moduleScope;
   }
 }

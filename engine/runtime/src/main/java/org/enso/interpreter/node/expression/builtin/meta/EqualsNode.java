@@ -127,7 +127,7 @@ public final class EqualsNode extends Node {
 
     private static boolean isDefinedIn(ModuleScope scope, Function fn) {
       if (fn.getCallTarget().getRootNode() instanceof EnsoRootNode ensoRoot) {
-        return ensoRoot.getModuleScope() == scope;
+        return ensoRoot.getMaterializedScope() == scope;
       } else {
         return false;
       }
@@ -166,7 +166,7 @@ public final class EqualsNode extends Node {
 
     private static boolean findConversionImpl(
         EnsoContext ctx, Type selfType, Type thatType, Object self, Object that) {
-      var selfScope = selfType.getDefinitionScope();
+      var selfScope = selfType.getMaterializedDefinitionScope();
       var comparableType = ctx.getBuiltins().comparable().getType();
 
       var fromSelfType =
