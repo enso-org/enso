@@ -90,7 +90,14 @@ await fs.symlink(
     'dir'
 )
 
-const ELECTRON_ARGS = [path.join(IDE_DIR_PATH, 'index.cjs'), '--', ...process.argv.slice(2)]
+const ELECTRON_FLAGS =
+    process.env.ELECTRON_FLAGS == null ? [] : String(process.env.ELECTRON_FLAGS).split(' ')
+const ELECTRON_ARGS = [
+    path.join(IDE_DIR_PATH, 'index.cjs'),
+    ...ELECTRON_FLAGS,
+    '--',
+    ...process.argv.slice(2),
+]
 
 process.on('SIGINT', () => {
     console.log('SIGINT received. Exiting.')
