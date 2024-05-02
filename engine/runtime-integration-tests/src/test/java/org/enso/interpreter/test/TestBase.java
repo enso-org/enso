@@ -9,7 +9,10 @@ import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
 import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.nodes.RootNode;
+import java.io.IOException;
 import java.io.OutputStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Map;
 import java.util.concurrent.Callable;
@@ -27,6 +30,7 @@ import org.graalvm.polyglot.Source;
 import org.graalvm.polyglot.Value;
 import org.graalvm.polyglot.io.IOAccess;
 import org.graalvm.polyglot.proxy.ProxyExecutable;
+import org.junit.rules.TemporaryFolder;
 
 public abstract class TestBase {
   protected static Context createDefaultContext() {
@@ -155,6 +159,36 @@ public abstract class TestBase {
   protected static Value getMethodFromModule(Context ctx, String moduleSrc, String methodName) {
     Value module = ctx.eval(Source.create("enso", moduleSrc));
     return module.invokeMember(Module.EVAL_EXPRESSION, methodName);
+  }
+
+  /**
+   * Creates temporary project directory structure with a given main source content. No need to
+   * clean it up, as it is managed by JUnit TemporaryFolder rule. Note that we need to create a
+   * project, otherwise the private stuff won't work.
+   *
+   * @param projName Name of the project (as defined in package.yaml).
+   * @param mainSrc Main.enso source content
+   * @param tempFolder Temporary folder from JUnit rule.
+   * @return Path to the newly created directly structure - a project directory.
+   */
+  protected static Path createProject(String projName, String mainSrc, TemporaryFolder tempFolder) throws IOException {
+    var projDir = tempFolder.newFolder(projName);
+    assert projDir.exists();
+    var projYaml =
+        """
+name: %s
+version: 0.0.1
+prefer-local-libraries: true
+        """.formatted(projName);
+    var yamlPath = projDir.toPath().resolve("package.yaml");
+    Files.writeString(yamlPath, projYaml);
+    assert yamlPath.toFile().exists();
+    var srcDir = tempFolder.newFolder(projName, "src");
+    assert srcDir.exists();
+    var mainSrcPath = srcDir.toPath().resolve("Main.enso");
+    Files.writeString(mainSrcPath, mainSrc);
+    assert mainSrcPath.toFile().exists();
+    return projDir.toPath();
   }
 
   /**
