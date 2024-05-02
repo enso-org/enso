@@ -8,6 +8,7 @@ import type * as text from '#/text'
 import type * as inputBindings from '#/configurations/inputBindings'
 
 import * as inputBindingsProvider from '#/providers/InputBindingsProvider'
+import * as modalProvider from '#/providers/ModalProvider'
 import * as textProvider from '#/providers/TextProvider'
 
 import * as aria from '#/components/aria'
@@ -84,8 +85,10 @@ export interface MenuEntryProps {
 export default function MenuEntry(props: MenuEntryProps) {
   const { hidden = false, action, label, isDisabled = false, dialog, title } = props
   const { isContextMenuEntry = false, doAction } = props
+  const { unsetModal } = modalProvider.useSetModal()
   const { getText } = textProvider.useText()
   const inputBindings = inputBindingsProvider.useInputBindings()
+  const [isDialogOpen, setIsDialogOpen] = React.useState(false)
   const info = inputBindings.metadata[action]
   React.useEffect(() => {
     // This is slower (but more convenient) than registering every shortcut in the context menu
@@ -103,7 +106,13 @@ export default function MenuEntry(props: MenuEntryProps) {
     <UnstyledButton
       isDisabled={isDisabled}
       className="group flex w-full rounded-menu-entry"
-      onPress={doAction}
+      onPress={
+        dialog == null
+          ? doAction
+          : () => {
+              setIsDialogOpen(true)
+            }
+      }
     >
       <div
         className={`flex h-row grow place-content-between items-center rounded-inherit p-menu-entry text-left selectable group-enabled:active hover:bg-hover-bg disabled:bg-transparent ${
@@ -123,7 +132,15 @@ export default function MenuEntry(props: MenuEntryProps) {
     dialog == null ? (
       button
     ) : (
-      <aria.DialogTrigger>
+      <aria.DialogTrigger
+        isOpen={isDialogOpen}
+        onOpenChange={isOpen => {
+          setIsDialogOpen(isOpen)
+          if (!isOpen) {
+            unsetModal()
+          }
+        }}
+      >
         {button}
         {dialog}
       </aria.DialogTrigger>

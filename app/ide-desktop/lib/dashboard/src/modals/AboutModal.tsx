@@ -3,7 +3,7 @@ import * as React from 'react'
 
 import LogoIcon from 'enso-assets/enso_logo.svg'
 
-import * as text from '#/text'
+import type * as text from '#/text'
 
 import * as textProvider from '#/providers/TextProvider'
 

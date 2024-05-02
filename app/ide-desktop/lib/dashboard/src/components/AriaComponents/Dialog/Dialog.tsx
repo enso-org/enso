@@ -43,7 +43,7 @@ export function Dialog(props: types.DialogProps) {
     children,
     title,
     type = 'modal',
-    isDismissible = true,
+    isDismissable = true,
     isKeyboardDismissDisabled = false,
     className,
     ...ariaDialogProps
@@ -54,7 +54,7 @@ export function Dialog(props: types.DialogProps) {
   return (
     <aria.Modal
       className={tailwindMerge.twMerge(MODAL_CLASSES, MODAL_CLASSES_BY_TYPE[type])}
-      isDismissable={isDismissible}
+      isDismissable={isDismissable}
       isKeyboardDismissDisabled={isKeyboardDismissDisabled}
       UNSTABLE_portalContainer={root.current}
     >
