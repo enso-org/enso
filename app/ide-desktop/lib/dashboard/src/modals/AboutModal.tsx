@@ -1,7 +1,7 @@
 /** @file Modal for confirming delete of any type of asset. */
 import * as React from 'react'
 
-import EnsoLogoIcon from 'enso-assets/enso_logo.svg'
+import LogoIcon from 'enso-assets/enso_logo.svg'
 
 import * as textProvider from '#/providers/TextProvider'
 
@@ -31,26 +31,30 @@ export default function AboutModal(props: AboutModalProps) {
           event.stopPropagation()
         }}
       >
-        <div className="relative flex gap-4">
-          <SvgMask src={EnsoLogoIcon} className="size-16" />
+        <div className="relative flex gap-4 items-center">
+          <SvgMask src={LogoIcon} className="size-16" />
           <div className="flex flex-col gap-1">
             <div className="text-base font-semibold">
               {supportsLocalBackend
                 ? getText('appNameDesktopEdition')
                 : getText('appNameCloudEdition')}
             </div>
-            <div>
-              {getText('versionX', process.env.ENSO_CLOUD_DASHBOARD_VERSION)}
-              {/* TODO: version injected at build time as environment variable */}
-            </div>
-            {process.env.ENSO_CLOUD_DASHBOARD_COMMIT_HASH && (
-              <div>
-                {getText('commitX', process.env.ENSO_CLOUD_DASHBOARD_COMMIT_HASH)}
-                {/* TODO: version injected at build time as environment variable */}
-              </div>
-            )}
-            {window.electronVersions != null && (
-              <div>{getText('electronVersionX', window.electronVersions.electron)}</div>
+            {window.versionInfo != null ? (
+              <>
+                <div>{getText('versionX', window.versionInfo.version)}</div>
+                <div>{getText('buildX', window.versionInfo.build)}</div>
+                <div>{getText('electronVersionX', window.versionInfo.electron)}</div>
+                <div>{getText('chromeVersionX', window.versionInfo.chrome)}</div>
+              </>
+            ) : (
+              <>
+                {process.env.ENSO_CLOUD_DASHBOARD_VERSION != null && (
+                  <div>{getText('versionX', process.env.ENSO_CLOUD_DASHBOARD_VERSION)}</div>
+                )}
+                {process.env.ENSO_CLOUD_DASHBOARD_COMMIT_HASH != null && (
+                  <div>{getText('buildX', process.env.ENSO_CLOUD_DASHBOARD_COMMIT_HASH)}</div>
+                )}
+              </>
             )}
           </div>
         </div>

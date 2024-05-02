@@ -73,13 +73,16 @@ interface NavigationApi {
     readonly goForward: () => void
 }
 
-// =========================
-// === Electron Versions ===
-// =========================
+// ====================
+// === Version Info ===
+// ====================
 
-/** Versions of selected software bundled with Electron. */
-interface ElectronVersions {
+/** Versions of the app, and selected software bundled with Electron. */
+interface VersionInfo {
+    readonly version: string
+    readonly build: string
     readonly electron: string
+    readonly chrome: string
 }
 
 // =====================================
@@ -95,7 +98,7 @@ declare global {
         readonly backendApi?: BackendApi
         readonly authenticationApi: AuthenticationApi
         readonly navigationApi: NavigationApi
-        readonly electronVersions?: ElectronVersions
+        readonly versionInfo?: VersionInfo
     }
 
     namespace NodeJS {
@@ -152,7 +155,7 @@ declare global {
             // @ts-expect-error The index signature is intentional to disallow unknown env vars.
             readonly ENSO_CLOUD_GOOGLE_ANALYTICS_TAG?: string
             // @ts-expect-error The index signature is intentional to disallow unknown env vars.
-            readonly ENSO_CLOUD_DASHBOARD_VERSION: string
+            readonly ENSO_CLOUD_DASHBOARD_VERSION?: string
             // @ts-expect-error The index signature is intentional to disallow unknown env vars.
             readonly ENSO_CLOUD_DASHBOARD_COMMIT_HASH?: string
             // @ts-expect-error The index signature is intentional to disallow unknown env vars.

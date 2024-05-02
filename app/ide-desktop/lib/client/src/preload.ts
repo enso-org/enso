@@ -5,6 +5,7 @@
 
 import * as electron from 'electron'
 
+import * as debug from 'debug'
 import * as ipc from 'ipc'
 
 // =================
@@ -23,7 +24,7 @@ const FILE_BROWSER_API_KEY = 'fileBrowserApi'
 
 const NAVIGATION_API_KEY = 'navigationApi'
 
-const ELECTRON_VERSIONS_KEY = 'electronVersions'
+const VERSION_INFO_KEY = 'versionInfo'
 
 // =============================
 // === importProjectFromPath ===
@@ -175,7 +176,4 @@ const FILE_BROWSER_API = {
 }
 electron.contextBridge.exposeInMainWorld(FILE_BROWSER_API_KEY, FILE_BROWSER_API)
 
-const ELECTRON_VERSIONS = {
-    electron: process.versions.electron,
-}
-electron.contextBridge.exposeInMainWorld(ELECTRON_VERSIONS_KEY, ELECTRON_VERSIONS)
+electron.contextBridge.exposeInMainWorld(VERSION_INFO_KEY, debug.VERSION_INFO)

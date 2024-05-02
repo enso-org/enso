@@ -2,8 +2,8 @@
 import * as fs from 'node:fs/promises'
 import * as path from 'node:path'
 import * as url from 'node:url'
-import * as childProcess from 'node:child_process'
-import * as streamConsumers from 'node:stream/consumers'
+
+import BUILD_INFO from '../../../../../build.json' assert { type: 'json' }
 
 // ===============================
 // === readEnvironmentFromFile ===
@@ -47,14 +47,8 @@ export async function readEnvironmentFromFile() {
         if (!isProduction || entries.length > 0) {
             Object.assign(process.env, variables)
         }
-        if (process.env.ENSO_CLOUD_DASHBOARD_VERSION == null) {
-            const branchNameProcess = childProcess.exec('git rev-parse --abbrev-ref HEAD')
-            const branchName = await streamConsumers.text(branchNameProcess.stdout)
-            process.env.ENSO_CLOUD_DASHBOARD_VERSION = `dev-${branchName.trim()}`
-            const commitHashProcess = childProcess.exec('git log -1 --pretty=format:%H')
-            const commitHash = await streamConsumers.text(commitHashProcess.stdout)
-            process.env.ENSO_CLOUD_DASHBOARD_COMMIT_HASH = commitHash.trim()
-        }
+        process.env.ENSO_CLOUD_DASHBOARD_VERSION ??= BUILD_INFO.version
+        process.env.ENSO_CLOUD_DASHBOARD_COMMIT_HASH ??= BUILD_INFO.commit
     } catch (error) {
         if (missingKeys.length !== 0) {
             console.warn('Could not load `.env` file; disabling cloud backend.')
@@ -133,6 +127,7 @@ const DUMMY_DEFINES = {
     'process.env.ENSO_CLOUD_COGNITO_DOMAIN': '',
     'process.env.ENSO_CLOUD_COGNITO_REGION': '',
     'process.env.ENSO_CLOUD_DASHBOARD_VERSION': '0.0.1-testing',
+    'process.env.ENSO_CLOUD_DASHBOARD_COMMIT_HASH': 'abcdef0',
     /* eslint-enable @typescript-eslint/naming-convention */
 }
 
