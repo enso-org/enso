@@ -61,8 +61,6 @@ public class AuditLogMessage implements AuditLogAPI.LogMessage {
       copy.set(PROJECT_NAME, TextNode.valueOf(projectName));
     }
 
-    copy.set(LOCAL_TIMESTAMP, TextNode.valueOf(localTimestamp.format(DateTimeFormatter.ISO_DATE_TIME)));
-
     // FIXME this is a temporary workaround for bug in Cloud API
     copy.set("message", TextNode.valueOf(message));
 
