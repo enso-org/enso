@@ -12,9 +12,11 @@ import com.oracle.truffle.api.library.ExportMessage;
  */
 @ExportLibrary(InteropLibrary.class)
 public final class CompilationAbortedException extends AbstractTruffleException {
+  public static final String COMPILATION_ABORTED_MSG = "Compilation aborted due to errors.";
+
   @Override
   public String getMessage() {
-    return "Compilation aborted due to errors.";
+    return COMPILATION_ABORTED_MSG;
   }
 
   @ExportMessage

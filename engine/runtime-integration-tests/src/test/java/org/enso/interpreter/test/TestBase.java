@@ -171,7 +171,8 @@ public abstract class TestBase {
    * @param tempFolder Temporary folder from JUnit rule.
    * @return Path to the newly created directly structure - a project directory.
    */
-  protected static Path createProject(String projName, String mainSrc, TemporaryFolder tempFolder) throws IOException {
+  protected static Path createProject(String projName, String mainSrc, TemporaryFolder tempFolder)
+      throws IOException {
     var projDir = tempFolder.newFolder(projName);
     assert projDir.exists();
     var projYaml =

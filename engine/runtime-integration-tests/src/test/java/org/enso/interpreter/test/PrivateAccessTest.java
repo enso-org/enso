@@ -184,5 +184,4 @@ public class PrivateAccessTest extends TestBase {
       }
     }
   }
-
 }
