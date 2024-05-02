@@ -4299,7 +4299,7 @@ interface SearchGetSuggestionsDatabaseVersionResult {
 
 ### `search/suggestionsDatabaseUpdate`
 
-Sent from server to the client to inform abouth the change in the suggestions
+Sent from server to the client to inform about the change in the suggestions
 database.
 
 - **Type:** Notification
@@ -4318,7 +4318,7 @@ interface SearchSuggestionsDatabaseUpdateNotification {
 
 ### `search/suggestionsOrderDatabaseUpdate`
 
-Sent from server to the client to inform abouth the change in the suggestions
+Sent from server to the client to inform about the change in the suggestions
 order database.
 
 - **Type:** Notification
@@ -5243,7 +5243,7 @@ interface AiCompletionResultFailure {
 
 ### `ai/completionProgress`
 
-Sent from server to the client to inform abouth the progress of the
+Sent from server to the client to inform about the progress of the
 [`ai/completion`](#aicompletion) request.
 
 - **Type:** Notification
