@@ -63,13 +63,13 @@ export default function AboutModal(props: AboutModalProps) {
     <Modal centered className="bg-dim">
       <div
         data-testid="about-modal"
-        className="pointer-events-auto relative flex w-[28rem] select-text flex-col gap-modal rounded-default p-modal-wide before:absolute before:inset before:h-full before:w-full before:rounded-default before:bg-selected-frame before:backdrop-blur-default"
+        className="pointer-events-auto relative flex w-[30rem] select-text flex-col gap-modal rounded-default p-modal-wide before:absolute before:inset before:h-full before:w-full before:rounded-default before:bg-selected-frame before:backdrop-blur-default"
         onClick={event => {
           event.stopPropagation()
         }}
       >
         <div className="relative flex items-center gap-4">
-          <SvgMask src={LogoIcon} className="size-16" />
+          <SvgMask src={LogoIcon} className="size-16 shrink-0" />
           <div className="flex flex-col gap-3">
             <div className="text-base font-semibold">
               {supportsLocalBackend
@@ -81,19 +81,19 @@ export default function AboutModal(props: AboutModalProps) {
                 {window.versionInfo != null ? (
                   <>
                     <tr>
-                      <td className="whitespace-nowrap px-cell-x">{getText('version')}</td>
+                      <td className="whitespace-nowrap pr-cell-x">{getText('version')}</td>
                       <td>{window.versionInfo.version}</td>
                     </tr>
                     <tr>
-                      <td className="whitespace-nowrap px-cell-x">{getText('build')}</td>
+                      <td className="whitespace-nowrap pr-cell-x">{getText('build')}</td>
                       <td>{window.versionInfo.build}</td>
                     </tr>
                     <tr>
-                      <td className="whitespace-nowrap px-cell-x">{getText('electronVersion')}</td>
+                      <td className="whitespace-nowrap pr-cell-x">{getText('electronVersion')}</td>
                       <td>{window.versionInfo.electron}</td>
                     </tr>
                     <tr>
-                      <td className="whitespace-nowrap px-cell-x">{getText('chromeVersion')}</td>
+                      <td className="whitespace-nowrap pr-cell-x">{getText('chromeVersion')}</td>
                       <td>{window.versionInfo.chrome}</td>
                     </tr>
                   </>
@@ -101,20 +101,20 @@ export default function AboutModal(props: AboutModalProps) {
                   <>
                     {process.env.ENSO_CLOUD_DASHBOARD_VERSION != null && (
                       <tr>
-                        <td className="whitespace-nowrap px-cell-x">{getText('version')}</td>
+                        <td className="whitespace-nowrap pr-cell-x">{getText('version')}</td>
                         <td>{process.env.ENSO_CLOUD_DASHBOARD_VERSION}</td>
                       </tr>
                     )}
                     {process.env.ENSO_CLOUD_DASHBOARD_COMMIT_HASH != null && (
                       <tr>
-                        <td className="whitespace-nowrap px-cell-x">{getText('build')}</td>
+                        <td className="whitespace-nowrap pr-cell-x">{getText('build')}</td>
                         <td>{process.env.ENSO_CLOUD_DASHBOARD_COMMIT_HASH}</td>
                       </tr>
                     )}
                   </>
                 )}
                 <tr>
-                  <td className="whitespace-nowrap px-cell-x">{getText('userAgent')}</td>
+                  <td className="whitespace-nowrap pr-cell-x">{getText('userAgent')}</td>
                   <td>{navigator.userAgent}</td>
                 </tr>
               </tbody>
