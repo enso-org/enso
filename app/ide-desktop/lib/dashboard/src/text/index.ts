@@ -49,6 +49,7 @@ interface PlaceholderOverrides {
   readonly buildX: [build: string]
   readonly electronVersionX: [electronVersion: string]
   readonly chromeVersionX: [chromeVersion: string]
+  readonly userAgentX: [userAgent: string]
   readonly compareVersionXWithLatest: [number]
   readonly onDateX: [string]
   readonly xUsersSelected: [number]

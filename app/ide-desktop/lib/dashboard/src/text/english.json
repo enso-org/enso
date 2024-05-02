@@ -279,6 +279,7 @@
   "buildX": "Build $0",
   "electronVersionX": "Electron $0",
   "chromeVersionX": "Chrome $0",
+  "userAgentX": "User Agent $0",
   "compareWithLatest": "Compare with latest",
   "compareVersionXWithLatest": "Compare version $0 with latest",
   "onDateX": "on $0",

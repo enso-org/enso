@@ -31,7 +31,7 @@ export default function AboutModal(props: AboutModalProps) {
           event.stopPropagation()
         }}
       >
-        <div className="relative flex gap-4 items-center">
+        <div className="relative flex items-center gap-4">
           <SvgMask src={LogoIcon} className="size-16" />
           <div className="flex flex-col gap-1">
             <div className="text-base font-semibold">
@@ -56,6 +56,7 @@ export default function AboutModal(props: AboutModalProps) {
                 )}
               </>
             )}
+            <div>{getText('userAgentX', navigator.userAgent)}</div>
           </div>
         </div>
       </div>

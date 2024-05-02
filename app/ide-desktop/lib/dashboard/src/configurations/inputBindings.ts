@@ -124,7 +124,7 @@ export const BINDINGS = inputBindings.defineBindings({
   },
   aboutThisApp: {
     name: 'About Enso',
-    bindings: ['Mod+Shift+?'],
+    bindings: ['Mod+/'],
     rebindable: true,
     icon: LogoIcon,
   },
