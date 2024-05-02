@@ -787,7 +787,8 @@ object BindingsMap {
                 arg.defaultValue.isDefined,
                 ascribedType
               )
-            }
+            },
+            m.isPrivate
           )
         ),
         isBuiltinType
