@@ -5,8 +5,6 @@
  * the API. */
 import * as detect from 'enso-common/src/detect'
 
-import * as appUtils from '#/appUtils'
-
 import Backend, * as backend from '#/services/Backend'
 import * as projectManager from '#/services/ProjectManager'
 import ProjectManager from '#/services/ProjectManager'
@@ -96,7 +94,6 @@ export function extractTypeAndId<Id extends backend.AssetId>(id: Id): AssetTypeA
 /** Class for sending requests to the Project Manager API endpoints.
  * This is used instead of the cloud backend API when managing local projects from the dashboard. */
 export default class LocalBackend extends Backend {
-  private static readonly baseUrl = location.pathname.replace(appUtils.ALL_PATHS_REGEX, '')
   readonly type = backend.BackendType.local
   private readonly projectManager: ProjectManager
 
