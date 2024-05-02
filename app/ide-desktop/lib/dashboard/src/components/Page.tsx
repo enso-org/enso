@@ -23,7 +23,7 @@ export interface PageProps extends Readonly<React.PropsWithChildren> {
 export default function Page(props: PageProps) {
   const { hideInfoBar = false, children } = props
   const [isHelpChatOpen, setIsHelpChatOpen] = React.useState(false)
-  const session = authProvider.useNonPartialUserSession()
+  const session = authProvider.useUserSession()
 
   const doCloseChat = () => {
     setIsHelpChatOpen(false)
@@ -33,10 +33,12 @@ export default function Page(props: PageProps) {
     <>
       {children}
       {!hideInfoBar && (
-        <InfoBar isHelpChatOpen={isHelpChatOpen} setIsHelpChatOpen={setIsHelpChatOpen} />
+        <div className="fixed right top z-1 m-top-bar text-xs text-primary transition-all duration-side-panel">
+          <InfoBar isHelpChatOpen={isHelpChatOpen} setIsHelpChatOpen={setIsHelpChatOpen} />
+        </div>
       )}
       {/* `session.accessToken` MUST be present in order for the `Chat` component to work. */}
-      {!hideInfoBar && session.accessToken != null && process.env.ENSO_CLOUD_CHAT_URL != null ? (
+      {!hideInfoBar && session?.accessToken != null && process.env.ENSO_CLOUD_CHAT_URL != null ? (
         <Chat
           isOpen={isHelpChatOpen}
           doClose={doCloseChat}

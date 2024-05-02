@@ -869,3 +869,13 @@ export function usePartialUserSession() {
 export function useNonPartialUserSession() {
   return router.useOutletContext<Exclude<UserSession, PartialUserSession>>()
 }
+
+// ======================
+// === useUserSession ===
+// ======================
+
+/** A React context hook returning the user session for a user that may or may not be logged in. */
+export function useUserSession() {
+  // eslint-disable-next-line no-restricted-syntax
+  return router.useOutletContext<UserSession | undefined>()
+}

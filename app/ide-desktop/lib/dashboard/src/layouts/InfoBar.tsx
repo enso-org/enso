@@ -2,9 +2,8 @@
 import * as React from 'react'
 
 import ChatIcon from 'enso-assets/chat.svg'
-import DefaultUserIcon from 'enso-assets/default_user.svg'
+import LogoIcon from 'enso-assets/enso_logo.svg'
 
-import * as authProvider from '#/providers/AuthProvider'
 import * as modalProvider from '#/providers/ModalProvider'
 import * as textProvider from '#/providers/TextProvider'
 
@@ -12,6 +11,7 @@ import InfoMenu from '#/layouts/InfoMenu'
 
 import Button from '#/components/styled/Button'
 import FocusArea from '#/components/styled/FocusArea'
+import SvgMask from '#/components/SvgMask'
 import UnstyledButton from '#/components/UnstyledButton'
 
 // ===============
@@ -27,7 +27,6 @@ export interface InfoBarProps {
 /** A toolbar containing chat and the user menu. */
 export default function InfoBar(props: InfoBarProps) {
   const { isHelpChatOpen, setIsHelpChatOpen } = props
-  const { user } = authProvider.useNonPartialUserSession()
   const { updateModal } = modalProvider.useSetModal()
   const { getText } = textProvider.useText()
 
@@ -51,12 +50,10 @@ export default function InfoBar(props: InfoBarProps) {
               updateModal(oldModal => (oldModal?.type === InfoMenu ? null : <InfoMenu />))
             }}
           >
-            <img
-              src={user?.profilePicture ?? DefaultUserIcon}
+            <SvgMask
+              src={LogoIcon}
               alt={getText('openUserMenu')}
-              className="pointer-events-none"
-              height={28}
-              width={28}
+              className="pointer-events-none size-7"
             />
           </UnstyledButton>
           {/* Required for shortcuts to work. */}
