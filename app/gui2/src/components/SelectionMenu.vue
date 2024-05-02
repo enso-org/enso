@@ -11,6 +11,7 @@ const _props = defineProps<{ selectedComponents: number }>()
 const emit = defineEmits<{
   collapseNodes: []
   setNodeColor: [color: string]
+  removeNodes: []
 }>()
 
 const { getNodeColor, visibleNodeColors } = injectNodeColors()
@@ -51,6 +52,13 @@ const selectionColor = computed(() => {
         // picker is open, so that it isn't toggled back open.
         disableInput: showColorPicker,
       }"
+    />
+    <SvgIcon
+      name="trash"
+      draggable="false"
+      class="icon button"
+      alt="Delete components"
+      @click.stop="emit('removeNodes')"
     />
     <div v-if="showColorPicker" class="colorPickerContainer">
       <ColorRing

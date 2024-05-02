@@ -370,10 +370,10 @@ type Database_File
         f
 
 create_inmem_connection =
-    Database.connect (SQLite In_Memory)
+    Database.connect (SQLite.In_Memory)
 
 create_file_connection file =
-    connection = Database.connect (SQLite file)
+    connection = Database.connect (SQLite.From_File file)
     connection.execute_update 'CREATE TABLE "Dummy" ("strs" VARCHAR, "ints" INTEGER, "bools" BOOLEAN, "reals" REAL)'
     connection
 
@@ -446,7 +446,7 @@ add_specs suite_builder =
             connection.close
 
         group_builder.specify 'should not duplicate warnings' <|
-            c = Database.connect (SQLite In_Memory)
+            c = Database.connect (SQLite.In_Memory)
             t0 = Table.new [["X", ["a", "bc", "def"]]]
             t1 = t0.select_into_database_table c "Tabela"
             t2 = t1.cast "X" (Value_Type.Char size=1)

@@ -6,17 +6,17 @@ import org.enso.database.DatabaseConnectionDetailsSPI;
 public class SQLiteConnectionDetailsSPI extends DatabaseConnectionDetailsSPI {
   @Override
   protected String getModuleName() {
-    return "Standard.Database.Connection.SQLite_Details";
+    return "Standard.Database.Connection.SQLite";
   }
 
   @Override
   protected String getTypeName() {
-    return "SQLite_Details";
+    return "SQLite";
   }
 
   @Override
   protected String getCodeForDefaultConstructor() {
-    return "(SQLite location=_)";
+    return "SQLite.From_File";
   }
 
   @Override

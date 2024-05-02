@@ -28,6 +28,7 @@ const emit = defineEmits<{
   toggleCodeEditor: []
   collapseNodes: []
   setNodeColor: [color: string]
+  removeNodes: []
 }>()
 
 const LEFT_PADDING_PX = 11
@@ -63,6 +64,7 @@ const barStyle = computed(() => {
         v-model:showColorPicker="showColorPicker"
         :selectedComponents="componentsSelected"
         @collapseNodes="emit('collapseNodes')"
+        @removeNodes="emit('removeNodes')"
         @setNodeColor="emit('setNodeColor', $event)"
       />
     </Transition>
