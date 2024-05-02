@@ -68,6 +68,7 @@ impl UninstallInfo {
 
     #[context("Failed to write '{app_key}' uninstall information to the registry.")]
     pub fn write_to_registry(&self, app_key: &str) -> Result {
+        trace!("Writing uninstall information to the registry: {self:#?}");
         let uninstall_key = open_uninstall_key()?;
 
         // Create a new key for our application

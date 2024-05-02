@@ -55,8 +55,8 @@ pub fn register_uninstaller(
     uninstall_info.publisher = Some(config.publisher.clone());
     uninstall_info.display_icon = Some(uninstaller_path.display().to_string());
     uninstall_info.display_version = Some(config.version.to_string());
-    uninstall_info.write_to_registry(&config.uninstall_key)?;
     uninstall_info.estimated_size_kib = Some((installation_size_bytes / 1024) as u32);
+    uninstall_info.write_to_registry(&config.uninstall_key)?;
     Ok(())
 }
 
