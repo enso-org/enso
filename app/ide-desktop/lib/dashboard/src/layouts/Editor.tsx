@@ -32,13 +32,14 @@ const JS_EXTENSION: Readonly<Record<backendModule.BackendType, string>> = {
 export interface EditorProps {
   readonly hidden: boolean
   readonly supportsLocalBackend: boolean
+  readonly ydocUrl: string | null
   readonly projectStartupInfo: backendModule.ProjectStartupInfo | null
   readonly appRunner: AppRunner
 }
 
 /** The container that launches the IDE. */
 export default function Editor(props: EditorProps) {
-  const { hidden, supportsLocalBackend, projectStartupInfo, appRunner } = props
+  const { hidden, supportsLocalBackend, ydocUrl, projectStartupInfo, appRunner } = props
   const toastAndLog = toastAndLogHooks.useToastAndLog()
   const gtagEvent = gtagHooks.useGtagEvent()
   const gtagEventRef = React.useRef(gtagEvent)
@@ -77,6 +78,7 @@ export default function Editor(props: EditorProps) {
       void (async () => {
         const jsonAddress = project.jsonAddress
         const binaryAddress = project.binaryAddress
+        const ydocAddress = ydocUrl ?? ''
         if (jsonAddress == null) {
           toastAndLog('noJSONEndpointError')
         } else if (binaryAddress == null) {
@@ -103,6 +105,7 @@ export default function Editor(props: EditorProps) {
             const engineConfig = {
               rpcUrl: jsonAddress,
               dataUrl: binaryAddress,
+              ydocUrl: ydocAddress,
             }
             const originalUrl = window.location.href
             if (backendType === backendModule.BackendType.remote) {
