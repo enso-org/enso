@@ -33,11 +33,8 @@ class AuditLogAPI {
   }
 
   public Future<Void> logAsync(LogMessage message) {
-    System.out.println("logAsync: " + message.payload());
     return executorService.submit(() -> {
-      System.out.println("inside of future: " + message.payload());
       logSync(message);
-      System.out.println("after sync: " + message.payload());
       return null;
     });
   }
@@ -53,12 +50,10 @@ class AuditLogAPI {
 
     try {
       try {
-        System.out.println("Sending log message: " + payload);
         HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
         if (response.statusCode() < 200 || response.statusCode() >= 300) {
           throw new RequestFailureException("Unexpected status code: " + response.statusCode() + " " + response.body(), null);
         }
-        System.out.println("Log message sent successfully: " + response.statusCode() + " " + response.body());
       } catch (IOException | InterruptedException e) {
         // Promote a checked exception to a runtime exception to simplify the code.
         throw new RequestFailureException(e.getMessage(), e);
