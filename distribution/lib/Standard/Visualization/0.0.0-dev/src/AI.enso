@@ -1,5 +1,6 @@
 from Standard.Base import all
 from Standard.Table import Table
+import project.Helpers
 
 ## PRIVATE
 goal_placeholder = "__$$GOAL$$__"
@@ -34,3 +35,6 @@ Table.build_ai_prompt self =
 
 ## PRIVATE
 build_ai_prompt subject = subject.build_ai_prompt
+
+## PRIVATE
+print subject = subject.to_default_visualization_data
