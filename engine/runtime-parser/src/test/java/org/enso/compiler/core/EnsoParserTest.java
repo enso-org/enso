@@ -1401,6 +1401,24 @@ public class EnsoParserTest {
   }
 
   @Test
+  public void testPrivateConstructor() throws Exception {
+    parseTest(
+        """
+            type My_Type
+                private Ctor_1 a b
+                private Ctor_2 c d
+            """);
+    // Mixing public and private constructor is a semantic error, not a syntax error.
+    // So parsing should be fine.
+    parseTest(
+        """
+            type My_Type
+                private Ctor_1 a b
+                Ctor_2 c d
+            """);
+  }
+
+  @Test
   public void ise_184219679() throws IOException {
     parseTest(
         """

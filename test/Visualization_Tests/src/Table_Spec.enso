@@ -23,7 +23,7 @@ type Data
     t2 self = self.data.at 1
 
     setup = Data.Value <|
-        connection = Database.connect (SQLite In_Memory)
+        connection = Database.connect (SQLite.In_Memory)
         in_mem = Table.new [["A", ['a', 'a', 'a']], ["B", [2, 2, 3]], ["C", [3, 5, 6]]]
         t = in_mem.select_into_database_table connection "T" primary_key=Nothing temporary=True
         t2 = Table.new [["A", [1, 2, 3]], ["B", [4, 5, 6]], ["C", [7, 8, 9]]]

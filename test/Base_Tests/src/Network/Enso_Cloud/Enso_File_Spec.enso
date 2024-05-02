@@ -63,7 +63,7 @@ add_specs suite_builder setup:Cloud_Tests_Setup = suite_builder.group "Enso Clou
             Enso_User.flush_caches
             subdir.delete
         Panic.with_finalizer cleanup <|
-            Test_Environment.unsafe_with_environment_override "ENSO_PROJECT_DIRECTORY_PATH" subdir.path <|
+            Test_Environment.unsafe_with_environment_override "ENSO_CLOUD_PROJECT_DIRECTORY_PATH" subdir.path <|
                 # Flush caches to ensure fresh dir is used
                 Enso_User.flush_caches
 
@@ -284,6 +284,7 @@ add_specs suite_builder setup:Cloud_Tests_Setup = suite_builder.group "Enso Clou
         nested_file.is_writable . should_be_a Boolean
 
     Local_File_Spec.add_create_and_delete_directory_specs group_builder test_root.get
+    Local_File_Spec.add_copy_edge_cases_specs group_builder test_root.get
 
 main filter=Nothing =
     setup = Cloud_Tests_Setup.prepare

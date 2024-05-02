@@ -54,8 +54,8 @@ const emit = defineEmits<{
   draggingCommited: []
   delete: []
   replaceSelection: []
-  outputPortClick: [portId: AstId]
-  outputPortDoubleClick: [portId: AstId]
+  outputPortClick: [event: PointerEvent, portId: AstId]
+  outputPortDoubleClick: [event: PointerEvent, portId: AstId]
   doubleClick: []
   createNodes: [options: NodeCreationOptions[]]
   toggleColorPicker: []
@@ -161,7 +161,9 @@ const selected = computed(() => nodeSelection?.isSelected(nodeId.value) ?? false
 const selectionVisible = ref(false)
 
 const isOnlyOneSelected = computed(
-  () => selected.value && nodeSelection?.selected.size === 1 && !nodeSelection.isChanging,
+  () =>
+    nodeSelection?.committedSelection.size === 1 &&
+    nodeSelection?.committedSelection.has(nodeId.value),
 )
 
 const menuVisible = computed(() => menuEnabledByHover.value || isOnlyOneSelected.value)
@@ -360,8 +362,8 @@ function getRelatedSpanOffset(domNode: globalThis.Node, domOffset: number): numb
 }
 
 const handlePortClick = useDoubleClick(
-  (portId: AstId) => emit('outputPortClick', portId),
-  (portId: AstId) => emit('outputPortDoubleClick', portId),
+  (event: PointerEvent, portId: AstId) => emit('outputPortClick', event, portId),
+  (event: PointerEvent, portId: AstId) => emit('outputPortDoubleClick', event, portId),
 ).handleClick
 
 const handleNodeClick = useDoubleClick(
@@ -371,7 +373,7 @@ const handleNodeClick = useDoubleClick(
 
 interface PortData {
   clipRange: [number, number]
-  label: string
+  label: string | undefined
   portId: AstId
 }
 
@@ -379,12 +381,9 @@ const outputPorts = computed((): PortData[] => {
   const ports = outputPortsSet.value
   const numPorts = ports.size
   return Array.from(ports, (portId, index): PortData => {
-    const labelIdent = numPorts > 1 ? graph.db.getOutputPortIdentifier(portId) + ': ' : ''
-    const labelType =
-      graph.db.getExpressionInfo(numPorts > 1 ? portId : nodeId.value)?.typename ?? 'Unknown'
     return {
       clipRange: [index / numPorts, (index + 1) / numPorts],
-      label: labelIdent + labelType,
+      label: numPorts > 1 ? graph.db.getOutputPortIdentifier(portId) : undefined,
       portId,
     }
   })
@@ -583,7 +582,7 @@ const documentation = computed<string | undefined>({
               class="outputPortHoverArea"
               @pointerenter="outputHovered = port.portId"
               @pointerleave="outputHovered = undefined"
-              @pointerdown.stop.prevent="handlePortClick(port.portId)"
+              @pointerdown.stop.prevent="handlePortClick($event, port.portId)"
             />
             <rect class="outputPort" />
           </g>

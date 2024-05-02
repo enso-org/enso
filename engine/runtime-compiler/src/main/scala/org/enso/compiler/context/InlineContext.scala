@@ -27,6 +27,7 @@ case class InlineContext(
   pkgRepo: Option[PackageRepository]           = None
 ) {
   def bindingsAnalysis() = module.bindingsAnalysis()
+  def getModule()        = module.module
 }
 object InlineContext {
 

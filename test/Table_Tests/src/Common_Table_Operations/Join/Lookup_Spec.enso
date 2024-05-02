@@ -446,7 +446,7 @@ add_specs suite_builder setup =
 
         group_builder.specify "should gracefully handle tables from different backends" <|
             t1 = table_builder [["A", [1, 2, 3]], ["B", ["a", "b", "c"]]]
-            alternative_connection = Database.connect (SQLite In_Memory)
+            alternative_connection = Database.connect (SQLite.In_Memory)
             t0 = (Table.new [["A", [3, 2, 1]], ["B", ["x", "y", "z"]]]).select_into_database_table alternative_connection "T0" temporary=True
 
             r1 = t1.merge t0 key_columns="A"
