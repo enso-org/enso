@@ -15,10 +15,6 @@ public class AddRowNumber {
       Column[] orderingColumns,
       int[] directions,
       ProblemAggregator problemAggregator) {
-    if (orderingColumns.length != directions.length) {
-      throw new IllegalArgumentException(
-          "The number of ordering columns and directions must be the same.");
-    }
     if (groupingColumns.length == 0 && orderingColumns.length == 0) {
       throw new IllegalArgumentException("At least one grouping or ordering column is required.");
     }

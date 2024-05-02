@@ -20,10 +20,6 @@ public class AddRunning {
       Column[] orderingColumns,
       int[] directions,
       ProblemAggregator problemAggregator) {
-    if (orderingColumns.length != directions.length) {
-      throw new IllegalArgumentException(
-          "The number of ordering columns and directions must be the same.");
-    }
     var runningStatistic = createRunningStatistic(statistic, sourceColumn, problemAggregator);
     RunningLooper.loop(
         groupingColumns,

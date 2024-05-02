@@ -28,6 +28,10 @@ abstract class RunningLooper<T> {
       ProblemAggregator problemAggregator,
       RunningStatistic<T> runningStatistic,
       long numRows) {
+    if (orderingColumns.length != directions.length) {
+      throw new IllegalArgumentException(
+          "The number of ordering columns and directions must be the same.");
+    }
     RunningLooper<T> runningLooper;
     if (groupingColumns.length > 0 && orderingColumns.length > 0) {
       runningLooper =
