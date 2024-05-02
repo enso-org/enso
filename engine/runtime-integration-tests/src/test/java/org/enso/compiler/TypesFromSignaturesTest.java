@@ -4,6 +4,8 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 import java.net.URI;
+import java.net.URISyntaxException;
+
 import org.enso.compiler.core.IR;
 import org.enso.compiler.core.ir.ProcessingPass;
 import org.enso.compiler.pass.analyse.types.InferredType;
@@ -78,6 +80,51 @@ public class TypesFromSignaturesTest extends CompilerTest {
 
     // For the 'opted-out' ascription, the types are ignored, because they are not checked types. But we still infer arity.
     assertInferredType(f2, "(Any -> (Any -> Any))");
+  }
+
+  @Test
+  public void memberMethods() throws URISyntaxException {
+    final URI uri = new URI("memory://memberMethods.enso");
+    final Source src =
+        Source.newBuilder(
+                "enso",
+                """
+                    type A
+                        static_method (x : A) -> A = x
+                        member_method self (x : A) -> A = x
+                    """,
+                uri.getAuthority())
+            .uri(uri)
+            .buildLiteral();
+
+    var module = compile(src);
+    module.bindings().map((b) -> {
+      System.out.println(b);
+      return null;
+    });
+  }
+
+  @Test
+  public void extensionMethods() throws URISyntaxException {
+    final URI uri = new URI("memory://extensionMethods.enso");
+    final Source src =
+        Source.newBuilder(
+                "enso",
+                """
+                    type A
+                    
+                    A.extension_static_method (x : A) -> A = x
+                    A.extension_member_method self (x : A) -> A = x
+                    """,
+                uri.getAuthority())
+            .uri(uri)
+            .buildLiteral();
+
+    var module = compile(src);
+    module.bindings().map((b) -> {
+      System.out.println(b);
+      return null;
+    });
   }
 
   private void assertInferredType(IR ir, String expected) {
