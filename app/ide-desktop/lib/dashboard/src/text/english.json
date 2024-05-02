@@ -515,6 +515,7 @@
 
   "assetSearchFieldLabel": "Search through items",
   "userMenuLabel": "User menu",
+  "infoMenuLabel": "Info menu",
   "categorySwitcherMenuLabel": "Category switcher",
   "labelsListLabel": "Labels",
   "globalContextMenuLabel": "Global context menu",

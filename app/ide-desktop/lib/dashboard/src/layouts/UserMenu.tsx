@@ -10,6 +10,7 @@ import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
 import * as authProvider from '#/providers/AuthProvider'
 import * as modalProvider from '#/providers/ModalProvider'
+import * as supportsLocalBackendProvider from '#/providers/SupportsLocalBackendProvider'
 import * as textProvider from '#/providers/TextProvider'
 
 import * as pageSwitcher from '#/layouts/PageSwitcher'
@@ -33,14 +34,14 @@ export interface UserMenuProps {
   /** If `true`, disables `data-testid` because it will not be visible. */
   readonly hidden?: boolean
   readonly setPage: (page: pageSwitcher.Page) => void
-  readonly supportsLocalBackend: boolean
   readonly onSignOut: () => void
 }
 
 /** Handling the UserMenuItem click event logic and displaying its content. */
 export default function UserMenu(props: UserMenuProps) {
-  const { hidden = false, setPage, supportsLocalBackend, onSignOut } = props
+  const { hidden = false, setPage, onSignOut } = props
   const [initialized, setInitialized] = React.useState(false)
+  const supportsLocalBackend = supportsLocalBackendProvider.useSupportsLocalBackend()
   const navigate = navigateHooks.useNavigate()
   const { signOut } = authProvider.useAuth()
   const { user } = authProvider.useNonPartialUserSession()
@@ -49,14 +50,16 @@ export default function UserMenu(props: UserMenuProps) {
   const toastAndLog = toastAndLogHooks.useToastAndLog()
 
   React.useEffect(() => {
-    requestAnimationFrame(setInitialized.bind(null, true))
+    requestAnimationFrame(() => {
+      setInitialized(true)
+    })
   }, [])
 
   const aboutThisAppMenuEntry = (
     <MenuEntry
       action="aboutThisApp"
       doAction={() => {
-        setModal(<AboutModal supportsLocalBackend={supportsLocalBackend} />)
+        setModal(<AboutModal />)
       }}
     />
   )

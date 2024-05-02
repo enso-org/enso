@@ -31,7 +31,6 @@ export interface UserBarProps {
   /** When `true`, the element occupies space in the layout but is not visible.
    * Defaults to `false`. */
   readonly invisible?: boolean
-  readonly supportsLocalBackend: boolean
   readonly page: pageSwitcher.Page
   readonly setPage: (page: pageSwitcher.Page) => void
   readonly isHelpChatOpen: boolean
@@ -45,7 +44,7 @@ export interface UserBarProps {
 /** A toolbar containing chat and the user menu. */
 export default function UserBar(props: UserBarProps) {
   const { invisible = false, page, setPage, isHelpChatOpen, setIsHelpChatOpen } = props
-  const { supportsLocalBackend, projectAsset, setProjectAsset, doRemoveSelf, onSignOut } = props
+  const { projectAsset, setProjectAsset, doRemoveSelf, onSignOut } = props
   const { type: sessionType, user } = authProvider.useNonPartialUserSession()
   const { setModal, updateModal } = modalProvider.useSetModal()
   const { backend } = backendProvider.useBackend()
@@ -111,11 +110,7 @@ export default function UserBar(props: UserBarProps) {
             onPress={() => {
               updateModal(oldModal =>
                 oldModal?.type === UserMenu ? null : (
-                  <UserMenu
-                    setPage={setPage}
-                    supportsLocalBackend={supportsLocalBackend}
-                    onSignOut={onSignOut}
-                  />
+                  <UserMenu setPage={setPage} onSignOut={onSignOut} />
                 )
               )
             }}
@@ -130,12 +125,7 @@ export default function UserBar(props: UserBarProps) {
           </UnstyledButton>
           {/* Required for shortcuts to work. */}
           <div className="hidden">
-            <UserMenu
-              hidden
-              setPage={setPage}
-              supportsLocalBackend={supportsLocalBackend}
-              onSignOut={onSignOut}
-            />
+            <UserMenu hidden setPage={setPage} onSignOut={onSignOut} />
           </div>
         </div>
       )}

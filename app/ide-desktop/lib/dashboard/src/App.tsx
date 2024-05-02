@@ -55,6 +55,7 @@ import type * as loggerProvider from '#/providers/LoggerProvider'
 import ModalProvider, * as modalProvider from '#/providers/ModalProvider'
 import * as navigator2DProvider from '#/providers/Navigator2DProvider'
 import SessionProvider from '#/providers/SessionProvider'
+import SupportsLocalBackendProvider from '#/providers/SupportsLocalBackendProvider'
 
 import ConfirmRegistration from '#/pages/authentication/ConfirmRegistration'
 import EnterOfflineMode from '#/pages/authentication/EnterOfflineMode'
@@ -69,8 +70,6 @@ import SetUsername from '#/pages/authentication/SetUsername'
 import Dashboard from '#/pages/dashboard/Dashboard'
 import Subscribe from '#/pages/subscribe/Subscribe'
 
-import TheModal from '#/components/dashboard/TheModal'
-import Portal from '#/components/Portal'
 import * as rootComponent from '#/components/Root'
 
 import AboutModal from '#/modals/AboutModal'
@@ -324,10 +323,10 @@ function AppRouter(props: AppRouterProps) {
   React.useEffect(() => {
     if ('menuApi' in window) {
       window.menuApi.setShowAboutModalHandler(() => {
-        setModal(<AboutModal supportsLocalBackend={supportsLocalBackend} />)
+        setModal(<AboutModal />)
       })
     }
-  }, [])
+  }, [/* should never change */ setModal])
 
   React.useEffect(() => {
     const onKeyDown = navigator2D.onKeyDown.bind(navigator2D)
@@ -422,6 +421,11 @@ function AppRouter(props: AppRouterProps) {
     </router.Routes>
   )
   let result = routes
+  result = (
+    <SupportsLocalBackendProvider supportsLocalBackend={supportsLocalBackend}>
+      {result}
+    </SupportsLocalBackendProvider>
+  )
   result = <InputBindingsProvider inputBindings={inputBindings}>{result}</InputBindingsProvider>
   result = (
     <AuthProvider
@@ -456,11 +460,6 @@ function AppRouter(props: AppRouterProps) {
   result = (
     <rootComponent.Root rootRef={root} navigate={navigate}>
       {result}
-      <Portal>
-        <div className="select-none text-xs text-primary">
-          <TheModal />
-        </div>
-      </Portal>
     </rootComponent.Root>
   )
   return result

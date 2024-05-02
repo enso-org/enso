@@ -5,6 +5,7 @@ import LogoIcon from 'enso-assets/enso_logo.svg'
 
 import type * as text from '#/text'
 
+import * as supportsLocalBackendProvider from '#/providers/SupportsLocalBackendProvider'
 import * as textProvider from '#/providers/TextProvider'
 
 import * as aria from '#/components/aria'
@@ -25,14 +26,9 @@ const CLEAR_COPIED_STATE_TIMEOUT_MS = 2_500
 // === AboutModal ===
 // ==================
 
-/** Props for a {@link AboutModal}. */
-export interface AboutModalProps {
-  readonly supportsLocalBackend: boolean
-}
-
 /** A modal for confirming the deletion of an asset. */
-export default function AboutModal(props: AboutModalProps) {
-  const { supportsLocalBackend } = props
+export default function AboutModal() {
+  const supportsLocalBackend = supportsLocalBackendProvider.useSupportsLocalBackend()
   const { getText } = textProvider.useText()
   const [isCopied, setIsCopied] = React.useState(false)
   const textContainerRef = React.useRef<HTMLTableSectionElement | null>(null)
