@@ -2019,6 +2019,7 @@ lazy val `runtime-benchmarks` =
         )
       },
       javaOptions ++= benchOnlyOptions,
+      javaOptions += "-Xss16M",
       run / fork := true,
       run / connectInput := true,
       bench := Def
