@@ -27,8 +27,9 @@ type Audit_Log
          The following fields are added by the system and should not be included
          in the provided metadata:
          - `type`
-         - `local_timestamp`
-         - `project_name`
+         - `operation`
+         - `localTimestamp`
+         - `projectName`
     report_event event_type:Text message:Text (metadata:JS_Object = JS_Object.from_pairs []) (async : Boolean = True) -> Nothing =
         Illegal_Argument.handle_java_exception <|
             case async of

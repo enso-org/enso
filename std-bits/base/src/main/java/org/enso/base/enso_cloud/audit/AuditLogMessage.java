@@ -10,22 +10,28 @@ import java.time.format.DateTimeFormatter;
 import java.util.Objects;
 
 public class AuditLogMessage implements AuditLogAPI.LogMessage {
-  private final static String TYPE = "type";
-  private final static String PROJECT_NAME = "project_name";
-  private final static String LOCAL_TIMESTAMP = "local_timestamp";
+
+  /**
+   * A reserved field that is currently added by the cloud backend. Duplicating it will lead to internal server errors and log messages being discarded.
+   */
+  private final static String RESERVED_TYPE = "type";
+  private final static String OPERATION = "operation";
+  private final static String PROJECT_NAME = "projectName";
+  private final static String LOCAL_TIMESTAMP = "localTimestamp";
 
   private final String projectId;
   private final String projectName;
   private final ZonedDateTime localTimestamp;
-  private final String type;
+  private final String operation;
   private final String message;
   private final ObjectNode metadata;
 
-  public AuditLogMessage(String type, String message, ObjectNode metadata) {
-    this.type = Objects.requireNonNull(type);
+  public AuditLogMessage(String operation, String message, ObjectNode metadata) {
+    this.operation = Objects.requireNonNull(operation);
     this.message = Objects.requireNonNull(message);
     this.metadata = Objects.requireNonNull(metadata);
-    checkNoRestrictedField(metadata, TYPE);
+    checkNoRestrictedField(metadata, RESERVED_TYPE);
+    checkNoRestrictedField(metadata, OPERATION);
     checkNoRestrictedField(metadata, PROJECT_NAME);
     checkNoRestrictedField(metadata, LOCAL_TIMESTAMP);
     // TODO
@@ -42,7 +48,7 @@ public class AuditLogMessage implements AuditLogAPI.LogMessage {
 
   private ObjectNode computedMetadata() {
     var copy = metadata.deepCopy();
-    copy.set(TYPE, TextNode.valueOf(type));
+    copy.set(OPERATION, TextNode.valueOf(operation));
     copy.set(PROJECT_NAME, TextNode.valueOf(projectName));
     copy.set(LOCAL_TIMESTAMP, TextNode.valueOf(localTimestamp.format(DateTimeFormatter.ISO_DATE_TIME)));
     return copy;
@@ -52,7 +58,7 @@ public class AuditLogMessage implements AuditLogAPI.LogMessage {
   public String payload() {
     var payload = new ObjectNode(JsonNodeFactory.instance);
     payload.set("message", TextNode.valueOf(message));
-    payload.set("project_id", projectId == null ? NullNode.getInstance() : TextNode.valueOf(projectId));
+    payload.set("projectId", projectId == null ? NullNode.getInstance() : TextNode.valueOf(projectId));
     payload.set("metadata", computedMetadata());
     payload.set("kind", TextNode.valueOf("Lib"));
     return payload.toString();
