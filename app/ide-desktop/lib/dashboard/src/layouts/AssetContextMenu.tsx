@@ -234,8 +234,10 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
           <ContextMenuEntry
             hidden={hidden}
             isDisabled={
-              asset.type !== backendModule.AssetType.project &&
-              asset.type !== backendModule.AssetType.directory
+              isCloud
+                ? asset.type !== backendModule.AssetType.project &&
+                  asset.type !== backendModule.AssetType.directory
+                : false
             }
             action="rename"
             doAction={() => {

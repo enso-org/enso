@@ -21,6 +21,7 @@ import * as eventModule from '#/utilities/event'
 import * as fileIcon from '#/utilities/fileIcon'
 import * as indent from '#/utilities/indent'
 import * as object from '#/utilities/object'
+import * as string from '#/utilities/string'
 import Visibility from '#/utilities/Visibility'
 
 // ================
@@ -45,6 +46,7 @@ export default function FileNameColumn(props: FileNameColumnProps) {
   }
   const asset = item.item
   const setAsset = setAssetHooks.useSetAsset(asset, setItem)
+  const isCloud = backend.type === backendModule.BackendType.remote
 
   const setIsEditing = (isEditingName: boolean) => {
     if (isEditable) {
@@ -55,8 +57,22 @@ export default function FileNameColumn(props: FileNameColumnProps) {
   // TODO[sb]: Wait for backend implementation. `editable` should also be re-enabled, and the
   // context menu entry should be re-added.
   // Backend implementation is tracked here: https://github.com/enso-org/cloud-v2/issues/505.
-  const doRename = async () => {
-    return await Promise.resolve(null)
+  const doRename = async (newTitle: string) => {
+    if (isEditable) {
+      setIsEditing(false)
+      if (string.isWhitespaceOnly(newTitle)) {
+        // Do nothing.
+      } else if (!isCloud && newTitle !== asset.title) {
+        const oldTitle = asset.title
+        setAsset(object.merger({ title: newTitle }))
+        try {
+          await backend.updateFile(asset.id, { title: newTitle }, asset.title)
+        } catch (error) {
+          toastAndLog('renameFolderError', error)
+          setAsset(object.merger({ title: oldTitle }))
+        }
+      }
+    }
   }
 
   eventHooks.useEventHandler(
@@ -164,18 +180,7 @@ export default function FileNameColumn(props: FileNameColumnProps) {
               child.item.title !== newTitle
           )
         }
-        onSubmit={async newTitle => {
-          setIsEditing(false)
-          if (newTitle !== asset.title) {
-            const oldTitle = asset.title
-            setAsset(object.merger({ title: newTitle }))
-            try {
-              await doRename()
-            } catch {
-              setAsset(object.merger({ title: oldTitle }))
-            }
-          }
-        }}
+        onSubmit={doRename}
         onCancel={() => {
           setIsEditing(false)
         }}

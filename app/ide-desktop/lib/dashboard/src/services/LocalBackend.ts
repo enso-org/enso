@@ -556,7 +556,6 @@ export default class LocalBackend extends Backend {
         ? this.projectManager.rootDirectory
         : extractTypeAndId(params.parentDirectoryId).id
     const path = projectManager.joinPath(parentPath, params.fileName)
-    // await this.projectManager.createFile(path, file)
     const searchParams = new URLSearchParams([
       ['file_name', params.fileName],
       ...(params.parentDirectoryId == null ? [] : [['directory', parentPath]]),
@@ -567,6 +566,17 @@ export default class LocalBackend extends Backend {
     })
     // `project` MUST BE `null` as uploading projects uses a separate endpoint.
     return { path, id: newFileId(path), project: null }
+  }
+
+  override async updateFile(
+    fileId: backend.FileId,
+    body: backend.UpdateFileRequestBody
+  ): Promise<void> {
+    const typeAndId = extractTypeAndId(fileId)
+    const from = typeAndId.id
+    const folderPath = fileInfo.folderPath(from)
+    const to = projectManager.joinPath(projectManager.Path(folderPath), body.title)
+    await this.projectManager.moveFile(from, to)
   }
 
   /** Construct a new path using the given parent directory and a file name. */
