@@ -312,8 +312,7 @@ class App {
                         : {}),
                 }
                 const window = new electron.BrowserWindow(windowPreferences)
-                // FIXME: set back to false
-                window.setMenuBarVisibility(true)
+                window.setMenuBarVisibility(false)
                 const oldMenu = electron.Menu.getApplicationMenu()
                 if (oldMenu != null) {
                     const items = oldMenu.items.map(item => {
@@ -327,8 +326,7 @@ class App {
                                     new electron.MenuItem({
                                         label: `About ${common.PRODUCT_NAME}`,
                                         click: () => {
-                                            // FIXME:
-                                            electron.ipcMain.emit(ipc.Channel.showAboutModal)
+                                            window.webContents.send(ipc.Channel.showAboutModal)
                                         },
                                     }),
                                 ]),
