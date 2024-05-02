@@ -41,7 +41,7 @@ function angularStops(points: Iterable<GradientPoint>) {
   return stops
 }
 
-function stopSpans(stops: Iterable<AngularStop>, radius: number) {
+function stopSpans(stops: Iterable<AngularStop>) {
   const spans = new Array<{ start: number; end: number; hue: number }>()
   let prev: AngularStop | undefined = undefined
   for (const stop of stops) {
@@ -78,7 +78,7 @@ function testGradients({ hues, radius }: { hues: number[]; radius: number }) {
   const stops = angularStops(points)
   expect(stops[0]?.angle).toBe(0)
   expect(stops[stops.length - 1]?.angle).toBe(1)
-  const spans = stopSpans(stops, radius)
+  const spans = stopSpans(stops)
   for (const span of spans) {
     expect(approximateHues).toContain(approximate(span.hue))
     if (span.start < span.end) {

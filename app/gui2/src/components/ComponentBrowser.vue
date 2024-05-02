@@ -1,10 +1,10 @@
 <script setup lang="ts">
 import { componentBrowserBindings } from '@/bindings'
+import { default as DocumentationPanel } from '@/components/ComponentBrowser/DocumentationPanel.vue'
 import { makeComponentList, type Component } from '@/components/ComponentBrowser/component'
 import { Filtering } from '@/components/ComponentBrowser/filtering'
 import { useComponentBrowserInput, type Usage } from '@/components/ComponentBrowser/input'
 import { useScrolling } from '@/components/ComponentBrowser/scrolling'
-import { default as DocumentationPanel } from '@/components/DocumentationPanel.vue'
 import GraphVisualization from '@/components/GraphEditor/GraphVisualization.vue'
 import SvgIcon from '@/components/SvgIcon.vue'
 import ToggleIcon from '@/components/ToggleIcon.vue'

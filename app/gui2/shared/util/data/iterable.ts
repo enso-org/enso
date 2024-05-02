@@ -61,6 +61,36 @@ export function* zipLongest<T, U>(
   }
 }
 
+declare const nonEmptyBrand: unique symbol
+export type NonEmptyIterable<T> = Iterable<T> & { [nonEmptyBrand]: never }
+export type NonEmptyGenerator<T> = Generator<T> & NonEmptyIterable<T>
+
+export function unfold<T>(initial: T, f: (value: T) => T | undefined): NonEmptyGenerator<T>
+export function* unfold<T>(initial: T, f: (value: T) => T | undefined): Generator<T> {
+  let value: T | undefined = initial
+  while (value) {
+    yield value
+    value = f(value)
+  }
+}
+
+export function last<T>(iter: NonEmptyIterable<T>): T
+export function last<T>(iter: Iterable<T>): T | undefined
+export function last<T>(iter: Iterable<T>): T | undefined {
+  let last: T | undefined = undefined
+  for (const value of iter) last = value
+  return last
+}
+
+export function first<T>(iter: NonEmptyIterable<T>): T
+export function first<T>(iter: Iterable<T>): T | undefined
+export function first<T>(iter: Iterable<T>): T | undefined {
+  const iterator = iter[Symbol.iterator]()
+  const result = iterator.next()
+  if (result.done) return
+  return result.value
+}
+
 export function tryGetSoleValue<T>(iter: Iterable<T>): T | undefined {
   const iterator = iter[Symbol.iterator]()
   const result = iterator.next()

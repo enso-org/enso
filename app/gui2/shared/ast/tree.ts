@@ -26,6 +26,7 @@ import {
   parentId,
 } from '.'
 import { assert, assertDefined, assertEqual, bail } from '../util/assert'
+import { last, unfold } from '../util/data/iterable'
 import type { Result } from '../util/data/result'
 import { Err, Ok } from '../util/data/result'
 import type { SourceRangeEdit } from '../util/data/text'
@@ -117,8 +118,25 @@ export abstract class Ast {
   }
 
   innerExpression(): Ast {
-    // TODO: Override this in `Documented`, `Annotated`, `AnnotatedBuiltin`
-    return this
+    return this instanceof Documented && this.expression ? this.expression : this
+  }
+
+  wrappingExpression(): Ast | undefined {
+    return this.parent()?.asWrappingExpression()
+  }
+
+  wrappingExpressionRoot(): Ast {
+    return last(unfold<Ast>(this, (ast) => ast.parent()?.asWrappingExpression()))
+  }
+
+  documentingAncestor(): Documented | undefined {
+    for (const ast of unfold<Ast>(this, (ast) => ast.parent()?.asWrappingExpression())) {
+      if (ast instanceof Documented) return ast
+    }
+  }
+
+  asWrappingExpression(): Ast | undefined {
+    return this instanceof Documented ? this : undefined
   }
 
   code(): string {
@@ -326,6 +344,14 @@ export abstract class MutableAst extends Ast {
   /** Update the AST according to changes to its corresponding source code. */
   applyTextEdits(textEdits: SourceRangeEdit[], metadataSource?: Module) {
     applyTextEditsToAst(this, textEdits, metadataSource ?? this.module)
+  }
+
+  getOrInitDocumentation(): MutableDocumented {
+    const existing = this.documentingAncestor()
+    if (existing) return this.module.getVersion(existing)
+    return this.module
+      .getVersion(this.wrappingExpressionRoot())
+      .updateValue((ast) => Documented.new('', ast))
   }
 
   ///////////////////
