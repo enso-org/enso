@@ -15,13 +15,20 @@ add_specs suite_builder setup:Cloud_Tests_Setup =
             group_builder.specify "should be able to send a log message "+(if async then "(async)" else "(sync)") <|
                 before = Date_Time.now
                 random_payload = "payload-" + Random.uuid
-                Audit_Log.report_event "TestEventType" "Message" (JS_Object.from_pairs [["my_field", random_payload]]) async=async
-                Test.with_retries <|
-                    my_event = Test_Utils.get_audit_log_events . find ev-> (ev.metadata.get "my_field") == random_payload
-                    my_event.should_succeed
-                    (my_event.timestamp > before).should_be_true
-                    my_event.message.should_equal "Message"
-                    my_event.metadata.get "type" . should_equal "TestEventType"
+                Audit_Log.report_event "TestEvent" "Message" (JS_Object.from_pairs [["my_field", random_payload]]) async=async
+                my_event = Test.with_retries <|
+                    event = Test_Utils.get_audit_log_events . find ev-> (ev.metadata.get "my_field") == random_payload
+                    event.should_succeed
+                    event
+
+                my_event.metadata.get "operation" . should_equal "TestEvent"
+                my_event.metadata.get "projectName" . should_equal "enso_dev.Base_Tests"
+                (my_event.timestamp > before).should_be_true
+
+                ## TODO this test should be replaced with
+                   my_event.message . should_equal "Message"
+                   once Cloud is updated
+                my_event.metadata.get "message" . should_equal "Message"
 
         group_builder.specify "does not allow restricted fields in metadata" <|
             Audit_Log.report_event "TestEventType" "Message" (JS_Object.from_pairs [["type", "my type override?"]]) . should_fail_with Illegal_Argument

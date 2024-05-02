@@ -34,6 +34,10 @@ public class AuditLogMessage implements AuditLogAPI.LogMessage {
     checkNoRestrictedField(metadata, OPERATION);
     checkNoRestrictedField(metadata, PROJECT_NAME);
     checkNoRestrictedField(metadata, LOCAL_TIMESTAMP);
+
+    // FIXME this is temporary
+    checkNoRestrictedField(metadata, "message");
+
     // TODO
     this.projectId = null;
     this.projectName = "TODO";
@@ -51,6 +55,10 @@ public class AuditLogMessage implements AuditLogAPI.LogMessage {
     copy.set(OPERATION, TextNode.valueOf(operation));
     copy.set(PROJECT_NAME, TextNode.valueOf(projectName));
     copy.set(LOCAL_TIMESTAMP, TextNode.valueOf(localTimestamp.format(DateTimeFormatter.ISO_DATE_TIME)));
+
+    // FIXME this is a temporary workaround for bug in Cloud API
+    copy.set("message", TextNode.valueOf(message));
+
     return copy;
   }
 
