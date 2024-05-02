@@ -717,8 +717,14 @@ object BindingsMap {
     * @param name the name of the constructor.
     * @param arity the number of fields in the constructor.
     * @param allFieldsDefaulted whether all fields provide a default value.
+    * @param isProjectPrivate whether this constructor is project-private.
     */
-  case class Cons(name: String, arity: Int, allFieldsDefaulted: Boolean)
+  case class Cons(
+    name: String,
+    arity: Int,
+    allFieldsDefaulted: Boolean,
+    isProjectPrivate: Boolean
+  )
 
   /** A representation of a sum type
     *

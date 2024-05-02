@@ -537,7 +537,7 @@ add_specs suite_builder setup =
             map2 = Map.from_vector [[1, "FirstColumn"], [-3, "DifferentName!"]]
             t2 = data.table.rename_columns map2 on_problems=Problem_Behavior.Report_Error
             t2.should_fail_with Ambiguous_Column_Rename
-            err = t2.catch
+            err = t2.catch . inner_error
             err.column_name . should_equal "beta"
             err.new_names.sort . should_equal ["DifferentName!", "FirstColumn"]
 
@@ -551,7 +551,7 @@ add_specs suite_builder setup =
             map2 = Map.from_vector [["a.*".to_regex, "StartsWithA"], [".*a".to_regex, "EndsWithA"]]
             t2 = t.rename_columns map2 on_problems=Problem_Behavior.Report_Error
             t2.should_fail_with Ambiguous_Column_Rename
-            err = t2.catch
+            err = t2.catch . inner_error
             err.column_name . should_equal "alpha"
             err.new_names . sort . should_equal ["EndsWithA", "StartsWithA"]
 

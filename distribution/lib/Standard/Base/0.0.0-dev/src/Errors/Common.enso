@@ -308,6 +308,32 @@ type Not_Invokable
     to_display_text self = "Type error: expected a function, but got "+self.target.to_display_text+"."
 
 @Builtin_Type
+type Private_Access
+    ## PRIVATE
+       An error that occurs when a private (project-private) method is called from a different
+       project.
+
+       Arguments:
+       - this_project_name: Optional qualified name of the current (caller) project.
+       - target_project_name: Optional qualified name name of the project of callee.
+       - target_method_name: The name of the target method call that is project-private and thus cannot be called.
+    Error (this_project_name : (Text | Nothing)) (target_project_name : (Text | Nothing)) (target_method_name : Text)
+
+    ## PRIVATE
+       Convert the Private_Access error to a human-readable format.
+    to_display_text : Text
+    to_display_text self =
+        this_proj = if self.this_project_name.is_nothing then "unknown project" else "project '"+self.this_project_name+"'"
+        target_proj = if self.target_project_name.is_nothing then "unknown project" else "project '"+self.target_project_name+"'"
+        "Private access error: The project-private method '"
+            + self.target_method_name
+            + "' in "
+            + target_proj
+            + " cannot be accessed from "
+            + this_proj
+            + "."
+
+@Builtin_Type
 type Unsupported_Argument_Types
     ## PRIVATE
        An error that occurs when arguments used in a function call are invalid

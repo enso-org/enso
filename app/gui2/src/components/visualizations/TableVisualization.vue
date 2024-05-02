@@ -117,6 +117,7 @@ const agGridOptions: Ref<GridOptions & Required<Pick<GridOptions, 'defaultColDef
   onColumnResized: lockColumnSize,
   suppressFieldDotNotation: true,
   enableRangeSelection: true,
+  popupParent: document.body,
 })
 
 const isRowCountSelectorVisible = computed(() => rowCount.value >= 1000)
@@ -133,6 +134,12 @@ const selectableRowLimits = computed(() => {
   return defaults
 })
 const wasAutomaticallyAutosized = ref(false)
+
+const numberFormat = new Intl.NumberFormat(undefined, {
+  style: 'decimal',
+  maximumFractionDigits: 12,
+  useGrouping: 'min2' as any,
+})
 
 function setRowLimit(newRowLimit: number) {
   if (newRowLimit !== rowLimit.value) {
@@ -158,12 +165,29 @@ function escapeHTML(str: string) {
 }
 
 function cellRenderer(params: ICellRendererParams) {
+  // Convert's the value into a display string.
   if (params.value === null) return '<span style="color:grey; font-style: italic;">Nothing</span>'
   else if (params.value === undefined) return ''
   else if (params.value === '') return '<span style="color:grey; font-style: italic;">Empty</span>'
-  else if (typeof params.value === 'number')
-    return params.value.toLocaleString(undefined, { maximumFractionDigits: 12 })
-  else return escapeHTML(params.value.toString())
+  else if (typeof params.value === 'number') return numberFormat.format(params.value)
+  else if (Array.isArray(params.value)) {
+    const content = params.value
+    if (isMatrix({ json: content })) {
+      return `[Vector ${content.length} rows x ${content[0].length} cols]`
+    } else if (isObjectMatrix({ json: content })) {
+      return `[Table ${content.length} rows x ${Object.keys(content[0]).length} cols]`
+    } else {
+      return `[Vector ${content.length} items]`
+    }
+  } else if (typeof params.value === 'object') {
+    const valueType = params.value?.type
+    if (valueType === 'BigInt') return numberFormat.format(BigInt(params.value?.value))
+    else if (valueType === 'Float')
+      return `<span style="color:grey; font-style: italic;">${params.value?.value ?? 'Unknown'}</span>`
+    else if ('_display_text_' in params.value && params.value['_display_text_'])
+      return String(params.value['_display_text_'])
+    else return `{ ${valueType} Object }`
+  } else return escapeHTML(params.value.toString())
 }
 
 function addRowIndex(data: object[]): object[] {
@@ -217,25 +241,6 @@ function indexField(): ColDef {
 
 /** Return a human-readable representation of an object. */
 function toRender(content: unknown) {
-  if (Array.isArray(content)) {
-    if (isMatrix({ json: content })) {
-      return `[Vector ${content.length} rows x ${content[0].length} cols]`
-    } else if (isObjectMatrix({ json: content })) {
-      return `[Table ${content.length} rows x ${Object.keys(content[0]).length} cols]`
-    } else {
-      return `[Vector ${content.length} items]`
-    }
-  }
-
-  if (typeof content === 'object' && content != null) {
-    const type = 'type' in content ? content.type : undefined
-    if ('_display_text_' in content && content['_display_text_']) {
-      return String(content['_display_text_'])
-    } else {
-      return `{ ${type} Object }`
-    }
-  }
-
   return content
 }
 
@@ -406,6 +411,7 @@ onMounted(() => {
       origValidateLicense.call(this)
     }
   }
+  // TODO: consider using Vue component instead: https://ag-grid.com/vue-data-grid/getting-started/
   new Grid(tableNode.value!, agGridOptions.value)
   updateColumnWidths()
 })

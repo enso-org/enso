@@ -416,11 +416,11 @@ const targetEndIsDimmed = computed(() => {
 
 const baseStyle = computed(() => ({ '--node-base-color': edgeColor.value ?? 'tan' }))
 
-function click() {
+function click(event: PointerEvent) {
   const distances = mouseLocationOnEdge.value
   if (distances == null) return
-  if (distances.sourceToMouse < distances.mouseToTarget) graph.disconnectTarget(props.edge)
-  else graph.disconnectSource(props.edge)
+  if (distances.sourceToMouse < distances.mouseToTarget) graph.disconnectTarget(props.edge, event)
+  else graph.disconnectSource(props.edge, event)
 }
 
 function svgTranslate(offset: Vec2): string {

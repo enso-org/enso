@@ -35,7 +35,7 @@ public final class OutputStreamSampler implements MethodsSampler {
   @Override
   public void start() {
     synchronized (this) {
-      if (!isSamplingStarted) {
+      if (sampler != null && !isSamplingStarted) {
         sampler.start();
         isSamplingStarted = true;
       }

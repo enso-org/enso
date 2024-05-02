@@ -88,7 +88,28 @@ case class ReviewedDependency(
   licenseReview: LicenseReview,
   files: Seq[(AttachedFile, AttachmentStatus)],
   copyrights: Seq[(CopyrightMention, AttachmentStatus)]
-)
+) {
+
+  /** Returns the count of problems that need to be addressed, like un-reviewed licenses or files.
+    * This count may not be accurate and not include some of the problems,
+    * as we only count the immediately addressable problems.
+    * This is enough for a sorting heuristic.
+    */
+  def problemsCount: Int = {
+    val unreviewedFiles = files.count(_._2 == AttachmentStatus.NotReviewed)
+    val unreviewedCopyrights =
+      copyrights.count(_._2 == AttachmentStatus.NotReviewed)
+    val unreviewedLicenses = licenseReview match {
+      case LicenseReview.NotReviewed => 1
+      case _                         => 0
+    }
+
+    // If there's no info at all, that will also be a problem - add +1 problem to bring such dependencies higher up.
+    val missingInfo = if (files.isEmpty && copyrights.isEmpty) 1 else 0
+
+    unreviewedFiles + unreviewedCopyrights + unreviewedLicenses + missingInfo
+  }
+}
 
 /** Summarizes the dependency review.
   *
@@ -190,7 +211,11 @@ object ReviewedSummary {
                       s"If this custom license should override the default one, " +
                       s"create a `custom-license` config file. " +
                       s"If both files are expected to be included, " +
-                      s"create an empty `default-and-custom-license` file."
+                      s"create an empty `default-and-custom-license` file.",
+                      metadata = Map(
+                        "class"     -> "default-and-custom-license-clash",
+                        "data-path" -> includedLicense.path.toString
+                      )
                     )
                   )
                 }

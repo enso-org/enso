@@ -243,7 +243,6 @@ interface InternalChatHeaderProps {
 function ChatHeader(props: InternalChatHeaderProps) {
   const { threads, setThreads, threadId, threadTitle, setThreadTitle } = props
   const { switchThread, sendMessage, doClose } = props
-  const gtagEvent = gtagHooks.useGtagEvent()
   const [isThreadListVisible, setIsThreadListVisible] = React.useState(false)
   // These will never be `null` as their values are set immediately.
   // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
@@ -258,12 +257,10 @@ function ChatHeader(props: InternalChatHeaderProps) {
       setIsThreadListVisible(false)
     }
     document.addEventListener('click', onClick)
-    gtagEvent('cloud_open_chat')
     return () => {
       document.removeEventListener('click', onClick)
-      gtagEvent('cloud_close_chat')
     }
-  }, [gtagEvent])
+  }, [])
 
   return (
     <>
@@ -394,6 +391,17 @@ export default function Chat(props: ChatProps) {
       }
     },
   })
+  const gtagEvent = gtagHooks.useGtagEvent()
+  const gtagEventRef = React.useRef(gtagEvent)
+  gtagEventRef.current = gtagEvent
+
+  React.useEffect(() => {
+    if (!isOpen) {
+      return
+    } else {
+      return gtagHooks.gtagOpenCloseCallback(gtagEventRef, 'cloud_open_chat', 'cloud_close_chat')
+    }
+  }, [isOpen])
 
   /** This is SAFE, because this component is only rendered when `accessToken` is present.
    * See `dashboard.tsx` for its sole usage. */

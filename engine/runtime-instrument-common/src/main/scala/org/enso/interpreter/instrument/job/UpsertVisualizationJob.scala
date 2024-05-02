@@ -101,8 +101,10 @@ class UpsertVisualizationJob(
                 arguments
               )
             val stack = ctx.contextManager.getStack(config.executionContextId)
-            val cachedValue = stack.headOption
-              .flatMap(frame => Option(frame.cache.get(expressionId)))
+            val runtimeCache = stack.headOption
+              .flatMap(frame => Option(frame.cache))
+            val cachedValue = runtimeCache
+              .flatMap(c => Option(c.get(expressionId)))
             UpsertVisualizationJob.requireVisualizationSynchronization(
               stack,
               expressionId
@@ -111,6 +113,7 @@ class UpsertVisualizationJob(
               case Some(value) =>
                 ProgramExecutionSupport.executeAndSendVisualizationUpdate(
                   config.executionContextId,
+                  runtimeCache.getOrElse(new RuntimeCache),
                   stack.headOption.get.syncState,
                   visualization,
                   expressionId,

@@ -70,6 +70,7 @@ main =
     data = Data.read
     filtered = data.filter
     aggregated = data.aggregate
+    autoscoped = data.aggregate [..Group_By]
     selected = data.select_columns
 `
 
@@ -495,6 +496,7 @@ export const mockLSHandler: MockTransportData = async (method, data, transport) 
     case 'executionContext/push':
     case 'executionContext/pop':
     case 'executionContext/recompute':
+    case 'executionContext/setExecutionEnvironment':
     case 'capability/acquire':
       return {}
     case 'file/list': {

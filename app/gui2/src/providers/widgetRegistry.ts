@@ -65,7 +65,8 @@ export namespace WidgetInput {
       input.value instanceof Ast.App ||
       input.value instanceof Ast.Ident ||
       input.value instanceof Ast.PropertyAccess ||
-      input.value instanceof Ast.OprApp
+      input.value instanceof Ast.OprApp ||
+      input.value instanceof Ast.AutoscopedIdentifier
     )
   }
 }

@@ -2,8 +2,8 @@ package org.enso.interpreter.bench.benchmarks.semantic;
 
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
+import org.enso.common.MethodNames.Module;
 import org.enso.compiler.benchmarks.Utils;
-import org.enso.polyglot.MethodNames.Module;
 import org.graalvm.polyglot.Value;
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.BenchmarkMode;

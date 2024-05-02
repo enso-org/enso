@@ -156,14 +156,14 @@ class JsonConnectionController(
       .subscribe(self, classOf[RefactoringProtocol.ProjectRenamedNotification])
   }
 
-  override def receive: Receive = {
+  override def receive: Receive = LoggingReceive {
     case JsonRpcServer.WebConnect(webActor, _) =>
       unstashAll()
       context.become(connected(webActor))
     case _ => stash()
   }
 
-  private def connected(webActor: ActorRef): Receive = {
+  private def connected(webActor: ActorRef): Receive = LoggingReceive {
     case req @ Request(Ping, _, Unused) =>
       val handler = context.actorOf(
         PingHandler.props(
@@ -212,7 +212,7 @@ class JsonConnectionController(
     clientId: UUID,
     request: Request[_, _],
     receiver: ActorRef
-  ): Receive = {
+  ): Receive = LoggingReceive {
     case _: InitializationComponentInitialized =>
       logger.info("RPC session initialized for client [{}].", clientId)
       val session = JsonSession(clientId, self)
@@ -268,7 +268,7 @@ class JsonConnectionController(
     receiver: ActorRef,
     cancellable: Cancellable,
     rootsSoFar: List[ContentRootWithFile]
-  ): Receive = {
+  ): Receive = LoggingReceive {
     case ContentRootManagerProtocol.ContentRootsAddedNotification(roots) =>
       val allRoots = roots ++ rootsSoFar
       val hasProject = roots.exists {
@@ -569,8 +569,6 @@ class JsonConnectionController(
       AICompletion -> ai.AICompletionHandler.props(
         languageServerConfig.aiCompletionConfig
       ),
-      Completion -> search.CompletionHandler
-        .props(requestTimeout, suggestionsHandler),
       ExecuteExpression -> ExecuteExpressionHandler
         .props(rpcSession.clientId, requestTimeout, contextRegistry),
       AttachVisualization -> AttachVisualizationHandler

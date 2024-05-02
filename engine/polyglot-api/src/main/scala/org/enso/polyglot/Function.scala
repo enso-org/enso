@@ -1,6 +1,7 @@
 package org.enso.polyglot
 
 import org.graalvm.polyglot.Value
+import org.enso.common.MethodNames
 
 /** Represents an Enso function.
   *
@@ -14,6 +15,9 @@ class Function(val value: Value) {
     * @return the result of execution
     */
   def execute(args: AnyRef*): Value = value.execute(args: _*)
+
+  /** Helper method for java that just delegates to the other execute method */
+  def execute(): Value = value.execute()
 
   /** Checks function equality by checking the identity of the underlying
     * objects.
