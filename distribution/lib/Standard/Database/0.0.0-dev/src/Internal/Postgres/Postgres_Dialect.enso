@@ -47,22 +47,20 @@ postgres =
     Postgres_Dialect.Value make_internal_generator_dialect
 
 ## PRIVATE
-
    The dialect of PostgreSQL databases.
 type Postgres_Dialect
     ## PRIVATE
-
        The dialect of PostgreSQL databases.
-    Value internal_generator_dialect dialect_name:Text="PostgreSQL" dialect_to_text:Text="Postgres_Dialect" type_mapping=Postgres_Type_Mapping
+    Value internal_generator_dialect
 
     ## PRIVATE
        Name of the dialect.
     name : Text
-    name self = self.dialect_name
+    name self = "PostgreSQL"
 
     ## PRIVATE
     to_text : Text
-    to_text self = self.dialect_to_text
+    to_text self = "Postgres_Dialect"
 
     ## PRIVATE
        A function which generates SQL code from the internal representation
@@ -125,18 +123,17 @@ type Postgres_Dialect
        A heuristic used by `Connection.query` to determine if a given text looks
        like a SQL query for the given dialect or is rather a table name.
     is_probably_a_query : Text -> Boolean
-    is_probably_a_query self text =
-        (text.contains "SELECT ") || (text.contains "EXEC ")
+    is_probably_a_query self text = Base_Generator.is_probably_a_query text
 
     ## PRIVATE
        Returns the mapping between SQL types of this dialect and Enso
        `Value_Type`.
     get_type_mapping : SQL_Type_Mapping
-    get_type_mapping self = self.type_mapping
+    get_type_mapping self = Postgres_Type_Mapping
 
     ## PRIVATE
     get_statement_setter : Statement_Setter
-    get_statement_setter self = postgres_statement_setter
+    get_statement_setter self = Statement_Setter.default
 
     ## PRIVATE
     make_cast : Internal_Column -> SQL_Type -> (SQL_Expression -> SQL_Type_Reference) -> Internal_Column
@@ -167,8 +164,8 @@ type Postgres_Dialect
     supports_negative_round_decimal_places self = True
 
     ## PRIVATE
-    rounding_decimal_places_not_allowed_for_floats : Boolean
-    rounding_decimal_places_not_allowed_for_floats self = True
+    supports_float_round_decimal_places : Boolean
+    supports_float_round_decimal_places self = False
 
     ## PRIVATE
        There is a bug in Postgres type inference, where if we unify two
@@ -238,7 +235,7 @@ type Postgres_Dialect
        if the given period is supported.
     prepare_metadata_for_period : Date_Period | Time_Period -> Value_Type -> Any
     prepare_metadata_for_period self period operation_input_type =
-        if period == Time_Period.Nanosecond && self.name == "PostgreSQL" then Error.throw (Unsupported_Database_Operation.Error "Postgres backend does not support nanosecond precision in date/time operations.") else
+        if period == Time_Period.Nanosecond then Error.throw (Unsupported_Database_Operation.Error "Postgres does not support nanosecond precision date/times.") else
             Date_Period_Metadata.Value period operation_input_type
 
     ## PRIVATE
@@ -589,9 +586,7 @@ replace args metadata =
                     _ ->
                         SQL_Builder.code "REPLACE(" ++ input ++ ", " ++ pattern ++ ", " ++ replacement ++ ")"
                 True -> Nothing
-    case expression of
-        Nothing -> replace_params.throw_unsupported "PostgreSQL"
-       _ -> expression
+    expression.if_nothing (replace_params.throw_unsupported self.name)
 
 ## PRIVATE
 make_extract_as_int enso_name sql_name=enso_name =
@@ -724,9 +719,6 @@ as_int64 expr =
    Alters the expression casting the value to a 32-bit integer (the default choice for integers in Postgres).
 as_int32 expr =
     SQL_Builder.code "(" ++ expr ++ "::int4)"
-
-## PRIVATE
-postgres_statement_setter = Statement_Setter.default
 
 ## PRIVATE
    The RUNTIME_ERROR operation should allow the query to compile fine and it
