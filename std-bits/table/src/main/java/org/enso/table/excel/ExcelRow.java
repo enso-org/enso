@@ -41,7 +41,11 @@ public class ExcelRow {
           var dateTime = DateUtil.getLocalDateTime(dblValue);
           var dateFormat = cell.getCellStyle().getDataFormatString();
           var hasTime =
-              dateFormat.contains("h") || dateFormat.contains("H") || dateTime.getHour() != 0;
+              dateFormat.contains("h")
+                  || dateFormat.contains("H")
+                  || dateTime.getHour() != 0
+                  || dateTime.getMinute() != 0
+                  || dateTime.getSecond() != 0;
           var hasDate =
               dateFormat.contains("d")
                   || dateFormat.contains("D")
