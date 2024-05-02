@@ -52,7 +52,7 @@ import InputBindingsProvider from '#/providers/InputBindingsProvider'
 import LocalStorageProvider, * as localStorageProvider from '#/providers/LocalStorageProvider'
 import LoggerProvider from '#/providers/LoggerProvider'
 import type * as loggerProvider from '#/providers/LoggerProvider'
-import ModalProvider from '#/providers/ModalProvider'
+import ModalProvider, * as modalProvider from '#/providers/ModalProvider'
 import * as navigator2DProvider from '#/providers/Navigator2DProvider'
 import SessionProvider from '#/providers/SessionProvider'
 
@@ -69,7 +69,11 @@ import SetUsername from '#/pages/authentication/SetUsername'
 import Dashboard from '#/pages/dashboard/Dashboard'
 import Subscribe from '#/pages/subscribe/Subscribe'
 
+import TheModal from '#/components/dashboard/TheModal'
+import Portal from '#/components/Portal'
 import * as rootComponent from '#/components/Root'
+
+import AboutModal from '#/modals/AboutModal'
 
 import type Backend from '#/services/Backend'
 import LocalBackend from '#/services/LocalBackend'
@@ -191,7 +195,9 @@ export default function App(props: AppProps) {
       />
       <Router basename={getMainPageUrl().pathname}>
         <LocalStorageProvider>
-          <AppRouter {...props} projectManagerRootDirectory={rootDirectoryPath} />
+          <ModalProvider>
+            <AppRouter {...props} projectManagerRootDirectory={rootDirectoryPath} />
+          </ModalProvider>
         </LocalStorageProvider>
       </Router>
     </reactQuery.QueryClientProvider>
@@ -220,6 +226,7 @@ function AppRouter(props: AppRouterProps) {
   // eslint-disable-next-line no-restricted-properties
   const navigate = router.useNavigate()
   const { localStorage } = localStorageProvider.useLocalStorage()
+  const { setModal } = modalProvider.useSetModal()
   const navigator2D = navigator2DProvider.useNavigator2D()
   if (detect.IS_DEV_MODE) {
     // @ts-expect-error This is used exclusively for debugging.
@@ -315,6 +322,14 @@ function AppRouter(props: AppRouterProps) {
         null!
 
   React.useEffect(() => {
+    if ('menuApi' in window) {
+      window.menuApi.setShowAboutModalHandler(() => {
+        setModal(<AboutModal supportsLocalBackend={supportsLocalBackend} />)
+      })
+    }
+  }, [])
+
+  React.useEffect(() => {
     const onKeyDown = navigator2D.onKeyDown.bind(navigator2D)
     document.addEventListener('keydown', onKeyDown)
     return () => {
@@ -408,7 +423,6 @@ function AppRouter(props: AppRouterProps) {
   )
   let result = routes
   result = <InputBindingsProvider inputBindings={inputBindings}>{result}</InputBindingsProvider>
-  result = <ModalProvider>{result}</ModalProvider>
   result = (
     <AuthProvider
       shouldStartInOfflineMode={isAuthenticationDisabled}
@@ -442,6 +456,11 @@ function AppRouter(props: AppRouterProps) {
   result = (
     <rootComponent.Root rootRef={root} navigate={navigate}>
       {result}
+      <Portal>
+        <div className="select-none text-xs text-primary">
+          <TheModal />
+        </div>
+      </Portal>
     </rootComponent.Root>
   )
   return result

@@ -37,8 +37,8 @@ export default function AboutModal(props: AboutModalProps) {
   const [isCopied, setIsCopied] = React.useState(false)
   const textContainerRef = React.useRef<HTMLTableSectionElement | null>(null)
 
-  const versionsEntries = (
-    window.versionInfo != null
+  const versionsEntries = [
+    ...(window.versionInfo != null
       ? ([
           ['version', window.versionInfo.version],
           ['build', window.versionInfo.build],
@@ -52,8 +52,9 @@ export default function AboutModal(props: AboutModalProps) {
           ...(process.env.ENSO_CLOUD_DASHBOARD_COMMIT_HASH == null
             ? []
             : ([['build', process.env.ENSO_CLOUD_DASHBOARD_COMMIT_HASH]] as const)),
-        ]
-  ) satisfies readonly (readonly [text.TextId, string])[]
+        ]),
+    ['userAgent', navigator.userAgent],
+  ] satisfies readonly (readonly [text.TextId, string])[]
 
   const doCopy = () => {
     const textContainer = textContainerRef.current

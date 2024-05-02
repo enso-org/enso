@@ -312,7 +312,32 @@ class App {
                         : {}),
                 }
                 const window = new electron.BrowserWindow(windowPreferences)
-                window.setMenuBarVisibility(false)
+                // FIXME: set back to false
+                window.setMenuBarVisibility(true)
+                const oldMenu = electron.Menu.getApplicationMenu()
+                if (oldMenu != null) {
+                    const items = oldMenu.items.map(item => {
+                        if (item.role !== 'help') {
+                            return item
+                        } else {
+                            const { click, ...passthrough } = item
+                            return new electron.MenuItem({
+                                ...passthrough,
+                                submenu: electron.Menu.buildFromTemplate([
+                                    new electron.MenuItem({
+                                        label: `About ${common.PRODUCT_NAME}`,
+                                        click: () => {
+                                            // FIXME:
+                                            electron.ipcMain.emit(ipc.Channel.showAboutModal)
+                                        },
+                                    }),
+                                ]),
+                            })
+                        }
+                    })
+                    const newMenu = electron.Menu.buildFromTemplate(items)
+                    electron.Menu.setApplicationMenu(newMenu)
+                }
 
                 if (this.args.groups.debug.options.devTools.value) {
                     window.webContents.openDevTools()

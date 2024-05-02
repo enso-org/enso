@@ -73,6 +73,16 @@ interface NavigationApi {
     readonly goForward: () => void
 }
 
+// ================
+// === Menu API ===
+// ================
+
+/** `window.menuApi` exposes functionality related to the system menu. */
+interface MenuApi {
+    /** Set the callback to be called when the "about" entry is clicked in the "help" menu. */
+    readonly setShowAboutModalHandler: (callback: () => void) => void
+}
+
 // ====================
 // === Version Info ===
 // ====================
@@ -98,6 +108,7 @@ declare global {
         readonly backendApi?: BackendApi
         readonly authenticationApi: AuthenticationApi
         readonly navigationApi: NavigationApi
+        readonly menuApi: MenuApi
         readonly versionInfo?: VersionInfo
     }
 

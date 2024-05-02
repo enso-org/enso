@@ -24,6 +24,8 @@ const FILE_BROWSER_API_KEY = 'fileBrowserApi'
 
 const NAVIGATION_API_KEY = 'navigationApi'
 
+const MENU_API_KEY = 'menuApi'
+
 const VERSION_INFO_KEY = 'versionInfo'
 
 // =============================
@@ -176,4 +178,26 @@ const FILE_BROWSER_API = {
 }
 electron.contextBridge.exposeInMainWorld(FILE_BROWSER_API_KEY, FILE_BROWSER_API)
 
+// ====================
+// === Version info ===
+// ====================
+
 electron.contextBridge.exposeInMainWorld(VERSION_INFO_KEY, debug.VERSION_INFO)
+
+// ================
+// === Menu API ===
+// ================
+
+let showAboutModalHandler: (() => void) | null = null
+
+electron.ipcRenderer.on(ipc.Channel.showAboutModal, () => {
+    showAboutModalHandler?.()
+})
+
+const MENU_API = {
+    setShowAboutModalHandler: (callback: () => void) => {
+        showAboutModalHandler = callback
+    },
+}
+
+electron.contextBridge.exposeInMainWorld(MENU_API_KEY, MENU_API)
