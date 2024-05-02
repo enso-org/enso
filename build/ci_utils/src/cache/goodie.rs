@@ -8,7 +8,7 @@ use crate::cache::Cache;
 // === Export ===
 // ==============
 
-pub mod binaryen;
+pub mod flatc;
 pub mod graalpy;
 pub mod graalvm;
 pub mod sbt;

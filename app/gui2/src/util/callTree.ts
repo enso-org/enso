@@ -3,9 +3,11 @@ import { WidgetInput } from '@/providers/widgetRegistry'
 import type { WidgetConfiguration } from '@/providers/widgetRegistry/configuration'
 import * as widgetCfg from '@/providers/widgetRegistry/configuration'
 import { DisplayMode } from '@/providers/widgetRegistry/configuration'
+import type { GraphDb, MethodCallInfo } from '@/stores/graph/graphDatabase'
 import type { SuggestionEntry, SuggestionEntryArgument } from '@/stores/suggestionDatabase/entry'
 import { Ast } from '@/util/ast'
 import { findLastIndex, tryGetIndex } from '@/util/data/array'
+import type { ExternalId } from 'shared/yjsModel'
 import { assert } from './assert'
 
 export const enum ApplicationKind {
@@ -396,6 +398,57 @@ export class ArgumentApplication {
       [ArgumentApplicationKey]: this,
     }
   }
+
+  static collectArgumentNamesAndUuids(
+    value: InterpretedCall,
+    mci: MethodCallInfo | undefined,
+  ): Record<string, ExternalId> {
+    const namesAndExternalIds: Array<{
+      name: string | null
+      uuid: ExternalId | undefined
+    }> = []
+
+    const args = ArgumentApplication.FromInterpretedWithInfo(value)
+    if (args instanceof ArgumentApplication) {
+      for (const n of args.iterApplications()) {
+        const a = n.argument
+        if (a instanceof ArgumentPlaceholder) {
+          // pass thru
+        } else {
+          namesAndExternalIds.push({
+            name: a.argInfo?.name.toString() ?? null,
+            uuid: a.ast.externalId,
+          })
+        }
+      }
+    } else {
+      // don't process
+    }
+    namesAndExternalIds.reverse()
+
+    const argsExternalIds: Record<string, ExternalId> = {}
+    let index = 'self' === mci?.suggestion.arguments[0]?.name ? 1 : 0
+    for (const nameAndExtenalId of namesAndExternalIds) {
+      const notApplied = mci?.methodCall.notAppliedArguments ?? []
+      while (notApplied.indexOf(index) != -1) {
+        index++
+      }
+      if (nameAndExtenalId.uuid) {
+        argsExternalIds['' + index] = nameAndExtenalId.uuid
+      }
+      const suggestedName: string | undefined = mci?.suggestion.arguments[index]?.name
+      if (suggestedName && nameAndExtenalId.uuid) {
+        argsExternalIds[suggestedName] = nameAndExtenalId.uuid
+      }
+      index++
+    }
+    for (const nameAndExternalId of namesAndExternalIds) {
+      if (nameAndExternalId.name && nameAndExternalId.uuid) {
+        argsExternalIds[nameAndExternalId.name] = nameAndExternalId.uuid
+      }
+    }
+    return argsExternalIds
+  }
 }
 
 const unknownArgInfoNamed = (name: string) => ({
@@ -407,6 +460,54 @@ const unknownArgInfoNamed = (name: string) => ({
 
 export function getAccessOprSubject(app: Ast.Ast): Ast.Ast | undefined {
   if (app instanceof Ast.PropertyAccess) return app.lhs
+}
+
+/** Same as {@link GraphDb.getMethodCallInfo} but with a special handling for nested Applications.
+ * Sometimes we receive MethodCallInfo for inner sub-applications of the expression,
+ * and we want to reuse it for outer application expressions when adding new arguments to the call.
+ * It requires adjusting `notAppliedArguments` array, but otherwise is a straightforward recursive call.
+ * We stop recursion at any not-application AST. We expect that a subexpression’s info is only valid if it is a part of the prefix application chain.
+ * We also don’t consider infix applications here, as using them inside a prefix chain would require additional syntax (like parenthesis). */
+export function getMethodCallInfoRecursively(
+  ast: Ast.Ast,
+  db: GraphDb,
+): MethodCallInfo | undefined {
+  let appliedArgs = 0
+  const appliedNamedArgs: string[] = []
+  for (;;) {
+    const info = db.getMethodCallInfo(ast.id)
+    if (info) {
+      // There is an info available! Stop the recursion and adjust `notAppliedArguments`.
+      // Indices of all named arguments applied so far.
+      const appliedNamed =
+        appliedNamedArgs.length > 0 ?
+          info.suggestion.arguments
+            .map((arg, index) => (appliedNamedArgs.includes(arg.name) ? index : -1))
+            .filter((i) => i !== -1)
+        : []
+      const withoutNamed = info.methodCall.notAppliedArguments.filter(
+        (idx) => !appliedNamed.includes(idx),
+      )
+      return {
+        methodCall: {
+          ...info.methodCall,
+          notAppliedArguments: withoutNamed.sort().slice(appliedArgs),
+        },
+        suggestion: info.suggestion,
+      }
+    }
+    // No info, continue recursion to the next sub-application AST.
+    if (ast instanceof Ast.App) {
+      if (ast.argumentName) {
+        appliedNamedArgs.push(ast.argumentName.code())
+      } else {
+        appliedArgs += 1
+      }
+      ast = ast.function
+    } else {
+      break
+    }
+  }
 }
 
 export const ArgumentApplicationKey: unique symbol = Symbol('ArgumentApplicationKey')

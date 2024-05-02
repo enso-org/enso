@@ -3,14 +3,23 @@ package org.enso.shttp.cloud_mock;
 import com.sun.net.httpserver.HttpExchange;
 import java.io.IOException;
 import java.net.URI;
+import org.enso.shttp.HttpMethod;
 import org.enso.shttp.auth.HandlerWithTokenAuth;
 
 public class CloudRoot extends HandlerWithTokenAuth {
   public final String prefix = "/enso-cloud-mock/";
 
   private final ExpiredTokensCounter expiredTokensCounter;
+  private final AssetStore assetStore = new AssetStore();
   private final CloudHandler[] handlers =
-      new CloudHandler[] {new UsersHandler(), new SecretsHandler()};
+      new CloudHandler[] {
+        new UsersHandler(),
+        new SecretsHandler(assetStore),
+        new HiddenSecretsHandler(assetStore),
+        new AssetsHandler(assetStore),
+        new PathResolver(assetStore),
+        new DirectoriesHandler(assetStore)
+      };
 
   public CloudRoot(ExpiredTokensCounter expiredTokensCounter) {
     this.expiredTokensCounter = expiredTokensCounter;
@@ -73,6 +82,11 @@ public class CloudRoot extends HandlerWithTokenAuth {
       @Override
       public String decodeBodyAsText() throws IOException {
         return CloudRoot.this.decodeBodyAsText(exchange);
+      }
+
+      @Override
+      public HttpMethod getMethod() throws IllegalArgumentException {
+        return HttpMethod.valueOf(exchange.getRequestMethod());
       }
     };
   }

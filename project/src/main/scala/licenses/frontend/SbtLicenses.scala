@@ -50,12 +50,13 @@ object SbtLicenses {
         val report = component.licenseReport.orig
         val ivyDeps =
           report.getDependencies.asScala.map(_.asInstanceOf[IvyNode])
+        val sourceSuffix = "-sources.jar"
         val sourceArtifacts = component.classifiedArtifactsReport
           .select((configRef: ConfigRef) =>
             relevantConfigurations.map(_.name).contains(configRef.name)
           )
           .map(_.toPath)
-          .filter(_.getFileName.toString.endsWith("sources.jar"))
+          .filter(_.getFileName.toString.endsWith(sourceSuffix))
         val deps = for {
           dep <- component.licenseReport.licenses
           depNode =
@@ -67,9 +68,17 @@ object SbtLicenses {
                 )
               )
         } yield {
-          val sources = sourceArtifacts.filter(
-            _.getFileName.toString.startsWith(dep.module.name)
-          )
+          val sources = sourceArtifacts.filter { src =>
+            val fileName = src.getFileName.toString
+            // Checking only the major version is a heuristic
+            // Ignoring the version used to include too much: `http-auth` would also match sources of other package: `http-auth-spi`
+            // However, exact version matches are too strict
+            // (possibly because Maven resolves the versions based on the full dependency tree, possibly replacing the dependency?),
+            // and resulted in missing sources. Major version match is a compromise between these two.
+            val majorVersion   = dep.module.version.takeWhile(_ != '.')
+            val expectedPrefix = dep.module.name + "-" + majorVersion
+            fileName.stripSuffix(sourceSuffix).startsWith(expectedPrefix)
+          }
           Dependency(dep, depNode, sources)
         }
 

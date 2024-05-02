@@ -53,7 +53,7 @@ Error.should_fail_with self matcher frames_to_skip=0 unwrap_errors=True =
     if caught == matcher || caught.is_a matcher then Nothing else
         loc = Meta.get_source_location 2+frames_to_skip
         matcher_text = matcher . to_text
-        Test.fail ("Expected error "+matcher_text+", but error " + caught.to_text + " has been returned (at " + loc + ").")
+        Test.fail ("Expected error "+matcher_text+", but error " + caught.to_text + " has been returned (at " + loc + ").") details='The error had the following stack trace:\n'+self.get_stack_trace_text
 
 ## Asserts that `self` value is equal to the expected value.
 
@@ -274,7 +274,7 @@ Error.should_equal self that frames_to_skip=0 =
 
    Arguments:
    - that: The value to compare `self` for equality with.
-   - epsilon: The epislon for comparing two float numbers.
+   - epsilon: The epsilon for comparing two float numbers.
    - frames_to_skip (optional, advanced): used to alter the location which is
      displayed as the source of this error.
 
@@ -303,6 +303,17 @@ Number.should_equal self that epsilon=0 frames_to_skip=0 =
             loc = Meta.get_source_location 2+frames_to_skip
             msg = self.to_text + " did not equal " + that.to_text + " (at " + loc + ")."
             Test.fail msg
+
+## Asserts that `self` is within `epsilon` from `that`.
+
+   Arguments:
+   - that: The value to compare `self` for equality with.
+   - epsilon: The epsilon for comparing two float numbers.
+   - frames_to_skip (optional, advanced): used to alter the location which is
+     displayed as the source of this error.
+Decimal.should_equal : Number -> Float-> Float -> Integer -> Spec_Result
+Decimal.should_equal self that epsilon=0 frames_to_skip=0 =
+    self.to_float . should_equal that.to_float epsilon frames_to_skip+1
 
 ## Asserts that `self` value is not an error.
 

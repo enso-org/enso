@@ -1,4 +1,5 @@
 import project.Any.Any
+import project.Data.Decimal.Decimal
 import project.Data.Locale.Locale
 import project.Data.Ordering.Comparable
 import project.Data.Text.Text
@@ -621,7 +622,7 @@ type Float
 
     ## GROUP Rounding
        ICON math
-       Computes the nearest integer above this number.
+       Computes the nearest integer equal to or above this number.
 
        This method provides a means of converting a Float to an Integer.
 
@@ -633,7 +634,7 @@ type Float
 
     ## GROUP Rounding
        ICON math
-       Computes the nearest integer below this float.
+       Computes the nearest integer equal to or below this number.
 
        This method provides a means of converting a Float to an Integer.
 
@@ -730,6 +731,17 @@ type Float
 
              5.0.to_float
     to_float self -> Float = self
+
+    ## ICON convert
+       Convert this to a `Decimal`.
+
+       > Example
+         Convert 12.3 to a Decimal.
+
+             12.3 . to_decimal
+             # => Decimal.new "12.3"
+    to_decimal : Decimal
+    to_decimal self -> Decimal = Decimal.from_float self
 
     ## ALIAS from text
        GROUP Conversions
@@ -1079,6 +1091,17 @@ type Integer
 
              5.to_float
     to_float self -> Float = integer_to_float self
+
+    ## ICON convert
+       Convert this to a `Decimal`.
+
+       > Example
+         Convert 12 to a Decimal.
+
+             12 . to_decimal
+             # => Decimal.new "12"
+    to_decimal : Decimal
+    to_decimal self -> Decimal = Decimal.from_integer self
 
     ## GROUP Bitwise
        ICON math

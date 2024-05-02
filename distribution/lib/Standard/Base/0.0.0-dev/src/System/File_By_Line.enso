@@ -120,10 +120,9 @@ type File_By_Line
        - action: The action to perform on each line.
     map : (Text -> Any) -> Vector Any
     map self action =
-        builder = Vector.new_builder
-        wrapped_action _ t = builder.append (action t)
-        self.each_with_index wrapped_action
-        builder.to_vector
+        Vector.build builder->
+            wrapped_action _ t = builder.append (action t)
+            self.each_with_index wrapped_action
 
     ## ICON dataframe_map_column
        Transforms each line in the file and returns the result as a vector.
@@ -132,10 +131,9 @@ type File_By_Line
        - action: The action to perform on each line.
     map_with_index : (Integer -> Text -> Any) -> Vector Any
     map_with_index self action =
-        builder = Vector.new_builder
-        wrapped_action i t = builder.append (action i t)
-        self.each_with_index wrapped_action
-        builder.to_vector
+        Vector.build builder->
+            wrapped_action i t = builder.append (action i t)
+            self.each_with_index wrapped_action
 
     ## GROUP Selections
        ICON select_row

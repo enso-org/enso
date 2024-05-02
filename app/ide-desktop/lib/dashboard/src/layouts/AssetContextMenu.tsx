@@ -96,8 +96,8 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
   const isOtherUserUsingProject =
     backend.type !== backendModule.BackendType.local &&
     backendModule.assetIsProject(asset) &&
-    asset.projectState.opened_by != null &&
-    asset.projectState.opened_by !== user?.email
+    asset.projectState.openedBy != null &&
+    asset.projectState.openedBy !== user?.email
   const setAsset = setAssetHooks.useSetAsset(asset, setItem)
 
   return category === Category.trash ? (

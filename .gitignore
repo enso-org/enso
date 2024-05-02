@@ -166,3 +166,9 @@ test-results
 *.ir
 *.meta
 .enso/
+
+##################
+## direnv cache ##
+##################
+
+.direnv

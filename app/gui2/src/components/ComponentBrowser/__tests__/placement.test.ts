@@ -4,7 +4,6 @@ import {
   nonDictatedPlacement,
   previousNodeDictatedPlacement,
   type Environment,
-  type Placement,
 } from '@/components/ComponentBrowser/placement'
 import * as iterable from '@/util/data/iterable'
 import { chain, map, range } from '@/util/data/iterable'
@@ -154,13 +153,10 @@ describe('Non dictated placement', () => {
       pos: new Vec2(1090, 1531),
       pan: new Vec2(0, 841),
     },
-  ])('$desc', ({ nodes, pos, gap, pan }) => {
+  ])('$desc', ({ nodes, pos, gap }) => {
     expect(
-      nonDictatedPlacement(nodeSize, nonDictatedEnvironment(nodes), {
-        horizontalGap: gap ?? 24,
-        verticalGap: gap ?? 24,
-      }),
-    ).toEqual({ position: pos, pan })
+      nonDictatedPlacement(nodeSize, nonDictatedEnvironment(nodes), new Vec2(gap ?? 24, gap ?? 24)),
+    ).toEqual(pos)
     expect(getSelectedNodeRects, 'Should not depend on `selectedNodeRects`').not.toHaveBeenCalled()
     expect(getMousePosition, 'Should not depend on `mousePosition`').not.toHaveBeenCalled()
   })
@@ -180,7 +176,7 @@ describe('Non dictated placement', () => {
       ({ left, top, width, height }) => new Rect(new Vec2(left, top), new Vec2(width, height)),
     )
     const newNodeRect = new Rect(
-      nonDictatedPlacement(nodeSize, nonDictatedEnvironment(nodes)).position,
+      nonDictatedPlacement(nodeSize, nonDictatedEnvironment(nodes)),
       nodeSize,
     )
     for (const node of nodes) {
@@ -339,14 +335,14 @@ describe('Previous node dictated placement', () => {
       pos: new Vec2(2071, 734),
       pan: new Vec2(981, 44),
     },
-  ])('$desc', ({ nodes, gap, pos, pan }) => {
+  ])('$desc', ({ nodes, gap, pos }) => {
     expect(
       previousNodeDictatedPlacement(
         nodeSize,
         previousNodeDictatedEnvironment([...nodes, rectAt(1090, 690)]),
-        { horizontalGap: gap ?? 24, verticalGap: gap ?? 24 },
+        new Vec2(gap ?? 24, gap ?? 24),
       ),
-    ).toEqual({ position: pos, pan })
+    ).toEqual(pos)
     expect(getMousePosition, 'Should not depend on `mousePosition`').not.toHaveBeenCalled()
   })
 
@@ -371,7 +367,7 @@ describe('Previous node dictated placement', () => {
         screenBounds,
         nodeRects,
         selectedNodeRects,
-      }).position,
+      }),
       nodeSize,
     )
     expect(newNodeRect.top, {
@@ -403,10 +399,10 @@ describe('Mouse dictated placement', () => {
     x: fc.nat(1000),
     y: fc.nat(1000),
   })('prop testing', ({ x, y }) => {
-    expect(mouseDictatedPlacement(nodeSize, new Vec2(x, y))).toEqual<Placement>({
+    expect(mouseDictatedPlacement(new Vec2(x, y), nodeSize)).toEqual(
       // Note: Currently, this is a reimplementation of the entire mouse dictated placement algorithm.
-      position: new Vec2(x + radius, y + radius),
-    })
+      new Vec2(x + radius, y + radius),
+    )
     // Non-overlap test omitted, as mouse-dictated node placement MAY overlap existing nodes.
     expect(getScreenBounds, 'Should not depend on `screenBounds`').not.toHaveBeenCalled()
     expect(getNodeRects, 'Should not depend on `nodeRects`').not.toHaveBeenCalled()
@@ -425,15 +421,23 @@ describe('Collapsed node placement', () => {
     }
   }
 
-  function options(): { horizontalGap: number; verticalGap: number } {
-    return {
-      get horizontalGap() {
-        return getHorizontalGap()
-      },
-      get verticalGap() {
-        return getVerticalGap()
-      },
+  function options(): Vec2 {
+    class MockVec2 {
+      constructor(
+        private getX: () => number,
+        private getY: () => number,
+      ) {}
+      get x() {
+        return this.getX()
+      }
+      get y() {
+        return this.getY()
+      }
+      reflectXY(): MockVec2 {
+        return new MockVec2(this.getY, this.getX)
+      }
     }
+    return new MockVec2(getHorizontalGap, getVerticalGap) as any
   }
 
   test('One selected, no other nodes', () => {
@@ -441,13 +445,13 @@ describe('Collapsed node placement', () => {
     const Y = 700
     const selectedNodeRects = [rectAt(X, Y)]
     const result = collapsedNodePlacement(nodeSize, environment(selectedNodeRects, []), options())
-    expect(result).toEqual({ position: new Vec2(X, Y), pan: undefined })
+    expect(result).toEqual(new Vec2(X, Y))
   })
 
   test('Multiple selected, no other nodes', () => {
     const selectedNodeRects = [rectAt(1000, 600), rectAt(1300, 800)]
     const result = collapsedNodePlacement(nodeSize, environment(selectedNodeRects, []), options())
-    expect(result).toEqual({ position: new Vec2(1000, 700), pan: undefined })
+    expect(result).toEqual(new Vec2(1000, 700))
   })
 
   test('Average position occupied', () => {
@@ -457,7 +461,7 @@ describe('Collapsed node placement', () => {
       environment(selectedNodeRects, [rectAt(1000, 700)]),
       options(),
     )
-    expect(result).toEqual({ position: new Vec2(1000, 744), pan: undefined })
+    expect(result).toEqual(new Vec2(1000, 744))
   })
 })
 

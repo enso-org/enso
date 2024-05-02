@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import NodeWidget from '@/components/GraphEditor/NodeWidget.vue'
+import SizeTransition from '@/components/SizeTransition.vue'
 import SvgIcon from '@/components/SvgIcon.vue'
 import DropdownWidget, { type DropdownEntry } from '@/components/widgets/DropdownWidget.vue'
 import { unrefElement } from '@/composables/events'
@@ -24,7 +25,8 @@ import { ArgumentInfoKey } from '@/util/callTree'
 import { arrayEquals } from '@/util/data/array'
 import type { Opt } from '@/util/data/opt'
 import { qnLastSegment, tryQualifiedName } from '@/util/qualifiedName'
-import { computed, ref, watch, type ComponentInstance } from 'vue'
+import { autoUpdate, offset, size, useFloating } from '@floating-ui/vue'
+import { computed, ref, type ComponentInstance } from 'vue'
 
 const props = defineProps(widgetProps(widgetDefinition))
 const suggestions = useSuggestionDbStore()
@@ -32,11 +34,33 @@ const graph = useGraphStore()
 
 const tree = injectWidgetTree()
 
+const widgetRoot = ref<HTMLElement>()
 const dropdownElement = ref<ComponentInstance<typeof DropdownWidget>>()
 
 const editedWidget = ref<string>()
 const editedValue = ref<Ast.Owned | string | undefined>()
 const isHovered = ref(false)
+
+const { floatingStyles } = useFloating(widgetRoot, dropdownElement, {
+  middleware: computed(() => {
+    return [
+      offset((state) => {
+        const NODE_HEIGHT = 32
+        return {
+          mainAxis: (NODE_HEIGHT - state.rects.reference.height) / 2,
+        }
+      }),
+      size({
+        apply({ elements, rects }) {
+          Object.assign(elements.floating.style, {
+            minWidth: `${rects.reference.width + 16}px`,
+          })
+        },
+      }),
+    ]
+  }),
+  whileElementsMounted: autoUpdate,
+})
 
 class ExpressionTag {
   private cachedExpressionAst: Ast.Ast | undefined
@@ -269,17 +293,6 @@ function expressionTagClicked(tag: ExpressionTag, previousState: boolean) {
     props.onUpdate({ edit, portUpdate: { value: tagValue, origin: props.input.portId } })
   }
 }
-
-let endClippingInhibition: (() => void) | undefined
-watch(dropDownInteraction.active, (visible) => {
-  if (visible) {
-    const { unregister } = tree.inhibitClipping()
-    endClippingInhibition = unregister
-  } else {
-    endClippingInhibition?.()
-    endClippingInhibition = undefined
-  }
-})
 </script>
 
 <script lang="ts">
@@ -302,7 +315,11 @@ export const widgetDefinition = defineWidget(
       : props.input.dynamicConfig?.kind === 'Single_Choice' ? Score.Perfect
       : props.input.dynamicConfig?.kind === 'Multiple_Choice' ? Score.Perfect
       : isHandledByCheckboxWidget(props.input[ArgumentInfoKey]?.info) ? Score.Mismatch
-      : props.input[ArgumentInfoKey]?.info?.tagValues != null ? Score.Perfect
+        // TODO[ao] here, instead of checking for existing dynamic config, we should rather return
+        // Score.Good. But this does not work with WidgetArgument which would then take precedence
+        // over selection (and we want to have name always under it)
+      : props.input[ArgumentInfoKey]?.info?.tagValues != null && props.input.dynamicConfig == null ?
+        Score.Perfect
       : Score.Mismatch,
   },
   import.meta.hot,
@@ -327,6 +344,7 @@ declare module '@/providers/widgetRegistry' {
 <template>
   <!-- See comment in GraphNode next to dragPointer definition about stopping pointerdown and pointerup -->
   <div
+    ref="widgetRoot"
     class="WidgetSelection"
     :class="{ multiSelect: isMulti }"
     @pointerdown.stop
@@ -337,13 +355,18 @@ declare module '@/providers/widgetRegistry' {
   >
     <NodeWidget :input="innerWidgetInput" />
     <SvgIcon v-if="isHovered" name="arrow_right_head_only" class="arrow" />
-    <DropdownWidget
-      v-if="dropDownInteraction.active.value"
-      ref="dropdownElement"
-      :color="'var(--node-color-primary)'"
-      :entries="entries"
-      @clickEntry="onClick"
-    />
+    <Teleport v-if="tree.nodeElement" :to="tree.nodeElement">
+      <SizeTransition height :duration="100">
+        <DropdownWidget
+          v-if="dropDownInteraction.active.value"
+          ref="dropdownElement"
+          :style="floatingStyles"
+          :color="'var(--node-color-primary)'"
+          :entries="entries"
+          @clickEntry="onClick"
+        />
+      </SizeTransition>
+    </Teleport>
   </div>
 </template>
 
@@ -355,6 +378,7 @@ declare module '@/providers/widgetRegistry' {
 
 .arrow {
   position: absolute;
+  pointer-events: none;
   bottom: -7px;
   left: 50%;
   transform: translateX(-50%) rotate(90deg) scale(0.7);

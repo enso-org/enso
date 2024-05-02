@@ -93,6 +93,9 @@ pub mod env {
 
         /// The AWS region for Amplify configuration, matching the domain region.
         ENSO_CLOUD_COGNITO_REGION, String;
+
+        /// The Google Analytics tag to which Google Analytics events should be sent.
+        ENSO_CLOUD_GOOGLE_ANALYTICS_TAG, String;
     }
 
     // GUI-specific environment variables

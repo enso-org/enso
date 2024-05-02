@@ -2,7 +2,7 @@ package org.enso.truffleloggerwrapper
 
 import com.oracle.truffle.api.TruffleLogger
 import org.enso.logger.masking.Masking
-import org.enso.polyglot.LanguageInfo
+import org.enso.common.LanguageInfo
 import org.slf4j.helpers.MessageFormatter
 import org.slf4j.{Logger, Marker}
 

@@ -100,6 +100,11 @@ type_spec suite_builder name ctor = suite_builder.group name group_builder->
         ctor 10 20 . each vec_mut.append
         vec_mut.to_vector . should_equal [10, 20]
 
+    group_builder.specify "dataflow errors in .each should become panics" <|
+        do_write x =
+            Error.throw "Failed to write "+x.to_text
+        Test.expect_panic_with (ctor 10 20 . each do_write) Text
+
 add_specs suite_builder =
     suite_builder.group "Pair " group_builder->
         group_builder.specify "should be created by new" <|

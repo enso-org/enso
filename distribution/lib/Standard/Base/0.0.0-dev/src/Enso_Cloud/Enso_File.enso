@@ -6,10 +6,13 @@ import project.Data.Text.Text
 import project.Data.Time.Date_Time.Date_Time
 import project.Data.Time.Date_Time_Formatter.Date_Time_Formatter
 import project.Data.Vector.Vector
-import project.Enso_Cloud.Data_Link
+import project.Enso_Cloud.Data_Link.Data_Link
+import project.Enso_Cloud.Data_Link_Helpers
 import project.Enso_Cloud.Enso_User.Enso_User
 import project.Enso_Cloud.Errors.Enso_Cloud_Error
+import project.Enso_Cloud.Internal.Enso_File_Write_Strategy
 import project.Enso_Cloud.Internal.Enso_Path.Enso_Path
+import project.Enso_Cloud.Internal.Existing_Enso_Asset.Asset_Cache
 import project.Enso_Cloud.Internal.Existing_Enso_Asset.Existing_Enso_Asset
 import project.Enso_Cloud.Internal.Utils
 import project.Error.Error
@@ -23,10 +26,12 @@ import project.Network.HTTP.HTTP
 import project.Network.HTTP.HTTP_Method.HTTP_Method
 import project.Network.URI.URI
 import project.Nothing.Nothing
+import project.Panic.Panic
 import project.Runtime
 import project.Runtime.Context
 import project.System.Environment
 import project.System.File.Data_Link_Access.Data_Link_Access
+import project.System.File.File
 import project.System.File.File_Access.File_Access
 import project.System.File.Generic.File_Like.File_Like
 import project.System.File.Generic.Writable_File.Writable_File
@@ -34,11 +39,13 @@ import project.System.File_Format_Metadata.File_Format_Metadata
 import project.System.Input_Stream.Input_Stream
 import project.System.Output_Stream.Output_Stream
 from project.Data.Boolean import Boolean, False, True
+from project.Data.Index_Sub_Range.Index_Sub_Range import Last
 from project.Data.Text.Extensions import all
+from project.Enso_Cloud.Internal.Enso_File_Helpers import all
 from project.Enso_Cloud.Public_Utils import get_required_field
+from project.System.File import find_extension_from_name
 from project.System.File_Format import Auto_Detect, Bytes, File_Format, Plain_Text_Format
 from project.System.File.Generic.File_Write_Strategy import generic_copy
-from project.System.File import find_extension_from_name
 
 type Enso_File
     ## ICON data_input
@@ -82,7 +89,7 @@ type Enso_File
        directory.
     current_working_directory : Enso_File
     current_working_directory =
-        path = Environment.get "ENSO_PROJECT_DIRECTORY_PATH"
+        path = Environment.get "ENSO_CLOUD_PROJECT_DIRECTORY_PATH"
         if path.is_nothing then Enso_File.root else
             Enso_File.new path
 
@@ -178,8 +185,17 @@ type Enso_File
          value. The value is returned from this method.
     with_output_stream : Vector File_Access -> (Output_Stream -> Any ! File_Error) -> Any ! File_Error
     with_output_stream self (open_options : Vector) action =
-        _ = [open_options, action]
-        Unimplemented.throw "Writing to Enso_Files is not currently implemented."
+        Context.Output.if_enabled disabled_message="Writing to an Enso_File is forbidden as the Output context is disabled." panic=False <|
+            open_as_data_link = (open_options.contains Data_Link_Access.No_Follow . not) && (Data_Link.is_data_link self)
+            if open_as_data_link then Data_Link_Helpers.write_data_link_as_stream self open_options action else
+                if open_options.contains File_Access.Append then Unimplemented.throw "Enso_File currently does not support appending to a file. Instead you may read it, modify and then write the new contents." else
+                    File_Access.ensure_only_allowed_options "with_output_stream" [File_Access.Write, File_Access.Create_New, File_Access.Truncate_Existing, File_Access.Create, Data_Link_Access.No_Follow] open_options <|
+                        allow_existing = open_options.contains File_Access.Create_New . not
+                        tmp_file = File.create_temporary_file "enso-cloud-write-tmp"
+                        Panic.with_finalizer tmp_file.delete <|
+                            perform_upload self allow_existing <|
+                                result = tmp_file.with_output_stream [File_Access.Write] action
+                                result.if_not_error [tmp_file, result]
 
     ## PRIVATE
        ADVANCED
@@ -197,7 +213,7 @@ type Enso_File
     with_input_stream : Vector File_Access -> (Input_Stream -> Any ! File_Error) -> Any ! File_Error | Illegal_Argument
     with_input_stream self (open_options : Vector) action =
         open_as_data_link = (open_options.contains Data_Link_Access.No_Follow . not) && (Data_Link.is_data_link self)
-        if open_as_data_link then Data_Link.read_data_link_as_stream self open_options action else
+        if open_as_data_link then Data_Link_Helpers.read_data_link_as_stream self open_options action else
             File_Access.ensure_only_allowed_options "with_input_stream" [File_Access.Read, Data_Link_Access.No_Follow] open_options <|
                 asset = Existing_Enso_Asset.get_asset_reference_for self
                 uri = case asset.asset_type of
@@ -234,13 +250,12 @@ type Enso_File
             Enso_Asset_Type.Secret -> Error.throw (Illegal_Argument.Error "Secrets cannot be read directly.")
             Enso_Asset_Type.Data_Link ->
                 json = Utils.http_request_as_json HTTP_Method.Get asset.internal_uri
-                datalink = Data_Link.interpret_json_as_data_link json
+                datalink = Data_Link_Helpers.interpret_json_as_data_link json
                 datalink.read format on_problems
             Enso_Asset_Type.Directory -> if format == Auto_Detect then self.list else Error.throw (Illegal_Argument.Error "Directories can only be read using the Auto_Detect format.")
             Enso_Asset_Type.File -> File_Format.handle_format_missing_arguments format <|
                 read_with_format effective_format =
                     metadata = File_Format_Metadata.from self
-                    # TODO maybe avoid fetching asset id twice here? maybe move with_input_stream to asset? or helper?
                     self.with_input_stream [File_Access.Read] (stream-> effective_format.read_stream stream metadata)
 
                 if format != Auto_Detect then read_with_format format else
@@ -292,40 +307,52 @@ type Enso_File
         # Remove secrets from the list - they are handled separately in `Enso_Secret.list`.
         assets = list_assets self . filter f-> f.asset_type != Enso_Asset_Type.Secret
         assets.map asset->
-            # TODO we could cache the asset maybe? but for how long should we do that?
-            Enso_File.Value (self.enso_path.resolve asset.name)
+            file = Enso_File.Value (self.enso_path.resolve asset.name)
+            Asset_Cache.update file asset
+            file
 
-    ## UNSTABLE
-       GROUP Output
-       Creates a subdirectory in a specified directory.
-    create_directory : Text -> Enso_File
-    create_directory self (name : Text) =
-        asset = Existing_Enso_Asset.get_asset_reference_for self
-        if asset.is_directory.not then Error.throw (Illegal_Argument.Error "Only directories can contain subdirectories.") else
-            parent_field = if self.is_current_user_root then [] else
-                [["parentId", [asset.id]]]
-            body = JS_Object.from_pairs [["title", name]]+parent_field
-            response = Utils.http_request_as_json HTTP_Method.Post Utils.directory_api body
-            # TODO we could cache the asset maybe? but for how long should we do that?
-            created_asset = Existing_Enso_Asset.from_json response
-            created_asset.if_not_error <|
-                Enso_File.Value (self.enso_path.resolve name)
+    ## GROUP Output
+       ICON folder_add
+       Creates the directory represented by this file if it did not exist.
+
+       It also creates parent directories if they did not exist.
+    create_directory : Enso_File
+    create_directory self =
+        if self.exists then self else
+            create_directory_with_parents self . if_not_error self
 
     ## UNSTABLE
        GROUP Output
        Deletes the file or directory.
-    delete : Nothing
-    delete self = if self.enso_path.is_root then Error.throw (Illegal_Argument.Error "The root directory cannot be deleted.") else
+
+       Arguments:
+       - recursive: If the target is a non-empty directory, it will only be
+         removed if this is set to `True`. Defaults to `False`, meaning that the
+         operation will fail if the directory is not empty. This option has no
+         effect for files or data links.
+    delete : Boolean -> Nothing
+    delete self (recursive : Boolean = False) = if self.enso_path.is_root then Error.throw (Illegal_Argument.Error "The root directory cannot be deleted.") else
         asset = Existing_Enso_Asset.get_asset_reference_for self
-        uri = URI.from asset.asset_uri . add_query_argument "force" "true"
-        response = Utils.http_request HTTP_Method.Delete uri
-        response.if_not_error Nothing
+        # The cloud defaults to recursively removing the whole directory, so we need a check on our side.
+        # The `self.list` is last of the `&&` conditions because it is the most expensive one.
+        # TODO ideally we should have a parameter `recursive` that would move this check to be local
+        if asset.is_directory && recursive.not && self.list.is_empty.not then Error.throw (File_Error.Directory_Not_Empty self) else
+            uri = URI.from asset.asset_uri . add_query_argument "force" "true"
+            response = Utils.http_request HTTP_Method.Delete uri
+            if asset.is_directory then Asset_Cache.invalidate_subtree self else Asset_Cache.invalidate self
+            response.if_not_error Nothing
 
     ## ICON data_output
        Deletes the file if it had existed.
-    delete_if_exists : Nothing
-    delete_if_exists self =
-        r = self.delete
+
+       Arguments:
+       - recursive: If the target is a non-empty directory, it will only be
+         removed if this is set to `True`. Defaults to `False`, meaning that the
+         operation will fail if the directory is not empty. This option has no
+         effect for files or data links.
+    delete_if_exists : Boolean -> Nothing
+    delete_if_exists self (recursive : Boolean = False) =
+        r = self.delete recursive
         r.catch File_Error err-> case err of
             File_Error.Not_Found _ -> Nothing
             _ -> r
@@ -337,9 +364,9 @@ type Enso_File
        - destination: the destination to move the file to.
        - replace_existing: specifies if the operation should proceed if the
          destination file already exists. Defaults to `False`.
-    copy_to : Writable_File -> Boolean -> Any ! File_Error
-    copy_to self (destination : Writable_File) (replace_existing : Boolean = False) =
-        generic_copy self destination.file replace_existing
+    copy_to : File_Like -> Boolean -> Any ! File_Error
+    copy_to self (destination : File_Like) (replace_existing : Boolean = False) = Data_Link_Helpers.disallow_links_in_copy self destination <|
+        generic_copy self destination replace_existing
 
     ## ICON data_output
        Moves the file to the specified destination.
@@ -348,11 +375,14 @@ type Enso_File
        - destination: the destination to move the file to.
        - replace_existing: specifies if the operation should proceed if the
          destination file already exists. Defaults to `False`.
-    move_to : Writable_File -> Boolean -> Nothing ! File_Error
-    move_to self (destination : Writable_File) (replace_existing : Boolean = False) =
-        _ = [destination, replace_existing]
-        Context.Output.if_enabled disabled_message="File moving is forbidden as the Output context is disabled." panic=False <|
-            Unimplemented.throw "Enso_File.move_to is not implemented"
+    move_to : File_Like -> Boolean -> Any ! File_Error
+    move_to self (destination : File_Like) (replace_existing : Boolean = False) = Data_Link_Helpers.disallow_links_in_move self destination <|
+        # TODO we could have a fast path if Cloud will support renaming files
+        r = self.copy_to destination replace_existing
+        r.if_not_error <|
+            # If source and destination are the same, we do not want to delete the file
+            if destination.underlying == self then r else
+                self.delete . if_not_error r
 
     ## GROUP Operators
        ICON folder
@@ -370,6 +400,11 @@ type Enso_File
     to_text : Text
     to_text self -> Text =
         "Enso_File "+self.path
+
+    ## PRIVATE
+    to_js_object : JS_Object
+    to_js_object self =
+        JS_Object.from_pairs [["type", "Enso_File"], ["constructor", "new"], ["path", self.path.to_text]]
 
 ## PRIVATE
 list_assets (parent : Enso_File) -> Vector Existing_Enso_Asset =
@@ -402,16 +437,13 @@ Enso_Asset_Type.from (that:Text) = case that of
 
 ## PRIVATE
 File_Format_Metadata.from (that:Enso_File) =
-    # TODO this is just a placeholder, until we implement the proper path
-    path = Nothing
-    case that.asset_type of
-        Enso_Asset_Type.Data_Link ->
-            File_Format_Metadata.Value path=path name=that.name content_type=Data_Link.data_link_content_type
-        Enso_Asset_Type.Directory ->
-            File_Format_Metadata.Value path=path name=that.name extension=(that.extension.catch _->Nothing)
-        Enso_Asset_Type.File ->
-            File_Format_Metadata.Value path=path name=that.name extension=(that.extension.catch _->Nothing)
-        other_asset_type -> Error.throw (Illegal_Argument.Error "`File_Format_Metadata` is not available for: "+other_asset_type.to_text+".")
+    asset_type = that.asset_type.catch File_Error _->Nothing
+    if asset_type == Enso_Asset_Type.Data_Link then File_Format_Metadata.Value path=that.path name=that.name content_type=Data_Link.data_link_content_type else
+        File_Format_Metadata.Value path=that.path name=that.name extension=(that.extension.catch _->Nothing)
 
 ## PRIVATE
 File_Like.from (that : Enso_File) = File_Like.Value that
+
+## PRIVATE
+Writable_File.from (that : Enso_File) = if Data_Link.is_data_link that then Data_Link_Helpers.interpret_data_link_as_writable_file that else
+    Writable_File.Value that Enso_File_Write_Strategy.instance

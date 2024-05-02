@@ -1,3 +1,9 @@
+/**
+ * @file Provides the Rust ffi interface. The interface should be kept in sync with polyglot ffi inteface {@link module:ffiPolyglot}.
+ *
+ * @module ffi
+ */
+
 import { createXXHash128 } from 'hash-wasm'
 import type { IDataType } from 'hash-wasm/dist/lib/util'
 import init, { is_ident_or_operator, parse, parse_doc_to_json } from '../../rust-ffi/pkg/rust_ffi'

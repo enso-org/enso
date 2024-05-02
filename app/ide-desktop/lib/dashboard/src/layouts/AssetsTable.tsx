@@ -1498,10 +1498,8 @@ export default function AssetsTable(props: AssetsTableProps) {
           permissions: permissions.tryGetSingletonOwnerPermission(user),
           projectState: {
             type: backendModule.ProjectState.placeholder,
-            // eslint-disable-next-line @typescript-eslint/naming-convention
-            volume_id: '',
-            // eslint-disable-next-line @typescript-eslint/naming-convention
-            ...(user != null ? { opened_by: user.email } : {}),
+            volumeId: '',
+            ...(user != null ? { openedBy: user.email } : {}),
             ...(path != null ? { path } : {}),
           },
           labels: [],

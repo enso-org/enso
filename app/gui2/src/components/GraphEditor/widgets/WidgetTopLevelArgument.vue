@@ -31,7 +31,6 @@ export const widgetDefinition = defineWidget(
   display: inline-flex;
   flex-direction: row;
   place-items: center;
-  position: relative;
   height: var(--node-height);
 
   &:before {

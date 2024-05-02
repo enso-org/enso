@@ -5,7 +5,6 @@
 pub mod cargo;
 pub mod cmake;
 pub mod cmd;
-pub mod conda;
 pub mod docker;
 pub mod explorer;
 pub mod flatc;
@@ -37,7 +36,6 @@ pub mod wasm_pack;
 pub use cargo::Cargo;
 pub use cmake::CMake;
 pub use cmd::Cmd;
-pub use conda::Conda;
 pub use docker::Docker;
 pub use flatc::Flatc;
 pub use git::Git;
