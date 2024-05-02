@@ -19,7 +19,12 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
-public class ExtensionMethodResolutionTest extends TestBase {
+/**
+ * Shadowing identifiers of imported symbols should result in a compilation failure. This testing
+ * suite is focused on testing the shadowing of identifiers in various context of multiple modules,
+ * not just a single module.
+ */
+public class AmbiguousResolutionTest extends TestBase {
   @Rule public TemporaryFolder tempFolder = new TemporaryFolder();
   private static final Matcher<String> methodsOverloadErrorMessageMatcher =
       allOf(
@@ -96,6 +101,52 @@ public class ExtensionMethodResolutionTest extends TestBase {
         """;
     var mainProjDir = createProject("Main", mainSrc, tempFolder);
     testProjectCompilationFailure(mainProjDir, methodsOverloadErrorMessageMatcher);
+  }
+
+  @Test
+  public void shadowingImportedTypeShouldFail() throws IOException {
+    var modSrc = """
+        type T
+        """;
+    var mainSrc = """
+        from project.Mod import T
+        type T
+        """;
+    var projDir = createProject("Proj", mainSrc, tempFolder);
+    var modSrcFile = projDir.resolve("src").resolve("Mod.enso");
+    Files.writeString(modSrcFile, modSrc);
+    testProjectCompilationFailure(projDir, containsString("Redefining atoms is not supported"));
+  }
+
+  @Test
+  public void shadowingImportedTypeWithRenameShouldFail() throws IOException {
+    var modSrc = """
+        type R
+        """;
+    var mainSrc = """
+        import project.Mod.R as T
+        type T
+        """;
+    var projDir = createProject("Proj", mainSrc, tempFolder);
+    var modSrcFile = projDir.resolve("src").resolve("Mod.enso");
+    Files.writeString(modSrcFile, modSrc);
+    testProjectCompilationFailure(projDir, containsString("Redefining atoms is not supported"));
+  }
+
+  @Test
+  public void shadowingImportedMethodShouldFail() throws IOException {
+    var modSrc = """
+        static_method x = x
+        """;
+    var mainSrc =
+        """
+        from project.Mod import static_method
+        static_method x y = x + y
+        """;
+    var projDir = createProject("Proj", mainSrc, tempFolder);
+    var modSrcFile = projDir.resolve("src").resolve("Mod.enso");
+    Files.writeString(modSrcFile, modSrc);
+    testProjectCompilationFailure(projDir, methodsOverloadErrorMessageMatcher);
   }
 
   private void testProjectCompilationFailure(String mainSrc, Matcher<String> errorMessageMatcher)
