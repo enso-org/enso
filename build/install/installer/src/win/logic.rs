@@ -110,7 +110,7 @@ pub fn install_with_updates(
     }
 
     stage_at!(0.01, "Checking for running processes.");
-    match enso_install::is_already_running(install_location) {
+    match enso_install::is_already_running(install_location, &[]) {
         Ok(Some(msg)) => bail!("{msg}"),
         Ok(None) => {} // Ok, no colliding processes.
         Err(err) => {
@@ -256,7 +256,7 @@ mod tests {
     fn is_already_running_test() -> Result {
         setup_logging().ok();
         let install_path = crate::win::get_install_dir("Enso")?;
-        let r = enso_install::is_already_running(&install_path)?;
+        let r = enso_install::is_already_running(&install_path, &[])?;
         dbg!(r);
         Ok(())
     }

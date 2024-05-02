@@ -1730,6 +1730,7 @@ dependencies = [
  "ide-ci",
  "native-windows-gui",
  "self-replace",
+ "sysinfo",
  "tokio",
 ]
 

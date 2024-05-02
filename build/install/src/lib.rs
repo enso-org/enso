@@ -21,6 +21,7 @@ use ide_ci::log::file_log_layer;
 use ide_ci::log::stderr_log_layer;
 use ide_ci::log::GlobalFilteringLayer;
 use prelude::*;
+use sysinfo::Pid;
 
 #[cfg(windows)]
 pub mod win;
@@ -112,7 +113,7 @@ pub fn locked_installation_lock() -> Result<named_lock::NamedLockGuard> {
 ///
 /// The processes are matched using their executable paths. Processes for which the path cannot be
 /// obtained are ignored.
-pub fn is_already_running(install_dir: &Path) -> Result<Option<String>> {
+pub fn is_already_running(install_dir: &Path, ignored_pids: &[Pid]) -> Result<Option<String>> {
     let install_dir = install_dir.canonicalize()?;
     let mut offending_processes = vec![];
 
@@ -120,6 +121,10 @@ pub fn is_already_running(install_dir: &Path) -> Result<Option<String>> {
     let mut sys = sysinfo::System::new();
     sys.refresh_processes();
     for (pid, process) in sys.processes() {
+        if ignored_pids.contains(&pid) {
+            trace!("Process {} ({}) is ignored.", process.name(), pid);
+            continue;
+        }
         let Some(path) = process.exe() else {
             warn!("Process {} ({}) has no path.", process.name(), pid);
             continue;

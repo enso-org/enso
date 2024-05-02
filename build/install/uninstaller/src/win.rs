@@ -83,11 +83,21 @@ pub async fn main() -> Result {
         Err(error) => show_dialog_and_panic(&error),
     };
 
+    // Unwrap is safe, because the uninstaller path (being an executable) will never be a root.
     let install_dir = parent_directory().unwrap();
 
-    if let Ok(Some(message)) = is_already_running(&install_dir) {
-        show_dialog_and_panic(&anyhow!("{message}"));
-    }
+    // Check if there is already running instance of Enso or any of its subprograms.
+    let already_running = sysinfo::get_current_pid()
+        .map_err(|text| anyhow!("Failed to get current process ID: {text}"))
+        .and_then(|my_pid| {
+            is_already_running(&install_dir, &[my_pid])
+                .context("Failed to check if already running.")
+        });
+    match already_running {
+        Ok(Some(message)) => show_dialog_and_panic(&anyhow!("{message}")),
+        Ok(None) => (),
+        Err(error) => warn!("Failed to check if there is already running instance: {error:?}"),
+    };
 
     // Make sure that Enso.exe is in the same directory as this uninstaller. This is to prevent
     // situation where just the uninstaller binary is placed by accident elsewhere and ends up

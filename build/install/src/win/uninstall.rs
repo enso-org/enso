@@ -1,4 +1,7 @@
-//! Uninstallation logic for Windows.
+//! Uninstaller information for Windows.
+//!
+//! These functions allow you to write uninstall information to the registry, and remove it when the
+//! application is uninstalled.
 
 use crate::prelude::*;
 use winreg::enums::*;
@@ -99,7 +102,7 @@ impl UninstallInfo {
             app_uninstall_key.set_value("InstallDate", install_date)?;
         }
         if let Some(estimated_size) = self.estimated_size_kib {
-            app_uninstall_key.set_value("EstimatedSize", &estimated_size.to_string())?;
+            app_uninstall_key.set_value("EstimatedSize", &estimated_size)?;
         }
 
         Ok(())
