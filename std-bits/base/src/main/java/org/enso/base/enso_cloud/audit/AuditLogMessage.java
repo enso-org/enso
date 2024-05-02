@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.databind.node.NullNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.databind.node.TextNode;
+import org.enso.base.CurrentEnsoProject;
 
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
@@ -40,7 +41,7 @@ public class AuditLogMessage implements AuditLogAPI.LogMessage {
 
     // TODO
     this.projectId = null;
-    this.projectName = "TODO";
+    this.projectName = CurrentEnsoProject.get().fullName();
     this.localTimestamp = ZonedDateTime.now();
   }
 
