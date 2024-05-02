@@ -55,6 +55,9 @@ abstract class AuditedConnection implements Connection {
 
   @Override
   public void setAutoCommit(boolean autoCommit) throws SQLException {
+    if (autoCommit != underlying.getAutoCommit()) {
+      auditTransaction("setAutoCommit "+autoCommit);
+    }
     underlying.setAutoCommit(autoCommit);
   }
 
