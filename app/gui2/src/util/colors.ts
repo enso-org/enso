@@ -28,6 +28,7 @@ export function ensoColor(hue: number): Oklch {
   }
 }
 
+/** Format an OKLCH color in CSS. */
 export function formatCssColor(color: Oklch) {
   return browserSupportsOklch ? formatCss(color) : formatRgb(color)
 }

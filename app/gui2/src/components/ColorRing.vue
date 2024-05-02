@@ -1,10 +1,14 @@
 <script setup lang="ts">
+import {
+  cssAngularColorStop,
+  gradientPoints,
+  rangesForInputs,
+} from '@/components/ColorRing/gradient'
 import { injectInteractionHandler } from '@/providers/interactionHandler'
 import { targetIsOutside } from '@/util/autoBlur'
 import { browserSupportsOklch, ensoColor, formatCssColor, parseCssColor } from '@/util/colors'
 import { Rect } from '@/util/data/rect'
 import { Vec2 } from '@/util/data/vec2'
-import { Resumable } from 'shared/util/data/iterable'
 import { computed, onMounted, ref } from 'vue'
 
 /**
@@ -24,6 +28,8 @@ import { computed, onMounted, ref } from 'vue'
 // in OKLCH, converting to sRGB, and interpolating in HSL. This number has been found to be enough to look close to the
 // intended colors, without excessive gradient complexity (which may affect performance).
 const NONNATIVE_OKLCH_INTERPOLATION_STEPS = 300
+
+const FIXED_RANGE_WIDTH = 1 / 16
 
 const selectedColor = defineModel<string | undefined>()
 const props = defineProps<{
@@ -82,53 +88,6 @@ function ringClick(event: MouseEvent) {
 
 // === Gradient colors ===
 
-interface FixedRange {
-  start: number
-  end: number
-  hue: number
-  meetsPreviousRange: boolean
-  meetsNextRange: boolean
-}
-const FIXED_RANGE_WIDTH = 1 / 16
-
-function rangesForInputs(inputHues: number[], radius: number) {
-  const inputs = new Array<number>()
-  const firstInput = inputHues[0]
-  const lastInput = inputHues[inputHues.length - 1]
-  if (lastInput != null && lastInput + radius > 1) inputs.push(lastInput - 1)
-  inputs.push(...inputHues)
-  if (firstInput != null && firstInput < radius) inputs.push(firstInput + 1)
-  const ranges = new Array<FixedRange>()
-  for (const hue of inputs) {
-    const preferredStart = Math.max(hue - radius, 0)
-    const preferredEnd = Math.min(hue + radius, 1)
-    const prev = ranges[ranges.length - 1]
-    if (prev && preferredStart < prev.end) {
-      const midpoint = (hue + prev.hue) / 2
-      prev.end = midpoint
-      prev.meetsNextRange = true
-      ranges.push({
-        start: midpoint,
-        end: preferredEnd,
-        hue,
-        meetsPreviousRange: true,
-        meetsNextRange: false,
-      })
-    } else {
-      const meetsPreviousRange = prev !== undefined && preferredStart < prev.end
-      if (meetsPreviousRange) prev.meetsNextRange = true
-      ranges.push({
-        start: preferredStart,
-        end: preferredEnd,
-        hue,
-        meetsPreviousRange,
-        meetsNextRange: false,
-      })
-    }
-  }
-  return ranges
-}
-
 const fixedRanges = computed(() => {
   const inputHues = new Set<number>()
   for (const rawColor of props.matchableColors) {
@@ -139,7 +98,7 @@ const fixedRanges = computed(() => {
     const hue = hueDeg / 360
     inputHues.add(hue < 0 ? hue + 1 : hue)
   }
-  return rangesForInputs([...inputHues].sort(), FIXED_RANGE_WIDTH / 2)
+  return rangesForInputs(inputHues, FIXED_RANGE_WIDTH / 2)
 })
 
 const triangleHue = computed(() => {
@@ -155,30 +114,14 @@ const triangleHue = computed(() => {
 // === CSS ===
 
 const cssGradient = computed(() => {
-  const numStops = browserSupportsOklch ? 2 : NONNATIVE_OKLCH_INTERPOLATION_STEPS
-  const fixedRangeIter = new Resumable(fixedRanges.value)
-  const stops = new Set<number>()
-  for (let i = 0; i < numStops; i++) {
-    const angle = i / numStops
-    fixedRangeIter.advanceWhile((range) => range.end <= angle)
-    const nextFixedRange = fixedRangeIter.peek()
-    if (!nextFixedRange || nextFixedRange.start > angle) stops.add(angle)
-  }
-  const clauses = new Array<{ start: number; clause: string }>()
-  const interpolationColorspace = browserSupportsOklch ? 'oklch' : 'hsl'
-  clauses.push({ start: -1, clause: `in ${interpolationColorspace} increasing hue` })
-  const interpolationPoint = (angle: number) => [cssColor(angle), `${angle}turn`].join(' ')
-  for (const stop of stops) clauses.push({ start: stop, clause: interpolationPoint(stop) })
-  for (const { start, end, hue, meetsPreviousRange, meetsNextRange } of fixedRanges.value) {
-    const color = cssColor(hue)
-    if (!meetsPreviousRange) clauses.push({ start, clause: interpolationPoint(start) })
-    clauses.push({ start, clause: `${color} ${start}turn ${end}turn` })
-    if (!meetsNextRange) clauses.push({ start: end, clause: interpolationPoint(end) })
-  }
-  clauses.sort((a, b) => a.start - b.start)
-  const sortedClauses = clauses.map((clause) => clause.clause)
-  sortedClauses.push(cssColor(0))
-  return `conic-gradient(${sortedClauses.join(',')})`
+  const points = gradientPoints(
+    fixedRanges.value,
+    browserSupportsOklch ? 2 : NONNATIVE_OKLCH_INTERPOLATION_STEPS,
+  )
+  const polarColorSpace = browserSupportsOklch ? 'oklch' : 'hsl'
+  const colorInterpolationMethod = `in ${polarColorSpace} increasing hue`
+  const angularColorStopList = Array.from(points, cssAngularColorStop)
+  return `conic-gradient(${colorInterpolationMethod},${angularColorStopList.join(',')})`
 })
 const cssTriangleAngle = computed(() =>
   triangleAngle.value != null ? `${triangleAngle.value}turn` : undefined,
