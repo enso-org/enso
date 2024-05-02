@@ -76,12 +76,13 @@ export interface MenuEntryProps {
   readonly isDisabled?: boolean
   readonly title?: string
   readonly isContextMenuEntry?: boolean
+  readonly dialog?: JSX.Element
   readonly doAction: () => void
 }
 
 /** An item in a menu. */
 export default function MenuEntry(props: MenuEntryProps) {
-  const { hidden = false, action, label, isDisabled = false, title } = props
+  const { hidden = false, action, label, isDisabled = false, dialog, title } = props
   const { isContextMenuEntry = false, doAction } = props
   const { getText } = textProvider.useText()
   const inputBindings = inputBindingsProvider.useInputBindings()
@@ -98,7 +99,7 @@ export default function MenuEntry(props: MenuEntryProps) {
     }
   }, [isDisabled, inputBindings, action, doAction])
 
-  return hidden ? null : (
+  const button = (
     <UnstyledButton
       isDisabled={isDisabled}
       className="group flex w-full rounded-menu-entry"
@@ -117,4 +118,16 @@ export default function MenuEntry(props: MenuEntryProps) {
       </div>
     </UnstyledButton>
   )
+
+  const wrappedButton =
+    dialog == null ? (
+      button
+    ) : (
+      <aria.DialogTrigger>
+        {button}
+        {dialog}
+      </aria.DialogTrigger>
+    )
+
+  return hidden ? null : wrappedButton
 }

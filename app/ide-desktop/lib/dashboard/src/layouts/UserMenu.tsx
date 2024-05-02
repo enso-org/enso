@@ -44,7 +44,7 @@ export default function UserMenu(props: UserMenuProps) {
   const navigate = navigateHooks.useNavigate()
   const { signOut } = authProvider.useAuth()
   const { user } = authProvider.useNonPartialUserSession()
-  const { setModal, unsetModal } = modalProvider.useSetModal()
+  const { unsetModal } = modalProvider.useSetModal()
   const { getText } = textProvider.useText()
   const toastAndLog = toastAndLogHooks.useToastAndLog()
 
@@ -55,9 +55,8 @@ export default function UserMenu(props: UserMenuProps) {
   const aboutThisAppMenuEntry = (
     <MenuEntry
       action="aboutThisApp"
-      doAction={() => {
-        setModal(<AboutModal supportsLocalBackend={supportsLocalBackend} />)
-      }}
+      dialog={<AboutModal supportsLocalBackend={supportsLocalBackend} />}
+      doAction={() => {}}
     />
   )
 
