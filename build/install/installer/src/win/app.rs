@@ -15,19 +15,34 @@ use crate::InstallerUpdate;
 
 pub mod ui;
 
-pub const PROGRESS_BAR_TICKS: u32 = 100;
+/// The number of ticks the progress is divided into.
+pub const PROGRESS_BAR_TICKS: u32 = 1000;
 
+/// The installer's UI application.
+///
+/// This struct holds all the UI elements and the logic to drive the installation process.
+/// The design follows the pattern recommended by the `native-windows-gui` library.
+// Note: we do not use the derive API, as:
+// - it does not support the `FlexboxLayout`,
+// - is generally more trouble than it's worth.
 #[derive(Default)]
 #[allow(missing_debug_implementations)]
 pub struct InstallerApp {
     /// Path to the log file. We use it to point the user to the log file in case of an error.
     pub logfile:          PathBuf,
+    /// Title used by the main window and some of the dialogs.
     pub window_title:     String,
+    /// The main window of the installer.
     pub window:           nwg::Window,
+    /// The main window's layout. Column with the top layout and the progress bar.
     pub layout:           nwg::FlexboxLayout,
+    /// Row with the Enso icon and the label.
     pub top_layout:       nwg::FlexboxLayout,
+    /// The Enso icon (displayed left to the label).
     pub image:            nwg::ImageFrame,
+    /// The label that shows the current stage of the installation.
     pub label:            nwg::Label,
+    /// The progress bar that shows the overall installation progress.
     pub progress_bar:     nwg::ProgressBar,
     /// Handle to the embedded resources, such as the [`InstallerApp::enso_icon`].
     pub embed:            nwg::EmbedResource,
@@ -56,7 +71,7 @@ impl InstallerApp {
     /// Create a new instance of the installer application.
     ///
     /// This includes setting up logging.
-    #[warn(clippy::new_ret_no_self)] // This follow the pattern advertised by the NWG crate.
+    #[allow(clippy::new_ret_no_self)] // This follow the pattern advertised by the NWG crate.
     pub fn new() -> Result<ui::Ui> {
         let window_title =
             format!("{} installer", enso_install::sanitized_electron_builder_config().product_name);
@@ -72,6 +87,8 @@ impl InstallerApp {
             InstallerApp::build_ui(app).context("Failed to build UI")
         }();
         if let Err(err) = &result {
+            // We use "error" rather than "fatal", because "fatal" panics as soon as the error
+            // dialog is closed. And we still want to open the logs.
             ui::error_message(&dialog_title, &format!("Installer failed to start: {err:?}"));
             let _ = ide_ci::programs::explorer::show_selected(logfile_copy);
         }
@@ -79,6 +96,9 @@ impl InstallerApp {
     }
 
     /// Runs the installation.
+    ///
+    /// # Panics
+    /// In case of failure, shows an error message and opens the log file - then panics.
     pub fn run(&self) {
         let result = || -> Result {
             let config = config::fill_config()?;
@@ -199,6 +219,8 @@ impl InstallerApp {
                     }
                     Err(std::sync::mpsc::TryRecvError::Empty) => break,
                     Err(std::sync::mpsc::TryRecvError::Disconnected) => {
+                        // We expect to receive `InstallerUpdate::Finished` before the channel is
+                        // closed. If it happens, it means that the backend thread has crashed.
                         let err =
                             anyhow!("The installer backend thread has unexpectedly disconnected.");
                         self.fail_installation(err);

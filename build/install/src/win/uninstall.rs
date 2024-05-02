@@ -1,3 +1,5 @@
+//! Uninstallation logic for Windows.
+
 use crate::prelude::*;
 use winreg::enums::*;
 

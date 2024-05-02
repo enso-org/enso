@@ -21,6 +21,7 @@ use prelude::*;
 use ide_ci::define_env_var;
 use ide_ci::env::accessor::PathBufVariable;
 use ide_ci::env::known::cargo::build::OUT_DIR;
+use ide_ci::programs::cargo;
 
 /// The filename stem of the installer executable — and the crate name.
 pub const INSTALLER_NAME: &str = "enso-installer";
@@ -60,8 +61,8 @@ define_env_var! {
 /// This function is intended to be used by the installer/uninstaller's `build.rs`.
 pub fn electron_builder_config_from_env() -> Result<electron_builder::Config> {
     let config_path = ENSO_BUILD_ELECTRON_BUILDER_CONFIG.get()?;
-    println!("cargo:rerun-if-env-changed={ENSO_BUILD_ELECTRON_BUILDER_CONFIG}");
-    println!("cargo:rerun-if-changed={}", config_path.display());
+    cargo::build::rerun_if_env_changed(ENSO_BUILD_ELECTRON_BUILDER_CONFIG);
+    cargo::build::rerun_if_file_changed(&config_path);
     ide_ci::fs::read_json(config_path)
 }
 
@@ -97,10 +98,7 @@ pub fn sanitize_and_expose_electron_builder_config() -> Result<electron_builder:
         // configuration.
         ide_ci::fs::write_if_different(&out_config_path, "")?;
     }
-    ide_ci::programs::cargo::build::expose_env_var(
-        ENSO_INSTALL_ELECTRON_BUILDER_CONFIG,
-        out_config_path.as_str(),
-    );
+    cargo::build::expose_env_var(ENSO_INSTALL_ELECTRON_BUILDER_CONFIG, out_config_path.as_str());
     ENSO_INSTALL_ELECTRON_BUILDER_CONFIG.set(&out_config_path)?;
     config
 }
@@ -144,11 +142,11 @@ pub fn embed_resource_from_file(
     resource_path: &Path,
 ) -> Result {
     let rc_file = OUT_DIR.get().unwrap().join(resource_id).with_extension("rc");
-    println!("cargo:rerun-if-changed={}", rc_file.display());
+    cargo::build::rerun_if_env_changed(rc_file.as_str());
     // We need to either replace backslashes with forward slashes or escape them, as RC file is
     // kinda-compiled. The former is easier.
     let sanitized_path = resource_path.to_str().unwrap().replace('\\', "/");
-    println!("cargo:rerun-if-changed={sanitized_path}");
+    cargo::build::rerun_if_file_changed(&sanitized_path);
     let contents = format!(r#"{resource_id} {resource_type} "{sanitized_path}""#);
     ide_ci::fs::write_if_different(&rc_file, contents)?;
     embed_resource::compile(&rc_file, embed_resource::NONE);
@@ -168,6 +166,6 @@ pub fn embed_resource_from_env(
     resource_type: ResourceType,
     env_var: &PathBufVariable,
 ) -> Result {
-    println!("cargo:rerun-if-env-changed={env_var}");
+    cargo::build::rerun_if_env_changed(env_var);
     embed_resource_from_file(resource_id, resource_type, &env_var.get()?)
 }

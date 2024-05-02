@@ -1,3 +1,4 @@
+#![windows_subsystem = "windows"] // Do not display a console window when running the uninstaller.
 // === Features ===
 #![feature(imported_main)]
 

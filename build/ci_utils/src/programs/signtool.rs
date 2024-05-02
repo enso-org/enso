@@ -1,3 +1,5 @@
+//! Utilities for [`signtool`](SignTool) CLI tool.
+
 use crate::prelude::*;
 
 
@@ -32,8 +34,7 @@ impl AsRef<OsStr> for HashAlgorithm {
 
 /// SignTool utility, being part of the Windows SDK.
 ///
-/// This utility is used to digitally sign files, verify signatures in files,
-/// or time stamp files.
+/// `signtool` can be used to sign executables, verify signatures, or timestamp files.
 #[derive(Clone, Copy, Debug)]
 pub struct SignTool;
 

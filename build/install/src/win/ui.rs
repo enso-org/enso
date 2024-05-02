@@ -1,3 +1,5 @@
+//! UI-related utilities for the Windows installer/uninstaller.
+
 use crate::prelude::*;
 
 

@@ -1,4 +1,4 @@
-#![windows_subsystem = "windows"]
+#![windows_subsystem = "windows"] // Do not display a console window when running the installer.
 
 use enso_installer::prelude::*;
 

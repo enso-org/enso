@@ -106,7 +106,9 @@ pub mod env {
 
 /// Name of the directory with the unpacked Electron package.
 ///
-/// The directory is created by the `electron-builder` utility in the output directory.
+/// The directory is created by the `electron-builder` utility in the output directory when run
+/// with the `dir` target. It is also usually created for other targets, as it is an intermediate
+/// step in the packaging process.
 ///
 /// # Panics
 /// This function panics if the provided OS and architecture combination is not supported.

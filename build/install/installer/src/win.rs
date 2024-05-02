@@ -18,6 +18,7 @@ pub mod logic;
 
 
 
+/// Retrieve the compiled-in installer payload with metadata.
 pub fn access_payload() -> Result<Payload> {
     Ok(Payload {
         data:     enso_install::win::get_installer_payload()?,
@@ -25,6 +26,7 @@ pub fn access_payload() -> Result<Payload> {
     })
 }
 
+/// Spawn a thread that will install the Enso IDE at the given location.
 pub fn spawn_installer_thread(
     install_location: impl AsRef<Path>,
     payload: Payload,
@@ -63,8 +65,9 @@ pub fn get_install_dir(pretty_name: &str) -> Result<PathBuf> {
     Ok(programs_dir.join(pretty_name))
 }
 
+/// The installer's entry point.
 pub fn main() -> Result {
-    // Note: logging will be set up by the installer app. It needs to be responsible for this to be
+    // Note: logging will be set up by the `InstallerApp`. It needs to be responsible for this to be
     // able to show the log file to the user.
     let app = app::InstallerApp::new()?;
     app.run();

@@ -1,9 +1,7 @@
-//! This build script compiles the icon into the binary.
+//! The build script of crate that is dependency of both the installer and the uninstaller.
 //!
-//! Thanks to this both the installer and the uninstaller have the icon embedded (as both link to
-//! this crate).
-//!
-//! Currently only supported on Windows, on other platforms this is effectively a no-op.
+//! Currently, it is used to include the resources (icons, manifests, version information) into the
+//! installer and uninstaller binaries.
 
 use enso_install_config::prelude::*;
 

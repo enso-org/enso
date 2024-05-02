@@ -1,3 +1,5 @@
+//! Code that performs the installation.
+
 use crate::prelude::*;
 
 use crate::win::config::Config;

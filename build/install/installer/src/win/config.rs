@@ -38,7 +38,7 @@ pub struct Config {
         Vec<(enso_install::win::prog_id::FileType, enso_install::win::prog_id::FileExtension)>,
 }
 
-
+/// Generate the `Config` for the installer from the compiled-in Electron Builder configuration.
 pub fn fill_config() -> Result<Config> {
     let electron = enso_install::sanitized_electron_builder_config();
 

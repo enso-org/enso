@@ -1,3 +1,7 @@
+//! The UI setup for the installer application.
+//!
+//! This is roughly what `native-windows-derive` would generate.
+
 use crate::prelude::*;
 
 use std::cell::RefCell;
@@ -21,12 +25,14 @@ pub const ICON_SIZE: u32 = 32;
 
 /// Default font used in the application.
 ///
-/// Segoe is the default font in Windows since Vista and we can reasonably expect it to be
+/// Segoe UI is the default font in Windows since Vista and we can reasonably expect it to be
 /// available.
 pub const DEFAULT_FONT: &str = "Segoe UI";
 
 pub struct Ui {
+    /// Inner application data, that is shared with the event callbacks.
     inner:           Rc<InstallerApp>,
+    /// Main events handler handle - so we can unbind it when the UI is dropped.
     default_handler: RefCell<Option<nwg::EventHandler>>,
 }
 
@@ -46,7 +52,6 @@ impl NativeUi<Ui> for InstallerApp {
             .size(Some((ICON_SIZE, ICON_SIZE)))
             .build(&mut data.enso_icon)?;
         nwg::Window::builder()
-            .position((300, 300))
             .title(&data.window_title)
             .flags(nwg::WindowFlags::WINDOW | nwg::WindowFlags::VISIBLE)
             .icon(Some(&data.enso_icon))
@@ -126,12 +131,13 @@ impl Deref for Ui {
     }
 }
 
-
+/// Display an error message to the user and log it.
 pub fn error_message(title: &str, message: &str) {
     error!("{message}");
     nwg::error_message(title, message);
 }
 
+/// Init the global state of the `native-windows-gui` library.
 pub fn init_global() -> Result {
     nwg::init().context("Failed to init Native Windows GUI")?;
     let mut font = nwg::Font::default();

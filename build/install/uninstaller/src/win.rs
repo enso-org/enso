@@ -31,6 +31,7 @@ fn self_delete(parent_path: &Path) -> Result {
     })
 }
 
+/// Handle an error, logging it and adding it to the list of errors.
 fn handle_error<T>(errors: &mut Vec<anyhow::Error>, result: Result<T>) -> Option<T> {
     match result {
         Err(error) => {
@@ -42,6 +43,7 @@ fn handle_error<T>(errors: &mut Vec<anyhow::Error>, result: Result<T>) -> Option
     }
 }
 
+/// Show a dialog with an error message and panic.
 fn show_dialog_and_panic(error: &anyhow::Error) -> ! {
     error!("Encountered an error: {error:?}.");
     native_windows_gui::fatal_message(
@@ -145,7 +147,7 @@ pub async fn main() -> Result {
         explorer will be opened at the log file location.\n\nErrors:\n{errors_summary}"
         );
         native_windows_gui::error_message("Uninstallation failed", &plain_message);
-        let _ = ide_ci::programs::explorer::show_selected(&logfile);
+        let _ = ide_ci::programs::explorer::show_selected(logfile);
         bail!("Uninstallation failed.");
     } else {
         native_windows_gui::simple_message(

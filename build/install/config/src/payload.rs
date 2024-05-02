@@ -1,3 +1,5 @@
+//! Installer has compiled-in binary payload and metadata about it.
+
 use crate::prelude::*;
 
 
@@ -30,6 +32,10 @@ impl Metadata {
     }
 }
 
+/// Take the electron-builder output and prepare the payload files for the installer.
+///
+/// These files need to be provided to the installer at build time, so they can be embedded into
+/// the installer binary
 pub async fn prepare_payload(
     unpacked_directory: &Path,
     output_archive: &Path,

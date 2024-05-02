@@ -8,7 +8,7 @@ use std::fs::File;
 
 
 /// Synchronous version of [`extract_files`].
-// #[context("Failed to extract files from the archive.")]
+#[context("Failed to extract files from the archive.")]
 pub fn extract_files_sync<R: Read>(
     mut archive: tar::Archive<R>,
     mut filter: impl FnMut(&tar::Entry<R>) -> Option<PathBuf>,
@@ -37,36 +37,6 @@ pub fn extract_files_sync<R: Read>(
     }
     Ok(())
 }
-
-// /// Synchronous version of [`extract_files`].
-// // #[context("Failed to extract files from the archive.")]
-// pub fn extract_files_sync_inner<R: Read>(
-//     mut archive: tar::Archive<R>,
-//     mut filter: impl FnMut(&tar::Entry<R>) -> Option<Cow<Path>>,
-// ) -> Result {
-//     let entries = archive.entries()?;
-//     for entry in entries {
-//         let mut entry = entry?;
-//         if let Some(output_path) = filter(&entry) {
-//             let entry_type = entry.header().entry_type();
-//             let make_message = |prefix, path: Cow<Path>| {
-//                 format!(
-//                     "{} {:?} entry: {} => {}",
-//                     prefix,
-//                     entry_type,
-//                     path.display(),
-//                     output_path.display()
-//                 )
-//             };
-//
-//             trace!("{}", make_message("Extracting", entry.path()?));
-//             entry.unpack(&output_path).with_context(|| {
-//                 make_message("Failed to extract", entry.path().unwrap_or_default())
-//             })?;
-//         }
-//     }
-//     Ok(())
-// }
 
 // ===============
 // === Archive ===
