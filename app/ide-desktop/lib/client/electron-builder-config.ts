@@ -336,9 +336,10 @@ export async function buildPackage(passedArgs: Arguments) {
         targets: passedArgs.platform.createTarget(),
     }
 
-    // Write the configuration to a JSON file for debugging purposes.
     // If `ENSO_BUILD_ELECTRON_BUILDER_CONFIG` is set, we will write the configuration to the
     // specified path. Otherwise, we will write it to the default path.
+    // This is used on Windows to provide the configuration to the installer build. On other
+    // platforms, this may be useful for debugging.
     const configPath =
         process.env['ENSO_BUILD_ELECTRON_BUILDER_CONFIG'] ??
         `${passedArgs.ideDist}/electron-builder-config.yaml`
