@@ -28,7 +28,7 @@ case class ModuleContext(
   def bindingsAnalysis(): BindingsMap = module.getBindingsMap()
   def getName(): QualifiedName        = module.getName()
   def getPackage(): Package[_]        = module.getPackage()
-  def getCharacters(): CharSequence             = module.getCharacters()
+  def getCharacters(): CharSequence   = module.getCharacters()
   def moduleReference(): ModuleReference.Concrete =
     ModuleReference.Concrete(module)
 }

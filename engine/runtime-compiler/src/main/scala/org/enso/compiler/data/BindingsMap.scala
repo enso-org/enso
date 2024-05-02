@@ -738,7 +738,11 @@ object BindingsMap {
     * @param arguments description of constructor's arguments
     * @param isProjectPrivate whether this constructor is project-private.
     */
-  case class Cons(name: String, arguments: List[Argument], isProjectPrivate: Boolean) {
+  case class Cons(
+    name: String,
+    arguments: List[Argument],
+    isProjectPrivate: Boolean
+  ) {
 
     /** The number of fields in the constructor. */
     def arity: Int = arguments.length
