@@ -5,7 +5,8 @@ import static org.junit.Assert.assertTrue;
 
 import java.io.OutputStream;
 import java.net.URI;
-import org.enso.polyglot.MethodNames;
+
+import org.enso.common.MethodNames;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Source;
 import org.junit.AfterClass;

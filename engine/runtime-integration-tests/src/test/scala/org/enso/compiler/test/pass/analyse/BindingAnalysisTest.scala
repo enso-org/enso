@@ -89,11 +89,12 @@ class BindingAnalysisTest extends CompilerTest {
                 Argument("a", hasDefaultValue = false, None),
                 Argument("b", hasDefaultValue = false, None),
                 Argument("c", hasDefaultValue = false, None)
-              )
+              ),
+              isProjectPrivate = false
             )
           ),
           builtinType = false
-        )), false),
+        ),
         Type("Bar", List(), List(), builtinType         = false),
         Type("Baz", List("x", "y"), List(), builtinType = false),
         PolyglotSymbol("MyClass"),
