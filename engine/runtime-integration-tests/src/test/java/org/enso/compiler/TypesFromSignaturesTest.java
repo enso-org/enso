@@ -102,6 +102,12 @@ public class TypesFromSignaturesTest extends CompilerTest {
       System.out.println(b);
       return null;
     });
+
+    var staticMethod = findMemberMethod(module, "A", "static_method");
+    var memberMethod = findMemberMethod(module, "A", "member_method");
+
+    assertInferredType(staticMethod, "(A -> A)");
+    assertInferredType(memberMethod, "(A -> A)");
   }
 
   @Test
@@ -125,6 +131,12 @@ public class TypesFromSignaturesTest extends CompilerTest {
       System.out.println(b);
       return null;
     });
+
+    var staticMethod = findMemberMethod(module, "A", "extension_static_method");
+    var memberMethod = findMemberMethod(module, "A", "extension_member_method");
+
+    assertInferredType(staticMethod, "(A -> A)");
+    assertInferredType(memberMethod, "(A -> A)");
   }
 
   private void assertInferredType(IR ir, String expected) {
