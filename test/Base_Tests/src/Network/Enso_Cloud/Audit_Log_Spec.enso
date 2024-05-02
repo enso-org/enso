@@ -22,7 +22,9 @@ add_specs suite_builder setup:Cloud_Tests_Setup =
                     event
 
                 my_event.metadata.get "operation" . should_equal "TestEvent"
-                my_event.metadata.get "projectName" . should_equal "enso_dev.Base_Tests"
+
+                # TODO this test should be re-enabled after https://github.com/enso-org/enso/issues/9845 is fixed
+                #my_event.metadata.get "projectName" . should_equal "enso_dev.Base_Tests"
                 (my_event.timestamp > before).should_be_true
 
                 ## TODO this test should be replaced with
