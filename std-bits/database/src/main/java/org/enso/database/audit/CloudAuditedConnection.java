@@ -12,7 +12,7 @@ public final class CloudAuditedConnection extends AuditedConnection {
   private static final Logger logger = Logger.getLogger(CloudAuditedConnection.class.getName());
   private final ObjectNode metadata;
 
-  CloudAuditedConnection(Connection underlying, String relatedAssetId) {
+  public CloudAuditedConnection(Connection underlying, String relatedAssetId) {
     super(underlying);
     metadata = new ObjectNode(JsonNodeFactory.instance);
     if (relatedAssetId != null) {
@@ -26,13 +26,19 @@ public final class CloudAuditedConnection extends AuditedConnection {
     }
   }
 
-  @Override
-  protected void auditQuery(String operationType, String sql) {
+  private void audit(String operationType, String sql) {
+    // TODO remove the print - for debugging
+    System.out.println(operationType + " " + sql + " " + metadata);
     AuditLog.logAsync(operationType, sql, metadata);
   }
 
   @Override
+  protected void auditQuery(String operationType, String sql) {
+    audit(operationType, sql);
+  }
+
+  @Override
   protected void auditTransaction(String operation) {
-    AuditLog.logAsync("transaction", operation, metadata);
+    audit("transaction", operation);
   }
 }
