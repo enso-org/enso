@@ -5,6 +5,7 @@ import java.io.File;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.nio.file.InvalidPathException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Arrays;
@@ -12,7 +13,6 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.UUID;
-import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -49,11 +49,6 @@ import scala.concurrent.ExecutionContext;
 import scala.concurrent.ExecutionContextExecutor;
 import scala.concurrent.duration.FiniteDuration;
 import scala.runtime.BoxedUnit;
-import scala.util.Either;
-import scala.util.Failure;
-import scala.util.Left$;
-import scala.util.Right$;
-import scala.util.Success;
 
 /** The main CLI entry point class. */
 public final class Main {
@@ -698,7 +693,7 @@ public final class Main {
     if (projectMode) {
       var result = PackageManager$.MODULE$.Default().loadPackage(file);
       if (result.isSuccess()) {
-        var s = (Success) result;
+        var s = (scala.util.Success) result;
         @SuppressWarnings("unchecked")
         var pkg = (org.enso.pkg.Package<java.io.File>) s.get();
         var main = pkg.mainFile();
@@ -710,7 +705,7 @@ public final class Main {
         var mainModuleName = pkg.moduleNameForFile(pkg.mainFile()).toString();
         runPackage(context, mainModuleName, file, additionalArgs);
       } else {
-        println(((Failure) result).exception().getMessage());
+        println(((scala.util.Failure) result).exception().getMessage());
         throw exitFail();
       }
     } else {
@@ -1141,96 +1136,99 @@ public final class Main {
    * @param line a CLI line
    * @param logLevel log level to set for the engine runtime
    */
-  @SuppressWarnings("deprecation")
   private void runLanguageServer(CommandLine line, Level logLevel) {
-    var maybeConfig = parseServerOptions(line);
-
-    if (maybeConfig.isLeft()) {
-      var errorMsg = maybeConfig.left().get();
-      System.err.println(errorMsg);
-      throw exitFail();
-    } else {
-      var config = maybeConfig.right().get();
+    try {
+      var config = parseServerOptions(line);
       LanguageServerApp.run(config, logLevel, line.hasOption(Main.DAEMONIZE_OPTION));
       throw exitSuccess();
+    } catch (WrongOption e) {
+      System.err.println(e.getMessage());
+      throw exitFail();
     }
   }
 
-  @SuppressWarnings("deprecation")
-  private static Either<String, LanguageServerConfig> parseServerOptions(CommandLine line) {
-    var rootId =
-        scala.Option.apply(line.getOptionValue(ROOT_ID_OPTION))
-            .toRight(() -> "Root id must be provided")
-            .flatMap(id -> catchNonFatal(() -> UUID.fromString(id), "Root must be UUID"));
-    var rootPath =
-        scala.Option.apply(line.getOptionValue(ROOT_PATH_OPTION))
-            .toRight(() -> "Root path must be provided");
-    var interfac =
-        scala.Option.apply(line.getOptionValue(INTERFACE_OPTION)).getOrElse(() -> "127.0.0.1");
-    var rpcPortStr =
-        scala.Option.apply(line.getOptionValue(RPC_PORT_OPTION)).getOrElse(() -> "8080");
-    var rpcPort = catchNonFatal(() -> Integer.valueOf(rpcPortStr), "Port must be integer");
-    var dataPortStr =
-        scala.Option.apply(line.getOptionValue(DATA_PORT_OPTION)).getOrElse(() -> "8081");
-    var dataPort = catchNonFatal(() -> Integer.valueOf(dataPortStr), "Port must be integer");
-    scala.Option<String> secureRpcPortStr =
-        scala.Option.apply(line.getOptionValue(SECURE_RPC_PORT_OPTION))
-            .map(x -> scala.Option.apply(x))
-            .getOrElse(() -> scala.Option.empty());
-    var secureRpcPort =
-        catchNonFatal(
-            () -> secureRpcPortStr.map(x -> (Object) Integer.valueOf(x)), "Port must be integer");
-    scala.Option<String> secureDataPortStr =
-        scala.Option.apply(line.getOptionValue(SECURE_DATA_PORT_OPTION))
-            .map(x -> scala.Option.apply(x))
-            .getOrElse(() -> scala.Option.empty());
-    var secureDataPort =
-        catchNonFatal(
-            () -> secureDataPortStr.map(x -> (Object) Integer.valueOf(x)), "Port must be integer");
+  private static LanguageServerConfig parseServerOptions(CommandLine line) throws WrongOption {
+    UUID rootId;
+    try {
+      var id = line.getOptionValue(ROOT_ID_OPTION);
+      if (id == null) {
+        throw new WrongOption("Root id must be provided");
+      }
+      rootId = UUID.fromString(id);
+    } catch (IllegalArgumentException e) {
+      throw new WrongOption("Root must be UUID");
+    }
+    var rootPath = line.getOptionValue(ROOT_PATH_OPTION);
+    if (rootPath == null) {
+      throw new WrongOption("Root path must be provided");
+    }
+    var interfac = line.getOptionValue(INTERFACE_OPTION, "127.0.0.1");
+    int rpcPort;
+    try {
+      rpcPort = Integer.parseInt(line.getOptionValue(RPC_PORT_OPTION, "8080"));
+    } catch (NumberFormatException e) {
+      throw new WrongOption("Port must be integer");
+    }
+    int dataPort;
+    try {
+      dataPort = Integer.parseInt(line.getOptionValue(DATA_PORT_OPTION, "8081"));
+    } catch (NumberFormatException e) {
+      throw new WrongOption("Port must be integer");
+    }
+    Integer secureRpcPort;
+    try {
+      var port = line.getOptionValue(SECURE_RPC_PORT_OPTION);
+      secureRpcPort = port == null ? null : Integer.valueOf(port);
+    } catch (NumberFormatException e) {
+      throw new WrongOption("Port must be integer");
+    }
+    Integer secureDataPort;
+    try {
+      var port = line.getOptionValue(SECURE_DATA_PORT_OPTION);
+      secureDataPort = port == null ? null : Integer.valueOf(port);
+    } catch (NumberFormatException e) {
+      throw new WrongOption("Port must be integer");
+    }
     var profilingConfig = parseProfilingConfig(line);
-    var graalVMUpdater =
-        scala.Option.apply(line.hasOption(SKIP_GRAALVM_UPDATER)).getOrElse(() -> false);
+    var graalVMUpdater = line.hasOption(SKIP_GRAALVM_UPDATER);
 
-    try {
-      var config =
-          new LanguageServerConfig(
-              interfac,
-              from(rpcPort),
-              from(secureRpcPort),
-              from(dataPort),
-              from(secureDataPort),
-              from(rootId),
-              from(rootPath),
-              from(profilingConfig),
-              new StartupConfig(graalVMUpdater),
-              "language-server",
-              ExecutionContext.global());
-      return Right$.MODULE$.apply(config);
-    } catch (WrongOption ex) {
-      return Left$.MODULE$.apply(ex.getMessage());
-    }
+    var config =
+        new LanguageServerConfig(
+            interfac,
+            rpcPort,
+            scala.Option.apply(secureRpcPort),
+            dataPort,
+            scala.Option.apply(secureDataPort),
+            rootId,
+            rootPath,
+            profilingConfig,
+            new StartupConfig(graalVMUpdater),
+            "language-server",
+            ExecutionContext.global());
+    return config;
   }
 
-  @SuppressWarnings("deprecation")
-  private static Either<String, ProfilingConfig> parseProfilingConfig(CommandLine line) {
-    var profilingPathStr = scala.Option.apply(line.getOptionValue(PROFILING_PATH));
-
-    var profilingPath =
-        catchNonFatal(() -> profilingPathStr.map(Paths::get), "Profiling path is invalid");
-    var profilingTimeStr = scala.Option.apply(line.getOptionValue(Main.PROFILING_TIME));
-    var profilingTime =
-        catchNonFatal(
-            () ->
-                profilingTimeStr.map(
-                    x -> FiniteDuration.apply(Integer.valueOf(x), TimeUnit.SECONDS)),
-            "Profiling time should be an integer");
-
+  private static ProfilingConfig parseProfilingConfig(CommandLine line) throws WrongOption {
+    Path profilingPath = null;
     try {
-      var value = new ProfilingConfig(from(profilingPath), from(profilingTime));
-      return Right$.MODULE$.apply(value);
-    } catch (WrongOption ex) {
-      return Left$.MODULE$.apply(ex.getMessage());
+      var path = line.getOptionValue(PROFILING_PATH);
+      if (path != null) {
+        profilingPath = Paths.get(path);
+      }
+    } catch (InvalidPathException e) {
+      throw new WrongOption("Profiling path is invalid");
     }
+    FiniteDuration profilingTime = null;
+    try {
+      var time = line.getOptionValue(PROFILING_TIME);
+      if (time != null) {
+        profilingTime = FiniteDuration.apply(Integer.parseInt(time), TimeUnit.SECONDS);
+      }
+    } catch (NumberFormatException e) {
+      throw new WrongOption("Profiling time should be an integer");
+    }
+    return new ProfilingConfig(
+        scala.Option.apply(profilingPath), scala.Option.apply(profilingTime));
   }
 
   private void printFrame(StackFrame frame, File relativeTo) {
@@ -1308,23 +1306,6 @@ public final class Main {
     return scala.collection.immutable.$colon$colon$.MODULE$.apply(head, tail);
   }
 
-  @SuppressWarnings("deprecation")
-  private static <R> R from(Either<String, R> e) throws WrongOption {
-    if (e.isLeft()) {
-      throw new WrongOption(e.left().get());
-    }
-    return e.toOption().get();
-  }
-
-  private static <R> Either<String, R> catchNonFatal(Callable<R> action, String msg) {
-    try {
-      var value = action.call();
-      return Right$.MODULE$.apply(value);
-    } catch (Throwable t) {
-      return Left$.MODULE$.apply(msg);
-    }
-  }
-
   private void println(String msg) {
     System.out.println(msg);
   }
@@ -1358,15 +1339,8 @@ public final class Main {
     if (line.hasOption(LANGUAGE_SERVER_OPTION)) {
       runLanguageServer(line, logLevel);
     } else {
-      var config = parseProfilingConfig(line);
-      if (config.isLeft()) {
-        @SuppressWarnings("deprecation")
-        var error = config.left().get();
-        System.err.println(error);
-        throw exitFail();
-      } else {
-        @SuppressWarnings("deprecation")
-        var conf = config.right().get();
+      try {
+        var conf = parseProfilingConfig(line);
         try {
           withProfiling(
               conf,
@@ -1376,8 +1350,12 @@ public final class Main {
                 return BoxedUnit.UNIT;
               });
         } catch (IOException ex) {
-          throw new IllegalStateException(ex);
+          System.err.println(ex.getMessage());
+          exitFail();
         }
+      } catch (WrongOption e) {
+        System.err.println(e.getMessage());
+        throw exitFail();
       }
     }
   }
