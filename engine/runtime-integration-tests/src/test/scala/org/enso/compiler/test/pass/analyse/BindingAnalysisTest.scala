@@ -93,7 +93,7 @@ class BindingAnalysisTest extends CompilerTest {
             )
           ),
           builtinType = false
-        ),
+        )), false),
         Type("Bar", List(), List(), builtinType         = false),
         Type("Baz", List("x", "y"), List(), builtinType = false),
         PolyglotSymbol("MyClass"),

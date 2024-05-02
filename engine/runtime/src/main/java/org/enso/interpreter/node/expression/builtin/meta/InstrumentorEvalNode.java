@@ -9,24 +9,21 @@ import java.lang.ref.Reference;
 import java.lang.ref.WeakReference;
 import org.enso.interpreter.EnsoLanguage;
 import org.enso.interpreter.runtime.EnsoContext;
-import org.enso.interpreter.runtime.callable.Annotation;
 import org.enso.interpreter.runtime.callable.argument.ArgumentDefinition;
-import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.callable.function.FunctionSchema;
 import org.enso.polyglot.debugger.IdExecutionService;
 
 final class InstrumentorEvalNode extends RootNode {
   private static final FunctionSchema SUSPENDED_EVAL =
-      new FunctionSchema(
-          FunctionSchema.CallerFrameAccess.NONE,
-          new ArgumentDefinition[] {
-            new ArgumentDefinition(0, "expr", null, null, ArgumentDefinition.ExecutionMode.EXECUTE),
-            new ArgumentDefinition(1, "info", null, null, ArgumentDefinition.ExecutionMode.EXECUTE)
-          },
-          new boolean[] {true, true},
-          new CallArgumentInfo[0],
-          new Annotation[0]);
+      FunctionSchema.newBuilder()
+          .argumentDefinitions(
+              new ArgumentDefinition(
+                  0, "expr", null, null, ArgumentDefinition.ExecutionMode.EXECUTE),
+              new ArgumentDefinition(
+                  1, "info", null, null, ArgumentDefinition.ExecutionMode.EXECUTE))
+          .hasPreapplied(true, true)
+          .build();
   private static Reference<InstrumentorEvalNode> last = new WeakReference<>(null);
 
   private InstrumentorEvalNode(EnsoLanguage language) {

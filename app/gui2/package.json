@@ -19,6 +19,7 @@
     "story:build": "histoire build",
     "story:preview": "histoire preview",
     "build-only": "vite build",
+    "build-ydoc-server-polyglot": "vite build --config vite.ydoc-server-polyglot.config.ts",
     "compile-server": "tsc -p tsconfig.server.json",
     "typecheck": "vue-tsc --noEmit -p tsconfig.app.json --composite false",
     "lint": "eslint .",

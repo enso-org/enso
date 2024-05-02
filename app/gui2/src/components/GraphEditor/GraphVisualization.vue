@@ -293,6 +293,9 @@ provideVisualizationConfig({
   get icon() {
     return icon.value
   },
+  get nodeType() {
+    return props.typename
+  },
   hide: () => emit('update:visible', false),
   updateType: (id) => emit('update:id', id),
   createNodes: (...options) => emit('createNodes', options),

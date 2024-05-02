@@ -27,6 +27,7 @@ const emit = defineEmits<{
   toggleCodeEditor: []
   collapseNodes: []
   toggleColorPicker: []
+  removeNodes: []
 }>()
 
 const LEFT_PADDING_PX = 11
@@ -62,6 +63,7 @@ const barStyle = computed(() => {
         :selectedComponents="componentsSelected"
         @collapseNodes="emit('collapseNodes')"
         @toggleColorPicker="emit('toggleColorPicker')"
+        @removeNodes="emit('removeNodes')"
       />
     </Transition>
     <ExtendedMenu

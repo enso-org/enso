@@ -274,7 +274,7 @@ Error.should_equal self that frames_to_skip=0 =
 
    Arguments:
    - that: The value to compare `self` for equality with.
-   - epsilon: The epislon for comparing two float numbers.
+   - epsilon: The epsilon for comparing two float numbers.
    - frames_to_skip (optional, advanced): used to alter the location which is
      displayed as the source of this error.
 
@@ -304,6 +304,13 @@ Number.should_equal self that epsilon=0 frames_to_skip=0 =
             msg = self.to_text + " did not equal " + that.to_text + " (at " + loc + ")."
             Test.fail msg
 
+## Asserts that `self` is within `epsilon` from `that`.
+
+   Arguments:
+   - that: The value to compare `self` for equality with.
+   - epsilon: The epsilon for comparing two float numbers.
+   - frames_to_skip (optional, advanced): used to alter the location which is
+     displayed as the source of this error.
 Decimal.should_equal : Number -> Float-> Float -> Integer -> Spec_Result
 Decimal.should_equal self that epsilon=0 frames_to_skip=0 =
     self.to_float . should_equal that.to_float epsilon frames_to_skip+1

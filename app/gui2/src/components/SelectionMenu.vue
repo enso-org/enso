@@ -4,7 +4,7 @@ import SvgIcon from '@/components/SvgIcon.vue'
 const _props = defineProps<{
   selectedComponents: number
 }>()
-const emit = defineEmits<{ collapseNodes: []; toggleColorPicker: [] }>()
+const emit = defineEmits<{ collapseNodes: []; toggleColorPicker: []; removeNodes: [] }>()
 </script>
 
 <template>
@@ -25,6 +25,13 @@ const emit = defineEmits<{ collapseNodes: []; toggleColorPicker: [] }>()
       class="icon button"
       alt="Change components' colors"
       @click.stop="emit('toggleColorPicker')"
+    />
+    <SvgIcon
+      name="trash"
+      draggable="false"
+      class="icon button"
+      alt="Delete components"
+      @click.stop="emit('removeNodes')"
     />
   </div>
 </template>

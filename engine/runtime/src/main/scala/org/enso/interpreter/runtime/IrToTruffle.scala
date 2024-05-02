@@ -524,13 +524,14 @@ class IrToTruffle(
                         builtinRootNode
                           .setModuleName(moduleScope.getModule.getName)
                         builtinRootNode.setTypeName(cons.getQualifiedName)
+                        val funcSchema = FunctionSchema
+                          .newBuilder()
+                          .argumentDefinitions(bodyBuilder.args(): _*)
+                          .build()
                         new RuntimeFunction(
                           m.getFunction.getCallTarget,
                           null,
-                          new FunctionSchema(
-                            new Array[RuntimeAnnotation](0),
-                            bodyBuilder.args(): _*
-                          )
+                          funcSchema
                         )
                       } else {
                         m.getFunction
@@ -635,12 +636,17 @@ class IrToTruffle(
                         }
                   }
 
+                val funcSchema = FunctionSchema
+                  .newBuilder()
+                  .annotations(annotations: _*)
+                  .argumentDefinitions(arguments: _*)
+                  .build()
                 Right(
                   Some(
                     new RuntimeFunction(
                       callTarget,
                       null,
-                      new FunctionSchema(annotations.toArray, arguments: _*)
+                      funcSchema
                     )
                   )
                 )
@@ -719,10 +725,14 @@ class IrToTruffle(
             )
             val callTarget = rootNode.getCallTarget
             val arguments  = bodyBuilder.args()
+            val funcSchema = FunctionSchema
+              .newBuilder()
+              .argumentDefinitions(arguments: _*)
+              .build()
             new RuntimeFunction(
               callTarget,
               null,
-              new FunctionSchema(arguments: _*)
+              funcSchema
             )
           case _ =>
             throw new CompilerError(
@@ -907,10 +917,9 @@ class IrToTruffle(
       constructor.getAccessorFunction()
 
     def mkTypeGetter(tp: Type): RuntimeFunction = {
-      new RuntimeFunction(
-        new ConstantNode(language, tp).getCallTarget,
-        null,
-        new FunctionSchema(
+      val funcSchema = FunctionSchema
+        .newBuilder()
+        .argumentDefinitions(
           new ArgumentDefinition(
             0,
             ConstantsNames.SELF_ARGUMENT,
@@ -919,6 +928,11 @@ class IrToTruffle(
             ArgumentDefinition.ExecutionMode.EXECUTE
           )
         )
+        .build()
+      new RuntimeFunction(
+        new ConstantNode(language, tp).getCallTarget,
+        null,
+        funcSchema
       )
     }
 

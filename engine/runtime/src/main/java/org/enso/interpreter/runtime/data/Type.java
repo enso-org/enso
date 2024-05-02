@@ -34,47 +34,65 @@ public final class Type implements EnsoObject {
   private final Type supertype;
   private final Type eigentype;
   private final Map<String, AtomConstructor> constructors;
+  private final boolean isProjectPrivate;
 
   private boolean gettersGenerated;
 
   private Type(
-      String name, ModuleScope definitionScope, Type supertype, Type eigentype, boolean builtin) {
+      String name,
+      ModuleScope definitionScope,
+      Type supertype,
+      Type eigentype,
+      boolean builtin,
+      boolean isProjectPrivate) {
     this.name = name;
     this.definitionScope = definitionScope;
     this.supertype = supertype;
     this.builtin = builtin;
+    this.isProjectPrivate = isProjectPrivate;
     this.eigentype = Objects.requireNonNullElse(eigentype, this);
     this.constructors = new HashMap<>();
   }
 
   public static Type createSingleton(
-      String name, ModuleScope definitionScope, Type supertype, boolean builtin) {
-    var result = new Type(name, definitionScope, supertype, null, builtin);
+      String name,
+      ModuleScope definitionScope,
+      Type supertype,
+      boolean builtin,
+      boolean isProjectPrivate) {
+    var result = new Type(name, definitionScope, supertype, null, builtin, isProjectPrivate);
     result.generateQualifiedAccessor();
     return result;
   }
 
   public static Type create(
-      String name, ModuleScope definitionScope, Type supertype, Type any, boolean builtin) {
-    var eigentype = new Type(name + ".type", definitionScope, any, null, builtin);
-    var result = new Type(name, definitionScope, supertype, eigentype, builtin);
+      String name,
+      ModuleScope definitionScope,
+      Type supertype,
+      Type any,
+      boolean builtin,
+      boolean isProjectPrivate) {
+    var eigentype = new Type(name + ".type", definitionScope, any, null, builtin, isProjectPrivate);
+    var result = new Type(name, definitionScope, supertype, eigentype, builtin, isProjectPrivate);
     result.generateQualifiedAccessor();
     return result;
   }
 
   public static Type noType() {
-    return new Type("null", null, null, null, false);
+    return new Type("null", null, null, null, false, false);
   }
 
   private void generateQualifiedAccessor() {
     var node = new ConstantNode(null, this);
-    var function =
-        new Function(
-            node.getCallTarget(),
-            null,
-            new FunctionSchema(
+    var schemaBldr =
+        FunctionSchema.newBuilder()
+            .argumentDefinitions(
                 new ArgumentDefinition(
-                    0, "this", null, null, ArgumentDefinition.ExecutionMode.EXECUTE)));
+                    0, "this", null, null, ArgumentDefinition.ExecutionMode.EXECUTE));
+    if (isProjectPrivate) {
+      schemaBldr.projectPrivate();
+    }
+    var function = new Function(node.getCallTarget(), null, schemaBldr.build());
     definitionScope.registerMethod(definitionScope.getAssociatedType(), this.name, function);
   }
 
@@ -118,6 +136,18 @@ public final class Type implements EnsoObject {
     return builtin;
   }
 
+  /**
+   * Returns true iff this type is project-private. A type is project-private iff all its
+   * constructors are project-private. Note that during the compilation, it is ensured by the {@link
+   * org.enso.compiler.pass.analyse.PrivateConstructorAnalysis} compiler pass that all the
+   * constructors are either public or project-private.
+   *
+   * @return true iff this type is project-private.
+   */
+  public boolean isProjectPrivate() {
+    return isProjectPrivate;
+  }
+
   private Type getSupertype() {
     if (supertype == null) {
       if (builtin) {
@@ -152,17 +182,20 @@ public final class Type implements EnsoObject {
     var roots = AtomConstructor.collectFieldAccessors(language, this);
     roots.forEach(
         (name, node) -> {
-          var f =
-              new Function(
-                  node.getCallTarget(),
-                  null,
-                  new FunctionSchema(
+          var schemaBldr =
+              FunctionSchema.newBuilder()
+                  .argumentDefinitions(
                       new ArgumentDefinition(
                           0,
                           Constants.Names.SELF_ARGUMENT,
                           null,
                           null,
-                          ArgumentDefinition.ExecutionMode.EXECUTE)));
+                          ArgumentDefinition.ExecutionMode.EXECUTE));
+          if (isProjectPrivate) {
+            schemaBldr.projectPrivate();
+          }
+          var funcSchema = schemaBldr.build();
+          var f = new Function(node.getCallTarget(), null, funcSchema);
           definitionScope.registerMethod(this, name, f);
         });
   }
@@ -270,18 +303,29 @@ public final class Type implements EnsoObject {
   @ExportMessage
   @CompilerDirectives.TruffleBoundary
   EnsoObject getMembers(boolean includeInternal) {
-    return ArrayLikeHelpers.wrapStrings(constructors.keySet().toArray(String[]::new));
+    if (isProjectPrivate) {
+      return ArrayLikeHelpers.empty();
+    } else {
+      return ArrayLikeHelpers.wrapStrings(constructors.keySet().toArray(String[]::new));
+    }
   }
 
   @ExportMessage
   @CompilerDirectives.TruffleBoundary
   boolean isMemberReadable(String member) {
-    return constructors.containsKey(member);
+    if (isProjectPrivate) {
+      return false;
+    } else {
+      return constructors.containsKey(member);
+    }
   }
 
   @ExportMessage
   @CompilerDirectives.TruffleBoundary
   Object readMember(String member) throws UnknownIdentifierException {
+    if (isProjectPrivate) {
+      throw UnknownIdentifierException.create(member);
+    }
     var result = constructors.get(member);
     if (result == null) {
       throw UnknownIdentifierException.create(member);
@@ -308,6 +352,11 @@ public final class Type implements EnsoObject {
     return eigentype == this;
   }
 
+  /**
+   * Registers a constructor in this type.
+   *
+   * @param constructor The constructor to register in this type.
+   */
   public void registerConstructor(AtomConstructor constructor) {
     constructors.put(constructor.getName(), constructor);
     gettersGenerated = false;

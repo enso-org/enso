@@ -46,6 +46,11 @@
           "value": "",
           "primary": false
         },
+        "ydocUrl": {
+          "description": "The address of the Ydoc Server endpoint.",
+          "value": "",
+          "primary": false
+        },
         "namespace": {
           "description": "The namespace of the opened project. It can be used when connecting to an existing Language Server process.",
           "value": "local",

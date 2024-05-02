@@ -151,9 +151,23 @@ useEvent(window, 'keydown', (event) => {
     (!keyboardBusy() && graphBindingsHandler(event)) ||
     (!keyboardBusyExceptIn(codeEditorArea.value) && codeEditorHandler(event))
 })
-useEvent(window, 'pointerdown', (e) => interaction.handlePointerDown(e, graphNavigator), {
-  capture: true,
-})
+useEvent(
+  window,
+  'pointerdown',
+  (e) => interaction.handlePointerEvent(e, 'pointerdown', graphNavigator),
+  {
+    capture: true,
+  },
+)
+
+useEvent(
+  window,
+  'pointerup',
+  (e) => interaction.handlePointerEvent(e, 'pointerup', graphNavigator),
+  {
+    capture: true,
+  },
+)
 
 // === Keyboard/Mouse bindings ===
 
@@ -176,12 +190,7 @@ const graphBindingsHandler = graphBindings.handler({
       createWithComponentBrowser(fromSelection() ?? { placement: { type: 'mouse' } })
     }
   },
-  deleteSelected() {
-    graphStore.transact(() => {
-      graphStore.deleteNodes([...nodeSelection.selected])
-      nodeSelection.selected.clear()
-    })
-  },
+  deleteSelected,
   zoomToSelected() {
     zoomToSelected()
   },
@@ -247,6 +256,13 @@ const { handleClick } = useDoubleClick(
     stackNavigator.exitNode()
   },
 )
+
+function deleteSelected() {
+  graphStore.transact(() => {
+    graphStore.deleteNodes([...nodeSelection.selected])
+    nodeSelection.selected.clear()
+  })
+}
 
 // === Code Editor ===
 
@@ -597,6 +613,7 @@ const groupColors = computed(() => {
       @toggleCodeEditor="toggleCodeEditor"
       @collapseNodes="collapseNodes"
       @toggleColorPicker="toggleColorPicker"
+      @removeNodes="deleteSelected"
     />
     <PlusButton @pointerdown.stop @click.stop="addNodeAuto()" @pointerup.stop />
     <Transition>
