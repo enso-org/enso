@@ -20,6 +20,10 @@ import org.enso.languageserver.ai.AiApi.{
 import org.enso.languageserver.ai.AiProtocol
 import org.enso.languageserver.data.AICompletionConfig
 import org.enso.languageserver.requesthandler.UnsupportedHandler
+import org.enso.languageserver.runtime.{
+  ContextRegistryProtocol,
+  RuntimeFailureMapper
+}
 import org.enso.languageserver.session.JsonSession
 import org.enso.languageserver.util.UnhandledLogging
 import org.enso.logger.akka.ActorMessageLogging
@@ -170,6 +174,9 @@ class AICompletion2Handler(
       val aiError = AiEvaluationError(request.code, message)
       replyTo ! ResponseError(Some(id), aiError)
       stop()
+
+    case error: ContextRegistryProtocol.Failure =>
+      replyTo ! ResponseError(Some(id), RuntimeFailureMapper.mapFailure(error))
   }
 
   private def awaitingCompletionResponse(
