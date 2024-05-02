@@ -132,32 +132,10 @@ type Snowflake_Dialect
     supports_float_round_decimal_places = True
 
     ## PRIVATE
-       There is a bug in Postgres type inference, where if we unify two
-       fixed-length char columns of length N and M, the result type is said to
-       be a **fixed-length** column of length max_int4. This is wrong, and in
-       practice the column is just a variable-length text. This method detects
-       this situations and overrides the type to make it correct.
     adapt_unified_column : Internal_Column -> Value_Type -> (SQL_Expression -> SQL_Type_Reference) -> Internal_Column
     adapt_unified_column self column approximate_result_type infer_result_type_from_database_callback =
-        needs_char_length_override_check = case approximate_result_type of
-            Value_Type.Char _ _ -> True
-            _ -> False
-        case needs_char_length_override_check of
-            True ->
-                type_mapping = self.get_type_mapping
-                db_type = type_mapping.sql_type_to_value_type column.sql_type_reference.get
-                case db_type of
-                    Value_Type.Char _ _ -> case db_type == approximate_result_type of
-                        True -> column
-                        False ->
-                            type_override = type_mapping.value_type_to_sql approximate_result_type Problem_Behavior.Report_Error
-                            type_override.catch Inexact_Type_Coercion _->
-                                Panic.throw <|
-                                    Illegal_State.Error "The target type ("+db_type.to_display_text+") that we need to cast to seems to not be supported by the Dialect. This is not expected. It is a bug in the Database library."
-                            self.make_cast column type_override infer_result_type_from_database_callback
-                    _ -> Panic.throw <|
-                        Illegal_State.Error "The type computed by our logic is Char, but the Database computed a non-text type ("+db_type.to_display_text+"). This should never happen and should be reported as a bug in the Database library."
-            False -> column
+        _ = [approximate_result_type, infer_result_type_from_database_callback]
+        column
 
     ## PRIVATE
     prepare_fetch_types_query : SQL_Expression -> Context -> SQL_Statement
@@ -212,22 +190,14 @@ type Snowflake_Dialect
     value_type_for_upload_of_existing_column self column = case column of
         # Return the type as-is for database columns.
         _ : DB_Column -> column.value_type
-        _ : Column ->
-            base_type = column.value_type
-            case base_type of
-                Value_Type.Decimal precision scale ->
-                    # We cannot have a specified scale and no precision, so special handling is needed for this:
-                    case precision.is_nothing && scale.is_nothing.not of
-                        True ->
-                            needed_precision = column.java_column.getStorage.getMaxPrecisionStored
-                            new_type = case needed_precision <= 1000 of
-                                # If the precision is small enough that our number will fit, we create a column with maximum supported precision.
-                                True -> Value_Type.Decimal 1000 scale
-                                # If the needed precision is too big, we cannot set it, so we set the precision to unlimited. This loses scale.
-                                False -> Value_Type.Decimal Nothing Nothing
-                            Warning.attach (Inexact_Type_Coercion.Warning base_type new_type unavailable=False) new_type
-                        False -> base_type
-                _ -> base_type
+        _ : Column -> case column.value_type of
+            Value_Type.Decimal precision scale ->
+                used_scale = scale.if_nothing 12
+                used_precision = Math.min 38 precision.if_nothing 38
+                new_type = Value_Type.Decimal used_precision used_scale
+                if used_scale==scale && used_precision==precision then new_type else
+                    Warning.attach (Inexact_Type_Coercion.Warning base_type new_type unavailable=False) new_type
+            base_type -> base_type
 
 ## PRIVATE
 make_internal_generator_dialect =
@@ -412,12 +382,12 @@ agg_count_distinct_include_null args =
 
 ## PRIVATE
 starts_with = Base_Generator.lift_binary_op "starts_with" str-> sub->
-    res = SQL_Builder.code "starts_with(" ++ str ++ "," ++ sub ++ ")"
+    res = SQL_Builder.code "STARTSWITH(" ++ str ++ "," ++ sub ++ ")"
     res.paren
 
 ## PRIVATE
 ends_with = Base_Generator.lift_binary_op "ends_with" str-> sub->
-    res = str ++ " LIKE CONCAT('%', " ++ sub ++ ")"
+    res = SQL_Builder.code "ENDSWITH(" ++ str ++ "," ++ sub ++ ")"
     res.paren
 
 ## PRIVATE
@@ -425,11 +395,9 @@ make_case_sensitive = Base_Generator.lift_unary_op "MAKE_CASE_SENSITIVE" arg->
     SQL_Builder.code "((" ++ arg ++ ') COLLATE "ucs_basic")'
 
 ## PRIVATE
-make_contains_expr expr substring =
-    SQL_Builder.code "position(" ++ substring ++ " in " ++ expr ++ ") > 0"
-
-## PRIVATE
-contains = Base_Generator.lift_binary_op "contains" make_contains_expr
+contains = Base_Generator.lift_binary_op "contains"  str-> sub->
+    res = SQL_Builder.code "CONTAINS(" ++ str ++ "," ++ sub ++ ")"
+    res.paren
 
 ## PRIVATE
 left = Base_Generator.lift_binary_op "LEFT" str-> n->
