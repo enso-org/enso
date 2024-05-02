@@ -51,7 +51,6 @@ export default function GlobalContextMenu(props: GlobalContextMenuProps) {
           type="file"
           id="context_menu_file_input"
           className="hidden"
-          {...(backend.type !== backendModule.BackendType.local ? {} : { accept: '.enso-project' })}
           onInput={event => {
             if (event.currentTarget.files != null) {
               dispatchAssetListEvent({
@@ -67,7 +66,7 @@ export default function GlobalContextMenu(props: GlobalContextMenuProps) {
       )}
       <ContextMenuEntry
         hidden={hidden}
-        action={backend.type === backendModule.BackendType.local ? 'uploadProjects' : 'uploadFiles'}
+        action={'uploadFiles'}
         doAction={() => {
           if (filesInputRef.current?.isConnected === true) {
             filesInputRef.current.click()

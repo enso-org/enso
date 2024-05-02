@@ -159,14 +159,16 @@ export default function FileNameColumn(props: FileNameColumnProps) {
         if (handleClick(event)) {
           // Already handled.
         } else if (eventModule.isSingleClick(event) && selected) {
-          setIsEditing(true)
+          if (!isCloud) {
+            setIsEditing(true)
+          }
         }
       }}
     >
       <SvgMask src={fileIcon.fileIcon()} className="m-name-column-icon size-icon" />
       <EditableSpan
         data-testid="asset-row-name"
-        editable={false}
+        editable={rowState.isEditingName}
         className="text grow bg-transparent"
         checkSubmittable={newTitle =>
           newTitle !== item.item.title &&
