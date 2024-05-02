@@ -305,7 +305,7 @@ export function usePointer(
 
     if (trackedElement != null && initialGrabPos != null && lastPos != null) {
       if (handler(computePosition(e, initialGrabPos, lastPos), e, 'stop') !== false) {
-        e.preventDefault()
+        e.stopImmediatePropagation()
       }
 
       lastPos = null
@@ -317,7 +317,7 @@ export function usePointer(
   function doMove(e: PointerEvent) {
     if (trackedElement != null && initialGrabPos != null && lastPos != null) {
       if (handler(computePosition(e, initialGrabPos, lastPos), e, 'move') !== false) {
-        e.preventDefault()
+        e.stopImmediatePropagation()
       }
       lastPos = new Vec2(e.clientX, e.clientY)
     }
@@ -339,7 +339,7 @@ export function usePointer(
         initialGrabPos = new Vec2(e.clientX, e.clientY)
         lastPos = initialGrabPos
         if (handler(computePosition(e, initialGrabPos, lastPos), e, 'start') !== false) {
-          e.preventDefault()
+          e.stopImmediatePropagation()
         }
       }
     },
@@ -362,24 +362,8 @@ export function usePointer(
     },
   }
 
-  const stopEvents = {
-    pointerdown(e: PointerEvent) {
-      e.stopImmediatePropagation()
-      events.pointerdown(e)
-    },
-    pointerup(e: PointerEvent) {
-      e.stopImmediatePropagation()
-      events.pointerup(e)
-    },
-    pointermove(e: PointerEvent) {
-      e.stopImmediatePropagation()
-      events.pointermove(e)
-    },
-  }
-
   return proxyRefs({
     events,
-    stop: { events: stopEvents },
     dragging,
   })
 }
