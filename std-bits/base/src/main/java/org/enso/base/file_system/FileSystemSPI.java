@@ -1,6 +1,8 @@
 package org.enso.base.file_system;
 
 import java.util.ServiceLoader;
+
+import org.enso.base.polyglot.EnsoMeta;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Value;
 
@@ -32,9 +34,7 @@ public abstract class FileSystemSPI {
   }
 
   public Value getTypeObject() {
-    final var context = Context.getCurrent().getBindings("enso");
-    final var module = context.invokeMember("get_module", getModuleName());
-    return module.invokeMember("get_type", getTypeName());
+    return EnsoMeta.getType(getModuleName(), getTypeName());
   }
 
   protected abstract String getModuleName();
