@@ -1,8 +1,5 @@
 package org.enso.runner;
 
-import static scala.Console.err;
-import static scala.Console.out;
-
 import buildinfo.Info;
 import java.io.File;
 import java.io.IOException;
@@ -747,7 +744,7 @@ public final class Main {
    * Subroutine of `genDocs` function. Generates the documentation for given Enso project at given
    * path.
    */
-  private static void generateDocsFrom(
+  private void generateDocsFrom(
       String path, Level logLevel, boolean logMasking, boolean enableIrCaches) {
     var executionContext =
         ContextFactory.create()
@@ -770,7 +767,7 @@ public final class Main {
       var topScope = executionContext.getTopScope();
       var mainModule = topScope.getModule(mainModuleName);
       var generated = mainModule.generateDocs();
-      out().print(generated);
+      println(generated.toString());
 
       // TODO:
       // - go through executed code and get all HTML docs
@@ -827,12 +824,11 @@ public final class Main {
       var mainType = mainModule.getAssociatedType();
       var mainFun = mainModule.getMethod(mainType, mainMethodName);
       if (mainFun.isEmpty()) {
-        err()
-            .println(
-                "The module "
-                    + mainModule.getName()
-                    + " does not contain a `main` "
-                    + "function. It could not be run.");
+        System.err.println(
+            "The module "
+                + mainModule.getName()
+                + " does not contain a `main` "
+                + "function. It could not be run.");
         throw exitFail();
       }
       var main = mainFun.get();
@@ -859,7 +855,7 @@ public final class Main {
         var res = main.execute(listOfArgs.reverse());
         if (!res.isNull()) {
           var textRes = res.isString() ? res.asString() : res.toString();
-          out().println(textRes);
+          println(textRes);
         }
       }
     } catch (PolyglotException e) {
@@ -1332,7 +1328,7 @@ public final class Main {
   }
 
   private void println(String msg) {
-    out().println(msg);
+    System.out.println(msg);
   }
 
   private void launch(String[] args) {
@@ -1368,7 +1364,7 @@ public final class Main {
       if (config.isLeft()) {
         @SuppressWarnings("deprecation")
         var error = config.left().get();
-        err().println(error);
+        System.err.println(error);
         throw exitFail();
       } else {
         @SuppressWarnings("deprecation")
