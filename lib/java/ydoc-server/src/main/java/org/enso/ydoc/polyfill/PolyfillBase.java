@@ -4,7 +4,7 @@ import org.enso.ydoc.Polyfill;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Source;
 
-abstract class PolyfillBase implements Polyfill {
+public abstract class PolyfillBase implements Polyfill {
   private final String resourceName;
 
   protected PolyfillBase(String resourceName) {
