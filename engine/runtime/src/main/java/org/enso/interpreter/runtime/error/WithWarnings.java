@@ -25,6 +25,24 @@ import org.enso.interpreter.runtime.state.State;
 import org.graalvm.collections.EconomicSet;
 import org.graalvm.collections.Equivalence;
 
+/**
+ * Represents a typical Enso <em>value with warnings</em>. As much of care as possible is taken to
+ * delegate all operations to the underlaying {@code value}. Warnings are considered {@link
+ * InteropLibrary#isException exceptional values} - e.g. one can check for them in Java polyglot
+ * code as:
+ *
+ * <pre>
+ *  Value value = ...;
+ *  if (value.fitsInLong() && value.isException()) {
+ *    // probably an Integer with a warning
+ *    try {
+ *      warningMulti.throwException();
+ *    } catch (PolyglotException ex) {
+ *      System.out.println("Warnings attached to " + value.asLong() + " are " + ex.getMessage());
+ *    }
+ *  }
+ * </pre>
+ */
 @ExportLibrary(TypesLibrary.class)
 @ExportLibrary(WarningsLibrary.class)
 @ExportLibrary(ReflectionLibrary.class)
