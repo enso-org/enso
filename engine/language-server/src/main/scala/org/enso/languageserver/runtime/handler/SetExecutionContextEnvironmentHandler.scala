@@ -36,19 +36,35 @@ final class SetExecutionContextEnvironmentHandler(
 
   private def requestStage: Receive = {
     case msg: Api.SetExecutionEnvironmentRequest =>
-      runtime ! Api.Request(UUID.randomUUID(), msg)
+      val request = Api.Request(UUID.randomUUID(), msg)
+      runtime ! request
       val cancellable =
         context.system.scheduler.scheduleOnce(timeout, self, RequestTimeout)
-      context.become(responseStage(sender(), cancellable))
+      context.become(responseStage(sender(), request, cancellable, 10))
   }
 
   private def responseStage(
     replyTo: ActorRef,
-    cancellable: Cancellable
+    request: Api.Request,
+    cancellable: Cancellable,
+    retries: Int
   ): Receive = {
     case RequestTimeout =>
-      replyTo ! RequestTimeout
-      context.stop(self)
+      if (retries > 0) {
+        logger.warn(
+          "Failed to receive a [{}] response in [{}]. Retrying.",
+          request,
+          timeout
+        )
+        val newCancellable =
+          context.system.scheduler.scheduleOnce(timeout, self, RequestTimeout)
+        context.become(
+          responseStage(replyTo, request, newCancellable, retries - 1)
+        )
+      } else {
+        replyTo ! RequestTimeout
+        context.stop(self)
+      }
 
     case Api.Response(_, Api.SetExecutionEnvironmentResponse(contextId)) =>
       replyTo ! SetExecutionEnvironmentResponse(contextId)

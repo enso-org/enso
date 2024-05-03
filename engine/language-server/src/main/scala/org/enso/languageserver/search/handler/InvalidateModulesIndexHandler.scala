@@ -41,23 +41,26 @@ final class InvalidateModulesIndexHandler(
       runtime ! request
       val cancellable =
         context.system.scheduler.scheduleOnce(timeout, self, RequestTimeout)
-      context.become(responseStage(sender(), request, cancellable))
+      context.become(responseStage(sender(), request, cancellable, 10))
   }
 
   private def responseStage(
     replyTo: ActorRef,
     request: Api.Request,
-    cancellable: Cancellable
+    cancellable: Cancellable,
+    retries: Int
   ): Receive = {
     case RequestTimeout =>
       logger.warn(
-        "Failed to receive a [{}] response in [{}].",
+        "Failed to receive a [{}] response in [{}]. Retrying.",
         request,
         timeout
       )
       val newCancellable =
         context.system.scheduler.scheduleOnce(timeout, self, RequestTimeout)
-      context.become(responseStage(replyTo, request, newCancellable))
+      context.become(
+        responseStage(replyTo, request, newCancellable, retries - 1)
+      )
 
     case Api.Response(_, Api.InvalidateModulesIndexResponse()) =>
       suggestionsHandler ! SearchProtocol.ClearSuggestionsDatabase
