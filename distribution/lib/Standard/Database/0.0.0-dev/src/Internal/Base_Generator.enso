@@ -118,6 +118,20 @@ lift_binary_op name function =
 
 ## PRIVATE
 
+   A helper function to create a binary operation from a SQL function name.
+
+   Arguments:
+   - name: Name of the operation, used for error reporting.
+   - sql_function: SQL function taking two arguments.
+lift_binary_sql_function : Text -> Text -> Pair Text (Vector SQL_Builder -> SQL_Builder)
+lift_binary_sql_function name:Text sql_function:Text =
+    function first second =
+        res = SQL_Builder.code (name + "(") ++ first ++ "," ++ second ++ ")"
+        res.paren
+    lift_binary_op name function
+
+## PRIVATE
+
    A helper function to create a unary operator which is added to the right of
    the expression.
 
