@@ -108,7 +108,7 @@ export default function MembersTable(props: MembersTableProps) {
       selectionBehavior="replace"
       selectedKeys={selectedKeys}
       onSelectionChange={setSelectedKeys}
-      className="w-settings-main-section table-fixed self-start rounded-rows"
+      className="w-settings-main-section max-w-full table-fixed self-start rounded-rows"
       {...(draggable ? { dragAndDropHooks } : {})}
     >
       <aria.TableHeader className="h-row">

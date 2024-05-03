@@ -198,8 +198,8 @@ export default function UserGroupsSettingsTab() {
   }
 
   return (
-    <div className="flex h min-h-full flex-1 flex-col gap-settings-section overflow-auto lg:h-auto lg:flex-row">
-      <div className="flex w-settings-main-section flex-col gap-settings-subsection lg:min-w">
+    <div className="flex h min-h-full flex-1 flex-col gap-settings-section overflow-auto overflow-x-hidden lg:h-auto lg:flex-row">
+      <div className="flex h-3/5 w-settings-main-section max-w-full flex-col gap-settings-subsection lg:h-[unset] lg:min-w">
         <SettingsSection
           noFocusArea
           title={getText('userGroups')}
@@ -216,15 +216,13 @@ export default function UserGroupsSettingsTab() {
                   <NewUserGroupModal
                     event={position}
                     userGroups={userGroups}
-                    onSubmit={name => {
+                    onSubmit={groupName => {
                       if (user != null) {
+                        const id = placeholderId
+                        const { organizationId } = user
                         setUserGroups(oldUserGroups => [
                           ...(oldUserGroups ?? []),
-                          {
-                            organizationId: user.organizationId,
-                            id: placeholderId,
-                            groupName: name,
-                          },
+                          { organizationId, id, groupName },
                         ])
                       }
                     }}
@@ -307,7 +305,7 @@ export default function UserGroupsSettingsTab() {
           </aria.Table>
         </SettingsSection>
       </div>
-      <SettingsSection noFocusArea title={getText('users')}>
+      <SettingsSection noFocusArea title={getText('users')} className="h-2/5 lg:h-[unset]">
         <MembersTable draggable populateWithSelf />
       </SettingsSection>
     </div>
