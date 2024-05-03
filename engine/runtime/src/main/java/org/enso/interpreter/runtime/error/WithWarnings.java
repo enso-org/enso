@@ -1,6 +1,7 @@
 package org.enso.interpreter.runtime.error;
 
 import com.oracle.truffle.api.CompilerDirectives;
+import com.oracle.truffle.api.dsl.Bind;
 import com.oracle.truffle.api.dsl.Cached.Shared;
 import com.oracle.truffle.api.interop.ArityException;
 import com.oracle.truffle.api.interop.InteropLibrary;
@@ -27,10 +28,10 @@ import org.graalvm.collections.Equivalence;
 @ExportLibrary(TypesLibrary.class)
 @ExportLibrary(WarningsLibrary.class)
 @ExportLibrary(ReflectionLibrary.class)
+@ExportLibrary(value = InteropLibrary.class, delegateTo = "value")
 public final class WithWarnings implements EnsoObject {
-
+  final Object value;
   private final EconomicSet<Warning> warnings;
-  private final Object value;
 
   private final boolean limitReached;
   private final int maxWarnings;
@@ -223,14 +224,6 @@ public final class WithWarnings implements EnsoObject {
   @ExportMessage
   Object send(Message message, Object[] args, @CachedLibrary(limit = "3") ReflectionLibrary lib)
       throws Exception {
-    if (InteropLibrary.class == message.getLibraryClass()) {
-      if ("isException" == message.getSimpleName()) {
-        return true;
-      }
-      if ("throwException" == message.getSimpleName()) {
-        throw asException(lib);
-      }
-    }
     return lib.send(value, message, args);
   }
 
@@ -287,19 +280,16 @@ public final class WithWarnings implements EnsoObject {
     return true;
   }
 
-  /*
-    @ExportMessage
-    boolean isException() {
-      return true;
-    }
+  @ExportMessage
+  boolean isException() {
+    return true;
+  }
 
-    @ExportMessage RuntimeException throwException(
-      @Bind("$node") Node node
-      ) throws UnsupportedMessageException {
-      var ctx = EnsoContext.get(node);
-      throw ctx.raiseAssertionPanic(node, "Throw Warning", new Exception());
-    }
-  */
+  @ExportMessage
+  RuntimeException throwException(@Bind("$node") Node node) throws UnsupportedMessageException {
+    throw asException(node);
+  }
+
   public static class WarningEquivalence extends Equivalence {
 
     @Override
