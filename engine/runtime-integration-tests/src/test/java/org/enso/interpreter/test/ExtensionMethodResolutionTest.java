@@ -128,7 +128,7 @@ public class ExtensionMethodResolutionTest extends TestBase {
         polyCtx.getTopScope().compile(true);
         fail("Expected compilation error: " + out);
       } catch (PolyglotException e) {
-        assertThat(e.getMessage(), is(CompilationAbortedException.COMPILATION_ABORTED_MSG));
+        assertThat(e.isSyntaxError(), is(true));
         assertThat(out.toString(), errorMessageMatcher);
       }
     }
