@@ -288,7 +288,8 @@ public class MetaIsATest extends TestBase {
     if (test.isException()) {
       // if a generated value isException (from interop point of view)
       // then it is either DataflowError or Warning
-      if (g.typeError() == v.getMetaObject()) {
+      var vMeta = v.getMetaObject();
+      if (g.typeError().equals(vMeta)) {
         assertEquals("DataFlowError in", g.typeError(), v.getMetaObject());
         assertEquals("DataFlowError out", g.typeError(), test.getMetaObject());
         // end the test here as DataflowError doesn't represent a value
@@ -297,10 +298,6 @@ public class MetaIsATest extends TestBase {
         // check if Warning.has_warnings is true
         var wv = warningCheck.execute(v);
         var wTest = warningCheck.execute(test);
-        if (wv.isException()) {
-          assertTrue(wTest.isException());
-          return;
-        }
         assertTrue("Warning in", wv.asBoolean());
         assertTrue("Warning out", wTest.asBoolean());
         // but continue with the rest of the test, as Warning still represents a value
