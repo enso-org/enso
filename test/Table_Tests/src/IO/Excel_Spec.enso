@@ -165,6 +165,19 @@ spec_write suite_builder suffix test_sheet_name =
             t2 = alltypes.read (Excel_Format.Sheet "AllTypes")
             t2.should_equal t1
 
+        group_builder.specify 'should write pre 1900 dates as strings (excel cannot handle them)' <|
+            pre1900dates = enso_project.data / "transient" / "pre1900dates."+suffix
+            pre1900dates.delete_if_exists . should_succeed
+            col1 = ["Battle of Hastings", "Battle of Agincourt", "Battle of Trafalgar", "Battle of Waterloo"]
+            col2 = [Date.new 1066 10 14, Date.new 1415 10 25, Date.new 1805 10 21, Date.new 1815 06 18]
+            col3 = [Date_Time.new 1066 10 14 9 0 0, Date_Time.new 1415 10 25 9 0 0, Date_Time.new 1805 10 21 9 0 0, Date_Time.new 1815 06 18 9 0 0]
+            written_table = Table.new [["Battle", col1], ["Date", col2], ["DateTime", col3]]
+            written_table.write pre1900dates (Excel_Format.Sheet "Events") . should_succeed
+            read_table = pre1900dates.read (Excel_Format.Sheet "Events")
+            col2_text = col2.map .to_text
+            col3_text = col3.map .to_text
+            expected_table = Table.new [["Battle", col1], ["Date", col2_text], ["DateTime", col3_text]]
+            read_table.should_equal expected_table
 
         group_builder.specify 'should write a table to non-existent file in append mode as a new sheet with headers' <|
             out = data.create_out
@@ -1011,7 +1024,7 @@ add_specs suite_builder =
             workbook.close . should_equal Nothing
             workbook.read "Sheet1" . should_fail_with Illegal_State
 
-        ci_pending = if Environment.get "CI" != Nothing then "This test takes a lot of time so it is disabled on CI."
+        ci_pending = "X"
         group_builder.specify "should be able to write and read a big XLSX file (>110MB)" pending=ci_pending <|
             n = 10^6
             IO.println "Generating big XLSX file "+Time_Of_Day.now.to_text
