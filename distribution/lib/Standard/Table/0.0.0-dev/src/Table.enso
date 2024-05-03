@@ -2918,8 +2918,7 @@ type Table
     column_naming_helper : Column_Naming_Helper
     column_naming_helper self = Column_Naming_Helper.in_memory
 
-    ## ALIAS from
-       GROUP Standard.Base.Calculations
+    ## GROUP Standard.Base.Calculations
        ICON select_column
        Appends records from the vector of tables into a single table.
 
