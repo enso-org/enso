@@ -196,7 +196,7 @@ type Range
              (0.up_to 7).filter (Filter_Condition.Greater than=3)
     @filter range_default_filter_condition_widget
     filter : (Filter_Condition | (Integer -> Boolean)) -> Vector Integer
-    filter self filter =
+    filter self (filter : Filter_Condition | (Integer -> Boolean)) =
         predicate = unify_condition_or_predicate filter
         Vector.build builder->
             self.map elem->
@@ -224,7 +224,7 @@ type Range
              (0.up_to 4).partition (x-> x%2 == 0) == (Pair [0, 2] [1, 3])
     @condition range_default_filter_condition_widget
     partition : (Filter_Condition | (Integer -> Boolean)) -> Pair (Vector Integer) (Vector Integer)
-    partition self condition =
+    partition self (condition : Filter_Condition | (Integer -> Boolean)) =
         predicate = unify_condition_or_predicate condition
         pair = self.fold (Pair.new Vector.new_builder Vector.new_builder) acc-> elem->
             case predicate elem of
@@ -369,7 +369,7 @@ type Range
              10.up_to 100 . with_step 2 . all (x-> x%2 == 0)
     @condition range_default_filter_condition_widget
     all : (Filter_Condition | (Integer -> Boolean)) -> Boolean
-    all self condition =
+    all self (condition : Filter_Condition | (Integer -> Boolean)) =
         predicate = unify_condition_or_predicate condition
         self.any (predicate >> .not) . not
 
@@ -392,7 +392,7 @@ type Range
              1.up_to 100 . any (x-> x%2 == 0)
     @condition range_default_filter_condition_widget
     any : (Filter_Condition | (Integer -> Boolean)) -> Boolean
-    any self condition = self.find condition . is_nothing . not
+    any self (condition : Filter_Condition | (Integer -> Boolean)) = self.find condition . is_nothing . not
 
     ## GROUP Selections
        ICON find
@@ -417,7 +417,7 @@ type Range
              1.up_to 100 . find (Filter_Condition.Greater than=10)
     @condition range_default_filter_condition_widget
     find : (Filter_Condition | (Integer -> Boolean)) -> Integer -> Any -> Any
-    find self condition (start : Integer = 0) ~if_missing=Nothing =
+    find self (condition : Filter_Condition | (Integer -> Boolean)) (start : Integer = 0) ~if_missing=Nothing =
         predicate = unify_condition_or_predicate condition
         check_start_valid start self used_start->
             result = find_internal self used_start predicate
@@ -463,7 +463,7 @@ type Range
              0.up_to 100 . with_step 5 . index_of (>10) == 3
     @condition range_default_filter_condition_widget
     index_of : (Integer | Filter_Condition | (Integer -> Boolean)) -> Integer -> Integer | Nothing
-    index_of self condition (start : Integer = 0) =
+    index_of self (condition : Filter_Condition | (Integer -> Boolean)) (start : Integer = 0) =
         check_start_valid start self used_start->
             case condition of
                 element : Integer -> get_index self used_start self.length-1 element
@@ -491,7 +491,7 @@ type Range
              Pair.new 2 2 . last_index_of 2 == 1
     @condition range_default_filter_condition_widget
     last_index_of : (Integer | Filter_Condition | (Integer -> Boolean)) -> Integer -> Integer | Nothing
-    last_index_of self condition (start : Integer = -1) =
+    last_index_of self (condition : Filter_Condition | (Integer -> Boolean)) (start : Integer = -1) =
         if self.is_empty && (start==-1 || start==0) then Nothing else
             check_start_valid start self include_end=False used_start->
                 case condition of
