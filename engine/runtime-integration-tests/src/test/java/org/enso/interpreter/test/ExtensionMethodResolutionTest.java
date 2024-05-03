@@ -76,8 +76,11 @@ public class ExtensionMethodResolutionTest extends TestBase {
         from project.T import T
         T.foo x = x
         """;
-    var mainSrc = """
+    var mainSrc =
+        """
         from project.T import T
+        # Make sure we import also the extension method from Mod
+        from project.Mod import all
         T.foo x y = x + y
         """;
     var projDir = createProject("Proj", mainSrc, tempFolder);
