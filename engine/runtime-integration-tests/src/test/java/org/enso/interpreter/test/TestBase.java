@@ -9,13 +9,16 @@ import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
 import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.nodes.RootNode;
+import java.io.File;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.Callable;
+import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.logging.Level;
 import org.enso.common.LanguageInfo;
@@ -23,6 +26,8 @@ import org.enso.common.MethodNames.Module;
 import org.enso.common.MethodNames.TopScope;
 import org.enso.interpreter.EnsoLanguage;
 import org.enso.interpreter.runtime.EnsoContext;
+import org.enso.pkg.QualifiedName;
+import org.enso.polyglot.PolyglotContext;
 import org.enso.polyglot.RuntimeOptions;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Language;
@@ -172,7 +177,23 @@ public abstract class TestBase {
    * @return Path to the newly created directly structure - a project directory.
    */
   protected static Path createProject(String projName, String mainSrc, TemporaryFolder tempFolder)
-      throws IOException {
+     throws IOException {
+    var modules = Set.of(new SourceModule(QualifiedName.fromString("Main"), mainSrc));
+    return createProject(projName, modules, tempFolder);
+  }
+
+  /**
+   * Creates a temporary project directory structure with all the given modules and their content.
+   * Creates also the package descriptor. The created project directory structure is eligible for
+   * running via {@code enso --run <projDir>}.
+   *
+   * @param projName Name of the project
+   * @param modules Set of modules. Must contain `Main` module.
+   * @param tempFolder Temporary folder. From jUnit rule.
+   * @return Path to the root directory of the project.
+   */
+  protected static Path createProject(
+      String projName, Set<SourceModule> modules, TemporaryFolder tempFolder) throws IOException {
     var projDir = tempFolder.newFolder(projName);
     assert projDir.exists();
     var projYaml =
@@ -185,12 +206,50 @@ prefer-local-libraries: true
     Files.writeString(yamlPath, projYaml);
     assert yamlPath.toFile().exists();
     var srcDir = tempFolder.newFolder(projName, "src");
+    var srcDirPath = srcDir.toPath();
     assert srcDir.exists();
-    var mainSrcPath = srcDir.toPath().resolve("Main.enso");
-    Files.writeString(mainSrcPath, mainSrc);
-    assert mainSrcPath.toFile().exists();
+    boolean mainModuleFound = false;
+    for (var module : modules) {
+      var relativePath = String.join(File.pathSeparator, module.name.pathAsJava());
+      var modDirPath = srcDirPath.resolve(relativePath);
+      modDirPath.toFile().mkdirs();
+      var modPath = modDirPath.resolve(module.name.item() + ".enso");
+      Files.writeString(modPath, module.code);
+      if (module.name.equals(QualifiedName.fromString("Main"))) {
+        mainModuleFound = true;
+      }
+    }
+    assert mainModuleFound;
     return projDir.toPath();
   }
+
+  /**
+   * Tests running the project located in the given {@code projDir}. Is equal to running {@code enso
+   * --run <projDir>}.
+   *
+   * @param projDir Root directory of the project.
+   * @param resultConsumer Any action that is to be evaluated on the result of running the {@code
+   *     main} method
+   */
+  protected void testProjectRun(Path projDir, Consumer<Value> resultConsumer) {
+    try (var ctx =
+        defaultContextBuilder()
+            .option(RuntimeOptions.PROJECT_ROOT, projDir.toAbsolutePath().toString())
+            .option(RuntimeOptions.STRICT_ERRORS, "true")
+            .option(RuntimeOptions.DISABLE_IR_CACHES, "true")
+            .build()) {
+      var polyCtx = new PolyglotContext(ctx);
+      var mainSrcPath = projDir.resolve("src").resolve("Main.enso");
+      var mainMod = polyCtx.evalModule(mainSrcPath.toFile());
+      var assocMainModType = mainMod.getAssociatedType();
+      var mainMethod = mainMod.getMethod(assocMainModType, "main").get();
+      var res = mainMethod.execute();
+      resultConsumer.accept(res);
+    }
+  }
+
+  /** A simple structure corresponding to an Enso module. */
+  protected record SourceModule(QualifiedName name, String code) {}
 
   /**
    * An artificial RootNode. Used for tests of nodes that need to be adopted. Just create this root
