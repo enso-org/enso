@@ -1158,14 +1158,6 @@ lazy val `ydoc-server` = project
     Compile / run / fork := true,
     Test / fork := true,
     run / connectInput := true,
-    Compile / run := (Compile / run)
-      .dependsOn(
-        Def.task {
-          import scala.sys.process._
-          "npm --workspace=enso-gui2 run build-ydoc-server-polyglot" ! streams.value.log
-        }
-      )
-      .evaluated,
     assembly / assemblyMergeStrategy := {
       case PathList("META-INF", file, xs @ _*) if file.endsWith(".DSA") =>
         MergeStrategy.discard
@@ -1221,7 +1213,7 @@ lazy val `ydoc-server` = project
       (`profiling-utils` / Compile / productDirectories).value.head
     ),
     libraryDependencies ++= Seq(
-      "org.graalvm.polyglot" % "polyglot"                    % graalMavenPackagesVersion,
+      "org.graalvm.truffle"  % "truffle-api"                 % graalMavenPackagesVersion % "provided",
       "org.graalvm.polyglot" % "inspect"                     % graalMavenPackagesVersion % "runtime",
       "org.graalvm.polyglot" % "js"                          % graalMavenPackagesVersion % "runtime",
       "org.slf4j"            % "slf4j-api"                   % slf4jVersion,
@@ -1548,6 +1540,7 @@ lazy val `language-server` = (project in file("engine/language-server"))
   .dependsOn(`logging-service-logback` % "test->test")
   .dependsOn(`library-manager-test` % Test)
   .dependsOn(`runtime-version-manager-test` % Test)
+  .dependsOn(`ydoc-server`)
 
 lazy val cleanInstruments = taskKey[Unit](
   "Cleans fragile class files to force a full recompilation and preserve" +
