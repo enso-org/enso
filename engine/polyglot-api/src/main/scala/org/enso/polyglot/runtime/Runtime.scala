@@ -1975,8 +1975,8 @@ object Runtime {
       * @param bytes the buffer to deserialize
       * @return the deserialized message, if the byte buffer can be deserialized.
       */
-    def deserializeApiEnvelope(bytes: ByteBuffer): Option[ApiEnvelope] =
-      Try(mapper.readValue(bytes.array(), classOf[ApiEnvelope])).toOption
+    def deserializeApiEnvelope(bytes: ByteBuffer): Try[ApiEnvelope] =
+      Try(mapper.readValue(bytes.array(), classOf[ApiEnvelope]))
   }
 
 }
