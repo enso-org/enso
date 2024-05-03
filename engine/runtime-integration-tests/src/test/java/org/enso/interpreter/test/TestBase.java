@@ -232,6 +232,7 @@ prefer-local-libraries: true
    *     main} method
    */
   protected void testProjectRun(Path projDir, Consumer<Value> resultConsumer) {
+    assert projDir.toFile().exists() && projDir.toFile().isDirectory();
     try (var ctx =
         defaultContextBuilder()
             .option(RuntimeOptions.PROJECT_ROOT, projDir.toAbsolutePath().toString())
