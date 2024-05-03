@@ -208,7 +208,7 @@ export default function Autocomplete<T>(props: AutocompleteProps<T>) {
             <div
               ref={element => element?.focus()}
               tabIndex={-1}
-              className="text flex-1 grow cursor-pointer whitespace-nowrap bg-transparent px-button-x"
+              className="text grow cursor-pointer whitespace-nowrap bg-transparent px-button-x"
               onClick={() => {
                 setIsDropdownVisible(true)
               }}
