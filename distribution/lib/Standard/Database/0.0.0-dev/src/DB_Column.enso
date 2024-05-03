@@ -604,7 +604,7 @@ type DB_Column
         Value_Type_Helpers.check_binary_numeric_op self other <|
             other_type = Value_Type_Helpers.find_argument_type other
             # Different implementation may be used for integer types.
-            op = if self.value_type.is_integer && (other_type.is_nothing || other_type.is_integer) then "%" else "mod"
+            op = if self.value_type.is_integer && (other_type.is_nothing || other_type.is_integer) then "%" else "MOD"
             new_name = self.naming_helper.binary_operation_name "%" self other
             self.make_binary_op op other new_name
 
@@ -1237,7 +1237,7 @@ type DB_Column
     starts_with : DB_Column | Text -> Case_Sensitivity -> DB_Column
     starts_with self other case_sensitivity=Case_Sensitivity.Default =
         new_name = self.naming_helper.function_name "starts_with" [self, other]
-        make_text_case_op self "starts_with" other case_sensitivity new_name
+        make_text_case_op self "STARTS_WITH" other case_sensitivity new_name
 
     ## GROUP Standard.Base.Text
        ICON preparation
@@ -1254,8 +1254,8 @@ type DB_Column
        on these missing values is vendor specific.
     ends_with : DB_Column | Text -> Case_Sensitivity -> DB_Column
     ends_with self other case_sensitivity=Case_Sensitivity.Default =
-        new_name = self.naming_helper.function_name "ends_with" [self, other]
-        make_text_case_op self "ends_with" other case_sensitivity new_name
+        new_name = self.naming_helper.function_name "ENDS_WITH" [self, other]
+        make_text_case_op self "ENDS_WITH" other case_sensitivity new_name
 
     ## GROUP Standard.Base.Text
        ICON preparation
@@ -1334,8 +1334,8 @@ type DB_Column
        on these missing values is vendor specific.
     contains : DB_Column | Text -> Case_Sensitivity -> DB_Column
     contains self other case_sensitivity=Case_Sensitivity.Default =
-        new_name = self.naming_helper.function_name "contains" [self, other]
-        make_text_case_op self "contains" other case_sensitivity new_name
+        new_name = self.naming_helper.function_name "CONTAINS" [self, other]
+        make_text_case_op self "CONTAINS" other case_sensitivity new_name
 
     ## GROUP Standard.Base.Logical
        ICON preparation

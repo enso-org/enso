@@ -377,12 +377,12 @@ agg_count_distinct_include_null args = case args.length == 1 of
     False -> Error.throw (Illegal_Argument.Error "COUNT_DISTINCT supports only single arguments in SQLite.")
 
 ## PRIVATE
-starts_with = Base_Generator.lift_binary_op "starts_with" str-> sub->
+starts_with = Base_Generator.lift_binary_op "STARTS_WITH" str-> sub->
     res = str ++ " GLOB (" ++ sub ++ " || '*')"
     res.paren
 
 ## PRIVATE
-ends_with = Base_Generator.lift_binary_op "ends_with" str-> sub->
+ends_with = Base_Generator.lift_binary_op "ENDS_WITH" str-> sub->
     res = str ++ " GLOB ('*' || " ++ sub ++ ")"
     res.paren
 
@@ -395,7 +395,7 @@ make_contains_expr expr substring =
     SQL_Builder.code "instr(" ++ expr ++ ", " ++ substring ++ ") > 0"
 
 ## PRIVATE
-contains = Base_Generator.lift_binary_op "contains" make_contains_expr
+contains = Base_Generator.lift_binary_op "CONTAINS" make_contains_expr
 
 ## PRIVATE
 left = Base_Generator.lift_binary_op "LEFT" str-> n->
@@ -414,7 +414,7 @@ floating_point_div = Base_Generator.lift_binary_op "/" x-> y->
     SQL_Builder.code "CAST(" ++ x ++ " AS REAL) / CAST(" ++ y ++ " AS REAL)"
 
 ## PRIVATE
-mod_op = Base_Generator.lift_binary_op "mod" x-> y->
+mod_op = Base_Generator.lift_binary_op "MOD" x-> y->
     x ++ " - FLOOR(CAST(" ++ x ++ " AS REAL) / CAST(" ++ y ++ " AS REAL)) * " ++ y
 
 ## PRIVATE

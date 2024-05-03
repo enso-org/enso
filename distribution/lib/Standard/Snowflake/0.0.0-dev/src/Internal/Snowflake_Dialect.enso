@@ -381,12 +381,12 @@ agg_count_distinct_include_null args =
     SQL_Builder.code "COUNT(DISTINCT (" ++ SQL_Builder.join ", " args ++ ", 0))"
 
 ## PRIVATE
-starts_with = Base_Generator.lift_binary_op "starts_with" str-> sub->
+starts_with = Base_Generator.lift_binary_op "STARTS_WITH" str-> sub->
     res = SQL_Builder.code "STARTSWITH(" ++ str ++ "," ++ sub ++ ")"
     res.paren
 
 ## PRIVATE
-ends_with = Base_Generator.lift_binary_op "ends_with" str-> sub->
+ends_with = Base_Generator.lift_binary_op "ENDS_WITH" str-> sub->
     res = SQL_Builder.code "ENDSWITH(" ++ str ++ "," ++ sub ++ ")"
     res.paren
 
@@ -395,7 +395,7 @@ make_case_sensitive = Base_Generator.lift_unary_op "MAKE_CASE_SENSITIVE" arg->
     SQL_Builder.code "((" ++ arg ++ ') COLLATE "ucs_basic")'
 
 ## PRIVATE
-contains = Base_Generator.lift_binary_op "contains"  str-> sub->
+contains = Base_Generator.lift_binary_op "CONTAINS"  str-> sub->
     res = SQL_Builder.code "CONTAINS(" ++ str ++ "," ++ sub ++ ")"
     res.paren
 
@@ -448,7 +448,7 @@ floating_point_div = Base_Generator.lift_binary_op "/" x-> y->
     SQL_Builder.code "CAST(" ++ x ++ " AS double precision) / CAST(" ++ y ++ " AS double precision)"
 
 ## PRIVATE
-mod_op = Base_Generator.lift_binary_op "mod" x-> y->
+mod_op = Base_Generator.lift_binary_op "MOD" x-> y->
     x ++ " - FLOOR(CAST(" ++ x ++ " AS double precision) / CAST(" ++ y ++ " AS double precision)) * " ++ y
 
 ## PRIVATE
