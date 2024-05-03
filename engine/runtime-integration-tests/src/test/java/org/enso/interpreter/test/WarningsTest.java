@@ -13,6 +13,7 @@ import org.enso.interpreter.runtime.error.WarningsLibrary;
 import org.enso.interpreter.runtime.error.WithWarnings;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.PolyglotException;
+import org.graalvm.polyglot.Value;
 import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.BeforeClass;
@@ -21,16 +22,28 @@ import org.junit.Test;
 public class WarningsTest extends TestBase {
 
   private static Context ctx;
+  private static ValuesGenerator generator;
+  private static Value wrap;
   private static EnsoContext ensoContext;
 
   @BeforeClass
   public static void initEnsoContext() {
     ctx = createDefaultContext();
+    generator = ValuesGenerator.create(ctx, ValuesGenerator.Language.ENSO);
     ensoContext =
         (EnsoContext)
             ctx.getBindings(LanguageInfo.ID)
                 .invokeMember(MethodNames.TopScope.LEAK_CONTEXT)
                 .asHostObject();
+    var module =
+        ctx.eval(
+            "enso",
+            """
+    from Standard.Base import Warning
+
+    wrap msg value = Warning.attach msg value
+    """);
+    wrap = module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "wrap");
   }
 
   @AfterClass
@@ -71,16 +84,6 @@ public class WarningsTest extends TestBase {
 
   @Test
   public void warningIsAnException() {
-    var module =
-        ctx.eval(
-            "enso",
-            """
-    from Standard.Base import Warning
-
-    wrap msg value = Warning.attach msg value
-    """);
-    var wrap = module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "wrap");
-
     var warning42 = wrap.execute("warn:1", 42);
     var warningHi = wrap.execute("warn:2", "Hi");
 
@@ -115,6 +118,38 @@ public class WarningsTest extends TestBase {
     } catch (PolyglotException ex) {
       assertContains("warn:1", ex.getMessage());
       assertContains("warn:3", ex.getMessage());
+    }
+  }
+
+  @Test
+  public void allWarningsAreExceptions() throws Exception {
+    for (var v : generator.allValues()) {
+      if (v.isNull() || v.isBoolean()) {
+        continue;
+      }
+      assertWarningsForAType(v);
+    }
+  }
+
+  private void assertWarningsForAType(Value v) {
+    var type = v.getMetaObject();
+
+    var warning1 = wrap.execute("warn:once", v);
+    var warning2 = wrap.execute("warn:twice", warning1);
+
+    var warningType = warning2.getMetaObject();
+    assertEquals("Types without and with warnings are the same", type, warningType);
+    assertTrue("It is an exception. Type: " + type, warning2.isException());
+    try {
+      warning2.throwException();
+    } catch (PolyglotException ex) {
+      if (ex.getMessage() == null) {
+        assertEquals(generator.typeError(), type);
+        assertEquals(generator.typeError(), warningType);
+      } else {
+        assertContains("Warning found for " + type, "warn:once", ex.getMessage());
+        assertContains("Warning found for " + type, "warn:twice", ex.getMessage());
+      }
     }
   }
 }
