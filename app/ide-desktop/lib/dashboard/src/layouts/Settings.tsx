@@ -105,6 +105,20 @@ export default function Settings() {
   return (
     <div className="flex flex-1 flex-col gap-settings-header overflow-hidden px-page-x">
       <aria.Heading level={1} className="flex h-heading px-heading-x text-xl font-bold">
+        <aria.MenuTrigger isOpen={isSidebarPopoverOpen} onOpenChange={setIsSidebarPopoverOpen}>
+          <Button image={BurgerMenuIcon} buttonClassName="mr-3 sm:hidden" onPress={() => {}} />
+          <aria.Popover UNSTABLE_portalContainer={root.current}>
+            <SettingsSidebar
+              isMenu
+              isUserInOrganization={isUserInOrganization}
+              settingsTab={settingsTab}
+              setSettingsTab={setSettingsTab}
+              onClickCapture={() => {
+                setIsSidebarPopoverOpen(false)
+              }}
+            />
+          </aria.Popover>
+        </aria.MenuTrigger>
         <aria.Text className="py-heading-y">{getText('settingsFor')}</aria.Text>
         {/* This UI element does not appear anywhere else. */}
         {/* eslint-disable-next-line no-restricted-syntax */}
@@ -116,20 +130,6 @@ export default function Settings() {
             : organization.name ?? 'your organization'}
         </div>
       </aria.Heading>
-      <aria.MenuTrigger isOpen={isSidebarPopoverOpen} onOpenChange={setIsSidebarPopoverOpen}>
-        <Button image={BurgerMenuIcon} buttonClassName="sm:hidden" onPress={() => {}} />
-        <aria.Popover UNSTABLE_portalContainer={root.current}>
-          <SettingsSidebar
-            isMenu
-            isUserInOrganization={isUserInOrganization}
-            settingsTab={settingsTab}
-            setSettingsTab={setSettingsTab}
-            onClickCapture={() => {
-              setIsSidebarPopoverOpen(false)
-            }}
-          />
-        </aria.Popover>
-      </aria.MenuTrigger>
       <div className="flex flex-1 gap-settings overflow-hidden">
         <SettingsSidebar
           isUserInOrganization={isUserInOrganization}
