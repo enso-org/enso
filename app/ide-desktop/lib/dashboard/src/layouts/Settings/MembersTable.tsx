@@ -6,6 +6,7 @@ import * as mimeTypes from '#/data/mimeTypes'
 import * as asyncEffectHooks from '#/hooks/asyncEffectHooks'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
+import * as authProvider from '#/providers/AuthProvider'
 import * as backendProvider from '#/providers/BackendProvider'
 import * as textProvider from '#/providers/TextProvider'
 
@@ -22,19 +23,26 @@ import * as backendModule from '#/services/Backend'
 
 /** Props for a {@link MembersTable}. */
 export interface MembersTableProps {
-  readonly draggable?: boolean
-  readonly allowDelete?: boolean
+  /** If `true`, initialize the users list with self to avoid needing a loading spinner. */
+  readonly populateWithSelf?: true
+  readonly draggable?: true
+  readonly allowDelete?: true
 }
 
 /** A list of members in the organization. */
 export default function MembersTable(props: MembersTableProps) {
-  const { draggable = false, allowDelete = false } = props
+  const { populateWithSelf = false, draggable = false, allowDelete = false } = props
+  const { user } = authProvider.useNonPartialUserSession()
   const { backend } = backendProvider.useBackend()
   const { getText } = textProvider.useText()
   const toastAndLog = toastAndLogHooks.useToastAndLog()
   const [selectedKeys, setSelectedKeys] = React.useState<aria.Selection>(new Set())
   const rootRef = React.useRef<HTMLTableElement | null>(null)
-  const members = asyncEffectHooks.useAsyncEffect(null, () => backend.listUsers(), [backend])
+  const members = asyncEffectHooks.useAsyncEffect<backendModule.User[] | null>(
+    !populateWithSelf || user == null ? null : [user],
+    () => backend.listUsers(),
+    [backend]
+  )
   const membersMap = React.useMemo(
     () => new Map((members ?? []).map(member => [member.userId, member])),
     [members]
@@ -82,12 +90,12 @@ export default function MembersTable(props: MembersTableProps) {
     }
   }, [])
 
-  const doDeleteUser = async (user: backendModule.User) => {
+  const doDeleteUser = async (userToDelete: backendModule.User) => {
     try {
       await Promise.resolve()
       throw new Error('Not implemented yet')
     } catch (error) {
-      toastAndLog('deleteUserError', error, user.name)
+      toastAndLog('deleteUserError', error, userToDelete.name)
       return
     }
   }

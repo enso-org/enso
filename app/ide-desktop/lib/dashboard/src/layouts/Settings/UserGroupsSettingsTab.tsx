@@ -308,7 +308,7 @@ export default function UserGroupsSettingsTab() {
         </SettingsSection>
       </div>
       <SettingsSection noFocusArea title={getText('users')}>
-        <MembersTable draggable />
+        <MembersTable draggable populateWithSelf />
       </SettingsSection>
     </div>
   )
