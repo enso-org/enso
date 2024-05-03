@@ -17,6 +17,7 @@ import UnstyledButton from '#/components/UnstyledButton'
 import ConfirmDeleteModal from '#/modals/ConfirmDeleteModal'
 
 import * as backend from '#/services/Backend'
+import FocusableText from '#/components/FocusableText'
 
 // ====================
 // === UserGroupRow ===
@@ -67,9 +68,9 @@ export default function UserGroupRow(props: UserGroupRowProps) {
       >
         <aria.TooltipTrigger>
           {/* NOTE: `max-w-full` brings back the ellipsis, but the tooltip disappears */}
-          <aria.Button className="cursor-default overflow-hidden text-ellipsis whitespace-nowrap">
+          <FocusableText className="cursor-[unset] overflow-hidden text-ellipsis whitespace-nowrap">
             {userGroup.groupName}
-          </aria.Button>
+          </FocusableText>
           {needsTooltip && <ariaComponents.Tooltip>{userGroup.groupName}</ariaComponents.Tooltip>}
         </aria.TooltipTrigger>
       </aria.Cell>

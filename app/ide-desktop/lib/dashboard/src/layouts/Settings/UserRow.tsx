@@ -13,6 +13,7 @@ import * as textProvider from '#/providers/TextProvider'
 import * as aria from '#/components/aria'
 import * as ariaComponents from '#/components/AriaComponents'
 import ContextMenuEntry from '#/components/ContextMenuEntry'
+import FocusableText from '#/components/FocusableText'
 import UnstyledButton from '#/components/UnstyledButton'
 
 import ConfirmDeleteModal from '#/modals/ConfirmDeleteModal'
@@ -75,9 +76,9 @@ export default function UserRow(props: UserRowProps) {
         {draggable && <aria.Button slot="drag" />}
         <aria.TooltipTrigger>
           {/* NOTE: `max-w-full` brings back the ellipsis, but the tooltip disappears */}
-          <aria.Button className="cursor-default overflow-hidden text-ellipsis whitespace-nowrap">
+          <FocusableText className="cursor-[unset] overflow-hidden text-ellipsis whitespace-nowrap">
             {user.name}
-          </aria.Button>
+          </FocusableText>
           {needsTooltip && <ariaComponents.Tooltip>{user.name}</ariaComponents.Tooltip>}
         </aria.TooltipTrigger>
       </aria.Cell>

@@ -12,6 +12,7 @@ import * as textProvider from '#/providers/TextProvider'
 import * as aria from '#/components/aria'
 import * as ariaComponents from '#/components/AriaComponents'
 import ContextMenuEntry from '#/components/ContextMenuEntry'
+import FocusableText from '#/components/FocusableText'
 import UnstyledButton from '#/components/UnstyledButton'
 
 import ConfirmDeleteModal from '#/modals/ConfirmDeleteModal'
@@ -73,9 +74,9 @@ export default function UserGroupUserRow(props: UserGroupUserRowProps) {
         <aria.TooltipTrigger>
           <aria.Button className="ml-indent-1 flex h-row w-[calc(100%_-_var(--indent-1-size))] cursor-default items-center whitespace-nowrap rounded-full">
             {/* NOTE: `overflow-hiden` brings back the ellipsis, but the tooltip disappears */}
-            <aria.Text className="grow text-ellipsis whitespace-nowrap px-name-column-x py-name-column-y text-left">
+            <FocusableText className="grow text-ellipsis whitespace-nowrap px-name-column-x py-name-column-y text-left">
               {user.name}
-            </aria.Text>
+            </FocusableText>
           </aria.Button>
           {needsTooltip && <ariaComponents.Tooltip>{user.name}</ariaComponents.Tooltip>}
         </aria.TooltipTrigger>
