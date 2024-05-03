@@ -6,6 +6,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Semaphore;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReferenceArray;
 import org.graalvm.polyglot.Context;
 import org.junit.After;
@@ -44,8 +45,16 @@ public class WebSocketServerTest {
   }
 
   @After
-  public void tearDown() {
-    executor.shutdownNow();
+  public void tearDown() throws InterruptedException {
+    executor.shutdown();
+    var stopped = executor.awaitTermination(3, TimeUnit.SECONDS);
+    if (!stopped) {
+      executor.shutdownNow();
+    }
+    stopped = executor.awaitTermination(3, TimeUnit.SECONDS);
+    if (!stopped) {
+      System.err.println("Failed to stop test executor");
+    }
     context.close();
   }
 
