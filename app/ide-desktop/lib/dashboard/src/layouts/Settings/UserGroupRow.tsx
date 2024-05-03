@@ -12,12 +12,12 @@ import * as textProvider from '#/providers/TextProvider'
 import * as aria from '#/components/aria'
 import * as ariaComponents from '#/components/AriaComponents'
 import ContextMenuEntry from '#/components/ContextMenuEntry'
+import FocusableText from '#/components/FocusableText'
 import UnstyledButton from '#/components/UnstyledButton'
 
 import ConfirmDeleteModal from '#/modals/ConfirmDeleteModal'
 
 import * as backend from '#/services/Backend'
-import FocusableText from '#/components/FocusableText'
 
 // ====================
 // === UserGroupRow ===
