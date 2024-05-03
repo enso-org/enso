@@ -2,6 +2,7 @@ package org.enso.interpreter.runtime.error;
 
 import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.dsl.Cached.Shared;
+import com.oracle.truffle.api.interop.ArityException;
 import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.TruffleObject;
 import com.oracle.truffle.api.interop.UnsupportedMessageException;
@@ -11,12 +12,17 @@ import com.oracle.truffle.api.library.ExportMessage;
 import com.oracle.truffle.api.library.Message;
 import com.oracle.truffle.api.library.ReflectionLibrary;
 import com.oracle.truffle.api.nodes.Node;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+import org.enso.interpreter.node.callable.InteropMethodCallNode;
 import org.enso.interpreter.runtime.EnsoContext;
+import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
 import org.enso.interpreter.runtime.data.ArrayRope;
 import org.enso.interpreter.runtime.data.EnsoObject;
 import org.enso.interpreter.runtime.data.Type;
-import org.enso.interpreter.runtime.data.vector.ArrayLikeHelpers;
+import org.enso.interpreter.runtime.data.text.Text;
 import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
+import org.enso.interpreter.runtime.state.State;
 import org.graalvm.collections.EconomicSet;
 import org.graalvm.collections.Equivalence;
 
@@ -201,12 +207,27 @@ public final class WithWarnings implements EnsoObject {
         return true;
       }
       if ("throwException" == message.getSimpleName()) {
-        var warn = this.getWarnings(lib, false, WarningsLibrary.getUncached());
-        if (warn.length == 1) {
-          throw new PanicException(warn[0], lib);
-        } else {
-          throw new PanicException(ArrayLikeHelpers.wrapEnsoObjects(warn), lib);
-        }
+        var rawWarn = this.getWarnings(lib, false, WarningsLibrary.getUncached());
+        var ctx = EnsoContext.get(lib);
+        var scopeOfAny = ctx.getBuiltins().any().getDefinitionScope();
+        var toText = UnresolvedSymbol.build("to_text", scopeOfAny);
+        var node = InteropMethodCallNode.getUncached();
+        var state = State.create(ctx);
+        var text =
+            Stream.of(rawWarn)
+                .map(
+                    w -> {
+                      try {
+                        return node.execute(toText, state, new Object[] {w});
+                      } catch (ArityException e) {
+                        throw ctx.raiseAssertionPanic(lib, null, e);
+                      }
+                    })
+                .filter(t -> t instanceof Text)
+                .map(t -> t.toString())
+                .collect(Collectors.joining(" "));
+
+        throw new PanicException(Text.create(text), lib);
       }
     }
     return lib.send(value, message, args);

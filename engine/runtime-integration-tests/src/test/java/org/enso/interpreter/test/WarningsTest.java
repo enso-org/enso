@@ -100,5 +100,19 @@ public class WarningsTest extends TestBase {
     } catch (PolyglotException ex) {
       assertEquals("warn:1", ex.getMessage());
     }
+
+    var warningMulti = wrap.execute("warn:3", warning42);
+    assertTrue("multi value is a number", warningMulti.isNumber());
+    assertTrue("multi value is Int", warningMulti.fitsInInt());
+    assertEquals(42, warningMulti.asInt());
+
+    assertTrue("multi vlaue with warning is also an exception", warningMulti.isException());
+
+    try {
+      warningMulti.throwException();
+      fail("Shouldn't reach here");
+    } catch (PolyglotException ex) {
+      assertEquals("warn:1 warn:3", ex.getMessage());
+    }
   }
 }
