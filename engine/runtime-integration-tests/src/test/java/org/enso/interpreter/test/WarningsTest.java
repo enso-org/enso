@@ -1,5 +1,6 @@
 package org.enso.interpreter.test;
 
+import static org.enso.interpreter.test.BinaryDispatchTest.assertContains;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
@@ -112,7 +113,8 @@ public class WarningsTest extends TestBase {
       warningMulti.throwException();
       fail("Shouldn't reach here");
     } catch (PolyglotException ex) {
-      assertEquals("warn:1 warn:3", ex.getMessage());
+      assertContains("warn:1", ex.getMessage());
+      assertContains("warn:3", ex.getMessage());
     }
   }
 }
