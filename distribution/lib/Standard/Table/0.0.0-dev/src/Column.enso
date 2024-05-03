@@ -2226,15 +2226,14 @@ type Column
     to_table : Table
     to_table self = Table.Value self.java_column.toTable
 
-    ## ALIAS metadata
+    ## ALIAS metadata, field info, column type
        GROUP Standard.Base.Metadata
        ICON metadata
-       Returns a Table describing this column's contents.
+       Returns a Table describing this column's contents and type.
 
-       The table behaves like `Table.info` - it lists the column name, the count
-       of non-null items and the value type.
+       The table behaves like `Table.column_info.
     info : Table
-    info self = self.to_table.info
+    info self = self.to_table.column_info
 
     ## ALIAS order_by
        GROUP Standard.Base.Selections

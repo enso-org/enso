@@ -2570,15 +2570,15 @@ type DB_Table
     to_sql : SQL_Statement
     to_sql self = self.connection.dialect.generate_sql self.to_select_query
 
-    ## ALIAS metadata
+    ## ALIAS metadata, field info, column types
        GROUP Standard.Base.Metadata
        ICON metadata
        Returns a Table describing this table's contents.
 
        The table lists all columns, counts of non-null items and value types of
        each column.
-    info : Table
-    info self =
+    column_info : Table
+    column_info self =
         cols = self.internal_columns
         count_query =
             ## Performing a subquery is the most robust way to handle both

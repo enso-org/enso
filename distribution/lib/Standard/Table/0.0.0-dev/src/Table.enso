@@ -163,7 +163,7 @@ type Table
 
        Arguments:
        - java_table: The internal java representation of the table.
-    Value java_table
+    private Value java_table
 
     ## PRIVATE
        ADVANCED
@@ -310,31 +310,36 @@ type Table
         col = self.get selector if_missing=Nothing
         if Nothing == col then if_missing else col.get index if_missing
 
-    ## GROUP Standard.Base.Selections
+    ## ALIAS first field
+       GROUP Standard.Base.Selections
        ICON select_column
        Gets the first column.
     first_column : Column ! Index_Out_Of_Bounds
     first_column self = self.at 0
 
-    ## GROUP Standard.Base.Selections
+    ## ALIAS second field
+       GROUP Standard.Base.Selections
        ICON select_column
        Gets the second column
     second_column : Column ! Index_Out_Of_Bounds
     second_column self = self.at 1
 
-    ## GROUP Standard.Base.Selections
+    ## ALIAS last field
+       GROUP Standard.Base.Selections
        ICON select_column
        Gets the last column
     last_column : Column ! Index_Out_Of_Bounds
     last_column self = self.at -1
 
-    ## GROUP Standard.Base.Metadata
+    ## ALIAS field count
+       GROUP Standard.Base.Metadata
        ICON metadata
        Returns the number of columns in the table.
     column_count : Integer
     column_count self = self.java_table.getColumns.length
 
-    ## GROUP Standard.Base.Selections
+    ## ALIAS select fields
+       GROUP Standard.Base.Selections
        ICON select_column
        Returns a new table with a chosen subset of columns, as specified by the
        `columns`, from the input table. Any unmatched input columns will be
@@ -391,7 +396,8 @@ type Table
         new_columns = self.columns_helper.select_columns columns case_sensitivity reorder error_on_missing_columns on_problems
         Table.new new_columns
 
-    ## GROUP Standard.Base.Selections
+    ## ALIAS select fields by type
+       GROUP Standard.Base.Selections
        ICON select_column
        Returns a new table with the chosen set of columns filtered by the type
        of the column.
@@ -402,12 +408,12 @@ type Table
          be selected. If `False`, columns with related types will also be
          selected (i.e. ignore size, precision).
     @types Widget_Helpers.make_value_type_vector_selector
-    select_by_type : Vector Value_Type -> Boolean -> Table
-    select_by_type self types:Vector strict:Boolean=False =
+    select_columns_by_type : Vector Value_Type -> Boolean -> Table
+    select_columns_by_type self types:Vector strict:Boolean=False =
         new_columns = self.columns_helper.select_by_type types strict
         Table.new new_columns
 
-    ## ALIAS drop_columns
+    ## ALIAS drop_columns, drop fields, remove fields
        GROUP Standard.Base.Selections
        ICON select_column
        Returns a new table with the chosen set of columns, as specified by the
@@ -461,7 +467,8 @@ type Table
         new_columns = self.columns_helper.remove_columns columns case_sensitivity error_on_missing_columns=error_on_missing_columns on_problems=on_problems
         Table.new new_columns
 
-    ## GROUP Standard.Base.Selections
+    ## ALIAS remove fields by type
+       GROUP Standard.Base.Selections
        ICON select_column
        Returns a new table with the chosen set of columns filtering out based
        on the type of the column.
@@ -472,12 +479,12 @@ type Table
          be removed. If `False`, columns with related types will also be
          removed (i.e. ignore size, precision).
     @types Widget_Helpers.make_value_type_vector_selector
-    remove_by_type : Vector Value_Type -> Boolean -> Table
-    remove_by_type self types:Vector strict:Boolean=False =
+    remove_columns_by_type : Vector Value_Type -> Boolean -> Table
+    remove_columns_by_type self types:Vector strict:Boolean=False =
         new_columns = self.columns_helper.remove_by_type types strict
         Table.new new_columns
 
-    ## ALIAS select_missing_columns, select_na
+    ## ALIAS select_missing_columns, select_na, select_blank_fields
        GROUP Standard.Base.Selections
        ICON select_column
 
@@ -2381,7 +2388,7 @@ type Table
                 Problem_Behavior.Report_Warning.attach_problem_after truncated <|
                     Not_All_Rows_Downloaded.Warning max_rows
 
-    ## ALIAS metadata
+    ## ALIAS metadata, field info, column types
        GROUP Standard.Base.Metadata
        ICON metadata
        Returns a Table describing this table's contents.
@@ -2394,9 +2401,9 @@ type Table
 
              import Standard.Examples
 
-             example_info = Examples.inventory_table.info
-    info : Table
-    info self =
+             example_info = Examples.inventory_table.column_info
+    column_info : Table
+    column_info self =
         cols = self.columns
         Table.new [["Column", cols.map .name], ["Items Count", cols.map .count], ["Value Type", cols.map .value_type]]
 
