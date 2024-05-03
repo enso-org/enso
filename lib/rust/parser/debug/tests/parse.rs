@@ -676,6 +676,16 @@ fn code_block_bad_indents1() {
 }
 
 #[test]
+fn fail_on_bad_indents() {
+    let code = ["group =", "    space4", "        space8", "     space5"];
+
+    let expected = block![
+        (Function (Ident group) #() () "=" (BodyBlock #((ArgumentBlockApplication (Ident space4) #((Ident space8) (Ident space5))))))
+    ];
+    test(&code.join("\n"), expected);
+}
+
+#[test]
 fn code_block_bad_indents2() {
     let code = ["main =", "  foo", " bar", "baz"];
     let expected = block![
