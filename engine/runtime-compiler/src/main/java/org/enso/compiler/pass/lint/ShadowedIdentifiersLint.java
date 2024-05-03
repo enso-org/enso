@@ -14,10 +14,17 @@ import scala.collection.immutable.Seq;
  * If shadowing is detected, a warning is attached to the IR.
  */
 public final class ShadowedIdentifiersLint implements IRPass {
+  public static final ShadowedIdentifiersLint INSTANCE = new ShadowedIdentifiersLint();
+  private UUID uuid;
 
   @Override
   public UUID key() {
-    return null;
+    return uuid;
+  }
+
+  @Override
+  public void org$enso$compiler$pass$IRPass$_setter_$key_$eq(UUID v) {
+    this.uuid = v;
   }
 
   @Override
