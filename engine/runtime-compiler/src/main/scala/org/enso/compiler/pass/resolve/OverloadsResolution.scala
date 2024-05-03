@@ -186,15 +186,15 @@ case object OverloadsResolution extends IRPass {
   ): Boolean = {
     assert(method.isStatic)
     assert(method.typeName.isDefined)
-    val typeName      = method.typeName.get.name
-    val methodName    = method.methodName.name
-    val extMethod     = StaticMethod(typeName, methodName)
-    val bindingMap    = moduleContext.bindingsAnalysis()
+    val typeName   = method.typeName.get.name
+    val methodName = method.methodName.name
+    val extMethod  = StaticMethod(typeName, methodName)
+    val bindingMap = moduleContext.bindingsAnalysis()
     if (bindingMap == null) {
       return false
     }
     val curModuleName = bindingMap.currentModule.getName
-    val impTargets = bindingMap.resolvedImports.map(_.target)
+    val impTargets    = bindingMap.resolvedImports.map(_.target)
     impTargets.exists { impTarget =>
       impTarget.module match {
         case ModuleReference.Concrete(impModule) =>
