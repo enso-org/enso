@@ -1,5 +1,7 @@
 package org.enso.ydoc.polyfill.web;
 
+import static org.junit.Assert.fail;
+
 import io.helidon.webclient.websocket.WsClient;
 import io.helidon.websocket.WsListener;
 import java.util.concurrent.CompletableFuture;
@@ -49,11 +51,8 @@ public class WebSocketServerTest {
     executor.shutdown();
     var stopped = executor.awaitTermination(3, TimeUnit.SECONDS);
     if (!stopped) {
-      executor.shutdownNow();
-    }
-    stopped = executor.awaitTermination(3, TimeUnit.SECONDS);
-    if (!stopped) {
-      System.err.println("Failed to stop test executor");
+      var pending = executor.shutdownNow();
+      fail("Pending " + pending.size() + " tasks: " + pending);
     }
     context.close();
   }
