@@ -24,7 +24,7 @@ import org.junit.rules.TemporaryFolder;
  * suite is focused on testing the shadowing of identifiers in various context of multiple modules,
  * not just a single module.
  */
-public class AmbiguousResolutionTest extends TestBase {
+public class ExtensionMethodResolutionTest extends TestBase {
   @Rule public TemporaryFolder tempFolder = new TemporaryFolder();
   private static final Matcher<String> methodsOverloadErrorMessageMatcher =
       allOf(
