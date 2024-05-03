@@ -186,17 +186,24 @@ case object OverloadsResolution extends IRPass {
   ): Boolean = {
     assert(method.isStatic)
     assert(method.typeName.isDefined)
-    val typeName   = method.typeName.get.name
-    val methodName = method.methodName.name
-    val extMethod  = StaticMethod(typeName, methodName)
-    val bindingMap = moduleContext.bindingsAnalysis()
-    val impTargets = bindingMap.resolvedImports.map(_.target)
+    val typeName      = method.typeName.get.name
+    val methodName    = method.methodName.name
+    val extMethod     = StaticMethod(typeName, methodName)
+    val bindingMap    = moduleContext.bindingsAnalysis()
+    val curModuleName = bindingMap.currentModule.getName
+    val impTargets    = bindingMap.resolvedImports.map(_.target)
     impTargets.exists { impTarget =>
       impTarget.module match {
         case ModuleReference.Concrete(impModule) =>
-          val importedExtMethods =
-            collectStaticMethods(impModule.getIr.bindings)
-          importedExtMethods.contains(extMethod)
+          // We can, for example, import a type constructor from current module. So we have
+          // to check here if the imported module is not the current module.
+          if (!impModule.getName.equals(curModuleName)) {
+            val importedExtMethods =
+              collectStaticMethods(impModule.getIr.bindings)
+            importedExtMethods.contains(extMethod)
+          } else {
+            false
+          }
         case ModuleReference.Abstract(_) =>
           // ModuleReference might not be resolved. In that case, we just return false
           false
