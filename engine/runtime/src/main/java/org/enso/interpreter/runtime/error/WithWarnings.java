@@ -12,8 +12,6 @@ import com.oracle.truffle.api.library.ExportMessage;
 import com.oracle.truffle.api.library.Message;
 import com.oracle.truffle.api.library.ReflectionLibrary;
 import com.oracle.truffle.api.nodes.Node;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 import org.enso.interpreter.node.callable.InteropMethodCallNode;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
@@ -199,6 +197,29 @@ public final class WithWarnings implements EnsoObject {
     }
   }
 
+  @CompilerDirectives.TruffleBoundary
+  private PanicException asException(Node where) {
+    var rawWarn = this.getWarnings(where, false, WarningsLibrary.getUncached());
+    var ctx = EnsoContext.get(where);
+    var scopeOfAny = ctx.getBuiltins().any().getDefinitionScope();
+    var toText = UnresolvedSymbol.build("to_text", scopeOfAny);
+    var node = InteropMethodCallNode.getUncached();
+    var state = State.create(ctx);
+
+    var text = Text.empty();
+    for (var w : rawWarn) {
+      try {
+        var wText = node.execute(toText, state, new Object[] {w});
+        if (wText instanceof Text t) {
+          text = text.add(t);
+        }
+      } catch (ArityException e) {
+        throw ctx.raiseAssertionPanic(where, null, e);
+      }
+    }
+    return new PanicException(text, where);
+  }
+
   @ExportMessage
   Object send(Message message, Object[] args, @CachedLibrary(limit = "3") ReflectionLibrary lib)
       throws Exception {
@@ -207,27 +228,7 @@ public final class WithWarnings implements EnsoObject {
         return true;
       }
       if ("throwException" == message.getSimpleName()) {
-        var rawWarn = this.getWarnings(lib, false, WarningsLibrary.getUncached());
-        var ctx = EnsoContext.get(lib);
-        var scopeOfAny = ctx.getBuiltins().any().getDefinitionScope();
-        var toText = UnresolvedSymbol.build("to_text", scopeOfAny);
-        var node = InteropMethodCallNode.getUncached();
-        var state = State.create(ctx);
-        var text =
-            Stream.of(rawWarn)
-                .map(
-                    w -> {
-                      try {
-                        return node.execute(toText, state, new Object[] {w});
-                      } catch (ArityException e) {
-                        throw ctx.raiseAssertionPanic(lib, null, e);
-                      }
-                    })
-                .filter(t -> t instanceof Text)
-                .map(t -> t.toString())
-                .collect(Collectors.joining(" "));
-
-        throw new PanicException(Text.create(text), lib);
+        throw asException(lib);
       }
     }
     return lib.send(value, message, args);
