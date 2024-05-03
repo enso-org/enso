@@ -54,6 +54,7 @@ import org.enso.polyglot.{RuntimeOptions, RuntimeServerInfo}
 import org.enso.profiling.events.NoopEventsMonitor
 import org.enso.searcher.memory.InMemorySuggestionsRepo
 import org.enso.text.{ContentBasedVersioning, Sha3_224VersionCalculator}
+import org.enso.ydoc.Ydoc
 import org.graalvm.polyglot.Engine
 import org.graalvm.polyglot.Context
 import org.graalvm.polyglot.io.MessageEndpoint
@@ -64,6 +65,7 @@ import java.io.{File, PrintStream}
 import java.net.URI
 import java.nio.charset.StandardCharsets
 import java.time.Clock
+
 import scala.concurrent.duration._
 
 /** A main module containing all components of the server.
@@ -491,6 +493,11 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: Level) {
     )
   log.trace("Created Binary WebSocket Server [{}].", binaryServer)
 
+  private val ydoc = new Ydoc()
+  ydoc.getContextBuilder.logHandler(JulHandler.get())
+  ydoc.start()
+  log.trace("Started Ydoc server.")
+
   log.info(
     "Main module of the Language Server initialized with config [{}].",
     languageServerConfig
@@ -500,6 +507,7 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: Level) {
   def close(): Unit = {
     suggestionsRepo.close()
     context.close()
+    ydoc.close()
     log.info("Closed Language Server main module.")
   }
 
