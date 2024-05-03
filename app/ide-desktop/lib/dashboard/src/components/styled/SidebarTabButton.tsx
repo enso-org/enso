@@ -30,7 +30,7 @@ export default function SidebarTabButton(props: SidebarTabButtonProps) {
       autoFocus={autoFocus}
       onPress={onPress}
       isDisabled={isDisabled}
-      className={`rounded-full ${active ? 'focus-default' : ''}`}
+      className={`relative rounded-full ${active ? 'focus-default' : ''}`}
     >
       <div
         className={`button icon-with-text h-row px-button-x transition-colors selectable hover:bg-selected-frame ${active ? 'disabled bg-selected-frame active' : ''}`}

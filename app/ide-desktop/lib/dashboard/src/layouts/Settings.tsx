@@ -1,6 +1,8 @@
 /** @file Settings screen. */
 import * as React from 'react'
 
+import BurgerMenuIcon from 'enso-assets/burger_menu.svg'
+
 import * as searchParamsState from '#/hooks/searchParamsStateHooks'
 
 import * as authProvider from '#/providers/AuthProvider'
@@ -17,6 +19,8 @@ import UserGroupsSettingsTab from '#/layouts/Settings/UserGroupsSettingsTab'
 import SettingsSidebar from '#/layouts/SettingsSidebar'
 
 import * as aria from '#/components/aria'
+import * as portal from '#/components/Portal'
+import Button from '#/components/styled/Button'
 
 import * as backendModule from '#/services/Backend'
 
@@ -36,7 +40,9 @@ export default function Settings() {
   const { type: sessionType, user } = authProvider.useNonPartialUserSession()
   const { backend } = backendProvider.useBackend()
   const { getText } = textProvider.useText()
+  const root = portal.useStrictPortalContext()
   const [isUserInOrganization, setIsUserInOrganization] = React.useState(true)
+  const [isSidebarPopoverOpen, setIsSidebarPopoverOpen] = React.useState(false)
   const [organization, setOrganization] = React.useState<backendModule.OrganizationInfo>(() => ({
     id: user?.organizationId ?? backendModule.OrganizationId(''),
     name: null,
@@ -110,6 +116,20 @@ export default function Settings() {
             : organization.name ?? 'your organization'}
         </div>
       </aria.Heading>
+      <aria.MenuTrigger isOpen={isSidebarPopoverOpen} onOpenChange={setIsSidebarPopoverOpen}>
+        <Button image={BurgerMenuIcon} buttonClassName="sm:hidden" onPress={() => {}} />
+        <aria.Popover UNSTABLE_portalContainer={root.current}>
+          <SettingsSidebar
+            isMenu
+            isUserInOrganization={isUserInOrganization}
+            settingsTab={settingsTab}
+            setSettingsTab={setSettingsTab}
+            onClickCapture={() => {
+              setIsSidebarPopoverOpen(false)
+            }}
+          />
+        </aria.Popover>
+      </aria.MenuTrigger>
       <div className="flex flex-1 gap-settings overflow-hidden">
         <SettingsSidebar
           isUserInOrganization={isUserInOrganization}
