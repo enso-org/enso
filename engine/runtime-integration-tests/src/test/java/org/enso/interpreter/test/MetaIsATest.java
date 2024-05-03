@@ -20,6 +20,7 @@ import org.junit.Test;
 public class MetaIsATest extends TestBase {
   private static Context ctx;
   private static Value isACheck;
+  private static Value warningCheck;
   private static ValuesGenerator generator;
 
   @BeforeClass
@@ -30,9 +31,10 @@ public class MetaIsATest extends TestBase {
         Source.newBuilder(
                 "enso",
                 """
-    import Standard.Base.Meta
+    from Standard.Base import Meta, Warning
 
     check x y = Meta.is_a x y
+    check_warning x = Warning.has_warnings x
     """,
                 "check.enso")
             .uri(uri)
@@ -40,6 +42,7 @@ public class MetaIsATest extends TestBase {
 
     var module = ctx.eval(src);
     isACheck = module.invokeMember("eval_expression", "check");
+    warningCheck = module.invokeMember("eval_expression", "check_warning");
     assertTrue("it is a function", isACheck.canExecute());
   }
 
@@ -283,9 +286,25 @@ public class MetaIsATest extends TestBase {
       Value caseOf, Value v, Value t, StringBuilder f, ValuesGenerator g) {
     var test = caseOf.execute(v);
     if (test.isException()) {
-      assertEquals("DataFlowError in", g.typeError(), v.getMetaObject());
-      assertEquals("DataFlowError out", g.typeError(), test.getMetaObject());
-      return;
+      // if a generated value isException (from interop point of view)
+      // then it is either DataflowError or Warning
+      if (g.typeError() == v.getMetaObject()) {
+        assertEquals("DataFlowError in", g.typeError(), v.getMetaObject());
+        assertEquals("DataFlowError out", g.typeError(), test.getMetaObject());
+        // end the test here as DataflowError doesn't represent a value
+        return;
+      } else {
+        // check if Warning.has_warnings is true
+        var wv = warningCheck.execute(v);
+        var wTest = warningCheck.execute(test);
+        if (wv.isException()) {
+          assertTrue(wTest.isException());
+          return;
+        }
+        assertTrue("Warning in", wv.asBoolean());
+        assertTrue("Warning out", wTest.asBoolean());
+        // but continue with the rest of the test, as Warning still represents a value
+      }
     }
     assertTrue("Expecting 0 or 1 result: " + test + " for " + v, test.isNumber());
     var testBool = test.asInt() == 1;
