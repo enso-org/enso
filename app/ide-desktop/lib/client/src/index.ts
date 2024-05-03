@@ -35,7 +35,7 @@ import * as server from 'bin/server'
 import * as urlAssociations from 'url-associations'
 
 // prettier-ignore
-import GLOBAL_CONFIG from '../../../../gui2/config.yaml' assert { type: 'yaml' }
+import GLOBAL_CONFIG from 'enso-common/src/config.json' assert { type: 'json' }
 
 const logger = contentConfig.logger
 
