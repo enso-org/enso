@@ -59,7 +59,7 @@ export default function Page(props: PageProps) {
           endpoint={process.env.ENSO_CLOUD_CHAT_URL}
         />
       ) : (
-        <ChatPlaceholder isOpen={isHelpChatOpen} doClose={doCloseChat} />
+        <ChatPlaceholder hideLoginButtons isOpen={isHelpChatOpen} doClose={doCloseChat} />
       )}
       <Portal>
         <div className="select-none text-xs text-primary">

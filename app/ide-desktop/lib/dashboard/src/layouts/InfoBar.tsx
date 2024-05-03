@@ -52,7 +52,7 @@ export default function InfoBar(props: InfoBarProps) {
           >
             <SvgMask
               src={LogoIcon}
-              alt={getText('openUserMenu')}
+              alt={getText('openInfoMenu')}
               className="pointer-events-none size-7"
             />
           </UnstyledButton>
