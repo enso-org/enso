@@ -1,15 +1,15 @@
 package org.enso.languageserver.search.handler
 
-import akka.actor.{Actor, ActorRef, Cancellable, Props}
+import akka.actor.{Actor, ActorRef, Props}
 import akka.pattern.pipe
 import com.typesafe.scalalogging.LazyLogging
-import org.enso.languageserver.requesthandler.RequestTimeout
 import org.enso.languageserver.runtime.RuntimeFailureMapper
 import org.enso.languageserver.search.SearchProtocol
-import org.enso.languageserver.util.UnhandledLogging
+import org.enso.languageserver.util.{HandlerWithRetries, UnhandledLogging}
 import org.enso.polyglot.runtime.Runtime.Api
 
 import java.util.UUID
+import scala.concurrent.ExecutionContext
 import scala.concurrent.duration._
 
 /** A request handler for invalidate modules index command.
@@ -24,54 +24,35 @@ final class InvalidateModulesIndexHandler(
   runtime: ActorRef,
   suggestionsHandler: ActorRef,
   timeout: FiniteDuration
-) extends Actor
+) extends HandlerWithRetries[
+      SearchProtocol.InvalidateModulesIndex.type,
+      Api.InvalidateModulesIndexResponse
+    ](runtime, timeout, 10)
+    with Actor
     with LazyLogging
     with UnhandledLogging {
 
-  import context.dispatcher
-
-  override def receive: Receive = requestStage
-
-  private def requestStage: Receive = {
-    case SearchProtocol.InvalidateModulesIndex =>
-      val request = Api.Request(
-        UUID.randomUUID(),
-        Api.InvalidateModulesIndexRequest()
-      )
-      runtime ! request
-      val cancellable =
-        context.system.scheduler.scheduleOnce(timeout, self, RequestTimeout)
-      context.become(responseStage(sender(), request, cancellable, 10))
+  override protected def request(
+    msg: SearchProtocol.InvalidateModulesIndex.type
+  ): Api.Request = {
+    Api.Request(
+      UUID.randomUUID(),
+      Api.InvalidateModulesIndexRequest()
+    )
   }
 
-  private def responseStage(
+  override protected def positiveResponse(
     replyTo: ActorRef,
-    request: Api.Request,
-    cancellable: Cancellable,
-    retries: Int
-  ): Receive = {
-    case RequestTimeout =>
-      logger.warn(
-        "Failed to receive a [{}] response in [{}]. Retrying.",
-        request,
-        timeout
-      )
-      val newCancellable =
-        context.system.scheduler.scheduleOnce(timeout, self, RequestTimeout)
-      context.become(
-        responseStage(replyTo, request, newCancellable, retries - 1)
-      )
+    msg: Api.InvalidateModulesIndexResponse
+  ): Unit = {
+    suggestionsHandler ! SearchProtocol.ClearSuggestionsDatabase
+    replyTo ! SearchProtocol.InvalidateSuggestionsDatabaseResult
+  }
 
-    case Api.Response(_, Api.InvalidateModulesIndexResponse()) =>
-      suggestionsHandler ! SearchProtocol.ClearSuggestionsDatabase
-      replyTo ! SearchProtocol.InvalidateSuggestionsDatabaseResult
-      cancellable.cancel()
-      context.stop(self)
-
-    case Api.Response(_, error: Api.Error) =>
-      runtimeFailureMapper.mapApiError(error).pipeTo(replyTo)
-      cancellable.cancel()
-      context.stop(self)
+  override protected def negativeResponse(replyTo: ActorRef, error: Api.Error)(
+    implicit ec: ExecutionContext
+  ): Unit = {
+    runtimeFailureMapper.mapApiError(error).pipeTo(replyTo)
   }
 }
 
