@@ -27,7 +27,7 @@ public final class ExportSymbolAnalysis implements IRPass {
 
   @Override
   public UUID key() {
-    return null;
+    return uuid;
   }
 
   @Override
