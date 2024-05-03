@@ -1,17 +1,17 @@
 package org.enso.languageserver.runtime.handler
 
-import akka.actor.{Actor, ActorRef, Cancellable, Props}
+import akka.actor.{Actor, ActorRef, Props}
 import akka.pattern.pipe
 import com.typesafe.scalalogging.LazyLogging
-import org.enso.languageserver.requesthandler.RequestTimeout
 import org.enso.languageserver.runtime.{
   ContextRegistryProtocol,
   RuntimeFailureMapper
 }
-import org.enso.languageserver.util.UnhandledLogging
+import org.enso.languageserver.util.{HandlerWithRetries, UnhandledLogging}
 import org.enso.polyglot.runtime.Runtime.Api
 
 import java.util.UUID
+import scala.concurrent.ExecutionContext
 import scala.concurrent.duration.FiniteDuration
 
 /** A request handler for push commands.
@@ -24,39 +24,28 @@ final class PopContextHandler(
   runtimeFailureMapper: RuntimeFailureMapper,
   timeout: FiniteDuration,
   runtime: ActorRef
-) extends Actor
+) extends HandlerWithRetries[Api.PopContextRequest, Api.PopContextResponse](
+      runtime,
+      timeout,
+      5
+    )
+    with Actor
     with LazyLogging
     with UnhandledLogging {
 
-  import context.dispatcher
+  override protected def request(msg: Api.PopContextRequest): Api.Request =
+    Api.Request(UUID.randomUUID(), msg)
 
-  override def receive: Receive = requestStage
-
-  private def requestStage: Receive = { case msg: Api.PopContextRequest =>
-    runtime ! Api.Request(UUID.randomUUID(), msg)
-    val cancellable =
-      context.system.scheduler.scheduleOnce(timeout, self, RequestTimeout)
-    context.become(responseStage(sender(), cancellable))
-  }
-
-  private def responseStage(
+  override protected def positiveResponse(
     replyTo: ActorRef,
-    cancellable: Cancellable
-  ): Receive = {
-    case RequestTimeout =>
-      replyTo ! RequestTimeout
-      context.stop(self)
+    msg: Api.PopContextResponse
+  ): Unit =
+    replyTo ! ContextRegistryProtocol.PopContextResponse(msg.contextId)
 
-    case Api.Response(_, Api.PopContextResponse(contextId)) =>
-      replyTo ! ContextRegistryProtocol.PopContextResponse(contextId)
-      cancellable.cancel()
-      context.stop(self)
-
-    case Api.Response(_, error: Api.Error) =>
-      runtimeFailureMapper.mapApiError(error).pipeTo(replyTo)
-      cancellable.cancel()
-      context.stop(self)
-  }
+  override protected def negativeResponse(replyTo: ActorRef, error: Api.Error)(
+    implicit ec: ExecutionContext
+  ): Unit =
+    runtimeFailureMapper.mapApiError(error).pipeTo(replyTo)
 }
 
 object PopContextHandler {

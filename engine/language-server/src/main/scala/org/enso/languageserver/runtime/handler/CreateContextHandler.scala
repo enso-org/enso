@@ -1,17 +1,17 @@
 package org.enso.languageserver.runtime.handler
 
-import akka.actor.{Actor, ActorRef, Cancellable, Props}
+import akka.actor.{Actor, ActorRef, Props}
 import akka.pattern.pipe
 import com.typesafe.scalalogging.LazyLogging
-import org.enso.languageserver.requesthandler.RequestTimeout
 import org.enso.languageserver.runtime.{
   ContextRegistryProtocol,
   RuntimeFailureMapper
 }
-import org.enso.languageserver.util.UnhandledLogging
+import org.enso.languageserver.util.{HandlerWithRetries, UnhandledLogging}
 import org.enso.polyglot.runtime.Runtime.Api
 
 import java.util.UUID
+import scala.concurrent.ExecutionContext
 import scala.concurrent.duration.FiniteDuration
 
 /** A request handler for create context commands.
@@ -24,40 +24,27 @@ final class CreateContextHandler(
   runtimeFailureMapper: RuntimeFailureMapper,
   timeout: FiniteDuration,
   runtime: ActorRef
-) extends Actor
+) extends HandlerWithRetries[
+      Api.CreateContextRequest,
+      Api.CreateContextResponse
+    ](runtime, timeout, 10)
+    with Actor
     with LazyLogging
     with UnhandledLogging {
 
-  import ContextRegistryProtocol._
-  import context.dispatcher
+  override protected def request(msg: Api.CreateContextRequest): Api.Request =
+    Api.Request(UUID.randomUUID(), msg)
 
-  override def receive: Receive = requestStage
-
-  private def requestStage: Receive = { case msg: Api.CreateContextRequest =>
-    runtime ! Api.Request(UUID.randomUUID(), msg)
-    val cancellable =
-      context.system.scheduler.scheduleOnce(timeout, self, RequestTimeout)
-    context.become(responseStage(sender(), cancellable))
-  }
-
-  private def responseStage(
+  override protected def positiveResponse(
     replyTo: ActorRef,
-    cancellable: Cancellable
-  ): Receive = {
-    case RequestTimeout =>
-      replyTo ! RequestTimeout
-      context.stop(self)
+    msg: Api.CreateContextResponse
+  ): Unit =
+    replyTo ! ContextRegistryProtocol.CreateContextResponse(msg.contextId)
 
-    case Api.Response(_, Api.CreateContextResponse(contextId)) =>
-      replyTo ! CreateContextResponse(contextId)
-      cancellable.cancel()
-      context.stop(self)
-
-    case Api.Response(_, error: Api.Error) =>
-      runtimeFailureMapper.mapApiError(error).pipeTo(replyTo)
-      cancellable.cancel()
-      context.stop(self)
-  }
+  override protected def negativeResponse(replyTo: ActorRef, error: Api.Error)(
+    implicit ec: ExecutionContext
+  ): Unit =
+    runtimeFailureMapper.mapApiError(error).pipeTo(replyTo)
 }
 
 object CreateContextHandler {
