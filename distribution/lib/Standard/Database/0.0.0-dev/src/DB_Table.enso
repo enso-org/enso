@@ -74,11 +74,19 @@ type DB_Table
        Represents a column-oriented table data structure backed by a database.
 
        Arguments:
-       - name: The name of the table.
-       - connection: The connection with which the table is associated.
+       - internal_name: The name of the table.
+       - internal_connection: The connection with which the table is associated.
        - internal_columns: The internal representation of the table columns.
        - context: The context associated with this table.
-    Value name:Text connection:(Connection | Any) (internal_columns:(Vector Internal_Column)) context:Context
+    private Value internal_name:Text internal_connection:(Connection | Any) (internal_columns:(Vector Internal_Column)) context:Context
+
+    ## Returns the name of the table.
+    name : Text
+    name self = self.internal_name
+
+    ## Returns the connection of the table.
+    connection : Text
+    connection self = self.internal_connection
 
     ## PRIVATE
        ADVANCED
