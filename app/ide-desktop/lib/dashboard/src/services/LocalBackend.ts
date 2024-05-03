@@ -568,6 +568,7 @@ export default class LocalBackend extends Backend {
     return { path, id: newFileId(path), project: null }
   }
 
+  /** Change the name of a file. */
   override async updateFile(
     fileId: backend.FileId,
     body: backend.UpdateFileRequestBody

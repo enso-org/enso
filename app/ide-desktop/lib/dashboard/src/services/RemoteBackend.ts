@@ -1,33 +1,20 @@
-;
 /** @file Module containing the API client for the Cloud backend API.
  *
  * Each exported function in the {@link RemoteBackend} in this module corresponds to
  * an API endpoint. The functions are asynchronous and return a {@link Promise} that resolves to
  * the response from the API. */
-import * as detect from 'enso-common/src/detect';
+import * as detect from 'enso-common/src/detect'
 
+import type * as text from '#/text'
 
+import type * as loggerProvider from '#/providers/LoggerProvider'
+import type * as textProvider from '#/providers/TextProvider'
 
-import type * as text from '#/text';
+import Backend, * as backendModule from '#/services/Backend'
+import * as remoteBackendPaths from '#/services/remoteBackendPaths'
 
-
-
-import type * as loggerProvider from '#/providers/LoggerProvider';
-import type * as textProvider from '#/providers/TextProvider';
-
-
-
-import Backend, * as backendModule from '#/services/Backend';
-import * as remoteBackendPaths from '#/services/remoteBackendPaths';
-
-
-
-import type HttpClient from '#/utilities/HttpClient';
-import * as object from '#/utilities/object';
-
-
-
-
+import type HttpClient from '#/utilities/HttpClient'
+import * as object from '#/utilities/object'
 
 // =================
 // === Constants ===
@@ -719,8 +706,8 @@ export default class RemoteBackend extends Backend {
     }
   }
 
-  override async updateFile(
-  ): Promise<void> {
+  /** Change the name of a file. */
+  override async updateFile(): Promise<void> {
     await this.throw(null, 'updateFileNotImplementedBackendError')
   }
 
