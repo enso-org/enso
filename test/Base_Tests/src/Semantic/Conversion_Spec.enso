@@ -135,6 +135,15 @@ add_specs suite_builder =
         group_builder.specify "should call extension conversions" <|
             Text.from Methods.get_bar . should_equal "bar"
 
+        group_builder.specify "should propagate dataflow errors on builtin type" <|
+            Float.from 42 . is_error . should_be_false
+            Float.from (Error.throw "ERR") . is_error . should_be_true
+            (Error.throw "ERR") . to Float . is_error . should_be_true
+
+        group_builder.specify "should propagate dataflow errors on custom type" <|
+            Bar.from (Error.throw "ERR") . is_error . should_be_true
+            (Error.throw "ERR") . to Bar . is_error . should_be_true
+
         group_builder.specify "should fail graciously when there is no conversion" <|
             Panic.recover Any (Foo.from (Quux.Value 10)) . catch Any .to_display_text . should_equal "Could not find a conversion from `Quux.Value` to `Foo`."
         group_builder.specify "should fail graciously when the conversion target is invalid" <|
