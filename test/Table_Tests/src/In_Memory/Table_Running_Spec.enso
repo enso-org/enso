@@ -15,16 +15,18 @@ type Data
     # 2 | SG0456 | A         | 73.23
     # 3 | BA0123 | C         | 112.34
     # 4 | SG0456 | E         | 73.77
-    Value ~table
+    Value ~table ~integer_table
 
     setup =
+        flight = ["Flight", ["BA0123", "BA0123", "SG0456", "BA0123", "SG0456"]]
+        passenger = ["Passenger", ["A", "B", "A", "C", "E"]]
         make_table =
-            flight = ["Flight", ["BA0123", "BA0123", "SG0456", "BA0123", "SG0456"]]
-            passenger = ["Passenger", ["A", "B", "A", "C", "E"]]
             ticket_price = ["Ticket Price", [100.50, 575.99, 73.23, 112.34, 73.77]]
-
             Table.new [flight, passenger, ticket_price]
-        Data.Value make_table
+        make_integer_table =
+            ticket_price = ["Ticket Price", [101, 576, 73, 112, 74]]
+            Table.new [flight, passenger, ticket_price]
+        Data.Value make_table make_integer_table
 
 add_specs suite_builder =
     suite_builder.group "running count" group_builder->
@@ -142,7 +144,7 @@ add_specs suite_builder =
         group_builder.specify "Can provide running sum based on order by without grouping" <|
             result = data.table.running Statistic.Sum "Ticket Price" "Sum ticket cost" [] ["Ticket Price"]
             expected_column = Column.from_vector "Sum ticket cost" [247.5, 935.83, 73.23, 359.84000000000003, 147]
-            #   | Flight | Passenger | Ticket Price | Ranked ticket cost
+            #   | Flight | Passenger | Ticket Price | Sum ticket cost
             #---+--------+-----------+--------------+-------------------------
             # 0 | BA0123 | A         | 100.5        | 3
             # 1 | BA0123 | B         | 575.99       | 5
@@ -150,6 +152,18 @@ add_specs suite_builder =
             # 3 | BA0123 | C         | 112.34       | 4
             # 4 | SG0456 | E         | 73.77        | 2
             expected_table = data.table.zip expected_column
+            result.should_equal expected_table
+        group_builder.specify "Can provide running sum of integer columns (returning column of floats)" <|
+            result = data.integer_table.running Statistic.Sum "Ticket Price" "Sum ticket cost"
+            expected_column = Column.from_vector "Sum ticket cost" [101.0, 677.0, 750.0, 862.0, 936.0]
+            #   | Flight | Passenger | Ticket Price | Sum ticket cost
+            #---+--------+-----------+--------------+-------------------------
+            # 0 | BA0123 | A         | 101          | 101.0
+            # 1 | BA0123 | B         | 576          | 677.0
+            # 2 | SG0456 | A         | 73           | 750.0
+            # 3 | BA0123 | C         | 112          | 862.0
+            # 4 | SG0456 | E         | 74           | 936.0
+            expected_table = data.integer_table.zip expected_column
             result.should_equal expected_table
     suite_builder.group "running mean" group_builder->
         data = Data.setup
@@ -165,6 +179,18 @@ add_specs suite_builder =
             # 4 | SG0456 | E         | 73.77        | 187.166
             expected_table = data.table.zip expected_column
             result.should_equal expected_table
+        group_builder.specify "Can provide running mean of integer columns (returning column of floats)" <|
+            result = data.integer_table.running Statistic.Mean "Ticket Price" "Mean ticket cost"
+            expected_column = Column.from_vector "Mean ticket cost" [101.0, 338.5, 250, 215.5, 187.2]
+            #   | Flight | Passenger | Ticket Price | Mean ticket cost
+            #---+--------+-----------+--------------+-------------------------
+            # 0 | BA0123 | A         | 101          | 101.0
+            # 1 | BA0123 | B         | 576          | 338.5
+            # 2 | SG0456 | A         | 73           | 250
+            # 3 | BA0123 | C         | 112          | 215.5
+            # 4 | SG0456 | E         | 74           | 187.2
+            expected_table = data.integer_table.zip expected_column
+            result.should_equal expected_table
     suite_builder.group "running max" group_builder->
         data = Data.setup
         group_builder.specify "Not setting the as name gives default name based on of column" <|
@@ -178,6 +204,18 @@ add_specs suite_builder =
             # 3 | BA0123 | C         | 112.34       | 575.99
             # 4 | SG0456 | E         | 73.77        | 575.99
             expected_table = data.table.zip expected_column
+            result.should_equal expected_table
+        group_builder.specify "Can provide running max of integer columns (returning column of integers)" <|
+            result = data.integer_table.running Statistic.Maximum "Ticket Price" "Max ticket cost"
+            expected_column = Column.from_vector "Max ticket cost" [101, 576, 576, 576, 576]
+            #   | Flight | Passenger | Ticket Price | Max ticket cost
+            #---+--------+-----------+--------------+-------------------------
+            # 0 | BA0123 | A         | 101          | 101
+            # 1 | BA0123 | B         | 576          | 576
+            # 2 | SG0456 | A         | 73           | 576
+            # 3 | BA0123 | C         | 112          | 576
+            # 4 | SG0456 | E         | 74           | 576
+            expected_table = data.integer_table.zip expected_column
             result.should_equal expected_table
     suite_builder.group "running min" group_builder->
         data = Data.setup
