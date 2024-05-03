@@ -43,15 +43,16 @@ public class AddRunning {
         return new RunningMeanStatistic(sourceColumn, problemAggregator);
       }
       case Minimum -> {
+        if (sourceColumn.getStorage().getType() == IntegerType.INT_64) {
+          return new RunningMinLongStatistic(sourceColumn, problemAggregator);
+        }
         return new RunningMinStatistic(sourceColumn, problemAggregator);
       }
       case Maximum -> {
         if (sourceColumn.getStorage().getType() == IntegerType.INT_64) {
           return new RunningMaxLongStatistic(sourceColumn, problemAggregator);
-          // return new RunningMaxStatistic<long>(sourceColumn, problemAggregator);
         }
         return new RunningMaxStatistic(sourceColumn, problemAggregator);
-        // return new RunningMaxStatistic<double>(sourceColumn, problemAggregator);
       }
       default -> throw new IllegalArgumentException("Unsupported statistic: " + statistic);
     }
@@ -251,6 +252,26 @@ public class AddRunning {
 
       @Override
       public void increment(double value) {
+        current = Math.min(current, value);
+      }
+    }
+  }
+
+  private static class RunningMinLongStatistic extends RunningStatisticBase<Long> {
+
+    RunningMinLongStatistic(Column sourceColumn, ProblemAggregator problemAggregator) {
+      super(sourceColumn, problemAggregator, new LongHandler());
+    }
+
+    @Override
+    public RunningIterator<Long> getNewIterator() {
+      return new RunningMinLongIterator();
+    }
+
+    private static class RunningMinLongIterator extends RunningIteratorLong {
+
+      @Override
+      public void increment(long value) {
         current = Math.min(current, value);
       }
     }
