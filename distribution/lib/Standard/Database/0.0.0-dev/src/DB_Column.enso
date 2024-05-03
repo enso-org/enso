@@ -320,7 +320,7 @@ type DB_Column
             Value_Type.expect_text other <|
                 Helpers.assume_default_locale locale <|
                     new_name = self.naming_helper.function_name "equals_ignore_case" [self, other]
-                    self.make_binary_op "equals_ignore_case" other new_name
+                    self.make_binary_op "EQUALS_IGNORE_CASE" other new_name
 
     ## ALIAS not equals
        GROUP Standard.Base.Operators

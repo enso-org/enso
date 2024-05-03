@@ -375,7 +375,7 @@ make_case_sensitive = lift_unary_op "MAKE_CASE_SENSITIVE" _->
     Error.throw <| Unsupported_Database_Operation.Error ("Case sensitive operations are not currently supported by this connection.")
 
 ## PRIVATE
-simple_equals_ignore_case = Base_Generator.lift_binary_op "equals_ignore_case" a-> b->
+simple_equals_ignore_case = Base_Generator.lift_binary_op "EQUALS_IGNORE_CASE" a-> b->
     SQL_Builder.code "LOWER(UPPER(" ++ a ++ ")) = LOWER(UPPER(" ++ b ++ "))"
 
 ## PRIVATE
