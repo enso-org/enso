@@ -429,7 +429,7 @@ type Vector a
              ["ab", "abab", "aba", "bbb"].last_index_of (s-> s == s.reverse) == 3
     @condition Filter_Condition.default_widget
     last_index_of : (Any | Filter_Condition | (Any -> Boolean)) -> Integer -> Integer | Nothing
-    last_index_of self (condition : Filter_Condition | (Any -> Boolean)) (start : Integer = -1) =
+    last_index_of self condition (start : Integer = -1) =
         Array_Like_Helpers.last_index_of self condition start
 
     ## GROUP Logical

@@ -272,7 +272,7 @@ type Array
              ["ab", "abab", "aba", "bbb"].to_array.index_of (s-> s == s.reverse) == 2
     @condition Filter_Condition.default_widget
     index_of : (Any | Filter_Condition | (Any -> Boolean)) -> Integer -> Integer | Nothing
-    index_of self (condition : Filter_Condition | (Any -> Boolean)) (start : Integer = 0) =
+    index_of self condition (start : Integer = 0) =
         Array_Like_Helpers.index_of self condition start
 
     ## GROUP Values
@@ -297,7 +297,7 @@ type Array
              ["ab", "abab", "aba", "bbb"].to_array.last_index_of (s-> s == s.reverse) == 3
     @condition Filter_Condition.default_widget
     last_index_of : (Any | Filter_Condition | (Any -> Boolean)) -> Integer -> Integer | Nothing
-    last_index_of self (condition : Filter_Condition | (Any -> Boolean)) (start : Integer = -1) =
+    last_index_of self condition (start : Integer = -1) =
         Array_Like_Helpers.last_index_of self condition start
 
     ## GROUP Logical

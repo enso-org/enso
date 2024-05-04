@@ -609,7 +609,7 @@ type List
              [1, 2, 3, 4, 5].find (> 3)
     @condition Filter_Condition.default_widget
     index_of : (Any | Filter_Condition | (Any -> Boolean)) -> Integer -> Integer | Nothing
-    index_of self (condition : Filter_Condition | (Integer -> Boolean)) (start : Integer = 0) = case start.signum of
+    index_of self condition (start : Integer = 0) = case start.signum of
         -1 ->
             node_and_index = find_node_from_end self start
             found = node_and_index.first.index_of condition 0
@@ -639,7 +639,7 @@ type List
              [1, 2, 3, 4, 5].find (> 3)
     @condition Filter_Condition.default_widget
     last_index_of : (Any | Filter_Condition | (Any -> Boolean)) -> Integer -> Integer | Nothing
-    last_index_of self (condition : Filter_Condition | (Integer -> Boolean)) (start : Integer = -1) = case self of
+    last_index_of self condition (start : Integer = -1) = case self of
         Nil -> if start == -1 || start == 0 then Nothing else Error.throw (Index_Out_Of_Bounds.Error start 0)
         Cons _ _ ->
             length = self.length

@@ -455,7 +455,7 @@ type Date_Range
              (Date.new 2020 10 01).up_to (Date.new 2020 10 31) . index_of (d-> d.day_of_week == Day_Of_Week.Monday)
     @condition date_range_default_filter_condition_widget
     index_of : (Date | Filter_Condition | (Date -> Boolean)) -> Integer -> Integer | Nothing
-    index_of self (condition : Filter_Condition | (Date -> Boolean)) (start : Integer = 0) =
+    index_of self condition (start : Integer = 0) =
         predicate = unify_condition_for_index_of condition
         (0.up_to self.length).index_of (ix-> predicate (self.internal_at ix)) start
 
@@ -476,7 +476,7 @@ type Date_Range
              (Date.new 2020 10 01).up_to (Date.new 2020 10 31) . last_index_of (d-> d.day_of_week == Day_Of_Week.Monday)
     @condition date_range_default_filter_condition_widget
     last_index_of : (Date | Filter_Condition | (Date -> Boolean)) -> Integer -> Integer | Nothing
-    last_index_of self (condition : Filter_Condition | (Date -> Boolean)) (start : Integer = -1) =
+    last_index_of self condition (start : Integer = -1) =
         predicate = unify_condition_for_index_of condition
         (0.up_to self.length).last_index_of (ix-> predicate (self.internal_at ix)) start
 
