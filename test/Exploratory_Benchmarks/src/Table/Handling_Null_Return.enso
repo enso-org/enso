@@ -1,6 +1,6 @@
 from Standard.Base import all
 from Standard.Table import Table
-from Standard.Internal.Storage import get_storage_for_column
+from Standard.Table.Internal.Storage import get_storage_for_column
 from Standard.Test import Bench
 
 polyglot java import org.enso.exploratory_benchmark_helpers.LongNullHandling

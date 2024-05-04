@@ -3,7 +3,7 @@ from Standard.Base import all
 from Standard.Table import Table, Value_Type, Aggregate_Column
 import Standard.Table.Internal.Multi_Value_Key.Ordered_Multi_Value_Key
 import Standard.Table.Internal.Multi_Value_Key.Unordered_Multi_Value_Key
-from Standard.Internal.Storage import get_storage_for_column
+from Standard.Table.Internal.Storage import get_storage_for_column
 from Standard.Test import Bench
 
 polyglot java import org.enso.table.data.index.OrderedMultiValueKey
