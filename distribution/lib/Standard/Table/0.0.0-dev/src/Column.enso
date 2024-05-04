@@ -137,7 +137,7 @@ type Column
 
        Arguments:
        - java_column: The internal representation of the column.
-    Value java_column
+    private Value java_column
 
     ## PRIVATE
        ADVANCED

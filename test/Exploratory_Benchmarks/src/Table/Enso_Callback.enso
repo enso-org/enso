@@ -82,7 +82,7 @@ type Primitive_Enso_Callback_Test
         expected_storage_type = Storage.from_value_type_strict Value_Type.Integer
         java_column = Java_Problems.with_problem_aggregator Problem_Behavior.Report_Error java_problem_aggregator->
             Java_Column.fromItemsNoDateConversion "result" mapped expected_storage_type java_problem_aggregator
-        Column.Value java_column
+        Column.from_storage java_column.getName java_column.getStorage
 
     enso_map_with_builder_2_calls_unboxed self =
         n = self.int_column.length
