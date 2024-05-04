@@ -1,5 +1,6 @@
 from Standard.Base import all
 from Standard.Table import all
+from Standard.Table.Table import get_java_storage
 
 from Standard.Test import Bench
 
@@ -21,7 +22,7 @@ type Boxed_Map_Test
 
     java_map self =
         Column.from_storage "result" <|
-            MapHelpers.textEndsWith self.text_column.java_column.getStorage self.suffix
+            MapHelpers.textEndsWith (get_java_storage self.text_column) self.suffix
 
     enso_map_as_vector self convert_polyglot_dates =
         suffix = self.suffix
@@ -33,7 +34,7 @@ type Boxed_Map_Test
         suffix = self.suffix
         n = self.text_column.length
         builder = BoolBuilder.new n
-        storage = self.text_column.java_column.getStorage
+        storage = get_java_storage self.text_column
         0.up_to n . each i->
             item = storage.getItemBoxed i
             case item of
@@ -58,7 +59,7 @@ type Primitive_Map_Test
 
     java_map self =
         Column.from_storage "result" <|
-            MapHelpers.longAdd self.int_column.java_column.getStorage self.shift
+            MapHelpers.longAdd (get_java_storage self.int_column) self.shift
 
     enso_map_as_vector self convert_polyglot_dates =
         shift = self.shift
@@ -70,7 +71,7 @@ type Primitive_Map_Test
         shift = self.shift
         n = self.int_column.length
         builder = NumericBuilder.createLongBuilder n
-        storage = self.int_column.java_column.getStorage
+        storage = get_java_storage self.int_column
         0.up_to n . each i->
             case storage.isNothing i of
                 True ->

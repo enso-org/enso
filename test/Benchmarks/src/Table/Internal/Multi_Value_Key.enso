@@ -3,6 +3,7 @@ from Standard.Base import all
 from Standard.Table import Table, Value_Type, Aggregate_Column
 import Standard.Table.Internal.Multi_Value_Key.Ordered_Multi_Value_Key
 import Standard.Table.Internal.Multi_Value_Key.Unordered_Multi_Value_Key
+from Standard.Table.Table import get_java_storage
 from Standard.Test import Bench
 
 polyglot java import org.enso.table.data.index.OrderedMultiValueKey
@@ -78,7 +79,7 @@ collect_benches = Bench.build builder->
             compare_ordered_keys make_key table compare_keys
 
         run_java table =
-            key_storages = table.columns.map c-> c.java_column.getStorage
+            key_storages = table.columns.map get_java_storage
             directions = Vector.fill key_storages.length 1
             make_key row_ix = OrderedMultiValueKey.new key_storages row_ix directions
             compare_keys key1 key2 = key1.compareTo key2 < 0
@@ -101,7 +102,7 @@ collect_benches = Bench.build builder->
             compute_hashcodes make_key table get_hash
 
         run_java table =
-            key_storages = table.columns.map c-> c.java_column.getStorage
+            key_storages = table.columns.map get_java_storage
             text_folding_strategies = Vector.fill key_storages.length TextFoldingStrategy.unicodeNormalizedFold
             make_key row_ix = UnorderedMultiValueKey.new key_storages row_ix text_folding_strategies
             get_hash key = key.hashCode

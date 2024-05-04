@@ -1,5 +1,6 @@
 from Standard.Base import all
 from Standard.Table import Table
+from Standard.Table.Table import get_java_storage
 from Standard.Test import Bench
 
 polyglot java import org.enso.exploratory_benchmark_helpers.LongNullHandling
@@ -27,7 +28,7 @@ collect_benches = Bench.build builder->
 
     builder.group ("Handling_Null_Return_" + num_rows.to_text) options group_builder->
         get_storage name =
-            data.table.at name . java_column . getStorage
+            get_java_storage (data.table.at name)
 
         group_builder.specify "NoNulls_10percent" <|
             LongNullHandling.runNoNulls (get_storage "a") (get_storage "b")
