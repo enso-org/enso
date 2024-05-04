@@ -2734,7 +2734,3 @@ apply_unary_map column:Column new_name:Text function expected_result_type:Value_
     Java_Problems.with_map_operation_problem_aggregator column.name Problem_Behavior.Report_Warning java_problem_aggregator->
         map_column = UnaryOperation.mapFunction column.java_column function nothing_unchanged storage_type new_name java_problem_aggregator
         Column.Value map_column
-
-## PRIVATE
-   Helper function for tests to get the storage of a Column
-get_java_storage column = column.java_column.getStorage

@@ -1,6 +1,6 @@
 from Standard.Base import all
 from Standard.Table import all
-from Standard.Table.Table import get_java_storage
+from Standard.Internal.Storage import get_storage_for_column
 
 from Standard.Test import Bench
 
@@ -20,7 +20,7 @@ type Boxed_Bi_Map_Test
 
     java_map self =
         Column.from_storage "result" <|
-            MapHelpers.stringConcatBimap (get_java_storage self.text_column_1) (get_java_storage self.text_column_2)
+            MapHelpers.stringConcatBimap (get_storage_for_column self.text_column_1) (get_storage_for_column self.text_column_2)
 
     enso_map_as_vector self convert_polyglot_dates =
         vector_proxy_1 = self.text_column_1.to_vector
@@ -32,8 +32,8 @@ type Boxed_Bi_Map_Test
         n = self.text_column_1.length
         if self.text_column_2.length != n then Panic.throw "LENGTH MISMATCH" else
             builder = StringBuilder.new n
-            storage_1 = get_java_storage self.text_column_1
-            storage_2 = get_java_storage self.text_column_2
+            storage_1 = get_storage_for_column self.text_column_1
+            storage_2 = get_storage_for_column self.text_column_2
             0.up_to n . each i->
                 item_1 = storage_1.getItemBoxed i
                 item_2 = storage_2.getItemBoxed i
@@ -54,7 +54,7 @@ type Primitive_Bi_Map_Test
 
     java_map self =
         Column.from_storage "result" <|
-            MapHelpers.longAddBimap (get_java_storage self.int_column_1) (get_java_storage self.int_column_2)
+            MapHelpers.longAddBimap (get_storage_for_column self.int_column_1) (get_storage_for_column self.int_column_2)
 
     enso_map_as_vector self convert_polyglot_dates =
         vector_proxy_1 = self.int_column_1.to_vector
@@ -66,8 +66,8 @@ type Primitive_Bi_Map_Test
         n = self.int_column_1.length
         if self.int_column_2.length != n then Panic.throw "LENGTH MISMATCH" else
             builder = NumericBuilder.createLongBuilder n
-            storage_1 = get_java_storage self.int_column_1
-            storage_2 = get_java_storage self.int_column_2
+            storage_1 = get_storage_for_column self.int_column_1
+            storage_2 = get_storage_for_column self.int_column_2
             0.up_to n . each i->
                 if storage_1.isNothing i || storage_2.isNothing i then builder.appendNulls 1 else
                     item_1 = storage_1.getItem i

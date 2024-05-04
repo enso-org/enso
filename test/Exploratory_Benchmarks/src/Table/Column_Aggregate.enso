@@ -1,6 +1,6 @@
 from Standard.Base import all
 from Standard.Table import all
-from Standard.Table.Table import get_java_storage
+from Standard.Internal.Storage import get_storage_for_column
 
 from Standard.Test import Bench
 
@@ -18,7 +18,7 @@ type Boxed_Total_Aggregate
         self.text_column.to_table.aggregate [] [Aggregate_Column.Longest 0] . at 0 . at 0
 
     java_loop self =
-        SimpleStorageAggregateHelpers.longestText (get_java_storage self.text_column)
+        SimpleStorageAggregateHelpers.longestText (get_storage_for_column self.text_column)
 
     enso_aggregate_vector_proxy self =
         n = self.text_column.length
@@ -31,7 +31,7 @@ type Boxed_Total_Aggregate
 
     enso_aggregate_storage_get_item self =
         n = self.text_column.length
-        storage = get_java_storage self.text_column
+        storage = get_storage_for_column self.text_column
         (0.up_to n).fold Nothing acc-> ix->
             item = storage.getItemBoxed ix
             if acc.is_nothing then item else
@@ -50,7 +50,7 @@ type Primitive_Total_Aggregate
         self.int_column.to_table.aggregate [] [Aggregate_Column.Sum 0] . at 0 . at 0
 
     java_loop self =
-        long_storage = get_java_storage self.int_column
+        long_storage = get_storage_for_column self.int_column
         SimpleStorageAggregateHelpers.sumLongStorage long_storage
 
     enso_aggregate_vector_proxy self =
@@ -61,7 +61,7 @@ type Primitive_Total_Aggregate
 
     enso_aggregate_storage_get_item self =
         n = self.int_column.length
-        storage = get_java_storage self.int_column
+        storage = get_storage_for_column self.int_column
         (0.up_to n).fold 0 acc-> ix->
             if storage.isNothing ix then acc else
                 acc + storage.getItem ix
@@ -76,7 +76,7 @@ type Boxed_Sum_Months
     Instance date_column
 
     java_loop self =
-        date_storage = get_java_storage self.date_column
+        date_storage = get_storage_for_column self.date_column
         SimpleStorageAggregateHelpers.sumMonthsOfDateStorage date_storage
 
     enso_aggregate_vector_proxy self =
@@ -87,7 +87,7 @@ type Boxed_Sum_Months
 
     enso_aggregate_storage_get_item self =
         n = self.date_column.length
-        storage = get_java_storage self.date_column
+        storage = get_storage_for_column self.date_column
         (0.up_to n).fold 0 acc-> ix->
             item = storage.getItemBoxed ix
             if item.is_nothing then acc else

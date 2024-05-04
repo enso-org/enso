@@ -3,7 +3,7 @@ from Standard.Base import all
 from Standard.Table import all
 import Standard.Table.Internal.Storage
 import Standard.Table.Internal.Java_Problems
-from Standard.Table.Table import get_java_storage
+from Standard.Internal.Storage import get_storage_for_column
 
 from Standard.Test import Bench
 
@@ -27,7 +27,7 @@ type Boxed_Enso_Callback_Test
         expected_type = Storage.from_value_type_strict Value_Type.Char
         Column.from_storage "result" <|
             Java_Problems.with_problem_aggregator Problem_Behavior.Report_Warning java_problem_aggregator->
-                MapHelpers.mapCallback (get_java_storage self.text_column) self.fn expected_type java_problem_aggregator
+                MapHelpers.mapCallback (get_storage_for_column self.text_column) self.fn expected_type java_problem_aggregator
 
     enso_map_as_vector self convert_polyglot_dates =
         vector_proxy = self.text_column.to_vector
@@ -38,7 +38,7 @@ type Boxed_Enso_Callback_Test
         n = self.text_column.length
         fn = self.fn
         builder = StringBuilder.new n
-        storage = get_java_storage self.text_column
+        storage = get_storage_for_column self.text_column
         0.up_to n . each i->
             case storage.getItemBoxed i of
                 Nothing ->
@@ -63,13 +63,13 @@ type Primitive_Enso_Callback_Test
 
     java_vectorized self =
         Column.from_storage "result" <|
-            MapHelpers.longAdd (get_java_storage self.int_column) self.shift
+            MapHelpers.longAdd (get_storage_for_column self.int_column) self.shift
 
     java_roundtrip self =
         expected_type = Storage.from_value_type_strict Value_Type.Integer
         Column.from_storage "result" <|
             Java_Problems.with_problem_aggregator Problem_Behavior.Report_Warning java_problem_aggregator->
-                MapHelpers.mapCallback (get_java_storage self.int_column) self.fn expected_type java_problem_aggregator
+                MapHelpers.mapCallback (get_storage_for_column self.int_column) self.fn expected_type java_problem_aggregator
 
     enso_map_as_vector_inferred_builder self convert_polyglot_dates =
         vector_proxy = self.int_column.to_vector
@@ -89,7 +89,7 @@ type Primitive_Enso_Callback_Test
         n = self.int_column.length
         fn = self.fn
         builder = NumericBuilder.createLongBuilder n
-        storage = get_java_storage self.int_column
+        storage = get_storage_for_column self.int_column
         0.up_to n . each i->
             case storage.isNothing i of
                 True ->
@@ -103,7 +103,7 @@ type Primitive_Enso_Callback_Test
         n = self.int_column.length
         fn = self.fn
         builder = NumericBuilder.createLongBuilder n
-        storage = get_java_storage self.int_column
+        storage = get_storage_for_column self.int_column
         0.up_to n . each i->
             case storage.getItemBoxed i of
                 Nothing ->
