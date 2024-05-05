@@ -1,17 +1,21 @@
 package org.enso.languageserver.requesthandler.executioncontext
 
-import akka.actor.{Actor, ActorRef, Cancellable, Props}
+import akka.actor.{Actor, ActorRef, Props}
 import com.typesafe.scalalogging.LazyLogging
 import org.enso.jsonrpc._
-import org.enso.languageserver.requesthandler.RequestTimeout
 import org.enso.languageserver.runtime.ExecutionApi._
 import org.enso.languageserver.runtime.{
   ContextRegistryProtocol,
+  ExecutionApi,
   RuntimeFailureMapper
 }
 import org.enso.languageserver.session.JsonSession
-import org.enso.languageserver.util.UnhandledLogging
+import org.enso.languageserver.util.{
+  RequestHandlerWithRetries,
+  UnhandledLogging
+}
 
+import scala.concurrent.ExecutionContext
 import scala.concurrent.duration.FiniteDuration
 
 /** A request handler for `executionContext/push` commands.
@@ -24,51 +28,50 @@ class PushHandler(
   timeout: FiniteDuration,
   contextRegistry: ActorRef,
   session: JsonSession
-) extends Actor
+) extends RequestHandlerWithRetries[
+      Request[ExecutionContextPush.type, ExecutionContextPush.Params],
+      ContextRegistryProtocol.PushContextResponse,
+      ContextRegistryProtocol.Failure,
+      ContextRegistryProtocol.PushContextRequest
+    ](contextRegistry, timeout, 5)
+    with Actor
     with LazyLogging
     with UnhandledLogging {
 
-  import ContextRegistryProtocol._
-  import context.dispatcher
+  override protected def request(
+    msg: Request[
+      ExecutionApi.ExecutionContextPush.type,
+      ExecutionContextPush.Params
+    ]
+  ): ContextRegistryProtocol.PushContextRequest =
+    ContextRegistryProtocol.PushContextRequest(
+      session,
+      msg.params.contextId,
+      msg.params.stackItem
+    )
 
-  override def receive: Receive = requestStage
-
-  private def requestStage: Receive = {
-    case Request(
-          ExecutionContextPush,
-          id,
-          params: ExecutionContextPush.Params
-        ) =>
-      contextRegistry ! PushContextRequest(
-        session,
-        params.contextId,
-        params.stackItem
-      )
-      val cancellable =
-        context.system.scheduler.scheduleOnce(timeout, self, RequestTimeout)
-      context.become(responseStage(id, sender(), cancellable))
-  }
-
-  private def responseStage(
-    id: Id,
+  override protected def positiveResponse(
     replyTo: ActorRef,
-    cancellable: Cancellable
-  ): Receive = {
-    case RequestTimeout =>
-      logger.error("Request [{}] timed out.", id)
-      replyTo ! ResponseError(Some(id), Errors.RequestTimeout)
-      context.stop(self)
+    initialMsg: Request[
+      ExecutionApi.ExecutionContextPush.type,
+      ExecutionContextPush.Params
+    ],
+    msg: ContextRegistryProtocol.PushContextResponse
+  ): Unit =
+    replyTo ! ResponseResult(ExecutionContextPush, initialMsg.id, Unused)
 
-    case PushContextResponse(_) =>
-      replyTo ! ResponseResult(ExecutionContextPush, id, Unused)
-      cancellable.cancel()
-      context.stop(self)
-
-    case error: ContextRegistryProtocol.Failure =>
-      replyTo ! ResponseError(Some(id), RuntimeFailureMapper.mapFailure(error))
-      cancellable.cancel()
-      context.stop(self)
-  }
+  override protected def negativeResponse(
+    replyTo: ActorRef,
+    initialMsg: Request[
+      ExecutionApi.ExecutionContextPush.type,
+      ExecutionContextPush.Params
+    ],
+    error: ContextRegistryProtocol.Failure
+  )(implicit ec: ExecutionContext): Unit =
+    replyTo ! ResponseError(
+      Some(initialMsg.id),
+      RuntimeFailureMapper.mapFailure(error)
+    )
 }
 
 object PushHandler {

@@ -7,7 +7,7 @@ import org.enso.languageserver.runtime.{
   ContextRegistryProtocol,
   RuntimeFailureMapper
 }
-import org.enso.languageserver.util.{HandlerWithRetries, UnhandledLogging}
+import org.enso.languageserver.util.{ApiHandlerWithRetries, UnhandledLogging}
 import org.enso.polyglot.runtime.Runtime.Api
 
 import java.util.UUID
@@ -24,7 +24,7 @@ final class RecomputeContextHandler(
   runtimeFailureMapper: RuntimeFailureMapper,
   timeout: FiniteDuration,
   runtime: ActorRef
-) extends HandlerWithRetries[
+) extends ApiHandlerWithRetries[
       Api.RecomputeContextRequest,
       Api.RecomputeContextResponse
     ](runtime, timeout, 10)

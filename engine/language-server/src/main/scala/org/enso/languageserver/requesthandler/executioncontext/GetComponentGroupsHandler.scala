@@ -1,17 +1,21 @@
 package org.enso.languageserver.requesthandler.executioncontext
 
-import akka.actor.{Actor, ActorRef, Cancellable, Props}
+import akka.actor.{Actor, ActorRef, Props}
 import com.typesafe.scalalogging.LazyLogging
 import org.enso.jsonrpc._
 import org.enso.languageserver.data.ClientId
-import org.enso.languageserver.requesthandler.RequestTimeout
 import org.enso.languageserver.runtime.ExecutionApi._
 import org.enso.languageserver.runtime.{
   ContextRegistryProtocol,
+  ExecutionApi,
   RuntimeFailureMapper
 }
-import org.enso.languageserver.util.UnhandledLogging
+import org.enso.languageserver.util.{
+  RequestHandlerWithRetries,
+  UnhandledLogging
+}
 
+import scala.concurrent.ExecutionContext
 import scala.concurrent.duration.FiniteDuration
 
 /** A request handler for `executionContext/getComponentGroups` commands.
@@ -24,51 +28,56 @@ class GetComponentGroupsHandler(
   timeout: FiniteDuration,
   contextRegistry: ActorRef,
   clientId: ClientId
-) extends Actor
+) extends RequestHandlerWithRetries[
+      Request[
+        ExecutionContextGetComponentGroups.type,
+        ExecutionContextGetComponentGroups.Params
+      ],
+      ContextRegistryProtocol.GetComponentGroupsResponse,
+      ContextRegistryProtocol.Failure,
+      ContextRegistryProtocol.GetComponentGroupsRequest
+    ](contextRegistry, timeout, 10)
+    with Actor
     with LazyLogging
     with UnhandledLogging {
 
-  import ContextRegistryProtocol._
-  import context.dispatcher
+  override protected def request(
+    msg: Request[
+      ExecutionApi.ExecutionContextGetComponentGroups.type,
+      ExecutionContextGetComponentGroups.Params
+    ]
+  ): ContextRegistryProtocol.GetComponentGroupsRequest =
+    ContextRegistryProtocol.GetComponentGroupsRequest(
+      clientId,
+      msg.params.contextId
+    )
 
-  override def receive: Receive = requestStage
-
-  private def requestStage: Receive = {
-    case Request(
-          ExecutionContextGetComponentGroups,
-          id,
-          params: ExecutionContextGetComponentGroups.Params
-        ) =>
-      contextRegistry ! GetComponentGroupsRequest(clientId, params.contextId)
-      val cancellable =
-        context.system.scheduler.scheduleOnce(timeout, self, RequestTimeout)
-      context.become(responseStage(id, sender(), cancellable))
-  }
-
-  private def responseStage(
-    id: Id,
+  override protected def positiveResponse(
     replyTo: ActorRef,
-    cancellable: Cancellable
-  ): Receive = {
-    case RequestTimeout =>
-      logger.error("Request [{}] timed out.", id)
-      replyTo ! ResponseError(Some(id), Errors.RequestTimeout)
-      context.stop(self)
+    initialMsg: Request[
+      ExecutionApi.ExecutionContextGetComponentGroups.type,
+      ExecutionContextGetComponentGroups.Params
+    ],
+    msg: ContextRegistryProtocol.GetComponentGroupsResponse
+  ): Unit =
+    replyTo ! ResponseResult(
+      ExecutionContextGetComponentGroups,
+      initialMsg.id,
+      ExecutionContextGetComponentGroups.Result(msg.componentGroups)
+    )
 
-    case GetComponentGroupsResponse(componentGroups) =>
-      replyTo ! ResponseResult(
-        ExecutionContextGetComponentGroups,
-        id,
-        ExecutionContextGetComponentGroups.Result(componentGroups)
-      )
-      cancellable.cancel()
-      context.stop(self)
-
-    case error: ContextRegistryProtocol.Failure =>
-      replyTo ! ResponseError(Some(id), RuntimeFailureMapper.mapFailure(error))
-      cancellable.cancel()
-      context.stop(self)
-  }
+  override protected def negativeResponse(
+    replyTo: ActorRef,
+    initialMsg: Request[
+      ExecutionApi.ExecutionContextGetComponentGroups.type,
+      ExecutionContextGetComponentGroups.Params
+    ],
+    error: ContextRegistryProtocol.Failure
+  )(implicit ec: ExecutionContext): Unit =
+    replyTo ! ResponseError(
+      Some(initialMsg.id),
+      RuntimeFailureMapper.mapFailure(error)
+    )
 }
 
 object GetComponentGroupsHandler {

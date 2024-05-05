@@ -7,7 +7,7 @@ import org.enso.languageserver.runtime.{
   ContextRegistryProtocol,
   RuntimeFailureMapper
 }
-import org.enso.languageserver.util.{HandlerWithRetries, UnhandledLogging}
+import org.enso.languageserver.util.{ApiHandlerWithRetries, UnhandledLogging}
 import org.enso.polyglot.runtime.Runtime.Api
 
 import java.util.UUID
@@ -18,16 +18,16 @@ import scala.concurrent.duration.FiniteDuration
   *
   * @param runtimeFailureMapper mapper for runtime failures
   * @param timeout request timeout
-  * @param runtime reference to the runtime connector
+  * @param target reference to the runtime connector
   */
 final class CreateContextHandler(
   runtimeFailureMapper: RuntimeFailureMapper,
   timeout: FiniteDuration,
-  runtime: ActorRef
-) extends HandlerWithRetries[
+  target: ActorRef
+) extends ApiHandlerWithRetries[
       Api.CreateContextRequest,
       Api.CreateContextResponse
-    ](runtime, timeout, 10)
+    ](target, timeout, 10)
     with Actor
     with LazyLogging
     with UnhandledLogging {

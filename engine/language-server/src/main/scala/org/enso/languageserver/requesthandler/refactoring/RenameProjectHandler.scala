@@ -1,82 +1,73 @@
 package org.enso.languageserver.requesthandler.refactoring
 
-import akka.actor.{Actor, ActorRef, Cancellable, Props}
+import akka.actor.{Actor, ActorRef, Props}
 import com.typesafe.scalalogging.LazyLogging
 import org.enso.jsonrpc._
 import org.enso.languageserver.refactoring.RefactoringApi.{
   ProjectRenameFailed,
   RenameProject
 }
-import org.enso.languageserver.refactoring.RefactoringProtocol
-import org.enso.languageserver.requesthandler.RequestTimeout
-import org.enso.languageserver.util.UnhandledLogging
+import org.enso.languageserver.refactoring.{RefactoringApi, RefactoringProtocol}
+import org.enso.languageserver.util.{ApiHandlerWithRetries, UnhandledLogging}
 import org.enso.polyglot.runtime.Runtime.Api
 
 import java.util.UUID
-
+import scala.concurrent.ExecutionContext
 import scala.concurrent.duration.FiniteDuration
 
 /** A request handler for `refactoring/renameProject` commands.
   *
   * @param timeout a request timeout
-  * @param runtimeConnector a reference to the runtime connector
+  * @param target a reference to the runtime connector
   */
-class RenameProjectHandler(timeout: FiniteDuration, runtimeConnector: ActorRef)
-    extends Actor
+class RenameProjectHandler(timeout: FiniteDuration, target: ActorRef)
+    extends ApiHandlerWithRetries[
+      Request[RenameProject.type, RenameProject.Params],
+      Api.ProjectRenamed
+    ](target, timeout, 10)
+    with Actor
     with LazyLogging
     with UnhandledLogging {
 
-  import context.dispatcher
+  var id: Id = null
 
-  override def receive: Receive = requestStage
-
-  private def requestStage: Receive = {
-    case Request(RenameProject, id, params: RenameProject.Params) =>
-      val payload =
-        Api.RenameProject(params.namespace, params.oldName, params.newName)
-      runtimeConnector ! Api.Request(UUID.randomUUID(), payload)
-      val cancellable =
-        context.system.scheduler.scheduleOnce(timeout, self, RequestTimeout)
-      context.become(
-        responseStage(
-          id,
-          sender(),
-          cancellable
-        )
-      )
+  override protected def request(
+    msg: Request[RefactoringApi.RenameProject.type, RenameProject.Params]
+  ): Api.Request = {
+    val payload = Api.RenameProject(
+      msg.params.namespace,
+      msg.params.oldName,
+      msg.params.newName
+    )
+    id = msg.id
+    Api.Request(UUID.randomUUID(), payload)
   }
 
-  private def responseStage(
-    id: Id,
+  override protected def positiveResponse(
     replyTo: ActorRef,
-    cancellable: Cancellable
-  ): Receive = {
-    case RequestTimeout =>
-      logger.error("Request [{}] timed out.", id)
-      replyTo ! ResponseError(Some(id), Errors.RequestTimeout)
-      context.stop(self)
-
-    case Api.Response(
-          _,
-          Api.ProjectRenamed(oldNormalizedName, newNormalizedName, newName)
-        ) =>
-      replyTo ! ResponseResult(RenameProject, id, Unused)
-      context.system.eventStream.publish(
-        RefactoringProtocol.ProjectRenamedNotification(
-          oldNormalizedName,
-          newNormalizedName,
-          newName
-        )
+    msg: Api.ProjectRenamed
+  ): Unit = {
+    val Api.ProjectRenamed(oldNormalizedName, newNormalizedName, newName) = msg
+    replyTo ! ResponseResult(RenameProject, id, Unused)
+    context.system.eventStream.publish(
+      RefactoringProtocol.ProjectRenamedNotification(
+        oldNormalizedName,
+        newNormalizedName,
+        newName
       )
-      cancellable.cancel()
-      context.stop(self)
-
-    case Api.Response(_, Api.ProjectRenameFailed(oldName, newName)) =>
-      replyTo ! ResponseError(Some(id), ProjectRenameFailed(oldName, newName))
-      cancellable.cancel()
-      context.stop(self)
+    )
   }
 
+  override protected def negativeResponse(
+    replyTo: ActorRef,
+    error: Api.Error
+  )(implicit ec: ExecutionContext): Unit = {
+    val Api.ProjectRenameFailed(oldName, newName) = error
+    replyTo ! ResponseError(
+      Some(id),
+      ProjectRenameFailed(oldName, newName)
+    )
+  }
 }
 
 object RenameProjectHandler {

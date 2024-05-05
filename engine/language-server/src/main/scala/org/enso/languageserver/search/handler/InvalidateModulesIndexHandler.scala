@@ -5,7 +5,7 @@ import akka.pattern.pipe
 import com.typesafe.scalalogging.LazyLogging
 import org.enso.languageserver.runtime.RuntimeFailureMapper
 import org.enso.languageserver.search.SearchProtocol
-import org.enso.languageserver.util.{HandlerWithRetries, UnhandledLogging}
+import org.enso.languageserver.util.{ApiHandlerWithRetries, UnhandledLogging}
 import org.enso.polyglot.runtime.Runtime.Api
 
 import java.util.UUID
@@ -24,7 +24,7 @@ final class InvalidateModulesIndexHandler(
   runtime: ActorRef,
   suggestionsHandler: ActorRef,
   timeout: FiniteDuration
-) extends HandlerWithRetries[
+) extends ApiHandlerWithRetries[
       SearchProtocol.InvalidateModulesIndex.type,
       Api.InvalidateModulesIndexResponse
     ](runtime, timeout, 10)

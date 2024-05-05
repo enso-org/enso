@@ -7,7 +7,7 @@ import org.enso.languageserver.runtime.{
   ContextRegistryProtocol,
   RuntimeFailureMapper
 }
-import org.enso.languageserver.util.{HandlerWithRetries, UnhandledLogging}
+import org.enso.languageserver.util.{ApiHandlerWithRetries, UnhandledLogging}
 import org.enso.polyglot.runtime.Runtime.Api
 
 import java.util.UUID
@@ -24,7 +24,10 @@ final class PopContextHandler(
   runtimeFailureMapper: RuntimeFailureMapper,
   timeout: FiniteDuration,
   runtime: ActorRef
-) extends HandlerWithRetries[Api.PopContextRequest, Api.PopContextResponse](
+) extends ApiHandlerWithRetries[
+      Api.PopContextRequest,
+      Api.PopContextResponse
+    ](
       runtime,
       timeout,
       5
