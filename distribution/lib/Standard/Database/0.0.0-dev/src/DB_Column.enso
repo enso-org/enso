@@ -35,7 +35,7 @@ type DB_Column
        Represents a single column backed by a database.
 
        Arguments:
-       - name: The name of the column.
+       - internal_name: The name of the column.
        - connection: The connection with which the column is associated.
        - sql_type_reference: Lazily computed SQL type of the column.
        - expression: The expressions to apply to the column.
@@ -47,7 +47,11 @@ type DB_Column
        which they come. Combined expressions must come from the same context -
        they must both have the same filtering, grouping etc. rules applied to be
        able to be combined.
-    Value name:Text connection:(Connection | Any) sql_type_reference:SQL_Type_Reference expression:SQL_Expression context:Context
+    private Value internal_name:Text connection:(Connection | Any) sql_type_reference:SQL_Type_Reference expression:SQL_Expression context:Context
+
+    ## The name of the column.
+    name : Text
+    name self = self.internal_name
 
     ## PRIVATE
        ADVANCED
@@ -1907,7 +1911,7 @@ adapt_unified_column column expected_type =
     infer_return_type expression =
         SQL_Type_Reference.new column.connection column.context expression
     adapted = dialect.adapt_unified_column column.as_internal expected_type infer_return_type
-    DB_Column.Value name=column.name connection=column.connection sql_type_reference=adapted.sql_type_reference expression=adapted.expression context=column.context
+    DB_Column.Value column.name column.connection adapted.sql_type_reference adapted.expression column.context
 
 ## PRIVATE
 Column.from (that:DB_Column) =
