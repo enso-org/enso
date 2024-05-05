@@ -75,18 +75,14 @@ type DB_Table
 
        Arguments:
        - internal_name: The name of the table.
-       - internal_connection: The connection with which the table is associated.
+       - connection: The connection with which the table is associated.
        - internal_columns: The internal representation of the table columns.
        - context: The context associated with this table.
-    private Value internal_name:Text internal_connection:(Connection | Any) (internal_columns:(Vector Internal_Column)) context:Context
+    private Value internal_name:Text connection:(Connection | Any) (internal_columns:(Vector Internal_Column)) context:Context
 
-    ## Returns the name of the table.
+    ## The name of the table.
     name : Text
     name self = self.internal_name
-
-    ## Returns the connection of the table.
-    connection : Text
-    connection self = self.internal_connection
 
     ## PRIVATE
        ADVANCED
