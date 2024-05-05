@@ -36,7 +36,7 @@ class SetExecutionEnvironmentHandler(
       ContextRegistryProtocol.SetExecutionEnvironmentResponse,
       ContextRegistryProtocol.Failure,
       ContextRegistryProtocol.SetExecutionEnvironmentRequest
-    ](contextRegistry, timeout, 5)
+    ](contextRegistry, timeout)
     with Actor
     with LazyLogging
     with UnhandledLogging {

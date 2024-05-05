@@ -24,7 +24,7 @@ class RenameSymbolHandler(
 ) extends ApiHandlerWithRetries[
       Request[RenameSymbol.type, RenameSymbol.Params],
       Api.SymbolRenamed
-    ](runtime, timeout, 10)
+    ](runtime, timeout)
     with Actor
     with LazyLogging
     with UnhandledLogging {

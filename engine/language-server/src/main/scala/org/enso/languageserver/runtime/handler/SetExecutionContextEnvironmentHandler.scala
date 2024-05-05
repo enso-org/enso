@@ -27,7 +27,7 @@ final class SetExecutionContextEnvironmentHandler(
 ) extends ApiHandlerWithRetries[
       Api.SetExecutionEnvironmentRequest,
       Api.SetExecutionEnvironmentResponse
-    ](runtime, timeout, 10)
+    ](runtime, timeout)
     with Actor
     with LazyLogging
     with UnhandledLogging {

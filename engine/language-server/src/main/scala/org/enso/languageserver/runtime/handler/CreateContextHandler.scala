@@ -27,7 +27,7 @@ final class CreateContextHandler(
 ) extends ApiHandlerWithRetries[
       Api.CreateContextRequest,
       Api.CreateContextResponse
-    ](target, timeout, 10)
+    ](target, timeout)
     with Actor
     with LazyLogging
     with UnhandledLogging {

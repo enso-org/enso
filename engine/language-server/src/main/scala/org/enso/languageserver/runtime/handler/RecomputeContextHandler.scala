@@ -27,7 +27,7 @@ final class RecomputeContextHandler(
 ) extends ApiHandlerWithRetries[
       Api.RecomputeContextRequest,
       Api.RecomputeContextResponse
-    ](runtime, timeout, 10)
+    ](runtime, timeout)
     with Actor
     with LazyLogging
     with UnhandledLogging {

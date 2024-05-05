@@ -33,7 +33,7 @@ class PopHandler(
       ContextRegistryProtocol.PopContextResponse,
       ContextRegistryProtocol.Failure,
       ContextRegistryProtocol.PopContextRequest
-    ](contextRegistry, timeout, 10)
+    ](contextRegistry, timeout)
     with Actor
     with LazyLogging
     with UnhandledLogging {

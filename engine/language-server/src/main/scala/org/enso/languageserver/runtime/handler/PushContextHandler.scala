@@ -27,11 +27,7 @@ final class PushContextHandler(
 ) extends ApiHandlerWithRetries[
       Api.PushContextRequest,
       Api.PushContextResponse
-    ](
-      runtime,
-      timeout,
-      5
-    )
+    ](runtime, timeout)
     with Actor
     with LazyLogging
     with UnhandledLogging {

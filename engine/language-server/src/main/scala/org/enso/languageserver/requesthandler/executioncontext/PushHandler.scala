@@ -33,7 +33,7 @@ class PushHandler(
       ContextRegistryProtocol.PushContextResponse,
       ContextRegistryProtocol.Failure,
       ContextRegistryProtocol.PushContextRequest
-    ](contextRegistry, timeout, 5)
+    ](contextRegistry, timeout)
     with Actor
     with LazyLogging
     with UnhandledLogging {

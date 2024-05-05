@@ -27,7 +27,7 @@ final class InvalidateModulesIndexHandler(
 ) extends ApiHandlerWithRetries[
       SearchProtocol.InvalidateModulesIndex.type,
       Api.InvalidateModulesIndexResponse
-    ](runtime, timeout, 10)
+    ](runtime, timeout)
     with Actor
     with LazyLogging
     with UnhandledLogging {

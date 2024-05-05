@@ -36,7 +36,7 @@ class GetComponentGroupsHandler(
       ContextRegistryProtocol.GetComponentGroupsResponse,
       ContextRegistryProtocol.Failure,
       ContextRegistryProtocol.GetComponentGroupsRequest
-    ](contextRegistry, timeout, 10)
+    ](contextRegistry, timeout)
     with Actor
     with LazyLogging
     with UnhandledLogging {

@@ -38,7 +38,7 @@ class CreateHandler(
       ContextRegistryProtocol.CreateContextResponse,
       ContextRegistryProtocol.Failure,
       ContextRegistryProtocol.CreateContextRequest
-    ](contextRegistry, timeout, 10)
+    ](contextRegistry, timeout)
     with Actor
     with LazyLogging
     with UnhandledLogging {
@@ -59,7 +59,6 @@ class CreateHandler(
     ],
     msg: ContextRegistryProtocol.CreateContextResponse
   ): Unit = {
-    Thread.sleep(1000)
     val contextId       = msg.contextId
     val canModify       = CapabilityRegistration(CanModify(contextId))
     val receivesUpdates = CapabilityRegistration(ReceivesUpdates(contextId))

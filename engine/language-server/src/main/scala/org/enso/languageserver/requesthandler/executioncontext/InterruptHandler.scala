@@ -33,7 +33,7 @@ class InterruptHandler(
       ContextRegistryProtocol.InterruptContextResponse,
       ContextRegistryProtocol.Failure,
       ContextRegistryProtocol.InterruptContextRequest
-    ](contextRegistry, timeout, 10)
+    ](contextRegistry, timeout)
     with Actor
     with LazyLogging
     with UnhandledLogging {

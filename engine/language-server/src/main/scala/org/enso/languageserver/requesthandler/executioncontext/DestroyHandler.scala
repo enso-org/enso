@@ -33,7 +33,7 @@ class DestroyHandler(
       ContextRegistryProtocol.DestroyContextResponse,
       ContextRegistryProtocol.Failure,
       ContextRegistryProtocol.DestroyContextRequest
-    ](contextRegistry, timeout, 10)
+    ](contextRegistry, timeout)
     with Actor
     with LazyLogging
     with UnhandledLogging {

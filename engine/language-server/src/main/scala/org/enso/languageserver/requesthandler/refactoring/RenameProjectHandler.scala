@@ -24,7 +24,7 @@ class RenameProjectHandler(timeout: FiniteDuration, target: ActorRef)
     extends ApiHandlerWithRetries[
       Request[RenameProject.type, RenameProject.Params],
       Api.ProjectRenamed
-    ](target, timeout, 10)
+    ](target, timeout)
     with Actor
     with LazyLogging
     with UnhandledLogging {

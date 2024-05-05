@@ -33,7 +33,7 @@ class RecomputeHandler(
       ContextRegistryProtocol.RecomputeContextResponse,
       ContextRegistryProtocol.Failure,
       ContextRegistryProtocol.RecomputeContextRequest
-    ](contextRegistry, timeout, 5)
+    ](contextRegistry, timeout)
     with Actor
     with LazyLogging
     with UnhandledLogging {

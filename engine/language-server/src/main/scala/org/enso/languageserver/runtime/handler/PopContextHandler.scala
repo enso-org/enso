@@ -27,11 +27,7 @@ final class PopContextHandler(
 ) extends ApiHandlerWithRetries[
       Api.PopContextRequest,
       Api.PopContextResponse
-    ](
-      runtime,
-      timeout,
-      5
-    )
+    ](runtime, timeout)
     with Actor
     with LazyLogging
     with UnhandledLogging {

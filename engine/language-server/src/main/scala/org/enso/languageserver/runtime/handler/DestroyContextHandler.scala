@@ -27,7 +27,7 @@ final class DestroyContextHandler(
 ) extends ApiHandlerWithRetries[
       Api.DestroyContextRequest,
       Api.DestroyContextResponse
-    ](runtime, timeout, 10)
+    ](runtime, timeout)
     with Actor
     with LazyLogging
     with UnhandledLogging {
