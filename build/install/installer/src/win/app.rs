@@ -220,7 +220,7 @@ impl InstallerApp {
                     Err(std::sync::mpsc::TryRecvError::Empty) => break,
                     Err(std::sync::mpsc::TryRecvError::Disconnected) => {
                         // We expect to receive `InstallerUpdate::Finished` before the channel is
-                        // closed. If it happens, it means that the backend thread has crashed.
+                        // closed. Otherwise, it means that the backend thread has crashed.
                         let err =
                             anyhow!("The installer backend thread has unexpectedly disconnected.");
                         self.fail_installation(err);
