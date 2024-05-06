@@ -317,10 +317,16 @@ abstract class TypePropagation {
         if (ctorCandidate.isPresent()) {
           return typeResolver.buildAtomConstructorType(typeObject, ctorCandidate.get());
         } else {
+          System.out.println("TODO: static calling " + function.name() + " on " + typeObject);
           // TODO if no ctor found, we should search static methods, but that is not implemented
           // currently; so we cannot report an error either - just do nothing
           return null;
         }
+      }
+
+      case TypeRepresentation.AtomType atomInstanceType -> {
+        System.out.println("TODO: calling " + function.name() + " on an instance of " + atomInstanceType);
+        return null;
       }
 
       default -> {
