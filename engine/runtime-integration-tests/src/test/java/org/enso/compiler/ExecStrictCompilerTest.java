@@ -55,11 +55,11 @@ public class ExecStrictCompilerTest {
 
   @Test
   public void redefinedArgument() throws Exception {
-    var module = ctx.eval("enso", """
-    type My_Type
-        Value a b c a
-    """);
     try {
+      var module = ctx.eval("enso", """
+      type My_Type
+          Value a b c a
+      """);
       var run = module.invokeMember("eval_expression", "My_Type.Value");
       fail("Expecting no returned value: " + run);
     } catch (PolyglotException ex) {
@@ -89,8 +89,8 @@ public class ExecStrictCompilerTest {
                 """,
                 "wrong_cons.enso")
             .build();
-    var module = ctx.eval(code);
     try {
+      var module = ctx.eval(code);
       var run = module.invokeMember("eval_expression", "foo 10");
       fail("Expecting no returned value: " + run);
     } catch (PolyglotException ex) {
