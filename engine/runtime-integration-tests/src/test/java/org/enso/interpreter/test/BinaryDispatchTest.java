@@ -291,10 +291,14 @@ public class BinaryDispatchTest extends TestBase {
     }
   }
 
-  private static void assertContains(String expected, String actual) {
-    if (actual.contains(expected)) {
+  static void assertContains(String expected, String actual) {
+    assertContains("Expecting", expected, actual);
+  }
+
+  static void assertContains(String msg, String expected, String actual) {
+    if (actual != null && actual.contains(expected)) {
       return;
     }
-    fail("Expecting " + expected + " in " + actual);
+    fail(msg + " " + expected + " in " + actual);
   }
 }

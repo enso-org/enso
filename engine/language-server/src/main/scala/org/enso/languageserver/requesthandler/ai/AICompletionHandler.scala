@@ -3,7 +3,7 @@ package org.enso.languageserver.requesthandler.ai
 import akka.actor.{Actor, ActorRef, Props}
 import com.typesafe.scalalogging.LazyLogging
 import org.enso.jsonrpc.{Errors, Id, Request, ResponseError, ResponseResult}
-import org.enso.languageserver.ai.AICompletion
+import org.enso.languageserver.ai.AiApi.AiCompletion
 import org.enso.languageserver.util.UnhandledLogging
 import akka.http.scaladsl.model._
 import akka.http.scaladsl.Http
@@ -13,6 +13,7 @@ import akka.stream.Materializer
 import akka.util.ByteString
 import io.circe.Json
 import org.enso.languageserver.data.AICompletionConfig
+import org.enso.languageserver.requesthandler.UnsupportedHandler
 
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration.FiniteDuration
@@ -31,7 +32,7 @@ class AICompletionHandler(cfg: AICompletionConfig)
   implicit val materializer: Materializer = Materializer(context)
 
   private def requestStage: Receive = {
-    case Request(AICompletion, id, AICompletion.Params(prompt, stop)) =>
+    case Request(AiCompletion, id, AiCompletion.Params(prompt, stop)) =>
       val body = Json.fromFields(
         Seq(
           ("model", Json.fromString("gpt-3.5-turbo-instruct")),
@@ -77,9 +78,9 @@ class AICompletionHandler(cfg: AICompletionConfig)
           firstChoiceText    <- firstChoiceObj("text")
           firstChoiceTextStr <- firstChoiceText.asString
         } yield ResponseResult(
-          AICompletion,
+          AiCompletion,
           id,
-          AICompletion.Result(firstChoiceTextStr)
+          AiCompletion.Result(firstChoiceTextStr)
         )
       val handledErrors =
         response.getOrElse(ResponseError(Some(id), Errors.ServiceError))
@@ -92,16 +93,6 @@ class AICompletionHandler(cfg: AICompletionConfig)
   }
 }
 
-class UnsupportedHandler extends Actor with LazyLogging with UnhandledLogging {
-  override def receive: Receive = { case Request(AICompletion, id, _) =>
-    sender() ! ResponseError(
-      Some(id),
-      Errors.MethodNotFound
-    )
-
-  }
-}
-
 object AICompletionHandler {
   def props(cfg: Option[AICompletionConfig]): Props = cfg
     .map(conf =>
@@ -109,5 +100,5 @@ object AICompletionHandler {
         new AICompletionHandler(conf)
       )
     )
-    .getOrElse(Props(new UnsupportedHandler()))
+    .getOrElse(Props(new UnsupportedHandler(AiCompletion)))
 }

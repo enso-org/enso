@@ -79,6 +79,8 @@ export default function Autocomplete<T>(props: AutocompleteProps<T>) {
   const [selectedIndex, setSelectedIndex] = React.useState<number | null>(null)
   const valuesSet = React.useMemo(() => new Set(values), [values])
   const canEditText = setText != null && values.length === 0
+  // We are only interested in the initial value of `canEditText` in effects.
+  const canEditTextRef = React.useRef(canEditText)
   const isMultipleAndCustomValue = multiple === true && text != null
   const matchingItems = React.useMemo(
     () => (text == null ? items : items.filter(item => matches(item, text))),
@@ -86,10 +88,10 @@ export default function Autocomplete<T>(props: AutocompleteProps<T>) {
   )
 
   React.useEffect(() => {
-    if (!canEditText) {
+    if (!canEditTextRef.current) {
       setIsDropdownVisible(true)
     }
-  }, [canEditText])
+  }, [])
 
   React.useEffect(() => {
     const onClick = () => {
@@ -206,7 +208,7 @@ export default function Autocomplete<T>(props: AutocompleteProps<T>) {
             <div
               ref={element => element?.focus()}
               tabIndex={-1}
-              className="text grow cursor-pointer bg-transparent px-button-x"
+              className="text grow cursor-pointer whitespace-nowrap bg-transparent px-button-x"
               onClick={() => {
                 setIsDropdownVisible(true)
               }}
@@ -239,7 +241,7 @@ export default function Autocomplete<T>(props: AutocompleteProps<T>) {
             {matchingItems.map((item, index) => (
               <div
                 key={itemToKey(item)}
-                className={`text relative cursor-pointer px-input-x first:rounded-t-default last:rounded-b-default hover:bg-hover-bg ${
+                className={`text relative cursor-pointer whitespace-nowrap px-input-x first:rounded-t-default last:rounded-b-default hover:bg-hover-bg ${
                   index === selectedIndex ? 'bg-black/5' : valuesSet.has(item) ? 'bg-hover-bg' : ''
                 }`}
                 onMouseDown={event => {
