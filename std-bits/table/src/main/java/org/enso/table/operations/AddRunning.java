@@ -43,14 +43,14 @@ public class AddRunning {
         return new RunningMeanStatistic(sourceColumn, problemAggregator);
       }
       case Minimum -> {
-        if (sourceColumn.getStorage().getType() == IntegerType.INT_64) {
-          return new RunningMinLongStatistic(sourceColumn, problemAggregator);
+        if (sourceColumn.getStorage().getType() instanceof IntegerType type) {
+          return new RunningMinLongStatistic(sourceColumn, problemAggregator, type);
         }
         return new RunningMinStatistic(sourceColumn, problemAggregator);
       }
       case Maximum -> {
-        if (sourceColumn.getStorage().getType() == IntegerType.INT_64) {
-          return new RunningMaxLongStatistic(sourceColumn, problemAggregator);
+        if (sourceColumn.getStorage().getType() instanceof IntegerType type) {
+          return new RunningMaxLongStatistic(sourceColumn, problemAggregator, type);
         }
         return new RunningMaxStatistic(sourceColumn, problemAggregator);
       }
@@ -87,6 +87,12 @@ public class AddRunning {
 
   private static class LongHandler implements TypeHandler<Long> {
 
+    IntegerType type;
+
+    LongHandler(IntegerType type) {
+      this.type = type;
+    }
+
     @Override
     public Long tryConvertingToType(Object o) {
       return NumericConverter.tryConvertingToLong(o);
@@ -99,7 +105,7 @@ public class AddRunning {
 
     @Override
     public Storage<Long> createStorage(long[] result, int size, BitSet isNothing) {
-      return new LongStorage(result, size, isNothing, IntegerType.INT_64);
+      return new LongStorage(result, size, isNothing, type);
     }
   }
 
@@ -259,8 +265,9 @@ public class AddRunning {
 
   private static class RunningMinLongStatistic extends RunningStatisticBase<Long> {
 
-    RunningMinLongStatistic(Column sourceColumn, ProblemAggregator problemAggregator) {
-      super(sourceColumn, problemAggregator, new LongHandler());
+    RunningMinLongStatistic(
+        Column sourceColumn, ProblemAggregator problemAggregator, IntegerType type) {
+      super(sourceColumn, problemAggregator, new LongHandler(type));
     }
 
     @Override
@@ -299,8 +306,9 @@ public class AddRunning {
 
   private static class RunningMaxLongStatistic extends RunningStatisticBase<Long> {
 
-    RunningMaxLongStatistic(Column sourceColumn, ProblemAggregator problemAggregator) {
-      super(sourceColumn, problemAggregator, new LongHandler());
+    RunningMaxLongStatistic(
+        Column sourceColumn, ProblemAggregator problemAggregator, IntegerType type) {
+      super(sourceColumn, problemAggregator, new LongHandler(type));
     }
 
     @Override
