@@ -29,7 +29,7 @@ make_aggregate_column : DB_Table -> Aggregate_Column -> Text -> Dialect -> (Any 
 make_aggregate_column table aggregate as dialect infer_return_type problem_builder =
     is_non_empty_selector v = v.is_nothing.not && v.not_empty
     simple_aggregate op_kind columns =
-        expression = SQL_Expression.Operation op_kind (columns.map .expression)
+        expression = SQL_Expression.Operation op_kind (columns.map c->c.expression)
         sql_type_ref = infer_return_type op_kind columns expression
         Internal_Column.Value as sql_type_ref expression
 

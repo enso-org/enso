@@ -929,6 +929,11 @@ export interface UpdateDirectoryRequestBody {
   readonly title: string
 }
 
+/** HTTP request body for the "update file" endpoint. */
+export interface UpdateFileRequestBody {
+  readonly title: string
+}
+
 /** HTTP request body for the "update asset" endpoint. */
 export interface UpdateAssetRequestBody {
   readonly parentDirectoryId: DirectoryId | null
@@ -1209,6 +1214,8 @@ export default abstract class Backend {
   abstract listFiles(): Promise<FileLocator[]>
   /** Upload a file. */
   abstract uploadFile(params: UploadFileRequestParams, file: Blob): Promise<FileInfo>
+  /** Change the name of a file. */
+  abstract updateFile(fileId: FileId, body: UpdateFileRequestBody, title: string): Promise<void>
   /** Return file details. */
   abstract getFileDetails(fileId: FileId, title: string): Promise<FileDetails>
   /** Create a Data Link. */
