@@ -958,7 +958,7 @@ class Compiler(
     diagnostics.foreach { diag =>
       val formattedDiag =
         context.formatDiagnostic(compilerModule, diag, isOutputRedirected)
-      printDiagnostic(formattedDiag)
+      printDiagnostic(formattedDiag.getMessage)
     }
     diagnostics.exists(_.isInstanceOf[Error])
   }
