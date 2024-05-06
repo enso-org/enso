@@ -6,7 +6,6 @@
  *
  * If the electron app is closed, the script will restart it, allowing to test the IDE setup.
  * To stop, use Ctrl+C. */
-
 import * as childProcess from 'node:child_process'
 import * as fs from 'node:fs/promises'
 import * as path from 'node:path'
@@ -90,7 +89,15 @@ await fs.symlink(
     'dir'
 )
 
-const ELECTRON_ARGS = [path.join(IDE_DIR_PATH, 'index.cjs'), '--', ...process.argv.slice(2)]
+const ELECTRON_FLAGS =
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+    process.env.ELECTRON_FLAGS == null ? [] : String(process.env.ELECTRON_FLAGS).split(' ')
+const ELECTRON_ARGS = [
+    path.join(IDE_DIR_PATH, 'index.cjs'),
+    ...ELECTRON_FLAGS,
+    '--',
+    ...process.argv.slice(2),
+]
 
 process.on('SIGINT', () => {
     console.log('SIGINT received. Exiting.')
