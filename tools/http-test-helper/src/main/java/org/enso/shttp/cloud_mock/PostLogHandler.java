@@ -40,6 +40,6 @@ public class PostLogHandler implements CloudHandler {
         new EventsService.LogEvent(
             organizationId, userEmail, timestamp, metadata, message, projectId);
     events.recordEvent(event);
-    exchange.sendResponse(204, "");
+    exchange.sendEmptyResponse(204);
   }
 }

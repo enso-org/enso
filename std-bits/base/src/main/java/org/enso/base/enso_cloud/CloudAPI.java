@@ -3,6 +3,10 @@ package org.enso.base.enso_cloud;
 import org.enso.base.Environment_Utils;
 
 public final class CloudAPI {
+  /** Returns the URI to the root of the Cloud API.
+   * <p>
+   * It always ends with a slash.
+   */
   public static String getAPIRootURI() {
     var envUri = Environment_Utils.get_environment_variable("ENSO_CLOUD_API_URI");
     var effectiveUri =

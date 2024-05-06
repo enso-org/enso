@@ -63,6 +63,7 @@ public class CloudRoot extends HandlerWithTokenAuth {
       }
     }
 
+    System.err.println("No handler found for request: " + subPath);
     sendResponse(404, "No handler found for: " + subPath, exchange);
   }
 
@@ -81,6 +82,11 @@ public class CloudRoot extends HandlerWithTokenAuth {
       @Override
       public void sendResponse(int code, String response) throws IOException {
         CloudRoot.this.sendResponse(code, response, exchange);
+      }
+
+      @Override
+      public void sendEmptyResponse(int code) throws IOException {
+        CloudRoot.this.sendEmptyResponse(code, exchange);
       }
 
       @Override

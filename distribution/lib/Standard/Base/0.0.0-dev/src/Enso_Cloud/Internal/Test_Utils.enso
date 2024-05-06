@@ -13,7 +13,7 @@ from project.Enso_Cloud.Public_Utils import get_optional_field, get_required_fie
    Returns log events available in the current account.
    This method is only used for testing and should not be used in production.
 get_audit_log_events -> Vector Audit_Log_Event =
-    json = Utils.http_request_as_json HTTP_Method.Get Utils.cloud_root_uri+"/log_events"
+    json = Utils.http_request_as_json HTTP_Method.Get Utils.cloud_root_uri+"log_events"
     events_json = get_required_field "events" json
     events_json.map Audit_Log_Event.from_json
 
