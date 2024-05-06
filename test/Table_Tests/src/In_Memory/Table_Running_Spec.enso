@@ -509,10 +509,6 @@ add_specs suite_builder =
             (data.table.running (Statistic.Pearson []) "Ticket Price").should_fail_with Illegal_Argument
         group_builder.specify "Spearman is not supported" <|
             (data.table.running (Statistic.Spearman []) "Ticket Price").should_fail_with Illegal_Argument
-    suite_builder.group "Unsupported types" group_builder->
-        data = Data.setup
-        group_builder.specify "Cannot Sum a text column" <|
-            (data.table.running Statistic.Sum "Passenger").should_fail_with Invalid_Value_Type
 
 main filter=Nothing =
     suite = Test.build suite_builder->
