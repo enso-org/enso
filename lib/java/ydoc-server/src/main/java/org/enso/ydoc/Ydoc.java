@@ -33,6 +33,10 @@ public final class Ydoc implements AutoCloseable {
 
   public void start() throws ExecutionException, InterruptedException, IOException {
     var ydoc = Main.class.getResource(YDOC_SERVER_PATH);
+    if (ydoc == null) {
+      throw new AssertionError(YDOC_SERVER_PATH + " not found in resources. You probably need to first built it with: "
+          + "`npm --workspace=enso-gui2 run build-ydoc-server-polyglot`");
+    }
     var ydocJs = Source.newBuilder("js", ydoc).mimeType("application/javascript+module").build();
 
     context =
