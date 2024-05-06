@@ -40,6 +40,34 @@ public class TypesFromSignaturesTest extends CompilerTest {
     assertInferredType(f1, "(A -> (B -> C))");
   }
 
+  @Test
+  public void variousExpressions() throws Exception {
+    final URI uri = new URI("memory://simpleCheck.enso");
+    final Source src =
+        Source.newBuilder(
+                "enso",
+                """
+                    type A
+                    type B
+
+                    f1 (x : A) -> B = 1
+                    f2 (x : A) -> B = x + 10
+                    f3 (x : A) -> B = [x]
+                    f4 (x : A) -> B = f1 x
+                    f5 (x : A) -> B = x
+                    """,
+                uri.getAuthority())
+            .uri(uri)
+            .buildLiteral();
+
+    var module = compile(src);
+    assertInferredType(findStaticMethod(module, "f1"), "(A -> B)");
+    assertInferredType(findStaticMethod(module, "f2"), "(A -> B)");
+    assertInferredType(findStaticMethod(module, "f3"), "(A -> B)");
+    assertInferredType(findStaticMethod(module, "f4"), "(A -> B)");
+    assertInferredType(findStaticMethod(module, "f5"), "(A -> B)");
+  }
+
 
   @Test
   public void justArity() throws Exception {
@@ -92,6 +120,7 @@ public class TypesFromSignaturesTest extends CompilerTest {
                     type A
                         static_method (x : A) -> A = x
                         member_method self (x : A) -> A = x
+                    standalone_method (x : A) -> A = x
                     """,
                 uri.getAuthority())
             .uri(uri)
@@ -99,7 +128,7 @@ public class TypesFromSignaturesTest extends CompilerTest {
 
     var module = compile(src);
     module.bindings().map((b) -> {
-      System.out.println(b);
+      System.out.println(b.showCode());
       return null;
     });
 
