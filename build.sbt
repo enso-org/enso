@@ -561,7 +561,7 @@ val snowflakeJDBCVersion    = "3.15.0"
 // ============================================================================
 
 lazy val componentModulesPaths =
-  taskKey[Def.Classpath](
+  taskKey[Seq[File]](
     "Gathers all component modules (Jar archives that should be put on module-path" +
     " as files"
   )
@@ -570,12 +570,30 @@ lazy val componentModulesPaths =
   val runtimeCp = (LocalProject("runtime") / Runtime / fullClasspath).value
   val fullCp    = (runnerCp ++ runtimeCp).distinct
   val log       = streams.value.log
-  JPMSUtils.filterModulesFromClasspath(
+  val thirdPartyModIds =
+    GraalVM.modules ++
+    GraalVM.langsPkgs ++
+    GraalVM.toolsPkgs ++
+    helidon ++
+    Seq(
+      "org.slf4j"      % "slf4j-api"       % slf4jVersion,
+      "ch.qos.logback" % "logback-classic" % logbackClassicVersion,
+      "ch.qos.logback" % "logback-core"    % logbackClassicVersion
+    )
+  val thirdPartyMods = JPMSUtils.filterModulesFromClasspath(
     fullCp,
-    JPMSUtils.componentModules,
+    thirdPartyModIds,
     log,
     shouldContainAll = true
   )
+  val thirdPartyModFiles = thirdPartyMods.map(_.data)
+  val arrow              = (`runtime-language-arrow` / Compile / packageBin).value
+  val runtime            = (`runtime-fat-jar` / assembly / assemblyOutputPath).value
+  val ourMods = Seq(
+    runtime,
+    arrow
+  )
+  ourMods ++ thirdPartyModFiles
 }
 
 lazy val compileModuleInfo = taskKey[Unit]("Compiles `module-info.java`")
@@ -3271,9 +3289,7 @@ lazy val buildEngineDistribution =
 buildEngineDistribution := {
   val _ = (`engine-runner` / assembly).value
   updateLibraryManifests.value
-  val modulesToCopy = componentModulesPaths.value.map(_.data)
-  val arrow         = Seq((`runtime-language-arrow` / Compile / packageBin).value)
-  val engineModules = Seq(file("runtime.jar")) ++ arrow
+  val modulesToCopy = componentModulesPaths.value
   val root          = engineDistributionRoot.value
   val log           = streams.value.log
   val cacheFactory  = streams.value.cacheStoreFactory
@@ -3281,7 +3297,7 @@ buildEngineDistribution := {
     distributionRoot    = root,
     cacheFactory        = cacheFactory,
     log                 = log,
-    jarModulesToCopy    = modulesToCopy ++ engineModules,
+    jarModulesToCopy    = modulesToCopy,
     graalVersion        = graalMavenPackagesVersion,
     javaVersion         = graalVersion,
     ensoVersion         = ensoVersion,
@@ -3305,8 +3321,7 @@ lazy val buildEngineDistributionNoIndex =
 buildEngineDistributionNoIndex := {
   val _ = (`engine-runner` / assembly).value
   updateLibraryManifests.value
-  val modulesToCopy = componentModulesPaths.value.map(_.data)
-  val engineModules = Seq(file("runtime.jar"))
+  val modulesToCopy = componentModulesPaths.value
   val root          = engineDistributionRoot.value
   val log           = streams.value.log
   val cacheFactory  = streams.value.cacheStoreFactory
@@ -3314,7 +3329,7 @@ buildEngineDistributionNoIndex := {
     distributionRoot    = root,
     cacheFactory        = cacheFactory,
     log                 = log,
-    jarModulesToCopy    = modulesToCopy ++ engineModules,
+    jarModulesToCopy    = modulesToCopy,
     graalVersion        = graalMavenPackagesVersion,
     javaVersion         = graalVersion,
     ensoVersion         = ensoVersion,
