@@ -650,6 +650,12 @@ export default function AssetsTable(props: AssetsTableProps) {
   }, [targetDirectoryNodeRef, selectedKeys])
 
   React.useEffect(() => {
+    return () => {
+      unsetSearchBar()
+    }
+  }, [/* should never change */ unsetSearchBar])
+
+  React.useEffect(() => {
     if (page === pageSwitcher.Page.drive || page === pageSwitcher.Page.home) {
       setSearchBar(
         <AssetSearchBar
@@ -671,6 +677,7 @@ export default function AssetsTable(props: AssetsTableProps) {
     allLabels,
     suggestions,
     /* should never change */ setSearchBar,
+    /* should never change */ unsetSearchBar,
   ])
 
   React.useEffect(() => {

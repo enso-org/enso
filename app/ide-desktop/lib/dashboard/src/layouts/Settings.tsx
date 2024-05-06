@@ -5,8 +5,10 @@ import * as searchParamsState from '#/hooks/searchParamsStateHooks'
 
 import * as authProvider from '#/providers/AuthProvider'
 import * as backendProvider from '#/providers/BackendProvider'
+import * as searchBarProvider from '#/providers/SearchBarProvider'
 import * as textProvider from '#/providers/TextProvider'
 
+import SearchBar from '#/layouts/SearchBar'
 import AccountSettingsTab from '#/layouts/Settings/AccountSettingsTab'
 import ActivityLogSettingsTab from '#/layouts/Settings/ActivityLogSettingsTab'
 import KeyboardShortcutsSettingsTab from '#/layouts/Settings/KeyboardShortcutsSettingsTab'
@@ -35,6 +37,8 @@ export default function Settings() {
   const { type: sessionType, user } = authProvider.useNonPartialUserSession()
   const { backend } = backendProvider.useBackend()
   const { getText } = textProvider.useText()
+  const { setSearchBar, unsetSearchBar } = searchBarProvider.useSetSearchBar('Settings')
+  const [query, setQuery] = React.useState('')
   const [organization, setOrganization] = React.useState<backendModule.OrganizationInfo>(() => ({
     id: user?.organizationId ?? backendModule.OrganizationId(''),
     name: null,
@@ -43,6 +47,26 @@ export default function Settings() {
     address: null,
     picture: null,
   }))
+
+  React.useEffect(() => {
+    setSearchBar(
+      <SearchBar
+        data-testid="settings-search-bar"
+        query={query}
+        setQuery={setQuery}
+        label={getText('settingsSearchBarLabel')}
+        placeholder={getText('settingsSearchBarPlaceholder')}
+      />
+    )
+    return () => {
+      unsetSearchBar()
+    }
+  }, [
+    query,
+    /* should never change */ getText,
+    /* should never change */ setSearchBar,
+    /* should never change */ unsetSearchBar,
+  ])
 
   React.useEffect(() => {
     void (async () => {
