@@ -571,7 +571,7 @@ public class SignatureTest extends TestBase {
       module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "my_func (Non_Existing_Func 23)");
       fail("Expecting Compile error");
     } catch (PolyglotException e) {
-      assertContains("Compilation aborted", e.getMessage());
+      assertContains("The name `Non_Existing_Func` could not be found.", e.getMessage());
     }
   }
 

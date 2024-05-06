@@ -63,9 +63,12 @@ public class ExecStrictCompilerTest {
       var run = module.invokeMember("eval_expression", "My_Type.Value");
       fail("Expecting no returned value: " + run);
     } catch (PolyglotException ex) {
-      assertEquals("Compilation aborted due to errors.", ex.getMessage());
       assertTrue("Syntax error", ex.isSyntaxError());
       assertTrue("Guest exception", ex.isGuestException());
+      assertEquals(
+          "Unnamed:2:17: error: Redefining arguments is not supported: a is defined multiple"
+              + " times.",
+          ex.getMessage());
 
       var errors = new String(MESSAGES.toByteArray(), StandardCharsets.UTF_8);
       assertNotEquals(
@@ -94,9 +97,9 @@ public class ExecStrictCompilerTest {
       var run = module.invokeMember("eval_expression", "foo 10");
       fail("Expecting no returned value: " + run);
     } catch (PolyglotException ex) {
-      assertEquals("Compilation aborted due to errors.", ex.getMessage());
       assertTrue("Syntax error", ex.isSyntaxError());
       assertTrue("Guest exception", ex.isGuestException());
+      assertContains("The name `Index_Sub_Range.Sample` could not be found.", ex.getMessage());
 
       var errors = new String(MESSAGES.toByteArray(), StandardCharsets.UTF_8);
       assertNotEquals(
@@ -105,5 +108,16 @@ public class ExecStrictCompilerTest {
           errors.indexOf("The name `Index_Sub_Range.Sample` could not be found"));
       assertNotEquals("Location defined " + errors, -1, errors.indexOf("wrong_cons:2:5"));
     }
+  }
+
+  static void assertContains(String expected, String actual) {
+    assertContains("Expecting", expected, actual);
+  }
+
+  static void assertContains(String msg, String expected, String actual) {
+    if (actual != null && actual.contains(expected)) {
+      return;
+    }
+    fail(msg + " " + expected + " in " + actual);
   }
 }

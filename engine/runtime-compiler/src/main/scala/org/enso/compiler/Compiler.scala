@@ -816,8 +816,8 @@ class Compiler(
       .diagnostics
     val module    = inlineContext.getModule()
     val hasErrors = reportDiagnostics(errors, module)
-    if (hasErrors && inlineContext.compilerConfig.isStrictErrors) {
-      throw context.throwAbortedException()
+    if (hasErrors.nonEmpty && inlineContext.compilerConfig.isStrictErrors) {
+      throw hasErrors.head
     }
   }
 
@@ -837,7 +837,7 @@ class Compiler(
     }
 
     val hasErrors = reportDiagnostics(diagnostics)
-    if (hasErrors && config.isStrictErrors) {
+    if (hasErrors.nonEmpty && config.isStrictErrors) {
       val count =
         diagnostics.map(_._2.collect { case e: Error => e }.length).sum
       val warnCount =
@@ -845,7 +845,7 @@ class Compiler(
       context.getErr.println(
         s"Aborting due to ${count} errors and ${warnCount} warnings."
       )
-      throw context.throwAbortedException()
+      throw hasErrors.head
     }
   }
 
@@ -929,18 +929,14 @@ class Compiler(
     */
   private def reportDiagnostics(
     diagnostics: List[(Module, List[Diagnostic])]
-  ): Boolean = {
-    // It may be tempting to replace `.foldLeft(..)` with
-    // `.find(...).nonEmpty. Don't. We want to report diagnostics for all modules
-    // not just the first one.
-    diagnostics
-      .foldLeft(false) { case (result, (mod, diags)) =>
-        if (diags.nonEmpty) {
-          reportDiagnostics(diags, mod) || result
-        } else {
-          result
-        }
+  ): List[RuntimeException] = {
+    diagnostics.flatMap { diags =>
+      if (diags._2.nonEmpty) {
+        reportDiagnostics(diags._2, diags._1)
+      } else {
+        List()
       }
+    }
   }
 
   /** Reports compilation diagnostics to the standard output and throws an
@@ -953,14 +949,21 @@ class Compiler(
   private def reportDiagnostics(
     diagnostics: List[Diagnostic],
     compilerModule: CompilerContext.Module
-  ): Boolean = {
+  ): List[RuntimeException] = {
     val isOutputRedirected = config.outputRedirect.isDefined
-    diagnostics.foreach { diag =>
-      val formattedDiag =
-        context.formatDiagnostic(compilerModule, diag, isOutputRedirected)
-      printDiagnostic(formattedDiag.getMessage)
-    }
-    diagnostics.exists(_.isInstanceOf[Error])
+    val exceptions = diagnostics
+      .map { diag =>
+        val formattedDiag =
+          context.formatDiagnostic(compilerModule, diag, isOutputRedirected)
+        printDiagnostic(formattedDiag.getMessage)
+        if (diag.isInstanceOf[Error]) {
+          formattedDiag
+        } else {
+          null
+        }
+      }
+      .filter(_ != null)
+    exceptions
   }
 
   /** Performs shutdown actions for the compiler.
