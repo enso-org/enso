@@ -2351,7 +2351,9 @@ lazy val `engine-runner` = project
           additionalCp = Seq(
             "runtime.jar",
             "runner.jar"
-          ),
+          ) ++ (`base-polyglot-root`
+            .listFiles("*.jar")
+            .map(_.getAbsolutePath())),
           initializeAtRuntime = Seq(
             "org.jline.nativ.JLineLibrary",
             "org.jline.terminal.impl.jna",
