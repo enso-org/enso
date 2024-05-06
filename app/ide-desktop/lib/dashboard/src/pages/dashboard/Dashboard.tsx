@@ -509,6 +509,7 @@ export default function Dashboard(props: DashboardProps) {
             setCategory={setCategory}
             labels={labels}
             setLabels={setLabels}
+            page={page}
             setPage={setPage}
             supportsLocalBackend={supportsLocalBackend}
             hidden={page !== pageSwitcher.Page.drive}

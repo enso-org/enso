@@ -91,19 +91,16 @@ function SearchBarStaticProvider(props: InternalSearchBarStaticProviderProps) {
 }
 
 /** A React context hook exposing functions to set and unset the currently active search bar. */
-export function useSetSearchBar() {
+export function useSetSearchBar(key: string) {
   const { setSearchBarInfo } = React.useContext(SearchBarStaticContext)
   const setSearchBar = React.useCallback(
-    (key: string, searchBar: SearchBar) => {
+    (searchBar: SearchBar) => {
       setSearchBarInfo({ key, searchBar })
     },
-    [/* should never change */ setSearchBarInfo]
+    [/* should never change */ key, /* should never change */ setSearchBarInfo]
   )
-  const unsetSearchBar = React.useCallback(
-    (key: string) => {
-      setSearchBarInfo(oldInfo => (oldInfo?.key === key ? null : oldInfo))
-    },
-    [/* should never change */ setSearchBarInfo]
-  )
+  const unsetSearchBar = React.useCallback(() => {
+    setSearchBarInfo(oldInfo => (oldInfo?.key === key ? null : oldInfo))
+  }, [/* should never change */ key, /* should never change */ setSearchBarInfo])
   return { setSearchBar, unsetSearchBar } as const
 }

@@ -27,6 +27,7 @@ import type * as assetSearchBar from '#/layouts/AssetSearchBar'
 import AssetSearchBar from '#/layouts/AssetSearchBar'
 import AssetsTableContextMenu from '#/layouts/AssetsTableContextMenu'
 import Category from '#/layouts/CategorySwitcher/Category'
+import * as pageSwitcher from '#/layouts/PageSwitcher'
 
 import * as aria from '#/components/aria'
 import type * as assetRow from '#/components/dashboard/AssetRow'
@@ -351,6 +352,7 @@ export interface AssetsTableProps {
   readonly setQuery: React.Dispatch<React.SetStateAction<AssetQuery>>
   readonly setCanDownload: (canDownload: boolean) => void
   readonly category: Category
+  readonly page: pageSwitcher.Page
   readonly allLabels: Map<backendModule.LabelName, backendModule.Label>
   readonly initialProjectName: string | null
   readonly projectStartupInfo: backendModule.ProjectStartupInfo | null
@@ -376,7 +378,7 @@ export interface AssetsTableProps {
 
 /** The table of project assets. */
 export default function AssetsTable(props: AssetsTableProps) {
-  const { hidden, hideRows, query, setQuery, setCanDownload, category, allLabels } = props
+  const { hidden, hideRows, query, setQuery, setCanDownload, category, page, allLabels } = props
   const { deletedLabelNames, initialProjectName, projectStartupInfo } = props
   const { queuedAssetEvents: rawQueuedAssetEvents } = props
   const { assetListEvents, dispatchAssetListEvent, assetEvents, dispatchAssetEvent } = props
@@ -386,7 +388,7 @@ export default function AssetsTable(props: AssetsTableProps) {
   const { user, accessToken } = authProvider.useNonPartialUserSession()
   const { backend } = backendProvider.useBackend()
   const { setModal, unsetModal } = modalProvider.useSetModal()
-  const { setSearchBar } = searchBarProvider.useSetSearchBar()
+  const { setSearchBar, unsetSearchBar } = searchBarProvider.useSetSearchBar('AssetsTable')
   const { localStorage } = localStorageProvider.useLocalStorage()
   const { getText } = textProvider.useText()
   const inputBindings = inputBindingsProvider.useInputBindings()
@@ -648,17 +650,28 @@ export default function AssetsTable(props: AssetsTableProps) {
   }, [targetDirectoryNodeRef, selectedKeys])
 
   React.useEffect(() => {
-    setSearchBar(
-      'assets table',
-      <AssetSearchBar
-        isCloud={isCloud}
-        query={query}
-        setQuery={setQuery}
-        labels={[...allLabels.values()]}
-        suggestions={suggestions}
-      />
-    )
-  }, [isCloud, query, setQuery, allLabels, suggestions, /* should never change */ setSearchBar])
+    if (page === pageSwitcher.Page.drive || page === pageSwitcher.Page.home) {
+      setSearchBar(
+        <AssetSearchBar
+          isCloud={isCloud}
+          query={query}
+          setQuery={setQuery}
+          labels={[...allLabels.values()]}
+          suggestions={suggestions}
+        />
+      )
+    } else {
+      unsetSearchBar()
+    }
+  }, [
+    page,
+    isCloud,
+    query,
+    setQuery,
+    allLabels,
+    suggestions,
+    /* should never change */ setSearchBar,
+  ])
 
   React.useEffect(() => {
     const nodeToSuggestion = (

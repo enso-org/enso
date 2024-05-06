@@ -54,6 +54,7 @@ import LoggerProvider from '#/providers/LoggerProvider'
 import type * as loggerProvider from '#/providers/LoggerProvider'
 import ModalProvider from '#/providers/ModalProvider'
 import * as navigator2DProvider from '#/providers/Navigator2DProvider'
+import SearchBarProvider from '#/providers/SearchBarProvider'
 import SessionProvider from '#/providers/SessionProvider'
 
 import ConfirmRegistration from '#/pages/authentication/ConfirmRegistration'
@@ -408,6 +409,7 @@ function AppRouter(props: AppRouterProps) {
     </router.Routes>
   )
   let result = routes
+  result = <SearchBarProvider>{result}</SearchBarProvider>
   result = <InputBindingsProvider inputBindings={inputBindings}>{result}</InputBindingsProvider>
   result = <ModalProvider>{result}</ModalProvider>
   result = (

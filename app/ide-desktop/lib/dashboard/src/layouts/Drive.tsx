@@ -64,6 +64,7 @@ enum DriveStatus {
 export interface DriveProps {
   readonly category: Category
   readonly setCategory: (category: Category) => void
+  readonly page: pageSwitcher.Page
   readonly setPage: (page: pageSwitcher.Page) => void
   readonly supportsLocalBackend: boolean
   readonly hidden: boolean
@@ -93,7 +94,7 @@ export interface DriveProps {
 /** Contains directory path and directory contents (projects, folders, secrets and files). */
 export default function Drive(props: DriveProps) {
   const { supportsLocalBackend, hidden, hideRows, initialProjectName, queuedAssetEvents } = props
-  const { labels, setLabels, category, setCategory, setPage, projectStartupInfo } = props
+  const { labels, setLabels, category, setCategory, page, setPage, projectStartupInfo } = props
   const { assetListEvents, dispatchAssetListEvent, assetEvents, dispatchAssetEvent } = props
   const { setAssetPanelProps, doOpenEditor, doCloseEditor } = props
   const { setIsAssetPanelTemporarilyVisible } = props
@@ -404,6 +405,7 @@ export default function Drive(props: DriveProps) {
               hideRows={hideRows}
               query={query}
               setQuery={setQuery}
+              page={page}
               setCanDownload={setCanDownload}
               category={category}
               allLabels={allLabels}
