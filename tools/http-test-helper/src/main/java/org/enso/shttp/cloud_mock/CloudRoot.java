@@ -10,19 +10,23 @@ public class CloudRoot extends HandlerWithTokenAuth {
   public final String prefix = "/enso-cloud-mock/";
 
   private final ExpiredTokensCounter expiredTokensCounter;
-  private final AssetStore assetStore = new AssetStore();
-  private final CloudHandler[] handlers =
-      new CloudHandler[] {
-        new UsersHandler(),
+  private final CloudHandler[] handlers;
+
+  public CloudRoot(ExpiredTokensCounter expiredTokensCounter) {
+    this.expiredTokensCounter = expiredTokensCounter;
+    AssetStore assetStore = new AssetStore();
+    UsersService usersService = new UsersService();
+    EventsService eventsService = new EventsService();
+    this.handlers = new CloudHandler[] {
+        new UsersHandler(usersService),
         new SecretsHandler(assetStore),
         new HiddenSecretsHandler(assetStore),
         new AssetsHandler(assetStore),
         new PathResolver(assetStore),
-        new DirectoriesHandler(assetStore)
-      };
-
-  public CloudRoot(ExpiredTokensCounter expiredTokensCounter) {
-    this.expiredTokensCounter = expiredTokensCounter;
+        new DirectoriesHandler(assetStore),
+        new GetLogsHandler(eventsService),
+        new PostLogHandler(usersService, eventsService)
+    };
   }
 
   @Override
