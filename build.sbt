@@ -1249,7 +1249,7 @@ lazy val `ydoc-server` = project
     modulePath := {
       JPMSUtils.filterModulesFromUpdate(
         update.value,
-        GraalVM.modules ++ GraalVM.jsPkgs ++ helidon ++ Seq(
+        GraalVM.modules ++ GraalVM.jsPkgs ++ GraalVM.chromeInspectorPkgs ++ helidon ++ Seq(
           "org.slf4j"      % "slf4j-api"       % slf4jVersion,
           "ch.qos.logback" % "logback-classic" % logbackClassicVersion,
           "ch.qos.logback" % "logback-core"    % logbackClassicVersion
