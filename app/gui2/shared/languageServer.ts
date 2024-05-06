@@ -124,7 +124,7 @@ export type TransportEvents = {
  * This client implements the [Language Server Protocol](https://github.com/enso-org/enso/blob/develop/docs/language-server/protocol-language-server.md)
  *
  * It also handles the initialization (and re-initialization on every reconnect); each method
- * repressenting a remote call (except the `initProtocolConnection` obviously) waits for
+ * representing a remote call (except the `initProtocolConnection` obviously) waits for
  * initialization before sending the request.
  */
 export class LanguageServer extends ObservableV2<Notifications & TransportEvents> {
