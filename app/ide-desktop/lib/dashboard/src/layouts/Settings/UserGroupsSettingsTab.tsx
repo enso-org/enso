@@ -208,13 +208,9 @@ export default function UserGroupsSettingsTab() {
   }
 
   return (
-    <div className="flex h min-h-full flex-1 flex-col gap-settings-section overflow-auto overflow-x-hidden lg:h-auto lg:flex-row">
+    <div className="flex h min-h-full flex-1 flex-col gap-settings-section overflow-hidden lg:h-auto lg:flex-row">
       <div className="flex h-3/5 w-settings-main-section max-w-full flex-col gap-settings-subsection lg:h-[unset] lg:min-w">
-        <SettingsSection
-          noFocusArea
-          title={getText('userGroups')}
-          className="overflow-auto overflow-x-hidden"
-        >
+        <SettingsSection noFocusArea title={getText('userGroups')} className="overflow-hidden">
           <HorizontalMenuBar>
             <UnstyledButton
               className="flex h-row items-center rounded-full bg-frame px-new-project-button-x"
