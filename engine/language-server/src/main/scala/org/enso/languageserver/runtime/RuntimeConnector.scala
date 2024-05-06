@@ -17,6 +17,8 @@ import org.graalvm.polyglot.io.MessageEndpoint
 
 import java.nio.ByteBuffer
 
+import scala.util.{Failure, Success}
+
 /** An actor managing a connection to Enso's runtime server. */
 final class RuntimeConnector(
   handlers: Map[Class[_], ActorRef],
@@ -199,13 +201,18 @@ object RuntimeConnector {
     * @param peerEndpoint the runtime server's connection end.
     */
   class Endpoint(actor: ActorRef, peerEndpoint: MessageEndpoint)
-      extends MessageEndpoint {
+      extends MessageEndpoint
+      with LazyLogging {
+
     override def sendText(text: String): Unit = {}
 
     override def sendBinary(data: ByteBuffer): Unit =
-      Runtime.Api
-        .deserializeApiEnvelope(data)
-        .foreach(actor ! MessageFromRuntime(_))
+      Runtime.Api.deserializeApiEnvelope(data) match {
+        case Success(msg) =>
+          actor ! MessageFromRuntime(msg)
+        case Failure(ex) =>
+          logger.error("Failed to deserialize runtime API envelope", ex)
+      }
 
     override def sendPing(data: ByteBuffer): Unit = peerEndpoint.sendPong(data)
 

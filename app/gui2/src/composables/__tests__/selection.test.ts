@@ -4,7 +4,7 @@ import { assert } from '@/util/assert'
 import { Rect } from '@/util/data/rect'
 import { Vec2 } from '@/util/data/vec2'
 import { isPointer, pointerButtonToEventInfo, type BindingInfo } from '@/util/shortcuts'
-import { expect, test, vi } from 'vitest'
+import { beforeAll, expect, test, vi } from 'vitest'
 import { proxyRefs, ref, type Ref } from 'vue'
 
 function selectionWithMockData(sceneMousePos?: Ref<Vec2>) {
@@ -104,7 +104,7 @@ test.each`
   dragCase(new Vec2(area.right, area.top), new Vec2(area.left, area.bottom))
 })
 
-// There is no PointerEvent class in jsdom (yet).
+// See https://github.com/thymikee/jest-preset-angular/issues/245#issuecomment-576296325
 class MockPointerEvent extends MouseEvent {
   readonly pointerId: number
   constructor(type: string, options: MouseEventInit & { currentTarget?: Element | undefined }) {
@@ -115,6 +115,10 @@ class MockPointerEvent extends MouseEvent {
     this.pointerId = 4
   }
 }
+
+beforeAll(() => {
+  ;(window as any).PointerEvent = MockPointerEvent
+})
 
 function mockPointerEvent(type: string, pos: Vec2, binding: BindingInfo): PointerEvent {
   const modifiersSet = new Set(binding.modifiers)

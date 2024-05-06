@@ -137,6 +137,7 @@ export interface AppProps {
   readonly initialProjectName: string | null
   readonly onAuthenticated: (accessToken: string | null) => void
   readonly projectManagerUrl: string | null
+  readonly ydocUrl: string | null
   readonly appRunner: AppRunner
 }
 

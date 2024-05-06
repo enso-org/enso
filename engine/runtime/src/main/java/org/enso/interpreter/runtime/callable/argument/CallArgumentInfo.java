@@ -218,12 +218,13 @@ public final class CallArgumentInfo {
           this.existingOversaturatedArgs.length,
           newOversaturatedArgInfo.length);
 
-      return new FunctionSchema(
-          originalSchema.getCallerFrameAccess(),
-          definitions,
-          argumentUsed,
-          oversaturatedArgInfo,
-          originalSchema.getAnnotations());
+      return FunctionSchema.newBuilder()
+          .callerFrameAccess(originalSchema.getCallerFrameAccess())
+          .argumentDefinitions(definitions)
+          .hasPreapplied(argumentUsed)
+          .oversaturatedArguments(oversaturatedArgInfo)
+          .annotations(originalSchema.getAnnotations())
+          .build();
     }
   }
 

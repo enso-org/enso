@@ -3,12 +3,15 @@ from Standard.Base import all
 import project.Connection.Connection_Options.Connection_Options
 import project.Internal.SQLite.SQLite_Connection.SQLite_Connection
 
-type SQLite_Details
-    ## Connect to a SQLite DB File or InMemory DB.
+type SQLite
+    ## Connect to a SQLite DB File.
 
        Arguments:
        - location: Location of the SQLite database to connect to.
-    SQLite (location:(In_Memory|File))
+    From_File (location:File)
+
+    ## Connect to a SQLite In Memory.
+    In_Memory
 
     ## PRIVATE
        Build the Connection resource.
@@ -23,14 +26,11 @@ type SQLite_Details
     ## PRIVATE
        Provides the jdbc url for the connection.
     jdbc_url : Text
-    jdbc_url self = case self.location of
-        In_Memory -> "jdbc:sqlite::memory:"
-        _ -> "jdbc:sqlite:" + (self.location.absolute.path.replace '\\' '/')
+    jdbc_url self = case self of
+        SQLite.From_File _ -> "jdbc:sqlite:" + (self.location.absolute.path.replace '\\' '/')
+        SQLite.In_Memory -> "jdbc:sqlite::memory:"
 
     ## PRIVATE
        Provides the properties for the connection.
     jdbc_properties : Vector
     jdbc_properties self = []
-
-## Connect to an in-memory SQLite database.
-type In_Memory

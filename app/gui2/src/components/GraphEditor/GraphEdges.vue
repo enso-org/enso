@@ -22,39 +22,55 @@ const emits = defineEmits<{
   createNodeFromEdge: [source: AstId, position: Vec2]
 }>()
 
+const MIN_DRAG_MOVE = 10
+
 const editingEdge: Interaction = {
   cancel() {
     graph.clearUnconnected()
   },
   pointerdown(_e: PointerEvent, graphNavigator: GraphNavigator): boolean {
-    if (graph.unconnectedEdge == null) return false
-    let source: AstId | undefined
-    let sourceNode: NodeId | undefined
-    if (graph.unconnectedEdge.source) {
-      source = graph.unconnectedEdge.source
-      sourceNode = graph.db.getPatternExpressionNodeId(source)
-    } else if (selection?.hoveredNode) {
-      sourceNode = selection.hoveredNode
-      source = graph.db.getNodeFirstOutputPort(sourceNode)
-    }
-    const target = graph.unconnectedEdge.target ?? selection?.hoveredPort
-    const targetNode = target && graph.getPortNodeId(target)
-    graph.transact(() => {
-      if (source != null && sourceNode != targetNode) {
-        if (target == null) {
-          if (graph.unconnectedEdge?.disconnectedEdgeTarget != null)
-            disconnectEdge(graph.unconnectedEdge.disconnectedEdgeTarget)
-          emits('createNodeFromEdge', source, graphNavigator.sceneMousePos ?? Vec2.Zero)
-        } else {
-          createEdge(source, target)
-        }
-      } else if (source == null && target != null) {
-        disconnectEdge(target)
-      }
-      graph.clearUnconnected()
-    })
-    return true
+    return edgeInteractionClick(graphNavigator)
   },
+  pointerup(e: PointerEvent, graphNavigator: GraphNavigator): boolean {
+    const originEvent = graph.unconnectedEdge?.event
+    if (originEvent?.type === 'pointerdown') {
+      const delta = new Vec2(e.screenX, e.screenY).sub(
+        new Vec2(originEvent.screenX, originEvent.screenY),
+      )
+      if (delta.lengthSquared() >= MIN_DRAG_MOVE ** 2) return edgeInteractionClick(graphNavigator)
+    }
+    return false
+  },
+}
+
+function edgeInteractionClick(graphNavigator: GraphNavigator) {
+  if (graph.unconnectedEdge == null) return false
+  let source: AstId | undefined
+  let sourceNode: NodeId | undefined
+  if (graph.unconnectedEdge.source) {
+    source = graph.unconnectedEdge.source
+    sourceNode = graph.db.getPatternExpressionNodeId(source)
+  } else if (selection?.hoveredNode) {
+    sourceNode = selection.hoveredNode
+    source = graph.db.getNodeFirstOutputPort(sourceNode)
+  }
+  const target = graph.unconnectedEdge.target ?? selection?.hoveredPort
+  const targetNode = target && graph.getPortNodeId(target)
+  graph.transact(() => {
+    if (source != null && sourceNode != targetNode) {
+      if (target == null) {
+        if (graph.unconnectedEdge?.disconnectedEdgeTarget != null)
+          disconnectEdge(graph.unconnectedEdge.disconnectedEdgeTarget)
+        emits('createNodeFromEdge', source, graphNavigator.sceneMousePos ?? Vec2.Zero)
+      } else {
+        createEdge(source, target)
+      }
+    } else if (source == null && target != null) {
+      disconnectEdge(target)
+    }
+    graph.clearUnconnected()
+  })
+  return true
 }
 
 interaction.setWhen(() => graph.unconnectedEdge != null, editingEdge)
