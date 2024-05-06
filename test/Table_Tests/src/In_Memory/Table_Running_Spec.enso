@@ -217,6 +217,20 @@ add_specs suite_builder =
             # 4 | SG0456 | E         | 74           | 576
             expected_table = data.integer_table.zip expected_column
             result.should_equal expected_table
+        group_builder.specify "Can provide running max of int 16 columns (returning column of int 16)" <|
+            int16_col = data.integer_table.at "Ticket Price" . cast (Value_Type.Integer Bits.Bits_16)
+            int16_table = data.integer_table.set int16_col "Ticket Price"
+            result = int16_table.running Statistic.Maximum "Ticket Price" "Maximum ticket cost"
+            expected_column = Column.from_vector "Maximum ticket cost" [101, 576, 576, 576, 576] . cast (Value_Type.Integer Bits.Bits_16)
+            #   | Flight | Passenger | Ticket Price | Maximum ticket cost
+            #---+--------+-----------+--------------+-------------------------
+            # 0 | BA0123 | A         | 101          | 101
+            # 1 | BA0123 | B         | 576          | 576
+            # 2 | SG0456 | A         | 73           | 576
+            # 3 | BA0123 | C         | 112          | 576
+            # 4 | SG0456 | E         | 74           | 576
+            expected_table = int16_table.zip expected_column
+            result.should_equal expected_table
     suite_builder.group "running min" group_builder->
         data = Data.setup
         group_builder.specify "Not setting the as name gives default name based on of column" <|
