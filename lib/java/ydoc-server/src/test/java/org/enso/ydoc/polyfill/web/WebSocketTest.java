@@ -12,16 +12,16 @@ import java.util.concurrent.Semaphore;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.atomic.AtomicReferenceArray;
+import org.enso.ydoc.polyfill.ExecutorSetup;
 import org.graalvm.polyglot.Context;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
-public class WebSocketTest {
+public class WebSocketTest extends ExecutorSetup {
 
   private Context context;
-  private ExecutorService executor;
   private ExecutorService webServerExecutor;
   private WebServer ws;
 
@@ -38,7 +38,7 @@ public class WebSocketTest {
 
   @Before
   public void setup() throws Exception {
-    executor = Executors.newSingleThreadExecutor();
+    super.setup();
     webServerExecutor = Executors.newSingleThreadExecutor();
     ws = startWebSocketServer(webServerExecutor);
 
@@ -64,10 +64,10 @@ public class WebSocketTest {
   }
 
   @After
-  public void tearDown() {
+  public void tearDown() throws InterruptedException {
     ws.stop();
     webServerExecutor.shutdown();
-    executor.shutdown();
+    super.tearDown();
     context.close();
   }
 

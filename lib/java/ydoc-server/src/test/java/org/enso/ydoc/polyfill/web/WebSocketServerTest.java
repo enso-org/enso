@@ -1,31 +1,26 @@
 package org.enso.ydoc.polyfill.web;
 
-import static org.junit.Assert.fail;
-
 import io.helidon.webclient.websocket.WsClient;
 import io.helidon.websocket.WsListener;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.concurrent.Semaphore;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReferenceArray;
+import org.enso.ydoc.polyfill.ExecutorSetup;
 import org.graalvm.polyglot.Context;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
-public class WebSocketServerTest {
+public class WebSocketServerTest extends ExecutorSetup {
 
   private Context context;
-  private ExecutorService executor;
 
   public WebSocketServerTest() {}
 
   @Before
   public void setup() throws Exception {
-    executor = Executors.newSingleThreadExecutor();
+    super.setup();
 
     var hostAccess =
         WebEnvironment.defaultHostAccess
@@ -48,12 +43,7 @@ public class WebSocketServerTest {
 
   @After
   public void tearDown() throws InterruptedException {
-    executor.shutdown();
-    var stopped = executor.awaitTermination(3, TimeUnit.SECONDS);
-    if (!stopped) {
-      var pending = executor.shutdownNow();
-      fail("Pending " + pending.size() + " tasks: " + pending);
-    }
+    super.tearDown();
     context.close();
   }
 

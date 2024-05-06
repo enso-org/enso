@@ -1,8 +1,6 @@
 package org.enso.ydoc.polyfill;
 
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import org.enso.ydoc.polyfill.web.WebEnvironment;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.io.ByteSequence;
@@ -11,17 +9,16 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
-public class ParserPolyfillTest {
+public class ParserPolyfillTest extends ExecutorSetup {
 
   private Context context;
-  private ExecutorService executor;
   private ParserPolyfill parser;
 
   public ParserPolyfillTest() {}
 
   @Before
   public void setup() throws Exception {
-    executor = Executors.newSingleThreadExecutor();
+    super.setup();
     parser = new ParserPolyfill();
     var contextBuilder = WebEnvironment.createContext();
 
@@ -37,8 +34,8 @@ public class ParserPolyfillTest {
   }
 
   @After
-  public void tearDown() {
-    executor.shutdownNow();
+  public void tearDown() throws InterruptedException {
+    super.tearDown();
     context.close();
     parser.close();
   }
