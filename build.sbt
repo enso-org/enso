@@ -1257,17 +1257,17 @@ lazy val `ydoc-server` = project
     Compile / run / fork := true,
     Compile / run / connectInput := true,
     Compile / run / javaOptions := Seq(
-      "-ea",
+      "-ea"
     ),
     // We need to assembly the cmd line options here manually, because we need
     // to add path to this module, and adding that directly to the `modulePath` setting
     // would result in an sbt caught in an infinite recursion.
     //
     Compile / run / javaOptions ++= {
-      val mp      = modulePath.value ++ (`profiling-utils` / modulePath).value
-      val jar     = (Compile / exportedProductJars).value.head
-      val modName = javaModuleName.value
-      val allMp   = mp ++ Seq(jar.data.absolutePath)
+      val mp        = modulePath.value ++ (`profiling-utils` / modulePath).value
+      val jar       = (Compile / exportedProductJars).value.head
+      val modName   = javaModuleName.value
+      val allMp     = mp ++ Seq(jar.data.absolutePath)
       val mainKlazz = (Compile / mainClass).value.get
       val args = Seq(
         "--module-path",
@@ -1276,7 +1276,7 @@ lazy val `ydoc-server` = project
         modName + "/" + mainKlazz
       )
       args
-    },
+    }
   )
   .dependsOn(`syntax-rust-definition`)
   .dependsOn(`logging-service-logback`)
