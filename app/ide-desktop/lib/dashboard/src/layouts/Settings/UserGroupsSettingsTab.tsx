@@ -3,6 +3,7 @@ import * as React from 'react'
 
 import * as mimeTypes from '#/data/mimeTypes'
 
+import * as scrollHooks from '#/hooks/scrollHooks'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
 import * as authProvider from '#/providers/AuthProvider'
@@ -38,8 +39,11 @@ export default function UserGroupsSettingsTab() {
   const { getText } = textProvider.useText()
   const toastAndLog = toastAndLogHooks.useToastAndLog()
   const [userGroups, setUserGroups] = React.useState<backendModule.UserGroupInfo[] | null>(null)
-
   const [users, setUsers] = React.useState<backendModule.User[] | null>(null)
+  const rootRef = React.useRef<HTMLDivElement>(null)
+  const bodyRef = React.useRef<HTMLTableSectionElement>(null)
+  const isLoading = userGroups == null || users == null
+
   const usersByGroup = React.useMemo(() => {
     const map = new Map<backendModule.UserGroupId, backendModule.User[]>()
     for (const otherUser of users ?? []) {
@@ -54,7 +58,8 @@ export default function UserGroupsSettingsTab() {
     }
     return map
   }, [users])
-  const isLoading = userGroups == null || users == null
+
+  const onUserGroupsTableScroll = scrollHooks.useStickyTableHeaderOnScroll(rootRef, bodyRef)
 
   React.useEffect(() => {
     void backend.listUsers().then(setUsers)
@@ -249,13 +254,17 @@ export default function UserGroupsSettingsTab() {
               </aria.Text>
             </UnstyledButton>
           </HorizontalMenuBar>
-          <div className="overflow-auto overflow-x-hidden">
+          <div
+            ref={rootRef}
+            className="overflow-auto overflow-x-hidden"
+            onScroll={onUserGroupsTableScroll}
+          >
             <aria.Table
               aria-label={getText('userGroups')}
               className="w-full table-fixed self-start rounded-rows"
               dragAndDropHooks={dragAndDropHooks}
             >
-              <aria.TableHeader className="h-row">
+              <aria.TableHeader className="sticky top h-row">
                 <aria.Column
                   isRowHeader
                   className="w-full border-x-2 border-transparent bg-clip-padding px-cell-x text-left text-sm font-semibold last:border-r-0"
@@ -266,6 +275,7 @@ export default function UserGroupsSettingsTab() {
                 <aria.Column className="relative border-0" />
               </aria.TableHeader>
               <aria.TableBody
+                ref={bodyRef}
                 items={userGroups ?? []}
                 dependencies={[isLoading, userGroups, usersByGroup]}
                 className="select-text"

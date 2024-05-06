@@ -41,7 +41,7 @@ export default function KeyboardShortcutsTable(props: KeyboardShortcutsTableProp
   const inputBindings = inputBindingsManager.useInputBindings()
   const { setModal } = modalProvider.useSetModal()
   const { getText } = textProvider.useText()
-  const rootRef = React.useRef<HTMLDivElement | null>(null)
+  const rootRef = React.useRef<HTMLDivElement>(null)
   const bodyRef = React.useRef<HTMLTableSectionElement>(null)
   const allShortcuts = React.useMemo(() => {
     // This is REQUIRED, in order to avoid disabling the `react-hooks/exhaustive-deps` lint.
@@ -54,13 +54,7 @@ export default function KeyboardShortcutsTable(props: KeyboardShortcutsTableProp
     [inputBindings.metadata]
   )
 
-  // This is required to prevent the table body from overlapping the table header, because
-  // the table header is transparent.
-  const onScroll = scrollHooks.useOnScroll(() => {
-    if (rootRef.current != null && bodyRef.current != null) {
-      bodyRef.current.style.clipPath = `inset(${rootRef.current.scrollTop}px 0 0 0)`
-    }
-  })
+  const onScroll = scrollHooks.useStickyTableHeaderOnScroll(rootRef, bodyRef)
 
   return (
     // There is a horizontal scrollbar for some reason without `px-px`.
@@ -75,7 +69,7 @@ export default function KeyboardShortcutsTable(props: KeyboardShortcutsTableProp
           })}
         >
           <table className="table-fixed border-collapse rounded-rows">
-            <thead className="sticky top-0">
+            <thead className="sticky top">
               <tr className="h-row text-left text-sm font-semibold">
                 <th className="pr-keyboard-shortcuts-icon-column-r min-w-keyboard-shortcuts-icon-column pl-cell-x">
                   {/* Icon */}
