@@ -15,6 +15,7 @@ import UnstyledButton from '#/components/UnstyledButton'
 import type * as backendModule from '#/services/Backend'
 
 import * as eventModule from '#/utilities/event'
+import * as string from '#/utilities/string'
 
 // =========================
 // === NewUserGroupModal ===
@@ -40,11 +41,16 @@ export default function NewUserGroupModal(props: NewUserGroupModalProps) {
   const [name, setName] = React.useState('')
   const [userGroups, setUserGroups] = React.useState(userGroupsRaw)
   const userGroupNames = React.useMemo(
-    () => (userGroups == null ? null : new Set(userGroups.map(group => group.groupName))),
+    () =>
+      userGroups == null
+        ? null
+        : new Set(userGroups.map(group => string.normalizeName(group.groupName))),
     [userGroups]
   )
   const nameError =
-    userGroupNames != null && userGroupNames.has(name) ? getText('duplicateUserGroupError') : null
+    userGroupNames != null && userGroupNames.has(string.normalizeName(name))
+      ? getText('duplicateUserGroupError')
+      : null
   const canSubmit = nameError == null && name !== '' && userGroupNames != null
 
   React.useEffect(() => {
