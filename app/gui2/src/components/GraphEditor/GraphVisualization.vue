@@ -374,3 +374,12 @@ watch(
     </Suspense>
   </div>
 </template>
+
+<style scoped>
+.GraphVisualization {
+  position: relative;
+  /** Confine the visualization to its own stacking context, so that it can't draw on top of other UI elements
+      (e.g. dropdown widgets). */
+  z-index: 0;
+}
+</style>
