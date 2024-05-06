@@ -54,7 +54,7 @@ export default function KeyboardShortcutsTable(props: KeyboardShortcutsTableProp
     [inputBindings.metadata]
   )
 
-  const onScroll = scrollHooks.useStickyTableHeaderOnScroll(rootRef, bodyRef)
+  const { onScroll } = scrollHooks.useStickyTableHeaderOnScroll(rootRef, bodyRef)
 
   return (
     // There is a horizontal scrollbar for some reason without `px-px`.

@@ -59,7 +59,8 @@ export default function UserGroupsSettingsTab() {
     return map
   }, [users])
 
-  const onUserGroupsTableScroll = scrollHooks.useStickyTableHeaderOnScroll(rootRef, bodyRef)
+  const { onScroll: onUserGroupsTableScroll, shadowClass } =
+    scrollHooks.useStickyTableHeaderOnScroll(rootRef, bodyRef, true)
 
   React.useEffect(() => {
     void backend.listUsers().then(setUsers)
@@ -256,12 +257,12 @@ export default function UserGroupsSettingsTab() {
           </HorizontalMenuBar>
           <div
             ref={rootRef}
-            className="overflow-auto overflow-x-hidden"
+            className={`overflow-auto overflow-x-hidden lg:mb-2 transition-all ${shadowClass}`}
             onScroll={onUserGroupsTableScroll}
           >
             <aria.Table
               aria-label={getText('userGroups')}
-              className="mb-4 lg:mb-8 w-full table-fixed self-start rounded-rows"
+              className="w-full table-fixed self-start rounded-rows"
               dragAndDropHooks={dragAndDropHooks}
             >
               <aria.TableHeader className="sticky top h-row">
