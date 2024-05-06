@@ -33,6 +33,7 @@ add_specs suite_builder =
                 #my_event.metadata.get "projectName" . should_equal "enso_dev.Base_Tests"
 
                 my_event.message . should_equal "Message"
+                my_event.user_email . should_equal Enso_User.current.email
 
         group_builder.specify "will include the project id in the log message, if provided by the Cloud" <| setup.with_prepared_environment <|
             example_project_id = "project-27xJM00p8jWoL2qByTo6tQfciWC"

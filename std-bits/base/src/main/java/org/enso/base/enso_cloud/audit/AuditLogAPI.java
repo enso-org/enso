@@ -78,7 +78,8 @@ class AuditLogAPI {
         }
       } catch (IOException | InterruptedException e) {
         // Promote a checked exception to a runtime exception to simplify the code.
-        throw new RequestFailureException(e.getMessage(), e);
+        var errorMessage = e.getMessage() != null ? e.getMessage() : e.toString();
+        throw new RequestFailureException("Failed to send log message: " + errorMessage, e);
       }
     } catch (RequestFailureException e) {
       if (retryCount < 0) {
