@@ -590,7 +590,7 @@ replace args metadata =
                 True -> Nothing
     case expression of
         Nothing -> replace_params.throw_unsupported "PostgreSQL"
-       _ -> expression
+        _ -> expression
 
 ## PRIVATE
 make_extract_as_int enso_name sql_name=enso_name =
