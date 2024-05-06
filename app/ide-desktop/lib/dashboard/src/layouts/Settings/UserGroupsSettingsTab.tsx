@@ -203,7 +203,7 @@ export default function UserGroupsSettingsTab() {
         <SettingsSection
           noFocusArea
           title={getText('userGroups')}
-          className="overflow-y-auto overflow-x-hidden"
+          className="overflow-auto overflow-x-hidden"
         >
           <HorizontalMenuBar>
             <UnstyledButton
@@ -249,60 +249,62 @@ export default function UserGroupsSettingsTab() {
               </aria.Text>
             </UnstyledButton>
           </HorizontalMenuBar>
-          <aria.Table
-            aria-label={getText('userGroups')}
-            className="w-full table-fixed self-start rounded-rows"
-            dragAndDropHooks={dragAndDropHooks}
-          >
-            <aria.TableHeader className="h-row">
-              <aria.Column
-                isRowHeader
-                className="w-full border-x-2 border-transparent bg-clip-padding px-cell-x text-left text-sm font-semibold last:border-r-0"
-              >
-                {getText('userGroup')}
-              </aria.Column>
-              {/* Delete button. */}
-              <aria.Column className="relative border-0" />
-            </aria.TableHeader>
-            <aria.TableBody
-              items={userGroups ?? []}
-              dependencies={[isLoading, userGroups, usersByGroup]}
-              className="select-text"
+          <div className="overflow-auto overflow-x-hidden">
+            <aria.Table
+              aria-label={getText('userGroups')}
+              className="w-full table-fixed self-start rounded-rows"
+              dragAndDropHooks={dragAndDropHooks}
             >
-              {isLoading ? (
-                <aria.Row className="h-row">
-                  <aria.Cell
-                    ref={element => {
-                      if (element != null) {
-                        element.colSpan = 2
-                      }
-                    }}
-                  >
-                    <div className="flex justify-center">
-                      <StatelessSpinner
-                        size={32}
-                        state={statelessSpinner.SpinnerState.loadingMedium}
-                      />
-                    </div>
-                  </aria.Cell>
-                </aria.Row>
-              ) : (
-                userGroup => (
-                  <>
-                    <UserGroupRow userGroup={userGroup} doDeleteUserGroup={doDeleteUserGroup} />
-                    {(usersByGroup.get(userGroup.id) ?? []).map(otherUser => (
-                      <UserGroupUserRow
-                        key={otherUser.userId}
-                        user={otherUser}
-                        userGroup={userGroup}
-                        doRemoveUserFromUserGroup={doRemoveUserFromUserGroup}
-                      />
-                    ))}
-                  </>
-                )
-              )}
-            </aria.TableBody>
-          </aria.Table>
+              <aria.TableHeader className="h-row">
+                <aria.Column
+                  isRowHeader
+                  className="w-full border-x-2 border-transparent bg-clip-padding px-cell-x text-left text-sm font-semibold last:border-r-0"
+                >
+                  {getText('userGroup')}
+                </aria.Column>
+                {/* Delete button. */}
+                <aria.Column className="relative border-0" />
+              </aria.TableHeader>
+              <aria.TableBody
+                items={userGroups ?? []}
+                dependencies={[isLoading, userGroups, usersByGroup]}
+                className="select-text"
+              >
+                {isLoading ? (
+                  <aria.Row className="h-row">
+                    <aria.Cell
+                      ref={element => {
+                        if (element != null) {
+                          element.colSpan = 2
+                        }
+                      }}
+                    >
+                      <div className="flex justify-center">
+                        <StatelessSpinner
+                          size={32}
+                          state={statelessSpinner.SpinnerState.loadingMedium}
+                        />
+                      </div>
+                    </aria.Cell>
+                  </aria.Row>
+                ) : (
+                  userGroup => (
+                    <>
+                      <UserGroupRow userGroup={userGroup} doDeleteUserGroup={doDeleteUserGroup} />
+                      {(usersByGroup.get(userGroup.id) ?? []).map(otherUser => (
+                        <UserGroupUserRow
+                          key={otherUser.userId}
+                          user={otherUser}
+                          userGroup={userGroup}
+                          doRemoveUserFromUserGroup={doRemoveUserFromUserGroup}
+                        />
+                      ))}
+                    </>
+                  )
+                )}
+              </aria.TableBody>
+            </aria.Table>
+          </div>
         </SettingsSection>
       </div>
       <SettingsSection noFocusArea title={getText('users')} className="h-2/5 lg:h-[unset]">
