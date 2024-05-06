@@ -27,20 +27,20 @@ public class Main {
     // Can't use try-with-resource in ExecutorService because API was added in JDK19
     var executor = Executors.newSingleThreadExecutor();
     try {
-      var parser = new ParserPolyfill();
-      var ydocJs = Source.newBuilder("js", ydoc).mimeType("application/javascript+module").build();
+      try (var parser = new ParserPolyfill()) {
+        var ydocJs =
+            Source.newBuilder("js", ydoc).mimeType("application/javascript+module").build();
 
-      CompletableFuture.supplyAsync(contextBuilder::build, executor)
-          .thenAcceptAsync(
-              ctx -> {
-                WebEnvironment.initialize(ctx, executor);
-                parser.initialize(ctx);
-
-                ctx.eval(ydocJs);
-              },
-              executor)
-          .get();
-
+        CompletableFuture.supplyAsync(contextBuilder::build, executor)
+            .thenAcceptAsync(
+                ctx -> {
+                  WebEnvironment.initialize(ctx, executor);
+                  parser.initialize(ctx);
+                  ctx.eval(ydocJs);
+                },
+                executor)
+            .get();
+      }
       System.out.println("Press enter to exit");
       System.in.read();
     } finally {
