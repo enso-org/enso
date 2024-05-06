@@ -14,7 +14,7 @@ import * as permissionsModule from '#/utilities/permissions'
 export interface PermissionDisplayProps extends Readonly<React.PropsWithChildren> {
   readonly action: permissionsModule.PermissionAction
   readonly className?: string
-  readonly onPress?: (event: aria.PressEvent) => void
+  readonly onPress?: ((event: aria.PressEvent) => void) | null
 }
 
 /** Colored border around icons and text indicating permissions. */
@@ -44,6 +44,7 @@ export default function PermissionDisplay(props: PermissionDisplayProps) {
     case permissionsModule.Permission.view: {
       return (
         <UnstyledButton
+          isDisabled={!onPress}
           className={`relative inline-block whitespace-nowrap rounded-full ${className ?? ''}`}
           onPress={onPress ?? (() => {})}
         >

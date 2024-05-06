@@ -1,8 +1,8 @@
 /** @file The top-bar of dashboard. */
 import * as React from 'react'
 
-import type * as assetSearchBar from '#/layouts/AssetSearchBar'
-import AssetSearchBar from '#/layouts/AssetSearchBar'
+import * as searchBarProvider from '#/providers/SearchBarProvider'
+
 import BackendSwitcher from '#/layouts/BackendSwitcher'
 import PageSwitcher, * as pageSwitcher from '#/layouts/PageSwitcher'
 import UserBar from '#/layouts/UserBar'
@@ -10,8 +10,6 @@ import UserBar from '#/layouts/UserBar'
 import AssetInfoBar from '#/components/dashboard/AssetInfoBar'
 
 import type * as backendModule from '#/services/Backend'
-
-import type AssetQuery from '#/utilities/AssetQuery'
 
 // ==============
 // === TopBar ===
@@ -21,7 +19,6 @@ import type AssetQuery from '#/utilities/AssetQuery'
 export interface TopBarProps {
   /** Whether the application may have the local backend running. */
   readonly supportsLocalBackend: boolean
-  readonly isCloud: boolean
   readonly page: pageSwitcher.Page
   readonly setPage: (page: pageSwitcher.Page) => void
   readonly projectAsset: backendModule.ProjectAsset | null
@@ -30,10 +27,6 @@ export interface TopBarProps {
   readonly setBackendType: (backendType: backendModule.BackendType) => void
   readonly isHelpChatOpen: boolean
   readonly setIsHelpChatOpen: (isHelpChatOpen: boolean) => void
-  readonly query: AssetQuery
-  readonly setQuery: React.Dispatch<React.SetStateAction<AssetQuery>>
-  readonly labels: backendModule.Label[]
-  readonly suggestions: assetSearchBar.Suggestion[]
   readonly isAssetPanelVisible: boolean
   readonly isAssetPanelEnabled: boolean
   readonly setIsAssetPanelEnabled: React.Dispatch<React.SetStateAction<boolean>>
@@ -44,10 +37,12 @@ export interface TopBarProps {
 /** The {@link TopBarProps.setQuery} parameter is used to communicate with the parent component,
  * because `searchVal` may change parent component's project list. */
 export default function TopBar(props: TopBarProps) {
-  const { supportsLocalBackend, isCloud, page, setPage, projectAsset, setProjectAsset } = props
+  const { supportsLocalBackend, page, setPage, projectAsset, setProjectAsset } = props
   const { isEditorDisabled, setBackendType, isHelpChatOpen, setIsHelpChatOpen } = props
-  const { query, setQuery, labels, suggestions, isAssetPanelEnabled } = props
-  const { isAssetPanelVisible, setIsAssetPanelEnabled, doRemoveSelf, onSignOut } = props
+  const { isAssetPanelEnabled, isAssetPanelVisible, setIsAssetPanelEnabled, doRemoveSelf } = props
+  const { onSignOut } = props
+
+  const searchBar = searchBarProvider.useSearchBar()
   const supportsCloudBackend = process.env.ENSO_CLOUD_API_URL != null
   const shouldMakeSpaceForExtendedEditorMenu = page === pageSwitcher.Page.editor
 
@@ -59,19 +54,7 @@ export default function TopBar(props: TopBarProps) {
       {supportsLocalBackend && supportsCloudBackend && page !== pageSwitcher.Page.editor && (
         <BackendSwitcher setBackendType={setBackendType} />
       )}
-      {page === pageSwitcher.Page.editor ? (
-        <div className="flex-1" />
-      ) : (
-        <div className="flex flex-1 flex-wrap justify-around">
-          <AssetSearchBar
-            isCloud={isCloud}
-            query={query}
-            setQuery={setQuery}
-            labels={labels}
-            suggestions={suggestions}
-          />
-        </div>
-      )}
+      <div className="flex flex-1 flex-wrap justify-around">{searchBar}</div>
       <div
         className={`grid transition-all duration-side-panel ${isAssetPanelVisible ? 'grid-cols-0fr' : 'grid-cols-1fr'}`}
       >

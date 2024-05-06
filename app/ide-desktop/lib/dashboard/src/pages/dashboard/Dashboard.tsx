@@ -22,7 +22,6 @@ import AssetListEventType from '#/events/AssetListEventType'
 
 import type * as assetPanel from '#/layouts/AssetPanel'
 import AssetPanel from '#/layouts/AssetPanel'
-import type * as assetSearchBar from '#/layouts/AssetSearchBar'
 import Category from '#/layouts/CategorySwitcher/Category'
 import Chat from '#/layouts/Chat'
 import ChatPlaceholder from '#/layouts/ChatPlaceholder'
@@ -43,7 +42,6 @@ import type * as projectManager from '#/services/ProjectManager'
 import RemoteBackend, * as remoteBackendModule from '#/services/RemoteBackend'
 
 import * as array from '#/utilities/array'
-import AssetQuery from '#/utilities/AssetQuery'
 import HttpClient from '#/utilities/HttpClient'
 import LocalStorage from '#/utilities/LocalStorage'
 import * as object from '#/utilities/object'
@@ -146,9 +144,7 @@ export default function Dashboard(props: DashboardProps) {
       array.includes(Object.values(pageSwitcher.Page), value)
   )
   const [queuedAssetEvents, setQueuedAssetEvents] = React.useState<assetEvent.AssetEvent[]>([])
-  const [query, setQuery] = React.useState(() => AssetQuery.fromString(''))
   const [labels, setLabels] = React.useState<backendModule.Label[]>([])
-  const [suggestions, setSuggestions] = React.useState<assetSearchBar.Suggestion[]>([])
   const [projectStartupInfo, setProjectStartupInfo] =
     React.useState<backendModule.ProjectStartupInfo | null>(null)
   const [openProjectAbortController, setOpenProjectAbortController] =
@@ -168,7 +164,6 @@ export default function Dashboard(props: DashboardProps) {
     (value): value is Category => array.includes(Object.values(Category), value)
   )
 
-  const isCloud = backend.type === backendModule.BackendType.remote
   const rootDirectoryId = React.useMemo(
     () => session.user?.rootDirectoryId ?? backendModule.DirectoryId(''),
     [session.user]
@@ -179,12 +174,6 @@ export default function Dashboard(props: DashboardProps) {
   React.useEffect(() => {
     setInitialized(true)
   }, [])
-
-  React.useEffect(() => {
-    if (query.query !== '') {
-      setPage(pageSwitcher.Page.drive)
-    }
-  }, [query, setPage])
 
   React.useEffect(() => {
     let currentBackend = backend
@@ -500,7 +489,6 @@ export default function Dashboard(props: DashboardProps) {
         >
           <TopBar
             supportsLocalBackend={supportsLocalBackend}
-            isCloud={isCloud}
             projectAsset={projectStartupInfo?.projectAsset ?? null}
             setProjectAsset={projectStartupInfo?.setProjectAsset ?? null}
             page={page}
@@ -509,10 +497,6 @@ export default function Dashboard(props: DashboardProps) {
             isHelpChatOpen={isHelpChatOpen}
             setIsHelpChatOpen={setIsHelpChatOpen}
             setBackendType={setBackendType}
-            query={query}
-            setQuery={setQuery}
-            labels={labels}
-            suggestions={suggestions}
             isAssetPanelVisible={isAssetPanelVisible}
             isAssetPanelEnabled={isAssetPanelEnabled}
             setIsAssetPanelEnabled={setIsAssetPanelEnabled}
@@ -523,15 +507,13 @@ export default function Dashboard(props: DashboardProps) {
           <Drive
             category={category}
             setCategory={setCategory}
+            labels={labels}
+            setLabels={setLabels}
+            setPage={setPage}
             supportsLocalBackend={supportsLocalBackend}
             hidden={page !== pageSwitcher.Page.drive}
             hideRows={page !== pageSwitcher.Page.drive && page !== pageSwitcher.Page.home}
             initialProjectName={initialProjectName}
-            query={query}
-            setQuery={setQuery}
-            labels={labels}
-            setLabels={setLabels}
-            setSuggestions={setSuggestions}
             projectStartupInfo={projectStartupInfo}
             queuedAssetEvents={queuedAssetEvents}
             assetListEvents={assetListEvents}
@@ -580,7 +562,6 @@ export default function Dashboard(props: DashboardProps) {
               key={assetPanelProps?.item?.item.id}
               item={assetPanelProps?.item ?? null}
               setItem={assetPanelProps?.setItem ?? null}
-              setQuery={setQuery}
               category={Category.home}
               labels={labels}
               dispatchAssetEvent={dispatchAssetEvent}

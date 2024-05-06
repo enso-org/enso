@@ -14,6 +14,7 @@ import * as inputBindingsProvider from '#/providers/InputBindingsProvider'
 import * as localStorageProvider from '#/providers/LocalStorageProvider'
 import * as modalProvider from '#/providers/ModalProvider'
 import * as navigator2DProvider from '#/providers/Navigator2DProvider'
+import * as searchBarProvider from '#/providers/SearchBarProvider'
 import * as textProvider from '#/providers/TextProvider'
 
 import type * as assetEvent from '#/events/assetEvent'
@@ -23,6 +24,7 @@ import AssetListEventType from '#/events/AssetListEventType'
 
 import type * as assetPanel from '#/layouts/AssetPanel'
 import type * as assetSearchBar from '#/layouts/AssetSearchBar'
+import AssetSearchBar from '#/layouts/AssetSearchBar'
 import AssetsTableContextMenu from '#/layouts/AssetsTableContextMenu'
 import Category from '#/layouts/CategorySwitcher/Category'
 
@@ -350,7 +352,6 @@ export interface AssetsTableProps {
   readonly setCanDownload: (canDownload: boolean) => void
   readonly category: Category
   readonly allLabels: Map<backendModule.LabelName, backendModule.Label>
-  readonly setSuggestions: (suggestions: assetSearchBar.Suggestion[]) => void
   readonly initialProjectName: string | null
   readonly projectStartupInfo: backendModule.ProjectStartupInfo | null
   readonly deletedLabelNames: Set<backendModule.LabelName>
@@ -376,7 +377,7 @@ export interface AssetsTableProps {
 /** The table of project assets. */
 export default function AssetsTable(props: AssetsTableProps) {
   const { hidden, hideRows, query, setQuery, setCanDownload, category, allLabels } = props
-  const { setSuggestions, deletedLabelNames, initialProjectName, projectStartupInfo } = props
+  const { deletedLabelNames, initialProjectName, projectStartupInfo } = props
   const { queuedAssetEvents: rawQueuedAssetEvents } = props
   const { assetListEvents, dispatchAssetListEvent, assetEvents, dispatchAssetEvent } = props
   const { setAssetPanelProps, doOpenEditor, doCloseEditor: rawDoCloseEditor, doCreateLabel } = props
@@ -385,6 +386,7 @@ export default function AssetsTable(props: AssetsTableProps) {
   const { user, accessToken } = authProvider.useNonPartialUserSession()
   const { backend } = backendProvider.useBackend()
   const { setModal, unsetModal } = modalProvider.useSetModal()
+  const { setSearchBar } = searchBarProvider.useSetSearchBar()
   const { localStorage } = localStorageProvider.useLocalStorage()
   const { getText } = textProvider.useText()
   const inputBindings = inputBindingsProvider.useInputBindings()
@@ -393,6 +395,7 @@ export default function AssetsTable(props: AssetsTableProps) {
   const [initialized, setInitialized] = React.useState(false)
   const [isLoading, setIsLoading] = React.useState(true)
   const [enabledColumns, setEnabledColumns] = React.useState(columnUtils.DEFAULT_ENABLED_COLUMNS)
+  const [suggestions, setSuggestions] = React.useState<assetSearchBar.Suggestion[]>([])
   const [sortInfo, setSortInfo] =
     React.useState<sorting.SortInfo<columnUtils.SortableColumn> | null>(null)
   const [selectedKeys, setSelectedKeysRaw] = React.useState<ReadonlySet<backendModule.AssetId>>(
@@ -643,6 +646,19 @@ export default function AssetsTable(props: AssetsTableProps) {
       }
     }
   }, [targetDirectoryNodeRef, selectedKeys])
+
+  React.useEffect(() => {
+    setSearchBar(
+      'assets table',
+      <AssetSearchBar
+        isCloud={isCloud}
+        query={query}
+        setQuery={setQuery}
+        labels={[...allLabels.values()]}
+        suggestions={suggestions}
+      />
+    )
+  }, [isCloud, query, setQuery, allLabels, suggestions, /* should never change */ setSearchBar])
 
   React.useEffect(() => {
     const nodeToSuggestion = (

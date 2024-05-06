@@ -2,9 +2,9 @@
  * the shared React context. */
 import * as React from 'react'
 
-// =============
-// === Modal ===
-// =============
+// =====================
+// === ModalProvider ===
+// =====================
 
 /** The type of a modal. */
 export type Modal = JSX.Element
@@ -20,9 +20,7 @@ interface ModalContextType {
   readonly modal: Modal | null
 }
 
-const ModalContext = React.createContext<ModalContextType>({
-  modal: null,
-})
+const ModalContext = React.createContext<ModalContextType>({ modal: null })
 
 const ModalStaticContext = React.createContext<ModalStaticContextType>({
   setModal: () => {
@@ -58,7 +56,7 @@ export default function ModalProvider(props: ModalProviderProps) {
   return <ModalContext.Provider value={{ modal }}>{setModalProvider}</ModalContext.Provider>
 }
 
-/** Props for a {@link ModalProvider}. */
+/** Props for a {@link ModalStaticProvider}. */
 interface InternalModalStaticProviderProps extends Readonly<React.PropsWithChildren> {
   readonly setModal: React.Dispatch<React.SetStateAction<Modal | null>>
   readonly modalRef: React.RefObject<Modal>
@@ -75,11 +73,19 @@ function ModalStaticProvider(props: InternalModalStaticProviderProps) {
   )
 }
 
+// ================
+// === useModal ===
+// ================
+
 /** A React context hook exposing the currently active modal, if one is currently visible. */
 export function useModal() {
   const { modal } = React.useContext(ModalContext)
   return { modal } as const
 }
+
+// ===================
+// === useModalRef ===
+// ===================
 
 /** A React context hook exposing the currently active modal (if one is currently visible) as a ref.
  */
@@ -87,6 +93,10 @@ export function useModalRef() {
   const { modalRef } = React.useContext(ModalStaticContext)
   return { modalRef } as const
 }
+
+// ===================
+// === useSetModal ===
+// ===================
 
 /** A React context hook exposing functions to set and unset the currently active modal. */
 export function useSetModal() {

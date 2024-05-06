@@ -27,7 +27,9 @@ import * as uniqueString from '#/utilities/uniqueString'
 
 /** The type of the `state` prop of a {@link SharedWithColumn}. */
 interface SharedWithColumnStateProp
-  extends Pick<column.AssetColumnProps['state'], 'category' | 'dispatchAssetEvent' | 'setQuery'> {}
+  extends Pick<column.AssetColumnProps['state'], 'category' | 'dispatchAssetEvent'> {
+  readonly setQuery: column.AssetColumnProps['state']['setQuery'] | null
+}
 
 /** Props for a {@link SharedWithColumn}. */
 interface SharedWithColumnPropsInternal extends Pick<column.AssetColumnProps, 'item' | 'setItem'> {
@@ -67,11 +69,20 @@ export default function SharedWithColumn(props: SharedWithColumnPropsInternal) {
         <PermissionDisplay
           key={otherUser.user.userId}
           action={otherUser.permission}
-          onPress={event => {
-            setQuery(oldQuery =>
-              oldQuery.withToggled('owners', 'negativeOwners', otherUser.user.name, event.shiftKey)
-            )
-          }}
+          onPress={
+            setQuery == null
+              ? null
+              : event => {
+                  setQuery(oldQuery =>
+                    oldQuery.withToggled(
+                      'owners',
+                      'negativeOwners',
+                      otherUser.user.name,
+                      event.shiftKey
+                    )
+                  )
+                }
+          }
         >
           {otherUser.user.name}
         </PermissionDisplay>

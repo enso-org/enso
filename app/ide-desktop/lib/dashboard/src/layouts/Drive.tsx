@@ -18,12 +18,12 @@ import type * as assetListEvent from '#/events/assetListEvent'
 import AssetListEventType from '#/events/AssetListEventType'
 
 import type * as assetPanel from '#/layouts/AssetPanel'
-import type * as assetSearchBar from '#/layouts/AssetSearchBar'
 import AssetsTable from '#/layouts/AssetsTable'
 import CategorySwitcher from '#/layouts/CategorySwitcher'
 import Category from '#/layouts/CategorySwitcher/Category'
 import DriveBar from '#/layouts/DriveBar'
 import Labels from '#/layouts/Labels'
+import * as pageSwitcher from '#/layouts/PageSwitcher'
 
 import * as aria from '#/components/aria'
 import type * as spinner from '#/components/Spinner'
@@ -32,7 +32,7 @@ import UnstyledButton from '#/components/UnstyledButton'
 import * as backendModule from '#/services/Backend'
 import * as projectManager from '#/services/ProjectManager'
 
-import type AssetQuery from '#/utilities/AssetQuery'
+import AssetQuery from '#/utilities/AssetQuery'
 import type AssetTreeNode from '#/utilities/AssetTreeNode'
 import * as download from '#/utilities/download'
 import * as github from '#/utilities/github'
@@ -64,6 +64,7 @@ enum DriveStatus {
 export interface DriveProps {
   readonly category: Category
   readonly setCategory: (category: Category) => void
+  readonly setPage: (page: pageSwitcher.Page) => void
   readonly supportsLocalBackend: boolean
   readonly hidden: boolean
   readonly hideRows: boolean
@@ -75,11 +76,8 @@ export interface DriveProps {
   readonly dispatchAssetListEvent: (directoryEvent: assetListEvent.AssetListEvent) => void
   readonly assetEvents: assetEvent.AssetEvent[]
   readonly dispatchAssetEvent: (directoryEvent: assetEvent.AssetEvent) => void
-  readonly query: AssetQuery
-  readonly setQuery: React.Dispatch<React.SetStateAction<AssetQuery>>
   readonly labels: backendModule.Label[]
   readonly setLabels: React.Dispatch<React.SetStateAction<backendModule.Label[]>>
-  readonly setSuggestions: (suggestions: assetSearchBar.Suggestion[]) => void
   readonly projectStartupInfo: backendModule.ProjectStartupInfo | null
   readonly setAssetPanelProps: (props: assetPanel.AssetPanelRequiredProps | null) => void
   readonly setIsAssetPanelTemporarilyVisible: (visible: boolean) => void
@@ -95,11 +93,10 @@ export interface DriveProps {
 /** Contains directory path and directory contents (projects, folders, secrets and files). */
 export default function Drive(props: DriveProps) {
   const { supportsLocalBackend, hidden, hideRows, initialProjectName, queuedAssetEvents } = props
-  const { query, setQuery, labels, setLabels, setSuggestions, projectStartupInfo } = props
+  const { labels, setLabels, category, setCategory, setPage, projectStartupInfo } = props
   const { assetListEvents, dispatchAssetListEvent, assetEvents, dispatchAssetEvent } = props
   const { setAssetPanelProps, doOpenEditor, doCloseEditor } = props
   const { setIsAssetPanelTemporarilyVisible } = props
-  const { category, setCategory } = props
 
   const navigate = navigateHooks.useNavigate()
   const toastAndLog = toastAndLogHooks.useToastAndLog()
@@ -107,6 +104,7 @@ export default function Drive(props: DriveProps) {
   const { backend } = backendProvider.useBackend()
   const { localStorage } = localStorageProvider.useLocalStorage()
   const { getText } = textProvider.useText()
+  const [query, setQuery] = React.useState(() => AssetQuery.fromString(''))
   const [canDownload, setCanDownload] = React.useState(false)
   const [didLoadingProjectManagerFail, setDidLoadingProjectManagerFail] = React.useState(false)
   const [newLabelNames, setNewLabelNames] = React.useState(new Set<backendModule.LabelName>())
@@ -154,6 +152,12 @@ export default function Drive(props: DriveProps) {
       )
     }
   }, [])
+
+  React.useEffect(() => {
+    if (query.query !== '') {
+      setPage(pageSwitcher.Page.drive)
+    }
+  }, [query, setPage])
 
   React.useEffect(() => {
     void (async () => {
@@ -246,7 +250,6 @@ export default function Drive(props: DriveProps) {
   const doDeleteLabel = React.useCallback(
     async (id: backendModule.TagId, value: backendModule.LabelName) => {
       setDeletedLabelNames(oldNames => new Set([...oldNames, value]))
-      setQuery(oldQuery => oldQuery.deleteFromEveryTerm({ labels: [value] }))
       try {
         await backend.deleteTag(id, value)
         dispatchAssetEvent({
@@ -264,7 +267,6 @@ export default function Drive(props: DriveProps) {
     [
       backend,
       toastAndLog,
-      /* should never change */ setQuery,
       /* should never change */ dispatchAssetEvent,
       /* should never change */ setLabels,
     ]
@@ -405,7 +407,6 @@ export default function Drive(props: DriveProps) {
               setCanDownload={setCanDownload}
               category={category}
               allLabels={allLabels}
-              setSuggestions={setSuggestions}
               initialProjectName={initialProjectName}
               projectStartupInfo={projectStartupInfo}
               deletedLabelNames={deletedLabelNames}

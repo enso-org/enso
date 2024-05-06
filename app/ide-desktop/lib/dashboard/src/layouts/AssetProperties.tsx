@@ -25,7 +25,6 @@ import UnstyledButton from '#/components/UnstyledButton'
 
 import * as backendModule from '#/services/Backend'
 
-import type AssetQuery from '#/utilities/AssetQuery'
 import type * as assetTreeNode from '#/utilities/AssetTreeNode'
 import * as object from '#/utilities/object'
 import * as permissions from '#/utilities/permissions'
@@ -40,21 +39,13 @@ export interface AssetPropertiesProps {
   readonly setItem: React.Dispatch<React.SetStateAction<assetTreeNode.AnyAssetTreeNode>>
   readonly category: Category
   readonly labels: backendModule.Label[]
-  readonly setQuery: React.Dispatch<React.SetStateAction<AssetQuery>>
   readonly dispatchAssetEvent: (event: assetEvent.AssetEvent) => void
   readonly isReadonly?: boolean
 }
 
 /** Display and modify the properties of an asset. */
 export default function AssetProperties(props: AssetPropertiesProps) {
-  const {
-    item: itemRaw,
-    setItem: setItemRaw,
-    category,
-    labels,
-    setQuery,
-    isReadonly = false,
-  } = props
+  const { item: itemRaw, setItem: setItemRaw, category, labels, isReadonly = false } = props
   const { dispatchAssetEvent } = props
 
   const { user } = authProvider.useNonPartialUserSession()
@@ -215,7 +206,7 @@ export default function AssetProperties(props: AssetPropertiesProps) {
                   isReadonly={isReadonly}
                   item={item}
                   setItem={setItem}
-                  state={{ category, dispatchAssetEvent, setQuery }}
+                  state={{ category, dispatchAssetEvent, setQuery: () => {} }}
                 />
               </td>
             </tr>
