@@ -43,6 +43,10 @@ export default function UserGroupsSettingsTab() {
   const rootRef = React.useRef<HTMLDivElement>(null)
   const bodyRef = React.useRef<HTMLTableSectionElement>(null)
   const isLoading = userGroups == null || users == null
+  const usersMap = React.useMemo(
+    () => new Map((users ?? []).map(user => [user.userId, user])),
+    [users]
+  )
 
   const usersByGroup = React.useMemo(() => {
     const map = new Map<backendModule.UserGroupId, backendModule.User[]>()
@@ -85,7 +89,7 @@ export default function UserGroupsSettingsTab() {
             void item.getText(mimeTypes.USER_MIME_TYPE).then(async text => {
               // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
               const newUser: backendModule.User = JSON.parse(text)
-              const groups = newUser.userGroups ?? []
+              const groups = usersMap.get(newUser.userId)?.userGroups ?? []
               if (!groups.includes(userGroupId)) {
                 try {
                   const newUserGroups = [...groups, userGroupId]
@@ -257,7 +261,7 @@ export default function UserGroupsSettingsTab() {
           </HorizontalMenuBar>
           <div
             ref={rootRef}
-            className={`overflow-auto overflow-x-hidden lg:mb-2 transition-all ${shadowClass}`}
+            className={`overflow-auto overflow-x-hidden transition-all lg:mb-2 ${shadowClass}`}
             onScroll={onUserGroupsTableScroll}
           >
             <aria.Table
