@@ -12,7 +12,7 @@ public abstract class PolyfillBase implements Polyfill {
   }
 
   @Override
-  public void initialize(Context ctx) {
+  public final void initialize(Context ctx) {
     Source jsSource = Source.newBuilder("js", getClass().getResource(resourceName)).buildLiteral();
 
     ctx.eval(jsSource).execute(this);
