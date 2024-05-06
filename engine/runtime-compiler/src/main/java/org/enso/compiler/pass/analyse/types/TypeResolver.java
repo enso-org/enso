@@ -157,7 +157,8 @@ public class TypeResolver {
     return resolveTypeExpression(ref.get(Expression.class));
   }
 
-  TypeRepresentation findTypeAscription(Expression ir) {
+  /** Returns the type ascribed to the given expression, if any. */
+  TypeRepresentation getTypeAscription(Expression ir) {
     TypeSignatures.Signature ascribedSignature =
         getMetadataOrNull(ir, TypeSignatures$.MODULE$, TypeSignatures.Signature.class);
     if (ascribedSignature != null) {

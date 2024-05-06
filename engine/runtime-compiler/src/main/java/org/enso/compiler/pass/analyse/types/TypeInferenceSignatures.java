@@ -8,6 +8,7 @@ import org.enso.compiler.core.ir.Expression;
 import org.enso.compiler.core.ir.Function;
 import org.enso.compiler.core.ir.Module;
 import org.enso.compiler.core.ir.Name;
+import org.enso.compiler.core.ir.expression.Application;
 import org.enso.compiler.core.ir.module.scope.Definition;
 import org.enso.compiler.core.ir.module.scope.definition.Method;
 import org.enso.compiler.pass.IRPass;
@@ -150,10 +151,11 @@ public class TypeInferenceSignatures implements IRPass {
                       return TypeRepresentation.UNKNOWN;
                     });
 
-        TypeRepresentation ascribedReturnType = typeResolver.findTypeAscription(lambda.body());
+        TypeRepresentation ascribedReturnType = findReturnTypeAscription(lambda.body());
 
         if (ascribedReturnType == null && argTypesScala.isEmpty()) {
-          // If we did not infer return type NOR arity, we know nothing useful about this function, so we withdraw.
+          // If we did not infer return type NOR arity, we know nothing useful about this function,
+          // so we withdraw.
           yield null;
         }
 
@@ -165,7 +167,19 @@ public class TypeInferenceSignatures implements IRPass {
 
         // Otherwise, we encountered a 0-argument method, so its type is just its return type (if
         // its known).
-      default -> typeResolver.findTypeAscription(expression);
+      default -> findReturnTypeAscription(expression);
     };
+  }
+
+  /** Finds the type ascription associated with the function's return type. */
+  private TypeRepresentation findReturnTypeAscription(Expression expression) {
+    // Special handling for the FORCE node - it wraps the original return value and thus the type
+    // ascription that was on the outermost expression is no longer outermost - it is now inside of
+    // the force node, so we need to go 1 level deeper and inspect the target.
+    if (expression instanceof Application.Force force) {
+      return typeResolver.getTypeAscription(force.target());
+    }
+
+    return typeResolver.getTypeAscription(expression);
   }
 }

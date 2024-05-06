@@ -1356,14 +1356,17 @@ public class SignatureTest extends ContextTest {
 
     var module = ctx.eval(src);
 
-    var res1 = module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "My_Type.Value.plus_member 1 2");
+    var res1 =
+        module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "My_Type.Value.plus_member 1 2");
     assertEquals(3, res1.asInt());
 
     var res2 = module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "My_Type.plus_static 3 4");
     assertEquals(7, res2.asInt());
 
     try {
-      var res = module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "My_Type.Value.plus_member 'a' 'b'");
+      var res =
+          module.invokeMember(
+              MethodNames.Module.EVAL_EXPRESSION, "My_Type.Value.plus_member 'a' 'b'");
       fail("Expecting an exception, not: " + res);
     } catch (PolyglotException e) {
       assertContains(
@@ -1371,14 +1374,14 @@ public class SignatureTest extends ContextTest {
     }
 
     try {
-      var res = module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "My_Type.plus_static 'a' 'b'");
+      var res =
+          module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "My_Type.plus_static 'a' 'b'");
       fail("Expecting an exception, not: " + res);
     } catch (PolyglotException e) {
       assertContains(
           "expected the result of `plus_static` to be Integer, but got Text", e.getMessage());
     }
   }
-
 
   static void assertTypeError(String expArg, String expType, String realType, String msg) {
     assertEquals(

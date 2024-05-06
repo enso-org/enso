@@ -5,7 +5,6 @@ import static org.junit.Assert.assertTrue;
 
 import java.net.URI;
 import java.net.URISyntaxException;
-
 import org.enso.compiler.core.IR;
 import org.enso.compiler.core.ir.ProcessingPass;
 import org.enso.compiler.pass.analyse.types.InferredType;
@@ -55,6 +54,10 @@ public class TypesFromSignaturesTest extends CompilerTest {
                     f3 (x : A) -> B = [x]
                     f4 (x : A) -> B = f1 x
                     f5 (x : A) -> B = x
+                    f6 (x : A) -> B =
+                        y = x
+                        z = y
+                        z
                     """,
                 uri.getAuthority())
             .uri(uri)
@@ -66,8 +69,8 @@ public class TypesFromSignaturesTest extends CompilerTest {
     assertInferredType(findStaticMethod(module, "f3"), "(A -> B)");
     assertInferredType(findStaticMethod(module, "f4"), "(A -> B)");
     assertInferredType(findStaticMethod(module, "f5"), "(A -> B)");
+    assertInferredType(findStaticMethod(module, "f6"), "(A -> B)");
   }
-
 
   @Test
   public void justArity() throws Exception {
@@ -98,15 +101,17 @@ public class TypesFromSignaturesTest extends CompilerTest {
     var f4 = findStaticMethod(module, "f4");
     var f2 = findStaticMethod(module, "f2");
 
-    // For 0 arguments and unknown return type we know nothing useful, so no information is registered.
+    // For 0 arguments and unknown return type we know nothing useful, so no information is
+    // registered.
     assertNoInferredType(f0);
 
     // For a function without ascriptions, we can at least infer the _arity_
-    // Currently that is denoted by replacing unknowns with Any. Later this may be free type variables.
+    // Currently that is denoted by replacing unknowns with Any. Later this may be free type
+    // variables.
     assertInferredType(f4, "(Any -> (Any -> (Any -> (Any -> Any))))");
 
-
-    // For the 'opted-out' ascription, the types are ignored, because they are not checked types. But we still infer arity.
+    // For the 'opted-out' ascription, the types are ignored, because they are not checked types.
+    // But we still infer arity.
     assertInferredType(f2, "(Any -> (Any -> Any))");
   }
 
@@ -127,11 +132,6 @@ public class TypesFromSignaturesTest extends CompilerTest {
             .buildLiteral();
 
     var module = compile(src);
-    module.bindings().map((b) -> {
-      System.out.println(b.showCode());
-      return null;
-    });
-
     var staticMethod = findMemberMethod(module, "A", "static_method");
     var memberMethod = findMemberMethod(module, "A", "member_method");
 
@@ -147,7 +147,7 @@ public class TypesFromSignaturesTest extends CompilerTest {
                 "enso",
                 """
                     type A
-                    
+
                     A.extension_static_method (x : A) -> A = x
                     A.extension_member_method self (x : A) -> A = x
                     """,
@@ -156,11 +156,6 @@ public class TypesFromSignaturesTest extends CompilerTest {
             .buildLiteral();
 
     var module = compile(src);
-    module.bindings().map((b) -> {
-      System.out.println(b);
-      return null;
-    });
-
     var staticMethod = findMemberMethod(module, "A", "extension_static_method");
     var memberMethod = findMemberMethod(module, "A", "extension_member_method");
 
