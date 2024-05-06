@@ -44,7 +44,7 @@ export default function UserGroupsSettingsTab() {
   const bodyRef = React.useRef<HTMLTableSectionElement>(null)
   const isLoading = userGroups == null || users == null
   const usersMap = React.useMemo(
-    () => new Map((users ?? []).map(user => [user.userId, user])),
+    () => new Map((users ?? []).map(otherUser => [otherUser.userId, otherUser])),
     [users]
   )
 
