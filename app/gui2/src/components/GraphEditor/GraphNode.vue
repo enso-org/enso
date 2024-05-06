@@ -405,7 +405,14 @@ watchEffect(() => {
       const scope = effectScope(true)
       const approach = scope.run(() =>
         useApproach(
-          () => (outputHovered.value === port || graph.unconnectedEdge?.target === port ? 1 : 0),
+          () =>
+            (
+              outputHovered.value === port ||
+              graph.unconnectedEdge?.target === port ||
+              selectionVisible.value
+            ) ?
+              1
+            : 0,
           50,
           0.01,
         ),
@@ -600,21 +607,19 @@ const documentation = computed<string | undefined>({
   height: 100%;
   position: absolute;
   overflow: visible;
-  top: 0px;
-  left: 0px;
+  top: 0;
+  left: 0;
   display: flex;
 
-  --output-port-max-width: 6px;
-  --output-port-overlap: 0.2px;
-  --output-port-hover-width: 8px;
+  --output-port-max-width: 4px;
+  --output-port-overlap: -8px;
+  --output-port-hover-width: 20px;
 }
 
 .outputPort,
 .outputPortHoverArea {
   x: calc(0px - var(--output-port-width) / 2);
-  y: calc(0px - var(--output-port-width) / 2);
   width: calc(var(--node-width) + var(--output-port-width));
-  height: calc(var(--node-height) + var(--output-port-width));
   rx: calc(var(--node-border-radius) + var(--output-port-width) / 2);
 
   fill: none;
@@ -638,13 +643,21 @@ const documentation = computed<string | undefined>({
   --output-port-width: calc(
     var(--output-port-max-width) * var(--hover-animation) - var(--output-port-overlap)
   );
+  y: calc(0px - var(--output-port-width) / 2);
+  height: calc(var(--node-height) + var(--output-port-width));
   pointer-events: none;
 }
 
 .outputPortHoverArea {
   --output-port-width: var(--output-port-hover-width);
+  y: calc(
+    0px + var(--output-port-hover-width) / 2 + var(--output-port-overlap) / 2 + var(--node-height) /
+      2
+  );
+  height: calc(var(--node-height) / 2 + var(--output-port-hover-width) / 2);
   stroke: transparent;
   pointer-events: all;
+  cursor: pointer;
 }
 
 .portClip {
