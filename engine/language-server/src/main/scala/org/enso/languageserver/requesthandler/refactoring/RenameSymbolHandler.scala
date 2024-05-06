@@ -6,7 +6,10 @@ import org.enso.jsonrpc._
 import org.enso.languageserver.refactoring.RefactoringApi.RenameSymbol
 import org.enso.languageserver.refactoring.{RefactoringApi, RenameFailureMapper}
 import org.enso.languageserver.runtime.ExecutionApi
-import org.enso.languageserver.util.{ApiHandlerWithRetries, UnhandledLogging}
+import org.enso.languageserver.util.{
+  RequestToApiHandlerWithRetries,
+  UnhandledLogging
+}
 import org.enso.polyglot.runtime.Runtime.Api
 
 import java.util.UUID
@@ -21,15 +24,15 @@ import scala.concurrent.duration.FiniteDuration
 class RenameSymbolHandler(
   timeout: FiniteDuration,
   runtime: ActorRef
-) extends ApiHandlerWithRetries[
+) extends RequestToApiHandlerWithRetries[
       Request[RenameSymbol.type, RenameSymbol.Params],
-      Api.SymbolRenamed
+      Api.SymbolRenamed,
+      Api.Error,
+      Api.Request
     ](runtime, timeout)
     with Actor
     with LazyLogging
     with UnhandledLogging {
-
-  var id: Id = null
 
   override protected def request(
     msg: Request[RefactoringApi.RenameSymbol.type, RenameSymbol.Params]
@@ -37,23 +40,24 @@ class RenameSymbolHandler(
     val Request(RenameSymbol, _, params: RenameSymbol.Params) = msg
     val payload =
       Api.RenameSymbol(params.module, params.expressionId, params.newName)
-    id = msg.id
     Api.Request(UUID.randomUUID(), payload)
   }
 
   override protected def positiveResponse(
     replyTo: ActorRef,
+    initialMsg: Request[RenameSymbol.type, RenameSymbol.Params],
     msg: Api.SymbolRenamed
   ): Unit = {
     replyTo ! ResponseResult(
       RenameSymbol,
-      id,
+      initialMsg.id,
       RenameSymbol.Result(msg.newName)
     )
   }
 
   override protected def negativeResponse(
     replyTo: ActorRef,
+    initialMsg: Request[RenameSymbol.type, RenameSymbol.Params],
     error: Api.Error
   )(implicit
     ec: ExecutionContext
@@ -61,12 +65,12 @@ class RenameSymbolHandler(
     error match {
       case Api.ModuleNotFound(moduleName) =>
         replyTo ! ResponseError(
-          Some(id),
+          Some(initialMsg.id),
           ExecutionApi.ModuleNotFoundError(moduleName)
         )
       case Api.SymbolRenameFailed(error) =>
         replyTo ! ResponseError(
-          Some(id),
+          Some(initialMsg.id),
           RenameFailureMapper.mapFailure(error)
         )
       case _ =>

@@ -8,7 +8,10 @@ import org.enso.languageserver.refactoring.RefactoringApi.{
   RenameProject
 }
 import org.enso.languageserver.refactoring.{RefactoringApi, RefactoringProtocol}
-import org.enso.languageserver.util.{ApiHandlerWithRetries, UnhandledLogging}
+import org.enso.languageserver.util.{
+  RequestToApiHandlerWithRetries,
+  UnhandledLogging
+}
 import org.enso.polyglot.runtime.Runtime.Api
 
 import java.util.UUID
@@ -21,15 +24,15 @@ import scala.concurrent.duration.FiniteDuration
   * @param target a reference to the runtime connector
   */
 class RenameProjectHandler(timeout: FiniteDuration, target: ActorRef)
-    extends ApiHandlerWithRetries[
+    extends RequestToApiHandlerWithRetries[
       Request[RenameProject.type, RenameProject.Params],
-      Api.ProjectRenamed
+      Api.ProjectRenamed,
+      Api.Error,
+      Api.Request
     ](target, timeout)
     with Actor
     with LazyLogging
     with UnhandledLogging {
-
-  var id: Id = null
 
   override protected def request(
     msg: Request[RefactoringApi.RenameProject.type, RenameProject.Params]
@@ -39,16 +42,19 @@ class RenameProjectHandler(timeout: FiniteDuration, target: ActorRef)
       msg.params.oldName,
       msg.params.newName
     )
-    id = msg.id
     Api.Request(UUID.randomUUID(), payload)
   }
 
   override protected def positiveResponse(
     replyTo: ActorRef,
+    initialMsg: Request[
+      RefactoringApi.RenameProject.type,
+      RenameProject.Params
+    ],
     msg: Api.ProjectRenamed
   ): Unit = {
     val Api.ProjectRenamed(oldNormalizedName, newNormalizedName, newName) = msg
-    replyTo ! ResponseResult(RenameProject, id, Unused)
+    replyTo ! ResponseResult(RenameProject, initialMsg.id, Unused)
     context.system.eventStream.publish(
       RefactoringProtocol.ProjectRenamedNotification(
         oldNormalizedName,
@@ -60,11 +66,15 @@ class RenameProjectHandler(timeout: FiniteDuration, target: ActorRef)
 
   override protected def negativeResponse(
     replyTo: ActorRef,
+    initialMsg: Request[
+      RefactoringApi.RenameProject.type,
+      RenameProject.Params
+    ],
     error: Api.Error
   )(implicit ec: ExecutionContext): Unit = {
     val Api.ProjectRenameFailed(oldName, newName) = error
     replyTo ! ResponseError(
-      Some(id),
+      Some(initialMsg.id),
       ProjectRenameFailed(oldName, newName)
     )
   }
