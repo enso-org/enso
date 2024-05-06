@@ -138,6 +138,11 @@ const nodeShortType = computed(() =>
       @pointerup.stop
       @click.stop
     >
+      <SmallPlusButton
+        v-if="config.isCircularMenuVisible"
+        class="below-viz"
+        @createNodes="config.createNodes(...$event)"
+      />
       <div
         ref="contentNode"
         class="content scrollable"
@@ -152,11 +157,11 @@ const nodeShortType = computed(() =>
       >
         <slot></slot>
       </div>
-      <div class="resizer-left" v-on="resizeLeft.stop.events" />
-      <div class="resizer-right" v-on="resizeRight.stop.events" />
-      <div class="resizer-bottom" v-on="resizeBottom.stop.events" />
-      <div class="resizer-bottom-left" v-on="resizeBottomLeft.stop.events" />
-      <div class="resizer-bottom-right" v-on="resizeBottomRight.stop.events" />
+      <div class="resizer-left" v-on="resizeLeft.events" />
+      <div class="resizer-right" v-on="resizeRight.events" />
+      <div class="resizer-bottom" v-on="resizeBottom.events" />
+      <div class="resizer-bottom-left" v-on="resizeBottomLeft.events" />
+      <div class="resizer-bottom-right" v-on="resizeBottomRight.events" />
       <SmallPlusButton
         v-if="config.isCircularMenuVisible"
         class="below-viz"
