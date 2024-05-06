@@ -12,7 +12,7 @@ use crate::prelude::*;
 #[derive(Clone, Copy, Debug, Serialize, Deserialize)]
 pub struct Metadata {
     /// Number of files in the archive.
-    pub total_files: usize,
+    pub total_files: u64,
     /// Total size of the extracted files in bytes.
     pub total_bytes: u64,
 }
@@ -26,7 +26,8 @@ impl Metadata {
             let entry = entry?;
             let metadata = entry.metadata()?;
             total_files += 1;
-            total_bytes += metadata.len();
+            // We treat directories as empty files.
+            total_bytes += if metadata.is_dir() { 0 } else { metadata.len() };
         }
         Ok(Self { total_files, total_bytes })
     }

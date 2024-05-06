@@ -124,7 +124,6 @@ impl CodeSigningCertificate {
             CscLink::Data(contents) => {
                 let temp_file = tempfile::NamedTempFile::new()?;
                 temp_file.as_file().write_all(&contents)?;
-                // temp_file.write_all(&contents)?;
                 Self::TempFile(temp_file.into_temp_path())
             }
         };

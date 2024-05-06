@@ -189,11 +189,13 @@ export function createElectronBuilderConfig(passedArgs: Arguments): electronBuil
                 ext: fileAssociations.SOURCE_FILE_EXTENSION,
                 name: `${common.PRODUCT_NAME} Source File`,
                 role: 'Editor',
+                mimeType: 'text/plain',
             },
             {
                 ext: fileAssociations.BUNDLED_PROJECT_EXTENSION,
                 name: `${common.PRODUCT_NAME} Project Bundle`,
                 role: 'Editor',
+                mimeType: 'application/gzip',
             },
         ],
         directories: {
@@ -311,9 +313,7 @@ async function dumpConfiguration(configPath: string, config: electronBuilder.Con
     }
     configCopy.publisher = common.COMPANY_NAME
     configCopy.fileAssociations[0].progId = 'Enso.Source'
-    configCopy.fileAssociations[0].mimeType = 'text/plain'
     configCopy.fileAssociations[1].progId = 'Enso.ProjectBundle'
-    configCopy.fileAssociations[1].mimeType = 'application/gzip'
     const jsonConfig = JSON.stringify(configCopy)
     await fs.writeFile(configPath, jsonConfig)
     /* eslint-enable */

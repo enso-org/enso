@@ -95,12 +95,13 @@ pub fn install_with_updates(
     let _guard = enso_install::locked_installation_lock()?;
 
     let enso_install_config::payload::Metadata { total_files, total_bytes } = *payload.metadata;
-    //     .context("Failed to acquire the installation lock. Is another installer running?")?;
     stage_at!(0.00, "Checking disk space.");
     // TODO? A potential improvement would be to take account for previous installation size when
     //       performing the in-place update. Then the needed space would be the difference between
     //       the new and the old installation size.
-    match check_disk_space(install_location, total_bytes) {
+    let per_file_overhead = 4096; // The default allocation unit size on NTFS.
+    let space_required = total_bytes + (total_files * per_file_overhead);
+    match check_disk_space(install_location, space_required) {
         Ok(Some(msg)) => bail!("{msg}"),
         Ok(None) => {} // Ok, enough space.
         Err(err) => {
