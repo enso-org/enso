@@ -6,7 +6,7 @@ import {
 } from '@/components/ColorRing/gradient'
 import { injectInteractionHandler } from '@/providers/interactionHandler'
 import { targetIsOutside } from '@/util/autoBlur'
-import { browserSupportsOklch, ensoColor, formatCssColor, parseCssColor } from '@/util/colors'
+import { cssSupported, ensoColor, formatCssColor, parseCssColor } from '@/util/colors'
 import { Rect } from '@/util/data/rect'
 import { Vec2 } from '@/util/data/vec2'
 import { computed, onMounted, ref } from 'vue'
@@ -24,10 +24,11 @@ import { computed, onMounted, ref } from 'vue'
  *    APIs (radians for math, degrees for culori).
  */
 
-// If the browser doesn't support OKLCH, the gradient will be specified by computing the number of points specified here
-// in OKLCH, converting to sRGB, and interpolating in HSL. This number has been found to be enough to look close to the
-// intended colors, without excessive gradient complexity (which may affect performance).
-const NONNATIVE_OKLCH_INTERPOLATION_STEPS = 300
+// If the browser doesn't support OKLCH gradient interpolation, the gradient will be specified by computing the number
+// of points specified here in OKLCH, converting to sRGB if the browser doesn't support OKLCH colors at all, and
+// interpolating in sRGB. This number has been found to be enough to look close to the intended colors, without
+// excessive gradient complexity (which may affect performance).
+const NONNATIVE_OKLCH_INTERPOLATION_STEPS = 12
 
 const FIXED_RANGE_WIDTH = 1 / 16
 
@@ -38,6 +39,10 @@ const props = defineProps<{
 const emit = defineEmits<{
   close: []
 }>()
+
+const browserSupportsOklchInterpolation = cssSupported(
+  'background-image: conic-gradient(in oklch increasing hue, red, lue)',
+)
 
 const svgElement = ref<HTMLElement>()
 
@@ -116,12 +121,13 @@ const triangleHue = computed(() => {
 const cssGradient = computed(() => {
   const points = gradientPoints(
     fixedRanges.value,
-    browserSupportsOklch ? 2 : NONNATIVE_OKLCH_INTERPOLATION_STEPS,
+    browserSupportsOklchInterpolation ? 2 : NONNATIVE_OKLCH_INTERPOLATION_STEPS,
   )
-  const polarColorSpace = browserSupportsOklch ? 'oklch' : 'hsl'
-  const colorInterpolationMethod = `in ${polarColorSpace} increasing hue`
   const angularColorStopList = Array.from(points, cssAngularColorStop)
-  return `conic-gradient(${colorInterpolationMethod},${angularColorStopList.join(',')})`
+  const colorStops = angularColorStopList.join(',')
+  return browserSupportsOklchInterpolation ?
+      `conic-gradient(in oklch increasing hue,${colorStops})`
+    : `conic-gradient(${colorStops})`
 })
 const cssTriangleAngle = computed(() =>
   triangleAngle.value != null ? `${triangleAngle.value}turn` : undefined,
