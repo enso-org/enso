@@ -255,7 +255,7 @@ type Date_Range
              (Date.new 2020 10 01).up_to (Date.new 2020 10 15) . filter (Filter_Condition.Greater than=(Date.new 2020 10 12))
     @filter date_range_default_filter_condition_widget
     filter : (Filter_Condition | (Date -> Boolean)) -> Vector Date
-    filter self filter =
+    filter self (filter : Filter_Condition | (Date -> Boolean)) =
         predicate = unify_condition_or_predicate filter
         Vector.build builder->
             self.map elem->
@@ -285,7 +285,7 @@ type Date_Range
              (Date.new 2020 10 01).up_to (Date.new 2020 10 15).partition is_weekend
     @condition date_range_default_filter_condition_widget
     partition : (Filter_Condition | (Date -> Boolean)) -> Pair (Vector Date) (Vector Date)
-    partition self condition =
+    partition self (condition : Filter_Condition | (Date -> Boolean)) =
         predicate = unify_condition_or_predicate condition
         pair = self.fold (Pair.new Vector.new_builder Vector.new_builder) acc-> elem->
             case predicate elem of
@@ -382,7 +382,7 @@ type Date_Range
              (Date.new 2020 10 01).up_to (Date.new 2020 10 31) . all (> (Date.new 2020 10 01))
     @condition date_range_default_filter_condition_widget
     all : (Filter_Condition | (Date -> Boolean)) -> Boolean
-    all self condition =
+    all self (condition : Filter_Condition | (Date -> Boolean)) =
         predicate = unify_condition_or_predicate condition
         self . any (predicate >> .not) . not
 
@@ -400,7 +400,7 @@ type Date_Range
              (Date.new 2020 10 01).up_to (Date.new 2020 10 31) . any (Filter_Condition.Greater (Date.new 2020 10 01))
     @condition date_range_default_filter_condition_widget
     any : (Filter_Condition | (Date -> Boolean)) -> Boolean
-    any self condition = self.find condition . is_nothing . not
+    any self (condition : Filter_Condition | (Date -> Boolean)) = self.find condition . is_nothing . not
 
     ## GROUP Selections
        ICON find
@@ -420,7 +420,7 @@ type Date_Range
                 (Date.new 2020 10 01).up_to (Date.new 2020 10 31) . find (d-> d.day_of_week == Day_Of_Week.Monday)
     @condition date_range_default_filter_condition_widget
     find : (Filter_Condition | (Date -> Boolean)) -> Integer -> Any -> Any
-    find self condition (start : Integer = 0) ~if_missing=Nothing =
+    find self (condition : Filter_Condition | (Date -> Boolean)) (start : Integer = 0) ~if_missing=Nothing =
         predicate = unify_condition_or_predicate condition
         index = self.index_of predicate start
         case index of
