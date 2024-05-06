@@ -991,7 +991,6 @@ public class TypeInferenceTest extends CompilerTest {
         getDescendantsDiagnostics(baz.expression()));
   }
 
-  @Ignore("TODO")
   @Test
   public void globalMethodTypes() throws Exception {
     final URI uri = new URI("memory://globalMethodTypes.enso");
@@ -1029,6 +1028,46 @@ public class TypeInferenceTest extends CompilerTest {
     assertAtomType(myType, findAssignment(foo, "x3"));
     assertEquals("My_Type -> My_Type", getInferredType(findAssignment(foo, "x4")).toString());
     assertAtomType(myType, findAssignment(foo, "x5"));
+  }
+
+  @Test
+  public void memberMethodCalls() throws Exception {
+    final URI uri = new URI("memory://memberMethodCalls.enso");
+    final Source src =
+        Source.newBuilder(
+                "enso",
+                """
+                    type My_Type
+                        Value v
+
+                        zero_arg self -> My_Type = My_Type.Value [self.v, x.v]
+                        one_arg self (x : My_Type) -> My_Type = My_Type.Value [self.v, x.v]
+
+                        static_zero -> My_Type = My_Type.Value 42
+                        static_one x -> My_Type = My_Type.Value [x.v, 1]
+
+                    foo =
+                        inst = My_Type.Value 23
+                        x1 = inst.zero_arg
+                        x2 = inst.one_arg inst
+                        x3 = My_Type.static_zero
+                        x4 = My_Type.static_one inst
+                        [x1, x2, x3, x4]
+                    """,
+                uri.getAuthority())
+            .uri(uri)
+            .buildLiteral();
+
+    var module = compile(src);
+    var foo = findStaticMethod(module, "foo");
+
+    var myType = "memberMethodCalls.My_Type";
+
+    assertAtomType(myType, findAssignment(foo, "inst"));
+    assertAtomType(myType, findAssignment(foo, "x1"));
+    assertAtomType(myType, findAssignment(foo, "x2"));
+    assertAtomType(myType, findAssignment(foo, "x3"));
+    assertAtomType(myType, findAssignment(foo, "x4"));
   }
 
   private TypeRepresentation getInferredType(IR ir) {
