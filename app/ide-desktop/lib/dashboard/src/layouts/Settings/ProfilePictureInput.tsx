@@ -1,4 +1,4 @@
-/** @file Settings tab for viewing and changing profile picture. */
+/** @file The settings input for viewing and changing the user's profile picture. */
 import * as React from 'react'
 
 import DefaultUserIcon from 'enso-assets/default_user.svg'
@@ -11,14 +11,13 @@ import * as textProvider from '#/providers/TextProvider'
 
 import * as aria from '#/components/aria'
 import FocusRing from '#/components/styled/FocusRing'
-import SettingsSection from '#/components/styled/settings/SettingsSection'
 
-// =====================================
-// === ProfilePictureSettingsSection ===
-// =====================================
+// ===========================
+// === ProfilePictureInput ===
+// ===========================
 
-/** Settings tab for viewing and changing profile picture. */
-export default function ProfilePictureSettingsSection() {
+/** The settings input for viewing and changing the user's profile picture. */
+export default function ProfilePictureInput() {
   const toastAndLog = toastAndLogHooks.useToastAndLog()
   const { setUser } = authProvider.useAuth()
   const { backend } = backendProvider.useBackend()
@@ -43,7 +42,7 @@ export default function ProfilePictureSettingsSection() {
   }
 
   return (
-    <SettingsSection title={getText('profilePicture')}>
+    <>
       <FocusRing within>
         <aria.Label className="flex h-profile-picture-large w-profile-picture-large cursor-pointer items-center overflow-clip rounded-full transition-colors hover:bg-frame">
           <img
@@ -63,6 +62,6 @@ export default function ProfilePictureSettingsSection() {
       <aria.Text className="w-profile-picture-caption py-profile-picture-caption-y">
         {getText('profilePictureWarning')}
       </aria.Text>
-    </SettingsSection>
+    </>
   )
 }

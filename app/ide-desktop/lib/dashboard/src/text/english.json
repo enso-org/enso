@@ -515,5 +515,21 @@
   "labelContextMenuLabel": "Label context menu",
   "settingsSidebarLabel": "Settings sidebar",
   "settingsSearchBarLabel": "Settings search bar",
-  "settingsSearchBarPlaceholder": "Type to search for settings."
+  "settingsSearchBarPlaceholder": "Type to search for settings.",
+
+  "generalSettingsTabSection": "General",
+  "accountSettingsTab": "Account",
+  "userAccountSettingsSection": "User Account",
+  "userNameSettingsInput": "Name",
+  "userEmailSettingsInput": "Email",
+  "changePasswordSettingsSection": "ChangePassword",
+  "deleteUserAccountSettingsSection": "Delete User Account",
+  "profilePictureSettingsSection": "Profile Picture",
+  "organizationSettingsTab": "Organization",
+  "accessSettingsTabSection": "Access",
+  "membersSettingsTab": "Members",
+  "lookAndFeelSettingsTabSection": "Look and feel",
+  "keyboardShortcutsSettingsTab": "Keyboard shortcuts",
+  "securitySettingsTabSection": "Security",
+  "activityLogSettingsTab": "Activity log"
 }

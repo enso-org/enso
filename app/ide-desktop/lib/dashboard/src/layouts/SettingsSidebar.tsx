@@ -67,21 +67,25 @@ const SECTIONS: SettingsSectionData[] = [
   },
 ]
 
-// =============
-// === Types ===
-// =============
+// =======================
+// === SettingsTabData ===
+// =======================
 
 /** Metadata for rendering a settings tab label. */
-interface SettingsTabLabelData {
+interface SettingsTabData {
   readonly name: string
   readonly settingsTab: SettingsTab
   readonly icon: string
 }
 
+// ===========================
+// === SettingsSectionData ===
+// ===========================
+
 /** Metadata for rendering a settings section. */
 interface SettingsSectionData {
   readonly name: string
-  readonly tabs: SettingsTabLabelData[]
+  readonly tabs: SettingsTabData[]
 }
 
 // =======================
