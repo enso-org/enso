@@ -31,8 +31,8 @@ add_specs suite_builder =
     suite_builder.group "File.read (Delimited) should work with Time_Of_Days" group_builder->
         group_builder.specify "should be able to read in a data.table with dates" <|
             data.table.column_count.should_equal 3
-            data.table.info.at "Column" . to_vector . should_equal ['Serial number','Movement type', 'Posting time']
-            data.table.info.at "Value Type" . to_vector . should_equal [Value_Type.Char, Value_Type.Integer, Value_Type.Time]
+            data.table.column_info.at "Column" . to_vector . should_equal ['Serial number','Movement type', 'Posting time']
+            data.table.column_info.at "Value Type" . to_vector . should_equal [Value_Type.Char, Value_Type.Integer, Value_Type.Time]
             data.table.row_count.should_equal 6
 
         group_builder.specify "should be able to treat a single value as a Time_Of_Days" <|

@@ -20,6 +20,7 @@ export interface VisualizationConfig {
   isBelowToolbar: boolean
   width: number | null
   height: number
+  nodePosition: Vec2
   fullscreen: boolean
   hide: () => void
   updateType: (type: VisualizationIdentifier) => void

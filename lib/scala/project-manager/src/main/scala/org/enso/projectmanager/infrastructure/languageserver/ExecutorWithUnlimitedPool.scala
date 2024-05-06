@@ -5,6 +5,7 @@ import com.typesafe.scalalogging.Logger
 import org.apache.commons.lang3.concurrent.BasicThreadFactory
 import org.enso.logger.masking.Masking
 import org.enso.logging.LoggingServiceManager
+import org.enso.projectmanager.boot.Cli.{PROFILING_PATH, PROFILING_TIME}
 import org.enso.projectmanager.service.versionmanagement.RuntimeVersionManagerFactory
 import org.enso.runtimeversionmanager.config.GlobalRunnerConfigurationManager
 import org.enso.runtimeversionmanager.runner.{LanguageServerOptions, Runner}
@@ -103,10 +104,10 @@ object ExecutorWithUnlimitedPool extends LanguageServerExecutor {
     )
     val profilingPathArguments =
       descriptor.profilingPath.toSeq
-        .flatMap(path => Seq("--profiling-path", path.toString))
+        .flatMap(path => Seq(s"--$PROFILING_PATH", path.toString))
     val profilingTimeArguments =
       descriptor.profilingTime.toSeq
-        .flatMap(time => Seq("--profiling-time", time.toSeconds.toString))
+        .flatMap(time => Seq(s"--$PROFILING_TIME", time.toSeconds.toString))
     val startupArgs =
       if (descriptor.skipGraalVMUpdater) Seq("--skip-graalvm-updater")
       else Seq()

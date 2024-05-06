@@ -96,7 +96,7 @@ export default function AssetRow(props: AssetRowProps) {
   const { grabKeyboardFocus } = props
   const { visibilities, assetEvents, dispatchAssetEvent, dispatchAssetListEvent, nodeMap } = state
   const { setAssetPanelProps, doToggleDirectoryExpansion, doCopy, doCut, doPaste } = state
-  const { setIsAssetPanelTemporarilyVisible, scrollContainerRef } = state
+  const { setIsAssetPanelTemporarilyVisible, scrollContainerRef, rootDirectoryId } = state
 
   const { user } = authProvider.useNonPartialUserSession()
   const { backend } = backendProvider.useBackend()
@@ -157,7 +157,7 @@ export default function AssetRow(props: AssetRowProps) {
             modifiedAt: dateTime.toRfc3339(new Date()),
           })
         )
-        newParentId ??= user?.rootDirectoryId ?? backendModule.DirectoryId('')
+        newParentId ??= rootDirectoryId
         const copiedAsset = await backend.copyAsset(
           asset.id,
           newParentId,
@@ -179,6 +179,7 @@ export default function AssetRow(props: AssetRowProps) {
     [
       backend,
       user,
+      rootDirectoryId,
       asset,
       item.key,
       toastAndLog,
@@ -193,7 +194,6 @@ export default function AssetRow(props: AssetRowProps) {
       newParentKey: backendModule.DirectoryId | null,
       newParentId: backendModule.DirectoryId | null
     ) => {
-      const rootDirectoryId = user?.rootDirectoryId ?? backendModule.DirectoryId('')
       const nonNullNewParentKey = newParentKey ?? rootDirectoryId
       const nonNullNewParentId = newParentId ?? rootDirectoryId
       try {
@@ -292,8 +292,8 @@ export default function AssetRow(props: AssetRowProps) {
     [
       isCloud,
       backend,
-      user,
       asset,
+      rootDirectoryId,
       item.directoryId,
       item.directoryKey,
       item.key,
@@ -747,6 +747,7 @@ export default function AssetRow(props: AssetRowProps) {
                     setModal(
                       <AssetContextMenu
                         innerProps={innerProps}
+                        rootDirectoryId={rootDirectoryId}
                         event={event}
                         eventTarget={
                           event.target instanceof HTMLElement ? event.target : event.currentTarget
@@ -888,6 +889,7 @@ export default function AssetRow(props: AssetRowProps) {
                 rowState,
                 setRowState,
               }}
+              rootDirectoryId={rootDirectoryId}
               event={{ pageX: 0, pageY: 0 }}
               eventTarget={null}
               doCopy={doCopy}
