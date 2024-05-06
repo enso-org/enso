@@ -158,10 +158,15 @@ public abstract class TestBase {
     return module.invokeMember(Module.EVAL_EXPRESSION, methodName);
   }
 
-  protected static void assertContains(String expected, String actual) {
-    if (!actual.contains(expected)) {
-      fail("Expecting `" + actual + "` to contain `" + expected + "`.");
+  static void assertContains(String expected, String actual) {
+    assertContains("Expecting", expected, actual);
+  }
+
+  static void assertContains(String msg, String expected, String actual) {
+    if (actual != null && actual.contains(expected)) {
+      return;
     }
+    fail(msg + " " + expected + " in " + actual);
   }
 
   /**
