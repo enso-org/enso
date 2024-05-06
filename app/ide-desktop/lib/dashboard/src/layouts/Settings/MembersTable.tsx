@@ -4,6 +4,7 @@ import * as React from 'react'
 import * as mimeTypes from '#/data/mimeTypes'
 
 import * as asyncEffectHooks from '#/hooks/asyncEffectHooks'
+import * as scrollHooks from '#/hooks/scrollHooks'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
 import * as authProvider from '#/providers/AuthProvider'
@@ -37,7 +38,9 @@ export default function MembersTable(props: MembersTableProps) {
   const { getText } = textProvider.useText()
   const toastAndLog = toastAndLogHooks.useToastAndLog()
   const [selectedKeys, setSelectedKeys] = React.useState<aria.Selection>(new Set())
-  const rootRef = React.useRef<HTMLTableElement | null>(null)
+  const rootRef = React.useRef<HTMLTableElement>(null)
+  const scrollContainerRef = React.useRef<HTMLDivElement>(null)
+  const bodyRef = React.useRef<HTMLTableSectionElement>(null)
   const members = asyncEffectHooks.useAsyncEffect<backendModule.User[] | null>(
     !populateWithSelf || user == null ? null : [user],
     () => backend.listUsers(),
@@ -48,6 +51,13 @@ export default function MembersTable(props: MembersTableProps) {
     [members]
   )
   const isLoading = members == null
+
+  const { onScroll, shadowClass } = scrollHooks.useStickyTableHeaderOnScroll(
+    scrollContainerRef,
+    bodyRef,
+    true
+  )
+
   const { dragAndDropHooks } = aria.useDragAndDrop({
     getItems: keys =>
       [...keys].flatMap(key => {
@@ -101,56 +111,67 @@ export default function MembersTable(props: MembersTableProps) {
   }
 
   return (
-    <aria.Table
-      ref={rootRef}
-      aria-label={getText('users')}
-      selectionMode={draggable ? 'multiple' : 'none'}
-      selectionBehavior="replace"
-      selectedKeys={selectedKeys}
-      onSelectionChange={setSelectedKeys}
-      className="w-settings-main-section max-w-full table-fixed self-start rounded-rows"
-      {...(draggable ? { dragAndDropHooks } : {})}
+    <div
+      ref={scrollContainerRef}
+      className={`overflow-auto overflow-x-hidden ${shadowClass}`}
+      onScroll={onScroll}
     >
-      <aria.TableHeader className="h-row">
-        <aria.Column
-          isRowHeader
-          className="w-members-name-column border-x-2 border-transparent bg-clip-padding px-cell-x text-left text-sm font-semibold last:border-r-0"
+      <aria.Table
+        ref={rootRef}
+        aria-label={getText('users')}
+        selectionMode={draggable ? 'multiple' : 'none'}
+        selectionBehavior="replace"
+        selectedKeys={selectedKeys}
+        onSelectionChange={setSelectedKeys}
+        className="w-settings-main-section max-w-full table-fixed self-start rounded-rows"
+        {...(draggable ? { dragAndDropHooks } : {})}
+      >
+        <aria.TableHeader className="sticky top h-row">
+          <aria.Column
+            isRowHeader
+            className="w-members-name-column border-x-2 border-transparent bg-clip-padding px-cell-x text-left text-sm font-semibold last:border-r-0"
+          >
+            {getText('name')}
+          </aria.Column>
+          <aria.Column className="w-members-email-column border-x-2 border-transparent bg-clip-padding px-cell-x text-left text-sm font-semibold last:border-r-0">
+            {getText('email')}
+          </aria.Column>
+          {/* Delete button. */}
+          {allowDelete && <aria.Column className="w border-0" />}
+        </aria.TableHeader>
+        <aria.TableBody
+          ref={bodyRef}
+          items={members ?? []}
+          dependencies={[members]}
+          className="select-text"
         >
-          {getText('name')}
-        </aria.Column>
-        <aria.Column className="w-members-email-column border-x-2 border-transparent bg-clip-padding px-cell-x text-left text-sm font-semibold last:border-r-0">
-          {getText('email')}
-        </aria.Column>
-        {/* Delete button. */}
-        {allowDelete && <aria.Column className="w border-0" />}
-      </aria.TableHeader>
-      <aria.TableBody items={members ?? []} dependencies={[members]} className="select-text">
-        {isLoading ? (
-          <aria.Row className="h-row">
-            <aria.Cell
-              ref={element => {
-                if (element != null) {
-                  element.colSpan = allowDelete ? 3 : 2
-                }
-              }}
-              className="rounded-full bg-transparent"
-            >
-              <div className="flex justify-center">
-                <StatelessSpinner size={32} state={statelessSpinner.SpinnerState.loadingMedium} />
-              </div>
-            </aria.Cell>
-          </aria.Row>
-        ) : (
-          member => (
-            <UserRow
-              id={member.userId}
-              draggable={draggable}
-              user={member}
-              doDeleteUser={!allowDelete ? null : doDeleteUser}
-            />
-          )
-        )}
-      </aria.TableBody>
-    </aria.Table>
+          {isLoading ? (
+            <aria.Row className="h-row">
+              <aria.Cell
+                ref={element => {
+                  if (element != null) {
+                    element.colSpan = allowDelete ? 3 : 2
+                  }
+                }}
+                className="rounded-full bg-transparent"
+              >
+                <div className="flex justify-center">
+                  <StatelessSpinner size={32} state={statelessSpinner.SpinnerState.loadingMedium} />
+                </div>
+              </aria.Cell>
+            </aria.Row>
+          ) : (
+            member => (
+              <UserRow
+                id={member.userId}
+                draggable={draggable}
+                user={member}
+                doDeleteUser={!allowDelete ? null : doDeleteUser}
+              />
+            )
+          )}
+        </aria.TableBody>
+      </aria.Table>
+    </div>
   )
 }
