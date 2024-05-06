@@ -52,7 +52,7 @@ export default function UpsertDataLinkModal(props: UpsertDataLinkModalProps) {
   return (
     <Modal centered className="bg-dim">
       <form
-        className="max-w-upsert-data-link-modal-max pointer-events-auto relative flex min-w-upsert-data-link-modal flex-col gap-modal rounded-default p-modal-wide pt-modal before:absolute before:inset before:h-full before:w-full before:rounded-default before:bg-selected-frame before:backdrop-blur-default"
+        className="pointer-events-auto relative flex min-w-upsert-data-link-modal max-w-upsert-data-link-modal-max flex-col gap-modal rounded-default p-modal-wide pt-modal before:absolute before:inset before:h-full before:w-full before:rounded-default before:bg-selected-frame before:backdrop-blur-default"
         onClick={event => {
           event.stopPropagation()
         }}
