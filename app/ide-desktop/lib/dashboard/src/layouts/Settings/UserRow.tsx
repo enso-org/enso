@@ -66,7 +66,7 @@ export default function UserRow(props: UserRowProps) {
   return (
     <aria.Row
       id={user.userId}
-      className={`group h-row rounded-rows-child ${draggable ? 'cursor-grab' : ''}`}
+      className={`rounded-rows-child group h-row ${draggable ? 'cursor-grab' : ''}`}
       ref={contextMenuRef}
     >
       <aria.Cell
@@ -88,7 +88,7 @@ export default function UserRow(props: UserRowProps) {
       {doDeleteUserRaw == null ? null : doDeleteUser == null ? (
         <></>
       ) : (
-        <aria.Cell className="relative bg-transparent p transparent group-hover-2:opacity-100">
+        <aria.Cell className="group-hover-2:opacity-100 relative bg-transparent p transparent">
           <UnstyledButton
             onPress={event => {
               const rect = event.target.getBoundingClientRect()
@@ -103,7 +103,7 @@ export default function UserRow(props: UserRowProps) {
                 />
               )
             }}
-            className="absolute left-full size-icon -translate-y-1/2"
+            className="absolute right-full mr-4 size-icon -translate-y-1/2"
           >
             <img src={Cross2} className="size-icon" />
           </UnstyledButton>

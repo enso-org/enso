@@ -1,23 +1,40 @@
+;
 /** @file A row of the user groups table representing a user. */
-import * as React from 'react'
+import * as React from 'react';
 
-import Cross2 from 'enso-assets/cross2.svg'
 
-import * as contextMenuHooks from '#/hooks/contextMenuHooks'
-import * as tooltipHooks from '#/hooks/tooltipHooks'
 
-import * as modalProvider from '#/providers/ModalProvider'
-import * as textProvider from '#/providers/TextProvider'
+import Cross2 from 'enso-assets/cross2.svg';
 
-import * as aria from '#/components/aria'
-import * as ariaComponents from '#/components/AriaComponents'
-import ContextMenuEntry from '#/components/ContextMenuEntry'
-import FocusableText from '#/components/FocusableText'
-import UnstyledButton from '#/components/UnstyledButton'
 
-import ConfirmDeleteModal from '#/modals/ConfirmDeleteModal'
 
-import type * as backend from '#/services/Backend'
+import * as contextMenuHooks from '#/hooks/contextMenuHooks';
+import * as tooltipHooks from '#/hooks/tooltipHooks';
+
+
+
+import * as modalProvider from '#/providers/ModalProvider';
+import * as textProvider from '#/providers/TextProvider';
+
+
+
+import * as aria from '#/components/aria';
+import * as ariaComponents from '#/components/AriaComponents';
+import ContextMenuEntry from '#/components/ContextMenuEntry';
+import FocusableText from '#/components/FocusableText';
+import UnstyledButton from '#/components/UnstyledButton';
+
+
+
+import ConfirmDeleteModal from '#/modals/ConfirmDeleteModal';
+
+
+
+import type * as backend from '#/services/Backend';
+
+
+
+
 
 // ========================
 // === UserGroupUserRow ===
@@ -98,7 +115,7 @@ export default function UserGroupUserRow(props: UserGroupUserRowProps) {
               />
             )
           }}
-          className="absolute left-full size-icon -translate-y-1/2"
+          className="absolute right-full mr-4 size-icon -translate-y-1/2"
         >
           <img src={Cross2} className="size-icon" />
         </UnstyledButton>
