@@ -20,7 +20,7 @@ get_audit_log_events -> Vector Audit_Log_Event =
 ## PRIVATE
 type Audit_Log_Event
     ## PRIVATE
-    Value organization_id:Text user_email:Text timestamp:Date_Time metadata:JS_Object
+    Value organization_id:Text user_email:Text timestamp:Date_Time metadata:JS_Object message:Text project_id:Text
 
     ## PRIVATE
     from_json json =
@@ -30,4 +30,6 @@ type Audit_Log_Event
         timestamp = timestamp_text.if_not_nothing <| Date_Time.parse timestamp_text . catch Time_Error error->
             Error.throw (Enso_Cloud_Error.Invalid_Response_Payload "Invalid timestamp format in audit log event: "+error.to_display_text)
         metadata = get_required_field "metadata" json
-        Audit_Log_Event.Value organization_id user_email timestamp metadata
+        message = get_required_field "message" json expected_type=Text
+        project_id = get_optional_field "projectId" json expected_type=Text
+        Audit_Log_Event.Value organization_id user_email timestamp metadata message project_id

@@ -32,10 +32,7 @@ add_specs suite_builder =
                 # TODO this test should be re-enabled after https://github.com/enso-org/enso/issues/9845 is fixed
                 #my_event.metadata.get "projectName" . should_equal "enso_dev.Base_Tests"
 
-                ## TODO this test should be replaced with
-                   my_event.message . should_equal "Message"
-                   once Cloud is updated
-                my_event.metadata.get "message" . should_equal "Message"
+                my_event.message . should_equal "Message"
 
         group_builder.specify "will include the project id in the log message, if provided by the Cloud" <| setup.with_prepared_environment <|
             example_project_id = "project-27xJM00p8jWoL2qByTo6tQfciWC"
@@ -47,10 +44,7 @@ add_specs suite_builder =
                     event.should_succeed
                     event
 
-                ## TODO this test should be replaced with
-                   my_event.project_id . should_equal example_project_id
-                   once Cloud is updated
-                my_event.metadata.get "projectId" . should_equal example_project_id
+                my_event.project_id . should_equal example_project_id
 
         group_builder.specify "does not allow restricted fields in metadata" <| setup.with_prepared_environment <|
             Audit_Log.report_event "TestEventType" "Message" (JS_Object.from_pairs [["type", "my type override?"]]) . should_fail_with Illegal_Argument
