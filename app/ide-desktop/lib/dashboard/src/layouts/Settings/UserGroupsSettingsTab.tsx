@@ -261,7 +261,7 @@ export default function UserGroupsSettingsTab() {
           >
             <aria.Table
               aria-label={getText('userGroups')}
-              className="w-full table-fixed self-start rounded-rows"
+              className="mb-4 lg:mb-8 w-full table-fixed self-start rounded-rows"
               dragAndDropHooks={dragAndDropHooks}
             >
               <aria.TableHeader className="sticky top h-row">
