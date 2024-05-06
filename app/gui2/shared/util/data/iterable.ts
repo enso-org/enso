@@ -79,6 +79,14 @@ export class Resumable<T> {
     this.current = this.iterator.next()
   }
 
+  peek() {
+    return this.current.done ? undefined : this.current.value
+  }
+
+  advance() {
+    this.current = this.iterator.next()
+  }
+
   /** The given function peeks at the current value. If the function returns `true`, the current value will be advanced
    *  and the function called again; if it returns `false`, the peeked value remains current and `advanceWhile` returns.
    */
