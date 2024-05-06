@@ -1186,25 +1186,10 @@ lazy val `ydoc-server` = project
   .enablePlugins(JPMSPlugin)
   .configs(Test)
   .settings(
+    javaModuleName := "org.enso.ydoc",
     crossPaths := false,
     autoScalaLibrary := false,
-    Compile / run / fork := true,
     Test / fork := true,
-    run / connectInput := true,
-    javaModuleName := "org.enso.ydoc",
-    Compile / javaOptions := {
-      val mp      = modulePath.value ++ (`profiling-utils` / modulePath).value
-      val jar     = (Compile / exportedProductJars).value.head
-      val modName = javaModuleName.value
-      val allMp   = mp ++ Seq(jar.data.absolutePath)
-      val args = Seq(
-        "--module-path",
-        allMp.mkString(File.pathSeparator),
-        "--module",
-        modName + "/org.enso.ydoc.Main"
-      )
-      args
-    },
     assembly := assembly
       .dependsOn(`profiling-utils` / Compile / packageBin)
       .value,
@@ -1238,6 +1223,7 @@ lazy val `ydoc-server` = project
       profUtilsClasses
     },
     commands += WithDebugCommand.withDebug,
+    // GraalVM and helidon modules (3rd party modules)
     modulePath := {
       JPMSUtils.filterModulesFromUpdate(
         update.value,
@@ -1248,6 +1234,7 @@ lazy val `ydoc-server` = project
         shouldContainAll = true
       )
     },
+    // Internal project modules
     modulePath ++= Seq(
       (`syntax-rust-definition` / Compile / productDirectories).value.head,
       (`profiling-utils` / Compile / productDirectories).value.head
@@ -1262,6 +1249,34 @@ lazy val `ydoc-server` = project
       "junit"                % "junit"                       % junitVersion              % Test,
       "com.github.sbt"       % "junit-interface"             % junitIfVersion            % Test
     )
+  )
+  // `Compile/run` settings are necessary for the `run` task to work.
+  // We add it here for convenience so that one can start ydoc-server directly
+  // with `ydoc-server/run` task.
+  .settings(
+    Compile / run / fork := true,
+    Compile / run / connectInput := true,
+    Compile / run / javaOptions := Seq(
+      "-ea",
+    ),
+    // We need to assembly the cmd line options here manually, because we need
+    // to add path to this module, and adding that directly to the `modulePath` setting
+    // would result in an sbt caught in an infinite recursion.
+    //
+    Compile / run / javaOptions ++= {
+      val mp      = modulePath.value ++ (`profiling-utils` / modulePath).value
+      val jar     = (Compile / exportedProductJars).value.head
+      val modName = javaModuleName.value
+      val allMp   = mp ++ Seq(jar.data.absolutePath)
+      val mainKlazz = (Compile / mainClass).value.get
+      val args = Seq(
+        "--module-path",
+        allMp.mkString(File.pathSeparator),
+        "--module",
+        modName + "/" + mainKlazz
+      )
+      args
+    },
   )
   .dependsOn(`syntax-rust-definition`)
   .dependsOn(`logging-service-logback`)
