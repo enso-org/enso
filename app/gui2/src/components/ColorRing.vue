@@ -41,7 +41,7 @@ const emit = defineEmits<{
 }>()
 
 const browserSupportsOklchInterpolation = cssSupported(
-  'background-image: conic-gradient(in oklch increasing hue, red, lue)',
+  'background-image: conic-gradient(in oklch increasing hue, red, blue)',
 )
 
 const svgElement = ref<HTMLElement>()
