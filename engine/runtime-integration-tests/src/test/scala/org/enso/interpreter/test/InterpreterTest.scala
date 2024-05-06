@@ -125,6 +125,7 @@ class InterpreterContext(
       .err(err)
       .option(RuntimeOptions.LOG_LEVEL, Level.WARNING.getName())
       .option(RuntimeOptions.DISABLE_IR_CACHES, "true")
+      .option(RuntimeOptions.STRICT_ERRORS, "false")
       .environment("NO_COLOR", "true")
       .logHandler(System.err)
       .in(in)
