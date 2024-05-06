@@ -1232,7 +1232,9 @@ lazy val `ydoc-server` = project
       JPMSUtils.filterModulesFromUpdate(
         update.value,
         GraalVM.modules ++ GraalVM.jsPkgs ++ helidon ++ Seq(
-          "org.slf4j" % "slf4j-api" % slf4jVersion
+          "org.slf4j"      % "slf4j-api"       % slf4jVersion,
+          "ch.qos.logback" % "logback-classic" % logbackClassicVersion,
+          "ch.qos.logback" % "logback-core"    % logbackClassicVersion
         ),
         streams.value.log,
         shouldContainAll = true
