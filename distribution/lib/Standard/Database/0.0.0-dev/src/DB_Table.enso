@@ -74,11 +74,19 @@ type DB_Table
        Represents a column-oriented table data structure backed by a database.
 
        Arguments:
-       - name: The name of the table.
+       - internal_name: The name of the table.
        - connection: The connection with which the table is associated.
        - internal_columns: The internal representation of the table columns.
        - context: The context associated with this table.
-    Value name:Text connection:(Connection | Any) (internal_columns:(Vector Internal_Column)) context:Context
+    private Value internal_name:Text connection:(Connection | Any) (internal_columns:(Vector Internal_Column)) context:Context
+
+    ## The name of the table.
+    name : Text
+    name self = self.internal_name
+
+    ## The name of the SQL Dialect used by the table.
+    dialect_name : Text
+    dialect_name self = self.connection.dialect.name
 
     ## PRIVATE
        ADVANCED
@@ -154,31 +162,36 @@ type DB_Table
         col = self.get selector if_missing=Nothing
         if Nothing == col then if_missing else col.get index if_missing
 
-    ## GROUP Standard.Base.Selections
+    ## ALIAS first field
+       GROUP Standard.Base.Selections
        ICON select_column
        Gets the first column.
     first_column : DB_Column ! Index_Out_Of_Bounds
     first_column self = self.at 0
 
-    ## GROUP Standard.Base.Selections
+    ## ALIAS second field
+       GROUP Standard.Base.Selections
        ICON select_column
        Gets the second column
     second_column : DB_Column ! Index_Out_Of_Bounds
     second_column self = self.at 1
 
-    ## GROUP Standard.Base.Selections
+    ## ALIAS last field
+       GROUP Standard.Base.Selections
        ICON select_column
        Gets the last column
     last_column : DB_Column ! Index_Out_Of_Bounds
     last_column self = self.at -1
 
-    ## GROUP Standard.Base.Metadata
+    ## ALIAS field count
+       GROUP Standard.Base.Metadata
        ICON metadata
        Returns the number of columns in the table.
     column_count : Integer
     column_count self = self.internal_columns.length
 
-    ## GROUP Standard.Base.Selections
+    ## ALIAS select fields
+       GROUP Standard.Base.Selections
        ICON select_column
        Returns a new table with a chosen subset of columns, as specified by the
        `columns`, from the input table. Any unmatched input columns will be
@@ -234,7 +247,8 @@ type DB_Table
         new_columns = self.columns_helper.select_columns columns case_sensitivity reorder error_on_missing_columns on_problems
         self.updated_columns new_columns
 
-    ## GROUP Standard.Base.Selections
+    ## ALIAS select fields by type
+       GROUP Standard.Base.Selections
        ICON select_column
        Returns a new table with the chosen set of columns filtered by the type
        of the column.
@@ -245,13 +259,13 @@ type DB_Table
          be selected. If `False`, columns with related types will also be
          selected (i.e. ignore size, precision).
     @types Widget_Helpers.make_value_type_vector_selector
-    select_by_type : Vector Value_Type -> Boolean -> Table
-    select_by_type self types:Vector strict:Boolean=False =
+    select_columns_by_type : Vector Value_Type -> Boolean -> Table
+    select_columns_by_type self types:Vector strict:Boolean=False =
         helper = Table_Helpers.Table_Column_Helper.Value self.columns self.make_column self .read
         new_columns = helper.select_by_type types strict
         self.updated_columns (new_columns.map _.as_internal)
 
-    ## ALIAS drop_columns
+    ## ALIAS drop_columns, drop fields, remove fields
        GROUP Standard.Base.Selections
        ICON select_column
        Returns a new table with the chosen set of columns, as specified by the
@@ -305,7 +319,8 @@ type DB_Table
         new_columns = self.columns_helper.remove_columns columns case_sensitivity error_on_missing_columns=error_on_missing_columns on_problems=on_problems
         self.updated_columns new_columns
 
-    ## GROUP Standard.Base.Selections
+    ## ALIAS remove fields by type
+       GROUP Standard.Base.Selections
        ICON select_column
        Returns a new table with the chosen set of columns filtering out based
        on the type of the column.
@@ -316,13 +331,13 @@ type DB_Table
          be removed. If `False`, columns with related types will also be
          removed (i.e. ignore size, precision).
     @types Widget_Helpers.make_value_type_vector_selector
-    remove_by_type : Vector Value_Type -> Boolean -> Table
-    remove_by_type self types:Vector strict:Boolean=False =
+    remove_columns_by_type : Vector Value_Type -> Boolean -> Table
+    remove_columns_by_type self types:Vector strict:Boolean=False =
         helper = Table_Helpers.Table_Column_Helper.Value self.columns self.make_column self .read
         new_columns = helper.remove_by_type types strict
         self.updated_columns (new_columns.map _.as_internal)
 
-    ## ALIAS select_missing_columns, select_na
+    ## ALIAS select_missing_columns, select_na, select_blank_fields
        GROUP Standard.Base.Selections
        ICON select_column
 
@@ -2570,15 +2585,15 @@ type DB_Table
     to_sql : SQL_Statement
     to_sql self = self.connection.dialect.generate_sql self.to_select_query
 
-    ## ALIAS metadata
+    ## ALIAS metadata, field info, column types
        GROUP Standard.Base.Metadata
        ICON metadata
        Returns a Table describing this table's contents.
 
        The table lists all columns, counts of non-null items and value types of
        each column.
-    info : Table
-    info self =
+    column_info : Table
+    column_info self =
         cols = self.internal_columns
         count_query =
             ## Performing a subquery is the most robust way to handle both
