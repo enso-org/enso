@@ -2,11 +2,10 @@ package org.enso.database.audit;
 
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import org.enso.base.enso_cloud.audit.AuditLog;
-
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.logging.Logger;
+import org.enso.base.enso_cloud.audit.AuditLog;
 
 public final class CloudAuditedConnection extends AuditedConnection {
   private static final Logger logger = Logger.getLogger(CloudAuditedConnection.class.getName());
@@ -39,7 +38,8 @@ public final class CloudAuditedConnection extends AuditedConnection {
 
   @Override
   protected void auditTransaction(String operation) {
-    // As long as our logs don't guarantee ordering, reporting transaction commit/rollback is not too helpful.
+    // As long as our logs don't guarantee ordering, reporting transaction commit/rollback is not
+    // too helpful.
     // So we just ignore it.
   }
 }

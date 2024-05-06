@@ -4,23 +4,22 @@ import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.databind.node.NullNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.databind.node.TextNode;
+import java.util.Objects;
 import org.enso.base.CurrentEnsoProject;
 import org.enso.base.enso_cloud.CloudAPI;
-
-import java.time.ZonedDateTime;
-import java.time.format.DateTimeFormatter;
-import java.util.Objects;
 
 public class AuditLogMessage implements AuditLogAPI.LogMessage {
 
   /**
-   * A reserved field that is currently added by the cloud backend. Duplicating it will lead to internal server errors and log messages being discarded.
+   * A reserved field that is currently added by the cloud backend. Duplicating it will lead to
+   * internal server errors and log messages being discarded.
    */
-  private final static String RESERVED_TYPE = "type";
-  private final static String OPERATION = "operation";
-  private final static String PROJECT_NAME = "projectName";
-  private final static String PROJECT_ID = "projectId";
-  private final static String LOCAL_TIMESTAMP = "localTimestamp";
+  private static final String RESERVED_TYPE = "type";
+
+  private static final String OPERATION = "operation";
+  private static final String PROJECT_NAME = "projectName";
+  private static final String PROJECT_ID = "projectId";
+  private static final String LOCAL_TIMESTAMP = "localTimestamp";
 
   private final String projectId;
   private final String projectName;
@@ -49,7 +48,8 @@ public class AuditLogMessage implements AuditLogAPI.LogMessage {
 
   private static void checkNoRestrictedField(ObjectNode metadata, String fieldName) {
     if (metadata.has(fieldName)) {
-      throw new IllegalArgumentException("Metadata cannot contain a field named '" + fieldName + "'");
+      throw new IllegalArgumentException(
+          "Metadata cannot contain a field named '" + fieldName + "'");
     }
   }
 
@@ -57,7 +57,8 @@ public class AuditLogMessage implements AuditLogAPI.LogMessage {
     var copy = metadata.deepCopy();
     copy.set(OPERATION, TextNode.valueOf(operation));
 
-    // TODO the null check should no longer be needed once https://github.com/enso-org/enso/issues/9845 is fixed
+    // TODO the null check should no longer be needed once
+    // https://github.com/enso-org/enso/issues/9845 is fixed
     if (projectName != null) {
       copy.set(PROJECT_NAME, TextNode.valueOf(projectName));
     }
@@ -73,7 +74,8 @@ public class AuditLogMessage implements AuditLogAPI.LogMessage {
   public String payload() {
     var payload = new ObjectNode(JsonNodeFactory.instance);
     payload.set("message", TextNode.valueOf(message));
-    payload.set("projectId", projectId == null ? NullNode.getInstance() : TextNode.valueOf(projectId));
+    payload.set(
+        "projectId", projectId == null ? NullNode.getInstance() : TextNode.valueOf(projectId));
     payload.set("metadata", computedMetadata());
     payload.set("kind", TextNode.valueOf("Lib"));
     return payload.toString();

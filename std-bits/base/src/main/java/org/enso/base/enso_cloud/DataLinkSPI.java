@@ -2,9 +2,7 @@ package org.enso.base.enso_cloud;
 
 import java.util.ServiceLoader;
 import java.util.stream.Collectors;
-
 import org.enso.base.polyglot.EnsoMeta;
-import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Value;
 
 /**

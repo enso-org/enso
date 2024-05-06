@@ -159,7 +159,8 @@ abstract class AuditedPreparedStatement implements PreparedStatement {
   }
 
   @Override
-  public void setCharacterStream(int parameterIndex, Reader reader, int length) throws SQLException {
+  public void setCharacterStream(int parameterIndex, Reader reader, int length)
+      throws SQLException {
     underlying.setCharacterStream(parameterIndex, reader, length);
   }
 
@@ -229,7 +230,8 @@ abstract class AuditedPreparedStatement implements PreparedStatement {
   }
 
   @Override
-  public void setNCharacterStream(int parameterIndex, Reader value, long length) throws SQLException {
+  public void setNCharacterStream(int parameterIndex, Reader value, long length)
+      throws SQLException {
     underlying.setNCharacterStream(parameterIndex, value, length);
   }
 
@@ -244,7 +246,8 @@ abstract class AuditedPreparedStatement implements PreparedStatement {
   }
 
   @Override
-  public void setBlob(int parameterIndex, InputStream inputStream, long length) throws SQLException {
+  public void setBlob(int parameterIndex, InputStream inputStream, long length)
+      throws SQLException {
     underlying.setBlob(parameterIndex, inputStream, length);
   }
 
@@ -259,7 +262,8 @@ abstract class AuditedPreparedStatement implements PreparedStatement {
   }
 
   @Override
-  public void setObject(int parameterIndex, Object x, int targetSqlType, int scaleOrLength) throws SQLException {
+  public void setObject(int parameterIndex, Object x, int targetSqlType, int scaleOrLength)
+      throws SQLException {
     underlying.setObject(parameterIndex, x, targetSqlType, scaleOrLength);
   }
 
@@ -274,7 +278,8 @@ abstract class AuditedPreparedStatement implements PreparedStatement {
   }
 
   @Override
-  public void setCharacterStream(int parameterIndex, Reader reader, long length) throws SQLException {
+  public void setCharacterStream(int parameterIndex, Reader reader, long length)
+      throws SQLException {
     underlying.setCharacterStream(parameterIndex, reader, length);
   }
 

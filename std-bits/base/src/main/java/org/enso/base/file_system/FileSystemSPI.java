@@ -1,9 +1,7 @@
 package org.enso.base.file_system;
 
 import java.util.ServiceLoader;
-
 import org.enso.base.polyglot.EnsoMeta;
-import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Value;
 
 public abstract class FileSystemSPI {

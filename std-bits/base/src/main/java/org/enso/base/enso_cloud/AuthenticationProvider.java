@@ -20,7 +20,8 @@ public class AuthenticationProvider {
   }
 
   private static Value createAuthenticationService() {
-    return EnsoMeta.callStaticModuleMethod("Standard.Base.Enso_Cloud.Internal.Authentication", "instantiate_authentication_service");
+    return EnsoMeta.callStaticModuleMethod(
+        "Standard.Base.Enso_Cloud.Internal.Authentication", "instantiate_authentication_service");
   }
 
   private static void ensureServicesSetup() {

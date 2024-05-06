@@ -4,12 +4,10 @@ import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.ServiceLoader;
-
 import org.enso.base.enso_cloud.EnsoSecretAccessDenied;
 import org.enso.base.enso_cloud.EnsoSecretHelper;
 import org.enso.base.enso_cloud.HideableValue;
@@ -56,7 +54,8 @@ public final class JDBCProxy {
     }
 
     PartitionedProperties partitionedProperties = PartitionedProperties.parse(properties);
-    var rawConnection = EnsoSecretHelper.getJDBCConnection(url, partitionedProperties.jdbcProperties);
+    var rawConnection =
+        EnsoSecretHelper.getJDBCConnection(url, partitionedProperties.jdbcProperties);
     if (partitionedProperties.isAudited()) {
       return new CloudAuditedConnection(rawConnection, partitionedProperties.getRelatedAssetId());
     } else {
@@ -68,7 +67,8 @@ public final class JDBCProxy {
   public static final String AUDITED_KEY = ENSO_PROPERTY_PREFIX + "audited";
   public static final String RELATED_ASSET_ID_KEY = ENSO_PROPERTY_PREFIX + "relatedAssetId";
 
-  private record PartitionedProperties(Map<String, String> ensoProperties, List<Pair<String, HideableValue>> jdbcProperties) {
+  private record PartitionedProperties(
+      Map<String, String> ensoProperties, List<Pair<String, HideableValue>> jdbcProperties) {
     public static PartitionedProperties parse(List<Pair<String, HideableValue>> properties) {
       List<Pair<String, HideableValue>> jdbcProperties = new ArrayList<>();
       HashMap<String, String> ensoProperties = new HashMap<>();
@@ -78,7 +78,8 @@ public final class JDBCProxy {
           try {
             ensoProperties.put(pair.getLeft(), pair.getRight().safeResolve());
           } catch (EnsoSecretAccessDenied e) {
-            throw new IllegalStateException("Internal Enso property "+pair.getLeft()+" should not contain secrets.");
+            throw new IllegalStateException(
+                "Internal Enso property " + pair.getLeft() + " should not contain secrets.");
           }
         } else {
           jdbcProperties.add(pair);

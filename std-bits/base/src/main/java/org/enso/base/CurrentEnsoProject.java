@@ -1,8 +1,5 @@
 package org.enso.base;
 
-import org.enso.base.polyglot.EnsoMeta;
-import org.graalvm.polyglot.Value;
-
 /** A Java interface to the `Enso_Project` type. */
 public final class CurrentEnsoProject {
   private final String name;
@@ -14,7 +11,8 @@ public final class CurrentEnsoProject {
   }
 
   public static CurrentEnsoProject get() {
-    // TODO this currently does not work, because of bug https://github.com/enso-org/enso/issues/9845
+    // TODO this currently does not work, because of bug
+    // https://github.com/enso-org/enso/issues/9845
     return null;
   }
 

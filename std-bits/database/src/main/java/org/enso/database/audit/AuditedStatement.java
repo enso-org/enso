@@ -40,9 +40,7 @@ abstract class AuditedStatement implements Statement {
   }
 
   @Override
-  public void setMaxFieldSize(int max) throws SQLException {
-
-  }
+  public void setMaxFieldSize(int max) throws SQLException {}
 
   @Override
   public int getMaxRows() throws SQLException {
@@ -50,14 +48,10 @@ abstract class AuditedStatement implements Statement {
   }
 
   @Override
-  public void setMaxRows(int max) throws SQLException {
-
-  }
+  public void setMaxRows(int max) throws SQLException {}
 
   @Override
-  public void setEscapeProcessing(boolean enable) throws SQLException {
-
-  }
+  public void setEscapeProcessing(boolean enable) throws SQLException {}
 
   @Override
   public int getQueryTimeout() throws SQLException {
@@ -65,14 +59,10 @@ abstract class AuditedStatement implements Statement {
   }
 
   @Override
-  public void setQueryTimeout(int seconds) throws SQLException {
-
-  }
+  public void setQueryTimeout(int seconds) throws SQLException {}
 
   @Override
-  public void cancel() throws SQLException {
-
-  }
+  public void cancel() throws SQLException {}
 
   @Override
   public SQLWarning getWarnings() throws SQLException {
@@ -80,14 +70,10 @@ abstract class AuditedStatement implements Statement {
   }
 
   @Override
-  public void clearWarnings() throws SQLException {
-
-  }
+  public void clearWarnings() throws SQLException {}
 
   @Override
-  public void setCursorName(String name) throws SQLException {
-
-  }
+  public void setCursorName(String name) throws SQLException {}
 
   @Override
   public boolean execute(String sql) throws SQLException {
@@ -110,9 +96,7 @@ abstract class AuditedStatement implements Statement {
   }
 
   @Override
-  public void setFetchDirection(int direction) throws SQLException {
-
-  }
+  public void setFetchDirection(int direction) throws SQLException {}
 
   @Override
   public int getFetchDirection() throws SQLException {
@@ -120,9 +104,7 @@ abstract class AuditedStatement implements Statement {
   }
 
   @Override
-  public void setFetchSize(int rows) throws SQLException {
-
-  }
+  public void setFetchSize(int rows) throws SQLException {}
 
   @Override
   public int getFetchSize() throws SQLException {
@@ -140,14 +122,10 @@ abstract class AuditedStatement implements Statement {
   }
 
   @Override
-  public void addBatch(String sql) throws SQLException {
-
-  }
+  public void addBatch(String sql) throws SQLException {}
 
   @Override
-  public void clearBatch() throws SQLException {
-
-  }
+  public void clearBatch() throws SQLException {}
 
   @Override
   public int[] executeBatch() throws SQLException {
@@ -210,9 +188,7 @@ abstract class AuditedStatement implements Statement {
   }
 
   @Override
-  public void setPoolable(boolean poolable) throws SQLException {
-
-  }
+  public void setPoolable(boolean poolable) throws SQLException {}
 
   @Override
   public boolean isPoolable() throws SQLException {
@@ -220,9 +196,7 @@ abstract class AuditedStatement implements Statement {
   }
 
   @Override
-  public void closeOnCompletion() throws SQLException {
-
-  }
+  public void closeOnCompletion() throws SQLException {}
 
   @Override
   public boolean isCloseOnCompletion() throws SQLException {

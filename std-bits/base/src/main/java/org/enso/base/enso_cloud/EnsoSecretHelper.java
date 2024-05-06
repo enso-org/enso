@@ -19,8 +19,8 @@ import org.graalvm.collections.Pair;
 public final class EnsoSecretHelper extends SecretValueResolver {
 
   /** Gets a JDBC connection resolving EnsoKeyValuePair into the properties. */
-  public static Connection getJDBCConnection(String url, List<Pair<String, HideableValue>> properties)
-      throws SQLException {
+  public static Connection getJDBCConnection(
+      String url, List<Pair<String, HideableValue>> properties) throws SQLException {
     var javaProperties = new Properties();
     for (var pair : properties) {
       javaProperties.setProperty(pair.getLeft(), resolveValue(pair.getRight()));

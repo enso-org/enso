@@ -3,9 +3,7 @@ package org.enso.base.file_format;
 import java.util.Objects;
 import java.util.ServiceLoader;
 import java.util.stream.Collectors;
-
 import org.enso.base.polyglot.EnsoMeta;
-import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Value;
 
 public abstract class FileFormatSPI {

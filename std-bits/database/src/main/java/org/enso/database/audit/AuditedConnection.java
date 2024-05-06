@@ -27,10 +27,12 @@ abstract class AuditedConnection implements Connection {
   }
 
   abstract void auditQuery(String operationType, String sql);
+
   abstract void auditTransaction(String operation);
 
   private RuntimeException unimplemented(String name) {
-    throw new UnsupportedOperationException(name + " is not implemented. This is a bug in the Database library.");
+    throw new UnsupportedOperationException(
+        name + " is not implemented. This is a bug in the Database library.");
   }
 
   @Override
@@ -56,7 +58,7 @@ abstract class AuditedConnection implements Connection {
   @Override
   public void setAutoCommit(boolean autoCommit) throws SQLException {
     if (autoCommit != underlying.getAutoCommit()) {
-      auditTransaction("setAutoCommit "+autoCommit);
+      auditTransaction("setAutoCommit " + autoCommit);
     }
     underlying.setAutoCommit(autoCommit);
   }
@@ -134,17 +136,22 @@ abstract class AuditedConnection implements Connection {
   }
 
   @Override
-  public Statement createStatement(int resultSetType, int resultSetConcurrency) throws SQLException {
-    return new AuditedStatementImpl(underlying.createStatement(resultSetType, resultSetConcurrency));
+  public Statement createStatement(int resultSetType, int resultSetConcurrency)
+      throws SQLException {
+    return new AuditedStatementImpl(
+        underlying.createStatement(resultSetType, resultSetConcurrency));
   }
 
   @Override
-  public PreparedStatement prepareStatement(String sql, int resultSetType, int resultSetConcurrency) throws SQLException {
-    return new AuditedPreparedStatementImpl(underlying.prepareStatement(sql, resultSetType, resultSetConcurrency), sql);
+  public PreparedStatement prepareStatement(String sql, int resultSetType, int resultSetConcurrency)
+      throws SQLException {
+    return new AuditedPreparedStatementImpl(
+        underlying.prepareStatement(sql, resultSetType, resultSetConcurrency), sql);
   }
 
   @Override
-  public CallableStatement prepareCall(String sql, int resultSetType, int resultSetConcurrency) throws SQLException {
+  public CallableStatement prepareCall(String sql, int resultSetType, int resultSetConcurrency)
+      throws SQLException {
     throw unimplemented("prepareCall");
   }
 
@@ -176,7 +183,7 @@ abstract class AuditedConnection implements Connection {
     }
 
     try {
-      return "Savepoint "+savepoint.getSavepointName();
+      return "Savepoint " + savepoint.getSavepointName();
     } catch (SQLException e) {
       return savepoint.toString();
     }
@@ -185,47 +192,56 @@ abstract class AuditedConnection implements Connection {
   @Override
   public Savepoint setSavepoint() throws SQLException {
     var savepoint = underlying.setSavepoint();
-    auditTransaction("setSavepoint "+savePointToString(savepoint));
+    auditTransaction("setSavepoint " + savePointToString(savepoint));
     return savepoint;
   }
 
   @Override
   public Savepoint setSavepoint(String name) throws SQLException {
     var savepoint = underlying.setSavepoint(name);
-    auditTransaction("setSavepoint "+savePointToString(savepoint));
+    auditTransaction("setSavepoint " + savePointToString(savepoint));
     return savepoint;
   }
 
   @Override
   public void rollback(Savepoint savepoint) throws SQLException {
-    auditTransaction("rollback "+savePointToString(savepoint));
+    auditTransaction("rollback " + savePointToString(savepoint));
     underlying.rollback(savepoint);
   }
 
   @Override
   public void releaseSavepoint(Savepoint savepoint) throws SQLException {
-    auditTransaction("releaseSavepoint "+savePointToString(savepoint));
+    auditTransaction("releaseSavepoint " + savePointToString(savepoint));
     underlying.releaseSavepoint(savepoint);
   }
 
   @Override
-  public Statement createStatement(int resultSetType, int resultSetConcurrency, int resultSetHoldability) throws SQLException {
-    return new AuditedStatementImpl(underlying.createStatement(resultSetType, resultSetConcurrency, resultSetHoldability));
+  public Statement createStatement(
+      int resultSetType, int resultSetConcurrency, int resultSetHoldability) throws SQLException {
+    return new AuditedStatementImpl(
+        underlying.createStatement(resultSetType, resultSetConcurrency, resultSetHoldability));
   }
 
   @Override
-  public PreparedStatement prepareStatement(String sql, int resultSetType, int resultSetConcurrency, int resultSetHoldability) throws SQLException {
-    return new AuditedPreparedStatementImpl(underlying.prepareStatement(sql, resultSetType, resultSetConcurrency, resultSetHoldability), sql);
+  public PreparedStatement prepareStatement(
+      String sql, int resultSetType, int resultSetConcurrency, int resultSetHoldability)
+      throws SQLException {
+    return new AuditedPreparedStatementImpl(
+        underlying.prepareStatement(sql, resultSetType, resultSetConcurrency, resultSetHoldability),
+        sql);
   }
 
   @Override
-  public CallableStatement prepareCall(String sql, int resultSetType, int resultSetConcurrency, int resultSetHoldability) throws SQLException {
+  public CallableStatement prepareCall(
+      String sql, int resultSetType, int resultSetConcurrency, int resultSetHoldability)
+      throws SQLException {
     throw unimplemented("prepareCall");
   }
 
   @Override
   public PreparedStatement prepareStatement(String sql, int autoGeneratedKeys) throws SQLException {
-    return new AuditedPreparedStatementImpl(underlying.prepareStatement(sql, autoGeneratedKeys), sql);
+    return new AuditedPreparedStatementImpl(
+        underlying.prepareStatement(sql, autoGeneratedKeys), sql);
   }
 
   @Override
