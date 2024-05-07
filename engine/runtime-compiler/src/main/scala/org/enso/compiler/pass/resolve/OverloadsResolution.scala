@@ -1,7 +1,14 @@
 package org.enso.compiler.pass.resolve
 
 import org.enso.compiler.context.{InlineContext, ModuleContext}
-import org.enso.compiler.core.ir.{Diagnostic, Expression, Module, Name, Type}
+import org.enso.compiler.core.ir.{
+  Diagnostic,
+  Expression,
+  IdentifiedLocation,
+  Module,
+  Name,
+  Type
+}
 import org.enso.compiler.core.ir.expression.{errors, Comment}
 import org.enso.compiler.core.ir.module.scope.Definition
 import org.enso.compiler.core.ir.module.scope.definition
@@ -23,7 +30,15 @@ import scala.collection.mutable
   * 3. Extension methods in imported scopes are resolved last.
   *
   * It is not possible to define two extension methods with same name in different
-  * location - that results in an ambiguity error.
+  * location - that results in an ambiguity error. Note that an *extension* method
+  * is a static method that is defined outside a type, for example in the following snippet,
+  * `foo` is an extension method, and `bar` is a static method:
+  * ```
+  * type T
+  *     bar = 42 # A static method
+  * T.foo = 23 # An extension method
+  * ```
+  * Extension method is also a static method. But a static method is not necessarily an extension method.
   *
   * This pass requires the context to provide:
   *
@@ -188,7 +203,7 @@ case object OverloadsResolution extends IRPass {
     assert(method.typeName.isDefined)
     val typeName   = method.typeName.get.name
     val methodName = method.methodName.name
-    val extMethod  = StaticMethod(typeName, methodName)
+    val extMethod  = ExtensionMethod(typeName, methodName)
     val bindingMap = moduleContext.bindingsAnalysis()
     if (bindingMap == null) {
       return false
@@ -202,7 +217,7 @@ case object OverloadsResolution extends IRPass {
           // to check here if the imported module is not the current module.
           if (!impModule.getName.equals(curModuleName)) {
             val importedExtMethods =
-              collectStaticMethods(impModule.getIr.bindings)
+              collectExtensionMethods(impModule.getIr.bindings)
             importedExtMethods.contains(extMethod)
           } else {
             false
@@ -220,21 +235,84 @@ case object OverloadsResolution extends IRPass {
     methodDef.isStatic && methodDef.typeName.isDefined
   }
 
-  private def collectStaticMethods(
+  /** Extension methods are static methods that are defined outside type.
+    * For example the following method `foo` is an extension method, but `bar` is not:
+    * ```
+    * type T
+    *     bar = 42 # A static method
+    * T.foo = 23 # An extension method
+    * ```
+    * @param bindings
+    * @return
+    */
+  private def collectExtensionMethods(
     bindings: List[Definition]
-  ): List[StaticMethod] = {
-    bindings.flatMap { binding =>
-      binding match {
-        case method: definition.Method.Explicit if method.isStatic =>
-          method.typeName.map { typeName =>
-            StaticMethod(typeName.name, method.methodName.name)
-          }
-        case _ => None
-      }
+  ): List[ExtensionMethod] = {
+    bindings.flatMap {
+      case method: definition.Method.Explicit if method.isStatic =>
+        method.typeName match {
+          case Some(typeName) =>
+            findType(bindings, typeName) match {
+              case Some(foundType) =>
+                // There is a type definition in bindings, let's check its position
+                val isExtMethod = !isDefinedInsideType(method, foundType)
+                if (isExtMethod) {
+                  Some(
+                    ExtensionMethod(foundType.name.name, method.methodName.name)
+                  )
+                } else {
+                  None
+                }
+              case None => None
+            }
+          case None => None
+        }
+      case _ => None
     }
   }
 
-  private case class StaticMethod(
+  /** Tries to find a type definition with the given `typeName` in the given `bindings`.
+    */
+  private def findType(
+    bindings: List[Definition],
+    typeName: Name
+  ): Option[Definition.Type] = {
+    bindings.flatMap {
+      case tp: Definition.Type if tp.name.equals(typeName) =>
+        Some(tp)
+      case _ => None
+    }.headOption
+  }
+
+  /** Returns true if given `method` is defined inside the given `tp`. In other words,
+    * returns true if the given `method` is *static* rather than *extension*.
+    * @param method
+    * @param tp
+    * @return
+    */
+  private def isDefinedInsideType(
+    method: definition.Method.Explicit,
+    tp: Definition.Type
+  ): Boolean = {
+    (method.location, tp.location) match {
+      case (Some(methodLoc), Some(tpLoc)) =>
+        isWithinBounds(methodLoc, tpLoc)
+      case _ => false
+    }
+  }
+
+  /** Returns true iff `innerLoc` is within the bounds of `outerLoc`.
+    */
+  private def isWithinBounds(
+    innerLoc: IdentifiedLocation,
+    outerLoc: IdentifiedLocation
+  ): Boolean = {
+    innerLoc.end() <= outerLoc.end() &&
+    outerLoc.start() <= innerLoc.start() &&
+    innerLoc.start() <= outerLoc.end()
+  }
+
+  private case class ExtensionMethod(
     typeName: String,
     methodName: String
   )
