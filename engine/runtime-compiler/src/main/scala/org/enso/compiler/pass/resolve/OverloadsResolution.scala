@@ -31,7 +31,7 @@ import scala.collection.mutable
   *
   * It is not possible to define two extension methods with same name in different
   * location - that results in an ambiguity error. Note that an *extension* method
-  * is a static method that is defined outside a type, for example in the following snippet,
+  * is a *static method* that is defined outside a type, for example in the following snippet,
   * `foo` is an extension method, and `bar` is a static method:
   * ```
   * type T
@@ -112,8 +112,9 @@ case object OverloadsResolution extends IRPass {
               // is an instance method, it means that it is inside a type definition. And
               // types can be shadowed. Therefore, instance methods cannot be ambiguous.
               if (
-                isExtensionOrStatic(
-                  method
+                isExtensionMethod(
+                  method,
+                  ir.bindings
                 ) && isExtensionMethodDefinedInImportedModule(
                   method,
                   moduleContext
@@ -203,7 +204,7 @@ case object OverloadsResolution extends IRPass {
     assert(method.typeName.isDefined)
     val typeName   = method.typeName.get.name
     val methodName = method.methodName.name
-    val extMethod  = ExtensionMethod(typeName, methodName)
+    val extMethod  = StaticOrExtensionMethod(typeName, methodName)
     val bindingMap = moduleContext.bindingsAnalysis()
     if (bindingMap == null) {
       return false
@@ -217,7 +218,7 @@ case object OverloadsResolution extends IRPass {
           // to check here if the imported module is not the current module.
           if (!impModule.getName.equals(curModuleName)) {
             val importedExtMethods =
-              collectExtensionMethods(impModule.getIr.bindings)
+              collectStaticAndExtensionMethods(impModule.getIr.bindings)
             importedExtMethods.contains(extMethod)
           } else {
             false
@@ -229,45 +230,45 @@ case object OverloadsResolution extends IRPass {
     }
   }
 
-  private def isExtensionOrStatic(
-    methodDef: definition.Method.Explicit
+  /** Returns true iff the given `methodDef` is an extension method, but not a static method.
+    * @param bindings List of bindings in the current module
+    */
+  private def isExtensionMethod(
+    methodDef: definition.Method.Explicit,
+    bindings: List[Definition]
   ): Boolean = {
-    methodDef.isStatic && methodDef.typeName.isDefined
+    if (methodDef.isStatic && methodDef.typeName.isDefined) {
+      methodDef.methodReference.typePointer match {
+        case None => false
+        case Some(typePointer) =>
+          findType(bindings, typePointer) match {
+            case Some(foundType) =>
+              !isDefinedInsideType(methodDef, foundType)
+            case None =>
+              // If the type cannot be found inside current module, the method is definitely an
+              // extension method as the method is definitely defined outside the type.
+              true
+          }
+      }
+    } else {
+      // Non-static method cannot be an extension method.
+      false
+    }
   }
 
-  /** Extension methods are static methods that are defined outside type.
-    * For example the following method `foo` is an extension method, but `bar` is not:
-    * ```
-    * type T
-    *     bar = 42 # A static method
-    * T.foo = 23 # An extension method
-    * ```
-    * @param bindings
-    * @return
+  /** Collects both static and extension methods from the given list of bindings.
     */
-  private def collectExtensionMethods(
+  private def collectStaticAndExtensionMethods(
     bindings: List[Definition]
-  ): List[ExtensionMethod] = {
-    bindings.flatMap {
-      case method: definition.Method.Explicit if method.isStatic =>
-        method.typeName match {
-          case Some(typeName) =>
-            findType(bindings, typeName) match {
-              case Some(foundType) =>
-                // There is a type definition in bindings, let's check its position
-                val isExtMethod = !isDefinedInsideType(method, foundType)
-                if (isExtMethod) {
-                  Some(
-                    ExtensionMethod(foundType.name.name, method.methodName.name)
-                  )
-                } else {
-                  None
-                }
-              case None => None
-            }
-          case None => None
-        }
-      case _ => None
+  ): List[StaticOrExtensionMethod] = {
+    bindings.flatMap { binding =>
+      binding match {
+        case method: definition.Method.Explicit if method.isStatic =>
+          method.typeName.map { typeName =>
+            StaticOrExtensionMethod(typeName.name, method.methodName.name)
+          }
+        case _ => None
+      }
     }
   }
 
@@ -277,18 +278,33 @@ case object OverloadsResolution extends IRPass {
     bindings: List[Definition],
     typeName: Name
   ): Option[Definition.Type] = {
-    bindings.flatMap {
-      case tp: Definition.Type if tp.name.equals(typeName) =>
-        Some(tp)
-      case _ => None
-    }.headOption
+    bindings.collectFirst {
+      case tp: Definition.Type if areSameNames(typeName, tp.name) =>
+        tp
+    }
+  }
+
+  private def areSameNames(
+    firstName: Name,
+    secondName: Name
+  ): Boolean = {
+    (firstName.location(), secondName.location()) match {
+      case (Some(firstLoc), Some(secondLoc)) =>
+        firstName.name.equals(secondName.name) &&
+        firstLoc.start() == secondLoc.start() &&
+        firstLoc.end() == secondLoc.end()
+      case _ =>
+        // If one of the names, or both, do not have an associated location,
+        // they are automatically considered different.
+        false
+    }
   }
 
   /** Returns true if given `method` is defined inside the given `tp`. In other words,
     * returns true if the given `method` is *static* rather than *extension*.
-    * @param method
-    * @param tp
-    * @return
+    * @param method Method to check if it is defined inside the given type.
+    * @param tp Type to check if the method is defined inside it.
+    * @return True if the method is defined inside the type.
     */
   private def isDefinedInsideType(
     method: definition.Method.Explicit,
@@ -301,7 +317,8 @@ case object OverloadsResolution extends IRPass {
     }
   }
 
-  /** Returns true iff `innerLoc` is within the bounds of `outerLoc`.
+  /** Returns true iff `innerLoc` is within the bounds of `outerLoc`, i.e., if `innerLoc`
+    * is contained inside `outerLoc`.
     */
   private def isWithinBounds(
     innerLoc: IdentifiedLocation,
@@ -312,7 +329,7 @@ case object OverloadsResolution extends IRPass {
     innerLoc.start() <= outerLoc.end()
   }
 
-  private case class ExtensionMethod(
+  private case class StaticOrExtensionMethod(
     typeName: String,
     methodName: String
   )
