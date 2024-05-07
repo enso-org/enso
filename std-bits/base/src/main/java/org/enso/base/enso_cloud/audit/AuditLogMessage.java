@@ -36,10 +36,6 @@ public class AuditLogMessage implements AuditLogAPI.LogMessage {
     checkNoRestrictedField(metadata, PROJECT_NAME);
     checkNoRestrictedField(metadata, LOCAL_TIMESTAMP);
 
-    // FIXME this is temporary
-    checkNoRestrictedField(metadata, "message");
-    checkNoRestrictedField(metadata, "projectId");
-
     this.projectId = CloudAPI.getCloudProjectId();
 
     var currentProject = CurrentEnsoProject.get();
@@ -62,10 +58,6 @@ public class AuditLogMessage implements AuditLogAPI.LogMessage {
     if (projectName != null) {
       copy.set(PROJECT_NAME, TextNode.valueOf(projectName));
     }
-
-    // FIXME this is a temporary workaround for bug in Cloud API
-    copy.set("message", TextNode.valueOf(message));
-    copy.set(PROJECT_ID, projectId == null ? NullNode.getInstance() : TextNode.valueOf(projectId));
 
     return copy;
   }
