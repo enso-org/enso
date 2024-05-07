@@ -17,9 +17,9 @@ import * as portal from '#/components/Portal'
 import type * as types from './types'
 
 const MODAL_CLASSES =
-  'fixed z-1 top-0 left-0 right-0 bottom-0 bg-black/[15%] flex items-center justify-center text-center'
+  'fixed top-0 left-0 right-0 bottom-0 bg-black/[15%] flex items-center justify-center text-center'
 const DIALOG_CLASSES =
-  'relative flex flex-col overflow-hidden rounded-xl text-left align-middle text-slate-700 shadow-2xl bg-clip-padding border border-black/10 before:absolute before:inset before:h-full before:w-full before:rounded-xl before:bg-selected-frame before:backdrop-blur-default'
+  'relative flex flex-col overflow-hidden rounded-xl text-left align-middle shadow-2xl bg-clip-padding border border-black/10 before:absolute before:inset before:h-full before:w-full before:rounded-xl before:bg-selected-frame before:backdrop-blur-default'
 
 const MODAL_CLASSES_BY_TYPE = {
   modal: 'p-4',
@@ -28,7 +28,7 @@ const MODAL_CLASSES_BY_TYPE = {
 } satisfies Record<types.DialogType, string>
 
 const DIALOG_CLASSES_BY_TYPE = {
-  modal: 'w-full max-w-md min-h-[100px] h-auto max-h-[90vh]',
+  modal: 'w-full max-w-md min-h-[100px] max-h-[90vh]',
   popover: 'rounded-lg',
   fullscreen: 'w-full h-full max-w-full max-h-full bg-clip-border',
 } satisfies Record<types.DialogType, string>
@@ -88,7 +88,7 @@ export function Dialog(props: types.DialogProps) {
               </aria.Header>
             )}
 
-            <div className="z-1 flex-1 shrink-0 p-3.5">
+            <div className="relative flex-auto overflow-y-auto p-3.5">
               {typeof children === 'function' ? children(opts) : children}
             </div>
           </>
