@@ -45,7 +45,7 @@ type Postgres_Data_Link
     read self (format = Auto_Detect) (on_problems : Problem_Behavior) =
         _ = on_problems
         if format != Auto_Detect then Error.throw (Illegal_Argument.Error "Only the default Auto_Detect format should be used with a Postgres Data Link, because it does not point to a file resource, but a database entity, so setting a file format for it is meaningless.") else
-            # TODO related asset id here
+            # TODO add related asset id here: https://github.com/enso-org/enso/issues/9869
             default_options = Connection_Options.Value [["enso.internal.audited", "true"]]
             connection = self.details.connect default_options
             case self of

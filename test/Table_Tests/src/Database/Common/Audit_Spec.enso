@@ -63,7 +63,7 @@ add_specs suite_builder prefix ~datalink_to_connection =
                 relevant_event = all_events.find e-> e.message.contains query
                 relevant_event.should_succeed
 
-        group_builder.specify "should be able to infer the asset id of the data link used for the connection" pending="TODO" <|
+        group_builder.specify "should know the asset id of the data link used for the connection" pending="TODO: https://github.com/enso-org/enso/issues/9869" <|
             ## TODO:
                1. write data link to Enso File
                2. set up real cloud and establish the connection
