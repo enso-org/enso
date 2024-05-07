@@ -13,7 +13,7 @@ from project.Util import all
 
 ## Tests the audit capabilities of the connection.
    It takes an already set-up audited connection (usually through a data link).
-add_specs suite_builder prefix audited_connection =
+add_specs suite_builder prefix ~datalink_to_connection =
     ## By default, these tests are run only on the Cloud mock, not on the real deployment.
        This is mostly because we don't yet have log filtering so the results on the real deployment could be massive.
        The local environment is more predictable for running these tests.
@@ -23,39 +23,45 @@ add_specs suite_builder prefix audited_connection =
     cloud_setup = if always_run_on_mock then Cloud_Tests_Setup.prepare_mock_setup else Cloud_Tests_Setup.prepare
     suite_builder.group prefix+"Audit Logs" pending=cloud_setup.pending group_builder->
         group_builder.specify "should see Database operations performed on a table through the standard workflow" <| cloud_setup.with_prepared_environment <|
+            audited_connection = datalink_to_connection.read
             table_name = "audited-table-"+Random.uuid
             mem_table = Table.new [["X", [1, 2]], ["Y", ["my_payload", "foo"]]]
             audited_table = mem_table.select_into_database_table audited_connection table_name temporary=True . should_succeed
             audited_table.read . should_equal mem_table
             audited_connection.drop_table table_name . should_succeed
 
-            all_events = Test_Utils.get_audit_log_events
-            relevant_events = all_events.filter e-> e.message.contains table_name
+            # Retrying is needed as there may be some delay before the background thread finishes processing the logs.
+            Test.with_retries <|
+                all_events = Test_Utils.get_audit_log_events
+                relevant_events = all_events.filter e-> e.message.contains table_name
 
-            create = relevant_events.find (e-> e.message.contains "CREATE")
-            create.should_succeed
-            create.user_email . should_equal Enso_User.current.email
-            create.metadata.get "connection_uri" . should_contain "jdbc:"
+                create = relevant_events.find (e-> e.message.contains "CREATE")
+                create.should_succeed
+                create.user_email . should_equal Enso_User.current.email
+                create.metadata.get "connection_uri" . should_contain "jdbc:"
 
-            insert = relevant_events.find (e-> e.message.contains "INSERT INTO")
-            insert.should_succeed
-            # The insert query should not contain column cell data - only column names / metadata.
-            insert.message.should_not_contain "my_payload"
+                insert = relevant_events.find (e-> e.message.contains "INSERT INTO")
+                insert.should_succeed
+                # The insert query should not contain column cell data - only column names / metadata.
+                insert.message.should_not_contain "my_payload"
 
-            relevant_events.find (e-> e.message.contains "SELECT") . should_succeed
-            relevant_events.find (e-> e.message.contains "DROP") . should_succeed
+                relevant_events.find (e-> e.message.contains "SELECT") . should_succeed
+                relevant_events.find (e-> e.message.contains "DROP") . should_succeed
 
         group_builder.specify "should see Database operations performed manually" <| cloud_setup.with_prepared_environment <|
+            audited_connection = datalink_to_connection.read
             query = "SELECT 1 AS A, 2 AS B, "+(Random.integer 0 1000000).to_text+" AS C"
             t = audited_connection.read query
             # Force the connector to perform the query:
             t.at 0 . to_vector . should_equal [1]
 
-            all_events = Test_Utils.get_audit_log_events
-            ## This is a bit white-box test - we assume the input query is found inside of the query that is run unchanged.
-               Currently that is OK, but if that ever stops being enough the test may need to be amended to be 'smarter'.
-            relevant_event = all_events.find e-> e.message.contains query
-            relevant_event.should_succeed
+            # Retrying is needed as there may be some delay before the background thread finishes processing the logs.
+            Test.with_retries <|
+                all_events = Test_Utils.get_audit_log_events
+                ## This is a bit white-box test - we assume the input query is found inside of the query that is run unchanged.
+                   Currently that is OK, but if that ever stops being enough the test may need to be amended to be 'smarter'.
+                relevant_event = all_events.find e-> e.message.contains query
+                relevant_event.should_succeed
 
         group_builder.specify "should be able to infer the asset id of the data link used for the connection" pending="TODO" <|
             ## TODO:

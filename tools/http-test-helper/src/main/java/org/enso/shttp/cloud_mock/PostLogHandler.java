@@ -29,6 +29,13 @@ public class PostLogHandler implements CloudHandler {
       return;
     }
 
+    try {
+      // Delay recording the event to simulate network conditions
+      Thread.sleep(100);
+    } catch (InterruptedException e) {
+      // ignore the interruption
+    }
+
     JsonNode root = jsonMapper.readTree(exchange.decodeBodyAsText());
     String message = root.get("message").asText();
     String organizationId = users.currentUserOrganizationId();
