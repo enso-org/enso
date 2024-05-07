@@ -68,7 +68,7 @@ export default function UserGroupRow(props: UserGroupRowProps) {
       >
         <aria.TooltipTrigger>
           {/* NOTE: `max-w-full` brings back the ellipsis, but the tooltip disappears */}
-          <FocusableText className="cursor-[unset] overflow-hidden text-ellipsis whitespace-nowrap">
+          <FocusableText className="block cursor-[unset] overflow-hidden text-ellipsis whitespace-nowrap">
             {userGroup.groupName}
           </FocusableText>
           {needsTooltip && <ariaComponents.Tooltip>{userGroup.groupName}</ariaComponents.Tooltip>}

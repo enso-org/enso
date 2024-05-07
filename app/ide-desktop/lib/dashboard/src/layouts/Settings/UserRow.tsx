@@ -76,7 +76,7 @@ export default function UserRow(props: UserRowProps) {
         {draggable && <aria.Button slot="drag" />}
         <aria.TooltipTrigger>
           {/* NOTE: `max-w-full` brings back the ellipsis, but the tooltip disappears */}
-          <FocusableText className="cursor-[unset] overflow-hidden text-ellipsis whitespace-nowrap">
+          <FocusableText className="block cursor-[unset] overflow-hidden text-ellipsis whitespace-nowrap">
             {user.name}
           </FocusableText>
           {needsTooltip && <ariaComponents.Tooltip>{user.name}</ariaComponents.Tooltip>}
