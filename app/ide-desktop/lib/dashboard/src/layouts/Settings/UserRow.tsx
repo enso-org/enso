@@ -41,6 +41,7 @@ export default function UserRow(props: UserRowProps) {
   const { needsTooltip, tooltipTargetRef } = tooltipHooks.useNeedsTooltip()
   const isSelf = user.userId === self?.userId
   const doDeleteUser = isSelf ? null : doDeleteUserRaw
+
   const contextMenuRef = contextMenuHooks.useContextMenuRef(
     user.userId,
     getText('userContextMenuLabel'),
@@ -69,14 +70,13 @@ export default function UserRow(props: UserRowProps) {
       className={`rounded-rows-child group h-row ${draggable ? 'cursor-grab' : ''}`}
       ref={contextMenuRef}
     >
-      <aria.Cell
-        ref={tooltipTargetRef}
-        className="text overflow-hidden whitespace-nowrap border-x-2 border-transparent bg-clip-padding px-cell-x first:rounded-l-full last:rounded-r-full last:border-r-0 group-selected:bg-selected-frame"
-      >
+      <aria.Cell className="text overflow-hidden whitespace-nowrap border-x-2 border-transparent bg-clip-padding px-cell-x first:rounded-l-full last:rounded-r-full last:border-r-0 group-selected:bg-selected-frame">
         {draggable && <aria.Button slot="drag" />}
         <aria.TooltipTrigger>
-          {/* NOTE: `max-w-full` brings back the ellipsis, but the tooltip disappears */}
-          <FocusableText className="block cursor-[unset] overflow-hidden text-ellipsis whitespace-nowrap">
+          <FocusableText
+            ref={tooltipTargetRef}
+            className="block cursor-[unset] overflow-hidden text-ellipsis whitespace-nowrap"
+          >
             {user.name}
           </FocusableText>
           {needsTooltip && <ariaComponents.Tooltip>{user.name}</ariaComponents.Tooltip>}

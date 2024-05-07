@@ -62,13 +62,12 @@ export default function UserGroupRow(props: UserGroupRowProps) {
       className={`rounded-rows-child group h-row ${backend.isPlaceholderUserGroupId(userGroup.id) ? 'pointer-events-none placeholder' : ''}`}
       ref={contextMenuRef}
     >
-      <aria.Cell
-        ref={tooltipTargetRef}
-        className="text rounded-r-full border-x-2 border-transparent bg-clip-padding px-cell-x first:rounded-l-full last:border-r-0"
-      >
+      <aria.Cell className="text rounded-r-full border-x-2 border-transparent bg-clip-padding px-cell-x first:rounded-l-full last:border-r-0">
         <aria.TooltipTrigger>
-          {/* NOTE: `max-w-full` brings back the ellipsis, but the tooltip disappears */}
-          <FocusableText className="block cursor-[unset] overflow-hidden text-ellipsis whitespace-nowrap">
+          <FocusableText
+            ref={tooltipTargetRef}
+            className="block cursor-[unset] overflow-hidden text-ellipsis whitespace-nowrap"
+          >
             {userGroup.groupName}
           </FocusableText>
           {needsTooltip && <ariaComponents.Tooltip>{userGroup.groupName}</ariaComponents.Tooltip>}
