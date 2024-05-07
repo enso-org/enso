@@ -448,10 +448,14 @@ abstract class AuditedPreparedStatement implements PreparedStatement {
     underlying.clearBatch();
   }
 
+  private boolean firstInBatch = true;
+
   @Override
   public int[] executeBatch() throws SQLException {
-    // TODO maybe report only first?
-    auditQuery("executeBatch", sql);
+    if (firstInBatch) {
+      auditQuery("executeBatch", sql);
+      firstInBatch = false;
+    }
     return underlying.executeBatch();
   }
 
