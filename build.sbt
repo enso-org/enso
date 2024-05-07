@@ -2348,15 +2348,16 @@ lazy val `engine-runner` = project
             "-Dnic=nic"
           ),
           mainClass = Some("org.enso.runner.Main"),
-          additionalCp = Seq(
-            "runtime.jar",
-            "runner.jar"
-          ) ++ {
+          additionalCp = () => {
+            val core = Seq(
+              "runtime.jar",
+              "runner.jar"
+            )
             val jars = `base-polyglot-root`.listFiles("*.jar")
             if (jars == null) {
-              Seq()
+              core
             } else {
-              jars.map(_.getAbsolutePath())
+              core ++ jars.map(_.getAbsolutePath())
             }
           },
           initializeAtRuntime = Seq(

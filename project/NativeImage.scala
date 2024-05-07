@@ -86,7 +86,7 @@ object NativeImage {
     initializeAtRuntime: Seq[String]         = Seq.empty,
     initializeAtBuildtime: Seq[String]       = defaultBuildTimeInitClasses,
     mainClass: Option[String]                = None,
-    additionalCp: Seq[String]                = Seq(),
+    additionalCp: () => Seq[String]          = () => Seq(),
     verbose: Boolean                         = false,
     includeRuntime: Boolean                  = true
   ): Def.Initialize[Task[Unit]] = Def
@@ -186,9 +186,9 @@ object NativeImage {
 
       val fullCp =
         if (includeRuntime) {
-          componentModules ++ additionalCp
+          componentModules ++ additionalCp()
         } else {
-          ourCp.map(_.data.getAbsolutePath) ++ additionalCp
+          ourCp.map(_.data.getAbsolutePath) ++ additionalCp()
         }
       val cpStr = fullCp.mkString(File.pathSeparator)
       log.debug("Class-path: " + cpStr)
