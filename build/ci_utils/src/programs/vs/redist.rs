@@ -47,7 +47,7 @@ mod tests {
     #[tokio::test]
     #[ignore]
     async fn test_listing_dlls() -> Result {
-        setup_logging()?;
+        setup_logging().ok();
         apply_dev_environment().await?;
         let dlls = list_crt_dlls(vs::Platforms::local()?).await?;
         dbg!(&dlls);

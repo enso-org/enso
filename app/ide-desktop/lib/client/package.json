@@ -35,6 +35,7 @@
   },
   "devDependencies": {
     "@electron/notarize": "2.1.0",
+    "@types/node": "^20.10.5",
     "electron": "25.7.0",
     "electron-builder": "^22.14.13",
     "enso-common": "^1.0.0",
