@@ -90,8 +90,8 @@ declare global {
 
     namespace NodeJS {
         /** Environment variables. */
-            // `TZ` MUST NOT be `readonly`, or else `@types/node` will error.
-            // eslint-disable-next-line no-restricted-syntax
+        // `TZ` MUST NOT be `readonly`, or else `@types/node` will error.
+        // eslint-disable-next-line no-restricted-syntax
         interface ProcessEnv {
             readonly [key: string]: never
 
