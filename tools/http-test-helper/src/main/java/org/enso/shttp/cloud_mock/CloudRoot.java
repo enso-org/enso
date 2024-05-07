@@ -17,16 +17,17 @@ public class CloudRoot extends HandlerWithTokenAuth {
     AssetStore assetStore = new AssetStore();
     UsersService usersService = new UsersService();
     EventsService eventsService = new EventsService();
-    this.handlers = new CloudHandler[] {
-        new UsersHandler(usersService),
-        new SecretsHandler(assetStore),
-        new HiddenSecretsHandler(assetStore),
-        new AssetsHandler(assetStore),
-        new PathResolver(assetStore),
-        new DirectoriesHandler(assetStore),
-        new GetLogsHandler(eventsService),
-        new PostLogHandler(usersService, eventsService)
-    };
+    this.handlers =
+        new CloudHandler[] {
+          new UsersHandler(usersService),
+          new SecretsHandler(assetStore),
+          new HiddenSecretsHandler(assetStore),
+          new AssetsHandler(assetStore),
+          new PathResolver(assetStore),
+          new DirectoriesHandler(assetStore),
+          new GetLogsHandler(eventsService),
+          new PostLogHandler(usersService, eventsService)
+        };
   }
 
   @Override
