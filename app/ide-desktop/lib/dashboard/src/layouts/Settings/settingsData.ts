@@ -110,6 +110,11 @@ export const DATA: SettingsData = [
         nameId: 'organizationSettingsTab',
         settingsTab: SettingsTab.organization,
         icon: PeopleSettingsIcon,
+        sections: [
+          {
+            nameId: 'organizationSettingsSection',
+          },
+        ],
       },
     ],
   },
