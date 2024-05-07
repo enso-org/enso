@@ -1,12 +1,12 @@
 /** @file A Vue composable for keeping track of selected DOM elements. */
 import { selectionMouseBindings } from '@/bindings'
-import { PointerButtonMask, useEvent, usePointer } from '@/composables/events'
+import { useEvent, usePointer } from '@/composables/events'
 import type { PortId } from '@/providers/portInfo.ts'
 import { type NodeId } from '@/stores/graph'
 import type { Rect } from '@/util/data/rect'
 import { intersectionSize } from '@/util/data/set'
 import type { Vec2 } from '@/util/data/vec2'
-import { computed, proxyRefs, ref, shallowReactive, shallowRef, type Ref } from 'vue'
+import { computed, proxyRefs, ref, shallowReactive, shallowRef } from 'vue'
 
 export type SelectionComposable<T> = ReturnType<typeof useSelection<T>>
 export function useSelection<T>(

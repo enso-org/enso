@@ -67,6 +67,7 @@ export const widgetDefinition = defineWidget(
     v-model="value"
     class="WidgetNumber r-24"
     :limits="limits"
+    @click.stop
     @focus="editHandler.start()"
     @blur="editHandler.end()"
     @input="editHandler.edit($event)"

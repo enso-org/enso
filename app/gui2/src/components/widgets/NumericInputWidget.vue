@@ -35,10 +35,7 @@ const dragPointer = usePointer(
       return
     }
 
-    if (eventType === 'start') {
-      event.stopImmediatePropagation()
-      return
-    }
+    if (eventType === 'start') return
 
     if (inputFieldActive.value || props.limits == null) return false
 
@@ -120,6 +117,7 @@ defineExpose({
       autoSelect
       :style="inputStyle"
       v-on="dragPointer.events"
+      @click.stop
       @blur="blurred"
       @focus="focused"
       @input="emit('input', editedValue)"

@@ -2,12 +2,7 @@
 import SmallPlusButton from '@/components/SmallPlusButton.vue'
 import SvgIcon from '@/components/SvgIcon.vue'
 import VisualizationSelector from '@/components/VisualizationSelector.vue'
-import {
-  PointerButtonMask,
-  isTriggeredByKeyboard,
-  usePointer,
-  useResizeObserver,
-} from '@/composables/events'
+import { isTriggeredByKeyboard, usePointer, useResizeObserver } from '@/composables/events'
 import { useVisualizationConfig } from '@/providers/visualizationConfig'
 import { Vec2 } from '@/util/data/vec2'
 import { isQualifiedName, qnLastSegment } from '@/util/qualifiedName'
