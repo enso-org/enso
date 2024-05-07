@@ -13,6 +13,7 @@ import {
 } from '@/providers/widgetRegistry/configuration'
 import { WidgetEditHandler } from '@/providers/widgetRegistry/editHandler'
 import { injectWidgetTree } from '@/providers/widgetTree.ts'
+import { provideSelectionArrow } from '@/providers/selectionArrow.ts'
 import { useGraphStore } from '@/stores/graph'
 import { requiredImports, type RequiredImport } from '@/stores/graph/imports.ts'
 import { useSuggestionDbStore } from '@/stores/suggestionDatabase'
@@ -27,7 +28,7 @@ import { arrayEquals } from '@/util/data/array'
 import type { Opt } from '@/util/data/opt'
 import { qnLastSegment, tryQualifiedName } from '@/util/qualifiedName'
 import { autoUpdate, offset, size, useFloating } from '@floating-ui/vue'
-import { computed, ref, type ComponentInstance } from 'vue'
+import { computed, ref, type ComponentInstance, proxyRefs } from 'vue'
 
 const props = defineProps(widgetProps(widgetDefinition))
 const suggestions = useSuggestionDbStore()
@@ -196,15 +197,20 @@ const innerWidgetInput = computed<WidgetInput>(() => {
     : props.input.dynamicConfig?.kind === 'Multiple_Choice' ?
       multipleChoiceConfiguration(props.input.dynamicConfig)
     : props.input.dynamicConfig
-  const arrowDisplayedOn = props.input.value instanceof Ast.PropertyAccess ? props.input.value.rhs.id : props.input.portId
-  console.log('inner', WidgetInput.valueRepr(props.input), arrowDisplayedOn)
   return {
     ...props.input,
-    [SelectionArrowKey]: arrowDisplayedOn,
     editHandler: dropDownInteraction,
     dynamicConfig,
   }
 })
+
+provideSelectionArrow(proxyRefs({
+  id: computed(() => {
+    return props.input.value instanceof Ast.PropertyAccess ? props.input.value.rhs.id : props.input.portId
+  }),
+  hovered: isHovered,
+}))
+
 const isMulti = computed(() => props.input.dynamicConfig?.kind === 'Multiple_Choice')
 const dropDownInteraction = WidgetEditHandler.New('WidgetSelection', props.input, {
   cancel: () => {},
@@ -338,11 +344,9 @@ export interface CustomDropdownItem {
 }
 
 export const CustomDropdownItemsKey: unique symbol = Symbol('CustomDropdownItems')
-export const SelectionArrowKey: unique symbol = Symbol('SelectionArrow')
 declare module '@/providers/widgetRegistry' {
   export interface WidgetInput {
     [CustomDropdownItemsKey]?: readonly CustomDropdownItem[]
-    [SelectionArrowKey]?: PortId
   }
 }
 </script>
