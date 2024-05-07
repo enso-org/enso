@@ -2342,9 +2342,10 @@ lazy val `engine-runner` = project
           additionalOptions = Seq(
             "-Dorg.apache.commons.logging.Log=org.apache.commons.logging.impl.NoOpLog",
             "-H:IncludeResources=.*Main.enso$",
+            // useful perf & debug switches:
             // "-g",
-            //          "-H:+DashboardAll",
-            //          "-H:DashboardDump=runner.bgv"
+            // "-H:+SourceLevelDebug",
+            // "-H:-DeleteLocalSymbols",
             "-Dnic=nic"
           ),
           mainClass = Some("org.enso.runner.Main"),
