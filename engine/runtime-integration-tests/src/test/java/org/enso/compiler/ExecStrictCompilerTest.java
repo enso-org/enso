@@ -1,5 +1,7 @@
 package org.enso.compiler;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
@@ -99,7 +101,8 @@ public class ExecStrictCompilerTest {
     } catch (PolyglotException ex) {
       assertTrue("Syntax error", ex.isSyntaxError());
       assertTrue("Guest exception", ex.isGuestException());
-      assertContains("The name `Index_Sub_Range.Sample` could not be found.", ex.getMessage());
+      assertThat(
+          ex.getMessage(), containsString("The name `Index_Sub_Range.Sample` could not be found."));
 
       var errors = new String(MESSAGES.toByteArray(), StandardCharsets.UTF_8);
       assertNotEquals(
@@ -108,16 +111,5 @@ public class ExecStrictCompilerTest {
           errors.indexOf("The name `Index_Sub_Range.Sample` could not be found"));
       assertNotEquals("Location defined " + errors, -1, errors.indexOf("wrong_cons:2:5"));
     }
-  }
-
-  static void assertContains(String expected, String actual) {
-    assertContains("Expecting", expected, actual);
-  }
-
-  static void assertContains(String msg, String expected, String actual) {
-    if (actual != null && actual.contains(expected)) {
-      return;
-    }
-    fail(msg + " " + expected + " in " + actual);
   }
 }
