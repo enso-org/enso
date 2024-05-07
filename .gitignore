@@ -117,11 +117,6 @@ project/metals.sbt
 /build.json
 /app/ide-desktop/lib/client/electron-builder-config.json
 
-# Resources fire generated build-time for Win installer/uninstaller.
-/build/install/installer/archive.rc
-/build/install/icon.rc
-
-
 #################
 ## Build Cache ##
 #################
