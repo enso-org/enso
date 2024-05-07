@@ -1,15 +1,14 @@
 import { test, type Page } from '@playwright/test'
-import os from 'os'
 import * as actions from './actions'
 import { expect } from './customExpect'
+import { CONTROL_KEY } from './keyboard'
 import * as locate from './locate'
 
-const CONTROL_KEY = os.platform() === 'darwin' ? 'Meta' : 'Control'
 const ACCEPT_SUGGESTION_SHORTCUT = `${CONTROL_KEY}+Enter`
 
 async function deselectAllNodes(page: Page) {
   await page.keyboard.press('Escape')
-  await expect(page.locator('.GraphNode.selected')).toHaveCount(0)
+  await expect(locate.selectedNodes(page)).toHaveCount(0)
 }
 
 async function expectAndCancelBrowser(page: Page, expectedInput: string) {
@@ -102,7 +101,7 @@ test('Graph Editor pans to Component Browser', async ({ page }) => {
   await expect(locate.graphNodeByBinding(page, 'five')).toBeInViewport()
   const outputPort = await locate.outputPortCoordinates(locate.graphNodeByBinding(page, 'final'))
   await page.mouse.click(outputPort.x, outputPort.y)
-  await page.mouse.click(100, 1550)
+  await page.mouse.click(100, 1700)
   await expect(locate.graphNodeByBinding(page, 'five')).not.toBeInViewport()
   await expectAndCancelBrowser(page, 'final.')
 })
@@ -254,6 +253,7 @@ test('Visualization preview: user visualization selection', async ({ page }) => 
   await input.fill('4')
   await expect(input).toHaveValue('4')
   await expect(locate.jsonVisualization(page)).toExist()
+  await expect(locate.jsonVisualization(page)).toContainText('"visualizedExpr": "4"')
   await locate.showVisualizationSelectorButton(page).click()
   await page.getByRole('button', { name: 'Table' }).click()
   // The table visualization is not currently working with `executeExpression` (#9194), but we can test that the JSON

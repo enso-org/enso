@@ -238,7 +238,10 @@ object JPMSUtils {
               log
             )
             if (!succ) {
-              log.error(s"Compilation of ${moduleInfo} failed")
+              val msg = s"Compilation of ${moduleInfo} failed"
+              log.error(s"javac options: $allOpts")
+              log.error(msg)
+              throw new IllegalStateException(msg)
             }
           }
         }

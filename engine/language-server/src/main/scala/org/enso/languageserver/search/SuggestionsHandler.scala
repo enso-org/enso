@@ -34,7 +34,6 @@ import org.enso.polyglot.data.TypeGraph
 import org.enso.polyglot.runtime.Runtime.Api
 import org.enso.searcher.data.QueryResult
 import org.enso.searcher.SuggestionsRepo
-import org.enso.text.editing.model.Position
 
 import scala.collection.mutable
 import scala.concurrent.Future
@@ -213,8 +212,9 @@ final class SuggestionsHandler(
         .onComplete {
           case Success(notification) =>
             logger.debug(
-              "Complete loading suggestions for library [{}].",
-              msg.libraryName
+              "Complete loading suggestions for library [{}]. Has updates: {}",
+              msg.libraryName,
+              notification.updates.nonEmpty
             )
             if (notification.updates.nonEmpty) {
               clients.foreach { clientId =>
@@ -372,38 +372,6 @@ final class SuggestionsHandler(
           state.backgroundProcessingStopped()
         )
       )
-
-    case Completion(path, pos, selfType, returnType, tags, isStatic) =>
-      val selfTypes = selfType.toList.flatMap(ty => ty :: graph.getParents(ty))
-      getModuleName(projectName, path)
-        .flatMap { either =>
-          either.fold(
-            Future.successful,
-            module =>
-              suggestionsRepo
-                .search(
-                  Some(module),
-                  selfTypes,
-                  returnType,
-                  tags.map(_.map(SuggestionKind.toSuggestion)),
-                  Some(toPosition(pos)),
-                  isStatic
-                )
-                .map(CompletionResult.tupled)
-          )
-        }
-        .pipeTo(sender())
-      if (state.shouldStartBackgroundProcessing) {
-        runtimeConnector ! Api.Request(Api.StartBackgroundProcessing())
-        context.become(
-          initialized(
-            projectName,
-            graph,
-            clients,
-            state.backgroundProcessingStarted()
-          )
-        )
-      }
 
     case FileDeletedEvent(path) =>
       getModuleName(projectName, path)
@@ -683,13 +651,6 @@ final class SuggestionsHandler(
       } yield module
     }
 
-  /** Convert the internal position representation to the API position.
-    *
-    * @param pos the internal position
-    * @return the API position
-    */
-  private def toPosition(pos: Position): Suggestion.Position =
-    Suggestion.Position(pos.line, pos.character)
 }
 
 object SuggestionsHandler {

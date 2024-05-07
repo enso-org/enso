@@ -144,6 +144,30 @@ type Invalid_Aggregation
     to_display_text self =
         "The "+self.column+" could not be calculated at "+self.rows.short_display_text+": "+self.message
 
+## Indicates that NaN values were found and ignored.
+type Ignored_NaN_Values
+    ## PRIVATE
+    Warning (column:Text) (rows:(Vector Integer))
+
+    ## PRIVATE
+
+       Create a human-readable version of the error.
+    to_display_text : Text
+    to_display_text self =
+        "The column "+self.column+" contained NaN values in rows " + self.rows.short_display_text + " which were ignored."
+
+## Indicates that Nothing values were found and ignored.
+type Ignored_Nothing_Values
+    ## PRIVATE
+    Warning (column:Text) (rows:(Vector Integer))
+
+    ## PRIVATE
+
+       Create a human-readable version of the error.
+    to_display_text : Text
+    to_display_text self =
+        "The column "+self.column+" contained Nothing values in rows " + self.rows.short_display_text + " which were ignored."
+
 ## Indicates that some operation relies on equality on floating-point values,
    which is not recommended.
 type Floating_Point_Equality
@@ -247,13 +271,13 @@ type Unquoted_Characters_In_Output
 ## Indicates that a specified location was not valid.
 type Invalid_Location
     ## PRIVATE
-    Error (location : Text | Any)
+    Error (location : Text | Any) (message:Text|Nothing=Nothing)
 
     ## PRIVATE
        Pretty print the invalid location error.
     to_display_text : Text
     to_display_text self =
-        "The location '"+self.location.to_text+"' is not valid."
+        self.message.if_nothing ("The location '"+self.location.to_text+"' is not valid.")
 
 ## Indicates that some values did not match the expected datatype format.
 
@@ -278,22 +302,29 @@ type Empty_File_Error
     ## PRIVATE
        Pretty print the empty file error.
     to_display_text : Text
-    to_display_text = "It is not allowed to create a Table with no columns, so an empty file could not have been loaded."
+    to_display_text self =
+        _ = self
+        "The file is empty so it cannot be loaded."
 
     ## PRIVATE
     handle_java_exception =
         Panic.catch EmptyFileException handler=(_ -> Error.throw Empty_File_Error)
 
 ## Indicates that an empty sheet was encountered, so no data could be loaded.
-type Empty_Sheet_Error
+type Empty_Sheet
+    ## PRIVATE
+    Error
+
     ## PRIVATE
        Pretty print the empty sheet error.
     to_display_text : Text
-    to_display_text = "It is not allowed to create a Table with no columns, so an empty sheet could not have been loaded."
+    to_display_text self =
+        _ = self
+        "There is no data in the sheet."
 
     ## PRIVATE
     handle_java_exception =
-        Panic.catch EmptySheetException handler=(_ -> Error.throw Empty_Sheet_Error)
+        Panic.catch EmptySheetException handler=(_ -> Error.throw Empty_Sheet.Error)
 
 ## Indicates that the column was already present in the table.
 type Existing_Column

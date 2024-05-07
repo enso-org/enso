@@ -11,28 +11,18 @@ from Standard.Test import all
 import Standard.Test.Test_Environment
 
 import project.Network.Enso_Cloud.Cloud_Tests_Setup.Cloud_Tests_Setup
+import project.Network.Enso_Cloud.Cloud_Tests_Setup.Temporary_Directory
 
 import enso_dev.Base_Tests.System.File_Spec as Local_File_Spec
 
-type Temporary_Directory
-    Value ~get
-
-    make -> Temporary_Directory = Temporary_Directory.Value <|
-        name = "test-run-Enso_File-"+(Date_Time.now.format "yyyy-MM-dd_HHmmss.fV" . replace "/" "|")
-
-        # Create the expected directory structure.
-        test_root = Panic.rethrow <| (Enso_File.root / name).create_directory
-        Panic.rethrow <| Temporary_Directory.test_file_text.write (test_root / "test_file.json")
-        sub = Panic.rethrow <| (test_root / "test-directory").create_directory
-        Panic.rethrow <| "Hello Another!".write (sub / "another.txt")
-        test_root
-
-    cleanup self = self.get.delete_if_exists recursive=True
-
-    test_file_text = '[1, 2, 3, "foo"]'
+test_file_text = '[1, 2, 3, "foo"]'
 
 add_specs suite_builder setup:Cloud_Tests_Setup = suite_builder.group "Enso Cloud Files" pending=setup.real_cloud_pending group_builder->
-    test_root = Temporary_Directory.make
+    test_root = Temporary_Directory.make "Enso_File" with_initializer=test_root->
+        # Create the expected directory structure.
+        Panic.rethrow <| test_file_text.write (test_root / "test_file.json")
+        sub = Panic.rethrow <| (test_root / "test-directory").create_directory
+        Panic.rethrow <| "Hello Another!".write (sub / "another.txt")
     group_builder.teardown test_root.cleanup
 
     group_builder.specify "should be able to list the root directory" <|
@@ -73,7 +63,7 @@ add_specs suite_builder setup:Cloud_Tests_Setup = suite_builder.group "Enso Clou
             Enso_User.flush_caches
             subdir.delete
         Panic.with_finalizer cleanup <|
-            Test_Environment.unsafe_with_environment_override "ENSO_PROJECT_DIRECTORY_PATH" subdir.path <|
+            Test_Environment.unsafe_with_environment_override "ENSO_CLOUD_PROJECT_DIRECTORY_PATH" subdir.path <|
                 # Flush caches to ensure fresh dir is used
                 Enso_User.flush_caches
 
@@ -139,7 +129,7 @@ add_specs suite_builder setup:Cloud_Tests_Setup = suite_builder.group "Enso Clou
             42
         r.should_fail_with File_Error
         r.catch.should_be_a File_Error.Already_Exists
-        test_file.read Plain_Text . should_equal Temporary_Directory.test_file_text
+        test_file.read Plain_Text . should_equal test_file_text
 
     group_builder.specify "should be able to write a file using write_bytes" <|
         f = test_root.get / "written_file2.txt"
@@ -199,14 +189,14 @@ add_specs suite_builder setup:Cloud_Tests_Setup = suite_builder.group "Enso Clou
         test_file = test_root.get / "test_file.json"
         test_file.exists . should_be_true
 
-        test_file.read Plain_Text . should_equal Temporary_Directory.test_file_text
+        test_file.read Plain_Text . should_equal test_file_text
 
         # auto-detection of JSON format:
         json = test_file.read
         json.should_be_a Vector
         json.should_equal [1, 2, 3, "foo"]
 
-        test_file.read_bytes . should_equal Temporary_Directory.test_file_text.utf_8
+        test_file.read_bytes . should_equal test_file_text.utf_8
 
     group_builder.specify "should be able to read the file by path using Data.read" <|
         test_root.get.path . should_contain "enso://"
@@ -224,7 +214,7 @@ add_specs suite_builder setup:Cloud_Tests_Setup = suite_builder.group "Enso Clou
         bytes = test_file.with_input_stream [File_Access.Read] stream->
             stream.read_all_bytes
 
-        bytes.should_equal Temporary_Directory.test_file_text.utf_8
+        bytes.should_equal test_file_text.utf_8
 
     group_builder.specify "should be able to read file metadata" <|
         Enso_File.root.exists . should_be_true
@@ -294,6 +284,7 @@ add_specs suite_builder setup:Cloud_Tests_Setup = suite_builder.group "Enso Clou
         nested_file.is_writable . should_be_a Boolean
 
     Local_File_Spec.add_create_and_delete_directory_specs group_builder test_root.get
+    Local_File_Spec.add_copy_edge_cases_specs group_builder test_root.get
 
 main filter=Nothing =
     setup = Cloud_Tests_Setup.prepare

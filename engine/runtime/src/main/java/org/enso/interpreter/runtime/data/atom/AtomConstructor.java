@@ -86,7 +86,7 @@ public final class AtomConstructor implements EnsoObject {
   /**
    * Is the constructor initialized or not.
    *
-   * @return {@code true} if {@link initializeFields} method has already been called
+   * @return {@code true} if {@link #initializeFields} method has already been called
    */
   public boolean isInitialized() {
     return constructorFunction != null;
@@ -172,19 +172,25 @@ public final class AtomConstructor implements EnsoObject {
         MethodRootNode.buildConstructor(
             language, localScope, definitionScope, instantiateBlock, section, this);
     RootCallTarget callTarget = rootNode.getCallTarget();
-    return new Function(callTarget, null, new FunctionSchema(annotations, args));
+    var schemaBldr = FunctionSchema.newBuilder().annotations(annotations).argumentDefinitions(args);
+    if (type.isProjectPrivate()) {
+      schemaBldr.projectPrivate();
+    }
+    return new Function(callTarget, null, schemaBldr.build());
   }
 
   private Function generateQualifiedAccessor(EnsoLanguage lang) {
-    var node = new QualifiedAccessorNode(lang, this);
+    var node = new QualifiedAccessorNode(lang, this, getDefinitionScope());
     var callTarget = node.getCallTarget();
-    var function =
-        new Function(
-            callTarget,
-            null,
-            new FunctionSchema(
+    var schemaBldr =
+        FunctionSchema.newBuilder()
+            .argumentDefinitions(
                 new ArgumentDefinition(
-                    0, "self", null, null, ArgumentDefinition.ExecutionMode.EXECUTE)));
+                    0, "self", null, null, ArgumentDefinition.ExecutionMode.EXECUTE));
+    if (type.isProjectPrivate()) {
+      schemaBldr.projectPrivate();
+    }
+    var function = new Function(callTarget, null, schemaBldr.build());
     definitionScope.registerMethod(type.getEigentype(), this.name, function);
     return function;
   }
@@ -287,7 +293,7 @@ public final class AtomConstructor implements EnsoObject {
   }
 
   /**
-   * Creates field accessors for all fields in given constructors.
+   * Creates field accessors for all fields in all constructors from the given type.
    *
    * @param language the language instance to create getters for
    * @param type type to create accessors for
@@ -319,7 +325,9 @@ public final class AtomConstructor implements EnsoObject {
     } else {
       var cons = constructors.toArray(AtomConstructor[]::new)[0];
       for (var field : cons.getFields()) {
-        var node = new GetFieldNode(language, field.getPosition(), type, field.getName());
+        var node =
+            new GetFieldNode(
+                language, field.getPosition(), type, field.getName(), cons.getDefinitionScope());
         roots.put(field.getName(), node);
       }
     }

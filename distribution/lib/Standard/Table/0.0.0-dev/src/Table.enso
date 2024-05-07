@@ -31,6 +31,7 @@ import project.Expression.Expression
 import project.Expression.Expression_Error
 import project.Extensions.Table_Conversions
 import project.Internal.Add_Row_Number
+import project.Internal.Add_Running
 import project.Internal.Aggregate_Column_Helper
 import project.Internal.Column_Naming_Helper.Column_Naming_Helper
 import project.Internal.Constant_Column.Constant_Column
@@ -162,7 +163,7 @@ type Table
 
        Arguments:
        - java_table: The internal java representation of the table.
-    Value java_table
+    private Value java_table
 
     ## PRIVATE
        ADVANCED
@@ -309,31 +310,36 @@ type Table
         col = self.get selector if_missing=Nothing
         if Nothing == col then if_missing else col.get index if_missing
 
-    ## GROUP Standard.Base.Selections
+    ## ALIAS first field
+       GROUP Standard.Base.Selections
        ICON select_column
        Gets the first column.
     first_column : Column ! Index_Out_Of_Bounds
     first_column self = self.at 0
 
-    ## GROUP Standard.Base.Selections
+    ## ALIAS second field
+       GROUP Standard.Base.Selections
        ICON select_column
        Gets the second column
     second_column : Column ! Index_Out_Of_Bounds
     second_column self = self.at 1
 
-    ## GROUP Standard.Base.Selections
+    ## ALIAS last field
+       GROUP Standard.Base.Selections
        ICON select_column
        Gets the last column
     last_column : Column ! Index_Out_Of_Bounds
     last_column self = self.at -1
 
-    ## GROUP Standard.Base.Metadata
+    ## ALIAS field count
+       GROUP Standard.Base.Metadata
        ICON metadata
        Returns the number of columns in the table.
     column_count : Integer
     column_count self = self.java_table.getColumns.length
 
-    ## GROUP Standard.Base.Selections
+    ## ALIAS select fields
+       GROUP Standard.Base.Selections
        ICON select_column
        Returns a new table with a chosen subset of columns, as specified by the
        `columns`, from the input table. Any unmatched input columns will be
@@ -390,7 +396,8 @@ type Table
         new_columns = self.columns_helper.select_columns columns case_sensitivity reorder error_on_missing_columns on_problems
         Table.new new_columns
 
-    ## GROUP Standard.Base.Selections
+    ## ALIAS select fields by type
+       GROUP Standard.Base.Selections
        ICON select_column
        Returns a new table with the chosen set of columns filtered by the type
        of the column.
@@ -401,12 +408,12 @@ type Table
          be selected. If `False`, columns with related types will also be
          selected (i.e. ignore size, precision).
     @types Widget_Helpers.make_value_type_vector_selector
-    select_by_type : Vector Value_Type -> Boolean -> Table
-    select_by_type self types:Vector strict:Boolean=False =
+    select_columns_by_type : Vector Value_Type -> Boolean -> Table
+    select_columns_by_type self types:Vector strict:Boolean=False =
         new_columns = self.columns_helper.select_by_type types strict
         Table.new new_columns
 
-    ## ALIAS drop_columns
+    ## ALIAS drop_columns, drop fields, remove fields
        GROUP Standard.Base.Selections
        ICON select_column
        Returns a new table with the chosen set of columns, as specified by the
@@ -460,7 +467,8 @@ type Table
         new_columns = self.columns_helper.remove_columns columns case_sensitivity error_on_missing_columns=error_on_missing_columns on_problems=on_problems
         Table.new new_columns
 
-    ## GROUP Standard.Base.Selections
+    ## ALIAS remove fields by type
+       GROUP Standard.Base.Selections
        ICON select_column
        Returns a new table with the chosen set of columns filtering out based
        on the type of the column.
@@ -471,12 +479,12 @@ type Table
          be removed. If `False`, columns with related types will also be
          removed (i.e. ignore size, precision).
     @types Widget_Helpers.make_value_type_vector_selector
-    remove_by_type : Vector Value_Type -> Boolean -> Table
-    remove_by_type self types:Vector strict:Boolean=False =
+    remove_columns_by_type : Vector Value_Type -> Boolean -> Table
+    remove_columns_by_type self types:Vector strict:Boolean=False =
         new_columns = self.columns_helper.remove_by_type types strict
         Table.new new_columns
 
-    ## ALIAS select_missing_columns, select_na
+    ## ALIAS select_missing_columns, select_na, select_blank_fields
        GROUP Standard.Base.Selections
        ICON select_column
 
@@ -786,7 +794,7 @@ type Table
             validated = Aggregate_Column_Helper.prepare_aggregate_columns self.column_naming_helper normalized_group_by columns self error_on_missing_columns=error_on_missing_columns
 
             on_problems.attach_problems_before validated.problems <| Illegal_Argument.handle_java_exception <|
-                java_key_columns = validated.key_columns.map .java_column
+                java_key_columns = validated.key_columns.map c->c.java_column
                 Java_Problems.with_problem_aggregator on_problems java_problem_aggregator->
                     index = self.java_table.indexFromColumns java_key_columns java_problem_aggregator
                     new_columns = validated.valid_columns.map c->(Aggregate_Column_Helper.java_aggregator c.first c.second)
@@ -923,7 +931,7 @@ type Table
     distinct self (columns = self.column_names) case_sensitivity=Case_Sensitivity.Default error_on_missing_columns=True on_problems=Report_Warning =
         key_columns = self.columns_helper.select_columns columns Case_Sensitivity.Default reorder=True error_on_missing_columns=error_on_missing_columns on_problems=on_problems . catch No_Output_Columns _->
             Error.throw No_Input_Columns_Selected
-        java_columns = key_columns.map .java_column
+        java_columns = key_columns.map c->c.java_column
         text_folding_strategy = Case_Sensitivity.folding_strategy case_sensitivity
         java_table = Illegal_Argument.handle_java_exception <|
             Java_Problems.with_problem_aggregator on_problems java_aggregator->
@@ -2380,7 +2388,7 @@ type Table
                 Problem_Behavior.Report_Warning.attach_problem_after truncated <|
                     Not_All_Rows_Downloaded.Warning max_rows
 
-    ## ALIAS metadata
+    ## ALIAS metadata, field info, column types
        GROUP Standard.Base.Metadata
        ICON metadata
        Returns a Table describing this table's contents.
@@ -2393,9 +2401,9 @@ type Table
 
              import Standard.Examples
 
-             example_info = Examples.inventory_table.info
-    info : Table
-    info self =
+             example_info = Examples.inventory_table.column_info
+    column_info : Table
+    column_info self =
         cols = self.columns
         Table.new [["Column", cols.map .name], ["Items Count", cols.map .count], ["Value Type", cols.map .value_type]]
 
@@ -2460,9 +2468,9 @@ type Table
         selected_names = Map.from_vector (id_columns.map column-> [column.name, True])
 
         data = columns_helper.internal_columns.filter column->(selected_names.get column.name False . not)
-        java_data = data.map .java_column
+        java_data = data.map c->c.java_column
 
-        java_id = id_columns.map .java_column
+        java_id = id_columns.map c->c.java_column
 
         unique.mark_used (id_columns.map .name)
         java_table = Java_Problems.with_problem_aggregator on_problems java_problem_aggregator->
@@ -2559,7 +2567,7 @@ type Table
             resolved_values.filter c->(c!=Nothing)
 
         problem_builder.attach_problems_before on_problems <| Illegal_Argument.handle_java_exception <|
-            java_key_columns = grouping.map .java_column
+            java_key_columns = grouping.map c->c.java_column
 
             name_mapper = if matched_name.is_empty then Aggregate_Column_Helper.default_aggregate_column_name else
                 if validated_values.length == 1 then (_ -> "") else
@@ -2677,7 +2685,7 @@ type Table
              from Standard.Table import all
 
              example_to_xlsx = Examples.inventory_table.write (enso_project.data / "example_xlsx_output.xlsx") (Excel_Format.Sheet "MySheetName")
-    @path (Widget.Text_Input display=Display.Always)
+    @path (Widget.File_Browse display=Display.Always)
     @format Widget_Helpers.write_table_selector
     write : Writable_File -> File_Format -> Existing_File_Behavior -> Match_Columns -> Problem_Behavior -> File ! Column_Count_Mismatch | Illegal_Argument | File_Error
     write self path:Writable_File format=Auto_Detect on_existing_file=Existing_File_Behavior.Backup match_columns=Match_Columns.By_Name on_problems=Report_Warning =
@@ -2748,10 +2756,10 @@ type Table
         columns_helper = self.columns_helper
         problem_builder = Problem_Builder.new error_on_missing_columns=True
         resolved_element_columns = columns_helper.select_columns_helper element_columns Case_Sensitivity.Default False problem_builder
-        java_element_columns = resolved_element_columns.map .java_column
+        java_element_columns = resolved_element_columns.map c->c.java_column
 
         resolved_attribute_columns = columns_helper.select_columns_helper attribute_columns Case_Sensitivity.Default False problem_builder
-        java_attribute_column = resolved_attribute_columns.map .java_column
+        java_attribute_column = resolved_attribute_columns.map c->c.java_column
 
         resolved_value_column = if value_column.is_nothing then Nothing else (self.at value_column)
         java_value_column = if value_column.is_nothing then Nothing else resolved_value_column.java_column
@@ -2867,8 +2875,7 @@ type Table
         transformer col = col.text_replace resolved_term resolved_new_text case_sensitivity only_first
         Table_Helpers.replace_columns_with_transformed_columns self columns transformer
 
-    ## PRIVATE
-       ALIAS cumulative
+    ## ALIAS cumulative
        GROUP Standard.Base.Values
        ICON dataframe_map_column
        Adds a new column to the table with a running calculation.
@@ -2905,17 +2912,13 @@ type Table
     @of Widget_Helpers.make_column_name_selector
     running : Statistic -> (Text | Integer) -> Text -> Vector (Text | Integer | Regex) | Text | Integer | Regex -> Vector (Text | Sort_Column) | Text -> Problem_Behavior -> Table
     running self (statistic:Statistic=Statistic.Count) (of:(Text | Integer)=0) (as:Text='') (group_by:(Vector | Text | Integer | Regex)=[]) (order_by:(Vector | Text)=[]) (on_problems:Problem_Behavior=Problem_Behavior.Report_Warning) =
-        if statistic != Statistic.Count then Error.throw (Illegal_Argument.Error ("Currently only Statistic.Count is supported in Table.running.")) else
-          of_col = self.at of
-          new_name = if as == '' then 'Running ' + statistic.to_text + ' of ' + of_col.name else as
-          Add_Row_Number.add_row_number self new_name 1 1 group_by order_by on_problems
+        Add_Running.add_running self statistic of as group_by order_by on_problems
 
     ## PRIVATE
     column_naming_helper : Column_Naming_Helper
     column_naming_helper self = Column_Naming_Helper.in_memory
 
-    ## ALIAS from
-       GROUP Standard.Base.Calculations
+    ## GROUP Standard.Base.Calculations
        ICON select_column
        Appends records from the vector of tables into a single table.
 

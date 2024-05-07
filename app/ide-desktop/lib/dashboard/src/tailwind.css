@@ -284,6 +284,7 @@
   --invite-users-modal-width: 28.8125rem;
   --manage-permissions-modal-width: 28.8125rem;
   --upsert-data-link-modal-width: 24rem;
+  --upsert-data-link-modal-max-width: min(40rem, 100vw);
   --upsert-secret-modal-width: 24rem;
 
   --modal-tab-bar-padding-x: 0.5rem;

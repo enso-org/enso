@@ -29,6 +29,7 @@ export function guiConfig(app: App) {
       engine: {
         rpcUrl: 'mock://engine',
         dataUrl: 'mock://data',
+        ydocUrl: '',
         namespace: 'local',
         projectManagerUrl: '',
       },

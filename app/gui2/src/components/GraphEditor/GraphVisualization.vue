@@ -5,7 +5,8 @@ import LoadingErrorVisualization from '@/components/visualizations/LoadingErrorV
 import LoadingVisualization from '@/components/visualizations/LoadingVisualization.vue'
 import { focusIsIn, useEvent } from '@/composables/events'
 import { provideVisualizationConfig } from '@/providers/visualizationConfig'
-import { useProjectStore, type NodeVisualizationConfiguration } from '@/stores/project'
+import { useProjectStore } from '@/stores/project'
+import { type NodeVisualizationConfiguration } from '@/stores/project/executionContext'
 import {
   DEFAULT_VISUALIZATION_CONFIGURATION,
   DEFAULT_VISUALIZATION_IDENTIFIER,
@@ -60,6 +61,7 @@ const emit = defineEmits<{
   'update:visible': [visible: boolean]
   'update:fullscreen': [fullscreen: boolean]
   'update:width': [width: number]
+  'update:nodePosition': [pos: Vec2]
   createNodes: [options: NodeCreationOptions[]]
 }>()
 
@@ -157,7 +159,7 @@ const effectiveVisualizationData = computed(() => {
   const visualizationData = nodeVisualizationData.value ?? expressionVisualizationData.value
   if (!visualizationData) return
   if (visualizationData.ok) return visualizationData.value
-  else return { name, error: new Error(visualizationData.error.payload) }
+  else return { name, error: new Error(`${visualizationData.error.payload}`) }
 })
 
 function updatePreprocessor(
@@ -271,6 +273,12 @@ provideVisualizationConfig({
   set height(value) {
     userSetHeight.value = value
   },
+  get nodePosition() {
+    return props.nodePosition
+  },
+  set nodePosition(value) {
+    emit('update:nodePosition', value)
+  },
   get isBelowToolbar() {
     return isBelowToolbar.value
   },
@@ -291,6 +299,9 @@ provideVisualizationConfig({
   },
   get icon() {
     return icon.value
+  },
+  get nodeType() {
+    return props.typename
   },
   hide: () => emit('update:visible', false),
   updateType: (id) => emit('update:id', id),

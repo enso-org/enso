@@ -1,13 +1,14 @@
 /** @file The container that launches the IDE. */
 import * as React from 'react'
 
+import * as load from 'enso-common/src/load'
+
 import * as appUtils from '#/appUtils'
 
+import * as gtagHooks from '#/hooks/gtagHooks'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
 import * as backendModule from '#/services/Backend'
-
-import * as load from '#/utilities/load'
 
 // =================
 // === Constants ===
@@ -31,14 +32,18 @@ const JS_EXTENSION: Readonly<Record<backendModule.BackendType, string>> = {
 export interface EditorProps {
   readonly hidden: boolean
   readonly supportsLocalBackend: boolean
+  readonly ydocUrl: string | null
   readonly projectStartupInfo: backendModule.ProjectStartupInfo | null
   readonly appRunner: AppRunner
 }
 
 /** The container that launches the IDE. */
 export default function Editor(props: EditorProps) {
-  const { hidden, supportsLocalBackend, projectStartupInfo, appRunner } = props
+  const { hidden, supportsLocalBackend, ydocUrl, projectStartupInfo, appRunner } = props
   const toastAndLog = toastAndLogHooks.useToastAndLog()
+  const gtagEvent = gtagHooks.useGtagEvent()
+  const gtagEventRef = React.useRef(gtagEvent)
+  gtagEventRef.current = gtagEvent
   const [initialized, setInitialized] = React.useState(supportsLocalBackend)
 
   React.useEffect(() => {
@@ -47,6 +52,14 @@ export default function Editor(props: EditorProps) {
       ideElement.style.display = hidden ? 'none' : ''
     }
   }, [hidden])
+
+  React.useEffect(() => {
+    if (hidden) {
+      return
+    } else {
+      return gtagHooks.gtagOpenCloseCallback(gtagEventRef, 'open_workflow', 'close_workflow')
+    }
+  }, [projectStartupInfo, hidden])
 
   let hasEffectRun = false
 
@@ -65,6 +78,7 @@ export default function Editor(props: EditorProps) {
       void (async () => {
         const jsonAddress = project.jsonAddress
         const binaryAddress = project.binaryAddress
+        const ydocAddress = ydocUrl ?? ''
         if (jsonAddress == null) {
           toastAndLog('noJSONEndpointError')
         } else if (binaryAddress == null) {
@@ -91,6 +105,7 @@ export default function Editor(props: EditorProps) {
             const engineConfig = {
               rpcUrl: jsonAddress,
               dataUrl: binaryAddress,
+              ydocUrl: ydocAddress,
             }
             const originalUrl = window.location.href
             if (backendType === backendModule.BackendType.remote) {

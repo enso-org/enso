@@ -136,7 +136,7 @@ type Test
         payload = error.catch
         loc = Meta.get_source_location 1+frames_to_skip
         msg = "An unexpected dataflow error (" + payload.to_text + ") has been matched (at " + loc + ")."
-        Test.fail msg+'\n'+error.get_stack_trace_text
+        Test.fail msg details=error.get_stack_trace_text
 
     ## Executes the block of code passed as behavior and adds a clue modifier which
        changes how assertion failures are reported.

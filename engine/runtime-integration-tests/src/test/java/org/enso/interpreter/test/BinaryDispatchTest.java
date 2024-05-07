@@ -4,8 +4,8 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
+import org.enso.common.MethodNames;
 import org.enso.interpreter.runtime.error.PanicException;
-import org.enso.polyglot.MethodNames;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.PolyglotException;
 import org.graalvm.polyglot.Source;
@@ -291,10 +291,14 @@ public class BinaryDispatchTest extends TestBase {
     }
   }
 
-  private static void assertContains(String expected, String actual) {
-    if (actual.contains(expected)) {
+  static void assertContains(String expected, String actual) {
+    assertContains("Expecting", expected, actual);
+  }
+
+  static void assertContains(String msg, String expected, String actual) {
+    if (actual != null && actual.contains(expected)) {
       return;
     }
-    fail("Expecting " + expected + " in " + actual);
+    fail(msg + " " + expected + " in " + actual);
   }
 }

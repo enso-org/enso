@@ -4,11 +4,10 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
-import com.google.common.collect.Streams;
 import java.util.Arrays;
 import java.util.Random;
 import java.util.stream.Stream;
-import org.enso.polyglot.MethodNames;
+import org.enso.common.MethodNames;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Value;
 import org.junit.AfterClass;
@@ -59,7 +58,11 @@ public class BinaryOpIntegerTest extends TestBase {
         Arrays.asList(OPERATIONS).stream().map((op) -> new Object[] {op, r.nextLong(), 0});
     var oneOps = Arrays.asList(OPERATIONS).stream().map((op) -> new Object[] {op, r.nextLong(), 1});
     var extraOps = Stream.of(new Object[] {" %", 19, 73}, new Object[] {".bit_shift", 12, 10});
-    return Streams.concat(randomOps, zeroOps, oneOps, extraOps).toArray(Object[][]::new);
+
+    var s1 = Stream.concat(randomOps, zeroOps);
+    var s2 = Stream.concat(s1, oneOps);
+    var s3 = Stream.concat(s2, extraOps);
+    return s3.toArray(Object[][]::new);
   }
 
   private static Context ctx;

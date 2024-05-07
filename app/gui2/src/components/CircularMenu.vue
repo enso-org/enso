@@ -1,15 +1,19 @@
 <script setup lang="ts">
+import ColorRing from '@/components/ColorRing.vue'
 import type { NodeCreationOptions } from '@/components/GraphEditor/nodeCreation'
 import SmallPlusButton from '@/components/SmallPlusButton.vue'
 import SvgIcon from '@/components/SvgIcon.vue'
 import ToggleIcon from '@/components/ToggleIcon.vue'
+import { ref } from 'vue'
 
+const nodeColor = defineModel<string | undefined>('nodeColor')
 const props = defineProps<{
   isRecordingEnabledGlobally: boolean
   isRecordingOverridden: boolean
   isDocsVisible: boolean
   isVisualizationVisible: boolean
   isFullMenuVisible: boolean
+  visibleNodeColors: Set<string>
 }>()
 const emit = defineEmits<{
   'update:isRecordingOverridden': [isRecordingOverridden: boolean]
@@ -20,13 +24,18 @@ const emit = defineEmits<{
   openFullMenu: []
   delete: []
   createNodes: [options: NodeCreationOptions[]]
-  toggleColorPicker: []
 }>()
+
+const showColorPicker = ref(false)
 </script>
 
 <template>
   <div class="CircularMenu" @pointerdown.stop @pointerup.stop @click.stop>
-    <div class="circle" :class="`${props.isFullMenuVisible ? 'full' : 'partial'}`">
+    <div
+      v-if="!showColorPicker"
+      class="circle menu"
+      :class="`${props.isFullMenuVisible ? 'full' : 'partial'}`"
+    >
       <div v-if="!isFullMenuVisible" class="More" @pointerdown.stop="emit('openFullMenu')"></div>
       <SvgIcon
         v-if="isFullMenuVisible"
@@ -40,7 +49,7 @@ const emit = defineEmits<{
         name="paint_palette"
         class="icon-container button slot3"
         :alt="`Choose color`"
-        @click.stop="emit('toggleColorPicker')"
+        @click.stop="showColorPicker = true"
       />
       <SvgIcon
         v-if="isFullMenuVisible"
@@ -72,6 +81,13 @@ const emit = defineEmits<{
         @update:modelValue="emit('update:isRecordingOverridden', $event)"
       />
     </div>
+    <div v-if="showColorPicker" class="circle">
+      <ColorRing
+        v-model="nodeColor"
+        :matchableColors="visibleNodeColors"
+        @close="showColorPicker = false"
+      />
+    </div>
     <SmallPlusButton
       v-if="!isVisualizationVisible"
       class="below-slot5"
@@ -85,15 +101,24 @@ const emit = defineEmits<{
   position: absolute;
   user-select: none;
   pointer-events: none;
+  /* This is a variable so that it can be referenced in computations,
+     but currently it can't be changed due to many hard-coded values below. */
+  --outer-diameter: 104px;
+  --full-ring-path: path(
+    evenodd,
+    'M0,52 A52,52 0,1,1 104,52 A52,52 0,1,1 0, 52 z m52,20 A20,20 0,1,1 52,32 20,20 0,1,1 52,72 z'
+  );
 }
 
 .circle {
   position: relative;
   left: -36px;
   top: -36px;
-  width: 114px;
-  height: 114px;
+  width: var(--outer-diameter);
+  height: var(--outer-diameter);
+}
 
+.circle.menu {
   > * {
     pointer-events: all;
   }
@@ -118,10 +143,7 @@ const emit = defineEmits<{
   }
   &.full {
     &:before {
-      clip-path: path(
-        evenodd,
-        'M0,52 A52,52 0,1,1 104,52 A52,52 0,1,1 0, 52 z m52,20 A20,20 0,1,1 52,32 20,20 0,1,1 52,72 z'
-      );
+      clip-path: var(--full-ring-path);
     }
   }
 }
@@ -151,6 +173,10 @@ const emit = defineEmits<{
     margin-top: -10px;
     opacity: 0.3;
   }
+}
+
+:deep(.ColorRing .gradient) {
+  clip-path: var(--full-ring-path);
 }
 
 .icon-container {
@@ -220,7 +246,7 @@ const emit = defineEmits<{
 
 .below-slot5 {
   position: absolute;
-  top: calc(108px - 36px);
+  top: calc(var(--outer-diameter) - 32px);
   pointer-events: all;
 }
 

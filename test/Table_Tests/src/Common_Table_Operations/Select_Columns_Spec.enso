@@ -222,41 +222,41 @@ add_specs suite_builder setup =
             r2.catch.cause . should_be_a Missing_Input_Columns
             r2.catch.to_display_text . should_equal "No columns in the result, because of another problem: The criteria 'hmmm' did not match any columns."
 
-    suite_builder.group prefix+"Table.select_by_type and Table.remove_by_type" group_builder->
+    suite_builder.group prefix+"Table.select_columns_by_type and Table.remove_columns_by_type" group_builder->
         data = Mixed_Columns_Data.setup create_connection_fn table_builder
 
         group_builder.teardown <|
             data.teardown
 
         group_builder.specify "should be able to select by type of columns" <|
-            expect_column_names ["int"] <| data.table.select_by_type [Value_Type.Integer]
-            expect_column_names ["float"] <| data.table.select_by_type [Value_Type.Float]
-            expect_column_names ["int", "float"] <| data.table.select_by_type [Value_Type.Integer, Value_Type.Float]
-            expect_column_names ["text"] <| data.table.select_by_type [Value_Type.Char]
-            expect_column_names ["bool"] <| data.table.select_by_type [Value_Type.Boolean]
+            expect_column_names ["int"] <| data.table.select_columns_by_type [Value_Type.Integer]
+            expect_column_names ["float"] <| data.table.select_columns_by_type [Value_Type.Float]
+            expect_column_names ["int", "float"] <| data.table.select_columns_by_type [Value_Type.Integer, Value_Type.Float]
+            expect_column_names ["text"] <| data.table.select_columns_by_type [Value_Type.Char]
+            expect_column_names ["bool"] <| data.table.select_columns_by_type [Value_Type.Boolean]
 
         group_builder.specify "should be able to drop by type of columns" <|
-            expect_column_names ["float", "text", "bool"] <| data.table.remove_by_type [Value_Type.Integer]
-            expect_column_names ["int", "text", "bool"] <| data.table.remove_by_type [Value_Type.Float]
-            expect_column_names ["text", "bool"] <| data.table.remove_by_type [Value_Type.Integer, Value_Type.Float]
-            expect_column_names ["int", "float", "bool"] <| data.table.remove_by_type [Value_Type.Char]
-            expect_column_names ["int", "float", "text"] <| data.table.remove_by_type [Value_Type.Boolean]
+            expect_column_names ["float", "text", "bool"] <| data.table.remove_columns_by_type [Value_Type.Integer]
+            expect_column_names ["int", "text", "bool"] <| data.table.remove_columns_by_type [Value_Type.Float]
+            expect_column_names ["text", "bool"] <| data.table.remove_columns_by_type [Value_Type.Integer, Value_Type.Float]
+            expect_column_names ["int", "float", "bool"] <| data.table.remove_columns_by_type [Value_Type.Char]
+            expect_column_names ["int", "float", "text"] <| data.table.remove_columns_by_type [Value_Type.Boolean]
 
         group_builder.specify "should be able to select by strict type" <|
-            expect_column_names ["int"] <| data.table.select_by_type [Value_Type.Integer] strict=True
-            data.table.select_by_type [Value_Type.Integer Bits.Bits_16] strict=True . should_fail_with No_Output_Columns
-            expect_column_names ["float"] <| data.table.select_by_type [Value_Type.Float] strict=True
-            data.table.select_by_type [Value_Type.Float Bits.Bits_32] strict=True . should_fail_with No_Output_Columns
-            expect_column_names ["text"] <| data.table.select_by_type [Value_Type.Char] strict=True
-            data.table.select_by_type [Value_Type.Char 3 False] strict=True . should_fail_with No_Output_Columns
+            expect_column_names ["int"] <| data.table.select_columns_by_type [Value_Type.Integer] strict=True
+            data.table.select_columns_by_type [Value_Type.Integer Bits.Bits_16] strict=True . should_fail_with No_Output_Columns
+            expect_column_names ["float"] <| data.table.select_columns_by_type [Value_Type.Float] strict=True
+            data.table.select_columns_by_type [Value_Type.Float Bits.Bits_32] strict=True . should_fail_with No_Output_Columns
+            expect_column_names ["text"] <| data.table.select_columns_by_type [Value_Type.Char] strict=True
+            data.table.select_columns_by_type [Value_Type.Char 3 False] strict=True . should_fail_with No_Output_Columns
 
         group_builder.specify "should be able to remove by strict type" <|
-            expect_column_names ["float", "text", "bool"] <| data.table.remove_by_type [Value_Type.Integer] strict=True
-            expect_column_names ["int", "float", "text", "bool"] <| data.table.remove_by_type [Value_Type.Integer Bits.Bits_16] strict=True
-            expect_column_names ["int", "text", "bool"] <| data.table.remove_by_type [Value_Type.Float] strict=True
-            expect_column_names ["int", "float", "text", "bool"] <| data.table.remove_by_type [Value_Type.Float Bits.Bits_32] strict=True
-            expect_column_names ["int", "float", "bool"] <| data.table.remove_by_type [Value_Type.Char] strict=True
-            expect_column_names ["int", "float", "text", "bool"] <| data.table.remove_by_type [Value_Type.Char 3 False] strict=True
+            expect_column_names ["float", "text", "bool"] <| data.table.remove_columns_by_type [Value_Type.Integer] strict=True
+            expect_column_names ["int", "float", "text", "bool"] <| data.table.remove_columns_by_type [Value_Type.Integer Bits.Bits_16] strict=True
+            expect_column_names ["int", "text", "bool"] <| data.table.remove_columns_by_type [Value_Type.Float] strict=True
+            expect_column_names ["int", "float", "text", "bool"] <| data.table.remove_columns_by_type [Value_Type.Float Bits.Bits_32] strict=True
+            expect_column_names ["int", "float", "bool"] <| data.table.remove_columns_by_type [Value_Type.Char] strict=True
+            expect_column_names ["int", "float", "text", "bool"] <| data.table.remove_columns_by_type [Value_Type.Char 3 False] strict=True
 
     suite_builder.group prefix+"Table.remove_columns" group_builder->
         data = Select_Columns_Data.setup create_connection_fn table_builder
@@ -537,7 +537,7 @@ add_specs suite_builder setup =
             map2 = Map.from_vector [[1, "FirstColumn"], [-3, "DifferentName!"]]
             t2 = data.table.rename_columns map2 on_problems=Problem_Behavior.Report_Error
             t2.should_fail_with Ambiguous_Column_Rename
-            err = t2.catch
+            err = t2.catch . inner_error
             err.column_name . should_equal "beta"
             err.new_names.sort . should_equal ["DifferentName!", "FirstColumn"]
 
@@ -551,7 +551,7 @@ add_specs suite_builder setup =
             map2 = Map.from_vector [["a.*".to_regex, "StartsWithA"], [".*a".to_regex, "EndsWithA"]]
             t2 = t.rename_columns map2 on_problems=Problem_Behavior.Report_Error
             t2.should_fail_with Ambiguous_Column_Rename
-            err = t2.catch
+            err = t2.catch . inner_error
             err.column_name . should_equal "alpha"
             err.new_names . sort . should_equal ["EndsWithA", "StartsWithA"]
 

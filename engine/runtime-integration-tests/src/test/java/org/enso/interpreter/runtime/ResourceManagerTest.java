@@ -8,9 +8,9 @@ import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.TruffleObject;
 import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
+import org.enso.common.LanguageInfo;
+import org.enso.common.MethodNames;
 import org.enso.interpreter.test.TestBase;
-import org.enso.polyglot.LanguageInfo;
-import org.enso.polyglot.MethodNames;
 import org.junit.Test;
 
 public class ResourceManagerTest extends TestBase {

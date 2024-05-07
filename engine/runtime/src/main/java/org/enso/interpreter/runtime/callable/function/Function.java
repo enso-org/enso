@@ -18,20 +18,20 @@ import com.oracle.truffle.api.library.ExportMessage;
 import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.nodes.RootNode;
 import com.oracle.truffle.api.source.SourceSection;
+import org.enso.common.MethodNames;
 import org.enso.interpreter.node.callable.InteropApplicationNode;
 import org.enso.interpreter.node.callable.dispatch.InvokeFunctionNode;
 import org.enso.interpreter.node.expression.builtin.BuiltinRootNode;
 import org.enso.interpreter.runtime.EnsoContext;
-import org.enso.interpreter.runtime.callable.Annotation;
 import org.enso.interpreter.runtime.callable.CallerInfo;
 import org.enso.interpreter.runtime.callable.argument.ArgumentDefinition;
+import org.enso.interpreter.runtime.callable.function.FunctionSchema.CallerFrameAccess;
 import org.enso.interpreter.runtime.data.EnsoObject;
 import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.data.vector.ArrayLikeHelpers;
 import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
 import org.enso.interpreter.runtime.state.State;
 import org.enso.interpreter.runtime.type.Types;
-import org.enso.polyglot.MethodNames;
 
 /** A runtime representation of a function object in Enso. */
 @ExportLibrary(InteropLibrary.class)
@@ -93,7 +93,7 @@ public final class Function implements EnsoObject {
    */
   public static Function fromBuiltinRootNode(BuiltinRootNode node, ArgumentDefinition... args) {
     RootCallTarget callTarget = node.getCallTarget();
-    FunctionSchema schema = new FunctionSchema(args);
+    FunctionSchema schema = FunctionSchema.newBuilder().argumentDefinitions(args).build();
     return new Function(callTarget, null, schema);
   }
 
@@ -111,7 +111,10 @@ public final class Function implements EnsoObject {
       BuiltinRootNode node, ArgumentDefinition... args) {
     RootCallTarget callTarget = node.getCallTarget();
     FunctionSchema schema =
-        new FunctionSchema(FunctionSchema.CallerFrameAccess.FULL, new Annotation[0], args);
+        FunctionSchema.newBuilder()
+            .argumentDefinitions(args)
+            .callerFrameAccess(CallerFrameAccess.FULL)
+            .build();
     return new Function(callTarget, null, schema);
   }
 

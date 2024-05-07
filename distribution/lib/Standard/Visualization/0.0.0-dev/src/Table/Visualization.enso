@@ -45,6 +45,8 @@ prepare_visualization y max_rows=1000 =
             pairs = [['_display_text_', '[Function '+x.to_text+']']]
             value = JS_Object.from_pairs pairs
             JS_Object.from_pairs [["json", value]]
+        _ : Number ->
+            JS_Object.from_pairs [["json", make_json_for_value x]]
         _ ->
             js_value = x.to_js_object
             value = if js_value.is_a JS_Object . not then js_value else
@@ -167,7 +169,7 @@ make_json_for_value val level=0 = case val of
     Nothing -> Nothing
     _ : Text -> val
     _ : Number ->
-        js_version = val.to_js_object
+        js_version = if val.is_finite then val.to_js_object else JS_Object.from_pairs [["type", "Float"], ["value", val.to_text]]
         if js_version.is_a JS_Object . not then js_version else
             pairs = [['_display_text_', val.to_display_text]] + js_version.field_names.map f-> [f, js_version.get f]
             JS_Object.from_pairs pairs
@@ -183,8 +185,21 @@ make_json_for_value val level=0 = case val of
             truncated = val.keys.take 5 . map k-> k.to_text + ": " + (make_json_for_value (val.get k) level+1).to_text
             prepared = if val.length > 5 then truncated + ["… " + (val.length - 5).to_text+ " items"] else truncated
             "{" + (prepared.join ", ") + "}"
-    _ : Column -> make_json_for_value val.to_table level
-    _ : DB_Column -> make_json_for_value val.to_table level
+    _ : Column ->
+        if level != 0 then "Column{" +val.name + ": " + val.row_count + " rows}" else
+            items = make_json_for_value val.to_vector level
+            "Column{" + val.name + ": " + items + "}"
+    _ : Row ->
+        if level != 0 then "Row{" + val.table.column_count + " columns}" else
+            truncated = val.table.column_names.take 5 . map _.to_text
+            prepared = if val.table.column_count > 5 then truncated + ["… " + (val.table.column_count - 5).to_text+ " more"] else truncated
+            "Row{" + (prepared.join ", ") + "}"
+    _ : DB_Column ->
+        if level != 0 then "Column{" +val.name + ": " + val.row_count + " rows}" else
+            materialise = val.read 5 warn_if_more_rows=False
+            truncated = materialise . map k-> k.to_text + ": " + (make_json_for_value (val.get k) level+1).to_text
+            prepared = if val.length > 5 then truncated + ["… " + (val.length - 5).to_text+ " items"] else truncated
+            "Column{" + val.name + ": " + prepared + "}"
     _ : Table ->
         if level != 0 then "Table{" + val.row_count + " rows x " + val.column_count + " columns}" else
             truncated = val.columns.take 5 . map _.name

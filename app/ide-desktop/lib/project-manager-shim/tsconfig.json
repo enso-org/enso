@@ -5,5 +5,5 @@
     "checkJs": false,
     "skipLibCheck": false
   },
-  "include": ["./src/"]
+  "include": ["./src/", "../common/src/config.json"]
 }
