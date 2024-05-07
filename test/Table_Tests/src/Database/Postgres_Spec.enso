@@ -863,20 +863,22 @@ add_connection_setup_specs suite_builder = suite_builder.group "[PostgreSQL] Con
                     [c2, c3, c4].each c->
                         c.jdbc_properties . should_equal <| add_ssl [Pair.new "user" "other user", Pair.new "password" "other password"]
 
+transform_file base_file connection_details =
+    content = Data_Link.read_raw_config base_file
+    new_content = content
+        . replace "HOSTNAME" connection_details.host
+        . replace "12345" connection_details.port.to_text
+        . replace "DBNAME" connection_details.database
+        . replace "USERNAME" connection_details.credentials.username
+        . replace "PASSWORD" connection_details.credentials.password
+    temp_file = File.create_temporary_file "postgres-test-db" ".datalink"
+    Data_Link.write_raw_config temp_file new_content replace_existing=True . if_not_error temp_file
+
 type Temporary_Data_Link_File
     Value ~get
 
     make connection_details = Temporary_Data_Link_File.Value <|
-        content = Data_Link.read_raw_config (enso_project.data / "datalinks" / "postgres-db.datalink")
-        new_content = content
-            . replace "HOSTNAME" connection_details.host
-            . replace "12345" connection_details.port.to_text
-            . replace "DBNAME" connection_details.database
-            . replace "USERNAME" connection_details.credentials.username
-            . replace "PASSWORD" connection_details.credentials.password
-        temp_file = File.create_temporary_file "postgres-test-db" ".datalink"
-        Data_Link.write_raw_config temp_file new_content replace_existing=True . if_not_error temp_file
-
+        transform_file (enso_project.data / "datalinks" / "postgres-db.datalink") connection_details
 
 add_data_link_specs suite_builder =
     connection_details = get_configured_connection_details
@@ -894,6 +896,7 @@ add_data_link_specs suite_builder =
                 q.at "A" . to_vector . should_equal [1]
 
         group_builder.specify "should be able to open a datalink to a particular database table" <|
+            table_data_link_file = transform_file (enso_project.data / "datalinks" / "postgres-table.datalink") connection_details
             connection = Database.connect connection_details
             Panic.with_finalizer connection.close <|
                 # We create the table that will then be accessed through the datalink, and ensure it's cleaned up afterwards.
@@ -902,7 +905,7 @@ add_data_link_specs suite_builder =
                 Panic.with_finalizer (connection.drop_table example_table.name) <|
                     ## Now we access this table but this time through a datalink.
                        Btw. this will keep a connection open until the table is garbage collected, but that is probably fine...
-                    data_link_table = Data.read data_link_file.get
+                    data_link_table = Data.read table_data_link_file
                     data_link_table.should_be_a DB_Table
                     data_link_table.column_names . should_equal ["X", "Y"]
                     data_link_table.at "X" . to_vector . should_equal [22]
