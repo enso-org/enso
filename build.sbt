@@ -2351,9 +2351,14 @@ lazy val `engine-runner` = project
           additionalCp = Seq(
             "runtime.jar",
             "runner.jar"
-          ) ++ (`base-polyglot-root`
-            .listFiles("*.jar")
-            .map(_.getAbsolutePath())),
+          ) ++ {
+            val jars = `base-polyglot-root`.listFiles("*.jar")
+            if (jars == null) {
+              Seq()
+            } else {
+              jars.map(_.getAbsolutePath())
+            }
+          },
           initializeAtRuntime = Seq(
             "org.jline.nativ.JLineLibrary",
             "org.jline.terminal.impl.jna",
@@ -2372,6 +2377,9 @@ lazy val `engine-runner` = project
           )
         )
         .dependsOn(assembly)
+        .dependsOn(
+          buildEngineDistribution
+        )
         .value,
     buildNativeImage := NativeImage
       .incrementalNativeImageBuild(
