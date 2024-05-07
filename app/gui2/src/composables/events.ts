@@ -345,7 +345,7 @@ export function usePointer(
     },
     pointerup(e: PointerEvent) {
       if (trackedPointer.value !== e.pointerId) {
-        return false
+        return
       }
       doStop(e)
     },

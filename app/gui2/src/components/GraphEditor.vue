@@ -246,11 +246,11 @@ const graphBindingsHandler = graphBindings.handler({
 
 const { handleClick } = useDoubleClick(
   (e: MouseEvent) => {
-    if (e.target !== viewportNode.value) return false
+    if (e.target !== e.currentTarget) return false
     clearFocus()
   },
   (e: MouseEvent) => {
-    if (e.target !== viewportNode.value) return false
+    if (e.target !== e.currentTarget) return false
     stackNavigator.exitNode()
   },
 )

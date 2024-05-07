@@ -38,7 +38,7 @@ export function useNavigator(viewportNode: Ref<Element | undefined>, keyboard: K
       scrollTo(center.value.addScaled(pos.delta, -1 / scale.value))
     },
     PointerButtonMask.Auxiliary,
-    (e) => e.target === viewportNode.value,
+    (e) => e.target === e.currentTarget,
   )
 
   function eventScreenPos(e: { clientX: number; clientY: number }): Vec2 {
@@ -133,7 +133,7 @@ export function useNavigator(viewportNode: Ref<Element | undefined>, keyboard: K
       )
     },
     PointerButtonMask.Secondary,
-    (e) => e.target === viewportNode.value,
+    (e) => e.target === e.currentTarget,
   )
 
   const viewport = computed(() => {
