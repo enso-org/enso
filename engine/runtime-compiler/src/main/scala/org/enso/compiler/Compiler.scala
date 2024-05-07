@@ -954,17 +954,16 @@ class Compiler(
   ): List[RuntimeException] = {
     val isOutputRedirected = config.outputRedirect.isDefined
     val exceptions = diagnostics
-      .map { diag =>
+      .flatMap { diag =>
         val formattedDiag =
           context.formatDiagnostic(compilerModule, diag, isOutputRedirected)
         printDiagnostic(formattedDiag.getMessage)
         if (diag.isInstanceOf[Error]) {
-          formattedDiag
+          Some(formattedDiag)
         } else {
-          null
+          None
         }
       }
-      .filter(_ != null)
     exceptions
   }
 
