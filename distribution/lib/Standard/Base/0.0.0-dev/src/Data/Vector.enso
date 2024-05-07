@@ -1620,7 +1620,7 @@ type Build_Style_Builder
     add_warnings : Any -> Nothing
     add_warnings self x -> Nothing =
         warnings = Warning.get_all x . map .value
-        append_result = self.warnings_java_builder.appendTo (warnings . slice 0 warnings.length)
+        append_result = self.warnings_java_builder.appendTo warnings
         assert (append_result.is_error.not)
         Nothing
 
