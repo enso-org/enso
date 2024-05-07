@@ -26,8 +26,6 @@ public final class CloudAuditedConnection extends AuditedConnection {
   }
 
   private void audit(String operationType, String sql) {
-    // TODO remove the print - for debugging
-    System.out.println(operationType + " " + sql + " " + metadata);
     AuditLog.logAsync(operationType, sql, metadata);
   }
 
