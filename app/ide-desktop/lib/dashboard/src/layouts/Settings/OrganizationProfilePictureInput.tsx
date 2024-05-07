@@ -10,23 +10,22 @@ import * as textProvider from '#/providers/TextProvider'
 
 import * as aria from '#/components/aria'
 import FocusRing from '#/components/styled/FocusRing'
-import SettingsSection from '#/components/styled/settings/SettingsSection'
 
 import type * as backendModule from '#/services/Backend'
 
-// =================================================
-// === OrganizationProfilePictureSettingsSection ===
-// =================================================
+// =======================================
+// === OrganizationProfilePictureInput ===
+// =======================================
 
-/** Props for a {@link OrganizationProfilePictureSettingsSection}. */
-export interface OrganizationProfilePictureSettingsSectionProps {
+/** Props for a {@link OrganizationProfilePictureInput}. */
+export interface OrganizationProfilePictureInputProps {
   readonly organization: backendModule.OrganizationInfo
   readonly setOrganization: React.Dispatch<React.SetStateAction<backendModule.OrganizationInfo>>
 }
 
 /** Settings tab for viewing and editing organization information. */
-export default function OrganizationProfilePictureSettingsSection(
-  props: OrganizationProfilePictureSettingsSectionProps
+export default function OrganizationProfilePictureInput(
+  props: OrganizationProfilePictureInputProps
 ) {
   const { organization, setOrganization } = props
   const toastAndLog = toastAndLogHooks.useToastAndLog()
@@ -54,7 +53,7 @@ export default function OrganizationProfilePictureSettingsSection(
   }
 
   return (
-    <SettingsSection title={getText('profilePicture')}>
+    <>
       <FocusRing within>
         <aria.Label className="flex h-profile-picture-large w-profile-picture-large cursor-pointer items-center overflow-clip rounded-full transition-colors hover:bg-frame">
           <img
@@ -74,6 +73,6 @@ export default function OrganizationProfilePictureSettingsSection(
       <aria.Text className="w-profile-picture-caption py-profile-picture-caption-y">
         {getText('organizationProfilePictureWarning')}
       </aria.Text>
-    </SettingsSection>
+    </>
   )
 }

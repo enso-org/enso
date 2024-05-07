@@ -16,6 +16,7 @@ import SvgMask from '#/components/SvgMask'
 
 /** Props for an {@link SettingsInput}. */
 export interface SettingsInputProps {
+  readonly isDisabled?: boolean
   readonly type?: string
   readonly placeholder?: string
   readonly autoComplete?: React.HTMLInputAutoCompleteAttribute
@@ -25,7 +26,7 @@ export interface SettingsInputProps {
 
 /** A styled input specific to settings pages. */
 function SettingsInput(props: SettingsInputProps, ref: React.ForwardedRef<HTMLInputElement>) {
-  const { type, placeholder, autoComplete, onChange, onSubmit } = props
+  const { isDisabled = false, type, placeholder, autoComplete, onChange, onSubmit } = props
   const focusChildProps = focusHooks.useFocusChild()
   // This is SAFE. The value of this context is never a `SlottedContext`.
   // eslint-disable-next-line no-restricted-syntax
@@ -71,6 +72,7 @@ function SettingsInput(props: SettingsInputProps, ref: React.ForwardedRef<HTMLIn
                 className:
                   'settings-value w-full rounded-full bg-transparent font-bold placeholder-black/30 transition-colors invalid:border invalid:border-red-700 hover:bg-selected-frame focus:bg-selected-frame',
                 ...(type == null ? {} : { type: isShowingPassword ? 'text' : type }),
+                isDisabled,
                 size: 1,
                 autoComplete,
                 placeholder,

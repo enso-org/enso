@@ -9,12 +9,16 @@ import type * as text from '#/text'
 
 import type * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
+import ActivityLogSettingsSection from '#/layouts/Settings/ActivityLogSettingsSection'
 import ChangePasswordForm from '#/layouts/Settings/ChangePasswordForm'
 import DeleteUserAccountSettingsSection from '#/layouts/Settings/DeleteUserAccountSettingsSection'
+import KeyboardShortcutsSettingsSection from '#/layouts/Settings/KeyboardShortcutsSettingsSection'
+import MembersSettingsSection from '#/layouts/Settings/MembersSettingsSection'
+import OrganizationProfilePictureInput from '#/layouts/Settings/OrganizationProfilePictureInput'
 import ProfilePictureInput from '#/layouts/Settings/ProfilePictureInput'
-import SettingsTab from '#/layouts/Settings/SettingsTab'
+import SettingsTabType from '#/layouts/Settings/SettingsTabType'
 
-import type * as backend from '#/services/Backend'
+import * as backend from '#/services/Backend'
 import type Backend from '#/services/Backend'
 
 import * as object from '#/utilities/object'
@@ -33,120 +37,285 @@ export enum SettingsEntryType {
 // === Constants ===
 // =================
 
-export const DATA: SettingsData = [
+export const SETTINGS_TAB_DATA: Readonly<Record<SettingsTabType, SettingsTabData>> = {
+  [SettingsTabType.account]: {
+    nameId: 'accountSettingsTab',
+    settingsTab: SettingsTabType.account,
+    icon: SettingsIcon,
+    sections: [
+      {
+        nameId: 'userAccountSettingsSection',
+        entries: [
+          {
+            type: SettingsEntryType.input,
+            nameId: 'userNameSettingsInput',
+            getValue: context => context.user?.name ?? '',
+            setValue: async (context, newName, reset) => {
+              const oldName = context.user?.name ?? ''
+              if (newName === oldName) {
+                return
+              } else {
+                try {
+                  context.setUser(object.merger({ name: newName }))
+                  await context.backend.updateUser({ username: newName })
+                } catch (error) {
+                  context.setUser(object.merger({ name: oldName }))
+                  context.toastAndLog(null, error)
+                  reset()
+                }
+                return
+              }
+            },
+            getEditable: () => true,
+          },
+          {
+            type: SettingsEntryType.input,
+            nameId: 'userEmailSettingsInput',
+            getValue: context => context.user?.email ?? '',
+            // A user's email currently cannot be changed.
+            setValue: async () => {},
+            getEditable: () => false,
+          },
+        ],
+      },
+      {
+        nameId: 'changePasswordSettingsSection',
+        entries: [
+          {
+            type: SettingsEntryType.custom,
+            render: ChangePasswordForm,
+            getVisible: context => {
+              // The shape of the JWT payload is statically known.
+              // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+              const username: string | null =
+                context.accessToken != null
+                  ? // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-non-null-assertion
+                    JSON.parse(atob(context.accessToken.split('.')[1]!)).username
+                  : null
+              return username != null ? !/^Github_|^Google_/.test(username) : false
+            },
+          },
+        ],
+      },
+      {
+        nameId: 'deleteUserAccountSettingsSection',
+        heading: false,
+        entries: [
+          {
+            type: SettingsEntryType.custom,
+            render: DeleteUserAccountSettingsSection,
+          },
+        ],
+      },
+      // TODO: This is in the second column.
+      {
+        nameId: 'profilePictureSettingsSection',
+        entries: [
+          {
+            type: SettingsEntryType.custom,
+            render: ProfilePictureInput,
+          },
+        ],
+      },
+    ],
+  },
+  [SettingsTabType.organization]: {
+    nameId: 'organizationSettingsTab',
+    settingsTab: SettingsTabType.organization,
+    icon: PeopleSettingsIcon,
+    sections: [
+      {
+        nameId: 'organizationSettingsSection',
+        entries: [
+          {
+            type: SettingsEntryType.input,
+            nameId: 'organizationNameSettingsInput',
+            getValue: context => context.organization.name ?? '',
+            setValue: async (context, newName, reset) => {
+              const oldName = context.organization.name ?? null
+              if (oldName !== newName) {
+                try {
+                  // eslint-disable-next-line @typescript-eslint/naming-convention
+                  context.setOrganization(object.merger({ name: newName }))
+                  const newOrganization = await context.backend.updateOrganization({
+                    name: newName,
+                  })
+                  if (newOrganization != null) {
+                    context.setOrganization(newOrganization)
+                  }
+                } catch (error) {
+                  // eslint-disable-next-line @typescript-eslint/naming-convention
+                  context.setOrganization(object.merger({ name: oldName }))
+                  context.toastAndLog(null, error)
+                  reset()
+                }
+              }
+            },
+            getEditable: () => true,
+          },
+          {
+            type: SettingsEntryType.input,
+            nameId: 'organizationEmailSettingsInput',
+            getValue: context => context.organization.email ?? '',
+            setValue: async (context, newValue, reset) => {
+              const newEmail = backend.EmailAddress(newValue)
+              const oldEmail = context.organization.email ?? null
+              if (oldEmail !== newEmail) {
+                try {
+                  // eslint-disable-next-line @typescript-eslint/naming-convention
+                  context.setOrganization(object.merger({ email: newEmail }))
+                  const newOrganization = await context.backend.updateOrganization({
+                    email: newEmail,
+                  })
+                  if (newOrganization != null) {
+                    context.setOrganization(newOrganization)
+                  }
+                } catch (error) {
+                  // eslint-disable-next-line @typescript-eslint/naming-convention
+                  context.setOrganization(object.merger({ email: oldEmail }))
+                  context.toastAndLog(null, error)
+                  reset()
+                }
+              }
+            },
+            getEditable: () => true,
+          },
+          {
+            type: SettingsEntryType.input,
+            nameId: 'organizationEmailSettingsInput',
+            getValue: context => context.organization.website ?? '',
+            setValue: async (context, newValue, reset) => {
+              const newWebsite = backend.HttpsUrl(newValue)
+              const oldWebsite = context.organization.website ?? null
+              if (oldWebsite !== newWebsite) {
+                try {
+                  // eslint-disable-next-line @typescript-eslint/naming-convention
+                  context.setOrganization(object.merger({ website: newWebsite }))
+                  const newOrganization = await context.backend.updateOrganization({
+                    website: newWebsite,
+                  })
+                  if (newOrganization != null) {
+                    context.setOrganization(newOrganization)
+                  }
+                } catch (error) {
+                  // eslint-disable-next-line @typescript-eslint/naming-convention
+                  context.setOrganization(object.merger({ website: oldWebsite }))
+                  context.toastAndLog(null, error)
+                  reset()
+                }
+              }
+            },
+            getEditable: () => true,
+          },
+          {
+            type: SettingsEntryType.input,
+            nameId: 'organizationLocationSettingsInput',
+            getValue: context => context.organization.address ?? '',
+            setValue: async (context, newLocation, reset) => {
+              const oldLocation = context.organization.address ?? null
+              if (oldLocation !== newLocation) {
+                try {
+                  // eslint-disable-next-line @typescript-eslint/naming-convention
+                  context.setOrganization(object.merger({ address: newLocation }))
+                  const newOrganization = await context.backend.updateOrganization({
+                    address: newLocation,
+                  })
+                  if (newOrganization != null) {
+                    context.setOrganization(newOrganization)
+                  }
+                } catch (error) {
+                  // eslint-disable-next-line @typescript-eslint/naming-convention
+                  context.setOrganization(object.merger({ address: oldLocation }))
+                  context.toastAndLog(null, error)
+                  reset()
+                }
+              }
+            },
+            getEditable: () => true,
+          },
+        ],
+      },
+      // TODO: This is in the second column.
+      {
+        nameId: 'organizationProfilePictureSettingsSection',
+        entries: [
+          {
+            type: SettingsEntryType.custom,
+            render: OrganizationProfilePictureInput,
+          },
+        ],
+      },
+    ],
+  },
+  [SettingsTabType.members]: {
+    nameId: 'membersSettingsTab',
+    settingsTab: SettingsTabType.members,
+    icon: PeopleIcon,
+    sections: [
+      {
+        nameId: 'membersSettingsSection',
+        entries: [
+          {
+            type: SettingsEntryType.custom,
+            render: MembersSettingsSection,
+          },
+        ],
+      },
+    ],
+  },
+  [SettingsTabType.keyboardShortcuts]: {
+    nameId: 'keyboardShortcutsSettingsTab',
+    settingsTab: SettingsTabType.keyboardShortcuts,
+    icon: KeyboardShortcutsIcon,
+    sections: [
+      {
+        nameId: 'keyboardShortcutsSettingsSection',
+        entries: [
+          {
+            type: SettingsEntryType.custom,
+            render: KeyboardShortcutsSettingsSection,
+          },
+        ],
+      },
+    ],
+  },
+  [SettingsTabType.activityLog]: {
+    nameId: 'activityLogSettingsTab',
+    settingsTab: SettingsTabType.activityLog,
+    icon: LogIcon,
+    sections: [
+      {
+        nameId: 'activityLogSettingsSection',
+        entries: [
+          {
+            type: SettingsEntryType.custom,
+            render: ActivityLogSettingsSection,
+          },
+        ],
+      },
+    ],
+  },
+}
+
+export const SETTINGS_DATA: SettingsData = [
   {
     nameId: 'generalSettingsTabSection',
     tabs: [
-      {
-        nameId: 'accountSettingsTab',
-        settingsTab: SettingsTab.account,
-        icon: SettingsIcon,
-        sections: [
-          {
-            nameId: 'userAccountSettingsSection',
-            entries: [
-              {
-                type: SettingsEntryType.input,
-                nameId: 'userNameSettingsInput',
-                getValue: context => context.user?.name ?? '',
-                setValue: async (context, newName) => {
-                  const oldName = context.user?.name ?? ''
-                  if (newName === oldName) {
-                    return
-                  } else {
-                    try {
-                      await context.backend.updateUser({ username: newName })
-                      context.setUser(object.merger({ name: newName }))
-                    } catch (error) {
-                      context.toastAndLog(null, error)
-                    }
-                    return
-                  }
-                },
-                getEditable: () => true,
-              },
-              {
-                type: SettingsEntryType.input,
-                nameId: 'userEmailSettingsInput',
-                getValue: context => context.user?.email ?? '',
-                // A user's email currently cannot be changed.
-                setValue: async () => {},
-                getEditable: () => false,
-              },
-            ],
-          },
-          {
-            nameId: 'changePasswordSettingsSection',
-            entries: [
-              {
-                type: SettingsEntryType.custom,
-                render: ChangePasswordForm,
-              },
-            ],
-          },
-          {
-            nameId: 'deleteUserAccountSettingsSection',
-            heading: false,
-            entries: [
-              {
-                type: SettingsEntryType.custom,
-                render: DeleteUserAccountSettingsSection,
-              },
-            ],
-          },
-          // TODO: This is in the second column.
-          {
-            nameId: 'profilePictureSettingsSection',
-            entries: [
-              {
-                type: SettingsEntryType.custom,
-                render: ProfilePictureInput,
-              },
-            ],
-          },
-        ],
-      },
-      {
-        nameId: 'organizationSettingsTab',
-        settingsTab: SettingsTab.organization,
-        icon: PeopleSettingsIcon,
-        sections: [
-          {
-            nameId: 'organizationSettingsSection',
-          },
-        ],
-      },
+      SETTINGS_TAB_DATA[SettingsTabType.account],
+      SETTINGS_TAB_DATA[SettingsTabType.organization],
     ],
   },
   {
     nameId: 'accessSettingsTabSection',
-    tabs: [
-      {
-        nameId: 'membersSettingsTab',
-        settingsTab: SettingsTab.members,
-        icon: PeopleIcon,
-      },
-    ],
+    tabs: [SETTINGS_TAB_DATA[SettingsTabType.members]],
   },
   {
     nameId: 'lookAndFeelSettingsTabSection',
-    tabs: [
-      {
-        nameId: 'keyboardShortcutsSettingsTab',
-        settingsTab: SettingsTab.keyboardShortcuts,
-        icon: KeyboardShortcutsIcon,
-      },
-    ],
+    tabs: [SETTINGS_TAB_DATA[SettingsTabType.keyboardShortcuts]],
   },
   {
     nameId: 'securitySettingsTabSection',
-    tabs: [
-      {
-        nameId: 'activityLogSettingsTab',
-        settingsTab: SettingsTab.activityLog,
-        icon: LogIcon,
-      },
-    ],
+    tabs: [SETTINGS_TAB_DATA[SettingsTabType.activityLog]],
   },
 ]
 
@@ -156,9 +325,11 @@ export const DATA: SettingsData = [
 
 /** Metadata describing inputs passed to every settings entry. */
 export interface SettingsContext {
+  readonly accessToken: string | null
   readonly user: backend.User | null
   readonly setUser: React.Dispatch<React.SetStateAction<backend.User>>
   readonly organization: backend.OrganizationInfo
+  readonly setOrganization: React.Dispatch<React.SetStateAction<backend.OrganizationInfo>>
   readonly backend: Backend
   readonly toastAndLog: toastAndLogHooks.ToastAndLogCallback
 }
@@ -172,7 +343,7 @@ export interface SettingsInputEntryData {
   readonly type: SettingsEntryType.input
   readonly nameId: text.TextId & `${string}SettingsInput`
   readonly getValue: (context: SettingsContext) => string
-  readonly setValue: (context: SettingsContext, value: string) => Promise<void>
+  readonly setValue: (context: SettingsContext, value: string, reset: () => void) => Promise<void>
   readonly getEditable: (context: SettingsContext) => boolean
 }
 
@@ -184,6 +355,7 @@ export interface SettingsInputEntryData {
 export interface SettingsCustomEntryData {
   readonly type: SettingsEntryType.custom
   readonly render: (context: SettingsContext) => JSX.Element
+  readonly getVisible?: (context: SettingsContext) => boolean
 }
 
 // =========================
@@ -191,7 +363,7 @@ export interface SettingsCustomEntryData {
 // =========================
 
 /** A settings entry of an arbitrary type. */
-type SettingsEntryData = SettingsCustomEntryData | SettingsInputEntryData
+export type SettingsEntryData = SettingsCustomEntryData | SettingsInputEntryData
 
 // =======================
 // === SettingsTabData ===
@@ -201,6 +373,8 @@ type SettingsEntryData = SettingsCustomEntryData | SettingsInputEntryData
 export interface SettingsSectionData {
   readonly nameId: text.TextId & `${string}SettingsSection`
   readonly heading?: false
+  readonly focusArea?: false
+  readonly aliases?: text.TextId[]
   readonly entries: readonly SettingsEntryData[]
 }
 
@@ -211,7 +385,7 @@ export interface SettingsSectionData {
 /** Metadata describing a settings tab. */
 export interface SettingsTabData {
   readonly nameId: text.TextId & `${string}SettingsTab`
-  readonly settingsTab: SettingsTab
+  readonly settingsTab: SettingsTabType
   readonly icon: string
   readonly sections: readonly SettingsSectionData[]
 }

@@ -2,6 +2,7 @@
 import * as React from 'react'
 
 import * as searchParamsState from '#/hooks/searchParamsStateHooks'
+import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
 import * as authProvider from '#/providers/AuthProvider'
 import * as backendProvider from '#/providers/BackendProvider'
@@ -9,12 +10,9 @@ import * as searchBarProvider from '#/providers/SearchBarProvider'
 import * as textProvider from '#/providers/TextProvider'
 
 import SearchBar from '#/layouts/SearchBar'
-import AccountSettingsTab from '#/layouts/Settings/AccountSettingsTab'
-import ActivityLogSettingsTab from '#/layouts/Settings/ActivityLogSettingsTab'
-import KeyboardShortcutsSettingsTab from '#/layouts/Settings/KeyboardShortcutsSettingsTab'
-import MembersSettingsTab from '#/layouts/Settings/MembersSettingsTab'
-import OrganizationSettingsTab from '#/layouts/Settings/OrganizationSettingsTab'
+import * as settingsData from '#/layouts/Settings/settingsData'
 import SettingsTab from '#/layouts/Settings/SettingsTab'
+import SettingsTabType from '#/layouts/Settings/SettingsTabType'
 import SettingsSidebar from '#/layouts/SettingsSidebar'
 
 import * as aria from '#/components/aria'
@@ -31,12 +29,14 @@ import * as array from '#/utilities/array'
 export default function Settings() {
   const [settingsTab, setSettingsTab] = searchParamsState.useSearchParamsState(
     'SettingsTab',
-    SettingsTab.account,
-    (value): value is SettingsTab => array.includes(Object.values(SettingsTab), value)
+    SettingsTabType.account,
+    (value): value is SettingsTabType => array.includes(Object.values(SettingsTabType), value)
   )
-  const { type: sessionType, user } = authProvider.useNonPartialUserSession()
+  const { type: sessionType, user, accessToken } = authProvider.useNonPartialUserSession()
+  const { setUser } = authProvider.useAuth()
   const { backend } = backendProvider.useBackend()
   const { getText } = textProvider.useText()
+  const toastAndLog = toastAndLogHooks.useToastAndLog()
   const { setSearchBar, unsetSearchBar } = searchBarProvider.useSetSearchBar('Settings')
   const [query, setQuery] = React.useState('')
   const [organization, setOrganization] = React.useState<backendModule.OrganizationInfo>(() => ({
@@ -47,6 +47,18 @@ export default function Settings() {
     address: null,
     picture: null,
   }))
+  const context = React.useMemo<settingsData.SettingsContext>(
+    () => ({
+      accessToken,
+      user,
+      setUser,
+      backend,
+      organization,
+      setOrganization,
+      toastAndLog,
+    }),
+    [accessToken, backend, organization, setUser, toastAndLog, user]
+  )
 
   React.useEffect(() => {
     setSearchBar(
@@ -82,37 +94,6 @@ export default function Settings() {
     })()
   }, [sessionType, backend])
 
-  let content: JSX.Element
-  switch (settingsTab) {
-    case SettingsTab.account: {
-      content = <AccountSettingsTab />
-      break
-    }
-    case SettingsTab.organization: {
-      content = (
-        <OrganizationSettingsTab organization={organization} setOrganization={setOrganization} />
-      )
-      break
-    }
-    case SettingsTab.members: {
-      content = <MembersSettingsTab />
-      break
-    }
-    case SettingsTab.keyboardShortcuts: {
-      content = <KeyboardShortcutsSettingsTab />
-      break
-    }
-    case SettingsTab.activityLog: {
-      content = <ActivityLogSettingsTab />
-      break
-    }
-    default: {
-      // This case should be removed when all settings tabs are implemented.
-      content = <></>
-      break
-    }
-  }
-
   return (
     <div className="flex flex-1 flex-col gap-settings-header overflow-hidden px-page-x">
       <aria.Heading level={1} className="flex h-heading px-heading-x text-xl font-bold">
@@ -120,14 +101,14 @@ export default function Settings() {
         {/* This UI element does not appear anywhere else. */}
         {/* eslint-disable-next-line no-restricted-syntax */}
         <div className="ml-[0.625rem] h-[2.25rem] rounded-full bg-frame px-[0.5625rem] pb-[0.3125rem] pt-[0.125rem] leading-snug">
-          {settingsTab !== SettingsTab.organization
+          {settingsTab !== SettingsTabType.organization
             ? user?.name ?? 'your account'
             : organization.name ?? 'your organization'}
         </div>
       </aria.Heading>
       <div className="flex flex-1 gap-settings overflow-hidden">
         <SettingsSidebar settingsTab={settingsTab} setSettingsTab={setSettingsTab} />
-        {content}
+        <SettingsTab context={context} data={settingsData.SETTINGS_TAB_DATA[settingsTab]} />
       </div>
     </div>
   )

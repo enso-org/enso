@@ -177,11 +177,6 @@
   "createDataLink": "Create Data Link",
   "resetAll": "Reset All",
 
-  "organization": "Organization",
-  "organizationDisplayName": "Organization display name",
-  "website": "Website",
-  "location": "Location",
-
   "enterSecretPath": "Enter secret path",
   "enterText": "Enter text",
   "enterNumber": "Enter number",
@@ -522,14 +517,23 @@
   "userAccountSettingsSection": "User Account",
   "userNameSettingsInput": "Name",
   "userEmailSettingsInput": "Email",
-  "changePasswordSettingsSection": "ChangePassword",
+  "changePasswordSettingsSection": "Change Password",
   "deleteUserAccountSettingsSection": "Delete User Account",
   "profilePictureSettingsSection": "Profile Picture",
   "organizationSettingsTab": "Organization",
+  "organizationSettingsSection": "Organization",
+  "organizationNameSettingsInput": "Organization display name",
+  "organizationEmailSettingsInput": "Email",
+  "organizationWebsiteSettingsInput": "Website",
+  "organizationLocationSettingsInput": "Location",
+  "organizationProfilePictureSettingsSection": "Profile Picture",
   "accessSettingsTabSection": "Access",
   "membersSettingsTab": "Members",
+  "membersSettingsSection": "Members",
   "lookAndFeelSettingsTabSection": "Look and feel",
   "keyboardShortcutsSettingsTab": "Keyboard shortcuts",
+  "keyboardShortcutsSettingsSection": "Keyboard Shortcuts",
   "securitySettingsTabSection": "Security",
-  "activityLogSettingsTab": "Activity log"
+  "activityLogSettingsTab": "Activity log",
+  "activityLogSettingsSection": "Activity Log"
 }

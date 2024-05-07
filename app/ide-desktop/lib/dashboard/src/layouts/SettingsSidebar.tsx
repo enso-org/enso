@@ -1,92 +1,14 @@
 /** @file A panel to switch between settings tabs. */
 import * as React from 'react'
 
-import KeyboardShortcutsIcon from 'enso-assets/keyboard_shortcuts.svg'
-import LogIcon from 'enso-assets/log.svg'
-import PeopleSettingsIcon from 'enso-assets/people_settings.svg'
-import PeopleIcon from 'enso-assets/people.svg'
-import SettingsIcon from 'enso-assets/settings.svg'
-
 import * as textProvider from '#/providers/TextProvider'
 
-import SettingsTab from '#/layouts/Settings/SettingsTab'
+import * as settingsData from '#/layouts/Settings/settingsData'
+import type SettingsTabType from '#/layouts/Settings/SettingsTabType'
 
 import * as aria from '#/components/aria'
 import FocusArea from '#/components/styled/FocusArea'
 import SidebarTabButton from '#/components/styled/SidebarTabButton'
-
-// =================
-// === Constants ===
-// =================
-
-const SECTIONS: SettingsSectionData[] = [
-  {
-    name: 'General',
-    tabs: [
-      {
-        name: 'Account',
-        settingsTab: SettingsTab.account,
-        icon: SettingsIcon,
-      },
-      {
-        name: 'Organization',
-        settingsTab: SettingsTab.organization,
-        icon: PeopleSettingsIcon,
-      },
-    ],
-  },
-  {
-    name: 'Access',
-    tabs: [
-      {
-        name: 'Members',
-        settingsTab: SettingsTab.members,
-        icon: PeopleIcon,
-      },
-    ],
-  },
-  {
-    name: 'Look and feel',
-    tabs: [
-      {
-        name: 'Keyboard shortcuts',
-        settingsTab: SettingsTab.keyboardShortcuts,
-        icon: KeyboardShortcutsIcon,
-      },
-    ],
-  },
-  {
-    name: 'Security',
-    tabs: [
-      {
-        name: 'Activity log',
-        settingsTab: SettingsTab.activityLog,
-        icon: LogIcon,
-      },
-    ],
-  },
-]
-
-// =======================
-// === SettingsTabData ===
-// =======================
-
-/** Metadata for rendering a settings tab label. */
-interface SettingsTabData {
-  readonly name: string
-  readonly settingsTab: SettingsTab
-  readonly icon: string
-}
-
-// ===========================
-// === SettingsSectionData ===
-// ===========================
-
-/** Metadata for rendering a settings section. */
-interface SettingsSectionData {
-  readonly name: string
-  readonly tabs: SettingsTabData[]
-}
 
 // =======================
 // === SettingsSidebar ===
@@ -94,8 +16,8 @@ interface SettingsSectionData {
 
 /** Props for a {@link SettingsSidebar} */
 export interface SettingsSidebarProps {
-  readonly settingsTab: SettingsTab
-  readonly setSettingsTab: React.Dispatch<React.SetStateAction<SettingsTab>>
+  readonly settingsTab: SettingsTabType
+  readonly setSettingsTab: React.Dispatch<React.SetStateAction<SettingsTabType>>
 }
 
 /** A panel to switch between settings tabs. */
@@ -111,28 +33,31 @@ export default function SettingsSidebar(props: SettingsSidebarProps) {
           className="flex w-settings-sidebar shrink-0 flex-col gap-settings-sidebar overflow-y-auto"
           {...innerProps}
         >
-          {SECTIONS.map(section => (
-            <div key={section.name} className="flex flex-col items-start">
-              <aria.Header
-                id={`${section.name}_header`}
-                className="mb-sidebar-section-heading-b h-text px-sidebar-section-heading-x py-sidebar-section-heading-y text-sm font-bold leading-cozy"
-              >
-                {section.name}
-              </aria.Header>
-              {section.tabs.map(tab => (
-                <SidebarTabButton
-                  key={tab.settingsTab}
-                  id={tab.settingsTab}
-                  icon={tab.icon}
-                  label={tab.name}
-                  active={tab.settingsTab === settingsTab}
-                  onPress={() => {
-                    setSettingsTab(tab.settingsTab)
-                  }}
-                />
-              ))}
-            </div>
-          ))}
+          {settingsData.SETTINGS_DATA.map(section => {
+            const name = getText(section.nameId)
+            return (
+              <div key={name} className="flex flex-col items-start">
+                <aria.Header
+                  id={`${name}_header`}
+                  className="mb-sidebar-section-heading-b h-text px-sidebar-section-heading-x py-sidebar-section-heading-y text-sm font-bold leading-cozy"
+                >
+                  {name}
+                </aria.Header>
+                {section.tabs.map(tab => (
+                  <SidebarTabButton
+                    key={tab.settingsTab}
+                    id={tab.settingsTab}
+                    icon={tab.icon}
+                    label={getText(tab.nameId)}
+                    active={tab.settingsTab === settingsTab}
+                    onPress={() => {
+                      setSettingsTab(tab.settingsTab)
+                    }}
+                  />
+                ))}
+              </div>
+            )
+          })}
         </div>
       )}
     </FocusArea>
