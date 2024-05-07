@@ -658,6 +658,8 @@
 - [Added `Excel_Workbook.read_many` allowing reading more than one sheet at a
   time.][9759]
 - [Added ability to write to Data Links.][9750]
+- [Log operations performed on a Postgres database connection obtained through a
+  Data Link.][9873]
 
 [debug-shortcuts]:
   https://github.com/enso-org/enso/blob/develop/app/gui/docs/product/shortcuts.md#debug
@@ -965,6 +967,7 @@
 [9759]: https://github.com/enso-org/enso/pull/9759
 [9577]: https://github.com/enso-org/enso/pull/9577
 [9750]: https://github.com/enso-org/enso/pull/9750
+[9873]: https://github.com/enso-org/enso/pull/9873
 
 #### Enso Compiler
 
