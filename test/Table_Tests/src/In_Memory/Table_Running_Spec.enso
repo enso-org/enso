@@ -245,7 +245,7 @@ add_specs suite_builder =
             # 4 | SG0456 | E         | 73.77        | 73.23
             expected_table = data.table.zip expected_column
             result.should_equal expected_table
-        group_builder.specify "Can provide running mmin of integer columns (returning column of integers)" <|
+        group_builder.specify "Can provide running min of integer columns (returning column of integers)" <|
             result = data.integer_table.running Statistic.Minimum "Ticket Price" "Min ticket cost"
             expected_column = Column.from_vector "Min ticket cost" [101, 101, 73, 73, 73]
             #   | Flight | Passenger | Ticket Price | Min ticket cost
@@ -270,18 +270,6 @@ add_specs suite_builder =
             # 3 | BA0123 | C         | 112          | 73
             # 4 | SG0456 | E         | 74           | 73
             expected_table = int16_table.zip expected_column
-            result.should_equal expected_table
-        group_builder.specify "Can provide running min of integer columns (returning column of integers)" <|
-            result = data.integer_table.running Statistic.Minimum "Ticket Price" "Min ticket cost"
-            expected_column = Column.from_vector "Min ticket cost" [101, 101, 73, 73, 73]
-            #   | Flight | Passenger | Ticket Price | Min ticket cost
-            #---+--------+-----------+--------------+-------------------------
-            # 0 | BA0123 | A         | 101          | 101
-            # 1 | BA0123 | B         | 576          | 101
-            # 2 | SG0456 | A         | 73           | 73
-            # 3 | BA0123 | C         | 112          | 73
-            # 4 | SG0456 | E         | 74           | 73
-            expected_table = data.integer_table.zip expected_column
             result.should_equal expected_table
     suite_builder.group "running variance" group_builder->
         data = Data.setup
