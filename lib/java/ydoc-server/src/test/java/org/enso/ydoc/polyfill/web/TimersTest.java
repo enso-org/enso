@@ -1,6 +1,7 @@
 package org.enso.ydoc.polyfill.web;
 
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 import org.enso.ydoc.polyfill.ExecutorSetup;
@@ -22,7 +23,12 @@ public class TimersTest extends ExecutorSetup {
   public void setup() throws Exception {
     super.setup();
     var timers = new Timers(executor);
-    var contextBuilder = WebEnvironment.createContext();
+
+    var hostAccess =
+        WebEnvironment.defaultHostAccess
+            .allowAccess(Semaphore.class.getDeclaredMethod("release"))
+            .build();
+    var contextBuilder = WebEnvironment.createContext(hostAccess);
 
     context =
         CompletableFuture.supplyAsync(
@@ -43,19 +49,22 @@ public class TimersTest extends ExecutorSetup {
 
   @Test
   public void setTimeout() throws Exception {
+    var lock = new Semaphore(0);
     var code =
         """
         globalThis.result = 0;
         var p = function (x, y) {
             globalThis.result = 10*x + y;
+            lock.release();
         };
         setTimeout(p, 0, 4, 2);
         """;
 
-    var result =
-        CompletableFuture.supplyAsync(() -> context.eval("js", code), executor)
-            .thenApplyAsync(v -> context.eval("js", "result"), executor)
-            .get();
+    context.getBindings("js").putMember("lock", lock);
+
+    CompletableFuture.supplyAsync(() -> context.eval("js", code), executor).get();
+    lock.acquire();
+    var result = CompletableFuture.supplyAsync(() -> context.eval("js", "result"), executor).get();
 
     Assert.assertEquals(42, result.asInt());
   }
