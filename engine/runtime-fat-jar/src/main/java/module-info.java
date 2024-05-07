@@ -1,8 +1,8 @@
 open module org.enso.runtime {
   requires java.base;
+  requires java.net.http;
+  // compiler shall not be need
   requires java.compiler;
-  requires java.desktop;
-  requires java.se;
   // Because of akka.util.Unsafe
   requires jdk.unsupported;
   requires org.graalvm.polyglot;
