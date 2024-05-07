@@ -25,8 +25,6 @@ import org.enso.compiler.context.FreshNameSupply;
 import org.enso.compiler.core.CompilerError;
 import org.enso.compiler.phase.BuiltinsIrBuilder;
 import org.enso.interpreter.EnsoLanguage;
-import org.enso.interpreter.dsl.TypeProcessor;
-import org.enso.interpreter.dsl.model.MethodDefinition;
 import org.enso.interpreter.node.expression.builtin.Any;
 import org.enso.interpreter.node.expression.builtin.Boolean;
 import org.enso.interpreter.node.expression.builtin.Builtin;
@@ -337,7 +335,10 @@ public final class Builtins {
   private static List<Constructor<? extends Builtin>> readBuiltinTypes() {
     ClassLoader classLoader = Builtins.class.getClassLoader();
     List<String> lines;
-    try (InputStream resource = classLoader.getResourceAsStream(TypeProcessor.META_PATH)) {
+    final String NODE_PKG = "org.enso.interpreter.node.expression.builtin";
+    final String META_PATH =
+        "META-INF" + "/" + NODE_PKG.replace('.', '/') + "/BuiltinTypes.metadata";
+    try (InputStream resource = classLoader.getResourceAsStream(META_PATH)) {
       lines =
           new BufferedReader(new InputStreamReader(resource, StandardCharsets.UTF_8))
               .lines()
@@ -438,7 +439,11 @@ public final class Builtins {
   private static Map<String, LoadedBuiltinMetaMethod> readBuiltinMethodsMeta() {
     ClassLoader classLoader = Builtins.class.getClassLoader();
     List<String> lines;
-    try (InputStream resource = classLoader.getResourceAsStream(MethodDefinition.META_PATH)) {
+
+    final String NODE_PKG = "org.enso.interpreter.node.expression.builtin";
+    final String META_PATH =
+        "META-INF" + "/" + NODE_PKG.replace('.', '/') + "/BuiltinMethods.metadata";
+    try (InputStream resource = classLoader.getResourceAsStream(META_PATH)) {
       lines =
           new BufferedReader(new InputStreamReader(resource, StandardCharsets.UTF_8))
               .lines()

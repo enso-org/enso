@@ -145,6 +145,7 @@ export default /** @satisfies {import('tailwindcss').Config} */ ({
         'invite-users-modal': 'var(--invite-users-modal-width)',
         'manage-permissions-modal': 'var(--manage-permissions-modal-width)',
         'upsert-data-link-modal': 'var(--upsert-data-link-modal-width)',
+        'upsert-data-link-modal-max': 'var(--upsert-data-link-modal-max-width)',
         'upsert-secret-modal': 'var(--upsert-secret-modal-width)',
 
         'members-name-column': 'var(--members-name-column-width)',
