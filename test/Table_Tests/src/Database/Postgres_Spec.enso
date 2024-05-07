@@ -226,13 +226,13 @@ postgres_specific_spec suite_builder create_connection_fn db_name setup =
             data.teardown
 
         group_builder.specify "should return Table information" <|
-            i = data.t.info
+            i = data.t.column_info
             i.at "Column" . to_vector . should_equal ["strs", "ints", "bools", "doubles"]
             i.at "Items Count" . to_vector . should_equal [3, 1, 2, 3]
             i.at "Value Type" . to_vector . should_equal [default_text, Value_Type.Integer, Value_Type.Boolean, Value_Type.Float]
 
         group_builder.specify "should return Table information, also for aggregated results" <|
-            i = data.t.aggregate columns=[Aggregate_Column.Concatenate "strs", Aggregate_Column.Sum "ints", Aggregate_Column.Count_Distinct "bools"] . info
+            i = data.t.aggregate columns=[Aggregate_Column.Concatenate "strs", Aggregate_Column.Sum "ints", Aggregate_Column.Count_Distinct "bools"] . column_info
             i.at "Column" . to_vector . should_equal ["Concatenate strs", "Sum ints", "Count Distinct bools"]
             i.at "Items Count" . to_vector . should_equal [1, 1, 1]
             i.at "Value Type" . to_vector . should_equal [default_text, Value_Type.Decimal, Value_Type.Integer]

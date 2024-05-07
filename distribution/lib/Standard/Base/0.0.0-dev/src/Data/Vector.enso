@@ -430,8 +430,9 @@ type Vector a
          Finding a first element of the vector that is larger than 3.
 
              [1, 2, 3, 4, 5].find (> 3)
+    @condition Filter_Condition.default_widget
     find : (Filter_Condition | (Any -> Boolean)) -> Integer -> Any -> Any
-    find self condition (start : Integer = 0) ~if_missing=(Error.throw Not_Found) =
+    find self (condition : Filter_Condition | (Any -> Boolean)) (start : Integer = 0) ~if_missing=(Error.throw Not_Found) =
         Array_Like_Helpers.find self condition start if_missing
 
     ## GROUP Values
@@ -454,6 +455,7 @@ type Vector a
          Find the index of the first palindrome.
 
              ["ab", "abab", "aba", "bbb"].index_of (s-> s == s.reverse) == 2
+    @condition Filter_Condition.default_widget
     index_of : (Any | Filter_Condition | (Any -> Boolean)) -> Integer -> Integer | Nothing
     index_of self condition (start : Integer = 0) =
         Array_Like_Helpers.index_of self condition start
@@ -478,6 +480,7 @@ type Vector a
          Find the index of the last palindrome.
 
              ["ab", "abab", "aba", "bbb"].last_index_of (s-> s == s.reverse) == 3
+    @condition Filter_Condition.default_widget
     last_index_of : (Any | Filter_Condition | (Any -> Boolean)) -> Integer -> Integer | Nothing
     last_index_of self condition (start : Integer = -1) =
         Array_Like_Helpers.last_index_of self condition start
@@ -499,8 +502,9 @@ type Vector a
          Checking if any element of the vector is even.
 
              [1, 2, 3, 4, 5].any (x-> x%2 == 0)
+    @condition Filter_Condition.default_widget
     any : (Filter_Condition | (Any -> Boolean)) -> Boolean
-    any self condition =
+    any self (condition : Filter_Condition | (Any -> Boolean)) =
         Array_Like_Helpers.any self condition
 
     ## GROUP Logical
@@ -520,8 +524,9 @@ type Vector a
          Check if all elements in the vector are even.
 
              [-1, 1, 5, 8].all (x-> x%2 == 0)
+    @condition Filter_Condition.default_widget
     all : (Filter_Condition | (Any -> Boolean)) -> Boolean
-    all self condition =
+    all self (condition : Filter_Condition | (Any -> Boolean)) =
         Array_Like_Helpers.all self condition
 
     ## GROUP Logical
@@ -575,8 +580,9 @@ type Vector a
 
              [1, 2, 3, 4, 5].filter (> 3)
              [1, 2, 3, 4, 5].filter (Filter_Condition.Greater than=3)
+    @filter Filter_Condition.default_widget
     filter : (Filter_Condition | (Any -> Boolean)) -> Vector Any
-    filter self filter =
+    filter self (filter : Filter_Condition | (Any -> Boolean)) =
         Array_Like_Helpers.filter self filter
 
     ## GROUP Selections
@@ -621,8 +627,9 @@ type Vector a
          Splitting a vector into even and odd elements.
 
              [1, 2, 3, 4, 5].partition (x -> x % 2 == 0) == (Pair [2, 4] [1, 3, 5])
+    @condition Filter_Condition.default_widget
     partition : (Filter_Condition | (Any -> Boolean)) -> Pair (Vector Any) (Vector Any)
-    partition self condition =
+    partition self (condition : Filter_Condition | (Any -> Boolean)) =
         Array_Like_Helpers.partition self condition
 
     ## ICON preparation
@@ -1463,8 +1470,9 @@ type Builder
        - condition: A `Filter_Condition` or a function that takes a vector
          element and returns a boolean value that says whether that value
          satisfies a condition.
+    @condition Filter_Condition.default_widget
     any : (Filter_Condition | (Any -> Boolean)) -> Boolean
-    any self condition =
+    any self (condition : Filter_Condition | (Any -> Boolean)) =
         predicate = unify_condition_or_predicate condition
         0.up_to self.length . any (idx -> (predicate (self.java_builder.get idx)))
 

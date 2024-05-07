@@ -22,7 +22,7 @@ type Data
     t1 self = self.data.at 1
 
     setup = Data.Value <|
-        c = Database.connect (SQLite In_Memory)
+        c = Database.connect (SQLite.In_Memory)
         c.create_table "T1" [Column_Description.Value "A" Value_Type.Integer, Column_Description.Value "B" Value_Type.Char, Column_Description.Value "C" Value_Type.Boolean]
         c.create_table "T2" [Column_Description.Value "D" Value_Type.Integer, Column_Description.Value "E" Value_Type.Integer, Column_Description.Value "F" Value_Type.Boolean]
         c.create_table "T3" [Column_Description.Value "A" Value_Type.Integer, Column_Description.Value "E" Value_Type.Boolean, Column_Description.Value "F" Value_Type.Integer]

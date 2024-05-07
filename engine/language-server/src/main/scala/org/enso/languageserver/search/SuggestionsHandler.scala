@@ -197,7 +197,7 @@ final class SuggestionsHandler(
 
     case msg: Api.SuggestionsDatabaseSuggestionsLoadedNotification =>
       logger.debug(
-        "Starting loading suggestions for library [{0}].",
+        "Starting loading suggestions for library [{}].",
         msg.libraryName
       )
       context.become(
@@ -212,7 +212,7 @@ final class SuggestionsHandler(
         .onComplete {
           case Success(notification) =>
             logger.debug(
-              "Complete loading suggestions for library [{0}]. Has updates: {1}",
+              "Complete loading suggestions for library [{}]. Has updates: {}",
               msg.libraryName,
               notification.updates.nonEmpty
             )
@@ -224,7 +224,7 @@ final class SuggestionsHandler(
             self ! SuggestionsHandler.SuggestionLoadingCompleted
           case Failure(ex) =>
             logger.error(
-              "Error applying suggestion updates for loaded library [{0}].",
+              "Error applying suggestion updates for loaded library [{}].",
               msg.libraryName,
               ex
             )

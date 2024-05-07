@@ -14,6 +14,7 @@ import cats.implicits._
 import org.enso.polyglot.runtime.Runtime.Api.{DiagnosticType, ExecutionResult}
 
 import java.io.File
+import java.lang.InternalError
 import scala.concurrent.{ExecutionContext, Future}
 
 final class RuntimeFailureMapper(contentRootManager: ContentRootManager) {
@@ -27,18 +28,17 @@ final class RuntimeFailureMapper(contentRootManager: ContentRootManager) {
   def mapApiError(
     error: Api.Error
   )(implicit ec: ExecutionContext): Future[ContextRegistryProtocol.Failure] = {
-    implicit def liftToFuture(
-      result: ContextRegistryProtocol.Failure
-    ): Future[ContextRegistryProtocol.Failure] = Future.successful(result)
     error match {
       case Api.ContextNotExistError(contextId) =>
-        ContextRegistryProtocol.ContextNotFound(contextId)
+        Future.successful(ContextRegistryProtocol.ContextNotFound(contextId))
       case Api.EmptyStackError(contextId) =>
-        ContextRegistryProtocol.EmptyStackError(contextId)
+        Future.successful(ContextRegistryProtocol.EmptyStackError(contextId))
       case Api.InvalidStackItemError(contextId) =>
-        ContextRegistryProtocol.InvalidStackItemError(contextId)
+        Future.successful(
+          ContextRegistryProtocol.InvalidStackItemError(contextId)
+        )
       case Api.ModuleNotFound(moduleName) =>
-        ContextRegistryProtocol.ModuleNotFound(moduleName)
+        Future.successful(ContextRegistryProtocol.ModuleNotFound(moduleName))
       case Api.VisualizationExpressionFailed(ctx, message, result) =>
         for (diagnostic <- result.map(toProtocolDiagnostic).sequence)
           yield ContextRegistryProtocol.VisualizationExpressionFailed(
@@ -51,7 +51,9 @@ final class RuntimeFailureMapper(contentRootManager: ContentRootManager) {
             diagnostic
           )
       case Api.VisualizationNotFound() =>
-        ContextRegistryProtocol.VisualizationNotFound
+        Future.successful(ContextRegistryProtocol.VisualizationNotFound)
+      case e =>
+        Future.failed(new InternalError(s"unexpected error $e"))
     }
   }
 

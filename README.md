@@ -21,7 +21,7 @@
     <img src="https://img.shields.io/static/v1?label=Compiler%20License&message=Apache%20v2&color=2ec352&labelColor=2c3239"
          alt="License">
   </a>
-  <a href="https://github.com/enso-org/enso/blob/develop/app/gui/LICENSE">
+  <a href="https://github.com/enso-org/enso/blob/develop/app/gui2/LICENSE">
     <img src="https://img.shields.io/static/v1?label=GUI%20License&message=AGPL%20v3&color=2ec352&labelColor=2c3239"
          alt="License">
   </a>
@@ -222,7 +222,7 @@ The Enso Engine is licensed under the
 [LICENSE](https://github.com/enso-org/enso/blob/develop/LICENSE) file. The Enso
 IDE is licensed under the [AGPL 3.0](https://opensource.org/licenses/AGPL-3.0),
 as specified in the
-[LICENSE](https://github.com/enso-org/enso/blob/develop/app/gui/LICENSE) file.
+[LICENSE](https://github.com/enso-org/enso/blob/develop/app/gui2/LICENSE) file.
 
 This license set was chosen to provide you with complete freedom to use Enso,
 create libraries, and release them under any license of your choice, while also
