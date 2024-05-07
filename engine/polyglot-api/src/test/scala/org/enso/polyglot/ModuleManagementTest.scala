@@ -183,7 +183,7 @@ class ModuleManagementTest
 
     ctx.executionContext.getTopScope.unregisterModule("Enso_Test.Test.Main")
 
-    val mod2 = ctx.executionContext.evalModule(
+    def mod2() = ctx.executionContext.evalModule(
       """
         |import Enso_Test.Test.Main
         |
@@ -192,8 +192,11 @@ class ModuleManagementTest
       "X2"
     )
     val exception =
-      the[PolyglotException] thrownBy mod2.getAssociatedType
-    exception.getMessage shouldEqual "Compilation aborted due to errors."
+      the[PolyglotException] thrownBy mod2()
+    exception.getMessage should include(
+      "The module Enso_Test.Test.Main does not exist."
+    )
+
   }
 
   it should "allow gathering imported libraries" in {
