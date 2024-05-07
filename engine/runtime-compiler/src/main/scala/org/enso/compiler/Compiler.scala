@@ -816,8 +816,10 @@ class Compiler(
       .diagnostics
     val module    = inlineContext.getModule()
     val hasErrors = reportDiagnostics(errors, module)
-    if (hasErrors.nonEmpty && inlineContext.compilerConfig.isStrictErrors) {
-      throw hasErrors.head
+    hasErrors match {
+      case error :: _ if inlineContext.compilerConfig.isStrictErrors =>
+        throw error
+      case _ =>
     }
   }
 
