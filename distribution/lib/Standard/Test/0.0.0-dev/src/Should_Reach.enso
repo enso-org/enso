@@ -1,0 +1,23 @@
+from Standard.Base import all
+import Standard.Base.Runtime.Ref.Ref
+
+import project.Spec_Result.Spec_Result
+from project import Test
+from project.Extensions import all
+
+type Should_Reach
+    Value (reached_ref : Ref Boolean)
+
+    new : Should_Reach
+    new = Should_Reach.Value (Ref.new False)
+
+    reached : Nothing
+    reached self -> Nothing =
+        self.reached_ref.put True
+        Nothing
+
+    should_have_reached : Integer -> Spec_Result
+    should_have_reached self (frames_to_skip : Integer = 0) -> Spec_Result =
+        loc = Meta.get_source_location 1+frames_to_skip
+        if self.reached_ref.get then Spec_Result.Success else 
+            Test.fail ("Did not reach Should_Reach (at "+loc+").")

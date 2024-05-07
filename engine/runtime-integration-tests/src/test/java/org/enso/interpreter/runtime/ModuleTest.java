@@ -37,6 +37,7 @@ public class ModuleTest {
         Engine.newBuilder()
             .allowExperimentalOptions(true)
             .option(RuntimeOptions.LOG_LEVEL, Level.WARNING.getName())
+            .option(RuntimeOptions.STRICT_ERRORS, "false")
             .logHandler(System.err)
             .option(
                 RuntimeOptions.LANGUAGE_HOME_OVERRIDE,

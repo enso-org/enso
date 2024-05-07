@@ -1,6 +1,7 @@
 package org.enso.interpreter.test;
 
-import static org.enso.interpreter.test.BinaryDispatchTest.assertContains;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
@@ -14,6 +15,7 @@ import org.enso.interpreter.runtime.error.WithWarnings;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.PolyglotException;
 import org.graalvm.polyglot.Value;
+import org.hamcrest.core.AllOf;
 import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.BeforeClass;
@@ -116,8 +118,7 @@ public class WarningsTest extends TestBase {
       warningMulti.throwException();
       fail("Shouldn't reach here");
     } catch (PolyglotException ex) {
-      assertContains("warn:1", ex.getMessage());
-      assertContains("warn:3", ex.getMessage());
+      assertThat(ex.getMessage(), AllOf.allOf(containsString("warn:1"), containsString("warn:3")));
     }
   }
 
@@ -147,8 +148,10 @@ public class WarningsTest extends TestBase {
         assertEquals(generator.typeError(), type);
         assertEquals(generator.typeError(), warningType);
       } else {
-        assertContains("Warning found for " + type, "warn:once", ex.getMessage());
-        assertContains("Warning found for " + type, "warn:twice", ex.getMessage());
+        assertThat(
+            "Warning found for " + type,
+            ex.getMessage(),
+            AllOf.allOf(containsString("warn:once"), containsString("warn:twice")));
       }
     }
   }
