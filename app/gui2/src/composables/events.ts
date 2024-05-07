@@ -288,71 +288,81 @@ export const enum PointerButtonMask {
  */
 export function usePointer(
   handler: (pos: EventPosition, event: PointerEvent, eventType: PointerEventType) => void | boolean,
-  requiredButtonMask: number = PointerButtonMask.Main,
-  predicate?: (e: PointerEvent) => boolean,
+  options: {
+    requiredButtonMask?: number
+    pointerCapturedBy?: 'target' | 'currentTarget' | 'none'
+    predicate?: (e: PointerEvent) => boolean
+  } = {},
 ) {
-  const trackedPointer: Ref<number | null> = ref(null)
-  let trackedElement: (Element & GlobalEventHandlers) | null = null
-  let initialGrabPos: Vec2 | null = null
-  let lastPos: Vec2 | null = null
+  const requiredButtonMask = options.requiredButtonMask ?? PointerButtonMask.Main
+  const pointerCapturedBy = options.pointerCapturedBy ?? 'currentTarget'
+  const predicate = options.predicate ?? ((_e) => true)
+  const current = ref<
+    | {
+        trackedPointer: number
+        trackedElement: Element | undefined
+        initialGrabPos: Vec2
+        lastPos: Vec2
+      }
+    | undefined
+  >()
 
-  const dragging = computed(() => trackedPointer.value != null)
+  const dragging = computed(() => current.value != null)
 
   function doStop(e: PointerEvent) {
-    if (trackedPointer.value != null) {
-      trackedElement?.releasePointerCapture(trackedPointer.value)
+    if (current.value?.trackedPointer !== e.pointerId) return
+    const { trackedElement, trackedPointer, initialGrabPos, lastPos } = current.value
+    trackedElement?.releasePointerCapture(trackedPointer)
+
+    if (handler(computePosition(e, initialGrabPos, lastPos), e, 'stop') !== false) {
+      e.stopImmediatePropagation()
     }
 
-    if (trackedElement != null && initialGrabPos != null && lastPos != null) {
-      if (handler(computePosition(e, initialGrabPos, lastPos), e, 'stop') !== false) {
-        e.stopImmediatePropagation()
-      }
-
-      lastPos = null
-      trackedElement = null
-    }
-    trackedPointer.value = null
+    current.value = undefined
   }
 
   function doMove(e: PointerEvent) {
-    if (trackedElement != null && initialGrabPos != null && lastPos != null) {
-      if (handler(computePosition(e, initialGrabPos, lastPos), e, 'move') !== false) {
-        e.stopImmediatePropagation()
-      }
-      lastPos = new Vec2(e.clientX, e.clientY)
+    if (current.value?.trackedPointer !== e.pointerId) return
+    const { initialGrabPos, lastPos } = current.value
+
+    if (handler(computePosition(e, initialGrabPos, lastPos), e, 'move') !== false) {
+      e.stopImmediatePropagation()
     }
+    current.value.lastPos = new Vec2(e.clientX, e.clientY)
   }
 
   const events = {
     pointerdown(e: PointerEvent) {
       // pointers should not respond to unmasked mouse buttons
-      if ((e.buttons & requiredButtonMask) === 0 || (predicate && !predicate(e))) {
-        return
-      }
+      if ((e.buttons & requiredButtonMask) === 0 || !predicate(e)) return
+      if (current.value != null) return
 
-      if (trackedPointer.value == null && e.currentTarget instanceof Element) {
-        trackedPointer.value = e.pointerId
-        // This is mostly SAFE, as virtually all `Element`s also extend `GlobalEventHandlers`.
-        trackedElement = e.currentTarget as Element & GlobalEventHandlers
+      let trackedElement: Element | undefined
+      const trackedTarget =
+        pointerCapturedBy === 'currentTarget' ? e.currentTarget
+        : pointerCapturedBy === 'target' ? e.target
+        : null
+      if (trackedTarget instanceof Element) {
         // `setPointerCapture` is not defined in tests.
-        trackedElement.setPointerCapture?.(e.pointerId)
-        initialGrabPos = new Vec2(e.clientX, e.clientY)
-        lastPos = initialGrabPos
-        if (handler(computePosition(e, initialGrabPos, lastPos), e, 'start') !== false) {
-          e.stopImmediatePropagation()
-        }
+        trackedTarget?.setPointerCapture?.(e.pointerId)
+        trackedElement = trackedTarget
+      }
+      const initialGrabPos = new Vec2(e.clientX, e.clientY)
+      const lastPos = initialGrabPos
+      current.value = {
+        trackedPointer: e.pointerId,
+        initialGrabPos,
+        lastPos,
+        trackedElement,
+      }
+      if (handler(computePosition(e, initialGrabPos, lastPos), e, 'start') !== false) {
+        e.stopImmediatePropagation()
       }
     },
     pointerup(e: PointerEvent) {
-      if (trackedPointer.value !== e.pointerId) {
-        return
-      }
       doStop(e)
     },
     pointermove(e: PointerEvent) {
-      if (trackedPointer.value !== e.pointerId) {
-        return
-      }
       // handle release of all masked buttons as stop
       if ((e.buttons & requiredButtonMask) !== 0) {
         doMove(e)

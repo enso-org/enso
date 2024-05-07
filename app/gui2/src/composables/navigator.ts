@@ -37,8 +37,10 @@ export function useNavigator(viewportNode: Ref<Element | undefined>, keyboard: K
     (pos) => {
       scrollTo(center.value.addScaled(pos.delta, -1 / scale.value))
     },
-    PointerButtonMask.Auxiliary,
-    (e) => e.target === e.currentTarget,
+    {
+      requiredButtonMask: PointerButtonMask.Auxiliary,
+      predicate: (e) => e.target === e.currentTarget,
+    },
   )
 
   function eventScreenPos(e: { clientX: number; clientY: number }): Vec2 {
@@ -132,8 +134,10 @@ export function useNavigator(viewportNode: Ref<Element | undefined>, keyboard: K
           .add(zoomPivot),
       )
     },
-    PointerButtonMask.Secondary,
-    (e) => e.target === e.currentTarget,
+    {
+      requiredButtonMask: PointerButtonMask.Secondary,
+      predicate: (e) => e.target === e.currentTarget,
+    },
   )
 
   const viewport = computed(() => {

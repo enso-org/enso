@@ -166,8 +166,7 @@ export function useSelection<T>(
         selectionEventHandler(event)
       }
     },
-    PointerButtonMask.Main,
-    (e) => e.target === e.currentTarget,
+    { predicate: (e) => e.target === e.currentTarget },
   )
 
   return proxyRefs({

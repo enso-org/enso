@@ -94,7 +94,7 @@ function resizeHandler(resizeX: 'left' | 'right' | false, resizeY: boolean) {
         leftDragging = false
         break
     }
-  }, PointerButtonMask.Main)
+  })
 }
 
 const resizeRight = resizeHandler('right', false)

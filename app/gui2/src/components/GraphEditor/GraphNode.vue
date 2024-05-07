@@ -246,43 +246,41 @@ const transform = computed(() => {
 const startEpochMs = ref(0)
 let draggedElement: Element | undefined
 let significantMove = false
-let startPos = Vec2.Zero
 
-const dragPointer = usePointer((pos, event, type) => {
-  if (type !== 'start') {
-    if (
-      !significantMove &&
-      draggedElement &&
-      (Number(new Date()) - startEpochMs.value >= MAXIMUM_CLICK_LENGTH_MS ||
-        pos.absolute.distanceSquared(startPos) >= MAXIMUM_CLICK_DISTANCE_SQ)
-    ) {
-      // If this is move, the dragged element (node's content or selection) should capture pointer
-      // events. See the comment below.
-      draggedElement.setPointerCapture?.(event.pointerId)
-      significantMove = true
+const dragPointer = usePointer(
+  (pos, event, type) => {
+    if (type !== 'start') {
+      if (
+        !significantMove &&
+        draggedElement &&
+        (Number(new Date()) - startEpochMs.value >= MAXIMUM_CLICK_LENGTH_MS ||
+          pos.relative.lengthSquared() >= MAXIMUM_CLICK_DISTANCE_SQ)
+      ) {
+        // If this is clearly a drag (not a click), the node itself capture pointer events to
+        // prevent `click` on widgets.
+        draggedElement.setPointerCapture?.(event.pointerId)
+        significantMove = true
+      }
+      const fullOffset = pos.relative
+      emit('dragging', fullOffset)
     }
-    const fullOffset = pos.absolute.sub(startPos)
-    emit('dragging', fullOffset)
-  }
-  switch (type) {
-    case 'start':
-      startEpochMs.value = Number(new Date())
-      startPos = pos.absolute
-      // usePointer makes the currentTarget capture pointer events, what would prevent any
-      // up/click event from firing in the original target. But we don't want this until we're
-      // sure user is actually dragging the node. Therefore we set pointer capture on `target`,
-      // and restore it to `currentTarget` (vel `draggedElement`) after a significant move.
-      if (event.target instanceof Element) event.target.setPointerCapture?.(event.pointerId)
-      if (event.currentTarget instanceof Element) draggedElement = event.currentTarget
-      significantMove = false
-      break
-    case 'stop': {
-      draggedElement = undefined
-      startEpochMs.value = 0
-      emit('draggingCommited')
+    switch (type) {
+      case 'start':
+        startEpochMs.value = Number(new Date())
+        if (event.currentTarget instanceof Element) draggedElement = event.currentTarget
+        significantMove = false
+        break
+      case 'stop': {
+        draggedElement = undefined
+        startEpochMs.value = 0
+        emit('draggingCommited')
+      }
     }
-  }
-})
+  },
+  // Pointer is captured by `target`, to make it receive the `up` and `click` event in case this
+  // is not going to be a node drag.
+  { pointerCapturedBy: 'target' },
+)
 
 const isRecordingOverridden = computed({
   get() {
