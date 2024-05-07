@@ -11,7 +11,6 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Set;
-import org.enso.interpreter.CompilationAbortedException;
 import org.enso.pkg.QualifiedName;
 import org.enso.polyglot.PolyglotContext;
 import org.enso.polyglot.RuntimeOptions;
@@ -110,28 +109,31 @@ public class ExtensionMethodResolutionTest extends TestBase {
 
   @Test
   public void sameMethodInShadowedType() throws IOException {
-    var mod = new SourceModule(
-        QualifiedName.fromString("Mod"),
-        """
+    var mod =
+        new SourceModule(
+            QualifiedName.fromString("Mod"),
+            """
             type T
                 method = 42
             """);
     // This is type-shadowing, which is allowed.
-    var mainMod = new SourceModule(
-        QualifiedName.fromString("Main"),
-        """
+    var mainMod =
+        new SourceModule(
+            QualifiedName.fromString("Main"),
+            """
             from project.Mod import T
             type T
                 method = 23
             main =
                 T.method
-            """
-    );
+            """);
     var projDir = createProject("Proj", Set.of(mod, mainMod), tempFolder);
-    testProjectRun(projDir, res -> {
-      assertThat(res.isNumber(), is(true));
-      assertThat(res.asInt(), is(23));
-    });
+    testProjectRun(
+        projDir,
+        res -> {
+          assertThat(res.isNumber(), is(true));
+          assertThat(res.asInt(), is(23));
+        });
   }
 
   private void testProjectCompilationFailure(String mainSrc, Matcher<String> errorMessageMatcher)

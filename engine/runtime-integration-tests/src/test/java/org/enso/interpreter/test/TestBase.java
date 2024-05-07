@@ -177,7 +177,7 @@ public abstract class TestBase {
    * @return Path to the newly created directly structure - a project directory.
    */
   protected static Path createProject(String projName, String mainSrc, TemporaryFolder tempFolder)
-     throws IOException {
+      throws IOException {
     var modules = Set.of(new SourceModule(QualifiedName.fromString("Main"), mainSrc));
     return createProject(projName, modules, tempFolder);
   }
