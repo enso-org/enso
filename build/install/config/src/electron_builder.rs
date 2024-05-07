@@ -7,6 +7,20 @@ use serde::Serialize;
 
 
 
+/// Additional configuration needed by the installer that is not part of the standard
+/// `electron-builder` configuration.
+///
+/// This configuration is received through `installer` field in the `extraMetadata`.
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct InstallerConfig {
+    /// The company name to be used in the installer. Example: `"New Byte Order sp. z o.o."`.
+    pub publisher: String,
+
+    /// Extended file association configuration.
+    pub file_associations: Vec<ExtendedFileAssociation>,
+}
+
 /// A subset of the configuration options available in the `electron-builder` configuration.
 ///
 /// Note that some fields should not be included here (like code signing options) as this
@@ -39,15 +53,13 @@ pub struct Config {
 
     /// File associations for the application. Example: `[{ "ext": "enso", "name": "Enso Source
     /// File", "role": "Editor" }, {...}]`.
+    ///
+    /// Installer uses extended version of this configuration, see [`InstallerConfig`].
     pub file_associations: Vec<FileAssociation>,
 
     /// Configuration for the output directories. Example: `{ "output":
     /// "/home/mwu/Desktop/enso/dist/ide2" }`.
     pub directories: Directories,
-
-    // === OUR EXTENSIONS ===
-    /// Publisher (company) name. Example: `"New Byte Order sp. z o.o."`.
-    pub publisher: String,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -55,6 +67,9 @@ pub struct Config {
 pub struct ExtraMetadata {
     /// Version of the application. Example: `"2023.2.1-dev"`.
     pub version: Version,
+
+    /// Additional configuration needed by the installer.
+    pub installer: InstallerConfig,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -85,13 +100,6 @@ pub struct FileAssociation {
 
     /// Name of the file type. Example: `"Enso Source File"`.
     pub name: String,
-
-    // === OUR EXTENSIONS ===
-    /// The [programmatic identifier](https://docs.microsoft.com/en-us/windows/win32/shell/fa-progids) of the file type. Example: `"Enso.Source"`.
-    pub prog_id: String,
-
-    /// MIME type of the file type. Example: `"text/plain"`.
-    pub mime_type: String,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -99,4 +107,27 @@ pub struct FileAssociation {
 pub struct Directories {
     /// Output directory for the build. Example: `"/home/mwu/Desktop/enso/dist/ide2"`.
     pub output: PathBuf,
+}
+
+/// [`FileAssociation`] with additional fields for MIME type and ProgID.
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ExtendedFileAssociation {
+    /// The [programmatic identifier](https://docs.microsoft.com/en-us/windows/win32/shell/fa-progids) of the file type. Example: `"Enso.Source"`.
+    pub prog_id: String,
+
+    /// MIME type of the file type. Example: `"text/plain"`.
+    pub mime_type: String,
+
+    /// Standard `electron-builder` file association configuration.
+    #[serde(flatten)]
+    pub base: FileAssociation,
+}
+
+impl Deref for ExtendedFileAssociation {
+    type Target = FileAssociation;
+
+    fn deref(&self) -> &Self::Target {
+        &self.base
+    }
 }

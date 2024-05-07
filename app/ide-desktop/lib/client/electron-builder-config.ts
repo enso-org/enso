@@ -40,6 +40,23 @@ export interface Arguments {
     readonly platform: electronBuilder.Platform
 }
 
+/** File association configuration, extended with information needed by the `enso-installer`. */
+interface ExtendedFileAssociation extends electronBuilder.FileAssociation {
+    /** The Windows registry key under which the file association is registered.
+     *
+     * Should follow the pattern `Enso.CamelCaseName`. */
+    readonly progId: string
+}
+
+/** Additional configuration for the installer. */
+interface InstallerAdditionalConfig {
+    /** The company name to be used in the installer. */
+    readonly publisher: string
+
+    /** File association configuration. */
+    readonly fileAssociations: ExtendedFileAssociation[]
+}
+
 //======================================
 // === Argument parser configuration ===
 //======================================
@@ -90,6 +107,45 @@ export const args: Arguments = await yargs(process.argv.slice(2))
 // === Electron builder configuration ===
 // ======================================
 
+/** File associations for the IDE. */
+export const EXTENDED_FILE_ASSOCIATIONS = [
+    {
+        ext: fileAssociations.SOURCE_FILE_EXTENSION,
+        name: `${common.PRODUCT_NAME} Source File`,
+        role: 'Editor',
+        // Note that MIME type is used on Windows by the enso-installer to register the file association.
+        // This behavior is unlike what electron-builder does.
+        mimeType: 'text/plain',
+        progId: 'Enso.Source',
+    },
+    {
+        ext: fileAssociations.BUNDLED_PROJECT_EXTENSION,
+        name: `${common.PRODUCT_NAME} Project Bundle`,
+        role: 'Editor',
+        mimeType: 'application/gzip',
+        progId: 'Enso.ProjectBundle',
+    },
+]
+
+/** Returns non-extended file associations, as required by the `electron-builder`.
+ *
+ * Note that we need to actually remove any additional fields that we added to the file associations,
+ * as the `electron-builder` will error out if it encounters unknown fields. */
+function getFileAssociations(): electronBuilder.FileAssociation[] {
+    return EXTENDED_FILE_ASSOCIATIONS.map(assoc => {
+        const { ext, name, role, mimeType } = assoc
+        return { ext, name, role, mimeType }
+    })
+}
+
+/** Returns additional configuration for the `enso-installer`. */
+function getInstallerAdditionalConfig(): InstallerAdditionalConfig {
+    return {
+        publisher: common.COMPANY_NAME,
+        fileAssociations: EXTENDED_FILE_ASSOCIATIONS,
+    }
+}
+
 /** Based on the given arguments, creates a configuration for the Electron Builder. */
 export function createElectronBuilderConfig(passedArgs: Arguments): electronBuilder.Configuration {
     let version = BUILD_INFO.version
@@ -107,6 +163,8 @@ export function createElectronBuilderConfig(passedArgs: Arguments): electronBuil
         productName: common.PRODUCT_NAME,
         extraMetadata: {
             version,
+            // This provides extra data for the installer.
+            installer: getInstallerAdditionalConfig(),
         },
         copyright: `Copyright © ${new Date().getFullYear()} ${common.COMPANY_NAME}`,
 
@@ -184,20 +242,7 @@ export function createElectronBuilderConfig(passedArgs: Arguments): electronBuil
                 filter: ['!**.tar.gz', '!**.zip'],
             },
         ],
-        fileAssociations: [
-            {
-                ext: fileAssociations.SOURCE_FILE_EXTENSION,
-                name: `${common.PRODUCT_NAME} Source File`,
-                role: 'Editor',
-                mimeType: 'text/plain',
-            },
-            {
-                ext: fileAssociations.BUNDLED_PROJECT_EXTENSION,
-                name: `${common.PRODUCT_NAME} Project Bundle`,
-                role: 'Editor',
-                mimeType: 'application/gzip',
-            },
-        ],
+        fileAssociations: getFileAssociations(),
         directories: {
             output: `${passedArgs.ideDist}`,
         },
@@ -292,31 +337,8 @@ export function createElectronBuilderConfig(passedArgs: Arguments): electronBuil
  * The configuration will be extended with additional information needed by the `enso-installer`.
  */
 async function dumpConfiguration(configPath: string, config: electronBuilder.Configuration) {
-    // We cannot extend the configuration in-place, as the electron-builder does a validation that errors out
-    // if it encounters unknown fields. So we do a deep copy and add the necessary bits.
-    /* eslint-disable */
-    const configCopy = JSON.parse(JSON.stringify(config))
-    if (configCopy.fileAssociations.length !== 2) {
-        throw new Error(
-            `Expected exactly two file associations, got ${configCopy.fileAssociations.length}`
-        )
-    }
-    if (configCopy.fileAssociations[0].ext !== fileAssociations.SOURCE_FILE_EXTENSION) {
-        throw new Error(
-            `Expected file association for ${fileAssociations.SOURCE_FILE_EXTENSION} to be first`
-        )
-    }
-    if (configCopy.fileAssociations[1].ext !== fileAssociations.BUNDLED_PROJECT_EXTENSION) {
-        throw new Error(
-            `Expected file association for ${fileAssociations.BUNDLED_PROJECT_EXTENSION} to be second`
-        )
-    }
-    configCopy.publisher = common.COMPANY_NAME
-    configCopy.fileAssociations[0].progId = 'Enso.Source'
-    configCopy.fileAssociations[1].progId = 'Enso.ProjectBundle'
-    const jsonConfig = JSON.stringify(configCopy)
+    const jsonConfig = JSON.stringify(config)
     await fs.writeFile(configPath, jsonConfig)
-    /* eslint-enable */
 }
 
 /** Build the IDE package with Electron Builder. */

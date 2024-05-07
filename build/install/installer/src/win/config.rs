@@ -43,13 +43,15 @@ pub fn fill_config() -> Result<Config> {
     let electron = enso_install::sanitized_electron_builder_config();
 
     let executable_filename = electron.product_name.with_executable_extension();
-    let publisher = electron.publisher.clone();
+    let publisher = electron.extra_metadata.installer.publisher.clone();
     let pretty_name = electron.product_name.clone();
     let shortcut_name = pretty_name.clone();
     let uninstall_key = pretty_name.clone();
     let version = electron.extra_metadata.version.clone();
     let url_protocols = electron.protocols.iter().flat_map(|p| &p.schemes).map_into().collect();
     let file_associations = electron
+        .extra_metadata
+        .installer
         .file_associations
         .iter()
         .map(|file_association| {

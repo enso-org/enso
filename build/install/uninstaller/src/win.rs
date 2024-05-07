@@ -126,7 +126,9 @@ pub async fn main() -> Result {
     handle_error(&mut errors, ide_ci::fs::remove_dir_if_exists(&install_dir));
 
     // Remove prog id but leave file extensions - see https://learn.microsoft.com/en-us/windows/win32/shell/fa-file-types#deleting-registry-information-during-uninstallation
-    for file_association in &sanitized_electron_builder_config().file_associations {
+    for file_association in
+        &sanitized_electron_builder_config().extra_metadata.installer.file_associations
+    {
         let prog_id = &file_association.prog_id;
         info!("Removing ProgID `{prog_id}`.");
         handle_error(&mut errors, enso_install::win::prog_id::delete(prog_id));
