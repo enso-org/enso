@@ -3,22 +3,22 @@ import Standard.Base.Errors.Common.Unsupported_Argument_Types
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
 import project.Column.Column
-import project.Set_Mode.Set_Mode
-import project.Sort_Column.Sort_Column
-import project.Table.Table
 import project.Internal.Add_Row_Number
 import project.Internal.Java_Problems
 import project.Internal.Problem_Builder.Problem_Builder
 import project.Internal.Table_Helpers
-from project.Errors import Duplicate_Output_Column_Names
+import project.Set_Mode.Set_Mode
+import project.Sort_Column.Sort_Column
+import project.Table.Table
 import project.Value_Type.Value_Type
+from project.Errors import Duplicate_Output_Column_Names
 
 polyglot java import java.lang.ArithmeticException
 polyglot java import org.enso.table.data.column.storage.numeric.LongRangeStorage
 polyglot java import org.enso.table.operations.AddRunning
 
 ## PRIVATE
-add_running : Statistic -> (Text | Integer) -> Text -> Vector (Text | Integer | Regex) | Text | Integer | Regex -> Vector (Text | Sort_Column) | Text -> Problem_Behavior -> Table
+add_running : Table -> Statistic -> (Text|Integer) -> Text -> Vector (Text | Integer | Regex) | Text | Integer | Regex -> Vector (Text | Sort_Column) | Text -> Problem_Behavior -> Table
 add_running table (statistic:Statistic=Statistic.Count) (of:Text|Integer=0) (as:Text='') (group_by:(Vector | Text | Integer | Regex)=[]) (order_by:(Vector | Text)=[]) (on_problems:Problem_Behavior=Problem_Behavior.Report_Warning) =
     check_running_support [statistic] <|
         of_col = table.at of
@@ -32,7 +32,7 @@ add_running table (statistic:Statistic=Statistic.Count) (of:Text|Integer=0) (as:
                     grouping_columns = table.columns_helper.select_columns_helper group_by Case_Sensitivity.Default True problem_builder 
                     ordering = Table_Helpers.resolve_order_by table.columns order_by problem_builder
                     source_java_column = of_col.java_column
-                    grouping_java_columns = grouping_columns.map .java_column
+                    grouping_java_columns = grouping_columns.map c->c.java_column
                     ordering_java_columns = ordering.map c->
                         c.column.java_column
                     directions = ordering.map c->

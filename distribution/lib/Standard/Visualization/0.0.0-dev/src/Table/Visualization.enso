@@ -185,8 +185,21 @@ make_json_for_value val level=0 = case val of
             truncated = val.keys.take 5 . map k-> k.to_text + ": " + (make_json_for_value (val.get k) level+1).to_text
             prepared = if val.length > 5 then truncated + ["… " + (val.length - 5).to_text+ " items"] else truncated
             "{" + (prepared.join ", ") + "}"
-    _ : Column -> make_json_for_value val.to_table level
-    _ : DB_Column -> make_json_for_value val.to_table level
+    _ : Column ->
+        if level != 0 then "Column{" +val.name + ": " + val.row_count + " rows}" else
+            items = make_json_for_value val.to_vector level
+            "Column{" + val.name + ": " + items + "}"
+    _ : Row ->
+        if level != 0 then "Row{" + val.table.column_count + " columns}" else
+            truncated = val.table.column_names.take 5 . map _.to_text
+            prepared = if val.table.column_count > 5 then truncated + ["… " + (val.table.column_count - 5).to_text+ " more"] else truncated
+            "Row{" + (prepared.join ", ") + "}"
+    _ : DB_Column ->
+        if level != 0 then "Column{" +val.name + ": " + val.row_count + " rows}" else
+            materialise = val.read 5 warn_if_more_rows=False
+            truncated = materialise . map k-> k.to_text + ": " + (make_json_for_value (val.get k) level+1).to_text
+            prepared = if val.length > 5 then truncated + ["… " + (val.length - 5).to_text+ " items"] else truncated
+            "Column{" + val.name + ": " + prepared + "}"
     _ : Table ->
         if level != 0 then "Table{" + val.row_count + " rows x " + val.column_count + " columns}" else
             truncated = val.columns.take 5 . map _.name

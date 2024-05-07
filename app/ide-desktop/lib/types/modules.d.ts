@@ -20,23 +20,6 @@ declare module '*/build.json' {
     export default BUILD_INFO
 }
 
-declare module '*/gui2/config.yaml' {
-    /** Content of the GUI config file. */
-    interface Config {
-        readonly windowAppScopeName: string
-        readonly windowAppScopeConfigName: string
-        readonly windowAppScopeThemeName: string
-        readonly projectManagerEndpoint: string
-        readonly projectManagerHttpEndpoint: string
-        readonly minimumSupportedVersion: string
-        readonly engineVersionSupported: string
-        readonly languageEditionSupported: string
-    }
-
-    const DATA: Config
-    export default DATA
-}
-
 declare module '@eslint/js' {
     /** A set of configurations. */
     export interface Config {

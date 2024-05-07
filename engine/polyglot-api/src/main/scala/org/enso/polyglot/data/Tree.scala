@@ -6,7 +6,11 @@ import scala.collection.mutable
 /** A rose-tree like data structure that distinguishes between root and node
   * elements.
   */
-@JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type")
+@JsonTypeInfo(
+  use      = JsonTypeInfo.Id.NAME,
+  include  = JsonTypeInfo.As.EXTERNAL_PROPERTY,
+  property = "type"
+)
 @JsonSubTypes(
   Array(
     new JsonSubTypes.Type(
