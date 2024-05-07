@@ -134,9 +134,6 @@ const nodeShortType = computed(() =>
         '--color-visualization-bg': config.background,
         '--node-height': `${config.nodeSize.y}px`,
       }"
-      @pointerdown.stop
-      @pointerup.stop
-      @click.stop
     >
       <SmallPlusButton
         v-if="config.isCircularMenuVisible"
@@ -174,9 +171,6 @@ const nodeShortType = computed(() =>
             invisible: config.isCircularMenuVisible,
             hidden: config.fullscreen,
           }"
-          @pointerdown.stop
-          @pointerup.stop
-          @click.stop
         >
           <button class="image-button active" @click.stop="config.hide()">
             <SvgIcon class="icon" name="eye" alt="Hide visualization" />

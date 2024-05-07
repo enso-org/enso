@@ -148,8 +148,6 @@ const cssTriangleColor = computed(() =>
       @pointerleave="mouseSelectedAngle = undefined"
       @pointermove="ringHover"
       @click.stop="ringClick"
-      @pointerdown.stop
-      @pointerup.stop
     />
   </div>
 </template>

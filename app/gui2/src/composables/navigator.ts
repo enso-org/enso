@@ -33,9 +33,13 @@ export function useNavigator(viewportNode: Ref<Element | undefined>, keyboard: K
 
   const targetScale = shallowRef(1)
   const scale = useApproach(targetScale)
-  const panPointer = usePointer((pos) => {
-    scrollTo(center.value.addScaled(pos.delta, -1 / scale.value))
-  }, PointerButtonMask.Auxiliary)
+  const panPointer = usePointer(
+    (pos) => {
+      scrollTo(center.value.addScaled(pos.delta, -1 / scale.value))
+    },
+    PointerButtonMask.Auxiliary,
+    (e) => e.target === viewportNode.value,
+  )
 
   function eventScreenPos(e: { clientX: number; clientY: number }): Vec2 {
     return new Vec2(e.clientX, e.clientY)
@@ -113,20 +117,24 @@ export function useNavigator(viewportNode: Ref<Element | undefined>, keyboard: K
   }
 
   let zoomPivot = Vec2.Zero
-  const zoomPointer = usePointer((pos, _event, ty) => {
-    if (ty === 'start') {
-      zoomPivot = clientToScenePos(pos.initial)
-    }
+  const zoomPointer = usePointer(
+    (pos, _event, ty) => {
+      if (ty === 'start') {
+        zoomPivot = clientToScenePos(pos.initial)
+      }
 
-    const prevScale = scale.value
-    updateScale((oldValue) => oldValue * Math.exp(-pos.delta.y / 100))
-    scrollTo(
-      center.value
-        .sub(zoomPivot)
-        .scale(prevScale / scale.value)
-        .add(zoomPivot),
-    )
-  }, PointerButtonMask.Secondary)
+      const prevScale = scale.value
+      updateScale((oldValue) => oldValue * Math.exp(-pos.delta.y / 100))
+      scrollTo(
+        center.value
+          .sub(zoomPivot)
+          .scale(prevScale / scale.value)
+          .add(zoomPivot),
+      )
+    },
+    PointerButtonMask.Secondary,
+    (e) => e.target === viewportNode.value,
+  )
 
   const viewport = computed(() => {
     const nodeSize = size.value

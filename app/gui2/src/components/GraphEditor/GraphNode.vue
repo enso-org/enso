@@ -244,35 +244,40 @@ const transform = computed(() => {
 })
 
 const startEpochMs = ref(0)
-let startEvent: PointerEvent | null = null
+let draggedElement: Element | undefined
+let significantMove = false
 let startPos = Vec2.Zero
 
-// TODO[ao]: Now, the dragPointer.events are preventing `click` events on widgets if they don't
-// stop pointerup and pointerdown. Now we ensure that any widget handling click does that, but
-// instead `usePointer` should be smarter.
 const dragPointer = usePointer((pos, event, type) => {
   if (type !== 'start') {
+    if (
+      !significantMove &&
+      draggedElement &&
+      (Number(new Date()) - startEpochMs.value >= MAXIMUM_CLICK_LENGTH_MS ||
+        pos.absolute.distanceSquared(startPos) >= MAXIMUM_CLICK_DISTANCE_SQ)
+    ) {
+      // If this is move, the dragged element (node's content or selection) should capture pointer
+      // events. See the comment below.
+      draggedElement.setPointerCapture?.(event.pointerId)
+      significantMove = true
+    }
     const fullOffset = pos.absolute.sub(startPos)
     emit('dragging', fullOffset)
   }
   switch (type) {
-    case 'start': {
+    case 'start':
       startEpochMs.value = Number(new Date())
-      startEvent = event
       startPos = pos.absolute
-      event.stopImmediatePropagation()
+      // usePointer makes the currentTarget capture pointer events, what would prevent any
+      // up/click event from firing in the original target. But we don't want this until we're
+      // sure user is actually dragging the node. Therefore we set pointer capture on `target`,
+      // and restore it to `currentTarget` (vel `draggedElement`) after a significant move.
+      if (event.target instanceof Element) event.target.setPointerCapture?.(event.pointerId)
+      if (event.currentTarget instanceof Element) draggedElement = event.currentTarget
+      significantMove = false
       break
-    }
     case 'stop': {
-      if (
-        Number(new Date()) - startEpochMs.value <= MAXIMUM_CLICK_LENGTH_MS &&
-        startEvent != null &&
-        pos.absolute.distanceSquared(startPos) <= MAXIMUM_CLICK_DISTANCE_SQ
-      ) {
-        nodeSelection?.handleSelectionOf(event, new Set([nodeId.value]))
-        handleNodeClick(event)
-      }
-      startEvent = null
+      draggedElement = undefined
       startEpochMs.value = 0
       emit('draggingCommited')
     }
@@ -368,8 +373,15 @@ const handlePortClick = useDoubleClick(
 ).handleClick
 
 const handleNodeClick = useDoubleClick(
-  (e: MouseEvent) => nodeEditHandler(e),
-  () => emit('doubleClick'),
+  (e: MouseEvent) => {
+    if (!significantMove) {
+      nodeSelection?.handleSelectionOf(e, new Set([nodeId.value]))
+      nodeEditHandler(e)
+    }
+  },
+  () => {
+    if (!significantMove) emit('doubleClick')
+  },
 ).handleClick
 
 interface PortData {
@@ -493,9 +505,10 @@ const { getNodeColor, visibleNodeColors } = injectNodeColors()
         @pointermove="updateSelectionHover"
         @pointerleave="updateSelectionHover(undefined)"
         v-on="dragPointer.events"
+        @click="handleNodeClick"
       />
     </Teleport>
-    <div class="binding" @pointerdown.stop v-text="node.pattern?.code()" />
+    <div class="binding" v-text="node.pattern?.code()" />
     <button
       v-if="!menuVisible && isRecordingOverridden"
       class="overrideRecordButton"
@@ -551,14 +564,7 @@ const { getNodeColor, visibleNodeColors } = injectNodeColors()
         class="beforeNode"
       />
     </Suspense>
-    <div
-      ref="contentNode"
-      class="content"
-      v-on="dragPointer.events"
-      @click.stop
-      @pointerdown.stop
-      @pointerup.stop
-    >
+    <div ref="contentNode" class="content" v-on="dragPointer.events" @click="handleNodeClick">
       <NodeWidgetTree
         :ast="props.node.innerExpr"
         :nodeId="nodeId"

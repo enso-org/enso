@@ -1,12 +1,12 @@
 /** @file A Vue composable for keeping track of selected DOM elements. */
 import { selectionMouseBindings } from '@/bindings'
-import { useEvent, usePointer } from '@/composables/events'
+import { PointerButtonMask, useEvent, usePointer } from '@/composables/events'
 import type { PortId } from '@/providers/portInfo.ts'
 import { type NodeId } from '@/stores/graph'
 import type { Rect } from '@/util/data/rect'
 import { intersectionSize } from '@/util/data/set'
 import type { Vec2 } from '@/util/data/vec2'
-import { computed, proxyRefs, ref, shallowReactive, shallowRef } from 'vue'
+import { computed, proxyRefs, ref, shallowReactive, shallowRef, type Ref } from 'vue'
 
 export type SelectionComposable<T> = ReturnType<typeof useSelection<T>>
 export function useSelection<T>(
@@ -147,24 +147,28 @@ export function useSelection<T>(
     overrideElemsToSelect.value = undefined
   }
 
-  const pointer = usePointer((_pos, event, eventType) => {
-    if (eventType === 'start') {
-      readInitiallySelected()
-    } else if (eventType === 'stop') {
-      if (anchor.value == null) {
-        // If there was no drag, we want to handle "clicking-off" selected nodes.
+  const pointer = usePointer(
+    (_pos, event, eventType) => {
+      if (eventType === 'start') {
+        readInitiallySelected()
+      } else if (eventType === 'stop') {
+        if (anchor.value == null) {
+          // If there was no drag, we want to handle "clicking-off" selected nodes.
+          selectionEventHandler(event)
+        } else {
+          anchor.value = undefined
+        }
+        initiallySelected.clear()
+      } else if (pointer.dragging) {
+        if (anchor.value == null) {
+          anchor.value = navigator.sceneMousePos?.copy()
+        }
         selectionEventHandler(event)
-      } else {
-        anchor.value = undefined
       }
-      initiallySelected.clear()
-    } else if (pointer.dragging) {
-      if (anchor.value == null) {
-        anchor.value = navigator.sceneMousePos?.copy()
-      }
-      selectionEventHandler(event)
-    }
-  })
+    },
+    PointerButtonMask.Main,
+    (e) => e.target === e.currentTarget,
+  )
 
   return proxyRefs({
     selected,

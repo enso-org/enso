@@ -93,7 +93,7 @@ export const widgetDefinition = defineWidget(
 </script>
 
 <template>
-  <label ref="widgetRoot" class="WidgetText r-24" @pointerdown.stop>
+  <label ref="widgetRoot" class="WidgetText r-24">
     <NodeWidget v-if="shownLiteral.open" :input="WidgetInput.FromAst(shownLiteral.open)" />
     <AutoSizedInput
       ref="input"
