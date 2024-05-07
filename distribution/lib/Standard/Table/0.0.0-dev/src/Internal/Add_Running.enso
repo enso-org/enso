@@ -32,7 +32,7 @@ add_running table (statistic:Statistic=Statistic.Count) (of:Text|Integer=0) (as:
                     grouping_columns = table.columns_helper.select_columns_helper group_by Case_Sensitivity.Default True problem_builder 
                     ordering = Table_Helpers.resolve_order_by table.columns order_by problem_builder
                     source_java_column = of_col.java_column
-                    grouping_java_columns = grouping_columns.map .java_column
+                    grouping_java_columns = grouping_columns.map c->c.java_column
                     ordering_java_columns = ordering.map c->
                         c.column.java_column
                     directions = ordering.map c->

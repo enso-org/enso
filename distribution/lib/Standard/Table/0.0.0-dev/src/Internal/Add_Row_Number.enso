@@ -32,7 +32,7 @@ add_row_number table name from step group_by order_by on_problems =
             False ->
                 ordering_columns = ordering.map c->c.column.java_column
                 directions = ordering.map c->c.associated_selector.direction.to_sign
-                grouping_java_columns = grouping_columns.map .java_column
+                grouping_java_columns = grouping_columns.map c->c.java_column
                 new_storage = Java_Problems.with_problem_aggregator on_problems java_problem_aggregator->
                     AddRowNumber.create_numbering from step grouping_java_columns ordering_columns directions java_problem_aggregator
                 Column.from_storage name new_storage

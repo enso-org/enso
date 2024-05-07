@@ -33,7 +33,7 @@ public final class ParserPolyfill implements AutoCloseable, ProxyExecutable, Pol
   }
 
   @Override
-  public void initialize(Context ctx) {
+  public final void initialize(Context ctx) {
     Source parserJs =
         Source.newBuilder("js", ParserPolyfill.class.getResource(PARSER_JS)).buildLiteral();
 

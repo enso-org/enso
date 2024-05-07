@@ -1,38 +1,44 @@
 import { converter, formatCss, formatRgb, modeOklch, modeRgb, useMode, type Oklch } from 'culori/fn'
 import { v3 as hashString } from 'murmurhash'
+export { type Oklch }
 
 useMode(modeOklch)
 useMode(modeRgb)
 
-const rgbConverter = converter('rgb')
+const oklch = converter('oklch')
 
-export function convertToRgb(color: string): string | undefined {
-  const colorRgb = rgbConverter(color)
-  return colorRgb ? formatRgb(colorRgb) : undefined
+export function cssSupported(css: string): boolean {
+  return typeof CSS !== 'undefined' && 'supports' in CSS && CSS.supports(css)
 }
 
-// Check if the browser supports `oklch` colorspace. If it does not, we fallback to good-old sRGB.
-const supportsOklch: boolean =
-  typeof CSS !== 'undefined' && 'supports' in CSS && CSS.supports('color: oklch(0 0 0)')
+/** Whether the browser supports `oklch` colorspace. */
+export const browserSupportsOklch: boolean = cssSupported('color: oklch(0 0 0)')
 
-/* Generate a sRGB color value from the provided string. */
+/* Generate a CSS color value from the provided string. */
 export function colorFromString(s: string) {
   const hash: number = hashString(s)
-  // Split the 32-bit hash value into parts of 12, 10 and 10 bits.
-  const part1: number = (hash >> 20) & 0xfff
-  const part2: number = (hash >> 10) & 0x3ff
-  const part3: number = hash & 0x3ff
-  // Range values below can be adjusted if necessary, they were chosen arbitrarily.
-  const chroma = mapInt32(part1, 0.1, 0.16, 12)
-  const hue = mapInt32(part2, 0, 360, 10)
-  const lightness = mapInt32(part3, 0.52, 0.57, 10)
-  const color: Oklch = {
+  const hue = mapInt32(hash & 0x3ff, 0, 1, 10)
+  return formatCssColor(ensoColor(hue))
+}
+
+/* Returns the enso color for a given hue, in the range 0-1. */
+export function ensoColor(hue: number): Oklch {
+  return {
     mode: 'oklch',
-    l: lightness,
-    c: chroma,
-    h: hue,
+    l: 0.545,
+    c: 0.14,
+    h: hue * 360,
   }
-  return supportsOklch ? formatCss(color) : formatRgb(color)
+}
+
+/** Format an OKLCH color in CSS. */
+export function formatCssColor(color: Oklch) {
+  return browserSupportsOklch ? formatCss(color) : formatRgb(color)
+}
+
+/* Parse the input as a CSS color value; convert it to Oklch if it isn't already. */
+export function parseCssColor(cssColor: string): Oklch | undefined {
+  return oklch(cssColor)
 }
 
 /* Map `bits`-wide unsigned integer to the range `[rangeStart, rangeEnd)`. */
