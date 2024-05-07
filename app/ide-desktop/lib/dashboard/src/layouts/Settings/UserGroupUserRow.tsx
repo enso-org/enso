@@ -1,40 +1,23 @@
-;
 /** @file A row of the user groups table representing a user. */
-import * as React from 'react';
+import * as React from 'react'
 
+import Cross2 from 'enso-assets/cross2.svg'
 
+import * as contextMenuHooks from '#/hooks/contextMenuHooks'
+import * as tooltipHooks from '#/hooks/tooltipHooks'
 
-import Cross2 from 'enso-assets/cross2.svg';
+import * as modalProvider from '#/providers/ModalProvider'
+import * as textProvider from '#/providers/TextProvider'
 
+import * as aria from '#/components/aria'
+import * as ariaComponents from '#/components/AriaComponents'
+import ContextMenuEntry from '#/components/ContextMenuEntry'
+import FocusableText from '#/components/FocusableText'
+import UnstyledButton from '#/components/UnstyledButton'
 
+import ConfirmDeleteModal from '#/modals/ConfirmDeleteModal'
 
-import * as contextMenuHooks from '#/hooks/contextMenuHooks';
-import * as tooltipHooks from '#/hooks/tooltipHooks';
-
-
-
-import * as modalProvider from '#/providers/ModalProvider';
-import * as textProvider from '#/providers/TextProvider';
-
-
-
-import * as aria from '#/components/aria';
-import * as ariaComponents from '#/components/AriaComponents';
-import ContextMenuEntry from '#/components/ContextMenuEntry';
-import FocusableText from '#/components/FocusableText';
-import UnstyledButton from '#/components/UnstyledButton';
-
-
-
-import ConfirmDeleteModal from '#/modals/ConfirmDeleteModal';
-
-
-
-import type * as backend from '#/services/Backend';
-
-
-
-
+import type * as backend from '#/services/Backend'
 
 // ========================
 // === UserGroupUserRow ===
@@ -84,17 +67,16 @@ export default function UserGroupUserRow(props: UserGroupUserRowProps) {
       className="group h-row rounded-rows-child"
       ref={contextMenuRef}
     >
-      <aria.Cell
-        ref={tooltipTargetRef}
-        className="text border-x-2 border-transparent bg-clip-padding rounded-rows-skip-level last:border-r-0"
-      >
+      <aria.Cell className="text border-x-2 border-transparent bg-clip-padding rounded-rows-skip-level last:border-r-0">
         <aria.TooltipTrigger>
-          <aria.Button className="ml-indent-1 flex h-row w-[calc(100%_-_var(--indent-1-size))] cursor-default items-center whitespace-nowrap rounded-full">
-            {/* NOTE: `overflow-hiden` brings back the ellipsis, but the tooltip disappears */}
-            <FocusableText className="grow text-ellipsis whitespace-nowrap px-name-column-x py-name-column-y text-left">
+          <div className="ml-indent-1 flex h-row w-[calc(100%_-_var(--indent-1-size))] cursor-default items-center whitespace-nowrap rounded-full px-cell-x">
+            <FocusableText
+              ref={tooltipTargetRef}
+              className="cursor-unset block overflow-hidden text-ellipsis whitespace-nowrap"
+            >
               {user.name}
             </FocusableText>
-          </aria.Button>
+          </div>
           {needsTooltip && <ariaComponents.Tooltip>{user.name}</ariaComponents.Tooltip>}
         </aria.TooltipTrigger>
       </aria.Cell>

@@ -9,6 +9,9 @@ export default /** @satisfies {import('tailwindcss').Config} */ ({
   important: `:is(.enso-dashboard, .enso-chat)`,
   theme: {
     extend: {
+      cursor: {
+        unset: 'unset',
+      },
       colors: {
         // While these COULD ideally be defined as CSS variables, then their opacity cannot be
         // modified.

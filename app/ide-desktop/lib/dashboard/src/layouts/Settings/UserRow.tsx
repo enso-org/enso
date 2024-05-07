@@ -67,15 +67,22 @@ export default function UserRow(props: UserRowProps) {
   return (
     <aria.Row
       id={user.userId}
-      className={`rounded-rows-child group h-row ${draggable ? 'cursor-grab' : ''}`}
+      className={`group h-row rounded-rows-child ${draggable ? 'cursor-grab' : ''}`}
       ref={contextMenuRef}
     >
-      <aria.Cell className="text overflow-hidden whitespace-nowrap border-x-2 border-transparent bg-clip-padding px-cell-x first:rounded-l-full last:rounded-r-full last:border-r-0 group-selected:bg-selected-frame">
-        {draggable && <aria.Button slot="drag" />}
+      <aria.Cell className="text relative overflow-hidden whitespace-nowrap border-x-2 border-transparent bg-clip-padding px-cell-x first:rounded-l-full last:rounded-r-full last:border-r-0 group-selected:bg-selected-frame">
+        {draggable && (
+          <aria.FocusRing>
+            <aria.Button
+              slot="drag"
+              className="absolute left top-1/2 ml-1 h-2 w-2 -translate-y-1/2 rounded-sm"
+            />
+          </aria.FocusRing>
+        )}
         <aria.TooltipTrigger>
           <FocusableText
             ref={tooltipTargetRef}
-            className="block cursor-[unset] overflow-hidden text-ellipsis whitespace-nowrap"
+            className="cursor-unset block overflow-hidden text-ellipsis whitespace-nowrap"
           >
             {user.name}
           </FocusableText>
@@ -88,7 +95,7 @@ export default function UserRow(props: UserRowProps) {
       {doDeleteUserRaw == null ? null : doDeleteUser == null ? (
         <></>
       ) : (
-        <aria.Cell className="group-hover-2:opacity-100 relative bg-transparent p transparent">
+        <aria.Cell className="relative bg-transparent p transparent group-hover-2:opacity-100">
           <UnstyledButton
             onPress={event => {
               const rect = event.target.getBoundingClientRect()
