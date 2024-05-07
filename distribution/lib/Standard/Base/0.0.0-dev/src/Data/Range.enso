@@ -226,13 +226,12 @@ type Range
     partition : (Filter_Condition | (Integer -> Boolean)) -> Pair (Vector Integer) (Vector Integer)
     partition self (condition : Filter_Condition | (Integer -> Boolean)) =
         predicate = unify_condition_or_predicate condition
-        pair = self.fold (Pair.new Vector.new_builder Vector.new_builder) acc-> elem->
-            case predicate elem of
-                True ->
-                    Pair.new (acc.first.append elem) acc.second
-                False ->
-                    Pair.new acc.first (acc.second.append elem)
-        pair.map .to_vector
+        vecs = Vector.build_multiple 2 builders->
+            self.map elem->
+                case predicate elem of
+                    True -> builders.first . append elem
+                    False -> builders.second . append elem
+        Pair.new (vecs.at 0) (vecs.at 1)
 
     ## PRIVATE
        ADVANCED
