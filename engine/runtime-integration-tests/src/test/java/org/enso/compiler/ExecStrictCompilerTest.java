@@ -62,8 +62,7 @@ public class ExecStrictCompilerTest {
       type My_Type
           Value a b c a
       """);
-      var run = module.invokeMember("eval_expression", "My_Type.Value");
-      fail("Expecting no returned value: " + run);
+      fail("Expecting no returned value: " + module);
     } catch (PolyglotException ex) {
       assertTrue("Syntax error", ex.isSyntaxError());
       assertTrue("Guest exception", ex.isGuestException());
@@ -96,8 +95,7 @@ public class ExecStrictCompilerTest {
             .build();
     try {
       var module = ctx.eval(code);
-      var run = module.invokeMember("eval_expression", "foo 10");
-      fail("Expecting no returned value: " + run);
+      fail("Expecting no returned value: " + module);
     } catch (PolyglotException ex) {
       assertTrue("Syntax error", ex.isSyntaxError());
       assertTrue("Guest exception", ex.isGuestException());
