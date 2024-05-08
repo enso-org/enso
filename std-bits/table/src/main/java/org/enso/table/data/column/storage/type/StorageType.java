@@ -13,6 +13,7 @@ import org.enso.base.polyglot.NumericConverter;
  */
 public sealed interface StorageType
     permits AnyObjectType,
+        BigDecimalType,
         BigIntegerType,
         BooleanType,
         DateTimeType,

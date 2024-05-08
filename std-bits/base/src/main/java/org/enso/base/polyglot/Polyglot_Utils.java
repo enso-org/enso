@@ -1,5 +1,6 @@
 package org.enso.base.polyglot;
 
+import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -35,6 +36,17 @@ public class Polyglot_Utils {
     if (item.isException()) {
       throw new WrappedDataflowError(item);
     }
+
+    //if (item.receiver instanceof Atom atom && atom.getConstructor().getType() == "Decimal") {
+    if (item.hasMember("big_decimal")) {
+      Object member = item.getMember("big_decimal").asHostObject();
+      if (member instanceof BigDecimal bigDecimal) {
+        return bigDecimal;
+      }
+    }
+// ((org.enso.interpreter.runtime.data.atom.BoxingAtom)item.receiver).getConstructor().getType()
+// item.getMember("big_decimal")
+
     var ret = item.as(Object.class);
     if (ret instanceof BigInteger && item.fitsInLong()) {
       return item.asLong();

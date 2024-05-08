@@ -7,7 +7,7 @@ import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.data.column.storage.type.TimeOfDayType;
 import org.enso.table.error.ValueTypeMismatchException;
 
-/** A builder for string columns. */
+/** A builder for LocalTime columns. */
 public class TimeOfDayBuilder extends TypedBuilderImpl<LocalTime> {
   @Override
   protected LocalTime[] newArray(int size) {

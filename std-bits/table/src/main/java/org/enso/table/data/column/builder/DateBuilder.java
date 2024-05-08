@@ -7,7 +7,7 @@ import org.enso.table.data.column.storage.type.DateType;
 import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.error.ValueTypeMismatchException;
 
-/** A builder for string columns. */
+/** A builder for LocalDate columns. */
 public class DateBuilder extends TypedBuilderImpl<LocalDate> {
   @Override
   protected LocalDate[] newArray(int size) {

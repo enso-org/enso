@@ -66,7 +66,6 @@ public class NumericConverter {
 
   public static boolean isFloatLike(Object o) {
     return o instanceof Double
-        || o instanceof BigDecimal
         || o instanceof Float;
   }
 
