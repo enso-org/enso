@@ -151,6 +151,8 @@ export default /** @satisfies {import('tailwindcss').Config} */ ({
         'members-email-column': 'var(--members-email-column-width)',
         'keyboard-shortcuts-icon-column': 'var(--keyboard-shortcuts-icon-column-width)',
         'keyboard-shortcuts-name-column': 'var(--keyboard-shortcuts-name-column-width)',
+        'keyboard-shortcuts-description-column':
+          'var(--keyboard-shortcuts-description-column-width)',
         'activity-log-icon-column': 'var(--activity-log-icon-column-width)',
         'activity-log-type-column': 'var(--activity-log-type-column-width)',
         'activity-log-email-column': 'var(--activity-log-email-column-width)',

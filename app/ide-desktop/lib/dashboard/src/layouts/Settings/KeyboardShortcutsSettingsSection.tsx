@@ -105,7 +105,7 @@ export default function KeyboardShortcutsSettingsSection() {
                     {getText('name')}
                   </th>
                   <th className="px-cell-x">{getText('shortcuts')}</th>
-                  <th className="w-full px-cell-x">{getText('description')}</th>
+                  <th className="w-full min-w-keyboard-shortcuts-description-column px-cell-x">{getText('description')}</th>
                 </tr>
               </thead>
               <tbody ref={bodyRef}>

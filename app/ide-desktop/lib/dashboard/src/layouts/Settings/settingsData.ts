@@ -182,7 +182,7 @@ export const SETTINGS_TAB_DATA: Readonly<Record<SettingsTabType, SettingsTabData
           },
           {
             type: SettingsEntryType.input,
-            nameId: 'organizationEmailSettingsInput',
+            nameId: 'organizationWebsiteSettingsInput',
             getValue: context => context.organization.website ?? '',
             setValue: async (context, newValue, reset) => {
               const newWebsite = backend.HttpsUrl(newValue)
