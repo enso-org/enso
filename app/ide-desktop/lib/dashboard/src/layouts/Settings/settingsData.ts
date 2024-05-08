@@ -1,27 +1,124 @@
+;
+
 /** @file Metadata for rendering each settings section. */
-import KeyboardShortcutsIcon from 'enso-assets/keyboard_shortcuts.svg'
-import LogIcon from 'enso-assets/log.svg'
-import PeopleSettingsIcon from 'enso-assets/people_settings.svg'
-import PeopleIcon from 'enso-assets/people.svg'
-import SettingsIcon from 'enso-assets/settings.svg'
+import KeyboardShortcutsIcon from 'enso-assets/keyboard_shortcuts.svg';
+import LogIcon from 'enso-assets/log.svg';
+import PeopleSettingsIcon from 'enso-assets/people_settings.svg';
+import PeopleIcon from 'enso-assets/people.svg';
+import SettingsIcon from 'enso-assets/settings.svg';
 
-import type * as text from '#/text'
 
-import type * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
-import ActivityLogSettingsSection from '#/layouts/Settings/ActivityLogSettingsSection'
-import ChangePasswordForm from '#/layouts/Settings/ChangePasswordForm'
-import DeleteUserAccountSettingsSection from '#/layouts/Settings/DeleteUserAccountSettingsSection'
-import KeyboardShortcutsSettingsSection from '#/layouts/Settings/KeyboardShortcutsSettingsSection'
-import MembersSettingsSection from '#/layouts/Settings/MembersSettingsSection'
-import OrganizationProfilePictureInput from '#/layouts/Settings/OrganizationProfilePictureInput'
-import ProfilePictureInput from '#/layouts/Settings/ProfilePictureInput'
-import SettingsTabType from '#/layouts/Settings/SettingsTabType'
+import type * as text from '#/text';
 
-import * as backend from '#/services/Backend'
-import type Backend from '#/services/Backend'
 
-import * as object from '#/utilities/object'
+
+import type * as toastAndLogHooks from '#/hooks/toastAndLogHooks';
+
+
+
+import ActivityLogSettingsSection from '#/layouts/Settings/ActivityLogSettingsSection';
+import ChangePasswordForm from '#/layouts/Settings/ChangePasswordForm';
+import DeleteUserAccountSettingsSection from '#/layouts/Settings/DeleteUserAccountSettingsSection';
+import KeyboardShortcutsSettingsSection from '#/layouts/Settings/KeyboardShortcutsSettingsSection';
+import MembersSettingsSection from '#/layouts/Settings/MembersSettingsSection';
+import OrganizationProfilePictureInput from '#/layouts/Settings/OrganizationProfilePictureInput';
+import ProfilePictureInput from '#/layouts/Settings/ProfilePictureInput';
+import SettingsTabType from '#/layouts/Settings/SettingsTabType';
+
+
+
+import * as backend from '#/services/Backend';
+import type Backend from '#/services/Backend';
+
+
+
+import * as object from '#/utilities/object';
+
+
+
+
+
+;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 // =========================
 // === SettingsEntryType ===
@@ -83,6 +180,7 @@ export const SETTINGS_TAB_DATA: Readonly<Record<SettingsTabType, SettingsTabData
         entries: [
           {
             type: SettingsEntryType.custom,
+            aliasesId: 'changePasswordSettingsCustomEntryAliases',
             render: ChangePasswordForm,
             getVisible: context => {
               // The shape of the JWT payload is statically known.
@@ -103,6 +201,7 @@ export const SETTINGS_TAB_DATA: Readonly<Record<SettingsTabType, SettingsTabData
         entries: [
           {
             type: SettingsEntryType.custom,
+            aliasesId: 'deleteUserAccountSettingsCustomEntryAliases',
             render: DeleteUserAccountSettingsSection,
           },
         ],
@@ -113,6 +212,7 @@ export const SETTINGS_TAB_DATA: Readonly<Record<SettingsTabType, SettingsTabData
         entries: [
           {
             type: SettingsEntryType.custom,
+            aliasesId: 'profilePictureSettingsCustomEntryAliases',
             render: ProfilePictureInput,
           },
         ],
@@ -241,6 +341,7 @@ export const SETTINGS_TAB_DATA: Readonly<Record<SettingsTabType, SettingsTabData
         entries: [
           {
             type: SettingsEntryType.custom,
+            aliasesId: 'organizationProfilePictureSettingsCustomEntryAliases',
             render: OrganizationProfilePictureInput,
           },
         ],
@@ -273,6 +374,7 @@ export const SETTINGS_TAB_DATA: Readonly<Record<SettingsTabType, SettingsTabData
         entries: [
           {
             type: SettingsEntryType.custom,
+            aliasesId: 'keyboardShortcutsSettingsCustomEntryAliases',
             render: KeyboardShortcutsSettingsSection,
           },
         ],
@@ -354,6 +456,7 @@ export interface SettingsInputEntryData {
 /** Metadata describing a settings entry that needs custom rendering. */
 export interface SettingsCustomEntryData {
   readonly type: SettingsEntryType.custom
+  readonly aliasesId?: text.TextId & `${string}SettingsCustomEntryAliases`
   readonly render: (context: SettingsContext) => JSX.Element
   readonly getVisible?: (context: SettingsContext) => boolean
 }

@@ -1,6 +1,8 @@
 /** @file Settings screen. */
 import * as React from 'react'
 
+import BlankIcon from 'enso-assets/blank.svg'
+
 import * as searchParamsState from '#/hooks/searchParamsStateHooks'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
@@ -20,6 +22,7 @@ import * as aria from '#/components/aria'
 import * as backendModule from '#/services/Backend'
 
 import * as array from '#/utilities/array'
+import * as string from '#/utilities/string'
 
 // ================
 // === Settings ===
@@ -94,6 +97,48 @@ export default function Settings() {
     })()
   }, [sessionType, backend])
 
+  const data = ((): settingsData.SettingsTabData => {
+    if (!/\S/.test(query)) {
+      return settingsData.SETTINGS_TAB_DATA[settingsTab]
+    } else {
+      const regex = new RegExp(string.regexEscape(query.trim()).replace(/\s+/g, '.+'), 'i')
+      const isMatch = (name: string) => regex.test(name)
+      const sections = settingsData.SETTINGS_DATA.flatMap(tabSection =>
+        tabSection.tabs.flatMap(tab =>
+          isMatch(getText(tab.nameId)) || isMatch(getText(tabSection.nameId))
+            ? tab.sections
+            : tab.sections.flatMap(section => {
+                const matchingEntries = section.entries.filter(entry => {
+                  switch (entry.type) {
+                    case settingsData.SettingsEntryType.input: {
+                      return isMatch(getText(entry.nameId))
+                    }
+                    case settingsData.SettingsEntryType.custom: {
+                      return entry.aliasesId == null
+                        ? false
+                        : getText(entry.aliasesId).split('\n').some(isMatch)
+                    }
+                  }
+                })
+                if (matchingEntries.length === 0) {
+                  return []
+                } else {
+                  return [{ ...section, entries: matchingEntries }]
+                }
+              })
+        )
+      )
+      return {
+        // These values does not matter.
+        settingsTab: SettingsTabType.account,
+        nameId: 'accountSettingsTab',
+        icon: BlankIcon,
+        // Only the list of sections matters.
+        sections,
+      }
+    }
+  })()
+
   return (
     <div className="flex flex-1 flex-col gap-settings-header overflow-hidden px-page-x">
       <aria.Heading level={1} className="flex h-heading px-heading-x text-xl font-bold">
@@ -108,7 +153,7 @@ export default function Settings() {
       </aria.Heading>
       <div className="flex flex-1 gap-settings overflow-hidden">
         <SettingsSidebar settingsTab={settingsTab} setSettingsTab={setSettingsTab} />
-        <SettingsTab context={context} data={settingsData.SETTINGS_TAB_DATA[settingsTab]} />
+        <SettingsTab context={context} data={data} />
       </div>
     </div>
   )
