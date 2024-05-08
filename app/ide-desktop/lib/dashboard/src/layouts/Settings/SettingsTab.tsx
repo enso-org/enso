@@ -18,11 +18,37 @@ export interface SettingsTabProps {
 export default function SettingsTab(props: SettingsTabProps) {
   const { context, data } = props
   const { sections } = data
+  const columns = React.useMemo<readonly (readonly settingsData.SettingsSectionData[])[]>(() => {
+    const result: settingsData.SettingsSectionData[][] = []
+    for (const section of sections) {
+      const columnNumber = section.column ?? 1
+      let column = result[columnNumber - 1]
+      if (column == null) {
+        while (result.length + 1 < columnNumber) {
+          result.push([])
+        }
+        column = []
+        result.push(column)
+      }
+      column.push(section)
+    }
+    return result
+  }, [sections])
 
-  return (
-    <div className="flex flex-col gap-settings-subsection">
+  return columns.length === 1 ? (
+    <div className="flex min-w-settings-main-section flex-col gap-settings-subsection">
       {sections.map(section => (
-        <SettingsSection context={context} data={section} />
+        <SettingsSection key={section.nameId} context={context} data={section} />
+      ))}
+    </div>
+  ) : (
+    <div className="flex h flex-col gap-settings-section lg:h-auto lg:flex-row">
+      {columns.map((sectionsInColumn, i) => (
+        <div key={i} className="flex min-w-settings-main-section flex-col gap-settings-subsection">
+          {sectionsInColumn.map(section => (
+            <SettingsSection key={section.nameId} context={context} data={section} />
+          ))}
+        </div>
       ))}
     </div>
   )

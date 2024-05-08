@@ -107,9 +107,9 @@ export const SETTINGS_TAB_DATA: Readonly<Record<SettingsTabType, SettingsTabData
           },
         ],
       },
-      // TODO: This is in the second column.
       {
         nameId: 'profilePictureSettingsSection',
+        column: 2,
         entries: [
           {
             type: SettingsEntryType.custom,
@@ -235,9 +235,9 @@ export const SETTINGS_TAB_DATA: Readonly<Record<SettingsTabType, SettingsTabData
           },
         ],
       },
-      // TODO: This is in the second column.
       {
         nameId: 'organizationProfilePictureSettingsSection',
+        column: 2,
         entries: [
           {
             type: SettingsEntryType.custom,
@@ -372,6 +372,8 @@ export type SettingsEntryData = SettingsCustomEntryData | SettingsInputEntryData
 /** Metadata describing a settings tab. */
 export interface SettingsSectionData {
   readonly nameId: text.TextId & `${string}SettingsSection`
+  /** The first column is column 1, not column 0. */
+  readonly column?: number
   readonly heading?: false
   readonly focusArea?: false
   readonly aliases?: text.TextId[]

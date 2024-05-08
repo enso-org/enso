@@ -31,17 +31,26 @@ export default function SettingsSection(props: SettingsSectionProps) {
     </aria.Heading>
   )
 
-  const children = entries.map(entry => <SettingsEntry context={context} data={entry} />)
+  const children = (
+    <div className="flex flex-col">
+      {entries.map((entry, i) => (
+        <SettingsEntry key={i} context={context} data={entry} />
+      ))}
+    </div>
+  )
 
   return !focusArea ? (
-    <div className="flex flex-col gap-settings-section-header">
+    <div className="flex min-w-settings-main-section flex-col gap-settings-section-header">
       {headingElement}
       {children}
     </div>
   ) : (
     <FocusArea direction="vertical">
       {innerProps => (
-        <div className="flex flex-col gap-settings-section-header" {...innerProps}>
+        <div
+          className="flex min-w-settings-main-section flex-col gap-settings-section-header"
+          {...innerProps}
+        >
           {headingElement}
           {children}
         </div>
