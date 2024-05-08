@@ -72,7 +72,7 @@ function SettingsInput(props: SettingsInputProps, ref: React.ForwardedRef<HTMLIn
                 className:
                   'settings-value w-full rounded-full bg-transparent font-bold placeholder-black/30 transition-colors invalid:border invalid:border-red-700 hover:bg-selected-frame focus:bg-selected-frame',
                 ...(type == null ? {} : { type: isShowingPassword ? 'text' : type }),
-                isDisabled,
+                disabled: isDisabled,
                 size: 1,
                 autoComplete,
                 placeholder,
