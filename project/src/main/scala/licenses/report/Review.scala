@@ -116,7 +116,9 @@ case class Review(root: File, dependencySummary: DependencySummary) {
       maybeMatchingPackage match {
         case Some(matchingPackage) =>
           Diagnostic.Error(
-            s"Found legal review configuration for package ${p.getName}, but no such dependency has been found. Perhaps the version was changed to `${matchingPackage.packageName}`?",
+            s"Found legal review configuration for package ${p.getName}, but " +
+            s"no such dependency has been found. Perhaps the version was " +
+            s"changed to `${matchingPackage.packageName}`?",
             metadata = Map(
               "class"     -> "rename-dependency-config",
               "data-from" -> packageNameFromConfig,
@@ -127,7 +129,11 @@ case class Review(root: File, dependencySummary: DependencySummary) {
           // The configuration is not related to any known package, so we remove it
           p.delete()
           Diagnostic.Warning(
-            s"Found legal review configuration for package ${p.getName}, but no such dependency has been found. It seems that the dependency has been removed, so the configuration has been deleted. If you think this was mistake, please rely on version control to bring it back."
+            s"Found legal review configuration for package ${p.getName}, but " +
+            s"no such dependency has been found. It seems that the " +
+            s"dependency has been removed, so the configuration has been " +
+            s"deleted. If you think this was mistake, please rely on " +
+            s"version control to bring it back."
           )
       }
     }
