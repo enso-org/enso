@@ -1,13 +1,16 @@
 <script setup lang="ts">
-import SvgIcon from '@/components/SvgIcon.vue'
 import NodeWidget from '@/components/GraphEditor/NodeWidget.vue'
 import { Score, WidgetInput, defineWidget, widgetProps } from '@/providers/widgetRegistry';
 import { injectSelectionArrow } from '@/providers/selectionArrow';
 import { Ast } from '@/util/ast';
+import { ref, watch } from 'vue';
 
 const props = defineProps(widgetProps(widgetDefinition))
 const innerInput = { ...props.input }
 const info = injectSelectionArrow(true)
+
+const teleportTarget = ref<HTMLElement | null>()
+watch(teleportTarget, (target) => target != null && info != null && info.requestArrow(target))
 </script>
 
 <script lang="ts">
@@ -27,9 +30,8 @@ export const widgetDefinition = defineWidget(
 </script>
 
 <template>
-  <div class="WidgetSelectionArrow">
-    <NodeWidget :input="innerInput" allowEmpty />
-    <SvgIcon v-if="info?.hovered" name="arrow_right_head_only" class="arrow" />
+  <div ref="teleportTarget" class="WidgetSelectionArrow">
+    <NodeWidget :input="innerInput" />
   </div>
 </template>
 

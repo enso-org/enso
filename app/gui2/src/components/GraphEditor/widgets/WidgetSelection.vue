@@ -303,6 +303,9 @@ function expressionTagClicked(tag: ExpressionTag, previousState: boolean) {
     props.onUpdate({ edit, portUpdate: { value: tagValue, origin: props.input.portId } })
   }
 }
+
+const arrowLocation = ref()
+const localArrow = computed(() => arrowLocation == null)
 </script>
 
 <script lang="ts">
@@ -364,6 +367,7 @@ declare module '@/providers/widgetRegistry' {
     @pointerout="isHovered = false"
   >
     <NodeWidget :input="innerWidgetInput" />
+    <Teleport :disabled="localArrow" :to="arrowLocation"><SvgIcon v-if="isHovered" name="arrow_right_head_only" class="arrow" /></Teleport>
     <Teleport v-if="tree.nodeElement" :to="tree.nodeElement">
       <SizeTransition height :duration="100">
         <DropdownWidget
