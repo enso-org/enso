@@ -64,7 +64,6 @@ export interface AssetNewProjectEvent extends AssetBaseEvent<AssetEventType.newP
   readonly placeholderId: backend.ProjectId
   readonly templateId: string | null
   readonly datalinkId: backend.ConnectorId | null
-  readonly onSpinnerStateChange: ((state: spinner.SpinnerState) => void) | null
 }
 
 /** A signal to create a directory. */

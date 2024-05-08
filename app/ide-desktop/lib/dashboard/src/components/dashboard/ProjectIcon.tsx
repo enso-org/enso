@@ -115,9 +115,6 @@ export default function ProjectIcon(props: ProjectIconProps) {
     [user, /* should never change */ setItem]
   )
   const [spinnerState, setSpinnerState] = React.useState(spinner.SpinnerState.initial)
-  const [onSpinnerStateChange, setOnSpinnerStateChange] = React.useState<
-    ((state: spinner.SpinnerState | null) => void) | null
-  >(null)
   const [shouldOpenWhenReady, setShouldOpenWhenReady] = React.useState(false)
   const [isRunningInBackground, setIsRunningInBackground] = React.useState(
     item.projectState.executeAsync ?? false
@@ -221,20 +218,13 @@ export default function ProjectIcon(props: ProjectIconProps) {
           ? REMOTE_SPINNER_STATE[state]
           : LOCAL_SPINNER_STATE[state]
       setSpinnerState(newSpinnerState)
-      onSpinnerStateChange?.(state === backendModule.ProjectState.closed ? null : newSpinnerState)
     })
-  }, [state, backend.type, onSpinnerStateChange])
-
-  React.useEffect(() => {
-    onSpinnerStateChange?.(spinner.SpinnerState.initial)
-    return () => {
-      onSpinnerStateChange?.(null)
-    }
-  }, [onSpinnerStateChange])
+  }, [state, backend.type])
 
   eventHooks.useEventHandler(assetEvents, event => {
     switch (event.type) {
       case AssetEventType.newFolder:
+      case AssetEventType.newProject:
       case AssetEventType.uploadFiles:
       case AssetEventType.newDataLink:
       case AssetEventType.newSecret:
@@ -282,14 +272,6 @@ export default function ProjectIcon(props: ProjectIconProps) {
         }
         break
       }
-      case AssetEventType.newProject: {
-        if (event.placeholderId === key) {
-          setOnSpinnerStateChange(() => event.onSpinnerStateChange)
-        } else if (event.onSpinnerStateChange === onSpinnerStateChange) {
-          setOnSpinnerStateChange(null)
-        }
-        break
-      }
     }
   })
 
@@ -311,8 +293,6 @@ export default function ProjectIcon(props: ProjectIconProps) {
     setToastId(null)
     setShouldOpenWhenReady(false)
     setState(backendModule.ProjectState.closing)
-    onSpinnerStateChange?.(null)
-    setOnSpinnerStateChange(null)
     openProjectAbortController?.abort()
     setOpenProjectAbortController(null)
     const abortController = new AbortController()

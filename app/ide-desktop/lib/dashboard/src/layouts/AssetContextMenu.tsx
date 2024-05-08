@@ -140,7 +140,6 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
                 templateId: null,
                 datalinkId: asset.id,
                 preferredName: asset.title,
-                onSpinnerStateChange: null,
               })
             }}
           />

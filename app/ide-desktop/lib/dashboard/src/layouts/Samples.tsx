@@ -5,14 +5,12 @@ import Logo from 'enso-assets/enso_logo.svg'
 import GeoImage from 'enso-assets/geo.svg'
 import HeartIcon from 'enso-assets/heart.svg'
 import OpenCountIcon from 'enso-assets/open_count.svg'
-import ProjectIcon from 'enso-assets/project_icon.svg'
 import SpreadsheetsImage from 'enso-assets/spreadsheets.svg'
 import VisualizeImage from 'enso-assets/visualize.png'
 
 import * as textProvider from '#/providers/TextProvider'
 
 import * as aria from '#/components/aria'
-import Spinner, * as spinner from '#/components/Spinner'
 import FocusArea from '#/components/styled/FocusArea'
 import FocusRing from '#/components/styled/FocusRing'
 import SvgMask from '#/components/SvgMask'
@@ -21,10 +19,6 @@ import SvgMask from '#/components/SvgMask'
 // === Constants ===
 // =================
 
-/** The size (both width and height) of the spinner, in pixels. */
-const SPINNER_SIZE_PX = 50
-/** The duration of the "spinner done" animation. */
-const SPINNER_DONE_DURATION_MS = 1000
 /** A placeholder author for a sample, for use until the backend implements an endpoint. */
 const DUMMY_AUTHOR = 'Enso Team'
 /** A placeholder number of times a sample has been opened, for use until the backend implements
@@ -91,11 +85,7 @@ export const SAMPLES: Sample[] = [
 /** Props for a {@link ProjectTile}. */
 interface InternalProjectTileProps {
   readonly sample: Sample
-  readonly createProject: (
-    templateId: string,
-    templateName: string,
-    onSpinnerStateChange: (state: spinner.SpinnerState | null) => void
-  ) => void
+  readonly createProject: (templateId: string, templateName: string) => void
 }
 
 /** A button that, when clicked, creates and opens a new project based on a template. */
@@ -103,24 +93,9 @@ function ProjectTile(props: InternalProjectTileProps) {
   const { sample, createProject } = props
   const { getText } = textProvider.useText()
   const { id, title, description, background } = sample
-  const [spinnerState, setSpinnerState] = React.useState<spinner.SpinnerState | null>(null)
   const author = DUMMY_AUTHOR
   const opens = DUMMY_OPEN_COUNT
   const likes = DUMMY_LIKE_COUNT
-
-  const onSpinnerStateChange = React.useCallback((newSpinnerState: spinner.SpinnerState | null) => {
-    setSpinnerState(newSpinnerState)
-    if (newSpinnerState === spinner.SpinnerState.done) {
-      window.setTimeout(() => {
-        setSpinnerState(null)
-      }, SPINNER_DONE_DURATION_MS)
-    }
-  }, [])
-
-  const onPress = () => {
-    setSpinnerState(spinner.SpinnerState.initial)
-    createProject(id, title, onSpinnerStateChange)
-  }
 
   return (
     <div className="flex flex-col gap-sample">
@@ -130,7 +105,9 @@ function ProjectTile(props: InternalProjectTileProps) {
             <aria.Button
               key={title}
               className="focus-child relative flex h-sample grow cursor-pointer flex-col text-left after:pointer-events-none after:absolute after:inset after:rounded-default"
-              onPress={onPress}
+              onPress={() => {
+                createProject(id, title)
+              }}
               {...innerProps}
             >
               <div
@@ -143,11 +120,6 @@ function ProjectTile(props: InternalProjectTileProps) {
                 <aria.Heading className="text-header text-sm font-bold">{title}</aria.Heading>
                 <div className="text-ellipsis text-xs leading-snug">{description}</div>
               </div>
-              {spinnerState != null && (
-                <div className="absolute grid h-sample-image w-full place-items-center">
-                  <Spinner size={SPINNER_SIZE_PX} state={spinnerState} />
-                </div>
-              )}
             </aria.Button>
           </FocusRing>
         )}
@@ -182,11 +154,7 @@ function ProjectTile(props: InternalProjectTileProps) {
 
 /** Props for a {@link Samples}. */
 export interface SamplesProps {
-  readonly createProject: (
-    templateId?: string | null,
-    templateName?: string | null,
-    onSpinnerStateChange?: ((state: spinner.SpinnerState | null) => void) | null
-  ) => void
+  readonly createProject: (templateId?: string | null, templateName?: string | null) => void
 }
 
 /** A list of sample projects. */

@@ -1512,7 +1512,6 @@ export default function AssetsTable(props: AssetsTableProps) {
           placeholderId: dummyId,
           templateId: event.templateId,
           datalinkId: event.datalinkId,
-          onSpinnerStateChange: event.onSpinnerStateChange,
         })
         break
       }

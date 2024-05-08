@@ -103,7 +103,6 @@ export default function GlobalContextMenu(props: GlobalContextMenuProps) {
             templateId: null,
             datalinkId: null,
             preferredName: null,
-            onSpinnerStateChange: null,
           })
         }}
       />

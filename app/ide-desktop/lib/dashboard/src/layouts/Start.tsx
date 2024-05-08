@@ -16,11 +16,7 @@ import type * as spinner from '#/components/Spinner'
 
 /** Props for a {@link Home}. */
 export interface HomeProps {
-  readonly createProject: (
-    templateId?: string | null,
-    templateName?: string | null,
-    onSpinnerStateChange?: ((state: spinner.SpinnerState | null) => void) | null
-  ) => void
+  readonly createProject: (templateId?: string | null, templateName?: string | null) => void
 }
 
 /** Home screen. */
@@ -28,10 +24,7 @@ export default function Home(props: HomeProps) {
   const { createProject } = props
   const { getText } = textProvider.useText()
   return (
-    <ariaComponents.Dialog
-      type="fullscreen"
-      closeButton="floating"
-    >
+    <ariaComponents.Dialog type="fullscreen" closeButton="floating">
       <div className="relative mb-4 flex flex-1 flex-col gap-home text-xs">
         <aria.Heading
           level={2}

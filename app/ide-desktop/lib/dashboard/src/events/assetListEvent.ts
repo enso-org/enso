@@ -64,7 +64,6 @@ interface AssetListNewProjectEvent extends AssetListBaseEvent<AssetListEventType
   readonly templateId: string | null
   readonly datalinkId: backend.ConnectorId | null
   readonly preferredName: string | null
-  readonly onSpinnerStateChange: ((state: spinner.SpinnerState) => void) | null
 }
 
 /** A signal to upload files. */

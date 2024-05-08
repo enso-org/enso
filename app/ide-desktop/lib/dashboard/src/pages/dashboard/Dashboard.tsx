@@ -408,11 +408,7 @@ export default function Dashboard(props: DashboardProps) {
   )
 
   const doCreateProject = React.useCallback(
-    (
-      templateId: string | null = null,
-      templateName: string | null = null,
-      onSpinnerStateChange: ((state: spinner.SpinnerState) => void) | null = null
-    ) => {
+    (templateId: string | null = null, templateName: string | null = null) => {
       const parentId =
         backend.type === backendModule.BackendType.remote
           ? rootDirectoryId
@@ -424,7 +420,6 @@ export default function Dashboard(props: DashboardProps) {
         templateId,
         datalinkId: null,
         preferredName: templateName,
-        onSpinnerStateChange,
       })
     },
     [
