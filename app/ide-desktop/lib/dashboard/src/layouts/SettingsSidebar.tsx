@@ -112,6 +112,8 @@ export default function SettingsSidebar(props: SettingsSidebarProps) {
   const { onClickCapture } = props
   const { getText } = textProvider.useText()
 
+  const [isPending, startTransition] = React.useTransition()
+
   return (
     <FocusArea direction="vertical">
       {innerProps => (
@@ -141,8 +143,11 @@ export default function SettingsSidebar(props: SettingsSidebarProps) {
                   icon={tab.icon}
                   label={tab.name}
                   active={tab.settingsTab === settingsTab}
+                  isPending={isPending && tab.settingsTab === settingsTab}
                   onPress={() => {
-                    setSettingsTab(tab.settingsTab)
+                    startTransition(() => {
+                      setSettingsTab(tab.settingsTab)
+                    })
                   }}
                 />
               ))}

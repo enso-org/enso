@@ -254,10 +254,53 @@ export default class RemoteBackend extends Backend {
 
   /** Invite a new user to the organization by email. */
   override async inviteUser(body: backend.InviteUserRequestBody): Promise<void> {
-    const path = remoteBackendPaths.INVITE_USER_PATH
-    const response = await this.post(path, body)
+    const response = await this.post(remoteBackendPaths.INVITE_USER_PATH, body)
+
     if (!responseIsSuccessful(response)) {
       return await this.throw(response, 'inviteUserBackendError', body.userEmail)
+    } else {
+      return
+    }
+  }
+
+  /**
+   * List all invitations.
+   */
+  override async listInvitations(): Promise<backend.Invitation[]> {
+    const response = await this.get<backend.InvitationListRequestBody>(
+      remoteBackendPaths.INVITATION_PATH
+    )
+
+    if (!responseIsSuccessful(response)) {
+      return await this.throw(response, 'listInvitationsBackendError')
+    } else {
+      return await response.json().then(data => data.invitations)
+    }
+  }
+
+  /**
+   * Delete an invitation.
+   */
+  override async deleteInvitation(userEmail: backend.EmailAddress): Promise<void> {
+    const response = await this.delete(remoteBackendPaths.INVITATION_PATH, { userEmail })
+
+    if (!responseIsSuccessful(response)) {
+      return await this.throw(response, 'deleteInvitationBackendError')
+    } else {
+      return
+    }
+  }
+
+  /**
+   * Resend an invitation to a user.
+   */
+  override async resendInvitation(userEmail: backend.EmailAddress): Promise<void> {
+    const response = await this.post(remoteBackendPaths.INVITATION_PATH, {
+      userEmail,
+      resend: true,
+    })
+    if (!responseIsSuccessful(response)) {
+      return await this.throw(response, 'resendInvitationBackendError')
     } else {
       return
     }
@@ -1030,7 +1073,7 @@ export default class RemoteBackend extends Backend {
   }
 
   /** Send an HTTP DELETE request to the given path. */
-  private delete<T = void>(path: string) {
-    return this.client.delete<T>(`${process.env.ENSO_CLOUD_API_URL}/${path}`)
+  private delete<T = void>(path: string, payload?: Record<string, unknown>) {
+    return this.client.delete<T>(`${process.env.ENSO_CLOUD_API_URL}/${path}`, payload)
   }
 }

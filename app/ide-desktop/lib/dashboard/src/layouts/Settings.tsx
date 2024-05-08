@@ -37,6 +37,7 @@ export default function Settings() {
     SettingsTab.account,
     (value): value is SettingsTab => array.includes(Object.values(SettingsTab), value)
   )
+
   const { type: sessionType, user } = authProvider.useNonPartialUserSession()
   const { backend } = backendProvider.useBackend()
   const { getText } = textProvider.useText()
@@ -67,7 +68,7 @@ export default function Settings() {
     })()
   }, [sessionType, backend])
 
-  let content: JSX.Element
+  let content: React.JSX.Element
   switch (settingsTab) {
     case SettingsTab.account: {
       content = <AccountSettingsTab />

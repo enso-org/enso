@@ -2,7 +2,7 @@
 import type * as aria from '#/components/aria'
 
 /** The type of Dialog. */
-export type DialogType = 'fullscreen' | 'modal' | 'popover'
+export type DialogType = 'fullscreen' | 'modal'
 
 /** Props for the Dialog component. */
 export interface DialogProps extends aria.DialogProps {

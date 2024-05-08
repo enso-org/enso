@@ -32,7 +32,7 @@ export interface ResultProps extends React.PropsWithChildren {
    * @default 'success'
    */
   readonly status?: React.ReactElement | Status
-  readonly icon?: string
+  readonly icon?: string | false
   readonly qa?: string
 }
 
@@ -43,6 +43,7 @@ export function Result(props: ResultProps) {
   const { title, children, status = 'success', subtitle, className, icon, qa = 'Result' } = props
 
   const statusIcon = typeof status === 'string' ? STATUS_ICON_MAP[status] : null
+  const showIcon = icon !== false
 
   return (
     <section
@@ -52,21 +53,26 @@ export function Result(props: ResultProps) {
       )}
       data-testid={qa}
     >
-      {statusIcon != null ? (
-        <div
-          className={tw.twJoin(
-            'mb-4 flex rounded-full bg-opacity-25 p-1 text-green',
-            statusIcon.bgClassName
+      {showIcon ? (
+        <>
+          {statusIcon != null ? (
+            <div
+              className={tw.twJoin(
+                'mb-4 flex rounded-full bg-opacity-25 p-1 text-green',
+                statusIcon.bgClassName
+              )}
+            >
+              <SvgMask
+                src={icon ?? statusIcon.icon}
+                className={tw.twJoin('h-16 w-16 flex-none', statusIcon.colorClassName)}
+              />
+            </div>
+          ) : (
+            status
           )}
-        >
-          <SvgMask
-            src={icon ?? statusIcon.icon}
-            className={tw.twJoin('h-16 w-16 flex-none', statusIcon.colorClassName)}
-          />
-        </div>
-      ) : (
-        status
-      )}
+        </>
+      ) : null}
+
       {typeof title === 'string' ? (
         <aria.Heading level={2} className="text-3xl">
           {title}
@@ -79,7 +85,7 @@ export function Result(props: ResultProps) {
         {subtitle}
       </aria.Text>
 
-      <div className="mt-6">{children}</div>
+      <div className="mt-6 w-full">{children}</div>
     </section>
   )
 }

@@ -3,35 +3,45 @@
 import * as React from 'react'
 
 import clsx from 'clsx'
-import * as tailwindMerge from 'tailwind-merge'
-
-import Dismiss from 'enso-assets/dismiss.svg'
+import * as twv from 'tailwind-variants'
 
 import * as aria from '#/components/aria'
 import * as ariaComponents from '#/components/AriaComponents'
 import * as portal from '#/components/Portal'
 
 import type * as types from './types'
+import * as variants from './variants'
 
-// =================
-// === Constants ===
-// =================
+const OVERLAY_STYLES = twv.tv({
+  base: 'fixed inset-0 isolate flex items-center justify-center bg-black/[25%]',
+  variants: {
+    isEntering: { true: 'animate-in fade-in duration-200 ease-out' },
+    isExiting: { true: 'animate-out fade-out duration-200 ease-in' },
+  },
+})
 
-const MODAL_CLASSES = 'fixed z-1 inset bg-dim flex items-center justify-center text-center'
-const DIALOG_CLASSES =
-  'relative flex flex-col overflow-hidden text-xs rounded-default text-left align-middle text-primary before:absolute before:inset before:rounded-default before:bg-selected-frame before:backdrop-blur-default'
+const MODAL_STYLES = twv.tv({
+  base: 'fixed inset-0 flex items-center justify-center text-center p-4',
+  variants: {
+    isEntering: { true: 'animate-in slide-in-from-top-1 ease-out duration-200' },
+    isExiting: { true: 'animate-out slide-out-to-top-1 ease-in duration-200' },
+  },
+})
 
-const MODAL_CLASSES_BY_TYPE: Readonly<Record<types.DialogType, string>> = {
-  modal: '',
-  popover: '',
-  fullscreen: 'p-4',
-}
-
-const DIALOG_CLASSES_BY_TYPE: Readonly<Record<types.DialogType, string>> = {
-  modal: 'w-full max-w-md min-h-[100px] max-h-[90vh]',
-  popover: 'rounded-lg',
-  fullscreen: 'w-full h-full max-w-full max-h-full bg-clip-border',
-}
+const DIALOG_STYLES = twv.tv({
+  extend: variants.DIALOG_STYLES,
+  base: '',
+  variants: {
+    type: {
+      modal: 'w-full max-w-md min-h-[100px] max-h-[90vh]',
+      fullscreen: 'w-full h-full max-w-full max-h-full bg-clip-border',
+    },
+  },
+  slots: {
+    header:
+      'sticky grid grid-cols-[1fr_auto_1fr] items-center border-b border-primary/10 px-3.5 py-2 text-primary',
+  },
+})
 
 // ==============
 // === Dialog ===
@@ -56,61 +66,69 @@ export function Dialog(props: types.DialogProps) {
 
   const root = portal.useStrictPortalContext()
 
+  const shouldRenderTitle = typeof title === 'string'
+
+  const dialogSlots = DIALOG_STYLES({ className, type })
+
   return (
-    <aria.Modal
-      className={tailwindMerge.twMerge(MODAL_CLASSES, MODAL_CLASSES_BY_TYPE[type])}
+    <aria.ModalOverlay
+      className={OVERLAY_STYLES}
       isDismissable={isDismissable}
       isKeyboardDismissDisabled={isKeyboardDismissDisabled}
       UNSTABLE_portalContainer={root.current}
       onOpenChange={onOpenChange}
       {...modalProps}
     >
-      <aria.Dialog
-        className={tailwindMerge.twMerge(DIALOG_CLASSES, DIALOG_CLASSES_BY_TYPE[type], className)}
-        {...ariaDialogProps}
-        ref={element => {
-          cleanupRef.current()
-          if (element == null) {
-            cleanupRef.current = () => {}
-          } else {
-            const onClick = (event: Event) => {
-              event.stopPropagation()
-            }
-            element.addEventListener('click', onClick)
-            cleanupRef.current = () => {
-              element.removeEventListener('click', onClick)
-            }
-          }
-        }}
+      <aria.Modal
+        className={MODAL_STYLES}
+        isDismissable={isDismissable}
+        isKeyboardDismissDisabled={isKeyboardDismissDisabled}
+        UNSTABLE_portalContainer={root.current}
+        onOpenChange={onOpenChange}
+        {...modalProps}
       >
-        {opts => (
-          <>
-            {typeof title === 'string' && (
-              <aria.Header className="center sticky flex flex-none items-center border-b px-3.5 py-2.5 text-primary shadow">
-                <aria.Heading
-                  slot="title"
-                  level={2}
-                  className="text-l my-0 font-semibold leading-6"
-                >
-                  {title}
-                </aria.Heading>
+        <aria.Dialog
+          ref={element => {
+            cleanupRef.current()
+            if (element == null) {
+              cleanupRef.current = () => {}
+            } else {
+              const onClick = (event: Event) => {
+                event.stopPropagation()
+              }
+              element.addEventListener('click', onClick)
+              cleanupRef.current = () => {
+                element.removeEventListener('click', onClick)
+              }
+            }
+          }}
+          className={dialogSlots.base()} {...ariaDialogProps}>
+          {opts => (
+            <>
+              {shouldRenderTitle && (
+                <aria.Header className={dialogSlots.header()}>
+                  <ariaComponents.CloseButton
+                    className={clsx('mr-auto mt-0.5', { hidden: hideCloseButton })}
+                    onPress={opts.close}
+                  />
 
-                <ariaComponents.Button
-                  variant="icon"
-                  className={clsx('my-auto ml-auto mr-[-4px]', { hidden: hideCloseButton })}
-                  size="custom"
-                  onPress={opts.close}
-                  icon={Dismiss}
-                />
-              </aria.Header>
-            )}
+                  <aria.Heading
+                    slot="title"
+                    level={2}
+                    className="text-m my-0 font-semibold leading-6"
+                  >
+                    {title}
+                  </aria.Heading>
+                </aria.Header>
+              )}
 
-            <div className="relative flex-auto overflow-y-auto p-3.5">
-              {typeof children === 'function' ? children(opts) : children}
-            </div>
-          </>
-        )}
-      </aria.Dialog>
-    </aria.Modal>
+              <div className="relative flex-auto overflow-y-auto p-3.5">
+                {typeof children === 'function' ? children(opts) : children}
+              </div>
+            </>
+          )}
+        </aria.Dialog>
+      </aria.Modal>
+    </aria.ModalOverlay>
   )
 }
