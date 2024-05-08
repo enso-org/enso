@@ -66,7 +66,7 @@ export default function UserGroupRow(props: UserGroupRowProps) {
         <aria.TooltipTrigger>
           <FocusableText
             ref={tooltipTargetRef}
-            className="cursor-unset block overflow-hidden text-ellipsis whitespace-nowrap"
+            className="block cursor-unset overflow-hidden text-ellipsis whitespace-nowrap"
           >
             {userGroup.groupName}
           </FocusableText>

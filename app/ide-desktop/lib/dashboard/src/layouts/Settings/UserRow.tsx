@@ -82,7 +82,7 @@ export default function UserRow(props: UserRowProps) {
         <aria.TooltipTrigger>
           <FocusableText
             ref={tooltipTargetRef}
-            className="cursor-unset block overflow-hidden text-ellipsis whitespace-nowrap"
+            className="block cursor-unset overflow-hidden text-ellipsis whitespace-nowrap"
           >
             {user.name}
           </FocusableText>

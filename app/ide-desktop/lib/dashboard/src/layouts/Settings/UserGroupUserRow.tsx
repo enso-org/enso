@@ -72,7 +72,7 @@ export default function UserGroupUserRow(props: UserGroupUserRowProps) {
           <div className="ml-indent-1 flex h-row w-[calc(100%_-_var(--indent-1-size))] cursor-default items-center whitespace-nowrap rounded-full px-cell-x">
             <FocusableText
               ref={tooltipTargetRef}
-              className="cursor-unset block overflow-hidden text-ellipsis whitespace-nowrap"
+              className="block cursor-unset overflow-hidden text-ellipsis whitespace-nowrap"
             >
               {user.name}
             </FocusableText>

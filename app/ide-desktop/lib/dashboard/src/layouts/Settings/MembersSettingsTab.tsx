@@ -19,7 +19,7 @@ export default function MembersSettingsTab() {
 
   return (
     <SettingsPage>
-      <SettingsSection noFocusArea title={getText('members')} className='overflow-hidden'>
+      <SettingsSection noFocusArea title={getText('members')} className="overflow-hidden">
         <MembersSettingsTabBar />
         <MembersTable allowDelete />
       </SettingsSection>
