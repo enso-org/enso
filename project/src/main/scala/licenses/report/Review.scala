@@ -105,7 +105,7 @@ case class Review(root: File, dependencySummary: DependencySummary) {
 
     val unexpectedConfigurations =
       foundConfigurations.filter(p => !expectedFileNames.contains(p.getName))
-    val diagnostics = unexpectedConfigurations.map { p =>
+    val diagnostics = unexpectedConfigurations.map { p: File =>
       val packageNameFromConfig = p.getName
       val matchingPackages = knownPackages.filter(other =>
         packageNameFromConfig.startsWith(other.packageNameWithoutVersion + "-")
@@ -127,7 +127,7 @@ case class Review(root: File, dependencySummary: DependencySummary) {
           )
         case None =>
           // The configuration is not related to any known package, so we remove it
-          p.delete()
+          IO.delete(p)
           Diagnostic.Warning(
             s"Found legal review configuration for package ${p.getName}, but " +
             s"no such dependency has been found. It seems that the " +
