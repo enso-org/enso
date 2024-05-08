@@ -191,17 +191,6 @@ helper tools for that. We recommend:
 **For users of M1 Mac**: installing GraalVM on M1 Mac requires manual actions,
 please refer to a [dedicated documentation](./graalvm-m1-mac.md).
 
-**For users of MacOS Monterey and later**: building desktop IDE currently
-requires Python 2 installed in the system. It can be installed using the
-following commands:
-
-```sh
-brew install pyenv
-pyenv install 2.7.18
-pyenv global 2.7.18
-export PYTHON_PATH=$(pyenv root)/shims/python
-```
-
 ### Getting the Sources
 
 Given you've probably been reading this document on GitHub, you might have an
@@ -398,22 +387,22 @@ Internally, most of the developers working on the Enso project use IntelliJ as
 their primary IDE. To that end, what follows is a basic set of instructions for
 getting the project into a working state in IntelliJ.
 
-1.  Clone the project sources.
-2.  Open IntelliJ
-3.  File -> New -> Project From Existing Sources.
-4.  Navigate to the directory into which you cloned the project sources. By
-    default this will be called `enso`. Select the directory, and not the
-    `build.sbt` file it contains.
-5.  In the 'Import Project' dialogue, select 'Import project from external
-    model' and choose 'sbt'.
-6.  Where it says 'Download:', ensure you check both 'Library Sources' and 'sbt
-    sources'.
-7.  In addition, check the boxes next to 'Use sbt shell:' such that it is used
-    both 'for imports' and 'for builds'.
-8.  Disallow the overriding of the sbt version.
-9.  Under the 'Project JDK' setting, please ensure that it is set up to use a
-    GraalVM version as described in [System requirements](#system-requirements).
-    You may need to add it using the 'New' button if it isn't already set up.
+1. Clone the project sources.
+2. Open IntelliJ
+3. File -> New -> Project From Existing Sources.
+4. Navigate to the directory into which you cloned the project sources. By
+   default this will be called `enso`. Select the directory, and not the
+   `build.sbt` file it contains.
+5. In the 'Import Project' dialogue, select 'Import project from external model'
+   and choose 'sbt'.
+6. Where it says 'Download:', ensure you check both 'Library Sources' and 'sbt
+   sources'.
+7. In addition, check the boxes next to 'Use sbt shell:' such that it is used
+   both 'for imports' and 'for builds'.
+8. Disallow the overriding of the sbt version.
+9. Under the 'Project JDK' setting, please ensure that it is set up to use a
+   GraalVM version as described in [System requirements](#system-requirements).
+   You may need to add it using the 'New' button if it isn't already set up.
 10. Click 'Finish'. This will prompt you as to whether you want to overwrite the
     `project` folder. Select 'Yes' to continue. The Enso project will load up
     with an open SBT shell, which can be interacted with as described above. You
