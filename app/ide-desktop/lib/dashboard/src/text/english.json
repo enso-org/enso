@@ -309,6 +309,7 @@
   "noVersionsFound": "No versions found",
   "latestIndicator": "(Latest)",
   "noDateSelected": "No date selected",
+  "assetsDropzoneDescription": "Drag and drop files here, or click to upload.",
 
   "deleteLabelActionText": "delete the label '$0'",
   "deleteSelectedAssetActionText": "delete '$0'",

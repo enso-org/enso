@@ -3,6 +3,8 @@ import * as React from 'react'
 
 import * as toast from 'react-toastify'
 
+import DropFilesImage from 'enso-assets/drop_files.svg'
+
 import * as asyncEffectHooks from '#/hooks/asyncEffectHooks'
 import * as eventHooks from '#/hooks/eventHooks'
 import * as scrollHooks from '#/hooks/scrollHooks'
@@ -38,6 +40,8 @@ import SelectionBrush from '#/components/SelectionBrush'
 import Spinner, * as spinner from '#/components/Spinner'
 import Button from '#/components/styled/Button'
 import FocusArea from '#/components/styled/FocusArea'
+import SvgMask from '#/components/SvgMask'
+import UnstyledButton from '#/components/UnstyledButton'
 
 import DragModal from '#/modals/DragModal'
 import DuplicateAssetsModal from '#/modals/DuplicateAssetsModal'
@@ -2435,7 +2439,7 @@ export default function AssetsTable(props: AssetsTableProps) {
       </table>
       <div
         data-testid="root-directory-dropzone"
-        className="grow"
+        className="sticky left grid max-w-container grow place-items-center"
         onClick={() => {
           setSelectedKeys(new Set())
         }}
@@ -2465,7 +2469,26 @@ export default function AssetsTable(props: AssetsTableProps) {
             })
           }
         }}
-      />
+      >
+        <aria.FileTrigger
+          onSelect={event => {
+            dispatchAssetListEvent({
+              type: AssetListEventType.uploadFiles,
+              parentKey: rootDirectoryId,
+              parentId: rootDirectoryId,
+              files: Array.from(event ?? []),
+            })
+          }}
+        >
+          <UnstyledButton
+            className="m-4 flex flex-col items-center gap-3 text-black/30 transition-colors duration-200 hover:text-black/50"
+            onPress={() => {}}
+          >
+            <SvgMask src={DropFilesImage} className="size-[186px]" />
+            {getText('assetsDropzoneDescription')}
+          </UnstyledButton>
+        </aria.FileTrigger>
+      </div>
     </div>
   )
 
