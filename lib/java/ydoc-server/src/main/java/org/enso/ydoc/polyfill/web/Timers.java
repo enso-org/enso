@@ -5,17 +5,15 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
-import org.enso.ydoc.Polyfill;
 import org.enso.ydoc.polyfill.Arguments;
-import org.graalvm.polyglot.Context;
-import org.graalvm.polyglot.Source;
+import org.enso.ydoc.polyfill.PolyfillBase;
 import org.graalvm.polyglot.Value;
 import org.graalvm.polyglot.proxy.ProxyExecutable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /** Implements the <a href="https://nodejs.org/api/timers.html">Timers</a> Node.js API. */
-final class Timers implements ProxyExecutable, Polyfill {
+final class Timers extends PolyfillBase implements ProxyExecutable {
 
   private static final Logger log = LoggerFactory.getLogger(Timers.class);
 
@@ -39,14 +37,8 @@ final class Timers implements ProxyExecutable, Polyfill {
   private final ExecutorService executor;
 
   Timers(ExecutorService executor) {
+    super(TIMERS_JS);
     this.executor = executor;
-  }
-
-  @Override
-  public void initialize(Context ctx) {
-    Source timersJs = Source.newBuilder("js", Timers.class.getResource(TIMERS_JS)).buildLiteral();
-
-    ctx.eval(timersJs).execute(this);
   }
 
   public Object setTimeout(Value func, long delay, Value[] args) {

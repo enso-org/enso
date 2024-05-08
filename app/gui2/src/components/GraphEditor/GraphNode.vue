@@ -9,16 +9,17 @@ import GraphNodeMessage, {
 } from '@/components/GraphEditor/GraphNodeMessage.vue'
 import GraphNodeSelection from '@/components/GraphEditor/GraphNodeSelection.vue'
 import GraphVisualization from '@/components/GraphEditor/GraphVisualization.vue'
+import type { NodeCreationOptions } from '@/components/GraphEditor/nodeCreation'
 import NodeWidgetTree, {
   GRAB_HANDLE_X_MARGIN,
   ICON_WIDTH,
 } from '@/components/GraphEditor/NodeWidgetTree.vue'
-import type { NodeCreationOptions } from '@/components/GraphEditor/nodeCreation'
 import SvgIcon from '@/components/SvgIcon.vue'
 import { useApproach } from '@/composables/animation'
 import { useDoubleClick } from '@/composables/doubleClick'
 import { usePointer, useResizeObserver } from '@/composables/events'
 import { injectGraphNavigator } from '@/providers/graphNavigator'
+import { injectNodeColors } from '@/providers/graphNodeColors'
 import { injectGraphSelection } from '@/providers/graphSelection'
 import { useGraphStore, type Node } from '@/stores/graph'
 import { asNodeId } from '@/stores/graph/graphDatabase'
@@ -58,7 +59,7 @@ const emit = defineEmits<{
   outputPortDoubleClick: [event: PointerEvent, portId: AstId]
   doubleClick: []
   createNodes: [options: NodeCreationOptions[]]
-  toggleColorPicker: []
+  setNodeColor: [color: string]
   'update:edited': [cursorPosition: number]
   'update:rect': [rect: Rect]
   'update:visualizationId': [id: Opt<VisualizationIdentifier>]
@@ -405,7 +406,14 @@ watchEffect(() => {
       const scope = effectScope(true)
       const approach = scope.run(() =>
         useApproach(
-          () => (outputHovered.value === port || graph.unconnectedEdge?.target === port ? 1 : 0),
+          () =>
+            (
+              outputHovered.value === port ||
+              graph.unconnectedEdge?.target === port ||
+              selectionVisible.value
+            ) ?
+              1
+            : 0,
           50,
           0.01,
         ),
@@ -446,6 +454,8 @@ const documentation = computed<string | undefined>({
     })
   },
 })
+
+const { getNodeColor, visibleNodeColors } = injectNodeColors()
 </script>
 
 <template>
@@ -501,6 +511,8 @@ const documentation = computed<string | undefined>({
       :isRecordingEnabledGlobally="projectStore.isRecordingEnabled"
       :isVisualizationVisible="isVisualizationVisible"
       :isFullMenuVisible="menuVisible && menuFull"
+      :nodeColor="getNodeColor(nodeId)"
+      :visibleNodeColors="visibleNodeColors"
       @update:isVisualizationVisible="emit('update:visualizationVisible', $event)"
       @startEditing="startEditingNode"
       @startEditingComment="editingComment = true"
@@ -509,7 +521,7 @@ const documentation = computed<string | undefined>({
       @createNodes="emit('createNodes', $event)"
       @pointerenter="menuHovered = true"
       @pointerleave="menuHovered = false"
-      @toggleColorPicker="emit('toggleColorPicker')"
+      @update:nodeColor="emit('setNodeColor', $event)"
     />
     <GraphVisualization
       v-if="isVisualizationVisible"
@@ -600,21 +612,19 @@ const documentation = computed<string | undefined>({
   height: 100%;
   position: absolute;
   overflow: visible;
-  top: 0px;
-  left: 0px;
+  top: 0;
+  left: 0;
   display: flex;
 
-  --output-port-max-width: 6px;
-  --output-port-overlap: 0.2px;
-  --output-port-hover-width: 8px;
+  --output-port-max-width: 4px;
+  --output-port-overlap: -8px;
+  --output-port-hover-width: 20px;
 }
 
 .outputPort,
 .outputPortHoverArea {
   x: calc(0px - var(--output-port-width) / 2);
-  y: calc(0px - var(--output-port-width) / 2);
   width: calc(var(--node-width) + var(--output-port-width));
-  height: calc(var(--node-height) + var(--output-port-width));
   rx: calc(var(--node-border-radius) + var(--output-port-width) / 2);
 
   fill: none;
@@ -638,13 +648,21 @@ const documentation = computed<string | undefined>({
   --output-port-width: calc(
     var(--output-port-max-width) * var(--hover-animation) - var(--output-port-overlap)
   );
+  y: calc(0px - var(--output-port-width) / 2);
+  height: calc(var(--node-height) + var(--output-port-width));
   pointer-events: none;
 }
 
 .outputPortHoverArea {
   --output-port-width: var(--output-port-hover-width);
+  y: calc(
+    0px + var(--output-port-hover-width) / 2 + var(--output-port-overlap) / 2 + var(--node-height) /
+      2
+  );
+  height: calc(var(--node-height) / 2 + var(--output-port-hover-width) / 2);
   stroke: transparent;
   pointer-events: all;
+  cursor: pointer;
 }
 
 .portClip {
