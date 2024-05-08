@@ -690,8 +690,11 @@ mod tests {
     }
 
     #[tokio::test]
+    // Don't run by default, user might not have privileges to run docker, or the Docker might not
+    // be configured to run native containers.
+    #[ignore]
     async fn build_test_linux() -> Result {
-        setup_logging()?;
+        setup_logging().ok();
         let temp = tempfile::tempdir()?;
         if Docker.lookup().is_err() {
             info!("Docker not found, skipping test.");

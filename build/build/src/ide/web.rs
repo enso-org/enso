@@ -1,16 +1,19 @@
+//! Code for dealing with JS/TS components of the GUI1 and the Electron client (IDE).
+
 use crate::prelude::*;
 
-use crate::ide::web::env::CSC_KEY_PASSWORD;
 use crate::paths::generated;
 use crate::project::gui::BuildInfo;
 use crate::project::IsArtifact;
+use crate::version::ENSO_VERSION;
 
 use anyhow::Context;
-use futures_util::future::try_join;
+use ide_ci::env::known::electron_builder::WindowsSigningCredentials;
 use ide_ci::io::download_all;
 use ide_ci::program::command::FallibleManipulator;
 use ide_ci::programs::node::NpmCommand;
 use ide_ci::programs::Npm;
+use sha2::Digest;
 use std::process::Stdio;
 use tempfile::TempDir;
 
@@ -56,51 +59,8 @@ pub mod env {
     }
 
     // === Electron Builder ===
-    // Variables introduced by the Electron Builder itself.
-    // See: https://www.electron.build/code-signing
+    pub use ide_ci::env::known::electron_builder::*;
 
-    define_env_var! {
-        /// The HTTPS link (or base64-encoded data, or file:// link, or local path) to certificate
-        /// (*.p12 or *.pfx file). Shorthand ~/ is supported (home directory).
-        WIN_CSC_LINK, String;
-
-        /// The password to decrypt the certificate given in WIN_CSC_LINK.
-        WIN_CSC_KEY_PASSWORD, String;
-
-        /// The HTTPS link (or base64-encoded data, or file:// link, or local path) to certificate
-        /// (*.p12 or *.pfx file). Shorthand ~/ is supported (home directory).
-        CSC_LINK, String;
-
-        /// The password to decrypt the certificate given in CSC_LINK.
-        CSC_KEY_PASSWORD, String;
-
-        /// The username of apple developer account.
-        APPLEID, String;
-
-        /// The app-specific password (not Apple ID password). See:
-        /// https://support.apple.com/HT204397
-        APPLEIDPASS, String;
-
-        /// Apple Team ID.
-        APPLETEAMID, String;
-
-        /// `true` or `false`. Defaults to `true` — on a macOS development machine valid and
-        /// appropriate identity from your keychain will be automatically used.
-        CSC_IDENTITY_AUTO_DISCOVERY, bool;
-
-        /// Path to the python2 executable, used by electron-builder on macOS to package DMG.
-        PYTHON_PATH, PathBuf;
-
-        /// Note that enabling CSC_FOR_PULL_REQUEST can pose serious security risks. Refer to the
-        /// [CircleCI documentation](https://circleci.com/docs/1.0/fork-pr-builds/) for more
-        /// information. If the project settings contain SSH keys, sensitive environment variables,
-        /// or AWS credentials, and untrusted forks can submit pull requests to your repository, it
-        /// is not recommended to enable this option.
-        ///
-        /// In our case we are careful to not expose any sensitive information to third-party forks,
-        /// so we can safely enable this option.
-        CSC_FOR_PULL_REQUEST, bool;
-    }
 
     // Cloud environment configuration
     define_env_var! {
@@ -145,6 +105,37 @@ pub mod env {
         /// The Mapbox API token for the GeoMap visualization.
         VITE_ENSO_MAPBOX_API_TOKEN, String;
     }
+}
+
+/// Name of the directory with the unpacked Electron package.
+///
+/// The directory is created by the `electron-builder` utility in the output directory when run
+/// with the `dir` target. It is also usually created for other targets, as it is an intermediate
+/// step in the packaging process.
+///
+/// # Panics
+/// This function panics if the provided OS and architecture combination is not supported.
+pub fn unpacked_dir(output_path: impl AsRef<Path>, os: OS, arch: Arch) -> PathBuf {
+    let segment_name = match (os, arch) {
+        (OS::Linux, Arch::X86_64) => "linux-unpacked",
+        (OS::MacOS, Arch::AArch64) => "mac-arm64",
+        (OS::MacOS, Arch::X86_64) => "mac",
+        (OS::Windows, Arch::X86_64) => "win-unpacked",
+        _ => todo!("{os}-{arch} combination is not supported"),
+    };
+    output_path.as_ref().join(segment_name)
+}
+
+/// Computes the SHA-256 checksum of a file and writes it to a file.
+///
+/// This is a Rust equivalent of the `app/ide-desktop/lib/client/tasks/computeHashes.mjs`.
+pub fn store_sha256_checksum(file: impl AsRef<Path>, checksum_file: impl AsRef<Path>) -> Result {
+    let mut hasher = sha2::Sha256::new();
+    let mut file = ide_ci::fs::open(&file)?;
+    std::io::copy(&mut file, &mut hasher)?;
+    let hash = hasher.finalize();
+    ide_ci::fs::write(&checksum_file, format!("{hash:x}"))?;
+    Ok(())
 }
 
 #[derive(Clone, Debug)]
@@ -196,12 +187,6 @@ impl AsRef<OsStr> for Workspaces {
             Workspaces::Enso => OsStr::new("enso"),
         }
     }
-}
-
-#[derive(Clone, Copy, Debug)]
-pub enum Command {
-    Build,
-    Watch,
 }
 
 pub fn target_os_flag(os: OS) -> Result<&'static str> {
@@ -307,7 +292,9 @@ impl IdeDesktop {
         target_os: OS,
         target: Option<String>,
     ) -> Result {
-        if TARGET_OS == OS::MacOS && CSC_KEY_PASSWORD.is_set() {
+        let output_path = output_path.as_ref();
+        let electron_config = output_path.join("electron-builder.json");
+        if TARGET_OS == OS::MacOS && env::CSC_KEY_PASSWORD.is_set() {
             // This means that we will be doing code signing on MacOS. This requires JDK environment
             // to be set up.
             let graalvm =
@@ -318,18 +305,19 @@ impl IdeDesktop {
 
         crate::web::install(&self.repo_root).await?;
         let pm_bundle = ProjectManagerInfo::new(project_manager)?;
-        let client_build = self
-            .npm()?
+        self.npm()?
             .set_env(env::ENSO_BUILD_GUI, gui.as_ref())?
-            .set_env(env::ENSO_BUILD_IDE, output_path.as_ref())?
+            .set_env(env::ENSO_BUILD_IDE, output_path)?
             .try_applying(&pm_bundle)?
             .workspace(Workspaces::Enso)
             .run("build")
-            .run_ok();
+            .run_ok()
+            .await?;
 
         let icons_dist = TempDir::new()?;
+        let icons_dist = icons_dist.into_path();
         let icons_build = self.build_icons(&icons_dist);
-        let (icons, _content) = try_join(icons_build, client_build).await?;
+        let icons = icons_build.await?;
 
         let python_path = if TARGET_OS == OS::MacOS && !env::PYTHON_PATH.is_set() {
             // On macOS electron-builder will fail during DMG creation if there is no python2
@@ -358,9 +346,10 @@ impl IdeDesktop {
             .try_applying(&icons)?
             // .env("DEBUG", "electron-builder")
             .set_env(env::ENSO_BUILD_GUI, gui.as_ref())?
-            .set_env(env::ENSO_BUILD_IDE, output_path.as_ref())?
+            .set_env(env::ENSO_BUILD_IDE, output_path)?
             .set_env(env::ENSO_BUILD_PROJECT_MANAGER, project_manager.as_ref())?
             .set_env_opt(env::PYTHON_PATH, python_path.as_ref())?
+            .set_env(enso_install_config::ENSO_BUILD_ELECTRON_BUILDER_CONFIG, &electron_config)?
             .workspace(Workspaces::Enso)
             // .args(["--loglevel", "verbose"])
             .run("dist")
@@ -370,6 +359,33 @@ impl IdeDesktop {
             .run_ok()
             .await?;
 
+        // On Windows we build our own installer by invoking `enso_install_config::bundler::bundle`.
+        if TARGET_OS == OS::Windows {
+            let code_signing_certificate = WindowsSigningCredentials::new_from_env()
+                .await
+                .inspect_err(|e| {
+                    warn!("Failed to create code signing certificate from the environment: {e:?}");
+                })
+                .ok();
+
+            let ide_artifacts = crate::project::ide::Artifact::new(
+                target_os,
+                TARGET_ARCH,
+                &ENSO_VERSION.get()?,
+                output_path,
+            );
+
+            let config = enso_install_config::bundler::Config {
+                electron_builder_config:  electron_config,
+                unpacked_electron_bundle: unpacked_dir(output_path, target_os, TARGET_ARCH),
+                repo_root:                self.repo_root.to_path_buf(),
+                output_file:              ide_artifacts.image.clone(),
+                intermediate_dir:         output_path.to_path_buf(),
+                certificate:              code_signing_certificate,
+            };
+            enso_install_config::bundler::bundle(config).await?;
+            store_sha256_checksum(&ide_artifacts.image, &ide_artifacts.image_checksum)?;
+        }
         Ok(())
     }
 }

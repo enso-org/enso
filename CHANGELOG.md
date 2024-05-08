@@ -658,8 +658,8 @@
 - [Added `Excel_Workbook.read_many` allowing reading more than one sheet at a
   time.][9759]
 - [Added ability to write to Data Links.][9750]
-- [Added `Vector.build_multiple`, and better for support for errors and
-  warnings inside `Vector.build` and `Vector.build_multiple`.][9766]
+- [Added `Vector.build_multiple`, and better for support for errors and warnings
+  inside `Vector.build` and `Vector.build_multiple`.][9766]
 
 [debug-shortcuts]:
   https://github.com/enso-org/enso/blob/develop/app/gui/docs/product/shortcuts.md#debug

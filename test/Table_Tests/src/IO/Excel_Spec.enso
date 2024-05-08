@@ -157,6 +157,15 @@ spec_write suite_builder suffix test_sheet_name =
             written.read 'EnsoSheet' . should_equal data.table
             written.close
 
+        group_builder.specify 'should be able to round trip all the data types' <|
+            alltypes = enso_project.data / "transient" / "alltypes."+suffix
+            alltypes.delete_if_exists . should_succeed
+            t1 = enso_project.data/'all_data_types.csv' . read
+            t1.write alltypes (Excel_Format.Sheet "AllTypes") . should_succeed
+            t2 = alltypes.read (Excel_Format.Sheet "AllTypes")
+            t2.should_equal t1
+
+
         group_builder.specify 'should write a table to non-existent file in append mode as a new sheet with headers' <|
             out = data.create_out
             data.table.write out on_existing_file=Existing_File_Behavior.Append on_problems=Report_Error . should_succeed

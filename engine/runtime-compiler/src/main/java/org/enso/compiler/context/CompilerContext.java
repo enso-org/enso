@@ -56,8 +56,10 @@ public interface CompilerContext extends CompilerStub {
    * @param diagnostic
    * @param isOutputRedirected True if the output is not system's out. If true, no ANSI color escape
    *     characters will be inside the returned string.
+   * @return exception with a message to display or to throw
    */
-  String formatDiagnostic(Module module, Diagnostic diagnostic, boolean isOutputRedirected);
+  RuntimeException formatDiagnostic(
+      Module module, Diagnostic diagnostic, boolean isOutputRedirected);
 
   // threads
   boolean isCreateThreadAllowed();

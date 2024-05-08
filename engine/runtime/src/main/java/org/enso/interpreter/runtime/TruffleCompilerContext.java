@@ -268,7 +268,7 @@ final class TruffleCompilerContext implements CompilerContext {
   }
 
   @Override
-  public String formatDiagnostic(
+  public CompilationAbortedException formatDiagnostic(
       CompilerContext.Module module, Diagnostic diagnostic, boolean isOutputRedirected) {
     DiagnosticFormatter diagnosticFormatter;
     var m = org.enso.interpreter.runtime.Module.fromCompilerModule(module);
@@ -283,12 +283,13 @@ final class TruffleCompilerContext implements CompilerContext {
         }
         assert source != null;
         diagnosticFormatter = new DiagnosticFormatter(diagnostic, source, isOutputRedirected);
-        return diagnosticFormatter.format();
+        return new CompilationAbortedException(
+            diagnosticFormatter.format(), diagnosticFormatter.where());
       }
     }
     var emptySource = Source.newBuilder(LanguageInfo.ID, "", null).build();
     diagnosticFormatter = new DiagnosticFormatter(diagnostic, emptySource, isOutputRedirected);
-    return diagnosticFormatter.format();
+    return new CompilationAbortedException(diagnosticFormatter.format(), null);
   }
 
   @SuppressWarnings("unchecked")
