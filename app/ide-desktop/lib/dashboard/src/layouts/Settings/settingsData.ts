@@ -1,124 +1,27 @@
-;
-
 /** @file Metadata for rendering each settings section. */
-import KeyboardShortcutsIcon from 'enso-assets/keyboard_shortcuts.svg';
-import LogIcon from 'enso-assets/log.svg';
-import PeopleSettingsIcon from 'enso-assets/people_settings.svg';
-import PeopleIcon from 'enso-assets/people.svg';
-import SettingsIcon from 'enso-assets/settings.svg';
-
-
-
-import type * as text from '#/text';
-
-
-
-import type * as toastAndLogHooks from '#/hooks/toastAndLogHooks';
-
-
-
-import ActivityLogSettingsSection from '#/layouts/Settings/ActivityLogSettingsSection';
-import ChangePasswordForm from '#/layouts/Settings/ChangePasswordForm';
-import DeleteUserAccountSettingsSection from '#/layouts/Settings/DeleteUserAccountSettingsSection';
-import KeyboardShortcutsSettingsSection from '#/layouts/Settings/KeyboardShortcutsSettingsSection';
-import MembersSettingsSection from '#/layouts/Settings/MembersSettingsSection';
-import OrganizationProfilePictureInput from '#/layouts/Settings/OrganizationProfilePictureInput';
-import ProfilePictureInput from '#/layouts/Settings/ProfilePictureInput';
-import SettingsTabType from '#/layouts/Settings/SettingsTabType';
-
-
-
-import * as backend from '#/services/Backend';
-import type Backend from '#/services/Backend';
-
-
-
-import * as object from '#/utilities/object';
-
-
-
-
-
-;
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-;
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+import KeyboardShortcutsIcon from 'enso-assets/keyboard_shortcuts.svg'
+import LogIcon from 'enso-assets/log.svg'
+import PeopleSettingsIcon from 'enso-assets/people_settings.svg'
+import PeopleIcon from 'enso-assets/people.svg'
+import SettingsIcon from 'enso-assets/settings.svg'
+
+import type * as text from '#/text'
+
+import type * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
+
+import ActivityLogSettingsSection from '#/layouts/Settings/ActivityLogSettingsSection'
+import ChangePasswordForm from '#/layouts/Settings/ChangePasswordForm'
+import DeleteUserAccountSettingsSection from '#/layouts/Settings/DeleteUserAccountSettingsSection'
+import KeyboardShortcutsSettingsSection from '#/layouts/Settings/KeyboardShortcutsSettingsSection'
+import MembersSettingsSection from '#/layouts/Settings/MembersSettingsSection'
+import OrganizationProfilePictureInput from '#/layouts/Settings/OrganizationProfilePictureInput'
+import ProfilePictureInput from '#/layouts/Settings/ProfilePictureInput'
+import SettingsTabType from '#/layouts/Settings/SettingsTabType'
+
+import * as backend from '#/services/Backend'
+import type Backend from '#/services/Backend'
+
+import * as object from '#/utilities/object'
 
 // =========================
 // === SettingsEntryType ===
