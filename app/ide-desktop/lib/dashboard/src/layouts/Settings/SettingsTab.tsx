@@ -36,13 +36,13 @@ export default function SettingsTab(props: SettingsTabProps) {
   }, [sections])
 
   return columns.length === 1 ? (
-    <div className="flex min-w-settings-main-section flex-col gap-settings-subsection">
+    <div className="flex grow flex-col gap-settings-subsection overflow-auto">
       {sections.map(section => (
         <SettingsSection key={section.nameId} context={context} data={section} />
       ))}
     </div>
   ) : (
-    <div className="flex h flex-col gap-settings-section lg:h-auto lg:flex-row">
+    <div className="flex h grow flex-col gap-settings-section overflow-auto lg:h-auto lg:flex-row">
       {columns.map((sectionsInColumn, i) => (
         <div key={i} className="flex min-w-settings-main-section flex-col gap-settings-subsection">
           {sectionsInColumn.map(section => (
