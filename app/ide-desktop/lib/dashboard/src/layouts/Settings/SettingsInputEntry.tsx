@@ -6,7 +6,7 @@ import * as textProvider from '#/providers/TextProvider'
 import type * as settingsData from '#/layouts/Settings/settingsData'
 
 import * as aria from '#/components/aria'
-import SettingsInput from '#/components/styled/settings/SettingsInput'
+import SettingsInput from '#/components/styled/SettingsInput'
 
 // ==========================
 // === SettingsInputEntry ===
