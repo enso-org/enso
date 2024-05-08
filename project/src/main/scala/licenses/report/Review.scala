@@ -113,12 +113,10 @@ case class Review(root: File, dependencySummary: DependencySummary) {
       val maybeMatchingPackage: Option[DependencyInformation] =
         if (matchingPackages.length == 1) Some(matchingPackages.head) else None
 
-      val commonMessagePrefix =
-        s"Found legal review configuration for package ${p.getName}, but no such dependency has been found."
       maybeMatchingPackage match {
         case Some(matchingPackage) =>
           Diagnostic.Error(
-            commonMessagePrefix + s" Perhaps the version was changed to `${matchingPackage.packageName}`?",
+            s"Found legal review configuration for package ${p.getName}, but no such dependency has been found. Perhaps the version was changed to `${matchingPackage.packageName}`?",
             metadata = Map(
               "class"     -> "rename-dependency-config",
               "data-from" -> packageNameFromConfig,
@@ -126,8 +124,10 @@ case class Review(root: File, dependencySummary: DependencySummary) {
             )
           )
         case None =>
-          Diagnostic.Error(
-            commonMessagePrefix + " Perhaps it has been removed or renamed (version change)?"
+          // The configuration is not related to any known package, so we remove it
+          p.delete()
+          Diagnostic.Warning(
+            s"Found legal review configuration for package ${p.getName}, but no such dependency has been found. It seems that the dependency has been removed, so the configuration has been deleted. If you think this was mistake, please rely on version control to bring it back."
           )
       }
     }
