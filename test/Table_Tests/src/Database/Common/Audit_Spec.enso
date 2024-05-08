@@ -12,7 +12,7 @@ import enso_dev.Base_Tests.Network.Enso_Cloud.Cloud_Tests_Setup.Cloud_Tests_Setu
 from project.Util import all
 
 ## Tests the audit capabilities of the connection.
-   It takes an already set-up audited connection (usually through a data link).
+   It takes a data link to the connection. This data link is expected to be a local data link (from the filesystem), not a Cloud one.
 add_specs suite_builder prefix ~datalink_to_connection =
     ## By default, these tests are run only on the Cloud mock, not on the real deployment.
        This is mostly because we don't yet have log filtering so the results on the real deployment could be massive.
@@ -62,6 +62,16 @@ add_specs suite_builder prefix ~datalink_to_connection =
                    Currently that is OK, but if that ever stops being enough the test may need to be amended to be 'smarter'.
                 relevant_event = all_events.find e-> e.message.contains query
                 relevant_event.should_succeed
+
+        group_builder.specify "should still be able to open a local data link if not logged in" <|
+            # The logs should be sent to the local logger, but we cannot easily check that in tests.
+            non_existent_file = (enso_project.data / "nonexistent-credentials-file")
+            non_existent_file.exists.should_be_false
+            Cloud_Tests_Setup.run_with_overridden_credentials non_existent_file <|
+                locally_audited_connection = datalink_to_connection.read
+
+                # We just check that we can read queries through this connection:
+                locally_audited_connection.read "SELECT 1" . at 0 . to_vector . should_equal [1]
 
         group_builder.specify "should know the asset id of the data link used for the connection" pending="TODO: https://github.com/enso-org/enso/issues/9869" <|
             ## TODO:

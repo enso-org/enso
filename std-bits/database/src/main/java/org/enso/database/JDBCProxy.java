@@ -1,5 +1,12 @@
 package org.enso.database;
 
+import org.enso.base.enso_cloud.EnsoSecretAccessDenied;
+import org.enso.base.enso_cloud.EnsoSecretHelper;
+import org.enso.base.enso_cloud.HideableValue;
+import org.enso.database.audit.CloudAuditedConnection;
+import org.enso.database.audit.LocalAuditedConnection;
+import org.graalvm.collections.Pair;
+
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
@@ -8,11 +15,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.ServiceLoader;
-import org.enso.base.enso_cloud.EnsoSecretAccessDenied;
-import org.enso.base.enso_cloud.EnsoSecretHelper;
-import org.enso.base.enso_cloud.HideableValue;
-import org.enso.database.audit.CloudAuditedConnection;
-import org.graalvm.collections.Pair;
 
 /**
  * A helper class for accessing the JDBC components.
@@ -56,15 +58,16 @@ public final class JDBCProxy {
     PartitionedProperties partitionedProperties = PartitionedProperties.parse(properties);
     var rawConnection =
         EnsoSecretHelper.getJDBCConnection(url, partitionedProperties.jdbcProperties);
-    if (partitionedProperties.isAudited()) {
-      return new CloudAuditedConnection(rawConnection, partitionedProperties.getRelatedAssetId());
-    } else {
-      return rawConnection;
-    }
+    return switch (partitionedProperties.audited()) {
+      case "local" -> new LocalAuditedConnection(rawConnection);
+      case "cloud" -> new CloudAuditedConnection(rawConnection, partitionedProperties.getRelatedAssetId());
+      case null -> rawConnection;
+      default -> throw new IllegalArgumentException("Unknown audit mode: " + partitionedProperties.audited());
+    };
   }
 
   private static final String ENSO_PROPERTY_PREFIX = "enso.internal.";
-  public static final String AUDITED_KEY = ENSO_PROPERTY_PREFIX + "audited";
+  public static final String AUDITED_KEY = ENSO_PROPERTY_PREFIX + "audit";
   public static final String RELATED_ASSET_ID_KEY = ENSO_PROPERTY_PREFIX + "relatedAssetId";
 
   private record PartitionedProperties(
@@ -89,8 +92,8 @@ public final class JDBCProxy {
       return new PartitionedProperties(ensoProperties, jdbcProperties);
     }
 
-    public boolean isAudited() {
-      return ensoProperties.containsKey(AUDITED_KEY);
+    public String audited() {
+      return ensoProperties.get(AUDITED_KEY);
     }
 
     public String getRelatedAssetId() {
