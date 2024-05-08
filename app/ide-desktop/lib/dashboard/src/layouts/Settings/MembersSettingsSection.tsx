@@ -3,8 +3,6 @@ import * as React from 'react'
 
 import * as reactQuery from '@tanstack/react-query'
 
-import * as asyncEffectHooks from '#/hooks/asyncEffectHooks'
-
 import * as backendProvider from '#/providers/BackendProvider'
 import * as modalProvider from '#/providers/ModalProvider'
 import * as textProvider from '#/providers/TextProvider'
