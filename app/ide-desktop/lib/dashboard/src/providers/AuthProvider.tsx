@@ -156,6 +156,7 @@ const AuthContext = React.createContext<AuthContextType | null>(null)
 export interface AuthProviderProps {
   readonly shouldStartInOfflineMode: boolean
   readonly supportsLocalBackend: boolean
+  readonly setRemoteBackend: (backend: Backend) => void
   readonly authService: authServiceModule.AuthService | null
   /** Callback to execute once the user has authenticated successfully. */
   readonly onAuthenticated: (accessToken: string | null) => void
@@ -166,12 +167,11 @@ export interface AuthProviderProps {
 
 /** A React provider for the Cognito API. */
 export default function AuthProvider(props: AuthProviderProps) {
-  const { shouldStartInOfflineMode, supportsLocalBackend, authService, onAuthenticated } = props
-  const { children, projectManagerUrl, projectManagerRootDirectory } = props
+  const { shouldStartInOfflineMode, supportsLocalBackend, setRemoteBackend, authService } = props
+  const { onAuthenticated, projectManagerUrl, projectManagerRootDirectory, children } = props
   const logger = loggerProvider.useLogger()
   const { cognito } = authService ?? {}
   const { session, deinitializeSession, onSessionError } = sessionProvider.useSession()
-  const { setBackendWithoutSavingType } = backendProvider.useSetBackend()
   const { localStorage } = localStorageProvider.useLocalStorage()
   const { getText } = textProvider.useText()
   // This must not be `hooks.useNavigate` as `goOffline` would be inaccessible,
@@ -202,21 +202,12 @@ export default function AuthProvider(props: AuthProviderProps) {
     setInitialized(true)
     sentry.setUser(null)
     setUserSession(OFFLINE_USER_SESSION)
-    if (supportsLocalBackend && projectManagerUrl != null && projectManagerRootDirectory != null) {
-      setBackendWithoutSavingType(new LocalBackend(projectManagerUrl, projectManagerRootDirectory))
-    } else {
-      // Provide dummy headers to avoid errors. This `Backend` will never be called as
-      // the entire UI will be disabled.
-      const client = new HttpClient([['Authorization', '']])
-      setBackendWithoutSavingType(new RemoteBackend(client, logger, getText))
-    }
   }, [
     getText,
     /* should never change */ projectManagerUrl,
     /* should never change */ projectManagerRootDirectory,
     /* should never change */ supportsLocalBackend,
     /* should never change */ logger,
-    /* should never change */ setBackendWithoutSavingType,
   ])
 
   const goOffline = React.useCallback(
@@ -310,7 +301,7 @@ export default function AuthProvider(props: AuthProviderProps) {
         // The backend MUST be the remote backend before login is finished.
         // This is because the "set username" flow requires the remote backend.
         if (!initialized || userSession == null || userSession.type === UserSessionType.offline) {
-          setBackendWithoutSavingType(backend)
+          setRemoteBackend(backend)
         }
         gtagEvent('cloud_open')
         let user: backendModule.User | null
@@ -401,8 +392,8 @@ export default function AuthProvider(props: AuthProviderProps) {
     logger,
     onAuthenticated,
     session,
+    /* should never change */ setRemoteBackend,
     /* should never change */ goOfflineInternal,
-    /* should never change */ setBackendWithoutSavingType,
   ])
 
   /** Wrap a function returning a {@link Promise} to display a loading toast notification

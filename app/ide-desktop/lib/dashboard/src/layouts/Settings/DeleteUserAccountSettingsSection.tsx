@@ -20,7 +20,7 @@ import ConfirmDeleteUserModal from '#/modals/ConfirmDeleteUserModal'
 export default function DeleteUserAccountSettingsSection() {
   const { signOut } = authProvider.useAuth()
   const { setModal } = modalProvider.useSetModal()
-  const { backend } = backendProvider.useBackend()
+  const backend = backendProvider.useRemoteBackendStrict()
   const { getText } = textProvider.useText()
 
   return (

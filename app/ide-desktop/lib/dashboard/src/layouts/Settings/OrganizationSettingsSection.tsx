@@ -30,7 +30,7 @@ export interface OrganizationSettingsSectionProps {
 export default function OrganizationSettingsSection(props: OrganizationSettingsSectionProps) {
   const { organization, setOrganization } = props
   const toastAndLog = toastAndLogHooks.useToastAndLog()
-  const { backend } = backendProvider.useBackend()
+  const backend = backendProvider.useRemoteBackendStrict()
   const { getText } = textProvider.useText()
   const nameRef = React.useRef<HTMLInputElement | null>(null)
   const emailRef = React.useRef<HTMLInputElement | null>(null)

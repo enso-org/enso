@@ -21,7 +21,7 @@ import * as object from '#/utilities/object'
 export default function UserAccountSettingsSection() {
   const toastAndLog = toastAndLogHooks.useToastAndLog()
   const { setUser } = authProvider.useAuth()
-  const { backend } = backendProvider.useBackend()
+  const backend = backendProvider.useRemoteBackendStrict()
   const { user } = authProvider.useNonPartialUserSession()
   const { getText } = textProvider.useText()
 

@@ -7,7 +7,6 @@ import * as eventHooks from '#/hooks/eventHooks'
 import * as setAssetHooks from '#/hooks/setAssetHooks'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
-import * as backendProvider from '#/providers/BackendProvider'
 import * as inputBindingsProvider from '#/providers/InputBindingsProvider'
 import * as modalProvider from '#/providers/ModalProvider'
 
@@ -39,10 +38,9 @@ export interface SecretNameColumnProps extends column.AssetColumnProps {}
  * This should never happen. */
 export default function SecretNameColumn(props: SecretNameColumnProps) {
   const { item, setItem, selected, state, rowState, setRowState, isEditable } = props
-  const { assetEvents, dispatchAssetListEvent } = state
+  const { backend, assetEvents, dispatchAssetListEvent } = state
   const toastAndLog = toastAndLogHooks.useToastAndLog()
   const { setModal } = modalProvider.useSetModal()
-  const { backend } = backendProvider.useBackend()
   const inputBindings = inputBindingsProvider.useInputBindings()
   if (item.type !== backendModule.AssetType.secret) {
     // eslint-disable-next-line no-restricted-syntax

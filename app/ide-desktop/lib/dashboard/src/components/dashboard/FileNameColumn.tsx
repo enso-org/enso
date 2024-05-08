@@ -5,7 +5,6 @@ import * as eventHooks from '#/hooks/eventHooks'
 import * as setAssetHooks from '#/hooks/setAssetHooks'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
-import * as backendProvider from '#/providers/BackendProvider'
 import * as inputBindingsProvider from '#/providers/InputBindingsProvider'
 
 import AssetEventType from '#/events/AssetEventType'
@@ -36,9 +35,8 @@ export interface FileNameColumnProps extends column.AssetColumnProps {}
  * This should never happen. */
 export default function FileNameColumn(props: FileNameColumnProps) {
   const { item, setItem, selected, state, rowState, setRowState, isEditable } = props
-  const { nodeMap, assetEvents, dispatchAssetListEvent } = state
+  const { backend, nodeMap, assetEvents, dispatchAssetListEvent } = state
   const toastAndLog = toastAndLogHooks.useToastAndLog()
-  const { backend } = backendProvider.useBackend()
   const inputBindings = inputBindingsProvider.useInputBindings()
   if (item.type !== backendModule.AssetType.file) {
     // eslint-disable-next-line no-restricted-syntax

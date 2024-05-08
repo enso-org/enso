@@ -1,6 +1,8 @@
 /** @file The top-bar of dashboard. */
 import * as React from 'react'
 
+import * as backendProvider from '#/providers/BackendProvider'
+
 import type * as assetSearchBar from '#/layouts/AssetSearchBar'
 import AssetSearchBar from '#/layouts/AssetSearchBar'
 import PageSwitcher, * as pageSwitcher from '#/layouts/PageSwitcher'
@@ -46,7 +48,7 @@ export default function TopBar(props: TopBarProps) {
   const { isEditorDisabled, isHelpChatOpen, setIsHelpChatOpen } = props
   const { query, setQuery, labels, suggestions, isAssetPanelEnabled } = props
   const { isAssetPanelVisible, setIsAssetPanelEnabled, doRemoveSelf, onSignOut } = props
-  const supportsCloudBackend = process.env.ENSO_CLOUD_API_URL != null
+  const remoteBackend = backendProvider.useRemoteBackend()
   const shouldMakeSpaceForExtendedEditorMenu = page === pageSwitcher.Page.editor
 
   return (
@@ -76,9 +78,10 @@ export default function TopBar(props: TopBarProps) {
               setIsAssetPanelEnabled={setIsAssetPanelEnabled}
             />
           )}
-          {supportsCloudBackend && (
+          {remoteBackend != null && (
             <UserBar
               invisible
+              remoteBackend={remoteBackend}
               supportsLocalBackend={supportsLocalBackend}
               page={page}
               setPage={setPage}
@@ -102,17 +105,20 @@ export default function TopBar(props: TopBarProps) {
               setIsAssetPanelEnabled={setIsAssetPanelEnabled}
             />
           )}
-          <UserBar
-            supportsLocalBackend={supportsLocalBackend}
-            page={page}
-            setPage={setPage}
-            isHelpChatOpen={isHelpChatOpen}
-            setIsHelpChatOpen={setIsHelpChatOpen}
-            projectAsset={projectAsset}
-            setProjectAsset={setProjectAsset}
-            doRemoveSelf={doRemoveSelf}
-            onSignOut={onSignOut}
-          />
+          {remoteBackend != null && (
+            <UserBar
+              remoteBackend={remoteBackend}
+              supportsLocalBackend={supportsLocalBackend}
+              page={page}
+              setPage={setPage}
+              isHelpChatOpen={isHelpChatOpen}
+              setIsHelpChatOpen={setIsHelpChatOpen}
+              projectAsset={projectAsset}
+              setProjectAsset={setProjectAsset}
+              doRemoveSelf={doRemoveSelf}
+              onSignOut={onSignOut}
+            />
+          )}
         </div>
       </div>
     </div>

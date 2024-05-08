@@ -3,7 +3,6 @@
 import * as React from 'react'
 
 import * as authProvider from '#/providers/AuthProvider'
-import * as backendProvider from '#/providers/BackendProvider'
 import * as modalProvider from '#/providers/ModalProvider'
 import * as textProvider from '#/providers/TextProvider'
 
@@ -11,7 +10,7 @@ import type * as assetEvent from '#/events/assetEvent'
 import AssetEventType from '#/events/AssetEventType'
 import type * as assetListEvent from '#/events/assetListEvent'
 
-import Category from '#/layouts/CategorySwitcher/Category'
+import Category, * as categoryModule from '#/layouts/CategorySwitcher/Category'
 import GlobalContextMenu from '#/layouts/GlobalContextMenu'
 
 import ContextMenu from '#/components/ContextMenu'
@@ -59,11 +58,10 @@ export default function AssetsTableContextMenu(props: AssetsTableContextMenuProp
   const { category, pasteData, selectedKeys, clearSelectedKeys, nodeMapRef, event } = props
   const { dispatchAssetEvent, dispatchAssetListEvent, rootDirectoryId, hidden = false } = props
   const { doCopy, doCut, doPaste } = props
-  const { backend } = backendProvider.useBackend()
   const { user } = authProvider.useNonPartialUserSession()
   const { setModal, unsetModal } = modalProvider.useSetModal()
   const { getText } = textProvider.useText()
-  const isCloud = backend.type === backendModule.BackendType.remote
+  const isCloud = categoryModule.isCloud(category)
 
   // This works because all items are mutated, ensuring their value stays
   // up to date.

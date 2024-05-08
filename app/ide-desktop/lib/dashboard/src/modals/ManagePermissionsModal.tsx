@@ -8,7 +8,6 @@ import * as asyncEffectHooks from '#/hooks/asyncEffectHooks'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
 import * as authProvider from '#/providers/AuthProvider'
-import * as backendProvider from '#/providers/BackendProvider'
 import * as modalProvider from '#/providers/ModalProvider'
 import * as textProvider from '#/providers/TextProvider'
 
@@ -21,6 +20,7 @@ import FocusArea from '#/components/styled/FocusArea'
 import UnstyledButton from '#/components/UnstyledButton'
 
 import * as backendModule from '#/services/Backend'
+import type Backend from '#/services/Backend'
 
 import * as object from '#/utilities/object'
 import * as permissionsModule from '#/utilities/permissions'
@@ -41,6 +41,7 @@ const TYPE_SELECTOR_Y_OFFSET_PX = 32
 export interface ManagePermissionsModalProps<
   Asset extends backendModule.AnyAsset = backendModule.AnyAsset,
 > {
+  readonly backend: Backend
   readonly item: Asset
   readonly setItem: React.Dispatch<React.SetStateAction<Asset>>
   readonly self: backendModule.UserPermission
@@ -57,9 +58,8 @@ export interface ManagePermissionsModalProps<
 export default function ManagePermissionsModal<
   Asset extends backendModule.AnyAsset = backendModule.AnyAsset,
 >(props: ManagePermissionsModalProps<Asset>) {
-  const { item, setItem, self, doRemoveSelf, eventTarget } = props
-  const { user: user } = authProvider.useNonPartialUserSession()
-  const { backend } = backendProvider.useBackend()
+  const { backend, item, setItem, self, doRemoveSelf, eventTarget } = props
+  const { user } = authProvider.useNonPartialUserSession()
   const { unsetModal } = modalProvider.useSetModal()
   const toastAndLog = toastAndLogHooks.useToastAndLog()
   const { getText } = textProvider.useText()
@@ -325,6 +325,7 @@ export default function ManagePermissionsModal<
               {editablePermissions.map(userPermission => (
                 <div key={userPermission.user.userId} className="flex h-row items-center">
                   <UserPermission
+                    backend={backend}
                     asset={item}
                     self={self}
                     isOnlyOwner={isOnlyOwner}

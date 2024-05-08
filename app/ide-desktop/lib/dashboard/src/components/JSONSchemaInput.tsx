@@ -37,7 +37,7 @@ export default function JSONSchemaInput(props: JSONSchemaInputProps) {
   const { value: valueRaw, setValue: setValueRaw } = props
   // The functionality for inputting `enso-secret`s SHOULD be injected using a plugin,
   // but it is more convenient to avoid having plugin infrastructure.
-  const { backend } = backendProvider.useBackend()
+  const remoteBackend = backendProvider.useRemoteBackend()
   const { getText } = textProvider.useText()
   const [value, setValue] = React.useState(valueRaw)
   const [autocompleteText, setAutocompleteText] = React.useState(() =>
@@ -72,7 +72,7 @@ export default function JSONSchemaInput(props: JSONSchemaInputProps) {
             if (autocompleteItems == null) {
               setAutocompleteItems([])
               void (async () => {
-                const secrets = await backend.listSecrets()
+                const secrets = (await remoteBackend?.listSecrets()) ?? []
                 setAutocompleteItems(secrets.map(secret => secret.path))
               })()
             }

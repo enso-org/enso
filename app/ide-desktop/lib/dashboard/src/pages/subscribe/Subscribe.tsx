@@ -75,7 +75,7 @@ export default function Subscribe() {
   // payment has been confirmed.
   const [sessionStatus, setSessionStatus] =
     React.useState<backendModule.CheckoutSessionStatus | null>(null)
-  const { backend } = backendProvider.useBackend()
+  const backend = backendProvider.useRemoteBackendStrict()
   const toastAndLog = toastAndLogHooks.useToastAndLog()
 
   if (stripePromise == null && process.env.ENSO_CLOUD_STRIPE_KEY != null) {

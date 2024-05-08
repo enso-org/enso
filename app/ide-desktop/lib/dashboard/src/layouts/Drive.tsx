@@ -21,7 +21,7 @@ import type * as assetPanel from '#/layouts/AssetPanel'
 import type * as assetSearchBar from '#/layouts/AssetSearchBar'
 import AssetsTable from '#/layouts/AssetsTable'
 import CategorySwitcher from '#/layouts/CategorySwitcher'
-import Category from '#/layouts/CategorySwitcher/Category'
+import Category, * as categoryModule from '#/layouts/CategorySwitcher/Category'
 import DriveBar from '#/layouts/DriveBar'
 import Labels from '#/layouts/Labels'
 
@@ -97,13 +97,13 @@ export default function Drive(props: DriveProps) {
   const { query, setQuery, labels, setLabels, setSuggestions, projectStartupInfo } = props
   const { assetListEvents, dispatchAssetListEvent, assetEvents, dispatchAssetEvent } = props
   const { setAssetPanelProps, doOpenEditor, doCloseEditor } = props
-  const { setIsAssetPanelTemporarilyVisible } = props
-  const { category, setCategory } = props
+  const { setIsAssetPanelTemporarilyVisible, category, setCategory } = props
 
   const navigate = navigateHooks.useNavigate()
   const toastAndLog = toastAndLogHooks.useToastAndLog()
   const { type: sessionType, user } = authProvider.useNonPartialUserSession()
-  const { backend } = backendProvider.useBackend()
+  const remoteBackend = backendProvider.useRemoteBackend()
+  const backend = backendProvider.useBackend(category)
   const { localStorage } = localStorageProvider.useLocalStorage()
   const { getText } = textProvider.useText()
   const [canDownload, setCanDownload] = React.useState(false)
@@ -123,7 +123,7 @@ export default function Drive(props: DriveProps) {
   const targetDirectoryNodeRef = React.useRef<AssetTreeNode<backendModule.DirectoryAsset> | null>(
     null
   )
-  const isCloud = backend.type === backendModule.BackendType.remote
+  const isCloud = categoryModule.isCloud(category)
   const status =
     !isCloud && didLoadingProjectManagerFail
       ? DriveStatus.noProjectManager
@@ -156,11 +156,11 @@ export default function Drive(props: DriveProps) {
 
   React.useEffect(() => {
     void (async () => {
-      if (backend.type !== backendModule.BackendType.local && user?.isEnabled === true) {
-        setLabels(await backend.listTags())
+      if (remoteBackend != null && user?.isEnabled === true) {
+        setLabels(await remoteBackend.listTags())
       }
     })()
-  }, [backend, user?.isEnabled, /* should never change */ setLabels])
+  }, [remoteBackend, user?.isEnabled, /* should never change */ setLabels])
 
   const doUploadFiles = React.useCallback(
     (files: File[]) => {
@@ -213,47 +213,55 @@ export default function Drive(props: DriveProps) {
 
   const doCreateLabel = React.useCallback(
     async (value: string, color: backendModule.LChColor) => {
-      const newLabelName = backendModule.LabelName(value)
-      const placeholderLabel: backendModule.Label = {
-        id: backendModule.TagId(uniqueString.uniqueString()),
-        value: newLabelName,
-        color,
-      }
-      setNewLabelNames(labelNames => new Set([...labelNames, newLabelName]))
-      setLabels(oldLabels => [...oldLabels, placeholderLabel])
-      try {
-        const newLabel = await backend.createTag({ value, color })
-        setLabels(oldLabels =>
-          oldLabels.map(oldLabel => (oldLabel.id === placeholderLabel.id ? newLabel : oldLabel))
+      if (remoteBackend == null) {
+        throw new Error('Labels can only be created on the Remote Backend.')
+      } else {
+        const newLabelName = backendModule.LabelName(value)
+        const placeholderLabel: backendModule.Label = {
+          id: backendModule.TagId(uniqueString.uniqueString()),
+          value: newLabelName,
+          color,
+        }
+        setNewLabelNames(labelNames => new Set([...labelNames, newLabelName]))
+        setLabels(oldLabels => [...oldLabels, placeholderLabel])
+        try {
+          const newLabel = await remoteBackend.createTag({ value, color })
+          setLabels(oldLabels =>
+            oldLabels.map(oldLabel => (oldLabel.id === placeholderLabel.id ? newLabel : oldLabel))
+          )
+        } catch (error) {
+          toastAndLog(null, error)
+          setLabels(oldLabels => oldLabels.filter(oldLabel => oldLabel.id !== placeholderLabel.id))
+        }
+        setNewLabelNames(
+          labelNames => new Set([...labelNames].filter(labelName => labelName !== newLabelName))
         )
-      } catch (error) {
-        toastAndLog(null, error)
-        setLabels(oldLabels => oldLabels.filter(oldLabel => oldLabel.id !== placeholderLabel.id))
       }
-      setNewLabelNames(
-        labelNames => new Set([...labelNames].filter(labelName => labelName !== newLabelName))
-      )
     },
     [backend, toastAndLog, /* should never change */ setLabels]
   )
 
   const doDeleteLabel = React.useCallback(
     async (id: backendModule.TagId, value: backendModule.LabelName) => {
-      setDeletedLabelNames(oldNames => new Set([...oldNames, value]))
-      setQuery(oldQuery => oldQuery.deleteFromEveryTerm({ labels: [value] }))
-      try {
-        await backend.deleteTag(id, value)
-        dispatchAssetEvent({
-          type: AssetEventType.deleteLabel,
-          labelName: value,
-        })
-        setLabels(oldLabels => oldLabels.filter(oldLabel => oldLabel.id !== id))
-      } catch (error) {
-        toastAndLog(null, error)
+      if (remoteBackend == null) {
+        throw new Error('Labels can only be deleted on the Remote Backend.')
+      } else {
+        setDeletedLabelNames(oldNames => new Set([...oldNames, value]))
+        setQuery(oldQuery => oldQuery.deleteFromEveryTerm({ labels: [value] }))
+        try {
+          await remoteBackend.deleteTag(id, value)
+          dispatchAssetEvent({
+            type: AssetEventType.deleteLabel,
+            labelName: value,
+          })
+          setLabels(oldLabels => oldLabels.filter(oldLabel => oldLabel.id !== id))
+        } catch (error) {
+          toastAndLog(null, error)
+        }
+        setDeletedLabelNames(
+          oldNames => new Set([...oldNames].filter(oldValue => oldValue !== value))
+        )
       }
-      setDeletedLabelNames(
-        oldNames => new Set([...oldNames].filter(oldValue => oldValue !== value))
-      )
     },
     [
       backend,

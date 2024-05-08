@@ -11,7 +11,6 @@ import * as eventHooks from '#/hooks/eventHooks'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
 import * as authProvider from '#/providers/AuthProvider'
-import * as backendProvider from '#/providers/BackendProvider'
 import * as modalProvider from '#/providers/ModalProvider'
 import * as sessionProvider from '#/providers/SessionProvider'
 import * as textProvider from '#/providers/TextProvider'
@@ -24,6 +23,7 @@ import SvgMask from '#/components/SvgMask'
 import UnstyledButton from '#/components/UnstyledButton'
 
 import * as backendModule from '#/services/Backend'
+import type Backend from '#/services/Backend'
 import * as remoteBackend from '#/services/RemoteBackend'
 
 import * as object from '#/utilities/object'
@@ -69,7 +69,7 @@ const LOCAL_SPINNER_STATE: Readonly<Record<backendModule.ProjectState, spinner.S
 
 /** Props for a {@link ProjectIcon}. */
 export interface ProjectIconProps {
-  readonly keyProp: string
+  readonly backend: Backend
   readonly item: backendModule.ProjectAsset
   readonly setItem: React.Dispatch<React.SetStateAction<backendModule.ProjectAsset>>
   readonly assetEvents: assetEvent.AssetEvent[]
@@ -81,9 +81,8 @@ export interface ProjectIconProps {
 
 /** An interactive icon indicating the status of a project. */
 export default function ProjectIcon(props: ProjectIconProps) {
-  const { keyProp: key, item, setItem, assetEvents, doOpenManually } = props
+  const { backend, item, setItem, assetEvents, doOpenManually } = props
   const { doCloseEditor, doOpenEditor } = props
-  const { backend } = backendProvider.useBackend()
   const { session } = sessionProvider.useSession()
   const { user } = authProvider.useNonPartialUserSession()
   const { unsetModal } = modalProvider.useSetModal()
@@ -125,8 +124,9 @@ export default function ProjectIcon(props: ProjectIconProps) {
     React.useState<AbortController | null>(null)
   const [closeProjectAbortController, setCloseProjectAbortController] =
     React.useState<AbortController | null>(null)
+  const isCloud = backend.type !== backendModule.BackendType.local
   const isOtherUserUsingProject =
-    backend.type !== backendModule.BackendType.local && item.projectState.openedBy !== user?.email
+    isCloud && item.projectState.openedBy != null && item.projectState.openedBy !== user?.email
 
   const openProject = React.useCallback(
     async (shouldRunInBackground: boolean) => {

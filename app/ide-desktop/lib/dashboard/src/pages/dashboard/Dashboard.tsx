@@ -23,7 +23,7 @@ import AssetListEventType from '#/events/AssetListEventType'
 import type * as assetPanel from '#/layouts/AssetPanel'
 import AssetPanel from '#/layouts/AssetPanel'
 import type * as assetSearchBar from '#/layouts/AssetSearchBar'
-import Category from '#/layouts/CategorySwitcher/Category'
+import Category, * as categoryModule from '#/layouts/CategorySwitcher/Category'
 import Chat from '#/layouts/Chat'
 import ChatPlaceholder from '#/layouts/ChatPlaceholder'
 import Drive from '#/layouts/Drive'
@@ -132,8 +132,8 @@ export default function Dashboard(props: DashboardProps) {
   const { ydocUrl, projectManagerUrl, projectManagerRootDirectory } = props
   const logger = loggerProvider.useLogger()
   const session = authProvider.useNonPartialUserSession()
-  const { backend } = backendProvider.useBackend()
-  const { setBackend } = backendProvider.useSetBackend()
+  const remoteBackend = backendProvider.useRemoteBackend()
+  const localBackend = backendProvider.useLocalBackend()
   const { modalRef } = modalProvider.useModalRef()
   const { updateModal, unsetModal } = modalProvider.useSetModal()
   const { localStorage } = localStorageProvider.useLocalStorage()
@@ -172,7 +172,7 @@ export default function Dashboard(props: DashboardProps) {
     (value): value is Category => array.includes(Object.values(Category), value)
   )
 
-  const isCloud = backend.type === backendModule.BackendType.remote
+  const isCloud = categoryModule.isCloud(category)
   const rootDirectoryId = React.useMemo(
     () => session.user?.rootDirectoryId ?? backendModule.DirectoryId(''),
     [session.user]
@@ -191,16 +191,6 @@ export default function Dashboard(props: DashboardProps) {
   }, [query, setPage])
 
   React.useEffect(() => {
-    let currentBackend = backend
-    if (
-      supportsLocalBackend &&
-      projectManagerUrl != null &&
-      projectManagerRootDirectory != null &&
-      localStorage.get('backendType') === backendModule.BackendType.local
-    ) {
-      currentBackend = new LocalBackend(projectManagerUrl, projectManagerRootDirectory)
-      setBackend(currentBackend)
-    }
     const savedProjectStartupInfo = localStorage.get('projectStartupInfo')
     if (initialProjectName != null) {
       if (page === pageSwitcher.Page.editor) {
@@ -208,80 +198,58 @@ export default function Dashboard(props: DashboardProps) {
       }
     } else if (savedProjectStartupInfo != null) {
       if (savedProjectStartupInfo.backendType === backendModule.BackendType.remote) {
-        if (session.accessToken != null) {
-          if (
-            currentBackend.type === backendModule.BackendType.remote &&
-            savedProjectStartupInfo.projectAsset.parentId === session.user.rootDirectoryId
-          ) {
-            // `projectStartupInfo` is still `null`, so the `editor` page will be empty.
-            setPage(pageSwitcher.Page.drive)
-            setQueuedAssetEvents([
-              {
-                type: AssetEventType.openProject,
-                id: savedProjectStartupInfo.project.projectId,
-                shouldAutomaticallySwitchPage: page === pageSwitcher.Page.editor,
-                runInBackground: false,
-              },
-            ])
-          } else {
-            setPage(pageSwitcher.Page.drive)
-            const httpClient = new HttpClient(
-              new Headers([['Authorization', `Bearer ${session.accessToken}`]])
-            )
-            const remoteBackend = new RemoteBackend(httpClient, logger, getText)
-            void (async () => {
-              const abortController = new AbortController()
-              setOpenProjectAbortController(abortController)
-              try {
-                const oldProject = await backend.getProjectDetails(
-                  savedProjectStartupInfo.projectAsset.id,
-                  savedProjectStartupInfo.projectAsset.parentId,
-                  savedProjectStartupInfo.projectAsset.title
+        if (remoteBackend != null) {
+          setPage(pageSwitcher.Page.drive)
+          void (async () => {
+            const abortController = new AbortController()
+            setOpenProjectAbortController(abortController)
+            try {
+              const oldProject = await remoteBackend.getProjectDetails(
+                savedProjectStartupInfo.projectAsset.id,
+                savedProjectStartupInfo.projectAsset.parentId,
+                savedProjectStartupInfo.projectAsset.title
+              )
+              if (backendModule.IS_OPENING_OR_OPENED[oldProject.state.type]) {
+                const project = await remoteBackendModule.waitUntilProjectIsReady(
+                  remoteBackend,
+                  savedProjectStartupInfo.projectAsset,
+                  abortController
                 )
-                if (backendModule.IS_OPENING_OR_OPENED[oldProject.state.type]) {
-                  const project = await remoteBackendModule.waitUntilProjectIsReady(
-                    remoteBackend,
-                    savedProjectStartupInfo.projectAsset,
-                    abortController
-                  )
-                  if (!abortController.signal.aborted) {
-                    setProjectStartupInfo(object.merge(savedProjectStartupInfo, { project }))
-                    if (page === pageSwitcher.Page.editor) {
-                      setPage(page)
-                    }
+                if (!abortController.signal.aborted) {
+                  setProjectStartupInfo(object.merge(savedProjectStartupInfo, { project }))
+                  if (page === pageSwitcher.Page.editor) {
+                    setPage(page)
                   }
                 }
-              } catch {
-                setProjectStartupInfo(null)
               }
-            })()
-          }
+            } catch {
+              setProjectStartupInfo(null)
+            }
+          })()
         }
       } else if (projectManagerUrl != null && projectManagerRootDirectory != null) {
-        const localBackend =
-          currentBackend instanceof LocalBackend
-            ? currentBackend
-            : new LocalBackend(projectManagerUrl, projectManagerRootDirectory)
-        void (async () => {
-          await localBackend.openProject(
-            savedProjectStartupInfo.projectAsset.id,
-            {
-              executeAsync: false,
-              cognitoCredentials: null,
-              parentId: savedProjectStartupInfo.projectAsset.parentId,
-            },
-            savedProjectStartupInfo.projectAsset.title
-          )
-          const project = await localBackend.getProjectDetails(
-            savedProjectStartupInfo.projectAsset.id,
-            savedProjectStartupInfo.projectAsset.parentId,
-            savedProjectStartupInfo.projectAsset.title
-          )
-          setProjectStartupInfo(object.merge(savedProjectStartupInfo, { project }))
-          if (page === pageSwitcher.Page.editor) {
-            setPage(page)
-          }
-        })()
+        if (localBackend != null) {
+          void (async () => {
+            await localBackend.openProject(
+              savedProjectStartupInfo.projectAsset.id,
+              {
+                executeAsync: false,
+                cognitoCredentials: null,
+                parentId: savedProjectStartupInfo.projectAsset.parentId,
+              },
+              savedProjectStartupInfo.projectAsset.title
+            )
+            const project = await localBackend.getProjectDetails(
+              savedProjectStartupInfo.projectAsset.id,
+              savedProjectStartupInfo.projectAsset.parentId,
+              savedProjectStartupInfo.projectAsset.title
+            )
+            setProjectStartupInfo(object.merge(savedProjectStartupInfo, { project }))
+            if (page === pageSwitcher.Page.editor) {
+              setPage(page)
+            }
+          })()
+        }
       }
     }
     // This MUST only run when the component is mounted.

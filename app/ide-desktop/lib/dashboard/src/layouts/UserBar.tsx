@@ -1,26 +1,44 @@
+;
 /** @file A toolbar containing chat and the user menu. */
-import * as React from 'react'
+import * as React from 'react';
 
-import ChatIcon from 'enso-assets/chat.svg'
-import DefaultUserIcon from 'enso-assets/default_user.svg'
 
-import * as authProvider from '#/providers/AuthProvider'
-import * as backendProvider from '#/providers/BackendProvider'
-import * as modalProvider from '#/providers/ModalProvider'
-import * as textProvider from '#/providers/TextProvider'
 
-import * as pageSwitcher from '#/layouts/PageSwitcher'
-import UserMenu from '#/layouts/UserMenu'
+import ChatIcon from 'enso-assets/chat.svg';
+import DefaultUserIcon from 'enso-assets/default_user.svg';
 
-import * as aria from '#/components/aria'
-import Button from '#/components/styled/Button'
-import FocusArea from '#/components/styled/FocusArea'
-import UnstyledButton from '#/components/UnstyledButton'
 
-import InviteUsersModal from '#/modals/InviteUsersModal'
-import ManagePermissionsModal from '#/modals/ManagePermissionsModal'
 
-import * as backendModule from '#/services/Backend'
+import * as authProvider from '#/providers/AuthProvider';
+import * as backendProvider from '#/providers/BackendProvider';
+import * as modalProvider from '#/providers/ModalProvider';
+import * as textProvider from '#/providers/TextProvider';
+
+
+
+import * as pageSwitcher from '#/layouts/PageSwitcher';
+import UserMenu from '#/layouts/UserMenu';
+
+
+
+import * as aria from '#/components/aria';
+import Button from '#/components/styled/Button';
+import FocusArea from '#/components/styled/FocusArea';
+import UnstyledButton from '#/components/UnstyledButton';
+
+
+
+import InviteUsersModal from '#/modals/InviteUsersModal';
+import ManagePermissionsModal from '#/modals/ManagePermissionsModal';
+
+
+
+import * as backendModule from '#/services/Backend';
+import type Backend from '#/services/Backend';
+
+
+
+
 
 // ===============
 // === UserBar ===
@@ -28,6 +46,7 @@ import * as backendModule from '#/services/Backend'
 
 /** Props for a {@link UserBar}. */
 export interface UserBarProps {
+  readonly remoteBackend: Backend
   /** When `true`, the element occupies space in the layout but is not visible.
    * Defaults to `false`. */
   readonly invisible?: boolean
@@ -44,11 +63,12 @@ export interface UserBarProps {
 
 /** A toolbar containing chat and the user menu. */
 export default function UserBar(props: UserBarProps) {
-  const { invisible = false, page, setPage, isHelpChatOpen, setIsHelpChatOpen } = props
-  const { supportsLocalBackend, projectAsset, setProjectAsset, doRemoveSelf, onSignOut } = props
+  const { remoteBackend, invisible = false, supportsLocalBackend, page, setPage } = props
+  const { isHelpChatOpen, setIsHelpChatOpen, projectAsset, setProjectAsset } = props
+  const { doRemoveSelf, onSignOut } = props
+
   const { type: sessionType, user } = authProvider.useNonPartialUserSession()
   const { setModal, updateModal } = modalProvider.useSetModal()
-  const { backend } = backendProvider.useBackend()
   const { getText } = textProvider.useText()
   const self =
     user != null
@@ -56,7 +76,7 @@ export default function UserBar(props: UserBarProps) {
         null
       : null
   const shouldShowShareButton =
-    backend.type === backendModule.BackendType.remote &&
+    remoteBackend != null &&
     page === pageSwitcher.Page.editor &&
     projectAsset != null &&
     setProjectAsset != null &&
@@ -82,7 +102,7 @@ export default function UserBar(props: UserBarProps) {
             <UnstyledButton
               className="text my-auto rounded-full bg-share px-button-x text-inversed"
               onPress={() => {
-                setModal(<InviteUsersModal eventTarget={null} />)
+                setModal(<InviteUsersModal remoteBackend={remoteBackend} eventTarget={null} />)
               }}
             >
               <aria.Text slot="label">{getText('invite')}</aria.Text>
@@ -94,6 +114,7 @@ export default function UserBar(props: UserBarProps) {
               onPress={() => {
                 setModal(
                   <ManagePermissionsModal
+                    backend={remoteBackend}
                     item={projectAsset}
                     setItem={setProjectAsset}
                     self={self}

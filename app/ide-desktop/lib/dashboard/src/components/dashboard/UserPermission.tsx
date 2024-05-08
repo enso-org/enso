@@ -5,7 +5,6 @@ import type * as text from '#/text'
 
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
-import * as backendProvider from '#/providers/BackendProvider'
 import * as textProvider from '#/providers/TextProvider'
 
 import * as aria from '#/components/aria'
@@ -13,6 +12,7 @@ import PermissionSelector from '#/components/dashboard/PermissionSelector'
 import FocusArea from '#/components/styled/FocusArea'
 
 import * as backendModule from '#/services/Backend'
+import type Backend from '#/services/Backend'
 
 import * as object from '#/utilities/object'
 
@@ -36,6 +36,7 @@ const ASSET_TYPE_TO_TEXT_ID: Readonly<Record<backendModule.AssetType, text.TextI
 
 /** Props for a {@link UserPermission}. */
 export interface UserPermissionProps {
+  readonly backend: Backend
   readonly asset: backendModule.Asset
   readonly self: backendModule.UserPermission
   readonly isOnlyOwner: boolean
@@ -46,9 +47,8 @@ export interface UserPermissionProps {
 
 /** A user and their permissions for a specific asset. */
 export default function UserPermission(props: UserPermissionProps) {
-  const { asset, self, isOnlyOwner, doDelete } = props
+  const { backend, asset, self, isOnlyOwner, doDelete } = props
   const { userPermission: initialUserPermission, setUserPermission: outerSetUserPermission } = props
-  const { backend } = backendProvider.useBackend()
   const { getText } = textProvider.useText()
   const toastAndLog = toastAndLogHooks.useToastAndLog()
   const [userPermission, setUserPermission] = React.useState(initialUserPermission)

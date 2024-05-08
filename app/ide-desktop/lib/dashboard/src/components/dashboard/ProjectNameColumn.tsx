@@ -1,36 +1,107 @@
+;
+
 /** @file The icon and name of a {@link backendModule.ProjectAsset}. */
-import * as React from 'react'
+import * as React from 'react';
 
-import NetworkIcon from 'enso-assets/network.svg'
 
-import * as eventHooks from '#/hooks/eventHooks'
-import * as setAssetHooks from '#/hooks/setAssetHooks'
-import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
-import * as authProvider from '#/providers/AuthProvider'
-import * as backendProvider from '#/providers/BackendProvider'
-import * as inputBindingsProvider from '#/providers/InputBindingsProvider'
-import * as textProvider from '#/providers/TextProvider'
+import NetworkIcon from 'enso-assets/network.svg';
 
-import AssetEventType from '#/events/AssetEventType'
-import AssetListEventType from '#/events/AssetListEventType'
 
-import type * as column from '#/components/dashboard/column'
-import ProjectIcon from '#/components/dashboard/ProjectIcon'
-import EditableSpan from '#/components/EditableSpan'
-import SvgMask from '#/components/SvgMask'
 
-import * as backendModule from '#/services/Backend'
-import * as localBackend from '#/services/LocalBackend'
-import * as projectManager from '#/services/ProjectManager'
+import * as eventHooks from '#/hooks/eventHooks';
+import * as setAssetHooks from '#/hooks/setAssetHooks';
+import * as toastAndLogHooks from '#/hooks/toastAndLogHooks';
 
-import * as eventModule from '#/utilities/event'
-import * as indent from '#/utilities/indent'
-import * as object from '#/utilities/object'
-import * as permissions from '#/utilities/permissions'
-import * as string from '#/utilities/string'
-import * as validation from '#/utilities/validation'
-import Visibility from '#/utilities/Visibility'
+
+
+import * as authProvider from '#/providers/AuthProvider';
+import * as inputBindingsProvider from '#/providers/InputBindingsProvider';
+import * as textProvider from '#/providers/TextProvider';
+
+
+
+import AssetEventType from '#/events/AssetEventType';
+import AssetListEventType from '#/events/AssetListEventType';
+
+
+
+import type * as column from '#/components/dashboard/column';
+import ProjectIcon from '#/components/dashboard/ProjectIcon';
+import EditableSpan from '#/components/EditableSpan';
+import SvgMask from '#/components/SvgMask';
+
+
+
+import * as backendModule from '#/services/Backend';
+import * as localBackend from '#/services/LocalBackend';
+import * as projectManager from '#/services/ProjectManager';
+
+
+
+import * as eventModule from '#/utilities/event';
+import * as indent from '#/utilities/indent';
+import * as object from '#/utilities/object';
+import * as permissions from '#/utilities/permissions';
+import * as string from '#/utilities/string';
+import * as validation from '#/utilities/validation';
+import Visibility from '#/utilities/Visibility';
+
+
+
+
+
+;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 // ===================
 // === ProjectName ===
@@ -44,10 +115,9 @@ export interface ProjectNameColumnProps extends column.AssetColumnProps {}
  * This should never happen. */
 export default function ProjectNameColumn(props: ProjectNameColumnProps) {
   const { item, setItem, selected, rowState, setRowState, state, isEditable } = props
-  const { selectedKeys, assetEvents, dispatchAssetEvent, dispatchAssetListEvent } = state
+  const { backend, selectedKeys, assetEvents, dispatchAssetEvent, dispatchAssetListEvent } = state
   const { nodeMap, doOpenManually, doOpenEditor, doCloseEditor } = state
   const toastAndLog = toastAndLogHooks.useToastAndLog()
-  const { backend } = backendProvider.useBackend()
   const { user } = authProvider.useNonPartialUserSession()
   const { getText } = textProvider.useText()
   const inputBindings = inputBindingsProvider.useInputBindings()
@@ -71,10 +141,9 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
     (backend.type === backendModule.BackendType.local ||
       (ownPermission != null &&
         permissions.PERMISSION_ACTION_CAN_EXECUTE[ownPermission.permission]))
+  const isCloud = backend.type !== backendModule.BackendType.local
   const isOtherUserUsingProject =
-    backend.type !== backendModule.BackendType.local &&
-    projectState.openedBy != null &&
-    projectState.openedBy !== user?.email
+    isCloud && projectState.openedBy != null && projectState.openedBy !== user?.email
 
   const setIsEditing = (isEditingName: boolean) => {
     if (isEditable) {
@@ -302,7 +371,7 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
         <SvgMask src={NetworkIcon} className="m-name-column-icon size-icon" />
       ) : (
         <ProjectIcon
-          keyProp={item.key}
+          backend={backend}
           // This is a workaround for a temporary bad state in the backend causing the
           // `projectState` key to be absent.
           item={object.merge(asset, { projectState })}

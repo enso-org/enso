@@ -33,7 +33,7 @@ export default function Settings() {
     (value): value is SettingsTab => array.includes(Object.values(SettingsTab), value)
   )
   const { type: sessionType, user } = authProvider.useNonPartialUserSession()
-  const { backend } = backendProvider.useBackend()
+  const remoteBackend = backendProvider.useRemoteBackendStrict()
   const { getText } = textProvider.useText()
   const [organization, setOrganization] = React.useState<backendModule.OrganizationInfo>(() => ({
     id: user?.organizationId ?? backendModule.OrganizationId(''),
@@ -46,17 +46,14 @@ export default function Settings() {
 
   React.useEffect(() => {
     void (async () => {
-      if (
-        sessionType === authProvider.UserSessionType.full &&
-        backend.type === backendModule.BackendType.remote
-      ) {
-        const newOrganization = await backend.getOrganization()
+      if (sessionType === authProvider.UserSessionType.full) {
+        const newOrganization = await remoteBackend.getOrganization()
         if (newOrganization != null) {
           setOrganization(newOrganization)
         }
       }
     })()
-  }, [sessionType, backend])
+  }, [sessionType, remoteBackend])
 
   let content: JSX.Element
   switch (settingsTab) {

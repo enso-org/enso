@@ -222,6 +222,12 @@ function AppRouter(props: AppRouterProps) {
   const navigate = router.useNavigate()
   const { localStorage } = localStorageProvider.useLocalStorage()
   const navigator2D = navigator2DProvider.useNavigator2D()
+  const [remoteBackend, setRemoteBackend] = React.useState<Backend | null>(null)
+  const [localBackend] = React.useState(() =>
+    projectManagerUrl != null && projectManagerRootDirectory != null
+      ? new LocalBackend(projectManagerUrl, projectManagerRootDirectory)
+      : null
+  )
   if (detect.IS_DEV_MODE) {
     // @ts-expect-error This is used exclusively for debugging.
     window.navigate = navigate
@@ -308,12 +314,6 @@ function AppRouter(props: AppRouterProps) {
   const refreshUserSession =
     authService?.cognito.refreshUserSession.bind(authService.cognito) ?? null
   const registerAuthEventListener = authService?.registerAuthEventListener ?? null
-  const initialBackend: Backend =
-    isAuthenticationDisabled && projectManagerUrl != null && projectManagerRootDirectory != null
-      ? new LocalBackend(projectManagerUrl, projectManagerRootDirectory)
-      : // This is SAFE, because the backend is always set by the authentication flow.
-        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-        null!
 
   React.useEffect(() => {
     const onKeyDown = navigator2D.onKeyDown.bind(navigator2D)
@@ -412,9 +412,15 @@ function AppRouter(props: AppRouterProps) {
   result = <InputBindingsProvider inputBindings={inputBindings}>{result}</InputBindingsProvider>
   result = <ModalProvider>{result}</ModalProvider>
   result = (
+    <BackendProvider remoteBackend={remoteBackend} localBackend={localBackend}>
+      {result}
+    </BackendProvider>
+  )
+  result = (
     <AuthProvider
       shouldStartInOfflineMode={isAuthenticationDisabled}
       supportsLocalBackend={supportsLocalBackend}
+      setRemoteBackend={setRemoteBackend}
       authService={authService}
       onAuthenticated={onAuthenticated}
       projectManagerUrl={projectManagerUrl}
@@ -423,7 +429,6 @@ function AppRouter(props: AppRouterProps) {
       {result}
     </AuthProvider>
   )
-  result = <BackendProvider initialBackend={initialBackend}>{result}</BackendProvider>
   result = (
     <SessionProvider
       mainPageUrl={mainPageUrl}

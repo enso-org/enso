@@ -21,7 +21,7 @@ import SettingsSection from '#/components/styled/settings/SettingsSection'
 export default function ProfilePictureSettingsSection() {
   const toastAndLog = toastAndLogHooks.useToastAndLog()
   const { setUser } = authProvider.useAuth()
-  const { backend } = backendProvider.useBackend()
+  const backend = backendProvider.useRemoteBackendStrict()
   const { user } = authProvider.useNonPartialUserSession()
   const { getText } = textProvider.useText()
 

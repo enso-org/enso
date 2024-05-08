@@ -1,397 +1,76 @@
-;
-
 /** @file Table displaying a list of projects. */
-import * as React from 'react';
-
-
-
-import * as toast from 'react-toastify';
-
-
-
-import DropFilesImage from 'enso-assets/drop_files.svg';
-
-
-
-import * as asyncEffectHooks from '#/hooks/asyncEffectHooks';
-import * as eventHooks from '#/hooks/eventHooks';
-import * as scrollHooks from '#/hooks/scrollHooks';
-import * as toastAndLogHooks from '#/hooks/toastAndLogHooks';
-
-
-
-import * as authProvider from '#/providers/AuthProvider';
-import * as backendProvider from '#/providers/BackendProvider';
-import * as inputBindingsProvider from '#/providers/InputBindingsProvider';
-import * as localStorageProvider from '#/providers/LocalStorageProvider';
-import * as modalProvider from '#/providers/ModalProvider';
-import * as navigator2DProvider from '#/providers/Navigator2DProvider';
-import * as textProvider from '#/providers/TextProvider';
-
-
-
-import type * as assetEvent from '#/events/assetEvent';
-import AssetEventType from '#/events/AssetEventType';
-import type * as assetListEvent from '#/events/assetListEvent';
-import AssetListEventType from '#/events/AssetListEventType';
-
-
-
-import type * as assetPanel from '#/layouts/AssetPanel';
-import type * as assetSearchBar from '#/layouts/AssetSearchBar';
-import AssetsTableContextMenu from '#/layouts/AssetsTableContextMenu';
-import Category from '#/layouts/CategorySwitcher/Category';
-
-
-
-import * as aria from '#/components/aria';
-import type * as assetRow from '#/components/dashboard/AssetRow';
-import AssetRow from '#/components/dashboard/AssetRow';
-import * as assetRowUtils from '#/components/dashboard/AssetRow/assetRowUtils';
-import * as columnUtils from '#/components/dashboard/column/columnUtils';
-import NameColumn from '#/components/dashboard/column/NameColumn';
-import * as columnHeading from '#/components/dashboard/columnHeading';
-import Label from '#/components/dashboard/Label';
-import SelectionBrush from '#/components/SelectionBrush';
-import Spinner, * as spinner from '#/components/Spinner';
-import Button from '#/components/styled/Button';
-import FocusArea from '#/components/styled/FocusArea';
-import SvgMask from '#/components/SvgMask';
-import UnstyledButton from '#/components/UnstyledButton';
-
-
-
-import DragModal from '#/modals/DragModal';
-import DuplicateAssetsModal from '#/modals/DuplicateAssetsModal';
-import UpsertSecretModal from '#/modals/UpsertSecretModal';
-
-
-
-import * as backendModule from '#/services/Backend';
-import LocalBackend from '#/services/LocalBackend';
-
-
-
-import * as array from '#/utilities/array';
-import type * as assetQuery from '#/utilities/AssetQuery';
-import AssetQuery from '#/utilities/AssetQuery';
-import type * as assetTreeNode from '#/utilities/AssetTreeNode';
-import AssetTreeNode from '#/utilities/AssetTreeNode';
-import * as dateTime from '#/utilities/dateTime';
-import * as drag from '#/utilities/drag';
-import * as fileInfo from '#/utilities/fileInfo';
-import type * as geometry from '#/utilities/geometry';
-import * as inputBindingsModule from '#/utilities/inputBindings';
-import LocalStorage from '#/utilities/LocalStorage';
-import type * as pasteDataModule from '#/utilities/pasteData';
-import PasteType from '#/utilities/PasteType';
-import * as permissions from '#/utilities/permissions';
-import * as sanitizedEventTargets from '#/utilities/sanitizedEventTargets';
-import * as set from '#/utilities/set';
-import * as sorting from '#/utilities/sorting';
-import * as string from '#/utilities/string';
-import * as uniqueString from '#/utilities/uniqueString';
-import Visibility from '#/utilities/Visibility';
-
-
-
-
-
-;
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-;
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-;
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+import * as React from 'react'
+
+import * as toast from 'react-toastify'
+
+import DropFilesImage from 'enso-assets/drop_files.svg'
+import * as ensoCommon from 'enso-common'
+
+import * as asyncEffectHooks from '#/hooks/asyncEffectHooks'
+import * as eventHooks from '#/hooks/eventHooks'
+import * as scrollHooks from '#/hooks/scrollHooks'
+import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
+
+import * as authProvider from '#/providers/AuthProvider'
+import * as backendProvider from '#/providers/BackendProvider'
+import * as inputBindingsProvider from '#/providers/InputBindingsProvider'
+import * as localStorageProvider from '#/providers/LocalStorageProvider'
+import * as modalProvider from '#/providers/ModalProvider'
+import * as navigator2DProvider from '#/providers/Navigator2DProvider'
+import * as textProvider from '#/providers/TextProvider'
+
+import type * as assetEvent from '#/events/assetEvent'
+import AssetEventType from '#/events/AssetEventType'
+import type * as assetListEvent from '#/events/assetListEvent'
+import AssetListEventType from '#/events/AssetListEventType'
+
+import type * as assetPanel from '#/layouts/AssetPanel'
+import type * as assetSearchBar from '#/layouts/AssetSearchBar'
+import AssetsTableContextMenu from '#/layouts/AssetsTableContextMenu'
+import Category from '#/layouts/CategorySwitcher/Category'
+
+import * as aria from '#/components/aria'
+import type * as assetRow from '#/components/dashboard/AssetRow'
+import AssetRow from '#/components/dashboard/AssetRow'
+import * as assetRowUtils from '#/components/dashboard/AssetRow/assetRowUtils'
+import * as columnUtils from '#/components/dashboard/column/columnUtils'
+import NameColumn from '#/components/dashboard/column/NameColumn'
+import * as columnHeading from '#/components/dashboard/columnHeading'
+import Label from '#/components/dashboard/Label'
+import SelectionBrush from '#/components/SelectionBrush'
+import Spinner, * as spinner from '#/components/Spinner'
+import Button from '#/components/styled/Button'
+import FocusArea from '#/components/styled/FocusArea'
+import SvgMask from '#/components/SvgMask'
+import UnstyledButton from '#/components/UnstyledButton'
+
+import DragModal from '#/modals/DragModal'
+import DuplicateAssetsModal from '#/modals/DuplicateAssetsModal'
+import UpsertSecretModal from '#/modals/UpsertSecretModal'
+
+import Backend, * as backendModule from '#/services/Backend'
+import LocalBackend from '#/services/LocalBackend'
+
+import * as array from '#/utilities/array'
+import type * as assetQuery from '#/utilities/AssetQuery'
+import AssetQuery from '#/utilities/AssetQuery'
+import type * as assetTreeNode from '#/utilities/AssetTreeNode'
+import AssetTreeNode from '#/utilities/AssetTreeNode'
+import * as dateTime from '#/utilities/dateTime'
+import * as drag from '#/utilities/drag'
+import * as fileInfo from '#/utilities/fileInfo'
+import type * as geometry from '#/utilities/geometry'
+import * as inputBindingsModule from '#/utilities/inputBindings'
+import LocalStorage from '#/utilities/LocalStorage'
+import type * as pasteDataModule from '#/utilities/pasteData'
+import PasteType from '#/utilities/PasteType'
+import * as permissions from '#/utilities/permissions'
+import * as sanitizedEventTargets from '#/utilities/sanitizedEventTargets'
+import * as set from '#/utilities/set'
+import * as sorting from '#/utilities/sorting'
+import * as string from '#/utilities/string'
+import * as uniqueString from '#/utilities/uniqueString'
+import Visibility from '#/utilities/Visibility'
 
 // ============================
 // === Global configuration ===
@@ -616,6 +295,7 @@ const CATEGORY_TO_FILTER_BY: Readonly<Record<Category, backendModule.FilterBy | 
 
 /** State passed through from a {@link AssetsTable} to every cell. */
 export interface AssetsTableState {
+  readonly backend: Backend
   readonly rootDirectoryId: backendModule.DirectoryId
   readonly selectedKeys: React.MutableRefObject<ReadonlySet<backendModule.AssetId>>
   readonly scrollContainerRef: React.RefObject<HTMLElement>
@@ -710,7 +390,7 @@ export default function AssetsTable(props: AssetsTableProps) {
   const { targetDirectoryNodeRef, setIsAssetPanelTemporarilyVisible } = props
 
   const { user, accessToken } = authProvider.useNonPartialUserSession()
-  const { backend } = backendProvider.useBackend()
+  const backend = backendProvider.useBackend(category)
   const { setModal, unsetModal } = modalProvider.useSetModal()
   const { localStorage } = localStorageProvider.useLocalStorage()
   const { getText } = textProvider.useText()
@@ -2214,6 +1894,7 @@ export default function AssetsTable(props: AssetsTableProps) {
   const state = React.useMemo<AssetsTableState>(
     // The type MUST be here to trigger excess property errors at typecheck time.
     () => ({
+      backend,
       rootDirectoryId,
       visibilities,
       selectedKeys: selectedKeysRef,
@@ -2244,6 +1925,7 @@ export default function AssetsTable(props: AssetsTableProps) {
       doPaste,
     }),
     [
+      backend,
       rootDirectoryId,
       visibilities,
       category,

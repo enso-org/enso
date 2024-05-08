@@ -21,8 +21,6 @@ export interface AssetInfoBarProps {
 }
 
 /** A menubar for displaying asset information. */
-// This parameter will be used in the future.
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
 export default function AssetInfoBar(props: AssetInfoBarProps) {
   const { invisible = false, isAssetPanelEnabled, setIsAssetPanelEnabled } = props
   const { backend } = backendProvider.useBackend()

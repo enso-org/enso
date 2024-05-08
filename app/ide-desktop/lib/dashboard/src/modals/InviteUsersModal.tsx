@@ -22,7 +22,7 @@ import FocusArea from '#/components/styled/FocusArea'
 import FocusRing from '#/components/styled/FocusRing'
 import UnstyledButton from '#/components/UnstyledButton'
 
-import * as backendModule from '#/services/Backend'
+import Backend, * as backendModule from '#/services/Backend'
 
 // =================
 // === Constants ===
@@ -133,21 +133,23 @@ function EmailInput(props: InternalEmailInputProps) {
 
 /** Props for an {@link InviteUsersModal}. */
 export interface InviteUsersModalProps {
+  readonly remoteBackend: Backend
   /** If this is `null`, this modal will be centered. */
   readonly eventTarget: HTMLElement | null
 }
 
 /** A modal for inviting one or more users. */
 export default function InviteUsersModal(props: InviteUsersModalProps) {
-  const { eventTarget } = props
+  const { remoteBackend, eventTarget } = props
   const { user } = authProvider.useNonPartialUserSession()
-  const { backend } = backendProvider.useBackend()
   const { unsetModal } = modalProvider.useSetModal()
   const { getText } = textProvider.useText()
   const toastAndLog = toastAndLogHooks.useToastAndLog()
   const [newEmails, setNewEmails] = React.useState<string[]>([])
   const position = React.useMemo(() => eventTarget?.getBoundingClientRect(), [eventTarget])
-  const members = asyncEffectHooks.useAsyncEffect([], () => backend.listUsers(), [backend])
+  const members = asyncEffectHooks.useAsyncEffect([], () => remoteBackend.listUsers(), [
+    remoteBackend,
+  ])
   const existingEmails = React.useMemo(
     () => new Set(members.map<string>(member => member.email)),
     [members]
@@ -168,7 +170,7 @@ export default function InviteUsersModal(props: InviteUsersModalProps) {
       for (const newEmail of newEmails) {
         void (async () => {
           try {
-            await backend.inviteUser({
+            await remoteBackend.inviteUser({
               organizationId: user.organizationId,
               userEmail: backendModule.EmailAddress(newEmail),
             })

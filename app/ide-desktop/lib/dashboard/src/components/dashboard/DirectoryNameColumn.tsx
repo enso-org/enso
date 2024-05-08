@@ -39,10 +39,9 @@ export interface DirectoryNameColumnProps extends column.AssetColumnProps {}
  * This should never happen. */
 export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
   const { item, setItem, selected, state, rowState, setRowState, isEditable } = props
-  const { selectedKeys, assetEvents, dispatchAssetListEvent, nodeMap } = state
+  const { backend, selectedKeys, assetEvents, dispatchAssetListEvent, nodeMap } = state
   const { doToggleDirectoryExpansion } = state
   const toastAndLog = toastAndLogHooks.useToastAndLog()
-  const { backend } = backendProvider.useBackend()
   const { getText } = textProvider.useText()
   const inputBindings = inputBindingsProvider.useInputBindings()
   if (item.type !== backendModule.AssetType.directory) {

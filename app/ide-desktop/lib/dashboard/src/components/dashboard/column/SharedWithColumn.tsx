@@ -27,7 +27,10 @@ import * as uniqueString from '#/utilities/uniqueString'
 
 /** The type of the `state` prop of a {@link SharedWithColumn}. */
 interface SharedWithColumnStateProp
-  extends Pick<column.AssetColumnProps['state'], 'category' | 'dispatchAssetEvent' | 'setQuery'> {}
+  extends Pick<
+    column.AssetColumnProps['state'],
+    'backend' | 'category' | 'dispatchAssetEvent' | 'setQuery'
+  > {}
 
 /** Props for a {@link SharedWithColumn}. */
 interface SharedWithColumnPropsInternal extends Pick<column.AssetColumnProps, 'item' | 'setItem'> {
@@ -38,7 +41,7 @@ interface SharedWithColumnPropsInternal extends Pick<column.AssetColumnProps, 'i
 /** A column listing the users with which this asset is shared. */
 export default function SharedWithColumn(props: SharedWithColumnPropsInternal) {
   const { item, setItem, state, isReadonly = false } = props
-  const { category, dispatchAssetEvent, setQuery } = state
+  const { backend, category, dispatchAssetEvent, setQuery } = state
   const asset = item.item
   const { user } = authProvider.useNonPartialUserSession()
   const { setModal } = modalProvider.useSetModal()
@@ -84,6 +87,7 @@ export default function SharedWithColumn(props: SharedWithColumnPropsInternal) {
             setModal(
               <ManagePermissionsModal
                 key={uniqueString.uniqueString()}
+                backend={backend}
                 item={asset}
                 setItem={setAsset}
                 self={self}
