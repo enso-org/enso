@@ -18,4 +18,13 @@ open module org.enso.runtime {
     org.enso.interpreter.instrument.ReplDebuggerInstrumentProvider,
     org.enso.interpreter.instrument.RuntimeServerInstrumentProvider,
     org.enso.interpreter.instrument.IdExecutionInstrumentProvider;
+
+
+  // java.beans.Transient needed by Jackson jackson.databind.ext.Java7SupportImpl
+  requires java.desktop;
+  // also needed by Jackson to avoid
+  // com.fasterxml.jackson.databind.exc.InvalidTypeIdException:
+  //   Could not resolve type id 'org.enso.polyglot.data.Tree$Node' as a subtype of
+  //   `org.enso.polyglot.data.Tree$Node<org.enso.polyglot.runtime.Runtime$Api$SuggestionUpdate>`: Not a subtype
+  requires java.se;
 }
