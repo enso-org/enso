@@ -1,6 +1,8 @@
 /** @file Settings tab for viewing and editing organization members. */
 import * as React from 'react'
 
+import * as reactQuery from '@tanstack/react-query'
+
 import * as asyncEffectHooks from '#/hooks/asyncEffectHooks'
 
 import * as backendProvider from '#/providers/BackendProvider'
@@ -23,8 +25,10 @@ export default function MembersSettingsSection() {
   const { backend } = backendProvider.useBackend()
   const { getText } = textProvider.useText()
   const { setModal } = modalProvider.useSetModal()
-  const members = asyncEffectHooks.useAsyncEffect(null, () => backend.listUsers(), [backend])
-  const isLoading = members == null
+  const membersQuery = reactQuery.useQuery({
+    queryKey: ['members'],
+    queryFn: () => backend.listUsers(),
+  })
 
   return (
     <>
@@ -52,7 +56,7 @@ export default function MembersSettingsSection() {
           </tr>
         </thead>
         <tbody className="select-text">
-          {isLoading ? (
+          {!membersQuery.isSuccess ? (
             <tr className="h-row">
               <td colSpan={2} className="rounded-full bg-transparent">
                 <div className="flex justify-center">
@@ -61,7 +65,7 @@ export default function MembersSettingsSection() {
               </td>
             </tr>
           ) : (
-            members.map(member => (
+            membersQuery.data.map(member => (
               <tr key={member.userId} className="h-row">
                 <td className="text border-x-2 border-transparent bg-clip-padding px-cell-x first:rounded-l-full last:rounded-r-full last:border-r-0 ">
                   {member.name}
