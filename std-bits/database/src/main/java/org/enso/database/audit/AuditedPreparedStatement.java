@@ -461,7 +461,7 @@ abstract class AuditedPreparedStatement implements PreparedStatement {
 
   @Override
   public Connection getConnection() throws SQLException {
-    throw new IllegalStateException("Cannot be called on AuditedPreparedStatement");
+    throw new IllegalStateException("`getConnection` cannot be called on AuditedPreparedStatement");
   }
 
   @Override
