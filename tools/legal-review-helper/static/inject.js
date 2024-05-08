@@ -189,14 +189,14 @@ function initializeLicenseReviewButton() {
         const button = ' <button class="mark-reviewed">Mark license as reviewed</button>'
         entry.append(button)
         entry.children('.mark-reviewed').on('click', function (ev) {
-            let formHtml = '';
+            let formHtml = ''
             formHtml += '<div class="dialog"><form>'
             formHtml += '<label for="license-text">Select license text: </label>'
             formHtml += '<select name="license-text" id="license-text" disabled></select>'
             formHtml += '<button type="button" class="reload-licenses">🔃</button>'
-            entry.append(formHtml);
+            entry.append(formHtml)
 
-            let dialogRef = null;
+            let dialogRef = null
             function onSubmit() {
                 const licenseTextPath = dialogRef.find('#license-text').val()
                 if (!licenseTextPath) {
@@ -210,7 +210,7 @@ function initializeLicenseReviewButton() {
                 }
                 $.post('/mark-license-as-reviewed/' + reportName, data, function (response) {
                     dialogRef.dialog('close')
-                    entry.html("License reviewed. Regenerate the report to see the changes.")
+                    entry.html('License reviewed. Regenerate the report to see the changes.')
                     setStatus(response)
                 }).fail(function (err) {
                     dialogRef.dialog('close')
@@ -227,11 +227,17 @@ function initializeLicenseReviewButton() {
                     if (knownLicenses.length == 0) {
                         select.prop('disabled', true)
                         select.append($('<option></option>').attr('value', '').text(''))
-                        select.parent().append('<p style="color: red;">No license texts found. Add a file to /tools/legal-review/license-texts directory and reload.</p>')
+                        select
+                            .parent()
+                            .append(
+                                '<p style="color: red;">No license texts found. Add a file to /tools/legal-review/license-texts directory and reload.</p>'
+                            )
                     } else {
                         select.append($('<option></option>').attr('value', '').text(''))
-                        knownLicenses.forEach((license) => {
-                            const option = $('<option></option>').attr('value', license).text(license)
+                        knownLicenses.forEach(license => {
+                            const option = $('<option></option>')
+                                .attr('value', license)
+                                .text(license)
                             select.append(option)
                         })
                         select.prop('disabled', false)
@@ -246,8 +252,8 @@ function initializeLicenseReviewButton() {
                 modal: true,
                 width: 800,
                 buttons: {
-                    "Mark license as reviewed and associated with selected license text": onSubmit,
-                }
+                    'Mark license as reviewed and associated with selected license text': onSubmit,
+                },
             })
 
             dialogRef.find('.reload-licenses').on('click', function (ev) {

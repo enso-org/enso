@@ -188,15 +188,15 @@ app.post('/use-both-custom-and-default-license/:report', function (req, res) {
     // TODO
 })
 
-app.get("/get-known-license-texts", function (req, res) {
+app.get('/get-known-license-texts', function (req, res) {
     const knownLicenses = fs.readdirSync(path.join(settingsRoot, 'license-texts'))
     res.send(JSON.stringify(knownLicenses))
 })
 
-app.post("/mark-license-as-reviewed/:report", function (req, res) {
+app.post('/mark-license-as-reviewed/:report', function (req, res) {
     const report = req.params['report']
     const licenseName = req.body['licenseName']
-    const licenseTextPath = "tools/legal-review/license-texts/"+req.body['licenseTextPath']
+    const licenseTextPath = 'tools/legal-review/license-texts/' + req.body['licenseTextPath']
     const location = path.join(settingsRoot, report, 'reviewed-licenses', licenseName)
 
     console.log(licenseTextPath + ' -> ' + location)
