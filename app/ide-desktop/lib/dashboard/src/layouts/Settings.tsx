@@ -108,18 +108,20 @@ export default function Settings() {
           isMatch(getText(tab.nameId)) || isMatch(getText(tabSection.nameId))
             ? tab.sections
             : tab.sections.flatMap(section => {
-                const matchingEntries = section.entries.filter(entry => {
-                  switch (entry.type) {
-                    case settingsData.SettingsEntryType.input: {
-                      return isMatch(getText(entry.nameId))
-                    }
-                    case settingsData.SettingsEntryType.custom: {
-                      return entry.aliasesId == null
-                        ? false
-                        : getText(entry.aliasesId).split('\n').some(isMatch)
-                    }
-                  }
-                })
+                const matchingEntries = isMatch(getText(section.nameId))
+                  ? section.entries
+                  : section.entries.filter(entry => {
+                      switch (entry.type) {
+                        case settingsData.SettingsEntryType.input: {
+                          return isMatch(getText(entry.nameId))
+                        }
+                        case settingsData.SettingsEntryType.custom: {
+                          return entry.aliasesId == null
+                            ? false
+                            : getText(entry.aliasesId).split('\n').some(isMatch)
+                        }
+                      }
+                    })
                 if (matchingEntries.length === 0) {
                   return []
                 } else {
