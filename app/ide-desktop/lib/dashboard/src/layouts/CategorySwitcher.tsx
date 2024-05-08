@@ -42,18 +42,18 @@ interface CategoryMetadata {
 
 const CATEGORY_DATA: CategoryMetadata[] = [
   {
-    category: Category.recent,
-    icon: RecentIcon,
-    textId: 'recentCategory',
-    buttonTextId: 'recentCategoryButtonLabel',
-    dropZoneTextId: 'recentCategoryDropZoneLabel',
-  },
-  {
     category: Category.home,
     icon: Home2Icon,
     textId: 'homeCategory',
     buttonTextId: 'homeCategoryButtonLabel',
     dropZoneTextId: 'homeCategoryDropZoneLabel',
+  },
+  {
+    category: Category.recent,
+    icon: RecentIcon,
+    textId: 'recentCategory',
+    buttonTextId: 'recentCategoryButtonLabel',
+    dropZoneTextId: 'recentCategoryDropZoneLabel',
   },
   {
     category: Category.trash,
@@ -100,8 +100,8 @@ function CategorySwitcherItem(props: InternalCategorySwitcherItemProps) {
       >
         <div
           className={`selectable ${
-            isCurrent ? 'disabled bg-selected-frame active' : ''
-          } group flex h-row items-center gap-icon-with-text rounded-inherit px-button-x hover:bg-selected-frame`}
+            isCurrent ? 'disabled active' : 'hover:bg-selected-frame'
+          } group flex h-row items-center gap-icon-with-text rounded-inherit px-button-x`}
         >
           <SvgMask
             src={icon}

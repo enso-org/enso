@@ -7,6 +7,7 @@ import Samples from '#/layouts/Samples'
 import WhatsNew from '#/layouts/WhatsNew'
 
 import * as aria from '#/components/aria'
+import * as ariaComponents from '#/components/AriaComponents'
 import type * as spinner from '#/components/Spinner'
 
 // ============
@@ -15,7 +16,6 @@ import type * as spinner from '#/components/Spinner'
 
 /** Props for a {@link Home}. */
 export interface HomeProps {
-  readonly hidden: boolean
   readonly createProject: (
     templateId?: string | null,
     templateName?: string | null,
@@ -25,30 +25,23 @@ export interface HomeProps {
 
 /** Home screen. */
 export default function Home(props: HomeProps) {
-  const { hidden, createProject } = props
+  const { createProject } = props
   const { getText } = textProvider.useText()
   return (
-    <div
-      className={`flex flex-1 flex-col gap-home overflow-auto scroll-hidden ${
-        hidden ? 'hidden' : ''
-      }`}
+    <ariaComponents.Dialog
+      type="fullscreen"
+      closeButton="floating"
     >
-      {/* For spacing */}
-      <div />
-      {/* Header */}
-      <div className="flex flex-col gap-banner px-banner-x py-banner-y">
+      <div className="relative mb-4 flex flex-1 flex-col gap-home text-xs">
         <aria.Heading
-          level={1}
-          className="self-center py-banner-item text-center text-4xl leading-snug"
+          level={2}
+          className="mx-10 mt-16 self-center py-banner-item text-center text-3xl font-light leading-snug"
         >
-          {getText('welcomeMessage')}
+          <aria.Text className="inline-block max-w-[45rem]">{getText('welcomeSubtitle')}</aria.Text>
         </aria.Heading>
-        <aria.Text className="self-center py-banner-item text-center text-xl font-normal leading-snug">
-          {getText('welcomeSubtitle')}
-        </aria.Text>
+        <WhatsNew />
+        <Samples createProject={createProject} />
       </div>
-      <WhatsNew />
-      <Samples createProject={createProject} />
-    </div>
+    </ariaComponents.Dialog>
   )
 }

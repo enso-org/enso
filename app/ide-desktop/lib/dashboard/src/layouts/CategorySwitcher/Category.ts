@@ -6,8 +6,8 @@
 
 /** The categories available in the category switcher. */
 enum Category {
-  recent = 'recent',
   home = 'home',
+  recent = 'recent',
   trash = 'trash',
 }
 

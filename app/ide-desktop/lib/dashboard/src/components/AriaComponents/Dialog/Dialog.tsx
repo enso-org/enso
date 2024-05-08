@@ -12,6 +12,7 @@ import Dismiss from 'enso-assets/dismiss.svg'
 import * as aria from '#/components/aria'
 import * as ariaComponents from '#/components/AriaComponents'
 import * as portal from '#/components/Portal'
+import WindowButton from '#/components/styled/WindowButton'
 
 import type * as types from './types'
 
@@ -41,11 +42,13 @@ export function Dialog(props: types.DialogProps) {
     children,
     title,
     type = 'modal',
+    closeButton = 'none',
     isDismissible = true,
     isKeyboardDismissDisabled = false,
     className,
     ...ariaDialogProps
   } = props
+  const cleanupRef = React.useRef(() => {})
 
   const root = portal.useStrictPortalContext()
 
@@ -77,9 +80,14 @@ export function Dialog(props: types.DialogProps) {
               </aria.Header>
             )}
 
-            <div className="flex-1 shrink-0">
+            <div className="flex-1 shrink-0 overflow-auto">
               {typeof children === 'function' ? children(opts) : children}
             </div>
+            {closeButton === 'floating' && (
+              <div className="m-floating-buttons absolute flex gap-1">
+                <WindowButton role="close" onPress={opts.close} />
+              </div>
+            )}
           </>
         )}
       </aria.Dialog>

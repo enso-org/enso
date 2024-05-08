@@ -15,11 +15,14 @@ export default /** @satisfies {import('tailwindcss').Config} */ ({
         /** The default color of all text. */
         // This should be named "regular".
         primary: 'rgb(0 0 0 / 60%)',
+        accent: '#499f4b',
         'hover-bg': 'rgb(0 0 0 / 10%)',
         frame: 'var(--frame-color)',
         'selected-frame': 'var(--selected-frame-color)',
         'ide-bg': '#ebeef1',
         selected: 'rgb(255 255 255 / 40%)',
+        'not-selected': 'rgb(0 0 0 / 15%)',
+        'window-close': '#ff605c',
         // Should be `#3e515f14`, but `bg-opacity` does not work with RGBA.
         label: '#f0f1f3',
         help: '#3f68ce',
@@ -60,6 +63,7 @@ export default /** @satisfies {import('tailwindcss').Config} */ ({
         xs: '0.71875rem',
         sm: '0.8125rem',
         xl: '1.1875rem',
+        '3xl': '2rem',
         '4xl': '2.375rem',
         'auth-heading': 'var(--auth-heading-font-size)',
       },
@@ -224,7 +228,6 @@ export default /** @satisfies {import('tailwindcss').Config} */ ({
         'settings-section-header': 'var(--settings-section-header-gap)',
         'settings-entry': 'var(--settings-entry-gap)',
         'settings-sidebar': 'var(--settings-sidebar-gap)',
-        banner: 'var(--banner-gap)',
         'new-empty-project': 'var(--new-empty-project-gap)',
         modifiers: 'var(--modifiers-gap)',
         'modifiers-macos': 'var(--modifiers-macos-gap)',
@@ -275,9 +278,6 @@ export default /** @satisfies {import('tailwindcss').Config} */ ({
         'menu-entry': 'var(--menu-entry-padding)',
         'context-menu-entry-x': 'var(--context-menu-entry-padding-x)',
         'profile-picture': 'var(--profile-picture-padding)',
-        'banner-x': 'var(--banner-padding-x)',
-        'banner-y': 'var(--banner-padding-y)',
-        'banner-item': 'var(--banner-item-padding)',
         'profile-picture-caption-y': 'var(--profile-picture-caption-padding-y)',
         'delete-user-account-button-x': 'var(--delete-user-account-button-padding-x)',
         'context-menu': 'var(--context-menu-padding)',
@@ -341,6 +341,7 @@ export default /** @satisfies {import('tailwindcss').Config} */ ({
         'date-input-calendar-gap': 'var(--date-input-calendar-gap)',
         'context-menu-macos-half-x': 'var(--context-menu-macos-half-width)',
         'context-menu-half-x': 'var(--context-menu-half-width)',
+        'floating-buttons': 'var(--floating-buttons-margin)',
         'chat-header-x': 'var(--chat-header-margin-x)',
         'chat-header-t': 'var(--chat-header-margin-top)',
         'chat-form-x': 'var(--chat-form-margin-x)',
@@ -371,6 +372,7 @@ export default /** @satisfies {import('tailwindcss').Config} */ ({
         default: 'var(--default-backdrop-blur)',
       },
       borderWidth: {
+        0.5: '0.5px',
         'selection-brush': 'var(--selection-brush-border-width)',
       },
       boxShadow: {

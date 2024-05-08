@@ -421,11 +421,6 @@ export function locateSortDescendingIcon(page: test.Locator | test.Page) {
 
 // === Page locators ===
 
-/** Find a "home page" icon (if any) on the current page. */
-export function locateHomePageIcon(page: test.Locator | test.Page) {
-  return page.getByAltText('Home tab')
-}
-
 /** Find a "drive page" icon (if any) on the current page. */
 export function locateDrivePageIcon(page: test.Locator | test.Page) {
   return page.getByAltText('Drive tab')

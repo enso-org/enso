@@ -2,7 +2,6 @@
 import * as React from 'react'
 
 import DriveIcon from 'enso-assets/drive.svg'
-import HomeIcon from 'enso-assets/home.svg'
 import NetworkIcon from 'enso-assets/network.svg'
 
 import type * as text from '#/text'
@@ -18,7 +17,6 @@ import FocusArea from '#/components/styled/FocusArea'
 
 /** Main content of the screen. Only one should be visible at a time. */
 export enum Page {
-  home = 'home',
   drive = 'drive',
   editor = 'editor',
   settings = 'settings',
@@ -26,7 +24,6 @@ export enum Page {
 
 /** Error text for each page. */
 const ERRORS = {
-  [Page.home]: null,
   [Page.drive]: null,
   [Page.editor]: 'noProjectIsCurrentlyOpen',
   [Page.settings]: null,
@@ -41,7 +38,6 @@ interface PageUIData {
 }
 
 const PAGE_DATA: PageUIData[] = [
-  { page: Page.home, icon: HomeIcon, altId: 'homePageAltText', tooltipId: 'homePageTooltip' },
   { page: Page.drive, icon: DriveIcon, altId: 'drivePageAltText', tooltipId: 'drivePageTooltip' },
   {
     page: Page.editor,

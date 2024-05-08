@@ -17,6 +17,7 @@ import type * as assetEvent from '#/events/assetEvent'
 import AssetEventType from '#/events/AssetEventType'
 
 import Category from '#/layouts/CategorySwitcher/Category'
+import Start from '#/layouts/Start'
 
 import * as aria from '#/components/aria'
 import Button from '#/components/styled/Button'
@@ -116,24 +117,33 @@ export default function DriveBar(props: DriveBarProps) {
       return (
         <div className="flex h-row py-drive-bar-y">
           <HorizontalMenuBar>
+            <aria.DialogTrigger>
+              <UnstyledButton
+                className="bg-accent flex h-row items-center rounded-full px-new-project-button-x text-white"
+                onPress={() => {}}
+              >
+                <aria.Text className="text whitespace-nowrap font-bold">
+                  {getText('startWithATemplate')}
+                </aria.Text>
+              </UnstyledButton>
+              <Start createProject={doCreateProject} />
+            </aria.DialogTrigger>
             <UnstyledButton
-              className="flex h-row items-center rounded-full bg-frame px-new-project-button-x"
+              className="border-0.5 flex h-row items-center rounded-full border-black/20 px-new-project-button-x"
               onPress={() => {
-                unsetModal()
                 doCreateProject()
               }}
             >
-              <aria.Text className="text whitespace-nowrap font-semibold">
-                {getText('newProject')}
+              <aria.Text className="text whitespace-nowrap font-bold">
+                {getText('newEmptyProject')}
               </aria.Text>
             </UnstyledButton>
-            <div className="flex h-row items-center gap-icons rounded-full bg-frame px-drive-bar-icons-x text-black/50">
+            <div className="border-0.5 flex h-row items-center gap-icons rounded-full border-black/20 px-drive-bar-icons-x text-black/50">
               <Button
                 active
                 image={AddFolderIcon}
                 alt={getText('newFolder')}
                 onPress={() => {
-                  unsetModal()
                   doCreateDirectory()
                 }}
               />

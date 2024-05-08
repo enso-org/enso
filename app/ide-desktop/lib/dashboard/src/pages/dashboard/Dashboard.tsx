@@ -28,9 +28,9 @@ import Chat from '#/layouts/Chat'
 import ChatPlaceholder from '#/layouts/ChatPlaceholder'
 import Drive from '#/layouts/Drive'
 import Editor from '#/layouts/Editor'
-import Home from '#/layouts/Home'
 import * as pageSwitcher from '#/layouts/PageSwitcher'
 import Settings from '#/layouts/Settings'
+import Home from '#/layouts/Start'
 import TopBar from '#/layouts/TopBar'
 
 import TheModal from '#/components/dashboard/TheModal'
@@ -490,9 +490,7 @@ export default function Dashboard(props: DashboardProps) {
         }`}
       >
         <div
-          className={`relative flex h-screen grow select-none flex-col container-size ${
-            page === pageSwitcher.Page.home ? 'pb-home-page-b' : 'gap-top-level'
-          }`}
+          className="relative flex h-screen grow select-none flex-col gap-top-level container-size"
           onContextMenu={event => {
             event.preventDefault()
             unsetModal()
@@ -519,13 +517,11 @@ export default function Dashboard(props: DashboardProps) {
             doRemoveSelf={doRemoveSelf}
             onSignOut={onSignOut}
           />
-          <Home hidden={page !== pageSwitcher.Page.home} createProject={doCreateProject} />
           <Drive
             category={category}
             setCategory={setCategory}
             supportsLocalBackend={supportsLocalBackend}
             hidden={page !== pageSwitcher.Page.drive}
-            hideRows={page !== pageSwitcher.Page.drive && page !== pageSwitcher.Page.home}
             initialProjectName={initialProjectName}
             query={query}
             setQuery={setQuery}

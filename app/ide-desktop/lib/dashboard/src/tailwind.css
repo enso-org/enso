@@ -1,4 +1,4 @@
-@import url("https://fonts.googleapis.com/css2?family=M+PLUS+1:wght@400;500;600;700&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=M+PLUS+1:wght@300;400;500;600;700&display=swap");
 @import "react-toastify/dist/ReactToastify.css";
 
 /* Scoped to `.enso-dashboard, .enso-chat` in tailwind config. */
@@ -156,11 +156,12 @@
   --auth-link-padding-x: 0.5rem;
   --auth-link-padding-y: 0.25rem;
   --text-link-padding-x: 0.25rem;
+  /* The margin between a floating button and the edge of its window. */
+  --floating-buttons-margin: 1.1875rem;
 
   /********\
   |* Chat *|
   \********/
-
   --chat-header-margin-x: 1rem;
   --chat-header-margin-top: 0.5rem;
   --chat-thread-button-padding: 0.25rem;
@@ -380,12 +381,6 @@
   --home-gap: 3rem;
   /* The padding at the very bottom of the entire home page. */
   --home-page-padding-b: 0.25rem;
-  /* The gap between items in the banner. Usually these are the title and the subtitle. */
-  --banner-gap: 0.5rem;
-  --banner-padding-x: 2.4375rem;
-  --banner-padding-y: 0.5625rem;
-  /* The vertical padding for each banner item (the title and the subtitle). */
-  --banner-item-padding: 0.125rem;
   /* The horizontal padding for each section of the home page. */
   --home-section-padding-x: 1.1875rem;
   /* The horizontal and vertical gap between adjacent news item tiles. */
@@ -396,7 +391,7 @@
   --news-item-subtitle-padding-y: 0.125rem;
   /* The horizontal and vertical gap between adjacent sample tiles. */
   --samples-gap: 0.75rem;
-  --samples-column-width: 15rem;
+  --samples-column-width: 18.75rem;
   /* The vertical gap between a sample's tile and its info. */
   --sample-gap: 0.375rem;
   /* The height of the tile containing the sample's image and description.

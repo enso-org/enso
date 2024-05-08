@@ -66,7 +66,6 @@ export interface DriveProps {
   readonly setCategory: (category: Category) => void
   readonly supportsLocalBackend: boolean
   readonly hidden: boolean
-  readonly hideRows: boolean
   readonly initialProjectName: string | null
   /** These events will be dispatched the next time the assets list is refreshed, rather than
    * immediately. */
@@ -94,7 +93,7 @@ export interface DriveProps {
 
 /** Contains directory path and directory contents (projects, folders, secrets and files). */
 export default function Drive(props: DriveProps) {
-  const { supportsLocalBackend, hidden, hideRows, initialProjectName, queuedAssetEvents } = props
+  const { supportsLocalBackend, hidden, initialProjectName, queuedAssetEvents } = props
   const { query, setQuery, labels, setLabels, setSuggestions, projectStartupInfo } = props
   const { assetListEvents, dispatchAssetListEvent, assetEvents, dispatchAssetEvent } = props
   const { setAssetPanelProps, doOpenEditor, doCloseEditor } = props
@@ -358,25 +357,17 @@ export default function Drive(props: DriveProps) {
             hidden ? 'hidden' : ''
           }`}
         >
-          <div className="flex flex-col items-start gap-icons self-start">
-            <aria.Heading
-              level={1}
-              className="h-heading px-heading-x py-heading-y text-xl font-bold leading-snug"
-            >
-              {isCloud ? getText('cloudDrive') : getText('localDrive')}
-            </aria.Heading>
-            <DriveBar
-              category={category}
-              canDownload={canDownload}
-              doEmptyTrash={doEmptyTrash}
-              doCreateProject={doCreateProject}
-              doUploadFiles={doUploadFiles}
-              doCreateDirectory={doCreateDirectory}
-              doCreateSecret={doCreateSecret}
-              doCreateDataLink={doCreateDataLink}
-              dispatchAssetEvent={dispatchAssetEvent}
-            />
-          </div>
+          <DriveBar
+            category={category}
+            canDownload={canDownload}
+            doEmptyTrash={doEmptyTrash}
+            doCreateProject={doCreateProject}
+            doUploadFiles={doUploadFiles}
+            doCreateDirectory={doCreateDirectory}
+            doCreateSecret={doCreateSecret}
+            doCreateDataLink={doCreateDataLink}
+            dispatchAssetEvent={dispatchAssetEvent}
+          />
           <div className="flex flex-1 gap-drive overflow-hidden">
             {isCloud && (
               <div className="flex w-drive-sidebar flex-col gap-drive-sidebar py-drive-sidebar-y">
@@ -399,7 +390,6 @@ export default function Drive(props: DriveProps) {
             )}
             <AssetsTable
               hidden={hidden}
-              hideRows={hideRows}
               query={query}
               setQuery={setQuery}
               setCanDownload={setCanDownload}

@@ -345,7 +345,6 @@ export interface AssetRowState {
 /** Props for a {@link AssetsTable}. */
 export interface AssetsTableProps {
   readonly hidden: boolean
-  readonly hideRows: boolean
   readonly query: AssetQuery
   readonly setQuery: React.Dispatch<React.SetStateAction<AssetQuery>>
   readonly setCanDownload: (canDownload: boolean) => void
@@ -376,7 +375,7 @@ export interface AssetsTableProps {
 
 /** The table of project assets. */
 export default function AssetsTable(props: AssetsTableProps) {
-  const { hidden, hideRows, query, setQuery, setCanDownload, category, allLabels } = props
+  const { hidden, query, setQuery, setCanDownload, category, allLabels } = props
   const { setSuggestions, deletedLabelNames, initialProjectName, projectStartupInfo } = props
   const { queuedAssetEvents: rawQueuedAssetEvents } = props
   const { assetListEvents, dispatchAssetListEvent, assetEvents, dispatchAssetEvent } = props
@@ -2207,7 +2206,7 @@ export default function AssetsTable(props: AssetsTableProps) {
           columns={columns}
           item={item}
           state={state}
-          hidden={hideRows || visibilities.get(item.key) === Visibility.hidden}
+          hidden={hidden || visibilities.get(item.key) === Visibility.hidden}
           selected={isSelected}
           setSelected={selected => {
             setSelectedKeys(set.withPresence(selectedKeysRef.current, key, selected))

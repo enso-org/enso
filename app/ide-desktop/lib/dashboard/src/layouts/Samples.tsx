@@ -84,66 +84,6 @@ export const SAMPLES: Sample[] = [
   },
 ]
 
-// ========================
-// === BlankProjectTile ===
-// ========================
-
-/** Props for an {@link BlankProjectTile}. */
-interface InternalBlankProjectTileProps {
-  readonly createProject: (
-    templateId: null,
-    templateName: null,
-    onSpinnerStateChange: ((state: spinner.SpinnerState | null) => void) | null
-  ) => void
-}
-
-/** A button that, when clicked, creates and opens a new blank project. */
-function BlankProjectTile(props: InternalBlankProjectTileProps) {
-  const { createProject } = props
-  const { getText } = textProvider.useText()
-  const [spinnerState, setSpinnerState] = React.useState<spinner.SpinnerState | null>(null)
-
-  const onPress = () => {
-    setSpinnerState(spinner.SpinnerState.initial)
-    createProject(null, null, newSpinnerState => {
-      setSpinnerState(newSpinnerState)
-      if (newSpinnerState === spinner.SpinnerState.done) {
-        window.setTimeout(() => {
-          setSpinnerState(null)
-        }, SPINNER_DONE_DURATION_MS)
-      }
-    })
-  }
-
-  return (
-    <div className="flex flex-col gap-sample">
-      <FocusArea direction="horizontal">
-        {innerProps => (
-          <FocusRing placement="after">
-            <aria.Button
-              className="focus-child relative h-sample cursor-pointer before:absolute before:inset before:h-full before:w-full before:rounded-default before:bg-frame before:opacity-60 after:pointer-events-none after:absolute after:inset after:rounded-default"
-              onPress={onPress}
-              {...innerProps}
-            >
-              <div className="relative flex size-full rounded-default">
-                <div className="m-auto flex flex-col items-center gap-new-empty-project text-center">
-                  {spinnerState != null ? (
-                    <Spinner size={SPINNER_SIZE_PX} padding={2} state={spinnerState} />
-                  ) : (
-                    <img src={ProjectIcon} />
-                  )}
-                  <p className="text-sm font-semibold">{getText('newEmptyProject')}</p>
-                </div>
-              </div>
-            </aria.Button>
-          </FocusRing>
-        )}
-      </FocusArea>
-      <div className="h-sample-info" />
-    </div>
-  )
-}
-
 // ===================
 // === ProjectTile ===
 // ===================
@@ -256,11 +196,10 @@ export default function Samples(props: SamplesProps) {
 
   return (
     <div data-testid="samples" className="flex flex-col gap-subheading px-home-section-x">
-      <aria.Heading level={2} className="text-subheading">
+      <aria.Heading level={2} className="text-subheading font-normal">
         {getText('sampleAndCommunityProjects')}
       </aria.Heading>
       <div className="grid grid-cols-fill-samples gap-samples">
-        <BlankProjectTile createProject={createProject} />
         {SAMPLES.map(sample => (
           <ProjectTile key={sample.id} sample={sample} createProject={createProject} />
         ))}
