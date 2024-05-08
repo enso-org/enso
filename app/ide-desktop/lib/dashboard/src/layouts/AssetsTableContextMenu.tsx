@@ -149,7 +149,7 @@ export default function AssetsTableContextMenu(props: AssetsTableContextMenuProp
         </ContextMenu>
       </ContextMenus>
     )
-  } else if (category !== Category.home) {
+  } else if (category !== Category.cloud && category !== Category.local) {
     return null
   } else {
     return (

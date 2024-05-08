@@ -3,7 +3,6 @@ import * as React from 'react'
 
 import type * as assetSearchBar from '#/layouts/AssetSearchBar'
 import AssetSearchBar from '#/layouts/AssetSearchBar'
-import BackendSwitcher from '#/layouts/BackendSwitcher'
 import PageSwitcher, * as pageSwitcher from '#/layouts/PageSwitcher'
 import UserBar from '#/layouts/UserBar'
 
@@ -27,7 +26,6 @@ export interface TopBarProps {
   readonly projectAsset: backendModule.ProjectAsset | null
   readonly setProjectAsset: React.Dispatch<React.SetStateAction<backendModule.ProjectAsset>> | null
   readonly isEditorDisabled: boolean
-  readonly setBackendType: (backendType: backendModule.BackendType) => void
   readonly isHelpChatOpen: boolean
   readonly setIsHelpChatOpen: (isHelpChatOpen: boolean) => void
   readonly query: AssetQuery
@@ -45,20 +43,15 @@ export interface TopBarProps {
  * because `searchVal` may change parent component's project list. */
 export default function TopBar(props: TopBarProps) {
   const { supportsLocalBackend, isCloud, page, setPage, projectAsset, setProjectAsset } = props
-  const { isEditorDisabled, setBackendType, isHelpChatOpen, setIsHelpChatOpen } = props
+  const { isEditorDisabled, isHelpChatOpen, setIsHelpChatOpen } = props
   const { query, setQuery, labels, suggestions, isAssetPanelEnabled } = props
   const { isAssetPanelVisible, setIsAssetPanelEnabled, doRemoveSelf, onSignOut } = props
   const supportsCloudBackend = process.env.ENSO_CLOUD_API_URL != null
   const shouldMakeSpaceForExtendedEditorMenu = page === pageSwitcher.Page.editor
 
   return (
-    <div
-      className={`relative z-1 m-top-bar flex h-row gap-top-bar ${page === pageSwitcher.Page.home ? 'mb-top-bar' : 'mb'}`}
-    >
+    <div className="relative z-1 m-top-bar mb flex h-row gap-top-bar">
       <PageSwitcher page={page} setPage={setPage} isEditorDisabled={isEditorDisabled} />
-      {supportsLocalBackend && supportsCloudBackend && page !== pageSwitcher.Page.editor && (
-        <BackendSwitcher setBackendType={setBackendType} />
-      )}
       {page === pageSwitcher.Page.editor ? (
         <div className="flex-1" />
       ) : (

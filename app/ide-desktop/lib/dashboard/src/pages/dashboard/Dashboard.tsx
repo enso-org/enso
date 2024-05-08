@@ -30,12 +30,10 @@ import Drive from '#/layouts/Drive'
 import Editor from '#/layouts/Editor'
 import * as pageSwitcher from '#/layouts/PageSwitcher'
 import Settings from '#/layouts/Settings'
-import Home from '#/layouts/Start'
 import TopBar from '#/layouts/TopBar'
 
 import TheModal from '#/components/dashboard/TheModal'
 import Portal from '#/components/Portal'
-import type * as spinner from '#/components/Spinner'
 
 import * as backendModule from '#/services/Backend'
 import LocalBackend, * as localBackendModule from '#/services/LocalBackend'
@@ -48,6 +46,12 @@ import HttpClient from '#/utilities/HttpClient'
 import LocalStorage from '#/utilities/LocalStorage'
 import * as object from '#/utilities/object'
 import * as sanitizedEventTargets from '#/utilities/sanitizedEventTargets'
+
+// =================
+// === Constants ===
+// =================
+
+const DEFAULT_CATEGORY = process.env.ENSO_CLOUD_API_URL != null ? Category.cloud : Category.local
 
 // ============================
 // === Global configuration ===
@@ -164,7 +168,7 @@ export default function Dashboard(props: DashboardProps) {
   const [isAssetPanelTemporarilyVisible, setIsAssetPanelTemporarilyVisible] = React.useState(false)
   const [category, setCategory] = searchParamsState.useSearchParamsState(
     'driveCategory',
-    () => localStorage.get('driveCategory') ?? Category.home,
+    () => localStorage.get('driveCategory') ?? DEFAULT_CATEGORY,
     (value): value is Category => array.includes(Object.values(Category), value)
   )
 
@@ -501,7 +505,6 @@ export default function Dashboard(props: DashboardProps) {
             isEditorDisabled={projectStartupInfo == null}
             isHelpChatOpen={isHelpChatOpen}
             setIsHelpChatOpen={setIsHelpChatOpen}
-            setBackendType={setBackendType}
             query={query}
             setQuery={setQuery}
             labels={labels}
@@ -572,7 +575,7 @@ export default function Dashboard(props: DashboardProps) {
               item={assetPanelProps?.item ?? null}
               setItem={assetPanelProps?.setItem ?? null}
               setQuery={setQuery}
-              category={Category.home}
+              category={DEFAULT_CATEGORY}
               labels={labels}
               dispatchAssetEvent={dispatchAssetEvent}
               isReadonly={category === Category.trash}

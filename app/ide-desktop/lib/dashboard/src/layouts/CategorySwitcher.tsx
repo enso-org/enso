@@ -1,12 +1,14 @@
 /** @file Switcher to choose the currently visible assets table category. */
 import * as React from 'react'
 
-import Home2Icon from 'enso-assets/home2.svg'
+import CloudIcon from 'enso-assets/cloud.svg'
+import NotCloudIcon from 'enso-assets/not_cloud.svg'
 import RecentIcon from 'enso-assets/recent.svg'
 import Trash2Icon from 'enso-assets/trash2.svg'
 
 import type * as text from '#/text'
 
+import * as backendProvider from '#/providers/BackendProvider'
 import * as localStorageProvider from '#/providers/LocalStorageProvider'
 import * as modalProvider from '#/providers/ModalProvider'
 import * as textProvider from '#/providers/TextProvider'
@@ -40,13 +42,20 @@ interface CategoryMetadata {
 // === Constants ===
 // =================
 
-const CATEGORY_DATA: CategoryMetadata[] = [
+const CATEGORY_DATA: readonly CategoryMetadata[] = [
   {
-    category: Category.home,
-    icon: Home2Icon,
-    textId: 'homeCategory',
-    buttonTextId: 'homeCategoryButtonLabel',
-    dropZoneTextId: 'homeCategoryDropZoneLabel',
+    category: Category.cloud,
+    icon: CloudIcon,
+    textId: 'cloudCategory',
+    buttonTextId: 'cloudCategoryButtonLabel',
+    dropZoneTextId: 'cloudCategoryDropZoneLabel',
+  },
+  {
+    category: Category.local,
+    icon: NotCloudIcon,
+    textId: 'localCategory',
+    buttonTextId: 'localCategoryButtonLabel',
+    dropZoneTextId: 'localCategoryDropZoneLabel',
   },
   {
     category: Category.recent,
@@ -127,6 +136,7 @@ function CategorySwitcherItem(props: InternalCategorySwitcherItemProps) {
 
 /** Props for a {@link CategorySwitcher}. */
 export interface CategorySwitcherProps {
+  readonly supportsLocalBackend: boolean
   readonly category: Category
   readonly setCategory: (category: Category) => void
   readonly dispatchAssetEvent: (directoryEvent: assetEvent.AssetEvent) => void
@@ -134,10 +144,29 @@ export interface CategorySwitcherProps {
 
 /** A switcher to choose the currently visible assets table category. */
 export default function CategorySwitcher(props: CategorySwitcherProps) {
-  const { category, setCategory, dispatchAssetEvent } = props
+  const { supportsLocalBackend, category, setCategory } = props
+  const { dispatchAssetEvent } = props
   const { unsetModal } = modalProvider.useSetModal()
   const { localStorage } = localStorageProvider.useLocalStorage()
   const { getText } = textProvider.useText()
+  const supportsCloudBackend = process.env.ENSO_CLOUD_API_URL != null
+  const categoryData = React.useMemo(
+    () =>
+      CATEGORY_DATA.filter(data => {
+        switch (data.category) {
+          case Category.cloud: {
+            return supportsCloudBackend
+          }
+          case Category.local: {
+            return supportsLocalBackend
+          }
+          default: {
+            return true
+          }
+        }
+      }),
+    []
+  )
 
   React.useEffect(() => {
     localStorage.set('driveCategory', category)
@@ -158,7 +187,7 @@ export default function CategorySwitcher(props: CategorySwitcherProps) {
             role="grid"
             className="flex flex-col items-start"
           >
-            {CATEGORY_DATA.map(data => (
+            {categoryData.map(data => (
               <CategorySwitcherItem
                 key={data.category}
                 id={data.category}
@@ -168,7 +197,8 @@ export default function CategorySwitcher(props: CategorySwitcherProps) {
                   setCategory(data.category)
                 }}
                 acceptedDragTypes={
-                  (category === Category.trash && data.category === Category.home) ||
+                  (category === Category.trash &&
+                    (data.category === Category.cloud || data.category === Category.local)) ||
                   (category !== Category.trash && data.category === Category.trash)
                     ? ['application/vnd.enso.assets+json']
                     : []

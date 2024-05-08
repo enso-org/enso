@@ -60,7 +60,7 @@ export default function DriveBar(props: DriveBarProps) {
   const inputBindings = inputBindingsProvider.useInputBindings()
   const uploadFilesRef = React.useRef<HTMLInputElement>(null)
   const isCloud = backend.type === backendModule.BackendType.remote
-  const effectiveCategory = isCloud ? category : Category.home
+  const effectiveCategory = isCloud ? category : Category.local
 
   React.useEffect(() => {
     return inputBindings.attach(sanitizedEventTargets.document.body, 'keydown', {
@@ -113,7 +113,8 @@ export default function DriveBar(props: DriveBarProps) {
         </div>
       )
     }
-    case Category.home: {
+    case Category.cloud:
+    case Category.local: {
       return (
         <div className="flex h-row py-drive-bar-y">
           <HorizontalMenuBar>

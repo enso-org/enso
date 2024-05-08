@@ -400,7 +400,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
           />
         )}
       </ContextMenu>
-      {category === Category.home && (
+      {(category === Category.cloud || category === Category.local) && (
         <GlobalContextMenu
           hidden={hidden}
           hasPasteData={hasPasteData}

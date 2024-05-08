@@ -367,6 +367,7 @@ export default function Drive(props: DriveProps) {
             {isCloud && (
               <div className="flex w-drive-sidebar flex-col gap-drive-sidebar py-drive-sidebar-y">
                 <CategorySwitcher
+                  supportsLocalBackend={supportsLocalBackend}
                   category={category}
                   setCategory={onSetCategory}
                   dispatchAssetEvent={dispatchAssetEvent}

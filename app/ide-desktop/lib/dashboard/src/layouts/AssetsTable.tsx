@@ -1,75 +1,397 @@
+;
+
 /** @file Table displaying a list of projects. */
-import * as React from 'react'
+import * as React from 'react';
 
-import * as toast from 'react-toastify'
 
-import DropFilesImage from 'enso-assets/drop_files.svg'
 
-import * as asyncEffectHooks from '#/hooks/asyncEffectHooks'
-import * as eventHooks from '#/hooks/eventHooks'
-import * as scrollHooks from '#/hooks/scrollHooks'
-import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
+import * as toast from 'react-toastify';
 
-import * as authProvider from '#/providers/AuthProvider'
-import * as backendProvider from '#/providers/BackendProvider'
-import * as inputBindingsProvider from '#/providers/InputBindingsProvider'
-import * as localStorageProvider from '#/providers/LocalStorageProvider'
-import * as modalProvider from '#/providers/ModalProvider'
-import * as navigator2DProvider from '#/providers/Navigator2DProvider'
-import * as textProvider from '#/providers/TextProvider'
 
-import type * as assetEvent from '#/events/assetEvent'
-import AssetEventType from '#/events/AssetEventType'
-import type * as assetListEvent from '#/events/assetListEvent'
-import AssetListEventType from '#/events/AssetListEventType'
 
-import type * as assetPanel from '#/layouts/AssetPanel'
-import type * as assetSearchBar from '#/layouts/AssetSearchBar'
-import AssetsTableContextMenu from '#/layouts/AssetsTableContextMenu'
-import Category from '#/layouts/CategorySwitcher/Category'
+import DropFilesImage from 'enso-assets/drop_files.svg';
 
-import * as aria from '#/components/aria'
-import type * as assetRow from '#/components/dashboard/AssetRow'
-import AssetRow from '#/components/dashboard/AssetRow'
-import * as assetRowUtils from '#/components/dashboard/AssetRow/assetRowUtils'
-import * as columnUtils from '#/components/dashboard/column/columnUtils'
-import NameColumn from '#/components/dashboard/column/NameColumn'
-import * as columnHeading from '#/components/dashboard/columnHeading'
-import Label from '#/components/dashboard/Label'
-import SelectionBrush from '#/components/SelectionBrush'
-import Spinner, * as spinner from '#/components/Spinner'
-import Button from '#/components/styled/Button'
-import FocusArea from '#/components/styled/FocusArea'
-import SvgMask from '#/components/SvgMask'
-import UnstyledButton from '#/components/UnstyledButton'
 
-import DragModal from '#/modals/DragModal'
-import DuplicateAssetsModal from '#/modals/DuplicateAssetsModal'
-import UpsertSecretModal from '#/modals/UpsertSecretModal'
 
-import * as backendModule from '#/services/Backend'
-import LocalBackend from '#/services/LocalBackend'
+import * as asyncEffectHooks from '#/hooks/asyncEffectHooks';
+import * as eventHooks from '#/hooks/eventHooks';
+import * as scrollHooks from '#/hooks/scrollHooks';
+import * as toastAndLogHooks from '#/hooks/toastAndLogHooks';
 
-import * as array from '#/utilities/array'
-import type * as assetQuery from '#/utilities/AssetQuery'
-import AssetQuery from '#/utilities/AssetQuery'
-import type * as assetTreeNode from '#/utilities/AssetTreeNode'
-import AssetTreeNode from '#/utilities/AssetTreeNode'
-import * as dateTime from '#/utilities/dateTime'
-import * as drag from '#/utilities/drag'
-import * as fileInfo from '#/utilities/fileInfo'
-import type * as geometry from '#/utilities/geometry'
-import * as inputBindingsModule from '#/utilities/inputBindings'
-import LocalStorage from '#/utilities/LocalStorage'
-import type * as pasteDataModule from '#/utilities/pasteData'
-import PasteType from '#/utilities/PasteType'
-import * as permissions from '#/utilities/permissions'
-import * as sanitizedEventTargets from '#/utilities/sanitizedEventTargets'
-import * as set from '#/utilities/set'
-import * as sorting from '#/utilities/sorting'
-import * as string from '#/utilities/string'
-import * as uniqueString from '#/utilities/uniqueString'
-import Visibility from '#/utilities/Visibility'
+
+
+import * as authProvider from '#/providers/AuthProvider';
+import * as backendProvider from '#/providers/BackendProvider';
+import * as inputBindingsProvider from '#/providers/InputBindingsProvider';
+import * as localStorageProvider from '#/providers/LocalStorageProvider';
+import * as modalProvider from '#/providers/ModalProvider';
+import * as navigator2DProvider from '#/providers/Navigator2DProvider';
+import * as textProvider from '#/providers/TextProvider';
+
+
+
+import type * as assetEvent from '#/events/assetEvent';
+import AssetEventType from '#/events/AssetEventType';
+import type * as assetListEvent from '#/events/assetListEvent';
+import AssetListEventType from '#/events/AssetListEventType';
+
+
+
+import type * as assetPanel from '#/layouts/AssetPanel';
+import type * as assetSearchBar from '#/layouts/AssetSearchBar';
+import AssetsTableContextMenu from '#/layouts/AssetsTableContextMenu';
+import Category from '#/layouts/CategorySwitcher/Category';
+
+
+
+import * as aria from '#/components/aria';
+import type * as assetRow from '#/components/dashboard/AssetRow';
+import AssetRow from '#/components/dashboard/AssetRow';
+import * as assetRowUtils from '#/components/dashboard/AssetRow/assetRowUtils';
+import * as columnUtils from '#/components/dashboard/column/columnUtils';
+import NameColumn from '#/components/dashboard/column/NameColumn';
+import * as columnHeading from '#/components/dashboard/columnHeading';
+import Label from '#/components/dashboard/Label';
+import SelectionBrush from '#/components/SelectionBrush';
+import Spinner, * as spinner from '#/components/Spinner';
+import Button from '#/components/styled/Button';
+import FocusArea from '#/components/styled/FocusArea';
+import SvgMask from '#/components/SvgMask';
+import UnstyledButton from '#/components/UnstyledButton';
+
+
+
+import DragModal from '#/modals/DragModal';
+import DuplicateAssetsModal from '#/modals/DuplicateAssetsModal';
+import UpsertSecretModal from '#/modals/UpsertSecretModal';
+
+
+
+import * as backendModule from '#/services/Backend';
+import LocalBackend from '#/services/LocalBackend';
+
+
+
+import * as array from '#/utilities/array';
+import type * as assetQuery from '#/utilities/AssetQuery';
+import AssetQuery from '#/utilities/AssetQuery';
+import type * as assetTreeNode from '#/utilities/AssetTreeNode';
+import AssetTreeNode from '#/utilities/AssetTreeNode';
+import * as dateTime from '#/utilities/dateTime';
+import * as drag from '#/utilities/drag';
+import * as fileInfo from '#/utilities/fileInfo';
+import type * as geometry from '#/utilities/geometry';
+import * as inputBindingsModule from '#/utilities/inputBindings';
+import LocalStorage from '#/utilities/LocalStorage';
+import type * as pasteDataModule from '#/utilities/pasteData';
+import PasteType from '#/utilities/PasteType';
+import * as permissions from '#/utilities/permissions';
+import * as sanitizedEventTargets from '#/utilities/sanitizedEventTargets';
+import * as set from '#/utilities/set';
+import * as sorting from '#/utilities/sorting';
+import * as string from '#/utilities/string';
+import * as uniqueString from '#/utilities/uniqueString';
+import Visibility from '#/utilities/Visibility';
+
+
+
+
+
+;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 // ============================
 // === Global configuration ===
@@ -282,8 +604,9 @@ interface DragSelectionInfo {
 // =============================
 
 const CATEGORY_TO_FILTER_BY: Readonly<Record<Category, backendModule.FilterBy | null>> = {
+  [Category.cloud]: backendModule.FilterBy.active,
+  [Category.local]: backendModule.FilterBy.active,
   [Category.recent]: null,
-  [Category.home]: backendModule.FilterBy.active,
   [Category.trash]: backendModule.FilterBy.trashed,
 }
 
