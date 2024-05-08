@@ -29,8 +29,8 @@ class StrictCompileDiagnosticsTest extends InterpreterTest {
           |    x = 5
           |    y = `
           |""".stripMargin.linesIterator.mkString("\n")
-      the[InterpreterException] thrownBy eval(code) should have message
-      "Compilation aborted due to errors."
+      val ex = the[InterpreterException] thrownBy eval(code)
+      ex.getMessage should include("Parentheses can't be empty")
 
       val errors = consumeOut
       errors
