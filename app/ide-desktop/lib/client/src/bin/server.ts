@@ -109,10 +109,10 @@ export class Server {
         return new Promise(async (resolve, reject) => {
             const defaultValidity = 365
             const ca = await mkcert.createCA({
-                organization: 'Hello CA',
-                countryCode: 'NP',
-                state: 'Bagmati',
-                locality: 'Kathmandu',
+                organization: 'Enso International Inc.',
+                countryCode: 'USA',
+                state: 'Delaware',
+                locality: 'Wilmington',
                 validity: defaultValidity,
             })
             const cert = await mkcert.createCert({

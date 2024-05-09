@@ -40,7 +40,6 @@ export function SubscribeForm(props: SubscribeFormProps) {
         throw new Error('Unexpected error')
       } else {
         return stripe.createPaymentMethod({ type: 'card', card: cardElement }).then(result => {
-          console.log('Payment method:', result)
           if (result.error) {
             throw new Error(result.error.message)
           } else {
@@ -51,7 +50,6 @@ export function SubscribeForm(props: SubscribeFormProps) {
     },
     onSuccess: async paymentMethod => {
       await onSubmit(paymentMethod.paymentMethod)
-      console.log('onSuccess -> Payment method:', paymentMethod)
       cardElement?.clear()
     },
   })
@@ -98,7 +96,7 @@ export function SubscribeForm(props: SubscribeFormProps) {
         isDisabled={
           subscribeMutation.isPending || cardElementState == null || cardElementState.error != null
         }
-        className="mt-1 px-4 py-[6px] text-sm"
+        className="mt-1 px-4 py-1.5 text-sm"
       >
         {getText('subscribeSubmit')}
       </ariaComponents.Button>

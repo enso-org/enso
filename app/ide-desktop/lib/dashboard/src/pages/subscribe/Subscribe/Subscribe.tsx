@@ -6,6 +6,8 @@ import * as stripe from '@stripe/stripe-js/pure'
 import * as reactQuery from '@tanstack/react-query'
 import * as router from 'react-router-dom'
 
+import Back from 'enso-assets/arrow_left.svg'
+
 import * as appUtils from '#/appUtils'
 
 import * as navigateHooks from '#/hooks/navigateHooks'
@@ -14,6 +16,7 @@ import * as backendProvider from '#/providers/BackendProvider'
 import * as textProvider from '#/providers/TextProvider'
 
 import * as aria from '#/components/aria'
+import * as ariaComponents from '#/components/AriaComponents'
 
 import * as backendModule from '#/services/Backend'
 
@@ -97,10 +100,20 @@ export function Subscribe() {
               return null
             } else {
               return (
-                <div className="mx-auto mt-16 flex w-full min-w-96 max-w-[1400px] flex-col items-center justify-center p-12">
-                  <aria.Heading level={1} className="mb-5 self-start text-start text-4xl">
-                    {getText('subscribeTitle')}
-                  </aria.Heading>
+                <div className="mx-auto mt-16 flex w-full min-w-96 max-w-[1400px] flex-col items-start justify-center p-12">
+                  <div className="flex flex-col items-start">
+                    <ariaComponents.Button
+                      variant="icon"
+                      icon={Back}
+                      href={appUtils.DASHBOARD_PATH}
+                      className="-ml-2"
+                    >
+                      {getText('returnToDashboard')}
+                    </ariaComponents.Button>
+                    <aria.Heading level={1} className="mb-5 self-start text-start text-4xl">
+                      {getText('subscribeTitle')}
+                    </aria.Heading>
+                  </div>
 
                   <div className="w-full rounded-default bg-selected-frame p-8">
                     <div className="flex gap-6 overflow-auto scroll-hidden">

@@ -424,6 +424,7 @@
   "enterprisePlanFeatures": "1000+GB Cloud Storage; Unlimited users sharing; Data Links; Version Control for files and workflows; Enso Copilot; Multiple Lifecycle Environments; Data access and modification logs; Priority Support; Fine-grained files and workflows permissions; Federated Log On",
   "subscribe": "Subscribe",
   "learnMore": "Learn More",
+  "returnToDashboard": "Return to Dashboard",
   "subscribeTitle": "Enso Pricing",
   "subscribeSuccessSubmit": "Go to Dashboard",
   "subscribeSuccessTitle": "Success",

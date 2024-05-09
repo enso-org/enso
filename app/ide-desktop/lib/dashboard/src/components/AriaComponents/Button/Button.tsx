@@ -66,7 +66,7 @@ export interface BaseButtonProps {
 }
 
 /**
- *
+ * The rounding of the button
  */
 export type Roundings = 'full' | 'large' | 'medium' | 'none' | 'small' | 'xlarge'
 
@@ -178,8 +178,9 @@ export const Button = React.forwardRef(function Button(
   )
 
   const childrenFactory = (): React.ReactNode => {
+    const isIconOnly = (children == null || children === '' || children === false) && icon != null
     // Icon only button
-    if (variant === 'icon' && icon != null) {
+    if (isIconOnly) {
       return (
         <aria.Text className={EXTRA_CLICK_ZONE_CLASSES}>
           <SvgMask src={icon} className="flex-none" />

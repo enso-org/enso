@@ -44,7 +44,7 @@ export function Card(props: CardProps) {
   const { getText } = textProvider.useText()
 
   return (
-    <div className={tw.twMerge('rounded-xl border border-stone-300 p-4', className)}>
+    <div className={tw.twMerge('rounded-xl border border-primary/10 p-4', className)}>
       <aria.Heading className="text-3xl leading-10" level={2}>
         {getText(title)}
       </aria.Heading>
@@ -56,7 +56,7 @@ export function Card(props: CardProps) {
 
       {submitButton != null ? <div className="my-4">{submitButton}</div> : null}
 
-      <div className="-mx-4 w-auto border-[0.5px] border-stone-300" />
+      <div className="-mx-4 w-auto border-[0.5px] border-primary/10" />
 
       {features.length > 0 && (
         <div className="mt-4 text-sm">

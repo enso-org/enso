@@ -35,7 +35,7 @@ export function SetOrganizationNameModal() {
     session && 'user' in session && session.user?.plan != null ? session.user.plan : null
 
   const queryClient = reactQuery.useQueryClient()
-  const { data } = reactQuery.useSuspenseQuery({
+  const { data: organizationName } = reactQuery.useSuspenseQuery({
     queryKey: ['organization', userId],
     queryFn: () => {
       if (backend.type === backendModule.BackendType.remote) {
@@ -45,6 +45,7 @@ export function SetOrganizationNameModal() {
       }
     },
     staleTime: Infinity,
+    select: data => data?.name ?? '',
   })
 
   const submit = reactQuery.useMutation({
@@ -54,9 +55,7 @@ export function SetOrganizationNameModal() {
   })
 
   const shouldShowModal =
-    userPlan != null &&
-    PLANS_TO_SPECIFY_ORG_NAME.includes(userPlan) &&
-    data?.name?.toString() === ''
+    userPlan != null && PLANS_TO_SPECIFY_ORG_NAME.includes(userPlan) && organizationName === ''
 
   return (
     <>
@@ -68,9 +67,9 @@ export function SetOrganizationNameModal() {
         modalProps={{ isOpen: shouldShowModal }}
       >
         <aria.Form
-          onSubmit={e => {
-            e.preventDefault()
-            const name = new FormData(e.currentTarget).get('organization')
+          onSubmit={event => {
+            event.preventDefault()
+            const name = new FormData(event.currentTarget).get('organization')
 
             if (typeof name === 'string') {
               submit.mutate(name)
@@ -90,8 +89,7 @@ export function SetOrganizationNameModal() {
               className={values =>
                 clsx('rounded-md border border-gray-300 p-1.5 text-sm transition-[outline]', {
                   // eslint-disable-next-line @typescript-eslint/naming-convention
-                  'outline outline-2 outline-primary':
-                    values.isFocused || values.isHovered || values.isFocusVisible,
+                  'outline outline-2 outline-primary': values.isFocused || values.isFocusVisible,
                   // eslint-disable-next-line @typescript-eslint/naming-convention
                   'border-red-500 outline-red-500': values.isInvalid,
                 })

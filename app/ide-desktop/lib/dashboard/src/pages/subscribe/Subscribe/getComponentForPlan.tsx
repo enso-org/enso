@@ -17,7 +17,7 @@ import * as backendModule from '#/services/Backend'
 
 import * as string from '#/utilities/string'
 
-import * as constants from '../const'
+import * as constants from '../constants'
 import * as components from './components'
 
 /**

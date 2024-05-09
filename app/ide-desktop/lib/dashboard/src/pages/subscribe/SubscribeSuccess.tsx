@@ -15,7 +15,7 @@ import * as result from '#/components/Result'
 
 import * as backend from '#/services/Backend'
 
-import * as constants from './const'
+import * as constants from './constants'
 
 /**
  * A page to show when a user successfully subscribes to a plan.
@@ -28,15 +28,12 @@ export function SubscribeSuccess() {
 
   const plan = searchParams.get('plan') ?? backend.Plan.solo
 
-  if (checkPlan(plan)) {
+  if (backend.isPlan(plan)) {
     return (
       <result.Result
         className="h-full"
         title={getText('subscribeSuccessTitle')}
-        subtitle={getText(
-          'subscribeSuccessSubtitle',
-          `${getText(constants.PLAN_TO_TEXT_ID[plan])}`
-        )}
+        subtitle={getText('subscribeSuccessSubtitle', getText(constants.PLAN_TO_TEXT_ID[plan]))}
         status="success"
       >
         <ariaComponents.Button
@@ -53,11 +50,4 @@ export function SubscribeSuccess() {
   } else {
     return <router.Navigate to={appUtils.DASHBOARD_PATH} replace />
   }
-}
-
-/**
- * Check if a string is a valid plan.
- */
-function checkPlan(plan: string): plan is backend.Plan {
-  return plan in backend.Plan
 }
