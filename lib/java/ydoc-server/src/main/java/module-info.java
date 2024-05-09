@@ -7,4 +7,6 @@ module org.enso.ydoc {
   requires org.enso.syntax;
   requires org.graalvm.polyglot;
   requires org.slf4j;
+
+  exports org.enso.ydoc.polyfill.web;
 }
