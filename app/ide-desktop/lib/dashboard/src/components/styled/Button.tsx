@@ -26,6 +26,7 @@ export interface ButtonProps {
   readonly alt?: string
   /** A title that is only shown when `disabled` is `true`. */
   readonly error?: string | null
+  readonly buttonClassName?: string
   readonly className?: string
   readonly onPress: (event: aria.PressEvent) => void
 }
@@ -38,6 +39,7 @@ function Button(props: ButtonProps, ref: React.ForwardedRef<HTMLButtonElement>) 
     image,
     error,
     alt,
+    buttonClassName,
     className,
     ...buttonProps
   } = props
@@ -50,6 +52,7 @@ function Button(props: ButtonProps, ref: React.ForwardedRef<HTMLButtonElement>) 
         {...aria.mergeProps<aria.ButtonProps>()(buttonProps, focusChildProps, {
           ref,
           className:
+            buttonClassName ??
             'relative after:pointer-events-none after:absolute after:inset-button-focus-ring-inset after:rounded-button-focus-ring',
         })}
       >

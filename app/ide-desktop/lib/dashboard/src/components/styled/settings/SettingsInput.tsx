@@ -9,8 +9,8 @@ import * as focusHooks from '#/hooks/focusHooks'
 import * as textProvider from '#/providers/TextProvider'
 
 import * as aria from '#/components/aria'
+import Button from '#/components/styled/Button'
 import FocusRing from '#/components/styled/FocusRing'
-import SvgMask from '#/components/SvgMask'
 
 // =====================
 // === SettingsInput ===
@@ -89,10 +89,11 @@ function SettingsInput(props: SettingsInputProps, ref: React.ForwardedRef<HTMLIn
             )}
           />
           {type === 'password' && (
-            <SvgMask
-              src={isShowingPassword ? EyeIcon : EyeCrossedIcon}
+            <Button
+              active
+              image={isShowingPassword ? EyeIcon : EyeCrossedIcon}
               alt={isShowingPassword ? getText('hidePassword') : getText('showPassword')}
-              className="absolute right-2 top-1 cursor-pointer rounded-full"
+              buttonClassName="absolute right-2 top-1 cursor-pointer rounded-full size-icon"
               onPress={() => {
                 setIsShowingPassword(show => !show)
               }}

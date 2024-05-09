@@ -8,7 +8,7 @@ import * as textProvider from '#/providers/TextProvider'
 import * as aria from '#/components/aria'
 import type * as column from '#/components/dashboard/column'
 import * as columnUtils from '#/components/dashboard/column/columnUtils'
-import SvgMask from '#/components/SvgMask'
+import Button from '#/components/styled/Button'
 
 /** A heading for the "Accessed data" column. */
 export default function AccessedDataColumnHeading(props: column.AssetColumnHeadingProps) {
@@ -18,8 +18,9 @@ export default function AccessedDataColumnHeading(props: column.AssetColumnHeadi
 
   return (
     <div className="flex h-drive-table-heading w-full items-center gap-icon-with-text">
-      <SvgMask
-        src={AccessedDataIcon}
+      <Button
+        active
+        image={AccessedDataIcon}
         className="size-icon"
         alt={getText('accessedDataColumnHide')}
         onPress={() => {

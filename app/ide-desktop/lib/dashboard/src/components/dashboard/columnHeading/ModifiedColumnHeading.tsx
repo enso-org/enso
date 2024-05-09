@@ -9,7 +9,7 @@ import * as textProvider from '#/providers/TextProvider'
 import * as aria from '#/components/aria'
 import type * as column from '#/components/dashboard/column'
 import * as columnUtils from '#/components/dashboard/column/columnUtils'
-import SvgMask from '#/components/SvgMask'
+import Button from '#/components/styled/Button'
 import UnstyledButton from '#/components/UnstyledButton'
 
 import * as sorting from '#/utilities/sorting'
@@ -43,8 +43,9 @@ export default function ModifiedColumnHeading(props: column.AssetColumnHeadingPr
         }
       }}
     >
-      <SvgMask
-        src={TimeIcon}
+      <Button
+        active
+        image={TimeIcon}
         className="size-icon"
         alt={getText('modifiedColumnHide')}
         onPress={() => {

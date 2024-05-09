@@ -8,7 +8,7 @@ import * as textProvider from '#/providers/TextProvider'
 import * as aria from '#/components/aria'
 import type * as column from '#/components/dashboard/column'
 import * as columnUtils from '#/components/dashboard/column/columnUtils'
-import SvgMask from '#/components/SvgMask'
+import Button from '#/components/styled/Button'
 
 /** A heading for the "Accessed by projects" column. */
 export default function AccessedByProjectsColumnHeading(props: column.AssetColumnHeadingProps) {
@@ -18,8 +18,9 @@ export default function AccessedByProjectsColumnHeading(props: column.AssetColum
 
   return (
     <div className="flex h-drive-table-heading w-full items-center gap-icon-with-text">
-      <SvgMask
-        src={AccessedByProjectsIcon}
+      <Button
+        active
+        image={AccessedByProjectsIcon}
         className="size-icon"
         alt={getText('accessedByProjectsColumnHide')}
         onPress={() => {
