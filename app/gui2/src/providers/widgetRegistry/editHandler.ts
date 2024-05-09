@@ -66,9 +66,9 @@ export class WidgetEditHandler {
         noLongerActive()
         hooks.cancel?.()
       },
-      end: (origin: WidgetId) => {
+      end: (origin?: WidgetId) => {
         noLongerActive()
-        hooks.end?.(origin)
+        hooks.end?.(origin ?? widgetId)
       },
       pointerdown: (event, navigator) => {
         if (!hooks.pointerdown) return false
@@ -151,7 +151,7 @@ export interface WidgetEditHooks extends Interaction {
    * {@link WidgetEditHandler} being called, or because a child is to be started.
    */
   start?(origin: WidgetId): void
-  end?(origin: WidgetId): void
+  end(origin?: WidgetId | undefined): void
   /**
    * Hook called when a child widget, or this widget itself, provides an updated value.
    */
@@ -223,7 +223,7 @@ class PortEditInteraction implements Interaction {
     this.shutdown()
   }
 
-  end(origin: WidgetId) {
+  end(origin?: WidgetId) {
     for (const interaction of this.interactions) interaction.end?.(origin)
     this.shutdown()
   }
@@ -231,7 +231,7 @@ class PortEditInteraction implements Interaction {
   private shutdown() {
     this.interactions.length = 0
     this.active.value = false
-    this.interactionHandler.end(this)
+    this.interactionHandler.ended(this)
   }
 
   register(interaction: PortEditSubinteraction) {
@@ -269,6 +269,8 @@ class SuspendedPortEdit implements Interaction {
   }
 
   cancel() {}
+
+  end() {}
 }
 
 /** A sub-interaction of a @{link PortEditInteraction} */
@@ -276,7 +278,8 @@ interface PortEditSubinteraction extends Interaction {
   widgetId: WidgetId
 
   suspend?: () => { resume: () => void }
-  end?(origin: WidgetId): void
+
+  end(origin?: WidgetId | undefined): void
 }
 
 /** @internal Public for unit testing.

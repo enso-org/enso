@@ -26,6 +26,7 @@ const editor = ref<EditorViewType>()
 const interactions = injectInteractionHandler()
 const editInteraction = {
   cancel: () => finishEdit(),
+  end: () => finishEdit(),
   click: (e: Event) => {
     if (e.target instanceof Element && !commentRoot.value?.contains(e.target)) finishEdit()
     return false

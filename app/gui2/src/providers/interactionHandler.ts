@@ -28,7 +28,7 @@ export class InteractionHandler {
 
   setCurrent(interaction: Interaction | undefined) {
     if (!this.isActive(interaction)) {
-      this.currentInteraction?.cancel?.()
+      this.currentInteraction?.end()
       this.currentInteraction = interaction
     }
   }
@@ -37,14 +37,25 @@ export class InteractionHandler {
     return this.currentInteraction
   }
 
-  /** Unset the current interaction, if it is the specified instance. */
-  end(interaction: Interaction) {
+  /** Clear the current interaction, if it is the specified instance. */
+  ended(interaction: Interaction) {
     if (this.isActive(interaction)) this.currentInteraction = undefined
+  }
+
+  /** End the current interaction, if it is the specified instance. */
+  end(interaction: Interaction) {
+    if (this.isActive(interaction)) {
+      this.currentInteraction = undefined
+      interaction.end()
+    }
   }
 
   /** Cancel the current interaction, if it is the specified instance. */
   cancel(interaction: Interaction) {
-    if (this.isActive(interaction)) this.setCurrent(undefined)
+    if (this.isActive(interaction)) {
+      this.currentInteraction = undefined
+      interaction.cancel()
+    }
   }
 
   handleCancel(): boolean {
@@ -74,7 +85,10 @@ export class InteractionHandler {
 type InteractionEventHandler = (event: PointerEvent, navigator: GraphNavigator) => boolean | void
 
 export interface Interaction {
+  /** Called when the interaction is explicitly canceled, e.g. with the `Esc` key. */
   cancel(): void
+  /** Called when the interaction is ended due to activity elsewhere. */
+  end(): void
   /** Uses a `capture` event handler to allow an interaction to respond to clicks over any element. */
   pointerdown?: InteractionEventHandler
   /** Uses a `capture` event handler to allow an interaction to respond to mouse button release
