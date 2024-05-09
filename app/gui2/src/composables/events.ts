@@ -279,25 +279,36 @@ export const enum PointerButtonMask {
 }
 
 /**
+ * Options for `usePointer` composable.
+ */
+export interface UsePointerOptions {
+  /** Declare which buttons to look for. The value represents a `PointerEvent.buttons` mask.
+   * Defaults to main mouse button. */
+  requiredButtonMask?: number
+  /** Which element should capture pointer when drag starts: event's `target`, `currentTarget`,
+   * or none.
+   */
+  pointerCapturedBy?: 'target' | 'currentTarget' | 'none'
+  /** Additional condition for drag */
+  predicate?: (e: PointerEvent) => boolean
+}
+
+/**
  * Register for a pointer dragging events.
  *
- * @param handler callback on any pointer event.
- * If `false` is returned from the callback, `preventDefault` will NOT be called for the event.
- * @param requiredButtonMask declare which buttons to look for. The value represents a `PointerEvent.buttons` mask.
+ * @param handler callback on any pointer event. If `false` is returned from the callback, the
+ * event will be considered _not_ handled and will propagate further.
+ * @param options
  * @returns
  */
 export function usePointer(
   handler: (pos: EventPosition, event: PointerEvent, eventType: PointerEventType) => void | boolean,
-  options: {
-    requiredButtonMask?: number
-    pointerCapturedBy?: 'target' | 'currentTarget' | 'none'
-    predicate?: (e: PointerEvent) => boolean
-  } = {},
+  options: UsePointerOptions = {},
 ) {
   const requiredButtonMask = options.requiredButtonMask ?? PointerButtonMask.Main
   const pointerCapturedBy = options.pointerCapturedBy ?? 'currentTarget'
   const predicate = options.predicate ?? ((_e) => true)
-  const current = ref<
+  const dragState = ref<
     | {
         trackedPointer: number
         trackedElement: Element | undefined
@@ -307,35 +318,35 @@ export function usePointer(
     | undefined
   >()
 
-  const dragging = computed(() => current.value != null)
+  const dragging = computed(() => dragState.value != null)
 
   function doStop(e: PointerEvent) {
-    if (current.value?.trackedPointer !== e.pointerId) return
-    const { trackedElement, trackedPointer, initialGrabPos, lastPos } = current.value
+    if (dragState.value?.trackedPointer !== e.pointerId) return
+    const { trackedElement, trackedPointer, initialGrabPos, lastPos } = dragState.value
     trackedElement?.releasePointerCapture(trackedPointer)
 
     if (handler(computePosition(e, initialGrabPos, lastPos), e, 'stop') !== false) {
       e.stopImmediatePropagation()
     }
 
-    current.value = undefined
+    dragState.value = undefined
   }
 
   function doMove(e: PointerEvent) {
-    if (current.value?.trackedPointer !== e.pointerId) return
-    const { initialGrabPos, lastPos } = current.value
+    if (dragState.value?.trackedPointer !== e.pointerId) return
+    const { initialGrabPos, lastPos } = dragState.value
 
     if (handler(computePosition(e, initialGrabPos, lastPos), e, 'move') !== false) {
       e.stopImmediatePropagation()
     }
-    current.value.lastPos = new Vec2(e.clientX, e.clientY)
+    dragState.value.lastPos = new Vec2(e.clientX, e.clientY)
   }
 
   const events = {
     pointerdown(e: PointerEvent) {
       // pointers should not respond to unmasked mouse buttons
       if ((e.buttons & requiredButtonMask) === 0 || !predicate(e)) return
-      if (current.value != null) return
+      if (dragState.value != null) return
 
       let trackedElement: Element | undefined
       const trackedTarget =
@@ -349,7 +360,7 @@ export function usePointer(
       }
       const initialGrabPos = new Vec2(e.clientX, e.clientY)
       const lastPos = initialGrabPos
-      current.value = {
+      dragState.value = {
         trackedPointer: e.pointerId,
         initialGrabPos,
         lastPos,

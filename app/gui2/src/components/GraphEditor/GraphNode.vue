@@ -244,7 +244,6 @@ const transform = computed(() => {
 })
 
 const startEpochMs = ref(0)
-let draggedElement: Element | undefined
 let significantMove = false
 
 const dragPointer = usePointer(
@@ -252,13 +251,13 @@ const dragPointer = usePointer(
     if (type !== 'start') {
       if (
         !significantMove &&
-        draggedElement &&
         (Number(new Date()) - startEpochMs.value >= MAXIMUM_CLICK_LENGTH_MS ||
           pos.relative.lengthSquared() >= MAXIMUM_CLICK_DISTANCE_SQ)
       ) {
         // If this is clearly a drag (not a click), the node itself capture pointer events to
         // prevent `click` on widgets.
-        draggedElement.setPointerCapture?.(event.pointerId)
+        if (event.currentTarget instanceof Element)
+          event.currentTarget.setPointerCapture?.(event.pointerId)
         significantMove = true
       }
       const fullOffset = pos.relative
@@ -267,11 +266,9 @@ const dragPointer = usePointer(
     switch (type) {
       case 'start':
         startEpochMs.value = Number(new Date())
-        if (event.currentTarget instanceof Element) draggedElement = event.currentTarget
         significantMove = false
         break
       case 'stop': {
-        draggedElement = undefined
         startEpochMs.value = 0
         emit('draggingCommited')
       }
