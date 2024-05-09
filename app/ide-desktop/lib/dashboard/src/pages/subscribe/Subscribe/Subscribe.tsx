@@ -7,6 +7,7 @@ import * as reactQuery from '@tanstack/react-query'
 import * as router from 'react-router-dom'
 
 import Back from 'enso-assets/arrow_left.svg'
+import * as load from 'enso-common/src/load'
 
 import * as appUtils from '#/appUtils'
 
@@ -19,8 +20,6 @@ import * as aria from '#/components/aria'
 import * as ariaComponents from '#/components/AriaComponents'
 
 import * as backendModule from '#/services/Backend'
-
-import * as load from '#/utilities/load'
 
 import * as components from './components'
 import * as componentForPlan from './getComponentForPlan'
