@@ -10,6 +10,8 @@ import org.graalvm.polyglot.io.{MessageEndpoint, MessageTransport}
 import java.nio.ByteBuffer
 import java.util.concurrent.LinkedBlockingQueue
 
+import scala.util.{Failure, Success}
+
 /** Emulates the language server for the purposes of testing.
   *
   * Runtime tests are run in the absence of a real language server, which is
@@ -63,12 +65,13 @@ class RuntimeServerEmulator(
 
         override def sendBinary(data: ByteBuffer): Unit = {
           Api.deserializeApiEnvelope(data) match {
-            case Some(request: Api.Request) =>
+            case Success(request: Api.Request) =>
               connector ! request
-            case Some(response: Api.Response) =>
+            case Success(response: Api.Response) =>
               messageQueue.add(response)
-            case None =>
+            case Failure(ex) =>
               println("Failed to deserialize a message.")
+              ex.printStackTrace()
           }
         }
 

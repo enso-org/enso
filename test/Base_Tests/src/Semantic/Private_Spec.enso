@@ -1,0 +1,87 @@
+
+from Standard.Base import all
+import Standard.Base.Errors.Common.Private_Access
+from Standard.Test import all
+from enso_dev.Helpers import Priv_Type
+
+polyglot java import org.enso.base_test_helpers.CallbackHelper
+
+type My_Priv_Type
+    private Cons data
+
+
+add_specs spec_builder =
+    spec_builder.group "Private constructors" group_builder->
+        group_builder.specify "cannot directly call private constructor" <|
+            Test.expect_panic Private_Access <| Priv_Type.Cons 42
+
+        # Optimally, we want `Priv_Type.Cons` expression to result in a compilation error.
+        # All the references to private methods/constructors are theoretically resolvable
+        # at compilation time. However, the current state of the static compiler does not
+        # allow us to do that easily.
+        # For more info, see https://github.com/enso-org/enso/issues/6729
+        group_builder.specify "can get reference to private constructor, but cannot call it" <|
+            cons_fn data = Priv_Type.Cons data
+            Test.expect_panic Private_Access <| cons_fn 42
+
+        group_builder.specify "can call private constructor via public factory method" <|
+            obj = Priv_Type.create 42
+            obj.is_nothing . should_be_false
+
+        group_builder.specify "cannot get private field" <|
+            obj = Priv_Type.create 42
+            Test.expect_panic Private_Access <| obj.data
+
+        group_builder.specify "can get private field via public accessor" <|
+            obj = Priv_Type.create 42
+            obj.get_data . should_equal 42
+
+        group_builder.specify "cannot get private field from JS" <|
+            obj = Priv_Type.create 42
+            # When JS tries to access a private field, it does not throw a panic, as it does not
+            # see the field. It returns undefined.
+            ret = js_access_field obj
+            ret.is_nothing . should_be_true
+
+        group_builder.specify "can call private constructor via public factory method from JS" <|
+            create_fn x = Priv_Type.create x
+            obj = js_create_obj create_fn
+            obj.is_nothing . should_be_false
+
+        group_builder.specify "can get private field via public accessor from JS" <|
+            obj = Priv_Type.create 42
+            js_access_field_via_getter obj . should_equal 42
+
+        group_builder.specify "cannot call private constructor from Java" <|
+            cons_fn data = Priv_Type.Cons data
+            Test.expect_panic Private_Access <| CallbackHelper.runCallbackInt cons_fn 42
+
+        group_builder.specify "cannot call private constructor from a lambda method" <|
+            Test.expect_panic Private_Access <|
+                Priv_Type.in_ctx <|
+                    Priv_Type.Cons 42
+
+        # Note that pattern matching on project-private constructor from a different project
+        # is a compilation error. So we can only test it for the same project.
+        group_builder.specify "can pattern match on private constructor from the same project" <|
+            obj = My_Priv_Type.Cons 42
+            res = case obj of
+                My_Priv_Type.Cons x -> x
+                _ -> 0
+            res . should_equal 42
+
+
+foreign js js_access_field obj = """
+    return obj.data;
+
+foreign js js_access_field_via_getter obj = """
+    return obj.get_data();
+
+foreign js js_create_obj cons_fn = """
+    return cons_fn(42);
+
+
+main filter=Nothing =
+    suite = Test.build suite_builder->
+        add_specs suite_builder
+    suite.run_with_filter filter

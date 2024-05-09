@@ -97,6 +97,9 @@ export function getDefines(serverPort = 8080) {
         ),
         'process.env.ENSO_CLOUD_COGNITO_DOMAIN': stringify(process.env.ENSO_CLOUD_COGNITO_DOMAIN),
         'process.env.ENSO_CLOUD_COGNITO_REGION': stringify(process.env.ENSO_CLOUD_COGNITO_REGION),
+        'process.env.ENSO_CLOUD_GOOGLE_ANALYTICS_TAG': stringify(
+            process.env.ENSO_CLOUD_GOOGLE_ANALYTICS_TAG
+        ),
         /* eslint-enable @typescript-eslint/naming-convention */
     }
 }

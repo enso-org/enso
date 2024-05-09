@@ -145,6 +145,12 @@ pub trait IsCommandWrapper {
         self
     }
 
+    #[cfg(windows)]
+    fn raw_arg<S: AsRef<OsStr>>(&mut self, arg: S) -> &mut Self {
+        self.borrow_mut_command().raw_arg(arg);
+        self
+    }
+
     fn args<I, S>(&mut self, args: I) -> &mut Self
     where
         I: IntoIterator<Item = S>,

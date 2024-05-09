@@ -4,7 +4,7 @@ import { assert } from '@/util/assert'
 import { Rect } from '@/util/data/rect'
 import { Vec2 } from '@/util/data/vec2'
 import { isPointer, pointerButtonToEventInfo, type BindingInfo } from '@/util/shortcuts'
-import { expect, test, vi } from 'vitest'
+import { beforeAll, expect, test, vi } from 'vitest'
 import { proxyRefs, ref, type Ref } from 'vue'
 
 function selectionWithMockData(sceneMousePos?: Ref<Vec2>) {
@@ -82,40 +82,52 @@ test.each`
   ${'top'}    | ${bindingInvert}  | ${[]}
   ${'bottom'} | ${bindingInvert}  | ${[1, 2, 3, 4]}
   ${'all'}    | ${bindingInvert}  | ${[3, 4]}
-`('Selection by dragging $area area with $modifiers', ({ areaId, binding, expected }) => {
-  const area = areas[areaId]!
-  const dragCase = (start: Vec2, stop: Vec2) => {
-    const mousePos = ref(start)
-    const selection = selectionWithMockData(mousePos)
+`(
+  'Selection by dragging $areaId area with $binding.humanReadable',
+  ({ areaId, binding, expected }) => {
+    const area = areas[areaId]!
+    const dragCase = (start: Vec2, stop: Vec2) => {
+      const mousePos = ref(start)
+      const selection = selectionWithMockData(mousePos)
 
-    selection.events.pointerdown(mockPointerEvent('pointerdown', mousePos.value, binding))
-    selection.events.pointermove(mockPointerEvent('pointermove', mousePos.value, binding))
-    mousePos.value = stop
-    selection.events.pointermove(mockPointerEvent('pointermove', mousePos.value, binding))
-    expect(selection.selected).toEqual(new Set(expected))
-    selection.events.pointerdown(mockPointerEvent('pointerup', mousePos.value, binding))
-    expect(selection.selected).toEqual(new Set(expected))
-  }
+      selection.events.pointerdown(mockPointerEvent('pointerdown', mousePos.value, binding))
+      selection.events.pointermove(mockPointerEvent('pointermove', mousePos.value, binding))
+      mousePos.value = stop
+      selection.events.pointermove(mockPointerEvent('pointermove', mousePos.value, binding))
+      expect(selection.selected).toEqual(new Set(expected))
+      selection.events.pointerdown(mockPointerEvent('pointerup', mousePos.value, binding))
+      expect(selection.selected).toEqual(new Set(expected))
+    }
 
-  // We should select same set of nodes, regardless of drag direction
-  dragCase(new Vec2(area.left, area.top), new Vec2(area.right, area.bottom))
-  dragCase(new Vec2(area.right, area.bottom), new Vec2(area.left, area.top))
-  dragCase(new Vec2(area.left, area.bottom), new Vec2(area.right, area.top))
-  dragCase(new Vec2(area.right, area.top), new Vec2(area.left, area.bottom))
-})
+    // We should select same set of nodes, regardless of drag direction
+    dragCase(new Vec2(area.left, area.top), new Vec2(area.right, area.bottom))
+    dragCase(new Vec2(area.right, area.bottom), new Vec2(area.left, area.top))
+    dragCase(new Vec2(area.left, area.bottom), new Vec2(area.right, area.top))
+    dragCase(new Vec2(area.right, area.top), new Vec2(area.left, area.bottom))
+  },
+)
 
-// There is no PointerEvent class in jsdom (yet).
+// See https://github.com/thymikee/jest-preset-angular/issues/245#issuecomment-576296325
 class MockPointerEvent extends MouseEvent {
   readonly pointerId: number
-  constructor(type: string, options: MouseEventInit & { currentTarget?: Element | undefined }) {
+  constructor(
+    type: string,
+    options: MouseEventInit & { target?: Element | undefined; currentTarget?: Element | undefined },
+  ) {
     super(type, options)
     vi.spyOn<MouseEvent, 'currentTarget'>(this, 'currentTarget', 'get').mockReturnValue(
       options.currentTarget ?? null,
     )
+    vi.spyOn<MouseEvent, 'target'>(this, 'target', 'get').mockReturnValue(options.target ?? null)
     this.pointerId = 4
   }
 }
 
+beforeAll(() => {
+  ;(window as any).PointerEvent = MockPointerEvent
+})
+
+const graphRootMock = document.createElement('div')
 function mockPointerEvent(type: string, pos: Vec2, binding: BindingInfo): PointerEvent {
   const modifiersSet = new Set(binding.modifiers)
   assert(isPointer(binding.key))
@@ -129,7 +141,8 @@ function mockPointerEvent(type: string, pos: Vec2, binding: BindingInfo): Pointe
     clientY: pos.y,
     button,
     buttons,
-    currentTarget: document.createElement('div'),
+    target: graphRootMock,
+    currentTarget: graphRootMock,
   }) as PointerEvent
   return event
 }

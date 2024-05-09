@@ -63,7 +63,8 @@ case object BindingAnalysis extends IRPass {
           Cons(
             m.name.name,
             m.arguments.length,
-            m.arguments.forall(_.defaultValue.isDefined)
+            m.arguments.forall(_.defaultValue.isDefined),
+            m.isPrivate
           )
         ),
         isBuiltinType

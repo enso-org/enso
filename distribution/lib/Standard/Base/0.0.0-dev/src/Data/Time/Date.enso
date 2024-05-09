@@ -817,7 +817,7 @@ type Date
          Format "2020-06-21" with French locale as "21. juin 2020"
 
              example_format = Date.new 2020 6 21 . format (Date_Time_Formatter.from "d. MMMM yyyy" (Locale.new "fr"))
-    @format (value-> make_date_format_selector value)
+    @format make_date_format_selector
     format : Date_Time_Formatter -> Text
     format self format:Date_Time_Formatter=Date_Time_Formatter.iso_date =
         format.format_date self

@@ -18,7 +18,7 @@ mod tests {
     #[tokio::test]
     #[ignore]
     async fn call_npx() -> Result {
-        setup_logging()?;
+        setup_logging().ok();
         Npx.cmd()?.run_ok().await?;
         Ok(())
     }

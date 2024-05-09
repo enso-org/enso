@@ -8,6 +8,7 @@ import Standard.Table.Internal.Vector_Builder.Vector_Builder
 from Standard.Table import Aggregate_Column, Column, Value_Type
 from Standard.Table.Aggregate_Column.Aggregate_Column import all
 from Standard.Table.Errors import Inexact_Type_Coercion
+from Standard.Table.Internal.Storage import get_storage_for_column
 
 import project.Connection.Connection.Connection
 import project.DB_Column.DB_Column
@@ -258,7 +259,7 @@ type Postgres_Dialect
                     # We cannot have a specified scale and no precision, so special handling is needed for this:
                     case precision.is_nothing && scale.is_nothing.not of
                         True ->
-                            needed_precision = column.java_column.getStorage.getMaxPrecisionStored
+                            needed_precision = (get_storage_for_column column).getMaxPrecisionStored
                             new_type = case needed_precision <= 1000 of
                                 # If the precision is small enough that our number will fit, we create a column with maximum supported precision.
                                 True -> Value_Type.Decimal 1000 scale

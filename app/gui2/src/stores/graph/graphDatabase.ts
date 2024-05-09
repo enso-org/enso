@@ -263,6 +263,10 @@ export class GraphDb {
     return this.bindings.identifierToBindingId.hasKey(ident)
   }
 
+  nodeIds(): IterableIterator<NodeId> {
+    return this.nodeIdToNode.keys()
+  }
+
   isKnownFunctionCall(id: AstId): boolean {
     return this.getMethodCallInfo(id) != null
   }

@@ -25,6 +25,9 @@ export function useSelection<T>(
   const hoveredNode = ref<NodeId>()
   const hoveredElement = ref<Element>()
 
+  const isChanging = computed(() => anchor.value != null)
+  const committedSelection = computed(() => (isChanging.value ? initiallySelected : selected))
+
   useEvent(document, 'pointerover', (event) => {
     hoveredElement.value = event.target instanceof Element ? event.target : undefined
   })
@@ -144,24 +147,27 @@ export function useSelection<T>(
     overrideElemsToSelect.value = undefined
   }
 
-  const pointer = usePointer((_pos, event, eventType) => {
-    if (eventType === 'start') {
-      readInitiallySelected()
-    } else if (eventType === 'stop') {
-      if (anchor.value == null) {
-        // If there was no drag, we want to handle "clicking-off" selected nodes.
+  const pointer = usePointer(
+    (_pos, event, eventType) => {
+      if (eventType === 'start') {
+        readInitiallySelected()
+      } else if (eventType === 'stop') {
+        if (anchor.value == null) {
+          // If there was no drag, we want to handle "clicking-off" selected nodes.
+          selectionEventHandler(event)
+        } else {
+          anchor.value = undefined
+        }
+        initiallySelected.clear()
+      } else if (pointer.dragging) {
+        if (anchor.value == null) {
+          anchor.value = navigator.sceneMousePos?.copy()
+        }
         selectionEventHandler(event)
-      } else {
-        anchor.value = undefined
       }
-      initiallySelected.clear()
-    } else if (pointer.dragging) {
-      if (anchor.value == null) {
-        anchor.value = navigator.sceneMousePos?.copy()
-      }
-      selectionEventHandler(event)
-    }
-  })
+    },
+    { predicate: (e) => e.target === e.currentTarget },
+  )
 
   return proxyRefs({
     selected,
@@ -171,7 +177,8 @@ export function useSelection<T>(
     },
     deselectAll: () => selected.clear(),
     isSelected: (element: T) => selected.has(element),
-    isChanging: computed(() => anchor.value != null),
+    isChanging,
+    committedSelection,
     setSelection,
     handleSelectionOf,
     hoveredNode,

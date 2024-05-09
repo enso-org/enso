@@ -51,7 +51,6 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
   }
   const asset = item.item
   const setAsset = setAssetHooks.useSetAsset(asset, setItem)
-  const isCloud = backend.type === backendModule.BackendType.remote
 
   const setIsEditing = (isEditingName: boolean) => {
     if (isEditable) {
@@ -64,7 +63,7 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
       setIsEditing(false)
       if (string.isWhitespaceOnly(newTitle)) {
         // Do nothing.
-      } else if (isCloud && newTitle !== asset.title) {
+      } else if (newTitle !== asset.title) {
         const oldTitle = asset.title
         setAsset(object.merger({ title: newTitle }))
         try {
