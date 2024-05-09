@@ -1,107 +1,35 @@
-;
-
 /** @file The icon and name of a {@link backendModule.ProjectAsset}. */
-import * as React from 'react';
-
-
-
-import NetworkIcon from 'enso-assets/network.svg';
-
-
-
-import * as eventHooks from '#/hooks/eventHooks';
-import * as setAssetHooks from '#/hooks/setAssetHooks';
-import * as toastAndLogHooks from '#/hooks/toastAndLogHooks';
-
-
-
-import * as authProvider from '#/providers/AuthProvider';
-import * as inputBindingsProvider from '#/providers/InputBindingsProvider';
-import * as textProvider from '#/providers/TextProvider';
-
-
-
-import AssetEventType from '#/events/AssetEventType';
-import AssetListEventType from '#/events/AssetListEventType';
-
-
-
-import type * as column from '#/components/dashboard/column';
-import ProjectIcon from '#/components/dashboard/ProjectIcon';
-import EditableSpan from '#/components/EditableSpan';
-import SvgMask from '#/components/SvgMask';
-
-
-
-import * as backendModule from '#/services/Backend';
-import * as localBackend from '#/services/LocalBackend';
-import * as projectManager from '#/services/ProjectManager';
-
-
-
-import * as eventModule from '#/utilities/event';
-import * as indent from '#/utilities/indent';
-import * as object from '#/utilities/object';
-import * as permissions from '#/utilities/permissions';
-import * as string from '#/utilities/string';
-import * as validation from '#/utilities/validation';
-import Visibility from '#/utilities/Visibility';
-
-
-
-
-
-;
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+import * as React from 'react'
+
+import NetworkIcon from 'enso-assets/network.svg'
+
+import * as eventHooks from '#/hooks/eventHooks'
+import * as setAssetHooks from '#/hooks/setAssetHooks'
+import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
+
+import * as authProvider from '#/providers/AuthProvider'
+import * as inputBindingsProvider from '#/providers/InputBindingsProvider'
+import * as textProvider from '#/providers/TextProvider'
+
+import AssetEventType from '#/events/AssetEventType'
+import AssetListEventType from '#/events/AssetListEventType'
+
+import type * as column from '#/components/dashboard/column'
+import ProjectIcon from '#/components/dashboard/ProjectIcon'
+import EditableSpan from '#/components/EditableSpan'
+import SvgMask from '#/components/SvgMask'
+
+import * as backendModule from '#/services/Backend'
+import * as localBackend from '#/services/LocalBackend'
+import * as projectManager from '#/services/ProjectManager'
+
+import * as eventModule from '#/utilities/event'
+import * as indent from '#/utilities/indent'
+import * as object from '#/utilities/object'
+import * as permissions from '#/utilities/permissions'
+import * as string from '#/utilities/string'
+import * as validation from '#/utilities/validation'
+import Visibility from '#/utilities/Visibility'
 
 // ===================
 // === ProjectName ===

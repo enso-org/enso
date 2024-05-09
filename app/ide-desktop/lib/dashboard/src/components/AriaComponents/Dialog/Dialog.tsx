@@ -83,7 +83,7 @@ export function Dialog(props: types.DialogProps) {
               {typeof children === 'function' ? children(opts) : children}
             </div>
             {closeButton === 'floating' && (
-              <div className="m-floating-buttons absolute flex gap-1">
+              <div className="absolute m-floating-buttons flex gap-1">
                 <WindowButton role="close" onPress={opts.close} />
               </div>
             )}

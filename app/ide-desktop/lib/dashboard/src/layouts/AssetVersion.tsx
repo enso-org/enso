@@ -39,7 +39,7 @@ export default function AssetVersion(props: AssetVersionProps) {
           {getText('versionX', number)} {version.isLatest && getText('latestIndicator')}
         </div>
 
-        <time className="text-not-selected text-xs">
+        <time className="text-xs text-not-selected">
           {getText('onDateX', dateTime.formatDateTime(new Date(version.lastModified)))}
         </time>
       </div>
