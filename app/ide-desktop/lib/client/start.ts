@@ -9,7 +9,7 @@ import * as esbuild from 'esbuild'
 import * as esbuildConfig from './esbuild-config'
 import * as paths from './paths'
 
-// =================app/gui2/vite.config.ts
+// =================
 // === Constants ===
 // =================
 
