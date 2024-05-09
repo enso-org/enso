@@ -94,7 +94,7 @@ export type Variant =
   | 'tertiary'
 
 const DEFAULT_CLASSES =
-  'flex whitespace-nowrap cursor-pointer border border-transparent transition-[opacity,outline-offset] duration-150 ease-in-out select-none text-center items-center justify-center'
+  'flex whitespace-nowrap cursor-pointer border border-transparent transition-[opacity,outline-offset,background,border-color] duration-150 ease-in-out select-none text-center items-center justify-center'
 const FOCUS_CLASSES =
   'focus-visible:outline-offset-2 focus:outline-none focus-visible:outline focus-visible:outline-primary'
 const EXTRA_CLICK_ZONE_CLASSES = 'flex relative after:inset-[-12px] after:absolute'
@@ -114,14 +114,14 @@ const CLASSES_FOR_SIZE: Record<Size, string> = {
 
 const CLASSES_FOR_VARIANT: Record<Variant, string> = {
   custom: '',
-  link: 'inline-flex px-0 py-0 rounded-sm text-primary hover:text-primary-90 hover:underline',
-  primary: 'bg-primary text-white hover:bg-primary-90',
-  tertiary: 'bg-share text-white hover:bg-share-90',
+  link: 'inline-flex px-0 py-0 rounded-sm text-primary/50 underline hover:text-primary',
+  primary: 'bg-primary text-white hover:bg-primary/70',
+  tertiary: 'bg-share text-white hover:bg-share/90',
   cancel: 'bg-selected-frame opacity-80 hover:opacity-100',
   delete: 'bg-delete text-white',
   icon: 'opacity-50 hover:opacity-100',
   submit: 'bg-invite text-white opacity-80 hover:opacity-100',
-  outline: 'border-primary text-primary font-bold hover:border-primary-90',
+  outline: 'border-primary/40 text-primary font-bold hover:border-primary/90',
 }
 
 const CLASSES_FOR_ROUNDING: Record<Roundings, string> = {

@@ -7,6 +7,8 @@ import * as React from 'react'
 
 import type * as stripeJs from '@stripe/stripe-js'
 
+import OpenInNewTabIcon from 'enso-assets/open.svg'
+
 import type * as text from '#/text'
 
 import * as textProvider from '#/providers/TextProvider'
@@ -69,7 +71,13 @@ const COMPONENT_PER_PLAN: Record<backendModule.Plan, ComponentForPlan> = {
       const { getText } = textProvider.useText()
 
       return (
-        <ariaComponents.Button variant="link" href="https://enso.org/pricing" target="_blank">
+        <ariaComponents.Button
+          variant="link"
+          href="https://enso.org/pricing"
+          target="_blank"
+          icon={OpenInNewTabIcon}
+          iconPosition="end"
+        >
           {getText('learnMore')}
         </ariaComponents.Button>
       )
@@ -100,7 +108,13 @@ const COMPONENT_PER_PLAN: Record<backendModule.Plan, ComponentForPlan> = {
       const { getText } = textProvider.useText()
 
       return (
-        <ariaComponents.Button variant="link" href="https://enso.org/pricing" target="_blank">
+        <ariaComponents.Button
+          variant="link"
+          href="https://enso.org/pricing"
+          target="_blank"
+          icon={OpenInNewTabIcon}
+          iconPosition="end"
+        >
           {getText('learnMore')}
         </ariaComponents.Button>
       )
@@ -131,7 +145,13 @@ const COMPONENT_PER_PLAN: Record<backendModule.Plan, ComponentForPlan> = {
       const { getText } = textProvider.useText()
 
       return (
-        <ariaComponents.Button variant="link" href="https://enso.org/pricing" target="_blank">
+        <ariaComponents.Button
+          variant="link"
+          href="https://enso.org/pricing"
+          target="_blank"
+          icon={OpenInNewTabIcon}
+          iconPosition="end"
+        >
           {getText('learnMore')}
         </ariaComponents.Button>
       )
