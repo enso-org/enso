@@ -1,12 +1,5 @@
 package org.enso.database;
 
-import org.enso.base.enso_cloud.EnsoSecretAccessDenied;
-import org.enso.base.enso_cloud.EnsoSecretHelper;
-import org.enso.base.enso_cloud.HideableValue;
-import org.enso.database.audit.CloudAuditedConnection;
-import org.enso.database.audit.LocalAuditedConnection;
-import org.graalvm.collections.Pair;
-
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
@@ -15,6 +8,12 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.ServiceLoader;
+import org.enso.base.enso_cloud.EnsoSecretAccessDenied;
+import org.enso.base.enso_cloud.EnsoSecretHelper;
+import org.enso.base.enso_cloud.HideableValue;
+import org.enso.database.audit.CloudAuditedConnection;
+import org.enso.database.audit.LocalAuditedConnection;
+import org.graalvm.collections.Pair;
 
 /**
  * A helper class for accessing the JDBC components.
@@ -60,9 +59,11 @@ public final class JDBCProxy {
         EnsoSecretHelper.getJDBCConnection(url, partitionedProperties.jdbcProperties);
     return switch (partitionedProperties.audited()) {
       case "local" -> new LocalAuditedConnection(rawConnection);
-      case "cloud" -> new CloudAuditedConnection(rawConnection, partitionedProperties.getRelatedAssetId());
+      case "cloud" -> new CloudAuditedConnection(
+          rawConnection, partitionedProperties.getRelatedAssetId());
       case null -> rawConnection;
-      default -> throw new IllegalArgumentException("Unknown audit mode: " + partitionedProperties.audited());
+      default -> throw new IllegalArgumentException(
+          "Unknown audit mode: " + partitionedProperties.audited());
     };
   }
 

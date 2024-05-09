@@ -2,19 +2,19 @@ package org.enso.database.audit;
 
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import org.enso.base.enso_cloud.audit.AuditLog;
-
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.logging.Logger;
+import org.enso.base.enso_cloud.audit.AuditLog;
 
 public final class CloudAuditedConnection extends AuditedConnection {
   private static final Logger logger = Logger.getLogger(CloudAuditedConnection.class.getName());
   private final ObjectNode metadata;
 
   /**
-   * Because logs are sent asynchronously and their timestamps are only assigned on the receiving end,
-   * we need to assign a sequence number to be able to know the ordering between various events.
+   * Because logs are sent asynchronously and their timestamps are only assigned on the receiving
+   * end, we need to assign a sequence number to be able to know the ordering between various
+   * events.
    */
   private long sequenceNumber = 0;
 
