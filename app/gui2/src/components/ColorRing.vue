@@ -121,7 +121,7 @@ const triangleHue = computed(() => {
 const cssGradient = computed(() => {
   const points = gradientPoints(
     fixedRanges.value,
-    browserSupportsOklchInterpolation ? 2 : NONNATIVE_OKLCH_INTERPOLATION_STEPS,
+    browserSupportsOklchInterpolation ? undefined : NONNATIVE_OKLCH_INTERPOLATION_STEPS,
   )
   const angularColorStopList = Array.from(points, cssAngularColorStop)
   const colorStops = angularColorStopList.join(',')
