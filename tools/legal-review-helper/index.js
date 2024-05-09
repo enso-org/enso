@@ -176,18 +176,6 @@ app.post('/override-custom-license/:report', function (req, res) {
     }
 })
 
-app.post('/revert-to-default-license/:report', function (req, res) {
-    const report = req.params['report']
-    const package = req.body['package']
-    // TODO
-})
-
-app.post('/use-both-custom-and-default-license/:report', function (req, res) {
-    const report = req.params['report']
-    const package = req.body['package']
-    // TODO
-})
-
 app.get('/get-known-license-texts', function (req, res) {
     const knownLicenses = fs.readdirSync(path.join(settingsRoot, 'license-texts'))
     res.send(JSON.stringify(knownLicenses))

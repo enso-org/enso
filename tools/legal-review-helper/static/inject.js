@@ -292,13 +292,14 @@ function resetCustomCopyrightButton(injectionLocation) {
                     package: injectionLocation.data('package'),
                     action: 'add',
                     file: 'copyright-add',
-                    line: encoded,
+                    encoded_line: encoded,
                 }
                 setStatus('Adding custom notice...')
                 $.post('/modify/' + reportName, data, function (response) {
                     injectionLocation.css('color', 'gray')
-                    setStatus('Custom notice added. Regenerate the report to see the changes.')
-                    // TODO add note to parent as well to make it clearer
+                    const msg = 'Custom notice added. Regenerate the report to see the changes.'
+                    setStatus(msg)
+                    injectionLocation.parent().append('<p>' + msg + '</p>')
                     resetCustomCopyrightButton(injectionLocation)
                 }).fail(function (err) {
                     setStatus('Failed to add custom notice: ' + JSON.stringify(err), 'red')
