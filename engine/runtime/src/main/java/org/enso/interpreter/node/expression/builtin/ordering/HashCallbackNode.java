@@ -78,9 +78,7 @@ public abstract class HashCallbackNode extends Node {
   Function getHashCallbackFunction() {
     var comparableType = EnsoContext.get(this).getBuiltins().comparable().getType();
     Function hashCallback =
-        comparableType
-            .getMaterializedDefinitionScope()
-            .getMethodForType(comparableType, "hash_callback");
+        comparableType.getDefinitionScope().getMethodForType(comparableType, "hash_callback");
     assert hashCallback != null : "Comparable.hash_callback function must exist";
     return hashCallback;
   }

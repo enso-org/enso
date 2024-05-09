@@ -110,7 +110,7 @@ final class InvokeMethodImportResolver
 
   @CompilerDirectives.TruffleBoundary
   private static boolean isNamedAsAssociatedType(Type t) {
-    var at = t.getDefinitionScope().getAssociatedType();
+    var at = t.getDefinitionScopeBuilder().getAssociatedType();
     var byType = at == t;
     if (byType) {
       return true;
@@ -130,7 +130,7 @@ final class InvokeMethodImportResolver
     if (!isNamedAsAssociatedType(t)) {
       return null;
     }
-    var scope = t.getDefinitionScope();
+    var scope = t.getDefinitionScopeBuilder();
     var module = scope.getModule();
     var resolver = new InvokeMethodImportResolver(module, ctx.getTopScope());
     var found = resolver.tryResolveImport(module, symbol);

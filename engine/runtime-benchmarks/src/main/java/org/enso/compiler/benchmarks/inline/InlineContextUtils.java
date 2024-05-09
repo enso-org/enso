@@ -55,7 +55,7 @@ class InlineContextUtils {
     var module = ctx.eval(src);
     var moduleAssocType = module.invokeMember(MethodNames.Module.GET_ASSOCIATED_TYPE);
     var assocTypeReceiver = (Type) Utils.unwrapReceiver(ctx, moduleAssocType);
-    var moduleScope = assocTypeReceiver.getDefinitionScope().build();
+    var moduleScope = assocTypeReceiver.getDefinitionScope();
     var compiler = ensoCtx.getCompiler();
     var inlineCtxMeta =
         new InlineContextResourceFactory(

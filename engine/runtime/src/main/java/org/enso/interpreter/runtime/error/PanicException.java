@@ -113,7 +113,7 @@ public final class PanicException extends AbstractTruffleException implements En
   @NeverDefault
   static UnresolvedSymbol toDisplayText(IndirectInvokeMethodNode payloads) {
     var ctx = EnsoContext.get(payloads);
-    var scope = ctx.getBuiltins().panic().getDefinitionScope();
+    var scope = ctx.getBuiltins().panic().getDefinitionScopeBuilder();
     return UnresolvedSymbol.build("to_display_text", scope);
   }
 

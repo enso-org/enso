@@ -166,7 +166,7 @@ public final class EqualsNode extends Node {
 
     private static boolean findConversionImpl(
         EnsoContext ctx, Type selfType, Type thatType, Object self, Object that) {
-      var selfScope = selfType.getMaterializedDefinitionScope();
+      var selfScope = selfType.getDefinitionScope();
       var comparableType = ctx.getBuiltins().comparable().getType();
 
       var fromSelfType =
@@ -244,7 +244,7 @@ public final class EqualsNode extends Node {
         InteropConversionCallNode convertNode,
         EqualsSimpleNode equalityNode)
         throws PanicException {
-      var convert = UnresolvedConversion.build(selfType.getDefinitionScope());
+      var convert = UnresolvedConversion.build(selfType.getDefinitionScopeBuilder());
 
       var ctx = EnsoContext.get(this);
       var state = State.create(ctx);

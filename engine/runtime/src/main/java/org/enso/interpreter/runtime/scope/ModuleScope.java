@@ -101,7 +101,7 @@ public final class ModuleScope implements EnsoObject, DelayedModuleScope {
    */
   @CompilerDirectives.TruffleBoundary
   public Function lookupMethodDefinition(Type type, String name) {
-    var definedWithAtom = type.getMaterializedDefinitionScope().getMethodMapFor(type).get(name);
+    var definedWithAtom = type.getDefinitionScope().getMethodMapFor(type).get(name);
     if (definedWithAtom != null) {
       return definedWithAtom.get();
     }
@@ -121,12 +121,12 @@ public final class ModuleScope implements EnsoObject, DelayedModuleScope {
   @CompilerDirectives.TruffleBoundary
   public Function lookupConversionDefinition(Type original, Type target) {
     Function definedWithOriginal =
-        original.getMaterializedDefinitionScope().getConversionsFor(target).get(original);
+        original.getDefinitionScope().getConversionsFor(target).get(original);
     if (definedWithOriginal != null) {
       return definedWithOriginal;
     }
     Function definedWithTarget =
-        target.getMaterializedDefinitionScope().getConversionsFor(target).get(original);
+        target.getDefinitionScope().getConversionsFor(target).get(original);
     if (definedWithTarget != null) {
       return definedWithTarget;
     }
@@ -439,7 +439,7 @@ public final class ModuleScope implements EnsoObject, DelayedModuleScope {
      * @param scope target scope where methods should be registered to
      */
     public void registerAllMethodsOfTypeToScope(Type tpe, ModuleScope.Builder scope) {
-      // assert moduleScope == null;
+      // FIXME: because of Builtins can't enable 'assert moduleScope == null;'
       Type tpeKey = tpe == null ? noTypeKey : tpe;
       var allTypeMethods = methods.get(tpeKey);
       if (allTypeMethods != null) {
@@ -453,6 +453,7 @@ public final class ModuleScope implements EnsoObject, DelayedModuleScope {
      * @param scope the scope of the newly added dependency
      */
     public void addImport(DelayedModuleScope scope) {
+      assert moduleScope == null;
       imports.add(scope);
     }
 
@@ -462,6 +463,7 @@ public final class ModuleScope implements EnsoObject, DelayedModuleScope {
      * @param scope the exported scope
      */
     public void addExport(DelayedModuleScope scope) {
+      assert moduleScope == null;
       exports.add(scope);
     }
 
