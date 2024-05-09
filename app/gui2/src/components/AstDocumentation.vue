@@ -1,18 +1,23 @@
 <script setup lang="ts">
 import DocumentationEditor from '@/components/DocumentationEditor.vue'
 import { useGraphStore } from '@/stores/graph'
-import { assertDefined } from 'shared/util/assert'
+import { Ast } from '@/util/ast'
 import { computed } from 'vue'
+
+const props = defineProps<{
+  ast: Ast.Ast | undefined
+}>()
 
 const graphStore = useGraphStore()
 
 const documentation = computed({
-  get: () => graphStore.methodAst?.documentingAncestor()?.documentation() ?? '',
+  get: () => props.ast?.documentingAncestor()?.documentation() ?? '',
   set: (value) => {
-    graphStore.edit((edit) => {
-      assertDefined(graphStore.methodAst)
-      edit.getVersion(graphStore.methodAst).getOrInitDocumentation().setDocumentationText(value)
-    })
+    const ast = props.ast
+    if (!ast) return
+    graphStore.edit((edit) =>
+      edit.getVersion(ast)?.getOrInitDocumentation().setDocumentationText(value),
+    )
   },
 })
 </script>

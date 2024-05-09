@@ -5,6 +5,7 @@ import {
   graphBindings,
   interactionBindings,
 } from '@/bindings'
+import AstDocumentation from '@/components/AstDocumentation.vue'
 import CodeEditor from '@/components/CodeEditor.vue'
 import ComponentBrowser from '@/components/ComponentBrowser.vue'
 import { type Usage } from '@/components/ComponentBrowser/input'
@@ -17,7 +18,6 @@ import type { NodeCreationOptions } from '@/components/GraphEditor/nodeCreation'
 import { useGraphEditorToasts } from '@/components/GraphEditor/toasts'
 import { Uploader, uploadedExpression } from '@/components/GraphEditor/upload'
 import GraphMouse from '@/components/GraphMouse.vue'
-import DocumentationBrowser from '@/components/MethodDocumentation.vue'
 import PlusButton from '@/components/PlusButton.vue'
 import ResizeHandles from '@/components/ResizeHandles.vue'
 import SceneScroller from '@/components/SceneScroller.vue'
@@ -584,7 +584,7 @@ const groupColors = computed(() => {
         class="rightDock"
         data-testid="rightDock"
       >
-        <DocumentationBrowser />
+        <AstDocumentation :ast="graphStore.methodAst" />
         <SvgIcon
           name="close"
           class="closeButton button"
