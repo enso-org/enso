@@ -2,15 +2,19 @@ package org.enso.table.data.column.operation.map.numeric.arithmetic;
 
 import static org.enso.table.data.column.operation.map.numeric.helpers.DoubleArrayAdapter.fromAnyStorage;
 
+import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.BitSet;
+
 import org.enso.base.polyglot.NumericConverter;
 import org.enso.table.data.column.operation.map.BinaryMapOperation;
 import org.enso.table.data.column.operation.map.MapOperationProblemAggregator;
+import org.enso.table.data.column.operation.map.numeric.helpers.BigDecimalArrayAdapter;
 import org.enso.table.data.column.operation.map.numeric.helpers.BigIntegerArrayAdapter;
 import org.enso.table.data.column.operation.map.numeric.helpers.DoubleArrayAdapter;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.numeric.AbstractLongStorage;
+import org.enso.table.data.column.storage.numeric.BigDecimalStorage;
 import org.enso.table.data.column.storage.numeric.BigIntegerStorage;
 import org.enso.table.data.column.storage.numeric.DoubleStorage;
 import org.enso.table.data.column.storage.numeric.LongStorage;
@@ -78,7 +82,14 @@ public abstract class NumericBinaryOpImplementation<T extends Number, I extends 
   public Storage<? extends Number> runZip(
       I storage, Storage<?> arg, MapOperationProblemAggregator problemAggregator) {
     return switch (storage) {
-      case DoubleStorage lhs -> runDoubleZip(lhs, fromAnyStorage(arg), problemAggregator);
+      case DoubleStorage lhs -> switch (arg) {
+        case BigDecimalStorage rhs -> {
+          BigDecimalArrayAdapter left = BigDecimalArrayAdapter.fromStorage(lhs);
+          BigDecimalArrayAdapter right = BigDecimalArrayAdapter.fromStorage(rhs);
+          yield runBigDecimalZip(left, right, problemAggregator);
+        }
+        default -> runDoubleZip(lhs, fromAnyStorage(arg), problemAggregator);
+      };
 
       case AbstractLongStorage lhs -> switch (arg) {
         case AbstractLongStorage rhs -> runLongZip(lhs, rhs, problemAggregator);
@@ -89,26 +100,43 @@ public abstract class NumericBinaryOpImplementation<T extends Number, I extends 
         }
         case DoubleStorage rhs -> runDoubleZip(
             DoubleArrayAdapter.fromStorage(lhs), rhs, problemAggregator);
+        case BigDecimalStorage rhs -> {
+          BigDecimalArrayAdapter left = BigDecimalArrayAdapter.fromStorage(lhs);
+          BigDecimalArrayAdapter right = BigDecimalArrayAdapter.fromStorage(rhs);
+          yield runBigDecimalZip(left, right, problemAggregator);
+        }
         default -> throw new IllegalStateException(
             "Unsupported storage: " + arg.getClass().getCanonicalName());
       };
 
       case BigIntegerStorage lhs -> {
-        BigIntegerArrayAdapter left = BigIntegerArrayAdapter.fromStorage(lhs);
         yield switch (arg) {
           case AbstractLongStorage rhs -> {
+            BigIntegerArrayAdapter left = BigIntegerArrayAdapter.fromStorage(lhs);
             BigIntegerArrayAdapter right = BigIntegerArrayAdapter.fromStorage(rhs);
             yield runBigIntegerZip(left, right, problemAggregator);
           }
           case BigIntegerStorage rhs -> {
+            BigIntegerArrayAdapter left = BigIntegerArrayAdapter.fromStorage(lhs);
             BigIntegerArrayAdapter right = BigIntegerArrayAdapter.fromStorage(rhs);
             yield runBigIntegerZip(left, right, problemAggregator);
           }
           case DoubleStorage rhs -> runDoubleZip(
               DoubleArrayAdapter.fromStorage(lhs), rhs, problemAggregator);
+          case BigDecimalStorage rhs -> {
+            BigDecimalArrayAdapter left = BigDecimalArrayAdapter.fromStorage(lhs);
+            BigDecimalArrayAdapter right = BigDecimalArrayAdapter.fromStorage(rhs);
+            yield runBigDecimalZip(left, right, problemAggregator);
+          }
           default -> throw new IllegalStateException(
               "Unsupported storage: " + arg.getClass().getCanonicalName());
         };
+      }
+
+      case BigDecimalStorage lhs -> {
+        BigDecimalArrayAdapter left = BigDecimalArrayAdapter.fromStorage(lhs);
+        BigDecimalArrayAdapter right = BigDecimalArrayAdapter.fromAnyStorage(arg);
+        yield runBigDecimalZip(left, right, problemAggregator);
       }
 
       default -> throw new IllegalStateException(
@@ -275,5 +303,26 @@ public abstract class NumericBinaryOpImplementation<T extends Number, I extends 
     }
 
     return new BigIntegerStorage(out, n);
+  }
+
+  protected BigDecimalStorage runBigDecimalZip(
+      BigDecimalArrayAdapter a,
+      BigDecimalArrayAdapter b,
+      MapOperationProblemAggregator problemAggregator) {
+    Context context = Context.getCurrent();
+    int n = a.size();
+    int m = Math.min(a.size(), b.size());
+    BigDecimal[] out = new BigDecimal[n];
+    for (int i = 0; i < m; i++) {
+      BigDecimal x = a.getItem(i);
+      BigDecimal y = b.getItem(i);
+      if (x != null && y != null) {
+        BigDecimal r = doBigDecimal(x, y, i, problemAggregator);
+        out[i] = r;
+      }
+      context.safepoint();
+    }
+
+    return new BigDecimalStorage(out, n);
   }
 }

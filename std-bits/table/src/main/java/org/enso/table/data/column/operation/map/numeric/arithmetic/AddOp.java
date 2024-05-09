@@ -1,8 +1,10 @@
 package org.enso.table.data.column.operation.map.numeric.arithmetic;
 
+import java.math.BigDecimal;
 import java.math.BigInteger;
 import org.enso.table.data.column.operation.map.MapOperationProblemAggregator;
 import org.enso.table.data.column.storage.Storage;
+import org.enso.table.data.column.storage.numeric.BigDecimalStorage;
 import org.enso.table.data.column.storage.type.IntegerType;
 
 public class AddOp<T extends Number, I extends Storage<? super T>>
@@ -30,6 +32,12 @@ public class AddOp<T extends Number, I extends Storage<? super T>>
   @Override
   public BigInteger doBigInteger(
       BigInteger a, BigInteger b, int ix, MapOperationProblemAggregator problemAggregator) {
+    return a.add(b);
+  }
+
+  @Override
+  public BigDecimal doBigDecimal(
+      BigDecimal a, BigDecimal b, int ix, MapOperationProblemAggregator problemAggregator) {
     return a.add(b);
   }
 }

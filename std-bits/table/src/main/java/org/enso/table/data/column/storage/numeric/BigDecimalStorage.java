@@ -2,6 +2,16 @@ package org.enso.table.data.column.storage.numeric;
 
 import java.math.BigDecimal;
 import org.enso.table.data.column.operation.map.MapOperationStorage;
+import org.enso.table.data.column.operation.map.numeric.arithmetic.AddOp;
+import org.enso.table.data.column.operation.map.numeric.arithmetic.DivideOp;
+import org.enso.table.data.column.operation.map.numeric.arithmetic.ModOp;
+import org.enso.table.data.column.operation.map.numeric.arithmetic.MulOp;
+import org.enso.table.data.column.operation.map.numeric.arithmetic.SubOp;
+import org.enso.table.data.column.operation.map.numeric.comparisons.EqualsComparison;
+import org.enso.table.data.column.operation.map.numeric.comparisons.GreaterComparison;
+import org.enso.table.data.column.operation.map.numeric.comparisons.GreaterOrEqualComparison;
+import org.enso.table.data.column.operation.map.numeric.comparisons.LessComparison;
+import org.enso.table.data.column.operation.map.numeric.comparisons.LessOrEqualComparison;
 import org.enso.table.data.column.storage.ObjectStorage;
 import org.enso.table.data.column.storage.SpecializedStorage;
 import org.enso.table.data.column.storage.type.BigDecimalType;
@@ -17,7 +27,18 @@ public final class BigDecimalStorage extends SpecializedStorage<BigDecimal> {
   }
 
   private static MapOperationStorage<BigDecimal, SpecializedStorage<BigDecimal>> buildOps() {
-    return ObjectStorage.buildObjectOps();
+    MapOperationStorage<BigDecimal, SpecializedStorage<BigDecimal>> ops =
+        ObjectStorage.buildObjectOps();
+    return ops.add(new AddOp<>())
+        .add(new SubOp<>())
+        .add(new MulOp<>())
+        .add(new DivideOp<>())
+        .add(new ModOp<>())
+        .add(new LessComparison<>())
+        .add(new LessOrEqualComparison<>())
+        .add(new EqualsComparison<>())
+        .add(new GreaterOrEqualComparison<>())
+        .add(new GreaterComparison<>());
   }
 
   @Override
