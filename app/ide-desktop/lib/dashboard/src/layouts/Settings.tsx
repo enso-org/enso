@@ -95,11 +95,14 @@ export default function Settings(props: SettingsProps) {
       break
     }
   }
-  if (content == null) {
-    // Set to the first settings page that does not require a backend.
-    setSettingsTab(SettingsTab.keyboardShortcuts)
-    content = <KeyboardShortcutsSettingsTab />
-  }
+  const noContent = content == null
+
+  React.useEffect(() => {
+    if (noContent) {
+      // Set to the first settings page that does not require a backend.
+      setSettingsTab(SettingsTab.keyboardShortcuts)
+    }
+  }, [noContent, setSettingsTab])
 
   return (
     <div className="flex flex-1 flex-col gap-settings-header overflow-hidden px-page-x">

@@ -8,6 +8,8 @@ import * as appUtils from '#/appUtils'
 import * as gtagHooks from '#/hooks/gtagHooks'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
+import * as backendProvider from '#/providers/BackendProvider'
+
 import * as backendModule from '#/services/Backend'
 
 // =================
@@ -31,7 +33,6 @@ const JS_EXTENSION: Readonly<Record<backendModule.BackendType, string>> = {
 /** Props for an {@link Editor}. */
 export interface EditorProps {
   readonly hidden: boolean
-  readonly supportsLocalBackend: boolean
   readonly ydocUrl: string | null
   readonly projectStartupInfo: backendModule.ProjectStartupInfo | null
   readonly appRunner: AppRunner
@@ -39,12 +40,13 @@ export interface EditorProps {
 
 /** The container that launches the IDE. */
 export default function Editor(props: EditorProps) {
-  const { hidden, supportsLocalBackend, ydocUrl, projectStartupInfo, appRunner } = props
+  const { hidden, ydocUrl, projectStartupInfo, appRunner } = props
+  const localBackend = backendProvider.useLocalBackend()
   const toastAndLog = toastAndLogHooks.useToastAndLog()
   const gtagEvent = gtagHooks.useGtagEvent()
   const gtagEventRef = React.useRef(gtagEvent)
   gtagEventRef.current = gtagEvent
-  const [initialized, setInitialized] = React.useState(supportsLocalBackend)
+  const [initialized, setInitialized] = React.useState(localBackend != null)
 
   React.useEffect(() => {
     const ideElement = document.getElementById(IDE_ELEMENT_ID)
@@ -144,7 +146,7 @@ export default function Editor(props: EditorProps) {
               history.replaceState(null, '', originalUrl)
             }
           }
-          if (supportsLocalBackend) {
+          if (localBackend != null) {
             await runNewProject()
           } else {
             if (!initialized) {

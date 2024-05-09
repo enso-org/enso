@@ -9,6 +9,7 @@ import * as navigateHooks from '#/hooks/navigateHooks'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
 import * as authProvider from '#/providers/AuthProvider'
+import * as backendProvider from '#/providers/BackendProvider'
 import * as modalProvider from '#/providers/ModalProvider'
 import * as textProvider from '#/providers/TextProvider'
 
@@ -31,15 +32,15 @@ export interface UserMenuProps {
   /** If `true`, disables `data-testid` because it will not be visible. */
   readonly hidden?: boolean
   readonly setPage: (page: pageSwitcher.Page) => void
-  readonly supportsLocalBackend: boolean
   readonly onSignOut: () => void
 }
 
 /** Handling the UserMenuItem click event logic and displaying its content. */
 export default function UserMenu(props: UserMenuProps) {
-  const { hidden = false, setPage, supportsLocalBackend, onSignOut } = props
+  const { hidden = false, setPage, onSignOut } = props
   const [initialized, setInitialized] = React.useState(false)
   const navigate = navigateHooks.useNavigate()
+  const localBackend = backendProvider.useLocalBackend()
   const { signOut } = authProvider.useAuth()
   const { user } = authProvider.useNonPartialUserSession()
   const { unsetModal } = modalProvider.useSetModal()
@@ -84,7 +85,7 @@ export default function UserMenu(props: UserMenuProps) {
                     className="flex flex-col overflow-hidden"
                     {...innerProps}
                   >
-                    {!supportsLocalBackend && (
+                    {localBackend == null && (
                       <MenuEntry
                         action="downloadApp"
                         doAction={async () => {
@@ -126,6 +127,13 @@ export default function UserMenu(props: UserMenuProps) {
               <aria.Text className="text">{getText('youAreNotLoggedIn')}</aria.Text>
             </div>
             <div className="flex flex-col">
+              <MenuEntry
+                action="settings"
+                doAction={() => {
+                  unsetModal()
+                  setPage(pageSwitcher.Page.settings)
+                }}
+              />
               <MenuEntry
                 action="signIn"
                 doAction={() => {

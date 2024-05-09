@@ -20,8 +20,6 @@ import type AssetQuery from '#/utilities/AssetQuery'
 
 /** Props for a {@link TopBar}. */
 export interface TopBarProps {
-  /** Whether the application may have the local backend running. */
-  readonly supportsLocalBackend: boolean
   readonly isCloud: boolean
   readonly page: pageSwitcher.Page
   readonly setPage: (page: pageSwitcher.Page) => void
@@ -44,7 +42,7 @@ export interface TopBarProps {
 /** The {@link TopBarProps.setQuery} parameter is used to communicate with the parent component,
  * because `searchVal` may change parent component's project list. */
 export default function TopBar(props: TopBarProps) {
-  const { supportsLocalBackend, isCloud, page, setPage, projectAsset, setProjectAsset } = props
+  const { isCloud, page, setPage, projectAsset, setProjectAsset } = props
   const { isEditorDisabled, isHelpChatOpen, setIsHelpChatOpen } = props
   const { query, setQuery, labels, suggestions, isAssetPanelEnabled } = props
   const { isAssetPanelVisible, setIsAssetPanelEnabled, doRemoveSelf, onSignOut } = props
@@ -79,21 +77,18 @@ export default function TopBar(props: TopBarProps) {
               setIsAssetPanelEnabled={setIsAssetPanelEnabled}
             />
           )}
-          {remoteBackend != null && (
-            <UserBar
-              invisible
-              backend={remoteBackend}
-              supportsLocalBackend={supportsLocalBackend}
-              page={page}
-              setPage={setPage}
-              isHelpChatOpen={isHelpChatOpen}
-              setIsHelpChatOpen={setIsHelpChatOpen}
-              projectAsset={projectAsset}
-              setProjectAsset={setProjectAsset}
-              doRemoveSelf={doRemoveSelf}
-              onSignOut={onSignOut}
-            />
-          )}
+          <UserBar
+            invisible
+            backend={remoteBackend}
+            page={page}
+            setPage={setPage}
+            isHelpChatOpen={isHelpChatOpen}
+            setIsHelpChatOpen={setIsHelpChatOpen}
+            projectAsset={projectAsset}
+            setProjectAsset={setProjectAsset}
+            doRemoveSelf={doRemoveSelf}
+            onSignOut={onSignOut}
+          />
         </div>
       </div>
       <div
@@ -107,20 +102,17 @@ export default function TopBar(props: TopBarProps) {
               setIsAssetPanelEnabled={setIsAssetPanelEnabled}
             />
           )}
-          {remoteBackend != null && (
-            <UserBar
-              backend={remoteBackend}
-              supportsLocalBackend={supportsLocalBackend}
-              page={page}
-              setPage={setPage}
-              isHelpChatOpen={isHelpChatOpen}
-              setIsHelpChatOpen={setIsHelpChatOpen}
-              projectAsset={projectAsset}
-              setProjectAsset={setProjectAsset}
-              doRemoveSelf={doRemoveSelf}
-              onSignOut={onSignOut}
-            />
-          )}
+          <UserBar
+            backend={remoteBackend}
+            page={page}
+            setPage={setPage}
+            isHelpChatOpen={isHelpChatOpen}
+            setIsHelpChatOpen={setIsHelpChatOpen}
+            projectAsset={projectAsset}
+            setProjectAsset={setProjectAsset}
+            doRemoveSelf={doRemoveSelf}
+            onSignOut={onSignOut}
+          />
         </div>
       </div>
     </div>

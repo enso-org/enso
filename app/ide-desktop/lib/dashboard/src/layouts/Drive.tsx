@@ -63,7 +63,6 @@ enum DriveStatus {
 export interface DriveProps {
   readonly category: Category
   readonly setCategory: (category: Category) => void
-  readonly supportsLocalBackend: boolean
   readonly hidden: boolean
   readonly initialProjectName: string | null
   readonly assetListEvents: assetListEvent.AssetListEvent[]
@@ -89,7 +88,7 @@ export interface DriveProps {
 
 /** Contains directory path and directory contents (projects, folders, secrets and files). */
 export default function Drive(props: DriveProps) {
-  const { supportsLocalBackend, hidden, initialProjectName, query, setQuery } = props
+  const { hidden, initialProjectName, query, setQuery } = props
   const { labels, setLabels, setSuggestions, projectStartupInfo } = props
   const { assetListEvents, dispatchAssetListEvent, assetEvents, dispatchAssetEvent } = props
   const { setAssetPanelProps, doOpenEditor, doCloseEditor } = props
@@ -99,6 +98,7 @@ export default function Drive(props: DriveProps) {
   const toastAndLog = toastAndLogHooks.useToastAndLog()
   const { type: sessionType, user } = authProvider.useNonPartialUserSession()
   const remoteBackend = backendProvider.useRemoteBackend()
+  const localBackend = backendProvider.useLocalBackend()
   const backend = backendProvider.useBackend(category)
   const { localStorage } = localStorageProvider.useLocalStorage()
   const { getText } = textProvider.useText()
@@ -331,7 +331,7 @@ export default function Drive(props: DriveProps) {
             <a className="button self-center bg-help text-white" href="https://enso.org/pricing">
               {getText('upgrade')}
             </a>
-            {!supportsLocalBackend && (
+            {localBackend == null && (
               <UnstyledButton
                 className="button self-center bg-help text-white"
                 onPress={async () => {
@@ -372,7 +372,6 @@ export default function Drive(props: DriveProps) {
           <div className="flex flex-1 gap-drive overflow-hidden">
             <div className="flex w-drive-sidebar flex-col gap-drive-sidebar py-drive-sidebar-y">
               <CategorySwitcher
-                supportsLocalBackend={supportsLocalBackend}
                 category={category}
                 setCategory={onSetCategory}
                 dispatchAssetEvent={dispatchAssetEvent}

@@ -124,7 +124,7 @@ export default function OrganizationSettingsSection(props: OrganizationSettingsS
     <SettingsSection title={getText('organization')}>
       <div key={JSON.stringify(organization)} className="flex flex-col">
         <aria.TextField
-          key={organization.name}
+          key={organization.name ?? '__organization_name_key__'}
           defaultValue={organization.name ?? ''}
           className="flex h-row gap-settings-entry"
         >
@@ -139,7 +139,7 @@ export default function OrganizationSettingsSection(props: OrganizationSettingsS
           />
         </aria.TextField>
         <aria.TextField
-          key={organization.email}
+          key={organization.email ?? '__organization__email_key__'}
           defaultValue={organization.email ?? ''}
           className="flex h-row gap-settings-entry"
         >
@@ -165,7 +165,7 @@ export default function OrganizationSettingsSection(props: OrganizationSettingsS
           />
         </aria.TextField>
         <aria.TextField
-          key={organization.website}
+          key={organization.website ?? '__organization_website_key__'}
           defaultValue={organization.website ?? ''}
           className="flex h-row gap-settings-entry"
         >
@@ -180,7 +180,7 @@ export default function OrganizationSettingsSection(props: OrganizationSettingsS
           />
         </aria.TextField>
         <aria.TextField
-          key={organization.address}
+          key={organization.address ?? '__organization_address_key__'}
           defaultValue={organization.address ?? ''}
           className="flex h-row gap-settings-entry"
         >

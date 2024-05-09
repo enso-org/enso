@@ -214,7 +214,7 @@ export interface AppRouterProps extends AppProps {
  * because the {@link AppRouter} relies on React hooks, which can't be used in the same React
  * component as the component that defines the provider. */
 function AppRouter(props: AppRouterProps) {
-  const { logger, supportsLocalBackend, isAuthenticationDisabled, shouldShowDashboard } = props
+  const { logger, isAuthenticationDisabled, shouldShowDashboard } = props
   const { onAuthenticated, projectManagerUrl, projectManagerRootDirectory } = props
   // `navigateHooks.useNavigate` cannot be used here as it relies on `AuthProvider`, which has not
   // yet been initialized at this point.
@@ -369,10 +369,7 @@ function AppRouter(props: AppRouterProps) {
         {/* Login & registration pages are visible to unauthenticated users. */}
         <router.Route element={<authProvider.GuestLayout />}>
           <router.Route path={appUtils.REGISTRATION_PATH} element={<Registration />} />
-          <router.Route
-            path={appUtils.LOGIN_PATH}
-            element={<Login supportsLocalBackend={supportsLocalBackend} />}
-          />
+          <router.Route path={appUtils.LOGIN_PATH} element={<Login />} />
         </router.Route>
 
         {/* Protected pages are visible to authenticated users. */}

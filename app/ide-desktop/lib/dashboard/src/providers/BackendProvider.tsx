@@ -88,12 +88,21 @@ export function useLocalBackend() {
 export function useBackend(category: Category) {
   const remoteBackend = useRemoteBackend()
   const localBackend = useLocalBackend()
-  const backend = categoryModule.isCloud(category) ? remoteBackend : localBackend
-  if (backend == null) {
-    // eslint-disable-next-line no-restricted-syntax
-    throw new Error(
-      `This distribution of ${common.PRODUCT_NAME} supports neither the Cloud Backend nor the Local Backend.`
-    )
+  if (categoryModule.isCloud(category)) {
+    if (remoteBackend == null) {
+      // eslint-disable-next-line no-restricted-syntax
+      throw new Error(
+        `This distribution of ${common.PRODUCT_NAME} does not support the Cloud Backend.`
+      )
+    }
+    return remoteBackend
+  } else {
+    if (localBackend == null) {
+      // eslint-disable-next-line no-restricted-syntax
+      throw new Error(
+        `This distribution of ${common.PRODUCT_NAME} does not support the Local Backend.`
+      )
+    }
+    return localBackend
   }
-  return backend
 }

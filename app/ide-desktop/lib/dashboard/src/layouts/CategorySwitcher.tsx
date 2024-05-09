@@ -8,6 +8,7 @@ import Trash2Icon from 'enso-assets/trash2.svg'
 
 import type * as text from '#/text'
 
+import * as backendProvider from '#/providers/BackendProvider'
 import * as localStorageProvider from '#/providers/LocalStorageProvider'
 import * as modalProvider from '#/providers/ModalProvider'
 import * as textProvider from '#/providers/TextProvider'
@@ -135,7 +136,6 @@ function CategorySwitcherItem(props: InternalCategorySwitcherItemProps) {
 
 /** Props for a {@link CategorySwitcher}. */
 export interface CategorySwitcherProps {
-  readonly supportsLocalBackend: boolean
   readonly category: Category
   readonly setCategory: (category: Category) => void
   readonly dispatchAssetEvent: (directoryEvent: assetEvent.AssetEvent) => void
@@ -143,25 +143,26 @@ export interface CategorySwitcherProps {
 
 /** A switcher to choose the currently visible assets table category. */
 export default function CategorySwitcher(props: CategorySwitcherProps) {
-  const { supportsLocalBackend, category, setCategory } = props
+  const { category, setCategory } = props
   const { dispatchAssetEvent } = props
   const { unsetModal } = modalProvider.useSetModal()
   const { localStorage } = localStorageProvider.useLocalStorage()
   const { getText } = textProvider.useText()
-  const supportsCloudBackend = process.env.ENSO_CLOUD_API_URL != null
+  const remoteBackend = backendProvider.useRemoteBackend()
+  const localBackend = backendProvider.useLocalBackend()
   const categoryData = React.useMemo(
     () =>
       CATEGORY_DATA.filter(data => {
         switch (data.category) {
           case Category.local: {
-            return supportsLocalBackend
+            return localBackend != null
           }
           default: {
-            return supportsCloudBackend
+            return remoteBackend != null
           }
         }
       }),
-    [supportsCloudBackend, supportsLocalBackend]
+    [remoteBackend, localBackend]
   )
 
   React.useEffect(() => {

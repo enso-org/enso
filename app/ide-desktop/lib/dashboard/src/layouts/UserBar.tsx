@@ -28,11 +28,10 @@ import type Backend from '#/services/Backend'
 
 /** Props for a {@link UserBar}. */
 export interface UserBarProps {
-  readonly backend: Backend
+  readonly backend: Backend | null
   /** When `true`, the element occupies space in the layout but is not visible.
    * Defaults to `false`. */
   readonly invisible?: boolean
-  readonly supportsLocalBackend: boolean
   readonly page: pageSwitcher.Page
   readonly setPage: (page: pageSwitcher.Page) => void
   readonly isHelpChatOpen: boolean
@@ -45,7 +44,7 @@ export interface UserBarProps {
 
 /** A toolbar containing chat and the user menu. */
 export default function UserBar(props: UserBarProps) {
-  const { backend, invisible = false, supportsLocalBackend, page, setPage } = props
+  const { backend, invisible = false, page, setPage } = props
   const { isHelpChatOpen, setIsHelpChatOpen, projectAsset, setProjectAsset } = props
   const { doRemoveSelf, onSignOut } = props
 
@@ -58,12 +57,13 @@ export default function UserBar(props: UserBarProps) {
         null
       : null
   const shouldShowShareButton =
+    backend != null &&
     page === pageSwitcher.Page.editor &&
     projectAsset != null &&
     setProjectAsset != null &&
     self != null
   const shouldShowInviteButton =
-    sessionType === authProvider.UserSessionType.full && !shouldShowShareButton
+    backend != null && sessionType === authProvider.UserSessionType.full && !shouldShowShareButton
 
   return (
     <FocusArea active={!invisible} direction="horizontal">
@@ -113,11 +113,7 @@ export default function UserBar(props: UserBarProps) {
             onPress={() => {
               updateModal(oldModal =>
                 oldModal?.type === UserMenu ? null : (
-                  <UserMenu
-                    setPage={setPage}
-                    supportsLocalBackend={supportsLocalBackend}
-                    onSignOut={onSignOut}
-                  />
+                  <UserMenu setPage={setPage} onSignOut={onSignOut} />
                 )
               )
             }}
@@ -132,12 +128,7 @@ export default function UserBar(props: UserBarProps) {
           </UnstyledButton>
           {/* Required for shortcuts to work. */}
           <div className="hidden">
-            <UserMenu
-              hidden
-              setPage={setPage}
-              supportsLocalBackend={supportsLocalBackend}
-              onSignOut={onSignOut}
-            />
+            <UserMenu hidden setPage={setPage} onSignOut={onSignOut} />
           </div>
         </div>
       )}

@@ -44,12 +44,6 @@ import LocalStorage from '#/utilities/LocalStorage'
 import * as object from '#/utilities/object'
 import * as sanitizedEventTargets from '#/utilities/sanitizedEventTargets'
 
-// =================
-// === Constants ===
-// =================
-
-const DEFAULT_CATEGORY = process.env.ENSO_CLOUD_API_URL != null ? Category.cloud : Category.local
-
 // ============================
 // === Global configuration ===
 // ============================
@@ -114,8 +108,6 @@ LocalStorage.registerKey('projectStartupInfo', {
 
 /** Props for {@link Dashboard}s that are common to all platforms. */
 export interface DashboardProps {
-  /** Whether the application may have the local backend running. */
-  readonly supportsLocalBackend: boolean
   readonly appRunner: AppRunner
   readonly initialProjectName: string | null
   readonly projectManagerUrl: string | null
@@ -125,7 +117,7 @@ export interface DashboardProps {
 
 /** The component that contains the entire UI. */
 export default function Dashboard(props: DashboardProps) {
-  const { supportsLocalBackend, appRunner, initialProjectName } = props
+  const { appRunner, initialProjectName } = props
   const { ydocUrl, projectManagerUrl, projectManagerRootDirectory } = props
   const session = authProvider.useNonPartialUserSession()
   const remoteBackend = backendProvider.useRemoteBackend()
@@ -160,9 +152,11 @@ export default function Dashboard(props: DashboardProps) {
     () => localStorage.get('isAssetPanelVisible') ?? false
   )
   const [isAssetPanelTemporarilyVisible, setIsAssetPanelTemporarilyVisible] = React.useState(false)
+  const defaultCategory = remoteBackend != null ? Category.cloud : Category.local
   const [category, setCategory] = searchParamsState.useSearchParamsState(
     'driveCategory',
-    () => localStorage.get('driveCategory') ?? DEFAULT_CATEGORY,
+    () =>
+      remoteBackend == null ? Category.local : localStorage.get('driveCategory') ?? defaultCategory,
     (value): value is Category => array.includes(Object.values(Category), value)
   )
 
@@ -401,7 +395,6 @@ export default function Dashboard(props: DashboardProps) {
           }}
         >
           <TopBar
-            supportsLocalBackend={supportsLocalBackend}
             isCloud={isCloud}
             projectAsset={projectStartupInfo?.projectAsset ?? null}
             setProjectAsset={projectStartupInfo?.setProjectAsset ?? null}
@@ -423,7 +416,6 @@ export default function Dashboard(props: DashboardProps) {
           <Drive
             category={category}
             setCategory={setCategory}
-            supportsLocalBackend={supportsLocalBackend}
             hidden={page !== pageSwitcher.Page.drive}
             initialProjectName={initialProjectName}
             query={query}
@@ -443,7 +435,6 @@ export default function Dashboard(props: DashboardProps) {
           />
           <Editor
             hidden={page !== pageSwitcher.Page.editor}
-            supportsLocalBackend={supportsLocalBackend}
             ydocUrl={ydocUrl}
             projectStartupInfo={projectStartupInfo}
             appRunner={appRunner}
@@ -479,7 +470,7 @@ export default function Dashboard(props: DashboardProps) {
               item={assetPanelProps?.item ?? null}
               setItem={assetPanelProps?.setItem ?? null}
               setQuery={setQuery}
-              category={DEFAULT_CATEGORY}
+              category={defaultCategory}
               labels={labels}
               dispatchAssetEvent={dispatchAssetEvent}
               isReadonly={category === Category.trash}
