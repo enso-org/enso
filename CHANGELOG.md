@@ -658,6 +658,8 @@
 - [Added `Excel_Workbook.read_many` allowing reading more than one sheet at a
   time.][9759]
 - [Added ability to write to Data Links.][9750]
+- [Added `Vector.build_multiple`, and better for support for errors and warnings
+  inside `Vector.build` and `Vector.build_multiple`.][9766]
 
 [debug-shortcuts]:
   https://github.com/enso-org/enso/blob/develop/app/gui/docs/product/shortcuts.md#debug
@@ -965,6 +967,7 @@
 [9759]: https://github.com/enso-org/enso/pull/9759
 [9577]: https://github.com/enso-org/enso/pull/9577
 [9750]: https://github.com/enso-org/enso/pull/9750
+[9766]: https://github.com/enso-org/enso/pull/9766
 
 #### Enso Compiler
 
@@ -1127,6 +1130,7 @@
 - [Autoscoped constructors][9190]
 - [Allow Oracle GraalVM JDK][9322]
 - [`Table.join` can access its `right` argument][9410]
+- [Atom constructors can be project-private][9692]
 
 [3227]: https://github.com/enso-org/enso/pull/3227
 [3248]: https://github.com/enso-org/enso/pull/3248
@@ -1287,6 +1291,7 @@
 [8867]: https://github.com/enso-org/enso/pull/8867
 [9190]: https://github.com/enso-org/enso/pull/9190
 [9322]: https://github.com/enso-org/enso/pull/9322
+[9692]: https://github.com/enso-org/enso/pull/9692
 [9410]: https://github.com/enso-org/enso/pull/9410
 
 # Enso 2.0.0-alpha.18 (2021-10-12)

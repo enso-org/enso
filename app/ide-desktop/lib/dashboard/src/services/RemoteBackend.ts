@@ -712,6 +712,11 @@ export default class RemoteBackend extends Backend {
     }
   }
 
+  /** Change the name of a file. */
+  override async updateFile(): Promise<void> {
+    await this.throw(null, 'updateFileNotImplementedBackendError')
+  }
+
   /** Return details for a project.
    * @throws An error if a non-successful status code (not 200-299) was received. */
   override async getFileDetails(

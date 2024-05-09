@@ -291,6 +291,7 @@ const CATEGORY_TO_FILTER_BY: Readonly<Record<Category, backendModule.FilterBy | 
 
 /** State passed through from a {@link AssetsTable} to every cell. */
 export interface AssetsTableState {
+  readonly rootDirectoryId: backendModule.DirectoryId
   readonly selectedKeys: React.MutableRefObject<ReadonlySet<backendModule.AssetId>>
   readonly scrollContainerRef: React.RefObject<HTMLElement>
   readonly visibilities: ReadonlyMap<backendModule.AssetId, Visibility>
@@ -1856,6 +1857,7 @@ export default function AssetsTable(props: AssetsTableProps) {
         selectedKeys={selectedKeys}
         clearSelectedKeys={clearSelectedKeys}
         nodeMapRef={nodeMapRef}
+        rootDirectoryId={rootDirectoryId}
         event={{ pageX: 0, pageY: 0 }}
         dispatchAssetEvent={dispatchAssetEvent}
         dispatchAssetListEvent={dispatchAssetListEvent}
@@ -1865,6 +1867,7 @@ export default function AssetsTable(props: AssetsTableProps) {
       />
     ),
     [
+      rootDirectoryId,
       category,
       selectedKeys,
       pasteData,
@@ -1888,6 +1891,7 @@ export default function AssetsTable(props: AssetsTableProps) {
   const state = React.useMemo<AssetsTableState>(
     // The type MUST be here to trigger excess property errors at typecheck time.
     () => ({
+      rootDirectoryId,
       visibilities,
       selectedKeys: selectedKeysRef,
       scrollContainerRef: rootRef,
@@ -1917,6 +1921,7 @@ export default function AssetsTable(props: AssetsTableProps) {
       doPaste,
     }),
     [
+      rootDirectoryId,
       visibilities,
       category,
       allLabels,
@@ -2381,6 +2386,7 @@ export default function AssetsTable(props: AssetsTableProps) {
             clearSelectedKeys={clearSelectedKeys}
             nodeMapRef={nodeMapRef}
             event={event}
+            rootDirectoryId={rootDirectoryId}
             dispatchAssetEvent={dispatchAssetEvent}
             dispatchAssetListEvent={dispatchAssetListEvent}
             doCopy={doCopy}

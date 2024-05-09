@@ -1416,4 +1416,74 @@ class RuntimeSuggestionUpdatesTest
     indexedModules2 should contain theSameElementsAs Seq(moduleName)
     context.consumeOut shouldEqual List("Hello World!")
   }
+
+  it should "issue 9306" in {
+    val contextId  = UUID.randomUUID()
+    val requestId  = UUID.randomUUID()
+    val moduleName = "Enso_Test.Test.Main"
+
+    val code =
+      """type T
+        |    A
+        |    B
+        |
+        |type K
+        |    C
+        |    D
+        |
+        |type Test
+        |    Value
+        |
+        |    test self (key:(T | K)) = key
+        |
+        |main =
+        |    operator89430 = Test.Value
+        |    operator83086 = operator89430.test
+        |    operator83086
+        |""".stripMargin.linesIterator.mkString("\n")
+    val mainFile = context.writeMain(code)
+
+    // create context
+    context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
+    context.receive shouldEqual Some(
+      Api.Response(requestId, Api.CreateContextResponse(contextId))
+    )
+
+    // open file
+    context.send(
+      Api.Request(requestId, Api.OpenFileRequest(mainFile, code))
+    )
+    context.receive shouldEqual Some(
+      Api.Response(Some(requestId), Api.OpenFileResponse)
+    )
+
+    // push main
+    context.send(
+      Api.Request(
+        requestId,
+        Api.PushContextRequest(
+          contextId,
+          Api.StackItem.ExplicitCall(
+            Api.MethodPointer(moduleName, "Enso_Test.Test.Main", "main"),
+            None,
+            Vector()
+          )
+        )
+      )
+    )
+    val updates1 = context.receiveNIgnoreExpressionUpdates(3)
+    updates1.length shouldEqual 3
+    updates1 should contain allOf (
+      Api.Response(requestId, Api.PushContextResponse(contextId)),
+      context.executionComplete(contextId),
+    )
+    val indexedModules = updates1.collect {
+      case Api.Response(
+            None,
+            Api.SuggestionsDatabaseModuleUpdateNotification(moduleName, _, _, _)
+          ) =>
+        moduleName
+    }
+    indexedModules should contain theSameElementsAs Seq(moduleName)
+  }
 }

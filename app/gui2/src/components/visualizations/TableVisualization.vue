@@ -117,6 +117,7 @@ const agGridOptions: Ref<GridOptions & Required<Pick<GridOptions, 'defaultColDef
   onColumnResized: lockColumnSize,
   suppressFieldDotNotation: true,
   enableRangeSelection: true,
+  popupParent: document.body,
 })
 
 const isRowCountSelectorVisible = computed(() => rowCount.value >= 1000)
@@ -410,6 +411,7 @@ onMounted(() => {
       origValidateLicense.call(this)
     }
   }
+  // TODO: consider using Vue component instead: https://ag-grid.com/vue-data-grid/getting-started/
   new Grid(tableNode.value!, agGridOptions.value)
   updateColumnWidths()
 })

@@ -198,7 +198,7 @@ sqlite_specific_spec suite_builder prefix create_connection_func setup =
             data.teardown
 
         group_builder.specify "should return Table information" <|
-            i = data.t.info
+            i = data.t.column_info
             i.at "Column" . to_vector . should_equal ["strs", "ints", "bools", "reals"]
             i.at "Items Count" . to_vector . should_equal [3, 1, 2, 3]
             i.at "Value Type" . to_vector . should_equal [Value_Type.Char, Value_Type.Integer, Value_Type.Boolean, Value_Type.Float]
@@ -370,10 +370,10 @@ type Database_File
         f
 
 create_inmem_connection =
-    Database.connect (SQLite In_Memory)
+    Database.connect (SQLite.In_Memory)
 
 create_file_connection file =
-    connection = Database.connect (SQLite file)
+    connection = Database.connect (SQLite.From_File file)
     connection.execute_update 'CREATE TABLE "Dummy" ("strs" VARCHAR, "ints" INTEGER, "bools" BOOLEAN, "reals" REAL)'
     connection
 
@@ -446,7 +446,7 @@ add_specs suite_builder =
             connection.close
 
         group_builder.specify 'should not duplicate warnings' <|
-            c = Database.connect (SQLite In_Memory)
+            c = Database.connect (SQLite.In_Memory)
             t0 = Table.new [["X", ["a", "bc", "def"]]]
             t1 = t0.select_into_database_table c "Tabela"
             t2 = t1.cast "X" (Value_Type.Char size=1)

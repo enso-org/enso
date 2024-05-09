@@ -35,6 +35,7 @@ import * as uniqueString from '#/utilities/uniqueString'
 export interface AssetsTableContextMenuProps {
   readonly hidden?: boolean
   readonly category: Category
+  readonly rootDirectoryId: backendModule.DirectoryId
   readonly pasteData: pasteDataModule.PasteData<ReadonlySet<backendModule.AssetId>> | null
   readonly selectedKeys: ReadonlySet<backendModule.AssetId>
   readonly clearSelectedKeys: () => void
@@ -56,16 +57,12 @@ export interface AssetsTableContextMenuProps {
  * are selected. */
 export default function AssetsTableContextMenu(props: AssetsTableContextMenuProps) {
   const { category, pasteData, selectedKeys, clearSelectedKeys, nodeMapRef, event } = props
-  const { dispatchAssetEvent, dispatchAssetListEvent, hidden = false } = props
+  const { dispatchAssetEvent, dispatchAssetListEvent, rootDirectoryId, hidden = false } = props
   const { doCopy, doCut, doPaste } = props
   const { backend } = backendProvider.useBackend()
   const { user } = authProvider.useNonPartialUserSession()
   const { setModal, unsetModal } = modalProvider.useSetModal()
   const { getText } = textProvider.useText()
-  const rootDirectoryId = React.useMemo(
-    () => user?.rootDirectoryId ?? backendModule.DirectoryId(''),
-    [user]
-  )
   const isCloud = backend.type === backendModule.BackendType.remote
 
   // This works because all items are mutated, ensuring their value stays
@@ -207,6 +204,7 @@ export default function AssetsTableContextMenu(props: AssetsTableContextMenuProp
         <GlobalContextMenu
           hidden={hidden}
           hasPasteData={pasteData != null}
+          rootDirectoryId={rootDirectoryId}
           directoryKey={null}
           directoryId={null}
           dispatchAssetListEvent={dispatchAssetListEvent}

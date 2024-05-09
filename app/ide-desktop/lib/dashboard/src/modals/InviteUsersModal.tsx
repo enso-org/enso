@@ -56,7 +56,7 @@ function Email(props: InternalEmailProps) {
         isValid ? 'bg-dim/5' : 'bg-red-400/25 text-red-900'
       }`}
     >
-      <aria.Text {...focusChildProps}>{email}</aria.Text>{' '}
+      <span {...focusChildProps}>{email}</span>{' '}
       <div
         {...aria.mergeProps<JSX.IntrinsicElements['div']>()(focusChildProps, {
           role: 'button',

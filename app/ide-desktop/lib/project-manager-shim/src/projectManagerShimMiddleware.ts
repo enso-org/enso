@@ -2,7 +2,7 @@
 
 import * as fs from 'node:fs/promises'
 import * as fsSync from 'node:fs'
-import type * as http from 'node:http'
+import * as http from 'node:http'
 import * as os from 'node:os'
 import * as path from 'node:path'
 
@@ -10,6 +10,8 @@ import * as tar from 'tar'
 import * as yaml from 'yaml'
 
 import * as common from 'enso-common'
+import GLOBAL_CONFIG from '../../common/src/config.json' assert { type: 'json' }
+
 import * as projectManagement from './projectManagement'
 
 // =================
@@ -97,7 +99,37 @@ export default function projectManagerShimMiddleware(
 ) {
     const requestUrl = request.url
     const requestPath = requestUrl?.split('?')[0]?.split('#')[0]
-    if (request.method === 'POST') {
+    if (requestUrl != null && requestUrl.startsWith('/api/project-manager/')) {
+        const actualUrl = new URL(
+            requestUrl.replace(/^\/api\/project-manager/, GLOBAL_CONFIG.projectManagerHttpEndpoint)
+        )
+        request.pipe(
+            http.request(
+                // `...actualUrl` does NOT work because `URL` properties are not enumerable.
+                {
+                    headers: request.headers,
+                    host: actualUrl.host,
+                    hostname: actualUrl.hostname,
+                    method: request.method,
+                    path: actualUrl.pathname,
+                    port: actualUrl.port,
+                    protocol: actualUrl.protocol,
+                },
+                actualResponse => {
+                    response.writeHead(
+                        // This is SAFE. The documentation says:
+                        // Only valid for response obtained from ClientRequest.
+                        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+                        actualResponse.statusCode!,
+                        actualResponse.statusMessage,
+                        actualResponse.headers
+                    )
+                    actualResponse.pipe(response, { end: true })
+                }
+            ),
+            { end: true }
+        )
+    } else if (request.method === 'POST') {
         switch (requestPath) {
             case '/api/upload-file': {
                 const url = new URL(`https://example.com/${requestUrl}`)

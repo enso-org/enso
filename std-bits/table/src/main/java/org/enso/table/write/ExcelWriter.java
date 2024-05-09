@@ -14,6 +14,7 @@ import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.usermodel.Workbook;
 import org.enso.table.data.column.storage.BoolStorage;
 import org.enso.table.data.column.storage.Storage;
+import org.enso.table.data.column.storage.datetime.DateTimeStorage;
 import org.enso.table.data.column.storage.numeric.AbstractLongStorage;
 import org.enso.table.data.column.storage.numeric.DoubleStorage;
 import org.enso.table.data.table.Column;
@@ -498,6 +499,9 @@ public class ExcelWriter {
       cell.setCellValue(longStorage.getItem(j));
     } else if (storage instanceof BoolStorage boolStorage) {
       cell.setCellValue(boolStorage.getItem(j));
+    } else if (storage instanceof DateTimeStorage dateTimeStorage) {
+      cell.setCellValue(dateTimeStorage.getItem(j).toLocalDateTime());
+      cell.setCellStyle(getDateTimeStyle(workbook, "yyyy-MM-dd HH:mm:ss"));
     } else {
       Object value = storage.getItemBoxed(j);
       switch (value) {

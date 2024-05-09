@@ -1679,13 +1679,13 @@ object Runtime {
       newName: String
     ) extends ApiResponse
 
-    /** Signals that project has been renamed.
+    /** Signals that project has failed to be renamed.
       *
       * @param oldName the old name of the project
       * @param newName the new name of the project
       */
     final case class ProjectRenameFailed(oldName: String, newName: String)
-        extends ApiResponse
+        extends Error
 
     /** A request for symbol renaming.
       *
@@ -1710,7 +1710,7 @@ object Runtime {
       * @param error the error that happened
       */
     final case class SymbolRenameFailed(error: SymbolRenameFailed.Error)
-        extends ApiResponse
+        extends Error
 
     object SymbolRenameFailed {
 
@@ -1975,8 +1975,8 @@ object Runtime {
       * @param bytes the buffer to deserialize
       * @return the deserialized message, if the byte buffer can be deserialized.
       */
-    def deserializeApiEnvelope(bytes: ByteBuffer): Option[ApiEnvelope] =
-      Try(mapper.readValue(bytes.array(), classOf[ApiEnvelope])).toOption
+    def deserializeApiEnvelope(bytes: ByteBuffer): Try[ApiEnvelope] =
+      Try(mapper.readValue(bytes.array(), classOf[ApiEnvelope]))
   }
 
 }

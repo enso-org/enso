@@ -30,13 +30,11 @@
     "tar": "^6.1.13",
     "yargs": "17.6.2"
   },
-  "comments": {
-    "electron-builder": "Cannot be updated to a newer version because of a NSIS installer issue: https://github.com/enso-org/enso/issues/5169"
-  },
   "devDependencies": {
     "@electron/notarize": "2.1.0",
+    "@types/node": "^20.10.5",
     "electron": "25.7.0",
-    "electron-builder": "^22.14.13",
+    "electron-builder": "^24.13.3",
     "enso-common": "^1.0.0",
     "esbuild": "^0.19.3",
     "fast-glob": "^3.2.12",

@@ -25,6 +25,9 @@ export function useSelection<T>(
   const hoveredNode = ref<NodeId>()
   const hoveredElement = ref<Element>()
 
+  const isChanging = computed(() => anchor.value != null)
+  const committedSelection = computed(() => (isChanging.value ? initiallySelected : selected))
+
   useEvent(document, 'pointerover', (event) => {
     hoveredElement.value = event.target instanceof Element ? event.target : undefined
   })
@@ -171,7 +174,8 @@ export function useSelection<T>(
     },
     deselectAll: () => selected.clear(),
     isSelected: (element: T) => selected.has(element),
-    isChanging: computed(() => anchor.value != null),
+    isChanging,
+    committedSelection,
     setSelection,
     handleSelectionOf,
     hoveredNode,

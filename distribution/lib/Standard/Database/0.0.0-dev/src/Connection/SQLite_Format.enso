@@ -5,7 +5,7 @@ import Standard.Base.System.File_Format_Metadata.File_Format_Metadata
 from Standard.Base.Metadata.Choice import Option
 
 import project.Connection.Database
-import project.Connection.SQLite_Details.SQLite_Details
+import project.Connection.SQLite.SQLite
 
 ## Read the file to a `SQLite_Connection` from a `.db` or `.sqlite` file
 type SQLite_Format
@@ -46,7 +46,7 @@ type SQLite_Format
     read : File -> Problem_Behavior -> Any
     read self file on_problems =
         _ = [on_problems]
-        Database.connect (SQLite_Details.SQLite file)
+        Database.connect (SQLite.From_File file)
 
 ## PRIVATE
    Based on the File Format definition at: https://www.sqlite.org/fileformat.html

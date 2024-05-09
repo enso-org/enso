@@ -6,7 +6,7 @@
 // This file is being imported for its types.
 // prettier-ignore
 // eslint-disable-next-line no-restricted-syntax, @typescript-eslint/consistent-type-imports
-import * as buildJson from './../../build.json' assert { type: 'json' }
+import * as buildJson from './../../build.json' assert {type: 'json'}
 
 // =============
 // === Types ===
@@ -94,6 +94,7 @@ declare global {
         // eslint-disable-next-line no-restricted-syntax
         interface ProcessEnv {
             readonly [key: string]: never
+
             // These are environment variables, and MUST be in CONSTANT_CASE.
             /* eslint-disable @typescript-eslint/naming-convention */
             // This is declared in `@types/node`. It MUST be re-declared here to suppress the error
@@ -112,6 +113,8 @@ declare global {
             readonly APPLETEAMID?: string
             // @ts-expect-error The index signature is intentional to disallow unknown env vars.
             readonly ENSO_BUILD_ICONS?: string
+            // @ts-expect-error The index signature is intentional to disallow unknown env vars.
+            readonly ENSO_BUILD_ELECTRON_BUILDER_CONFIG?: string
             // @ts-expect-error The index signature is intentional to disallow unknown env vars.
             readonly npm_package_name?: string
 

@@ -840,7 +840,7 @@ add_specs suite_builder setup =
                 r3.at 3 . should_equal [3, 30, 7, Nothing, Nothing, Nothing]
 
         group_builder.specify "should gracefully handle tables from different backends" <|
-            alternative_connection = Database.connect (SQLite In_Memory)
+            alternative_connection = Database.connect (SQLite.In_Memory)
             t0 = (Table.new [["X", [1, 2, 4]], ["Z", [10, 20, 30]]]).select_into_database_table alternative_connection "T0" temporary=True
 
             r1 = data.t1.join t0

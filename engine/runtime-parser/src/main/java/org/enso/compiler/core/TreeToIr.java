@@ -175,7 +175,7 @@ final class TreeToIr {
           }
           if (expr instanceof Private priv) {
             if (priv.getBody() != null) {
-              var error = translateSyntaxError(priv, new Syntax.UnsupportedSyntax("Private token with body"));
+              var error = translateSyntaxError(priv, new Syntax.UnsupportedSyntax("The `private` keyword is currently not supported for entities other than constructors."));
               diag = join(error, diag);
             }
             if (isPrivate) {
@@ -338,12 +338,12 @@ final class TreeToIr {
     return res.reverse();
   }
 
-  IR translateConstructorDefinition(Tree.ConstructorDefinition cons, Tree inputAst) {
+  IR translateConstructorDefinition(Tree.ConstructorDefinition cons, Tree inputAst, boolean isPrivate) {
     try {
       var constructorName = buildName(inputAst, cons.getConstructor());
       List<DefinitionArgument> args = translateArgumentsDefinition(cons.getArguments());
       var cAt = getIdentifiedLocation(inputAst);
-      return new Definition.Data(constructorName, args, nil(), cAt, meta(), diag());
+      return new Definition.Data(constructorName, args, nil(), cAt, isPrivate, meta(), diag());
     } catch (SyntaxException ex) {
       return ex.toError();
     }
@@ -369,7 +369,17 @@ final class TreeToIr {
     return switch (inputAst) {
       case null -> appendTo;
 
-      case Tree.ConstructorDefinition cons -> join(translateConstructorDefinition(cons, inputAst), appendTo);
+      case Tree.Private priv -> {
+        if (priv.getBody() instanceof Tree.ConstructorDefinition consDef) {
+          var translated = translateConstructorDefinition(consDef, priv, true);
+          yield join(translated, appendTo);
+        } else {
+          var errorIr = translateSyntaxError(priv, Syntax.UnexpectedDeclarationInType$.MODULE$);
+          yield join(errorIr, appendTo);
+        }
+      }
+
+      case Tree.ConstructorDefinition cons -> join(translateConstructorDefinition(cons, inputAst, false), appendTo);
 
       case Tree.TypeDef def -> {
         var ir = translateSyntaxError(def, Syntax.UnexpectedDeclarationInType$.MODULE$);

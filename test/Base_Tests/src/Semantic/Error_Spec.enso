@@ -5,8 +5,11 @@ import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Errors.Illegal_State.Illegal_State
 import Standard.Base.Errors.Wrapped_Error.Wrapped_Error
 import Standard.Base.Errors.Empty_Error.Empty_Error
-
 import Standard.Base.Runtime.Ref.Ref
+from Standard.Base.Panic import Wrapped_Dataflow_Error
+
+import Standard.Test.Should_Reach.Should_Reach
+from Standard.Test import all
 
 polyglot java import java.lang.Long
 polyglot java import java.lang.NumberFormatException
@@ -14,14 +17,15 @@ polyglot java import java.lang.Exception as JException
 polyglot java import java.util.ArrayList
 polyglot java import java.util.Random as Java_Random
 
-from Standard.Test import all
-
 type My_Type
     Value foo
     Multi_Value foo bar
     Default_Value foo=2 bar
 
 type My_Error
+    Error i:Integer
+
+type My_Other_Error
     Error i:Integer
 
 type My_Error_Wrapper
@@ -43,6 +47,14 @@ foreign js throw_js_str = """
 
 foreign js throw_js_arr = """
     throw [1,2,3];
+
+fn_with_tco x =
+    if x == 1 then Panic.throw "fn_with_tco" else
+        @Tail_Call fn_with_tco x+1
+
+global_wrapper_fn =
+    fn_with_tco 0
+
 
 add_specs suite_builder =
     suite_builder.group "No Method Errors" group_builder->
@@ -108,7 +120,7 @@ add_specs suite_builder =
             arr.length>=1 . should_be_true
             arr.first.name . should_equal "Error_Spec.throw_a_bar"
             arr.first.source_location.file.name . should_equal "Error_Spec.enso"
-            arr.first.source_location.start_line . should_equal 32
+            arr.first.source_location.start_line . should_equal 36
 
         group_builder.specify "should allow to inspect the stack trace of a recovered panic" <|
             error = Panic.recover Any <| throw_a_bar_panicking
@@ -361,6 +373,41 @@ add_specs suite_builder =
             c2 . should_equal "finalizer"
             v2.to_vector . should_equal [1, 2]
 
+        group_builder.specify "should be caught in a loop" <|
+            fn_without_tco x =
+                if x == 1 then Panic.throw "fn_without_tco" else
+                    fn_without_tco x+1
+
+            p = Panic.catch Any handler=(.payload) <| fn_without_tco 0
+            p . should_equal "fn_without_tco"
+
+        group_builder.specify "should be caught in a TCO loop" <|
+            fn_with_tco x =
+                if x == 1 then Panic.throw "fn_with_tco" else
+                    @Tail_Call fn_with_tco x+1
+
+            p = Panic.catch Any handler=(.payload) <| fn_with_tco 0
+            p . should_equal "fn_with_tco"
+
+        # The same test as the one before, but it does not use the `<|` function.
+        group_builder.specify "should be caught in a TCO loop with a wrapper fn" <|
+            fn_with_tco x =
+                if x == 1 then Panic.throw "fn_with_tco" else
+                    @Tail_Call fn_with_tco x+1
+
+            wrapper_fn =
+                fn_with_tco 0
+
+            p = Panic.catch Any handler=(.payload) wrapper_fn
+            p . should_equal "fn_with_tco"
+
+        # The same test as the above one, but calls a global wrapper_fn that is declared
+        # in top scope.
+        group_builder.specify "should be caught in a TCO loop with a global wrapper fn" <|
+            p = Panic.catch Any handler=(.payload) global_wrapper_fn
+            p . should_equal "fn_with_tco"
+
+
     suite_builder.group "Type Errors" group_builder->
         my_func x y =
             x + y
@@ -458,6 +505,107 @@ add_specs suite_builder =
         group_builder.specify "Unwrapping a non-error-wraper is the identity" <|
             not_wrapped = Illegal_Argument.Error "abc"
             Error.unwrap not_wrapped . should_equal not_wrapped
+
+    suite_builder.group "Wrapped dataflow errors" group_builder->
+        group_builder.specify "should be able to catch a particular rethrown error" <|
+            should_reach = Should_Reach.new
+            handler e =
+                e.is_error . should_be_false
+                e . should_be_a My_Error
+                should_reach.reached
+            Panic.handle_wrapped_dataflow_error error_type=My_Error handler=handler <|
+                a = 10
+                b = a + a
+                _ = b
+                Panic.rethrow_wrapped_if_error (Error.throw (My_Error.Error 12))
+                Test.fail "should not reach here"
+            should_reach.should_have_reached
+
+        group_builder.specify "should be able to catch an rethrown error with the default handler" <|
+            err = Panic.handle_wrapped_dataflow_error error_type=My_Error <|
+                a = 10
+                b = a + a
+                _ = b
+                Panic.rethrow_wrapped_if_error (Error.throw (My_Error.Error 12))
+                Test.fail "should not reach here"
+            err.is_error . should_be_true
+            err.catch . should_be_a My_Error
+
+        group_builder.specify "should be able to explicitly re-throw as a dataflow error" <|
+            handler e =
+                Error.throw e
+            err = Panic.handle_wrapped_dataflow_error error_type=My_Error handler=handler <|
+                a = 10
+                b = a + a
+                Panic.rethrow_wrapped_if_error (Error.throw (My_Error.Error 12))
+                _ = a + b
+                Test.fail "should not reach here"
+            err.is_error . should_be_true
+            err.catch . should_be_a My_Error
+
+        group_builder.specify "can handle Any as error_type" <|
+            err = Panic.handle_wrapped_dataflow_error <|
+                a = 1
+                _ = a
+                Panic.rethrow_wrapped_if_error (Error.throw (My_Error.Error 12))
+                Test.fail "should not reach here"
+            err.is_error . should_be_true
+            err.catch . should_be_a My_Error
+
+        group_builder.specify "can handle multiple rethrown error scopes" <|
+            should_reach_my_error = Should_Reach.new
+            should_reach_my_other_error = Should_Reach.new
+
+            my_error_handler e =
+                e . should_be_a My_Error
+                should_reach_my_error.reached
+
+            my_other_error_handler e =
+                e . should_be_a My_Other_Error
+                should_reach_my_other_error.reached
+
+            Panic.handle_wrapped_dataflow_error error_type=My_Error handler=my_error_handler <|
+                Panic.handle_wrapped_dataflow_error error_type=My_Other_Error handler=my_other_error_handler <|
+                    a = 1
+                    _ = a
+                    Panic.rethrow_wrapped_if_error (Error.throw (My_Error.Error 12))
+                    Test.fail "should not reach here"
+
+            Panic.handle_wrapped_dataflow_error error_type=My_Error handler=my_error_handler <|
+                Panic.handle_wrapped_dataflow_error error_type=My_Other_Error handler=my_other_error_handler <|
+                    a = 1
+                    _ = a
+                    Panic.rethrow_wrapped_if_error (Error.throw (My_Other_Error.Error 12))
+                    Test.fail "should not reach here"
+
+            should_reach_my_error.should_have_reached
+            should_reach_my_other_error.should_have_reached
+
+        group_builder.specify "an uncaught rethrown error should result in an uncaught Wrapped_Dataflow_Error panic" <|
+            Test.expect_panic_with matcher=Wrapped_Dataflow_Error <|
+                Panic.rethrow_wrapped_if_error (Error.throw (My_Error.Error 12))
+                Test.fail "should not reach here"
+
+        group_builder.specify "other panics pass through uncaught" <|
+            Test.expect_panic_with matcher=Illegal_Argument <|
+                Panic.handle_wrapped_dataflow_error error_type=My_Error <|
+                    Panic.throw (Illegal_Argument.Error "err")
+                    Test.fail "should not reach here"
+                Test.fail "should not reach here"
+
+        group_builder.specify "example" <|
+            handler e =
+                # IO.println 'Caught: '+e.to_text
+                _ = [e]
+
+            Panic.handle_wrapped_dataflow_error error_type=My_Error handler=handler <|
+                a = 10
+                b = a + a
+                # IO.println a
+                # IO.println b
+                Panic.rethrow_wrapped_if_error  (Error.throw (My_Error.Error 1))
+                # IO.println "Does not reach here"
+                Test.fail "This code path should not be reached."
 
     suite_builder.group "Empty errors" group_builder->
         group_builder.specify "should implement to_display_text for List" <|

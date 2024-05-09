@@ -245,10 +245,11 @@ type S3_File
                 case destination_writable.file of
                     # Special shortcut for more efficient handling of S3 file copying (no need to move the data to our machine)
                     s3_destination : S3_File ->
-                        if replace_existing.not && s3_destination.exists then Error.throw (File_Error.Already_Exists destination) else
-                            destination_path = s3_destination.s3_path
-                            translate_file_errors self <| S3.copy_object self.s3_path.bucket self.s3_path.key destination_path.bucket destination_path.key self.credentials
-                                . if_not_error destination_writable.file_for_return
+                        if s3_destination == self then (if self.exists then self else Error.throw (File_Error.Not_Found self)) else
+                            if replace_existing.not && s3_destination.exists then Error.throw (File_Error.Already_Exists destination) else
+                                destination_path = s3_destination.s3_path
+                                translate_file_errors self <| S3.copy_object self.s3_path.bucket self.s3_path.key destination_path.bucket destination_path.key self.credentials
+                                    . if_not_error destination_writable.file_for_return
                     _ -> generic_copy self destination_writable replace_existing
 
     ## ICON data_output
@@ -265,12 +266,14 @@ type S3_File
        - destination: the destination to move the file to.
        - replace_existing: specifies if the operation should proceed if the
          destination file already exists. Defaults to `False`.
-    move_to : File_Like -> Boolean -> Nothing ! File_Error
+    move_to : File_Like -> Boolean -> Any ! File_Error
     move_to self (destination : File_Like) (replace_existing : Boolean = False) = Data_Link_Helpers.disallow_links_in_move self destination <|
         Context.Output.if_enabled disabled_message="File moving is forbidden as the Output context is disabled." panic=False <|
             r = self.copy_to destination replace_existing=replace_existing
             r.if_not_error <|
-                self.delete.if_not_error r
+                # If source and destination are the same, we do not want to delete the file
+                if destination.underlying == self then r else
+                    self.delete.if_not_error r
 
     ## GROUP Standard.Base.Operators
        ICON folder

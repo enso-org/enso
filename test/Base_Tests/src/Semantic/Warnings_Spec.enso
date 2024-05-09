@@ -102,6 +102,11 @@ add_specs suite_builder = suite_builder.group "Dataflow Warnings" group_builder-
         z = Warning.attach "I'm serious" y
         Warning.get_all z . map .value . should_equal ["I'm serious", "don't do this"]
 
+    group_builder.specify "should allow to attach multiple warnings with `attach_multiple` and read them back" <|
+        x = 1233
+        z = Warning.attach_multiple ["don't do this", "I'm serious"] x
+        Warning.get_all z . map .value . should_equal ["I'm serious", "don't do this"]
+
     group_builder.specify "should thread warnings through constructor calls" <|
         z = Warning.attach (My_Warning.Value "warn!!!") 3
         y = Warning.attach (My_Warning.Value "warn!!") 2
