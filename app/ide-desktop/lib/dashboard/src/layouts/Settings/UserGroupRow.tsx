@@ -59,21 +59,21 @@ export default function UserGroupRow(props: UserGroupRowProps) {
   return (
     <aria.Row
       id={userGroup.id}
-      className={`rounded-rows-child group h-row ${backend.isPlaceholderUserGroupId(userGroup.id) ? 'pointer-events-none placeholder' : ''}`}
+      className={`group h-row rounded-rows-child ${backend.isPlaceholderUserGroupId(userGroup.id) ? 'pointer-events-none placeholder' : ''}`}
       ref={contextMenuRef}
     >
       <aria.Cell className="text rounded-r-full border-x-2 border-transparent bg-clip-padding px-cell-x first:rounded-l-full last:border-r-0">
         <ariaComponents.TooltipTrigger>
           <FocusableText
             ref={tooltipTargetRef}
-            className="cursor-unset block overflow-hidden text-ellipsis whitespace-nowrap"
+            className="block cursor-unset overflow-hidden text-ellipsis whitespace-nowrap"
           >
             {userGroup.groupName}
           </FocusableText>
           {needsTooltip && <ariaComponents.Tooltip>{userGroup.groupName}</ariaComponents.Tooltip>}
         </ariaComponents.TooltipTrigger>
       </aria.Cell>
-      <aria.Cell className="group-hover-2:opacity-100 relative bg-transparent p transparent">
+      <aria.Cell className="relative bg-transparent p transparent group-hover-2:opacity-100">
         <UnstyledButton
           onPress={() => {
             setModal(
