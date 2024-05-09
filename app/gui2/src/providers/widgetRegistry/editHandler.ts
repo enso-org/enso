@@ -68,7 +68,7 @@ export class WidgetEditHandler {
       },
       end: (origin?: WidgetId) => {
         noLongerActive()
-        hooks.end?.(origin ?? widgetId)
+        hooks.end?.(origin)
       },
       pointerdown: (event, navigator) => {
         if (!hooks.pointerdown) return false
