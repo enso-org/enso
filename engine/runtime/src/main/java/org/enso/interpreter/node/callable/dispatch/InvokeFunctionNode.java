@@ -28,7 +28,6 @@ import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.callable.function.FunctionSchema;
 import org.enso.interpreter.runtime.data.atom.AtomConstructor;
 import org.enso.interpreter.runtime.error.PanicException;
-import org.enso.interpreter.runtime.scope.ModuleScope;
 import org.enso.interpreter.runtime.state.State;
 import org.enso.pkg.Package;
 
@@ -288,5 +287,4 @@ public abstract class InvokeFunctionNode extends BaseNode {
     }
     return null;
   }
-
 }

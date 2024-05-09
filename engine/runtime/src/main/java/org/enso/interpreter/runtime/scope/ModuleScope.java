@@ -37,9 +37,13 @@ public final class ModuleScope implements EnsoObject, DelayedModuleScope {
 
   private static final Type noTypeKey;
 
+  private static int intGen = 0;
+
   static {
     noTypeKey = Type.noType();
   }
+
+  private final int id;
 
   public ModuleScope(
       Module module,
@@ -58,6 +62,7 @@ public final class ModuleScope implements EnsoObject, DelayedModuleScope {
     this.conversions = conversions;
     this.imports = imports;
     this.exports = exports;
+    this.id = intGen++;
   }
 
   /**
@@ -222,7 +227,6 @@ public final class ModuleScope implements EnsoObject, DelayedModuleScope {
     return result;
   }
 
-
   /**
    * @return methods for all registered types
    */
@@ -308,7 +312,7 @@ public final class ModuleScope implements EnsoObject, DelayedModuleScope {
 
   @Override
   public String toString() {
-    return "Scope" + module;
+    return "Scope" + module + "-" + id;
   }
 
   @Override
@@ -316,9 +320,9 @@ public final class ModuleScope implements EnsoObject, DelayedModuleScope {
     return this;
   }
 
-  static public class Builder implements DelayedModuleScope {
+  public static class Builder implements DelayedModuleScope {
 
-    @CompilerDirectives.CompilationFinal volatile private ModuleScope moduleScope = null;
+    @CompilerDirectives.CompilationFinal private volatile ModuleScope moduleScope = null;
 
     private final Module module;
     private final Type associatedType;
@@ -365,8 +369,6 @@ public final class ModuleScope implements EnsoObject, DelayedModuleScope {
      * @param function the {@link Function} associated with this definition
      */
     public void registerMethod(Type type, String method, Function function) {
-      if (moduleScope != null)
-        System.out.println("Register methd " + module.getName());
       assert moduleScope == null;
       Map<String, Supplier<Function>> methodMap = ensureMethodMapFor(type);
 
@@ -411,7 +413,7 @@ public final class ModuleScope implements EnsoObject, DelayedModuleScope {
      */
     public void registerConversionMethod(Type toType, Type fromType, Function function) {
       assert moduleScope == null;
-      var sourceMap =  conversions.computeIfAbsent(toType, k -> new HashMap<>());
+      var sourceMap = conversions.computeIfAbsent(toType, k -> new HashMap<>());
       if (sourceMap.containsKey(fromType)) {
         throw new RedefinedConversionException(toType.getName(), fromType.getName());
       } else {
@@ -437,7 +439,7 @@ public final class ModuleScope implements EnsoObject, DelayedModuleScope {
      * @param scope target scope where methods should be registered to
      */
     public void registerAllMethodsOfTypeToScope(Type tpe, ModuleScope.Builder scope) {
-      //assert moduleScope == null;
+      // assert moduleScope == null;
       Type tpeKey = tpe == null ? noTypeKey : tpe;
       var allTypeMethods = methods.get(tpeKey);
       if (allTypeMethods != null) {
@@ -468,7 +470,7 @@ public final class ModuleScope implements EnsoObject, DelayedModuleScope {
     }
 
     public Type getType(String typeName) {
-      //assert moduleScope == null;
+      // assert moduleScope == null;
       return types.get(typeName);
     }
 
@@ -491,48 +493,58 @@ public final class ModuleScope implements EnsoObject, DelayedModuleScope {
       Set<DelayedModuleScope> imports = new HashSet<>(this.imports);
       Set<DelayedModuleScope> exports = new HashSet<>(this.exports);
       this.types
-              .entrySet()
-              .forEach(
-                      entry -> {
-                        if (typeNames.contains(entry.getKey())) {
-                          requestedTypes.put(entry.getKey(), entry.getValue());
-                        }
-                      });
+          .entrySet()
+          .forEach(
+              entry -> {
+                if (typeNames.contains(entry.getKey())) {
+                  requestedTypes.put(entry.getKey(), entry.getValue());
+                }
+              });
       Collection<Type> validTypes = requestedTypes.values();
       this.methods.forEach(
-              (tpe, meths) -> {
-                if (validTypes.contains(tpe)) {
-                  methods.put(tpe, meths);
-                }
-              });
+          (tpe, meths) -> {
+            if (validTypes.contains(tpe)) {
+              methods.put(tpe, meths);
+            }
+          });
       this.conversions.forEach(
-              (tpe, meths) -> {
-                if (validTypes.contains(tpe)) {
-                  conversions.put(tpe, meths);
-                }
-              });
+          (tpe, meths) -> {
+            if (validTypes.contains(tpe)) {
+              conversions.put(tpe, meths);
+            }
+          });
 
       return new ModuleScope(
-              module,
-              associatedType,
-              polyglotSymbols,
-              requestedTypes,
-              methods,
-              conversions,
-              imports,
-              exports);
+          module,
+          associatedType,
+          polyglotSymbols,
+          requestedTypes,
+          methods,
+          conversions,
+          imports,
+          exports);
     }
 
     public ModuleScope build() {
       if (moduleScope == null) {
-        moduleScope = new ModuleScope(module, associatedType, polyglotSymbols, types, methods, conversions, imports, exports);
+        moduleScope =
+            new ModuleScope(
+                module,
+                associatedType,
+                polyglotSymbols,
+                types,
+                methods,
+                conversions,
+                imports,
+                exports);
       }
       return moduleScope;
     }
 
     public void reset() {
       polyglotSymbols = new HashMap<>();
-      types = new HashMap<>();
+      // can't clear types because on recompilation methods etc will be assigned to the new one
+      // types = new HashMap<>();
       methods = new ConcurrentHashMap<>();
       conversions = new ConcurrentHashMap<>();
       imports = new HashSet<>();

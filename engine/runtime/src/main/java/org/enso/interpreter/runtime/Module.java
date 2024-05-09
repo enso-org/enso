@@ -452,12 +452,12 @@ public final class Module implements EnsoObject {
    * @return the runtime scope of this module.
    */
   public ModuleScope getScope() {
-    //assert scopeBuilder.isBuilt();
+    // assert scopeBuilder.isBuilt();
     return scopeBuilder.build();
   }
 
   public ModuleScope.Builder getScopeBuilder() {
-    //assert !scopeBuilder.isBuilt();
+    // assert !scopeBuilder.isBuilt();
     return scopeBuilder;
   }
 
@@ -623,7 +623,10 @@ public final class Module implements EnsoObject {
     }
 
     private static Object evalExpression(
-        ModuleScope.Builder scope, Object[] args, EnsoContext context, CallOptimiserNode callOptimiserNode)
+        ModuleScope.Builder scope,
+        Object[] args,
+        EnsoContext context,
+        CallOptimiserNode callOptimiserNode)
         throws ArityException, UnsupportedTypeException, UnsupportedMessageException {
       if (args.length != 1) {
         throw ArityException.create(1, 1, args.length);

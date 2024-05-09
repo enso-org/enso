@@ -149,7 +149,11 @@ public abstract class Atom implements EnsoObject {
     if (members != null) {
       allFuncMembers.addAll(members);
     }
-    members = constructor.getType().getMaterializedDefinitionScope().getMethodsForType(constructor.getType());
+    members =
+        constructor
+            .getType()
+            .getMaterializedDefinitionScope()
+            .getMethodsForType(constructor.getType());
     if (members != null) {
       allFuncMembers.addAll(members);
     }
@@ -163,11 +167,13 @@ public abstract class Atom implements EnsoObject {
   }
 
   protected boolean isMethodProjectPrivate(Type type, String methodName) {
-    Function method = constructor.getMaterializedDefinitionScope().getMethodForType(type, methodName);
+    Function method =
+        constructor.getMaterializedDefinitionScope().getMethodForType(type, methodName);
     if (method != null) {
       return method.getSchema().isProjectPrivate();
     }
-    method = constructor.getType().getMaterializedDefinitionScope().getMethodForType(type, methodName);
+    method =
+        constructor.getType().getMaterializedDefinitionScope().getMethodForType(type, methodName);
     return method != null && method.getSchema().isProjectPrivate();
   }
 
@@ -289,11 +295,13 @@ public abstract class Atom implements EnsoObject {
     @Idempotent
     @TruffleBoundary
     protected static boolean isProjectPrivate(AtomConstructor cons, String member) {
-      Function method = cons.getMaterializedDefinitionScope().getMethodForType(cons.getType(), member);
+      Function method =
+          cons.getMaterializedDefinitionScope().getMethodForType(cons.getType(), member);
       if (method != null) {
         return method.getSchema().isProjectPrivate();
       }
-      method = cons.getType().getMaterializedDefinitionScope().getMethodForType(cons.getType(), member);
+      method =
+          cons.getType().getMaterializedDefinitionScope().getMethodForType(cons.getType(), member);
       return method != null && method.getSchema().isProjectPrivate();
     }
   }

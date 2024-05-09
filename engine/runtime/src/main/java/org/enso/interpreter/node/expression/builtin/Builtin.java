@@ -50,7 +50,9 @@ public abstract class Builtin {
   }
 
   public final void initialize(
-      EnsoLanguage language, ModuleScope.Builder scope, Map<Class<? extends Builtin>, Builtin> builtins) {
+      EnsoLanguage language,
+      ModuleScope.Builder scope,
+      Map<Class<? extends Builtin>, Builtin> builtins) {
     if (type == null) {
       Type supertype = null;
       if (getSuperType() != null) {

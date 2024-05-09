@@ -9,25 +9,74 @@ import org.enso.compiler.core.CompilerError
 import org.enso.compiler.core.ConstantsNames
 import org.enso.compiler.core.Implicits.AsMetadata
 import org.enso.compiler.core.IR
-import org.enso.compiler.core.ir.{CallArgument, DefinitionArgument, Empty, Expression, Function, IdentifiedLocation, Literal, Module, Name, Pattern, `type`, Type => Tpe}
+import org.enso.compiler.core.ir.{
+  CallArgument,
+  DefinitionArgument,
+  Empty,
+  Expression,
+  Function,
+  IdentifiedLocation,
+  Literal,
+  Module,
+  Name,
+  Pattern,
+  `type`,
+  Type => Tpe
+}
 import org.enso.compiler.core.ir.module.scope.Definition
 import org.enso.compiler.core.ir.module.scope.definition
 import org.enso.compiler.core.ir.module.scope.Import
 import org.enso.compiler.core.ir.module.scope.imports
 import org.enso.compiler.core.ir.Name.Special
-import org.enso.compiler.core.ir.expression.{Application, Case, Comment, Error, Foreign, Operator, Section, errors}
-import org.enso.compiler.data.BindingsMap.{ExportedModule, ResolvedConstructor, ResolvedModule}
+import org.enso.compiler.core.ir.expression.{
+  errors,
+  Application,
+  Case,
+  Comment,
+  Error,
+  Foreign,
+  Operator,
+  Section
+}
+import org.enso.compiler.data.BindingsMap.{
+  ExportedModule,
+  ResolvedConstructor,
+  ResolvedModule
+}
 import org.enso.compiler.data.{BindingsMap, CompilerConfig}
 import org.enso.compiler.exception.BadPatternMatch
 import org.enso.compiler.pass.analyse.alias.Graph.{Scope => AliasScope}
-import org.enso.compiler.pass.analyse.{AliasAnalysis, BindingAnalysis, DataflowAnalysis, TailCall}
-import org.enso.compiler.pass.analyse.alias.{Graph => AliasGraph, Info => AliasInfo}
-import org.enso.compiler.pass.resolve.{ExpressionAnnotations, GenericAnnotations, GlobalNames, MethodDefinitions, Patterns, TypeNames, TypeSignatures}
+import org.enso.compiler.pass.analyse.{
+  AliasAnalysis,
+  BindingAnalysis,
+  DataflowAnalysis,
+  TailCall
+}
+import org.enso.compiler.pass.analyse.alias.{
+  Graph => AliasGraph,
+  Info => AliasInfo
+}
+import org.enso.compiler.pass.resolve.{
+  ExpressionAnnotations,
+  GenericAnnotations,
+  GlobalNames,
+  MethodDefinitions,
+  Patterns,
+  TypeNames,
+  TypeSignatures
+}
 import org.enso.interpreter.node.callable.argument.ReadArgumentNode
 import org.enso.interpreter.node.callable.argument.ReadArgumentCheckNode
-import org.enso.interpreter.node.callable.function.{BlockNode, CreateFunctionNode}
+import org.enso.interpreter.node.callable.function.{
+  BlockNode,
+  CreateFunctionNode
+}
 import org.enso.interpreter.node.callable.thunk.{CreateThunkNode, ForceNode}
-import org.enso.interpreter.node.callable.{ApplicationNode, InvokeCallableNode, SequenceLiteralNode}
+import org.enso.interpreter.node.callable.{
+  ApplicationNode,
+  InvokeCallableNode,
+  SequenceLiteralNode
+}
 import org.enso.interpreter.node.controlflow.caseexpr._
 import org.enso.interpreter.node.expression.builtin.interop.syntax.HostValueToEnsoNode
 import org.enso.interpreter.node.expression.builtin.BuiltinRootNode
@@ -35,13 +84,26 @@ import org.enso.interpreter.node.expression.constant._
 import org.enso.interpreter.node.expression.foreign.ForeignMethodCallNode
 import org.enso.interpreter.node.expression.literal.LiteralNode
 import org.enso.interpreter.node.scope.{AssignmentNode, ReadLocalVariableNode}
-import org.enso.interpreter.node.{BaseNode, ClosureRootNode, ConstantNode, MethodRootNode, ExpressionNode => RuntimeExpression}
+import org.enso.interpreter.node.{
+  BaseNode,
+  ClosureRootNode,
+  ConstantNode,
+  MethodRootNode,
+  ExpressionNode => RuntimeExpression
+}
 import org.enso.interpreter.runtime.EnsoContext
 import org.enso.interpreter.runtime.callable
 import org.enso.interpreter.runtime.callable.argument.ArgumentDefinition
 import org.enso.interpreter.runtime.data.atom.{Atom, AtomConstructor}
-import org.enso.interpreter.runtime.callable.function.{FunctionSchema, Function => RuntimeFunction}
-import org.enso.interpreter.runtime.callable.{UnresolvedConversion, UnresolvedSymbol, Annotation => RuntimeAnnotation}
+import org.enso.interpreter.runtime.callable.function.{
+  FunctionSchema,
+  Function => RuntimeFunction
+}
+import org.enso.interpreter.runtime.callable.{
+  UnresolvedConversion,
+  UnresolvedSymbol,
+  Annotation => RuntimeAnnotation
+}
 import org.enso.interpreter.runtime.data.Type
 import org.enso.interpreter.runtime.data.text.Text
 import org.enso.interpreter.runtime.scope.{DelayedModuleScope, ModuleScope}
@@ -330,13 +392,14 @@ class IrToTruffle(
               .getMetadata(MethodDefinitions)
               .map { res =>
                 res.target match {
-                  case binding@BindingsMap.ResolvedType(_, _) =>
+                  case binding @ BindingsMap.ResolvedType(_, _) =>
                     asType(binding, moduleScope)
                   case BindingsMap.ResolvedModule(module) =>
                     asAssociatedType(
                       module
                         .unsafeAsModule(),
-                      moduleScope)
+                      moduleScope
+                    )
                   case BindingsMap.ResolvedConstructor(_, _) =>
                     throw new CompilerError(
                       "Impossible, should be caught by MethodDefinitions pass"
@@ -706,7 +769,7 @@ class IrToTruffle(
       t.getMetadata(TypeNames) match {
         case Some(
               BindingsMap
-                .Resolution(binding@BindingsMap.ResolvedType(_, _))
+                .Resolution(binding @ BindingsMap.ResolvedType(_, _))
             ) =>
           ReadArgumentCheckNode.build(
             comment,
@@ -778,10 +841,8 @@ class IrToTruffle(
   private def getTypeResolution(expr: IR): Option[Type] =
     expr.getMetadata(MethodDefinitions).map { res =>
       res.target match {
-        case binding@BindingsMap.ResolvedType(_, _) =>
-          asType(binding,
-            moduleScope
-          )
+        case binding @ BindingsMap.ResolvedType(_, _) =>
+          asType(binding, moduleScope)
         case BindingsMap.ResolvedModule(module) =>
           asAssociatedType(
             module
@@ -879,7 +940,7 @@ class IrToTruffle(
             .equals(moduleScope.getModule.asCompilerModule)
         ) {
           resolution match {
-            case binding@BindingsMap.ResolvedType(_, _) =>
+            case binding @ BindingsMap.ResolvedType(_, _) =>
               val runtimeTp =
                 asType(
                   binding,
@@ -892,8 +953,9 @@ class IrToTruffle(
                 fun
               )
             case BindingsMap.ResolvedConstructor(definitionType, cons) =>
-               val runtimeCons = asType(definitionType, moduleScope).getConstructors
-                .get(cons.name)
+              val runtimeCons =
+                asType(definitionType, moduleScope).getConstructors
+                  .get(cons.name)
               val fun = mkConsGetter(runtimeCons)
               moduleScope.registerMethod(
                 moduleScope.getAssociatedType,
@@ -901,7 +963,8 @@ class IrToTruffle(
                 fun
               )
             case BindingsMap.ResolvedModule(module) =>
-              val runtimeCons = asAssociatedType(module.unsafeAsModule(), moduleScope)
+              val runtimeCons =
+                asAssociatedType(module.unsafeAsModule(), moduleScope)
               val fun = mkTypeGetter(runtimeCons)
               moduleScope.registerMethod(
                 moduleScope.getAssociatedType,
@@ -910,10 +973,12 @@ class IrToTruffle(
               )
             case BindingsMap.ResolvedMethod(module, method) =>
               val actualModule = module.unsafeAsModule()
-              val fun = asScope(actualModule, moduleScope).force().getMethodForType(
-                asAssociatedType(actualModule, moduleScope),
-                method.name
-              )
+              val fun = asScope(actualModule, moduleScope)
+                .force()
+                .getMethodForType(
+                  asAssociatedType(actualModule, moduleScope),
+                  method.name
+                )
               assert(
                 fun != null,
                 s"exported symbol `${method.name}` needs to be registered first in the module "
@@ -1261,12 +1326,12 @@ class IrToTruffle(
                   }
                   Right(r)
                 case Some(
-                      BindingsMap.Resolution(binding@BindingsMap.ResolvedType(_, _))
+                      BindingsMap.Resolution(
+                        binding @ BindingsMap.ResolvedType(_, _)
+                      )
                     ) =>
                   val tpe =
-                    asType(binding,
-                      moduleScope
-                    )
+                    asType(binding, moduleScope)
                   val polyglot = context.getBuiltins.polyglot
                   val branchNode = if (tpe == polyglot) {
                     PolyglotBranchNode.build(
@@ -1413,7 +1478,9 @@ class IrToTruffle(
             case None =>
               Left(BadPatternMatch.NonVisibleType(tpeName.name))
             case Some(
-                  BindingsMap.Resolution(binding@BindingsMap.ResolvedType(_, _))
+                  BindingsMap.Resolution(
+                    binding @ BindingsMap.ResolvedType(_, _)
+                  )
                 ) =>
               // Using .getTypes because .getType may return an associated type
               Option(
@@ -2269,18 +2336,27 @@ class IrToTruffle(
     m.getScope()
   }
 
-
-  private def asScope(module: CompilerContext.Module, @unused current: ModuleScope.Builder): DelayedModuleScope = {
+  private def asScope(
+    module: CompilerContext.Module,
+    @unused current: ModuleScope.Builder
+  ): DelayedModuleScope = {
     val m = org.enso.interpreter.runtime.Module.fromCompilerModule(module)
     m.getDelayedScope()
   }
 
-  private def asType(typ: BindingsMap.ResolvedType, @unused current: ModuleScope.Builder): Type = {
-    val m = org.enso.interpreter.runtime.Module.fromCompilerModule(typ.module.unsafeAsModule())
+  private def asType(
+    typ: BindingsMap.ResolvedType,
+    @unused current: ModuleScope.Builder
+  ): Type = {
+    val m = org.enso.interpreter.runtime.Module
+      .fromCompilerModule(typ.module.unsafeAsModule())
     m.getScopeBuilder().getType(typ.tp.name)
   }
 
-  private def asAssociatedType(module: CompilerContext.Module, @unused current: ModuleScope.Builder): Type = {
+  private def asAssociatedType(
+    module: CompilerContext.Module,
+    @unused current: ModuleScope.Builder
+  ): Type = {
     val m = org.enso.interpreter.runtime.Module.fromCompilerModule(module)
     m.getScopeBuilder().getAssociatedType()
   }

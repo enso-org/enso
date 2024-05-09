@@ -27,7 +27,6 @@ public final class UnresolvedConversion implements EnsoObject {
   private final ModuleScope scope;
   private final ModuleScope.Builder scopeBuilder;
 
-
   /**
    * Creates a new unresolved conversion.
    *
@@ -37,6 +36,7 @@ public final class UnresolvedConversion implements EnsoObject {
     this.scope = scope;
     this.scopeBuilder = null;
   }
+
   private UnresolvedConversion(ModuleScope.Builder scopeBuilder) {
     this.scope = null;
     this.scopeBuilder = scopeBuilder;

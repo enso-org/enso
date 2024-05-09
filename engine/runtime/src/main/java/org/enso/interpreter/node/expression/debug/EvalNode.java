@@ -63,7 +63,8 @@ public abstract class EvalNode extends BaseNode {
   public abstract Object execute(CallerInfo callerInfo, State state, Text expression);
 
   @CompilerDirectives.TruffleBoundary
-  RootCallTarget parseExpression(LocalScope scope, ModuleScope.Builder moduleScope, String expression) {
+  RootCallTarget parseExpression(
+      LocalScope scope, ModuleScope.Builder moduleScope, String expression) {
     EnsoContext context = EnsoContext.get(this);
     LocalScope localScope = scope.createChild();
     var compiler = context.getCompiler();

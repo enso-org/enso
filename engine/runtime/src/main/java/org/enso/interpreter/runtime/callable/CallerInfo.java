@@ -19,7 +19,8 @@ public class CallerInfo {
    * @param localScope the local scope caller uses
    * @param moduleScope the module scope caller was defined in
    */
-  public CallerInfo(MaterializedFrame frame, LocalScope localScope, ModuleScope.Builder moduleScope) {
+  public CallerInfo(
+      MaterializedFrame frame, LocalScope localScope, ModuleScope.Builder moduleScope) {
     this.frame = frame;
     this.localScope = localScope;
     this.moduleScope = moduleScope;

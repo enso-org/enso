@@ -376,7 +376,9 @@ public final class Builtins {
 
   /** Initialize builting types in the context of the given language and module scope */
   private Map<Class<? extends Builtin>, Builtin> initializeBuiltinTypes(
-      List<Constructor<? extends Builtin>> constrs, EnsoLanguage language, ModuleScope.Builder scope) {
+      List<Constructor<? extends Builtin>> constrs,
+      EnsoLanguage language,
+      ModuleScope.Builder scope) {
     Map<Class<? extends Builtin>, Builtin> builtins = new HashMap<>();
 
     for (var constr : constrs) {

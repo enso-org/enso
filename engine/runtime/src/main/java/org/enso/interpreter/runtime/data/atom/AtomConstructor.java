@@ -76,7 +76,8 @@ public final class AtomConstructor implements EnsoObject {
    * @param type associated type
    * @param builtin if true, the constructor refers to a builtin type (annotated with @BuiltinType
    */
-  public AtomConstructor(String name, ModuleScope.Builder definitionScope, Type type, boolean builtin) {
+  public AtomConstructor(
+      String name, ModuleScope.Builder definitionScope, Type type, boolean builtin) {
     this.name = name;
     this.definitionScope = definitionScope;
     this.type = type;
