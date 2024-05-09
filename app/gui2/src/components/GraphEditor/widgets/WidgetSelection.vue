@@ -4,7 +4,6 @@ import SizeTransition from '@/components/SizeTransition.vue'
 import SvgIcon from '@/components/SvgIcon.vue'
 import DropdownWidget, { type DropdownEntry } from '@/components/widgets/DropdownWidget.vue'
 import { unrefElement } from '@/composables/events'
-import type { PortId } from '@/providers/portInfo'
 import { defineWidget, Score, WidgetInput, widgetProps } from '@/providers/widgetRegistry'
 import {
   multipleChoiceConfiguration,
@@ -168,7 +167,7 @@ interface Entry extends DropdownEntry {
   tag: ExpressionTag | ActionTag
 }
 const entries = computed<Entry[]>(() => {
-  return filteredTags.value.map((tag, index) => ({
+  return filteredTags.value.map((tag, _index) => ({
     value: tag.label,
     selected: tag instanceof ExpressionTag && selectedExpressions.value.has(tag.expression),
     tag,
@@ -403,7 +402,7 @@ declare module '@/providers/widgetRegistry' {
   flex-direction: row;
   align-items: center;
   position: relative;
-  min-height: 24px;
+  min-height: --node-port-height;
 }
 
 .arrow {

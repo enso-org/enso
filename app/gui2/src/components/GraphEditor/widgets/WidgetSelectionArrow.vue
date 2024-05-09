@@ -61,6 +61,6 @@ export const widgetDefinition = defineWidget(
   display: flex;
   flex-direction: row;
   align-items: center;
-  min-height: 24px;
+  min-height: --node-port-height;
 }
 </style>
