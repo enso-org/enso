@@ -246,10 +246,11 @@ const graphBindingsHandler = graphBindings.handler({
 
 const { handleClick } = useDoubleClick(
   (e: MouseEvent) => {
-    graphBindingsHandler(e)
+    if (e.target !== e.currentTarget) return false
     clearFocus()
   },
-  () => {
+  (e: MouseEvent) => {
+    if (e.target !== e.currentTarget) return false
     stackNavigator.exitNode()
   },
 )
@@ -574,7 +575,7 @@ const groupColors = computed(() => {
       @setNodeColor="setSelectedNodesColor"
       @removeNodes="deleteSelected"
     />
-    <PlusButton @pointerdown.stop @click.stop="addNodeAuto()" @pointerup.stop />
+    <PlusButton @click.stop="addNodeAuto()" />
     <Transition>
       <Suspense ref="codeEditorArea">
         <CodeEditor v-if="showCodeEditor" @close="showCodeEditor = false" />

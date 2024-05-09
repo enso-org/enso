@@ -55,9 +55,9 @@ export async function mockApi({ page }: MockParams) {
     name: defaultUsername,
     organizationId: defaultOrganizationId,
     userId: defaultUserId,
-    profilePicture: null,
     isEnabled: true,
     rootDirectoryId: defaultDirectoryId,
+    userGroups: null,
   }
   let currentUser: backend.User | null = defaultUser
   let currentOrganization: backend.OrganizationInfo | null = null
@@ -571,9 +571,9 @@ export async function mockApi({ page }: MockParams) {
             name: body.userName,
             organizationId,
             userId: backend.UserId(`user-${uniqueString.uniqueString()}`),
-            profilePicture: null,
             isEnabled: false,
             rootDirectoryId,
+            userGroups: null,
           }
           await route.fulfill({ json: currentUser })
         } else if (request.method() === 'GET') {

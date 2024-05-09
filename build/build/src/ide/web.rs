@@ -319,24 +319,6 @@ impl IdeDesktop {
         let icons_build = self.build_icons(&icons_dist);
         let icons = icons_build.await?;
 
-        let python_path = if TARGET_OS == OS::MacOS && !env::PYTHON_PATH.is_set() {
-            // On macOS electron-builder will fail during DMG creation if there is no python2
-            // installed. It is looked for in `/usr/bin/python` which is not valid place on newer
-            // MacOS versions.
-            // We can work around this by setting the `PYTHON_PATH` env variable. We attempt to
-            // locate `python2` in PATH which is enough to work on GitHub-hosted macOS
-            // runners.
-            ide_ci::program::lookup("python2")
-                .inspect_err(|e| {
-                    // We do not fail, as this requirement might have been lifted by the
-                    // electron-builder bump. As for now, we do best effort to support both cases.
-                    warn!("Failed to locate python2 in PATH: {e}");
-                })
-                .ok()
-        } else {
-            None
-        };
-
         let target_args = match target {
             Some(target) => vec!["--target".to_string(), target],
             None => vec![],
@@ -348,7 +330,6 @@ impl IdeDesktop {
             .set_env(env::ENSO_BUILD_GUI, gui.as_ref())?
             .set_env(env::ENSO_BUILD_IDE, output_path)?
             .set_env(env::ENSO_BUILD_PROJECT_MANAGER, project_manager.as_ref())?
-            .set_env_opt(env::PYTHON_PATH, python_path.as_ref())?
             .set_env(enso_install_config::ENSO_BUILD_ELECTRON_BUILDER_CONFIG, &electron_config)?
             .workspace(Workspaces::Enso)
             // .args(["--loglevel", "verbose"])

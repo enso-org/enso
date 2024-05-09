@@ -17,7 +17,7 @@ export interface ContextMenusProps extends Readonly<React.PropsWithChildren> {
 }
 
 /** A context menu that opens at the current mouse position. */
-export default function ContextMenus(props: ContextMenusProps) {
+function ContextMenus(props: ContextMenusProps, ref: React.ForwardedRef<HTMLDivElement>) {
   const { hidden = false, children, event } = props
 
   return hidden ? (
@@ -31,10 +31,8 @@ export default function ContextMenus(props: ContextMenusProps) {
     >
       <div
         data-testid="context-menus"
-        style={{
-          left: event.pageX,
-          top: event.pageY,
-        }}
+        ref={ref}
+        style={{ left: event.pageX, top: event.pageY }}
         className={`pointer-events-none sticky flex w-min items-start gap-context-menus ${
           detect.isOnMacOS()
             ? 'ml-context-menu-macos-half-x -translate-x-context-menu-macos-half-x'
@@ -49,3 +47,5 @@ export default function ContextMenus(props: ContextMenusProps) {
     </Modal>
   )
 }
+
+export default React.forwardRef(ContextMenus)
