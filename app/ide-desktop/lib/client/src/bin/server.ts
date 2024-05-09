@@ -130,12 +130,13 @@ export class Server {
                     },
                     handler: this.process.bind(this),
                 },
-                (err, { http: httpServer }) => {
+                (err, { https: httpsServer, http: httpServer }) => {
                     void (async () => {
                         if (err) {
                             logger.error(`Error creating server:`, err.http)
                             reject(err)
                         }
+                        const server = httpsServer ?? httpServer
                         // Prepare the YDoc server access point for the new Vue-based GUI.
                         // TODO[ao]: This is very ugly quickfix to make our rust-ffi WASM
                         // working both in browser and in ydocs server. Doing it properly
@@ -147,9 +148,9 @@ export class Server {
                         const rustFFIWasm = bundledFiles.find(name =>
                             /rust_ffi_bg-.*\.wasm/.test(name)
                         )
-                        if (httpServer && rustFFIWasm != null) {
+                        if (server && rustFFIWasm != null) {
                             await ydocServer.createGatewayServer(
-                                httpServer,
+                                server,
                                 path.join(assets, rustFFIWasm)
                             )
                         } else {
@@ -167,7 +168,7 @@ export class Server {
                                 .createServer({
                                     server: {
                                         middlewareMode: true,
-                                        hmr: httpServer ? { server: httpServer } : {},
+                                        hmr: server ? { server } : {},
                                     },
                                     configFile: process.env.GUI_CONFIG_PATH ?? false,
                                 })

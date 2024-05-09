@@ -66,6 +66,8 @@ class App {
 
         electron.app.commandLine.appendSwitch('allow-insecure-localhost', 'true')
         electron.app.commandLine.appendSwitch('ignore-certificate-errors', 'true')
+        electron.app.commandLine.appendSwitch('ignore-ssl-errors', 'true')
+        electron.app.commandLine.appendSwitch('ignore-certificate-errors-spki-list', 'true')
         electron.app.on(
             'certificate-error',
             (event, webContents, url, error, certificate, callback) => {
@@ -181,10 +183,17 @@ class App {
             }
         }
         const add = (option: string, value?: string) => {
+            const chromeOption = new configParser.ChromeOption(option, value)
+            const chromeOptionStr = chromeOption.display()
+            logger.log(`Setting '${chromeOptionStr}'`)
             chromeOptions.push(new configParser.ChromeOption(option, value))
         }
         logger.groupMeasured('Setting Chrome options', () => {
             const perfOpts = this.args.groups.performance.options
+            add('ignore-certificate-errors-spki-list')
+            add('allow-insecure-localhost')
+            add('ignore-certificate-errors')
+            add('ignore-ssl-errors')
             addIf(perfOpts.disableGpuSandbox, 'disable-gpu-sandbox')
             addIf(perfOpts.disableGpuVsync, 'disable-gpu-vsync')
             addIf(perfOpts.disableSandbox, 'no-sandbox')
@@ -253,7 +262,7 @@ class App {
             this.projectManagerHost ??= projectManagerHost!
             this.projectManagerPort ??= await portfinder.getPortPromise({
                 // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-                port: parseInt(projectManagerPort!),
+                port: parseInt(projectManagerPort),
             })
             const projectManagerUrl = `ws://${this.projectManagerHost}:${this.projectManagerPort}`
             this.args.groups.engine.options.projectManagerUrl.value = projectManagerUrl

@@ -138,6 +138,7 @@ declare module 'tailwindcss/nesting/index.js' {
 
 declare module 'create-servers' {
     import type * as http from 'node:http'
+    import type * as https from 'node:https'
 
     /** Configuration options for `create-servers`. */
     interface CreateServersOptions {
@@ -159,6 +160,7 @@ declare module 'create-servers' {
     /** Created server instances of various types. */
     interface CreatedServers {
         readonly http?: http.Server
+        readonly https?: https.Server
     }
 
     export default function (
