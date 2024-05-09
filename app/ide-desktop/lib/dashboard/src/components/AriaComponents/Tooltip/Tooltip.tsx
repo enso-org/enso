@@ -9,7 +9,7 @@ export interface TooltipProps
   extends Omit<Readonly<aria.TooltipProps>, 'offset' | 'UNSTABLE_portalContainer'> {}
 
 const DEFAULT_CLASSES =
-  'flex bg-frame backdrop-blur-default text-primary px-2 leading-cozy min-h-6 rounded-default shadow-soft text-xs'
+  'flex bg-primary/10 backdrop-blur-default text-primary px-2 leading-cozy min-h-6 rounded-default shadow-soft text-xs'
 
 const DEFAULT_CONTAINER_PADDING = 4
 const DEFAULT_OFFSET = 4
