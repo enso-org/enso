@@ -591,12 +591,12 @@ export default class RemoteBackend extends Backend {
   /** List project sessions for a specific project.
    * @throws An error if a non-successful status code (not 200-299) was received. */
   override async listProjectSessions(
-    projectId: backendModule.ProjectId,
+    projectId: backend.ProjectId,
     title: string
-  ): Promise<backendModule.ProjectSession[]> {
+  ): Promise<backend.ProjectSession[]> {
     const paramsString = new URLSearchParams({ projectId }).toString()
     const path = `${remoteBackendPaths.LIST_PROJECT_SESSIONS_PATH}?${paramsString}`
-    const response = await this.get<backendModule.ProjectSession[]>(path)
+    const response = await this.get<backend.ProjectSession[]>(path)
     if (!responseIsSuccessful(response)) {
       return await this.throw(response, 'listProjectSessionsBackendError', title)
     } else {
