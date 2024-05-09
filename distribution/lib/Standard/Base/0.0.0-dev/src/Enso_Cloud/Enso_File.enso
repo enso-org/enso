@@ -192,13 +192,14 @@ type Enso_File
                 if open_options.contains File_Access.Append then Unimplemented.throw "Enso_File currently does not support appending to a file. Instead you may read it, modify and then write the new contents." else
                     File_Access.ensure_only_allowed_options "with_output_stream" [File_Access.Write, File_Access.Create_New, File_Access.Truncate_Existing, File_Access.Create, Data_Link_Access.No_Follow] open_options <|
                         allow_existing = open_options.contains File_Access.Create_New . not
-                        #case is_data_link of
-                        #    False ->
-                        tmp_file = File.create_temporary_file "enso-cloud-write-tmp"
-                        Panic.with_finalizer tmp_file.delete <|
-                            perform_upload self allow_existing <|
-                                result = tmp_file.with_output_stream [File_Access.Write] action
-                                result.if_not_error [tmp_file, result]
+                        case is_data_link of
+                            False ->
+                                tmp_file = File.create_temporary_file "enso-cloud-write-tmp"
+                                Panic.with_finalizer tmp_file.delete <|
+                                    perform_upload self allow_existing <|
+                                        result = tmp_file.with_output_stream [File_Access.Write] action
+                                        result.if_not_error [tmp_file, result]
+                            True -> create_datalink_from_stream_action self allow_existing action
 
     ## PRIVATE
        ADVANCED
