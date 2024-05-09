@@ -16,7 +16,7 @@ public final class CloudAuditedConnection extends AuditedConnection {
    * end, we need to assign a sequence number to be able to know the ordering between various
    * events.
    */
-  private long sequenceNumber = 0;
+  private long sequenceNumber = 1;
 
   public CloudAuditedConnection(Connection underlying, String relatedAssetId) {
     super(underlying);
