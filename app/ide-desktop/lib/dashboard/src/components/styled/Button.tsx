@@ -73,10 +73,10 @@ function Button(props: ButtonProps, ref: React.ForwardedRef<HTMLButtonElement>) 
   return alt == null ? (
     button
   ) : (
-    <aria.TooltipTrigger>
+    <ariaComponents.TooltipTrigger>
       {button}
       <ariaComponents.Tooltip>{alt}</ariaComponents.Tooltip>
-    </aria.TooltipTrigger>
+    </ariaComponents.TooltipTrigger>
   )
 }
 

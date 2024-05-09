@@ -47,10 +47,10 @@ function UnstyledButton(props: UnstyledButtonProps, ref: React.ForwardedRef<HTML
   return buttonProps['aria-label'] == null ? (
     button
   ) : (
-    <aria.TooltipTrigger>
+    <ariaComponents.TooltipTrigger>
       {button}
       <ariaComponents.Tooltip>{buttonProps['aria-label']}</ariaComponents.Tooltip>
-    </aria.TooltipTrigger>
+    </ariaComponents.TooltipTrigger>
   )
 }
 
