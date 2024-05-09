@@ -45,6 +45,12 @@ add_specs suite_builder prefix ~datalink_to_connection =
                 # The insert query should not contain column cell data - only column names / metadata.
                 insert.message.should_not_contain "my_payload"
 
+                create_sequence_number = create.metadata.get "sequence_number"
+                insert_sequence_number = insert.metadata.get "sequence_number"
+                create_sequence_number.should_be_a Integer
+                insert_sequence_number.should_be_a Integer
+                (create_sequence_number < insert_sequence_number) . should_be_true
+
                 relevant_events.find (e-> e.message.contains "SELECT") . should_succeed
                 relevant_events.find (e-> e.message.contains "DROP") . should_succeed
 
