@@ -145,12 +145,12 @@ type Statistic
         Statistic.Maximum -> Java_Statistic.Maximum
         Statistic.Sum -> Java_Statistic.Sum
         Statistic.Mean -> Java_Statistic.Mean
-        Statistic.Variance True -> Java_Statistic.VarianceTrue
-        Statistic.Variance False -> Java_Statistic.VarianceFalse
-        Statistic.Standard_Deviation True -> Java_Statistic.StandardDeviationTrue
-        Statistic.Standard_Deviation False -> Java_Statistic.StandardDeviationFalse
-        Statistic.Skew True -> Java_Statistic.SkewTrue
-        Statistic.Skew False -> Java_Statistic.SkewFalse
+        Statistic.Variance True -> Java_Statistic.VariancePopulation
+        Statistic.Variance False -> Java_Statistic.VarianceSample
+        Statistic.Standard_Deviation True -> Java_Statistic.StandardDeviationPopulation
+        Statistic.Standard_Deviation False -> Java_Statistic.StandardDeviationSample
+        Statistic.Skew True -> Java_Statistic.SkewPopulation
+        Statistic.Skew False -> Java_Statistic.SkewSample
         Statistic.Kurtosis -> Java_Statistic.Kurtosis
         Statistic.Covariance _ -> Java_Statistic.Covariance
         Statistic.Pearson _ -> Java_Statistic.Pearson

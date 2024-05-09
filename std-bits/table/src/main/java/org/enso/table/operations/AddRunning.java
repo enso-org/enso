@@ -54,22 +54,22 @@ public class AddRunning {
         }
         return new RunningMaxStatistic(sourceColumn, problemAggregator);
       }
-      case VarianceTrue -> {
+      case VariancePopulation -> {
         return new RunningVarianceStatistic(sourceColumn, problemAggregator, true);
       }
-      case VarianceFalse -> {
+      case VarianceSample -> {
         return new RunningVarianceStatistic(sourceColumn, problemAggregator, false);
       }
-      case StandardDeviationTrue -> {
+      case StandardDeviationPopulation -> {
         return new RunningStandardDeviationStatistic(sourceColumn, problemAggregator, true);
       }
-      case StandardDeviationFalse -> {
+      case StandardDeviationSample -> {
         return new RunningStandardDeviationStatistic(sourceColumn, problemAggregator, false);
       }
-      case SkewTrue -> {
+      case SkewPopulation -> {
         return new RunningSkewStatistic(sourceColumn, problemAggregator, true);
       }
-      case SkewFalse -> {
+      case SkewSample -> {
         return new RunningSkewStatistic(sourceColumn, problemAggregator, false);
       }
       case Kurtosis -> {
