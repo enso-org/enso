@@ -28,7 +28,7 @@ import { arrayEquals } from '@/util/data/array'
 import type { Opt } from '@/util/data/opt'
 import { qnLastSegment, tryQualifiedName } from '@/util/qualifiedName'
 import { autoUpdate, offset, size, useFloating } from '@floating-ui/vue'
-import { computed, ref, type ComponentInstance, proxyRefs } from 'vue'
+import { computed, ref, type ComponentInstance, proxyRefs, type RendererNode } from 'vue'
 
 const props = defineProps(widgetProps(widgetDefinition))
 const suggestions = useSuggestionDbStore()
@@ -206,9 +206,21 @@ const innerWidgetInput = computed<WidgetInput>(() => {
 
 provideSelectionArrow(proxyRefs({
   id: computed(() => {
-    return props.input.value instanceof Ast.PropertyAccess ? props.input.value.rhs.id : props.input.portId
+    // Find the top-most PropertyAccess, and return its rhs id.
+    // It will be used to place the dropdown arrow under the constructor name.
+    let node = props.input.value
+    while (node instanceof Ast.Ast) {
+      if (node instanceof Ast.PropertyAccess) return node.rhs.id
+      if (node instanceof Ast.App) 
+        node = node.function
+      else break
+    }
+    return null
   }),
-  hovered: isHovered,
+  requestArrow: (target: RendererNode) => {
+    arrowLocation.value = target
+  },
+  handled: false,
 }))
 
 const isMulti = computed(() => props.input.dynamicConfig?.kind === 'Multiple_Choice')
@@ -305,7 +317,6 @@ function expressionTagClicked(tag: ExpressionTag, previousState: boolean) {
 }
 
 const arrowLocation = ref()
-const localArrow = computed(() => arrowLocation == null)
 </script>
 
 <script lang="ts">
@@ -367,7 +378,10 @@ declare module '@/providers/widgetRegistry' {
     @pointerout="isHovered = false"
   >
     <NodeWidget :input="innerWidgetInput" />
-    <Teleport :disabled="localArrow" :to="arrowLocation"><SvgIcon v-if="isHovered" name="arrow_right_head_only" class="arrow" /></Teleport>
+    <Teleport v-if="arrowLocation" :to="arrowLocation">
+      <SvgIcon v-if="isHovered" name="arrow_right_head_only" class="arrow" />
+    </Teleport>
+    <SvgIcon v-else-if="isHovered" name="arrow_right_head_only" class="arrow" />
     <Teleport v-if="tree.nodeElement" :to="tree.nodeElement">
       <SizeTransition height :duration="100">
         <DropdownWidget
@@ -387,14 +401,18 @@ declare module '@/providers/widgetRegistry' {
 .WidgetSelection {
   display: flex;
   flex-direction: row;
+  align-items: center;
+  position: relative;
+  min-height: 24px;
 }
 
 .arrow {
   position: absolute;
   pointer-events: none;
-  bottom: -7px;
+  bottom: -8px;
   left: 50%;
   transform: translateX(-50%) rotate(90deg) scale(0.7);
+  transform-origin: center;
   opacity: 0.5;
   /* Prevent the parent from receiving a pointerout event if the mouse is over the arrow, which causes flickering. */
   pointer-events: none;

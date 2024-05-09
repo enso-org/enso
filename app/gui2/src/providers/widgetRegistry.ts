@@ -205,6 +205,14 @@ export interface WidgetOptions<T extends WidgetInput> {
   // A list of widget kinds that will be prevented from being used on the same node as this widget,
   // once this widget is used.
   prevent?: WidgetComponent<any>[]
+  /** Allow to select this widget as the leaf of the widget tree for particular widget input.
+   * `true` by default. The widget marked with `false` *must* have a child,
+   * otherwise it can be selected as leaf.
+   *
+   * It can be useful for widgets that wrap other widgets, but shouldn’t be selected when
+   * no child widget is ever selected. One particular example is `WidgetSelectionArrow`.
+   */
+  allowAsLeaf?: boolean
 }
 
 export interface WidgetDefinition<T extends WidgetInput> {
@@ -228,6 +236,8 @@ export interface WidgetDefinition<T extends WidgetInput> {
    */
   score: (props: WidgetProps<T>, db: GraphDb) => Score
   prevent: WidgetComponent<any>[] | undefined
+  /** See {@link WidgetOptions::allowAsLeaf}. */
+  allowAsLeaf: boolean
 }
 
 export interface WidgetModule<T extends WidgetInput> {
@@ -281,6 +291,7 @@ export function defineWidget<M extends InputMatcher<any> | InputMatcher<any>[]>(
     match: makeInputMatcher<InputTy<M>>(matchInputs),
     score,
     prevent: definition.prevent,
+    allowAsLeaf: definition.allowAsLeaf ?? true,
   }
 
   if (import.meta.hot && hmr) {
@@ -363,6 +374,7 @@ export class WidgetRegistry {
     // The type and score of the best widget found so far.
     let best: WidgetModule<T> | undefined = undefined
     let bestScore = Score.Mismatch
+    let foundLeafMatch = false
 
     // Iterate over all loaded widget kinds in order of decreasing priority.
     for (const widgetModule of this.sortedModules.value) {
@@ -374,13 +386,26 @@ export class WidgetRegistry {
 
       // Perform a match and update the best widget if the match is better than the previous one.
       const score = widgetModule.widgetDefinition.score(props, this.db)
-      // If we found a perfect match, we can return immediately, as there can be no better match.
-      if (score === Score.Perfect) return widgetModule
+      if (score > Score.Mismatch) {
+        foundLeafMatch ||= widgetModule.widgetDefinition.allowAsLeaf
+      }
       if (score > bestScore) {
         bestScore = score
         best = widgetModule
       }
+
+      // If we found a perfect match, we can return immediately, as there can be no better match.
+      // If we found a leaf match, we can safely return – there will be another leaf later down the tree.
+      // One caveat here is that if the widget marked with `allowAsLeaf = false` has no children. Then we
+      // can pick it here, and it will effectively become leaf.
+      if (bestScore === Score.Perfect && foundLeafMatch) {
+        return best
+      }
     }
+
+    // We didn’t find any widget that supports being a leaf, we can’t select any.
+    if (!foundLeafMatch) return undefined
+
     return best
   }
 }
