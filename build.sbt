@@ -2367,8 +2367,11 @@ lazy val `engine-runner` = project
     assembly / test := {},
     assembly / assemblyOutputPath := file("runner.jar"),
     assembly / assemblyExcludedJars :=
-      JPMSUtils.filterTruffleAndGraalArtifacts(
-        (Compile / fullClasspath).value
+      JPMSUtils.filterArtifacts(
+        (Compile / fullClasspath).value,
+        "graalvm",
+        "truffle",
+        "helidon"
       ),
     assembly / assemblyMergeStrategy := {
       case PathList("META-INF", file, xs @ _*) if file.endsWith(".DSA") =>
