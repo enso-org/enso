@@ -6,7 +6,7 @@ import type * as assetsTable from '#/layouts/AssetsTable'
 import * as columnUtils from '#/components/dashboard/column/columnUtils'
 import DocsColumn from '#/components/dashboard/column/DocsColumn'
 import LabelsColumn from '#/components/dashboard/column/LabelsColumn'
-import LastModifiedColumn from '#/components/dashboard/column/LastModifiedColumn'
+import ModifiedColumn from '#/components/dashboard/column/ModifiedColumn'
 import NameColumn from '#/components/dashboard/column/NameColumn'
 import PlaceholderColumn from '#/components/dashboard/column/PlaceholderColumn'
 import SharedWithColumn from '#/components/dashboard/column/SharedWithColumn'
@@ -55,7 +55,7 @@ export const COLUMN_RENDERER: Readonly<
   Record<columnUtils.Column, (props: AssetColumnProps) => React.JSX.Element>
 > = {
   [columnUtils.Column.name]: NameColumn,
-  [columnUtils.Column.modified]: LastModifiedColumn,
+  [columnUtils.Column.modified]: ModifiedColumn,
   [columnUtils.Column.sharedWith]: SharedWithColumn,
   [columnUtils.Column.labels]: LabelsColumn,
   [columnUtils.Column.accessedByProjects]: PlaceholderColumn,
