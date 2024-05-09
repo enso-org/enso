@@ -131,10 +131,19 @@ describe('WidgetRegistry', () => {
   )
   test('perfect match does not allow being leaf', () => {
     registry.registerWidgetModule(widgetE)
-    const case1 = registry.select({ input: blankAst, nesting: 0}, new Set([widgetA.default, widgetB.default, widgetC.default, widgetD.default]))
+    const case1 = registry.select(
+      { input: blankAst, nesting: 0 },
+      new Set([widgetA.default, widgetB.default, widgetC.default, widgetD.default]),
+    )
     expect(case1).toBeUndefined
-    const selectedFirst = registry.select({ input: blankAst, nesting: 0}, new Set([widgetB.default, widgetC.default, widgetD.default]))
-    const selectedNext = registry.select({ input: blankAst, nesting: 0}, new Set([widgetE.default, widgetB.default, widgetC.default, widgetD.default]))
+    const selectedFirst = registry.select(
+      { input: blankAst, nesting: 0 },
+      new Set([widgetB.default, widgetC.default, widgetD.default]),
+    )
+    const selectedNext = registry.select(
+      { input: blankAst, nesting: 0 },
+      new Set([widgetE.default, widgetB.default, widgetC.default, widgetD.default]),
+    )
     expect(selectedFirst).toStrictEqual(widgetE)
     expect(selectedNext).toStrictEqual(widgetA)
   })

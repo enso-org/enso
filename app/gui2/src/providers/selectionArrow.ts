@@ -1,6 +1,6 @@
 import { createContextStore } from '@/providers'
-import type { AstId, TokenId } from '@/util/ast/abstract.ts'
 import type { PortId } from '@/providers/portInfo.ts'
+import type { AstId, TokenId } from '@/util/ast/abstract.ts'
 import { identity } from '@vueuse/core'
 import type { RendererElement } from 'vue'
 
@@ -14,4 +14,7 @@ interface SelectionArrowInfo {
 }
 
 export { injectFn as injectSelectionArrow, provideFn as provideSelectionArrow }
-const { provideFn, injectFn } = createContextStore('Selection arrow info', identity<SelectionArrowInfo>)
+const { provideFn, injectFn } = createContextStore(
+  'Selection arrow info',
+  identity<SelectionArrowInfo>,
+)

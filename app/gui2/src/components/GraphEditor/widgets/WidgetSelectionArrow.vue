@@ -1,11 +1,11 @@
 <script setup lang="ts">
 import NodeWidget from '@/components/GraphEditor/NodeWidget.vue'
-import { Score, WidgetInput, defineWidget, widgetProps } from '@/providers/widgetRegistry';
-import { injectSelectionArrow } from '@/providers/selectionArrow';
-import { Ast } from '@/util/ast';
-import { onMounted, onUnmounted, ref } from 'vue';
-import { ArgumentNameShownKey } from './WidgetArgumentName.vue';
-import { assert } from 'shared/util/assert';
+import { injectSelectionArrow } from '@/providers/selectionArrow'
+import { Score, WidgetInput, defineWidget, widgetProps } from '@/providers/widgetRegistry'
+import { Ast } from '@/util/ast'
+import { assert } from 'shared/util/assert'
+import { onMounted, onUnmounted, ref } from 'vue'
+import { ArgumentNameShownKey } from './WidgetArgumentName.vue'
 
 const props = defineProps(widgetProps(widgetDefinition))
 
@@ -13,7 +13,7 @@ const innerInput = { ...props.input }
 const info = injectSelectionArrow(true)
 const teleportTarget = ref<HTMLElement | null>()
 onMounted(() => {
-  assert(teleportTarget.value != null, "Element ref must be available after mounting.")
+  assert(teleportTarget.value != null, 'Element ref must be available after mounting.')
   if (info && !info.handled) {
     info.requestArrow(teleportTarget.value)
     info.handled = true
@@ -32,9 +32,11 @@ export const widgetDefinition = defineWidget(
       if (info == null) return Score.Mismatch
 
       // This is needed because the id of the rhs in PropertyAccess chain is TokenId, not AstId.
-      if (props.input.value instanceof Ast.Ident && props.input.value.token.id === info?.id) return Score.Perfect
+      if (props.input.value instanceof Ast.Ident && props.input.value.token.id === info?.id)
+        return Score.Perfect
 
-      if (props.input.value instanceof Ast.Ast && props.input.value.id === info?.id) return Score.Perfect
+      if (props.input.value instanceof Ast.Ast && props.input.value.id === info?.id)
+        return Score.Perfect
       if (props.input.portId === info?.id) return Score.Perfect
 
       // Show arrow for the first child of the WidgetArgumentName (value of the argument).

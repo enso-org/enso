@@ -4,6 +4,7 @@ import SizeTransition from '@/components/SizeTransition.vue'
 import SvgIcon from '@/components/SvgIcon.vue'
 import DropdownWidget, { type DropdownEntry } from '@/components/widgets/DropdownWidget.vue'
 import { unrefElement } from '@/composables/events'
+import { provideSelectionArrow } from '@/providers/selectionArrow.ts'
 import { defineWidget, Score, WidgetInput, widgetProps } from '@/providers/widgetRegistry'
 import {
   multipleChoiceConfiguration,
@@ -12,7 +13,6 @@ import {
 } from '@/providers/widgetRegistry/configuration'
 import { WidgetEditHandler } from '@/providers/widgetRegistry/editHandler'
 import { injectWidgetTree } from '@/providers/widgetTree.ts'
-import { provideSelectionArrow } from '@/providers/selectionArrow.ts'
 import { useGraphStore } from '@/stores/graph'
 import { requiredImports, type RequiredImport } from '@/stores/graph/imports.ts'
 import { useSuggestionDbStore } from '@/stores/suggestionDatabase'
@@ -27,7 +27,7 @@ import { arrayEquals } from '@/util/data/array'
 import type { Opt } from '@/util/data/opt'
 import { qnLastSegment, tryQualifiedName } from '@/util/qualifiedName'
 import { autoUpdate, offset, size, useFloating } from '@floating-ui/vue'
-import { computed, ref, type ComponentInstance, proxyRefs, type RendererNode } from 'vue'
+import { computed, proxyRefs, ref, type ComponentInstance, type RendererNode } from 'vue'
 
 const props = defineProps(widgetProps(widgetDefinition))
 const suggestions = useSuggestionDbStore()
@@ -203,24 +203,25 @@ const innerWidgetInput = computed<WidgetInput>(() => {
   }
 })
 
-provideSelectionArrow(proxyRefs({
-  id: computed(() => {
-    // Find the top-most PropertyAccess, and return its rhs id.
-    // It will be used to place the dropdown arrow under the constructor name.
-    let node = props.input.value
-    while (node instanceof Ast.Ast) {
-      if (node instanceof Ast.PropertyAccess) return node.rhs.id
-      if (node instanceof Ast.App) 
-        node = node.function
-      else break
-    }
-    return null
+provideSelectionArrow(
+  proxyRefs({
+    id: computed(() => {
+      // Find the top-most PropertyAccess, and return its rhs id.
+      // It will be used to place the dropdown arrow under the constructor name.
+      let node = props.input.value
+      while (node instanceof Ast.Ast) {
+        if (node instanceof Ast.PropertyAccess) return node.rhs.id
+        if (node instanceof Ast.App) node = node.function
+        else break
+      }
+      return null
+    }),
+    requestArrow: (target: RendererNode) => {
+      arrowLocation.value = target
+    },
+    handled: false,
   }),
-  requestArrow: (target: RendererNode) => {
-    arrowLocation.value = target
-  },
-  handled: false,
-}))
+)
 
 const isMulti = computed(() => props.input.dynamicConfig?.kind === 'Multiple_Choice')
 const dropDownInteraction = WidgetEditHandler.New('WidgetSelection', props.input, {
