@@ -2,14 +2,21 @@ package org.enso.database.audit;
 
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import org.enso.base.enso_cloud.audit.AuditLog;
+
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.logging.Logger;
-import org.enso.base.enso_cloud.audit.AuditLog;
 
 public final class CloudAuditedConnection extends AuditedConnection {
   private static final Logger logger = Logger.getLogger(CloudAuditedConnection.class.getName());
   private final ObjectNode metadata;
+
+  /**
+   * Because logs are sent asynchronously and their timestamps are only assigned on the receiving end,
+   * we need to assign a sequence number to be able to know the ordering between various events.
+   */
+  private long sequenceNumber = 0;
 
   public CloudAuditedConnection(Connection underlying, String relatedAssetId) {
     super(underlying);
@@ -25,8 +32,10 @@ public final class CloudAuditedConnection extends AuditedConnection {
     }
   }
 
-  private void audit(String operationType, String sql) {
-    AuditLog.logAsync(operationType, sql, metadata);
+  private void audit(String operationType, String message) {
+    var metadataCopy = metadata.deepCopy();
+    metadataCopy.put("sequence_number", sequenceNumber++);
+    AuditLog.logAsync(operationType, message, metadataCopy);
   }
 
   @Override
@@ -36,8 +45,6 @@ public final class CloudAuditedConnection extends AuditedConnection {
 
   @Override
   protected void auditTransaction(String operation) {
-    // As long as our logs don't guarantee ordering, reporting transaction commit/rollback is not
-    // too helpful.
-    // So we just ignore it.
+    audit("transaction", operation);
   }
 }
