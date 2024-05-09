@@ -30,7 +30,7 @@ const showColorPicker = ref(false)
 </script>
 
 <template>
-  <div class="CircularMenu" @pointerdown.stop @pointerup.stop @click.stop>
+  <div class="CircularMenu">
     <div
       v-if="!showColorPicker"
       class="circle menu"
