@@ -229,17 +229,17 @@ export function locateDocsColumnToggle(page: test.Locator | test.Page) {
 
 /** Find a button for the "Recent" category (if any) on the current page. */
 export function locateRecentCategory(page: test.Locator | test.Page) {
-  return page.getByLabel('Go To Recent category')
+  return page.getByLabel('Recent').locator('visible=true')
 }
 
 /** Find a button for the "Home" category (if any) on the current page. */
 export function locateHomeCategory(page: test.Locator | test.Page) {
-  return page.getByLabel('Go To Home category')
+  return page.getByLabel('Home').locator('visible=true')
 }
 
 /** Find a button for the "Trash" category (if any) on the current page. */
 export function locateTrashCategory(page: test.Locator | test.Page) {
-  return page.getByLabel('Go To Trash category')
+  return page.getByLabel('Trash').locator('visible=true')
 }
 
 // === Context menu buttons ===

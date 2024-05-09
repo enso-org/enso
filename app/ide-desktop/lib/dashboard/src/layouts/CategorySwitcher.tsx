@@ -32,6 +32,7 @@ interface CategoryMetadata {
   readonly category: Category
   readonly icon: string
   readonly textId: Extract<text.TextId, `${Category}Category`>
+  readonly buttonTextId: Extract<text.TextId, `${Category}CategoryButtonLabel`>
   readonly dropZoneTextId: Extract<text.TextId, `${Category}CategoryDropZoneLabel`>
 }
 
@@ -44,18 +45,21 @@ const CATEGORY_DATA: CategoryMetadata[] = [
     category: Category.recent,
     icon: RecentIcon,
     textId: 'recentCategory',
+    buttonTextId: 'recentCategoryButtonLabel',
     dropZoneTextId: 'recentCategoryDropZoneLabel',
   },
   {
     category: Category.home,
     icon: Home2Icon,
     textId: 'homeCategory',
+    buttonTextId: 'homeCategoryButtonLabel',
     dropZoneTextId: 'homeCategoryDropZoneLabel',
   },
   {
     category: Category.trash,
     icon: Trash2Icon,
     textId: 'trashCategory',
+    buttonTextId: 'trashCategoryButtonLabel',
     dropZoneTextId: 'trashCategoryDropZoneLabel',
   },
 ]
@@ -77,7 +81,7 @@ interface InternalCategorySwitcherItemProps {
 /** An entry in a {@link CategorySwitcher}. */
 function CategorySwitcherItem(props: InternalCategorySwitcherItemProps) {
   const { data, isCurrent, onPress, acceptedDragTypes, onDrop } = props
-  const { category, icon, textId, dropZoneTextId } = data
+  const { category, icon, textId, buttonTextId, dropZoneTextId } = data
   const { getText } = textProvider.useText()
 
   return (
@@ -90,7 +94,9 @@ function CategorySwitcherItem(props: InternalCategorySwitcherItemProps) {
       onDrop={onDrop}
     >
       <UnstyledButton
+        noTooltip
         className={`rounded-inherit ${isCurrent ? 'focus-default' : ''}`}
+        aria-label={getText(buttonTextId)}
         onPress={onPress}
       >
         <div
