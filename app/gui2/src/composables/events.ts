@@ -279,80 +279,101 @@ export const enum PointerButtonMask {
 }
 
 /**
+ * Options for `usePointer` composable.
+ */
+export interface UsePointerOptions {
+  /** Declare which buttons to look for. The value represents a `PointerEvent.buttons` mask.
+   * Defaults to main mouse button. */
+  requiredButtonMask?: number
+  /** Which element should capture pointer when drag starts: event's `target`, `currentTarget`,
+   * or none.
+   */
+  pointerCapturedBy?: 'target' | 'currentTarget' | 'none'
+  /** Additional condition for drag */
+  predicate?: (e: PointerEvent) => boolean
+}
+
+/**
  * Register for a pointer dragging events.
  *
- * @param handler callback on any pointer event.
- * If `false` is returned from the callback, `preventDefault` will NOT be called for the event.
- * @param requiredButtonMask declare which buttons to look for. The value represents a `PointerEvent.buttons` mask.
+ * @param handler callback on any pointer event. If `false` is returned from the callback, the
+ * event will be considered _not_ handled and will propagate further.
+ * @param options
  * @returns
  */
 export function usePointer(
   handler: (pos: EventPosition, event: PointerEvent, eventType: PointerEventType) => void | boolean,
-  requiredButtonMask: number = PointerButtonMask.Main,
-  predicate?: (e: PointerEvent) => boolean,
+  options: UsePointerOptions = {},
 ) {
-  const trackedPointer: Ref<number | null> = ref(null)
-  let trackedElement: (Element & GlobalEventHandlers) | null = null
-  let initialGrabPos: Vec2 | null = null
-  let lastPos: Vec2 | null = null
+  const requiredButtonMask = options.requiredButtonMask ?? PointerButtonMask.Main
+  const pointerCapturedBy = options.pointerCapturedBy ?? 'currentTarget'
+  const predicate = options.predicate ?? ((_e) => true)
+  const dragState = ref<
+    | {
+        trackedPointer: number
+        trackedElement: Element | undefined
+        initialGrabPos: Vec2
+        lastPos: Vec2
+      }
+    | undefined
+  >()
 
-  const dragging = computed(() => trackedPointer.value != null)
+  const dragging = computed(() => dragState.value != null)
 
   function doStop(e: PointerEvent) {
-    if (trackedPointer.value != null) {
-      trackedElement?.releasePointerCapture(trackedPointer.value)
+    if (dragState.value?.trackedPointer !== e.pointerId) return
+    const { trackedElement, trackedPointer, initialGrabPos, lastPos } = dragState.value
+    trackedElement?.releasePointerCapture(trackedPointer)
+
+    if (handler(computePosition(e, initialGrabPos, lastPos), e, 'stop') !== false) {
+      e.stopImmediatePropagation()
     }
 
-    if (trackedElement != null && initialGrabPos != null && lastPos != null) {
-      if (handler(computePosition(e, initialGrabPos, lastPos), e, 'stop') !== false) {
-        e.preventDefault()
-      }
-
-      lastPos = null
-      trackedElement = null
-    }
-    trackedPointer.value = null
+    dragState.value = undefined
   }
 
   function doMove(e: PointerEvent) {
-    if (trackedElement != null && initialGrabPos != null && lastPos != null) {
-      if (handler(computePosition(e, initialGrabPos, lastPos), e, 'move') !== false) {
-        e.preventDefault()
-      }
-      lastPos = new Vec2(e.clientX, e.clientY)
+    if (dragState.value?.trackedPointer !== e.pointerId) return
+    const { initialGrabPos, lastPos } = dragState.value
+
+    if (handler(computePosition(e, initialGrabPos, lastPos), e, 'move') !== false) {
+      e.stopImmediatePropagation()
     }
+    dragState.value.lastPos = new Vec2(e.clientX, e.clientY)
   }
 
   const events = {
     pointerdown(e: PointerEvent) {
       // pointers should not respond to unmasked mouse buttons
-      if ((e.buttons & requiredButtonMask) === 0 || (predicate && !predicate(e))) {
-        return
-      }
+      if ((e.buttons & requiredButtonMask) === 0 || !predicate(e)) return
+      if (dragState.value != null) return
 
-      if (trackedPointer.value == null && e.currentTarget instanceof Element) {
-        trackedPointer.value = e.pointerId
-        // This is mostly SAFE, as virtually all `Element`s also extend `GlobalEventHandlers`.
-        trackedElement = e.currentTarget as Element & GlobalEventHandlers
+      let trackedElement: Element | undefined
+      const trackedTarget =
+        pointerCapturedBy === 'currentTarget' ? e.currentTarget
+        : pointerCapturedBy === 'target' ? e.target
+        : null
+      if (trackedTarget instanceof Element) {
         // `setPointerCapture` is not defined in tests.
-        trackedElement.setPointerCapture?.(e.pointerId)
-        initialGrabPos = new Vec2(e.clientX, e.clientY)
-        lastPos = initialGrabPos
-        if (handler(computePosition(e, initialGrabPos, lastPos), e, 'start') !== false) {
-          e.preventDefault()
-        }
+        trackedTarget?.setPointerCapture?.(e.pointerId)
+        trackedElement = trackedTarget
+      }
+      const initialGrabPos = new Vec2(e.clientX, e.clientY)
+      const lastPos = initialGrabPos
+      dragState.value = {
+        trackedPointer: e.pointerId,
+        initialGrabPos,
+        lastPos,
+        trackedElement,
+      }
+      if (handler(computePosition(e, initialGrabPos, lastPos), e, 'start') !== false) {
+        e.stopImmediatePropagation()
       }
     },
     pointerup(e: PointerEvent) {
-      if (trackedPointer.value !== e.pointerId) {
-        return
-      }
       doStop(e)
     },
     pointermove(e: PointerEvent) {
-      if (trackedPointer.value !== e.pointerId) {
-        return
-      }
       // handle release of all masked buttons as stop
       if ((e.buttons & requiredButtonMask) !== 0) {
         doMove(e)
@@ -362,24 +383,8 @@ export function usePointer(
     },
   }
 
-  const stopEvents = {
-    pointerdown(e: PointerEvent) {
-      e.stopImmediatePropagation()
-      events.pointerdown(e)
-    },
-    pointerup(e: PointerEvent) {
-      e.stopImmediatePropagation()
-      events.pointerup(e)
-    },
-    pointermove(e: PointerEvent) {
-      e.stopImmediatePropagation()
-      events.pointermove(e)
-    },
-  }
-
   return proxyRefs({
     events,
-    stop: { events: stopEvents },
     dragging,
   })
 }

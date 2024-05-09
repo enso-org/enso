@@ -18,6 +18,7 @@ const conf = [
       '.histoire',
       'playwright-report',
       'test-results',
+      'vite.ydoc-server-polyglot.config.ts',
     ],
   },
   ...compat.extends('plugin:vue/vue3-recommended'),

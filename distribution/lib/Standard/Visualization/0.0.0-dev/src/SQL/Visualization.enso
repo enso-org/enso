@@ -26,5 +26,5 @@ prepare_visualization x =
     mapped = interpolations.map value->
         enso_type = Meta.get_qualified_type_name value
         JS_Object.from_pairs [["value", value], ["enso_type", enso_type]]
-    dialect = x.connection.dialect.name
+    dialect = x.dialect_name
     JS_Object.from_pairs [["dialect", dialect], ["code", code], ["interpolations", mapped]] . to_text

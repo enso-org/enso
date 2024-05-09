@@ -21,7 +21,7 @@ const emit = defineEmits<{
   nodeOutputPortDoubleClick: [portId: AstId]
   nodeDoubleClick: [nodeId: NodeId]
   createNodes: [source: NodeId, options: NodeCreationOptions[]]
-  toggleColorPicker: []
+  setNodeColor: [color: string]
 }>()
 
 const projectStore = useProjectStore()
@@ -59,11 +59,11 @@ const uploadingFiles = computed<[FileName, File][]>(() => {
     @delete="graphStore.deleteNodes([id])"
     @dragging="nodeIsDragged(id, $event)"
     @draggingCommited="dragging.finishDrag()"
-    @outputPortClick="graphStore.createEdgeFromOutput($event)"
-    @outputPortDoubleClick="emit('nodeOutputPortDoubleClick', $event)"
+    @outputPortClick="(event, port) => graphStore.createEdgeFromOutput(port, event)"
+    @outputPortDoubleClick="(_event, port) => emit('nodeOutputPortDoubleClick', port)"
     @doubleClick="emit('nodeDoubleClick', id)"
     @createNodes="emit('createNodes', id, $event)"
-    @toggleColorPicker="emit('toggleColorPicker')"
+    @setNodeColor="emit('setNodeColor', $event)"
     @update:edited="graphStore.setEditedNode(id, $event)"
     @update:rect="graphStore.updateNodeRect(id, $event)"
     @update:visualizationId="

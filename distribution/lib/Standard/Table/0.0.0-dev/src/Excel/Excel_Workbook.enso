@@ -10,7 +10,7 @@ import Standard.Base.System.File.Advanced.Temporary_File.Temporary_File
 import Standard.Base.System.Input_Stream.Input_Stream
 from Standard.Base.Data.Filter_Condition import sql_like_to_regex
 from Standard.Base.Metadata.Choice import Option
-from Standard.Base.Metadata.Widget import Single_Choice, Multiple_Choice
+from Standard.Base.Metadata.Widget import Multiple_Choice, Single_Choice
 
 import project.Excel.Excel_Range.Excel_Range
 import project.Headers.Headers

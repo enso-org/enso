@@ -18,22 +18,23 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Future;
 import java.util.function.Consumer;
 import java.util.logging.Level;
+import java.util.logging.Logger;
 import org.enso.common.CompilationStage;
 import org.enso.common.LanguageInfo;
 import org.enso.compiler.Compiler;
-import org.enso.compiler.PackageRepository;
 import org.enso.compiler.Passes;
 import org.enso.compiler.context.CompilerContext;
-import org.enso.compiler.context.ExportsBuilder;
-import org.enso.compiler.context.ExportsMap;
 import org.enso.compiler.context.FreshNameSupply;
-import org.enso.compiler.context.SuggestionBuilder;
 import org.enso.compiler.core.ir.Diagnostic;
 import org.enso.compiler.core.ir.IdentifiedLocation;
 import org.enso.compiler.data.BindingsMap;
 import org.enso.compiler.data.CompilerConfig;
 import org.enso.compiler.pass.analyse.BindingAnalysis$;
+import org.enso.compiler.suggestions.ExportsBuilder;
+import org.enso.compiler.suggestions.ExportsMap;
+import org.enso.compiler.suggestions.SuggestionBuilder;
 import org.enso.editions.LibraryName;
+import org.enso.interpreter.CompilationAbortedException;
 import org.enso.interpreter.caches.Cache;
 import org.enso.interpreter.caches.ImportExportCache;
 import org.enso.interpreter.caches.ImportExportCache.MapToBindings;
@@ -49,6 +50,7 @@ import scala.collection.immutable.ListSet;
 import scala.collection.immutable.SetOps;
 
 final class TruffleCompilerContext implements CompilerContext {
+  private static final Logger LOG = Logger.getLogger(TruffleCompilerContext.class.getName());
 
   private final EnsoContext context;
   private final TruffleLogger loggerCompiler;
@@ -85,7 +87,7 @@ final class TruffleCompilerContext implements CompilerContext {
   }
 
   @Override
-  public PackageRepository getPackageRepository() {
+  public DefaultPackageRepository getPackageRepository() {
     return context.getPackageRepository();
   }
 
@@ -138,7 +140,7 @@ final class TruffleCompilerContext implements CompilerContext {
   public void truffleRunCodegen(CompilerContext.Module module, CompilerConfig config)
       throws IOException {
     var m = org.enso.interpreter.runtime.Module.fromCompilerModule(module);
-    new IrToTruffle(context, module.getSource(), m.getScope(), config).run(module.getIr());
+    new IrToTruffle(context, m.getSource(), m.getScope(), config).run(module.getIr());
   }
 
   // module related
@@ -149,7 +151,7 @@ final class TruffleCompilerContext implements CompilerContext {
 
   @Override
   public CharSequence getCharacters(CompilerContext.Module module) throws IOException {
-    return module.getSource().getCharacters();
+    return module.getCharacters();
   }
 
   @Override
@@ -160,6 +162,13 @@ final class TruffleCompilerContext implements CompilerContext {
   @Override
   public boolean isInteractive(CompilerContext.Module module) {
     return ((Module) module).unsafeModule().isInteractive();
+  }
+
+  @Override
+  public boolean isModuleInRootPackage(CompilerContext.Module module) {
+    var file = ((Module) module).getSourceFile();
+    var pkg = getPackageOf(getPackageRepository(), file);
+    return pkg.isPresent() && pkg.get() == getPackageRepository().getMainProjectPackage().get();
   }
 
   @Override
@@ -177,8 +186,7 @@ final class TruffleCompilerContext implements CompilerContext {
     return module.getCompilationStage();
   }
 
-  @Override
-  public TypeGraph getTypeHierarchy() {
+  final TypeGraph getTypeHierarchy() {
     return Types.getTypeHierarchy();
   }
 
@@ -251,7 +259,7 @@ final class TruffleCompilerContext implements CompilerContext {
    * size of the module.
    */
   private static boolean isLocationInsideModule(
-      CompilerContext.Module module, IdentifiedLocation location) {
+      org.enso.interpreter.runtime.Module module, IdentifiedLocation location) {
     try {
       return location.end() <= module.getSource().getLength();
     } catch (IOException e) {
@@ -260,26 +268,28 @@ final class TruffleCompilerContext implements CompilerContext {
   }
 
   @Override
-  public String formatDiagnostic(
+  public CompilationAbortedException formatDiagnostic(
       CompilerContext.Module module, Diagnostic diagnostic, boolean isOutputRedirected) {
     DiagnosticFormatter diagnosticFormatter;
+    var m = org.enso.interpreter.runtime.Module.fromCompilerModule(module);
     if (module != null && diagnostic.location().isDefined()) {
       var location = diagnostic.location().get();
-      if (isLocationInsideModule(module, location)) {
+      if (isLocationInsideModule(m, location)) {
         Source source;
         try {
-          source = module.getSource();
+          source = m.getSource();
         } catch (IOException e) {
           throw new AssertionError(e);
         }
         assert source != null;
         diagnosticFormatter = new DiagnosticFormatter(diagnostic, source, isOutputRedirected);
-        return diagnosticFormatter.format();
+        return new CompilationAbortedException(
+            diagnosticFormatter.format(), diagnosticFormatter.where());
       }
     }
     var emptySource = Source.newBuilder(LanguageInfo.ID, "", null).build();
     diagnosticFormatter = new DiagnosticFormatter(diagnostic, emptySource, isOutputRedirected);
-    return diagnosticFormatter.format();
+    return new CompilationAbortedException(diagnosticFormatter.format(), null);
   }
 
   @SuppressWarnings("unchecked")
@@ -334,7 +344,8 @@ final class TruffleCompilerContext implements CompilerContext {
     var duplicatedIr = compiler.updateMetadata(ir, dupl);
     Source src;
     try {
-      src = module.getSource();
+      var m = org.enso.interpreter.runtime.Module.fromCompilerModule(module);
+      src = m.getSource();
     } catch (IOException ex) {
       logSerializationManager(Level.WARNING, "Cannot get source for " + module.getName(), ex);
       return CompletableFuture.failedFuture(ex);
@@ -549,7 +560,7 @@ final class TruffleCompilerContext implements CompilerContext {
           .flatMap(
               module -> {
                 var sug =
-                    SuggestionBuilder.apply(module, compiler)
+                    SuggestionBuilder.apply(module, getTypeHierarchy(), compiler)
                         .build(module.getName(), module.getIr())
                         .toVector()
                         .filter(Suggestion::isGlobal);
@@ -589,8 +600,8 @@ final class TruffleCompilerContext implements CompilerContext {
   }
 
   @Override
-  public scala.Option<List<org.enso.polyglot.Suggestion>> deserializeSuggestions(
-      LibraryName libraryName) throws InterruptedException {
+  public scala.Option<Object> deserializeSuggestions(LibraryName libraryName)
+      throws InterruptedException {
     var option = deserializeSuggestionsImpl(libraryName);
     return option.map(s -> s.getSuggestions());
   }
@@ -644,6 +655,11 @@ final class TruffleCompilerContext implements CompilerContext {
     } catch (InterruptedException ex) {
       logSerializationManager(Level.WARNING, ex.getMessage(), ex);
     }
+  }
+
+  @Override
+  public RuntimeException throwAbortedException() {
+    throw new CompilationAbortedException();
   }
 
   private final class ModuleUpdater implements Updater, AutoCloseable {
@@ -725,8 +741,8 @@ final class TruffleCompilerContext implements CompilerContext {
     }
 
     @Override
-    public Source getSource() throws IOException {
-      return module.getSource();
+    public CharSequence getCharacters() throws IOException {
+      return module.getSource().getCharacters();
     }
 
     @Override
@@ -768,8 +784,7 @@ final class TruffleCompilerContext implements CompilerContext {
       return bindings;
     }
 
-    @Override
-    public TruffleFile getSourceFile() {
+    final TruffleFile getSourceFile() {
       return module.getSourceFile();
     }
 
@@ -839,5 +854,29 @@ final class TruffleCompilerContext implements CompilerContext {
   private static QualifiedName toQualifiedName(LibraryName libraryName) {
     var namespace = cons(libraryName.namespace(), nil());
     return new QualifiedName(namespace, libraryName.name());
+  }
+
+  /**
+   * Finds the package the provided module belongs to.
+   *
+   * @param packageRepository repository to work on
+   * @param file the module to find the package of
+   * @return {@code module}'s package, if exists
+   */
+  static Optional<Package<TruffleFile>> getPackageOf(
+      DefaultPackageRepository packageRepository, TruffleFile file) {
+    try {
+      if (file != null) {
+        file = file.getCanonicalFile();
+        for (var pkg : packageRepository.getLoadedPackagesJava()) {
+          if (file.startsWith(pkg.root().getCanonicalFile())) {
+            return Optional.of(pkg);
+          }
+        }
+      }
+    } catch (IOException e) {
+      LOG.log(Level.WARNING, null, e);
+    }
+    return Optional.empty();
   }
 }

@@ -139,6 +139,7 @@ export interface AppProps {
   readonly initialProjectName: string | null
   readonly onAuthenticated: (accessToken: string | null) => void
   readonly projectManagerUrl: string | null
+  readonly ydocUrl: string | null
   readonly appRunner: AppRunner
 }
 
@@ -331,7 +332,8 @@ function AppRouter(props: AppRouterProps) {
       if (
         isClick &&
         !eventModule.isElementTextInput(event.target) &&
-        !eventModule.isElementPartOfMonaco(event.target)
+        !eventModule.isElementPartOfMonaco(event.target) &&
+        !eventModule.isElementTextInput(document.activeElement)
       ) {
         const selection = document.getSelection()
         const app = document.getElementById('app')

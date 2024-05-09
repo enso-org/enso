@@ -41,7 +41,6 @@ const ACTION_TO_TEXT_ID: Readonly<Record<inputBindings.DashboardBindingKey, text
   paste: 'pasteShortcut',
   download: 'downloadShortcut',
   uploadFiles: 'uploadFilesShortcut',
-  uploadProjects: 'uploadProjectsShortcut',
   newProject: 'newProjectShortcut',
   newFolder: 'newFolderShortcut',
   newDataLink: 'newDataLinkShortcut',

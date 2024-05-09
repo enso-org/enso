@@ -1,7 +1,8 @@
 package org.enso.interpreter.test;
 
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.*;
+import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.is;
 
 import com.oracle.truffle.api.source.Source;
 import java.io.ByteArrayOutputStream;
@@ -67,8 +68,8 @@ public class DiagnosticFormatterTest {
 tmp_test:1:8: error: The name `foo` could not be found.
     1 | main = foo
       |        ^~~""";
-    var module = ctx.eval(polyglotSrc);
     try {
+      var module = ctx.eval(polyglotSrc);
       module.invokeMember(Module.EVAL_EXPRESSION, "main");
     } catch (PolyglotException e) {
       assertThat(output.toString(), containsString(expectedDiagnostics));

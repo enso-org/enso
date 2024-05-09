@@ -9,6 +9,9 @@ export default /** @satisfies {import('tailwindcss').Config} */ ({
   important: `:is(.enso-dashboard, .enso-chat)`,
   theme: {
     extend: {
+      cursor: {
+        unset: 'unset',
+      },
       colors: {
         // While these COULD ideally be defined as CSS variables, then their opacity cannot be
         // modified.
@@ -145,6 +148,7 @@ export default /** @satisfies {import('tailwindcss').Config} */ ({
         'invite-users-modal': 'var(--invite-users-modal-width)',
         'manage-permissions-modal': 'var(--manage-permissions-modal-width)',
         'upsert-data-link-modal': 'var(--upsert-data-link-modal-width)',
+        'upsert-data-link-modal-max': 'var(--upsert-data-link-modal-max-width)',
         'upsert-secret-modal': 'var(--upsert-secret-modal-width)',
 
         'members-name-column': 'var(--members-name-column-width)',
@@ -376,6 +380,21 @@ export default /** @satisfies {import('tailwindcss').Config} */ ({
         soft: `0 0.5px 2.2px 0px #00000008, 0 1.2px 5.3px 0px #0000000b, \
 0 2.3px 10px 0 #0000000e, 0 4px 18px 0 #00000011, 0 7.5px 33.4px 0 #00000014, \
 0 18px 80px 0 #0000001c`,
+        'inset-t-lg': `inset 0 1px 1.4px -1.4px #00000002, \
+inset 0 2.4px 3.4px -3.4px #00000003, inset 0 4.5px 6.4px -6.4px #00000004, \
+inset 0 8px 11.4px -11.4px #00000005, inset 0 15px 21.3px -21.3px #00000006, \
+inset 0 36px 51px -51px #00000014`,
+        'inset-b-lg': `inset 0 -1px 1.4px -1.4px #00000002, \
+inset 0 -2.4px 3.4px -3.4px #00000003, inset 0 -4.5px 6.4px -6.4px #00000004, \
+inset 0 -8px 11.4px -11.4px #00000005, inset 0 -15px 21.3px -21.3px #00000006, \
+inset 0 -36px 51px -51px #00000014`,
+        'inset-v-lg': `inset 0 1px 1.4px -1.4px #00000002, \
+inset 0 2.4px 3.4px -3.4px #00000003, inset 0 4.5px 6.4px -6.4px #00000004, \
+inset 0 8px 11.4px -11.4px #00000005, inset 0 15px 21.3px -21.3px #00000006, \
+inset 0 36px 51px -51px #00000014, inset 0 -1px 1.4px -1.4px #00000002, \
+inset 0 -2.4px 3.4px -3.4px #00000003, inset 0 -4.5px 6.4px -6.4px #00000004, \
+inset 0 -8px 11.4px -11.4px #00000005, inset 0 -15px 21.3px -21.3px #00000006, \
+inset 0 -36px 51px -51px #00000014`,
       },
       animation: {
         'spin-ease': 'spin cubic-bezier(0.67, 0.33, 0.33, 0.67) 1.5s infinite',
@@ -420,7 +439,9 @@ export default /** @satisfies {import('tailwindcss').Config} */ ({
   },
   plugins: [
     reactAriaComponents,
-    plugin(({ addUtilities, matchUtilities, addComponents, theme }) => {
+    plugin(({ addVariant, addUtilities, matchUtilities, addComponents, theme }) => {
+      addVariant('group-hover-2', ['.group:where([data-hovered]) &', '.group:where(:hover) &'])
+
       addUtilities(
         {
           '.container-size': {
@@ -495,16 +516,22 @@ export default /** @satisfies {import('tailwindcss').Config} */ ({
 
           '.rounded-rows': {
             [`:where(
-            & > tbody > tr:nth-child(odd) > td:not(.rounded-rows-skip-level),
-            & > tbody > tr:nth-child(odd) > td.rounded-rows-skip-level > *
-          )`]: {
-              backgroundColor: `rgba(0 0 0 / 3%)`,
+              & > tbody > tr:nth-child(odd of .rounded-rows-child) > td:not(.rounded-rows-skip-level),
+              & > tbody > tr:nth-child(odd of .rounded-rows-child) > td.rounded-rows-skip-level > *
+            )`]: {
+              backgroundColor: `rgb(0 0 0 / 3%)`,
             },
             [`:where(
-            & > tbody > tr.selected > td:not(.rounded-rows-skip-level),
-            & > tbody > tr.selected > td.rounded-rows-skip-level > *
-          )`]: {
-              backgroundColor: 'rgb(255, 255, 255, 40%)',
+              & > tbody > tr.rounded-rows-child.selected > td:not(.rounded-rows-skip-level),
+              & > tbody > tr.rounded-rows-child.selected > td.rounded-rows-skip-level > *
+            )`]: {
+              backgroundColor: 'rgb(255 255 255 / 40%)',
+            },
+            [`:where(
+              & > tbody > tr.rounded-rows-child[data-drop-target] > td:not(.rounded-rows-skip-level),
+              & > tbody > tr.rounded-rows-child[data-drop-target] > td.rounded-rows-skip-level > *
+            )`]: {
+              backgroundColor: 'rgb(0 0 0 / 8%)',
             },
           },
 

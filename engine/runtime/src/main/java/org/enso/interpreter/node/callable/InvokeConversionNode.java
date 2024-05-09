@@ -103,7 +103,12 @@ public abstract class InvokeConversionNode extends BaseNode {
     return typeOfNode.execute(value) instanceof Type;
   }
 
-  @Specialization(guards = {"hasType(dispatch, that)"})
+  static boolean isDataflowError(Object value) {
+    return value instanceof DataflowError;
+  }
+
+  @Specialization(
+      guards = {"hasType(dispatch, that)", "!isDataflowError(self)", "!isDataflowError(that)"})
   Object doConvertFrom(
       VirtualFrame frame,
       State state,
@@ -123,8 +128,9 @@ public abstract class InvokeConversionNode extends BaseNode {
     }
   }
 
+  /** If {@code that} is a dataflow error, we try to find a conversion for it. */
   @Specialization
-  Object doDataflowError(
+  Object doConvertDataflowError(
       VirtualFrame frame,
       State state,
       UnresolvedConversion conversion,
@@ -141,6 +147,18 @@ public abstract class InvokeConversionNode extends BaseNode {
     } else {
       return that;
     }
+  }
+
+  /** If {@code self} is a dataflow error, we just propagate it. */
+  @Specialization
+  Object doDataflowErrorSentinel(
+      VirtualFrame frame,
+      State state,
+      UnresolvedConversion conversion,
+      DataflowError self,
+      Object that,
+      Object[] arguments) {
+    return self;
   }
 
   @Specialization

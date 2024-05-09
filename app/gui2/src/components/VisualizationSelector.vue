@@ -40,9 +40,6 @@ onMounted(() => setTimeout(() => rootNode.value?.querySelector('button')?.focus(
     ref="rootNode"
     class="VisualizationSelector"
     @focusout="$event.relatedTarget == null && emit('hide')"
-    @pointerdown.stop
-    @pointerup.stop
-    @click.stop
   >
     <div class="background"></div>
     <ul>

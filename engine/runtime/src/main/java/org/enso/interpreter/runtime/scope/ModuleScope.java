@@ -54,7 +54,7 @@ public final class ModuleScope implements EnsoObject {
     this.imports = new HashSet<>();
     this.exports = new HashSet<>();
     this.module = module;
-    this.associatedType = Type.createSingleton(module.getName().item(), this, null, false);
+    this.associatedType = Type.createSingleton(module.getName().item(), this, null, false, false);
   }
 
   public ModuleScope(
@@ -103,7 +103,7 @@ public final class ModuleScope implements EnsoObject {
   }
 
   /**
-   * Returns a map of methods defined in this module for a given constructor.
+   * Returns a map of methods defined in this module for a given type.
    *
    * @param type the type for which method map is requested
    * @return a map containing all the defined methods by name
@@ -328,13 +328,29 @@ public final class ModuleScope implements EnsoObject {
   /**
    * Returns the names of methods for the given type.
    *
-   * @param tpe the type in the scope
-   * @return names of methods
+   * @param tpe the type in the scope. If null, treated as {@code noType}.
+   * @return names of methods or null
    */
   public Set<String> getMethodNamesForType(Type tpe) {
     Type tpeKey = tpe == null ? noTypeKey : tpe;
     var allTpeMethods = methods.get(tpeKey);
     return allTpeMethods == null ? null : allTpeMethods.keySet();
+  }
+
+  /**
+   * Returns a set of all the functions for a type, or null.
+   *
+   * @param tpe the type in the scope. If null, treated as {@code noType}.
+   * @return set of methods or null.
+   */
+  public Set<Function> getMethodsForType(Type tpe) {
+    Type tpeKey = tpe == null ? noTypeKey : tpe;
+    var allTpeMethods = methods.get(tpeKey);
+    if (allTpeMethods != null) {
+      return allTpeMethods.values().stream().map(Supplier::get).collect(Collectors.toSet());
+    } else {
+      return null;
+    }
   }
 
   /**

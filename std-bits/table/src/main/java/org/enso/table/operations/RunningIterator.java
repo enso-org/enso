@@ -1,6 +1,8 @@
 package org.enso.table.operations;
 
-public interface RunningIterator {
+public interface RunningIterator<T> {
 
-  Double next(Double value);
+  T next(T value);
+
+  T currentValue();
 }

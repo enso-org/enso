@@ -173,8 +173,8 @@ add_specs suite_builder =
             expect_no_warns [[1]].sort
 
         group_builder.specify "should produce warnings when sorting nested vectors" <|
-            [[1], [2]].sort . should_equal [[1], [2]]
-            [[2], [1]].sort . should_equal [[2], [1]]
+            expect_incomparable_warn [1] [2] <| [[1], [2]].sort on_incomparable=Problem_Behavior.Report_Warning . should_equal [[1], [2]]
+            expect_incomparable_warn [2] [1] <| [[2], [1]].sort on_incomparable=Problem_Behavior.Report_Warning . should_equal [[2], [1]]
 
         group_builder.specify "should be able to sort primitive values in atoms" pending=topo_sort_pending <|
             [Ord.Value Nothing, Ord.Value 20, Ord.Value 10].sort . should_equal [Ord.Value 10, Ord.Value 20, Ord.Value Nothing]

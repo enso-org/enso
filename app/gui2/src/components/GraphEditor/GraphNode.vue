@@ -9,16 +9,17 @@ import GraphNodeMessage, {
 } from '@/components/GraphEditor/GraphNodeMessage.vue'
 import GraphNodeSelection from '@/components/GraphEditor/GraphNodeSelection.vue'
 import GraphVisualization from '@/components/GraphEditor/GraphVisualization.vue'
+import type { NodeCreationOptions } from '@/components/GraphEditor/nodeCreation'
 import NodeWidgetTree, {
   GRAB_HANDLE_X_MARGIN,
   ICON_WIDTH,
 } from '@/components/GraphEditor/NodeWidgetTree.vue'
-import type { NodeCreationOptions } from '@/components/GraphEditor/nodeCreation'
 import SvgIcon from '@/components/SvgIcon.vue'
 import { useApproach } from '@/composables/animation'
 import { useDoubleClick } from '@/composables/doubleClick'
 import { usePointer, useResizeObserver } from '@/composables/events'
 import { injectGraphNavigator } from '@/providers/graphNavigator'
+import { injectNodeColors } from '@/providers/graphNodeColors'
 import { injectGraphSelection } from '@/providers/graphSelection'
 import { useGraphStore, type Node } from '@/stores/graph'
 import { asNodeId } from '@/stores/graph/graphDatabase'
@@ -54,11 +55,11 @@ const emit = defineEmits<{
   draggingCommited: []
   delete: []
   replaceSelection: []
-  outputPortClick: [portId: AstId]
-  outputPortDoubleClick: [portId: AstId]
+  outputPortClick: [event: PointerEvent, portId: AstId]
+  outputPortDoubleClick: [event: PointerEvent, portId: AstId]
   doubleClick: []
   createNodes: [options: NodeCreationOptions[]]
-  toggleColorPicker: []
+  setNodeColor: [color: string]
   'update:edited': [cursorPosition: number]
   'update:rect': [rect: Rect]
   'update:visualizationId': [id: Opt<VisualizationIdentifier>]
@@ -161,7 +162,9 @@ const selected = computed(() => nodeSelection?.isSelected(nodeId.value) ?? false
 const selectionVisible = ref(false)
 
 const isOnlyOneSelected = computed(
-  () => selected.value && nodeSelection?.selected.size === 1 && !nodeSelection.isChanging,
+  () =>
+    nodeSelection?.committedSelection.size === 1 &&
+    nodeSelection?.committedSelection.has(nodeId.value),
 )
 
 const menuVisible = computed(() => menuEnabledByHover.value || isOnlyOneSelected.value)
@@ -241,40 +244,40 @@ const transform = computed(() => {
 })
 
 const startEpochMs = ref(0)
-let startEvent: PointerEvent | null = null
-let startPos = Vec2.Zero
+let significantMove = false
 
-// TODO[ao]: Now, the dragPointer.events are preventing `click` events on widgets if they don't
-// stop pointerup and pointerdown. Now we ensure that any widget handling click does that, but
-// instead `usePointer` should be smarter.
-const dragPointer = usePointer((pos, event, type) => {
-  if (type !== 'start') {
-    const fullOffset = pos.absolute.sub(startPos)
-    emit('dragging', fullOffset)
-  }
-  switch (type) {
-    case 'start': {
-      startEpochMs.value = Number(new Date())
-      startEvent = event
-      startPos = pos.absolute
-      event.stopImmediatePropagation()
-      break
-    }
-    case 'stop': {
+const dragPointer = usePointer(
+  (pos, event, type) => {
+    if (type !== 'start') {
       if (
-        Number(new Date()) - startEpochMs.value <= MAXIMUM_CLICK_LENGTH_MS &&
-        startEvent != null &&
-        pos.absolute.distanceSquared(startPos) <= MAXIMUM_CLICK_DISTANCE_SQ
+        !significantMove &&
+        (Number(new Date()) - startEpochMs.value >= MAXIMUM_CLICK_LENGTH_MS ||
+          pos.relative.lengthSquared() >= MAXIMUM_CLICK_DISTANCE_SQ)
       ) {
-        nodeSelection?.handleSelectionOf(event, new Set([nodeId.value]))
-        handleNodeClick(event)
+        // If this is clearly a drag (not a click), the node itself capture pointer events to
+        // prevent `click` on widgets.
+        if (event.currentTarget instanceof Element)
+          event.currentTarget.setPointerCapture?.(event.pointerId)
+        significantMove = true
       }
-      startEvent = null
-      startEpochMs.value = 0
-      emit('draggingCommited')
+      const fullOffset = pos.relative
+      emit('dragging', fullOffset)
     }
-  }
-})
+    switch (type) {
+      case 'start':
+        startEpochMs.value = Number(new Date())
+        significantMove = false
+        break
+      case 'stop': {
+        startEpochMs.value = 0
+        emit('draggingCommited')
+      }
+    }
+  },
+  // Pointer is captured by `target`, to make it receive the `up` and `click` event in case this
+  // is not going to be a node drag.
+  { pointerCapturedBy: 'target' },
+)
 
 const isRecordingOverridden = computed({
   get() {
@@ -360,18 +363,25 @@ function getRelatedSpanOffset(domNode: globalThis.Node, domOffset: number): numb
 }
 
 const handlePortClick = useDoubleClick(
-  (portId: AstId) => emit('outputPortClick', portId),
-  (portId: AstId) => emit('outputPortDoubleClick', portId),
+  (event: PointerEvent, portId: AstId) => emit('outputPortClick', event, portId),
+  (event: PointerEvent, portId: AstId) => emit('outputPortDoubleClick', event, portId),
 ).handleClick
 
 const handleNodeClick = useDoubleClick(
-  (e: MouseEvent) => nodeEditHandler(e),
-  () => emit('doubleClick'),
+  (e: MouseEvent) => {
+    if (!significantMove) {
+      nodeSelection?.handleSelectionOf(e, new Set([nodeId.value]))
+      nodeEditHandler(e)
+    }
+  },
+  () => {
+    if (!significantMove) emit('doubleClick')
+  },
 ).handleClick
 
 interface PortData {
   clipRange: [number, number]
-  label: string
+  label: string | undefined
   portId: AstId
 }
 
@@ -379,12 +389,9 @@ const outputPorts = computed((): PortData[] => {
   const ports = outputPortsSet.value
   const numPorts = ports.size
   return Array.from(ports, (portId, index): PortData => {
-    const labelIdent = numPorts > 1 ? graph.db.getOutputPortIdentifier(portId) + ': ' : ''
-    const labelType =
-      graph.db.getExpressionInfo(numPorts > 1 ? portId : nodeId.value)?.typename ?? 'Unknown'
     return {
       clipRange: [index / numPorts, (index + 1) / numPorts],
-      label: labelIdent + labelType,
+      label: numPorts > 1 ? graph.db.getOutputPortIdentifier(portId) : undefined,
       portId,
     }
   })
@@ -406,7 +413,14 @@ watchEffect(() => {
       const scope = effectScope(true)
       const approach = scope.run(() =>
         useApproach(
-          () => (outputHovered.value === port || graph.unconnectedEdge?.target === port ? 1 : 0),
+          () =>
+            (
+              outputHovered.value === port ||
+              graph.unconnectedEdge?.target === port ||
+              selectionVisible.value
+            ) ?
+              1
+            : 0,
           50,
           0.01,
         ),
@@ -447,6 +461,8 @@ const documentation = computed<string | undefined>({
     })
   },
 })
+
+const { getNodeColor, visibleNodeColors } = injectNodeColors()
 </script>
 
 <template>
@@ -484,9 +500,10 @@ const documentation = computed<string | undefined>({
         @pointermove="updateSelectionHover"
         @pointerleave="updateSelectionHover(undefined)"
         v-on="dragPointer.events"
+        @click="handleNodeClick"
       />
     </Teleport>
-    <div class="binding" @pointerdown.stop v-text="node.pattern?.code()" />
+    <div class="binding" v-text="node.pattern?.code()" />
     <button
       v-if="!menuVisible && isRecordingOverridden"
       class="overrideRecordButton"
@@ -502,6 +519,8 @@ const documentation = computed<string | undefined>({
       :isRecordingEnabledGlobally="projectStore.isRecordingEnabled"
       :isVisualizationVisible="isVisualizationVisible"
       :isFullMenuVisible="menuVisible && menuFull"
+      :nodeColor="getNodeColor(nodeId)"
+      :visibleNodeColors="visibleNodeColors"
       @update:isVisualizationVisible="emit('update:visualizationVisible', $event)"
       @startEditing="startEditingNode"
       @startEditingComment="editingComment = true"
@@ -510,7 +529,7 @@ const documentation = computed<string | undefined>({
       @createNodes="emit('createNodes', $event)"
       @pointerenter="menuHovered = true"
       @pointerleave="menuHovered = false"
-      @toggleColorPicker="emit('toggleColorPicker')"
+      @update:nodeColor="emit('setNodeColor', $event)"
     />
     <GraphVisualization
       v-if="isVisualizationVisible"
@@ -529,6 +548,7 @@ const documentation = computed<string | undefined>({
       @update:visible="emit('update:visualizationVisible', $event)"
       @update:fullscreen="emit('update:visualizationFullscreen', $event)"
       @update:width="emit('update:visualizationWidth', $event)"
+      @update:nodePosition="graph.setNodePosition(nodeId, $event)"
       @createNodes="emit('createNodes', $event)"
     />
     <Suspense>
@@ -539,14 +559,7 @@ const documentation = computed<string | undefined>({
         class="beforeNode"
       />
     </Suspense>
-    <div
-      ref="contentNode"
-      class="content"
-      v-on="dragPointer.events"
-      @click.stop
-      @pointerdown.stop
-      @pointerup.stop
-    >
+    <div ref="contentNode" class="content" v-on="dragPointer.events" @click="handleNodeClick">
       <NodeWidgetTree
         :ast="props.node.innerExpr"
         :nodeId="nodeId"
@@ -583,7 +596,7 @@ const documentation = computed<string | undefined>({
               class="outputPortHoverArea"
               @pointerenter="outputHovered = port.portId"
               @pointerleave="outputHovered = undefined"
-              @pointerdown.stop.prevent="handlePortClick(port.portId)"
+              @pointerdown.stop.prevent="handlePortClick($event, port.portId)"
             />
             <rect class="outputPort" />
           </g>
@@ -600,21 +613,19 @@ const documentation = computed<string | undefined>({
   height: 100%;
   position: absolute;
   overflow: visible;
-  top: 0px;
-  left: 0px;
+  top: 0;
+  left: 0;
   display: flex;
 
-  --output-port-max-width: 6px;
-  --output-port-overlap: 0.2px;
-  --output-port-hover-width: 8px;
+  --output-port-max-width: 4px;
+  --output-port-overlap: -8px;
+  --output-port-hover-width: 20px;
 }
 
 .outputPort,
 .outputPortHoverArea {
   x: calc(0px - var(--output-port-width) / 2);
-  y: calc(0px - var(--output-port-width) / 2);
   width: calc(var(--node-width) + var(--output-port-width));
-  height: calc(var(--node-height) + var(--output-port-width));
   rx: calc(var(--node-border-radius) + var(--output-port-width) / 2);
 
   fill: none;
@@ -638,13 +649,21 @@ const documentation = computed<string | undefined>({
   --output-port-width: calc(
     var(--output-port-max-width) * var(--hover-animation) - var(--output-port-overlap)
   );
+  y: calc(0px - var(--output-port-width) / 2);
+  height: calc(var(--node-height) + var(--output-port-width));
   pointer-events: none;
 }
 
 .outputPortHoverArea {
   --output-port-width: var(--output-port-hover-width);
+  y: calc(
+    0px + var(--output-port-hover-width) / 2 + var(--output-port-overlap) / 2 + var(--node-height) /
+      2
+  );
+  height: calc(var(--node-height) / 2 + var(--output-port-hover-width) / 2);
   stroke: transparent;
   pointer-events: all;
+  cursor: pointer;
 }
 
 .portClip {

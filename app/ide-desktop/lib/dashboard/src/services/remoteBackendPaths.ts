@@ -55,6 +55,10 @@ export const LIST_PROJECT_SESSIONS_PATH = 'project-sessions'
 export const CREATE_TAG_PATH = 'tags'
 /** Relative HTTP path to the "list tags" endpoint of the Cloud backend API. */
 export const LIST_TAGS_PATH = 'tags'
+/** Relative HTTP path to the "create user group" endpoint of the Cloud backend API. */
+export const CREATE_USER_GROUP_PATH = 'usergroups'
+/** Relative HTTP path to the "list user groups" endpoint of the Cloud backend API. */
+export const LIST_USER_GROUPS_PATH = 'usergroups'
 /** Relative HTTP path to the "list versions" endpoint of the Cloud backend API. */
 export const LIST_VERSIONS_PATH = 'versions'
 /** Relative HTTP path to the "create checkout session" endpoint of the Cloud backend API. */
@@ -63,6 +67,10 @@ export const CREATE_CHECKOUT_SESSION_PATH = 'payments/checkout-sessions'
 export const GET_CHECKOUT_SESSION_PATH = 'payments/checkout-sessions'
 /** Relative HTTP path to the "get log events" endpoint of the Cloud backend API. */
 export const GET_LOG_EVENTS_PATH = 'log_events'
+/** Relative HTTP path to the "change user groups" endpoint of the Cloud backend API. */
+export function changeUserGroupPath(userId: backend.UserId) {
+  return `users/${userId}/usergroups`
+}
 /** Relative HTTP path to the "list asset versions" endpoint of the Cloud backend API. */
 export function listAssetVersionsPath(assetId: backend.AssetId) {
   return `assets/${assetId}/versions`
@@ -134,6 +142,10 @@ export function associateTagPath(assetId: backend.AssetId) {
 /** Relative HTTP path to the "delete tag" endpoint of the Cloud backend API. */
 export function deleteTagPath(tagId: backend.TagId) {
   return `tags/${tagId}`
+}
+/** Relative HTTP path to the "delete user group" endpoint of the Cloud backend API. */
+export function deleteUserGroupPath(groupId: backend.UserGroupId) {
+  return `usergroups/${groupId}`
 }
 /** Relative HTTP path to the "get checkout session" endpoint of the Cloud backend API. */
 export function getCheckoutSessionPath(checkoutSessionId: backend.CheckoutSessionId) {

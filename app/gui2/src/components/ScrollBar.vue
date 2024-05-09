@@ -121,11 +121,11 @@ export type ScrollbarEvent =
 </script>
 
 <template>
-  <div ref="element" class="ScrollBar" @click.stop @pointerdown.stop @pointerup.stop>
-    <div class="track vertical" @pointerdown="clickTrack.y">
+  <div ref="element" class="ScrollBar">
+    <div class="track vertical" @pointerdown.stop="clickTrack.y">
       <div class="bar vertical" v-on.stop="dragSlider.y" />
     </div>
-    <div class="track horizontal" @pointerdown="clickTrack.x">
+    <div class="track horizontal" @pointerdown.stop="clickTrack.x">
       <div class="bar horizontal" v-on.stop="dragSlider.x" />
     </div>
   </div>
