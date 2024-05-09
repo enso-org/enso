@@ -7,6 +7,7 @@ import project.In_Memory.Builders_Spec
 import project.In_Memory.Column_Spec
 import project.In_Memory.Column_Format_Spec
 import project.In_Memory.Common_Spec
+import project.In_Memory.Fan_Out_Spec
 import project.In_Memory.Integer_Overflow_Spec
 import project.In_Memory.Lossy_Conversions_Spec
 import project.In_Memory.Parse_To_Table_Spec
@@ -16,6 +17,7 @@ import project.In_Memory.Table_Xml_Spec
 import project.In_Memory.Table_Conversion_Spec
 import project.In_Memory.Table_Date_Spec
 import project.In_Memory.Table_Date_Time_Spec
+import project.In_Memory.Table_Format_Spec
 import project.In_Memory.Table_Time_Of_Day_Spec
 import project.In_Memory.Table_Running_Spec
 
